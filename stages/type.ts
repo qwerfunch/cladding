@@ -5,35 +5,55 @@
 //   determinism: deterministic
 //   llm cost: 0
 //
-// TypeScript so cladding can apply stage_1.1 to itself (self-dogfood).
-// Required for L7 conformance: declaring `iron-law: L1` must mean the
-// declaration's own codebase passes the declared stage.
+// Polyglot: the actual command is chosen by `detectToolchain` based on the
+// project's manifest (package.json → tsc, pyproject.toml → mypy, Cargo.toml
+// → cargo check, …). cladding stays language-agnostic.
 
-import {spawnSync} from 'node:child_process';
 import process from 'node:process';
 
+import {execaSync} from 'execa';
+
+import {detectToolchain} from './toolchain/detect.js';
 import type {CommandStageOptions, StageResult} from './types.js';
+
+const STAGE = 'stage_1.1';
 
 /**
  * Runs the project's type checker and returns an Ironclad-shaped stage result.
  *
- * Defers *what counts as a type error* to the project's own toolchain — this
- * function only translates the process exit signal into {@link StageResult}.
- * Host-agnostic: any toolchain whose exit code follows the `0 = pass` convention
- * works (tsc, pyright, mypy via override, etc.).
+ * The tool is resolved in this priority:
+ *   1. Explicit `opts.cmd` + `opts.args` (full override)
+ *   2. `detectToolchain(cwd).gates.type` (manifest-driven default)
+ *   3. When `language: 'unknown'` and no override → `pass=false, exitCode=2`
+ *      with a `stderr` explaining the gap (not a true failure — caller can
+ *      treat code 2 as "skipped").
  *
- * @param opts - Optional cwd, command, or argument override.
+ * @param opts - Optional cwd / cmd / args override.
  * @returns A stage result. `pass=true` exactly when `exitCode === 0`.
  * @see iron-law.md stage_1.1 — "type checker exit 0, no errors".
+ * @see toolchain/detect.ts — polyglot manifest chain.
  */
 export function runType(opts: CommandStageOptions = {}): StageResult {
-  const {cwd = '.', cmd = 'npx', args = ['tsc', '--noEmit']} = opts;
-  const proc = spawnSync(cmd, [...args], {cwd, encoding: 'utf8'});
-  const exitCode = proc.status ?? 1;
+  const {cwd = '.'} = opts;
+  const toolchain = detectToolchain(cwd);
+  const spec = toolchain.gates.type;
+  const cmd = opts.cmd ?? spec?.cmd;
+  const args = opts.args ?? spec?.args;
+  if (!cmd || !args) {
+    return {
+      stage: STAGE,
+      pass: false,
+      exitCode: 2,
+      stderr: `no type checker registered for language '${toolchain.language}'`,
+    };
+  }
+  const proc = execaSync(cmd, [...args], {cwd, reject: false});
+  const exitCode = proc.exitCode ?? 1;
   const pass = exitCode === 0;
-  const result: StageResult = {stage: 'stage_1.1', pass, exitCode};
-  if (!pass && proc.stderr) {
-    return {...result, stderr: proc.stderr.trim()};
+  const result: StageResult = {stage: STAGE, pass, exitCode};
+  if (!pass) {
+    const stderr = (proc.stderr ?? '').toString().trim();
+    if (stderr) return {...result, stderr};
   }
   return result;
 }

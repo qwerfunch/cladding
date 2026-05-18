@@ -25,8 +25,8 @@ Ironclad iron-law stage implementations. One module per stage. Shared types in `
 
 | stage | file | pass criteria (Ironclad spec) | determinism | default tool |
 |---|---|---|---|---|
-| stage_1.1 Type | `type.ts` | type checker exit 0, no errors | deterministic | `npx tsc --noEmit` |
-| stage_1.2 Lint | `lint.ts` | linter exit 0, no errors | deterministic | `npx eslint .` |
+| stage_1.1 Type | `type.ts` | type checker exit 0, no errors | deterministic | polyglot chain (TS→tsc · Py→mypy · Rust→cargo check · …) |
+| stage_1.2 Lint | `lint.ts` | linter exit 0, no errors | deterministic | polyglot chain (TS→eslint · Py→ruff · Rust→clippy · …) |
 | stage_1.3 Drift (core) | `drift.ts` | zero error-severity findings | deterministic | plug-in registry (empty in L4a) |
 
 ## [INTERFACE]
@@ -86,12 +86,44 @@ Output: one-line JSON on stdout, exit code matches stage result.
 
 | dep | purpose |
 |---|---|
+| `execa` (dev) | cross-platform spawn wrapper (replaces `node:child_process.spawnSync`) |
 | `typescript` (dev) | type checker; also the target of stage_1.1 (self-dogfood) |
 | `tsx` (dev) | direct .ts execution (no precompiled dist/) |
 | `eslint` + `typescript-eslint` (dev) | linter; also the target of stage_1.2 (self-dogfood) |
 | `@types/node` (dev) | Node.js stdlib types |
 
-Runtime: zero. Each stage module uses Node stdlib only (`node:child_process`) and defers heavy lifting to the project's own toolchain.
+Runtime: zero. Each stage module defers heavy lifting to the project's own toolchain (resolved by `toolchain/detect.ts`).
+
+## [POLYGLOT]
+
+Cladding is language-agnostic. Stages `type`, `lint`, `test`, `coverage`, `secret` resolve the actual tool by scanning the project for a recognized manifest, in priority order:
+
+| manifest | language | type | lint | test | coverage | secret |
+|---|---|---|---|---|---|---|
+| `package.json` | typescript | `tsc` | `eslint` | `vitest` | `vitest --coverage` | `secretlint` |
+| `pyproject.toml` · `setup.py` · `requirements.txt` | python | `mypy` | `ruff` | `pytest` | `coverage` | `detect-secrets` |
+| `Cargo.toml` | rust | `cargo check` | `cargo clippy` | `cargo test` | `cargo llvm-cov` | `gitleaks` |
+| `go.mod` | go | `go vet` | `golangci-lint` | `go test` | `go test -cover` | `gitleaks` |
+| `pom.xml` · `build.gradle` | java | `mvn compile` | `checkstyle` | `mvn test` | `jacoco` | `gitleaks` |
+| `composer.json` | php | `phpstan` | `phpcs` | `phpunit` | `phpunit --coverage-text` | `gitleaks` |
+| `Gemfile` | ruby | `srb tc` | `rubocop` | `rspec` | `rspec` | `gitleaks` |
+| `mix.exs` | elixir | `mix dialyzer` | `mix credo` | `mix test` | `mix coveralls` | `gitleaks` |
+| `.csproj` · `.sln` | dotnet | `dotnet build` | `dotnet format` | `dotnet test` | `dotnet test --collect` | `gitleaks` |
+| (none) | unknown | — | — | — | — | — |
+
+`unknown` is not a failure — stage runners return `exitCode: 2` with a descriptive `stderr`, which callers treat as `skipped`. Users can override per-call via `CommandStageOptions.cmd` / `args` to run any tool the chain doesn't list.
+
+## [OSS_POLICY]
+
+Cladding implements Ironclad's *shape* and delegates everything else to existing OSS. Three layers:
+
+| layer | scope | examples |
+|---|---|---|
+| 1. language-agnostic OSS | all projects | `gitleaks` · `semgrep` · `tree-sitter` · `git` · `cloc` · `ripgrep` |
+| 2. language-delegated OSS (auto-detect) | the matched language only | `tsc` · `mypy` · `cargo check` · `go vet` · `javac` · `phpstan` … |
+| 3. Ironclad-native (self-implemented) | spec.yaml ↔ code semantics | `AC_DRIFT` · `UNTESTED_AC` · `STATUS_DRIFT` · `EARS_VIOLATION` · HITL infra |
+
+Rule: write own code only when the layer-3 semantics demand it. For everything else, wrap a battle-tested OSS.
 
 ## [SELF_DOGFOOD]
 

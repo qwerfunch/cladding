@@ -5,34 +5,53 @@
 //   determinism: deterministic
 //   llm cost: 0
 //
-// Wraps the project's linter (default: `npx eslint`). Same shape as stage_1.1;
-// only the underlying tool differs. Project owns the rule set; this stage
-// merely translates the exit signal.
+// Polyglot: the lint tool is resolved by `detectToolchain` based on the
+// project's manifest. Same shape as stage_1.1; only the gate differs.
 
-import {spawnSync} from 'node:child_process';
 import process from 'node:process';
 
+import {execaSync} from 'execa';
+
+import {detectToolchain} from './toolchain/detect.js';
 import type {CommandStageOptions, StageResult} from './types.js';
+
+const STAGE = 'stage_1.2';
 
 /**
  * Runs the project's linter and returns an Ironclad-shaped stage result.
  *
- * The lint rule set is project-owned (e.g. `eslint.config.js`); Ironclad only
- * codifies that *some* deterministic linter must return exit 0. Override `cmd`
- * or `args` to target ruff, biome, golangci-lint, etc.
+ * The tool is resolved in this priority:
+ *   1. Explicit `opts.cmd` + `opts.args` (full override)
+ *   2. `detectToolchain(cwd).gates.lint` (manifest-driven default)
+ *   3. When `language: 'unknown'` and no override → `pass=false, exitCode=2`
+ *      with a `stderr` explaining the gap.
  *
- * @param opts - Optional cwd, command, or argument override.
+ * @param opts - Optional cwd / cmd / args override.
  * @returns A stage result. `pass=true` exactly when `exitCode === 0`.
  * @see iron-law.md stage_1.2 — "linter exit 0, no errors".
+ * @see toolchain/detect.ts — polyglot manifest chain.
  */
 export function runLint(opts: CommandStageOptions = {}): StageResult {
-  const {cwd = '.', cmd = 'npx', args = ['eslint', '.']} = opts;
-  const proc = spawnSync(cmd, [...args], {cwd, encoding: 'utf8'});
-  const exitCode = proc.status ?? 1;
+  const {cwd = '.'} = opts;
+  const toolchain = detectToolchain(cwd);
+  const spec = toolchain.gates.lint;
+  const cmd = opts.cmd ?? spec?.cmd;
+  const args = opts.args ?? spec?.args;
+  if (!cmd || !args) {
+    return {
+      stage: STAGE,
+      pass: false,
+      exitCode: 2,
+      stderr: `no linter registered for language '${toolchain.language}'`,
+    };
+  }
+  const proc = execaSync(cmd, [...args], {cwd, reject: false});
+  const exitCode = proc.exitCode ?? 1;
   const pass = exitCode === 0;
-  const result: StageResult = {stage: 'stage_1.2', pass, exitCode};
-  if (!pass && proc.stderr) {
-    return {...result, stderr: proc.stderr.trim()};
+  const result: StageResult = {stage: STAGE, pass, exitCode};
+  if (!pass) {
+    const stderr = (proc.stderr ?? '').toString().trim();
+    if (stderr) return {...result, stderr};
   }
   return result;
 }
