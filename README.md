@@ -3,7 +3,7 @@
 > What makes code iron-clad.
 > Reference implementation of the [Ironclad](https://github.com/qwerfunch/ironclad) standard.
 
-[![ironclad](https://img.shields.io/badge/ironclad-L1%20conformant-green)](https://github.com/qwerfunch/ironclad)
+[![ironclad](https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen)](https://github.com/qwerfunch/ironclad)
 [![spec](https://img.shields.io/badge/spec-v0.0.23-blue)](https://github.com/qwerfunch/ironclad)
 [![license](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 

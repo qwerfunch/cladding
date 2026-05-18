@@ -17,12 +17,21 @@ import {dirname, join, resolve} from 'node:path';
 import process from 'node:process';
 import {fileURLToPath} from 'node:url';
 
+import {appendEvidence} from '../hitl/audit.js';
+import {newEvidence} from '../hitl/identity.js';
 import {runArch} from '../stages/arch.js';
+import {runAudit} from '../stages/audit.js';
 import {runCommit} from '../stages/commit.js';
+import {runCov} from '../stages/cov.js';
 import {runDrift} from '../stages/drift.js';
 import {runLint} from '../stages/lint.js';
+import {runPerf} from '../stages/perf.js';
 import {runSecret} from '../stages/secret.js';
+import {runSmoke} from '../stages/smoke.js';
 import {runType} from '../stages/type.js';
+import {runUat} from '../stages/uat.js';
+import {runUnit} from '../stages/unit.js';
+import {runVisual} from '../stages/visual.js';
 import type {StageResult} from '../stages/types.js';
 
 // Fixtures run in fresh temp dirs without their own node_modules. Symlinking
@@ -266,13 +275,8 @@ const fixtures: readonly Fixture[] = [
     setup(d) {
       writeFileSync(join(d, 'package.json'), PKG_JSON);
       writeFileSync(join(d, '.secretlintrc.json'), SECRETLINTRC);
-      // Synthetic PEM block — preset-recommend's `privatekey` rule fires
-      // on the BEGIN/END markers regardless of body validity. Chosen over
-      // AWS/GitHub patterns because those have allow-listed example forms.
-      // Synthetic Stripe-live-key shape. preset-recommend's stripe rule
-      // matches sk_live_ + 60+ alphanumerics. The body is random padding,
-      // not a real key — verified by Stripe's own example warning policy
-      // (example keys begin with `sk_test_` or appear in their docs).
+      // Synthetic Stripe-live-key shape — preset-recommend fires
+      // deterministically; AWS / GitHub example shapes are allow-listed.
       writeFileSync(
         join(d, 'leak.js'),
         'export const k = "sk_live_51KX9p0H9PJfgY8wTPxQ7Yh3aGzJWXfYqXM7gWNqLA0BR9zKfXP1zXqXKfXp1zX";\n',
@@ -280,6 +284,266 @@ const fixtures: readonly Fixture[] = [
     },
     run(d) {
       return runSecret({cwd: d});
+    },
+  },
+  // ─── stage_2.1 Unit ────────────────────────────────────────────────
+  {
+    id: 'stage_2.1.pass',
+    stage: 'stage_2.1',
+    expectedPass: true,
+    setup(d) {
+      writeFileSync(join(d, 'package.json'), PKG_JSON);
+      writeFileSync(
+        join(d, 'a.test.ts'),
+        "import {test, expect} from 'vitest';\ntest('ok', () => expect(1).toBe(1));\n",
+      );
+    },
+    run(d) {
+      return runUnit({cwd: d});
+    },
+  },
+  {
+    id: 'stage_2.1.fail',
+    stage: 'stage_2.1',
+    expectedPass: false,
+    setup(d) {
+      writeFileSync(join(d, 'package.json'), PKG_JSON);
+      writeFileSync(
+        join(d, 'a.test.ts'),
+        "import {test, expect} from 'vitest';\ntest('intentional fail', () => expect(1).toBe(2));\n",
+      );
+    },
+    run(d) {
+      return runUnit({cwd: d});
+    },
+  },
+  // ─── stage_2.2 Cov ─────────────────────────────────────────────────
+  // Use a minimal pass case (vitest with coverage reports clean exit
+  // even at 0% by default). Fail case: vitest exits non-zero when no
+  // tests are found AND --passWithNoTests is omitted.
+  {
+    id: 'stage_2.2.pass',
+    stage: 'stage_2.2',
+    expectedPass: true,
+    setup(d) {
+      writeFileSync(join(d, 'package.json'), PKG_JSON);
+      writeFileSync(
+        join(d, 'a.test.ts'),
+        "import {test, expect} from 'vitest';\ntest('ok', () => expect(1).toBe(1));\n",
+      );
+    },
+    run(d) {
+      return runCov({cwd: d});
+    },
+  },
+  {
+    id: 'stage_2.2.fail',
+    stage: 'stage_2.2',
+    expectedPass: false,
+    setup(d) {
+      writeFileSync(join(d, 'package.json'), PKG_JSON);
+      writeFileSync(
+        join(d, 'a.test.ts'),
+        "import {test, expect} from 'vitest';\ntest('intentional fail', () => expect(1).toBe(2));\n",
+      );
+    },
+    run(d) {
+      return runCov({cwd: d});
+    },
+  },
+  // ─── stage_3.1 Smoke ───────────────────────────────────────────────
+  {
+    id: 'stage_3.1.pass',
+    stage: 'stage_3.1',
+    expectedPass: true,
+    setup(d) {
+      writeFileSync(
+        join(d, 'package.json'),
+        '{"name":"f","type":"module","scripts":{"smoke":"node -e \\"process.exit(0)\\""}}\n',
+      );
+    },
+    run(d) {
+      return runSmoke({cwd: d});
+    },
+  },
+  {
+    id: 'stage_3.1.fail',
+    stage: 'stage_3.1',
+    expectedPass: false,
+    setup(d) {
+      writeFileSync(
+        join(d, 'package.json'),
+        '{"name":"f","type":"module","scripts":{"smoke":"node -e \\"process.exit(1)\\""}}\n',
+      );
+    },
+    run(d) {
+      return runSmoke({cwd: d});
+    },
+  },
+  // ─── stage_3.2 Perf ────────────────────────────────────────────────
+  {
+    id: 'stage_3.2.pass',
+    stage: 'stage_3.2',
+    expectedPass: true,
+    setup(d) {
+      writeFileSync(
+        join(d, 'package.json'),
+        '{"name":"f","type":"module","scripts":{"perf":"node -e \\"process.exit(0)\\""}}\n',
+      );
+    },
+    run(d) {
+      return runPerf({cwd: d});
+    },
+  },
+  {
+    id: 'stage_3.2.fail',
+    stage: 'stage_3.2',
+    expectedPass: false,
+    setup(d) {
+      writeFileSync(
+        join(d, 'package.json'),
+        '{"name":"f","type":"module","scripts":{"perf":"node -e \\"process.exit(1)\\""}}\n',
+      );
+    },
+    run(d) {
+      return runPerf({cwd: d});
+    },
+  },
+  // ─── stage_3.3 Visual ──────────────────────────────────────────────
+  {
+    id: 'stage_3.3.pass',
+    stage: 'stage_3.3',
+    expectedPass: true,
+    setup(d) {
+      writeFileSync(
+        join(d, 'package.json'),
+        '{"name":"f","type":"module","scripts":{"visual":"node -e \\"process.exit(0)\\""}}\n',
+      );
+    },
+    run(d) {
+      return runVisual({cwd: d});
+    },
+  },
+  {
+    id: 'stage_3.3.fail',
+    stage: 'stage_3.3',
+    expectedPass: false,
+    setup(d) {
+      writeFileSync(
+        join(d, 'package.json'),
+        '{"name":"f","type":"module","scripts":{"visual":"node -e \\"process.exit(1)\\""}}\n',
+      );
+    },
+    run(d) {
+      return runVisual({cwd: d});
+    },
+  },
+  // ─── stage_4.1 Audit ───────────────────────────────────────────────
+  {
+    id: 'stage_4.1.pass',
+    stage: 'stage_4.1',
+    expectedPass: true,
+    setup(d) {
+      writeFileSync(join(d, 'package.json'), PKG_JSON);
+      appendEvidence(
+        d,
+        newEvidence({
+          featureId: 'F-001',
+          acId: 'AC-001',
+          stage: 'stage_4.1',
+          kind: 'pass',
+          content: 'manual verification',
+          identity: {author: 'human', name: 'fixture'},
+        }),
+      );
+    },
+    run(d) {
+      return runAudit({cwd: d});
+    },
+  },
+  {
+    id: 'stage_4.1.fail',
+    stage: 'stage_4.1',
+    expectedPass: false,
+    setup(d) {
+      writeFileSync(join(d, 'package.json'), PKG_JSON);
+      // Only LLM evidence → anti-self-cert guard blocks.
+      appendEvidence(
+        d,
+        newEvidence({
+          featureId: 'F-001',
+          acId: 'AC-001',
+          stage: 'stage_4.1',
+          kind: 'pass',
+          content: 'LLM-generated check',
+          identity: {author: 'llm', name: 'claude-opus-4.7'},
+        }),
+      );
+    },
+    run(d) {
+      return runAudit({cwd: d});
+    },
+  },
+  // ─── stage_4.2 UAT ─────────────────────────────────────────────────
+  {
+    id: 'stage_4.2.pass',
+    stage: 'stage_4.2',
+    expectedPass: true,
+    setup(d) {
+      writeFileSync(join(d, 'package.json'), PKG_JSON);
+      writeFileSync(
+        join(d, 'spec.yaml'),
+        'schema: "0.1"\n' +
+          'project: {name: f, language: typescript}\n' +
+          'features:\n' +
+          '  - id: F-001\n' +
+          '    title: t\n' +
+          '    status: done\n',
+      );
+      appendEvidence(
+        d,
+        newEvidence({
+          featureId: 'F-001',
+          stage: 'stage_4.2',
+          kind: 'pass',
+          content: 'human accepted',
+          identity: {author: 'human', name: 'fixture'},
+        }),
+      );
+    },
+    run(d) {
+      return runUat({cwd: d});
+    },
+  },
+  {
+    id: 'stage_4.2.fail',
+    stage: 'stage_4.2',
+    expectedPass: false,
+    setup(d) {
+      writeFileSync(join(d, 'package.json'), PKG_JSON);
+      writeFileSync(
+        join(d, 'spec.yaml'),
+        'schema: "0.1"\n' +
+          'project: {name: f, language: typescript}\n' +
+          'features:\n' +
+          '  - id: F-001\n' +
+          '    title: t\n' +
+          '    status: done\n',
+      );
+      // Tool evidence only — no human pass → UAT fails.
+      appendEvidence(
+        d,
+        newEvidence({
+          featureId: 'F-001',
+          stage: 'stage_4.2',
+          kind: 'pass',
+          content: 'CI ran',
+          identity: {author: 'tool', name: 'ci'},
+        }),
+      );
+    },
+    run(d) {
+      return runUat({cwd: d});
     },
   },
 ];
@@ -315,13 +579,18 @@ function runOne(fixture: Fixture): RunOutcome {
 const outcomes = fixtures.map(runOne);
 const allMatched = outcomes.every((o) => o.matched);
 
+function declaredLevel(matched: boolean): 'L0' | 'L1' | 'L2' | 'L3' | 'L4' {
+  if (!matched) return 'L0';
+  return 'L4';
+}
+
 const report = {
-  conformance: 'level-1',
+  conformance: 'level-1-to-4',
   total: outcomes.length,
   matched: outcomes.filter((o) => o.matched).length,
   diverged: outcomes.filter((o) => !o.matched),
   result: allMatched ? 'pass' : 'fail',
-  iron_law: allMatched ? 'L1' : 'L0',
+  iron_law: declaredLevel(allMatched),
   outcomes,
 };
 

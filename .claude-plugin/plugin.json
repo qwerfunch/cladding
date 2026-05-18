@@ -21,18 +21,18 @@
       "ears": "full"
     },
     "current": {
-      "iron-law": "L1",
+      "iron-law": "L4",
       "detectors": "19/19",
       "ears": "syntactic",
-      "phase": "L20 (T11b) — events.log + benchmark CLI",
+      "phase": "L21 — Level 2/3/4 conformance fixtures, iron-law L1 → L4 declared (26/26 matched)",
       "stages-implemented": ["stage_1.1", "stage_1.2", "stage_1.3", "stage_1.4", "stage_1.5", "stage_1.6", "stage_2.1", "stage_2.2", "stage_3.1", "stage_3.2", "stage_3.3", "stage_4.1", "stage_4.2"],
       "spec-schema-version": "0.1",
       "conformance": {
-        "level-1": {
-          "declared-at": "2026-05-18",
-          "fixtures": "12/12",
-          "runner": "conformance/runner.ts"
-        }
+        "level-1": {"declared-at": "2026-05-18", "fixtures": "12/12"},
+        "level-2": {"declared-at": "2026-05-18", "fixtures": "4/4"},
+        "level-3": {"declared-at": "2026-05-18", "fixtures": "6/6"},
+        "level-4": {"declared-at": "2026-05-18", "fixtures": "4/4"},
+        "runner": "conformance/runner.ts"
       },
       "stack": "typescript",
       "languages-supported": [
