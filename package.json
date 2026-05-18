@@ -15,6 +15,7 @@
     "stage:lint": "tsx stages/lint.ts",
     "stage:drift": "tsx stages/drift.ts",
     "stage:secret": "tsx stages/secret.ts",
+    "stage:commit": "tsx stages/commit.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint ."
   },
