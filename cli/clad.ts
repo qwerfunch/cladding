@@ -58,10 +58,30 @@ program
 
 program
   .command('drive [goal]')
-  .description('Autonomous loop (placeholder — full impl in v0.2)')
-  .action((goal?: string) => {
-    pulse('note', 'drive', goal ?? 'no goal supplied');
-    process.exit(0);
+  .description('Autonomous loop — iterate ready features, create stubs, run L1 gates, record evidence')
+  .option('--cwd <path>', 'target project directory (default cwd)')
+  .option('--max-iterations <n>', 'cap iterations (default 50)', '50')
+  .option('--max-wall-clock-ms <ms>', 'cap wall clock (default 600000)', '600000')
+  .option('--max-retries <n>', 'cap retries per feature (default 3)', '3')
+  .action(async (goal: string | undefined, opts: {cwd?: string; maxIterations: string; maxWallClockMs: string; maxRetries: string}) => {
+    const {runDriveLoop} = await import('../drive/loop.js');
+    const result = runDriveLoop({
+      cwd: opts.cwd,
+      goal,
+      budget: {
+        maxIterations: Number(opts.maxIterations),
+        maxWallClockMs: Number(opts.maxWallClockMs),
+        maxRetriesPerFeature: Number(opts.maxRetries),
+      },
+    });
+    const tag = result.halt.class === 'ALL_FEATURES_DONE' ? 'pass' : 'note';
+    pulse(
+      tag,
+      'drive',
+      `halt=${result.halt.class} iter=${result.iterations} features=${result.featuresTouched.length} stubs=${result.stubsCreated.length} gates=${result.gateRuns}`,
+    );
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    process.exit(result.halt.class === 'UNCAUGHT_ERROR' ? 1 : 0);
   });
 
 program

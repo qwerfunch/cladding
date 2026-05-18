@@ -1,0 +1,37 @@
+id: F-048
+title: Cladding drive — deterministic L1 floor for autonomous loops
+status: done
+modules:
+  - drive/halt.ts
+  - drive/loop.ts
+  - cli/clad.ts
+depends_on:
+  - F-031
+  - F-047
+acceptance_criteria:
+  - id: AC-083
+    ears: ubiquitous
+    action: ship a deterministic autonomous loop that scaffolds features without invoking an LLM
+    response: drive/loop.ts iterates ready features in dependency order, creates module stubs on disk, runs L1 gates (type · lint · arch), and records evidence per pass
+    text: >-
+      The system shall ship a deterministic drive floor — an autonomous
+      loop that scaffolds in_progress and planned features without
+      invoking an LLM. The loop iterates ready features in dependency
+      order, materialises module stubs, and runs L1 gates (type · lint
+      · arch), recording an evidence entry per successful pass.
+    test_refs:
+      - tests/drive/halt.test.ts
+  - id: AC-084
+    ears: state
+    condition: while the autonomous loop is running
+    action: terminate with a single class from a closed 10-class halt enum
+    response: "drive/halt.ts exports HaltClass with exactly ten members; runDriveLoop always returns a HaltReason"
+    text: >-
+      While the loop runs, the system shall enforce the budget invariants
+      (max iterations · wall clock · retries per feature) and terminate
+      with a single class from the closed 10-class halt enum
+      (ALL_FEATURES_DONE · MAX_ITERATIONS · WALL_CLOCK · BUDGET_EXCEEDED
+      · BLOCKED_FEATURE · RETRY_THRESHOLD · GATE_NO_PROGRESS ·
+      HUMAN_REQUIRED · LLM_UNAVAILABLE · UNCAUGHT_ERROR).
+    test_refs:
+      - tests/drive/halt.test.ts

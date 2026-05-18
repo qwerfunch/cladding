@@ -49,6 +49,24 @@ features    cladding clad-benchmark reduction
 
 **Interpretation**: the optimizer's prune logic has a fixed cost (~ 500-line minimum payload). Below ~ 20 features it's a tax; above ~ 50 it's transformative. **Cladding's release notes accurately call this "scale-dependent"** — the XL cell is the empirical proof that the design works as intended.
 
+## Drive-mode floor (XL only)
+
+The XL cell exercised cladding's **deterministic drive floor** — an autonomous loop that iterates ready features in dependency order, materialises stub files, and runs L1 gates without any LLM call. The richer LLM-driven loop lands in v0.2 (T9).
+
+```
+clad drive --max-iterations 100 (XL × cladding, 100 features)
+  halt:               ALL_FEATURES_DONE — 100 features cleared
+  iterations:         31
+  features touched:   30 (the 20 in_progress + 10 planned)
+  stubs created:      30 (one per declared module)
+  gate runs:          90 (3 gates × 30 features)
+  wall clock:         0.66 s
+  gates in floor:     stage_1.1 type · stage_1.2 lint · stage_1.5 arch
+  gates excluded:     stage_1.3 drift (spec-wide MISSING_IMPLEMENTATION would always fail on stubs; `clad check` covers it post-loop)
+```
+
+**Comparison vs harness-boot drive**: harness-boot's drive (`/harness-boot:work` natural-language goal) goes through researcher → product-planner → feature-author → execute and *invokes the LLM at every step*. Cladding's v0.1 drive is **deterministic** — a different design point. Both halt on the same 10-class enum; the cladding floor is the substrate the v0.2 LLM loop will sit on top of.
+
 ## Axis-by-axis findings
 
 ### 1. Token usage
