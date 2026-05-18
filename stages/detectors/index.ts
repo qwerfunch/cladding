@@ -7,6 +7,7 @@
 
 import {acDrift} from './ac-drift.js';
 import {architectureViolation} from './architecture-violation.js';
+import {conventionDrift} from './convention-drift.js';
 import {coverageDrop} from './coverage-drop.js';
 import {evidenceMismatch} from './evidence-mismatch.js';
 import {hardcodedSecret} from './hardcoded-secret.js';
@@ -22,6 +23,7 @@ import {staleTests} from './stale-tests.js';
 import {statusDrift} from './status-drift.js';
 import {techStackMismatch} from './tech-stack-mismatch.js';
 import {unmappedArtifact} from './unmapped-artifact.js';
+import {untestedAc} from './untested-ac.js';
 import type {DriftDetector} from '../types.js';
 
 /** Every detector cladding registers by default, in stable order. */
@@ -43,4 +45,6 @@ export const allDetectors: readonly DriftDetector[] = [
   performanceDrift,
   evidenceMismatch,
   staleEvidence,
+  untestedAc,
+  conventionDrift,
 ];
