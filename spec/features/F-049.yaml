@@ -1,7 +1,12 @@
 id: F-049
 title: Cladding drive — agent dispatch & runtime orchestration (host or sdk)
-status: planned
-modules: []
+status: in_progress
+modules:
+  - adapters/types.ts
+  - adapters/host/claude-code.ts
+  - adapters/host/generic-mcp.ts
+  - adapters/index.ts
+  - drive/agent.ts
 depends_on:
   - F-048
 acceptance_criteria:
