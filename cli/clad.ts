@@ -114,7 +114,7 @@ program
 
 program
   .command('panel')
-  .description('Render the feature × stage Territory Panel')
+  .description('Render the feature × stage Integrity Panel')
   .action(() => {
     const spec = loadSpec();
     process.stdout.write(`${renderPanel(spec)}\n`);

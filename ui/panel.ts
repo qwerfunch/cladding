@@ -1,8 +1,9 @@
-// Cladding · Territory Panel — coverage at a glance
+// Cladding · Integrity Panel — coverage at a glance
 //
-// Per ironclad-design/10-territory-minimap.md (renamed `panel` in v0.1
-// to fit the cladding/iron-clad vocabulary; cladding's literal meaning
-// is "panel cladding"). Surfaces "what's covered, what's drifting,
+// Per ironclad-design/10-territory-minimap.md (renamed in v0.1 to
+// **Integrity Panel** so the vocabulary aligns with the ironclad spec's
+// anchor term "Trinity of Integrity"; the legacy filename is kept
+// for traceability). Surfaces "what's covered, what's drifting,
 // what's untracked" as a single text grid. One row per feature, one
 // column per Iron Law stage. Each cell:
 //
