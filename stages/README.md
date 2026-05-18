@@ -29,16 +29,16 @@ Ironclad iron-law stage implementations. One module per stage.
 
 ```typescript
 export interface StageResult {
-  stage: string;
-  pass: boolean;
-  exit_code: number;
-  stderr?: string;
+  readonly stage: string;       // 'stage_1.1'
+  readonly pass: boolean;
+  readonly exitCode: number;    // 0 iff pass
+  readonly stderr?: string;     // populated only on failure
 }
 
 export function runType(opts?: RunTypeOptions): StageResult;
 ```
 
-JSON-serializable. Machine-readable.
+JSON-serializable. Machine-readable. Field names follow camelCase (Google TS Style Guide).
 
 ## [CLI]
 
