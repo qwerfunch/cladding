@@ -5,6 +5,27 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] — Unreleased — Detector honesty patch
+
+A 2026-05-19 controlled drift-inject experiment (`cladding-abc/08-drift-inject/`) measured cladding's detector set against four scenarios (UNMAPPED_ARTIFACT, MISSING_IMPLEMENTATION, AC_DRIFT, UNTESTED_AC). The result — 2.5/4 catch rate — surfaced that the "19 detectors" headline oversells the bare metal. This patch corrects the framing without changing default behaviour, and adds an opt-in `--strict` mode that promotes warn-severity drift findings to fail the stage.
+
+### Changed
+
+- `README.md` + `README.ko.md` — the detector set is now described as "3 always-error + 16 conditional", with the severity matrix linked. Replaces the previous undifferentiated "19/19" framing.
+- `stages/detectors/README.md` — new "Severity reality vs the 19-detectors headline" section names the 3 confidently always-error detectors (`UNMAPPED_ARTIFACT` · `MISSING_IMPLEMENTATION` · `STATUS_DRIFT`) and groups the 16 conditional detectors by what softens them (status-aware · config-dependent · code-anchor-dependent · warn-only · scoped-scan · environment).
+
+### Added
+
+- `clad check --strict` — drift stage promotes warn findings to errors for that invocation. Suited for CI / pre-publish gates. Default `clad check` behaviour is unchanged.
+- `stages/drift.ts` — `runDrift({strict?: boolean})`. When `strict` is true, `report.pass` becomes false on any warn finding (in addition to errors).
+- `tests/stages/drift.test.ts` — 4 new cases for the strict mode (warn no-fail default, warn-fail strict, error-fail unchanged in strict, info still ignored).
+- `spec/features/F-051.yaml` — "Detector severity policy + opt-in strict mode" (5 ACs, status `done`).
+
+### Notes
+
+- The default drift-stage policy stays warn-as-info (per the upstream Ironclad `iron-law.md stage_1.3` contract). `--strict` is the opt-in escalation.
+- Two follow-up paths are deferred to v0.2.3+: (a) promoting `MISSING_TESTS` from warn to error for `done` features once cladding's own spec adds `test_refs` to the remaining ACs; (b) `AC_DRIFT` auto-anchoring via `clad sync` so the existing detector logic catches spec-text rewrites. Both are higher-risk patches that need their own design + safety review.
+
 ## [0.2.0] — 2026-05-19 — F-049 agent dispatch (machinery complete, transport mocked)
 
 This release closes the "machinery" half of F-049 — the agent-adapter contract, the drive-loop dispatch wiring, the two reserved halt classes — and explicitly defers the real Claude Code / MCP transport bodies to v0.3.0. The architectural decision that unlocks the real transports (cladding adopts an MCP server mode, `clad serve`) is recorded in `docs/multi-provider-roadmap.md`; until then the two host adapters return deterministic mock results so the loop, the parity tests, and the halt classes all exercise the right code paths.
@@ -280,6 +301,7 @@ Environment: `HARNESS_INTEGRITY` · `REFERENCE_INTEGRITY` · `META_INTEGRITY`.
 - Reference: https://github.com/qwerfunch/ironclad
 - Repository: https://github.com/qwerfunch/cladding
 
+[0.2.2]: https://github.com/qwerfunch/cladding/releases/tag/v0.2.2
 [0.2.0]: https://github.com/qwerfunch/cladding/releases/tag/v0.2.0
 [0.1.6]: https://github.com/qwerfunch/cladding/releases/tag/v0.1.6
 [0.1.5]: https://github.com/qwerfunch/cladding/releases/tag/v0.1.5

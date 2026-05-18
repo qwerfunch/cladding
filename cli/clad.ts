@@ -29,7 +29,7 @@ import {renderPanel} from '../ui/panel.js';
 import {featureLabel, gateLabel, haltMessage} from '../ui/softShell.js';
 
 const program = new Command();
-program.name('clad').description('Reference Ironclad CLI').version('0.2.0');
+program.name('clad').description('Reference Ironclad CLI').version('0.2.2');
 
 program
   .command('init')
@@ -114,11 +114,12 @@ program
   .command('check')
   .description('Run every Iron Law stage and the drift detector suite')
   .option('--internal', 'show stage codes (`stage_1.1`) instead of names (`Type`)')
-  .action((opts: {internal?: boolean}) => {
+  .option('--strict', 'promote warn-severity drift findings to errors (CI / pre-publish gate)')
+  .action((opts: {internal?: boolean; strict?: boolean}) => {
     const stages = [
       ['stage_1.1', runType],
       ['stage_1.2', runLint],
-      ['stage_1.3', () => runDrift()],
+      ['stage_1.3', () => runDrift({strict: opts.strict})],
       ['stage_1.4', runCommit],
       ['stage_1.5', runArch],
       ['stage_1.6', runSecret],
