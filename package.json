@@ -26,6 +26,8 @@
     "stage:uat": "tsx stages/uat.ts",
     "spec:validate": "tsx spec/cli.ts",
     "conformance": "tsx conformance/runner.ts",
+    "benchmark": "tsx cli/benchmark.ts",
+    "clad": "node bin/clad",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "eslint ."
