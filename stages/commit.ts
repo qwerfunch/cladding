@@ -53,7 +53,7 @@ export function runCommit(opts: CommandStageOptions = {}): StageResult {
 }
 
 // CLI entry — `tsx stages/commit.ts` or `npm run stage:commit`.
-const isCliEntry = import.meta.url === `file://${process.argv[1]}`;
+const isCliEntry = !(globalThis as {__CLADDING_BUNDLED?: boolean}).__CLADDING_BUNDLED && import.meta.url === `file://${process.argv[1]}`;
 if (isCliEntry) {
   const result = runCommit();
   console.log(JSON.stringify(result));

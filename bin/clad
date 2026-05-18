@@ -1,13 +1,30 @@
 #!/usr/bin/env node
-// Cladding · `clad` CLI shim — delegates to cli/clad.ts via tsx.
-import {spawnSync} from 'node:child_process';
-import {dirname, join, resolve} from 'node:path';
+// Cladding · `clad` CLI shim.
+//
+// Production path: `dist/clad.js` is an esbuild bundle (single file,
+// zero runtime dev-deps); we import it directly. Built by `npm run
+// build`; auto-built by `npm install` via the `prepare` script.
+//
+// Development path: when `dist/clad.js` is absent (e.g. during a
+// source edit before the next build), fall back to invoking
+// `cli/clad.ts` through `tsx`. This keeps the dev loop fast — no need
+// to rebuild after every change.
+
+import {existsSync} from 'node:fs';
+import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {spawnSync} from 'node:child_process';
 import process from 'node:process';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const entry = resolve(here, '..', 'cli', 'clad.ts');
-const result = spawnSync('npx', ['tsx', entry, ...process.argv.slice(2)], {
-  stdio: 'inherit',
-});
-process.exit(result.status ?? 1);
+const bundle = resolve(here, '..', 'dist', 'clad.js');
+
+if (existsSync(bundle)) {
+  await import(bundle);
+} else {
+  const source = resolve(here, '..', 'cli', 'clad.ts');
+  const result = spawnSync('npx', ['tsx', source, ...process.argv.slice(2)], {
+    stdio: 'inherit',
+  });
+  process.exit(result.status ?? 1);
+}

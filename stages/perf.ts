@@ -52,7 +52,7 @@ export function runPerf(opts: CommandStageOptions = {}): StageResult {
   return result;
 }
 
-const isCliEntry = import.meta.url === `file://${process.argv[1]}`;
+const isCliEntry = !(globalThis as {__CLADDING_BUNDLED?: boolean}).__CLADDING_BUNDLED && import.meta.url === `file://${process.argv[1]}`;
 if (isCliEntry) {
   const result = runPerf();
   console.log(JSON.stringify(result));

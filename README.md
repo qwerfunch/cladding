@@ -11,6 +11,22 @@ Cladding is a multi-agent development harness for Claude Code, and the reference
 
 > AI tools (Claude Code, OpenAI Codex, Cursor, Cline, Aider, Continue, Copilot, Gemini CLI, …): see [`AGENTS.md`](AGENTS.md) for the cross-tool agent entry point.
 
+## Install
+
+```
+npm install -g cladding
+```
+
+Then, in any project directory:
+
+```
+clad init     # scaffold a cladding workspace
+clad check    # run every Iron Law stage + drift suite
+clad panel    # see the feature × stage Integrity Panel
+```
+
+Same command surface inside Claude Code, OpenAI Codex CLI, Google Gemini CLI, Cursor, Cline, Continue, and any other tool that reads [`AGENTS.md`](AGENTS.md). Requires Node ≥ 20.
+
 ## Status
 
 **Ironclad L4 conformant (L21) · self-spec sharded (L21.8).** Cladding ships the full Ironclad surface: 13 Iron Law stages (L1 Type / Lint / Drift / Commit / Arch / Secret · L2 Unit / Cov · L3 Smoke / Perf / Visual · L4 Audit / UAT), 19/19 drift detectors, EARS syntactic validator, HITL infrastructure (identity · audit · anti-self-cert), 5 agent personas, polyglot toolchain for 9 languages, Intent Router, clad CLI, Token Optimizer (87.9% reduction measured), conformance fixtures 26/26 matched. Cladding's own spec is now sharded (`spec/features/F-NNN.yaml` × 47, `spec/scenarios/S-NNN.yaml` × 2, `spec/architecture.yaml`) — the same layout external adopters get when their spec outgrows a single file.

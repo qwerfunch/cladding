@@ -38,7 +38,7 @@ export function runArch(opts: CommandStageOptions = {}): StageResult {
 }
 
 // CLI entry — `tsx stages/arch.ts` or `npm run stage:arch`.
-const isCliEntry = import.meta.url === `file://${process.argv[1]}`;
+const isCliEntry = !(globalThis as {__CLADDING_BUNDLED?: boolean}).__CLADDING_BUNDLED && import.meta.url === `file://${process.argv[1]}`;
 if (isCliEntry) {
   const result = runArch();
   console.log(JSON.stringify(result));
