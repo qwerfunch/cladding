@@ -24,8 +24,8 @@
       "iron-law": "L0",
       "detectors": "0/19",
       "ears": "none",
-      "phase": "L2 — stage_1.1 Type",
-      "stages-implemented": ["stage_1.1"],
+      "phase": "L3 — stage_1.2 Lint",
+      "stages-implemented": ["stage_1.1", "stage_1.2"],
       "stack": "typescript"
     }
   }

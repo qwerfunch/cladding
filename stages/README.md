@@ -4,6 +4,7 @@ component: stages
 language: typescript
 ironclad-stages-implemented:
   - stage_1.1
+  - stage_1.2
 ironclad-stages-target:
   - stage_1.1
   - stage_1.2
@@ -17,25 +18,35 @@ ironclad-stages-target:
 
 ## [CLAIM]
 
-Ironclad iron-law stage implementations. One module per stage.
+Ironclad iron-law stage implementations. One module per stage. Shared types in `types.ts`.
 
 ## [IMPLEMENTED]
 
-| stage | file | pass criteria (Ironclad spec) | determinism |
-|---|---|---|---|
-| stage_1.1 Type | `type.ts` | type checker exit 0, no errors | deterministic |
+| stage | file | pass criteria (Ironclad spec) | determinism | default tool |
+|---|---|---|---|---|
+| stage_1.1 Type | `type.ts` | type checker exit 0, no errors | deterministic | `npx tsc --noEmit` |
+| stage_1.2 Lint | `lint.ts` | linter exit 0, no errors | deterministic | `npx eslint .` |
 
 ## [INTERFACE]
 
 ```typescript
+// stages/types.ts — shared by every stage runner
 export interface StageResult {
-  readonly stage: string;       // 'stage_1.1'
+  readonly stage: string;       // 'stage_1.1', 'stage_1.2', ...
   readonly pass: boolean;
   readonly exitCode: number;    // 0 iff pass
   readonly stderr?: string;     // populated only on failure
 }
 
-export function runType(opts?: RunTypeOptions): StageResult;
+export interface CommandStageOptions {
+  readonly cwd?: string;        // default '.'
+  readonly cmd?: string;        // stage-specific default (npx, etc.)
+  readonly args?: readonly string[];  // stage-specific default
+}
+
+// per stage
+export function runType(opts?: CommandStageOptions): StageResult;
+export function runLint(opts?: CommandStageOptions): StageResult;
 ```
 
 JSON-serializable. Machine-readable. Field names follow camelCase (Google TS Style Guide).
@@ -43,8 +54,9 @@ JSON-serializable. Machine-readable. Field names follow camelCase (Google TS Sty
 ## [CLI]
 
 ```
-npm run stage:type       # tsx stages/type.ts (from current directory)
-npx tsx stages/type.ts   # direct
+npm run stage:type       # tsx stages/type.ts
+npm run stage:lint       # tsx stages/lint.ts
+npx tsx stages/<name>.ts # direct
 ```
 
 Output: one-line JSON on stdout, exit code matches stage result.
@@ -53,12 +65,18 @@ Output: one-line JSON on stdout, exit code matches stage result.
 
 | dep | purpose |
 |---|---|
-| `typescript` (dev) | type checker (also the target of stage_1.1 itself — self-dogfood) |
+| `typescript` (dev) | type checker; also the target of stage_1.1 (self-dogfood) |
 | `tsx` (dev) | direct .ts execution (no precompiled dist/) |
+| `eslint` + `typescript-eslint` (dev) | linter; also the target of stage_1.2 (self-dogfood) |
 | `@types/node` (dev) | Node.js stdlib types |
 
 Runtime: zero. Each stage module uses Node stdlib only (`node:child_process`) and defers heavy lifting to the project's own toolchain.
 
 ## [SELF_DOGFOOD]
 
-stage_1.1 applies to cladding itself: `npm run typecheck` invokes `tsc --noEmit` over `stages/**/*.ts` per `tsconfig.json`. Pass = cladding passes its own stage_1.1.
+| stage | command | applies to |
+|---|---|---|
+| stage_1.1 | `npm run typecheck` | `stages/**/*.ts` via tsconfig.json |
+| stage_1.2 | `npm run lint` | `stages/**/*.ts` via eslint.config.js |
+
+Pass on both = cladding meets its own L1 stages so far.

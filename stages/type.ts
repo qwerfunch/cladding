@@ -12,27 +12,7 @@
 import {spawnSync} from 'node:child_process';
 import process from 'node:process';
 
-/** Result emitted by every Ironclad stage runner. JSON-serializable. */
-export interface StageResult {
-  /** Ironclad stage id, e.g. `stage_1.1`. */
-  readonly stage: string;
-  /** True iff the stage's pass criteria are met. */
-  readonly pass: boolean;
-  /** Underlying process exit code; 0 when pass=true. */
-  readonly exitCode: number;
-  /** Captured stderr; populated only on failure. */
-  readonly stderr?: string;
-}
-
-/** Overrides for {@link runType}. Defaults target a TypeScript project. */
-export interface RunTypeOptions {
-  /** Working directory for the type checker. Defaults to `'.'`. */
-  readonly cwd?: string;
-  /** Executable to invoke. Defaults to `'npx'`. */
-  readonly cmd?: string;
-  /** Arguments passed to the executable. Defaults to `['tsc', '--noEmit']`. */
-  readonly args?: readonly string[];
-}
+import type {CommandStageOptions, StageResult} from './types.js';
 
 /**
  * Runs the project's type checker and returns an Ironclad-shaped stage result.
@@ -46,7 +26,7 @@ export interface RunTypeOptions {
  * @returns A stage result. `pass=true` exactly when `exitCode === 0`.
  * @see iron-law.md stage_1.1 — "type checker exit 0, no errors".
  */
-export function runType(opts: RunTypeOptions = {}): StageResult {
+export function runType(opts: CommandStageOptions = {}): StageResult {
   const {cwd = '.', cmd = 'npx', args = ['tsc', '--noEmit']} = opts;
   const proc = spawnSync(cmd, [...args], {cwd, encoding: 'utf8'});
   const exitCode = proc.status ?? 1;
