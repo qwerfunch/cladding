@@ -1,5 +1,5 @@
 id: F-049
-title: Cladding drive — LLM dispatch & runtime agent orchestration
+title: Cladding drive — agent dispatch & runtime orchestration (host or sdk)
 status: planned
 modules: []
 depends_on:
@@ -8,17 +8,21 @@ acceptance_criteria:
   - id: AC-085
     ears: ubiquitous
     action: dispatch the five agent personas at runtime when the drive loop authors a feature
-    response: drive/agent.ts loads each persona from agents/*.md, invokes the Anthropic SDK with a least-context payload (current feature shard + tagged guardrails), and returns evidence + mutations
+    response: drive/agent.ts loads each persona from agents/*.md and invokes the active agent adapter (host or sdk) via the invokeAgent(persona, ctx) → AgentResult interface with a least-context payload (current feature shard + tagged guardrails)
     text: >-
       The system shall dispatch the five agent personas (orchestrator ·
       librarian · reviewer · observability · specialists) at runtime when
       drive authors a feature. drive/agent.ts loads each persona from
-      agents/*.md, invokes the Anthropic SDK with a least-context payload
-      (current feature shard plus tagged guardrails only), and returns the
-      structured evidence and mutations the loop records.
+      agents/*.md and invokes the active agent adapter — host (Claude
+      Code subagent · Cursor · Continue · Cline · generic MCP) or sdk
+      (Anthropic · OpenAI · Gemini) — via the
+      invokeAgent(persona, ctx) → AgentResult interface with a
+      least-context payload (current feature shard plus tagged
+      guardrails only). The adapter type does not affect what the loop
+      records.
     test_refs:
       - tests/drive/agent.test.ts
-      - tests/drive/loop-llm.test.ts
+      - tests/drive/loop-host.test.ts
   - id: AC-086
     ears: state
     condition: while drive dispatches a reviewer hand-off
@@ -32,7 +36,7 @@ acceptance_criteria:
       shall emit a HUMAN_REQUIRED halt instead, preserving the structural
       reviewer-vs-author barrier prescribed by Iron Law stage_4.1.
     test_refs:
-      - tests/drive/loop-llm.test.ts
+      - tests/drive/loop-host.test.ts
   - id: AC-087
     ears: event
     condition: when a feature has cleared L1-L3 but stage_4.2 UAT lacks human-pass evidence
@@ -45,18 +49,64 @@ acceptance_criteria:
       the feature id and the audit-log path so an operator can sign off
       and resume.
     test_refs:
-      - tests/drive/loop-llm.test.ts
+      - tests/drive/loop-host.test.ts
   - id: AC-088
     ears: unwanted
-    condition: if the Anthropic SDK call fails (auth · rate-limit · network) during dispatch
+    condition: if the active agent adapter's invocation fails (host-unavailable · auth · rate-limit · network · context-window · safety-filter)
     action: halt the drive loop with class LLM_UNAVAILABLE
-    response: drive/halt.ts class LLM_UNAVAILABLE resolves with the underlying SDK error class and a single retry budget already consumed
+    response: drive/halt.ts class LLM_UNAVAILABLE resolves with the underlying adapter error class and a single retry budget already consumed
     text: >-
-      If the Anthropic SDK call fails during agent dispatch — for
-      authentication, rate-limit, or network reasons — then the system
-      shall halt the drive loop with class LLM_UNAVAILABLE. The halt
-      reason shall carry the underlying SDK error class and record that
-      the loop's single SDK-retry budget for the current feature has been
-      consumed.
+      If the active agent adapter's invocation fails during dispatch —
+      for host-unavailable, authentication, rate-limit, network,
+      context-window, or safety-filter reasons — then the system shall
+      halt the drive loop with class LLM_UNAVAILABLE. The halt reason
+      shall carry the underlying adapter error class and record that
+      the loop's single retry budget for the current feature has been
+      consumed. The class name is preserved for spec stability even
+      though the failing layer may be a host rather than an LLM SDK.
     test_refs:
       - tests/drive/agent.test.ts
+  - id: AC-089
+    ears: ubiquitous
+    action: select the active agent adapter from configuration
+    response: adapters/index.ts reads .cladding/config.yaml (key agent.mode ∈ {host, sdk}, agent.name) or the CLADDING_AGENT_MODE / CLADDING_AGENT_NAME env vars; default = host + auto-detect (claude-code when running inside Claude Code, generic-mcp otherwise)
+    text: >-
+      The system shall select the active agent adapter from a single
+      configuration entry. adapters/index.ts shall read
+      .cladding/config.yaml (`agent.mode ∈ {host, sdk}`, `agent.name`)
+      and the `CLADDING_AGENT_MODE` / `CLADDING_AGENT_NAME` environment
+      variables, with env vars taking precedence. When no configuration
+      is present, the default is `host` mode with auto-detection — the
+      `claude-code` adapter when the runtime is Claude Code, otherwise
+      the `generic-mcp` adapter.
+    test_refs:
+      - tests/adapters/host-parity.test.ts
+  - id: AC-090
+    ears: ubiquitous
+    action: keep the evidence schema and halt enum invariant across adapters
+    response: tests/adapters/host-parity.test.ts and tests/adapters/full-parity.test.ts assert that swapping adapters does not change the AgentResult schema, the audit-log evidence shape, or the 10-class halt enum
+    text: >-
+      The system shall keep the AgentResult schema, the audit-log
+      evidence shape, and the 10-class halt enum invariant across all
+      agent adapters. Parity tests shall assert that swapping the
+      active adapter (host claude-code · host generic-mcp · sdk
+      anthropic · sdk openai · sdk gemini) does not alter any of these
+      contracts on a synthetic single-feature project.
+    test_refs:
+      - tests/adapters/host-parity.test.ts
+      - tests/adapters/full-parity.test.ts
+  - id: AC-091
+    ears: ubiquitous
+    action: require no API key for host adapters
+    response: host adapters (claude-code · generic-mcp · cursor · continue · cline · …) run without ANTHROPIC_API_KEY / OPENAI_API_KEY / GOOGLE_API_KEY; sdk adapters read their respective env var only when explicitly selected
+    text: >-
+      The system shall not require an API key for host adapters. The
+      claude-code, generic-mcp, and any future host adapters shall
+      operate using the host environment's existing subscription or
+      session; cladding shall neither read nor require
+      `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `GOOGLE_API_KEY` when
+      a host adapter is active. SDK adapters shall read their
+      respective environment variable only when explicitly selected
+      via `agent.mode = sdk` and `agent.name = <provider>`.
+    test_refs:
+      - tests/adapters/host-parity.test.ts

@@ -19,6 +19,7 @@
 import {failingAcs} from '../hitl/anti-self-cert.js';
 import {readEvidence} from '../hitl/audit.js';
 import type {Feature, Spec} from '../spec/types.js';
+import {gateLabel} from './softShell.js';
 
 const STAGES: readonly string[] = [
   'stage_1.1', 'stage_1.2', 'stage_1.3', 'stage_1.4', 'stage_1.5', 'stage_1.6',
@@ -35,6 +36,12 @@ interface RowOutcome {
   readonly cells: readonly CellGlyph[];
 }
 
+/** Options for {@link renderPanel}. */
+export interface PanelOptions {
+  /** When true, prefix each row with the internal `F-NNN`. Default: false. */
+  readonly internal?: boolean;
+}
+
 function cellFor(feature: Feature, stage: string, cwd: string): CellGlyph {
   // L4 stages: derive from anti-self-cert guard over feature ACs.
   if (stage.startsWith('stage_4')) {
@@ -49,14 +56,44 @@ function cellFor(feature: Feature, stage: string, cwd: string): CellGlyph {
   return '-';
 }
 
-/** Renders a feature × stage grid as a multi-line string. */
-export function renderPanel(spec: Spec, cwd: string = '.'): string {
-  const header = `feature      ${STAGES.map((s) => s.replace('stage_', '')).join(' ')}`;
+/**
+ * Renders a feature × stage grid as a multi-line string.
+ *
+ * The default Soft Shell view hides internal feature ids and uses
+ * stage short-labels (`Type` / `Drift` / `UAT` …). Passing
+ * `{internal: true}` reverts to the Iron Core view that exposes
+ * `F-NNN` and `stage_X.Y` codes — useful for cross-referencing the
+ * audit log during forensic work.
+ *
+ * @see ironclad-design/03-ux-routing.md §1.2 — user-facing ID ban.
+ */
+export function renderPanel(
+  spec: Spec,
+  cwd: string = '.',
+  opts: PanelOptions = {},
+): string {
+  const internal = opts.internal ?? false;
+  const stageHeaders = STAGES.map((s) => (internal ? s.replace('stage_', '') : abbreviateGate(s)));
+  const header = internal
+    ? `feature      ${stageHeaders.join(' ')}`
+    : `feature${' '.repeat(28)}${stageHeaders.join(' ')}`;
   const rows: RowOutcome[] = spec.features.map((f) => ({
     featureId: f.id,
-    title: f.title,
+    title: f.title || f.id,
     cells: STAGES.map((s) => cellFor(f, s, cwd)),
   }));
-  const lines = rows.map((r) => `${r.featureId.padEnd(12)} ${r.cells.join('   ')}  ${r.title}`);
+  const lines = rows.map((r) => {
+    const cells = r.cells.join('   ');
+    if (internal) return `${r.featureId.padEnd(12)} ${cells}  ${r.title}`;
+    return `${r.title.padEnd(35).slice(0, 35)} ${cells}`;
+  });
   return [header, ...lines].join('\n');
+}
+
+/**
+ * 3-letter abbreviation of the gate's user-facing label, used as a
+ * compact column header in the default panel view.
+ */
+function abbreviateGate(stageId: string): string {
+  return gateLabel(stageId).slice(0, 3);
 }

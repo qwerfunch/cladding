@@ -26,9 +26,10 @@ import {runVisual} from '../stages/visual.js';
 import {loadSpec} from '../spec/load.js';
 import {pulse} from '../ui/pulse.js';
 import {renderPanel} from '../ui/panel.js';
+import {featureLabel, gateLabel, haltMessage} from '../ui/softShell.js';
 
 const program = new Command();
-program.name('clad').description('Reference Ironclad CLI').version('0.1.1');
+program.name('clad').description('Reference Ironclad CLI').version('0.1.2');
 
 program
   .command('init')
@@ -63,7 +64,8 @@ program
   .option('--max-iterations <n>', 'cap iterations (default 50)', '50')
   .option('--max-wall-clock-ms <ms>', 'cap wall clock (default 600000)', '600000')
   .option('--max-retries <n>', 'cap retries per feature (default 3)', '3')
-  .action(async (goal: string | undefined, opts: {cwd?: string; maxIterations: string; maxWallClockMs: string; maxRetries: string}) => {
+  .option('--json', 'emit the raw internal result (Iron Core view); default is a plain Soft Shell summary')
+  .action(async (goal: string | undefined, opts: {cwd?: string; maxIterations: string; maxWallClockMs: string; maxRetries: string; json?: boolean}) => {
     const {runDriveLoop} = await import('../drive/loop.js');
     const result = runDriveLoop({
       cwd: opts.cwd,
@@ -75,12 +77,22 @@ program
       },
     });
     const tag = result.halt.class === 'ALL_FEATURES_DONE' ? 'pass' : 'note';
-    pulse(
-      tag,
-      'drive',
-      `halt=${result.halt.class} iter=${result.iterations} features=${result.featuresTouched.length} stubs=${result.stubsCreated.length} gates=${result.gateRuns}`,
-    );
-    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    if (opts.json) {
+      pulse(
+        tag,
+        'drive',
+        `halt=${result.halt.class} iter=${result.iterations} features=${result.featuresTouched.length} stubs=${result.stubsCreated.length} gates=${result.gateRuns}`,
+      );
+      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    } else {
+      const spec = loadSpec(opts.cwd ?? '.');
+      const touched = result.featuresTouched.map((id) => featureLabel(id, spec));
+      const summary = `${haltMessage(result.halt, spec)} iter=${result.iterations} features=${touched.length} stubs=${result.stubsCreated.length} gates=${result.gateRuns}`;
+      pulse(tag, 'drive', summary);
+      if (touched.length > 0) {
+        process.stdout.write(`Touched: ${touched.join(', ')}\n`);
+      }
+    }
     process.exit(result.halt.class === 'UNCAUGHT_ERROR' ? 1 : 0);
   });
 
@@ -101,7 +113,8 @@ program
 program
   .command('check')
   .description('Run every Iron Law stage and the drift detector suite')
-  .action(() => {
+  .option('--internal', 'show stage codes (`stage_1.1`) instead of names (`Type`)')
+  .action((opts: {internal?: boolean}) => {
     const stages = [
       ['stage_1.1', runType],
       ['stage_1.2', runLint],
@@ -120,12 +133,13 @@ program
     let worst = 0;
     for (const [name, run] of stages) {
       const r = run({}) as {pass: boolean; exitCode: number};
+      const label = opts.internal ? name : gateLabel(name);
       if (r.pass) {
-        pulse('pass', name);
+        pulse('pass', label);
       } else if (r.exitCode === 2) {
-        pulse('skip', name);
+        pulse('skip', label);
       } else {
-        pulse('fail', name);
+        pulse('fail', label);
         if (r.exitCode > worst) worst = r.exitCode;
       }
     }
@@ -134,10 +148,11 @@ program
 
 program
   .command('panel')
-  .description('Render the feature × stage Integrity Panel')
-  .action(() => {
+  .description('Render the feature × stage Integrity Panel (business titles; use --internal for raw F-NNN ids)')
+  .option('--internal', 'show internal F-NNN ids and stage codes')
+  .action((opts: {internal?: boolean}) => {
     const spec = loadSpec();
-    process.stdout.write(`${renderPanel(spec)}\n`);
+    process.stdout.write(`${renderPanel(spec, '.', {internal: opts.internal})}\n`);
     process.exit(0);
   });
 

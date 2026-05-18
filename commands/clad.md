@@ -32,6 +32,10 @@ Wrapper for the local `clad` binary (see `bin/clad` and `cli/clad.ts`). Forwards
 
 `clad check` returns the worst exit code across the 13 stages. `2` means *skipped* (no fail). `1` means at least one stage actually failed. `0` means every stage cleared or skipped clean.
 
+## Output language policy (Soft Shell vs Iron Core)
+
+User-facing output is business language by default: feature titles (`"Login flow"`) instead of `F-NNN`, stage names (`Drift`, `UAT`) instead of `stage_X.Y`, plain sentences instead of internal enum values. Pass `--internal` (`check`, `panel`) or `--json` (`drive`) when you need the Iron Core view — for cross-referencing the audit log, for forensic work, or for piping into another tool. The audit log itself always keeps the internal ids. See `ironclad-design/03-ux-routing.md` §1.2 and `docs/ux-routing-coverage.md` for the applied-status report.
+
 ## Anti-self-cert reminder (stage_4 only)
 
 `stage_4.1` and `stage_4.2` consult `.cladding/audit.log.jsonl`. An AC backed only by tool / LLM evidence cannot clear stage_4 — by design (`hitl/anti-self-cert.ts`). The fix is for a human to record `kind: pass` evidence with `identity.author: human`.
