@@ -1,5 +1,5 @@
 id: F-040
-title: clad CLI + Pulse UI + Territory Panel
+title: clad CLI + Pulse UI + Integrity Panel
 status: done
 modules:
   - bin/clad
@@ -26,8 +26,8 @@ acceptance_criteria:
       otherwise.
   - id: AC-063
     ears: ubiquitous
-    action: render a feature × stage Territory Panel as a text grid
+    action: render a feature × stage Integrity Panel as a text grid
     response: each cell uses one of 5 glyphs (✓ · ! ✗ -) describing the stage outcome
-    text: The Territory Panel shall render a feature × stage text grid; each cell
+    text: The Integrity Panel shall render a feature × stage text grid; each cell
       uses one of five glyphs (pass / skip / warn / error / unknown) describing
       the stage outcome for that feature.

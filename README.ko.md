@@ -70,7 +70,7 @@ clad work <verb>         # stage 또는 자연어 의도 실행
 clad drive [목표]         # autonomous loop (v0.2 — placeholder)
 clad sync                # spec.yaml 을 schema 에 대해 검증
 clad check               # 모든 Iron Law stage + drift 검사 실행
-clad panel               # feature × stage Territory Panel 렌더링
+clad panel               # feature × stage Integrity Panel 렌더링
 clad route <프롬프트>     # 자연어 프롬프트를 verb 로 분류
 clad benchmark <feature> # naive vs optimized spec token 비용
 ```

@@ -15,7 +15,7 @@ Wrapper for the local `clad` binary (see `bin/clad` and `cli/clad.ts`). Forwards
 | `drive [goal]` | autonomous loop (v0.2 placeholder) |
 | `sync` | validate `spec.yaml` against `spec/schema.json` |
 | `check` | run every Iron Law stage + drift suite |
-| `panel` | render the feature × stage Territory Panel |
+| `panel` | render the feature × stage Integrity Panel |
 | `route <prompt>` | classify a free-form prompt to a verb |
 | `benchmark <F-NNN>` | naive vs optimized spec token comparison |
 

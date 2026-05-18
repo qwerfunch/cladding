@@ -43,7 +43,7 @@ Each Level adds a verifiable capability:
 | L15 | T9a 5-agent personas (orchestrator · librarian · reviewer · observability · specialists) | ✓ |
 | L16 | T9b UNTESTED_AC + CONVENTION_DRIFT — **19/19 detectors** | ✓ |
 | L17 | T10a Intent Router (NL → CLI verb) | ✓ |
-| L18 | T10b clad CLI + Pulse UI + Territory Panel | ✓ |
+| L18 | T10b clad CLI + Pulse UI + Integrity Panel | ✓ |
 | L19 | T11a Token Optimizer (prune · preamble · tail) | ✓ |
 | L20 | T11b events.log + benchmark CLI (87.9% reduction measured on F-008) | ✓ |
 | L21 | L2/L3/L4 conformance fixtures — **iron-law L4 declared (26/26 matched)** | ✓ |
@@ -96,7 +96,7 @@ clad work <verb>         # run a stage or natural-language intent
 clad drive [goal]        # autonomous loop (v0.2 — placeholder)
 clad sync                # validate spec.yaml against schema
 clad check               # run every Iron Law stage + drift suite
-clad panel               # render the feature × stage Territory Panel
+clad panel               # render the feature × stage Integrity Panel
 clad route <prompt>      # classify a natural-language prompt to a verb
 clad benchmark <feature> # naive vs optimized spec token cost
 ```
