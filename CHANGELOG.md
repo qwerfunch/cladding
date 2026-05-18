@@ -9,18 +9,6 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 First public release. Cladding ships every capability `ironclad-design/` planned, in *minimum-viable* form, with **iron-law L4** declared end-to-end on its own codebase.
 
-### Empirical evidence — A/B/C comparative test
-
-Before this release we ran a 9-cell experiment (3 modes × 3 project scopes) comparing **vanilla Claude Code · harness-boot plugin · cladding**. Methodology + per-cell measurements + synthesis: [`experiments/ab-test-v0.1.0/`](experiments/ab-test-v0.1.0/).
-
-Headline findings:
-
-- **Vanilla mode shipped a project with 3 typecheck errors as done** (15/15 tests pass + clean eslint). Both harness and cladding refused to advance the same code past gate_1 — the gate-based value proposition in action.
-- **Cladding's ceremony overhead is 17 pp lighter than harness** (+34.6 % vs vanilla, vs harness's +52.4 %). Sharded spec + panel renderer pay for themselves.
-- **Token-Optimizer pruning is scale-dependent**: 87.9 % reduction on cladding's own 47-feature spec (F-008); *negative* on a 5-feature toy project. Use the optimizer on real-scale specs.
-
-Limitations are called out in [`REPORT.md`](experiments/ab-test-v0.1.0/REPORT.md) §limitations (N=1 per cell, shared codebase between modes, char/4 token estimation, self-measurement bias).
-
 ### Added — Iron Law stages (13/13)
 
 - `stage_1.1` Type — polyglot delegation (TS→tsc · Py→mypy · Rust→cargo check · Go→go vet · …)
