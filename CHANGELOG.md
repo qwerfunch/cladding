@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.3] — Unreleased — AGENTS.md cross-tool entry point + code-style SSoT
+## [0.1.3] — 2026-05-19 — AGENTS.md cross-tool entry point + code-style SSoT
 
 Doc-only patch that exposes Cladding's host-bound + no-API-key policy to the 25+ AI coding tools that read the [agents.md](https://agents.md/) standard — OpenAI Codex, Cursor, Cline, Aider, Continue, GitHub Copilot, Gemini CLI, JetBrains Junie, Windsurf, and others. Claude Code reads the same file; no separate `CLAUDE.md` ships.
 
@@ -26,7 +26,7 @@ Doc-only patch that exposes Cladding's host-bound + no-API-key policy to the 25+
 - `CLAUDE.md` is intentionally not shipped — Cladding is a CLI/library, not a Claude Code plugin scaffold; `AGENTS.md` is the single agent entry point.
 - The comment policy applies to new code from this release on. Existing comments are not retro-rewritten; they migrate naturally as the surrounding code is touched.
 
-## [0.1.2] — Unreleased — Soft Shell formatter + F-049 spec generic for multi-provider
+## [0.1.2] — 2026-05-19 — Soft Shell formatter + F-049 spec generic for multi-provider
 
 Answers two user-facing questions in one patch:
 
@@ -56,7 +56,7 @@ No CLI behaviour regression: every previous output is still available behind `--
 - This is a `0.1.x` patch per `GOVERNANCE.md` §2: doc + spec + a formatter, no new stage / detector / verb / persona.
 - The actual `adapters/{host,sdk}/*` implementation lands in v0.2.0 stage 1 (host adapters, cost zero) and stage 2 (sdk adapters, opt-in).
 
-## [0.1.1] — Unreleased — Contributor on-ramp
+## [0.1.1] — 2026-05-19 — Contributor on-ramp
 
 A docs-only patch that turns Cladding from "the maintainer's project that happens to be public" into a project an outside contributor can actually open a first PR against without DM-ing the maintainer. No behavior change in the CLI, no detector logic change.
 
