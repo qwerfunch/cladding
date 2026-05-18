@@ -32,7 +32,7 @@ acceptance_criteria:
   - id: AC-084
     ears: ubiquitous
     action: update spec/cli.ts to delegate to loadSpec so sharded layout validates
-    response: `npm run spec:validate` returns valid=true on a sharded master
+    response: "npm run spec:validate returns valid=true on a sharded master"
     text: >-
       The system shall update spec/cli.ts to delegate to loadSpec so
       that `npm run spec:validate` returns valid=true on a sharded

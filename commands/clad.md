@@ -1,5 +1,5 @@
 ---
-description: Invoke the cladding CLI — run a stage, the drift suite, the spec validator, the minimap, the intent router, or the token benchmark.
+description: Invoke the cladding CLI — run a stage, the drift suite, the spec validator, the panel, the intent router, or the token benchmark.
 ---
 
 # /cladding:clad
@@ -15,7 +15,7 @@ Wrapper for the local `clad` binary (see `bin/clad` and `cli/clad.ts`). Forwards
 | `drive [goal]` | autonomous loop (v0.2 placeholder) |
 | `sync` | validate `spec.yaml` against `spec/schema.json` |
 | `check` | run every Iron Law stage + drift suite |
-| `minimap` | render the feature × stage Territory Minimap |
+| `panel` | render the feature × stage Territory Panel |
 | `route <prompt>` | classify a free-form prompt to a verb |
 | `benchmark <F-NNN>` | naive vs optimized spec token comparison |
 
@@ -23,7 +23,7 @@ Wrapper for the local `clad` binary (see `bin/clad` and `cli/clad.ts`). Forwards
 
 ```
 /cladding:clad check
-/cladding:clad minimap
+/cladding:clad panel
 /cladding:clad route "기능 만들어줘"
 /cladding:clad benchmark F-008
 ```

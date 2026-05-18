@@ -43,7 +43,7 @@ Each Level adds a verifiable capability:
 | L15 | T9a 5-agent personas (orchestrator · librarian · reviewer · observability · specialists) | ✓ |
 | L16 | T9b UNTESTED_AC + CONVENTION_DRIFT — **19/19 detectors** | ✓ |
 | L17 | T10a Intent Router (NL → CLI verb) | ✓ |
-| L18 | T10b clad CLI + Pulse UI + Territory Minimap | ✓ |
+| L18 | T10b clad CLI + Pulse UI + Territory Panel | ✓ |
 | L19 | T11a Token Optimizer (prune · preamble · tail) | ✓ |
 | L20 | T11b events.log + benchmark CLI (87.9% reduction measured on F-008) | ✓ |
 | L21 | L2/L3/L4 conformance fixtures — **iron-law L4 declared (26/26 matched)** | ✓ |
@@ -65,6 +65,29 @@ Cladding implements the Ironclad standard. The exact spec version this codebase 
 
 When the Ironclad spec advances, this pin updates via a deliberate sync step (not auto-follow) — see [`GOVERNANCE.md`](GOVERNANCE.md) §1 for the 5-step sync procedure.
 
+### Spec layout (sharded)
+
+Cladding's own spec uses the sharded layout — one yaml file per feature:
+
+| where | what |
+|---|---|
+| `spec.yaml` | master · `schema` + `project` metadata only |
+| `spec/features/F-NNN.yaml` | one file per feature (47 total) |
+| `spec/scenarios/S-NNN.yaml` | one file per scenario (2 total) |
+| `spec/architecture.yaml` | layer + forbidden-imports policy |
+| `spec/schema.json` | JSON Schema (draft-07) |
+
+`spec/load.ts` auto-detects this layout and merges children back into one Spec object on every load. To inspect the merged view:
+
+| intent | command |
+|---|---|
+| validate merged spec | `npm run spec:validate` |
+| feature + dependencies (JSON) | `clad benchmark F-NNN` |
+| coverage at a glance | `clad panel` |
+| raw dump | `cat spec/features/*.yaml` |
+
+Inline-features layout (single `spec.yaml`) also works — `spec/load.ts` falls back automatically. New projects start unsharded; `scripts/shard-spec.ts` migrates when the master grows past ~1k lines.
+
 ## CLI
 
 ```
@@ -73,7 +96,7 @@ clad work <verb>         # run a stage or natural-language intent
 clad drive [goal]        # autonomous loop (v0.2 — placeholder)
 clad sync                # validate spec.yaml against schema
 clad check               # run every Iron Law stage + drift suite
-clad minimap             # render the feature × stage Territory Minimap
+clad panel               # render the feature × stage Territory Panel
 clad route <prompt>      # classify a natural-language prompt to a verb
 clad benchmark <feature> # naive vs optimized spec token cost
 ```
