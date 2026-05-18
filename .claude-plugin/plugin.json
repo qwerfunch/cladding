@@ -24,9 +24,20 @@
       "iron-law": "L0",
       "detectors": "0/19",
       "ears": "none",
-      "phase": "L4a — stage_1.3 Drift core (empty registry)",
+      "phase": "L4b — toolchain detect + execa (polyglot adapter)",
       "stages-implemented": ["stage_1.1", "stage_1.2", "stage_1.3"],
-      "stack": "typescript"
+      "stack": "typescript",
+      "languages-supported": [
+        "typescript",
+        "python",
+        "rust",
+        "go",
+        "java",
+        "php",
+        "ruby",
+        "elixir",
+        "dotnet"
+      ]
     }
   }
 }
