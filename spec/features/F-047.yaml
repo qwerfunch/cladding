@@ -1,0 +1,39 @@
+id: F-047
+title: Cladding self-shard — own spec migrated to sharded layout
+status: done
+modules:
+  - scripts/shard-spec.ts
+  - spec/cli.ts
+  - spec/features/
+  - spec/scenarios/
+  - spec/architecture.yaml
+depends_on:
+  - F-031
+  - F-040
+acceptance_criteria:
+  - id: AC-082
+    ears: ubiquitous
+    action: ship a one-shot script that migrates a master spec.yaml to sharded layout
+    response: scripts/shard-spec.ts produces spec/features/*.yaml, spec/scenarios/*.yaml, and spec/architecture.yaml
+    text: >-
+      The system shall ship a one-shot migration script that converts
+      a master spec.yaml into sharded layout (spec/features/*.yaml +
+      spec/scenarios/*.yaml + spec/architecture.yaml), so any project
+      that outgrows the single-file form can shard with one command.
+  - id: AC-083
+    ears: ubiquitous
+    action: apply the sharded layout to cladding's own spec
+    response: master spec.yaml carries metadata only; features and scenarios live as one file each
+    text: >-
+      Cladding shall apply the sharded layout to its own spec.yaml —
+      master carries only schema + project + header comments, while
+      features and scenarios live as one yaml file each under
+      spec/features/ and spec/scenarios/.
+  - id: AC-084
+    ears: ubiquitous
+    action: update spec/cli.ts to delegate to loadSpec so sharded layout validates
+    response: `npm run spec:validate` returns valid=true on a sharded master
+    text: >-
+      The system shall update spec/cli.ts to delegate to loadSpec so
+      that `npm run spec:validate` returns valid=true on a sharded
+      master spec.

@@ -1,0 +1,17 @@
+id: F-029
+title: stage_3.3 Visual — polyglot visual regression delegation
+status: done
+modules:
+  - stages/visual.ts
+depends_on:
+  - F-004
+acceptance_criteria:
+  - id: AC-042
+    ears: ubiquitous
+    action: delegate visual regression testing to the project's own toolchain
+    response: returns a stage_3.3 StageResult
+    text: The system shall delegate visual regression testing to the project's own
+      toolchain (default `npm run visual`), returning a stage_3.3 result with
+      the runner's exit code.
+    test_refs:
+      - self-dogfood:stage:visual

@@ -1,0 +1,23 @@
+id: F-023
+title: cladding own unit test suite (vitest)
+status: done
+modules:
+  - vitest.config.ts
+  - tests/spec/parse.test.ts
+  - tests/spec/validate.test.ts
+  - tests/spec/ears.test.ts
+  - tests/stages/toolchain.test.ts
+  - tests/stages/drift.test.ts
+depends_on:
+  - F-021
+acceptance_criteria:
+  - id: AC-035
+    ears: ubiquitous
+    action: run cladding's own unit tests covering spec parser, validator, EARS
+      validator, toolchain detector, and drift registry
+    response: vitest reports all suites pass
+    text: The system shall maintain a vitest suite covering spec parser, validator,
+      EARS validator, toolchain detector, and drift registry. `npm test` shall
+      exit 0 with all tests passing.
+    test_refs:
+      - self-dogfood:test

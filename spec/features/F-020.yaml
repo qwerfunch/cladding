@@ -1,0 +1,31 @@
+id: F-020
+title: L1 conformance fixture suite + declaration
+status: done
+modules:
+  - conformance/runner.ts
+depends_on:
+  - F-001
+  - F-002
+  - F-003
+  - F-007
+  - F-008
+  - F-005
+acceptance_criteria:
+  - id: AC-031
+    ears: ubiquitous
+    action: run 12 fixtures (6 stages × pass/fail) and assert each stage's signal
+      matches expectation
+    response: returns conformance result with iron_law='L1' on full match, 'L0' otherwise
+    text: The system shall run 12 conformance fixtures (6 stages × pass + fail) and
+      assert every stage's signal matches its expected outcome, declaring
+      iron_law='L1' on full match.
+    test_refs:
+      - self-dogfood:conformance
+  - id: AC-032
+    ears: ubiquitous
+    action: isolate fixtures in fresh temp dirs and symlink cladding's node_modules
+    response: fixtures use cladding's installed devDeps without contaminating the
+      source tree
+    text: The system shall isolate each fixture in a fresh temp dir, symlink
+      cladding's node_modules into it, and clean up after execution so the
+      source tree stays uncontaminated.

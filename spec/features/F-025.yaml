@@ -1,0 +1,18 @@
+id: F-025
+title: STALE_TESTS drift detector (#8)
+status: done
+modules:
+  - stages/detectors/stale-tests.ts
+depends_on:
+  - F-003
+  - F-010
+acceptance_criteria:
+  - id: AC-037
+    ears: event
+    condition: when any test file's mtime lags the newest source-module mtime by
+      more than 30 days
+    action: emit a warn finding listing the stale test path and age
+    response: stage_1.3 surfaces but does not fail on warn alone
+    text: When a test file's modification time is more than 30 days older than the
+      newest source-module modification time, the detector shall emit a warn
+      finding listing the stale test path and age.

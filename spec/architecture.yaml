@@ -1,0 +1,10 @@
+layers:
+  - - spec
+    - stages
+    - detectors
+    - toolchain
+forbidden_imports:
+  - from: spec
+    to: stages
+  - from: toolchain
+    to: stages

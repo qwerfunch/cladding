@@ -94,6 +94,7 @@ Environment: `HARNESS_INTEGRITY` · `REFERENCE_INTEGRITY` · `META_INTEGRITY`.
 - `spec/load.ts` heuristic: master features inline → unsharded · empty master + `spec/features/` dir → sharded merge
 - Architecture: master inline OR `spec/architecture.yaml`
 - 4 unit tests cover both layouts + inline-wins precedence
+- **Cladding's own spec migrated to sharded layout (L21.8)** — 47 features × 1 yaml file each, 2 scenarios × 1 file, 1 architecture file. Master `spec.yaml` shrinks to metadata only. `scripts/shard-spec.ts` ships the one-shot migration any project can reuse when its spec grows past one-file readability.
 
 ### Added — Repository hygiene
 

@@ -1,0 +1,25 @@
+id: F-001
+title: stage_1.1 Type — polyglot type-check delegation
+status: done
+modules:
+  - stages/type.ts
+  - stages/types.ts
+  - stages/toolchain/detect.ts
+  - stages/toolchain/types.ts
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: delegate type checking to the project's own toolchain
+    response: returns a stage_1.1 StageResult with exitCode mirroring the tool
+    text: The system shall delegate type checking to the project's own toolchain,
+      returning a stage_1.1 result whose exit code mirrors the underlying type
+      checker.
+    test_refs:
+      - self-dogfood:stage:type
+  - id: AC-002
+    ears: event
+    condition: when no type checker is registered for the detected language
+    action: return pass=false with exitCode 2
+    response: the stage is treated as skipped rather than failed
+    text: When no type checker is registered for the detected language, the system
+      shall return exitCode 2 so callers can treat the stage as skipped.

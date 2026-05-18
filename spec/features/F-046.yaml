@@ -1,0 +1,50 @@
+id: F-046
+title: clad init — workspace scaffolder (placeholder → real)
+status: done
+modules:
+  - cli/init.ts
+depends_on:
+  - F-004
+  - F-010
+  - F-040
+acceptance_criteria:
+  - id: AC-078
+    ears: ubiquitous
+    action: scaffold a cladding workspace with spec.yaml + .cladding/ + .gitignore
+      append
+    response: returns created and skipped artifact lists plus detected language
+    text: The system shall scaffold a cladding workspace by creating spec.yaml seed,
+      the .cladding/ runtime directory, and appending .cladding/ to .gitignore.
+      It returns the lists of created and skipped artifacts plus the
+      auto-detected project language.
+    test_refs:
+      - tests/cli/init.test.ts
+  - id: AC-079
+    ears: unwanted
+    condition: if spec.yaml already exists and --force is not passed
+    action: skip the spec write and report it in `skipped`
+    response: existing user content is preserved
+    text: If spec.yaml already exists and --force is not passed, the system shall
+      skip the spec write and preserve existing user content. --force overrides
+      this safety.
+    test_refs:
+      - tests/cli/init.test.ts
+  - id: AC-080
+    ears: ubiquitous
+    action: be idempotent — re-running on an initialised workspace creates nothing
+    response: skipped list explains every artifact already in place
+    text: The system shall be idempotent — re-running clad init on an
+      already-initialised workspace creates nothing and reports every artifact
+      via the skipped list.
+    test_refs:
+      - tests/cli/init.test.ts
+  - id: AC-081
+    ears: ubiquitous
+    action: detect the project language from the manifest chain; fall back to
+      typescript
+    response: seed spec.yaml's project.language reflects detection
+    text: The system shall detect the project language via the toolchain manifest
+      chain and fall back to typescript when no manifest matches. The seed
+      spec.yaml's project.language reflects that detection.
+    test_refs:
+      - tests/cli/init.test.ts

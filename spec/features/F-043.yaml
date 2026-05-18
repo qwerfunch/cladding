@@ -1,0 +1,25 @@
+id: F-043
+title: Level 2/3/4 conformance fixtures + iron-law L4 declaration
+status: done
+modules:
+  - conformance/runner.ts
+depends_on:
+  - F-020
+  - F-021
+  - F-024
+  - F-027
+  - F-028
+  - F-029
+  - F-033
+acceptance_criteria:
+  - id: AC-069
+    ears: ubiquitous
+    action: extend the conformance runner with 14 additional fixtures covering L2,
+      L3, and L4 stages
+    response: every fixture's signal matches its expected outcome; report.iron_law
+      === 'L4' on full match
+    text: The system shall extend the conformance runner with 14 additional fixtures
+      (L2 ×4, L3 ×6, L4 ×4) and declare iron_law='L4' only when all 26 fixtures
+      match their expected signal.
+    test_refs:
+      - self-dogfood:conformance

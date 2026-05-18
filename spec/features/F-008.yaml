@@ -1,0 +1,19 @@
+id: F-008
+title: stage_1.5 Arch — architecture validation delegation
+status: done
+modules:
+  - stages/arch.ts
+depends_on:
+  - F-004
+  - F-009
+acceptance_criteria:
+  - id: AC-012
+    ears: ubiquitous
+    action: invoke the toolchain's architecture validator via the
+      ARCHITECTURE_VIOLATION detector
+    response: returns a stage_1.5 StageResult folded from detector findings
+    text: The system shall invoke the toolchain's architecture validator via the
+      ARCHITECTURE_VIOLATION detector and fold the findings into a stage_1.5
+      result.
+    test_refs:
+      - self-dogfood:stage:arch

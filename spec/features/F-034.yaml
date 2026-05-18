@@ -1,0 +1,17 @@
+id: F-034
+title: EVIDENCE_MISMATCH drift detector (#10)
+status: done
+modules:
+  - stages/detectors/evidence-mismatch.ts
+depends_on:
+  - F-003
+  - F-032
+acceptance_criteria:
+  - id: AC-053
+    ears: event
+    condition: when an audit-log entry references an artifact path that no longer exists
+    action: emit an error finding listing the missing artifact
+    response: stage_1.3 fails for the host pipeline
+    text: When an audit-log entry references an artifact path that no longer exists
+      on disk, the detector shall emit an error finding listing the missing
+      artifact and the originating evidence id.
