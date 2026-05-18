@@ -15,5 +15,5 @@
     "resolveJsonModule": true,
     "isolatedModules": true
   },
-  "include": ["stages/**/*.ts", "spec/**/*.ts", "conformance/**/*.ts", "tests/**/*.ts", "vitest.config.ts"]
+  "include": ["stages/**/*.ts", "spec/**/*.ts", "conformance/**/*.ts", "tests/**/*.ts", "hitl/**/*.ts", "vitest.config.ts"]
 }
