@@ -40,6 +40,12 @@ export interface ToolchainGates {
    * java) — for those the gate is intentionally absent.
    */
   readonly arch?: ToolSpec;
+  /** End-to-end smoke test runner (project-owned npm script by default). */
+  readonly smoke?: ToolSpec;
+  /** Performance budget runner (project-owned npm script by default). */
+  readonly perf?: ToolSpec;
+  /** Visual regression test runner (project-owned npm script by default). */
+  readonly visual?: ToolSpec;
 }
 
 /**

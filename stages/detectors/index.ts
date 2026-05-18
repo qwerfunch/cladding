@@ -13,6 +13,7 @@ import {harnessIntegrity} from './harness-integrity.js';
 import {metaIntegrity} from './meta-integrity.js';
 import {missingImplementation} from './missing-implementation.js';
 import {missingTests} from './missing-tests.js';
+import {performanceDrift} from './performance-drift.js';
 import {referenceIntegrity} from './reference-integrity.js';
 import {staleSpecification} from './stale-specification.js';
 import {staleTests} from './stale-tests.js';
@@ -37,4 +38,5 @@ export const allDetectors: readonly DriftDetector[] = [
   missingTests,
   staleTests,
   coverageDrop,
+  performanceDrift,
 ];
