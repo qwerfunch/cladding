@@ -11,19 +11,34 @@ Cladding is a multi-agent development harness for Claude Code, and the reference
 
 ## Status
 
-**Bootstrap (L0).** Building toward Ironclad L4 (`iron-law: L4, detectors: 19/19, ears: full`) one Lego brick at a time.
+**Spec pinned (L1).** Building toward Ironclad L4 (`iron-law: L4, detectors: 19/19, ears: full`) one Lego brick at a time.
 
 Each Level adds a verifiable capability:
 
-| Level | Capability | Target |
+| Level | Capability | Status |
 |---|---|---|
-| L0 | Repository skeleton (this commit) | ✓ |
-| L1 | Reference Ironclad spec v0.0.23 | TBD |
+| L0 | Repository skeleton | ✓ |
+| L1 | Spec reference pinned (v0.0.23, commit `883ff01`) | ✓ |
 | L2-L7 | L1 Iron Law conformance (6 stages + 19 detectors) | TBD |
 | L8 | Claude Code adapter (host integration) | TBD |
 | L9-L10 | L2 + L3 conformance | TBD |
 | L11-L13 | L4 conformance (HITL infrastructure + AI-era barriers) | TBD |
 | L14+ | Multi-host, falsifications, autonomous loop | TBD |
+
+## Spec Reference
+
+Cladding implements the Ironclad standard. The exact spec version this codebase targets is pinned in `.claude-plugin/plugin.json`:
+
+```json
+"ironclad": {
+  "spec-version": "0.0.23",
+  "spec-tag": "v0.0.23",
+  "spec-commit": "883ff01d0360b7c989fe16214c69a324f049c8cd",
+  "spec-url": "https://github.com/qwerfunch/ironclad"
+}
+```
+
+When the Ironclad spec advances, this pin updates via a deliberate sync step (not auto-follow) — see `GOVERNANCE.md` (TBD) for the sync policy.
 
 ## CLI
 

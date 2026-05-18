@@ -12,6 +12,9 @@
   "ironclad": {
     "spec-version": "0.0.23",
     "spec-url": "https://github.com/qwerfunch/ironclad",
+    "spec-tag": "v0.0.23",
+    "spec-commit": "883ff01d0360b7c989fe16214c69a324f049c8cd",
+    "spec-fetched": "2026-05-18",
     "target": {
       "iron-law": "L4",
       "detectors": "19/19",
@@ -21,7 +24,7 @@
       "iron-law": "L0",
       "detectors": "0/19",
       "ears": "none",
-      "phase": "bootstrap"
+      "phase": "L1 — spec pinned"
     }
   }
 }
