@@ -7,6 +7,7 @@
 
 import {acDrift} from './ac-drift.js';
 import {architectureViolation} from './architecture-violation.js';
+import {coverageDrop} from './coverage-drop.js';
 import {hardcodedSecret} from './hardcoded-secret.js';
 import {harnessIntegrity} from './harness-integrity.js';
 import {metaIntegrity} from './meta-integrity.js';
@@ -14,6 +15,7 @@ import {missingImplementation} from './missing-implementation.js';
 import {missingTests} from './missing-tests.js';
 import {referenceIntegrity} from './reference-integrity.js';
 import {staleSpecification} from './stale-specification.js';
+import {staleTests} from './stale-tests.js';
 import {statusDrift} from './status-drift.js';
 import {techStackMismatch} from './tech-stack-mismatch.js';
 import {unmappedArtifact} from './unmapped-artifact.js';
@@ -33,4 +35,6 @@ export const allDetectors: readonly DriftDetector[] = [
   metaIntegrity,
   acDrift,
   missingTests,
+  staleTests,
+  coverageDrop,
 ];

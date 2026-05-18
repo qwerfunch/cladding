@@ -22,10 +22,10 @@
     },
     "current": {
       "iron-law": "L1",
-      "detectors": "12/19",
+      "detectors": "14/19",
       "ears": "syntactic",
-      "phase": "L9 (T7a) — stage_2.1 Unit + MISSING_TESTS detector + vitest self-dogfood",
-      "stages-implemented": ["stage_1.1", "stage_1.2", "stage_1.3", "stage_1.4", "stage_1.5", "stage_1.6", "stage_2.1"],
+      "phase": "L10 (T7b) — stage_2.2 Cov + STALE_TESTS + COVERAGE_DROP detectors",
+      "stages-implemented": ["stage_1.1", "stage_1.2", "stage_1.3", "stage_1.4", "stage_1.5", "stage_1.6", "stage_2.1", "stage_2.2"],
       "spec-schema-version": "0.1",
       "conformance": {
         "level-1": {
