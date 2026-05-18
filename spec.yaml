@@ -835,6 +835,44 @@ features:
           principles (specialization · audit-separation · parallelism ·
           evidence-first · least-context) as its routing logic.
 
+  - id: F-037
+    title: UNTESTED_AC drift detector (#13)
+    status: done
+    modules:
+      - stages/detectors/untested-ac.ts
+    depends_on: [F-003, F-010]
+    acceptance_criteria:
+      - id: AC-057
+        ears: event
+        condition: when an AC declares a test_ref that is neither a self-dogfood / fixture prefix nor a real file path
+        action: emit an error finding listing the AC and unresolved ref
+        response: stage_1.3 fails for the host pipeline
+        text: >-
+          When an AC declares a test_ref that is neither a
+          self-dogfood/fixture-prefix alias nor a real file path, the
+          detector shall emit an error finding listing the AC and
+          unresolved ref.
+
+  - id: F-038
+    title: CONVENTION_DRIFT drift detector (#6, v0.1 floor)
+    status: done
+    modules:
+      - stages/detectors/convention-drift.ts
+    depends_on: [F-003, F-010]
+    acceptance_criteria:
+      - id: AC-058
+        ears: event
+        condition: when a TS module under features[].modules has no file-header comment
+        action: emit a warn finding referencing the Why>What guardrail
+        response: stage_1.3 surfaces but does not fail
+        text: >-
+          When a TypeScript module under features[].modules has no
+          file-header comment, the detector shall emit a warn finding
+          referencing the Why>What guardrail.
+        notes: >-
+          v0.1 floor. The richer LLM-assisted semantic variant lives
+          behind the reviewer agent in v0.2+.
+
   - id: F-019
     title: AC_DRIFT drift detector (#3) + EARS syntactic check
     status: done
