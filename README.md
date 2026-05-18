@@ -11,7 +11,7 @@ Cladding is a multi-agent development harness for Claude Code, and the reference
 
 ## Status
 
-**First Ironclad-native detector wired (L6a · MISSING_IMPLEMENTATION).** T4 kickoff — pure spec ↔ filesystem comparison, no OSS dependency. Detectors now 3/19 (HARDCODED_SECRET · ARCHITECTURE_VIOLATION · MISSING_IMPLEMENTATION). T1 (L1 stages) closed 6/6; T2 (SSoT) at 2/4. Building toward Ironclad L4 (`iron-law: L4, detectors: 19/19, ears: full`) one Lego brick at a time.
+**Second Ironclad-native detector (L6b · UNMAPPED_ARTIFACT) + spec hygiene closure.** Mirror image of MISSING_IMPLEMENTATION — files in `stages/**` and `spec/**` not claimed by any feature now drift-fail. The detector caught a real drift on its own introduction (L6a's new files were unmapped); this PR closes it by adding F-011 and F-012 to spec.yaml. Detectors now 4/19. Building toward Ironclad L4 (`iron-law: L4, detectors: 19/19, ears: full`) one Lego brick at a time.
 
 Each Level adds a verifiable capability:
 
@@ -29,7 +29,8 @@ Each Level adds a verifiable capability:
 | L5a | spec.yaml schema + parser + validator (T2a) | ✓ |
 | L5b | cladding own spec.yaml (T2b) — 10 features · 16 ACs · 2 scenarios | ✓ |
 | L6a | MISSING_IMPLEMENTATION detector (3/19) — first Ironclad-native (T4 kickoff) | ✓ |
-| L6b-L7 | 11 more Ironclad-native detectors + 5 OSS-wrap + EARS validator + L1 conformance | TBD |
+| L6b | UNMAPPED_ARTIFACT detector (4/19) — spec ↔ file mirror | ✓ |
+| L6c-L7 | 10 more Ironclad-native detectors + 5 OSS-wrap + EARS validator + L1 conformance | TBD |
 | L8 | Claude Code adapter (host integration) | TBD |
 | L9-L10 | L2 + L3 conformance | TBD |
 | L11-L13 | L4 conformance (HITL infrastructure + AI-era barriers) | TBD |
