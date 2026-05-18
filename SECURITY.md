@@ -4,7 +4,7 @@
 
 **Do not** open a public issue for a security report. Vulnerability reports go privately to:
 
-📧 **jungsoo.kim@doverunner.com**
+📧 **qwerfunch@gmail.com**
 
 Expect an acknowledgement within 7 days. If the report is reproducible and in-scope, the maintainer will work with you on a coordinated disclosure timeline. If it is out-of-scope or duplicate, you will hear back with an explanation.
 
