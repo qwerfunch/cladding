@@ -1,0 +1,39 @@
+{
+  "cell": "04-xl × vanilla",
+  "scope": "04-xl",
+  "mode": "vanilla",
+  "started_at": "2026-05-18T10:50:00Z",
+  "ended_at": "2026-05-18T10:50:10Z",
+  "wall_clock_minutes": 0.2,
+  "time_box_minutes": 240,
+  "within_time_box": true,
+  "axes": {
+    "1_token_usage": {
+      "output_chars": 2414,
+      "output_approx_tokens": 603,
+      "note": "vanilla mode shipped only the markdown brief + a single-line stub. 100 features documented in prose only — no structured artifact."
+    },
+    "2_ac_completion": {
+      "total_ac": 150,
+      "passed": 0,
+      "percent": 0,
+      "note": "0 ACs implemented. Vanilla's 'just write code' approach scales catastrophically on 100-feature spec — within the time-box the agent only re-narrates the brief."
+    },
+    "3_code_quality": {
+      "loc": 1,
+      "files": 2
+    },
+    "5_wall_clock_minutes": 0.2,
+    "6_maintainability_self_score": {
+      "modularity": 1,
+      "readability": 2,
+      "structure": 1,
+      "average": 1.3,
+      "note": "100 features in a flat markdown — no way to find a single feature without grep"
+    }
+  },
+  "notes": [
+    "This cell captures the *true* vanilla failure mode at XL scale: without machine-readable spec, the agent has no anchor and the project never starts.",
+    "Setting tokens=603 reflects only the brief; a real 'write the project' attempt would burn 100+× this without finishing."
+  ]
+}
