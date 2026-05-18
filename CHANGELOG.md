@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.5] — Unreleased — Email hotfix
+## [0.1.5] — 2026-05-19 — Email hotfix
 
 Security patch. No code change.
 
