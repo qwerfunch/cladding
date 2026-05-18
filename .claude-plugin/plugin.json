@@ -22,10 +22,10 @@
     },
     "current": {
       "iron-law": "L1",
-      "detectors": "15/19",
+      "detectors": "17/19",
       "ears": "syntactic",
-      "phase": "L13 (T8a) — HITL infrastructure (identity · audit trail · anti-self-cert guard)",
-      "stages-implemented": ["stage_1.1", "stage_1.2", "stage_1.3", "stage_1.4", "stage_1.5", "stage_1.6", "stage_2.1", "stage_2.2", "stage_3.1", "stage_3.2", "stage_3.3"],
+      "phase": "L14 (T8b) — stage_4.1 Audit + 4.2 UAT + EVIDENCE_MISMATCH + STALE_EVIDENCE",
+      "stages-implemented": ["stage_1.1", "stage_1.2", "stage_1.3", "stage_1.4", "stage_1.5", "stage_1.6", "stage_2.1", "stage_2.2", "stage_3.1", "stage_3.2", "stage_3.3", "stage_4.1", "stage_4.2"],
       "spec-schema-version": "0.1",
       "conformance": {
         "level-1": {

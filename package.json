@@ -22,6 +22,8 @@
     "stage:smoke": "tsx stages/smoke.ts",
     "stage:perf": "tsx stages/perf.ts",
     "stage:visual": "tsx stages/visual.ts",
+    "stage:audit": "tsx stages/audit.ts",
+    "stage:uat": "tsx stages/uat.ts",
     "spec:validate": "tsx spec/cli.ts",
     "conformance": "tsx conformance/runner.ts",
     "test": "vitest run",

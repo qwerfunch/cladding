@@ -745,6 +745,67 @@ features:
           stage_4 from clearing the AC.
         test_refs: [tests/hitl/anti-self-cert.test.ts]
 
+  - id: F-033
+    title: stage_4.1 Audit + stage_4.2 UAT — Level 4 HITL stages
+    status: done
+    modules:
+      - stages/audit.ts
+      - stages/uat.ts
+    depends_on: [F-032]
+    acceptance_criteria:
+      - id: AC-051
+        ears: ubiquitous
+        action: invoke the anti-self-cert guard over every AC mentioned in the audit log
+        response: returns a stage_4.1 StageResult; missing audit log → exitCode 2 (skipped)
+        text: >-
+          The system shall invoke the anti-self-cert guard over every
+          AC mentioned in the audit log and return a stage_4.1 result.
+          When no audit log is present the stage is treated as skipped.
+      - id: AC-052
+        ears: ubiquitous
+        action: verify every status=done feature carries at least one human-authored kind=pass evidence
+        response: returns a stage_4.2 StageResult listing features that fail UAT
+        text: >-
+          The system shall verify that every feature with status='done'
+          carries at least one human-authored kind='pass' evidence
+          entry, returning a stage_4.2 result listing features that
+          fail UAT.
+
+  - id: F-034
+    title: EVIDENCE_MISMATCH drift detector (#10)
+    status: done
+    modules:
+      - stages/detectors/evidence-mismatch.ts
+    depends_on: [F-003, F-032]
+    acceptance_criteria:
+      - id: AC-053
+        ears: event
+        condition: when an audit-log entry references an artifact path that no longer exists
+        action: emit an error finding listing the missing artifact
+        response: stage_1.3 fails for the host pipeline
+        text: >-
+          When an audit-log entry references an artifact path that no
+          longer exists on disk, the detector shall emit an error
+          finding listing the missing artifact and the originating
+          evidence id.
+
+  - id: F-035
+    title: STALE_EVIDENCE drift detector (#15)
+    status: done
+    modules:
+      - stages/detectors/stale-evidence.ts
+    depends_on: [F-003, F-032]
+    acceptance_criteria:
+      - id: AC-054
+        ears: event
+        condition: when an evidence entry's identity.timestamp is more than 90 days old
+        action: emit a warn finding listing the entry id and age
+        response: stage_1.3 surfaces but does not fail
+        text: >-
+          When an evidence entry's identity.timestamp is more than 90
+          days old, the detector shall emit a warn finding listing the
+          entry id and age in days.
+
   - id: F-019
     title: AC_DRIFT drift detector (#3) + EARS syntactic check
     status: done
