@@ -6,6 +6,7 @@ ironclad-stages-implemented:
   - stage_1.1
   - stage_1.2
   - stage_1.3
+  - stage_1.4
   - stage_1.6
 detectors-registered:
   - HARDCODED_SECRET
@@ -31,6 +32,7 @@ Ironclad iron-law stage implementations. One module per stage. Shared types in `
 | stage_1.1 Type | `type.ts` | type checker exit 0, no errors | deterministic | polyglot chain (TS→tsc · Py→mypy · Rust→cargo check · …) |
 | stage_1.2 Lint | `lint.ts` | linter exit 0, no errors | deterministic | polyglot chain (TS→eslint · Py→ruff · Rust→clippy · …) |
 | stage_1.3 Drift (core) | `drift.ts` | zero error-severity findings | deterministic | plug-in registry (1/19 detector wired) |
+| stage_1.4 Commit | `commit.ts` | working tree + index both clean | deterministic | `git status --porcelain` (language-agnostic) |
 | stage_1.6 Secret | `secret.ts` | no hardcoded secrets in tracked code | deterministic | toolchain chain (TS→secretlint · others→gitleaks) |
 
 ## [INTERFACE]
@@ -55,6 +57,7 @@ export function runType(opts?: CommandStageOptions): StageResult;
 export function runLint(opts?: CommandStageOptions): StageResult;
 export function runDrift(opts?: CommandStageOptions): DriftReport;
 export function runSecret(opts?: CommandStageOptions): StageResult;
+export function runCommit(opts?: CommandStageOptions): StageResult;
 
 // stage_1.3 extends the shape with a finding list and a plug-in registry.
 export interface DriftFinding {
@@ -83,6 +86,7 @@ npm run stage:type       # tsx stages/type.ts
 npm run stage:lint       # tsx stages/lint.ts
 npm run stage:drift      # tsx stages/drift.ts (all registered detectors)
 npm run stage:secret     # tsx stages/secret.ts
+npm run stage:commit     # tsx stages/commit.ts (call AFTER commit; mid-edit it fails by design)
 npx tsx stages/<name>.ts # direct
 ```
 
@@ -139,6 +143,7 @@ Rule: write own code only when the layer-3 semantics demand it. For everything e
 | stage_1.1 | `npm run typecheck` | `stages/**/*.ts` via tsconfig.json |
 | stage_1.2 | `npm run lint` | `stages/**/*.ts` via eslint.config.js |
 | stage_1.3 | `npm run stage:drift` | 1/19 detector wired (HARDCODED_SECRET); scans cladding's own tree |
+| stage_1.4 | `npm run stage:commit` | runs after each PR commit — verifies tree clean post-commit |
 | stage_1.6 | `npm run stage:secret` | secretlint scans cladding's own tree via `.secretlintrc.json` |
 
 Pass on all = cladding meets its own L1 stages so far.

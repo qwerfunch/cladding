@@ -24,8 +24,8 @@
       "iron-law": "L0",
       "detectors": "1/19",
       "ears": "none",
-      "phase": "L4c — stage_1.6 Secret + HARDCODED_SECRET detector",
-      "stages-implemented": ["stage_1.1", "stage_1.2", "stage_1.3", "stage_1.6"],
+      "phase": "L4d — stage_1.4 Commit (git clean tree)",
+      "stages-implemented": ["stage_1.1", "stage_1.2", "stage_1.3", "stage_1.4", "stage_1.6"],
       "stack": "typescript",
       "languages-supported": [
         "typescript",
