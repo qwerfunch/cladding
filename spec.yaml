@@ -891,12 +891,49 @@ features:
         test_refs: [tests/router/intent.test.ts]
       - id: AC-060
         ears: ubiquitous
-        action: evaluate more-specific rules before the broadest 'work' rule
-        response: 'work' never shadows init / drive / sync / check
+        action: evaluate more-specific rules before the broadest work rule
+        response: the work rule never shadows init / drive / sync / check
         text: >-
           The router shall evaluate more-specific rules (init, drive,
           sync, check) before the broadest 'work' rule so that 'work'
           never shadows a more-specific intent.
+
+  - id: F-040
+    title: clad CLI + Pulse UI + Territory Minimap
+    status: done
+    modules:
+      - bin/clad
+      - cli/clad.ts
+      - ui/pulse.ts
+      - ui/minimap.ts
+    depends_on: [F-039]
+    acceptance_criteria:
+      - id: AC-061
+        ears: ubiquitous
+        action: expose 5 Iron Core verbs (init / work / drive / sync / check) plus minimap and route as clad subcommands
+        response: each verb dispatches to existing stage runners or helpers
+        text: >-
+          The system shall expose 5 Iron Core verbs — init, work,
+          drive, sync, check — plus minimap and route as `clad`
+          subcommands, each dispatching to the existing stage runners
+          or helpers.
+      - id: AC-062
+        ears: ubiquitous
+        action: emit one Pulse line per transition (start / pass / fail / skip / note)
+        response: stdout is tail -f-friendly; ANSI color when TTY, plain when not
+        text: >-
+          The Pulse UI shall emit one line per transition (start /
+          pass / fail / skip / note); output is ANSI-colored when stdout
+          is a TTY and plain text otherwise.
+      - id: AC-063
+        ears: ubiquitous
+        action: render a feature × stage Territory Minimap as a text grid
+        response: each cell uses one of 5 glyphs (✓ · ! ✗ -) describing the stage outcome
+        text: >-
+          The Territory Minimap shall render a feature × stage text
+          grid; each cell uses one of five glyphs (pass / skip / warn /
+          error / unknown) describing the stage outcome for that
+          feature.
 
   - id: F-019
     title: AC_DRIFT drift detector (#3) + EARS syntactic check

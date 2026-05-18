@@ -1,0 +1,13 @@
+#!/usr/bin/env node
+// Cladding · `clad` CLI shim — delegates to cli/clad.ts via tsx.
+import {spawnSync} from 'node:child_process';
+import {dirname, join, resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import process from 'node:process';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const entry = resolve(here, '..', 'cli', 'clad.ts');
+const result = spawnSync('npx', ['tsx', entry, ...process.argv.slice(2)], {
+  stdio: 'inherit',
+});
+process.exit(result.status ?? 1);

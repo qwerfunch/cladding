@@ -24,26 +24,31 @@ interface Rule {
 const RULES: readonly Rule[] = [
   {
     intent: 'init',
+    // \b doesn't fire on Korean boundaries, so the Korean tokens stand alone.
     patterns: [
-      /\b(init|initialize|bootstrap|scaffold|새\s*프로젝트|새 프로젝트 시작|시작해)\b/i,
+      /\b(init|initialize|bootstrap|scaffold)\b/i,
+      /(새\s*프로젝트|시작해)/,
     ],
   },
   {
     intent: 'drive',
     patterns: [
-      /\b(plan|planning|roadmap|기획|로드맵|드라이브|drive)\b/i,
+      /\b(plan|planning|roadmap|drive)\b/i,
+      /(기획|로드맵|드라이브)/,
     ],
   },
   {
     intent: 'sync',
     patterns: [
-      /\b(sync|동기화|명세\s*(?:갱신|동기화|sync))\b/i,
+      /\b(sync)\b/i,
+      /(동기화|명세\s*갱신)/,
     ],
   },
   {
     intent: 'check',
     patterns: [
-      /\b(check|verify|확인|점검|검증|drift)\b/i,
+      /\b(check|verify|drift)\b/i,
+      /(확인|점검|검증)/,
     ],
   },
   {
@@ -51,7 +56,8 @@ const RULES: readonly Rule[] = [
     // 'work' is the broadest verb — placed last so it doesn't shadow
     // more-specific intents.
     patterns: [
-      /\b(work|build|develop|implement|만들어|추가|구현|기능\s*(?:추가|만)|test)\b/i,
+      /\b(work|build|develop|implement|test)\b/i,
+      /(만들어|구현|기능)/,
     ],
   },
 ];
