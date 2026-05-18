@@ -5,9 +5,9 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] — Unreleased — F-049 agent dispatch (host adapters · mock stage)
+## [0.2.0] — Unreleased — F-049 agent dispatch (machinery complete, transport mocked)
 
-The v0.2.0 F-049 epic ships in three PRs against develop and one release at the end. PR #1 (foundation) laid the adapter contract + mock host adapters + dispatch wrapper. PR #2 (drive integration, this entry's second batch) rewires `drive/loop.ts` to dispatch through that contract and finally emits the two reserved halt classes (`HUMAN_REQUIRED` / `LLM_UNAVAILABLE`). PR #3 (real host transports) swaps the mock adapter bodies for Claude Code subagent and MCP transports.
+This release closes the "machinery" half of F-049 — the agent-adapter contract, the drive-loop dispatch wiring, the two reserved halt classes — and explicitly defers the real Claude Code / MCP transport bodies to v0.3.0. The architectural decision that unlocks the real transports (cladding adopts an MCP server mode, `clad serve`) is recorded in `docs/multi-provider-roadmap.md`; until then the two host adapters return deterministic mock results so the loop, the parity tests, and the halt classes all exercise the right code paths.
 
 ### Added
 
@@ -26,9 +26,11 @@ The v0.2.0 F-049 epic ships in three PRs against develop and one release at the 
 - `cli/clad.ts` `drive` — now `await runDriveLoop(...)`. Soft Shell and `--json` outputs unchanged.
 - `spec/features/F-049.yaml` — status remains `in_progress`. `modules:` extended with `drive/loop.ts` and `agents/loader.ts`.
 
-### Notes
+### Architectural decision (transport deferred to v0.3.0)
 
-- The two host adapters still return mock results; the rewired loop dispatches against the contract, not against real LLM transports. The third v0.2.0 PR replaces the mock bodies — nothing in `drive/loop.ts`, `drive/agent.ts`, `adapters/index.ts`, or `adapters/types.ts` should change at that point.
+- The two host adapters still return mock results. Real Claude Code subagent dispatch and real MCP roundtrips need cladding to bridge its single-shot CLI model with the host's long-running session — and the cleanest bridge is an MCP server mode (a new `clad serve` verb) that any MCP-aware host can connect to. That mode lands in v0.3.0; the v0.2.0 mock bodies are deliberate, not "not finished yet."
+- The full architectural reasoning, the trade-off table, and the rejected alternatives (direct SDK call, slash-command output) live in `docs/multi-provider-roadmap.md` under "Transport architectural decision."
+- `spec/features/F-049.yaml` gains AC-092 ("ship v0.2.0 with mock host adapter bodies and defer the real transport to v0.3.0") so the spec is honest about what shipped.
 - No new dependency added; the loader reads `yaml` (already a transitive dep) for persona frontmatter.
 
 ## [0.1.6] — Unreleased — Bundled CLI install path

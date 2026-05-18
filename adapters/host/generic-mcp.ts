@@ -4,11 +4,16 @@
 // is running cladding (Cursor · Continue · Cline · any other client
 // that speaks the Model Context Protocol). Like the claude-code
 // adapter, this file ships the **mock stage**: interface-conformant,
-// deterministic stub body. Real MCP roundtrip lands with the third
-// v0.2.0 PR; the seam is stable across that change.
+// deterministic stub body. Real MCP roundtrip lands in v0.3.0 once
+// the `clad serve` MCP server mode is in place — see
+// `docs/multi-provider-roadmap.md` ("Transport architectural
+// decision") for the plan. The interface this file conforms to is
+// stable across that change; only the body of `invokeAgent` swaps.
 //
 // @see adapters/types.ts — the AgentAdapter contract.
 // @see https://modelcontextprotocol.io/ — the upstream MCP spec.
+// @see docs/multi-provider-roadmap.md — Transport architectural
+//      decision (the MCP-server-mode plan that unlocks the real body).
 // @see spec/features/F-049.yaml AC-091 — host adapters require no API key.
 
 import type {
@@ -53,7 +58,7 @@ function mockResult(persona: PersonaSpec, ctx: AgentContext): AgentResult {
     },
     summary: `[mock generic-mcp] persona=${persona.id} feature=${ctx.featureId}`,
     mutations: [],
-    notes: 'mock stage — real MCP dispatch lands in the next v0.2.0 PR',
+    notes: 'mock stage — real MCP dispatch lands in v0.3.0 via the cladding MCP server',
   };
 }
 

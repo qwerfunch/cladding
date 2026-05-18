@@ -70,6 +70,39 @@ Stage 1 (host adapters only) is sufficient to release v0.2.0 and covers the 99% 
 - **Host adapters** depend on the host exposing a usable agent-invocation API. Cursor and Continue do today; future hosts may not — list the unsupported runtimes in this section as you learn them.
 - **SDK adapters** carry the usual SDK quirks (rate limits, context windows, safety filters). The `AC-088` failure-class list grows here, not in cladding.
 
+## Transport architectural decision (deferred to v0.3.0)
+
+The two host adapters shipped in v0.2.0 (`claude-code` and `generic-mcp`) ship as **mock implementations**: they conform to the `AgentAdapter` contract and the drive loop dispatches against them, but `invokeAgent` returns a stub `AgentResult` instead of crossing a real LLM boundary. This section documents why and what v0.3.0 must decide before real transports can land.
+
+### The mismatch
+
+Cladding's `clad` CLI is a **single-shot process**. Every invocation parses arguments, runs to completion, exits. The host's agent-invocation machinery — Claude Code's Task/Agent tools, Cursor's agent API, an MCP transport — is **session-bound**: it lives inside a long-running editor/agent session and is not reachable from a separate process. So a short-running `clad drive` cannot directly call those session-bound APIs.
+
+Three plausible bridges, and why two of them don't fit cladding's current shape:
+
+| Bridge | Sketch | Why it (does not) work |
+|---|---|---|
+| Direct SDK call (Anthropic / OpenAI / Gemini) | `clad drive` reads `*_API_KEY` and calls the SDK | Breaks F-049 AC-091 (host adapters require no API key); breaks the host-bound default policy v0.1.2 baked in. SDK adapters stay opt-in. |
+| Slash command output | `clad drive` prints a "do this" instruction and the host's user runs it | Surrenders autonomy back to the user. Cladding's drive loop becomes a glorified `panel`, not an autonomous orchestrator. |
+| Two-process bridge | Cladding runs as a server, the host calls in | Fits — but requires picking how cladding becomes a server. See below. |
+
+### The two server options for v0.3.0
+
+| Option | Sketch | Notes |
+|---|---|---|
+| **MCP server mode (`clad serve`)** | A new long-running verb that exposes cladding's stages / drive loop / audit-log tools over the Model Context Protocol. Any MCP-aware host (Claude Code, Cursor, Continue, Cline, …) connects and calls those tools. The host's LLM does the work; cladding records the result. | Already aligns with `generic-mcp` adapter. One server implementation covers every MCP client. Adds a Node dependency on `@modelcontextprotocol/sdk`. The user starts `clad serve` once per session; the host points its MCP config at cladding's stdio. |
+| **Claude Code plugin mode** | Cladding ships a real Claude Code plugin (its own `commands/`, `hooks/`, `agents/`) so it runs inside the host's session and can call Task/Agent tools directly. | Tighter integration with Claude Code specifically, looser fit with Cursor/Cline/Continue. Requires real plugin manifest, not the metadata file `.claude-plugin/plugin.json` currently is. |
+
+The architectural decision is **MCP server mode is preferred** because it makes the same code work across every MCP-aware host — one server, many hosts. The Claude Code plugin path becomes a second adapter that *uses* the MCP server when cladding is installed as a plugin. The full plan, including the new `clad serve` verb, lands in v0.3.0.
+
+### What v0.2.0 still ships
+
+- `AgentAdapter` contract — stable across every transport that v0.3.0 grows.
+- Mock host adapters — interface-conformant, deterministic, suitable for testing the loop's dispatch shape.
+- Drive-loop dispatch wiring — every halt class (`HUMAN_REQUIRED`, `LLM_UNAVAILABLE`) emits for real once the adapter starts throwing or returning collision-prone identities.
+
+So v0.2.0 is the "machinery complete; transport mocked" milestone. v0.3.0 is the "transport real" milestone. The release notes for v0.2.0 say so explicitly.
+
 ## Out of scope (until external dogfood signals it)
 
 - Cost-aware adapter selection (smallest-model fallback). Tempting but speculative until production usage tells us the rate-limit pattern.
