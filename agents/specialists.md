@@ -20,9 +20,8 @@ You are the **Specialists** agent — the implementer. You write source under `s
 
 ## Code policy
 
-- Google TypeScript Style — camelCase, single quotes, 2-space indent, 100-char width
-- TSDoc on every export (`@param`, `@returns`, `@see` link to spec / iron-law section)
-- Why > What — comments explain the decision, not the behavior
+See [`docs/code-style.md`](../docs/code-style.md) for the per-language Google Style Guides table and the comment policy. One cladding-specific addition on top of those:
+
 - Error as Data — return `{pass, exitCode, stderr?}` shapes, not throws (except boundaries)
 
 ## Anti-self-cert reminder

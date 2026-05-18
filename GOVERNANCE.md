@@ -102,7 +102,7 @@ If this is your first time touching cladding, the path from clone to opened PR i
 4. **Run the four-check loop before pushing**: `npm test && npm run typecheck && npm run lint && node bin/clad check`. The first three must be clean; `clad check` must show 13/13 stages on a clean working tree.
 5. **Open the PR against `develop`.** The repository's `.github/PULL_REQUEST_TEMPLATE.md` walks you through the §4.3 contract as a checkbox list. A maintainer (or a delegated independent reviewer) signs off before merge.
 
-For style and structure, see `CONTRIBUTING.md`. For drift detector conventions specifically (especially the status-aware rule for `UNTESTED_AC` and `MISSING_TESTS`), see [`stages/detectors/README.md`](stages/detectors/README.md).
+For code style and comment policy across every language cladding supports, see [`AGENTS.md`](AGENTS.md) §4-5. For the broader first-PR experience, see `CONTRIBUTING.md`. For drift detector conventions specifically (especially the status-aware rule for `UNTESTED_AC` and `MISSING_TESTS`), see [`stages/detectors/README.md`](stages/detectors/README.md).
 
 ## 5. v1.0 Graduation Criteria
 

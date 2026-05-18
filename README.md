@@ -9,6 +9,8 @@
 
 Cladding is a multi-agent development harness for Claude Code, and the reference implementation of the Ironclad standard for graded, falsifiable consistency among spec, code, and tests. It is the successor to harness-boot — the seed project from which the Ironclad standard was distilled. Where harness-boot proved the idea, Cladding ships it.
 
+> AI tools (Claude Code, OpenAI Codex, Cursor, Cline, Aider, Continue, Copilot, Gemini CLI, …): see [`AGENTS.md`](AGENTS.md) for the cross-tool agent entry point.
+
 ## Status
 
 **Ironclad L4 conformant (L21) · self-spec sharded (L21.8).** Cladding ships the full Ironclad surface: 13 Iron Law stages (L1 Type / Lint / Drift / Commit / Arch / Secret · L2 Unit / Cov · L3 Smoke / Perf / Visual · L4 Audit / UAT), 19/19 drift detectors, EARS syntactic validator, HITL infrastructure (identity · audit · anti-self-cert), 5 agent personas, polyglot toolchain for 9 languages, Intent Router, clad CLI, Token Optimizer (87.9% reduction measured), conformance fixtures 26/26 matched. Cladding's own spec is now sharded (`spec/features/F-NNN.yaml` × 47, `spec/scenarios/S-NNN.yaml` × 2, `spec/architecture.yaml`) — the same layout external adopters get when their spec outgrows a single file.

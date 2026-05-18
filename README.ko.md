@@ -9,6 +9,8 @@
 
 Cladding 는 Claude Code 용 멀티 에이전트 개발 하네스이자 Ironclad 표준 — *spec · code · tests* 간의 *등급 매겨지고 반증 가능한 정합성* 표준 — 의 reference implementation 입니다. harness-boot 의 후계 프로젝트로, harness-boot 가 *아이디어를 증명*했다면 Cladding 은 *그것을 출시*합니다.
 
+> AI 도구 안내 (Claude Code · OpenAI Codex · Cursor · Cline · Aider · Continue · Copilot · Gemini CLI · …): cross-tool 진입점은 [`AGENTS.md`](AGENTS.md) 에 있습니다.
+
 ## 상태
 
 **Ironclad L4 conformant (L21) · self-spec sharded (L21.8).** Cladding 은 Ironclad 의 전체 표면을 구현합니다 — 13 개 Iron Law stage (L1 Type / Lint / Drift / Commit / Arch / Secret · L2 Unit / Cov · L3 Smoke / Perf / Visual · L4 Audit / UAT), 19/19 drift detector, EARS 구문 검증기, HITL 인프라 (identity · audit · anti-self-cert), 5 개 agent persona, 9 개 언어 polyglot toolchain, Intent Router, clad CLI, Token Optimizer (cladding 자체 spec 에서 87.9% 컨텍스트 감소 실측), conformance fixture 26/26 일치. Cladding 자체 spec 은 이제 sharded 됨 (`spec/features/F-NNN.yaml` × 47, `spec/scenarios/S-NNN.yaml` × 2, `spec/architecture.yaml`) — 외부 채택자가 spec 이 단일 파일을 넘으면 동일 layout 사용.
