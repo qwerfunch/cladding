@@ -67,7 +67,7 @@ program
   .option('--json', 'emit the raw internal result (Iron Core view); default is a plain Soft Shell summary')
   .action(async (goal: string | undefined, opts: {cwd?: string; maxIterations: string; maxWallClockMs: string; maxRetries: string; json?: boolean}) => {
     const {runDriveLoop} = await import('../drive/loop.js');
-    const result = runDriveLoop({
+    const result = await runDriveLoop({
       cwd: opts.cwd,
       goal,
       budget: {

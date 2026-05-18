@@ -5,11 +5,9 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] — Unreleased — F-049 adapter foundation (mock stage)
+## [0.2.0] — Unreleased — F-049 agent dispatch (host adapters · mock stage)
 
-The first PR of the v0.2.0 F-049 epic. Lays the host-adapter interface, the registry/selector, and the drive-side dispatch wrapper so the next PR can rewire `drive/loop.ts` against a stable seam. The actual Claude Code subagent and MCP integrations land in the third PR; this one ships **interface-conformant mock adapters** so downstream tests + dispatch logic are written against the contract first.
-
-The v0.2.0 release waits until the full epic ships (foundation → drive integration → real host transports). The CHANGELOG entry already exists so each foundation PR has a place to land its changes.
+The v0.2.0 F-049 epic ships in three PRs against develop and one release at the end. PR #1 (foundation) laid the adapter contract + mock host adapters + dispatch wrapper. PR #2 (drive integration, this entry's second batch) rewires `drive/loop.ts` to dispatch through that contract and finally emits the two reserved halt classes (`HUMAN_REQUIRED` / `LLM_UNAVAILABLE`). PR #3 (real host transports) swaps the mock adapter bodies for Claude Code subagent and MCP transports.
 
 ### Added
 
@@ -18,18 +16,20 @@ The v0.2.0 release waits until the full epic ships (foundation → drive integra
 - `adapters/host/generic-mcp.ts` — generic-mcp host adapter, **mock stage**. Detects MCP runtime via `MCP_TRANSPORT` / `MCP_SERVER_NAME`. Real MCP transport lands in the third v0.2.0 PR.
 - `adapters/index.ts` — `selectAdapter(cwd)` + `resolveSelection(cwd)`. Resolution order: env vars (`CLADDING_AGENT_MODE` / `CLADDING_AGENT_NAME`) → `.cladding/config.yaml` (`agent.mode` / `agent.name`) → auto-detect (`claude-code` when inside Claude Code, otherwise `generic-mcp`). Never throws — always returns an adapter.
 - `drive/agent.ts` — `runAgent(persona, ctx, opts)` wrapper. Selects the active adapter, invokes it, writes evidence to the audit log, enforces the reviewer-vs-author barrier (F-049 AC-086) via `ReviewerIdentityCollisionError`.
-- `tests/adapters/host-parity.test.ts` — 6 cases proving `AgentResult` shape, `Identity` shape, and `mutations` array are invariant across both host adapters (F-049 AC-090). Also exercises `healthCheck` for both auto-detect paths.
+- `agents/loader.ts` — `loadPersona(id, rootDir?)` reads `agents/<id>.md`, parses the YAML frontmatter for `capabilities:`, returns the prose body as the persona prompt. Cached per file path.
+- `tests/adapters/host-parity.test.ts` — 6 cases proving `AgentResult` / `Identity` / `mutations` shape is invariant across both host adapters (F-049 AC-090), plus `healthCheck` auto-detect.
 - `tests/drive/agent.test.ts` — 3 cases: dispatch records evidence, reviewer-identity collision throws, reviewer hand-off succeeds when identities differ.
 
 ### Changed
 
-- `spec/features/F-049.yaml` — status: `planned` → `in_progress`. `modules:` now lists the five new files (`adapters/types.ts`, two host adapters, `adapters/index.ts`, `drive/agent.ts`).
+- `drive/loop.ts` — rewritten as `async function runDriveLoop`. Per iteration: specialist dispatch via `runAgent` → apply mutations → ensureStub fallback → L1 gates (Type / Lint / Arch) → reviewer dispatch (catches `ReviewerIdentityCollisionError` → `HUMAN_REQUIRED` halt) → UAT (`stage_4.2`) gate (lack of human pass on a `done` feature → `HUMAN_REQUIRED` halt). Adapter errors anywhere in the cycle surface as `LLM_UNAVAILABLE` halts. Five of ten halt classes were "WIRED"; two more (`HUMAN_REQUIRED`, `LLM_UNAVAILABLE`) now emit for real, with `BUDGET_EXCEEDED` / `BLOCKED_FEATURE` / `GATE_NO_PROGRESS` still reserved.
+- `cli/clad.ts` `drive` — now `await runDriveLoop(...)`. Soft Shell and `--json` outputs unchanged.
+- `spec/features/F-049.yaml` — status remains `in_progress`. `modules:` extended with `drive/loop.ts` and `agents/loader.ts`.
 
 ### Notes
 
-- This patch does **not** rewire `drive/loop.ts` — that's the second v0.2.0 PR. The deterministic floor still runs end users see today.
-- Mock adapters return a stub `AgentResult` (`summary: "[mock claude-code] ..."`). The third v0.2.0 PR replaces those bodies with real Claude Code subagent dispatch + real MCP roundtrip; nothing outside `adapters/host/*.ts` changes.
-- No new dependency added; the adapter layer reads `yaml` (already a devDep) for `.cladding/config.yaml`.
+- The two host adapters still return mock results; the rewired loop dispatches against the contract, not against real LLM transports. The third v0.2.0 PR replaces the mock bodies — nothing in `drive/loop.ts`, `drive/agent.ts`, `adapters/index.ts`, or `adapters/types.ts` should change at that point.
+- No new dependency added; the loader reads `yaml` (already a transitive dep) for persona frontmatter.
 
 ## [0.1.6] — Unreleased — Bundled CLI install path
 
