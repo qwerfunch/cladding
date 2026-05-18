@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.4] — Unreleased — Intent router precision + multilingual extensibility
+## [0.1.4] — 2026-05-19 — Intent router precision + multilingual extensibility
 
 `router/intent.ts` rewritten with high-precision, language-tagged patterns. The router still does not call an LLM (per `ironclad-design/03-ux-routing.md` P-11) — the precision change is in *which* prompts land on which verb, not in *how* they are classified.
 
