@@ -44,3 +44,44 @@ describe('drift registry', () => {
     expect(report.findings).toHaveLength(1);
   });
 });
+
+describe('drift --strict mode (F-051)', () => {
+  const warner: DriftDetector = {
+    name: 'TEST_WARNER',
+    run: () => [{detector: 'TEST_WARNER', severity: 'warn' as const, message: 'soft drift'}],
+  };
+
+  beforeEach(() => clearDetectors());
+  afterEach(() => clearDetectors());
+
+  test('default: warn finding does NOT fail the stage', () => {
+    registerDetector(warner);
+    const report = runDrift({cwd: '.'});
+    expect(report.pass).toBe(true);
+    expect(report.exitCode).toBe(0);
+    expect(report.findings).toHaveLength(1);
+  });
+
+  test('strict: warn finding DOES fail the stage', () => {
+    registerDetector(warner);
+    const report = runDrift({cwd: '.', strict: true});
+    expect(report.pass).toBe(false);
+    expect(report.exitCode).toBe(1);
+  });
+
+  test('strict: error still fails (existing behavior preserved)', () => {
+    registerDetector(failer);
+    const report = runDrift({cwd: '.', strict: true});
+    expect(report.pass).toBe(false);
+  });
+
+  test('strict: info-severity does not fail (only error + warn)', () => {
+    const infoer: DriftDetector = {
+      name: 'TEST_INFOER',
+      run: () => [{detector: 'TEST_INFOER', severity: 'info' as const, message: 'just a note'}],
+    };
+    registerDetector(infoer);
+    const report = runDrift({cwd: '.', strict: true});
+    expect(report.pass).toBe(true);
+  });
+});

@@ -1,0 +1,42 @@
+id: F-051
+title: Detector severity policy + opt-in strict mode
+status: done
+modules:
+  - stages/drift.ts
+  - cli/clad.ts
+  - stages/detectors/README.md
+  - README.md
+  - README.ko.md
+depends_on: [F-022]
+acceptance_criteria:
+  - id: AC-101
+    ears: ubiquitous
+    action: document each detector's severity and gating condition
+    response: stages/detectors/README.md carries a "Severity reality" section enumerating 3 always-error + 16 conditional detectors with their conditions (status-aware · config-dependent · code-anchor-dependent · warn · scoped-scan · environment)
+    text: The system shall document every detector's severity and its gating condition in stages/detectors/README.md.
+    test_refs: [stages/detectors/README.md]
+  - id: AC-102
+    ears: ubiquitous
+    action: reframe README headline to honest detector count
+    response: README.md and README.ko.md describe the detector set as "3 always-error + 16 conditional", not "19/19" without qualification
+    text: README.md and README.ko.md shall describe the detector set as "3 always-error + 16 conditional", not "19/19 detectors" undifferentiated.
+    test_refs: [README.md, README.ko.md]
+  - id: AC-103
+    ears: ubiquitous
+    action: clad check accepts --strict
+    response: --strict option exists; passes opts.strict to runDrift
+    text: clad check shall accept a --strict flag that promotes warn-severity drift findings to fail the stage.
+    test_refs: [cli/clad.ts, tests/stages/drift.test.ts]
+  - id: AC-104
+    ears: state
+    condition: while runDrift is called with strict=true
+    action: include warn findings in the fail set
+    response: report.pass=false when any warn finding exists; default (strict=false) ignores warns for pass calculation
+    text: While runDrift is called with strict=true, the system shall return pass=false when any warn finding exists.
+    test_refs: [tests/stages/drift.test.ts]
+  - id: AC-105
+    ears: ubiquitous
+    action: reference the drift-inject measurement as evidence
+    response: stages/detectors/README.md cites cladding-abc/08-drift-inject/REPORT-DRIFT-INJECT-2026-05-19.md as the source of the "3 + 16" framing
+    text: The severity matrix shall cite the 2026-05-19 drift-inject measurement as its evidence source.
+    test_refs: [stages/detectors/README.md]

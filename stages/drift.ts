@@ -52,23 +52,43 @@ export function registeredDetectors(): readonly string[] {
   return detectors.map((d) => d.name);
 }
 
+/** Per-invocation runDrift options. Extends the shared stage opts. */
+export interface DriftOptions extends CommandStageOptions {
+  /**
+   * When true, promote warn-severity findings to fail the stage. The
+   * default (false) leaves warns as informational. CI / pre-publish
+   * gates set this to catch slow-burning drift the default policy lets
+   * through.
+   * @see stages/detectors/README.md — "Opt-in strict mode".
+   */
+  readonly strict?: boolean;
+}
+
 /**
  * Runs every registered detector and aggregates their findings into a report.
  *
- * Pass policy: `pass=true` exactly when no finding has severity `'error'`.
- * Warn- and info-level findings are surfaced in `findings` but never fail
- * the stage — they exist to give downstream tooling something to display.
+ * Pass policy: by default, `pass=true` exactly when no finding has severity
+ * `'error'`. When `opts.strict` is true, any finding of severity `'error'`
+ * **or** `'warn'` fails the stage — the strict policy is the opt-in CI
+ * gate for catching drift the default policy considers informational.
  *
- * @param opts - Forwarded verbatim to each detector.
+ * Warn- and info-level findings are always surfaced in `findings` for
+ * downstream tooling regardless of strict mode.
+ *
+ * @param opts - Forwarded verbatim to each detector, plus `strict`.
  * @returns The aggregated drift report.
  * @see iron-law.md stage_1.3 — "zero error-severity findings".
+ * @see stages/detectors/README.md — severity matrix + strict mode.
  */
-export function runDrift(opts: CommandStageOptions = {}): DriftReport {
+export function runDrift(opts: DriftOptions = {}): DriftReport {
   const findings: DriftFinding[] = [];
   for (const detector of detectors) {
     findings.push(...detector.run(opts));
   }
-  const pass = !findings.some((f) => f.severity === 'error');
+  const failingSeverities: ReadonlySet<DriftFinding['severity']> = opts.strict
+    ? new Set<DriftFinding['severity']>(['error', 'warn'])
+    : new Set<DriftFinding['severity']>(['error']);
+  const pass = !findings.some((f) => failingSeverities.has(f.severity));
   return {
     stage: 'stage_1.3',
     pass,
@@ -77,10 +97,13 @@ export function runDrift(opts: CommandStageOptions = {}): DriftReport {
   };
 }
 
-// CLI entry — `tsx stages/drift.ts` or `npm run stage:drift`.
+// CLI entry — `tsx stages/drift.ts` or `npm run stage:drift`. Supports
+// `--strict` to promote warn findings to fail-grade (matches the
+// `clad check --strict` behaviour).
 const isCliEntry = !(globalThis as {__CLADDING_BUNDLED?: boolean}).__CLADDING_BUNDLED && import.meta.url === `file://${process.argv[1]}`;
 if (isCliEntry) {
-  const report = runDrift();
+  const strict = process.argv.includes('--strict');
+  const report = runDrift({strict});
   console.log(JSON.stringify(report));
   process.exit(report.exitCode);
 }

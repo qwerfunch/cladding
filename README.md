@@ -29,7 +29,7 @@ Same command surface inside Claude Code, OpenAI Codex CLI, Google Gemini CLI, Cu
 
 ## Status
 
-**Ironclad L4 conformant (L21) · self-spec sharded (L21.8).** Cladding ships the full Ironclad surface: 13 Iron Law stages (L1 Type / Lint / Drift / Commit / Arch / Secret · L2 Unit / Cov · L3 Smoke / Perf / Visual · L4 Audit / UAT), 19/19 drift detectors, EARS syntactic validator, HITL infrastructure (identity · audit · anti-self-cert), 5 agent personas, polyglot toolchain for 9 languages, Intent Router, clad CLI, Token Optimizer (87.9% reduction measured), conformance fixtures 26/26 matched. Cladding's own spec is now sharded (`spec/features/F-NNN.yaml` × 47, `spec/scenarios/S-NNN.yaml` × 2, `spec/architecture.yaml`) — the same layout external adopters get when their spec outgrows a single file.
+**Ironclad L4 conformant (L21) · self-spec sharded (L21.8).** Cladding ships the full Ironclad surface: 13 Iron Law stages (L1 Type / Lint / Drift / Commit / Arch / Secret · L2 Unit / Cov · L3 Smoke / Perf / Visual · L4 Audit / UAT), **3 always-error + 16 conditional drift detectors** (severity matrix in [`stages/detectors/README.md`](stages/detectors/README.md) — promoted via `clad check --strict`), EARS syntactic validator, HITL infrastructure (identity · audit · anti-self-cert), 5 agent personas, polyglot toolchain for 9 languages, Intent Router, clad CLI, Token Optimizer (87.9% reduction measured), conformance fixtures 26/26 matched. Cladding's own spec is now sharded (`spec/features/F-NNN.yaml` × 47, `spec/scenarios/S-NNN.yaml` × 2, `spec/architecture.yaml`) — the same layout external adopters get when their spec outgrows a single file.
 
 Each Level adds a verifiable capability:
 
@@ -41,6 +41,7 @@ Each Level adds a verifiable capability:
 | L3 | stage_1.2 Lint (ESLint, self-dogfooded) | ✓ |
 | L4a | stage_1.3 Drift core (registry + aggregator, empty) | ✓ |
 | L4b | Polyglot toolchain adapter — 9 languages, execa-backed | ✓ |
+| L4b' | Detector severity matrix (v0.2.2) — "3 always-error + 16 conditional", not "19 undifferentiated" | ✓ |
 | L4c | stage_1.6 Secret + HARDCODED_SECRET detector (1/19) | ✓ |
 | L4d | stage_1.4 Commit (git clean tree, language-agnostic) | ✓ |
 | L4e | stage_1.5 Arch + ARCHITECTURE_VIOLATION detector (2/19) — **T1 complete** | ✓ |
