@@ -24,7 +24,7 @@
       "iron-law": "L4",
       "detectors": "19/19",
       "ears": "syntactic",
-      "phase": "L21 — Level 2/3/4 conformance fixtures, iron-law L1 → L4 declared (26/26 matched)",
+      "phase": "L21.5 — release prep (CHANGELOG · README.ko · commands · bin · gitignore) — ready for v0.1.0 main",
       "stages-implemented": ["stage_1.1", "stage_1.2", "stage_1.3", "stage_1.4", "stage_1.5", "stage_1.6", "stage_2.1", "stage_2.2", "stage_3.1", "stage_3.2", "stage_3.3", "stage_4.1", "stage_4.2"],
       "spec-schema-version": "0.1",
       "conformance": {

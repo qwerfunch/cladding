@@ -11,7 +11,7 @@ Cladding is a multi-agent development harness for Claude Code, and the reference
 
 ## Status
 
-**T7a — stage_2.1 Unit + MISSING_TESTS + vitest self-dogfood (L9).** First L2 stage wired. cladding now ships its own 23-test vitest suite (spec parser, validator, EARS, toolchain, drift registry). MISSING_TESTS detector (#7, warn) surfaces 22 ACs that lack test_refs — to be filled progressively. Detectors **12/19**. Stages 7/13 (6 L1 + 1 L2). Roadmap: 13 bricks to v0.1.0; L9 closes T7a, next = L10 T7b stage_2.2 Cov + STALE_TESTS/COVERAGE_DROP/PERF_DRIFT.
+**Ironclad L4 conformant (L21).** Cladding ships the full Ironclad surface: 13 Iron Law stages (L1 Type / Lint / Drift / Commit / Arch / Secret · L2 Unit / Cov · L3 Smoke / Perf / Visual · L4 Audit / UAT), 19/19 drift detectors, EARS syntactic validator, HITL infrastructure (identity · audit · anti-self-cert), 5 agent personas, polyglot toolchain for 9 languages, Intent Router, clad CLI, Token Optimizer (87.9% reduction measured), conformance fixtures 26/26 matched.
 
 Each Level adds a verifiable capability:
 
@@ -35,11 +35,20 @@ Each Level adds a verifiable capability:
 | L7 | T5 EARS syntactic validator (5 patterns, AC_DRIFT enrichment) | ✓ |
 | L8 | T6 L1 conformance fixture suite — **`iron_law: L1` declared** | ✓ |
 | L9 | T7a stage_2.1 Unit + MISSING_TESTS + vitest self-dogfood (23 tests) | ✓ |
-| L10-L21 | T7b/c · T8 HITL · T9 agents · T10 CLI · T11 TokenOpt · L2/L3/L4 conformance · v0.1.0 release | TBD |
-| L8 | Claude Code adapter (host integration) | TBD |
-| L9-L10 | L2 + L3 conformance | TBD |
-| L11-L13 | L4 conformance (HITL infrastructure + AI-era barriers) | TBD |
-| L14+ | Multi-host, falsifications, autonomous loop | TBD |
+| L10 | T7b stage_2.2 Cov + STALE_TESTS + COVERAGE_DROP | ✓ |
+| L11 | T7c stage_3.1 Smoke + 3.2 Perf + 3.3 Visual + PERFORMANCE_DRIFT | ✓ |
+| L12 | T2c Spec sharding (multi-file SSoT support) | ✓ |
+| L13 | T8a HITL infrastructure (identity · audit · anti-self-cert) | ✓ |
+| L14 | T8b stage_4.1 Audit + 4.2 UAT + EVIDENCE_MISMATCH + STALE_EVIDENCE | ✓ |
+| L15 | T9a 5-agent personas (orchestrator · librarian · reviewer · observability · specialists) | ✓ |
+| L16 | T9b UNTESTED_AC + CONVENTION_DRIFT — **19/19 detectors** | ✓ |
+| L17 | T10a Intent Router (NL → CLI verb) | ✓ |
+| L18 | T10b clad CLI + Pulse UI + Territory Minimap | ✓ |
+| L19 | T11a Token Optimizer (prune · preamble · tail) | ✓ |
+| L20 | T11b events.log + benchmark CLI (87.9% reduction measured on F-008) | ✓ |
+| L21 | L2/L3/L4 conformance fixtures — **iron-law L4 declared (26/26 matched)** | ✓ |
+| L21.5 | Release preparation (CHANGELOG · README.ko · commands · bin field) | ✓ |
+| L22 | v0.1.0 main release | gated on user instruction |
 
 ## Spec Reference
 
@@ -58,17 +67,18 @@ When the Ironclad spec advances, this pin updates via a deliberate sync step (no
 
 ## CLI
 
-The Cladding CLI is invoked as `clad`:
-
 ```
-clad init     # initialize a Cladding workspace
-clad work     # run a feature's development cycle
-clad drive    # autonomous loop (Ironclad-bounded)
-clad sync     # synchronize spec and code
-clad check    # run the drift detector catalog
+clad init                # scaffold a cladding workspace (v0.2 — placeholder)
+clad work <verb>         # run a stage or natural-language intent
+clad drive [goal]        # autonomous loop (v0.2 — placeholder)
+clad sync                # validate spec.yaml against schema
+clad check               # run every Iron Law stage + drift suite
+clad minimap             # render the feature × stage Territory Minimap
+clad route <prompt>      # classify a natural-language prompt to a verb
+clad benchmark <feature> # naive vs optimized spec token cost
 ```
 
-Not yet shipped — placeholder until L8.
+After install, the `clad` binary is on `PATH` via the `bin` field in `package.json`. During development the shim at `bin/clad` invokes `cli/clad.ts` through tsx.
 
 ## Vocabulary
 
