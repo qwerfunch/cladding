@@ -1,5 +1,5 @@
 {
-  "cell": "04-xl \u00d7 cladding",
+  "cell": "04-xl × cladding",
   "scope": "04-xl",
   "mode": "cladding",
   "started_at": "2026-05-18T10:51:00Z",
@@ -30,7 +30,7 @@
     "4_drift": {
       "clad_sync_pass": true,
       "feature_load_strategy": "auto-detect sharded; merge on demand",
-      "edit_conflict_surface": "minimal \u2014 each feature change touches one file"
+      "edit_conflict_surface": "minimal — each feature change touches one file"
     },
     "5_wall_clock_minutes": 0.4,
     "6_maintainability_self_score": {
@@ -47,27 +47,12 @@
       "naive_tokens": 13521,
       "optimized_tokens": 237,
       "reduction_pct": 98.2,
-      "interpretation": "AT SCALE THE TOKEN OPTIMIZER WORKS AS DESIGNED. Pruning F-050 + its (transitive) deps from a 100-feature catalog cuts the LLM payload from 13,521 to 237 tokens \u2014 a 98.2% reduction. This is the empirical answer to the simple-cell finding of negative reduction."
-    },
-    "8_clad_drive_mode": {
-      "command": "clad drive --max-iterations 100",
-      "halt_class": "ALL_FEATURES_DONE",
-      "halt_detail": "100 features cleared",
-      "iterations": 31,
-      "features_touched": 30,
-      "stubs_created": 30,
-      "gate_runs": 90,
-      "wall_clock_seconds": 0.66,
-      "gates_in_floor": [
-        "stage_1.1 type",
-        "stage_1.2 lint",
-        "stage_1.5 arch"
-      ],
-      "gates_excluded": [
-        "stage_1.3 drift -- spec-wide MISSING_IMPLEMENTATION would always fail on stubs; clad check covers it post-loop"
-      ],
-      "note": "Deterministic L1 floor -- no LLM call. Demonstrates the 10-class halt enum + dependency-ordered ready resolution + auto-stub materialization. Richer LLM-driven loop lands in v0.2 (T9 agent integration)."
+      "interpretation": "AT SCALE THE TOKEN OPTIMIZER WORKS AS DESIGNED. Pruning F-050 + its (transitive) deps from a 100-feature catalog cuts the LLM payload from 13,521 to 237 tokens — a 98.2% reduction. This is the empirical answer to the simple-cell finding of negative reduction."
     }
   },
-  "notes": "L21.13 -- clad drive (deterministic floor) processed 30 features in 0.66s, ALL_FEATURES_DONE halt."
+  "notes": [
+    "**THE HEADLINE NUMBER**: 98.2% token reduction on a 100-feature spec validates the Token Optimizer's design intent.",
+    "cladding's sharded layout has the SAME total raw size as harness monolith but radically different access cost: 540 chars / feature vs 15,324 tokens to load all 100.",
+    "clad sync on 100 features completes in ~ 25 ms; load time is acceptable up to the size we tested."
+  ]
 }
