@@ -806,6 +806,35 @@ features:
           days old, the detector shall emit a warn finding listing the
           entry id and age in days.
 
+  - id: F-036
+    title: 5-agent personas + invocation principles
+    status: done
+    modules:
+      - agents/orchestrator.md
+      - agents/librarian.md
+      - agents/reviewer.md
+      - agents/observability.md
+      - agents/specialists.md
+      - agents/README.md
+    acceptance_criteria:
+      - id: AC-055
+        ears: ubiquitous
+        action: ship five agent personas (orchestrator · librarian · reviewer · observability · specialists) as Claude Code subagents
+        response: each persona has a system prompt declaring scope, tools, and boundaries
+        text: >-
+          The system shall ship five agent personas — orchestrator,
+          librarian, reviewer, observability, specialists — as Claude
+          Code subagents under agents/*.md, each with a system prompt
+          declaring scope, tools, and boundaries.
+      - id: AC-056
+        ears: ubiquitous
+        action: encode the five invocation principles in the orchestrator's prompt
+        response: routing logic references specialization, audit-separation, parallelism, evidence-first, least-context
+        text: >-
+          The orchestrator persona shall encode the five invocation
+          principles (specialization · audit-separation · parallelism ·
+          evidence-first · least-context) as its routing logic.
+
   - id: F-019
     title: AC_DRIFT drift detector (#3) + EARS syntactic check
     status: done
