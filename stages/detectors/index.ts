@@ -8,6 +8,10 @@
 import {architectureViolation} from './architecture-violation.js';
 import {hardcodedSecret} from './hardcoded-secret.js';
 import {missingImplementation} from './missing-implementation.js';
+import {referenceIntegrity} from './reference-integrity.js';
+import {staleSpecification} from './stale-specification.js';
+import {statusDrift} from './status-drift.js';
+import {techStackMismatch} from './tech-stack-mismatch.js';
 import {unmappedArtifact} from './unmapped-artifact.js';
 import type {DriftDetector} from '../types.js';
 
@@ -17,4 +21,8 @@ export const allDetectors: readonly DriftDetector[] = [
   architectureViolation,
   missingImplementation,
   unmappedArtifact,
+  techStackMismatch,
+  statusDrift,
+  staleSpecification,
+  referenceIntegrity,
 ];

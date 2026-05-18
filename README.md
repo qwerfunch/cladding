@@ -11,7 +11,7 @@ Cladding is a multi-agent development harness for Claude Code, and the reference
 
 ## Status
 
-**Second Ironclad-native detector (L6b · UNMAPPED_ARTIFACT) + spec hygiene closure.** Mirror image of MISSING_IMPLEMENTATION — files in `stages/**` and `spec/**` not claimed by any feature now drift-fail. The detector caught a real drift on its own introduction (L6a's new files were unmapped); this PR closes it by adding F-011 and F-012 to spec.yaml. Detectors now 4/19. Building toward Ironclad L4 (`iron-law: L4, detectors: 19/19, ears: full`) one Lego brick at a time.
+**T4 batch — 4 Ironclad-native detectors landed (L6c).** TECH_STACK_MISMATCH (#4), STATUS_DRIFT (#14), STALE_SPECIFICATION (#16), REFERENCE_INTEGRITY (#18). Detectors **8/19**. Native track T4 at 6/12; OSS-wrap T3 at 2/7. Self-dogfood remains 8/8 clean — every cladding feature passes every registered detector. Building toward Ironclad L4 (`iron-law: L4, detectors: 19/19, ears: full`) one Lego brick at a time.
 
 Each Level adds a verifiable capability:
 
@@ -30,7 +30,8 @@ Each Level adds a verifiable capability:
 | L5b | cladding own spec.yaml (T2b) — 10 features · 16 ACs · 2 scenarios | ✓ |
 | L6a | MISSING_IMPLEMENTATION detector (3/19) — first Ironclad-native (T4 kickoff) | ✓ |
 | L6b | UNMAPPED_ARTIFACT detector (4/19) — spec ↔ file mirror | ✓ |
-| L6c-L7 | 10 more Ironclad-native detectors + 5 OSS-wrap + EARS validator + L1 conformance | TBD |
+| L6c | T4 batch — TECH_STACK_MISMATCH · STATUS_DRIFT · STALE_SPECIFICATION · REFERENCE_INTEGRITY (8/19) | ✓ |
+| L6d-L7 | 4 more Ironclad-native (HARNESS / META_INTEGRITY · AC_DRIFT · STALE_TESTS) + OSS-wrap + EARS + L1 conformance | TBD |
 | L8 | Claude Code adapter (host integration) | TBD |
 | L9-L10 | L2 + L3 conformance | TBD |
 | L11-L13 | L4 conformance (HITL infrastructure + AI-era barriers) | TBD |

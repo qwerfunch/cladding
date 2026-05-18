@@ -14,6 +14,10 @@ detectors-registered:
   - ARCHITECTURE_VIOLATION
   - MISSING_IMPLEMENTATION
   - UNMAPPED_ARTIFACT
+  - TECH_STACK_MISMATCH
+  - STATUS_DRIFT
+  - STALE_SPECIFICATION
+  - REFERENCE_INTEGRITY
 ironclad-stages-target:
   - stage_1.1
   - stage_1.2
@@ -163,7 +167,11 @@ Pass on all = cladding meets its own L1 stages so far.
 |---|---|---|---|---|---|
 | 1 | UNMAPPED_ARTIFACT | error | spec_vs_code | (Ironclad-native; tinyglobby for scan) | `detectors/unmapped-artifact.ts` |
 | 2 | MISSING_IMPLEMENTATION | error | spec_vs_code | (Ironclad-native — no OSS) | `detectors/missing-implementation.ts` |
+| 4 | TECH_STACK_MISMATCH | warn | spec_vs_code | (Ironclad-native — no OSS) | `detectors/tech-stack-mismatch.ts` |
 | 5 | ARCHITECTURE_VIOLATION | error | spec_vs_code | madge (TS) / lint-imports (Python) | `detectors/architecture-violation.ts` |
 | 11 | HARDCODED_SECRET | error | code_vs_test | secretlint (TS) / gitleaks (others) | `detectors/hardcoded-secret.ts` |
+| 14 | STATUS_DRIFT | error | spec_vs_test | (Ironclad-native — no OSS) | `detectors/status-drift.ts` |
+| 16 | STALE_SPECIFICATION | warn | spec_vs_test | (Ironclad-native — no OSS) | `detectors/stale-specification.ts` |
+| 18 | REFERENCE_INTEGRITY | error | environment | (Ironclad-native — no OSS) | `detectors/reference-integrity.ts` |
 
 Registered through `detectors/index.ts → allDetectors`. To add a new detector: implement the `DriftDetector` interface, then append to that list.
