@@ -3,7 +3,7 @@
 > What makes code iron-clad.
 > Reference implementation of the [Ironclad](https://github.com/qwerfunch/ironclad) standard.
 
-[![ironclad](https://img.shields.io/badge/ironclad-L0%20bootstrap-lightgrey)](https://github.com/qwerfunch/ironclad)
+[![ironclad](https://img.shields.io/badge/ironclad-L1%20conformant-green)](https://github.com/qwerfunch/ironclad)
 [![spec](https://img.shields.io/badge/spec-v0.0.23-blue)](https://github.com/qwerfunch/ironclad)
 [![license](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
@@ -11,7 +11,7 @@ Cladding is a multi-agent development harness for Claude Code, and the reference
 
 ## Status
 
-**EARS syntactic validator wired (L7 · T5).** AC_DRIFT detector now checks both the structural floor *and* the EARS trigger keyword (when/while/where/if for non-ubiquitous patterns) via `spec/ears.ts`. `plugin.json ears` advanced `schema-only → syntactic`. Detectors still 11/19 — remaining 8 are gated on T7 (stage_2.x) or T9 (LLM). Next stop: **L8 T6 L1 conformance fixture suite + v0.1.0**.
+**Ironclad L1 conformance declared (L8 · T6).** All 12 conformance fixtures (6 stages × pass+fail) match — `iron_law` advances **L0 → L1**. Conformance runner at `conformance/runner.ts`; report is `{conformance: "level-1", matched: 12/12, result: "pass", iron_law: "L1"}`. Stages 6/6 · detectors 11/19 · EARS syntactic ✓. v0.1.0 main release ready (pending user instruction).
 
 Each Level adds a verifiable capability:
 
@@ -33,7 +33,7 @@ Each Level adds a verifiable capability:
 | L6c | T4 batch — TECH_STACK_MISMATCH · STATUS_DRIFT · STALE_SPECIFICATION · REFERENCE_INTEGRITY (8/19) | ✓ |
 | L6d | T4 integrity batch — HARNESS_INTEGRITY · META_INTEGRITY · AC_DRIFT (11/19) | ✓ |
 | L7 | T5 EARS syntactic validator (5 patterns, AC_DRIFT enrichment) | ✓ |
-| L8 | T6 L1 conformance fixture suite + v0.1.0 main release | TBD |
+| L8 | T6 L1 conformance fixture suite — **`iron_law: L1` declared** | ✓ |
 | L9+ | T7/T8/.../T12 (L2/L3/L4 stages · HITL · Agents · CLI · TokenOpt · v1.0 graduation) | TBD |
 | L8 | Claude Code adapter (host integration) | TBD |
 | L9-L10 | L2 + L3 conformance | TBD |

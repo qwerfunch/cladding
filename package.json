@@ -18,6 +18,7 @@
     "stage:commit": "tsx stages/commit.ts",
     "stage:arch": "tsx stages/arch.ts",
     "spec:validate": "tsx spec/cli.ts",
+    "conformance": "tsx conformance/runner.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint ."
   },
