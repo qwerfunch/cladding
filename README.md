@@ -11,7 +11,7 @@ Cladding is a multi-agent development harness for Claude Code, and the reference
 
 ## Status
 
-**Spec pinned (L1).** Building toward Ironclad L4 (`iron-law: L4, detectors: 19/19, ears: full`) one Lego brick at a time.
+**stage_1.1 Type implemented (L2, TypeScript).** Building toward Ironclad L4 (`iron-law: L4, detectors: 19/19, ears: full`) one Lego brick at a time.
 
 Each Level adds a verifiable capability:
 
@@ -19,7 +19,8 @@ Each Level adds a verifiable capability:
 |---|---|---|
 | L0 | Repository skeleton | ✓ |
 | L1 | Spec reference pinned (v0.0.23, commit `883ff01`) | ✓ |
-| L2-L7 | L1 Iron Law conformance (6 stages + 19 detectors) | TBD |
+| L2 | stage_1.1 Type (TypeScript, self-dogfooded) | ✓ |
+| L3-L7 | Remaining L1 stages (Lint · Drift · Commit · Arch · Secret) + 19 detectors | TBD |
 | L8 | Claude Code adapter (host integration) | TBD |
 | L9-L10 | L2 + L3 conformance | TBD |
 | L11-L13 | L4 conformance (HITL infrastructure + AI-era barriers) | TBD |

@@ -1,0 +1,22 @@
+{
+  "name": "cladding",
+  "version": "0.1.0",
+  "description": "Reference implementation of the Ironclad standard — multi-agent dev harness for Claude Code.",
+  "type": "module",
+  "license": "MIT",
+  "author": "qwerfunch",
+  "homepage": "https://github.com/qwerfunch/cladding",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/qwerfunch/cladding.git"
+  },
+  "scripts": {
+    "stage:type": "tsx stages/type.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
