@@ -444,10 +444,11 @@ features:
           equals the supported version.
 
   - id: F-019
-    title: AC_DRIFT drift detector (#3, minimal floor)
+    title: AC_DRIFT drift detector (#3) + EARS syntactic check
     status: done
     modules:
       - stages/detectors/ac-drift.ts
+      - spec/ears.ts
     depends_on: [F-003, F-010]
     acceptance_criteria:
       - id: AC-029
@@ -460,5 +461,18 @@ features:
           (condition/action/response), emitting an error finding per
           structurally empty AC.
         notes: >-
-          v0.1 floor. The richer semantic AC-vs-implementation drift
-          requires LLM-assisted inference (T9 dependency).
+          Structural floor — always on.
+      - id: AC-030
+        ears: event
+        condition: when an AC declares an EARS pattern (event / state / optional / unwanted)
+        action: verify the condition string begins with the pattern's trigger keyword
+        response: error finding per misaligned trigger
+        text: >-
+          When an AC declares a non-ubiquitous EARS pattern, the
+          system shall verify the condition begins with the pattern's
+          trigger keyword (when / while / where / if), emitting an
+          error finding per misalignment.
+        notes: >-
+          Delegates to spec/ears.ts. Lenient syntactic check; the
+          richer semantic AC-vs-implementation drift remains TBD
+          behind T9 (LLM-assisted inference).

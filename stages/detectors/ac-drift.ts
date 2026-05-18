@@ -1,17 +1,23 @@
 // Cladding · drift detector · AC_DRIFT
 //
 // Detector #3 from the catalog (axis: spec_vs_code, severity: error).
-// The full version of AC_DRIFT requires LLM-assisted semantic checks
-// (AC text vs implementation fingerprint) — that lands later when the
-// agent-orchestration track (T9) brings deterministic LLM use online.
+// Ships two complementary checks:
 //
-// This brick ships the *minimal deterministic floor*: an AC is in
-// drift when it carries neither a rendered `text` nor any EARS field
-// (`condition`/`action`/`response`). Such an AC is structurally
-// incomplete — no human can read it, no system can verify against it.
-// Catching it now is cheap; the richer semantic variant can land
-// behind the same detector name once LLM infra exists.
+//   1. Structural floor (always on)
+//      An AC must have *either* rendered `text` *or* at least one EARS
+//      field (`condition` / `action` / `response`). Anything else is a
+//      structurally empty AC — un-readable and un-verifiable.
+//
+//   2. EARS syntactic check (T5)
+//      For ACs that *do* declare an EARS pattern, the `condition`
+//      string must match the pattern's expected trigger keyword
+//      (when / while / where / if), or be empty for `ubiquitous`.
+//      Delegated to `spec/ears.ts`.
+//
+// The full semantic AC↔implementation drift requires LLM-assisted
+// inference and lands in T9 alongside the agent orchestrator.
 
+import {checkAllFeatures} from '../../spec/ears.js';
 import {loadSpec} from '../../spec/load.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
 
@@ -32,6 +38,8 @@ function runAcDrift(opts: CommandStageOptions): readonly DriftFinding[] {
     ];
   }
   const findings: DriftFinding[] = [];
+
+  // (1) structural floor.
   for (const feature of spec.features) {
     for (const ac of feature.acceptance_criteria ?? []) {
       const hasText = Boolean(ac.text?.trim());
@@ -47,6 +55,16 @@ function runAcDrift(opts: CommandStageOptions): readonly DriftFinding[] {
       }
     }
   }
+
+  // (2) EARS syntactic check.
+  for (const issue of checkAllFeatures(spec.features)) {
+    findings.push({
+      detector: NAME,
+      severity: 'error',
+      message: `${issue.featureId}.${issue.acId} EARS: ${issue.message}`,
+    });
+  }
+
   return findings;
 }
 
