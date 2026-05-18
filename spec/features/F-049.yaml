@@ -1,0 +1,62 @@
+id: F-049
+title: Cladding drive — LLM dispatch & runtime agent orchestration
+status: planned
+modules: []
+depends_on:
+  - F-048
+acceptance_criteria:
+  - id: AC-085
+    ears: ubiquitous
+    action: dispatch the five agent personas at runtime when the drive loop authors a feature
+    response: drive/agent.ts loads each persona from agents/*.md, invokes the Anthropic SDK with a least-context payload (current feature shard + tagged guardrails), and returns evidence + mutations
+    text: >-
+      The system shall dispatch the five agent personas (orchestrator ·
+      librarian · reviewer · observability · specialists) at runtime when
+      drive authors a feature. drive/agent.ts loads each persona from
+      agents/*.md, invokes the Anthropic SDK with a least-context payload
+      (current feature shard plus tagged guardrails only), and returns the
+      structured evidence and mutations the loop records.
+    test_refs:
+      - tests/drive/agent.test.ts
+      - tests/drive/loop-llm.test.ts
+  - id: AC-086
+    ears: state
+    condition: while drive dispatches a reviewer hand-off
+    action: assert reviewer identity is distinct from the authoring specialist identity
+    response: the loop refuses to accept review evidence whose author identity equals the implementer identity and emits a HUMAN_REQUIRED halt instead
+    text: >-
+      While the drive loop dispatches a reviewer hand-off, the system
+      shall assert that the reviewer identity (author name) differs from
+      the implementing specialist identity. The loop shall refuse to
+      accept review evidence whose author equals the implementer and
+      shall emit a HUMAN_REQUIRED halt instead, preserving the structural
+      reviewer-vs-author barrier prescribed by Iron Law stage_4.1.
+    test_refs:
+      - tests/drive/loop-llm.test.ts
+  - id: AC-087
+    ears: event
+    condition: when a feature has cleared L1-L3 but stage_4.2 UAT lacks human-pass evidence
+    action: halt the drive loop with class HUMAN_REQUIRED
+    response: drive/halt.ts class HUMAN_REQUIRED resolves with a reason string carrying the feature id and the missing UAT evidence path
+    text: >-
+      When a feature in flight clears L1-L3 but stage_4.2 UAT lacks
+      human-pass evidence in the audit log, the system shall halt the
+      drive loop with class HUMAN_REQUIRED. The halt reason shall carry
+      the feature id and the audit-log path so an operator can sign off
+      and resume.
+    test_refs:
+      - tests/drive/loop-llm.test.ts
+  - id: AC-088
+    ears: unwanted
+    condition: if the Anthropic SDK call fails (auth · rate-limit · network) during dispatch
+    action: halt the drive loop with class LLM_UNAVAILABLE
+    response: drive/halt.ts class LLM_UNAVAILABLE resolves with the underlying SDK error class and a single retry budget already consumed
+    text: >-
+      If the Anthropic SDK call fails during agent dispatch — for
+      authentication, rate-limit, or network reasons — then the system
+      shall halt the drive loop with class LLM_UNAVAILABLE. The halt
+      reason shall carry the underlying SDK error class and record that
+      the loop's single SDK-retry budget for the current feature has been
+      consumed.
+    test_refs:
+      - tests/drive/agent.test.ts

@@ -24,6 +24,18 @@ Cladding 는 Claude Code 용 멀티 에이전트 개발 하네스이자 Ironclad
 | 19 Drift detectors | UNMAPPED_ARTIFACT · MISSING_IMPLEMENTATION · AC_DRIFT · TECH_STACK · ARCH_VIOLATION · CONVENTION_DRIFT · MISSING_TESTS · STALE_TESTS · COVERAGE_DROP · EVIDENCE_MISMATCH · HARDCODED_SECRET · PERFORMANCE_DRIFT · UNTESTED_AC · STATUS_DRIFT · STALE_EVIDENCE · STALE_SPECIFICATION · HARNESS_INTEGRITY · REFERENCE_INTEGRITY · META_INTEGRITY | ✓ |
 | EARS 구문 검증 | 5 패턴 (ubiquitous · event · state · optional · unwanted) | ✓ |
 
+## 상태 & 로드맵
+
+**v0.1.0 — 출시 범위와 유보 사항.** Cladding 은 Ironclad 의 **장비 (machinery)** 일체를 오늘 시점에 출시합니다 — 13 개 Iron Law stage, 19 개 drift detector, EARS 검증기, HITL 가드, agent persona 정의, conformance fixture, CLI 표면. 두 가지 범위 유보는 명시적으로 추적됩니다:
+
+| Capability | v0.1.0 상태 | v0.2.0 에픽 |
+|---|---|---|
+| `clad drive` 자율 루프 | **결정론적 floor** — 준비된 feature 를 의존성 순으로 순회하고, 모듈 스텁을 생성하며, L1 gate (`type` · `lint` · `arch`) 를 실행. LLM 호출 없음. [F-048](spec/features/F-048.yaml) AC-083 참조. | [F-049](spec/features/F-049.yaml) — 5 개 agent persona 를 호출하고, 런타임에 reviewer ≠ author 를 강제하며, `HUMAN_REQUIRED` / `LLM_UNAVAILABLE` halt 클래스를 연결. |
+| 실행 중 Iron Law L4 | Conformance fixture 26/26 + Cladding 자체 audit log 위 human signoff 가 **L4 machinery** 의 정확성을 증명. | F-049 가 먼저 안착해야 LLM 이 작성한 구현을 L4 machinery 가 잡아내는 시연이 가능. |
+| Agent persona 오케스트레이션 | 5 개 subagent prompt 가 `agents/*.md` 에 출시됨. | `drive/loop.ts` 에서 런타임 dispatch (F-049 의 일부). |
+
+Ironclad 표준의 v1.0 졸업은 L1–L4 fixture 를 통과하는 **독립 reference 구현 2 개**를 요구합니다 ([Ironclad GOVERNANCE](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) §1). Cladding 의 fixture 수준 conformance 는 오늘 시점에 그 기준을 향해 카운트됩니다; "LLM 작성을 L4 가 실행 중 포착" 이라는 질적 주장은 별도의 v0.2.0 마일스톤입니다.
+
 ## Spec 참조
 
 Cladding 은 Ironclad 표준을 구현합니다. 이 코드베이스가 대상으로 하는 정확한 spec 버전은 `.claude-plugin/plugin.json` 에 고정되어 있습니다:
@@ -67,7 +79,7 @@ Inline (단일 `spec.yaml`) 레이아웃도 동작 — `spec/load.ts` 가 자동
 ```
 clad init [--name N] [--force]  # cladding workspace scaffold (spec.yaml seed · .cladding/ · .gitignore)
 clad work <verb>         # stage 또는 자연어 의도 실행
-clad drive [목표]         # autonomous loop (v0.2 — placeholder)
+clad drive [목표]         # autonomous loop — 결정론적 floor; LLM dispatch 는 v0.2 의 F-049 에서
 clad sync                # spec.yaml 을 schema 에 대해 검증
 clad check               # 모든 Iron Law stage + drift 검사 실행
 clad panel               # feature × stage Integrity Panel 렌더링

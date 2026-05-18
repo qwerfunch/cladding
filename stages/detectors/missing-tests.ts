@@ -6,6 +6,11 @@
 // projects that haven't yet wired AC ↔ test mappings. The full
 // directly-resolve-the-test-function variant lands once an in-process
 // vitest runner can introspect declared test names (T7c).
+//
+// Status policy: only `status: done` features are checked. Features in
+// other lifecycle states (planned, in_progress, blocked, archived) are
+// intentionally not yet bound to tests — flagging them would drown the
+// signal with progress-noise.
 
 import {loadSpec} from '../../spec/load.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
@@ -28,6 +33,7 @@ function runMissingTests(opts: CommandStageOptions): readonly DriftFinding[] {
   }
   const findings: DriftFinding[] = [];
   for (const feature of spec.features) {
+    if (feature.status !== 'done') continue;
     for (const ac of feature.acceptance_criteria ?? []) {
       if (!ac.test_refs || ac.test_refs.length === 0) {
         findings.push({
