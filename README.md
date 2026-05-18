@@ -11,7 +11,7 @@ Cladding is a multi-agent development harness for Claude Code, and the reference
 
 ## Status
 
-**Polyglot toolchain adapter wired (L4b).** Stages `type` and `lint` now auto-select the project's own tool (`tsc`, `mypy`, `cargo check`, `go vet`, …) by scanning for a manifest. Building toward Ironclad L4 (`iron-law: L4, detectors: 19/19, ears: full`) one Lego brick at a time.
+**stage_1.6 Secret + first Drift detector wired (L4c).** Polyglot secret scanning (secretlint on TS, gitleaks on others) and the first registered drift detector (HARDCODED_SECRET) — the registry contract is now exercised end-to-end. Building toward Ironclad L4 (`iron-law: L4, detectors: 19/19, ears: full`) one Lego brick at a time.
 
 Each Level adds a verifiable capability:
 
@@ -23,7 +23,8 @@ Each Level adds a verifiable capability:
 | L3 | stage_1.2 Lint (ESLint, self-dogfooded) | ✓ |
 | L4a | stage_1.3 Drift core (registry + aggregator, empty) | ✓ |
 | L4b | Polyglot toolchain adapter — 9 languages, execa-backed | ✓ |
-| L4c-L7 | 19 detectors (Ironclad-native + OSS-wrapped) + L1 conformance declaration | TBD |
+| L4c | stage_1.6 Secret + HARDCODED_SECRET detector (1/19) | ✓ |
+| L4d-L7 | Remaining L1 stages (Commit · Arch) + 18 detectors + L1 conformance | TBD |
 | L8 | Claude Code adapter (host integration) | TBD |
 | L9-L10 | L2 + L3 conformance | TBD |
 | L11-L13 | L4 conformance (HITL infrastructure + AI-era barriers) | TBD |

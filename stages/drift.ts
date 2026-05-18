@@ -13,6 +13,7 @@
 
 import process from 'node:process';
 
+import {allDetectors} from './detectors/index.js';
 import type {
   CommandStageOptions,
   DriftDetector,
@@ -20,7 +21,7 @@ import type {
   DriftReport,
 } from './types.js';
 
-const detectors: DriftDetector[] = [];
+const detectors: DriftDetector[] = [...allDetectors];
 
 /**
  * Registers a drift detector into the module-level registry.

@@ -6,6 +6,9 @@ ironclad-stages-implemented:
   - stage_1.1
   - stage_1.2
   - stage_1.3
+  - stage_1.6
+detectors-registered:
+  - HARDCODED_SECRET
 ironclad-stages-target:
   - stage_1.1
   - stage_1.2
@@ -27,7 +30,8 @@ Ironclad iron-law stage implementations. One module per stage. Shared types in `
 |---|---|---|---|---|
 | stage_1.1 Type | `type.ts` | type checker exit 0, no errors | deterministic | polyglot chain (TS→tsc · Py→mypy · Rust→cargo check · …) |
 | stage_1.2 Lint | `lint.ts` | linter exit 0, no errors | deterministic | polyglot chain (TS→eslint · Py→ruff · Rust→clippy · …) |
-| stage_1.3 Drift (core) | `drift.ts` | zero error-severity findings | deterministic | plug-in registry (empty in L4a) |
+| stage_1.3 Drift (core) | `drift.ts` | zero error-severity findings | deterministic | plug-in registry (1/19 detector wired) |
+| stage_1.6 Secret | `secret.ts` | no hardcoded secrets in tracked code | deterministic | toolchain chain (TS→secretlint · others→gitleaks) |
 
 ## [INTERFACE]
 
@@ -50,6 +54,7 @@ export interface CommandStageOptions {
 export function runType(opts?: CommandStageOptions): StageResult;
 export function runLint(opts?: CommandStageOptions): StageResult;
 export function runDrift(opts?: CommandStageOptions): DriftReport;
+export function runSecret(opts?: CommandStageOptions): StageResult;
 
 // stage_1.3 extends the shape with a finding list and a plug-in registry.
 export interface DriftFinding {
@@ -76,7 +81,8 @@ JSON-serializable. Machine-readable. Field names follow camelCase (Google TS Sty
 ```
 npm run stage:type       # tsx stages/type.ts
 npm run stage:lint       # tsx stages/lint.ts
-npm run stage:drift      # tsx stages/drift.ts
+npm run stage:drift      # tsx stages/drift.ts (all registered detectors)
+npm run stage:secret     # tsx stages/secret.ts
 npx tsx stages/<name>.ts # direct
 ```
 
@@ -90,6 +96,7 @@ Output: one-line JSON on stdout, exit code matches stage result.
 | `typescript` (dev) | type checker; also the target of stage_1.1 (self-dogfood) |
 | `tsx` (dev) | direct .ts execution (no precompiled dist/) |
 | `eslint` + `typescript-eslint` (dev) | linter; also the target of stage_1.2 (self-dogfood) |
+| `secretlint` + `@secretlint/secretlint-rule-preset-recommend` (dev) | secret scanner used for TS projects in stage_1.6 / HARDCODED_SECRET |
 | `@types/node` (dev) | Node.js stdlib types |
 
 Runtime: zero. Each stage module defers heavy lifting to the project's own toolchain (resolved by `toolchain/detect.ts`).
@@ -131,6 +138,15 @@ Rule: write own code only when the layer-3 semantics demand it. For everything e
 |---|---|---|
 | stage_1.1 | `npm run typecheck` | `stages/**/*.ts` via tsconfig.json |
 | stage_1.2 | `npm run lint` | `stages/**/*.ts` via eslint.config.js |
-| stage_1.3 | `npm run stage:drift` | empty registry in L4a — passes trivially; detectors land in L4b+ |
+| stage_1.3 | `npm run stage:drift` | 1/19 detector wired (HARDCODED_SECRET); scans cladding's own tree |
+| stage_1.6 | `npm run stage:secret` | secretlint scans cladding's own tree via `.secretlintrc.json` |
 
 Pass on all = cladding meets its own L1 stages so far.
+
+## [DETECTORS]
+
+| # | name | severity | axis | OSS | source |
+|---|---|---|---|---|---|
+| 11 | HARDCODED_SECRET | error | code_vs_test | secretlint (TS) / gitleaks (others) | `detectors/hardcoded-secret.ts` |
+
+Registered through `detectors/index.ts → allDetectors`. To add a new detector: implement the `DriftDetector` interface, then append to that list.
