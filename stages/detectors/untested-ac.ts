@@ -7,6 +7,10 @@
 //   - `fixture:<name>` prefix → skipped (synthetic conformance fixtures)
 //   - empty `test_refs` → handled by MISSING_TESTS, not here
 //
+// Status policy: only `status: done` features are checked. `planned`,
+// `in_progress`, `blocked`, and `archived` features are skipped — their
+// test_refs document intended evidence paths that need not exist yet.
+//
 // The richer "test_refs resolve to a real vitest test name" variant
 // requires vitest AST introspection and lands behind the `specialists`
 // agent later.
@@ -40,6 +44,7 @@ function runUntestedAc(opts: CommandStageOptions): readonly DriftFinding[] {
   }
   const findings: DriftFinding[] = [];
   for (const feature of spec.features) {
+    if (feature.status !== 'done') continue;
     for (const ac of feature.acceptance_criteria ?? []) {
       for (const ref of ac.test_refs ?? []) {
         if (isSkippable(ref)) continue;

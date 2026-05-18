@@ -58,7 +58,7 @@ program
 
 program
   .command('drive [goal]')
-  .description('Autonomous loop — iterate ready features, create stubs, run L1 gates, record evidence')
+  .description('Autonomous loop (deterministic floor; LLM dispatch arrives with F-049 in v0.2) — iterate ready features, create stubs, run L1 gates, record evidence')
   .option('--cwd <path>', 'target project directory (default cwd)')
   .option('--max-iterations <n>', 'cap iterations (default 50)', '50')
   .option('--max-wall-clock-ms <ms>', 'cap wall clock (default 600000)', '600000')

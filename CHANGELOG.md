@@ -9,18 +9,6 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 First public release. Cladding ships every capability `ironclad-design/` planned, in *minimum-viable* form, with **iron-law L4** declared end-to-end on its own codebase.
 
-### Empirical evidence — A/B/C comparative test
-
-Before this release we ran a 9-cell experiment (3 modes × 3 project scopes) comparing **vanilla Claude Code · harness-boot plugin · cladding**. Methodology + per-cell measurements + synthesis: [`experiments/ab-test-v0.1.0/`](experiments/ab-test-v0.1.0/).
-
-Headline findings:
-
-- **Vanilla mode shipped a project with 3 typecheck errors as done** (15/15 tests pass + clean eslint). Both harness and cladding refused to advance the same code past gate_1 — the gate-based value proposition in action.
-- **Cladding's ceremony overhead is 17 pp lighter than harness** (+34.6 % vs vanilla, vs harness's +52.4 %). Sharded spec + panel renderer pay for themselves.
-- **Token-Optimizer pruning is scale-dependent**: 87.9 % reduction on cladding's own 47-feature spec (F-008); *negative* on a 5-feature toy project. Use the optimizer on real-scale specs.
-
-Limitations are called out in [`REPORT.md`](experiments/ab-test-v0.1.0/REPORT.md) §limitations (N=1 per cell, shared codebase between modes, char/4 token estimation, self-measurement bias).
-
 ### Added — Iron Law stages (13/13)
 
 - `stage_1.1` Type — polyglot delegation (TS→tsc · Py→mypy · Rust→cargo check · Go→go vet · …)
@@ -119,6 +107,12 @@ Environment: `HARNESS_INTEGRITY` · `REFERENCE_INTEGRITY` · `META_INTEGRITY`.
 - detectors: **19/19**
 - stages: **13/13**
 - ears: **syntactic**
+
+### Known limitations
+
+- `clad drive` ships as a **deterministic floor** (per [F-048](spec/features/F-048.yaml) AC-083): it iterates ready features in dependency order, materialises module stubs, and runs L1 gates (`type` · `lint` · `arch`). It does **not** invoke an LLM and does **not** dispatch the five agent personas. Real LLM-coordinated authoring lands in v0.2 via [F-049](spec/features/F-049.yaml). The two reserved halt classes `HUMAN_REQUIRED` and `LLM_UNAVAILABLE` (`drive/halt.ts`) are wiring for that work.
+- The Iron Law L4 conformance claim above was earned by **human signoff on Cladding's own audit log**. It demonstrates that the L4 *machinery* (anti-self-cert guard, UAT human-pass requirement, reviewer-vs-author identity separation) is correct end-to-end. It does **not** demonstrate that machinery catching an LLM-authored implementation in flight — that stronger qualitative claim arrives with v0.2 + F-049.
+- The five agent personas under `agents/*.md` ship as Claude Code subagent definitions and a routing contract. They are **not yet wired** to a runtime orchestrator; `drive/loop.ts` does not call them.
 
 ### Repository links
 

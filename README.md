@@ -50,6 +50,18 @@ Each Level adds a verifiable capability:
 | L21.5 | Release preparation (CHANGELOG · README.ko · commands · bin field) | ✓ |
 | L22 | v0.1.0 main release | gated on user instruction |
 
+## Status & roadmap
+
+**v0.1.0 — what is shipped vs deferred.** Cladding ships the full Ironclad **machinery** today: 13 Iron Law stages, 19 drift detectors, EARS validator, HITL guard, agent persona definitions, conformance fixtures, and the CLI surface. Two scoped deferrals are tracked openly:
+
+| Capability | v0.1.0 state | v0.2.0 epic |
+|---|---|---|
+| `clad drive` autonomous loop | **deterministic floor** — iterates ready features, materialises module stubs, runs L1 gates (`type` · `lint` · `arch`). No LLM is invoked. See [F-048](spec/features/F-048.yaml) AC-083. | [F-049](spec/features/F-049.yaml) — invoke the five agent personas, enforce reviewer ≠ author at runtime, wire the `HUMAN_REQUIRED` / `LLM_UNAVAILABLE` halt classes. |
+| Iron Law L4 in flight | Conformance fixtures 26/26 + human signoff on Cladding's own audit log prove the **L4 machinery** is correct. | Demonstrate the L4 machinery catching an LLM-authored implementation — requires F-049 to land first. |
+| Agent persona orchestration | Five subagent prompts ship under `agents/*.md`. | Runtime dispatch from `drive/loop.ts` (part of F-049). |
+
+The Ironclad standard's v1.0 graduation requires two independent reference implementations passing L1–L4 fixtures ([Ironclad GOVERNANCE](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) §1). Cladding's fixture-level conformance counts toward that bar today; the qualitative "L4 catching LLM authoring" claim is a separate v0.2.0 milestone.
+
 ## Spec Reference
 
 Cladding implements the Ironclad standard. The exact spec version this codebase targets is pinned in `.claude-plugin/plugin.json`:
@@ -93,7 +105,7 @@ Inline-features layout (single `spec.yaml`) also works — `spec/load.ts` falls 
 ```
 clad init [--name N] [--force]  # scaffold a cladding workspace (spec.yaml seed · .cladding/ · .gitignore)
 clad work <verb>         # run a stage or natural-language intent
-clad drive [goal]        # autonomous loop (v0.2 — placeholder)
+clad drive [goal]        # autonomous loop — deterministic floor; LLM dispatch arrives with F-049 in v0.2
 clad sync                # validate spec.yaml against schema
 clad check               # run every Iron Law stage + drift suite
 clad panel               # render the feature × stage Integrity Panel

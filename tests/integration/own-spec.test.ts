@@ -11,6 +11,8 @@ import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {describe, expect, test} from 'vitest';
 
+import {missingTests} from '../../stages/detectors/missing-tests.js';
+import {untestedAc} from '../../stages/detectors/untested-ac.js';
 import {loadSpec} from '../../spec/load.js';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -37,5 +39,19 @@ describe('cladding own spec', () => {
       const acIds = (feature.acceptance_criteria ?? []).map((a) => a.id);
       expect(new Set(acIds).size).toBe(acIds.length);
     }
+  });
+
+  test('UNTESTED_AC + MISSING_TESTS skip non-done features', () => {
+    // Regression guard for the status-aware detector policy: a `planned`
+    // feature whose test_refs name files that do not yet exist on disk
+    // must not produce error findings — only `done` features are
+    // checked. Cladding's own spec includes F-049 (status: planned)
+    // pointing at tests/drive/{agent,loop-llm}.test.ts which do not
+    // exist yet; if either detector regresses to status-blind, this
+    // test trips.
+    const untested = untestedAc.run({cwd: repoRoot});
+    const missing = missingTests.run({cwd: repoRoot});
+    const errors = [...untested, ...missing].filter((f) => f.severity === 'error');
+    expect(errors).toEqual([]);
   });
 });
