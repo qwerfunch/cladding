@@ -325,3 +325,87 @@ features:
         text: >-
           If spec.yaml is absent or unparseable, the detector shall
           emit one info finding rather than failing the stage.
+
+  - id: F-013
+    title: TECH_STACK_MISMATCH drift detector (#4)
+    status: done
+    modules:
+      - stages/detectors/tech-stack-mismatch.ts
+    depends_on: [F-003, F-004, F-010]
+    acceptance_criteria:
+      - id: AC-021
+        ears: event
+        condition: when spec.project.language differs from the toolchain-detected language
+        action: emit a warn finding
+        response: stage_1.3 surfaces but does not fail on this finding alone
+        text: >-
+          When spec.project.language differs from the language resolved
+          by the toolchain manifest chain, the detector shall emit a
+          warn-severity finding.
+
+  - id: F-014
+    title: STATUS_DRIFT drift detector (#14)
+    status: done
+    modules:
+      - stages/detectors/status-drift.ts
+    depends_on: [F-003, F-010]
+    acceptance_criteria:
+      - id: AC-022
+        ears: event
+        condition: when a feature with status 'done' has missing declared modules
+        action: emit an error finding listing the missing paths
+        response: stage_1.3 fails for the host pipeline
+        text: >-
+          When a feature with status='done' has at least one declared
+          module missing on disk, the detector shall emit an error
+          finding listing the missing paths.
+      - id: AC-023
+        ears: event
+        condition: when status='in_progress' but every declared module is missing
+        action: emit a warn finding noting a likely stale start
+        response: surfaced but not failed
+        text: >-
+          When status='in_progress' but every declared module is absent,
+          the detector shall emit a warn finding suggesting a stale start.
+
+  - id: F-015
+    title: STALE_SPECIFICATION drift detector (#16)
+    status: done
+    modules:
+      - stages/detectors/stale-specification.ts
+    depends_on: [F-003, F-010]
+    acceptance_criteria:
+      - id: AC-024
+        ears: optional
+        condition: where a feature carries archived_at but status is not 'archived'
+        action: emit a warn finding
+        response: surfaced for cleanup
+        text: >-
+          Where a feature has archived_at set but status is not
+          'archived', the detector shall emit a warn finding.
+      - id: AC-025
+        ears: optional
+        condition: where status='archived' but the feature's modules still exist on disk
+        action: emit a warn finding listing the surviving paths
+        response: surfaced for code removal cadence decision
+        text: >-
+          Where status='archived' but at least one declared module still
+          exists on disk, the detector shall emit a warn finding so the
+          project can decide on code-removal cadence.
+
+  - id: F-016
+    title: REFERENCE_INTEGRITY drift detector (#18)
+    status: done
+    modules:
+      - stages/detectors/reference-integrity.ts
+    depends_on: [F-003, F-010]
+    acceptance_criteria:
+      - id: AC-026
+        ears: ubiquitous
+        action: validate every internal id reference in spec.yaml resolves
+        response: error finding per unresolved reference
+        text: >-
+          The system shall validate that every internal id reference in
+          spec.yaml — features[].depends_on, features[].superseded_by,
+          scenarios[].features — resolves to an actual feature id,
+          emitting an error finding per unresolved reference.
