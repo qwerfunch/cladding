@@ -12,6 +12,7 @@ ironclad-stages-implemented:
 detectors-registered:
   - HARDCODED_SECRET
   - ARCHITECTURE_VIOLATION
+  - MISSING_IMPLEMENTATION
 ironclad-stages-target:
   - stage_1.1
   - stage_1.2
@@ -159,6 +160,7 @@ Pass on all = cladding meets its own L1 stages so far.
 
 | # | name | severity | axis | OSS | source |
 |---|---|---|---|---|---|
+| 2 | MISSING_IMPLEMENTATION | error | spec_vs_code | (Ironclad-native — no OSS) | `detectors/missing-implementation.ts` |
 | 5 | ARCHITECTURE_VIOLATION | error | spec_vs_code | madge (TS) / lint-imports (Python) | `detectors/architecture-violation.ts` |
 | 11 | HARDCODED_SECRET | error | code_vs_test | secretlint (TS) / gitleaks (others) | `detectors/hardcoded-secret.ts` |
 
