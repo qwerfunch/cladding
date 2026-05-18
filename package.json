@@ -17,8 +17,10 @@
     "stage:secret": "tsx stages/secret.ts",
     "stage:commit": "tsx stages/commit.ts",
     "stage:arch": "tsx stages/arch.ts",
+    "stage:unit": "tsx stages/unit.ts",
     "spec:validate": "tsx spec/cli.ts",
     "conformance": "tsx conformance/runner.ts",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "eslint ."
   },
@@ -27,6 +29,7 @@
     "@types/node": "^22.0.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
+    "@vitest/coverage-v8": "^4.1.6",
     "eslint": "^9.0.0",
     "execa": "^9.6.1",
     "jsonschema": "^1.5.0",
@@ -36,6 +39,7 @@
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",
     "typescript-eslint": "^8.0.0",
+    "vitest": "^4.1.6",
     "yaml": "^2.9.0"
   }
 }

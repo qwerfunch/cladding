@@ -21,6 +21,7 @@ detectors-registered:
   - HARNESS_INTEGRITY
   - META_INTEGRITY
   - AC_DRIFT
+  - MISSING_TESTS
 ironclad-stages-target:
   - stage_1.1
   - stage_1.2
@@ -46,6 +47,7 @@ Ironclad iron-law stage implementations. One module per stage. Shared types in `
 | stage_1.4 Commit | `commit.ts` | working tree + index both clean | deterministic | `git status --porcelain` (language-agnostic) |
 | stage_1.5 Arch | `arch.ts` | no architecture rule violations | deterministic | toolchain chain (TS→madge --circular · Python→lint-imports) |
 | stage_1.6 Secret | `secret.ts` | no hardcoded secrets in tracked code | deterministic | toolchain chain (TS→secretlint · others→gitleaks) |
+| stage_2.1 Unit | `unit.ts` | unit-test runner exit 0 | deterministic | toolchain chain (TS→vitest · Python→pytest · Rust→cargo test · …) |
 
 ## [INTERFACE]
 
@@ -179,5 +181,6 @@ Pass on all = cladding meets its own L1 stages so far.
 | 18 | REFERENCE_INTEGRITY | error | environment | (Ironclad-native — no OSS) | `detectors/reference-integrity.ts` |
 | 19 | META_INTEGRITY | error | environment | (Ironclad-native — no OSS) | `detectors/meta-integrity.ts` |
 | 3 | AC_DRIFT (minimal floor) | error | spec_vs_code | (Ironclad-native — no OSS; LLM-assisted variant TBD) | `detectors/ac-drift.ts` |
+| 7 | MISSING_TESTS (v0.1 floor) | warn | code_vs_test | (Ironclad-native — no OSS; vitest AST variant TBD) | `detectors/missing-tests.ts` |
 
 Registered through `detectors/index.ts → allDetectors`. To add a new detector: implement the `DriftDetector` interface, then append to that list.
