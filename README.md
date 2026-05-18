@@ -68,7 +68,7 @@ When the Ironclad spec advances, this pin updates via a deliberate sync step (no
 ## CLI
 
 ```
-clad init                # scaffold a cladding workspace (v0.2 — placeholder)
+clad init [--name N] [--force]  # scaffold a cladding workspace (spec.yaml seed · .cladding/ · .gitignore)
 clad work <verb>         # run a stage or natural-language intent
 clad drive [goal]        # autonomous loop (v0.2 — placeholder)
 clad sync                # validate spec.yaml against schema

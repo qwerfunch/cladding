@@ -42,7 +42,7 @@ Ironclad spec 이 진보하면 이 pin 은 *명시적 sync 단계* 로 갱신됩
 ## CLI
 
 ```
-clad init                # cladding workspace scaffold (v0.2 — placeholder)
+clad init [--name N] [--force]  # cladding workspace scaffold (spec.yaml seed · .cladding/ · .gitignore)
 clad work <verb>         # stage 또는 자연어 의도 실행
 clad drive [목표]         # autonomous loop (v0.2 — placeholder)
 clad sync                # spec.yaml 을 schema 에 대해 검증
