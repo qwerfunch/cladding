@@ -1,0 +1,118 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/qwerfunch/cladding/spec/schema.json",
+  "title": "Cladding Spec",
+  "description": "Minimal v0.1 SSoT schema. Captures 3-tier shape (scenarios + features + architecture) and EARS-structured AC. See ironclad-design/07 + 11.",
+  "type": "object",
+  "required": ["schema", "project", "features"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "type": "string",
+      "description": "Schema version, e.g. '0.1'."
+    },
+    "project": {
+      "type": "object",
+      "required": ["name", "language"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "language": {"type": "string", "minLength": 1}
+      }
+    },
+    "features": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/feature"}
+    },
+    "scenarios": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/scenario"}
+    },
+    "architecture": {"$ref": "#/definitions/architecture"}
+  },
+  "definitions": {
+    "feature": {
+      "type": "object",
+      "required": ["id", "title", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "pattern": "^F-\\d{3,}$"},
+        "title": {"type": "string", "minLength": 1},
+        "status": {
+          "type": "string",
+          "enum": ["planned", "in_progress", "done", "blocked", "archived"]
+        },
+        "modules": {"type": "array", "items": {"type": "string"}},
+        "acceptance_criteria": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/acceptance_criterion"}
+        },
+        "depends_on": {
+          "type": "array",
+          "items": {"type": "string", "pattern": "^F-\\d{3,}$"}
+        },
+        "archived_at": {"type": "string", "format": "date-time"},
+        "archive_reason": {"type": "string"},
+        "superseded_by": {"type": "string", "pattern": "^F-\\d{3,}$"}
+      }
+    },
+    "acceptance_criterion": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "pattern": "^AC-\\d{3,}$"},
+        "condition": {"type": "string"},
+        "action": {"type": "string"},
+        "response": {"type": "string"},
+        "ears": {
+          "type": "string",
+          "enum": ["ubiquitous", "event", "state", "optional", "unwanted"]
+        },
+        "text": {"type": "string"},
+        "test_refs": {"type": "array", "items": {"type": "string"}},
+        "notes": {"type": "string"},
+        "adr_refs": {
+          "type": "array",
+          "items": {"type": "string", "pattern": "^ADR-\\d{3,}$"}
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "required": ["id", "title"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "pattern": "^S-\\d{3,}$"},
+        "title": {"type": "string", "minLength": 1},
+        "flow": {"type": "string"},
+        "features": {
+          "type": "array",
+          "items": {"type": "string", "pattern": "^F-\\d{3,}$"}
+        }
+      }
+    },
+    "architecture": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "layers": {
+          "type": "array",
+          "items": {"type": "array", "items": {"type": "string"}}
+        },
+        "forbidden_imports": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["from", "to"],
+            "additionalProperties": false,
+            "properties": {
+              "from": {"type": "string"},
+              "to": {"type": "string"}
+            }
+          }
+        }
+      }
+    }
+  }
+}

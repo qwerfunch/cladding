@@ -15,5 +15,5 @@
     "resolveJsonModule": true,
     "isolatedModules": true
   },
-  "include": ["stages/**/*.ts"]
+  "include": ["stages/**/*.ts", "spec/**/*.ts"]
 }
