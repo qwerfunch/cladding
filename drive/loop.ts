@@ -1,28 +1,42 @@
-// Cladding · drive · main autonomous loop
+// Cladding · drive · autonomous loop (agent dispatch)
 //
-// Deterministic "drive floor" — the v0.1 implementation runs without
-// any LLM call. It iterates over the spec's planned / in_progress
-// features in dependency order, materialises empty stub files for any
-// declared module that doesn't yet exist on disk, then invokes the
-// L1 gate set. The richer LLM-driven coding loop lands in v0.2 (T9
-// agent integration).
+// v0.2.0 rewires the v0.1 deterministic floor so each ready feature
+// is now authored through the {@link AgentAdapter} layer:
 //
-// Even in this floor form the loop demonstrates:
-//   - dependency ordering (no feature runs before its depends_on)
-//   - 10-class halt enumeration (drive/halt.ts)
-//   - feature × gate × evidence event stream
+//   1. specialists persona drafts the implementation (mock or real),
+//   2. its mutations are applied to the working tree,
+//   3. L1 gates (Type / Lint / Arch) verify the result,
+//   4. reviewer persona inspects in a separate dispatch — the
+//      reviewer-vs-author identity barrier (F-049 AC-086) is
+//      enforced inside `drive/agent.ts`,
+//   5. UAT (stage_4.2) confirms a human-pass evidence exists; if
+//      not, the loop halts with `HUMAN_REQUIRED`.
+//
+// Any adapter error short-circuits the loop with `LLM_UNAVAILABLE`,
+// preserving the halt-enum contract from `drive/halt.ts`. The mock
+// host adapters never throw in v0.2.0 #1, but the wiring is correct
+// for the third PR where real Claude Code / MCP transports replace
+// the mocks.
+//
+// @see spec/features/F-049.yaml AC-085 / AC-086 / AC-087 / AC-088.
+// @see adapters/types.ts — `AgentAdapter` contract.
+// @see drive/agent.ts — `runAgent` + reviewer barrier.
 
-import {existsSync, mkdirSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, rmSync, unlinkSync, writeFileSync} from 'node:fs';
 import {dirname, join} from 'node:path';
 
+import {loadPersona} from '../agents/loader.js';
+import {runAgent, ReviewerIdentityCollisionError} from './agent.js';
+import {appendEvent, newEvent} from '../events/log.js';
 import {newEvidence} from '../hitl/identity.js';
 import {appendEvidence} from '../hitl/audit.js';
-import {appendEvent, newEvent} from '../events/log.js';
 import {loadSpec} from '../spec/load.js';
 import type {Feature, Spec} from '../spec/types.js';
 import {runArch} from '../stages/arch.js';
 import {runLint} from '../stages/lint.js';
 import {runType} from '../stages/type.js';
+import {runUat} from '../stages/uat.js';
+import type {AgentContext, AgentMutation} from '../adapters/types.js';
 import {DEFAULT_BUDGET, type HaltReason, type LoopBudget, checkBudget} from './halt.js';
 
 export interface DriveOptions {
@@ -49,16 +63,60 @@ function nextReady(spec: Spec, done: ReadonlySet<string>): Feature | undefined {
   return undefined;
 }
 
+/**
+ * Materialises an empty stub at {@link modulePath} only when the
+ * adapter declined to author the file itself. Real adapters return
+ * proper mutations and this fallback is a no-op; the stub keeps the
+ * v0.1 floor's L1 gates passing on mock adapters that report zero
+ * mutations.
+ */
 function ensureStub(cwd: string, modulePath: string): boolean {
   const abs = join(cwd, modulePath);
   if (existsSync(abs)) return false;
   mkdirSync(dirname(abs), {recursive: true});
-  writeFileSync(abs, '// auto-stub created by clad drive — replace with real implementation\nexport {};\n');
+  writeFileSync(
+    abs,
+    '// auto-stub created by clad drive — replace with real implementation\nexport {};\n',
+  );
   return true;
 }
 
+/**
+ * Applies the adapter's mutations to the working tree.
+ *
+ * Each mutation is either a create (write contents), an edit
+ * (overwrite contents — adapters do not produce diffs in v0.2.0),
+ * or a delete (unlink). Directories are created on demand.
+ */
+function applyMutations(cwd: string, mutations: readonly AgentMutation[]): void {
+  for (const m of mutations) {
+    const abs = join(cwd, m.path);
+    if (m.kind === 'delete') {
+      if (existsSync(abs)) {
+        try {
+          unlinkSync(abs);
+        } catch {
+          rmSync(abs, {recursive: true, force: true});
+        }
+      }
+      continue;
+    }
+    mkdirSync(dirname(abs), {recursive: true});
+    writeFileSync(abs, m.contents ?? '');
+  }
+}
+
+function ctxFor(cwd: string, feature: Feature): AgentContext {
+  return {
+    featureId: feature.id,
+    featureShard: JSON.stringify(feature),
+    guardrails: [],
+    cwd,
+  };
+}
+
 /** Runs the autonomous loop. Always returns a HaltReason. */
-export function runDriveLoop(opts: DriveOptions = {}): DriveResult {
+export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult> {
   const cwd = opts.cwd ?? '.';
   const budget = opts.budget ?? DEFAULT_BUDGET;
   const startedAt = Date.now();
@@ -82,7 +140,12 @@ export function runDriveLoop(opts: DriveOptions = {}): DriveResult {
   }
 
   appendEvent(cwd, newEvent('feature_activated', {goal: opts.goal ?? null, total: spec.features.length}));
-  const done = new Set(spec.features.filter((f) => f.status === 'done' || f.status === 'archived').map((f) => f.id));
+  const done = new Set(
+    spec.features.filter((f) => f.status === 'done' || f.status === 'archived').map((f) => f.id),
+  );
+
+  const specialists = loadPersona('specialists');
+  const reviewer = loadPersona('reviewer');
 
   while (true) {
     iteration += 1;
@@ -99,13 +162,33 @@ export function runDriveLoop(opts: DriveOptions = {}): DriveResult {
     }
 
     featuresTouched.push(ready.id);
+    const ctx = ctxFor(cwd, ready);
+
+    // Step 1 — specialist authors the implementation.
+    let specialistIdentity: string | undefined;
+    try {
+      const specialistOut = await runAgent(specialists, ctx);
+      specialistIdentity = specialistOut.result.identity.name;
+      applyMutations(cwd, specialistOut.result.mutations);
+    } catch (err) {
+      return finish({
+        class: 'LLM_UNAVAILABLE',
+        detail: `specialist dispatch failed: ${(err as Error).message}`,
+        iteration,
+      });
+    }
+
+    // Step 2 — fall back to module stubs only when the adapter
+    // produced no concrete file mutations (mock stage).
     for (const modulePath of ready.modules ?? []) {
       if (ensureStub(cwd, modulePath)) stubsCreated.push(modulePath);
     }
 
-    // Drift (stage_1.3) intentionally excluded — the drive floor runs while
-    // the spec is partially stubbed, and a spec-wide MISSING_IMPLEMENTATION
-    // sweep would always fail. `clad check` covers drift after the loop.
+    // Step 3 — L1 gates verify the produced state. Drift (stage_1.3)
+    // stays intentionally excluded — the loop runs while the spec
+    // is partially stubbed and a spec-wide MISSING_IMPLEMENTATION
+    // sweep would always fail. `clad check` covers drift after the
+    // loop completes.
     const gates = [
       ['stage_1.1', runType({cwd})],
       ['stage_1.2', runLint({cwd})],
@@ -119,13 +202,45 @@ export function runDriveLoop(opts: DriveOptions = {}): DriveResult {
       continue;
     }
 
+    // Step 4 — reviewer inspects. ReviewerIdentityCollisionError
+    // bubbles up from drive/agent.ts when the adapter returns an
+    // identity equal to the specialist — halt with HUMAN_REQUIRED.
+    try {
+      await runAgent(reviewer, ctx, {implementerIdentityName: specialistIdentity});
+    } catch (err) {
+      if (err instanceof ReviewerIdentityCollisionError) {
+        return finish({
+          class: 'HUMAN_REQUIRED',
+          detail: `${ready.id}: reviewer identity matched implementer — needs human sign-off`,
+          iteration,
+        });
+      }
+      return finish({
+        class: 'LLM_UNAVAILABLE',
+        detail: `reviewer dispatch failed: ${(err as Error).message}`,
+        iteration,
+      });
+    }
+
+    // Step 5 — UAT (stage_4.2) requires a human-pass evidence.
+    // Without one the loop pauses for sign-off instead of marking
+    // the feature done.
+    const uat = runUat({cwd});
+    if (!uat.pass && uat.exitCode !== 2) {
+      return finish({
+        class: 'HUMAN_REQUIRED',
+        detail: `${ready.id}: UAT lacks human-pass evidence — needs human sign-off`,
+        iteration,
+      });
+    }
+
     appendEvidence(
       cwd,
       newEvidence({
         featureId: ready.id,
         stage: 'stage_1.3',
         kind: 'pass',
-        content: 'clad drive — L1 gates pass on auto-stub',
+        content: 'clad drive — L1 gates pass after specialist + reviewer dispatch',
         identity: {author: 'tool', name: 'clad-drive'},
       }),
     );

@@ -7,6 +7,8 @@ modules:
   - adapters/host/generic-mcp.ts
   - adapters/index.ts
   - drive/agent.ts
+  - drive/loop.ts
+  - agents/loader.ts
 depends_on:
   - F-048
 acceptance_criteria:
