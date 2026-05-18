@@ -30,6 +30,7 @@ const CHAIN: readonly Entry[] = [
       test: {cmd: 'npx', args: ['vitest', 'run']},
       coverage: {cmd: 'npx', args: ['vitest', 'run', '--coverage']},
       secret: {cmd: 'npx', args: ['secretlint', '**/*']},
+      arch: {cmd: 'npx', args: ['madge', '--circular', '--extensions', 'ts', '.']},
     },
   },
   {
@@ -41,6 +42,7 @@ const CHAIN: readonly Entry[] = [
       test: {cmd: 'pytest', args: []},
       coverage: {cmd: 'coverage', args: ['run', '-m', 'pytest']},
       secret: {cmd: 'detect-secrets', args: ['scan']},
+      arch: {cmd: 'lint-imports', args: []},
     },
   },
   {

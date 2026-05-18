@@ -7,9 +7,11 @@ ironclad-stages-implemented:
   - stage_1.2
   - stage_1.3
   - stage_1.4
+  - stage_1.5
   - stage_1.6
 detectors-registered:
   - HARDCODED_SECRET
+  - ARCHITECTURE_VIOLATION
 ironclad-stages-target:
   - stage_1.1
   - stage_1.2
@@ -33,6 +35,7 @@ Ironclad iron-law stage implementations. One module per stage. Shared types in `
 | stage_1.2 Lint | `lint.ts` | linter exit 0, no errors | deterministic | polyglot chain (TS→eslint · Py→ruff · Rust→clippy · …) |
 | stage_1.3 Drift (core) | `drift.ts` | zero error-severity findings | deterministic | plug-in registry (1/19 detector wired) |
 | stage_1.4 Commit | `commit.ts` | working tree + index both clean | deterministic | `git status --porcelain` (language-agnostic) |
+| stage_1.5 Arch | `arch.ts` | no architecture rule violations | deterministic | toolchain chain (TS→madge --circular · Python→lint-imports) |
 | stage_1.6 Secret | `secret.ts` | no hardcoded secrets in tracked code | deterministic | toolchain chain (TS→secretlint · others→gitleaks) |
 
 ## [INTERFACE]
@@ -58,6 +61,7 @@ export function runLint(opts?: CommandStageOptions): StageResult;
 export function runDrift(opts?: CommandStageOptions): DriftReport;
 export function runSecret(opts?: CommandStageOptions): StageResult;
 export function runCommit(opts?: CommandStageOptions): StageResult;
+export function runArch(opts?: CommandStageOptions): StageResult;
 
 // stage_1.3 extends the shape with a finding list and a plug-in registry.
 export interface DriftFinding {
@@ -87,6 +91,7 @@ npm run stage:lint       # tsx stages/lint.ts
 npm run stage:drift      # tsx stages/drift.ts (all registered detectors)
 npm run stage:secret     # tsx stages/secret.ts
 npm run stage:commit     # tsx stages/commit.ts (call AFTER commit; mid-edit it fails by design)
+npm run stage:arch       # tsx stages/arch.ts (delegates to madge --circular / lint-imports / …)
 npx tsx stages/<name>.ts # direct
 ```
 
@@ -101,6 +106,7 @@ Output: one-line JSON on stdout, exit code matches stage result.
 | `tsx` (dev) | direct .ts execution (no precompiled dist/) |
 | `eslint` + `typescript-eslint` (dev) | linter; also the target of stage_1.2 (self-dogfood) |
 | `secretlint` + `@secretlint/secretlint-rule-preset-recommend` (dev) | secret scanner used for TS projects in stage_1.6 / HARDCODED_SECRET |
+| `madge` (dev) | circular-import / architecture validator used for TS projects in stage_1.5 / ARCHITECTURE_VIOLATION |
 | `@types/node` (dev) | Node.js stdlib types |
 
 Runtime: zero. Each stage module defers heavy lifting to the project's own toolchain (resolved by `toolchain/detect.ts`).
@@ -111,7 +117,7 @@ Cladding is language-agnostic. Stages `type`, `lint`, `test`, `coverage`, `secre
 
 | manifest | language | type | lint | test | coverage | secret |
 |---|---|---|---|---|---|---|
-| `package.json` | typescript | `tsc` | `eslint` | `vitest` | `vitest --coverage` | `secretlint` |
+| `package.json` | typescript | `tsc` | `eslint` | `vitest` | `vitest --coverage` | `secretlint` (+ `madge --circular` for arch) |
 | `pyproject.toml` · `setup.py` · `requirements.txt` | python | `mypy` | `ruff` | `pytest` | `coverage` | `detect-secrets` |
 | `Cargo.toml` | rust | `cargo check` | `cargo clippy` | `cargo test` | `cargo llvm-cov` | `gitleaks` |
 | `go.mod` | go | `go vet` | `golangci-lint` | `go test` | `go test -cover` | `gitleaks` |
@@ -144,6 +150,7 @@ Rule: write own code only when the layer-3 semantics demand it. For everything e
 | stage_1.2 | `npm run lint` | `stages/**/*.ts` via eslint.config.js |
 | stage_1.3 | `npm run stage:drift` | 1/19 detector wired (HARDCODED_SECRET); scans cladding's own tree |
 | stage_1.4 | `npm run stage:commit` | runs after each PR commit — verifies tree clean post-commit |
+| stage_1.5 | `npm run stage:arch` | madge --circular scans `stages/**/*.ts` — pass = no cycles |
 | stage_1.6 | `npm run stage:secret` | secretlint scans cladding's own tree via `.secretlintrc.json` |
 
 Pass on all = cladding meets its own L1 stages so far.
@@ -152,6 +159,7 @@ Pass on all = cladding meets its own L1 stages so far.
 
 | # | name | severity | axis | OSS | source |
 |---|---|---|---|---|---|
+| 5 | ARCHITECTURE_VIOLATION | error | spec_vs_code | madge (TS) / lint-imports (Python) | `detectors/architecture-violation.ts` |
 | 11 | HARDCODED_SECRET | error | code_vs_test | secretlint (TS) / gitleaks (others) | `detectors/hardcoded-secret.ts` |
 
 Registered through `detectors/index.ts → allDetectors`. To add a new detector: implement the `DriftDetector` interface, then append to that list.

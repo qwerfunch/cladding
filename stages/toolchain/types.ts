@@ -33,6 +33,13 @@ export interface ToolchainGates {
   readonly test?: ToolSpec;
   readonly coverage?: ToolSpec;
   readonly secret?: ToolSpec;
+  /**
+   * Architecture / dependency-graph validator. Pass criteria is
+   * "no circular dependency" at minimum; richer rule sets are project-owned.
+   * Several languages enforce acyclic imports at compile time (rust, go,
+   * java) — for those the gate is intentionally absent.
+   */
+  readonly arch?: ToolSpec;
 }
 
 /**
