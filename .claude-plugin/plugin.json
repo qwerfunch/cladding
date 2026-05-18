@@ -24,8 +24,8 @@
       "iron-law": "L0",
       "detectors": "0/19",
       "ears": "none",
-      "phase": "L3 — stage_1.2 Lint",
-      "stages-implemented": ["stage_1.1", "stage_1.2"],
+      "phase": "L4a — stage_1.3 Drift core (empty registry)",
+      "stages-implemented": ["stage_1.1", "stage_1.2", "stage_1.3"],
       "stack": "typescript"
     }
   }

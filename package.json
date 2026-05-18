@@ -13,6 +13,7 @@
   "scripts": {
     "stage:type": "tsx stages/type.ts",
     "stage:lint": "tsx stages/lint.ts",
+    "stage:drift": "tsx stages/drift.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint ."
   },

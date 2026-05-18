@@ -5,6 +5,7 @@ language: typescript
 ironclad-stages-implemented:
   - stage_1.1
   - stage_1.2
+  - stage_1.3
 ironclad-stages-target:
   - stage_1.1
   - stage_1.2
@@ -26,6 +27,7 @@ Ironclad iron-law stage implementations. One module per stage. Shared types in `
 |---|---|---|---|---|
 | stage_1.1 Type | `type.ts` | type checker exit 0, no errors | deterministic | `npx tsc --noEmit` |
 | stage_1.2 Lint | `lint.ts` | linter exit 0, no errors | deterministic | `npx eslint .` |
+| stage_1.3 Drift (core) | `drift.ts` | zero error-severity findings | deterministic | plug-in registry (empty in L4a) |
 
 ## [INTERFACE]
 
@@ -47,6 +49,24 @@ export interface CommandStageOptions {
 // per stage
 export function runType(opts?: CommandStageOptions): StageResult;
 export function runLint(opts?: CommandStageOptions): StageResult;
+export function runDrift(opts?: CommandStageOptions): DriftReport;
+
+// stage_1.3 extends the shape with a finding list and a plug-in registry.
+export interface DriftFinding {
+  readonly detector: string;
+  readonly severity: 'error' | 'warn' | 'info';
+  readonly path?: string;
+  readonly line?: number;
+  readonly message: string;
+}
+export interface DriftReport extends StageResult {
+  readonly findings: readonly DriftFinding[];
+}
+export interface DriftDetector {
+  readonly name: string;
+  run(opts: CommandStageOptions): readonly DriftFinding[];
+}
+export function registerDetector(detector: DriftDetector): void;
 ```
 
 JSON-serializable. Machine-readable. Field names follow camelCase (Google TS Style Guide).
@@ -56,6 +76,7 @@ JSON-serializable. Machine-readable. Field names follow camelCase (Google TS Sty
 ```
 npm run stage:type       # tsx stages/type.ts
 npm run stage:lint       # tsx stages/lint.ts
+npm run stage:drift      # tsx stages/drift.ts
 npx tsx stages/<name>.ts # direct
 ```
 
@@ -78,5 +99,6 @@ Runtime: zero. Each stage module uses Node stdlib only (`node:child_process`) an
 |---|---|---|
 | stage_1.1 | `npm run typecheck` | `stages/**/*.ts` via tsconfig.json |
 | stage_1.2 | `npm run lint` | `stages/**/*.ts` via eslint.config.js |
+| stage_1.3 | `npm run stage:drift` | empty registry in L4a — passes trivially; detectors land in L4b+ |
 
-Pass on both = cladding meets its own L1 stages so far.
+Pass on all = cladding meets its own L1 stages so far.
