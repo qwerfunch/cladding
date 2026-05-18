@@ -1,0 +1,50 @@
+{
+  "cell": "02-medium × harness",
+  "scope": "02-medium",
+  "mode": "harness",
+  "started_at": "2026-05-18T10:20:30Z",
+  "ended_at": "2026-05-18T10:21:50Z",
+  "wall_clock_minutes": 1.4,
+  "time_box_minutes": 60,
+  "within_time_box": true,
+  "axes": {
+    "1_token_usage": {
+      "output_chars": 9787,
+      "output_approx_tokens": 2446,
+      "overhead_vs_vanilla_pct": 47.6,
+      "breakdown": {
+        "code_chars": 6629,
+        "harness_ceremony_chars": 3158
+      }
+    },
+    "2_ac_completion": {
+      "total_ac": 12,
+      "passed": 10,
+      "percent": 83.3,
+      "explicit_blocker": "F-006 (AC-11 fault-injection) declared status='in_progress' with blocker reason; iron law surfaces the gap"
+    },
+    "3_code_quality": {
+      "typecheck_exit": 0,
+      "lint_exit": 0,
+      "loc": 209,
+      "files": 5,
+      "ceremony_loc_yaml": 50
+    },
+    "4_drift": {
+      "iron_law_satisfied": false,
+      "reason": "F-006 has status=in_progress (AC-11 not yet verified); harness correctly refuses to claim complete"
+    },
+    "5_wall_clock_minutes": 1.4,
+    "6_maintainability_self_score": {
+      "modularity": 4,
+      "readability": 4,
+      "comment_density": 1,
+      "structure": 5,
+      "average": 3.5
+    }
+  },
+  "notes": [
+    "Harness surfaces what vanilla hides: AC-11 (persistence-failure path) wasn't fully tested, so F-006 sits as status=in_progress instead of vanilla's 'all 10 tests pass, ship it'.",
+    "Spec ceremony adds 47.6% tokens but the audit trail is now machine-readable — a maintainer can see which AC is incomplete without re-reading the source."
+  ]
+}

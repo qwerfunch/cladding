@@ -6,14 +6,14 @@ Cell index:
 
 | scope | mode | status |
 |---|---|---|
-| 01-simple | vanilla | TBD |
-| 01-simple | harness | TBD |
-| 01-simple | cladding | TBD |
-| 02-medium | vanilla | TBD |
-| 02-medium | harness | TBD |
-| 02-medium | cladding | TBD |
-| 03-large | vanilla | TBD |
-| 03-large | harness | TBD |
-| 03-large | cladding | TBD |
+| 01-simple | vanilla | ✓ |
+| 01-simple | harness | ✓ |
+| 01-simple | cladding | ✓ |
+| 02-medium | vanilla | ✓ |
+| 02-medium | harness | ✓ |
+| 02-medium | cladding | ✓ |
+| 03-large | vanilla | ✓ |
+| 03-large | harness | ✓ |
+| 03-large | cladding | ✓ |
 
 After all nine cells complete, the cross-cell synthesis goes in `../REPORT.md`.

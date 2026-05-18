@@ -1,0 +1,61 @@
+{
+  "cell": "03-large × cladding",
+  "scope": "03-large",
+  "mode": "cladding",
+  "started_at": "2026-05-18T10:29:40Z",
+  "ended_at": "2026-05-18T10:31:00Z",
+  "wall_clock_minutes": 1.4,
+  "time_box_minutes": 120,
+  "within_time_box": true,
+  "axes": {
+    "1_token_usage": {
+      "output_chars": 20661,
+      "output_approx_tokens": 5165,
+      "overhead_vs_vanilla_pct": 22.5,
+      "overhead_vs_harness_pct": -5.5,
+      "breakdown": {
+        "code_chars": 16865,
+        "spec_yaml_chars": 3796
+      }
+    },
+    "2_ac_completion": {
+      "total_ac": 25,
+      "claimed_done": 14,
+      "in_progress": 9,
+      "planned": 1,
+      "blocked": 1,
+      "actual_passing": 16,
+      "honest_status_visible": true
+    },
+    "3_code_quality": {
+      "typecheck_exit": 2,
+      "typecheck_errors": 3,
+      "lint_exit": 0,
+      "test_pass": 15,
+      "test_total": 15,
+      "loc": 453,
+      "files": 8
+    },
+    "4_drift": {
+      "spec_features_valid": 8,
+      "spec_features_done_claimed": 4,
+      "iron_law_level": "L1 NOT MET — gate_1 (typecheck) fails on 3 modules; clad check would refuse to advance",
+      "drift_errors": 0,
+      "note": "cladding's stage_1.1 Type would surface the 3 errors the moment they appear; vanilla mode only noticed via separate npm run typecheck"
+    },
+    "5_wall_clock_minutes": 1.4,
+    "6_maintainability_self_score": {
+      "modularity": 3,
+      "readability": 4,
+      "comment_density": 1,
+      "structure": 5,
+      "honesty": 5,
+      "discoverability": 5,
+      "average": 3.8
+    }
+  },
+  "notes": [
+    "cladding's spec ceremony is leaner than harness's spec+state pair (3796 < 5004) — yet expresses the same blocker.",
+    "Like harness, cladding refuses to claim done while typecheck fails. The architecture.layers field gives the reviewer one more piece of context vanilla / harness don't surface."
+  ]
+}

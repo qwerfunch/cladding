@@ -1,0 +1,52 @@
+{
+  "cell": "03-large × vanilla",
+  "scope": "03-large",
+  "mode": "vanilla",
+  "started_at": "2026-05-18T10:23:50Z",
+  "ended_at": "2026-05-18T10:27:30Z",
+  "wall_clock_minutes": 3.7,
+  "time_box_minutes": 120,
+  "within_time_box": true,
+  "axes": {
+    "1_token_usage": {
+      "output_chars": 16865,
+      "output_approx_tokens": 4216
+    },
+    "2_ac_completion": {
+      "total_ac": 25,
+      "passed": 16,
+      "partial": 3,
+      "failed": 6,
+      "percent": 64,
+      "passed_acs": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6", "AC-7", "AC-8", "AC-9", "AC-10", "AC-11", "AC-13", "AC-14", "AC-19", "AC-20", "AC-21", "AC-25"],
+      "partial_acs": ["AC-15 rate limit (implemented, no test)", "AC-16 migrate idempotent (implicit via IF NOT EXISTS)", "AC-22 transactions (not used)"],
+      "failed_acs": ["AC-12 i18n (not implemented)", "AC-17 test per AC (most but not all 25)", "AC-18 typecheck (3 errors)", "AC-23 LOG_LEVEL=debug (not implemented)", "AC-24 README (not written)"]
+    },
+    "3_code_quality": {
+      "typecheck_exit": 2,
+      "typecheck_errors": 3,
+      "typecheck_error_summary": [
+        "src/app.ts:89,33 — string | string[] not assignable to string (express req.query type)",
+        "src/app.ts:106,33 — same as above",
+        "src/auth.ts:38,21 — JwtPayload to {sub, email} cast"
+      ],
+      "lint_exit": 0,
+      "test_pass": 15,
+      "test_total": 15,
+      "loc": 453,
+      "files": 8
+    },
+    "5_wall_clock_minutes": 3.7,
+    "6_maintainability_self_score": {
+      "modularity": 3,
+      "readability": 4,
+      "comment_density": 1,
+      "average": 2.7,
+      "note": "vanilla mode shipped 'tests green' as the success signal but the typechecker still complains — a hidden-but-real quality regression"
+    }
+  },
+  "notes": [
+    "Vanilla mode declared 'done' at 15/15 tests pass and a clean eslint — but the TS compiler had 3 errors. Real-world: this would slip into review.",
+    "Six ACs missing entirely (i18n / LOG_LEVEL / README / transactions / typecheck / per-AC test coverage). No formal gate refused completion."
+  ]
+}

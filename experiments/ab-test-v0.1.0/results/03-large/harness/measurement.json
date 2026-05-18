@@ -1,0 +1,59 @@
+{
+  "cell": "03-large × harness",
+  "scope": "03-large",
+  "mode": "harness",
+  "started_at": "2026-05-18T10:28:00Z",
+  "ended_at": "2026-05-18T10:29:30Z",
+  "wall_clock_minutes": 1.5,
+  "time_box_minutes": 120,
+  "within_time_box": true,
+  "axes": {
+    "1_token_usage": {
+      "output_chars": 21869,
+      "output_approx_tokens": 5467,
+      "overhead_vs_vanilla_pct": 29.7,
+      "breakdown": {
+        "code_chars": 16865,
+        "harness_ceremony_chars": 5004
+      }
+    },
+    "2_ac_completion": {
+      "total_ac": 25,
+      "claimed_done": 14,
+      "in_progress": 9,
+      "planned": 1,
+      "blocked": 1,
+      "actual_passing": 16,
+      "honest_status_visible": true,
+      "note": "Same 16 ACs technically pass as vanilla — but harness refuses to mark them done while gate_1 (typecheck) fails. F-001..F-003 in_progress instead of done. F-008 blocked."
+    },
+    "3_code_quality": {
+      "typecheck_exit": 2,
+      "typecheck_errors": 3,
+      "lint_exit": 0,
+      "test_pass": 15,
+      "test_total": 15,
+      "loc": 453,
+      "ceremony_loc_yaml": 105,
+      "files": 8
+    },
+    "4_drift": {
+      "iron_law_satisfied": false,
+      "reason": "gate_1 fail on 3 modules; harness BR-004 (no completion without fresh verification) blocks status=done claim across 8 features"
+    },
+    "5_wall_clock_minutes": 1.5,
+    "6_maintainability_self_score": {
+      "modularity": 3,
+      "readability": 4,
+      "comment_density": 1,
+      "structure": 5,
+      "honesty": 5,
+      "average": 3.6,
+      "note": "Same code as vanilla but the ceremony refuses to lie. A maintainer reading state.yaml sees 'gate_1 fail, completion blocked' instead of vanilla's silent 'tests pass'."
+    }
+  },
+  "notes": [
+    "This is the cell where the value gap shows: same code, but harness mode refuses to declare done while typecheck fails.",
+    "Vanilla mode reports 'tests pass' and would ship; harness mode reports 'L1 floor NOT MET, gate_1 fails' and stops."
+  ]
+}
