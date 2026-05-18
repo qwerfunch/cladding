@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] — Unreleased — F-049 agent dispatch (machinery complete, transport mocked)
+## [0.2.0] — 2026-05-19 — F-049 agent dispatch (machinery complete, transport mocked)
 
 This release closes the "machinery" half of F-049 — the agent-adapter contract, the drive-loop dispatch wiring, the two reserved halt classes — and explicitly defers the real Claude Code / MCP transport bodies to v0.3.0. The architectural decision that unlocks the real transports (cladding adopts an MCP server mode, `clad serve`) is recorded in `docs/multi-provider-roadmap.md`; until then the two host adapters return deterministic mock results so the loop, the parity tests, and the halt classes all exercise the right code paths.
 
@@ -33,7 +33,7 @@ This release closes the "machinery" half of F-049 — the agent-adapter contract
 - `spec/features/F-049.yaml` gains AC-092 ("ship v0.2.0 with mock host adapter bodies and defer the real transport to v0.3.0") so the spec is honest about what shipped.
 - No new dependency added; the loader reads `yaml` (already a transitive dep) for persona frontmatter.
 
-## [0.1.6] — Unreleased — Bundled CLI install path
+## [0.1.6] — 2026-05-19 — Bundled CLI install path
 
 The `clad` CLI now ships as a single esbuild bundle (`dist/clad.js`) so end-user installation is a one-liner with no runtime dev-dependency fetch. Behaviour is unchanged — every verb, every stage, every detector produces the same output as in v0.1.5.
 
