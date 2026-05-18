@@ -38,7 +38,7 @@ export function runSecret(opts: CommandStageOptions = {}): StageResult {
 }
 
 // CLI entry — `tsx stages/secret.ts` or `npm run stage:secret`.
-const isCliEntry = import.meta.url === `file://${process.argv[1]}`;
+const isCliEntry = !(globalThis as {__CLADDING_BUNDLED?: boolean}).__CLADDING_BUNDLED && import.meta.url === `file://${process.argv[1]}`;
 if (isCliEntry) {
   const result = runSecret();
   console.log(JSON.stringify(result));

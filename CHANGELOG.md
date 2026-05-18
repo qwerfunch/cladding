@@ -5,6 +5,30 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.6] — Unreleased — Bundled CLI install path
+
+The `clad` CLI now ships as a single esbuild bundle (`dist/clad.js`) so end-user installation is a one-liner with no runtime dev-dependency fetch. Behaviour is unchanged — every verb, every stage, every detector produces the same output as in v0.1.5.
+
+### Added
+
+- `scripts/build.mjs` — esbuild build script that emits `dist/clad.js` (876 KB, ESM, Node ≥ 20). Inlines `spec/schema.json` and copies it next to the bundle so `spec/validate.ts` keeps reading it via the same `readFileSync(join(__dirname, 'schema.json'))` path. Banner sets up a `createRequire` shim for the CommonJS dependencies that get bundled (e.g. `commander`).
+- `package.json scripts.build` — runs `node scripts/build.mjs`.
+- `package.json scripts.prepare` — auto-builds `dist/clad.js` on `npm install` when the bundle is missing and esbuild is present, so contributors and CI don't have to remember the build step.
+- README + README.ko Install section — `npm install -g cladding` + `clad init` for end users; cross-tool note for Claude Code / Codex / Gemini CLI / Cursor / Cline / Continue.
+
+### Changed
+
+- `bin/clad` — now imports `dist/clad.js` directly when present (no `tsx` spawn, no `npx` fetch). Falls back to `tsx cli/clad.ts` when the bundle is absent so the dev loop keeps working without a manual rebuild after every source edit.
+- `package.json files` — replaces source-tree paths with `dist/` (the bundle is the published artifact). Keeps `agents/`, `commands/`, `conformance/`, `.claude-plugin/`, `AGENTS.md`, and the standard root markdown.
+- `stages/*.ts` (13 files) — the `isCliEntry` guard now also checks `globalThis.__CLADDING_BUNDLED` so the bundled build doesn't auto-fire every stage at startup. The dev path (`tsx stages/<name>.ts` / `npm run stage:<name>`) is unchanged because the flag is only set inside the bundle.
+- `AGENTS.md` §2 Setup — separates the end-user install from the contributor install.
+
+### Notes
+
+- `dist/` is gitignored (build artifact, regenerated on every install / publish).
+- `npm publish` itself stays deferred per maintainer's release policy — `prepublishOnly` is not yet wired (the `prepare` hook covers the install case; publish-time build will be added at the same time as the first `npm publish`).
+- The `npm install -g github:qwerfunch/cladding` path also works: `prepare` runs after the clone and produces `dist/clad.js` (requires `--include=dev` so esbuild is available, which `prepare` would otherwise miss).
+
 ## [0.1.5] — 2026-05-19 — Email hotfix
 
 Security patch. No code change.
@@ -227,6 +251,7 @@ Environment: `HARNESS_INTEGRITY` · `REFERENCE_INTEGRITY` · `META_INTEGRITY`.
 - Reference: https://github.com/qwerfunch/ironclad
 - Repository: https://github.com/qwerfunch/cladding
 
+[0.1.6]: https://github.com/qwerfunch/cladding/releases/tag/v0.1.6
 [0.1.5]: https://github.com/qwerfunch/cladding/releases/tag/v0.1.5
 [0.1.4]: https://github.com/qwerfunch/cladding/releases/tag/v0.1.4
 [0.1.3]: https://github.com/qwerfunch/cladding/releases/tag/v0.1.3

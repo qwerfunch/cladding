@@ -38,7 +38,7 @@ export function runAudit(opts: CommandStageOptions = {}): StageResult {
   return {stage: STAGE, pass: false, exitCode: 1, stderr: `anti-self-cert guard: ${reasons}`};
 }
 
-const isCliEntry = import.meta.url === `file://${process.argv[1]}`;
+const isCliEntry = !(globalThis as {__CLADDING_BUNDLED?: boolean}).__CLADDING_BUNDLED && import.meta.url === `file://${process.argv[1]}`;
 if (isCliEntry) {
   const result = runAudit();
   console.log(JSON.stringify(result));

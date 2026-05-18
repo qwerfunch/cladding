@@ -8,8 +8,16 @@ cladding is the reference implementation of the [Ironclad](https://github.com/qw
 
 ## 2. Setup
 
+End-user install:
+
 ```
-npm install
+npm install -g cladding
+```
+
+Contributor install (clones the repo and pulls dev dependencies):
+
+```
+git clone https://github.com/qwerfunch/cladding && cd cladding && npm install
 ```
 
 Requires Node ≥ 20.

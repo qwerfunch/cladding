@@ -78,7 +78,7 @@ export function runDrift(opts: CommandStageOptions = {}): DriftReport {
 }
 
 // CLI entry — `tsx stages/drift.ts` or `npm run stage:drift`.
-const isCliEntry = import.meta.url === `file://${process.argv[1]}`;
+const isCliEntry = !(globalThis as {__CLADDING_BUNDLED?: boolean}).__CLADDING_BUNDLED && import.meta.url === `file://${process.argv[1]}`;
 if (isCliEntry) {
   const report = runDrift();
   console.log(JSON.stringify(report));

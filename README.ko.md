@@ -11,6 +11,22 @@ Cladding 는 Claude Code 용 멀티 에이전트 개발 하네스이자 Ironclad
 
 > AI 도구 안내 (Claude Code · OpenAI Codex · Cursor · Cline · Aider · Continue · Copilot · Gemini CLI · …): cross-tool 진입점은 [`AGENTS.md`](AGENTS.md) 에 있습니다.
 
+## 설치
+
+```
+npm install -g cladding
+```
+
+설치 후 어느 프로젝트 디렉터리에서든:
+
+```
+clad init     # cladding 워크스페이스 scaffold
+clad check    # 모든 Iron Law stage + drift 검사
+clad panel    # feature × stage Integrity Panel
+```
+
+Claude Code · OpenAI Codex CLI · Google Gemini CLI · Cursor · Cline · Continue · 그 외 [`AGENTS.md`](AGENTS.md) 를 읽는 모든 도구 안에서 동일한 명령 사용. Node ≥ 20 필요.
+
 ## 상태
 
 **Ironclad L4 conformant (L21) · self-spec sharded (L21.8).** Cladding 은 Ironclad 의 전체 표면을 구현합니다 — 13 개 Iron Law stage (L1 Type / Lint / Drift / Commit / Arch / Secret · L2 Unit / Cov · L3 Smoke / Perf / Visual · L4 Audit / UAT), 19/19 drift detector, EARS 구문 검증기, HITL 인프라 (identity · audit · anti-self-cert), 5 개 agent persona, 9 개 언어 polyglot toolchain, Intent Router, clad CLI, Token Optimizer (cladding 자체 spec 에서 87.9% 컨텍스트 감소 실측), conformance fixture 26/26 일치. Cladding 자체 spec 은 이제 sharded 됨 (`spec/features/F-NNN.yaml` × 47, `spec/scenarios/S-NNN.yaml` × 2, `spec/architecture.yaml`) — 외부 채택자가 spec 이 단일 파일을 넘으면 동일 layout 사용.
