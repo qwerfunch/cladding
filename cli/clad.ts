@@ -9,6 +9,7 @@ import process from 'node:process';
 import {Command} from 'commander';
 
 import {classifyIntent} from '../router/intent.js';
+import {runInit} from './init.js';
 import {runArch} from '../stages/arch.js';
 import {runAudit} from '../stages/audit.js';
 import {runCommit} from '../stages/commit.js';
@@ -32,8 +33,13 @@ program.name('clad').description('Reference Ironclad CLI').version('0.1.0-dev');
 program
   .command('init')
   .description('Scaffold a cladding workspace in the current directory')
-  .action(() => {
-    pulse('note', 'init', 'placeholder — v0.1 scaffolds nothing; will mature in v0.2');
+  .option('-n, --name <name>', 'Project name (default: cwd basename)')
+  .option('-f, --force', 'Overwrite existing spec.yaml')
+  .action((opts: {name?: string; force?: boolean}) => {
+    const result = runInit({projectName: opts.name, force: opts.force});
+    for (const c of result.created) pulse('pass', `created ${c}`);
+    for (const s of result.skipped) pulse('skip', s);
+    pulse('note', 'init done', `language: ${result.language}`);
     process.exit(0);
   });
 

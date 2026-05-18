@@ -10,7 +10,7 @@ Wrapper for the local `clad` binary (see `bin/clad` and `cli/clad.ts`). Forwards
 
 | verb | what it does |
 |---|---|
-| `init` | scaffold a cladding workspace (v0.2 placeholder) |
+| `init` | scaffold a cladding workspace — spec.yaml seed + .cladding/ + .gitignore. `--name <name>` overrides cwd basename. `--force` overwrites existing spec.yaml. Idempotent by default. |
 | `work <verb>` | run a single stage or natural-language intent |
 | `drive [goal]` | autonomous loop (v0.2 placeholder) |
 | `sync` | validate `spec.yaml` against `spec/schema.json` |
