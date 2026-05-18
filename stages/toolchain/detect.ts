@@ -31,6 +31,9 @@ const CHAIN: readonly Entry[] = [
       coverage: {cmd: 'npx', args: ['vitest', 'run', '--coverage']},
       secret: {cmd: 'npx', args: ['secretlint', '**/*']},
       arch: {cmd: 'npx', args: ['madge', '--circular', '--extensions', 'ts', '.']},
+      smoke: {cmd: 'npm', args: ['run', '--silent', 'smoke']},
+      perf: {cmd: 'npm', args: ['run', '--silent', 'perf']},
+      visual: {cmd: 'npm', args: ['run', '--silent', 'visual']},
     },
   },
   {
