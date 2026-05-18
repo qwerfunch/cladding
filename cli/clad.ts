@@ -28,7 +28,7 @@ import {pulse} from '../ui/pulse.js';
 import {renderPanel} from '../ui/panel.js';
 
 const program = new Command();
-program.name('clad').description('Reference Ironclad CLI').version('0.1.0-dev');
+program.name('clad').description('Reference Ironclad CLI').version('0.1.1');
 
 program
   .command('init')

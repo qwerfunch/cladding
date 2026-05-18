@@ -92,6 +92,18 @@ Every PR must:
 
 A reviewer (the maintainer or a delegated independent agent — never the PR author) signs off before merge. This is the human-in-the-loop barrier the project lives by; PRs that try to short-circuit it get closed.
 
+### 4.4 First PR walkthrough
+
+If this is your first time touching cladding, the path from clone to opened PR is intentionally short. Read this section once and you should be able to land a small fix without further hand-holding:
+
+1. **Clone and install.** `git clone https://github.com/qwerfunch/cladding && cd cladding && npm install`. Node ≥ 20.
+2. **Pick a starting point.** Browse [issues tagged `good-first-issue`](https://github.com/qwerfunch/cladding/issues?q=is%3Aissue+is%3Aopen+label%3A%22good-first-issue%22) or, if you have your own idea, open an issue first to confirm the proposal fits §4.1 / §4.2 before writing code.
+3. **Branch off `develop`**, not `main`. Convention: `feature/<slug>` or `fix/<slug>`. Never push to `main` — releases ship via §3.
+4. **Run the four-check loop before pushing**: `npm test && npm run typecheck && npm run lint && node bin/clad check`. The first three must be clean; `clad check` must show 13/13 stages on a clean working tree.
+5. **Open the PR against `develop`.** The repository's `.github/PULL_REQUEST_TEMPLATE.md` walks you through the §4.3 contract as a checkbox list. A maintainer (or a delegated independent reviewer) signs off before merge.
+
+For style and structure, see `CONTRIBUTING.md`. For drift detector conventions specifically (especially the status-aware rule for `UNTESTED_AC` and `MISSING_TESTS`), see [`stages/detectors/README.md`](stages/detectors/README.md).
+
 ## 5. v1.0 Graduation Criteria
 
 These are the conditions the project must meet before bumping to `v1.0.0` — not a roadmap, but a checklist the maintainer revisits when the question comes up.
