@@ -18,7 +18,6 @@
     "dist/",
     "agents/",
     "commands/",
-    "conformance/",
     ".claude-plugin/",
     "AGENTS.md",
     "CODE_OF_CONDUCT.md",

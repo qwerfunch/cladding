@@ -77,3 +77,4 @@ Convert every internal id at the user surface boundary via `ui/softShell.ts`: `f
 - `agents/` — five persona definitions.
 - `spec/` — sharded SSoT (features × scenarios × architecture).
 - `stages/detectors/README.md` — drift detector inventory + status policy.
+- `conformance/` — contributor self-audit tool (`npm run conformance` after a dev install). The end-user install does not ship it; the L1–L4 conformance claim travels through release notes instead.

@@ -28,6 +28,7 @@ The `clad` CLI now ships as a single esbuild bundle (`dist/clad.js`) so end-user
 - `dist/` is gitignored (build artifact, regenerated on every install / publish).
 - `npm publish` itself stays deferred per maintainer's release policy — `prepublishOnly` is not yet wired (the `prepare` hook covers the install case; publish-time build will be added at the same time as the first `npm publish`).
 - The `npm install -g github:qwerfunch/cladding` path also works: `prepare` runs after the clone and produces `dist/clad.js` (requires `--include=dev` so esbuild is available, which `prepare` would otherwise miss).
+- `conformance/` is no longer listed in `package.json files` — it is a contributor self-audit tool that depends on the dev toolchain (`tsc` / `eslint` / `madge` / `secretlint` / `vitest`), none of which the end-user install ships. The L1–L4 conformance claim travels through release notes instead; external implementers verify against the upstream `ironclad-spec` fixtures, not against this runner.
 
 ## [0.1.5] — 2026-05-19 — Email hotfix
 
