@@ -18,6 +18,7 @@
     "stage:commit": "tsx stages/commit.ts",
     "stage:arch": "tsx stages/arch.ts",
     "stage:unit": "tsx stages/unit.ts",
+    "stage:cov": "tsx stages/cov.ts",
     "spec:validate": "tsx spec/cli.ts",
     "conformance": "tsx conformance/runner.ts",
     "test": "vitest run",
