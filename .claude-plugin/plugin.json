@@ -24,7 +24,7 @@
       "iron-law": "L1",
       "detectors": "15/19",
       "ears": "syntactic",
-      "phase": "L11 (T7c) — stage_3.1 Smoke + 3.2 Perf + 3.3 Visual + PERFORMANCE_DRIFT",
+      "phase": "L12 (T2c) — spec sharding (auto-detect unsharded vs sharded layout)",
       "stages-implemented": ["stage_1.1", "stage_1.2", "stage_1.3", "stage_1.4", "stage_1.5", "stage_1.6", "stage_2.1", "stage_2.2", "stage_3.1", "stage_3.2", "stage_3.3"],
       "spec-schema-version": "0.1",
       "conformance": {
