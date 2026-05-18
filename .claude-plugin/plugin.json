@@ -22,9 +22,9 @@
     },
     "current": {
       "iron-law": "L0",
-      "detectors": "3/19",
+      "detectors": "4/19",
       "ears": "schema-only",
-      "phase": "L6a (T4-first) — MISSING_IMPLEMENTATION detector (first Ironclad-native)",
+      "phase": "L6b — UNMAPPED_ARTIFACT detector + spec hygiene closure",
       "stages-implemented": ["stage_1.1", "stage_1.2", "stage_1.3", "stage_1.4", "stage_1.5", "stage_1.6"],
       "spec-schema-version": "0.1",
       "stack": "typescript",
