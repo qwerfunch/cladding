@@ -5,8 +5,11 @@
 // own state is initialized. Avoids the ESM circular-init pitfall a
 // side-effect `registerDetector` call would create.
 
+import {acDrift} from './ac-drift.js';
 import {architectureViolation} from './architecture-violation.js';
 import {hardcodedSecret} from './hardcoded-secret.js';
+import {harnessIntegrity} from './harness-integrity.js';
+import {metaIntegrity} from './meta-integrity.js';
 import {missingImplementation} from './missing-implementation.js';
 import {referenceIntegrity} from './reference-integrity.js';
 import {staleSpecification} from './stale-specification.js';
@@ -25,4 +28,7 @@ export const allDetectors: readonly DriftDetector[] = [
   statusDrift,
   staleSpecification,
   referenceIntegrity,
+  harnessIntegrity,
+  metaIntegrity,
+  acDrift,
 ];

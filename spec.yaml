@@ -409,3 +409,56 @@ features:
           spec.yaml — features[].depends_on, features[].superseded_by,
           scenarios[].features — resolves to an actual feature id,
           emitting an error finding per unresolved reference.
+
+  - id: F-017
+    title: HARNESS_INTEGRITY drift detector (#17)
+    status: done
+    modules:
+      - stages/detectors/harness-integrity.ts
+    depends_on: [F-003]
+    acceptance_criteria:
+      - id: AC-027
+        ears: ubiquitous
+        action: cross-check plugin.json current.detectors against actual files under stages/detectors/
+        response: error finding when the numerator does not match the file count
+        text: >-
+          The system shall cross-check the numerator of plugin.json
+          current.detectors against the number of non-index .ts files
+          under stages/detectors/, emitting an error finding on mismatch.
+
+  - id: F-018
+    title: META_INTEGRITY drift detector (#19)
+    status: done
+    modules:
+      - stages/detectors/meta-integrity.ts
+    depends_on: [F-003, F-010]
+    acceptance_criteria:
+      - id: AC-028
+        ears: ubiquitous
+        action: validate spec/schema.json declares the root keys spec/types.ts depends on
+        response: error finding per missing root key
+        text: >-
+          The system shall validate that spec/schema.json declares and
+          requires the root keys (schema, project, features) that
+          spec/types.ts depends on, and that spec.yaml's schema version
+          equals the supported version.
+
+  - id: F-019
+    title: AC_DRIFT drift detector (#3, minimal floor)
+    status: done
+    modules:
+      - stages/detectors/ac-drift.ts
+    depends_on: [F-003, F-010]
+    acceptance_criteria:
+      - id: AC-029
+        ears: ubiquitous
+        action: flag any AC that has neither rendered text nor any EARS field
+        response: error finding per structurally empty AC
+        text: >-
+          The system shall flag any acceptance_criterion that has
+          neither a rendered text nor any EARS field
+          (condition/action/response), emitting an error finding per
+          structurally empty AC.
+        notes: >-
+          v0.1 floor. The richer semantic AC-vs-implementation drift
+          requires LLM-assisted inference (T9 dependency).

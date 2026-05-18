@@ -18,6 +18,9 @@ detectors-registered:
   - STATUS_DRIFT
   - STALE_SPECIFICATION
   - REFERENCE_INTEGRITY
+  - HARNESS_INTEGRITY
+  - META_INTEGRITY
+  - AC_DRIFT
 ironclad-stages-target:
   - stage_1.1
   - stage_1.2
@@ -172,6 +175,9 @@ Pass on all = cladding meets its own L1 stages so far.
 | 11 | HARDCODED_SECRET | error | code_vs_test | secretlint (TS) / gitleaks (others) | `detectors/hardcoded-secret.ts` |
 | 14 | STATUS_DRIFT | error | spec_vs_test | (Ironclad-native — no OSS) | `detectors/status-drift.ts` |
 | 16 | STALE_SPECIFICATION | warn | spec_vs_test | (Ironclad-native — no OSS) | `detectors/stale-specification.ts` |
+| 17 | HARNESS_INTEGRITY | error | environment | (Ironclad-native — no OSS) | `detectors/harness-integrity.ts` |
 | 18 | REFERENCE_INTEGRITY | error | environment | (Ironclad-native — no OSS) | `detectors/reference-integrity.ts` |
+| 19 | META_INTEGRITY | error | environment | (Ironclad-native — no OSS) | `detectors/meta-integrity.ts` |
+| 3 | AC_DRIFT (minimal floor) | error | spec_vs_code | (Ironclad-native — no OSS; LLM-assisted variant TBD) | `detectors/ac-drift.ts` |
 
 Registered through `detectors/index.ts → allDetectors`. To add a new detector: implement the `DriftDetector` interface, then append to that list.
