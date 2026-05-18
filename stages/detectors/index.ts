@@ -11,6 +11,7 @@ import {hardcodedSecret} from './hardcoded-secret.js';
 import {harnessIntegrity} from './harness-integrity.js';
 import {metaIntegrity} from './meta-integrity.js';
 import {missingImplementation} from './missing-implementation.js';
+import {missingTests} from './missing-tests.js';
 import {referenceIntegrity} from './reference-integrity.js';
 import {staleSpecification} from './stale-specification.js';
 import {statusDrift} from './status-drift.js';
@@ -31,4 +32,5 @@ export const allDetectors: readonly DriftDetector[] = [
   harnessIntegrity,
   metaIntegrity,
   acDrift,
+  missingTests,
 ];

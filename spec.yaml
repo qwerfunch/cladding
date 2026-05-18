@@ -468,6 +468,66 @@ features:
           symlink cladding's node_modules into it, and clean up after
           execution so the source tree stays uncontaminated.
 
+  - id: F-021
+    title: stage_2.1 Unit — polyglot unit-test delegation
+    status: done
+    modules:
+      - stages/unit.ts
+    depends_on: [F-004]
+    acceptance_criteria:
+      - id: AC-033
+        ears: ubiquitous
+        action: delegate unit testing to the project's own toolchain
+        response: returns a stage_2.1 StageResult with exitCode mirroring the test runner
+        text: >-
+          The system shall delegate unit testing to the project's own
+          toolchain (vitest / pytest / cargo test / go test / …) and
+          return a stage_2.1 result with the runner's exit code.
+        test_refs: [self-dogfood:stage:unit]
+
+  - id: F-022
+    title: MISSING_TESTS drift detector (#7, v0.1 floor)
+    status: done
+    modules:
+      - stages/detectors/missing-tests.ts
+    depends_on: [F-003, F-010, F-021]
+    acceptance_criteria:
+      - id: AC-034
+        ears: ubiquitous
+        action: emit a warn finding for any AC that declares no test_refs
+        response: stage_1.3 surfaces but does not fail on warn alone
+        text: >-
+          The system shall emit a warn-severity drift finding for every
+          acceptance_criterion that declares no test_refs, so cladding
+          spec authors can see which ACs lack verification mapping.
+        test_refs: [fixture:missing-tests]
+        notes: >-
+          v0.1 floor — the richer "test_refs resolve to real test
+          functions" variant requires vitest AST introspection (T7c).
+
+  - id: F-023
+    title: cladding own unit test suite (vitest)
+    status: done
+    modules:
+      - vitest.config.ts
+      - tests/spec/parse.test.ts
+      - tests/spec/validate.test.ts
+      - tests/spec/ears.test.ts
+      - tests/stages/toolchain.test.ts
+      - tests/stages/drift.test.ts
+    depends_on: [F-021]
+    acceptance_criteria:
+      - id: AC-035
+        ears: ubiquitous
+        action: run cladding's own unit tests covering spec parser, validator, EARS validator, toolchain detector, and drift registry
+        response: vitest reports all suites pass
+        text: >-
+          The system shall maintain a vitest suite covering spec
+          parser, validator, EARS validator, toolchain detector, and
+          drift registry. `npm test` shall exit 0 with all tests
+          passing.
+        test_refs: [self-dogfood:test]
+
   - id: F-019
     title: AC_DRIFT drift detector (#3) + EARS syntactic check
     status: done

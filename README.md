@@ -11,7 +11,7 @@ Cladding is a multi-agent development harness for Claude Code, and the reference
 
 ## Status
 
-**Ironclad L1 conformance declared (L8 · T6).** All 12 conformance fixtures (6 stages × pass+fail) match — `iron_law` advances **L0 → L1**. Conformance runner at `conformance/runner.ts`; report is `{conformance: "level-1", matched: 12/12, result: "pass", iron_law: "L1"}`. Stages 6/6 · detectors 11/19 · EARS syntactic ✓. v0.1.0 main release ready (pending user instruction).
+**T7a — stage_2.1 Unit + MISSING_TESTS + vitest self-dogfood (L9).** First L2 stage wired. cladding now ships its own 23-test vitest suite (spec parser, validator, EARS, toolchain, drift registry). MISSING_TESTS detector (#7, warn) surfaces 22 ACs that lack test_refs — to be filled progressively. Detectors **12/19**. Stages 7/13 (6 L1 + 1 L2). Roadmap: 13 bricks to v0.1.0; L9 closes T7a, next = L10 T7b stage_2.2 Cov + STALE_TESTS/COVERAGE_DROP/PERF_DRIFT.
 
 Each Level adds a verifiable capability:
 
@@ -34,7 +34,8 @@ Each Level adds a verifiable capability:
 | L6d | T4 integrity batch — HARNESS_INTEGRITY · META_INTEGRITY · AC_DRIFT (11/19) | ✓ |
 | L7 | T5 EARS syntactic validator (5 patterns, AC_DRIFT enrichment) | ✓ |
 | L8 | T6 L1 conformance fixture suite — **`iron_law: L1` declared** | ✓ |
-| L9+ | T7/T8/.../T12 (L2/L3/L4 stages · HITL · Agents · CLI · TokenOpt · v1.0 graduation) | TBD |
+| L9 | T7a stage_2.1 Unit + MISSING_TESTS + vitest self-dogfood (23 tests) | ✓ |
+| L10-L21 | T7b/c · T8 HITL · T9 agents · T10 CLI · T11 TokenOpt · L2/L3/L4 conformance · v0.1.0 release | TBD |
 | L8 | Claude Code adapter (host integration) | TBD |
 | L9-L10 | L2 + L3 conformance | TBD |
 | L11-L13 | L4 conformance (HITL infrastructure + AI-era barriers) | TBD |

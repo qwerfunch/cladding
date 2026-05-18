@@ -12,7 +12,7 @@ export default tseslint.config(
   },
   ...tseslint.configs.recommended,
   {
-    files: ['stages/**/*.ts', 'spec/**/*.ts', 'conformance/**/*.ts'],
+    files: ['stages/**/*.ts', 'spec/**/*.ts', 'conformance/**/*.ts', 'tests/**/*.ts'],
     rules: {
       // Google TS Style — single quotes (override if doubles preferred).
       quotes: ['error', 'single', {avoidEscape: true}],
