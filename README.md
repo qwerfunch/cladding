@@ -11,7 +11,7 @@ Cladding is a multi-agent development harness for Claude Code, and the reference
 
 ## Status
 
-**T4 integrity batch (L6d).** HARNESS_INTEGRITY (#17), META_INTEGRITY (#19), AC_DRIFT (#3 minimal). Detectors **11/19** — every detector implementable without T7 (stage_2.x) or T9 (LLM) is now wired. Native track T4 at 9/12; OSS-wrap T3 at 2/7. HARNESS_INTEGRITY caught its own circular-import drift during authoring (lazy fix: filesystem-based count instead of `allDetectors` import). Building toward Ironclad L4 (`iron-law: L4, detectors: 19/19, ears: full`) one Lego brick at a time.
+**EARS syntactic validator wired (L7 · T5).** AC_DRIFT detector now checks both the structural floor *and* the EARS trigger keyword (when/while/where/if for non-ubiquitous patterns) via `spec/ears.ts`. `plugin.json ears` advanced `schema-only → syntactic`. Detectors still 11/19 — remaining 8 are gated on T7 (stage_2.x) or T9 (LLM). Next stop: **L8 T6 L1 conformance fixture suite + v0.1.0**.
 
 Each Level adds a verifiable capability:
 
@@ -32,7 +32,7 @@ Each Level adds a verifiable capability:
 | L6b | UNMAPPED_ARTIFACT detector (4/19) — spec ↔ file mirror | ✓ |
 | L6c | T4 batch — TECH_STACK_MISMATCH · STATUS_DRIFT · STALE_SPECIFICATION · REFERENCE_INTEGRITY (8/19) | ✓ |
 | L6d | T4 integrity batch — HARNESS_INTEGRITY · META_INTEGRITY · AC_DRIFT (11/19) | ✓ |
-| L7 | T5 EARS syntactic validator (5 patterns) | TBD |
+| L7 | T5 EARS syntactic validator (5 patterns, AC_DRIFT enrichment) | ✓ |
 | L8 | T6 L1 conformance fixture suite + v0.1.0 main release | TBD |
 | L9+ | T7/T8/.../T12 (L2/L3/L4 stages · HITL · Agents · CLI · TokenOpt · v1.0 graduation) | TBD |
 | L8 | Claude Code adapter (host integration) | TBD |
