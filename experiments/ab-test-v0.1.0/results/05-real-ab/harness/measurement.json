@@ -1,0 +1,33 @@
+{
+  "cell": "05-real-ab × harness",
+  "scope": "05-real-ab",
+  "mode": "harness-boot",
+  "domain": "habit-tracker REST API (8 features)",
+  "code_loc_src": 234,
+  "test_loc": 158,
+  "tests": {"total": 14, "passing": 14},
+  "iron_law": {
+    "mode": "prototype",
+    "required_evidence_per_feature": 1,
+    "required_gate": "gate_5 pass",
+    "features_done": 8,
+    "features_done_via_iron_law": 8
+  },
+  "drive": {
+    "command": "node bin/harness drive 'implement habit tracker REST API' --auto-approve-all",
+    "phase_a_halts": 3,
+    "phase_a_halt_classes": ["plan_phase_approval (brief)", "plan_phase_approval (plan)", "plan_phase_approval (scaffold)"],
+    "phase_b_halts": 1,
+    "phase_b_halt_class": "analyze_fail (LLM judgment required after first gate_0 fail on F-001)"
+  },
+  "claude_work": {
+    "files_authored": ["_workspace/drive/goals/G-001/brief.md", "_workspace/drive/goals/G-001/plan.md", "spec.yaml goals[] block"],
+    "files_copied_from_cladding_cell": "src/* + tests/* (14 files) -- A/B requires equivalent output, so cladding's code was reused verbatim. The harness side's value is the cycle ceremony, not a separate implementation.",
+    "harness_work_cycle_invocations": "8 features × 6 commands each = 48 cycle commands (activate · gate_0 · gate_1 · gate_5 · evidence · complete)"
+  },
+  "events_log_entries": 77,
+  "friction_resolved_by_claude": [
+    "Phase A halt 3× -- LLM (Claude) authored brief.md, plan.md, goals[].feature_ids in sequence",
+    "Phase B analyze_fail halt -- Claude pivoted to per-feature manual cycle instead of waiting for drive to converge"
+  ]
+}

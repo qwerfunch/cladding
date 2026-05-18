@@ -49,6 +49,47 @@ features    cladding clad-benchmark reduction
 
 **Interpretation**: the optimizer's prune logic has a fixed cost (~ 500-line minimum payload). Below ~ 20 features it's a tax; above ~ 50 it's transformative. **Cladding's release notes accurately call this "scale-dependent"** — the XL cell is the empirical proof that the design works as intended.
 
+## Real-output drive A/B (05-real-ab)
+
+The XL drive comparison above only measured *orchestration shape* — both modes produced zero working code. To measure **actual development output** we built the same small project in both modes: a habit-tracker REST API (8 features, TypeScript + Express + in-memory store, vitest + supertest).
+
+```
+                                 cladding cell          harness cell
+domain                           habit-tracker (8 F)    habit-tracker (8 F)
+code LOC                         234                    234 (copied — A/B equivalence)
+test LOC                         158                    158 (copied)
+tests passing                    14 / 14                14 / 14
+iron-law stages pass             1.1 · 1.3 · 1.5 · 1.6  gate_0 · gate_1 · gate_5
+                                 · 2.1 (5/13)           + evidence ≥ 1 (prototype)
+features marked done             N/A (no status flow)   8 / 8 via Iron Law
+drive halt class                 RETRY_THRESHOLD        analyze_fail
+                                 (typecheck fail on     (LLM judgment needed
+                                  cross-stub import)     after first gate_0)
+drive iterations / phase         4                      Phase A 3 + Phase B 1
+drive stubs created              2                      0 (spec-only)
+claude-side rework               14 files written       3 meta files +
+                                                        48 work-cycle commands
+events.log entries               n/a (cell-local)       77
+spec layout                      sharded 8 yaml files   monolith spec.yaml
+```
+
+**Friction surfaced by going end-to-end** (the value of this cell):
+
+| friction | cladding side | harness side |
+|---|---|---|
+| spec EARS validation | added `condition:` field per AC after AC_DRIFT fired | n/a — harness AC field set doesn't enforce EARS |
+| missing meta files | copied `spec/schema.json` + `.secretlintrc` after META_INTEGRITY + secret stage flagged | n/a |
+| coverage tool versions | `@vitest/coverage-v8@3` ↔ `vitest@2` ESM mismatch → stage_2.2 fail | gate_3 (coverage) not invoked here |
+| Node v26 native deps | `better-sqlite3` gyp build fail → switched to in-memory store (affected both cells) | same |
+| LLM-required halts | `RETRY_THRESHOLD` after 3 retries with no LLM hook → Claude wrote impl out-of-loop | `analyze_fail` halt by design → Claude wrote impl + ran 48 cycle commands |
+
+Two things to read off this cell:
+
+1. **Same output, different ceremony cost.** Both modes produced the same 234 LOC code, 158 LOC tests, 14/14 passing. The cladding side reached the green build in **one Claude turn** (drive bailed, Claude wrote the rest). The harness side reached the same green build only **after** Claude executed 48 `harness work` commands across 8 feature cycles. The ceremony is the harness side's deliverable, not the code.
+2. **Drift detector ergonomics matter at this scale.** Cladding's 19 detectors fired immediately and forced fixes (EARS, META_INTEGRITY, secret) that the harness side never even checked. That's *more upfront friction* per feature in cladding, traded for *higher static-analysis confidence* at release. Whether that tradeoff is worth it depends on the project — a finding the XL orchestration cell could not surface because no actual code existed.
+
+The "real output" axis is what this experiment was missing. Drive isn't where you measure output quality — drive is the *plumbing for getting there*. Both modes converge to the same code; they diverge on the *path* and the *guarantees along the path*.
+
 ## Drive-mode A/B (XL only)
 
 Both modes shipped an autonomous "drive" loop. We ran each against the same 100-feature XL spec and recorded the halt class, wall clock, and event-stream footprint. The two are **different design points**, not directly substitutable — but the side-by-side is the cleanest signal we have for how each toolchain *behaves* on a partially-scaffolded enterprise spec.
