@@ -117,3 +117,20 @@ acceptance_criteria:
       via `agent.mode = sdk` and `agent.name = <provider>`.
     test_refs:
       - tests/adapters/host-parity.test.ts
+  - id: AC-092
+    ears: ubiquitous
+    action: ship v0.2.0 with mock host adapter bodies and defer the real transport to v0.3.0
+    response: adapters/host/claude-code.ts and adapters/host/generic-mcp.ts return deterministic stub AgentResults in v0.2.0; v0.3.0 introduces the MCP server mode (`clad serve`) that real Claude Code subagent and MCP-client roundtrips dispatch through
+    text: >-
+      The system shall ship v0.2.0 with mock bodies in the two host
+      adapters (claude-code · generic-mcp), the full AgentAdapter
+      contract, the drive-loop dispatch wiring, and the
+      HUMAN_REQUIRED / LLM_UNAVAILABLE halt classes. The real
+      transport — Claude Code subagent dispatch and MCP roundtrips
+      from inside the host's session — depends on the long-running
+      MCP server mode (`clad serve`) that lands in v0.3.0; until
+      then the mock bodies satisfy the interface but do not cross
+      a real LLM boundary. The architectural decision and rationale
+      are recorded in docs/multi-provider-roadmap.md.
+    test_refs:
+      - docs/multi-provider-roadmap.md
