@@ -5,27 +5,26 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.3] — Unreleased — AGENTS.md cross-tool entry point
+## [0.1.3] — Unreleased — AGENTS.md cross-tool entry point + code-style SSoT
 
 Doc-only patch that exposes Cladding's host-bound + no-API-key policy to the 25+ AI coding tools that read the [agents.md](https://agents.md/) standard — OpenAI Codex, Cursor, Cline, Aider, Continue, GitHub Copilot, Gemini CLI, JetBrains Junie, Windsurf, and others. Claude Code reads the same file; no separate `CLAUDE.md` ships.
 
 ### Added
 
-- `AGENTS.md` (root, 10 sections, plain markdown, no frontmatter) — project · setup · verify · code style · comment style (2026) · PR policy · agent personas · multi-host policy · Soft Shell rule · where to look.
-- `AGENTS.md` §4 (Code style) — Google Style Guides applied to every language Cladding's polyglot toolchain supports (TS · JS · Python · Java · Go · Shell · C++ · Objective-C). For languages without an official Google guide (Rust · PHP · Ruby · Elixir · .NET / C#), pin the most-widely-adopted community style (`rustfmt` · PSR-12 · `mix format` · Microsoft C# conventions).
-- `AGENTS.md` §5 (Comment style — 2026) — six explicit principles: Why > What · full TSDoc/JSDoc field set · spec linkage (`@see` to feature shards and `ironclad-design/`) · invariant / precondition / assumption when non-obvious · self-documenting code first · forbidden list (TODO, "임시", date-bound, stale-on-edit).
+- `AGENTS.md` (root, plain markdown, no frontmatter) — nine sections: project · setup · verify · code & comment style · PR policy · agent personas · multi-host policy · Soft Shell rule · where to look. Light entry pointer; deeper content lives in `docs/`.
+- `docs/code-style.md` — single source of truth for code style and comment policy across Cladding. Google Style Guides applied to every language the polyglot toolchain supports (TS · JS · Python · Java · Go · Shell · C++ · Objective-C). For languages without an official Google guide (Rust · PHP · Ruby · Elixir · .NET / C#), pin the most-widely-adopted community style (`rustfmt` · PSR-12 · `mix format` · Microsoft C# conventions). Six explicit comment principles: Why > What · full TSDoc/JSDoc field set · spec linkage (`@see` to feature shards and `ironclad-design/`) · invariant / precondition / assumption when non-obvious · self-documenting code first · forbidden list (TODO, "임시", date-bound, stale-on-edit).
 
 ### Changed
 
-- `GOVERNANCE.md` §4.4 footer — points contributors at `AGENTS.md` §4-5 for code style and comment policy.
-- `agents/specialists.md` Code policy section — replaced the inline TS-only style line with a pointer to `AGENTS.md` §4-5; kept the cladding-specific "Error as Data" addition.
+- `GOVERNANCE.md` §4.4 footer — points contributors at `docs/code-style.md` for code style and comment policy.
+- `agents/specialists.md` Code policy section — replaced the inline TS-only style line with a pointer to `docs/code-style.md`; kept the Cladding-specific "Error as Data" addition.
 - `README.md` + `README.ko.md` — one-line pointer to `AGENTS.md` for AI tools.
 
 ### Notes
 
 - Patch per `GOVERNANCE.md` §2: docs only, no spec change, no behaviour change.
 - `CLAUDE.md` is intentionally not shipped — Cladding is a CLI/library, not a Claude Code plugin scaffold; `AGENTS.md` is the single agent entry point.
-- The Comment style rules apply to new code from this release on. Existing comments are not retro-rewritten; they migrate naturally as the surrounding code is touched.
+- The comment policy applies to new code from this release on. Existing comments are not retro-rewritten; they migrate naturally as the surrounding code is touched.
 
 ## [0.1.2] — Unreleased — Soft Shell formatter + F-049 spec generic for multi-provider
 

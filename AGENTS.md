@@ -25,42 +25,17 @@ npm run lint
 node bin/clad check
 ```
 
-## 4. Code style
+## 4. Code & comment style
 
-Apply [Google Style Guides](https://google.github.io/styleguide/) per language. For languages without an official Google guide, follow the most-widely-adopted community style.
+Apply [Google Style Guides](https://google.github.io/styleguide/) for every language cladding supports, and the comment policy summarised below. The full per-language table and the six comment principles live in [`docs/code-style.md`](docs/code-style.md) — that's the SSoT; this section is the entry pointer.
 
-| language | guide |
-|---|---|
-| TypeScript / JavaScript | Google TypeScript / JavaScript Style |
-| Python | Google Python Style |
-| Java | Google Java Style |
-| Go | Google Go Style |
-| Shell / Bash | Google Shell Style |
-| C++ / Objective-C | Google C++ / Objective-C Style |
-| Rust | `rustfmt` default + Rust API Guidelines |
-| PHP | PSR-12 |
-| Ruby | community Ruby Style Guide |
-| Elixir | `mix format` default + community style |
-| .NET / C# | Microsoft C# coding conventions |
+Comment policy in one paragraph: *why* over *what*, full doc-tag set on every export (TSDoc / JSDoc / pydoc / rustdoc / godoc / Javadoc), spec linkage via `@see spec/features/F-NNN.yaml AC-NNN` or `@see ironclad-design/<section>.md` whenever a decision traces to an external source, explicit invariants when non-obvious, self-documenting code first, no TODO markers / no date-bound notes / no comments that paraphrase the code.
 
-Polyglot toolchain detection lives in `stages/toolchain/detect.ts`.
-
-## 5. Comment style (2026)
-
-Six principles. Apply to source code in every language; doc-strings (TSDoc / JSDoc / pydoc / rustdoc / godoc / Javadoc) use the same principles in the language's native syntax.
-
-1. **Why > What.** Write the intent, the decision rationale, and the constraint. Do not restate what the code already shows.
-2. **Use the full documentation field set.** TSDoc / JSDoc and equivalents: `@param`, `@returns`, `@throws`, `@example`, `@see`, `@deprecated`, `@since`, `@internal`. Every exported symbol gets a meaningful doc block.
-3. **Spec linkage.** When a decision traces to an external source of truth, cite it: `@see spec/features/F-NNN.yaml AC-NNN`, `@see ironclad-design/<section>.md`, `@see iron-law.md stage_X.Y`. The next agent that patches this code recovers the decision context from these links — this is the AI-era reinforcement.
-4. **Invariant / precondition / assumption.** State the non-obvious ones explicitly. Example: *"caller guarantees the cwd is a git repo."* Things a future reader (human or AI) cannot infer from the code alone.
-5. **Self-documenting code first.** Meaningful names, short functions, types, enums. Comments fill the gaps those cannot fill.
-6. **Forbidden.** TODO markers, "임시" / "tentative", date-bound notes ("last year we…"), comments that paraphrase the code, anything that goes stale on the next edit.
-
-## 6. PR policy
+## 5. PR policy
 
 Branch off `develop`, never `main`. Open the PR against `develop`. The maintainer fast-forwards `main` only at explicit release time. Full contract: `GOVERNANCE.md` §4.3.
 
-## 7. Agent personas
+## 6. Agent personas
 
 cladding ships five persona definitions under `agents/`. Each file is markdown with a YAML frontmatter that declares two parallel keys:
 
@@ -69,23 +44,24 @@ cladding ships five persona definitions under `agents/`. Each file is markdown w
 
 Non-Claude-Code hosts (Cursor, Cline, Continue, …) should map `capabilities:` onto their own permission model and ignore `tools:`.
 
-## 8. Multi-host policy
+## 7. Multi-host policy
 
 cladding does **not** require an API key by default. The default agent dispatch mode is `host` — cladding runs inside the user's existing AI tool (Claude Code with the Max/Pro subscription, Cursor, Cline, Continue, generic-MCP, …) and the host environment handles the LLM call.
 
 SDK adapters (Anthropic / OpenAI / Gemini) read their respective environment variable (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_API_KEY`) only when explicitly selected via `agent.mode = sdk` in `.cladding/config.yaml` or the `CLADDING_AGENT_MODE` env var. Full roadmap: `docs/multi-provider-roadmap.md`.
 
-## 9. Soft Shell rule
+## 8. Soft Shell rule
 
 User-facing output uses business language: feature titles ("Login flow"), stage names ("Drift", "UAT"), plain sentences. Internal identifiers (`F-NNN`, `AC-NNN`, `stage_X.Y`, `HUMAN_REQUIRED` and the rest of the halt enum) belong in the audit log and behind `--internal` / `--json` flags.
 
 Convert every internal id at the user surface boundary via `ui/softShell.ts`: `featureLabel(featureId, spec)`, `haltMessage(haltReason, spec)`, `gateLabel(stageId)`. Background: `ironclad-design/03-ux-routing.md` §1.2 and `docs/ux-routing-coverage.md`.
 
-## 10. Where to look
+## 9. Where to look
 
 - `GOVERNANCE.md` — sync policy, versioning, contributor policy, PR contract, v1.0 graduation criteria.
 - `CONTRIBUTING.md` — first-PR walkthrough.
 - `CODE_OF_CONDUCT.md`, `SECURITY.md` — community standards + private security reports.
+- `docs/code-style.md` — per-language Google Style Guides table + comment policy in full.
 - `docs/ux-routing-coverage.md` — applied-status of `ironclad-design/03-ux-routing.md` prescriptions.
 - `docs/multi-provider-roadmap.md` — host vs sdk adapter model + adapter matrix + how to add one.
 - `agents/` — five persona definitions.

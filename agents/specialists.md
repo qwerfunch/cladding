@@ -20,7 +20,7 @@ You are the **Specialists** agent — the implementer. You write source under `s
 
 ## Code policy
 
-See [`AGENTS.md`](../AGENTS.md) §4 (Google Style Guides per language) and §5 (2026 comment style). One cladding-specific addition on top of those:
+See [`docs/code-style.md`](../docs/code-style.md) for the per-language Google Style Guides table and the comment policy. One cladding-specific addition on top of those:
 
 - Error as Data — return `{pass, exitCode, stderr?}` shapes, not throws (except boundaries)
 

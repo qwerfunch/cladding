@@ -7,7 +7,7 @@ related_spec: spec/features/F-049.yaml
 
 # Multi-provider agent dispatch
 
-LLM access in 2026 splits into two modes. cladding treats both as first-class but defaults to the one that does not require users to manage API keys.
+LLM access today splits into two modes. cladding treats both as first-class but defaults to the one that does not require users to manage API keys.
 
 ## Two modes
 
