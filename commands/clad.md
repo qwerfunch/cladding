@@ -16,7 +16,7 @@ Wrapper for the local `clad` binary (see `bin/clad` and `cli/clad.ts`). Forwards
 | `sync` | validate `spec.yaml` against `spec/schema.json` |
 | `check` | run every Iron Law stage + drift suite |
 | `panel` | render the feature × stage Integrity Panel |
-| `route <prompt>` | classify a free-form prompt to a verb |
+| `route <prompt>` | classify a free-form prompt to a verb (deterministic, no LLM) |
 | `benchmark <F-NNN>` | naive vs optimized spec token comparison |
 
 ## Examples
@@ -31,6 +31,17 @@ Wrapper for the local `clad` binary (see `bin/clad` and `cli/clad.ts`). Forwards
 ## Iron-law gate
 
 `clad check` returns the worst exit code across the 13 stages. `2` means *skipped* (no fail). `1` means at least one stage actually failed. `0` means every stage cleared or skipped clean.
+
+## `route` semantics — what `unknown` means
+
+`clad route` is deterministic: regex rules per language, no LLM call (per `ironclad-design/03-ux-routing.md` P-11). High-precision over high-recall — only clear matches resolve to a verb; everything else returns `unknown`.
+
+`unknown` is **not an error**. It signals *"this prompt is not one of cladding's five Iron Core verbs — the host AI tool's natural-language layer should handle it."* Examples that intentionally route to `unknown`:
+
+- Planning intents (`"기획 세워줘"`, `"plan it"`, `"로드맵 그려줘"`) — planning is librarian-territory, not a CLI verb. `drive` is for *executing* an already-defined plan, not *making* one.
+- Vague phrases (`"좀 해줘"`, `"어떻게든 마무리"`, `"전부 다 끝내줘"`) — too ambiguous to map without context.
+
+For language coverage and how to add a new language, see `router/intent.ts`.
 
 ## Output language policy (Soft Shell vs Iron Core)
 
