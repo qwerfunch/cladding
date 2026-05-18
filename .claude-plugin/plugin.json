@@ -23,9 +23,10 @@
     "current": {
       "iron-law": "L0",
       "detectors": "2/19",
-      "ears": "none",
-      "phase": "L4e — stage_1.5 Arch + ARCHITECTURE_VIOLATION (T1 complete: 5/6 L1 stages)",
+      "ears": "schema-only",
+      "phase": "L5a (T2a) — spec.yaml schema + parser + validator",
       "stages-implemented": ["stage_1.1", "stage_1.2", "stage_1.3", "stage_1.4", "stage_1.5", "stage_1.6"],
+      "spec-schema-version": "0.1",
       "stack": "typescript",
       "languages-supported": [
         "typescript",

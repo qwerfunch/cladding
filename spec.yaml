@@ -1,0 +1,26 @@
+# Cladding SSoT — minimal v0.1 seed
+#
+# This file is the cladding project's own specification. The full
+# feature catalog is filled in by L5b (T2b). For now it carries just
+# enough to exercise the parse + validate pipeline self-dogfood:
+# schema version, project metadata, and one feature placeholder.
+
+schema: "0.1"
+
+project:
+  name: cladding
+  language: typescript
+
+features:
+  - id: F-001
+    title: stage_1.1 Type — polyglot type-check delegation
+    status: done
+    modules:
+      - stages/type.ts
+      - stages/toolchain/detect.ts
+    acceptance_criteria:
+      - id: AC-001
+        ears: ubiquitous
+        text: >-
+          The system shall delegate type checking to the project's own
+          toolchain, resolved by manifest scan.
