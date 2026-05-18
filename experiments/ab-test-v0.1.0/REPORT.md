@@ -49,23 +49,30 @@ features    cladding clad-benchmark reduction
 
 **Interpretation**: the optimizer's prune logic has a fixed cost (~ 500-line minimum payload). Below ~ 20 features it's a tax; above ~ 50 it's transformative. **Cladding's release notes accurately call this "scale-dependent"** — the XL cell is the empirical proof that the design works as intended.
 
-## Drive-mode floor (XL only)
+## Drive-mode A/B (XL only)
 
-The XL cell exercised cladding's **deterministic drive floor** — an autonomous loop that iterates ready features in dependency order, materialises stub files, and runs L1 gates without any LLM call. The richer LLM-driven loop lands in v0.2 (T9).
+Both modes shipped an autonomous "drive" loop. We ran each against the same 100-feature XL spec and recorded the halt class, wall clock, and event-stream footprint. The two are **different design points**, not directly substitutable — but the side-by-side is the cleanest signal we have for how each toolchain *behaves* on a partially-scaffolded enterprise spec.
 
 ```
-clad drive --max-iterations 100 (XL × cladding, 100 features)
-  halt:               ALL_FEATURES_DONE — 100 features cleared
-  iterations:         31
-  features touched:   30 (the 20 in_progress + 10 planned)
-  stubs created:      30 (one per declared module)
-  gate runs:          90 (3 gates × 30 features)
-  wall clock:         0.66 s
-  gates in floor:     stage_1.1 type · stage_1.2 lint · stage_1.5 arch
-  gates excluded:     stage_1.3 drift (spec-wide MISSING_IMPLEMENTATION would always fail on stubs; `clad check` covers it post-loop)
+                                  XL × cladding drive       XL × harness drive
+invocation                        clad drive                node bin/harness drive --auto-approve-all
+design point                      deterministic L1 floor    LLM-coordinated file handoff
+LLM calls during run              0                         3 Phase A halts (each unblocked by Claude)
+halt class                        ALL_FEATURES_DONE         gate_no_progress  (Phase A: 3× plan_phase_approval)
+iterations                        31                        2 (Phase B)
+features touched                  30                        1 (Phase B halted on first feature)
+stubs / scaffolds                 30 file stubs             30 goals[].feature_ids entries
+gate runs                         90                        2 (both skipped — no toolchain detected)
+wall clock                        0.66 s                    ≈ 110 s (3 Phase A halts + author time)
+halt enum size                    10                        11
 ```
 
-**Comparison vs harness-boot drive**: harness-boot's drive (`/harness-boot:work` natural-language goal) goes through researcher → product-planner → feature-author → execute and *invokes the LLM at every step*. Cladding's v0.1 drive is **deterministic** — a different design point. Both halt on the same 10-class enum; the cladding floor is the substrate the v0.2 LLM loop will sit on top of.
+Two things to read off this table:
+
+1. **Cladding's drive sits at the deterministic end of the spectrum.** No LLM call, sub-second wall clock, processes the whole ready set in one pass. Treats `skipped` gate results as non-fail, so a stub-heavy spec doesn't pin the loop. The cost: it's a floor — by v0.1 the richer LLM-driven loop is reserved for v0.2 (T9).
+2. **Harness drive sits at the LLM-coordinated end.** Phase A's three halts (brief.md · plan.md · `goals[].feature_ids`) are the *raison d'être* — they force the researcher / planner / feature-author agents to author the work explicitly. Phase B then yields on `gate_no_progress` after two consecutive `skipped` results, which is a *correctness choice*: rather than scaffold the spec further the loop hands control back. That choice is why this XL cell didn't burn through all 30 features deterministically — harness drive isn't trying to.
+
+Same problem, different shape. Both halt on a closed enum (10 vs 11 classes), both leave a re-enterable checkpoint. Cladding's v0.2 plan is to grow the LLM-driven branch *on top of* its deterministic floor.
 
 ## Axis-by-axis findings
 

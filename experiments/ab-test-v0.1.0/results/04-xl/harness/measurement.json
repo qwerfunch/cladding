@@ -1,5 +1,5 @@
 {
-  "cell": "04-xl × harness",
+  "cell": "04-xl \u00d7 harness",
   "scope": "04-xl",
   "mode": "harness",
   "started_at": "2026-05-18T10:50:30Z",
@@ -29,7 +29,7 @@
     "4_drift": {
       "harness_validates_monolith": true,
       "feature_load_strategy": "single read",
-      "edit_conflict_surface": "high — every spec change touches the one big file"
+      "edit_conflict_surface": "high \u2014 every spec change touches the one big file"
     },
     "5_wall_clock_minutes": 0.2,
     "6_maintainability_self_score": {
@@ -38,10 +38,31 @@
       "structure": 3,
       "average": 2.7,
       "note": "1800-line spec.yaml is technically valid but hard to navigate; harness-boot has no sharding."
+    },
+    "7_harness_drive_mode": {
+      "command": "node bin/harness drive 'complete enterprise SaaS features' --auto-approve-all --harness-dir <cell>/.harness",
+      "design_point": "LLM-coordinated file-based handoff -- drive CLI yields at every Phase A halt to let researcher/planner/feature-author (Claude Code itself) author brief.md, plan.md, and goals[].feature_ids",
+      "phase_a_halts": 3,
+      "phase_a_halt_classes": [
+        "plan_phase_approval (brief missing)",
+        "plan_phase_approval (plan missing)",
+        "plan_phase_approval (scaffold missing)"
+      ],
+      "phase_a_wall_clock_seconds": 110,
+      "phase_a_notes": "Three sequential halts. Each unblocked by Claude writing the artifact (researcher -> brief.md, planner -> plan.md, feature-author -> spec.yaml.goals[].feature_ids).",
+      "phase_b_halt_class": "gate_no_progress (halt #10)",
+      "phase_b_halt_detail": "gate_0 on F-008 produced 'skipped' 2 times in a row with no detectable progress -- yielding",
+      "phase_b_iterations": 2,
+      "phase_b_features_touched": 1,
+      "phase_b_active_feature": "F-008",
+      "phase_b_gate_runs": 2,
+      "phase_b_gate_results": "skipped (no test command detected -- no package.json/pyproject/Makefile in cell)",
+      "scaffolded_feature_ids_count": 30,
+      "halt_enum_size": 11,
+      "halt_enum_distinct_classes_hit": 2,
+      "events_log_entries": 6,
+      "note": "harness drive's Phase A is the dominant cost in this XL cell -- 3 halts * Claude authoring time = ~110 s wall clock. Phase B halted at the first feature because no toolchain was detected (cladding cell also skips gates, but its loop treats skip as non-fail). Different design choice, not a failure mode: harness drive favors progress detection over throughput. The richer signal lands once the target project has a real test runner."
     }
   },
-  "notes": [
-    "Harness mode forces a structured spec but doesn't shard — at 100 features the master file grows to ~1800 lines.",
-    "Every agent prompt that needs spec context pays the full 15.3k-token cost, even when the work is one feature."
-  ]
+  "notes": "\n\nDrive-mode (XL \u00d7 harness) measured 2026-05-18: 3 Phase A halts (plan_phase_approval) + 1 Phase B halt (gate_no_progress on F-008). 30 features scaffolded into goals[].feature_ids. Compare vs XL \u00d7 cladding drive: ALL_FEATURES_DONE in 0.66 s, 30 features touched, 90 gate runs (treats skip as non-fail)."
 }
