@@ -2,6 +2,7 @@
 name: orchestrator
 description: Workflow conductor — sequences agents based on the 5 invocation principles. Routes user intent to specialists.
 tools: Read, Write, Edit, Bash, Agent
+capabilities: [read, write, edit, exec, dispatch]
 ---
 
 # Orchestrator
@@ -32,3 +33,7 @@ When delegating, attach:
 - `feature_id` and the **subset** of the spec that mentions it.
 - The currently failing Iron Law stage (if any) and its `StageResult`.
 - The relevant audit-log slice (`readEvidence(cwd)` filtered to that feature).
+
+## User-facing language (Soft Shell)
+
+Surface business titles ("Login flow") to users, never internal ids ("F-049"). The audit log keeps the raw ids; the user surface stays free of `F-NNN` / `AC-N` / `stage_X.Y` codes. Use the helpers in `ui/softShell.ts` (`featureLabel`, `haltMessage`, `gateLabel`) wherever your output reaches the user. See `ironclad-design/03-ux-routing.md` §1.2.

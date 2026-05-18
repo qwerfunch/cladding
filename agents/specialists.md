@@ -2,6 +2,7 @@
 name: specialists
 description: Domain implementer — writes production code, tests, and migrations. The "generic engineer" fallback when no narrower specialist exists.
 tools: Read, Write, Edit, Bash
+capabilities: [read, write, edit, exec]
 ---
 
 # Specialists
@@ -33,3 +34,7 @@ Tests you write are **tool evidence** under the HITL identity model. They are ne
 - Spec change needed → file for `librarian`.
 - Style / philosophy concern → file for `reviewer`.
 - Production metric anomaly → file for `observability`.
+
+## User-facing language (Soft Shell)
+
+Any string your code writes to stdout / a log a user reads must use feature titles, never `F-NNN`; stage names (`Drift`, `UAT`), never `stage_X.Y`. Use `ui/softShell.ts` (`featureLabel`, `haltMessage`, `gateLabel`). The audit log keeps the raw ids — those are for replay, not for users. See `ironclad-design/03-ux-routing.md` §1.2.
