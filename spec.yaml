@@ -1060,6 +1060,48 @@ features:
           clad binary on user PATH so plugin install sites can call
           `clad` directly.
 
+  - id: F-045
+    title: GOVERNANCE.md — sync policy + versioning + release cadence + v1.0 criteria
+    status: done
+    modules:
+      - GOVERNANCE.md
+    acceptance_criteria:
+      - id: AC-074
+        ears: ubiquitous
+        action: document the 5-step Ironclad-spec sync procedure
+        response: each step has a clear deliverable (pin · CHANGELOG · detectors · conformance · release)
+        text: >-
+          The system shall document the 5-step Ironclad-spec sync
+          procedure in GOVERNANCE.md §1, with each step naming a clear
+          deliverable — pin update, CHANGELOG entry, affected
+          detectors, conformance re-run, release.
+      - id: AC-075
+        ears: ubiquitous
+        action: declare SemVer 2.0 versioning policy and manual release cadence
+        response: bump table maps patch / minor / major to concrete triggers
+        text: >-
+          The system shall declare SemVer 2.0 as the versioning policy
+          and manual as the release cadence, with a bump table that
+          maps patch / minor / major to concrete triggers.
+      - id: AC-076
+        ears: ubiquitous
+        action: declare v1.0 graduation criteria (external dogfood · Ironclad v1.0 · 2nd independent impl · falsifications)
+        response: each criterion is testable, not aspirational
+        text: >-
+          The system shall declare v1.0 graduation criteria
+          (external dogfood, Ironclad spec v1.0, second independent
+          reference implementation, stable falsifications registry)
+          where each criterion is testable, not aspirational.
+      - id: AC-077
+        ears: ubiquitous
+        action: state contributor policy with explicit out-of-scope categories
+        response: anti-self-cert + iron-law-only-goes-up + spec-fork prohibitions are named
+        text: >-
+          The system shall state contributor policy with explicit
+          out-of-scope categories — bypassing anti-self-cert,
+          regressing iron-law, forking the spec — named as
+          non-acceptable PR types.
+
   - id: F-019
     title: AC_DRIFT drift detector (#3) + EARS syntactic check
     status: done

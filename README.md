@@ -63,7 +63,7 @@ Cladding implements the Ironclad standard. The exact spec version this codebase 
 }
 ```
 
-When the Ironclad spec advances, this pin updates via a deliberate sync step (not auto-follow) — see `GOVERNANCE.md` (TBD) for the sync policy.
+When the Ironclad spec advances, this pin updates via a deliberate sync step (not auto-follow) — see [`GOVERNANCE.md`](GOVERNANCE.md) §1 for the 5-step sync procedure.
 
 ## CLI
 

@@ -37,7 +37,7 @@ Cladding 은 Ironclad 표준을 구현합니다. 이 코드베이스가 대상�
 }
 ```
 
-Ironclad spec 이 진보하면 이 pin 은 *명시적 sync 단계* 로 갱신됩니다 (auto-follow 아님).
+Ironclad spec 이 진보하면 이 pin 은 *명시적 sync 단계* 로 갱신됩니다 (auto-follow 아님) — [`GOVERNANCE.md`](GOVERNANCE.md) §1 의 5 단계 sync 절차 참고.
 
 ## CLI
 
