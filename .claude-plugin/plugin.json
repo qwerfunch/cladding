@@ -22,10 +22,10 @@
     },
     "current": {
       "iron-law": "L0",
-      "detectors": "0/19",
+      "detectors": "1/19",
       "ears": "none",
-      "phase": "L4b — toolchain detect + execa (polyglot adapter)",
-      "stages-implemented": ["stage_1.1", "stage_1.2", "stage_1.3"],
+      "phase": "L4c — stage_1.6 Secret + HARDCODED_SECRET detector",
+      "stages-implemented": ["stage_1.1", "stage_1.2", "stage_1.3", "stage_1.6"],
       "stack": "typescript",
       "languages-supported": [
         "typescript",
