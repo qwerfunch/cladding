@@ -5,6 +5,32 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] — Unreleased — F-049 adapter foundation (mock stage)
+
+The first PR of the v0.2.0 F-049 epic. Lays the host-adapter interface, the registry/selector, and the drive-side dispatch wrapper so the next PR can rewire `drive/loop.ts` against a stable seam. The actual Claude Code subagent and MCP integrations land in the third PR; this one ships **interface-conformant mock adapters** so downstream tests + dispatch logic are written against the contract first.
+
+The v0.2.0 release waits until the full epic ships (foundation → drive integration → real host transports). The CHANGELOG entry already exists so each foundation PR has a place to land its changes.
+
+### Added
+
+- `adapters/types.ts` — `AgentAdapter` contract (mode · name · capabilities · `invokeAgent` · `healthCheck`), plus `PersonaSpec` / `AgentContext` / `AgentResult` / `AgentMutation` / `Capability` / `HealthStatus`. Matches F-049 AC-085 (least-context payload) and AC-091 (host adapters require no API key).
+- `adapters/host/claude-code.ts` — claude-code host adapter, **mock stage**. Detects the runtime via `CLAUDECODE` / `CLAUDE_CODE_SESSION_ID`. Real Claude Code subagent dispatch lands in the third v0.2.0 PR; the surrounding interface is stable.
+- `adapters/host/generic-mcp.ts` — generic-mcp host adapter, **mock stage**. Detects MCP runtime via `MCP_TRANSPORT` / `MCP_SERVER_NAME`. Real MCP transport lands in the third v0.2.0 PR.
+- `adapters/index.ts` — `selectAdapter(cwd)` + `resolveSelection(cwd)`. Resolution order: env vars (`CLADDING_AGENT_MODE` / `CLADDING_AGENT_NAME`) → `.cladding/config.yaml` (`agent.mode` / `agent.name`) → auto-detect (`claude-code` when inside Claude Code, otherwise `generic-mcp`). Never throws — always returns an adapter.
+- `drive/agent.ts` — `runAgent(persona, ctx, opts)` wrapper. Selects the active adapter, invokes it, writes evidence to the audit log, enforces the reviewer-vs-author barrier (F-049 AC-086) via `ReviewerIdentityCollisionError`.
+- `tests/adapters/host-parity.test.ts` — 6 cases proving `AgentResult` shape, `Identity` shape, and `mutations` array are invariant across both host adapters (F-049 AC-090). Also exercises `healthCheck` for both auto-detect paths.
+- `tests/drive/agent.test.ts` — 3 cases: dispatch records evidence, reviewer-identity collision throws, reviewer hand-off succeeds when identities differ.
+
+### Changed
+
+- `spec/features/F-049.yaml` — status: `planned` → `in_progress`. `modules:` now lists the five new files (`adapters/types.ts`, two host adapters, `adapters/index.ts`, `drive/agent.ts`).
+
+### Notes
+
+- This patch does **not** rewire `drive/loop.ts` — that's the second v0.2.0 PR. The deterministic floor still runs end users see today.
+- Mock adapters return a stub `AgentResult` (`summary: "[mock claude-code] ..."`). The third v0.2.0 PR replaces those bodies with real Claude Code subagent dispatch + real MCP roundtrip; nothing outside `adapters/host/*.ts` changes.
+- No new dependency added; the adapter layer reads `yaml` (already a devDep) for `.cladding/config.yaml`.
+
 ## [0.1.6] — Unreleased — Bundled CLI install path
 
 The `clad` CLI now ships as a single esbuild bundle (`dist/clad.js`) so end-user installation is a one-liner with no runtime dev-dependency fetch. Behaviour is unchanged — every verb, every stage, every detector produces the same output as in v0.1.5.
@@ -252,6 +278,7 @@ Environment: `HARNESS_INTEGRITY` · `REFERENCE_INTEGRITY` · `META_INTEGRITY`.
 - Reference: https://github.com/qwerfunch/ironclad
 - Repository: https://github.com/qwerfunch/cladding
 
+[0.2.0]: https://github.com/qwerfunch/cladding/releases/tag/v0.2.0
 [0.1.6]: https://github.com/qwerfunch/cladding/releases/tag/v0.1.6
 [0.1.5]: https://github.com/qwerfunch/cladding/releases/tag/v0.1.5
 [0.1.4]: https://github.com/qwerfunch/cladding/releases/tag/v0.1.4
