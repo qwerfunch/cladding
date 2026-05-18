@@ -7,10 +7,12 @@
 
 import {architectureViolation} from './architecture-violation.js';
 import {hardcodedSecret} from './hardcoded-secret.js';
+import {missingImplementation} from './missing-implementation.js';
 import type {DriftDetector} from '../types.js';
 
 /** Every detector cladding registers by default, in stable order. */
 export const allDetectors: readonly DriftDetector[] = [
   hardcodedSecret,
   architectureViolation,
+  missingImplementation,
 ];

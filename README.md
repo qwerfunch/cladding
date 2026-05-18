@@ -11,7 +11,7 @@ Cladding is a multi-agent development harness for Claude Code, and the reference
 
 ## Status
 
-**Cladding's own spec.yaml authored (L5b · T2b).** 10 features · 16 EARS-structured ACs · 2 scenarios · architecture layers — every shipped capability is now documented in the SSoT. This is the input the upcoming T4 Ironclad-native detectors (MISSING_IMPLEMENTATION, AC_DRIFT, UNTESTED_AC, …) will read. Track T1 (L1 stages) closed in L4e — 6/6 stages, 2/19 detectors. Building toward Ironclad L4 (`iron-law: L4, detectors: 19/19, ears: full`) one Lego brick at a time.
+**First Ironclad-native detector wired (L6a · MISSING_IMPLEMENTATION).** T4 kickoff — pure spec ↔ filesystem comparison, no OSS dependency. Detectors now 3/19 (HARDCODED_SECRET · ARCHITECTURE_VIOLATION · MISSING_IMPLEMENTATION). T1 (L1 stages) closed 6/6; T2 (SSoT) at 2/4. Building toward Ironclad L4 (`iron-law: L4, detectors: 19/19, ears: full`) one Lego brick at a time.
 
 Each Level adds a verifiable capability:
 
@@ -28,7 +28,8 @@ Each Level adds a verifiable capability:
 | L4e | stage_1.5 Arch + ARCHITECTURE_VIOLATION detector (2/19) — **T1 complete** | ✓ |
 | L5a | spec.yaml schema + parser + validator (T2a) | ✓ |
 | L5b | cladding own spec.yaml (T2b) — 10 features · 16 ACs · 2 scenarios | ✓ |
-| L5c-L7 | sharding (T2c) · 17 detectors (T3+T4) · EARS validator (T5) · L1 conformance (T6) | TBD |
+| L6a | MISSING_IMPLEMENTATION detector (3/19) — first Ironclad-native (T4 kickoff) | ✓ |
+| L6b-L7 | 11 more Ironclad-native detectors + 5 OSS-wrap + EARS validator + L1 conformance | TBD |
 | L8 | Claude Code adapter (host integration) | TBD |
 | L9-L10 | L2 + L3 conformance | TBD |
 | L11-L13 | L4 conformance (HITL infrastructure + AI-era barriers) | TBD |
