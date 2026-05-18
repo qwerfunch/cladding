@@ -39,6 +39,29 @@ Cladding 은 Ironclad 표준을 구현합니다. 이 코드베이스가 대상�
 
 Ironclad spec 이 진보하면 이 pin 은 *명시적 sync 단계* 로 갱신됩니다 (auto-follow 아님) — [`GOVERNANCE.md`](GOVERNANCE.md) §1 의 5 단계 sync 절차 참고.
 
+### Spec 레이아웃 (sharded)
+
+Cladding 자체 spec 은 sharded 형태 — feature 당 yaml 파일 1 개:
+
+| 위치 | 내용 |
+|---|---|
+| `spec.yaml` | master · `schema` + `project` 메타데이터만 |
+| `spec/features/F-NNN.yaml` | feature 당 1 파일 (총 47) |
+| `spec/scenarios/S-NNN.yaml` | scenario 당 1 파일 (총 2) |
+| `spec/architecture.yaml` | layer + forbidden-imports 정책 |
+| `spec/schema.json` | JSON Schema (draft-07) |
+
+`spec/load.ts` 가 이 레이아웃을 자동 감지해 매 load 시 하나의 Spec 객체로 merge. merged view 확인:
+
+| 의도 | 명령 |
+|---|---|
+| merged spec 검증 | `npm run spec:validate` |
+| feature + 의존성 (JSON) | `clad benchmark F-NNN` |
+| 한 눈에 coverage | `clad panel` |
+| raw dump | `cat spec/features/*.yaml` |
+
+Inline (단일 `spec.yaml`) 레이아웃도 동작 — `spec/load.ts` 가 자동 fallback. 새 프로젝트는 unsharded 로 시작; `scripts/shard-spec.ts` 가 master 가 ~1k 줄 넘으면 마이그레이션.
+
 ## CLI
 
 ```
@@ -47,7 +70,7 @@ clad work <verb>         # stage 또는 자연어 의도 실행
 clad drive [목표]         # autonomous loop (v0.2 — placeholder)
 clad sync                # spec.yaml 을 schema 에 대해 검증
 clad check               # 모든 Iron Law stage + drift 검사 실행
-clad minimap             # feature × stage Territory Minimap 렌더링
+clad panel               # feature × stage Territory Panel 렌더링
 clad route <프롬프트>     # 자연어 프롬프트를 verb 로 분류
 clad benchmark <feature> # naive vs optimized spec token 비용
 ```

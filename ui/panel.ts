@@ -1,8 +1,10 @@
-// Cladding · Territory Minimap — coverage at a glance
+// Cladding · Territory Panel — coverage at a glance
 //
-// Per ironclad-design/10-territory-minimap.md: surface "what's
-// covered, what's drifting, what's untracked" as a single text grid.
-// One row per feature, one column per Iron Law stage. Each cell:
+// Per ironclad-design/10-territory-minimap.md (renamed `panel` in v0.1
+// to fit the cladding/iron-clad vocabulary; cladding's literal meaning
+// is "panel cladding"). Surfaces "what's covered, what's drifting,
+// what's untracked" as a single text grid. One row per feature, one
+// column per Iron Law stage. Each cell:
 //
 //   ✓  passed
 //   ·  skipped (n/a or not run)
@@ -10,7 +12,7 @@
 //   ✗  error-level drift
 //   -  unknown (no signal yet)
 //
-// The minimap is intentionally low-resolution. Use it for the
+// The panel is intentionally low-resolution. Use it for the
 // "where do I focus next" decision, not for forensic analysis.
 
 import {failingAcs} from '../hitl/anti-self-cert.js';
@@ -47,7 +49,7 @@ function cellFor(feature: Feature, stage: string, cwd: string): CellGlyph {
 }
 
 /** Renders a feature × stage grid as a multi-line string. */
-export function renderMinimap(spec: Spec, cwd: string = '.'): string {
+export function renderPanel(spec: Spec, cwd: string = '.'): string {
   const header = `feature      ${STAGES.map((s) => s.replace('stage_', '')).join(' ')}`;
   const rows: RowOutcome[] = spec.features.map((f) => ({
     featureId: f.id,

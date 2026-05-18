@@ -60,7 +60,7 @@ Environment: `HARNESS_INTEGRITY` · `REFERENCE_INTEGRITY` · `META_INTEGRITY`.
 - `clad` binary (commander-based)
 - 5 Iron Core verbs (`init` · `work` · `drive` · `sync` · `check`)
 - `clad init` — workspace scaffolder. One command creates `spec.yaml` seed, `.cladding/` runtime dir, and appends `.cladding/` to `.gitignore`. Auto-detects language. Idempotent; `--force` overwrites the seed.
-- `clad minimap` — feature × stage Territory Minimap
+- `clad panel` — feature × stage Territory Panel
 - `clad route <prompt>` — natural-language Intent Router (Korean + English)
 - Pulse UI — `tail -f`-friendly status lines
 

@@ -1,21 +1,21 @@
 id: F-040
-title: clad CLI + Pulse UI + Territory Minimap
+title: clad CLI + Pulse UI + Territory Panel
 status: done
 modules:
   - bin/clad
   - cli/clad.ts
   - ui/pulse.ts
-  - ui/minimap.ts
+  - ui/panel.ts
 depends_on:
   - F-039
 acceptance_criteria:
   - id: AC-061
     ears: ubiquitous
     action: expose 5 Iron Core verbs (init / work / drive / sync / check) plus
-      minimap and route as clad subcommands
+      panel and route as clad subcommands
     response: each verb dispatches to existing stage runners or helpers
     text: The system shall expose 5 Iron Core verbs — init, work, drive, sync, check
-      — plus minimap and route as `clad` subcommands, each dispatching to the
+      — plus panel and route as `clad` subcommands, each dispatching to the
       existing stage runners or helpers.
   - id: AC-062
     ears: ubiquitous
@@ -26,8 +26,8 @@ acceptance_criteria:
       otherwise.
   - id: AC-063
     ears: ubiquitous
-    action: render a feature × stage Territory Minimap as a text grid
+    action: render a feature × stage Territory Panel as a text grid
     response: each cell uses one of 5 glyphs (✓ · ! ✗ -) describing the stage outcome
-    text: The Territory Minimap shall render a feature × stage text grid; each cell
+    text: The Territory Panel shall render a feature × stage text grid; each cell
       uses one of five glyphs (pass / skip / warn / error / unknown) describing
       the stage outcome for that feature.

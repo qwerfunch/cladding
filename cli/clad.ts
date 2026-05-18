@@ -2,7 +2,7 @@
 //
 // Uses `commander` for parsing. Each verb maps to a thin wrapper
 // over existing functions: stage runners, spec loader, drift
-// aggregator, minimap renderer.
+// aggregator, panel renderer.
 
 import process from 'node:process';
 
@@ -25,7 +25,7 @@ import {runUnit} from '../stages/unit.js';
 import {runVisual} from '../stages/visual.js';
 import {loadSpec} from '../spec/load.js';
 import {pulse} from '../ui/pulse.js';
-import {renderMinimap} from '../ui/minimap.js';
+import {renderPanel} from '../ui/panel.js';
 
 const program = new Command();
 program.name('clad').description('Reference Ironclad CLI').version('0.1.0-dev');
@@ -113,11 +113,11 @@ program
   });
 
 program
-  .command('minimap')
-  .description('Render the feature × stage Territory Minimap')
+  .command('panel')
+  .description('Render the feature × stage Territory Panel')
   .action(() => {
     const spec = loadSpec();
-    process.stdout.write(`${renderMinimap(spec)}\n`);
+    process.stdout.write(`${renderPanel(spec)}\n`);
     process.exit(0);
   });
 
