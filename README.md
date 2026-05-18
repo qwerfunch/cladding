@@ -11,7 +11,7 @@ Cladding is a multi-agent development harness for Claude Code, and the reference
 
 ## Status
 
-**spec.yaml schema + parser + validator wired (L5a · T2a).** SSoT shape lands: 3-tier (scenarios + features + architecture) with EARS-structured ACs. `npm run spec:validate` checks any spec.yaml against `spec/schema.json` via the `jsonschema` validator. This unlocks the 12 Ironclad-native detectors (T4). Track T1 (L1 stages) closed in L4e — 6/6 stages, 2/19 detectors. Building toward Ironclad L4 (`iron-law: L4, detectors: 19/19, ears: full`) one Lego brick at a time.
+**Cladding's own spec.yaml authored (L5b · T2b).** 10 features · 16 EARS-structured ACs · 2 scenarios · architecture layers — every shipped capability is now documented in the SSoT. This is the input the upcoming T4 Ironclad-native detectors (MISSING_IMPLEMENTATION, AC_DRIFT, UNTESTED_AC, …) will read. Track T1 (L1 stages) closed in L4e — 6/6 stages, 2/19 detectors. Building toward Ironclad L4 (`iron-law: L4, detectors: 19/19, ears: full`) one Lego brick at a time.
 
 Each Level adds a verifiable capability:
 
@@ -27,7 +27,8 @@ Each Level adds a verifiable capability:
 | L4d | stage_1.4 Commit (git clean tree, language-agnostic) | ✓ |
 | L4e | stage_1.5 Arch + ARCHITECTURE_VIOLATION detector (2/19) — **T1 complete** | ✓ |
 | L5a | spec.yaml schema + parser + validator (T2a) | ✓ |
-| L5b-L7 | cladding own spec.yaml (T2b) · sharding (T2c) · 17 detectors (T3+T4) · EARS validator (T5) · L1 conformance (T6) | TBD |
+| L5b | cladding own spec.yaml (T2b) — 10 features · 16 ACs · 2 scenarios | ✓ |
+| L5c-L7 | sharding (T2c) · 17 detectors (T3+T4) · EARS validator (T5) · L1 conformance (T6) | TBD |
 | L8 | Claude Code adapter (host integration) | TBD |
 | L9-L10 | L2 + L3 conformance | TBD |
 | L11-L13 | L4 conformance (HITL infrastructure + AI-era barriers) | TBD |

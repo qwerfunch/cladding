@@ -1,9 +1,14 @@
-# Cladding SSoT — minimal v0.1 seed
+# Cladding SSoT — full self-spec (v0.1)
 #
-# This file is the cladding project's own specification. The full
-# feature catalog is filled in by L5b (T2b). For now it carries just
-# enough to exercise the parse + validate pipeline self-dogfood:
-# schema version, project metadata, and one feature placeholder.
+# Authored under L5b (T2b). Every shipped feature in the cladding repo
+# has an entry here, with EARS-structured ACs and module pointers.
+# This file is read by the upcoming T4 Ironclad-native detectors
+# (UNMAPPED_ARTIFACT, MISSING_IMPLEMENTATION, AC_DRIFT, UNTESTED_AC, …)
+# to detect spec ↔ code drift.
+#
+# Feature numbering is independent of Lego brick (L0/L1/L2…); the Lego
+# ladder is a delivery sequence, while features here are units of
+# capability.
 
 schema: "0.1"
 
@@ -11,16 +16,256 @@ project:
   name: cladding
   language: typescript
 
+scenarios:
+  - id: S-001
+    title: User runs the L1 base-static suite on their project
+    flow: >-
+      Developer installs cladding · invokes the six stage runners
+      (type/lint/drift/commit/arch/secret) on their codebase · receives a
+      one-line JSON StageResult per gate. cladding auto-resolves the
+      project's toolchain so the same six commands work across 9 languages.
+    features: [F-001, F-002, F-003, F-004, F-005, F-006, F-007, F-008, F-009]
+
+  - id: S-002
+    title: Author and validate a cladding spec.yaml
+    flow: >-
+      Developer writes spec.yaml · runs `clad spec:validate` · sees
+      schema errors point-by-point or a green pass. Once valid, the spec
+      becomes the input for the upcoming T4 drift detectors.
+    features: [F-010]
+
+architecture:
+  layers:
+    - [spec, stages, detectors, toolchain]
+  forbidden_imports:
+    - {from: spec, to: stages}
+    - {from: toolchain, to: stages}
+
 features:
   - id: F-001
     title: stage_1.1 Type — polyglot type-check delegation
     status: done
     modules:
       - stages/type.ts
+      - stages/types.ts
       - stages/toolchain/detect.ts
+      - stages/toolchain/types.ts
     acceptance_criteria:
       - id: AC-001
         ears: ubiquitous
+        action: delegate type checking to the project's own toolchain
+        response: returns a stage_1.1 StageResult with exitCode mirroring the tool
         text: >-
           The system shall delegate type checking to the project's own
-          toolchain, resolved by manifest scan.
+          toolchain, returning a stage_1.1 result whose exit code mirrors
+          the underlying type checker.
+        test_refs: [self-dogfood:stage:type]
+      - id: AC-002
+        ears: event
+        condition: when no type checker is registered for the detected language
+        action: return pass=false with exitCode 2
+        response: the stage is treated as skipped rather than failed
+        text: >-
+          When no type checker is registered for the detected language,
+          the system shall return exitCode 2 so callers can treat the
+          stage as skipped.
+
+  - id: F-002
+    title: stage_1.2 Lint — polyglot lint delegation
+    status: done
+    modules:
+      - stages/lint.ts
+    depends_on: [F-001]
+    acceptance_criteria:
+      - id: AC-003
+        ears: ubiquitous
+        action: delegate linting to the project's own toolchain
+        response: returns a stage_1.2 StageResult mirroring the linter exit
+        text: >-
+          The system shall delegate linting to the project's own
+          toolchain and return a stage_1.2 result with the linter's exit
+          code.
+        test_refs: [self-dogfood:stage:lint]
+
+  - id: F-003
+    title: stage_1.3 Drift — registry + aggregator
+    status: done
+    modules:
+      - stages/drift.ts
+      - stages/detectors/index.ts
+    acceptance_criteria:
+      - id: AC-004
+        ears: ubiquitous
+        action: aggregate findings from every registered drift detector
+        response: returns a DriftReport that fails only on error-severity findings
+        text: >-
+          The system shall aggregate findings from every registered
+          drift detector and fail the stage only when at least one
+          finding has error severity.
+        test_refs: [self-dogfood:stage:drift]
+      - id: AC-005
+        ears: optional
+        condition: where a detector is registered with a duplicate name
+        action: replace the prior entry idempotently
+        response: registration order of the first occurrence is preserved
+        text: >-
+          Where a detector is registered with a duplicate name, the
+          system shall replace the prior entry while preserving the
+          registration order of the first occurrence.
+
+  - id: F-004
+    title: Polyglot toolchain adapter
+    status: done
+    modules:
+      - stages/toolchain/detect.ts
+      - stages/toolchain/types.ts
+    acceptance_criteria:
+      - id: AC-006
+        ears: event
+        condition: when invoked on a project root
+        action: scan for the first matching manifest and return the toolchain
+        response: returns 'unknown' language when no manifest matches
+        text: >-
+          When invoked on a project root, the system shall scan the
+          manifest priority chain and return the first match's
+          toolchain, or 'unknown' when nothing matches.
+        notes: >-
+          Languages supported: typescript, python, rust, go, java, php,
+          ruby, elixir, dotnet.
+
+  - id: F-005
+    title: stage_1.6 Secret — polyglot secret scanning
+    status: done
+    modules:
+      - stages/secret.ts
+    depends_on: [F-004, F-006]
+    acceptance_criteria:
+      - id: AC-007
+        ears: ubiquitous
+        action: invoke the toolchain's secret scanner via the HARDCODED_SECRET detector
+        response: returns a stage_1.6 StageResult folded from detector findings
+        text: >-
+          The system shall invoke the toolchain's secret scanner via the
+          HARDCODED_SECRET detector and fold the findings into a
+          stage_1.6 result.
+        test_refs: [self-dogfood:stage:secret]
+
+  - id: F-006
+    title: HARDCODED_SECRET drift detector (#11)
+    status: done
+    modules:
+      - stages/detectors/hardcoded-secret.ts
+    depends_on: [F-003, F-004]
+    acceptance_criteria:
+      - id: AC-008
+        ears: event
+        condition: when the toolchain's secret scanner reports a non-zero exit
+        action: emit one error-severity DriftFinding summarizing the output
+        response: stage_1.3 fails for the host pipeline
+        text: >-
+          When the secret scanner reports a non-zero exit, the detector
+          shall emit one error-severity finding that summarises the
+          scanner output.
+      - id: AC-009
+        ears: unwanted
+        condition: if the secret scanner is not installed
+        action: emit one info-severity finding instead of failing
+        response: the stage stays in pass state so unconfigured projects keep green CI
+        text: >-
+          If the secret scanner is not installed, the detector shall
+          emit an info finding rather than failing the stage.
+
+  - id: F-007
+    title: stage_1.4 Commit — clean-tree check
+    status: done
+    modules:
+      - stages/commit.ts
+    acceptance_criteria:
+      - id: AC-010
+        ears: ubiquitous
+        action: invoke `git status --porcelain` and pass iff the output is empty
+        response: returns a stage_1.4 StageResult
+        text: >-
+          The system shall invoke `git status --porcelain` and pass
+          stage_1.4 iff the working tree and index are both clean.
+        test_refs: [self-dogfood:stage:commit-postcommit]
+      - id: AC-011
+        ears: unwanted
+        condition: if git is not available or the directory is not a repo
+        action: return pass=false with exitCode 2
+        response: the stage is treated as skipped, not a false failure
+        text: >-
+          If git is unavailable or the cwd is not a git repository, the
+          system shall return exitCode 2 so the stage is treated as
+          skipped.
+
+  - id: F-008
+    title: stage_1.5 Arch — architecture validation delegation
+    status: done
+    modules:
+      - stages/arch.ts
+    depends_on: [F-004, F-009]
+    acceptance_criteria:
+      - id: AC-012
+        ears: ubiquitous
+        action: invoke the toolchain's architecture validator via the ARCHITECTURE_VIOLATION detector
+        response: returns a stage_1.5 StageResult folded from detector findings
+        text: >-
+          The system shall invoke the toolchain's architecture
+          validator via the ARCHITECTURE_VIOLATION detector and fold
+          the findings into a stage_1.5 result.
+        test_refs: [self-dogfood:stage:arch]
+
+  - id: F-009
+    title: ARCHITECTURE_VIOLATION drift detector (#5)
+    status: done
+    modules:
+      - stages/detectors/architecture-violation.ts
+    depends_on: [F-003, F-004]
+    acceptance_criteria:
+      - id: AC-013
+        ears: event
+        condition: when the architecture validator reports a non-zero exit
+        action: emit one error-severity DriftFinding summarising the output
+        response: stage_1.3 fails for the host pipeline
+        text: >-
+          When the architecture validator reports a non-zero exit, the
+          detector shall emit one error-severity finding summarising the
+          output.
+      - id: AC-014
+        ears: optional
+        condition: where the detected language enforces acyclic imports at compile time
+        action: emit one info finding noting no gate is registered
+        response: the stage stays in pass state
+        text: >-
+          Where the detected language enforces acyclic imports at
+          compile time, the detector shall emit an info finding noting
+          no architecture gate is registered.
+
+  - id: F-010
+    title: spec.yaml schema + parser + validator
+    status: done
+    modules:
+      - spec/types.ts
+      - spec/schema.json
+      - spec/parse.ts
+      - spec/validate.ts
+      - spec/cli.ts
+    acceptance_criteria:
+      - id: AC-015
+        ears: ubiquitous
+        action: parse the spec.yaml file and validate it against schema.json
+        response: returns valid=true with empty errors or valid=false with point-by-point messages
+        text: >-
+          The system shall parse spec.yaml and validate it against
+          schema.json, returning point-by-point errors when invalid.
+        test_refs: [self-dogfood:spec:validate]
+      - id: AC-016
+        ears: state
+        condition: while the schema field equals the supported version
+        action: accept the spec as a candidate for downstream detectors
+        response: T4 native detectors consume the validated payload
+        text: >-
+          While the spec.schema field matches the supported version, the
+          system shall accept the document as input for downstream
+          drift detectors.
