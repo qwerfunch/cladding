@@ -24,7 +24,8 @@
       "iron-law": "L0",
       "detectors": "0/19",
       "ears": "none",
-      "phase": "L1 — spec pinned"
+      "phase": "L2 — stage_1.1 Type",
+      "stages-implemented": ["stage_1.1"]
     }
   }
 }
