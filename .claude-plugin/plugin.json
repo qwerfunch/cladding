@@ -21,12 +21,19 @@
       "ears": "full"
     },
     "current": {
-      "iron-law": "L0",
+      "iron-law": "L1",
       "detectors": "11/19",
       "ears": "syntactic",
-      "phase": "L7 — EARS syntactic validator (5 patterns, AC_DRIFT enrichment)",
+      "phase": "L8 (T6) — L1 conformance declared (12/12 fixtures matched)",
       "stages-implemented": ["stage_1.1", "stage_1.2", "stage_1.3", "stage_1.4", "stage_1.5", "stage_1.6"],
       "spec-schema-version": "0.1",
+      "conformance": {
+        "level-1": {
+          "declared-at": "2026-05-18",
+          "fixtures": "12/12",
+          "runner": "conformance/runner.ts"
+        }
+      },
       "stack": "typescript",
       "languages-supported": [
         "typescript",
