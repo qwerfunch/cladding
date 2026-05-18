@@ -1,0 +1,17 @@
+id: F-013
+title: TECH_STACK_MISMATCH drift detector (#4)
+status: done
+modules:
+  - stages/detectors/tech-stack-mismatch.ts
+depends_on:
+  - F-003
+  - F-004
+  - F-010
+acceptance_criteria:
+  - id: AC-021
+    ears: event
+    condition: when spec.project.language differs from the toolchain-detected language
+    action: emit a warn finding
+    response: stage_1.3 surfaces but does not fail on this finding alone
+    text: When spec.project.language differs from the language resolved by the
+      toolchain manifest chain, the detector shall emit a warn-severity finding.

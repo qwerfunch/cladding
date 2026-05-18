@@ -1,0 +1,24 @@
+id: F-015
+title: STALE_SPECIFICATION drift detector (#16)
+status: done
+modules:
+  - stages/detectors/stale-specification.ts
+depends_on:
+  - F-003
+  - F-010
+acceptance_criteria:
+  - id: AC-024
+    ears: optional
+    condition: where a feature carries archived_at but status is not 'archived'
+    action: emit a warn finding
+    response: surfaced for cleanup
+    text: Where a feature has archived_at set but status is not 'archived', the
+      detector shall emit a warn finding.
+  - id: AC-025
+    ears: optional
+    condition: where status='archived' but the feature's modules still exist on disk
+    action: emit a warn finding listing the surviving paths
+    response: surfaced for code removal cadence decision
+    text: Where status='archived' but at least one declared module still exists on
+      disk, the detector shall emit a warn finding so the project can decide on
+      code-removal cadence.

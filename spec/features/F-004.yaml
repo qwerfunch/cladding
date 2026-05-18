@@ -1,0 +1,17 @@
+id: F-004
+title: Polyglot toolchain adapter
+status: done
+modules:
+  - stages/toolchain/detect.ts
+  - stages/toolchain/types.ts
+acceptance_criteria:
+  - id: AC-006
+    ears: event
+    condition: when invoked on a project root
+    action: scan for the first matching manifest and return the toolchain
+    response: returns 'unknown' language when no manifest matches
+    text: When invoked on a project root, the system shall scan the manifest
+      priority chain and return the first match's toolchain, or 'unknown' when
+      nothing matches.
+    notes: "Languages supported: typescript, python, rust, go, java, php, ruby,
+      elixir, dotnet."

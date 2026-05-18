@@ -1,0 +1,33 @@
+id: F-032
+title: HITL infrastructure — identity, audit trail, anti-self-cert guard
+status: done
+modules:
+  - hitl/identity.ts
+  - hitl/audit.ts
+  - hitl/anti-self-cert.ts
+acceptance_criteria:
+  - id: AC-048
+    ears: ubiquitous
+    action: tag every evidence entry with an author identity (human / llm / tool)
+    response: identity is required for any audit-log append
+    text: The system shall tag every evidence entry with an author identity drawn
+      from the enum (human / llm / tool). Identity is required for any audit-log
+      append.
+  - id: AC-049
+    ears: ubiquitous
+    action: append evidence to .cladding/audit.log.jsonl in chronological order
+    response: the file is human-readable JSONL, one entry per line
+    text: The system shall record each evidence entry as one JSON object on its own
+      line in .cladding/audit.log.jsonl, in chronological append order.
+    test_refs:
+      - tests/hitl/anti-self-cert.test.ts
+  - id: AC-050
+    ears: unwanted
+    condition: if an AC has zero human-authored evidence
+    action: anti-self-cert guard returns pass=false with a machine-readable reason
+    response: stage_4 cannot clear the AC on tool/LLM evidence alone
+    text: If an AC has only tool- or LLM-authored evidence and zero human-authored
+      evidence, the anti-self-cert guard shall return pass=false with a
+      machine-readable reason, blocking stage_4 from clearing the AC.
+    test_refs:
+      - tests/hitl/anti-self-cert.test.ts

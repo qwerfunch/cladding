@@ -1,0 +1,17 @@
+id: F-021
+title: stage_2.1 Unit — polyglot unit-test delegation
+status: done
+modules:
+  - stages/unit.ts
+depends_on:
+  - F-004
+acceptance_criteria:
+  - id: AC-033
+    ears: ubiquitous
+    action: delegate unit testing to the project's own toolchain
+    response: returns a stage_2.1 StageResult with exitCode mirroring the test runner
+    text: The system shall delegate unit testing to the project's own toolchain
+      (vitest / pytest / cargo test / go test / …) and return a stage_2.1 result
+      with the runner's exit code.
+    test_refs:
+      - self-dogfood:stage:unit

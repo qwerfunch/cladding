@@ -1,0 +1,25 @@
+id: F-042
+title: events.log + benchmark CLI
+status: done
+modules:
+  - events/log.ts
+  - cli/benchmark.ts
+depends_on:
+  - F-041
+acceptance_criteria:
+  - id: AC-067
+    ears: ubiquitous
+    action: append lifecycle events to .cladding/events.log.jsonl in chronological
+      order
+    response: each event is one JSON object on its own line
+    text: The system shall append lifecycle events (stage_started / stage_completed
+      / feature_activated / feature_completed / evidence_recorded /
+      drift_detected) to .cladding/events.log.jsonl, one JSON object per line,
+      in chronological append order.
+  - id: AC-068
+    ears: ubiquitous
+    action: report naive vs optimized spec token count for a focus feature
+    response: JSON report includes bytes, tokens, and percent reduction
+    text: The benchmark CLI shall report the naive vs optimized spec token count for
+      a focus feature, including byte size, approximate token count (char/4),
+      and percent reduction.

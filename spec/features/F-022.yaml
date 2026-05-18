@@ -1,0 +1,21 @@
+id: F-022
+title: MISSING_TESTS drift detector (#7, v0.1 floor)
+status: done
+modules:
+  - stages/detectors/missing-tests.ts
+depends_on:
+  - F-003
+  - F-010
+  - F-021
+acceptance_criteria:
+  - id: AC-034
+    ears: ubiquitous
+    action: emit a warn finding for any AC that declares no test_refs
+    response: stage_1.3 surfaces but does not fail on warn alone
+    text: The system shall emit a warn-severity drift finding for every
+      acceptance_criterion that declares no test_refs, so cladding spec authors
+      can see which ACs lack verification mapping.
+    test_refs:
+      - fixture:missing-tests
+    notes: v0.1 floor — the richer "test_refs resolve to real test functions"
+      variant requires vitest AST introspection (T7c).

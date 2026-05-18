@@ -1,0 +1,16 @@
+id: F-035
+title: STALE_EVIDENCE drift detector (#15)
+status: done
+modules:
+  - stages/detectors/stale-evidence.ts
+depends_on:
+  - F-003
+  - F-032
+acceptance_criteria:
+  - id: AC-054
+    ears: event
+    condition: when an evidence entry's identity.timestamp is more than 90 days old
+    action: emit a warn finding listing the entry id and age
+    response: stage_1.3 surfaces but does not fail
+    text: When an evidence entry's identity.timestamp is more than 90 days old, the
+      detector shall emit a warn finding listing the entry id and age in days.

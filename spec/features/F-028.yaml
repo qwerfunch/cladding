@@ -1,0 +1,17 @@
+id: F-028
+title: stage_3.2 Perf — polyglot performance budget delegation
+status: done
+modules:
+  - stages/perf.ts
+depends_on:
+  - F-004
+acceptance_criteria:
+  - id: AC-041
+    ears: ubiquitous
+    action: delegate performance budget enforcement to the project's own toolchain
+    response: returns a stage_3.2 StageResult
+    text: The system shall delegate performance budget enforcement to the project's
+      own toolchain (default `npm run perf`), returning a stage_3.2 result with
+      the runner's exit code.
+    test_refs:
+      - self-dogfood:stage:perf

@@ -1,0 +1,24 @@
+id: F-009
+title: ARCHITECTURE_VIOLATION drift detector (#5)
+status: done
+modules:
+  - stages/detectors/architecture-violation.ts
+depends_on:
+  - F-003
+  - F-004
+acceptance_criteria:
+  - id: AC-013
+    ears: event
+    condition: when the architecture validator reports a non-zero exit
+    action: emit one error-severity DriftFinding summarising the output
+    response: stage_1.3 fails for the host pipeline
+    text: When the architecture validator reports a non-zero exit, the detector
+      shall emit one error-severity finding summarising the output.
+  - id: AC-014
+    ears: optional
+    condition: where the detected language enforces acyclic imports at compile time
+    action: emit one info finding noting no gate is registered
+    response: the stage stays in pass state
+    text: Where the detected language enforces acyclic imports at compile time, the
+      detector shall emit an info finding noting no architecture gate is
+      registered.

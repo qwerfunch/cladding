@@ -1,0 +1,7 @@
+id: S-002
+title: Author and validate a cladding spec.yaml
+flow: Developer writes spec.yaml · runs `clad spec:validate` · sees schema
+  errors point-by-point or a green pass. Once valid, the spec becomes the input
+  for the upcoming T4 drift detectors.
+features:
+  - F-010

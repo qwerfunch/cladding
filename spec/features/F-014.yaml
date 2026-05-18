@@ -1,0 +1,24 @@
+id: F-014
+title: STATUS_DRIFT drift detector (#14)
+status: done
+modules:
+  - stages/detectors/status-drift.ts
+depends_on:
+  - F-003
+  - F-010
+acceptance_criteria:
+  - id: AC-022
+    ears: event
+    condition: when a feature with status 'done' has missing declared modules
+    action: emit an error finding listing the missing paths
+    response: stage_1.3 fails for the host pipeline
+    text: When a feature with status='done' has at least one declared module missing
+      on disk, the detector shall emit an error finding listing the missing
+      paths.
+  - id: AC-023
+    ears: event
+    condition: when status='in_progress' but every declared module is missing
+    action: emit a warn finding noting a likely stale start
+    response: surfaced but not failed
+    text: When status='in_progress' but every declared module is absent, the
+      detector shall emit a warn finding suggesting a stale start.

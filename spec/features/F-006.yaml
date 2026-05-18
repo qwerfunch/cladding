@@ -1,0 +1,23 @@
+id: F-006
+title: HARDCODED_SECRET drift detector (#11)
+status: done
+modules:
+  - stages/detectors/hardcoded-secret.ts
+depends_on:
+  - F-003
+  - F-004
+acceptance_criteria:
+  - id: AC-008
+    ears: event
+    condition: when the toolchain's secret scanner reports a non-zero exit
+    action: emit one error-severity DriftFinding summarizing the output
+    response: stage_1.3 fails for the host pipeline
+    text: When the secret scanner reports a non-zero exit, the detector shall emit
+      one error-severity finding that summarises the scanner output.
+  - id: AC-009
+    ears: unwanted
+    condition: if the secret scanner is not installed
+    action: emit one info-severity finding instead of failing
+    response: the stage stays in pass state so unconfigured projects keep green CI
+    text: If the secret scanner is not installed, the detector shall emit an info
+      finding rather than failing the stage.

@@ -1,0 +1,24 @@
+id: F-033
+title: stage_4.1 Audit + stage_4.2 UAT — Level 4 HITL stages
+status: done
+modules:
+  - stages/audit.ts
+  - stages/uat.ts
+depends_on:
+  - F-032
+acceptance_criteria:
+  - id: AC-051
+    ears: ubiquitous
+    action: invoke the anti-self-cert guard over every AC mentioned in the audit log
+    response: returns a stage_4.1 StageResult; missing audit log → exitCode 2 (skipped)
+    text: The system shall invoke the anti-self-cert guard over every AC mentioned
+      in the audit log and return a stage_4.1 result. When no audit log is
+      present the stage is treated as skipped.
+  - id: AC-052
+    ears: ubiquitous
+    action: verify every status=done feature carries at least one human-authored
+      kind=pass evidence
+    response: returns a stage_4.2 StageResult listing features that fail UAT
+    text: The system shall verify that every feature with status='done' carries at
+      least one human-authored kind='pass' evidence entry, returning a stage_4.2
+      result listing features that fail UAT.

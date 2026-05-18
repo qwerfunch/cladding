@@ -1,0 +1,18 @@
+id: F-024
+title: stage_2.2 Cov — polyglot coverage delegation
+status: done
+modules:
+  - stages/cov.ts
+depends_on:
+  - F-004
+  - F-021
+acceptance_criteria:
+  - id: AC-036
+    ears: ubiquitous
+    action: delegate coverage measurement to the project's own toolchain
+    response: returns a stage_2.2 StageResult with exitCode mirroring the runner
+    text: The system shall delegate coverage measurement to the project's own
+      toolchain (vitest --coverage / coverage.py / cargo llvm-cov / …) and
+      return a stage_2.2 result with the runner's exit code.
+    test_refs:
+      - self-dogfood:stage:cov

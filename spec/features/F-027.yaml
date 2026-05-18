@@ -1,0 +1,18 @@
+id: F-027
+title: stage_3.1 Smoke — polyglot e2e delegation
+status: done
+modules:
+  - stages/smoke.ts
+  - stages/util.ts
+depends_on:
+  - F-004
+acceptance_criteria:
+  - id: AC-040
+    ears: ubiquitous
+    action: delegate smoke / e2e testing to the project's own toolchain
+    response: returns a stage_3.1 StageResult; missing script → exitCode 2 (skipped)
+    text: The system shall delegate smoke / e2e testing to the project's own
+      toolchain (default `npm run smoke`), returning a stage_3.1 result with the
+      runner's exit code. A missing script is treated as skipped, not failed.
+    test_refs:
+      - self-dogfood:stage:smoke

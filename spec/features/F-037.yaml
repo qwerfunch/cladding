@@ -1,0 +1,18 @@
+id: F-037
+title: UNTESTED_AC drift detector (#13)
+status: done
+modules:
+  - stages/detectors/untested-ac.ts
+depends_on:
+  - F-003
+  - F-010
+acceptance_criteria:
+  - id: AC-057
+    ears: event
+    condition: when an AC declares a test_ref that is neither a self-dogfood /
+      fixture prefix nor a real file path
+    action: emit an error finding listing the AC and unresolved ref
+    response: stage_1.3 fails for the host pipeline
+    text: When an AC declares a test_ref that is neither a
+      self-dogfood/fixture-prefix alias nor a real file path, the detector shall
+      emit an error finding listing the AC and unresolved ref.
