@@ -5,6 +5,28 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.7] — Unreleased — Gemini CLI external-host dogfood report (F-082)
+
+**First external-host verification of the multi-host plugin rollout.** v0.3.0 → v0.3.6 shipped cladding as a first-class plugin on three agentic CLIs and added the audit detectors; this patch is the first *evidence* that the rollout actually works end-to-end against a real external host.
+
+### Added
+
+- `docs/dogfood/gemini-cli-2026-05-20.md` — dated dogfood report for Gemini CLI `0.42.0` running cladding `v0.3.6`. Sections:
+  - **Environment** — host version, auth model (Google account, free tier), install paths.
+  - **Setup steps** — `npm link` + symlink commands reproducible by any reviewer.
+  - **Checklist results** — 7 surfaces verified (extension load · MCP server auto-spawn · 3 MCP tool calls · persona prompt fetch · 6 skill TOMLs); every surface ✅.
+  - **Issues found** — cladding-side: 0. Host-side observations (ripgrep fallback, YOLO mode) are unrelated to cladding.
+  - **What this proves / does NOT prove** — explicit scope boundary (host-bound F-049 AC-091 verified · `clad drive` sampling end-to-end NOT yet verified).
+  - **Reproduction recipe** — three `gemini -p` invocations a reviewer can replay.
+- `spec/features/F-082.yaml` — "Gemini CLI external-host dogfood report" (4 ACs, status `done`).
+
+### Notes
+
+- 520/520 vitest pass; lint clean; typecheck clean; drift-green at 81 features; bundle 1.1 MB.
+- **0 cladding code changes** triggered by this verification. The multi-host rollout (v0.3.1 → v0.3.6) holds against an external host without follow-up.
+- Predicate for v0.4.0 generator (drift incident) — not triggered: the verification found no manifest drift.
+- v0.3.8 plan: Claude Code + Codex dogfood reports as cycle 2 of the external-host evidence collection.
+
 ## [0.3.6] — 2026-05-19 — SKILL.md → TOML build-time transpile for Gemini (F-081)
 
 **Post-rollout audit, cycle 3 of 3 (final).** v0.3.3 shipped Gemini CLI commands as six hand-authored TOML files; the canonical sources (`skills/<verb>/SKILL.md`) and the TOML mirrors could drift if a verb description got updated in one place but not the other. This patch makes the SKILL.md the single source of truth and the TOMLs build-generated.
