@@ -1,6 +1,6 @@
 {
   "name": "cladding",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "description": "Reference implementation of the Ironclad standard — multi-agent dev harness for Gemini CLI. Exposes spec validation, drift detection, 13 Iron Law stages, and 5 agent personas as custom commands + an auto-launched MCP server.",
   "contextFileName": "GEMINI.md",
   "mcpServers": {

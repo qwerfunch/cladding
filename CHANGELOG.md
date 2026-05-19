@@ -5,6 +5,25 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.8] — Unreleased — Claude Code external-host dogfood report + cross-host parity (F-083)
+
+**Second external-host verification.** Pairs with the v0.3.7 Gemini CLI report so the multi-host claim now rests on two-host evidence, not single-host coincidence. The same four MCP tools round-trip with the same output shape on both hosts.
+
+### Added
+
+- `docs/dogfood/claude-code-2026-05-20.md` — dated dogfood report for Claude Code `2.1.145` running cladding `v0.3.6+`. Same checklist as the Gemini report; all 6 surfaces ✅, 0 cladding-side issues.
+- Documents the headless-mode invocation pattern: `--allowedTools mcp__cladding__<tool>` + prompt piped via stdin (the auto-mode classifier blocks `--dangerously-skip-permissions`, and `--allowedTools` as nargs+ swallows a positional prompt).
+- States cross-host parity as a verified claim — same 4 MCP tools return the same output shape on Gemini CLI and Claude Code, proving `clad serve` is genuinely host-agnostic.
+- Documents the OpenAI Codex CLI deferral honestly: `which codex → not found` on the verifier machine; the cladding-side artifacts (`plugins/codex/` + 11 skills) are present and `HARNESS_INTEGRITY` validates them on every `clad check --strict`, so the cladding side is verification-ready and only host-side execution waits on Codex CLI install.
+- `spec/features/F-083.yaml` — "Claude Code external-host dogfood report" (4 ACs, status `done`).
+
+### Notes
+
+- 520/520 vitest pass; lint clean; typecheck clean; drift-green at 82 features; bundle 1.1 MB.
+- **0 cladding code changes** triggered by the verification — multi-host plugin rollout holds across two hosts without follow-up.
+- Predicate for v0.4.0 generator (drift incident across hosts) — not triggered.
+- v0.3.9 plan: Codex CLI dogfood report once the CLI is installed; cycle 3 of the external-host evidence collection.
+
 ## [0.3.7] — Unreleased — Gemini CLI external-host dogfood report (F-082)
 
 **First external-host verification of the multi-host plugin rollout.** v0.3.0 → v0.3.6 shipped cladding as a first-class plugin on three agentic CLIs and added the audit detectors; this patch is the first *evidence* that the rollout actually works end-to-end against a real external host.
