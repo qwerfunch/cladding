@@ -1,0 +1,33 @@
+id: F-058
+title: Detector unit tests batch 4 (final 2 + every detector at 100% line coverage)
+status: done
+modules:
+  - tests/stages/hardcoded-secret.test.ts
+  - tests/stages/architecture-violation.test.ts
+depends_on: [F-057]
+acceptance_criteria:
+  - id: AC-137
+    ears: ubiquitous
+    action: cover HARDCODED_SECRET with focused unit tests
+    response: tests/stages/hardcoded-secret.test.ts mocks execaSync via vi.mock('execa') to exercise every branch (no-gate / exit 0 / non-zero / ENOENT / non-ENOENT throw / stdout-only / no-output fallback); line coverage on the detector source reaches 100%
+    text: The system shall ship tests/stages/hardcoded-secret.test.ts bringing the HARDCODED_SECRET detector to 100% line coverage by mocking execaSync.
+    test_refs: [tests/stages/hardcoded-secret.test.ts]
+  - id: AC-138
+    ears: ubiquitous
+    action: cover ARCHITECTURE_VIOLATION with focused unit tests
+    response: tests/stages/architecture-violation.test.ts mirrors the HARDCODED_SECRET pattern (vi.mock('execa') + 7 branch tests); line coverage on the detector source reaches 100%
+    text: The system shall ship tests/stages/architecture-violation.test.ts bringing the ARCHITECTURE_VIOLATION detector to 100% line coverage by the same mocking pattern.
+    test_refs: [tests/stages/architecture-violation.test.ts]
+  - id: AC-139
+    ears: ubiquitous
+    action: declare the detector-catalog milestone
+    response: every one of the 20 registered detectors (19 Ironclad + 1 cladding extension) carries a dedicated tests/stages/*.test.ts file at 100% line coverage; subprocess paths covered by conformance fixtures (stage_1.5 / stage_1.6 / stage_1.3 etc.) are explicitly noted in test file headers
+    text: The system shall declare the milestone — every one of the 20 registered drift detectors has a dedicated unit-test file at 100% line coverage.
+    evidence_refs: [CHANGELOG.md]
+  - id: AC-140
+    ears: state
+    condition: while the v0.2.9 batch lands
+    action: raise overall line coverage above the 60% threshold
+    response: vitest --coverage reports overall line coverage rises from 58.66% (v0.2.8 baseline) to ≥ 62% after this batch, crossing the 60% mark for the first time
+    text: While the v0.2.9 batch lands, overall line coverage shall rise from the v0.2.8 baseline (58.66%) to at least 62%, crossing the 60% mark on the path to the 70% floor.
+    evidence_refs: [CHANGELOG.md]

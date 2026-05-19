@@ -29,7 +29,7 @@ import {renderPanel} from '../ui/panel.js';
 import {featureLabel, gateLabel, haltMessage} from '../ui/softShell.js';
 
 const program = new Command();
-program.name('clad').description('Reference Ironclad CLI').version('0.2.8');
+program.name('clad').description('Reference Ironclad CLI').version('0.2.9');
 
 program
   .command('init')
