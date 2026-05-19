@@ -30,6 +30,27 @@ import {pulse} from '../ui/pulse.js';
 import {renderPanel} from '../ui/panel.js';
 import {featureLabel, gateLabel, haltMessage} from '../ui/softShell.js';
 
+/** Handler for `clad serve`. Boots the MCP server over stdio (v0.2.24). */
+export async function runServeCommand(opts: {cwd?: string}): Promise<void> {
+  // Dynamic import: the MCP SDK is sizeable and most `clad` invocations
+  // never reach `serve`. Loading it on-demand keeps cold-start fast.
+  const [{buildServer}, {StdioServerTransport}] = await Promise.all([
+    import('../serve/server.js'),
+    import('@modelcontextprotocol/sdk/server/stdio.js'),
+  ]);
+  const server = buildServer({cwd: opts.cwd});
+  const transport = new StdioServerTransport();
+  // stdout is reserved for MCP protocol traffic on stdio transport, so
+  // status lines go to stderr via pulse (which writes to stderr by
+  // default; verified below if pulse changes).
+  pulse('start', 'serve', `stdio transport · cwd=${opts.cwd ?? '.'}`);
+  await server.connect(transport);
+  // The server runs until the client closes stdio; connect() does not
+  // resolve until then on stdio transport, so we await it as-is. If a
+  // host wraps cladding without proper close semantics, Ctrl-C in the
+  // host process terminates this child.
+}
+
 /** Handler for `clad init`. Scaffolds a workspace at cwd, then exits 0. */
 export function runInitCommand(opts: {name?: string; force?: boolean}): void {
   const result = runInit({projectName: opts.name, force: opts.force});
@@ -160,7 +181,7 @@ export function runRouteCommand(prompt: string): void {
  */
 export function createProgram(): Command {
   const program = new Command();
-  program.name('clad').description('Reference Ironclad CLI').version('0.2.23');
+  program.name('clad').description('Reference Ironclad CLI').version('0.2.24');
 
   program
     .command('init')
@@ -206,6 +227,12 @@ export function createProgram(): Command {
     .command('route <prompt>')
     .description('Classify a natural-language prompt to a verb')
     .action(runRouteCommand);
+
+  program
+    .command('serve')
+    .description('Run cladding as an MCP server over stdio (v0.2.24) — tools/resources/prompts for any MCP client')
+    .option('--cwd <path>', 'project directory exposed to the client (default cwd)')
+    .action(runServeCommand);
 
   return program;
 }

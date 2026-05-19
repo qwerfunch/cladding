@@ -32,6 +32,23 @@ vi.mock('../../src/stages/visual.js', () => ({runVisual: vi.fn(() => ({pass: fal
 vi.mock('../../src/stages/audit.js', () => ({runAudit: vi.fn(() => ({pass: true, exitCode: 0}))}));
 vi.mock('../../src/stages/uat.js', () => ({runUat: vi.fn(() => ({pass: true, exitCode: 0}))}));
 vi.mock('../../src/drive/loop.js', () => ({runDriveLoop: vi.fn()}));
+// MCP server build is mocked — the runServeCommand test only verifies
+// the CLI plumbing (server constructed, transport connected). The
+// real server is exercised separately in tests/serve/server.test.ts.
+vi.mock('../../src/serve/server.js', () => ({
+  buildServer: vi.fn(() => ({
+    connect: vi.fn(async () => undefined),
+    close: vi.fn(async () => undefined),
+  })),
+}));
+vi.mock('@modelcontextprotocol/sdk/server/stdio.js', () => {
+  // Constructor-shape mock: runServeCommand calls `new StdioServerTransport()`.
+  // A bare vi.fn arrow body is not a constructor, so we use a class spy.
+  const StdioServerTransport = vi.fn(function () {
+    return {};
+  });
+  return {StdioServerTransport};
+});
 
 const clad = await import('../../src/cli/clad.js');
 const initMod = await import('../../src/cli/init.js');
@@ -210,14 +227,28 @@ describe('cli/clad — handler exports', () => {
 });
 
 describe('cli/clad — createProgram', () => {
-  test('returns a Command with all 7 verbs registered', () => {
+  test('returns a Command with all 8 verbs registered', () => {
     const program = clad.createProgram();
     const names = program.commands.map((c) => c.name());
-    expect(names).toEqual(['init', 'work', 'drive', 'sync', 'check', 'panel', 'route']);
+    expect(names).toEqual(['init', 'work', 'drive', 'sync', 'check', 'panel', 'route', 'serve']);
   });
 
   test('program version matches current package version', () => {
     const program = clad.createProgram();
-    expect(program.version()).toBe('0.2.23');
+    expect(program.version()).toBe('0.2.24');
+  });
+});
+
+describe('cli/clad — runServeCommand (v0.2.24)', () => {
+  test('builds the MCP server and connects it to stdio transport', async () => {
+    const serveMod = await import('../../src/serve/server.js');
+    const stdioMod = await import('@modelcontextprotocol/sdk/server/stdio.js');
+    const buildMock = serveMod.buildServer as unknown as ReturnType<typeof vi.fn>;
+    const StdioMock = stdioMod.StdioServerTransport as unknown as ReturnType<typeof vi.fn>;
+    buildMock.mockClear();
+    StdioMock.mockClear();
+    await clad.runServeCommand({cwd: '/tmp/probe'});
+    expect(buildMock).toHaveBeenCalledWith({cwd: '/tmp/probe'});
+    expect(StdioMock).toHaveBeenCalledOnce();
   });
 });
