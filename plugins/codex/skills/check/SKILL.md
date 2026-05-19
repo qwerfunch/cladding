@@ -1,0 +1,21 @@
+---
+description: Run every Iron Law stage and the drift detector suite. Use when the user wants the full project health snapshot, a CI gate, or to verify nothing regressed before committing. Add --strict to promote warn-severity drift findings to errors.
+---
+
+# Cladding check
+
+Run `clad check` from the project root. Runs the 13 Iron Law stages — Type / Lint / Drift / Commit / Arch / Secret / Unit / Coverage / Smoke / Performance / Visual / Audit / UAT — and aggregates the worst exit code.
+
+- `0` — every stage cleared or skipped clean.
+- `1` — at least one stage actually failed (fix-required).
+- `2` — every result is skip (no fail-required input on the project yet).
+
+`--strict` promotes warn-severity drift findings to error, matching the CI / pre-publish gate.
+
+`--internal` shows stage codes (`stage_1.1`) instead of business names (`Type`). Default is the business-name surface; the audit log keeps internal ids regardless.
+
+```
+clad check
+clad check --strict
+clad check --internal
+```
