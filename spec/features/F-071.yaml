@@ -1,0 +1,41 @@
+id: F-071
+title: Transport-specific halt classes for real-LLM dispatch failures (v0.3.0 substep 4)
+status: done
+modules:
+  - src/drive/halt.ts
+  - src/drive/loop.ts
+  - src/ui/softShell.ts
+depends_on: [F-049, F-068, F-069, F-070]
+acceptance_criteria:
+  - id: AC-196
+    ears: ubiquitous
+    action: extend the HaltClass enum with three transport-specific classes
+    response: src/drive/halt.ts exports TRANSPORT_AUTH_FAILED, TRANSPORT_RATE_LIMITED, and TRANSPORT_NETWORK as members of HaltClass; LLM_UNAVAILABLE remains as the catch-all for transport errors that match no specific pattern
+    text: The system shall extend the HaltClass enum with TRANSPORT_AUTH_FAILED, TRANSPORT_RATE_LIMITED, and TRANSPORT_NETWORK so transport failures map to actionable categories instead of the generic LLM_UNAVAILABLE.
+    test_refs: [tests/drive/halt.test.ts]
+  - id: AC-197
+    ears: ubiquitous
+    action: classify a thrown transport error into a HaltClass
+    response: src/drive/halt.ts exports classifyTransportError(err) which returns TRANSPORT_AUTH_FAILED for 401/403/invalid-key patterns, TRANSPORT_RATE_LIMITED for 429/quota/too-many-requests patterns, TRANSPORT_NETWORK for ENOENT/ECONNREFUSED/ECONNRESET/ETIMEDOUT/ENOTFOUND codes or network/connection/timeout phrases, and falls through to LLM_UNAVAILABLE for any other error
+    text: The system shall expose classifyTransportError(err) that maps a thrown transport error to the most specific HaltClass based on HTTP-status-code prefixes, well-known SDK phrases, and Node.js ErrnoException codes.
+    test_refs: [tests/drive/halt.test.ts]
+  - id: AC-198
+    ears: state
+    condition: while a specialist or reviewer dispatch in the drive loop throws
+    action: route the throw through classifyTransportError
+    response: runDriveLoop calls classifyTransportError(err) in both specialist and reviewer catch blocks and halts with the resulting transport-specific HaltClass instead of hardcoding LLM_UNAVAILABLE
+    text: While a specialist or reviewer dispatch throws inside the drive loop, the system shall classify the error through classifyTransportError and halt with the resulting transport-specific HaltClass.
+    test_refs: [tests/integration/loop-real-transport.test.ts]
+  - id: AC-199
+    ears: ubiquitous
+    action: map every new halt class to a user-facing sentence
+    response: src/ui/softShell.ts HALT_MESSAGES maps TRANSPORT_AUTH_FAILED, TRANSPORT_RATE_LIMITED, and TRANSPORT_NETWORK to plain sentences that name the cause (credentials rejected, rate-limited, network unreachable) without exposing the enum name
+    text: The system shall add a user-facing sentence for each new transport halt class in src/ui/softShell.ts HALT_MESSAGES, preserving the Soft Shell convention of hiding the internal enum from the user surface.
+    test_refs: [tests/ui/softShell.test.ts]
+  - id: AC-200
+    ears: state
+    condition: while the integration test triggers each of the four transport-failure shapes (auth · rate limit · network · unknown)
+    action: assert the loop halts with the expected class
+    response: tests/integration/loop-real-transport.test.ts has four tests covering 401-auth, 429-rate-limit, ECONNREFUSED-network, and a catch-all unknown error, each asserting r.halt.class equals the matching transport halt class
+    text: While the integration test exercises each of the four transport-failure shapes (auth, rate limit, network, unknown), the drive loop shall halt with the matching transport-specific HaltClass — proving the classifier is wired correctly end-to-end.
+    test_refs: [tests/integration/loop-real-transport.test.ts]

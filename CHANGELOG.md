@@ -5,6 +5,30 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.22] — Unreleased — Transport-specific halt classes (F-071)
+
+**Substep 4 of the v0.3.0 path.** The drive loop used to flatten every transport failure into `LLM_UNAVAILABLE`. With real-LLM dispatch live since v0.2.20, that's no longer actionable — users need to know whether a halt came from a bad API key, a rate limit, or a network blip. v0.2.22 introduces three transport-specific halt classes and routes the loop's catch blocks through a single classifier.
+
+### Added
+
+- `src/drive/halt.ts` — three new `HaltClass` members: `TRANSPORT_AUTH_FAILED` (401 / 403 / invalid API key), `TRANSPORT_RATE_LIMITED` (429 / quota / too many requests), `TRANSPORT_NETWORK` (ENOENT / ECONNREFUSED / ECONNRESET / ETIMEDOUT / ENOTFOUND or matching phrases). `LLM_UNAVAILABLE` stays as the catch-all.
+- `src/drive/halt.ts` — `classifyTransportError(err: unknown): HaltClass`. Reads the error message (case-insensitive) plus the `code` field on `NodeJS.ErrnoException`. Auth precedes rate-limit precedes network in the check order, so an ambiguous error lands in the most user-actionable bucket.
+- `src/ui/softShell.ts` — `HALT_MESSAGES` entries for the three new classes ("Stopped — agent rejected the credentials. Check your API key." / "Stopped — agent is rate-limited. Try again after the cooldown." / "Stopped — could not reach the agent over the network.").
+- `tests/drive/halt.test.ts` — classifier unit tests across all four buckets (~20 cases), including non-Error throws and precedence ordering.
+- `tests/integration/loop-real-transport.test.ts` — the "transport throw" case is split into four: 401 → AUTH_FAILED, 429 → RATE_LIMITED, ECONNREFUSED → NETWORK, unknown phrase → LLM_UNAVAILABLE.
+- `spec/features/F-071.yaml` — "Transport-specific halt classes for real-LLM dispatch failures" (5 ACs, status `done`).
+
+### Changed
+
+- `src/drive/loop.ts` — both specialist and reviewer dispatch catch blocks now call `classifyTransportError(err)` instead of hardcoding `class: 'LLM_UNAVAILABLE'`. The reviewer block still routes `ReviewerIdentityCollisionError` to `HUMAN_REQUIRED` (unchanged contract).
+- `tests/ui/softShell.test.ts` — the every-class round-trip test now iterates 13 classes (10 + 3 new).
+
+### Notes
+
+- 426 + new tests = **all passing**; `node bin/clad check --strict` stays drift-green.
+- The classifier is intentionally pattern-based (HTTP status prefixes + SDK phrases + `ErrnoException` codes) — no SDK-specific coupling. New transports (OpenAI, Google, …) get the same classification for free as long as their errors carry conventional shapes.
+- v0.3.0 plan (substep 5): declare F-049 done (mock removed in favour of the SDK path), bump minor, release.
+
 ## [0.2.21] — Unreleased — Drive-loop integration test against AnthropicTransport (F-070)
 
 **Substep 3 of the v0.3.0 path.** Wires the v0.2.19 Transport interface and the v0.2.20 AnthropicTransport into a drive-loop end-to-end integration test. Proves the loop's halt-class chain — `ALL_FEATURES_DONE`, `HUMAN_REQUIRED` via reviewer-identity barrier, `LLM_UNAVAILABLE` on transport throw — works against real-LLM-shape data, not just mock placeholders.

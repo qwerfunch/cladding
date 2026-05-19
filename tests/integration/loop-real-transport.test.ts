@@ -177,7 +177,7 @@ describe('drive loop · real AnthropicTransport integration', () => {
     expect(r.halt.detail).toContain('reviewer identity matched implementer');
   });
 
-  test('transport throw (e.g. auth fail) maps to LLM_UNAVAILABLE halt', async () => {
+  test('transport throw (401 auth) maps to TRANSPORT_AUTH_FAILED halt (v0.2.22)', async () => {
     const throwingTransport = {
       id: 'sdk:claude-anthropic',
       async invoke() {
@@ -193,8 +193,69 @@ describe('drive loop · real AnthropicTransport integration', () => {
       cwd: dir,
       budget: {maxIterations: 5, maxWallClockMs: 30_000, maxRetriesPerFeature: 2},
     });
-    expect(r.halt.class).toBe('LLM_UNAVAILABLE');
+    expect(r.halt.class).toBe('TRANSPORT_AUTH_FAILED');
     expect(r.halt.detail).toMatch(/specialist dispatch failed/);
     expect(r.halt.detail).toContain('401');
+  });
+
+  test('transport throw (429 rate limit) maps to TRANSPORT_RATE_LIMITED halt (v0.2.22)', async () => {
+    const throwingTransport = {
+      id: 'sdk:claude-anthropic',
+      async invoke() {
+        throw new Error('429: rate limit exceeded');
+      },
+      async ready() {
+        return {ready: true};
+      },
+    };
+    setDefaultTransportForTesting(throwingTransport);
+    writeMinimalProject('stages/stub-001.ts');
+    const r = await runDriveLoop({
+      cwd: dir,
+      budget: {maxIterations: 5, maxWallClockMs: 30_000, maxRetriesPerFeature: 2},
+    });
+    expect(r.halt.class).toBe('TRANSPORT_RATE_LIMITED');
+    expect(r.halt.detail).toContain('429');
+  });
+
+  test('transport throw (ECONNREFUSED network) maps to TRANSPORT_NETWORK halt (v0.2.22)', async () => {
+    const throwingTransport = {
+      id: 'sdk:claude-anthropic',
+      async invoke() {
+        const err = new Error('connect ECONNREFUSED 127.0.0.1:443') as NodeJS.ErrnoException;
+        err.code = 'ECONNREFUSED';
+        throw err;
+      },
+      async ready() {
+        return {ready: true};
+      },
+    };
+    setDefaultTransportForTesting(throwingTransport);
+    writeMinimalProject('stages/stub-001.ts');
+    const r = await runDriveLoop({
+      cwd: dir,
+      budget: {maxIterations: 5, maxWallClockMs: 30_000, maxRetriesPerFeature: 2},
+    });
+    expect(r.halt.class).toBe('TRANSPORT_NETWORK');
+    expect(r.halt.detail).toContain('ECONNREFUSED');
+  });
+
+  test('transport throw with no known pattern maps to LLM_UNAVAILABLE catch-all (v0.2.22)', async () => {
+    const throwingTransport = {
+      id: 'sdk:claude-anthropic',
+      async invoke() {
+        throw new Error('something unusual happened');
+      },
+      async ready() {
+        return {ready: true};
+      },
+    };
+    setDefaultTransportForTesting(throwingTransport);
+    writeMinimalProject('stages/stub-001.ts');
+    const r = await runDriveLoop({
+      cwd: dir,
+      budget: {maxIterations: 5, maxWallClockMs: 30_000, maxRetriesPerFeature: 2},
+    });
+    expect(r.halt.class).toBe('LLM_UNAVAILABLE');
   });
 });

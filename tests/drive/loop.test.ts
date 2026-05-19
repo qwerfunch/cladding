@@ -179,7 +179,7 @@ describe('runDriveLoop', () => {
     runAgentMock.mockReset();
     runAgentMock
       .mockResolvedValueOnce({result: {identity: {name: 'specialist'}, mutations: []}})
-      .mockRejectedValueOnce(new Error('reviewer transport timeout'));
+      .mockRejectedValueOnce(new Error('reviewer transport failure'));
     const r = await runDriveLoop({cwd: dir});
     expect(r.halt.class).toBe('LLM_UNAVAILABLE');
     expect(r.halt.detail).toContain('reviewer dispatch failed');
