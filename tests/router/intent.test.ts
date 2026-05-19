@@ -2,7 +2,7 @@
 
 import {describe, expect, test} from 'vitest';
 
-import {classifyIntent} from '../../router/intent.js';
+import {classifyIntent} from '../../src/router/intent.js';
 
 describe('classifyIntent — clear-intent matches', () => {
   test('Korean "기능 만들어줘" → work', () => {

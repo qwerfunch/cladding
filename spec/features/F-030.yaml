@@ -2,7 +2,7 @@ id: F-030
 title: PERFORMANCE_DRIFT drift detector (#12)
 status: done
 modules:
-  - stages/detectors/performance-drift.ts
+  - src/stages/detectors/performance-drift.ts
 depends_on:
   - F-003
   - F-028

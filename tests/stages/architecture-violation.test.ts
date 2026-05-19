@@ -23,7 +23,7 @@ vi.mock('execa', () => ({
 }));
 
 const {architectureViolation} = await import(
-  '../../stages/detectors/architecture-violation.js'
+  '../../src/stages/detectors/architecture-violation.js'
 );
 const execaMod = await import('execa');
 const execaSyncMock = execaMod.execaSync as unknown as ReturnType<typeof vi.fn>;

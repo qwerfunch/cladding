@@ -8,7 +8,7 @@
 
 import {beforeEach, afterEach, describe, expect, test, vi} from 'vitest';
 
-import {pulse} from '../../ui/pulse.js';
+import {pulse} from '../../src/ui/pulse.js';
 
 describe('pulse', () => {
   let writeSpy: ReturnType<typeof vi.spyOn>;

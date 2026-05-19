@@ -15,7 +15,7 @@ The kinds of reports that belong here:
 - A reproducible way to **bypass the anti-self-cert guard** so that LLM- or tool-authored evidence alone clears Iron Law stage_4. This is the project's structural integrity invariant; circumventing it is treated as the highest-priority class of report.
 - A reproducible way to corrupt the audit log (`.cladding/audit.log.jsonl`) or events log such that an external auditor cannot reconstruct the lifecycle of a feature.
 - A way to make a drift detector silently miss a real spec/code/test mismatch (false-negative). False-positives are bugs; false-negatives are security-adjacent because they erode the falsifiability claim.
-- Credential or secret exposure in the toolchain (e.g. `stages/secret.ts` failing to redact a known secret pattern).
+- Credential or secret exposure in the toolchain (e.g. `src/stages/secret.ts` failing to redact a known secret pattern).
 - Arbitrary code execution through any CLI verb (`clad init`, `clad work`, `clad drive`, `clad sync`, `clad check`, …) against an untrusted spec or workspace.
 
 ## What is not in-scope here

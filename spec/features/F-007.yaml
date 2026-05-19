@@ -2,7 +2,7 @@ id: F-007
 title: stage_1.4 Commit — clean-tree check
 status: done
 modules:
-  - stages/commit.ts
+  - src/stages/commit.ts
 acceptance_criteria:
   - id: AC-010
     ears: ubiquitous

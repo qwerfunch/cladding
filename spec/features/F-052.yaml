@@ -2,10 +2,10 @@ id: F-052
 title: test_refs / evidence_refs split — honest AC verification taxonomy
 status: done
 modules:
-  - spec/schema.json
-  - spec/types.ts
-  - stages/detectors/missing-tests.ts
-  - stages/detectors/README.md
+  - src/spec/schema.json
+  - src/spec/types.ts
+  - src/stages/detectors/missing-tests.ts
+  - src/stages/detectors/README.md
   - tests/stages/missing-tests.test.ts
 depends_on: [F-022, F-051]
 acceptance_criteria:
@@ -15,7 +15,7 @@ acceptance_criteria:
     response: spec/schema.json acceptance_criterion definition lists both fields with descriptions distinguishing executable code-tests from non-test verification artifacts
     text: The acceptance_criterion schema shall declare evidence_refs (non-test verification artifacts) as a sibling of test_refs (executable code-tests).
     test_refs: [tests/spec/validate.test.ts]
-    evidence_refs: [spec/schema.json]
+    evidence_refs: [src/spec/schema.json]
   - id: AC-107
     ears: state
     condition: while a status=done AC has non-empty evidence_refs but empty test_refs

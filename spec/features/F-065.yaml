@@ -1,0 +1,45 @@
+id: F-065
+title: src/ layout — move all code dirs under one source root
+status: done
+modules:
+  - src/adapters
+  - src/agents
+  - src/cli
+  - src/drive
+  - src/events
+  - src/hitl
+  - src/optimizer
+  - src/router
+  - src/spec
+  - src/stages
+  - src/ui
+depends_on: [F-064]
+acceptance_criteria:
+  - id: AC-173
+    ears: ubiquitous
+    action: consolidate all source code under a single src/ root
+    response: every first-party TS module (adapters · agents · cli · drive · events · hitl · optimizer · router · stages · ui plus the spec runtime .ts files) lives under src/; spec data files (features/ · scenarios/ · architecture.yaml) stay at root; schema.json moves to src/spec/ so it travels with the code that reads it
+    text: The system shall consolidate every code dir under a single src/ root while keeping spec data (features/, scenarios/, architecture.yaml) at the project root.
+    evidence_refs: [src]
+  - id: AC-174
+    ears: ubiquitous
+    action: keep behavior identical after the move
+    response: "node bin/clad <verb> works exactly as before; the only changes are path strings — every import, every spec module reference, every config glob, every detector scan path, every npm script"
+    text: The system shall preserve runtime behavior after the move — every code path that previously worked still works, with no semantic change.
+    evidence_refs: [bin/clad, scripts/build.mjs, vitest.config.ts]
+  - id: AC-175
+    ears: state
+    condition: while the v0.2.16 batch lands
+    action: keep every test, every check, every coverage metric green
+    response: npm test reports 404/404 passing; node bin/clad check --strict reports drift green; coverage stays ≥ 93%
+    text: While the v0.2.16 batch lands, every test shall pass, drift shall stay green under --strict, and line coverage shall stay at ≥ 93% under the widened scope.
+    evidence_refs: [CHANGELOG.md]
+  - id: AC-176
+    ears: ubiquitous
+    action: update detector hardcoded scan paths
+    response: UNMAPPED_ARTIFACT scans src/stages/**/*.ts and src/spec/**/*.ts; HARNESS_INTEGRITY counts src/stages/detectors/*.ts; META_INTEGRITY reads src/spec/schema.json
+    text: The system shall update the three detectors that hardcode source paths (UNMAPPED_ARTIFACT, HARNESS_INTEGRITY, META_INTEGRITY) to point at src/.
+    test_refs:
+      - tests/stages/unmapped-artifact.test.ts
+      - tests/stages/harness-integrity.test.ts
+      - tests/stages/meta-integrity.test.ts

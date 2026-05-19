@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {detectToolchain} from '../../stages/toolchain/detect.js';
+import {detectToolchain} from '../../src/stages/toolchain/detect.js';
 
 describe('detectToolchain', () => {
   let dir: string;

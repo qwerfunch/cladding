@@ -18,20 +18,10 @@ export default defineConfig({
       // optimizer/, adapters/, router/, ui/, hitl/, events/, agents/.
       // Coverage numbers from v0.2.13 onward are not directly comparable
       // to pre-v0.2.13 percentages.
-      include: [
-        'stages/**/*.ts',
-        'spec/**/*.ts',
-        'cli/**/*.ts',
-        'drive/**/*.ts',
-        'optimizer/**/*.ts',
-        'adapters/**/*.ts',
-        'router/**/*.ts',
-        'ui/**/*.ts',
-        'hitl/**/*.ts',
-        'events/**/*.ts',
-        'agents/**/*.ts',
-      ],
-      exclude: ['**/*.test.ts', 'conformance/**', 'spec/cli.ts'],
+      // v0.2.16 — source tree consolidated under src/. Each top-level
+      // module dir kept its name; only the parent path changed.
+      include: ['src/**/*.ts'],
+      exclude: ['**/*.test.ts', 'conformance/**', 'src/spec/cli.ts'],
     },
   },
 });

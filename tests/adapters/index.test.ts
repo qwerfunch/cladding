@@ -14,16 +14,16 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
-vi.mock('../../adapters/host/claude-code.js', () => ({
+vi.mock('../../src/adapters/host/claude-code.js', () => ({
   claudeCodeAdapter: {name: 'claude-code', mode: 'host'},
   isClaudeCodeRuntime: vi.fn(),
 }));
-vi.mock('../../adapters/host/generic-mcp.js', () => ({
+vi.mock('../../src/adapters/host/generic-mcp.js', () => ({
   genericMcpAdapter: {name: 'generic-mcp', mode: 'host'},
 }));
 
-const {resolveSelection, selectAdapter} = await import('../../adapters/index.js');
-const claudeMod = await import('../../adapters/host/claude-code.js');
+const {resolveSelection, selectAdapter} = await import('../../src/adapters/index.js');
+const claudeMod = await import('../../src/adapters/host/claude-code.js');
 const isClaudeCodeRuntimeMock = claudeMod.isClaudeCodeRuntime as unknown as ReturnType<
   typeof vi.fn
 >;

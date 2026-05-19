@@ -2,9 +2,9 @@ id: F-032
 title: HITL infrastructure — identity, audit trail, anti-self-cert guard
 status: done
 modules:
-  - hitl/identity.ts
-  - hitl/audit.ts
-  - hitl/anti-self-cert.ts
+  - src/hitl/identity.ts
+  - src/hitl/audit.ts
+  - src/hitl/anti-self-cert.ts
 acceptance_criteria:
   - id: AC-048
     ears: ubiquitous

@@ -15,7 +15,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {metaIntegrity} from '../../stages/detectors/meta-integrity.js';
+import {metaIntegrity} from '../../src/stages/detectors/meta-integrity.js';
 
 const VALID_SCHEMA = {
   required: ['schema', 'project', 'features'],
@@ -28,8 +28,8 @@ const VALID_SPEC =
   'features: []\n';
 
 function writeSchema(dir: string, schema: unknown): void {
-  mkdirSync(join(dir, 'spec'), {recursive: true});
-  writeFileSync(join(dir, 'spec', 'schema.json'), JSON.stringify(schema));
+  mkdirSync(join(dir, 'src', 'spec'), {recursive: true});
+  writeFileSync(join(dir, 'src', 'spec', 'schema.json'), JSON.stringify(schema));
 }
 
 describe('META_INTEGRITY detector', () => {
@@ -70,8 +70,8 @@ describe('META_INTEGRITY detector', () => {
   });
 
   test('schema.json malformed JSON → single error finding (early return)', () => {
-    mkdirSync(join(dir, 'spec'), {recursive: true});
-    writeFileSync(join(dir, 'spec', 'schema.json'), '{not valid json');
+    mkdirSync(join(dir, 'src', 'spec'), {recursive: true});
+    writeFileSync(join(dir, 'src', 'spec', 'schema.json'), '{not valid json');
     const findings = metaIntegrity.run({cwd: dir});
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe('error');

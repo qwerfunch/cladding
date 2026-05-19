@@ -9,15 +9,15 @@
 
 import {describe, expect, test, vi, beforeEach} from 'vitest';
 
-vi.mock('../../stages/detectors/hardcoded-secret.js', () => ({
+vi.mock('../../src/stages/detectors/hardcoded-secret.js', () => ({
   hardcodedSecret: {
     name: 'HARDCODED_SECRET',
     run: vi.fn(),
   },
 }));
 
-const {runSecret} = await import('../../stages/secret.js');
-const detectorMod = await import('../../stages/detectors/hardcoded-secret.js');
+const {runSecret} = await import('../../src/stages/secret.js');
+const detectorMod = await import('../../src/stages/detectors/hardcoded-secret.js');
 const detectorRun = detectorMod.hardcodedSecret.run as unknown as ReturnType<typeof vi.fn>;
 
 describe('runSecret (stage_1.6)', () => {

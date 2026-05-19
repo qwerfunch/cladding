@@ -20,22 +20,22 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
-vi.mock('../../spec/load.js', () => ({loadSpec: vi.fn()}));
-vi.mock('../../agents/loader.js', () => ({loadPersona: vi.fn()}));
-vi.mock('../../drive/agent.js', async () => {
-  const actual = await vi.importActual<typeof import('../../drive/agent.js')>(
-    '../../drive/agent.js',
+vi.mock('../../src/spec/load.js', () => ({loadSpec: vi.fn()}));
+vi.mock('../../src/agents/loader.js', () => ({loadPersona: vi.fn()}));
+vi.mock('../../src/drive/agent.js', async () => {
+  const actual = await vi.importActual<typeof import('../../src/drive/agent.js')>(
+    '../../src/drive/agent.js',
   );
   return {
     runAgent: vi.fn(),
     ReviewerIdentityCollisionError: actual.ReviewerIdentityCollisionError,
   };
 });
-vi.mock('../../stages/type.js', () => ({runType: vi.fn()}));
-vi.mock('../../stages/lint.js', () => ({runLint: vi.fn()}));
-vi.mock('../../stages/arch.js', () => ({runArch: vi.fn()}));
-vi.mock('../../stages/uat.js', () => ({runUat: vi.fn()}));
-vi.mock('../../events/log.js', () => ({
+vi.mock('../../src/stages/type.js', () => ({runType: vi.fn()}));
+vi.mock('../../src/stages/lint.js', () => ({runLint: vi.fn()}));
+vi.mock('../../src/stages/arch.js', () => ({runArch: vi.fn()}));
+vi.mock('../../src/stages/uat.js', () => ({runUat: vi.fn()}));
+vi.mock('../../src/events/log.js', () => ({
   appendEvent: vi.fn(),
   newEvent: (type: string, payload: Record<string, unknown>) => ({
     id: 'ev-mock',
@@ -44,16 +44,16 @@ vi.mock('../../events/log.js', () => ({
     payload,
   }),
 }));
-vi.mock('../../hitl/audit.js', () => ({appendEvidence: vi.fn()}));
+vi.mock('../../src/hitl/audit.js', () => ({appendEvidence: vi.fn()}));
 
-const {runDriveLoop} = await import('../../drive/loop.js');
-const {loadSpec} = await import('../../spec/load.js');
-const {loadPersona} = await import('../../agents/loader.js');
-const driveAgent = await import('../../drive/agent.js');
-const {runType} = await import('../../stages/type.js');
-const {runLint} = await import('../../stages/lint.js');
-const {runArch} = await import('../../stages/arch.js');
-const {runUat} = await import('../../stages/uat.js');
+const {runDriveLoop} = await import('../../src/drive/loop.js');
+const {loadSpec} = await import('../../src/spec/load.js');
+const {loadPersona} = await import('../../src/agents/loader.js');
+const driveAgent = await import('../../src/drive/agent.js');
+const {runType} = await import('../../src/stages/type.js');
+const {runLint} = await import('../../src/stages/lint.js');
+const {runArch} = await import('../../src/stages/arch.js');
+const {runUat} = await import('../../src/stages/uat.js');
 
 const loadSpecMock = loadSpec as unknown as ReturnType<typeof vi.fn>;
 const loadPersonaMock = loadPersona as unknown as ReturnType<typeof vi.fn>;

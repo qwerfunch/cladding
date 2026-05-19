@@ -2,7 +2,7 @@ id: F-005
 title: stage_1.6 Secret — polyglot secret scanning
 status: done
 modules:
-  - stages/secret.ts
+  - src/stages/secret.ts
 depends_on:
   - F-004
   - F-006

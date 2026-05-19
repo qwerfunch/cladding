@@ -2,7 +2,7 @@ id: F-011
 title: MISSING_IMPLEMENTATION drift detector (#2)
 status: done
 modules:
-  - stages/detectors/missing-implementation.ts
+  - src/stages/detectors/missing-implementation.ts
 depends_on:
   - F-003
   - F-010

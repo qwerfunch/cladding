@@ -2,7 +2,7 @@ id: F-035
 title: STALE_EVIDENCE drift detector (#15)
 status: done
 modules:
-  - stages/detectors/stale-evidence.ts
+  - src/stages/detectors/stale-evidence.ts
 depends_on:
   - F-003
   - F-032

@@ -2,7 +2,7 @@ id: F-013
 title: TECH_STACK_MISMATCH drift detector (#4)
 status: done
 modules:
-  - stages/detectors/tech-stack-mismatch.ts
+  - src/stages/detectors/tech-stack-mismatch.ts
 depends_on:
   - F-003
   - F-004

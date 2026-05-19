@@ -19,7 +19,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {missingImplementation} from '../../stages/detectors/missing-implementation.js';
+import {missingImplementation} from '../../src/stages/detectors/missing-implementation.js';
 
 const SPEC_HEADER =
   'schema: "0.1"\n' +

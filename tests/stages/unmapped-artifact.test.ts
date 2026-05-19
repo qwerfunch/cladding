@@ -19,7 +19,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {unmappedArtifact} from '../../stages/detectors/unmapped-artifact.js';
+import {unmappedArtifact} from '../../src/stages/detectors/unmapped-artifact.js';
 
 const SPEC_HEADER =
   'schema: "0.1"\n' +
@@ -32,24 +32,24 @@ describe('UNMAPPED_ARTIFACT detector', () => {
     dir = mkdtempSync(join(tmpdir(), 'clad-unmapped-'));
     writeFileSync(join(dir, 'spec.yaml'), SPEC_HEADER);
     mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
-    mkdirSync(join(dir, 'stages'), {recursive: true});
+    mkdirSync(join(dir, 'src', 'stages'), {recursive: true});
   });
   afterEach(() => {
     rmSync(dir, {recursive: true, force: true});
   });
 
   test('silent when every scanned file is claimed', () => {
-    writeFileSync(join(dir, 'stages', 'alpha.ts'), 'export const a = 1;\n');
+    writeFileSync(join(dir, 'src', 'stages', 'alpha.ts'), 'export const a = 1;\n');
     writeFileSync(
       join(dir, 'spec', 'features', 'F-001.yaml'),
-      'id: F-001\ntitle: t\nstatus: done\nmodules: [stages/alpha.ts]\n',
+      'id: F-001\ntitle: t\nstatus: done\nmodules: [src/stages/alpha.ts]\n',
     );
     expect(unmappedArtifact.run({cwd: dir})).toEqual([]);
   });
 
   test('emits error for each unclaimed source file in scope', () => {
-    writeFileSync(join(dir, 'stages', 'orphan-1.ts'), 'export const a = 1;\n');
-    writeFileSync(join(dir, 'stages', 'orphan-2.ts'), 'export const b = 2;\n');
+    writeFileSync(join(dir, 'src', 'stages', 'orphan-1.ts'), 'export const a = 1;\n');
+    writeFileSync(join(dir, 'src', 'stages', 'orphan-2.ts'), 'export const b = 2;\n');
     writeFileSync(
       join(dir, 'spec', 'features', 'F-001.yaml'),
       'id: F-001\ntitle: t\nstatus: done\n',
@@ -78,17 +78,17 @@ describe('UNMAPPED_ARTIFACT detector', () => {
   });
 
   test('archived feature still claims its modules', () => {
-    writeFileSync(join(dir, 'stages', 'legacy.ts'), 'export const l = 1;\n');
+    writeFileSync(join(dir, 'src', 'stages', 'legacy.ts'), 'export const l = 1;\n');
     writeFileSync(
       join(dir, 'spec', 'features', 'F-001.yaml'),
-      'id: F-001\ntitle: legacy\nstatus: archived\nmodules: [stages/legacy.ts]\n',
+      'id: F-001\ntitle: legacy\nstatus: archived\nmodules: [src/stages/legacy.ts]\n',
     );
     expect(unmappedArtifact.run({cwd: dir})).toEqual([]);
   });
 
   test('absent spec.yaml emits one info finding (not a throw)', () => {
     rmSync(join(dir, 'spec.yaml'));
-    writeFileSync(join(dir, 'stages', 'whatever.ts'), 'export const w = 1;\n');
+    writeFileSync(join(dir, 'src', 'stages', 'whatever.ts'), 'export const w = 1;\n');
     const findings = unmappedArtifact.run({cwd: dir});
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe('info');
@@ -96,15 +96,15 @@ describe('UNMAPPED_ARTIFACT detector', () => {
   });
 
   test('files claimed by different features are all silent', () => {
-    writeFileSync(join(dir, 'stages', 'a.ts'), 'export const a = 1;\n');
-    writeFileSync(join(dir, 'stages', 'b.ts'), 'export const b = 1;\n');
+    writeFileSync(join(dir, 'src', 'stages', 'a.ts'), 'export const a = 1;\n');
+    writeFileSync(join(dir, 'src', 'stages', 'b.ts'), 'export const b = 1;\n');
     writeFileSync(
       join(dir, 'spec', 'features', 'F-001.yaml'),
-      'id: F-001\ntitle: t\nstatus: done\nmodules: [stages/a.ts]\n',
+      'id: F-001\ntitle: t\nstatus: done\nmodules: [src/stages/a.ts]\n',
     );
     writeFileSync(
       join(dir, 'spec', 'features', 'F-002.yaml'),
-      'id: F-002\ntitle: t\nstatus: done\nmodules: [stages/b.ts]\n',
+      'id: F-002\ntitle: t\nstatus: done\nmodules: [src/stages/b.ts]\n',
     );
     expect(unmappedArtifact.run({cwd: dir})).toEqual([]);
   });

@@ -2,7 +2,7 @@ id: F-022
 title: MISSING_TESTS drift detector (#7, v0.1 floor)
 status: done
 modules:
-  - stages/detectors/missing-tests.ts
+  - src/stages/detectors/missing-tests.ts
 depends_on:
   - F-003
   - F-010

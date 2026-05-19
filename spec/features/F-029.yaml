@@ -2,7 +2,7 @@ id: F-029
 title: stage_3.3 Visual — polyglot visual regression delegation
 status: done
 modules:
-  - stages/visual.ts
+  - src/stages/visual.ts
 depends_on:
   - F-004
 acceptance_criteria:

@@ -12,7 +12,7 @@ acceptance_criteria:
     ears: ubiquitous
     action: cover the two polyglot type-and-lint stage runners
     response: tests/stages/type.test.ts and tests/stages/lint.test.ts each exercise unknown-language / explicit override / exit 0 / exit non-zero / stderr-present / stderr-absent / null exit branches with vi.mock('execa'); line coverage on both stage sources reaches at least 85%
-    text: The system shall ship dedicated unit-test files for stages/type.ts and stages/lint.ts, bringing each to at least 85% line coverage by mocking execaSync.
+    text: The system shall ship dedicated unit-test files for src/stages/type.ts and src/stages/lint.ts, bringing each to at least 85% line coverage by mocking execaSync.
     test_refs:
       - tests/stages/type.test.ts
       - tests/stages/lint.test.ts

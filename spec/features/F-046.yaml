@@ -2,7 +2,7 @@ id: F-046
 title: clad init — workspace scaffolder (placeholder → real)
 status: done
 modules:
-  - cli/init.ts
+  - src/cli/init.ts
 depends_on:
   - F-004
   - F-010

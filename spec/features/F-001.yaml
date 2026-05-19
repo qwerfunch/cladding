@@ -2,10 +2,10 @@ id: F-001
 title: stage_1.1 Type — polyglot type-check delegation
 status: done
 modules:
-  - stages/type.ts
-  - stages/types.ts
-  - stages/toolchain/detect.ts
-  - stages/toolchain/types.ts
+  - src/stages/type.ts
+  - src/stages/types.ts
+  - src/stages/toolchain/detect.ts
+  - src/stages/toolchain/types.ts
 acceptance_criteria:
   - id: AC-001
     ears: ubiquitous

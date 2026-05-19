@@ -21,7 +21,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {statusDrift} from '../../stages/detectors/status-drift.js';
+import {statusDrift} from '../../src/stages/detectors/status-drift.js';
 
 const SPEC_HEADER =
   'schema: "0.1"\n' +

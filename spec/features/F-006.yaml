@@ -2,7 +2,7 @@ id: F-006
 title: HARDCODED_SECRET drift detector (#11)
 status: done
 modules:
-  - stages/detectors/hardcoded-secret.ts
+  - src/stages/detectors/hardcoded-secret.ts
 depends_on:
   - F-003
   - F-004

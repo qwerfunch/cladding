@@ -2,8 +2,8 @@ id: F-033
 title: stage_4.1 Audit + stage_4.2 UAT — Level 4 HITL stages
 status: done
 modules:
-  - stages/audit.ts
-  - stages/uat.ts
+  - src/stages/audit.ts
+  - src/stages/uat.ts
 depends_on:
   - F-032
 acceptance_criteria:

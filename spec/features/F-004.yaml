@@ -2,8 +2,8 @@ id: F-004
 title: Polyglot toolchain adapter
 status: done
 modules:
-  - stages/toolchain/detect.ts
-  - stages/toolchain/types.ts
+  - src/stages/toolchain/detect.ts
+  - src/stages/toolchain/types.ts
 acceptance_criteria:
   - id: AC-006
     ears: event

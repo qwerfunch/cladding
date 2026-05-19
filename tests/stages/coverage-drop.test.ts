@@ -17,7 +17,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {coverageDrop} from '../../stages/detectors/coverage-drop.js';
+import {coverageDrop} from '../../src/stages/detectors/coverage-drop.js';
 
 function writeSummary(dir: string, content: string): void {
   mkdirSync(join(dir, 'coverage'), {recursive: true});

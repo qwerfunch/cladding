@@ -6,7 +6,7 @@
 
 import {describe, expect, test} from 'vitest';
 
-import {headTail} from '../../optimizer/tail.js';
+import {headTail} from '../../src/optimizer/tail.js';
 
 describe('headTail', () => {
   test('returns input unchanged when total lines ≤ head + tail', () => {

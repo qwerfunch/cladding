@@ -17,9 +17,9 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {appendEvidence} from '../../hitl/audit.js';
-import {newEvidence} from '../../hitl/identity.js';
-import {runUat} from '../../stages/uat.js';
+import {appendEvidence} from '../../src/hitl/audit.js';
+import {newEvidence} from '../../src/hitl/identity.js';
+import {runUat} from '../../src/stages/uat.js';
 
 const SPEC_HEADER =
   'schema: "0.1"\n' +

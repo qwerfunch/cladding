@@ -2,8 +2,8 @@
 
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {clearDetectors, registerDetector, registeredDetectors, runDrift} from '../../stages/drift.js';
-import type {DriftDetector} from '../../stages/types.js';
+import {clearDetectors, registerDetector, registeredDetectors, runDrift} from '../../src/stages/drift.js';
+import type {DriftDetector} from '../../src/stages/types.js';
 
 const noop: DriftDetector = {name: 'TEST_NOOP', run: () => []};
 const failer: DriftDetector = {

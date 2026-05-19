@@ -2,7 +2,7 @@ id: F-021
 title: stage_2.1 Unit — polyglot unit-test delegation
 status: done
 modules:
-  - stages/unit.ts
+  - src/stages/unit.ts
 depends_on:
   - F-004
 acceptance_criteria:

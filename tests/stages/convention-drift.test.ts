@@ -19,7 +19,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {conventionDrift} from '../../stages/detectors/convention-drift.js';
+import {conventionDrift} from '../../src/stages/detectors/convention-drift.js';
 
 const SPEC_HEADER =
   'schema: "0.1"\n' +

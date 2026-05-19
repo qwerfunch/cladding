@@ -27,7 +27,7 @@ interface PluginManifest {
 }
 
 function countDetectorFiles(cwd: string): number {
-  const files = globSync(['stages/detectors/*.ts'], {cwd, dot: false});
+  const files = globSync(['src/stages/detectors/*.ts'], {cwd, dot: false});
   return files.filter((f) => !f.endsWith('/index.ts') && !f.endsWith('\\index.ts')).length;
 }
 

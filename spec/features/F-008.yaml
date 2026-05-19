@@ -2,7 +2,7 @@ id: F-008
 title: stage_1.5 Arch — architecture validation delegation
 status: done
 modules:
-  - stages/arch.ts
+  - src/stages/arch.ts
 depends_on:
   - F-004
   - F-009

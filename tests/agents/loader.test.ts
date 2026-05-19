@@ -15,7 +15,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {clearPersonaCache, loadPersona} from '../../agents/loader.js';
+import {clearPersonaCache, loadPersona} from '../../src/agents/loader.js';
 
 describe('loadPersona', () => {
   let root: string;

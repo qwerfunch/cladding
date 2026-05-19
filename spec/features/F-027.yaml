@@ -2,8 +2,8 @@ id: F-027
 title: stage_3.1 Smoke — polyglot e2e delegation
 status: done
 modules:
-  - stages/smoke.ts
-  - stages/util.ts
+  - src/stages/smoke.ts
+  - src/stages/util.ts
 depends_on:
   - F-004
 acceptance_criteria:

@@ -2,12 +2,12 @@ id: F-036
 title: 5-agent personas + invocation principles
 status: done
 modules:
-  - agents/orchestrator.md
-  - agents/librarian.md
-  - agents/reviewer.md
-  - agents/observability.md
-  - agents/specialists.md
-  - agents/README.md
+  - src/agents/orchestrator.md
+  - src/agents/librarian.md
+  - src/agents/reviewer.md
+  - src/agents/observability.md
+  - src/agents/specialists.md
+  - src/agents/README.md
 acceptance_criteria:
   - id: AC-055
     ears: ubiquitous
@@ -19,11 +19,11 @@ acceptance_criteria:
       agents/*.md, each with a system prompt declaring scope, tools, and
       boundaries.
     evidence_refs:
-      - agents/orchestrator.md
-      - agents/librarian.md
-      - agents/reviewer.md
-      - agents/observability.md
-      - agents/specialists.md
+      - src/agents/orchestrator.md
+      - src/agents/librarian.md
+      - src/agents/reviewer.md
+      - src/agents/observability.md
+      - src/agents/specialists.md
 
   - id: AC-056
     ears: ubiquitous
@@ -33,4 +33,4 @@ acceptance_criteria:
     text: The orchestrator persona shall encode the five invocation principles
       (specialization · audit-separation · parallelism · evidence-first ·
       least-context) as its routing logic.
-    evidence_refs: [agents/orchestrator.md]
+    evidence_refs: [src/agents/orchestrator.md]

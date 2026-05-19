@@ -2,7 +2,7 @@ id: F-026
 title: COVERAGE_DROP drift detector (#9)
 status: done
 modules:
-  - stages/detectors/coverage-drop.ts
+  - src/stages/detectors/coverage-drop.ts
 depends_on:
   - F-003
   - F-024

@@ -9,7 +9,7 @@
 
 import {describe, expect, test} from 'vitest';
 
-import {DEFAULT_PREAMBLE_PATTERNS, suppressPreamble} from '../../optimizer/preamble.js';
+import {DEFAULT_PREAMBLE_PATTERNS, suppressPreamble} from '../../src/optimizer/preamble.js';
 
 describe('suppressPreamble', () => {
   test('strips "You are X agent" preamble', () => {

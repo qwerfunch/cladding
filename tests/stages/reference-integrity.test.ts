@@ -14,7 +14,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {referenceIntegrity} from '../../stages/detectors/reference-integrity.js';
+import {referenceIntegrity} from '../../src/stages/detectors/reference-integrity.js';
 
 const SPEC_HEADER =
   'schema: "0.1"\n' +

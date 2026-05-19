@@ -2,24 +2,24 @@ id: F-049
 title: Cladding drive — agent dispatch & runtime orchestration (host or sdk)
 status: in_progress
 modules:
-  - adapters/types.ts
-  - adapters/host/claude-code.ts
-  - adapters/host/generic-mcp.ts
-  - adapters/index.ts
-  - drive/agent.ts
-  - drive/loop.ts
-  - agents/loader.ts
+  - src/adapters/types.ts
+  - src/adapters/host/claude-code.ts
+  - src/adapters/host/generic-mcp.ts
+  - src/adapters/index.ts
+  - src/drive/agent.ts
+  - src/drive/loop.ts
+  - src/agents/loader.ts
 depends_on:
   - F-048
 acceptance_criteria:
   - id: AC-085
     ears: ubiquitous
     action: dispatch the five agent personas at runtime when the drive loop authors a feature
-    response: drive/agent.ts loads each persona from agents/*.md and invokes the active agent adapter (host or sdk) via the invokeAgent(persona, ctx) → AgentResult interface with a least-context payload (current feature shard + tagged guardrails)
+    response: src/drive/agent.ts loads each persona from agents/*.md and invokes the active agent adapter (host or sdk) via the invokeAgent(persona, ctx) → AgentResult interface with a least-context payload (current feature shard + tagged guardrails)
     text: >-
       The system shall dispatch the five agent personas (orchestrator ·
       librarian · reviewer · observability · specialists) at runtime when
-      drive authors a feature. drive/agent.ts loads each persona from
+      drive authors a feature. src/drive/agent.ts loads each persona from
       agents/*.md and invokes the active agent adapter — host (Claude
       Code subagent · Cursor · Continue · Cline · generic MCP) or sdk
       (Anthropic · OpenAI · Gemini) — via the
@@ -48,7 +48,7 @@ acceptance_criteria:
     ears: event
     condition: when a feature has cleared L1-L3 but stage_4.2 UAT lacks human-pass evidence
     action: halt the drive loop with class HUMAN_REQUIRED
-    response: drive/halt.ts class HUMAN_REQUIRED resolves with a reason string carrying the feature id and the missing UAT evidence path
+    response: src/drive/halt.ts class HUMAN_REQUIRED resolves with a reason string carrying the feature id and the missing UAT evidence path
     text: >-
       When a feature in flight clears L1-L3 but stage_4.2 UAT lacks
       human-pass evidence in the audit log, the system shall halt the
@@ -61,7 +61,7 @@ acceptance_criteria:
     ears: unwanted
     condition: if the active agent adapter's invocation fails (host-unavailable · auth · rate-limit · network · context-window · safety-filter)
     action: halt the drive loop with class LLM_UNAVAILABLE
-    response: drive/halt.ts class LLM_UNAVAILABLE resolves with the underlying adapter error class and a single retry budget already consumed
+    response: src/drive/halt.ts class LLM_UNAVAILABLE resolves with the underlying adapter error class and a single retry budget already consumed
     text: >-
       If the active agent adapter's invocation fails during dispatch —
       for host-unavailable, authentication, rate-limit, network,
@@ -76,10 +76,10 @@ acceptance_criteria:
   - id: AC-089
     ears: ubiquitous
     action: select the active agent adapter from configuration
-    response: adapters/index.ts reads .cladding/config.yaml (key agent.mode ∈ {host, sdk}, agent.name) or the CLADDING_AGENT_MODE / CLADDING_AGENT_NAME env vars; default = host + auto-detect (claude-code when running inside Claude Code, generic-mcp otherwise)
+    response: src/adapters/index.ts reads .cladding/config.yaml (key agent.mode ∈ {host, sdk}, agent.name) or the CLADDING_AGENT_MODE / CLADDING_AGENT_NAME env vars; default = host + auto-detect (claude-code when running inside Claude Code, generic-mcp otherwise)
     text: >-
       The system shall select the active agent adapter from a single
-      configuration entry. adapters/index.ts shall read
+      configuration entry. src/adapters/index.ts shall read
       .cladding/config.yaml (`agent.mode ∈ {host, sdk}`, `agent.name`)
       and the `CLADDING_AGENT_MODE` / `CLADDING_AGENT_NAME` environment
       variables, with env vars taking precedence. When no configuration
@@ -120,7 +120,7 @@ acceptance_criteria:
   - id: AC-092
     ears: ubiquitous
     action: ship v0.2.0 with mock host adapter bodies and defer the real transport to v0.3.0
-    response: adapters/host/claude-code.ts and adapters/host/generic-mcp.ts return deterministic stub AgentResults in v0.2.0; v0.3.0 introduces the MCP server mode (`clad serve`) that real Claude Code subagent and MCP-client roundtrips dispatch through
+    response: src/adapters/host/claude-code.ts and src/adapters/host/generic-mcp.ts return deterministic stub AgentResults in v0.2.0; v0.3.0 introduces the MCP server mode (`clad serve`) that real Claude Code subagent and MCP-client roundtrips dispatch through
     text: >-
       The system shall ship v0.2.0 with mock bodies in the two host
       adapters (claude-code · generic-mcp), the full AgentAdapter

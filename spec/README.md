@@ -20,7 +20,7 @@ The SSoT (Single Source of Truth) data layer. Defines what a cladding spec.yaml 
 | `schema.json` | JSON Schema (draft-07) — single source for both runtime validation and editor IntelliSense |
 | `parse.ts` | `parseSpec(path)` — read file, parse YAML, return raw object |
 | `validate.ts` | `validateSpec(payload)` + `assertSpec(payload)` — Ajv-style validation via `jsonschema` |
-| `cli.ts` | CLI entry — `tsx spec/cli.ts [path]` → JSON result, exit 0/1/2 |
+| `cli.ts` | CLI entry — `tsx src/spec/cli.ts [path]` → JSON result, exit 0/1/2 |
 
 ## [SHAPE]
 

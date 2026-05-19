@@ -23,7 +23,7 @@ const NAME = 'UNMAPPED_ARTIFACT';
  * fixtures, generated files, and tooling configs don't appear as
  * findings.
  */
-const SCAN_PATTERNS: readonly string[] = ['stages/**/*.ts', 'spec/**/*.ts'];
+const SCAN_PATTERNS: readonly string[] = ['src/stages/**/*.ts', 'src/spec/**/*.ts'];
 
 /**
  * Finds source files not referenced by any `features[].modules`.

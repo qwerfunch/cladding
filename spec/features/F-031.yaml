@@ -2,7 +2,7 @@ id: F-031
 title: Spec sharding — multi-file SSoT support (T2c)
 status: done
 modules:
-  - spec/load.ts
+  - src/spec/load.ts
   - tests/spec/load.test.ts
 depends_on:
   - F-010

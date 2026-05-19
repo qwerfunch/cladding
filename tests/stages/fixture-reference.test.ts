@@ -13,7 +13,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {fixtureReference} from '../../stages/detectors/fixture-reference.js';
+import {fixtureReference} from '../../src/stages/detectors/fixture-reference.js';
 
 const SPEC_HEADER =
   'schema: "0.1"\n' +

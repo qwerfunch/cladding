@@ -13,7 +13,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {appendEvent, newEvent, readEvents} from '../../events/log.js';
+import {appendEvent, newEvent, readEvents} from '../../src/events/log.js';
 
 describe('events/log.ts', () => {
   let dir: string;

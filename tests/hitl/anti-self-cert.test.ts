@@ -2,8 +2,8 @@
 
 import {describe, expect, test} from 'vitest';
 
-import {checkAc, failingAcs} from '../../hitl/anti-self-cert.js';
-import type {Evidence} from '../../hitl/identity.js';
+import {checkAc, failingAcs} from '../../src/hitl/anti-self-cert.js';
+import type {Evidence} from '../../src/hitl/identity.js';
 
 function ev(acId: string | undefined, author: 'human' | 'llm' | 'tool'): Evidence {
   return {

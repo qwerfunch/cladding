@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {loadSpec} from '../../spec/load.js';
+import {loadSpec} from '../../src/spec/load.js';
 
 describe('loadSpec', () => {
   let dir: string;

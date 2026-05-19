@@ -2,8 +2,8 @@
 
 import {describe, expect, test} from 'vitest';
 
-import {pruneToFeature} from '../../optimizer/prune.js';
-import type {Spec} from '../../spec/types.js';
+import {pruneToFeature} from '../../src/optimizer/prune.js';
+import type {Spec} from '../../src/spec/types.js';
 
 const baseSpec: Spec = {
   schema: '0.1',

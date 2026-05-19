@@ -2,8 +2,8 @@
 
 import {describe, expect, test} from 'vitest';
 
-import {checkAc} from '../../spec/ears.js';
-import type {Feature} from '../../spec/types.js';
+import {checkAc} from '../../src/spec/ears.js';
+import type {Feature} from '../../src/spec/types.js';
 
 const feature: Feature = {id: 'F-001', title: 't', status: 'done'};
 

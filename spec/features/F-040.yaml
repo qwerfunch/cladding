@@ -3,9 +3,9 @@ title: clad CLI + Pulse UI + Integrity Panel
 status: done
 modules:
   - bin/clad
-  - cli/clad.ts
-  - ui/pulse.ts
-  - ui/panel.ts
+  - src/cli/clad.ts
+  - src/ui/pulse.ts
+  - src/ui/panel.ts
 depends_on:
   - F-039
 acceptance_criteria:

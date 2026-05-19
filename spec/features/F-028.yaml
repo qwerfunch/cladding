@@ -2,7 +2,7 @@ id: F-028
 title: stage_3.2 Perf — polyglot performance budget delegation
 status: done
 modules:
-  - stages/perf.ts
+  - src/stages/perf.ts
 depends_on:
   - F-004
 acceptance_criteria:

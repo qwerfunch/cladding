@@ -14,7 +14,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {staleSpecification} from '../../stages/detectors/stale-specification.js';
+import {staleSpecification} from '../../src/stages/detectors/stale-specification.js';
 
 const SPEC_HEADER =
   'schema: "0.1"\n' +

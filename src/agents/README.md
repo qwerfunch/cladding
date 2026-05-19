@@ -40,7 +40,7 @@ Each delegation carries:
 ## [BOUNDARIES]
 
 Cross-boundary rules:
-- `librarian` never touches `stages/` · `hitl/` · production code
+- `librarian` never touches `src/stages/` · `src/hitl/` · production code
 - `reviewer` never writes anywhere (read-only by design)
 - `specialists` never edits `spec.yaml` (file for `librarian` instead)
 - `observability` never invents metrics (only aggregates existing artifacts)
@@ -48,6 +48,6 @@ Cross-boundary rules:
 
 ## [TBD]
 
-- Routing config (`agents/routing.yaml`) with intent → agent mapping — folded into `commands/work.md` in v0.1
+- Routing config (`src/agents/routing.yaml`) with intent → agent mapping — folded into `commands/work.md` in v0.1
 - LLM-assisted CONVENTION_DRIFT detector — lives behind `reviewer` (T9b · L16)
 - UNTESTED_AC detector that resolves `test_refs` to real vitest names — lives behind `specialists` (T9b · L16)

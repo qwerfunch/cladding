@@ -11,9 +11,9 @@ import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {describe, expect, test} from 'vitest';
 
-import {missingTests} from '../../stages/detectors/missing-tests.js';
-import {untestedAc} from '../../stages/detectors/untested-ac.js';
-import {loadSpec} from '../../spec/load.js';
+import {missingTests} from '../../src/stages/detectors/missing-tests.js';
+import {untestedAc} from '../../src/stages/detectors/untested-ac.js';
+import {loadSpec} from '../../src/spec/load.js';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
