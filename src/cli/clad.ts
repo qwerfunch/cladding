@@ -30,7 +30,7 @@ import {pulse} from '../ui/pulse.js';
 import {renderPanel} from '../ui/panel.js';
 import {featureLabel, gateLabel, haltMessage} from '../ui/softShell.js';
 
-/** Handler for `clad serve`. Boots the MCP server over stdio (v0.2.24). */
+/** Handler for `clad serve`. Boots the MCP server over stdio. */
 export async function runServeCommand(opts: {cwd?: string}): Promise<void> {
   // Dynamic import: the MCP SDK is sizeable and most `clad` invocations
   // never reach `serve`. Loading it on-demand keeps cold-start fast.
@@ -189,7 +189,7 @@ export function runRouteCommand(prompt: string): void {
  */
 export function createProgram(): Command {
   const program = new Command();
-  program.name('clad').description('Reference Ironclad CLI').version('0.3.3');
+  program.name('clad').description('Reference Ironclad CLI').version('0.3.4');
 
   program
     .command('init')
@@ -205,7 +205,7 @@ export function createProgram(): Command {
 
   program
     .command('drive [goal]')
-    .description('Autonomous loop (deterministic floor; LLM dispatch arrives with F-049 in v0.2) — iterate ready features, create stubs, run L1 gates, record evidence')
+    .description('Autonomous loop — iterate ready features, dispatch specialist + reviewer personas, run L1 gates, enforce anti-self-cert, record evidence')
     .option('--cwd <path>', 'target project directory (default cwd)')
     .option('--max-iterations <n>', 'cap iterations (default 50)', '50')
     .option('--max-wall-clock-ms <ms>', 'cap wall clock (default 600000)', '600000')
@@ -238,7 +238,7 @@ export function createProgram(): Command {
 
   program
     .command('serve')
-    .description('Run cladding as an MCP server over stdio (v0.2.24) — tools/resources/prompts for any MCP client')
+    .description('Run cladding as an MCP server over stdio — tools/resources/prompts for any MCP client')
     .option('--cwd <path>', 'project directory exposed to the client (default cwd)')
     .action(runServeCommand);
 
