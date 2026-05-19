@@ -1,0 +1,54 @@
+id: F-063
+title: Coverage sweep — drive · agents · events · optimizer · ui all covered
+status: done
+modules:
+  - tests/drive/loop.test.ts
+  - tests/agents/loader.test.ts
+  - tests/events/log.test.ts
+  - tests/optimizer/preamble.test.ts
+  - tests/optimizer/tail.test.ts
+  - tests/ui/pulse.test.ts
+  - tests/ui/panel.test.ts
+depends_on: [F-062]
+acceptance_criteria:
+  - id: AC-158
+    ears: ubiquitous
+    action: cover the autonomous-loop driver
+    response: tests/drive/loop.test.ts mocks loadSpec / loadPersona / runAgent / stage runners / events / audit and exercises every halt branch (UNCAUGHT_ERROR / ALL_FEATURES_DONE / BLOCKED_FEATURE / LLM_UNAVAILABLE / HUMAN_REQUIRED / MAX_ITERATIONS) plus happy path; drive/loop.ts reaches ≥ 85% line coverage
+    text: The system shall ship tests/drive/loop.test.ts bringing drive/loop.ts to at least 85% line coverage, with every halt class exercised.
+    test_refs: [tests/drive/loop.test.ts]
+  - id: AC-159
+    ears: ubiquitous
+    action: cover the persona loader
+    response: tests/agents/loader.test.ts exercises happy-path frontmatter / missing frontmatter / unterminated frontmatter / unknown-capability filter / missing file / cache reuse / cache clear; agents/loader.ts reaches at least 90% line coverage
+    text: The system shall ship tests/agents/loader.test.ts bringing agents/loader.ts to at least 90% line coverage.
+    test_refs: [tests/agents/loader.test.ts]
+  - id: AC-160
+    ears: ubiquitous
+    action: cover events.log append / read round-trip
+    response: tests/events/log.test.ts exercises newEvent shape, directory auto-creation, round-trip, absent / empty / whitespace-only log, multi-append order; events/log.ts reaches 100% line coverage
+    text: The system shall ship tests/events/log.test.ts bringing events/log.ts to 100% line coverage.
+    test_refs: [tests/events/log.test.ts]
+  - id: AC-161
+    ears: ubiquitous
+    action: cover the optimizer remainder (preamble + tail)
+    response: tests/optimizer/preamble.test.ts and tests/optimizer/tail.test.ts each exercise their helpers' branches; both source files reach 100% line coverage and the optimizer/ chapter closes alongside the existing optimizer/prune.test.ts
+    text: The system shall ship dedicated tests for optimizer/preamble.ts and optimizer/tail.ts, bringing both to 100% line coverage so the optimizer chapter closes.
+    test_refs:
+      - tests/optimizer/preamble.test.ts
+      - tests/optimizer/tail.test.ts
+  - id: AC-162
+    ears: ubiquitous
+    action: cover the ui modules (pulse + panel)
+    response: tests/ui/pulse.test.ts covers TTY-vs-non-TTY rendering + every PulseKind glyph; tests/ui/panel.test.ts covers default / internal mode, L4 cell derivation, audit-empty fallback, title fallback; both source files reach 100% line coverage and the ui chapter closes alongside the existing tests/ui/softShell.test.ts
+    text: The system shall ship dedicated tests for ui/pulse.ts and ui/panel.ts, bringing both to 100% line coverage so the ui chapter closes.
+    test_refs:
+      - tests/ui/pulse.test.ts
+      - tests/ui/panel.test.ts
+  - id: AC-163
+    ears: state
+    condition: while the v0.2.14 sweep lands
+    action: raise overall line coverage materially under the widened scope
+    response: vitest --coverage reports overall line coverage rises from 74.42% (v0.2.13 baseline) to ≥ 85% — five additional dirs (agents · drive · events · optimizer · ui) now closed
+    text: While the v0.2.14 sweep lands, overall line coverage shall rise from 74.42% to at least 85%, closing the agents · drive · events · optimizer · ui chapters in a single batch.
+    evidence_refs: [CHANGELOG.md]
