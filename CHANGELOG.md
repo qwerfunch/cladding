@@ -5,6 +5,26 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] — Unreleased — Claude Code plugin formalization (F-076)
+
+**Phase 1 of the multi-host plugin rollout.** cladding has been on the Anthropic Claude Code plugin marketplace as a *declaration-only* surface — `.claude-plugin/plugin.json` carried metadata but the plugin manifest's `skills/`, `agents/`, and `.mcp.json` were missing. This patch promotes cladding to a *real* Claude Code plugin: install it, and you get six namespaced skills (`/cladding:sync`, `/cladding:check`, `/cladding:panel`, `/cladding:drive`, `/cladding:init`, `/cladding:serve`), the five persona agents, and an auto-launched MCP server — no manual configuration.
+
+### Added
+
+- `.mcp.json` at the plugin root — registers cladding's MCP server (`clad serve`) so Claude Code auto-launches it whenever the plugin is enabled. This is what closes the loop: host adapters route through MCP sampling the moment the plugin loads, no `clad serve` command from the user needed.
+- `skills/{sync,check,panel,drive,init,serve}/SKILL.md` — six verbs as Claude Code skills with YAML frontmatter `description` for model invocation. Each body explains what the verb does and when to use it.
+- `agents/{orchestrator,librarian,reviewer,observability,specialists}.md` — the five persona files mirrored from `src/agents/` so Claude Code's agent picker surfaces them. The mirror is produced by `scripts/build-plugin.mjs` and committed to git.
+- `scripts/build-plugin.mjs` — one-way copy from `src/agents/` (canonical source) to `agents/` (plugin manifest mirror). Drops an AUTO-GENERATED header in `agents/README.md` so hand-edits are caught.
+- `package.json` — new `build:plugin` script; `build` now chains `build.mjs && build-plugin.mjs`.
+- `spec/features/F-076.yaml` — "Claude Code plugin formalization" (5 ACs, status `done`).
+
+### Notes
+
+- `commands/clad.md` remains for backward compatibility — users on an older Claude Code release that prefers `commands/<name>.md` over `skills/<name>/SKILL.md` still get `/cladding:clad <verb>`. The modern surface coexists rather than replaces.
+- After installing the plugin via `/plugin install cladding`, calling `/cladding:check` invokes the same drift suite as `clad check` from the shell — same code path, different surface.
+- The auto-launched MCP server means the host adapters (`generic-mcp`, `claude-code`) flip from Mock to McpSamplingTransport without user intervention; cladding's drive loop dispatches real LLM calls through Claude Code's sampling channel from the first invocation.
+- v0.3.2 plan: Phase 2 — Codex plugin (`.codex-plugin/plugin.json`) under `plugins/codex/`.
+
 ## [0.3.0] — 2026-05-19 — First minor — host MCP transport · live audit · F-049 done
 
 **The v0.2.19 → v0.2.26 thread closes here.** F-049 (the agent dispatch + runtime orchestration feature whose Mock host bodies have been the project's biggest known deferral since v0.2.0) is now `done`. cladding ships a real transport for both modes:

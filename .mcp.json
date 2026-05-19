@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "cladding": {
+      "command": "clad",
+      "args": ["serve"],
+      "description": "Ironclad cladding — exposes spec / drift / events / personas as MCP tools, resources, prompts. Boots cladding's host-side sampling routing automatically."
+    }
+  }
+}

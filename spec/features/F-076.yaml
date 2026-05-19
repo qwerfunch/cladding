@@ -1,0 +1,61 @@
+id: F-076
+title: Claude Code plugin formalization — skills · agents mirror · .mcp.json (v0.3.1)
+status: done
+modules:
+  - .mcp.json
+  - skills/sync/SKILL.md
+  - skills/check/SKILL.md
+  - skills/panel/SKILL.md
+  - skills/drive/SKILL.md
+  - skills/init/SKILL.md
+  - skills/serve/SKILL.md
+  - agents/orchestrator.md
+  - agents/librarian.md
+  - agents/reviewer.md
+  - agents/observability.md
+  - agents/specialists.md
+  - scripts/build-plugin.mjs
+depends_on: [F-049, F-073]
+acceptance_criteria:
+  - id: AC-223
+    ears: ubiquitous
+    action: declare cladding's MCP server at the Claude Code plugin root
+    response: '.mcp.json at the repo root registers a cladding MCP server that runs `clad serve`; Claude Code picks the manifest up automatically when the plugin is enabled, no user-side configuration needed'
+    text: The system shall declare cladding's MCP server (`clad serve`) in a `.mcp.json` at the plugin root so Claude Code auto-launches it whenever the cladding plugin is enabled, without requiring the user to edit settings or run a separate command.
+    evidence_refs: [.mcp.json]
+  - id: AC-224
+    ears: ubiquitous
+    action: expose cladding verbs as Claude Code skills
+    response: skills/<verb>/SKILL.md exists for each of sync, check, panel, drive, init, serve with YAML frontmatter declaring a description and a body explaining what the verb does and when to use it
+    text: The system shall expose cladding's six primary verbs (sync, check, panel, drive, init, serve) as Claude Code skills under skills/<verb>/SKILL.md so a user can invoke them via /cladding:<verb> instead of the bare CLI.
+    evidence_refs:
+      - skills/sync/SKILL.md
+      - skills/check/SKILL.md
+      - skills/panel/SKILL.md
+      - skills/drive/SKILL.md
+      - skills/init/SKILL.md
+      - skills/serve/SKILL.md
+  - id: AC-225
+    ears: ubiquitous
+    action: mirror cladding's persona files into the plugin's agents directory
+    response: agents/<persona>.md exists for each of orchestrator, librarian, reviewer, observability, specialists, copied verbatim from src/agents by scripts/build-plugin.mjs
+    text: The system shall mirror cladding's five persona files (orchestrator, librarian, reviewer, observability, specialists) from src/agents/ into agents/ at the plugin root so Claude Code's agent picker surfaces them; the copy is performed by scripts/build-plugin.mjs and the result is committed to git.
+    evidence_refs:
+      - agents/orchestrator.md
+      - agents/librarian.md
+      - agents/reviewer.md
+      - agents/observability.md
+      - agents/specialists.md
+  - id: AC-226
+    ears: state
+    condition: while npm run build (or npm run build:plugin) is invoked
+    action: regenerate the agents/ mirror from src/agents
+    response: scripts/build-plugin.mjs copies every src/agents/<id>.md (excluding README.md) into agents/<id>.md, overwriting any prior contents, and writes an AUTO-GENERATED header to agents/README.md so a human reading the directory knows the files are build artifacts
+    text: While npm run build or npm run build:plugin is invoked, the system shall regenerate the agents/ plugin mirror from src/agents/ so source and plugin manifest stay in lockstep and a hand-edit of agents/<id>.md is reverted on the next build.
+    evidence_refs: [scripts/build-plugin.mjs]
+  - id: AC-227
+    ears: ubiquitous
+    action: keep the legacy commands/clad.md surface for backward compatibility
+    response: commands/clad.md remains in the plugin root; users running an older Claude Code version that prefers commands/<name>.md over skills/<name>/SKILL.md still get a working /cladding:clad <verb> wrapper
+    text: The system shall keep the legacy commands/clad.md surface so users on an older Claude Code release still have a working `/cladding:clad <verb>` slash command; the modern skills/ surface (v0.3.1+) coexists rather than replaces.
+    evidence_refs: [commands/clad.md]
