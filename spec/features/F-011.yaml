@@ -15,8 +15,7 @@ acceptance_criteria:
     text: The system shall emit an error-severity drift finding for every module
       path declared in spec.yaml that does not exist on disk, failing stage_1.3
       when at least one is produced.
-    test_refs:
-      - fixture:missing-implementation
+    evidence_refs: [fixture:missing-implementation]
   - id: AC-018
     ears: unwanted
     condition: if spec.yaml is absent or unparseable

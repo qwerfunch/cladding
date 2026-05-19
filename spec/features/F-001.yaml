@@ -14,8 +14,7 @@ acceptance_criteria:
     text: The system shall delegate type checking to the project's own toolchain,
       returning a stage_1.1 result whose exit code mirrors the underlying type
       checker.
-    test_refs:
-      - self-dogfood:stage:type
+    evidence_refs: [self-dogfood:stage:type]
   - id: AC-002
     ears: event
     condition: when no type checker is registered for the detected language

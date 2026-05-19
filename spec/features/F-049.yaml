@@ -132,5 +132,4 @@ acceptance_criteria:
       then the mock bodies satisfy the interface but do not cross
       a real LLM boundary. The architectural decision and rationale
       are recorded in docs/multi-provider-roadmap.md.
-    test_refs:
-      - docs/multi-provider-roadmap.md
+    evidence_refs: [docs/multi-provider-roadmap.md]

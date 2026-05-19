@@ -5,6 +5,28 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] — Unreleased — `test_refs` / `evidence_refs` split (F-052)
+
+v0.2.2 reframed the detector headline; this patch fixes the *spec data* underneath it. Cladding's own 50-feature spec was burying npm-script names (`self-dogfood:stage:*`), conformance fixture pointers (`fixture:*`), and doc paths (`*.md`, `docs/*`) inside `test_refs` — making `UNTESTED_AC` skip them via a `self-dogfood:` / `fixture:` prefix dance and obscuring which ACs were actually verified by executable code-tests. v0.2.3 introduces a parallel `evidence_refs` field, migrates the 24 mis-categorised refs across 22 ACs, and teaches `MISSING_TESTS` to count either field as satisfying the verification requirement.
+
+### Added
+
+- `acceptance_criterion.evidence_refs` — schema-level sibling of `test_refs` for non-test verification artifacts (npm scripts, conformance fixtures, curated docs/reports). Documented in `spec/schema.json`, typed in `spec/types.ts`, and described under "AC evidence taxonomy" in `stages/detectors/README.md`.
+- `tests/stages/missing-tests.test.ts` — 6 unit tests covering the new four-quadrant decision matrix (neither / test_refs-only / evidence_refs-only / both) plus the status=planned skip case and multi-AC independence.
+- `spec/features/F-052.yaml` — "test_refs / evidence_refs split — honest AC verification taxonomy" (4 ACs, status `done`).
+
+### Changed
+
+- `stages/detectors/missing-tests.ts` — silent when *either* `test_refs` or `evidence_refs` is non-empty for a `status: done` AC. Both empty still triggers `warn` (escalates to `error` under `--strict`). Detector message now names both fields.
+- `spec/features/F-001.yaml` .. `F-051.yaml` — 22 ACs migrated. Every former `test_refs: [self-dogfood:…]` / `[fixture:…]` / `[*.md]` entry now lives under `evidence_refs`. `test_refs` retains only paths matching `tests/**` or `*.test.*`.
+- `stages/detectors/README.md` — new "AC evidence taxonomy" section explains the split and which detector inspects which field.
+
+### Notes
+
+- 56 of cladding's own ACs still have neither `test_refs` nor `evidence_refs` (audited 2026-05-19). These trigger `MISSING_TESTS warn` today; closing them is a v0.2.4+ audit that requires per-AC judgement about which evidence kind actually exists. The current patch fixes the *taxonomy*, not the *coverage*.
+- `UNTESTED_AC` (the path-resolving detector) is unchanged. It only inspects `test_refs` because its truth condition is "file exists on disk"; `evidence_refs` entries are deliberately out of its scope.
+- The `self-dogfood:` / `fixture:` skip prefixes in `untested-ac.ts` are now dead code for cladding's own spec but kept for backward compatibility with user spec.yaml files mid-migration.
+
 ## [0.2.2] — Unreleased — Detector honesty patch
 
 A 2026-05-19 controlled drift-inject experiment (`cladding-abc/08-drift-inject/`) measured cladding's detector set against four scenarios (UNMAPPED_ARTIFACT, MISSING_IMPLEMENTATION, AC_DRIFT, UNTESTED_AC). The result — 2.5/4 catch rate — surfaced that the "19 detectors" headline oversells the bare metal. This patch corrects the framing without changing default behaviour, and adds an opt-in `--strict` mode that promotes warn-severity drift findings to fail the stage.

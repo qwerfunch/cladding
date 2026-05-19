@@ -16,8 +16,7 @@ acceptance_criteria:
       point-by-point messages
     text: The system shall parse spec.yaml and validate it against schema.json,
       returning point-by-point errors when invalid.
-    test_refs:
-      - self-dogfood:spec:validate
+    evidence_refs: [self-dogfood:spec:validate]
   - id: AC-016
     ears: state
     condition: while the schema field equals the supported version

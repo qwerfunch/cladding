@@ -21,5 +21,4 @@ acceptance_criteria:
     text: The system shall extend the conformance runner with 14 additional fixtures
       (L2 ×4, L3 ×6, L4 ×4) and declare iron_law='L4' only when all 26 fixtures
       match their expected signal.
-    test_refs:
-      - self-dogfood:conformance
+    evidence_refs: [self-dogfood:conformance]

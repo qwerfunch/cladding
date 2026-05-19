@@ -10,8 +10,7 @@ acceptance_criteria:
     response: returns a stage_1.4 StageResult
     text: The system shall invoke `git status --porcelain` and pass stage_1.4 iff
       the working tree and index are both clean.
-    test_refs:
-      - self-dogfood:stage:commit-postcommit
+    evidence_refs: [self-dogfood:stage:commit-postcommit]
   - id: AC-011
     ears: unwanted
     condition: if git is not available or the directory is not a repo

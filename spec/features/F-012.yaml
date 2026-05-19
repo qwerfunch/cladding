@@ -15,8 +15,7 @@ acceptance_criteria:
     text: The system shall emit an error-severity drift finding for every source
       file under the scanned patterns that no feature in spec.yaml claims,
       failing stage_1.3 when at least one is produced.
-    test_refs:
-      - self-dogfood:stage:drift
+    evidence_refs: [self-dogfood:stage:drift]
     notes: Scan patterns intentionally narrow (cladding's own tsconfig.include) so
       test fixtures and tooling configs do not surface as false positives.
   - id: AC-020

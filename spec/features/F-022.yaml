@@ -15,7 +15,6 @@ acceptance_criteria:
     text: The system shall emit a warn-severity drift finding for every
       acceptance_criterion that declares no test_refs, so cladding spec authors
       can see which ACs lack verification mapping.
-    test_refs:
-      - fixture:missing-tests
+    evidence_refs: [fixture:missing-tests]
     notes: v0.1 floor — the richer "test_refs resolve to real test functions"
       variant requires vitest AST introspection (T7c).
