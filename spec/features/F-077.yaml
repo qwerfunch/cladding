@@ -1,0 +1,57 @@
+id: F-077
+title: Codex plugin manifest (v0.3.2 · Phase 2 of multi-host rollout)
+status: done
+modules:
+  - plugins/codex/.codex-plugin/plugin.json
+  - plugins/codex/.mcp.json
+  - plugins/codex/skills/sync/SKILL.md
+  - plugins/codex/skills/check/SKILL.md
+  - plugins/codex/skills/panel/SKILL.md
+  - plugins/codex/skills/drive/SKILL.md
+  - plugins/codex/skills/init/SKILL.md
+  - plugins/codex/skills/serve/SKILL.md
+  - plugins/codex/skills/orchestrator/SKILL.md
+  - plugins/codex/skills/librarian/SKILL.md
+  - plugins/codex/skills/reviewer/SKILL.md
+  - plugins/codex/skills/observability/SKILL.md
+  - plugins/codex/skills/specialists/SKILL.md
+  - scripts/build-plugin.mjs
+depends_on: [F-049, F-073, F-076]
+acceptance_criteria:
+  - id: AC-228
+    ears: ubiquitous
+    action: ship a Codex plugin manifest at plugins/codex/.codex-plugin/plugin.json
+    response: 'the manifest declares name=cladding, version, description, author, license, skills=./skills, mcpServers=./.mcp.json, and an interface block with displayName / shortDescription / category / capabilities per OpenAI Codex plugin spec'
+    text: The system shall ship a Codex plugin manifest at plugins/codex/.codex-plugin/plugin.json that declares cladding under the OpenAI Codex CLI plugin spec, pointing at the same MCP server and skill catalog as the Claude Code plugin manifest.
+    evidence_refs: [plugins/codex/.codex-plugin/plugin.json]
+  - id: AC-229
+    ears: ubiquitous
+    action: register cladding MCP server at plugins/codex/.mcp.json so Codex auto-launches `clad serve`
+    response: plugins/codex/.mcp.json maps cladding → command=clad, args=['serve']; the same shape Codex uses for any stdio MCP server
+    text: The system shall register cladding's MCP server in plugins/codex/.mcp.json so the Codex CLI auto-launches `clad serve` whenever the plugin is enabled, without the user editing any settings.
+    evidence_refs: [plugins/codex/.mcp.json]
+  - id: AC-230
+    ears: state
+    condition: while npm run build:plugin is invoked
+    action: regenerate plugins/codex/skills/ from the canonical sources
+    response: 'scripts/build-plugin.mjs copies each repo-root skills/<verb>/SKILL.md and each src/agents/<persona>.md into plugins/codex/skills/<id>/SKILL.md, writing an AUTO-GENERATED README sentinel so hand-edits are caught on the next build'
+    text: While npm run build:plugin is invoked, the system shall regenerate plugins/codex/skills/ from the same single-source canonical files used by the Claude Code mirror (repo-root skills/<verb>/SKILL.md for verbs · src/agents/<persona>.md for personas), keeping the two host plugin layouts in lockstep.
+    evidence_refs: [scripts/build-plugin.mjs]
+  - id: AC-231
+    ears: ubiquitous
+    action: expose six verbs and five personas as Codex skills
+    response: 'plugins/codex/skills/ contains 11 SKILL.md entries — sync, check, panel, drive, init, serve (verbs) + orchestrator, librarian, reviewer, observability, specialists (personas)'
+    text: The system shall expose six cladding verbs (sync, check, panel, drive, init, serve) and five persona prompts (orchestrator, librarian, reviewer, observability, specialists) as Codex skills under plugins/codex/skills/<id>/SKILL.md.
+    evidence_refs:
+      - plugins/codex/skills/sync/SKILL.md
+      - plugins/codex/skills/check/SKILL.md
+      - plugins/codex/skills/drive/SKILL.md
+      - plugins/codex/skills/orchestrator/SKILL.md
+      - plugins/codex/skills/specialists/SKILL.md
+  - id: AC-232
+    ears: unwanted
+    condition: if a src/agents/<id>.md persona file lacks a 'description' YAML frontmatter field
+    action: warn during build but continue copying
+    response: 'scripts/build-plugin.mjs logs `cladding plugin · codex: <file> lacks description frontmatter — Codex may reject the skill` and still writes the SKILL.md output so the build does not block on a soft validation issue'
+    text: If a src/agents/<id>.md persona file lacks a 'description' YAML frontmatter field, the system shall warn during build but continue copying so a soft validation issue does not block release; a future build target (v0.4.0 generator) may promote this to a hard error.
+    evidence_refs: [scripts/build-plugin.mjs]
