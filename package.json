@@ -1,6 +1,6 @@
 {
   "name": "cladding",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Reference implementation of the Ironclad standard — multi-agent dev harness for Claude Code.",
   "type": "module",
   "license": "MIT",
@@ -50,7 +50,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "build": "node scripts/build.mjs",
+    "build": "node scripts/build.mjs && node scripts/build-plugin.mjs",
+    "build:plugin": "node scripts/build-plugin.mjs",
     "prepare": "node -e \"require('node:fs').existsSync('dist/clad.js') || require('node:child_process').execSync('npm run build', {stdio: 'inherit'})\""
   },
   "devDependencies": {
