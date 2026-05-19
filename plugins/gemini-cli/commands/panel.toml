@@ -1,0 +1,9 @@
+description = "Render the feature × stage Integrity Panel — project-wide status board."
+prompt = """
+Run `clad panel` from the project root. Renders an ASCII matrix:
+- Rows: features (business titles by default; F-NNN with --internal).
+- Columns: 13 Iron Law stages.
+- Cells: pass · skip · fail · not-yet-attempted.
+
+Use this after `clad check` to see which features failed which stages at a glance.
+"""

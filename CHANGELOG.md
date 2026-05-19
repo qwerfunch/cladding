@@ -5,6 +5,24 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3] — Unreleased — Gemini CLI extension (F-078)
+
+**Phase 3 of the multi-host plugin rollout.** Adds the Gemini CLI extension under `plugins/gemini-cli/`. Cladding is now installable as a first-class plugin/extension on all three major agentic CLIs: Claude Code (v0.3.1), Codex (v0.3.2), Gemini CLI (this release).
+
+### Added
+
+- `plugins/gemini-cli/gemini-extension.json` — Gemini extension manifest with `name`, `version`, `description`, `contextFileName=GEMINI.md`, and an `mcpServers` map that registers `clad serve` as a stdio MCP server. Loaded automatically when the extension is installed.
+- `plugins/gemini-cli/commands/{sync,check,panel,drive,init,serve}.toml` — six verbs as Gemini CLI custom commands in TOML format. Each TOML has `description` (shown in `/help`) and `prompt` (sent to the model when the user invokes `/cladding:<verb>`).
+- `plugins/gemini-cli/GEMINI.md` — context file loaded into Gemini's session from start. Lists the six commands, summarises the five personas (orchestrator · librarian · reviewer · observability · specialists), and states the no-API-key invariant explicitly.
+- `spec/features/F-078.yaml` — "Gemini CLI extension manifest" (4 ACs, status `done`).
+
+### Notes
+
+- 509/509 vitest pass; lint clean; typecheck clean; drift-green; bundle rebuilds at 1.1 MB.
+- Gemini CLI's TOML command format differs from Claude Code / Codex (both use Markdown with YAML frontmatter). v0.3.3 keeps the TOML files hand-authored alongside the canonical Markdown sources; the v0.4.0 generator (Phase 4) will transpile from a single universal source into each host's native format.
+- **Authentication**: extension uses Gemini CLI's Google account login by default (60 req/min · 1000/day free tier). `GEMINI_API_KEY` remains an opt-in fallback. The no-API-key invariant (F-049 AC-091) is intact across all three host plugins.
+- v0.4.0 plan: `clad plugin build` universal generator (minor bump) — collapse the three hand-crafted manifests into a single source-of-truth that transpiles per host.
+
 ## [0.3.2] — Unreleased — Codex plugin manifest (F-077)
 
 **Phase 2 of the multi-host plugin rollout.** v0.3.1 promoted cladding to a real Claude Code plugin; this patch adds the OpenAI Codex CLI / IDE plugin manifest under `plugins/codex/`. Same single-source canonical files (`src/agents/` + `skills/`) feed both manifests, so a verb or persona authored once shows up in both host plugin catalogs.

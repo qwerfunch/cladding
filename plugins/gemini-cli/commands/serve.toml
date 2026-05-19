@@ -1,0 +1,12 @@
+description = "Boot cladding as a stdio MCP server. Most users don't run this directly — the extension's mcpServers config launches it automatically."
+prompt = """
+Run `clad serve` from the project root. Boots an MCP server over stdio that exposes:
+- Tools: clad_list_features, clad_get_feature, clad_run_check, clad_get_events
+- Resources: cladding://spec, cladding://events, cladding://audit
+- Prompts: 5 personas (orchestrator, librarian, reviewer, observability, specialists)
+- Live audit notifications: notifications/resources/updated for cladding://audit on every evidence append
+
+Registers itself in cladding's sampling context so host adapters route through McpSamplingTransport.
+
+NOTE: Most users don't run this directly. The Gemini CLI extension's gemini-extension.json mcpServers config launches it automatically.
+"""

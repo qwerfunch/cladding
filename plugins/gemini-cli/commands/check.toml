@@ -1,0 +1,11 @@
+description = "Run every Iron Law stage + the drift detector suite. Add --strict to promote warnings."
+prompt = """
+Run `clad check` from the project root. Runs the 13 Iron Law stages — Type, Lint, Drift, Commit, Arch, Secret, Unit, Coverage, Smoke, Performance, Visual, Audit, UAT — and aggregates the worst exit code.
+
+Exit codes:
+- 0: every stage cleared or skipped clean
+- 1: at least one stage actually failed
+- 2: every result is skip
+
+Flags: --strict promotes warn-severity drift findings to error. --internal shows stage codes instead of business names.
+"""

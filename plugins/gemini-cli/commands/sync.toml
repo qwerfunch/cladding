@@ -1,0 +1,10 @@
+description = "Validate the active spec.yaml against the Ironclad schema and report drift."
+prompt = """
+Run `clad sync` from the project root and surface the result. The command:
+- Loads spec.yaml (or the sharded form under spec/features/*.yaml).
+- Validates against src/spec/schema.json.
+- Reports feature count and any validation failures.
+- Exits non-zero on invalid spec.
+
+If the user just edited the spec, run this first before anything else.
+"""
