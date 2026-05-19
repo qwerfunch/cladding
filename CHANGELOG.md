@@ -5,6 +5,29 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.21] — Unreleased — Drive-loop integration test against AnthropicTransport (F-070)
+
+**Substep 3 of the v0.3.0 path.** Wires the v0.2.19 Transport interface and the v0.2.20 AnthropicTransport into a drive-loop end-to-end integration test. Proves the loop's halt-class chain — `ALL_FEATURES_DONE`, `HUMAN_REQUIRED` via reviewer-identity barrier, `LLM_UNAVAILABLE` on transport throw — works against real-LLM-shape data, not just mock placeholders.
+
+### Added
+
+- `tests/integration/loop-real-transport.test.ts` — 3 integration tests:
+  - Happy path: loop dispatches through `selectAdapter → claudeAnthropicAdapter → AnthropicTransport` with a stubbed clientFactory, reaches `ALL_FEATURES_DONE`
+  - Identity collision: forced same-identity from both specialist and reviewer dispatches → `HUMAN_REQUIRED` (F-049 AC-086 contract preserved against real-shape data)
+  - Auth fail: transport throws "401: invalid x-api-key" → `LLM_UNAVAILABLE` halt with original message in detail
+- `spec/features/F-070.yaml` — "Drive-loop integration test against AnthropicTransport" (4 ACs, status `done`).
+
+### Changed
+
+- `src/adapters/sdk/anthropic.ts` — added `setDefaultTransportForTesting(t)` test-only seam. The module-level default Transport is now lazy and swappable via this function. Production code MUST NOT call it; integration tests use it to inject a stubbed Transport without monkey-patching the adapter.
+
+### Notes
+
+- 423 + 3 new tests = **426 / 426** passing.
+- `node bin/clad check --strict` stays drift-green.
+- `setDefaultTransportForTesting` is the first test-only export cladding ships; documented with a "Production code MUST NOT call this" comment.
+- v0.2.22 plan: introduce transport-specific halt classes (TRANSPORT_AUTH_FAILED, TRANSPORT_RATE_LIMITED, TRANSPORT_NETWORK) that the loop maps to instead of the generic `LLM_UNAVAILABLE`. This gives users actionable error categories.
+
 ## [0.2.20] — Unreleased — AnthropicSdkTransport · first real-LLM dispatch (F-069)
 
 **Substep 2 of the v0.3.0 path.** Cladding ships its first real-LLM Transport: `AnthropicTransport`, which dispatches via `@anthropic-ai/sdk` to the Anthropic API directly. Opt-in via `agent.mode = sdk` + `agent.name = claude-anthropic` + `ANTHROPIC_API_KEY` env var. Default cladding stays on the host-bound MockTransport — no behaviour change for existing setups.
