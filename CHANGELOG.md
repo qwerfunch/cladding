@@ -5,6 +5,28 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.24] — Unreleased — MCP server scaffold · `clad serve` (F-073)
+
+**Phase A of the v0.3.0 host-MCP transport thread.** `clad serve` boots cladding as an MCP server over stdio so any MCP-aware host (Claude Code, Cursor, Continue, Cline) can consume cladding's tools, resources, and persona prompts. Phase A ships the read surface only; sampling-based dispatch (the transport the drive loop will use) lands in v0.2.25.
+
+### Added
+
+- `src/serve/server.ts` — `buildServer(opts)` factory returning a fully-configured McpServer. The function is transport-agnostic so the production CLI path and the in-process test pair share the same wiring.
+- `src/cli/clad.ts` — new `clad serve` verb. Lazy-imports `@modelcontextprotocol/sdk` so the cold-start cost stays on the path that uses it.
+- Four MCP tools: `clad_list_features` (with `statusFilter` arg), `clad_get_feature` (typed `isError` on unknown id), `clad_run_check` (delegates to `runDrift`, surfaces `isError` on fail), `clad_get_events` (tails `.cladding/events.log`, configurable `limit`).
+- Three MCP resources: `cladding://spec` (aggregated spec, JSON), `cladding://events` (NDJSON event log), `cladding://audit` (NDJSON audit log). Returns empty text when the file is absent.
+- Five MCP prompts — one per persona (`orchestrator`, `librarian`, `reviewer`, `observability`, `specialists`). Each accepts an optional `featureId` arg that gets interpolated into the persona body.
+- `tests/serve/server.test.ts` — 13 integration tests using an in-process `InMemoryTransport.createLinkedPair()` to drive a real `Client` against the real `McpServer`. Covers tool listing, resource reading, prompt fetching, status filter, unknown-id error path, and an empty-log fallback.
+- `tests/cli/clad.test.ts` — CLI plumbing test for `runServeCommand` (MCP server build + stdio transport instantiation, both mocked).
+- `package.json` — `@modelcontextprotocol/sdk` ^1.29.0 + `zod` (transitive) added to dependencies.
+- `spec/features/F-073.yaml` — "MCP server (`clad serve`) — read surface" (5 ACs, status `done`).
+
+### Notes
+
+- 462 + new tests = **476/476** passing; lint clean; `node bin/clad check --strict` drift-green.
+- Bundle size grew from ~1.3 MB to ~2.4 MB because `@modelcontextprotocol/sdk` and its `zod` dependency get included. The dynamic import in `runServeCommand` keeps the cost on the `serve` path — `clad sync` / `clad check` / `clad drive` cold-starts are unaffected.
+- v0.2.25 plan: `McpSamplingTransport` — sampling-based transport that the drive loop's host adapters use to round-trip LLM requests through the connected MCP host. Pairs with this server in-process for the integration test.
+
 ## [0.2.23] — 2026-05-19 — Pre-flight transport health check (F-072)
 
 The drive loop used to discover a missing API key (or any unhealthy adapter) only after the first feature iteration: pre-flight check runs once at startup, the loop fails fast at iteration 0, and the user sees an actionable halt class instead of a wasted dispatch attempt.
