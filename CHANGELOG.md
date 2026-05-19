@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.6] — Unreleased — SKILL.md → TOML build-time transpile for Gemini (F-081)
+## [0.3.6] — 2026-05-19 — SKILL.md → TOML build-time transpile for Gemini (F-081)
 
 **Post-rollout audit, cycle 3 of 3 (final).** v0.3.3 shipped Gemini CLI commands as six hand-authored TOML files; the canonical sources (`skills/<verb>/SKILL.md`) and the TOML mirrors could drift if a verb description got updated in one place but not the other. This patch makes the SKILL.md the single source of truth and the TOMLs build-generated.
 
@@ -29,7 +29,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 - **v0.3.x cleanup is now complete.** v0.3.4 closed the docs/help-text inaccuracies, v0.3.5 added the version-drift detector, v0.3.6 closes the SKILL.md ↔ TOML drift surface. The universal generator (v0.4.0, predicate-gated) is no longer urgent — three hand-crafted manifests are stable and the only previous drift surface (Gemini TOML) is now SSoT-driven.
 - v0.4.0 predicate (from plan): one of (a) new host plugin spec added → 4 host scenario justifies generalization, or (b) actual drift incident in the 3 current manifests → re-prioritize.
 
-## [0.3.5] — Unreleased — HARNESS_INTEGRITY · multi-host manifest schema + version drift (F-080)
+## [0.3.5] — 2026-05-19 — HARNESS_INTEGRITY · multi-host manifest schema + version drift (F-080)
 
 **Post-rollout audit, cycle 2 of 3.** The original `HARNESS_INTEGRITY` detector (v0.2.4) guarded one invariant — that `.claude-plugin/plugin.json` `current.detectors` numerator matched the file count under `src/stages/detectors/`. The multi-host rollout (v0.3.1 → v0.3.3) added two more manifests; this patch extends the detector so all three manifests stay in lockstep.
 
@@ -48,7 +48,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 - This closes the most impactful audit gap: a future release can't ship with `package.json` bumped but a host manifest forgotten — the drift detector now fails fast with `clad check --strict`.
 - v0.3.6 plan: SKILL.md → TOML build-time transpile for Gemini (F-081). After that, v0.3.x cleanup is done.
 
-## [0.3.4] — Unreleased — CLI text + docs cleanup (F-079)
+## [0.3.4] — 2026-05-19 — CLI text + docs cleanup (F-079)
 
 **Post-rollout audit, cycle 1 of 3.** v0.3.3 finished the three-host plugin rollout; an audit caught three documentation/help-text issues that pre-dated v0.3.0 or were inaccurate at v0.3.3 ship time. This patch fixes them without touching code logic.
 
@@ -69,7 +69,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 - Historical version references in source comments (e.g. "v0.2.19 ships the mock body via MockTransport") are intentionally kept — they document a factual sequence of events. Only user-facing surfaces (CLI help, plugin manifest docs) were evergreen-edited.
 - v0.3.5 plan: extend `HARNESS_INTEGRITY` detector to cover all three host manifests + cross-manifest version consistency.
 
-## [0.3.3] — Unreleased — Gemini CLI extension (F-078)
+## [0.3.3] — 2026-05-19 — Gemini CLI extension (F-078)
 
 **Phase 3 of the multi-host plugin rollout.** Adds the Gemini CLI extension under `plugins/gemini-cli/`. Cladding is now installable as a first-class plugin/extension on all three major agentic CLIs: Claude Code (v0.3.1), Codex (v0.3.2), Gemini CLI (this release).
 
@@ -87,7 +87,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 - **Authentication**: extension uses Gemini CLI's Google account login (60 req/min · 1000/day free tier). The `gemini` SDK adapter slot is reserved in `src/adapters/index.ts` `SDK_REGISTRY` but the SDK body is not yet implemented in v0.3.3 — direct-SDK dispatch is not a shipped fallback. The no-API-key invariant (F-049 AC-091) is intact across all three host plugins.
 - v0.4.0 plan: `clad plugin build` universal generator (minor bump) — collapse the three hand-crafted manifests into a single source-of-truth that transpiles per host.
 
-## [0.3.2] — Unreleased — Codex plugin manifest (F-077)
+## [0.3.2] — 2026-05-19 — Codex plugin manifest (F-077)
 
 **Phase 2 of the multi-host plugin rollout.** v0.3.1 promoted cladding to a real Claude Code plugin; this patch adds the OpenAI Codex CLI / IDE plugin manifest under `plugins/codex/`. Same single-source canonical files (`src/agents/` + `skills/`) feed both manifests, so a verb or persona authored once shows up in both host plugin catalogs.
 
@@ -110,7 +110,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 - The build is now multi-host-aware in one command: `npm run build:plugin` regenerates both Claude Code's `agents/` mirror and Codex's `plugins/codex/skills/` mirror from the same single source.
 - v0.3.3 plan: Phase 3 — Gemini CLI extension (`plugins/gemini-cli/`).
 
-## [0.3.1] — Unreleased — Claude Code plugin formalization (F-076)
+## [0.3.1] — 2026-05-19 — Claude Code plugin formalization (F-076)
 
 **Phase 1 of the multi-host plugin rollout.** cladding has been on the Anthropic Claude Code plugin marketplace as a *declaration-only* surface — `.claude-plugin/plugin.json` carried metadata but the plugin manifest's `skills/`, `agents/`, and `.mcp.json` were missing. This patch promotes cladding to a *real* Claude Code plugin: install it, and you get six namespaced skills (`/cladding:sync`, `/cladding:check`, `/cladding:panel`, `/cladding:drive`, `/cladding:init`, `/cladding:serve`), the five persona agents, and an auto-launched MCP server — no manual configuration.
 
