@@ -2,16 +2,16 @@ id: F-017
 title: HARNESS_INTEGRITY drift detector (#17)
 status: done
 modules:
-  - stages/detectors/harness-integrity.ts
+  - src/stages/detectors/harness-integrity.ts
 depends_on:
   - F-003
 acceptance_criteria:
   - id: AC-027
     ears: ubiquitous
     action: cross-check plugin.json current.detectors against actual files under
-      stages/detectors/
+      src/stages/detectors/
     response: error finding when the numerator does not match the file count
     text: The system shall cross-check the numerator of plugin.json
       current.detectors against the number of non-index .ts files under
-      stages/detectors/, emitting an error finding on mismatch.
+      src/stages/detectors/, emitting an error finding on mismatch.
     evidence_refs: [fixture:F-017_AC-027]

@@ -13,7 +13,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {staleEvidence} from '../../stages/detectors/stale-evidence.js';
+import {staleEvidence} from '../../src/stages/detectors/stale-evidence.js';
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 

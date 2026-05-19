@@ -6,8 +6,8 @@ import {join} from 'node:path';
 
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {runAgent, ReviewerIdentityCollisionError} from '../../drive/agent.js';
-import type {AgentContext, PersonaSpec} from '../../adapters/types.js';
+import {runAgent, ReviewerIdentityCollisionError} from '../../src/drive/agent.js';
+import type {AgentContext, PersonaSpec} from '../../src/adapters/types.js';
 
 let tmp: string;
 

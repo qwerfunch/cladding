@@ -23,7 +23,7 @@ vi.mock('execa', () => ({
   execaSync: vi.fn(),
 }));
 
-const {hardcodedSecret} = await import('../../stages/detectors/hardcoded-secret.js');
+const {hardcodedSecret} = await import('../../src/stages/detectors/hardcoded-secret.js');
 const execaMod = await import('execa');
 const execaSyncMock = execaMod.execaSync as unknown as ReturnType<typeof vi.fn>;
 

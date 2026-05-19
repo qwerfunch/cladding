@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {runInit} from '../../cli/init.js';
+import {runInit} from '../../src/cli/init.js';
 
 describe('runInit', () => {
   let dir: string;

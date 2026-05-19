@@ -8,36 +8,36 @@
 
 import {beforeEach, afterEach, describe, expect, test, vi} from 'vitest';
 
-vi.mock('../../cli/init.js', () => ({runInit: vi.fn()}));
-vi.mock('../../spec/load.js', () => ({loadSpec: vi.fn()}));
-vi.mock('../../router/intent.js', () => ({classifyIntent: vi.fn()}));
-vi.mock('../../ui/pulse.js', () => ({pulse: vi.fn()}));
-vi.mock('../../ui/panel.js', () => ({renderPanel: vi.fn(() => 'panel-output')}));
-vi.mock('../../ui/softShell.js', () => ({
+vi.mock('../../src/cli/init.js', () => ({runInit: vi.fn()}));
+vi.mock('../../src/spec/load.js', () => ({loadSpec: vi.fn()}));
+vi.mock('../../src/router/intent.js', () => ({classifyIntent: vi.fn()}));
+vi.mock('../../src/ui/pulse.js', () => ({pulse: vi.fn()}));
+vi.mock('../../src/ui/panel.js', () => ({renderPanel: vi.fn(() => 'panel-output')}));
+vi.mock('../../src/ui/softShell.js', () => ({
   featureLabel: (id: string) => `LABEL(${id})`,
   gateLabel: (s: string) => `GATE(${s})`,
   haltMessage: (h: {class: string}) => `HALT(${h.class})`,
 }));
-vi.mock('../../stages/type.js', () => ({runType: vi.fn(() => ({pass: true, exitCode: 0}))}));
-vi.mock('../../stages/lint.js', () => ({runLint: vi.fn(() => ({pass: true, exitCode: 0}))}));
-vi.mock('../../stages/drift.js', () => ({runDrift: vi.fn(() => ({pass: true, exitCode: 0}))}));
-vi.mock('../../stages/commit.js', () => ({runCommit: vi.fn(() => ({pass: true, exitCode: 0}))}));
-vi.mock('../../stages/arch.js', () => ({runArch: vi.fn(() => ({pass: true, exitCode: 0}))}));
-vi.mock('../../stages/secret.js', () => ({runSecret: vi.fn(() => ({pass: true, exitCode: 0}))}));
-vi.mock('../../stages/unit.js', () => ({runUnit: vi.fn(() => ({pass: true, exitCode: 0}))}));
-vi.mock('../../stages/cov.js', () => ({runCov: vi.fn(() => ({pass: true, exitCode: 0}))}));
-vi.mock('../../stages/smoke.js', () => ({runSmoke: vi.fn(() => ({pass: false, exitCode: 2}))}));
-vi.mock('../../stages/perf.js', () => ({runPerf: vi.fn(() => ({pass: false, exitCode: 2}))}));
-vi.mock('../../stages/visual.js', () => ({runVisual: vi.fn(() => ({pass: false, exitCode: 2}))}));
-vi.mock('../../stages/audit.js', () => ({runAudit: vi.fn(() => ({pass: true, exitCode: 0}))}));
-vi.mock('../../stages/uat.js', () => ({runUat: vi.fn(() => ({pass: true, exitCode: 0}))}));
-vi.mock('../../drive/loop.js', () => ({runDriveLoop: vi.fn()}));
+vi.mock('../../src/stages/type.js', () => ({runType: vi.fn(() => ({pass: true, exitCode: 0}))}));
+vi.mock('../../src/stages/lint.js', () => ({runLint: vi.fn(() => ({pass: true, exitCode: 0}))}));
+vi.mock('../../src/stages/drift.js', () => ({runDrift: vi.fn(() => ({pass: true, exitCode: 0}))}));
+vi.mock('../../src/stages/commit.js', () => ({runCommit: vi.fn(() => ({pass: true, exitCode: 0}))}));
+vi.mock('../../src/stages/arch.js', () => ({runArch: vi.fn(() => ({pass: true, exitCode: 0}))}));
+vi.mock('../../src/stages/secret.js', () => ({runSecret: vi.fn(() => ({pass: true, exitCode: 0}))}));
+vi.mock('../../src/stages/unit.js', () => ({runUnit: vi.fn(() => ({pass: true, exitCode: 0}))}));
+vi.mock('../../src/stages/cov.js', () => ({runCov: vi.fn(() => ({pass: true, exitCode: 0}))}));
+vi.mock('../../src/stages/smoke.js', () => ({runSmoke: vi.fn(() => ({pass: false, exitCode: 2}))}));
+vi.mock('../../src/stages/perf.js', () => ({runPerf: vi.fn(() => ({pass: false, exitCode: 2}))}));
+vi.mock('../../src/stages/visual.js', () => ({runVisual: vi.fn(() => ({pass: false, exitCode: 2}))}));
+vi.mock('../../src/stages/audit.js', () => ({runAudit: vi.fn(() => ({pass: true, exitCode: 0}))}));
+vi.mock('../../src/stages/uat.js', () => ({runUat: vi.fn(() => ({pass: true, exitCode: 0}))}));
+vi.mock('../../src/drive/loop.js', () => ({runDriveLoop: vi.fn()}));
 
-const clad = await import('../../cli/clad.js');
-const initMod = await import('../../cli/init.js');
-const specMod = await import('../../spec/load.js');
-const intentMod = await import('../../router/intent.js');
-const driveMod = await import('../../drive/loop.js');
+const clad = await import('../../src/cli/clad.js');
+const initMod = await import('../../src/cli/init.js');
+const specMod = await import('../../src/spec/load.js');
+const intentMod = await import('../../src/router/intent.js');
+const driveMod = await import('../../src/drive/loop.js');
 
 const runInitMock = initMod.runInit as unknown as ReturnType<typeof vi.fn>;
 const loadSpecMock = specMod.loadSpec as unknown as ReturnType<typeof vi.fn>;
@@ -120,14 +120,14 @@ describe('cli/clad — handler exports', () => {
   });
 
   test('runCheckCommand --strict forwards to drift', async () => {
-    const {runDrift} = await import('../../stages/drift.js');
+    const {runDrift} = await import('../../src/stages/drift.js');
     clad.runCheckCommand({strict: true});
     expect(runDrift).toHaveBeenCalledWith({strict: true});
     expect(exitCalls).toEqual([0]);
   });
 
   test('runCheckCommand reports worst exit code on failures', async () => {
-    const {runType} = await import('../../stages/type.js');
+    const {runType} = await import('../../src/stages/type.js');
     (runType as unknown as ReturnType<typeof vi.fn>).mockReturnValueOnce({pass: false, exitCode: 1});
     clad.runCheckCommand({});
     expect(exitCalls).toEqual([1]);
@@ -218,6 +218,6 @@ describe('cli/clad — createProgram', () => {
 
   test('program version matches current package version', () => {
     const program = clad.createProgram();
-    expect(program.version()).toBe('0.2.15');
+    expect(program.version()).toBe('0.2.16');
   });
 });

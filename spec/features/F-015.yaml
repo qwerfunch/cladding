@@ -2,7 +2,7 @@ id: F-015
 title: STALE_SPECIFICATION drift detector (#16)
 status: done
 modules:
-  - stages/detectors/stale-specification.ts
+  - src/stages/detectors/stale-specification.ts
 depends_on:
   - F-003
   - F-010

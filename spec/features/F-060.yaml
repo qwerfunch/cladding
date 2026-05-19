@@ -13,7 +13,7 @@ acceptance_criteria:
     ears: ubiquitous
     action: cover the two detector-adapter stages
     response: tests/stages/arch.test.ts and tests/stages/secret.test.ts each mock the underlying detector (architectureViolation / hardcodedSecret) and exercise no-findings / info-only / single-error / multi-error / mixed-severity / opts-forwarding paths; line coverage on both stage sources reaches at least 75%
-    text: The system shall ship dedicated unit-test files for stages/arch.ts and stages/secret.ts, bringing each to at least 75% line coverage by mocking the underlying detector.
+    text: The system shall ship dedicated unit-test files for src/stages/arch.ts and src/stages/secret.ts, bringing each to at least 75% line coverage by mocking the underlying detector.
     test_refs:
       - tests/stages/arch.test.ts
       - tests/stages/secret.test.ts
@@ -21,7 +21,7 @@ acceptance_criteria:
     ears: ubiquitous
     action: cover the unit and coverage stage runners
     response: tests/stages/unit.test.ts and tests/stages/cov.test.ts each exercise unknown-language / explicit override / exit 0 / non-zero / stderr-present / stderr-absent / null-exit branches with vi.mock('execa'); line coverage on both stage sources reaches at least 85%
-    text: The system shall ship dedicated unit-test files for stages/unit.ts and stages/cov.ts, bringing each to at least 85% line coverage.
+    text: The system shall ship dedicated unit-test files for src/stages/unit.ts and src/stages/cov.ts, bringing each to at least 85% line coverage.
     test_refs:
       - tests/stages/unit.test.ts
       - tests/stages/cov.test.ts

@@ -2,7 +2,7 @@
 
 import {describe, expect, test} from 'vitest';
 
-import {validateSpec} from '../../spec/validate.js';
+import {validateSpec} from '../../src/spec/validate.js';
 
 describe('validateSpec', () => {
   test('accepts a minimal valid spec', () => {

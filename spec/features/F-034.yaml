@@ -2,7 +2,7 @@ id: F-034
 title: EVIDENCE_MISMATCH drift detector (#10)
 status: done
 modules:
-  - stages/detectors/evidence-mismatch.ts
+  - src/stages/detectors/evidence-mismatch.ts
 depends_on:
   - F-003
   - F-032

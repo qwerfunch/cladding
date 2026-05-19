@@ -13,7 +13,7 @@ vi.mock('execa', () => ({
   execaSync: vi.fn(),
 }));
 
-const {runCov} = await import('../../stages/cov.js');
+const {runCov} = await import('../../src/stages/cov.js');
 const execaMod = await import('execa');
 const execaSyncMock = execaMod.execaSync as unknown as ReturnType<typeof vi.fn>;
 

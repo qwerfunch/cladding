@@ -10,10 +10,10 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {appendEvidence} from '../../hitl/audit.js';
-import {newEvidence} from '../../hitl/identity.js';
-import type {Spec} from '../../spec/types.js';
-import {renderPanel} from '../../ui/panel.js';
+import {appendEvidence} from '../../src/hitl/audit.js';
+import {newEvidence} from '../../src/hitl/identity.js';
+import type {Spec} from '../../src/spec/types.js';
+import {renderPanel} from '../../src/ui/panel.js';
 
 function specWith(features: Spec['features']): Spec {
   return {

@@ -2,8 +2,8 @@ id: F-042
 title: events.log + benchmark CLI
 status: done
 modules:
-  - events/log.ts
-  - cli/benchmark.ts
+  - src/events/log.ts
+  - src/cli/benchmark.ts
 depends_on:
   - F-041
 acceptance_criteria:

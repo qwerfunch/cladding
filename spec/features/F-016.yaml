@@ -2,7 +2,7 @@ id: F-016
 title: REFERENCE_INTEGRITY drift detector (#18)
 status: done
 modules:
-  - stages/detectors/reference-integrity.ts
+  - src/stages/detectors/reference-integrity.ts
 depends_on:
   - F-003
   - F-010

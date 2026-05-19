@@ -2,9 +2,9 @@ id: F-041
 title: Token Optimizer — pruning, preamble suppression, tail-only logging
 status: done
 modules:
-  - optimizer/prune.ts
-  - optimizer/preamble.ts
-  - optimizer/tail.ts
+  - src/optimizer/prune.ts
+  - src/optimizer/preamble.ts
+  - src/optimizer/tail.ts
 acceptance_criteria:
   - id: AC-064
     ears: ubiquitous

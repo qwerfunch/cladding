@@ -3,9 +3,9 @@
 
 import {describe, expect, test} from 'vitest';
 
-import {claudeCodeAdapter} from '../../adapters/host/claude-code.js';
-import {genericMcpAdapter} from '../../adapters/host/generic-mcp.js';
-import type {AgentContext, AgentResult, PersonaSpec} from '../../adapters/types.js';
+import {claudeCodeAdapter} from '../../src/adapters/host/claude-code.js';
+import {genericMcpAdapter} from '../../src/adapters/host/generic-mcp.js';
+import type {AgentContext, AgentResult, PersonaSpec} from '../../src/adapters/types.js';
 
 const persona: PersonaSpec = {
   id: 'specialists',

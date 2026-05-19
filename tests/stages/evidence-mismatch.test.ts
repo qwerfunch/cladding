@@ -13,9 +13,9 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {appendEvidence} from '../../hitl/audit.js';
-import {newEvidence} from '../../hitl/identity.js';
-import {evidenceMismatch} from '../../stages/detectors/evidence-mismatch.js';
+import {appendEvidence} from '../../src/hitl/audit.js';
+import {newEvidence} from '../../src/hitl/identity.js';
+import {evidenceMismatch} from '../../src/stages/detectors/evidence-mismatch.js';
 
 describe('EVIDENCE_MISMATCH detector', () => {
   let dir: string;

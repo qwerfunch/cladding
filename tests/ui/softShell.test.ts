@@ -2,9 +2,9 @@
 
 import {describe, expect, test} from 'vitest';
 
-import {featureLabel, gateLabel, haltMessage} from '../../ui/softShell.js';
-import type {HaltReason} from '../../drive/halt.js';
-import type {Spec} from '../../spec/types.js';
+import {featureLabel, gateLabel, haltMessage} from '../../src/ui/softShell.js';
+import type {HaltReason} from '../../src/drive/halt.js';
+import type {Spec} from '../../src/spec/types.js';
 
 const stubSpec: Spec = {
   schema: '0.1',

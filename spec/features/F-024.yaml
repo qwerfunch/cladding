@@ -2,7 +2,7 @@ id: F-024
 title: stage_2.2 Cov — polyglot coverage delegation
 status: done
 modules:
-  - stages/cov.ts
+  - src/stages/cov.ts
 depends_on:
   - F-004
   - F-021

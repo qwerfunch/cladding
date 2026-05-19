@@ -12,15 +12,15 @@
 
 import {describe, expect, test, vi, beforeEach} from 'vitest';
 
-vi.mock('../../stages/detectors/architecture-violation.js', () => ({
+vi.mock('../../src/stages/detectors/architecture-violation.js', () => ({
   architectureViolation: {
     name: 'ARCHITECTURE_VIOLATION',
     run: vi.fn(),
   },
 }));
 
-const {runArch} = await import('../../stages/arch.js');
-const detectorMod = await import('../../stages/detectors/architecture-violation.js');
+const {runArch} = await import('../../src/stages/arch.js');
+const detectorMod = await import('../../src/stages/detectors/architecture-violation.js');
 const detectorRun = detectorMod.architectureViolation.run as unknown as ReturnType<typeof vi.fn>;
 
 describe('runArch (stage_1.5)', () => {

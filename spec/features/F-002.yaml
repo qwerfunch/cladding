@@ -2,7 +2,7 @@ id: F-002
 title: stage_1.2 Lint — polyglot lint delegation
 status: done
 modules:
-  - stages/lint.ts
+  - src/stages/lint.ts
 depends_on:
   - F-001
 acceptance_criteria:

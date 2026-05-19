@@ -14,7 +14,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {staleTests} from '../../stages/detectors/stale-tests.js';
+import {staleTests} from '../../src/stages/detectors/stale-tests.js';
 
 const SPEC_HEADER =
   'schema: "0.1"\n' +
@@ -46,7 +46,7 @@ describe('STALE_TESTS detector', () => {
     const src = join(dir, 'stages', 'alpha.ts');
     const t = join(dir, 'tests', 'alpha.test.ts');
     writeFileSync(src, 'export const a = 1;\n');
-    writeFileSync(t, 'import {a} from "../stages/alpha.js";\n');
+    writeFileSync(t, 'import {a} from "../src/stages/alpha.js";\n');
     stamp(src, SIXTY_DAYS_AGO);
     stamp(t, NOW_SEC);
     writeFileSync(

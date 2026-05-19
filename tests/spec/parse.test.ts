@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {parseSpec} from '../../spec/parse.js';
+import {parseSpec} from '../../src/spec/parse.js';
 
 describe('parseSpec', () => {
   let dir: string;

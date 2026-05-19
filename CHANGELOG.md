@@ -5,6 +5,36 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.16] — Unreleased — `src/` layout adoption (F-065)
+
+**Layout refactor**, no behaviour change. Every first-party code dir now lives under a single `src/` root: `src/{adapters · agents · cli · drive · events · hitl · optimizer · router · spec · stages · ui}`. Spec data (`features/`, `scenarios/`, `architecture.yaml`) stays at the project root because user projects keep their data at that path; `schema.json` moves into `src/spec/` because it travels with the code that reads it.
+
+### Changed (mechanical)
+
+- Source dirs moved: `adapters/` `agents/` `cli/` `drive/` `events/` `hitl/` `optimizer/` `router/` `stages/` `ui/` → `src/<name>/`
+- Spec runtime moved: `spec/{cli,ears,load,parse,types,validate}.ts` + `spec/schema.json` → `src/spec/`
+- Spec data unchanged: `spec/{features/,scenarios/,architecture.yaml}` stay at root
+- `tests/**/*.ts` — 126 import + vi.mock + dynamic-import paths gained `src/` prefix
+- `spec/features/*.yaml` — 336 module / evidence_refs path references gained `src/` prefix (where they point at code)
+- `conformance/runner.ts` — 16 stage / hitl imports updated
+- `vitest.config.ts` — coverage `include` collapses from 11 glob patterns to `src/**/*.ts`
+- `package.json` scripts — 13 entries updated (`tsx src/stages/X.ts` etc)
+- `scripts/build.mjs` — entry `cli/clad.ts` → `src/cli/clad.ts`; schema source `src/spec/schema.json`
+- `bin/clad` — tsx fallback path `cli/clad.ts` → `src/cli/clad.ts`
+- `src/stages/detectors/unmapped-artifact.ts` — scan glob `stages/**` → `src/stages/**`
+- `src/stages/detectors/harness-integrity.ts` — count glob `stages/detectors/*.ts` → `src/stages/detectors/*.ts`
+- `src/stages/detectors/meta-integrity.ts` — schema lookup `spec/schema.json` → `src/spec/schema.json`
+
+### Added
+
+- `spec/features/F-065.yaml` — "src/ layout — move all code dirs under one source root" (4 ACs, status `done`).
+
+### Notes
+
+- 404 / 404 tests pass; `node bin/clad check --strict` is green; line coverage stays at **93.89%** (unchanged from v0.2.15 — the move doesn't add or remove tested code).
+- Why the split: spec/ at root holds **data** that users' own projects also keep at root; `src/spec/` holds **code** that travels with cladding. `loadSpec(cwd)` still reads `${cwd}/spec.yaml` and `${cwd}/spec/features/*.yaml` — unchanged for users.
+- This is the second meta-refactor of the v0.2.x cycle (after the v0.2.13 coverage scope widening). After v0.2.16 the repo root is materially tidier: 11 code dirs collapse into 1.
+
 ## [0.2.15] — 2026-05-19 — Final coverage closure · every source dir ≥ 90% (F-064)
 
 **Milestone**: every one of the 11 first-party source dirs (`adapters · agents · cli · drive · events · hitl · optimizer · router · spec · stages · ui`) is now at ≥ 90% line coverage. Project line coverage rises from **87.67% → 93.89%** (+6.22pp) under the widened scope from v0.2.13.

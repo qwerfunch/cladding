@@ -17,7 +17,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {approxTokens, benchmark} from '../../cli/benchmark.js';
+import {approxTokens, benchmark} from '../../src/cli/benchmark.js';
 
 function writeSpec(dir: string, body: string): void {
   writeFileSync(join(dir, 'spec.yaml'), body);

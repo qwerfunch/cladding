@@ -20,7 +20,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {acDrift} from '../../stages/detectors/ac-drift.js';
+import {acDrift} from '../../src/stages/detectors/ac-drift.js';
 
 const SPEC_HEADER =
   'schema: "0.1"\n' +

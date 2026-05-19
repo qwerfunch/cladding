@@ -2,7 +2,7 @@ id: F-038
 title: CONVENTION_DRIFT drift detector (#6, v0.1 floor)
 status: done
 modules:
-  - stages/detectors/convention-drift.ts
+  - src/stages/detectors/convention-drift.ts
 depends_on:
   - F-003
   - F-010

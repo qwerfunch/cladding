@@ -14,7 +14,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {performanceDrift} from '../../stages/detectors/performance-drift.js';
+import {performanceDrift} from '../../src/stages/detectors/performance-drift.js';
 
 function writePerf(dir: string, file: 'baseline' | 'current', content: unknown): void {
   mkdirSync(join(dir, 'perf'), {recursive: true});

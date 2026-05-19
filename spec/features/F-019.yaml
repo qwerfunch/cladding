@@ -2,8 +2,8 @@ id: F-019
 title: AC_DRIFT drift detector (#3) + EARS syntactic check
 status: done
 modules:
-  - stages/detectors/ac-drift.ts
-  - spec/ears.ts
+  - src/stages/detectors/ac-drift.ts
+  - src/spec/ears.ts
 depends_on:
   - F-003
   - F-010

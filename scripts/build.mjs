@@ -22,7 +22,7 @@ const require = __claddingCreateRequire(import.meta.url);
 globalThis.__CLADDING_BUNDLED = true;`;
 
 await build({
-  entryPoints: ['cli/clad.ts'],
+  entryPoints: ['src/cli/clad.ts'],
   bundle: true,
   platform: 'node',
   target: 'node20',
@@ -41,7 +41,7 @@ await build({
 // can still find it — `__dirname` of the bundle is `dist/`.
 import {copyFileSync, mkdirSync} from 'node:fs';
 mkdirSync('dist', {recursive: true});
-copyFileSync('spec/schema.json', 'dist/schema.json');
+copyFileSync('src/spec/schema.json', 'dist/schema.json');
 
 chmodSync('dist/clad.js', 0o755);
 console.log('cladding: built dist/clad.js + dist/schema.json');

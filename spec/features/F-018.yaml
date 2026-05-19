@@ -2,16 +2,16 @@ id: F-018
 title: META_INTEGRITY drift detector (#19)
 status: done
 modules:
-  - stages/detectors/meta-integrity.ts
+  - src/stages/detectors/meta-integrity.ts
 depends_on:
   - F-003
   - F-010
 acceptance_criteria:
   - id: AC-028
     ears: ubiquitous
-    action: validate spec/schema.json declares the root keys spec/types.ts depends on
+    action: validate spec/schema.json declares the root keys src/spec/types.ts depends on
     response: error finding per missing root key
     text: The system shall validate that spec/schema.json declares and requires the
-      root keys (schema, project, features) that spec/types.ts depends on, and
+      root keys (schema, project, features) that src/spec/types.ts depends on, and
       that spec.yaml's schema version equals the supported version.
     evidence_refs: [fixture:F-018_AC-028]

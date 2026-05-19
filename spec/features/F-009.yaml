@@ -2,7 +2,7 @@ id: F-009
 title: ARCHITECTURE_VIOLATION drift detector (#5)
 status: done
 modules:
-  - stages/detectors/architecture-violation.ts
+  - src/stages/detectors/architecture-violation.ts
 depends_on:
   - F-003
   - F-004

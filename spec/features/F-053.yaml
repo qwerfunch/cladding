@@ -3,9 +3,9 @@ title: Fixture registry — validated anchor for evidence_refs labels
 status: done
 modules:
   - conformance/fixtures.yaml
-  - stages/detectors/fixture-reference.ts
-  - stages/detectors/index.ts
-  - stages/detectors/README.md
+  - src/stages/detectors/fixture-reference.ts
+  - src/stages/detectors/index.ts
+  - src/stages/detectors/README.md
   - tests/stages/fixture-reference.test.ts
   - tests/conformance/registry.test.ts
 depends_on: [F-022, F-052]
@@ -46,7 +46,7 @@ acceptance_criteria:
   - id: AC-120
     ears: ubiquitous
     action: register fixtureReference as a 20th cladding-extension detector
-    response: stages/detectors/index.ts allDetectors[] includes fixtureReference; the catalog README documents it as a cladding-specific extension to the upstream Ironclad 19
-    text: The system shall register fixtureReference in stages/detectors/index.ts and document it in stages/detectors/README.md as the 20th detector (cladding extension).
+    response: src/stages/detectors/index.ts allDetectors[] includes fixtureReference; the catalog README documents it as a cladding-specific extension to the upstream Ironclad 19
+    text: The system shall register fixtureReference in src/stages/detectors/index.ts and document it in src/stages/detectors/README.md as the 20th detector (cladding extension).
     test_refs: [tests/stages/fixture-reference.test.ts]
-    evidence_refs: [stages/detectors/index.ts, stages/detectors/README.md]
+    evidence_refs: [src/stages/detectors/index.ts, src/stages/detectors/README.md]

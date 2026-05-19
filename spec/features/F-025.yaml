@@ -2,7 +2,7 @@ id: F-025
 title: STALE_TESTS drift detector (#8)
 status: done
 modules:
-  - stages/detectors/stale-tests.ts
+  - src/stages/detectors/stale-tests.ts
 depends_on:
   - F-003
   - F-010

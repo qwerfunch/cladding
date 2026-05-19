@@ -31,7 +31,7 @@ interface SchemaShape {
 
 function runMetaIntegrity(opts: CommandStageOptions): readonly DriftFinding[] {
   const {cwd = '.'} = opts;
-  const schemaPath = join(cwd, 'spec', 'schema.json');
+  const schemaPath = join(cwd, 'src', 'spec', 'schema.json');
   const findings: DriftFinding[] = [];
 
   let schema: SchemaShape;

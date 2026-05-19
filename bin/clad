@@ -22,7 +22,7 @@ const bundle = resolve(here, '..', 'dist', 'clad.js');
 if (existsSync(bundle)) {
   await import(bundle);
 } else {
-  const source = resolve(here, '..', 'cli', 'clad.ts');
+  const source = resolve(here, '..', 'src', 'cli', 'clad.ts');
   const result = spawnSync('npx', ['tsx', source, ...process.argv.slice(2)], {
     stdio: 'inherit',
   });

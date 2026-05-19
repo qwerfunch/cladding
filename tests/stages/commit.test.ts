@@ -20,7 +20,7 @@ vi.mock('execa', () => ({
   execaSync: vi.fn(),
 }));
 
-const {runCommit} = await import('../../stages/commit.js');
+const {runCommit} = await import('../../src/stages/commit.js');
 const execaMod = await import('execa');
 const execaSyncMock = execaMod.execaSync as unknown as ReturnType<typeof vi.fn>;
 

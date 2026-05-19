@@ -2,7 +2,7 @@ id: F-037
 title: UNTESTED_AC drift detector (#13)
 status: done
 modules:
-  - stages/detectors/untested-ac.ts
+  - src/stages/detectors/untested-ac.ts
 depends_on:
   - F-003
   - F-010

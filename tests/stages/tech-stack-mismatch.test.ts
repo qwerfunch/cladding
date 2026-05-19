@@ -20,7 +20,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {techStackMismatch} from '../../stages/detectors/tech-stack-mismatch.js';
+import {techStackMismatch} from '../../src/stages/detectors/tech-stack-mismatch.js';
 
 function writeSpec(dir: string, language: string): void {
   writeFileSync(

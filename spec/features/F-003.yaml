@@ -2,8 +2,8 @@ id: F-003
 title: stage_1.3 Drift — registry + aggregator
 status: done
 modules:
-  - stages/drift.ts
-  - stages/detectors/index.ts
+  - src/stages/drift.ts
+  - src/stages/detectors/index.ts
 acceptance_criteria:
   - id: AC-004
     ears: ubiquitous

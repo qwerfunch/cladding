@@ -14,7 +14,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {harnessIntegrity} from '../../stages/detectors/harness-integrity.js';
+import {harnessIntegrity} from '../../src/stages/detectors/harness-integrity.js';
 
 function writeManifest(dir: string, detectors: string | null): void {
   mkdirSync(join(dir, '.claude-plugin'), {recursive: true});
@@ -26,8 +26,8 @@ function writeManifest(dir: string, detectors: string | null): void {
 }
 
 function writeDetectorFile(dir: string, name: string): void {
-  mkdirSync(join(dir, 'stages', 'detectors'), {recursive: true});
-  writeFileSync(join(dir, 'stages', 'detectors', name), `// ${name}\nexport const x = 1;\n`);
+  mkdirSync(join(dir, 'src', 'stages', 'detectors'), {recursive: true});
+  writeFileSync(join(dir, 'src', 'stages', 'detectors', name), `// ${name}\nexport const x = 1;\n`);
 }
 
 describe('HARNESS_INTEGRITY detector', () => {

@@ -2,12 +2,12 @@ id: F-010
 title: spec.yaml schema + parser + validator
 status: done
 modules:
-  - spec/types.ts
-  - spec/schema.json
-  - spec/parse.ts
-  - spec/validate.ts
-  - spec/cli.ts
-  - spec/load.ts
+  - src/spec/types.ts
+  - src/spec/schema.json
+  - src/spec/parse.ts
+  - src/spec/validate.ts
+  - src/spec/cli.ts
+  - src/spec/load.ts
 acceptance_criteria:
   - id: AC-015
     ears: ubiquitous

@@ -17,22 +17,22 @@ import {dirname, join, resolve} from 'node:path';
 import process from 'node:process';
 import {fileURLToPath} from 'node:url';
 
-import {appendEvidence} from '../hitl/audit.js';
-import {newEvidence} from '../hitl/identity.js';
-import {runArch} from '../stages/arch.js';
-import {runAudit} from '../stages/audit.js';
-import {runCommit} from '../stages/commit.js';
-import {runCov} from '../stages/cov.js';
-import {runDrift} from '../stages/drift.js';
-import {runLint} from '../stages/lint.js';
-import {runPerf} from '../stages/perf.js';
-import {runSecret} from '../stages/secret.js';
-import {runSmoke} from '../stages/smoke.js';
-import {runType} from '../stages/type.js';
-import {runUat} from '../stages/uat.js';
-import {runUnit} from '../stages/unit.js';
-import {runVisual} from '../stages/visual.js';
-import type {DriftFinding, StageResult} from '../stages/types.js';
+import {appendEvidence} from '../src/hitl/audit.js';
+import {newEvidence} from '../src/hitl/identity.js';
+import {runArch} from '../src/stages/arch.js';
+import {runAudit} from '../src/stages/audit.js';
+import {runCommit} from '../src/stages/commit.js';
+import {runCov} from '../src/stages/cov.js';
+import {runDrift} from '../src/stages/drift.js';
+import {runLint} from '../src/stages/lint.js';
+import {runPerf} from '../src/stages/perf.js';
+import {runSecret} from '../src/stages/secret.js';
+import {runSmoke} from '../src/stages/smoke.js';
+import {runType} from '../src/stages/type.js';
+import {runUat} from '../src/stages/uat.js';
+import {runUnit} from '../src/stages/unit.js';
+import {runVisual} from '../src/stages/visual.js';
+import type {DriftFinding, StageResult} from '../src/stages/types.js';
 
 // Fixtures run in fresh temp dirs without their own node_modules. Symlinking
 // cladding's installed devDeps into each fixture lets npx resolve tsc /

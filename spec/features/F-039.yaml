@@ -2,7 +2,7 @@ id: F-039
 title: Intent Router — natural language to CLI verb
 status: done
 modules:
-  - router/intent.ts
+  - src/router/intent.ts
   - tests/router/intent.test.ts
 acceptance_criteria:
   - id: AC-059

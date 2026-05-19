@@ -2,7 +2,7 @@ id: F-062
 title: cli test batch 1 + widened coverage scope
 status: done
 modules:
-  - cli/benchmark.ts
+  - src/cli/benchmark.ts
   - tests/cli/init.test.ts
   - tests/cli/benchmark.test.ts
   - vitest.config.ts
@@ -16,20 +16,20 @@ acceptance_criteria:
     evidence_refs: [vitest.config.ts]
   - id: AC-154
     ears: ubiquitous
-    action: refactor cli/benchmark.ts for testability
-    response: cli/benchmark.ts exports `approxTokens` and `benchmark`; CLI bootstrap code is wrapped in `isCliEntry` guard so test imports do not trigger process.exit
-    text: The system shall refactor cli/benchmark.ts to export its helpers and wrap CLI side-effects in an isCliEntry guard, matching every other module's pattern.
-    evidence_refs: [cli/benchmark.ts]
+    action: refactor src/cli/benchmark.ts for testability
+    response: src/cli/benchmark.ts exports `approxTokens` and `benchmark`; CLI bootstrap code is wrapped in `isCliEntry` guard so test imports do not trigger process.exit
+    text: The system shall refactor src/cli/benchmark.ts to export its helpers and wrap CLI side-effects in an isCliEntry guard, matching every other module's pattern.
+    evidence_refs: [src/cli/benchmark.ts]
   - id: AC-155
     ears: ubiquitous
-    action: bring cli/init.ts to 100% line coverage
-    response: tests/cli/init.test.ts adds three branch tests (explicit projectName / gitignore without trailing newline / gitignore created from scratch); line coverage on cli/init.ts reaches 100%
-    text: The system shall bring cli/init.ts to 100% line coverage via the three new branch tests.
+    action: bring src/cli/init.ts to 100% line coverage
+    response: tests/cli/init.test.ts adds three branch tests (explicit projectName / gitignore without trailing newline / gitignore created from scratch); line coverage on src/cli/init.ts reaches 100%
+    text: The system shall bring src/cli/init.ts to 100% line coverage via the three new branch tests.
     test_refs: [tests/cli/init.test.ts]
   - id: AC-156
     ears: ubiquitous
     action: ship the first dedicated benchmark unit-test file
-    response: tests/cli/benchmark.test.ts covers approxTokens (4 cases) plus benchmark (single-feature / multi-feature / sharded / formula) for cli/benchmark.ts core helpers
+    response: tests/cli/benchmark.test.ts covers approxTokens (4 cases) plus benchmark (single-feature / multi-feature / sharded / formula) for src/cli/benchmark.ts core helpers
     text: The system shall ship tests/cli/benchmark.test.ts covering the benchmark module's exported helpers.
     test_refs: [tests/cli/benchmark.test.ts]
   - id: AC-157

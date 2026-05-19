@@ -2,7 +2,7 @@
 
 import {describe, expect, test} from 'vitest';
 
-import {DEFAULT_BUDGET, checkBudget} from '../../drive/halt.js';
+import {DEFAULT_BUDGET, checkBudget} from '../../src/drive/halt.js';
 
 describe('checkBudget', () => {
   test('returns null inside every budget', () => {
