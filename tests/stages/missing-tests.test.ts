@@ -3,7 +3,8 @@
 // Regression coverage for the v0.2.3 evidence_refs split (F-052): a
 // `status: done` AC must declare *some* verification — either
 // `test_refs` (real test files) or `evidence_refs` (npm scripts,
-// fixtures, docs). Both empty → warn. Either non-empty → silent.
+// fixtures, docs). Both empty → error (v0.2.18 promoted from warn).
+// Either non-empty → silent.
 //
 // Why a dedicated file: drift.test.ts already covers strict-mode
 // behaviour but uses real-repo spec.yaml. These tests synthesise
@@ -33,7 +34,7 @@ describe('MISSING_TESTS detector', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('warns when status=done AC has neither test_refs nor evidence_refs', () => {
+  test('errors when status=done AC has neither test_refs nor evidence_refs', () => {
     writeFileSync(
       join(dir, 'spec', 'features', 'F-001.yaml'),
       'id: F-001\n' +
@@ -45,7 +46,7 @@ describe('MISSING_TESTS detector', () => {
     );
     const findings = missingTests.run({cwd: dir});
     expect(findings).toHaveLength(1);
-    expect(findings[0].severity).toBe('warn');
+    expect(findings[0].severity).toBe('error');
     expect(findings[0].message).toContain('F-001.AC-001');
     expect(findings[0].message).toContain('evidence_refs');
   });

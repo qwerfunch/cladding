@@ -19,7 +19,7 @@ ironclad_spec_ref: https://github.com/qwerfunch/ironclad/blob/main/detectors.sch
 | 4 | `TECH_STACK_MISMATCH` | spec ↔ code | `tech-stack-mismatch.ts` | warn | blind |
 | 5 | `ARCHITECTURE_VIOLATION` | spec ↔ code | `architecture-violation.ts` | error | blind |
 | 6 | `CONVENTION_DRIFT` | spec ↔ code | `convention-drift.ts` | warn | blind |
-| 7 | `MISSING_TESTS` | code ↔ test | `missing-tests.ts` | warn | **aware** |
+| 7 | `MISSING_TESTS` | code ↔ test | `missing-tests.ts` | error *(promoted from warn in v0.2.18)* | **aware** |
 | 8 | `STALE_TESTS` | code ↔ test | `stale-tests.ts` | warn | blind |
 | 9 | `COVERAGE_DROP` | code ↔ test | `coverage-drop.ts` | warn | blind |
 | 10 | `EVIDENCE_MISMATCH` | code ↔ test | `evidence-mismatch.ts` | error | blind |
@@ -72,7 +72,7 @@ Each one is real, but each has a condition that softens its day-1 utility:
 
 | condition class | detectors |
 |---|---|
-| **status-aware** (only run on `status: done`) | `MISSING_TESTS` (warn), `UNTESTED_AC` (error) |
+| **status-aware** (only run on `status: done`) | `MISSING_TESTS` (error since v0.2.18), `UNTESTED_AC` (error) |
 | **config-dependent** (needs external config / binary) | `HARDCODED_SECRET` (needs `.secretlintrc` + secretlint), `COVERAGE_DROP` (needs coverage report), `PERFORMANCE_DRIFT` (needs perf baseline) |
 | **code-anchor-dependent** (needs a `// AC-NNN: <hash>` comment in source — no anchor → no catch) | `AC_DRIFT` |
 | **warn-severity** (does not fail the gate alone) | `MISSING_TESTS`, `STALE_TESTS`, `COVERAGE_DROP`, `STALE_EVIDENCE`, `STALE_SPECIFICATION`, `TECH_STACK_MISMATCH`, `CONVENTION_DRIFT`, `PERFORMANCE_DRIFT`, `UNMAPPED_ARTIFACT` *(default; promoted to error by `--strict`)* |
@@ -98,7 +98,7 @@ v0.2.3 (F-052) split the single `test_refs` field into two complementary fields.
 
 `MISSING_TESTS` is satisfied by *either* field carrying at least one entry. `UNTESTED_AC` only inspects `test_refs` (since it resolves paths on disk); evidence_refs entries are deliberately out of its scope because their truth is established by running a command or by curated artifact review, not by file existence.
 
-A `status: done` AC with both fields empty trips `MISSING_TESTS warn` (or `error` under `--strict`). The author's job is to declare at least one form of evidence; the detector's job is to never let a `done` AC ship with neither.
+A `status: done` AC with both fields empty trips `MISSING_TESTS error` (v0.2.18 promoted from warn; previously only `--strict` escalated this). The author's job is to declare at least one form of evidence; the detector's job is to never let a `done` AC ship with neither — and the gate is now hard, not advisory.
 
 ### `fixture:` is a validated anchor, not a free-form label (v0.2.4, F-053)
 
