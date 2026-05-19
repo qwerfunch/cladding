@@ -42,6 +42,20 @@ Claude Code · OpenAI Codex CLI · Google Gemini CLI · Cursor · Cline · Conti
 | 19 Drift detectors | UNMAPPED_ARTIFACT · MISSING_IMPLEMENTATION · AC_DRIFT · TECH_STACK · ARCH_VIOLATION · CONVENTION_DRIFT · MISSING_TESTS · STALE_TESTS · COVERAGE_DROP · EVIDENCE_MISMATCH · HARDCODED_SECRET · PERFORMANCE_DRIFT · UNTESTED_AC · STATUS_DRIFT · STALE_EVIDENCE · STALE_SPECIFICATION · HARNESS_INTEGRITY · REFERENCE_INTEGRITY · META_INTEGRITY | ✓ |
 | EARS 구문 검증 | 5 패턴 (ubiquitous · event · state · optional · unwanted) | ✓ |
 
+## 증거 (Evidence)
+
+cladding 의 헤드라인 주장 — **EARS-locked sharded spec 이 엣지 케이스를 가정이 아닌 코드로 강제한다** — 은 통제된 A/B/C 벤치마크로 뒷받침됩니다. 문서: [`docs/benchmarks/event-store-trap-catch.md`](docs/benchmarks/event-store-trap-catch.md).
+
+같은 이벤트 소싱 store 를 세 번 구현 — vanilla Claude Code · harness-boot 의 gate 사이클 · cladding 의 EARS-locked spec. spec 에는 **22 개 정상 AC + 8 개 의도적 모호점 ("trap")** 이 박혀 있고 trap 은 명시적으로 pin 하지 않습니다. 8 trap 결과:
+
+| variant | 코드에서 catch | 문서 포함 cover | silent gap |
+|---|---|---|---|
+| vanilla | 2/8 (25%) 우연 | 2/8 | **6 silent** |
+| harness-boot | 2/8 (vanilla 와 같은 코드) | 7/8 문서화 | 1 silent |
+| **cladding** | **8/8 (100%) 명시** | **8/8** | **0** |
+
+cladding 의 각 trap 은 EARS `unwanted` / `state` AC 로 first-class 가 되어 구현이 만족해야만 함 (참고: [`event-store-spec-with-traps.md`](docs/benchmarks/event-store-spec-with-traps.md)). **vanilla 대비 +50% source LOC 가 zero silent 엣지 를 구입.** 전체 방법론, trap-by-trap 매트릭스, 8축 비교는 링크된 문서 참조.
+
 ## 상태 & 로드맵
 
 **v0.1.0 — 출시 범위와 유보 사항.** Cladding 은 Ironclad 의 **장비 (machinery)** 일체를 오늘 시점에 출시합니다 — 13 개 Iron Law stage, 19 개 drift detector, EARS 검증기, HITL 가드, agent persona 정의, conformance fixture, CLI 표면. 두 가지 범위 유보는 명시적으로 추적됩니다:

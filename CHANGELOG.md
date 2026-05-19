@@ -5,6 +5,27 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.17] — Unreleased — Differentiation evidence into docs (F-066)
+
+Surfaces the 2026-05-19 controlled A/B/C benchmark (event-sourcing store, 22 ACs + 8 traps) inside cladding's own docs so external readers can find it without access to the maintainer's local cladding-abc workspace. The headline result — **vanilla 2/8 (25%) accidental trap catch vs cladding 8/8 (100%) explicit** — is now linked from `README.md`, `README.ko.md`, and cited in `GOVERNANCE.md` §5 (v1.0 graduation criteria).
+
+### Added
+
+- `docs/benchmarks/event-store-trap-catch.md` — full synthesis: 8-axis comparison, trap-by-trap matrix, plugin-invocation note, cumulative cells 07/09 table.
+- `docs/benchmarks/event-store-spec-with-traps.md` — the shared problem definition (22 normal ACs + 8 intentional ambiguities).
+- `spec/features/F-066.yaml` — "Differentiation evidence — surface cell 09 benchmark in cladding's docs" (3 ACs, status `done`).
+
+### Changed
+
+- `README.md` + `README.ko.md` — new **Evidence** section between Levels and Status & roadmap. Summarises the trap-catch result and links to the full document.
+- `GOVERNANCE.md` §5 — appended a **Differentiation evidence** subsection citing the benchmark with explicit "one data point, not proof" framing. The four v1.0 graduation conditions stay unchanged.
+
+### Notes
+
+- This patch is documentation-only. No code change. 404/404 tests stay green. Coverage and drift unchanged.
+- The benchmark is reproducible from the published spec + the published trap list; the per-variant source is in the maintainer's local cladding-abc workspace and can be republished on request.
+- The "Differentiation evidence" framing is deliberate: one cell at one complexity level is signal, not proof. The v1.0 falsifications-registry condition (GOVERNANCE.md §5.4) gates the wider claim.
+
 ## [0.2.16] — 2026-05-19 — `src/` layout adoption (F-065)
 
 **Layout refactor**, no behaviour change. Every first-party code dir now lives under a single `src/` root: `src/{adapters · agents · cli · drive · events · hitl · optimizer · router · spec · stages · ui}`. Spec data (`features/`, `scenarios/`, `architecture.yaml`) stays at the project root because user projects keep their data at that path; `schema.json` moves into `src/spec/` because it travels with the code that reads it.

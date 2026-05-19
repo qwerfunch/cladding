@@ -69,6 +69,20 @@ Each Level adds a verifiable capability:
 | L21.5 | Release preparation (CHANGELOG · README.ko · commands · bin field) | ✓ |
 | L22 | v0.1.0 main release | gated on user instruction |
 
+## Evidence
+
+Cladding's headline claim — that an **EARS-locked sharded spec forces edge cases into code, not assumptions** — is backed by a controlled A/B/C benchmark documented in [`docs/benchmarks/event-store-trap-catch.md`](docs/benchmarks/event-store-trap-catch.md).
+
+The benchmark builds the same event-sourcing store three times: once with no scaffolding (vanilla Claude Code), once with harness-boot's gate cycle, and once with cladding's EARS-locked spec. The spec contains **22 normal ACs + 8 intentional ambiguities** ("traps") it deliberately does not pin. Result on the 8 traps:
+
+| variant | trap catch (code) | covered (code + docs) | silent gaps |
+|---|---|---|---|
+| vanilla | 2/8 (25%) accidental | 2/8 | **6 silent** |
+| harness-boot | 2/8 (same code as vanilla) | 7/8 documented | 1 silent |
+| **cladding** | **8/8 (100%) explicit** | **8/8** | **0** |
+
+Each cladding trap becomes a first-class EARS `unwanted` or `state` AC (see [`event-store-spec-with-traps.md`](docs/benchmarks/event-store-spec-with-traps.md)), which the implementation then has to satisfy. **+50% source LOC vs vanilla buys zero silent edges.** Full methodology, trap-by-trap matrix, and 8-axis comparison are in the linked benchmark.
+
 ## Status & roadmap
 
 **v0.1.0 — what is shipped vs deferred.** Cladding ships the full Ironclad **machinery** today: 13 Iron Law stages, 19 drift detectors, EARS validator, HITL guard, agent persona definitions, conformance fixtures, and the CLI surface. Two scoped deferrals are tracked openly:

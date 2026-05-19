@@ -115,6 +115,10 @@ These are the conditions the project must meet before bumping to `v1.0.0` — no
 
 When all four hold, v1.0 ships. Until then, every release stays in `0.x` with the implicit "internal-API may shift" caveat.
 
+### Differentiation evidence (controlled benchmark, 2026-05-19)
+
+While the four conditions above gate v1.0, **the differentiation claim itself** — that an EARS-locked sharded spec materially affects code quality — has its own evidence. See [`docs/benchmarks/event-store-trap-catch.md`](docs/benchmarks/event-store-trap-catch.md). On a 22-AC event-sourcing store with 8 intentional spec ambiguities, cladding catches **8/8 traps** in code (100%) where vanilla Claude Code catches **2/8** (25%, accidental). This is one data point, not proof; an additional external-validation cell is part of the v1.0 falsifications-registry requirement.
+
 ## 6. Out of scope for v0.1
 
 These intentionally don't exist yet. v0.2+ revisits.
