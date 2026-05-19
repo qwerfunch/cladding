@@ -5,6 +5,41 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.12] — Unreleased — Stage runner chapter closed · every stage covered (F-061)
+
+**Milestone**: every one of the 12 Iron Law stage runners (stage_1.1 through stage_4.2) now carries a dedicated unit-test file at ≥ 75% line coverage. The stage-runner chapter that opened with v0.2.10 is closed. Combined with the detector chapter closed in v0.2.9, **every business-logic module cladding ships now has dedicated unit-test coverage**.
+
+Project line coverage rises from **84.23% → 93.32%** (+9.1pp), crossing the 90% milestone. Total cumulative gain since v0.2.5 baseline: **26.8% → 93.32% (+66.5pp)** across seven batches.
+
+### Added
+
+- `tests/stages/perf.test.ts` — 8 tests covering the npm-script delegate pattern (unknown / script-missing / exit 0 / non-zero / ENOENT / non-ENOENT throw / null-exit / explicit non-npm override).
+- `tests/stages/visual.test.ts` — 8 tests mirroring the perf pattern.
+- `tests/stages/uat.test.ts` — 7 tests covering spec-absent / audit-empty / human-pass-satisfies / tool-only-fails / human-note-does-not-satisfy / status-filter / multi-feature paths via real `appendEvidence` writes.
+- `spec/features/F-061.yaml` — "Stage runner tests batch 3 — every stage covered" (4 ACs, status `done`).
+
+### Notes
+
+- Coverage per targeted stage (v8 reporter, JSON summary):
+  - `stages/perf.ts`: 88.5% lines · 92.6% branches
+  - `stages/visual.ts`: 88.5% lines · 92.6% branches
+  - `stages/uat.ts`: 85.7% lines · 93.3% branches
+- 23 new tests bring the suite to **305 / 305 passing** (282 prior).
+- The remaining ~7% of source-tree coverage lives in `cli/*`, `optimizer/*`, scan helpers — separate threads beyond the stage/detector chapters.
+
+### Coverage push — the full arc
+
+| Batch | Targets | Line coverage | Delta |
+|---|---|---|---|
+| v0.2.5 baseline | 3 detectors | 26.8% | — |
+| v0.2.6 (detector batch 1) | 8 detectors | 36.36% | +9.5pp |
+| v0.2.7 (detector batch 2) | 10 detectors | 49% | +12.6pp |
+| v0.2.8 (detector batch 3) | 15 detectors | 58.66% | +9.7pp |
+| v0.2.9 (detector batch 4) | 20 detectors (chapter closed) | 63.49% | +4.8pp |
+| v0.2.10 (stage batch 1) | 20 det + 4 stages | 72.58% | +9.1pp |
+| v0.2.11 (stage batch 2) | 20 det + 9 stages | 84.23% | +11.6pp |
+| **v0.2.12 (stage batch 3)** | **20 det + 12 stages (both chapters closed)** | **93.32%** | **+9.1pp** |
+
 ## [0.2.11] — Unreleased — Stage runner tests batch 2 (F-060)
 
 Continues the stage-runner coverage thread opened by v0.2.10. Five more stage runners gain dedicated unit tests using the established patterns: detector-adapter stages (`arch`, `secret`) mock the underlying detector; polyglot stages (`unit`, `cov`, `smoke`) mock `execaSync`. Project line coverage rises from **72.58% → 84.23%** (+11.65pp).
