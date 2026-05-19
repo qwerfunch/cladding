@@ -87,4 +87,32 @@ describe('runInit', () => {
     expect(r.created).not.toContain('spec.yaml');
     expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).toContain('existing: true');
   });
+
+  test('explicit projectName overrides cwd basename in seed', () => {
+    const r = runInit({cwd: dir, projectName: 'my-custom-name'});
+    expect(r.language).toBeDefined();
+    const yaml = readFileSync(join(dir, 'spec.yaml'), 'utf8');
+    expect(yaml).toContain('name: my-custom-name');
+    expect(yaml).toContain('my-custom-name — Cladding spec');
+  });
+
+  test('appends .cladding/ to a gitignore that lacks a trailing newline', () => {
+    // Branch: existing.length > 0 && !existing.endsWith('\n') → prepend \n
+    writeFileSync(join(dir, '.gitignore'), 'node_modules/');
+    runInit({cwd: dir});
+    const gi = readFileSync(join(dir, '.gitignore'), 'utf8');
+    // The original line stays intact and the new entry lands on its own line
+    expect(gi.startsWith('node_modules/')).toBe(true);
+    expect(gi).toContain('.cladding/');
+    // No "node_modules/.cladding/" concatenation
+    expect(gi).not.toContain('node_modules/.cladding/');
+  });
+
+  test('creates .gitignore from scratch when none exists', () => {
+    // Branch: existing.length === 0 → ensureNewline stays ''
+    const r = runInit({cwd: dir});
+    expect(r.created.some((c) => c.includes('.gitignore'))).toBe(true);
+    const gi = readFileSync(join(dir, '.gitignore'), 'utf8');
+    expect(gi).toContain('.cladding/');
+  });
 });
