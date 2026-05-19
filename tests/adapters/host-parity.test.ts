@@ -1,10 +1,15 @@
 // Cladding · adapter parity — every host adapter returns the same
 // AgentResult shape on the same (persona, ctx). F-049 AC-090.
 
-import {describe, expect, test} from 'vitest';
+import {afterEach, describe, expect, test, vi} from 'vitest';
 
 import {claudeCodeAdapter} from '../../src/adapters/host/claude-code.js';
 import {genericMcpAdapter} from '../../src/adapters/host/generic-mcp.js';
+import {
+  clearHostMcpServerForTesting,
+  setHostMcpServer,
+} from '../../src/adapters/host/sampling-context.js';
+import type {SamplingCapableServer} from '../../src/adapters/host/transport.js';
 import type {AgentContext, AgentResult, PersonaSpec} from '../../src/adapters/types.js';
 
 const persona: PersonaSpec = {
@@ -91,5 +96,79 @@ describe('healthCheck — host detection (F-049 AC-089 auto-detect)', () => {
       if (previous === undefined) delete process.env.MCP_TRANSPORT;
       else process.env.MCP_TRANSPORT = previous;
     }
+  });
+});
+
+// v0.2.26 (F-075): when clad serve has registered an MCP server, the
+// host adapters route through McpSamplingTransport instead of the
+// Mock fallback. These tests substitute a stub sampling-capable
+// server and assert the adapter's invoke goes through createMessage.
+describe('host adapter MCP routing (F-075)', () => {
+  afterEach(() => {
+    clearHostMcpServerForTesting();
+  });
+
+  function stubSamplingServer(replyText: string): {
+    server: SamplingCapableServer;
+    createMessage: ReturnType<typeof vi.fn>;
+  } {
+    const createMessage = vi.fn().mockResolvedValue({
+      model: 'stub',
+      stopReason: 'endTurn',
+      role: 'assistant' as const,
+      content: {type: 'text', text: replyText},
+    });
+    return {server: {createMessage} as SamplingCapableServer, createMessage};
+  }
+
+  test('claudeCodeAdapter routes through McpSamplingTransport when a server is registered', async () => {
+    const {server, createMessage} = stubSamplingServer('claude reply');
+    setHostMcpServer(server);
+    const result = await claudeCodeAdapter.invokeAgent(persona, ctx);
+    expect(createMessage).toHaveBeenCalledOnce();
+    expect(result.identity.name).toContain('mcp-sampling:claude-code');
+    expect(result.summary).toBe('claude reply');
+  });
+
+  test('genericMcpAdapter routes through McpSamplingTransport when a server is registered', async () => {
+    const {server, createMessage} = stubSamplingServer('mcp reply');
+    setHostMcpServer(server);
+    const result = await genericMcpAdapter.invokeAgent(persona, ctx);
+    expect(createMessage).toHaveBeenCalledOnce();
+    expect(result.identity.name).toContain('mcp-sampling:generic-mcp');
+    expect(result.summary).toBe('mcp reply');
+  });
+
+  test('clearing the registration falls back to Mock on the NEXT dispatch', async () => {
+    const {server, createMessage} = stubSamplingServer('first');
+    setHostMcpServer(server);
+    const first = await claudeCodeAdapter.invokeAgent(persona, ctx);
+    expect(first.identity.name).toContain('mcp-sampling:claude-code');
+
+    clearHostMcpServerForTesting();
+    const second = await claudeCodeAdapter.invokeAgent(persona, ctx);
+    expect(second.identity.name).toContain('mock:claude-code');
+    // The fallback did NOT call createMessage a second time.
+    expect(createMessage).toHaveBeenCalledOnce();
+  });
+
+  test('replacing the registered server with a new one re-allocates the cached transport', async () => {
+    const first = stubSamplingServer('one');
+    const second = stubSamplingServer('two');
+    setHostMcpServer(first.server);
+    const r1 = await genericMcpAdapter.invokeAgent(persona, ctx);
+    setHostMcpServer(second.server);
+    const r2 = await genericMcpAdapter.invokeAgent(persona, ctx);
+    expect(r1.summary).toBe('one');
+    expect(r2.summary).toBe('two');
+    expect(first.createMessage).toHaveBeenCalledOnce();
+    expect(second.createMessage).toHaveBeenCalledOnce();
+  });
+
+  test('healthCheck returns ready=true when sampling is active', async () => {
+    const {server} = stubSamplingServer('x');
+    setHostMcpServer(server);
+    const status = await claudeCodeAdapter.healthCheck();
+    expect(status.ready).toBe(true);
   });
 });

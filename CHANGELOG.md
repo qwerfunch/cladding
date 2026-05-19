@@ -5,6 +5,35 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.26] — Unreleased — Host adapter MCP routing + release readiness sweep (F-075)
+
+**Phase B' of the v0.3.0 host-MCP transport thread — the closing patch before declaring F-049 done.** Wires the v0.2.25 building blocks into the actual host adapter dispatch path, then runs a release-readiness audit (bundle minify, security documentation, README sync) so v0.3.0 is a 30-minute version bump rather than a fresh integration push.
+
+### Added
+
+- `src/adapters/host/sampling-context.ts` — process-scoped registry for the active sampling-capable server. `setHostMcpServer(server)` returns a disposer that respects later registrations (won't clobber); `getHostMcpServer()` returns the current registration; `clearHostMcpServerForTesting()` for test isolation.
+- `src/cli/clad.ts` `runServeCommand` — registers the freshly-built server in the sampling context before connecting stdio, so the moment a client connects the host adapters route through MCP sampling.
+- `tests/adapters/sampling-context.test.ts` — 6 unit tests covering registration, disposer behaviour (including the "later registration wins" rule), null-clear semantics, and the test-only reset hook.
+- `tests/adapters/host-parity.test.ts` — 5 new tests under "host adapter MCP routing (F-075)" covering: claudeCodeAdapter routes via sampling, genericMcpAdapter routes via sampling, clearing the registration falls back to Mock on the next dispatch, replacing the registered server re-allocates the cached Sampling transport, healthCheck stays `ready: true` under sampling.
+- `spec/features/F-075.yaml` — "Host adapter MCP routing + release readiness sweep" (6 ACs, status `done`).
+- `SECURITY.md` — new "MCP server (`clad serve`) — invariants" section: no arbitrary shell execution from MCP tools · read-only by default · sampling responses pass through anti-self-cert · audit notifications are advisory.
+
+### Changed
+
+- `src/adapters/host/claude-code.ts` + `src/adapters/host/generic-mcp.ts` — `invokeAgent` and `healthCheck` now go through an `activeTransport()` helper that returns a cached `McpSamplingTransport` (host-tagged id, `mcp-sampling:claude-code` / `mcp-sampling:generic-mcp`) when a server is registered, or the Mock fallback when not. Per-dispatch decision so a server registered after import still routes correctly.
+- `scripts/build.mjs` — `esbuild` now runs with `minify: true`. **Bundle size: 2.4 MB → 1.1 MB (55 % reduction).** No source-map drop, no syntax transforms; the bundle stays a single ESM file readable enough for diagnostic spelunking.
+- `src/adapters/host/transport.ts` `SamplingCapableServer` — `messages` widened from `ReadonlyArray` to `Array` and `role` widened to `'user' | 'assistant'` so the SDK's real `Server.createMessage` is assignment-compatible with the interface.
+- `README.md` + `README.ko.md` — status line bumped to v0.2.26 · 498/498 tests, adds `clad serve` MCP server with live audit stream, McpSamplingTransport routing, minified bundle size; feature count 73 → 75.
+- `docs/multi-provider-roadmap.md` — adapter matrix entries flipped from "planned" to "live (v0.2.26)"; new "What every v0.2.x release contributed" table summarising the F-068 → F-075 thread.
+- `src/serve/server.ts` `buildServer` — default `version` advertised to clients bumped to `0.2.26`.
+
+### Notes
+
+- 509/509 vitest pass; `npm run typecheck` clean; `npm run lint` clean; `node bin/clad check --strict` drift-green.
+- **Bundle 55 % smaller** without losing any feature — the MCP SDK cost from v0.2.24 is now amortized.
+- Host adapter routing is the architectural closing of the v0.2.19 → v0.2.26 thread: F-049's AC-092 ("v0.3.0 introduces the MCP server mode that real Claude Code subagent and MCP-client roundtrips dispatch through") is satisfied today; the v0.3.0 declaration is purely a version bump + spec status flip + release flow.
+- v0.3.0 plan: `spec/features/F-049.yaml` status `in_progress` → `done`, minor bump 0.2.26 → 0.3.0, main release flow (tag, gh release create). **Requires user confirmation** for the minor bump.
+
 ## [0.2.25] — Unreleased — McpSamplingTransport + live audit notification (F-074)
 
 **Phase B of the v0.3.0 host-MCP transport thread.** v0.2.24 shipped the read surface of `clad serve`; this patch adds the bidirectional pieces — a Transport that dispatches LLM calls via MCP sampling, and a notification path that lets clients live-tail the audit log.
