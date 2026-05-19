@@ -5,6 +5,31 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.7] — Unreleased — Detector unit tests batch 2 (F-056)
+
+Continuation of the v0.2.6 coverage push. Five more detectors gain dedicated `tests/stages/*.test.ts` files, each reaching **100% line coverage** on the detector source. Overall project line coverage rises from **36.36% → 49%** in this batch (+12.6pp). After two batches the suite has covered 10 of the 20 detectors at 100%.
+
+### Added
+
+- `tests/stages/convention-drift.test.ts` — 7 tests covering line-header / block-header / bare-module / non-existent / non-TS / multi-feature / spec-absent paths.
+- `tests/stages/stale-tests.test.ts` — 7 tests using controlled `utimesSync` stamps to exercise the 30-day mtime boundary, no-tests, no-source, multi-stale, and spec-absent paths.
+- `tests/stages/stale-specification.test.ts` — 6 tests covering the three lifecycle-metadata branches (archived_at + status mismatch / superseded_by without archived_at / archived status with surviving modules) plus healthy and spec-absent baselines.
+- `tests/stages/harness-integrity.test.ts` — 6 tests covering matching count / divergent count / malformed declaration / plugin.json absent / detectors field absent / index.ts exclusion.
+- `tests/stages/meta-integrity.test.ts` — 6 tests covering valid schema / missing required key / missing property declaration / malformed JSON / absent schema / unsupported spec version.
+- `spec/features/F-056.yaml` — "Detector unit tests batch 2" (4 ACs, status `done`).
+
+### Notes
+
+- Coverage per targeted detector (v8 reporter, JSON summary):
+  - `convention-drift.ts`: 100% lines · 90.9% branches
+  - `stale-tests.ts`: 100% lines · 80% branches
+  - `stale-specification.ts`: 100% lines · 93.3% branches
+  - `harness-integrity.ts`: 100% lines · 100% branches
+  - `meta-integrity.ts`: 100% lines · 100% branches
+- 32 new tests bring the suite to **183 / 183 passing** (151 prior).
+- 7 detectors still lack dedicated tests after this batch: `coverage-drop`, `performance-drift`, `evidence-mismatch`, `stale-evidence`, `hardcoded-secret`, `architecture-violation`, `reference-integrity`. The first four are batch-3 candidates (read-only file probing); the last three need richer subprocess / fixture setup.
+- The `COVERAGE_DROP` warn under `--strict` is still present (49% < 70% floor). One more batch should close most of the remainder.
+
 ## [0.2.6] — Unreleased — Detector unit tests batch 1 (F-055)
 
 After v0.2.5 the only remaining `clad check --strict` failure was the pre-existing `COVERAGE_DROP warn` (line coverage 26.8% < 70% floor). v0.2.6 starts the honest path to clearing it — real test coverage, not a lower floor. Five detectors gain dedicated `tests/stages/*.test.ts` files, each reaching **100% line coverage** on the detector source. Overall project line coverage rises from **26.8% → 36.36%** in one batch.
