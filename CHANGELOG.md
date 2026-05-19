@@ -5,6 +5,26 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.18] — Unreleased — MISSING_TESTS warn → error (F-067)
+
+**Lock-in patch**. The v0.2.4 honesty cleanup brought cladding's self-spec from 56 empty `status: done` ACs down to zero. v0.2.18 converts that one-time achievement into a permanent invariant: the `MISSING_TESTS` drift detector's default severity is promoted from `warn` to `error`. Shipping a new done AC without `test_refs` or `evidence_refs` now fails `clad check` outright — not just under `--strict`.
+
+### Changed
+
+- `src/stages/detectors/missing-tests.ts` — finding severity `warn` → `error`. Module header updated with the v0.2.18 rationale (the promotion was held until self-spec had zero empty done ACs, which v0.2.4 delivered).
+- `tests/stages/missing-tests.test.ts` — assertion updated from `'warn'` to `'error'`; test name updated; header comment updated.
+- `src/stages/detectors/README.md` — catalog row #7, status-policy table, and AC-evidence-taxonomy section all reflect the new error severity with a "(promoted from warn in v0.2.18)" annotation.
+
+### Added
+
+- `spec/features/F-067.yaml` — "MISSING_TESTS severity promoted warn → error" (3 ACs, status `done`).
+
+### Notes
+
+- `node bin/clad check` (default mode) on cladding's own self-spec stays drift-green because all 66 features × their ACs already declare evidence (v0.2.4 cleanup).
+- 404 / 404 tests stay green. No coverage change.
+- For user projects that haven't completed an equivalent cleanup, this is a breaking change in CI signal — the same situation that previously emitted warns now emits errors. Mitigation: declare evidence for every done AC, or temporarily downgrade the feature to `status: in_progress` until evidence is ready.
+
 ## [0.2.17] — Unreleased — Differentiation evidence into docs (F-066)
 
 Surfaces the 2026-05-19 controlled A/B/C benchmark (event-sourcing store, 22 ACs + 8 traps) inside cladding's own docs so external readers can find it without access to the maintainer's local cladding-abc workspace. The headline result — **vanilla 2/8 (25%) accidental trap catch vs cladding 8/8 (100%) explicit** — is now linked from `README.md`, `README.ko.md`, and cited in `GOVERNANCE.md` §5 (v1.0 graduation criteria).

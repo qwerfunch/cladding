@@ -1,0 +1,26 @@
+id: F-067
+title: MISSING_TESTS severity promoted warn → error
+status: done
+modules:
+  - src/stages/detectors/missing-tests.ts
+  - tests/stages/missing-tests.test.ts
+  - src/stages/detectors/README.md
+depends_on: [F-052, F-064]
+acceptance_criteria:
+  - id: AC-180
+    ears: ubiquitous
+    action: promote MISSING_TESTS default severity from warn to error
+    response: src/stages/detectors/missing-tests.ts emits findings with severity error (was warn); the change lands now that cladding's self-spec has zero empty done ACs (achieved in v0.2.4)
+    text: The system shall promote the MISSING_TESTS detector's default severity from warn to error, so a status=done AC without test_refs or evidence_refs fails `clad check` outright rather than only under `--strict`.
+    test_refs: [tests/stages/missing-tests.test.ts]
+  - id: AC-181
+    ears: state
+    condition: while a status=done AC declares neither test_refs nor evidence_refs
+    text: While a status=done AC declares neither test_refs nor evidence_refs, the system shall emit a MISSING_TESTS finding with severity error in default mode (no `--strict` needed).
+    test_refs: [tests/stages/missing-tests.test.ts]
+  - id: AC-182
+    ears: ubiquitous
+    action: update the detector catalog README
+    response: src/stages/detectors/README.md table row #7 shows MISSING_TESTS at severity error with a "(promoted from warn in v0.2.18)" annotation; the status-policy table + AC-evidence-taxonomy section reflect the same
+    text: The system shall update src/stages/detectors/README.md so the catalog row, status-policy table, and AC-evidence-taxonomy section all reflect the new error severity.
+    evidence_refs: [src/stages/detectors/README.md]

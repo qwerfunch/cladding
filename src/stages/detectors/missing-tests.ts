@@ -1,13 +1,17 @@
 // Cladding · drift detector · MISSING_TESTS
 //
-// Detector #7 from the catalog (axis: code_vs_test, severity: warn).
+// Detector #7 from the catalog (axis: code_vs_test, severity: error).
 // Floor heuristic: a `status: done` AC must declare *some* verification —
 // either `test_refs` (executable test files) or `evidence_refs` (npm
-// scripts, conformance fixtures, doc artifacts). Both empty → `warn`.
+// scripts, conformance fixtures, doc artifacts). Both empty → `error`.
 //
-// Why warn, not error: real projects iterate spec faster than tests,
-// and an undeclared-but-real test should not block ship. The opt-in
-// `--strict` mode (v0.2.2, F-051) escalates warn to error for CI.
+// Severity promoted from warn to error in v0.2.18 (F-067). The earlier
+// warn level was a soft gate during the v0.2.2–v0.2.4 honesty cleanup
+// while cladding's own self-spec still had 56 empty done ACs. The
+// cleanup landed in v0.2.4 (zero empty ACs as of that release); v0.2.18
+// converts that one-time achievement into a permanent invariant —
+// shipping a new done AC without evidence now fails `clad check`
+// outright, not just under `--strict`.
 //
 // Why count evidence_refs as satisfying (v0.2.3, F-052): not every AC
 // is verified by a vitest assertion — some run via `npm run stage:X`,
@@ -49,7 +53,7 @@ function runMissingTests(opts: CommandStageOptions): readonly DriftFinding[] {
       if (!hasTestRefs && !hasEvidenceRefs) {
         findings.push({
           detector: NAME,
-          severity: 'warn',
+          severity: 'error',
           message: `${feature.id}.${ac.id} declares no test_refs or evidence_refs — AC is unverified`,
         });
       }
