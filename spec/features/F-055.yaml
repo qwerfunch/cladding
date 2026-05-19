@@ -1,0 +1,40 @@
+id: F-055
+title: Detector unit tests batch 1 (5 detectors, 100% line coverage each)
+status: done
+modules:
+  - tests/stages/unmapped-artifact.test.ts
+  - tests/stages/missing-implementation.test.ts
+  - tests/stages/status-drift.test.ts
+  - tests/stages/ac-drift.test.ts
+  - tests/stages/tech-stack-mismatch.test.ts
+depends_on: [F-022, F-052]
+acceptance_criteria:
+  - id: AC-125
+    ears: ubiquitous
+    action: cover UNMAPPED_ARTIFACT with focused unit tests
+    response: tests/stages/unmapped-artifact.test.ts exercises happy / unmapped / out-of-scope / multi-feature / archived / spec-absent paths; line coverage on the detector source reaches 100%
+    text: The system shall ship a tests/stages/unmapped-artifact.test.ts file that brings the UNMAPPED_ARTIFACT detector to 100% line coverage.
+    test_refs: [tests/stages/unmapped-artifact.test.ts]
+  - id: AC-126
+    ears: ubiquitous
+    action: cover the always-error trio remainder
+    response: tests/stages/missing-implementation.test.ts and tests/stages/status-drift.test.ts each exercise the detector's full branch set; line coverage on both detector sources reaches 100%
+    text: The system shall ship dedicated unit-test files for MISSING_IMPLEMENTATION and STATUS_DRIFT, bringing each to 100% line coverage.
+    test_refs:
+      - tests/stages/missing-implementation.test.ts
+      - tests/stages/status-drift.test.ts
+  - id: AC-127
+    ears: ubiquitous
+    action: cover two high-traffic conditional detectors
+    response: tests/stages/ac-drift.test.ts and tests/stages/tech-stack-mismatch.test.ts exercise the structural floor / EARS / manifest-chain branches; line coverage on both detector sources reaches 100%
+    text: The system shall ship dedicated unit-test files for AC_DRIFT and TECH_STACK_MISMATCH, bringing each to 100% line coverage.
+    test_refs:
+      - tests/stages/ac-drift.test.ts
+      - tests/stages/tech-stack-mismatch.test.ts
+  - id: AC-128
+    ears: state
+    condition: while the v0.2.6 batch lands
+    action: raise overall line coverage materially
+    response: vitest --coverage reports overall line coverage rises from 26.8% (v0.2.5 baseline) to ≥ 35% after this batch
+    text: While the v0.2.6 batch lands, overall line coverage shall rise from the v0.2.5 baseline (26.8%) to at least 35%, recording the first material step toward the 70% floor.
+    evidence_refs: [CHANGELOG.md]

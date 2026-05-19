@@ -5,6 +5,31 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.6] — Unreleased — Detector unit tests batch 1 (F-055)
+
+After v0.2.5 the only remaining `clad check --strict` failure was the pre-existing `COVERAGE_DROP warn` (line coverage 26.8% < 70% floor). v0.2.6 starts the honest path to clearing it — real test coverage, not a lower floor. Five detectors gain dedicated `tests/stages/*.test.ts` files, each reaching **100% line coverage** on the detector source. Overall project line coverage rises from **26.8% → 36.36%** in one batch.
+
+### Added
+
+- `tests/stages/unmapped-artifact.test.ts` — 6 tests covering happy / unclaimed / out-of-scope / multi-feature / archived / spec-absent paths.
+- `tests/stages/missing-implementation.test.ts` — 7 tests covering present / missing / mixed / no-modules / archived / spec-absent / multi-feature paths.
+- `tests/stages/status-drift.test.ts` — 8 tests covering the four lifecycle states (done / in_progress / planned / archived) × module presence, plus the no-modules and spec-absent edge cases.
+- `tests/stages/ac-drift.test.ts` — 7 tests covering the structural floor (text-only / EARS-only / neither) and the EARS syntactic check (event-pattern misalignment / ubiquitous null condition) plus multi-AC and spec-absent paths.
+- `tests/stages/tech-stack-mismatch.test.ts` — 5 tests covering language agreement / disagreement / unknown manifest, manifest-priority chain (package.json beats pyproject.toml), and spec-absent.
+- `spec/features/F-055.yaml` — "Detector unit tests batch 1" (4 ACs, status `done`).
+
+### Notes
+
+- Coverage per targeted detector (v8 reporter, JSON summary):
+  - `ac-drift.ts`: 100% lines · 90% branches
+  - `missing-implementation.ts`: 100% lines · 100% branches
+  - `status-drift.ts`: 100% lines · 100% branches
+  - `tech-stack-mismatch.ts`: 100% lines · 100% branches
+  - `unmapped-artifact.ts`: 100% lines · 100% branches
+- 33 new tests bring the suite to **151 / 151 passing** (118 prior).
+- 12 detectors still lack dedicated tests (batch 2 candidates: convention-drift, stale-tests, coverage-drop, performance-drift, evidence-mismatch, stale-evidence, stale-specification, hardcoded-secret, architecture-violation, harness-integrity, reference-integrity, meta-integrity).
+- The COVERAGE_DROP warn under `--strict` is still present (36% < 70% floor); cumulative batches will close that gap.
+
 ## [0.2.5] — Unreleased — Documentary → runnable promotion batch 1 (F-054)
 
 v0.2.4 introduced 45 documentary fixtures with the explicit promise that future cycles would promote them to runnable conformance entries. v0.2.5 delivers the first batch — 7 documentary fixtures gain real `setup` / `run` bodies in `conformance/runner.ts` and are exercised on every `npm run conformance`. The conformance suite grows from 26/26 to 33/33 matched fixtures.
