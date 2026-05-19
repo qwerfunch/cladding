@@ -5,6 +5,47 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.14] — Unreleased — Coverage sweep · 5 chapters closed in one batch (F-063)
+
+Massive sweep that closes **five remaining 0%-coverage chapters** at once: `drive`, `agents`, `events`, `optimizer`, `ui`. Project line coverage rises from **74.42% → 87.67%** (+13.25pp) under the widened scope introduced in v0.2.13.
+
+### Added
+
+- `tests/drive/loop.test.ts` — 12 tests covering every halt class (UNCAUGHT_ERROR / ALL_FEATURES_DONE / BLOCKED_FEATURE / LLM_UNAVAILABLE / HUMAN_REQUIRED / MAX_ITERATIONS) plus happy path with single + paired-feature dependency runs. Heavy-mock approach (`vi.mock` for spec/load, agents/loader, drive/agent, stage runners, events, audit) keeps the suite deterministic.
+- `tests/agents/loader.test.ts` — 8 tests covering frontmatter parse / missing / unterminated / unknown-capability filter / missing-file throw / cache reuse / cache clear.
+- `tests/events/log.test.ts` — 8 tests covering newEvent shape, directory auto-creation, round-trip, absent / empty / whitespace-only log, multi-append order, idempotent directory creation.
+- `tests/optimizer/preamble.test.ts` — 7 tests covering "You are X agent" stripping / "# Persona" heading / "Your job is to" / blank-run collapsing / no-preamble pass-through / custom patterns / default-pattern non-empty.
+- `tests/optimizer/tail.test.ts` — 7 tests covering no-cut / cut-middle / boundary / default-arg / empty input / elision-count formula.
+- `tests/ui/pulse.test.ts` — 8 tests covering every PulseKind glyph, TTY-vs-non-TTY ANSI rendering, detail-string indent, empty-detail trim.
+- `tests/ui/panel.test.ts` — 8 tests covering L4 cell derivation (audit empty / human pass / tool-only guard fail), internal-vs-default mode, title fallback, default cwd/opts.
+- `spec/features/F-063.yaml` — "Coverage sweep — drive · agents · events · optimizer · ui all covered" (6 ACs, status `done`).
+
+### Notes
+
+- Coverage per dir at v0.2.14 baseline (line %):
+  - hitl: 100, router: 100, **events: 100** (was 0), **optimizer: 100** (was 60.7), **ui: 100** (was 39), spec: 98.3, **agents: 93.3** (was 0), stages: 92.9, **drive: 90.6** (was 21.9), adapters: 75, cli: 37.4
+- 58 new tests bring the suite to **374 / 374 passing** (316 prior).
+- `clad check --strict` confirmed green at 87.67% (well above the 70% floor).
+
+### Coverage push — cumulative arc
+
+| Batch | Targets | Line coverage | Scope |
+|---|---|---|---|
+| v0.2.5 baseline | 3 detectors | 26.8% | narrow (stages + spec) |
+| v0.2.9 (detector chapter closed) | 20 detectors | 63.49% | narrow |
+| v0.2.12 (stage chapter closed) | 20 det + 12 stages | 93.32% | narrow |
+| v0.2.13 (scope widened) | + cli/init + cli/benchmark | **74.42%** | **wide (11 dirs)** |
+| **v0.2.14 (5 chapters closed in one batch)** | + drive · agents · events · optimizer · ui | **87.67%** | wide |
+
+### What's still open
+
+Under the widened scope:
+
+- `cli/clad.ts` (commander entry) — 0%. Needs subprocess or handler-extraction approach.
+- `adapters/index.ts` — 62.5%. Some branches of the auto-detection logic uncovered.
+
+That's the entire remaining gap on the source tree, post-sweep.
+
 ## [0.2.13] — Unreleased — cli test batch 1 + widened coverage scope (F-062)
 
 Opens the **cli chapter** with a honest twist: the coverage measurement scope is widened from `{stages, spec}` to every first-party source dir (cli, drive, optimizer, adapters, router, ui, hitl, events, agents). The headline coverage number now tracks the whole codebase, not just the two chapters closed in v0.2.9 / v0.2.12. **Pre-v0.2.13 percentages remain valid for the narrow scope they were measured against, but are not directly comparable to v0.2.13+ numbers.**
