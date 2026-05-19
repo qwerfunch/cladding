@@ -28,6 +28,7 @@ import {dirname, join} from 'node:path';
 
 import {loadPersona} from '../agents/loader.js';
 import {runAgent, ReviewerIdentityCollisionError} from './agent.js';
+import {selectAdapter} from '../adapters/index.js';
 import {appendEvent, newEvent} from '../events/log.js';
 import {newEvidence} from '../hitl/identity.js';
 import {appendEvidence} from '../hitl/audit.js';
@@ -50,6 +51,15 @@ export interface DriveOptions {
   readonly cwd?: string;
   readonly goal?: string;
   readonly budget?: LoopBudget;
+  /**
+   * Skips the pre-flight `adapter.healthCheck()` (v0.2.23, F-072).
+   * Production callers leave this `false` so a missing API key, an
+   * unreachable host, or a misconfigured transport halts the loop
+   * before any iteration. Unit tests that stub `runAgent` set it to
+   * `true` so the loop's control flow can be exercised without a
+   * live adapter.
+   */
+  readonly skipHealthCheck?: boolean;
 }
 
 export interface DriveResult {
@@ -144,6 +154,31 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
       stubsCreated: [],
       gateRuns: 0,
     };
+  }
+
+  // Pre-flight transport health check (v0.2.23, F-072). Fail fast on
+  // missing credentials, bad transport config, or unreachable host
+  // before any iteration begins. The reason string is routed through
+  // classifyTransportError so the user gets the same actionable
+  // halt class (AUTH_FAILED / RATE_LIMITED / NETWORK / LLM_UNAVAILABLE)
+  // they would see if the throw had come from inside the loop.
+  if (opts.skipHealthCheck !== true) {
+    const adapter = selectAdapter(cwd);
+    const health = await adapter.healthCheck();
+    if (!health.ready) {
+      const reason = health.reason ?? 'transport not ready';
+      return {
+        halt: {
+          class: classifyTransportError(new Error(reason)),
+          detail: `pre-flight health check failed: ${reason}`,
+          iteration: 0,
+        },
+        iterations: 0,
+        featuresTouched: [],
+        stubsCreated: [],
+        gateRuns: 0,
+      };
+    }
   }
 
   appendEvent(cwd, newEvent('feature_activated', {goal: opts.goal ?? null, total: spec.features.length}));

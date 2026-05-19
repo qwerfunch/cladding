@@ -49,14 +49,19 @@ export function classifyTransportError(err: unknown): HaltClass {
     err instanceof Error ? err.message : typeof err === 'string' ? err : String(err);
   const lower = message.toLowerCase();
   const code = (err as NodeJS.ErrnoException | undefined)?.code;
-  // Auth failures
+  // Auth failures — HTTP status prefixes + well-known phrases. The
+  // `api key` / `api_key` patterns also catch the common "API key is
+  // not set" / "API_KEY missing" pre-flight reason returned by
+  // adapter.healthCheck() when credentials are absent (v0.2.23, F-072).
   if (
     lower.startsWith('401') ||
     lower.startsWith('403') ||
     lower.includes('invalid api key') ||
     lower.includes('invalid x-api-key') ||
     lower.includes('unauthorized') ||
-    lower.includes('forbidden')
+    lower.includes('forbidden') ||
+    lower.includes('api key') ||
+    lower.includes('api_key')
   ) {
     return 'TRANSPORT_AUTH_FAILED';
   }
