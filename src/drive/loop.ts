@@ -12,11 +12,12 @@
 //   5. UAT (stage_4.2) confirms a human-pass evidence exists; if
 //      not, the loop halts with `HUMAN_REQUIRED`.
 //
-// Any adapter error short-circuits the loop with `LLM_UNAVAILABLE`,
-// preserving the halt-enum contract from `drive/halt.ts`. The mock
-// host adapters never throw in v0.2.0 #1, but the wiring is correct
-// for the third PR where real Claude Code / MCP transports replace
-// the mocks.
+// Any adapter error short-circuits the loop with a transport-specific
+// halt class — `TRANSPORT_AUTH_FAILED`, `TRANSPORT_RATE_LIMITED`,
+// `TRANSPORT_NETWORK`, or `LLM_UNAVAILABLE` as the catch-all — chosen
+// by `classifyTransportError` (v0.2.22, F-071). The mock host adapters
+// never throw, but real SDK transports (AnthropicTransport since
+// v0.2.20) do, and the classifier picks the most actionable category.
 //
 // @see spec/features/F-049.yaml AC-085 / AC-086 / AC-087 / AC-088.
 // @see adapters/types.ts — `AgentAdapter` contract.
@@ -37,7 +38,13 @@ import {runLint} from '../stages/lint.js';
 import {runType} from '../stages/type.js';
 import {runUat} from '../stages/uat.js';
 import type {AgentContext, AgentMutation} from '../adapters/types.js';
-import {DEFAULT_BUDGET, type HaltReason, type LoopBudget, checkBudget} from './halt.js';
+import {
+  DEFAULT_BUDGET,
+  type HaltReason,
+  type LoopBudget,
+  checkBudget,
+  classifyTransportError,
+} from './halt.js';
 
 export interface DriveOptions {
   readonly cwd?: string;
@@ -172,7 +179,7 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
       applyMutations(cwd, specialistOut.result.mutations);
     } catch (err) {
       return finish({
-        class: 'LLM_UNAVAILABLE',
+        class: classifyTransportError(err),
         detail: `specialist dispatch failed: ${(err as Error).message}`,
         iteration,
       });
@@ -216,7 +223,7 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
         });
       }
       return finish({
-        class: 'LLM_UNAVAILABLE',
+        class: classifyTransportError(err),
         detail: `reviewer dispatch failed: ${(err as Error).message}`,
         iteration,
       });

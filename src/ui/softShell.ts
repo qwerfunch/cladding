@@ -22,6 +22,9 @@ const HALT_MESSAGES: Readonly<Record<HaltReason['class'], string>> = {
   RETRY_THRESHOLD: 'Stopped — a feature failed too many times.',
   GATE_NO_PROGRESS: 'Stopped — gates are not making progress.',
   HUMAN_REQUIRED: 'Paused — needs human sign-off.',
+  TRANSPORT_AUTH_FAILED: 'Stopped — agent rejected the credentials. Check your API key.',
+  TRANSPORT_RATE_LIMITED: 'Stopped — agent is rate-limited. Try again after the cooldown.',
+  TRANSPORT_NETWORK: 'Stopped — could not reach the agent over the network.',
   LLM_UNAVAILABLE: 'Stopped — could not reach the agent.',
   UNCAUGHT_ERROR: 'Stopped — unexpected error.',
 };
@@ -71,7 +74,7 @@ export function featureLabel(featureId: string, spec: Spec): string {
  * @param halt - The internal halt reason.
  * @param spec - The loaded spec, used for id-to-title translation.
  * @returns A user-readable sentence.
- * @see drive/halt.ts — the closed 10-class enum this maps from.
+ * @see drive/halt.ts — the closed halt-class enum this maps from.
  */
 export function haltMessage(halt: HaltReason, spec: Spec): string {
   const base = HALT_MESSAGES[halt.class] ?? 'Stopped.';

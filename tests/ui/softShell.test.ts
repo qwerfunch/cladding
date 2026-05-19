@@ -53,6 +53,9 @@ describe('haltMessage', () => {
       'RETRY_THRESHOLD',
       'GATE_NO_PROGRESS',
       'HUMAN_REQUIRED',
+      'TRANSPORT_AUTH_FAILED',
+      'TRANSPORT_RATE_LIMITED',
+      'TRANSPORT_NETWORK',
       'LLM_UNAVAILABLE',
       'UNCAUGHT_ERROR',
     ];

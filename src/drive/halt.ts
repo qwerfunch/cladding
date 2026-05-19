@@ -1,14 +1,21 @@
 // Cladding · drive · halt classes
 //
-// An autonomous loop must stop. The 10 halt classes below are the
-// closed enumeration of *why* the loop ends, borrowed from
-// harness-boot's `src/drive/halt.ts`. Every drive run ends with
-// exactly one `HaltReason`; the report cites it verbatim.
+// An autonomous loop must stop. The closed enumeration below names
+// every reason the loop ends — borrowed from harness-boot's
+// `src/drive/halt.ts`. Every drive run ends with exactly one
+// `HaltReason`; the report cites it verbatim.
 //
 // Half of these protect the user (budget, wall-clock, human-required).
 // The other half protect the system (blocked-feature, retry-threshold,
 // gate-no-progress) — they detect the loop has stopped *making progress*
 // and bail before spinning forever.
+//
+// v0.2.22 (F-071) added three transport-specific classes
+// (`TRANSPORT_AUTH_FAILED`, `TRANSPORT_RATE_LIMITED`,
+// `TRANSPORT_NETWORK`) so users get an actionable category instead
+// of the generic `LLM_UNAVAILABLE` when a real-LLM transport throws.
+// `LLM_UNAVAILABLE` stays as the catch-all for transport errors that
+// don't match a more specific class.
 
 /** Closed enum of every reason the drive loop may stop. */
 export type HaltClass =
@@ -20,8 +27,64 @@ export type HaltClass =
   | 'RETRY_THRESHOLD'     // same feature failed N times in a row
   | 'GATE_NO_PROGRESS'    // every gate run returns identical findings
   | 'HUMAN_REQUIRED'      // L4 anti-self-cert blocks (need human evidence)
-  | 'LLM_UNAVAILABLE'     // model call failed past retry budget
+  | 'TRANSPORT_AUTH_FAILED'   // 401 / 403 / invalid API key
+  | 'TRANSPORT_RATE_LIMITED'  // 429 / quota exceeded
+  | 'TRANSPORT_NETWORK'       // ENOENT / ECONNREFUSED / ETIMEDOUT / connection lost
+  | 'LLM_UNAVAILABLE'     // any other model-call failure (catch-all)
   | 'UNCAUGHT_ERROR';     // anything else — surfaced for triage
+
+/**
+ * Classifies a thrown error from a Transport into a HaltClass. Returns
+ * the most specific transport-failure class when the error pattern
+ * matches; falls through to `LLM_UNAVAILABLE` for anything else.
+ *
+ * The matcher reads the error message (case-insensitive) plus, when
+ * present, the `code` property a NodeJS.ErrnoException would carry.
+ * Real SDKs (Anthropic, OpenAI, …) throw errors whose message starts
+ * with the HTTP status code; cladding's classifier just reads the
+ * prefix and the well-known phrases — no SDK-specific coupling.
+ */
+export function classifyTransportError(err: unknown): HaltClass {
+  const message =
+    err instanceof Error ? err.message : typeof err === 'string' ? err : String(err);
+  const lower = message.toLowerCase();
+  const code = (err as NodeJS.ErrnoException | undefined)?.code;
+  // Auth failures
+  if (
+    lower.startsWith('401') ||
+    lower.startsWith('403') ||
+    lower.includes('invalid api key') ||
+    lower.includes('invalid x-api-key') ||
+    lower.includes('unauthorized') ||
+    lower.includes('forbidden')
+  ) {
+    return 'TRANSPORT_AUTH_FAILED';
+  }
+  // Rate limit
+  if (
+    lower.startsWith('429') ||
+    lower.includes('rate limit') ||
+    lower.includes('rate_limit') ||
+    lower.includes('quota exceeded') ||
+    lower.includes('too many requests')
+  ) {
+    return 'TRANSPORT_RATE_LIMITED';
+  }
+  // Network — Node.js ErrnoException codes + common SDK timeout strings
+  if (
+    code === 'ENOENT' ||
+    code === 'ECONNREFUSED' ||
+    code === 'ECONNRESET' ||
+    code === 'ETIMEDOUT' ||
+    code === 'ENOTFOUND' ||
+    lower.includes('network') ||
+    lower.includes('connection') ||
+    lower.includes('timeout')
+  ) {
+    return 'TRANSPORT_NETWORK';
+  }
+  return 'LLM_UNAVAILABLE';
+}
 
 export interface HaltReason {
   readonly class: HaltClass;
