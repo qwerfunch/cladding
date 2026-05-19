@@ -1,0 +1,33 @@
+id: F-066
+title: Differentiation evidence — surface cell 09 benchmark in cladding's docs
+status: done
+modules:
+  - docs/benchmarks/event-store-trap-catch.md
+  - docs/benchmarks/event-store-spec-with-traps.md
+  - README.md
+  - README.ko.md
+  - GOVERNANCE.md
+depends_on: [F-065]
+acceptance_criteria:
+  - id: AC-177
+    ears: ubiquitous
+    action: publish the cell 09 benchmark synthesis as a docs artifact in the cladding repo
+    response: docs/benchmarks/event-store-trap-catch.md contains the 8-axis comparison + trap matrix + headline 8/8 vs 2/8 result; docs/benchmarks/event-store-spec-with-traps.md contains the 22-AC + 8-trap problem definition
+    text: The system shall publish the cell 09 benchmark synthesis under docs/benchmarks/ so external readers can find the evidence without needing access to the maintainer's local cladding-abc workspace.
+    evidence_refs:
+      - docs/benchmarks/event-store-trap-catch.md
+      - docs/benchmarks/event-store-spec-with-traps.md
+  - id: AC-178
+    ears: ubiquitous
+    action: add an Evidence section to README.md + README.ko.md
+    response: both README files carry an "Evidence" section that summarises the trap-catch result (vanilla 25% vs cladding 100%) and links to docs/benchmarks/event-store-trap-catch.md
+    text: The system shall add an Evidence section to README.md and README.ko.md surfacing the controlled-benchmark trap-catch result with a link to the full document.
+    evidence_refs:
+      - README.md
+      - README.ko.md
+  - id: AC-179
+    ears: ubiquitous
+    action: cite the benchmark in GOVERNANCE.md
+    response: GOVERNANCE.md §5 (v1.0 Graduation Criteria) is amended with a "Differentiation evidence" paragraph that points at docs/benchmarks/event-store-trap-catch.md and notes the result is one data point, not proof
+    text: The system shall cite the controlled benchmark in GOVERNANCE.md as differentiation evidence, with the explicit framing that one data point is not proof.
+    evidence_refs: [GOVERNANCE.md]
