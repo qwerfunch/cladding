@@ -1,0 +1,37 @@
+id: F-068
+title: Transport interface extraction — adapter / body split (v0.3.0 substep 1)
+status: done
+modules:
+  - src/adapters/host/transport.ts
+  - src/adapters/host/claude-code.ts
+  - src/adapters/host/generic-mcp.ts
+  - tests/adapters/transport.test.ts
+depends_on: [F-049]
+acceptance_criteria:
+  - id: AC-183
+    ears: ubiquitous
+    action: define the Transport interface
+    response: src/adapters/host/transport.ts exports a Transport interface with id / invoke / ready members and a MockTransport implementation that conforms to it; both real bodies (v0.2.20+) will implement the same interface
+    text: The system shall define a Transport interface in src/adapters/host/transport.ts that adapters compose to perform host-boundary dispatch.
+    test_refs: [tests/adapters/transport.test.ts]
+  - id: AC-184
+    ears: ubiquitous
+    action: refactor claude-code and generic-mcp adapters to compose a Transport
+    response: src/adapters/host/claude-code.ts and src/adapters/host/generic-mcp.ts each compose a Transport instance (currently a MockTransport) and delegate invokeAgent + healthCheck to that transport; the AgentAdapter shape exposed to drive/agent.ts is unchanged
+    text: The system shall refactor the two host adapters to compose a Transport instance, preserving the AgentAdapter contract.
+    evidence_refs:
+      - src/adapters/host/claude-code.ts
+      - src/adapters/host/generic-mcp.ts
+  - id: AC-185
+    ears: state
+    condition: while v0.2.19 ships the MockTransport
+    action: keep behaviour identical to v0.2.18
+    response: the surrounding code (selector, drive loop, parity tests, host-adapter tests) sees no behavioural change — MockTransport returns the same shape the v0.2.18 inline mock returned
+    text: While v0.2.19 ships MockTransport as the default for both host adapters, the system shall keep behaviour identical to v0.2.18 — only the structural seam changes.
+    evidence_refs: [tests/adapters/host-parity.test.ts, tests/adapters/index.test.ts]
+  - id: AC-186
+    ears: ubiquitous
+    action: unit-test MockTransport directly
+    response: tests/adapters/transport.test.ts covers id formatting, AgentResult shape (identity / mutations / summary), ready-predicate evaluation, lazy predicate re-evaluation, and per-hostName distinctness
+    text: The system shall ship tests/adapters/transport.test.ts covering MockTransport's observable behaviour at 100% line coverage.
+    test_refs: [tests/adapters/transport.test.ts]

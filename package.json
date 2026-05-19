@@ -1,6 +1,6 @@
 {
   "name": "cladding",
-  "version": "0.2.18",
+  "version": "0.2.19",
   "description": "Reference implementation of the Ironclad standard — multi-agent dev harness for Claude Code.",
   "type": "module",
   "license": "MIT",
