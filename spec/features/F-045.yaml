@@ -12,6 +12,8 @@ acceptance_criteria:
     text: The system shall document the 5-step Ironclad-spec sync procedure in
       GOVERNANCE.md §1, with each step naming a clear deliverable — pin update,
       CHANGELOG entry, affected detectors, conformance re-run, release.
+    evidence_refs: [GOVERNANCE.md]
+
   - id: AC-075
     ears: ubiquitous
     action: declare SemVer 2.0 versioning policy and manual release cadence
@@ -19,6 +21,8 @@ acceptance_criteria:
     text: The system shall declare SemVer 2.0 as the versioning policy and manual as
       the release cadence, with a bump table that maps patch / minor / major to
       concrete triggers.
+    evidence_refs: [GOVERNANCE.md]
+
   - id: AC-076
     ears: ubiquitous
     action: declare v1.0 graduation criteria (external dogfood · Ironclad v1.0 · 2nd
@@ -28,6 +32,8 @@ acceptance_criteria:
       Ironclad spec v1.0, second independent reference implementation, stable
       falsifications registry) where each criterion is testable, not
       aspirational.
+    evidence_refs: [GOVERNANCE.md]
+
   - id: AC-077
     ears: ubiquitous
     action: state contributor policy with explicit out-of-scope categories
@@ -35,3 +41,4 @@ acceptance_criteria:
     text: The system shall state contributor policy with explicit out-of-scope
       categories — bypassing anti-self-cert, regressing iron-law, forking the
       spec — named as non-acceptable PR types.
+    evidence_refs: [GOVERNANCE.md]

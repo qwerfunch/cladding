@@ -28,3 +28,4 @@ acceptance_criteria:
     text: The system shall isolate each fixture in a fresh temp dir, symlink
       cladding's node_modules into it, and clean up after execution so the
       source tree stays uncontaminated.
+    evidence_refs: [fixture:F-020_AC-032]

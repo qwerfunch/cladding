@@ -15,3 +15,4 @@ acceptance_criteria:
     text: When an audit-log entry references an artifact path that no longer exists
       on disk, the detector shall emit an error finding listing the missing
       artifact and the originating evidence id.
+    evidence_refs: [fixture:F-034_AC-053]

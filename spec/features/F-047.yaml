@@ -20,6 +20,8 @@ acceptance_criteria:
       a master spec.yaml into sharded layout (spec/features/*.yaml +
       spec/scenarios/*.yaml + spec/architecture.yaml), so any project
       that outgrows the single-file form can shard with one command.
+    evidence_refs: [fixture:F-047_AC-082]
+
   - id: AC-083
     ears: ubiquitous
     action: apply the sharded layout to cladding's own spec
@@ -29,6 +31,8 @@ acceptance_criteria:
       master carries only schema + project + header comments, while
       features and scenarios live as one yaml file each under
       spec/features/ and spec/scenarios/.
+    evidence_refs: [fixture:F-047_AC-083]
+
   - id: AC-084
     ears: ubiquitous
     action: update spec/cli.ts to delegate to loadSpec so sharded layout validates
@@ -37,3 +41,4 @@ acceptance_criteria:
       The system shall update spec/cli.ts to delegate to loadSpec so
       that `npm run spec:validate` returns valid=true on a sharded
       master spec.
+    evidence_refs: [fixture:F-047_AC-084]

@@ -22,3 +22,4 @@ acceptance_criteria:
     text: The router shall evaluate more-specific rules (init, drive, sync, check)
       before the broadest 'work' rule so that 'work' never shadows a
       more-specific intent.
+    evidence_refs: [fixture:F-039_AC-060]

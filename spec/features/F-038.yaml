@@ -17,3 +17,4 @@ acceptance_criteria:
       guardrail.
     notes: v0.1 floor. The richer LLM-assisted semantic variant lives behind the
       reviewer agent in v0.2+.
+    evidence_refs: [fixture:F-038_AC-058]

@@ -14,6 +14,8 @@ acceptance_criteria:
     text: The system shall invoke the anti-self-cert guard over every AC mentioned
       in the audit log and return a stage_4.1 result. When no audit log is
       present the stage is treated as skipped.
+    evidence_refs: [fixture:F-033_AC-051]
+
   - id: AC-052
     ears: ubiquitous
     action: verify every status=done feature carries at least one human-authored
@@ -22,3 +24,4 @@ acceptance_criteria:
     text: The system shall verify that every feature with status='done' carries at
       least one human-authored kind='pass' evidence entry, returning a stage_4.2
       result listing features that fail UAT.
+    evidence_refs: [fixture:F-033_AC-052]

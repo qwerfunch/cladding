@@ -16,6 +16,8 @@ acceptance_criteria:
       text nor any EARS field (condition/action/response), emitting an error
       finding per structurally empty AC.
     notes: Structural floor — always on.
+    evidence_refs: [fixture:F-019_AC-029]
+
   - id: AC-030
     ears: event
     condition: when an AC declares an EARS pattern (event / state / optional / unwanted)
@@ -26,3 +28,4 @@ acceptance_criteria:
       where / if), emitting an error finding per misalignment.
     notes: Delegates to spec/ears.ts. Lenient syntactic check; the richer semantic
       AC-vs-implementation drift remains TBD behind T9 (LLM-assisted inference).
+    evidence_refs: [fixture:F-019_AC-030]

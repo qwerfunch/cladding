@@ -14,6 +14,8 @@ acceptance_criteria:
     response: surfaced for cleanup
     text: Where a feature has archived_at set but status is not 'archived', the
       detector shall emit a warn finding.
+    evidence_refs: [fixture:F-015_AC-024]
+
   - id: AC-025
     ears: optional
     condition: where status='archived' but the feature's modules still exist on disk
@@ -22,3 +24,4 @@ acceptance_criteria:
     text: Where status='archived' but at least one declared module still exists on
       disk, the detector shall emit a warn finding so the project can decide on
       code-removal cadence.
+    evidence_refs: [fixture:F-015_AC-025]

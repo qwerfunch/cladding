@@ -16,6 +16,8 @@ acceptance_criteria:
     text: When a metric in perf/current.json regresses against perf/baseline.json by
       more than 10%, the detector shall emit a warn finding listing the metric
       name and regression percentage.
+    evidence_refs: [fixture:F-030_AC-043]
+
   - id: AC-044
     ears: unwanted
     condition: if either perf/baseline.json or perf/current.json is absent
@@ -23,3 +25,4 @@ acceptance_criteria:
     response: detector is opt-in on prior stage_3.2 runs
     text: If either perf/baseline.json or perf/current.json is absent, the detector
       shall emit a single info finding rather than failing the stage.
+    evidence_refs: [fixture:F-030_AC-044]

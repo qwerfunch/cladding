@@ -15,3 +15,4 @@ acceptance_criteria:
     response: stage_1.3 surfaces but does not fail on this finding alone
     text: When spec.project.language differs from the language resolved by the
       toolchain manifest chain, the detector shall emit a warn-severity finding.
+    evidence_refs: [fixture:F-013_AC-021]

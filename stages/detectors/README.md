@@ -7,7 +7,7 @@ ironclad_spec_ref: https://github.com/qwerfunch/ironclad/blob/main/detectors.sch
 
 # Drift detectors — inventory
 
-19 detectors are wired into `stages/drift.ts` via `stages/detectors/index.ts`. Each one is a pure function `(opts) => readonly DriftFinding[]`; the stage passes when no finding has `severity === 'error'`.
+20 detectors are wired into `stages/drift.ts` via `stages/detectors/index.ts`: the upstream Ironclad 19 plus the cladding-extension `FIXTURE_REFERENCE_INVALID` (v0.2.4). Each one is a pure function `(opts) => readonly DriftFinding[]`; the stage passes when no finding has `severity === 'error'`.
 
 ## Catalog
 
@@ -32,8 +32,9 @@ ironclad_spec_ref: https://github.com/qwerfunch/ironclad/blob/main/detectors.sch
 | 17 | `HARNESS_INTEGRITY` | environment | `harness-integrity.ts` | error | blind |
 | 18 | `REFERENCE_INTEGRITY` | environment | `reference-integrity.ts` | error | blind |
 | 19 | `META_INTEGRITY` | environment | `meta-integrity.ts` | error | blind |
+| 20 | `FIXTURE_REFERENCE_INVALID` *(cladding extension, v0.2.4)* | spec ↔ fixture | `fixture-reference.ts` | warn | blind |
 
-`axis` and `default severity` mirror the [Ironclad spec detectors.schema.json](https://github.com/qwerfunch/ironclad/blob/main/detectors.schema.json) catalog. The `status policy` column is cladding-specific (see below).
+`axis` and `default severity` for rows 1–19 mirror the [Ironclad spec detectors.schema.json](https://github.com/qwerfunch/ironclad/blob/main/detectors.schema.json) catalog. Row 20 (`FIXTURE_REFERENCE_INVALID`) is a cladding-specific extension that promotes the `fixture:NAME` evidence-label convention from a free-form string into a validated anchor. It checks every `acceptance_criteria[].evidence_refs[fixture:X]` (and, for backward compatibility, `test_refs[fixture:X]`) citation against `conformance/fixtures.yaml`; an unregistered name emits a `warn` finding. User projects without a `conformance/fixtures.yaml` opt out (no findings). The `status policy` column is cladding-specific (see below).
 
 ## Status policy
 
@@ -98,6 +99,17 @@ v0.2.3 (F-052) split the single `test_refs` field into two complementary fields.
 `MISSING_TESTS` is satisfied by *either* field carrying at least one entry. `UNTESTED_AC` only inspects `test_refs` (since it resolves paths on disk); evidence_refs entries are deliberately out of its scope because their truth is established by running a command or by curated artifact review, not by file existence.
 
 A `status: done` AC with both fields empty trips `MISSING_TESTS warn` (or `error` under `--strict`). The author's job is to declare at least one form of evidence; the detector's job is to never let a `done` AC ship with neither.
+
+### `fixture:` is a validated anchor, not a free-form label (v0.2.4, F-053)
+
+The `fixture:NAME` citation form is validated by detector #20 (`FIXTURE_REFERENCE_INVALID`). Every name on the right of the colon must appear in `conformance/fixtures.yaml` — otherwise the detector emits a `warn` finding identifying the AC and the unknown name. The registry distinguishes two kinds:
+
+| kind | meaning | example |
+|---|---|---|
+| `runnable` | implemented in `conformance/runner.ts`; setup + run execute on every `npm run conformance` | `stage_1.3.pass` |
+| `documentary` | label-only placeholder; the AC's verification lives in source or in a paired AC's `test_refs` | `F-006_AC-008` |
+
+`documentary` is a real registry entry, not a wildcard. It exists so that ACs whose code is implemented but whose verification doesn't yet have a dedicated runnable fixture can declare evidence honestly, and so reviewers can grep `conformance/fixtures.yaml` to see the full inventory. Future cycles promote documentary entries to runnable by writing matching setup/run code.
 
 ## Adding a detector
 

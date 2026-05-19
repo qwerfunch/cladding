@@ -18,6 +18,13 @@ acceptance_criteria:
       reviewer, observability, specialists — as Claude Code subagents under
       agents/*.md, each with a system prompt declaring scope, tools, and
       boundaries.
+    evidence_refs:
+      - agents/orchestrator.md
+      - agents/librarian.md
+      - agents/reviewer.md
+      - agents/observability.md
+      - agents/specialists.md
+
   - id: AC-056
     ears: ubiquitous
     action: encode the five invocation principles in the orchestrator's prompt
@@ -26,3 +33,4 @@ acceptance_criteria:
     text: The orchestrator persona shall encode the five invocation principles
       (specialization · audit-separation · parallelism · evidence-first ·
       least-context) as its routing logic.
+    evidence_refs: [agents/orchestrator.md]

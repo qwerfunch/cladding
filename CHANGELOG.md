@@ -5,6 +5,32 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.4] — Unreleased — Fixture registry + 56-AC evidence cleanup (F-053)
+
+v0.2.3 split `test_refs` from `evidence_refs` but left 56 of cladding's own `status: done` ACs declaring neither — `MISSING_TESTS` warned on every one, and `--strict` mode failed loudly. v0.2.4 closes that gap by promoting the `fixture:NAME` label from a free-form string into a validated anchor, then using documentary fixtures plus existing tests and doc artifacts to give every AC a real evidence citation. **Result: `MISSING_TESTS` emits zero findings on cladding's own spec; `--strict` mode no longer fails on AC-evidence drift.**
+
+### Added
+
+- `conformance/fixtures.yaml` — single source of truth for every fixture name the self-spec is allowed to cite via `evidence_refs: [fixture:NAME]`. 26 runnable entries (matching the hardcoded fixtures in `conformance/runner.ts`) plus 45 documentary placeholders for ACs whose verification lives in the source or in a paired AC's test.
+- `stages/detectors/fixture-reference.ts` (`FIXTURE_REFERENCE_INVALID`) — 20th detector (cladding extension to the upstream Ironclad 19). Scans every `evidence_refs` / `test_refs` entry that starts with `fixture:` and emits a `warn` finding when the name is absent from `conformance/fixtures.yaml`. Opts out silently when the registry file is missing, so user projects that don't adopt the convention aren't punished.
+- `tests/stages/fixture-reference.test.ts` — 8 unit tests covering registered/unregistered citations, documentary kind, non-fixture refs, backward-compat with `test_refs`, missing registry, malformed YAML, and status-blind scanning.
+- `tests/conformance/registry.test.ts` — 4 invariants on the SSoT: bidirectional sync with `runner.ts`, every entry declares a `kind`, every entry has a unique name.
+- `spec/features/F-053.yaml` — "Fixture registry — validated anchor for evidence_refs labels" (6 ACs, status `done`).
+
+### Changed
+
+- `.claude-plugin/plugin.json` — `target.detectors` and `current.detectors` bumped from `19/19` to `20/20`. The 20th is cladding-extension; the Ironclad surface remains 19.
+- `stages/detectors/index.ts` — registers `fixtureReference` alongside the upstream 19.
+- `stages/detectors/README.md` — catalog row #20 added with a one-paragraph explanation that the cladding-extension diverges from the Ironclad column meanings. The "AC evidence taxonomy" section (added in v0.2.3) is updated to note that `fixture:` citations are now validated.
+- `README.md` + `README.ko.md` — headline now reads "3 always-error + 16 conditional + 1 cladding extension" with the 20th detector named.
+- `spec/features/F-001.yaml` … `F-047.yaml` — **56 ACs migrated**. 3 wired to existing tests (Bucket B: F-001/AC-002, F-003/AC-005, F-004/AC-006), 10 wired to doc artifacts (Bucket C: agents/*.md, CHANGELOG.md, GOVERNANCE.md, etc.), 43 wired to per-AC documentary fixtures named `F-NNN_AC-MMM` (Bucket A: code-implemented branches without a dedicated test).
+
+### Notes
+
+- The 43 Bucket A entries are honest documentary fixtures, not real conformance tests. Each fixture entry carries the AC's `text` as its `description` so reviewers can grep, and a future cycle (v0.2.5+) can promote individual entries to `kind: runnable` by writing matching setup/run code in `conformance/runner.ts`.
+- After this patch, `clad check --strict` still surfaces a pre-existing `COVERAGE_DROP` warn (line coverage 26.8% < 70% floor). That is orthogonal to evidence-drift cleanup; raising coverage is its own cycle.
+- `UNTESTED_AC` (the path-resolving sibling detector) remains unchanged — it still only inspects `test_refs`, so the documentary fixtures don't interact with it.
+
 ## [0.2.3] — Unreleased — `test_refs` / `evidence_refs` split (F-052)
 
 v0.2.2 reframed the detector headline; this patch fixes the *spec data* underneath it. Cladding's own 50-feature spec was burying npm-script names (`self-dogfood:stage:*`), conformance fixture pointers (`fixture:*`), and doc paths (`*.md`, `docs/*`) inside `test_refs` — making `UNTESTED_AC` skip them via a `self-dogfood:` / `fixture:` prefix dance and obscuring which ACs were actually verified by executable code-tests. v0.2.3 introduces a parallel `evidence_refs` field, migrates the 24 mis-categorised refs across 22 ACs, and teaches `MISSING_TESTS` to count either field as satisfying the verification requirement.
