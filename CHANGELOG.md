@@ -5,6 +5,37 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.9] — Unreleased — Detector catalog 20/20 at 100% line coverage (F-058)
+
+The final batch of the detector-coverage thread. The last two detectors — `HARDCODED_SECRET` and `ARCHITECTURE_VIOLATION`, both subprocess-bound — gain unit tests using `vi.mock('execa')` to exercise every branch deterministically. **Result: every one of the 20 registered drift detectors (19 Ironclad + 1 cladding extension) now has a dedicated `tests/stages/*.test.ts` file at 100% line coverage.**
+
+Project line coverage rises from **58.66% → 63.49%** (+4.83pp). Cumulative gain across four batches: **+36.7pp** from the v0.2.5 baseline (26.8% → 63.49%). The detector chapter is now closed.
+
+### Added
+
+- `tests/stages/hardcoded-secret.test.ts` — 7 tests covering no-toolchain-gate / exit 0 / non-zero exit / ENOENT / non-ENOENT throw / stdout-only / no-output exit-code fallback. Uses `vi.mock('execa')` so the suite stays deterministic; real-binary coverage lives in `conformance/runner.ts` (stage_1.6 fixtures).
+- `tests/stages/architecture-violation.test.ts` — 7 tests mirroring the HARDCODED_SECRET pattern. Real-binary coverage lives in stage_1.5 fixtures.
+- `spec/features/F-058.yaml` — "Detector unit tests batch 4 (final 2 + every detector at 100% line coverage)" (4 ACs, status `done`).
+
+### Notes
+
+- Coverage per targeted detector (v8 reporter, JSON summary):
+  - `hardcoded-secret.ts`: 100% lines · 81.25% branches
+  - `architecture-violation.ts`: 100% lines · 81.25% branches
+- 14 new tests bring the suite to **227 / 227 passing** (213 prior).
+- **Milestone**: detector catalog 20/20 at 100% line coverage. Every drift detector cladding ships now has a dedicated unit-test file. Branch coverage averages ~95% across the catalog — the remaining gaps are nullish defaults and other defensive guards that don't materially change behaviour.
+- The `COVERAGE_DROP` warn under `--strict` is still present (63.49% < 70% floor). The detector chapter is closed; v0.2.10+ pivots to **stage runner tests** (`stages/{type,lint,commit,cov,smoke,perf,visual,audit,uat,unit}.ts` all sit at 0% today — the biggest absolute gap left).
+
+### Cumulative coverage progression
+
+| Batch | Detectors covered | Line coverage | Delta |
+|---|---|---|---|
+| v0.2.5 baseline | 3/20 | 26.8% | — |
+| v0.2.6 (batch 1) | 8/20 | 36.36% | +9.5pp |
+| v0.2.7 (batch 2) | 10/20 | 49% | +12.6pp |
+| v0.2.8 (batch 3) | 15/20 | 58.66% | +9.7pp |
+| v0.2.9 (batch 4) | **20/20** | **63.49%** | +4.8pp |
+
 ## [0.2.8] — Unreleased — Detector unit tests batch 3 (F-057)
 
 Continuation of the v0.2.6/7 coverage push. Five more detectors gain dedicated `tests/stages/*.test.ts` files at **100% line coverage**. Overall project line coverage rises from **49% → 58.66%** (+9.7pp). After three batches, **15 of 20 detectors are covered at 100%**; cumulative gain from v0.2.5 baseline is **+31.9pp**.
