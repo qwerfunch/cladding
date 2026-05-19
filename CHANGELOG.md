@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.16] — Unreleased — `src/` layout adoption (F-065)
+## [0.2.16] — 2026-05-19 — `src/` layout adoption (F-065)
 
 **Layout refactor**, no behaviour change. Every first-party code dir now lives under a single `src/` root: `src/{adapters · agents · cli · drive · events · hitl · optimizer · router · spec · stages · ui}`. Spec data (`features/`, `scenarios/`, `architecture.yaml`) stays at the project root because user projects keep their data at that path; `schema.json` moves into `src/spec/` because it travels with the code that reads it.
 
