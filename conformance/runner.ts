@@ -32,7 +32,7 @@ import {runType} from '../stages/type.js';
 import {runUat} from '../stages/uat.js';
 import {runUnit} from '../stages/unit.js';
 import {runVisual} from '../stages/visual.js';
-import type {StageResult} from '../stages/types.js';
+import type {DriftFinding, StageResult} from '../stages/types.js';
 
 // Fixtures run in fresh temp dirs without their own node_modules. Symlinking
 // cladding's installed devDeps into each fixture lets npx resolve tsc /
@@ -46,12 +46,35 @@ function linkNodeModules(fixtureDir: string): void {
   symlinkSync(CLADDING_NODE_MODULES, join(fixtureDir, 'node_modules'), 'dir');
 }
 
+/**
+ * One conformance fixture — a synthetic project state + the stage runner
+ * to invoke + the assertion that closes the loop.
+ *
+ * The `expectFindings` field (added in v0.2.5 / F-054) extends the
+ * original "match pass/fail" assertion with optional drift-finding
+ * checks. A TECH_STACK_MISMATCH warn keeps `drift.pass === true`, so
+ * pass/fail alone cannot prove the detector fired; `expectFindings`
+ * lets a fixture state "drift passed AND a TECH_STACK_MISMATCH warn
+ * was present", which is the real assertion we want for detector-
+ * specific documentary promotions.
+ *
+ * Fixtures whose `run` returns a non-drift `StageResult` (Type, Lint,
+ * Commit, etc.) leave `expectFindings` unset.
+ */
+interface ExpectedFinding {
+  readonly detector: string;
+  readonly severity: 'error' | 'warn' | 'info';
+  /** Minimum number of matching findings required. Defaults to 1. */
+  readonly minCount?: number;
+}
+
 interface Fixture {
   readonly id: string;
   readonly stage: string;
   readonly expectedPass: boolean;
   setup(dir: string): void;
   run(dir: string): StageResult | {pass: boolean; exitCode: number; stage: string};
+  readonly expectFindings?: readonly ExpectedFinding[];
 }
 
 const PKG_JSON = '{"name":"clad-conf","type":"module"}\n';
@@ -546,6 +569,231 @@ const fixtures: readonly Fixture[] = [
       return runUat({cwd: d});
     },
   },
+
+  // ─── Documentary → runnable promotion · batch 1 (v0.2.5 / F-054) ──────
+  // Each entry was kind: documentary in fixtures.yaml until this batch
+  // promoted it. Naming preserves the F-NNN_AC-MMM scheme so registry
+  // entries do not need to be renamed during promotion — only the
+  // `kind` field changes.
+
+  {
+    // F-007/AC-011 — Commit stage when cwd is not a git repository.
+    // Dir without `.git` triggers runCommit's git-unavailable branch,
+    // returning exitCode=2 so callers treat the stage as skipped.
+    id: 'F-007_AC-011',
+    stage: 'stage_1.4',
+    expectedPass: false,
+    setup(_d) {
+      // intentionally empty — absence of .git is the assertion
+    },
+    run(d) {
+      return runCommit({cwd: d});
+    },
+  },
+  {
+    // F-011/AC-018 — MISSING_IMPLEMENTATION info finding when spec.yaml
+    // is absent. The detector emits one info-severity finding rather
+    // than failing the stage; drift overall remains pass=true because
+    // info < error.
+    id: 'F-011_AC-018',
+    stage: 'stage_1.3',
+    expectedPass: true,
+    setup(d) {
+      // No spec.yaml on purpose; mirror schema.json so META_INTEGRITY
+      // does not separately complain.
+      mkdirSync(join(d, 'spec'), {recursive: true});
+      writeFileSync(
+        join(d, 'spec/schema.json'),
+        JSON.stringify({
+          required: ['schema', 'project', 'features'],
+          properties: {schema: {}, project: {}, features: {}},
+        }),
+      );
+    },
+    run(d) {
+      return runDrift({cwd: d});
+    },
+    expectFindings: [{detector: 'MISSING_IMPLEMENTATION', severity: 'info'}],
+  },
+  {
+    // F-012/AC-020 — UNMAPPED_ARTIFACT info finding when spec.yaml is
+    // absent. Same setup as F-011/AC-018; both detectors emit info
+    // findings from the same shared error surface.
+    id: 'F-012_AC-020',
+    stage: 'stage_1.3',
+    expectedPass: true,
+    setup(d) {
+      mkdirSync(join(d, 'spec'), {recursive: true});
+      writeFileSync(
+        join(d, 'spec/schema.json'),
+        JSON.stringify({
+          required: ['schema', 'project', 'features'],
+          properties: {schema: {}, project: {}, features: {}},
+        }),
+      );
+    },
+    run(d) {
+      return runDrift({cwd: d});
+    },
+    expectFindings: [{detector: 'UNMAPPED_ARTIFACT', severity: 'info'}],
+  },
+  {
+    // F-013/AC-021 — TECH_STACK_MISMATCH warn when spec.project.language
+    // differs from what the toolchain detection chain returns. The warn
+    // does not fail drift (default severity is warn, not error), so
+    // pass remains true; the assertion is on the finding shape.
+    //
+    // The fixture writes `.secretlintrc.json` because adding package.json
+    // makes the toolchain pick TypeScript, which makes HARDCODED_SECRET
+    // try to invoke secretlint via npx — without a config file the
+    // scanner exits non-zero and emits an error finding that would mask
+    // the warn we are actually probing for.
+    id: 'F-013_AC-021',
+    stage: 'stage_1.3',
+    expectedPass: true,
+    setup(d) {
+      mkdirSync(join(d, 'stages'), {recursive: true});
+      mkdirSync(join(d, 'spec'), {recursive: true});
+      writeTs(d, 'stages/dummy.ts', '// fixture stub\nexport const ok = true;\n');
+      writeFileSync(join(d, 'package.json'), PKG_JSON);
+      writeFileSync(join(d, '.secretlintrc.json'), SECRETLINTRC);
+      writeFileSync(
+        join(d, 'spec/schema.json'),
+        JSON.stringify({
+          required: ['schema', 'project', 'features'],
+          properties: {schema: {}, project: {}, features: {}},
+        }),
+      );
+      // spec.project.language = python, but package.json + .ts source
+      // make the toolchain resolve to typescript → mismatch.
+      writeFileSync(
+        join(d, 'spec.yaml'),
+        'schema: "0.1"\n' +
+          'project: {name: f, language: python}\n' +
+          'features:\n' +
+          '  - id: F-001\n' +
+          '    title: t\n' +
+          '    status: done\n' +
+          '    modules: [stages/dummy.ts, spec/schema.json]\n' +
+          '    acceptance_criteria:\n' +
+          '      - id: AC-001\n' +
+          '        ears: ubiquitous\n' +
+          '        text: declared python; tree is TS\n' +
+          '        evidence_refs: [fixture:F-013_AC-021]\n',
+      );
+    },
+    run(d) {
+      return runDrift({cwd: d});
+    },
+    expectFindings: [{detector: 'TECH_STACK_MISMATCH', severity: 'warn'}],
+  },
+  {
+    // F-014/AC-022 — STATUS_DRIFT error when a status=done feature
+    // declares a module that does not exist on disk. The error fails
+    // the drift stage; assertion uses both pass=false and the finding.
+    id: 'F-014_AC-022',
+    stage: 'stage_1.3',
+    expectedPass: false,
+    setup(d) {
+      writeFileSync(
+        join(d, 'spec.yaml'),
+        'schema: "0.1"\n' +
+          'project: {name: f, language: typescript}\n' +
+          'features:\n' +
+          '  - id: F-001\n' +
+          '    title: phantom\n' +
+          '    status: done\n' +
+          '    modules: [nonexistent-on-purpose.ts]\n' +
+          '    acceptance_criteria:\n' +
+          '      - id: AC-001\n' +
+          '        ears: ubiquitous\n' +
+          '        text: status=done with missing module\n',
+      );
+    },
+    run(d) {
+      return runDrift({cwd: d});
+    },
+    expectFindings: [{detector: 'STATUS_DRIFT', severity: 'error'}],
+  },
+  {
+    // F-014/AC-023 — STATUS_DRIFT warn when a status=in_progress
+    // feature declares modules but every one is absent. The detector
+    // emits warn (less severe than the AC-022 done-with-missing case);
+    // however MISSING_IMPLEMENTATION is status-blind and still fires
+    // error on the same absent modules, so drift ultimately fails.
+    // The fixture's assertion is that the STATUS_DRIFT warn is
+    // present alongside the louder error, not that drift passes.
+    id: 'F-014_AC-023',
+    stage: 'stage_1.3',
+    expectedPass: false,
+    setup(d) {
+      mkdirSync(join(d, 'spec'), {recursive: true});
+      writeFileSync(
+        join(d, 'spec/schema.json'),
+        JSON.stringify({
+          required: ['schema', 'project', 'features'],
+          properties: {schema: {}, project: {}, features: {}},
+        }),
+      );
+      writeFileSync(
+        join(d, 'spec.yaml'),
+        'schema: "0.1"\n' +
+          'project: {name: f, language: typescript}\n' +
+          'features:\n' +
+          '  - id: F-001\n' +
+          '    title: in flight\n' +
+          '    status: in_progress\n' +
+          '    modules: [planned-but-absent.ts, also-absent.ts]\n' +
+          '    acceptance_criteria:\n' +
+          '      - id: AC-001\n' +
+          '        ears: ubiquitous\n' +
+          '        text: in_progress with all modules absent\n' +
+          '        evidence_refs: [fixture:F-014_AC-023]\n',
+      );
+    },
+    run(d) {
+      return runDrift({cwd: d});
+    },
+    expectFindings: [{detector: 'STATUS_DRIFT', severity: 'warn'}],
+  },
+  {
+    // F-019/AC-029 — AC_DRIFT error when an AC has neither a rendered
+    // `text` field nor any EARS structural fields (condition / action
+    // / response). The detector classifies this as error (a structural
+    // bug, not a soft warning), so drift fails. Fixture asserts both
+    // the failure and the specific finding.
+    id: 'F-019_AC-029',
+    stage: 'stage_1.3',
+    expectedPass: false,
+    setup(d) {
+      mkdirSync(join(d, 'stages'), {recursive: true});
+      mkdirSync(join(d, 'spec'), {recursive: true});
+      writeTs(d, 'stages/dummy.ts', '// fixture stub\nexport const ok = true;\n');
+      writeFileSync(
+        join(d, 'spec/schema.json'),
+        JSON.stringify({
+          required: ['schema', 'project', 'features'],
+          properties: {schema: {}, project: {}, features: {}},
+        }),
+      );
+      writeFileSync(
+        join(d, 'spec.yaml'),
+        'schema: "0.1"\n' +
+          'project: {name: f, language: typescript}\n' +
+          'features:\n' +
+          '  - id: F-001\n' +
+          '    title: t\n' +
+          '    status: done\n' +
+          '    modules: [stages/dummy.ts, spec/schema.json]\n' +
+          '    acceptance_criteria:\n' +
+          '      - id: AC-001\n',
+      );
+    },
+    run(d) {
+      return runDrift({cwd: d});
+    },
+    expectFindings: [{detector: 'AC_DRIFT', severity: 'error'}],
+  },
 ];
 
 interface RunOutcome {
@@ -555,6 +803,32 @@ interface RunOutcome {
   readonly actualPass: boolean;
   readonly exitCode: number;
   readonly matched: boolean;
+  readonly findingsMatched?: boolean;
+  readonly missingFindings?: readonly string[];
+}
+
+interface ResultWithFindings {
+  readonly pass: boolean;
+  readonly exitCode: number;
+  readonly findings?: readonly DriftFinding[];
+}
+
+function checkFindings(
+  result: ResultWithFindings,
+  expected: readonly ExpectedFinding[],
+): {matched: boolean; missing: string[]} {
+  const missing: string[] = [];
+  const findings = result.findings ?? [];
+  for (const want of expected) {
+    const count = findings.filter(
+      (f) => f.detector === want.detector && f.severity === want.severity,
+    ).length;
+    const minCount = want.minCount ?? 1;
+    if (count < minCount) {
+      missing.push(`${want.detector}/${want.severity} (saw ${count}, need ${minCount})`);
+    }
+  }
+  return {matched: missing.length === 0, missing};
 }
 
 function runOne(fixture: Fixture): RunOutcome {
@@ -562,14 +836,28 @@ function runOne(fixture: Fixture): RunOutcome {
   try {
     linkNodeModules(dir);
     fixture.setup(dir);
-    const result = fixture.run(dir);
+    const result = fixture.run(dir) as ResultWithFindings;
+    const passMatched = result.pass === fixture.expectedPass;
+    if (fixture.expectFindings && fixture.expectFindings.length > 0) {
+      const fcheck = checkFindings(result, fixture.expectFindings);
+      return {
+        fixture: fixture.id,
+        stage: fixture.stage,
+        expectedPass: fixture.expectedPass,
+        actualPass: result.pass,
+        exitCode: result.exitCode,
+        matched: passMatched && fcheck.matched,
+        findingsMatched: fcheck.matched,
+        missingFindings: fcheck.missing.length > 0 ? fcheck.missing : undefined,
+      };
+    }
     return {
       fixture: fixture.id,
       stage: fixture.stage,
       expectedPass: fixture.expectedPass,
       actualPass: result.pass,
       exitCode: result.exitCode,
-      matched: result.pass === fixture.expectedPass,
+      matched: passMatched,
     };
   } finally {
     rmSync(dir, {recursive: true, force: true});

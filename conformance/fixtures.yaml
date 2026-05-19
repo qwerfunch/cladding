@@ -150,7 +150,7 @@ fixtures:
     description: "F-006/AC-009 — If the secret scanner is not installed, the detector shall emit an info finding rather than failing the stage."
   - name: F-007_AC-011
     stage: documentary
-    kind: documentary
+    kind: runnable
     description: "F-007/AC-011 — If git is unavailable or the cwd is not a git repository, the system shall return exitCode 2 so the stage is treated as skipped."
   - name: F-009_AC-013
     stage: documentary
@@ -166,23 +166,23 @@ fixtures:
     description: "F-010/AC-016 — While the spec.schema field matches the supported version, the system shall accept the document as input for downstream drift detectors."
   - name: F-011_AC-018
     stage: documentary
-    kind: documentary
+    kind: runnable
     description: "F-011/AC-018 — If spec.yaml is absent or unparseable, the detector shall emit one info finding rather than failing the stage."
   - name: F-012_AC-020
     stage: documentary
-    kind: documentary
+    kind: runnable
     description: "F-012/AC-020 — If spec.yaml is absent or unparseable, the detector shall emit one info finding rather than failing the stage."
   - name: F-013_AC-021
     stage: documentary
-    kind: documentary
+    kind: runnable
     description: "F-013/AC-021 — When spec.project.language differs from the language resolved by the toolchain manifest chain, the detector shall emit a warn-severity finding."
   - name: F-014_AC-022
     stage: documentary
-    kind: documentary
+    kind: runnable
     description: "F-014/AC-022 — When a feature with status='done' has at least one declared module missing on disk, the detector shall emit an error finding listing the missing paths."
   - name: F-014_AC-023
     stage: documentary
-    kind: documentary
+    kind: runnable
     description: "F-014/AC-023 — When status='in_progress' but every declared module is absent, the detector shall emit a warn finding suggesting a stale start."
   - name: F-015_AC-024
     stage: documentary
@@ -206,7 +206,7 @@ fixtures:
     description: "F-018/AC-028 — The system shall validate that spec/schema.json declares and requires the root keys (schema, project, features) that spec/types.ts depends on, and that spec.yam"
   - name: F-019_AC-029
     stage: documentary
-    kind: documentary
+    kind: runnable
     description: "F-019/AC-029 — The system shall flag any acceptance_criterion that has neither a rendered text nor any EARS field (condition/action/response), emitting an error finding per st"
   - name: F-019_AC-030
     stage: documentary

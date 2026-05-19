@@ -32,8 +32,14 @@ function loadRegistry(): readonly RegistryEntry[] {
 }
 
 function loadRunnerIds(): readonly string[] {
+  // Match every fixture object's `id: '<value>'` field. The old pattern
+  // (stage_X.Y.{pass,fail}) governs the original 26 fixtures; v0.2.5
+  // introduced the F-NNN_AC-MMM scheme for documentary-promoted
+  // fixtures. Both forms are valid fixture ids in the registry.
   const text = readFileSync(resolve(repoRoot, 'conformance/runner.ts'), 'utf8');
-  return [...text.matchAll(/id:\s*'(stage_[\d.]+\.(?:pass|fail))'/g)].map((m) => m[1]);
+  return [...text.matchAll(/id:\s*'((?:stage_[\d.]+\.(?:pass|fail)|F-\d{3,}_AC-\d{3,}))'/g)].map(
+    (m) => m[1],
+  );
 }
 
 describe('conformance/fixtures.yaml SSoT', () => {
