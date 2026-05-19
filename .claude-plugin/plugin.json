@@ -1,6 +1,6 @@
 {
   "name": "cladding",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Reference implementation of the Ironclad standard — multi-agent dev harness for Claude Code.",
   "author": "qwerfunch",
   "license": "MIT",
@@ -32,6 +32,7 @@
         "level-2": {"declared-at": "2026-05-18", "fixtures": "4/4"},
         "level-3": {"declared-at": "2026-05-18", "fixtures": "6/6"},
         "level-4": {"declared-at": "2026-05-18", "fixtures": "4/4"},
+        "documentary-promoted-batch-1": {"declared-at": "2026-05-19", "fixtures": "7/7"},
         "runner": "conformance/runner.ts"
       },
       "stack": "typescript",

@@ -5,6 +5,34 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.5] — Unreleased — Documentary → runnable promotion batch 1 (F-054)
+
+v0.2.4 introduced 45 documentary fixtures with the explicit promise that future cycles would promote them to runnable conformance entries. v0.2.5 delivers the first batch — 7 documentary fixtures gain real `setup` / `run` bodies in `conformance/runner.ts` and are exercised on every `npm run conformance`. The conformance suite grows from 26/26 to 33/33 matched fixtures.
+
+### Added
+
+- `conformance/runner.ts` — `ExpectedFinding` type and an optional `expectFindings` field on the `Fixture` interface. `runOne` now asserts both `result.pass === expectedPass` AND that every entry in `expectFindings` is present in `result.findings` (with the right detector + severity). Closes the gap where a warn or info finding could not be probed because it does not flip drift's pass/fail.
+- 7 runnable fixtures promoted from documentary placeholders:
+  - `F-007_AC-011` — Commit stage skip (no `.git`)
+  - `F-011_AC-018` — `MISSING_IMPLEMENTATION` info when `spec.yaml` is absent
+  - `F-012_AC-020` — `UNMAPPED_ARTIFACT` info when `spec.yaml` is absent
+  - `F-013_AC-021` — `TECH_STACK_MISMATCH` warn on language disagreement
+  - `F-014_AC-022` — `STATUS_DRIFT` error when a done feature references a missing module
+  - `F-014_AC-023` — `STATUS_DRIFT` warn when an in_progress feature has all modules absent
+  - `F-019_AC-029` — `AC_DRIFT` error when an AC declares no text and no EARS fields
+- `spec/features/F-054.yaml` — "Documentary → runnable promotion (batch 1)" (4 ACs, status `done`).
+- `.claude-plugin/plugin.json` — new `conformance.documentary-promoted-batch-1` block records the 7/7 promotion total.
+
+### Changed
+
+- `conformance/fixtures.yaml` — the 7 promoted entries change `kind: documentary` → `kind: runnable`. Descriptions and AC traceability are preserved.
+- `tests/conformance/registry.test.ts` — `loadRunnerIds()` regex generalises from `stage_X.Y.{pass,fail}` to also accept `F-NNN_AC-MMM`. Bidirectional sync invariant now covers both naming schemes.
+
+### Notes
+
+- 38 documentary fixtures remain in `conformance/fixtures.yaml` (2 original `missing-implementation` / `missing-tests` plus 36 from v0.2.4). Each is a future batch candidate; promotion order will favour ACs whose setup needs no specialised environment (audit logs, perf baselines, secretlint config).
+- `expectFindings` is opt-in. Existing fixtures that only need pass/fail matching are unaffected.
+
 ## [0.2.4] — Unreleased — Fixture registry + 56-AC evidence cleanup (F-053)
 
 v0.2.3 split `test_refs` from `evidence_refs` but left 56 of cladding's own `status: done` ACs declaring neither — `MISSING_TESTS` warned on every one, and `--strict` mode failed loudly. v0.2.4 closes that gap by promoting the `fixture:NAME` label from a free-form string into a validated anchor, then using documentary fixtures plus existing tests and doc artifacts to give every AC a real evidence citation. **Result: `MISSING_TESTS` emits zero findings on cladding's own spec; `--strict` mode no longer fails on AC-evidence drift.**
