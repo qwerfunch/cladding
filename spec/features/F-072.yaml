@@ -1,0 +1,42 @@
+id: F-072
+title: Pre-flight transport health check in drive loop (v0.2.23)
+status: done
+modules:
+  - src/drive/loop.ts
+  - src/drive/halt.ts
+depends_on: [F-049, F-068, F-069, F-070, F-071]
+acceptance_criteria:
+  - id: AC-201
+    ears: state
+    condition: while runDriveLoop starts and the active adapter's healthCheck returns ready=false
+    action: halt the loop at iteration 0 before any feature dispatch
+    response: runDriveLoop returns a DriveResult with iterations=0, featuresTouched=[], and halt.detail starting with "pre-flight health check failed"
+    text: While the drive loop starts and the active adapter's healthCheck reports ready=false, the system shall halt the loop at iteration 0 without dispatching any feature so the user gets immediate feedback instead of after the first failed invoke.
+    test_refs: [tests/drive/loop.test.ts]
+  - id: AC-202
+    ears: state
+    condition: while the pre-flight failure reason indicates missing or invalid API credentials
+    action: classify the halt as TRANSPORT_AUTH_FAILED
+    response: runDriveLoop routes the healthCheck reason through classifyTransportError, and reasons containing "api key", "api_key", "401", "403", "unauthorized", "forbidden", or invalid-key phrases halt with class TRANSPORT_AUTH_FAILED
+    text: While the pre-flight failure reason names a credential problem (missing API key, invalid key, unauthorized, forbidden), the system shall halt with TRANSPORT_AUTH_FAILED instead of the generic LLM_UNAVAILABLE.
+    test_refs: [tests/drive/halt.test.ts, tests/drive/loop.test.ts]
+  - id: AC-203
+    ears: ubiquitous
+    action: extend classifyTransportError to detect the "api key" and "api_key" phrases
+    response: classifyTransportError additionally returns TRANSPORT_AUTH_FAILED when the lowercased error message contains "api key" or "api_key", matching common pre-flight reasons like "ANTHROPIC_API_KEY env var is not set"
+    text: The system shall extend classifyTransportError to detect the "api key" and "api_key" phrases (case-insensitive), so the AnthropicTransport pre-flight reason "ANTHROPIC_API_KEY env var is not set" classifies as TRANSPORT_AUTH_FAILED.
+    test_refs: [tests/drive/halt.test.ts]
+  - id: AC-204
+    ears: optional
+    condition: where DriveOptions.skipHealthCheck is true
+    action: bypass the pre-flight health check
+    response: runDriveLoop skips the adapter.healthCheck() call and proceeds directly to the iteration loop
+    text: Where DriveOptions.skipHealthCheck is true, the system shall bypass the pre-flight health check and proceed directly to the iteration loop — used by unit tests that stub runAgent and never reach a real adapter dispatch.
+    test_refs: [tests/drive/loop.test.ts]
+  - id: AC-205
+    ears: state
+    condition: while the pre-flight health check returns ready=true
+    action: proceed to the iteration loop without recording any halt
+    response: runDriveLoop continues past the pre-flight check, emits the feature_activated event, and enters the iteration loop as normal
+    text: While the pre-flight health check returns ready=true, the system shall continue past it without recording any halt — pre-flight is a fast-fail filter, not a normal control-flow branch.
+    test_refs: [tests/drive/loop.test.ts]

@@ -47,6 +47,11 @@ describe('classifyTransportError (F-071, v0.2.22)', () => {
       ['Request unauthorized'],
       ['Forbidden — credentials rejected'],
       ['Invalid x-api-key header value'],
+      // v0.2.23 (F-072) — pre-flight health-check phrases used by
+      // adapter.healthCheck() when credentials are absent.
+      ['ANTHROPIC_API_KEY env var is not set'],
+      ['API key missing'],
+      ['api_key is required'],
     ])('matches %s', (message) => {
       expect(classifyTransportError(new Error(message))).toBe('TRANSPORT_AUTH_FAILED');
     });

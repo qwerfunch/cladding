@@ -45,15 +45,30 @@ vi.mock('../../src/events/log.js', () => ({
   }),
 }));
 vi.mock('../../src/hitl/audit.js', () => ({appendEvidence: vi.fn()}));
+// Pre-flight health check (v0.2.23) — stub a healthy adapter so the
+// existing control-flow tests are unaffected. Tests that exercise the
+// pre-flight failure path override `healthCheck` per test.
+vi.mock('../../src/adapters/index.js', () => ({
+  selectAdapter: vi.fn(() => ({
+    mode: 'host',
+    name: 'stub',
+    capabilities: new Set(['read', 'write', 'edit', 'exec', 'dispatch']),
+    invokeAgent: vi.fn(),
+    healthCheck: vi.fn(async () => ({ready: true})),
+  })),
+}));
 
 const {runDriveLoop} = await import('../../src/drive/loop.js');
 const {loadSpec} = await import('../../src/spec/load.js');
 const {loadPersona} = await import('../../src/agents/loader.js');
 const driveAgent = await import('../../src/drive/agent.js');
+const adaptersIndex = await import('../../src/adapters/index.js');
 const {runType} = await import('../../src/stages/type.js');
 const {runLint} = await import('../../src/stages/lint.js');
 const {runArch} = await import('../../src/stages/arch.js');
 const {runUat} = await import('../../src/stages/uat.js');
+
+const selectAdapterMock = adaptersIndex.selectAdapter as unknown as ReturnType<typeof vi.fn>;
 
 const loadSpecMock = loadSpec as unknown as ReturnType<typeof vi.fn>;
 const loadPersonaMock = loadPersona as unknown as ReturnType<typeof vi.fn>;
@@ -99,6 +114,17 @@ describe('runDriveLoop', () => {
     runArchMock.mockReturnValue(PASS);
     runUatMock.mockReset();
     runUatMock.mockReturnValue({pass: true, exitCode: 0, stage: 'stage_4.2'});
+    // Pre-flight health check (v0.2.23, F-072) — re-establish the
+    // healthy-stub default so `mockReturnValueOnce` queues from prior
+    // tests don't leak into the next one.
+    selectAdapterMock.mockReset();
+    selectAdapterMock.mockImplementation(() => ({
+      mode: 'host' as const,
+      name: 'stub',
+      capabilities: new Set(['read', 'write', 'edit', 'exec', 'dispatch']),
+      invokeAgent: vi.fn(),
+      healthCheck: vi.fn(async () => ({ready: true})),
+    }));
   });
   afterEach(() => {
     rmSync(dir, {recursive: true, force: true});
@@ -219,5 +245,69 @@ describe('runDriveLoop', () => {
     const r = await runDriveLoop({cwd: dir});
     expect(r.halt.class).toBe('ALL_FEATURES_DONE');
     expect(r.featuresTouched).toEqual(['F-001', 'F-002']);
+  });
+
+  // Pre-flight transport health check (v0.2.23, F-072) — see
+  // src/drive/loop.ts. Each test in this block makes selectAdapter
+  // return a stub adapter whose healthCheck reports `ready: false`
+  // with a specific reason, then asserts the loop halts at iteration
+  // 0 with the matching transport-specific class.
+  describe('pre-flight health check (F-072)', () => {
+    function adapterWithHealth(reason: string) {
+      return {
+        mode: 'host' as const,
+        name: 'stub',
+        capabilities: new Set(['read', 'write', 'edit', 'exec', 'dispatch']),
+        invokeAgent: vi.fn(),
+        healthCheck: vi.fn(async () => ({ready: false, reason})),
+      };
+    }
+
+    test('missing API key reason → TRANSPORT_AUTH_FAILED', async () => {
+      loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-001', status: 'planned'}]));
+      selectAdapterMock.mockReturnValueOnce(adapterWithHealth('ANTHROPIC_API_KEY env var is not set'));
+      const r = await runDriveLoop({cwd: dir});
+      expect(r.halt.class).toBe('TRANSPORT_AUTH_FAILED');
+      expect(r.halt.detail).toContain('pre-flight health check failed');
+      expect(r.iterations).toBe(0);
+      // No agent dispatch should have happened
+      expect(runAgentMock).not.toHaveBeenCalled();
+    });
+
+    test('rate-limit reason → TRANSPORT_RATE_LIMITED', async () => {
+      loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-001', status: 'planned'}]));
+      selectAdapterMock.mockReturnValueOnce(adapterWithHealth('rate limit exceeded — cooldown 30s'));
+      const r = await runDriveLoop({cwd: dir});
+      expect(r.halt.class).toBe('TRANSPORT_RATE_LIMITED');
+      expect(r.halt.detail).toContain('pre-flight health check failed');
+    });
+
+    test('network-unreachable reason → TRANSPORT_NETWORK', async () => {
+      loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-001', status: 'planned'}]));
+      selectAdapterMock.mockReturnValueOnce(adapterWithHealth('no MCP runtime detected'));
+      const r = await runDriveLoop({cwd: dir});
+      // "no MCP runtime detected" has none of the AUTH/RATE/NETWORK
+      // markers, so the catch-all LLM_UNAVAILABLE fires. Pre-flight
+      // is correctly routing through classifyTransportError.
+      expect(r.halt.class).toBe('LLM_UNAVAILABLE');
+      expect(r.halt.detail).toContain('pre-flight health check failed');
+    });
+
+    test('skipHealthCheck=true bypasses pre-flight even when adapter is unhealthy', async () => {
+      loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-001', status: 'planned'}]));
+      selectAdapterMock.mockReturnValueOnce(adapterWithHealth('would-be-fatal'));
+      const r = await runDriveLoop({cwd: dir, skipHealthCheck: true});
+      // No halt at iteration 0 — the loop proceeds through normal
+      // control flow and reaches ALL_FEATURES_DONE via the mocked
+      // runAgent + mocked stage runners (all set up in beforeEach).
+      expect(r.halt.class).toBe('ALL_FEATURES_DONE');
+    });
+
+    test('pre-flight passes (ready=true) → loop proceeds normally', async () => {
+      loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-001', status: 'planned'}]));
+      // Default mock returns ready:true, so no override needed.
+      const r = await runDriveLoop({cwd: dir});
+      expect(r.halt.class).toBe('ALL_FEATURES_DONE');
+    });
   });
 });

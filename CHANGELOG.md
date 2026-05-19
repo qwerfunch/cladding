@@ -5,6 +5,27 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.23] — Unreleased — Pre-flight transport health check (F-072)
+
+The drive loop used to discover a missing API key (or any unhealthy adapter) only after the first feature iteration: pre-flight check runs once at startup, the loop fails fast at iteration 0, and the user sees an actionable halt class instead of a wasted dispatch attempt.
+
+### Added
+
+- `src/drive/loop.ts` — pre-flight `adapter.healthCheck()` call between spec-load and the iteration loop. If the adapter reports `ready: false`, the reason string is routed through `classifyTransportError` (introduced in v0.2.22) so the halt lands in the most specific class — `TRANSPORT_AUTH_FAILED` for credential problems, `TRANSPORT_RATE_LIMITED` for pre-flight rate-limit, `TRANSPORT_NETWORK` for unreachable hosts, `LLM_UNAVAILABLE` as catch-all. Halt detail begins with `pre-flight health check failed:`.
+- `DriveOptions.skipHealthCheck` — opt-out used by unit tests that stub `runAgent` and never reach a real adapter dispatch. Production CLI path leaves it `false`.
+- `spec/features/F-072.yaml` — "Pre-flight transport health check in drive loop" (5 ACs, status `done`).
+
+### Changed
+
+- `src/drive/halt.ts` `classifyTransportError` — extended AUTH detection to also match the lowercased phrases `api key` and `api_key`, so AnthropicTransport's "ANTHROPIC_API_KEY env var is not set" pre-flight reason classifies as `TRANSPORT_AUTH_FAILED` instead of falling through to `LLM_UNAVAILABLE`.
+- `tests/drive/loop.test.ts` — added a healthy-stub `selectAdapter` mock plus an F-072 sub-describe that exercises the four pre-flight paths (auth · rate limit · network · ready=true) and the `skipHealthCheck: true` bypass.
+
+### Notes
+
+- 462/462 vitest pass; `npm run lint` clean; `node bin/clad check --strict` drift-green.
+- The pre-flight check costs one local function call when healthy and zero network IO for both host and SDK adapters in the happy path — AnthropicTransport's `ready()` only checks for the env var presence.
+- v0.3.0 plan (substep 5): declare F-049 done (mock removed in favour of the SDK path), bump minor, release.
+
 ## [0.2.22] — Unreleased — Transport-specific halt classes (F-071)
 
 **Substep 4 of the v0.3.0 path.** The drive loop used to flatten every transport failure into `LLM_UNAVAILABLE`. With real-LLM dispatch live since v0.2.20, that's no longer actionable — users need to know whether a halt came from a bad API key, a rate limit, or a network blip. v0.2.22 introduces three transport-specific halt classes and routes the loop's catch blocks through a single classifier.
