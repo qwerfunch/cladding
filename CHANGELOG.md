@@ -5,6 +5,30 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.6] — Unreleased — SKILL.md → TOML build-time transpile for Gemini (F-081)
+
+**Post-rollout audit, cycle 3 of 3 (final).** v0.3.3 shipped Gemini CLI commands as six hand-authored TOML files; the canonical sources (`skills/<verb>/SKILL.md`) and the TOML mirrors could drift if a verb description got updated in one place but not the other. This patch makes the SKILL.md the single source of truth and the TOMLs build-generated.
+
+### Added
+
+- `scripts/build-plugin.mjs` — new Phase C transpiles each `skills/<verb>/SKILL.md` into `plugins/gemini-cli/commands/<verb>.toml`:
+  - YAML frontmatter `description` → TOML `description = "..."` (basic string with `\\` + `\"` escapes; apostrophes pass through).
+  - SKILL.md body → TOML `prompt = '''...'''` (literal multi-line — backticks, backslashes, and other markdown punctuation pass through unaltered).
+  - Fallback: if the body literally contains `'''`, switch to `prompt = """..."""` with backslash + double-quote escapes (none of cladding's current bodies trigger this, but the fallback exists for future authoring).
+- `plugins/gemini-cli/commands/README.md` — AUTO-GENERATED sentinel pointing at `skills/<verb>/SKILL.md` as the canonical source. Rewritten on every build.
+- `spec/features/F-081.yaml` — "SKILL.md → TOML build-time transpile" (5 ACs, status `done`).
+
+### Changed
+
+- `plugins/gemini-cli/commands/{sync,check,panel,drive,init,serve}.toml` — now regenerated from the canonical SKILL.md sources rather than hand-authored. The visible content is essentially the same (description and body wording lift verbatim from SKILL.md); the difference is who owns the file.
+- Build pipeline: `npm run build:plugin` now runs all three transpile phases (Claude Code mirror → Codex mirror → Gemini transpile) in one pass. Same canonical sources feed all three host plugin layouts.
+
+### Notes
+
+- 520/520 vitest pass (no test changes in this release); lint clean; typecheck clean; drift-green at 80 features; bundle 1.1 MB.
+- **v0.3.x cleanup is now complete.** v0.3.4 closed the docs/help-text inaccuracies, v0.3.5 added the version-drift detector, v0.3.6 closes the SKILL.md ↔ TOML drift surface. The universal generator (v0.4.0, predicate-gated) is no longer urgent — three hand-crafted manifests are stable and the only previous drift surface (Gemini TOML) is now SSoT-driven.
+- v0.4.0 predicate (from plan): one of (a) new host plugin spec added → 4 host scenario justifies generalization, or (b) actual drift incident in the 3 current manifests → re-prioritize.
+
 ## [0.3.5] — Unreleased — HARNESS_INTEGRITY · multi-host manifest schema + version drift (F-080)
 
 **Post-rollout audit, cycle 2 of 3.** The original `HARNESS_INTEGRITY` detector (v0.2.4) guarded one invariant — that `.claude-plugin/plugin.json` `current.detectors` numerator matched the file count under `src/stages/detectors/`. The multi-host rollout (v0.3.1 → v0.3.3) added two more manifests; this patch extends the detector so all three manifests stay in lockstep.
