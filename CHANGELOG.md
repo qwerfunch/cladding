@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.15] — Unreleased — Final coverage closure · every source dir ≥ 90% (F-064)
+## [0.2.15] — 2026-05-19 — Final coverage closure · every source dir ≥ 90% (F-064)
 
 **Milestone**: every one of the 11 first-party source dirs (`adapters · agents · cli · drive · events · hitl · optimizer · router · spec · stages · ui`) is now at ≥ 90% line coverage. Project line coverage rises from **87.67% → 93.89%** (+6.22pp) under the widened scope from v0.2.13.
 
@@ -40,7 +40,7 @@ The cli chapter, which opened in v0.2.13 at 37.4% (init only), now closes at **9
 | v0.2.14 (5 chapters closed) | + drive · agents · events · optimizer · ui | 87.67% | wide |
 | **v0.2.15 (final closure)** | **+ cli/clad + adapters/index** | **93.89%** | wide |
 
-## [0.2.14] — Unreleased — Coverage sweep · 5 chapters closed in one batch (F-063)
+## [0.2.14] — 2026-05-19 — Coverage sweep · 5 chapters closed in one batch (F-063)
 
 Massive sweep that closes **five remaining 0%-coverage chapters** at once: `drive`, `agents`, `events`, `optimizer`, `ui`. Project line coverage rises from **74.42% → 87.67%** (+13.25pp) under the widened scope introduced in v0.2.13.
 
@@ -81,7 +81,7 @@ Under the widened scope:
 
 That's the entire remaining gap on the source tree, post-sweep.
 
-## [0.2.13] — Unreleased — cli test batch 1 + widened coverage scope (F-062)
+## [0.2.13] — 2026-05-19 — cli test batch 1 + widened coverage scope (F-062)
 
 Opens the **cli chapter** with a honest twist: the coverage measurement scope is widened from `{stages, spec}` to every first-party source dir (cli, drive, optimizer, adapters, router, ui, hitl, events, agents). The headline coverage number now tracks the whole codebase, not just the two chapters closed in v0.2.9 / v0.2.12. **Pre-v0.2.13 percentages remain valid for the narrow scope they were measured against, but are not directly comparable to v0.2.13+ numbers.**
 
