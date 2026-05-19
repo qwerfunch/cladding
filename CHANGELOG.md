@@ -5,6 +5,29 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.19] — Unreleased — Transport interface extraction · v0.3.0 substep 1 (F-068)
+
+First step toward the v0.3.0 F-049 real Claude Code dispatch. Splits each host adapter into two layers: the AgentAdapter (the contract `drive/agent.ts` sees) and the Transport (the swappable body that crosses the host boundary). v0.2.19 ships the MockTransport implementation only; v0.2.20 replaces selected adapters' MockTransport with a real body without touching the AgentAdapter object.
+
+**No behaviour change.** Pure structural refactor — the same mock results land in the drive loop today as before.
+
+### Added
+
+- `src/adapters/host/transport.ts` — Transport interface (`id`, `invoke`, `ready`) + `MockTransport` implementation. Both real bodies in v0.2.20+ will implement the same interface.
+- `tests/adapters/transport.test.ts` — 7 unit tests covering MockTransport's observable behaviour.
+- `spec/features/F-068.yaml` — "Transport interface extraction" (4 ACs, status `done`).
+
+### Changed
+
+- `src/adapters/host/claude-code.ts` — composes a `MockTransport` instance and delegates `invokeAgent` / `healthCheck` to it. Inline `mockResult()` removed.
+- `src/adapters/host/generic-mcp.ts` — same refactor as claude-code.
+
+### Notes
+
+- 404 + 7 new tests = **411 / 411** passing.
+- `node bin/clad check --strict` stays green; coverage unchanged.
+- v0.2.20 plan: introduce `ClaudeCodeTransport` (real subagent dispatch) and `McpTransport` (real MCP roundtrip) alongside MockTransport. Adapter objects pick the right Transport based on runtime detection. Behaviour change isolated to the Transport file.
+
 ## [0.2.18] — 2026-05-19 — MISSING_TESTS warn → error (F-067)
 
 **Lock-in patch**. The v0.2.4 honesty cleanup brought cladding's self-spec from 56 empty `status: done` ACs down to zero. v0.2.18 converts that one-time achievement into a permanent invariant: the `MISSING_TESTS` drift detector's default severity is promoted from `warn` to `error`. Shipping a new done AC without `test_refs` or `evidence_refs` now fails `clad check` outright — not just under `--strict`.

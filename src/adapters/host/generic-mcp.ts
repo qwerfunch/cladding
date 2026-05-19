@@ -1,29 +1,25 @@
 // Cladding · Host adapter · generic MCP
 //
 // Dispatches a persona invocation through whatever MCP-aware host
-// is running cladding (Cursor · Continue · Cline · any other client
-// that speaks the Model Context Protocol). Like the claude-code
-// adapter, this file ships the **mock stage**: interface-conformant,
-// deterministic stub body. Real MCP roundtrip lands in v0.3.0 once
-// the `clad serve` MCP server mode is in place — see
-// `docs/multi-provider-roadmap.md` ("Transport architectural
-// decision") for the plan. The interface this file conforms to is
-// stable across that change; only the body of `invokeAgent` swaps.
+// is running cladding (Cursor · Continue · Cline · any MCP client).
+// As of v0.2.19, this file composes a {@link Transport} rather than
+// inlining the dispatch body.
 //
-// @see adapters/types.ts — the AgentAdapter contract.
+// v0.2.19 still ships the mock body via MockTransport. v0.2.20 swaps
+// the MockTransport instance for a real MCP roundtrip transport
+// once `clad serve` MCP server mode is in place.
+//
+// @see src/adapters/host/transport.ts — Transport interface + MockTransport.
+// @see src/adapters/types.ts — the AgentAdapter contract.
 // @see https://modelcontextprotocol.io/ — the upstream MCP spec.
-// @see docs/multi-provider-roadmap.md — Transport architectural
-//      decision (the MCP-server-mode plan that unlocks the real body).
+// @see docs/multi-provider-roadmap.md — Transport architectural decision.
 // @see spec/features/F-049.yaml AC-091 — host adapters require no API key.
+// @see spec/features/F-068.yaml — Transport interface extraction.
 
-import type {
-  AgentAdapter,
-  AgentContext,
-  AgentResult,
-  Capability,
-  HealthStatus,
-  PersonaSpec,
-} from '../types.js';
+import process from 'node:process';
+
+import type {AgentAdapter, Capability} from '../types.js';
+import {MockTransport, type Transport} from './transport.js';
 
 const CAPABILITIES: ReadonlySet<Capability> = new Set<Capability>([
   'read',
@@ -44,38 +40,16 @@ export function isMcpRuntime(): boolean {
   return Boolean(process.env.MCP_TRANSPORT || process.env.MCP_SERVER_NAME);
 }
 
-/**
- * Builds a deterministic mock {@link AgentResult} for a (persona,
- * context) pair. Same shape as the claude-code mock so the parity
- * test can prove the schema is adapter-invariant.
- */
-function mockResult(persona: PersonaSpec, ctx: AgentContext): AgentResult {
-  return {
-    identity: {
-      author: 'llm',
-      name: `generic-mcp:${persona.id}`,
-      timestamp: new Date().toISOString(),
-    },
-    summary: `[mock generic-mcp] persona=${persona.id} feature=${ctx.featureId}`,
-    mutations: [],
-    notes: 'mock stage — real MCP dispatch lands in v0.3.0 via the cladding MCP server',
-  };
-}
+const defaultTransport: Transport = new MockTransport({
+  hostName: 'generic-mcp',
+  readyWhen: isMcpRuntime,
+  notReadyReason: 'no MCP runtime detected (MCP_TRANSPORT / MCP_SERVER_NAME unset)',
+});
 
 export const genericMcpAdapter: AgentAdapter = {
   mode: 'host',
   name: 'generic-mcp',
   capabilities: CAPABILITIES,
-  invokeAgent(persona, ctx) {
-    return Promise.resolve(mockResult(persona, ctx));
-  },
-  healthCheck(): Promise<HealthStatus> {
-    if (isMcpRuntime()) {
-      return Promise.resolve({ready: true});
-    }
-    return Promise.resolve({
-      ready: false,
-      reason: 'no MCP transport detected on the current process',
-    });
-  },
+  invokeAgent: (persona, ctx) => defaultTransport.invoke(persona, ctx),
+  healthCheck: () => defaultTransport.ready(),
 };
