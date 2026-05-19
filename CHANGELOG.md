@@ -5,6 +5,25 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.5] — Unreleased — HARNESS_INTEGRITY · multi-host manifest schema + version drift (F-080)
+
+**Post-rollout audit, cycle 2 of 3.** The original `HARNESS_INTEGRITY` detector (v0.2.4) guarded one invariant — that `.claude-plugin/plugin.json` `current.detectors` numerator matched the file count under `src/stages/detectors/`. The multi-host rollout (v0.3.1 → v0.3.3) added two more manifests; this patch extends the detector so all three manifests stay in lockstep.
+
+### Added
+
+- `src/stages/detectors/harness-integrity.ts` — two new check layers on top of the original detector-count check:
+  - **Per-host manifest schema**: validates `.claude-plugin/plugin.json` (requires `name` + `version`), `plugins/codex/.codex-plugin/plugin.json` (requires `name` + `version` + `description`), and `plugins/gemini-cli/gemini-extension.json` (requires `name` + `version`). Missing required fields → per-host `error` finding. Malformed JSON → `warn`.
+  - **Cross-manifest version drift**: reads `package.json` `version` as baseline and compares to each host manifest. Any mismatch → per-host `error` finding naming the offending version and the baseline. Skipped silently when `package.json` is absent (detector stays a soft validator on non-cladding directories).
+- `tests/stages/harness-integrity.test.ts` — 11 new tests across two new describe blocks (per-host schema · cross-manifest version drift). Covers: missing required fields per host, JSON parse failure, host manifest absent, version drift in each host, simultaneous drift in two hosts, version check skipped when `package.json` missing.
+- `spec/features/F-080.yaml` — "HARNESS_INTEGRITY · multi-host manifest schema + version drift" (5 ACs, status `done`).
+
+### Notes
+
+- 509 + 11 new tests = **520/520** passing; lint clean; typecheck clean; drift-green at 79 features; bundle 1.1 MB.
+- The original detector-count invariant (v0.2.4) is intact — same severity ladder, same trigger conditions. The two new layers are additive: when `package.json` and the three host manifests are absent (e.g. a fresh repo or a non-cladding directory), the detector silently passes.
+- This closes the most impactful audit gap: a future release can't ship with `package.json` bumped but a host manifest forgotten — the drift detector now fails fast with `clad check --strict`.
+- v0.3.6 plan: SKILL.md → TOML build-time transpile for Gemini (F-081). After that, v0.3.x cleanup is done.
+
 ## [0.3.4] — Unreleased — CLI text + docs cleanup (F-079)
 
 **Post-rollout audit, cycle 1 of 3.** v0.3.3 finished the three-host plugin rollout; an audit caught three documentation/help-text issues that pre-dated v0.3.0 or were inaccurate at v0.3.3 ship time. This patch fixes them without touching code logic.
