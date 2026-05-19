@@ -5,6 +5,27 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.4] — Unreleased — CLI text + docs cleanup (F-079)
+
+**Post-rollout audit, cycle 1 of 3.** v0.3.3 finished the three-host plugin rollout; an audit caught three documentation/help-text issues that pre-dated v0.3.0 or were inaccurate at v0.3.3 ship time. This patch fixes them without touching code logic.
+
+### Changed
+
+- `src/cli/clad.ts` — `clad drive` description rewritten. The old line claimed "LLM dispatch arrives with F-049 in v0.2"; F-049 has been done since v0.3.0 and the loop has dispatched through MCP sampling or AnthropicTransport ever since. New description names the real behaviour: specialist + reviewer persona dispatch, L1 gates, anti-self-cert barrier, evidence recording.
+- `src/cli/clad.ts` — `clad serve` JSDoc + subcommand description: removed the version-stamped `(v0.2.24)` annotation so `--help` output stays evergreen. CHANGELOG.md remains the SSoT for which release introduced which verb.
+- `plugins/gemini-cli/GEMINI.md` — "API key fallback is supported" corrected. The `gemini` slot in `SDK_REGISTRY` is reserved but the SDK body is not yet implemented in v0.3.x; the doc now states this explicitly rather than promising a fallback that doesn't exist.
+- `CHANGELOG.md` — v0.3.3 entry's authentication note updated for the same reason.
+
+### Added
+
+- `spec/features/F-079.yaml` — "CLI text + docs cleanup" (4 ACs, status `done`).
+
+### Notes
+
+- 509/509 vitest pass; lint clean; typecheck clean; drift-green at 78 features.
+- Historical version references in source comments (e.g. "v0.2.19 ships the mock body via MockTransport") are intentionally kept — they document a factual sequence of events. Only user-facing surfaces (CLI help, plugin manifest docs) were evergreen-edited.
+- v0.3.5 plan: extend `HARNESS_INTEGRITY` detector to cover all three host manifests + cross-manifest version consistency.
+
 ## [0.3.3] — Unreleased — Gemini CLI extension (F-078)
 
 **Phase 3 of the multi-host plugin rollout.** Adds the Gemini CLI extension under `plugins/gemini-cli/`. Cladding is now installable as a first-class plugin/extension on all three major agentic CLIs: Claude Code (v0.3.1), Codex (v0.3.2), Gemini CLI (this release).
@@ -20,7 +41,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 - 509/509 vitest pass; lint clean; typecheck clean; drift-green; bundle rebuilds at 1.1 MB.
 - Gemini CLI's TOML command format differs from Claude Code / Codex (both use Markdown with YAML frontmatter). v0.3.3 keeps the TOML files hand-authored alongside the canonical Markdown sources; the v0.4.0 generator (Phase 4) will transpile from a single universal source into each host's native format.
-- **Authentication**: extension uses Gemini CLI's Google account login by default (60 req/min · 1000/day free tier). `GEMINI_API_KEY` remains an opt-in fallback. The no-API-key invariant (F-049 AC-091) is intact across all three host plugins.
+- **Authentication**: extension uses Gemini CLI's Google account login (60 req/min · 1000/day free tier). The `gemini` SDK adapter slot is reserved in `src/adapters/index.ts` `SDK_REGISTRY` but the SDK body is not yet implemented in v0.3.3 — direct-SDK dispatch is not a shipped fallback. The no-API-key invariant (F-049 AC-091) is intact across all three host plugins.
 - v0.4.0 plan: `clad plugin build` universal generator (minor bump) — collapse the three hand-crafted manifests into a single source-of-truth that transpiles per host.
 
 ## [0.3.2] — Unreleased — Codex plugin manifest (F-077)

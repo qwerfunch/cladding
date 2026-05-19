@@ -1,0 +1,35 @@
+id: F-079
+title: CLI text + docs cleanup — outdated version refs + Gemini SDK fallback claim (v0.3.4)
+status: done
+modules:
+  - src/cli/clad.ts
+  - plugins/gemini-cli/GEMINI.md
+  - CHANGELOG.md
+depends_on: [F-049, F-076, F-077, F-078]
+acceptance_criteria:
+  - id: AC-237
+    ears: ubiquitous
+    action: remove the outdated `clad drive` description that references F-049 as a v0.2 deferral
+    response: 'src/cli/clad.ts drive command description now reads as a present-tense description of the autonomous loop (specialist + reviewer dispatch, L1 gates, anti-self-cert) without any version-stamped placeholder text'
+    text: The system shall remove the outdated `clad drive` CLI description claiming "LLM dispatch arrives with F-049 in v0.2"; F-049 has been done since v0.3.0 and the description now reflects the real loop behaviour.
+    evidence_refs: [src/cli/clad.ts]
+  - id: AC-238
+    ears: ubiquitous
+    action: remove the version-stamped `(v0.2.24)` annotation from the `clad serve` description and JSDoc
+    response: 'src/cli/clad.ts `runServeCommand` JSDoc + the `serve` subcommand description carry no version-of-introduction annotation; CHANGELOG.md remains the SSoT for which release introduced the verb'
+    text: The system shall remove the version-stamped (v0.2.24) annotation from the `clad serve` description and JSDoc so the help output stays evergreen; CHANGELOG.md remains the source of truth for release-of-introduction.
+    evidence_refs: [src/cli/clad.ts]
+  - id: AC-239
+    ears: ubiquitous
+    action: correct the Gemini extension docs to match the shipped reality — SDK adapter not yet implemented
+    response: 'plugins/gemini-cli/GEMINI.md and the v0.3.3 CHANGELOG entry no longer promise an opt-in GEMINI_API_KEY fallback; instead they state the gemini SDK_REGISTRY slot is reserved but not yet implemented in v0.3.x'
+    text: The system shall correct plugins/gemini-cli/GEMINI.md and the v0.3.3 CHANGELOG entry so they match the shipped reality — the gemini SDK adapter slot in src/adapters/index.ts SDK_REGISTRY is reserved but the SDK body is not yet implemented; direct-SDK dispatch is not a shipped fallback in v0.3.x.
+    evidence_refs:
+      - plugins/gemini-cli/GEMINI.md
+      - CHANGELOG.md
+  - id: AC-240
+    ears: ubiquitous
+    action: keep historical version references in code comments untouched
+    response: 'historical narrative comments under src/ (e.g. "v0.2.19 ships the mock body via MockTransport") remain intact because they document a factual sequence of events; only user-facing surfaces (CLI help output, plugin manifest docs) are evergreen-edited'
+    text: The system shall keep historical version references in source code comments (e.g. "v0.2.19 ships the mock body via MockTransport") untouched in this cleanup; only user-facing surfaces — CLI help output and plugin manifest user docs — are evergreen-edited.
+    evidence_refs: [src/adapters/host/transport.ts]

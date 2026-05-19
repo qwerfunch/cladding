@@ -26,7 +26,7 @@ The full prompt body for each persona is exposed as an MCP prompt — Gemini can
 
 ## Authentication
 
-This extension uses your **Gemini CLI Google account login** by default (60 req/min · 1000/day free tier). No `GEMINI_API_KEY` required. API key fallback is supported when you need higher quotas. Cladding's F-049 AC-091 invariant: host adapters never read an API key.
+This extension uses your **Gemini CLI Google account login** (60 req/min · 1000/day free tier). Cladding's host adapter path requires no API key — F-049 AC-091 invariant. The `gemini` slot is reserved in `src/adapters/index.ts` `SDK_REGISTRY` but the SDK adapter body is not yet implemented; if you need direct-SDK dispatch (raised quotas, CI/CD batch), open a feature request before relying on it.
 
 ## Where to learn more
 
