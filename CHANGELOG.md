@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.10] — Unreleased — Stage runner tests batch 1 · **70% coverage floor cleared** (F-059)
+## [0.2.10] — 2026-05-19 — Stage runner tests batch 1 · **70% coverage floor cleared** (F-059)
 
 **Milestone**: project line coverage crosses the 70% floor. `clad check --strict` no longer emits the COVERAGE_DROP warn that has been the last `--strict`-mode blocker since v0.2.2. The five-batch coverage push that began at v0.2.5 (26.8% baseline) closes at **72.58%**.
 
@@ -45,7 +45,7 @@ Four stage runners gain dedicated unit tests using the `vi.mock('execa')` patter
 
 - 8 stage runners remain (`arch`, `cov`, `secret`, `unit`, `smoke`, `perf`, `visual`, `uat`). Coverage will continue to rise as each batch lands — the 70% floor is now a sustained property, not a finish line.
 
-## [0.2.9] — Unreleased — Detector catalog 20/20 at 100% line coverage (F-058)
+## [0.2.9] — 2026-05-19 — Detector catalog 20/20 at 100% line coverage (F-058)
 
 The final batch of the detector-coverage thread. The last two detectors — `HARDCODED_SECRET` and `ARCHITECTURE_VIOLATION`, both subprocess-bound — gain unit tests using `vi.mock('execa')` to exercise every branch deterministically. **Result: every one of the 20 registered drift detectors (19 Ironclad + 1 cladding extension) now has a dedicated `tests/stages/*.test.ts` file at 100% line coverage.**
 
@@ -76,7 +76,7 @@ Project line coverage rises from **58.66% → 63.49%** (+4.83pp). Cumulative gai
 | v0.2.8 (batch 3) | 15/20 | 58.66% | +9.7pp |
 | v0.2.9 (batch 4) | **20/20** | **63.49%** | +4.8pp |
 
-## [0.2.8] — Unreleased — Detector unit tests batch 3 (F-057)
+## [0.2.8] — 2026-05-19 — Detector unit tests batch 3 (F-057)
 
 Continuation of the v0.2.6/7 coverage push. Five more detectors gain dedicated `tests/stages/*.test.ts` files at **100% line coverage**. Overall project line coverage rises from **49% → 58.66%** (+9.7pp). After three batches, **15 of 20 detectors are covered at 100%**; cumulative gain from v0.2.5 baseline is **+31.9pp**.
 
@@ -101,7 +101,7 @@ Continuation of the v0.2.6/7 coverage push. Five more detectors gain dedicated `
 - After this batch, **3 detectors lack dedicated tests**: `hardcoded-secret` (subprocess: `npx secretlint`), `architecture-violation` (subprocess: `madge`), and any future cladding extensions. Both subprocess detectors need richer fixture setup or a stubbed `execaSync` — that's batch 4.
 - The `COVERAGE_DROP` warn under `--strict` is still present (58.66% < 70% floor). One more detector batch plus stage-runner tests should clear it.
 
-## [0.2.7] — Unreleased — Detector unit tests batch 2 (F-056)
+## [0.2.7] — 2026-05-19 — Detector unit tests batch 2 (F-056)
 
 Continuation of the v0.2.6 coverage push. Five more detectors gain dedicated `tests/stages/*.test.ts` files, each reaching **100% line coverage** on the detector source. Overall project line coverage rises from **36.36% → 49%** in this batch (+12.6pp). After two batches the suite has covered 10 of the 20 detectors at 100%.
 
@@ -126,7 +126,7 @@ Continuation of the v0.2.6 coverage push. Five more detectors gain dedicated `te
 - 7 detectors still lack dedicated tests after this batch: `coverage-drop`, `performance-drift`, `evidence-mismatch`, `stale-evidence`, `hardcoded-secret`, `architecture-violation`, `reference-integrity`. The first four are batch-3 candidates (read-only file probing); the last three need richer subprocess / fixture setup.
 - The `COVERAGE_DROP` warn under `--strict` is still present (49% < 70% floor). One more batch should close most of the remainder.
 
-## [0.2.6] — Unreleased — Detector unit tests batch 1 (F-055)
+## [0.2.6] — 2026-05-19 — Detector unit tests batch 1 (F-055)
 
 After v0.2.5 the only remaining `clad check --strict` failure was the pre-existing `COVERAGE_DROP warn` (line coverage 26.8% < 70% floor). v0.2.6 starts the honest path to clearing it — real test coverage, not a lower floor. Five detectors gain dedicated `tests/stages/*.test.ts` files, each reaching **100% line coverage** on the detector source. Overall project line coverage rises from **26.8% → 36.36%** in one batch.
 
@@ -151,7 +151,7 @@ After v0.2.5 the only remaining `clad check --strict` failure was the pre-existi
 - 12 detectors still lack dedicated tests (batch 2 candidates: convention-drift, stale-tests, coverage-drop, performance-drift, evidence-mismatch, stale-evidence, stale-specification, hardcoded-secret, architecture-violation, harness-integrity, reference-integrity, meta-integrity).
 - The COVERAGE_DROP warn under `--strict` is still present (36% < 70% floor); cumulative batches will close that gap.
 
-## [0.2.5] — Unreleased — Documentary → runnable promotion batch 1 (F-054)
+## [0.2.5] — 2026-05-19 — Documentary → runnable promotion batch 1 (F-054)
 
 v0.2.4 introduced 45 documentary fixtures with the explicit promise that future cycles would promote them to runnable conformance entries. v0.2.5 delivers the first batch — 7 documentary fixtures gain real `setup` / `run` bodies in `conformance/runner.ts` and are exercised on every `npm run conformance`. The conformance suite grows from 26/26 to 33/33 matched fixtures.
 
@@ -179,7 +179,7 @@ v0.2.4 introduced 45 documentary fixtures with the explicit promise that future 
 - 38 documentary fixtures remain in `conformance/fixtures.yaml` (2 original `missing-implementation` / `missing-tests` plus 36 from v0.2.4). Each is a future batch candidate; promotion order will favour ACs whose setup needs no specialised environment (audit logs, perf baselines, secretlint config).
 - `expectFindings` is opt-in. Existing fixtures that only need pass/fail matching are unaffected.
 
-## [0.2.4] — Unreleased — Fixture registry + 56-AC evidence cleanup (F-053)
+## [0.2.4] — 2026-05-19 — Fixture registry + 56-AC evidence cleanup (F-053)
 
 v0.2.3 split `test_refs` from `evidence_refs` but left 56 of cladding's own `status: done` ACs declaring neither — `MISSING_TESTS` warned on every one, and `--strict` mode failed loudly. v0.2.4 closes that gap by promoting the `fixture:NAME` label from a free-form string into a validated anchor, then using documentary fixtures plus existing tests and doc artifacts to give every AC a real evidence citation. **Result: `MISSING_TESTS` emits zero findings on cladding's own spec; `--strict` mode no longer fails on AC-evidence drift.**
 
@@ -205,7 +205,7 @@ v0.2.3 split `test_refs` from `evidence_refs` but left 56 of cladding's own `sta
 - After this patch, `clad check --strict` still surfaces a pre-existing `COVERAGE_DROP` warn (line coverage 26.8% < 70% floor). That is orthogonal to evidence-drift cleanup; raising coverage is its own cycle.
 - `UNTESTED_AC` (the path-resolving sibling detector) remains unchanged — it still only inspects `test_refs`, so the documentary fixtures don't interact with it.
 
-## [0.2.3] — Unreleased — `test_refs` / `evidence_refs` split (F-052)
+## [0.2.3] — 2026-05-19 — `test_refs` / `evidence_refs` split (F-052)
 
 v0.2.2 reframed the detector headline; this patch fixes the *spec data* underneath it. Cladding's own 50-feature spec was burying npm-script names (`self-dogfood:stage:*`), conformance fixture pointers (`fixture:*`), and doc paths (`*.md`, `docs/*`) inside `test_refs` — making `UNTESTED_AC` skip them via a `self-dogfood:` / `fixture:` prefix dance and obscuring which ACs were actually verified by executable code-tests. v0.2.3 introduces a parallel `evidence_refs` field, migrates the 24 mis-categorised refs across 22 ACs, and teaches `MISSING_TESTS` to count either field as satisfying the verification requirement.
 
@@ -227,7 +227,7 @@ v0.2.2 reframed the detector headline; this patch fixes the *spec data* undernea
 - `UNTESTED_AC` (the path-resolving detector) is unchanged. It only inspects `test_refs` because its truth condition is "file exists on disk"; `evidence_refs` entries are deliberately out of its scope.
 - The `self-dogfood:` / `fixture:` skip prefixes in `untested-ac.ts` are now dead code for cladding's own spec but kept for backward compatibility with user spec.yaml files mid-migration.
 
-## [0.2.2] — Unreleased — Detector honesty patch
+## [0.2.2] — 2026-05-19 — Detector honesty patch
 
 A 2026-05-19 controlled drift-inject experiment (`cladding-abc/08-drift-inject/`) measured cladding's detector set against four scenarios (UNMAPPED_ARTIFACT, MISSING_IMPLEMENTATION, AC_DRIFT, UNTESTED_AC). The result — 2.5/4 catch rate — surfaced that the "19 detectors" headline oversells the bare metal. This patch corrects the framing without changing default behaviour, and adds an opt-in `--strict` mode that promotes warn-severity drift findings to fail the stage.
 
