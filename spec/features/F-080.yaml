@@ -1,0 +1,40 @@
+id: F-080
+title: HARNESS_INTEGRITY — multi-host manifest schema + version drift (v0.3.5)
+status: done
+modules:
+  - src/stages/detectors/harness-integrity.ts
+  - tests/stages/harness-integrity.test.ts
+depends_on: [F-076, F-077, F-078]
+acceptance_criteria:
+  - id: AC-241
+    ears: ubiquitous
+    action: keep the original detector-count invariant intact in the extended detector
+    response: 'HARNESS_INTEGRITY still trips an error finding when the numerator of plugin.json current.detectors does not match the count of non-index .ts files under src/stages/detectors/; warn on malformed shape; info when plugin.json is absent; silent when the detectors field is omitted'
+    text: The system shall keep the original v0.2.4 detector-count invariant intact in the extended detector — same severity ladder (error · warn · info), same trigger conditions, same regression target.
+    test_refs: [tests/stages/harness-integrity.test.ts]
+  - id: AC-242
+    ears: ubiquitous
+    action: validate each host plugin manifest against a per-host required-field schema
+    response: 'HARNESS_INTEGRITY checks .claude-plugin/plugin.json (requires name + version), plugins/codex/.codex-plugin/plugin.json (requires name + version + description), and plugins/gemini-cli/gemini-extension.json (requires name + version); a missing required field emits a per-host error finding naming the host, the path, and the missing field'
+    text: The system shall validate each of the three host plugin manifests (Claude Code, Codex, Gemini CLI) against its per-host required-field schema and emit a per-host error finding when a required field is missing.
+    test_refs: [tests/stages/harness-integrity.test.ts]
+  - id: AC-243
+    ears: state
+    condition: while a host manifest is present but its JSON is malformed
+    action: emit a warn finding instead of an error
+    response: 'HARNESS_INTEGRITY catches the JSON parse failure, emits a warn finding naming the host and the manifest path with `could not be parsed as JSON`, and continues with the remaining checks'
+    text: While a host manifest is present but its JSON is malformed, the system shall emit a warn finding (not an error) so a soft parse issue surfaces in `clad check --strict` without blocking the rest of the integrity sweep.
+    test_refs: [tests/stages/harness-integrity.test.ts]
+  - id: AC-244
+    ears: ubiquitous
+    action: enforce cross-manifest version consistency
+    response: 'HARNESS_INTEGRITY reads package.json version (baseline) and compares it to each host manifest version; a mismatch emits a per-host error finding naming the host, the offending version, and the package.json baseline so a release with a half-bumped manifest set cannot ship'
+    text: The system shall enforce cross-manifest version consistency by reading package.json version as the baseline and comparing it to each host manifest version; any mismatch trips a per-host error finding so a release with a half-bumped manifest set cannot ship.
+    test_refs: [tests/stages/harness-integrity.test.ts]
+  - id: AC-245
+    ears: unwanted
+    condition: if package.json is absent or has no version field
+    action: skip the cross-manifest version check silently
+    response: 'HARNESS_INTEGRITY skips checkVersionConsistency when package.json cannot be read or has no version field — the check is opt-in on a cladding-shaped repo, not a hard gate on any directory'
+    text: If package.json is absent or has no version field, the system shall skip the cross-manifest version check silently so the detector remains a soft validator on non-cladding directories.
+    test_refs: [tests/stages/harness-integrity.test.ts]
