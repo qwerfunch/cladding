@@ -5,6 +5,31 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.20] — Unreleased — AnthropicSdkTransport · first real-LLM dispatch (F-069)
+
+**Substep 2 of the v0.3.0 path.** Cladding ships its first real-LLM Transport: `AnthropicTransport`, which dispatches via `@anthropic-ai/sdk` to the Anthropic API directly. Opt-in via `agent.mode = sdk` + `agent.name = claude-anthropic` + `ANTHROPIC_API_KEY` env var. Default cladding stays on the host-bound MockTransport — no behaviour change for existing setups.
+
+Host-mode real transport (the claude-code subagent dispatch path) still depends on the `clad serve` MCP server, which is queued for a later substep. v0.2.20 unlocks real LLM calls today through the SDK path, while the MCP path matures separately.
+
+### Added
+
+- `src/adapters/sdk/anthropic.ts` — `AnthropicTransport` (real-LLM body) + `claudeAnthropicAdapter` (AgentAdapter wrapping it). Uses the `clientFactory` injection seam so tests substitute an in-memory client and no network call fires during CI.
+- `tests/adapters/anthropic.test.ts` — 11 unit tests covering id format, ready() with/without API key, invoke() throw on missing key, AgentResult shape, system/user message formatting, client caching, 200-char summary truncation, model/maxTokens override, stop_reason surfacing.
+- `package.json` — `@anthropic-ai/sdk` added to `dependencies`.
+- `spec/features/F-069.yaml` — "AnthropicSdkTransport — first real-LLM dispatch path" (5 ACs, status `done`).
+
+### Changed
+
+- `src/adapters/index.ts` — new `SDK_REGISTRY` with the `claude-anthropic` entry; `selectAdapter()` routes `mode: sdk` to `SDK_REGISTRY` before falling through to `generic-mcp`. The "SDK adapters not yet implemented" fallback comment is updated.
+- `tests/adapters/index.test.ts` — the `sdk mode → falls back to generic-mcp` test is replaced by two tests: `sdk + claude-anthropic → SDK adapter` and `sdk + unknown name → still falls back to generic-mcp`.
+
+### Notes
+
+- 411 + 12 new tests = **423 / 423** passing.
+- `node bin/clad check --strict` stays drift-green; coverage unchanged.
+- The SDK adapter's body is real; the surrounding cladding workflow (selector, drive loop, parity tests) is the same. End-to-end real LLM dispatch works today with `CLADDING_AGENT_MODE=sdk CLADDING_AGENT_NAME=claude-anthropic ANTHROPIC_API_KEY=… node bin/clad drive`.
+- v0.2.21 plan: drive-loop integration test that runs end-to-end against AnthropicTransport with a stubbed client (no network), proving the loop dispatches → reviewer barrier → UAT chain through real-shape (not mock) data.
+
 ## [0.2.19] — Unreleased — Transport interface extraction · v0.3.0 substep 1 (F-068)
 
 First step toward the v0.3.0 F-049 real Claude Code dispatch. Splits each host adapter into two layers: the AgentAdapter (the contract `drive/agent.ts` sees) and the Transport (the swappable body that crosses the host boundary). v0.2.19 ships the MockTransport implementation only; v0.2.20 replaces selected adapters' MockTransport with a real body without touching the AgentAdapter object.

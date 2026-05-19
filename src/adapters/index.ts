@@ -28,12 +28,23 @@ import {parse as parseYaml} from 'yaml';
 
 import {claudeCodeAdapter, isClaudeCodeRuntime} from './host/claude-code.js';
 import {genericMcpAdapter} from './host/generic-mcp.js';
+import {claudeAnthropicAdapter} from './sdk/anthropic.js';
 import type {AdapterMode, AgentAdapter} from './types.js';
 
 /** All host adapters known to cladding, keyed by `name`. */
 const HOST_REGISTRY: Readonly<Record<string, AgentAdapter>> = {
   'claude-code': claudeCodeAdapter,
   'generic-mcp': genericMcpAdapter,
+};
+
+/**
+ * SDK adapters — opt-in via `agent.mode === 'sdk'`. Each entry talks
+ * to its vendor's API directly using an API key supplied via env.
+ * v0.2.20 (F-069) ships the `claude-anthropic` entry; other vendors
+ * (openai, google-gemini) are reserved slots filled in later.
+ */
+const SDK_REGISTRY: Readonly<Record<string, AgentAdapter>> = {
+  'claude-anthropic': claudeAnthropicAdapter,
 };
 
 interface ResolvedSelection {
@@ -56,10 +67,13 @@ export function selectAdapter(cwd: string = '.'): AgentAdapter {
   if (choice.mode === 'host') {
     const adapter = HOST_REGISTRY[choice.name];
     if (adapter) return adapter;
+  } else if (choice.mode === 'sdk') {
+    const adapter = SDK_REGISTRY[choice.name];
+    if (adapter) return adapter;
   }
-  // SDK adapters land in v0.2.0 stage 2. Until then, fall back to
-  // the generic MCP host adapter so dispatch never crashes; the
-  // drive loop's healthCheck() will report the mismatch.
+  // Unknown mode / name combination — fall through to generic-mcp so
+  // dispatch never crashes; drive loop's healthCheck() reports the
+  // mismatch via `LLM_UNAVAILABLE` (F-049 AC-088).
   return genericMcpAdapter;
 }
 

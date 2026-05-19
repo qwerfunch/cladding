@@ -138,9 +138,17 @@ describe('adapters/index — selectAdapter', () => {
     expect(a.name).toBe('generic-mcp');
   });
 
-  test('sdk mode → falls back to generic-mcp (SDK adapters not yet implemented)', () => {
+  test('sdk mode + claude-anthropic → returns the SDK adapter (v0.2.20)', () => {
     process.env.CLADDING_AGENT_MODE = 'sdk';
     process.env.CLADDING_AGENT_NAME = 'claude-anthropic';
+    const a = selectAdapter(dir);
+    expect(a.name).toBe('claude-anthropic');
+    expect(a.mode).toBe('sdk');
+  });
+
+  test('sdk mode + unknown name → falls back to generic-mcp', () => {
+    process.env.CLADDING_AGENT_MODE = 'sdk';
+    process.env.CLADDING_AGENT_NAME = 'openai-gpt-4';
     const a = selectAdapter(dir);
     expect(a.name).toBe('generic-mcp');
   });
