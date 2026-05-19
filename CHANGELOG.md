@@ -5,7 +5,41 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.26] — Unreleased — Host adapter MCP routing + release readiness sweep (F-075)
+## [0.3.0] — 2026-05-19 — First minor — host MCP transport · live audit · F-049 done
+
+**The v0.2.19 → v0.2.26 thread closes here.** F-049 (the agent dispatch + runtime orchestration feature whose Mock host bodies have been the project's biggest known deferral since v0.2.0) is now `done`. cladding ships a real transport for both modes:
+
+- **Host mode** — `clad serve` boots an MCP server; the host adapters route LLM dispatch through the connected MCP client via the SDK's `createMessage` sampling request. Works with Claude Code, Cursor, Continue, Cline, or any future MCP-aware host.
+- **SDK mode** — `claude-anthropic` calls the Anthropic API directly (opt-in via `agent.mode = sdk`).
+
+The minor bump is the spec status flip — every code line that backs F-049 has been merging through develop since v0.2.19. No new code in this release, by design.
+
+### Changed
+
+- `spec/features/F-049.yaml` — `status: in_progress` → `status: done`. AC-092 rewritten to reference the four real implementations (F-069, F-073, F-074, F-075) instead of the original "v0.2.0 mock, v0.3.0 real" placeholder; evidence_refs now point at the concrete modules.
+- Version bumped to **0.3.0** in `package.json`, `.claude-plugin/plugin.json`, `src/cli/clad.ts`, `src/serve/server.ts` default advertised version.
+
+### Cumulative contributions (the eight patches this release bundles)
+
+| Version | Feature | Contribution |
+|---|---|---|
+| 0.2.19 | F-068 | Transport interface extraction — adapter / body split. |
+| 0.2.20 | F-069 | AnthropicTransport — first real-LLM dispatch (SDK path). |
+| 0.2.21 | F-070 | Drive-loop integration test against AnthropicTransport. |
+| 0.2.22 | F-071 | Transport-specific halt classes (`TRANSPORT_AUTH_FAILED` · `_RATE_LIMITED` · `_NETWORK`). |
+| 0.2.23 | F-072 | Pre-flight transport health check at drive loop start. |
+| 0.2.24 | F-073 | `clad serve` MCP server scaffold — tools / resources / persona prompts. |
+| 0.2.25 | F-074 | `McpSamplingTransport` + live audit notification (`notifications/resources/updated`). |
+| 0.2.26 | F-075 | Host adapter routing through MCP sampling · bundle minified to 1.1 MB · SECURITY.md MCP invariants. |
+
+### Notes
+
+- 509/509 vitest pass at the v0.2.26 tip; this release adds no test changes.
+- `node bin/clad check --strict` drift-green at 75 features.
+- BREAKING: none. Every change is additive — code that ran on v0.2.x still runs on v0.3.0 with identical behaviour (Mock fallback when no MCP server is registered).
+- Marketplace + npm publish are explicitly out of scope for this release (memory: `marketplace_timing`, `npm publish` deferral).
+
+## [0.2.26] — 2026-05-19 — Host adapter MCP routing + release readiness sweep (F-075)
 
 **Phase B' of the v0.3.0 host-MCP transport thread — the closing patch before declaring F-049 done.** Wires the v0.2.25 building blocks into the actual host adapter dispatch path, then runs a release-readiness audit (bundle minify, security documentation, README sync) so v0.3.0 is a 30-minute version bump rather than a fresh integration push.
 
@@ -34,7 +68,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 - Host adapter routing is the architectural closing of the v0.2.19 → v0.2.26 thread: F-049's AC-092 ("v0.3.0 introduces the MCP server mode that real Claude Code subagent and MCP-client roundtrips dispatch through") is satisfied today; the v0.3.0 declaration is purely a version bump + spec status flip + release flow.
 - v0.3.0 plan: `spec/features/F-049.yaml` status `in_progress` → `done`, minor bump 0.2.26 → 0.3.0, main release flow (tag, gh release create). **Requires user confirmation** for the minor bump.
 
-## [0.2.25] — Unreleased — McpSamplingTransport + live audit notification (F-074)
+## [0.2.25] — 2026-05-19 — McpSamplingTransport + live audit notification (F-074)
 
 **Phase B of the v0.3.0 host-MCP transport thread.** v0.2.24 shipped the read surface of `clad serve`; this patch adds the bidirectional pieces — a Transport that dispatches LLM calls via MCP sampling, and a notification path that lets clients live-tail the audit log.
 
@@ -60,7 +94,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 - The live-audit chain is fully functional **today** for any caller of `appendEvidence` — including future drive-loop iterations dispatching through McpSamplingTransport.
 - v0.2.26 plan: release readiness sweep — esbuild `minify: true` (predicted 30~40% bundle reduction), SECURITY.md MCP section (no arbitrary shell exec invariant), README sync (capability lines for host MCP transport + live audit stream).
 
-## [0.2.24] — Unreleased — MCP server scaffold · `clad serve` (F-073)
+## [0.2.24] — 2026-05-19 — MCP server scaffold · `clad serve` (F-073)
 
 **Phase A of the v0.3.0 host-MCP transport thread.** `clad serve` boots cladding as an MCP server over stdio so any MCP-aware host (Claude Code, Cursor, Continue, Cline) can consume cladding's tools, resources, and persona prompts. Phase A ships the read surface only; sampling-based dispatch (the transport the drive loop will use) lands in v0.2.25.
 
