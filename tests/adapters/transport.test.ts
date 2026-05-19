@@ -9,10 +9,14 @@
 //   - ready() honours the readyWhen predicate
 //   - ready() returns the configured reason when not ready
 
-import {describe, expect, test} from 'vitest';
+import {describe, expect, test, vi} from 'vitest';
 
 import type {AgentContext, PersonaSpec} from '../../src/adapters/types.js';
-import {MockTransport} from '../../src/adapters/host/transport.js';
+import {
+  McpSamplingTransport,
+  MockTransport,
+  type SamplingCapableServer,
+} from '../../src/adapters/host/transport.js';
 
 const PERSONA: PersonaSpec = {id: 'reviewer', body: '', capabilities: new Set()};
 const CTX: AgentContext = {featureId: 'F-001', featureShard: '{}', guardrails: [], cwd: '.'};
@@ -92,5 +96,117 @@ describe('MockTransport', () => {
     expect(r1.identity.name).not.toBe(r2.identity.name);
     expect(r1.identity.name).toContain('mock:a');
     expect(r2.identity.name).toContain('mock:b');
+  });
+});
+
+describe('McpSamplingTransport (F-074, v0.2.25)', () => {
+  function makeServer(reply: {
+    text: string;
+    model?: string;
+    stopReason?: string;
+  }): {server: SamplingCapableServer; createMessage: ReturnType<typeof vi.fn>} {
+    const createMessage = vi.fn().mockResolvedValue({
+      model: reply.model ?? 'test-model',
+      stopReason: reply.stopReason ?? 'endTurn',
+      role: 'assistant' as const,
+      content: {type: 'text', text: reply.text},
+    });
+    return {server: {createMessage} as SamplingCapableServer, createMessage};
+  }
+
+  test('id defaults to mcp-sampling:host', () => {
+    const {server} = makeServer({text: 'ok'});
+    const t = new McpSamplingTransport(server);
+    expect(t.id).toBe('mcp-sampling:host');
+  });
+
+  test('id can be overridden via options', () => {
+    const {server} = makeServer({text: 'ok'});
+    const t = new McpSamplingTransport(server, {id: 'mcp-sampling:claude-code'});
+    expect(t.id).toBe('mcp-sampling:claude-code');
+  });
+
+  test('invoke calls createMessage with persona body as system prompt', async () => {
+    const {server, createMessage} = makeServer({text: 'reply text'});
+    const t = new McpSamplingTransport(server);
+    const persona: PersonaSpec = {id: 'reviewer', body: 'You are the reviewer.', capabilities: new Set()};
+    await t.invoke(persona, CTX);
+    const call = createMessage.mock.calls[0][0];
+    expect(call.systemPrompt).toBe('You are the reviewer.');
+    expect(call.maxTokens).toBe(4096);
+    expect(call.messages).toHaveLength(1);
+    expect(call.messages[0].role).toBe('user');
+    expect(call.messages[0].content.type).toBe('text');
+    expect(call.messages[0].content.text).toContain('F-001');
+  });
+
+  test('invoke maps the sampling reply to AgentResult shape', async () => {
+    const {server} = makeServer({text: 'persona output', model: 'claude-x', stopReason: 'endTurn'});
+    const t = new McpSamplingTransport(server);
+    const result = await t.invoke(PERSONA, CTX);
+    expect(result.identity.author).toBe('llm');
+    expect(result.identity.name).toBe('mcp-sampling:host:reviewer');
+    expect(result.summary).toBe('persona output');
+    expect(result.mutations).toEqual([]);
+    expect(result.notes).toContain('model=claude-x');
+    expect(result.notes).toContain('stop=endTurn');
+  });
+
+  test('invoke truncates the summary to 200 chars', async () => {
+    const long = 'x'.repeat(500);
+    const {server} = makeServer({text: long});
+    const t = new McpSamplingTransport(server);
+    const result = await t.invoke(PERSONA, CTX);
+    expect(result.summary).toHaveLength(200);
+  });
+
+  test('invoke handles non-text reply by returning an empty summary', async () => {
+    const createMessage = vi.fn().mockResolvedValue({
+      model: 'x',
+      stopReason: 'toolUse',
+      role: 'assistant' as const,
+      content: {type: 'toolUse', name: 'unknown'},
+    });
+    const server = {createMessage} as SamplingCapableServer;
+    const t = new McpSamplingTransport(server);
+    const result = await t.invoke(PERSONA, CTX);
+    expect(result.summary).toBe('');
+  });
+
+  test('invoke includes guardrails in the user message when present', async () => {
+    const {server, createMessage} = makeServer({text: 'ok'});
+    const t = new McpSamplingTransport(server);
+    const ctxWithGuards: AgentContext = {
+      ...CTX,
+      guardrails: ['No mocks in integration tests', 'Use TSDoc on every export'],
+    };
+    await t.invoke(PERSONA, ctxWithGuards);
+    const text = createMessage.mock.calls[0][0].messages[0].content.text;
+    expect(text).toContain('Guardrails:');
+    expect(text).toContain('No mocks');
+    expect(text).toContain('Use TSDoc');
+  });
+
+  test('ready() resolves true (probe is via first invoke)', async () => {
+    const {server} = makeServer({text: 'ok'});
+    const t = new McpSamplingTransport(server);
+    const status = await t.ready();
+    expect(status.ready).toBe(true);
+  });
+
+  test('maxTokens override is forwarded to createMessage', async () => {
+    const {server, createMessage} = makeServer({text: 'ok'});
+    const t = new McpSamplingTransport(server, {maxTokens: 1024});
+    await t.invoke(PERSONA, CTX);
+    expect(createMessage.mock.calls[0][0].maxTokens).toBe(1024);
+  });
+
+  test('invoke propagates transport errors so the loop can classify them', async () => {
+    const createMessage = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('429: sampling rate limit exceeded'));
+    const server = {createMessage} as SamplingCapableServer;
+    const t = new McpSamplingTransport(server);
+    await expect(t.invoke(PERSONA, CTX)).rejects.toThrow(/rate limit/);
   });
 });

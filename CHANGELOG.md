@@ -5,6 +5,32 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.25] — Unreleased — McpSamplingTransport + live audit notification (F-074)
+
+**Phase B of the v0.3.0 host-MCP transport thread.** v0.2.24 shipped the read surface of `clad serve`; this patch adds the bidirectional pieces — a Transport that dispatches LLM calls via MCP sampling, and a notification path that lets clients live-tail the audit log.
+
+### Added
+
+- `src/adapters/host/transport.ts` — `McpSamplingTransport` (real-host body) + `SamplingCapableServer` interface. The transport takes any server with a `createMessage(params)` method and forwards persona body + feature shard as a sampling request to the connected MCP client. Reply maps to AgentResult with host-tagged identity, 200-char-truncated summary, empty mutations (structured mutations land later), and notes containing model + stopReason.
+- `src/hitl/audit.ts` — `subscribeAudit(handler)` observer hook returning a dispose callback. Handlers fire after the file write; exceptions are swallowed so a misbehaving observer cannot corrupt the audit chain.
+- `src/serve/server.ts` — `registerAuditNotifier` subscribes an observer that filters by cwd and emits `notifications/resources/updated` for `cladding://audit` when a new evidence entry lands. `registerSubscribeHandlers` wires no-op `resources/subscribe` + `resources/unsubscribe` request handlers (the high-level McpServer wrapper doesn't include them by default).
+- McpServer constructor now declares `capabilities: {resources: {subscribe: true}}` so connected clients can subscribe to the audit resource.
+- `tests/adapters/transport.test.ts` — 10 unit tests for McpSamplingTransport (id override, system-prompt forwarding, AgentResult shape mapping, 200-char truncation, non-text reply fallback, guardrail interpolation, ready() probe, maxTokens override, error propagation).
+- `tests/hitl/audit.test.ts` — 9 tests for the audit observer hook (single observer, multiple observers, dispose, throwing observer doesn't break the chain, file readable from inside the observer, clear-for-testing).
+- `tests/serve/audit-notify.test.ts` — 3 in-process integration tests using `Client.setNotificationHandler(ResourceUpdatedNotificationSchema, ...)` to verify: subscribed client receives the notification when evidence lands · evidence for a different cwd does NOT cross-talk · re-reading the audit resource after the notification surfaces the new entry.
+- `spec/features/F-074.yaml` — "McpSamplingTransport + live audit notification" (6 ACs, status `done`).
+
+### Fixed
+
+- `src/serve/server.ts` — `cladding://events` and `cladding://audit` resource paths were `events.log` / `audit.log` but the writers (`src/events/log.ts`, `src/hitl/audit.ts`) use the `.jsonl` suffix. Aligned both sides to `events.log.jsonl` / `audit.log.jsonl`. This bug existed in v0.2.24 — surfaced when audit-notify integration tests started reading actual content.
+
+### Notes
+
+- 476 + new tests = **498/498** passing; lint clean; `node bin/clad check --strict` drift-green.
+- McpSamplingTransport is exported but not wired into `generic-mcp` / `claude-code` adapters yet — that wiring (env detection + adapter routing) is the next sub-patch. v0.2.25 ships the building block; the routing decision waits until v0.2.26 release readiness sweep so the bundle-size cost (already paid by MCP SDK) is amortized across both pieces.
+- The live-audit chain is fully functional **today** for any caller of `appendEvidence` — including future drive-loop iterations dispatching through McpSamplingTransport.
+- v0.2.26 plan: release readiness sweep — esbuild `minify: true` (predicted 30~40% bundle reduction), SECURITY.md MCP section (no arbitrary shell exec invariant), README sync (capability lines for host MCP transport + live audit stream).
+
 ## [0.2.24] — Unreleased — MCP server scaffold · `clad serve` (F-073)
 
 **Phase A of the v0.3.0 host-MCP transport thread.** `clad serve` boots cladding as an MCP server over stdio so any MCP-aware host (Claude Code, Cursor, Continue, Cline) can consume cladding's tools, resources, and persona prompts. Phase A ships the read surface only; sampling-based dispatch (the transport the drive loop will use) lands in v0.2.25.

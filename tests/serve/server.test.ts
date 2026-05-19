@@ -198,7 +198,7 @@ describe('serve/server — MCP read surface', () => {
 
   test('clad_get_events tails the log when it exists', async () => {
     writeFileSync(
-      join(dir, '.cladding', 'events.log'),
+      join(dir, '.cladding', 'events.log.jsonl'),
       `${JSON.stringify({type: 'feature_activated', id: 'e1'})}\n${JSON.stringify({type: 'gate_run', id: 'e2'})}\n`,
     );
     const {client, cleanup} = await makePair(dir);
