@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.23] — Unreleased — Pre-flight transport health check (F-072)
+## [0.2.23] — 2026-05-19 — Pre-flight transport health check (F-072)
 
 The drive loop used to discover a missing API key (or any unhealthy adapter) only after the first feature iteration: pre-flight check runs once at startup, the loop fails fast at iteration 0, and the user sees an actionable halt class instead of a wasted dispatch attempt.
 
@@ -26,7 +26,7 @@ The drive loop used to discover a missing API key (or any unhealthy adapter) onl
 - The pre-flight check costs one local function call when healthy and zero network IO for both host and SDK adapters in the happy path — AnthropicTransport's `ready()` only checks for the env var presence.
 - v0.3.0 plan (substep 5): declare F-049 done (mock removed in favour of the SDK path), bump minor, release.
 
-## [0.2.22] — Unreleased — Transport-specific halt classes (F-071)
+## [0.2.22] — 2026-05-19 — Transport-specific halt classes (F-071)
 
 **Substep 4 of the v0.3.0 path.** The drive loop used to flatten every transport failure into `LLM_UNAVAILABLE`. With real-LLM dispatch live since v0.2.20, that's no longer actionable — users need to know whether a halt came from a bad API key, a rate limit, or a network blip. v0.2.22 introduces three transport-specific halt classes and routes the loop's catch blocks through a single classifier.
 
@@ -50,7 +50,7 @@ The drive loop used to discover a missing API key (or any unhealthy adapter) onl
 - The classifier is intentionally pattern-based (HTTP status prefixes + SDK phrases + `ErrnoException` codes) — no SDK-specific coupling. New transports (OpenAI, Google, …) get the same classification for free as long as their errors carry conventional shapes.
 - v0.3.0 plan (substep 5): declare F-049 done (mock removed in favour of the SDK path), bump minor, release.
 
-## [0.2.21] — Unreleased — Drive-loop integration test against AnthropicTransport (F-070)
+## [0.2.21] — 2026-05-19 — Drive-loop integration test against AnthropicTransport (F-070)
 
 **Substep 3 of the v0.3.0 path.** Wires the v0.2.19 Transport interface and the v0.2.20 AnthropicTransport into a drive-loop end-to-end integration test. Proves the loop's halt-class chain — `ALL_FEATURES_DONE`, `HUMAN_REQUIRED` via reviewer-identity barrier, `LLM_UNAVAILABLE` on transport throw — works against real-LLM-shape data, not just mock placeholders.
 
@@ -73,7 +73,7 @@ The drive loop used to discover a missing API key (or any unhealthy adapter) onl
 - `setDefaultTransportForTesting` is the first test-only export cladding ships; documented with a "Production code MUST NOT call this" comment.
 - v0.2.22 plan: introduce transport-specific halt classes (TRANSPORT_AUTH_FAILED, TRANSPORT_RATE_LIMITED, TRANSPORT_NETWORK) that the loop maps to instead of the generic `LLM_UNAVAILABLE`. This gives users actionable error categories.
 
-## [0.2.20] — Unreleased — AnthropicSdkTransport · first real-LLM dispatch (F-069)
+## [0.2.20] — 2026-05-19 — AnthropicSdkTransport · first real-LLM dispatch (F-069)
 
 **Substep 2 of the v0.3.0 path.** Cladding ships its first real-LLM Transport: `AnthropicTransport`, which dispatches via `@anthropic-ai/sdk` to the Anthropic API directly. Opt-in via `agent.mode = sdk` + `agent.name = claude-anthropic` + `ANTHROPIC_API_KEY` env var. Default cladding stays on the host-bound MockTransport — no behaviour change for existing setups.
 
@@ -98,7 +98,7 @@ Host-mode real transport (the claude-code subagent dispatch path) still depends 
 - The SDK adapter's body is real; the surrounding cladding workflow (selector, drive loop, parity tests) is the same. End-to-end real LLM dispatch works today with `CLADDING_AGENT_MODE=sdk CLADDING_AGENT_NAME=claude-anthropic ANTHROPIC_API_KEY=… node bin/clad drive`.
 - v0.2.21 plan: drive-loop integration test that runs end-to-end against AnthropicTransport with a stubbed client (no network), proving the loop dispatches → reviewer barrier → UAT chain through real-shape (not mock) data.
 
-## [0.2.19] — Unreleased — Transport interface extraction · v0.3.0 substep 1 (F-068)
+## [0.2.19] — 2026-05-19 — Transport interface extraction · v0.3.0 substep 1 (F-068)
 
 First step toward the v0.3.0 F-049 real Claude Code dispatch. Splits each host adapter into two layers: the AgentAdapter (the contract `drive/agent.ts` sees) and the Transport (the swappable body that crosses the host boundary). v0.2.19 ships the MockTransport implementation only; v0.2.20 replaces selected adapters' MockTransport with a real body without touching the AgentAdapter object.
 
