@@ -1,6 +1,6 @@
 # Code style
 
-This document is the single source of truth for code style and comment policy across cladding. AGENTS.md and `agents/specialists.md` both point here; if a contradiction appears, this file wins, and the others must be patched in the same change.
+This document is the single source of truth for code style and comment policy across cladding. AGENTS.md and `src/agents/specialists.md` both point here; if a contradiction appears, this file wins, and the others must be patched in the same change.
 
 ## Code style — Google Style Guides per language
 
@@ -20,7 +20,7 @@ Apply the [Google Style Guides](https://google.github.io/styleguide/) for every 
 | Elixir | `mix format` default + community style |
 | .NET / C# | Microsoft C# coding conventions |
 
-Polyglot toolchain detection lives in `stages/toolchain/detect.ts`. When you add support for a new language, add the row here in the same patch.
+Polyglot toolchain detection lives in `src/stages/toolchain/detect.ts`. When you add support for a new language, add the row here in the same patch.
 
 ## Comment style
 

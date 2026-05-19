@@ -29,7 +29,7 @@ Same command surface inside Claude Code, OpenAI Codex CLI, Google Gemini CLI, Cu
 
 ## Status
 
-**Ironclad L4 conformant (L21) · self-spec sharded (L21.8) · v0.2.15 ships at 404/404 tests · 93.89% line coverage (whole-codebase scope) · every source dir ≥ 90% · `clad check --strict` green.** Cladding ships the full Ironclad surface: 13 Iron Law stages (L1 Type / Lint / Drift / Commit / Arch / Secret · L2 Unit / Cov · L3 Smoke / Perf / Visual · L4 Audit / UAT) — every stage runner carrying a dedicated unit test (stage chapter closed v0.2.12) — plus **20 drift detectors** (3 always-error + 16 conditional + 1 cladding extension `FIXTURE_REFERENCE_INVALID`) all at 100% line coverage (detector chapter closed v0.2.9); severity matrix in [`stages/detectors/README.md`](stages/detectors/README.md); EARS syntactic validator, HITL infrastructure (identity · audit · anti-self-cert), 5 agent personas, polyglot toolchain for 9 languages, Intent Router, clad CLI, Token Optimizer (87.9% reduction measured), conformance fixtures 33/33 matched (26 baseline + 7 documentary→runnable promotions). Cladding's own spec is sharded (`spec/features/F-NNN.yaml` × 63, `spec/scenarios/S-NNN.yaml` × 2, `spec/architecture.yaml`) — the same layout external adopters get when their spec outgrows a single file.
+**Ironclad L4 conformant (L21) · self-spec sharded (L21.8) · v0.2.15 ships at 404/404 tests · 93.89% line coverage (whole-codebase scope) · every source dir ≥ 90% · `clad check --strict` green.** Cladding ships the full Ironclad surface: 13 Iron Law stages (L1 Type / Lint / Drift / Commit / Arch / Secret · L2 Unit / Cov · L3 Smoke / Perf / Visual · L4 Audit / UAT) — every stage runner carrying a dedicated unit test (stage chapter closed v0.2.12) — plus **20 drift detectors** (3 always-error + 16 conditional + 1 cladding extension `FIXTURE_REFERENCE_INVALID`) all at 100% line coverage (detector chapter closed v0.2.9); severity matrix in [`src/stages/detectors/README.md`](src/stages/detectors/README.md); EARS syntactic validator, HITL infrastructure (identity · audit · anti-self-cert), 5 agent personas, polyglot toolchain for 9 languages, Intent Router, clad CLI, Token Optimizer (87.9% reduction measured), conformance fixtures 33/33 matched (26 baseline + 7 documentary→runnable promotions). Cladding's own spec is sharded (`spec/features/F-NNN.yaml` × 63, `spec/scenarios/S-NNN.yaml` × 2, `spec/architecture.yaml`) — the same layout external adopters get when their spec outgrows a single file.
 
 Each Level adds a verifiable capability:
 
@@ -77,7 +77,7 @@ Each Level adds a verifiable capability:
 |---|---|---|
 | `clad drive` autonomous loop | **deterministic floor** — iterates ready features, materialises module stubs, runs L1 gates (`type` · `lint` · `arch`). No LLM is invoked. See [F-048](spec/features/F-048.yaml) AC-083. | [F-049](spec/features/F-049.yaml) — invoke the five agent personas, enforce reviewer ≠ author at runtime, wire the `HUMAN_REQUIRED` / `LLM_UNAVAILABLE` halt classes. |
 | Iron Law L4 in flight | Conformance fixtures 26/26 + human signoff on Cladding's own audit log prove the **L4 machinery** is correct. | Demonstrate the L4 machinery catching an LLM-authored implementation — requires F-049 to land first. |
-| Agent persona orchestration | Five subagent prompts ship under `agents/*.md`. | Runtime dispatch from `drive/loop.ts` (part of F-049). |
+| Agent persona orchestration | Five subagent prompts ship under `src/agents/*.md`. | Runtime dispatch from `src/drive/loop.ts` (part of F-049). |
 
 The Ironclad standard's v1.0 graduation requires two independent reference implementations passing L1–L4 fixtures ([Ironclad GOVERNANCE](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) §1). Cladding's fixture-level conformance counts toward that bar today; the qualitative "L4 catching LLM authoring" claim is a separate v0.2.0 milestone.
 
@@ -106,9 +106,9 @@ Cladding's own spec uses the sharded layout — one yaml file per feature:
 | `spec/features/F-NNN.yaml` | one file per feature (47 total) |
 | `spec/scenarios/S-NNN.yaml` | one file per scenario (2 total) |
 | `spec/architecture.yaml` | layer + forbidden-imports policy |
-| `spec/schema.json` | JSON Schema (draft-07) |
+| `src/spec/schema.json` | JSON Schema (draft-07) |
 
-`spec/load.ts` auto-detects this layout and merges children back into one Spec object on every load. To inspect the merged view:
+`src/spec/load.ts` auto-detects this layout and merges children back into one Spec object on every load. To inspect the merged view:
 
 | intent | command |
 |---|---|
@@ -117,7 +117,7 @@ Cladding's own spec uses the sharded layout — one yaml file per feature:
 | coverage at a glance | `clad panel` |
 | raw dump | `cat spec/features/*.yaml` |
 
-Inline-features layout (single `spec.yaml`) also works — `spec/load.ts` falls back automatically. New projects start unsharded; `scripts/shard-spec.ts` migrates when the master grows past ~1k lines.
+Inline-features layout (single `spec.yaml`) also works — `src/spec/load.ts` falls back automatically. New projects start unsharded; `scripts/shard-spec.ts` migrates when the master grows past ~1k lines.
 
 ## CLI
 
@@ -132,7 +132,7 @@ clad route <prompt>      # classify a natural-language prompt to a verb
 clad benchmark <feature> # naive vs optimized spec token cost
 ```
 
-After install, the `clad` binary is on `PATH` via the `bin` field in `package.json`. During development the shim at `bin/clad` invokes `cli/clad.ts` through tsx.
+After install, the `clad` binary is on `PATH` via the `bin` field in `package.json`. During development the shim at `bin/clad` invokes `src/cli/clad.ts` through tsx.
 
 ## Vocabulary
 

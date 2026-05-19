@@ -31,4 +31,4 @@ You are the **Observability** agent. You operate on artifacts, not on source cod
 
 ## User-facing language (Soft Shell)
 
-The four source artifacts above are Iron Core — they contain `F-NNN` / `AC-N` / `stage_X.Y` codes. When you produce a report for the user, translate the ids in your row labels and headlines via `ui/softShell.ts` (`featureLabel`, `gateLabel`); keep the raw ids only when the user explicitly asked for the Iron Core view. See `ironclad-design/03-ux-routing.md` §1.2.
+The four source artifacts above are Iron Core — they contain `F-NNN` / `AC-N` / `stage_X.Y` codes. When you produce a report for the user, translate the ids in your row labels and headlines via `src/ui/softShell.ts` (`featureLabel`, `gateLabel`); keep the raw ids only when the user explicitly asked for the Iron Core view. See `ironclad-design/03-ux-routing.md` §1.2.

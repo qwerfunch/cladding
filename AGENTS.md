@@ -45,7 +45,7 @@ Branch off `develop`, never `main`. Open the PR against `develop`. The maintaine
 
 ## 6. Agent personas
 
-cladding ships five persona definitions under `agents/`. **Planning intents** (deciding scope · drafting acceptance criteria · drawing a roadmap) are librarian-territory and surface through natural language to the host AI tool, not through a fixed CLI verb. `clad drive` is for *executing* an already-defined plan as a feature group, not for *making* a plan.
+cladding ships five persona definitions under `src/agents/`. **Planning intents** (deciding scope · drafting acceptance criteria · drawing a roadmap) are librarian-territory and surface through natural language to the host AI tool, not through a fixed CLI verb. `clad drive` is for *executing* an already-defined plan as a feature group, not for *making* a plan.
 
 Each file is markdown with a YAML frontmatter that declares two parallel keys:
 
@@ -64,7 +64,7 @@ SDK adapters (Anthropic / OpenAI / Gemini) read their respective environment var
 
 User-facing output uses business language: feature titles ("Login flow"), stage names ("Drift", "UAT"), plain sentences. Internal identifiers (`F-NNN`, `AC-NNN`, `stage_X.Y`, `HUMAN_REQUIRED` and the rest of the halt enum) belong in the audit log and behind `--internal` / `--json` flags.
 
-Convert every internal id at the user surface boundary via `ui/softShell.ts`: `featureLabel(featureId, spec)`, `haltMessage(haltReason, spec)`, `gateLabel(stageId)`. Background: `ironclad-design/03-ux-routing.md` §1.2 and `docs/ux-routing-coverage.md`.
+Convert every internal id at the user surface boundary via `src/ui/softShell.ts`: `featureLabel(featureId, spec)`, `haltMessage(haltReason, spec)`, `gateLabel(stageId)`. Background: `ironclad-design/03-ux-routing.md` §1.2 and `docs/ux-routing-coverage.md`.
 
 ## 9. Where to look
 
@@ -74,7 +74,7 @@ Convert every internal id at the user surface boundary via `ui/softShell.ts`: `f
 - `docs/code-style.md` — per-language Google Style Guides table + comment policy in full.
 - `docs/ux-routing-coverage.md` — applied-status of `ironclad-design/03-ux-routing.md` prescriptions.
 - `docs/multi-provider-roadmap.md` — host vs sdk adapter model + adapter matrix + how to add one.
-- `agents/` — five persona definitions.
+- `src/agents/` — five persona definitions.
 - `spec/` — sharded SSoT (features × scenarios × architecture).
-- `stages/detectors/README.md` — drift detector inventory + status policy.
+- `src/stages/detectors/README.md` — drift detector inventory + status policy.
 - `conformance/` — contributor self-audit tool (`npm run conformance` after a dev install). The end-user install does not ship it; the L1–L4 conformance claim travels through release notes instead.

@@ -13,8 +13,8 @@ LLM access today splits into two modes. cladding treats both as first-class but 
 
 | Mode | Who calls the LLM | API key | Examples | cladding adapter directory |
 |---|---|---|---|---|
-| **Host-bound (default)** | the host environment | not required | Claude Code (Claude Max/Pro subscription), Cursor, Continue, Cline, ChatGPT plugin, Gemini Code Assist | `adapters/host/*` |
-| **Stand-alone SDK (option)** | cladding directly | required (`ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `GOOGLE_API_KEY`) | CLI · CI · headless automation | `adapters/sdk/*` |
+| **Host-bound (default)** | the host environment | not required | Claude Code (Claude Max/Pro subscription), Cursor, Continue, Cline, ChatGPT plugin, Gemini Code Assist | `src/adapters/host/*` |
+| **Stand-alone SDK (option)** | cladding directly | required (`ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `GOOGLE_API_KEY`) | CLI · CI · headless automation | `src/adapters/sdk/*` |
 
 cladding's v0.1.0 already runs as host-bound (the Claude Code subagent invokes Claude through the user's subscription; cladding code imports zero SDKs). The v0.2.0 work codifies that pattern as the `claude-code` host adapter and adds neighbours.
 
@@ -59,9 +59,9 @@ Stage 1 (host adapters only) is sufficient to release v0.2.0 and covers the 99% 
 
 ## How to add a new adapter
 
-1. Pick a directory: `adapters/host/<name>.ts` or `adapters/sdk/<name>.ts`.
-2. Implement `AgentAdapter`. The `invokeAgent` body translates `PersonaSpec` (parsed from `agents/<name>.md`) plus `AgentContext` (current feature shard + tagged guardrails) into whatever the underlying transport expects.
-3. Register the adapter in `adapters/index.ts` under the right mode.
+1. Pick a directory: `src/adapters/host/<name>.ts` or `src/adapters/sdk/<name>.ts`.
+2. Implement `AgentAdapter`. The `invokeAgent` body translates `PersonaSpec` (parsed from `src/agents/<name>.md`) plus `AgentContext` (current feature shard + tagged guardrails) into whatever the underlying transport expects.
+3. Register the adapter in `src/adapters/index.ts` under the right mode.
 4. Add a row to the adapter matrix above and to F-049 if you're introducing a new failure mode (AC-088 covers `host-unavailable`, `auth`, `rate-limit`, `network`, `context-window`, `safety-filter`; new modes need a new bullet).
 5. Add a fixture under `tests/adapters/<your-mode>-parity.test.ts` that runs the synthetic single-feature project through your adapter and asserts identical `AgentResult` shape vs. an existing adapter.
 
@@ -91,7 +91,7 @@ Three plausible bridges, and why two of them don't fit cladding's current shape:
 | Option | Sketch | Notes |
 |---|---|---|
 | **MCP server mode (`clad serve`)** | A new long-running verb that exposes cladding's stages / drive loop / audit-log tools over the Model Context Protocol. Any MCP-aware host (Claude Code, Cursor, Continue, Cline, …) connects and calls those tools. The host's LLM does the work; cladding records the result. | Already aligns with `generic-mcp` adapter. One server implementation covers every MCP client. Adds a Node dependency on `@modelcontextprotocol/sdk`. The user starts `clad serve` once per session; the host points its MCP config at cladding's stdio. |
-| **Claude Code plugin mode** | Cladding ships a real Claude Code plugin (its own `commands/`, `hooks/`, `agents/`) so it runs inside the host's session and can call Task/Agent tools directly. | Tighter integration with Claude Code specifically, looser fit with Cursor/Cline/Continue. Requires real plugin manifest, not the metadata file `.claude-plugin/plugin.json` currently is. |
+| **Claude Code plugin mode** | Cladding ships a real Claude Code plugin (its own `commands/`, `hooks/`, `src/agents/`) so it runs inside the host's session and can call Task/Agent tools directly. | Tighter integration with Claude Code specifically, looser fit with Cursor/Cline/Continue. Requires real plugin manifest, not the metadata file `.claude-plugin/plugin.json` currently is. |
 
 The architectural decision is **MCP server mode is preferred** because it makes the same code work across every MCP-aware host — one server, many hosts. The Claude Code plugin path becomes a second adapter that *uses* the MCP server when cladding is installed as a plugin. The full plan, including the new `clad serve` verb, lands in v0.3.0.
 

@@ -24,7 +24,7 @@ Thanks for your interest in helping make code iron-clad.
 
 - Bug fixes with a reproducer test.
 - New conformance fixtures (especially fail-cases that catch drift the current suite misses).
-- New language entries in `stages/toolchain/detect.ts`.
+- New language entries in `src/stages/toolchain/detect.ts`.
 - Documentation clarity passes — typos, broken links, confusing examples.
 - README translations.
 

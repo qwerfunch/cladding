@@ -38,7 +38,7 @@ When a sync is triggered, the project performs these steps **in order**:
 
 1. **Update pin** — bump `plugin.json ironclad.spec-version`, `spec-tag`, `spec-commit`, `spec-fetched`. Commit alone, no code changes yet.
 2. **Update CHANGELOG.md** — add a `### Changed` entry under the current release naming the spec version + the substantive deltas (which stages / detectors / patterns moved).
-3. **Touch affected detectors** — for every detector whose contract changed, update its source under `stages/detectors/*.ts` and its self-dogfood expectations. Add new detectors when the catalog grows.
+3. **Touch affected detectors** — for every detector whose contract changed, update its source under `src/stages/detectors/*.ts` and its self-dogfood expectations. Add new detectors when the catalog grows.
 4. **Re-run conformance** — `npm run conformance` must report `iron_law: L4` (or the highest level Cladding declares) with `matched === total`. If a fixture diverges, treat it as a regression and fix it before the sync PR opens.
 5. **Cut a Cladding release** — patch / minor / major per §2 below. The release notes' "Spec sync" section quotes the deltas from step 2.
 
@@ -70,7 +70,7 @@ The maintainer initiates a release with a single instruction (e.g. *"v0.1.0 rele
 
 - Bug reports with reproducible test cases.
 - New conformance fixtures (especially fail-cases that catch real drift the existing suite misses).
-- New language entries in `stages/toolchain/detect.ts`.
+- New language entries in `src/stages/toolchain/detect.ts`.
 - Translations of `README.md` into additional languages.
 - LLM-free detector tightening (e.g. an `AC_DRIFT` syntactic refinement that doesn't require an LLM call).
 
@@ -102,7 +102,7 @@ If this is your first time touching cladding, the path from clone to opened PR i
 4. **Run the four-check loop before pushing**: `npm test && npm run typecheck && npm run lint && node bin/clad check`. The first three must be clean; `clad check` must show 13/13 stages on a clean working tree.
 5. **Open the PR against `develop`.** The repository's `.github/PULL_REQUEST_TEMPLATE.md` walks you through the §4.3 contract as a checkbox list. A maintainer (or a delegated independent reviewer) signs off before merge.
 
-For code style and comment policy across every language cladding supports, see [`AGENTS.md`](AGENTS.md) §4-5. For the broader first-PR experience, see `CONTRIBUTING.md`. For drift detector conventions specifically (especially the status-aware rule for `UNTESTED_AC` and `MISSING_TESTS`), see [`stages/detectors/README.md`](stages/detectors/README.md).
+For code style and comment policy across every language cladding supports, see [`AGENTS.md`](AGENTS.md) §4-5. For the broader first-PR experience, see `CONTRIBUTING.md`. For drift detector conventions specifically (especially the status-aware rule for `UNTESTED_AC` and `MISSING_TESTS`), see [`src/stages/detectors/README.md`](src/stages/detectors/README.md).
 
 ## 5. v1.0 Graduation Criteria
 

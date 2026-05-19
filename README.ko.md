@@ -29,7 +29,7 @@ Claude Code · OpenAI Codex CLI · Google Gemini CLI · Cursor · Cline · Conti
 
 ## 상태
 
-**Ironclad L4 conformant (L21) · self-spec sharded (L21.8) · v0.2.15 ships at 404/404 tests · line coverage 93.89% (whole-codebase scope) · 모든 source dir ≥ 90% · `clad check --strict` green.** Cladding 은 Ironclad 의 전체 표면을 구현합니다 — 13 개 Iron Law stage (L1 Type / Lint / Drift / Commit / Arch / Secret · L2 Unit / Cov · L3 Smoke / Perf / Visual · L4 Audit / UAT) 전부 dedicated unit test 보유 (stage chapter closed v0.2.12) + **20 개 drift detector** (3 always-error + 16 conditional + 1 cladding extension `FIXTURE_REFERENCE_INVALID`) 전부 100% line coverage (detector chapter closed v0.2.9), severity matrix 는 [`stages/detectors/README.md`](stages/detectors/README.md), EARS 구문 검증기, HITL 인프라 (identity · audit · anti-self-cert), 5 개 agent persona, 9 개 언어 polyglot toolchain, Intent Router, clad CLI, Token Optimizer (cladding 자체 spec 에서 87.9% 컨텍스트 감소 실측), conformance fixture 33/33 일치 (26 baseline + 7 documentary→runnable 승격). Cladding 자체 spec 은 sharded 상태 (`spec/features/F-NNN.yaml` × 63, `spec/scenarios/S-NNN.yaml` × 2, `spec/architecture.yaml`) — 외부 채택자가 spec 이 단일 파일을 넘으면 동일 layout 사용.
+**Ironclad L4 conformant (L21) · self-spec sharded (L21.8) · v0.2.15 ships at 404/404 tests · line coverage 93.89% (whole-codebase scope) · 모든 source dir ≥ 90% · `clad check --strict` green.** Cladding 은 Ironclad 의 전체 표면을 구현합니다 — 13 개 Iron Law stage (L1 Type / Lint / Drift / Commit / Arch / Secret · L2 Unit / Cov · L3 Smoke / Perf / Visual · L4 Audit / UAT) 전부 dedicated unit test 보유 (stage chapter closed v0.2.12) + **20 개 drift detector** (3 always-error + 16 conditional + 1 cladding extension `FIXTURE_REFERENCE_INVALID`) 전부 100% line coverage (detector chapter closed v0.2.9), severity matrix 는 [`src/stages/detectors/README.md`](src/stages/detectors/README.md), EARS 구문 검증기, HITL 인프라 (identity · audit · anti-self-cert), 5 개 agent persona, 9 개 언어 polyglot toolchain, Intent Router, clad CLI, Token Optimizer (cladding 자체 spec 에서 87.9% 컨텍스트 감소 실측), conformance fixture 33/33 일치 (26 baseline + 7 documentary→runnable 승격). Cladding 자체 spec 은 sharded 상태 (`spec/features/F-NNN.yaml` × 63, `spec/scenarios/S-NNN.yaml` × 2, `spec/architecture.yaml`) — 외부 채택자가 spec 이 단일 파일을 넘으면 동일 layout 사용.
 
 각 Level 은 검증 가능한 capability 를 더합니다:
 
@@ -50,7 +50,7 @@ Claude Code · OpenAI Codex CLI · Google Gemini CLI · Cursor · Cline · Conti
 |---|---|---|
 | `clad drive` 자율 루프 | **결정론적 floor** — 준비된 feature 를 의존성 순으로 순회하고, 모듈 스텁을 생성하며, L1 gate (`type` · `lint` · `arch`) 를 실행. LLM 호출 없음. [F-048](spec/features/F-048.yaml) AC-083 참조. | [F-049](spec/features/F-049.yaml) — 5 개 agent persona 를 호출하고, 런타임에 reviewer ≠ author 를 강제하며, `HUMAN_REQUIRED` / `LLM_UNAVAILABLE` halt 클래스를 연결. |
 | 실행 중 Iron Law L4 | Conformance fixture 26/26 + Cladding 자체 audit log 위 human signoff 가 **L4 machinery** 의 정확성을 증명. | F-049 가 먼저 안착해야 LLM 이 작성한 구현을 L4 machinery 가 잡아내는 시연이 가능. |
-| Agent persona 오케스트레이션 | 5 개 subagent prompt 가 `agents/*.md` 에 출시됨. | `drive/loop.ts` 에서 런타임 dispatch (F-049 의 일부). |
+| Agent persona 오케스트레이션 | 5 개 subagent prompt 가 `src/agents/*.md` 에 출시됨. | `src/drive/loop.ts` 에서 런타임 dispatch (F-049 의 일부). |
 
 Ironclad 표준의 v1.0 졸업은 L1–L4 fixture 를 통과하는 **독립 reference 구현 2 개**를 요구합니다 ([Ironclad GOVERNANCE](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) §1). Cladding 의 fixture 수준 conformance 는 오늘 시점에 그 기준을 향해 카운트됩니다; "LLM 작성을 L4 가 실행 중 포착" 이라는 질적 주장은 별도의 v0.2.0 마일스톤입니다.
 
@@ -79,9 +79,9 @@ Cladding 자체 spec 은 sharded 형태 — feature 당 yaml 파일 1 개:
 | `spec/features/F-NNN.yaml` | feature 당 1 파일 (총 47) |
 | `spec/scenarios/S-NNN.yaml` | scenario 당 1 파일 (총 2) |
 | `spec/architecture.yaml` | layer + forbidden-imports 정책 |
-| `spec/schema.json` | JSON Schema (draft-07) |
+| `src/spec/schema.json` | JSON Schema (draft-07) |
 
-`spec/load.ts` 가 이 레이아웃을 자동 감지해 매 load 시 하나의 Spec 객체로 merge. merged view 확인:
+`src/spec/load.ts` 가 이 레이아웃을 자동 감지해 매 load 시 하나의 Spec 객체로 merge. merged view 확인:
 
 | 의도 | 명령 |
 |---|---|
@@ -90,7 +90,7 @@ Cladding 자체 spec 은 sharded 형태 — feature 당 yaml 파일 1 개:
 | 한 눈에 coverage | `clad panel` |
 | raw dump | `cat spec/features/*.yaml` |
 
-Inline (단일 `spec.yaml`) 레이아웃도 동작 — `spec/load.ts` 가 자동 fallback. 새 프로젝트는 unsharded 로 시작; `scripts/shard-spec.ts` 가 master 가 ~1k 줄 넘으면 마이그레이션.
+Inline (단일 `spec.yaml`) 레이아웃도 동작 — `src/spec/load.ts` 가 자동 fallback. 새 프로젝트는 unsharded 로 시작; `scripts/shard-spec.ts` 가 master 가 ~1k 줄 넘으면 마이그레이션.
 
 ## CLI
 
@@ -105,7 +105,7 @@ clad route <프롬프트>     # 자연어 프롬프트를 verb 로 분류
 clad benchmark <feature> # naive vs optimized spec token 비용
 ```
 
-설치 후 `clad` binary 는 `package.json` 의 `bin` 필드를 통해 `PATH` 에 노출됩니다. 개발 시 `bin/clad` shim 이 tsx 를 통해 `cli/clad.ts` 를 호출합니다.
+설치 후 `clad` binary 는 `package.json` 의 `bin` 필드를 통해 `PATH` 에 노출됩니다. 개발 시 `bin/clad` shim 이 tsx 를 통해 `src/cli/clad.ts` 를 호출합니다.
 
 ## 용어
 
@@ -115,7 +115,7 @@ clad benchmark <feature> # naive vs optimized spec token 비용
 
 ## 5 개 Agent 페르소나
 
-Cladding 은 5 개의 Claude Code subagent 로 작업을 조정합니다 (`agents/*.md` 참고):
+Cladding 은 5 개의 Claude Code subagent 로 작업을 조정합니다 (`src/agents/*.md` 참고):
 
 | persona | 역할 | tools |
 |---|---|---|
@@ -125,7 +125,7 @@ Cladding 은 5 개의 Claude Code subagent 로 작업을 조정합니다 (`agent
 | `observability` | 로그 + metric 분석 | Read, Bash |
 | `specialists` | 도메인 구현자 (코드 · 테스트 · 마이그레이션) | Read, Write, Edit, Bash |
 
-**5 개 호출 원칙** (`agents/orchestrator.md`):
+**5 개 호출 원칙** (`src/agents/orchestrator.md`):
 
 1. **Specialization** — 가장 좁은 agent 선택
 2. **Audit separation** — 구현자 ≠ 검증자

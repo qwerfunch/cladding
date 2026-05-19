@@ -33,6 +33,8 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 - 404 / 404 tests pass; `node bin/clad check --strict` is green; line coverage stays at **93.89%** (unchanged from v0.2.15 — the move doesn't add or remove tested code).
 - Why the split: spec/ at root holds **data** that users' own projects also keep at root; `src/spec/` holds **code** that travels with cladding. `loadSpec(cwd)` still reads `${cwd}/spec.yaml` and `${cwd}/spec/features/*.yaml` — unchanged for users.
+- Why `conformance/` stays at root (parallel to `tests/`, not under `src/`): it's a test/integration harness, not production code. `npm run conformance` is a separate entry point — the bundle doesn't include `conformance/runner.ts`. The `FIXTURE_REFERENCE_INVALID` detector reads `${cwd}/conformance/fixtures.yaml` for both cladding-self and user projects, so the path must stay symmetric across both.
+- Doc sweep: 18 `.md` files updated for the new layout (63 inline-backtick path substitutions + 3 markdown link targets + 1 prose `tsx` invocation). README level-history entries that describe past versions are preserved verbatim.
 - This is the second meta-refactor of the v0.2.x cycle (after the v0.2.13 coverage scope widening). After v0.2.16 the repo root is materially tidier: 11 code dirs collapse into 1.
 
 ## [0.2.15] — 2026-05-19 — Final coverage closure · every source dir ≥ 90% (F-064)

@@ -157,11 +157,11 @@ Rule: write own code only when the layer-3 semantics demand it. For everything e
 
 | stage | command | applies to |
 |---|---|---|
-| stage_1.1 | `npm run typecheck` | `stages/**/*.ts` via tsconfig.json |
-| stage_1.2 | `npm run lint` | `stages/**/*.ts` via eslint.config.js |
+| stage_1.1 | `npm run typecheck` | `src/stages/**/*.ts` via tsconfig.json |
+| stage_1.2 | `npm run lint` | `src/stages/**/*.ts` via eslint.config.js |
 | stage_1.3 | `npm run stage:drift` | 1/19 detector wired (HARDCODED_SECRET); scans cladding's own tree |
 | stage_1.4 | `npm run stage:commit` | runs after each PR commit — verifies tree clean post-commit |
-| stage_1.5 | `npm run stage:arch` | madge --circular scans `stages/**/*.ts` — pass = no cycles |
+| stage_1.5 | `npm run stage:arch` | madge --circular scans `src/stages/**/*.ts` — pass = no cycles |
 | stage_1.6 | `npm run stage:secret` | secretlint scans cladding's own tree via `.secretlintrc.json` |
 
 Pass on all = cladding meets its own L1 stages so far.

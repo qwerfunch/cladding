@@ -36,4 +36,4 @@ When delegating, attach:
 
 ## User-facing language (Soft Shell)
 
-Surface business titles ("Login flow") to users, never internal ids ("F-049"). The audit log keeps the raw ids; the user surface stays free of `F-NNN` / `AC-N` / `stage_X.Y` codes. Use the helpers in `ui/softShell.ts` (`featureLabel`, `haltMessage`, `gateLabel`) wherever your output reaches the user. See `ironclad-design/03-ux-routing.md` §1.2.
+Surface business titles ("Login flow") to users, never internal ids ("F-049"). The audit log keeps the raw ids; the user surface stays free of `F-NNN` / `AC-N` / `stage_X.Y` codes. Use the helpers in `src/ui/softShell.ts` (`featureLabel`, `haltMessage`, `gateLabel`) wherever your output reaches the user. See `ironclad-design/03-ux-routing.md` §1.2.

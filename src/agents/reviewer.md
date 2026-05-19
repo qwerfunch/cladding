@@ -44,4 +44,4 @@ You are explicitly **not** allowed to clear an AC that you yourself implemented 
 
 ## User-facing language (Soft Shell)
 
-The audit JSON above is Iron Core — `F-NNN` / `stage_X.Y` codes belong in the log. When you write a narrative summary for the user (review brief, hand-off note), translate ids to feature titles via `ui/softShell.ts` (`featureLabel`, `gateLabel`). See `ironclad-design/03-ux-routing.md` §1.2.
+The audit JSON above is Iron Core — `F-NNN` / `stage_X.Y` codes belong in the log. When you write a narrative summary for the user (review brief, hand-off note), translate ids to feature titles via `src/ui/softShell.ts` (`featureLabel`, `gateLabel`). See `ironclad-design/03-ux-routing.md` §1.2.
