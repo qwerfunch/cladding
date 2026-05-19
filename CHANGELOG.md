@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.12] — Unreleased — Stage runner chapter closed · every stage covered (F-061)
+## [0.2.12] — 2026-05-19 — Stage runner chapter closed · every stage covered (F-061)
 
 **Milestone**: every one of the 12 Iron Law stage runners (stage_1.1 through stage_4.2) now carries a dedicated unit-test file at ≥ 75% line coverage. The stage-runner chapter that opened with v0.2.10 is closed. Combined with the detector chapter closed in v0.2.9, **every business-logic module cladding ships now has dedicated unit-test coverage**.
 
@@ -40,7 +40,7 @@ Project line coverage rises from **84.23% → 93.32%** (+9.1pp), crossing the 90
 | v0.2.11 (stage batch 2) | 20 det + 9 stages | 84.23% | +11.6pp |
 | **v0.2.12 (stage batch 3)** | **20 det + 12 stages (both chapters closed)** | **93.32%** | **+9.1pp** |
 
-## [0.2.11] — Unreleased — Stage runner tests batch 2 (F-060)
+## [0.2.11] — 2026-05-19 — Stage runner tests batch 2 (F-060)
 
 Continues the stage-runner coverage thread opened by v0.2.10. Five more stage runners gain dedicated unit tests using the established patterns: detector-adapter stages (`arch`, `secret`) mock the underlying detector; polyglot stages (`unit`, `cov`, `smoke`) mock `execaSync`. Project line coverage rises from **72.58% → 84.23%** (+11.65pp).
 
