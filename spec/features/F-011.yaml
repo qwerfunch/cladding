@@ -23,3 +23,4 @@ acceptance_criteria:
     response: spec-less projects keep green CI
     text: If spec.yaml is absent or unparseable, the detector shall emit one info
       finding rather than failing the stage.
+    evidence_refs: [fixture:F-011_AC-018]

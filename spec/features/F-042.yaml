@@ -16,6 +16,8 @@ acceptance_criteria:
       / feature_activated / feature_completed / evidence_recorded /
       drift_detected) to .cladding/events.log.jsonl, one JSON object per line,
       in chronological append order.
+    evidence_refs: [fixture:F-042_AC-067]
+
   - id: AC-068
     ears: ubiquitous
     action: report naive vs optimized spec token count for a focus feature
@@ -23,3 +25,4 @@ acceptance_criteria:
     text: The benchmark CLI shall report the naive vs optimized spec token count for
       a focus feature, including byte size, approximate token count (char/4),
       and percent reduction.
+    evidence_refs: [fixture:F-042_AC-068]

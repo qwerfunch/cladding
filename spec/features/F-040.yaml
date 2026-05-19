@@ -17,6 +17,8 @@ acceptance_criteria:
     text: The system shall expose 5 Iron Core verbs — init, work, drive, sync, check
       — plus panel and route as `clad` subcommands, each dispatching to the
       existing stage runners or helpers.
+    evidence_refs: [fixture:F-040_AC-061]
+
   - id: AC-062
     ears: ubiquitous
     action: emit one Pulse line per transition (start / pass / fail / skip / note)
@@ -24,6 +26,8 @@ acceptance_criteria:
     text: The Pulse UI shall emit one line per transition (start / pass / fail /
       skip / note); output is ANSI-colored when stdout is a TTY and plain text
       otherwise.
+    evidence_refs: [fixture:F-040_AC-062]
+
   - id: AC-063
     ears: ubiquitous
     action: render a feature × stage Integrity Panel as a text grid
@@ -31,3 +35,4 @@ acceptance_criteria:
     text: The Integrity Panel shall render a feature × stage text grid; each cell
       uses one of five glyphs (pass / skip / warn / error / unknown) describing
       the stage outcome for that feature.
+    evidence_refs: [fixture:F-040_AC-063]

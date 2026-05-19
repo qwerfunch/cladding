@@ -16,3 +16,4 @@ acceptance_criteria:
     text: When an AC declares a test_ref that is neither a
       self-dogfood/fixture-prefix alias nor a real file path, the detector shall
       emit an error finding listing the AC and unresolved ref.
+    evidence_refs: [fixture:F-037_AC-057]

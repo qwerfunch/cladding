@@ -10,6 +10,7 @@ import {architectureViolation} from './architecture-violation.js';
 import {conventionDrift} from './convention-drift.js';
 import {coverageDrop} from './coverage-drop.js';
 import {evidenceMismatch} from './evidence-mismatch.js';
+import {fixtureReference} from './fixture-reference.js';
 import {hardcodedSecret} from './hardcoded-secret.js';
 import {harnessIntegrity} from './harness-integrity.js';
 import {metaIntegrity} from './meta-integrity.js';
@@ -47,4 +48,5 @@ export const allDetectors: readonly DriftDetector[] = [
   staleEvidence,
   untestedAc,
   conventionDrift,
+  fixtureReference,
 ];

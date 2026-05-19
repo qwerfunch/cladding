@@ -15,3 +15,4 @@ acceptance_criteria:
       nothing matches.
     notes: "Languages supported: typescript, python, rust, go, java, php, ruby,
       elixir, dotnet."
+    test_refs: [tests/stages/toolchain.test.ts]

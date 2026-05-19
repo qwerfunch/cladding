@@ -14,6 +14,8 @@ acceptance_criteria:
     response: stage_1.3 fails for the host pipeline
     text: When the architecture validator reports a non-zero exit, the detector
       shall emit one error-severity finding summarising the output.
+    evidence_refs: [fixture:F-009_AC-013]
+
   - id: AC-014
     ears: optional
     condition: where the detected language enforces acyclic imports at compile time
@@ -22,3 +24,4 @@ acceptance_criteria:
     text: Where the detected language enforces acyclic imports at compile time, the
       detector shall emit an info finding noting no architecture gate is
       registered.
+    evidence_refs: [fixture:F-009_AC-014]

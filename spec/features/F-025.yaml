@@ -16,3 +16,4 @@ acceptance_criteria:
     text: When a test file's modification time is more than 30 days older than the
       newest source-module modification time, the detector shall emit a warn
       finding listing the stale test path and age.
+    evidence_refs: [fixture:F-025_AC-037]

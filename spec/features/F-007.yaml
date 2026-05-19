@@ -18,3 +18,4 @@ acceptance_criteria:
     response: the stage is treated as skipped, not a false failure
     text: If git is unavailable or the cwd is not a git repository, the system shall
       return exitCode 2 so the stage is treated as skipped.
+    evidence_refs: [fixture:F-007_AC-011]

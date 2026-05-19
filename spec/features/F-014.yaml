@@ -15,6 +15,8 @@ acceptance_criteria:
     text: When a feature with status='done' has at least one declared module missing
       on disk, the detector shall emit an error finding listing the missing
       paths.
+    evidence_refs: [fixture:F-014_AC-022]
+
   - id: AC-023
     ears: event
     condition: when status='in_progress' but every declared module is missing
@@ -22,3 +24,4 @@ acceptance_criteria:
     response: surfaced but not failed
     text: When status='in_progress' but every declared module is absent, the
       detector shall emit a warn finding suggesting a stale start.
+    evidence_refs: [fixture:F-014_AC-023]

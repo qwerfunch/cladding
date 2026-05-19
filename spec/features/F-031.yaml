@@ -34,3 +34,4 @@ acceptance_criteria:
     response: architecture field is populated from the sharded file
     text: Where spec/architecture.yaml exists and the master spec has no inline
       architecture, the loader shall load that file as the spec's architecture.
+    evidence_refs: [fixture:F-031_AC-047]

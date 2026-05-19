@@ -14,3 +14,4 @@ acceptance_criteria:
     text: The system shall cross-check the numerator of plugin.json
       current.detectors against the number of non-index .ts files under
       stages/detectors/, emitting an error finding on mismatch.
+    evidence_refs: [fixture:F-017_AC-027]

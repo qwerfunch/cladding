@@ -15,3 +15,4 @@ acceptance_criteria:
       features[].depends_on, features[].superseded_by, scenarios[].features —
       resolves to an actual feature id, emitting an error finding per unresolved
       reference.
+    evidence_refs: [fixture:F-016_AC-026]

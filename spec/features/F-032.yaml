@@ -13,6 +13,8 @@ acceptance_criteria:
     text: The system shall tag every evidence entry with an author identity drawn
       from the enum (human / llm / tool). Identity is required for any audit-log
       append.
+    evidence_refs: [fixture:F-032_AC-048]
+
   - id: AC-049
     ears: ubiquitous
     action: append evidence to .cladding/audit.log.jsonl in chronological order

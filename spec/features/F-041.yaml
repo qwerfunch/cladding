@@ -22,6 +22,8 @@ acceptance_criteria:
     text: "The system shall strip persona preamble lines (You are X, #
       Orchestrator/Librarian/..., Your job is...) from a prompt and collapse the
       resulting whitespace."
+    evidence_refs: [fixture:F-041_AC-065]
+
   - id: AC-066
     ears: ubiquitous
     action: shrink long text to head N + tail M lines with an elision marker
@@ -29,3 +31,4 @@ acceptance_criteria:
     text: The system shall shrink long text to head N + tail M lines with an elision
       marker, returning the original text unchanged when total lines fit within
       head + tail.
+    evidence_refs: [fixture:F-041_AC-066]

@@ -14,6 +14,8 @@ acceptance_criteria:
     response: stage_1.3 fails for the host pipeline
     text: When the secret scanner reports a non-zero exit, the detector shall emit
       one error-severity finding that summarises the scanner output.
+    evidence_refs: [fixture:F-006_AC-008]
+
   - id: AC-009
     ears: unwanted
     condition: if the secret scanner is not installed
@@ -21,3 +23,4 @@ acceptance_criteria:
     response: the stage stays in pass state so unconfigured projects keep green CI
     text: If the secret scanner is not installed, the detector shall emit an info
       finding rather than failing the stage.
+    evidence_refs: [fixture:F-006_AC-009]

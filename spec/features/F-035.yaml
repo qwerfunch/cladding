@@ -14,3 +14,4 @@ acceptance_criteria:
     response: stage_1.3 surfaces but does not fail
     text: When an evidence entry's identity.timestamp is more than 90 days old, the
       detector shall emit a warn finding listing the entry id and age in days.
+    evidence_refs: [fixture:F-035_AC-054]

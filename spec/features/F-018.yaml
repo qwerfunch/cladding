@@ -14,3 +14,4 @@ acceptance_criteria:
     text: The system shall validate that spec/schema.json declares and requires the
       root keys (schema, project, features) that spec/types.ts depends on, and
       that spec.yaml's schema version equals the supported version.
+    evidence_refs: [fixture:F-018_AC-028]

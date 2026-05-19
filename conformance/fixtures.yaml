@@ -1,0 +1,314 @@
+# Cladding conformance fixture registry — SSoT for fixture:NAME labels.
+#
+# Each entry registers a fixture name that spec/features/*.yaml is
+# allowed to cite via `evidence_refs: [fixture:NAME]`. The
+# FIXTURE_REFERENCE_INVALID drift detector validates every such
+# citation against this file; an unregistered name trips a `warn`
+# finding.
+#
+# kind:
+#   runnable     — implemented in conformance/runner.ts; setup() +
+#                  run() execute on every `npm run conformance`
+#   documentary  — labels-only; the AC's verification lives in the
+#                  source or in a paired AC's test_refs. The name
+#                  exists here so the detector accepts the citation
+#                  and reviewers can grep for it.
+#
+# Runnable fixtures must stay in sync with conformance/runner.ts —
+# tests/conformance/registry.test.ts guards that invariant.
+
+fixtures:
+  # ─── runnable (26) — conformance/runner.ts is the executable SSoT ─────
+  - name: stage_1.1.pass
+    stage: stage_1.1
+    kind: runnable
+    description: Type stage passes when valid TS code lives in a tsconfig-bearing tree
+  - name: stage_1.1.fail
+    stage: stage_1.1
+    kind: runnable
+    description: Type stage fails when a TS file contains a deliberate type error
+  - name: stage_1.2.pass
+    stage: stage_1.2
+    kind: runnable
+    description: Lint stage passes when ESLint reports zero violations
+  - name: stage_1.2.fail
+    stage: stage_1.2
+    kind: runnable
+    description: Lint stage fails on a forbidden rule violation
+  - name: stage_1.3.pass
+    stage: stage_1.3
+    kind: runnable
+    description: Drift stage passes on a fixture whose spec and code agree
+  - name: stage_1.3.fail
+    stage: stage_1.3
+    kind: runnable
+    description: Drift stage fails when a declared module is missing from disk
+  - name: stage_1.4.pass
+    stage: stage_1.4
+    kind: runnable
+    description: Commit stage passes when the working tree is clean
+  - name: stage_1.4.fail
+    stage: stage_1.4
+    kind: runnable
+    description: Commit stage fails when there are uncommitted changes
+  - name: stage_1.5.pass
+    stage: stage_1.5
+    kind: runnable
+    description: Architecture stage passes when madge finds no circular deps
+  - name: stage_1.5.fail
+    stage: stage_1.5
+    kind: runnable
+    description: Architecture stage fails on a deliberate circular import
+  - name: stage_1.6.pass
+    stage: stage_1.6
+    kind: runnable
+    description: Secret stage passes when secretlint detects no secrets
+  - name: stage_1.6.fail
+    stage: stage_1.6
+    kind: runnable
+    description: Secret stage fails on a hard-coded credential in source
+  - name: stage_2.1.pass
+    stage: stage_2.1
+    kind: runnable
+    description: Unit stage passes when every vitest test passes
+  - name: stage_2.1.fail
+    stage: stage_2.1
+    kind: runnable
+    description: Unit stage fails when at least one vitest test fails
+  - name: stage_2.2.pass
+    stage: stage_2.2
+    kind: runnable
+    description: Coverage stage passes when total line coverage meets the floor
+  - name: stage_2.2.fail
+    stage: stage_2.2
+    kind: runnable
+    description: Coverage stage fails when total line coverage drops below the floor
+  - name: stage_3.1.pass
+    stage: stage_3.1
+    kind: runnable
+    description: Smoke stage passes when a synthetic golden command exits 0
+  - name: stage_3.1.fail
+    stage: stage_3.1
+    kind: runnable
+    description: Smoke stage fails when the synthetic command exits non-zero
+  - name: stage_3.2.pass
+    stage: stage_3.2
+    kind: runnable
+    description: Performance stage passes when no perf budget is configured
+  - name: stage_3.2.fail
+    stage: stage_3.2
+    kind: runnable
+    description: Performance stage fails when a configured budget is exceeded
+  - name: stage_3.3.pass
+    stage: stage_3.3
+    kind: runnable
+    description: Visual stage passes on a deterministic snapshot match
+  - name: stage_3.3.fail
+    stage: stage_3.3
+    kind: runnable
+    description: Visual stage fails on a snapshot divergence
+  - name: stage_4.1.pass
+    stage: stage_4.1
+    kind: runnable
+    description: Audit stage passes when the audit log is well-formed
+  - name: stage_4.1.fail
+    stage: stage_4.1
+    kind: runnable
+    description: Audit stage fails when the audit log contains an unauthorised mutation
+  - name: stage_4.2.pass
+    stage: stage_4.2
+    kind: runnable
+    description: UAT stage passes when every declared UAT scenario passes
+  - name: stage_4.2.fail
+    stage: stage_4.2
+    kind: runnable
+    description: UAT stage fails when at least one UAT scenario fails
+
+  # ─── documentary (placeholders for v0.2.4 self-spec coverage) ─────────
+  # These names exist so cladding's own self-spec ACs that have code but
+  # no test_refs can declare `evidence_refs: [fixture:NAME]` honestly —
+  # the detector accepts the citation, reviewers can grep, and a future
+  # cycle can promote each to `kind: runnable` once a real fixture
+  # body lives in conformance/runner.ts.
+
+  - name: missing-implementation
+    stage: stage_1.3
+    kind: documentary
+    description: F-011/AC-017 — MISSING_IMPLEMENTATION detector emits error when a declared module is absent on disk
+  - name: missing-tests
+    stage: stage_1.3
+    kind: documentary
+    description: F-022/AC-034 — MISSING_TESTS detector warns when a status=done AC has neither test_refs nor evidence_refs
+
+  - name: F-006_AC-008
+    stage: documentary
+    kind: documentary
+    description: "F-006/AC-008 — When the secret scanner reports a non-zero exit, the detector shall emit one error-severity finding that summarises the scanner output."
+  - name: F-006_AC-009
+    stage: documentary
+    kind: documentary
+    description: "F-006/AC-009 — If the secret scanner is not installed, the detector shall emit an info finding rather than failing the stage."
+  - name: F-007_AC-011
+    stage: documentary
+    kind: documentary
+    description: "F-007/AC-011 — If git is unavailable or the cwd is not a git repository, the system shall return exitCode 2 so the stage is treated as skipped."
+  - name: F-009_AC-013
+    stage: documentary
+    kind: documentary
+    description: "F-009/AC-013 — When the architecture validator reports a non-zero exit, the detector shall emit one error-severity finding summarising the output."
+  - name: F-009_AC-014
+    stage: documentary
+    kind: documentary
+    description: "F-009/AC-014 — Where the detected language enforces acyclic imports at compile time, the detector shall emit an info finding noting no architecture gate is registered."
+  - name: F-010_AC-016
+    stage: documentary
+    kind: documentary
+    description: "F-010/AC-016 — While the spec.schema field matches the supported version, the system shall accept the document as input for downstream drift detectors."
+  - name: F-011_AC-018
+    stage: documentary
+    kind: documentary
+    description: "F-011/AC-018 — If spec.yaml is absent or unparseable, the detector shall emit one info finding rather than failing the stage."
+  - name: F-012_AC-020
+    stage: documentary
+    kind: documentary
+    description: "F-012/AC-020 — If spec.yaml is absent or unparseable, the detector shall emit one info finding rather than failing the stage."
+  - name: F-013_AC-021
+    stage: documentary
+    kind: documentary
+    description: "F-013/AC-021 — When spec.project.language differs from the language resolved by the toolchain manifest chain, the detector shall emit a warn-severity finding."
+  - name: F-014_AC-022
+    stage: documentary
+    kind: documentary
+    description: "F-014/AC-022 — When a feature with status='done' has at least one declared module missing on disk, the detector shall emit an error finding listing the missing paths."
+  - name: F-014_AC-023
+    stage: documentary
+    kind: documentary
+    description: "F-014/AC-023 — When status='in_progress' but every declared module is absent, the detector shall emit a warn finding suggesting a stale start."
+  - name: F-015_AC-024
+    stage: documentary
+    kind: documentary
+    description: "F-015/AC-024 — Where a feature has archived_at set but status is not 'archived', the detector shall emit a warn finding."
+  - name: F-015_AC-025
+    stage: documentary
+    kind: documentary
+    description: "F-015/AC-025 — Where status='archived' but at least one declared module still exists on disk, the detector shall emit a warn finding so the project can decide on code-removal "
+  - name: F-016_AC-026
+    stage: documentary
+    kind: documentary
+    description: "F-016/AC-026 — The system shall validate that every internal id reference in spec.yaml — features[].depends_on, features[].superseded_by, scenarios[].features — resolves to an"
+  - name: F-017_AC-027
+    stage: documentary
+    kind: documentary
+    description: "F-017/AC-027 — The system shall cross-check the numerator of plugin.json current.detectors against the number of non-index .ts files under stages/detectors/, emitting an error"
+  - name: F-018_AC-028
+    stage: documentary
+    kind: documentary
+    description: "F-018/AC-028 — The system shall validate that spec/schema.json declares and requires the root keys (schema, project, features) that spec/types.ts depends on, and that spec.yam"
+  - name: F-019_AC-029
+    stage: documentary
+    kind: documentary
+    description: "F-019/AC-029 — The system shall flag any acceptance_criterion that has neither a rendered text nor any EARS field (condition/action/response), emitting an error finding per st"
+  - name: F-019_AC-030
+    stage: documentary
+    kind: documentary
+    description: "F-019/AC-030 — When an AC declares a non-ubiquitous EARS pattern, the system shall verify the condition begins with the pattern's trigger keyword (when / while / where / if), "
+  - name: F-020_AC-032
+    stage: documentary
+    kind: documentary
+    description: "F-020/AC-032 — The system shall isolate each fixture in a fresh temp dir, symlink cladding's node_modules into it, and clean up after execution so the source tree stays uncont"
+  - name: F-025_AC-037
+    stage: documentary
+    kind: documentary
+    description: "F-025/AC-037 — When a test file's modification time is more than 30 days older than the newest source-module modification time, the detector shall emit a warn finding listing "
+  - name: F-026_AC-038
+    stage: documentary
+    kind: documentary
+    description: "F-026/AC-038 — When coverage/coverage-summary.json reports total line coverage below the configured floor (70% in v0.1), the detector shall emit a warn finding with the actual"
+  - name: F-026_AC-039
+    stage: documentary
+    kind: documentary
+    description: "F-026/AC-039 — If coverage/coverage-summary.json is absent, the detector shall emit an info finding indicating stage_2.2 must run first."
+  - name: F-030_AC-043
+    stage: documentary
+    kind: documentary
+    description: "F-030/AC-043 — When a metric in perf/current.json regresses against perf/baseline.json by more than 10%, the detector shall emit a warn finding listing the metric name and reg"
+  - name: F-030_AC-044
+    stage: documentary
+    kind: documentary
+    description: "F-030/AC-044 — If either perf/baseline.json or perf/current.json is absent, the detector shall emit a single info finding rather than failing the stage."
+  - name: F-031_AC-047
+    stage: documentary
+    kind: documentary
+    description: "F-031/AC-047 — Where spec/architecture.yaml exists and the master spec has no inline architecture, the loader shall load that file as the spec's architecture."
+  - name: F-032_AC-048
+    stage: documentary
+    kind: documentary
+    description: "F-032/AC-048 — The system shall tag every evidence entry with an author identity drawn from the enum (human / llm / tool). Identity is required for any audit-log append."
+  - name: F-033_AC-051
+    stage: documentary
+    kind: documentary
+    description: "F-033/AC-051 — The system shall invoke the anti-self-cert guard over every AC mentioned in the audit log and return a stage_4.1 result. When no audit log is present the stage "
+  - name: F-033_AC-052
+    stage: documentary
+    kind: documentary
+    description: "F-033/AC-052 — The system shall verify that every feature with status='done' carries at least one human-authored kind='pass' evidence entry, returning a stage_4.2 result listi"
+  - name: F-034_AC-053
+    stage: documentary
+    kind: documentary
+    description: "F-034/AC-053 — When an audit-log entry references an artifact path that no longer exists on disk, the detector shall emit an error finding listing the missing artifact and the"
+  - name: F-035_AC-054
+    stage: documentary
+    kind: documentary
+    description: "F-035/AC-054 — When an evidence entry's identity.timestamp is more than 90 days old, the detector shall emit a warn finding listing the entry id and age in days."
+  - name: F-037_AC-057
+    stage: documentary
+    kind: documentary
+    description: "F-037/AC-057 — When an AC declares a test_ref that is neither a self-dogfood/fixture-prefix alias nor a real file path, the detector shall emit an error finding listing the AC"
+  - name: F-038_AC-058
+    stage: documentary
+    kind: documentary
+    description: "F-038/AC-058 — When a TypeScript module under features[].modules has no file-header comment, the detector shall emit a warn finding referencing the Why>What guardrail."
+  - name: F-039_AC-060
+    stage: documentary
+    kind: documentary
+    description: "F-039/AC-060 — The router shall evaluate more-specific rules (init, drive, sync, check) before the broadest 'work' rule so that 'work' never shadows a more-specific intent."
+  - name: F-040_AC-061
+    stage: documentary
+    kind: documentary
+    description: "F-040/AC-061 — The system shall expose 5 Iron Core verbs — init, work, drive, sync, check — plus panel and route as `clad` subcommands, each dispatching to the existing stage "
+  - name: F-040_AC-062
+    stage: documentary
+    kind: documentary
+    description: "F-040/AC-062 — The Pulse UI shall emit one line per transition (start / pass / fail / skip / note); output is ANSI-colored when stdout is a TTY and plain text otherwise."
+  - name: F-040_AC-063
+    stage: documentary
+    kind: documentary
+    description: "F-040/AC-063 — The Integrity Panel shall render a feature × stage text grid; each cell uses one of five glyphs (pass / skip / warn / error / unknown) describing the stage outc"
+  - name: F-041_AC-065
+    stage: documentary
+    kind: documentary
+    description: "F-041/AC-065 — The system shall strip persona preamble lines (You are X, # Orchestrator/Librarian/..., Your job is...) from a prompt and collapse the resulting whitespace."
+  - name: F-041_AC-066
+    stage: documentary
+    kind: documentary
+    description: "F-041/AC-066 — The system shall shrink long text to head N + tail M lines with an elision marker, returning the original text unchanged when total lines fit within head + tail"
+  - name: F-042_AC-067
+    stage: documentary
+    kind: documentary
+    description: "F-042/AC-067 — The system shall append lifecycle events (stage_started / stage_completed / feature_activated / feature_completed / evidence_recorded / drift_detected) to .clad"
+  - name: F-042_AC-068
+    stage: documentary
+    kind: documentary
+    description: "F-042/AC-068 — The benchmark CLI shall report the naive vs optimized spec token count for a focus feature, including byte size, approximate token count (char/4), and percent r"
+  - name: F-047_AC-082
+    stage: documentary
+    kind: documentary
+    description: "F-047/AC-082 — The system shall ship a one-shot migration script that converts a master spec.yaml into sharded layout (spec/features/*.yaml + spec/scenarios/*.yaml + spec/arch"
+  - name: F-047_AC-083
+    stage: documentary
+    kind: documentary
+    description: "F-047/AC-083 — Cladding shall apply the sharded layout to its own spec.yaml — master carries only schema + project + header comments, while features and scenarios live as one "
+  - name: F-047_AC-084
+    stage: documentary
+    kind: documentary
+    description: "F-047/AC-084 — The system shall update spec/cli.ts to delegate to loadSpec so that `npm run spec:validate` returns valid=true on a sharded master spec."

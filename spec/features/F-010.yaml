@@ -24,3 +24,4 @@ acceptance_criteria:
     response: T4 native detectors consume the validated payload
     text: While the spec.schema field matches the supported version, the system
       shall accept the document as input for downstream drift detectors.
+    evidence_refs: [fixture:F-010_AC-016]

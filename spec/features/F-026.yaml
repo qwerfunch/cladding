@@ -16,6 +16,8 @@ acceptance_criteria:
     text: When coverage/coverage-summary.json reports total line coverage below the
       configured floor (70% in v0.1), the detector shall emit a warn finding
       with the actual percentage.
+    evidence_refs: [fixture:F-026_AC-038]
+
   - id: AC-039
     ears: unwanted
     condition: if the coverage summary artifact is absent
@@ -23,3 +25,4 @@ acceptance_criteria:
     response: detector does not fail on missing data
     text: If coverage/coverage-summary.json is absent, the detector shall emit an
       info finding indicating stage_2.2 must run first.
+    evidence_refs: [fixture:F-026_AC-039]
