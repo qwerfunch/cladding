@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.8] — Unreleased — Claude Code external-host dogfood report + cross-host parity (F-083)
+## [0.3.8] — 2026-05-20 — Claude Code external-host dogfood report + cross-host parity (F-083)
 
 **Second external-host verification.** Pairs with the v0.3.7 Gemini CLI report so the multi-host claim now rests on two-host evidence, not single-host coincidence. The same four MCP tools round-trip with the same output shape on both hosts.
 
@@ -24,7 +24,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 - Predicate for v0.4.0 generator (drift incident across hosts) — not triggered.
 - v0.3.9 plan: Codex CLI dogfood report once the CLI is installed; cycle 3 of the external-host evidence collection.
 
-## [0.3.7] — Unreleased — Gemini CLI external-host dogfood report (F-082)
+## [0.3.7] — 2026-05-20 — Gemini CLI external-host dogfood report (F-082)
 
 **First external-host verification of the multi-host plugin rollout.** v0.3.0 → v0.3.6 shipped cladding as a first-class plugin on three agentic CLIs and added the audit detectors; this patch is the first *evidence* that the rollout actually works end-to-end against a real external host.
 
