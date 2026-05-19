@@ -19,7 +19,8 @@
 import process from 'node:process';
 
 import type {AgentAdapter, Capability} from '../types.js';
-import {MockTransport, type Transport} from './transport.js';
+import {getHostMcpServer} from './sampling-context.js';
+import {McpSamplingTransport, MockTransport, type Transport} from './transport.js';
 
 const CAPABILITIES: ReadonlySet<Capability> = new Set<Capability>([
   'read',
@@ -40,16 +41,43 @@ export function isMcpRuntime(): boolean {
   return Boolean(process.env.MCP_TRANSPORT || process.env.MCP_SERVER_NAME);
 }
 
-const defaultTransport: Transport = new MockTransport({
+const mockFallback: Transport = new MockTransport({
   hostName: 'generic-mcp',
   readyWhen: isMcpRuntime,
   notReadyReason: 'no MCP runtime detected (MCP_TRANSPORT / MCP_SERVER_NAME unset)',
 });
 
+let cachedSamplingTransport: McpSamplingTransport | null = null;
+let cachedSamplingServer: ReturnType<typeof getHostMcpServer> = null;
+
+/**
+ * Picks the active transport. McpSamplingTransport when `clad serve`
+ * has registered a sampling-capable server through
+ * `setHostMcpServer`; otherwise the Mock fallback. See
+ * `claude-code.ts` for the rationale — the two adapters keep the
+ * routing duplicated rather than introducing a shared helper because
+ * each one needs its own identity-tagged Transport id.
+ */
+function activeTransport(): Transport {
+  const server = getHostMcpServer();
+  if (!server) {
+    cachedSamplingTransport = null;
+    cachedSamplingServer = null;
+    return mockFallback;
+  }
+  if (cachedSamplingServer !== server) {
+    cachedSamplingServer = server;
+    cachedSamplingTransport = new McpSamplingTransport(server, {
+      id: 'mcp-sampling:generic-mcp',
+    });
+  }
+  return cachedSamplingTransport as McpSamplingTransport;
+}
+
 export const genericMcpAdapter: AgentAdapter = {
   mode: 'host',
   name: 'generic-mcp',
   capabilities: CAPABILITIES,
-  invokeAgent: (persona, ctx) => defaultTransport.invoke(persona, ctx),
-  healthCheck: () => defaultTransport.ready(),
+  invokeAgent: (persona, ctx) => activeTransport().invoke(persona, ctx),
+  healthCheck: () => activeTransport().ready(),
 };

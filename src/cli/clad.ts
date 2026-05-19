@@ -34,11 +34,19 @@ import {featureLabel, gateLabel, haltMessage} from '../ui/softShell.js';
 export async function runServeCommand(opts: {cwd?: string}): Promise<void> {
   // Dynamic import: the MCP SDK is sizeable and most `clad` invocations
   // never reach `serve`. Loading it on-demand keeps cold-start fast.
-  const [{buildServer}, {StdioServerTransport}] = await Promise.all([
+  const [{buildServer}, {StdioServerTransport}, {setHostMcpServer}] = await Promise.all([
     import('../serve/server.js'),
     import('@modelcontextprotocol/sdk/server/stdio.js'),
+    import('../adapters/host/sampling-context.js'),
   ]);
   const server = buildServer({cwd: opts.cwd});
+  // v0.2.26 (F-075): register the server in the sampling context so
+  // the host adapters (`generic-mcp`, `claude-code`) automatically
+  // route LLM dispatch through McpSamplingTransport instead of the
+  // Mock fallback. The registration is process-scoped; clearing it
+  // is not necessary because the cladding process exits when stdio
+  // closes.
+  setHostMcpServer(server.server);
   const transport = new StdioServerTransport();
   // stdout is reserved for MCP protocol traffic on stdio transport, so
   // status lines go to stderr via pulse (which writes to stderr by
@@ -181,7 +189,7 @@ export function runRouteCommand(prompt: string): void {
  */
 export function createProgram(): Command {
   const program = new Command();
-  program.name('clad').description('Reference Ironclad CLI').version('0.2.25');
+  program.name('clad').description('Reference Ironclad CLI').version('0.2.26');
 
   program
     .command('init')

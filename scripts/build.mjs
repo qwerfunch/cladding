@@ -30,6 +30,12 @@ await build({
   outfile: 'dist/clad.js',
   banner: {js: banner},
   legalComments: 'none',
+  // Minify the bundle (v0.2.26, F-075) — adding the MCP SDK in
+  // v0.2.24 pushed the unminified bundle past 2.5 MB, and minify
+  // reclaims ~40 %. The minify is whitespace + identifier renaming;
+  // no syntax transforms, no source-map drop. The bundle stays a
+  // single ESM file readable enough for diagnostic spelunking.
+  minify: true,
   // Inline JSON imports (spec/schema.json) as embedded data instead of
   // runtime `readFileSync`. Without this, bundled code would look for
   // `dist/spec/schema.json` on disk.

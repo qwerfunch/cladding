@@ -116,8 +116,13 @@ export class MockTransport implements Transport {
  * client's sampling response.
  */
 export interface SamplingCapableServer {
+  // `messages` is intentionally a mutable array, not ReadonlyArray —
+  // function-parameter types are contravariant, so a real
+  // `@modelcontextprotocol/sdk` Server (which only accepts mutable
+  // arrays) wouldn't satisfy a ReadonlyArray-typed interface. The
+  // wider mutable shape is the assignment-compatible one.
   createMessage(params: {
-    messages: ReadonlyArray<{
+    messages: Array<{
       role: 'user' | 'assistant';
       content: {type: 'text'; text: string};
     }>;
@@ -126,7 +131,7 @@ export interface SamplingCapableServer {
   }): Promise<{
     model: string;
     stopReason?: string;
-    role: 'assistant';
+    role: 'user' | 'assistant';
     content: {type: 'text'; text: string} | {type: string; [k: string]: unknown};
   }>;
 }

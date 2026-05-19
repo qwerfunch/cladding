@@ -16,7 +16,16 @@ The kinds of reports that belong here:
 - A reproducible way to corrupt the audit log (`.cladding/audit.log.jsonl`) or events log such that an external auditor cannot reconstruct the lifecycle of a feature.
 - A way to make a drift detector silently miss a real spec/code/test mismatch (false-negative). False-positives are bugs; false-negatives are security-adjacent because they erode the falsifiability claim.
 - Credential or secret exposure in the toolchain (e.g. `src/stages/secret.ts` failing to redact a known secret pattern).
-- Arbitrary code execution through any CLI verb (`clad init`, `clad work`, `clad drive`, `clad sync`, `clad check`, …) against an untrusted spec or workspace.
+- Arbitrary code execution through any CLI verb (`clad init`, `clad work`, `clad drive`, `clad sync`, `clad check`, `clad serve`, …) against an untrusted spec or workspace.
+
+## MCP server (`clad serve`) — invariants
+
+`clad serve` exposes cladding as an MCP server (v0.2.24+). The following are **structural invariants**, not preferences — a regression on any of these is a security issue and belongs in a private report:
+
+- **No arbitrary shell execution from MCP tools.** Every tool registered on `src/serve/server.ts` delegates to a typed cladding function (`loadSpec`, `runDrift`, `readEvidence`, log readers). None of them shells out, spawn a process, or compile arbitrary user-supplied code. A future tool that needs to execute anything must do it through a constrained, audited interface — never via `child_process.exec` of client-supplied strings.
+- **Read-only by default.** v0.2.24 ships four read-only tools (`clad_list_features`, `clad_get_feature`, `clad_run_check`, `clad_get_events`). A future write-capable tool MUST require an explicit `mutating: true` flag in its registration metadata and MUST land a human-pass audit entry in `.cladding/audit.log.jsonl` for every invocation.
+- **Sampling responses pass through anti-self-cert.** When the drive loop dispatches through `McpSamplingTransport` (v0.2.25+), the reviewer-vs-author identity barrier (F-049 AC-086) still applies — a host whose client returns the same identity for specialist and reviewer dispatches MUST halt with `HUMAN_REQUIRED`. The MCP boundary is not a bypass.
+- **Audit notifications are advisory.** `notifications/resources/updated` for `cladding://audit` (v0.2.25+) is a client-cache-refresh hint, not a substitute for the file-level audit log. The audit log on disk remains the authoritative chain even if every notification is lost.
 
 ## What is not in-scope here
 

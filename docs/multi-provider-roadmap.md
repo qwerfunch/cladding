@@ -49,13 +49,13 @@ The `AgentResult` and the audit-log evidence shape are invariant across adapters
 
 | Name | Mode | Status | API key | Notes |
 |---|---|---|---|---|
-| `claude-code` | host | planned (v0.2.0 stage 1) | not required | Codifies cladding's current behaviour. Uses Claude Code's Task / Agent tools. |
-| `generic-mcp` | host | planned (v0.2.0 stage 1) | not required | Works in any MCP-aware client (Cursor · Continue · Cline · …). |
-| `anthropic` | sdk | planned (v0.2.0 stage 2) | `ANTHROPIC_API_KEY` | For CI and headless automation. |
-| `openai` | sdk | planned (v0.2.0 stage 2) | `OPENAI_API_KEY` | Same. |
-| `gemini` | sdk | planned (v0.2.0 stage 2) | `GOOGLE_API_KEY` | Same. |
+| `claude-code` | host | **live (v0.2.26)** — routes through `McpSamplingTransport` when `clad serve` is registered, falls back to Mock otherwise | not required | Real LLM call goes through the connected MCP client via `server.createMessage` sampling. Auto-detects Claude Code via `CLAUDECODE` env var. |
+| `generic-mcp` | host | **live (v0.2.26)** — same routing as `claude-code`, `mcp-sampling:generic-mcp` identity tag | not required | Works in any MCP-aware client (Cursor · Continue · Cline · …) once `clad serve` is connected. |
+| `claude-anthropic` | sdk | **live (v0.2.20)** | `ANTHROPIC_API_KEY` | Direct Anthropic SDK call (`@anthropic-ai/sdk`). For CI / headless automation. |
+| `openai` | sdk | reserved | `OPENAI_API_KEY` | Slot exists in `SDK_REGISTRY`; not implemented yet. |
+| `gemini` | sdk | reserved | `GOOGLE_API_KEY` | Slot exists in `SDK_REGISTRY`; not implemented yet. |
 
-Stage 1 (host adapters only) is sufficient to release v0.2.0 and covers the 99% case where cladding runs inside an agentic editor. Stage 2 (sdk adapters) is opt-in for users who want to drive cladding outside a host.
+v0.2.26 closes the host-mode loop: `clad serve` boots the MCP server, `setHostMcpServer` registers it, and both host adapters route LLM dispatch through `McpSamplingTransport` automatically. Standalone `clad drive` (no `clad serve`) keeps the Mock fallback so unit-test paths are unchanged.
 
 ## How to add a new adapter
 
@@ -70,9 +70,9 @@ Stage 1 (host adapters only) is sufficient to release v0.2.0 and covers the 99% 
 - **Host adapters** depend on the host exposing a usable agent-invocation API. Cursor and Continue do today; future hosts may not — list the unsupported runtimes in this section as you learn them.
 - **SDK adapters** carry the usual SDK quirks (rate limits, context windows, safety filters). The `AC-088` failure-class list grows here, not in cladding.
 
-## Transport architectural decision (deferred to v0.3.0)
+## Transport architectural decision (resolved in v0.2.19 → v0.2.26)
 
-The two host adapters shipped in v0.2.0 (`claude-code` and `generic-mcp`) ship as **mock implementations**: they conform to the `AgentAdapter` contract and the drive loop dispatches against them, but `invokeAgent` returns a stub `AgentResult` instead of crossing a real LLM boundary. This section documents why and what v0.3.0 must decide before real transports can land.
+The two host adapters originally shipped as **mock implementations** that satisfied the `AgentAdapter` contract without crossing a real LLM boundary. The v0.2.19 → v0.2.26 cycle replaced the mock body with a real one. This section keeps the original "why mock" framing as historical context — `claude-code` and `generic-mcp` are now **real** behind the same contract.
 
 ### The mismatch
 
@@ -93,15 +93,26 @@ Three plausible bridges, and why two of them don't fit cladding's current shape:
 | **MCP server mode (`clad serve`)** | A new long-running verb that exposes cladding's stages / drive loop / audit-log tools over the Model Context Protocol. Any MCP-aware host (Claude Code, Cursor, Continue, Cline, …) connects and calls those tools. The host's LLM does the work; cladding records the result. | Already aligns with `generic-mcp` adapter. One server implementation covers every MCP client. Adds a Node dependency on `@modelcontextprotocol/sdk`. The user starts `clad serve` once per session; the host points its MCP config at cladding's stdio. |
 | **Claude Code plugin mode** | Cladding ships a real Claude Code plugin (its own `commands/`, `hooks/`, `src/agents/`) so it runs inside the host's session and can call Task/Agent tools directly. | Tighter integration with Claude Code specifically, looser fit with Cursor/Cline/Continue. Requires real plugin manifest, not the metadata file `.claude-plugin/plugin.json` currently is. |
 
-The architectural decision is **MCP server mode is preferred** because it makes the same code work across every MCP-aware host — one server, many hosts. The Claude Code plugin path becomes a second adapter that *uses* the MCP server when cladding is installed as a plugin. The full plan, including the new `clad serve` verb, lands in v0.3.0.
+The architectural decision was **MCP server mode is preferred** because it makes the same code work across every MCP-aware host — one server, many hosts. That decision is now implemented:
 
-### What v0.2.0 still ships
+- **v0.2.24 (F-073)** — `clad serve` stdio MCP server, read surface (tools / resources / persona prompts).
+- **v0.2.25 (F-074)** — `McpSamplingTransport` + audit-log live notification (`notifications/resources/updated` for `cladding://audit`).
+- **v0.2.26 (F-075)** — Host adapter routing via `sampling-context`. `clad serve` registers itself; both host adapters route LLM dispatch through MCP sampling automatically when registered, Mock fallback otherwise.
 
-- `AgentAdapter` contract — stable across every transport that v0.3.0 grows.
-- Mock host adapters — interface-conformant, deterministic, suitable for testing the loop's dispatch shape.
-- Drive-loop dispatch wiring — every halt class (`HUMAN_REQUIRED`, `LLM_UNAVAILABLE`) emits for real once the adapter starts throwing or returning collision-prone identities.
+The Claude Code plugin path is no longer a separate transport branch — Claude Code is just one MCP client that talks to `clad serve`. The same plumbing covers Cursor, Continue, Cline, and any future MCP-aware host.
 
-So v0.2.0 is the "machinery complete; transport mocked" milestone. v0.3.0 is the "transport real" milestone. The release notes for v0.2.0 say so explicitly.
+### What every v0.2.x release contributed
+
+| Version | Contribution |
+|---|---|
+| v0.2.19 (F-068) | Transport interface extraction — adapter and body split, swap-point ready. |
+| v0.2.20 (F-069) | `AnthropicTransport` — first real-LLM dispatch (SDK path). |
+| v0.2.21 (F-070) | Drive-loop integration test against `AnthropicTransport`. |
+| v0.2.22 (F-071) | Transport-specific halt classes (`TRANSPORT_AUTH_FAILED` / `_RATE_LIMITED` / `_NETWORK`). |
+| v0.2.23 (F-072) | Pre-flight health check at drive loop start. |
+| v0.2.24 (F-073) | `clad serve` MCP server scaffold — read surface. |
+| v0.2.25 (F-074) | `McpSamplingTransport` + live audit notification. |
+| v0.2.26 (F-075) | Host adapter routing; bundle minified to ~1.1 MB; SECURITY.md MCP invariants. |
 
 ## Out of scope (until external dogfood signals it)
 

@@ -1,0 +1,52 @@
+id: F-075
+title: Host adapter MCP routing + release readiness sweep (v0.2.26, v0.3.0 Phase B prime)
+status: done
+modules:
+  - src/adapters/host/sampling-context.ts
+  - src/adapters/host/claude-code.ts
+  - src/adapters/host/generic-mcp.ts
+  - src/cli/clad.ts
+  - scripts/build.mjs
+  - SECURITY.md
+  - README.md
+  - README.ko.md
+depends_on: [F-049, F-073, F-074]
+acceptance_criteria:
+  - id: AC-217
+    ears: ubiquitous
+    action: register a sampling-capable server in a process-scoped context so host adapters can route through it
+    response: src/adapters/host/sampling-context.ts exports setHostMcpServer(server) returning a disposer, getHostMcpServer() returning the current registration, and clearHostMcpServerForTesting() for test isolation
+    text: The system shall expose a process-scoped sampling context module that lets clad serve register the active MCP server and lets host adapters read it back so the routing decision is uniform across all host adapters.
+    test_refs: [tests/adapters/sampling-context.test.ts, tests/adapters/host-parity.test.ts]
+  - id: AC-218
+    ears: state
+    condition: while clad serve has registered an MCP server via setHostMcpServer
+    action: route host adapter dispatches through McpSamplingTransport
+    response: claudeCodeAdapter and genericMcpAdapter call activeTransport() per dispatch; activeTransport returns a cached McpSamplingTransport tagged with the host name as long as the registered server identity is stable
+    text: 'While clad serve has registered an MCP server, the system shall route invokeAgent and healthCheck through McpSamplingTransport with a host-tagged id (mcp-sampling:claude-code or mcp-sampling:generic-mcp) instead of the Mock fallback.'
+    test_refs: [tests/adapters/host-parity.test.ts]
+  - id: AC-219
+    ears: state
+    condition: while no MCP server is registered
+    action: keep the Mock fallback behaviour
+    response: activeTransport returns the module-level mockFallback singleton; cached sampling transport is cleared so a subsequent registration re-allocates
+    text: While no MCP server is registered, the system shall route host adapters through the Mock fallback transport so unit tests and standalone clad invocations keep their pre-v0.2.26 behaviour.
+    test_refs: [tests/adapters/host-parity.test.ts]
+  - id: AC-220
+    ears: ubiquitous
+    action: minify the dist/clad.js bundle so the MCP SDK cost is contained
+    response: scripts/build.mjs sets esbuild minify=true; bundle size drops from 2.4 MB (unminified) to ~1.1 MB (minified) with no source-map drop and no syntax transforms
+    text: The system shall ship a minified single-file bundle (dist/clad.js) so the MCP SDK dependency added in v0.2.24 does not bloat the install footprint beyond ~1.1 MB.
+    evidence_refs: [scripts/build.mjs]
+  - id: AC-221
+    ears: ubiquitous
+    action: document the MCP server security invariants in SECURITY.md
+    response: 'SECURITY.md adds a MCP server (clad serve) — invariants section covering: no arbitrary shell execution from MCP tools; read-only by default; sampling responses pass through anti-self-cert; audit notifications are advisory'
+    text: The system shall document four structural invariants for the MCP server surface in SECURITY.md so a regression on any of them counts as a security issue.
+    evidence_refs: [SECURITY.md]
+  - id: AC-222
+    ears: ubiquitous
+    action: keep README.md and README.ko.md in lockstep on the status line
+    response: both READMEs include v0.2.26 status, the new clad serve / McpSamplingTransport / live audit capabilities, the minified bundle size, and the updated feature count
+    text: The system shall keep README.md and README.ko.md status lines in lockstep across each release so the bilingual surface presents the same capability inventory.
+    evidence_refs: [README.md, README.ko.md]

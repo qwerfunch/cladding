@@ -49,6 +49,11 @@ vi.mock('@modelcontextprotocol/sdk/server/stdio.js', () => {
   });
   return {StdioServerTransport};
 });
+vi.mock('../../src/adapters/host/sampling-context.js', () => ({
+  setHostMcpServer: vi.fn(() => () => undefined),
+  getHostMcpServer: vi.fn(() => null),
+  clearHostMcpServerForTesting: vi.fn(),
+}));
 
 const clad = await import('../../src/cli/clad.js');
 const initMod = await import('../../src/cli/init.js');
@@ -235,20 +240,26 @@ describe('cli/clad — createProgram', () => {
 
   test('program version matches current package version', () => {
     const program = clad.createProgram();
-    expect(program.version()).toBe('0.2.25');
+    expect(program.version()).toBe('0.2.26');
   });
 });
 
-describe('cli/clad — runServeCommand (v0.2.24)', () => {
-  test('builds the MCP server and connects it to stdio transport', async () => {
+describe('cli/clad — runServeCommand', () => {
+  test('builds the MCP server, registers it for sampling, and connects stdio', async () => {
     const serveMod = await import('../../src/serve/server.js');
     const stdioMod = await import('@modelcontextprotocol/sdk/server/stdio.js');
+    const samplingMod = await import('../../src/adapters/host/sampling-context.js');
     const buildMock = serveMod.buildServer as unknown as ReturnType<typeof vi.fn>;
     const StdioMock = stdioMod.StdioServerTransport as unknown as ReturnType<typeof vi.fn>;
+    const setMock = samplingMod.setHostMcpServer as unknown as ReturnType<typeof vi.fn>;
     buildMock.mockClear();
     StdioMock.mockClear();
+    setMock.mockClear();
     await clad.runServeCommand({cwd: '/tmp/probe'});
     expect(buildMock).toHaveBeenCalledWith({cwd: '/tmp/probe'});
     expect(StdioMock).toHaveBeenCalledOnce();
+    // v0.2.26 (F-075): clad serve registers its own server so host
+    // adapters route through McpSamplingTransport.
+    expect(setMock).toHaveBeenCalledOnce();
   });
 });

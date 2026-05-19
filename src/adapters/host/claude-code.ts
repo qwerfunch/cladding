@@ -19,7 +19,8 @@
 import process from 'node:process';
 
 import type {AgentAdapter, Capability} from '../types.js';
-import {MockTransport, type Transport} from './transport.js';
+import {getHostMcpServer} from './sampling-context.js';
+import {McpSamplingTransport, MockTransport, type Transport} from './transport.js';
 
 const CAPABILITIES: ReadonlySet<Capability> = new Set<Capability>([
   'read',
@@ -42,20 +43,51 @@ export function isClaudeCodeRuntime(): boolean {
 }
 
 /**
- * Default transport for the claude-code adapter. v0.2.19 ships
- * MockTransport here; v0.2.20 will introduce a `ClaudeCodeTransport`
- * real body and select it when the runtime is detected.
+ * Mock fallback used when no MCP server is registered through
+ * `setHostMcpServer`. Kept as a module-level singleton so the
+ * (rare) Mock path stays allocation-free.
  */
-const defaultTransport: Transport = new MockTransport({
+const mockFallback: Transport = new MockTransport({
   hostName: 'claude-code',
   readyWhen: isClaudeCodeRuntime,
   notReadyReason: 'not running inside a Claude Code session',
 });
 
+/**
+ * Cache for the active McpSamplingTransport so repeated dispatches
+ * inside one `clad serve` session don't re-allocate. Reset when the
+ * registered server identity changes (e.g., test swap).
+ */
+let cachedSamplingTransport: McpSamplingTransport | null = null;
+let cachedSamplingServer: ReturnType<typeof getHostMcpServer> = null;
+
+/**
+ * Picks the active transport: McpSamplingTransport when `clad serve`
+ * has registered a sampling-capable server, otherwise the Mock
+ * fallback. Decision runs per-invoke so a server registered after
+ * the adapter object was first imported still routes correctly.
+ */
+function activeTransport(): Transport {
+  const server = getHostMcpServer();
+  if (!server) {
+    cachedSamplingTransport = null;
+    cachedSamplingServer = null;
+    return mockFallback;
+  }
+  if (cachedSamplingServer !== server) {
+    cachedSamplingServer = server;
+    cachedSamplingTransport = new McpSamplingTransport(server, {
+      id: 'mcp-sampling:claude-code',
+    });
+  }
+  // cachedSamplingTransport is set whenever cachedSamplingServer is.
+  return cachedSamplingTransport as McpSamplingTransport;
+}
+
 export const claudeCodeAdapter: AgentAdapter = {
   mode: 'host',
   name: 'claude-code',
   capabilities: CAPABILITIES,
-  invokeAgent: (persona, ctx) => defaultTransport.invoke(persona, ctx),
-  healthCheck: () => defaultTransport.ready(),
+  invokeAgent: (persona, ctx) => activeTransport().invoke(persona, ctx),
+  healthCheck: () => activeTransport().ready(),
 };
