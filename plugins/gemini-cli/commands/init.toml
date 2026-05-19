@@ -1,0 +1,13 @@
+description = "Scaffold a cladding workspace — seed spec.yaml, create .cladding/, append gitignore entries."
+prompt = """
+Run `clad init` from the directory where the cladding workspace should live. Idempotent — skips files that already exist unless --force.
+
+Flags:
+- --name <name>: override project name (default: cwd basename)
+- --force: overwrite existing spec.yaml
+
+After init:
+1. Edit spec.yaml to declare the first feature (F-001).
+2. Run `clad sync` to verify the spec.
+3. Run `clad check` to see which Iron Law stages are wired up.
+"""

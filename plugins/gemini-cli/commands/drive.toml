@@ -1,0 +1,12 @@
+description = "Autonomous loop — iterate ready features, dispatch specialists + reviewer, halt on issue. Modifies files."
+prompt = """
+Run `clad drive` from the project root. The autonomous loop:
+
+1. Pre-flight adapter.healthCheck — fails fast on missing credentials.
+2. For each ready feature: specialist authors → apply mutations → L1 gates → reviewer (anti-self-cert barrier) → UAT (requires human-pass evidence).
+3. Halt with one of 13 enumerated reasons (ALL_FEATURES_DONE, HUMAN_REQUIRED, TRANSPORT_AUTH_FAILED, etc.).
+
+Budget flags: --max-iterations, --max-wall-clock-ms, --max-retries. --json for raw Iron Core view.
+
+WARNING: drive modifies the working tree. Host adapter dispatches through MCP sampling when clad serve is the active MCP server; Mock fallback otherwise.
+"""

@@ -1,0 +1,41 @@
+id: F-078
+title: Gemini CLI extension manifest (v0.3.3 · Phase 3 of multi-host rollout)
+status: done
+modules:
+  - plugins/gemini-cli/gemini-extension.json
+  - plugins/gemini-cli/GEMINI.md
+  - plugins/gemini-cli/commands/sync.toml
+  - plugins/gemini-cli/commands/check.toml
+  - plugins/gemini-cli/commands/panel.toml
+  - plugins/gemini-cli/commands/drive.toml
+  - plugins/gemini-cli/commands/init.toml
+  - plugins/gemini-cli/commands/serve.toml
+depends_on: [F-049, F-073, F-076, F-077]
+acceptance_criteria:
+  - id: AC-233
+    ears: ubiquitous
+    action: ship a Gemini CLI extension manifest at plugins/gemini-cli/gemini-extension.json
+    response: 'the manifest declares name=cladding, version, description, contextFileName=GEMINI.md, and an mcpServers map registering clad serve over stdio per the Gemini CLI extension spec'
+    text: The system shall ship a Gemini CLI extension manifest at plugins/gemini-cli/gemini-extension.json that declares cladding under the Gemini extension spec and registers `clad serve` as a stdio MCP server.
+    evidence_refs: [plugins/gemini-cli/gemini-extension.json]
+  - id: AC-234
+    ears: ubiquitous
+    action: expose six cladding verbs as Gemini CLI custom commands in TOML format
+    response: 'plugins/gemini-cli/commands/ contains six .toml files (sync, check, panel, drive, init, serve), each with a description field for the /help menu and a prompt field describing the verb behaviour'
+    text: The system shall expose six cladding verbs (sync, check, panel, drive, init, serve) as Gemini CLI custom commands under plugins/gemini-cli/commands/<verb>.toml so Gemini users invoke them as /cladding:<verb>.
+    evidence_refs:
+      - plugins/gemini-cli/commands/sync.toml
+      - plugins/gemini-cli/commands/check.toml
+      - plugins/gemini-cli/commands/drive.toml
+  - id: AC-235
+    ears: ubiquitous
+    action: provide a Gemini context file describing the personas and authentication invariant
+    response: plugins/gemini-cli/GEMINI.md introduces cladding to Gemini, lists the six commands, summarises the five personas (orchestrator · librarian · reviewer · observability · specialists), and explicitly states the no-API-key invariant
+    text: The system shall provide plugins/gemini-cli/GEMINI.md as the extension context file so Gemini, when the extension is loaded, has the persona vocabulary and authentication model in its context window from session start.
+    evidence_refs: [plugins/gemini-cli/GEMINI.md]
+  - id: AC-236
+    ears: ubiquitous
+    action: keep the no-API-key invariant intact for Gemini CLI integration
+    response: 'plugins/gemini-cli/GEMINI.md explicitly states the F-049 AC-091 invariant; the extension uses Google account login (free tier 60 req/min · 1000/day) by default; GEMINI_API_KEY remains an opt-in fallback'
+    text: The system shall keep the no-API-key invariant intact for the Gemini CLI integration — the extension uses the user's Google account login by default; cladding never reads GEMINI_API_KEY when a host adapter is active.
+    evidence_refs: [plugins/gemini-cli/GEMINI.md, spec/features/F-049.yaml]
