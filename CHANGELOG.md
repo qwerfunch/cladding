@@ -5,6 +5,31 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.13] — Unreleased — cli test batch 1 + widened coverage scope (F-062)
+
+Opens the **cli chapter** with a honest twist: the coverage measurement scope is widened from `{stages, spec}` to every first-party source dir (cli, drive, optimizer, adapters, router, ui, hitl, events, agents). The headline coverage number now tracks the whole codebase, not just the two chapters closed in v0.2.9 / v0.2.12. **Pre-v0.2.13 percentages remain valid for the narrow scope they were measured against, but are not directly comparable to v0.2.13+ numbers.**
+
+Under the widened scope, project line coverage stands at **74.42%** — well above the 70% floor, so `clad check --strict` still passes drift.
+
+### Changed
+
+- `vitest.config.ts` — coverage `include` widened to 11 first-party source dirs (was 2). The `exclude` list switches to a glob that catches every `*.test.ts` at any depth, rather than the previous stage-specific glob.
+- `cli/benchmark.ts` — refactored for testability: `approxTokens` and `benchmark` are now exported, and CLI bootstrap code (`if (!featureId) process.exit(2)` …) is wrapped in an `isCliEntry` guard. Matches the pattern used by every other module in the tree.
+
+### Added
+
+- `tests/cli/init.test.ts` — three new branch tests bring `cli/init.ts` to **100% line coverage**: explicit `projectName` override, `.gitignore` without a trailing newline, `.gitignore` created from scratch.
+- `tests/cli/benchmark.test.ts` — 8 tests covering `approxTokens` (empty / 4-char / partial / 400-char) plus `benchmark` (single feature / multi-feature reduction / sharded spec load / reduction-percent formula). Brings `cli/benchmark.ts` to **57.9% line coverage** (CLI bootstrap block remains uncovered — by design).
+- `spec/features/F-062.yaml` — "cli test batch 1 + widened coverage scope" (5 ACs, status `done`).
+
+### Notes
+
+- 11 new tests bring the suite to **316 / 316 passing** (305 prior).
+- Per-dir coverage at v0.2.13 baseline (line %):
+  - hitl: 100, router: 100, spec: 98.3, stages: 92.9, adapters: 75, optimizer: 60.7, ui: 39, cli: 37.4, drive: 21.9, agents: 0, events: 0
+- Visible 0% dirs (`agents/loader.ts`, `drive/loop.ts`, `events/log.ts`, `optimizer/{preamble,tail}.ts`, `ui/{panel,pulse}.ts`, `cli/clad.ts`) are batch-2+ candidates.
+- `clad check --strict` confirmed green under the widened scope (74.42% > 70% floor).
+
 ## [0.2.12] — 2026-05-19 — Stage runner chapter closed · every stage covered (F-061)
 
 **Milestone**: every one of the 12 Iron Law stage runners (stage_1.1 through stage_4.2) now carries a dedicated unit-test file at ≥ 75% line coverage. The stage-runner chapter that opened with v0.2.10 is closed. Combined with the detector chapter closed in v0.2.9, **every business-logic module cladding ships now has dedicated unit-test coverage**.
