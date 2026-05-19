@@ -1,0 +1,34 @@
+id: F-064
+title: Final coverage closure — every source dir ≥ 90% lines
+status: done
+modules:
+  - cli/clad.ts
+  - tests/cli/clad.test.ts
+  - tests/adapters/index.test.ts
+depends_on: [F-063]
+acceptance_criteria:
+  - id: AC-164
+    ears: ubiquitous
+    action: refactor cli/clad.ts for unit-testability
+    response: cli/clad.ts extracts each verb's handler as a named export (runInitCommand · runWorkCommand · runDriveCommand · runSyncCommand · runCheckCommand · runPanelCommand · runRouteCommand) and adds createProgram(); top-level program.parse() runs only when imported as the CLI entry (bundle or direct tsx execution)
+    text: The system shall refactor cli/clad.ts to expose every verb's handler plus a createProgram() factory, so unit tests can exercise the CLI without spawning a subprocess.
+    evidence_refs: [cli/clad.ts]
+  - id: AC-165
+    ears: ubiquitous
+    action: cover every cli/clad.ts handler
+    response: tests/cli/clad.test.ts exercises all 7 handlers (init / work / drive / sync / check / panel / route) including their exit codes, options, and edge cases (spec absent, unknown intent, strict mode, --json output, UNCAUGHT_ERROR mapping); cli/clad.ts reaches at least 90% line coverage
+    text: The system shall ship tests/cli/clad.test.ts covering every handler of cli/clad.ts at ≥ 90% line coverage.
+    test_refs: [tests/cli/clad.test.ts]
+  - id: AC-166
+    ears: ubiquitous
+    action: cover adapters/index.ts auto-selection logic
+    response: tests/adapters/index.test.ts exercises env-priority / config-priority / auto-detect / malformed-config / partial-agent / unknown-host-fallback / sdk-mode-fallback paths; adapters/index.ts reaches at least 95% line coverage
+    text: The system shall ship tests/adapters/index.test.ts covering the resolution chain of adapters/index.ts at ≥ 95% line coverage.
+    test_refs: [tests/adapters/index.test.ts]
+  - id: AC-167
+    ears: state
+    condition: while the v0.2.15 batch lands
+    action: bring every first-party source dir to ≥ 90% line coverage
+    response: every one of the 11 first-party source dirs (adapters · agents · cli · drive · events · hitl · optimizer · router · spec · stages · ui) reports ≥ 90% line coverage under the widened scope; total project line coverage reaches at least 93%
+    text: While the v0.2.15 batch lands, every first-party source dir shall reach ≥ 90% line coverage, with total project coverage at ≥ 93%.
+    evidence_refs: [CHANGELOG.md]
