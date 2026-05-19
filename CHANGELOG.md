@@ -5,6 +5,31 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.11] — Unreleased — Stage runner tests batch 2 (F-060)
+
+Continues the stage-runner coverage thread opened by v0.2.10. Five more stage runners gain dedicated unit tests using the established patterns: detector-adapter stages (`arch`, `secret`) mock the underlying detector; polyglot stages (`unit`, `cov`, `smoke`) mock `execaSync`. Project line coverage rises from **72.58% → 84.23%** (+11.65pp).
+
+### Added
+
+- `tests/stages/arch.test.ts` — 6 tests covering the detector-adapter shape (no findings / info-only / single error / multi-error / mixed severity / opts forwarding).
+- `tests/stages/secret.test.ts` — 6 tests mirroring the arch pattern.
+- `tests/stages/unit.test.ts` — 6 tests covering the polyglot toolchain pattern (unknown / override / exit 0 / non-zero / stderr-present-or-absent / null-exit).
+- `tests/stages/cov.test.ts` — 6 tests mirroring the unit pattern.
+- `tests/stages/smoke.test.ts` — 8 tests covering the richer branch tree (unknown / npm-script-missing / present-exit-0 / non-zero / ENOENT / non-ENOENT throw / null-exit / explicit override).
+- `spec/features/F-060.yaml` — "Stage runner tests batch 2" (4 ACs, status `done`).
+
+### Notes
+
+- Coverage per targeted stage (v8 reporter, JSON summary):
+  - `stages/arch.ts`: 75% lines · 88.9% branches
+  - `stages/secret.ts`: 75% lines · 88.9% branches
+  - `stages/unit.ts`: 85.7% lines · 90.9% branches
+  - `stages/cov.ts`: 85.7% lines · 90.9% branches
+  - `stages/smoke.ts`: 88.5% lines · 92.6% branches
+- The 75% line floor on `arch.ts` / `secret.ts` reflects their tighter source — the uncovered lines are the `isCliEntry` blocks at the bottom of each file, identical to the v0.2.10 pattern.
+- 32 new tests bring the suite to **282 / 282 passing** (250 prior).
+- 3 stage runners remain (`perf.ts`, `visual.ts`, `uat.ts`) — batch 3 candidates.
+
 ## [0.2.10] — 2026-05-19 — Stage runner tests batch 1 · **70% coverage floor cleared** (F-059)
 
 **Milestone**: project line coverage crosses the 70% floor. `clad check --strict` no longer emits the COVERAGE_DROP warn that has been the last `--strict`-mode blocker since v0.2.2. The five-batch coverage push that began at v0.2.5 (26.8% baseline) closes at **72.58%**.
