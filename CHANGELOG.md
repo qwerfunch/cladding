@@ -5,6 +5,41 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.15] — Unreleased — Final coverage closure · every source dir ≥ 90% (F-064)
+
+**Milestone**: every one of the 11 first-party source dirs (`adapters · agents · cli · drive · events · hitl · optimizer · router · spec · stages · ui`) is now at ≥ 90% line coverage. Project line coverage rises from **87.67% → 93.89%** (+6.22pp) under the widened scope from v0.2.13.
+
+The cli chapter, which opened in v0.2.13 at 37.4% (init only), now closes at **92.7%**. The adapter chapter rises from 75% to **97.5%**.
+
+### Changed
+
+- `cli/clad.ts` — refactored to expose every verb's handler as a named export (`runInitCommand`, `runWorkCommand`, `runDriveCommand`, `runSyncCommand`, `runCheckCommand`, `runPanelCommand`, `runRouteCommand`), plus a `createProgram()` factory that returns the wired commander `Command`. Top-level `program.parse()` is now guarded by an `isCliEntry` check that fires when the module is the bundled entry **or** the directly-executed source. Importing from a test no longer touches `process.argv`. Behaviour-preserving — `node bin/clad <verb>` works identically to before.
+
+### Added
+
+- `tests/cli/clad.test.ts` — 18 tests covering every handler (init / work / drive / sync / check / panel / route) including exit codes, option forwarding, spec-absent fallbacks, `--strict` drift forwarding, `--internal` stage codes, `--json` raw output, `UNCAUGHT_ERROR` exit-1 mapping, and the `createProgram()` factory's 7-verb registration. Uses a record-only `process.exit` mock so the try/catch in `runSyncCommand` does not eat the recorded code.
+- `tests/adapters/index.test.ts` — 12 tests covering the resolution chain (env priority / config priority / auto-detect / malformed config / partial agent / unknown host fallback / sdk-mode fallback) for both `resolveSelection` and `selectAdapter`.
+- `spec/features/F-064.yaml` — "Final coverage closure — every source dir ≥ 90% lines" (4 ACs, status `done`).
+
+### Notes
+
+- Coverage per dir at v0.2.15 baseline (line %):
+  - events: 100, hitl: 100, optimizer: 100, router: 100, ui: 100
+  - spec: 98.3, **adapters: 97.5** (was 75), **cli: 92.7** (was 37.4), agents: 93.3, stages: 92.9, drive: 90.6
+- 30 new tests bring the suite to **404 / 404 passing** (374 prior).
+- `clad check --strict` confirmed green (93.89% > 70% floor with headroom).
+
+### Coverage push — closing arc
+
+| Batch | Targets | Line coverage | Scope |
+|---|---|---|---|
+| v0.2.5 baseline | 3 detectors | 26.8% | narrow |
+| v0.2.9 (detectors closed) | 20 det | 63.49% | narrow |
+| v0.2.12 (stages closed) | 20 det + 12 stages | 93.32% | narrow |
+| v0.2.13 (scope widened) | + cli/init + cli/benchmark | 74.42% | **wide** |
+| v0.2.14 (5 chapters closed) | + drive · agents · events · optimizer · ui | 87.67% | wide |
+| **v0.2.15 (final closure)** | **+ cli/clad + adapters/index** | **93.89%** | wide |
+
 ## [0.2.14] — Unreleased — Coverage sweep · 5 chapters closed in one batch (F-063)
 
 Massive sweep that closes **five remaining 0%-coverage chapters** at once: `drive`, `agents`, `events`, `optimizer`, `ui`. Project line coverage rises from **74.42% → 87.67%** (+13.25pp) under the widened scope introduced in v0.2.13.
