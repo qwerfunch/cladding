@@ -42,8 +42,28 @@ export interface AcceptanceCriterion {
   readonly ears?: EarsPattern;
   /** Pre-rendered user-facing sentence (Soft Shell). */
   readonly text?: string;
-  /** Test identifiers proving this AC. */
+  /**
+   * Concrete code-test paths that verify this AC.
+   *
+   * Restrict to executable test files (e.g. `tests/foo.test.ts`,
+   * `*.test.ts`, `__tests__/*`). Non-test evidence — npm scripts,
+   * fixtures, docs — belongs in {@link evidence_refs}.
+   *
+   * @see stages/detectors/missing-tests.ts — flags `done` ACs that
+   *      have neither `test_refs` nor `evidence_refs`.
+   */
   readonly test_refs?: readonly string[];
+  /**
+   * Non-test verification artifacts that satisfy MISSING_TESTS:
+   * `script:NAME` (npm script), `fixture:NAME` (conformance
+   * fixture), or a doc/report path. Use this when the AC's truth
+   * is established by running a command or by a curated artifact
+   * rather than a vitest assertion.
+   *
+   * @see spec/features/F-052.yaml — introduced 2026-05-19 to
+   *      separate code-tests from other evidence kinds.
+   */
+  readonly evidence_refs?: readonly string[];
   /** Free-form context. */
   readonly notes?: string;
   /** ADR ids backing this AC. */

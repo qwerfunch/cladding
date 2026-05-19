@@ -84,7 +84,20 @@ Each one is real, but each has a condition that softens its day-1 utility:
 
 ### Reading guide for the catalog table
 
-When the table above lists `default severity: warn`, that's the *current* default. Several of those are candidates for future promotion to `error` once the prerequisites land (e.g., `MISSING_TESTS` promotes to error once cladding's own spec adds `test_refs` to its still-empty AC entries — that's a v0.2.3+ task).
+When the table above lists `default severity: warn`, that's the *current* default. Several of those are candidates for future promotion to `error` once the prerequisites land (e.g., `MISSING_TESTS` promotes to error once enough AC entries carry evidence of either kind — see the evidence taxonomy below).
+
+## AC evidence taxonomy — `test_refs` vs `evidence_refs`
+
+v0.2.3 (F-052) split the single `test_refs` field into two complementary fields. The motivation was honesty: cladding's own spec was burying npm-script names, conformance fixtures, and doc paths inside `test_refs`, which then made `UNTESTED_AC` skip them via a `self-dogfood:` / `fixture:` prefix dance. The split makes each AC declare what kind of evidence actually exists.
+
+| field | what belongs here | examples |
+|---|---|---|
+| `test_refs` | executable code-test files | `tests/foo.test.ts`, `__tests__/bar.test.ts` |
+| `evidence_refs` | non-test verification artifacts | `script:stage:type` / `self-dogfood:stage:type` (npm scripts), `fixture:missing-tests` (conformance fixtures), `docs/measurement/2026-05-19-drift-inject.md` (curated reports) |
+
+`MISSING_TESTS` is satisfied by *either* field carrying at least one entry. `UNTESTED_AC` only inspects `test_refs` (since it resolves paths on disk); evidence_refs entries are deliberately out of its scope because their truth is established by running a command or by curated artifact review, not by file existence.
+
+A `status: done` AC with both fields empty trips `MISSING_TESTS warn` (or `error` under `--strict`). The author's job is to declare at least one form of evidence; the detector's job is to never let a `done` AC ship with neither.
 
 ## Adding a detector
 

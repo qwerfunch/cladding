@@ -19,8 +19,7 @@ acceptance_criteria:
     text: The system shall run 12 conformance fixtures (6 stages × pass + fail) and
       assert every stage's signal matches its expected outcome, declaring
       iron_law='L1' on full match.
-    test_refs:
-      - self-dogfood:conformance
+    evidence_refs: [self-dogfood:conformance]
   - id: AC-032
     ears: ubiquitous
     action: isolate fixtures in fresh temp dirs and symlink cladding's node_modules

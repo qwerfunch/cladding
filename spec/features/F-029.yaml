@@ -13,5 +13,4 @@ acceptance_criteria:
     text: The system shall delegate visual regression testing to the project's own
       toolchain (default `npm run visual`), returning a stage_3.3 result with
       the runner's exit code.
-    test_refs:
-      - self-dogfood:stage:visual
+    evidence_refs: [self-dogfood:stage:visual]

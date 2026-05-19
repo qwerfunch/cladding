@@ -11,8 +11,7 @@ acceptance_criteria:
     response: returns a DriftReport that fails only on error-severity findings
     text: The system shall aggregate findings from every registered drift detector
       and fail the stage only when at least one finding has error severity.
-    test_refs:
-      - self-dogfood:stage:drift
+    evidence_refs: [self-dogfood:stage:drift]
   - id: AC-005
     ears: optional
     condition: where a detector is registered with a duplicate name

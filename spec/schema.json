@@ -70,7 +70,16 @@
           "enum": ["ubiquitous", "event", "state", "optional", "unwanted"]
         },
         "text": {"type": "string"},
-        "test_refs": {"type": "array", "items": {"type": "string"}},
+        "test_refs": {
+          "type": "array",
+          "description": "Concrete code-test paths that verify this AC (e.g. tests/foo.test.ts). Restrict to executable test files; non-test evidence belongs in evidence_refs.",
+          "items": {"type": "string"}
+        },
+        "evidence_refs": {
+          "type": "array",
+          "description": "Non-test verification artifacts: npm scripts (script:NAME or self-dogfood:NAME), conformance fixtures (fixture:NAME), docs (path/to.md), or measurement reports. Satisfies the MISSING_TESTS detector alongside test_refs.",
+          "items": {"type": "string"}
+        },
         "notes": {"type": "string"},
         "adr_refs": {
           "type": "array",

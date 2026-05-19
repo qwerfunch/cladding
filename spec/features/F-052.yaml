@@ -1,0 +1,38 @@
+id: F-052
+title: test_refs / evidence_refs split — honest AC verification taxonomy
+status: done
+modules:
+  - spec/schema.json
+  - spec/types.ts
+  - stages/detectors/missing-tests.ts
+  - stages/detectors/README.md
+  - tests/stages/missing-tests.test.ts
+depends_on: [F-022, F-051]
+acceptance_criteria:
+  - id: AC-106
+    ears: ubiquitous
+    action: schema declares evidence_refs alongside test_refs
+    response: spec/schema.json acceptance_criterion definition lists both fields with descriptions distinguishing executable code-tests from non-test verification artifacts
+    text: The acceptance_criterion schema shall declare evidence_refs (non-test verification artifacts) as a sibling of test_refs (executable code-tests).
+    test_refs: [tests/spec/validate.test.ts]
+    evidence_refs: [spec/schema.json]
+  - id: AC-107
+    ears: state
+    condition: while a status=done AC has non-empty evidence_refs but empty test_refs
+    action: MISSING_TESTS does not emit a finding
+    response: detector treats either field as satisfying the verification requirement
+    text: While a status=done AC has non-empty evidence_refs, the MISSING_TESTS detector shall not flag it even when test_refs is empty.
+    test_refs: [tests/stages/missing-tests.test.ts]
+  - id: AC-108
+    ears: ubiquitous
+    action: migrate self-spec non-test refs to evidence_refs
+    response: every AC in spec/features/ whose former test_refs pointed at npm scripts (self-dogfood:…), fixtures (fixture:…), or docs (*.md) carries those refs under evidence_refs; test_refs contains only paths under tests/ or matching *.test.*
+    text: The cladding self-spec shall carry only code-test paths in test_refs; all other verification artifacts shall live under evidence_refs.
+    evidence_refs: [spec/features/F-001.yaml, spec/features/F-051.yaml]
+  - id: AC-109
+    ears: state
+    condition: while both test_refs and evidence_refs are empty for a status=done AC
+    action: MISSING_TESTS emits a warn finding
+    response: message names both fields to communicate the satisfying set
+    text: While a status=done AC declares no verification of any kind, the system shall emit a MISSING_TESTS warn finding whose message references both test_refs and evidence_refs.
+    test_refs: [tests/stages/missing-tests.test.ts]

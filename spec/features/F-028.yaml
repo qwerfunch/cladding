@@ -13,5 +13,4 @@ acceptance_criteria:
     text: The system shall delegate performance budget enforcement to the project's
       own toolchain (default `npm run perf`), returning a stage_3.2 result with
       the runner's exit code.
-    test_refs:
-      - self-dogfood:stage:perf
+    evidence_refs: [self-dogfood:stage:perf]

@@ -14,5 +14,4 @@ acceptance_criteria:
     text: The system shall delegate coverage measurement to the project's own
       toolchain (vitest --coverage / coverage.py / cargo llvm-cov / …) and
       return a stage_2.2 result with the runner's exit code.
-    test_refs:
-      - self-dogfood:stage:cov
+    evidence_refs: [self-dogfood:stage:cov]

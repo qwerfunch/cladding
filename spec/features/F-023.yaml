@@ -19,5 +19,4 @@ acceptance_criteria:
     text: The system shall maintain a vitest suite covering spec parser, validator,
       EARS validator, toolchain detector, and drift registry. `npm test` shall
       exit 0 with all tests passing.
-    test_refs:
-      - self-dogfood:test
+    evidence_refs: [self-dogfood:test]

@@ -13,5 +13,4 @@ acceptance_criteria:
     text: The system shall delegate unit testing to the project's own toolchain
       (vitest / pytest / cargo test / go test / …) and return a stage_2.1 result
       with the runner's exit code.
-    test_refs:
-      - self-dogfood:stage:unit
+    evidence_refs: [self-dogfood:stage:unit]
