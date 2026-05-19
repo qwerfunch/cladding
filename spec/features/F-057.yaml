@@ -1,0 +1,40 @@
+id: F-057
+title: Detector unit tests batch 3 (5 detectors, 100% line coverage each)
+status: done
+modules:
+  - tests/stages/coverage-drop.test.ts
+  - tests/stages/performance-drift.test.ts
+  - tests/stages/evidence-mismatch.test.ts
+  - tests/stages/stale-evidence.test.ts
+  - tests/stages/reference-integrity.test.ts
+depends_on: [F-056]
+acceptance_criteria:
+  - id: AC-133
+    ears: ubiquitous
+    action: cover the two coverage / perf file readers
+    response: tests/stages/coverage-drop.test.ts and tests/stages/performance-drift.test.ts each exercise the artifact-present / absent / malformed / threshold paths; line coverage on both detector sources reaches 100%
+    text: The system shall ship dedicated unit-test files for COVERAGE_DROP and PERFORMANCE_DRIFT, bringing each to 100% line coverage.
+    test_refs:
+      - tests/stages/coverage-drop.test.ts
+      - tests/stages/performance-drift.test.ts
+  - id: AC-134
+    ears: ubiquitous
+    action: cover the two audit-log detectors
+    response: tests/stages/evidence-mismatch.test.ts and tests/stages/stale-evidence.test.ts each exercise the empty / present / artifact-missing / timestamp-old paths via real audit log writes; line coverage on both detector sources reaches 100%
+    text: The system shall ship dedicated unit-test files for EVIDENCE_MISMATCH and STALE_EVIDENCE, bringing each to 100% line coverage.
+    test_refs:
+      - tests/stages/evidence-mismatch.test.ts
+      - tests/stages/stale-evidence.test.ts
+  - id: AC-135
+    ears: ubiquitous
+    action: cover REFERENCE_INTEGRITY with focused tests
+    response: tests/stages/reference-integrity.test.ts exercises depends_on / superseded_by / scenarios.features cross-reference validation with hits and misses; line coverage on the detector source reaches 100%
+    text: The system shall ship tests/stages/reference-integrity.test.ts bringing the REFERENCE_INTEGRITY detector to 100% line coverage.
+    test_refs: [tests/stages/reference-integrity.test.ts]
+  - id: AC-136
+    ears: state
+    condition: while the v0.2.8 batch lands
+    action: raise overall line coverage materially
+    response: vitest --coverage reports overall line coverage rises from 49% (v0.2.7 baseline) to ≥ 55% after this batch
+    text: While the v0.2.8 batch lands, overall line coverage shall rise from the v0.2.7 baseline (49%) to at least 55%, marking the third material step toward the 70% floor.
+    evidence_refs: [CHANGELOG.md]
