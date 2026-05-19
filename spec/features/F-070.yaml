@@ -1,0 +1,35 @@
+id: F-070
+title: Drive-loop integration test against AnthropicTransport (v0.3.0 substep 3)
+status: done
+modules:
+  - src/adapters/sdk/anthropic.ts
+  - tests/integration/loop-real-transport.test.ts
+depends_on: [F-049, F-068, F-069]
+acceptance_criteria:
+  - id: AC-192
+    ears: ubiquitous
+    action: add a test-only seam to swap the default Transport of claudeAnthropicAdapter
+    response: src/adapters/sdk/anthropic.ts exports setDefaultTransportForTesting(t) which swaps the lazy default Transport instance; passing null restores the lazy default
+    text: The system shall expose a test-only seam (setDefaultTransportForTesting) on src/adapters/sdk/anthropic.ts so integration tests can substitute a stubbed Transport without monkey-patching the adapter object.
+    test_refs: [tests/integration/loop-real-transport.test.ts]
+  - id: AC-193
+    ears: state
+    condition: while the drive loop runs with mode=sdk + claude-anthropic and a stubbed Transport
+    action: dispatch through the real selector + adapter chain
+    response: runDriveLoop invokes claudeAnthropicAdapter (selected by env vars) which delegates to the stubbed Transport injected via setDefaultTransportForTesting; the loop reaches ALL_FEATURES_DONE on the happy path
+    text: While the drive loop runs with the sdk + claude-anthropic env routing and a stubbed Transport injected, it shall dispatch through the real selector + adapter chain and reach ALL_FEATURES_DONE on the happy path.
+    test_refs: [tests/integration/loop-real-transport.test.ts]
+  - id: AC-194
+    ears: state
+    condition: while specialist and reviewer return the same identity.name from the real-shape transport
+    action: trigger the reviewer-identity-collision barrier
+    response: runDriveLoop halts with class HUMAN_REQUIRED and detail mentioning "reviewer identity matched implementer" (F-049 AC-086 contract preserved)
+    text: While specialist and reviewer dispatches return the same identity.name from a real-shape transport, the system shall halt the loop with HUMAN_REQUIRED — proving the F-049 AC-086 barrier works against real-LLM data, not only mock data.
+    test_refs: [tests/integration/loop-real-transport.test.ts]
+  - id: AC-195
+    ears: state
+    condition: while the Transport throws during specialist dispatch (e.g. auth fail)
+    action: surface as LLM_UNAVAILABLE halt
+    response: runDriveLoop catches the Transport throw and returns halt.class=LLM_UNAVAILABLE with detail containing the original error message
+    text: While the AnthropicTransport throws during dispatch (auth failure, rate limit, network error), the system shall map the throw to a LLM_UNAVAILABLE halt with the original error message included in the detail.
+    test_refs: [tests/integration/loop-real-transport.test.ts]

@@ -167,12 +167,32 @@ function extractText(content: ReadonlyArray<{type: string; text?: string}>): str
     .trim();
 }
 
-const defaultTransport: Transport = new AnthropicTransport();
+// Lazy + swappable default. Lazy because constructing AnthropicTransport
+// in production runs no SDK code (the SDK loads on first invoke), but
+// avoiding eager allocation keeps test isolation cleaner. Swappable
+// because integration tests need to substitute a stubbed Transport
+// without monkey-patching the adapter object.
+let _defaultTransport: Transport | null = null;
+function getDefaultTransport(): Transport {
+  if (!_defaultTransport) _defaultTransport = new AnthropicTransport();
+  return _defaultTransport;
+}
+
+/**
+ * Test-only seam: swap the default Transport used by
+ * `claudeAnthropicAdapter`. Pass `null` to restore the lazy default.
+ *
+ * Production code MUST NOT call this. v0.2.21 added the seam so
+ * drive-loop integration tests can wire in a stubbed Transport.
+ */
+export function setDefaultTransportForTesting(t: Transport | null): void {
+  _defaultTransport = t;
+}
 
 export const claudeAnthropicAdapter: AgentAdapter = {
   mode: 'sdk',
   name: 'claude-anthropic',
   capabilities: CAPABILITIES,
-  invokeAgent: (persona, ctx) => defaultTransport.invoke(persona, ctx),
-  healthCheck: () => defaultTransport.ready(),
+  invokeAgent: (persona, ctx) => getDefaultTransport().invoke(persona, ctx),
+  healthCheck: () => getDefaultTransport().ready(),
 };
