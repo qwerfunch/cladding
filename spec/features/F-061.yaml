@@ -1,0 +1,36 @@
+id: F-061
+title: Stage runner tests batch 3 — every stage covered
+status: done
+modules:
+  - tests/stages/perf.test.ts
+  - tests/stages/visual.test.ts
+  - tests/stages/uat.test.ts
+depends_on: [F-060]
+acceptance_criteria:
+  - id: AC-149
+    ears: ubiquitous
+    action: cover the two npm-script delegating stages
+    response: tests/stages/perf.test.ts and tests/stages/visual.test.ts each exercise unknown / npm-script-missing / exit 0 / non-zero / ENOENT / non-ENOENT throw / null-exit / explicit-override paths with vi.mock('execa'); line coverage on both stage sources reaches at least 85%
+    text: The system shall ship dedicated unit-test files for stages/perf.ts and stages/visual.ts, bringing each to at least 85% line coverage.
+    test_refs:
+      - tests/stages/perf.test.ts
+      - tests/stages/visual.test.ts
+  - id: AC-150
+    ears: ubiquitous
+    action: cover the UAT stage runner (read-only)
+    response: tests/stages/uat.test.ts exercises spec-absent / audit-log-empty / human-pass-satisfies / tool-only-fails / human-note-does-not-satisfy / status-filter / multi-feature paths via real appendEvidence writes; line coverage reaches at least 85%
+    text: The system shall ship tests/stages/uat.test.ts bringing the stage_4.2 UAT runner to at least 85% line coverage using real audit-log writes (no subprocess).
+    test_refs: [tests/stages/uat.test.ts]
+  - id: AC-151
+    ears: ubiquitous
+    action: close the stage-runner chapter
+    response: every one of the 12 Iron Law stage runners (stage_1.1 through stage_4.2) now carries a dedicated unit-test file at ≥ 75% line coverage; the chapter that opened with v0.2.10 is closed
+    text: The system shall close the stage-runner chapter — every one of the 12 Iron Law stage runners has a dedicated unit-test file at ≥ 75% line coverage.
+    evidence_refs: [CHANGELOG.md]
+  - id: AC-152
+    ears: state
+    condition: while the v0.2.12 batch lands
+    action: raise overall line coverage past 90%
+    response: vitest --coverage reports overall line coverage rises from 84.23% (v0.2.11 baseline) to ≥ 90%
+    text: While the v0.2.12 batch lands, overall line coverage shall rise from the v0.2.11 baseline (84.23%) to at least 90%, crossing the 90% milestone.
+    evidence_refs: [CHANGELOG.md]

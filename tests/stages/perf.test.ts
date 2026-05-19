@@ -1,0 +1,112 @@
+// Cladding · unit tests for stages/perf.ts (stage_3.2)
+//
+// Performance-budget stage. Identical branch tree to stages/smoke.ts:
+// npm-script pre-check + execa subprocess + ENOENT skip + non-ENOENT
+// throw. Project-owned: defaults to `npm run perf`.
+
+import {mkdtempSync, rmSync, writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
+
+vi.mock('execa', () => ({
+  execaSync: vi.fn(),
+}));
+
+const {runPerf} = await import('../../stages/perf.js');
+const execaMod = await import('execa');
+const execaSyncMock = execaMod.execaSync as unknown as ReturnType<typeof vi.fn>;
+
+describe('runPerf (stage_3.2)', () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'clad-perf-stage-'));
+    execaSyncMock.mockReset();
+  });
+  afterEach(() => {
+    rmSync(dir, {recursive: true, force: true});
+  });
+
+  test('unknown language + no override → skipped (exitCode=2)', () => {
+    const r = runPerf({cwd: dir});
+    expect(r.exitCode).toBe(2);
+    expect(r.stage).toBe('stage_3.2');
+    expect(r.stderr).toContain('no perf runner registered');
+    expect(execaSyncMock).not.toHaveBeenCalled();
+  });
+
+  test('npm script missing from package.json → skipped (exitCode=2)', () => {
+    writeFileSync(join(dir, 'package.json'), JSON.stringify({name: 'x'}));
+    const r = runPerf({cwd: dir});
+    expect(r.exitCode).toBe(2);
+    expect(r.stderr).toContain('perf npm script not defined');
+    expect(execaSyncMock).not.toHaveBeenCalled();
+  });
+
+  test('npm script defined + exit 0 → pass=true', () => {
+    writeFileSync(
+      join(dir, 'package.json'),
+      JSON.stringify({name: 'x', scripts: {perf: 'echo ok'}}),
+    );
+    execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
+    expect(runPerf({cwd: dir}).pass).toBe(true);
+  });
+
+  test('npm script defined + non-zero → pass=false with stderr', () => {
+    writeFileSync(
+      join(dir, 'package.json'),
+      JSON.stringify({name: 'x', scripts: {perf: 'false'}}),
+    );
+    execaSyncMock.mockReturnValueOnce({
+      exitCode: 1,
+      stdout: '',
+      stderr: 'regression: p95 +20%',
+    });
+    const r = runPerf({cwd: dir});
+    expect(r.pass).toBe(false);
+    expect(r.stderr).toContain('regression');
+  });
+
+  test('execa ENOENT → exitCode=2 (binary not installed)', () => {
+    writeFileSync(
+      join(dir, 'package.json'),
+      JSON.stringify({name: 'x', scripts: {perf: 'echo'}}),
+    );
+    const err = new Error('spawn ENOENT') as NodeJS.ErrnoException;
+    err.code = 'ENOENT';
+    execaSyncMock.mockImplementationOnce(() => {
+      throw err;
+    });
+    const r = runPerf({cwd: dir});
+    expect(r.exitCode).toBe(2);
+    expect(r.stderr).toContain('not installed');
+  });
+
+  test('execa throws non-ENOENT → re-thrown', () => {
+    writeFileSync(
+      join(dir, 'package.json'),
+      JSON.stringify({name: 'x', scripts: {perf: 'echo'}}),
+    );
+    const err = new Error('EACCES') as NodeJS.ErrnoException;
+    err.code = 'EACCES';
+    execaSyncMock.mockImplementationOnce(() => {
+      throw err;
+    });
+    expect(() => runPerf({cwd: dir})).toThrow('EACCES');
+  });
+
+  test('null exit defaults to 1', () => {
+    writeFileSync(
+      join(dir, 'package.json'),
+      JSON.stringify({name: 'x', scripts: {perf: 'echo'}}),
+    );
+    execaSyncMock.mockReturnValueOnce({exitCode: null, stdout: '', stderr: ''});
+    expect(runPerf({cwd: dir}).exitCode).toBe(1);
+  });
+
+  test('explicit non-npm override bypasses script lookup', () => {
+    execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
+    runPerf({cwd: dir, cmd: 'myperf', args: ['run']});
+    expect(execaSyncMock).toHaveBeenCalledWith('myperf', ['run'], expect.any(Object));
+  });
+});
