@@ -22,9 +22,14 @@ import {readFileSync, existsSync} from 'node:fs';
 import {join} from 'node:path';
 
 import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
+import {
+  SubscribeRequestSchema,
+  UnsubscribeRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
 import {z} from 'zod';
 
 import {loadPersona} from '../agents/loader.js';
+import {subscribeAudit} from '../hitl/audit.js';
 import {loadSpec} from '../spec/load.js';
 import {runDrift} from '../stages/drift.js';
 
@@ -73,15 +78,68 @@ export interface ServerOptions {
  */
 export function buildServer(opts: ServerOptions = {}): McpServer {
   const cwd = opts.cwd ?? '.';
-  const server = new McpServer({
-    name: opts.name ?? 'cladding',
-    version: opts.version ?? '0.2.24',
-  });
+  const server = new McpServer(
+    {
+      name: opts.name ?? 'cladding',
+      version: opts.version ?? '0.2.25',
+    },
+    {
+      // Declare subscribe support so clients can subscribe to
+      // cladding://audit and receive notifications/resources/updated
+      // when new evidence lands. The wire-level handlers themselves
+      // are registered below in registerSubscribeHandlers — the
+      // McpServer high-level wrapper does not include them by
+      // default (verified against SDK 1.29 sources).
+      capabilities: {resources: {subscribe: true}},
+    },
+  );
 
   registerTools(server, cwd);
   registerResources(server, cwd);
   registerPrompts(server, cwd);
+  registerSubscribeHandlers(server);
+  registerAuditNotifier(server, cwd);
   return server;
+}
+
+/**
+ * Adds no-op resources/subscribe + resources/unsubscribe handlers.
+ *
+ * cladding currently has a single connected client per server
+ * (stdio or in-memory pair), so it doesn't need to track per-client
+ * subscription state — every notification fans out to whoever is
+ * listening. The handlers exist solely so the client receives a
+ * successful response instead of `-32601: Method not found` when
+ * it issues a `resources/subscribe` request.
+ */
+function registerSubscribeHandlers(server: McpServer): void {
+  server.server.setRequestHandler(SubscribeRequestSchema, async () => ({}));
+  server.server.setRequestHandler(UnsubscribeRequestSchema, async () => ({}));
+}
+
+/**
+ * Wires the audit observer that fires `notifications/resources/updated`
+ * for `cladding://audit` whenever a new evidence entry lands. This is
+ * what lets an MCP client live-tail the audit log without polling.
+ *
+ * The observer survives for the lifetime of the server. Closing the
+ * server does not auto-dispose it — the cladding process exits
+ * shortly after server.close() in the production CLI path. Tests
+ * dispose explicitly via `clearAuditObserversForTesting()`.
+ *
+ * Only writes whose `cwd` matches the server's project root produce
+ * a notification — other cladding processes appending to *their*
+ * audit log under a different cwd are ignored.
+ */
+function registerAuditNotifier(server: McpServer, cwd: string): void {
+  subscribeAudit((auditCwd) => {
+    if (auditCwd !== cwd) return;
+    // sendResourceUpdated emits the typed
+    // `notifications/resources/updated` notification. Returns a
+    // Promise we don't await — observer hooks are synchronous and
+    // we don't want a slow network send to block the audit append.
+    void server.server.sendResourceUpdated({uri: RESOURCE_URIS.audit});
+  });
 }
 
 function registerTools(server: McpServer, cwd: string): void {
@@ -173,7 +231,7 @@ function registerTools(server: McpServer, cwd: string): void {
     },
     async (args) => {
       const limit = args.limit ?? 50;
-      const eventsPath = join(cwd, '.cladding', 'events.log');
+      const eventsPath = join(cwd, '.cladding', 'events.log.jsonl');
       if (!existsSync(eventsPath)) {
         return {
           content: [{type: 'text', text: JSON.stringify({events: [], note: 'no events log yet'})}],
@@ -226,7 +284,7 @@ function registerResources(server: McpServer, cwd: string): void {
       mimeType: 'application/x-ndjson',
     },
     async () => {
-      const eventsPath = join(cwd, '.cladding', 'events.log');
+      const eventsPath = join(cwd, '.cladding', 'events.log.jsonl');
       const text = existsSync(eventsPath) ? readFileSync(eventsPath, 'utf8') : '';
       return {
         contents: [
@@ -246,7 +304,7 @@ function registerResources(server: McpServer, cwd: string): void {
       mimeType: 'application/x-ndjson',
     },
     async () => {
-      const auditPath = join(cwd, '.cladding', 'audit.log');
+      const auditPath = join(cwd, '.cladding', 'audit.log.jsonl');
       const text = existsSync(auditPath) ? readFileSync(auditPath, 'utf8') : '';
       return {
         contents: [
