@@ -5,6 +5,46 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.10] — Unreleased — Stage runner tests batch 1 · **70% coverage floor cleared** (F-059)
+
+**Milestone**: project line coverage crosses the 70% floor. `clad check --strict` no longer emits the COVERAGE_DROP warn that has been the last `--strict`-mode blocker since v0.2.2. The five-batch coverage push that began at v0.2.5 (26.8% baseline) closes at **72.58%**.
+
+Four stage runners gain dedicated unit tests using the `vi.mock('execa')` pattern proven in v0.2.9: `type` (stage_1.1), `lint` (stage_1.2), `commit` (stage_1.4), and `audit` (stage_4.1). The first three are subprocess-bound polyglot stages; `audit` is pure read-only.
+
+### Added
+
+- `tests/stages/type.test.ts` — 6 tests covering unknown-language / explicit override / exit 0 / non-zero exit / stderr present-or-absent / null-exit-default-1.
+- `tests/stages/lint.test.ts` — 6 tests mirroring the type-runner pattern (the stage shape is identical; only the gate differs).
+- `tests/stages/commit.test.ts` — 6 tests covering clean tree / dirty tree / non-git / git non-zero with empty stderr / ENOENT / non-ENOENT throw.
+- `tests/stages/audit.test.ts` — 5 tests using real `appendEvidence` writes to exercise audit-log empty / clean human evidence / tool-only guard-fail / multi-AC fail / mixed human-and-tool paths.
+- `spec/features/F-059.yaml` — "Stage runner tests batch 1 — 70% coverage floor cleared" (4 ACs, status `done`).
+
+### Notes
+
+- Coverage per targeted stage (v8 reporter, JSON summary):
+  - `stages/type.ts`: 85.7% lines · 90.9% branches
+  - `stages/lint.ts`: 85.7% lines · 90.9% branches
+  - `stages/commit.ts`: 84.2% lines · 83.3% branches
+  - `stages/audit.ts`: 80% lines · 90% branches
+- Per-stage line coverage hits ~80–86% rather than 100%. The uncovered lines are the `isCliEntry` blocks at the bottom of each file — runtime-only CLI bootstraps that aren't reachable from in-process tests.
+- 23 new tests bring the suite to **250 / 250 passing** (227 prior).
+- `clad check --strict` confirmed green on drift after this batch.
+
+### Cumulative coverage progression (5-batch push)
+
+| Batch | Detectors / Stages covered | Line coverage | Delta |
+|---|---|---|---|
+| v0.2.5 baseline | 3 detectors | 26.8% | — |
+| v0.2.6 (detector batch 1) | 8 detectors | 36.36% | +9.5pp |
+| v0.2.7 (detector batch 2) | 10 detectors | 49% | +12.6pp |
+| v0.2.8 (detector batch 3) | 15 detectors | 58.66% | +9.7pp |
+| v0.2.9 (detector batch 4) | 20 detectors | 63.49% | +4.8pp |
+| **v0.2.10 (stage batch 1)** | 20 det + 4 stages | **72.58%** | **+9.1pp** |
+
+### What's still open
+
+- 8 stage runners remain (`arch`, `cov`, `secret`, `unit`, `smoke`, `perf`, `visual`, `uat`). Coverage will continue to rise as each batch lands — the 70% floor is now a sustained property, not a finish line.
+
 ## [0.2.9] — Unreleased — Detector catalog 20/20 at 100% line coverage (F-058)
 
 The final batch of the detector-coverage thread. The last two detectors — `HARDCODED_SECRET` and `ARCHITECTURE_VIOLATION`, both subprocess-bound — gain unit tests using `vi.mock('execa')` to exercise every branch deterministically. **Result: every one of the 20 registered drift detectors (19 Ironclad + 1 cladding extension) now has a dedicated `tests/stages/*.test.ts` file at 100% line coverage.**

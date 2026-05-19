@@ -1,0 +1,37 @@
+id: F-059
+title: Stage runner tests batch 1 — 70% coverage floor cleared
+status: done
+modules:
+  - tests/stages/type.test.ts
+  - tests/stages/lint.test.ts
+  - tests/stages/commit.test.ts
+  - tests/stages/audit.test.ts
+depends_on: [F-058]
+acceptance_criteria:
+  - id: AC-141
+    ears: ubiquitous
+    action: cover the two polyglot type-and-lint stage runners
+    response: tests/stages/type.test.ts and tests/stages/lint.test.ts each exercise unknown-language / explicit override / exit 0 / exit non-zero / stderr-present / stderr-absent / null exit branches with vi.mock('execa'); line coverage on both stage sources reaches at least 85%
+    text: The system shall ship dedicated unit-test files for stages/type.ts and stages/lint.ts, bringing each to at least 85% line coverage by mocking execaSync.
+    test_refs:
+      - tests/stages/type.test.ts
+      - tests/stages/lint.test.ts
+  - id: AC-142
+    ears: ubiquitous
+    action: cover the commit stage runner
+    response: tests/stages/commit.test.ts exercises clean / dirty / non-git / git-non-zero-empty-stderr / ENOENT / non-ENOENT throw branches with vi.mock('execa'); line coverage reaches at least 80%
+    text: The system shall ship tests/stages/commit.test.ts bringing the stage_1.4 commit runner to at least 80% line coverage.
+    test_refs: [tests/stages/commit.test.ts]
+  - id: AC-143
+    ears: ubiquitous
+    action: cover the audit stage runner (no subprocess)
+    response: tests/stages/audit.test.ts exercises empty audit / clean human evidence / tool-only guard-fail / multiple failing ACs / mixed human-and-tool paths via real appendEvidence writes; line coverage reaches at least 80%
+    text: The system shall ship tests/stages/audit.test.ts bringing the stage_4.1 audit runner to at least 80% line coverage using real audit-log writes (no subprocess mocking).
+    test_refs: [tests/stages/audit.test.ts]
+  - id: AC-144
+    ears: state
+    condition: while the v0.2.10 batch lands
+    action: clear the 70% line coverage floor
+    response: vitest --coverage reports overall line coverage rises from 63.49% (v0.2.9 baseline) to ≥ 70%, allowing `clad check --strict` to pass the drift stage without COVERAGE_DROP warning
+    text: While the v0.2.10 batch lands, overall line coverage shall cross the 70% floor — the threshold at which `clad check --strict` ceases to fail on COVERAGE_DROP.
+    evidence_refs: [CHANGELOG.md]
