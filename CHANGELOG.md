@@ -5,6 +5,31 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.8] — Unreleased — Detector unit tests batch 3 (F-057)
+
+Continuation of the v0.2.6/7 coverage push. Five more detectors gain dedicated `tests/stages/*.test.ts` files at **100% line coverage**. Overall project line coverage rises from **49% → 58.66%** (+9.7pp). After three batches, **15 of 20 detectors are covered at 100%**; cumulative gain from v0.2.5 baseline is **+31.9pp**.
+
+### Added
+
+- `tests/stages/coverage-drop.test.ts` — 6 tests covering artifact absent / coverage above/at/below floor / malformed JSON / missing lines field.
+- `tests/stages/performance-drift.test.ts` — 7 tests covering both-files absent / one-side missing / metric regression / within tolerance / multi-metric / division-by-zero guard / malformed JSON.
+- `tests/stages/evidence-mismatch.test.ts` — 5 tests covering audit log absent / artifact present / artifact missing / no-artifact note evidence / multi-missing via real `appendEvidence` writes.
+- `tests/stages/stale-evidence.test.ts` — 5 tests covering audit log absent / fresh / stale (120 days) / mixed-age filtering / unparseable timestamp with controlled ISO stamps.
+- `tests/stages/reference-integrity.test.ts` — 7 tests covering depends_on / superseded_by / scenarios.features cross-references (resolved + broken), multi-broken, and spec-absent.
+- `spec/features/F-057.yaml` — "Detector unit tests batch 3" (4 ACs, status `done`).
+
+### Notes
+
+- Coverage per targeted detector (v8 reporter, JSON summary):
+  - `coverage-drop.ts`: 100% lines · 100% branches
+  - `performance-drift.ts`: 100% lines · 81.8% branches
+  - `evidence-mismatch.ts`: 100% lines · 100% branches
+  - `stale-evidence.ts`: 100% lines · 100% branches
+  - `reference-integrity.ts`: 100% lines · 100% branches
+- 30 new tests bring the suite to **213 / 213 passing** (183 prior).
+- After this batch, **3 detectors lack dedicated tests**: `hardcoded-secret` (subprocess: `npx secretlint`), `architecture-violation` (subprocess: `madge`), and any future cladding extensions. Both subprocess detectors need richer fixture setup or a stubbed `execaSync` — that's batch 4.
+- The `COVERAGE_DROP` warn under `--strict` is still present (58.66% < 70% floor). One more detector batch plus stage-runner tests should clear it.
+
 ## [0.2.7] — Unreleased — Detector unit tests batch 2 (F-056)
 
 Continuation of the v0.2.6 coverage push. Five more detectors gain dedicated `tests/stages/*.test.ts` files, each reaching **100% line coverage** on the detector source. Overall project line coverage rises from **36.36% → 49%** in this batch (+12.6pp). After two batches the suite has covered 10 of the 20 detectors at 100%.
