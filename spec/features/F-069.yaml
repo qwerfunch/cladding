@@ -1,0 +1,44 @@
+id: F-069
+title: AnthropicSdkTransport — first real-LLM dispatch path (v0.3.0 substep 2)
+status: done
+modules:
+  - src/adapters/sdk/anthropic.ts
+  - src/adapters/index.ts
+  - tests/adapters/anthropic.test.ts
+  - tests/adapters/index.test.ts
+  - package.json
+depends_on: [F-049, F-068]
+acceptance_criteria:
+  - id: AC-187
+    ears: ubiquitous
+    action: ship AnthropicTransport as the first real-LLM Transport
+    response: src/adapters/sdk/anthropic.ts exports AnthropicTransport (implements Transport) and claudeAnthropicAdapter (AgentAdapter with mode=sdk + name=claude-anthropic); the dispatch path uses the @anthropic-ai/sdk package via a clientFactory seam that defaults to the real SDK and is overridable for tests
+    text: The system shall ship AnthropicTransport — the first real-LLM Transport implementation — and the claudeAnthropicAdapter that composes it.
+    test_refs: [tests/adapters/anthropic.test.ts]
+  - id: AC-188
+    ears: state
+    condition: while the selector resolves mode=sdk + name=claude-anthropic
+    action: return the claudeAnthropicAdapter
+    response: src/adapters/index.ts adds SDK_REGISTRY with the claude-anthropic entry; selectAdapter() routes mode=sdk to SDK_REGISTRY before falling through to generic-mcp
+    text: While the selector resolves mode=sdk + name=claude-anthropic, the system shall return the claudeAnthropicAdapter — not the generic-mcp fallback.
+    test_refs: [tests/adapters/index.test.ts]
+  - id: AC-189
+    ears: unwanted
+    condition: if AnthropicTransport.invoke is called without an ANTHROPIC_API_KEY
+    action: throw a clear error
+    response: 'invoke throws an Error naming the missing ANTHROPIC_API_KEY env var; ready() returns ready=false with the same reason'
+    text: If AnthropicTransport.invoke is called without an ANTHROPIC_API_KEY in env or constructor opt, the system shall throw an Error naming the missing key — not silently fall back.
+    test_refs: [tests/adapters/anthropic.test.ts]
+  - id: AC-190
+    ears: state
+    condition: while AnthropicTransport.invoke is called with a valid key
+    action: forward persona.body as system message and feature shard as user message
+    response: the SDK call uses persona.body as the system prompt and ctx.featureShard + ctx.guardrails as the user message; the response's text content lands in AgentResult.summary (truncated to 200 chars) and stop_reason lands in AgentResult.notes
+    text: While AnthropicTransport.invoke runs with a valid API key, the system shall forward persona.body as the system message and ctx.featureShard + guardrails as the user message; the SDK response's text content shall surface in AgentResult.summary.
+    test_refs: [tests/adapters/anthropic.test.ts]
+  - id: AC-191
+    ears: ubiquitous
+    action: cache the SDK client across invocations
+    response: AnthropicTransport instantiates the SDK client lazily on the first invoke and reuses it for subsequent calls — the clientFactory is invoked exactly once per Transport instance
+    text: The system shall instantiate the Anthropic SDK client lazily on first dispatch and reuse it for subsequent invocations.
+    test_refs: [tests/adapters/anthropic.test.ts]
