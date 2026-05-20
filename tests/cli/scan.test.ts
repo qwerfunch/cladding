@@ -482,28 +482,74 @@ describe('scanRoot', () => {
   // extractor records every layer pair the import graph never
   // exercised; the candidate set surfaces in architecture.yaml as a
   // reviewer-pruned suggestion list.
-  describe('forbidden_imports candidates (v0.3.25)', () => {
-    test('layer pairs without observed edges become forbidden candidates', () => {
+  describe('forbidden_imports candidates (v0.3.25 + v0.3.31 prune)', () => {
+    test('layer pairs without observed edges become forbidden candidates (when both sides are non-trivial)', () => {
+      // v0.3.31 prune: FORBIDDEN_TRIVIAL_THRESHOLD = 2. Each layer
+      // needs 3+ modules to participate as importer or target.
       seed(dir, {
-        'src/cli/x.ts': "import {a} from '../core/a.js';\nexport const x = a;\n",
-        'src/core/a.ts': 'export const a = 1;\n',
-        'src/ui/u.ts': 'export const u = 2;\n',
+        'src/cli/a.ts': "import {x} from '../core/x.js';\nexport const a = 1;\n",
+        'src/cli/b.ts': 'export const b = 2;\n',
+        'src/cli/c.ts': 'export const c = 3;\n',
+        'src/core/x.ts': 'export const x = 1;\n',
+        'src/core/y.ts': 'export const y = 2;\n',
+        'src/core/z.ts': 'export const z = 3;\n',
+        'src/ui/u.ts': 'export const u = 1;\n',
+        'src/ui/v.ts': 'export const v = 2;\n',
+        'src/ui/w.ts': 'export const w = 3;\n',
       });
       const arch = scanRoot({cwd: dir}).architecture;
-      // cli to core observed → not a candidate. Every other pair
-      // is unobserved → cli to ui, ui to cli, core to cli, core to ui,
-      // ui to core all candidates.
+      // cli→core observed, so cli only retains 'ui' as a candidate.
       expect(arch.forbiddenImportCandidates['cli']).toEqual(['ui']);
-      expect((arch.forbiddenImportCandidates['core'] ?? []).slice().sort()).toEqual(['cli', 'ui']);
+      // core never imported anything; candidates = [cli, ui] sorted.
+      expect(arch.forbiddenImportCandidates['core']).toEqual(['cli', 'ui']);
+    });
+
+    test('trivial layers (≤2 files) drop out of the candidate matrix', () => {
+      // v0.3.31 — layers with 1-2 modules carry no real import
+      // policy. ripgrep HomebrewFormula / fuzz / pkg were noise
+      // sources in the 5차 audit; the prune removes them.
+      seed(dir, {
+        'src/big/a.ts': 'export const a = 1;\n',
+        'src/big/b.ts': 'export const b = 2;\n',
+        'src/big/c.ts': 'export const c = 3;\n',
+        'src/tiny/t.ts': 'export const t = 1;\n',
+      });
+      const arch = scanRoot({cwd: dir}).architecture;
+      expect(arch.forbiddenImportCandidates['big']).toBeUndefined();
+      expect(arch.forbiddenImportCandidates['tiny']).toBeUndefined();
     });
 
     test('all-to-all observed graph leaves no candidates', () => {
       seed(dir, {
         'src/a/x.ts': "import {b} from '../b/b.js';\nexport const x = b;\n",
+        'src/a/y.ts': "import {b} from '../b/b.js';\nexport const y = b;\n",
+        'src/a/z.ts': "import {b} from '../b/b.js';\nexport const z = b;\n",
         'src/b/b.ts': "import {a} from '../a/x.js';\nexport const b = a;\n",
+        'src/b/c.ts': "import {a} from '../a/x.js';\nexport const c = a;\n",
+        'src/b/d.ts': "import {a} from '../a/x.js';\nexport const d = a;\n",
       });
       const arch = scanRoot({cwd: dir}).architecture;
       expect(arch.forbiddenImportCandidates).toEqual({});
     });
+  });
+
+  // v0.3.31 — I18 LAYER_BLACKLIST expansion. HomebrewFormula,
+  // docs_src, formulas, packaging directories used to surface as
+  // layers, polluting the architecture view.
+  test('I18 expansion — HomebrewFormula / docs_src / formulas / packaging are not layers', () => {
+    seed(dir, {
+      'src/core/a.ts': 'export const a = 1;\n',
+      'HomebrewFormula/recipe.rb': '# brew formula\n',
+      'docs_src/intro.md': '# intro\n',
+      'docs_src/example.py': 'def foo(): pass\n',
+      'formulas/build.ts': 'export const f = 1;\n',
+      'packaging/setup.ts': 'export const s = 1;\n',
+    });
+    const names = scanRoot({cwd: dir}).architecture.layers.map((l) => l.name);
+    expect(names).toContain('core');
+    expect(names).not.toContain('HomebrewFormula');
+    expect(names).not.toContain('docs_src');
+    expect(names).not.toContain('formulas');
+    expect(names).not.toContain('packaging');
   });
 });
