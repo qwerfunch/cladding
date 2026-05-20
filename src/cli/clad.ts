@@ -25,6 +25,7 @@ import {runType} from '../stages/type.js';
 import {runUat} from '../stages/uat.js';
 import {runUnit} from '../stages/unit.js';
 import {runVisual} from '../stages/visual.js';
+import {staleSpecification} from '../stages/detectors/stale-specification.js';
 import {loadSpec} from '../spec/load.js';
 import {pulse} from '../ui/pulse.js';
 import {renderPanel} from '../ui/panel.js';
@@ -122,10 +123,44 @@ export async function runDriveCommand(
   process.exit(result.halt.class === 'UNCAUGHT_ERROR' ? 1 : 0);
 }
 
-/** Handler for `clad sync`. Validates the spec and reports feature count. */
-export function runSyncCommand(): void {
+/**
+ * Handler for `clad sync`. Validates the spec and reports feature
+ * count. With `--propose-archive`, runs the STALE_SPECIFICATION
+ * detector and prints the subset of findings whose
+ * `suggestion.action === 'propose-archive'` — the Phased
+ * Decommissioning Tier 2 entry point (ironclad-design 07-ssot-init §5).
+ *
+ * Output format matches the Pulse UI conventions — one note per
+ * candidate, then a summary. Exit 0 either way; the maintainer
+ * decides whether to update the spec.
+ */
+export function runSyncCommand(opts: {proposeArchive?: boolean} = {}): void {
   try {
     const spec = loadSpec();
+    if (opts.proposeArchive) {
+      const findings = staleSpecification.run({cwd: '.'});
+      const proposals = findings.filter(
+        (f) => f.suggestion?.action === 'propose-archive',
+      );
+      if (proposals.length === 0) {
+        pulse('pass', 'sync', `${spec.features.length} features · 0 archive candidates`);
+        process.exit(0);
+        return;
+      }
+      for (const p of proposals) {
+        const args = p.suggestion?.args ?? {};
+        const featureId = String(args.featureId ?? '?');
+        const reason = String(args.reason ?? p.message);
+        pulse('note', `propose-archive · ${featureId}`, reason);
+      }
+      pulse(
+        'pass',
+        'sync',
+        `${spec.features.length} features · ${proposals.length} archive candidate(s)`,
+      );
+      process.exit(0);
+      return;
+    }
     pulse('pass', 'sync', `${spec.features.length} features valid`);
     process.exit(0);
   } catch (err) {
@@ -189,7 +224,7 @@ export function runRouteCommand(prompt: string): void {
  */
 export function createProgram(): Command {
   const program = new Command();
-  program.name('clad').description('Reference Ironclad CLI').version('0.3.18');
+  program.name('clad').description('Reference Ironclad CLI').version('0.3.19');
 
   program
     .command('init')
@@ -216,6 +251,10 @@ export function createProgram(): Command {
   program
     .command('sync')
     .description('Validate spec.yaml against schema and report')
+    .option(
+      '--propose-archive',
+      'list STALE_SPECIFICATION findings whose suggestion.action is propose-archive (Phased Decommissioning Tier 2)',
+    )
     .action(runSyncCommand);
 
   program

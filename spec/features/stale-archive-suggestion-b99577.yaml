@@ -1,0 +1,42 @@
+id: F-b99577
+slug: stale-archive-suggestion
+title: Phased Decommissioning Tier 2 — STALE_SPECIFICATION propose-archive suggestion (v0.3.19)
+status: done
+modules:
+  - src/stages/types.ts
+  - src/stages/detectors/stale-specification.ts
+  - src/cli/clad.ts
+  - src/agents/librarian.md
+depends_on:
+  - F-12d740
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: extend DriftFinding with an optional machine-actionable suggestion field
+    response: 'src/stages/types.ts exposes a new DriftSuggestion interface (action string, optional args record) and adds a readonly optional suggestion?: DriftSuggestion field on DriftFinding; existing detectors that do not populate it are unaffected because the field is optional'
+    text: The system shall extend DriftFinding with an optional machine-actionable suggestion field so detectors can emit remediation hints without breaking the existing severity/message contract that all 24 detectors rely on.
+    test_refs: [tests/stages/stale-specification.test.ts]
+  - id: AC-002
+    ears: ubiquitous
+    action: emit propose-archive suggestions from STALE_SPECIFICATION for three branches
+    response: 'src/stages/detectors/stale-specification.ts attaches suggestion={action: propose-archive, args: {featureId, reason}} to findings for (a) archived_at set with non-archived status, (b) superseded_by set without archived_at, and (c) the newly added Phased Decommissioning Tier 2 trigger (non-final status + non-empty modules[] all vanished from disk); the existing surviving-module branch deliberately stays unsuggested because removal cadence is project-owned'
+    text: The system shall emit propose-archive suggestions from STALE_SPECIFICATION for the three branches whose remediation is unambiguous so clad sync --propose-archive can walk them, while the project-owned removal-cadence branch (archived feature with surviving modules) stays unsuggested.
+    test_refs: [tests/stages/stale-specification.test.ts]
+  - id: AC-003
+    ears: ubiquitous
+    action: add a --propose-archive flag on clad sync that lists Tier 2 candidates
+    response: 'src/cli/clad.ts adds the --propose-archive option to the sync subcommand; runSyncCommand({proposeArchive: true}) runs staleSpecification, filters findings whose suggestion.action === propose-archive, emits one pulse note per candidate with the featureId + reason payload, and prints a summary line; exit 0 regardless of candidate count because the maintainer decides whether to write archived_at'
+    text: The system shall add a --propose-archive flag on clad sync that lists Tier 2 candidates so a maintainer (or the Librarian agent) can review proposals without the CLI making spec changes autonomously.
+    test_refs: [tests/cli/clad.test.ts]
+  - id: AC-004
+    ears: ubiquitous
+    action: filter out findings without a propose-archive suggestion from --propose-archive output
+    response: 'the filter logic in runSyncCommand keeps only findings whose suggestion.action equals propose-archive; the new CLI test feeds two findings (one with no suggestion, one with the propose-archive action) and asserts only the latter appears in the pulse output, verifying the contract'
+    text: The system shall filter out findings without a propose-archive suggestion from --propose-archive output so legacy warn-only findings stay in the regular drift report and do not pollute the Tier 2 workflow.
+    test_refs: [tests/cli/clad.test.ts]
+  - id: AC-005
+    ears: ubiquitous
+    action: document Tier 2 responsibility in the Librarian agent persona
+    response: 'src/agents/librarian.md What-you-do section gains a Tier 2 bullet that names clad sync --propose-archive and clarifies that the agent confirms each candidate before writing archived_at + archive_reason; the never-archive-silently invariant from earlier versions stays intact'
+    text: The system shall document the Tier 2 responsibility in the Librarian agent persona so a future Librarian invocation knows the new entry point and the human-in-the-loop boundary remains explicit.
+    evidence_refs: [src/agents/librarian.md]

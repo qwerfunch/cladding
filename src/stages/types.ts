@@ -27,6 +27,25 @@ export interface CommandStageOptions {
 }
 
 /**
+ * Optional remediation hint attached to a drift finding. Surfaced by
+ * the `clad sync` subcommand when invoked with a filter flag (for
+ * example `--propose-archive` filters findings whose suggestion.action
+ * equals `'propose-archive'`). The `action` string is the contract a
+ * downstream CLI handler keys on; `args` carries action-specific
+ * payload (feature id, reason draft, etc.).
+ *
+ * Phased Decommissioning Tier 2 (ironclad-design 07-ssot-init §5) is
+ * the first consumer — STALE_SPECIFICATION emits `propose-archive`
+ * suggestions and `sync --propose-archive` walks them.
+ */
+export interface DriftSuggestion {
+  /** Stable verb the CLI dispatches on, e.g. `'propose-archive'`. */
+  readonly action: string;
+  /** Action-specific payload, JSON-serializable. */
+  readonly args?: Record<string, unknown>;
+}
+
+/**
  * A single drift finding produced by a detector. Distinct from `StageResult`
  * because one drift run can surface many findings of varying severity.
  *
@@ -43,6 +62,12 @@ export interface DriftFinding {
   readonly line?: number;
   /** Human-readable explanation; one short line preferred. */
   readonly message: string;
+  /**
+   * Optional remediation hint. Detectors populate this when the
+   * finding has a known, machine-actionable resolution path; consumers
+   * (e.g. `clad sync --propose-archive`) filter on `suggestion.action`.
+   */
+  readonly suggestion?: DriftSuggestion;
 }
 
 /** Aggregate drift result. `pass=false` iff any finding has severity `'error'`. */
