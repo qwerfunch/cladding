@@ -20,6 +20,7 @@
 // dependency for offline / CI / no-key environments.
 
 import {getHostMcpServer} from '../../adapters/host/sampling-context.js';
+import type {SamplingCapableServer} from '../../adapters/host/transport.js';
 import type {ScanLlmDispatcher} from './llm.js';
 
 /** Selection input. Mostly mirrors the InitOptions LLM flag. */
@@ -51,14 +52,17 @@ const DEFAULT_MAX_TOKENS = 4096;
 export function selectDispatcher(opts: DispatcherOptions = {}): ScanLlmDispatcher | null {
   if (opts.noLlm) return null;
 
-  // Priority 1 — MCP sampling. v0.3.34 will wire this through the
-  // server.createMessage path; v0.3.33 only reads the registration
-  // so callers can detect that a host-side dispatcher exists.
+  // Priority 1 — MCP sampling. When `clad serve` is running and a
+  // sampling-capable client is connected, the registry holds the
+  // underlying SDK Server; we wrap it in a flat dispatcher that
+  // round-trips through `server.createMessage` to the client. This
+  // lets a host like Claude Code / Cursor / Continue refine the
+  // scan output without cladding holding any API credentials of its
+  // own. The Anthropic-SDK path remains the v0.3.33 fallback for
+  // headless / CI environments.
   const mcp = getHostMcpServer();
   if (mcp) {
-    // TODO(v0.3.34): return createMcpDispatcher(mcp) using the
-    //   server.createMessage sampling API. For now fall through so
-    //   the more reliable SDK path runs when both are available.
+    return createMcpDispatcher(mcp, opts.model);
   }
 
   // Priority 2 — Anthropic SDK direct. Lazy-imported so cold-start
@@ -70,6 +74,39 @@ export function selectDispatcher(opts: DispatcherOptions = {}): ScanLlmDispatche
   }
 
   return null;
+}
+
+/**
+ * Builds a flat prompt → flat text dispatcher backed by the
+ * connected MCP client's sampling API. The host (Claude Code,
+ * Cursor, Continue, …) is what actually owns the model selection
+ * and credentials — cladding only relays the prompt.
+ *
+ * Errors (transport refusal, client unavailable, malformed reply)
+ * propagate to the caller so the deterministic-fallback policy
+ * lives in the call site (renderProjectContextMdWithLlm), not here.
+ *
+ * The `model` option is *advisory* under MCP sampling — the host's
+ * `createMessage` does not always honour the parameter (it routes
+ * to whatever model the user has configured), but we still surface
+ * it for telemetry symmetry with the Anthropic SDK path.
+ */
+function createMcpDispatcher(
+  server: SamplingCapableServer,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _model: string | undefined,
+): ScanLlmDispatcher {
+  return async (prompt) => {
+    const reply = await server.createMessage({
+      messages: [{role: 'user', content: {type: 'text', text: prompt}}],
+      maxTokens: DEFAULT_MAX_TOKENS,
+    });
+    const block = reply.content;
+    if (block && typeof block === 'object' && block.type === 'text' && typeof (block as {text?: unknown}).text === 'string') {
+      return (block as {text: string}).text;
+    }
+    return '';
+  };
 }
 
 /**

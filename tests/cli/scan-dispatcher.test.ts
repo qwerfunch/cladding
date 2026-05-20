@@ -9,6 +9,19 @@ import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
 import {selectDispatcher} from '../../src/cli/scan/dispatcher.js';
 import {setHostMcpServer} from '../../src/adapters/host/sampling-context.js';
+import type {SamplingCapableServer} from '../../src/adapters/host/transport.js';
+
+function fakeSamplingServer(reply: string): SamplingCapableServer {
+  return {
+    async createMessage() {
+      return {
+        model: 'fake-model',
+        role: 'assistant' as const,
+        content: {type: 'text' as const, text: reply},
+      };
+    },
+  };
+}
 
 describe('selectDispatcher', () => {
   let restoreEnv: string | undefined;
@@ -48,5 +61,54 @@ describe('selectDispatcher', () => {
     process.env.ANTHROPIC_API_KEY = 'sk-test-fake';
     const dispatcher = selectDispatcher();
     expect(typeof dispatcher).toBe('function');
+  });
+
+  // v0.3.34 — MCP sampling wins over the Anthropic SDK fallback so
+  // hosted environments (clad serve + Claude Code/Cursor/Continue)
+  // don't need cladding to hold its own API credentials.
+  test('MCP server registration takes priority over ANTHROPIC_API_KEY', async () => {
+    process.env.ANTHROPIC_API_KEY = 'sk-should-not-be-used';
+    setHostMcpServer(fakeSamplingServer('mcp-reply'));
+    const dispatcher = selectDispatcher();
+    expect(typeof dispatcher).toBe('function');
+    const text = await dispatcher!('hello');
+    expect(text).toBe('mcp-reply');
+  });
+
+  test('MCP dispatcher passes the prompt verbatim through createMessage', async () => {
+    let received = '';
+    setHostMcpServer({
+      async createMessage(params) {
+        received = params.messages[0].content.text;
+        return {
+          model: 'fake',
+          role: 'assistant' as const,
+          content: {type: 'text' as const, text: 'ok'},
+        };
+      },
+    });
+    const dispatcher = selectDispatcher();
+    await dispatcher!('the exact prompt');
+    expect(received).toBe('the exact prompt');
+  });
+
+  test('MCP dispatcher returns empty string when the reply has no text block', async () => {
+    setHostMcpServer({
+      async createMessage() {
+        return {
+          model: 'fake',
+          role: 'assistant' as const,
+          content: {type: 'image', data: 'unused'} as unknown as {type: 'text'; text: string},
+        };
+      },
+    });
+    const dispatcher = selectDispatcher();
+    const text = await dispatcher!('hello');
+    expect(text).toBe('');
+  });
+
+  test('--no-llm still wins over an MCP registration', () => {
+    setHostMcpServer(fakeSamplingServer('mcp-reply'));
+    expect(selectDispatcher({noLlm: true})).toBeNull();
   });
 });

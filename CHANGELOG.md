@@ -5,6 +5,29 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.34] — Unreleased — MCP sampling dispatcher closes the chain (F-7fa4a7)
+
+**Hosted refinement, zero credentials.** v0.3.33 left Priority 1 of the dispatcher chain as a stub; v0.3.34 wires it through `server.createMessage`. When `clad serve` runs and a sampling-capable client (Claude Code · Cursor · Continue · …) is connected, the host owns the model + credentials and cladding only relays the prompt. Headless / CI environments keep the Anthropic-SDK direct path as fallback.
+
+### Added
+
+- `src/cli/scan/dispatcher.ts` — `createMcpDispatcher(server)` builds a `(prompt: string) => Promise<string>` adapter that round-trips through the registered `SamplingCapableServer`. `selectDispatcher` Priority 1 now returns this dispatcher whenever `getHostMcpServer()` is non-null
+- Non-text reply blocks (image / audio / tool_use) return an empty string so the dispatcher contract is honoured; the caller detects the empty payload through sentinel parsing and collapses to the deterministic body
+- 4 new dispatcher tests covering: MCP wins over SDK · prompt passed verbatim · empty-string on non-text reply · `--no-llm` still wins over MCP
+
+### Notes
+
+- 734 + 4 new tests = **738/738** passing; lint clean; typecheck clean
+- Deterministic path is byte-identical to v0.3.33 — projects without a connected MCP host and without an API key see no change
+- The `model` parameter is *advisory* under MCP sampling — the host's `createMessage` may route to whatever model the user has configured, but the dispatcher contract surfaces the parameter for telemetry symmetry with the Anthropic SDK path
+
+### Roadmap
+
+- v0.3.35+ — extend LLM refinement to `docs/conventions.md` + `spec/architecture.yaml` so the deeper scan artifacts also benefit from the chain (currently `interpretWithLlm` exists but `init.ts` does not call it)
+- v0.3.35+ — LLM-assisted capability extraction (README headings → `spec/capabilities.yaml`)
+
+---
+
 ## [0.3.33] — Unreleased — scan LLM dispatcher chain + project-context refinement (F-417ff0)
 
 **LLM as enhancement, not fallback.** v0.3.32 shipped the deterministic Why/What/Purpose extractor; v0.3.33 layers LLM refinement on top *when an LLM is reachable*, and collapses to the deterministic body on any failure. The dispatcher selection chain (MCP sampling → Anthropic SDK → null) keeps offline/CI environments fully reproducible while letting hosted environments produce polished prose.
