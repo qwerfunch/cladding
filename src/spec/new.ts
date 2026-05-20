@@ -50,20 +50,26 @@ export interface CreateFeatureResult {
 }
 
 /**
- * Creates a new sharded feature file. Throws when the slug is
- * malformed, when the target file already exists, or when the
- * generated hash collides with an existing feature (1/16M probability;
- * the caller may retry — the second call uses a different timestamp).
+ * Creates a new sharded feature file at `spec/features/<slug>-<hash>.yaml`
+ * where `<hash>` is the 6-char hex tail of the auto-generated id.
  *
- * The hash input bundles the slug + user + hostname + millisecond
- * timestamp + high-resolution nanosecond counter, so simultaneous
- * invocations across two branches produce different hashes by
- * construction.
+ * Why the hash goes into the filename, not just the id: two
+ * developers on separate branches calling `createFeature` with the
+ * same slug must produce different file paths so a `git merge` does
+ * not collide on a single `<slug>.yaml`. The hash is the entropy
+ * that guarantees this — its input bundles slug + user + hostname +
+ * ms timestamp + hrtime, so simultaneous invocations produce
+ * different hashes by construction.
+ *
+ * The slug remains the human-readable anchor: `ls spec/features/auth*`
+ * still groups all auth-related features because `<slug>-` is the
+ * filename prefix.
  *
  * @param opts - {@link CreateFeatureOptions}.
  * @returns The newly-assigned id, the file path, and the slug.
- * @throws Error when `slug` is invalid, the file already exists, or
- *         the hash collides with an existing feature in this cwd.
+ * @throws Error when `slug` is invalid or — extremely rarely — when
+ *         the hash collides with an existing feature in this cwd
+ *         (1/16M probability; the caller may retry).
  */
 export function createFeature(opts: CreateFeatureOptions): CreateFeatureResult {
   const slug = opts.slug;
@@ -76,29 +82,22 @@ export function createFeature(opts: CreateFeatureOptions): CreateFeatureResult {
   const featuresDir = join(cwd, 'spec', 'features');
   mkdirSync(featuresDir, {recursive: true});
 
-  const slugPath = join(featuresDir, `${slug}.yaml`);
-  if (existsSync(slugPath)) {
-    throw new Error(
-      `cladding: spec/features/${slug}.yaml already exists — pick a different slug`,
-    );
-  }
-
   const id = generateFeatureId(slug);
-  // Defensive: the same hash twice in one cladding tree would be a
-  // 1/16M coincidence, but we still check — the caller can retry.
-  const idPath = join(featuresDir, `${id}.yaml`);
-  if (existsSync(idPath)) {
+  const hash = id.slice(2); // strip 'F-' prefix
+  const filePath = join(featuresDir, `${slug}-${hash}.yaml`);
+  if (existsSync(filePath)) {
+    // 1/16M coincidence — the caller can retry with a fresh timestamp.
     throw new Error(
-      `cladding: generated id '${id}' collides with an existing feature file — retry`,
+      `cladding: ${slug}-${hash}.yaml already exists (1/16M hash collision) — retry`,
     );
   }
 
   const title = opts.title ?? slug;
   const status = opts.status ?? 'planned';
   const yaml = renderYaml({id, slug, title, status});
-  writeFileSync(slugPath, yaml, 'utf8');
+  writeFileSync(filePath, yaml, 'utf8');
 
-  return {id, path: slugPath, slug};
+  return {id, path: filePath, slug};
 }
 
 /**

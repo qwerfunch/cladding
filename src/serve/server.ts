@@ -18,7 +18,7 @@
 // @see src/cli/serve.ts — stdio process entry point.
 // @see spec/features/F-073.yaml — server scaffold AC matrix.
 
-import {readFileSync, existsSync} from 'node:fs';
+import {readFileSync, existsSync, statSync} from 'node:fs';
 import {join} from 'node:path';
 
 import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -83,7 +83,7 @@ export function buildServer(opts: ServerOptions = {}): McpServer {
   const server = new McpServer(
     {
       name: opts.name ?? 'cladding',
-      version: opts.version ?? '0.3.9',
+      version: opts.version ?? '0.3.10',
     },
     {
       // Declare subscribe support so clients can subscribe to
@@ -145,53 +145,96 @@ function registerAuditNotifier(server: McpServer, cwd: string): void {
 }
 
 function registerTools(server: McpServer, cwd: string): void {
-  // clad_list_features — list every feature in the active spec,
-  // optionally filtered by status.
+  // clad_list_features — list features in the active spec.
+  // v0.3.10 (F-085) — slug_substring + sort options.
   server.registerTool(
     'clad_list_features',
     {
       title: 'List cladding features',
-      description: 'List features from spec.yaml. Optional statusFilter narrows by status.',
+      description:
+        'List features from spec.yaml. Optionally filter by status or slug substring, ' +
+        'and sort alphabetically (default) or by recent file mtime.',
       inputSchema: {
         statusFilter: z
           .enum(['planned', 'in_progress', 'done', 'archived'])
           .optional()
           .describe('Limit to features with this status'),
+        slugSubstring: z
+          .string()
+          .optional()
+          .describe("Case-insensitive substring match on slug (e.g. 'auth')"),
+        sort: z
+          .enum(['alphabetical', 'recent'])
+          .optional()
+          .describe("'alphabetical' (default — by id) or 'recent' (by file mtime, newest first)"),
       },
     },
     async (args) => {
       const spec = loadSpec(cwd);
-      const filtered = args.statusFilter
-        ? spec.features.filter((f) => f.status === args.statusFilter)
-        : spec.features;
-      const summary = filtered.map((f) => ({id: f.id, title: f.title, status: f.status}));
+      let filtered = spec.features;
+      if (args.statusFilter) {
+        filtered = filtered.filter((f) => f.status === args.statusFilter);
+      }
+      if (args.slugSubstring) {
+        const needle = args.slugSubstring.toLowerCase();
+        filtered = filtered.filter((f) => {
+          const slug = (f as {slug?: string}).slug;
+          return slug ? slug.toLowerCase().includes(needle) : false;
+        });
+      }
+      const ordered =
+        args.sort === 'recent' ? sortByRecentMtime(filtered, cwd) : filtered;
+      const summary = ordered.map((f) => ({
+        id: f.id,
+        slug: (f as {slug?: string}).slug,
+        title: f.title,
+        status: f.status,
+      }));
       return {
         content: [{type: 'text', text: JSON.stringify({total: summary.length, features: summary}, null, 2)}],
       };
     },
   );
 
-  // clad_get_feature — fetch a single feature by id with full detail.
+  // clad_get_feature — fetch a single feature by id OR slug (v0.3.10).
   server.registerTool(
     'clad_get_feature',
     {
       title: 'Get a cladding feature',
-      description: 'Returns one feature record (id, title, status, ACs, modules, depends_on).',
+      description:
+        'Returns one feature record by id (e.g. "F-049" or "F-a3f9c2") or by slug ' +
+        '(e.g. "login-flow"). When a slug matches multiple features, all matches are returned.',
       inputSchema: {
-        id: z.string().describe('Feature id such as "F-049"'),
+        id: z.string().optional().describe('Feature id such as "F-049" or "F-a3f9c2"'),
+        slug: z.string().optional().describe("Feature slug such as 'login-flow'"),
       },
     },
     async (args) => {
-      const spec = loadSpec(cwd);
-      const match = spec.features.find((f) => f.id === args.id);
-      if (!match) {
+      if (!args.id && !args.slug) {
         return {
           isError: true,
-          content: [{type: 'text', text: `feature "${args.id}" not found`}],
+          content: [{type: 'text', text: 'provide either id or slug'}],
         };
       }
+      const spec = loadSpec(cwd);
+      const matches = spec.features.filter((f) => {
+        if (args.id && f.id === args.id) return true;
+        if (args.slug && (f as {slug?: string}).slug === args.slug) return true;
+        return false;
+      });
+      if (matches.length === 0) {
+        const lookup = args.id ? `id "${args.id}"` : `slug "${args.slug}"`;
+        return {
+          isError: true,
+          content: [{type: 'text', text: `no feature with ${lookup} found`}],
+        };
+      }
+      // Multiple matches by slug are surfaced as an array; single
+      // match (the common case) collapses to the bare feature for
+      // backward compatibility with existing tool consumers.
+      const payload = matches.length === 1 ? matches[0] : {matches};
       return {
-        content: [{type: 'text', text: JSON.stringify(match, null, 2)}],
+        content: [{type: 'text', text: JSON.stringify(payload, null, 2)}],
       };
     },
   );
@@ -295,6 +338,42 @@ function registerTools(server: McpServer, cwd: string): void {
       }
     },
   );
+}
+
+/**
+ * Sorts features by the mtime of their backing yaml file under
+ * `spec/features/`, newest first. Used by `clad_list_features` when
+ * the caller requests `sort: 'recent'` to answer "what did we touch
+ * most recently". Features whose backing file cannot be located
+ * (e.g. unsharded inline definition) sink to the end with mtime 0.
+ *
+ * Filename resolution checks both layouts:
+ * - new model: `<slug>-<hash>.yaml`
+ * - legacy: `<id>.yaml`
+ */
+function sortByRecentMtime<T extends {id: string}>(features: readonly T[], cwd: string): T[] {
+  const featuresDir = join(cwd, 'spec', 'features');
+  const withMtime = features.map((f) => {
+    const slug = (f as T & {slug?: string}).slug;
+    const candidates = [
+      slug ? join(featuresDir, `${slug}-${f.id.slice(2)}.yaml`) : null,
+      join(featuresDir, `${f.id}.yaml`),
+    ].filter((p): p is string => p !== null);
+    let mtime = 0;
+    for (const path of candidates) {
+      try {
+        if (existsSync(path)) {
+          mtime = statSync(path).mtimeMs;
+          break;
+        }
+      } catch {
+        // fall through — try next candidate
+      }
+    }
+    return {feature: f, mtime};
+  });
+  withMtime.sort((a, b) => b.mtime - a.mtime);
+  return withMtime.map((x) => x.feature);
 }
 
 function registerResources(server: McpServer, cwd: string): void {
