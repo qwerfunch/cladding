@@ -74,4 +74,36 @@ describe('ID_COLLISION detector', () => {
       rmSync(emptyDir, {recursive: true, force: true});
     }
   });
+
+  // v0.3.12 (F-087) — scenario namespace coverage
+  test('two scenarios with the same id → error finding (F-087)', () => {
+    writeFeature(dir, 'F-001.yaml', {id: 'F-001'});
+    mkdirSync(join(dir, 'spec', 'scenarios'), {recursive: true});
+    writeFileSync(
+      join(dir, 'spec', 'scenarios', 'one.yaml'),
+      'id: S-a3f9c2\ntitle: t\n',
+    );
+    writeFileSync(
+      join(dir, 'spec', 'scenarios', 'two.yaml'),
+      'id: S-a3f9c2\ntitle: t\n',
+    );
+    const findings = idCollision.run({cwd: dir});
+    const scenarioFindings = findings.filter((f) => f.message.includes('scenario'));
+    expect(scenarioFindings).toHaveLength(1);
+    expect(scenarioFindings[0].severity).toBe('error');
+    expect(scenarioFindings[0].message).toContain('S-a3f9c2');
+  });
+
+  test('feature S-xxx and scenario S-xxx coexist NOT triggered (separate namespaces, F-087)', () => {
+    // Features can't have an S- id (schema rejects), but the detector
+    // works on the loaded spec — feature and scenario id namespaces
+    // are checked independently and S- ids only exist in scenarios.
+    writeFeature(dir, 'F-001.yaml', {id: 'F-001'});
+    mkdirSync(join(dir, 'spec', 'scenarios'), {recursive: true});
+    writeFileSync(
+      join(dir, 'spec', 'scenarios', 'one.yaml'),
+      'id: S-a3f9c2\ntitle: t\n',
+    );
+    expect(idCollision.run({cwd: dir})).toEqual([]);
+  });
 });

@@ -306,6 +306,28 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
+  test('clad_create_scenario creates a new sharded scenario file (F-087, v0.3.12)', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const result = await client.callTool({
+        name: 'clad_create_scenario',
+        arguments: {
+          slug: 'checkout-happy-path',
+          title: 'Checkout happy path',
+          features: ['F-001', 'F-a3f9c2'],
+        },
+      });
+      const text = (result.content as Array<{type: string; text: string}>)[0].text;
+      const parsed = JSON.parse(text);
+      expect(parsed.slug).toBe('checkout-happy-path');
+      expect(parsed.id).toMatch(/^S-[a-f0-9]{6}$/);
+      expect(parsed.path).toMatch(/spec\/scenarios\/checkout-happy-path-[a-f0-9]{6}\.yaml$/);
+      expect(result.isError).not.toBe(true);
+    } finally {
+      await cleanup();
+    }
+  });
+
   test('clad_get_events tails the log when it exists', async () => {
     writeFileSync(
       join(dir, '.cladding', 'events.log.jsonl'),
