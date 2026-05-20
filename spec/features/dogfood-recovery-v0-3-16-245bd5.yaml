@@ -1,0 +1,44 @@
+id: F-245bd5
+slug: dogfood-recovery-v0-3-16
+title: Dogfood recovery — migrate F-082~F-090 to hash model + CLAUDE.md maintainer guide (v0.3.16)
+status: done
+modules:
+  - scripts/migrate-dogfood-v0.3.16.mjs
+  - CLAUDE.md
+depends_on:
+  - F-67e33f
+  - F-24062d
+  - F-59f093
+  - F-d7312b
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: migrate the nine spec/features files authored in the v0.3.9-drift period to the hash-based ID model
+    response: 'scripts/migrate-dogfood-v0.3.16.mjs renames F-082.yaml through F-090.yaml to <slug>-<hash6>.yaml, updates the id field to F-<hash6>, inserts a slug field where missing, and rewrites all depends_on cross-references in spec/features/*.yaml; the legacy F-NNN.yaml files are removed after the new files are written'
+    text: The system shall migrate the nine spec/features files authored in the v0.3.9-drift period (F-082 through F-090) to the hash-based ID model so cladding's own spec dogfoods the safety pattern it recommends to external users.
+    test_refs: [tests/integration/own-spec.test.ts]
+  - id: AC-002
+    ears: ubiquitous
+    action: rewrite depends_on cross-references in spec/features/*.yaml to point at the new hash IDs
+    response: 'the migration script walks every spec/features/*.yaml after renaming and replaces each F-082..F-090 occurrence in a depends_on context (list element pattern `- F-NNN`, flow array `[F-NNN, ...]`, or comma-separated) with the new hash id; prose references in title/text/response stay unchanged because they describe historical events'
+    text: The system shall rewrite depends_on cross-references in spec/features/*.yaml to point at the new hash IDs while leaving prose references (title/text/response) intact so the spec stays internally consistent without erasing release history language.
+    evidence_refs: [scripts/migrate-dogfood-v0.3.16.mjs]
+  - id: AC-003
+    ears: ubiquitous
+    action: document the spec-authoring invariant in CLAUDE.md so future maintainers do not repeat the drift
+    response: 'CLAUDE.md captures the cladding-internal authoring rule ("DO NOT create spec/features/F-NNN.yaml by hand — DO use <slug>-<hash6>.yaml") plus the hash-generation one-liner, the version-bump-script reminder, the detector-count-bump reminder, and the plugin-mirror caveat'
+    text: The system shall document the spec-authoring invariant in a maintainer-facing CLAUDE.md so a future AI assistant (or human maintainer) editing cladding does not silently regress to the legacy sequential format by bypassing clad_create_feature.
+    evidence_refs: [CLAUDE.md]
+  - id: AC-004
+    ears: ubiquitous
+    action: author this F-091 feature itself in the hash format as the first honest dogfood example
+    response: 'the F-091 spec file is named dogfood-recovery-v0-3-16-<hash>.yaml with id F-<hash> and a slug field — no F-091.yaml anywhere on disk; serves as a worked example for the CLAUDE.md rule'
+    text: The system shall author the F-091 (dogfood-recovery) spec itself in the hash format as the first honest dogfood example so the CLAUDE.md rule has a worked example sitting next to it.
+    evidence_refs: [spec/features/dogfood-recovery-v0-3-16-245bd5.yaml]
+  - id: AC-005
+    ears: state
+    condition: while a maintainer reviews the spec/features/ directory after v0.3.16
+    action: see slug-prefixed filenames for every post-v0.3.9 feature and sequential F-NNN.yaml only for the legacy v0.3.0~v0.3.8 era
+    response: 'spec/features/ contains 9 hash-format files for the migrated v0.3.9-drift period + 1 hash-format file for F-091 itself + 83 legacy F-001~F-083.yaml files; `ls spec/features/F-08*` matches only F-082-archived references (filename gone), `ls spec/features/spec-id-*` matches the migrated multi-dev arc entries'
+    text: While a maintainer reviews the spec/features/ directory after v0.3.16, the system shall present slug-prefixed filenames for every post-v0.3.9 feature so the dogfood example is consistent with the user-facing recommendation.
+    test_refs: [tests/integration/own-spec.test.ts]

@@ -1,4 +1,5 @@
-id: F-082
+id: F-b61449
+slug: gemini-cli-dogfood
 title: Gemini CLI external-host dogfood report (v0.3.7)
 status: done
 modules:

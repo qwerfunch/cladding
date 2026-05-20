@@ -1,4 +1,4 @@
-id: F-085
+id: F-24062d
 slug: spec-id-hash-filename-and-lookup
 title: Hash-filename + slug-friendly lookup + multi-dev guide (v0.3.10)
 status: done
@@ -6,7 +6,7 @@ modules:
   - src/spec/new.ts
   - src/serve/server.ts
   - docs/spec-ids-multi-dev.md
-depends_on: [F-084]
+depends_on: [F-67e33f]
 acceptance_criteria:
   - id: AC-001
     ears: ubiquitous

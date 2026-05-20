@@ -1,4 +1,4 @@
-id: F-084
+id: F-67e33f
 slug: spec-id-multi-dev-safety
 title: Multi-developer-safe spec ID system — slug filename + hash ID + AC-scope sequential (v0.3.9)
 status: done

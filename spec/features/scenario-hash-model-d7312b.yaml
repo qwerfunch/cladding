@@ -1,4 +1,4 @@
-id: F-087
+id: F-d7312b
 slug: scenario-hash-model
 title: Scenario hash ID model — same multi-dev safety as features (v0.3.12)
 status: done
@@ -8,7 +8,7 @@ modules:
   - src/spec/schema.json
   - src/stages/detectors/slug-conflict.ts
   - src/stages/detectors/id-collision.ts
-depends_on: [F-084, F-085, F-086]
+depends_on: [F-67e33f, F-24062d, F-59f093]
 acceptance_criteria:
   - id: AC-001
     ears: ubiquitous

@@ -1,9 +1,10 @@
-id: F-083
+id: F-6f80e7
+slug: claude-code-dogfood
 title: Claude Code external-host dogfood report (v0.3.8)
 status: done
 modules:
   - docs/dogfood/claude-code-2026-05-20.md
-depends_on: [F-076, F-080, F-082]
+depends_on: [F-076, F-080, F-b61449]
 acceptance_criteria:
   - id: AC-255
     ears: ubiquitous
