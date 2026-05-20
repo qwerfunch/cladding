@@ -1,0 +1,45 @@
+id: F-417ff0
+slug: scan-llm-dispatcher-chain
+title: scan LLM dispatcher chain + project-context refinement (v0.3.33)
+status: done
+modules:
+  - src/cli/scan/dispatcher.ts
+  - src/cli/scan/llm.ts
+  - src/cli/scan/index.ts
+  - src/cli/init.ts
+  - src/cli/clad.ts
+depends_on:
+  - F-aa7197
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: introduce a dispatcher selection chain that picks the highest-priority LLM transport available in the current environment
+    response: 'src/cli/scan/dispatcher.ts exports selectDispatcher(opts) that walks MCP sampling registry first, then falls back to a lazy Anthropic SDK dispatcher when ANTHROPIC_API_KEY (or opts.apiKey override) is set, and returns null when neither is available; the Anthropic SDK is dynamically required so cold-start stays fast for the deterministic majority of clad init invocations'
+    text: The system shall introduce a dispatcher selection chain that picks the highest-priority LLM transport available so projects with an MCP host get sampling refinement, projects with only an API key get direct refinement, and offline projects keep the deterministic fallback.
+    test_refs: [tests/cli/scan-dispatcher.test.ts]
+  - id: AC-002
+    ears: state
+    condition: while opts.noLlm is true
+    action: return null without inspecting MCP registration or process.env
+    response: 'selectDispatcher returns null immediately when opts.noLlm is true; the explicit override beats both the MCP path and the env-variable path so CI invocations are reproducible regardless of host configuration'
+    text: While opts.noLlm is true, the system shall return null without inspecting environment so the --no-llm CLI flag remains a hard override.
+    test_refs: [tests/cli/scan-dispatcher.test.ts]
+  - id: AC-003
+    ears: ubiquitous
+    action: add an LLM refinement path for docs/project-context.md so the Why/What/Purpose sections become polished prose
+    response: 'src/cli/scan/llm.ts exports buildProjectContextPrompt, parseProjectContextResponse, and renderProjectContextMdWithLlm; the prompt carries three labelled sentinels (WHY/WHAT/PURPOSE) the parser splits deterministically; refined output keeps the observed README quote underneath the prose so reviewers can audit inference against ground truth'
+    text: The system shall add an LLM refinement path for docs/project-context.md so the Why/What/Purpose sections become polished prose while the observed README quote stays visible underneath for audit.
+    test_refs: [tests/cli/scan-llm.test.ts]
+  - id: AC-004
+    ears: state
+    condition: while the dispatcher throws or returns an unparsable response
+    action: collapse to the deterministic project-context renderer
+    response: 'renderProjectContextMdWithLlm wraps the dispatcher call in try/catch and any error path (transport failure, missing sentinels, empty reply) returns renderProjectContextMd(ctx, projectName) instead so the resulting artifact is always usable; greenfield (ctx === null) skips the dispatcher entirely'
+    text: While the dispatcher throws or returns an unparsable response, the system shall collapse to the deterministic project-context renderer so the resulting artifact is always usable.
+    test_refs: [tests/cli/scan-llm.test.ts]
+  - id: AC-005
+    ears: ubiquitous
+    action: thread the dispatcher selection through clad init so the LLM path runs end-to-end at scaffolding time
+    response: 'src/cli/init.ts runInit becomes async and calls selectDispatcher({noLlm: opts.noLlm}) once; when the dispatcher is non-null the project-context markdown is awaited from renderProjectContextMdWithLlm, otherwise the synchronous deterministic renderer runs; src/cli/clad.ts runInitCommand awaits runInit so process.exit fires after the artifacts land'
+    text: The system shall thread the dispatcher selection through clad init so the LLM refinement path runs end-to-end at scaffolding time without leaking the await into the test surface or the deterministic-only fallback.
+    evidence_refs: [src/cli/init.ts, src/cli/clad.ts]

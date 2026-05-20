@@ -5,6 +5,35 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.33] — Unreleased — scan LLM dispatcher chain + project-context refinement (F-417ff0)
+
+**LLM as enhancement, not fallback.** v0.3.32 shipped the deterministic Why/What/Purpose extractor; v0.3.33 layers LLM refinement on top *when an LLM is reachable*, and collapses to the deterministic body on any failure. The dispatcher selection chain (MCP sampling → Anthropic SDK → null) keeps offline/CI environments fully reproducible while letting hosted environments produce polished prose.
+
+### Added
+
+- `src/cli/scan/dispatcher.ts` (new) — `selectDispatcher(opts)` walks MCP sampling first, then a lazy Anthropic-SDK direct dispatcher when `ANTHROPIC_API_KEY` (or `opts.apiKey`) is set, then `null`. `opts.noLlm` is a hard override that skips both branches
+- `src/cli/scan/llm.ts` — three new exports for the project-context refinement path:
+  - `buildProjectContextPrompt(ctx, projectName)` — sentinel-labelled prompt (`=== WHY === / === WHAT === / === PURPOSE ===`) with the observed README quote, headings, doc links, and representative interfaces packed underneath
+  - `parseProjectContextResponse(text)` — sentinel splitter, missing section → empty string
+  - `renderProjectContextMdWithLlm(ctx, projectName, dispatcher)` — async; greenfield + dispatcher-null + any error path all return the deterministic body so the artifact is always usable; refined body keeps the raw README quote underneath the prose for audit
+- `src/cli/init.ts` — `runInit` is now `async`, selects a dispatcher once, awaits the refined renderer when available, falls back to the synchronous deterministic renderer otherwise
+- `src/cli/clad.ts` — `runInitCommand` awaits `runInit` so `process.exit` fires after the artifacts land
+- 13 new tests covering the dispatcher chain (5) and the refinement path (8), including greenfield skip, dispatcher-null, and transport-error fallback
+
+### Notes
+
+- 721 + 13 new tests = **734/734** passing; lint clean; typecheck clean
+- Deterministic path is byte-identical to v0.3.32 — projects without an LLM see no change
+- Anthropic SDK is `require`d lazily so the cold-start of `clad init` stays fast for the deterministic-only majority
+- MCP sampling branch is a registration stub in v0.3.33; v0.3.34 wires `server.createMessage` end-to-end. The SDK path runs in the meantime so projects with an API key already get refinement
+
+### Roadmap
+
+- v0.3.34 — MCP sampling dispatcher (`createMessage` through the registered `clad serve` server)
+- v0.3.34+ — LLM-assisted capability extraction (README headings → `spec/capabilities.yaml`)
+
+---
+
 ## [0.3.32] — Unreleased — docs/project-context.md forest-level entry document (F-c8aef8)
 
 **Forest before trees.** Every cladding workspace now ships a `docs/project-context.md` — the *Why / What / Purpose* document. Cladding's earlier surface (`docs/conventions.md` + `spec/architecture.yaml` + `spec/scenarios/`) covered code conventions and layers but never the project's *raison d'être*. v0.3.32 fills that gap with deterministic extraction (README + sibling docs + representative interfaces) when observable, a fill-in template otherwise. AI maintainers joining a cladding-managed project always find the *why* first.

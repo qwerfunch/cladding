@@ -9,11 +9,25 @@ import {describe, expect, test, vi} from 'vitest';
 
 import {
   buildPrompt,
+  buildProjectContextPrompt,
   deterministicInterpret,
   interpretWithLlm,
   parseLlmResponse,
+  parseProjectContextResponse,
+  renderProjectContextMdWithLlm,
 } from '../../src/cli/scan/llm.js';
-import type {ScanResult} from '../../src/cli/scan/index.js';
+import type {ProjectContext, ScanResult} from '../../src/cli/scan/index.js';
+
+function fakeProjectContext(): ProjectContext {
+  return {
+    readmeFirstParagraph: 'A small library that does one focused thing.',
+    readmeHeadings: ['Install', 'Usage', 'API'],
+    docLinks: [{path: 'docs/ARCHITECTURE.md', firstLine: 'Architecture overview.'}],
+    interfaceSignatures: [
+      {layer: 'core', signatures: ['export class Engine {}', 'export interface Step {}']},
+    ],
+  };
+}
 
 function fakeScan(): ScanResult {
   return {
@@ -149,5 +163,97 @@ describe('deterministicInterpret', () => {
     const r = deterministicInterpret(fakeScan());
     expect(r.scenarioFlows.get('core-flow')).toContain('Flow through core/');
     expect(r.scenarioFlows.get('cli-flow')).toContain('Flow through cli/');
+  });
+});
+
+// v0.3.33 — project-context refinement covers the WHY/WHAT/PURPOSE
+// sections of docs/project-context.md. Greenfield (ctx === null) and
+// dispatcher-error paths must both collapse to the deterministic
+// renderer so the artifact is always usable.
+describe('buildProjectContextPrompt', () => {
+  test('includes the three sentinel sections and the observed README quote', () => {
+    const p = buildProjectContextPrompt(fakeProjectContext(), 'demo');
+    expect(p).toContain('=== WHY ===');
+    expect(p).toContain('=== WHAT ===');
+    expect(p).toContain('=== PURPOSE ===');
+    expect(p).toContain('A small library that does one focused thing.');
+    expect(p).toContain('- Install');
+    expect(p).toContain('docs/ARCHITECTURE.md: Architecture overview.');
+  });
+
+  test('substitutes graceful placeholders when context fields are empty', () => {
+    const empty: ProjectContext = {
+      readmeFirstParagraph: null,
+      readmeHeadings: [],
+      docLinks: [],
+      interfaceSignatures: [],
+    };
+    const p = buildProjectContextPrompt(empty, 'demo');
+    expect(p).toContain('(none observed)');
+    expect(p).toContain('(none found)');
+    expect(p).toContain('(none extracted)');
+  });
+});
+
+describe('parseProjectContextResponse', () => {
+  test('splits the three labelled sections', () => {
+    const raw =
+      '=== WHY ===\nA team needed a faster path.\n' +
+      '=== WHAT ===\nLong-running jobs without state loss.\n' +
+      '=== PURPOSE ===\nMake durability the default.\n';
+    const out = parseProjectContextResponse(raw);
+    expect(out.why).toBe('A team needed a faster path.');
+    expect(out.what).toContain('Long-running jobs');
+    expect(out.purpose).toContain('durability');
+  });
+
+  test('missing section yields empty string for that part', () => {
+    const out = parseProjectContextResponse('=== WHY ===\nonly why\n');
+    expect(out.why).toBe('only why');
+    expect(out.what).toBe('');
+    expect(out.purpose).toBe('');
+  });
+});
+
+describe('renderProjectContextMdWithLlm', () => {
+  test('renders refined prose when dispatcher returns labelled response', async () => {
+    const dispatch = vi.fn(async () =>
+      '=== WHY ===\nCoordination cost was eating teams.\n' +
+        '=== WHAT ===\nDeclarative specs replace meetings.\n' +
+        '=== PURPOSE ===\nMake the spec the contract.\n',
+    );
+    const md = await renderProjectContextMdWithLlm(fakeProjectContext(), 'demo', dispatch);
+    expect(md).toContain('with LLM refinement');
+    expect(md).toContain('Coordination cost was eating teams.');
+    expect(md).toContain('Declarative specs replace meetings.');
+    expect(md).toContain('Make the spec the contract.');
+    // The observed README quote stays under the refined prose so
+    // reviewers can audit what the LLM inferred against ground truth.
+    expect(md).toContain('A small library that does one focused thing.');
+    expect(dispatch).toHaveBeenCalledOnce();
+  });
+
+  test('greenfield (ctx=null) skips the dispatcher entirely', async () => {
+    const dispatch = vi.fn(async () => 'should-not-run');
+    const md = await renderProjectContextMdWithLlm(null, 'demo', dispatch);
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(md).toContain('Fill');
+  });
+
+  test('dispatcher=null returns the deterministic body', async () => {
+    const md = await renderProjectContextMdWithLlm(fakeProjectContext(), 'demo', null);
+    expect(md).toContain('A small library that does one focused thing.');
+    // Deterministic body never carries the "with LLM refinement" sigil.
+    expect(md).not.toContain('with LLM refinement');
+  });
+
+  test('dispatcher error collapses to the deterministic body', async () => {
+    const dispatch = vi.fn<(p: string) => Promise<string>>(async () => {
+      throw new Error('network');
+    });
+    const md = await renderProjectContextMdWithLlm(fakeProjectContext(), 'demo', dispatch);
+    expect(md).toContain('A small library that does one focused thing.');
+    expect(md).not.toContain('with LLM refinement');
+    expect(dispatch).toHaveBeenCalledOnce();
   });
 });
