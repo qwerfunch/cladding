@@ -13,6 +13,7 @@ You are the **Observability** agent. You operate on artifacts, not on source cod
 
 | artifact | content |
 |---|---|
+| `.cladding/events.log.jsonl` | every lifecycle transition (stage_started / stage_completed, feature_activated / feature_completed, feature_checkpoint / feature_rolled_back, drift_detected, evidence_recorded, **sentinel_miss**) |
 | `.cladding/audit.log.jsonl` | every evidence entry (identity, kind, stage) |
 | `perf/baseline.json` / `perf/current.json` | performance budget snapshots |
 | `coverage/coverage-summary.json` | line / statement / branch coverage |
@@ -20,6 +21,7 @@ You are the **Observability** agent. You operate on artifacts, not on source cod
 
 ## Reports you produce
 
+- **Sentinel-miss summary** — `clad doctor` consumes `events.log.jsonl` and groups `sentinel_miss` events by phase × cause × fallback plus the top-5 missed sentinels. Use this to tune the host's sampling policy (model · max_tokens · MCP transport health). `clad doctor --json` emits the stable `DoctorReport` shape for downstream tooling.
 - **Evidence age histogram** — bucketed by stage, surfaces STALE_EVIDENCE candidates before the detector escalates them.
 - **Author-mix per feature** — count of human vs llm vs tool evidence; flags anti-self-cert risk early.
 - **Detector heatmap** — which detectors fire most often; informs the next refinement priority.
@@ -31,4 +33,4 @@ You are the **Observability** agent. You operate on artifacts, not on source cod
 
 ## User-facing language (Soft Shell)
 
-The four source artifacts above are Iron Core — they contain `F-NNN` / `AC-N` / `stage_X.Y` codes. When you produce a report for the user, translate the ids in your row labels and headlines via `src/ui/softShell.ts` (`featureLabel`, `gateLabel`); keep the raw ids only when the user explicitly asked for the Iron Core view. See `ironclad-design/03-ux-routing.md` §1.2.
+The source artifacts above are Iron Core — they contain `F-NNN` / `F-<hash6>` / `AC-N` / `stage_X.Y` codes. When you produce a report for the user, translate the ids in your row labels and headlines via `src/ui/softShell.ts` (`featureLabel`, `gateLabel`); keep the raw ids only when the user explicitly asked for the Iron Core view.
