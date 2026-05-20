@@ -5,6 +5,25 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.25] — Unreleased — Scan source-root inference + forbidden_imports candidates (F-c48eb2)
+
+**Closes the `src/`-only limitation in v0.3.24.** External adopters with a TypeScript monorepo, a Python project keeping its package at root, a Go layout (`cmd/` / `internal/` / `pkg/`), or a Rust workspace (`crates/<x>/src/`) all hit the same wall: scan only knew about flat `src/<layer>/`. v0.3.25 introduces manifest-driven source-root inference plus deterministic `forbidden_imports` candidates so the generated `spec/architecture.yaml` no longer ships an empty list.
+
+### Added
+
+- `src/cli/scan-roots.ts` (new) — `inferSourceRoots` reads `package.json#workspaces` (array + `{packages}`), `pyproject.toml` packages list, `Cargo.toml` `[workspace] members` (or single-crate `src/`), and `go.mod` (surfacing `cmd/` + `internal/` + `pkg/`); falls back to directory heuristics (`src/`, `lib/`, `app/`, `pkg/`, `cmd/`, `internal/`, `packages/*/src/`, `apps/*/src/`, `crates/*/src/`). An explicit `--roots a/src,b/src` override skips both phases.
+- `src/cli/scan.ts` `layerOf` now takes the inferred `SourceRoot[]` and prefixes monorepo layers with their workspace name (`<workspaceName>:<layer>`) so two workspaces sharing an internal layer name keep distinct identities.
+- `src/cli/scan.ts` `extractArchitecture` records every unobserved layer-pair under `forbiddenImportCandidates`; `scan-llm.ts` `renderArchitectureYaml` writes them into `spec/architecture.yaml` `forbidden_imports` lists with a comment noting they are reviewer-pruned candidates.
+- `--roots <list>` CLI flag on `clad init` for explicit overrides.
+- 13 new scan-roots tests + 5 new scan tests (3 root inference + 2 forbidden candidates) = 18 additions.
+
+### Notes
+
+- 673 + 18 new tests = **691/691** passing; lint clean; typecheck clean; drift-green at 99 features; bundle 1.1 MB.
+- Flat-`src/` projects (cladding itself included) keep byte-identical layer names — the v0.3.24 dogfood smoke is unaffected.
+- forbidden_imports candidates are coarse — every unobserved pair surfaces — so the comment in architecture.yaml explicitly tells reviewers to prune. v0.3.26 (planned) will let the LLM dispatcher rank them.
+- MCP sampling dispatcher integration (originally scoped to v0.3.25) deferred to v0.3.26. Tier-2 audit progress: (#1) Pulse UI v0.3.23, Existing Project v0.3.24, **scan robustness v0.3.25 (this PR)**.
+
 ## [0.3.24] — Unreleased — `clad init --scan` observed-conventions extractor (F-9b643e)
 
 **Existing Project 시나리오 도입 (ironclad-design 07-ssot-init §3 B).** External projects adopting cladding no longer face an empty spec.yaml + no conventions doc. A single `clad init --scan` walks the source tree, extracts 14 deterministic convention signals plus representative example modules per layer, and writes three artifacts so AI maintainers can keep the project in the same shape the original authors used — same function signatures, same comment style, same module boilerplate.

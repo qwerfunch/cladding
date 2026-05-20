@@ -76,12 +76,14 @@ export function runInitCommand(opts: {
   force?: boolean;
   scan?: boolean;
   noLlm?: boolean;
+  roots?: string;
 }): void {
   const result = runInit({
     projectName: opts.name,
     force: opts.force,
     scan: opts.scan,
     noLlm: opts.noLlm,
+    roots: opts.roots ? opts.roots.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
   });
   for (const c of result.created) pulse('pass', `created ${c}`);
   for (const s of result.skipped) pulse('skip', s);
@@ -297,7 +299,7 @@ export function runRouteCommand(prompt: string): void {
  */
 export function createProgram(): Command {
   const program = new Command();
-  program.name('clad').description('Reference Ironclad CLI').version('0.3.24');
+  program.name('clad').description('Reference Ironclad CLI').version('0.3.25');
 
   program
     .command('init')
@@ -305,7 +307,8 @@ export function createProgram(): Command {
     .option('-n, --name <name>', 'Project name (default: cwd basename)')
     .option('-f, --force', 'Overwrite existing spec.yaml')
     .option('--scan', 'Walk the existing codebase and emit docs/conventions.md + spec/architecture.yaml + scenario stubs (07-ssot-init §3 B)')
-    .option('--no-llm', 'Force the deterministic interpreter for --scan (default until v0.3.25 wires the MCP sampling dispatcher)')
+    .option('--no-llm', 'Force the deterministic interpreter for --scan (default until a later patch wires the MCP sampling dispatcher)')
+    .option('--roots <list>', 'Override scanner source roots, comma-separated (e.g. packages/a/src,packages/b/src). Otherwise inferred from manifests + directory heuristics.')
     .action(runInitCommand);
 
   program

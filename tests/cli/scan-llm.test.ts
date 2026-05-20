@@ -39,6 +39,7 @@ function fakeScan(): ScanResult {
         {name: 'cli', dir: 'cli', moduleCount: 3},
       ],
       importGraph: [{from: 'cli', to: 'core', count: 4}],
+      forbiddenImportCandidates: {core: ['cli']},
     },
     scenarios: [
       {slug: 'core-flow', dir: 'core', moduleCount: 5},
