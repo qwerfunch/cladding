@@ -1,0 +1,34 @@
+id: F-12d740
+slug: atomic-ac-evidence-fanout
+title: Atomic AC evidence fan-out in drive loop (v0.3.18)
+status: done
+modules:
+  - src/drive/loop.ts
+depends_on:
+  - F-098d3b
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: record one evidence entry per acceptance criterion when the drive loop completes a feature
+    response: 'when ready.acceptance_criteria is non-empty, src/drive/loop.ts iterates the AC list and calls appendEvidence once per ac.id with evidence.acId populated; each entry carries identity.author=tool, identity.name=clad-drive, stage=stage_1.3, kind=pass, and a content string referencing the acId'
+    text: The system shall record one evidence entry per acceptance criterion when the drive loop completes a feature so anti-self-cert.checkAc() can attribute gates at AC granularity instead of seeing only unattributed tool/LLM evidence.
+    test_refs: [tests/drive/loop.test.ts]
+  - id: AC-002
+    ears: event
+    condition: when a feature has no acceptance_criteria field or an empty array
+    action: fall back to a single feature-scoped evidence entry
+    response: 'src/drive/loop.ts checks acIds.length === 0 and calls appendEvidence once without an acId argument; the content string keeps the legacy v0.3.17 wording so audit-log consumers tracking that exact string still match'
+    text: When a feature has no acceptance_criteria field or an empty array, the system shall fall back to a single feature-scoped evidence entry so legacy specs without AC declarations stay supported and the audit-log diff is empty for them.
+    test_refs: [tests/drive/loop.test.ts]
+  - id: AC-003
+    ears: ubiquitous
+    action: leave identity.author as tool on every drive-loop evidence entry
+    response: 'every appendEvidence call from src/drive/loop.ts passes identity={author: tool, name: clad-drive}; the test asserts identity.author === tool for all three per-AC entries to lock in the contract that the drive loop never claims human authorship'
+    text: The system shall leave identity.author as tool on every drive-loop evidence entry so anti-self-cert still requires a separate human evidence before stage_4 can clear — the fan-out increases granularity, not authority.
+    test_refs: [tests/drive/loop.test.ts]
+  - id: AC-004
+    ears: ubiquitous
+    action: preserve the existing 17 drive-loop tests through the refactor
+    response: 'tests/drive/loop.test.ts grows from 17 to 20 tests; the original 17 still pass because the fallback branch (no acceptance_criteria) produces byte-identical evidence to the v0.3.17 single-entry behaviour'
+    text: The system shall preserve the existing 17 drive-loop tests through the refactor so the AC fan-out is a strict additive enhancement without behavioural regression for legacy callers.
+    evidence_refs: [tests/drive/loop.test.ts]
