@@ -28,6 +28,7 @@ acceptance_criteria:
     test_refs: [tests/drive/loop.test.ts]
   - id: AC-004
     ears: unwanted
+    condition: if a halt class other than RETRY_THRESHOLD ends the loop
     action: never invoke recordRollback on non-RETRY_THRESHOLD halts
     response: 'src/drive/loop.ts gates the rollback branch on budgetHalt.class === RETRY_THRESHOLD; all other halt classes (MAX_ITERATIONS, WALL_CLOCK, BUDGET_EXCEEDED, transport-specific, ALL_FEATURES_DONE) finish without a rollback event; the test runs the happy path and asserts recordRollback is not called'
     text: If a halt class other than RETRY_THRESHOLD ends the loop, the system shall never invoke recordRollback so the rollback event is reserved for the one transition that genuinely needs the Iron Law fallback.

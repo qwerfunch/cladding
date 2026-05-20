@@ -3,7 +3,8 @@ slug: scan-bfs-walk
 title: scan BFS walk + entrypoint priority + per-directory soft cap (v0.3.28)
 status: done
 modules:
-  - src/cli/scan.ts
+  - src/cli/scan/walker.ts
+  - src/cli/scan/thresholds.ts
 depends_on:
   - F-aee1da
 acceptance_criteria:

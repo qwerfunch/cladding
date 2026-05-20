@@ -1,0 +1,39 @@
+id: F-18e951
+slug: drift-baseline-cleanup
+title: drift baseline cleanup — scan refactor leftovers + AC-004 EARS + core layer (v0.3.36)
+status: done
+modules:
+  - spec/features/scan-bfs-walk-31eeb8.yaml
+  - spec/features/scan-conventions-9b643e.yaml
+  - spec/features/scan-polyglot-94dda4.yaml
+  - spec/features/scan-residuals-aee1da.yaml
+  - spec/features/scan-source-roots-c48eb2.yaml
+  - spec/features/drive-auto-rollback-2de65d.yaml
+  - spec/architecture.yaml
+depends_on:
+  - F-17df0a
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: remap the five v0.3.24-to-v0.3.28 scan feature shards onto the post-refactor src/cli/scan/ tree so MISSING_IMPLEMENTATION and STATUS_DRIFT detectors stop flagging done features as broken
+    response: 'scan-bfs-walk-31eeb8 maps to src/cli/scan/walker.ts + src/cli/scan/thresholds.ts; scan-conventions-9b643e maps to src/cli/scan/conventions.ts + src/cli/scan/index.ts + src/cli/scan/llm.ts + src/cli/init.ts + src/cli/clad.ts; scan-polyglot-94dda4 maps to src/cli/scan/thresholds.ts + src/cli/scan/conventions.ts; scan-residuals-aee1da maps to src/cli/scan/architecture.ts + src/cli/scan/stats.ts + src/cli/init.ts; scan-source-roots-c48eb2 maps to src/cli/scan/roots.ts + src/cli/scan/architecture.ts + src/cli/scan/llm.ts + src/cli/init.ts + src/cli/clad.ts; the v0.3.29 production-grade scan refactor (855-line single file → 12 focused modules) finally has its spec citations fixed'
+    text: The system shall remap the five v0.3.24-to-v0.3.28 scan feature shards onto the post-refactor src/cli/scan/ tree so MISSING_IMPLEMENTATION and STATUS_DRIFT detectors stop flagging done features as broken.
+    evidence_refs: [spec/features/scan-bfs-walk-31eeb8.yaml, spec/features/scan-conventions-9b643e.yaml, spec/features/scan-polyglot-94dda4.yaml, spec/features/scan-residuals-aee1da.yaml, spec/features/scan-source-roots-c48eb2.yaml]
+  - id: AC-002
+    ears: ubiquitous
+    action: add the explicit condition field to F-2de65d.AC-004 so the EARS unwanted-behaviour schema accepts it
+    response: 'spec/features/drive-auto-rollback-2de65d.yaml AC-004 grows a `condition: if a halt class other than RETRY_THRESHOLD ends the loop` line between the ears and action fields; the text already carries the same conditional phrase but the AC_DRIFT detector reads the structured field, not the text; the unwanted-EARS contract that demands a non-empty condition starting with "if" is satisfied'
+    text: The system shall add the explicit condition field to F-2de65d.AC-004 so the EARS unwanted-behaviour schema accepts it.
+    evidence_refs: [spec/features/drive-auto-rollback-2de65d.yaml]
+  - id: AC-003
+    ears: ubiquitous
+    action: declare src/core/ as a foundation-tier layer in spec/architecture.yaml so ARCHITECTURE_FROM_SPEC stops warning about an undeclared directory
+    response: 'spec/architecture.yaml foundation tier (the first nested array of layers) grows a `core` entry alongside spec/agents/events/hitl/optimizer/router/ui; src/core/ houses checkpoint.ts and postmortem.ts — both foundation utilities that the stage layer wraps — so the placement is architecturally correct'
+    text: The system shall declare src/core/ as a foundation-tier layer in spec/architecture.yaml so ARCHITECTURE_FROM_SPEC stops warning about an undeclared directory.
+    evidence_refs: [spec/architecture.yaml]
+  - id: AC-004
+    ears: ubiquitous
+    action: bring the strict-drift baseline to PASS so subsequent PRs surface only the real regressions they introduce
+    response: 'after the three preceding fixes runDrift({strict: true}) returns pass === true with 3 info-severity findings (PERFORMANCE_DRIFT/EVIDENCE_MISMATCH/STALE_EVIDENCE — all opt-in baseline-state detectors that report missing audit log artifacts, not real drift); the noise floor of 13 error + 1 warn findings that had persisted since the v0.3.29 scan refactor is cleared'
+    text: The system shall bring the strict-drift baseline to PASS so subsequent PRs surface only the real regressions they introduce.
+    evidence_refs: [src/stages/drift.ts]

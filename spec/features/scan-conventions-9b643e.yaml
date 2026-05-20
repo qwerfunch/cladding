@@ -3,8 +3,9 @@ slug: scan-conventions
 title: clad init --scan — observed-conventions extractor (v0.3.24)
 status: done
 modules:
-  - src/cli/scan.ts
-  - src/cli/scan-llm.ts
+  - src/cli/scan/conventions.ts
+  - src/cli/scan/index.ts
+  - src/cli/scan/llm.ts
   - src/cli/init.ts
   - src/cli/clad.ts
 depends_on:
