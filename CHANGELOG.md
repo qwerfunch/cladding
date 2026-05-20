@@ -5,6 +5,27 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.28] — Unreleased — Scan BFS walk + entrypoint priority + per-directory soft cap (F-31eeb8)
+
+**4차 audit residual fix (I14).** v0.3.27 left one known hole — react's `compiler/` (1858 files) saturated the DFS walker before it could descend into `packages/`, collapsing the architecture view to a single `compiler` layer. v0.3.28 rewrites the walker around three composable strategies:
+
+1. **BFS queue** — directories visited level by level, siblings sampled before deep subtrees.
+2. **Per-directory soft cap** (`PER_DIR_SOFT_CAP = 50`) — once a single directory contributes 50 files, the walker moves on; `maxFiles` stays the absolute hard cap.
+3. **Entrypoint priority** — within each directory, conventional entry points (`index.*`, `main.*`, `lib.rs`, `mod.rs`, `__init__.py`, `__main__.py`, `Program.cs`, `Main.java`, `App.kt`) sort to the head so layer identity survives when the soft cap truncates the tail.
+
+### Changed
+
+- `src/cli/scan.ts:walk` — DFS recursion → BFS queue + entrypoint sort + per-directory soft cap. New `ENTRYPOINT_NAMES` set + `isEntrypointFile` predicate.
+- 4 new tests in a `walk BFS strategy (v0.3.28)` describe block.
+- `.cladding/audit/scan-real-world-2026-05-20.md` — 4차 audit table appended with the v0.3.28 react rescan.
+
+### Notes
+
+- 709 + 4 new tests = **713/713** passing; lint clean; typecheck clean; drift-green at 101 features; bundle 1.1 MB.
+- **react rescan: 1 → 11 layers**. compiler + packages + scripts + shared + jest-react + react-devtools + flow-typed + internal-test-utils all visible.
+- Other repos in the audit corpus (cobra, ripgrep, django, rails, RxSwiftExt, vuejs/core, vitest) keep their v0.3.27 layer sets — small-tree projects never hit the cap.
+- Audit residuals I11/I12/I13/I14 all closed deterministically across v0.3.26~v0.3.28.
+
 ## [0.3.27] — 2026-05-20 — Scan deterministic residuals — flat _root promotion + workspace direct files + dominant language (F-aee1da)
 
 **3차 audit residuals fix.** v0.3.26 left three known holes — cobra-style flat single-package returned layer 0, react workspace direct files (packages/react/src/ReactAct.js) lost their layer assignment, and polyglot repos reported `language: typescript` because `detectToolchain` always reads package.json first. v0.3.27 closes all three deterministically. The choice (over LLM fallback) preserves reproducibility and avoids adding an external API dependency to the adoption path.
