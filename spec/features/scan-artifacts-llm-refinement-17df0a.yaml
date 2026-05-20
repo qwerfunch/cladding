@@ -1,0 +1,37 @@
+id: F-17df0a
+slug: scan-artifacts-llm-refinement
+title: docs/conventions.md + spec/architecture.yaml LLM refinement (v0.3.35)
+status: done
+modules:
+  - src/cli/scan/llm.ts
+  - src/cli/scan/index.ts
+  - src/cli/init.ts
+depends_on:
+  - F-7fa4a7
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: route the deep scan artifacts through the dispatcher chain so docs/conventions.md and spec/architecture.yaml inherit the same LLM refinement that docs/project-context.md already enjoys
+    response: 'src/cli/scan/llm.ts exports interpretScanWithFallback(scan, dispatcher) that calls interpretWithLlm when a dispatcher is non-null and returns deterministicInterpret on null/throw/sentinel-miss; src/cli/init.ts selects the dispatcher once at the top of runInit and threads the same instance through both interpretScanWithFallback and renderProjectContextMdWithLlm so a hosted environment refines every cladding-authored markdown in a single dispatcher session'
+    text: The system shall route the deep scan artifacts through the dispatcher chain so docs/conventions.md and spec/architecture.yaml inherit the same LLM refinement that docs/project-context.md already enjoys.
+    test_refs: [tests/cli/scan-llm.test.ts]
+  - id: AC-002
+    ears: state
+    condition: while the dispatcher returns a reply that parses to an empty conventions or architecture section
+    action: collapse to the deterministic interpreter
+    response: 'interpretScanWithFallback inspects the parsed sections after interpretWithLlm returns; when sections.conventions is blank once the header is stripped or sections.architecture is whitespace-only the helper returns deterministicInterpret(scan) instead so the resulting spec/architecture.yaml always lists real layer names and docs/conventions.md always carries the observed signals; sentinel-miss is treated identically to a transport error from the caller perspective'
+    text: While the dispatcher returns a reply that parses to an empty conventions or architecture section, the system shall collapse to the deterministic interpreter so the resulting artifacts always carry real observed data.
+    test_refs: [tests/cli/scan-llm.test.ts]
+  - id: AC-003
+    ears: state
+    condition: while the dispatcher throws or selectDispatcher returns null
+    action: deliver the deterministic artifacts unchanged from v0.3.34
+    response: 'when interpretScanWithFallback receives dispatcher === null or the dispatcher invocation throws, the returned InterpretedScan is byte-identical to the v0.3.34 deterministicInterpret output for the same scan input; the regression test asserts mode === deterministic on both branches and the architecture YAML continues to list the observed layer name; the deterministic-only majority of clad init invocations sees no behavioural change'
+    text: While the dispatcher throws or selectDispatcher returns null, the system shall deliver the deterministic artifacts unchanged from v0.3.34 so the no-LLM majority of clad init invocations sees no behavioural change.
+    test_refs: [tests/cli/scan-llm.test.ts]
+  - id: AC-004
+    ears: ubiquitous
+    action: select the dispatcher once at the top of runInit so both refinement paths share a single host session
+    response: 'src/cli/init.ts moves the selectDispatcher call above the shouldWriteScanArtifacts block and passes the same dispatcher instance to interpretScanWithFallback and renderProjectContextMdWithLlm; the MCP sampling and Anthropic SDK paths therefore make at most two host round-trips per init (scan artifacts + project context) rather than instantiating separate dispatchers, and the noLlm override evaluates exactly once'
+    text: The system shall select the dispatcher once at the top of runInit so both refinement paths share a single host session and the noLlm override evaluates exactly once.
+    evidence_refs: [src/cli/init.ts]

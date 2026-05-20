@@ -5,6 +5,29 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.35] — Unreleased — scan artifacts (conventions + architecture) inherit LLM refinement (F-17df0a)
+
+**One dispatcher, every artifact.** v0.3.33 refined `docs/project-context.md`. v0.3.34 wired MCP sampling as Priority 1 of the chain. v0.3.35 extends the same chain to the deeper scan artifacts — `docs/conventions.md` and `spec/architecture.yaml` — so a hosted refinement session touches every cladding-authored markdown in one round-trip, not just the forest-level entry document.
+
+### Added
+
+- `src/cli/scan/llm.ts` — `interpretScanWithFallback(scan, dispatcher)` wraps `interpretWithLlm` with the same deterministic-fallback policy as `renderProjectContextMdWithLlm`: dispatcher-null / throw / empty-section all collapse to `deterministicInterpret(scan)` so the resulting artifacts always carry real observed data
+- `src/cli/init.ts` — dispatcher is now selected once at the top of `runInit` and the same instance is threaded into both `interpretScanWithFallback` and `renderProjectContextMdWithLlm`, so a hosted environment makes at most two round-trips per init regardless of which artifacts are written
+- 5 new tests covering: dispatcher-null path · LLM success · dispatcher throw · empty-architecture sentinel-miss · header-only conventions sentinel-miss
+
+### Notes
+
+- 738 + 5 new tests = **743/743** passing; lint clean; typecheck clean
+- Deterministic path is byte-identical to v0.3.34 — projects without an LLM see no change
+- The sentinel-miss guard (`!interp.architectureYaml.trim()`) means a malformed LLM reply collapses to the deterministic body instead of writing a broken `spec/architecture.yaml` — `clad sync` continues to load the file successfully
+
+### Roadmap
+
+- v0.3.36+ — LLM-assisted capability extraction (README headings → `spec/capabilities.yaml`)
+- v0.3.36+ — sentinel-miss telemetry surfacing in `events.log` so adopters can tune their host's sampling policy
+
+---
+
 ## [0.3.34] — Unreleased — MCP sampling dispatcher closes the chain (F-7fa4a7)
 
 **Hosted refinement, zero credentials.** v0.3.33 left Priority 1 of the dispatcher chain as a stub; v0.3.34 wires it through `server.createMessage`. When `clad serve` runs and a sampling-capable client (Claude Code · Cursor · Continue · …) is connected, the host owns the model + credentials and cladding only relays the prompt. Headless / CI environments keep the Anthropic-SDK direct path as fallback.
