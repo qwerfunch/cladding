@@ -1,0 +1,28 @@
+id: F-1c9166
+slug: readme-capability-sync
+title: README capability headline sync to v0.3.36 — five missing capabilities (v0.3.37)
+status: done
+modules:
+  - README.md
+  - README.ko.md
+depends_on:
+  - F-18e951
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: refresh the README capability headline so the five v0.3.32-to-v0.3.36 cycles (docs/project-context.md · scan LLM dispatcher chain · MCP sampling dispatcher · scan-artifact LLM refinement · strict-drift PASS baseline) are surfaced to external adopters
+    response: 'README.md and README.ko.md both replace the v0.3.13/589-tests headline with v0.3.36/743-tests and grow five new mid-paragraph capability bullets — `clad init` writes docs/project-context.md · scan LLM dispatcher chain · MCP sampling priority · one-dispatcher refinement across conventions+architecture+project-context · strict-drift PASS first since v0.3.29; the feature/scenario counts move from 87/2 to 110/2; the CLI block grows --scan/--no-scan/--no-llm flags on clad init and a clad serve line; no other content (Level table · Status & roadmap · Spec Reference · Vocabulary · Related) is touched in this cycle'
+    text: The system shall refresh the README capability headline so the five v0.3.32-to-v0.3.36 cycles are surfaced to external adopters and the test/feature counts catch up to develop HEAD.
+    evidence_refs: [README.md, README.ko.md]
+  - id: AC-002
+    ears: ubiquitous
+    action: keep the two READMEs in lockstep (English SSoT, Korean mirror) per the release-time README sync rule
+    response: 'every English headline change has a matching Korean headline change in the same PR; the version string (v0.3.36 develop), test count (743/743), feature count (110), CLI block (--scan/--no-scan/--no-llm + clad serve), and new capability bullets render identically in both files; no Korean file is left a release behind'
+    text: The system shall keep the two READMEs in lockstep so external adopters reading either language see the same capability surface.
+    evidence_refs: [README.md, README.ko.md]
+  - id: AC-003
+    ears: ubiquitous
+    action: leave historic content (Level table · Status & roadmap · Spec Reference pin · Vocabulary · Related) untouched so the README diff stays scoped to capability-headline drift rather than a full README rewrite
+    response: 'the diff touches only the Status paragraph (line 32), one cell of the Spec layout table (feature count 47 → 110), and the CLI block; the L0-to-L22 Level table is preserved verbatim because those rows are point-in-time conformance snapshots, not running capability state; the v0.1.0 Status & roadmap section is preserved because it describes the planned graduation milestones, not current state'
+    text: The system shall leave historic content untouched so the README diff stays scoped to capability-headline drift rather than a full README rewrite.
+    evidence_refs: [README.md, README.ko.md]
