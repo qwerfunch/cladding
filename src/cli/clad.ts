@@ -26,6 +26,7 @@ import {runUat} from '../stages/uat.js';
 import {runUnit} from '../stages/unit.js';
 import {runVisual} from '../stages/visual.js';
 import {staleSpecification} from '../stages/detectors/stale-specification.js';
+import {findLatestCheckpoint, recordCheckpoint, recordRollback} from '../core/checkpoint.js';
 import {loadSpec} from '../spec/load.js';
 import {pulse} from '../ui/pulse.js';
 import {renderPanel} from '../ui/panel.js';
@@ -169,6 +170,58 @@ export function runSyncCommand(opts: {proposeArchive?: boolean} = {}): void {
   }
 }
 
+/**
+ * Handler for `clad checkpoint <featureId>`. Phase 1 of the
+ * Iron Law backbone — records a `feature_checkpoint` event capturing
+ * git HEAD + spec digest. No working-tree mutation. The maintainer
+ * keeps the option to actually freeze the state with a normal git
+ * commit; cladding only stamps the audit-log entry.
+ *
+ * @see iron-law.md §2.5
+ */
+export function runCheckpointCommand(featureId: string): void {
+  if (!featureId) {
+    pulse('fail', 'checkpoint', 'feature id required (e.g. clad checkpoint F-001)');
+    process.exit(2);
+    return;
+  }
+  const cp = recordCheckpoint('.', featureId);
+  const head = cp.gitHead ? cp.gitHead.slice(0, 12) : '(no git)';
+  pulse('pass', `checkpoint · ${featureId}`, `head=${head} digest=${cp.specDigest.slice(0, 12)}`);
+  process.exit(0);
+}
+
+/**
+ * Handler for `clad rollback <featureId>`. Phase 1 records the
+ * `feature_rolled_back` transition and prints the maintainer-runnable
+ * git command for the latest checkpoint. Cladding does **not** run the
+ * checkout itself — the host's branch policy and dirty-working-tree
+ * state may demand a non-default strategy, so the decision stays with
+ * the maintainer. A later phase may take this over for the drive loop.
+ */
+export function runRollbackCommand(featureId: string, opts: {reason?: string} = {}): void {
+  if (!featureId) {
+    pulse('fail', 'rollback', 'feature id required (e.g. clad rollback F-001)');
+    process.exit(2);
+    return;
+  }
+  const cp = findLatestCheckpoint('.', featureId);
+  if (!cp) {
+    pulse('fail', `rollback · ${featureId}`, 'no prior checkpoint recorded');
+    process.exit(1);
+    return;
+  }
+  recordRollback('.', featureId, cp, opts.reason);
+  const head = cp.gitHead ? cp.gitHead.slice(0, 12) : '(no git)';
+  pulse('pass', `rollback · ${featureId}`, `target head=${head} ts=${cp.timestamp}`);
+  if (cp.gitHead) {
+    process.stdout.write(`Run: git checkout ${cp.gitHead}\n`);
+  } else {
+    process.stdout.write('No git head pinned — restore spec.yaml manually from VCS history.\n');
+  }
+  process.exit(0);
+}
+
 /** Handler for `clad check`. Runs every Iron Law stage; exits with worst code. */
 export function runCheckCommand(opts: {internal?: boolean; strict?: boolean}): void {
   const stages = [
@@ -224,7 +277,7 @@ export function runRouteCommand(prompt: string): void {
  */
 export function createProgram(): Command {
   const program = new Command();
-  program.name('clad').description('Reference Ironclad CLI').version('0.3.19');
+  program.name('clad').description('Reference Ironclad CLI').version('0.3.20');
 
   program
     .command('init')
@@ -263,6 +316,17 @@ export function createProgram(): Command {
     .option('--internal', 'show stage codes (`stage_1.1`) instead of names (`Type`)')
     .option('--strict', 'promote warn-severity drift findings to errors (CI / pre-publish gate)')
     .action(runCheckCommand);
+
+  program
+    .command('checkpoint <featureId>')
+    .description('Record a checkpoint event pinning git HEAD + spec digest for the feature (iron-law §2.5)')
+    .action(runCheckpointCommand);
+
+  program
+    .command('rollback <featureId>')
+    .description('Record a rollback event and print the maintainer-runnable git command for the latest checkpoint')
+    .option('-r, --reason <reason>', 'optional free-text reason recorded on the event payload')
+    .action(runRollbackCommand);
 
   program
     .command('panel')

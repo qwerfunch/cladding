@@ -5,6 +5,26 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.20] — Unreleased — Iron Law backbone Phase 1: checkpoint event infrastructure (F-c2c996)
+
+**Third Tier-1 audit fix, Phase 1 of 3.** ironclad-design 02-iron-law §2.5 ("Integrity Checkpoint & Rollback") names the Iron Law backbone: every `work` should pin a SSoT + code snapshot, and a failed self-healing cycle should fall back to it. Cladding had **none** of that — the prior conversation grep showed `rollback`/`checkpoint`/`snapshot`/`stash`/`post-mortem` all at zero hits. v0.3.20 lays the *event* surface; later patches (v0.3.21, v0.3.22) hook the drive loop and Librarian post-mortem on top.
+
+### Added
+
+- `src/core/checkpoint.ts` (new) — exposes `recordCheckpoint(cwd, featureId)`, `findLatestCheckpoint(cwd, featureId)`, and `recordRollback(cwd, featureId, target, reason?)`. The checkpoint tuple holds `{featureId, gitHead, specDigest, timestamp}`; `computeSpecDigest` is a deterministic SHA-256 over `spec.yaml` + sorted `spec/features/*.yaml` + sorted `spec/scenarios/*.yaml` contents and relative paths.
+- `src/events/log.ts` — `EventType` union grows from 6 to 8 entries with `feature_checkpoint` and `feature_rolled_back`. Existing 6 entries stay in the same order so jsonl consumers do not regress.
+- `src/cli/clad.ts` — two new subcommands: `clad checkpoint <featureId>` records and prints the head/digest summary; `clad rollback <featureId> --reason <reason>` records the rollback event and prints the maintainer-runnable `git checkout` for the latest checkpoint. The verb list expands from 8 to 10 in stable insertion order.
+- `tests/core/checkpoint.test.ts` (new, 11 unit tests) + 5 new CLI tests covering exit codes, mock dispatch, and the createProgram-verb count.
+
+### Phase 1 boundary
+
+Cladding **does not** execute the actual `git checkout` or spec restore. Branch policy varies — force-with-lease vs reset --hard vs revert commits — and the right choice depends on the working-tree state. v0.3.20 records the transition and surfaces the git command; the maintainer (or, in v0.3.21+, the drive loop) runs it.
+
+### Notes
+
+- 609 + 17 new tests = **626/626** passing; lint clean; typecheck clean; drift-green at 94 features; bundle 1.1 MB.
+- Tier-1 audit progress: (1) ✓ Atomic AC fan-out (v0.3.18), (2) ✓ Phased Decommissioning Tier 2 (v0.3.19), **(3) ⚙ Auto-rollback Phase 1 (this PR)**, (3.2) drive-loop auto-rollback queued, (3.3) Librarian post-mortem queued.
+
 ## [0.3.19] — Unreleased — Phased Decommissioning Tier 2 (F-b99577)
 
 **Second of three Tier-1 fixes** from the 2026-05-20 ironclad-design audit. `STALE_SPECIFICATION` had been emitting warn-only findings since v0.1.x — the maintainer (or anyone reading `clad check`) saw the noise but the path to fixing it was manual. The structural reason was that `DriftFinding` exposed only `severity` + `message`; there was no field for a machine-actionable remediation hint. v0.3.19 introduces that field (`suggestion`) and uses it to wire the first Phased Decommissioning Tier 2 (ironclad-design 07-ssot-init §5) entry point.

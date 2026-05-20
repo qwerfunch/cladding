@@ -1,0 +1,41 @@
+id: F-c2c996
+slug: checkpoint-events
+title: Iron Law backbone Phase 1 — feature_checkpoint / feature_rolled_back events + clad checkpoint / rollback (v0.3.20)
+status: done
+modules:
+  - src/core/checkpoint.ts
+  - src/events/log.ts
+  - src/cli/clad.ts
+depends_on:
+  - F-b99577
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: extend the EventType union with feature_checkpoint and feature_rolled_back
+    response: 'src/events/log.ts EventType union grows from 6 entries to 8 by adding `feature_checkpoint` and `feature_rolled_back`; existing 6 entries stay in the same order so jsonl audit-log consumers do not regress'
+    text: The system shall extend the EventType union with feature_checkpoint and feature_rolled_back so the lifecycle of an Iron Law Phase 1 rollback (ironclad-design 02-iron-law §2.5) lives in the same events.log.jsonl stream as the other 6 lifecycle transitions.
+    test_refs: [tests/core/checkpoint.test.ts]
+  - id: AC-002
+    ears: ubiquitous
+    action: record a feature_checkpoint event with git HEAD plus spec digest plus timestamp
+    response: 'src/core/checkpoint.ts recordCheckpoint() calls readGitHead (which shells out to git rev-parse HEAD, returning null when the workspace is not a repo or git is unavailable) and computeSpecDigest (SHA-256 over a sorted list of spec.yaml plus spec/features/*.yaml plus spec/scenarios/*.yaml file contents and their relative paths); the function appends exactly one event with payload {feature, git_head, spec_digest} and returns the Checkpoint tuple'
+    text: The system shall record a feature_checkpoint event with git HEAD plus spec digest plus timestamp so the maintainer can later identify the precise working-tree state to restore without depending on git reflog alone.
+    test_refs: [tests/core/checkpoint.test.ts]
+  - id: AC-003
+    ears: ubiquitous
+    action: read the latest checkpoint for a feature by walking events.log in reverse
+    response: 'src/core/checkpoint.ts findLatestCheckpoint() iterates readEvents from the end, returns the first feature_checkpoint event whose payload.feature matches the supplied featureId, and reconstructs the Checkpoint tuple from event.payload; multiple checkpoints for the same feature all persist on disk but the latest wins on lookup; returns null when no matching event exists'
+    text: The system shall read the latest checkpoint for a feature by walking events.log in reverse so historical checkpoints stay accessible in the raw audit-log while the common case (most recent) is one tail scan.
+    test_refs: [tests/core/checkpoint.test.ts]
+  - id: AC-004
+    ears: ubiquitous
+    action: record a feature_rolled_back event referencing the target checkpoint
+    response: 'src/core/checkpoint.ts recordRollback() appends one feature_rolled_back event with payload {feature, to_git_head, to_spec_digest, to_checkpoint_at, reason}; reason is null when omitted; the function returns the Event so callers can echo the id'
+    text: The system shall record a feature_rolled_back event referencing the target checkpoint so the rollback transition is auditable and the lineage from checkpoint to rollback survives across sessions.
+    test_refs: [tests/core/checkpoint.test.ts]
+  - id: AC-005
+    ears: ubiquitous
+    action: expose clad checkpoint and clad rollback CLI subcommands
+    response: 'src/cli/clad.ts adds two commander subcommands — `clad checkpoint <featureId>` calls runCheckpointCommand and exits 2 on missing arg, otherwise records and exits 0; `clad rollback <featureId> --reason <reason>` calls runRollbackCommand which fails with exit 1 when no prior checkpoint exists, otherwise records and prints `Run: git checkout <head>` (or a manual-restore note when no git head was pinned); the createProgram verb list expands from 8 to 10 in stable insertion order'
+    text: The system shall expose clad checkpoint and clad rollback CLI subcommands so a maintainer (or a later auto-rollback driver) has an entry point to the event surface without touching the working tree — cladding records the transition and prints the git command, but the actual checkout stays with the maintainer because branch policy varies.
+    test_refs: [tests/cli/clad.test.ts]
