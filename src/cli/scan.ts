@@ -116,17 +116,50 @@ export interface ScanStats {
   readonly sourceRoot: string;
 }
 
-const DEFAULT_EXTENSIONS: readonly string[] = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.py'];
-const DEFAULT_IGNORE: readonly string[] = [
-  'node_modules',
-  'dist',
-  'build',
-  '.cladding',
-  '.git',
-  'coverage',
-  '.next',
-  '.nuxt',
+// v0.3.26 polyglot expansion (audit 2026-05-20 P0 fix). Until this
+// patch the scanner saw .ts/.js/.py only — Go/Rust/Java/C# repos
+// produced an empty `architecture.yaml`. The list below covers the
+// nine languages cladding advertises plus a few common companions
+// (TSX/JSX, mjs, Kotlin scripts, Elixir, C++). Single-bundle
+// philosophy stays intact: no external parsers, just file walking.
+const DEFAULT_EXTENSIONS: readonly string[] = [
+  // JS/TS family
+  '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs',
+  // Polyglot 9 languages
+  '.py', '.go', '.rs', '.java', '.kt', '.kts',
+  '.cs', '.rb', '.php', '.swift',
+  // Common additions
+  '.ex', '.exs', '.scala', '.dart',
+  '.cpp', '.cc', '.cxx', '.hpp', '.h',
 ];
+
+// Tooling output + language caches that should never enter the walk.
+// Peer directories (tests/, docs/, examples/, ...) move to
+// {@link LAYER_BLACKLIST} so the walker still sees their files
+// (so testLocation detection works) but groupByLayer / proposeScenarios
+// skip them when building the architecture view.
+const DEFAULT_IGNORE: readonly string[] = [
+  // Tooling output
+  'node_modules', 'dist', 'build', '.cladding', '.git', 'coverage',
+  '.next', '.nuxt', 'target', 'vendor', '.bundle',
+  // Language runtimes / caches
+  'venv', '.venv', '__pycache__', '.pytest_cache', '.mypy_cache',
+  '.gradle', '.idea', '.vscode',
+];
+
+// Peer directories scan walks but does NOT treat as architectural
+// layers. The audit (2026-05-20 P0) found commander, express,
+// fastapi, and similar repos surfacing tests/, docs/, examples/ as
+// if they were layers — they're not. Files inside still feed
+// testLocation, docstring counts, etc., but groupByLayer hides them.
+// Case-insensitive: `Tests/`, `Playground/`, etc. also blacklist.
+const LAYER_BLACKLIST: ReadonlySet<string> = new Set([
+  'tests', 'test', '__tests__', 'spec', 'specs',
+  'docs', 'doc', 'examples', 'example', 'sample', 'samples',
+  'typings', 'e2e', 'integration', '__fixtures__', 'fixtures',
+  'benchmark', 'benchmarks', 'bench',
+  'playground', 'playgrounds', 'demo', 'demos',
+]);
 const DEFAULT_MAX_FILES = 500;
 
 /**
@@ -190,7 +223,12 @@ function walk(
     }
     for (const e of entries) {
       if (out.length >= maxFiles) return;
-      if (ignore.has(e) || e.startsWith('.')) continue;
+      // Ignore-match is case-insensitive for tooling caches; peer
+      // directories (tests/, docs/) are no longer ignored at walk
+      // time — they reach groupByLayer where LAYER_BLACKLIST hides
+      // them from the architecture view but lets the convention
+      // analyzer still see *.test.* and friends.
+      if (ignore.has(e) || ignore.has(e.toLowerCase()) || e.startsWith('.')) continue;
       const abs = join(dir, e);
       let s;
       try {
@@ -250,6 +288,11 @@ function groupByLayer(
   const map = new Map<string, SourceFile[]>();
   for (const f of files) {
     const layer = layerOf(f.relPath, roots);
+    if (LAYER_BLACKLIST.has(layer.toLowerCase())) continue;
+    // Monorepo workspace layers (`<ws>:<inner>`) — exclude when the
+    // inner segment matches the blacklist (`<ws>:tests`, …).
+    const colonIdx = layer.indexOf(':');
+    if (colonIdx > 0 && LAYER_BLACKLIST.has(layer.slice(colonIdx + 1).toLowerCase())) continue;
     if (!map.has(layer)) map.set(layer, []);
     map.get(layer)!.push(f);
   }
@@ -365,29 +408,92 @@ function detectNamingConstants(files: readonly SourceFile[]): Conventions['namin
   return 'mixed';
 }
 
+/**
+ * Counts function declarations and matching doc blocks across the
+ * file set. v0.3.26 expands the language matrix beyond JS/TS to
+ * Python (def + triple-quoted strings), Go (func + leading //
+ * block), Rust (fn + /// block), Swift (func + ///), Java/Kotlin
+ * (JavaDoc-shape /** block), and Ruby (def + leading # block).
+ * Heuristics stay regex-only — no AST — so a function with a doc
+ * block counts on co-presence in the same file, not strict
+ * adjacency. Matches the existing TSDoc ratio behaviour and keeps
+ * single-bundle runtime free of language-specific parsers.
+ */
 function detectDocBlockRatio(files: readonly SourceFile[]): number {
   let funcs = 0;
   let docBlocks = 0;
   for (const f of files) {
-    if (!isJsLike(f.relPath)) continue;
-    funcs += (f.content.match(/^\s*(?:export\s+)?(?:async\s+)?function\s+\w+/gm) ?? []).length;
-    docBlocks += (f.content.match(/\/\*\*[\s\S]*?\*\//g) ?? []).length;
+    if (isJsLike(f.relPath) || /\.(java|kt|kts|cpp|cc|cxx|hpp|h|cs|scala|dart)$/.test(f.relPath)) {
+      funcs += (f.content.match(/^\s*(?:export\s+)?(?:async\s+)?function\s+\w+/gm) ?? []).length;
+      funcs += (f.content.match(/^\s*(?:public|private|protected|internal|static|fun|def)\s+[\w<>]+\s+\w+\s*\(/gm) ?? []).length;
+      docBlocks += (f.content.match(/\/\*\*[\s\S]*?\*\//g) ?? []).length;
+    } else if (/\.pyi?$/.test(f.relPath)) {
+      funcs += (f.content.match(/^\s*(?:async\s+)?def\s+\w+/gm) ?? []).length;
+      docBlocks += (f.content.match(/"""[\s\S]*?"""/g) ?? []).length;
+      docBlocks += (f.content.match(/'''[\s\S]*?'''/g) ?? []).length;
+    } else if (/\.go$/.test(f.relPath)) {
+      funcs += (f.content.match(/^\s*func\s+(?:\([^)]+\)\s+)?\w+/gm) ?? []).length;
+      // godoc convention: at least one `//` line directly above the func.
+      docBlocks += (f.content.match(/(?:^\s*\/\/[^\n]*\n)+\s*func\s+/gm) ?? []).length;
+    } else if (/\.rs$/.test(f.relPath)) {
+      funcs += (f.content.match(/^\s*(?:pub(?:\([^)]+\))?\s+)?(?:async\s+)?fn\s+\w+/gm) ?? []).length;
+      docBlocks += (f.content.match(/(?:^\s*\/\/\/[^\n]*\n)+/gm) ?? []).length;
+    } else if (/\.swift$/.test(f.relPath)) {
+      funcs += (f.content.match(/^\s*(?:public|private|internal|fileprivate|open)?\s*func\s+\w+/gm) ?? []).length;
+      docBlocks += (f.content.match(/(?:^\s*\/\/\/[^\n]*\n)+/gm) ?? []).length;
+    } else if (/\.rb$/.test(f.relPath)) {
+      funcs += (f.content.match(/^\s*def\s+\w+/gm) ?? []).length;
+      // RDoc convention: leading `#` block above the def.
+      docBlocks += (f.content.match(/(?:^\s*#[^\n]*\n)+\s*def\s+/gm) ?? []).length;
+    }
   }
   if (funcs === 0) return 0;
   return Math.min(1, docBlocks / funcs);
 }
 
+/**
+ * Counts doc-comment tags across the file set. Recognises the union
+ * of the conventions cladding's `docs/code-style.md` policy already
+ * names (JSDoc/TSDoc, Java/Kotlin JavaDoc-shape) plus Python's
+ * Google-style headings and rustdoc / godoc sentinels added in v0.3.26.
+ */
 function detectDocTagCounts(files: readonly SourceFile[]): Readonly<Record<string, number>> {
   const tags = ['@param', '@returns', '@throws', '@example', '@see', '@deprecated'];
   const counts: Record<string, number> = {};
   for (const tag of tags) {
     let c = 0;
     for (const f of files) {
-      if (!isJsLike(f.relPath)) continue;
+      if (!isJsLike(f.relPath) && !/\.(java|kt|kts|cpp|cs|scala|dart)$/.test(f.relPath)) continue;
       c += (f.content.match(new RegExp(tag, 'g')) ?? []).length;
     }
     counts[tag] = c;
   }
+  // Python Google-style docstring sections — surface separately so the
+  // conventions doc names the right vocabulary instead of forcing
+  // `@param` onto a Python codebase.
+  for (const section of ['Args:', 'Returns:', 'Raises:', 'Examples:']) {
+    let c = 0;
+    for (const f of files) {
+      if (!/\.pyi?$/.test(f.relPath)) continue;
+      c += (f.content.match(new RegExp(section, 'g')) ?? []).length;
+    }
+    if (c > 0) counts[section] = c;
+  }
+  // godoc + rustdoc sentinels.
+  let goDeprecated = 0;
+  let rustErrors = 0;
+  let rustSafety = 0;
+  for (const f of files) {
+    if (/\.go$/.test(f.relPath)) {
+      goDeprecated += (f.content.match(/Deprecated:/g) ?? []).length;
+    } else if (/\.rs$/.test(f.relPath)) {
+      rustErrors += (f.content.match(/^\s*\/\/\/\s*#\s*Errors/gm) ?? []).length;
+      rustSafety += (f.content.match(/^\s*\/\/\/\s*#\s*Safety/gm) ?? []).length;
+    }
+  }
+  if (goDeprecated > 0) counts['Deprecated:'] = goDeprecated;
+  if (rustErrors > 0) counts['# Errors'] = rustErrors;
+  if (rustSafety > 0) counts['# Safety'] = rustSafety;
   return counts;
 }
 

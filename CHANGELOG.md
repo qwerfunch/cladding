@@ -5,6 +5,25 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.26] — Unreleased — Polyglot scan + layer blacklist + per-language docstrings (F-94dda4)
+
+**P0 fix from the 2026-05-20 real-world OSS audit** (`.cladding/audit/scan-real-world-2026-05-20.md`). v0.3.25 walked only .ts/.js/.py so Go (gin, cobra), Rust (ripgrep), Java/Kotlin (Signal-Android), Ruby (rails), C# / PHP / Swift / Dart projects all produced empty `architecture.yaml`. v0.3.26 closes the language gap and removes the layer noise the audit also surfaced.
+
+### Added / Changed
+
+- `src/cli/scan.ts` `DEFAULT_EXTENSIONS` — now walks .ts/.tsx/.js/.jsx/.mjs/.cjs/.py/**.go/.rs/.java/.kt/.kts/.cs/.rb/.php/.swift**/.ex/.exs/.scala/.dart/.cpp/.cc/.cxx/.hpp/.h. cladding's polyglot 9-language promise is now real.
+- `src/cli/scan.ts` `LAYER_BLACKLIST` (new) — peer directories (tests, docs, examples, typings, e2e, integration, __fixtures__, fixtures, benchmark/s, bench, playground/s, demo/s, samples) walked for conventions but excluded from the architecture view. Case-insensitive (matches `Tests/`, `Playground/`).
+- `src/cli/scan.ts` `detectDocBlockRatio` + `detectDocTagCounts` — six language families: JS/TS/Java/Kotlin/C++/C#/Scala/Dart (classic `/** */`), Python (triple-quoted + Args:/Returns:/Raises:/Examples:), Go (leading `//` block + godoc `Deprecated:`), Rust (`///` + `# Errors` / `# Safety`), Swift (`///`), Ruby (leading `#` block).
+- `tests/cli/scan.test.ts` — 11 new tests across 3 describe blocks (polyglot extensions · layer blacklist · multi-language docblock).
+- `.cladding/audit/scan-real-world-2026-05-20.md` — 2차 audit table appended with the v0.3.26 rescan deltas.
+
+### Notes
+
+- 691 + 11 new tests = **702/702** passing; lint clean; typecheck clean; drift-green at 99 features; bundle 1.1 MB.
+- Rescan verification: gin 0 → **7 layers**, ripgrep 0 → **6 layers**, Signal-Android 3 layers (Kotlin recognised), rails 6 layers (Ruby + monorepo). Flat-`src/` cladding-self regression: byte-identical.
+- OSS reuse review: tree-sitter (polyglot AST) deferred to v0.4+ plugin — wasm/native dependency conflicts with cladding's single-bundle philosophy. dependency-cruiser / linguist-js / semgrep all evaluated and declined; current heuristics + new language matrix carries us until external dogfood signals tree-sitter need.
+- Known residuals (queued for v0.3.27): cobra-style flat single-package layer 0; workspace `<ws>/src/*.js` direct files miss layer assignment (react); language detection still package.json-biased so polyglot repos report `language: typescript`.
+
 ## [0.3.25] — Unreleased — Scan source-root inference + forbidden_imports candidates (F-c48eb2)
 
 **Closes the `src/`-only limitation in v0.3.24.** External adopters with a TypeScript monorepo, a Python project keeping its package at root, a Go layout (`cmd/` / `internal/` / `pkg/`), or a Rust workspace (`crates/<x>/src/`) all hit the same wall: scan only knew about flat `src/<layer>/`. v0.3.25 introduces manifest-driven source-root inference plus deterministic `forbidden_imports` candidates so the generated `spec/architecture.yaml` no longer ships an empty list.
