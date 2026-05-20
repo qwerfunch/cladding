@@ -72,24 +72,56 @@ export async function runServeCommand(opts: {cwd?: string}): Promise<void> {
  * deterministic interpreter (v0.3.24 default until v0.3.25 wires the
  * MCP sampling dispatcher).
  */
-export async function runInitCommand(opts: {
-  name?: string;
-  force?: boolean;
-  scan?: boolean;
-  noLlm?: boolean;
-  roots?: string;
-}): Promise<void> {
+export async function runInitCommand(
+  intentTokens: readonly string[] | undefined,
+  opts: {
+    name?: string;
+    force?: boolean;
+    scan?: boolean;
+    noLlm?: boolean;
+    roots?: string;
+  },
+): Promise<void> {
+  const intent = intentTokens && intentTokens.length > 0 ? intentTokens.join(' ').trim() : undefined;
   const result = await runInit({
     projectName: opts.name,
     force: opts.force,
     scan: opts.scan,
     noLlm: opts.noLlm,
     roots: opts.roots ? opts.roots.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
+    intent,
   });
   for (const c of result.created) pulse('pass', `created ${c}`);
   for (const s of result.skipped) pulse('skip', s);
   for (const p of result.proposals ?? []) pulse('note', 'proposal', p);
-  pulse('note', 'init done', `language: ${result.language}`);
+  const modeDetail = result.onboardingMode ? `language: ${result.language} · mode: ${result.onboardingMode}` : `language: ${result.language}`;
+  pulse('note', 'init done', modeDetail);
+
+  // v0.3.43 — surface LLM-generated clarifying questions so the AI
+  // host (or a direct CLI user) sees the next-step prompts that
+  // refine the spec. The questions are calibrated to product-owner
+  // vocabulary — no implementation jargon.
+  if (result.clarifyingQuestions && result.clarifyingQuestions.length > 0) {
+    process.stdout.write('\n💡 다음 정보가 있으면 더 정확한 스펙이 됩니다:\n');
+    for (const [i, q] of result.clarifyingQuestions.entries()) {
+      process.stdout.write(`   ${i + 1}. ${q}\n`);
+    }
+    process.stdout.write('\n');
+  } else if (!intent) {
+    // Greenfield + no intent + direct CLI user — emit a gentle hint
+    // suggesting the intent-driven path so they can re-run with more
+    // context. The orchestrator persona normally asks for intent
+    // BEFORE invoking `clad init`, so this hint fires mostly for
+    // power users who skip the chat flow.
+    const greenfield = result.created.some((c) => c === 'docs/conventions.md');
+    if (greenfield) {
+      process.stdout.write('\n💡 Tip: 더 정확한 스캐폴드를 원하시면\n');
+      process.stdout.write('   clad init <project description>\n');
+      process.stdout.write('   예: clad init 결제 SaaS for B2B\n');
+      process.stdout.write('   기존 seeds 는 .cladding/scan/*.proposal 로 분기됩니다.\n\n');
+    }
+  }
+
   process.exit(0);
 }
 
@@ -303,12 +335,17 @@ export function createProgram(): Command {
   program.name('clad').description('Reference Ironclad CLI').version('0.3.40');
 
   program
-    .command('init')
-    .description('Scaffold a cladding workspace in the current directory')
+    .command('init [intent...]')
+    .description(
+      'Scaffold a cladding workspace. Pass a free-text project description as positional argument ' +
+        '(e.g. `clad init 결제 SaaS for B2B`) to drive intent-aware onboarding — the LLM dispatcher then ' +
+        'produces domain-aware capabilities/architecture/project-context plus product-level follow-up questions. ' +
+        'Bare `clad init` keeps the v0.3.42 behaviour (greenfield seeds, or observed scan when ≥3 source files exist).',
+    )
     .option('-n, --name <name>', 'Project name (default: cwd basename)')
     .option('-f, --force', 'Overwrite existing spec.yaml')
     .option('--scan', 'Force-walk the existing codebase. Default auto-detects (≥3 source files trigger scan). Use --no-scan to skip even when source is present.')
-    .option('--no-llm', 'Force the deterministic interpreter for --scan (default until a later patch wires the MCP sampling dispatcher)')
+    .option('--no-llm', 'Force the deterministic interpreter (skip the LLM dispatcher chain). Intent text falls back to a deterministic quote in project-context.md.')
     .option('--roots <list>', 'Override scanner source roots, comma-separated (e.g. packages/a/src,packages/b/src). Otherwise inferred from manifests + directory heuristics.')
     .action(runInitCommand);
 

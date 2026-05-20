@@ -5,6 +5,41 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — intent-aware init with high-quality onboarding refinement (F-56abaa)
+
+**Init becomes the observation phase.** Previous cycles made `clad init` write toolchain-default seeds on greenfield. This cycle makes init capture the **user's project intent** as a positional argument and turn it into domain-aware artifacts that **exceed what the user explicitly stated**. `clad init 결제 SaaS for B2B` produces a project-context body, capabilities list, architecture layers, F-001 title, and 2-3 product-level follow-up questions — all calibrated for the payment domain. The LLM is told to ask GOAL/AUDIENCE/SCOPE questions (e.g., "주 사용자가 개인? 사업자?") not technical jargon (e.g., never "PCI-DSS SAQ?"). The orchestrator persona now MUST ask the user for intent before bare `clad init` on a greenfield workspace.
+
+### Added
+
+- `src/cli/scan/intent-onboarding.ts` (new module) — senior-architect-tone LLM prompt builder with 6 sentinel sections (`ONBOARDING_MODE`, `PROJECT_CONTEXT_MD`, `CAPABILITIES_YAML`, `ARCHITECTURE_YAML`, `SPEC_SEED_TITLE`, `CLARIFYING_QUESTIONS`); response parser; clarifying-question extractor that accepts bullets/numbers/raw lines and caps at 5; `interpretOnboardingWithFallback(intent, observed, dispatcher, cwd?)` orchestrates the call with deterministic fallback and emits `sentinel_miss` events under a new `phase: 'onboarding'` value
+- `src/cli/init.ts` — `InitOptions.intent?: string` field; when present the onboarding pass runs before `spec.yaml` write so the F-001 title is intent-derived and the greenfield seed bodies for capabilities + architecture + project-context get replaced by the LLM-refined bodies; `conventions.md` stays toolchain-default because conventions are language-specific
+- `src/cli/clad.ts` — `init [intent...]` variadic positional (no `--intent` keyword needed, no quotes required); joins tokens with space; `runInitCommand` accepts the new positional and forwards as `intent`
+- `src/cli/clad.ts` — clarifying-question CLI hint: when the onboarding pass returns 1-5 questions they print as a numbered list under "💡 다음 정보가 있으면 더 정확한 스펙이 됩니다:"
+- `src/cli/clad.ts` — greenfield + no-intent hint: when `clad init` is run bare on a greenfield workspace via direct CLI, the handler prints a "💡 Tip" suggesting `clad init <description>` for higher quality
+- `src/agents/orchestrator.md` — 6th invocation principle "Init policy (의무)" declares the orchestrator MUST ask the user for intent before bare `clad init` on a greenfield workspace and forwards the answer as the positional argument; bare `clad init` on existing projects stays valid (observed scan path)
+- 32 new tests: 18 in `tests/cli/intent-onboarding.test.ts` (prompt shape, six-sentinel parser, mode normalisation, question extraction with bullet/number/raw shapes, deterministic fallback variants, `interpretOnboardingWithFallback` LLM-success / per-artifact fallback / total fallback / no-cwd paths) + 1 in `tests/cli/clad.test.ts` (variadic positional joins into intent + clarifying-questions hint renders) + 13 indirect via updated `runInitCommand` signatures
+
+### Changed
+
+- `skills/init/SKILL.md` — adds an "Intent-aware onboarding (v0.3.43+)" section that opens the doc; documents the positional intent path with no-quote examples; clarifies that AI orchestrators MUST ask before bare init on greenfield (per orchestrator principle 6); examples block now leads with intent-driven invocations
+- `tests/cli/clad.test.ts` — `runInitCommand` signature is now `(intentTokens, opts)`; three existing tests updated to pass `undefined` as the first argument; `expect(runInitMock).toHaveBeenCalledWith(...)` gains `intent: undefined` + explicit `roots: undefined` entries
+
+### Notes
+
+- 798 + 32 new tests = **830/830** passing; lint clean; typecheck clean
+- `--scan` flag stays — orthogonal to positional intent. `clad init 결제 SaaS --scan` combines the two signals
+- `--no-llm` keeps deterministic fallback path; intent text still routes but lands as a verbatim quote in `project-context.md`
+- LLM prompt design explicitly bans expert jargon questions: BAD examples like "PCI-DSS SAQ?" / "Webhook idempotency single-flight vs distributed lock?" / "SSR vs SSG vs ISR?" are listed alongside GOOD product-level examples ("주 사용자가 개인? 사업자?", "한국 시장? 글로벌?", "실시간 결과 vs 배치 OK?"). The user does NOT need to know technical jargon to answer
+- `sentinel_miss` telemetry gains `phase: 'onboarding'` — `clad doctor` now surfaces onboarding misses alongside scan + project-context misses
+- Deterministic mode emits no clarifying questions (their calibration depends on the LLM); the CLI hint suggesting `clad init <description>` only fires on bare greenfield init, not on the deterministic fallback path
+
+### Roadmap
+
+- Next cycle: Q&A iteration loop. The clarifying questions returned by init are currently CLI hints only — orchestrator persona should consume them and run a follow-up `clad_refine` (MCP tool or `clad refine` verb) that takes a user answer and updates spec/docs incrementally
+- Release window — three unreleased cycles queued post-v0.3.40 (`v0.3.41` doc cleanup + `v0.3.42` greenfield seeds + `v0.3.43` intent-aware init); release timing is the maintainer's call
+
+---
+
 ## [Unreleased] — greenfield seeds for scan-derived artifacts (F-bd07d7)
 
 **Half-finished workspaces become whole.** Before v0.3.42, `clad init` on a brand-new project (no code yet) wrote `spec.yaml` + `docs/project-context.md` template + `spec/scenarios/README.md` but **skipped** `docs/conventions.md` / `spec/architecture.yaml` / `spec/capabilities.yaml` because the auto-scan threshold (≥3 source files) was not met. Personas downstream had to carry an "if absent" branch in their guidance. This cycle closes the gap by writing all three artifacts as **toolchain-default seeds** at init time — TypeScript / Python / Go / Rust / Ruby / Java each get idiomatic defaults — and the existing `writeArtifact` divert mechanism replaces them with observed bodies on a later `clad init --scan` (the new bodies land in `.cladding/scan/*.proposal` for review).
