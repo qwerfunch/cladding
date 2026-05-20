@@ -5,6 +5,35 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — `clad doctor` verb consumes sentinel-miss telemetry (F-bb15e6)
+
+**Signals find their consumer.** v0.3.39 (F-65814a) made every LLM dispatcher fallback observable by emitting a `sentinel_miss` event to `.cladding/events.log.jsonl`. Reading that log meant `grep sentinel_miss .cladding/events.log.jsonl | jq …` recipes by hand. v0.3.40 closes the loop with `clad doctor` — a one-shot health summary that groups misses by phase × cause × fallback, lists the top-5 most-missed sentinels, and replays the last three unique dispatcher errors. `--json` ships the same data as a stable `DoctorReport` shape for MCP clients and follow-up tooling.
+
+### Added
+
+- `src/core/telemetry-summary.ts` (new module) — pure aggregation library. `summarizeSentinelMisses(events)` groups by `payload.phase` / `payload.cause` / `payload.fallback`, returns a desc-count + asc-name top-5 histogram of `payload.missed_sections`, and de-duplicates the last 3 `payload.error` strings newest-first. `summarizeEvents(events)` returns total + per-`EventType` counts over the whole slice. Side-effect free — the same helpers can power a future MCP doctor resource without changes
+- `src/cli/doctor.ts` (new module) — `runDoctorCommand({cwd?, json?})` reads `<cwd>/.cladding/events.log.jsonl` via `readEvents`, runs both aggregators, emits one `pulse` summary line (`pass` when zero misses, `note` otherwise), and prints the event-type breakdown plus the phase / cause / fallback table, top-missed sentinels list, recent dispatcher errors, and a tuning hint when sentinel-miss events exist
+- `src/cli/clad.ts` — `createProgram` registers the new `doctor` command after `serve`: `.option('--cwd <path>')`, `.option('--json')`; commander auto-generates `--help` from the description
+- 16 new tests: `tests/core/telemetry-summary.test.ts` (zero state, type-filter, phase/cause/fallback aggregation, tie-break + cap of top-missed, recent-errors de-dup + newest-first, malformed payload tolerance, event-type counter); `tests/cli/doctor.test.ts` (greenfield no-events, healthy host, unhealthy host with breakdown + top-missed + recent errors, `--json` shape on populated + greenfield, corrupt `events.log.jsonl` → exit 1)
+
+### Changed
+
+- `tests/cli/clad.test.ts` `createProgram` registry assertion grows from "10 verbs" to "11 verbs" — the additive verb registration is a contract change in the test surface, intentional and confirms wiring
+
+### Notes
+
+- 764 + 15 new tests = **779/779** passing; lint clean; typecheck clean; sync: 114 features valid
+- The `DoctorReport` shape (`{cwd, events, sentinelMiss}`) is now the stable wire format for `clad doctor --json`; new fields will be additive
+- Greenfield workspaces (no `events.log.jsonl`) exit 0 with a friendly note instead of a stack trace — adopters who have not exercised cladding yet see the same exit semantics as a healthy host
+- Corrupt `events.log.jsonl` (unparseable JSONL) is the only non-zero exit path; CI consumers can rely on `clad doctor` for telemetry sanity without learning a separate failure surface
+
+### Roadmap
+
+- Release window — three unreleased cycles queued post-v0.3.37 (`v0.3.38` capabilities + `v0.3.39` telemetry + `v0.3.40` doctor); release timing is the maintainer's call. v0.3.40 closes the LLM-refinement arc (`signal → consumer`), so this is a natural cut point
+- Future doctor surfaces: an MCP resource (`cladding://doctor/sentinel-miss`) backed by the same `summarizeSentinelMisses` reducer; a histogram-over-time mode for tracking miss rate across sampling-policy changes
+
+---
+
 ## [Unreleased] — sentinel-miss telemetry surfaces LLM fallbacks in events.log (F-65814a)
 
 **Silent fallback gets a voice.** v0.3.33–v0.3.35 wired the LLM dispatcher chain plus per-artifact / total fallback behaviour for conventions, architecture, scenarios, project-context, and (v0.3.38) capabilities. Every fallback site was silent — a host whose sampling policy systematically dropped one sentinel would never know, and adopters had no data to tune model / `max_tokens` / temperature against. v0.3.39 makes the misses observable by emitting a structured `sentinel_miss` lifecycle event per fallback to `.cladding/events.log.jsonl`. Configured-no-LLM runs (no dispatcher, greenfield, `--no-llm`) stay silent because they are deliberate offline runs rather than misses.

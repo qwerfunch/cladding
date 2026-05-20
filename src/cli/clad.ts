@@ -11,6 +11,7 @@ import process from 'node:process';
 import {Command} from 'commander';
 
 import {classifyIntent} from '../router/intent.js';
+import {runDoctorCommand} from './doctor.js';
 import {runInit} from './init.js';
 import {runArch} from '../stages/arch.js';
 import {runAudit} from '../stages/audit.js';
@@ -369,6 +370,13 @@ export function createProgram(): Command {
     .description('Run cladding as an MCP server over stdio — tools/resources/prompts for any MCP client')
     .option('--cwd <path>', 'project directory exposed to the client (default cwd)')
     .action(runServeCommand);
+
+  program
+    .command('doctor')
+    .description('Summarise .cladding/events.log.jsonl — sentinel-miss frequency by phase/cause/fallback plus the top missed sentinels (LLM dispatcher health check)')
+    .option('--cwd <path>', 'project directory to read events from (default cwd)')
+    .option('--json', 'emit the raw DoctorReport for tooling; default is the human-readable surface')
+    .action(runDoctorCommand);
 
   return program;
 }
