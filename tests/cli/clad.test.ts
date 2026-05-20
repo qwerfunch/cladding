@@ -34,6 +34,21 @@ vi.mock('../../src/stages/uat.js', () => ({runUat: vi.fn(() => ({pass: true, exi
 vi.mock('../../src/stages/detectors/stale-specification.js', () => ({
   staleSpecification: {name: 'STALE_SPECIFICATION', run: vi.fn(() => [])},
 }));
+vi.mock('../../src/core/checkpoint.js', () => ({
+  recordCheckpoint: vi.fn(() => ({
+    featureId: 'F-001',
+    gitHead: '0123456789abcdef0123456789abcdef01234567',
+    specDigest: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
+    timestamp: '2026-05-20T12:34:56Z',
+  })),
+  findLatestCheckpoint: vi.fn(() => null),
+  recordRollback: vi.fn(() => ({
+    id: 'ev-mock',
+    timestamp: '2026-05-20T12:34:56Z',
+    type: 'feature_rolled_back',
+    payload: {},
+  })),
+}));
 vi.mock('../../src/drive/loop.js', () => ({runDriveLoop: vi.fn()}));
 // MCP server build is mocked — the runServeCommand test only verifies
 // the CLI plumbing (server constructed, transport connected). The
@@ -183,6 +198,56 @@ describe('cli/clad — handler exports', () => {
     expect(exitCalls).toEqual([0]);
   });
 
+  // Iron Law backbone Phase 1 (v0.3.20, F-x) — checkpoint + rollback
+  // commands record events without mutating the working tree.
+  describe('checkpoint / rollback (Phase 1 of Auto-rollback)', () => {
+    test('runCheckpointCommand without featureId exits 2', () => {
+      clad.runCheckpointCommand('');
+      expect(exitCalls).toEqual([2]);
+    });
+
+    test('runCheckpointCommand records and exits 0', async () => {
+      const checkpoint = await import('../../src/core/checkpoint.js');
+      const recordSpy = checkpoint.recordCheckpoint as unknown as ReturnType<typeof vi.fn>;
+      recordSpy.mockClear();
+      clad.runCheckpointCommand('F-001');
+      expect(recordSpy).toHaveBeenCalledOnce();
+      expect(recordSpy.mock.calls[0][1]).toBe('F-001');
+      expect(exitCalls).toEqual([0]);
+    });
+
+    test('runRollbackCommand without featureId exits 2', () => {
+      clad.runRollbackCommand('');
+      expect(exitCalls).toEqual([2]);
+    });
+
+    test('runRollbackCommand with no prior checkpoint exits 1', async () => {
+      const checkpoint = await import('../../src/core/checkpoint.js');
+      const findSpy = checkpoint.findLatestCheckpoint as unknown as ReturnType<typeof vi.fn>;
+      findSpy.mockReturnValueOnce(null);
+      clad.runRollbackCommand('F-001');
+      expect(exitCalls).toEqual([1]);
+    });
+
+    test('runRollbackCommand with prior checkpoint records rollback + exits 0', async () => {
+      const checkpoint = await import('../../src/core/checkpoint.js');
+      const findSpy = checkpoint.findLatestCheckpoint as unknown as ReturnType<typeof vi.fn>;
+      const rollbackSpy = checkpoint.recordRollback as unknown as ReturnType<typeof vi.fn>;
+      findSpy.mockReturnValueOnce({
+        featureId: 'F-001',
+        gitHead: 'abc123def456abc123def456abc123def456abc1',
+        specDigest: 'deadbeef'.repeat(8),
+        timestamp: '2026-05-20T01:02:03Z',
+      });
+      rollbackSpy.mockClear();
+      clad.runRollbackCommand('F-001', {reason: 'manual test'});
+      expect(rollbackSpy).toHaveBeenCalledOnce();
+      expect(rollbackSpy.mock.calls[0][1]).toBe('F-001');
+      expect(rollbackSpy.mock.calls[0][3]).toBe('manual test');
+      expect(exitCalls).toEqual([0]);
+    });
+  });
+
   test('runCheckCommand --internal uses internal stage codes', () => {
     clad.runCheckCommand({internal: true});
     expect(exitCalls).toEqual([0]);
@@ -279,15 +344,26 @@ describe('cli/clad — handler exports', () => {
 });
 
 describe('cli/clad — createProgram', () => {
-  test('returns a Command with all 8 verbs registered', () => {
+  test('returns a Command with all 10 verbs registered', () => {
     const program = clad.createProgram();
     const names = program.commands.map((c) => c.name());
-    expect(names).toEqual(['init', 'work', 'drive', 'sync', 'check', 'panel', 'route', 'serve']);
+    expect(names).toEqual([
+      'init',
+      'work',
+      'drive',
+      'sync',
+      'check',
+      'checkpoint',
+      'rollback',
+      'panel',
+      'route',
+      'serve',
+    ]);
   });
 
   test('program version matches current package version', () => {
     const program = clad.createProgram();
-    expect(program.version()).toBe('0.3.19');
+    expect(program.version()).toBe('0.3.20');
   });
 });
 

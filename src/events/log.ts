@@ -19,7 +19,9 @@ export type EventType =
   | 'feature_activated'
   | 'feature_completed'
   | 'evidence_recorded'
-  | 'drift_detected';
+  | 'drift_detected'
+  | 'feature_checkpoint'
+  | 'feature_rolled_back';
 
 /** One JSONL line in events.log.jsonl. */
 export interface Event {
