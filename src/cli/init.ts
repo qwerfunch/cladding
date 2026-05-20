@@ -12,20 +12,28 @@
 // `unknown` falls back to typescript so the seed is always valid.
 
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
-import {basename, join, resolve} from 'node:path';
+import {basename, dirname, join, resolve} from 'node:path';
 
+import {scanRoot} from './scan.js';
+import {deterministicInterpret, type InterpretedScan} from './scan-llm.js';
 import {detectToolchain} from '../stages/toolchain/detect.js';
 
 export interface InitOptions {
   readonly cwd?: string;
   readonly projectName?: string;
   readonly force?: boolean;
+  /** Walks the existing codebase and writes docs/conventions.md + spec/architecture.yaml + scenario stubs. */
+  readonly scan?: boolean;
+  /** Forces the deterministic-only fallback even when an LLM dispatcher is available. */
+  readonly noLlm?: boolean;
 }
 
 export interface InitResult {
   readonly created: readonly string[];
   readonly skipped: readonly string[];
   readonly language: string;
+  /** Files diverted to `.cladding/scan/*.proposal.*` because an authored copy already existed. */
+  readonly proposals?: readonly string[];
 }
 
 function specSeed(projectName: string, language: string): string {
@@ -104,5 +112,71 @@ export function runInit(opts: InitOptions = {}): InitResult {
     skipped.push('.gitignore (.cladding/ entry already present)');
   }
 
-  return {created, skipped, language};
+  const proposals: string[] = [];
+
+  // Phase 2 (v0.3.24, F-x) — Existing-project scan. When `--scan` is
+  // set we walk `cwd` for code conventions, layers, and representative
+  // modules, then write three artifacts (or divert them to
+  // `.cladding/scan/*.proposal.*` if the authored copies already
+  // exist). The v0.3.24 path uses the deterministic interpreter; the
+  // LLM dispatcher injection lands in v0.3.25 so the scan-llm.ts
+  // contract is in place but not yet routed to MCP sampling.
+  if (opts.scan) {
+    const scan = scanRoot({cwd});
+    const interp: InterpretedScan = deterministicInterpret(scan);
+
+    writeArtifact(
+      cwd,
+      'docs/conventions.md',
+      interp.conventionsMd,
+      created,
+      proposals,
+    );
+    writeArtifact(
+      cwd,
+      'spec/architecture.yaml',
+      interp.architectureYaml,
+      created,
+      proposals,
+    );
+    for (const s of scan.scenarios) {
+      const flow = interp.scenarioFlows.get(s.slug) ?? `Flow through ${s.dir}/.`;
+      const body =
+        `id: S-${s.slug}\n` +
+        `slug: ${s.slug}\n` +
+        `title: "${s.slug} scenario"\n` +
+        `flow: |\n  ${flow}\n` +
+        'features: []\n';
+      writeArtifact(cwd, `spec/scenarios/${s.slug}.yaml`, body, created, proposals);
+    }
+  }
+
+  return {created, skipped, language, proposals: proposals.length ? proposals : undefined};
+}
+
+/**
+ * Writes `relPath` under `cwd`. When the target already exists the
+ * payload is diverted to `.cladding/scan/<basename>.proposal.<ext>`
+ * instead of overwriting authored content. Either way the resulting
+ * path lands in `created` or `proposals` so the CLI handler can
+ * report it.
+ */
+function writeArtifact(
+  cwd: string,
+  relPath: string,
+  body: string,
+  created: string[],
+  proposals: string[],
+): void {
+  const target = join(cwd, relPath);
+  if (existsSync(target)) {
+    const proposal = join(cwd, '.cladding', 'scan', `${basename(relPath)}.proposal`);
+    mkdirSync(dirname(proposal), {recursive: true});
+    writeFileSync(proposal, body);
+    proposals.push(`${relPath} → ${relPath.startsWith('docs/') || relPath.startsWith('spec/') ? '.cladding/scan/' : ''}${basename(relPath)}.proposal`);
+    return;
+  }
+  mkdirSync(dirname(target), {recursive: true});
+  writeFileSync(target, body);
+  created.push(relPath);
 }

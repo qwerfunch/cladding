@@ -61,11 +61,31 @@ export async function runServeCommand(opts: {cwd?: string}): Promise<void> {
   // host process terminates this child.
 }
 
-/** Handler for `clad init`. Scaffolds a workspace at cwd, then exits 0. */
-export function runInitCommand(opts: {name?: string; force?: boolean}): void {
-  const result = runInit({projectName: opts.name, force: opts.force});
+/**
+ * Handler for `clad init`. Scaffolds a workspace at cwd, then exits 0.
+ *
+ * `--scan` walks the existing codebase and writes `docs/conventions.md`
+ * + `spec/architecture.yaml` + per-layer scenario stubs so external
+ * projects adopting cladding inherit a maintenance brief — see
+ * ironclad-design/07-ssot-init.md §3 B. `--no-llm` forces the
+ * deterministic interpreter (v0.3.24 default until v0.3.25 wires the
+ * MCP sampling dispatcher).
+ */
+export function runInitCommand(opts: {
+  name?: string;
+  force?: boolean;
+  scan?: boolean;
+  noLlm?: boolean;
+}): void {
+  const result = runInit({
+    projectName: opts.name,
+    force: opts.force,
+    scan: opts.scan,
+    noLlm: opts.noLlm,
+  });
   for (const c of result.created) pulse('pass', `created ${c}`);
   for (const s of result.skipped) pulse('skip', s);
+  for (const p of result.proposals ?? []) pulse('note', 'proposal', p);
   pulse('note', 'init done', `language: ${result.language}`);
   process.exit(0);
 }
@@ -277,13 +297,15 @@ export function runRouteCommand(prompt: string): void {
  */
 export function createProgram(): Command {
   const program = new Command();
-  program.name('clad').description('Reference Ironclad CLI').version('0.3.23');
+  program.name('clad').description('Reference Ironclad CLI').version('0.3.24');
 
   program
     .command('init')
     .description('Scaffold a cladding workspace in the current directory')
     .option('-n, --name <name>', 'Project name (default: cwd basename)')
     .option('-f, --force', 'Overwrite existing spec.yaml')
+    .option('--scan', 'Walk the existing codebase and emit docs/conventions.md + spec/architecture.yaml + scenario stubs (07-ssot-init §3 B)')
+    .option('--no-llm', 'Force the deterministic interpreter for --scan (default until v0.3.25 wires the MCP sampling dispatcher)')
     .action(runInitCommand);
 
   program

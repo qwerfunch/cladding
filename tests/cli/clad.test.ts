@@ -122,7 +122,31 @@ describe('cli/clad — handler exports', () => {
   test('runInitCommand forwards name + force options', () => {
     runInitMock.mockReturnValueOnce({created: [], skipped: ['spec.yaml'], language: 'rust'});
     clad.runInitCommand({name: 'custom', force: true});
-    expect(runInitMock).toHaveBeenCalledWith({projectName: 'custom', force: true});
+    expect(runInitMock).toHaveBeenCalledWith({
+      projectName: 'custom',
+      force: true,
+      scan: undefined,
+      noLlm: undefined,
+    });
+  });
+
+  // v0.3.24 (F-x) — `--scan` and `--no-llm` flow through to runInit so
+  // init.ts can branch on them without inspecting argv directly.
+  test('runInitCommand forwards --scan + --no-llm options', () => {
+    runInitMock.mockReturnValueOnce({
+      created: ['docs/conventions.md'],
+      skipped: [],
+      language: 'typescript',
+      proposals: ['spec/architecture.yaml → .cladding/scan/architecture.yaml.proposal'],
+    });
+    clad.runInitCommand({scan: true, noLlm: true});
+    expect(runInitMock).toHaveBeenCalledWith({
+      projectName: undefined,
+      force: undefined,
+      scan: true,
+      noLlm: true,
+    });
+    expect(exitCalls).toEqual([0]);
   });
 
   test('runWorkCommand without verb exits 2', () => {
@@ -363,7 +387,7 @@ describe('cli/clad — createProgram', () => {
 
   test('program version matches current package version', () => {
     const program = clad.createProgram();
-    expect(program.version()).toBe('0.3.23');
+    expect(program.version()).toBe('0.3.24');
   });
 });
 
