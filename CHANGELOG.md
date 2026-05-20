@@ -5,6 +5,40 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — `clad refine` verb closes the onboarding Q&A loop (F-09d68b)
+
+**Seed becomes sapling.** v0.3.43 added intent-aware init that produced clarifying questions as CLI hints — but the questions were unconsumed. v0.3.44 closes the loop with `clad refine <answer>`: the orchestrator persona asks each pending question, forwards the user's reply, and the LLM refines `docs/project-context.md` + `spec/capabilities.yaml` + `spec/architecture.yaml` based on the full Q-A history. State persists in `.cladding/onboarding/state.yaml`; `status: done` lands when every question is answered AND no new ones emerge.
+
+### Added
+
+- `src/cli/scan/onboarding-state.ts` (new module) — `.cladding/onboarding/state.yaml` reader/writer plus helpers `loadState` / `saveState` / `firstPendingIndex` / `markFirstPendingAnswered` / `appendNewQuestions` / `isComplete` / `markDone`; state shape carries `{intent, language, projectName, mode, startedAt, status, qa: [{question, answer|null}]}` and `loadState` normalises hand-edited mode/answer values defensively
+- `src/cli/scan/intent-onboarding.ts` — new `buildRefinementPrompt(intent, observed, qaHistory, current)` that reuses the 6-sentinel layout but embeds the full Q-A history plus current artifact bodies inside fenced code blocks so the LLM refines accurately; new `interpretRefinementWithFallback(intent, observed, qaHistory, current, dispatcher, cwd?)` that mirrors the init path's fallback policy and emits `sentinel_miss` events under `phase: 'onboarding'`; new `deterministicRefinement` that preserves current artifact bodies and appends the latest Q-A pair as a footnote under a "## Q&A log (refinement, LLM unavailable)" heading in `docs/project-context.md`
+- `src/cli/refine.ts` (new module) — `runRefineCommand(answerTokens, opts)` handler: loads state, marks the first pending question answered, calls the LLM with full Q-A history, writes refined artifacts via inlined `writeArtifact` divert, appends new questions, marks `status: done` when finished
+- `src/cli/clad.ts` — registers `refine [answer...]` (12 verbs now) with `--cwd` / `--no-llm` / `--json` flags
+- `src/cli/init.ts` — when the intent-aware onboarding path runs, persists the initial state via `saveState(cwd, {intent, language, projectName, mode, startedAt: ISO, status: 'active'|'done', qa: clarifyingQuestions.map(q => ({question: q, answer: null}))})` so `clad refine` has a starting point
+- `src/agents/orchestrator.md` — principle 6 expands from a single Init policy into two steps: 6a (init with intent) + 6b (refine loop — read state, ask first pending question verbatim, run `clad refine` with reply, repeat until `status: done`); never invent answers, never rephrase the LLM's calibrated questions
+- `skills/refine/SKILL.md` (new) — documents the flow + variadic positional CLI shape + state.yaml schema + exit codes (0 accepted, 1 fatal, 2 usage) + when NOT to invoke
+- 26 new tests: `tests/cli/onboarding-state.test.ts` (16 — save/load round-trip, hand-edited normalisation, Unicode intent preservation, firstPendingIndex / markFirstPendingAnswered / appendNewQuestions de-dup / isComplete / markDone helpers) + `tests/cli/refine.test.ts` (10 — no state → exit 2, no answer → exit 2, status done → no-op, deterministic mode preserves artifacts + appends footnote, LLM success refines + adds questions, completion marks done, `--json` emits RefineReport)
+
+### Changed
+
+- `tests/cli/clad.test.ts` createProgram registry assertion grows from "11 verbs" to "12 verbs" — `refine` joins the canonical CLI surface
+
+### Notes
+
+- 830 + 26 new tests = **856/856** passing; lint clean; typecheck clean
+- The Q-A loop is **strictly LLM-driven**: only the LLM emits questions; the orchestrator persona MUST forward them verbatim, never invent extras. Answers refine artifacts; no answer is rephrased by the orchestrator before forwarding
+- `clad refine --no-llm` keeps the deterministic fallback: current artifact bodies are preserved and the answer lands as a Q&A footnote in `docs/project-context.md` so user intent is captured even without LLM connectivity
+- `.cladding/onboarding/state.yaml` stays on disk after `status: done` as an audit log of the onboarding decisions; the file is not deleted automatically
+- `sentinel_miss` telemetry uses the existing `phase: 'onboarding'` value — `clad doctor` now surfaces both init-pass and refine-pass misses under one phase
+
+### Roadmap
+
+- Future surface: MCP onboarding resource (`cladding://onboarding/next-question`) so MCP clients can subscribe and live-tail the Q&A state instead of reading the file
+- Release window — four unreleased cycles queued post-v0.3.40 (v0.3.41 doc cleanup + v0.3.42 greenfield seeds + v0.3.43 intent-aware init + v0.3.44 refine loop); release timing is the maintainer's call
+
+---
+
 ## [Unreleased] — intent-aware init with high-quality onboarding refinement (F-56abaa)
 
 **Init becomes the observation phase.** Previous cycles made `clad init` write toolchain-default seeds on greenfield. This cycle makes init capture the **user's project intent** as a positional argument and turn it into domain-aware artifacts that **exceed what the user explicitly stated**. `clad init 결제 SaaS for B2B` produces a project-context body, capabilities list, architecture layers, F-001 title, and 2-3 product-level follow-up questions — all calibrated for the payment domain. The LLM is told to ask GOAL/AUDIENCE/SCOPE questions (e.g., "주 사용자가 개인? 사업자?") not technical jargon (e.g., never "PCI-DSS SAQ?"). The orchestrator persona now MUST ask the user for intent before bare `clad init` on a greenfield workspace.

@@ -32,6 +32,7 @@ import {
   type OnboardingObserved,
   type OnboardingResult,
 } from './scan/intent-onboarding.js';
+import {saveState, type OnboardingState} from './scan/onboarding-state.js';
 import {detectToolchain} from '../stages/toolchain/detect.js';
 
 export interface InitOptions {
@@ -200,6 +201,21 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
       projectName,
     };
     onboarding = await interpretOnboardingWithFallback(intent, observed, dispatcher, cwd);
+
+    // v0.3.44 (F-09d68b) — persist the onboarding session so `clad refine`
+    // can drive the Q&A loop without re-running the full intent prompt.
+    // The state file lives at `.cladding/onboarding/state.yaml` and is
+    // marked `status: done` once every question is answered.
+    const initialState: OnboardingState = {
+      intent,
+      language,
+      projectName,
+      mode: onboarding.mode,
+      startedAt: new Date().toISOString(),
+      status: onboarding.clarifyingQuestions.length === 0 ? 'done' : 'active',
+      qa: onboarding.clarifyingQuestions.map((question) => ({question, answer: null})),
+    };
+    saveState(cwd, initialState);
   }
 
   // 1. spec.yaml

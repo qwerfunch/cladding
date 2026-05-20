@@ -421,3 +421,221 @@ function truncateError(e: unknown): string {
   const msg = e instanceof Error ? e.message : String(e);
   return msg.length > 200 ? `${msg.slice(0, 200)}…` : msg;
 }
+
+// ─────────────────────────────────────────────────────────────────────
+// Refinement path (v0.3.44 / F-09d68b)
+//
+// Once `clad init <intent>` has produced the initial onboarding state,
+// `clad refine <answer>` advances the Q&A loop: it records the user's
+// answer to the next pending question, then re-runs the LLM with the
+// full Q-A history + current artifact bodies so the response can
+// refine each artifact based on the new information.
+// ─────────────────────────────────────────────────────────────────────
+
+/** One answered Q-A pair forwarded into the refinement prompt. */
+export interface RefinementQa {
+  readonly question: string;
+  readonly answer: string;
+}
+
+/** Current artifact bodies on disk — passed to the LLM so it knows what to refine vs preserve. */
+export interface RefinementCurrent {
+  readonly projectContextMd: string;
+  readonly capabilitiesYaml: string;
+  readonly architectureYaml: string;
+}
+
+/**
+ * Builds the refinement-pass prompt. Re-uses the same 6 sentinels as
+ * `buildOnboardingPrompt` so the parser stays shared — only the body
+ * differs: the LLM sees the full Q-A history and the current artifact
+ * bodies, and is told to produce *refined* artifacts that preserve
+ * accurate prior decisions while updating anything contradicted by the
+ * new answer.
+ */
+export function buildRefinementPrompt(
+  intent: string,
+  observed: OnboardingObserved,
+  qaHistory: readonly RefinementQa[],
+  current: RefinementCurrent,
+): string {
+  const qaBlock = qaHistory
+    .map((qa, i) => `${i + 1}. Q: ${qa.question}\n   A: ${qa.answer}`)
+    .join('\n');
+  return [
+    'You are a senior software architect refining a project workspace via',
+    'cladding. The user has answered a clarifying question; update the',
+    'artifacts to reflect every answer so far. PRESERVE decisions still',
+    'consistent with the new information; REVISE anything contradicted.',
+    '',
+    `Original user intent: "${intent}"`,
+    '',
+    'Q-A history (most recent answer last):',
+    qaBlock || '(no Q-A yet)',
+    '',
+    'Observed environment:',
+    `- Project name: ${observed.projectName}`,
+    `- Detected language: ${observed.language}`,
+    `- Existing source files: ${observed.sourceFileCount}`,
+    `- README present: ${observed.readmePresent ? 'yes' : 'no'}`,
+    '',
+    'Current docs/project-context.md body (refine in place):',
+    '```',
+    current.projectContextMd.trim() || '(empty)',
+    '```',
+    '',
+    'Current spec/capabilities.yaml body:',
+    '```',
+    current.capabilitiesYaml.trim() || '(empty)',
+    '```',
+    '',
+    'Current spec/architecture.yaml body:',
+    '```',
+    current.architectureYaml.trim() || '(empty)',
+    '```',
+    '',
+    'Emit the same 6 sentinel sections as the original onboarding pass.',
+    'Re-emit refined bodies — do not produce a diff or summary. Each',
+    'sentinel section must contain the complete new body for that artifact.',
+    '',
+    '=== ONBOARDING_MODE ===',
+    'Same options: greenfield | existing-adoption | mixed.',
+    '',
+    '=== PROJECT_CONTEXT_MD ===',
+    'Full refined docs/project-context.md body.',
+    '',
+    '=== CAPABILITIES_YAML ===',
+    'Full refined spec/capabilities.yaml body.',
+    '',
+    '=== ARCHITECTURE_YAML ===',
+    'Full refined spec/architecture.yaml body.',
+    '',
+    '=== SPEC_SEED_TITLE ===',
+    'F-001 title. Update only if the new answer changed the first',
+    'feature; otherwise repeat the previous title.',
+    '',
+    '=== CLARIFYING_QUESTIONS ===',
+    'NEW questions that the answer makes worth asking. Empty when the',
+    'onboarding is sufficiently captured. Same product/business-level',
+    'calibration as the original prompt — NEVER ask about technical',
+    'jargon the user did not bring up first. List one per line.',
+    'When `=== CLARIFYING_QUESTIONS ===` is empty the caller marks the',
+    'onboarding session as `status: done` in `.cladding/onboarding/state.yaml`.',
+  ].join('\n');
+}
+
+/**
+ * Top-level refinement orchestration. Mirrors
+ * {@link interpretOnboardingWithFallback} — calls the LLM with the
+ * refinement prompt when a dispatcher is available, falls back to a
+ * deterministic body that quotes the latest answer in
+ * `docs/project-context.md` when not. Sentinel-miss telemetry uses
+ * the same `phase: 'onboarding'` value (already documented in the
+ * sentinel_miss schema) since refine is part of the same surface.
+ */
+export async function interpretRefinementWithFallback(
+  intent: string,
+  observed: OnboardingObserved,
+  qaHistory: readonly RefinementQa[],
+  current: RefinementCurrent,
+  dispatcher: ScanLlmDispatcher | null,
+  cwd?: string,
+): Promise<OnboardingResult> {
+  if (dispatcher === null) {
+    return deterministicRefinement(intent, observed, qaHistory, current);
+  }
+  let raw: string;
+  try {
+    raw = await dispatcher(buildRefinementPrompt(intent, observed, qaHistory, current));
+  } catch (e) {
+    emitSentinelMiss(cwd, {
+      phase: 'onboarding',
+      cause: 'dispatcher_error',
+      fallback: 'total',
+      error: truncateError(e),
+    });
+    return deterministicRefinement(intent, observed, qaHistory, current);
+  }
+  const parsed = parseOnboardingResponse(raw);
+  const missed: string[] = [];
+  if (!parsed.projectContext.trim()) missed.push('PROJECT_CONTEXT_MD');
+  if (!parsed.capabilities.trim()) missed.push('CAPABILITIES_YAML');
+  if (!parsed.architecture.trim()) missed.push('ARCHITECTURE_YAML');
+  if (!parsed.specSeedTitle.trim()) missed.push('SPEC_SEED_TITLE');
+
+  const total =
+    missed.includes('PROJECT_CONTEXT_MD') &&
+    missed.includes('CAPABILITIES_YAML') &&
+    missed.includes('ARCHITECTURE_YAML');
+  if (total) {
+    emitSentinelMiss(cwd, {
+      phase: 'onboarding',
+      cause: 'blank_section',
+      fallback: 'total',
+      missed_sections: missed,
+    });
+    return deterministicRefinement(intent, observed, qaHistory, current);
+  }
+  if (missed.length > 0) {
+    emitSentinelMiss(cwd, {
+      phase: 'onboarding',
+      cause: 'blank_section',
+      fallback: 'per_artifact',
+      missed_sections: missed,
+    });
+  }
+
+  const mode = normaliseMode(parsed.mode);
+  return {
+    mode,
+    projectContextMd: parsed.projectContext.trim()
+      ? wrapProjectContext(parsed.projectContext, observed.projectName, ONBOARDING_HEADER)
+      : current.projectContextMd,
+    capabilitiesYaml: parsed.capabilities.trim() ? ensureTrailingNewline(parsed.capabilities) : current.capabilitiesYaml,
+    architectureYaml: parsed.architecture.trim() ? ensureTrailingNewline(parsed.architecture) : current.architectureYaml,
+    specSeedTitle: parsed.specSeedTitle.trim() || deterministicSeedTitle(intent),
+    clarifyingQuestions: extractClarifyingQuestions(parsed.clarifyingQuestionsRaw),
+    source: missed.length === 0 ? 'llm' : 'hybrid',
+  };
+}
+
+/**
+ * Deterministic fallback for the refinement pass. Preserves the
+ * current artifact bodies (the LLM was unavailable, so we cannot
+ * meaningfully refine) and appends the latest Q-A pair as a footnote
+ * to `docs/project-context.md` so the user's answer is captured
+ * somewhere visible.
+ */
+export function deterministicRefinement(
+  intent: string,
+  observed: OnboardingObserved,
+  qaHistory: readonly RefinementQa[],
+  current: RefinementCurrent,
+): OnboardingResult {
+  const lastQa = qaHistory[qaHistory.length - 1];
+  const footnote = lastQa
+    ? `\n\n---\n\n## Q&A log (refinement, LLM unavailable)\n\n_Q_: ${lastQa.question}\n\n_A_: ${lastQa.answer}\n`
+    : '';
+  return {
+    mode: observed.sourceFileCount >= 3 ? 'existing-adoption' : 'greenfield',
+    projectContextMd: appendFootnoteOnce(current.projectContextMd, footnote),
+    capabilitiesYaml: current.capabilitiesYaml,
+    architectureYaml: current.architectureYaml,
+    specSeedTitle: deterministicSeedTitle(intent),
+    clarifyingQuestions: [],
+    source: 'deterministic',
+  };
+}
+
+function appendFootnoteOnce(body: string, footnote: string): string {
+  if (!footnote) return body;
+  // If the body already ends in a Q&A log (deterministic path was
+  // exercised on a previous refine) append the new entry under the
+  // existing log header instead of duplicating it. The detection is
+  // intentionally loose — a sentinel-string match.
+  if (body.includes('## Q&A log (refinement, LLM unavailable)')) {
+    const lines = footnote.split('\n').slice(4); // drop the leading `---` + heading lines
+    return body.endsWith('\n') ? `${body}${lines.join('\n')}` : `${body}\n${lines.join('\n')}`;
+  }
+  return body.endsWith('\n') ? `${body}${footnote.slice(1)}` : `${body}${footnote}`;
+}

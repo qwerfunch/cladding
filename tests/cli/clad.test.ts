@@ -397,7 +397,7 @@ describe('cli/clad — handler exports', () => {
 });
 
 describe('cli/clad — createProgram', () => {
-  test('returns a Command with all 11 verbs registered', () => {
+  test('returns a Command with all 12 verbs registered', () => {
     const program = clad.createProgram();
     const names = program.commands.map((c) => c.name());
     expect(names).toEqual([
@@ -412,6 +412,7 @@ describe('cli/clad — createProgram', () => {
       'route',
       'serve',
       'doctor',
+      'refine',
     ]);
   });
 

@@ -13,6 +13,7 @@ import {Command} from 'commander';
 import {classifyIntent} from '../router/intent.js';
 import {runDoctorCommand} from './doctor.js';
 import {runInit} from './init.js';
+import {runRefineCommand} from './refine.js';
 import {runArch} from '../stages/arch.js';
 import {runAudit} from '../stages/audit.js';
 import {runCommit} from '../stages/commit.js';
@@ -414,6 +415,19 @@ export function createProgram(): Command {
     .option('--cwd <path>', 'project directory to read events from (default cwd)')
     .option('--json', 'emit the raw DoctorReport for tooling; default is the human-readable surface')
     .action(runDoctorCommand);
+
+  program
+    .command('refine [answer...]')
+    .description(
+      'Advance the onboarding Q&A loop. Pass the user\'s answer to the next pending question as a positional ' +
+        '(no quotes needed, e.g. `clad refine 법인 사업자만`); the LLM refines spec/docs based on the full Q-A ' +
+        'history and may emit new follow-up questions. Reads/writes `.cladding/onboarding/state.yaml`. Requires ' +
+        '`clad init <intent>` to have started a session first.',
+    )
+    .option('--cwd <path>', 'project directory containing .cladding/onboarding/state.yaml (default cwd)')
+    .option('--no-llm', 'force the deterministic interpreter (preserves current artifacts, logs the answer)')
+    .option('--json', 'emit the raw RefineReport for tooling; default is the human-readable surface')
+    .action(runRefineCommand);
 
   return program;
 }
