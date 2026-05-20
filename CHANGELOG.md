@@ -5,6 +5,27 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.19] — Unreleased — Phased Decommissioning Tier 2 (F-b99577)
+
+**Second of three Tier-1 fixes** from the 2026-05-20 ironclad-design audit. `STALE_SPECIFICATION` had been emitting warn-only findings since v0.1.x — the maintainer (or anyone reading `clad check`) saw the noise but the path to fixing it was manual. The structural reason was that `DriftFinding` exposed only `severity` + `message`; there was no field for a machine-actionable remediation hint. v0.3.19 introduces that field (`suggestion`) and uses it to wire the first Phased Decommissioning Tier 2 (ironclad-design 07-ssot-init §5) entry point.
+
+### Added
+
+- `src/stages/types.ts` — new `DriftSuggestion` interface (`{action: string, args?: Record<string, unknown>}`) and optional `suggestion` field on `DriftFinding`. Existing 24 detectors stay unaffected because the field is optional.
+- `src/stages/detectors/stale-specification.ts` — emits `propose-archive` suggestions on three lifecycle-inconsistency branches:
+  - `archived_at` set with non-archived status
+  - `superseded_by` set without `archived_at`
+  - **new**: non-final feature (planned/in_progress) whose every declared module has vanished from disk
+- `src/cli/clad.ts` — new `clad sync --propose-archive` flag. Runs the detector, filters findings whose `suggestion.action === 'propose-archive'`, prints one Pulse note per candidate with `featureId + reason`, then a summary. Exit 0 either way — the maintainer (or Librarian agent) decides whether to write `archived_at`.
+- `src/agents/librarian.md` — explicit Tier 2 responsibility documented: walk `clad sync --propose-archive` candidates, confirm each, write `archived_at + archive_reason`. Never archive silently.
+- 5 new STALE_SPECIFICATION tests + 2 new CLI tests = 7 net additions.
+
+### Notes
+
+- 602 + 7 new tests = **609/609** passing; lint clean; typecheck clean; drift-green at 93 features; bundle 1.1 MB.
+- The `archived feature with surviving modules` branch deliberately stays unsuggested — removal cadence is project-owned, so the warning surfaces but no automated action is proposed.
+- ironclad-design Tier-1 audit recap: (1) ✓ Atomic AC fan-out (v0.3.18), **(2) ✓ Phased Decommissioning Tier 2 (this PR)**, (3) Auto-rollback / Checkpoint (v0.4.0 minor, queued).
+
 ## [0.3.18] — Unreleased — Atomic AC evidence fan-out in drive loop (F-12d740)
 
 **Closes the AC-granularity gap in the anti-self-cert guard.** The HITL evidence framework (v0.2.x) added `Evidence.acId` to the schema and `anti-self-cert.checkAc()` filters by `e.acId === acId`, but the drive loop never populated the field — every `clad drive` evidence entry was feature-scoped, so the guard saw only unattributed tool/LLM evidence and could not tell which AC was missing its human-author sign-off. v0.3.18 fans the per-feature L1-pass evidence out into one entry per acceptance criterion, completing the Atomic AC chain (ironclad-design 11-ssot-refinement §4.1 + 02-iron-law §2.4).

@@ -1,10 +1,11 @@
 // Cladding · unit tests for stages/detectors/stale-specification.ts
 //
-// Detector under test surfaces three lifecycle-metadata inconsistencies:
+// Detector under test surfaces four lifecycle-metadata inconsistencies:
 //
-//   1. archived_at set but status != 'archived' → warn
-//   2. superseded_by set but archived_at missing → warn
-//   3. status='archived' but at least one module still exists → warn
+//   1. archived_at set but status != 'archived' → warn + propose-archive
+//   2. superseded_by set but archived_at missing → warn + propose-archive
+//   3. status='archived' but at least one module still exists → warn (no suggestion — removal cadence is project-owned)
+//   4. status in {planned, in_progress} with non-empty modules[] but every module vanished from disk → warn + propose-archive (Phased Decommissioning Tier 2, v0.3.19)
 //
 // Each branch is exercised in isolation and in combination. The
 // detector is opt-in on spec presence (info on absence, not throw).
@@ -94,5 +95,65 @@ describe('STALE_SPECIFICATION detector', () => {
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe('info');
     expect(findings[0].message).toContain('spec.yaml not loaded');
+  });
+
+  // Phased Decommissioning Tier 2 (v0.3.19, F-x) — STALE_SPECIFICATION
+  // emits machine-actionable `propose-archive` suggestions on findings
+  // that the maintainer can resolve by archiving the feature.
+  describe('propose-archive suggestion (Tier 2)', () => {
+    test('archived_at + non-archived status → suggestion carries featureId + reason', () => {
+      writeFileSync(
+        join(dir, 'spec', 'features', 'F-100.yaml'),
+        'id: F-100\ntitle: t\nstatus: done\narchived_at: "2024-01-01T00:00:00Z"\n',
+      );
+      const findings = staleSpecification.run({cwd: dir});
+      expect(findings[0].suggestion?.action).toBe('propose-archive');
+      expect(findings[0].suggestion?.args?.featureId).toBe('F-100');
+      expect(String(findings[0].suggestion?.args?.reason)).toContain("'done'");
+    });
+
+    test('superseded_by without archived_at → suggestion mentions the superseder', () => {
+      writeFileSync(
+        join(dir, 'spec', 'features', 'F-200.yaml'),
+        'id: F-200\ntitle: t\nstatus: done\nsuperseded_by: F-300\n',
+      );
+      const findings = staleSpecification.run({cwd: dir});
+      expect(findings[0].suggestion?.action).toBe('propose-archive');
+      expect(findings[0].suggestion?.args?.featureId).toBe('F-200');
+      expect(String(findings[0].suggestion?.args?.reason)).toContain('F-300');
+    });
+
+    test('non-final feature with non-empty modules[] all vanished → propose-archive', () => {
+      // No file at stages/missing.ts → declared module does not exist.
+      writeFileSync(
+        join(dir, 'spec', 'features', 'F-300.yaml'),
+        'id: F-300\ntitle: t\nstatus: planned\nmodules: [stages/missing.ts]\n',
+      );
+      const findings = staleSpecification.run({cwd: dir});
+      expect(findings).toHaveLength(1);
+      expect(findings[0].severity).toBe('warn');
+      expect(findings[0].suggestion?.action).toBe('propose-archive');
+      expect(findings[0].suggestion?.args?.featureId).toBe('F-300');
+      expect(String(findings[0].suggestion?.args?.reason)).toContain('vanished');
+    });
+
+    test('non-final feature with no modules declared → NO finding (design/doc-only is legitimate)', () => {
+      writeFileSync(
+        join(dir, 'spec', 'features', 'F-400.yaml'),
+        'id: F-400\ntitle: t\nstatus: planned\n',
+      );
+      expect(staleSpecification.run({cwd: dir})).toEqual([]);
+    });
+
+    test('archived feature with surviving modules → NO suggestion (removal cadence is project-owned)', () => {
+      writeFileSync(join(dir, 'stages', 'survivor.ts'), '// still here\nexport const s = 1;\n');
+      writeFileSync(
+        join(dir, 'spec', 'features', 'F-500.yaml'),
+        'id: F-500\ntitle: t\nstatus: archived\narchived_at: "2024-01-01T00:00:00Z"\nmodules: [stages/survivor.ts]\n',
+      );
+      const findings = staleSpecification.run({cwd: dir});
+      expect(findings).toHaveLength(1);
+      expect(findings[0].suggestion).toBeUndefined();
+    });
   });
 });

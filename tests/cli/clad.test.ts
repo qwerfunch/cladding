@@ -31,6 +31,9 @@ vi.mock('../../src/stages/perf.js', () => ({runPerf: vi.fn(() => ({pass: false, 
 vi.mock('../../src/stages/visual.js', () => ({runVisual: vi.fn(() => ({pass: false, exitCode: 2}))}));
 vi.mock('../../src/stages/audit.js', () => ({runAudit: vi.fn(() => ({pass: true, exitCode: 0}))}));
 vi.mock('../../src/stages/uat.js', () => ({runUat: vi.fn(() => ({pass: true, exitCode: 0}))}));
+vi.mock('../../src/stages/detectors/stale-specification.js', () => ({
+  staleSpecification: {name: 'STALE_SPECIFICATION', run: vi.fn(() => [])},
+}));
 vi.mock('../../src/drive/loop.js', () => ({runDriveLoop: vi.fn()}));
 // MCP server build is mocked — the runServeCommand test only verifies
 // the CLI plumbing (server constructed, transport connected). The
@@ -129,6 +132,50 @@ describe('cli/clad — handler exports', () => {
     });
     clad.runSyncCommand();
     expect(exitCalls).toEqual([1]);
+  });
+
+  // Phased Decommissioning Tier 2 (v0.3.19, F-x) — --propose-archive
+  // filters STALE_SPECIFICATION findings whose suggestion.action is
+  // 'propose-archive' and exits 0 either way.
+  test('runSyncCommand --propose-archive with zero candidates exits 0', async () => {
+    const stale = await import('../../src/stages/detectors/stale-specification.js');
+    (stale.staleSpecification.run as unknown as ReturnType<typeof vi.fn>).mockReturnValueOnce([]);
+    loadSpecMock.mockReturnValueOnce({features: [{id: 'F-001'}]});
+    clad.runSyncCommand({proposeArchive: true});
+    expect(exitCalls).toEqual([0]);
+  });
+
+  test('runSyncCommand --propose-archive surfaces propose-archive findings only', async () => {
+    const stale = await import('../../src/stages/detectors/stale-specification.js');
+    (stale.staleSpecification.run as unknown as ReturnType<typeof vi.fn>).mockReturnValueOnce([
+      {
+        detector: 'STALE_SPECIFICATION',
+        severity: 'warn',
+        message: 'feature F-100 archived but modules survive',
+        // No suggestion — must be filtered out.
+      },
+      {
+        detector: 'STALE_SPECIFICATION',
+        severity: 'warn',
+        message: 'feature F-200 stale',
+        suggestion: {action: 'propose-archive', args: {featureId: 'F-200', reason: 'gone'}},
+      },
+    ]);
+    loadSpecMock.mockReturnValueOnce({features: [{id: 'F-200'}]});
+    const {pulse} = await import('../../src/ui/pulse.js');
+    (pulse as unknown as ReturnType<typeof vi.fn>).mockClear();
+    clad.runSyncCommand({proposeArchive: true});
+    expect(exitCalls).toEqual([0]);
+    // One note per candidate plus the summary pass — exactly 2 calls,
+    // and the note carries the F-200 args.
+    const calls = (pulse as unknown as ReturnType<typeof vi.fn>).mock.calls;
+    const noteCall = calls.find((c) => c[0] === 'note');
+    expect(noteCall?.[1]).toContain('F-200');
+    expect(noteCall?.[2]).toContain('gone');
+    // F-100 had no suggestion → must NOT appear in any pulse note.
+    for (const c of calls) {
+      expect(JSON.stringify(c)).not.toContain('F-100');
+    }
   });
 
   test('runCheckCommand all-pass exits 0', () => {
@@ -240,7 +287,7 @@ describe('cli/clad — createProgram', () => {
 
   test('program version matches current package version', () => {
     const program = clad.createProgram();
-    expect(program.version()).toBe('0.3.18');
+    expect(program.version()).toBe('0.3.19');
   });
 });
 
