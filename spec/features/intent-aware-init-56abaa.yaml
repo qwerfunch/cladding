@@ -1,0 +1,57 @@
+id: F-56abaa
+slug: intent-aware-init
+title: intent-aware init with high-quality onboarding refinement (v0.3.43)
+status: done
+modules:
+  - src/cli/scan/intent-onboarding.ts
+  - src/cli/init.ts
+  - src/cli/clad.ts
+  - src/agents/orchestrator.md
+  - skills/init/SKILL.md
+depends_on:
+  - F-bd07d7
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: add an intent-onboarding library that turns a short user description plus observed environment signals into a domain-aware 6-section LLM prompt and parses the structured response
+    response: 'src/cli/scan/intent-onboarding.ts exports buildOnboardingPrompt(intent, observed) producing a senior-architect-tone prompt with six sentinel sections (ONBOARDING_MODE, PROJECT_CONTEXT_MD, CAPABILITIES_YAML, ARCHITECTURE_YAML, SPEC_SEED_TITLE, CLARIFYING_QUESTIONS); parseOnboardingResponse(text) and extractClarifyingQuestions(raw) recover the sections; normaliseMode tolerates capitalization and unknown values by collapsing to greenfield; the prompt explicitly bans expert jargon questions and provides product/business-level examples so the LLM calibrates question quality to a product-owner audience'
+    text: The system shall add an intent-onboarding library that turns a short user description plus observed environment signals into a domain-aware 6-section LLM prompt and parses the structured response.
+    test_refs: [tests/cli/intent-onboarding.test.ts]
+  - id: AC-002
+    ears: ubiquitous
+    action: thread a free-text intent through clad init so positional CLI tokens drive intent-aware onboarding when provided
+    response: 'src/cli/init.ts InitOptions grows an optional intent field; when present runInit calls interpretOnboardingWithFallback before writing spec.yaml so the F-001 placeholder title becomes a real first feature; the onboarding result also replaces the greenfield seed bodies for spec/architecture.yaml and spec/capabilities.yaml and the project-context.md body, while docs/conventions.md stays toolchain-default because conventions are language-specific not domain-specific; src/cli/clad.ts registers init as a variadic positional (`init [intent...]`) and joins tokens with a space so users can pass intent without quoting'
+    text: The system shall thread a free-text intent through clad init so positional CLI tokens drive intent-aware onboarding when provided.
+    test_refs: [tests/cli/clad.test.ts]
+  - id: AC-003
+    ears: state
+    condition: while the LLM dispatcher is unavailable or returns an unparseable response
+    action: fall back to a deterministic onboarding result that quotes the intent verbatim in project-context.md and uses greenfield seeds for the other artifacts
+    response: 'interpretOnboardingWithFallback returns deterministicOnboarding(intent, observed) when dispatcher is null, when the dispatcher throws, or when PROJECT_CONTEXT_MD + CAPABILITIES_YAML + ARCHITECTURE_YAML are all blank in the parsed reply; the deterministic body uses a DETERMINISTIC_HEADER marker, quotes the intent verbatim under section 1, and uses the trimmed intent (or "Your first feature" when empty) as the spec seed title; the source field is set to deterministic so callers can distinguish llm/hybrid/deterministic for telemetry'
+    text: While the LLM dispatcher is unavailable or returns an unparseable response, the system shall fall back to a deterministic onboarding result that quotes the intent verbatim in project-context.md and uses greenfield seeds for the other artifacts.
+    test_refs: [tests/cli/intent-onboarding.test.ts]
+  - id: AC-004
+    ears: state
+    condition: while the LLM dispatcher returns a response with only one or two non-critical sections blank
+    action: keep the LLM-refined sections and substitute deterministic bodies only for the blank sections while emitting a per-artifact sentinel_miss event under phase onboarding
+    response: 'when the reply is partially complete interpretOnboardingWithFallback computes missed_sections and distinguishes total fallback (all of PROJECT_CONTEXT_MD/CAPABILITIES_YAML/ARCHITECTURE_YAML blank) from per_artifact fallback; per_artifact case keeps source=hybrid, fills missing capabilities with renderGreenfieldCapabilitiesYaml + missing architecture with renderGreenfieldArchitectureYaml + missing project-context with deterministicProjectContext + missing spec seed title with the trimmed intent; emits a sentinel_miss event with phase onboarding cause blank_section fallback per_artifact missed_sections [...] so clad doctor surfaces the gap'
+    text: While the LLM dispatcher returns a response with only one or two non-critical sections blank, the system shall keep the LLM-refined sections and substitute deterministic bodies only for the blank sections while emitting a per-artifact sentinel_miss event under phase onboarding.
+    test_refs: [tests/cli/intent-onboarding.test.ts]
+  - id: AC-005
+    ears: ubiquitous
+    action: surface the LLM-generated clarifying questions as CLI hints and the orchestrator-policy ask-first instruction so the AI orchestrator drives intent capture before init
+    response: 'src/cli/clad.ts runInitCommand prints the clarifyingQuestions returned by runInit at the end of init as a numbered bulleted list under a "💡 다음 정보가 있으면 더 정확한 스펙이 됩니다:" header; when no intent was provided and the greenfield path ran the handler prints a separate "💡 Tip" hint suggesting `clad init <description>`; src/agents/orchestrator.md grows a 6th invocation principle declaring it MUST ask the user for intent before bare clad init on greenfield workspaces and forwards the answer as the positional argument'
+    text: The system shall surface the LLM-generated clarifying questions as CLI hints and add an orchestrator-policy ask-first instruction so the AI orchestrator drives intent capture before init.
+    evidence_refs: [src/cli/clad.ts, src/agents/orchestrator.md]
+  - id: AC-006
+    ears: ubiquitous
+    action: ensure the clarifying questions emitted by the LLM stay at product-owner vocabulary level so users without technical expertise can still answer
+    response: 'buildOnboardingPrompt explicitly instructs the LLM to ask GOAL/AUDIENCE/SCOPE questions instead of implementation choices and provides BAD examples (PCI-DSS SAQ, webhook idempotency single-flight vs distributed lock, SSR vs SSG vs ISR) alongside GOOD examples (주 사용자가 개인? 사업자?, 어떤 결제수단 우선?, 한국 시장? 글로벌?, 실시간 결과 vs 배치 OK?); the prompt forbids asking about technical jargon the user did not bring up first; deterministic mode emits no clarifying questions because their calibration depends on the LLM'
+    text: The system shall ensure the clarifying questions emitted by the LLM stay at product-owner vocabulary level so users without technical expertise can still answer.
+    test_refs: [tests/cli/intent-onboarding.test.ts]
+  - id: AC-007
+    ears: ubiquitous
+    action: keep the `--scan` flag and the bare `clad init` path working so direct CLI power users and AI orchestrators have orthogonal ways to express the same intent
+    response: 'init keeps `--scan` as an orthogonal flag (intent-driven LLM refinement vs forced codebase walk); the two can combine (`clad init 결제 SaaS --scan`) and both signals reach the LLM prompt; bare `clad init` on greenfield still writes the v0.3.42 toolchain-default seeds with no regression, plus a new "💡 Tip" hint suggesting the intent-driven path for higher quality; bare `clad init` on existing projects (≥3 source files) keeps the observed scan path unchanged'
+    text: The system shall keep the --scan flag and the bare clad init path working so direct CLI power users and AI orchestrators have orthogonal ways to express the same intent.
+    evidence_refs: [src/cli/init.ts, src/cli/clad.ts]

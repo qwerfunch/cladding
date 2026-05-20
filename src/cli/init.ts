@@ -27,6 +27,11 @@ import {
   renderGreenfieldCapabilitiesYaml,
   renderGreenfieldConventionsMd,
 } from './scan/greenfield-seeds.js';
+import {
+  interpretOnboardingWithFallback,
+  type OnboardingObserved,
+  type OnboardingResult,
+} from './scan/intent-onboarding.js';
 import {detectToolchain} from '../stages/toolchain/detect.js';
 
 export interface InitOptions {
@@ -39,6 +44,15 @@ export interface InitOptions {
   readonly noLlm?: boolean;
   /** Source-root override for the scanner, e.g. ["packages/a/src", "packages/b/src"]. */
   readonly roots?: readonly string[];
+  /**
+   * Free-text user intent (v0.3.43+). When provided, init routes through
+   * the LLM-driven onboarding path (`intent-onboarding.ts`) which produces
+   * domain-aware seeds for project-context / capabilities / architecture
+   * plus a real F-001 title and 2-3 follow-up questions. When omitted,
+   * init falls back to the v0.3.42 behaviour (toolchain-default seeds in
+   * greenfield, observed scan otherwise).
+   */
+  readonly intent?: string;
 }
 
 export interface InitResult {
@@ -47,6 +61,14 @@ export interface InitResult {
   readonly language: string;
   /** Files diverted to `.cladding/scan/*.proposal.*` because an authored copy already existed. */
   readonly proposals?: readonly string[];
+  /**
+   * Product/business-level follow-up questions emitted by the LLM during
+   * intent-aware onboarding. Empty when no intent was given or when the
+   * deterministic fallback fired. The CLI surfaces these as hints.
+   */
+  readonly clarifyingQuestions?: readonly string[];
+  /** Mode the onboarding pass classified the project as (intent path only). */
+  readonly onboardingMode?: OnboardingResult['mode'];
 }
 
 // v0.3.30 — Scenarios in cladding capture *user journeys* (business
@@ -86,7 +108,8 @@ const SCENARIOS_README = [
   '',
 ].join('\n');
 
-function specSeed(projectName: string, language: string): string {
+function specSeed(projectName: string, language: string, seedTitle?: string): string {
+  const title = (seedTitle ?? 'Your first feature').replace(/"/g, '\\"');
   return [
     `# ${projectName} — Cladding spec`,
     '# This file is your project SSoT. Edit features here, run `clad sync`',
@@ -101,7 +124,7 @@ function specSeed(projectName: string, language: string): string {
     '',
     'features:',
     '  - id: F-001',
-    '    title: "Your first feature"',
+    `    title: "${title}"`,
     '    status: planned',
     '    modules: []',
     '    acceptance_criteria:',
@@ -154,13 +177,37 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
       ? scanResult.stats.dominantLanguage
       : manifestLanguage;
   const projectName = opts.projectName ?? basename(resolve(cwd));
+  const intent = opts.intent?.trim();
+
+  // v0.3.43 — intent-aware onboarding. When the user passes a free-text
+  // intent (`clad init <description>`), run the LLM-driven onboarding
+  // path that returns a domain-aware project-context body + refined
+  // capabilities + architecture + a real F-001 title + product/business
+  // clarifying questions. The result feeds the spec.yaml seed below and
+  // the scan-artifact writes further down so the spec/docs surface is
+  // intent-shaped from the first init. `--no-llm` and a missing
+  // dispatcher both fall back to a deterministic variant that quotes
+  // the intent verbatim.
+  let onboarding: OnboardingResult | null = null;
+  const dispatcher = selectDispatcher({noLlm: opts.noLlm});
+  if (intent && intent.length > 0) {
+    const observed: OnboardingObserved = {
+      cwdBasename: basename(resolve(cwd)),
+      language,
+      sourceFileCount: scanResult?.stats.filesScanned ?? 0,
+      readmePresent: Boolean(scanResult?.projectContext?.readmeFirstParagraph),
+      readmeFirstParagraph: scanResult?.projectContext?.readmeFirstParagraph ?? null,
+      projectName,
+    };
+    onboarding = await interpretOnboardingWithFallback(intent, observed, dispatcher, cwd);
+  }
 
   // 1. spec.yaml
   const specPath = join(cwd, 'spec.yaml');
   if (existsSync(specPath) && !force) {
     skipped.push('spec.yaml (exists; pass --force to overwrite)');
   } else {
-    writeFileSync(specPath, specSeed(projectName, language));
+    writeFileSync(specPath, specSeed(projectName, language, onboarding?.specSeedTitle));
     created.push('spec.yaml');
   }
 
@@ -184,12 +231,11 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
 
   const proposals: string[] = [];
 
-  // v0.3.35 — dispatcher is selected once and routed through both the
-  // scan-artifact refinement and the project-context refinement so a
-  // hosted environment refines every cladding-authored markdown in a
-  // single dispatcher session. --no-llm / no-key / no-host all
-  // collapse to deterministic for byte-stable CI output.
-  const dispatcher = selectDispatcher({noLlm: opts.noLlm});
+  // v0.3.35 — dispatcher is selected once at the top of runInit (see
+  // intent-onboarding section above) and threaded through every
+  // refinement path so a hosted environment touches the LLM at most
+  // once per cycle. --no-llm / no-key / no-host all collapse to
+  // deterministic for byte-stable CI output.
 
   // Phase 2 (v0.3.24, F-x) — Existing-project scan. When the scan
   // gate fires we walk `cwd` for code conventions, layers, and
@@ -231,9 +277,26 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
     // later `clad init --scan` on a populated codebase will replace
     // these bodies via the existing `.cladding/scan/*.proposal`
     // divert mechanism in `writeArtifact`.
+    //
+    // v0.3.43 — when intent is provided, the onboarding pass produces
+    // domain-aware capabilities + architecture bodies that replace the
+    // toolchain-default seeds. `conventions.md` stays seed-based
+    // because conventions are language-specific, not domain-specific.
     writeArtifact(cwd, 'docs/conventions.md', renderGreenfieldConventionsMd(language, projectName), created, proposals);
-    writeArtifact(cwd, 'spec/architecture.yaml', renderGreenfieldArchitectureYaml(language), created, proposals);
-    writeArtifact(cwd, 'spec/capabilities.yaml', renderGreenfieldCapabilitiesYaml(projectName), created, proposals);
+    writeArtifact(
+      cwd,
+      'spec/architecture.yaml',
+      onboarding?.architectureYaml ?? renderGreenfieldArchitectureYaml(language),
+      created,
+      proposals,
+    );
+    writeArtifact(
+      cwd,
+      'spec/capabilities.yaml',
+      onboarding?.capabilitiesYaml ?? renderGreenfieldCapabilitiesYaml(projectName),
+      created,
+      proposals,
+    );
     writeArtifact(cwd, 'spec/scenarios/README.md', SCENARIOS_README, created, proposals);
   }
 
@@ -246,13 +309,29 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
   // polished prose. Greenfield + no-LLM environments still receive
   // the deterministic template; the dispatcher failure path also
   // collapses to deterministic so the file is always usable.
+  //
+  // v0.3.43 — when intent is provided, the onboarding pass produces a
+  // richer body that captures the user's stated intent plus inferred
+  // domain context. That body wins over the observed-README path.
   const projectContext = scanResult?.projectContext ?? null;
-  const projectContextMd = dispatcher
-    ? await renderProjectContextMdWithLlm(projectContext, projectName, dispatcher, cwd)
-    : renderProjectContextMd(projectContext, projectName);
+  let projectContextMd: string;
+  if (onboarding) {
+    projectContextMd = onboarding.projectContextMd;
+  } else if (dispatcher) {
+    projectContextMd = await renderProjectContextMdWithLlm(projectContext, projectName, dispatcher, cwd);
+  } else {
+    projectContextMd = renderProjectContextMd(projectContext, projectName);
+  }
   writeArtifact(cwd, 'docs/project-context.md', projectContextMd, created, proposals);
 
-  return {created, skipped, language, proposals: proposals.length ? proposals : undefined};
+  return {
+    created,
+    skipped,
+    language,
+    proposals: proposals.length ? proposals : undefined,
+    clarifyingQuestions: onboarding?.clarifyingQuestions.length ? [...onboarding.clarifyingQuestions] : undefined,
+    onboardingMode: onboarding?.mode,
+  };
 }
 
 /**

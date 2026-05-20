@@ -1,0 +1,307 @@
+// Cladding · unit tests for cli/scan/intent-onboarding (v0.3.43, F-56abaa)
+//
+// Pure function tests for the prompt builder + parser, plus a small
+// set of integration tests for interpretOnboardingWithFallback that
+// exercise the LLM-path / fallback matrix using a tmpdir-backed
+// events.log so the sentinel_miss emit branch is verified end-to-end.
+
+import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
+import {mkdtempSync, rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+
+import {
+  buildOnboardingPrompt,
+  deterministicOnboarding,
+  extractClarifyingQuestions,
+  interpretOnboardingWithFallback,
+  normaliseMode,
+  parseOnboardingResponse,
+  type OnboardingObserved,
+} from '../../src/cli/scan/intent-onboarding.js';
+import {readEvents} from '../../src/events/log.js';
+
+function fakeObserved(over: Partial<OnboardingObserved> = {}): OnboardingObserved {
+  return {
+    cwdBasename: 'demo',
+    language: 'typescript',
+    sourceFileCount: 0,
+    readmePresent: false,
+    readmeFirstParagraph: null,
+    projectName: 'demo',
+    ...over,
+  };
+}
+
+describe('buildOnboardingPrompt', () => {
+  test('includes all six sentinel sections', () => {
+    const p = buildOnboardingPrompt('결제 SaaS for B2B', fakeObserved());
+    expect(p).toContain('=== ONBOARDING_MODE ===');
+    expect(p).toContain('=== PROJECT_CONTEXT_MD ===');
+    expect(p).toContain('=== CAPABILITIES_YAML ===');
+    expect(p).toContain('=== ARCHITECTURE_YAML ===');
+    expect(p).toContain('=== SPEC_SEED_TITLE ===');
+    expect(p).toContain('=== CLARIFYING_QUESTIONS ===');
+  });
+
+  test('embeds the verbatim user intent', () => {
+    const p = buildOnboardingPrompt('AI 코드 리뷰 봇 만들기', fakeObserved());
+    expect(p).toContain('User intent: "AI 코드 리뷰 봇 만들기"');
+  });
+
+  test('reports observed environment fields', () => {
+    const p = buildOnboardingPrompt('demo', fakeObserved({
+      language: 'python',
+      sourceFileCount: 42,
+      readmePresent: true,
+      readmeFirstParagraph: 'A neat little tool.',
+      projectName: 'my-tool',
+    }));
+    expect(p).toContain('Project name (cwd basename): my-tool');
+    expect(p).toContain('Detected language: python');
+    expect(p).toContain('Existing source files: 42');
+    expect(p).toContain('README present: yes');
+    expect(p).toContain('"A neat little tool."');
+  });
+
+  test('lists product-level question examples and bans expert jargon', () => {
+    const p = buildOnboardingPrompt('결제 SaaS', fakeObserved());
+    // Product-level GOOD examples are present
+    expect(p).toContain('주 사용자가 개인? 사업자?');
+    // BAD examples are present too so the LLM sees the contrast
+    expect(p).toContain('PCI-DSS SAQ A vs SAQ D?');
+    // Explicit anti-jargon rule
+    expect(p).toContain('NEVER ask about technical jargon');
+  });
+});
+
+describe('parseOnboardingResponse', () => {
+  test('extracts each of the six sentinels independently', () => {
+    const raw = [
+      '=== ONBOARDING_MODE ===',
+      'greenfield',
+      '=== PROJECT_CONTEXT_MD ===',
+      '# foo\n',
+      '=== CAPABILITIES_YAML ===',
+      'schema: "0.1"',
+      'capabilities: []',
+      '=== ARCHITECTURE_YAML ===',
+      'version: "0.1"',
+      'layers: []',
+      '=== SPEC_SEED_TITLE ===',
+      '결제 인증 흐름',
+      '=== CLARIFYING_QUESTIONS ===',
+      '- 주 사용자가 개인? 사업자?',
+      '- 어떤 결제수단 우선?',
+    ].join('\n');
+    const out = parseOnboardingResponse(raw);
+    expect(out.mode).toBe('greenfield');
+    expect(out.projectContext).toContain('# foo');
+    expect(out.capabilities).toContain('schema: "0.1"');
+    expect(out.architecture).toContain('version: "0.1"');
+    expect(out.specSeedTitle).toBe('결제 인증 흐름');
+    expect(out.clarifyingQuestionsRaw).toContain('주 사용자가 개인? 사업자?');
+  });
+
+  test('missing section yields empty string for that part', () => {
+    const out = parseOnboardingResponse('=== ONBOARDING_MODE ===\nmixed\n');
+    expect(out.mode).toBe('mixed');
+    expect(out.projectContext).toBe('');
+    expect(out.capabilities).toBe('');
+    expect(out.specSeedTitle).toBe('');
+  });
+});
+
+describe('normaliseMode', () => {
+  test.each([
+    ['greenfield', 'greenfield'],
+    ['Greenfield', 'greenfield'],
+    ['existing-adoption', 'existing-adoption'],
+    ['Existing adoption', 'existing-adoption'],
+    ['mixed', 'mixed'],
+    ['MIXED', 'mixed'],
+    ['nonsense', 'greenfield'],
+    ['', 'greenfield'],
+  ])('"%s" → %s', (input, expected) => {
+    expect(normaliseMode(input)).toBe(expected);
+  });
+});
+
+describe('extractClarifyingQuestions', () => {
+  test('parses a dash-bulleted list', () => {
+    const out = extractClarifyingQuestions('- one?\n- two?\n- three?\n');
+    expect(out).toEqual(['one?', 'two?', 'three?']);
+  });
+
+  test('parses a numbered list', () => {
+    const out = extractClarifyingQuestions('1. one?\n2) two?\n3. three?\n');
+    expect(out).toEqual(['one?', 'two?', 'three?']);
+  });
+
+  test('parses raw lines without bullets', () => {
+    const out = extractClarifyingQuestions('one?\n\ntwo?\n  three?  \n');
+    expect(out).toEqual(['one?', 'two?', 'three?']);
+  });
+
+  test('caps at 5 questions to keep the CLI hint compact', () => {
+    const raw = ['- a', '- b', '- c', '- d', '- e', '- f', '- g'].join('\n');
+    expect(extractClarifyingQuestions(raw)).toHaveLength(5);
+  });
+
+  test('empty input returns empty array', () => {
+    expect(extractClarifyingQuestions('')).toEqual([]);
+    expect(extractClarifyingQuestions('  \n  \n')).toEqual([]);
+  });
+});
+
+describe('deterministicOnboarding', () => {
+  test('greenfield + 0 source files → mode greenfield', () => {
+    const r = deterministicOnboarding('결제 SaaS', fakeObserved());
+    expect(r.mode).toBe('greenfield');
+    expect(r.source).toBe('deterministic');
+  });
+
+  test('observed source files ≥ 3 → mode existing-adoption', () => {
+    const r = deterministicOnboarding('refactor', fakeObserved({sourceFileCount: 10}));
+    expect(r.mode).toBe('existing-adoption');
+  });
+
+  test('quotes intent verbatim in project-context body', () => {
+    const r = deterministicOnboarding('내가 만들 프로젝트', fakeObserved());
+    expect(r.projectContextMd).toContain('내가 만들 프로젝트');
+  });
+
+  test('spec seed title falls back to the trimmed intent', () => {
+    const r = deterministicOnboarding('결제 SaaS for B2B', fakeObserved());
+    expect(r.specSeedTitle).toBe('결제 SaaS for B2B');
+  });
+
+  test('long intent gets truncated to fit the seed title', () => {
+    const long = 'a'.repeat(100);
+    const r = deterministicOnboarding(long, fakeObserved());
+    expect(r.specSeedTitle.length).toBeLessThanOrEqual(60);
+    expect(r.specSeedTitle.endsWith('…')).toBe(true);
+  });
+
+  test('no clarifying questions in deterministic mode', () => {
+    const r = deterministicOnboarding('demo', fakeObserved());
+    expect(r.clarifyingQuestions).toEqual([]);
+  });
+});
+
+describe('interpretOnboardingWithFallback', () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'clad-onboarding-'));
+  });
+  afterEach(() => {
+    rmSync(dir, {recursive: true, force: true});
+  });
+
+  test('dispatcher === null → deterministic, no event emitted', async () => {
+    const r = await interpretOnboardingWithFallback('demo', fakeObserved(), null, dir);
+    expect(r.source).toBe('deterministic');
+    const events = readEvents(dir).filter((e) => e.type === 'sentinel_miss');
+    expect(events).toHaveLength(0);
+  });
+
+  test('dispatcher throws → deterministic + onboarding sentinel_miss event', async () => {
+    const dispatch = vi.fn<(p: string) => Promise<string>>(async () => {
+      throw new Error('transport down');
+    });
+    const r = await interpretOnboardingWithFallback('demo', fakeObserved(), dispatch, dir);
+    expect(r.source).toBe('deterministic');
+    const events = readEvents(dir).filter((e) => e.type === 'sentinel_miss');
+    expect(events).toHaveLength(1);
+    expect(events[0].payload).toMatchObject({
+      phase: 'onboarding',
+      cause: 'dispatcher_error',
+      fallback: 'total',
+      error: 'transport down',
+    });
+  });
+
+  test('LLM success → full onboarding result', async () => {
+    const dispatch = vi.fn(async () =>
+      [
+        '=== ONBOARDING_MODE ===',
+        'greenfield',
+        '=== PROJECT_CONTEXT_MD ===',
+        '# A',
+        '## 1. Why\nfoo',
+        '=== CAPABILITIES_YAML ===',
+        'schema: "0.1"',
+        'capabilities:',
+        '  - id: auth',
+        '    title: "Auth"',
+        '=== ARCHITECTURE_YAML ===',
+        'version: "0.1"',
+        'layers: []',
+        '=== SPEC_SEED_TITLE ===',
+        '결제 인증 흐름',
+        '=== CLARIFYING_QUESTIONS ===',
+        '- 주 사용자가 개인? 사업자?',
+        '- 한국 시장? 글로벌?',
+      ].join('\n'),
+    );
+    const r = await interpretOnboardingWithFallback('결제 SaaS', fakeObserved(), dispatch, dir);
+    expect(r.source).toBe('llm');
+    expect(r.mode).toBe('greenfield');
+    expect(r.specSeedTitle).toBe('결제 인증 흐름');
+    expect(r.clarifyingQuestions).toEqual(['주 사용자가 개인? 사업자?', '한국 시장? 글로벌?']);
+    expect(r.projectContextMd).toContain('Why');
+    expect(r.capabilitiesYaml).toContain('- id: auth');
+    expect(r.architectureYaml).toContain('layers: []');
+  });
+
+  test('per-artifact fallback: empty CAPABILITIES_YAML alone keeps mode llm-hybrid', async () => {
+    const dispatch = vi.fn(async () =>
+      [
+        '=== ONBOARDING_MODE ===',
+        'greenfield',
+        '=== PROJECT_CONTEXT_MD ===',
+        '# A',
+        '=== ARCHITECTURE_YAML ===',
+        'version: "0.1"\nlayers: []',
+        '=== SPEC_SEED_TITLE ===',
+        'foo',
+      ].join('\n'),
+    );
+    const r = await interpretOnboardingWithFallback('demo', fakeObserved(), dispatch, dir);
+    expect(r.source).toBe('hybrid');
+    // Capabilities falls back to greenfield seed
+    expect(r.capabilitiesYaml).toContain('capabilities: []');
+    const events = readEvents(dir).filter((e) => e.type === 'sentinel_miss');
+    expect(events).toHaveLength(1);
+    expect(events[0].payload).toMatchObject({
+      phase: 'onboarding',
+      cause: 'blank_section',
+      fallback: 'per_artifact',
+    });
+    expect(events[0].payload.missed_sections).toContain('CAPABILITIES_YAML');
+  });
+
+  test('total fallback: PROJECT_CONTEXT + CAPABILITIES + ARCHITECTURE all blank → deterministic', async () => {
+    const dispatch = vi.fn(async () => '=== ONBOARDING_MODE ===\nmixed\n=== SPEC_SEED_TITLE ===\nfoo\n');
+    const r = await interpretOnboardingWithFallback('demo', fakeObserved(), dispatch, dir);
+    expect(r.source).toBe('deterministic');
+    const events = readEvents(dir).filter((e) => e.type === 'sentinel_miss');
+    expect(events).toHaveLength(1);
+    expect(events[0].payload).toMatchObject({
+      phase: 'onboarding',
+      cause: 'blank_section',
+      fallback: 'total',
+    });
+  });
+
+  test('cwd omitted → telemetry stays silent', async () => {
+    const dispatch = vi.fn<(p: string) => Promise<string>>(async () => {
+      throw new Error('whatever');
+    });
+    const r = await interpretOnboardingWithFallback('demo', fakeObserved(), dispatch);
+    expect(r.source).toBe('deterministic');
+    // No event because no cwd was passed
+    const events = readEvents(dir).filter((e) => e.type === 'sentinel_miss');
+    expect(events).toHaveLength(0);
+  });
+});

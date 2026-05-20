@@ -1,13 +1,35 @@
-description = "Scaffold a cladding workspace in the current directory — seed spec.yaml, create .cladding/, append gitignore entries. Use when the user wants to start a new Ironclad project or add cladding to an existing repo."
+description = "Scaffold a cladding workspace. Pass a free-text project description as positional argument to drive intent-aware onboarding — the LLM produces domain-aware spec/docs plus product-level follow-up questions. Use when the user wants to start a new Ironclad project, adopt cladding into an existing repo, or refresh artifacts via re-scan."
 prompt = '''
 # Cladding init
 
 Run `clad init` from the directory where the cladding workspace should live. Idempotent — skips files that already exist unless `--force` is supplied.
 
+## Intent-aware onboarding (v0.3.43+)
+
+The strongest path is to pass the user's project intent as positional argument (no `--intent` keyword, no quotes needed):
+
+```
+clad init 결제 SaaS for B2B Stripe Toss 지원
+clad init AI 코드 리뷰 봇 만들거야
+clad init 이 프로젝트 분석해서 클래딩 적용해줘
+```
+
+The LLM dispatcher then produces **domain-aware** artifacts that exceed what the user explicitly stated:
+
+- `docs/project-context.md` — Why/What/Purpose with inferred domain context (compliance norms, scale assumptions, common patterns)
+- `spec/capabilities.yaml` — user-stated + inferred capabilities (3-8 entries; payment → idempotency, webhook signing; ML → data lineage, eval harness; SaaS → multi-tenancy, audit log)
+- `spec/architecture.yaml` — layers tailored to domain + language
+- `spec.yaml` F-001 title — a real first feature ("결제 인증 흐름"), not "Your first feature"
+- 2-3 follow-up clarifying questions printed to stdout as CLI hints (product/business level — not technical jargon)
+
+**AI orchestrators MUST ask the user for intent before invoking `clad init` on a greenfield workspace** (see `src/agents/orchestrator.md` principle 6). A bare `clad init` on a brand-new project falls back to generic toolchain seeds and misses the user's intent. For existing projects (≥3 source files) bare `clad init` is fine — the observed scan path captures shape directly.
+
+## Flags
+
 - `--name <name>` — override the project name (default: cwd basename).
 - `--force` — overwrite an existing `spec.yaml`.
-- `--scan` — force-walk the existing codebase to write observed-conventions artifacts. Default auto-detects (≥3 source files trigger scan); use `--no-scan` to skip even when source is present.
-- `--no-llm` — force the deterministic interpreter for `--scan`. By default the scan routes through the LLM dispatcher chain (MCP sampling → Anthropic SDK → deterministic) and falls back automatically when no host or key is available.
+- `--scan` — force-walk the existing codebase to write observed artifacts. Default auto-detects (≥3 source files trigger scan); use `--no-scan` to skip even when source is present. Orthogonal to positional intent — can combine (`clad init 결제 SaaS --scan`).
+- `--no-llm` — force the deterministic interpreter. Intent text still routes but falls back to a deterministic body quoting the intent verbatim.
 - `--roots <list>` — comma-separated source-root override (e.g. `packages/a/src,packages/b/src`). Otherwise inferred from manifests + directory heuristics.
 
 When `--scan` runs (or auto-runs on a codebase with ≥3 source files) it writes:
@@ -38,7 +60,10 @@ After init:
 4. (Optional) Run `clad doctor` to confirm `.cladding/events.log.jsonl` shows no `sentinel_miss` events from the scan refinement.
 
 ```
-clad init
+clad init                                    # bare (greenfield seeds + hint, or observed scan)
+clad init 결제 SaaS for B2B                   # intent-aware onboarding (positional, no quotes needed)
+clad init "AI 코드 리뷰 봇"                   # quotes OK too
+clad init 이 프로젝트 분석해서 클래딩 적용해줘    # intent that signals existing adoption
 clad init --name my-project
 clad init --force
 clad init --scan --no-llm

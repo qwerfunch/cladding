@@ -114,19 +114,21 @@ describe('cli/clad — handler exports', () => {
       skipped: [],
       language: 'typescript',
     });
-    await clad.runInitCommand({});
+    await clad.runInitCommand(undefined, {});
     expect(runInitMock).toHaveBeenCalledOnce();
     expect(exitCalls).toEqual([0]);
   });
 
   test('runInitCommand forwards name + force options', async () => {
     runInitMock.mockResolvedValueOnce({created: [], skipped: ['spec.yaml'], language: 'rust'});
-    await clad.runInitCommand({name: 'custom', force: true});
+    await clad.runInitCommand(undefined, {name: 'custom', force: true});
     expect(runInitMock).toHaveBeenCalledWith({
       projectName: 'custom',
       force: true,
       scan: undefined,
       noLlm: undefined,
+      roots: undefined,
+      intent: undefined,
     });
   });
 
@@ -139,14 +141,41 @@ describe('cli/clad — handler exports', () => {
       language: 'typescript',
       proposals: ['spec/architecture.yaml → .cladding/scan/architecture.yaml.proposal'],
     });
-    await clad.runInitCommand({scan: true, noLlm: true});
+    await clad.runInitCommand(undefined, {scan: true, noLlm: true});
     expect(runInitMock).toHaveBeenCalledWith({
       projectName: undefined,
       force: undefined,
       scan: true,
       noLlm: true,
+      roots: undefined,
+      intent: undefined,
     });
     expect(exitCalls).toEqual([0]);
+  });
+
+  // v0.3.43 (F-56abaa) — variadic positional captures the user's intent
+  // and forwards it as the joined string to runInit; the clarifying
+  // questions returned by intent-onboarding render as stdout hints.
+  test('runInitCommand joins variadic positional tokens into intent', async () => {
+    runInitMock.mockResolvedValueOnce({
+      created: ['spec.yaml'],
+      skipped: [],
+      language: 'typescript',
+      clarifyingQuestions: ['주 사용자가 개인? 사업자?', '어떤 결제수단 우선?'],
+      onboardingMode: 'greenfield',
+    });
+    await clad.runInitCommand(['결제', 'SaaS', 'for', 'B2B'], {});
+    expect(runInitMock).toHaveBeenCalledWith({
+      projectName: undefined,
+      force: undefined,
+      scan: undefined,
+      noLlm: undefined,
+      roots: undefined,
+      intent: '결제 SaaS for B2B',
+    });
+    const stdout = stdoutSpy.mock.calls.map((c: readonly unknown[]) => String(c[0])).join('');
+    expect(stdout).toContain('💡 다음 정보가 있으면');
+    expect(stdout).toContain('주 사용자가 개인? 사업자?');
   });
 
   test('runWorkCommand without verb exits 2', () => {
