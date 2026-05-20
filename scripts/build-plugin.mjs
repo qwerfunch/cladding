@@ -32,6 +32,8 @@ import {parse as parseYaml} from 'yaml';
 
 const SRC_AGENTS = 'src/agents';
 const SRC_SKILLS = 'skills';
+const SRC_DETECTORS = 'src/stages/detectors';
+const CLAUDE_PLUGIN_JSON = '.claude-plugin/plugin.json';
 
 // --- Phase A — Claude Code mirror (repo-root agents/) -----------------
 
@@ -236,3 +238,63 @@ for (const w of geminiWarnings) {
   console.warn(`cladding plugin · gemini-cli: WARN ${w}`);
 }
 console.log(`cladding plugin · gemini-cli: transpiled ${geminiVerbCount} verbs → ${GEMINI_COMMANDS}/`);
+
+// --- Phase D — Detector count auto-recompute (v0.3.17, F-092) ---------
+//
+// HARNESS_INTEGRITY detects drift between the count of non-index files
+// under src/stages/detectors/ and the `N/M` value declared in
+// .claude-plugin/plugin.json `ironclad.current.detectors` (and `.target`).
+// Two concurrent branches each adding +1 detector merge cleanly on the
+// file side but silently leave `(N+1)/(N+1)` instead of `(N+2)/(N+2)`
+// because manual edits don't compose.
+//
+// This phase recomputes the count from the filesystem (the single
+// source of truth) and rewrites both `current.detectors` and
+// `target.detectors`. The build is idempotent — re-running with no
+// changes produces no diff.
+//
+// Rewriting preserves byte layout: rather than parsing + reserializing
+// the JSON (which would normalize formatting and produce nuisance
+// diffs), the script targets just the two scalar fields by regex on
+// the surrounding lines. The values are always `"N/M"` strings, so the
+// pattern is tight.
+
+function countDetectorFiles() {
+  return readdirSync(SRC_DETECTORS).filter(
+    (f) => f.endsWith('.ts') && f !== 'index.ts',
+  ).length;
+}
+
+function rewriteDetectorCount(jsonPath, count) {
+  const original = readFileSync(jsonPath, 'utf8');
+  const want = `"${count}/${count}"`;
+  // Two replacements anchored to the parent key — `target.detectors`
+  // and `current.detectors`. `[\s\S]*?` is lazy so it captures the
+  // shortest run from the parent's `{` to the first `"detectors":`
+  // inside it. Any future `"detectors":` key under a different parent
+  // (e.g. a hypothetical `stages.detectors`) is untouched because the
+  // match anchor still requires `"target"` or `"current"`.
+  let updated = original.replace(
+    /("target":\s*\{[\s\S]*?"detectors":\s*)"\d+\/\d+"/,
+    `$1${want}`,
+  );
+  updated = updated.replace(
+    /("current":\s*\{[\s\S]*?"detectors":\s*)"\d+\/\d+"/,
+    `$1${want}`,
+  );
+  if (updated === original) return {changed: false, count};
+  writeFileSync(jsonPath, updated);
+  return {changed: true, count};
+}
+
+const detectorCount = countDetectorFiles();
+const claudeResult = rewriteDetectorCount(CLAUDE_PLUGIN_JSON, detectorCount);
+if (claudeResult.changed) {
+  console.log(
+    `cladding plugin · detectors: recomputed → ${detectorCount}/${detectorCount} (updated ${CLAUDE_PLUGIN_JSON})`,
+  );
+} else {
+  console.log(
+    `cladding plugin · detectors: ${detectorCount}/${detectorCount} (already in sync)`,
+  );
+}

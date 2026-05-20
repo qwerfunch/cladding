@@ -1,0 +1,34 @@
+id: F-098d3b
+slug: detector-count-auto-recompute
+title: Detector count auto-recompute in build-plugin.mjs (v0.3.17)
+status: done
+modules:
+  - scripts/build-plugin.mjs
+depends_on:
+  - F-245bd5
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: recompute the detector count from the filesystem during the plugin build
+    response: 'scripts/build-plugin.mjs Phase D counts non-index .ts files under src/stages/detectors/ and rewrites both ironclad.target.detectors and ironclad.current.detectors in .claude-plugin/plugin.json to the resulting N/N value'
+    text: The system shall recompute the detector count from the filesystem during the plugin build so concurrent detector additions on parallel branches converge to the correct value without manual edits.
+    test_refs: [tests/scripts/build-plugin-detector-count.test.ts]
+  - id: AC-002
+    ears: event
+    condition: when .claude-plugin/plugin.json already declares the filesystem-correct count
+    action: produce no diff
+    response: 'rewriteDetectorCount returns changed=false and the build logs "detectors: N/N (already in sync)"; the manifest bytes are not rewritten so re-running npm run build:plugin in CI does not stage a phantom change'
+    text: When .claude-plugin/plugin.json already declares the filesystem-correct count, the system shall produce no diff so the build phase is idempotent and safe to run on every commit.
+    test_refs: [tests/scripts/build-plugin-detector-count.test.ts]
+  - id: AC-003
+    ears: ubiquitous
+    action: limit the rewrite to ironclad.target.detectors and ironclad.current.detectors fields
+    response: 'the regex captures the parent key ("target" or "current") in a non-greedy run up to the first "detectors": "<old>" inside that block; any "detectors" key under a different parent path (for example a hypothetical stages.detectors or a nested decoy) is untouched, verified by the unrelated-parent test'
+    text: The system shall limit the rewrite to ironclad.target.detectors and ironclad.current.detectors so unrelated detector-named keys elsewhere in the manifest are not corrupted.
+    test_refs: [tests/scripts/build-plugin-detector-count.test.ts]
+  - id: AC-004
+    ears: ubiquitous
+    action: exclude index.ts from the detector file count
+    response: 'countDetectorFiles filters readdirSync output to .ts files with the explicit exclusion `f !== "index.ts"`; the test seeds an explicit index.ts on top of N detectors and asserts the recomputed count is N, not N+1, which also matches the HARNESS_INTEGRITY detector contract'
+    text: The system shall exclude index.ts from the detector file count so the auto-recomputed value matches the HARNESS_INTEGRITY detector's existing contract.
+    evidence_refs: [src/stages/detectors/harness-integrity.ts]
