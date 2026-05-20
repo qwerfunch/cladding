@@ -113,6 +113,17 @@ export interface ScanResult {
 export interface ScanStats {
   readonly filesScanned: number;
   readonly languagesSeen: readonly string[];
+  /**
+   * v0.3.27 — per-language file counts so callers can pick the
+   * dominant language by majority instead of guessing from the
+   * project manifest. `detectToolchain` (src/stages/toolchain/
+   * detect.ts) prefers package.json, which mis-identifies polyglot
+   * repos that ship a package.json for tooling but are actually
+   * Python / Ruby / Go.
+   */
+  readonly languageCounts: Readonly<Record<string, number>>;
+  /** Most-common language inferred from file extensions; falls back to 'unknown'. */
+  readonly dominantLanguage: string;
   readonly sourceRoot: string;
 }
 
@@ -184,18 +195,54 @@ export function scanRoot(opts: ScanOptions): ScanResult {
   // `cmd/` + `internal/` + `pkg/`, …).
   const roots = inferSourceRoots({cwd: opts.cwd, override: opts.roots});
   const files = walk(opts.cwd, extensions, ignore, maxFiles);
-  const filesByLayer = groupByLayer(files, roots);
+  const filesByLayer = groupByLayer(files, roots, opts.cwd);
 
   return {
     conventions: extractConventions(files),
     architecture: extractArchitecture(files, filesByLayer, roots),
     scenarios: proposeScenarios(filesByLayer),
     examples: pickExamples(filesByLayer),
-    stats: {
-      filesScanned: files.length,
-      languagesSeen: Array.from(new Set(files.map((f) => extname(f.path)))).sort(),
-      sourceRoot: opts.cwd,
-    },
+    stats: buildStats(files, opts.cwd),
+  };
+}
+
+/** Maps a file extension to a normalised language label. */
+const EXT_TO_LANGUAGE: Readonly<Record<string, string>> = {
+  '.ts': 'typescript', '.tsx': 'typescript',
+  '.js': 'javascript', '.jsx': 'javascript', '.mjs': 'javascript', '.cjs': 'javascript',
+  '.py': 'python', '.pyi': 'python',
+  '.go': 'go',
+  '.rs': 'rust',
+  '.java': 'java',
+  '.kt': 'kotlin', '.kts': 'kotlin',
+  '.cs': 'csharp',
+  '.rb': 'ruby',
+  '.php': 'php',
+  '.swift': 'swift',
+  '.ex': 'elixir', '.exs': 'elixir',
+  '.scala': 'scala',
+  '.dart': 'dart',
+  '.cpp': 'cpp', '.cc': 'cpp', '.cxx': 'cpp', '.hpp': 'cpp', '.h': 'cpp',
+};
+
+function buildStats(files: readonly SourceFile[], cwd: string): ScanStats {
+  const counts: Record<string, number> = {};
+  for (const f of files) {
+    const lang = EXT_TO_LANGUAGE[extname(f.path)] ?? 'other';
+    counts[lang] = (counts[lang] ?? 0) + 1;
+  }
+  // Pick the dominant language by file count; fall back to 'unknown'
+  // when no recognised extension is in the count map.
+  let dominant: [string, number] | null = null;
+  for (const entry of Object.entries(counts)) {
+    if (!dominant || entry[1] > dominant[1]) dominant = entry;
+  }
+  return {
+    filesScanned: files.length,
+    languagesSeen: Array.from(new Set(files.map((f) => extname(f.path)))).sort(),
+    languageCounts: counts,
+    dominantLanguage: dominant?.[0] ?? 'unknown',
+    sourceRoot: cwd,
   };
 }
 
@@ -271,7 +318,16 @@ export function layerOf(relPath: string, roots: readonly SourceRoot[]): string {
     const prefix = `${r.relPath}/`;
     if (relPath === r.relPath || relPath.startsWith(prefix)) {
       const inside = relPath.slice(prefix.length).split('/');
-      if (inside.length < 2) continue;
+      // I12 (v0.3.27) — direct files inside a workspace src root used
+      // to skip layer assignment entirely (the `inside.length < 2`
+      // guard). That left react's `packages/react/src/ReactAct.js`
+      // and friends invisible from the architecture view. Surface
+      // them under the workspace's own name so the workspace stays
+      // a layer even when its src/ is flat.
+      if (inside.length === 1) {
+        return r.workspaceName ?? '_root';
+      }
+      if (inside.length === 0) continue;
       const layer = inside[0];
       return r.workspaceName ? `${r.workspaceName}:${layer}` : layer;
     }
@@ -281,9 +337,13 @@ export function layerOf(relPath: string, roots: readonly SourceRoot[]): string {
   return '_root';
 }
 
+/** Modules-at-cwd-root threshold above which `_root` promotes to a real layer. */
+const ROOT_PROMOTION_THRESHOLD = 5;
+
 function groupByLayer(
   files: readonly SourceFile[],
   roots: readonly SourceRoot[],
+  cwd: string,
 ): Map<string, SourceFile[]> {
   const map = new Map<string, SourceFile[]>();
   for (const f of files) {
@@ -295,6 +355,20 @@ function groupByLayer(
     if (colonIdx > 0 && LAYER_BLACKLIST.has(layer.slice(colonIdx + 1).toLowerCase())) continue;
     if (!map.has(layer)) map.set(layer, []);
     map.get(layer)!.push(f);
+  }
+  // I11 (v0.3.27) — flat single-package projects (Go's cobra is the
+  // canonical example) put every source file at cwd directly, so the
+  // `_root` bucket ends up holding the real work surface. Promote it
+  // to a named layer using cwd's basename when the bucket carries
+  // more than the threshold so cobra-style repos no longer report
+  // zero layers.
+  const rootBucket = map.get('_root');
+  if (rootBucket && rootBucket.length >= ROOT_PROMOTION_THRESHOLD) {
+    const promotedName = basename(cwd) || 'root';
+    if (!map.has(promotedName)) {
+      map.set(promotedName, rootBucket);
+      map.delete('_root');
+    }
   }
   return map;
 }

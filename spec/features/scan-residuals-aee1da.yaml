@@ -1,0 +1,42 @@
+id: F-aee1da
+slug: scan-residuals
+title: scan deterministic fixes — flat _root promotion + workspace direct files + dominant language (v0.3.27)
+status: done
+modules:
+  - src/cli/scan.ts
+  - src/cli/init.ts
+depends_on:
+  - F-94dda4
+acceptance_criteria:
+  - id: AC-001
+    ears: state
+    condition: while the cwd holds at least five recognised source files directly (Go-style flat single-package)
+    action: promote the _root bucket to a named layer using cwd basename
+    response: 'src/cli/scan.ts groupByLayer collects files into _root when layerOf returns _root; after the loop, when rootBucket.length >= ROOT_PROMOTION_THRESHOLD (5), the bucket moves to a layer named after basename(cwd); cobra-style repos no longer report zero layers; the small-flat test asserts that 2 cwd-direct files stay below the threshold and produce no layer'
+    text: While the cwd holds at least five recognised source files directly (Go-style flat single-package), the system shall promote the _root bucket to a named layer using cwd basename so cobra and similar Go single-package projects produce a meaningful architecture.yaml.
+    test_refs: [tests/cli/scan.test.ts]
+  - id: AC-002
+    ears: event
+    condition: when a file lives directly inside a workspace src root with no intervening subdirectory
+    action: surface the file under the workspace name itself instead of skipping
+    response: 'src/cli/scan.ts layerOf checks inside.length === 1 (workspace direct file) and returns r.workspaceName ?? "_root"; react packages/react/src/ReactAct.js, packages/scheduler/src/Scheduler.js now show up as react / scheduler layers; the mixed-shape test asserts that packages/a/src/index.ts contributes layer "a" while packages/a/src/core/inner.ts contributes layer "a:core"'
+    text: When a file lives directly inside a workspace src root with no intervening subdirectory, the system shall surface the file under the workspace name itself instead of skipping so react-style monorepos with flat src/ directories no longer collapse to a single layer.
+    test_refs: [tests/cli/scan.test.ts]
+  - id: AC-003
+    ears: ubiquitous
+    action: record per-language file counts and a dominant-language label on ScanStats
+    response: 'src/cli/scan.ts ScanStats grows two fields: languageCounts (Readonly<Record<string, number>>) keyed by normalised language name (typescript / javascript / python / go / rust / java / kotlin / csharp / ruby / php / swift / elixir / scala / dart / cpp / other) and dominantLanguage chosen by majority count; buildStats helper centralises the EXT_TO_LANGUAGE mapping; the test asserts that 2 .rb + 1 .ts produces dominantLanguage = ruby'
+    text: The system shall record per-language file counts and a dominant-language label on ScanStats so callers can pick the project language by file-extension majority instead of trusting detectToolchain (which always picks package.json first and mis-identifies polyglot repos as typescript).
+    test_refs: [tests/cli/scan.test.ts]
+  - id: AC-004
+    ears: ubiquitous
+    action: prefer scan dominant language over detectToolchain manifest signal in runInit
+    response: 'src/cli/init.ts runs scanRoot first when opts.scan is set, then chooses language = (scanResult.stats.dominantLanguage when dominantLanguage is not unknown or other) || (manifestLanguage from detectToolchain); django reports python instead of typescript, rails reports ruby, RxSwiftExt reports swift, cobra reports go; flat src/ projects (cladding itself) keep typescript because the dominant language is typescript and the result is byte-identical'
+    text: The system shall prefer scan dominant language over detectToolchain manifest signal in runInit so polyglot repos with a package.json for tooling (Django, Rails, RxSwiftExt, …) get the spec.yaml language field that matches their actual source files.
+    evidence_refs: [src/cli/init.ts]
+  - id: AC-005
+    ears: ubiquitous
+    action: keep flat src/ project regression byte-identical
+    response: 'cladding itself uses a flat src/ layout, every source file is TypeScript, and tests/ is now LAYER_BLACKLIST-hidden from v0.3.26; this patch only adds _root promotion (cwd-direct ≥5 files — cladding has 0 cwd-direct .ts files so the branch never fires) and workspace-direct branch (cladding is single-root, no workspaces); the existing flat-src regression test keeps passing; sync continues to validate 100 features with no language change to spec.yaml'
+    text: The system shall keep flat src/ project regression byte-identical so the v0.3.26 dogfood smoke output and cladding self-scan stay stable when v0.3.27 lands.
+    test_refs: [tests/cli/scan.test.ts]

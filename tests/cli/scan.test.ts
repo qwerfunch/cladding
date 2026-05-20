@@ -203,6 +203,87 @@ describe('scanRoot', () => {
     });
   });
 
+  // v0.3.27 — flat single-package (Go cobra-style) promotion
+  describe('flat single-package _root promotion (v0.3.27)', () => {
+    test('cwd-direct files (≥5) promote to a layer named after cwd basename', () => {
+      seed(dir, {
+        'a.go': 'package cobra\n\nfunc A() {}\n',
+        'b.go': 'package cobra\n\nfunc B() {}\n',
+        'c.go': 'package cobra\n\nfunc C() {}\n',
+        'd.go': 'package cobra\n\nfunc D() {}\n',
+        'e.go': 'package cobra\n\nfunc E() {}\n',
+        'f.go': 'package cobra\n\nfunc F() {}\n',
+      });
+      const r = scanRoot({cwd: dir});
+      // Layer name = basename(tmpdir-prefix), so just assert non-empty
+      // and that the promoted layer carries the 6 files.
+      expect(r.architecture.layers.length).toBeGreaterThanOrEqual(1);
+      const promoted = r.architecture.layers[0];
+      expect(promoted.moduleCount).toBe(6);
+    });
+
+    test('cwd-direct files below threshold stay in _root and produce no layer', () => {
+      seed(dir, {
+        'a.go': 'package main\n',
+        'b.go': 'package main\n',
+      });
+      expect(scanRoot({cwd: dir}).architecture.layers).toEqual([]);
+    });
+  });
+
+  // v0.3.27 — workspace-direct files surface under the workspace name
+  describe('workspace direct files (v0.3.27)', () => {
+    test('packages/<ws>/src/x.ts (no inner layer) maps to <ws>', () => {
+      seed(dir, {
+        'package.json': JSON.stringify({workspaces: ['packages/*']}),
+        'packages/react/src/ReactAct.ts': 'export const x = 1;\n',
+        'packages/react/src/ReactBaseClasses.ts': 'export const y = 2;\n',
+        'packages/scheduler/src/Scheduler.ts': 'export const s = 3;\n',
+      });
+      const names = scanRoot({cwd: dir}).architecture.layers.map((l) => l.name).sort();
+      expect(names).toEqual(['react', 'scheduler']);
+    });
+
+    test('mixed direct + nested files keep both layer shapes', () => {
+      seed(dir, {
+        'package.json': JSON.stringify({workspaces: ['packages/*']}),
+        'packages/a/src/index.ts': 'export const x = 1;\n',
+        'packages/a/src/core/inner.ts': 'export const y = 2;\n',
+      });
+      const names = scanRoot({cwd: dir}).architecture.layers.map((l) => l.name).sort();
+      // `a` from the direct index.ts, `a:core` from the nested file.
+      expect(names).toEqual(['a', 'a:core']);
+    });
+  });
+
+  // v0.3.27 — language counts + dominant language
+  describe('language detection (v0.3.27)', () => {
+    test('languageCounts records per-language file count', () => {
+      seed(dir, {
+        'src/a.py': 'def hello(): pass\n',
+        'src/b.py': 'def world(): pass\n',
+        'src/c.ts': 'export const x = 1;\n',
+      });
+      const r = scanRoot({cwd: dir});
+      expect(r.stats.languageCounts['python']).toBe(2);
+      expect(r.stats.languageCounts['typescript']).toBe(1);
+    });
+
+    test('dominantLanguage picks the majority by file count', () => {
+      seed(dir, {
+        'src/a.rb': '# a\n',
+        'src/b.rb': '# b\n',
+        'src/c.rb': '# c\n',
+        'src/d.ts': 'export const x = 1;\n',
+      });
+      expect(scanRoot({cwd: dir}).stats.dominantLanguage).toBe('ruby');
+    });
+
+    test('dominantLanguage falls back to "unknown" on empty walk', () => {
+      expect(scanRoot({cwd: dir}).stats.dominantLanguage).toBe('unknown');
+    });
+  });
+
   // v0.3.26 (F-x) — polyglot expansion. The audit found Go/Rust
   // repos producing empty architecture.yaml because their file
   // extensions never reached the walker. Verify each new language
