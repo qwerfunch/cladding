@@ -1,0 +1,35 @@
+id: F-086
+slug: multidev-integration-test-and-scenario-regex
+title: Multi-dev concurrent simulation test + scenario regex widening (v0.3.11)
+status: done
+modules:
+  - tests/integration/multi-dev-merge.test.ts
+  - src/spec/schema.json
+  - tests/spec/load.test.ts
+depends_on: [F-084, F-085]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: ship an integration test that simulates two contributors concurrently calling createFeature and asserts the multi-dev safety invariant end-to-end
+    response: tests/integration/multi-dev-merge.test.ts creates two tmpdir cwds (alice + bob), each invokes createFeature; the two output trees are copy-merged into a third tmpdir simulating `git merge`; the resulting tree is loaded and the relevant detectors are run; four sub-tests cover (a) different slugs → clean merge no findings, (b) same slug → file paths distinct, ID_COLLISION silent, SLUG_CONFLICT raises one error, (c) same cwd repeat call → distinct files + SLUG_CONFLICT raises, (d) three contributors with distinct slugs → three files merge clean
+    text: The system shall ship an integration test that simulates two or more contributors concurrently calling createFeature and asserts the multi-dev safety invariant end-to-end — file paths distinct by hash entropy, ID_COLLISION silent, SLUG_CONFLICT raises only on semantic intent overlap.
+    test_refs: [tests/integration/multi-dev-merge.test.ts]
+  - id: AC-002
+    ears: state
+    condition: while two simulated cwds call createFeature with the SAME slug and the resulting trees are copy-merged
+    action: assert the file paths remain distinct (hash entropy) and SLUG_CONFLICT raises one error finding on the merged spec
+    response: 'the test reads merged spec/features/ and finds two `auth-bypass-*.yaml` files with different hashes; idCollision.run returns []; slugConflict.run returns one error finding naming both feature ids and the duplicated slug'
+    text: While two simulated cwds call createFeature with the same slug and the resulting trees are copy-merged, the system shall keep file paths distinct (because hash entropy disambiguates) and SLUG_CONFLICT shall raise exactly one error finding on the merged spec so a human resolves the semantic duplicate.
+    test_refs: [tests/integration/multi-dev-merge.test.ts]
+  - id: AC-003
+    ears: ubiquitous
+    action: widen scenario.features[] regex to accept new-model hash feature ids
+    response: src/spec/schema.json scenario.features[] items pattern changed from `^F-\d{3,}$` to `^F-(\d{3,}|[a-f0-9]{6,})$` (same as feature.id / depends_on / superseded_by); a scenario referencing both legacy F-NNN and new F-<hash> passes schema validation
+    text: The system shall widen scenario.features[] regex to accept new-model hash feature ids so a scenario can reference both legacy F-NNN and new F-<hash> features in the same array without schema rejection.
+    test_refs: [tests/spec/load.test.ts]
+  - id: AC-004
+    ears: ubiquitous
+    action: ship a regression test confirming the scenario regex accepts a mix of legacy and new ids
+    response: 'tests/spec/load.test.ts adds a case where spec.yaml has both F-001 (legacy) and F-a3f9c2 (hash) features plus a scenario referencing both; loadSpec returns the parsed scenario.features equal to [F-001, F-a3f9c2] without throw'
+    text: The system shall ship a regression test confirming the scenario regex accepts a mix of legacy F-NNN and new F-<hash> ids so the future detector author and the schema maintainer cannot silently un-widen this pattern.
+    test_refs: [tests/spec/load.test.ts]

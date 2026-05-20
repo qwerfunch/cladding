@@ -68,6 +68,26 @@ describe('loadSpec', () => {
     expect(spec.scenarios?.[0].id).toBe('S-001');
   });
 
+  test('scenario.features[] accepts hash F-<hash> references (F-086, v0.3.11)', () => {
+    // Regression guard: v0.3.9 widened the feature id regex to accept
+    // F-<hash6> alongside legacy F-NNN, but the scenario.features[]
+    // items pattern was missed. v0.3.11 widens it too. This test
+    // confirms a scenario referencing a hash-id feature passes
+    // schema validation.
+    writeFileSync(
+      join(dir, 'spec.yaml'),
+      'schema: "0.1"\n' +
+        'project: {name: x, language: typescript}\n' +
+        'features:\n' +
+        '  - id: F-001\n    title: legacy\n    status: done\n' +
+        '  - id: F-a3f9c2\n    slug: login-flow\n    title: new\n    status: planned\n' +
+        'scenarios:\n' +
+        '  - id: S-010\n    title: cross-id scenario\n    features: [F-001, F-a3f9c2]\n',
+    );
+    const spec = loadSpec(dir);
+    expect(spec.scenarios?.[0].features).toEqual(['F-001', 'F-a3f9c2']);
+  });
+
   test('inline features beat sharded directory (unsharded wins)', () => {
     writeFileSync(
       join(dir, 'spec.yaml'),

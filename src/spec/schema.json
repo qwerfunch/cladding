@@ -98,7 +98,7 @@
         "flow": {"type": "string"},
         "features": {
           "type": "array",
-          "items": {"type": "string", "pattern": "^F-\\d{3,}$"}
+          "items": {"type": "string", "pattern": "^F-(\\d{3,}|[a-f0-9]{6,})$"}
         }
       }
     },
