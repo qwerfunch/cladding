@@ -5,6 +5,24 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.24] — Unreleased — `clad init --scan` observed-conventions extractor (F-9b643e)
+
+**Existing Project 시나리오 도입 (ironclad-design 07-ssot-init §3 B).** External projects adopting cladding no longer face an empty spec.yaml + no conventions doc. A single `clad init --scan` walks the source tree, extracts 14 deterministic convention signals plus representative example modules per layer, and writes three artifacts so AI maintainers can keep the project in the same shape the original authors used — same function signatures, same comment style, same module boilerplate.
+
+### Added
+
+- `src/cli/scan.ts` (new) — deterministic walker + 14-convention extractor (indent, quote, semicolon, naming exports + constants, docblock ratio + tag counts, import order, export pattern, error handling, type-def location, file header pattern, test location, module boilerplate). Picks the longest non-test module per layer as the representative example, paired with its sibling test when present.
+- `src/cli/scan-llm.ts` (new) — `buildPrompt` + `parseLlmResponse` + `interpretWithLlm` (LLM path, dispatcher injectable) + `deterministicInterpret` (`--no-llm` fallback). Three labelled sections (`CONVENTIONS_MD` / `ARCHITECTURE_YAML` / `SCENARIO_FLOWS`) so the prompt-shape stays stable across v0.3.24 (deterministic) and v0.3.25 (MCP sampling wiring).
+- `src/cli/init.ts` — `--scan` branch writes `docs/conventions.md`, `spec/architecture.yaml`, and one `spec/scenarios/<slug>.yaml` per layer. Existing files divert to `.cladding/scan/<basename>.proposal` instead of overwriting authored content (same propose pattern as v0.3.19 `--propose-archive`).
+- `src/cli/clad.ts` — `--scan` and `--no-llm` flags on the `init` subcommand.
+- `tests/cli/scan.test.ts` + `tests/cli/scan-llm.test.ts` (new) — 14 convention branches + LLM prompt/response + deterministic fallback + 1 new CLI test for `--scan` + `--no-llm` flow.
+
+### Notes
+
+- v0.3.24 default = deterministic interpreter for `--scan`. The LLM dispatcher injection (specialist persona via MCP sampling) lands in v0.3.25.
+- feature 자동 추출 안 함 — scenario placeholder만. feature 는 작업자가 `clad_create_feature` 호출 시 점진 추가 (미니맵 확장식).
+- Tier-2 audit progress: (#1) ✓ Pulse UI v0.3.23, (#2) Territory Minimap deferred, **(new) ✓ Existing Project 시나리오 v0.3.24 — 작업 가이드라인 자동 추출**.
+
 ## [0.3.23] — Unreleased — Pulse UI progressive in drive loop (F-ba4b7a)
 
 **First Tier-2 audit fix** (ironclad-design 03-ux §4.1). Until v0.3.22 a `clad drive` invocation staring at a slow agent dispatch looked frozen — the terminal sat idle until the next transition emitted a `pulse` line. v0.3.23 introduces an in-place progressive surface so the user sees which phase is running while it runs, without breaking the original `tail -f`-friendly `pulse` contract.

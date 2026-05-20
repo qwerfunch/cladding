@@ -1,0 +1,55 @@
+id: F-9b643e
+slug: scan-conventions
+title: clad init --scan — observed-conventions extractor (v0.3.24)
+status: done
+modules:
+  - src/cli/scan.ts
+  - src/cli/scan-llm.ts
+  - src/cli/init.ts
+  - src/cli/clad.ts
+depends_on:
+  - F-ba4b7a
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: walk the existing project source tree and extract 14 deterministic convention signals
+    response: 'src/cli/scan.ts scanRoot reads files from cwd (respecting .gitignore-like defaults plus an explicit ignore list of node_modules, dist, build, .cladding, .git, coverage, .next, .nuxt), caps at maxFiles (default 500), and returns Conventions with indent, quote, semicolon, namingExports, namingConstants, docBlockRatio, docTagCounts, importOrder, exportPattern, errorHandling, typeDefLocation, fileHeaderPattern, testLocation, and moduleBoilerplate; each field uses majority-rule heuristics that the unit tests assert for synthetic project trees'
+    text: The system shall walk the existing project source tree and extract 14 deterministic convention signals so a downstream LLM dispatch (scan-llm.ts) or the deterministic interpreter has enough observed data to compose a maintainer-readable docs/conventions.md.
+    test_refs: [tests/cli/scan.test.ts]
+  - id: AC-002
+    ears: ubiquitous
+    action: group source files by architectural layer collapsing src/<layer>/ to <layer>
+    response: 'src/cli/scan.ts layerOf strips a leading src/ segment so src/cli/x.ts and cli/x.ts both bucket under cli; the import graph extractor uses the same helper so cross-layer edges count consistently; the unit test asserts that src/core, src/cli, src/ui all surface as named layers and that cli → core edges count cross-layer imports'
+    text: The system shall group source files by architectural layer collapsing src/<layer>/ to <layer> so the architecture view stays src-centric while the scanner walks the entire cwd to also reach tests/ and other peer directories.
+    test_refs: [tests/cli/scan.test.ts]
+  - id: AC-003
+    ears: ubiquitous
+    action: pick the longest non-test module per layer as the representative example with its sibling test
+    response: 'src/cli/scan.ts pickExamples filters out *.test.ts files, sorts by LOC descending, takes the head, and pairs with a sibling test whose basename starts with the module basename + .test; the example is quoted to 80 lines for the module and 60 for the test so docs/conventions.md stays readable'
+    text: The system shall pick the longest non-test module per layer as the representative example with its sibling test so docs/conventions.md can quote a concrete boilerplate that AI maintainers follow when adding new code.
+    test_refs: [tests/cli/scan.test.ts]
+  - id: AC-004
+    ears: ubiquitous
+    action: build a labelled prompt and split the response into three sections for LLM interpretation
+    response: 'src/cli/scan-llm.ts buildPrompt assembles the deterministic ScanResult into a prompt containing three sentinels (CONVENTIONS_MD, ARCHITECTURE_YAML, SCENARIO_FLOWS); parseLlmResponse extracts each labelled section; interpretWithLlm composes them into InterpretedScan with mode=llm and a fixed auto-generated header prepended to the conventions markdown'
+    text: The system shall build a labelled prompt and split the response into three sections for LLM interpretation so the dispatcher contract stays stable across v0.3.24 (deterministic default) and v0.3.25 (MCP sampling wiring) without prompt-shape churn.
+    test_refs: [tests/cli/scan-llm.test.ts]
+  - id: AC-005
+    ears: ubiquitous
+    action: produce a deterministic fallback when --no-llm is set or no dispatcher is available
+    response: 'src/cli/scan-llm.ts deterministicInterpret renders docs/conventions.md as a table of the 14 signals, lists doc tag counts, and quotes the module boilerplate plus representative module/test pairs; architecture.yaml lists every observed layer with empty forbidden_imports; scenarioFlows fall back to "Flow through <dir>/" placeholders; mode field is "deterministic" so reviewers can spot the absence of LLM polish'
+    text: The system shall produce a deterministic fallback when --no-llm is set or no dispatcher is available so CI environments and offline workstations still see valid artifacts — at lower prose quality but full data fidelity.
+    test_refs: [tests/cli/scan-llm.test.ts]
+  - id: AC-006
+    ears: event
+    condition: when clad init runs with --scan
+    action: write docs/conventions.md, spec/architecture.yaml, and one spec/scenarios/<slug>.yaml per layer
+    response: 'src/cli/init.ts branches on opts.scan; calls scanRoot then deterministicInterpret (v0.3.24 default) and writes the three artifact families through a shared writeArtifact helper; the helper diverts to .cladding/scan/<basename>.proposal when the authored copy already exists, so docs/conventions.md or spec/architecture.yaml authored by hand never get overwritten; the CLI handler reports created plus proposals via Pulse notes'
+    text: When clad init runs with --scan, the system shall write docs/conventions.md, spec/architecture.yaml, and one spec/scenarios/<slug>.yaml per layer so the external project inherits a maintenance brief without manual authoring; existing files divert to .cladding/scan/*.proposal so authored content stays untouched.
+    test_refs: [tests/cli/clad.test.ts]
+  - id: AC-007
+    ears: ubiquitous
+    action: thread --scan and --no-llm options from CLI through runInit
+    response: 'src/cli/clad.ts runInitCommand accepts {name?, force?, scan?, noLlm?} and forwards all four to runInit; the unit test mocks runInit and asserts the exact payload {projectName: undefined, force: undefined, scan: true, noLlm: true} when --scan and --no-llm are present'
+    text: The system shall thread --scan and --no-llm options from CLI through runInit so a future v0.3.25 dispatcher can be injected at the runInit boundary without re-touching the CLI option layer.
+    test_refs: [tests/cli/clad.test.ts]
