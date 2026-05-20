@@ -1,0 +1,28 @@
+id: F-089
+slug: external-docs-update-v0-3-13
+title: External user docs update — multi-dev hash IDs + ARCHITECTURE_FROM_SPEC (v0.3.14)
+status: done
+modules:
+  - README.md
+  - README.ko.md
+  - docs/spec-ids-multi-dev.md
+depends_on: [F-084, F-085, F-086, F-087, F-088]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: update README.md and README.ko.md status lines so they reflect v0.3.13 capabilities
+    response: 'both READMEs name the multi-developer-safe spec IDs capability, the ARCHITECTURE_FROM_SPEC detector, the 24 drift detectors (was 20), the 87 feature files (was 77), and the v0.3.13 release number (was v0.3.3); other capability lines (plugins on three CLIs, MCP server, transports) stay intact'
+    text: The system shall update README.md and README.ko.md so the status line reflects the v0.3.13 capability surface — drift-detector count, feature count, multi-developer-safe spec IDs claim, ARCHITECTURE_FROM_SPEC invariant — and external readers see an accurate snapshot of what cladding ships.
+    evidence_refs: [README.md, README.ko.md]
+  - id: AC-002
+    ears: ubiquitous
+    action: extend docs/spec-ids-multi-dev.md to cover scenarios and the architecture invariant
+    response: 'the doc adds (a) a Scenario id row to the "short version" table (S-<hash6>, separate namespace from features), (b) a clad_create_scenario mention in the "how features and scenarios get created" section with the natural-language example "Add a scenario for the checkout happy-path", (c) a new "spec/architecture.yaml — working invariant since v0.3.13" section documenting the three ARCHITECTURE_FROM_SPEC invariants and an example yaml'
+    text: The system shall extend docs/spec-ids-multi-dev.md to cover scenarios (v0.3.12 hash-id symmetry) and the architecture invariant (v0.3.13 ARCHITECTURE_FROM_SPEC detector) so external adopters reading the guide get the full picture, not the v0.3.10 snapshot.
+    evidence_refs: [docs/spec-ids-multi-dev.md]
+  - id: AC-003
+    ears: ubiquitous
+    action: keep README.md and README.ko.md in lockstep
+    response: both files reflect the same version, the same feature count, the same detector count, and the same capability inventory in their respective languages
+    text: The system shall keep README.md and README.ko.md in lockstep across the release so the bilingual surface presents identical capability information.
+    evidence_refs: [README.md, README.ko.md]
