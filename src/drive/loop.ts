@@ -35,6 +35,7 @@ import {appendEvent, newEvent} from '../events/log.js';
 import {newEvidence} from '../hitl/identity.js';
 import {appendEvidence} from '../hitl/audit.js';
 import {loadSpec} from '../spec/load.js';
+import {pulseProgress, pulseProgressEnd} from '../ui/pulse.js';
 import type {Feature, Spec} from '../spec/types.js';
 import {runArch} from '../stages/arch.js';
 import {runLint} from '../stages/lint.js';
@@ -256,12 +257,14 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
     const ctx = ctxFor(cwd, ready);
 
     // Step 1 — specialist authors the implementation.
+    pulseProgress('drive', ready.id, 'specialist');
     let specialistIdentity: string | undefined;
     try {
       const specialistOut = await runAgent(specialists, ctx);
       specialistIdentity = specialistOut.result.identity.name;
       applyMutations(cwd, specialistOut.result.mutations);
     } catch (err) {
+      pulseProgressEnd('fail', ready.id, 'specialist dispatch failed');
       return finish({
         class: classifyTransportError(err),
         detail: `specialist dispatch failed: ${(err as Error).message}`,
@@ -280,6 +283,7 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
     // is partially stubbed and a spec-wide MISSING_IMPLEMENTATION
     // sweep would always fail. `clad check` covers drift after the
     // loop completes.
+    pulseProgress('drive', ready.id, 'L1 gates');
     const gates = [
       ['stage_1.1', runType({cwd})],
       ['stage_1.2', runLint({cwd})],
@@ -291,22 +295,30 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
       retries.set(ready.id, (retries.get(ready.id) ?? 0) + 1);
       lastFailedGate.set(ready.id, failed[0]);
       appendEvent(cwd, newEvent('drift_detected', {feature: ready.id, gate: failed[0]}));
+      pulseProgressEnd(
+        'fail',
+        ready.id,
+        `${failed[0]} fail · retry ${retries.get(ready.id) ?? 0}/${budget.maxRetriesPerFeature}`,
+      );
       continue;
     }
 
     // Step 4 — reviewer inspects. ReviewerIdentityCollisionError
     // bubbles up from drive/agent.ts when the adapter returns an
     // identity equal to the specialist — halt with HUMAN_REQUIRED.
+    pulseProgress('drive', ready.id, 'reviewer');
     try {
       await runAgent(reviewer, ctx, {implementerIdentityName: specialistIdentity});
     } catch (err) {
       if (err instanceof ReviewerIdentityCollisionError) {
+        pulseProgressEnd('fail', ready.id, 'reviewer identity collision');
         return finish({
           class: 'HUMAN_REQUIRED',
           detail: `${ready.id}: reviewer identity matched implementer — needs human sign-off`,
           iteration,
         });
       }
+      pulseProgressEnd('fail', ready.id, 'reviewer dispatch failed');
       return finish({
         class: classifyTransportError(err),
         detail: `reviewer dispatch failed: ${(err as Error).message}`,
@@ -317,8 +329,10 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
     // Step 5 — UAT (stage_4.2) requires a human-pass evidence.
     // Without one the loop pauses for sign-off instead of marking
     // the feature done.
+    pulseProgress('drive', ready.id, 'UAT');
     const uat = runUat({cwd});
     if (!uat.pass && uat.exitCode !== 2) {
+      pulseProgressEnd('fail', ready.id, 'UAT human sign-off required');
       return finish({
         class: 'HUMAN_REQUIRED',
         detail: `${ready.id}: UAT lacks human-pass evidence — needs human sign-off`,
@@ -365,6 +379,7 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
       }
     }
     appendEvent(cwd, newEvent('feature_completed', {feature: ready.id, by: 'clad-drive'}));
+    pulseProgressEnd('pass', ready.id, 'done');
     done.add(ready.id);
   }
 

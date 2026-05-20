@@ -1,0 +1,43 @@
+id: F-ba4b7a
+slug: pulse-progressive
+title: Pulse UI progressive — in-place status updates in drive loop (v0.3.23)
+status: done
+modules:
+  - src/ui/pulse.ts
+  - src/drive/loop.ts
+depends_on:
+  - F-5d3ed2
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: expose pulseProgress + pulseProgressEnd alongside the existing pulse function
+    response: 'src/ui/pulse.ts adds two named exports — pulseProgress(stage, label, detail?) updates the current line in place, pulseProgressEnd(kind, label, detail?) commits a final transition; the existing pulse function and its tail-f-friendly contract stay byte-identical; the two surfaces are orthogonal — pulse is the per-transition event log, progressive is "what cladding is doing right now"'
+    text: The system shall expose pulseProgress + pulseProgressEnd alongside the existing pulse function so long-running operations like clad drive can show in-place progress without breaking the original audit-log contract that pulse offers.
+    test_refs: [tests/ui/pulse.test.ts]
+  - id: AC-002
+    ears: state
+    condition: while running on a TTY
+    action: render pulseProgress with a clear-line ANSI sequence and no trailing newline
+    response: 'pulseProgress writes \\r\\x1b[K followed by `<stage> · <label>  <detail>` without a trailing \\n; successive calls each begin with the clear-line escape so they overwrite the previous line; the test asserts that two sequential pulseProgress calls both contain \\r\\x1b[K and neither ends with \\n'
+    text: While running on a TTY, the system shall render pulseProgress with a clear-line ANSI sequence and no trailing newline so successive updates overwrite the same terminal row.
+    test_refs: [tests/ui/pulse.test.ts]
+  - id: AC-003
+    ears: state
+    condition: while running on a non-TTY (CI, pipe)
+    action: keep pulseProgress silent and emit only on pulseProgressEnd
+    response: 'pulseProgress returns early when process.stdout.isTTY is false; pulseProgressEnd produces one line equivalent to the original pulse output (`<glyph> <label>  <detail>\\n` without ANSI); the test asserts that three pulseProgress calls write nothing and the single pulseProgressEnd call writes exactly once'
+    text: While running on a non-TTY (CI, pipe), the system shall keep pulseProgress silent and emit only on pulseProgressEnd so captured stdout stays a clean append-only stream and the original pulse contract holds for downstream tooling.
+    test_refs: [tests/ui/pulse.test.ts]
+  - id: AC-004
+    ears: ubiquitous
+    action: emit pulseProgress for every drive-loop phase (specialist, L1 gates, reviewer, UAT)
+    response: 'src/drive/loop.ts calls pulseProgress(\\"drive\\", ready.id, label) before each of the four phases — specialist, L1 gates, reviewer, UAT — and pulseProgressEnd(kind, ready.id, detail) on every exit path (pass, gate fail with retry counter, reviewer collision, reviewer transport, UAT, retry threshold rollback); the happy-path test asserts the four phase labels in order'
+    text: The system shall emit pulseProgress for every drive-loop phase (specialist, L1 gates, reviewer, UAT) so a user staring at clad drive sees what's happening instead of a frozen screen during agent dispatch.
+    test_refs: [tests/drive/loop.test.ts]
+  - id: AC-005
+    ears: event
+    condition: when a feature fails a gate
+    action: emit pulseProgressEnd("fail") with the retry counter in the detail string
+    response: 'on the failed-gate branch src/drive/loop.ts calls pulseProgressEnd(\\"fail\\", ready.id, `${failed[0]} fail · retry N/maxRetries`); the test asserts at least one fail-end call exists and its detail matches /retry 1\\/3/'
+    text: When a feature fails a gate, the system shall emit pulseProgressEnd("fail") with the retry counter in the detail string so the user sees exactly how many attempts remain before the loop rolls back.
+    test_refs: [tests/drive/loop.test.ts]

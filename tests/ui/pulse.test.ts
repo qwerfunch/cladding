@@ -8,7 +8,7 @@
 
 import {beforeEach, afterEach, describe, expect, test, vi} from 'vitest';
 
-import {pulse} from '../../src/ui/pulse.js';
+import {pulse, pulseProgress, pulseProgressEnd} from '../../src/ui/pulse.js';
 
 describe('pulse', () => {
   let writeSpy: ReturnType<typeof vi.spyOn>;
@@ -86,5 +86,88 @@ describe('pulse', () => {
     expect(out).toContain('route → drive');
     expect(out).toContain('prompt text');
     expect(out).toContain('\x1b[36m'); // cyan
+  });
+});
+
+// Progressive surface (v0.3.23, F-x) — pulseProgress + pulseProgressEnd
+// provide in-place status updates on TTY and stay silent on non-TTY
+// until the End call commits the final transition.
+describe('pulseProgress + pulseProgressEnd', () => {
+  let writeSpy: ReturnType<typeof vi.spyOn>;
+  let originalIsTTY: boolean | undefined;
+
+  beforeEach(() => {
+    writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    originalIsTTY = process.stdout.isTTY;
+  });
+  afterEach(() => {
+    writeSpy.mockRestore();
+    Object.defineProperty(process.stdout, 'isTTY', {value: originalIsTTY, configurable: true});
+  });
+  function setTty(value: boolean): void {
+    Object.defineProperty(process.stdout, 'isTTY', {value, configurable: true});
+  }
+
+  test('non-TTY: pulseProgress is silent (no write)', () => {
+    setTty(false);
+    pulseProgress('drive', 'F-001', 'specialist');
+    pulseProgress('drive', 'F-001', 'L1 gates');
+    pulseProgress('drive', 'F-001', 'reviewer');
+    expect(writeSpy).not.toHaveBeenCalled();
+  });
+
+  test('non-TTY: pulseProgressEnd emits one line equivalent to pulse', () => {
+    setTty(false);
+    pulseProgress('drive', 'F-001', 'specialist');
+    pulseProgressEnd('pass', 'F-001', 'done');
+    // Only the End call writes; the intermediate Progress was silent.
+    expect(writeSpy).toHaveBeenCalledOnce();
+    expect(writeSpy.mock.calls[0]?.[0]).toBe('✓ F-001  done\n');
+  });
+
+  test('TTY: pulseProgress writes a clear-line escape and stays open (no newline)', () => {
+    setTty(true);
+    pulseProgress('drive', 'F-001', 'specialist');
+    const out = writeSpy.mock.calls[0]?.[0] as string;
+    expect(out).toContain('\r\x1b[K'); // clear-line
+    expect(out).toContain('drive · F-001');
+    expect(out).toContain('specialist');
+    expect(out.endsWith('\n')).toBe(false); // stays in-place
+  });
+
+  test('TTY: successive pulseProgress calls each begin with clear-line', () => {
+    setTty(true);
+    pulseProgress('drive', 'F-001', 'specialist');
+    pulseProgress('drive', 'F-001', 'L1 gates');
+    expect(writeSpy).toHaveBeenCalledTimes(2);
+    for (const call of writeSpy.mock.calls) {
+      expect(call[0] as string).toContain('\r\x1b[K');
+    }
+  });
+
+  test('TTY: pulseProgressEnd commits a final line with newline + ANSI colour', () => {
+    setTty(true);
+    pulseProgressEnd('pass', 'F-001', 'done');
+    const out = writeSpy.mock.calls[0]?.[0] as string;
+    expect(out).toContain('\r\x1b[K');
+    expect(out).toContain('\x1b[32m'); // green
+    expect(out).toContain('✓');
+    expect(out).toContain('F-001');
+    expect(out.endsWith('\n')).toBe(true);
+  });
+
+  test('TTY: pulseProgressEnd("fail") uses the red glyph', () => {
+    setTty(true);
+    pulseProgressEnd('fail', 'F-001', 'reviewer fail');
+    const out = writeSpy.mock.calls[0]?.[0] as string;
+    expect(out).toContain('\x1b[31m'); // red
+    expect(out).toContain('✗');
+    expect(out).toContain('reviewer fail');
+  });
+
+  test('non-TTY: detail is rendered with two-space indent on the End line', () => {
+    setTty(false);
+    pulseProgressEnd('fail', 'F-001', 'retry 3/3');
+    expect(writeSpy.mock.calls[0]?.[0]).toBe('✗ F-001  retry 3/3\n');
   });
 });
