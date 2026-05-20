@@ -17,7 +17,9 @@ import {basename, dirname, join, resolve} from 'node:path';
 import {
   deterministicInterpret,
   renderProjectContextMd,
+  renderProjectContextMdWithLlm,
   scanRoot,
+  selectDispatcher,
   type InterpretedScan,
 } from './scan/index.js';
 import {detectToolchain} from '../stages/toolchain/detect.js';
@@ -118,7 +120,7 @@ function appendIfMissing(gitignorePath: string, marker: string, line: string): b
  *
  * @returns The list of created and skipped artifacts plus the detected language.
  */
-export function runInit(opts: InitOptions = {}): InitResult {
+export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
   const cwd = opts.cwd ?? '.';
   const force = opts.force ?? false;
   const created: string[] = [];
@@ -201,15 +203,18 @@ export function runInit(opts: InitOptions = {}): InitResult {
 
   // v0.3.32 — `docs/project-context.md` is the forest-level entry
   // document and ships in *every* cladding workspace regardless of
-  // whether the scan artifacts were written. When the scan picked
-  // up README + sibling docs the body quotes what it observed; when
-  // there is nothing observable the body is a template the user
-  // fills in. Either way the file lives at the same path so an AI
-  // maintainer always finds the *why* first.
-  const projectContextMd = renderProjectContextMd(
-    scanResult?.projectContext ?? null,
-    projectName,
-  );
+  // whether the scan artifacts were written.
+  //
+  // v0.3.33 — when an LLM dispatcher is available the Why / What /
+  // Purpose sections are refined from observed README/docs into
+  // polished prose. Greenfield + no-LLM environments still receive
+  // the deterministic template; the dispatcher failure path also
+  // collapses to deterministic so the file is always usable.
+  const dispatcher = selectDispatcher({noLlm: opts.noLlm});
+  const projectContext = scanResult?.projectContext ?? null;
+  const projectContextMd = dispatcher
+    ? await renderProjectContextMdWithLlm(projectContext, projectName, dispatcher)
+    : renderProjectContextMd(projectContext, projectName);
   writeArtifact(cwd, 'docs/project-context.md', projectContextMd, created, proposals);
 
   return {created, skipped, language, proposals: proposals.length ? proposals : undefined};

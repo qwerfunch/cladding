@@ -108,20 +108,20 @@ describe('cli/clad — handler exports', () => {
     stdoutSpy.mockRestore();
   });
 
-  test('runInitCommand exits 0 after scaffolding', () => {
-    runInitMock.mockReturnValueOnce({
+  test('runInitCommand exits 0 after scaffolding', async () => {
+    runInitMock.mockResolvedValueOnce({
       created: ['spec.yaml', '.cladding/'],
       skipped: [],
       language: 'typescript',
     });
-    clad.runInitCommand({});
+    await clad.runInitCommand({});
     expect(runInitMock).toHaveBeenCalledOnce();
     expect(exitCalls).toEqual([0]);
   });
 
-  test('runInitCommand forwards name + force options', () => {
-    runInitMock.mockReturnValueOnce({created: [], skipped: ['spec.yaml'], language: 'rust'});
-    clad.runInitCommand({name: 'custom', force: true});
+  test('runInitCommand forwards name + force options', async () => {
+    runInitMock.mockResolvedValueOnce({created: [], skipped: ['spec.yaml'], language: 'rust'});
+    await clad.runInitCommand({name: 'custom', force: true});
     expect(runInitMock).toHaveBeenCalledWith({
       projectName: 'custom',
       force: true,
@@ -132,14 +132,14 @@ describe('cli/clad — handler exports', () => {
 
   // v0.3.24 (F-x) — `--scan` and `--no-llm` flow through to runInit so
   // init.ts can branch on them without inspecting argv directly.
-  test('runInitCommand forwards --scan + --no-llm options', () => {
-    runInitMock.mockReturnValueOnce({
+  test('runInitCommand forwards --scan + --no-llm options', async () => {
+    runInitMock.mockResolvedValueOnce({
       created: ['docs/conventions.md'],
       skipped: [],
       language: 'typescript',
       proposals: ['spec/architecture.yaml → .cladding/scan/architecture.yaml.proposal'],
     });
-    clad.runInitCommand({scan: true, noLlm: true});
+    await clad.runInitCommand({scan: true, noLlm: true});
     expect(runInitMock).toHaveBeenCalledWith({
       projectName: undefined,
       force: undefined,
@@ -387,7 +387,7 @@ describe('cli/clad — createProgram', () => {
 
   test('program version matches current package version', () => {
     const program = clad.createProgram();
-    expect(program.version()).toBe('0.3.32');
+    expect(program.version()).toBe('0.3.33');
   });
 });
 

@@ -71,14 +71,14 @@ export async function runServeCommand(opts: {cwd?: string}): Promise<void> {
  * deterministic interpreter (v0.3.24 default until v0.3.25 wires the
  * MCP sampling dispatcher).
  */
-export function runInitCommand(opts: {
+export async function runInitCommand(opts: {
   name?: string;
   force?: boolean;
   scan?: boolean;
   noLlm?: boolean;
   roots?: string;
-}): void {
-  const result = runInit({
+}): Promise<void> {
+  const result = await runInit({
     projectName: opts.name,
     force: opts.force,
     scan: opts.scan,
@@ -299,7 +299,7 @@ export function runRouteCommand(prompt: string): void {
  */
 export function createProgram(): Command {
   const program = new Command();
-  program.name('clad').description('Reference Ironclad CLI').version('0.3.32');
+  program.name('clad').description('Reference Ironclad CLI').version('0.3.33');
 
   program
     .command('init')

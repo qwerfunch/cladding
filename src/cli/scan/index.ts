@@ -75,13 +75,17 @@ export {inferSourceRoots} from './roots.js';
 export type {SourceRoot, InferenceOptions} from './roots.js';
 export {
   buildPrompt,
+  buildProjectContextPrompt,
   deterministicInterpret,
   interpretWithLlm,
   parseLlmResponse,
+  parseProjectContextResponse,
   renderProjectContextMd,
+  renderProjectContextMdWithLlm,
   type InterpretedScan,
   type ScanLlmDispatcher,
 } from './llm.js';
+export {selectDispatcher, type DispatcherOptions} from './dispatcher.js';
 export {
   DEFAULT_EXTENSIONS,
   DEFAULT_IGNORE,
