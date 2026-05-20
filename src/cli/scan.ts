@@ -253,6 +253,46 @@ interface SourceFile {
   readonly loc: number;
 }
 
+// v0.3.28 (audit I14) — Walk samples evenly across the project.
+//
+// Until this patch the walker was a depth-first recursion that
+// got trapped in the first large directory it entered. react's
+// `compiler/` (1858 source files) exhausted the maxFiles=500 cap
+// before walk ever reached `packages/`, so the architecture view
+// showed only `compiler` as a layer. The redesign keeps the same
+// maxFiles ceiling but distributes the budget evenly:
+//
+//   1. BFS queue — directories visited level by level, so a
+//      shallow `packages/` is sampled before deep `compiler/`
+//      subtree exhausts the budget.
+//   2. Per-directory soft cap — once a single directory has
+//      contributed PER_DIR_SOFT_CAP files, the walker moves on
+//      to the next queued directory instead of draining the rest
+//      of that directory.
+//   3. Entrypoint priority — within each directory's file list,
+//      conventional entry points (index.*, main.*, lib.rs,
+//      mod.rs, __init__.py, …) are read first so layer identity
+//      survives even when the soft cap cuts the tail short.
+const PER_DIR_SOFT_CAP = 50;
+const ENTRYPOINT_NAMES: ReadonlySet<string> = new Set([
+  // JS / TS family
+  'index', 'main', 'app', 'server', 'client',
+  // Python
+  '__init__', '__main__',
+  // Rust
+  'lib', 'mod',
+  // Go
+  'doc',
+  // C# / Java / Kotlin (case-sensitive lookups also handle capitalised forms)
+  'Program', 'Main', 'App',
+]);
+
+function isEntrypointFile(filename: string): boolean {
+  const ext = extname(filename);
+  const stem = filename.slice(0, filename.length - ext.length);
+  return ENTRYPOINT_NAMES.has(stem) || ENTRYPOINT_NAMES.has(stem.toLowerCase());
+}
+
 function walk(
   root: string,
   extensions: readonly string[],
@@ -260,16 +300,18 @@ function walk(
   maxFiles: number,
 ): readonly SourceFile[] {
   const out: SourceFile[] = [];
-  function rec(dir: string): void {
-    if (out.length >= maxFiles) return;
+  const queue: string[] = [root];
+  while (queue.length > 0 && out.length < maxFiles) {
+    const dir = queue.shift()!;
     let entries: string[];
     try {
       entries = readdirSync(dir);
     } catch {
-      return;
+      continue;
     }
+    const fileEntries: string[] = [];
+    const dirEntries: string[] = [];
     for (const e of entries) {
-      if (out.length >= maxFiles) return;
       // Ignore-match is case-insensitive for tooling caches; peer
       // directories (tests/, docs/) are no longer ignored at walk
       // time — they reach groupByLayer where LAYER_BLACKLIST hides
@@ -284,19 +326,38 @@ function walk(
         continue;
       }
       if (s.isDirectory()) {
-        rec(abs);
+        dirEntries.push(abs);
       } else if (s.isFile() && extensions.includes(extname(abs))) {
-        const content = readFileSync(abs, 'utf8');
-        out.push({
-          path: abs,
-          relPath: relative(root, abs),
-          content,
-          loc: content.split('\n').length,
-        });
+        fileEntries.push(abs);
       }
     }
+    // Entrypoint-first ordering so layer identity is preserved
+    // even when PER_DIR_SOFT_CAP truncates the tail.
+    fileEntries.sort((a, b) => {
+      const ea = isEntrypointFile(basename(a)) ? 0 : 1;
+      const eb = isEntrypointFile(basename(b)) ? 0 : 1;
+      if (ea !== eb) return ea - eb;
+      return a.localeCompare(b);
+    });
+    let perDirCount = 0;
+    for (const abs of fileEntries) {
+      if (out.length >= maxFiles) break;
+      if (perDirCount >= PER_DIR_SOFT_CAP) break;
+      const content = readFileSync(abs, 'utf8');
+      out.push({
+        path: abs,
+        relPath: relative(root, abs),
+        content,
+        loc: content.split('\n').length,
+      });
+      perDirCount++;
+    }
+    // Sub-directories enter the queue after files — same level
+    // is sampled fully (within cap) before descent. Sorted by
+    // name for deterministic order.
+    dirEntries.sort();
+    for (const sub of dirEntries) queue.push(sub);
   }
-  rec(root);
   return out;
 }
 
