@@ -5,6 +5,33 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.37] — Unreleased — README capability headline catches up to develop (F-1c9166)
+
+**Marketing surface had drifted.** Five unreleased cycles (v0.3.32 → v0.3.36) shipped major capabilities — `docs/project-context.md`, the scan LLM dispatcher chain, MCP sampling priority, scan-artifact LLM refinement, the first strict-drift PASS since v0.3.29 — none of which were reflected in `README.md` or `README.ko.md`. External adopters reading either file still saw the v0.3.13 capability inventory. v0.3.37 narrows that gap with a scoped headline refresh.
+
+### Changed
+
+- `README.md` + `README.ko.md` — Status paragraph (line 32) refreshed:
+  - Version string `v0.3.13 ships at 589/589 tests` → `v0.3.36 develop ships at 743/743 tests`
+  - Five new mid-paragraph capability bullets (project-context · dispatcher chain · MCP sampling · one-dispatcher refinement · strict-drift PASS)
+  - Spec layout cell `47 total` → `110 total` (feature count) and the inline `× 87` reference also corrected to `× 110`
+  - CLI block grows the `--scan / --no-scan / --no-llm` flags on `clad init` plus a `clad serve` line
+- Historic content (Level table L0–L22, Status & roadmap v0.1.0 narrative, Spec Reference pin, Vocabulary, Related) deliberately preserved — those rows are point-in-time conformance snapshots, not running capability state
+
+### Notes
+
+- 743/743 tests passing; lint clean; typecheck clean; `clad sync`: 110 features valid
+- No production code touched — pure README + spec hygiene
+- The READMEs and `CHANGELOG.md` are now consistent; the next release event (v0.4.0 candidate or v0.3.x → main fast-forward) needs only the version-string sweep, not a capability gap-close
+
+### Roadmap
+
+- v0.3.38+ — LLM-assisted capability extraction (README headings → `spec/capabilities.yaml`)
+- v0.3.38+ — sentinel-miss telemetry surfacing in `events.log`
+- Release window — five unreleased capability cycles + one hygiene cycle queued; release timing is the maintainer's call
+
+---
+
 ## [0.3.36] — Unreleased — drift baseline cleanup — strict-drift is PASS again (F-18e951)
 
 **Hygiene cycle.** After three consecutive LLM-refinement cycles (v0.3.33–v0.3.35) the drift baseline had accumulated 13 error + 1 warn findings — all leftover from the v0.3.29 production-grade scan refactor (855-line `src/cli/scan.ts` → 12 focused modules under `src/cli/scan/`). Five feature shards still pointed at the pre-refactor paths, F-2de65d.AC-004 lacked an explicit `condition` field, and `src/core/` was undeclared in `spec/architecture.yaml`. v0.3.36 fixes all three so `runDrift({strict: true})` reports `pass: true` for the first time since v0.3.29.

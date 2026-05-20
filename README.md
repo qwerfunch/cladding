@@ -29,7 +29,7 @@ Same command surface inside Claude Code, OpenAI Codex CLI, Google Gemini CLI, Cu
 
 ## Status
 
-**Ironclad L4 conformant (L21) · self-spec sharded (L21.8) · v0.3.13 ships at 589/589 tests · 93.89% line coverage (whole-codebase scope) · every source dir ≥ 90% · MISSING_TESTS hard-error · F-049 (agent dispatch & runtime orchestration) done · **plugin installable on all three major agentic CLIs** — Claude Code (skills + agents + MCP), OpenAI Codex (`plugins/codex/`, 11 skills + MCP), Gemini CLI (`plugins/gemini-cli/`, TOML commands + MCP) · `clad serve` MCP server with live audit stream · McpSamplingTransport · AnthropicTransport SDK path · transport-specific halt classes + pre-flight health check · **multi-developer-safe spec IDs** (hash-based F-/S- ids, slug-prefixed filenames, namespace-aware drift detectors) · **spec/architecture.yaml as working invariant** (ARCHITECTURE_FROM_SPEC detector enforces forbidden_imports + layer alignment) · minified bundle (~1.1 MB) · controlled benchmark in docs/benchmarks/.** Cladding ships the full Ironclad surface: 13 Iron Law stages (L1 Type / Lint / Drift / Commit / Arch / Secret · L2 Unit / Cov · L3 Smoke / Perf / Visual · L4 Audit / UAT) — every stage runner carrying a dedicated unit test (stage chapter closed v0.2.12) — plus **24 drift detectors** (3 always-error + 16 conditional + 5 cladding extensions: `FIXTURE_REFERENCE_INVALID` · `SLUG_CONFLICT` · `ID_COLLISION` · `AC_DUPLICATE_WITHIN_FEATURE` · `ARCHITECTURE_FROM_SPEC`); severity matrix in [`src/stages/detectors/README.md`](src/stages/detectors/README.md); EARS syntactic validator, HITL infrastructure (identity · audit · anti-self-cert), 5 agent personas, polyglot toolchain for 9 languages, Intent Router, clad CLI (+ `clad serve` MCP server mode), Token Optimizer (87.9% reduction measured), conformance fixtures 33/33 matched (26 baseline + 7 documentary→runnable promotions). Cladding's own spec is sharded (`spec/features/F-NNN.yaml` × 87, `spec/scenarios/S-NNN.yaml` × 2, `spec/architecture.yaml`) — the same layout external adopters get when their spec outgrows a single file.
+**Ironclad L4 conformant (L21) · self-spec sharded (L21.8) · v0.3.36 develop ships at 743/743 tests · 93.89%+ line coverage · MISSING_TESTS hard-error · F-049 (agent dispatch & runtime orchestration) done · **plugin installable on all three major agentic CLIs** — Claude Code (skills + agents + MCP), OpenAI Codex (`plugins/codex/`, 11 skills + MCP), Gemini CLI (`plugins/gemini-cli/`, TOML commands + MCP) · `clad serve` MCP server with live audit stream · **`clad init` writes `docs/project-context.md`** (forest-level Why/What/Purpose — observed when README exists, template otherwise) · **scan LLM dispatcher chain** (MCP sampling → Anthropic SDK → null) — hosted refinement for `docs/conventions.md` + `spec/architecture.yaml` + `docs/project-context.md` in one dispatcher session, deterministic fallback on null/error · McpSamplingTransport · AnthropicTransport SDK path · transport-specific halt classes + pre-flight health check · **strict-drift PASS baseline** (v0.3.36 — first since the v0.3.29 scan refactor) · **multi-developer-safe spec IDs** (hash-based F-/S- ids, slug-prefixed filenames, namespace-aware drift detectors) · **spec/architecture.yaml as working invariant** (ARCHITECTURE_FROM_SPEC detector enforces forbidden_imports + layer alignment) · minified bundle (~1.1 MB) · controlled benchmark in docs/benchmarks/.** Cladding ships the full Ironclad surface: 13 Iron Law stages (L1 Type / Lint / Drift / Commit / Arch / Secret · L2 Unit / Cov · L3 Smoke / Perf / Visual · L4 Audit / UAT) — every stage runner carrying a dedicated unit test (stage chapter closed v0.2.12) — plus **24 drift detectors** (3 always-error + 16 conditional + 5 cladding extensions: `FIXTURE_REFERENCE_INVALID` · `SLUG_CONFLICT` · `ID_COLLISION` · `AC_DUPLICATE_WITHIN_FEATURE` · `ARCHITECTURE_FROM_SPEC`); severity matrix in [`src/stages/detectors/README.md`](src/stages/detectors/README.md); EARS syntactic validator, HITL infrastructure (identity · audit · anti-self-cert), 5 agent personas, polyglot toolchain for 9 languages, Intent Router, clad CLI (+ `clad serve` MCP server mode), Token Optimizer (87.9% reduction measured), conformance fixtures 33/33 matched (26 baseline + 7 documentary→runnable promotions). Cladding's own spec is sharded (`spec/features/F-NNN.yaml` × 110, `spec/scenarios/S-NNN.yaml` × 2, `spec/architecture.yaml`) — the same layout external adopters get when their spec outgrows a single file.
 
 Each Level adds a verifiable capability:
 
@@ -117,7 +117,7 @@ Cladding's own spec uses the sharded layout — one yaml file per feature:
 | where | what |
 |---|---|
 | `spec.yaml` | master · `schema` + `project` metadata only |
-| `spec/features/F-NNN.yaml` | one file per feature (47 total) |
+| `spec/features/F-NNN.yaml` | one file per feature (110 total) |
 | `spec/scenarios/S-NNN.yaml` | one file per scenario (2 total) |
 | `spec/architecture.yaml` | layer + forbidden-imports policy |
 | `src/spec/schema.json` | JSON Schema (draft-07) |
@@ -136,13 +136,17 @@ Inline-features layout (single `spec.yaml`) also works — `src/spec/load.ts` fa
 ## CLI
 
 ```
-clad init [--name N] [--force]  # scaffold a cladding workspace (spec.yaml seed · .cladding/ · .gitignore)
+clad init [--name N] [--force] [--scan|--no-scan] [--no-llm]
+                         # scaffold a cladding workspace (spec.yaml seed · .cladding/ · .gitignore
+                         # · docs/project-context.md · conditional docs/conventions.md +
+                         # spec/architecture.yaml when ≥ 3 source files observed)
 clad work <verb>         # run a stage or natural-language intent
 clad drive [goal]        # autonomous loop — deterministic floor; LLM dispatch arrives with F-049 in v0.2
 clad sync                # validate spec.yaml against schema
 clad check               # run every Iron Law stage + drift suite
 clad panel               # render the feature × stage Integrity Panel
 clad route <prompt>      # classify a natural-language prompt to a verb
+clad serve               # MCP server over stdio (tools / resources / prompts / sampling)
 clad benchmark <feature> # naive vs optimized spec token cost
 ```
 

@@ -29,7 +29,7 @@ Claude Code · OpenAI Codex CLI · Google Gemini CLI · Cursor · Cline · Conti
 
 ## 상태
 
-**Ironclad L4 conformant (L21) · self-spec sharded (L21.8) · v0.3.13 ships at 589/589 tests · line coverage 93.89% (whole-codebase scope) · 모든 source dir ≥ 90% · MISSING_TESTS 기본 error · F-049 (agent dispatch & runtime orchestration) done · **3 대 agentic CLI 모두에 플러그인으로 설치 가능** — Claude Code (skill + agent + MCP), OpenAI Codex (`plugins/codex/`, skill 11개 + MCP), Gemini CLI (`plugins/gemini-cli/`, TOML 명령 + MCP) · `clad serve` MCP 서버 + 실시간 audit 알림 · McpSamplingTransport · AnthropicTransport SDK 경로 · transport 별 halt class + 시작 직전 health check · **멀티 dev 안전 spec ID** (hash 기반 F-/S- id, slug-prefix 파일명, namespace 분리 drift detector) · **spec/architecture.yaml 가 working invariant** (ARCHITECTURE_FROM_SPEC detector 가 forbidden_imports + layer alignment enforce) · 번들 minify (~1.1 MB) · 통제된 벤치마크 docs/benchmarks/ 수록.** Cladding 은 Ironclad 의 전체 표면을 구현합니다 — 13 개 Iron Law stage (L1 Type / Lint / Drift / Commit / Arch / Secret · L2 Unit / Cov · L3 Smoke / Perf / Visual · L4 Audit / UAT) 전부 dedicated unit test 보유 (stage chapter closed v0.2.12) + **24 개 drift detector** (3 always-error + 16 conditional + 5 cladding extension: `FIXTURE_REFERENCE_INVALID` · `SLUG_CONFLICT` · `ID_COLLISION` · `AC_DUPLICATE_WITHIN_FEATURE` · `ARCHITECTURE_FROM_SPEC`), severity matrix 는 [`src/stages/detectors/README.md`](src/stages/detectors/README.md), EARS 구문 검증기, HITL 인프라 (identity · audit · anti-self-cert), 5 개 agent persona, 9 개 언어 polyglot toolchain, Intent Router, clad CLI (+ `clad serve` MCP 서버 모드), Token Optimizer (cladding 자체 spec 에서 87.9% 컨텍스트 감소 실측), conformance fixture 33/33 일치 (26 baseline + 7 documentary→runnable 승격). Cladding 자체 spec 은 sharded 상태 (`spec/features/F-NNN.yaml` × 87, `spec/scenarios/S-NNN.yaml` × 2, `spec/architecture.yaml`) — 외부 채택자가 spec 이 단일 파일을 넘으면 동일 layout 사용.
+**Ironclad L4 conformant (L21) · self-spec sharded (L21.8) · v0.3.36 develop ships at 743/743 tests · line coverage 93.89%+ (전 코드베이스 범위) · MISSING_TESTS 기본 error · F-049 (agent dispatch & runtime orchestration) done · **3 대 agentic CLI 모두에 플러그인으로 설치 가능** — Claude Code (skill + agent + MCP), OpenAI Codex (`plugins/codex/`, skill 11개 + MCP), Gemini CLI (`plugins/gemini-cli/`, TOML 명령 + MCP) · `clad serve` MCP 서버 + 실시간 audit 알림 · **`clad init` 가 `docs/project-context.md` 자동 작성** (숲 수준 Why/What/Purpose — README 가 있으면 관찰 추출, 없으면 채움용 템플릿) · **scan LLM dispatcher chain** (MCP sampling → Anthropic SDK → null) — `docs/conventions.md` + `spec/architecture.yaml` + `docs/project-context.md` 를 한 번의 dispatcher 세션에서 호스티드 정련, null/error 시 결정론 fallback · McpSamplingTransport · AnthropicTransport SDK 경로 · transport 별 halt class + 시작 직전 health check · **strict-drift PASS baseline** (v0.3.36 — v0.3.29 scan 리팩토링 이후 첫 PASS) · **멀티 dev 안전 spec ID** (hash 기반 F-/S- id, slug-prefix 파일명, namespace 분리 drift detector) · **spec/architecture.yaml 가 working invariant** (ARCHITECTURE_FROM_SPEC detector 가 forbidden_imports + layer alignment enforce) · 번들 minify (~1.1 MB) · 통제된 벤치마크 docs/benchmarks/ 수록.** Cladding 은 Ironclad 의 전체 표면을 구현합니다 — 13 개 Iron Law stage (L1 Type / Lint / Drift / Commit / Arch / Secret · L2 Unit / Cov · L3 Smoke / Perf / Visual · L4 Audit / UAT) 전부 dedicated unit test 보유 (stage chapter closed v0.2.12) + **24 개 drift detector** (3 always-error + 16 conditional + 5 cladding extension: `FIXTURE_REFERENCE_INVALID` · `SLUG_CONFLICT` · `ID_COLLISION` · `AC_DUPLICATE_WITHIN_FEATURE` · `ARCHITECTURE_FROM_SPEC`), severity matrix 는 [`src/stages/detectors/README.md`](src/stages/detectors/README.md), EARS 구문 검증기, HITL 인프라 (identity · audit · anti-self-cert), 5 개 agent persona, 9 개 언어 polyglot toolchain, Intent Router, clad CLI (+ `clad serve` MCP 서버 모드), Token Optimizer (cladding 자체 spec 에서 87.9% 컨텍스트 감소 실측), conformance fixture 33/33 일치 (26 baseline + 7 documentary→runnable 승격). Cladding 자체 spec 은 sharded 상태 (`spec/features/F-NNN.yaml` × 110, `spec/scenarios/S-NNN.yaml` × 2, `spec/architecture.yaml`) — 외부 채택자가 spec 이 단일 파일을 넘으면 동일 layout 사용.
 
 각 Level 은 검증 가능한 capability 를 더합니다:
 
@@ -90,7 +90,7 @@ Cladding 자체 spec 은 sharded 형태 — feature 당 yaml 파일 1 개:
 | 위치 | 내용 |
 |---|---|
 | `spec.yaml` | master · `schema` + `project` 메타데이터만 |
-| `spec/features/F-NNN.yaml` | feature 당 1 파일 (총 47) |
+| `spec/features/F-NNN.yaml` | feature 당 1 파일 (총 110) |
 | `spec/scenarios/S-NNN.yaml` | scenario 당 1 파일 (총 2) |
 | `spec/architecture.yaml` | layer + forbidden-imports 정책 |
 | `src/spec/schema.json` | JSON Schema (draft-07) |
@@ -109,13 +109,17 @@ Inline (단일 `spec.yaml`) 레이아웃도 동작 — `src/spec/load.ts` 가 �
 ## CLI
 
 ```
-clad init [--name N] [--force]  # cladding workspace scaffold (spec.yaml seed · .cladding/ · .gitignore)
+clad init [--name N] [--force] [--scan|--no-scan] [--no-llm]
+                         # cladding workspace scaffold (spec.yaml seed · .cladding/ · .gitignore
+                         # · docs/project-context.md · 소스 ≥ 3 관찰 시 docs/conventions.md +
+                         # spec/architecture.yaml 도 함께)
 clad work <verb>         # stage 또는 자연어 의도 실행
 clad drive [목표]         # autonomous loop — 결정론적 floor; LLM dispatch 는 v0.2 의 F-049 에서
 clad sync                # spec.yaml 을 schema 에 대해 검증
 clad check               # 모든 Iron Law stage + drift 검사 실행
 clad panel               # feature × stage Integrity Panel 렌더링
 clad route <프롬프트>     # 자연어 프롬프트를 verb 로 분류
+clad serve               # stdio 위에서 MCP 서버 실행 (tools / resources / prompts / sampling)
 clad benchmark <feature> # naive vs optimized spec token 비용
 ```
 
