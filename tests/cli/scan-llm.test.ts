@@ -12,8 +12,8 @@ import {
   deterministicInterpret,
   interpretWithLlm,
   parseLlmResponse,
-} from '../../src/cli/scan-llm.js';
-import type {ScanResult} from '../../src/cli/scan.js';
+} from '../../src/cli/scan/llm.js';
+import type {ScanResult} from '../../src/cli/scan/index.js';
 
 function fakeScan(): ScanResult {
   return {

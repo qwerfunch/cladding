@@ -14,8 +14,7 @@
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {basename, dirname, join, resolve} from 'node:path';
 
-import {scanRoot} from './scan.js';
-import {deterministicInterpret, type InterpretedScan} from './scan-llm.js';
+import {deterministicInterpret, scanRoot, type InterpretedScan} from './scan/index.js';
 import {detectToolchain} from '../stages/toolchain/detect.js';
 
 export interface InitOptions {
