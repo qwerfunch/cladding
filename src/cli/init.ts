@@ -26,6 +26,8 @@ export interface InitOptions {
   readonly scan?: boolean;
   /** Forces the deterministic-only fallback even when an LLM dispatcher is available. */
   readonly noLlm?: boolean;
+  /** Source-root override for the scanner, e.g. ["packages/a/src", "packages/b/src"]. */
+  readonly roots?: readonly string[];
 }
 
 export interface InitResult {
@@ -122,7 +124,7 @@ export function runInit(opts: InitOptions = {}): InitResult {
   // LLM dispatcher injection lands in v0.3.25 so the scan-llm.ts
   // contract is in place but not yet routed to MCP sampling.
   if (opts.scan) {
-    const scan = scanRoot({cwd});
+    const scan = scanRoot({cwd, roots: opts.roots});
     const interp: InterpretedScan = deterministicInterpret(scan);
 
     writeArtifact(

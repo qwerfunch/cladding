@@ -166,4 +166,69 @@ describe('scanRoot', () => {
     const r = scanRoot({cwd: dir});
     expect(r.architecture.layers.map((l) => l.name)).not.toContain('pkg');
   });
+
+  // v0.3.25 (F-x) — source root inference: layerOf must collapse
+  // src/<layer>/ across flat projects, monorepo workspaces, and CLI
+  // overrides without losing the workspace prefix on monorepo layers.
+  describe('source root inference (v0.3.25)', () => {
+    test('monorepo packages/<ws>/src/<layer> produces <ws>:<layer> labels', () => {
+      seed(dir, {
+        'package.json': JSON.stringify({workspaces: ['packages/*']}),
+        'packages/a/src/core/x.ts': 'export const x = 1;\n',
+        'packages/a/src/cli/y.ts': 'export const y = 2;\n',
+        'packages/b/src/core/z.ts': 'export const z = 3;\n',
+      });
+      const r = scanRoot({cwd: dir});
+      const names = r.architecture.layers.map((l) => l.name).sort();
+      expect(names).toEqual(['a:cli', 'a:core', 'b:core']);
+    });
+
+    test('--roots override forces a specific layer set', () => {
+      seed(dir, {
+        'src/core/x.ts': 'export const x = 1;\n',
+        'custom/widget/y.ts': 'export const y = 2;\n',
+      });
+      const r = scanRoot({cwd: dir, roots: ['custom']});
+      const names = r.architecture.layers.map((l) => l.name);
+      expect(names).toContain('widget');
+    });
+
+    test('flat src/ project still maps src/<layer> to <layer> (no regression)', () => {
+      seed(dir, {
+        'src/core/a.ts': 'export const a = 1;\n',
+        'src/cli/b.ts': 'export const b = 2;\n',
+      });
+      const names = scanRoot({cwd: dir}).architecture.layers.map((l) => l.name).sort();
+      expect(names).toEqual(['cli', 'core']);
+    });
+  });
+
+  // v0.3.25 (F-x) — forbidden_imports candidates. The architecture
+  // extractor records every layer pair the import graph never
+  // exercised; the candidate set surfaces in architecture.yaml as a
+  // reviewer-pruned suggestion list.
+  describe('forbidden_imports candidates (v0.3.25)', () => {
+    test('layer pairs without observed edges become forbidden candidates', () => {
+      seed(dir, {
+        'src/cli/x.ts': "import {a} from '../core/a.js';\nexport const x = a;\n",
+        'src/core/a.ts': 'export const a = 1;\n',
+        'src/ui/u.ts': 'export const u = 2;\n',
+      });
+      const arch = scanRoot({cwd: dir}).architecture;
+      // cli to core observed → not a candidate. Every other pair
+      // is unobserved → cli to ui, ui to cli, core to cli, core to ui,
+      // ui to core all candidates.
+      expect(arch.forbiddenImportCandidates['cli']).toEqual(['ui']);
+      expect((arch.forbiddenImportCandidates['core'] ?? []).slice().sort()).toEqual(['cli', 'ui']);
+    });
+
+    test('all-to-all observed graph leaves no candidates', () => {
+      seed(dir, {
+        'src/a/x.ts': "import {b} from '../b/b.js';\nexport const x = b;\n",
+        'src/b/b.ts': "import {a} from '../a/x.js';\nexport const b = a;\n",
+      });
+      const arch = scanRoot({cwd: dir}).architecture;
+      expect(arch.forbiddenImportCandidates).toEqual({});
+    });
+  });
 });

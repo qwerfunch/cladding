@@ -20,6 +20,8 @@
 import {readdirSync, readFileSync, statSync} from 'node:fs';
 import {basename, extname, join, relative, sep} from 'node:path';
 
+import {inferSourceRoots, type SourceRoot} from './scan-roots.js';
+
 /** Per-call config for {@link scanRoot}. */
 export interface ScanOptions {
   /** Project root cladding is adopting into. */
@@ -30,6 +32,13 @@ export interface ScanOptions {
   readonly ignore?: readonly string[];
   /** Hard cap on files scanned to keep cost predictable. Default: 500. */
   readonly maxFiles?: number;
+  /**
+   * Explicit source-root override (e.g. `--roots packages/a/src,packages/b/src`).
+   * When unset, {@link inferSourceRoots} probes manifests + heuristics; an empty
+   * inferred set means the scanner walks cwd directly and `layerOf` uses the
+   * top-level directory name verbatim.
+   */
+  readonly roots?: readonly string[];
 }
 
 /** 14 deterministic convention observations. */
@@ -67,6 +76,15 @@ export interface ImportEdge {
 export interface ArchitectureScan {
   readonly layers: readonly Layer[];
   readonly importGraph: readonly ImportEdge[];
+  /**
+   * Layer pairs with no observed import edge — surfaces as
+   * `forbidden_imports` candidates in the generated
+   * `spec/architecture.yaml`. The key is the importing layer, the
+   * value lists layers it currently never imports from. A reviewer
+   * (or the LLM dispatcher in v0.3.26) decides which candidates
+   * become real prohibitions.
+   */
+  readonly forbiddenImportCandidates: Readonly<Record<string, readonly string[]>>;
 }
 
 export interface ScenarioStub {
@@ -126,15 +144,18 @@ export function scanRoot(opts: ScanOptions): ScanResult {
   const ignore = new Set(opts.ignore ?? DEFAULT_IGNORE);
   const maxFiles = opts.maxFiles ?? DEFAULT_MAX_FILES;
 
-  // Walk from `cwd` (not `src/`) so `tests/` and other peer
-  // directories are reachable; the layer grouping below maps src/<x>
-  // → `<x>` so the architecture view stays src-centric.
+  // Walk from `cwd` so `tests/` and other peer directories are
+  // reachable; layer resolution below uses the inferred source roots
+  // to keep the architecture view consistent across project shapes
+  // (cladding's flat `src/`, monorepo `packages/*/src/`, Go's
+  // `cmd/` + `internal/` + `pkg/`, …).
+  const roots = inferSourceRoots({cwd: opts.cwd, override: opts.roots});
   const files = walk(opts.cwd, extensions, ignore, maxFiles);
-  const filesByLayer = groupByLayer(files);
+  const filesByLayer = groupByLayer(files, roots);
 
   return {
     conventions: extractConventions(files),
-    architecture: extractArchitecture(files, filesByLayer),
+    architecture: extractArchitecture(files, filesByLayer, roots),
     scenarios: proposeScenarios(filesByLayer),
     examples: pickExamples(filesByLayer),
     stats: {
@@ -194,22 +215,41 @@ function walk(
   return out;
 }
 
-/** Resolves the architecture layer for a relative path, collapsing `src/<layer>/...` → `<layer>`. */
-function layerOf(relPath: string): string {
+/**
+ * Resolves the architecture layer for a relative path.
+ *
+ * The roots argument is the inferred {@link SourceRoot} set:
+ *   - If `relPath` lives under a root, the layer is the first segment
+ *     *inside* that root. Monorepo roots prefix it with their
+ *     `workspaceName:` so two workspaces with the same internal layer
+ *     name don't collide.
+ *   - Otherwise the layer is the file's top-level directory (matches
+ *     the v0.3.24 fallback so `tests/`, `scripts/`, etc. stay visible).
+ *   - Files at cwd directly bucket under `_root`.
+ */
+export function layerOf(relPath: string, roots: readonly SourceRoot[]): string {
+  for (const r of roots) {
+    if (r.relPath === '') continue;
+    const prefix = `${r.relPath}/`;
+    if (relPath === r.relPath || relPath.startsWith(prefix)) {
+      const inside = relPath.slice(prefix.length).split('/');
+      if (inside.length < 2) continue;
+      const layer = inside[0];
+      return r.workspaceName ? `${r.workspaceName}:${layer}` : layer;
+    }
+  }
   const segments = relPath.split(sep);
-  if (segments[0] === 'src' && segments.length > 2) return segments[1];
   if (segments.length > 1) return segments[0];
   return '_root';
 }
 
-function groupByLayer(files: readonly SourceFile[]): Map<string, SourceFile[]> {
-  // `src/<layer>/...` collapses to `<layer>` so the architecture map
-  // stays src-centric even when the walk roots at cwd. Non-src
-  // directories (tests/, scripts/, docs/) bucket under their own
-  // top-level name; the `_root` bucket catches files at cwd directly.
+function groupByLayer(
+  files: readonly SourceFile[],
+  roots: readonly SourceRoot[],
+): Map<string, SourceFile[]> {
   const map = new Map<string, SourceFile[]>();
   for (const f of files) {
-    const layer = layerOf(f.relPath);
+    const layer = layerOf(f.relPath, roots);
     if (!map.has(layer)) map.set(layer, []);
     map.get(layer)!.push(f);
   }
@@ -476,6 +516,7 @@ function detectModuleBoilerplate(files: readonly SourceFile[]): string | null {
 function extractArchitecture(
   files: readonly SourceFile[],
   filesByLayer: ReadonlyMap<string, SourceFile[]>,
+  roots: readonly SourceRoot[],
 ): ArchitectureScan {
   const layers: Layer[] = [];
   for (const [name, layerFiles] of filesByLayer) {
@@ -491,7 +532,7 @@ function extractArchitecture(
   const edgeMap = new Map<string, number>();
   for (const f of files) {
     if (!isJsLike(f.relPath)) continue;
-    const fromLayer = layerOf(f.relPath);
+    const fromLayer = layerOf(f.relPath, roots);
     for (const m of f.content.matchAll(/from\s+['"](\.{1,2}\/[^'"]+)['"]/g)) {
       const target = m[1];
       const ups = target.match(/^(\.\.\/)+/);
@@ -510,7 +551,26 @@ function extractArchitecture(
     importGraph.push({from, to, count});
   }
   importGraph.sort((a, b) => b.count - a.count);
-  return {layers, importGraph};
+
+  // Forbidden import candidates: every layer pair that never co-occurs
+  // in the observed import graph. This is a coarse heuristic — a
+  // genuinely useful pair may simply not have been needed yet — so
+  // architecture.yaml surfaces these as suggestions, not enforced
+  // rules. A reviewer (or the LLM dispatcher in v0.3.26) prunes the
+  // list before committing.
+  const seen = new Set<string>();
+  for (const e of importGraph) seen.add(`${e.from}→${e.to}`);
+  const layerNames = layers.map((l) => l.name);
+  const forbiddenImportCandidates: Record<string, string[]> = {};
+  for (const from of layerNames) {
+    const candidates: string[] = [];
+    for (const to of layerNames) {
+      if (from === to) continue;
+      if (!seen.has(`${from}→${to}`)) candidates.push(to);
+    }
+    if (candidates.length > 0) forbiddenImportCandidates[from] = candidates;
+  }
+  return {layers, importGraph, forbiddenImportCandidates};
 }
 
 function proposeScenarios(filesByLayer: ReadonlyMap<string, SourceFile[]>): readonly ScenarioStub[] {
