@@ -29,6 +29,7 @@ import {dirname, join} from 'node:path';
 import {loadPersona} from '../agents/loader.js';
 import {runAgent, ReviewerIdentityCollisionError} from './agent.js';
 import {selectAdapter} from '../adapters/index.js';
+import {findLatestCheckpoint, recordCheckpoint, recordRollback} from '../core/checkpoint.js';
 import {appendEvent, newEvent} from '../events/log.js';
 import {newEvidence} from '../hitl/identity.js';
 import {appendEvidence} from '../hitl/audit.js';
@@ -192,7 +193,33 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
   while (true) {
     iteration += 1;
     const budgetHalt = checkBudget(iteration, startedAt, retries, budget);
-    if (budgetHalt) return finish(budgetHalt);
+    if (budgetHalt) {
+      // Iron Law backbone Phase 3.2 (ironclad-design 02-iron-law §2.5) —
+      // when the budget tripped because a single feature exhausted its
+      // retry quota, auto-roll the working tree to that feature's
+      // latest checkpoint. The checkpoint was pinned in the loop body
+      // before the first specialist dispatch. recordRollback emits one
+      // `feature_rolled_back` event so the audit trail captures the
+      // transition; the actual git checkout stays with the maintainer
+      // (Phase 1 boundary — see core/checkpoint.ts header).
+      if (budgetHalt.class === 'RETRY_THRESHOLD') {
+        for (const [featureId, count] of retries) {
+          if (count >= budget.maxRetriesPerFeature) {
+            const cp = findLatestCheckpoint(cwd, featureId);
+            if (cp) {
+              recordRollback(
+                cwd,
+                featureId,
+                cp,
+                `retry budget exhausted after ${count} attempts`,
+              );
+            }
+            break;
+          }
+        }
+      }
+      return finish(budgetHalt);
+    }
 
     const ready = nextReady(spec, done);
     if (!ready) {
@@ -204,6 +231,12 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
     }
 
     featuresTouched.push(ready.id);
+    // Iron Law backbone Phase 3.2 (ironclad-design 02-iron-law §2.5) —
+    // pin a checkpoint before the first agent dispatch so a later
+    // RETRY_THRESHOLD halt has a known-good state to roll back to.
+    // Phase 1 (v0.3.20) shipped the event surface; this phase wires
+    // the drive loop into it.
+    recordCheckpoint(cwd, ready.id);
     const ctx = ctxFor(cwd, ready);
 
     // Step 1 — specialist authors the implementation.

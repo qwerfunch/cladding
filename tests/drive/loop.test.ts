@@ -45,6 +45,21 @@ vi.mock('../../src/events/log.js', () => ({
   }),
 }));
 vi.mock('../../src/hitl/audit.js', () => ({appendEvidence: vi.fn()}));
+vi.mock('../../src/core/checkpoint.js', () => ({
+  recordCheckpoint: vi.fn(() => ({
+    featureId: 'F-mock',
+    gitHead: 'mockhead0000000000000000000000000000000',
+    specDigest: 'mockdigest'.padEnd(64, '0'),
+    timestamp: '2026-05-20T00:00:00Z',
+  })),
+  findLatestCheckpoint: vi.fn(() => ({
+    featureId: 'F-mock',
+    gitHead: 'mockhead0000000000000000000000000000000',
+    specDigest: 'mockdigest'.padEnd(64, '0'),
+    timestamp: '2026-05-20T00:00:00Z',
+  })),
+  recordRollback: vi.fn(),
+}));
 vi.mock('../../src/hitl/identity.js', async () => {
   const actual = await vi.importActual<typeof import('../../src/hitl/identity.js')>(
     '../../src/hitl/identity.js',
@@ -76,6 +91,10 @@ const {runArch} = await import('../../src/stages/arch.js');
 const {runUat} = await import('../../src/stages/uat.js');
 const identity = await import('../../src/hitl/identity.js');
 const newEvidenceMock = identity.newEvidence as unknown as ReturnType<typeof vi.fn>;
+const checkpointMod = await import('../../src/core/checkpoint.js');
+const recordCheckpointMock = checkpointMod.recordCheckpoint as unknown as ReturnType<typeof vi.fn>;
+const findLatestCheckpointMock = checkpointMod.findLatestCheckpoint as unknown as ReturnType<typeof vi.fn>;
+const recordRollbackMock = checkpointMod.recordRollback as unknown as ReturnType<typeof vi.fn>;
 
 const selectAdapterMock = adaptersIndex.selectAdapter as unknown as ReturnType<typeof vi.fn>;
 
@@ -249,6 +268,65 @@ describe('runDriveLoop', () => {
     const r = await runDriveLoop({cwd: dir});
     expect(r.halt.class).toBe('ALL_FEATURES_DONE');
     expect(r.featuresTouched).toContain('F-001');
+  });
+
+  // Iron Law backbone Phase 3.2 (v0.3.21, F-x) — drive loop pins a
+  // checkpoint before each specialist dispatch and auto-records a
+  // rollback when a feature exhausts its retry budget.
+  describe('checkpoint + auto-rollback (Phase 3.2)', () => {
+    test('every feature dispatch is preceded by a recordCheckpoint call', async () => {
+      loadSpecMock.mockReturnValueOnce(
+        specOf([
+          {id: 'F-001', status: 'planned'},
+          {id: 'F-002', status: 'planned', depends_on: ['F-001']},
+        ]),
+      );
+      recordCheckpointMock.mockClear();
+      const r = await runDriveLoop({cwd: dir});
+      expect(r.halt.class).toBe('ALL_FEATURES_DONE');
+      // Each ready feature triggers exactly one checkpoint.
+      const checkpointedFeatures = recordCheckpointMock.mock.calls.map((c) => c[1]);
+      expect(checkpointedFeatures).toEqual(['F-001', 'F-002']);
+    });
+
+    test('RETRY_THRESHOLD halt triggers a recordRollback for the exhausted feature', async () => {
+      loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-999', status: 'planned'}]));
+      // Force every L1 gate run to fail so the loop retries until the
+      // budget is exhausted.
+      runTypeMock.mockReturnValue({pass: false, exitCode: 1, stage: 'stage_1.1'});
+      recordRollbackMock.mockClear();
+      findLatestCheckpointMock.mockClear();
+      const r = await runDriveLoop({
+        cwd: dir,
+        budget: {maxIterations: 50, maxWallClockMs: 600_000, maxRetriesPerFeature: 3},
+      });
+      expect(r.halt.class).toBe('RETRY_THRESHOLD');
+      expect(recordRollbackMock).toHaveBeenCalledOnce();
+      expect(recordRollbackMock.mock.calls[0][1]).toBe('F-999');
+      expect(String(recordRollbackMock.mock.calls[0][3])).toContain('retry budget exhausted');
+    });
+
+    test('RETRY_THRESHOLD with no prior checkpoint records no rollback (defensive)', async () => {
+      loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-888', status: 'planned'}]));
+      runTypeMock.mockReturnValue({pass: false, exitCode: 1, stage: 'stage_1.1'});
+      findLatestCheckpointMock.mockReturnValueOnce(null);
+      recordRollbackMock.mockClear();
+      const r = await runDriveLoop({
+        cwd: dir,
+        budget: {maxIterations: 50, maxWallClockMs: 600_000, maxRetriesPerFeature: 3},
+      });
+      expect(r.halt.class).toBe('RETRY_THRESHOLD');
+      // No checkpoint exists for F-888 → rollback is not recorded.
+      expect(recordRollbackMock).not.toHaveBeenCalled();
+    });
+
+    test('non-RETRY_THRESHOLD halt does not invoke rollback', async () => {
+      loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-200', status: 'planned'}]));
+      recordRollbackMock.mockClear();
+      const r = await runDriveLoop({cwd: dir});
+      expect(r.halt.class).toBe('ALL_FEATURES_DONE');
+      expect(recordRollbackMock).not.toHaveBeenCalled();
+    });
   });
 
   // Atomic AC ↔ Evidence (v0.3.18, F-12d740) — when a feature
