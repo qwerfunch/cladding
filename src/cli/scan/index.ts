@@ -17,6 +17,7 @@
 
 import {extractArchitecture, groupByLayer} from './architecture.js';
 import {extractConventions} from './conventions.js';
+import {extractProjectContext} from './docs.js';
 import {pickExamples} from './examples.js';
 import {inferSourceRoots} from './roots.js';
 import {proposeScenarios} from './scenarios.js';
@@ -63,6 +64,7 @@ export function scanRoot(opts: ScanOptions): ScanResult {
     scenarios: proposeScenarios(filesByLayer),
     examples: pickExamples(filesByLayer),
     stats: buildStats(files, opts.cwd),
+    projectContext: extractProjectContext(opts.cwd, filesByLayer),
   };
 }
 
@@ -76,6 +78,7 @@ export {
   deterministicInterpret,
   interpretWithLlm,
   parseLlmResponse,
+  renderProjectContextMd,
   type InterpretedScan,
   type ScanLlmDispatcher,
 } from './llm.js';
@@ -89,12 +92,20 @@ export {
   PER_DIR_SOFT_CAP,
   ROOT_PROMOTION_THRESHOLD,
 } from './thresholds.js';
+export {
+  extractDocLinks,
+  extractInterfaceSignatures,
+  extractProjectContext,
+  extractReadmeFirstParagraph,
+  extractReadmeHeadings,
+} from './docs.js';
 export type {
   ArchitectureScan,
   Conventions,
   ExampleQuote,
   ImportEdge,
   Layer,
+  ProjectContext,
   ScanOptions,
   ScanResult,
   ScanStats,

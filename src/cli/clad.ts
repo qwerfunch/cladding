@@ -299,14 +299,14 @@ export function runRouteCommand(prompt: string): void {
  */
 export function createProgram(): Command {
   const program = new Command();
-  program.name('clad').description('Reference Ironclad CLI').version('0.3.31');
+  program.name('clad').description('Reference Ironclad CLI').version('0.3.32');
 
   program
     .command('init')
     .description('Scaffold a cladding workspace in the current directory')
     .option('-n, --name <name>', 'Project name (default: cwd basename)')
     .option('-f, --force', 'Overwrite existing spec.yaml')
-    .option('--scan', 'Walk the existing codebase and emit docs/conventions.md + spec/architecture.yaml + scenario stubs (07-ssot-init §3 B)')
+    .option('--scan', 'Force-walk the existing codebase. Default auto-detects (≥3 source files trigger scan). Use --no-scan to skip even when source is present.')
     .option('--no-llm', 'Force the deterministic interpreter for --scan (default until a later patch wires the MCP sampling dispatcher)')
     .option('--roots <list>', 'Override scanner source roots, comma-separated (e.g. packages/a/src,packages/b/src). Otherwise inferred from manifests + directory heuristics.')
     .action(runInitCommand);
