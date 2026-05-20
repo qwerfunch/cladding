@@ -5,6 +5,21 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.18] — Unreleased — Atomic AC evidence fan-out in drive loop (F-12d740)
+
+**Closes the AC-granularity gap in the anti-self-cert guard.** The HITL evidence framework (v0.2.x) added `Evidence.acId` to the schema and `anti-self-cert.checkAc()` filters by `e.acId === acId`, but the drive loop never populated the field — every `clad drive` evidence entry was feature-scoped, so the guard saw only unattributed tool/LLM evidence and could not tell which AC was missing its human-author sign-off. v0.3.18 fans the per-feature L1-pass evidence out into one entry per acceptance criterion, completing the Atomic AC chain (ironclad-design 11-ssot-refinement §4.1 + 02-iron-law §2.4).
+
+### Changed
+
+- `src/drive/loop.ts` — when a feature declares `acceptance_criteria`, the drive loop now calls `appendEvidence` once per AC with `evidence.acId` populated; features without ACs keep the legacy single feature-scoped entry as a fallback (byte-identical audit-log content for them).
+- 3 new drive-loop tests cover the fan-out, the fallback, and the `identity.author=tool` invariant (the fan-out increases granularity, not authority — anti-self-cert still requires a separate human evidence on top).
+
+### Notes
+
+- 599 + 3 new tests = **602/602** passing; lint clean; typecheck clean; drift-green at 92 features; bundle 1.1 MB.
+- Identity `author=tool, name=clad-drive` stays on every drive-loop evidence — the fan-out is a granularity refinement, not a self-cert loophole.
+- ironclad-design audit (2026-05-20) recap — three Tier-1 vision gaps identified: **(1) Atomic AC fan-out (this PR, done)**, (2) Phased Decommissioning Tier 2 (v0.3.x patch, queued), (3) Auto-rollback / Checkpoint (v0.4.0 minor, queued).
+
 ## [0.3.17] — Unreleased — Detector-count auto-recompute (F-092)
 
 **Second of two automations** closing the concurrent-modification audit (2026-05-20). `.claude-plugin/plugin.json` declared the drift-detector count in two places (`ironclad.current.detectors` and `ironclad.target.detectors`) as a `N/N` string, and every detector addition required a manual edit there. Two contributors each adding a detector on parallel branches merged cleanly on the filesystem but silently left the count at `(N+1)/(N+1)` instead of `(N+2)/(N+2)` — manual edits don't compose. `HARNESS_INTEGRITY` caught the drift after the fact, but the floor was "trust the maintainer to bump twice". v0.3.17 promotes the filesystem itself to source-of-truth.

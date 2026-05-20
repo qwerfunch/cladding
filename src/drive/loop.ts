@@ -276,16 +276,44 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
       });
     }
 
-    appendEvidence(
-      cwd,
-      newEvidence({
-        featureId: ready.id,
-        stage: 'stage_1.3',
-        kind: 'pass',
-        content: 'clad drive — L1 gates pass after specialist + reviewer dispatch',
-        identity: {author: 'tool', name: 'clad-drive'},
-      }),
-    );
+    // Evidence is recorded per-AC when the feature declares
+    // `acceptance_criteria`, otherwise a single feature-scoped entry
+    // is logged as a fallback. The per-AC fan-out is what unlocks
+    // anti-self-cert.checkAc() to operate at the AC granularity it
+    // was designed for — without an `acId`, the guard sees only
+    // unattributed tool/LLM evidence and can never tell which AC
+    // is missing its human-author sign-off.
+    //
+    // @see hitl/identity.ts — Evidence.acId field has been part of
+    //   the schema since v0.2.x but was previously unfilled here.
+    // @see hitl/anti-self-cert.ts — checkAc filters by `e.acId`.
+    const acIds = (ready.acceptance_criteria ?? []).map((ac) => ac.id);
+    if (acIds.length === 0) {
+      appendEvidence(
+        cwd,
+        newEvidence({
+          featureId: ready.id,
+          stage: 'stage_1.3',
+          kind: 'pass',
+          content: 'clad drive — L1 gates pass after specialist + reviewer dispatch',
+          identity: {author: 'tool', name: 'clad-drive'},
+        }),
+      );
+    } else {
+      for (const acId of acIds) {
+        appendEvidence(
+          cwd,
+          newEvidence({
+            featureId: ready.id,
+            acId,
+            stage: 'stage_1.3',
+            kind: 'pass',
+            content: `clad drive — L1 gates pass for ${acId}`,
+            identity: {author: 'tool', name: 'clad-drive'},
+          }),
+        );
+      }
+    }
     appendEvent(cwd, newEvent('feature_completed', {feature: ready.id, by: 'clad-drive'}));
     done.add(ready.id);
   }
