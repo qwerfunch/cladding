@@ -5,6 +5,25 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.17] — Unreleased — Detector-count auto-recompute (F-092)
+
+**Second of two automations** closing the concurrent-modification audit (2026-05-20). `.claude-plugin/plugin.json` declared the drift-detector count in two places (`ironclad.current.detectors` and `ironclad.target.detectors`) as a `N/N` string, and every detector addition required a manual edit there. Two contributors each adding a detector on parallel branches merged cleanly on the filesystem but silently left the count at `(N+1)/(N+1)` instead of `(N+2)/(N+2)` — manual edits don't compose. `HARNESS_INTEGRITY` caught the drift after the fact, but the floor was "trust the maintainer to bump twice". v0.3.17 promotes the filesystem itself to source-of-truth.
+
+### Added
+
+- `scripts/build-plugin.mjs` Phase D — counts non-index `.ts` files under `src/stages/detectors/` and rewrites both `ironclad.current.detectors` and `ironclad.target.detectors` in `.claude-plugin/plugin.json` to the resulting `N/N`. Idempotent (no rewrite when already in sync) so `npm run build:plugin` is safe to run on every commit.
+- `tests/scripts/build-plugin-detector-count.test.ts` — 4 unit tests covering drift recompute, idempotency, unrelated-parent immunity (anchored regex), and the index.ts exclusion.
+- `spec/features/detector-count-auto-recompute-098d3b.yaml` — F-092 spec (4 ACs, status `done`).
+
+### Changed
+
+- `CLAUDE.md` — the detector-count-bump reminder now says "automated; just rerun `npm run build:plugin`" instead of pointing maintainers at manual edits.
+
+### Notes
+
+- 595 + 4 new tests = **599/599** passing; lint clean; typecheck clean; drift-green at 91 features; bundle 1.1 MB.
+- The concurrent-modification audit (2026-05-20) found three high-risk sites: version field (v0.3.15 ✓), detector count (v0.3.17 ✓), CHANGELOG Unreleased-block. The third stays deferred — fragment-directory tooling is over-engineering for a 1-maintainer cadence; revisit when multi-dev signal arrives.
+
 ## [0.3.16] — Unreleased — Dogfood recovery + maintainer guide (F-091)
 
 **Restores cladding's own dogfood promise.** User audit caught it: v0.3.9 introduced the hash-based spec ID model (`F-<hash6>` filenames + slug field) for external users, but the cladding maintainer (Claude) authored the next nine spec entries (F-082 ~ F-090) by hand with the legacy sequential format. cladding was recommending one pattern to users while practicing another internally.

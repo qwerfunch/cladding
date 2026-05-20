@@ -31,13 +31,12 @@ Don't hand-edit version strings. There are seven sites; missing one breaks `HARN
 npm run version-bump -- 0.3.X
 ```
 
-## Detector additions — also bump the count
+## Detector additions — count is auto-recomputed
 
 When you add a drift detector under `src/stages/detectors/`:
 
 - Register it in `src/stages/detectors/index.ts` `allDetectors` array.
-- Update `.claude-plugin/plugin.json` `ironclad.current.detectors` from `N/N` to `(N+1)/(N+1)`.
-- A future automation will recompute this count automatically (v0.3.17 plan); until then, the manual update is required to keep `HARNESS_INTEGRITY` green.
+- Run `npm run build:plugin` (or `npm run build`, which calls it). Phase D of `scripts/build-plugin.mjs` (v0.3.17) recounts files and rewrites both `ironclad.current.detectors` and `ironclad.target.detectors` in `.claude-plugin/plugin.json`. No manual `N/N` edit needed — the filesystem is source-of-truth.
 
 ## Plugin manifest mirrors — built, not hand-authored
 
