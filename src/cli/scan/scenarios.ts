@@ -1,28 +1,39 @@
-// Cladding · scan · scenario stub proposal
+// Cladding · scan · scenario stub proposal (deprecated body)
 //
-// v0.3.29 keeps this module alive but its output is queued for
-// deprecation. The 5차 audit (2026-05-20) flagged dir-derived
-// scenarios as misaligned with the ironclad-design definition
-// (scenario = user journey, not architecture layer). v0.3.30
-// will replace the body with an empty list + scenarios/README
-// guidance — the *real* scenario is auto-registered when a user
-// requests a feature through `clad_create_feature`.
+// v0.3.30 (audit 2026-05-20 follow-up) deprecates dir-derived
+// scenarios. The ironclad-design definition is `scenario =
+// user journey` — business intent, not architecture layer.
+// Architecture is what the code *is* (observable); scenarios are
+// what the user *wants* (declared). Cladding's scan walks the
+// observable side; the declared side enters through
+// `clad_create_feature` requests.
+//
+// The function is kept (always returns `[]`) so type and call
+// sites stay stable through the v0.3.30 transition. `init.ts`
+// writes `spec/scenarios/README.md` explaining the policy
+// instead of producing one YAML per layer.
+//
+// Feature + scenario both grow miniature-map style: empty at
+// adoption time, registered as the user requests features.
+//
+// @see ironclad-design/07-ssot-init.md §3 B
+// @see .cladding/audit/scan-real-world-2026-05-20.md (5차 audit)
 
 import type {ScenarioStub, SourceFile} from './types.js';
 
 /**
- * One stub per non-_root layer. v0.3.29 keeps the legacy shape
- * intact so downstream tests stay stable; v0.3.30 will swap the
- * body for `[]` after the scan scenario discussion lands.
+ * Returns an empty list. Architecture layers are *not* scenarios —
+ * scenarios encode user journeys (intent), which only enter the
+ * spec when a user requests a feature.
+ *
+ * @param _filesByLayer Reserved for future analyses that compute
+ *   journey metadata from observed code (router declarations, etc.);
+ *   currently unused so the deprecation transition stays stable.
+ * @returns Always `[]`.
  */
 export function proposeScenarios(
-  filesByLayer: ReadonlyMap<string, SourceFile[]>,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _filesByLayer: ReadonlyMap<string, SourceFile[]>,
 ): readonly ScenarioStub[] {
-  const out: ScenarioStub[] = [];
-  for (const [name, files] of filesByLayer) {
-    if (name === '_root') continue;
-    out.push({slug: `${name}-flow`, dir: name, moduleCount: files.length});
-  }
-  out.sort((a, b) => a.slug.localeCompare(b.slug));
-  return out;
+  return [];
 }
