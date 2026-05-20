@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.22] — Unreleased — Iron Law backbone Phase 3.3: Librarian post-mortem on auto-rollback (F-5d3ed2)
+## [0.3.22] — 2026-05-20 — Iron Law backbone Phase 3.3: Librarian post-mortem on auto-rollback (F-5d3ed2)
 
 **Third and final patch** of the Iron Law backbone (ironclad-design 02-iron-law §2.5). v0.3.20 shipped the event surface, v0.3.21 wired the drive loop's auto-rollback, and v0.3.22 closes the loop with a Librarian-authored post-mortem so the next session has a maintainer-readable brief instead of just an audit-log entry.
 
@@ -26,7 +26,7 @@ Cladding writes the post-mortem to disk but does **not** inject it into the next
 - No-git-head checkpoint fallback: the recovery block reads `restore spec.yaml manually from VCS history` instead of a `git checkout` command, so the post-mortem stays usable in projects cladding tracked outside a git repo.
 - Tier-1 audit complete: (1) ✓ Atomic AC fan-out (v0.3.18), (2) ✓ Phased Decommissioning Tier 2 (v0.3.19), (3.1) ✓ Checkpoint event surface (v0.3.20), (3.2) ✓ Drive auto-rollback (v0.3.21), **(3.3) ✓ Librarian post-mortem (this PR)**. The ironclad-design 02-iron-law §2.5 Iron Law backbone is operational end-to-end.
 
-## [0.3.21] — Unreleased — Iron Law backbone Phase 3.2: drive loop auto-rollback (F-2de65d)
+## [0.3.21] — 2026-05-20 — Iron Law backbone Phase 3.2: drive loop auto-rollback (F-2de65d)
 
 **Second of three patches** completing the Iron Law backbone. v0.3.20 shipped the event surface (`feature_checkpoint`, `feature_rolled_back`) and manual CLI verbs. v0.3.21 hooks the autonomous loop into it: every ready feature gets a checkpoint pinned before the first specialist dispatch, and every `RETRY_THRESHOLD` halt now records a rollback to that feature's latest checkpoint. The Iron Law §2.5 contract ("auto-rollback after self-healing budget exhausted") is now operational on every `clad drive` invocation.
 
@@ -42,7 +42,7 @@ Cladding writes the post-mortem to disk but does **not** inject it into the next
 - Non-RETRY_THRESHOLD halts (MAX_ITERATIONS, WALL_CLOCK, BUDGET_EXCEEDED, transport classes, ALL_FEATURES_DONE) finish without a rollback event — the rollback event is reserved for the one transition that genuinely needs the Iron Law fallback.
 - Tier-1 audit progress: (1) ✓ Atomic AC fan-out, (2) ✓ Phased Decommissioning Tier 2, (3.1) ✓ Checkpoint event surface, **(3.2) ✓ Drive auto-rollback (this PR)**, (3.3) Librarian post-mortem queued (v0.3.22).
 
-## [0.3.20] — Unreleased — Iron Law backbone Phase 1: checkpoint event infrastructure (F-c2c996)
+## [0.3.20] — 2026-05-20 — Iron Law backbone Phase 1: checkpoint event infrastructure (F-c2c996)
 
 **Third Tier-1 audit fix, Phase 1 of 3.** ironclad-design 02-iron-law §2.5 ("Integrity Checkpoint & Rollback") names the Iron Law backbone: every `work` should pin a SSoT + code snapshot, and a failed self-healing cycle should fall back to it. Cladding had **none** of that — the prior conversation grep showed `rollback`/`checkpoint`/`snapshot`/`stash`/`post-mortem` all at zero hits. v0.3.20 lays the *event* surface; later patches (v0.3.21, v0.3.22) hook the drive loop and Librarian post-mortem on top.
 
@@ -62,7 +62,7 @@ Cladding **does not** execute the actual `git checkout` or spec restore. Branch 
 - 609 + 17 new tests = **626/626** passing; lint clean; typecheck clean; drift-green at 94 features; bundle 1.1 MB.
 - Tier-1 audit progress: (1) ✓ Atomic AC fan-out (v0.3.18), (2) ✓ Phased Decommissioning Tier 2 (v0.3.19), **(3) ⚙ Auto-rollback Phase 1 (this PR)**, (3.2) drive-loop auto-rollback queued, (3.3) Librarian post-mortem queued.
 
-## [0.3.19] — Unreleased — Phased Decommissioning Tier 2 (F-b99577)
+## [0.3.19] — 2026-05-20 — Phased Decommissioning Tier 2 (F-b99577)
 
 **Second of three Tier-1 fixes** from the 2026-05-20 ironclad-design audit. `STALE_SPECIFICATION` had been emitting warn-only findings since v0.1.x — the maintainer (or anyone reading `clad check`) saw the noise but the path to fixing it was manual. The structural reason was that `DriftFinding` exposed only `severity` + `message`; there was no field for a machine-actionable remediation hint. v0.3.19 introduces that field (`suggestion`) and uses it to wire the first Phased Decommissioning Tier 2 (ironclad-design 07-ssot-init §5) entry point.
 
@@ -83,7 +83,7 @@ Cladding **does not** execute the actual `git checkout` or spec restore. Branch 
 - The `archived feature with surviving modules` branch deliberately stays unsuggested — removal cadence is project-owned, so the warning surfaces but no automated action is proposed.
 - ironclad-design Tier-1 audit recap: (1) ✓ Atomic AC fan-out (v0.3.18), **(2) ✓ Phased Decommissioning Tier 2 (this PR)**, (3) Auto-rollback / Checkpoint (v0.4.0 minor, queued).
 
-## [0.3.18] — Unreleased — Atomic AC evidence fan-out in drive loop (F-12d740)
+## [0.3.18] — 2026-05-20 — Atomic AC evidence fan-out in drive loop (F-12d740)
 
 **Closes the AC-granularity gap in the anti-self-cert guard.** The HITL evidence framework (v0.2.x) added `Evidence.acId` to the schema and `anti-self-cert.checkAc()` filters by `e.acId === acId`, but the drive loop never populated the field — every `clad drive` evidence entry was feature-scoped, so the guard saw only unattributed tool/LLM evidence and could not tell which AC was missing its human-author sign-off. v0.3.18 fans the per-feature L1-pass evidence out into one entry per acceptance criterion, completing the Atomic AC chain (ironclad-design 11-ssot-refinement §4.1 + 02-iron-law §2.4).
 
@@ -98,7 +98,7 @@ Cladding **does not** execute the actual `git checkout` or spec restore. Branch 
 - Identity `author=tool, name=clad-drive` stays on every drive-loop evidence — the fan-out is a granularity refinement, not a self-cert loophole.
 - ironclad-design audit (2026-05-20) recap — three Tier-1 vision gaps identified: **(1) Atomic AC fan-out (this PR, done)**, (2) Phased Decommissioning Tier 2 (v0.3.x patch, queued), (3) Auto-rollback / Checkpoint (v0.4.0 minor, queued).
 
-## [0.3.17] — Unreleased — Detector-count auto-recompute (F-092)
+## [0.3.17] — 2026-05-20 — Detector-count auto-recompute (F-092)
 
 **Second of two automations** closing the concurrent-modification audit (2026-05-20). `.claude-plugin/plugin.json` declared the drift-detector count in two places (`ironclad.current.detectors` and `ironclad.target.detectors`) as a `N/N` string, and every detector addition required a manual edit there. Two contributors each adding a detector on parallel branches merged cleanly on the filesystem but silently left the count at `(N+1)/(N+1)` instead of `(N+2)/(N+2)` — manual edits don't compose. `HARNESS_INTEGRITY` caught the drift after the fact, but the floor was "trust the maintainer to bump twice". v0.3.17 promotes the filesystem itself to source-of-truth.
 
@@ -117,7 +117,7 @@ Cladding **does not** execute the actual `git checkout` or spec restore. Branch 
 - 595 + 4 new tests = **599/599** passing; lint clean; typecheck clean; drift-green at 91 features; bundle 1.1 MB.
 - The concurrent-modification audit (2026-05-20) found three high-risk sites: version field (v0.3.15 ✓), detector count (v0.3.17 ✓), CHANGELOG Unreleased-block. The third stays deferred — fragment-directory tooling is over-engineering for a 1-maintainer cadence; revisit when multi-dev signal arrives.
 
-## [0.3.16] — Unreleased — Dogfood recovery + maintainer guide (F-091)
+## [0.3.16] — 2026-05-20 — Dogfood recovery + maintainer guide (F-091)
 
 **Restores cladding's own dogfood promise.** User audit caught it: v0.3.9 introduced the hash-based spec ID model (`F-<hash6>` filenames + slug field) for external users, but the cladding maintainer (Claude) authored the next nine spec entries (F-082 ~ F-090) by hand with the legacy sequential format. cladding was recommending one pattern to users while practicing another internally.
 
@@ -148,7 +148,7 @@ Cladding **does not** execute the actual `git checkout` or spec restore. Branch 
 - The `ID_COLLISION` and `SLUG_CONFLICT` detectors stayed silent through the migration — no inadvertent duplicates introduced.
 - v0.3.17 plan: `build-plugin.mjs` auto-recomputes the `ironclad.current.detectors` count so the count-bump reminder in `CLAUDE.md` graduates from manual to automatic.
 
-## [0.3.15] — Unreleased — Atomic version-bump script (F-090)
+## [0.3.15] — 2026-05-20 — Atomic version-bump script (F-090)
 
 **First of two automations** addressing the concurrent-modification audit (2026-05-20). Until v0.3.15 the cladding version string lived in **seven separate files** (`package.json`, three host-plugin manifests, `src/cli/clad.ts`, `src/serve/server.ts`, `tests/cli/clad.test.ts`) and every patch cycle a maintainer had to hand-edit each one — error-prone, and two contributors bumping in parallel collided on all seven. v0.3.15 collapses the ritual into a single command.
 
@@ -165,7 +165,7 @@ Cladding **does not** execute the actual `git checkout` or spec restore. Branch 
 - v0.3.16 plan: `build-plugin.mjs` auto-recomputes `ironclad.current.detectors` count so the second high-risk concurrent-modification site (silent miscalc when two contributors add detectors in parallel) is also closed.
 - The audit's third high-risk site (CHANGELOG.md Unreleased-block collision) stays in the deferred bucket — fragment-directory tooling is over-engineering for a 1-maintainer cadence; revisit when multi-dev signal arrives.
 
-## [0.3.14] — Unreleased — External user docs update (F-089)
+## [0.3.14] — 2026-05-20 — External user docs update (F-089)
 
 **Docs-only patch.** READMEs and `docs/spec-ids-multi-dev.md` had drifted to a v0.3.3 snapshot (capability lines, drift-detector count, feature count, version number) while the code raced ahead to v0.3.13. v0.3.14 brings external-facing docs into alignment so users reading the project for the first time get an accurate snapshot.
 
