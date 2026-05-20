@@ -198,7 +198,7 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
   // and collapses to deterministicInterpret on null/error so the
   // artifacts are always usable.
   if (shouldWriteScanArtifacts && scanResult) {
-    const interp: InterpretedScan = await interpretScanWithFallback(scanResult, dispatcher);
+    const interp: InterpretedScan = await interpretScanWithFallback(scanResult, dispatcher, cwd);
 
     writeArtifact(cwd, 'docs/conventions.md', interp.conventionsMd, created, proposals);
     writeArtifact(cwd, 'spec/architecture.yaml', interp.architectureYaml, created, proposals);
@@ -230,7 +230,7 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
   // collapses to deterministic so the file is always usable.
   const projectContext = scanResult?.projectContext ?? null;
   const projectContextMd = dispatcher
-    ? await renderProjectContextMdWithLlm(projectContext, projectName, dispatcher)
+    ? await renderProjectContextMdWithLlm(projectContext, projectName, dispatcher, cwd)
     : renderProjectContextMd(projectContext, projectName);
   writeArtifact(cwd, 'docs/project-context.md', projectContextMd, created, proposals);
 

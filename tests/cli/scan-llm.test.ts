@@ -5,7 +5,10 @@
 // interpretWithLlm composes them; deterministicInterpret produces a
 // byte-deterministic fallback that the --no-llm CLI path uses.
 
-import {describe, expect, test, vi} from 'vitest';
+import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
+import {mkdtempSync, rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 
 import {
   buildPrompt,
@@ -18,6 +21,7 @@ import {
   renderCapabilitiesYaml,
   renderProjectContextMdWithLlm,
 } from '../../src/cli/scan/llm.js';
+import {readEvents} from '../../src/events/log.js';
 import type {ProjectContext, ScanResult} from '../../src/cli/scan/index.js';
 
 function fakeProjectContext(): ProjectContext {
@@ -424,5 +428,147 @@ describe('interpretScanWithFallback', () => {
     );
     const r = await interpretScanWithFallback(fakeScan(), dispatch);
     expect(r.mode).toBe('deterministic');
+  });
+});
+
+// v0.3.39 — sentinel-miss telemetry. Each fallback site records a
+// JSONL event in <cwd>/.cladding/events.log.jsonl so adopters can tune
+// their host's sampling policy. Configured-no-LLM paths (dispatcher
+// null or ctx null) do NOT emit — they are deliberate offline runs.
+describe('sentinel_miss telemetry', () => {
+  let dir: string;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'clad-sentinel-'));
+  });
+
+  afterEach(() => {
+    rmSync(dir, {recursive: true, force: true});
+  });
+
+  test('emits one total miss when dispatcher throws (scan_artifacts phase)', async () => {
+    const dispatch = vi.fn<(p: string) => Promise<string>>(async () => {
+      throw new Error('transport down');
+    });
+    await interpretScanWithFallback(fakeScan(), dispatch, dir);
+    const events = readEvents(dir).filter((e) => e.type === 'sentinel_miss');
+    expect(events).toHaveLength(1);
+    expect(events[0].payload).toMatchObject({
+      phase: 'scan_artifacts',
+      cause: 'dispatcher_error',
+      fallback: 'total',
+      error: 'transport down',
+    });
+  });
+
+  test('emits one total miss with missed_sections when conventions/architecture sentinel is blank', async () => {
+    const dispatch = vi.fn(async () => '=== CONVENTIONS_MD ===\n# only conv\n');
+    await interpretScanWithFallback(fakeScanWithReadme(), dispatch, dir);
+    const events = readEvents(dir).filter((e) => e.type === 'sentinel_miss');
+    expect(events).toHaveLength(1);
+    expect(events[0].payload).toMatchObject({
+      phase: 'scan_artifacts',
+      cause: 'blank_section',
+      fallback: 'total',
+    });
+    expect(events[0].payload.missed_sections).toContain('ARCHITECTURE_YAML');
+  });
+
+  test('emits one per_artifact miss when only capabilities is blank but conventions+architecture pass', async () => {
+    const dispatch = vi.fn(async () =>
+      '=== CONVENTIONS_MD ===\n# Refined\n' +
+        '=== ARCHITECTURE_YAML ===\nversion: "0.1"\nlayers:\n  - name: core\n    modules: ["core/**"]\n    forbidden_imports: []\n' +
+        '=== SCENARIO_FLOWS ===\ncore-flow: x\n',
+    );
+    const r = await interpretScanWithFallback(fakeScanWithReadme(), dispatch, dir);
+    const events = readEvents(dir).filter((e) => e.type === 'sentinel_miss');
+    expect(r.mode).toBe('llm');
+    expect(events).toHaveLength(1);
+    expect(events[0].payload).toMatchObject({
+      phase: 'scan_artifacts',
+      cause: 'blank_section',
+      fallback: 'per_artifact',
+    });
+    expect(events[0].payload.missed_sections).toEqual(['CAPABILITIES_YAML']);
+  });
+
+  test('does NOT emit when dispatcher is null (configured offline run)', async () => {
+    await interpretScanWithFallback(fakeScan(), null, dir);
+    const events = readEvents(dir).filter((e) => e.type === 'sentinel_miss');
+    expect(events).toHaveLength(0);
+  });
+
+  test('does NOT emit when cwd is omitted (telemetry stays silent)', async () => {
+    const dispatch = vi.fn<(p: string) => Promise<string>>(async () => {
+      throw new Error('transport down');
+    });
+    await interpretScanWithFallback(fakeScan(), dispatch);
+    // No events.log can exist because no cwd was provided; the function
+    // simply skips the emit and lets the deterministic fallback run.
+    const events = readEvents(dir).filter((e) => e.type === 'sentinel_miss');
+    expect(events).toHaveLength(0);
+  });
+
+  test('project_context phase: emits dispatcher_error on throw', async () => {
+    const dispatch = vi.fn<(p: string) => Promise<string>>(async () => {
+      throw new Error('mcp closed');
+    });
+    await renderProjectContextMdWithLlm(fakeProjectContext(), 'demo', dispatch, dir);
+    const events = readEvents(dir).filter((e) => e.type === 'sentinel_miss');
+    expect(events).toHaveLength(1);
+    expect(events[0].payload).toMatchObject({
+      phase: 'project_context',
+      cause: 'dispatcher_error',
+      fallback: 'total',
+      error: 'mcp closed',
+    });
+  });
+
+  test('project_context phase: emits blank_section per_artifact when WHY/WHAT/PURPOSE are blank', async () => {
+    // Reply parses but leaves all three sentinels empty.
+    const dispatch = vi.fn(async () => '=== WHY ===\n=== WHAT ===\n=== PURPOSE ===\n');
+    await renderProjectContextMdWithLlm(fakeProjectContext(), 'demo', dispatch, dir);
+    const events = readEvents(dir).filter((e) => e.type === 'sentinel_miss');
+    expect(events).toHaveLength(1);
+    expect(events[0].payload).toMatchObject({
+      phase: 'project_context',
+      cause: 'blank_section',
+      fallback: 'per_artifact',
+    });
+    expect(events[0].payload.missed_sections).toEqual(['WHY', 'WHAT', 'PURPOSE']);
+  });
+
+  test('project_context phase: greenfield (ctx=null) skips the dispatcher and does NOT emit', async () => {
+    const dispatch = vi.fn(async () => 'should-not-run');
+    await renderProjectContextMdWithLlm(null, 'demo', dispatch, dir);
+    expect(dispatch).not.toHaveBeenCalled();
+    const events = readEvents(dir).filter((e) => e.type === 'sentinel_miss');
+    expect(events).toHaveLength(0);
+  });
+});
+
+describe('interpretWithLlm — missedSections tracking', () => {
+  test('populates missedSections with every blank sentinel name', async () => {
+    const dispatch = vi.fn(async () => '=== CONVENTIONS_MD ===\n# A\n=== ARCHITECTURE_YAML ===\nlayers: []\n');
+    const r = await interpretWithLlm(fakeScanWithReadme(), dispatch);
+    expect(r.missedSections).toEqual(expect.arrayContaining(['SCENARIO_FLOWS', 'CAPABILITIES_YAML']));
+    expect(r.missedSections).not.toContain('CONVENTIONS_MD');
+    expect(r.missedSections).not.toContain('ARCHITECTURE_YAML');
+  });
+
+  test('missedSections is empty when every sentinel parses to non-blank content', async () => {
+    const dispatch = vi.fn(async () =>
+      '=== CONVENTIONS_MD ===\n# A\n' +
+        '=== ARCHITECTURE_YAML ===\nlayers: []\n' +
+        '=== SCENARIO_FLOWS ===\ncore-flow: x\ncli-flow: y\n' +
+        '=== CAPABILITIES_YAML ===\nschema: "0.1"\ncapabilities: []\n',
+    );
+    const r = await interpretWithLlm(fakeScanWithReadme(), dispatch);
+    expect(r.missedSections).toEqual([]);
+  });
+
+  test('deterministicInterpret returns an empty missedSections array (no LLM reply was inspected)', () => {
+    const r = deterministicInterpret(fakeScan());
+    expect(r.missedSections).toEqual([]);
   });
 });

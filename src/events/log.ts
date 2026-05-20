@@ -21,7 +21,21 @@ export type EventType =
   | 'evidence_recorded'
   | 'drift_detected'
   | 'feature_checkpoint'
-  | 'feature_rolled_back';
+  | 'feature_rolled_back'
+  // v0.3.39 — sentinel-miss telemetry. Emitted when the LLM dispatcher
+  // returns a reply that misses one of the labelled sentinels
+  // (=== CONVENTIONS_MD === / === ARCHITECTURE_YAML === / === SCENARIO_FLOWS ===
+  // / === CAPABILITIES_YAML === / === WHY === / === WHAT === / === PURPOSE ===)
+  // and the scan or project-context refinement falls back to the deterministic
+  // body. Standard payload:
+  //   phase:           'scan_artifacts' | 'project_context'
+  //   cause:           'blank_section'  | 'dispatcher_error'
+  //   fallback:        'total'          | 'per_artifact'
+  //   missed_sections: readonly string[]  // present iff cause === 'blank_section'
+  //   error:           string              // present iff cause === 'dispatcher_error' (truncated)
+  // Configured-no-LLM paths (dispatcher === null or ctx === null) do NOT emit;
+  // they are deliberate offline/greenfield runs, not a miss.
+  | 'sentinel_miss';
 
 /** One JSONL line in events.log.jsonl. */
 export interface Event {

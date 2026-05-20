@@ -16,7 +16,28 @@
 // @see scan.ts — deterministic data source
 // @see src/adapters/host/sampling-context.ts — dispatcher candidate
 
+import {appendEvent, newEvent} from '../../events/log.js';
 import type {ProjectContext, ScanResult, Conventions, Layer} from './types.js';
+
+/**
+ * v0.3.39 — emit a `sentinel_miss` lifecycle event so adopters can
+ * tune their host's sampling policy (model · max_tokens · temperature)
+ * based on how often the LLM dispatcher misses a labelled sentinel.
+ * Optional `cwd` keeps existing unit tests (which call the LLM helpers
+ * directly without a workspace) telemetry-silent. Production callers
+ * (`src/cli/init.ts`) always pass `cwd` so events land in
+ * `<cwd>/.cladding/events.log.jsonl`.
+ */
+function emitSentinelMiss(cwd: string | undefined, payload: Record<string, unknown>): void {
+  if (!cwd) return;
+  try {
+    appendEvent(cwd, newEvent('sentinel_miss', payload));
+  } catch {
+    // Telemetry must never break the init flow. A read-only workspace
+    // or a transient fs error swallows here; the artifacts already
+    // wrote successfully via writeArtifact.
+  }
+}
 
 /** Single-prompt dispatcher injected by callers. */
 export type ScanLlmDispatcher = (prompt: string) => Promise<string>;
@@ -38,6 +59,17 @@ export interface InterpretedScan {
   readonly capabilitiesYaml: string;
   /** Identifies how the artifacts were produced — surfaces in commit notes. */
   readonly mode: 'llm' | 'deterministic';
+  /**
+   * Names of sentinels the LLM left blank in the parsed reply
+   * (`CONVENTIONS_MD` / `ARCHITECTURE_YAML` / `SCENARIO_FLOWS` /
+   * `CAPABILITIES_YAML`). Populated by {@link interpretWithLlm};
+   * {@link interpretScanWithFallback} reads it to decide between a
+   * per-artifact fallback (only capabilities or scenarios blank) and a
+   * total fallback (conventions or architecture blank), and to emit
+   * the corresponding `sentinel_miss` telemetry event. Empty array
+   * means the LLM reply filled every sentinel.
+   */
+  readonly missedSections: readonly string[];
 }
 
 const HEADER =
@@ -169,12 +201,25 @@ export async function interpretWithLlm(
   const capabilitiesYaml = sections.capabilities.trim()
     ? ensureTrailingNewline(sections.capabilities)
     : renderCapabilitiesYaml(scan.projectContext?.readmeHeadings ?? []);
+  // v0.3.39 — track every blank sentinel so the outer fallback wrapper
+  // can decide whether the run was a per-artifact miss (only auxiliary
+  // sections blank → keep mode=llm) or a total miss (conventions or
+  // architecture blank → collapse to deterministic) and emit the
+  // corresponding sentinel_miss telemetry event. The check inspects
+  // the raw section strings, not the substituted bodies, so it sees
+  // the LLM reply state rather than the post-fallback artifact.
+  const missedSections: string[] = [];
+  if (!sections.conventions.trim()) missedSections.push('CONVENTIONS_MD');
+  if (!sections.architecture.trim()) missedSections.push('ARCHITECTURE_YAML');
+  if (!sections.scenarios.trim()) missedSections.push('SCENARIO_FLOWS');
+  if (!sections.capabilities.trim()) missedSections.push('CAPABILITIES_YAML');
   return {
     conventionsMd: `${HEADER}\n\n${sections.conventions}`,
     architectureYaml: sections.architecture,
     scenarioFlows,
     capabilitiesYaml,
     mode: 'llm',
+    missedSections,
   };
 }
 
@@ -203,22 +248,57 @@ function ensureTrailingNewline(text: string): string {
 export async function interpretScanWithFallback(
   scan: ScanResult,
   dispatcher: ScanLlmDispatcher | null,
+  cwd?: string,
 ): Promise<InterpretedScan> {
   if (dispatcher === null) return deterministicInterpret(scan);
+  let interp: InterpretedScan;
   try {
-    const interp = await interpretWithLlm(scan, dispatcher);
-    // Defensive: a dispatcher reply that does not contain the
-    // sentinels parses into empty strings; an empty
-    // architectureYaml is not a valid spec/architecture.yaml. Fall
-    // back to deterministic so reviewers see real layer names
-    // instead of a one-line stub.
-    if (!interp.architectureYaml.trim() || !interp.conventionsMd.replace(HEADER, '').trim()) {
-      return deterministicInterpret(scan);
-    }
-    return interp;
-  } catch {
+    interp = await interpretWithLlm(scan, dispatcher);
+  } catch (e) {
+    emitSentinelMiss(cwd, {
+      phase: 'scan_artifacts',
+      cause: 'dispatcher_error',
+      fallback: 'total',
+      error: truncateError(e),
+    });
     return deterministicInterpret(scan);
   }
+  // Defensive: a dispatcher reply that does not contain the
+  // sentinels parses into empty strings; an empty
+  // architectureYaml is not a valid spec/architecture.yaml. Fall
+  // back to deterministic so reviewers see real layer names
+  // instead of a one-line stub.
+  const totalMissed = interp.missedSections.filter(
+    (s) => s === 'CONVENTIONS_MD' || s === 'ARCHITECTURE_YAML',
+  );
+  if (totalMissed.length > 0) {
+    emitSentinelMiss(cwd, {
+      phase: 'scan_artifacts',
+      cause: 'blank_section',
+      fallback: 'total',
+      missed_sections: [...interp.missedSections],
+    });
+    return deterministicInterpret(scan);
+  }
+  if (interp.missedSections.length > 0) {
+    // Conventions + architecture passed, but a non-critical sentinel
+    // (scenarios or capabilities) returned blank — the artifact was
+    // substituted in-place by interpretWithLlm or remains empty for
+    // scenarios. Emit a per_artifact miss so adopters see the gap
+    // without losing the LLM-refined critical sections.
+    emitSentinelMiss(cwd, {
+      phase: 'scan_artifacts',
+      cause: 'blank_section',
+      fallback: 'per_artifact',
+      missed_sections: [...interp.missedSections],
+    });
+  }
+  return interp;
+}
+
+function truncateError(e: unknown): string {
+  const msg = e instanceof Error ? e.message : String(e);
+  return msg.length > 200 ? `${msg.slice(0, 200)}…` : msg;
 }
 
 /**
@@ -242,7 +322,16 @@ export function deterministicInterpret(scan: ScanResult): InterpretedScan {
     scenarioFlows.set(s.slug, `Flow through ${s.dir}/ (${s.moduleCount} modules) — describe the business behaviour this layer enables.`);
   }
   const capabilitiesYaml = renderCapabilitiesYaml(scan.projectContext?.readmeHeadings ?? []);
-  return {conventionsMd, architectureYaml, scenarioFlows, capabilitiesYaml, mode: 'deterministic'};
+  // Deterministic mode never inspects an LLM reply, so it has no
+  // sentinels to miss — the field stays empty.
+  return {
+    conventionsMd,
+    architectureYaml,
+    scenarioFlows,
+    capabilitiesYaml,
+    mode: 'deterministic',
+    missedSections: [],
+  };
 }
 
 function renderConventionsTable(c: Conventions, examples: ScanResult['examples']): string {
@@ -444,20 +533,45 @@ export async function renderProjectContextMdWithLlm(
   ctx: ProjectContext | null,
   projectName: string,
   dispatcher: ScanLlmDispatcher | null,
+  cwd?: string,
 ): Promise<string> {
   if (ctx === null || dispatcher === null) {
     return renderProjectContextMd(ctx, projectName);
   }
+  let sections: {readonly why: string; readonly what: string; readonly purpose: string};
   try {
     const prompt = buildProjectContextPrompt(ctx, projectName);
     const reply = await dispatcher(prompt);
-    const sections = parseProjectContextResponse(reply);
-    return renderProjectContextRefined(ctx, projectName, sections);
-  } catch {
+    sections = parseProjectContextResponse(reply);
+  } catch (e) {
     // Any error path (transport, parsing) collapses to deterministic
-    // so the user always gets a usable artifact.
+    // so the user always gets a usable artifact. The miss is recorded
+    // so adopters can correlate it with host or network issues.
+    emitSentinelMiss(cwd, {
+      phase: 'project_context',
+      cause: 'dispatcher_error',
+      fallback: 'total',
+      error: truncateError(e),
+    });
     return renderProjectContextMd(ctx, projectName);
   }
+  // v0.3.39 — the refined renderer happily substitutes placeholder
+  // text per blank section, so a sentinel miss never collapses the
+  // whole artifact. Record the miss so adopters can see which
+  // sections their host consistently struggles to fill.
+  const missed: string[] = [];
+  if (!sections.why.trim()) missed.push('WHY');
+  if (!sections.what.trim()) missed.push('WHAT');
+  if (!sections.purpose.trim()) missed.push('PURPOSE');
+  if (missed.length > 0) {
+    emitSentinelMiss(cwd, {
+      phase: 'project_context',
+      cause: 'blank_section',
+      fallback: 'per_artifact',
+      missed_sections: missed,
+    });
+  }
+  return renderProjectContextRefined(ctx, projectName, sections);
 }
 
 function renderProjectContextRefined(

@@ -5,6 +5,37 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — sentinel-miss telemetry surfaces LLM fallbacks in events.log (F-65814a)
+
+**Silent fallback gets a voice.** v0.3.33–v0.3.35 wired the LLM dispatcher chain plus per-artifact / total fallback behaviour for conventions, architecture, scenarios, project-context, and (v0.3.38) capabilities. Every fallback site was silent — a host whose sampling policy systematically dropped one sentinel would never know, and adopters had no data to tune model / `max_tokens` / temperature against. v0.3.39 makes the misses observable by emitting a structured `sentinel_miss` lifecycle event per fallback to `.cladding/events.log.jsonl`. Configured-no-LLM runs (no dispatcher, greenfield, `--no-llm`) stay silent because they are deliberate offline runs rather than misses.
+
+### Added
+
+- `src/events/log.ts` — `EventType` union grows a `'sentinel_miss'` arm with an inline payload schema (`phase: 'scan_artifacts' | 'project_context'` · `cause: 'blank_section' | 'dispatcher_error'` · `fallback: 'total' | 'per_artifact'` · `missed_sections?: string[]` · `error?: string`)
+- `src/cli/scan/llm.ts` — `InterpretedScan` grows a `readonly missedSections: readonly string[]` field; `interpretWithLlm` populates it by inspecting `sections.{conventions,architecture,scenarios,capabilities}` for blank trims; `deterministicInterpret` leaves it `[]` because it never consumed an LLM reply
+- `src/cli/scan/llm.ts` — `interpretScanWithFallback(scan, dispatcher, cwd?)` emits in three places: dispatcher throw (`cause: 'dispatcher_error'`, `fallback: 'total'`, truncated `error`); `CONVENTIONS_MD` or `ARCHITECTURE_YAML` blank (`cause: 'blank_section'`, `fallback: 'total'`, `missed_sections`); only non-critical sentinels blank (`cause: 'blank_section'`, `fallback: 'per_artifact'`, `missed_sections`)
+- `src/cli/scan/llm.ts` — `renderProjectContextMdWithLlm(ctx, name, dispatcher, cwd?)` emits dispatcher-throw and `WHY` / `WHAT` / `PURPOSE` blank-section events with the same schema under `phase: 'project_context'`
+- `src/cli/init.ts` — threads the existing `cwd` variable into both refinement helpers so production calls always reach the telemetry sink while unit tests that omit `cwd` stay silent
+- 11 new tests covering each emit site, the configured-no-LLM negatives (no dispatcher, no cwd, greenfield), and the `missedSections` population contract
+
+### Changed
+
+- v0.3.38 entry's stale roadmap counter (`six unreleased capability cycles`) corrected — after PR #121 dated and shipped the v0.3.28–v0.3.37 batch, only the v0.3.38 capability cycle was unreleased; v0.3.39 makes that two unreleased cycles, not seven
+
+### Notes
+
+- 753 + 11 new tests = **764/764** passing; lint clean; typecheck clean
+- Telemetry never fails the init flow: `emitSentinelMiss` wraps `appendEvent` in a try/catch so a read-only workspace or transient fs error is swallowed — the artifacts already wrote successfully via `writeArtifact`
+- `error` payload field is truncated to 200 characters so an oversized stack trace from a misbehaving dispatcher cannot bloat `events.log.jsonl`
+- The configured-no-LLM majority of `clad init` invocations is byte-identical to v0.3.38 — no event written, no behavioural change
+
+### Roadmap
+
+- Release window — two unreleased cycles queued (`v0.3.38` capabilities + `v0.3.39` telemetry); release timing is the maintainer's call
+- Future telemetry surfaces: a `clad doctor` verb that summarises `events.log.jsonl` (top missed sentinels, fallback frequency by phase) so adopters get a one-shot health check instead of grep recipes
+
+---
+
 ## [Unreleased] — spec/capabilities.yaml LLM extraction from README headings (F-d3bde4)
 
 **README ## headings get a first-class spec mirror.** v0.3.32 surfaced README headings inside `docs/project-context.md`; v0.3.33–v0.3.35 layered LLM refinement on top of conventions, architecture, and project-context. v0.3.38 closes the loop by minting `spec/capabilities.yaml` — the README-derived capability inventory — as its own artifact so downstream detectors and dashboards can read the capability list without re-parsing markdown.
@@ -30,7 +61,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 ### Roadmap
 
 - v0.3.39+ — sentinel-miss telemetry surfacing in `events.log` so adopters can tune their host's sampling policy (capabilities fallback now joins conventions/architecture as a per-artifact telemetry source)
-- Release window — six unreleased capability cycles + one hygiene cycle queued; release timing is the maintainer's call
+- Release window — one unreleased cycle queued post-v0.3.37 (this one); release timing is the maintainer's call
 
 ---
 
