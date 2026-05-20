@@ -1,0 +1,35 @@
+id: F-7fa4a7
+slug: mcp-sampling-dispatcher
+title: MCP sampling dispatcher — clad serve wires Priority 1 of the chain (v0.3.34)
+status: done
+modules:
+  - src/cli/scan/dispatcher.ts
+depends_on:
+  - F-417ff0
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: wire the MCP sampling branch of the scan dispatcher chain so a connected sampling-capable client refines the scan output without cladding holding API credentials
+    response: 'src/cli/scan/dispatcher.ts selectDispatcher Priority 1 returns a flat dispatcher built by createMcpDispatcher(server) when getHostMcpServer() returns a non-null SamplingCapableServer; the v0.3.33 TODO comment is replaced by the live dispatcher path; createMcpDispatcher round-trips through server.createMessage with maxTokens defaulted to 4096 and the prompt packed as a single user/text content block; the Anthropic-SDK direct branch remains the fallback for headless/CI environments without a connected host'
+    text: The system shall wire the MCP sampling branch of the scan dispatcher chain so a host like Claude Code, Cursor, or Continue can refine the scan output through its own sampling capability without cladding holding API credentials of its own.
+    test_refs: [tests/cli/scan-dispatcher.test.ts]
+  - id: AC-002
+    ears: state
+    condition: while both an MCP server registration and an ANTHROPIC_API_KEY are present
+    action: pick the MCP sampling dispatcher over the SDK direct dispatcher
+    response: 'selectDispatcher returns the MCP-backed dispatcher before evaluating opts.apiKey or process.env.ANTHROPIC_API_KEY so hosted refinement wins; the regression test asserts the dispatcher reply equals the MCP server stub reply, not whatever the (uninvoked) Anthropic SDK path would return'
+    text: While both an MCP server registration and an ANTHROPIC_API_KEY are present, the system shall pick the MCP sampling dispatcher so hosted refinement wins and cladding never spends credentials it does not own.
+    test_refs: [tests/cli/scan-dispatcher.test.ts]
+  - id: AC-003
+    ears: state
+    condition: while opts.noLlm is true
+    action: skip the MCP dispatcher entirely even when a server is registered
+    response: 'the v0.3.33 noLlm early-return predates the MCP-branch evaluation; the test pins this invariant by asserting selectDispatcher({noLlm: true}) returns null while a stub server is registered; CI invocations stay reproducible regardless of host wiring'
+    text: While opts.noLlm is true, the system shall skip the MCP dispatcher even when a server is registered so the --no-llm CLI flag remains a hard override.
+    test_refs: [tests/cli/scan-dispatcher.test.ts]
+  - id: AC-004
+    ears: ubiquitous
+    action: extract the reply text deterministically and return an empty string when no text block is present
+    response: 'createMcpDispatcher inspects reply.content for type=text and a string text field; non-text blocks (image/audio/tool_use, etc.) return an empty string so the dispatcher contract (Promise<string>) is honoured; the caller (renderProjectContextMdWithLlm) detects the empty payload through sentinel parsing and collapses to the deterministic body'
+    text: The system shall extract the reply text deterministically and return an empty string when no text block is present so non-text sampling responses do not crash the dispatcher contract.
+    test_refs: [tests/cli/scan-dispatcher.test.ts]
