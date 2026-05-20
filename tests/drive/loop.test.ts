@@ -60,6 +60,9 @@ vi.mock('../../src/core/checkpoint.js', () => ({
   })),
   recordRollback: vi.fn(),
 }));
+vi.mock('../../src/core/postmortem.js', () => ({
+  writePostMortem: vi.fn(() => '/mock/post-mortem-path.md'),
+}));
 vi.mock('../../src/hitl/identity.js', async () => {
   const actual = await vi.importActual<typeof import('../../src/hitl/identity.js')>(
     '../../src/hitl/identity.js',
@@ -95,6 +98,8 @@ const checkpointMod = await import('../../src/core/checkpoint.js');
 const recordCheckpointMock = checkpointMod.recordCheckpoint as unknown as ReturnType<typeof vi.fn>;
 const findLatestCheckpointMock = checkpointMod.findLatestCheckpoint as unknown as ReturnType<typeof vi.fn>;
 const recordRollbackMock = checkpointMod.recordRollback as unknown as ReturnType<typeof vi.fn>;
+const postmortemMod = await import('../../src/core/postmortem.js');
+const writePostMortemMock = postmortemMod.writePostMortem as unknown as ReturnType<typeof vi.fn>;
 
 const selectAdapterMock = adaptersIndex.selectAdapter as unknown as ReturnType<typeof vi.fn>;
 
@@ -326,6 +331,41 @@ describe('runDriveLoop', () => {
       const r = await runDriveLoop({cwd: dir});
       expect(r.halt.class).toBe('ALL_FEATURES_DONE');
       expect(recordRollbackMock).not.toHaveBeenCalled();
+    });
+
+    // Phase 3.3 (v0.3.22, F-x) — when the rollback fires, the
+    // Librarian writes a post-mortem markdown summarising the
+    // failure context. The drive loop hands featureId, retry
+    // count, last failed gate, checkpoint, and rolledBackAt.
+    test('rollback triggers writePostMortem with failure context', async () => {
+      loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-777', status: 'planned'}]));
+      runTypeMock.mockReturnValue({pass: false, exitCode: 1, stage: 'stage_1.1'});
+      writePostMortemMock.mockClear();
+      const r = await runDriveLoop({
+        cwd: dir,
+        budget: {maxIterations: 50, maxWallClockMs: 600_000, maxRetriesPerFeature: 3},
+      });
+      expect(r.halt.class).toBe('RETRY_THRESHOLD');
+      expect(writePostMortemMock).toHaveBeenCalledOnce();
+      const callCtx = writePostMortemMock.mock.calls[0][1];
+      expect(callCtx.featureId).toBe('F-777');
+      expect(callCtx.retryCount).toBe(3);
+      expect(callCtx.lastFailedGate).toBe('stage_1.1');
+      expect(callCtx.checkpoint.gitHead).toContain('mockhead');
+      expect(typeof callCtx.rolledBackAt).toBe('string');
+    });
+
+    test('rollback with no prior checkpoint also skips writePostMortem', async () => {
+      loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-666', status: 'planned'}]));
+      runTypeMock.mockReturnValue({pass: false, exitCode: 1, stage: 'stage_1.1'});
+      findLatestCheckpointMock.mockReturnValueOnce(null);
+      writePostMortemMock.mockClear();
+      const r = await runDriveLoop({
+        cwd: dir,
+        budget: {maxIterations: 50, maxWallClockMs: 600_000, maxRetriesPerFeature: 3},
+      });
+      expect(r.halt.class).toBe('RETRY_THRESHOLD');
+      expect(writePostMortemMock).not.toHaveBeenCalled();
     });
   });
 

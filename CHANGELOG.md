@@ -5,6 +5,27 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.22] — Unreleased — Iron Law backbone Phase 3.3: Librarian post-mortem on auto-rollback (F-5d3ed2)
+
+**Third and final patch** of the Iron Law backbone (ironclad-design 02-iron-law §2.5). v0.3.20 shipped the event surface, v0.3.21 wired the drive loop's auto-rollback, and v0.3.22 closes the loop with a Librarian-authored post-mortem so the next session has a maintainer-readable brief instead of just an audit-log entry.
+
+### Added
+
+- `src/core/postmortem.ts` (new) — `writePostMortem(cwd, ctx)` creates `.cladding/post-mortems/` on demand and writes `post-mortem-<F-id>-<sanitised-ts>.md`. Body captures feature id, last failed gate, retry count, checkpoint git head + spec digest, maintainer-runnable recovery command, and the `librarian` author tag. Two rollbacks of the same feature produce two files (no overwrite).
+- `src/drive/loop.ts` — tracks the last failed gate per feature in a `lastFailedGate` Map and, immediately after `recordRollback`, calls `writePostMortem` with the failure context. Skipped when no prior checkpoint exists (defensive, matches the rollback contract).
+- 6 new postmortem unit tests + 2 new drive-loop tests = 8 additions.
+
+### Phase 3.3 boundary
+
+Cladding writes the post-mortem to disk but does **not** inject it into the next agent dispatch's context. AgentContext shape changes are a v0.3.x+ follow-up; v0.3.22 keeps the file authoring surface minimal so a maintainer can read it manually without upstream context-injection wiring.
+
+### Notes
+
+- 630 + 8 new tests = **638/638** passing; lint clean; typecheck clean; drift-green at 96 features; bundle 1.1 MB.
+- Sanitised timestamp: `2026-05-20T12:34:56.789Z` → filename segment `2026-05-20T12-34-56-789Z` (colon + period replaced).
+- No-git-head checkpoint fallback: the recovery block reads `restore spec.yaml manually from VCS history` instead of a `git checkout` command, so the post-mortem stays usable in projects cladding tracked outside a git repo.
+- Tier-1 audit complete: (1) ✓ Atomic AC fan-out (v0.3.18), (2) ✓ Phased Decommissioning Tier 2 (v0.3.19), (3.1) ✓ Checkpoint event surface (v0.3.20), (3.2) ✓ Drive auto-rollback (v0.3.21), **(3.3) ✓ Librarian post-mortem (this PR)**. The ironclad-design 02-iron-law §2.5 Iron Law backbone is operational end-to-end.
+
 ## [0.3.21] — Unreleased — Iron Law backbone Phase 3.2: drive loop auto-rollback (F-2de65d)
 
 **Second of three patches** completing the Iron Law backbone. v0.3.20 shipped the event surface (`feature_checkpoint`, `feature_rolled_back`) and manual CLI verbs. v0.3.21 hooks the autonomous loop into it: every ready feature gets a checkpoint pinned before the first specialist dispatch, and every `RETRY_THRESHOLD` halt now records a rollback to that feature's latest checkpoint. The Iron Law §2.5 contract ("auto-rollback after self-healing budget exhausted") is now operational on every `clad drive` invocation.

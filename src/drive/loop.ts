@@ -30,6 +30,7 @@ import {loadPersona} from '../agents/loader.js';
 import {runAgent, ReviewerIdentityCollisionError} from './agent.js';
 import {selectAdapter} from '../adapters/index.js';
 import {findLatestCheckpoint, recordCheckpoint, recordRollback} from '../core/checkpoint.js';
+import {writePostMortem} from '../core/postmortem.js';
 import {appendEvent, newEvent} from '../events/log.js';
 import {newEvidence} from '../hitl/identity.js';
 import {appendEvidence} from '../hitl/audit.js';
@@ -139,6 +140,9 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
   const budget = opts.budget ?? DEFAULT_BUDGET;
   const startedAt = Date.now();
   const retries = new Map<string, number>();
+  // Tracks the most recent failed gate per feature so the post-mortem
+  // writer (Phase 3.3) can name the gate the rollback inherited from.
+  const lastFailedGate = new Map<string, string>();
   const featuresTouched: string[] = [];
   const stubsCreated: string[] = [];
   let gateRuns = 0;
@@ -213,6 +217,18 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
                 cp,
                 `retry budget exhausted after ${count} attempts`,
               );
+              // Phase 3.3 (ironclad-design 02-iron-law §2.5) — Librarian
+              // authors a post-mortem markdown summarising the failure
+              // so the next session has a starting brief. Phase 3.3
+              // stops at file authoring; context injection into the
+              // next agent dispatch is a v0.3.x+ follow-up.
+              writePostMortem(cwd, {
+                featureId,
+                retryCount: count,
+                lastFailedGate: lastFailedGate.get(featureId) ?? 'unknown',
+                checkpoint: cp,
+                rolledBackAt: new Date().toISOString(),
+              });
             }
             break;
           }
@@ -273,6 +289,7 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
     const failed = gates.find(([, r]) => !r.pass && r.exitCode !== 2);
     if (failed) {
       retries.set(ready.id, (retries.get(ready.id) ?? 0) + 1);
+      lastFailedGate.set(ready.id, failed[0]);
       appendEvent(cwd, newEvent('drift_detected', {feature: ready.id, gate: failed[0]}));
       continue;
     }
