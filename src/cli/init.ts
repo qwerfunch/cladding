@@ -203,6 +203,13 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
     writeArtifact(cwd, 'docs/conventions.md', interp.conventionsMd, created, proposals);
     writeArtifact(cwd, 'spec/architecture.yaml', interp.architectureYaml, created, proposals);
 
+    // v0.3.38 — README ## headings are mirrored into a first-class spec
+    // artifact so downstream detectors can read the capability list
+    // directly instead of re-parsing docs/project-context.md. LLM
+    // refinement (when a dispatcher is available) adds `summary` +
+    // `surface` per entry; deterministic mode ships id + title only.
+    writeArtifact(cwd, 'spec/capabilities.yaml', interp.capabilitiesYaml, created, proposals);
+
     // v0.3.30 — scenarios are not auto-extracted from observed code.
     // A user journey is *intent*, not architecture, so cladding leaves
     // the directory empty at adoption time and registers scenarios

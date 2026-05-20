@@ -81,6 +81,7 @@ export {
   interpretWithLlm,
   parseLlmResponse,
   parseProjectContextResponse,
+  renderCapabilitiesYaml,
   renderProjectContextMd,
   renderProjectContextMdWithLlm,
   type InterpretedScan,

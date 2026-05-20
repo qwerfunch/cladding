@@ -5,6 +5,35 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — spec/capabilities.yaml LLM extraction from README headings (F-d3bde4)
+
+**README ## headings get a first-class spec mirror.** v0.3.32 surfaced README headings inside `docs/project-context.md`; v0.3.33–v0.3.35 layered LLM refinement on top of conventions, architecture, and project-context. v0.3.38 closes the loop by minting `spec/capabilities.yaml` — the README-derived capability inventory — as its own artifact so downstream detectors and dashboards can read the capability list without re-parsing markdown.
+
+### Added
+
+- `src/cli/scan/llm.ts` — `renderCapabilitiesYaml(headings)` deterministic renderer. Schema `schema: "0.1"` / `source: README.md` / `capabilities: [{id, title}]`; slugifier lowercases, expands `&` → `and`, collapses non-alphanumerics to `-`, and falls back to `capability` when a heading slugifies to empty. Titles are double-quoted with embedded-quote escaping
+- `src/cli/scan/llm.ts` — `buildPrompt` grows a fourth `=== CAPABILITIES_YAML ===` sentinel and packs `scan.projectContext?.readmeHeadings` into a labelled prompt block; LLM-refined runs add `summary` + `surface` (feature | platform | tool | infrastructure) per entry while the schema stays forward-compatible with the deterministic body
+- `src/cli/scan/llm.ts` — `parseLlmResponse` returns the new `capabilities` section alongside conventions / architecture / scenarios; `InterpretedScan` grows a `capabilitiesYaml: string` field that both `interpretWithLlm` and `deterministicInterpret` populate
+- `src/cli/init.ts` — `writeArtifact(cwd, 'spec/capabilities.yaml', interp.capabilitiesYaml, …)` lands directly after the `spec/architecture.yaml` write so the new artifact follows the same created-vs-`.cladding/scan/*.proposal` divert policy when the file already exists
+- Per-artifact capabilities fallback: a dispatcher reply that parses but leaves the `CAPABILITIES_YAML` section blank keeps `mode === 'llm'` for conventions + architecture and substitutes `renderCapabilitiesYaml(headings)` for capabilities instead of triggering total fallback
+
+### Changed
+
+- `src/cli/scan/llm.ts` — `renderProjectContextRefined` + `renderProjectContextObserved` swap the "`_Reviewer interprets as capabilities — refine into spec/capabilities.yaml once v0.4 lands._`" placeholder for "`_Mirrored into spec/capabilities.yaml; LLM-refined when a dispatcher is available._`"; the trailing **See also** block now lists the new artifact
+
+### Notes
+
+- 743 + new tests passing; lint clean; typecheck clean
+- Deterministic path is byte-stable when `scan.projectContext` is `null` — projects without a README see `capabilities: []` and no other change
+- The artifact is auxiliary: `clad sync` continues to load `spec.yaml` as the master and treats `spec/capabilities.yaml` like `spec/architecture.yaml` — present, but not required for the existing detector chain
+
+### Roadmap
+
+- v0.3.39+ — sentinel-miss telemetry surfacing in `events.log` so adopters can tune their host's sampling policy (capabilities fallback now joins conventions/architecture as a per-artifact telemetry source)
+- Release window — six unreleased capability cycles + one hygiene cycle queued; release timing is the maintainer's call
+
+---
+
 ## [0.3.37] — 2026-05-20 — README capability headline catches up to develop (F-1c9166)
 
 **Marketing surface had drifted.** Five unreleased cycles (v0.3.32 → v0.3.36) shipped major capabilities — `docs/project-context.md`, the scan LLM dispatcher chain, MCP sampling priority, scan-artifact LLM refinement, the first strict-drift PASS since v0.3.29 — none of which were reflected in `README.md` or `README.ko.md`. External adopters reading either file still saw the v0.3.13 capability inventory. v0.3.37 narrows that gap with a scoped headline refresh.
