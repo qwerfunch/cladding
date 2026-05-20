@@ -5,6 +5,23 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.31] — Unreleased — Scan audit P1 deterministic fix — cwd resolve + forbidden prune + non-source blacklist (F-aa7197)
+
+**5차 audit P1 residuals closed.** Three deterministic improvements close the remaining noise the 5차 audit (2026-05-20) flagged in the real-world OSS corpus: cobra's `.` layer-name bug, `forbidden_imports` N×N matrix bloat (ripgrep 195 + vitest 380+ entries), and non-source directories (HomebrewFormula / docs_src / formulas / packaging) surfacing as architecture layers.
+
+### Changed
+
+- **I15** — `src/cli/scan/architecture.ts:groupByLayer` calls `basename(resolve(opts.cwd))` instead of `basename(opts.cwd)`. cobra scanned with `cwd = '.'` now produces the layer name `cobra` (was: `.`).
+- **I17** — `src/cli/scan/architecture.ts:extractArchitecture` introduces two prune rules: `FORBIDDEN_TRIVIAL_THRESHOLD = 2` skips layers with ≤ 2 files as both importer and target; `FORBIDDEN_TOP_K = 8` caps per-entry width. ripgrep's forbidden_imports rows drop from 13+ to ≤ 8.
+- **I18** — `src/cli/scan/thresholds.ts:LAYER_BLACKLIST` adds `homebrewformula`, `formulas`, `packaging`, `docs_src`, `documentation`, `types`. `scripts` / `tools` intentionally NOT blacklisted (trade-off — some projects keep genuine source there).
+- 3 new tests in `tests/cli/scan.test.ts` cover the three fixes plus an updated forbidden_imports fixture that now uses non-trivial layers.
+
+### Notes
+
+- 713 + 2 net new tests = **715/715** passing; lint clean; typecheck clean; drift-green at 105 features; bundle 1.1 MB.
+- 16-OSS rescan deltas: cobra `.` → `cobra`; ripgrep loses HomebrewFormula and forbidden_imports rows cap at 8; vitest similarly capped; fastapi loses docs_src (still surfaces `scripts/`, intentional trade-off); cladding self-scan unchanged.
+- Audit residuals queued for v0.4+: I16 language-specific export patterns (Python `__all__`, Go `package`, Rust `pub`) — needs language-plugin interface; I7 language-specific test locations.
+
 ## [0.3.30] — Unreleased — Scenarios auto-generation deprecated + scenarios/README guide (F-cfba0c)
 
 **Paradigm correction.** The 5차 real-world audit (2026-05-20) flagged dir-derived scenarios as a *false signal* — scenarios encode **user journeys** (intent), not architecture layers (observable code). v0.3.30 drops the auto-extraction. Features and scenarios are now *symmetric*: both describe declared intent, both start empty at adoption time, and both grow as the user requests features through `clad_create_feature`. The intent-side artifacts wait for the user; the observable-side artifacts (`docs/conventions.md` + `spec/architecture.yaml`) keep their auto-extraction.

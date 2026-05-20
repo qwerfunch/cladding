@@ -12,7 +12,7 @@
 // before committing — the comment in architecture.yaml says so
 // explicitly.
 
-import {basename, sep} from 'node:path';
+import {basename, resolve, sep} from 'node:path';
 
 import {isJsLike} from './helpers.js';
 import {LAYER_BLACKLIST, ROOT_PROMOTION_THRESHOLD} from './thresholds.js';
@@ -82,7 +82,11 @@ export function groupByLayer(
   }
   const rootBucket = map.get('_root');
   if (rootBucket && rootBucket.length >= promotionThreshold) {
-    const promotedName = basename(opts.cwd) || 'root';
+    // I15 (v0.3.31) — cobra was scanned with `opts.cwd = '.'`, which
+    // collapsed `basename('.')` into `.` and produced a layer literally
+    // named `.`. Resolve cwd to an absolute path first so the promoted
+    // layer reads the directory's *actual* name (`cobra`, `gin`, …).
+    const promotedName = basename(resolve(opts.cwd)) || 'root';
     if (!map.has(promotedName)) {
       map.set(promotedName, rootBucket);
       map.delete('_root');
@@ -132,15 +136,46 @@ export function extractArchitecture(
 
   const seen = new Set<string>();
   for (const e of importGraph) seen.add(`${e.from}→${e.to}`);
+
+  // I17 (v0.3.31) — forbidden-import noise reduction. Until this
+  // patch every N-layer scan produced N×(N-1) candidate pairs. The
+  // 5차 audit measured 195 entries on ripgrep (15 layers) and 380+
+  // on vitest (20 layers); reviewer fatigue was real. Two prune
+  // rules narrow the surface to architecturally meaningful pairs:
+  //
+  //   - Skip pairs where either side is a "trivial" layer
+  //     (FORBIDDEN_TRIVIAL_THRESHOLD modules or fewer). A layer
+  //     with one or two files rarely carries a real import policy;
+  //     forbidding access to/from it produces a guess, not a rule.
+  //   - Keep only the top-K candidates per importer when a layer
+  //     would otherwise emit too many. Sort by importing layer
+  //     size desc — the more code in the source layer, the more
+  //     load-bearing the candidate.
+  //
+  // Reviewers prune further, but the default no longer ships a
+  // wall of guesses.
+  const FORBIDDEN_TRIVIAL_THRESHOLD = 2;
+  const FORBIDDEN_TOP_K = 8;
+  const layerSize = new Map<string, number>();
+  for (const l of layers) layerSize.set(l.name, l.moduleCount);
   const layerNames = layers.map((l) => l.name);
   const forbiddenImportCandidates: Record<string, string[]> = {};
   for (const from of layerNames) {
-    const candidates: string[] = [];
+    const fromSize = layerSize.get(from) ?? 0;
+    if (fromSize <= FORBIDDEN_TRIVIAL_THRESHOLD) continue;
+    const candidates: {name: string; size: number}[] = [];
     for (const to of layerNames) {
       if (from === to) continue;
-      if (!seen.has(`${from}→${to}`)) candidates.push(to);
+      const toSize = layerSize.get(to) ?? 0;
+      if (toSize <= FORBIDDEN_TRIVIAL_THRESHOLD) continue;
+      if (!seen.has(`${from}→${to}`)) candidates.push({name: to, size: toSize});
     }
-    if (candidates.length > 0) forbiddenImportCandidates[from] = candidates;
+    // Keep candidates whose target layer is large enough to act as
+    // a load-bearing target; cap at K so a 20-layer monorepo no
+    // longer ships a 19-element forbidden_imports per row.
+    candidates.sort((a, b) => b.size - a.size);
+    const pruned = candidates.slice(0, FORBIDDEN_TOP_K).map((c) => c.name).sort();
+    if (pruned.length > 0) forbiddenImportCandidates[from] = pruned;
   }
   return {layers, importGraph, forbiddenImportCandidates};
 }

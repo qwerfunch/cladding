@@ -68,11 +68,23 @@ export const DEFAULT_IGNORE: readonly string[] = [
  * blacklist.
  */
 export const LAYER_BLACKLIST: ReadonlySet<string> = new Set([
+  // Tests
   'tests', 'test', '__tests__', 'spec', 'specs',
-  'docs', 'doc', 'examples', 'example', 'sample', 'samples',
-  'typings', 'e2e', 'integration', '__fixtures__', 'fixtures',
-  'benchmark', 'benchmarks', 'bench',
+  // Documentation
+  'docs', 'doc', 'docs_src', 'documentation',
+  // Examples / samples / playgrounds
+  'examples', 'example', 'sample', 'samples',
   'playground', 'playgrounds', 'demo', 'demos',
+  // Types-only
+  'typings', 'types',
+  // Test-shape directories
+  'e2e', 'integration', '__fixtures__', 'fixtures',
+  'benchmark', 'benchmarks', 'bench',
+  // Packaging / distribution (audit 2026-05-20 I18 — ripgrep
+  // HomebrewFormula, sphinx docs_src, etc.). `scripts` / `tools`
+  // are intentionally NOT blacklisted because some projects keep
+  // genuine source there.
+  'homebrewformula', 'formulas', 'packaging',
 ]);
 
 /**
