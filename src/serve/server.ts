@@ -31,7 +31,7 @@ import {z} from 'zod';
 import {loadPersona} from '../agents/loader.js';
 import {subscribeAudit} from '../hitl/audit.js';
 import {loadSpec} from '../spec/load.js';
-import {createFeature} from '../spec/new.js';
+import {createFeature, createScenario} from '../spec/new.js';
 import {runDrift} from '../stages/drift.js';
 
 /** Persona ids registered as MCP prompts (mirrors src/agents/). */
@@ -50,6 +50,7 @@ export const TOOL_NAMES = [
   'clad_run_check',
   'clad_get_events',
   'clad_create_feature',
+  'clad_create_scenario',
 ] as const;
 
 /** Resource URIs cladding's MCP server exposes (stable wire identifiers). */
@@ -83,7 +84,7 @@ export function buildServer(opts: ServerOptions = {}): McpServer {
   const server = new McpServer(
     {
       name: opts.name ?? 'cladding',
-      version: opts.version ?? '0.3.11',
+      version: opts.version ?? '0.3.12',
     },
     {
       // Declare subscribe support so clients can subscribe to
@@ -325,6 +326,49 @@ function registerTools(server: McpServer, cwd: string): void {
           slug: args.slug,
           title: args.title,
           status: args.status,
+          cwd,
+        });
+        return {
+          content: [{type: 'text', text: JSON.stringify(result, null, 2)}],
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{type: 'text', text: (err as Error).message}],
+        };
+      }
+    },
+  );
+
+  // clad_create_scenario — issue a new sharded scenario file under
+  // spec/scenarios/<slug>-<hash6>.yaml (v0.3.12, F-087). Same
+  // multi-developer safety story as clad_create_feature.
+  server.registerTool(
+    'clad_create_scenario',
+    {
+      title: 'Create a new cladding scenario',
+      description:
+        'Creates spec/scenarios/<slug>-<hash6>.yaml with an auto-generated S-<hash> id. ' +
+        'Same multi-dev safety property as clad_create_feature: two concurrent invocations on ' +
+        'separate branches produce distinct hash ids by construction.',
+      inputSchema: {
+        slug: z
+          .string()
+          .regex(/^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/)
+          .describe("Kebab-case slug (e.g. 'checkout-happy-path')"),
+        title: z.string().optional().describe('Optional human-readable title; defaults to slug'),
+        features: z
+          .array(z.string().regex(/^F-(\d{3,}|[a-f0-9]{6,})$/))
+          .optional()
+          .describe('Optional list of feature ids the scenario touches'),
+      },
+    },
+    async (args) => {
+      try {
+        const result = createScenario({
+          slug: args.slug,
+          title: args.title,
+          features: args.features,
           cwd,
         });
         return {

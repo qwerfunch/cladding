@@ -68,4 +68,36 @@ describe('SLUG_CONFLICT detector', () => {
       rmSync(emptyDir, {recursive: true, force: true});
     }
   });
+
+  // v0.3.12 (F-087) — scenario namespace coverage
+  test('two scenarios sharing a slug → error finding (F-087)', () => {
+    writeFeature(dir, 'F-001.yaml', {id: 'F-001'});
+    mkdirSync(join(dir, 'spec', 'scenarios'), {recursive: true});
+    writeFileSync(
+      join(dir, 'spec', 'scenarios', 'checkout-a3f9c2.yaml'),
+      'id: S-a3f9c2\nslug: checkout\ntitle: c\n',
+    );
+    writeFileSync(
+      join(dir, 'spec', 'scenarios', 'checkout-b7e102.yaml'),
+      'id: S-b7e102\nslug: checkout\ntitle: c\n',
+    );
+    const findings = slugConflict.run({cwd: dir});
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe('error');
+    expect(findings[0].message).toContain('checkout');
+    expect(findings[0].message).toContain('scenarios');
+    expect(findings[0].message).toContain('S-a3f9c2');
+    expect(findings[0].message).toContain('S-b7e102');
+  });
+
+  test('feature and scenario sharing a slug → NOT a conflict (separate namespaces, F-087)', () => {
+    writeFeature(dir, 'shared-name-a3f9c2.yaml', {id: 'F-a3f9c2', slug: 'shared-name'});
+    mkdirSync(join(dir, 'spec', 'scenarios'), {recursive: true});
+    writeFileSync(
+      join(dir, 'spec', 'scenarios', 'shared-name-b7e102.yaml'),
+      'id: S-b7e102\nslug: shared-name\ntitle: s\n',
+    );
+    // Different namespaces (features/ vs scenarios/) — no conflict.
+    expect(slugConflict.run({cwd: dir})).toEqual([]);
+  });
 });

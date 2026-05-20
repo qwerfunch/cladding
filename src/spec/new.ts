@@ -144,3 +144,101 @@ function safeUserInfo(): string {
     return 'anonymous';
   }
 }
+
+// === Scenario creation (v0.3.12, F-087) ===
+//
+// Mirror of createFeature for scenarios. Scenarios sit at the same
+// concurrency-collision risk as features — sequential `S-NNN` ids +
+// manual filename means two contributors on separate branches racing
+// to add `S-003.yaml`. Same hash-id model applies; the only
+// scenario-specific bit is the `S-` prefix and the schema layout.
+
+export interface CreateScenarioOptions {
+  /** Kebab-case slug; same constraints as feature slugs. */
+  readonly slug: string;
+  /** Optional title. Defaults to the slug. */
+  readonly title?: string;
+  /** Optional list of feature ids the scenario touches. */
+  readonly features?: readonly string[];
+  /** Project root. Defaults to `.`. */
+  readonly cwd?: string;
+}
+
+export interface CreateScenarioResult {
+  /** The newly-assigned scenario id (e.g. `S-a3f9c2`). */
+  readonly id: string;
+  /** Absolute path to the newly-written yaml file. */
+  readonly path: string;
+  /** The slug as stored. */
+  readonly slug: string;
+}
+
+/**
+ * Creates a new sharded scenario file at
+ * `spec/scenarios/<slug>-<hash6>.yaml` with `id: S-<hash6>`.
+ * Same multi-developer safety property as createFeature — two
+ * simultaneous calls with the same slug across branches produce
+ * different hashes and therefore different file paths.
+ *
+ * @throws Error when `slug` is invalid or — extremely rarely — when
+ *         the hash collides with an existing scenario in this cwd.
+ */
+export function createScenario(opts: CreateScenarioOptions): CreateScenarioResult {
+  const slug = opts.slug;
+  if (!SLUG_PATTERN.test(slug)) {
+    throw new Error(
+      `cladding: slug '${slug}' is invalid — must match ${SLUG_PATTERN.source}`,
+    );
+  }
+  const cwd = opts.cwd ?? '.';
+  const scenariosDir = join(cwd, 'spec', 'scenarios');
+  mkdirSync(scenariosDir, {recursive: true});
+
+  const id = generateScenarioId(slug);
+  const hash = id.slice(2);
+  const filePath = join(scenariosDir, `${slug}-${hash}.yaml`);
+  if (existsSync(filePath)) {
+    throw new Error(
+      `cladding: ${slug}-${hash}.yaml already exists (1/16M hash collision) — retry`,
+    );
+  }
+
+  const title = opts.title ?? slug;
+  const yaml = renderScenarioYaml({id, slug, title, features: opts.features ?? []});
+  writeFileSync(filePath, yaml, 'utf8');
+
+  return {id, path: filePath, slug};
+}
+
+function renderScenarioYaml(args: {
+  id: string;
+  slug: string;
+  title: string;
+  features: readonly string[];
+}): string {
+  const featuresLine =
+    args.features.length === 0
+      ? 'features: []'
+      : `features:\n${args.features.map((f) => `  - ${f}`).join('\n')}`;
+  return [
+    `id: ${args.id}`,
+    `slug: ${args.slug}`,
+    `title: ${JSON.stringify(args.title)}`,
+    featuresLine,
+    '',
+  ].join('\n');
+}
+
+function generateScenarioId(slug: string): string {
+  const input = [
+    'scenario', // namespace separator so a feature and scenario with the
+    // same slug + timestamp don't share the same hash input
+    slug,
+    safeUserInfo(),
+    hostname(),
+    String(Date.now()),
+    process.hrtime.bigint().toString(),
+  ].join('|');
+  const hex = createHash('sha256').update(input).digest('hex').slice(0, 6);
+  return `S-${hex}`;
+}

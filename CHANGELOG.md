@@ -5,6 +5,32 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.12] — Unreleased — Scenario hash ID model — true final of the multi-dev arc (F-087)
+
+**Symmetry with features.** v0.3.9 → v0.3.11 closed the multi-developer ID-safety loop for *features* but left *scenarios* on the old sequential model (`S-NNN.yaml`, manual id assignment) — user audit caught this gap. v0.3.12 ports the entire hash-id + slug + multi-dev safety pattern to scenarios.
+
+### Added
+
+- `src/spec/new.ts` — `createScenario({slug, title?, features?, cwd?})` internal helper. Same hash-id model as `createFeature`; the hash input adds a `'scenario'` namespace prefix so a feature and a scenario sharing slug + timestamp produce different hashes.
+- `src/serve/server.ts` — new MCP tool **`clad_create_scenario(slug, title?, features?)`**. No CLI verb (same surface boundary as `clad_create_feature`).
+- `tests/spec/new-scenario.test.ts` — 6 unit tests covering filename layout, yaml shape, defaults, repeat-call distinctness, slug validation, feature/scenario namespace coexistence.
+- `tests/stages/slug-conflict.test.ts` — 2 new cases (two scenarios sharing a slug raises error; feature and scenario sharing a slug does NOT raise — separate namespaces).
+- `tests/stages/id-collision.test.ts` — 2 new cases (two scenarios sharing an id raises error; feature F- and scenario S- ids do not collide).
+- `tests/serve/server.test.ts` — `clad_create_scenario` MCP tool integration test.
+- `spec/features/F-087.yaml` — "Scenario hash ID model — same multi-dev safety as features" (5 ACs, status `done`).
+
+### Changed
+
+- `src/spec/schema.json` — scenario `id` regex widened from `^S-\d{3,}$` to `^S-(\d{3,}|[a-f0-9]{6,})$`; new optional scenario `slug` field with kebab-case regex.
+- `src/stages/detectors/slug-conflict.ts` — now walks features and scenarios in separate namespaces. Feature and scenario with the same slug do NOT collide.
+- `src/stages/detectors/id-collision.ts` — now walks features and scenarios as separate id namespaces. Error messages name the kind (`feature` vs `scenario`).
+
+### Notes
+
+- 568 + 11 new tests = **579/579** passing; lint clean; typecheck clean; drift-green at 86 features; bundle 1.1 MB.
+- **Multi-developer ID-safety arc is now genuinely complete.** Features (F-084 / F-085 / F-086) and scenarios (F-087) both have hash ids, slug filenames, namespace-aware detectors, and integration-test coverage. No remaining sequential ID surfaces in the spec layer.
+- `docs/spec-ids-multi-dev.md` (from v0.3.10) covers features only — a follow-up patch could extend the same guidance to scenarios, but the model is identical so the existing doc generalises naturally.
+
 ## [0.3.11] — Unreleased — Multi-dev concurrent simulation test + scenario regex widening (F-086)
 
 **Final cycle of the multi-developer ID-safety arc.** Closes the verification loop: an integration test simulates two contributors concurrently calling `createFeature` and asserts the safety invariant end-to-end. A 10-axis ID integrity audit caught one stray legacy regex in scenarios (the only fix from the audit), now also closed.
