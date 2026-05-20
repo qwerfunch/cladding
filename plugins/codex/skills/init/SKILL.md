@@ -22,6 +22,16 @@ When `--scan` runs (or auto-runs on a codebase with ≥3 source files) it writes
 
 Existing files are diverted to `.cladding/scan/*.proposal` rather than overwritten.
 
+### Greenfield seeds (v0.3.42+)
+
+When `--scan` does **not** fire (brand-new project with <3 source files), `clad init` still writes the same three artifacts as **greenfield seeds** so the spec/docs surface is always complete:
+
+- `docs/conventions.md` — toolchain-default 14-signal table. TypeScript → 2-space + single quote + camelCase + `tests-dir` test layout, Python → 4-space + double quote + snake_case, Go → tab + PascalCase + `sibling-test`, Rust → 4-space + snake_case + result-pattern, etc. Each seed inlines a one-line link to the canonical style guide (Google TS / PEP 8 / Effective Go / Google Java / …).
+- `spec/architecture.yaml` — `version: "0.1"` + empty `layers: []` + a language-specific baseline suggestion in the header comment (TypeScript → `src/cli/` / `src/core/` / `src/lib/` / `src/ui/`, Python → `src/<package>/` / `tests/`, Go → `cmd/` / `pkg/` / `internal/`, …).
+- `spec/capabilities.yaml` — `schema: "0.1"` + `source: README.md` + empty `capabilities: []` + guidance comment on the per-entry shape.
+
+Each seed carries a header marking it as a greenfield template. After you write initial code (and optionally a README), re-run `clad init --scan`; the observed bodies divert to `.cladding/scan/<basename>.proposal` so you can diff seed vs reality and merge the parts you want. Personas downstream (`specialists`, `librarian`) therefore treat every scan artifact as **always present**, with the SEED header telling them which mode is live.
+
 After init:
 
 1. Edit `spec.yaml`. The seed declares a placeholder `F-001` (legacy sequential id reserved for placeholders); **new features use the hash-based id `F-<hash6>`** (v0.3.9+) — filename `<slug>-<hash6>.yaml`, `id: F-<hash6>`, `slug: <slug>`. Generate with `node -e "console.log('F-' + require('node:crypto').randomBytes(3).toString('hex'))"`.

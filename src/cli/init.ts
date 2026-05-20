@@ -22,6 +22,11 @@ import {
   selectDispatcher,
   type InterpretedScan,
 } from './scan/index.js';
+import {
+  renderGreenfieldArchitectureYaml,
+  renderGreenfieldCapabilitiesYaml,
+  renderGreenfieldConventionsMd,
+} from './scan/greenfield-seeds.js';
 import {detectToolchain} from '../stages/toolchain/detect.js';
 
 export interface InitOptions {
@@ -216,6 +221,19 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
     // when the user requests features through `clad_create_feature`.
     // The README documents the policy so reviewers don't expect
     // populated YAMLs.
+    writeArtifact(cwd, 'spec/scenarios/README.md', SCENARIOS_README, created, proposals);
+  } else {
+    // v0.3.42 — greenfield seeds. When no code has been observed yet
+    // (auto-scan threshold of 3 source files not met, or `--no-scan`),
+    // ship the three scan-derived artifacts as toolchain-default
+    // templates so the spec/docs surface is always complete. Personas
+    // can then drop the "if absent" branch from their guidance; a
+    // later `clad init --scan` on a populated codebase will replace
+    // these bodies via the existing `.cladding/scan/*.proposal`
+    // divert mechanism in `writeArtifact`.
+    writeArtifact(cwd, 'docs/conventions.md', renderGreenfieldConventionsMd(language, projectName), created, proposals);
+    writeArtifact(cwd, 'spec/architecture.yaml', renderGreenfieldArchitectureYaml(language), created, proposals);
+    writeArtifact(cwd, 'spec/capabilities.yaml', renderGreenfieldCapabilitiesYaml(projectName), created, proposals);
     writeArtifact(cwd, 'spec/scenarios/README.md', SCENARIOS_README, created, proposals);
   }
 
