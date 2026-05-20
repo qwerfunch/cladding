@@ -8,7 +8,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {inferSourceRoots} from '../../src/cli/scan-roots.js';
+import {inferSourceRoots} from '../../src/cli/scan/roots.js';
 
 function seed(dir: string, layout: Record<string, string>): void {
   for (const [path, content] of Object.entries(layout)) {

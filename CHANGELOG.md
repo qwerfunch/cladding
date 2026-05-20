@@ -5,6 +5,25 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.29] — Unreleased — Scan production-grade refactor — src/cli/scan/ module split + configurable thresholds (F-1edb38)
+
+**Production-grade structural refactor**, no behaviour change. v0.3.24~v0.3.28 grew the scan pipeline to a 855-line `scan.ts` + `scan-roots.ts` + `scan-llm.ts` flat trio that became hard to extend. v0.3.29 splits the pipeline into `src/cli/scan/<module>.ts` with a single orchestrator entry — every magic number now overrideable through `ScanOptions`, every analyzer in its own focused file.
+
+### Changed
+
+- `src/cli/scan.ts` (855L) + `src/cli/scan-roots.ts` (266L) + `src/cli/scan-llm.ts` (228L) → `src/cli/scan/{index,types,thresholds,walker,roots,conventions,architecture,examples,stats,scenarios,llm,helpers}.ts` (12 focused modules).
+- `src/cli/scan/index.ts` — `scanRoot` orchestrator + public re-exports.
+- `src/cli/scan/thresholds.ts` — `DEFAULT_MAX_FILES` / `PER_DIR_SOFT_CAP` / `ROOT_PROMOTION_THRESHOLD` / `DEFAULT_EXTENSIONS` / `DEFAULT_IGNORE` / `LAYER_BLACKLIST` / `ENTRYPOINT_NAMES` / `EXT_TO_LANGUAGE` — all tunable.
+- `ScanOptions` gains `layerBlacklist`, `entrypoints`, `perDirCap`, `rootPromotionThreshold` so external adopters override without forking scan internals.
+- `src/cli/init.ts` import path → `./scan/index.js`.
+- Tests: import paths updated, no test-shape change.
+
+### Notes
+
+- **713/713 tests pass** unchanged; lint clean; typecheck clean; drift-green at 102 features; bundle 1.1 MB.
+- cladding self-scan + cobra/react/Signal-Android/django/rails rescan produce identical layer/scenario counts to the v0.3.28 baseline — pure structure change.
+- v0.3.30+ follow-ups (scenario auto-generation policy, language plugin interface, LLM dispatcher integration, audit P1 residuals I15/I16/I17/I18) build on this clean base.
+
 ## [0.3.28] — Unreleased — Scan BFS walk + entrypoint priority + per-directory soft cap (F-31eeb8)
 
 **4차 audit residual fix (I14).** v0.3.27 left one known hole — react's `compiler/` (1858 files) saturated the DFS walker before it could descend into `packages/`, collapsing the architecture view to a single `compiler` layer. v0.3.28 rewrites the walker around three composable strategies:

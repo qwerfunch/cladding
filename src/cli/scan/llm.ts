@@ -16,7 +16,7 @@
 // @see scan.ts — deterministic data source
 // @see src/adapters/host/sampling-context.ts — dispatcher candidate
 
-import type {ScanResult, Conventions, Layer} from './scan.js';
+import type {ScanResult, Conventions, Layer} from './types.js';
 
 /** Single-prompt dispatcher injected by callers. */
 export type ScanLlmDispatcher = (prompt: string) => Promise<string>;
