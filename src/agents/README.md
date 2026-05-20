@@ -8,7 +8,7 @@ ironclad-track: T9 (multi-agent orchestrator)
 
 ## [CLAIM]
 
-The 5 agent personas from `ironclad-design/14-agent-orchestration.md`, each shipped as a Claude Code subagent (frontmatter + system prompt).
+The 5 agent personas — orchestrator · librarian · reviewer · observability · specialists — each shipped as a Claude Code subagent (frontmatter + system prompt). Their canonical source lives in this directory; `npm run build:plugin` mirrors them into `agents/`, `plugins/codex/skills/`, and `plugins/gemini-cli/commands/`.
 
 ## [PERSONAS]
 
@@ -46,8 +46,12 @@ Cross-boundary rules:
 - `observability` never invents metrics (only aggregates existing artifacts)
 - `orchestrator` only delegates; it implements nothing
 
+## [DONE_SINCE_T9]
+
+- LLM-assisted CONVENTION_DRIFT detector — landed at `src/stages/detectors/convention-drift.ts`. Reads the observed `docs/conventions.md` and emits `warn`/`error` findings on style deviation.
+- UNTESTED_AC detector that resolves `test_refs` to real vitest names — landed at `src/stages/detectors/untested-ac.ts`.
+- Per-artifact LLM refinement (v0.3.33–35) and `sentinel_miss` telemetry (v0.3.39) plus the `clad doctor` consumer (v0.3.40) — `observability` now owns the sentinel-miss summary surface.
+
 ## [TBD]
 
-- Routing config (`src/agents/routing.yaml`) with intent → agent mapping — folded into `commands/work.md` in v0.1
-- LLM-assisted CONVENTION_DRIFT detector — lives behind `reviewer` (T9b · L16)
-- UNTESTED_AC detector that resolves `test_refs` to real vitest names — lives behind `specialists` (T9b · L16)
+- Routing config (`src/agents/routing.yaml`) with intent → agent mapping. `commands/clad.md` is the single user-facing verb manifest today; per-verb skills live under `skills/<verb>/SKILL.md` (auto-mirrored to `commands/<verb>.md`, `plugins/codex/skills/<verb>.md`, `plugins/gemini-cli/commands/<verb>.md`).

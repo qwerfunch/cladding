@@ -6,7 +6,7 @@ description: Render the feature × stage Integrity Panel — a matrix of every f
 
 Run `clad panel` from the project root. Renders an ASCII matrix:
 
-- Rows: features (business titles by default; F-NNN ids with `--internal`).
+- Rows: features (business titles by default; raw ids with `--internal` — legacy `F-NNN` for pre-v0.3.9 features, `F-<hash6>` for v0.3.9+).
 - Columns: 13 Iron Law stages.
 - Cells: pass · skip · fail · not-yet-attempted.
 

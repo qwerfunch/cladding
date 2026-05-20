@@ -8,15 +8,31 @@ Run `clad init` from the directory where the cladding workspace should live. Ide
 
 - `--name <name>` — override the project name (default: cwd basename).
 - `--force` — overwrite an existing `spec.yaml`.
+- `--scan` — force-walk the existing codebase to write observed-conventions artifacts. Default auto-detects (≥3 source files trigger scan); use `--no-scan` to skip even when source is present.
+- `--no-llm` — force the deterministic interpreter for `--scan`. By default the scan routes through the LLM dispatcher chain (MCP sampling → Anthropic SDK → deterministic) and falls back automatically when no host or key is available.
+- `--roots <list>` — comma-separated source-root override (e.g. `packages/a/src,packages/b/src`). Otherwise inferred from manifests + directory heuristics.
+
+When `--scan` runs (or auto-runs on a codebase with ≥3 source files) it writes:
+
+- `docs/conventions.md` — observed indent / quote / naming / error-handling / test-location conventions plus a representative module quote.
+- `spec/architecture.yaml` — observed layers + forbidden-import candidates derived from the import graph.
+- `spec/capabilities.yaml` — README `##` headings rendered as capability candidates (v0.3.38+).
+- `docs/project-context.md` — forest-level Why / What / Purpose; LLM-refined when a dispatcher is available, deterministic template otherwise.
+- `spec/scenarios/README.md` — explains the scenarios-are-intent policy (v0.3.30+).
+
+Existing files are diverted to `.cladding/scan/*.proposal` rather than overwritten.
 
 After init:
 
-1. Edit `spec.yaml` to declare the first feature (`F-001`).
+1. Edit `spec.yaml`. The seed declares a placeholder `F-001` (legacy sequential id reserved for placeholders); **new features use the hash-based id `F-<hash6>`** (v0.3.9+) — filename `<slug>-<hash6>.yaml`, `id: F-<hash6>`, `slug: <slug>`. Generate with `node -e "console.log('F-' + require('node:crypto').randomBytes(3).toString('hex'))"`.
 2. Run `clad sync` to verify the spec is valid.
 3. Run `clad check` to see which Iron Law stages are wired up for the toolchain cladding detects in the cwd.
+4. (Optional) Run `clad doctor` to confirm `.cladding/events.log.jsonl` shows no `sentinel_miss` events from the scan refinement.
 
 ```
 clad init
 clad init --name my-project
 clad init --force
+clad init --scan --no-llm
+clad init --roots packages/a/src,packages/b/src
 ```

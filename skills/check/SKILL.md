@@ -10,7 +10,7 @@ Run `clad check` from the project root. Runs the 13 Iron Law stages — Type / L
 - `1` — at least one stage actually failed (fix-required).
 - `2` — every result is skip (no fail-required input on the project yet).
 
-`--strict` promotes warn-severity drift findings to error, matching the CI / pre-publish gate.
+`--strict` promotes warn-severity drift findings to error, matching the CI / pre-publish gate. The Drift stage runs every active detector under `src/stages/detectors/` (24/24 as of v0.3.40 — `npm run build:plugin` Phase D recounts and writes the integer into `.claude-plugin/plugin.json`).
 
 `--internal` shows stage codes (`stage_1.1`) instead of business names (`Type`). Default is the business-name surface; the audit log keeps internal ids regardless.
 
