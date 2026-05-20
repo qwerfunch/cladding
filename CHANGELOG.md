@@ -5,6 +5,35 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.36] — Unreleased — drift baseline cleanup — strict-drift is PASS again (F-18e951)
+
+**Hygiene cycle.** After three consecutive LLM-refinement cycles (v0.3.33–v0.3.35) the drift baseline had accumulated 13 error + 1 warn findings — all leftover from the v0.3.29 production-grade scan refactor (855-line `src/cli/scan.ts` → 12 focused modules under `src/cli/scan/`). Five feature shards still pointed at the pre-refactor paths, F-2de65d.AC-004 lacked an explicit `condition` field, and `src/core/` was undeclared in `spec/architecture.yaml`. v0.3.36 fixes all three so `runDrift({strict: true})` reports `pass: true` for the first time since v0.3.29.
+
+### Fixed
+
+- **Five scan-feature shards remapped** onto the post-v0.3.29 module tree:
+  - `scan-bfs-walk` → `src/cli/scan/{walker,thresholds}.ts`
+  - `scan-conventions` → `src/cli/scan/{conventions,index,llm}.ts` + `src/cli/{init,clad}.ts`
+  - `scan-polyglot` → `src/cli/scan/{thresholds,conventions}.ts`
+  - `scan-residuals` → `src/cli/scan/{architecture,stats}.ts` + `src/cli/init.ts`
+  - `scan-source-roots` → `src/cli/scan/{roots,architecture,llm}.ts` + `src/cli/{init,clad}.ts`
+- **F-2de65d.AC-004 (drive-auto-rollback)** — EARS `unwanted` schema requires a `condition:` line starting with "if"; added `condition: if a halt class other than RETRY_THRESHOLD ends the loop` between `ears` and `action`. The text already carried the same conditional phrase, but the AC_DRIFT detector reads the structured field
+- **`spec/architecture.yaml` foundation tier** — added `core` alongside spec/agents/events/hitl/optimizer/router/ui. `src/core/checkpoint.ts` + `src/core/postmortem.ts` are foundation utilities that the stage layer wraps
+
+### Notes
+
+- `runDrift({strict: true})` — **18 findings (13 error + 1 warn + 3 info) → 3 findings (all info), `pass: true`**
+- The remaining 3 info-severity findings (`PERFORMANCE_DRIFT`, `EVIDENCE_MISMATCH`, `STALE_EVIDENCE`) are opt-in detectors that report "missing audit log artifacts" — baseline state of a project that hasn't run stage_3.2 / stage_4 manually, not real drift
+- 743/743 tests passing; lint clean; typecheck clean; sync: 110 features valid
+- No production code touched — pure spec-shard hygiene plus one architecture-tier declaration
+
+### Roadmap
+
+- v0.3.37+ — LLM-assisted capability extraction (README headings → `spec/capabilities.yaml`)
+- v0.3.37+ — sentinel-miss telemetry surfacing in `events.log`
+
+---
+
 ## [0.3.35] — Unreleased — scan artifacts (conventions + architecture) inherit LLM refinement (F-17df0a)
 
 **One dispatcher, every artifact.** v0.3.33 refined `docs/project-context.md`. v0.3.34 wired MCP sampling as Priority 1 of the chain. v0.3.35 extends the same chain to the deeper scan artifacts — `docs/conventions.md` and `spec/architecture.yaml` — so a hosted refinement session touches every cladding-authored markdown in one round-trip, not just the forest-level entry document.

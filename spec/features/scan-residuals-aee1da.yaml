@@ -3,7 +3,8 @@ slug: scan-residuals
 title: scan deterministic fixes — flat _root promotion + workspace direct files + dominant language (v0.3.27)
 status: done
 modules:
-  - src/cli/scan.ts
+  - src/cli/scan/architecture.ts
+  - src/cli/scan/stats.ts
   - src/cli/init.ts
 depends_on:
   - F-94dda4

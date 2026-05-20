@@ -3,9 +3,9 @@ slug: scan-source-roots
 title: clad init --scan robustness — multi-root inference + forbidden_imports candidates (v0.3.25)
 status: done
 modules:
-  - src/cli/scan-roots.ts
-  - src/cli/scan.ts
-  - src/cli/scan-llm.ts
+  - src/cli/scan/roots.ts
+  - src/cli/scan/architecture.ts
+  - src/cli/scan/llm.ts
   - src/cli/init.ts
   - src/cli/clad.ts
 depends_on:

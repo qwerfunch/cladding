@@ -3,7 +3,8 @@ slug: scan-polyglot
 title: scan polyglot extensions + layer blacklist + per-language docstrings (v0.3.26)
 status: done
 modules:
-  - src/cli/scan.ts
+  - src/cli/scan/thresholds.ts
+  - src/cli/scan/conventions.ts
 depends_on:
   - F-c48eb2
 acceptance_criteria:
