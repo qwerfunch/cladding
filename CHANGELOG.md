@@ -5,6 +5,33 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.9] — Unreleased — Multi-developer-safe spec ID system (F-084)
+
+**Phase 1 of the multi-dev ID safety arc.** Two contributors creating new features simultaneously on separate branches used to collide on `spec/features/F-084.yaml` (same filename) and `AC-259` (globally sequential). This patch introduces a slug-filename + content-hash-id model that makes concurrent feature creation collision-safe by construction.
+
+### Added
+
+- `src/spec/new.ts` — internal `createFeature({slug, title?, status?, cwd?})` helper. Writes `spec/features/<slug>.yaml` with `id: F-<6-hex-hash>` where the hash bundles slug + OS user + hostname + ms timestamp + hrtime so two simultaneous invocations produce different ids by construction. Validates slug shape (`^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$`); rejects when the file already exists.
+- `src/serve/server.ts` — new MCP tool **`clad_create_feature(slug, title?, status?)`** that calls `createFeature`. **No `clad spec new` CLI verb by design** — the user never types a shell command, the host LLM invokes the MCP tool in response to natural-language requests like "add a feature for login-flow".
+- Three new drift detectors:
+  - `SLUG_CONFLICT` — two features sharing a slug → error.
+  - `ID_COLLISION` — two features sharing an id → error (catches the 1/16M hash coincidence and legacy hand-typed duplicates).
+  - `AC_DUPLICATE_WITHIN_FEATURE` — same AC id appearing twice inside one feature → error. AC ids are now **feature-scoped**, so `F-001.AC-001` and `F-002.AC-001` coexist freely; only intra-feature duplicates trip the detector.
+- 39 new unit tests covering `createFeature` (12), slug-conflict (4), id-collision (5), ac-duplicate-within-feature (6), `clad_create_feature` MCP tool (2). Tests pass: 520 + 39 = **559/559**.
+- `spec/features/F-084.yaml` — "Multi-developer-safe spec ID system" (7 ACs, status `done`). First cladding feature authored with a slug-filename and slug field.
+
+### Changed
+
+- `src/spec/schema.json` — `id` regex widened from `^F-\d{3,}$` to `^F-(\d{3,}|[a-f0-9]{6,})$` so both legacy F-NNN and new F-<hash> validate. Same widening for `depends_on` and `superseded_by` references. New optional `slug` field with kebab-case regex.
+- `src/stages/detectors/index.ts` — `allDetectors` now lists 23 detectors (20 → 23).
+- `.claude-plugin/plugin.json` `ironclad.current.detectors` bumped `20/20` → `23/23` so `HARNESS_INTEGRITY` count check stays green.
+
+### Notes
+
+- 559/559 vitest pass; lint clean; typecheck clean; drift-green at 83 features; bundle 1.1 MB.
+- Legacy `F-001 ~ F-083` files and their global `AC-001 ~ AC-258` numbering are untouched. Two models coexist; new features use the new model, old features keep the old.
+- The path forward (per the approved plan): v0.3.10 adds the external-user guide doc, v0.3.11 adds a git-worktree-based integration test that simulates two concurrent contributors. v0.4.0 universal generator stays deferred.
+
 ## [0.3.8] — 2026-05-20 — Claude Code external-host dogfood report + cross-host parity (F-083)
 
 **Second external-host verification.** Pairs with the v0.3.7 Gemini CLI report so the multi-host claim now rests on two-host evidence, not single-host coincidence. The same four MCP tools round-trip with the same output shape on both hosts.

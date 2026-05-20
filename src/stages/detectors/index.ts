@@ -6,6 +6,7 @@
 // side-effect `registerDetector` call would create.
 
 import {acDrift} from './ac-drift.js';
+import {acDuplicateWithinFeature} from './ac-duplicate-within-feature.js';
 import {architectureViolation} from './architecture-violation.js';
 import {conventionDrift} from './convention-drift.js';
 import {coverageDrop} from './coverage-drop.js';
@@ -13,7 +14,9 @@ import {evidenceMismatch} from './evidence-mismatch.js';
 import {fixtureReference} from './fixture-reference.js';
 import {hardcodedSecret} from './hardcoded-secret.js';
 import {harnessIntegrity} from './harness-integrity.js';
+import {idCollision} from './id-collision.js';
 import {metaIntegrity} from './meta-integrity.js';
+import {slugConflict} from './slug-conflict.js';
 import {missingImplementation} from './missing-implementation.js';
 import {missingTests} from './missing-tests.js';
 import {performanceDrift} from './performance-drift.js';
@@ -49,4 +52,7 @@ export const allDetectors: readonly DriftDetector[] = [
   untestedAc,
   conventionDrift,
   fixtureReference,
+  slugConflict,
+  idCollision,
+  acDuplicateWithinFeature,
 ];

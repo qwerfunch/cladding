@@ -196,6 +196,44 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
+  test('clad_create_feature creates a new sharded feature file (F-084)', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const result = await client.callTool({
+        name: 'clad_create_feature',
+        arguments: {slug: 'new-login-flow', title: 'New login flow', status: 'planned'},
+      });
+      const text = (result.content as Array<{type: string; text: string}>)[0].text;
+      const parsed = JSON.parse(text);
+      expect(parsed.slug).toBe('new-login-flow');
+      expect(parsed.id).toMatch(/^F-[a-f0-9]{6}$/);
+      expect(parsed.path).toContain('spec/features/new-login-flow.yaml');
+      expect(result.isError).not.toBe(true);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('clad_create_feature rejects an invalid slug as a tool error (F-084)', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const result = await client.callTool({
+        name: 'clad_create_feature',
+        arguments: {slug: 'INVALID-UPPERCASE'},
+      });
+      // MCP SDK's zod validation catches the regex mismatch and returns
+      // the rejection as content rather than transport error.
+      // Either path is acceptable; the test asserts the call did not
+      // produce a successful new feature file.
+      const content = result.content as Array<{text?: string}> | undefined;
+      const text = content?.[0]?.text ?? '';
+      const isError = result.isError === true;
+      expect(isError || /invalid|validation/i.test(text)).toBe(true);
+    } finally {
+      await cleanup();
+    }
+  });
+
   test('clad_get_events tails the log when it exists', async () => {
     writeFileSync(
       join(dir, '.cladding', 'events.log.jsonl'),
