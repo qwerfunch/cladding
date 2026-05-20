@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.37] — Unreleased — README capability headline catches up to develop (F-1c9166)
+## [0.3.37] — 2026-05-20 — README capability headline catches up to develop (F-1c9166)
 
 **Marketing surface had drifted.** Five unreleased cycles (v0.3.32 → v0.3.36) shipped major capabilities — `docs/project-context.md`, the scan LLM dispatcher chain, MCP sampling priority, scan-artifact LLM refinement, the first strict-drift PASS since v0.3.29 — none of which were reflected in `README.md` or `README.ko.md`. External adopters reading either file still saw the v0.3.13 capability inventory. v0.3.37 narrows that gap with a scoped headline refresh.
 
@@ -32,7 +32,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [0.3.36] — Unreleased — drift baseline cleanup — strict-drift is PASS again (F-18e951)
+## [0.3.36] — 2026-05-20 — drift baseline cleanup — strict-drift is PASS again (F-18e951)
 
 **Hygiene cycle.** After three consecutive LLM-refinement cycles (v0.3.33–v0.3.35) the drift baseline had accumulated 13 error + 1 warn findings — all leftover from the v0.3.29 production-grade scan refactor (855-line `src/cli/scan.ts` → 12 focused modules under `src/cli/scan/`). Five feature shards still pointed at the pre-refactor paths, F-2de65d.AC-004 lacked an explicit `condition` field, and `src/core/` was undeclared in `spec/architecture.yaml`. v0.3.36 fixes all three so `runDrift({strict: true})` reports `pass: true` for the first time since v0.3.29.
 
@@ -61,7 +61,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [0.3.35] — Unreleased — scan artifacts (conventions + architecture) inherit LLM refinement (F-17df0a)
+## [0.3.35] — 2026-05-20 — scan artifacts (conventions + architecture) inherit LLM refinement (F-17df0a)
 
 **One dispatcher, every artifact.** v0.3.33 refined `docs/project-context.md`. v0.3.34 wired MCP sampling as Priority 1 of the chain. v0.3.35 extends the same chain to the deeper scan artifacts — `docs/conventions.md` and `spec/architecture.yaml` — so a hosted refinement session touches every cladding-authored markdown in one round-trip, not just the forest-level entry document.
 
@@ -84,7 +84,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [0.3.34] — Unreleased — MCP sampling dispatcher closes the chain (F-7fa4a7)
+## [0.3.34] — 2026-05-20 — MCP sampling dispatcher closes the chain (F-7fa4a7)
 
 **Hosted refinement, zero credentials.** v0.3.33 left Priority 1 of the dispatcher chain as a stub; v0.3.34 wires it through `server.createMessage`. When `clad serve` runs and a sampling-capable client (Claude Code · Cursor · Continue · …) is connected, the host owns the model + credentials and cladding only relays the prompt. Headless / CI environments keep the Anthropic-SDK direct path as fallback.
 
@@ -107,7 +107,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [0.3.33] — Unreleased — scan LLM dispatcher chain + project-context refinement (F-417ff0)
+## [0.3.33] — 2026-05-20 — scan LLM dispatcher chain + project-context refinement (F-417ff0)
 
 **LLM as enhancement, not fallback.** v0.3.32 shipped the deterministic Why/What/Purpose extractor; v0.3.33 layers LLM refinement on top *when an LLM is reachable*, and collapses to the deterministic body on any failure. The dispatcher selection chain (MCP sampling → Anthropic SDK → null) keeps offline/CI environments fully reproducible while letting hosted environments produce polished prose.
 
@@ -136,7 +136,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [0.3.32] — Unreleased — docs/project-context.md forest-level entry document (F-c8aef8)
+## [0.3.32] — 2026-05-20 — docs/project-context.md forest-level entry document (F-c8aef8)
 
 **Forest before trees.** Every cladding workspace now ships a `docs/project-context.md` — the *Why / What / Purpose* document. Cladding's earlier surface (`docs/conventions.md` + `spec/architecture.yaml` + `spec/scenarios/`) covered code conventions and layers but never the project's *raison d'être*. v0.3.32 fills that gap with deterministic extraction (README + sibling docs + representative interfaces) when observable, a fill-in template otherwise. AI maintainers joining a cladding-managed project always find the *why* first.
 
@@ -171,7 +171,7 @@ Feature + scenario + capabilities are *miniature-map style*: empty at adoption t
 - v0.3.34+ — `clad_create_feature` auto-registers scenario + capability id (LLM dispatcher chain)
 - v0.4+ — `spec/capabilities.yaml` tree (capabilities grow miniature-map style as features request them)
 
-## [0.3.31] — Unreleased — Scan audit P1 deterministic fix — cwd resolve + forbidden prune + non-source blacklist (F-aa7197)
+## [0.3.31] — 2026-05-20 — Scan audit P1 deterministic fix — cwd resolve + forbidden prune + non-source blacklist (F-aa7197)
 
 **5차 audit P1 residuals closed.** Three deterministic improvements close the remaining noise the 5차 audit (2026-05-20) flagged in the real-world OSS corpus: cobra's `.` layer-name bug, `forbidden_imports` N×N matrix bloat (ripgrep 195 + vitest 380+ entries), and non-source directories (HomebrewFormula / docs_src / formulas / packaging) surfacing as architecture layers.
 
@@ -188,7 +188,7 @@ Feature + scenario + capabilities are *miniature-map style*: empty at adoption t
 - 16-OSS rescan deltas: cobra `.` → `cobra`; ripgrep loses HomebrewFormula and forbidden_imports rows cap at 8; vitest similarly capped; fastapi loses docs_src (still surfaces `scripts/`, intentional trade-off); cladding self-scan unchanged.
 - Audit residuals queued for v0.4+: I16 language-specific export patterns (Python `__all__`, Go `package`, Rust `pub`) — needs language-plugin interface; I7 language-specific test locations.
 
-## [0.3.30] — Unreleased — Scenarios auto-generation deprecated + scenarios/README guide (F-cfba0c)
+## [0.3.30] — 2026-05-20 — Scenarios auto-generation deprecated + scenarios/README guide (F-cfba0c)
 
 **Paradigm correction.** The 5차 real-world audit (2026-05-20) flagged dir-derived scenarios as a *false signal* — scenarios encode **user journeys** (intent), not architecture layers (observable code). v0.3.30 drops the auto-extraction. Features and scenarios are now *symmetric*: both describe declared intent, both start empty at adoption time, and both grow as the user requests features through `clad_create_feature`. The intent-side artifacts wait for the user; the observable-side artifacts (`docs/conventions.md` + `spec/architecture.yaml`) keep their auto-extraction.
 
@@ -210,7 +210,7 @@ Feature + scenario + capabilities are *miniature-map style*: empty at adoption t
 - v0.3.31+ (큰 작업) — `clad_create_feature` auto-registers the scenario its feature belongs to, using the LLM dispatcher chain.
 - v0.4+ — optional `clad scenarios --from-readme` verb for adopters who *want* a guess. Default OFF.
 
-## [0.3.29] — Unreleased — Scan production-grade refactor — src/cli/scan/ module split + configurable thresholds (F-1edb38)
+## [0.3.29] — 2026-05-20 — Scan production-grade refactor — src/cli/scan/ module split + configurable thresholds (F-1edb38)
 
 **Production-grade structural refactor**, no behaviour change. v0.3.24~v0.3.28 grew the scan pipeline to a 855-line `scan.ts` + `scan-roots.ts` + `scan-llm.ts` flat trio that became hard to extend. v0.3.29 splits the pipeline into `src/cli/scan/<module>.ts` with a single orchestrator entry — every magic number now overrideable through `ScanOptions`, every analyzer in its own focused file.
 
@@ -229,7 +229,7 @@ Feature + scenario + capabilities are *miniature-map style*: empty at adoption t
 - cladding self-scan + cobra/react/Signal-Android/django/rails rescan produce identical layer/scenario counts to the v0.3.28 baseline — pure structure change.
 - v0.3.30+ follow-ups (scenario auto-generation policy, language plugin interface, LLM dispatcher integration, audit P1 residuals I15/I16/I17/I18) build on this clean base.
 
-## [0.3.28] — Unreleased — Scan BFS walk + entrypoint priority + per-directory soft cap (F-31eeb8)
+## [0.3.28] — 2026-05-20 — Scan BFS walk + entrypoint priority + per-directory soft cap (F-31eeb8)
 
 **4차 audit residual fix (I14).** v0.3.27 left one known hole — react's `compiler/` (1858 files) saturated the DFS walker before it could descend into `packages/`, collapsing the architecture view to a single `compiler` layer. v0.3.28 rewrites the walker around three composable strategies:
 
