@@ -63,6 +63,11 @@ vi.mock('../../src/core/checkpoint.js', () => ({
 vi.mock('../../src/core/postmortem.js', () => ({
   writePostMortem: vi.fn(() => '/mock/post-mortem-path.md'),
 }));
+vi.mock('../../src/ui/pulse.js', () => ({
+  pulse: vi.fn(),
+  pulseProgress: vi.fn(),
+  pulseProgressEnd: vi.fn(),
+}));
 vi.mock('../../src/hitl/identity.js', async () => {
   const actual = await vi.importActual<typeof import('../../src/hitl/identity.js')>(
     '../../src/hitl/identity.js',
@@ -100,6 +105,9 @@ const findLatestCheckpointMock = checkpointMod.findLatestCheckpoint as unknown a
 const recordRollbackMock = checkpointMod.recordRollback as unknown as ReturnType<typeof vi.fn>;
 const postmortemMod = await import('../../src/core/postmortem.js');
 const writePostMortemMock = postmortemMod.writePostMortem as unknown as ReturnType<typeof vi.fn>;
+const pulseMod = await import('../../src/ui/pulse.js');
+const pulseProgressMock = pulseMod.pulseProgress as unknown as ReturnType<typeof vi.fn>;
+const pulseProgressEndMock = pulseMod.pulseProgressEnd as unknown as ReturnType<typeof vi.fn>;
 
 const selectAdapterMock = adaptersIndex.selectAdapter as unknown as ReturnType<typeof vi.fn>;
 
@@ -366,6 +374,37 @@ describe('runDriveLoop', () => {
       });
       expect(r.halt.class).toBe('RETRY_THRESHOLD');
       expect(writePostMortemMock).not.toHaveBeenCalled();
+    });
+  });
+
+  // Pulse UI progressive (v0.3.23, F-x) — drive loop emits per-phase
+  // in-place status updates so a user staring at clad drive sees
+  // what's happening instead of a frozen screen.
+  describe('pulse progressive (Tier 2 #1)', () => {
+    test('happy path emits pulseProgress for specialist · L1 · reviewer · UAT, then pass End', async () => {
+      loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-001', status: 'planned'}]));
+      pulseProgressMock.mockClear();
+      pulseProgressEndMock.mockClear();
+      const r = await runDriveLoop({cwd: dir});
+      expect(r.halt.class).toBe('ALL_FEATURES_DONE');
+      const phases = pulseProgressMock.mock.calls.map((c) => c[2]);
+      expect(phases).toEqual(['specialist', 'L1 gates', 'reviewer', 'UAT']);
+      const endCall = pulseProgressEndMock.mock.calls.find((c) => c[0] === 'pass');
+      expect(endCall?.[1]).toBe('F-001');
+      expect(endCall?.[2]).toBe('done');
+    });
+
+    test('L1 gate fail emits pulseProgressEnd("fail") with retry counter', async () => {
+      loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-777', status: 'planned'}]));
+      runTypeMock.mockReturnValue({pass: false, exitCode: 1, stage: 'stage_1.1'});
+      pulseProgressEndMock.mockClear();
+      await runDriveLoop({
+        cwd: dir,
+        budget: {maxIterations: 50, maxWallClockMs: 600_000, maxRetriesPerFeature: 3},
+      });
+      const failCalls = pulseProgressEndMock.mock.calls.filter((c) => c[0] === 'fail');
+      expect(failCalls.length).toBeGreaterThanOrEqual(1);
+      expect(String(failCalls[0]?.[2])).toMatch(/retry 1\/3/);
     });
   });
 

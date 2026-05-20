@@ -5,6 +5,23 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.23] — Unreleased — Pulse UI progressive in drive loop (F-ba4b7a)
+
+**First Tier-2 audit fix** (ironclad-design 03-ux §4.1). Until v0.3.22 a `clad drive` invocation staring at a slow agent dispatch looked frozen — the terminal sat idle until the next transition emitted a `pulse` line. v0.3.23 introduces an in-place progressive surface so the user sees which phase is running while it runs, without breaking the original `tail -f`-friendly `pulse` contract.
+
+### Added
+
+- `src/ui/pulse.ts` — two new exports: `pulseProgress(stage, label, detail?)` writes a clear-line ANSI sequence + status (no trailing newline) so successive calls overwrite the same TTY row; `pulseProgressEnd(kind, label, detail?)` commits the final transition with a newline. On non-TTY both surfaces are silent until `pulseProgressEnd`, which emits one line equivalent to `pulse` — captured stdout stays a clean append-only stream.
+- `src/drive/loop.ts` — emits `pulseProgress('drive', ready.id, …)` for the four phases (specialist · L1 gates · reviewer · UAT) and `pulseProgressEnd('pass'|'fail', …)` on every exit path (happy completion, gate fail with retry counter, reviewer collision, transport failure, UAT, retry-threshold rollback).
+- 7 new pulse tests + 2 new drive-loop tests = 9 additions.
+
+### Notes
+
+- 638 + 9 new tests = **647/647** passing; lint clean; typecheck clean; drift-green at 97 features; bundle 1.1 MB.
+- Original `pulse` function unchanged — existing CI consumers and `tail -f` workflows see byte-identical output.
+- The fail branch's detail string carries the retry counter (`retry N/3`) so the user knows how many attempts remain before auto-rollback.
+- `clad check` (13 stage) progressive coverage is a separate patch candidate.
+
 ## [0.3.22] — 2026-05-20 — Iron Law backbone Phase 3.3: Librarian post-mortem on auto-rollback (F-5d3ed2)
 
 **Third and final patch** of the Iron Law backbone (ironclad-design 02-iron-law §2.5). v0.3.20 shipped the event surface, v0.3.21 wired the drive loop's auto-rollback, and v0.3.22 closes the loop with a Librarian-authored post-mortem so the next session has a maintainer-readable brief instead of just an audit-log entry.
