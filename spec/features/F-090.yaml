@@ -1,0 +1,42 @@
+id: F-090
+slug: version-bump-script
+title: Atomic version-bump script — single command for 7 sync sites (v0.3.15)
+status: done
+modules:
+  - scripts/version-bump.mjs
+  - package.json
+depends_on: [F-080]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: ship a single-command script that atomically bumps the cladding version across all seven sites where it lives
+    response: 'scripts/version-bump.mjs accepts a single SemVer argument (major.minor.patch) and replaces the literal version string in package.json, .claude-plugin/plugin.json, plugins/codex/.codex-plugin/plugin.json, plugins/gemini-cli/gemini-extension.json, src/cli/clad.ts, src/serve/server.ts, and tests/cli/clad.test.ts; prints a per-file summary; exits non-zero on any error'
+    text: The system shall ship scripts/version-bump.mjs that atomically bumps the cladding version across all seven sites where it lives (package.json · 3 host manifests · src/cli/clad.ts · src/serve/server.ts · tests/cli/clad.test.ts) so the manual seven-edit ritual collapses into a single command and the HARNESS_INTEGRITY drift risk is eliminated at the source.
+    test_refs: [tests/scripts/version-bump.test.ts]
+  - id: AC-002
+    ears: ubiquitous
+    action: expose the script via `npm run version-bump`
+    response: 'package.json scripts adds `"version-bump": "node scripts/version-bump.mjs"` so the script is callable as `npm run version-bump -- 0.3.16` in addition to the direct `node scripts/version-bump.mjs 0.3.16` invocation'
+    text: The system shall expose the script via `npm run version-bump` so the canonical npm workflow is preserved alongside the direct node invocation.
+    evidence_refs: [package.json]
+  - id: AC-003
+    ears: state
+    condition: while the script is invoked with the same version that already lives in the files
+    action: report "already" for each file and exit 0
+    response: 'each unchanged site prints a line with the file, the version, and the literal annotation `(already)`; the script exits 0; no file is rewritten so mtime stays stable'
+    text: While the script is invoked with the same version that already lives in the files, the system shall report "already" for each file and exit 0 so the operation is idempotent and safe to re-run.
+    test_refs: [tests/scripts/version-bump.test.ts]
+  - id: AC-004
+    ears: state
+    condition: while the user passes an argument that is not strict SemVer major.minor.patch
+    action: exit non-zero with a SemVer error message
+    response: 'the script rejects pre-release/build-metadata strings (e.g. 0.3.15-rc1, 0.3.15+build.2) and free-form strings; stderr names the offending value and references SemVer; exit code 1'
+    text: While the user passes an argument that is not strict SemVer major.minor.patch, the system shall exit non-zero with a clear SemVer error message so a typo or a pre-release attempt is caught immediately.
+    test_refs: [tests/scripts/version-bump.test.ts]
+  - id: AC-005
+    ears: state
+    condition: while one of the seven files has its anchor pattern broken (e.g. the version field renamed)
+    action: report which file is broken and exit non-zero without touching the other six
+    response: the script collects per-file errors and prints them under an `errors:` heading after the change summary; the other six files are bumped successfully but the exit code is non-zero so the user knows to investigate
+    text: While one of the seven files has its anchor pattern broken, the system shall report which file is broken and exit non-zero so a refactor that moves the version string is caught at the next bump rather than silently leaving one site stale.
+    test_refs: [tests/scripts/version-bump.test.ts]
