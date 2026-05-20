@@ -1,0 +1,59 @@
+id: F-084
+slug: spec-id-multi-dev-safety
+title: Multi-developer-safe spec ID system — slug filename + hash ID + AC-scope sequential (v0.3.9)
+status: done
+modules:
+  - src/spec/new.ts
+  - src/spec/schema.json
+  - src/serve/server.ts
+  - src/stages/detectors/slug-conflict.ts
+  - src/stages/detectors/id-collision.ts
+  - src/stages/detectors/ac-duplicate-within-feature.ts
+  - src/stages/detectors/index.ts
+depends_on: [F-049, F-073, F-076, F-080]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: provide an internal createFeature helper that issues a new sharded feature file with an auto-generated hash id
+    response: src/spec/new.ts exports createFeature({slug, title?, status?, cwd?}) returning {id, path, slug}; the id is F-<6-char-hex> derived from SHA-256(slug + user + hostname + ms + hrtime).slice(0,6); two simultaneous invocations on separate branches produce distinct ids by construction
+    text: The system shall provide an internal createFeature helper that issues a new sharded feature file (spec/features/<slug>.yaml) with an auto-generated hash id derived from inputs that distinguish simultaneous invocations, so two contributors on separate branches cannot collide.
+    test_refs: [tests/spec/new.test.ts]
+  - id: AC-002
+    ears: ubiquitous
+    action: expose the createFeature helper as a `clad_create_feature` MCP tool — no CLI verb
+    response: src/serve/server.ts registers `clad_create_feature(slug, title?, status?)` MCP tool that calls createFeature(); src/cli/clad.ts has NO matching subcommand by design — the user never types a shell command, the host LLM calls the MCP tool in response to the user's natural-language request
+    text: The system shall expose createFeature as the `clad_create_feature` MCP tool exclusively — no CLI subcommand — so the spec-authoring surface is host-LLM-mediated and the user's path is natural-language only.
+    test_refs: [tests/serve/server.test.ts]
+  - id: AC-003
+    ears: ubiquitous
+    action: validate slug shape at the schema layer and reject malformed slugs at creation time
+    response: src/spec/schema.json adds optional `slug` field with pattern `^[a-z0-9][a-z0-9-]{0,62}[a-z0-9]$`; createFeature throws when the slug fails the regex; tests cover uppercase, leading/trailing dash, underscore, whitespace, slash, length > 64
+    text: The system shall validate slug shape at the schema layer and reject malformed slugs at createFeature time so a slug that cannot round-trip through git paths is caught before the file is written.
+    test_refs: [tests/spec/new.test.ts]
+  - id: AC-004
+    ears: state
+    condition: while two features in the loaded spec share the same slug
+    action: emit a SLUG_CONFLICT error finding
+    response: stages/detectors/slug-conflict.ts walks spec.features and emits a per-pair error finding naming both feature ids and the duplicated slug
+    text: While two features in the loaded spec share the same slug, the system shall emit a SLUG_CONFLICT error finding naming both feature ids and the slug so a silent merge that left two features with the same slug is caught by `clad check`.
+    test_refs: [tests/stages/slug-conflict.test.ts]
+  - id: AC-005
+    ears: state
+    condition: while two features in the loaded spec share the same id
+    action: emit an ID_COLLISION error finding
+    response: stages/detectors/id-collision.ts counts id occurrences and emits an error finding for any id with count >= 2, naming the id and the count
+    text: While two features in the loaded spec share the same id, the system shall emit an ID_COLLISION error finding so the 1/16M hash coincidence — or a legacy hand-typed duplicate — is caught by `clad check`.
+    test_refs: [tests/stages/id-collision.test.ts]
+  - id: AC-006
+    ears: state
+    condition: while a single feature declares the same AC id more than once in its acceptance_criteria
+    action: emit an AC_DUPLICATE_WITHIN_FEATURE error finding
+    response: stages/detectors/ac-duplicate-within-feature.ts counts AC ids per feature and emits per-feature error findings for any AC id appearing more than once; two distinct features may both declare AC-001 (feature-scope is the new model) without triggering
+    text: While a single feature declares the same AC id more than once, the system shall emit an AC_DUPLICATE_WITHIN_FEATURE error finding; two features sharing an AC id (e.g. F-001.AC-001 and F-002.AC-001) shall NOT trigger because the new model is feature-scoped.
+    test_refs: [tests/stages/ac-duplicate-within-feature.test.ts]
+  - id: AC-007
+    ears: ubiquitous
+    action: register the three new detectors in the catalog and update the HARNESS_INTEGRITY count
+    response: src/stages/detectors/index.ts adds slugConflict + idCollision + acDuplicateWithinFeature to allDetectors; .claude-plugin/plugin.json ironclad.current.detectors is bumped from 20/20 to 23/23
+    text: The system shall register the three new detectors in src/stages/detectors/index.ts and bump .claude-plugin/plugin.json ironclad.current.detectors from 20/20 to 23/23 so HARNESS_INTEGRITY catches the count drift on the next `clad check --strict`.
+    test_refs: [tests/stages/harness-integrity.test.ts]

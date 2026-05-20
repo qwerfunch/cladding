@@ -31,6 +31,7 @@ import {z} from 'zod';
 import {loadPersona} from '../agents/loader.js';
 import {subscribeAudit} from '../hitl/audit.js';
 import {loadSpec} from '../spec/load.js';
+import {createFeature} from '../spec/new.js';
 import {runDrift} from '../stages/drift.js';
 
 /** Persona ids registered as MCP prompts (mirrors src/agents/). */
@@ -48,6 +49,7 @@ export const TOOL_NAMES = [
   'clad_get_feature',
   'clad_run_check',
   'clad_get_events',
+  'clad_create_feature',
 ] as const;
 
 /** Resource URIs cladding's MCP server exposes (stable wire identifiers). */
@@ -81,7 +83,7 @@ export function buildServer(opts: ServerOptions = {}): McpServer {
   const server = new McpServer(
     {
       name: opts.name ?? 'cladding',
-      version: opts.version ?? '0.3.8',
+      version: opts.version ?? '0.3.9',
     },
     {
       // Declare subscribe support so clients can subscribe to
@@ -244,6 +246,53 @@ function registerTools(server: McpServer, cwd: string): void {
       return {
         content: [{type: 'text', text: JSON.stringify({events: tail.map((l) => JSON.parse(l))}, null, 2)}],
       };
+    },
+  );
+
+  // clad_create_feature — issue a new sharded feature file under
+  // spec/features/<slug>.yaml with a content-hash id (v0.3.9, F-084).
+  // Host LLM invokes this when the user asks for a new feature in
+  // natural language; cladding has no `clad spec new` CLI verb by design.
+  server.registerTool(
+    'clad_create_feature',
+    {
+      title: 'Create a new cladding feature',
+      description:
+        'Creates spec/features/<slug>.yaml with an auto-generated F-<hash> id. ' +
+        'Two concurrent invocations on separate branches produce distinct hash ' +
+        'ids by construction (input includes user + hostname + timestamp + ' +
+        'hrtime), so multi-developer concurrency is safe as long as slugs differ.',
+      inputSchema: {
+        slug: z
+          .string()
+          .regex(/^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/)
+          .describe(
+            "Kebab-case slug — filename + spec.slug field (e.g. 'login-flow')",
+          ),
+        title: z.string().optional().describe('Optional human-readable title; defaults to slug'),
+        status: z
+          .enum(['planned', 'in_progress', 'done', 'blocked', 'archived'])
+          .optional()
+          .describe("Optional status; defaults to 'planned'"),
+      },
+    },
+    async (args) => {
+      try {
+        const result = createFeature({
+          slug: args.slug,
+          title: args.title,
+          status: args.status,
+          cwd,
+        });
+        return {
+          content: [{type: 'text', text: JSON.stringify(result, null, 2)}],
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{type: 'text', text: (err as Error).message}],
+        };
+      }
     },
   );
 }
