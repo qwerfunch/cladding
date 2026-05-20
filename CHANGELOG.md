@@ -5,6 +5,22 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.21] — Unreleased — Iron Law backbone Phase 3.2: drive loop auto-rollback (F-2de65d)
+
+**Second of three patches** completing the Iron Law backbone. v0.3.20 shipped the event surface (`feature_checkpoint`, `feature_rolled_back`) and manual CLI verbs. v0.3.21 hooks the autonomous loop into it: every ready feature gets a checkpoint pinned before the first specialist dispatch, and every `RETRY_THRESHOLD` halt now records a rollback to that feature's latest checkpoint. The Iron Law §2.5 contract ("auto-rollback after self-healing budget exhausted") is now operational on every `clad drive` invocation.
+
+### Changed
+
+- `src/drive/loop.ts` — calls `recordCheckpoint(cwd, ready.id)` immediately after `featuresTouched.push()` and before the specialist agent dispatch.
+- `src/drive/loop.ts` — when `checkBudget` returns a `RETRY_THRESHOLD` halt, the loop now locates the exhausted feature in the `retries` map, fetches its latest checkpoint via `findLatestCheckpoint`, and (when non-null) calls `recordRollback` with the reason `"retry budget exhausted after N attempts"`. The halt is then returned via `finish()` so the audit-log order stays checkpoint → drift_detected* → feature_rolled_back → halt.
+
+### Notes
+
+- 626 + 4 new drive-loop tests = **630/630** passing; lint clean; typecheck clean; drift-green at 95 features; bundle 1.1 MB.
+- Defensive: when `findLatestCheckpoint` returns null (fresh repo, missing prior checkpoint), the rollback record is skipped so the audit trail never references a checkpoint that never existed.
+- Non-RETRY_THRESHOLD halts (MAX_ITERATIONS, WALL_CLOCK, BUDGET_EXCEEDED, transport classes, ALL_FEATURES_DONE) finish without a rollback event — the rollback event is reserved for the one transition that genuinely needs the Iron Law fallback.
+- Tier-1 audit progress: (1) ✓ Atomic AC fan-out, (2) ✓ Phased Decommissioning Tier 2, (3.1) ✓ Checkpoint event surface, **(3.2) ✓ Drive auto-rollback (this PR)**, (3.3) Librarian post-mortem queued (v0.3.22).
+
 ## [0.3.20] — Unreleased — Iron Law backbone Phase 1: checkpoint event infrastructure (F-c2c996)
 
 **Third Tier-1 audit fix, Phase 1 of 3.** ironclad-design 02-iron-law §2.5 ("Integrity Checkpoint & Rollback") names the Iron Law backbone: every `work` should pin a SSoT + code snapshot, and a failed self-healing cycle should fall back to it. Cladding had **none** of that — the prior conversation grep showed `rollback`/`checkpoint`/`snapshot`/`stash`/`post-mortem` all at zero hits. v0.3.20 lays the *event* surface; later patches (v0.3.21, v0.3.22) hook the drive loop and Librarian post-mortem on top.
