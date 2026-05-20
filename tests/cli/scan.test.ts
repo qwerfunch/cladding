@@ -114,14 +114,18 @@ describe('scanRoot', () => {
     expect(names).toContain('ui');
   });
 
-  test('scenarios mirror layers', () => {
+  // v0.3.30 — scenarios are no longer auto-extracted from observed
+  // code. They register through `clad_create_feature` (user intent)
+  // so adoption-time output is intentionally empty even when layers
+  // were detected.
+  test('scenarios are not auto-extracted (v0.3.30 paradigm)', () => {
     seed(dir, {
       'src/core/a.ts': 'export const a = 1;\n',
       'src/cli/b.ts': 'export const b = 2;\n',
     });
-    const slugs = scanRoot({cwd: dir}).scenarios.map((s) => s.slug);
-    expect(slugs).toContain('core-flow');
-    expect(slugs).toContain('cli-flow');
+    const r = scanRoot({cwd: dir});
+    expect(r.architecture.layers.map((l) => l.name).sort()).toEqual(['cli', 'core']);
+    expect(r.scenarios).toEqual([]);
   });
 
   test('examples pick the longest non-test module per layer', () => {

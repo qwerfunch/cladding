@@ -1,0 +1,42 @@
+id: F-cfba0c
+slug: scenarios-deprecate
+title: scenarios auto-generation deprecate + scenarios/README guide (v0.3.30)
+status: done
+modules:
+  - src/cli/scan/scenarios.ts
+  - src/cli/scan/llm.ts
+  - src/cli/init.ts
+depends_on:
+  - F-1edb38
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: stop auto-extracting scenarios from observed code
+    response: 'src/cli/scan/scenarios.ts proposeScenarios always returns [] regardless of the filesByLayer argument; src/cli/scan/llm.ts deterministicInterpret iterates scan.scenarios so the scenarioFlows Map automatically stays empty; downstream consumers see the same Map type they always did, just empty'
+    text: The system shall stop auto-extracting scenarios from observed code so the architecture-layer-as-scenario false signal that the 5차 audit flagged (vitest 24 layer-scenarios, ripgrep crate-scenarios, rails monorepo) no longer ships in cladding output.
+    test_refs: [tests/cli/scan.test.ts]
+  - id: AC-002
+    ears: event
+    condition: when clad init runs with --scan
+    action: write spec/scenarios/README.md documenting the new paradigm
+    response: 'src/cli/init.ts SCENARIOS_README constant holds the markdown; the --scan branch calls writeArtifact("spec/scenarios/README.md", SCENARIOS_README) in place of the per-layer YAML loop; README explains scenarios encode user journeys (intent), not architecture layers, and that they auto-register through clad_create_feature; cobra rescan confirms the directory holds README.md only'
+    text: When clad init runs with --scan, the system shall write spec/scenarios/README.md documenting the new paradigm so an external adopter opening the directory understands why it is empty and how it grows.
+    evidence_refs: [src/cli/init.ts]
+  - id: AC-003
+    ears: ubiquitous
+    action: keep the ScanResult.scenarios type stable through the deprecation
+    response: 'ScanResult.scenarios still types as readonly ScenarioStub[]; proposeScenarios still returns ScenarioStub[]; the only change is that the array is always empty in v0.3.30. Downstream call sites (init.ts, llm.ts deterministicInterpret) do not change their shape — they simply iterate an empty array. The migration is purely behavioural so v0.3.31+ feature-time auto-registration can swap the production line without re-introducing types'
+    text: The system shall keep the ScanResult.scenarios type stable through the deprecation so v0.3.31+ feature-time auto-registration can populate the array later without re-introducing types.
+    evidence_refs: [src/cli/scan/types.ts, src/cli/scan/scenarios.ts]
+  - id: AC-004
+    ears: ubiquitous
+    action: align scenarios with features as a single mental model — adoption empty, requests grow
+    response: 'feature + scenario are both miniature-map style: adoption-time output ships zero scenarios and a placeholder feature (F-001); both grow when the user requests features through clad_create_feature. docs/conventions.md and spec/architecture.yaml remain auto-extracted because they describe observable code; scenarios + features describe declared intent and stay empty until the user declares'
+    text: The system shall align scenarios with features as a single mental model so external adopters understand the same paradigm applies to both intent-side artifacts — observable code surfaces automatically, declared intent waits for a request.
+    evidence_refs: [src/cli/init.ts, src/cli/scan/scenarios.ts]
+  - id: AC-005
+    ears: ubiquitous
+    action: keep the 713-test baseline unchanged
+    response: 'tests/cli/scan.test.ts the "scenarios mirror layers" assertion (v0.3.25) is replaced with "scenarios are not auto-extracted (v0.3.30 paradigm)" which asserts architecture.layers is detected normally while scenarios = []; all 713 tests still pass; lint clean; typecheck clean; cladding self-scan and the 16-OSS audit corpus stay drift-green'
+    text: The system shall keep the 713-test baseline unchanged so the deprecation lands as a single localised swap with no test-coverage regression.
+    test_refs: [tests/cli/scan.test.ts]

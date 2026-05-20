@@ -5,6 +5,28 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.30] — Unreleased — Scenarios auto-generation deprecated + scenarios/README guide (F-cfba0c)
+
+**Paradigm correction.** The 5차 real-world audit (2026-05-20) flagged dir-derived scenarios as a *false signal* — scenarios encode **user journeys** (intent), not architecture layers (observable code). v0.3.30 drops the auto-extraction. Features and scenarios are now *symmetric*: both describe declared intent, both start empty at adoption time, and both grow as the user requests features through `clad_create_feature`. The intent-side artifacts wait for the user; the observable-side artifacts (`docs/conventions.md` + `spec/architecture.yaml`) keep their auto-extraction.
+
+### Changed
+
+- `src/cli/scan/scenarios.ts` — `proposeScenarios` always returns `[]`. The function signature stays so type and call sites are unaffected; v0.3.31+ feature-time auto-registration can swap the body without re-introducing types.
+- `src/cli/scan/llm.ts` — `deterministicInterpret` iterates `scan.scenarios` so its `scenarioFlows` Map naturally drops to empty.
+- `src/cli/init.ts` — `--scan` branch no longer writes one YAML per layer. Instead writes a single `spec/scenarios/README.md` documenting the policy: scenarios encode user journeys, not architecture, and they enter the spec through `clad_create_feature`, not scan.
+- `tests/cli/scan.test.ts` — `scenarios mirror layers` → `scenarios are not auto-extracted (v0.3.30 paradigm)`. Asserts layers detect normally while scenarios = [].
+
+### Notes
+
+- 713/713 tests pass; lint clean; typecheck clean; drift-green at 103 features; bundle 1.1 MB.
+- cobra rescan: `spec/scenarios/` holds **only `README.md`**; cladding self-scan + 16-OSS corpus all conform.
+- Mental model alignment: feature + scenario are both miniature-map style. Adoption-time output ships zero scenarios + a placeholder feature; both grow when the user declares intent.
+
+### Roadmap
+
+- v0.3.31+ (큰 작업) — `clad_create_feature` auto-registers the scenario its feature belongs to, using the LLM dispatcher chain.
+- v0.4+ — optional `clad scenarios --from-readme` verb for adopters who *want* a guess. Default OFF.
+
 ## [0.3.29] — Unreleased — Scan production-grade refactor — src/cli/scan/ module split + configurable thresholds (F-1edb38)
 
 **Production-grade structural refactor**, no behaviour change. v0.3.24~v0.3.28 grew the scan pipeline to a 855-line `scan.ts` + `scan-roots.ts` + `scan-llm.ts` flat trio that became hard to extend. v0.3.29 splits the pipeline into `src/cli/scan/<module>.ts` with a single orchestrator entry — every magic number now overrideable through `ScanOptions`, every analyzer in its own focused file.
