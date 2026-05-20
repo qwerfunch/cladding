@@ -5,6 +5,26 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.27] — Unreleased — Scan deterministic residuals — flat _root promotion + workspace direct files + dominant language (F-aee1da)
+
+**3차 audit residuals fix.** v0.3.26 left three known holes — cobra-style flat single-package returned layer 0, react workspace direct files (packages/react/src/ReactAct.js) lost their layer assignment, and polyglot repos reported `language: typescript` because `detectToolchain` always reads package.json first. v0.3.27 closes all three deterministically. The choice (over LLM fallback) preserves reproducibility and avoids adding an external API dependency to the adoption path.
+
+### Added / Changed
+
+- `src/cli/scan.ts` `groupByLayer` — _root bucket promotion. When 5+ source files live directly at cwd (Go single-package layout), the bucket moves to a layer named after `basename(cwd)`.
+- `src/cli/scan.ts` `layerOf` — workspace direct file branch. `packages/<ws>/src/x.ts` with no intermediate subdirectory now surfaces under `<ws>` instead of being skipped.
+- `src/cli/scan.ts` `ScanStats` — adds `languageCounts: Record<string, number>` (keyed by normalised language name) and `dominantLanguage: string` via the new `EXT_TO_LANGUAGE` map + `buildStats` helper.
+- `src/cli/init.ts` — `runInit` prefers the scan dominant language over `detectToolchain` when `--scan` is set, so django reports python, rails reports ruby, RxSwiftExt reports swift, cobra reports go.
+- 7 new scan tests across `flat _root promotion` / `workspace direct files` / `language detection` describe blocks.
+- `.cladding/audit/scan-real-world-2026-05-20.md` — 3차 audit table appended with v0.3.27 deltas.
+
+### Notes
+
+- 702 + 7 new tests = **709/709** passing; lint clean; typecheck clean; drift-green at 100 features; bundle 1.1 MB.
+- Real-world rescan: cobra 0 → **1 layer + lang=go**, django 1 layer + **lang=python**, rails 6 + **lang=ruby**, RxSwiftExt 1 + **lang=swift**, vuejs/core 17 → **29 layers** (workspace direct files now visible).
+- Flat src/ cladding-self regression: byte-identical (no cwd-direct files, no workspaces).
+- New residual queued for v0.3.28: react's compiler/ holds 1858 files which exhausts the maxFiles=500 cap before walk reaches packages/. Needs per-directory cap or BFS sampling (I14).
+
 ## [0.3.26] — Unreleased — Polyglot scan + layer blacklist + per-language docstrings (F-94dda4)
 
 **P0 fix from the 2026-05-20 real-world OSS audit** (`.cladding/audit/scan-real-world-2026-05-20.md`). v0.3.25 walked only .ts/.js/.py so Go (gin, cobra), Rust (ripgrep), Java/Kotlin (Signal-Android), Ruby (rails), C# / PHP / Swift / Dart projects all produced empty `architecture.yaml`. v0.3.26 closes the language gap and removes the layer noise the audit also surfaced.

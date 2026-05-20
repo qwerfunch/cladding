@@ -54,7 +54,13 @@ function fakeScan(): ScanResult {
         testContent: 'test("main", () => expect(main).toBe(1));',
       },
     ],
-    stats: {filesScanned: 8, languagesSeen: ['.ts'], sourceRoot: '/tmp/proj/src'},
+    stats: {
+      filesScanned: 8,
+      languagesSeen: ['.ts'],
+      languageCounts: {typescript: 8},
+      dominantLanguage: 'typescript',
+      sourceRoot: '/tmp/proj/src',
+    },
   };
 }
 

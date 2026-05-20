@@ -83,8 +83,18 @@ export function runInit(opts: InitOptions = {}): InitResult {
   const created: string[] = [];
   const skipped: string[] = [];
 
+  // I13 (v0.3.27) — `detectToolchain` reads manifests (package.json
+  // wins first), which mis-identifies polyglot repos that ship a
+  // package.json for tooling but are written in Python / Go / Ruby /
+  // Swift. When `--scan` runs we also know the file-extension
+  // majority; prefer that signal over the manifest guess.
   const detected = detectToolchain(cwd).language;
-  const language = detected === 'unknown' ? 'typescript' : detected;
+  const manifestLanguage = detected === 'unknown' ? 'typescript' : detected;
+  const scanResult = opts.scan ? scanRoot({cwd, roots: opts.roots}) : null;
+  const language =
+    scanResult && scanResult.stats.dominantLanguage !== 'unknown' && scanResult.stats.dominantLanguage !== 'other'
+      ? scanResult.stats.dominantLanguage
+      : manifestLanguage;
   const projectName = opts.projectName ?? basename(resolve(cwd));
 
   // 1. spec.yaml
@@ -123,9 +133,9 @@ export function runInit(opts: InitOptions = {}): InitResult {
   // exist). The v0.3.24 path uses the deterministic interpreter; the
   // LLM dispatcher injection lands in v0.3.25 so the scan-llm.ts
   // contract is in place but not yet routed to MCP sampling.
-  if (opts.scan) {
-    const scan = scanRoot({cwd, roots: opts.roots});
-    const interp: InterpretedScan = deterministicInterpret(scan);
+  if (opts.scan && scanResult) {
+    const interp: InterpretedScan = deterministicInterpret(scanResult);
+    const scan = scanResult;
 
     writeArtifact(
       cwd,
