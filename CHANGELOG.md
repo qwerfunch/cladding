@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.27] — Unreleased — Scan deterministic residuals — flat _root promotion + workspace direct files + dominant language (F-aee1da)
+## [0.3.27] — 2026-05-20 — Scan deterministic residuals — flat _root promotion + workspace direct files + dominant language (F-aee1da)
 
 **3차 audit residuals fix.** v0.3.26 left three known holes — cobra-style flat single-package returned layer 0, react workspace direct files (packages/react/src/ReactAct.js) lost their layer assignment, and polyglot repos reported `language: typescript` because `detectToolchain` always reads package.json first. v0.3.27 closes all three deterministically. The choice (over LLM fallback) preserves reproducibility and avoids adding an external API dependency to the adoption path.
 
@@ -25,7 +25,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 - Flat src/ cladding-self regression: byte-identical (no cwd-direct files, no workspaces).
 - New residual queued for v0.3.28: react's compiler/ holds 1858 files which exhausts the maxFiles=500 cap before walk reaches packages/. Needs per-directory cap or BFS sampling (I14).
 
-## [0.3.26] — Unreleased — Polyglot scan + layer blacklist + per-language docstrings (F-94dda4)
+## [0.3.26] — 2026-05-20 — Polyglot scan + layer blacklist + per-language docstrings (F-94dda4)
 
 **P0 fix from the 2026-05-20 real-world OSS audit** (`.cladding/audit/scan-real-world-2026-05-20.md`). v0.3.25 walked only .ts/.js/.py so Go (gin, cobra), Rust (ripgrep), Java/Kotlin (Signal-Android), Ruby (rails), C# / PHP / Swift / Dart projects all produced empty `architecture.yaml`. v0.3.26 closes the language gap and removes the layer noise the audit also surfaced.
 
@@ -44,7 +44,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 - OSS reuse review: tree-sitter (polyglot AST) deferred to v0.4+ plugin — wasm/native dependency conflicts with cladding's single-bundle philosophy. dependency-cruiser / linguist-js / semgrep all evaluated and declined; current heuristics + new language matrix carries us until external dogfood signals tree-sitter need.
 - Known residuals (queued for v0.3.27): cobra-style flat single-package layer 0; workspace `<ws>/src/*.js` direct files miss layer assignment (react); language detection still package.json-biased so polyglot repos report `language: typescript`.
 
-## [0.3.25] — Unreleased — Scan source-root inference + forbidden_imports candidates (F-c48eb2)
+## [0.3.25] — 2026-05-20 — Scan source-root inference + forbidden_imports candidates (F-c48eb2)
 
 **Closes the `src/`-only limitation in v0.3.24.** External adopters with a TypeScript monorepo, a Python project keeping its package at root, a Go layout (`cmd/` / `internal/` / `pkg/`), or a Rust workspace (`crates/<x>/src/`) all hit the same wall: scan only knew about flat `src/<layer>/`. v0.3.25 introduces manifest-driven source-root inference plus deterministic `forbidden_imports` candidates so the generated `spec/architecture.yaml` no longer ships an empty list.
 
@@ -63,7 +63,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 - forbidden_imports candidates are coarse — every unobserved pair surfaces — so the comment in architecture.yaml explicitly tells reviewers to prune. v0.3.26 (planned) will let the LLM dispatcher rank them.
 - MCP sampling dispatcher integration (originally scoped to v0.3.25) deferred to v0.3.26. Tier-2 audit progress: (#1) Pulse UI v0.3.23, Existing Project v0.3.24, **scan robustness v0.3.25 (this PR)**.
 
-## [0.3.24] — Unreleased — `clad init --scan` observed-conventions extractor (F-9b643e)
+## [0.3.24] — 2026-05-20 — `clad init --scan` observed-conventions extractor (F-9b643e)
 
 **Existing Project 시나리오 도입 (ironclad-design 07-ssot-init §3 B).** External projects adopting cladding no longer face an empty spec.yaml + no conventions doc. A single `clad init --scan` walks the source tree, extracts 14 deterministic convention signals plus representative example modules per layer, and writes three artifacts so AI maintainers can keep the project in the same shape the original authors used — same function signatures, same comment style, same module boilerplate.
 
@@ -81,7 +81,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 - feature 자동 추출 안 함 — scenario placeholder만. feature 는 작업자가 `clad_create_feature` 호출 시 점진 추가 (미니맵 확장식).
 - Tier-2 audit progress: (#1) ✓ Pulse UI v0.3.23, (#2) Territory Minimap deferred, **(new) ✓ Existing Project 시나리오 v0.3.24 — 작업 가이드라인 자동 추출**.
 
-## [0.3.23] — Unreleased — Pulse UI progressive in drive loop (F-ba4b7a)
+## [0.3.23] — 2026-05-20 — Pulse UI progressive in drive loop (F-ba4b7a)
 
 **First Tier-2 audit fix** (ironclad-design 03-ux §4.1). Until v0.3.22 a `clad drive` invocation staring at a slow agent dispatch looked frozen — the terminal sat idle until the next transition emitted a `pulse` line. v0.3.23 introduces an in-place progressive surface so the user sees which phase is running while it runs, without breaking the original `tail -f`-friendly `pulse` contract.
 
