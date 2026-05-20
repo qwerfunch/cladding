@@ -1,0 +1,52 @@
+id: F-09d68b
+slug: clad-refine
+title: clad refine verb closes the onboarding Q&A loop (v0.3.44)
+status: done
+modules:
+  - src/cli/scan/onboarding-state.ts
+  - src/cli/scan/intent-onboarding.ts
+  - src/cli/refine.ts
+  - src/cli/init.ts
+  - src/cli/clad.ts
+  - src/agents/orchestrator.md
+  - skills/refine/SKILL.md
+depends_on:
+  - F-56abaa
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: add an onboarding-state library that persists the Q&A loop to .cladding/onboarding/state.yaml and exposes helpers for loading, saving, advancing, de-duplicating, and completing the session
+    response: 'src/cli/scan/onboarding-state.ts exports loadState(cwd) / saveState(cwd, state) / firstPendingIndex(state) / markFirstPendingAnswered(state, answer) / appendNewQuestions(state, newQs) / isComplete(state) / markDone(state); the state file shape is {intent, language, projectName, mode, startedAt, status: active|done, qa: [{question, answer|null}]}; loadState normalises hand-edited mode/answer values defensively; saveState uses yaml.stringify with lineWidth 0 so long Korean strings are preserved verbatim; appendNewQuestions de-duplicates by exact question text so a follow-up iteration that re-emits the same question does not double the list'
+    text: The system shall add an onboarding-state library that persists the Q&A loop to .cladding/onboarding/state.yaml and exposes helpers for loading, saving, advancing, de-duplicating, and completing the session.
+    test_refs: [tests/cli/onboarding-state.test.ts]
+  - id: AC-002
+    ears: ubiquitous
+    action: extend intent-onboarding with a refinement prompt builder + interpreter that pass the full Q-A history plus current artifact bodies into the LLM so the response refines artifacts based on every answer so far
+    response: 'src/cli/scan/intent-onboarding.ts adds buildRefinementPrompt(intent, observed, qaHistory, current) re-using the 6-sentinel layout but with a senior-architect tone that names the full Q-A history and embeds the current docs/project-context.md + spec/capabilities.yaml + spec/architecture.yaml bodies inside fenced code blocks so the LLM knows what to preserve vs revise; interpretRefinementWithFallback runs the dispatcher with the refinement prompt, parses the same six sentinels, applies per-artifact and total fallback policies identical to the init path, and emits sentinel_miss events with phase onboarding so clad doctor surfaces refine failures'
+    text: The system shall extend intent-onboarding with a refinement prompt builder + interpreter that pass the full Q-A history plus current artifact bodies into the LLM so the response refines artifacts based on every answer so far.
+    test_refs: [tests/cli/refine.test.ts]
+  - id: AC-003
+    ears: state
+    condition: while the LLM dispatcher is unavailable or returns an unusable response during refinement
+    action: preserve the current artifact bodies and append the latest Q-A pair as a footnote under a Q&A log heading in docs/project-context.md so the user answer is captured visibly
+    response: 'deterministicRefinement(intent, observed, qaHistory, current) returns the current capabilities and architecture bodies unchanged; the project-context body gets a Q&A log footnote appended once per session via appendFootnoteOnce which detects an existing "## Q&A log (refinement, LLM unavailable)" sentinel and appends new entries underneath instead of stacking duplicate headers; the mode is recomputed from observed.sourceFileCount so the result still surfaces an accurate greenfield/existing classification; source is set to deterministic so callers can distinguish llm/hybrid/deterministic for telemetry'
+    text: While the LLM dispatcher is unavailable or returns an unusable response during refinement, the system shall preserve the current artifact bodies and append the latest Q-A pair as a footnote under a Q&A log heading in docs/project-context.md so the user answer is captured visibly.
+    test_refs: [tests/cli/refine.test.ts]
+  - id: AC-004
+    ears: ubiquitous
+    action: register a clad refine verb that joins variadic positional tokens into the user answer and drives the Q&A loop from state.yaml load through artifact write through state.yaml save in one invocation
+    response: 'src/cli/refine.ts exports runRefineCommand(answerTokens, opts) which loads .cladding/onboarding/state.yaml; exit 2 when no state file exists or no answer was provided while a pending question remains; exit 0 with a no-op when status is already done; otherwise mark the first pending question answered, load the current artifact bodies via readFileSync, call interpretRefinementWithFallback, write refined bodies via an inlined writeArtifact that diverts existing files to .cladding/scan/<basename>.proposal, append new clarifying questions to state.yaml via appendNewQuestions, mark status done when isComplete and no new questions emerged; src/cli/clad.ts registers refine [answer...] with --cwd, --no-llm, --json options'
+    text: The system shall register a clad refine verb that joins variadic positional tokens into the user answer and drives the Q&A loop from state.yaml load through artifact write through state.yaml save in one invocation.
+    test_refs: [tests/cli/refine.test.ts]
+  - id: AC-005
+    ears: ubiquitous
+    action: wire src/cli/init.ts to write the initial state.yaml when the intent-aware onboarding path runs so the refine verb has a starting point
+    response: 'runInit calls saveState(cwd, {intent, language, projectName, mode: onboarding.mode, startedAt: new Date().toISOString(), status: clarifyingQuestions.length === 0 ? "done" : "active", qa: clarifyingQuestions.map(question => ({question, answer: null}))}) immediately after the onboarding result is computed; the write is a no-op when intent is absent because the onboarding path itself is skipped; existing init flows (bare clad init, --scan, --no-llm) remain unchanged because they do not enter the intent branch'
+    text: The system shall wire src/cli/init.ts to write the initial state.yaml when the intent-aware onboarding path runs so the refine verb has a starting point.
+    evidence_refs: [src/cli/init.ts]
+  - id: AC-006
+    ears: ubiquitous
+    action: extend the orchestrator persona principle 6 to drive the full ask-init-refine loop and document the refine verb skill so AI hosts know to use it
+    response: 'src/agents/orchestrator.md expands principle 6 from a single Init policy into two steps: step 6a captures intent and writes state.yaml via clad init; step 6b drives the refine loop by reading state.yaml asking the first pending question verbatim running clad refine with the user reply repeating until status: done; skills/refine/SKILL.md (new) documents the flow plus the variadic positional CLI shape plus the state.yaml schema plus exit codes plus when NOT to invoke (no state file present invented answers unrelated topics); the new skill mirror lands in plugins/codex/skills/refine/SKILL.md and plugins/gemini-cli/commands/refine.toml via build:plugin'
+    text: The system shall extend the orchestrator persona principle 6 to drive the full ask-init-refine loop and document the refine verb skill so AI hosts know to use it.
+    evidence_refs: [src/agents/orchestrator.md, skills/refine/SKILL.md]
