@@ -5,6 +5,30 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.11] — Unreleased — Multi-dev concurrent simulation test + scenario regex widening (F-086)
+
+**Final cycle of the multi-developer ID-safety arc.** Closes the verification loop: an integration test simulates two contributors concurrently calling `createFeature` and asserts the safety invariant end-to-end. A 10-axis ID integrity audit caught one stray legacy regex in scenarios (the only fix from the audit), now also closed.
+
+### Added
+
+- `tests/integration/multi-dev-merge.test.ts` — 4 sub-tests covering:
+  - **different slugs** simultaneously → file paths distinct, merge clean, no detector findings
+  - **same slug** simultaneously across two cwds → file paths distinct (hash entropy), `ID_COLLISION` silent, `SLUG_CONFLICT` raises one error on the merged spec
+  - **same cwd repeat call** with same slug → two distinct files, `SLUG_CONFLICT` raises
+  - **three contributors** with distinct slugs → three files merge clean
+- `tests/spec/load.test.ts` — regression test: a scenario referencing both `F-001` (legacy) and `F-a3f9c2` (hash) loads without schema rejection.
+- `spec/features/F-086.yaml` — "Multi-dev concurrent simulation test + scenario regex widening" (4 ACs, status `done`).
+
+### Changed
+
+- `src/spec/schema.json` — scenario `features[]` items pattern widened from `^F-\d{3,}$` to `^F-(\d{3,}|[a-f0-9]{6,})$` (same as feature.id / depends_on / superseded_by). v0.3.9 missed this single pattern; the v0.3.11 audit caught it.
+
+### Notes
+
+- 563 + 5 new tests = **568/568** passing; lint clean; typecheck clean; drift-green at 85 features; bundle 1.1 MB.
+- ID integrity audit covered 10 axes (scenario regex, BR/ADR, references, AC composite, audit log, panel/CLI, detectors, AC scope, slug-hash hyphen, plugin manifests). 9 axes already-compatible from v0.3.9 + v0.3.10; only the scenario regex needed a one-line fix.
+- **Multi-developer ID-safety arc complete** (F-084 + F-085 + F-086). cladding ships a documented, audited, integration-tested model for distributed concurrent feature creation. No outstanding items in this thread.
+
 ## [0.3.10] — Unreleased — Hash filename + slug-friendly lookup + multi-dev guide (F-085)
 
 **Closes the multi-dev concurrency loop.** v0.3.9 introduced the hash-id model but kept the filename at `<slug>.yaml`, meaning two contributors with the same slug still throw on the second `createFeature` call. v0.3.10 moves the hash into the filename itself (`<slug>-<hash6>.yaml`) so file paths are silently unique by construction across branches, and adds slug-friendly lookup tooling so users don't need to remember hex hashes.
