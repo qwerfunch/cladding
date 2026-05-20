@@ -139,6 +139,45 @@ export async function interpretWithLlm(
 }
 
 /**
+ * Best-effort variant of {@link interpretWithLlm} that collapses to
+ * {@link deterministicInterpret} when the dispatcher is null or
+ * throws. Mirrors the {@link renderProjectContextMdWithLlm} contract
+ * so init.ts can route both scan-artifact and project-context
+ * refinement through the same dispatcher selection without
+ * try/catch boilerplate.
+ *
+ * Why a separate helper rather than letting init.ts wrap
+ * interpretWithLlm directly: parse failure (missing sentinels,
+ * blank reply, malformed YAML in the architecture section) should
+ * also collapse to deterministic so the user always gets a
+ * loadable artifact. Centralising the policy here keeps the two
+ * refinement paths symmetric.
+ *
+ * @param scan The deterministic scan output to refine.
+ * @param dispatcher LLM dispatcher; pass `null` to force deterministic.
+ */
+export async function interpretScanWithFallback(
+  scan: ScanResult,
+  dispatcher: ScanLlmDispatcher | null,
+): Promise<InterpretedScan> {
+  if (dispatcher === null) return deterministicInterpret(scan);
+  try {
+    const interp = await interpretWithLlm(scan, dispatcher);
+    // Defensive: a dispatcher reply that does not contain the
+    // sentinels parses into empty strings; an empty
+    // architectureYaml is not a valid spec/architecture.yaml. Fall
+    // back to deterministic so reviewers see real layer names
+    // instead of a one-line stub.
+    if (!interp.architectureYaml.trim() || !interp.conventionsMd.replace(HEADER, '').trim()) {
+      return deterministicInterpret(scan);
+    }
+    return interp;
+  } catch {
+    return deterministicInterpret(scan);
+  }
+}
+
+/**
  * `--no-llm` fallback. Builds artifacts straight from the scan data
  * with no LLM call. The conventions doc becomes a structured table
  * (less prose, same facts); architecture.yaml carries the observed

@@ -15,7 +15,7 @@ import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {basename, dirname, join, resolve} from 'node:path';
 
 import {
-  deterministicInterpret,
+  interpretScanWithFallback,
   renderProjectContextMd,
   renderProjectContextMdWithLlm,
   scanRoot,
@@ -179,15 +179,26 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
 
   const proposals: string[] = [];
 
-  // Phase 2 (v0.3.24, F-x) — Existing-project scan. When `--scan` is
-  // set we walk `cwd` for code conventions, layers, and representative
-  // modules, then write three artifacts (or divert them to
-  // `.cladding/scan/*.proposal.*` if the authored copies already
-  // exist). The v0.3.24 path uses the deterministic interpreter; the
-  // LLM dispatcher injection lands in v0.3.25 so the scan-llm.ts
-  // contract is in place but not yet routed to MCP sampling.
+  // v0.3.35 — dispatcher is selected once and routed through both the
+  // scan-artifact refinement and the project-context refinement so a
+  // hosted environment refines every cladding-authored markdown in a
+  // single dispatcher session. --no-llm / no-key / no-host all
+  // collapse to deterministic for byte-stable CI output.
+  const dispatcher = selectDispatcher({noLlm: opts.noLlm});
+
+  // Phase 2 (v0.3.24, F-x) — Existing-project scan. When the scan
+  // gate fires we walk `cwd` for code conventions, layers, and
+  // representative modules, then write three artifacts (or divert
+  // them to `.cladding/scan/*.proposal.*` if the authored copies
+  // already exist).
+  //
+  // v0.3.35 — interpretScanWithFallback awaits the LLM when a
+  // dispatcher is available (polished prose for docs/conventions.md
+  // and richer responsibility comments for spec/architecture.yaml)
+  // and collapses to deterministicInterpret on null/error so the
+  // artifacts are always usable.
   if (shouldWriteScanArtifacts && scanResult) {
-    const interp: InterpretedScan = deterministicInterpret(scanResult);
+    const interp: InterpretedScan = await interpretScanWithFallback(scanResult, dispatcher);
 
     writeArtifact(cwd, 'docs/conventions.md', interp.conventionsMd, created, proposals);
     writeArtifact(cwd, 'spec/architecture.yaml', interp.architectureYaml, created, proposals);
@@ -210,7 +221,6 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
   // polished prose. Greenfield + no-LLM environments still receive
   // the deterministic template; the dispatcher failure path also
   // collapses to deterministic so the file is always usable.
-  const dispatcher = selectDispatcher({noLlm: opts.noLlm});
   const projectContext = scanResult?.projectContext ?? null;
   const projectContextMd = dispatcher
     ? await renderProjectContextMdWithLlm(projectContext, projectName, dispatcher)

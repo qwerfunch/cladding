@@ -11,6 +11,7 @@ import {
   buildPrompt,
   buildProjectContextPrompt,
   deterministicInterpret,
+  interpretScanWithFallback,
   interpretWithLlm,
   parseLlmResponse,
   parseProjectContextResponse,
@@ -255,5 +256,54 @@ describe('renderProjectContextMdWithLlm', () => {
     expect(md).toContain('A small library that does one focused thing.');
     expect(md).not.toContain('with LLM refinement');
     expect(dispatch).toHaveBeenCalledOnce();
+  });
+});
+
+// v0.3.35 — interpretScanWithFallback wraps interpretWithLlm with the
+// deterministic-fallback policy so init.ts can route both scan
+// artifacts and project-context through one dispatcher selection.
+describe('interpretScanWithFallback', () => {
+  test('returns mode=deterministic when dispatcher is null', async () => {
+    const r = await interpretScanWithFallback(fakeScan(), null);
+    expect(r.mode).toBe('deterministic');
+    expect(r.architectureYaml).toContain('name: core');
+  });
+
+  test('returns mode=llm and refined body when dispatcher succeeds', async () => {
+    const dispatch = vi.fn(async () =>
+      '=== CONVENTIONS_MD ===\n# Refined conventions\nProse here.\n' +
+        '=== ARCHITECTURE_YAML ===\nversion: "0.1"\nlayers:\n  - name: core\n    modules: ["core/**"]\n    forbidden_imports: []\n' +
+        '=== SCENARIO_FLOWS ===\ncore-flow: refined flow\ncli-flow: refined cli\n',
+    );
+    const r = await interpretScanWithFallback(fakeScan(), dispatch);
+    expect(r.mode).toBe('llm');
+    expect(r.conventionsMd).toContain('Refined conventions');
+    expect(r.architectureYaml).toContain('name: core');
+    expect(r.scenarioFlows.get('core-flow')).toBe('refined flow');
+  });
+
+  test('collapses to deterministic when dispatcher throws', async () => {
+    const dispatch = vi.fn<(p: string) => Promise<string>>(async () => {
+      throw new Error('transport down');
+    });
+    const r = await interpretScanWithFallback(fakeScan(), dispatch);
+    expect(r.mode).toBe('deterministic');
+    expect(dispatch).toHaveBeenCalledOnce();
+  });
+
+  test('collapses to deterministic when dispatcher returns empty architecture section', async () => {
+    const dispatch = vi.fn(async () => '=== CONVENTIONS_MD ===\n# only conv\n');
+    const r = await interpretScanWithFallback(fakeScan(), dispatch);
+    expect(r.mode).toBe('deterministic');
+    // Layer name from deterministic, not from the empty LLM reply.
+    expect(r.architectureYaml).toContain('name: core');
+  });
+
+  test('collapses to deterministic when dispatcher returns header-only conventions', async () => {
+    const dispatch = vi.fn(async () =>
+      '=== CONVENTIONS_MD ===\n\n=== ARCHITECTURE_YAML ===\nversion: "0.1"\nlayers: []\n',
+    );
+    const r = await interpretScanWithFallback(fakeScan(), dispatch);
+    expect(r.mode).toBe('deterministic');
   });
 });

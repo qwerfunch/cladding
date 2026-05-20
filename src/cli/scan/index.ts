@@ -77,6 +77,7 @@ export {
   buildPrompt,
   buildProjectContextPrompt,
   deterministicInterpret,
+  interpretScanWithFallback,
   interpretWithLlm,
   parseLlmResponse,
   parseProjectContextResponse,
