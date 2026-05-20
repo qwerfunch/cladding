@@ -203,6 +203,125 @@ describe('scanRoot', () => {
     });
   });
 
+  // v0.3.26 (F-x) — polyglot expansion. The audit found Go/Rust
+  // repos producing empty architecture.yaml because their file
+  // extensions never reached the walker. Verify each new language
+  // surfaces its top-level dirs as layers.
+  describe('polyglot default extensions (v0.3.26)', () => {
+    test('Go (.go) files create layers', () => {
+      seed(dir, {
+        'src/handlers/auth.go': 'package handlers\n\nfunc Login() {}\n',
+        'src/db/user.go': 'package db\n\nfunc Insert() {}\n',
+      });
+      const names = scanRoot({cwd: dir}).architecture.layers.map((l) => l.name).sort();
+      expect(names).toEqual(['db', 'handlers']);
+    });
+
+    test('Rust (.rs) files create layers', () => {
+      seed(dir, {
+        'src/parser/mod.rs': 'pub fn parse() {}\n',
+        'src/runtime/exec.rs': 'pub fn run() {}\n',
+      });
+      const names = scanRoot({cwd: dir}).architecture.layers.map((l) => l.name).sort();
+      expect(names).toEqual(['parser', 'runtime']);
+    });
+
+    test('Java + Kotlin files create layers', () => {
+      seed(dir, {
+        'src/api/UserController.java': 'public class UserController {}\n',
+        'src/service/UserService.kt': 'fun login() {}\n',
+      });
+      const names = scanRoot({cwd: dir}).architecture.layers.map((l) => l.name).sort();
+      expect(names).toEqual(['api', 'service']);
+    });
+  });
+
+  // v0.3.26 (F-x) — peer directories (tests/, docs/, examples/, …)
+  // must walk so their files feed the convention analyzer, but they
+  // must NOT show up as architectural layers. Case-insensitive
+  // blacklist also covers Tests/, Playground/, etc.
+  describe('layer blacklist (v0.3.26)', () => {
+    test('tests/ files feed testLocation but are excluded from layers', () => {
+      seed(dir, {
+        'src/core/x.ts': 'export const x = 1;\n',
+        'tests/x.test.ts': "import {x} from '../src/core/x.js';\nx;\n",
+      });
+      const r = scanRoot({cwd: dir});
+      const names = r.architecture.layers.map((l) => l.name);
+      expect(names).toContain('core');
+      expect(names).not.toContain('tests');
+      expect(r.conventions.testLocation).toBe('tests-dir');
+    });
+
+    test('docs/, examples/, typings/ are blacklisted from layers', () => {
+      seed(dir, {
+        'src/core/a.ts': 'export const a = 1;\n',
+        'examples/demo.ts': 'export const demo = 1;\n',
+        'docs/api/foo.ts': 'export const foo = 1;\n',
+        'typings/decl.d.ts': 'declare const x: number;\n',
+      });
+      const names = scanRoot({cwd: dir}).architecture.layers.map((l) => l.name);
+      expect(names).toEqual(['core']);
+    });
+
+    test('case-insensitive blacklist hides Tests/ and Playground/', () => {
+      seed(dir, {
+        'src/lib/a.swift': 'public func a() {}\n',
+        'Tests/aTest.swift': 'func test() {}\n',
+        'Playground/p.swift': 'let x = 1\n',
+      });
+      const names = scanRoot({cwd: dir}).architecture.layers.map((l) => l.name);
+      expect(names).toEqual(['lib']);
+    });
+
+    test('monorepo blacklist drops <ws>:tests but keeps <ws>:src', () => {
+      seed(dir, {
+        'package.json': JSON.stringify({workspaces: ['packages/*']}),
+        'packages/a/src/core/x.ts': 'export const x = 1;\n',
+        'packages/a/src/tests/y.ts': 'export const y = 2;\n',
+      });
+      const names = scanRoot({cwd: dir}).architecture.layers.map((l) => l.name);
+      expect(names).toContain('a:core');
+      expect(names).not.toContain('a:tests');
+    });
+  });
+
+  // v0.3.26 — language-specific docstring heuristics
+  describe('multi-language docblock detection (v0.3.26)', () => {
+    test('Python triple-quoted docstrings count toward docBlockRatio', () => {
+      seed(dir, {
+        'src/lib/x.py': '"""module doc."""\n\ndef greet(name):\n    """Say hi."""\n    return f"hi {name}"\n',
+      });
+      const c = scanRoot({cwd: dir}).conventions;
+      expect(c.docBlockRatio).toBeGreaterThan(0);
+      // Triple-quoted strings populate Python-specific tag counts when present.
+    });
+
+    test('Rust /// doc comments count toward docBlockRatio', () => {
+      seed(dir, {
+        'src/lib/x.rs': '/// Adds one to a number.\npub fn add_one(x: i32) -> i32 { x + 1 }\n',
+      });
+      expect(scanRoot({cwd: dir}).conventions.docBlockRatio).toBeGreaterThan(0);
+    });
+
+    test('Go leading // block above func counts toward docBlockRatio', () => {
+      seed(dir, {
+        'src/lib/x.go': '// Hello greets the user.\nfunc Hello() {}\n',
+      });
+      expect(scanRoot({cwd: dir}).conventions.docBlockRatio).toBeGreaterThan(0);
+    });
+
+    test('Python Args:/Returns: sections surface as doc tag counts', () => {
+      seed(dir, {
+        'src/lib/x.py':
+          'def greet(name):\n    """Hello.\n\n    Args:\n        name: who.\n\n    Returns:\n        str.\n    """\n    return name\n',
+      });
+      const tags = scanRoot({cwd: dir}).conventions.docTagCounts;
+      expect(tags['Args:']).toBe(1);
+      expect(tags['Returns:']).toBe(1);
+    });
+  });
+
   // v0.3.25 (F-x) — forbidden_imports candidates. The architecture
   // extractor records every layer pair the import graph never
   // exercised; the candidate set surfaces in architecture.yaml as a
