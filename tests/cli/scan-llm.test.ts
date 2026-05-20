@@ -61,6 +61,7 @@ function fakeScan(): ScanResult {
       dominantLanguage: 'typescript',
       sourceRoot: '/tmp/proj/src',
     },
+    projectContext: null,
   };
 }
 

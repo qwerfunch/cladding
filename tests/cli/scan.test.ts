@@ -533,6 +533,73 @@ describe('scanRoot', () => {
     });
   });
 
+  // v0.3.32 — `docs/project-context.md` forest-level extraction.
+  // Pulls README first paragraph + headings + sibling-doc links +
+  // representative interface signatures so AI maintainers always
+  // see the project's Why before diving into code-level conventions.
+  describe('project context extraction (v0.3.32)', () => {
+    test('README first paragraph is captured raw', () => {
+      seed(dir, {
+        'README.md':
+          '# Project\n\nThe one-line description sits here.\nMore on the second line.\n\n## Features\n- one\n',
+        'src/lib/a.ts': 'export const a = 1;\n',
+      });
+      const ctx = scanRoot({cwd: dir}).projectContext;
+      expect(ctx).not.toBeNull();
+      expect(ctx!.readmeFirstParagraph).toContain('one-line description');
+    });
+
+    test('README headings list (## level) is captured in order', () => {
+      seed(dir, {
+        'README.md': '# X\n\nintro\n\n## Install\n## Usage\n## Contributing\n',
+        'src/lib/a.ts': 'export const a = 1;\n',
+      });
+      const ctx = scanRoot({cwd: dir}).projectContext;
+      expect(ctx!.readmeHeadings).toEqual(['Install', 'Usage', 'Contributing']);
+    });
+
+    test('sibling docs (ARCHITECTURE / CONTRIBUTING) surface with first line', () => {
+      seed(dir, {
+        'README.md': '# X\n\nintro\n',
+        'ARCHITECTURE.md': '# Architecture\n\nLayered diagram below.\n',
+        'CONTRIBUTING.md': 'Welcome! How to contribute.\n',
+        'src/lib/a.ts': 'export const a = 1;\n',
+      });
+      const ctx = scanRoot({cwd: dir}).projectContext!;
+      const paths = ctx.docLinks.map((d) => d.path);
+      expect(paths).toContain('ARCHITECTURE.md');
+      expect(paths).toContain('CONTRIBUTING.md');
+    });
+
+    test('interface signatures from the largest layer are quoted', () => {
+      seed(dir, {
+        'README.md': '# X\n\nintro\n',
+        'src/core/a.ts': 'export interface Foo { bar: string }\nexport const x = 1;\n',
+        'src/core/b.ts': 'export class Baz { qux() {} }\n',
+        'src/core/c.ts': 'export const c = 1;\n',
+      });
+      const sigs = scanRoot({cwd: dir}).projectContext!.interfaceSignatures;
+      const all = sigs.flatMap((s) => s.signatures).join('\n');
+      expect(all).toContain('interface Foo');
+      expect(all).toContain('class Baz');
+    });
+
+    test('absent README + absent docs + empty source produces null', () => {
+      // Empty cwd (just the scratch dir).
+      const ctx = scanRoot({cwd: dir}).projectContext;
+      expect(ctx).toBeNull();
+    });
+
+    test('README-only project (no source) still surfaces context', () => {
+      seed(dir, {
+        'README.md': '# X\n\nA project with docs but no code yet.\n',
+      });
+      const ctx = scanRoot({cwd: dir}).projectContext;
+      expect(ctx).not.toBeNull();
+      expect(ctx!.readmeFirstParagraph).toContain('docs but no code');
+    });
+  });
+
   // v0.3.31 — I18 LAYER_BLACKLIST expansion. HomebrewFormula,
   // docs_src, formulas, packaging directories used to surface as
   // layers, polluting the architecture view.

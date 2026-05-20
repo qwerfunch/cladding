@@ -14,7 +14,12 @@
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {basename, dirname, join, resolve} from 'node:path';
 
-import {deterministicInterpret, scanRoot, type InterpretedScan} from './scan/index.js';
+import {
+  deterministicInterpret,
+  renderProjectContextMd,
+  scanRoot,
+  type InterpretedScan,
+} from './scan/index.js';
 import {detectToolchain} from '../stages/toolchain/detect.js';
 
 export interface InitOptions {
@@ -122,11 +127,21 @@ export function runInit(opts: InitOptions = {}): InitResult {
   // I13 (v0.3.27) — `detectToolchain` reads manifests (package.json
   // wins first), which mis-identifies polyglot repos that ship a
   // package.json for tooling but are written in Python / Go / Ruby /
-  // Swift. When `--scan` runs we also know the file-extension
-  // majority; prefer that signal over the manifest guess.
+  // Swift. When scan runs we also know the file-extension majority;
+  // prefer that signal over the manifest guess.
+  //
+  // v0.3.32 — scan auto-detect. `opts.scan === false` (--no-scan)
+  // skips the walker entirely; otherwise scan always runs and the
+  // result decides whether conventions/architecture artifacts are
+  // worth writing. `docs/project-context.md` is written regardless
+  // (template when there is nothing observable).
   const detected = detectToolchain(cwd).language;
   const manifestLanguage = detected === 'unknown' ? 'typescript' : detected;
-  const scanResult = opts.scan ? scanRoot({cwd, roots: opts.roots}) : null;
+  const scanResult = opts.scan === false ? null : scanRoot({cwd, roots: opts.roots});
+  const SCAN_AUTO_THRESHOLD = 3;
+  const shouldWriteScanArtifacts =
+    scanResult !== null &&
+    (opts.scan === true || scanResult.stats.filesScanned >= SCAN_AUTO_THRESHOLD);
   const language =
     scanResult && scanResult.stats.dominantLanguage !== 'unknown' && scanResult.stats.dominantLanguage !== 'other'
       ? scanResult.stats.dominantLanguage
@@ -169,7 +184,7 @@ export function runInit(opts: InitOptions = {}): InitResult {
   // exist). The v0.3.24 path uses the deterministic interpreter; the
   // LLM dispatcher injection lands in v0.3.25 so the scan-llm.ts
   // contract is in place but not yet routed to MCP sampling.
-  if (opts.scan && scanResult) {
+  if (shouldWriteScanArtifacts && scanResult) {
     const interp: InterpretedScan = deterministicInterpret(scanResult);
 
     writeArtifact(cwd, 'docs/conventions.md', interp.conventionsMd, created, proposals);
@@ -183,6 +198,19 @@ export function runInit(opts: InitOptions = {}): InitResult {
     // populated YAMLs.
     writeArtifact(cwd, 'spec/scenarios/README.md', SCENARIOS_README, created, proposals);
   }
+
+  // v0.3.32 — `docs/project-context.md` is the forest-level entry
+  // document and ships in *every* cladding workspace regardless of
+  // whether the scan artifacts were written. When the scan picked
+  // up README + sibling docs the body quotes what it observed; when
+  // there is nothing observable the body is a template the user
+  // fills in. Either way the file lives at the same path so an AI
+  // maintainer always finds the *why* first.
+  const projectContextMd = renderProjectContextMd(
+    scanResult?.projectContext ?? null,
+    projectName,
+  );
+  writeArtifact(cwd, 'docs/project-context.md', projectContextMd, created, proposals);
 
   return {created, skipped, language, proposals: proposals.length ? proposals : undefined};
 }

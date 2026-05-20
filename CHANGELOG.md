@@ -5,6 +5,41 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.32] — Unreleased — docs/project-context.md forest-level entry document (F-c8aef8)
+
+**Forest before trees.** Every cladding workspace now ships a `docs/project-context.md` — the *Why / What / Purpose* document. Cladding's earlier surface (`docs/conventions.md` + `spec/architecture.yaml` + `spec/scenarios/`) covered code conventions and layers but never the project's *raison d'être*. v0.3.32 fills that gap with deterministic extraction (README + sibling docs + representative interfaces) when observable, a fill-in template otherwise. AI maintainers joining a cladding-managed project always find the *why* first.
+
+### Added
+
+- `src/cli/scan/docs.ts` (new) — four deterministic extractors:
+  - `extractReadmeFirstParagraph(cwd)` — skips decorative HTML wrappers + badges, returns prose
+  - `extractReadmeHeadings(cwd)` — top-10 `## ` headings in document order
+  - `extractDocLinks(cwd)` — ARCHITECTURE/CONTRIBUTING/GOVERNANCE/SECURITY/CODE_OF_CONDUCT + `docs/*.md`, top-5 with first content line quoted
+  - `extractInterfaceSignatures(filesByLayer)` — top-2 layers by module count, top-3 `export interface`/`export class` per layer
+- `src/cli/scan/types.ts` — `ProjectContext` type + `ScanResult.projectContext: ProjectContext | null`
+- `src/cli/scan/llm.ts` — `renderProjectContextMd(ctx, projectName)` renders observed body or template fallback (Why / What / Purpose / Top-level capabilities sections)
+- `src/cli/init.ts` — `docs/project-context.md` written on every `clad init` (always). Scan artifact gate (`shouldWriteScanArtifacts`) auto-detects: scan only writes `docs/conventions.md` + `spec/architecture.yaml` + scenarios README when ≥ 3 source files observed or `--scan` forced
+- 6 new tests covering README extraction, headings, doc links, interface signatures, absent-README null path, and README-only project
+- `clad init --scan` description updated — "auto-detect by default, `--no-scan` to skip"
+
+### Notes
+
+- 715 + 6 new tests = **721/721** passing; lint clean; typecheck clean; drift-green at 105 features; bundle 1.1 MB.
+- cobra rescan: project-context.md opens with `> Cobra is a library for creating powerful modern CLI applications.` — HTML wrappers stripped.
+- fastapi rescan: same — `> FastAPI framework, high performance, easy to learn, fast to code, ready for production` after HTML strip.
+- README-absent / source-absent projects get the template (Why / What / Purpose fill-in sections + Top-level capabilities checkboxes).
+- Greenfield + brownfield share the same output path — origin differs (template vs observed), location identical.
+
+### Symmetry
+
+Feature + scenario + capabilities are *miniature-map style*: empty at adoption time, grow as the user requests features. `docs/project-context.md` is *forest-level*: always present, observed when possible, template otherwise. The two halves balance — observable surface auto-extracted, declared intent waits for user request.
+
+### Roadmap
+
+- v0.3.33+ — LLM refinement of Why/Purpose (raw README quote → polished prose)
+- v0.3.34+ — `clad_create_feature` auto-registers scenario + capability id (LLM dispatcher chain)
+- v0.4+ — `spec/capabilities.yaml` tree (capabilities grow miniature-map style as features request them)
+
 ## [0.3.31] — Unreleased — Scan audit P1 deterministic fix — cwd resolve + forbidden prune + non-source blacklist (F-aa7197)
 
 **5차 audit P1 residuals closed.** Three deterministic improvements close the remaining noise the 5차 audit (2026-05-20) flagged in the real-world OSS corpus: cobra's `.` layer-name bug, `forbidden_imports` N×N matrix bloat (ripgrep 195 + vitest 380+ entries), and non-source directories (HomebrewFormula / docs_src / formulas / packaging) surfacing as architecture layers.

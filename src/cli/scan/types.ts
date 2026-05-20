@@ -90,12 +90,34 @@ export interface ExampleQuote {
   readonly testContent?: string;
 }
 
+/**
+ * Forest-level project context extracted from README + sibling docs.
+ * Lives at `docs/project-context.md` once init renders it. Null when
+ * the project has no README — caller renders the template instead.
+ *
+ * v0.3.32 — every field is observed text (no LLM inference yet);
+ * v0.3.33+ adds a parallel LLM-refined section so the "Why" and
+ * "Purpose" surface as clean prose instead of raw README quotes.
+ */
+export interface ProjectContext {
+  /** First paragraph of README.md, raw quoted. Null if no README. */
+  readonly readmeFirstParagraph: string | null;
+  /** `## ` heading list from README, top-10 in document order. */
+  readonly readmeHeadings: readonly string[];
+  /** Sibling docs found (ARCHITECTURE.md, CONTRIBUTING.md, docs/*.md), top-5. */
+  readonly docLinks: readonly {readonly path: string; readonly firstLine: string}[];
+  /** TS interface/class signatures from the two largest layers, top-3 each. */
+  readonly interfaceSignatures: readonly {readonly layer: string; readonly signatures: readonly string[]}[];
+}
+
 export interface ScanResult {
   readonly conventions: Conventions;
   readonly architecture: ArchitectureScan;
   readonly scenarios: readonly ScenarioStub[];
   readonly examples: readonly ExampleQuote[];
   readonly stats: ScanStats;
+  /** Forest-level context (v0.3.32). Null when README is absent. */
+  readonly projectContext: ProjectContext | null;
 }
 
 export interface ScanStats {
