@@ -27,6 +27,7 @@ project:
   language: typescript
 features:
   - id: F-001
+    slug: alpha-feature
     title: alpha
     status: planned
     modules: []
@@ -35,6 +36,7 @@ features:
         ears: ubiquitous
         text: probe AC for serve tests
   - id: F-002
+    slug: beta-auth-flow
     title: beta
     status: done
     modules: []
@@ -136,6 +138,74 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
+  test('clad_list_features slugSubstring filter (F-085, v0.3.10)', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const result = await client.callTool({
+        name: 'clad_list_features',
+        arguments: {slugSubstring: 'auth'},
+      });
+      const text = (result.content as Array<{type: string; text: string}>)[0].text;
+      const parsed = JSON.parse(text);
+      // Only F-002 has slug 'beta-auth-flow' containing 'auth'
+      expect(parsed.total).toBe(1);
+      expect(parsed.features[0].id).toBe('F-002');
+      expect(parsed.features[0].slug).toBe('beta-auth-flow');
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('clad_list_features sort=recent returns array (F-085, v0.3.10)', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const result = await client.callTool({
+        name: 'clad_list_features',
+        arguments: {sort: 'recent'},
+      });
+      const text = (result.content as Array<{type: string; text: string}>)[0].text;
+      const parsed = JSON.parse(text);
+      // Without per-feature yaml files on disk in this test, mtime
+      // falls back to 0 for all, so the order is just stable. Assert
+      // the response shape is correct (total + features array).
+      expect(parsed.total).toBe(2);
+      expect(parsed.features).toHaveLength(2);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('clad_get_feature accepts slug lookup (F-085, v0.3.10)', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const result = await client.callTool({
+        name: 'clad_get_feature',
+        arguments: {slug: 'beta-auth-flow'},
+      });
+      const text = (result.content as Array<{type: string; text: string}>)[0].text;
+      const parsed = JSON.parse(text);
+      expect(parsed.id).toBe('F-002');
+      expect(parsed.slug).toBe('beta-auth-flow');
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('clad_get_feature without id or slug returns an error (F-085, v0.3.10)', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const result = await client.callTool({
+        name: 'clad_get_feature',
+        arguments: {},
+      });
+      expect(result.isError).toBe(true);
+      const text = (result.content as Array<{type: string; text: string}>)[0].text;
+      expect(text).toMatch(/provide either id or slug/);
+    } finally {
+      await cleanup();
+    }
+  });
+
   test('clad_get_feature returns a single feature when found', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
@@ -207,7 +277,9 @@ describe('serve/server — MCP read surface', () => {
       const parsed = JSON.parse(text);
       expect(parsed.slug).toBe('new-login-flow');
       expect(parsed.id).toMatch(/^F-[a-f0-9]{6}$/);
-      expect(parsed.path).toContain('spec/features/new-login-flow.yaml');
+      // v0.3.10: filename is `<slug>-<hash>.yaml` so the hash entropy
+      // distinguishes concurrent invocations.
+      expect(parsed.path).toMatch(/spec\/features\/new-login-flow-[a-f0-9]{6}\.yaml$/);
       expect(result.isError).not.toBe(true);
     } finally {
       await cleanup();

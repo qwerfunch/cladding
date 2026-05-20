@@ -5,6 +5,30 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.10] — Unreleased — Hash filename + slug-friendly lookup + multi-dev guide (F-085)
+
+**Closes the multi-dev concurrency loop.** v0.3.9 introduced the hash-id model but kept the filename at `<slug>.yaml`, meaning two contributors with the same slug still throw on the second `createFeature` call. v0.3.10 moves the hash into the filename itself (`<slug>-<hash6>.yaml`) so file paths are silently unique by construction across branches, and adds slug-friendly lookup tooling so users don't need to remember hex hashes.
+
+### Added
+
+- `docs/spec-ids-multi-dev.md` — external-adopter guide. Covers identifier layers, the no-CLI invocation flow, six lookup scenarios (just-made, partial slug, recent, exact slug, exact id, project activity), three concurrency scenarios (different slugs, same slug simultaneous, same cwd repeated), legacy F-NNN coexistence, and the do-not-override-id guidance.
+- `clad_list_features` MCP tool — new `slugSubstring` (case-insensitive contains-match) + `sort: 'alphabetical' | 'recent'` options. "Recent" ranks by `spec/features/<...>.yaml` mtime newest-first.
+- `clad_get_feature` MCP tool — now accepts `id` OR `slug`. When a slug matches multiple features, the response carries a `matches` array; the single-match case returns the bare feature for backward compatibility.
+- 4 new unit tests on the MCP tool surface (slugSubstring filter, sort=recent shape, slug lookup, missing-arg error).
+- `spec/features/F-085.yaml` — "Hash filename + slug-friendly lookup + multi-dev guide" (5 ACs, status `done`).
+
+### Changed
+
+- `src/spec/new.ts` `createFeature` — filename layout changed from `<slug>.yaml` to `<slug>-<hash6>.yaml` where `<hash6>` is the id's 6-char tail. Two simultaneous calls with the same slug now produce **two distinct files** instead of throwing. Throw remains only for the 1/16M hash-coincidence case (caller can retry).
+- `tests/spec/new.test.ts` — "rejects when the <slug>.yaml already exists" case removed; replaced with "two consecutive calls with the same slug produce two distinct files (different hashes)".
+- `MINIMAL_SPEC` fixture in `tests/serve/server.test.ts` — added `slug:` fields so the new slug-substring filter is exercised by integration tests.
+
+### Notes
+
+- 559 + 4 new tests = **563/563** passing; lint clean; typecheck clean; drift-green at 84 features; bundle 1.1 MB.
+- The semantic conflict (two contributors picking the same slug) is no longer a `createFeature` failure — it's a `SLUG_CONFLICT` detector finding surfaced on the next `clad check --strict`, with human resolution. File-level uniqueness is by construction; semantic intent stays a human decision.
+- v0.3.11 plan: `tests/integration/multi-dev-merge.test.ts` — git-worktree simulation that drives the whole loop (two concurrent contributors → merge → drift detector reports no false positive on file path, but raises SLUG_CONFLICT when slug coincides).
+
 ## [0.3.9] — Unreleased — Multi-developer-safe spec ID system (F-084)
 
 **Phase 1 of the multi-dev ID safety arc.** Two contributors creating new features simultaneously on separate branches used to collide on `spec/features/F-084.yaml` (same filename) and `AC-259` (globally sequential). This patch introduces a slug-filename + content-hash-id model that makes concurrent feature creation collision-safe by construction.

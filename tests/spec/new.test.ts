@@ -26,11 +26,13 @@ describe('createFeature (F-084, v0.3.9)', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('happy path — writes spec/features/<slug>.yaml with hash id', () => {
+  test('happy path — writes spec/features/<slug>-<hash>.yaml with hash id', () => {
     const r = createFeature({slug: 'login-flow', cwd: dir});
     expect(r.slug).toBe('login-flow');
     expect(r.id).toMatch(/^F-[a-f0-9]{6}$/);
-    expect(r.path).toBe(join(dir, 'spec', 'features', 'login-flow.yaml'));
+    // filename = slug + hash; hash matches the id tail
+    const hash = r.id.slice(2);
+    expect(r.path).toBe(join(dir, 'spec', 'features', `login-flow-${hash}.yaml`));
     expect(existsSync(r.path)).toBe(true);
   });
 
@@ -79,9 +81,18 @@ describe('createFeature (F-084, v0.3.9)', () => {
     );
   });
 
-  test('rejects when the <slug>.yaml already exists', () => {
-    createFeature({slug: 'existing-feature', cwd: dir});
-    expect(() => createFeature({slug: 'existing-feature', cwd: dir})).toThrow(/already exists/);
+  test('two consecutive calls with the same slug produce two distinct files (different hashes)', () => {
+    const r1 = createFeature({slug: 'login-flow', cwd: dir});
+    const r2 = createFeature({slug: 'login-flow', cwd: dir});
+    // Same slug field inside yaml; different filenames because the
+    // hash entropy distinguishes them. This is the multi-dev safety
+    // property: no auto-suffix needed, the hash silently disambiguates.
+    expect(r1.slug).toBe('login-flow');
+    expect(r2.slug).toBe('login-flow');
+    expect(r1.id).not.toBe(r2.id);
+    expect(r1.path).not.toBe(r2.path);
+    expect(existsSync(r1.path)).toBe(true);
+    expect(existsSync(r2.path)).toBe(true);
   });
 
   test('two distinct slugs produce two distinct hash ids', () => {
