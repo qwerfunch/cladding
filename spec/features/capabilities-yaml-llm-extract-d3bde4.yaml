@@ -1,0 +1,42 @@
+id: F-d3bde4
+slug: capabilities-yaml-llm-extract
+title: spec/capabilities.yaml LLM extraction from README headings (v0.3.38)
+status: done
+modules:
+  - src/cli/scan/llm.ts
+  - src/cli/scan/index.ts
+  - src/cli/init.ts
+depends_on:
+  - F-17df0a
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: add a fourth labelled section to the scan-artifact LLM prompt that asks the dispatcher to emit a spec/capabilities.yaml body derived from observed README headings
+    response: 'src/cli/scan/llm.ts buildPrompt grows a === CAPABILITIES_YAML === sentinel that documents the {schema "0.1", source README.md, capabilities [{id, title, summary, surface}]} schema and packs the README headings (from scan.projectContext.readmeHeadings) into a labelled "--- README headings (capability candidates) ---" block; parseLlmResponse extracts the new section alongside the existing three; the dispatcher therefore round-trips four artifacts per init in a single MCP sampling or Anthropic SDK call'
+    text: The system shall add a fourth labelled section to the scan-artifact LLM prompt that asks the dispatcher to emit a spec/capabilities.yaml body derived from observed README headings so the dispatcher refines every cladding-authored artifact in a single round-trip.
+    test_refs: [tests/cli/scan-llm.test.ts]
+  - id: AC-002
+    ears: ubiquitous
+    action: export a deterministic renderCapabilitiesYaml(headings) that converts each README heading into a kebab-slug id plus the verbatim title so --no-llm runs still ship a usable spec/capabilities.yaml
+    response: 'src/cli/scan/llm.ts exports renderCapabilitiesYaml which emits a schema "0.1" / source README.md header, then either capabilities [] when the headings array is empty or one {id, title} entry per heading otherwise; the slugifier lowercases, expands "&" to "and", collapses non-alphanumerics into dashes, and falls back to "capability" when the slug would be empty; titles are double-quoted with embedded quote escaping so headings containing ":" or "&" stay YAML-safe; deterministicInterpret + the per-artifact LLM fallback in interpretWithLlm both call this renderer'
+    text: The system shall export a deterministic renderCapabilitiesYaml(headings) that converts each README heading into a kebab-slug id plus the verbatim title so --no-llm runs still ship a usable spec/capabilities.yaml.
+    test_refs: [tests/cli/scan-llm.test.ts]
+  - id: AC-003
+    ears: state
+    condition: while the dispatcher returns a reply whose CAPABILITIES_YAML section is blank or missing but the conventions and architecture sentinels still parse
+    action: keep the overall mode as llm and substitute the deterministic capabilities body for the missing section
+    response: 'interpretWithLlm inspects sections.capabilities.trim(); when blank it substitutes renderCapabilitiesYaml(scan.projectContext?.readmeHeadings ?? []) into the InterpretedScan.capabilitiesYaml field while leaving conventionsMd, architectureYaml, and scenarioFlows on the LLM-refined path; the resulting InterpretedScan still reports mode === llm because conventions and architecture passed their sentinel gates — capabilities is a per-artifact fallback rather than a total-fallback trigger'
+    text: While the dispatcher returns a reply whose CAPABILITIES_YAML section is blank or missing but the conventions and architecture sentinels still parse, the system shall keep the overall mode as llm and substitute the deterministic capabilities body for the missing section.
+    test_refs: [tests/cli/scan-llm.test.ts]
+  - id: AC-004
+    ears: ubiquitous
+    action: extend InterpretedScan with a capabilitiesYaml field and write the result to spec/capabilities.yaml from runInit alongside the existing scan artifacts
+    response: 'src/cli/scan/llm.ts InterpretedScan grows a capabilitiesYaml string field that both interpretWithLlm and deterministicInterpret populate; src/cli/init.ts writeArtifact(cwd, "spec/capabilities.yaml", interp.capabilitiesYaml, created, proposals) lands directly after the spec/architecture.yaml write so the new artifact follows the same created-vs-proposal divert policy when the file already exists'
+    text: The system shall extend InterpretedScan with a capabilitiesYaml field and write the result to spec/capabilities.yaml from runInit alongside the existing scan artifacts so adopters receive the capability inventory automatically.
+    evidence_refs: [src/cli/init.ts, src/cli/scan/llm.ts]
+  - id: AC-005
+    ears: ubiquitous
+    action: update the project-context renderers to reference spec/capabilities.yaml as the canonical capability mirror now that it ships as a real artifact
+    response: 'src/cli/scan/llm.ts renderProjectContextRefined and renderProjectContextObserved replace the "_Reviewer interprets as capabilities — refine into spec/capabilities.yaml once v0.4 lands._" placeholder with "_Mirrored into spec/capabilities.yaml; LLM-refined when a dispatcher is available._" and add the new artifact to the trailing "See also" list so a reviewer reading docs/project-context.md can follow the link directly into the capability inventory'
+    text: The system shall update the project-context renderers to reference spec/capabilities.yaml as the canonical capability mirror now that it ships as a real artifact so docs/project-context.md no longer claims the file is queued for a future release.
+    evidence_refs: [src/cli/scan/llm.ts]

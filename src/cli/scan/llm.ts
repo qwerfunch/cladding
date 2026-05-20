@@ -29,6 +29,13 @@ export interface InterpretedScan {
   readonly architectureYaml: string;
   /** Per-scenario `flow` text keyed by scenario slug. */
   readonly scenarioFlows: ReadonlyMap<string, string>;
+  /**
+   * Final `spec/capabilities.yaml` body — README ## headings rendered as
+   * capability entries. v0.3.38 mirrors what `docs/project-context.md`
+   * already surfaced into a first-class spec artifact so downstream
+   * detectors can read the capability list directly.
+   */
+  readonly capabilitiesYaml: string;
   /** Identifies how the artifacts were produced — surfaces in commit notes. */
   readonly mode: 'llm' | 'deterministic';
 }
@@ -56,9 +63,13 @@ export function buildPrompt(scan: ScanResult): string {
     .slice(0, 20)
     .map((e) => `- ${e.from} → ${e.to} (${e.count})`)
     .join('\n');
+  const readmeHeadings = scan.projectContext?.readmeHeadings ?? [];
+  const readmeHeadingsBlock = readmeHeadings.length > 0
+    ? readmeHeadings.map((h) => `- ${h}`).join('\n')
+    : '(none observed)';
   return [
     'You are the librarian agent of a project that just adopted cladding.',
-    'Three deliverables. Use the exact sentinels below so output is parsable.',
+    'Four deliverables. Use the exact sentinels below so output is parsable.',
     '',
     '=== CONVENTIONS_MD ===',
     'Write a docs/conventions.md body documenting observed conventions',
@@ -77,6 +88,22 @@ export function buildPrompt(scan: ScanResult): string {
     'For each layer below, write one or two sentences describing the',
     'business flow that layer enables. Format: `<slug>: <prose>`.',
     '',
+    '=== CAPABILITIES_YAML ===',
+    'Write spec/capabilities.yaml. Schema:',
+    '  schema: "0.1"',
+    '  source: README.md',
+    '  capabilities:',
+    '    - id: <kebab-slug>',
+    '      title: "<verbatim README heading>"',
+    '      summary: "<one sentence — what this capability does>"',
+    '      surface: feature | platform | tool | infrastructure',
+    'Use the README headings below as the capability list. Do not invent',
+    'capabilities not in the README. Preserve titles verbatim. Choose',
+    '`surface` from README context: user-facing functionality → feature;',
+    'runtime or build machinery → platform; CLI command → tool; library',
+    'or infra plumbing → infrastructure. Quote titles containing `:` or',
+    '`&`. If no headings are observed, emit `capabilities: []`.',
+    '',
     '--- Observed conventions ---',
     JSON.stringify(conv, null, 2),
     '',
@@ -85,6 +112,9 @@ export function buildPrompt(scan: ScanResult): string {
     '',
     '--- Import graph (top 20) ---',
     importEdges,
+    '',
+    '--- README headings (capability candidates) ---',
+    readmeHeadingsBlock,
     '',
     '--- Example modules ---',
     examples,
@@ -99,11 +129,13 @@ export function parseLlmResponse(text: string): {
   readonly conventions: string;
   readonly architecture: string;
   readonly scenarios: string;
+  readonly capabilities: string;
 } {
   const conv = extractSection(text, 'CONVENTIONS_MD');
   const arch = extractSection(text, 'ARCHITECTURE_YAML');
   const scen = extractSection(text, 'SCENARIO_FLOWS');
-  return {conventions: conv, architecture: arch, scenarios: scen};
+  const caps = extractSection(text, 'CAPABILITIES_YAML');
+  return {conventions: conv, architecture: arch, scenarios: scen, capabilities: caps};
 }
 
 function extractSection(text: string, name: string): string {
@@ -130,12 +162,24 @@ export async function interpretWithLlm(
     const m = line.match(/^([\w-]+):\s+(.+)$/);
     if (m) scenarioFlows.set(m[1], m[2]);
   }
+  // Per-artifact fallback for capabilities — when the LLM omits the
+  // section (no sentinel or blank between sentinels) the deterministic
+  // renderer fills in from observed README headings so the file still
+  // ships with real data instead of `capabilities: []`.
+  const capabilitiesYaml = sections.capabilities.trim()
+    ? ensureTrailingNewline(sections.capabilities)
+    : renderCapabilitiesYaml(scan.projectContext?.readmeHeadings ?? []);
   return {
     conventionsMd: `${HEADER}\n\n${sections.conventions}`,
     architectureYaml: sections.architecture,
     scenarioFlows,
+    capabilitiesYaml,
     mode: 'llm',
   };
+}
+
+function ensureTrailingNewline(text: string): string {
+  return text.endsWith('\n') ? text : `${text}\n`;
 }
 
 /**
@@ -197,7 +241,8 @@ export function deterministicInterpret(scan: ScanResult): InterpretedScan {
   for (const s of scan.scenarios) {
     scenarioFlows.set(s.slug, `Flow through ${s.dir}/ (${s.moduleCount} modules) — describe the business behaviour this layer enables.`);
   }
-  return {conventionsMd, architectureYaml, scenarioFlows, mode: 'deterministic'};
+  const capabilitiesYaml = renderCapabilitiesYaml(scan.projectContext?.readmeHeadings ?? []);
+  return {conventionsMd, architectureYaml, scenarioFlows, capabilitiesYaml, mode: 'deterministic'};
 }
 
 function renderConventionsTable(c: Conventions, examples: ScanResult['examples']): string {
@@ -264,6 +309,49 @@ function renderArchitectureYaml(
     lines.push(`    forbidden_imports: ${forbiddenList}`);
   }
   return lines.join('\n') + '\n';
+}
+
+/**
+ * Renders `spec/capabilities.yaml` deterministically from observed
+ * README ## headings. Each heading becomes one capability entry with
+ * a kebab-case `id` slug and the verbatim `title`. LLM-refined runs
+ * replace this body with one that also carries `summary` + `surface`
+ * fields per entry — the schema is forward-compatible so deterministic
+ * and LLM modes load through the same reader.
+ */
+export function renderCapabilitiesYaml(headings: readonly string[]): string {
+  const lines: string[] = [
+    '# Auto-generated by `clad init --scan`. README ## headings are',
+    '# interpreted as capability candidates. Each entry carries the verbatim',
+    '# title; LLM-refined runs add a one-sentence summary and a surface',
+    '# classification (feature | platform | tool | infrastructure).',
+    'schema: "0.1"',
+    'source: README.md',
+  ];
+  if (headings.length === 0) {
+    lines.push('capabilities: []');
+  } else {
+    lines.push('capabilities:');
+    for (const h of headings) {
+      const id = slugifyCapability(h);
+      lines.push(`  - id: ${id}`);
+      lines.push(`    title: ${quoteYamlString(h)}`);
+    }
+  }
+  return lines.join('\n') + '\n';
+}
+
+function slugifyCapability(heading: string): string {
+  const slug = heading
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return slug.length > 0 ? slug : 'capability';
+}
+
+function quoteYamlString(s: string): string {
+  return `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 }
 
 const PROJECT_CONTEXT_HEADER =
@@ -417,7 +505,7 @@ function renderProjectContextRefined(
     lines.push(
       '## 6. Top-level sections (from README headings)',
       '',
-      '_Reviewer interprets as capabilities — refine into `spec/capabilities.yaml` once v0.4 lands._',
+      '_Mirrored into `spec/capabilities.yaml`; LLM-refined when a dispatcher is available._',
       '',
     );
     for (const h of ctx.readmeHeadings) lines.push(`- ${h}`);
@@ -436,6 +524,7 @@ function renderProjectContextRefined(
     '',
     '- `docs/conventions.md` — observed code conventions',
     '- `spec/architecture.yaml` — observed layers',
+    '- `spec/capabilities.yaml` — README-derived capability inventory',
     '- `spec.yaml` — feature registry',
     '',
   );
@@ -526,7 +615,7 @@ function renderProjectContextObserved(ctx: ProjectContext, projectName: string):
     lines.push(
       '## 3. Top-level sections (from README headings)',
       '',
-      '_Reviewer interprets as capabilities — refine into `spec/capabilities.yaml` once v0.4 lands._',
+      '_Mirrored into `spec/capabilities.yaml`; LLM-refined when a dispatcher is available._',
       '',
     );
     for (const h of ctx.readmeHeadings) lines.push(`- ${h}`);
@@ -556,6 +645,7 @@ function renderProjectContextObserved(ctx: ProjectContext, projectName: string):
     '',
     '- `docs/conventions.md` — observed code conventions',
     '- `spec/architecture.yaml` — observed layers',
+    '- `spec/capabilities.yaml` — README-derived capability inventory',
     '- `spec.yaml` — feature registry',
     '',
   );

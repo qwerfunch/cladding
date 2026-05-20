@@ -15,6 +15,7 @@ import {
   interpretWithLlm,
   parseLlmResponse,
   parseProjectContextResponse,
+  renderCapabilitiesYaml,
   renderProjectContextMdWithLlm,
 } from '../../src/cli/scan/llm.js';
 import type {ProjectContext, ScanResult} from '../../src/cli/scan/index.js';
@@ -27,6 +28,18 @@ function fakeProjectContext(): ProjectContext {
     interfaceSignatures: [
       {layer: 'core', signatures: ['export class Engine {}', 'export interface Step {}']},
     ],
+  };
+}
+
+function fakeScanWithReadme(): ScanResult {
+  return {
+    ...fakeScan(),
+    projectContext: {
+      readmeFirstParagraph: 'Cladding is a drift-detection harness.',
+      readmeHeadings: ['Install', 'Status', 'Status & roadmap', 'CLI', 'License'],
+      docLinks: [],
+      interfaceSignatures: [],
+    },
   };
 }
 
@@ -81,11 +94,12 @@ function fakeScan(): ScanResult {
 }
 
 describe('buildPrompt', () => {
-  test('includes the three sentinel sections', () => {
+  test('includes the four sentinel sections', () => {
     const p = buildPrompt(fakeScan());
     expect(p).toContain('=== CONVENTIONS_MD ===');
     expect(p).toContain('=== ARCHITECTURE_YAML ===');
     expect(p).toContain('=== SCENARIO_FLOWS ===');
+    expect(p).toContain('=== CAPABILITIES_YAML ===');
   });
 
   test('packs convention data + example modules into the prompt body', () => {
@@ -95,18 +109,34 @@ describe('buildPrompt', () => {
     expect(p).toContain('core/main.ts');
     expect(p).toContain('cli → core');
   });
+
+  test('packs README headings into the capabilities block when projectContext is populated', () => {
+    const p = buildPrompt(fakeScanWithReadme());
+    expect(p).toContain('--- README headings (capability candidates) ---');
+    expect(p).toContain('- Install');
+    expect(p).toContain('- Status & roadmap');
+    expect(p).toContain('- CLI');
+  });
+
+  test('substitutes a placeholder when projectContext is null', () => {
+    const p = buildPrompt(fakeScan());
+    expect(p).toContain('--- README headings (capability candidates) ---');
+    expect(p).toContain('(none observed)');
+  });
 });
 
 describe('parseLlmResponse', () => {
-  test('extracts the three labelled sections', () => {
+  test('extracts the four labelled sections', () => {
     const raw =
       '=== CONVENTIONS_MD ===\n# Conventions\n2-space indent.\n' +
       '=== ARCHITECTURE_YAML ===\nlayers: []\n' +
-      '=== SCENARIO_FLOWS ===\ncore-flow: handles bootstrap\ncli-flow: routes verbs\n';
+      '=== SCENARIO_FLOWS ===\ncore-flow: handles bootstrap\ncli-flow: routes verbs\n' +
+      '=== CAPABILITIES_YAML ===\nschema: "0.1"\ncapabilities:\n  - id: install\n    title: "Install"\n';
     const out = parseLlmResponse(raw);
     expect(out.conventions).toContain('2-space indent');
     expect(out.architecture).toContain('layers: []');
     expect(out.scenarios).toContain('core-flow: handles bootstrap');
+    expect(out.capabilities).toContain('- id: install');
   });
 
   test('missing section returns empty string for that part', () => {
@@ -114,20 +144,24 @@ describe('parseLlmResponse', () => {
     expect(out.conventions).toContain('hello');
     expect(out.architecture).toBe('');
     expect(out.scenarios).toBe('');
+    expect(out.capabilities).toBe('');
   });
 });
 
 describe('interpretWithLlm', () => {
   test('returns mode=llm and prepends the auto-generated header to conventions', async () => {
     const dispatch = vi.fn(async () =>
-      '=== CONVENTIONS_MD ===\n# A\n=== ARCHITECTURE_YAML ===\nlayers: []\n=== SCENARIO_FLOWS ===\ncore-flow: x\ncli-flow: y\n',
+      '=== CONVENTIONS_MD ===\n# A\n=== ARCHITECTURE_YAML ===\nlayers: []\n=== SCENARIO_FLOWS ===\ncore-flow: x\ncli-flow: y\n=== CAPABILITIES_YAML ===\nschema: "0.1"\nsource: README.md\ncapabilities:\n  - id: install\n    title: "Install"\n    summary: "How to install."\n    surface: tool\n',
     );
-    const r = await interpretWithLlm(fakeScan(), dispatch);
+    const r = await interpretWithLlm(fakeScanWithReadme(), dispatch);
     expect(r.mode).toBe('llm');
     expect(r.conventionsMd).toMatch(/^<!-- Auto-generated/);
     expect(r.architectureYaml).toContain('layers: []');
     expect(r.scenarioFlows.get('core-flow')).toBe('x');
     expect(r.scenarioFlows.get('cli-flow')).toBe('y');
+    expect(r.capabilitiesYaml).toContain('- id: install');
+    expect(r.capabilitiesYaml).toContain('surface: tool');
+    expect(r.capabilitiesYaml.endsWith('\n')).toBe(true);
     expect(dispatch).toHaveBeenCalledOnce();
   });
 
@@ -137,6 +171,21 @@ describe('interpretWithLlm', () => {
     const arg = dispatch.mock.calls[0]?.[0] ?? '';
     expect(arg).toContain('=== CONVENTIONS_MD ===');
     expect(arg).toContain('two-space');
+  });
+
+  test('per-artifact fallback: missing capabilities section falls back to deterministic capabilities yaml', async () => {
+    const dispatch = vi.fn(async () =>
+      '=== CONVENTIONS_MD ===\n# A\n' +
+        '=== ARCHITECTURE_YAML ===\nversion: "0.1"\nlayers:\n  - name: core\n    modules: ["core/**"]\n    forbidden_imports: []\n' +
+        '=== SCENARIO_FLOWS ===\ncore-flow: x\n',
+    );
+    const r = await interpretWithLlm(fakeScanWithReadme(), dispatch);
+    expect(r.mode).toBe('llm');
+    // Conventions + architecture stay LLM-refined; capabilities falls
+    // back per-artifact to the deterministic renderer.
+    expect(r.capabilitiesYaml).toContain('source: README.md');
+    expect(r.capabilitiesYaml).toContain('- id: install');
+    expect(r.capabilitiesYaml).toContain('- id: status-and-roadmap');
   });
 });
 
@@ -164,6 +213,58 @@ describe('deterministicInterpret', () => {
     const r = deterministicInterpret(fakeScan());
     expect(r.scenarioFlows.get('core-flow')).toContain('Flow through core/');
     expect(r.scenarioFlows.get('cli-flow')).toContain('Flow through cli/');
+  });
+
+  test('capabilities yaml stays empty when no README context is observed', () => {
+    const r = deterministicInterpret(fakeScan());
+    expect(r.capabilitiesYaml).toContain('schema: "0.1"');
+    expect(r.capabilitiesYaml).toContain('source: README.md');
+    expect(r.capabilitiesYaml).toContain('capabilities: []');
+  });
+
+  test('capabilities yaml lists every README heading when projectContext is populated', () => {
+    const r = deterministicInterpret(fakeScanWithReadme());
+    expect(r.capabilitiesYaml).toContain('capabilities:');
+    expect(r.capabilitiesYaml).toContain('- id: install');
+    expect(r.capabilitiesYaml).toContain('title: "Install"');
+    // `&` and spaces collapse into kebab segments — README heading
+    // "Status & roadmap" → id `status-and-roadmap`.
+    expect(r.capabilitiesYaml).toContain('- id: status-and-roadmap');
+    expect(r.capabilitiesYaml).toContain('title: "Status & roadmap"');
+    expect(r.capabilitiesYaml).toContain('- id: cli');
+  });
+});
+
+// v0.3.38 — `spec/capabilities.yaml` is the README-derived capability
+// inventory. The deterministic renderer turns each README ## heading
+// into an id+title entry; LLM-refined runs add summary + surface.
+describe('renderCapabilitiesYaml', () => {
+  test('emits `capabilities: []` when no headings are given', () => {
+    const out = renderCapabilitiesYaml([]);
+    expect(out).toContain('schema: "0.1"');
+    expect(out).toContain('source: README.md');
+    expect(out).toContain('capabilities: []');
+    expect(out.endsWith('\n')).toBe(true);
+  });
+
+  test('slugifies headings into kebab-case ids and preserves titles verbatim', () => {
+    const out = renderCapabilitiesYaml(['Install', 'Status & Roadmap', 'CLI']);
+    expect(out).toContain('- id: install');
+    expect(out).toContain('title: "Install"');
+    expect(out).toContain('- id: status-and-roadmap');
+    expect(out).toContain('title: "Status & Roadmap"');
+    expect(out).toContain('- id: cli');
+  });
+
+  test('quotes embedded double-quotes inside titles', () => {
+    const out = renderCapabilitiesYaml(['The "best" feature']);
+    expect(out).toContain('title: "The \\"best\\" feature"');
+  });
+
+  test('falls back to "capability" when a heading slugifies to empty', () => {
+    const out = renderCapabilitiesYaml(['!!!']);
+    expect(out).toContain('- id: capability');
+    expect(out).toContain('title: "!!!"');
   });
 });
 
@@ -273,13 +374,31 @@ describe('interpretScanWithFallback', () => {
     const dispatch = vi.fn(async () =>
       '=== CONVENTIONS_MD ===\n# Refined conventions\nProse here.\n' +
         '=== ARCHITECTURE_YAML ===\nversion: "0.1"\nlayers:\n  - name: core\n    modules: ["core/**"]\n    forbidden_imports: []\n' +
-        '=== SCENARIO_FLOWS ===\ncore-flow: refined flow\ncli-flow: refined cli\n',
+        '=== SCENARIO_FLOWS ===\ncore-flow: refined flow\ncli-flow: refined cli\n' +
+        '=== CAPABILITIES_YAML ===\nschema: "0.1"\nsource: README.md\ncapabilities:\n  - id: install\n    title: "Install"\n    summary: "How to install."\n    surface: tool\n',
     );
-    const r = await interpretScanWithFallback(fakeScan(), dispatch);
+    const r = await interpretScanWithFallback(fakeScanWithReadme(), dispatch);
     expect(r.mode).toBe('llm');
     expect(r.conventionsMd).toContain('Refined conventions');
     expect(r.architectureYaml).toContain('name: core');
     expect(r.scenarioFlows.get('core-flow')).toBe('refined flow');
+    expect(r.capabilitiesYaml).toContain('- id: install');
+    expect(r.capabilitiesYaml).toContain('summary: "How to install."');
+  });
+
+  test('per-artifact capabilities fallback: missing CAPABILITIES_YAML still keeps mode=llm and ships deterministic capabilities', async () => {
+    const dispatch = vi.fn(async () =>
+      '=== CONVENTIONS_MD ===\n# Refined conventions\nProse here.\n' +
+        '=== ARCHITECTURE_YAML ===\nversion: "0.1"\nlayers:\n  - name: core\n    modules: ["core/**"]\n    forbidden_imports: []\n' +
+        '=== SCENARIO_FLOWS ===\ncore-flow: refined flow\n',
+    );
+    const r = await interpretScanWithFallback(fakeScanWithReadme(), dispatch);
+    expect(r.mode).toBe('llm');
+    // Conventions + architecture sentinel-pass keeps total mode=llm,
+    // but the capabilities slot falls back to the deterministic
+    // renderer rather than shipping an empty string.
+    expect(r.capabilitiesYaml).toContain('source: README.md');
+    expect(r.capabilitiesYaml).toContain('- id: install');
   });
 
   test('collapses to deterministic when dispatcher throws', async () => {
