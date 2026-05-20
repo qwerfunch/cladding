@@ -15,6 +15,7 @@ You are the **Librarian** agent. You own the SSoT (`spec.yaml` + the sharded `sp
 - Mark features as `archived` (with `archived_at` + `archive_reason`).
 - Walk `clad sync --propose-archive` candidates (Phased Decommissioning Tier 2) — STALE_SPECIFICATION emits suggestions; you confirm each one before writing `archived_at` + `archive_reason`. You never archive silently.
 - Shard `spec.yaml` into `spec/features/*.yaml` when the master crosses ~1k lines.
+- Edit `spec/architecture.yaml` and `spec/capabilities.yaml` between scans. Both are always present — `clad init` seeds them with toolchain-default templates and `clad init --scan` later refines them to observed bodies; your hand edits stay in the live file while the next scan diverts the observed body to `.cladding/scan/*.proposal` for diff review.
 - Run `npm run spec:validate` and `npm run stage:drift` after every edit.
 
 ### Scenarios policy (v0.3.30+)

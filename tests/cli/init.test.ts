@@ -115,4 +115,38 @@ describe('runInit', () => {
     const gi = readFileSync(join(dir, '.gitignore'), 'utf8');
     expect(gi).toContain('.cladding/');
   });
+
+  // v0.3.42 (F-bd07d7) — greenfield seeds. When the auto-scan threshold
+  // (≥3 source files) is not met, init still writes the three
+  // scan-derived artifacts as toolchain-default templates so the
+  // spec/docs surface is always complete.
+  test('greenfield: writes the three scan-artifact seeds with SEED headers (TypeScript default)', async () => {
+    const r = await runInit({cwd: dir});
+    expect(r.created).toContain('docs/conventions.md');
+    expect(r.created).toContain('spec/architecture.yaml');
+    expect(r.created).toContain('spec/capabilities.yaml');
+    const conv = readFileSync(join(dir, 'docs/conventions.md'), 'utf8');
+    const arch = readFileSync(join(dir, 'spec/architecture.yaml'), 'utf8');
+    const caps = readFileSync(join(dir, 'spec/capabilities.yaml'), 'utf8');
+    // TS default is reached when no manifest is present (falls back to TS)
+    expect(conv).toContain('Greenfield seed for TypeScript');
+    expect(conv).toContain('| indent | two-space |');
+    expect(arch).toContain('version: "0.1"');
+    expect(arch).toContain('Greenfield seed');
+    expect(arch).toContain('layers: []');
+    expect(caps).toContain('schema: "0.1"');
+    expect(caps).toContain('capabilities: []');
+  });
+
+  test('greenfield: detected python toolchain switches the conventions seed to PEP-8 defaults', async () => {
+    writeFileSync(join(dir, 'pyproject.toml'), '[project]\nname = "demo"\n');
+    await runInit({cwd: dir});
+    const conv = readFileSync(join(dir, 'docs/conventions.md'), 'utf8');
+    expect(conv).toContain('Greenfield seed for Python');
+    expect(conv).toContain('| indent | four-space |');
+    expect(conv).toContain('| naming (exports) | snake_case |');
+    expect(conv).toContain('https://peps.python.org/pep-0008/');
+    const arch = readFileSync(join(dir, 'spec/architecture.yaml'), 'utf8');
+    expect(arch).toContain('Typical Python baseline:');
+  });
 });
