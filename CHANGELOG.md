@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — `clad doctor` verb consumes sentinel-miss telemetry (F-bb15e6)
+## [0.3.40] — 2026-05-20 — `clad doctor` verb consumes sentinel-miss telemetry (F-bb15e6)
 
 **Signals find their consumer.** v0.3.39 (F-65814a) made every LLM dispatcher fallback observable by emitting a `sentinel_miss` event to `.cladding/events.log.jsonl`. Reading that log meant `grep sentinel_miss .cladding/events.log.jsonl | jq …` recipes by hand. v0.3.40 closes the loop with `clad doctor` — a one-shot health summary that groups misses by phase × cause × fallback, lists the top-5 most-missed sentinels, and replays the last three unique dispatcher errors. `--json` ships the same data as a stable `DoctorReport` shape for MCP clients and follow-up tooling.
 
@@ -34,7 +34,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [Unreleased] — sentinel-miss telemetry surfaces LLM fallbacks in events.log (F-65814a)
+## [0.3.39] — 2026-05-20 — sentinel-miss telemetry surfaces LLM fallbacks in events.log (F-65814a)
 
 **Silent fallback gets a voice.** v0.3.33–v0.3.35 wired the LLM dispatcher chain plus per-artifact / total fallback behaviour for conventions, architecture, scenarios, project-context, and (v0.3.38) capabilities. Every fallback site was silent — a host whose sampling policy systematically dropped one sentinel would never know, and adopters had no data to tune model / `max_tokens` / temperature against. v0.3.39 makes the misses observable by emitting a structured `sentinel_miss` lifecycle event per fallback to `.cladding/events.log.jsonl`. Configured-no-LLM runs (no dispatcher, greenfield, `--no-llm`) stay silent because they are deliberate offline runs rather than misses.
 
@@ -65,7 +65,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [Unreleased] — spec/capabilities.yaml LLM extraction from README headings (F-d3bde4)
+## [0.3.38] — 2026-05-20 — spec/capabilities.yaml LLM extraction from README headings (F-d3bde4)
 
 **README ## headings get a first-class spec mirror.** v0.3.32 surfaced README headings inside `docs/project-context.md`; v0.3.33–v0.3.35 layered LLM refinement on top of conventions, architecture, and project-context. v0.3.38 closes the loop by minting `spec/capabilities.yaml` — the README-derived capability inventory — as its own artifact so downstream detectors and dashboards can read the capability list without re-parsing markdown.
 
