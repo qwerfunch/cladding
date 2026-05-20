@@ -5,6 +5,38 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.13] — Unreleased — ARCHITECTURE_FROM_SPEC detector + cladding self-architecture aligned (F-088)
+
+**Resurrects spec/architecture.yaml from dead code.** Until v0.3.13 the layers and forbidden_imports fields were type-loaded but no detector read them — externally visible as production-grade but actually placeholder. v0.3.13 ships the detector that consumes them, and brings cladding's own architecture file into alignment with the live src/ layout.
+
+### Added
+
+- `src/stages/detectors/architecture-from-spec.ts` — `ARCHITECTURE_FROM_SPEC` drift detector. Enforces three invariants:
+  - **forbidden_imports compliance (error)** — regex-greps every `src/<from-layer>/**.ts` for `import ... from` statements; matches the path's segments against the rule's `to` layer; one error per file × rule violation.
+  - **undeclared directory (warn)** — any 1-depth directory under `src/` not listed in `spec.architecture.layers`.
+  - **empty layer (warn)** — any layer named in `spec.architecture.layers` with no matching `src/<layer>/` directory.
+- The detector is **toolchain-agnostic** — no madge / import-linter dependency, regex grep only. Coexists with the existing `ARCHITECTURE_VIOLATION` (toolchain-driven, catches cycles).
+- `tests/stages/architecture-from-spec.test.ts` — 10 unit tests covering happy path, all three invariants, soft-validator behaviour, multi-rule violations, external-package import exclusion.
+- `spec/features/F-088.yaml` — "ARCHITECTURE_FROM_SPEC detector" (6 ACs, status `done`).
+
+### Changed
+
+- `spec/architecture.yaml` — brought into alignment with the live `src/` layout. Lists all 12 src/ 1-depth directories across **4 dependency tiers**:
+  1. **Foundation**: `spec` · `agents` · `events` · `hitl` · `optimizer` · `router` · `ui`
+  2. **Stage / adapter**: `stages` · `adapters`
+  3. **Runtime**: `drive` · `serve`
+  4. **Entry**: `cli`
+- 9 forbidden_imports rules forbid backward dependencies (`spec → stages/drive/cli/serve`, `stages → drive/cli/serve`, `adapters → drive/cli/serve`).
+- `src/stages/detectors/index.ts` — `allDetectors` now lists 24 detectors (23 → 24).
+- `.claude-plugin/plugin.json` `ironclad.current.detectors` bumped `23/23` → `24/24` so HARNESS_INTEGRITY count stays green.
+
+### Notes
+
+- 579 + 10 new tests = **589/589** passing; lint clean; typecheck clean; **drift-green at 87 features with the new detector active**; bundle 1.1 MB.
+- The detector caught cladding's own architecture-spec ↔ src/ drift on the first run (12 warnings: 10 undeclared dirs + 2 empty layers). Fixing the spec was the first dogfood proof that the detector works end-to-end.
+- External adopters writing `spec/architecture.yaml` now get real cross-checks; previously the same yaml was cosmetic.
+- v0.3.x cleanup arc is now genuinely closed: multi-dev ID safety (F-084/85/86/87) + architecture invariant (F-088). No remaining dead-code surfaces in the spec layer.
+
 ## [0.3.12] — Unreleased — Scenario hash ID model — true final of the multi-dev arc (F-087)
 
 **Symmetry with features.** v0.3.9 → v0.3.11 closed the multi-developer ID-safety loop for *features* but left *scenarios* on the old sequential model (`S-NNN.yaml`, manual id assignment) — user audit caught this gap. v0.3.12 ports the entire hash-id + slug + multi-dev safety pattern to scenarios.

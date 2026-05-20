@@ -1,10 +1,50 @@
+# cladding · architectural layers
+#
+# Each entry of `layers` is a tier — a peer group of directories at
+# the same architectural level. ARCHITECTURE_FROM_SPEC (F-088,
+# v0.3.13) reads this file and enforces:
+#   1. forbidden_imports — listed `from`/`to` pairs raise an error
+#      when an import statement crosses the boundary.
+#   2. undeclared directory — anything under src/ that isn't listed
+#      below raises a warn.
+#   3. empty layer — a layer here with no matching src/<layer>/
+#      directory raises a warn.
+#
+# Foundation tier 가 top — 의존성이 아래로만 흐름.
 layers:
   - - spec
-    - stages
-    - detectors
-    - toolchain
+    - agents
+    - events
+    - hitl
+    - optimizer
+    - router
+    - ui
+  - - stages
+    - adapters
+  - - drive
+    - serve
+  - - cli
+
+# spec/* (foundation) must not depend on stage runners. The Iron Law
+# stage layer wraps the spec; spec itself stays pure.
 forbidden_imports:
   - from: spec
     to: stages
-  - from: toolchain
-    to: stages
+  - from: spec
+    to: drive
+  - from: spec
+    to: cli
+  - from: spec
+    to: serve
+  - from: stages
+    to: drive
+  - from: stages
+    to: cli
+  - from: stages
+    to: serve
+  - from: adapters
+    to: drive
+  - from: adapters
+    to: cli
+  - from: adapters
+    to: serve

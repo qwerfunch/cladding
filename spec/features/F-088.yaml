@@ -1,0 +1,48 @@
+id: F-088
+slug: architecture-from-spec
+title: ARCHITECTURE_FROM_SPEC detector — resurrect spec/architecture.yaml from dead code (v0.3.13)
+status: done
+modules:
+  - src/stages/detectors/architecture-from-spec.ts
+  - spec/architecture.yaml
+depends_on: [F-047]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: ship a drift detector that consumes spec/architecture.yaml as a working invariant
+    response: 'src/stages/detectors/architecture-from-spec.ts loads spec.architecture via loadSpec() and enforces three invariants — forbidden_imports compliance (error), undeclared src/ directory (warn), empty declared layer (warn). The detector is registered in src/stages/detectors/index.ts allDetectors and counts toward HARNESS_INTEGRITY (24/24).'
+    text: The system shall ship the ARCHITECTURE_FROM_SPEC drift detector that consumes spec/architecture.yaml as a working invariant — until v0.3.13 this file was type-loaded but no detector consumed it, leaving the layers/forbidden_imports fields as dead code that misled external adopters.
+    test_refs: [tests/stages/architecture-from-spec.test.ts]
+  - id: AC-002
+    ears: state
+    condition: while a file under src/<from-layer>/ contains an import statement that crosses into the <to-layer> directory and spec/architecture.yaml has a matching forbidden_imports rule
+    action: emit an ARCHITECTURE_FROM_SPEC error finding naming the offending file, the import path, and the violated rule
+    response: 'the detector regex-greps every src/<from-layer>/**.ts file for `import ... from` statements, splits the path into segments, and matches against the rule.to layer name; a match emits one error finding per file × rule violation'
+    text: While a file under src/<from-layer>/ contains an import statement that crosses into the <to-layer> directory and spec/architecture.yaml has a matching forbidden_imports rule, the system shall emit an ARCHITECTURE_FROM_SPEC error finding naming the file, the import path, and the violated rule.
+    test_refs: [tests/stages/architecture-from-spec.test.ts]
+  - id: AC-003
+    ears: state
+    condition: while src/ contains a 1-depth directory that is not listed in any spec.architecture.layers tier
+    action: emit a warn finding pointing the maintainer at the missing declaration
+    response: 'the detector iterates src/ entries (statSync directories only) and emits a warn finding for each one not present in the flattened layer set'
+    text: While src/ contains a 1-depth directory that is not listed in spec.architecture.layers, the system shall emit a warn finding so a new architectural layer added in code does not silently bypass spec governance.
+    test_refs: [tests/stages/architecture-from-spec.test.ts]
+  - id: AC-004
+    ears: state
+    condition: while spec.architecture.layers names a layer with no matching src/<layer>/ directory
+    action: emit a warn finding suggesting the spec or the directory needs alignment
+    response: the detector iterates declared layers and emits one warn per layer with no matching src/<layer>/ directory
+    text: While spec.architecture.layers names a layer with no matching src/<layer>/ directory, the system shall emit a warn finding so a renamed-in-code layer is caught at the next `clad check --strict`.
+    test_refs: [tests/stages/architecture-from-spec.test.ts]
+  - id: AC-005
+    ears: ubiquitous
+    action: keep the detector a soft validator — silent when spec.architecture is absent or empty
+    response: 'when spec/architecture.yaml is missing, loadSpec returns an architecture-less spec and the detector returns []; same when layers and forbidden_imports are both empty arrays. The detector is opt-in: external projects without an architecture spec see no findings.'
+    text: The system shall keep the detector a soft validator — silent when spec.architecture is absent or empty — so external projects without an architecture spec see no findings while still being able to opt in by writing the file.
+    test_refs: [tests/stages/architecture-from-spec.test.ts]
+  - id: AC-006
+    ears: ubiquitous
+    action: bring cladding's own spec/architecture.yaml into alignment with the live src/ layout
+    response: 'spec/architecture.yaml now lists all 12 src/ 1-depth directories across 4 dependency tiers (spec · agents · events · hitl · optimizer · router · ui at the foundation; stages · adapters above; drive · serve above that; cli at the top) and forbids 9 cross-tier imports that violate the intended dependency flow'
+    text: The system shall bring cladding's own spec/architecture.yaml into alignment with the live src/ layout so the dogfood example is production-grade rather than misleading placeholder.
+    evidence_refs: [spec/architecture.yaml]
