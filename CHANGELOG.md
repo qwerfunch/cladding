@@ -5,6 +5,27 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.14] — Unreleased — External user docs update (F-089)
+
+**Docs-only patch.** READMEs and `docs/spec-ids-multi-dev.md` had drifted to a v0.3.3 snapshot (capability lines, drift-detector count, feature count, version number) while the code raced ahead to v0.3.13. v0.3.14 brings external-facing docs into alignment so users reading the project for the first time get an accurate snapshot.
+
+### Changed
+
+- `README.md` + `README.ko.md` status lines — version bumped to v0.3.13 · test count 509 → 589 · drift-detector count 20 → 24 (lists all 5 cladding extensions now: `FIXTURE_REFERENCE_INVALID`, `SLUG_CONFLICT`, `ID_COLLISION`, `AC_DUPLICATE_WITHIN_FEATURE`, `ARCHITECTURE_FROM_SPEC`) · feature file count 77 → 87. Two new capability lines added: "multi-developer-safe spec IDs" (hash-based F-/S- ids · slug-prefixed filenames · namespace-aware drift detectors) and "spec/architecture.yaml as working invariant" (ARCHITECTURE_FROM_SPEC detector enforces forbidden_imports + layer alignment).
+- `docs/spec-ids-multi-dev.md` extended:
+  - Scenario id row added to the short-version table (`S-<hash6>`, feature-symmetric since v0.3.12, separate id namespace from features).
+  - "How features and scenarios get created" section now mentions `clad_create_scenario` MCP tool with the natural-language example `"Add a scenario for the checkout happy-path"`.
+  - New "spec/architecture.yaml — working invariant since v0.3.13" section documenting the three `ARCHITECTURE_FROM_SPEC` invariants (forbidden_imports compliance, undeclared directory, empty layer) with an example yaml.
+
+### Added
+
+- `spec/features/F-089.yaml` — "External user docs update" (3 ACs, status `done`).
+
+### Notes
+
+- 589/589 vitest pass (no test changes — docs-only); lint clean; typecheck clean; drift-green at 88 features; bundle 1.1 MB.
+- This patch closes the user-facing visibility gap opened by the v0.3.4 → v0.3.13 internal velocity. External adopters reading READMEs or the multi-dev guide now see what cladding actually ships at v0.3.13.
+
 ## [0.3.13] — 2026-05-20 — ARCHITECTURE_FROM_SPEC detector + cladding self-architecture aligned (F-088)
 
 **Resurrects spec/architecture.yaml from dead code.** Until v0.3.13 the layers and forbidden_imports fields were type-loaded but no detector read them — externally visible as production-grade but actually placeholder. v0.3.13 ships the detector that consumes them, and brings cladding's own architecture file into alignment with the live src/ layout.

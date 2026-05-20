@@ -1,26 +1,28 @@
 # Multi-developer-safe spec IDs
 
-Two or more contributors can add new features to a cladding-applied project simultaneously without git merge conflicts. This document explains how and what to do when something looks off.
+Two or more contributors can add new features or scenarios to a cladding-applied project simultaneously without git merge conflicts. This document explains how and what to do when something looks off.
 
 ## The short version
 
 | Layer | Identifier | Scope | Multi-dev safety |
 |---|---|---|---|
-| **Filename** | `<slug>-<hash6>.yaml` (e.g. `login-flow-a3f9c2.yaml`) | one per feature | ✅ Two contributors with the same slug get different hashes → different file paths → no `git merge` collision |
+| **Filename** | `<slug>-<hash6>.yaml` (e.g. `login-flow-a3f9c2.yaml`) | one per feature or scenario | ✅ Two contributors with the same slug get different hashes → different file paths → no `git merge` collision |
 | **Feature id** | `F-<hash6>` (e.g. `F-a3f9c2`) — same hash as filename | globally unique by construction | ✅ 1/16M collision probability; `ID_COLLISION` detector catches the rest |
-| **Slug** (yaml field) | `login-flow` | human-readable anchor | ⚠️ Two contributors picking the same slug is *expected* if they have the same intent; `SLUG_CONFLICT` detector raises this as an error so a human resolves it |
+| **Scenario id** | `S-<hash6>` (e.g. `S-c4d108`) — full feature-symmetric model since v0.3.12 | globally unique by construction | ✅ Same guarantees as features; `F-*` and `S-*` are separate id namespaces |
+| **Slug** (yaml field) | `login-flow` | human-readable anchor, separate namespaces for features vs scenarios | ⚠️ Two contributors picking the same slug within the same namespace is *expected* if they have the same intent; `SLUG_CONFLICT` detector raises this as an error so a human resolves it |
 | **AC id** | `AC-001` ~ `AC-NNN` | **feature-scoped sequential** | ✅ `F-001.AC-001` and `F-002.AC-001` coexist freely; `AC_DUPLICATE_WITHIN_FEATURE` catches intra-feature duplicates |
-| **Legacy `F-NNN`** | `F-001` ~ `F-083` | global sequential (pre-v0.3.9) | ✅ Coexists with the new model forever — no migration required |
+| **Legacy `F-NNN` / `S-NNN`** | `F-001` ~ `F-083`, `S-001`, `S-002` | global sequential (pre-v0.3.9 / pre-v0.3.12) | ✅ Coexists with the new model forever — no migration required |
 
-## How features get created
+## How features and scenarios get created
 
 Users never type `clad spec new` — there is no such CLI verb by design. You ask your host AI assistant in natural language:
 
 ```
 "Add a feature for the login-flow."
+"Add a scenario for the checkout happy-path."
 ```
 
-The host LLM calls cladding's `clad_create_feature` MCP tool, which generates the hash and writes the file. The result (id, path, slug) flows back to your AI and into the conversation.
+The host LLM calls cladding's `clad_create_feature` or `clad_create_scenario` MCP tool, which generates the hash and writes the file. The result (id, path, slug) flows back to your AI and into the conversation. Scenarios optionally carry a `features:` array linking the scenario back to the features it covers (`REFERENCE_INTEGRITY` detector enforces those ids exist).
 
 ## How to look features up
 
@@ -75,8 +77,45 @@ You shouldn't. The internal `createFeature` accepts a slug only; the host LLM gi
 
 If you genuinely need to reuse a specific id (e.g. to restore a deleted feature with its original identifier), edit the yaml file's `id:` field directly. Schema accepts both `F-\d{3,}` and `F-[a-f0-9]{6,}`; `ID_COLLISION` will catch any duplicate.
 
+## spec/architecture.yaml — working invariant since v0.3.13
+
+Until v0.3.13, `spec/architecture.yaml` was type-loaded but no detector consumed it — the `layers` and `forbidden_imports` fields were cosmetic. v0.3.13's `ARCHITECTURE_FROM_SPEC` detector turns them into a real invariant:
+
+1. **forbidden_imports compliance** (error) — for each `{from, to}` rule, no file under `src/<from>/` may `import ... from '<...>/<to>/...'`.
+2. **Undeclared directory** (warn) — any 1-depth directory under `src/` not listed in `architecture.layers`.
+3. **Empty layer** (warn) — any layer named in `architecture.layers` with no matching `src/<layer>/`.
+
+Example `spec/architecture.yaml`:
+
+```yaml
+layers:
+  - - spec
+    - hitl
+    - events
+  - - stages
+    - adapters
+  - - drive
+    - serve
+  - - cli
+forbidden_imports:
+  - from: spec
+    to: stages
+  - from: spec
+    to: drive
+  - from: adapters
+    to: drive
+```
+
+- `layers` is an array of *tiers* — each inner array is a peer group at the same architectural level. The detector treats every entry as a flat set for membership checks; tiers are still meaningful to human readers.
+- `forbidden_imports.from` and `.to` are layer names (matching directory names directly under `src/`).
+- Path segments are matched literally: `src/spec/loader.ts` reading `import {x} from '../stages/x.js'` trips the `from: spec, to: stages` rule because `stages` is one of the segments.
+- External-package imports (no leading `.`) are never matched.
+- The detector is **toolchain-agnostic** — no madge / import-linter dependency. The existing `ARCHITECTURE_VIOLATION` detector (toolchain-driven, catches cycles) coexists and checks a different invariant.
+
+Cladding's own `spec/architecture.yaml` is now production-grade — the same file external adopters see when they read the reference. Drift-green on `clad check --strict` confirms cladding's own src/ matches its declared layers.
+
 ## Reference
 
-- Implementation: `src/spec/new.ts` · `src/serve/server.ts` (tools `clad_create_feature`, `clad_list_features`, `clad_get_feature`)
-- Detectors: `src/stages/detectors/{slug-conflict,id-collision,ac-duplicate-within-feature}.ts`
-- Spec entries: `spec/features/F-084.yaml` (model) · `spec/features/F-085.yaml` (filename hash + lookup tools + this doc)
+- Implementation: `src/spec/new.ts` · `src/serve/server.ts` (tools `clad_create_feature`, `clad_create_scenario`, `clad_list_features`, `clad_get_feature`)
+- Detectors: `src/stages/detectors/{slug-conflict,id-collision,ac-duplicate-within-feature,architecture-from-spec}.ts`
+- Spec entries: `spec/features/F-084.yaml` (model) · `spec/features/F-085.yaml` (filename hash + lookup tools + this doc) · `spec/features/F-087.yaml` (scenario hash model) · `spec/features/F-088.yaml` (ARCHITECTURE_FROM_SPEC)
