@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.13] — Unreleased — ARCHITECTURE_FROM_SPEC detector + cladding self-architecture aligned (F-088)
+## [0.3.13] — 2026-05-20 — ARCHITECTURE_FROM_SPEC detector + cladding self-architecture aligned (F-088)
 
 **Resurrects spec/architecture.yaml from dead code.** Until v0.3.13 the layers and forbidden_imports fields were type-loaded but no detector read them — externally visible as production-grade but actually placeholder. v0.3.13 ships the detector that consumes them, and brings cladding's own architecture file into alignment with the live src/ layout.
 
@@ -37,7 +37,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 - External adopters writing `spec/architecture.yaml` now get real cross-checks; previously the same yaml was cosmetic.
 - v0.3.x cleanup arc is now genuinely closed: multi-dev ID safety (F-084/85/86/87) + architecture invariant (F-088). No remaining dead-code surfaces in the spec layer.
 
-## [0.3.12] — Unreleased — Scenario hash ID model — true final of the multi-dev arc (F-087)
+## [0.3.12] — 2026-05-20 — Scenario hash ID model — true final of the multi-dev arc (F-087)
 
 **Symmetry with features.** v0.3.9 → v0.3.11 closed the multi-developer ID-safety loop for *features* but left *scenarios* on the old sequential model (`S-NNN.yaml`, manual id assignment) — user audit caught this gap. v0.3.12 ports the entire hash-id + slug + multi-dev safety pattern to scenarios.
 
@@ -63,7 +63,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 - **Multi-developer ID-safety arc is now genuinely complete.** Features (F-084 / F-085 / F-086) and scenarios (F-087) both have hash ids, slug filenames, namespace-aware detectors, and integration-test coverage. No remaining sequential ID surfaces in the spec layer.
 - `docs/spec-ids-multi-dev.md` (from v0.3.10) covers features only — a follow-up patch could extend the same guidance to scenarios, but the model is identical so the existing doc generalises naturally.
 
-## [0.3.11] — Unreleased — Multi-dev concurrent simulation test + scenario regex widening (F-086)
+## [0.3.11] — 2026-05-20 — Multi-dev concurrent simulation test + scenario regex widening (F-086)
 
 **Final cycle of the multi-developer ID-safety arc.** Closes the verification loop: an integration test simulates two contributors concurrently calling `createFeature` and asserts the safety invariant end-to-end. A 10-axis ID integrity audit caught one stray legacy regex in scenarios (the only fix from the audit), now also closed.
 
@@ -87,7 +87,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 - ID integrity audit covered 10 axes (scenario regex, BR/ADR, references, AC composite, audit log, panel/CLI, detectors, AC scope, slug-hash hyphen, plugin manifests). 9 axes already-compatible from v0.3.9 + v0.3.10; only the scenario regex needed a one-line fix.
 - **Multi-developer ID-safety arc complete** (F-084 + F-085 + F-086). cladding ships a documented, audited, integration-tested model for distributed concurrent feature creation. No outstanding items in this thread.
 
-## [0.3.10] — Unreleased — Hash filename + slug-friendly lookup + multi-dev guide (F-085)
+## [0.3.10] — 2026-05-20 — Hash filename + slug-friendly lookup + multi-dev guide (F-085)
 
 **Closes the multi-dev concurrency loop.** v0.3.9 introduced the hash-id model but kept the filename at `<slug>.yaml`, meaning two contributors with the same slug still throw on the second `createFeature` call. v0.3.10 moves the hash into the filename itself (`<slug>-<hash6>.yaml`) so file paths are silently unique by construction across branches, and adds slug-friendly lookup tooling so users don't need to remember hex hashes.
 
@@ -111,7 +111,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 - The semantic conflict (two contributors picking the same slug) is no longer a `createFeature` failure — it's a `SLUG_CONFLICT` detector finding surfaced on the next `clad check --strict`, with human resolution. File-level uniqueness is by construction; semantic intent stays a human decision.
 - v0.3.11 plan: `tests/integration/multi-dev-merge.test.ts` — git-worktree simulation that drives the whole loop (two concurrent contributors → merge → drift detector reports no false positive on file path, but raises SLUG_CONFLICT when slug coincides).
 
-## [0.3.9] — Unreleased — Multi-developer-safe spec ID system (F-084)
+## [0.3.9] — 2026-05-20 — Multi-developer-safe spec ID system (F-084)
 
 **Phase 1 of the multi-dev ID safety arc.** Two contributors creating new features simultaneously on separate branches used to collide on `spec/features/F-084.yaml` (same filename) and `AC-259` (globally sequential). This patch introduces a slug-filename + content-hash-id model that makes concurrent feature creation collision-safe by construction.
 
