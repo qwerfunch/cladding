@@ -5,6 +5,37 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.16] — Unreleased — Dogfood recovery + maintainer guide (F-091)
+
+**Restores cladding's own dogfood promise.** User audit caught it: v0.3.9 introduced the hash-based spec ID model (`F-<hash6>` filenames + slug field) for external users, but the cladding maintainer (Claude) authored the next nine spec entries (F-082 ~ F-090) by hand with the legacy sequential format. cladding was recommending one pattern to users while practicing another internally.
+
+### Changed (migration)
+
+- 9 spec/features files renamed from `F-NNN.yaml` to `<slug>-<hash6>.yaml`:
+  - `F-082` → `gemini-cli-dogfood-b61449`
+  - `F-083` → `claude-code-dogfood-6f80e7`
+  - `F-084` → `spec-id-multi-dev-safety-67e33f`
+  - `F-085` → `spec-id-hash-filename-and-lookup-24062d`
+  - `F-086` → `multidev-integration-test-and-scenario-regex-59f093`
+  - `F-087` → `scenario-hash-model-d7312b`
+  - `F-088` → `architecture-from-spec-42af48`
+  - `F-089` → `external-docs-update-v0-3-13-fcece7`
+  - `F-090` → `version-bump-script-6d943d`
+- `depends_on` cross-references in 5 other feature files rewritten to point at the new hash ids.
+- Legacy `F-001` ~ `F-083.yaml` files (pre-v0.3.9) stay sequential — they're stable audit-log identifiers.
+
+### Added
+
+- `scripts/migrate-dogfood-v0.3.16.mjs` — one-shot migration script, committed as a permanent record of what changed.
+- `CLAUDE.md` — maintainer-facing guide. Captures the spec-authoring invariant ("DO NOT hand-create F-NNN.yaml — DO use `<slug>-<hash>.yaml`"), the version-bump-script reminder, the detector-count-bump reminder, and the plugin-mirror caveat. Read by AI assistants when working inside the cladding repo.
+- `spec/features/dogfood-recovery-v0-3-16-245bd5.yaml` — F-091 spec authored in the hash format as the first worked example of the new authoring rule.
+
+### Notes
+
+- 595/595 vitest pass (no test code changes); lint clean; typecheck clean; drift-green at 90 features; bundle 1.1 MB.
+- The `ID_COLLISION` and `SLUG_CONFLICT` detectors stayed silent through the migration — no inadvertent duplicates introduced.
+- v0.3.17 plan: `build-plugin.mjs` auto-recomputes the `ironclad.current.detectors` count so the count-bump reminder in `CLAUDE.md` graduates from manual to automatic.
+
 ## [0.3.15] — Unreleased — Atomic version-bump script (F-090)
 
 **First of two automations** addressing the concurrent-modification audit (2026-05-20). Until v0.3.15 the cladding version string lived in **seven separate files** (`package.json`, three host-plugin manifests, `src/cli/clad.ts`, `src/serve/server.ts`, `tests/cli/clad.test.ts`) and every patch cycle a maintainer had to hand-edit each one — error-prone, and two contributors bumping in parallel collided on all seven. v0.3.15 collapses the ritual into a single command.

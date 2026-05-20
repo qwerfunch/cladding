@@ -1,4 +1,4 @@
-id: F-089
+id: F-fcece7
 slug: external-docs-update-v0-3-13
 title: External user docs update — multi-dev hash IDs + ARCHITECTURE_FROM_SPEC (v0.3.14)
 status: done
@@ -6,7 +6,7 @@ modules:
   - README.md
   - README.ko.md
   - docs/spec-ids-multi-dev.md
-depends_on: [F-084, F-085, F-086, F-087, F-088]
+depends_on: [F-67e33f, F-24062d, F-59f093, F-d7312b, F-42af48]
 acceptance_criteria:
   - id: AC-001
     ears: ubiquitous

@@ -1,4 +1,4 @@
-id: F-086
+id: F-59f093
 slug: multidev-integration-test-and-scenario-regex
 title: Multi-dev concurrent simulation test + scenario regex widening (v0.3.11)
 status: done
@@ -6,7 +6,7 @@ modules:
   - tests/integration/multi-dev-merge.test.ts
   - src/spec/schema.json
   - tests/spec/load.test.ts
-depends_on: [F-084, F-085]
+depends_on: [F-67e33f, F-24062d]
 acceptance_criteria:
   - id: AC-001
     ears: ubiquitous
