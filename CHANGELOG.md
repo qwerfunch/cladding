@@ -5,6 +5,23 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.15] — Unreleased — Atomic version-bump script (F-090)
+
+**First of two automations** addressing the concurrent-modification audit (2026-05-20). Until v0.3.15 the cladding version string lived in **seven separate files** (`package.json`, three host-plugin manifests, `src/cli/clad.ts`, `src/serve/server.ts`, `tests/cli/clad.test.ts`) and every patch cycle a maintainer had to hand-edit each one — error-prone, and two contributors bumping in parallel collided on all seven. v0.3.15 collapses the ritual into a single command.
+
+### Added
+
+- `scripts/version-bump.mjs` — accepts one SemVer argument (major.minor.patch) and atomically updates all seven sites. Per-file summary on stdout, errors on stderr, exit-zero is idempotent. Strict-only validation (rejects pre-release / build-metadata strings).
+- `npm run version-bump -- 0.3.16` shortcut in `package.json` scripts.
+- `tests/scripts/version-bump.test.ts` — 6 unit tests (happy path, idempotent re-run, invalid SemVer, missing arg, broken anchor in one file).
+- `spec/features/F-090.yaml` — "Atomic version-bump script" (5 ACs, status `done`).
+
+### Notes
+
+- 589 + 6 new tests = **595/595** passing; lint clean; typecheck clean; drift-green at 89 features; bundle 1.1 MB.
+- v0.3.16 plan: `build-plugin.mjs` auto-recomputes `ironclad.current.detectors` count so the second high-risk concurrent-modification site (silent miscalc when two contributors add detectors in parallel) is also closed.
+- The audit's third high-risk site (CHANGELOG.md Unreleased-block collision) stays in the deferred bucket — fragment-directory tooling is over-engineering for a 1-maintainer cadence; revisit when multi-dev signal arrives.
+
 ## [0.3.14] — Unreleased — External user docs update (F-089)
 
 **Docs-only patch.** READMEs and `docs/spec-ids-multi-dev.md` had drifted to a v0.3.3 snapshot (capability lines, drift-detector count, feature count, version number) while the code raced ahead to v0.3.13. v0.3.14 brings external-facing docs into alignment so users reading the project for the first time get an accurate snapshot.
