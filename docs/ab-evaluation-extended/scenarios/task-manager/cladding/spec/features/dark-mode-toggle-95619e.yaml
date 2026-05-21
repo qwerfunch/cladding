@@ -1,0 +1,15 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-95619e
+slug: dark-mode-toggle
+title: "Dark mode toggle button"
+status: done
+modules: ["src/components/ThemeToggle.tsx", "src/hooks/useTheme.ts"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "The toggle shall switch the document theme between light and dark."
+    test_refs: [tests/theme-toggle.test.tsx]
+  - id: AC-002
+    ears: ubiquitous
+    text: "The toggle shall persist the user choice across reloads via localStorage."
+    test_refs: [tests/theme-toggle.test.tsx]

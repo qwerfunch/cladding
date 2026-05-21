@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-1f8196
+slug: priority-system
+title: "Priority field (low / medium / high)"
+status: done
+modules: ["src/lib/types.ts", "src/components/TaskItem.tsx"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "Each task shall carry a priority field with one of low / medium / high."
+    test_refs: [tests/priority.test.ts]

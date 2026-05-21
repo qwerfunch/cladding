@@ -1,0 +1,14 @@
+# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad refine
+# Architecture layers (canonical schema). The ARCHITECTURE_FROM_SPEC detector
+# enforces forbidden-import rules across these layers.
+
+layers:
+  - - components
+    - hooks
+  - - lib
+
+forbidden_imports:
+  - from: lib
+    to: components
+  - from: lib
+    to: hooks

@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-13747e
+slug: filter-by-priority
+title: "Filter tasks by priority"
+status: done
+modules: ["src/components/FilterBar.tsx", "src/lib/filter.ts"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "Selecting \"high priority\" shall narrow visible tasks to those with priority high."
+    test_refs: [tests/priority-filter.test.tsx]

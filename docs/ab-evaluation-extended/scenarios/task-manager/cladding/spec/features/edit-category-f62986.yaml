@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-f62986
+slug: edit-category
+title: "Edit category name"
+status: done
+modules: ["src/components/CategoryManager.tsx"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "The user shall be able to edit an existing category name in place."
+    test_refs: [tests/edit-category.test.tsx]

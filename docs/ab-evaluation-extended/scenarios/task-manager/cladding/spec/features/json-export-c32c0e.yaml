@@ -1,0 +1,15 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-c32c0e
+slug: json-export
+title: "Export tasks as JSON file"
+status: done
+modules: ["src/lib/export-import.ts", "src/components/Footer.tsx"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "Clicking \"Export\" shall download a JSON file containing all tasks + categories."
+    test_refs: [tests/export-import.test.ts]
+  - id: AC-002
+    ears: ubiquitous
+    text: "Pasting a previously-exported JSON into the import field shall restore the state."
+    test_refs: [tests/export-import.test.ts]

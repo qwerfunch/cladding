@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-807d77
+slug: bulk-delete
+title: "Bulk delete completed tasks"
+status: done
+modules: ["src/components/TaskList.tsx"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "Pressing \"Clear completed\" shall remove every task with status \"done\"."
+    test_refs: [tests/bulk-delete.test.tsx]

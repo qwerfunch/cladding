@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-80751b
+slug: tag-system
+title: "Tag system (multi-tag per task)"
+status: done
+modules: ["src/components/TagInput.tsx", "src/lib/types.ts"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "The user shall be able to attach multiple tags to a single task."
+    test_refs: [tests/tags.test.tsx]
