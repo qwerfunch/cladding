@@ -1073,5 +1073,69 @@ export function curate(group: 'cladding' | 'vanilla', cwd: string, features: rea
     for (const f of features) {
       write(cwd, `spec/features/${f.slug}-${f.id.replace('F-', '')}.yaml`, renderCladdingFeatureShard(f));
     }
+    emitDashboardScenarios(cwd);
   }
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Scenario shards (F-f334fa, v0.3.55)
+// ──────────────────────────────────────────────────────────────────
+
+interface ScenarioShard {
+  readonly id: string;
+  readonly slug: string;
+  readonly title: string;
+  readonly flow: string;
+  readonly featureSlugs: readonly string[];
+}
+
+function renderScenarioShard(s: ScenarioShard): string {
+  const featureIds = s.featureSlugs
+    .map((slug) => DASHBOARD_FEATURES.find((f) => f.slug === slug)?.id ?? '')
+    .filter((id) => id);
+  return [
+    '# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual',
+    `id: ${s.id}`,
+    `slug: ${s.slug}`,
+    `title: ${JSON.stringify(s.title)}`,
+    'flow: |',
+    ...s.flow.split('\n').map((line) => `  ${line}`),
+    `features: [${featureIds.join(', ')}]`,
+    '',
+  ].join('\n');
+}
+
+const DASH_SCENARIOS_README = `<!-- Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual -->
+
+# dashboard · scenarios
+
+User journeys binding multiple features into end-to-end flows. Auto-emitted by \`_curator-dashboard.ts\` (F-f334fa, v0.3.55) so the AI-query Q5 (\"How many test scenarios are declared?\") answers in 1 directory read.
+`;
+
+function emitDashboardScenarios(cwd: string): void {
+  write(cwd, 'spec/scenarios/metrics-monitoring-1f9cfa.yaml', renderScenarioShard({
+    id: 'S-1f9cfa',
+    slug: 'metrics-monitoring',
+    title: 'Operator checks daily KPI dashboard',
+    flow:
+      'An operator opens the dashboard, picks 7d in the TimeRangeSelector, scans the metric + trend + comparison cards for anomalies, then drills into a specific chart card via the sidebar. Auto-refresh keeps the data current.',
+    featureSlugs: ['app-shell', 'time-range-selector', 'metric-card', 'trend-card', 'comparison-card', 'refresh-interval'],
+  }));
+  write(cwd, 'spec/scenarios/alert-triage-8c1eaa.yaml', renderScenarioShard({
+    id: 'S-8c1eaa',
+    slug: 'alert-triage',
+    title: 'On-call engineer triages incoming alerts',
+    flow:
+      'An alert badge appears on the AlertCard. The engineer reads the severity + message, dismisses the resolved ones, and follows the StatusCard color (green/amber/red) to confirm system health.',
+    featureSlugs: ['alert-card', 'status-card'],
+  }));
+  write(cwd, 'spec/scenarios/preference-customization-7b6503.yaml', renderScenarioShard({
+    id: 'S-7b6503',
+    slug: 'preference-customization',
+    title: 'User customizes dashboard density + layout',
+    flow:
+      'User opens the PreferencesPanel, switches density to compact and layout to list. The card grid reflows immediately and the choice persists to localStorage. Export config emits the prefs JSON for portability.',
+    featureSlugs: ['preferences-panel', 'layout-customization', 'density-control', 'export-config'],
+  }));
+  write(cwd, 'spec/scenarios/README.md', DASH_SCENARIOS_README);
 }
