@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — A/B-extended curators emit scenario shards · H10 verdict ⚠️ → ✅ (F-f334fa)
+## [0.3.55] — 2026-05-21 — A/B-extended curators emit scenario shards · H10 verdict ⚠️ → ✅ (F-f334fa)
 
 **The final closure on the AB track.** Both extended curators (task-manager + dashboard) now emit 3 user-journey scenario shards each under `spec/scenarios/`. Q5 of the AI-query benchmark ("How many test scenarios are declared?") graduates from a **5-file weak proxy** (counting test files because no scenarios existed) to a **1-directory canonical answer** (cladding declares 3 shards, vanilla still falls back). Low-cost ≤1-file answer rate climbs **2/5 → 3/5** in both scenarios; H10 cross-scenario verdict upgrades **⚠️ partial → ✅ supported with caveat**.
 
