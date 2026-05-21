@@ -128,6 +128,24 @@ export interface Architecture {
   readonly forbidden_imports?: readonly {readonly from: string; readonly to: string}[];
 }
 
+/**
+ * AI behavior hints. Loaded by AI agents (Claude Code, Cursor, etc.)
+ * at session start so they don't have to grep CLAUDE.md or rediscover
+ * conventions. All fields optional. Added v0.3.56 (F-5b9f9f).
+ */
+export interface AiHints {
+  /** Persona prompt the AI should default to (e.g. 'software-engineer'). */
+  readonly preferred_persona?: string;
+  /** Soft per-session token budget. */
+  readonly token_budget_per_session?: number;
+  /** Preferred test framework slug (e.g. 'vitest'). */
+  readonly test_framework?: string;
+  /** Branch new feature work should target by default. */
+  readonly primary_branch?: string;
+  /** Identifier substrings the AI should refuse to introduce. */
+  readonly forbidden_patterns?: readonly string[];
+}
+
 /** Project-level metadata. */
 export interface Project {
   readonly name: string;
@@ -149,6 +167,26 @@ export interface Project {
    * "what problem does this project solve?". Optional.
    */
   readonly intent_summary?: string;
+  /**
+   * AI behavior hints — preferred persona, token budget, forbidden patterns.
+   * Added v0.3.56 (F-5b9f9f).
+   */
+  readonly ai_hints?: AiHints;
+}
+
+/**
+ * Auto-maintained shard counts written by `clad sync`. Provides
+ * 1-file lookup for AI agents asking "how big is this spec?" so they
+ * don't have to walk spec/features/, spec/scenarios/, etc. Added
+ * v0.3.56 (F-5b9f9f).
+ */
+export interface Inventory {
+  readonly features?: number;
+  readonly scenarios?: number;
+  readonly capabilities?: number;
+  readonly test_files?: number;
+  /** ISO-8601 timestamp of the last sync that touched this block. */
+  readonly last_synced?: string;
 }
 
 /** Root SSoT document. */
@@ -159,4 +197,9 @@ export interface Spec {
   readonly features: readonly Feature[];
   readonly scenarios?: readonly Scenario[];
   readonly architecture?: Architecture;
+  /**
+   * Auto-maintained shard counts. `clad sync` rewrites this block on
+   * every run. Added v0.3.56 (F-5b9f9f).
+   */
+  readonly inventory?: Inventory;
 }

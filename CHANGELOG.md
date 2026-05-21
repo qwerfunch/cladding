@@ -5,6 +5,48 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — spec.yaml gains inventory + ai_hints (front-door uplift) (F-5b9f9f)
+
+**spec.yaml goes from "thin manifest" to "queryable front-door".** Two new optional schema blocks:
+
+- **`inventory:`** (top-level, auto-maintained by `clad sync`) — `features` / `scenarios` / `capabilities` / `test_files` counts + `last_synced` ISO date. AI agents grep ONE file and see the whole project's scale, instead of walking `spec/features/`, `spec/scenarios/`, `tests/` themselves.
+- **`project.ai_hints:`** (user-authored) — `preferred_persona` / `token_budget_per_session` / `test_framework` / `primary_branch` / `forbidden_patterns`. AI agents (Claude Code, Cursor, …) load this at session start so they don't have to rediscover conventions or re-grep CLAUDE.md.
+
+Both blocks are **optional**, **backwards-compatible**, and pattern-stable: minimal `{schema, project: {name, language}, features: []}` spec.yaml still validates and runs.
+
+### Added
+
+- `src/spec/schema.json` — adds `inventory` (top-level, additionalProperties: false) + `project.ai_hints` (additionalProperties: false). Both have JSON Schema descriptions visible to consuming validators
+- `src/spec/types.ts::Inventory` + `AiHints` interfaces with full JSDoc. `Spec.inventory` + `Project.ai_hints` optional
+- `src/spec/inventory.ts` (new module) — `computeInventory(cwd)` walks the disk to produce the counts. `writeInventoryToSpecYaml(cwd, inv)` line-based rewrite of the `inventory:` block preserving comments + key ordering. Pure `upsertInventoryBlock(body, inv)` for unit testing
+- `tests/spec/inventory.test.ts` — 8 unit tests (compute on empty/populated trees, capabilities count, test-file walk, upsert append + replace + round-trip + no-op)
+
+### Changed
+
+- `src/cli/clad.ts::runSyncCommand` — calls `writeInventoryToSpecYaml` unconditionally on every invocation so the block stays fresh. ISO-date `last_synced` keeps spec.yaml commit-stable across same-day runs
+- `spec.yaml` (cladding-self) — gains `project.ai_hints` (preferred_persona: software-engineer · token_budget 4000 · test_framework vitest · primary_branch develop · forbidden_patterns: `eval(`, `innerHTML`, `dangerouslySetInnerHTML`) + auto-emitted `inventory:` block (129 features / 2 scenarios / 5 capabilities / 94 test_files)
+
+### Notes
+
+- 891 + 8 new tests = **899/899 passing**
+- lint clean · typecheck clean · build:plugin 26/26 detectors
+- `clad sync` → **130 features valid** (+F-5b9f9f)
+- `clad check --strict --internal` → stage_1.1-1.6 + 2.1-2.2 all ✓
+- Inventory uses YYYY-MM-DD (not full ISO-8601 with time) so multiple sync runs on the same day produce identical spec.yaml content — no commit churn
+
+### Front-door uplift — cladding-self spec.yaml in ~30 lines
+
+Before this cycle: 16 lines (manifest + 4 metadata fields). After: ~30 lines that fully describe the project + tell AI agents how to behave + cache shard counts. Open spec.yaml — know the project.
+
+### Roadmap (followups)
+
+- LLM-populated `ai_hints` via onboarding sentinel (`clad init --intent` reads intent → emits sensible defaults)
+- Detector that checks code for `forbidden_patterns` from `project.ai_hints` — turn this from advice into enforcement
+- `tier_index:` in spec.yaml for non-standard layouts (currently hardcoded)
+- `inventory.last_synced_drift_warn` if last_synced > N days → telemetry hint
+
+---
+
 ## [0.3.55] — 2026-05-21 — A/B-extended curators emit scenario shards · H10 verdict ⚠️ → ✅ (F-f334fa)
 
 **The final closure on the AB track.** Both extended curators (task-manager + dashboard) now emit 3 user-journey scenario shards each under `spec/scenarios/`. Q5 of the AI-query benchmark ("How many test scenarios are declared?") graduates from a **5-file weak proxy** (counting test files because no scenarios existed) to a **1-directory canonical answer** (cladding declares 3 shards, vanilla still falls back). Low-cost ≤1-file answer rate climbs **2/5 → 3/5** in both scenarios; H10 cross-scenario verdict upgrades **⚠️ partial → ✅ supported with caveat**.

@@ -1,0 +1,40 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-5b9f9f
+slug: spec-yaml-inventory-and-hints
+title: spec.yaml gains inventory (auto-maintained shard counts) + ai_hints (agent behavior guidance) (v0.3.56)
+status: done
+modules:
+  - src/spec/schema.json
+  - src/spec/types.ts
+  - src/spec/inventory.ts
+  - src/cli/clad.ts
+  - tests/spec/inventory.test.ts
+  - spec.yaml
+depends_on:
+  - F-3a5339
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: 'extend the Spec schema with a top-level inventory block (features / scenarios / capabilities / test_files counts + last_synced ISO date) and a Project.ai_hints block (preferred_persona / token_budget_per_session / test_framework / primary_branch / forbidden_patterns) — both optional, backwards-compat'
+    text: The system shall extend the Spec schema with optional inventory and ai_hints blocks.
+    test_refs: [tests/spec/inventory.test.ts]
+  - id: AC-002
+    ears: ubiquitous
+    action: 'src/spec/inventory.ts ships computeInventory(cwd) that walks spec/features, spec/scenarios, spec/capabilities, tests/ to count shards plus last_synced as YYYY-MM-DD (commit-stable across same-day runs) and writeInventoryToSpecYaml(cwd, inv) plus pure upsertInventoryBlock(body, inv) that round-trips spec.yaml preserving every other line + comments'
+    text: The system shall ship inventory compute and write helpers that preserve spec.yaml comments and ordering.
+    test_refs: [tests/spec/inventory.test.ts]
+  - id: AC-003
+    ears: ubiquitous
+    action: 'clad sync runs writeInventoryToSpecYaml unconditionally on every invocation so spec.yaml inventory block is always fresh — AI agents grep one file and see project scale instead of walking spec/features for an inventory count'
+    text: The system shall make clad sync auto-rewrite the inventory block on every invocation.
+    test_refs: [tests/spec/inventory.test.ts]
+  - id: AC-004
+    ears: ubiquitous
+    action: 'dogfood cladding-self spec.yaml with ai_hints (preferred_persona software-engineer, token_budget_per_session 4000, test_framework vitest, primary_branch develop, forbidden_patterns including eval and innerHTML and dangerouslySetInnerHTML) plus the auto-emitted inventory block'
+    text: The system shall dogfood ai_hints + inventory on cladding-self spec.yaml.
+    test_refs: [spec.yaml]
+  - id: AC-005
+    ears: ubiquitous
+    action: 'last_synced field uses YYYY-MM-DD ISO date (not full ISO-8601 with time) so multiple sync runs on the same day produce identical spec.yaml content and do not create commit churn'
+    text: The system shall use ISO date (YYYY-MM-DD) for last_synced to stay commit-stable.
+    test_refs: [tests/spec/inventory.test.ts]
