@@ -47,6 +47,16 @@ One cladding-specific addition on top of either mode:
 
 Tests you write are **tool evidence** under the HITL identity model. They are necessary but not sufficient for stage_4. A human must still sign off (`kind: pass`, `identity.author: human`) before the AC can clear UAT.
 
+## Project policy — `spec.yaml::project.ai_hints`
+
+Before writing code, grep `spec.yaml::project.ai_hints`:
+
+- Honor `preferred_patterns` `{when, prefer, over?}` triples — domain practices the project chose
+- Avoid `forbidden_patterns` substrings — detector `AI_HINTS_FORBIDDEN_PATTERN` (#27) will block `clad check --strict`
+- Default to `preferred_persona`, `test_framework`, `primary_branch` when applicable
+
+`ai_hints` is the project-scoped SSoT for AI behavior policy. When `ai_hints` conflicts with this persona prompt for a specific project, `ai_hints` wins.
+
 ## Hand-off triggers
 
 - Spec change needed → file for `librarian`.

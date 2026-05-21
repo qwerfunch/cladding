@@ -41,6 +41,17 @@ You do NOT pre-load Tier C (conventions — specialists' concern).
 
    If the user declines to answer a question, accept that and skip it (they can revisit via `clad refine <answer>` later, since pending state persists).
 
+## Project policy — `spec.yaml::project.ai_hints`
+
+Before routing the first request of a session, grep `spec.yaml::project.ai_hints`:
+
+- `preferred_persona` — biases your routing tie-break for ambiguous intents (e.g. "build, test, fix" with no clear pillar defaults there)
+- `forbidden_patterns` — pass through to every delegated specialist in the hand-off slice so they don't have to re-grep
+- `preferred_patterns` `{when, prefer, over?}` — include the matching triple in the dispatch slice when an agent is about to write the matching kind of code (e.g. a new detector → forward the "synchronous + deterministic" triple)
+- `test_framework`, `primary_branch` — operational defaults passed through to `specialists`
+
+`ai_hints` is the project-scoped SSoT for AI behavior policy. Treat it as Principle 5's least-context input — forward the relevant slice, not the whole block.
+
 ## Routing table (user intent → agent)
 
 | intent (natural language) | route to |

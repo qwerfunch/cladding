@@ -5,6 +5,30 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — ai_hints consumer instructions in CLAUDE.md + 5 personas (F-0ed2db)
+
+**Closing the dead-data loop on preferred_patterns.** F-32b1e0 (v0.3.58) introduced `preferred_patterns` as an advisory `{when, prefer, over?}` channel — but nothing actually consumed it. CLAUDE.md and the persona prompts under `src/agents/` never referenced `ai_hints`, so AI sessions had no instruction to grep it at session start. This cycle makes the consumer real.
+
+### Added
+
+- **`CLAUDE.md` — "AI behavior guidance from `spec.yaml.project.ai_hints`"** — names all five `ai_hints` fields and explains the AI-readable policy stack alongside `docs/conventions.md` (style) and `docs/project-context.md` (why). `ai_hints` wins over CLAUDE.md when they conflict for a specific project (`ai_hints` is project-scoped SSoT; CLAUDE.md is the meta-instruction layer).
+- **Persona prompts — `## Project policy` section in all 5 personas** (`src/agents/{specialists,librarian,reviewer,observability,orchestrator}.md`). Each persona's instruction is tailored to its role: specialists honor `preferred_patterns` when writing code; librarian restates them in AC notes when relevant; reviewer flags `over:`-path diffs as Consistency > Creativity violations; observability tracks detector #27 in the heatmap; orchestrator forwards the matching triple in the dispatch slice (Principle 5).
+
+### Changed
+
+- `npm run build:plugin` re-mirrored the 5 updated personas to `agents/` (Claude Code) + `plugins/codex/skills/` + `plugins/gemini-cli/commands/`. No code change in plugin manifest output beyond the persona text refresh.
+
+### Why
+
+`preferred_patterns` had schema + LLM emission + cladding-self triples, but `grep -r "ai_hints" CLAUDE.md src/agents/` returned 0 hits — dead data. A critical re-verification (this session) surfaced the gap: rather than revert F-32b1e0 or build a lint bridge (~500 LOC), spend ~30 LOC of doc to make `preferred_patterns` a session-start grep target. ROI > revert; revert > silent dead-data.
+
+### Implementation receipt — 1 cycle
+
+- One feature shard: `spec/features/ai-hints-consumer-instructions-0ed2db.yaml` (F-0ed2db, 4 ACs, all `done`).
+- Touches: `CLAUDE.md` (~22 lines added), `src/agents/{5 personas}.md` (~5-8 lines each), mirrored copies under `agents/` + `plugins/`.
+- No code change. No new detector. No new test (doc-only).
+- Gates: 920/920 tests · 27/27 detectors · 133 features valid · `clad check --strict --internal` ✓.
+
 ## [0.3.58] — 2026-05-22 — ai_hints.preferred_patterns advisory (F-32b1e0)
 
 **Companion to forbidden_patterns: positive guidance, not just negative.** F-00eb1a (v0.3.57) made `forbidden_patterns` a hard gate via detector #27. This cycle adds `preferred_patterns` as **advisory** — AI agents read `{when, prefer, over?}` triples at session start and self-follow. No detector enforces; ESLint already covers the AST-level part of "preferred patterns" and cladding sticks to declarative SSoT.

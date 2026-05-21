@@ -1,0 +1,50 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-0ed2db
+slug: ai-hints-consumer-instructions
+title: CLAUDE.md + 5 persona prompts gain explicit ai_hints consumer instructions (v0.3.59)
+status: done
+modules:
+  - CLAUDE.md
+  - src/agents/specialists.md
+  - src/agents/librarian.md
+  - src/agents/reviewer.md
+  - src/agents/observability.md
+  - src/agents/orchestrator.md
+  - agents/specialists.md
+  - agents/librarian.md
+  - agents/reviewer.md
+  - agents/observability.md
+  - agents/orchestrator.md
+depends_on:
+  - F-32b1e0
+  - F-00eb1a
+  - F-5b9f9f
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: 'CLAUDE.md gains a new section AI behavior guidance from spec.yaml.project.ai_hints that names all five ai_hints fields and explains the AI-readable policy stack alongside docs/conventions.md and docs/project-context.md'
+    text: The system shall document spec.yaml.project.ai_hints as the SSoT for AI behavior policy in CLAUDE.md.
+    evidence_refs: [CLAUDE.md]
+  - id: AC-002
+    ears: ubiquitous
+    action: 'each of the 5 canonical persona prompts under src/agents/ (specialists, librarian, reviewer, observability, orchestrator) gains a Project policy section that names how that persona should consume project.ai_hints (forbidden_patterns, preferred_patterns, preferred_persona)'
+    text: The system shall add a Project policy section referencing ai_hints to all five persona prompts.
+    evidence_refs:
+      - src/agents/specialists.md
+      - src/agents/librarian.md
+      - src/agents/reviewer.md
+      - src/agents/observability.md
+      - src/agents/orchestrator.md
+  - id: AC-003
+    ears: ubiquitous
+    action: 'scripts/build-plugin.mjs mirrors the updated personas under agents/ and plugins/codex/skills/ and plugins/gemini-cli/commands/ — the Project policy section appears verbatim in the mirrored copies after npm run build:plugin'
+    text: The system shall propagate the new Project policy section to all plugin manifest mirrors via build:plugin.
+    evidence_refs:
+      - agents/specialists.md
+      - agents/librarian.md
+      - plugins/codex/skills/specialists/SKILL.md
+  - id: AC-004
+    ears: ubiquitous
+    action: 'preferred_patterns ceases to be dead-data: CLAUDE.md and persona prompts now constitute the actual consumer that grep ai_hints at session start, closing the loop opened by F-32b1e0'
+    text: The system shall provide an actual session-start consumer for preferred_patterns (closing F-32b1e0 dead-data risk).
+    evidence_refs: [CLAUDE.md]

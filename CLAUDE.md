@@ -53,8 +53,29 @@ A user-explicit instruction ("release vX.Y.Z") triggers the four-step ritual:
 
 Never auto-tag or auto-release. Patch-first cadence — minor bumps (0.4.0 etc.) need explicit user confirmation.
 
+## AI behavior guidance from `spec.yaml.project.ai_hints`
+
+When operating inside a cladding-managed project (cladding itself included), grep `spec.yaml::project.ai_hints` at session start. It is the SSoT for AI behavior policy:
+
+- **`preferred_persona`** — which persona prompt to default to (`software-engineer`, `librarian`, `reviewer`, `observability`, `orchestrator`)
+- **`token_budget_per_session`** — soft cap on session size
+- **`test_framework`, `primary_branch`** — operational defaults (e.g. `vitest`, `develop`)
+- **`forbidden_patterns`** — identifier substrings you must NOT introduce (detector `AI_HINTS_FORBIDDEN_PATTERN` #27 enforces; `clad check --strict` will block)
+- **`preferred_patterns`** — domain `{when, prefer, over?}` triples to follow when writing code (advisory only; no detector, but reviewers + AI agents check)
+
+Together with `docs/conventions.md` (style observed from code) and `docs/project-context.md` (why this project exists), `ai_hints` answers **"how should I work in this project?"**. The three documents form the AI-readable policy stack:
+
+| Tier | File | Source | Refresh by |
+|---|---|---|---|
+| B | `spec.yaml::project.ai_hints` | LLM via `clad init --intent` OR user-authored | manual edit; `clad sync` validates |
+| B | `docs/project-context.md` | LLM via onboarding OR user-authored | `clad init`, `clad refine` |
+| C | `docs/conventions.md` | derived from code | `clad init --scan` |
+
+When `ai_hints` conflicts with `CLAUDE.md` for cladding-self specifically, **`ai_hints` wins** (it's the project-scoped SSoT; CLAUDE.md is the meta-instruction layer).
+
 ## Reference
 
 - External-user guide: `docs/spec-ids-multi-dev.md`
 - Detector catalog: `src/stages/detectors/README.md`
 - Architecture invariant: `spec/architecture.yaml` (consumed by `ARCHITECTURE_FROM_SPEC` since v0.3.13)
+- AI behavior SSoT: `spec.yaml::project.ai_hints` (since v0.3.56–58, F-5b9f9f + F-00eb1a + F-32b1e0)

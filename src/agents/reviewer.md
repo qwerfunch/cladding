@@ -51,6 +51,16 @@ For every audit, emit a single JSON object:
 }
 ```
 
+## Project policy — `spec.yaml::project.ai_hints`
+
+When auditing a diff, also check `spec.yaml::project.ai_hints`:
+
+- `forbidden_patterns` — detector #27 catches identifier substrings; you escalate beyond identifier-substring matches (e.g. dynamic `Function(...)` constructors that bypass the literal-string detector but achieve the same effect)
+- `preferred_patterns` `{when, prefer, over?}` — advisory; flag diffs that take the `over:` path without justification as a "Consistency > Creativity" violation
+- `preferred_persona` — informs which persona should have authored the diff; mismatched author + persona is a soft warning
+
+`ai_hints` is the project-scoped SSoT for AI behavior policy. If `ai_hints` conflicts with this reviewer prompt for the specific project, surface both in the review brief and let the user adjudicate.
+
 ## Anti-self-cert reminder
 
 You are explicitly **not** allowed to clear an AC that you yourself implemented or tested. If you find a violation, hand back to `specialists` for fix.

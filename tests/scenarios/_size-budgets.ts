@@ -37,11 +37,11 @@ function budget(maxLines: number, maxChars: number): SizeBudget {
 
 /** Persona system-prompt budgets (canonical sources under `src/agents/`). */
 export const PERSONA_BUDGETS = {
-  'src/agents/orchestrator.md': budget(80, 5500),   // baseline 64/4962
-  'src/agents/librarian.md': budget(75, 4200),       // baseline 58/3426
-  'src/agents/specialists.md': budget(75, 3800),     // baseline 58/3029
-  'src/agents/reviewer.md': budget(75, 3200),        // baseline 60/2599
-  'src/agents/observability.md': budget(55, 3000),   // baseline 40/2420
+  'src/agents/orchestrator.md': budget(85, 6500),   // baseline 75/5852 — v0.3.59 added Project policy section (F-0ed2db)
+  'src/agents/librarian.md': budget(75, 4500),       // baseline 68/4149 — v0.3.59 added Project policy section (F-0ed2db)
+  'src/agents/specialists.md': budget(75, 4000),     // baseline 68/3602 — v0.3.59 added Project policy section (F-0ed2db)
+  'src/agents/reviewer.md': budget(80, 4000),        // baseline 70/3439 — v0.3.59 added Project policy section (F-0ed2db)
+  'src/agents/observability.md': budget(60, 3500),   // baseline 50/3115 — v0.3.59 added Project policy section (F-0ed2db)
 } as const;
 
 /** Meta documents that all personas reference (loaded once per session). */
