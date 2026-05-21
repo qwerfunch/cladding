@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — A/B extended scenario 2: 30-feature analytics dashboard + cross-scenario AB-마무리 (F-ef2fd9)
+## [0.3.53] — 2026-05-21 — A/B extended scenario 2: 30-feature analytics dashboard + cross-scenario AB-마무리 (F-ef2fd9)
 
 **Declares AB-마무리 (AB-evaluation wrap-up) complete.** The framework now ships **two** complete 30-feature React scenarios — task-manager (F-0144b9, scenario 1) + dashboard (this cycle, scenario 2) — proving cladding's value generalizes across domains. Both scenarios produce **identical 3/4 cladding-exclusive drift catch rates at M30**. The cross-scenario summary (`docs/ab-evaluation-extended/summary.md`) is now the authoritative answer to "where does cladding's design pay off?".
 
@@ -65,7 +65,7 @@ The drift detectors that fire are **identical in both scenarios**: `MISSING_IMPL
 
 ---
 
-## [Unreleased] — Parameterize Q1/Q2 of AI-query benchmark per scenario (F-ae61c1)
+## [0.3.52] — 2026-05-21 — Parameterize Q1/Q2 of AI-query benchmark per scenario (F-ae61c1)
 
 **Resolves the H10 ⚠️ partial verdict from F-0144b9.** The 5-question AI-query benchmark had Q1 ("Which feature implements the refund flow?") and Q2 ("How many ACs does the refund flow have?") hardcoded to the payment domain. Task-manager has no "refund flow" feature → Q1/Q2 reported `not found` and "N" (unanswerable) regardless of cladding scaffold quality. This cycle parameterizes the keyword.
 
