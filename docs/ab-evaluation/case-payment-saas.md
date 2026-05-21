@@ -48,8 +48,8 @@ no spec, no scenarios, no architecture invariants.
 | Test files | 0 | 1 | -1 |
 | Test LoC | 0 | 20 | -20 |
 | Test cases | 0 | 2 | -2 |
-| Total chars (artifacts + code) | 5744 | 3463 | +2281 |
-| Estimated tokens | 1437 | 867 | +570 |
+| Total chars (artifacts + code) | 5862 | 3463 | +2399 |
+| Estimated tokens | 1466 | 867 | +599 |
 
 **Detector outcomes** (META_INTEGRITY + HARDCODED_SECRET excluded — toolchain-only checks):
 
@@ -87,8 +87,8 @@ B (Vanilla)  — errors: 1  warns: 3  infos: 18
 | Test files | 1 | 2 | -1 |
 | Test LoC | 8 | 33 | -25 |
 | Test cases | 1 | 4 | -3 |
-| Total chars (artifacts + code) | 6908 | 5592 | +1316 |
-| Estimated tokens | 1728 | 1399 | +329 |
+| Total chars (artifacts + code) | 7026 | 5592 | +1434 |
+| Estimated tokens | 1757 | 1399 | +358 |
 
 **Detector outcomes** (META_INTEGRITY + HARDCODED_SECRET excluded — toolchain-only checks):
 
@@ -106,7 +106,7 @@ B (Vanilla)  — errors: 1  warns: 3  infos: 18
 - **Spec ↔ code traceability**: cladding emits 2 feature(s), 3 AC(s), 2 scenario(s), 3 capability(s); vanilla has 0 of each.
 - **Architecture enforcement**: cladding declares 3 layer(s) with 2 forbidden-import rule(s); vanilla has 0.
 - **Detector behavior**: cladding-managed tree → 0 error(s) / 0 warn(s) / 17 info(s). Vanilla tree → 1 / 3 / 18. The detectors that gate against spec (REFERENCE_INTEGRITY, MISSING_IMPLEMENTATION, ARCHITECTURE_FROM_SPEC, CAPABILITIES_FEATURE_MAPPING) need cladding's artifacts to evaluate — without them they silently pass. The "0 errors on vanilla" therefore is **absence of signal**, not absence of drift.
-- **Token cost**: cladding's cumulative artifact + code consumes ~1728 tokens vs vanilla's ~1399 (heuristic chars/4) — Δ ≈ 329 tokens, the price of structure.
+- **Token cost**: cladding's cumulative artifact + code consumes ~1757 tokens vs vanilla's ~1399 (heuristic chars/4) — Δ ≈ 358 tokens, the price of structure.
 - **Code surface**: vanilla writes 5 source file(s) / 126 LoC + 2 test file(s) / 4 test case(s); cladding writes 1 / 11 + 1 / 1. (Vanilla front-loads code, cladding front-loads spec — both converge by M2.)
 
 ## Outcome Quality (F-ba2e05)

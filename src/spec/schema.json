@@ -17,7 +17,23 @@
       "additionalProperties": false,
       "properties": {
         "name": {"type": "string", "minLength": 1},
-        "language": {"type": "string", "minLength": 1}
+        "language": {"type": "string", "minLength": 1},
+        "description": {
+          "type": "string",
+          "description": "One-line summary of what the project is for. Used as the spec.yaml 'front door' hint."
+        },
+        "version": {
+          "type": "string",
+          "description": "Current project version (e.g. '0.3.49'). Free-form; typically matches package.json or pyproject.toml."
+        },
+        "repository": {
+          "type": "string",
+          "description": "URL of the source repository (e.g. 'https://github.com/owner/repo')."
+        },
+        "intent_summary": {
+          "type": "string",
+          "description": "TL;DR of docs/project-context.md. One sentence answering 'what problem does this project solve?'."
+        }
       }
     },
     "features": {

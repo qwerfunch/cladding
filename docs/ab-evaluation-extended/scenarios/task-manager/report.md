@@ -46,8 +46,8 @@ Snapshots captured at features 1, 5, 10, 15, 20, 25, 30 (7 milestones). Each cel
 | Test files | A:5 / B:5 | A:5 / B:5 | A:5 / B:5 | A:5 / B:5 | A:5 / B:5 | A:5 / B:5 | A:5 / B:5 |
 | Test LoC | A:59 / B:59 | A:59 / B:59 | A:59 / B:59 | A:59 / B:59 | A:59 / B:59 | A:59 / B:59 | A:59 / B:59 |
 | Spec files | A:4 / B:0 | A:8 / B:0 | A:13 / B:0 | A:18 / B:0 | A:23 / B:0 | A:28 / B:0 | A:33 / B:0 |
-| Spec LoC | A:71 / B:0 | A:123 / B:0 | A:188 / B:0 | A:248 / B:0 | A:308 / B:0 | A:368 / B:0 | A:436 / B:0 |
-| Spec/code ratio | A:0.09 / B:0.00 | A:0.15 / B:0.00 | A:0.24 / B:0.00 | A:0.31 / B:0.00 | A:0.39 / B:0.00 | A:0.46 / B:0.00 | A:0.55 / B:0.00 |
+| Spec LoC | A:75 / B:0 | A:127 / B:0 | A:192 / B:0 | A:252 / B:0 | A:312 / B:0 | A:372 / B:0 | A:440 / B:0 |
+| Spec/code ratio | A:0.09 / B:0.00 | A:0.16 / B:0.00 | A:0.24 / B:0.00 | A:0.32 / B:0.00 | A:0.39 / B:0.00 | A:0.47 / B:0.00 | A:0.55 / B:0.00 |
 
 _Capture duration omitted from milestone table — wall-clock measurement varies across runs._
 
@@ -92,7 +92,7 @@ Five domain questions; lower file-lookup cost is better. "N" = unanswerable.
 
 ## Findings & verdict
 
-- **H9 — Cladding scales linearly**: spec/code ratio at M30 is **0.55** (cladding); vanilla has no spec (ratio = 0). Cladding adds 436 LoC of spec to govern 798 LoC of code.
+- **H9 — Cladding scales linearly**: spec/code ratio at M30 is **0.55** (cladding); vanilla has no spec (ratio = 0). Cladding adds 440 LoC of spec to govern 798 LoC of code.
 - **H10 — AI query cost stays bounded**: cladding answers 2/5 queries from ≤1 file regardless of N=30; vanilla manages 0/5.
 - **H11 — Drift catch preserved at scale**: 3 cladding-exclusive catches out of 4 drift scenarios (vs 0 in vanilla).
 - **H12 — Capture duration bounded**: snapshot capture at M30 completes in seconds, not minutes. Wall-clock varies run-to-run (jitter from concurrent vitest workers) but stays bounded — the detector loop scales with tree size, not feature count. Exact ms omitted from the committed report; see test stdout for run-specific timing.

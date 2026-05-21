@@ -1,0 +1,29 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-3a5339
+slug: spec-yaml-metadata
+title: Enrich spec.yaml with optional project metadata (description, version, repository, intent_summary) (v0.3.49)
+status: done
+modules:
+  - src/spec/schema.json
+  - src/spec/types.ts
+  - src/cli/init.ts
+  - spec.yaml
+  - tests/scenarios/ab-extended/_curator.ts
+depends_on:
+  - F-0144b9
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: 'extend the Project schema with 4 optional fields (description, version, repository, intent_summary) so spec.yaml carries meaningful front-door metadata while remaining backwards-compatible with minimal {name, language}-only specs'
+    text: The system shall extend the Project schema with 4 optional project metadata fields.
+    test_refs: [tests/spec/load.test.ts]
+  - id: AC-002
+    ears: ubiquitous
+    action: 'update specSeed to accept SpecSeedMetadata and emit those fields when provided — when an intent is given to runInit the metadata defaults to {description: intent, intent_summary: intent} so spec.yaml is never just name + language for intent-aware projects'
+    text: The system shall update specSeed to emit metadata fields populated from the intent when given.
+    test_refs: [tests/cli/init.test.ts]
+  - id: AC-003
+    ears: ubiquitous
+    action: 'dogfood the new fields in both cladding-self spec.yaml (description, version 0.3.49, repository URL, intent_summary) and the A/B-extended task-manager curator template; regenerate the committed task-manager spec.yaml so reviewers see the enriched front door'
+    text: The system shall dogfood the new metadata fields in cladding-self plus the task-manager curator and regenerate committed outputs.
+    test_refs: [spec.yaml, docs/ab-evaluation-extended/scenarios/task-manager/cladding/spec.yaml]
