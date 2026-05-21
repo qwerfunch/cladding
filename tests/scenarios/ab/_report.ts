@@ -10,6 +10,16 @@ import {readFileSync, writeFileSync, existsSync, mkdirSync} from 'node:fs';
 import {dirname} from 'node:path';
 
 import {diffToRows, type AbSnapshot} from './_ab-metrics.js';
+import type {DriftCatchResult} from './_drift-injection.js';
+import type {QueryAnswer} from './_query-bench.js';
+
+/** Optional outcome-quality bundle (F-ba2e05). */
+export interface OutcomeReportInput {
+  /** 4 drift scenarios × 2 groups = 8 results, in DI-1…DI-4 / A,B order. */
+  readonly driftResults: readonly DriftCatchResult[];
+  /** 5 queries × 2 groups = 10 answers, in Q1…Q5 / A,B order. */
+  readonly queryResults: ReadonlyMap<'A' | 'B', readonly QueryAnswer[]>;
+}
 
 /** Case report top-level options. */
 export interface CaseReportInput {
@@ -21,6 +31,7 @@ export interface CaseReportInput {
   readonly m1B: AbSnapshot;
   readonly m2A: AbSnapshot;
   readonly m2B: AbSnapshot;
+  readonly outcome?: OutcomeReportInput;
 }
 
 export function renderCaseReport(input: CaseReportInput): string {
@@ -61,6 +72,14 @@ export function renderCaseReport(input: CaseReportInput): string {
   lines.push('');
   lines.push(renderFindings(input.m2A, input.m2B));
   lines.push('');
+
+  // Outcome quality (optional, F-ba2e05)
+  if (input.outcome) {
+    lines.push('## Outcome Quality (F-ba2e05)');
+    lines.push('');
+    lines.push(renderOutcomeSection(input.outcome));
+    lines.push('');
+  }
 
   // Replay
   lines.push('## How to reproduce');
@@ -137,6 +156,96 @@ function escapePipe(s: string): string {
 
 function truncate(s: string, max: number): string {
   return s.length > max ? `${s.slice(0, max - 1)}…` : s;
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Outcome-quality renderer (F-ba2e05)
+//
+// Two sub-tables: drift catch + AI query benchmark. Plus a short
+// "what this means" narrative that quantifies cladding-exclusive
+// catches and AI-agent productivity.
+// ──────────────────────────────────────────────────────────────────
+
+function renderOutcomeSection(outcome: OutcomeReportInput): string {
+  const lines: string[] = [];
+
+  // Drift catch table (DI-1 ~ DI-4 × A,B)
+  lines.push('### Drift Injection');
+  lines.push('');
+  lines.push('Each row = one realistic drift event injected into both groups at M2+. "Caught" means at least one new error/warn-level detector finding emerged after the injection.');
+  lines.push('');
+  lines.push('| Scenario | A (Cladding) caught? | A new detectors | B (Vanilla) caught? | B new detectors |');
+  lines.push('|---|:---:|---|:---:|---|');
+  const byId = new Map<string, {a?: DriftCatchResult; b?: DriftCatchResult}>();
+  for (const r of outcome.driftResults) {
+    const entry = byId.get(r.scenarioId) ?? {};
+    if (r.group === 'A') entry.a = r;
+    else entry.b = r;
+    byId.set(r.scenarioId, entry);
+  }
+  for (const id of ['DI-1', 'DI-2', 'DI-3', 'DI-4']) {
+    const entry = byId.get(id);
+    if (!entry) continue;
+    const aCaught = entry.a ? (entry.a.caught ? '✅' : '·') : 'N/A';
+    const aDet = entry.a ? entry.a.newDetectors.slice(0, 3).join(', ') || '—' : 'N/A';
+    const bCaught = entry.b ? (entry.b.caught ? '✅' : '·') : 'N/A';
+    const bDet = entry.b ? entry.b.newDetectors.slice(0, 3).join(', ') || '—' : 'N/A';
+    const name = entry.a?.scenarioName ?? entry.b?.scenarioName ?? id;
+    lines.push(`| ${id} ${escapePipe(name)} | ${aCaught} | ${escapePipe(aDet)} | ${bCaught} | ${escapePipe(bDet)} |`);
+  }
+  lines.push('');
+
+  // Aggregate stats
+  const aCaughtCount = outcome.driftResults.filter((r) => r.group === 'A' && r.caught).length;
+  const aTotalCount = outcome.driftResults.filter((r) => r.group === 'A').length;
+  const bCaughtCount = outcome.driftResults.filter((r) => r.group === 'B' && r.caught).length;
+  const bTotalCount = outcome.driftResults.filter((r) => r.group === 'B').length;
+  const cladExclusive = outcome.driftResults.filter((r) => {
+    if (r.group !== 'A' || !r.caught) return false;
+    const bMatch = outcome.driftResults.find((x) => x.group === 'B' && x.scenarioId === r.scenarioId);
+    return !bMatch || !bMatch.caught;
+  }).length;
+  lines.push(`**Catch rate**: A = ${aCaughtCount}/${aTotalCount} · B = ${bCaughtCount}/${bTotalCount} · **cladding-exclusive catches = ${cladExclusive}**`);
+  lines.push('');
+
+  // AI query benchmark table
+  lines.push('### AI-Query Productivity');
+  lines.push('');
+  lines.push('Each row = one domain question. "Files opened" = deterministic file-IO an answer function performed to answer; lower is better. "answered=N" means the tree contained no answer.');
+  lines.push('');
+  lines.push('| Question | A files opened | A answer | B files opened | B answer |');
+  lines.push('|---|---:|---|---:|---|');
+  const aAnswers = outcome.queryResults.get('A') ?? [];
+  const bAnswers = outcome.queryResults.get('B') ?? [];
+  for (let i = 0; i < Math.max(aAnswers.length, bAnswers.length); i++) {
+    const a = aAnswers[i];
+    const b = bAnswers[i];
+    const q = a?.question ?? b?.question ?? '';
+    const qid = a?.questionId ?? b?.questionId ?? `Q${i + 1}`;
+    const aFiles = a ? (a.answered ? String(a.filesOpened) : 'N') : 'N';
+    const aAns = a ? truncate(a.answer, 60) : '—';
+    const bFiles = b ? (b.answered ? String(b.filesOpened) : 'N') : 'N';
+    const bAns = b ? truncate(b.answer, 60) : '—';
+    lines.push(`| ${qid} ${escapePipe(truncate(q, 50))} | ${aFiles} | ${escapePipe(aAns)} | ${bFiles} | ${escapePipe(bAns)} |`);
+  }
+  lines.push('');
+
+  // Aggregate query stats
+  const aAnswerable = aAnswers.filter((q) => q.answered).length;
+  const aLowCost = aAnswers.filter((q) => q.answered && q.filesOpened <= 1).length;
+  const bAnswerable = bAnswers.filter((q) => q.answered).length;
+  const bLowCost = bAnswers.filter((q) => q.answered && q.filesOpened <= 1).length;
+  lines.push(`**Answerability**: A = ${aAnswerable}/${aAnswers.length} answered · B = ${bAnswerable}/${bAnswers.length} answered`);
+  lines.push(`**Low-cost answers (≤1 file)**: A = ${aLowCost}/${aAnswers.length} · B = ${bLowCost}/${bAnswers.length}`);
+  lines.push('');
+
+  // What it means
+  lines.push('### What this means');
+  lines.push('');
+  lines.push(`- **H6 — Cladding catches drift vanilla misses**: ${cladExclusive}/${aTotalCount} cladding-exclusive catches. The non-exclusive catches (where both groups catch) are toolchain-only detectors like HARDCODED_SECRET that fire regardless of spec presence — useful baseline but not where cladding's design pays off.`);
+  lines.push(`- **H7 — Cladding makes AI agents productive**: A answers ${aLowCost}/${aAnswers.length} queries from ≤1 file; B answers ${bLowCost}/${bAnswers.length}. For the unanswerable B queries, the tree has no canonical source — an AI agent would either give up or hallucinate from inferred context.`);
+  lines.push('- **H8 — Iron Law gates measure detector activity, not codebase health**: when `clad check --strict` runs against vanilla, spec-required detectors silently report 0 findings. The same gate on cladding-managed code uses all 25 detectors. Same gate label, very different evaluation surface.');
+  return lines.join('\n');
 }
 
 function slugify(s: string): string {

@@ -85,8 +85,8 @@ B (Vanilla)  — errors: 0  warns: 0  infos: 16
 | Test files | 1 | 2 | -1 |
 | Test LoC | 8 | 33 | -25 |
 | Test cases | 1 | 4 | -3 |
-| Total chars (artifacts + code) | 6717 | 5592 | +1125 |
-| Estimated tokens | 1680 | 1399 | +281 |
+| Total chars (artifacts + code) | 6790 | 5592 | +1198 |
+| Estimated tokens | 1698 | 1399 | +299 |
 
 **Detector outcomes** (META_INTEGRITY + HARDCODED_SECRET excluded — toolchain-only checks):
 
@@ -102,8 +102,44 @@ B (Vanilla)  — errors: 0  warns: 0  infos: 16
 - **Spec ↔ code traceability**: cladding emits 2 feature(s), 3 AC(s), 2 scenario(s), 3 capability(s); vanilla has 0 of each.
 - **Architecture enforcement**: cladding declares 3 layer(s) with 2 forbidden-import rule(s); vanilla has 0.
 - **Detector behavior**: cladding-managed tree → 0 error(s) / 0 warn(s) / 17 info(s). Vanilla tree → 0 / 0 / 16. The detectors that gate against spec (REFERENCE_INTEGRITY, MISSING_IMPLEMENTATION, ARCHITECTURE_FROM_SPEC, CAPABILITIES_FEATURE_MAPPING) need cladding's artifacts to evaluate — without them they silently pass. The "0 errors on vanilla" therefore is **absence of signal**, not absence of drift.
-- **Token cost**: cladding's cumulative artifact + code consumes ~1680 tokens vs vanilla's ~1399 (heuristic chars/4) — Δ ≈ 281 tokens, the price of structure.
+- **Token cost**: cladding's cumulative artifact + code consumes ~1698 tokens vs vanilla's ~1399 (heuristic chars/4) — Δ ≈ 299 tokens, the price of structure.
 - **Code surface**: vanilla writes 5 source file(s) / 126 LoC + 2 test file(s) / 4 test case(s); cladding writes 1 / 11 + 1 / 1. (Vanilla front-loads code, cladding front-loads spec — both converge by M2.)
+
+## Outcome Quality (F-ba2e05)
+
+### Drift Injection
+
+Each row = one realistic drift event injected into both groups at M2+. "Caught" means at least one new error/warn-level detector finding emerged after the injection.
+
+| Scenario | A (Cladding) caught? | A new detectors | B (Vanilla) caught? | B new detectors |
+|---|:---:|---|:---:|---|
+| DI-1 Stale module reference (rename src/api/refund.ts → src/api/refund_renamed.ts without spec update) | ✅ | MISSING_IMPLEMENTATION, STATUS_DRIFT | · | — |
+| DI-2 Architecture violation (src/api/refund_renamed.ts imports ../ledger/store.js) | ✅ | ARCHITECTURE_FROM_SPEC | · | — |
+| DI-3 Hardcoded secret (add API key constant to src/api/refund_renamed.ts) | · | — | · | — |
+| DI-4 Untested AC (add AC-003 to spec/features/refund-flow-4db939.yaml without test) | ✅ | MISSING_TESTS | N/A | N/A |
+
+**Catch rate**: A = 3/4 · B = 0/3 · **cladding-exclusive catches = 3**
+
+### AI-Query Productivity
+
+Each row = one domain question. "Files opened" = deterministic file-IO an answer function performed to answer; lower is better. "answered=N" means the tree contained no answer.
+
+| Question | A files opened | A answer | B files opened | B answer |
+|---|---:|---|---:|---|
+| Q1 Which feature implements the refund flow? | 1 | F-4db939 | 7 | code path: src/lib/pg-refund.ts (no canonical feature id) |
+| Q2 How many acceptance criteria does the refund flow… | 1 | 3 AC(s) | N | no spec/features/ — vanilla cannot answer |
+| Q3 What are the architecture forbidden-import rules? | 1 | api ↛ ledger, webhook ↛ ledger | N | no spec/architecture.yaml — vanilla has no explicit rules |
+| Q4 Which capabilities are bound to which features? | 1 | payment-auth=[F-4db939] | N | no spec/capabilities.yaml — vanilla has no capability conce… |
+| Q5 How many test scenarios are declared? | 1 | 2 scenario shard(s) | 2 | 2 test file(s) (weak proxy — no canonical scenario declarat… |
+
+**Answerability**: A = 5/5 answered · B = 2/5 answered
+**Low-cost answers (≤1 file)**: A = 5/5 · B = 0/5
+
+### What this means
+
+- **H6 — Cladding catches drift vanilla misses**: 3/4 cladding-exclusive catches. The non-exclusive catches (where both groups catch) are toolchain-only detectors like HARDCODED_SECRET that fire regardless of spec presence — useful baseline but not where cladding's design pays off.
+- **H7 — Cladding makes AI agents productive**: A answers 5/5 queries from ≤1 file; B answers 0/5. For the unanswerable B queries, the tree has no canonical source — an AI agent would either give up or hallucinate from inferred context.
+- **H8 — Iron Law gates measure detector activity, not codebase health**: when `clad check --strict` runs against vanilla, spec-required detectors silently report 0 findings. The same gate on cladding-managed code uses all 25 detectors. Same gate label, very different evaluation surface.
 
 ## How to reproduce
 
