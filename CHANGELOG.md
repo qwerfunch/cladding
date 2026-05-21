@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — ai_hints.preferred_patterns advisory (F-32b1e0)
+## [0.3.58] — 2026-05-22 — ai_hints.preferred_patterns advisory (F-32b1e0)
 
 **Companion to forbidden_patterns: positive guidance, not just negative.** F-00eb1a (v0.3.57) made `forbidden_patterns` a hard gate via detector #27. This cycle adds `preferred_patterns` as **advisory** — AI agents read `{when, prefer, over?}` triples at session start and self-follow. No detector enforces; ESLint already covers the AST-level part of "preferred patterns" and cladding sticks to declarative SSoT.
 
