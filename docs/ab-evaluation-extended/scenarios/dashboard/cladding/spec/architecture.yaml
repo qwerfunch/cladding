@@ -1,0 +1,12 @@
+# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad refine
+
+layers:
+  - - components
+    - hooks
+  - - lib
+
+forbidden_imports:
+  - from: lib
+    to: components
+  - from: lib
+    to: hooks

@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-1913e9
+slug: app-shell
+title: "App shell + root layout"
+status: done
+modules: ["src/App.tsx", "src/main.tsx", "index.html"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "The app shall mount at #root and render the dashboard chrome."
+    test_refs: [tests/app-shell.test.tsx]

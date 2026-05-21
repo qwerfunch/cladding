@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-4f9f33
+slug: alert-card
+title: "Alert card (notification surface)"
+status: done
+modules: ["src/components/AlertCard.tsx"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "The alert card shall render severity + message + dismiss button."
+    test_refs: [tests/alert-card.test.tsx]

@@ -1,0 +1,15 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+# dashboard — Cladding spec
+# Features live in spec/features/<slug>-<hash>.yaml — one file per feature.
+
+schema: "0.1"
+
+project:
+  name: dashboard
+  language: typescript
+  description: "30-feature React + Vite + TS + Tailwind analytics dashboard — the cladding-managed group of the A/B-extended evaluation scenario 2."
+  version: "0.1.0"
+  repository: "https://github.com/qwerfunch/cladding"
+  intent_summary: "Demonstrate that cladding's governance scaffold scales across domains — same 30-feature framework, different React app, same drift-catch + AI-query benefits."
+
+features: []

@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-e55281
+slug: bar-chart
+title: "Bar chart component"
+status: done
+modules: ["src/components/charts/BarChart.tsx"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "The bar chart shall render categorical bars with axis labels."
+    test_refs: [tests/bar-chart.test.tsx]

@@ -5,6 +5,66 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — A/B extended scenario 2: 30-feature analytics dashboard + cross-scenario AB-마무리 (F-ef2fd9)
+
+**Declares AB-마무리 (AB-evaluation wrap-up) complete.** The framework now ships **two** complete 30-feature React scenarios — task-manager (F-0144b9, scenario 1) + dashboard (this cycle, scenario 2) — proving cladding's value generalizes across domains. Both scenarios produce **identical 3/4 cladding-exclusive drift catch rates at M30**. The cross-scenario summary (`docs/ab-evaluation-extended/summary.md`) is now the authoritative answer to "where does cladding's design pay off?".
+
+### Added
+
+- `tests/scenarios/ab-extended/_shared-scaffold.ts` (new module) — React 19 + Vite 6 + TS 5.6 + Tailwind 4 boilerplate templates (package.json, tsconfig, vite.config, tailwind.config, index.html, index.css, main.tsx, README, .gitignore, tests/_setup.ts). Reused by both scenario curators
+- `tests/scenarios/ab-extended/_feature-set-dashboard.ts` (new module) — 30 dashboard features across 5 categories: layout (8) · cards (8) · charts (5) · data (5) · preferences (4). Deterministic F-hash6 ids
+- `tests/scenarios/ab-extended/_curator-dashboard.ts` (new module) — emits the complete React analytics dashboard for either group. Includes 17 components (Sidebar, Breadcrumbs, TimeRangeSelector, 7 card types, 5 inline-SVG charts, CardSkeleton, ErrorState, EmptyState, PreferencesPanel) + 4 hooks + 3 lib modules + 3 vitest test files
+- `tests/scenarios/ab-extended/case-dashboard.test.ts` — scenario 2 driver: same 7-milestone progression + 4 drift scenarios + 5 AI queries as task-manager; uses `featureKeyword: 'metric-card'` for Q1/Q2
+- `docs/ab-evaluation-extended/scenarios/dashboard/report.md` (auto-generated) — milestone progression + M30 drift + AI-query benchmark
+- `docs/ab-evaluation-extended/scenarios/dashboard/cladding/` (browseable, runnable) — full dashboard React project + cladding governance scaffold
+- `docs/ab-evaluation-extended/scenarios/dashboard/vanilla/` (browseable, runnable) — same React app, no governance
+
+### Changed
+
+- `docs/ab-evaluation-extended/summary.md` — rewritten as the cross-scenario verdict matrix. Both scenarios share **3/4 cladding-exclusive drift catches**, **~0.5 spec/code ratio**, **35 tier-banner files at M30**. H9 / H11 / H12 verified to be **domain-independent**
+- `docs/ab-evaluation-extended/README.md` — scenarios table updated; dashboard moved from "planned" to "shipped"
+
+### Key M30 results (dashboard)
+
+| Metric | Cladding | Vanilla |
+|---|---:|---:|
+| Tier-banner files | **35** | 0 |
+| Features tracked | **30** | 0 |
+| ACs tracked | **31** | 0 |
+| Capability bindings | **5** | 0 |
+| Source LoC | 849 | 849 |
+| Spec LoC | **420** | 0 |
+| Spec/code ratio | **0.49** | 0.00 |
+| **Drift catch (M30)** | **3/4** | **0/3** |
+| AI ≤1-file queries | 2/5 | 0/5 |
+
+### Cross-scenario findings (AB-마무리)
+
+| Hypothesis | task-manager M30 | dashboard M30 | Verdict |
+|---|---|---|---|
+| H9 — Linear scale | spec/code 0.55 | 0.49 | **✅ domain-independent** |
+| H11 — Drift catch preserved at scale | 3/4 cladding-exclusive | 3/4 cladding-exclusive | **✅ identical across domains** |
+| H12 — Capture duration bounded | <2s | <2s | ✅ |
+
+The drift detectors that fire are **identical in both scenarios**: `MISSING_IMPLEMENTATION + STATUS_DRIFT` (file rename), `ARCHITECTURE_FROM_SPEC` (forbidden import), `MISSING_TESTS` (untested AC). These three define cladding's structural payoff at any scale and any domain.
+
+### Notes
+
+- 890 + **1 new dashboard case test** = **891/891** passing
+- lint clean · typecheck clean · build:plugin 26/26 detectors
+- `clad sync` → **127 features valid** (+F-ef2fd9)
+- `clad check --strict --internal` → all active stages ✓
+- Both committed dashboard projects (cladding + vanilla) are runnable React apps — `npm install && npm run dev` opens at http://localhost:5173
+
+### Roadmap (out of scope)
+
+- Browser screenshot diffs for visual UI verification
+- `vite build` bundle size measurement per scenario per group
+- Actually-run-vitest in committed projects
+- Scenario 3 (blog/CMS, e-commerce, …) — on demand only
+
+---
+
 ## [Unreleased] — Parameterize Q1/Q2 of AI-query benchmark per scenario (F-ae61c1)
 
 **Resolves the H10 ⚠️ partial verdict from F-0144b9.** The 5-question AI-query benchmark had Q1 ("Which feature implements the refund flow?") and Q2 ("How many ACs does the refund flow have?") hardcoded to the payment domain. Task-manager has no "refund flow" feature → Q1/Q2 reported `not found` and "N" (unanswerable) regardless of cladding scaffold quality. This cycle parameterizes the keyword.

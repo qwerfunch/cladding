@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-1d01ba
+slug: responsive-layout
+title: "Responsive layout (mobile + desktop)"
+status: done
+modules: ["src/index.css"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "The layout shall stack cards vertically on narrow viewports."
+    test_refs: [tests/responsive.test.ts]

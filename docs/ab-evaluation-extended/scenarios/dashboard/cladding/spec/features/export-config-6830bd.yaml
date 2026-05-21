@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-6830bd
+slug: export-config
+title: "Export dashboard configuration as JSON"
+status: done
+modules: ["src/lib/export-config.ts"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "Clicking Export shall download a JSON of the current preferences + layout."
+    test_refs: [tests/export-config.test.ts]

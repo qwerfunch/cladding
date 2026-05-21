@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-f8c147
+slug: loading-states
+title: "Loading skeletons for cards"
+status: done
+modules: ["src/components/CardSkeleton.tsx"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "A skeleton shall render while a card is loading data."
+    test_refs: [tests/loading.test.tsx]

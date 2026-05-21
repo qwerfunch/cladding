@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-cf66d4
+slug: header
+title: "Header with title + user menu"
+status: done
+modules: ["src/components/Header.tsx"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "The header shall render the dashboard title and a user menu trigger."
+    test_refs: [tests/header.test.tsx]

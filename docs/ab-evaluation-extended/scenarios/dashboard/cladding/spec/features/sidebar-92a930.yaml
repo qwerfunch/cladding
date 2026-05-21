@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-92a930
+slug: sidebar
+title: "Sidebar navigation"
+status: done
+modules: ["src/components/Sidebar.tsx"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "The sidebar shall list dashboard sections with active highlight."
+    test_refs: [tests/sidebar.test.tsx]
