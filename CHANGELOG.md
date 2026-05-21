@@ -5,6 +5,63 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — ai_hints.preferred_patterns advisory (F-32b1e0)
+
+**Companion to forbidden_patterns: positive guidance, not just negative.** F-00eb1a (v0.3.57) made `forbidden_patterns` a hard gate via detector #27. This cycle adds `preferred_patterns` as **advisory** — AI agents read `{when, prefer, over?}` triples at session start and self-follow. No detector enforces; ESLint already covers the AST-level part of "preferred patterns" and cladding sticks to declarative SSoT.
+
+### Added
+
+- `src/spec/types.ts::PreferredPattern` interface `{when, prefer, over?}` + `AiHints.preferred_patterns?: readonly PreferredPattern[]`
+- `src/spec/schema.json` — `project.ai_hints.preferred_patterns` array of objects with `when` + `prefer` required and `over` optional (`additionalProperties: false`)
+- `src/cli/scan/intent-onboarding.ts::OnboardingPreferredPattern` + `OnboardingAiHints.preferred_patterns`
+- `PROJECT_METADATA` sentinel prompt now instructs the LLM to emit 1-3 domain-relevant triples (e.g. React → useState over class state, async work → async/await over callbacks)
+- `extractProjectMetadata` parses the new field defensively — drops entries missing `when` or `prefer`, drops non-array root, ignores fully-malformed lists
+- `tests/cli/intent-onboarding.test.ts` — 4 new tests for `preferred_patterns` parse cases (happy path, malformed entries dropped, non-array, all-malformed)
+
+### Changed
+
+- `src/cli/init.ts::SpecSeedMetadata.ai_hints` gains optional `preferred_patterns`; `specSeed` emits a multi-line block under `project.ai_hints:` when triples are present
+- `hasAnyAiHint` recognizes `preferred_patterns` so the seed correctly chooses to emit `ai_hints:` even when only triples are present
+- `spec.yaml` (cladding-self) — dogfooded with 4 preferred_patterns:
+  - **new drift detector implementation** → synchronous + deterministic (Iron Law) over LLM-assisted detection
+  - **spec authoring** → F-`<hash6>` sharded files over F-NNN sequential or inline
+  - **AI agent file lookup** → 1-file grep against spec.yaml inventory + ai_hints over readdirSync on shards
+  - **Iron Law stage logic + I/O orchestration** → pure stage core + CLI wrapper over mixed runner
+
+### Notes
+
+- 916 + **4 new tests** = **920/920 passing**
+- lint clean · typecheck clean · build:plugin 27/27 detectors
+- `clad sync` 131 → **132 features valid** (+F-32b1e0)
+- `clad check --strict --internal` — stage_1.1-1.6 + 2.1-2.2 all ✓
+- **No new detector** — `preferred_patterns` is advisory by design. AST-level preferred patterns are ESLint's job; cladding stays declarative
+
+### The full ai_hints loop now reads
+
+```yaml
+project.ai_hints:
+  preferred_persona: software-engineer       # who the AI agent acts as
+  token_budget_per_session: 4000              # cap on session size
+  test_framework: vitest                      # which test framework
+  primary_branch: develop                     # where to PR
+  forbidden_patterns: [...]                   # ❌ enforced (F-00eb1a)
+  preferred_patterns:                         # ✅ advised (F-32b1e0)
+    - when: ...
+      prefer: ...
+      over: ...
+```
+
+5 fields × 2 enforcement modes (gate / advise). AI agents grep one file and follow the whole policy.
+
+### Roadmap
+
+- **Lint config bridge** (next cycle candidate) — `ai_hints.lint_rules` as SSoT for `.eslintrc.json` (LINT_RULES_DRIFT detector)
+- AI agent SDKs (Claude Code, Cursor) surface `preferred_patterns` automatically in their context window
+- Per-feature `preferred_patterns_override` for legacy shards
+- Severity tiers for preferred_patterns (info vs warn) — promote a few to enforced gate
+
+---
+
 ## [0.3.57] — 2026-05-21 — AI_HINTS_FORBIDDEN_PATTERN detector + LLM-populated ai_hints (F-00eb1a)
 
 **ai_hints graduates from advice to enforcement + becomes self-filling.** F-5b9f9f added the `project.ai_hints` block as a passive AI-agent guide. This cycle:

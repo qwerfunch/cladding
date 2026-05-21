@@ -1,0 +1,40 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-32b1e0
+slug: ai-hints-preferred-patterns
+title: ai_hints gains preferred_patterns (advisory) — companion to forbidden_patterns (v0.3.58)
+status: done
+modules:
+  - src/spec/schema.json
+  - src/spec/types.ts
+  - src/cli/scan/intent-onboarding.ts
+  - src/cli/init.ts
+  - spec.yaml
+  - tests/cli/intent-onboarding.test.ts
+depends_on:
+  - F-00eb1a
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: 'extend AiHints with preferred_patterns array of {when, prefer, over?} triples and PreferredPattern interface — advisory only, no detector enforcement (companion to forbidden_patterns which is enforced)'
+    text: The system shall extend AiHints with an advisory preferred_patterns array of when/prefer/over triples.
+    test_refs: [tests/cli/intent-onboarding.test.ts]
+  - id: AC-002
+    ears: ubiquitous
+    action: 'JSON schema permits ai_hints.preferred_patterns as an array of objects with when and prefer required and over optional — additionalProperties false for the item shape — and stays backwards-compatible with existing minimal spec.yaml'
+    text: The system shall extend the schema with preferred_patterns while preserving backwards compatibility.
+    test_refs: [tests/cli/intent-onboarding.test.ts]
+  - id: AC-003
+    ears: ubiquitous
+    action: 'intent-onboarding PROJECT_METADATA sentinel prompt instructs the LLM to emit 1-3 domain-relevant preferred_patterns triples (e.g. React state → useState over class state) and extractProjectMetadata parses them defensively (drops entries missing when or prefer, drops non-array roots, drops fully-malformed lists)'
+    text: The system shall make onboarding parse preferred_patterns defensively from the LLM response.
+    test_refs: [tests/cli/intent-onboarding.test.ts]
+  - id: AC-004
+    ears: ubiquitous
+    action: 'specSeed emits a multi-line preferred_patterns block under project.ai_hints when the seed metadata carries any entries — readable YAML with each triple rendering when/prefer/over on consecutive indented lines'
+    text: The system shall make specSeed emit a multi-line preferred_patterns block when triples are provided.
+    test_refs: [tests/cli/init.test.ts]
+  - id: AC-005
+    ears: ubiquitous
+    action: 'dogfood cladding-self spec.yaml with 4 preferred_patterns covering new detector implementation, spec authoring, AI agent lookup, and Iron Law stage structure — each triple uses when plus prefer plus over to be both readable and actionable'
+    text: The system shall dogfood preferred_patterns on cladding-self spec.yaml with 4 representative triples.
+    test_refs: [spec.yaml]

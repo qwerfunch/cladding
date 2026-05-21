@@ -129,6 +129,21 @@ export interface Architecture {
 }
 
 /**
+ * One advisory preferred-pattern entry. Tells AI agents what to use
+ * in a given context (e.g. `{when: "React state", prefer: "useState"}`).
+ * Advisory only — no detector enforces these. AI agents read them at
+ * session start and self-follow. v0.3.58+ (F-32b1e0).
+ */
+export interface PreferredPattern {
+  /** Context where the preference applies. */
+  readonly when: string;
+  /** Pattern to prefer in that context. */
+  readonly prefer: string;
+  /** Optional — pattern to avoid in favor of `prefer`. */
+  readonly over?: string;
+}
+
+/**
  * AI behavior hints. Loaded by AI agents (Claude Code, Cursor, etc.)
  * at session start so they don't have to grep CLAUDE.md or rediscover
  * conventions. All fields optional. Added v0.3.56 (F-5b9f9f).
@@ -144,6 +159,12 @@ export interface AiHints {
   readonly primary_branch?: string;
   /** Identifier substrings the AI should refuse to introduce. */
   readonly forbidden_patterns?: readonly string[];
+  /**
+   * Advisory preferred-pattern triples (when / prefer / over?). AI
+   * agents read these at session start; no detector enforces them.
+   * Companion to forbidden_patterns. Added v0.3.58 (F-32b1e0).
+   */
+  readonly preferred_patterns?: readonly PreferredPattern[];
 }
 
 /** Project-level metadata. */

@@ -60,6 +60,20 @@
               "type": "array",
               "items": {"type": "string"},
               "description": "Identifier substrings the AI should refuse to introduce (e.g. 'eval', 'dangerouslySetInnerHTML', 'exec(')."
+            },
+            "preferred_patterns": {
+              "type": "array",
+              "description": "Domain-relevant patterns the AI agent should prefer. Each entry is a {when, prefer, over?} triple — advisory only (no detector enforcement). v0.3.58+ (F-32b1e0).",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["when", "prefer"],
+                "properties": {
+                  "when": {"type": "string", "description": "Context where the preference applies (e.g. 'React state management')."},
+                  "prefer": {"type": "string", "description": "Pattern to prefer (e.g. 'useState, useReducer hooks')."},
+                  "over": {"type": "string", "description": "Pattern to avoid in favor of `prefer` (e.g. 'this.state, class components')."}
+                }
+              }
             }
           }
         }
