@@ -5,6 +5,45 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — cladding self-fixes: dual architecture schema + sharded F-001 + ABSENCE_OF_GOVERNANCE (F-99c6e5)
+
+**F-ba2e05 surfaced three real cladding bugs that the user-facing flow papered over.** This cycle fixes all three. The A/B framework's outcome quality measurement had to work around them with `claddingifyForDriftCatch` — that helper is now obsolete since the bugs themselves are resolved.
+
+### Added
+
+- `src/stages/detectors/absence-of-governance.ts` (new detector, #26) — the missing-scaffold detector promised by the F-ba2e05 limitation. Graduated severity: `spec.yaml` absent → **error**; `spec/architecture.yaml` + `spec/capabilities.yaml` + `docs/project-context.md` absent → **warn** each; `docs/conventions.md` + empty `spec/scenarios/` → **info** each. Every finding includes a `clad init --intent "<your goal>"` remediation hint. The other 25 detectors silently pass on a vanilla tree; this one explicitly flags the missing scaffold. Registered in `src/stages/detectors/index.ts` (25 → **26**); `build:plugin` recomputed `.claude-plugin/plugin.json` to `26/26`
+- `tests/stages/absence-of-governance.test.ts` — 7 tests covering empty tree (6 findings across all severities), spec.yaml-only-missing (1 error), full scaffold (0 findings), scenarios-readme-only-no-shards (1 info), Tier-B-only-missing (3 warn / 0 error), remediation hint presence, and idempotency
+- `src/spec/types.ts::ArchitectureLayerObject` — new interface for the object-form architecture schema. `Architecture.layers` is now `readonly (readonly string[] | ArchitectureLayerObject)[]` — both forms valid
+
+### Changed
+
+- `src/spec/schema.json` — `architecture.layers` items use `oneOf` to accept either `array<string>` (canonical) or `{name, modules, forbidden_imports[]}` (object form). LLM-emitted onboarding artifacts no longer fail spec validation
+- `src/stages/detectors/architecture-from-spec.ts` — `collectLayers` replaced by `normalizeArchitecture(arch)` returning canonical `{layers: Set, forbiddenImports: {from,to}[]}`. Per-layer object-form `forbidden_imports[]` entries normalize to `{from: layer.name, to: forbid}` pairs; canonical top-level rules merge in. Both shapes (or mixed) now produce the same enforcement
+- `src/cli/init.ts::specSeed` — emits `features: []` instead of inline F-001 placeholder. New `f001SeedShard(seedTitle)` writes the placeholder feature to `spec/features/F-001-first.yaml`. The sharded loader (`spec/load.ts::loadSpec`) now activates from day one — every user-authored `spec/features/<slug>-<hash>.yaml` is immediately visible to MISSING_IMPLEMENTATION, AC_DRIFT, UNTESTED_AC, REFERENCE_INTEGRITY, etc.
+- `src/cli/init.ts::runInit` — writes both `spec.yaml` and `spec/features/F-001-first.yaml` in step 1; idempotent on re-run; `created[]` reports both paths
+- `tests/scenarios/architecture-from-spec.test.ts` — 3 new tests covering object-form happy path, object-form forbidden_imports violation detection, and canonical + object form composition (13 tests total, was 10)
+- `tests/cli/init.test.ts` — seed assertion updated: spec.yaml must have `features: []`; F-001 content (id, AC-001, ears) verified in the sharded file instead
+- `tests/scenarios/greenfield-lifecycle.test.ts` — S1 assertion checks `F-001-first.yaml` body for intent-derived title instead of spec.yaml inline
+- `docs/ab-evaluation/case-payment-saas.md` + `case-existing-adoption.md` (auto-regenerated) — F-001-first.yaml shard inflates tier A count by 1, feature count by 1, AC count by 1, est. token count slightly. **Catch rate of 3/4 cladding-exclusive drift catches preserved**. `claddingifyForDriftCatch` workaround is now mostly redundant since the underlying bugs are fixed, but kept in `_drift-injection.ts` as defense-in-depth (some users may still have legacy spec.yaml with inline F-001)
+- `src/stages/detectors/README.md` — added row 21 `ABSENCE_OF_GOVERNANCE` to catalog
+
+### Notes
+
+- 879 + **10 new tests** = **889/889** passing (architecture-from-spec +3, absence-of-governance +7)
+- Lint clean; typecheck clean; build:plugin recomputed 26/26 detectors
+- `clad sync` → 122 + F-99c6e5 = **123 features valid**
+- `clad check --strict --internal` → stage_1.1-1.6 + 2.1-2.2 all ✓
+- The three bugs were independently triaged from F-ba2e05's `docs/ab-evaluation/summary.md` Future Work table; this cycle resolves all three "High" priority items
+- New cladding-adopting projects: from `clad init` they immediately benefit from full detector coverage (no manual `features: []` cleanup needed). Existing cladding-managed projects: unaffected by the seed change since `--force` is required to overwrite; if they want sharded loading they can manually move inline F-001 to `spec/features/F-001-first.yaml`
+
+### Roadmap
+
+- Migration helper for existing projects: `clad migrate --to-sharded` that moves inline features to per-feature shards
+- ABSENCE_OF_GOVERNANCE configurable severity per project (some teams want all-warn instead of error)
+- Architecture object-form linter that prefers canonical when both could express the same rule (style consistency)
+
+---
+
 ## [0.3.48] — 2026-05-21 — Outcome quality measurement — drift injection + AI-query benchmark (F-ba2e05)
 
 **Reviewer caught the gap in F-4db939**: structural metrics (tier banners, spec completeness, layer count) showed cladding produces more artifacts, but didn't answer "where does the design actually pay off?" — what's the **outcome quality** difference, where does cladding catch what vanilla misses? This cycle closes that gap with two new measurement dimensions: **drift injection** (4 deterministic drift events → which detectors fire?) and **AI-query benchmark** (5 domain questions → how many files must an agent open to answer?). Per-case reports now carry a `§ Outcome Quality` section with the catch matrix and query benchmark.

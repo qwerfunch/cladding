@@ -94,11 +94,37 @@ export interface Scenario {
   readonly features?: readonly string[];
 }
 
+/**
+ * One layer entry in the object-form architecture schema. The LLM
+ * onboarding pass emits this shape (`{name, modules, forbidden_imports[]}`)
+ * because it lets each layer carry per-layer metadata (glob patterns,
+ * destination-only forbid list). Cladding's own spec uses the canonical
+ * tiered string[][] shape; both are valid since v0.3.49 (F-99c6e5).
+ */
+export interface ArchitectureLayerObject {
+  readonly name?: string;
+  readonly modules?: readonly string[];
+  readonly forbidden_imports?: readonly string[];
+}
+
 /** Architecture constitution. */
 export interface Architecture {
-  /** Allowed import topology, e.g. `[['ui', 'logic', 'data']]`. */
-  readonly layers?: readonly (readonly string[])[];
-  /** Pairs `from -> to` that must not import each other. */
+  /**
+   * Allowed import topology. Two interchangeable shapes:
+   *
+   *   1. **Canonical** (cladding's own spec): `string[][]` — each entry is
+   *      a tier (peer group of layer names) ordered top → bottom.
+   *      Forbidden-import rules live at the top-level `forbidden_imports`.
+   *
+   *   2. **Object form** (LLM onboarding output): `ArchitectureLayerObject[]`
+   *      — each entry is a single layer with its own `forbidden_imports[]`
+   *      list naming the destinations it must not import.
+   *
+   * The `ARCHITECTURE_FROM_SPEC` detector normalizes both at runtime via
+   * `normalizeArchitecture(arch)`.
+   */
+  readonly layers?: readonly (readonly string[] | ArchitectureLayerObject)[];
+  /** Pairs `from -> to` that must not import each other (canonical form). */
   readonly forbidden_imports?: readonly {readonly from: string; readonly to: string}[];
 }
 

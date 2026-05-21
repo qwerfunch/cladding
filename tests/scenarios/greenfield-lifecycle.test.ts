@@ -90,9 +90,13 @@ describe('greenfield lifecycle — 결제 SaaS for B2B intent', () => {
     expect(result.clarifyingQuestions?.length).toBe(3);
     expect(result.onboardingMode).toBe('greenfield');
 
-    // F-001 title is intent-derived.
-    const specBody = (await import('node:fs')).readFileSync(join(scenario.path, 'spec.yaml'), 'utf8');
-    expect(specBody).toContain('결제 인증 흐름');
+    // F-001 title is intent-derived. v0.3.49 (F-99c6e5): F-001 lives
+    // in the sharded file, not inline in spec.yaml.
+    const f001Body = (await import('node:fs')).readFileSync(
+      join(scenario.path, 'spec/features/F-001-first.yaml'),
+      'utf8',
+    );
+    expect(f001Body).toContain('결제 인증 흐름');
   });
 
   test('S1 → S2 refine: state advances, proposal divert fires, capabilities grow', async () => {

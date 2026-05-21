@@ -24,13 +24,18 @@ describe('runInit', () => {
     expect(existsSync(join(dir, '.cladding'))).toBe(true);
   });
 
-  test('seed spec.yaml is valid YAML with schema 0.1', async () => {
+  test('seed spec.yaml is valid YAML with schema 0.1, F-001 lives in sharded file', async () => {
     await runInit({cwd: dir});
+    // v0.3.49 (F-99c6e5): spec.yaml carries `features: []`; F-001
+    // lives at spec/features/F-001-first.yaml so the sharded loader
+    // activates from day one.
     const yaml = readFileSync(join(dir, 'spec.yaml'), 'utf8');
     expect(yaml).toContain('schema: "0.1"');
-    expect(yaml).toContain('F-001');
-    expect(yaml).toContain('AC-001');
-    expect(yaml).toContain('ubiquitous');
+    expect(yaml).toContain('features: []');
+    const f001 = readFileSync(join(dir, 'spec/features/F-001-first.yaml'), 'utf8');
+    expect(f001).toContain('id: F-001');
+    expect(f001).toContain('AC-001');
+    expect(f001).toContain('ubiquitous');
   });
 
   test('idempotent — second call creates nothing', async () => {

@@ -37,7 +37,7 @@ import {join} from 'node:path';
 import {globSync} from 'tinyglobby';
 
 import {loadSpec} from '../../spec/load.js';
-import type {Architecture} from '../../spec/types.js';
+import type {Architecture, ArchitectureLayerObject} from '../../spec/types.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
 
 const NAME = 'ARCHITECTURE_FROM_SPEC';
@@ -53,30 +53,62 @@ function run(opts: CommandStageOptions): readonly DriftFinding[] {
   if (!arch) return [];
 
   const findings: DriftFinding[] = [];
-  const declaredLayers = collectLayers(arch);
+  const {layers, forbiddenImports} = normalizeArchitecture(arch);
 
-  if (declaredLayers.size > 0) {
-    checkUndeclaredDirectories(cwd, declaredLayers, findings);
-    checkEmptyLayers(cwd, declaredLayers, findings);
+  if (layers.size > 0) {
+    checkUndeclaredDirectories(cwd, layers, findings);
+    checkEmptyLayers(cwd, layers, findings);
   }
-  if (arch.forbidden_imports && arch.forbidden_imports.length > 0) {
-    checkForbiddenImports(cwd, arch.forbidden_imports, findings);
+  if (forbiddenImports.length > 0) {
+    checkForbiddenImports(cwd, forbiddenImports, findings);
   }
   return findings;
 }
 
 /**
- * Flattens the nested `layers` shape (`string[][]`) into a single Set
- * of declared layer names. cladding's own spec uses the nested form
- * to express ordered tiers, but the detector treats every entry as a
- * peer for membership checks.
+ * Normalizes both architecture schemas into a uniform shape the detector
+ * can consume. Handles:
+ *
+ *   1. **Canonical**: `layers: string[][]` + top-level `forbidden_imports: {from,to}[]`
+ *      (cladding's own spec/architecture.yaml uses this form).
+ *
+ *   2. **Object form**: `layers: {name, modules, forbidden_imports[]}[]`
+ *      (LLM onboarding emits this — each layer carries its own forbid list,
+ *      meaning "this layer must not import from any of these layers").
+ *
+ * Both forms are valid since v0.3.49 (F-99c6e5). Mixed input is also tolerated:
+ * if `layers` contains both tier arrays and layer objects, each is interpreted
+ * by its runtime shape. Top-level `forbidden_imports` augments any object-form
+ * rules derived from per-layer entries.
  */
-function collectLayers(arch: Architecture): ReadonlySet<string> {
-  const set = new Set<string>();
+function normalizeArchitecture(arch: Architecture): {
+  readonly layers: ReadonlySet<string>;
+  readonly forbiddenImports: readonly {readonly from: string; readonly to: string}[];
+} {
+  const layers = new Set<string>();
+  const fromObjectForm: {from: string; to: string}[] = [];
+
   for (const tier of arch.layers ?? []) {
-    for (const name of tier) set.add(name);
+    if (Array.isArray(tier)) {
+      // Canonical: tier is a peer group of layer names.
+      for (const name of tier) layers.add(name);
+    } else {
+      // Object form: single layer with its own forbid list.
+      const layer = tier as ArchitectureLayerObject;
+      if (typeof layer.name === 'string' && layer.name.length > 0) {
+        layers.add(layer.name);
+        for (const forbid of layer.forbidden_imports ?? []) {
+          if (typeof forbid === 'string') fromObjectForm.push({from: layer.name, to: forbid});
+        }
+      }
+    }
   }
-  return set;
+
+  const canonicalRules = arch.forbidden_imports ?? [];
+  return {
+    layers,
+    forbiddenImports: [...canonicalRules, ...fromObjectForm],
+  };
 }
 
 /** src/ 의 1-depth 디렉토리 중 declaredLayers 에 없는 것 → warn */

@@ -178,4 +178,82 @@ describe('ARCHITECTURE_FROM_SPEC (F-088, v0.3.13)', () => {
       expect(architectureFromSpec.run({cwd: dir})).toEqual([]);
     });
   });
+
+  // ──────────────────────────────────────────────────────────────────
+  // Object-form schema (F-99c6e5, v0.3.49)
+  //
+  // LLM onboarding emits `layers: [{name, modules, forbidden_imports[]}]`
+  // — each entry is an object with its own forbid list ("this layer
+  // must not import from any of these destinations"). The detector
+  // normalizes both shapes via normalizeArchitecture().
+  // ──────────────────────────────────────────────────────────────────
+  describe('object-form schema (F-99c6e5)', () => {
+    test('object-form layers + per-layer forbidden_imports → declared set + rules normalized', () => {
+      writeArchitecture(
+        dir,
+        [
+          'layers:',
+          '  - name: api',
+          '    modules: ["src/api/**"]',
+          '    forbidden_imports: ["ledger"]',
+          '  - name: ledger',
+          '    modules: ["src/ledger/**"]',
+          '    forbidden_imports: []',
+          '',
+        ].join('\n'),
+      );
+      writeSrcFile(dir, 'api/handler.ts', 'export const x = 1;\n');
+      writeSrcFile(dir, 'ledger/store.ts', 'export const y = 2;\n');
+      // No violations → no findings.
+      expect(architectureFromSpec.run({cwd: dir})).toEqual([]);
+    });
+
+    test('object-form forbidden_imports detects violation', () => {
+      writeArchitecture(
+        dir,
+        [
+          'layers:',
+          '  - name: api',
+          '    modules: ["src/api/**"]',
+          '    forbidden_imports: ["ledger"]',
+          '  - name: ledger',
+          '    modules: ["src/ledger/**"]',
+          '    forbidden_imports: []',
+          '',
+        ].join('\n'),
+      );
+      writeSrcFile(dir, 'api/handler.ts', "import {x} from '../ledger/store.js';\n");
+      writeSrcFile(dir, 'ledger/store.ts', 'export const y = 2;\n');
+      const findings = architectureFromSpec.run({cwd: dir});
+      const errors = findings.filter((f) => f.severity === 'error');
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors[0].message).toContain('ledger');
+    });
+
+    test('object-form + canonical top-level forbidden_imports compose', () => {
+      writeArchitecture(
+        dir,
+        [
+          'layers:',
+          '  - name: api',
+          '    modules: ["src/api/**"]',
+          '    forbidden_imports: ["ledger"]',
+          '  - name: util',
+          '    modules: ["src/util/**"]',
+          '    forbidden_imports: []',
+          'forbidden_imports:',
+          '  - from: util',
+          '    to: api',
+          '',
+        ].join('\n'),
+      );
+      writeSrcFile(dir, 'api/handler.ts', 'export const x = 1;\n');
+      writeSrcFile(dir, 'util/log.ts', "import {h} from '../api/handler.js';\n");
+      const findings = architectureFromSpec.run({cwd: dir});
+      const utilToApi = findings.filter(
+        (f) => f.severity === 'error' && f.path?.startsWith('src/util/'),
+      );
+      expect(utilToApi.length).toBeGreaterThan(0);
+    });
+  });
 });

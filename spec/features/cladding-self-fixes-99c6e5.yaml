@@ -1,0 +1,40 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-99c6e5
+slug: cladding-self-fixes
+title: cladding self-fixes — dual architecture schema + sharded F-001 + ABSENCE_OF_GOVERNANCE detector (v0.3.49)
+status: done
+modules:
+  - src/spec/types.ts
+  - src/spec/schema.json
+  - src/stages/detectors/architecture-from-spec.ts
+  - src/stages/detectors/absence-of-governance.ts
+  - src/stages/detectors/index.ts
+  - src/stages/detectors/README.md
+  - src/cli/init.ts
+  - tests/stages/architecture-from-spec.test.ts
+  - tests/stages/absence-of-governance.test.ts
+  - tests/cli/init.test.ts
+  - tests/scenarios/greenfield-lifecycle.test.ts
+  - docs/ab-evaluation/case-payment-saas.md
+  - docs/ab-evaluation/case-existing-adoption.md
+depends_on:
+  - F-ba2e05
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: 'extend Architecture.layers typing + ARCHITECTURE_FROM_SPEC detector + JSON schema to accept both canonical (string[][] + top-level forbidden_imports as {from,to}[]) and object form ({name, modules, forbidden_imports[]}) — the latter is what LLM onboarding emits and was previously rejected at spec-load validation'
+    response: 'src/spec/types.ts adds ArchitectureLayerObject + union layers: (string[] or ArchitectureLayerObject)[]; src/spec/schema.json layers items use oneOf array-or-object; architecture-from-spec.ts gets normalizeArchitecture(arch) that returns canonical layers Set and forbiddenImports pairs; tests/stages/architecture-from-spec.test.ts adds 3 object-form cases including violation detection plus canonical+object composition'
+    text: The system shall accept both canonical and object-form architecture.yaml schemas at spec-load validation and through ARCHITECTURE_FROM_SPEC detector.
+    test_refs: [tests/stages/architecture-from-spec.test.ts]
+  - id: AC-002
+    ears: ubiquitous
+    action: 'ship the ABSENCE_OF_GOVERNANCE detector (#26) with graduated severity — spec.yaml absent goes to error; spec/architecture.yaml + spec/capabilities.yaml + docs/project-context.md absent goes to warn each; docs/conventions.md + empty spec/scenarios/ goes to info each'
+    response: 'src/stages/detectors/absence-of-governance.ts defines CHECKS array with severity-tagged ArtifactCheck entries; runAbsenceOfGovernance returns DriftFinding[] with clad-init remediation hint in every message; isDirectory check treats scenarios/ with no .yaml shards as absent; registered in src/stages/detectors/index.ts (25 then 26); 7 tests cover empty tree, partial scaffold, full scaffold, scenarios-readme-only, Tier-B-only-missing, hint presence, and idempotency'
+    text: The system shall ship the ABSENCE_OF_GOVERNANCE detector with graduated severity that exposes vanilla trees missing the cladding scaffold.
+    test_refs: [tests/stages/absence-of-governance.test.ts]
+  - id: AC-003
+    ears: ubiquitous
+    action: 'change runInit seed so spec.yaml emits empty features array and the F-001 placeholder lives in spec/features/F-001-first.yaml — activating the sharded loader from day one so every user-authored shard is visible to spec-gated detectors (MISSING_IMPLEMENTATION, UNTESTED_AC, AC_DRIFT, REFERENCE_INTEGRITY, etc.)'
+    response: 'src/cli/init.ts replaces inline-features specSeed with empty-features version + new f001SeedShard(seedTitle) function; runInit writes both spec.yaml and spec/features/F-001-first.yaml (created list reports both); idempotent on re-run; updated tests/cli/init.test.ts assertion to check sharded F-001 location; tests/scenarios/greenfield-lifecycle.test.ts S1 assertion updated to verify F-001 title in sharded file; A/B reports regenerated and committed (catch rate 3/4 preserved)'
+    text: The system shall seed runInit with sharded F-001 layout so every spec-gated detector evaluates user-authored shards from day one.
+    test_refs: [tests/cli/init.test.ts, tests/scenarios/greenfield-lifecycle.test.ts]

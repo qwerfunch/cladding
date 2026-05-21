@@ -27,7 +27,7 @@ No spec, no architecture invariants — just code on the existing tree.
 
 | Metric | A (Cladding) | B (Vanilla) | Δ |
 |---|---:|---:|---:|
-| Tier A artifacts | 2 | 0 | +2 |
+| Tier A artifacts | 3 | 0 | +3 |
 | Tier B artifacts | 3 | 0 | +3 |
 | Tier C artifacts | 1 | 0 | +1 |
 | Tier D artifacts | 1 | 0 | +1 |
@@ -38,9 +38,9 @@ No spec, no architecture invariants — just code on the existing tree.
 | Capabilities bound to features | 0 | 0 | +0 |
 | Architecture layers | 3 | 0 | +3 |
 | Forbidden-import rules | 0 | 0 | +0 |
-| Detector errors | 0 | 0 | +0 |
-| Detector warnings | 0 | 0 | +0 |
-| Detector infos | 16 | 16 | +0 |
+| Detector errors | 0 | 1 | -1 |
+| Detector warnings | 0 | 3 | -3 |
+| Detector infos | 16 | 18 | -2 |
 | Tiered doc files | 2 | 0 | +2 |
 | Tiered docs (lines) | 139 | 0 | +139 |
 | Other doc files | 1 | 1 | +0 |
@@ -49,22 +49,24 @@ No spec, no architecture invariants — just code on the existing tree.
 | Test files | 1 | 1 | +0 |
 | Test LoC | 14 | 14 | +0 |
 | Test cases | 1 | 1 | +0 |
-| Total chars (artifacts + code) | 10829 | 3864 | +6965 |
-| Estimated tokens | 2711 | 967 | +1744 |
+| Total chars (artifacts + code) | 10947 | 3864 | +7083 |
+| Estimated tokens | 2740 | 967 | +1773 |
 
 **Detector outcomes** (META_INTEGRITY + HARDCODED_SECRET excluded — toolchain-only checks):
 
 ```
 A (Cladding) — errors: 0  warns: 0  infos: 16
 
-B (Vanilla)  — errors: 0  warns: 0  infos: 16
+B (Vanilla)  — errors: 1  warns: 3  infos: 18
+  Sample errors:
+    - [ABSENCE_OF_GOVERNANCE] spec.yaml is absent — cladding scaffold incomplete (SSoT root — every spec-gated detector needs it). Run `clad init…
 ```
 
 ## M2 — First feature complete
 
 | Metric | A (Cladding) | B (Vanilla) | Δ |
 |---|---:|---:|---:|
-| Tier A artifacts | 3 | 0 | +3 |
+| Tier A artifacts | 4 | 0 | +4 |
 | Tier B artifacts | 3 | 0 | +3 |
 | Tier C artifacts | 1 | 0 | +1 |
 | Tier D artifacts | 1 | 0 | +1 |
@@ -75,9 +77,9 @@ B (Vanilla)  — errors: 0  warns: 0  infos: 16
 | Capabilities bound to features | 1 | 0 | +1 |
 | Architecture layers | 3 | 0 | +3 |
 | Forbidden-import rules | 0 | 0 | +0 |
-| Detector errors | 0 | 0 | +0 |
-| Detector warnings | 0 | 0 | +0 |
-| Detector infos | 16 | 16 | +0 |
+| Detector errors | 0 | 1 | -1 |
+| Detector warnings | 0 | 3 | -3 |
+| Detector infos | 16 | 18 | -2 |
 | Tiered doc files | 2 | 0 | +2 |
 | Tiered docs (lines) | 139 | 0 | +139 |
 | Other doc files | 1 | 1 | +0 |
@@ -86,24 +88,26 @@ B (Vanilla)  — errors: 0  warns: 0  infos: 16
 | Test files | 2 | 2 | +0 |
 | Test LoC | 27 | 27 | +0 |
 | Test cases | 3 | 3 | +0 |
-| Total chars (artifacts + code) | 12372 | 5115 | +7257 |
-| Estimated tokens | 3097 | 1280 | +1817 |
+| Total chars (artifacts + code) | 12490 | 5115 | +7375 |
+| Estimated tokens | 3126 | 1280 | +1846 |
 
 **Detector outcomes** (META_INTEGRITY + HARDCODED_SECRET excluded — toolchain-only checks):
 
 ```
 A (Cladding) — errors: 0  warns: 0  infos: 16
 
-B (Vanilla)  — errors: 0  warns: 0  infos: 16
+B (Vanilla)  — errors: 1  warns: 3  infos: 18
+  Sample errors:
+    - [ABSENCE_OF_GOVERNANCE] spec.yaml is absent — cladding scaffold incomplete (SSoT root — every spec-gated detector needs it). Run `clad init…
 ```
 
 ## Findings
 
-- **Structured artifacts**: cladding produces 8 tier-banner-bearing files vs vanilla's 0.
+- **Structured artifacts**: cladding produces 9 tier-banner-bearing files vs vanilla's 0.
 - **Spec ↔ code traceability**: cladding emits 2 feature(s), 3 AC(s), 1 scenario(s), 3 capability(s); vanilla has 0 of each.
 - **Architecture enforcement**: cladding declares 3 layer(s) with 0 forbidden-import rule(s); vanilla has 0.
-- **Detector behavior**: cladding-managed tree → 0 error(s) / 0 warn(s) / 16 info(s). Vanilla tree → 0 / 0 / 16. The detectors that gate against spec (REFERENCE_INTEGRITY, MISSING_IMPLEMENTATION, ARCHITECTURE_FROM_SPEC, CAPABILITIES_FEATURE_MAPPING) need cladding's artifacts to evaluate — without them they silently pass. The "0 errors on vanilla" therefore is **absence of signal**, not absence of drift.
-- **Token cost**: cladding's cumulative artifact + code consumes ~3097 tokens vs vanilla's ~1280 (heuristic chars/4) — Δ ≈ 1817 tokens, the price of structure.
+- **Detector behavior**: cladding-managed tree → 0 error(s) / 0 warn(s) / 16 info(s). Vanilla tree → 1 / 3 / 18. The detectors that gate against spec (REFERENCE_INTEGRITY, MISSING_IMPLEMENTATION, ARCHITECTURE_FROM_SPEC, CAPABILITIES_FEATURE_MAPPING) need cladding's artifacts to evaluate — without them they silently pass. The "0 errors on vanilla" therefore is **absence of signal**, not absence of drift.
+- **Token cost**: cladding's cumulative artifact + code consumes ~3126 tokens vs vanilla's ~1280 (heuristic chars/4) — Δ ≈ 1846 tokens, the price of structure.
 - **Code surface**: vanilla writes 9 source file(s) / 144 LoC + 2 test file(s) / 3 test case(s); cladding writes 9 / 128 + 2 / 3. (Vanilla front-loads code, cladding front-loads spec — both converge by M2.)
 
 ## Outcome Quality (F-ba2e05)
@@ -127,19 +131,19 @@ Each row = one domain question. "Files opened" = deterministic file-IO an answer
 
 | Question | A files opened | A answer | B files opened | B answer |
 |---|---:|---|---:|---|
-| Q1 Which feature implements the refund flow? | 1 | F-4db939 | 11 | code path: src/util/log.ts (no canonical feature id) |
-| Q2 How many acceptance criteria does the refund flow… | 1 | 3 AC(s) | N | no spec/features/ — vanilla cannot answer |
+| Q1 Which feature implements the refund flow? | 2 | F-4db939 | 11 | code path: src/util/log.ts (no canonical feature id) |
+| Q2 How many acceptance criteria does the refund flow… | 2 | 3 AC(s) | N | no spec/features/ — vanilla cannot answer |
 | Q3 What are the architecture forbidden-import rules? | 1 | util ↛ api, util ↛ lib, lib ↛ api | N | no spec/architecture.yaml — vanilla has no explicit rules |
 | Q4 Which capabilities are bound to which features? | 1 | api=[F-4db939] | N | no spec/capabilities.yaml — vanilla has no capability conce… |
 | Q5 How many test scenarios are declared? | 1 | 1 scenario shard(s) | 2 | 2 test file(s) (weak proxy — no canonical scenario declarat… |
 
 **Answerability**: A = 5/5 answered · B = 2/5 answered
-**Low-cost answers (≤1 file)**: A = 5/5 · B = 0/5
+**Low-cost answers (≤1 file)**: A = 3/5 · B = 0/5
 
 ### What this means
 
 - **H6 — Cladding catches drift vanilla misses**: 3/4 cladding-exclusive catches. The non-exclusive catches (where both groups catch) are toolchain-only detectors like HARDCODED_SECRET that fire regardless of spec presence — useful baseline but not where cladding's design pays off.
-- **H7 — Cladding makes AI agents productive**: A answers 5/5 queries from ≤1 file; B answers 0/5. For the unanswerable B queries, the tree has no canonical source — an AI agent would either give up or hallucinate from inferred context.
+- **H7 — Cladding makes AI agents productive**: A answers 3/5 queries from ≤1 file; B answers 0/5. For the unanswerable B queries, the tree has no canonical source — an AI agent would either give up or hallucinate from inferred context.
 - **H8 — Iron Law gates measure detector activity, not codebase health**: when `clad check --strict` runs against vanilla, spec-required detectors silently report 0 findings. The same gate on cladding-managed code uses all 25 detectors. Same gate label, very different evaluation surface.
 
 ## How to reproduce
