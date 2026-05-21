@@ -16,6 +16,7 @@ import {afterEach, beforeEach, describe, test, vi} from 'vitest';
 import {fileURLToPath} from 'node:url';
 import {dirname, join} from 'node:path';
 import {mkdirSync, readFileSync, writeFileSync} from 'node:fs';
+import yaml from 'yaml';
 
 vi.mock('../../../src/ui/pulse.js', () => ({pulse: vi.fn()}));
 const dispatchMock = vi.fn<(p: string) => Promise<string>>();
@@ -28,6 +29,15 @@ const {mkScenarioCwd, copyFixture, writeUnderCwd, EXISTING_S2_RESPONSE} = await 
 const {captureSnapshot} = await import('./_ab-metrics.js');
 const {VANILLA_EXISTING_ADOPTION_SESSION, applyFileSet} = await import('./_vanilla-sim.js');
 const {renderCaseReport, writeOrAssertReport} = await import('./_report.js');
+const {
+  captureDriftCatch,
+  claddingifyForDriftCatch,
+  makeStaleReferenceDrift,
+  makeArchitectureViolationDrift,
+  makeHardcodedSecretDrift,
+  makeUntestedAcDrift,
+} = await import('./_drift-injection.js');
+const {answerAllQueries} = await import('./_query-bench.js');
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = HERE.replace(/\/tests\/scenarios\/ab$/, '');
@@ -87,15 +97,17 @@ describe('A/B · existing-adoption — cladding vs vanilla on a populated TS pro
         'id: F-4db939',
         'slug: refund-flow',
         'title: "환불 처리"',
-        'status: planned',
+        'status: done',
         'modules: ["src/api/refund.ts", "src/lib/refund.ts"]',
         'acceptance_criteria:',
         '  - id: AC-001',
         '    ears: ubiquitous',
         '    text: "When a refund request lands, the system shall verify the original transaction and call the PG refund API."',
+        '    test_refs: [tests/refund.test.ts]',
         '  - id: AC-002',
         '    ears: unwanted',
         '    text: "If the original transaction id is empty, the system shall reject the refund."',
+        '    test_refs: [tests/refund.test.ts]',
         '',
       ].join('\n'),
     );
@@ -145,20 +157,81 @@ describe('A/B · existing-adoption — cladding vs vanilla on a populated TS pro
         '',
       ].join('\n'),
     );
-    // Bind F-4db939 to the 'api' capability via features:[] in the seeded
-    // capabilities.yaml. Mirrors the existing-adoption-lifecycle pattern.
+    // Bind F-4db939 to the 'api' capability via YAML round-trip
+    // (robust to whichever LLM-vs-deterministic path emitted the file).
     const capsPath = join(aCwd.path, 'spec/capabilities.yaml');
-    const updated = readFileSync(capsPath, 'utf8').replace(
-      '  - id: api\n    title: "API"\n    summary: "공개 API 레퍼런스"\n    surface: feature\n    features: []',
-      '  - id: api\n    title: "API"\n    summary: "공개 API 레퍼런스"\n    surface: feature\n    features: [F-4db939]',
-    );
-    writeFileSync(capsPath, updated);
+    const capsBody = readFileSync(capsPath, 'utf8');
+    const banner = capsBody.split('\n').filter((l) => l.startsWith('#')).join('\n');
+    const parsedCaps = yaml.parse(capsBody) as {capabilities?: {id?: string; features?: string[]}[]} | null;
+    if (parsedCaps?.capabilities) {
+      const apiCap = parsedCaps.capabilities.find((c) => c?.id === 'api');
+      if (apiCap) apiCap.features = ['F-4db939'];
+    }
+    writeFileSync(capsPath, `${banner}\n${yaml.stringify(parsedCaps)}`);
 
     // B: vanilla developer adds refund handler + lib + test.
     applyFileSet(bCwd.path, VANILLA_EXISTING_ADOPTION_SESSION.m2Files);
 
     const m2A = captureSnapshot('A', 'M2', aCwd.path);
     const m2B = captureSnapshot('B', 'M2', bCwd.path);
+
+    // ── Outcome quality (F-ba2e05) ─────────────────────────────
+    // Mature-cladding-user step: clear spec.yaml's inline F-001 +
+    // canonicalize architecture.yaml. For existing-adoption the
+    // observed layers are api / lib / util; rules: util ↛ {api, lib},
+    // lib ↛ api (the standard layered-app constraint).
+    claddingifyForDriftCatch(aCwd.path, {
+      layers: [['api'], ['lib'], ['util']],
+      forbiddenImports: [
+        {from: 'util', to: 'api'},
+        {from: 'util', to: 'lib'},
+        {from: 'lib', to: 'api'},
+      ],
+    });
+
+    // For existing-adoption, both trees have src/api/refund.ts at M2
+    // (A authored it, B's vanilla session wrote it). The architecture
+    // layer rule from EXISTING_S2_RESPONSE has util ↛ api,lib + lib ↛ api,
+    // so the violation goes the other direction: util/log.ts imports lib/refund.
+    const driftResults = [
+      // DI-1 — stale module reference.
+      captureDriftCatch(
+        aCwd.path,
+        'A',
+        makeStaleReferenceDrift('src/api/refund.ts', 'src/api/refund_renamed.ts'),
+      ),
+      captureDriftCatch(
+        bCwd.path,
+        'B',
+        makeStaleReferenceDrift('src/api/refund.ts', 'src/api/refund_renamed.ts'),
+      ),
+      // DI-2 — architecture violation: util ↛ lib (forbidden_imports includes "api","lib")
+      captureDriftCatch(
+        aCwd.path,
+        'A',
+        makeArchitectureViolationDrift('src/util/log.ts', '../lib/refund.js'),
+      ),
+      captureDriftCatch(
+        bCwd.path,
+        'B',
+        makeArchitectureViolationDrift('src/util/log.ts', '../lib/refund.js'),
+      ),
+      // DI-3 — hardcoded secret (baseline both should catch).
+      captureDriftCatch(aCwd.path, 'A', makeHardcodedSecretDrift('src/lib/refund.ts')),
+      captureDriftCatch(bCwd.path, 'B', makeHardcodedSecretDrift('src/lib/refund.ts')),
+      // DI-4 — untested AC, A only.
+      captureDriftCatch(
+        aCwd.path,
+        'A',
+        makeUntestedAcDrift('spec/features/refund-flow-4db939.yaml', 'AC-003', 'Refunds shall support partial refund amounts.'),
+      ),
+    ];
+
+    // AI-Query benchmark.
+    const queryResults = new Map<'A' | 'B', readonly ReturnType<typeof answerAllQueries>[number][]>([
+      ['A', answerAllQueries(aCwd.path)],
+      ['B', answerAllQueries(bCwd.path)],
+    ]);
 
     const report = renderCaseReport({
       caseTitle: 'existing-adoption',
@@ -186,6 +259,7 @@ describe('A/B · existing-adoption — cladding vs vanilla on a populated TS pro
       m1B,
       m2A,
       m2B,
+      outcome: {driftResults, queryResults},
     });
     writeOrAssertReport(REPORT_PATH, report);
   }, 30_000);

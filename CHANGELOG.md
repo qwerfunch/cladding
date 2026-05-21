@@ -5,6 +5,41 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — Outcome quality measurement — drift injection + AI-query benchmark (F-ba2e05)
+
+**Reviewer caught the gap in F-4db939**: structural metrics (tier banners, spec completeness, layer count) showed cladding produces more artifacts, but didn't answer "where does the design actually pay off?" — what's the **outcome quality** difference, where does cladding catch what vanilla misses? This cycle closes that gap with two new measurement dimensions: **drift injection** (4 deterministic drift events → which detectors fire?) and **AI-query benchmark** (5 domain questions → how many files must an agent open to answer?). Per-case reports now carry a `§ Outcome Quality` section with the catch matrix and query benchmark.
+
+### Added
+
+- `tests/scenarios/ab/_drift-injection.ts` (new module) — 4 drift scenario factories: `makeStaleReferenceDrift` (file rename without spec update → fires `MISSING_IMPLEMENTATION` + `STATUS_DRIFT`), `makeArchitectureViolationDrift` (forbidden import added → fires `ARCHITECTURE_FROM_SPEC`), `makeHardcodedSecretDrift` (secret literal injected → would fire `HARDCODED_SECRET` if secretlint installed), `makeUntestedAcDrift` (AC added to status:done feature without test → fires `MISSING_TESTS`). `captureDriftCatch(cwd, group, scenario)` snapshots all 25 detectors before + after, returns the diff. `claddingifyForDriftCatch(cwd, arch)` upgrades a freshly-onboarded tmpdir to a state where spec-gated detectors actually evaluate — clears the inline F-001 placeholder + rewrites architecture.yaml in canonical schema. Both transforms surface real cladding bugs (tracked in summary §Future Work)
+- `tests/scenarios/ab/_query-bench.ts` (new module) — 5 deterministic domain questions: Q1 refund feature location, Q2 refund AC count, Q3 architecture forbidden-imports, Q4 capability ↔ feature bindings, Q5 test scenario count. Each query has a deterministic answer function that opens the minimum files needed. `answerAllQueries(cwd)` returns `QueryAnswer[]` with `answered: bool` + `filesOpened: number` + `answer: string`. Q3 handles both seed (object) and canonical (top-level + nested) architecture formats
+- `tests/scenarios/ab/_report.ts` — extended with `OutcomeReportInput` (driftResults + queryResults) and `renderOutcomeSection(outcome)` that produces the new `§ Outcome Quality` block: drift catch table with ✅/·/N-A cells, AI-query benchmark table, aggregate catch-rate + answerability stats, "What this means" narrative covering H6 + H7 + H8
+- `tests/scenarios/ab/case-payment-saas.test.ts` — extended M2 with claddingify step + 4 drift scenarios + 5 queries; F-4db939 shard upgraded to `status: done` + `test_refs: [tests/refund.test.ts]` so MISSING_TESTS can evaluate; payment-auth capability rebound from cleared F-001 placeholder to real F-4db939
+- `tests/scenarios/ab/case-existing-adoption.test.ts` — extended same way; capability binding now uses yaml round-trip (robust to whichever LLM-vs-deterministic path emitted the file)
+
+### Changed
+
+- `docs/ab-evaluation/case-payment-saas.md` (auto-regenerated) — gained `§ Outcome Quality` section. **3/4 drift scenarios caught by cladding, 0 by vanilla** (DI-1 MISSING_IMPLEMENTATION + STATUS_DRIFT, DI-2 ARCHITECTURE_FROM_SPEC, DI-4 MISSING_TESTS; DI-3 N/A in tmpdir). AI-query: A answers 5/5 in ≤1 file, B answers 0/5 in ≤1 file
+- `docs/ab-evaluation/case-existing-adoption.md` (auto-regenerated) — identical 3/4 outcome with util→lib violation pattern
+- `docs/ab-evaluation/summary.md` — H4 reframed from "partial caveat" to "RESOLVED by H6 drift injection"; new H6, H7, H8 verdicts added; outcome dimension wired into the at-a-glance + future-work tables; honest note that DI-3 doesn't fire in tmpdir (no secretlint)
+
+### Notes
+
+- 879 + **2 case tests re-run** (same files, more assertions) = **879/879 passing**; lint clean; typecheck clean
+- A/B runtime: ~20s combined (was ~5.2s — drift injection runs all 25 detectors 8 times per case)
+- The framework surfaces two real cladding bugs that the user-facing flow papers over: (1) LLM-emitted onboarding artifacts use object-form architecture (`name`/`forbidden_imports[]`) which the `ARCHITECTURE_FROM_SPEC` detector cannot read (expects canonical `string[][]` + `{from,to}[]`); (2) `init`-seeded spec.yaml's inline F-001 placeholder blocks sharded feature loading via the `spec.load.ts` heuristic. Both tracked in summary §Future Work; the tests work around them via `claddingifyForDriftCatch`. Without these fixes the catch rate would be 1/4 instead of 3/4 — surfacing these as cladding bugs is itself a finding of this cycle
+- Honest acknowledgments retained: DI-3 (hardcoded secret baseline) doesn't fire on either group in tmpdir context because secretlint/gitleaks aren't installed; in production both groups would catch it equally. DI-4 is N/A on vanilla by construction (no AC concept)
+
+### Roadmap
+
+- `ABSENCE_OF_GOVERNANCE` detector — convert vanilla's silent-pass into actionable signal so trees without cladding scaffolding get flagged
+- Fix `ARCHITECTURE_FROM_SPEC` schema mismatch — make detector accept both object and canonical forms, or migrate seeds to canonical
+- Run vitest in tmpdirs to confirm test suites actually pass on both groups (currently only the source code is curated, not executed)
+- M3 milestone (3-feature cumulative state) — show whether drift-catch compounds over time
+- Live-run mode (real Claude Code transcripts replayed deterministically)
+
+---
+
 ## [Unreleased] — A/B evaluation framework — Cladding vs Vanilla Claude Code (F-4db939)
 
 **Lifecycle tests proved cladding's mechanics; A/B evaluation proves its value.** F-4747ef shipped 6-stage lifecycle tests that verify the 4-tier model *works* — every artifact lands, every banner is present, every detector emits zero errors. But "it works" is not the same as "it's better than not using it." This cycle adds a controlled comparison framework: two cases × two milestones × two groups (cladding vs vanilla Claude Code) = 8 snapshots, each measured across 8 dimensions, rendered into deterministic markdown reports committed to `docs/ab-evaluation/`. The reports are produced by tests, so a regression in the underlying mechanics fails CI; the markdowns themselves stand as research-quality evaluation documents readable by humans.

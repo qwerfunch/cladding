@@ -1,0 +1,47 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-ba2e05
+slug: ab-outcome-quality
+title: Outcome quality measurement — drift injection + AI-query benchmark (v0.3.47)
+status: done
+modules:
+  - tests/scenarios/ab/_drift-injection.ts
+  - tests/scenarios/ab/_query-bench.ts
+  - tests/scenarios/ab/_report.ts
+  - tests/scenarios/ab/case-payment-saas.test.ts
+  - tests/scenarios/ab/case-existing-adoption.test.ts
+  - docs/ab-evaluation/case-payment-saas.md
+  - docs/ab-evaluation/case-existing-adoption.md
+  - docs/ab-evaluation/summary.md
+depends_on:
+  - F-4db939
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: ship a drift-injection module with 4 deterministic scenarios — file rename without spec update, architecture forbidden-import violation, hardcoded secret baseline, untested AC — plus before/after detector diff that captures which detectors fired
+    response: 'tests/scenarios/ab/_drift-injection.ts exports makeStaleReferenceDrift, makeArchitectureViolationDrift, makeHardcodedSecretDrift, makeUntestedAcDrift + captureDriftCatch(cwd, group, scenario) which snapshots all 25 detectors before and after, returning DriftCatchResult with newDetectors array and caught boolean'
+    text: The system shall ship a drift-injection module with 4 scenarios and before/after detector capture.
+    test_refs: [tests/scenarios/ab/case-payment-saas.test.ts, tests/scenarios/ab/case-existing-adoption.test.ts]
+  - id: AC-002
+    ears: ubiquitous
+    action: ship an AI-query benchmark module with 5 deterministic domain questions, each measuring file-lookup cost to answer
+    response: 'tests/scenarios/ab/_query-bench.ts exports DOMAIN_QUERIES (Q1 refund feature location · Q2 refund AC count · Q3 architecture forbidden-imports · Q4 capability bindings · Q5 test scenario count) and answerAllQueries(cwd) returning QueryAnswer[] with answered + filesOpened + answer fields'
+    text: The system shall ship an AI-query benchmark module with 5 deterministic domain questions.
+    test_refs: [tests/scenarios/ab/case-payment-saas.test.ts, tests/scenarios/ab/case-existing-adoption.test.ts]
+  - id: AC-003
+    ears: ubiquitous
+    action: extend _report.ts with renderOutcomeSection that produces a §Outcome Quality block in each case report containing drift catch table, AI query table, aggregate stats, and a What-this-means narrative covering H6, H7, H8
+    response: 'tests/scenarios/ab/_report.ts adds OutcomeReportInput interface, renderOutcomeSection function called from renderCaseReport when input.outcome is provided; outputs deterministic markdown including ✅/·/N-A cells and cladding-exclusive catch count'
+    text: The system shall extend the report renderer with outcome quality section production.
+    test_refs: [tests/scenarios/ab/case-payment-saas.test.ts, tests/scenarios/ab/case-existing-adoption.test.ts]
+  - id: AC-004
+    ears: ubiquitous
+    action: extend both case tests to apply the 4 drift scenarios + 5 query benchmarks at M2 and feed results into renderCaseReport via the optional outcome field
+    response: 'case-payment-saas.test.ts and case-existing-adoption.test.ts now call claddingifyForDriftCatch (canonicalize spec/architecture) → 4 drift scenarios → answerAllQueries on both groups → renderCaseReport({outcome: {driftResults, queryResults}}); both reports regenerated with §Outcome Quality section showing 3/4 cladding-exclusive catches'
+    text: The system shall extend both case tests to measure outcome quality at M2.
+    test_refs: [tests/scenarios/ab/case-payment-saas.test.ts, tests/scenarios/ab/case-existing-adoption.test.ts]
+  - id: AC-005
+    ears: ubiquitous
+    action: surface real cladding bugs that the test had to work around — LLM seed architecture format incompatible with ARCHITECTURE_FROM_SPEC detector schema, and inline F-001 placeholder in init-seeded spec.yaml blocks sharded feature loading
+    response: '_drift-injection.ts exports claddingifyForDriftCatch helper that (a) clears spec.yaml inline features so sharded F-4db939 loads via spec.load.ts heuristic, and (b) rewrites spec/architecture.yaml in canonical string[][] + {from,to}[] schema; comment block in the helper documents both as real cladding bugs tracked in docs/ab-evaluation/summary.md Future Work table'
+    text: The system shall surface the architecture-schema mismatch and inline-F-001 blocker as known cladding bugs in the future-work table.
+    test_refs: [tests/scenarios/ab/_drift-injection.ts, docs/ab-evaluation/summary.md]
