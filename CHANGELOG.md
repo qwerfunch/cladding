@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — Uncommit A/B-extended demo React projects to reduce repo bloat (F-9a3b61)
+## [0.3.54] — 2026-05-21 — Uncommit A/B-extended demo React projects to reduce repo bloat (F-9a3b61)
 
 **The four committed React demo projects under `docs/ab-evaluation-extended/scenarios/{task-manager,dashboard}/{cladding,vanilla}/` were ~160 files / ~10K LoC of regeneratable bloat.** This cycle removes them from the tracked tree and adds `.gitignore` rules so they stay local-only when regenerated via `UPDATE_AB_REPORTS=1`.
 
