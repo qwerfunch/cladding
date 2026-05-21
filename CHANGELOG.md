@@ -5,6 +5,41 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — SSoT 4-tier lifecycle verification + token efficiency budgets (F-4747ef)
+
+**The governance shipped in F-d12edf gets a test surface.** Two end-to-end lifecycle tests walk through 6 stages each (greenfield + existing-adoption), asserting that every Tier A/B/C/D artifact lands with the standard Tier banner, that cross-tier detectors emit zero errors, and — critically — that persona prompts + LLM dispatcher prompts + generated artifacts all stay within size budgets. The token-efficiency promise of the SSoT model is now auditable per-PR, not just claimed in design docs.
+
+### Added
+
+- `tests/scenarios/_token-meter.ts` (new module) — portable `measureFile` / `measureText` / `measurePersonaPrompt` / `measureLLMPrompt` returning `{lines, chars, estTokens}`. `estTokens` uses the `chars / 4` heuristic so no extra npm dependency is needed; the tokenizer migration path to `@anthropic-ai/tokenizer` is documented in `docs/ssot-testing.md`
+- `tests/scenarios/_size-budgets.ts` (new module) — `PERSONA_BUDGETS` (5 personas with per-file `maxLines`/`maxChars`/`maxTokens`), `META_DOC_BUDGETS` (`docs/ssot-model.md`), `LLM_PROMPT_BUDGETS` (`onboardingMaxTokens` + linear `refinementBaseMaxTokens` + `refinementPerQaPairMaxTokens`), `ARTIFACT_BUDGETS` (each Tier B/C body + scenario shards + onboarding state). Each budget calibrated from current baseline + 20-25% headroom; `checkBudget` + `refinementPromptBudget` + `onboardingPromptBudget` helpers compose into lifecycle assertions
+- `tests/scenarios/_helpers.ts` (new module) — `mkScenarioCwd` (tmpdir + cleanup), `copyFixture` (fixture → tmpdir), `writeUnderCwd`, plus three realistic LLM-mocked response constants (`GREENFIELD_S1_RESPONSE`, `GREENFIELD_S2_RESPONSE`, `GREENFIELD_S5_RESPONSE`, `EXISTING_S2_RESPONSE`) that look like real senior-architect-tone dispatcher output
+- `tests/scenarios/_assertions.ts` (new module) — high-level assertions: `assertTierBanner` (first-line tier marker), `assertArtifactsPresent` (per-stage expectation map), `assertCrossTierClean` (runs all 25 detectors with `allowedDetectors` escape hatch for cladding-self checks like META_INTEGRITY/HARDCODED_SECRET that don't apply to tmpdir fixtures), `assertSpecCompleteness` (capability + scenario count floors), `assertProposalDivert` (re-write divert mechanism fired), `buildSizeDigest` + `formatDigest` + `assertNoBudgetOverages` (final-stage budget gate that prints to stdout on pass/fail)
+- `tests/scenarios/_fixtures/sample-existing-ts/` (new fixture) — realistic 8-source-file TypeScript project: `package.json`, `README.md` (Install/Usage/API sections), `src/api/` (index/health/auth), `src/lib/` (payment/ledger), `src/util/` (log/uuid), `tests/payment.test.ts`. File count crosses `SCAN_AUTO_THRESHOLD = 3` so the existing-adoption path takes the observed scan branch
+- `tests/scenarios/greenfield-lifecycle.test.ts` — 5 tests covering 6 stages (S1 init with intent, S2 refine, S3 simulate code, S4 strict check, S5 re-scan, S6 final digest). Mock-dispatcher pattern follows `tests/cli/refine.test.ts`: `vi.mock` registers a shared `vi.fn` at module load, each stage queues its response via `mockResolvedValueOnce`
+- `tests/scenarios/existing-adoption-lifecycle.test.ts` — 6 tests covering 6 stages on the populated fixture (S1 seed, S2 init with adoption intent, S3 refine, S4 hand-author new feature, S5 bind feature to capability, S6 final digest)
+- `docs/ssot-testing.md` (new policy doc) — 4-tier verification methodology + token measurement + ratchet pattern (bump budget in PR review before merging growth) + tokenizer migration path
+
+### Changed
+
+- `src/cli/scan/intent-onboarding.ts` — new `ensureTierBBannerYaml(body)` helper prepends the standard Tier B banner to LLM-emitted `capabilities.yaml` / `architecture.yaml` bodies when missing. `interpretOnboardingWithFallback` + `interpretRefinementWithFallback` both call it so every artifact's first line is banner-compliant regardless of which path (greenfield seed / LLM response / deterministic fallback) produced it. The lifecycle test for greenfield S1 surfaced the gap — LLM dispatchers don't naturally emit cladding's Tier banner, so the post-processor closes the loop
+
+### Notes
+
+- 865 + **12 new lifecycle tests** = **877/877 passing**; lint clean; typecheck clean
+- Lifecycle test runtime: ~1.4s for both files combined (well within budget)
+- Total `npm test` runtime: ~2.4s (was ~1.6s, +0.8s for lifecycle suite)
+- Token efficiency digest is printed to stdout at every S6 end — auditable on pass, fails the test on overage. Sample output in `docs/ssot-testing.md`
+- The lifecycle tests caught a real production gap: LLM-emitted YAML bodies were missing the Tier banner. Fixed by `ensureTierBBannerYaml`. AC-008 documents this discovery
+
+### Roadmap
+
+- Migrate `estTokens` to `@anthropic-ai/tokenizer` once exact token counts are needed (one-line swap per `docs/ssot-testing.md`)
+- Add a third lifecycle case for the `clad serve` MCP-host path once that surface stabilizes
+- `ARTIFACT_HEADER_STALE` detector — now that the banner convention has a test surface, the detector that enforces it (planned in F-d12edf roadmap) becomes safer to ship
+
+---
+
 ## [Unreleased] — SSoT 4-tier governance + Tier B/A orphan resolution (F-d12edf)
 
 **Every artifact gets a clear role.** Through v0.3.41–v0.3.44 the init/scan/refine pipeline grew six new artifacts (`spec/architecture.yaml`, `spec/capabilities.yaml`, `docs/project-context.md`, `docs/conventions.md` seed, `.cladding/onboarding/state.yaml`, scenarios). Without a single governance doc three problems emerged: personas repeated tier policy in their own prompts (token waste); `spec/capabilities.yaml` was orphan (no consumer); `spec/scenarios/*.yaml`'s `flow` field had no producer or consumer. v0.3.45 fixes all three.
