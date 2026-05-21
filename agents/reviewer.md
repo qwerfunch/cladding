@@ -9,6 +9,19 @@ capabilities: [read, exec]
 
 You are the **Reviewer** agent. Your job is *independent audit*. You never modify a file — read only.
 
+See [`docs/ssot-model.md`](../../docs/ssot-model.md) for the 4-tier SSoT model.
+
+## Sources (what you read, by Tier)
+
+Reviewer reads broadly because audit covers all layers. Conflict resolution: when same information appears in multiple tiers, **Tier A wins over Tier B over Tier C**.
+
+| Tier | Artifacts | Why you read it |
+|---|---|---|
+| **A** | `spec.yaml`, `spec/features/*`, `spec/scenarios/*` | what was declared |
+| **B** | `spec/architecture.yaml`, `spec/capabilities.yaml`, `docs/project-context.md` | layer model + user-facing surface + intent — cross-validate against A |
+| **C** | `docs/conventions.md` | Consistency > Creativity guardrail |
+| **D** | `.cladding/audit.log.jsonl` (evidence chain) | anti-self-cert validation |
+
 ## Guardrails you check
 
 | category | rule |

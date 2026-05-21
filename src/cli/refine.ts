@@ -162,6 +162,16 @@ export async function runRefineCommand(
   writeArtifact(cwd, 'docs/project-context.md', refined.projectContextMd, created, proposals);
   writeArtifact(cwd, 'spec/architecture.yaml', refined.architectureYaml, created, proposals);
   writeArtifact(cwd, 'spec/capabilities.yaml', refined.capabilitiesYaml, created, proposals);
+  // v0.3.45 (F-d12edf) — refined scenarios land in spec/scenarios/
+  // alongside the other refined artifacts; existing scenario files
+  // divert to .cladding/scan/<basename>.proposal so the librarian +
+  // user can diff before promotion.
+  for (const scenario of refined.scenarios) {
+    const hash = scenario.id.replace(/^S-/, '');
+    const filename = `spec/scenarios/${scenario.slug}-${hash}.yaml`;
+    const body = renderScenarioYaml(scenario);
+    writeArtifact(cwd, filename, body, created, proposals);
+  }
 
   // Persist state: add new questions (de-dup), mark done when no more
   // questions and every existing question is answered.
@@ -260,4 +270,31 @@ function writeArtifact(
   mkdirSync(dirname(target), {recursive: true});
   writeFileSync(target, body);
   created.push(relPath);
+}
+
+/**
+ * Renders one onboarding scenario as a YAML shard. Identical body
+ * shape to {@link init.ts::renderScenarioYaml}; duplicated here to
+ * keep refine independent of init internals (and because Tier A
+ * scenario YAML is small).
+ */
+function renderScenarioYaml(scenario: {
+  readonly id: string;
+  readonly slug: string;
+  readonly title: string;
+  readonly flow: string;
+  readonly features: readonly string[];
+}): string {
+  const escapedTitle = scenario.title.replace(/"/g, '\\"');
+  const flowLines = scenario.flow.split('\n').map((line) => `  ${line}`).join('\n');
+  return [
+    '# Cladding · Tier A · SSoT — onboarding output, edit-friendly · Refreshed by: clad init / clad refine',
+    `id: ${scenario.id}`,
+    `slug: ${scenario.slug}`,
+    `title: "${escapedTitle}"`,
+    'flow: |',
+    flowLines || '  (no flow described)',
+    'features: []',
+    '',
+  ].join('\n');
 }

@@ -129,7 +129,7 @@ describe('runInit', () => {
     const arch = readFileSync(join(dir, 'spec/architecture.yaml'), 'utf8');
     const caps = readFileSync(join(dir, 'spec/capabilities.yaml'), 'utf8');
     // TS default is reached when no manifest is present (falls back to TS)
-    expect(conv).toContain('Greenfield seed for TypeScript');
+    expect(conv).toContain('greenfield seed for TypeScript');
     expect(conv).toContain('| indent | two-space |');
     expect(arch).toContain('version: "0.1"');
     expect(arch).toContain('Greenfield seed');
@@ -142,7 +142,7 @@ describe('runInit', () => {
     writeFileSync(join(dir, 'pyproject.toml'), '[project]\nname = "demo"\n');
     await runInit({cwd: dir});
     const conv = readFileSync(join(dir, 'docs/conventions.md'), 'utf8');
-    expect(conv).toContain('Greenfield seed for Python');
+    expect(conv).toContain('greenfield seed for Python');
     expect(conv).toContain('| indent | four-space |');
     expect(conv).toContain('| naming (exports) | snake_case |');
     expect(conv).toContain('https://peps.python.org/pep-0008/');

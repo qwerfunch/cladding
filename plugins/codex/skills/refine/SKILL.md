@@ -6,6 +6,18 @@ description: Advance the onboarding Q&A loop after `clad init <intent>`. Pass th
 
 Drives the **iterative onboarding loop** initiated by `clad init <intent>`. The init pass writes `.cladding/onboarding/state.yaml` with 2–3 clarifying questions; `clad refine <answer>` advances the loop one question at a time.
 
+## Artifacts produced (by Tier)
+
+| Tier | File | Authority |
+|---|---|---|
+| A | `spec/scenarios/<slug>-<hash6>.yaml` (refined, v0.3.45+) | Spec SSoT (onboarding output) |
+| B | `spec/architecture.yaml` (refined) | Design SSoT |
+| B | `spec/capabilities.yaml` (refined) | Design SSoT |
+| B | `docs/project-context.md` (refined) | Design SSoT |
+| D | `.cladding/onboarding/state.yaml` (Q&A history updated) | transient audit |
+
+Existing files divert to `.cladding/scan/*.proposal` per the SSoT model's refresh policy. See [`docs/ssot-model.md`](../../docs/ssot-model.md).
+
 ## Flow
 
 1. `clad init <intent>` → produces initial artifacts + writes `state.yaml` with pending questions

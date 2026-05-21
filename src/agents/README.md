@@ -12,13 +12,15 @@ The 5 agent personas — orchestrator · librarian · reviewer · observability 
 
 ## [PERSONAS]
 
-| name | role | tools | reads | writes |
+Each persona's individual `.md` carries a "Sources (what you read, by Tier)" section that names the exact Tier slice it loads. See [`../../docs/ssot-model.md`](../../docs/ssot-model.md) for the 4-tier governance policy.
+
+| name | role | tools | reads (by tier) | writes |
 |---|---|---|---|---|
-| `orchestrator` | Workflow conductor; routes intent to specialists | Read, Write, Edit, Bash, Agent | spec, code, evidence | (delegates only) |
-| `librarian` | SSoT custodian; spec.yaml + EARS hygiene | Read, Write, Edit, Bash | spec | spec.yaml, spec/** |
-| `reviewer` | Philosophical guardrails; independent audit | Read, Bash | code, spec, evidence | (none — audit only) |
-| `observability` | Log + metrics analyst | Read, Bash | audit log, perf, coverage | (reports only) |
-| `specialists` | Domain implementer (code, tests, migrations) | Read, Write, Edit, Bash | spec, code | stages/, tests/, hitl/ |
+| `orchestrator` | Workflow conductor; routes intent to specialists | Read, Write, Edit, Bash, Agent | B (project-context) + D (events.log, onboarding state) + A (dispatch slice) | (delegates only) |
+| `librarian` | SSoT custodian; spec.yaml + EARS hygiene | Read, Write, Edit, Bash | A (write target) + B (cross-validate) | spec.yaml, spec/** |
+| `reviewer` | Philosophical guardrails; independent audit | Read, Bash | A + B + C + D evidence | (none — audit only) |
+| `observability` | Log + metrics analyst | Read, Bash | D only (events.log, audit.log, perf, coverage) | (reports only) |
+| `specialists` | Domain implementer (code, tests, migrations) | Read, Write, Edit, Bash | B (project-context, architecture, capabilities) + C (conventions) + A (current feature slice) | stages/, tests/, hitl/ |
 
 ## [INVOCATION_PRINCIPLES]
 

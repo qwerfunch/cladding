@@ -9,6 +9,7 @@ import {acDrift} from './ac-drift.js';
 import {acDuplicateWithinFeature} from './ac-duplicate-within-feature.js';
 import {architectureFromSpec} from './architecture-from-spec.js';
 import {architectureViolation} from './architecture-violation.js';
+import {capabilitiesFeatureMapping} from './capabilities-feature-mapping.js';
 import {conventionDrift} from './convention-drift.js';
 import {coverageDrop} from './coverage-drop.js';
 import {evidenceMismatch} from './evidence-mismatch.js';
@@ -57,4 +58,5 @@ export const allDetectors: readonly DriftDetector[] = [
   idCollision,
   acDuplicateWithinFeature,
   architectureFromSpec,
+  capabilitiesFeatureMapping,
 ];

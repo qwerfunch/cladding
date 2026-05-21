@@ -93,7 +93,9 @@ export function saveState(cwd: string, state: OnboardingState): void {
   const dir = dirname(path);
   if (!existsSync(dir)) mkdirSync(dir, {recursive: true});
   const body = yaml.stringify(state, {lineWidth: 0});
-  writeFileSync(path, `${body.endsWith('\n') ? body : `${body}\n`}`, 'utf8');
+  const banner = '# Cladding · Tier D · transient — Q&A audit · Refreshed by: clad init / clad refine\n';
+  const withBanner = body.startsWith('# Cladding · ') ? body : `${banner}${body}`;
+  writeFileSync(path, `${withBanner.endsWith('\n') ? withBanner : `${withBanner}\n`}`, 'utf8');
 }
 
 /**

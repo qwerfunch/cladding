@@ -112,6 +112,7 @@ const SCENARIOS_README = [
 function specSeed(projectName: string, language: string, seedTitle?: string): string {
   const title = (seedTitle ?? 'Your first feature').replace(/"/g, '\\"');
   return [
+    '# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual',
     `# ${projectName} — Cladding spec`,
     '# This file is your project SSoT. Edit features here, run `clad sync`',
     '# to validate, and `clad check` to exercise every Iron Law stage.',
@@ -340,6 +341,20 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
   }
   writeArtifact(cwd, 'docs/project-context.md', projectContextMd, created, proposals);
 
+  // v0.3.45 (F-d12edf) — onboarding scenarios. Each scenario from the
+  // intent-aware onboarding lands in spec/scenarios/<slug>-<hash6>.yaml
+  // so `clad_create_feature` can later bind new features to them via
+  // the features[] array. Scenarios are Tier A (sealed by detectors)
+  // but onboarding-time editable — see docs/ssot-model.md.
+  if (onboarding && onboarding.scenarios.length > 0) {
+    for (const scenario of onboarding.scenarios) {
+      const hash = scenario.id.replace(/^S-/, '');
+      const filename = `spec/scenarios/${scenario.slug}-${hash}.yaml`;
+      const body = renderScenarioYaml(scenario);
+      writeArtifact(cwd, filename, body, created, proposals);
+    }
+  }
+
   return {
     created,
     skipped,
@@ -348,6 +363,34 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
     clarifyingQuestions: onboarding?.clarifyingQuestions.length ? [...onboarding.clarifyingQuestions] : undefined,
     onboardingMode: onboarding?.mode,
   };
+}
+
+/**
+ * Renders one onboarding scenario as a YAML shard ready for
+ * `spec/scenarios/<slug>-<hash>.yaml`. Schema mirrors the existing
+ * sharded scenario format (`id`, `slug`, `title`, `flow`, `features`).
+ * The header banner identifies the artifact as Tier A SSoT per
+ * `docs/ssot-model.md`.
+ */
+function renderScenarioYaml(scenario: {
+  readonly id: string;
+  readonly slug: string;
+  readonly title: string;
+  readonly flow: string;
+  readonly features: readonly string[];
+}): string {
+  const escapedTitle = scenario.title.replace(/"/g, '\\"');
+  const flowLines = scenario.flow.split('\n').map((line) => `  ${line}`).join('\n');
+  return [
+    '# Cladding · Tier A · SSoT — onboarding output, edit-friendly · Refreshed by: clad init / clad refine',
+    `id: ${scenario.id}`,
+    `slug: ${scenario.slug}`,
+    `title: "${escapedTitle}"`,
+    'flow: |',
+    flowLines || '  (no flow described)',
+    'features: []',
+    '',
+  ].join('\n');
 }
 
 /**
