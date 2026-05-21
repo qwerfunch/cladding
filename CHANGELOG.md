@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — Outcome quality measurement — drift injection + AI-query benchmark (F-ba2e05)
+## [0.3.48] — 2026-05-21 — Outcome quality measurement — drift injection + AI-query benchmark (F-ba2e05)
 
 **Reviewer caught the gap in F-4db939**: structural metrics (tier banners, spec completeness, layer count) showed cladding produces more artifacts, but didn't answer "where does the design actually pay off?" — what's the **outcome quality** difference, where does cladding catch what vanilla misses? This cycle closes that gap with two new measurement dimensions: **drift injection** (4 deterministic drift events → which detectors fire?) and **AI-query benchmark** (5 domain questions → how many files must an agent open to answer?). Per-case reports now carry a `§ Outcome Quality` section with the catch matrix and query benchmark.
 
@@ -40,7 +40,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [Unreleased] — A/B evaluation framework — Cladding vs Vanilla Claude Code (F-4db939)
+## [0.3.47] — 2026-05-21 — A/B evaluation framework — Cladding vs Vanilla Claude Code (F-4db939)
 
 **Lifecycle tests proved cladding's mechanics; A/B evaluation proves its value.** F-4747ef shipped 6-stage lifecycle tests that verify the 4-tier model *works* — every artifact lands, every banner is present, every detector emits zero errors. But "it works" is not the same as "it's better than not using it." This cycle adds a controlled comparison framework: two cases × two milestones × two groups (cladding vs vanilla Claude Code) = 8 snapshots, each measured across 8 dimensions, rendered into deterministic markdown reports committed to `docs/ab-evaluation/`. The reports are produced by tests, so a regression in the underlying mechanics fails CI; the markdowns themselves stand as research-quality evaluation documents readable by humans.
 
