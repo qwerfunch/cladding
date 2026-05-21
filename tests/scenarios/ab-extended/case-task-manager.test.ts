@@ -126,9 +126,14 @@ describe('A/B-extended · task-manager — 30-feature React app at scale', () =>
     ];
 
     // ── AI query benchmark at M30 ─────────────────────────────────
+    // v0.3.52 (F-ae61c1): Q1/Q2 now parameterizable. task-manager has
+    // no 'refund flow' — point them at 'add-task' instead so the
+    // benchmark measures cladding's lookup efficiency for an actual
+    // domain feature in this scenario.
+    const queryOpts = {featureKeyword: 'add-task', featureLabel: 'add-task flow'};
     const queryResults = new Map<'A' | 'B', readonly ReturnType<typeof answerAllQueries>[number][]>([
-      ['A', answerAllQueries(aCwd.path)],
-      ['B', answerAllQueries(bCwd.path)],
+      ['A', answerAllQueries(aCwd.path, queryOpts)],
+      ['B', answerAllQueries(bCwd.path, queryOpts)],
     ]);
 
     // ── Render report + (optionally) commit projects ─────────────

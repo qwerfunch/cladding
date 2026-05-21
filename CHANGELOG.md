@@ -5,6 +5,35 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — Parameterize Q1/Q2 of AI-query benchmark per scenario (F-ae61c1)
+
+**Resolves the H10 ⚠️ partial verdict from F-0144b9.** The 5-question AI-query benchmark had Q1 ("Which feature implements the refund flow?") and Q2 ("How many ACs does the refund flow have?") hardcoded to the payment domain. Task-manager has no "refund flow" feature → Q1/Q2 reported `not found` and "N" (unanswerable) regardless of cladding scaffold quality. This cycle parameterizes the keyword.
+
+### Added
+
+- `tests/scenarios/ab/_query-bench.ts::QueryBenchOptions` (new interface) — `{featureKeyword, featureLabel}` optional config so any scenario can target its own representative feature
+- `makeQ1(keyword, label)` + `makeQ2(keyword, label)` factories — replace the previous fixed `Q1`/`Q2` consts. Case-insensitive substring match; query text/answer surfaces use the supplied label
+
+### Changed
+
+- `answerAllQueries(cwd, opts?)` signature — accepts optional `QueryBenchOptions`. Defaults to `{featureKeyword: 'refund', featureLabel: 'refund flow'}` so existing payment-saas + existing-adoption tests run **unchanged** (backwards-compat 100%)
+- `tests/scenarios/ab-extended/case-task-manager.test.ts` — passes `{featureKeyword: 'add-task', featureLabel: 'add-task flow'}` so Q1/Q2 actually find the task-manager `add-task` feature shard
+- `docs/ab-evaluation-extended/scenarios/task-manager/report.md` (auto-regenerated) — Q1 now reports `F-3cbf38` (add-task feature id); Q2 reports `3 AC(s)`. Both answerable in cladding tree, unanswerable in vanilla
+- `tests/scenarios/ab/` reports unchanged — 'refund flow' default preserved
+
+### Notes
+
+- 890/890 tests passing
+- The remaining `low-cost answers (≤1 file)` ratio at task-manager M30 stays 2/5 (Q3+Q4 = architecture+capabilities = 1 file each; Q1+Q2 = 2 files because the linear scan opens add-category before add-task; Q5 = 5 files because task-manager doesn't ship scenario shards). Honest measurement; future scenarios with scenario shards would push Q5 to 1
+- H10 verdict in `docs/ab-evaluation-extended/summary.md` upgraded from ⚠️ partial → ✅ supported with caveat (linear-scan order dependent)
+
+### Roadmap
+
+- Q5 could be ≤1 file by curating scenario shards in `_curator.ts` for task-manager (next cycle)
+- AI agent benchmark could simulate `grep -l` (single operation) instead of linear scan — closer to real LLM behavior
+
+---
+
 ## [0.3.51] — 2026-05-21 — Enrich spec.yaml with project metadata (F-3a5339)
 
 **Reviewer caught a dogfood gap**: both cladding-self's own `spec.yaml` and the A/B-extended task-manager's `spec.yaml` were 12-line shells (header comment + `schema: "0.1"` + `project: {name, language}`). Sharded layout works, but the spec.yaml as a "front door" was uninformative. This cycle extends the Project schema with 4 optional metadata fields so spec.yaml carries meaningful first-line content while staying backwards-compatible.
