@@ -73,6 +73,19 @@ export interface OnboardingScenario {
 }
 
 /** Structured artifacts produced by an onboarding pass. */
+/**
+ * AI agent behavior hints emitted by the LLM as part of the
+ * PROJECT_METADATA sentinel. Matches the shape of `Project.ai_hints`
+ * in `src/spec/types.ts`. v0.3.57+ (F-00eb1a).
+ */
+export interface OnboardingAiHints {
+  readonly preferred_persona?: string;
+  readonly token_budget_per_session?: number;
+  readonly test_framework?: string;
+  readonly primary_branch?: string;
+  readonly forbidden_patterns?: readonly string[];
+}
+
 export interface OnboardingResult {
   /** Identifies which path the LLM saw the project as. */
   readonly mode: 'greenfield' | 'existing-adoption' | 'mixed';
@@ -92,6 +105,13 @@ export interface OnboardingResult {
    * fired (scenario calibration depends on the LLM). v0.3.45+.
    */
   readonly scenarios: readonly OnboardingScenario[];
+  /**
+   * AI behavior hints inferred from intent (preferred persona,
+   * test framework, forbidden patterns, etc.). Undefined when the
+   * LLM didn't return PROJECT_METADATA or when the deterministic
+   * fallback fired. v0.3.57+ (F-00eb1a).
+   */
+  readonly aiHints?: OnboardingAiHints;
   /** llm | deterministic | hybrid (per-section fallback). */
   readonly source: 'llm' | 'deterministic' | 'hybrid';
 }
@@ -213,6 +233,21 @@ export function buildOnboardingPrompt(
     '  project-context.md; the same paragraph can appear in both, just',
     '  structured here for scenario-aware tooling.',
     '',
+    '=== PROJECT_METADATA ===',
+    'AI behavior hints inferred from the intent. YAML with these optional',
+    'keys (omit any you cannot confidently infer):',
+    '  preferred_persona: <software-engineer | specialist | reviewer | librarian | observability>',
+    '  token_budget_per_session: <integer · default 4000>',
+    '  test_framework: <vitest | jest | pytest | cargo-test | …>',
+    '  primary_branch: <develop | main>',
+    '  forbidden_patterns: ["eval(", "innerHTML", ...]  # identifier substrings the AI should refuse', // cladding-disable AI_HINTS_FORBIDDEN_PATTERN
+    '',
+    'Rules:',
+    '- For UI projects (React/Vue/Svelte) include innerHTML + dangerouslySetInnerHTML in forbidden_patterns.', // cladding-disable AI_HINTS_FORBIDDEN_PATTERN
+    '- For Node/Deno projects without UI, focus on eval(, Function constructor, child_process.exec.', // cladding-disable AI_HINTS_FORBIDDEN_PATTERN
+    '- preferred_persona reflects the dominant work type — software-engineer is the right default.',
+    '- Leave the block EMPTY (no keys) if the intent is too vague to infer anything useful.',
+    '',
     '=== CLARIFYING_QUESTIONS ===',
     '2-3 PRODUCT/BUSINESS-level questions to ask the user next, one per',
     'line. RULES (mandatory):',
@@ -243,7 +278,7 @@ export function buildOnboardingPrompt(
   ].join('\n');
 }
 
-/** Splits the LLM response into the seven labelled sections. */
+/** Splits the LLM response into the labelled sections (8 since F-00eb1a). */
 export function parseOnboardingResponse(text: string): {
   readonly mode: string;
   readonly projectContext: string;
@@ -251,6 +286,7 @@ export function parseOnboardingResponse(text: string): {
   readonly architecture: string;
   readonly specSeedTitle: string;
   readonly scenariosRaw: string;
+  readonly projectMetadataRaw: string;
   readonly clarifyingQuestionsRaw: string;
 } {
   return {
@@ -260,6 +296,7 @@ export function parseOnboardingResponse(text: string): {
     architecture: extractSection(text, 'ARCHITECTURE_YAML'),
     specSeedTitle: extractSection(text, 'SPEC_SEED_TITLE'),
     scenariosRaw: extractSection(text, 'SCENARIOS_YAML'),
+    projectMetadataRaw: extractSection(text, 'PROJECT_METADATA'),
     clarifyingQuestionsRaw: extractSection(text, 'CLARIFYING_QUESTIONS'),
   };
 }
@@ -335,6 +372,52 @@ export function extractScenarios(raw: string): readonly OnboardingScenario[] {
     if (out.length >= 5) break;
   }
   return out;
+}
+
+/**
+ * Parses the `PROJECT_METADATA` sentinel into AI hints. Robust to:
+ * - empty block (returns undefined)
+ * - missing keys (returns partial — only fields present)
+ * - malformed YAML (returns undefined, silently)
+ * - unknown extra keys (ignored — additionalProperties: false at schema layer)
+ *
+ * Added v0.3.57 (F-00eb1a).
+ */
+export function extractProjectMetadata(raw: string): OnboardingAiHints | undefined {
+  if (!raw.trim()) return undefined;
+  let parsed: unknown;
+  try {
+    parsed = yaml.parse(raw);
+  } catch {
+    return undefined;
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return undefined;
+  const obj = parsed as Record<string, unknown>;
+  const out: {
+    preferred_persona?: string;
+    token_budget_per_session?: number;
+    test_framework?: string;
+    primary_branch?: string;
+    forbidden_patterns?: readonly string[];
+  } = {};
+  if (typeof obj.preferred_persona === 'string' && obj.preferred_persona.trim()) {
+    out.preferred_persona = obj.preferred_persona.trim();
+  }
+  if (typeof obj.token_budget_per_session === 'number' && obj.token_budget_per_session >= 100) {
+    out.token_budget_per_session = Math.floor(obj.token_budget_per_session);
+  }
+  if (typeof obj.test_framework === 'string' && obj.test_framework.trim()) {
+    out.test_framework = obj.test_framework.trim();
+  }
+  if (typeof obj.primary_branch === 'string' && obj.primary_branch.trim()) {
+    out.primary_branch = obj.primary_branch.trim();
+  }
+  if (Array.isArray(obj.forbidden_patterns)) {
+    const patterns = obj.forbidden_patterns
+      .filter((p): p is string => typeof p === 'string' && p.length > 0);
+    if (patterns.length > 0) out.forbidden_patterns = patterns;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 function slugifyScenario(input: string): string {
@@ -439,6 +522,7 @@ export async function interpretOnboardingWithFallback(
       : renderGreenfieldArchitectureYaml(observed.language),
     specSeedTitle: parsed.specSeedTitle.trim() || deterministicSeedTitle(intent),
     scenarios: extractScenarios(parsed.scenariosRaw),
+    aiHints: extractProjectMetadata(parsed.projectMetadataRaw),
     clarifyingQuestions: extractClarifyingQuestions(parsed.clarifyingQuestionsRaw),
     source: missed.length === 0 ? 'llm' : 'hybrid',
   };
@@ -741,6 +825,7 @@ export async function interpretRefinementWithFallback(
     architectureYaml: parsed.architecture.trim() ? ensureTierBBannerYaml(parsed.architecture) : current.architectureYaml,
     specSeedTitle: parsed.specSeedTitle.trim() || deterministicSeedTitle(intent),
     scenarios: extractScenarios(parsed.scenariosRaw),
+    aiHints: extractProjectMetadata(parsed.projectMetadataRaw),
     clarifyingQuestions: extractClarifyingQuestions(parsed.clarifyingQuestionsRaw),
     source: missed.length === 0 ? 'llm' : 'hybrid',
   };

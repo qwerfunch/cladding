@@ -1,0 +1,45 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-00eb1a
+slug: ai-hints-llm-and-enforce
+title: AI_HINTS_FORBIDDEN_PATTERN detector (#27) + LLM-populated ai_hints via onboarding sentinel (v0.3.57)
+status: done
+modules:
+  - src/stages/detectors/ai-hints-forbidden-pattern.ts
+  - src/stages/detectors/index.ts
+  - src/cli/scan/intent-onboarding.ts
+  - src/cli/init.ts
+  - tests/stages/ai-hints-forbidden-pattern.test.ts
+  - tests/cli/intent-onboarding.test.ts
+depends_on:
+  - F-5b9f9f
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: 'ship AI_HINTS_FORBIDDEN_PATTERN as detector 27 reading spec.project.ai_hints.forbidden_patterns and grep-checking src/**/*.ts(x) for each pattern; each occurrence emits one error finding with file colon line context'
+    text: The system shall ship detector 27 enforcing project.ai_hints.forbidden_patterns against src code.
+    test_refs: [tests/stages/ai-hints-forbidden-pattern.test.ts]
+  - id: AC-002
+    ears: ubiquitous
+    action: 'detector stays silent (zero findings) when project.ai_hints is missing or forbidden_patterns is empty — the policy is opt-in not default'
+    text: The system shall keep AI_HINTS_FORBIDDEN_PATTERN opt-in (silent when ai_hints absent or empty).
+    test_refs: [tests/stages/ai-hints-forbidden-pattern.test.ts]
+  - id: AC-003
+    ears: ubiquitous
+    action: 'detector skips lines whose trimmed content begins with comment markers (// or asterisk) so documentation strings discussing forbidden patterns do not produce false positives — including the detector source itself'
+    text: The system shall skip comment lines to avoid false positives on documentation discussing forbidden patterns.
+    test_refs: [tests/stages/ai-hints-forbidden-pattern.test.ts]
+  - id: AC-004
+    ears: ubiquitous
+    action: 'extend the intent-onboarding LLM prompt with a PROJECT_METADATA sentinel block that asks for preferred_persona, token_budget_per_session, test_framework, primary_branch, and forbidden_patterns inferred from the user intent — block may be empty when intent is too vague to infer'
+    text: The system shall add PROJECT_METADATA sentinel to the onboarding LLM prompt.
+    test_refs: [tests/cli/intent-onboarding.test.ts]
+  - id: AC-005
+    ears: ubiquitous
+    action: 'ship extractProjectMetadata parser that returns OnboardingAiHints partial — drops malformed YAML, non-object root, wrong-type fields, and unknown keys — so OnboardingResult.aiHints is undefined when nothing usable was inferred'
+    text: The system shall ship extractProjectMetadata returning a partial OnboardingAiHints with strict-typed-fields-only.
+    test_refs: [tests/cli/intent-onboarding.test.ts]
+  - id: AC-006
+    ears: ubiquitous
+    action: 'runInit passes onboarding.aiHints through specSeed metadata so spec.yaml now emits a nested project.ai_hints block when the LLM inferred hints — keys with strings or numbers rendered inline, forbidden_patterns rendered as a quoted flow sequence'
+    text: The system shall wire onboarding.aiHints into specSeed so spec.yaml emits the project.ai_hints block.
+    test_refs: [tests/cli/init.test.ts]

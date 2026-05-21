@@ -119,6 +119,17 @@ interface SpecSeedMetadata {
   readonly repository?: string;
   /** TL;DR of project-context.md. Falls back to intent if not provided. */
   readonly intent_summary?: string;
+  /**
+   * AI behavior hints inferred by onboarding (or hand-authored).
+   * Renders as a nested `ai_hints:` block under `project:`. v0.3.57+ (F-00eb1a).
+   */
+  readonly ai_hints?: {
+    readonly preferred_persona?: string;
+    readonly token_budget_per_session?: number;
+    readonly test_framework?: string;
+    readonly primary_branch?: string;
+    readonly forbidden_patterns?: readonly string[];
+  };
 }
 
 function quoted(value: string): string {
@@ -129,6 +140,16 @@ function quoted(value: string): string {
 function oneLine(text: string): string {
   const collapsed = text.replace(/\s+/g, ' ').trim();
   return collapsed.length > 120 ? `${collapsed.slice(0, 117)}…` : collapsed;
+}
+
+function hasAnyAiHint(h: NonNullable<SpecSeedMetadata['ai_hints']>): boolean {
+  return Boolean(
+    h.preferred_persona ||
+      typeof h.token_budget_per_session === 'number' ||
+      h.test_framework ||
+      h.primary_branch ||
+      (h.forbidden_patterns && h.forbidden_patterns.length > 0),
+  );
 }
 
 // v0.3.49 (F-99c6e5) — `specSeed` now emits `features: []` so the
@@ -157,6 +178,26 @@ function specSeed(projectName: string, language: string, metadata?: SpecSeedMeta
   }
   if (metadata?.intent_summary) {
     projectLines.push(`  intent_summary: ${quoted(metadata.intent_summary)}`);
+  }
+  if (metadata?.ai_hints && hasAnyAiHint(metadata.ai_hints)) {
+    projectLines.push('  ai_hints:');
+    const h = metadata.ai_hints;
+    if (h.preferred_persona) {
+      projectLines.push(`    preferred_persona: ${h.preferred_persona}`);
+    }
+    if (typeof h.token_budget_per_session === 'number') {
+      projectLines.push(`    token_budget_per_session: ${h.token_budget_per_session}`);
+    }
+    if (h.test_framework) {
+      projectLines.push(`    test_framework: ${h.test_framework}`);
+    }
+    if (h.primary_branch) {
+      projectLines.push(`    primary_branch: ${h.primary_branch}`);
+    }
+    if (h.forbidden_patterns && h.forbidden_patterns.length > 0) {
+      const list = h.forbidden_patterns.map((p) => quoted(p)).join(', ');
+      projectLines.push(`    forbidden_patterns: [${list}]`);
+    }
   }
 
   return [
@@ -289,10 +330,15 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
   } else {
     // v0.3.49 (F-3a5339) — when an intent is provided, seed the
     // project metadata fields too so spec.yaml has a meaningful
-    // "front door". Intent doubles as description + intent_summary
-    // until LLM populates them properly (next cycle).
+    // "front door". v0.3.57 (F-00eb1a) — onboarding.aiHints (if
+    // the LLM returned PROJECT_METADATA) flows through to spec.yaml
+    // so AI agents read inferred hints at session start.
     const seedMetadata: SpecSeedMetadata | undefined = intent
-      ? {description: oneLine(intent), intent_summary: oneLine(intent)}
+      ? {
+          description: oneLine(intent),
+          intent_summary: oneLine(intent),
+          ai_hints: onboarding?.aiHints,
+        }
       : undefined;
     writeFileSync(specPath, specSeed(projectName, language, seedMetadata));
     created.push('spec.yaml');

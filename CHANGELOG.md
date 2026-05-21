@@ -5,6 +5,55 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — AI_HINTS_FORBIDDEN_PATTERN detector + LLM-populated ai_hints (F-00eb1a)
+
+**ai_hints graduates from advice to enforcement + becomes self-filling.** F-5b9f9f added the `project.ai_hints` block as a passive AI-agent guide. This cycle:
+
+1. **Enforces** `forbidden_patterns` with detector **#27** (was 26) — every `src/**/*.ts(x)` line that matches a forbidden identifier substring emits an error finding. Opt-in: silent when `ai_hints` is absent or `forbidden_patterns` is empty. Comment lines (`//`, `/*`, `*`) skipped to avoid documentation false-positives.
+2. **Auto-populates** ai_hints during `clad init --intent "..."` via a new `=== PROJECT_METADATA ===` sentinel. The LLM infers `preferred_persona`, `token_budget_per_session`, `test_framework`, `primary_branch`, `forbidden_patterns` from the user's intent — or returns an empty block when too vague.
+
+### Added
+
+- `src/stages/detectors/ai-hints-forbidden-pattern.ts` (new detector #27) — `walkTsFiles(src/)` + line-by-line substring match against `spec.project.ai_hints.forbidden_patterns`. Per-occurrence error findings with `path` + `line` context. `isCommentLine()` skips `//`, `/*`, `*` lines so the detector's own source (which mentions `eval(` and `innerHTML` in its docstring) doesn't trip itself
+- `src/cli/scan/intent-onboarding.ts::OnboardingAiHints` interface + `extractProjectMetadata(raw)` parser that returns a partial OnboardingAiHints, dropping malformed YAML / non-object roots / wrong-typed fields / unknown keys
+- `=== PROJECT_METADATA ===` sentinel in the onboarding LLM prompt with explicit guidance: include `innerHTML` + `dangerouslySetInnerHTML` in `forbidden_patterns` for UI projects; focus on `eval(` + Function constructor + `child_process.exec` for Node/Deno; leave block EMPTY when too vague
+- `parseOnboardingResponse` now extracts `projectMetadataRaw` (8 sentinels total, was 7)
+- `tests/stages/ai-hints-forbidden-pattern.test.ts` — 7 tests covering no-ai_hints silent, empty-list silent, single match, comment skip, multi-pattern + multi-file, no-src silent, no-spec silent
+- `tests/cli/intent-onboarding.test.ts` — 8 new tests for `extractProjectMetadata` (empty / full / partial / malformed / non-object / invalid-types / unknown-keys ignored)
+
+### Changed
+
+- `src/stages/detectors/index.ts` — registers `aiHintsForbiddenPattern`; **26 → 27 detectors** (auto-recounted by `build:plugin`)
+- `src/cli/init.ts::SpecSeedMetadata` gains optional `ai_hints` block; `specSeed` emits a nested `project.ai_hints:` block (5 keys) when present; `runInit` passes `onboarding.aiHints` through so LLM-inferred hints reach spec.yaml automatically
+- `OnboardingResult.aiHints` field added — undefined when LLM didn't return PROJECT_METADATA or when deterministic fallback fired
+
+### Notes
+
+- 899 + **15 new tests** = **914/914 passing** (7 detector + 8 onboarding parser)
+- lint clean · typecheck clean · build:plugin **27/27 detectors**
+- `clad sync` 130 → **131 features valid** (+F-00eb1a)
+- `clad check --strict --internal` — stage_1.1-1.6 + 2.1-2.2 all ✓
+- cladding-self has `forbidden_patterns: ["eval(", "innerHTML", "dangerouslySetInnerHTML"]` (from F-5b9f9f); none of cladding's TypeScript source actually uses these → detector stays silent on the project
+
+### What this enables
+
+| User journey | What happens now |
+|---|---|
+| `clad init --intent "React dashboard with charts"` | onboarding LLM infers ai_hints with `test_framework: vitest`, `preferred_persona: software-engineer`, `forbidden_patterns: ["innerHTML", "dangerouslySetInnerHTML"]` |
+| dev later commits `el.innerHTML = "..."` to a React component | `AI_HINTS_FORBIDDEN_PATTERN` fires error finding; `clad check` fails before merge |
+| dev runs `clad sync` after intentionally relaxing one pattern | spec.yaml updated; detector goes quiet for that pattern next run |
+
+The advice→enforcement loop is fully closed. AI agents now BOTH read hints AND get gated by them.
+
+### Roadmap
+
+- Per-feature `ai_hints` override (e.g., `spec/features/legacy-*.yaml::ai_hints_override`)
+- Severity tiers (`warn` vs `error`) per pattern
+- Pattern whitelist exceptions (`forbidden_patterns_except_in: [tests/, scripts/]`)
+- Cladding-self adopts strict mode (`forbidden_patterns` enforced in CI)
+
+---
+
 ## [0.3.56] — 2026-05-21 — spec.yaml gains inventory + ai_hints (front-door uplift) (F-5b9f9f)
 
 **spec.yaml goes from "thin manifest" to "queryable front-door".** Two new optional schema blocks:
