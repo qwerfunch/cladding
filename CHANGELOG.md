@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — ai_hints consumer instructions in CLAUDE.md + 5 personas (F-0ed2db)
+## [0.3.59] — 2026-05-22 — ai_hints consumer instructions in CLAUDE.md + 5 personas (F-0ed2db)
 
 **Closing the dead-data loop on preferred_patterns.** F-32b1e0 (v0.3.58) introduced `preferred_patterns` as an advisory `{when, prefer, over?}` channel — but nothing actually consumed it. CLAUDE.md and the persona prompts under `src/agents/` never referenced `ai_hints`, so AI sessions had no instruction to grep it at session start. This cycle makes the consumer real.
 
