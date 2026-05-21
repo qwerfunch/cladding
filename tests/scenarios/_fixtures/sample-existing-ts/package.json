@@ -1,0 +1,10 @@
+{
+  "name": "sample-existing-ts",
+  "version": "0.1.0",
+  "description": "Existing TypeScript project fixture for cladding lifecycle tests",
+  "type": "module",
+  "main": "src/api/index.ts",
+  "scripts": {
+    "test": "vitest run"
+  }
+}

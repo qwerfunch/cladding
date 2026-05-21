@@ -432,10 +432,10 @@ export async function interpretOnboardingWithFallback(
       ? wrapProjectContext(parsed.projectContext, observed.projectName, ONBOARDING_HEADER)
       : deterministicProjectContext(intent, observed),
     capabilitiesYaml: parsed.capabilities.trim()
-      ? ensureTrailingNewline(parsed.capabilities)
+      ? ensureTierBBannerYaml(parsed.capabilities)
       : renderGreenfieldCapabilitiesYaml(observed.projectName),
     architectureYaml: parsed.architecture.trim()
-      ? ensureTrailingNewline(parsed.architecture)
+      ? ensureTierBBannerYaml(parsed.architecture)
       : renderGreenfieldArchitectureYaml(observed.language),
     specSeedTitle: parsed.specSeedTitle.trim() || deterministicSeedTitle(intent),
     scenarios: extractScenarios(parsed.scenariosRaw),
@@ -525,6 +525,25 @@ function wrapProjectContext(body: string, projectName: string, header: string): 
 
 function ensureTrailingNewline(text: string): string {
   return text.endsWith('\n') ? text : `${text}\n`;
+}
+
+/**
+ * Tier B banner for YAML artifacts (capabilities, architecture). The
+ * LLM is instructed to emit a body starting with the schema/version
+ * line, not the banner — so we prepend the banner here if the body
+ * doesn't already carry it. This keeps every Tier B artifact's first
+ * line consistent with `docs/ssot-model.md` regardless of which path
+ * (greenfield seed / LLM response / hand-edit) produced it.
+ */
+const TIER_B_YAML_BANNER =
+  '# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad refine';
+
+function ensureTierBBannerYaml(body: string): string {
+  const trimmed = body.trimStart();
+  if (trimmed.startsWith('# Cladding · ')) {
+    return ensureTrailingNewline(trimmed);
+  }
+  return `${TIER_B_YAML_BANNER}\n${ensureTrailingNewline(trimmed)}`;
 }
 
 function emitSentinelMiss(cwd: string | undefined, payload: Record<string, unknown>): void {
@@ -718,8 +737,8 @@ export async function interpretRefinementWithFallback(
     projectContextMd: parsed.projectContext.trim()
       ? wrapProjectContext(parsed.projectContext, observed.projectName, ONBOARDING_HEADER)
       : current.projectContextMd,
-    capabilitiesYaml: parsed.capabilities.trim() ? ensureTrailingNewline(parsed.capabilities) : current.capabilitiesYaml,
-    architectureYaml: parsed.architecture.trim() ? ensureTrailingNewline(parsed.architecture) : current.architectureYaml,
+    capabilitiesYaml: parsed.capabilities.trim() ? ensureTierBBannerYaml(parsed.capabilities) : current.capabilitiesYaml,
+    architectureYaml: parsed.architecture.trim() ? ensureTierBBannerYaml(parsed.architecture) : current.architectureYaml,
     specSeedTitle: parsed.specSeedTitle.trim() || deterministicSeedTitle(intent),
     scenarios: extractScenarios(parsed.scenariosRaw),
     clarifyingQuestions: extractClarifyingQuestions(parsed.clarifyingQuestionsRaw),
