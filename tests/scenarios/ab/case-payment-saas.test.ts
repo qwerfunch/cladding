@@ -16,7 +16,7 @@
 import {afterEach, beforeEach, describe, test, vi} from 'vitest';
 import {fileURLToPath} from 'node:url';
 import {dirname, join} from 'node:path';
-import {mkdirSync} from 'node:fs';
+import {mkdirSync, readFileSync, writeFileSync} from 'node:fs';
 
 vi.mock('../../../src/ui/pulse.js', () => ({pulse: vi.fn()}));
 const dispatchMock = vi.fn<(p: string) => Promise<string>>();
@@ -29,6 +29,15 @@ const {mkScenarioCwd, writeUnderCwd, GREENFIELD_S1_RESPONSE} = await import('../
 const {captureSnapshot} = await import('./_ab-metrics.js');
 const {VANILLA_PAYMENT_SAAS_SESSION, applyFileSet} = await import('./_vanilla-sim.js');
 const {renderCaseReport, writeOrAssertReport} = await import('./_report.js');
+const {
+  captureDriftCatch,
+  claddingifyForDriftCatch,
+  makeStaleReferenceDrift,
+  makeArchitectureViolationDrift,
+  makeHardcodedSecretDrift,
+  makeUntestedAcDrift,
+} = await import('./_drift-injection.js');
+const {answerAllQueries} = await import('./_query-bench.js');
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = HERE.replace(/\/tests\/scenarios\/ab$/, '');
@@ -80,15 +89,17 @@ describe('A/B · payment-saas — cladding vs vanilla on greenfield intent', () 
         'id: F-4db939',
         'slug: refund-flow',
         'title: "환불 처리"',
-        'status: planned',
+        'status: done',
         'modules: ["src/api/refund.ts"]',
         'acceptance_criteria:',
         '  - id: AC-001',
         '    ears: ubiquitous',
         '    text: "When a refund request lands, the system shall verify the original payment and call the PG refund API."',
+        '    test_refs: [tests/refund.test.ts]',
         '  - id: AC-002',
         '    ears: unwanted',
         '    text: "If the original transaction id is empty, the system shall reject the refund with a 400."',
+        '    test_refs: [tests/refund.test.ts]',
         '',
       ].join('\n'),
     );
@@ -132,6 +143,72 @@ describe('A/B · payment-saas — cladding vs vanilla on greenfield intent', () 
     const m2A = captureSnapshot('A', 'M2', aCwd.path);
     const m2B = captureSnapshot('B', 'M2', bCwd.path);
 
+    // ── Outcome quality (F-ba2e05) ─────────────────────────────
+    // Mature-cladding-user step: clear spec.yaml's inline F-001 (so
+    // the sharded F-4db939 loads) + canonicalize architecture.yaml
+    // (string[][] + {from,to}[] format that ARCHITECTURE_FROM_SPEC
+    // detector expects). See _drift-injection.ts header for rationale.
+    claddingifyForDriftCatch(aCwd.path, {
+      layers: [['api'], ['ledger'], ['webhook']],
+      forbiddenImports: [
+        {from: 'api', to: 'ledger'},
+        {from: 'webhook', to: 'ledger'},
+      ],
+    });
+    // Rebind payment-auth from the cleared F-001 placeholder to the
+    // real F-4db939 we just authored — a realistic step a maintainer
+    // would take when promoting a placeholder feature.
+    const capsPathA = join(aCwd.path, 'spec/capabilities.yaml');
+    writeFileSync(capsPathA, readFileSync(capsPathA, 'utf8').replace('features: [F-001]', 'features: [F-4db939]'));
+
+    // Drift Injection: 4 deterministic scenarios applied sequentially.
+    // The before/after diff in `captureDriftCatch` only attributes new
+    // findings to each scenario, so cumulative state effects are handled.
+    const driftResults = [
+      // DI-1 stale module reference — A: src/api/refund.ts exists;
+      // B: also has src/api/refund.ts from vanilla session.
+      captureDriftCatch(
+        aCwd.path,
+        'A',
+        makeStaleReferenceDrift('src/api/refund.ts', 'src/api/refund_renamed.ts'),
+      ),
+      captureDriftCatch(
+        bCwd.path,
+        'B',
+        makeStaleReferenceDrift('src/api/refund.ts', 'src/api/refund_renamed.ts'),
+      ),
+      // DI-2 architecture violation — payment-saas architecture has
+      // forbidden api↛ledger; we add a ledger import to src/api/...
+      // (A's refund.ts was just renamed → use the renamed file; B same).
+      captureDriftCatch(
+        aCwd.path,
+        'A',
+        makeArchitectureViolationDrift('src/api/refund_renamed.ts', '../ledger/store.js'),
+      ),
+      captureDriftCatch(
+        bCwd.path,
+        'B',
+        makeArchitectureViolationDrift('src/api/refund_renamed.ts', '../ledger/store.js'),
+      ),
+      // DI-3 hardcoded secret — both should catch via spec-independent detector.
+      captureDriftCatch(aCwd.path, 'A', makeHardcodedSecretDrift('src/api/refund_renamed.ts')),
+      captureDriftCatch(bCwd.path, 'B', makeHardcodedSecretDrift('src/api/refund_renamed.ts')),
+      // DI-4 untested AC — A only; B has no feature shard so N/A
+      // (the drift's apply() is a no-op on B, and we skip it to mark N/A
+      // in the report).
+      captureDriftCatch(
+        aCwd.path,
+        'A',
+        makeUntestedAcDrift('spec/features/refund-flow-4db939.yaml', 'AC-003', 'Refunds shall support partial refund amounts.'),
+      ),
+    ];
+
+    // AI-Query benchmark on both groups.
+    const queryResults = new Map<'A' | 'B', readonly ReturnType<typeof answerAllQueries>[number][]>([
+      ['A', answerAllQueries(aCwd.path)],
+      ['B', answerAllQueries(bCwd.path)],
+    ]);
+
     // ── Render report ───────────────────────────────────────────
     const report = renderCaseReport({
       caseTitle: 'payment-saas',
@@ -158,6 +235,7 @@ describe('A/B · payment-saas — cladding vs vanilla on greenfield intent', () 
       m1B,
       m2A,
       m2B,
+      outcome: {driftResults, queryResults},
     });
     writeOrAssertReport(REPORT_PATH, report);
   }, 30_000);
