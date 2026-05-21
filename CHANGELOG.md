@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — Enrich spec.yaml with project metadata (F-3a5339)
+## [0.3.51] — 2026-05-21 — Enrich spec.yaml with project metadata (F-3a5339)
 
 **Reviewer caught a dogfood gap**: both cladding-self's own `spec.yaml` and the A/B-extended task-manager's `spec.yaml` were 12-line shells (header comment + `schema: "0.1"` + `project: {name, language}`). Sharded layout works, but the spec.yaml as a "front door" was uninformative. This cycle extends the Project schema with 4 optional metadata fields so spec.yaml carries meaningful first-line content while staying backwards-compatible.
 
@@ -41,7 +41,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [Unreleased] — A/B extended: 30-feature task-manager React project (F-0144b9)
+## [0.3.50] — 2026-05-21 — A/B extended: 30-feature task-manager React project (F-0144b9)
 
 **The original A/B framework (F-4db939 / F-ba2e05) measured cladding's value at 1 feature/case. This cycle scales to 30 features × 1 UI scenario** (React 19 + Vite 6 + TS 5.6 + Tailwind 4 task-manager) and ships **two complete runnable React projects** committed to the repo so reviewers can `cd` in and `npm run dev`. The previous "where does cladding pay off?" finding (3/4 cladding-exclusive drift catches at 1-feature scale) is verified to **hold at 30× scale** — cladding's value compounds, not flattens.
 
@@ -96,7 +96,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [Unreleased] — cladding self-fixes: dual architecture schema + sharded F-001 + ABSENCE_OF_GOVERNANCE (F-99c6e5)
+## [0.3.49] — 2026-05-21 — cladding self-fixes: dual architecture schema + sharded F-001 + ABSENCE_OF_GOVERNANCE (F-99c6e5)
 
 **F-ba2e05 surfaced three real cladding bugs that the user-facing flow papered over.** This cycle fixes all three. The A/B framework's outcome quality measurement had to work around them with `claddingifyForDriftCatch` — that helper is now obsolete since the bugs themselves are resolved.
 
