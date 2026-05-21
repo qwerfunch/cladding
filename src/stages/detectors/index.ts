@@ -7,6 +7,7 @@
 
 import {absenceOfGovernance} from './absence-of-governance.js';
 import {acDrift} from './ac-drift.js';
+import {aiHintsForbiddenPattern} from './ai-hints-forbidden-pattern.js';
 import {acDuplicateWithinFeature} from './ac-duplicate-within-feature.js';
 import {architectureFromSpec} from './architecture-from-spec.js';
 import {architectureViolation} from './architecture-violation.js';
@@ -61,4 +62,5 @@ export const allDetectors: readonly DriftDetector[] = [
   architectureFromSpec,
   capabilitiesFeatureMapping,
   absenceOfGovernance,
+  aiHintsForbiddenPattern,
 ];

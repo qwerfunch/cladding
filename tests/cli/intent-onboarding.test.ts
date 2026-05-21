@@ -14,6 +14,7 @@ import {
   buildOnboardingPrompt,
   deterministicOnboarding,
   extractClarifyingQuestions,
+  extractProjectMetadata,
   interpretOnboardingWithFallback,
   normaliseMode,
   parseOnboardingResponse,
@@ -151,6 +152,61 @@ describe('extractClarifyingQuestions', () => {
   test('empty input returns empty array', () => {
     expect(extractClarifyingQuestions('')).toEqual([]);
     expect(extractClarifyingQuestions('  \n  \n')).toEqual([]);
+  });
+});
+
+describe('extractProjectMetadata (F-00eb1a)', () => {
+  test('empty block → undefined', () => {
+    expect(extractProjectMetadata('')).toBeUndefined();
+    expect(extractProjectMetadata('   ')).toBeUndefined();
+  });
+
+  test('full ai_hints block → all 5 fields', () => {
+    const raw = [
+      'preferred_persona: software-engineer',
+      'token_budget_per_session: 4000',
+      'test_framework: vitest',
+      'primary_branch: develop',
+      'forbidden_patterns: ["eval(", "innerHTML"]',
+    ].join('\n');
+    const out = extractProjectMetadata(raw);
+    expect(out).toBeDefined();
+    expect(out?.preferred_persona).toBe('software-engineer');
+    expect(out?.token_budget_per_session).toBe(4000);
+    expect(out?.test_framework).toBe('vitest');
+    expect(out?.primary_branch).toBe('develop');
+    expect(out?.forbidden_patterns).toEqual(['eval(', 'innerHTML']);
+  });
+
+  test('partial block → only present keys', () => {
+    const out = extractProjectMetadata('preferred_persona: librarian\n');
+    expect(out).toEqual({preferred_persona: 'librarian'});
+  });
+
+  test('malformed YAML → undefined', () => {
+    const out = extractProjectMetadata('preferred_persona: [unclosed array');
+    expect(out).toBeUndefined();
+  });
+
+  test('non-object root → undefined', () => {
+    expect(extractProjectMetadata('- a\n- b')).toBeUndefined();
+    expect(extractProjectMetadata('"just a string"')).toBeUndefined();
+  });
+
+  test('invalid token_budget (string) → field dropped', () => {
+    const out = extractProjectMetadata('token_budget_per_session: "lots"\npreferred_persona: x');
+    expect(out?.token_budget_per_session).toBeUndefined();
+    expect(out?.preferred_persona).toBe('x');
+  });
+
+  test('forbidden_patterns non-array → field dropped', () => {
+    const out = extractProjectMetadata('forbidden_patterns: "eval"');
+    expect(out?.forbidden_patterns).toBeUndefined();
+  });
+
+  test('unknown keys ignored (additionalProperties: false at schema layer)', () => {
+    const out = extractProjectMetadata('preferred_persona: x\nunknown_field: y');
+    expect(out).toEqual({preferred_persona: 'x'});
   });
 });
 
