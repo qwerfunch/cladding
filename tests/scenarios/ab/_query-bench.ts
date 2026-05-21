@@ -40,103 +40,117 @@ function unanswered(id: string, question: string, reason = 'not found'): QueryAn
 }
 
 // ──────────────────────────────────────────────────────────────────
-// Q1 — Which feature implements the refund flow?
+// Q1/Q2 — Domain-parameterized feature queries (F-ae61c1, v0.3.52).
 //
-// Cladding tree: `grep -l refund-flow spec/features/*.yaml` → 1 file
-// open, returns the feature id.
-// Vanilla tree:   no spec/ → must grep src/ + tests/, returns code
-// paths but no canonical feature identity.
+// Previous behavior hardcoded "refund flow" which only made sense for
+// payment-related cases. Task-manager (no refund feature) and future
+// scenarios need their own representative feature keyword. The factory
+// below produces Q1/Q2 closures bound to a caller-supplied keyword.
 // ──────────────────────────────────────────────────────────────────
 
-const Q1: DomainQuery = {
-  id: 'Q1',
-  question: 'Which feature implements the refund flow?',
-  run: (cwd) => {
-    const featuresDir = join(cwd, 'spec/features');
-    if (existsSync(featuresDir)) {
+export interface QueryBenchOptions {
+  /** Keyword the Q1/Q2 closures grep for in feature shards or code. Default 'refund'. */
+  readonly featureKeyword?: string;
+  /** Human-readable label used in the question text. Default 'refund flow'. */
+  readonly featureLabel?: string;
+}
+
+const DEFAULT_KEYWORD = 'refund';
+const DEFAULT_LABEL = 'refund flow';
+
+function makeQ1(keyword: string, label: string): DomainQuery {
+  const question = `Which feature implements the ${label}?`;
+  return {
+    id: 'Q1',
+    question,
+    run: (cwd) => {
+      const lowerKw = keyword.toLowerCase();
+      const featuresDir = join(cwd, 'spec/features');
+      if (existsSync(featuresDir)) {
+        let filesOpened = 0;
+        for (const name of readdirSync(featuresDir)) {
+          if (!name.endsWith('.yaml')) continue;
+          filesOpened++;
+          const body = readFileSync(join(featuresDir, name), 'utf8');
+          if (body.toLowerCase().includes(lowerKw)) {
+            const idMatch = body.match(/id:\s*(F-\w+)/);
+            return {
+              questionId: 'Q1',
+              question,
+              answered: true,
+              filesOpened,
+              answer: idMatch ? idMatch[1] : 'matched but no id',
+            };
+          }
+        }
+      }
+      // Vanilla path — grep src/ + tests/ for keyword.
+      const candidates: string[] = [];
+      for (const root of ['src', 'tests']) {
+        walkTs(join(cwd, root), candidates);
+      }
+      let filesOpened = 0;
+      let hit = '';
+      for (const abs of candidates) {
+        filesOpened++;
+        try {
+          if (readFileSync(abs, 'utf8').toLowerCase().includes(lowerKw)) {
+            hit = hit || abs.replace(cwd + '/', '');
+          }
+        } catch {
+          // ignore
+        }
+      }
+      if (hit) {
+        return {
+          questionId: 'Q1',
+          question,
+          answered: true,
+          filesOpened,
+          answer: `code path: ${hit} (no canonical feature id)`,
+        };
+      }
+      return unanswered('Q1', question);
+    },
+  };
+}
+
+function makeQ2(keyword: string, label: string): DomainQuery {
+  const question = `How many acceptance criteria does the ${label} have?`;
+  return {
+    id: 'Q2',
+    question,
+    run: (cwd) => {
+      const lowerKw = keyword.toLowerCase();
+      const featuresDir = join(cwd, 'spec/features');
+      if (!existsSync(featuresDir)) return unanswered('Q2', question, 'no spec/features/ — vanilla cannot answer');
       let filesOpened = 0;
       for (const name of readdirSync(featuresDir)) {
         if (!name.endsWith('.yaml')) continue;
         filesOpened++;
         const body = readFileSync(join(featuresDir, name), 'utf8');
-        if (body.includes('refund-flow') || body.includes('refund')) {
-          const idMatch = body.match(/id:\s*(F-\w+)/);
+        if (!body.toLowerCase().includes(lowerKw)) continue;
+        try {
+          const parsed = yaml.parse(body) as {acceptance_criteria?: readonly unknown[]} | null;
+          const count = Array.isArray(parsed?.acceptance_criteria) ? parsed.acceptance_criteria.length : 0;
           return {
-            questionId: 'Q1',
-            question: Q1.question,
+            questionId: 'Q2',
+            question,
             answered: true,
             filesOpened,
-            answer: idMatch ? idMatch[1] : 'matched but no id',
+            answer: `${count} AC(s)`,
           };
+        } catch {
+          // ignore parse errors
         }
       }
-    }
-    // Vanilla path — grep src/ + tests/ for "refund" substring.
-    const candidates: string[] = [];
-    for (const root of ['src', 'tests']) {
-      walkTs(join(cwd, root), candidates);
-    }
-    let filesOpened = 0;
-    let hit = '';
-    for (const abs of candidates) {
-      filesOpened++;
-      try {
-        if (readFileSync(abs, 'utf8').toLowerCase().includes('refund')) {
-          hit = hit || abs.replace(cwd + '/', '');
-        }
-      } catch {
-        // ignore
-      }
-    }
-    if (hit) {
-      return {
-        questionId: 'Q1',
-        question: Q1.question,
-        answered: true,
-        filesOpened,
-        answer: `code path: ${hit} (no canonical feature id)`,
-      };
-    }
-    return unanswered('Q1', Q1.question);
-  },
-};
+      return unanswered('Q2', question, `${label} feature shard not found`);
+    },
+  };
+}
 
-// ──────────────────────────────────────────────────────────────────
-// Q2 — How many acceptance criteria does the refund flow have?
-//
-// Cladding: parse the matching feature shard → count.
-// Vanilla:   no AC concept exists. Always unanswerable.
-// ──────────────────────────────────────────────────────────────────
-
-const Q2: DomainQuery = {
-  id: 'Q2',
-  question: 'How many acceptance criteria does the refund flow have?',
-  run: (cwd) => {
-    const featuresDir = join(cwd, 'spec/features');
-    if (!existsSync(featuresDir)) return unanswered('Q2', Q2.question, 'no spec/features/ — vanilla cannot answer');
-    let filesOpened = 0;
-    for (const name of readdirSync(featuresDir)) {
-      if (!name.endsWith('.yaml')) continue;
-      filesOpened++;
-      const body = readFileSync(join(featuresDir, name), 'utf8');
-      if (!body.includes('refund')) continue;
-      try {
-        const parsed = yaml.parse(body) as {acceptance_criteria?: readonly unknown[]} | null;
-        const count = Array.isArray(parsed?.acceptance_criteria) ? parsed.acceptance_criteria.length : 0;
-        return {
-          questionId: 'Q2',
-          question: Q2.question,
-          answered: true,
-          filesOpened,
-          answer: `${count} AC(s)`,
-        };
-      } catch {
-        // ignore parse errors
-      }
-    }
-    return unanswered('Q2', Q2.question, 'refund feature shard not found');
-  },
-};
+const Q1: DomainQuery = makeQ1(DEFAULT_KEYWORD, DEFAULT_LABEL);
+const Q2: DomainQuery = makeQ2(DEFAULT_KEYWORD, DEFAULT_LABEL);
 
 // ──────────────────────────────────────────────────────────────────
 // Q3 — What layers are forbidden from importing each other?
@@ -265,8 +279,17 @@ const Q5: DomainQuery = {
 
 export const DOMAIN_QUERIES: readonly DomainQuery[] = [Q1, Q2, Q3, Q4, Q5];
 
-export function answerAllQueries(cwd: string): readonly QueryAnswer[] {
-  return DOMAIN_QUERIES.map((q) => q.run(cwd));
+/**
+ * Runs the 5 domain queries against the given tmpdir. Q1/Q2 can be
+ * domain-tuned by passing `featureKeyword` + `featureLabel`; defaults
+ * are 'refund' / 'refund flow' to preserve backwards compatibility
+ * with the payment-saas + existing-adoption tests.
+ */
+export function answerAllQueries(cwd: string, opts: QueryBenchOptions = {}): readonly QueryAnswer[] {
+  const keyword = opts.featureKeyword ?? DEFAULT_KEYWORD;
+  const label = opts.featureLabel ?? DEFAULT_LABEL;
+  const queries: readonly DomainQuery[] = [makeQ1(keyword, label), makeQ2(keyword, label), Q3, Q4, Q5];
+  return queries.map((q) => q.run(cwd));
 }
 
 // ──────────────────────────────────────────────────────────────────

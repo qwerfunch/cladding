@@ -82,8 +82,8 @@ Five domain questions; lower file-lookup cost is better. "N" = unanswerable.
 
 | Question | A files | A answer | B files | B answer |
 |---|---:|---|---:|---|
-| Q1 Which feature implements the refund flow? | N | not found | N | not found |
-| Q2 How many acceptance criteria does the refund flow  | N | refund feature shard not found | N | no spec/features/ — vanilla cannot answer |
+| Q1 Which feature implements the add-task flow? | 2 | F-3cbf38 | N | not found |
+| Q2 How many acceptance criteria does the add-task flo | 2 | 3 AC(s) | N | no spec/features/ — vanilla cannot answer |
 | Q3 What are the architecture forbidden-import rules? | 1 | lib ↛ components, lib ↛ hooks | N | no spec/architecture.yaml — vanilla has no explicit rules |
 | Q4 Which capabilities are bound to which features? | 1 | ui-foundation=[F-52c315,F-f7b2e3,F-fa2809,F-8ba24e,F-95619e… | N | no spec/capabilities.yaml — vanilla has no capability conce… |
 | Q5 How many test scenarios are declared? | 5 | 5 test file(s) (weak proxy — no canonical scenario declarat… | 5 | 5 test file(s) (weak proxy — no canonical scenario declarat… |
