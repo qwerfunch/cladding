@@ -109,14 +109,20 @@ const SCENARIOS_README = [
   '',
 ].join('\n');
 
-function specSeed(projectName: string, language: string, seedTitle?: string): string {
-  const title = (seedTitle ?? 'Your first feature').replace(/"/g, '\\"');
+// v0.3.49 (F-99c6e5) — `specSeed` now emits `features: []` so the
+// sharded layout activates from day one. F-001 lives in
+// `spec/features/F-001-<hash>.yaml` instead of inline. This unblocks
+// every spec-gated detector (MISSING_IMPLEMENTATION, AC_DRIFT,
+// UNTESTED_AC, …) which previously couldn't see user-authored shards
+// when the inline F-001 placeholder kept the master `features` array
+// non-empty.
+function specSeed(projectName: string, language: string): string {
   return [
     '# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual',
     `# ${projectName} — Cladding spec`,
-    '# This file is your project SSoT. Edit features here, run `clad sync`',
-    '# to validate, and `clad check` to exercise every Iron Law stage.',
-    '# See https://github.com/qwerfunch/ironclad for the standard.',
+    '# Features live in spec/features/<slug>-<hash>.yaml — one file per feature.',
+    '# Edit shards there, run `clad sync` to validate, `clad check` to exercise',
+    '# every Iron Law stage. See https://github.com/qwerfunch/ironclad for the standard.',
     '',
     'schema: "0.1"',
     '',
@@ -124,15 +130,25 @@ function specSeed(projectName: string, language: string, seedTitle?: string): st
     `  name: ${projectName}`,
     `  language: ${language}`,
     '',
-    'features:',
-    '  - id: F-001',
-    `    title: "${title}"`,
-    '    status: planned',
-    '    modules: []',
-    '    acceptance_criteria:',
-    '      - id: AC-001',
-    '        ears: ubiquitous',
-    '        text: "Replace this with what F-001 actually shall do."',
+    'features: []',
+    '',
+  ].join('\n');
+}
+
+/** Renders the placeholder F-001 shard written alongside the sharded spec.yaml seed. */
+function f001SeedShard(seedTitle?: string): string {
+  const title = (seedTitle ?? 'Your first feature').replace(/"/g, '\\"');
+  return [
+    '# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual',
+    'id: F-001',
+    'slug: first-feature',
+    `title: "${title}"`,
+    'status: planned',
+    'modules: []',
+    'acceptance_criteria:',
+    '  - id: AC-001',
+    '    ears: ubiquitous',
+    '    text: "Replace this with what F-001 actually shall do."',
     '',
   ].join('\n');
 }
@@ -219,13 +235,27 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
     saveState(cwd, initialState);
   }
 
-  // 1. spec.yaml
+  // 1. spec.yaml + F-001 sharded placeholder
+  //
+  // v0.3.49 (F-99c6e5): spec.yaml seed now carries `features: []` and
+  // the F-001 placeholder lives at `spec/features/F-001-first.yaml`.
+  // This activates the sharded-loader path from day one — every
+  // spec-gated detector now sees user-authored shards instead of
+  // being blinded by the legacy inline placeholder.
   const specPath = join(cwd, 'spec.yaml');
   if (existsSync(specPath) && !force) {
     skipped.push('spec.yaml (exists; pass --force to overwrite)');
   } else {
-    writeFileSync(specPath, specSeed(projectName, language, onboarding?.specSeedTitle));
+    writeFileSync(specPath, specSeed(projectName, language));
     created.push('spec.yaml');
+  }
+  const f001Path = join(cwd, 'spec', 'features', 'F-001-first.yaml');
+  if (existsSync(f001Path) && !force) {
+    skipped.push('spec/features/F-001-first.yaml (exists; pass --force to overwrite)');
+  } else {
+    mkdirSync(dirname(f001Path), {recursive: true});
+    writeFileSync(f001Path, f001SeedShard(onboarding?.specSeedTitle));
+    created.push('spec/features/F-001-first.yaml');
   }
 
   // 2. .cladding/ runtime dir

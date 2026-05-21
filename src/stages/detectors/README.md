@@ -33,6 +33,7 @@ ironclad_spec_ref: https://github.com/qwerfunch/ironclad/blob/main/detectors.sch
 | 18 | `REFERENCE_INTEGRITY` | environment | `reference-integrity.ts` | error | blind |
 | 19 | `META_INTEGRITY` | environment | `meta-integrity.ts` | error | blind |
 | 20 | `FIXTURE_REFERENCE_INVALID` *(cladding extension, v0.2.4)* | spec ↔ fixture | `fixture-reference.ts` | warn | blind |
+| 21 | `ABSENCE_OF_GOVERNANCE` *(cladding extension, v0.3.49)* | scaffold | `absence-of-governance.ts` | graduated (error / warn / info) | blind |
 
 `axis` and `default severity` for rows 1–19 mirror the [Ironclad spec detectors.schema.json](https://github.com/qwerfunch/ironclad/blob/main/detectors.schema.json) catalog. Row 20 (`FIXTURE_REFERENCE_INVALID`) is a cladding-specific extension that promotes the `fixture:NAME` evidence-label convention from a free-form string into a validated anchor. It checks every `acceptance_criteria[].evidence_refs[fixture:X]` (and, for backward compatibility, `test_refs[fixture:X]`) citation against `conformance/fixtures.yaml`; an unregistered name emits a `warn` finding. User projects without a `conformance/fixtures.yaml` opt out (no findings). The `status policy` column is cladding-specific (see below).
 

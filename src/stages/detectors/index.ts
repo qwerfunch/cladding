@@ -5,6 +5,7 @@
 // own state is initialized. Avoids the ESM circular-init pitfall a
 // side-effect `registerDetector` call would create.
 
+import {absenceOfGovernance} from './absence-of-governance.js';
 import {acDrift} from './ac-drift.js';
 import {acDuplicateWithinFeature} from './ac-duplicate-within-feature.js';
 import {architectureFromSpec} from './architecture-from-spec.js';
@@ -59,4 +60,5 @@ export const allDetectors: readonly DriftDetector[] = [
   acDuplicateWithinFeature,
   architectureFromSpec,
   capabilitiesFeatureMapping,
+  absenceOfGovernance,
 ];

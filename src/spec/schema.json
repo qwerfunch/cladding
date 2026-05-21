@@ -109,7 +109,23 @@
       "properties": {
         "layers": {
           "type": "array",
-          "items": {"type": "array", "items": {"type": "string"}}
+          "items": {
+            "oneOf": [
+              {
+                "type": "array",
+                "items": {"type": "string"}
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "name": {"type": "string"},
+                  "modules": {"type": "array", "items": {"type": "string"}},
+                  "forbidden_imports": {"type": "array", "items": {"type": "string"}}
+                }
+              }
+            ]
+          }
         },
         "forbidden_imports": {
           "type": "array",

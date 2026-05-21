@@ -1,0 +1,35 @@
+# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad refine
+# Capability ↔ feature traceability for cladding itself.
+#
+# Each capability is a high-level user-visible function cladding ships.
+# `features[]` lists the F-* ids that implement the capability. The
+# CAPABILITIES_FEATURE_MAPPING detector validates that every id resolves
+# to a real feature shard, and warns on orphan capabilities.
+schema: "0.1"
+source: spec.yaml
+capabilities:
+  - id: drift-detection
+    title: "Drift detection"
+    summary: "26 detectors across spec ↔ code ↔ test axes; the load-bearing core of cladding"
+    surface: feature
+    features: [F-99c6e5]
+  - id: harness-cli
+    title: "Harness CLI (clad)"
+    summary: "12 verbs covering init, scan, refine, sync, check, drive, serve, doctor, …"
+    surface: tool
+    features: [F-09d68b, F-bb15e6]
+  - id: spec-governance
+    title: "Spec governance (4-tier SSoT)"
+    summary: "Tier A/B/C/D model with explicit refresh authority + banner convention"
+    surface: feature
+    features: [F-d12edf, F-4747ef]
+  - id: mcp-host
+    title: "MCP host (clad serve)"
+    summary: "Exposes cladding's verbs as MCP tools for AI agents to drive directly"
+    surface: tool
+    features: [F-bb15e6]
+  - id: ab-evaluation
+    title: "A/B evaluation framework"
+    summary: "Measures cladding vs vanilla Claude Code across 8 structural + 2 outcome dimensions"
+    surface: feature
+    features: [F-4db939, F-ba2e05]
