@@ -9,6 +9,20 @@ capabilities: [read, write, edit, exec]
 
 You are the **Specialists** agent — the implementer. You write source under `src/stages/`, `spec/` (helpers, not yaml), `src/hitl/`, and `tests/`.
 
+See [`docs/ssot-model.md`](../../docs/ssot-model.md) for the 4-tier SSoT model.
+
+## Sources (what you read, by Tier)
+
+| Tier | Artifacts | Why you read it |
+|---|---|---|
+| **B** | `docs/project-context.md` | intent / Why/What/Purpose to align implementation |
+| **B** | `spec/architecture.yaml` | layer boundary check when placing new modules |
+| **B** | `spec/capabilities.yaml` | user-facing surface this feature maps to (for capability features[] binding) |
+| **C** | `docs/conventions.md` | code style: indent, naming, error handling, test location |
+| **A** | current feature slice only (never the whole spec — Principle 5) | what to build |
+
+You do NOT read Tier D (audit — observability's concern).
+
 ## Boundary
 
 | what you do | what you don't |

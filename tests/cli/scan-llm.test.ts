@@ -159,7 +159,7 @@ describe('interpretWithLlm', () => {
     );
     const r = await interpretWithLlm(fakeScanWithReadme(), dispatch);
     expect(r.mode).toBe('llm');
-    expect(r.conventionsMd).toMatch(/^<!-- Auto-generated/);
+    expect(r.conventionsMd).toMatch(/^<!-- Cladding · Tier C/);
     expect(r.architectureYaml).toContain('layers: []');
     expect(r.scenarioFlows.get('core-flow')).toBe('x');
     expect(r.scenarioFlows.get('cli-flow')).toBe('y');
@@ -197,7 +197,7 @@ describe('deterministicInterpret', () => {
   test('mode=deterministic and conventions table renders all 14 signals', () => {
     const r = deterministicInterpret(fakeScan());
     expect(r.mode).toBe('deterministic');
-    expect(r.conventionsMd).toMatch(/^<!-- Auto-generated/);
+    expect(r.conventionsMd).toMatch(/^<!-- Cladding · Tier C/);
     expect(r.conventionsMd).toContain('two-space');
     expect(r.conventionsMd).toContain('camelCase');
     expect(r.conventionsMd).toContain('UPPER_SNAKE');
@@ -329,7 +329,7 @@ describe('renderProjectContextMdWithLlm', () => {
         '=== PURPOSE ===\nMake the spec the contract.\n',
     );
     const md = await renderProjectContextMdWithLlm(fakeProjectContext(), 'demo', dispatch);
-    expect(md).toContain('with LLM refinement');
+    expect(md).toContain('LLM-refined');
     expect(md).toContain('Coordination cost was eating teams.');
     expect(md).toContain('Declarative specs replace meetings.');
     expect(md).toContain('Make the spec the contract.');

@@ -1,0 +1,194 @@
+<!-- Cladding · Tier B · governance policy · Refreshed by: manual -->
+
+# Cladding SSoT Governance Model
+
+**The single policy document for cladding's artifact landscape.** Every persona, skill, and detector reads this once and references it instead of repeating policy in their own prompts.
+
+## Why this document exists
+
+Through v0.3.41–v0.3.44 the init/scan/refine pipeline grew several artifacts (`spec/architecture.yaml`, `spec/capabilities.yaml`, `docs/project-context.md`, `.cladding/onboarding/state.yaml`). Without a single governance doc, three problems emerged:
+
+1. **Personas repeated tier policy** — each persona prompt told its own version of "read this, write that". Token cost grew linearly with persona count.
+2. **Some artifacts became orphans** — `spec/capabilities.yaml` had no functional consumer; `docs/project-context.md` was only "soft AI context"; `spec/scenarios/*.yaml`'s `flow` field had no consumer.
+3. **No path-encoded tier** — a reader had to know each artifact's role from memory.
+
+This doc fixes all three: define tiers in one place, declare each artifact's producer + consumer, standardize headers so tier is encoded inline.
+
+## The 4-Tier model
+
+| Tier | Definition | Authority | Edit policy | Entry condition |
+|---|---|---|---|---|
+| **A — Spec SSoT** | Iron Law gated, schema-validated | sealed | edits flow through `clad_create_feature` MCP tool or hand-author with `clad sync` validation | code/detector consumes it directly |
+| **B — Design SSoT** | user decisions, edit-friendly, cross-validated with A | equal to A; conflict resolution = A wins | hand-editable; next refresh diverts new body to `.cladding/scan/*.proposal` | **must have a clear consumer** (detector OR persona context input OR producer for another artifact) |
+| **C — Derived / Observable** | derived from code or observation | mirror of code; can be refreshed | hand-editable; user edits become proposal-diverted on next scan | humans/AI reference when coding |
+| **D — Audit / Transient** | append-only logs OR end-of-lifecycle state | history; do not hand-edit | append-only via `appendEvent` / `saveState` | diagnostics input (`clad doctor`), human audit |
+
+### Tier B entry condition (strict)
+
+A Tier B artifact must answer: **who reads this and what decision do they make?**
+
+- "AI persona reads it for general context" — OK if at least one persona prompt names it specifically
+- "Detector validates it" — OK
+- "Other artifact derives from it" — OK
+- "Someone might find it useful one day" — **NOT OK** (orphan)
+
+Orphan artifacts get demoted (move to Tier D as historical reference) or removed. This cycle resolves the v0.3.45 orphans:
+- `spec/capabilities.yaml` gains the `CAPABILITIES_FEATURE_MAPPING` detector
+- `docs/project-context.md` becomes the scenario generator's source (clear, named role)
+- `spec/scenarios/*.yaml` gains a clear producer (onboarding) and consumer (`clad_create_feature` binding)
+
+## Artifact registry
+
+### Tier A — Spec SSoT
+
+| Artifact | Producer | Consumer | Refresh trigger |
+|---|---|---|---|
+| `spec.yaml` | `clad_create_feature` / hand-edit | `spec/load.ts` → every detector + MCP server + CLI verbs | manual edit; `clad sync` validates |
+| `spec/features/<slug>-<hash6>.yaml` | `clad_create_feature` | merged into `Spec.features[]` on load | manual edit + validation |
+| `spec/scenarios/<slug>-<hash6>.yaml` | `clad init <intent>` onboarding (NEW v0.3.45) + `clad_create_feature` binding | `REFERENCE_INTEGRITY` / `SLUG_CONFLICT` / `ID_COLLISION` detectors + future `SCENARIO_COVERAGE` | onboarding 7th sentinel emits; refine refreshes; create-feature binds features |
+
+### Tier B — Design SSoT
+
+| Artifact | Producer | Consumer | Refresh trigger |
+|---|---|---|---|
+| `spec/architecture.yaml` | `clad init --scan` (observed) OR `clad init <intent>` (LLM) OR `clad refine` OR hand-edit | `ARCHITECTURE_FROM_SPEC` detector + `reviewer` (Layered Integrity guardrail) + `specialists` (layer boundary check when placing modules) | re-scan diverts to `.cladding/scan/*.proposal` |
+| `spec/capabilities.yaml` | `clad init <intent>` (LLM) OR `clad refine` OR hand-edit | **`CAPABILITIES_FEATURE_MAPPING` detector (NEW v0.3.45)** + future capability dashboards | re-scan diverts to proposal |
+| `docs/project-context.md` | `clad init` (template/LLM-refined) OR `clad refine` OR hand-edit | AI personas (orchestrator/specialists) as Why/What/Purpose context input + **scenario generator (NEW v0.3.45) uses prose for user-journey extraction** + human onboarding readers | LLM-refined on init/refine; hand-edits preserved between |
+
+### Tier C — Derived / Observable
+
+| Artifact | Producer | Consumer | Refresh trigger |
+|---|---|---|---|
+| `docs/conventions.md` | `clad init --scan` (observed 14-signal table) OR greenfield seed (toolchain defaults) | `specialists` (when writing code) + human reviewers | re-scan diverts to proposal |
+| `docs/code-style.md` | hand-authored (legacy; cladding-self only) | cladding contributors (legacy reference) | manual; will deprecate in favour of conventions.md |
+
+### Tier D — Audit / Transient
+
+| Artifact | Producer | Consumer | Refresh trigger |
+|---|---|---|---|
+| `.cladding/events.log.jsonl` | every stage runner, checkpoint, drive loop, sentinel-miss emitter | `observability` persona + `clad doctor` + MCP resource subscriptions | append-only |
+| `.cladding/audit.log.jsonl` | evidence recorders (checkpoint, postmortem, manual signoff) | anti-self-cert validator + `clad rollback` | append-only |
+| `.cladding/onboarding/state.yaml` | `clad init <intent>` + `clad refine` | `orchestrator` (drives Q&A loop) + `clad refine` itself | mutated on each refine; persists post-`status: done` as audit |
+| `.cladding/scan/*.proposal` | `writeArtifact` divert when target file already exists | humans review + manually accept/reject | one-shot per scan run |
+
+## Header convention
+
+Every cladding-managed artifact carries a one-line tier banner as its **first line**:
+
+```
+<!-- Cladding · Tier <A|B|C|D> · <authority claim> · Refreshed by: <verb-or-manual> -->
+```
+
+For YAML files, use `# ` comments. For JSON/TOML, the convention defers to the first available comment syntax (or a key prefix where comments aren't allowed).
+
+### Examples
+
+| Path | Header |
+|---|---|
+| `spec.yaml` | `# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual` |
+| `spec/architecture.yaml` | `# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad refine` |
+| `spec/capabilities.yaml` | `# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad refine` |
+| `spec/scenarios/<slug>-<hash6>.yaml` | `# Cladding · Tier A · SSoT — onboarding output, edit-friendly · Refreshed by: clad init / clad refine` |
+| `docs/project-context.md` | `<!-- Cladding · Tier B · SSoT — intent + Why/What/Purpose · Refreshed by: clad init / clad refine -->` |
+| `docs/conventions.md` | `<!-- Cladding · Tier C · derived from observed code · Refreshed by: clad init --scan -->` |
+| `.cladding/onboarding/state.yaml` | `# Cladding · Tier D · transient — Q&A audit · Refreshed by: clad init / clad refine` |
+
+**Why first line, not embedded metadata?** A reading persona (or AI host) can fetch the first line via a cheap read (`head -1`) without loading the body. Tier identification becomes a constant-cost operation regardless of artifact size.
+
+## Directory policy
+
+**Directories encode domain; tier is encoded by the header banner + this registry.**
+
+| Directory | Domain | Tier mix |
+|---|---|---|
+| `spec/` | structured spec data | A (spec.yaml, features/, scenarios/) + B (architecture.yaml, capabilities.yaml) |
+| `docs/` | human-readable documentation | B (project-context.md) + C (conventions.md, code-style.md) |
+| `.cladding/` | runtime + audit | D (events.log, audit.log, onboarding/, scan/) |
+| `src/` | implementation code | (not artifact tier — code lives here) |
+| `tests/` | test suites | (not artifact tier) |
+
+Mixed-tier directories are **intentional**:
+- `spec/architecture.yaml` belongs next to `spec.yaml` (same format, related schema) — placing it under a `tier-b/` directory would obscure its sibling relationship to features.
+- `docs/project-context.md` belongs in `docs/` because it's prose for human reading — placing it under `tier-b/` would obscure its prose role.
+
+Reorganizing to `tier-a/`/`tier-b/`/`tier-c/` was considered and rejected:
+- ~1500 LOC change across all detectors (every detector hardcodes paths like `spec/`, `docs/`)
+- breaks upstream Ironclad standard compatibility
+- breaks every external project's cladding workspace
+- benefit (path-encoded tier) is already provided by the header banner
+
+Directory README pointers (`spec/README.md`, `docs/README.md`) carry a small "Tier index" paragraph so a reader landing in a directory sees the tier map for that directory's contents without leaving.
+
+## Persona reading map (what to load when)
+
+Personas should load only the tiers they need for the task. Token cost scales with what's loaded; loading less is faster.
+
+| Persona | Always reads | When relevant | Never reads |
+|---|---|---|---|
+| `librarian` | Tier A (write target) | Tier B (cross-validate with current feature edit) | Tier D (let observability handle audit) |
+| `specialists` | Tier B (project-context for intent, architecture for layer boundary) + Tier C (conventions when writing) | Tier A (current feature slice only — see Least Context principle 5) | Tier D |
+| `reviewer` | Tier A + Tier B + Tier C (whole context for audit) | Tier D evidence when validating anti-self-cert | — |
+| `orchestrator` | Tier B (project-context for routing) + Tier D `state.yaml` (Q&A loop) + Tier D `events.log` (audit-log slice for hand-off) | Tier A dispatch slice only (never the whole spec — Least Context principle 5) | — |
+| `observability` | Tier D (events.log + audit.log + perf + coverage) | — | Tier A / B / C (out of scope) |
+
+## Cross-document consistency rules
+
+Detector-enforced (today + this cycle):
+- `UNMAPPED_ARTIFACT`: every `src/` file claimed by `features[].modules`
+- `MISSING_IMPLEMENTATION`: every `features[].modules` path exists on disk
+- `UNTESTED_AC`: `test_refs` resolve to real test files
+- `STATUS_DRIFT`: `status: done` features have modules
+- `ARCHITECTURE_FROM_SPEC`: imports don't cross `forbidden_imports` boundaries
+- `REFERENCE_INTEGRITY`: scenario `features[]`, feature `depends_on[]`, `superseded_by` resolve
+- `HARNESS_INTEGRITY`: plugin manifest version sync, detector count
+- **`CAPABILITIES_FEATURE_MAPPING` (NEW v0.3.45)**: capability `features[]` resolve to real features
+
+Detector-enforced (deferred to future cycles):
+- `ARTIFACT_HEADER_STALE`: the header banner accurately describes file state
+- `SCENARIO_COVERAGE`: each scenario's `features[]` cover its `flow` adequately
+- `PROJECT_CONTEXT_DRIFT`: project-context.md aligns with capabilities + architecture
+- `ORPHAN_FIXTURE`: registered fixtures actually cited
+
+Conflict resolution (when same information lives in multiple tiers):
+- **Tier A wins over Tier B** — if `spec.yaml` features and `spec/capabilities.yaml` disagree on a name, spec wins
+- **Tier B wins over Tier C** — if `docs/project-context.md` describes a layer and `docs/conventions.md` doesn't, project-context wins
+- **Same-tier conflicts**: resolved by the producer's authority chain (e.g., scenario produced by onboarding > scenario produced by manual edit when both exist for same slug)
+
+## Refresh semantics
+
+| Trigger | What it refreshes | Divert policy |
+|---|---|---|
+| `clad init` (bare, greenfield) | spec.yaml seed, .cladding/, .gitignore, project-context template, scenarios README, conventions/architecture/capabilities greenfield seeds | new files only — existing files skip via idempotency |
+| `clad init <intent>` (onboarding) | + project-context.md (LLM-refined), capabilities.yaml (LLM-inferred), architecture.yaml (LLM-inferred), spec.yaml F-001 title, **scenarios stubs (NEW v0.3.45)**, onboarding state.yaml | existing files divert to `.cladding/scan/*.proposal` |
+| `clad init --scan` (existing-project) | conventions.md (observed), architecture.yaml (observed), capabilities.yaml (README headings), project-context.md (LLM-refined) | existing files divert to proposal |
+| `clad refine <answer>` | project-context.md, capabilities.yaml, architecture.yaml, scenarios stubs (refined Q-A history) | existing files divert to proposal |
+| `clad_create_feature` MCP tool | spec/features/<slug>-<hash6>.yaml + binds to existing scenario via `features[]` | rejects on collision |
+| append-only (Tier D) | events.log, audit.log entries | no divert — strict append |
+
+## Quick decision flowchart for adding a new artifact
+
+```
+1. Will any code (detector / verb / loader) read this file as input?
+   YES → Tier A or B
+     Schema-validated and Iron-Law-gated? → A
+     User-editable, cross-validated with A? → B
+       (Tier B entry condition: must have at least ONE specific consumer)
+   NO → continue to 2
+
+2. Is this derived from code or environment observation?
+   YES → Tier C
+   NO → continue to 3
+
+3. Is this an append-only log or transient state?
+   YES → Tier D
+   NO → reconsider whether this artifact should exist at all (potential orphan)
+```
+
+## References
+
+- `spec/README.md` — Tier A directory index
+- `docs/README.md` — Tier B/C directory index
+- `src/agents/README.md` — persona role table
+- `commands/clad.md` — full CLI verb manifest
+
+This document is read once per session by every cladding-aware persona/skill; downstream prompts reference it by name rather than repeating policy.

@@ -10,7 +10,21 @@ spec-schema-version: "0.1"
 
 ## [CLAIM]
 
-The SSoT (Single Source of Truth) data layer. Defines what a cladding spec.yaml *is*, reads it, and validates it against a JSON Schema. The 12 Ironclad-native drift detectors (T4) read from this module — without it they have no input.
+The SSoT (Single Source of Truth) data layer. Defines what a cladding spec.yaml *is*, reads it, and validates it against a JSON Schema. The Ironclad-native drift detectors (T4 + extensions) read from this module — without it they have no input.
+
+## [TIER INDEX]
+
+This directory holds artifacts from two tiers of the [4-tier SSoT model](../docs/ssot-model.md):
+
+| Path | Tier | Authority | Refresh trigger |
+|---|---|---|---|
+| `spec.yaml` (this file + sharded pointer) | **A** Spec SSoT | sealed by Iron Law gates | `clad_create_feature` MCP tool or hand-edit + `clad sync` |
+| `spec/features/<slug>-<hash6>.yaml` | **A** | sealed | `clad_create_feature` |
+| `spec/scenarios/<slug>-<hash6>.yaml` | **A** | sealed (onboarding output, edit-friendly) | `clad init <intent>` onboarding (v0.3.45+) + `clad_create_feature` binding |
+| `spec/architecture.yaml` | **B** Design SSoT | user-decided, cross-validated with A | `clad init` / `clad refine` (LLM-refined or seeded) |
+| `spec/capabilities.yaml` | **B** | user-decided, cross-validated with A | `clad init` / `clad refine` (LLM-refined or seeded) |
+
+Tier A = sealed by detectors (`UNMAPPED_ARTIFACT`, `MISSING_IMPLEMENTATION`, `STATUS_DRIFT`, etc.). Tier B = editable, but every Tier B artifact must have a clear consumer — see [`docs/ssot-model.md`](../docs/ssot-model.md) for the consumer registry and the 4-tier governance policy.
 
 ## [IMPLEMENTED]
 

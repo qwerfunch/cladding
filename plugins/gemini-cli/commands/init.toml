@@ -4,6 +4,20 @@ prompt = '''
 
 Run `clad init` from the directory where the cladding workspace should live. Idempotent — skips files that already exist unless `--force` is supplied.
 
+## Artifacts produced (by Tier)
+
+| Tier | File | Authority |
+|---|---|---|
+| A | `spec.yaml` (seed) | Spec SSoT (Iron Law sealed) |
+| A | `spec/scenarios/<slug>-<hash6>.yaml` (v0.3.45+, intent path only) | Spec SSoT (onboarding output) |
+| B | `spec/architecture.yaml` | Design SSoT |
+| B | `spec/capabilities.yaml` | Design SSoT |
+| B | `docs/project-context.md` | Design SSoT (intent + Why/What/Purpose) |
+| C | `docs/conventions.md` | derived from observed code OR greenfield seed |
+| D | `.cladding/onboarding/state.yaml` (intent path only) | transient — Q&A audit |
+
+See [`docs/ssot-model.md`](../../docs/ssot-model.md) for the full 4-tier governance.
+
 ## Intent-aware onboarding (v0.3.43+)
 
 The strongest path is to pass the user's project intent as positional argument (no `--intent` keyword, no quotes needed):
