@@ -14,19 +14,25 @@ The original A/B framework ([`../ab-evaluation/`](../ab-evaluation/)) demonstrat
 
 Both scenarios produce **identical 3/4 cladding-exclusive drift catch rates** at M30 — the framework demonstrates cladding's value generalizes across domains. See [`./summary.md`](./summary.md) for the cross-scenario verdict matrix.
 
-Each scenario ships **two runnable React projects** committed under `scenarios/<name>/{cladding,vanilla}/`. The cladding group carries the full governance scaffold (spec.yaml + 30 sharded feature shards + architecture + capabilities + project-context + conventions); the vanilla group has the same React source minus governance.
+Each scenario can produce **two runnable React projects** at `scenarios/<name>/{cladding,vanilla}/`. The cladding group carries the full governance scaffold (spec.yaml + 30 sharded feature shards + architecture + capabilities + project-context + conventions); the vanilla group has the same React source minus governance.
+
+> **Note (F-9a3b61, v0.3.54):** the generated React projects are **NOT** committed to the repo — they would bloat the tree by ~10K LoC + ~160 files. The committed metric `report.md` files preserve the evaluation result; the React source is **regeneratable on demand** (see "Browse + run" below). `.gitignore` rules pattern-exclude them so they stay local-only.
 
 ## Browse + run
 
-The committed projects under `scenarios/<name>/{cladding,vanilla}/` are **runnable**. Inspect any group locally:
+Generate the React projects locally, then inspect / `npm run dev`:
 
 ```bash
+# Regenerate (writes scenarios/<name>/{cladding,vanilla}/ under docs/ab-evaluation-extended/)
+UPDATE_AB_REPORTS=1 npx vitest run tests/scenarios/ab-extended/
+
+# Then any scenario's cladding group:
 cd docs/ab-evaluation-extended/scenarios/task-manager/cladding
 npm install
 npm run dev   # opens http://localhost:5173
 ```
 
-The same `npm run dev` works in the vanilla sibling. Both render the same UI; the delta is in the governance layer.
+The same `npm run dev` works in the vanilla sibling. Both render the same UI; the delta is in the governance layer. When you're done inspecting, the directories can be safely deleted — they regenerate the same way on the next test run.
 
 ## Methodology
 
@@ -35,7 +41,7 @@ For each scenario, the case test (`tests/scenarios/ab-extended/case-<scenario>.t
 1. **Curates** the React app for both groups at progressive milestones (1, 5, 10, 15, 20, 25, 30 features). The curator (`_curator.ts`) is deterministic — same input feature set → same output bytes.
 2. **Captures snapshots** at each milestone using the existing 8-dimension metrics (`tests/scenarios/ab/_ab-metrics.ts`) + new performance dimension (`_perf-meter.ts`).
 3. At M30, applies **4 drift scenarios** (file rename · architecture violation · hardcoded secret · untested AC) and **5 AI domain queries** to measure outcome quality at scale.
-4. Renders a **byte-deterministic markdown report** committed to `scenarios/<name>/report.md` (snapshot gate). The committed React projects are regenerated on `UPDATE_AB_REPORTS=1`.
+4. Renders a **byte-deterministic markdown report** committed to `scenarios/<name>/report.md` (snapshot gate). The React projects themselves are NOT committed — they regenerate locally under `UPDATE_AB_REPORTS=1` and are excluded by `.gitignore` (F-9a3b61).
 
 ## Metrics dimensions
 

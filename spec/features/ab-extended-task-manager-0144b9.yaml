@@ -12,8 +12,6 @@ modules:
   - docs/ab-evaluation-extended/README.md
   - docs/ab-evaluation-extended/summary.md
   - docs/ab-evaluation-extended/scenarios/task-manager/report.md
-  - docs/ab-evaluation-extended/scenarios/task-manager/cladding/
-  - docs/ab-evaluation-extended/scenarios/task-manager/vanilla/
 depends_on:
   - F-99c6e5
 acceptance_criteria:
@@ -39,9 +37,9 @@ acceptance_criteria:
     test_refs: [tests/scenarios/ab-extended/case-task-manager.test.ts]
   - id: AC-005
     ears: ubiquitous
-    action: 'commit the final M30 React projects for both groups under docs/ab-evaluation-extended/scenarios/task-manager/{cladding,vanilla}/ so reviewers can cd in and run npm install plus npm run dev'
-    text: The system shall commit both groups M30 React projects as browseable and runnable source.
-    test_refs: [docs/ab-evaluation-extended/scenarios/task-manager/cladding/README.md, docs/ab-evaluation-extended/scenarios/task-manager/vanilla/README.md]
+    action: 'emit the M30 React projects for both groups under docs/ab-evaluation-extended/scenarios/task-manager/{cladding,vanilla}/ when UPDATE_AB_REPORTS=1 so reviewers can cd in and run npm install plus npm run dev locally (committed source removed by F-9a3b61 — see .gitignore)'
+    text: The system shall emit both groups M30 React projects on-demand under UPDATE_AB_REPORTS=1.
+    test_refs: [tests/scenarios/ab-extended/case-task-manager.test.ts]
   - id: AC-006
     ears: ubiquitous
     action: 'verify all measurements support the new hypotheses H9 (linear scale), H10 (AI query cost partial — domain-tuned limitation), H11 (drift catch rate preserved at 3/4), H12 (capture duration bounded under 2s)'

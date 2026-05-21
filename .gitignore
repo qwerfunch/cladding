@@ -54,3 +54,9 @@ playwright-report/
 
 # Cladding runtime state — audit log, events log, etc.
 .cladding/
+
+# A/B-extended generated React demo projects.
+# These are regeneratable on demand via `UPDATE_AB_REPORTS=1 npx vitest run`
+# but should not bloat the repository — keep them local-only.
+docs/ab-evaluation-extended/scenarios/*/cladding/
+docs/ab-evaluation-extended/scenarios/*/vanilla/

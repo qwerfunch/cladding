@@ -8,7 +8,7 @@ modules:
   - tests/scenarios/ab-extended/_feature-set-dashboard.ts
   - tests/scenarios/ab-extended/_curator-dashboard.ts
   - tests/scenarios/ab-extended/case-dashboard.test.ts
-  - docs/ab-evaluation-extended/scenarios/dashboard/
+  - docs/ab-evaluation-extended/scenarios/dashboard/report.md
   - docs/ab-evaluation-extended/summary.md
   - docs/ab-evaluation-extended/README.md
 depends_on:
@@ -37,9 +37,9 @@ acceptance_criteria:
     test_refs: [tests/scenarios/ab-extended/case-dashboard.test.ts]
   - id: AC-005
     ears: ubiquitous
-    action: 'commit both runnable dashboard React projects to docs/ab-evaluation-extended/scenarios/dashboard/{cladding, vanilla}/ so reviewers can cd in and npm run dev'
-    text: The system shall commit both groups dashboard React projects under docs/ab-evaluation-extended/scenarios/dashboard/.
-    test_refs: [docs/ab-evaluation-extended/scenarios/dashboard/cladding/README.md, docs/ab-evaluation-extended/scenarios/dashboard/vanilla/README.md]
+    action: 'emit both runnable dashboard React projects to docs/ab-evaluation-extended/scenarios/dashboard/{cladding, vanilla}/ when UPDATE_AB_REPORTS=1 so reviewers can cd in and npm run dev locally (committed source removed by F-9a3b61 — see .gitignore)'
+    text: The system shall emit both groups dashboard React projects on-demand under UPDATE_AB_REPORTS=1.
+    test_refs: [tests/scenarios/ab-extended/case-dashboard.test.ts]
   - id: AC-006
     ears: ubiquitous
     action: 'rewrite docs/ab-evaluation-extended/summary.md as the cross-scenario verdict matrix declaring AB-마무리 (AB-evaluation wrap-up) complete — task-manager + dashboard share identical 3/4 cladding-exclusive drift catch rate proving cladding value generalizes across domains'
