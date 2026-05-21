@@ -29,6 +29,7 @@ import {runUnit} from '../stages/unit.js';
 import {runVisual} from '../stages/visual.js';
 import {staleSpecification} from '../stages/detectors/stale-specification.js';
 import {findLatestCheckpoint, recordCheckpoint, recordRollback} from '../core/checkpoint.js';
+import {computeInventory, writeInventoryToSpecYaml} from '../spec/inventory.js';
 import {loadSpec} from '../spec/load.js';
 import {pulse} from '../ui/pulse.js';
 import {renderPanel} from '../ui/panel.js';
@@ -194,6 +195,12 @@ export async function runDriveCommand(
 export function runSyncCommand(opts: {proposeArchive?: boolean} = {}): void {
   try {
     const spec = loadSpec();
+    // v0.3.56 (F-5b9f9f) — auto-rewrite the `inventory:` block in
+    // spec.yaml on every sync so AI agents can grep 1 file to see
+    // the project's whole scale. ISO-date `last_synced` keeps the
+    // file commit-stable across same-day runs.
+    const inventory = computeInventory('.');
+    writeInventoryToSpecYaml('.', inventory);
     if (opts.proposeArchive) {
       const findings = staleSpecification.run({cwd: '.'});
       const proposals = findings.filter(
