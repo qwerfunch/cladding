@@ -78,12 +78,20 @@ export interface OnboardingScenario {
  * PROJECT_METADATA sentinel. Matches the shape of `Project.ai_hints`
  * in `src/spec/types.ts`. v0.3.57+ (F-00eb1a).
  */
+export interface OnboardingPreferredPattern {
+  readonly when: string;
+  readonly prefer: string;
+  readonly over?: string;
+}
+
 export interface OnboardingAiHints {
   readonly preferred_persona?: string;
   readonly token_budget_per_session?: number;
   readonly test_framework?: string;
   readonly primary_branch?: string;
   readonly forbidden_patterns?: readonly string[];
+  /** Advisory preferred-pattern triples. v0.3.58+ (F-32b1e0). */
+  readonly preferred_patterns?: readonly OnboardingPreferredPattern[];
 }
 
 export interface OnboardingResult {
@@ -241,10 +249,16 @@ export function buildOnboardingPrompt(
     '  test_framework: <vitest | jest | pytest | cargo-test | …>',
     '  primary_branch: <develop | main>',
     '  forbidden_patterns: ["eval(", "innerHTML", ...]  # identifier substrings the AI should refuse', // cladding-disable AI_HINTS_FORBIDDEN_PATTERN
+    '  preferred_patterns:  # 1-3 advisory {when, prefer, over?} triples (advisory only — AI follows, no enforcement)',
+    '    - when: "React state management"',
+    '      prefer: "useState, useReducer hooks"',
+    '      over: "this.state, class components"',
     '',
     'Rules:',
     '- For UI projects (React/Vue/Svelte) include innerHTML + dangerouslySetInnerHTML in forbidden_patterns.', // cladding-disable AI_HINTS_FORBIDDEN_PATTERN
     '- For Node/Deno projects without UI, focus on eval(, Function constructor, child_process.exec.', // cladding-disable AI_HINTS_FORBIDDEN_PATTERN
+    '- preferred_patterns should reflect domain practices (e.g. React → hooks, async work → async/await, queries → prepared statements).',
+    '- Each preferred_pattern is concrete + actionable. Skip if you cannot name a specific pattern.',
     '- preferred_persona reflects the dominant work type — software-engineer is the right default.',
     '- Leave the block EMPTY (no keys) if the intent is too vague to infer anything useful.',
     '',
@@ -399,6 +413,7 @@ export function extractProjectMetadata(raw: string): OnboardingAiHints | undefin
     test_framework?: string;
     primary_branch?: string;
     forbidden_patterns?: readonly string[];
+    preferred_patterns?: readonly OnboardingPreferredPattern[];
   } = {};
   if (typeof obj.preferred_persona === 'string' && obj.preferred_persona.trim()) {
     out.preferred_persona = obj.preferred_persona.trim();
@@ -416,6 +431,22 @@ export function extractProjectMetadata(raw: string): OnboardingAiHints | undefin
     const patterns = obj.forbidden_patterns
       .filter((p): p is string => typeof p === 'string' && p.length > 0);
     if (patterns.length > 0) out.forbidden_patterns = patterns;
+  }
+  if (Array.isArray(obj.preferred_patterns)) {
+    const triples: OnboardingPreferredPattern[] = [];
+    for (const entry of obj.preferred_patterns) {
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue;
+      const e = entry as Record<string, unknown>;
+      const when = typeof e.when === 'string' ? e.when.trim() : '';
+      const prefer = typeof e.prefer === 'string' ? e.prefer.trim() : '';
+      if (!when || !prefer) continue;
+      const triple: OnboardingPreferredPattern = {when, prefer};
+      if (typeof e.over === 'string' && e.over.trim()) {
+        (triple as {over: string}).over = e.over.trim();
+      }
+      triples.push(triple);
+    }
+    if (triples.length > 0) (out as {preferred_patterns?: readonly OnboardingPreferredPattern[]}).preferred_patterns = triples;
   }
   return Object.keys(out).length > 0 ? out : undefined;
 }

@@ -129,6 +129,12 @@ interface SpecSeedMetadata {
     readonly test_framework?: string;
     readonly primary_branch?: string;
     readonly forbidden_patterns?: readonly string[];
+    /** Advisory preferred-pattern triples. v0.3.58+ (F-32b1e0). */
+    readonly preferred_patterns?: readonly {
+      readonly when: string;
+      readonly prefer: string;
+      readonly over?: string;
+    }[];
   };
 }
 
@@ -148,7 +154,8 @@ function hasAnyAiHint(h: NonNullable<SpecSeedMetadata['ai_hints']>): boolean {
       typeof h.token_budget_per_session === 'number' ||
       h.test_framework ||
       h.primary_branch ||
-      (h.forbidden_patterns && h.forbidden_patterns.length > 0),
+      (h.forbidden_patterns && h.forbidden_patterns.length > 0) ||
+      (h.preferred_patterns && h.preferred_patterns.length > 0),
   );
 }
 
@@ -197,6 +204,16 @@ function specSeed(projectName: string, language: string, metadata?: SpecSeedMeta
     if (h.forbidden_patterns && h.forbidden_patterns.length > 0) {
       const list = h.forbidden_patterns.map((p) => quoted(p)).join(', ');
       projectLines.push(`    forbidden_patterns: [${list}]`);
+    }
+    if (h.preferred_patterns && h.preferred_patterns.length > 0) {
+      projectLines.push('    preferred_patterns:');
+      for (const triple of h.preferred_patterns) {
+        projectLines.push(`      - when: ${quoted(triple.when)}`);
+        projectLines.push(`        prefer: ${quoted(triple.prefer)}`);
+        if (triple.over) {
+          projectLines.push(`        over: ${quoted(triple.over)}`);
+        }
+      }
     }
   }
 

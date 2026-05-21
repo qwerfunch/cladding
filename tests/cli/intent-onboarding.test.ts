@@ -208,6 +208,45 @@ describe('extractProjectMetadata (F-00eb1a)', () => {
     const out = extractProjectMetadata('preferred_persona: x\nunknown_field: y');
     expect(out).toEqual({preferred_persona: 'x'});
   });
+
+  test('preferred_patterns parsed as triples with required keys (F-32b1e0)', () => {
+    const raw = [
+      'preferred_patterns:',
+      '  - when: "React state"',
+      '    prefer: "useState"',
+      '    over: "this.state"',
+      '  - when: "async"',
+      '    prefer: "async/await"',
+    ].join('\n');
+    const out = extractProjectMetadata(raw);
+    expect(out?.preferred_patterns).toEqual([
+      {when: 'React state', prefer: 'useState', over: 'this.state'},
+      {when: 'async', prefer: 'async/await'},
+    ]);
+  });
+
+  test('preferred_patterns drops entries missing required when or prefer', () => {
+    const raw = [
+      'preferred_patterns:',
+      '  - prefer: "missing when"',
+      '  - when: "missing prefer"',
+      '  - when: "complete"',
+      '    prefer: "use this"',
+    ].join('\n');
+    const out = extractProjectMetadata(raw);
+    expect(out?.preferred_patterns).toEqual([{when: 'complete', prefer: 'use this'}]);
+  });
+
+  test('preferred_patterns non-array → field dropped', () => {
+    const out = extractProjectMetadata('preferred_patterns: "not a list"');
+    expect(out?.preferred_patterns).toBeUndefined();
+  });
+
+  test('preferred_patterns with all entries malformed → field dropped', () => {
+    const raw = 'preferred_patterns:\n  - foo: bar\n  - "string entry"';
+    const out = extractProjectMetadata(raw);
+    expect(out?.preferred_patterns).toBeUndefined();
+  });
 });
 
 describe('deterministicOnboarding', () => {

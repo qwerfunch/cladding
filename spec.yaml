@@ -20,10 +20,23 @@ project:
     test_framework: vitest
     primary_branch: develop
     forbidden_patterns: ["eval(", "innerHTML", "dangerouslySetInnerHTML"]
+    preferred_patterns:
+      - when: "new drift detector implementation"
+        prefer: "synchronous + deterministic (Iron Law); no LLM at detector layer"
+        over: "LLM-assisted detection (belongs in stages/, not detectors/)"
+      - when: "spec authoring for new features"
+        prefer: "F-<hash6> sharded files under spec/features/"
+        over: "F-NNN sequential or inline features in spec.yaml"
+      - when: "AI agent file lookup for project info"
+        prefer: "1-file grep against spec.yaml (inventory + ai_hints)"
+        over: "readdirSync(spec/features/) or scanning CLAUDE.md"
+      - when: "Iron Law stage logic + I/O orchestration"
+        prefer: "pure stage core + CLI wrapper (e.g. runDrift → drift.ts CLI entry)"
+        over: "mixed stage runner with embedded process.exit / stdout"
 
 # Auto-maintained by `clad sync` (F-5b9f9f). Do not edit by hand.
 inventory:
-  features: 131
+  features: 132
   scenarios: 2
   capabilities: 5
   test_files: 96
