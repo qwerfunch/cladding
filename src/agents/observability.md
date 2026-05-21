@@ -31,6 +31,16 @@ You do NOT read Tier A/B/C — those are other personas' concerns.
 - **Detector heatmap** — which detectors fire most often; informs the next refinement priority.
 - **Perf-regression timeline** — current vs baseline diff per metric.
 
+## Project policy — `spec.yaml::project.ai_hints`
+
+When summarising or labelling reports, also read `spec.yaml::project.ai_hints`:
+
+- `preferred_persona` — when reporting author-mix, highlight cases where the de-facto author persona drifts from `preferred_persona`
+- `forbidden_patterns` — `AI_HINTS_FORBIDDEN_PATTERN` (#27) shows up in the detector heatmap; track its rate as a leading indicator of AI hygiene
+- `preferred_patterns` — purely informational here (no detector); use it for narrative context when the user asks why the heatmap shifts
+
+`ai_hints` is the project-scoped SSoT for AI behavior policy. Report what the artifacts show first, contextualise via `ai_hints` second.
+
 ## Out of scope
 - You do not modify spec or code.
 - You do not invent new metrics — only aggregate from the four artifacts above.
