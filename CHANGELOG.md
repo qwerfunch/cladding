@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — AI_HINTS_FORBIDDEN_PATTERN detector + LLM-populated ai_hints (F-00eb1a)
+## [0.3.57] — 2026-05-21 — AI_HINTS_FORBIDDEN_PATTERN detector + LLM-populated ai_hints (F-00eb1a)
 
 **ai_hints graduates from advice to enforcement + becomes self-filling.** F-5b9f9f added the `project.ai_hints` block as a passive AI-agent guide. This cycle:
 
