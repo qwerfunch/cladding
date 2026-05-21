@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — SSoT 4-tier lifecycle verification + token efficiency budgets (F-4747ef)
+## [0.3.46] — 2026-05-21 — SSoT 4-tier lifecycle verification + token efficiency budgets (F-4747ef)
 
 **The governance shipped in F-d12edf gets a test surface.** Two end-to-end lifecycle tests walk through 6 stages each (greenfield + existing-adoption), asserting that every Tier A/B/C/D artifact lands with the standard Tier banner, that cross-tier detectors emit zero errors, and — critically — that persona prompts + LLM dispatcher prompts + generated artifacts all stay within size budgets. The token-efficiency promise of the SSoT model is now auditable per-PR, not just claimed in design docs.
 
@@ -40,7 +40,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [Unreleased] — SSoT 4-tier governance + Tier B/A orphan resolution (F-d12edf)
+## [0.3.45] — 2026-05-21 — SSoT 4-tier governance + Tier B/A orphan resolution (F-d12edf)
 
 **Every artifact gets a clear role.** Through v0.3.41–v0.3.44 the init/scan/refine pipeline grew six new artifacts (`spec/architecture.yaml`, `spec/capabilities.yaml`, `docs/project-context.md`, `docs/conventions.md` seed, `.cladding/onboarding/state.yaml`, scenarios). Without a single governance doc three problems emerged: personas repeated tier policy in their own prompts (token waste); `spec/capabilities.yaml` was orphan (no consumer); `spec/scenarios/*.yaml`'s `flow` field had no producer or consumer. v0.3.45 fixes all three.
 
