@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — spec.yaml gains inventory + ai_hints (front-door uplift) (F-5b9f9f)
+## [0.3.56] — 2026-05-21 — spec.yaml gains inventory + ai_hints (front-door uplift) (F-5b9f9f)
 
 **spec.yaml goes from "thin manifest" to "queryable front-door".** Two new optional schema blocks:
 
