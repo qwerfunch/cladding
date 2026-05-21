@@ -5,6 +5,40 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — A/B evaluation framework — Cladding vs Vanilla Claude Code (F-4db939)
+
+**Lifecycle tests proved cladding's mechanics; A/B evaluation proves its value.** F-4747ef shipped 6-stage lifecycle tests that verify the 4-tier model *works* — every artifact lands, every banner is present, every detector emits zero errors. But "it works" is not the same as "it's better than not using it." This cycle adds a controlled comparison framework: two cases × two milestones × two groups (cladding vs vanilla Claude Code) = 8 snapshots, each measured across 8 dimensions, rendered into deterministic markdown reports committed to `docs/ab-evaluation/`. The reports are produced by tests, so a regression in the underlying mechanics fails CI; the markdowns themselves stand as research-quality evaluation documents readable by humans.
+
+### Added
+
+- `tests/scenarios/ab/_ab-metrics.ts` (new module) — `captureSnapshot(group, milestone, cwd)` reads a tmpdir and returns an `AbSnapshot` covering 8 dimensions: `tieredArtifactCount` (per-tier count from `head -1` banner detection), `specCompleteness` (features × ACs × scenarios × capabilities + bindings), `layerCompliance` (layers + forbidden-import rules), `crossDocConsistency` (25-detector run with META_INTEGRITY + HARDCODED_SECRET excluded as toolchain-only), `documentation` (tiered vs other doc sizes), `codeStructure` (source/test files + LoC), `tokenConsumption` (cumulative chars + chars/4 tokens), `testCoverage` (file count + regex-counted test cases). `diffToRows(a, b)` emits MetricRow[] for the markdown tables
+- `tests/scenarios/ab/_vanilla-sim.ts` (new module) — pre-curated **smart vanilla Claude Code** sessions: `VANILLA_PAYMENT_SAAS_SESSION` (11 files / ~250 LoC across M1 + M2: package.json with zod + express + vitest, tsconfig, README with Install/Usage/API, src/api/payment.ts with zod validation, src/lib/pg.ts unified PG client, src/util/log.ts, tests/payment.test.ts, plus M2 refund handler + lib + test) and `VANILLA_EXISTING_ADOPTION_SESSION` (M1 README upgrade + M2 refund handler/lib/test on the sample-existing-ts fixture). `applyFileSet(cwd, fileSet)` writes the map into a tmpdir. Vanilla code is production-quality (proper directory split, executable handlers, real test cases) so the comparison stays fair
+- `tests/scenarios/ab/_report.ts` (new module) — `renderCaseReport({caseTitle, intent, description, hypothesisFocus, m1A, m1B, m2A, m2B})` returns deterministic markdown: side-by-side M1+M2 metric tables with Δ column, detector outcome block, 6-bullet Findings narrative, How-to-reproduce section. `writeOrAssertReport(absPath, generated)` reads `UPDATE_AB_REPORTS` env var — when `1` (re)writes the file, otherwise asserts the on-disk content matches generated, emitting first-diff context on mismatch. Standard committed-snapshot pattern
+- `tests/scenarios/ab/case-payment-saas.test.ts` — case 1 driver: empty tmpdir + "결제 SaaS for B2B" intent. Group A runs `runInit` with `GREENFIELD_S1_RESPONSE` mock at M1, hand-authors `F-4db939` refund shard + executable refund.ts + test at M2. Group B applies `VANILLA_PAYMENT_SAAS_SESSION.m1Files` then `.m2Files`. Renders to `docs/ab-evaluation/case-payment-saas.md`
+- `tests/scenarios/ab/case-existing-adoption.test.ts` — case 2 driver: `sample-existing-ts` fixture (8 source files) + adoption intent. Group A uses `EXISTING_S2_RESPONSE` mock, M2 binds refund shard to existing `api` capability via `features:[F-4db939]`. Group B updates README at M1 then writes refund handler/lib/test at M2. Renders to `docs/ab-evaluation/case-existing-adoption.md`
+- `docs/ab-evaluation/README.md` (new) — methodology: 5-step test loop, 8 metric dimensions table, determinism guarantees (refresh via `UPDATE_AB_REPORTS=1`), 4 explicit limitations (simulated-not-live-run, spec-gated-detectors silently pass on vanilla, chars/4 heuristic, only 2 cases × 2 milestones), reading guide
+- `docs/ab-evaluation/case-payment-saas.md` (new, auto-generated) — greenfield case study. At M2 cladding produces 9 tier-banner-bearing artifacts vs vanilla's 0; 2 features / 3 ACs / 2 scenarios / 3 capabilities / 3 layers / 2 forbidden-import rules vs 0 of each; ~1680 vs ~1399 est. tokens (+281 token premium for structure)
+- `docs/ab-evaluation/case-existing-adoption.md` (new, auto-generated) — adoption case study. At M2 cladding produces 8 tier-banner-bearing artifacts; ~3073 vs ~1280 est. tokens (+1793 premium when wrapping existing 113 LoC into the inventory)
+- `docs/ab-evaluation/summary.md` (new) — cross-case verdict per hypothesis (H1 H2 H3 ✅ strongly supported; H4 ⚠️ partially supported with major caveat about spec-gated detectors; H5 ✅ supported with measured trade-off), cross-case observations (cladding front-loads spec / vanilla front-loads code), future work table
+
+### Notes
+
+- 877 + **2 new A/B case tests** = **879/879 passing**; lint clean; typecheck clean; build:plugin clean
+- A/B test runtime: ~5.2s combined; total `npm test` runtime: ~7.5s (was ~2.4s, +5s for A/B suite)
+- Reports are **byte-deterministic** — re-running without `UPDATE_AB_REPORTS=1` must match the committed files. CI mode = assert; local refresh = `UPDATE_AB_REPORTS=1 npx vitest run tests/scenarios/ab/`
+- The framework intentionally surfaces a **limitation of the detector suite**: spec-gated detectors (`REFERENCE_INTEGRITY`, `MISSING_IMPLEMENTATION`, `ARCHITECTURE_FROM_SPEC`, `CAPABILITIES_FEATURE_MAPPING`, etc.) silently pass on vanilla because they have nothing to evaluate. The "0 errors on vanilla" is therefore *absence of signal*, not absence of drift. Tracked as roadmap item for a future `ABSENCE_OF_GOVERNANCE` detector
+- Vanilla simulator is **hand-curated**, not live-run — bias risk is acknowledged in `docs/ab-evaluation/README.md` §Limitations. The vanilla file sets are written at senior-quality so cladding's value doesn't depend on vanilla being underwritten; readers are invited to inspect `_vanilla-sim.ts` and judge fairness
+
+### Roadmap
+
+- Live-run mode: spawn real Claude Code sessions for Group B, capture transcripts, replay deterministically. Removes simulator bias
+- M3 milestone: extend each case to 3-feature cumulative state. Show whether cladding's drift-prevention effect compounds over time
+- `ABSENCE_OF_GOVERNANCE` detector: convert vanilla's "0 errors silently pass" into actionable signal so cladding can flag trees missing its scaffold
+- Third case (non-payment domain — image-processing API, marketing site, or ML pipeline) for domain-diversity sanity check
+- Tokenizer swap: replace `chars / 4` heuristic with `@anthropic-ai/tokenizer` once billing-class accuracy is needed
+
+---
+
 ## [0.3.46] — 2026-05-21 — SSoT 4-tier lifecycle verification + token efficiency budgets (F-4747ef)
 
 **The governance shipped in F-d12edf gets a test surface.** Two end-to-end lifecycle tests walk through 6 stages each (greenfield + existing-adoption), asserting that every Tier A/B/C/D artifact lands with the standard Tier banner, that cross-tier detectors emit zero errors, and — critically — that persona prompts + LLM dispatcher prompts + generated artifacts all stay within size budgets. The token-efficiency promise of the SSoT model is now auditable per-PR, not just claimed in design docs.
