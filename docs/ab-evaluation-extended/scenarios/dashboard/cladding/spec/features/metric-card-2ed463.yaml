@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-2ed463
+slug: metric-card
+title: "Metric card (KPI display)"
+status: done
+modules: ["src/components/MetricCard.tsx"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "The metric card shall render label + value + change indicator."
+    test_refs: [tests/metric-card.test.tsx]

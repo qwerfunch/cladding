@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-55ade5
+slug: status-card
+title: "Status card (health indicator)"
+status: done
+modules: ["src/components/StatusCard.tsx"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "The status card shall render a green/amber/red indicator with status label."
+    test_refs: [tests/status-card.test.tsx]

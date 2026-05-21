@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-739e21
+slug: density-control
+title: "Density control (compact / comfortable)"
+status: done
+modules: ["src/components/PreferencesPanel.tsx"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "Compact density shall reduce card padding by ~50%."
+    test_refs: [tests/density.test.tsx]

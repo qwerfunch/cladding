@@ -8,9 +8,11 @@ The original A/B framework ([`../ab-evaluation/`](../ab-evaluation/)) demonstrat
 
 | Scenario | Stack | Features | Status |
 |---|---|---|---|
-| [task-manager](./scenarios/task-manager/) | React 19 + Vite 6 + TS 5.6 + Tailwind 4 | 30 | shipped in F-0144b9 (v0.3.49) |
-| dashboard (planned) | same stack | 30 | next cycle |
-| blog/CMS (planned) | same stack | 30 | cycle after |
+| [task-manager](./scenarios/task-manager/) | React 19 + Vite 6 + TS 5.6 + Tailwind 4 | 30 | shipped in F-0144b9 (v0.3.50) |
+| [dashboard](./scenarios/dashboard/) | same stack | 30 | shipped in F-ef2fd9 (v0.3.52) |
+| blog/CMS (planned) | same stack | 30 | future cycle (on demand) |
+
+Both scenarios produce **identical 3/4 cladding-exclusive drift catch rates** at M30 — the framework demonstrates cladding's value generalizes across domains. See [`./summary.md`](./summary.md) for the cross-scenario verdict matrix.
 
 Each scenario ships **two runnable React projects** committed under `scenarios/<name>/{cladding,vanilla}/`. The cladding group carries the full governance scaffold (spec.yaml + 30 sharded feature shards + architecture + capabilities + project-context + conventions); the vanilla group has the same React source minus governance.
 

@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-57efe8
+slug: error-states
+title: "Error state rendering for cards"
+status: done
+modules: ["src/components/ErrorState.tsx"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "A failed card shall render an error message + retry button."
+    test_refs: [tests/error-state.test.tsx]

@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-36891d
+slug: date-range-filter
+title: "Filter data by date range"
+status: done
+modules: ["src/lib/filter.ts"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "Data points outside the selected range shall be excluded."
+    test_refs: [tests/date-filter.test.ts]
