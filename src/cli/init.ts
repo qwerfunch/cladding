@@ -109,6 +109,28 @@ const SCENARIOS_README = [
   '',
 ].join('\n');
 
+/** Optional project metadata for the spec.yaml seed (F-3a5339, v0.3.49). */
+interface SpecSeedMetadata {
+  /** One-line summary of the project. Falls back to intent if not provided. */
+  readonly description?: string;
+  /** Starting project version. Default '0.0.1'. */
+  readonly version?: string;
+  /** Source-repository URL. Empty placeholder line when not provided. */
+  readonly repository?: string;
+  /** TL;DR of project-context.md. Falls back to intent if not provided. */
+  readonly intent_summary?: string;
+}
+
+function quoted(value: string): string {
+  return `"${value.replace(/"/g, '\\"')}"`;
+}
+
+/** Collapses an intent string to a single short line (≤ 120 chars). */
+function oneLine(text: string): string {
+  const collapsed = text.replace(/\s+/g, ' ').trim();
+  return collapsed.length > 120 ? `${collapsed.slice(0, 117)}…` : collapsed;
+}
+
 // v0.3.49 (F-99c6e5) — `specSeed` now emits `features: []` so the
 // sharded layout activates from day one. F-001 lives in
 // `spec/features/F-001-<hash>.yaml` instead of inline. This unblocks
@@ -116,7 +138,27 @@ const SCENARIOS_README = [
 // UNTESTED_AC, …) which previously couldn't see user-authored shards
 // when the inline F-001 placeholder kept the master `features` array
 // non-empty.
-function specSeed(projectName: string, language: string): string {
+//
+// v0.3.49 (F-3a5339) — Project also accepts optional metadata (description,
+// version, repository, intent_summary). When the intent path is taken,
+// description + intent_summary default to the user's intent line so the
+// spec.yaml front door has *something* useful instead of just name+language.
+function specSeed(projectName: string, language: string, metadata?: SpecSeedMetadata): string {
+  const projectLines = [
+    `  name: ${projectName}`,
+    `  language: ${language}`,
+  ];
+  if (metadata?.description) {
+    projectLines.push(`  description: ${quoted(metadata.description)}`);
+  }
+  projectLines.push(`  version: ${quoted(metadata?.version ?? '0.0.1')}`);
+  if (metadata?.repository) {
+    projectLines.push(`  repository: ${quoted(metadata.repository)}`);
+  }
+  if (metadata?.intent_summary) {
+    projectLines.push(`  intent_summary: ${quoted(metadata.intent_summary)}`);
+  }
+
   return [
     '# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual',
     `# ${projectName} — Cladding spec`,
@@ -127,8 +169,7 @@ function specSeed(projectName: string, language: string): string {
     'schema: "0.1"',
     '',
     'project:',
-    `  name: ${projectName}`,
-    `  language: ${language}`,
+    ...projectLines,
     '',
     'features: []',
     '',
@@ -246,7 +287,14 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
   if (existsSync(specPath) && !force) {
     skipped.push('spec.yaml (exists; pass --force to overwrite)');
   } else {
-    writeFileSync(specPath, specSeed(projectName, language));
+    // v0.3.49 (F-3a5339) — when an intent is provided, seed the
+    // project metadata fields too so spec.yaml has a meaningful
+    // "front door". Intent doubles as description + intent_summary
+    // until LLM populates them properly (next cycle).
+    const seedMetadata: SpecSeedMetadata | undefined = intent
+      ? {description: oneLine(intent), intent_summary: oneLine(intent)}
+      : undefined;
+    writeFileSync(specPath, specSeed(projectName, language, seedMetadata));
     created.push('spec.yaml');
   }
   const f001Path = join(cwd, 'spec', 'features', 'F-001-first.yaml');

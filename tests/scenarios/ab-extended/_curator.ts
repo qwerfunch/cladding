@@ -1027,6 +1027,10 @@ schema: "0.1"
 project:
   name: task-manager
   language: typescript
+  description: "30-feature React + Vite + TS + Tailwind task manager — the cladding-managed group of the A/B-extended evaluation framework."
+  version: "0.1.0"
+  repository: "https://github.com/qwerfunch/cladding"
+  intent_summary: "Demonstrate that cladding's governance scaffold scales with feature count — 30 spec shards, capability bindings, architecture invariants, all queryable from one tree."
 
 features: []
 `;

@@ -132,6 +132,23 @@ export interface Architecture {
 export interface Project {
   readonly name: string;
   readonly language: string;
+  /**
+   * One-line summary of what the project is for. Renders as the
+   * spec.yaml "front door" hint. Optional — kept opt-in so legacy
+   * minimal spec.yaml (`{name, language}` only) remains valid.
+   *
+   * Added v0.3.49 (F-3a5339).
+   */
+  readonly description?: string;
+  /** Current project version, free-form (e.g. '0.3.49'). Optional. */
+  readonly version?: string;
+  /** Source-repository URL. Optional. */
+  readonly repository?: string;
+  /**
+   * TL;DR of `docs/project-context.md`. One sentence answering
+   * "what problem does this project solve?". Optional.
+   */
+  readonly intent_summary?: string;
 }
 
 /** Root SSoT document. */

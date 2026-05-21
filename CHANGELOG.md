@@ -5,6 +5,42 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — Enrich spec.yaml with project metadata (F-3a5339)
+
+**Reviewer caught a dogfood gap**: both cladding-self's own `spec.yaml` and the A/B-extended task-manager's `spec.yaml` were 12-line shells (header comment + `schema: "0.1"` + `project: {name, language}`). Sharded layout works, but the spec.yaml as a "front door" was uninformative. This cycle extends the Project schema with 4 optional metadata fields so spec.yaml carries meaningful first-line content while staying backwards-compatible.
+
+### Added
+
+- `src/spec/schema.json` — `project.properties` adds `description`, `version`, `repository`, `intent_summary` as optional string fields. `additionalProperties: false` stays — only these 4 new keys are allowed alongside name + language
+- `src/spec/types.ts::Project` — 4 readonly optional fields with doc comments noting v0.3.49 addition and the "minimal spec.yaml stays valid" backward-compat promise
+- `src/cli/init.ts::SpecSeedMetadata` (new interface) + `specSeed(name, language, metadata?)` signature extension. When an intent is provided to `runInit`, the metadata defaults to `{description: oneLine(intent), intent_summary: oneLine(intent)}` so spec.yaml's front door is never just name + language for intent-aware projects. Version defaults to `"0.0.1"` when not provided; repository stays unset
+- `oneLine(text)` helper that collapses whitespace + truncates to 120 chars for description/intent_summary defaults
+
+### Changed
+
+- `spec.yaml` (cladding-self) — populated with real metadata: `description: "Reference implementation of the Ironclad harness for AI-coupled software."`, `version: "0.3.49"`, `repository: "https://github.com/qwerfunch/cladding"`, `intent_summary` summarizing cladding's 26-detector + 4-tier-SSoT value proposition
+- `tests/scenarios/ab-extended/_curator.ts::CLADDING_SPEC_YAML` — task-manager template gains 4 metadata fields with task-manager-specific values
+- `docs/ab-evaluation-extended/scenarios/task-manager/cladding/spec.yaml` (auto-regenerated) — committed enriched output so reviewers see the new front door immediately
+- `docs/ab-evaluation/case-payment-saas.md` + `case-existing-adoption.md` (auto-regenerated) — metric counts shift slightly because the seeded spec.yaml + the LLM-stamped seeds in their reports now include the new metadata; catch rate of 3/4 cladding-exclusive drift catches preserved
+
+### Notes
+
+- 890/890 tests passing; lint clean; typecheck clean
+- `build:plugin` recomputed 26/26 detectors (no detector added)
+- `clad sync` → **124 features valid** (was 123, +F-3a5339)
+- `clad check --strict --internal` → stage_1.1-1.6 + 2.1-2.2 all ✓
+- All 4 new fields are optional. Legacy minimal spec.yaml files (the 12-line shell prior to this cycle) remain valid with no migration required
+- Existing META_INTEGRITY detector still requires only `[schema, project, features]` at the top level — unchanged
+
+### Roadmap (next cycles)
+
+- **LLM-populated metadata via intent-onboarding**: have the LLM dispatcher emit a `=== PROJECT_METADATA ===` sentinel so the description / intent_summary are richer than the verbatim intent line
+- **Feature shard metadata**: similar `owner` / `since` / `risk_tier` optional fields on Feature
+- **Scenario shard metadata**: personas / acceptance journey
+- **Capability shard metadata**: stage / maturity_tier
+
+---
+
 ## [Unreleased] — A/B extended: 30-feature task-manager React project (F-0144b9)
 
 **The original A/B framework (F-4db939 / F-ba2e05) measured cladding's value at 1 feature/case. This cycle scales to 30 features × 1 UI scenario** (React 19 + Vite 6 + TS 5.6 + Tailwind 4 task-manager) and ships **two complete runnable React projects** committed to the repo so reviewers can `cd` in and `npm run dev`. The previous "where does cladding pay off?" finding (3/4 cladding-exclusive drift catches at 1-feature scale) is verified to **hold at 30× scale** — cladding's value compounds, not flattens.
