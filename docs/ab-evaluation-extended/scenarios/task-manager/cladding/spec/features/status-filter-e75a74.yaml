@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-e75a74
+slug: status-filter
+title: "Filter tasks by status (all / active / done)"
+status: done
+modules: ["src/components/FilterBar.tsx", "src/lib/filter.ts"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "Selecting \"active\" shall hide tasks with status \"done\"."
+    test_refs: [tests/status-filter.test.tsx]

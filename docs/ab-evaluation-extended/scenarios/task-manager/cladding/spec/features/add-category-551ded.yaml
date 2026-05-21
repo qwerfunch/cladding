@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-551ded
+slug: add-category
+title: "Add new category"
+status: done
+modules: ["src/components/CategoryManager.tsx", "src/hooks/useCategories.ts", "src/lib/types.ts"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "Submitting the new-category input shall append a category to state."
+    test_refs: [tests/add-category.test.tsx]

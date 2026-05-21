@@ -1,0 +1,31 @@
+# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad refine
+# Capability ↔ feature traceability for task-manager.
+
+schema: "0.1"
+source: spec.yaml
+capabilities:
+  - id: ui-foundation
+    title: "UI Foundation"
+    summary: "App shell, header, footer, theme system, responsive layout"
+    surface: feature
+    features: [F-52c315, F-f7b2e3, F-fa2809, F-8ba24e, F-95619e, F-1e707a, F-ffed84, F-b4b4c1]
+  - id: task-crud
+    title: "Task CRUD"
+    summary: "Create, read, update, delete tasks with inline edit + detail modal + bulk operations"
+    surface: feature
+    features: [F-67c4e1, F-3cbf38, F-28aff9, F-535fcd, F-4b4546, F-f8409f, F-69ea7f, F-7360b3, F-169518, F-807d77]
+  - id: filtering
+    title: "Filtering & Search"
+    summary: "Text search, status/priority/category/tag filters"
+    surface: feature
+    features: [F-091730, F-e75a74, F-1f8196, F-13747e, F-9c2080]
+  - id: categories-tags
+    title: "Categories & Tags"
+    summary: "Category lifecycle + multi-tag taxonomy"
+    surface: feature
+    features: [F-551ded, F-f62986, F-4084e5, F-3f23ee, F-80751b]
+  - id: persistence
+    title: "Persistence"
+    summary: "localStorage + JSON export/import"
+    surface: feature
+    features: [F-19c827, F-c32c0e]

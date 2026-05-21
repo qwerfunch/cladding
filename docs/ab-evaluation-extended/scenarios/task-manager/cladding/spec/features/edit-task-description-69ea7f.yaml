@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-69ea7f
+slug: edit-task-description
+title: "Edit task description in detail modal"
+status: done
+modules: ["src/components/TaskDetailModal.tsx"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "The detail modal shall let the user edit the task description and save it."
+    test_refs: [tests/edit-description.test.tsx]

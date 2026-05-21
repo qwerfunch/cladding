@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-4084e5
+slug: delete-category
+title: "Delete category"
+status: done
+modules: ["src/components/CategoryManager.tsx", "src/hooks/useCategories.ts"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "Deleting a category shall remove it from state and clear it from any task that referenced it."
+    test_refs: [tests/delete-category.test.tsx]

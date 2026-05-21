@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-fa2809
+slug: footer
+title: "Footer with task count summary"
+status: done
+modules: ["src/components/Footer.tsx"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "The footer shall display the current visible task count."
+    test_refs: [tests/footer.test.tsx]

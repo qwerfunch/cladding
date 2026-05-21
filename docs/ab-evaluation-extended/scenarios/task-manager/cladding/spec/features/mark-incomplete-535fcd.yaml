@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-535fcd
+slug: mark-incomplete
+title: "Mark task incomplete via checkbox"
+status: done
+modules: ["src/components/TaskItem.tsx"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "Unchecking the checkbox shall flip the task status back to \"open\"."
+    test_refs: [tests/mark-incomplete.test.tsx]

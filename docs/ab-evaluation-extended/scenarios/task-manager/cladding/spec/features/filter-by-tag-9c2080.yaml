@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-9c2080
+slug: filter-by-tag
+title: "Filter tasks by tag"
+status: done
+modules: ["src/components/FilterBar.tsx", "src/lib/filter.ts"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "Selecting a tag chip shall narrow visible tasks to those carrying the tag."
+    test_refs: [tests/tag-filter.test.tsx]

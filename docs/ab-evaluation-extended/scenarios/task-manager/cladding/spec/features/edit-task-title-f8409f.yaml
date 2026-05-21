@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-f8409f
+slug: edit-task-title
+title: "Edit task title in place"
+status: done
+modules: ["src/components/TaskItem.tsx"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "Double-clicking the title shall open an inline editor; blur shall save."
+    test_refs: [tests/edit-title.test.tsx]

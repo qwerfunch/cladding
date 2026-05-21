@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+# task-manager — Cladding spec
+# Features live in spec/features/<slug>-<hash>.yaml — one file per feature.
+
+schema: "0.1"
+
+project:
+  name: task-manager
+  language: typescript
+
+features: []

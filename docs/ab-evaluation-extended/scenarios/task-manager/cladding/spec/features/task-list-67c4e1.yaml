@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-67c4e1
+slug: task-list
+title: "Render task list from state"
+status: done
+modules: ["src/components/TaskList.tsx", "src/components/TaskItem.tsx", "src/lib/types.ts"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "The TaskList component shall render one TaskItem per task in state."
+    test_refs: [tests/task-list.test.tsx]

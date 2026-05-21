@@ -1,0 +1,11 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-091730
+slug: text-search
+title: "Text search across task titles"
+status: done
+modules: ["src/components/SearchInput.tsx", "src/lib/filter.ts"]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    text: "Typing in the search input shall filter visible tasks to those whose title contains the query."
+    test_refs: [tests/search.test.tsx]
