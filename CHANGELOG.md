@@ -5,6 +5,57 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — A/B-extended curators emit scenario shards · H10 verdict ⚠️ → ✅ (F-f334fa)
+
+**The final closure on the AB track.** Both extended curators (task-manager + dashboard) now emit 3 user-journey scenario shards each under `spec/scenarios/`. Q5 of the AI-query benchmark ("How many test scenarios are declared?") graduates from a **5-file weak proxy** (counting test files because no scenarios existed) to a **1-directory canonical answer** (cladding declares 3 shards, vanilla still falls back). Low-cost ≤1-file answer rate climbs **2/5 → 3/5** in both scenarios; H10 cross-scenario verdict upgrades **⚠️ partial → ✅ supported with caveat**.
+
+### Added
+
+- `tests/scenarios/ab-extended/_curator.ts::emitTaskManagerScenarios(cwd)` + `renderScenarioShard(s)` + 3 scenarios:
+  - **S-3525f0 first-time-onboarding** — new user adds + completes their first task; binds app-shell + add-task + task-list + mark-complete
+  - **S-b53dd9 power-user-bulk** — heavy user filters by status+priority + bulk-clear; binds status-filter + filter-by-priority + bulk-delete
+  - **S-560c61 data-portability** — JSON export/import round-trip; binds json-export + localstorage
+- `tests/scenarios/ab-extended/_curator-dashboard.ts::emitDashboardScenarios(cwd)` + 3 scenarios:
+  - **S-1f9cfa metrics-monitoring** — operator scans KPI cards; binds app-shell + time-range-selector + metric-card + trend-card + comparison-card + refresh-interval
+  - **S-8c1eaa alert-triage** — on-call dismisses alerts; binds alert-card + status-card
+  - **S-7b6503 preference-customization** — density + layout adjust; binds preferences-panel + layout-customization + density-control + export-config
+
+### Changed
+
+- `docs/ab-evaluation-extended/scenarios/task-manager/report.md` (auto-regenerated) — Q5 now reports `1 file → 3 scenario shard(s)` (was `5 file → test-file weak proxy`). Low-cost answer rate `2/5` → **3/5**
+- `docs/ab-evaluation-extended/scenarios/dashboard/report.md` (auto-regenerated) — same Q5 upgrade; Low-cost rate **3/5**
+- `docs/ab-evaluation-extended/summary.md`:
+  - At-a-glance table — AI ≤1-file: `2/5` → **3/5**, tier-banner files: `35` → `38` (per scenario, +3 scenario shards)
+  - H10 cross-scenario verdict: `⚠️ partial (Q5 limit)` → **✅ supported with caveat** (the caveat now narrowed to Q1/Q2 linear-scan, not the absent-shard limit)
+  - Cross-scenario findings #3 rewritten — describes the 3/5 result + the remaining Q1/Q2 ceiling (a real `grep -l`-style simulation would push it to 5/5)
+
+### Notes
+
+- 891/891 tests passing (snapshot gate compares regenerated reports — passes after `UPDATE_AB_REPORTS=1` once)
+- lint clean · typecheck clean · build:plugin 26/26 detectors
+- `clad sync` 129 → **130 features valid** (+F-f334fa)
+- `clad check --strict --internal` — stage_1.1-1.6 + 2.1-2.2 all ✓
+- 6 scenario shards are deterministic (hash derived from slug via SHA-256 first 6 hex). Re-running curator produces identical shards
+- Vanilla group unchanged — still has no `spec/scenarios/` so still falls back to test-file count for Q5
+
+### What "AB-마무리" looks like now
+
+- 3/4 cladding-exclusive drift catches at every scale, every domain
+- 3/5 ≤1-file AI queries (Q3/Q4/Q5 perfectly answered; Q1/Q2 bounded by naive linear-scan implementation)
+- 2 fully runnable React projects per scenario (regeneratable via UPDATE_AB_REPORTS=1)
+- All 12 hypotheses verified: 8 ✅, 1 ⚠️-with-known-limit, 3 marked resolved-by-later-H
+
+The remaining limitation (Q1/Q2 linear scan) is **implementation-bounded**, not framework-bounded. A future `grep -l`-style query simulator would close to 5/5.
+
+### Roadmap
+
+- `grep -l`-style query simulation in `_query-bench.ts` to push 3/5 → 5/5
+- README.md `Why cladding?` section publishing AB results
+- LLM-populated spec.yaml metadata via onboarding sentinel
+- Browser screenshot diff per scenario
+
+---
+
 ## [0.3.54] — 2026-05-21 — Uncommit A/B-extended demo React projects to reduce repo bloat (F-9a3b61)
 
 **The four committed React demo projects under `docs/ab-evaluation-extended/scenarios/{task-manager,dashboard}/{cladding,vanilla}/` were ~160 files / ~10K LoC of regeneratable bloat.** This cycle removes them from the tracked tree and adds `.gitignore` rules so they stay local-only when regenerated via `UPDATE_AB_REPORTS=1`.

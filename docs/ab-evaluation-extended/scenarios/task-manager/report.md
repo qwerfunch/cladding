@@ -39,15 +39,15 @@ Snapshots captured at features 1, 5, 10, 15, 20, 25, 30 (7 milestones). Each cel
 | Features tracked | A:1 / B:0 | A:5 / B:0 | A:10 / B:0 | A:15 / B:0 | A:20 / B:0 | A:25 / B:0 | A:30 / B:0 |
 | ACs tracked | A:1 / B:0 | A:6 / B:0 | A:12 / B:0 | A:17 / B:0 | A:22 / B:0 | A:27 / B:0 | A:34 / B:0 |
 | Capabilities bound | A:5 / B:0 | A:5 / B:0 | A:5 / B:0 | A:5 / B:0 | A:5 / B:0 | A:5 / B:0 | A:5 / B:0 |
-| Tier-banner files | A:6 / B:0 | A:10 / B:0 | A:15 / B:0 | A:20 / B:0 | A:25 / B:0 | A:30 / B:0 | A:35 / B:0 |
+| Tier-banner files | A:10 / B:0 | A:14 / B:0 | A:19 / B:0 | A:24 / B:0 | A:29 / B:0 | A:34 / B:0 | A:39 / B:0 |
 | Architecture layers | A:2 / B:0 | A:2 / B:0 | A:2 / B:0 | A:2 / B:0 | A:2 / B:0 | A:2 / B:0 | A:2 / B:0 |
 | Source files | A:19 / B:19 | A:19 / B:19 | A:19 / B:19 | A:19 / B:19 | A:19 / B:19 | A:19 / B:19 | A:19 / B:19 |
 | Source LoC | A:739 / B:739 | A:739 / B:739 | A:739 / B:739 | A:739 / B:739 | A:739 / B:739 | A:739 / B:739 | A:739 / B:739 |
 | Test files | A:5 / B:5 | A:5 / B:5 | A:5 / B:5 | A:5 / B:5 | A:5 / B:5 | A:5 / B:5 | A:5 / B:5 |
 | Test LoC | A:59 / B:59 | A:59 / B:59 | A:59 / B:59 | A:59 / B:59 | A:59 / B:59 | A:59 / B:59 | A:59 / B:59 |
-| Spec files | A:4 / B:0 | A:8 / B:0 | A:13 / B:0 | A:18 / B:0 | A:23 / B:0 | A:28 / B:0 | A:33 / B:0 |
-| Spec LoC | A:75 / B:0 | A:127 / B:0 | A:192 / B:0 | A:252 / B:0 | A:312 / B:0 | A:372 / B:0 | A:440 / B:0 |
-| Spec/code ratio | A:0.09 / B:0.00 | A:0.16 / B:0.00 | A:0.24 / B:0.00 | A:0.32 / B:0.00 | A:0.39 / B:0.00 | A:0.47 / B:0.00 | A:0.55 / B:0.00 |
+| Spec files | A:7 / B:0 | A:11 / B:0 | A:16 / B:0 | A:21 / B:0 | A:26 / B:0 | A:31 / B:0 | A:36 / B:0 |
+| Spec LoC | A:99 / B:0 | A:151 / B:0 | A:216 / B:0 | A:276 / B:0 | A:336 / B:0 | A:396 / B:0 | A:464 / B:0 |
+| Spec/code ratio | A:0.12 / B:0.00 | A:0.19 / B:0.00 | A:0.27 / B:0.00 | A:0.35 / B:0.00 | A:0.42 / B:0.00 | A:0.50 / B:0.00 | A:0.58 / B:0.00 |
 
 _Capture duration omitted from milestone table — wall-clock measurement varies across runs._
 
@@ -55,13 +55,13 @@ _Capture duration omitted from milestone table — wall-clock measurement varies
 
 At feature 30:
 
-- **Tier-banner files**: A 35 vs B 0
+- **Tier-banner files**: A 39 vs B 0
 - **Features tracked**: A 30 vs B 0
 - **ACs tracked**: A 34 vs B 0
 - **Capability bindings**: A 5 vs B 0
 - **Architecture rules**: A layers=2 forbid=0 vs B layers=0 forbid=0
 - **Source LoC at M30**: A 739 vs B 739
-- **Spec/code ratio (A)**: 0.55 — every 1 line of code is matched by 55% of a line of spec
+- **Spec/code ratio (A)**: 0.58 — every 1 line of code is matched by 58% of a line of spec
 
 ## Drift Injection at M30
 
@@ -86,14 +86,14 @@ Five domain questions; lower file-lookup cost is better. "N" = unanswerable.
 | Q2 How many acceptance criteria does the add-task flo | 2 | 3 AC(s) | N | no spec/features/ — vanilla cannot answer |
 | Q3 What are the architecture forbidden-import rules? | 1 | lib ↛ components, lib ↛ hooks | N | no spec/architecture.yaml — vanilla has no explicit rules |
 | Q4 Which capabilities are bound to which features? | 1 | ui-foundation=[F-52c315,F-f7b2e3,F-fa2809,F-8ba24e,F-95619e… | N | no spec/capabilities.yaml — vanilla has no capability conce… |
-| Q5 How many test scenarios are declared? | 5 | 5 test file(s) (weak proxy — no canonical scenario declarat… | 5 | 5 test file(s) (weak proxy — no canonical scenario declarat… |
+| Q5 How many test scenarios are declared? | 1 | 3 scenario shard(s) | 5 | 5 test file(s) (weak proxy — no canonical scenario declarat… |
 
-**Low-cost answers (≤1 file)**: A = 2/5 · B = 0/5
+**Low-cost answers (≤1 file)**: A = 3/5 · B = 0/5
 
 ## Findings & verdict
 
-- **H9 — Cladding scales linearly**: spec/code ratio at M30 is **0.55** (cladding); vanilla has no spec (ratio = 0). Cladding adds 440 LoC of spec to govern 798 LoC of code.
-- **H10 — AI query cost stays bounded**: cladding answers 2/5 queries from ≤1 file regardless of N=30; vanilla manages 0/5.
+- **H9 — Cladding scales linearly**: spec/code ratio at M30 is **0.58** (cladding); vanilla has no spec (ratio = 0). Cladding adds 464 LoC of spec to govern 798 LoC of code.
+- **H10 — AI query cost stays bounded**: cladding answers 3/5 queries from ≤1 file regardless of N=30; vanilla manages 0/5.
 - **H11 — Drift catch preserved at scale**: 3 cladding-exclusive catches out of 4 drift scenarios (vs 0 in vanilla).
 - **H12 — Capture duration bounded**: snapshot capture at M30 completes in seconds, not minutes. Wall-clock varies run-to-run (jitter from concurrent vitest workers) but stays bounded — the detector loop scales with tree size, not feature count. Exact ms omitted from the committed report; see test stdout for run-specific timing.
 

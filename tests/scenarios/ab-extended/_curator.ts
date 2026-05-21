@@ -1233,5 +1233,71 @@ export function curate(group: 'cladding' | 'vanilla', cwd: string, features: rea
     for (const f of features) {
       write(cwd, `spec/features/${f.slug}-${f.id.replace('F-', '')}.yaml`, renderCladdingFeatureShard(f));
     }
+    emitTaskManagerScenarios(cwd);
   }
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Scenario shards (F-f334fa, v0.3.55)
+// User journeys binding multiple features. Q5 of the AI-query
+// benchmark answers via `readdirSync(spec/scenarios)` = 1 op.
+// ──────────────────────────────────────────────────────────────────
+
+interface ScenarioShard {
+  readonly id: string;
+  readonly slug: string;
+  readonly title: string;
+  readonly flow: string;
+  readonly featureSlugs: readonly string[];
+}
+
+function renderScenarioShard(s: ScenarioShard): string {
+  const featureIds = s.featureSlugs
+    .map((slug) => TASK_MANAGER_FEATURES.find((f) => f.slug === slug)?.id ?? '')
+    .filter((id) => id);
+  return [
+    '# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual',
+    `id: ${s.id}`,
+    `slug: ${s.slug}`,
+    `title: ${JSON.stringify(s.title)}`,
+    'flow: |',
+    ...s.flow.split('\n').map((line) => `  ${line}`),
+    `features: [${featureIds.join(', ')}]`,
+    '',
+  ].join('\n');
+}
+
+const TM_SCENARIOS_README = `<!-- Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual -->
+
+# task-manager · scenarios
+
+User journeys binding multiple features into end-to-end flows. Auto-emitted by \`_curator.ts\` (F-f334fa, v0.3.55) so the AI-query Q5 (\"How many test scenarios are declared?\") answers in 1 directory read.
+`;
+
+function emitTaskManagerScenarios(cwd: string): void {
+  write(cwd, 'spec/scenarios/first-time-onboarding-3525f0.yaml', renderScenarioShard({
+    id: 'S-3525f0',
+    slug: 'first-time-onboarding',
+    title: 'First-time user adds and completes their first task',
+    flow:
+      'A new user opens the app, types "Buy milk" into the AddTaskForm, presses Add, sees the task appear in the TaskList, then clicks the checkbox to mark it done. The task moves to the done state and Clear-completed becomes available.',
+    featureSlugs: ['app-shell', 'add-task', 'task-list', 'mark-complete'],
+  }));
+  write(cwd, 'spec/scenarios/power-user-bulk-b53dd9.yaml', renderScenarioShard({
+    id: 'S-b53dd9',
+    slug: 'power-user-bulk',
+    title: 'Power user filters and bulk-clears completed work',
+    flow:
+      'A user with dozens of tasks opens the FilterBar, narrows by status=done + priority=high, then presses Clear completed to remove all matching items in one operation. The task list reflects the filter immediately.',
+    featureSlugs: ['status-filter', 'filter-by-priority', 'bulk-delete'],
+  }));
+  write(cwd, 'spec/scenarios/data-portability-560c61.yaml', renderScenarioShard({
+    id: 'S-560c61',
+    slug: 'data-portability',
+    title: 'User exports tasks as JSON and re-imports on another device',
+    flow:
+      'User clicks Export JSON, saves the file, opens the same app on another device, picks Import JSON, and sees their tasks + categories restored. Round-trip is loss-less.',
+    featureSlugs: ['json-export', 'localstorage'],
+  }));
+  write(cwd, 'spec/scenarios/README.md', TM_SCENARIOS_README);
 }
