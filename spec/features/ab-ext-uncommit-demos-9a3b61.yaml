@@ -1,0 +1,27 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-9a3b61
+slug: ab-ext-uncommit-demos
+title: Move A/B-extended demo React projects out of the committed tree (v0.3.54)
+status: done
+modules:
+  - .gitignore
+  - docs/ab-evaluation-extended/README.md
+  - docs/ab-evaluation-extended/summary.md
+depends_on:
+  - F-ef2fd9
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: 'remove the 4 committed React project directories (task-manager + dashboard × cladding + vanilla) from docs/ab-evaluation-extended/scenarios/ — together they were ~160 files / ~10K LoC of regeneratable bloat'
+    text: The system shall remove the 4 committed React demo projects under docs/ab-evaluation-extended/scenarios/.
+    test_refs: [.gitignore]
+  - id: AC-002
+    ears: ubiquitous
+    action: 'add gitignore rules pattern-excluding scenarios/*/cladding/ + scenarios/*/vanilla/ so the demos stay local-only when regenerated via UPDATE_AB_REPORTS=1'
+    text: The system shall pattern-exclude scenarios cladding and vanilla directories from version control.
+    test_refs: [.gitignore]
+  - id: AC-003
+    ears: ubiquitous
+    action: 'update README + summary to clarify that demos are regeneratable on demand rather than committed — preserve report.md as the permanent metric record while pointing users at the UPDATE_AB_REPORTS=1 workflow'
+    text: The system shall document the regenerate-on-demand workflow in README and summary.
+    test_refs: [docs/ab-evaluation-extended/README.md, docs/ab-evaluation-extended/summary.md]

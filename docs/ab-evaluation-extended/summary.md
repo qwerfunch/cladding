@@ -82,19 +82,24 @@ Both in the 0.4–0.6 band regardless of the React app's specific shape. Front-l
 
 ## How to browse + run
 
-Each scenario ships two runnable React projects under `scenarios/<name>/{cladding,vanilla}/`:
+The React projects are **regeneratable on demand** (F-9a3b61, v0.3.54) — they are not committed to the repo (would add ~10K LoC + 160 files of bloat). Generate locally, inspect / run, delete when done.
 
 ```bash
+# Generate the 4 React projects (one per scenario × group)
+UPDATE_AB_REPORTS=1 npx vitest run tests/scenarios/ab-extended/
+
 # task-manager (scenario 1)
 cd docs/ab-evaluation-extended/scenarios/task-manager/cladding
 npm install && npm run dev   # http://localhost:5173
 
 # dashboard (scenario 2)
-cd docs/ab-evaluation-extended/scenarios/dashboard/cladding
+cd ../../dashboard/cladding
 npm install && npm run dev
 
 # Each has a `../vanilla` sibling — same UI, no governance
 ```
+
+The committed `report.md` per scenario carries the evaluation metrics permanently. The React source is reproducible from the curator on every run.
 
 ## Framework status: **AB-마무리 complete**
 

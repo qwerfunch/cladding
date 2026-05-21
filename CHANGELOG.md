@@ -5,6 +5,54 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — Uncommit A/B-extended demo React projects to reduce repo bloat (F-9a3b61)
+
+**The four committed React demo projects under `docs/ab-evaluation-extended/scenarios/{task-manager,dashboard}/{cladding,vanilla}/` were ~160 files / ~10K LoC of regeneratable bloat.** This cycle removes them from the tracked tree and adds `.gitignore` rules so they stay local-only when regenerated via `UPDATE_AB_REPORTS=1`.
+
+### Removed
+
+- `docs/ab-evaluation-extended/scenarios/task-manager/cladding/` (~50 files · React app + 30 spec shards + governance)
+- `docs/ab-evaluation-extended/scenarios/task-manager/vanilla/` (~25 files · React app only)
+- `docs/ab-evaluation-extended/scenarios/dashboard/cladding/` (~55 files · React app + 30 spec shards + governance)
+- `docs/ab-evaluation-extended/scenarios/dashboard/vanilla/` (~30 files · React app only)
+
+### Added
+
+- `.gitignore` patterns: `docs/ab-evaluation-extended/scenarios/*/cladding/` + `*/vanilla/` — future regenerations stay local-only
+
+### Changed
+
+- `docs/ab-evaluation-extended/README.md` — clarifies that the React demo projects are **regeneratable on demand** via `UPDATE_AB_REPORTS=1`, not committed. "Browse + run" section now leads with the regenerate step
+- `docs/ab-evaluation-extended/summary.md` — "How to browse + run" section updated to the regenerate-then-inspect-then-delete workflow
+
+### Preserved
+
+- `docs/ab-evaluation-extended/scenarios/task-manager/report.md` (metric snapshot · committed)
+- `docs/ab-evaluation-extended/scenarios/dashboard/report.md` (metric snapshot · committed)
+- `docs/ab-evaluation-extended/README.md` + `summary.md` (methodology + cross-scenario findings)
+- `tests/scenarios/ab-extended/` (curator + case tests · live code)
+
+### Workflow change
+
+**Before**: `cd docs/ab-evaluation-extended/scenarios/task-manager/cladding && npm install && npm run dev` (worked off committed source)
+
+**After**:
+```bash
+UPDATE_AB_REPORTS=1 npx vitest run tests/scenarios/ab-extended/   # regenerates the 4 dirs
+cd docs/ab-evaluation-extended/scenarios/task-manager/cladding   # now exists locally
+npm install && npm run dev
+```
+
+The committed `report.md` carries the evaluation result permanently. The React source is reproducible from the curator on every run — no information loss.
+
+### Notes
+
+- 891/891 tests passing (snapshot gate compares `report.md`, unaffected by source-tree removal)
+- repo size: docs/ab-evaluation-extended `920K` → `~50K` (~94% reduction)
+- file count under `docs/ab-evaluation-extended/scenarios/`: `222` → `2` (just the two `report.md` files)
+
+---
+
 ## [0.3.53] — 2026-05-21 — A/B extended scenario 2: 30-feature analytics dashboard + cross-scenario AB-마무리 (F-ef2fd9)
 
 **Declares AB-마무리 (AB-evaluation wrap-up) complete.** The framework now ships **two** complete 30-feature React scenarios — task-manager (F-0144b9, scenario 1) + dashboard (this cycle, scenario 2) — proving cladding's value generalizes across domains. Both scenarios produce **identical 3/4 cladding-exclusive drift catch rates at M30**. The cross-scenario summary (`docs/ab-evaluation-extended/summary.md`) is now the authoritative answer to "where does cladding's design pay off?".

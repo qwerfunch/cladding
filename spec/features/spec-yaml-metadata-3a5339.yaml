@@ -26,4 +26,4 @@ acceptance_criteria:
     ears: ubiquitous
     action: 'dogfood the new fields in both cladding-self spec.yaml (description, version 0.3.49, repository URL, intent_summary) and the A/B-extended task-manager curator template; regenerate the committed task-manager spec.yaml so reviewers see the enriched front door'
     text: The system shall dogfood the new metadata fields in cladding-self plus the task-manager curator and regenerate committed outputs.
-    test_refs: [spec.yaml, docs/ab-evaluation-extended/scenarios/task-manager/cladding/spec.yaml]
+    test_refs: [spec.yaml, tests/scenarios/ab-extended/_curator.ts]
