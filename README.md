@@ -205,7 +205,7 @@ cladding sits at the intersection of three existing categories.
 ### How cladding differs from the neighbors
 
 - **Spec Kit · OpenSpec · Tessl · Kiro** help you *write a good spec*. cladding goes further — it *verifies on every commit* that the code still matches that spec.
-- **BMAD · ChatDev · Claude Agent Teams** are about splitting work across multiple AI agents. cladding's 5 agents take that further by tying spec, code, and audit log into the same loop.
+- **BMAD · ChatDev · Claude Code Agent Teams** are about splitting work across multiple AI agents. cladding's 5 agents take that further by tying spec, code, and audit log into the same loop.
 - **tdd-guard** forces test-first development. That's roughly what the Unit · Coverage stages do inside cladding's 13-stage gate.
 - **OpenHands · Cline · Aider · Goose** are *runners* — they tell the AI to write code. cladding is the *governance layer* that verifies and controls what those runners produce.
 

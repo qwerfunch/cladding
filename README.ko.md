@@ -202,7 +202,7 @@ cladding 은 **5 명의 에이전트가 협업하는 다중 에이전트 (multi-
 ### 인접 도구와의 차이
 
 - **Spec Kit · OpenSpec · Tessl · Kiro** — *spec 을 잘 쓰게* 도와주는 도구. cladding 은 거기에 더해 *그 spec 과 실제 코드가 어긋나지 않는지 매 commit 자동 검사* 한다.
-- **BMAD · ChatDev · Claude Agent Teams** — *여러 AI 에이전트가 역할을 나눠 협업하는 시스템*. cladding 의 5 에이전트는 그 위에 *spec · 코드 · 감사 기록* 까지 결합해 동작한다.
+- **BMAD · ChatDev · Claude Code Agent Teams** — *여러 AI 에이전트가 역할을 나눠 협업하는 시스템*. cladding 의 5 에이전트는 그 위에 *spec · 코드 · 감사 기록* 까지 결합해 동작한다.
 - **tdd-guard** — *AI 가 테스트를 먼저 쓰도록 강제* 하는 도구. cladding 의 13 단계 검사 중 Unit · Coverage 항목이 같은 일을 한다.
 - **OpenHands · Cline · Aider · Goose** — *AI 에게 코드를 짜게 시키는 실행기*. cladding 은 그 실행기가 짠 코드를 *검증 · 통제하는 상위 레이어* 다.
 
