@@ -282,13 +282,13 @@ cladding's goal is to *be the infrastructure that prevents spec ↔ code drift* 
 </td>
 <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
 <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">features</div>
-<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">134</div>
+<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">135</div>
 <div style="font-size:11px;color:#64748b">spec'd</div>
 </td>
 </tr>
 </table>
 
-<sub>100 test files · installable from the Claude Code · OpenAI Codex · Gemini CLI marketplaces.</sub>
+<sub>101 test files · installable from the Claude Code · OpenAI Codex · Gemini CLI marketplaces.</sub>
 
 > **Road to Ironclad 1.0** — 1.0 locks when *two independent implementations pass the L4 conformance fixtures* ([GOVERNANCE § 1](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md)). cladding is the first one.
 
