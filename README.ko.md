@@ -2,6 +2,10 @@
   <img src="docs/img/social-preview.png" alt="cladding — Unified Governance for AI-Coupled Engineering" width="920">
 </p>
 
+<p align="center">
+  <a href="README.md">English</a> · <strong>한국어</strong>
+</p>
+
 <h1 align="center">cladding</h1>
 
 <p align="center">
