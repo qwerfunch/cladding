@@ -125,11 +125,11 @@ spec 이 *왜* (무엇을 왜 만드는지) 를 기록하는 곳. 4-tier (A/B/C/
 
 ### 2. Code — Iron Law (필수 통과) gate
 
-모든 commit 은 13 단계 gate 를 통과해야 merge. 각 stage 가 자체 unit test 와 함께 ship 된다.
+모든 변경은 13 단계 gate 를 통과해야 한다 — 보통 CI step · git pre-push hook · `clad check` 수동 호출 어디서든 실행. 각 stage 가 자체 unit test 와 함께 ship 된다.
 
 <div align="center">
 
-<img src="docs/img/ko/iron-law.svg" alt="13 단계 Iron Law gate — PR 이 static(6) · test(2) · e2e(3) · evidence(2) 를 모두 통과해야 merge" width="640">
+<img src="docs/img/ko/iron-law.svg" alt="13 단계 Iron Law gate — clad check 호출 시 static(6) · test(2) · e2e(3) · evidence(2) 를 모두 통과 (CI / git hook / 수동 어디서든)" width="640">
 
 </div>
 

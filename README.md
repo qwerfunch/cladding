@@ -128,11 +128,11 @@ The spec is where the *why* (what we're building and why) lives. A 4-tier (A/B/C
 
 ### 2. Code — Iron Law (required) gate
 
-Every commit has to clear all 13 stages to merge. Each stage ships with its own unit tests.
+Every change has to clear all 13 stages — typically called from CI, a git pre-push hook, or manual `clad check`. Each stage ships with its own unit tests.
 
 <div align="center">
 
-<img src="docs/img/en/iron-law.svg" alt="13-stage Iron Law gate — a PR must clear static(6) · test(2) · e2e(3) · evidence(2) before it merges" width="640">
+<img src="docs/img/en/iron-law.svg" alt="13-stage Iron Law gate — every change must clear static(6) · test(2) · e2e(3) · evidence(2) wherever clad check runs (CI / git hook / manual)" width="640">
 
 </div>
 
