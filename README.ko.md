@@ -1,161 +1,544 @@
-# cladding
+<h1 align="center">cladding</h1>
 
-> 코드를 *iron-clad* (철갑)으로 만드는 도구.
-> [Ironclad](https://github.com/qwerfunch/ironclad) 표준의 reference implementation.
+<p align="center">
+  <strong>Unified Governance for AI-Coupled Engineering.</strong><br/>
+  AI 가 짠 코드도 사람이 짠 코드만큼 검증되도록.
+</p>
 
-[![ironclad](https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen)](https://github.com/qwerfunch/ironclad)
-[![spec](https://img.shields.io/badge/spec-v0.0.23-blue)](https://github.com/qwerfunch/ironclad)
-[![license](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
+<p align="center">
+  <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
+  <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
+  <img src="https://img.shields.io/badge/tests-954%2F954-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/coverage-93.89%25%2B-brightgreen" alt="coverage"/>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
+</p>
 
-Cladding 는 Claude Code 용 멀티 에이전트 개발 하네스이자 Ironclad 표준 — *spec · code · tests* 간의 *등급 매겨지고 반증 가능한 정합성* 표준 — 의 reference implementation 입니다. harness-boot 의 후계 프로젝트로, harness-boot 가 *아이디어를 증명*했다면 Cladding 은 *그것을 출시*합니다.
+<p align="center">
+  <a href="https://github.com/qwerfunch/ironclad">Ironclad</a> 표준의 공식 reference 구현. AI 코딩 어시스턴트가 짠 코드가 spec 과 어긋나지 않는지 28 개의 검사기와 13 단계 검증 관문이 매 commit 마다 자동으로 대조한다.
+</p>
 
-> AI 도구 안내 (Claude Code · OpenAI Codex · Cursor · Cline · Aider · Continue · Copilot · Gemini CLI · …): cross-tool 진입점은 [`AGENTS.md`](AGENTS.md) 에 있습니다.
+<!-- ─────────────────────────── HERO ─────────────────────────── -->
 
-## 설치
+<table align="center">
+<tr>
+<td style="text-align:center;width:320px;background:#f1f5f9;padding:32px 24px;border-radius:8px">
+<div style="font-size:13px;color:#64748b;letter-spacing:1px;text-transform:uppercase">일반 (vanilla) AI 코딩</div>
+<div style="font-size:64px;font-weight:700;color:#94a3b8;line-height:1;margin:12px 0">2/8</div>
+<div style="font-size:13px;color:#64748b">함정 포착 · 25%</div>
+</td>
+<td style="text-align:center;width:320px;background:#dcfce7;padding:32px 24px;border-radius:8px">
+<div style="font-size:13px;color:#15803d;letter-spacing:1px;text-transform:uppercase">cladding</div>
+<div style="font-size:64px;font-weight:700;color:#16a34a;line-height:1;margin:12px 0">8/8</div>
+<div style="font-size:13px;color:#15803d">함정 포착 · 100%</div>
+</td>
+</tr>
+<tr><td colspan="2" align="center"><sub>같은 spec · 같은 모델로 측정 · <a href="docs/benchmarks/event-store-trap-catch.md">event-sourcing store 벤치마크</a></sub></td></tr>
+</table>
 
-```
-npm install -g cladding
-```
+## 왜 필요한가
 
-설치 후 어느 프로젝트 디렉터리에서든:
+<table>
+<tr>
+<td width="33%" valign="top">
 
-```
-clad init     # cladding 워크스페이스 scaffold
-clad check    # 모든 Iron Law stage + drift 검사
-clad panel    # feature × stage Integrity Panel
-```
+**3개월 뒤 의도 추적 불가**
 
-Claude Code · OpenAI Codex CLI · Google Gemini CLI · Cursor · Cline · Continue · 그 외 [`AGENTS.md`](AGENTS.md) 를 읽는 모든 도구 안에서 동일한 명령 사용. Node ≥ 20 필요.
+AI 가 짠 코드의 *왜* 가 코드만 봐서는 안 잡힌다.
 
-## 상태
+→ `spec/features/*.yaml` 이 *왜* 의 영구 기록
 
-**Ironclad L4 conformant (L21) · self-spec sharded (L21.8) · v0.3.36 develop ships at 743/743 tests · line coverage 93.89%+ (전 코드베이스 범위) · MISSING_TESTS 기본 error · F-049 (agent dispatch & runtime orchestration) done · **3 대 agentic CLI 모두에 플러그인으로 설치 가능** — Claude Code (skill + agent + MCP), OpenAI Codex (`plugins/codex/`, skill 11개 + MCP), Gemini CLI (`plugins/gemini-cli/`, TOML 명령 + MCP) · `clad serve` MCP 서버 + 실시간 audit 알림 · **`clad init` 가 `docs/project-context.md` 자동 작성** (숲 수준 Why/What/Purpose — README 가 있으면 관찰 추출, 없으면 채움용 템플릿) · **scan LLM dispatcher chain** (MCP sampling → Anthropic SDK → null) — `docs/conventions.md` + `spec/architecture.yaml` + `docs/project-context.md` 를 한 번의 dispatcher 세션에서 호스티드 정련, null/error 시 결정론 fallback · McpSamplingTransport · AnthropicTransport SDK 경로 · transport 별 halt class + 시작 직전 health check · **strict-drift PASS baseline** (v0.3.36 — v0.3.29 scan 리팩토링 이후 첫 PASS) · **멀티 dev 안전 spec ID** (hash 기반 F-/S- id, slug-prefix 파일명, namespace 분리 drift detector) · **spec/architecture.yaml 가 working invariant** (ARCHITECTURE_FROM_SPEC detector 가 forbidden_imports + layer alignment enforce) · 번들 minify (~1.1 MB) · 통제된 벤치마크 docs/benchmarks/ 수록.** Cladding 은 Ironclad 의 전체 표면을 구현합니다 — 13 개 Iron Law stage (L1 Type / Lint / Drift / Commit / Arch / Secret · L2 Unit / Cov · L3 Smoke / Perf / Visual · L4 Audit / UAT) 전부 dedicated unit test 보유 (stage chapter closed v0.2.12) + **24 개 drift detector** (3 always-error + 16 conditional + 5 cladding extension: `FIXTURE_REFERENCE_INVALID` · `SLUG_CONFLICT` · `ID_COLLISION` · `AC_DUPLICATE_WITHIN_FEATURE` · `ARCHITECTURE_FROM_SPEC`), severity matrix 는 [`src/stages/detectors/README.md`](src/stages/detectors/README.md), EARS 구문 검증기, HITL 인프라 (identity · audit · anti-self-cert), 5 개 agent persona, 9 개 언어 polyglot toolchain, Intent Router, clad CLI (+ `clad serve` MCP 서버 모드), Token Optimizer (cladding 자체 spec 에서 87.9% 컨텍스트 감소 실측), conformance fixture 33/33 일치 (26 baseline + 7 documentary→runnable 승격). Cladding 자체 spec 은 sharded 상태 (`spec/features/F-NNN.yaml` × 110, `spec/scenarios/S-NNN.yaml` × 2, `spec/architecture.yaml`) — 외부 채택자가 spec 이 단일 파일을 넘으면 동일 layout 사용.
+✓ **AI 가 시간을 견딘다** — 6개월 뒤에도 AI 가 spec 보고 의도 즉시 파악 (신규 입사자도 같은 진입점)
 
-각 Level 은 검증 가능한 capability 를 더합니다:
+</td>
+<td width="33%" valign="top">
 
-| Level | Capability | 상태 |
-|---|---|---|
-| L1 (Base Static) | Type · Lint · Drift · Commit · Arch · Secret | ✓ |
-| L2 (Mocked Logic) | Unit · Cov | ✓ |
-| L3 (Full Empirical) | Smoke · Perf · Visual | ✓ |
-| L4 (HITL) | Audit · UAT — *anti-self-cert guard* | ✓ |
-| 19 Drift detectors | UNMAPPED_ARTIFACT · MISSING_IMPLEMENTATION · AC_DRIFT · TECH_STACK · ARCH_VIOLATION · CONVENTION_DRIFT · MISSING_TESTS · STALE_TESTS · COVERAGE_DROP · EVIDENCE_MISMATCH · HARDCODED_SECRET · PERFORMANCE_DRIFT · UNTESTED_AC · STATUS_DRIFT · STALE_EVIDENCE · STALE_SPECIFICATION · HARNESS_INTEGRITY · REFERENCE_INTEGRITY · META_INTEGRITY | ✓ |
-| EARS 구문 검증 | 5 패턴 (ubiquitous · event · state · optional · unwanted) | ✓ |
+**AI 답이 매번 다름**
 
-## 증거 (Evidence)
+같은 spec 으로 짠 코드의 패턴과 구조가 일관성 없다.
 
-cladding 의 헤드라인 주장 — **EARS-locked sharded spec 이 엣지 케이스를 가정이 아닌 코드로 강제한다** — 은 통제된 A/B/C 벤치마크로 뒷받침됩니다. 문서: [`docs/benchmarks/event-store-trap-catch.md`](docs/benchmarks/event-store-trap-catch.md).
+→ spec 이 *고정 기준* 으로 각 commit 검증
 
-같은 이벤트 소싱 store 를 세 번 구현 — vanilla Claude Code · harness-boot 의 gate 사이클 · cladding 의 EARS-locked spec. spec 에는 **22 개 정상 AC + 8 개 의도적 모호점 ("trap")** 이 박혀 있고 trap 은 명시적으로 pin 하지 않습니다. 8 trap 결과:
+✓ **엔터프라이즈 채택 가능** — 팀 · PR 간 코드 스타일 · 패턴 일관
 
-| variant | 코드에서 catch | 문서 포함 cover | silent gap |
+</td>
+<td width="33%" valign="top">
+
+**AI hallucination**
+
+존재하지 않는 API · 함수 · 옵션을 호출하는 코드 생성.
+
+→ 28 detector + 13 단계 gate 가 매 commit 차단
+
+✓ **production 사고 사전 차단** — CI 가 hallucination 코드를 자동 reject
+
+</td>
+</tr>
+</table>
+
+## 차이점
+
+같은 문제 상황에서 *일반적인 (vanilla) AI 코딩 환경*과 cladding 환경이 어떻게 다르게 동작하는지.
+
+<table>
+<thead>
+<tr><th align="left">상황</th><th align="center">일반 AI 코딩</th><th align="center">cladding</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>코드가 spec 과 어긋날 때</strong></td><td align="center" style="color:#64748b">review 에서 <em>발견하면</em> fix</td><td align="center"><strong style="color:#16a34a">매 commit 자동 차단</strong></td></tr>
+<tr><td><strong>두 명이 같은 기능 동시에 만들 때</strong></td><td align="center" style="color:#64748b">merge conflict 발생</td><td align="center"><strong style="color:#16a34a">hash ID 로 다른 파일 → 충돌 0</strong></td></tr>
+<tr><td><strong>AI 가 짠 코드를 누가 검증?</strong></td><td align="center" style="color:#64748b">작성한 AI 가 자기 검증 (위험)</td><td align="center"><strong style="color:#16a34a">별도 reviewer agent 가 분업 검증</strong></td></tr>
+<tr><td><strong>AI 도구 (Claude → Cursor) 바꿀 때</strong></td><td align="center" style="color:#64748b">도구마다 재구성 필요</td><td align="center"><strong style="color:#16a34a">1 spec → 4 host 자동 미러링</strong></td></tr>
+<tr><td><strong>spec 의 권위</strong></td><td align="center" style="color:#64748b">AI 가 매번 다르게 해석</td><td align="center"><strong style="color:#16a34a">봉인된 spec 이 단일 기준</strong></td></tr>
+</tbody>
+</table>
+
+<sub>Hero 의 8/8 vs 2/8 은 초기 벤치마크 (<a href="docs/benchmarks/event-store-trap-catch.md">상세</a>) · 대규모 측정 진행 중.</sub>
+
+## How it works
+
+**SSoT → Code → Tests** 가 한 cycle 로 순환한다 — spec 이 *왜* 를 기록하고, Iron Law 가 검증하고, Drift detector 가 어긋남을 차단한다.
+
+<div align="center">
+
+<svg width="700" height="460" viewBox="0 0 700 460" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="cycle-title">
+  <title id="cycle-title">SSoT → Code → Tests 가 한 cycle 로 순환 — 한 feature lifecycle</title>
+  <!-- SSoT (top) -->
+  <rect x="240" y="30" width="220" height="90" rx="45" fill="#dcfce7" stroke="#16a34a" stroke-width="2.5"/>
+  <text x="350" y="62" font-family="sans-serif" font-size="18" font-weight="800" fill="#15803d" text-anchor="middle">SSoT — Spec</text>
+  <text x="350" y="84" font-family="sans-serif" font-size="12" fill="#166534" text-anchor="middle">의도(왜)가 기록된 곳</text>
+  <text x="350" y="103" font-family="monospace" font-size="11" fill="#166534" text-anchor="middle">spec.yaml</text>
+
+  <!-- Code (bottom-right) -->
+  <rect x="430" y="310" width="220" height="90" rx="45" fill="#dbeafe" stroke="#2563eb" stroke-width="2.5"/>
+  <text x="540" y="342" font-family="sans-serif" font-size="18" font-weight="800" fill="#1d4ed8" text-anchor="middle">Code — Iron Law</text>
+  <text x="540" y="364" font-family="sans-serif" font-size="12" fill="#1e3a8a" text-anchor="middle">13 단계 필수 검증</text>
+  <text x="540" y="383" font-family="monospace" font-size="11" fill="#1e3a8a" text-anchor="middle">clad check</text>
+
+  <!-- Tests (bottom-left) -->
+  <rect x="50" y="310" width="220" height="90" rx="45" fill="#fef9c3" stroke="#ca8a04" stroke-width="2.5"/>
+  <text x="160" y="342" font-family="sans-serif" font-size="17" font-weight="800" fill="#854d0e" text-anchor="middle">Tests — Drift Detection</text>
+  <text x="160" y="364" font-family="sans-serif" font-size="12" fill="#713f12" text-anchor="middle">28 어긋남 검사기 · 7 카테고리</text>
+  <text x="160" y="383" font-family="monospace" font-size="11" fill="#713f12" text-anchor="middle">매 commit 자동</text>
+
+  <!-- Arrow SSoT → Code (curve, right side) -->
+  <path d="M 460 110 Q 620 220 540 308" fill="none" stroke="#1e293b" stroke-width="2.5"/>
+  <polygon points="532,300 543,310 533,315" fill="#1e293b"/>
+  <text x="610" y="215" font-family="sans-serif" font-size="13" font-style="italic" font-weight="600" fill="#475569" text-anchor="middle">enforces</text>
+
+  <!-- Arrow Code → Tests (bottom horizontal) -->
+  <line x1="430" y1="355" x2="282" y2="355" stroke="#1e293b" stroke-width="2.5"/>
+  <polygon points="290,349 278,355 290,361" fill="#1e293b"/>
+  <text x="355" y="345" font-family="sans-serif" font-size="13" font-style="italic" font-weight="600" fill="#475569" text-anchor="middle">detects</text>
+
+  <!-- Arrow Tests → SSoT (curve, left side) -->
+  <path d="M 160 310 Q 80 220 240 110" fill="none" stroke="#1e293b" stroke-width="2.5"/>
+  <polygon points="237,118 247,108 252,120" fill="#1e293b"/>
+  <text x="90" y="215" font-family="sans-serif" font-size="13" font-style="italic" font-weight="600" fill="#475569" text-anchor="middle">feeds back</text>
+
+  <!-- Center label -->
+  <text x="350" y="218" font-family="sans-serif" font-size="14" font-weight="700" fill="#1e293b" text-anchor="middle">한 feature lifecycle</text>
+  <text x="350" y="238" font-family="sans-serif" font-size="11" fill="#64748b" text-anchor="middle">매 commit 통과해야 merge</text>
+</svg>
+
+</div>
+
+### 1. SSoT — 의도의 단일 기준
+
+spec 이 *왜* (무엇을 왜 만드는지) 를 기록하는 곳. 4-tier (A/B/C/D) 단일 진실 출처 (Single Source of Truth) — *의도가 위, 구현물이 아래*.
+
+| Tier | 역할 | 수정 권한 | 권위 |
 |---|---|---|---|
-| vanilla | 2/8 (25%) 우연 | 2/8 | **6 silent** |
-| harness-boot | 2/8 (vanilla 와 같은 코드) | 7/8 문서화 | 1 silent |
-| **cladding** | **8/8 (100%) 명시** | **8/8** | **0** |
+| **A — Spec** | 의도 (무엇을 만들까) | 사람이 정의 | 봉인 · LLM 수정 금지 |
+| **B — Design** | 설계 (어떻게 만들까) | 사람이 자유 편집 | A 와 일치 검증 |
+| **C — Derived** | 구현물 (코드 · 테스트) | LLM · 사람 | 코드 보고 자동 재생성 |
+| **D — Audit** | 감사 기록 (무엇이 일어났나) | append-only | 수정 불가 |
 
-cladding 의 각 trap 은 EARS `unwanted` / `state` AC 로 first-class 가 되어 구현이 만족해야만 함 (참고: [`event-store-spec-with-traps.md`](docs/benchmarks/event-store-spec-with-traps.md)). **vanilla 대비 +50% source LOC 가 zero silent 엣지 를 구입.** 전체 방법론, trap-by-trap 매트릭스, 8축 비교는 링크된 문서 참조.
+**A 가 B 보다 우선** — 코드와 spec 이 다르면 *코드가* 틀린 것. 의도(A)가 변하면 모든 게 흔들리기 때문에 LLM 이 못 건드리도록 봉인.
 
-## 상태 & 로드맵
+<div align="center">
 
-**v0.1.0 — 출시 범위와 유보 사항.** Cladding 은 Ironclad 의 **장비 (machinery)** 일체를 오늘 시점에 출시합니다 — 13 개 Iron Law stage, 19 개 drift detector, EARS 검증기, HITL 가드, agent persona 정의, conformance fixture, CLI 표면. 두 가지 범위 유보는 명시적으로 추적됩니다:
+<svg width="640" height="440" viewBox="0 0 640 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ssot-tier-title">
+  <title id="ssot-tier-title">4-tier SSoT — A(Spec) → B(Design) → C(Derived) → D(Audit), A 가 B 보다 우선</title>
+  <!-- Tier A (green) -->
+  <rect x="40" y="20" width="560" height="72" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="60" y="48" font-family="sans-serif" font-size="16" font-weight="700" fill="#15803d">A — Spec  ·  의도 (무엇을 만들까)</text>
+  <text x="60" y="74" font-family="monospace" font-size="13" fill="#166534">spec.yaml  ·  spec/features/*.yaml</text>
 
-| Capability | v0.1.0 상태 | v0.2.0 에픽 |
-|---|---|---|
-| `clad drive` 자율 루프 | **결정론적 floor** — 준비된 feature 를 의존성 순으로 순회하고, 모듈 스텁을 생성하며, L1 gate (`type` · `lint` · `arch`) 를 실행. LLM 호출 없음. [F-048](spec/features/F-048.yaml) AC-083 참조. | [F-049](spec/features/F-049.yaml) — 5 개 agent persona 를 호출하고, 런타임에 reviewer ≠ author 를 강제하며, `HUMAN_REQUIRED` / `LLM_UNAVAILABLE` halt 클래스를 연결. |
-| 실행 중 Iron Law L4 | Conformance fixture 26/26 + Cladding 자체 audit log 위 human signoff 가 **L4 machinery** 의 정확성을 증명. | F-049 가 먼저 안착해야 LLM 이 작성한 구현을 L4 machinery 가 잡아내는 시연이 가능. |
-| Agent persona 오케스트레이션 | 5 개 subagent prompt 가 `src/agents/*.md` 에 출시됨. | `src/drive/loop.ts` 에서 런타임 dispatch (F-049 의 일부). |
+  <!-- Arrow A→B -->
+  <line x1="320" y1="92" x2="320" y2="120" stroke="#1e293b" stroke-width="2"/>
+  <polygon points="314,114 320,124 326,114" fill="#1e293b"/>
+  <text x="332" y="111" font-family="sans-serif" font-size="12" font-style="italic" fill="#475569">A 우선</text>
 
-Ironclad 표준의 v1.0 졸업은 L1–L4 fixture 를 통과하는 **독립 reference 구현 2 개**를 요구합니다 ([Ironclad GOVERNANCE](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) §1). Cladding 의 fixture 수준 conformance 는 오늘 시점에 그 기준을 향해 카운트됩니다; "LLM 작성을 L4 가 실행 중 포착" 이라는 질적 주장은 별도의 v0.2.0 마일스톤입니다.
+  <!-- Tier B (blue) -->
+  <rect x="40" y="125" width="560" height="92" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="60" y="153" font-family="sans-serif" font-size="16" font-weight="700" fill="#1d4ed8">B — Design  ·  설계 (어떻게 만들까)</text>
+  <text x="60" y="180" font-family="monospace" font-size="13" fill="#1e40af">architecture.yaml  ·  project-context.md</text>
+  <text x="60" y="200" font-family="monospace" font-size="13" fill="#1e40af">ai_hints  ·  conventions.md</text>
 
-## Spec 참조
+  <!-- Arrow B→C -->
+  <line x1="320" y1="217" x2="320" y2="245" stroke="#1e293b" stroke-width="2"/>
+  <polygon points="314,239 320,249 326,239" fill="#1e293b"/>
+  <text x="332" y="236" font-family="sans-serif" font-size="12" font-style="italic" fill="#475569">implement</text>
 
-Cladding 은 Ironclad 표준을 구현합니다. 이 코드베이스가 대상으로 하는 정확한 spec 버전은 `.claude-plugin/plugin.json` 에 고정되어 있습니다:
+  <!-- Tier C (gray) -->
+  <rect x="40" y="250" width="560" height="72" rx="8" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
+  <text x="60" y="278" font-family="sans-serif" font-size="16" font-weight="700" fill="#334155">C — Derived  ·  구현물 (코드 · 테스트)</text>
+  <text x="60" y="304" font-family="monospace" font-size="13" fill="#475569">src/**/*.ts  ·  tests/**/*.test.ts</text>
 
-```json
-"ironclad": {
-  "spec-version": "0.0.23",
-  "spec-tag": "v0.0.23",
-  "spec-commit": "883ff01d0360b7c989fe16214c69a324f049c8cd",
-  "spec-url": "https://github.com/qwerfunch/ironclad"
-}
-```
+  <!-- Arrow C→D -->
+  <line x1="320" y1="322" x2="320" y2="350" stroke="#1e293b" stroke-width="2"/>
+  <polygon points="314,344 320,354 326,344" fill="#1e293b"/>
+  <text x="332" y="341" font-family="sans-serif" font-size="12" font-style="italic" fill="#475569">event log</text>
 
-Ironclad spec 이 진보하면 이 pin 은 *명시적 sync 단계* 로 갱신됩니다 (auto-follow 아님) — [`GOVERNANCE.md`](GOVERNANCE.md) §1 의 5 단계 sync 절차 참고.
+  <!-- Tier D (slate) -->
+  <rect x="40" y="355" width="560" height="65" rx="8" fill="#e2e8f0" stroke="#475569" stroke-width="2"/>
+  <text x="60" y="383" font-family="sans-serif" font-size="16" font-weight="700" fill="#1e293b">D — Audit  ·  감사 기록 (무엇이 일어났나)</text>
+  <text x="60" y="408" font-family="monospace" font-size="13" fill="#334155">.cladding/events.log.jsonl</text>
+</svg>
 
-### Spec 레이아웃 (sharded)
+</div>
 
-Cladding 자체 spec 은 sharded 형태 — feature 당 yaml 파일 1 개:
+### 2. Code — Iron Law (필수 통과) gate
 
-| 위치 | 내용 |
+모든 commit 은 13 단계 gate 를 통과해야 merge. 각 stage 가 자체 unit test 와 함께 ship 된다.
+
+<div align="center">
+
+<svg width="640" height="460" viewBox="0 0 640 460" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="iron-law-title">
+  <title id="iron-law-title">13 단계 Iron Law gate — PR 이 static(6) · test(2) · e2e(3) · evidence(2) 를 모두 통과해야 merge</title>
+  <!-- PR -->
+  <rect x="270" y="10" width="100" height="40" rx="6" fill="#1e293b"/>
+  <text x="320" y="35" font-family="sans-serif" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">PR</text>
+  <line x1="320" y1="50" x2="320" y2="75" stroke="#1e293b" stroke-width="2"/>
+  <polygon points="314,69 320,79 326,69" fill="#1e293b"/>
+
+  <!-- stage_1 static -->
+  <rect x="40" y="80" width="560" height="72" rx="8" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/>
+  <text x="60" y="103" font-family="sans-serif" font-size="14" font-weight="700" fill="#854d0e">stage_1 · static  (6)</text>
+  <g font-family="monospace" font-size="13" fill="#713f12">
+    <text x="60"  y="135">Type</text>
+    <text x="135" y="135">Lint</text>
+    <text x="200" y="135">Drift</text>
+    <text x="275" y="135">Commit</text>
+    <text x="365" y="135">Arch</text>
+    <text x="430" y="135">Secret</text>
+  </g>
+  <line x1="320" y1="152" x2="320" y2="172" stroke="#1e293b" stroke-width="2"/>
+  <polygon points="314,166 320,176 326,166" fill="#1e293b"/>
+
+  <!-- stage_2 test -->
+  <rect x="40" y="177" width="560" height="60" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="60" y="200" font-family="sans-serif" font-size="14" font-weight="700" fill="#1d4ed8">stage_2 · test  (2)</text>
+  <g font-family="monospace" font-size="13" fill="#1e3a8a">
+    <text x="60"  y="225">Unit</text>
+    <text x="135" y="225">Cov</text>
+  </g>
+  <line x1="320" y1="237" x2="320" y2="257" stroke="#1e293b" stroke-width="2"/>
+  <polygon points="314,251 320,261 326,251" fill="#1e293b"/>
+
+  <!-- stage_3 e2e -->
+  <rect x="40" y="262" width="560" height="60" rx="8" fill="#e0e7ff" stroke="#6366f1" stroke-width="2"/>
+  <text x="60" y="285" font-family="sans-serif" font-size="14" font-weight="700" fill="#4338ca">stage_3 · e2e  (3)</text>
+  <g font-family="monospace" font-size="13" fill="#312e81">
+    <text x="60"  y="310">Smoke</text>
+    <text x="140" y="310">Perf</text>
+    <text x="200" y="310">Visual</text>
+  </g>
+  <line x1="320" y1="322" x2="320" y2="342" stroke="#1e293b" stroke-width="2"/>
+  <polygon points="314,336 320,346 326,336" fill="#1e293b"/>
+
+  <!-- stage_4 evidence -->
+  <rect x="40" y="347" width="560" height="60" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="60" y="370" font-family="sans-serif" font-size="14" font-weight="700" fill="#15803d">stage_4 · evidence  (2)</text>
+  <g font-family="monospace" font-size="13" fill="#14532d">
+    <text x="60"  y="395">Audit</text>
+    <text x="140" y="395">UAT</text>
+  </g>
+  <line x1="320" y1="407" x2="320" y2="427" stroke="#1e293b" stroke-width="2"/>
+  <polygon points="314,421 320,431 326,421" fill="#1e293b"/>
+
+  <!-- outcome -->
+  <text x="320" y="448" font-family="sans-serif" font-size="13" font-weight="700" fill="#16a34a" text-anchor="middle">all pass → merge OK    ✗    any fail → block</text>
+</svg>
+
+</div>
+
+| Stage | 무엇을 검사하나 |
 |---|---|
-| `spec.yaml` | master · `schema` + `project` 메타데이터만 |
-| `spec/features/F-NNN.yaml` | feature 당 1 파일 (총 110) |
-| `spec/scenarios/S-NNN.yaml` | scenario 당 1 파일 (총 2) |
-| `spec/architecture.yaml` | layer + forbidden-imports 정책 |
-| `src/spec/schema.json` | JSON Schema (draft-07) |
+| **1.1 Type · 1.2 Lint** | 타입 오류 · 코드 스타일 |
+| **1.3 Drift** | 28 detector 의 spec ↔ 코드 어긋남 |
+| **1.4 Commit · 1.5 Arch · 1.6 Secret** | 작업트리 clean · architecture invariant (forbidden import 등) · API 키 노출 |
+| **2.1 Unit · 2.2 Cov** | 단위 테스트 통과 · 프로젝트 coverage threshold |
+| **3.1 Smoke · 3.2 Perf · 3.3 Visual** | e2e 핵심 기능 동작 · 성능 예산 · UI 시각 회귀 |
+| **4.1 Audit · 4.2 UAT** | 모든 AC (acceptance criteria, 수용 기준) 에 증거 1건 이상 · 모든 `status=done` feature 에 증거 1건 이상 |
 
-`src/spec/load.ts` 가 이 레이아웃을 자동 감지해 매 load 시 하나의 Spec 객체로 merge. merged view 확인:
+### 3. Test — 28 개 어긋남 검사기 (drift detector)
 
-| 의도 | 명령 |
+spec · code · test 사이 7 카테고리의 어긋남을 자동으로 잡아낸다. 전체 카탈로그: [src/stages/detectors/README.md](src/stages/detectors/README.md).
+
+<table>
+<thead>
+<tr><th>카테고리</th><th>무엇을 잡나</th><th align="center">수</th><th>대표 detector</th></tr>
+</thead>
+<tbody>
+<tr><td>spec ↔ code drift</td><td>spec 에 있는데 코드에 없거나, 코드에 있는데 spec 에 없음</td><td align="center">6</td><td><code>UNMAPPED_ARTIFACT</code>, <code>MISSING_IMPLEMENTATION</code>, <code>AC_DRIFT</code></td></tr>
+<tr><td>code ↔ test</td><td>코드는 있는데 테스트 없음 · 커버리지 부족</td><td align="center">6</td><td><code>MISSING_TESTS</code>, <code>COVERAGE_DROP</code>, <code>HARDCODED_SECRET</code></td></tr>
+<tr><td>spec ↔ test</td><td>spec 의 AC 가 테스트로 검증 안 됨</td><td align="center">4</td><td><code>UNTESTED_AC</code>, <code>STATUS_DRIFT</code>, <code>STALE_EVIDENCE</code></td></tr>
+<tr><td>spec maintenance</td><td>spec 자체의 위생 (slug 충돌 · ID 중복)</td><td align="center">5</td><td><code>SLUG_CONFLICT</code>, <code>ID_COLLISION</code>, <code>ENRICHMENT_PENDING</code></td></tr>
+<tr><td>environment integrity</td><td>빌드 환경 · 메타 파일 무결성</td><td align="center">3</td><td><code>HARNESS_INTEGRITY</code>, <code>META_INTEGRITY</code></td></tr>
+<tr><td>architecture · capability</td><td>spec 의 아키텍처 · capability 정의와 코드 불일치</td><td align="center">2</td><td><code>ARCHITECTURE_FROM_SPEC</code>, <code>CAPABILITIES_FEATURE_MAPPING</code></td></tr>
+<tr><td>governance · policy</td><td>ai_hints 정책 위반 (예: 금지 패턴 사용)</td><td align="center">2</td><td><code>AI_HINTS_FORBIDDEN_PATTERN</code>, <code>ABSENCE_OF_GOVERNANCE</code></td></tr>
+</tbody>
+</table>
+
+### 4. Cycle — 한 feature 의 lifecycle
+
+SSoT → Code → Test 를 한 cycle 로 묶는 4 step. drift 가 0 이면 merge, 1 이상이면 block.
+
+<div align="center">
+
+<svg width="720" height="240" viewBox="0 0 720 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="workflow-title">
+  <title id="workflow-title">한 feature 의 lifecycle — Define → Sync → Implement → Verify, drift 0 이면 merge / 그 외 block</title>
+  <!-- 4 step nodes -->
+  <g font-family="sans-serif">
+    <rect x="20"  y="70" width="120" height="80" rx="8" fill="#f8fafc" stroke="#1e293b" stroke-width="2"/>
+    <text x="80"  y="105" font-size="16" font-weight="700" fill="#1e293b" text-anchor="middle">① Define</text>
+    <text x="80"  y="128" font-size="11" font-family="monospace" fill="#475569" text-anchor="middle">spec/features/</text>
+
+    <rect x="170" y="70" width="120" height="80" rx="8" fill="#f8fafc" stroke="#1e293b" stroke-width="2"/>
+    <text x="230" y="105" font-size="16" font-weight="700" fill="#1e293b" text-anchor="middle">② Sync</text>
+    <text x="230" y="128" font-size="11" font-family="monospace" fill="#475569" text-anchor="middle">clad sync</text>
+
+    <rect x="320" y="70" width="120" height="80" rx="8" fill="#f8fafc" stroke="#1e293b" stroke-width="2"/>
+    <text x="380" y="105" font-size="16" font-weight="700" fill="#1e293b" text-anchor="middle">③ Implement</text>
+    <text x="380" y="128" font-size="11" fill="#475569" text-anchor="middle">AI 가 코드 작성</text>
+
+    <rect x="470" y="70" width="120" height="80" rx="8" fill="#f8fafc" stroke="#1e293b" stroke-width="2"/>
+    <text x="530" y="105" font-size="16" font-weight="700" fill="#1e293b" text-anchor="middle">④ Verify</text>
+    <text x="530" y="128" font-size="11" font-family="monospace" fill="#475569" text-anchor="middle">clad check</text>
+  </g>
+
+  <!-- arrows between nodes -->
+  <g stroke="#1e293b" stroke-width="2" fill="#1e293b">
+    <line x1="140" y1="110" x2="165" y2="110"/><polygon points="160,105 170,110 160,115"/>
+    <line x1="290" y1="110" x2="315" y2="110"/><polygon points="310,105 320,110 310,115"/>
+    <line x1="440" y1="110" x2="465" y2="110"/><polygon points="460,105 470,110 460,115"/>
+  </g>
+
+  <!-- branching after Verify -->
+  <g stroke="#1e293b" stroke-width="2" fill="none">
+    <path d="M 590 110 L 620 110 L 620 60 L 660 60" />
+    <path d="M 590 110 L 620 110 L 620 160 L 660 160" />
+  </g>
+  <polygon points="650,55 660,60 650,65" fill="#16a34a"/>
+  <polygon points="650,155 660,160 650,165" fill="#ef4444"/>
+
+  <!-- outcomes -->
+  <text x="665" y="58"  font-family="sans-serif" font-size="13" font-weight="700" fill="#16a34a">drift = 0</text>
+  <text x="665" y="73"  font-family="sans-serif" font-size="12" fill="#15803d">→ merge ✓</text>
+  <text x="665" y="158" font-family="sans-serif" font-size="13" font-weight="700" fill="#ef4444">drift &gt; 0</text>
+  <text x="665" y="173" font-family="sans-serif" font-size="12" fill="#b91c1c">→ block ✗</text>
+</svg>
+
+</div>
+
+## Multi-Agent Workflow
+
+cladding 은 **5 명의 에이전트가 협업하는 다중 에이전트 (multi-agent) 시스템**. 각 에이전트는 명확한 역할 분담 — **CQS** (Command-Query Separation, *명령하는 역할* 과 *검증하는 역할* 의 분리) — 으로 자기가 짠 작업은 자기가 승인할 수 없다. 규제 · 감사 (EU AI Act · K-AI 기본법 · SOX) 기준에 그대로 매핑된다.
+
+<div align="center">
+
+<svg width="680" height="420" viewBox="0 0 680 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="multi-agent-title">
+  <title id="multi-agent-title">5 페르소나 권한 분리 (CQS) — orchestrator 가 분배, librarian/specialist/reviewer 가 작업, observability 가 메트릭 관찰</title>
+  <!-- orchestrator (top) -->
+  <rect x="260" y="20" width="160" height="60" rx="8" fill="#1e293b"/>
+  <text x="340" y="48" font-family="sans-serif" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">orchestrator</text>
+  <text x="340" y="68" font-family="monospace" font-size="12" fill="#cbd5e1" text-anchor="middle">dispatch (분배) only</text>
+
+  <!-- arrows from orchestrator to 3 middle -->
+  <g stroke="#1e293b" stroke-width="2" fill="#1e293b">
+    <line x1="340" y1="80" x2="140" y2="160"/>
+    <polygon points="142,154 134,162 148,164"/>
+    <line x1="340" y1="80" x2="340" y2="160"/>
+    <polygon points="334,154 340,164 346,154"/>
+    <line x1="340" y1="80" x2="540" y2="160"/>
+    <polygon points="538,154 546,162 532,164"/>
+  </g>
+  <text x="335" y="115" font-family="sans-serif" font-size="11" font-style="italic" fill="#475569" text-anchor="middle">작업 분배</text>
+
+  <!-- 3 middle: librarian / specialist / reviewer -->
+  <rect x="60"  y="165" width="160" height="90" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="140" y="190" font-family="sans-serif" font-size="15" font-weight="700" fill="#15803d" text-anchor="middle">librarian</text>
+  <text x="140" y="215" font-family="monospace" font-size="12" fill="#166534" text-anchor="middle">spec  ✎ write</text>
+  <text x="140" y="235" font-family="monospace" font-size="12" fill="#166534" text-anchor="middle">code  ◎ read</text>
+
+  <rect x="260" y="165" width="160" height="90" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="340" y="190" font-family="sans-serif" font-size="15" font-weight="700" fill="#1d4ed8" text-anchor="middle">specialist</text>
+  <text x="340" y="215" font-family="monospace" font-size="12" fill="#1e3a8a" text-anchor="middle">code  ✎ write</text>
+  <text x="340" y="235" font-family="monospace" font-size="12" fill="#1e3a8a" text-anchor="middle">spec  ◎ read</text>
+
+  <rect x="460" y="165" width="160" height="90" rx="8" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/>
+  <text x="540" y="190" font-family="sans-serif" font-size="15" font-weight="700" fill="#854d0e" text-anchor="middle">reviewer</text>
+  <text x="540" y="215" font-family="monospace" font-size="12" fill="#713f12" text-anchor="middle">audit ⚖ only</text>
+  <text x="540" y="235" font-family="monospace" font-size="12" fill="#713f12" text-anchor="middle">all   ◎ read</text>
+
+  <!-- arrows from 3 middle to observability -->
+  <g stroke="#1e293b" stroke-width="2" fill="#1e293b">
+    <line x1="140" y1="255" x2="340" y2="320"/>
+    <polygon points="335,314 343,323 329,324"/>
+    <line x1="340" y1="255" x2="340" y2="320"/>
+    <polygon points="334,314 340,324 346,314"/>
+    <line x1="540" y1="255" x2="340" y2="320"/>
+    <polygon points="345,314 337,322 351,324"/>
+  </g>
+
+  <!-- observability (bottom) -->
+  <rect x="260" y="325" width="160" height="60" rx="8" fill="#f1f5f9" stroke="#475569" stroke-width="2"/>
+  <text x="340" y="353" font-family="sans-serif" font-size="15" font-weight="700" fill="#334155" text-anchor="middle">observability</text>
+  <text x="340" y="373" font-family="monospace" font-size="12" fill="#475569" text-anchor="middle">metrics  ◎ read</text>
+
+  <!-- caption -->
+  <text x="340" y="408" font-family="sans-serif" font-size="13" font-weight="700" fill="#1e293b" text-anchor="middle">자기 작업 승인 불가  ·  명령(write) 과 검증(read) 분리 (CQS)</text>
+</svg>
+
+</div>
+
+## Ecosystem
+
+기존 세 카테고리의 결합부에 cladding 이 있다.
+
+<div align="center">
+
+<svg width="640" height="380" viewBox="0 0 640 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ecosystem-title">
+  <title id="ecosystem-title">Ecosystem Venn — SDD · Runners · Multi-agent Governance 세 카테고리의 결합부에 cladding 이 위치</title>
+  <!-- 3 overlapping circles -->
+  <circle cx="200" cy="160" r="130" fill="#dcfce7" fill-opacity="0.55" stroke="#16a34a" stroke-width="2"/>
+  <circle cx="440" cy="160" r="130" fill="#dbeafe" fill-opacity="0.55" stroke="#2563eb" stroke-width="2"/>
+  <circle cx="320" cy="260" r="130" fill="#fef9c3" fill-opacity="0.55" stroke="#ca8a04" stroke-width="2"/>
+
+  <!-- category labels -->
+  <text x="120" y="55"  font-family="sans-serif" font-size="14" font-weight="700" fill="#15803d">① Spec-Driven Development</text>
+  <text x="120" y="73"  font-family="sans-serif" font-size="11" fill="#166534">Spec Kit · OpenSpec · Tessl · Kiro</text>
+
+  <text x="380" y="55"  font-family="sans-serif" font-size="14" font-weight="700" fill="#1d4ed8">② Runners</text>
+  <text x="380" y="73"  font-family="sans-serif" font-size="11" fill="#1e3a8a">OpenHands · Cline · Aider · Goose</text>
+
+  <text x="200" y="370" font-family="sans-serif" font-size="14" font-weight="700" fill="#854d0e">③ Multi-agent Governance</text>
+  <text x="200" y="355" font-family="sans-serif" font-size="11" fill="#713f12">BMAD · ChatDev · Agent Teams</text>
+
+  <!-- cladding box at intersection -->
+  <rect x="270" y="180" width="100" height="44" rx="6" fill="#1e293b"/>
+  <text x="320" y="208" font-family="sans-serif" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">cladding</text>
+</svg>
+
+</div>
+
+### 인접 도구와의 차이
+
+- **Spec Kit · OpenSpec · Tessl · Kiro** — *spec 을 잘 쓰게* 도와주는 도구. cladding 은 거기에 더해 *그 spec 과 실제 코드가 어긋나지 않는지 매 commit 자동 검사* 한다.
+- **BMAD · ChatDev · Claude Agent Teams** — *여러 AI 에이전트가 역할을 나눠 협업하는 시스템*. cladding 의 5 에이전트는 그 위에 *spec · 코드 · 감사 기록* 까지 결합해 동작한다.
+- **tdd-guard** — *AI 가 테스트를 먼저 쓰도록 강제* 하는 도구. cladding 의 13 단계 검사 중 Unit · Coverage 항목이 같은 일을 한다.
+- **OpenHands · Cline · Aider · Goose** — *AI 에게 코드를 짜게 시키는 실행기*. cladding 은 그 실행기가 짠 코드를 *검증 · 통제하는 상위 레이어* 다.
+
+cladding 의 차별점은 *결합* — 위 네 카테고리의 핵심을 *하나의 검증 흐름* 으로 묶는 것.
+
+## Install
+
+cladding 은 두 가지 경로로 시작할 수 있다 — 어느 쪽이든 *같은 spec · 같은 정책 · 같은 검증 흐름* 에 도착한다.
+
+### 방법 1 — 마켓플레이스 (가장 빠름)
+
+Claude Code · Codex CLI · Gemini CLI 의 마켓플레이스에서 cladding 을 설치한 뒤, AI 에게 한 줄 명령:
+
+```
+/cladding init "B2B 결제 SaaS"
+```
+
+AI 가 그 자리에서 spec · 4-tier 문서 · 정책을 자동으로 채운다. 별도의 npm 설치 불필요.
+
+### 방법 2 — npm (터미널 · CI · AI 도구가 없는 환경)
+
+```bash
+npm install -g cladding
+clad init "B2B 결제 SaaS"
+clad check
+```
+
+`npm install -g cladding` 의 postinstall 훅이 다음 4 개 채널을 자동으로 연결한다:
+
+| 호스트 | 자동 연결 위치 |
 |---|---|
-| merged spec 검증 | `npm run spec:validate` |
-| feature + 의존성 (JSON) | `clad benchmark F-NNN` |
-| 한 눈에 coverage | `clad panel` |
-| raw dump | `cat spec/features/*.yaml` |
+| Claude Code | `~/.claude/plugins/cladding` |
+| Codex CLI (skills) | `~/.agents/skills/cladding-*` |
+| Codex CLI (MCP 서버) | `~/.codex/config.toml` 의 `[mcp_servers.cladding]` |
+| Gemini CLI | `~/.gemini/extensions/cladding` |
 
-Inline (단일 `spec.yaml`) 레이아웃도 동작 — `src/spec/load.ts` 가 자동 fallback. 새 프로젝트는 unsharded 로 시작; `scripts/shard-spec.ts` 가 master 가 ~1k 줄 넘으면 마이그레이션.
+이후 어느 AI 도구에서든 `/cladding init` 또는 `clad init` 모두 동일하게 동작한다.
 
-## CLI
+> `npm install --ignore-scripts` 로 설치한 경우 postinstall 이 건너뛰어지지만, 첫 `clad init` 실행 시 자동으로 재시도한다.
 
-```
-clad init [--name N] [--force] [--scan|--no-scan] [--no-llm]
-                         # cladding workspace scaffold (spec.yaml seed · .cladding/ · .gitignore
-                         # · docs/project-context.md · 소스 ≥ 3 관찰 시 docs/conventions.md +
-                         # spec/architecture.yaml 도 함께)
-clad work <verb>         # stage 또는 자연어 의도 실행
-clad drive [목표]         # autonomous loop — 결정론적 floor; LLM dispatch 는 v0.2 의 F-049 에서
-clad sync                # spec.yaml 을 schema 에 대해 검증
-clad check               # 모든 Iron Law stage + drift 검사 실행
-clad panel               # feature × stage Integrity Panel 렌더링
-clad route <프롬프트>     # 자연어 프롬프트를 verb 로 분류
-clad serve               # stdio 위에서 MCP 서버 실행 (tools / resources / prompts / sampling)
-clad benchmark <feature> # naive vs optimized spec token 비용
-```
+### 세 가지 init 시나리오
 
-설치 후 `clad` binary 는 `package.json` 의 `bin` 필드를 통해 `PATH` 에 노출됩니다. 개발 시 `bin/clad` shim 이 tsx 를 통해 `src/cli/clad.ts` 를 호출합니다.
+`clad init` 은 자연어 intent 를 받아 *상황에 맞는 path* 를 자동 선택한다. 같은 명령, 세 가지 시작점.
 
-## 용어
-
-- **`ironclad`** — 표준 (합의된 결과 상태)
-- **`cladding`** — 이 프로젝트 (구현체, 도구)
-- **`clad`** — CLI 동사 (행위)
-
-## 5 개 Agent 페르소나
-
-Cladding 은 5 개의 Claude Code subagent 로 작업을 조정합니다 (`src/agents/*.md` 참고):
-
-| persona | 역할 | tools |
+| 시작 상황 | 명령 (npm 기준) | 무엇이 일어나는가 |
 |---|---|---|
-| `orchestrator` | 워크플로 지휘자; 의도를 specialist 로 라우팅 | Read, Write, Edit, Bash, Agent |
-| `librarian` | SSoT 수호자; spec.yaml + EARS 위생 | Read, Write, Edit, Bash |
-| `reviewer` | 철학적 가드레일; 독립 audit (read-only) | Read, Bash |
-| `observability` | 로그 + metric 분석 | Read, Bash |
-| `specialists` | 도메인 구현자 (코드 · 테스트 · 마이그레이션) | Read, Write, Edit, Bash |
+| **아이디어만 있을 때** | `clad init "B2B 결제 SaaS 만들거야"` | LLM 이 도메인 분석 → spec · 문서 · 정책 자동 생성 + 2–3 가지 후속 질문 출력 |
+| **기획 문서가 있을 때** | `clad init docs/plan.md` | cladding 이 파일 경로를 인식 → 내용을 자동 로드해서 intent 로 사용 (절대/상대 경로 모두 지원) |
+| **기존 프로젝트 도입** | `clad init "이 프로젝트에 cladding 적용해줘"` | 기존 코드 자동 스캔 (≥3 source files) → 관찰한 패턴 + intent 결합 |
 
-**5 개 호출 원칙** (`src/agents/orchestrator.md`):
+> 마켓플레이스 (Claude Code · Codex CLI · Gemini CLI) 에서는 `/cladding init "..."` 형식으로 동일하게 사용 — 자유 텍스트도, `/cladding init docs/plan.md` 같은 경로도 같게 받는다.
 
-1. **Specialization** — 가장 좁은 agent 선택
-2. **Audit separation** — 구현자 ≠ 검증자
-3. **Parallelism** — write set 겹치지 않으면 병렬 dispatch
-4. **Evidence-first** — 이전 stage evidence 없으면 stage 진행 거부
-5. **Least context** — 태그된 가드레일 + 관련 모듈만 전달 (전체 spec X)
+### init 한 번이면 끝
+
+cladding 의 목표는 *spec ↔ 코드 어긋남을 막는 인프라가 되는 것* — init 이후로는 평소처럼 개발하면 된다. AI 도구가 spec 을 참조하며 코드를 짜고, `clad check` 가 CI · pre-commit hook 에서 자동으로 돌아 어긋남이 있으면 차단한다. 추가 수동 명령 불필요.
+
+## Status
+
+<table style="margin:0 auto;border:none">
+<tr style="border:none">
+<td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
+<div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">version</div>
+<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">v0.3.60</div>
+<div style="font-size:11px;color:#64748b">2026-05</div>
+</td>
+<td style="text-align:center;width:140px;background:#dcfce7;padding:18px 10px;border-radius:8px;border:none">
+<div style="font-size:11px;color:#15803d;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">준수 등급</div>
+<div style="font-size:24px;font-weight:800;color:#16a34a;margin:8px 0;letter-spacing:-0.5px">L4</div>
+<div style="font-size:11px;color:#15803d">최고 · 자가 선언</div>
+</td>
+<td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
+<div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">tests</div>
+<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">954<span style="font-size:16px;color:#94a3b8">/954</span></div>
+<div style="font-size:11px;color:#64748b">all pass</div>
+</td>
+<td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
+<div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">coverage</div>
+<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">93.89<span style="font-size:16px;color:#94a3b8">%+</span></div>
+<div style="font-size:11px;color:#64748b">enforced</div>
+</td>
+<td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
+<div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">features</div>
+<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">134</div>
+<div style="font-size:11px;color:#64748b">spec 정의</div>
+</td>
+</tr>
+</table>
+
+<sub>100 test files · Claude Code · OpenAI Codex · Gemini CLI 마켓플레이스 설치 가능.</sub>
+
+> **Ironclad 1.0 까지의 길** — 1.0 은 *독립적인 두 개의 구현이 L4 검증 셋을 통과해야* 잠긴다 ([GOVERNANCE § 1](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md)). cladding 이 첫 번째.
+
+## Docs
+
+- [Why cladding (project context)](docs/project-context.md)
+- [4-tier governance model](docs/ssot-model.md)
+- [Hash-based feature ID](docs/spec-ids-multi-dev.md)
+- [28 detector catalog](src/stages/detectors/README.md)
+- [Benchmark — event store trap catch](docs/benchmarks/event-store-trap-catch.md)
+- [A/B evaluation cases](docs/ab-evaluation/)
+- [Governance · roadmap to 1.0](GOVERNANCE.md)
 
 ## License
 
-MIT — [LICENSE](LICENSE).
-
-## 관련 프로젝트
-
-- [Ironclad](https://github.com/qwerfunch/ironclad) — 본 프로젝트가 구현하는 표준
-- [harness-boot](https://github.com/qwerfunch/harness-boot) — seed 프로젝트 (역사 참조)
+MIT. [LICENSE](LICENSE) · 관련: [Ironclad](https://github.com/qwerfunch/ironclad) (구현 대상 표준) · [harness-boot](https://github.com/qwerfunch/harness-boot) (seed).

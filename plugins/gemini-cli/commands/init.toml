@@ -78,9 +78,24 @@ clad init                                    # bare (greenfield seeds + hint, or
 clad init 결제 SaaS for B2B                   # intent-aware onboarding (positional, no quotes needed)
 clad init "AI 코드 리뷰 봇"                   # quotes OK too
 clad init 이 프로젝트 분석해서 클래딩 적용해줘    # intent that signals existing adoption
+clad init docs/plan.md                       # path-aware intent (v0.3.61+) — file contents auto-loaded as intent
+clad init /absolute/path/spec.md             # absolute path also supported (same .md/.txt/.yaml/.yml/.markdown rule)
 clad init --name my-project
 clad init --force
 clad init --scan --no-llm
 clad init --roots packages/a/src,packages/b/src
 ```
+
+## Path-aware intent (v0.3.61+, F-5f6b45)
+
+When the positional argument looks like a text-file path (recognized extension `.md` / `.txt` / `.yaml` / `.yml` / `.markdown`) and the file exists under cwd, cladding loads the file body and forwards *that* to the onboarding LLM dispatcher — not the literal path string. This closes the gap where `clad init "$(cat docs/plan.md)"` (shell substitution) was the only way to feed a planning document into onboarding.
+
+Behavior:
+
+- **Existing text file** → contents become the intent. stderr prints `loaded intent from <absolute-path>` for transparency.
+- **Missing file** with a path-like extension → stderr warning + free-text fallback (the literal argument is forwarded as intent so onboarding still runs).
+- **Directory** ending in `.md` (rare) → stderr warning + free-text fallback.
+- **Non-text argument** (e.g. `결제 SaaS 만들거야`) → existing free-text behavior, zero regression.
+
+Plugin invocations (`/cladding init docs/plan.md` from Claude Code · Codex CLI · Gemini CLI marketplace installs) inherit this behavior automatically — every plugin skill shells out to the same `clad init` CLI.
 '''
