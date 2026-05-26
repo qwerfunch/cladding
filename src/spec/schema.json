@@ -11,6 +11,38 @@
       "type": "string",
       "description": "Schema version, e.g. '0.1'."
     },
+    "_meta": {
+      "type": "object",
+      "description": "F-90d054 lazy enrichment marker — written by `clad init`, consumed by host AI on first task. Removed once enrichment_status becomes 'complete'.",
+      "additionalProperties": true,
+      "properties": {
+        "enrichment_status": {
+          "type": "string",
+          "enum": ["pending", "complete"]
+        },
+        "enrichment_scope": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "detected": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "project_type": {"type": "string", "enum": ["greenfield", "brownfield"]},
+            "source_files": {"type": "integer", "minimum": 0},
+            "test_files": {"type": "integer", "minimum": 0},
+            "primary_language": {"type": "string"},
+            "package_manager": {"type": "string"},
+            "has_readme": {"type": "boolean"},
+            "has_existing_tests": {"type": "boolean"},
+            "observed_layers": {"type": "array", "items": {"type": "string"}},
+            "detected_at": {"type": "string", "format": "date-time"}
+          }
+        },
+        "enriched_by": {"type": "string"},
+        "enriched_at": {"type": "string", "format": "date-time"}
+      }
+    },
     "project": {
       "type": "object",
       "required": ["name", "language"],

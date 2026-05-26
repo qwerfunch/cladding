@@ -17,6 +17,7 @@ layers:
     - core
     - events
     - hitl
+    - init
     - optimizer
     - router
     - ui

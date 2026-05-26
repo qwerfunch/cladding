@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cladding — Unified Governance for AI-Coupled Engineering</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    color: #1e293b;
+    background: #ffffff;
+  }
+  .container {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+  }
+  h1 {
+    font-size: 56px;
+    font-weight: 800;
+    letter-spacing: -1.5px;
+    text-align: center;
+    margin: 24px 0 12px;
+    color: #1e293b;
+  }
+  h2 {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 64px 0 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e2e8f0;
+    color: #0f172a;
+  }
+  h3 {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 40px 0 12px;
+    color: #1e293b;
+  }
+  p { margin: 14px 0; }
+  strong { font-weight: 700; color: #0f172a; }
+  em { font-style: italic; color: #475569; }
+  a { color: #2563eb; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 0.88em;
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #0f172a;
+  }
+  pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 20px 24px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 20px 0;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    font-size: inherit;
+  }
+  ul, ol { margin: 14px 0 14px 28px; padding: 0; }
+  li { margin: 8px 0; }
+  svg { max-width: 100%; height: auto; display: block; }
+  hr { border: 0; border-top: 1px solid #e2e8f0; margin: 48px 0; }
+
+  /* Tagline */
+  .tagline {
+    text-align: center;
+    color: #475569;
+    font-size: 18px;
+    margin: 0 0 24px;
+  }
+  .tagline strong {
+    font-size: 19px;
+    color: #1e293b;
+  }
+
+  /* Badges */
+  .badges {
+    text-align: center;
+    margin: 20px 0 28px;
+  }
+  .badges img {
+    margin: 2px 4px;
+    vertical-align: middle;
+  }
+
+  /* Lead description */
+  .lead {
+    text-align: center;
+    color: #475569;
+    font-size: 16px;
+    margin: 0 0 32px;
+    line-height: 1.6;
+  }
+
+  /* HERO cards */
+  .hero {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 32px 0 8px;
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .hero-card {
+    padding: 36px 28px;
+    border-radius: 12px;
+    text-align: center;
+  }
+  .hero-card.vanilla { background: #f1f5f9; }
+  .hero-card.cladding { background: #dcfce7; }
+  .hero-card .label {
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .hero-card .number {
+    font-size: 72px;
+    font-weight: 800;
+    line-height: 1;
+    margin: 16px 0;
+    letter-spacing: -2px;
+  }
+  .hero-card .sub {
+    font-size: 13px;
+  }
+  .hero-card.vanilla .label,
+  .hero-card.vanilla .sub { color: #64748b; }
+  .hero-card.vanilla .number { color: #94a3b8; }
+  .hero-card.cladding .label,
+  .hero-card.cladding .sub { color: #15803d; }
+  .hero-card.cladding .number { color: #16a34a; }
+  .hero-caption {
+    text-align: center;
+    font-size: 13px;
+    color: #64748b;
+    margin-top: 12px;
+  }
+
+  /* Why cards */
+  .why-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin: 24px 0;
+  }
+  .why-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 20px 22px;
+  }
+  .why-card .title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 8px;
+  }
+  .why-card p {
+    margin: 8px 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #475569;
+  }
+  .why-card .arrow {
+    margin-top: 12px;
+    font-size: 13px;
+    color: #16a34a;
+    font-weight: 600;
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid #e2e8f0;
+    padding: 12px 16px;
+    text-align: left;
+  }
+  th {
+    background: #f8fafc;
+    font-weight: 700;
+    color: #0f172a;
+  }
+  td.center { text-align: center; }
+  td.vanilla-cell { color: #64748b; text-align: center; }
+  td.cladding-cell { color: #16a34a; font-weight: 700; text-align: center; }
+  td.tick-strong { color: #16a34a; font-weight: 700; text-align: center; font-size: 16px; }
+  td.tick { color: #16a34a; text-align: center; }
+  td.dash { color: #cbd5e1; text-align: center; }
+  td.partial { color: #ca8a04; text-align: center; }
+
+  /* Diagram container */
+  .diagram {
+    margin: 24px 0;
+    text-align: center;
+  }
+  .diagram svg { margin: 0 auto; }
+
+  /* Section spacing under h2 */
+  h2 + p, h2 + div { margin-top: 8px; }
+
+  /* Footer */
+  footer {
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid #e2e8f0;
+    text-align: center;
+    color: #64748b;
+    font-size: 13px;
+  }
+
+  /* Responsive */
+  @media (max-width: 720px) {
+    .container { padding: 32px 16px 64px; }
+    h1 { font-size: 40px; }
+    h2 { font-size: 24px; margin-top: 48px; }
+    .hero { grid-template-columns: 1fr; }
+    .hero-card .number { font-size: 56px; }
+    .why-cards { grid-template-columns: 1fr; }
+    table { font-size: 13px; }
+    th, td { padding: 10px 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <p style="text-align:center;margin:0 0 24px"><img src="docs/img/social-preview.png" alt="cladding — Unified Governance for AI-Coupled Engineering" style="width:100%;max-width:920px;border-radius:8px"></p>
+
+  <p style="text-align:center;font-size:14px;color:#64748b;margin:0 0 12px"><strong>English</strong> · <a href="README.ko.html">한국어</a></p>
+
+  <h1>cladding</h1>
+
+  <p class="tagline">
+    <strong>Unified Governance for AI-Coupled Engineering.</strong><br>
+    AI-generated code, held to the same bar as human code.
+  </p>
+
+  <p class="badges">
+    <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"></a>
+    <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"></a>
+    <img src="https://img.shields.io/badge/tests-954%2F954-brightgreen" alt="tests">
+    <img src="https://img.shields.io/badge/coverage-93.89%25%2B-brightgreen" alt="coverage">
+    <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"></a>
+  </p>
+
+  <p class="lead">
+    Reference implementation of the <a href="https://github.com/qwerfunch/ironclad">Ironclad</a> standard. 28 detectors and a 13-stage gate verify, on every commit, that the code your AI assistant wrote still matches the spec.
+  </p>
+
+  <!-- ─────────────── HERO ─────────────── -->
+  <div class="hero">
+    <div class="hero-card vanilla">
+      <div class="label">Vanilla AI coding</div>
+      <div class="number">2/8</div>
+      <div class="sub">traps caught · 25%</div>
+    </div>
+    <div class="hero-card cladding">
+      <div class="label">cladding</div>
+      <div class="number">8/8</div>
+      <div class="sub">traps caught · 100%</div>
+    </div>
+  </div>
+  <p class="hero-caption">
+    Same spec · same model · <a href="docs/benchmarks/event-store-trap-catch.md">event-sourcing store benchmark</a>
+  </p>
+
+  <!-- ─────────────── Why ─────────────── -->
+  <h2>Why</h2>
+  <div class="why-cards">
+    <div class="why-card">
+      <div class="title">The <em>why</em> fades after 3 months</div>
+      <p>The reason an AI assistant wrote code a certain way doesn't survive in the code alone.</p>
+      <div class="arrow">→ <code>spec/features/*.yaml</code> becomes the permanent record of <em>why</em></div>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid #d1fae5;font-size:13px;color:#15803d;font-weight:600">✓ <strong>AI context survives time</strong> — six months later, the AI reconstructs intent straight from the spec (new hires get the same entry point)</div>
+    </div>
+    <div class="why-card">
+      <div class="title">AI gives a different answer each time</div>
+      <p>The same spec produces code with inconsistent patterns and structure.</p>
+      <div class="arrow">→ the spec becomes the <em>fixed reference</em> against which every commit is checked</div>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid #d1fae5;font-size:13px;color:#15803d;font-weight:600">✓ <strong>Enterprise-ready consistency</strong> — code style and patterns stay aligned across teams and PRs</div>
+    </div>
+    <div class="why-card">
+      <div class="title">AI hallucination</div>
+      <p>Generated code calls APIs, functions, or options that don't exist.</p>
+      <div class="arrow">→ 28 detectors + 13-stage gate block hallucinated code on every commit</div>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid #d1fae5;font-size:13px;color:#15803d;font-weight:600">✓ <strong>Production incidents prevented up front</strong> — CI auto-rejects hallucinated code before it merges</div>
+    </div>
+  </div>
+
+  <!-- ─────────────── What you get ─────────────── -->
+  <h2>What you get</h2>
+  <p>How a <em>vanilla AI coding environment</em> and a cladding environment behave when the same situation comes up.</p>
+  <table>
+    <thead>
+      <tr><th>Situation</th><th class="center">Vanilla AI coding</th><th class="center">cladding</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Code drifts from spec</strong></td><td class="vanilla-cell">fixed if a reviewer notices</td><td class="cladding-cell">auto-blocked on every commit</td></tr>
+      <tr><td><strong>Two devs build the same feature in parallel</strong></td><td class="vanilla-cell">merge conflicts</td><td class="cladding-cell">hash-based IDs route to separate files → 0 conflicts</td></tr>
+      <tr><td><strong>Who verifies AI-written code?</strong></td><td class="vanilla-cell">the AI that wrote it (risky)</td><td class="cladding-cell">a separate reviewer agent — duties split</td></tr>
+      <tr><td><strong>Switching AI tools (Claude → Cursor)</strong></td><td class="vanilla-cell">reconfigure per tool</td><td class="cladding-cell">one spec → mirrored across 4 hosts</td></tr>
+      <tr><td><strong>Spec authority</strong></td><td class="vanilla-cell">the AI reinterprets it each time</td><td class="cladding-cell">the sealed spec is the single source of truth</td></tr>
+    </tbody>
+  </table>
+  <p style="text-align: center; font-size: 13px; color: #64748b; margin-top: 8px;">
+    The hero's 8/8 vs 2/8 is an early benchmark (<a href="docs/benchmarks/event-store-trap-catch.md">details</a>) · larger-scale measurements are in progress.
+  </p>
+
+  <!-- ─────────────── How it works ─────────────── -->
+  <h2>How it works</h2>
+  <p><strong>Spec → Code → Tests</strong> runs as a single cycle — the spec captures the <em>why</em>, Iron Law verifies the implementation, and Drift Detection blocks anything that no longer matches.</p>
+
+  <div class="diagram">
+    <img src="docs/img/en/cycle.svg" alt="Spec → Code → Tests as a single cycle — one feature's lifecycle" width="700">
+  </div>
+
+  <h3>1. SSoT — single source of intent</h3>
+  <p>The spec is where the <em>why</em> (what we're building and why) lives. A 4-tier (A/B/C/D) Single Source of Truth — <em>intent on top, implementation below</em>.</p>
+
+  <table>
+    <thead>
+      <tr><th>Tier</th><th>Role</th><th>Who edits</th><th>Authority</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>A — Spec</strong></td><td>intent (what to build)</td><td>humans only</td><td>sealed · LLMs cannot edit</td></tr>
+      <tr><td><strong>B — Design</strong></td><td>design (how to build it)</td><td>humans freely</td><td>checked against A</td></tr>
+      <tr><td><strong>C — Derived</strong></td><td>implementation (code · tests)</td><td>LLMs and humans</td><td>regenerated by reading the code</td></tr>
+      <tr><td><strong>D — Audit</strong></td><td>audit log (what actually happened)</td><td>append-only</td><td>immutable</td></tr>
+    </tbody>
+  </table>
+
+  <p><strong>A outranks B</strong> — if code and spec disagree, <em>the code is wrong</em>. The spec is sealed because changing the <em>why</em> shakes everything downstream, so LLMs are kept out.</p>
+
+  <div class="diagram">
+    <img src="docs/img/en/ssot-tier.svg" alt="4-tier SSoT — A(Spec) → B(Design) → C(Derived) → D(Audit), A outranks B" width="640">
+  </div>
+
+  <h3>2. Code — Iron Law (required) gate</h3>
+  <p>Every change has to clear all 13 stages — typically called from CI, a git pre-push hook, or manual <code>clad check</code>. Each stage ships with its own unit tests.</p>
+  <div class="diagram">
+    <img src="docs/img/en/iron-law.svg" alt="13-stage Iron Law gate — every change must clear static(6) · test(2) · e2e(3) · evidence(2) wherever clad check runs (CI / git hook / manual)" width="640">
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Stage</th><th>What it checks</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>1.1 Type · 1.2 Lint</strong></td><td>type errors · code style</td></tr>
+      <tr><td><strong>1.3 Drift</strong></td><td>spec ↔ code mismatches across 28 detectors</td></tr>
+      <tr><td><strong>1.4 Commit · 1.5 Arch · 1.6 Secret</strong></td><td>clean working tree · architecture invariants (forbidden imports, etc.) · leaked API keys</td></tr>
+      <tr><td><strong>2.1 Unit · 2.2 Cov</strong></td><td>unit tests pass · project coverage threshold</td></tr>
+      <tr><td><strong>3.1 Smoke · 3.2 Perf · 3.3 Visual</strong></td><td>end-to-end critical paths · performance budgets · visual regression</td></tr>
+      <tr><td><strong>4.1 Audit · 4.2 UAT</strong></td><td>every AC (acceptance criteria) has at least one piece of evidence · every <code>status=done</code> feature has at least one piece of evidence</td></tr>
+    </tbody>
+  </table>
+
+  <h3>3. Tests — 28 drift detectors</h3>
+  <p>Seven categories of mismatch across spec · code · test, all caught automatically. Full catalog: <a href="src/stages/detectors/README.md">src/stages/detectors/README.md</a>.</p>
+  <table>
+    <thead>
+      <tr><th>Category</th><th>What it catches</th><th class="center">Count</th><th>Representative detectors</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>spec ↔ code drift</td><td>something in the spec missing from code, or in code with nothing in the spec</td><td class="center">6</td><td><code>UNMAPPED_ARTIFACT</code>, <code>MISSING_IMPLEMENTATION</code>, <code>AC_DRIFT</code></td></tr>
+      <tr><td>code ↔ test</td><td>code without tests · coverage falling below threshold</td><td class="center">6</td><td><code>MISSING_TESTS</code>, <code>COVERAGE_DROP</code>, <code>HARDCODED_SECRET</code></td></tr>
+      <tr><td>spec ↔ test</td><td>an AC in the spec that no test actually verifies</td><td class="center">4</td><td><code>UNTESTED_AC</code>, <code>STATUS_DRIFT</code>, <code>STALE_EVIDENCE</code></td></tr>
+      <tr><td>spec maintenance</td><td>spec hygiene — slug collisions, ID duplicates</td><td class="center">5</td><td><code>SLUG_CONFLICT</code>, <code>ID_COLLISION</code>, <code>ENRICHMENT_PENDING</code></td></tr>
+      <tr><td>environment integrity</td><td>build environment and meta-file integrity</td><td class="center">3</td><td><code>HARNESS_INTEGRITY</code>, <code>META_INTEGRITY</code></td></tr>
+      <tr><td>architecture · capability</td><td>code that breaks the architecture or capability shape declared in the spec</td><td class="center">2</td><td><code>ARCHITECTURE_FROM_SPEC</code>, <code>CAPABILITIES_FEATURE_MAPPING</code></td></tr>
+      <tr><td>governance · policy</td><td>code that breaks an <code>ai_hints</code> policy (e.g. forbidden patterns)</td><td class="center">2</td><td><code>AI_HINTS_FORBIDDEN_PATTERN</code>, <code>ABSENCE_OF_GOVERNANCE</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3>4. Cycle — one feature's lifecycle</h3>
+  <p>The 4 steps that wrap Spec → Code → Test into a single cycle. Merge if drift is 0, block otherwise.</p>
+  <div class="diagram">
+    <img src="docs/img/en/workflow.svg" alt="One feature's lifecycle — Define → Sync → Implement → Verify, merge if drift=0 / block otherwise" width="720">
+  </div>
+
+  <!-- ─────────────── Multi-Agent Workflow ─────────────── -->
+  <h2>Multi-Agent Workflow</h2>
+  <p>cladding is a <strong>5-agent system</strong> working in concert. Each agent has a clear role under <strong>CQS</strong> (Command-Query Separation — the agents that <em>do</em> are kept apart from the agents that <em>verify</em>), so no agent can sign off on its own work. This is the foundation that maps cleanly to compliance regimes (EU AI Act · K-AI Framework · SOX).</p>
+  <div class="diagram">
+    <img src="docs/img/en/multi-agent.svg" alt="5 personas with CQS — orchestrator dispatches, librarian/specialist/reviewer act, observability watches metrics" width="680">
+  </div>
+
+  <!-- ─────────────── Ecosystem ─────────────── -->
+  <h2>Ecosystem</h2>
+  <p>cladding sits at the intersection of three existing categories.</p>
+  <div class="diagram">
+    <img src="docs/img/en/ecosystem.svg" alt="Ecosystem Venn — cladding sits at the intersection of SDD · Runners · Multi-agent Governance" width="640">
+  </div>
+
+  <h3>How cladding differs from the neighbors</h3>
+  <ul>
+    <li><strong>Spec Kit · OpenSpec · Tessl · Kiro</strong> help you <em>write a good spec</em>. cladding goes further — it <em>verifies on every commit</em> that the code still matches that spec.</li>
+    <li><strong>BMAD · ChatDev · Claude Code Agent Teams</strong> are about splitting work across multiple AI agents. cladding's 5 agents take that further by tying spec, code, and audit log into the same loop.</li>
+    <li><strong>tdd-guard</strong> forces test-first development. That's roughly what the Unit · Coverage stages do inside cladding's 13-stage gate.</li>
+    <li><strong>OpenHands · Cline · Aider · Goose</strong> are <em>runners</em> — they tell the AI to write code. cladding is the <em>governance layer</em> that verifies and controls what those runners produce.</li>
+  </ul>
+  <p>cladding's edge is the <em>combination</em> — it folds the strongest parts of all four categories into one verification loop.</p>
+
+  <!-- ─────────────── Install ─────────────── -->
+  <h2>Install</h2>
+  <p>There are two paths into cladding — either one lands you in the same place, with the same spec · policies · verification loop.</p>
+
+  <h3>Path 1 — Marketplace (fastest)</h3>
+  <p>Install cladding from the Claude Code · Codex CLI · Gemini CLI marketplace, then say one line to the AI:</p>
+  <pre><code>/cladding init "B2B payment SaaS"</code></pre>
+  <p>The AI fills in the spec, the 4-tier docs, and the policies on the spot. No separate npm install required.</p>
+
+  <h3>Path 2 — npm (terminal · CI · environments without an AI tool)</h3>
+  <pre><code>npm install -g cladding
+clad init "B2B payment SaaS"
+clad check</code></pre>
+  <p><code>npm install -g cladding</code>'s postinstall hook wires up four channels automatically:</p>
+  <table>
+    <thead><tr><th>Host</th><th>Auto-wired location</th></tr></thead>
+    <tbody>
+      <tr><td>Claude Code</td><td><code>~/.claude/plugins/cladding</code></td></tr>
+      <tr><td>Codex CLI (skills)</td><td><code>~/.agents/skills/cladding-*</code></td></tr>
+      <tr><td>Codex CLI (MCP server)</td><td><code>[mcp_servers.cladding]</code> in <code>~/.codex/config.toml</code></td></tr>
+      <tr><td>Gemini CLI</td><td><code>~/.gemini/extensions/cladding</code></td></tr>
+    </tbody>
+  </table>
+  <p>After that, <code>/cladding init</code> and <code>clad init</code> work identically from any AI tool.</p>
+  <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:16px 0;background:#f8fafc;color:#475569;font-size:14px">If you installed with <code>npm install --ignore-scripts</code>, the postinstall is skipped — but the first <code>clad init</code> retries it automatically.</blockquote>
+
+  <h3>Three init scenarios</h3>
+  <p><code>clad init</code> takes a natural-language intent and picks the right path on its own. Same command, three starting points.</p>
+  <table>
+    <thead>
+      <tr><th>Starting point</th><th>Command (npm path)</th><th>What happens</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>An idea, nothing else</strong></td><td><code>clad init "I want to build a B2B payment SaaS"</code></td><td>LLM infers the domain → spec · docs · policies generated, with 2–3 follow-up questions printed</td></tr>
+      <tr><td><strong>A planning doc</strong></td><td><code>clad init docs/plan.md</code></td><td>cladding detects the file path, loads its contents, and uses them as the intent (absolute and relative paths both work)</td></tr>
+      <tr><td><strong>Adopting into an existing project</strong></td><td><code>clad init "apply cladding to this project"</code></td><td>scans the existing code (≥3 source files trigger it) → observed patterns are merged with the intent</td></tr>
+    </tbody>
+  </table>
+  <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:16px 0;background:#f8fafc;color:#475569;font-size:14px">In a marketplace install (Claude Code · Codex CLI · Gemini CLI) the format is <code>/cladding init "..."</code> — works the same with free text <em>and</em> with paths like <code>/cladding init docs/plan.md</code>.</blockquote>
+
+  <h3>Init once, then carry on</h3>
+  <p>cladding's goal is to <em>be the infrastructure that prevents spec ↔ code drift</em> — after init, you just keep coding. The AI references the spec while it writes, and <code>clad check</code> runs automatically in CI or as a pre-commit hook to block anything that drifts. No extra commands to remember.</p>
+
+  <!-- ─────────────── Status ─────────────── -->
+  <h2>Status</h2>
+
+  <table style="margin:24px auto;border:none">
+    <tr style="border:none">
+      <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
+        <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">version</div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">v0.3.60</div>
+        <div style="font-size:11px;color:#64748b">2026-05</div>
+      </td>
+      <td style="text-align:center;width:140px;background:#dcfce7;padding:18px 10px;border-radius:8px;border:none">
+        <div style="font-size:11px;color:#15803d;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">conformance</div>
+        <div style="font-size:24px;font-weight:800;color:#16a34a;margin:8px 0;letter-spacing:-0.5px">L4</div>
+        <div style="font-size:11px;color:#15803d">top tier · self-declared</div>
+      </td>
+      <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
+        <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">tests</div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">954<span style="font-size:16px;color:#94a3b8">/954</span></div>
+        <div style="font-size:11px;color:#64748b">all pass</div>
+      </td>
+      <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
+        <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">coverage</div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">93.89<span style="font-size:16px;color:#94a3b8">%+</span></div>
+        <div style="font-size:11px;color:#64748b">enforced</div>
+      </td>
+      <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
+        <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">features</div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">135</div>
+        <div style="font-size:11px;color:#64748b">spec'd</div>
+      </td>
+    </tr>
+  </table>
+
+  <p style="text-align:center;font-size:13px;color:#64748b;margin-top:12px">101 test files · installable from the Claude Code · OpenAI Codex · Gemini CLI marketplaces</p>
+
+  <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:24px 0;background:#f8fafc;color:#475569;font-size:14px"><strong>Road to Ironclad 1.0</strong> — 1.0 locks when <em>two independent implementations pass the L4 conformance fixtures</em> (<a href="https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md">GOVERNANCE § 1</a>). cladding is the first one.</blockquote>
+
+  <!-- ─────────────── Docs ─────────────── -->
+  <h2>Docs</h2>
+  <ul>
+    <li><a href="docs/project-context.md">Why cladding (project context)</a></li>
+    <li><a href="docs/ssot-model.md">4-tier governance model</a></li>
+    <li><a href="docs/spec-ids-multi-dev.md">Hash-based feature IDs</a></li>
+    <li><a href="src/stages/detectors/README.md">28 detector catalog</a></li>
+    <li><a href="docs/benchmarks/event-store-trap-catch.md">Benchmark — event store trap catch</a></li>
+    <li><a href="docs/ab-evaluation/">A/B evaluation cases</a></li>
+    <li><a href="GOVERNANCE.md">Governance · roadmap to 1.0</a></li>
+  </ul>
+
+  <!-- ─────────────── License ─────────────── -->
+  <h2>License</h2>
+  <p>MIT. <a href="LICENSE">LICENSE</a> · Related: <a href="https://github.com/qwerfunch/ironclad">Ironclad</a> (the standard cladding implements) · <a href="https://github.com/qwerfunch/harness-boot">harness-boot</a> (the seed project).</p>
+
+  <footer>
+    cladding · MIT License
+  </footer>
+
+</div>
+</body>
+</html>

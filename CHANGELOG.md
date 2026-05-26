@@ -5,6 +5,50 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.60] — 2026-05-22 — `clad init` host wiring + lazy enrichment marker (F-90d054)
+
+**Closing the onboarding marriage.** Until now `clad init` scaffolded `spec.yaml` + 4-tier docs but left every host AI wiring (Claude Code plugin / Codex skills / Gemini extension / MCP server / cross-tool AGENTS.md) to the user. And `npm`-path users had no way to populate the spec without an `ANTHROPIC_API_KEY` — a real LLM gap vs the plugin-path. This cycle fuses both.
+
+### Added
+
+- **`scripts/postinstall.mjs`** — npm `postinstall` hook that wires the four host AI auto-discovery channels on `npm install -g cladding`:
+  - `~/.claude/plugins/cladding` (symlink) — Claude Code global plugin
+  - `~/.gemini/extensions/cladding` (symlink → `plugins/gemini-cli/`) — Gemini CLI extension
+  - `~/.agents/skills/cladding-<verb>` (symlinks × N) — Codex CLI skills
+  - `~/.codex/config.toml` `[mcp_servers.cladding]` (TOML merge, smol-toml) — Codex MCP server
+- **`src/init/detect.ts`** — deterministic greenfield/brownfield detection with `observed_layers`, language, package manager, and test-file count.
+- **`src/init/marker.ts`** — `_meta.enrichment_status: "pending"` marker + `enrichment_scope` checklist + `detected` ground-truth context. `patchMarkerInSpec` for idempotent re-runs (AC-012 — body preserved verbatim).
+- **`src/init/host-instructions.ts`** — `AGENTS.md` template (cross-tool entry point + enrichment instruction) + `CLAUDE.md` `## cladding` section (idempotent append, never duplicates on re-init).
+- **`src/init/postinstall-fallback.ts`** — `clad init` retries postinstall when `--ignore-scripts` skipped it.
+- **OpenAI + Gemini dispatcher adapters** (`src/cli/scan/dispatcher.ts`) — fetch-based, no SDK dependency. `clad init` now auto-routes through `ANTHROPIC_API_KEY` → `OPENAI_API_KEY` → `GEMINI_API_KEY` → MCP sampling → null (existing chain extended).
+- **Detector #28 `ENRICHMENT_PENDING`** (warn) — `clad check` surfaces a pending marker; `clad check --strict` blocks CI on it.
+- **Schema extension** — `spec.yaml._meta` top-level block (additive, optional). Existing specs unaffected.
+
+### Changed
+
+- `clad init` now also writes `AGENTS.md` + `CLAUDE.md` + `_meta` marker. Re-run on an initialised project preserves the spec body and only re-activates `enrichment_scope` items whose `detected` observations changed (AC-012).
+- `package.json` — adds `smol-toml@^1.6.1` dependency (TOML merge) + `postinstall` lifecycle script + ships `plugins/`, `.mcp.json`, `scripts/postinstall.mjs` in `files[]`.
+- `spec/architecture.yaml` — `init` layer added under foundation tier.
+- Plugin manifests rebuilt to `28/28` detectors.
+
+### Why
+
+Two onboarding frictions blocked first-1000-user adoption:
+1. **Host wiring was manual.** Plugin marketplace users got 1-click install; npm users had to copy `.claude-plugin/`, set up MCP server, manually register skills. The new postinstall + AGENTS.md/CLAUDE.md writers close every channel automatically.
+2. **The `npm` path had no LLM.** Plugin users got host LLM for free via MCP sampling; npm users got a deterministic floor. The new marker pattern delegates enrichment to whichever host AI opens the project first — cladding never holds API credentials, never bills the user, but the spec gets populated regardless.
+
+Both paths now converge on the same enriched `spec.yaml` at the same moment (first AI task in the project).
+
+### Implementation receipt — 1 cycle
+
+- One feature shard: `spec/features/init-host-autowire-90d054.yaml` (F-90d054, 12 ACs, status `in_progress`).
+- Touches: 4 new modules under `src/init/`, 1 new detector, 1 schema extension, 2 npm-lifecycle scripts. 1 new dep (smol-toml).
+- 34 new tests across `tests/init/` + `tests/stages/enrichment-pending.test.ts`. Total 954 tests.
+- AB-evaluation report baselines refreshed (intentional metric change: detector count 27 → 28).
+- Gates: 954/954 tests · 28/28 detectors · 134 features valid · `clad check --strict` warns on `ENRICHMENT_PENDING` as designed.
+
+---
+
 ## [0.3.59] — 2026-05-22 — ai_hints consumer instructions in CLAUDE.md + 5 personas (F-0ed2db)
 
 **Closing the dead-data loop on preferred_patterns.** F-32b1e0 (v0.3.58) introduced `preferred_patterns` as an advisory `{when, prefer, over?}` channel — but nothing actually consumed it. CLAUDE.md and the persona prompts under `src/agents/` never referenced `ai_hints`, so AI sessions had no instruction to grep it at session start. This cycle makes the consumer real.

@@ -68,9 +68,24 @@ export function selectDispatcher(opts: DispatcherOptions = {}): ScanLlmDispatche
   // Priority 2 — Anthropic SDK direct. Lazy-imported so cold-start
   // stays fast for the deterministic-only majority of `clad init`
   // invocations.
-  const apiKey = opts.apiKey ?? process.env.ANTHROPIC_API_KEY;
-  if (apiKey) {
-    return createAnthropicDispatcher({apiKey, model: opts.model ?? DEFAULT_MODEL});
+  const anthropicKey = opts.apiKey ?? process.env.ANTHROPIC_API_KEY;
+  if (anthropicKey) {
+    return createAnthropicDispatcher({apiKey: anthropicKey, model: opts.model ?? DEFAULT_MODEL});
+  }
+
+  // Priority 3 — OpenAI direct (fetch, no SDK dependency). F-90d054 v0.3.60.
+  // Activates whenever OPENAI_API_KEY is set. Uses the chat-completions
+  // endpoint so prompts compose just like Anthropic / MCP-sampling above.
+  const openaiKey = process.env.OPENAI_API_KEY;
+  if (openaiKey) {
+    return createOpenaiDispatcher({apiKey: openaiKey, model: opts.model ?? 'gpt-4o-mini'});
+  }
+
+  // Priority 4 — Google Gemini direct (fetch). F-90d054 v0.3.60.
+  // Activates when GEMINI_API_KEY or GOOGLE_API_KEY is set.
+  const geminiKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY;
+  if (geminiKey) {
+    return createGeminiDispatcher({apiKey: geminiKey, model: opts.model ?? 'gemini-1.5-flash'});
   }
 
   return null;
@@ -114,6 +129,61 @@ function createMcpDispatcher(
  * Anthropic Messages API. Errors propagate to the caller so the
  * deterministic-fallback policy lives in the call site, not here.
  */
+/**
+ * Builds a flat dispatcher backed by OpenAI's chat-completions API. Uses
+ * `fetch` directly so no SDK dependency is required — keeps the
+ * deterministic-only cold-start fast and the cladding bundle thin.
+ */
+function createOpenaiDispatcher(cfg: {apiKey: string; model: string}): ScanLlmDispatcher {
+  return async (prompt) => {
+    const r = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${cfg.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: cfg.model,
+        max_tokens: DEFAULT_MAX_TOKENS,
+        messages: [{role: 'user', content: prompt}],
+      }),
+    });
+    if (!r.ok) {
+      throw new Error(`OpenAI dispatcher: HTTP ${r.status} ${r.statusText}`);
+    }
+    const data = (await r.json()) as {
+      choices?: {message?: {content?: string}}[];
+    };
+    return data.choices?.[0]?.message?.content ?? '';
+  };
+}
+
+/**
+ * Builds a flat dispatcher backed by Google's Gemini Generative Language
+ * API. Uses `fetch` directly (no SDK dependency).
+ */
+function createGeminiDispatcher(cfg: {apiKey: string; model: string}): ScanLlmDispatcher {
+  return async (prompt) => {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(cfg.model)}:generateContent?key=${encodeURIComponent(cfg.apiKey)}`;
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: {'content-type': 'application/json'},
+      body: JSON.stringify({
+        contents: [{parts: [{text: prompt}]}],
+        generationConfig: {maxOutputTokens: DEFAULT_MAX_TOKENS},
+      }),
+    });
+    if (!r.ok) {
+      throw new Error(`Gemini dispatcher: HTTP ${r.status} ${r.statusText}`);
+    }
+    const data = (await r.json()) as {
+      candidates?: {content?: {parts?: {text?: string}[]}}[];
+    };
+    const parts = data.candidates?.[0]?.content?.parts ?? [];
+    return parts.map((p) => p.text ?? '').join('');
+  };
+}
+
 function createAnthropicDispatcher(cfg: {apiKey: string; model: string}): ScanLlmDispatcher {
   return async (prompt) => {
     // Dynamic import so projects that never enable the LLM path

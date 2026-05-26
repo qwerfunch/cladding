@@ -1,0 +1,72 @@
+id: F-5f6b45
+slug: init-path-intent
+title: "clad init recognizes file path as intent and auto-loads its contents"
+status: in_progress
+modules:
+  - src/cli/intent-from-path.ts
+  - src/cli/init.ts
+acceptance_criteria:
+  - id: AC-001
+    ears: event
+    condition: when the user runs `clad init <relative-path>` where the argument matches a text-file extension (.md / .txt / .yaml / .yml / .markdown) and the file exists under cwd
+    action: read the file contents and use them verbatim as the intent text fed to the onboarding LLM dispatcher
+    response: the produced `docs/project-context.md` and `spec/capabilities.yaml` reflect the planning document rather than treating the path string as raw intent
+    text: When the user runs `clad init <relative-path>` where the argument matches
+      a text-file extension (.md, .txt, .yaml, .yml, .markdown) and the file
+      exists under cwd, the system shall read the file contents and use them as
+      the intent text fed to the onboarding LLM dispatcher, so the produced
+      docs/project-context.md and spec/capabilities.yaml reflect the planning
+      document rather than treating the path string itself as raw intent.
+
+  - id: AC-002
+    ears: event
+    condition: when the path argument is absolute (starts with `/` on POSIX or a drive letter on Windows) and points to an existing text file with a recognized extension
+    action: load and use the file contents identically to the relative-path case
+    response: absolute and relative paths produce equivalent onboarding output
+    text: When the user runs `clad init <absolute-path>` and the file exists with
+      a recognized extension, the system shall load and use the file contents
+      identically to the relative-path case, so absolute and relative paths
+      produce equivalent onboarding output.
+
+  - id: AC-003
+    ears: unwanted
+    condition: if the path argument looks like a file path (has a recognized text extension) but the file does not exist
+    action: emit a warning to stderr and fall back to treating the original argument as free-text intent
+    response: the user is told why their planning document was not loaded and onboarding still proceeds with the literal string
+    text: If the user passes a path-like argument (recognized text extension) but
+      the file does not exist, the system shall not silently drop the input; it
+      shall emit a stderr warning that names the missing path and fall back to
+      treating the original argument as free-text intent, so onboarding still
+      proceeds and the user is told why their planning document was not loaded.
+
+  - id: AC-004
+    ears: state
+    condition: while the intent argument is not path-like (no recognized text extension, e.g. "결제 SaaS 만들거야" or "build a payment SaaS")
+    action: pass the argument through unchanged to the onboarding LLM dispatcher as free-text intent
+    response: existing free-text intent behavior is preserved with zero regression
+    text: While the intent argument is not path-like (does not match the
+      recognized text-file extensions), the system shall pass the argument
+      through unchanged to the onboarding LLM dispatcher as free-text intent,
+      so existing free-text intent behavior is preserved with zero regression.
+
+  - id: AC-005
+    ears: unwanted
+    condition: if the path argument resolves to a directory or to a file that is not UTF-8 readable
+    action: emit a warning to stderr and fall back to treating the original argument as free-text intent
+    response: cladding does not crash on directories or binary files and the user is informed of the fallback
+    text: If the path argument resolves to a directory, a symlink loop, or a file
+      that is not UTF-8 readable, the system shall not crash; it shall emit a
+      stderr warning and fall back to treating the original argument as
+      free-text intent.
+
+  - id: AC-006
+    ears: event
+    condition: when `/cladding init <path>` is invoked from a Claude Code / Codex CLI / Gemini CLI plugin marketplace install
+    action: invoke the same `clad init` CLI which inherits the AC-001/002 path-resolution behavior automatically
+    response: plugin users get identical path-aware intent loading without separate plugin-side code
+    text: When `/cladding init <path>` is invoked from a plugin marketplace
+      install (Claude Code, Codex CLI, Gemini CLI), the plugin skill shall
+      invoke the same `clad init` CLI such that AC-001 and AC-002 path
+      resolution behavior is inherited automatically, so plugin users get
+      identical path-aware intent loading without separate plugin-side code.
+

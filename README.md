@@ -1,168 +1,315 @@
-# cladding
+<p align="center">
+  <img src="docs/img/social-preview.png" alt="cladding — Unified Governance for AI-Coupled Engineering" width="920">
+</p>
 
-> What makes code iron-clad.
-> Reference implementation of the [Ironclad](https://github.com/qwerfunch/ironclad) standard.
+<p align="center">
+  <strong>English</strong> · <a href="README.ko.md">한국어</a>
+</p>
 
-[![ironclad](https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen)](https://github.com/qwerfunch/ironclad)
-[![spec](https://img.shields.io/badge/spec-v0.0.23-blue)](https://github.com/qwerfunch/ironclad)
-[![license](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
+<h1 align="center">cladding</h1>
 
-Cladding is a multi-agent development harness for Claude Code, and the reference implementation of the Ironclad standard for graded, falsifiable consistency among spec, code, and tests. It is the successor to harness-boot — the seed project from which the Ironclad standard was distilled. Where harness-boot proved the idea, Cladding ships it.
+<p align="center">
+  <strong>Unified Governance for AI-Coupled Engineering.</strong><br/>
+  AI-generated code, held to the same bar as human code.
+</p>
 
-> AI tools (Claude Code, OpenAI Codex, Cursor, Cline, Aider, Continue, Copilot, Gemini CLI, …): see [`AGENTS.md`](AGENTS.md) for the cross-tool agent entry point.
+<p align="center">
+  <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
+  <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
+  <img src="https://img.shields.io/badge/tests-954%2F954-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/coverage-93.89%25%2B-brightgreen" alt="coverage"/>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
+</p>
 
+<p align="center">
+  Reference implementation of the <a href="https://github.com/qwerfunch/ironclad">Ironclad</a> standard. 28 detectors and a 13-stage gate verify, on every commit, that the code your AI assistant wrote still matches the spec.
+</p>
+
+<!-- ─────────────── HERO ─────────────── -->
+
+<table align="center">
+<tr>
+<td style="text-align:center;width:320px;background:#f1f5f9;padding:32px 24px;border-radius:8px">
+<div style="font-size:13px;color:#64748b;letter-spacing:1px;text-transform:uppercase">Vanilla AI coding</div>
+<div style="font-size:64px;font-weight:700;color:#94a3b8;line-height:1;margin:12px 0">2/8</div>
+<div style="font-size:13px;color:#64748b">traps caught · 25%</div>
+</td>
+<td style="text-align:center;width:320px;background:#dcfce7;padding:32px 24px;border-radius:8px">
+<div style="font-size:13px;color:#15803d;letter-spacing:1px;text-transform:uppercase">cladding</div>
+<div style="font-size:64px;font-weight:700;color:#16a34a;line-height:1;margin:12px 0">8/8</div>
+<div style="font-size:13px;color:#15803d">traps caught · 100%</div>
+</td>
+</tr>
+<tr><td colspan="2" align="center"><sub>Same spec · same model · <a href="docs/benchmarks/event-store-trap-catch.md">event-sourcing store benchmark</a></sub></td></tr>
+</table>
+
+## Why
+
+<table>
+<tr>
+<td width="33%" valign="top">
+
+**The *why* fades after 3 months**
+
+The reason an AI assistant wrote code a certain way doesn't survive in the code alone.
+
+→ `spec/features/*.yaml` becomes the permanent record of *why*.
+
+✓ **AI context survives time** — six months later, the AI reconstructs intent straight from the spec (new hires get the same entry point).
+
+</td>
+<td width="33%" valign="top">
+
+**AI gives a different answer each time**
+
+The same spec produces code with inconsistent patterns and structure.
+
+→ The spec becomes the *fixed reference* against which every commit is checked.
+
+✓ **Enterprise-ready consistency** — code style and patterns stay aligned across teams and PRs.
+
+</td>
+<td width="33%" valign="top">
+
+**AI hallucination**
+
+Generated code calls APIs, functions, or options that don't exist.
+
+→ 28 detectors and a 13-stage gate block hallucinated code on every commit.
+
+✓ **Production incidents prevented up front** — CI auto-rejects hallucinated code before it merges.
+
+</td>
+</tr>
+</table>
+
+## What you get
+
+How a *vanilla AI coding environment* and a cladding environment behave when the same situation comes up.
+
+<table>
+<thead>
+<tr><th>Situation</th><th align="center">Vanilla AI coding</th><th align="center">cladding</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Code drifts from spec</strong></td><td align="center" style="color:#64748b">fixed if a reviewer notices</td><td align="center"><strong style="color:#16a34a">auto-blocked on every commit</strong></td></tr>
+<tr><td><strong>Two devs build the same feature in parallel</strong></td><td align="center" style="color:#64748b">merge conflicts</td><td align="center"><strong style="color:#16a34a">hash-based IDs route to separate files → 0 conflicts</strong></td></tr>
+<tr><td><strong>Who verifies AI-written code?</strong></td><td align="center" style="color:#64748b">the AI that wrote it (risky)</td><td align="center"><strong style="color:#16a34a">a separate reviewer agent — duties split</strong></td></tr>
+<tr><td><strong>Switching AI tools (Claude → Cursor)</strong></td><td align="center" style="color:#64748b">reconfigure per tool</td><td align="center"><strong style="color:#16a34a">one spec → mirrored across 4 hosts</strong></td></tr>
+<tr><td><strong>Spec authority</strong></td><td align="center" style="color:#64748b">the AI reinterprets it each time</td><td align="center"><strong style="color:#16a34a">the sealed spec is the single source of truth</strong></td></tr>
+</tbody>
+</table>
+
+<p style="text-align: center; font-size: 13px; color: #64748b; margin-top: 8px;">
+The hero's 8/8 vs 2/8 is an early benchmark (<a href="docs/benchmarks/event-store-trap-catch.md">details</a>) · larger-scale measurements are in progress.
+</p>
+
+<!-- ─────────────── How it works ─────────────── -->
+## How it works
+
+**Spec → Code → Tests** runs as a single cycle — the spec captures the *why*, Iron Law verifies the implementation, and Drift Detection blocks anything that no longer matches.
+
+<div align="center">
+
+<img src="docs/img/en/cycle.svg" alt="Spec → Code → Tests as a single cycle — one feature's lifecycle" width="700">
+
+</div>
+
+### 1. SSoT — single source of intent
+
+The spec is where the *why* (what we're building and why) lives. A 4-tier (A/B/C/D) Single Source of Truth — *intent on top, implementation below*.
+
+| Tier | Role | Who edits | Authority |
+|---|---|---|---|
+| **A — Spec** | intent (what to build) | humans only | sealed · LLMs cannot edit |
+| **B — Design** | design (how to build it) | humans freely | checked against A |
+| **C — Derived** | implementation (code · tests) | LLMs and humans | regenerated by reading the code |
+| **D — Audit** | audit log (what actually happened) | append-only | immutable |
+
+**A outranks B** — if code and spec disagree, *the code is wrong*. The spec is sealed because changing the *why* shakes everything downstream, so LLMs are kept out.
+
+<div align="center">
+
+<img src="docs/img/en/ssot-tier.svg" alt="4-tier SSoT — A(Spec) → B(Design) → C(Derived) → D(Audit), A outranks B" width="640">
+
+</div>
+
+### 2. Code — Iron Law (required) gate
+
+Every change has to clear all 13 stages — typically called from CI, a git pre-push hook, or manual `clad check`. Each stage ships with its own unit tests.
+
+<div align="center">
+
+<img src="docs/img/en/iron-law.svg" alt="13-stage Iron Law gate — every change must clear static(6) · test(2) · e2e(3) · evidence(2) wherever clad check runs (CI / git hook / manual)" width="640">
+
+</div>
+
+| Stage | What it checks |
+|---|---|
+| **1.1 Type · 1.2 Lint** | type errors · code style |
+| **1.3 Drift** | spec ↔ code mismatches across 28 detectors |
+| **1.4 Commit · 1.5 Arch · 1.6 Secret** | clean working tree · architecture invariants (forbidden imports, etc.) · leaked API keys |
+| **2.1 Unit · 2.2 Cov** | unit tests pass · project coverage threshold |
+| **3.1 Smoke · 3.2 Perf · 3.3 Visual** | end-to-end critical paths · performance budgets · visual regression |
+| **4.1 Audit · 4.2 UAT** | every AC (acceptance criteria) has at least one piece of evidence · every `status=done` feature has at least one piece of evidence |
+
+### 3. Tests — 28 drift detectors
+
+Seven categories of mismatch across spec · code · test, all caught automatically. Full catalog: [src/stages/detectors/README.md](src/stages/detectors/README.md).
+
+<table>
+<thead>
+<tr><th>Category</th><th>What it catches</th><th align="center">Count</th><th>Representative detectors</th></tr>
+</thead>
+<tbody>
+<tr><td>spec ↔ code drift</td><td>something in the spec missing from code, or in code with nothing in the spec</td><td align="center">6</td><td><code>UNMAPPED_ARTIFACT</code>, <code>MISSING_IMPLEMENTATION</code>, <code>AC_DRIFT</code></td></tr>
+<tr><td>code ↔ test</td><td>code without tests · coverage falling below threshold</td><td align="center">6</td><td><code>MISSING_TESTS</code>, <code>COVERAGE_DROP</code>, <code>HARDCODED_SECRET</code></td></tr>
+<tr><td>spec ↔ test</td><td>an AC in the spec that no test actually verifies</td><td align="center">4</td><td><code>UNTESTED_AC</code>, <code>STATUS_DRIFT</code>, <code>STALE_EVIDENCE</code></td></tr>
+<tr><td>spec maintenance</td><td>spec hygiene — slug collisions, ID duplicates</td><td align="center">5</td><td><code>SLUG_CONFLICT</code>, <code>ID_COLLISION</code>, <code>ENRICHMENT_PENDING</code></td></tr>
+<tr><td>environment integrity</td><td>build environment and meta-file integrity</td><td align="center">3</td><td><code>HARNESS_INTEGRITY</code>, <code>META_INTEGRITY</code></td></tr>
+<tr><td>architecture · capability</td><td>code that breaks the architecture or capability shape declared in the spec</td><td align="center">2</td><td><code>ARCHITECTURE_FROM_SPEC</code>, <code>CAPABILITIES_FEATURE_MAPPING</code></td></tr>
+<tr><td>governance · policy</td><td>code that breaks an `ai_hints` policy (e.g. forbidden patterns)</td><td align="center">2</td><td><code>AI_HINTS_FORBIDDEN_PATTERN</code>, <code>ABSENCE_OF_GOVERNANCE</code></td></tr>
+</tbody>
+</table>
+
+### 4. Cycle — one feature's lifecycle
+
+The 4 steps that wrap Spec → Code → Test into a single cycle. Merge if drift is 0, block otherwise.
+
+<div align="center">
+
+<img src="docs/img/en/workflow.svg" alt="One feature's lifecycle — Define → Sync → Implement → Verify, merge if drift=0 / block otherwise" width="720">
+
+</div>
+
+## Multi-Agent Workflow
+
+cladding is a **5-agent system** working in concert. Each agent has a clear role under **CQS** (Command-Query Separation — the agents that *do* are kept apart from the agents that *verify*), so no agent can sign off on its own work. This is the foundation that maps cleanly to compliance regimes (EU AI Act · K-AI Framework · SOX).
+
+<div align="center">
+
+<img src="docs/img/en/multi-agent.svg" alt="5 personas with CQS — orchestrator dispatches, librarian/specialist/reviewer act, observability watches metrics" width="680">
+
+</div>
+
+## Ecosystem
+
+cladding sits at the intersection of three existing categories.
+
+<div align="center">
+
+<img src="docs/img/en/ecosystem.svg" alt="Ecosystem Venn — cladding sits at the intersection of SDD · Runners · Multi-agent Governance" width="640">
+
+</div>
+
+### How cladding differs from the neighbors
+
+- **Spec Kit · OpenSpec · Tessl · Kiro** help you *write a good spec*. cladding goes further — it *verifies on every commit* that the code still matches that spec.
+- **BMAD · ChatDev · Claude Code Agent Teams** are about splitting work across multiple AI agents. cladding's 5 agents take that further by tying spec, code, and audit log into the same loop.
+- **tdd-guard** forces test-first development. That's roughly what the Unit · Coverage stages do inside cladding's 13-stage gate.
+- **OpenHands · Cline · Aider · Goose** are *runners* — they tell the AI to write code. cladding is the *governance layer* that verifies and controls what those runners produce.
+
+cladding's edge is the *combination* — it folds the strongest parts of all four categories into one verification loop.
+
+<!-- ─────────────── Install ─────────────── -->
 ## Install
 
+There are two paths into cladding — either one lands you in the same place, with the same spec · policies · verification loop.
+
+### Path 1 — Marketplace (fastest)
+
+Install cladding from the Claude Code · Codex CLI · Gemini CLI marketplace, then say one line to the AI:
+
 ```
+/cladding init "B2B payment SaaS"
+```
+
+The AI fills in the spec, the 4-tier docs, and the policies on the spot. No separate npm install required.
+
+### Path 2 — npm (terminal · CI · environments without an AI tool)
+
+```bash
 npm install -g cladding
+clad init "B2B payment SaaS"
+clad check
 ```
 
-Then, in any project directory:
+`npm install -g cladding`'s postinstall hook wires up four channels automatically:
 
-```
-clad init     # scaffold a cladding workspace
-clad check    # run every Iron Law stage + drift suite
-clad panel    # see the feature × stage Integrity Panel
-```
+| Host | Auto-wired location |
+|---|---|
+| Claude Code | `~/.claude/plugins/cladding` |
+| Codex CLI (skills) | `~/.agents/skills/cladding-*` |
+| Codex CLI (MCP server) | `[mcp_servers.cladding]` in `~/.codex/config.toml` |
+| Gemini CLI | `~/.gemini/extensions/cladding` |
 
-Same command surface inside Claude Code, OpenAI Codex CLI, Google Gemini CLI, Cursor, Cline, Continue, and any other tool that reads [`AGENTS.md`](AGENTS.md). Requires Node ≥ 20.
+After that, `/cladding init` and `clad init` work identically from any AI tool.
 
+> If you installed with `npm install --ignore-scripts`, the postinstall is skipped — but the first `clad init` retries it automatically.
+
+### Three init scenarios
+
+`clad init` takes a natural-language intent and picks the right path on its own. Same command, three starting points.
+
+| Starting point | Command (npm path) | What happens |
+|---|---|---|
+| **An idea, nothing else** | `clad init "I want to build a B2B payment SaaS"` | LLM infers the domain → spec · docs · policies generated, with 2–3 follow-up questions printed |
+| **A planning doc** | `clad init docs/plan.md` | cladding detects the file path, loads its contents, and uses them as the intent (absolute and relative paths both work) |
+| **Adopting into an existing project** | `clad init "apply cladding to this project"` | scans the existing code (≥3 source files trigger it) → observed patterns are merged with the intent |
+
+> In a marketplace install (Claude Code · Codex CLI · Gemini CLI) the format is `/cladding init "..."` — works the same with free text *and* with paths like `/cladding init docs/plan.md`.
+
+### Init once, then carry on
+
+cladding's goal is to *be the infrastructure that prevents spec ↔ code drift* — after init, you just keep coding. The AI references the spec while it writes, and `clad check` runs automatically in CI or as a pre-commit hook to block anything that drifts. No extra commands to remember.
+
+<!-- ─────────────── Status ─────────────── -->
 ## Status
 
-**Ironclad L4 conformant (L21) · self-spec sharded (L21.8) · v0.3.36 develop ships at 743/743 tests · 93.89%+ line coverage · MISSING_TESTS hard-error · F-049 (agent dispatch & runtime orchestration) done · **plugin installable on all three major agentic CLIs** — Claude Code (skills + agents + MCP), OpenAI Codex (`plugins/codex/`, 11 skills + MCP), Gemini CLI (`plugins/gemini-cli/`, TOML commands + MCP) · `clad serve` MCP server with live audit stream · **`clad init` writes `docs/project-context.md`** (forest-level Why/What/Purpose — observed when README exists, template otherwise) · **scan LLM dispatcher chain** (MCP sampling → Anthropic SDK → null) — hosted refinement for `docs/conventions.md` + `spec/architecture.yaml` + `docs/project-context.md` in one dispatcher session, deterministic fallback on null/error · McpSamplingTransport · AnthropicTransport SDK path · transport-specific halt classes + pre-flight health check · **strict-drift PASS baseline** (v0.3.36 — first since the v0.3.29 scan refactor) · **multi-developer-safe spec IDs** (hash-based F-/S- ids, slug-prefixed filenames, namespace-aware drift detectors) · **spec/architecture.yaml as working invariant** (ARCHITECTURE_FROM_SPEC detector enforces forbidden_imports + layer alignment) · minified bundle (~1.1 MB) · controlled benchmark in docs/benchmarks/.** Cladding ships the full Ironclad surface: 13 Iron Law stages (L1 Type / Lint / Drift / Commit / Arch / Secret · L2 Unit / Cov · L3 Smoke / Perf / Visual · L4 Audit / UAT) — every stage runner carrying a dedicated unit test (stage chapter closed v0.2.12) — plus **24 drift detectors** (3 always-error + 16 conditional + 5 cladding extensions: `FIXTURE_REFERENCE_INVALID` · `SLUG_CONFLICT` · `ID_COLLISION` · `AC_DUPLICATE_WITHIN_FEATURE` · `ARCHITECTURE_FROM_SPEC`); severity matrix in [`src/stages/detectors/README.md`](src/stages/detectors/README.md); EARS syntactic validator, HITL infrastructure (identity · audit · anti-self-cert), 5 agent personas, polyglot toolchain for 9 languages, Intent Router, clad CLI (+ `clad serve` MCP server mode), Token Optimizer (87.9% reduction measured), conformance fixtures 33/33 matched (26 baseline + 7 documentary→runnable promotions). Cladding's own spec is sharded (`spec/features/F-NNN.yaml` × 110, `spec/scenarios/S-NNN.yaml` × 2, `spec/architecture.yaml`) — the same layout external adopters get when their spec outgrows a single file.
+<table style="margin:0 auto;border:none">
+<tr style="border:none">
+<td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
+<div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">version</div>
+<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">v0.3.60</div>
+<div style="font-size:11px;color:#64748b">2026-05</div>
+</td>
+<td style="text-align:center;width:140px;background:#dcfce7;padding:18px 10px;border-radius:8px;border:none">
+<div style="font-size:11px;color:#15803d;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">conformance</div>
+<div style="font-size:24px;font-weight:800;color:#16a34a;margin:8px 0;letter-spacing:-0.5px">L4</div>
+<div style="font-size:11px;color:#15803d">top tier · self-declared</div>
+</td>
+<td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
+<div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">tests</div>
+<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">954<span style="font-size:16px;color:#94a3b8">/954</span></div>
+<div style="font-size:11px;color:#64748b">all pass</div>
+</td>
+<td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
+<div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">coverage</div>
+<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">93.89<span style="font-size:16px;color:#94a3b8">%+</span></div>
+<div style="font-size:11px;color:#64748b">enforced</div>
+</td>
+<td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
+<div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">features</div>
+<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">135</div>
+<div style="font-size:11px;color:#64748b">spec'd</div>
+</td>
+</tr>
+</table>
 
-Each Level adds a verifiable capability:
+<sub>101 test files · installable from the Claude Code · OpenAI Codex · Gemini CLI marketplaces.</sub>
 
-| Level | Capability | Status |
-|---|---|---|
-| L0 | Repository skeleton | ✓ |
-| L1 | Spec reference pinned (v0.0.23, commit `883ff01`) | ✓ |
-| L2 | stage_1.1 Type (TypeScript, self-dogfooded) | ✓ |
-| L3 | stage_1.2 Lint (ESLint, self-dogfooded) | ✓ |
-| L4a | stage_1.3 Drift core (registry + aggregator, empty) | ✓ |
-| L4b | Polyglot toolchain adapter — 9 languages, execa-backed | ✓ |
-| L4b' | Detector severity matrix (v0.2.2) — "3 always-error + 16 conditional", not "19 undifferentiated" | ✓ |
-| L4c | stage_1.6 Secret + HARDCODED_SECRET detector (1/19) | ✓ |
-| L4d | stage_1.4 Commit (git clean tree, language-agnostic) | ✓ |
-| L4e | stage_1.5 Arch + ARCHITECTURE_VIOLATION detector (2/19) — **T1 complete** | ✓ |
-| L5a | spec.yaml schema + parser + validator (T2a) | ✓ |
-| L5b | cladding own spec.yaml (T2b) — 10 features · 16 ACs · 2 scenarios | ✓ |
-| L6a | MISSING_IMPLEMENTATION detector (3/19) — first Ironclad-native (T4 kickoff) | ✓ |
-| L6b | UNMAPPED_ARTIFACT detector (4/19) — spec ↔ file mirror | ✓ |
-| L6c | T4 batch — TECH_STACK_MISMATCH · STATUS_DRIFT · STALE_SPECIFICATION · REFERENCE_INTEGRITY (8/19) | ✓ |
-| L6d | T4 integrity batch — HARNESS_INTEGRITY · META_INTEGRITY · AC_DRIFT (11/19) | ✓ |
-| L7 | T5 EARS syntactic validator (5 patterns, AC_DRIFT enrichment) | ✓ |
-| L8 | T6 L1 conformance fixture suite — **`iron_law: L1` declared** | ✓ |
-| L9 | T7a stage_2.1 Unit + MISSING_TESTS + vitest self-dogfood (23 tests) | ✓ |
-| L10 | T7b stage_2.2 Cov + STALE_TESTS + COVERAGE_DROP | ✓ |
-| L11 | T7c stage_3.1 Smoke + 3.2 Perf + 3.3 Visual + PERFORMANCE_DRIFT | ✓ |
-| L12 | T2c Spec sharding (multi-file SSoT support) | ✓ |
-| L13 | T8a HITL infrastructure (identity · audit · anti-self-cert) | ✓ |
-| L14 | T8b stage_4.1 Audit + 4.2 UAT + EVIDENCE_MISMATCH + STALE_EVIDENCE | ✓ |
-| L15 | T9a 5-agent personas (orchestrator · librarian · reviewer · observability · specialists) | ✓ |
-| L16 | T9b UNTESTED_AC + CONVENTION_DRIFT — **19/19 detectors** | ✓ |
-| L17 | T10a Intent Router (NL → CLI verb) | ✓ |
-| L18 | T10b clad CLI + Pulse UI + Integrity Panel | ✓ |
-| L19 | T11a Token Optimizer (prune · preamble · tail) | ✓ |
-| L20 | T11b events.log + benchmark CLI (87.9% reduction measured on F-008) | ✓ |
-| L21 | L2/L3/L4 conformance fixtures — **iron-law L4 declared (26/26 matched)** | ✓ |
-| L21.5 | Release preparation (CHANGELOG · README.ko · commands · bin field) | ✓ |
-| L22 | v0.1.0 main release | gated on user instruction |
+> **Road to Ironclad 1.0** — 1.0 locks when *two independent implementations pass the L4 conformance fixtures* ([GOVERNANCE § 1](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md)). cladding is the first one.
 
-## Evidence
+## Docs
 
-Cladding's headline claim — that an **EARS-locked sharded spec forces edge cases into code, not assumptions** — is backed by a controlled A/B/C benchmark documented in [`docs/benchmarks/event-store-trap-catch.md`](docs/benchmarks/event-store-trap-catch.md).
-
-The benchmark builds the same event-sourcing store three times: once with no scaffolding (vanilla Claude Code), once with harness-boot's gate cycle, and once with cladding's EARS-locked spec. The spec contains **22 normal ACs + 8 intentional ambiguities** ("traps") it deliberately does not pin. Result on the 8 traps:
-
-| variant | trap catch (code) | covered (code + docs) | silent gaps |
-|---|---|---|---|
-| vanilla | 2/8 (25%) accidental | 2/8 | **6 silent** |
-| harness-boot | 2/8 (same code as vanilla) | 7/8 documented | 1 silent |
-| **cladding** | **8/8 (100%) explicit** | **8/8** | **0** |
-
-Each cladding trap becomes a first-class EARS `unwanted` or `state` AC (see [`event-store-spec-with-traps.md`](docs/benchmarks/event-store-spec-with-traps.md)), which the implementation then has to satisfy. **+50% source LOC vs vanilla buys zero silent edges.** Full methodology, trap-by-trap matrix, and 8-axis comparison are in the linked benchmark.
-
-## Status & roadmap
-
-**v0.1.0 — what is shipped vs deferred.** Cladding ships the full Ironclad **machinery** today: 13 Iron Law stages, 19 drift detectors, EARS validator, HITL guard, agent persona definitions, conformance fixtures, and the CLI surface. Two scoped deferrals are tracked openly:
-
-| Capability | v0.1.0 state | v0.2.0 epic |
-|---|---|---|
-| `clad drive` autonomous loop | **deterministic floor** — iterates ready features, materialises module stubs, runs L1 gates (`type` · `lint` · `arch`). No LLM is invoked. See [F-048](spec/features/F-048.yaml) AC-083. | [F-049](spec/features/F-049.yaml) — invoke the five agent personas, enforce reviewer ≠ author at runtime, wire the `HUMAN_REQUIRED` / `LLM_UNAVAILABLE` halt classes. |
-| Iron Law L4 in flight | Conformance fixtures 26/26 + human signoff on Cladding's own audit log prove the **L4 machinery** is correct. | Demonstrate the L4 machinery catching an LLM-authored implementation — requires F-049 to land first. |
-| Agent persona orchestration | Five subagent prompts ship under `src/agents/*.md`. | Runtime dispatch from `src/drive/loop.ts` (part of F-049). |
-
-The Ironclad standard's v1.0 graduation requires two independent reference implementations passing L1–L4 fixtures ([Ironclad GOVERNANCE](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) §1). Cladding's fixture-level conformance counts toward that bar today; the qualitative "L4 catching LLM authoring" claim is a separate v0.2.0 milestone.
-
-## Spec Reference
-
-Cladding implements the Ironclad standard. The exact spec version this codebase targets is pinned in `.claude-plugin/plugin.json`:
-
-```json
-"ironclad": {
-  "spec-version": "0.0.23",
-  "spec-tag": "v0.0.23",
-  "spec-commit": "883ff01d0360b7c989fe16214c69a324f049c8cd",
-  "spec-url": "https://github.com/qwerfunch/ironclad"
-}
-```
-
-When the Ironclad spec advances, this pin updates via a deliberate sync step (not auto-follow) — see [`GOVERNANCE.md`](GOVERNANCE.md) §1 for the 5-step sync procedure.
-
-### Spec layout (sharded)
-
-Cladding's own spec uses the sharded layout — one yaml file per feature:
-
-| where | what |
-|---|---|
-| `spec.yaml` | master · `schema` + `project` metadata only |
-| `spec/features/F-NNN.yaml` | one file per feature (110 total) |
-| `spec/scenarios/S-NNN.yaml` | one file per scenario (2 total) |
-| `spec/architecture.yaml` | layer + forbidden-imports policy |
-| `src/spec/schema.json` | JSON Schema (draft-07) |
-
-`src/spec/load.ts` auto-detects this layout and merges children back into one Spec object on every load. To inspect the merged view:
-
-| intent | command |
-|---|---|
-| validate merged spec | `npm run spec:validate` |
-| feature + dependencies (JSON) | `clad benchmark F-NNN` |
-| coverage at a glance | `clad panel` |
-| raw dump | `cat spec/features/*.yaml` |
-
-Inline-features layout (single `spec.yaml`) also works — `src/spec/load.ts` falls back automatically. New projects start unsharded; `scripts/shard-spec.ts` migrates when the master grows past ~1k lines.
-
-## CLI
-
-```
-clad init [--name N] [--force] [--scan|--no-scan] [--no-llm]
-                         # scaffold a cladding workspace (spec.yaml seed · .cladding/ · .gitignore
-                         # · docs/project-context.md · conditional docs/conventions.md +
-                         # spec/architecture.yaml when ≥ 3 source files observed)
-clad work <verb>         # run a stage or natural-language intent
-clad drive [goal]        # autonomous loop — deterministic floor; LLM dispatch arrives with F-049 in v0.2
-clad sync                # validate spec.yaml against schema
-clad check               # run every Iron Law stage + drift suite
-clad panel               # render the feature × stage Integrity Panel
-clad route <prompt>      # classify a natural-language prompt to a verb
-clad serve               # MCP server over stdio (tools / resources / prompts / sampling)
-clad benchmark <feature> # naive vs optimized spec token cost
-```
-
-After install, the `clad` binary is on `PATH` via the `bin` field in `package.json`. During development the shim at `bin/clad` invokes `src/cli/clad.ts` through tsx.
-
-## Vocabulary
-
-- **`ironclad`** — the standard (the agreed-upon result state)
-- **`cladding`** — this project (the implementation, the tooling)
-- **`clad`** — the CLI verb (the action)
+- [Why cladding (project context)](docs/project-context.md)
+- [4-tier governance model](docs/ssot-model.md)
+- [Hash-based feature IDs](docs/spec-ids-multi-dev.md)
+- [28 detector catalog](src/stages/detectors/README.md)
+- [Benchmark — event store trap catch](docs/benchmarks/event-store-trap-catch.md)
+- [A/B evaluation cases](docs/ab-evaluation/)
+- [Governance · roadmap to 1.0](GOVERNANCE.md)
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
-
-## Related
-
-- [Ironclad](https://github.com/qwerfunch/ironclad) — the standard this implements
-- [harness-boot](https://github.com/qwerfunch/harness-boot) — the seed project (historical reference)
+MIT. [LICENSE](LICENSE) · Related: [Ironclad](https://github.com/qwerfunch/ironclad) (the standard cladding implements) · [harness-boot](https://github.com/qwerfunch/harness-boot) (the seed project).

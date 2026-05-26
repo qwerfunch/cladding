@@ -34,6 +34,11 @@ import {
 } from './scan/intent-onboarding.js';
 import {saveState, type OnboardingState} from './scan/onboarding-state.js';
 import {detectToolchain} from '../stages/toolchain/detect.js';
+import {detectContext} from '../init/detect.js';
+import {buildMarker, patchMarkerInSpec, renderMarkerYaml, type EnrichmentMarker} from '../init/marker.js';
+import {writeAgentsMd, writeClaudeMdSection} from '../init/host-instructions.js';
+import {retryPostinstallIfNeeded} from '../init/postinstall-fallback.js';
+import {loadIntentFromPathIfApplicable} from './intent-from-path.js';
 
 export interface InitOptions {
   readonly cwd?: string;
@@ -171,7 +176,12 @@ function hasAnyAiHint(h: NonNullable<SpecSeedMetadata['ai_hints']>): boolean {
 // version, repository, intent_summary). When the intent path is taken,
 // description + intent_summary default to the user's intent line so the
 // spec.yaml front door has *something* useful instead of just name+language.
-function specSeed(projectName: string, language: string, metadata?: SpecSeedMetadata): string {
+function specSeed(
+  projectName: string,
+  language: string,
+  metadata?: SpecSeedMetadata,
+  marker?: EnrichmentMarker,
+): string {
   const projectLines = [
     `  name: ${projectName}`,
     `  language: ${language}`,
@@ -226,6 +236,9 @@ function specSeed(projectName: string, language: string, metadata?: SpecSeedMeta
     '',
     'schema: "0.1"',
     '',
+    // F-90d054 — lazy enrichment marker. Host AI consumes this on its first
+    // task in the project and removes it once every scope item is filled.
+    ...(marker ? [renderMarkerYaml(marker), ''] : []),
     'project:',
     ...projectLines,
     '',
@@ -294,7 +307,25 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
       ? scanResult.stats.dominantLanguage
       : manifestLanguage;
   const projectName = opts.projectName ?? basename(resolve(cwd));
-  const intent = opts.intent?.trim();
+  const rawIntent = opts.intent?.trim();
+
+  // F-5f6b45 — path-aware intent. When the positional argument looks like a
+  // text-file path (.md / .txt / .yaml / .yml / .markdown) and the file exists
+  // under cwd, load its contents and use them as the intent. The LLM has no
+  // filesystem access; cladding must do the load before composing the prompt.
+  // Anything not path-like (or a missing / non-text path) falls back to the
+  // existing free-text intent behavior with a stderr warning when applicable.
+  let intent = rawIntent;
+  if (rawIntent && rawIntent.length > 0) {
+    const resolution = loadIntentFromPathIfApplicable(rawIntent, cwd);
+    if (resolution.warning) {
+      process.stderr.write(`[clad init] ${resolution.warning}\n`);
+    }
+    if (resolution.loadedFrom) {
+      process.stderr.write(`[clad init] loaded intent from ${resolution.loadedFrom}\n`);
+    }
+    intent = resolution.intent;
+  }
 
   // v0.3.43 — intent-aware onboarding. When the user passes a free-text
   // intent (`clad init <description>`), run the LLM-driven onboarding
@@ -334,6 +365,13 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
     saveState(cwd, initialState);
   }
 
+  // F-90d054 — observe the project once to build the lazy enrichment marker.
+  // detectContext is cheap (one synchronous walk capped at depth 12, skipping
+  // node_modules/.git/dist/etc) and gives host AI the ground truth it needs
+  // to populate the enrichment scope without invention.
+  const ctx = detectContext(cwd);
+  const marker = buildMarker(ctx);
+
   // 1. spec.yaml + F-001 sharded placeholder
   //
   // v0.3.49 (F-99c6e5): spec.yaml seed now carries `features: []` and
@@ -341,9 +379,24 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
   // This activates the sharded-loader path from day one — every
   // spec-gated detector now sees user-authored shards instead of
   // being blinded by the legacy inline placeholder.
+  // v0.3.60 (F-90d054): seed now carries `_meta` enrichment marker so
+  // host AI can finish what `clad init` couldn't (intent reasoning,
+  // ai_hints inference, EARS-shaped AC) on its first task.
   const specPath = join(cwd, 'spec.yaml');
   if (existsSync(specPath) && !force) {
-    skipped.push('spec.yaml (exists; pass --force to overwrite)');
+    // F-90d054 AC-012 — Idempotent re-run. Preserve every line of the existing
+    // spec body and only refresh `_meta` when `detected` observations actually
+    // changed. The host AI then sees the new pending scope on its next task.
+    const existing = readFileSync(specPath, 'utf8');
+    const patched = patchMarkerInSpec(existing, ctx);
+    if (patched.updated) {
+      writeFileSync(specPath, patched.body);
+      created.push(
+        `spec.yaml (_meta refreshed; re-activated: ${patched.reactivated.join(', ')})`,
+      );
+    } else {
+      skipped.push('spec.yaml (exists; _meta already current)');
+    }
   } else {
     // v0.3.49 (F-3a5339) — when an intent is provided, seed the
     // project metadata fields too so spec.yaml has a meaningful
@@ -357,7 +410,7 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
           ai_hints: onboarding?.aiHints,
         }
       : undefined;
-    writeFileSync(specPath, specSeed(projectName, language, seedMetadata));
+    writeFileSync(specPath, specSeed(projectName, language, seedMetadata, marker));
     created.push('spec.yaml');
   }
   const f001Path = join(cwd, 'spec', 'features', 'F-001-first.yaml');
@@ -494,6 +547,34 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
       const body = renderScenarioYaml(scenario);
       writeArtifact(cwd, filename, body, created, proposals);
     }
+  }
+
+  // F-90d054 — project-local host AI instruction surfaces.
+  // AGENTS.md is the cross-tool entry point (Codex · Cursor · Continue ·
+  // Copilot · Aider). CLAUDE.md is Claude Code's project memory — appended
+  // idempotently so existing user content is preserved.
+  const agentsResult = writeAgentsMd(cwd, {force});
+  if (agentsResult === 'created' || agentsResult === 'overwritten') {
+    created.push('AGENTS.md');
+  } else {
+    skipped.push('AGENTS.md (exists; pass --force to overwrite)');
+  }
+  const claudeResult = writeClaudeMdSection(cwd, {force});
+  if (claudeResult === 'created') {
+    created.push('CLAUDE.md');
+  } else if (claudeResult === 'appended') {
+    created.push('CLAUDE.md (## cladding section appended)');
+  } else {
+    skipped.push('CLAUDE.md (## cladding section already present)');
+  }
+
+  // F-90d054 — postinstall fallback retry. Users who installed cladding
+  // with `npm install --ignore-scripts` (or whose CI skipped postinstall)
+  // get the global wiring set up here instead. Best-effort; failures do
+  // not block init.
+  const fallback = retryPostinstallIfNeeded();
+  if (fallback.attempted && fallback.exitCode === 0) {
+    created.push('global host wiring (postinstall retry)');
   }
 
   return {
