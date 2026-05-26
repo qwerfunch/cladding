@@ -1,0 +1,45 @@
+<svg width="640" height="460" viewBox="0 0 640 460" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="iron-law-title">
+  <title id="iron-law-title">13-stage Iron Law gate — a PR must clear static(6) · test(2) · e2e(3) · evidence(2) before it merges</title>
+  <rect x="270" y="10" width="100" height="40" rx="6" fill="#1e293b"/>
+  <text x="320" y="35" font-family="sans-serif" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">PR</text>
+  <line x1="320" y1="50" x2="320" y2="75" stroke="#1e293b" stroke-width="2"/>
+  <polygon points="314,69 320,79 326,69" fill="#1e293b"/>
+  <rect x="40" y="80" width="560" height="72" rx="8" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/>
+  <text x="60" y="103" font-family="sans-serif" font-size="14" font-weight="700" fill="#854d0e">stage_1 · static  (6)</text>
+  <g font-family="monospace" font-size="13" fill="#713f12">
+    <text x="60"  y="135">Type</text>
+    <text x="135" y="135">Lint</text>
+    <text x="200" y="135">Drift</text>
+    <text x="275" y="135">Commit</text>
+    <text x="365" y="135">Arch</text>
+    <text x="430" y="135">Secret</text>
+  </g>
+  <line x1="320" y1="152" x2="320" y2="172" stroke="#1e293b" stroke-width="2"/>
+  <polygon points="314,166 320,176 326,166" fill="#1e293b"/>
+  <rect x="40" y="177" width="560" height="60" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="60" y="200" font-family="sans-serif" font-size="14" font-weight="700" fill="#1d4ed8">stage_2 · test  (2)</text>
+  <g font-family="monospace" font-size="13" fill="#1e3a8a">
+    <text x="60"  y="225">Unit</text>
+    <text x="135" y="225">Cov</text>
+  </g>
+  <line x1="320" y1="237" x2="320" y2="257" stroke="#1e293b" stroke-width="2"/>
+  <polygon points="314,251 320,261 326,251" fill="#1e293b"/>
+  <rect x="40" y="262" width="560" height="60" rx="8" fill="#e0e7ff" stroke="#6366f1" stroke-width="2"/>
+  <text x="60" y="285" font-family="sans-serif" font-size="14" font-weight="700" fill="#4338ca">stage_3 · e2e  (3)</text>
+  <g font-family="monospace" font-size="13" fill="#312e81">
+    <text x="60"  y="310">Smoke</text>
+    <text x="140" y="310">Perf</text>
+    <text x="200" y="310">Visual</text>
+  </g>
+  <line x1="320" y1="322" x2="320" y2="342" stroke="#1e293b" stroke-width="2"/>
+  <polygon points="314,336 320,346 326,336" fill="#1e293b"/>
+  <rect x="40" y="347" width="560" height="60" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="60" y="370" font-family="sans-serif" font-size="14" font-weight="700" fill="#15803d">stage_4 · evidence  (2)</text>
+  <g font-family="monospace" font-size="13" fill="#14532d">
+    <text x="60"  y="395">Audit</text>
+    <text x="140" y="395">UAT</text>
+  </g>
+  <line x1="320" y1="407" x2="320" y2="427" stroke="#1e293b" stroke-width="2"/>
+  <polygon points="314,421 320,431 326,421" fill="#1e293b"/>
+  <text x="320" y="448" font-family="sans-serif" font-size="13" font-weight="700" fill="#16a34a" text-anchor="middle">all pass → merge OK    ✗    any fail → block</text>
+</svg>

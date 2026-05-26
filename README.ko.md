@@ -100,45 +100,7 @@ AI 가 짠 코드의 *왜* 가 코드만 봐서는 안 잡힌다.
 
 <div align="center">
 
-<svg width="700" height="460" viewBox="0 0 700 460" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="cycle-title">
-  <title id="cycle-title">SSoT → Code → Tests 가 한 cycle 로 순환 — 한 feature lifecycle</title>
-  <!-- SSoT (top) -->
-  <rect x="240" y="30" width="220" height="90" rx="45" fill="#dcfce7" stroke="#16a34a" stroke-width="2.5"/>
-  <text x="350" y="62" font-family="sans-serif" font-size="18" font-weight="800" fill="#15803d" text-anchor="middle">SSoT — Spec</text>
-  <text x="350" y="84" font-family="sans-serif" font-size="12" fill="#166534" text-anchor="middle">의도(왜)가 기록된 곳</text>
-  <text x="350" y="103" font-family="monospace" font-size="11" fill="#166534" text-anchor="middle">spec.yaml</text>
-
-  <!-- Code (bottom-right) -->
-  <rect x="430" y="310" width="220" height="90" rx="45" fill="#dbeafe" stroke="#2563eb" stroke-width="2.5"/>
-  <text x="540" y="342" font-family="sans-serif" font-size="18" font-weight="800" fill="#1d4ed8" text-anchor="middle">Code — Iron Law</text>
-  <text x="540" y="364" font-family="sans-serif" font-size="12" fill="#1e3a8a" text-anchor="middle">13 단계 필수 검증</text>
-  <text x="540" y="383" font-family="monospace" font-size="11" fill="#1e3a8a" text-anchor="middle">clad check</text>
-
-  <!-- Tests (bottom-left) -->
-  <rect x="50" y="310" width="220" height="90" rx="45" fill="#fef9c3" stroke="#ca8a04" stroke-width="2.5"/>
-  <text x="160" y="342" font-family="sans-serif" font-size="17" font-weight="800" fill="#854d0e" text-anchor="middle">Tests — Drift Detection</text>
-  <text x="160" y="364" font-family="sans-serif" font-size="12" fill="#713f12" text-anchor="middle">28 어긋남 검사기 · 7 카테고리</text>
-  <text x="160" y="383" font-family="monospace" font-size="11" fill="#713f12" text-anchor="middle">매 commit 자동</text>
-
-  <!-- Arrow SSoT → Code (curve, right side) -->
-  <path d="M 460 110 Q 620 220 540 308" fill="none" stroke="#1e293b" stroke-width="2.5"/>
-  <polygon points="532,300 543,310 533,315" fill="#1e293b"/>
-  <text x="610" y="215" font-family="sans-serif" font-size="13" font-style="italic" font-weight="600" fill="#475569" text-anchor="middle">enforces</text>
-
-  <!-- Arrow Code → Tests (bottom horizontal) -->
-  <line x1="430" y1="355" x2="282" y2="355" stroke="#1e293b" stroke-width="2.5"/>
-  <polygon points="290,349 278,355 290,361" fill="#1e293b"/>
-  <text x="355" y="345" font-family="sans-serif" font-size="13" font-style="italic" font-weight="600" fill="#475569" text-anchor="middle">detects</text>
-
-  <!-- Arrow Tests → SSoT (curve, left side) -->
-  <path d="M 160 310 Q 80 220 240 110" fill="none" stroke="#1e293b" stroke-width="2.5"/>
-  <polygon points="237,118 247,108 252,120" fill="#1e293b"/>
-  <text x="90" y="215" font-family="sans-serif" font-size="13" font-style="italic" font-weight="600" fill="#475569" text-anchor="middle">feeds back</text>
-
-  <!-- Center label -->
-  <text x="350" y="218" font-family="sans-serif" font-size="14" font-weight="700" fill="#1e293b" text-anchor="middle">한 feature lifecycle</text>
-  <text x="350" y="238" font-family="sans-serif" font-size="11" fill="#64748b" text-anchor="middle">매 commit 통과해야 merge</text>
-</svg>
+<img src="docs/img/ko/cycle.svg" alt="SSoT → Code → Tests 가 한 cycle 로 순환 — 한 feature lifecycle" width="700">
 
 </div>
 
@@ -157,44 +119,7 @@ spec 이 *왜* (무엇을 왜 만드는지) 를 기록하는 곳. 4-tier (A/B/C/
 
 <div align="center">
 
-<svg width="640" height="440" viewBox="0 0 640 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ssot-tier-title">
-  <title id="ssot-tier-title">4-tier SSoT — A(Spec) → B(Design) → C(Derived) → D(Audit), A 가 B 보다 우선</title>
-  <!-- Tier A (green) -->
-  <rect x="40" y="20" width="560" height="72" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
-  <text x="60" y="48" font-family="sans-serif" font-size="16" font-weight="700" fill="#15803d">A — Spec  ·  의도 (무엇을 만들까)</text>
-  <text x="60" y="74" font-family="monospace" font-size="13" fill="#166534">spec.yaml  ·  spec/features/*.yaml</text>
-
-  <!-- Arrow A→B -->
-  <line x1="320" y1="92" x2="320" y2="120" stroke="#1e293b" stroke-width="2"/>
-  <polygon points="314,114 320,124 326,114" fill="#1e293b"/>
-  <text x="332" y="111" font-family="sans-serif" font-size="12" font-style="italic" fill="#475569">A 우선</text>
-
-  <!-- Tier B (blue) -->
-  <rect x="40" y="125" width="560" height="92" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
-  <text x="60" y="153" font-family="sans-serif" font-size="16" font-weight="700" fill="#1d4ed8">B — Design  ·  설계 (어떻게 만들까)</text>
-  <text x="60" y="180" font-family="monospace" font-size="13" fill="#1e40af">architecture.yaml  ·  project-context.md</text>
-  <text x="60" y="200" font-family="monospace" font-size="13" fill="#1e40af">ai_hints  ·  conventions.md</text>
-
-  <!-- Arrow B→C -->
-  <line x1="320" y1="217" x2="320" y2="245" stroke="#1e293b" stroke-width="2"/>
-  <polygon points="314,239 320,249 326,239" fill="#1e293b"/>
-  <text x="332" y="236" font-family="sans-serif" font-size="12" font-style="italic" fill="#475569">implement</text>
-
-  <!-- Tier C (gray) -->
-  <rect x="40" y="250" width="560" height="72" rx="8" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
-  <text x="60" y="278" font-family="sans-serif" font-size="16" font-weight="700" fill="#334155">C — Derived  ·  구현물 (코드 · 테스트)</text>
-  <text x="60" y="304" font-family="monospace" font-size="13" fill="#475569">src/**/*.ts  ·  tests/**/*.test.ts</text>
-
-  <!-- Arrow C→D -->
-  <line x1="320" y1="322" x2="320" y2="350" stroke="#1e293b" stroke-width="2"/>
-  <polygon points="314,344 320,354 326,344" fill="#1e293b"/>
-  <text x="332" y="341" font-family="sans-serif" font-size="12" font-style="italic" fill="#475569">event log</text>
-
-  <!-- Tier D (slate) -->
-  <rect x="40" y="355" width="560" height="65" rx="8" fill="#e2e8f0" stroke="#475569" stroke-width="2"/>
-  <text x="60" y="383" font-family="sans-serif" font-size="16" font-weight="700" fill="#1e293b">D — Audit  ·  감사 기록 (무엇이 일어났나)</text>
-  <text x="60" y="408" font-family="monospace" font-size="13" fill="#334155">.cladding/events.log.jsonl</text>
-</svg>
+<img src="docs/img/ko/ssot-tier.svg" alt="4-tier SSoT — A(Spec) → B(Design) → C(Derived) → D(Audit), A 가 B 보다 우선" width="640">
 
 </div>
 
@@ -204,62 +129,7 @@ spec 이 *왜* (무엇을 왜 만드는지) 를 기록하는 곳. 4-tier (A/B/C/
 
 <div align="center">
 
-<svg width="640" height="460" viewBox="0 0 640 460" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="iron-law-title">
-  <title id="iron-law-title">13 단계 Iron Law gate — PR 이 static(6) · test(2) · e2e(3) · evidence(2) 를 모두 통과해야 merge</title>
-  <!-- PR -->
-  <rect x="270" y="10" width="100" height="40" rx="6" fill="#1e293b"/>
-  <text x="320" y="35" font-family="sans-serif" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">PR</text>
-  <line x1="320" y1="50" x2="320" y2="75" stroke="#1e293b" stroke-width="2"/>
-  <polygon points="314,69 320,79 326,69" fill="#1e293b"/>
-
-  <!-- stage_1 static -->
-  <rect x="40" y="80" width="560" height="72" rx="8" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/>
-  <text x="60" y="103" font-family="sans-serif" font-size="14" font-weight="700" fill="#854d0e">stage_1 · static  (6)</text>
-  <g font-family="monospace" font-size="13" fill="#713f12">
-    <text x="60"  y="135">Type</text>
-    <text x="135" y="135">Lint</text>
-    <text x="200" y="135">Drift</text>
-    <text x="275" y="135">Commit</text>
-    <text x="365" y="135">Arch</text>
-    <text x="430" y="135">Secret</text>
-  </g>
-  <line x1="320" y1="152" x2="320" y2="172" stroke="#1e293b" stroke-width="2"/>
-  <polygon points="314,166 320,176 326,166" fill="#1e293b"/>
-
-  <!-- stage_2 test -->
-  <rect x="40" y="177" width="560" height="60" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
-  <text x="60" y="200" font-family="sans-serif" font-size="14" font-weight="700" fill="#1d4ed8">stage_2 · test  (2)</text>
-  <g font-family="monospace" font-size="13" fill="#1e3a8a">
-    <text x="60"  y="225">Unit</text>
-    <text x="135" y="225">Cov</text>
-  </g>
-  <line x1="320" y1="237" x2="320" y2="257" stroke="#1e293b" stroke-width="2"/>
-  <polygon points="314,251 320,261 326,251" fill="#1e293b"/>
-
-  <!-- stage_3 e2e -->
-  <rect x="40" y="262" width="560" height="60" rx="8" fill="#e0e7ff" stroke="#6366f1" stroke-width="2"/>
-  <text x="60" y="285" font-family="sans-serif" font-size="14" font-weight="700" fill="#4338ca">stage_3 · e2e  (3)</text>
-  <g font-family="monospace" font-size="13" fill="#312e81">
-    <text x="60"  y="310">Smoke</text>
-    <text x="140" y="310">Perf</text>
-    <text x="200" y="310">Visual</text>
-  </g>
-  <line x1="320" y1="322" x2="320" y2="342" stroke="#1e293b" stroke-width="2"/>
-  <polygon points="314,336 320,346 326,336" fill="#1e293b"/>
-
-  <!-- stage_4 evidence -->
-  <rect x="40" y="347" width="560" height="60" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
-  <text x="60" y="370" font-family="sans-serif" font-size="14" font-weight="700" fill="#15803d">stage_4 · evidence  (2)</text>
-  <g font-family="monospace" font-size="13" fill="#14532d">
-    <text x="60"  y="395">Audit</text>
-    <text x="140" y="395">UAT</text>
-  </g>
-  <line x1="320" y1="407" x2="320" y2="427" stroke="#1e293b" stroke-width="2"/>
-  <polygon points="314,421 320,431 326,421" fill="#1e293b"/>
-
-  <!-- outcome -->
-  <text x="320" y="448" font-family="sans-serif" font-size="13" font-weight="700" fill="#16a34a" text-anchor="middle">all pass → merge OK    ✗    any fail → block</text>
-</svg>
+<img src="docs/img/ko/iron-law.svg" alt="13 단계 Iron Law gate — PR 이 static(6) · test(2) · e2e(3) · evidence(2) 를 모두 통과해야 merge" width="640">
 
 </div>
 
@@ -297,48 +167,7 @@ SSoT → Code → Test 를 한 cycle 로 묶는 4 step. drift 가 0 이면 merge
 
 <div align="center">
 
-<svg width="720" height="240" viewBox="0 0 720 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="workflow-title">
-  <title id="workflow-title">한 feature 의 lifecycle — Define → Sync → Implement → Verify, drift 0 이면 merge / 그 외 block</title>
-  <!-- 4 step nodes -->
-  <g font-family="sans-serif">
-    <rect x="20"  y="70" width="120" height="80" rx="8" fill="#f8fafc" stroke="#1e293b" stroke-width="2"/>
-    <text x="80"  y="105" font-size="16" font-weight="700" fill="#1e293b" text-anchor="middle">① Define</text>
-    <text x="80"  y="128" font-size="11" font-family="monospace" fill="#475569" text-anchor="middle">spec/features/</text>
-
-    <rect x="170" y="70" width="120" height="80" rx="8" fill="#f8fafc" stroke="#1e293b" stroke-width="2"/>
-    <text x="230" y="105" font-size="16" font-weight="700" fill="#1e293b" text-anchor="middle">② Sync</text>
-    <text x="230" y="128" font-size="11" font-family="monospace" fill="#475569" text-anchor="middle">clad sync</text>
-
-    <rect x="320" y="70" width="120" height="80" rx="8" fill="#f8fafc" stroke="#1e293b" stroke-width="2"/>
-    <text x="380" y="105" font-size="16" font-weight="700" fill="#1e293b" text-anchor="middle">③ Implement</text>
-    <text x="380" y="128" font-size="11" fill="#475569" text-anchor="middle">AI 가 코드 작성</text>
-
-    <rect x="470" y="70" width="120" height="80" rx="8" fill="#f8fafc" stroke="#1e293b" stroke-width="2"/>
-    <text x="530" y="105" font-size="16" font-weight="700" fill="#1e293b" text-anchor="middle">④ Verify</text>
-    <text x="530" y="128" font-size="11" font-family="monospace" fill="#475569" text-anchor="middle">clad check</text>
-  </g>
-
-  <!-- arrows between nodes -->
-  <g stroke="#1e293b" stroke-width="2" fill="#1e293b">
-    <line x1="140" y1="110" x2="165" y2="110"/><polygon points="160,105 170,110 160,115"/>
-    <line x1="290" y1="110" x2="315" y2="110"/><polygon points="310,105 320,110 310,115"/>
-    <line x1="440" y1="110" x2="465" y2="110"/><polygon points="460,105 470,110 460,115"/>
-  </g>
-
-  <!-- branching after Verify -->
-  <g stroke="#1e293b" stroke-width="2" fill="none">
-    <path d="M 590 110 L 620 110 L 620 60 L 660 60" />
-    <path d="M 590 110 L 620 110 L 620 160 L 660 160" />
-  </g>
-  <polygon points="650,55 660,60 650,65" fill="#16a34a"/>
-  <polygon points="650,155 660,160 650,165" fill="#ef4444"/>
-
-  <!-- outcomes -->
-  <text x="665" y="58"  font-family="sans-serif" font-size="13" font-weight="700" fill="#16a34a">drift = 0</text>
-  <text x="665" y="73"  font-family="sans-serif" font-size="12" fill="#15803d">→ merge ✓</text>
-  <text x="665" y="158" font-family="sans-serif" font-size="13" font-weight="700" fill="#ef4444">drift &gt; 0</text>
-  <text x="665" y="173" font-family="sans-serif" font-size="12" fill="#b91c1c">→ block ✗</text>
-</svg>
+<img src="docs/img/ko/workflow.svg" alt="한 feature 의 lifecycle — Define → Sync → Implement → Verify, drift 0 이면 merge / 그 외 block" width="720">
 
 </div>
 
@@ -348,58 +177,7 @@ cladding 은 **5 명의 에이전트가 협업하는 다중 에이전트 (multi-
 
 <div align="center">
 
-<svg width="680" height="420" viewBox="0 0 680 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="multi-agent-title">
-  <title id="multi-agent-title">5 페르소나 권한 분리 (CQS) — orchestrator 가 분배, librarian/specialist/reviewer 가 작업, observability 가 메트릭 관찰</title>
-  <!-- orchestrator (top) -->
-  <rect x="260" y="20" width="160" height="60" rx="8" fill="#1e293b"/>
-  <text x="340" y="48" font-family="sans-serif" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">orchestrator</text>
-  <text x="340" y="68" font-family="monospace" font-size="12" fill="#cbd5e1" text-anchor="middle">dispatch (분배) only</text>
-
-  <!-- arrows from orchestrator to 3 middle -->
-  <g stroke="#1e293b" stroke-width="2" fill="#1e293b">
-    <line x1="340" y1="80" x2="140" y2="160"/>
-    <polygon points="142,154 134,162 148,164"/>
-    <line x1="340" y1="80" x2="340" y2="160"/>
-    <polygon points="334,154 340,164 346,154"/>
-    <line x1="340" y1="80" x2="540" y2="160"/>
-    <polygon points="538,154 546,162 532,164"/>
-  </g>
-  <text x="335" y="115" font-family="sans-serif" font-size="11" font-style="italic" fill="#475569" text-anchor="middle">작업 분배</text>
-
-  <!-- 3 middle: librarian / specialist / reviewer -->
-  <rect x="60"  y="165" width="160" height="90" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
-  <text x="140" y="190" font-family="sans-serif" font-size="15" font-weight="700" fill="#15803d" text-anchor="middle">librarian</text>
-  <text x="140" y="215" font-family="monospace" font-size="12" fill="#166534" text-anchor="middle">spec  ✎ write</text>
-  <text x="140" y="235" font-family="monospace" font-size="12" fill="#166534" text-anchor="middle">code  ◎ read</text>
-
-  <rect x="260" y="165" width="160" height="90" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
-  <text x="340" y="190" font-family="sans-serif" font-size="15" font-weight="700" fill="#1d4ed8" text-anchor="middle">specialist</text>
-  <text x="340" y="215" font-family="monospace" font-size="12" fill="#1e3a8a" text-anchor="middle">code  ✎ write</text>
-  <text x="340" y="235" font-family="monospace" font-size="12" fill="#1e3a8a" text-anchor="middle">spec  ◎ read</text>
-
-  <rect x="460" y="165" width="160" height="90" rx="8" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/>
-  <text x="540" y="190" font-family="sans-serif" font-size="15" font-weight="700" fill="#854d0e" text-anchor="middle">reviewer</text>
-  <text x="540" y="215" font-family="monospace" font-size="12" fill="#713f12" text-anchor="middle">audit ⚖ only</text>
-  <text x="540" y="235" font-family="monospace" font-size="12" fill="#713f12" text-anchor="middle">all   ◎ read</text>
-
-  <!-- arrows from 3 middle to observability -->
-  <g stroke="#1e293b" stroke-width="2" fill="#1e293b">
-    <line x1="140" y1="255" x2="340" y2="320"/>
-    <polygon points="335,314 343,323 329,324"/>
-    <line x1="340" y1="255" x2="340" y2="320"/>
-    <polygon points="334,314 340,324 346,314"/>
-    <line x1="540" y1="255" x2="340" y2="320"/>
-    <polygon points="345,314 337,322 351,324"/>
-  </g>
-
-  <!-- observability (bottom) -->
-  <rect x="260" y="325" width="160" height="60" rx="8" fill="#f1f5f9" stroke="#475569" stroke-width="2"/>
-  <text x="340" y="353" font-family="sans-serif" font-size="15" font-weight="700" fill="#334155" text-anchor="middle">observability</text>
-  <text x="340" y="373" font-family="monospace" font-size="12" fill="#475569" text-anchor="middle">metrics  ◎ read</text>
-
-  <!-- caption -->
-  <text x="340" y="408" font-family="sans-serif" font-size="13" font-weight="700" fill="#1e293b" text-anchor="middle">자기 작업 승인 불가  ·  명령(write) 과 검증(read) 분리 (CQS)</text>
-</svg>
+<img src="docs/img/ko/multi-agent.svg" alt="5 페르소나 권한 분리 (CQS) — orchestrator 가 분배, librarian/specialist/reviewer 가 작업, observability 가 메트릭 관찰" width="680">
 
 </div>
 
@@ -409,27 +187,7 @@ cladding 은 **5 명의 에이전트가 협업하는 다중 에이전트 (multi-
 
 <div align="center">
 
-<svg width="640" height="380" viewBox="0 0 640 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ecosystem-title">
-  <title id="ecosystem-title">Ecosystem Venn — SDD · Runners · Multi-agent Governance 세 카테고리의 결합부에 cladding 이 위치</title>
-  <!-- 3 overlapping circles -->
-  <circle cx="200" cy="160" r="130" fill="#dcfce7" fill-opacity="0.55" stroke="#16a34a" stroke-width="2"/>
-  <circle cx="440" cy="160" r="130" fill="#dbeafe" fill-opacity="0.55" stroke="#2563eb" stroke-width="2"/>
-  <circle cx="320" cy="260" r="130" fill="#fef9c3" fill-opacity="0.55" stroke="#ca8a04" stroke-width="2"/>
-
-  <!-- category labels -->
-  <text x="120" y="55"  font-family="sans-serif" font-size="14" font-weight="700" fill="#15803d">① Spec-Driven Development</text>
-  <text x="120" y="73"  font-family="sans-serif" font-size="11" fill="#166534">Spec Kit · OpenSpec · Tessl · Kiro</text>
-
-  <text x="380" y="55"  font-family="sans-serif" font-size="14" font-weight="700" fill="#1d4ed8">② Runners</text>
-  <text x="380" y="73"  font-family="sans-serif" font-size="11" fill="#1e3a8a">OpenHands · Cline · Aider · Goose</text>
-
-  <text x="200" y="370" font-family="sans-serif" font-size="14" font-weight="700" fill="#854d0e">③ Multi-agent Governance</text>
-  <text x="200" y="355" font-family="sans-serif" font-size="11" fill="#713f12">BMAD · ChatDev · Agent Teams</text>
-
-  <!-- cladding box at intersection -->
-  <rect x="270" y="180" width="100" height="44" rx="6" fill="#1e293b"/>
-  <text x="320" y="208" font-family="sans-serif" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">cladding</text>
-</svg>
+<img src="docs/img/ko/ecosystem.svg" alt="Ecosystem Venn — SDD · Runners · Multi-agent Governance 세 카테고리의 결합부에 cladding 이 위치" width="640">
 
 </div>
 
