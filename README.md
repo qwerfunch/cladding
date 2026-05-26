@@ -115,7 +115,7 @@ The hero's 8/8 vs 2/8 is an early benchmark (<a href="docs/benchmarks/event-stor
 
 </div>
 
-### 1. SSoT — single source of intent
+### 1. Spec — SSoT, single source of intent
 
 The spec is where the *why* (what we're building and why) lives. A 4-tier (A/B/C/D) Single Source of Truth — *intent on top, implementation below*.
 
@@ -127,6 +127,8 @@ The spec is where the *why* (what we're building and why) lives. A 4-tier (A/B/C
 | **D — Audit** | audit log (what actually happened) | append-only | immutable |
 
 **A outranks B** — if code and spec disagree, *the code is wrong*. The spec is sealed because changing the *why* shakes everything downstream, so LLMs are kept out.
+
+**Sharded · multi-dev safe** — `spec/features/<slug>-<hash6>.yaml` puts *each feature in its own file* with a *6-char hash ID* (e.g. `F-5f6b45`). Two devs creating new features at the same time land in *different files with different IDs* — zero merge conflicts. Details: [Hash-based feature IDs](docs/spec-ids-multi-dev.md).
 
 <div align="center">
 
