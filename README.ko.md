@@ -96,11 +96,11 @@ AI 가 짠 코드의 *왜* 가 코드만 봐서는 안 잡힌다.
 
 ## How it works
 
-**SSoT → Code → Tests** 가 한 cycle 로 순환한다 — spec 이 *왜* 를 기록하고, Iron Law 가 검증하고, Drift detector 가 어긋남을 차단한다.
+**Spec → Code → Tests** 가 한 cycle 로 순환한다 — spec 이 *왜* 를 기록하고, Iron Law 가 검증하고, Drift detector 가 어긋남을 차단한다.
 
 <div align="center">
 
-<img src="docs/img/ko/cycle.svg" alt="SSoT → Code → Tests 가 한 cycle 로 순환 — 한 feature lifecycle" width="700">
+<img src="docs/img/ko/cycle.svg" alt="Spec → Code → Tests 가 한 cycle 로 순환 — 한 feature lifecycle" width="700">
 
 </div>
 
@@ -163,7 +163,7 @@ spec · code · test 사이 7 카테고리의 어긋남을 자동으로 잡아�
 
 ### 4. Cycle — 한 feature 의 lifecycle
 
-SSoT → Code → Test 를 한 cycle 로 묶는 4 step. drift 가 0 이면 merge, 1 이상이면 block.
+Spec → Code → Test 를 한 cycle 로 묶는 4 step. drift 가 0 이면 merge, 1 이상이면 block.
 
 <div align="center">
 

@@ -99,11 +99,11 @@ The hero's 8/8 vs 2/8 is an early benchmark (<a href="docs/benchmarks/event-stor
 <!-- ─────────────── How it works ─────────────── -->
 ## How it works
 
-**SSoT → Code → Tests** runs as a single cycle — the spec captures the *why*, Iron Law verifies the implementation, and Drift Detection blocks anything that no longer matches.
+**Spec → Code → Tests** runs as a single cycle — the spec captures the *why*, Iron Law verifies the implementation, and Drift Detection blocks anything that no longer matches.
 
 <div align="center">
 
-<img src="docs/img/en/cycle.svg" alt="SSoT → Code → Tests as a single cycle — one feature's lifecycle" width="700">
+<img src="docs/img/en/cycle.svg" alt="Spec → Code → Tests as a single cycle — one feature's lifecycle" width="700">
 
 </div>
 
@@ -166,7 +166,7 @@ Seven categories of mismatch across spec · code · test, all caught automatical
 
 ### 4. Cycle — one feature's lifecycle
 
-The 4 steps that wrap SSoT → Code → Test into a single cycle. Merge if drift is 0, block otherwise.
+The 4 steps that wrap Spec → Code → Test into a single cycle. Merge if drift is 0, block otherwise.
 
 <div align="center">
 

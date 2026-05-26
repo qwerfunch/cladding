@@ -325,10 +325,10 @@
 
   <!-- ─────────────── How it works ─────────────── -->
   <h2>How it works</h2>
-  <p><strong>SSoT → Code → Tests</strong> 가 한 cycle 로 순환한다 — spec 이 <em>왜</em> 를 기록하고, Iron Law 가 검증하고, Drift detector 가 어긋남을 차단한다.</p>
+  <p><strong>Spec → Code → Tests</strong> 가 한 cycle 로 순환한다 — spec 이 <em>왜</em> 를 기록하고, Iron Law 가 검증하고, Drift detector 가 어긋남을 차단한다.</p>
 
   <div class="diagram">
-    <img src="docs/img/ko/cycle.svg" alt="SSoT → Code → Tests 가 한 cycle 로 순환 — 한 feature lifecycle" width="700">
+    <img src="docs/img/ko/cycle.svg" alt="Spec → Code → Tests 가 한 cycle 로 순환 — 한 feature lifecycle" width="700">
   </div>
 
   <h3>1. SSoT — 의도의 단일 기준</h3>
@@ -390,7 +390,7 @@
   </table>
 
   <h3>4. Cycle — 한 feature 의 lifecycle</h3>
-  <p>SSoT → Code → Test 를 한 cycle 로 묶는 4 step. drift 가 0 이면 merge, 1 이상이면 block.</p>
+  <p>Spec → Code → Test 를 한 cycle 로 묶는 4 step. drift 가 0 이면 merge, 1 이상이면 block.</p>
   <div class="diagram">
     <img src="docs/img/ko/workflow.svg" alt="한 feature 의 lifecycle — Define → Sync → Implement → Verify, drift 0 이면 merge / 그 외 block" width="720">
   </div>
