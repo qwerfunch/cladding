@@ -335,7 +335,7 @@
     <img src="docs/img/ko/cycle.svg" alt="Spec → Code → Tests 가 한 cycle 로 순환 — 한 feature lifecycle" width="700">
   </div>
 
-  <h3>1. SSoT — 의도의 단일 기준</h3>
+  <h3>1. Spec — SSoT, 의도의 단일 기준</h3>
   <p>spec 이 <em>왜</em> (무엇을 왜 만드는지) 를 기록하는 곳. 4-tier (A/B/C/D) 단일 진실 출처 (Single Source of Truth) — <em>의도가 위, 구현물이 아래</em>.</p>
 
   <table>
@@ -351,6 +351,8 @@
   </table>
 
   <p><strong>A 가 B 보다 우선</strong> — 코드와 spec 이 다르면 <em>코드가</em> 틀린 것. 의도(A)가 변하면 모든 게 흔들리기 때문에 LLM 이 못 건드리도록 봉인.</p>
+
+  <p><strong>샤딩 · multi-dev 안전</strong> — <code>spec/features/&lt;slug&gt;-&lt;hash6&gt;.yaml</code> 처럼 <em>feature 마다 별도 파일</em> + <em>6-자리 hash ID</em> (예: <code>F-5f6b45</code>). 두 명이 동시에 새 feature 를 만들어도 <em>다른 파일·다른 ID</em> 라 merge conflict 0. 자세히는 <a href="docs/spec-ids-multi-dev.md">Hash-based feature IDs</a>.</p>
 
   <div class="diagram">
     <img src="docs/img/ko/ssot-tier.svg" alt="4-tier SSoT — A(Spec) → B(Design) → C(Derived) → D(Audit), A 가 B 보다 우선" width="640">

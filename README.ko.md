@@ -112,7 +112,7 @@ AI 가 짠 코드의 *왜* 가 코드만 봐서는 안 잡힌다.
 
 </div>
 
-### 1. SSoT — 의도의 단일 기준
+### 1. Spec — SSoT, 의도의 단일 기준
 
 spec 이 *왜* (무엇을 왜 만드는지) 를 기록하는 곳. 4-tier (A/B/C/D) 단일 진실 출처 (Single Source of Truth) — *의도가 위, 구현물이 아래*.
 
@@ -124,6 +124,8 @@ spec 이 *왜* (무엇을 왜 만드는지) 를 기록하는 곳. 4-tier (A/B/C/
 | **D — Audit** | 감사 기록 (무엇이 일어났나) | append-only | 수정 불가 |
 
 **A 가 B 보다 우선** — 코드와 spec 이 다르면 *코드가* 틀린 것. 의도(A)가 변하면 모든 게 흔들리기 때문에 LLM 이 못 건드리도록 봉인.
+
+**샤딩 · multi-dev 안전** — `spec/features/<slug>-<hash6>.yaml` 처럼 *feature 마다 별도 파일* + *6-자리 hash ID* (예: `F-5f6b45`). 두 명이 동시에 새 feature 를 만들어도 *다른 파일·다른 ID* 라 merge conflict 0. 자세히는 [Hash-based feature IDs](docs/spec-ids-multi-dev.md).
 
 <div align="center">
 

@@ -335,7 +335,7 @@
     <img src="docs/img/en/cycle.svg" alt="Spec → Code → Tests as a single cycle — one feature's lifecycle" width="700">
   </div>
 
-  <h3>1. SSoT — single source of intent</h3>
+  <h3>1. Spec — SSoT, single source of intent</h3>
   <p>The spec is where the <em>why</em> (what we're building and why) lives. A 4-tier (A/B/C/D) Single Source of Truth — <em>intent on top, implementation below</em>.</p>
 
   <table>
@@ -351,6 +351,8 @@
   </table>
 
   <p><strong>A outranks B</strong> — if code and spec disagree, <em>the code is wrong</em>. The spec is sealed because changing the <em>why</em> shakes everything downstream, so LLMs are kept out.</p>
+
+  <p><strong>Sharded · multi-dev safe</strong> — <code>spec/features/&lt;slug&gt;-&lt;hash6&gt;.yaml</code> puts <em>each feature in its own file</em> with a <em>6-char hash ID</em> (e.g. <code>F-5f6b45</code>). Two devs creating new features at the same time land in <em>different files with different IDs</em> — zero merge conflicts. Details: <a href="docs/spec-ids-multi-dev.md">Hash-based feature IDs</a>.</p>
 
   <div class="diagram">
     <img src="docs/img/en/ssot-tier.svg" alt="4-tier SSoT — A(Spec) → B(Design) → C(Derived) → D(Audit), A outranks B" width="640">
