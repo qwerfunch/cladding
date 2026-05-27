@@ -37,7 +37,6 @@ import {
 import {saveState, type OnboardingState} from './scan/onboarding-state.js';
 import {detectToolchain} from '../stages/toolchain/detect.js';
 import {detectContext} from '../init/detect.js';
-import {buildMarker, patchMarkerInSpec, renderMarkerYaml, type EnrichmentMarker} from '../init/marker.js';
 import {writeAgentsMd, writeClaudeMdSection} from '../init/host-instructions.js';
 import {getCurrentCladdingVersion, getLastSetupVersion} from '../init/host-setup.js';
 import {loadIntentFromPathIfApplicable} from './intent-from-path.js';
@@ -182,7 +181,6 @@ function specSeed(
   projectName: string,
   language: string,
   metadata?: SpecSeedMetadata,
-  marker?: EnrichmentMarker,
 ): string {
   const projectLines = [
     `  name: ${projectName}`,
@@ -238,9 +236,6 @@ function specSeed(
     '',
     'schema: "0.1"',
     '',
-    // F-90d054 — lazy enrichment marker. Host AI consumes this on its first
-    // task in the project and removes it once every scope item is filled.
-    ...(marker ? [renderMarkerYaml(marker), ''] : []),
     'project:',
     ...projectLines,
     '',
@@ -397,36 +392,20 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
 
   // F-90d054 — observe the project once to build the lazy enrichment marker.
   // detectContext is cheap (one synchronous walk capped at depth 12, skipping
-  // node_modules/.git/dist/etc) and gives host AI the ground truth it needs
-  // to populate the enrichment scope without invention.
+  // detectContext is still used by host-instructions (AGENTS.md / CLAUDE.md)
+  // for the project context summary it embeds in those files.
   const ctx = detectContext(cwd);
-  const marker = buildMarker(ctx);
 
   // 1. spec.yaml + F-001 sharded placeholder
   //
   // v0.3.49 (F-99c6e5): spec.yaml seed now carries `features: []` and
   // the F-001 placeholder lives at `spec/features/F-001-first.yaml`.
-  // This activates the sharded-loader path from day one — every
-  // spec-gated detector now sees user-authored shards instead of
-  // being blinded by the legacy inline placeholder.
-  // v0.3.60 (F-90d054): seed now carries `_meta` enrichment marker so
-  // host AI can finish what `clad init` couldn't (intent reasoning,
-  // ai_hints inference, EARS-shaped AC) on its first task.
+  // v0.4.0 (F-80d19d): removed F-90d054's `_meta.enrichment_status` marker —
+  // project-scope plugin auto-activation in clad init guarantees an AI
+  // session, so the lazy-enrichment scaffold is no longer needed.
   const specPath = join(cwd, 'spec.yaml');
   if (existsSync(specPath) && !force) {
-    // F-90d054 AC-012 — Idempotent re-run. Preserve every line of the existing
-    // spec body and only refresh `_meta` when `detected` observations actually
-    // changed. The host AI then sees the new pending scope on its next task.
-    const existing = readFileSync(specPath, 'utf8');
-    const patched = patchMarkerInSpec(existing, ctx);
-    if (patched.updated) {
-      writeFileSync(specPath, patched.body);
-      created.push(
-        `spec.yaml (_meta refreshed; re-activated: ${patched.reactivated.join(', ')})`,
-      );
-    } else {
-      skipped.push('spec.yaml (exists; _meta already current)');
-    }
+    skipped.push('spec.yaml (exists)');
   } else {
     // v0.3.49 (F-3a5339) — when an intent is provided, seed the
     // project metadata fields too so spec.yaml has a meaningful
@@ -440,7 +419,7 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
           ai_hints: onboarding?.aiHints,
         }
       : undefined;
-    writeFileSync(specPath, specSeed(projectName, language, seedMetadata, marker));
+    writeFileSync(specPath, specSeed(projectName, language, seedMetadata));
     created.push('spec.yaml');
   }
   const f001Path = join(cwd, 'spec', 'features', 'F-001-first.yaml');

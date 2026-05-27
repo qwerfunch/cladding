@@ -16,34 +16,6 @@ export const AGENTS_MD_TEMPLATE = `# AGENTS.md
 
 This project is managed by **cladding** — the Spec-Anchored Agent Harness.
 
-## cladding — first-task enrichment rule
-
-If \`spec.yaml._meta.enrichment_status\` equals \`"pending"\`, this is your
-first task in this project. Do NOT proceed with the user's actual request
-until enrichment is done.
-
-1. Read \`_meta.enrichment_scope\` (checklist) and \`_meta.detected\` (project
-   context). Use \`detected\` as ground truth — do not invent project
-   metadata.
-2. For each scope item, populate the corresponding location:
-   - \`project.intent\` / \`project.ai_hints\` — infer from README, recent
-     commits, and \`detected\`.
-   - \`docs/project-context.md\` — forest-level Why / What / Purpose.
-   - \`docs/conventions.md\` — observed conventions if brownfield.
-   - \`spec/architecture.yaml\` — layers + \`forbidden_imports\` from the
-     observed import graph.
-   - \`spec/capabilities.yaml\` — high-level capabilities the project
-     exposes.
-   - \`features\` — one feature per coherent module, registered via
-     \`clad_create_feature\` MCP tool.
-   - \`acceptance_criteria\` — EARS-structured ACs reverse-extracted from
-     existing tests where possible.
-3. Set \`_meta.enrichment_status: "complete"\`, add \`enriched_by\` (your
-   model ID) and \`enriched_at\` (ISO 8601).
-4. Run \`clad check --strict\`. If any detector fails, fix before
-   proceeding.
-5. Now address the user's original request.
-
 ## Single Source of Truth
 
 - \`spec.yaml\` is the authoritative spec (Tier A). Code must conform.
@@ -71,10 +43,6 @@ export const CLAUDE_MD_SECTION_MARKER = '## cladding';
 export const CLAUDE_MD_SECTION = `## cladding
 
 This project is managed by **cladding** (Spec-Anchored Agent Harness).
-
-**First-task rule** — If \`spec.yaml._meta.enrichment_status\` equals
-\`"pending"\`, complete the enrichment scope before any other work. See
-\`AGENTS.md\` for the full procedure.
 
 **Spec is SSoT** — \`spec.yaml\` is authoritative. Any code change must
 satisfy the relevant \`features[]\` and \`acceptance_criteria\`. Run

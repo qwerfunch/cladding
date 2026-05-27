@@ -22,7 +22,7 @@
 </p>
 
 <p align="center">
-  Reference implementation of the <a href="https://github.com/qwerfunch/ironclad">Ironclad</a> standard. 28 detectors and a 13-stage gate verify, on every commit, that the code your AI assistant wrote still matches the spec.
+  Reference implementation of the <a href="https://github.com/qwerfunch/ironclad">Ironclad</a> standard. 27 detectors and a 13-stage gate verify, on every commit, that the code your AI assistant wrote still matches the spec.
 </p>
 
 <!-- ─────────────── HERO ─────────────── -->
@@ -75,7 +75,7 @@ The same spec produces code with inconsistent patterns and structure.
 
 Generated code calls APIs, functions, or options that don't exist.
 
-→ 28 detectors and a 13-stage gate block hallucinated code on every commit.
+→ 27 detectors and a 13-stage gate block hallucinated code on every commit.
 
 ✓ **Production incidents prevented up front** — CI auto-rejects hallucinated code before it merges.
 
@@ -149,13 +149,13 @@ Every change has to clear all 13 stages — typically called from CI, a git pre-
 | Stage | What it checks |
 |---|---|
 | **1.1 Type · 1.2 Lint** | type errors · code style |
-| **1.3 Drift** | spec ↔ code mismatches across 28 detectors |
+| **1.3 Drift** | spec ↔ code mismatches across 27 detectors |
 | **1.4 Commit · 1.5 Arch · 1.6 Secret** | clean working tree · architecture invariants (forbidden imports, etc.) · leaked API keys |
 | **2.1 Unit · 2.2 Cov** | unit tests pass · project coverage threshold |
 | **3.1 Smoke · 3.2 Perf · 3.3 Visual** | end-to-end critical paths · performance budgets · visual regression |
 | **4.1 Audit · 4.2 UAT** | every AC (acceptance criteria) has at least one piece of evidence · every `status=done` feature has at least one piece of evidence |
 
-### 3. Tests — 28 drift detectors
+### 3. Tests — 27 drift detectors
 
 Seven categories of mismatch across spec · code · test, all caught automatically. Full catalog: [src/stages/detectors/README.md](src/stages/detectors/README.md).
 
@@ -167,7 +167,7 @@ Seven categories of mismatch across spec · code · test, all caught automatical
 <tr><td>spec ↔ code drift</td><td>something in the spec missing from code, or in code with nothing in the spec</td><td align="center">6</td><td><code>UNMAPPED_ARTIFACT</code>, <code>MISSING_IMPLEMENTATION</code>, <code>AC_DRIFT</code></td></tr>
 <tr><td>code ↔ test</td><td>code without tests · coverage falling below threshold</td><td align="center">6</td><td><code>MISSING_TESTS</code>, <code>COVERAGE_DROP</code>, <code>HARDCODED_SECRET</code></td></tr>
 <tr><td>spec ↔ test</td><td>an AC in the spec that no test actually verifies</td><td align="center">4</td><td><code>UNTESTED_AC</code>, <code>STATUS_DRIFT</code>, <code>STALE_EVIDENCE</code></td></tr>
-<tr><td>spec maintenance</td><td>spec hygiene — slug collisions, ID duplicates</td><td align="center">5</td><td><code>SLUG_CONFLICT</code>, <code>ID_COLLISION</code>, <code>ENRICHMENT_PENDING</code></td></tr>
+<tr><td>spec maintenance</td><td>spec hygiene — slug collisions, ID duplicates</td><td align="center">4</td><td><code>SLUG_CONFLICT</code>, <code>ID_COLLISION</code></td></tr>
 <tr><td>environment integrity</td><td>build environment and meta-file integrity</td><td align="center">3</td><td><code>HARNESS_INTEGRITY</code>, <code>META_INTEGRITY</code></td></tr>
 <tr><td>architecture · capability</td><td>code that breaks the architecture or capability shape declared in the spec</td><td align="center">2</td><td><code>ARCHITECTURE_FROM_SPEC</code>, <code>CAPABILITIES_FEATURE_MAPPING</code></td></tr>
 <tr><td>governance · policy</td><td>code that breaks an `ai_hints` policy (e.g. forbidden patterns)</td><td align="center">2</td><td><code>AI_HINTS_FORBIDDEN_PATTERN</code>, <code>ABSENCE_OF_GOVERNANCE</code></td></tr>
@@ -324,7 +324,7 @@ cladding's goal is to *be the infrastructure that prevents spec ↔ code drift* 
 - [Why cladding (project context)](docs/project-context.md)
 - [4-tier governance model](docs/ssot-model.md)
 - [Hash-based feature IDs](docs/spec-ids-multi-dev.md)
-- [28 detector catalog](src/stages/detectors/README.md)
+- [27 detector catalog](src/stages/detectors/README.md)
 - [Benchmark — event store trap catch](docs/benchmarks/event-store-trap-catch.md)
 - [A/B evaluation cases](docs/ab-evaluation/)
 - [Governance · roadmap to 1.0](GOVERNANCE.md)

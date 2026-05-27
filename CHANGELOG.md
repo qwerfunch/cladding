@@ -67,6 +67,17 @@ cladding's Claude Code plugin moved from the repo root (`agents/` + `commands/` 
 
 `plugin.json` schema fixes: `author` is now an object (`{name: ...}`), `repository` is a string URL.
 
+### Removed — `spec.yaml._meta.enrichment_status` lazy marker (F-90d054)
+
+F-80d19d's project-scope plugin auto-activation (`clad init` runs `claude plugin install claude-code@cladding --scope project` automatically) now guarantees an AI session inside the project the moment a host AI reopens it. The lazy-enrichment scaffold — which existed because v0.3.60's `npm install -g cladding` path could not summon an AI session at install time — is no longer needed.
+
+- **Deleted**: `src/init/marker.ts`, `src/stages/detectors/enrichment-pending.ts`, `tests/init/marker.test.ts`, `tests/stages/enrichment-pending.test.ts`
+- **Schema removal**: `spec.yaml._meta` block (`enrichment_status` / `enrichment_scope` / `detected` / `enriched_by` / `enriched_at`) removed from `src/spec/schema.json`. Existing specs that still carry `_meta` continue to validate because cladding ignores unknown top-level keys, but `clad init` no longer writes the block on fresh projects.
+- **AGENTS.md / CLAUDE.md templates**: the *first-task enrichment rule* section removed from `src/init/host-instructions.ts`
+- **Detector count**: 28 → **27**. The `spec maintenance` category drops from 5 → 4 (removed `ENRICHMENT_PENDING`).
+- **F-90d054 spec**: marked `status: archived` with a pointer to F-80d19d
+- **Slash command surface**: Claude Code and Gemini CLI now expose only `/cladding:init` (legacy `/cladding:clad` wrapper and per-verb `.toml` shards removed). Other verbs are invoked by the AI via natural language → `clad <verb>` CLI; Codex skills retain all 12 verbs because Codex auto-invokes them without slash exposure.
+
 ### Project-scope plugin activation — `clad init`
 
 After scaffolding spec + 4-tier docs, `clad init` also runs `claude plugin install claude-code@cladding --scope project` (best-effort, non-blocking). The result is a `.claude/settings.json` with `enabledPlugins["claude-code@cladding"] = true` in the project — so when an AI tool reopens the project, cladding skills and commands are picked up automatically with zero extra steps. The cladding repo itself ships this `.claude/settings.json` (self-dogfood).

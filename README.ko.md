@@ -75,7 +75,7 @@ AI 가 짠 코드의 *왜* 가 코드만 봐서는 안 잡힌다.
 
 존재하지 않는 API · 함수 · 옵션을 호출하는 코드 생성.
 
-→ 28 detector + 13 단계 gate 가 매 commit 차단
+→ 27 detector + 13 단계 gate 가 매 commit 차단
 
 ✓ **production 사고 사전 차단** — CI 가 hallucination 코드를 자동 reject
 
@@ -146,7 +146,7 @@ spec 이 *왜* (무엇을 왜 만드는지) 를 기록하는 곳. 4-tier (A/B/C/
 | Stage | 무엇을 검사하나 |
 |---|---|
 | **1.1 Type · 1.2 Lint** | 타입 오류 · 코드 스타일 |
-| **1.3 Drift** | 28 detector 의 spec ↔ 코드 어긋남 |
+| **1.3 Drift** | 27 detector 의 spec ↔ 코드 어긋남 |
 | **1.4 Commit · 1.5 Arch · 1.6 Secret** | 작업트리 clean · architecture invariant (forbidden import 등) · API 키 노출 |
 | **2.1 Unit · 2.2 Cov** | 단위 테스트 통과 · 프로젝트 coverage threshold |
 | **3.1 Smoke · 3.2 Perf · 3.3 Visual** | e2e 핵심 기능 동작 · 성능 예산 · UI 시각 회귀 |
@@ -164,7 +164,7 @@ spec · code · test 사이 7 카테고리의 어긋남을 자동으로 잡아�
 <tr><td>spec ↔ code drift</td><td>spec 에 있는데 코드에 없거나, 코드에 있는데 spec 에 없음</td><td align="center">6</td><td><code>UNMAPPED_ARTIFACT</code>, <code>MISSING_IMPLEMENTATION</code>, <code>AC_DRIFT</code></td></tr>
 <tr><td>code ↔ test</td><td>코드는 있는데 테스트 없음 · 커버리지 부족</td><td align="center">6</td><td><code>MISSING_TESTS</code>, <code>COVERAGE_DROP</code>, <code>HARDCODED_SECRET</code></td></tr>
 <tr><td>spec ↔ test</td><td>spec 의 AC 가 테스트로 검증 안 됨</td><td align="center">4</td><td><code>UNTESTED_AC</code>, <code>STATUS_DRIFT</code>, <code>STALE_EVIDENCE</code></td></tr>
-<tr><td>spec maintenance</td><td>spec 자체의 위생 (slug 충돌 · ID 중복)</td><td align="center">5</td><td><code>SLUG_CONFLICT</code>, <code>ID_COLLISION</code>, <code>ENRICHMENT_PENDING</code></td></tr>
+<tr><td>spec maintenance</td><td>spec 자체의 위생 (slug 충돌 · ID 중복)</td><td align="center">4</td><td><code>SLUG_CONFLICT</code>, <code>ID_COLLISION</code></td></tr>
 <tr><td>environment integrity</td><td>빌드 환경 · 메타 파일 무결성</td><td align="center">3</td><td><code>HARNESS_INTEGRITY</code>, <code>META_INTEGRITY</code></td></tr>
 <tr><td>architecture · capability</td><td>spec 의 아키텍처 · capability 정의와 코드 불일치</td><td align="center">2</td><td><code>ARCHITECTURE_FROM_SPEC</code>, <code>CAPABILITIES_FEATURE_MAPPING</code></td></tr>
 <tr><td>governance · policy</td><td>ai_hints 정책 위반 (예: 금지 패턴 사용)</td><td align="center">2</td><td><code>AI_HINTS_FORBIDDEN_PATTERN</code>, <code>ABSENCE_OF_GOVERNANCE</code></td></tr>
@@ -319,7 +319,7 @@ cladding 의 목표는 *spec ↔ 코드 어긋남을 막는 인프라가 되는 
 - [Why cladding (project context)](docs/project-context.md)
 - [4-tier governance model](docs/ssot-model.md)
 - [Hash-based feature ID](docs/spec-ids-multi-dev.md)
-- [28 detector catalog](src/stages/detectors/README.md)
+- [27 detector catalog](src/stages/detectors/README.md)
 - [Benchmark — event store trap catch](docs/benchmarks/event-store-trap-catch.md)
 - [A/B evaluation cases](docs/ab-evaluation/)
 - [Governance · roadmap to 1.0](GOVERNANCE.md)

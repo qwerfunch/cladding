@@ -1,12 +1,10 @@
 id: F-90d054
 slug: init-host-autowire
-title: "clad init writes host wiring + enrichment marker"
-status: in_progress
+title: "clad init writes host wiring + enrichment marker (archived; superseded by F-80d19d in v0.4.0)"
+status: archived
 modules:
   - src/init/detect.ts
-  - src/init/marker.ts
   - src/init/host-instructions.ts
-  - src/stages/detectors/enrichment-pending.ts
 acceptance_criteria:
   # ── Host wiring (npm postinstall + clad init fallback retry) ──
   - id: AC-001

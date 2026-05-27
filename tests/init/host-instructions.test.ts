@@ -47,10 +47,9 @@ describe('writeAgentsMd (F-90d054 AC-008)', () => {
     expect(readFileSync(join(dir, 'AGENTS.md'), 'utf8')).toBe(AGENTS_MD_TEMPLATE);
   });
 
-  test('template contains the enrichment first-task rule', () => {
-    expect(AGENTS_MD_TEMPLATE).toContain('enrichment_status');
-    expect(AGENTS_MD_TEMPLATE).toContain('first-task');
-  });
+  // F-80d19d (v0.4.0) — removed F-90d054's `enrichment_status` rule from the
+  // AGENTS.md template since project-scope plugin auto-activation now
+  // guarantees an AI session at `clad init` time.
 });
 
 describe('writeClaudeMdSection (F-90d054 AC-009 + AC-010)', () => {
