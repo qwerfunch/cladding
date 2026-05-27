@@ -17,7 +17,6 @@
     "bin/",
     "dist/",
     ".claude-plugin/",
-    ".mcp.json",
     "plugins/",
     "AGENTS.md",
     "CODE_OF_CONDUCT.md",
