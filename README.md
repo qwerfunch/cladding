@@ -226,8 +226,8 @@ Pick the route that fits how you work — both land in the same place:
 
 ```bash
 npm install -g cladding   # install the cladding CLI
-clad setup                  # connect your AI tools (machine-wide; Claude / Codex / Gemini)
 cd <project>                # go to your project
+clad setup                  # connect your AI tools (Claude / Codex / Gemini)
 ```
 
 **(b) Marketplace** — for AI-tool plugin users
