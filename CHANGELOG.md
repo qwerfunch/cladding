@@ -45,16 +45,31 @@ Behavioral change for npm-path users (one extra `clad setup` command between ins
 - **Fresh install** — `npm install -g cladding && clad setup && clad init "..."`.
 - **Marketplace** — unchanged. `/cladding init "..."` works as before.
 
-### Behavior note — plugin activation is a separate step
+### Auto-activation — 5-host plugin install runs automatically
 
-`clad setup` creates host symlinks (`~/.claude/plugins/cladding`, `~/.gemini/extensions/cladding`) and TOML entries (`~/.codex/config.toml [mcp_servers.cladding]`) but it does **not** activate plugins inside Claude Code / Gemini CLI by itself. Those hosts require explicit registration:
+`clad setup` does not stop at symlinks. After wiring each detected host channel, it auto-invokes the host's plugin activation command (non-interactive, 30s timeout each):
 
-- **Claude Code** — `claude plugin add ~/.claude/plugins/cladding` (terminal) or `/plugin marketplace add file://~/.claude/plugins/cladding` (inside Claude Code)
-- **Gemini CLI** — host-specific plugin registration command (see Gemini CLI docs)
-- **Codex CLI skills** — auto-detected from `~/.agents/skills/` (no extra step)
-- **Codex MCP** — the TOML entry itself is the registration (no extra step)
+- **Claude Code** — `claude plugin marketplace add ~/.claude/plugins/cladding --scope user` + `claude plugin install claude-code@cladding --scope user`
+- **Gemini CLI** — `gemini extensions link ~/.gemini/extensions/cladding` (skipped if `gemini extensions list` already shows cladding)
+- **Codex CLI skills** — auto-detected from `~/.agents/skills/` on Codex restart (no command needed)
+- **Codex MCP** — the TOML entry itself is the registration (no command needed)
+- **Cursor** — the `~/.cursor/mcp.json` entry itself is the registration (no command needed)
 
-`clad setup` ships clear per-channel `↳ 활성화` (activation) hints in its stdout output so users see the exact command they need. v0.4.1 will automate the registration call when the host CLI binary is detected on PATH.
+Each channel's `↳ 활성화:` line in stdout reports `✓ 자동 완료` or `✗ 자동 시도 실패 — 수동:` followed by the fallback command. If `claude` or `gemini` binary isn't on PATH, the manual command is shown instead. Existing v0.3.60 wires are preserved.
+
+### 5th host — Cursor
+
+`clad setup` now detects `~/.cursor/` and writes `mcpServers.cladding = { command: "clad", args: ["serve"] }` into `~/.cursor/mcp.json` (JSON merge). Cursor picks up cladding as an MCP server on restart — no separate activation.
+
+### `plugins/claude-code/` subdirectory — Claude marketplace fix
+
+cladding's Claude Code plugin moved from the repo root (`agents/` + `commands/` + `.claude-plugin/plugin.json`) into `plugins/claude-code/` (parallel to existing `plugins/codex/` and `plugins/gemini-cli/`). The repo-root `.claude-plugin/marketplace.json` now points `source: "./plugins/claude-code"`. Without this split, `claude plugin install` failed with *"source type your Claude Code version does not support"* because Claude Code's marketplace model requires the plugin source to be a subdirectory, not the marketplace root.
+
+`plugin.json` schema fixes: `author` is now an object (`{name: ...}`), `repository` is a string URL.
+
+### Project-scope plugin activation — `clad init`
+
+After scaffolding spec + 4-tier docs, `clad init` also runs `claude plugin install claude-code@cladding --scope project` (best-effort, non-blocking). The result is a `.claude/settings.json` with `enabledPlugins["claude-code@cladding"] = true` in the project — so when an AI tool reopens the project, cladding skills and commands are picked up automatically with zero extra steps. The cladding repo itself ships this `.claude/settings.json` (self-dogfood).
 
 ---
 

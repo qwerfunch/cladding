@@ -6,6 +6,9 @@ modules:
   - src/init/host-setup.ts
   - src/cli/clad.ts
   - src/cli/init.ts
+  - plugins/claude-code/.claude-plugin/plugin.json
+  - .claude-plugin/marketplace.json
+  - .claude/settings.json
 acceptance_criteria:
   - id: AC-001
     ears: event
@@ -108,3 +111,43 @@ acceptance_criteria:
       numbered "다음 단계" guidance block as the last stdout block, so the
       user always sees a concrete next-step recipe at the end of the
       report.
+
+  - id: AC-011
+    ears: event
+    condition: when `clad setup` runs on a machine where `~/.cursor/` exists (Cursor IDE installed)
+    action: write or merge the `mcpServers.cladding` entry into `~/.cursor/mcp.json` (JSON merge, preserving other entries) so Cursor picks up cladding as an MCP server on restart
+    response: Cursor users get cladding wired without manual JSON edits
+    text: When `clad setup` runs and `~/.cursor/` exists, the system shall
+      merge `mcpServers.cladding = {command, args}` into `~/.cursor/mcp.json`
+      so Cursor users get cladding wired without manual JSON edits.
+
+  - id: AC-012
+    ears: event
+    condition: when `clad setup` finishes wiring a host channel AND the corresponding host CLI binary (claude / gemini) is on PATH
+    action: invoke the host's plugin activation command non-interactively (`claude plugin marketplace add` + `claude plugin install claude-code@cladding`, `gemini extensions link`); on failure fall back to printing the manual command in the activation hint
+    response: users with a host CLI binary on PATH get the plugin enabled in one command; users without one get a precise manual command
+    text: When `clad setup` finishes wiring a channel and the corresponding
+      host CLI binary is on PATH, the system shall invoke the host's plugin
+      activation command non-interactively, so users get the plugin enabled
+      in one command, and otherwise fall back to printing the manual command.
+
+  - id: AC-013
+    ears: event
+    condition: when `clad init` finishes scaffolding spec + 4-tier docs AND `claude` binary is on PATH
+    action: invoke `claude plugin install claude-code@cladding --scope project` in the project directory so the plugin is enabled at project scope (recorded in `.claude/settings.json`)
+    response: users opening the project in Claude Code see cladding skills and commands automatically without an additional setup step
+    text: When `clad init` finishes scaffolding and the claude binary is on
+      PATH, the system shall invoke `claude plugin install claude-code@cladding
+      --scope project` so users opening the project in Claude Code see
+      cladding skills and commands automatically.
+
+  - id: AC-014
+    ears: state
+    condition: while a maintainer clones the cladding repository and opens it with Claude Code
+    action: ensure the repo ships a `.claude/settings.json` with `enabledPlugins["claude-code@cladding"] = true` so Claude Code activates the local cladding plugin on entry (dogfood self-activation)
+    response: cladding repo behaves like any external cladding-managed project — no separate "activate cladding for cladding" step required for maintainers
+    text: While a maintainer clones the cladding repository and opens it
+      with Claude Code, the system shall ship a `.claude/settings.json`
+      with `enabledPlugins["claude-code@cladding"] = true` so Claude Code
+      activates the local cladding plugin on entry without a separate
+      maintainer-only setup step.

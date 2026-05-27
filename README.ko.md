@@ -233,16 +233,17 @@ clad setup                  # AI 도구 (Claude / Codex / Gemini) 자동 연결
 3. `clad setup` 불필요 — plugin 매니페스트가 자동 연결
 
 <details>
-<summary><code>clad setup</code> 이 연결하는 위치</summary>
+<summary><code>clad setup</code> 이 연결하는 위치 (5 host)</summary>
 
-| 호스트 (감지 시) | wire 위치 |
-|---|---|
-| Claude Code (`~/.claude/`) | `~/.claude/plugins/cladding` |
-| Codex CLI skills (`~/.agents/`) | `~/.agents/skills/cladding-*` |
-| Codex CLI MCP 서버 (`~/.codex/`) | `~/.codex/config.toml` 의 `[mcp_servers.cladding]` |
-| Gemini CLI (`~/.gemini/`) | `~/.gemini/extensions/cladding` |
+| 호스트 (감지 시) | wire 위치 | 자동 활성화 |
+|---|---|---|
+| Claude Code (`~/.claude/`) | `~/.claude/plugins/cladding` | `claude plugin marketplace add` + `install` |
+| Codex CLI skills (`~/.agents/`) | `~/.agents/skills/cladding-*` | (Codex 재시작 시 자동) |
+| Codex CLI MCP 서버 (`~/.codex/`) | `~/.codex/config.toml` 의 `[mcp_servers.cladding]` | (TOML entry 자체) |
+| Gemini CLI (`~/.gemini/`) | `~/.gemini/extensions/cladding` | `gemini extensions link` |
+| Cursor (`~/.cursor/`) | `~/.cursor/mcp.json` 의 `mcpServers.cladding` | (JSON entry 자체) |
 
-cladding 업그레이드 시나 새 AI 도구 설치 후 다시 실행해도 안전합니다.
+`clad setup` 은 claude / gemini binary 가 PATH 에 있을 때 각 host 의 활성화 명령을 자동 호출. cladding 업그레이드 시나 새 AI 도구 설치 후 다시 실행해도 안전합니다.
 </details>
 
 ### 2단계 — Init (프로젝트 spec 생성)

@@ -237,16 +237,17 @@ clad setup                  # connect your AI tools (Claude / Codex / Gemini)
 3. No `clad setup` needed — the plugin manifest wires everything
 
 <details>
-<summary>Where <code>clad setup</code> connects</summary>
+<summary>Where <code>clad setup</code> connects (5 host channels)</summary>
 
-| Host (when detected) | Wired location |
-|---|---|
-| Claude Code (`~/.claude/`) | `~/.claude/plugins/cladding` |
-| Codex CLI skills (`~/.agents/`) | `~/.agents/skills/cladding-*` |
-| Codex CLI MCP server (`~/.codex/`) | `[mcp_servers.cladding]` in `~/.codex/config.toml` |
-| Gemini CLI (`~/.gemini/`) | `~/.gemini/extensions/cladding` |
+| Host (when detected) | Wired location | Auto-activation |
+|---|---|---|
+| Claude Code (`~/.claude/`) | `~/.claude/plugins/cladding` | `claude plugin marketplace add` + `claude plugin install claude-code@cladding` |
+| Codex CLI skills (`~/.agents/`) | `~/.agents/skills/cladding-*` | (auto on Codex restart) |
+| Codex CLI MCP server (`~/.codex/`) | `[mcp_servers.cladding]` in `~/.codex/config.toml` | (TOML entry itself) |
+| Gemini CLI (`~/.gemini/`) | `~/.gemini/extensions/cladding` | `gemini extensions link` |
+| Cursor (`~/.cursor/`) | `mcpServers.cladding` in `~/.cursor/mcp.json` | (JSON entry itself) |
 
-Safe to re-run after a cladding upgrade or after installing another AI tool.
+`clad setup` invokes the per-host activation commands automatically when `claude` / `gemini` binaries are on PATH. Safe to re-run after a cladding upgrade or after installing another AI tool.
 </details>
 
 ### Step 2 — Init (create the project spec)
