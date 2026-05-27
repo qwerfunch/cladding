@@ -33,6 +33,7 @@ import {
 import {homedir, platform} from 'node:os';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {spawnSync} from 'node:child_process';
 
 export type ChannelResult =
   | 'created'
@@ -316,16 +317,88 @@ function formatChannelLine(name: string, result: ChannelResult, target?: string)
 
 const WIRED_STATES: ReadonlySet<ChannelResult> = new Set(['created', 'rewired', 'unchanged', 'copied']);
 
-function pushActivationHint(lines: string[], channel: 'claude' | 'gemini' | 'codex-skills' | 'codex-mcp' | 'cursor', wired: boolean): void {
+/** Check whether a binary exists in PATH using `which` (POSIX) or `where` (Win). */
+function detectBinary(name: string): boolean {
+  const cmd = platform() === 'win32' ? 'where' : 'which';
+  const result = spawnSync(cmd, [name], {stdio: 'ignore'});
+  return result.status === 0;
+}
+
+/** Run a non-interactive activation command, return true on success. */
+function runActivation(command: string, args: readonly string[]): {ok: boolean; stderr: string} {
+  const result = spawnSync(command, args, {encoding: 'utf8', timeout: 30_000});
+  return {ok: result.status === 0, stderr: result.stderr ?? ''};
+}
+
+interface ActivationResult {
+  readonly attempted: boolean;
+  readonly success: boolean;
+  readonly stderr?: string;
+}
+
+function activateClaude(pluginPath: string): ActivationResult {
+  if (!detectBinary('claude')) return {attempted: false, success: false};
+  const add = runActivation('claude', ['plugin', 'marketplace', 'add', pluginPath, '--scope', 'user']);
+  if (!add.ok) return {attempted: true, success: false, stderr: add.stderr};
+  const install = runActivation('claude', ['plugin', 'install', 'claude-code@cladding', '--scope', 'user']);
+  return {attempted: true, success: install.ok, stderr: install.stderr};
+}
+
+function activateGemini(extensionPath: string): ActivationResult {
+  if (!detectBinary('gemini')) return {attempted: false, success: false};
+  // Check if cladding extension is already installed/enabled — `gemini extensions
+  // list` writes its output to stderr (verified against gemini 0.42.0), so we
+  // grep both streams.
+  const list = spawnSync('gemini', ['extensions', 'list'], {encoding: 'utf8', timeout: 10_000});
+  const combined = (list.stdout ?? '') + (list.stderr ?? '');
+  if (list.status === 0 && /\bcladding\b/.test(combined)) {
+    return {attempted: true, success: true};
+  }
+  const link = runActivation('gemini', ['extensions', 'link', extensionPath]);
+  return {attempted: true, success: link.ok, stderr: link.stderr};
+}
+
+interface ActivationContext {
+  readonly claude?: ActivationResult;
+  readonly gemini?: ActivationResult;
+}
+
+function pushActivationHint(
+  lines: string[],
+  channel: 'claude' | 'gemini' | 'codex-skills' | 'codex-mcp' | 'cursor',
+  wired: boolean,
+  activation?: ActivationContext,
+): void {
   if (!wired) return;
   switch (channel) {
-    case 'claude':
-      lines.push('     ↳ 활성화 (필수): `claude plugin marketplace add ~/.claude/plugins/cladding`');
-      lines.push('       후 `claude plugin install claude-code@cladding --scope user`');
+    case 'claude': {
+      const a = activation?.claude;
+      if (a?.attempted && a.success) {
+        lines.push('     ↳ 활성화: ✓ claude plugin marketplace add + install 자동 완료 (Claude Code 재시작 시 적용)');
+      } else if (a?.attempted && !a.success) {
+        lines.push('     ↳ 활성화: ✗ 자동 시도 실패 — 수동:');
+        lines.push('       `claude plugin marketplace add ~/.claude/plugins/cladding`');
+        lines.push('       후 `claude plugin install claude-code@cladding --scope user`');
+      } else {
+        lines.push('     ↳ 활성화 (claude binary 없음): 수동:');
+        lines.push('       `claude plugin marketplace add ~/.claude/plugins/cladding`');
+        lines.push('       후 `claude plugin install claude-code@cladding --scope user`');
+      }
       break;
-    case 'gemini':
-      lines.push('     ↳ 활성화: `gemini extensions link ~/.gemini/extensions/cladding`');
+    }
+    case 'gemini': {
+      const a = activation?.gemini;
+      if (a?.attempted && a.success) {
+        lines.push('     ↳ 활성화: ✓ gemini extensions link 자동 완료 (Gemini CLI 재시작 시 적용)');
+      } else if (a?.attempted && !a.success) {
+        lines.push('     ↳ 활성화: ✗ 자동 시도 실패 — 수동:');
+        lines.push('       `gemini extensions link ~/.gemini/extensions/cladding`');
+      } else {
+        lines.push('     ↳ 활성화 (gemini binary 없음): 수동:');
+        lines.push('       `gemini extensions link ~/.gemini/extensions/cladding`');
+      }
       break;
+    }
     case 'codex-skills':
       lines.push('     ↳ Codex CLI 가 ~/.agents/skills/ 자동 인식 (재시작 시 적용)');
       break;
@@ -338,7 +411,12 @@ function pushActivationHint(lines: string[], channel: 'claude' | 'gemini' | 'cod
   }
 }
 
-function printReport(result: SetupResult, detection: HostDetection, opts: {quiet?: boolean}): void {
+function printReport(
+  result: SetupResult,
+  detection: HostDetection,
+  activation: ActivationContext,
+  opts: {quiet?: boolean},
+): void {
   if (opts.quiet) return;
   const lines: string[] = [];
   lines.push('cladding setup — wiring detected AI tools');
@@ -346,11 +424,11 @@ function printReport(result: SetupResult, detection: HostDetection, opts: {quiet
 
   const claudeState = detection.claude ? result.wiring.claude_plugin : 'skipped-not-installed';
   lines.push(formatChannelLine('Claude Code', claudeState));
-  pushActivationHint(lines, 'claude', WIRED_STATES.has(claudeState));
+  pushActivationHint(lines, 'claude', WIRED_STATES.has(claudeState), activation);
 
   const geminiState = detection.gemini ? result.wiring.gemini_extension : 'skipped-not-installed';
   lines.push(formatChannelLine('Gemini CLI', geminiState));
-  pushActivationHint(lines, 'gemini', WIRED_STATES.has(geminiState));
+  pushActivationHint(lines, 'gemini', WIRED_STATES.has(geminiState), activation);
 
   const skillsSummary = detection.agents
     ? summarizeSkills(result.wiring.codex_skills)
@@ -387,9 +465,9 @@ function printReport(result: SetupResult, detection: HostDetection, opts: {quiet
   }
   lines.push('');
   lines.push('다음 단계:');
-  lines.push('  1. Claude Code / Gemini CLI 에서 plugin 활성화 (위 ↳ 안내 참조)');
-  lines.push('  2. AI 도구 켜고 프로젝트 디렉토리로 이동');
-  lines.push('  3. /cladding init "..." 입력 (LLM 안에서)');
+  lines.push('  1. AI 도구 (Claude Code / Codex / Gemini / Cursor) 를 재시작');
+  lines.push('  2. 프로젝트 디렉토리로 이동');
+  lines.push('  3. /cladding init "..." 입력 (LLM 안에서) 또는 `clad init "..."` (terminal)');
   lines.push('  4. 개발 시작 — cladding 이 매 commit 마다 spec ↔ 코드 동기 자동 검사');
   process.stdout.write(lines.join('\n') + '\n');
 }
@@ -465,6 +543,16 @@ export async function runHostSetup(opts: SetupOptions = {}): Promise<SetupResult
     if (s.result === 'failed') errors.push({step: `codex_skill:${s.verb}`, message: s.message ?? 'wire failed'});
   }
 
+  // Auto-activation — runs after symlink wire succeeds. Each host CLI command
+  // is invoked non-interactively; failures fall back to stdout instructions.
+  const activation: ActivationContext = {};
+  if (WIRED_STATES.has(claude_plugin)) {
+    activation.claude = activateClaude(join(home, '.claude', 'plugins', 'cladding'));
+  }
+  if (WIRED_STATES.has(gemini_extension)) {
+    activation.gemini = activateGemini(join(home, '.gemini', 'extensions', 'cladding'));
+  }
+
   const result: SetupResult = {
     wiring: {claude_plugin, gemini_extension, codex_skills, codex_mcp, cursor_mcp},
     errors,
@@ -482,7 +570,7 @@ export async function runHostSetup(opts: SetupOptions = {}): Promise<SetupResult
     errors,
   });
 
-  printReport(result, detection, {quiet: opts.quiet});
+  printReport(result, detection, activation, {quiet: opts.quiet});
   return result;
 }
 
