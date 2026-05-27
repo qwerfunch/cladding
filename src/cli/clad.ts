@@ -14,6 +14,7 @@ import {classifyIntent} from '../router/intent.js';
 import {runDoctorCommand} from './doctor.js';
 import {runInit} from './init.js';
 import {runRefineCommand} from './refine.js';
+import {runHostSetup} from '../init/host-setup.js';
 import {runArch} from '../stages/arch.js';
 import {runAudit} from '../stages/audit.js';
 import {runCommit} from '../stages/commit.js';
@@ -285,6 +286,12 @@ export function runRollbackCommand(featureId: string, opts: {reason?: string} = 
   process.exit(0);
 }
 
+/** Handler for `clad setup`. Wires cladding into installed AI tool host channels. */
+export async function runSetupCommand(opts: {force?: boolean; quiet?: boolean}): Promise<void> {
+  const result = await runHostSetup({force: opts.force, quiet: opts.quiet});
+  process.exit(result.errors.length > 0 ? 1 : 0);
+}
+
 /** Handler for `clad check`. Runs every Iron Law stage; exits with worst code. */
 export function runCheckCommand(opts: {internal?: boolean; strict?: boolean}): void {
   const stages = [
@@ -340,7 +347,7 @@ export function runRouteCommand(prompt: string): void {
  */
 export function createProgram(): Command {
   const program = new Command();
-  program.name('clad').description('Reference Ironclad CLI').version('0.3.60');
+  program.name('clad').description('Reference Ironclad CLI').version('0.4.0');
 
   program
     .command('init [intent...]')
@@ -380,6 +387,13 @@ export function createProgram(): Command {
       'list STALE_SPECIFICATION findings whose suggestion.action is propose-archive (Phased Decommissioning Tier 2)',
     )
     .action(runSyncCommand);
+
+  program
+    .command('setup')
+    .description('Wire cladding into installed AI tool host channels (Claude Code / Codex / Gemini)')
+    .option('--force', 'overwrite directory-copy wires (Windows fallback) even when changes detected')
+    .option('--quiet', 'suppress stdout output')
+    .action(runSetupCommand);
 
   program
     .command('check')

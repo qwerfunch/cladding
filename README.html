@@ -434,21 +434,22 @@
   <p>The AI fills in the spec, the 4-tier docs, and the policies on the spot. No separate npm install required.</p>
 
   <h3>Path 2 — npm (terminal · CI · environments without an AI tool)</h3>
-  <pre><code>npm install -g cladding
-clad init "B2B payment SaaS"
-clad check</code></pre>
-  <p><code>npm install -g cladding</code>'s postinstall hook wires up four channels automatically:</p>
+  <pre><code>npm install -g cladding            # binary only, zero side effects in $HOME
+clad setup                          # wire detected AI tools (Claude / Codex / Gemini)
+clad init "B2B payment SaaS"        # generate spec in your project
+clad check                          # run the 13-stage Iron Law gate</code></pre>
+  <p><code>clad setup</code> wires up only the host channels that exist on your machine:</p>
   <table>
-    <thead><tr><th>Host</th><th>Auto-wired location</th></tr></thead>
+    <thead><tr><th>Host (when detected)</th><th>Wired location</th></tr></thead>
     <tbody>
-      <tr><td>Claude Code</td><td><code>~/.claude/plugins/cladding</code></td></tr>
-      <tr><td>Codex CLI (skills)</td><td><code>~/.agents/skills/cladding-*</code></td></tr>
-      <tr><td>Codex CLI (MCP server)</td><td><code>[mcp_servers.cladding]</code> in <code>~/.codex/config.toml</code></td></tr>
-      <tr><td>Gemini CLI</td><td><code>~/.gemini/extensions/cladding</code></td></tr>
+      <tr><td>Claude Code (<code>~/.claude/</code>)</td><td><code>~/.claude/plugins/cladding</code></td></tr>
+      <tr><td>Codex CLI skills (<code>~/.agents/</code>)</td><td><code>~/.agents/skills/cladding-*</code></td></tr>
+      <tr><td>Codex CLI MCP server (<code>~/.codex/</code>)</td><td><code>[mcp_servers.cladding]</code> in <code>~/.codex/config.toml</code></td></tr>
+      <tr><td>Gemini CLI (<code>~/.gemini/</code>)</td><td><code>~/.gemini/extensions/cladding</code></td></tr>
     </tbody>
   </table>
-  <p>After that, <code>/cladding init</code> and <code>clad init</code> work identically from any AI tool.</p>
-  <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:16px 0;background:#f8fafc;color:#475569;font-size:14px">If you installed with <code>npm install --ignore-scripts</code>, the postinstall is skipped — but the first <code>clad init</code> retries it automatically.</blockquote>
+  <p><code>clad setup</code> is idempotent and combines six scenarios in one command: first wire, version update, delta wire (after a new AI tool gets installed), repair (after a symlink is deleted), no-op, and conflict detection. Run it any time you upgrade cladding or install a new AI tool.</p>
+  <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:16px 0;background:#f8fafc;color:#475569;font-size:14px"><code>npm install -g cladding</code> has <strong>no postinstall hook</strong> — installation is pure binary placement. Run <code>clad setup</code> explicitly to wire host channels. (Marketplace path users don't need this — the marketplace manifest handles wiring.)</blockquote>
 
   <h3>Three init scenarios</h3>
   <p><code>clad init</code> takes a natural-language intent and picks the right path on its own. Same command, three starting points.</p>

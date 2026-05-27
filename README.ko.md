@@ -227,23 +227,24 @@ AI 가 그 자리에서 spec · 4-tier 문서 · 정책을 자동으로 채운�
 ### 방법 2 — npm (터미널 · CI · AI 도구가 없는 환경)
 
 ```bash
-npm install -g cladding
-clad init "B2B 결제 SaaS"
-clad check
+npm install -g cladding            # binary 만, $HOME 영향 0
+clad setup                          # 감지된 AI 도구만 wire (Claude / Codex / Gemini)
+clad init "B2B 결제 SaaS"          # 프로젝트 안에서 spec 생성
+clad check                          # 13 단계 Iron Law gate 실행
 ```
 
-`npm install -g cladding` 의 postinstall 훅이 다음 4 개 채널을 자동으로 연결한다:
+`clad setup` 은 *감지된 host* 만 wire — 사용 안 하는 도구는 건너뛴다:
 
-| 호스트 | 자동 연결 위치 |
+| 호스트 (감지 시) | wire 위치 |
 |---|---|
-| Claude Code | `~/.claude/plugins/cladding` |
-| Codex CLI (skills) | `~/.agents/skills/cladding-*` |
-| Codex CLI (MCP 서버) | `~/.codex/config.toml` 의 `[mcp_servers.cladding]` |
-| Gemini CLI | `~/.gemini/extensions/cladding` |
+| Claude Code (`~/.claude/`) | `~/.claude/plugins/cladding` |
+| Codex CLI skills (`~/.agents/`) | `~/.agents/skills/cladding-*` |
+| Codex CLI MCP 서버 (`~/.codex/`) | `~/.codex/config.toml` 의 `[mcp_servers.cladding]` |
+| Gemini CLI (`~/.gemini/`) | `~/.gemini/extensions/cladding` |
 
-이후 어느 AI 도구에서든 `/cladding init` 또는 `clad init` 모두 동일하게 동작한다.
+`clad setup` 은 idempotent — 한 명령이 6 시나리오 처리: 최초 wire · 업데이트 · delta wire (새 AI 도구 추가 후) · repair (symlink 삭제됨) · no-op · conflict 감지. cladding 업그레이드 시나 새 AI 도구 설치 후 언제든 재실행 안전.
 
-> `npm install --ignore-scripts` 로 설치한 경우 postinstall 이 건너뛰어지지만, 첫 `clad init` 실행 시 자동으로 재시도한다.
+> `npm install -g cladding` 은 **postinstall 훅 없음** — install 은 순수 binary 배치만. host channel wire 는 `clad setup` 으로 명시. (마켓플레이스 path 사용자는 불필요 — 매니페스트 자체가 wire.)
 
 ### 세 가지 init 시나리오
 

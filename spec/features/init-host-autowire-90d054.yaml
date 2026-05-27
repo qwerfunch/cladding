@@ -6,7 +6,6 @@ modules:
   - src/init/detect.ts
   - src/init/marker.ts
   - src/init/host-instructions.ts
-  - src/init/postinstall-fallback.ts
   - src/stages/detectors/enrichment-pending.ts
 acceptance_criteria:
   # ── Host wiring (npm postinstall + clad init fallback retry) ──

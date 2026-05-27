@@ -231,23 +231,24 @@ The AI fills in the spec, the 4-tier docs, and the policies on the spot. No sepa
 ### Path 2 — npm (terminal · CI · environments without an AI tool)
 
 ```bash
-npm install -g cladding
-clad init "B2B payment SaaS"
-clad check
+npm install -g cladding            # binary only, zero side effects in $HOME
+clad setup                          # wire detected AI tools (Claude / Codex / Gemini)
+clad init "B2B payment SaaS"        # generate spec in your project
+clad check                          # run the 13-stage Iron Law gate
 ```
 
-`npm install -g cladding`'s postinstall hook wires up four channels automatically:
+`clad setup` wires up only the host channels that exist on your machine:
 
-| Host | Auto-wired location |
+| Host (when detected) | Wired location |
 |---|---|
-| Claude Code | `~/.claude/plugins/cladding` |
-| Codex CLI (skills) | `~/.agents/skills/cladding-*` |
-| Codex CLI (MCP server) | `[mcp_servers.cladding]` in `~/.codex/config.toml` |
-| Gemini CLI | `~/.gemini/extensions/cladding` |
+| Claude Code (`~/.claude/`) | `~/.claude/plugins/cladding` |
+| Codex CLI skills (`~/.agents/`) | `~/.agents/skills/cladding-*` |
+| Codex CLI MCP server (`~/.codex/`) | `[mcp_servers.cladding]` in `~/.codex/config.toml` |
+| Gemini CLI (`~/.gemini/`) | `~/.gemini/extensions/cladding` |
 
-After that, `/cladding init` and `clad init` work identically from any AI tool.
+`clad setup` is idempotent and combines six scenarios in one command: first wire, version update, delta wire (after a new AI tool gets installed), repair (after a symlink is deleted), no-op, and conflict detection. Run it any time you upgrade cladding or install a new AI tool.
 
-> If you installed with `npm install --ignore-scripts`, the postinstall is skipped — but the first `clad init` retries it automatically.
+> `npm install -g cladding` has **no postinstall hook** — installation is pure binary placement. Run `clad setup` explicitly to wire host channels. (Marketplace path users don't need this — the marketplace manifest handles wiring.)
 
 ### Three init scenarios
 

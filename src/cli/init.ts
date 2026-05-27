@@ -37,7 +37,7 @@ import {detectToolchain} from '../stages/toolchain/detect.js';
 import {detectContext} from '../init/detect.js';
 import {buildMarker, patchMarkerInSpec, renderMarkerYaml, type EnrichmentMarker} from '../init/marker.js';
 import {writeAgentsMd, writeClaudeMdSection} from '../init/host-instructions.js';
-import {retryPostinstallIfNeeded} from '../init/postinstall-fallback.js';
+import {getCurrentCladdingVersion, getLastSetupVersion} from '../init/host-setup.js';
 import {loadIntentFromPathIfApplicable} from './intent-from-path.js';
 
 export interface InitOptions {
@@ -568,13 +568,19 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
     skipped.push('CLAUDE.md (## cladding section already present)');
   }
 
-  // F-90d054 — postinstall fallback retry. Users who installed cladding
-  // with `npm install --ignore-scripts` (or whose CI skipped postinstall)
-  // get the global wiring set up here instead. Best-effort; failures do
-  // not block init.
-  const fallback = retryPostinstallIfNeeded();
-  if (fallback.attempted && fallback.exitCode === 0) {
-    created.push('global host wiring (postinstall retry)');
+  // F-80d19d — friendly warning when host channels were never wired or are
+  // out of sync with the current cladding binary. `clad setup` is the explicit
+  // command for wiring; this is informational only and does not block init.
+  const lastSetup = getLastSetupVersion();
+  const pkgVersion = getCurrentCladdingVersion();
+  if (lastSetup == null) {
+    skipped.push(
+      'host channels not wired yet — run `clad setup` to enable `/cladding init` from Claude Code / Codex / Gemini',
+    );
+  } else if (pkgVersion && lastSetup !== pkgVersion) {
+    skipped.push(
+      `host wire was set up at v${lastSetup} (current binary v${pkgVersion}) — symlinks usually auto-follow, but run \`clad setup\` to be sure`,
+    );
   }
 
   return {

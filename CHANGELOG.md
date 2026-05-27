@@ -5,6 +5,48 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] — 2026-05-27 — `clad setup` command — split npm install from host wire (F-80d19d)
+
+**Reverting F-90d054's npm `postinstall` side effect.** v0.3.60 made `npm install -g cladding` automatically wire four host AI channels in `$HOME` (`~/.claude/`, `~/.gemini/`, `~/.codex/`, `~/.agents/`). The convenience was real — npm-path users got `/cladding init` for free — but the cost was steep: every npm install touched four global directories whether or not the user had those AI tools, CI sandboxes needed `CLADDING_SKIP_POSTINSTALL=1`, and `clad init` carried a fallback retry path. v0.4.0 splits the responsibility: install is install, wire is wire.
+
+### Added
+
+- **New command `clad setup`** — explicit host channel wirer. One command handles six scenarios in a single run:
+  - **first wire** — create symlinks for detected hosts
+  - **update** — re-wire if the existing symlink target is a different cladding root (e.g. after `nvm` switch or manifest schema change)
+  - **delta** — wire only the newly detected host when a user installs a new AI tool between runs
+  - **repair** — re-create symlinks deleted by the user or reset by the host AI
+  - **no-op** — print "already wired" without filesystem changes when everything matches
+  - **conflict** — refuse to overwrite directory-copy wires (Windows fallback) with custom changes unless `--force` is supplied
+- **`src/init/host-setup.ts`** — TypeScript implementation of the wirer, replacing the `scripts/postinstall.mjs` JavaScript hook. Detects each host via its home directory (`~/.claude/`, `~/.gemini/`, `~/.codex/`, `~/.agents/`); undetected hosts are skipped (no surprise `$HOME` directories).
+- **`~/.cladding/setup-status.json`** — records the last `cladding_version`, wiring report, and errors. `clad init` reads it to detect version skew.
+- **Friendly stdout** — `clad setup` always ends with a numbered "다음 단계" block (1. open AI tool → 2. cd to project → 3. `/cladding init "..."` → 4. start coding).
+- **`spec/features/setup-command-80d19d.yaml`** (F-80d19d) — 10 acceptance criteria covering install / update / delta / repair / no-op / conflict / not-installed-skip / init-skew-warning / npm-install-no-side-effect / next-step-guidance.
+- **`tests/cli/setup.test.ts`** — 10 unit tests, one per AC, exercising the wirer against a mocked `$HOME`.
+
+### Changed
+
+- **`clad init`** — removed the F-90d054 postinstall-fallback retry path. `clad init` now never wires host channels on its own. If no `setup-status.json` exists, it appends a friendly skipped notice ("host channels not wired yet — run `clad setup`") and continues with spec generation. If the binary version differs from the recorded setup version, it appends a softer notice ("symlinks usually auto-follow, but run `clad setup` to be sure"). Neither blocks spec creation.
+- **`src/cli/clad.ts`** — registers `.command('setup')` with `--force` and `--quiet` flags.
+
+### Removed
+
+- **`scripts/postinstall.mjs`** — deleted. The npm `postinstall` lifecycle hook is no longer registered in `package.json`. `npm install -g cladding` now produces zero filesystem side effects in `$HOME`.
+- **`src/init/postinstall-fallback.ts`** — deleted. The retry path inside `clad init` is gone with it.
+- **`package.json` `"postinstall"` script** — removed from `scripts`. **`scripts/postinstall.mjs`** also removed from the `files[]` publish list.
+
+### Why v0.4.0 (minor bump)
+
+Behavioral change for npm-path users (one extra `clad setup` command between install and init). Backward-safe in practice — existing v0.3.60 wires (symlinks/config.toml entries) survive the upgrade unchanged. Marketplace-path users are unaffected (the marketplace manifest still handles wiring on install).
+
+### Migration
+
+- **Upgrading from v0.3.60** — `npm install -g cladding@0.4.0`. Symlinks created by v0.3.60's postinstall already point at the cladding package root, so they auto-follow the upgrade with no action. Re-run `clad setup` only if you switched node managers (nvm) or moved your home directory.
+- **Fresh install** — `npm install -g cladding && clad setup && clad init "..."`.
+- **Marketplace** — unchanged. `/cladding init "..."` works as before.
+
+---
+
 ## [0.3.60] — 2026-05-22 — `clad init` host wiring + lazy enrichment marker (F-90d054)
 
 **Closing the onboarding marriage.** Until now `clad init` scaffolded `spec.yaml` + 4-tier docs but left every host AI wiring (Claude Code plugin / Codex skills / Gemini extension / MCP server / cross-tool AGENTS.md) to the user. And `npm`-path users had no way to populate the spec without an `ANTHROPIC_API_KEY` — a real LLM gap vs the plugin-path. This cycle fuses both.
