@@ -426,19 +426,14 @@
 
   <!-- ─────────────── Install ─────────────── -->
   <h2>Install</h2>
-  <p>There are two paths into cladding — either one lands you in the same place, with the same spec · policies · verification loop.</p>
+  <p>Two sequential steps: <strong>install the infrastructure</strong>, then <strong>init the spec</strong>.</p>
 
-  <h3>Path 1 — Marketplace (fastest)</h3>
-  <p>Install cladding from the Claude Code · Codex CLI · Gemini CLI marketplace, then say one line to the AI:</p>
-  <pre><code>/cladding init "B2B payment SaaS"</code></pre>
-  <p>The AI fills in the spec, the 4-tier docs, and the policies on the spot. No separate npm install required.</p>
+  <blockquote style="border-left:4px solid #2563eb;padding:8px 16px;margin:16px 0;background:#eff6ff;color:#1e3a8a;font-size:14px"><strong>Coming in via a marketplace plugin (Claude Code · Codex · Gemini CLI)?</strong> You can skip step 1 — the plugin manifest already wires the host. Jump straight to <a href="#step-2--init-create-the-project-spec">step 2</a>.</blockquote>
 
-  <h3>Path 2 — npm (terminal · CI · environments without an AI tool)</h3>
-  <pre><code>npm install -g cladding            # binary only, zero side effects in $HOME
-clad setup                          # wire detected AI tools (Claude / Codex / Gemini)
-clad init "B2B payment SaaS"        # generate spec in your project
-clad check                          # run the 13-stage Iron Law gate</code></pre>
-  <p><code>clad setup</code> wires up only the host channels that exist on your machine:</p>
+  <h3>Step 1 — Install the infrastructure (npm path)</h3>
+  <pre><code>npm install -g cladding   # binary only, zero side effects in $HOME
+clad setup                  # wire host channels for detected AI tools</code></pre>
+  <p><code>clad setup</code> only wires hosts that are actually installed on your machine — undetected ones are skipped, no surprise directories get created:</p>
   <table>
     <thead><tr><th>Host (when detected)</th><th>Wired location</th></tr></thead>
     <tbody>
@@ -448,8 +443,15 @@ clad check                          # run the 13-stage Iron Law gate</code></pre
       <tr><td>Gemini CLI (<code>~/.gemini/</code>)</td><td><code>~/.gemini/extensions/cladding</code></td></tr>
     </tbody>
   </table>
-  <p><code>clad setup</code> is idempotent and combines six scenarios in one command: first wire, version update, delta wire (after a new AI tool gets installed), repair (after a symlink is deleted), no-op, and conflict detection. Run it any time you upgrade cladding or install a new AI tool.</p>
-  <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:16px 0;background:#f8fafc;color:#475569;font-size:14px"><code>npm install -g cladding</code> has <strong>no postinstall hook</strong> — installation is pure binary placement. Run <code>clad setup</code> explicitly to wire host channels. (Marketplace path users don't need this — the marketplace manifest handles wiring.)</blockquote>
+  <p><code>clad setup</code> is idempotent — one command covers six scenarios: first wire, version update, delta (after you install a new AI tool), repair (after a symlink is deleted), no-op, and conflict detection. Safe to re-run after a cladding upgrade or after installing another AI tool.</p>
+  <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:16px 0;background:#f8fafc;color:#475569;font-size:14px"><code>npm install -g cladding</code> has <strong>no postinstall hook</strong>. Installation is pure binary placement; host wiring is opted into explicitly via <code>clad setup</code>.</blockquote>
+
+  <h3 id="step-2--init-create-the-project-spec">Step 2 — Init (create the project spec)</h3>
+  <p>Open your AI tool, <code>cd</code> into your project, then run once:</p>
+  <pre><code>[inside your AI tool] /cladding init "B2B payment SaaS"</code></pre>
+  <p>Terminal-only users (no AI tool):</p>
+  <pre><code>clad init "B2B payment SaaS"</code></pre>
+  <p>This creates <code>spec.yaml</code> + the 4-tier docs. Done once per project.</p>
 
   <h3>Three init scenarios</h3>
   <p><code>clad init</code> takes a natural-language intent and picks the right path on its own. Same command, three starting points.</p>

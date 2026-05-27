@@ -212,28 +212,18 @@ cladding 의 차별점은 *결합* — 위 네 카테고리의 핵심을 *하나
 
 ## Install
 
-cladding 은 두 가지 경로로 시작할 수 있다 — 어느 쪽이든 *같은 spec · 같은 정책 · 같은 검증 흐름* 에 도착한다.
+cladding 시작 = 2 단계 가이드. **인프라 설치 → spec 셋업** 순서.
 
-### 방법 1 — 마켓플레이스 (가장 빠름)
+> **마켓플레이스 (Claude Code · Codex · Gemini CLI plugin) 부터 시작하시나요?** 1단계는 건너뜁니다 — plugin 매니페스트가 host wire 자동 처리. 바로 [2단계](#2단계--init-프로젝트-spec-셋업) 로.
 
-Claude Code · Codex CLI · Gemini CLI 의 마켓플레이스에서 cladding 을 설치한 뒤, AI 에게 한 줄 명령:
-
-```
-/cladding init "B2B 결제 SaaS"
-```
-
-AI 가 그 자리에서 spec · 4-tier 문서 · 정책을 자동으로 채운다. 별도의 npm 설치 불필요.
-
-### 방법 2 — npm (터미널 · CI · AI 도구가 없는 환경)
+### 1단계 — 인프라 설치 (npm 경로)
 
 ```bash
-npm install -g cladding            # binary 만, $HOME 영향 0
-clad setup                          # 감지된 AI 도구만 wire (Claude / Codex / Gemini)
-clad init "B2B 결제 SaaS"          # 프로젝트 안에서 spec 생성
-clad check                          # 13 단계 Iron Law gate 실행
+npm install -g cladding   # binary 만, $HOME 영향 0
+clad setup                  # 감지된 AI 도구의 host channel wire
 ```
 
-`clad setup` 은 *감지된 host* 만 wire — 사용 안 하는 도구는 건너뛴다:
+`clad setup` 은 *실제 설치된* host 만 wire — 사용 안 하는 도구는 건너뛴다 (디렉토리 안 만듦):
 
 | 호스트 (감지 시) | wire 위치 |
 |---|---|
@@ -244,7 +234,23 @@ clad check                          # 13 단계 Iron Law gate 실행
 
 `clad setup` 은 idempotent — 한 명령이 6 시나리오 처리: 최초 wire · 업데이트 · delta wire (새 AI 도구 추가 후) · repair (symlink 삭제됨) · no-op · conflict 감지. cladding 업그레이드 시나 새 AI 도구 설치 후 언제든 재실행 안전.
 
-> `npm install -g cladding` 은 **postinstall 훅 없음** — install 은 순수 binary 배치만. host channel wire 는 `clad setup` 으로 명시. (마켓플레이스 path 사용자는 불필요 — 매니페스트 자체가 wire.)
+> `npm install -g cladding` 은 **postinstall 훅 없음** — install 은 순수 binary 배치만. host channel wire 는 `clad setup` 명시 호출.
+
+### 2단계 — Init (프로젝트 spec 셋업)
+
+AI 도구 활성 후, 프로젝트 디렉토리에서 한 번 호출:
+
+```
+[AI 도구 안] /cladding init "B2B 결제 SaaS"
+```
+
+terminal-only 사용자 (LLM 없이):
+
+```bash
+clad init "B2B 결제 SaaS"
+```
+
+`spec.yaml` + 4-tier 문서가 자동 생성됩니다. 프로젝트당 한 번.
 
 ### 세 가지 init 시나리오
 

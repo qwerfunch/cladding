@@ -216,28 +216,18 @@ cladding's edge is the *combination* — it folds the strongest parts of all fou
 <!-- ─────────────── Install ─────────────── -->
 ## Install
 
-There are two paths into cladding — either one lands you in the same place, with the same spec · policies · verification loop.
+Two sequential steps: **install the infrastructure**, then **init the spec**.
 
-### Path 1 — Marketplace (fastest)
+> **Coming in via a marketplace plugin (Claude Code · Codex · Gemini CLI)?** You can skip step 1 — the plugin manifest already wires the host. Jump straight to [step 2](#step-2--init-create-the-project-spec).
 
-Install cladding from the Claude Code · Codex CLI · Gemini CLI marketplace, then say one line to the AI:
-
-```
-/cladding init "B2B payment SaaS"
-```
-
-The AI fills in the spec, the 4-tier docs, and the policies on the spot. No separate npm install required.
-
-### Path 2 — npm (terminal · CI · environments without an AI tool)
+### Step 1 — Install the infrastructure (npm path)
 
 ```bash
-npm install -g cladding            # binary only, zero side effects in $HOME
-clad setup                          # wire detected AI tools (Claude / Codex / Gemini)
-clad init "B2B payment SaaS"        # generate spec in your project
-clad check                          # run the 13-stage Iron Law gate
+npm install -g cladding   # binary only, zero side effects in $HOME
+clad setup                  # wire host channels for detected AI tools
 ```
 
-`clad setup` wires up only the host channels that exist on your machine:
+`clad setup` only wires hosts that are actually installed on your machine — undetected ones are skipped, no surprise directories get created:
 
 | Host (when detected) | Wired location |
 |---|---|
@@ -246,9 +236,25 @@ clad check                          # run the 13-stage Iron Law gate
 | Codex CLI MCP server (`~/.codex/`) | `[mcp_servers.cladding]` in `~/.codex/config.toml` |
 | Gemini CLI (`~/.gemini/`) | `~/.gemini/extensions/cladding` |
 
-`clad setup` is idempotent and combines six scenarios in one command: first wire, version update, delta wire (after a new AI tool gets installed), repair (after a symlink is deleted), no-op, and conflict detection. Run it any time you upgrade cladding or install a new AI tool.
+`clad setup` is idempotent — one command covers six scenarios: first wire, version update, delta (after you install a new AI tool), repair (after a symlink is deleted), no-op, and conflict detection. Safe to re-run after a cladding upgrade or after installing another AI tool.
 
-> `npm install -g cladding` has **no postinstall hook** — installation is pure binary placement. Run `clad setup` explicitly to wire host channels. (Marketplace path users don't need this — the marketplace manifest handles wiring.)
+> `npm install -g cladding` has **no postinstall hook**. Installation is pure binary placement; host wiring is opted into explicitly via `clad setup`.
+
+### Step 2 — Init (create the project spec)
+
+Open your AI tool, `cd` into your project, then run once:
+
+```
+[inside your AI tool] /cladding init "B2B payment SaaS"
+```
+
+Terminal-only users (no AI tool):
+
+```bash
+clad init "B2B payment SaaS"
+```
+
+This creates `spec.yaml` + the 4-tier docs. Done once per project.
 
 ### Three init scenarios
 
