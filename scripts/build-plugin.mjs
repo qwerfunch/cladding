@@ -33,11 +33,12 @@ import {parse as parseYaml} from 'yaml';
 const SRC_AGENTS = 'src/agents';
 const SRC_SKILLS = 'skills';
 const SRC_DETECTORS = 'src/stages/detectors';
-const CLAUDE_PLUGIN_JSON = '.claude-plugin/plugin.json';
+const CLAUDE_PLUGIN_DIR = 'plugins/claude-code';
+const CLAUDE_PLUGIN_JSON = `${CLAUDE_PLUGIN_DIR}/.claude-plugin/plugin.json`;
 
-// --- Phase A — Claude Code mirror (repo-root agents/) -----------------
+// --- Phase A — Claude Code mirror (plugins/claude-code/agents/) -------
 
-const CLAUDE_AGENTS = 'agents';
+const CLAUDE_AGENTS = `${CLAUDE_PLUGIN_DIR}/agents`;
 mkdirSync(CLAUDE_AGENTS, {recursive: true});
 
 const claudeGenerated = [];

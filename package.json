@@ -16,8 +16,6 @@
   "files": [
     "bin/",
     "dist/",
-    "agents/",
-    "commands/",
     ".claude-plugin/",
     ".mcp.json",
     "plugins/",

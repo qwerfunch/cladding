@@ -2,13 +2,12 @@
   "name": "cladding",
   "version": "0.4.0",
   "description": "Reference implementation of the Ironclad standard — multi-agent dev harness for Claude Code.",
-  "author": "qwerfunch",
+  "author": {
+    "name": "qwerfunch"
+  },
   "license": "MIT",
   "homepage": "https://github.com/qwerfunch/cladding",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/qwerfunch/cladding.git"
-  },
+  "repository": "https://github.com/qwerfunch/cladding.git",
   "ironclad": {
     "spec-version": "0.0.23",
     "spec-url": "https://github.com/qwerfunch/ironclad",
