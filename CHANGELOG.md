@@ -80,6 +80,10 @@ A multi-host verification pass (Claude Code + Gemini CLI driving `/cladding:init
 
 Verification artifacts live at `/tmp/clad-verify/REPORT.md` (5/5 scenarios passing after the fixes). Test suite: 973/973.
 
+### Docs — v0.4.0 consistency benchmark
+
+A six-phase benchmark (`docs/benchmarks/v0.4.0-consistency-bench.md`) measured cladding-on vs cladding-off ("vibe coding") on a fixed HMAC-validation task: ~60% consistency improvement (Δ 443 → 176 lines on same-prompt repeats), ~52% LOC reduction, 100% intentional-drift detection in a 5-iteration dev cycle, and 71% trap detection across seven deliberate spec violations. The doc is candid about a confounding factor (the cladding-on prompt carries the AC text in-band, so part of the gain is the general "more-specific prompt" effect, not exclusively cladding's mechanism) and lists four areas where cladding *uniquely* contributes — persistence, automatic drift detection, multi-host parity, and audit trail. README × 4 link to it.
+
 ### Docs — MCP server's role clarified in README
 
 A short blockquote next to the `clad setup` 5-host table now states explicitly that the MCP server is not user-facing — it is the plumbing channel through which Codex CLI and Cursor's AI register features (`clad_create_feature`), look up spec entries, and tail audit events in response to natural-language requests. Claude Code and Gemini CLI reach the same surface through plugin commands and extensions, so they don't need MCP wired. The user-facing surface is always `/cladding:init` plus normal chat. (Docs-only; no behavior change.)
