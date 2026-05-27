@@ -26,20 +26,20 @@ no spec, no scenarios, no architecture invariants.
 
 | Metric | A (Cladding) | B (Vanilla) | Δ |
 |---|---:|---:|---:|
-| Tier A artifacts | 4 | 0 | +4 |
+| Tier A artifacts | 3 | 0 | +3 |
 | Tier B artifacts | 3 | 0 | +3 |
 | Tier C artifacts | 1 | 0 | +1 |
 | Tier D artifacts | 1 | 0 | +1 |
-| Spec features | 1 | 0 | +1 |
-| Acceptance criteria | 1 | 0 | +1 |
+| Spec features | 0 | 0 | +0 |
+| Acceptance criteria | 0 | 0 | +0 |
 | Scenario shards | 2 | 0 | +2 |
 | Capabilities declared | 3 | 0 | +3 |
-| Capabilities bound to features | 1 | 0 | +1 |
+| Capabilities bound to features | 0 | 0 | +0 |
 | Architecture layers | 3 | 0 | +3 |
 | Forbidden-import rules | 2 | 0 | +2 |
 | Detector errors | 0 | 1 | -1 |
-| Detector warnings | 0 | 3 | -3 |
-| Detector infos | 17 | 18 | -1 |
+| Detector warnings | 3 | 3 | +0 |
+| Detector infos | 7 | 18 | -11 |
 | Tiered doc files | 2 | 0 | +2 |
 | Tiered docs (lines) | 53 | 0 | +53 |
 | Other doc files | 0 | 1 | -1 |
@@ -48,13 +48,13 @@ no spec, no scenarios, no architecture invariants.
 | Test files | 0 | 1 | -1 |
 | Test LoC | 0 | 20 | -20 |
 | Test cases | 0 | 2 | -2 |
-| Total chars (artifacts + code) | 5862 | 3463 | +2399 |
-| Estimated tokens | 1466 | 867 | +599 |
+| Total chars (artifacts + code) | 5640 | 3463 | +2177 |
+| Estimated tokens | 1410 | 867 | +543 |
 
 **Detector outcomes** (META_INTEGRITY + HARDCODED_SECRET excluded — toolchain-only checks):
 
 ```
-A (Cladding) — errors: 0  warns: 0  infos: 17
+A (Cladding) — errors: 0  warns: 3  infos: 7
 
 B (Vanilla)  — errors: 1  warns: 3  infos: 18
   Sample errors:
@@ -65,20 +65,20 @@ B (Vanilla)  — errors: 1  warns: 3  infos: 18
 
 | Metric | A (Cladding) | B (Vanilla) | Δ |
 |---|---:|---:|---:|
-| Tier A artifacts | 5 | 0 | +5 |
+| Tier A artifacts | 4 | 0 | +4 |
 | Tier B artifacts | 3 | 0 | +3 |
 | Tier C artifacts | 1 | 0 | +1 |
 | Tier D artifacts | 1 | 0 | +1 |
-| Spec features | 2 | 0 | +2 |
-| Acceptance criteria | 3 | 0 | +3 |
+| Spec features | 1 | 0 | +1 |
+| Acceptance criteria | 2 | 0 | +2 |
 | Scenario shards | 2 | 0 | +2 |
 | Capabilities declared | 3 | 0 | +3 |
-| Capabilities bound to features | 1 | 0 | +1 |
+| Capabilities bound to features | 0 | 0 | +0 |
 | Architecture layers | 3 | 0 | +3 |
 | Forbidden-import rules | 2 | 0 | +2 |
-| Detector errors | 0 | 1 | -1 |
-| Detector warnings | 0 | 3 | -3 |
-| Detector infos | 17 | 18 | -1 |
+| Detector errors | 1 | 1 | +0 |
+| Detector warnings | 5 | 3 | +2 |
+| Detector infos | 8 | 18 | -10 |
 | Tiered doc files | 2 | 0 | +2 |
 | Tiered docs (lines) | 53 | 0 | +53 |
 | Other doc files | 0 | 1 | -1 |
@@ -87,13 +87,15 @@ B (Vanilla)  — errors: 1  warns: 3  infos: 18
 | Test files | 1 | 2 | -1 |
 | Test LoC | 8 | 33 | -25 |
 | Test cases | 1 | 4 | -3 |
-| Total chars (artifacts + code) | 7026 | 5592 | +1434 |
-| Estimated tokens | 1757 | 1399 | +358 |
+| Total chars (artifacts + code) | 6804 | 5592 | +1212 |
+| Estimated tokens | 1701 | 1399 | +302 |
 
 **Detector outcomes** (META_INTEGRITY + HARDCODED_SECRET excluded — toolchain-only checks):
 
 ```
-A (Cladding) — errors: 0  warns: 0  infos: 17
+A (Cladding) — errors: 1  warns: 5  infos: 8
+  Sample errors:
+    - [AC_DRIFT] F-4db939.AC-002 EARS: ears='unwanted' requires condition starting with 'if' — empty
 
 B (Vanilla)  — errors: 1  warns: 3  infos: 18
   Sample errors:
@@ -102,11 +104,11 @@ B (Vanilla)  — errors: 1  warns: 3  infos: 18
 
 ## Findings
 
-- **Structured artifacts**: cladding produces 10 tier-banner-bearing files vs vanilla's 0.
-- **Spec ↔ code traceability**: cladding emits 2 feature(s), 3 AC(s), 2 scenario(s), 3 capability(s); vanilla has 0 of each.
+- **Structured artifacts**: cladding produces 9 tier-banner-bearing files vs vanilla's 0.
+- **Spec ↔ code traceability**: cladding emits 1 feature(s), 2 AC(s), 2 scenario(s), 3 capability(s); vanilla has 0 of each.
 - **Architecture enforcement**: cladding declares 3 layer(s) with 2 forbidden-import rule(s); vanilla has 0.
-- **Detector behavior**: cladding-managed tree → 0 error(s) / 0 warn(s) / 17 info(s). Vanilla tree → 1 / 3 / 18. The detectors that gate against spec (REFERENCE_INTEGRITY, MISSING_IMPLEMENTATION, ARCHITECTURE_FROM_SPEC, CAPABILITIES_FEATURE_MAPPING) need cladding's artifacts to evaluate — without them they silently pass. The "0 errors on vanilla" therefore is **absence of signal**, not absence of drift.
-- **Token cost**: cladding's cumulative artifact + code consumes ~1757 tokens vs vanilla's ~1399 (heuristic chars/4) — Δ ≈ 358 tokens, the price of structure.
+- **Detector behavior**: cladding-managed tree → 1 error(s) / 5 warn(s) / 8 info(s). Vanilla tree → 1 / 3 / 18. The detectors that gate against spec (REFERENCE_INTEGRITY, MISSING_IMPLEMENTATION, ARCHITECTURE_FROM_SPEC, CAPABILITIES_FEATURE_MAPPING) need cladding's artifacts to evaluate — without them they silently pass. The "0 errors on vanilla" therefore is **absence of signal**, not absence of drift.
+- **Token cost**: cladding's cumulative artifact + code consumes ~1701 tokens vs vanilla's ~1399 (heuristic chars/4) — Δ ≈ 302 tokens, the price of structure.
 - **Code surface**: vanilla writes 5 source file(s) / 126 LoC + 2 test file(s) / 4 test case(s); cladding writes 1 / 11 + 1 / 1. (Vanilla front-loads code, cladding front-loads spec — both converge by M2.)
 
 ## Outcome Quality (F-ba2e05)
@@ -130,19 +132,19 @@ Each row = one domain question. "Files opened" = deterministic file-IO an answer
 
 | Question | A files opened | A answer | B files opened | B answer |
 |---|---:|---|---:|---|
-| Q1 Which feature implements the refund flow? | 2 | F-4db939 | 7 | code path: src/lib/pg-refund.ts (no canonical feature id) |
-| Q2 How many acceptance criteria does the refund flow… | 2 | 3 AC(s) | N | no spec/features/ — vanilla cannot answer |
+| Q1 Which feature implements the refund flow? | 1 | F-4db939 | 7 | code path: src/lib/pg-refund.ts (no canonical feature id) |
+| Q2 How many acceptance criteria does the refund flow… | 1 | 3 AC(s) | N | no spec/features/ — vanilla cannot answer |
 | Q3 What are the architecture forbidden-import rules? | 1 | api ↛ ledger, webhook ↛ ledger | N | no spec/architecture.yaml — vanilla has no explicit rules |
-| Q4 Which capabilities are bound to which features? | 1 | payment-auth=[F-4db939] | N | no spec/capabilities.yaml — vanilla has no capability conce… |
+| Q4 Which capabilities are bound to which features? | 1 | all capabilities orphan (no bindings) | N | no spec/capabilities.yaml — vanilla has no capability conce… |
 | Q5 How many test scenarios are declared? | 1 | 2 scenario shard(s) | 2 | 2 test file(s) (weak proxy — no canonical scenario declarat… |
 
 **Answerability**: A = 5/5 answered · B = 2/5 answered
-**Low-cost answers (≤1 file)**: A = 3/5 · B = 0/5
+**Low-cost answers (≤1 file)**: A = 5/5 · B = 0/5
 
 ### What this means
 
 - **H6 — Cladding catches drift vanilla misses**: 3/4 cladding-exclusive catches. The non-exclusive catches (where both groups catch) are toolchain-only detectors like HARDCODED_SECRET that fire regardless of spec presence — useful baseline but not where cladding's design pays off.
-- **H7 — Cladding makes AI agents productive**: A answers 3/5 queries from ≤1 file; B answers 0/5. For the unanswerable B queries, the tree has no canonical source — an AI agent would either give up or hallucinate from inferred context.
+- **H7 — Cladding makes AI agents productive**: A answers 5/5 queries from ≤1 file; B answers 0/5. For the unanswerable B queries, the tree has no canonical source — an AI agent would either give up or hallucinate from inferred context.
 - **H8 — Iron Law gates measure detector activity, not codebase health**: when `clad check --strict` runs against vanilla, spec-required detectors silently report 0 findings. The same gate on cladding-managed code uses all 25 detectors. Same gate label, very different evaluation surface.
 
 ## How to reproduce

@@ -24,9 +24,60 @@ Cladding orchestrates work across five agent personas. When using `/cladding:dri
 
 The full prompt body for each persona is exposed as an MCP prompt — Gemini can request `prompts/get` against the cladding MCP server to load any of them.
 
+## Authoring feature shards (read before writing one)
+
+When you author or modify a feature shard under `spec/features/`, follow the canonical schema. Cladding's `clad sync` will reject anything that strays — schema is enforced via `additionalProperties: false`.
+
+**Filename + id**: hash-based only. `<slug>-<hash6>.yaml`, with `id: F-<hash6>` (e.g. `checkout-flow-ee2133.yaml` → `id: F-ee2133`). Never hand-author `F-NNN` sequential ids — those are reserved for cladding's own historical features.
+
+**Generate a hash**: `node -e "console.log(require('node:crypto').randomBytes(3).toString('hex'))"`.
+
+**Required body shape**:
+
+```yaml
+id: F-<hash6>
+slug: <kebab-slug>           # matches filename prefix
+title: "<short human title>"
+status: planned              # planned | in_progress | done | blocked | archived
+modules:
+  - <relative path to a real file>
+acceptance_criteria:
+  - id: AC-001
+    ears: event              # event | state | unwanted | optional | ubiquitous | complex
+    condition: when <trigger>          # omit for `ubiquitous`
+    action: <what the system shall do> # omit for `ubiquitous`
+    response: <observable outcome>     # omit for `ubiquitous`
+    text: "When <trigger>, the system shall <action>, so <outcome>."
+    test_refs:
+      - tests/<file>.test.ts   # optional; links AC → test
+```
+
+**EARS templates** (the `text:` field follows these one-liners):
+
+- `ubiquitous` — `The system shall <action>.`
+- `event` — `When <trigger>, the system shall <action>.`
+- `state` — `While <state>, the system shall <action>.`
+- `unwanted` — `If <undesired>, the system shall <safe action>.`
+- `optional` — `Where <feature flag>, the system shall <action>.`
+- `complex` — combine multiple of the above.
+
+**Do NOT use** `description:` for ACs — the schema rejects it. Use `text:` plus the structured `condition/action/response` triple (omit for `ubiquitous`).
+
+After authoring, run `clad sync` to validate; the error message names the offending property if anything is wrong.
+
 ## Authentication
 
 This extension uses your **Gemini CLI Google account login** (60 req/min · 1000/day free tier). Cladding's host adapter path requires no API key — F-049 AC-091 invariant. The `gemini` slot is reserved in `src/adapters/index.ts` `SDK_REGISTRY` but the SDK adapter body is not yet implemented; if you need direct-SDK dispatch (raised quotas, CI/CD batch), open a feature request before relying on it.
+
+## Headless / CI usage
+
+Gemini CLI's trust-folder gate fires before `--yolo` can auto-approve tools when the working directory is outside Gemini's trusted set (e.g. a fresh `/tmp` workspace, a CI runner clone). For headless cladding workflows, add `--skip-trust`:
+
+```bash
+gemini -p '/cladding:init "..."' --yolo --skip-trust
+```
+
+Alternatively set `GEMINI_CLI_TRUST_WORKSPACE=true` in the environment. The interactive `gemini` UI is unaffected — trust this folder once in the prompt and the flag is no longer needed.
 
 ## Where to learn more
 

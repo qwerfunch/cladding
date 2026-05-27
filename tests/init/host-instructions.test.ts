@@ -13,6 +13,7 @@ import {
   AGENTS_MD_TEMPLATE,
   CLAUDE_MD_SECTION,
   CLAUDE_MD_SECTION_MARKER,
+  isStaleInstructions,
   writeAgentsMd,
   writeClaudeMdSection,
 } from '../../src/init/host-instructions.js';
@@ -50,6 +51,34 @@ describe('writeAgentsMd (F-90d054 AC-008)', () => {
   // F-80d19d (v0.4.0) — removed F-90d054's `enrichment_status` rule from the
   // AGENTS.md template since project-scope plugin auto-activation now
   // guarantees an AI session at `clad init` time.
+
+  test('refreshes stale v0.3.x AGENTS.md without --force', () => {
+    const stale = [
+      '# AGENTS.md',
+      '',
+      'This project is managed by **cladding**.',
+      '',
+      '## cladding — first-task enrichment rule',
+      '',
+      'If `spec.yaml._meta.enrichment_status` equals "pending", run enrichment.',
+      '',
+      '- Never hand-author `F-NNN` filenames — use `clad_create_feature` MCP',
+      '  tool.',
+      '',
+    ].join('\n');
+    writeFileSync(join(dir, 'AGENTS.md'), stale);
+    const r = writeAgentsMd(dir);
+    expect(r).toBe('refreshed-stale');
+    expect(readFileSync(join(dir, 'AGENTS.md'), 'utf8')).toBe(AGENTS_MD_TEMPLATE);
+  });
+
+  test('does not refresh AGENTS.md that lacks v0.3.x markers', () => {
+    const userBody = '# AGENTS.md\n\nMy own notes — nothing about cladding.\n';
+    writeFileSync(join(dir, 'AGENTS.md'), userBody);
+    const r = writeAgentsMd(dir);
+    expect(r).toBe('skipped-exists');
+    expect(readFileSync(join(dir, 'AGENTS.md'), 'utf8')).toBe(userBody);
+  });
 });
 
 describe('writeClaudeMdSection (F-90d054 AC-009 + AC-010)', () => {
@@ -97,5 +126,73 @@ describe('writeClaudeMdSection (F-90d054 AC-009 + AC-010)', () => {
     const body = readFileSync(join(dir, 'CLAUDE.md'), 'utf8');
     expect(body.startsWith('# Project memory')).toBe(true);
     expect(body).toContain(CLAUDE_MD_SECTION_MARKER);
+  });
+
+  test('refreshes only the ## cladding section when v0.3.x markers are present', () => {
+    const stale = [
+      '# Project memory',
+      '',
+      'My own notes that should survive.',
+      '',
+      '## cladding',
+      '',
+      'This project is managed by **cladding**.',
+      '',
+      '**First-task rule** — If `spec.yaml._meta.enrichment_status` equals',
+      '`"pending"`, complete enrichment_scope before any other work.',
+      '',
+      '**Hash-based IDs** — Use `clad_create_feature` MCP tool.',
+      '',
+      '## My other notes',
+      '',
+      'Should also survive.',
+      '',
+    ].join('\n');
+    writeFileSync(join(dir, 'CLAUDE.md'), stale);
+    const r = writeClaudeMdSection(dir);
+    expect(r).toBe('refreshed-stale');
+    const after = readFileSync(join(dir, 'CLAUDE.md'), 'utf8');
+    expect(after).toContain('# Project memory');
+    expect(after).toContain('My own notes that should survive.');
+    expect(after).toContain('## My other notes');
+    expect(after).toContain('Should also survive.');
+    expect(after).not.toContain('enrichment_status');
+    expect(after).not.toContain('enrichment_scope');
+    expect(after).toContain('**Hash-based IDs** — Never hand-author');
+    expect(after.match(/## cladding/g)?.length).toBe(1);
+  });
+
+  test('leaves the cladding section alone when it already matches the v0.4.0 template', () => {
+    writeClaudeMdSection(dir);
+    const before = readFileSync(join(dir, 'CLAUDE.md'), 'utf8');
+    const r = writeClaudeMdSection(dir);
+    expect(r).toBe('unchanged');
+    expect(readFileSync(join(dir, 'CLAUDE.md'), 'utf8')).toBe(before);
+  });
+});
+
+describe('isStaleInstructions', () => {
+  test('flags v0.3.x enrichment markers', () => {
+    expect(isStaleInstructions('text including _meta.enrichment_status')).toBe(true);
+    expect(isStaleInstructions('See `first-task enrichment rule` section')).toBe(true);
+    expect(isStaleInstructions('mentions enrichment_scope checklist')).toBe(true);
+  });
+
+  test('flags lone clad_create_feature MCP tool wording', () => {
+    expect(
+      isStaleInstructions('Use `clad_create_feature` MCP tool to add features.'),
+    ).toBe(true);
+    expect(
+      isStaleInstructions('Use `clad_create_feature` MCP\n  tool to add features.'),
+    ).toBe(true);
+  });
+
+  test('does not flag the v0.4.0 conditional wording', () => {
+    expect(isStaleInstructions(AGENTS_MD_TEMPLATE)).toBe(false);
+    expect(isStaleInstructions(CLAUDE_MD_SECTION)).toBe(false);
+  });
+
+  test('does not flag arbitrary user prose', () => {
+    expect(isStaleInstructions('# My notes\n\nNothing about cladding here.')).toBe(false);
   });
 });

@@ -215,7 +215,7 @@ function measureSpec(cwd: string): SpecMetrics {
       // ignore
     }
   }
-  // Plus inline features in spec.yaml's `features:` array (greenfield F-001 seed).
+  // Plus any inline features in spec.yaml's `features:` array (v0.4.0+ seeds emit `features: []`; this branch still runs in case a user or test author inlines features).
   if (hasSpecYaml) {
     try {
       const specBody = readFileSync(join(cwd, 'spec.yaml'), 'utf8');

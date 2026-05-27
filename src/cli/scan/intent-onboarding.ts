@@ -203,7 +203,6 @@ export function buildOnboardingPrompt(
     '',
     '=== ARCHITECTURE_YAML ===',
     'Full body for spec/architecture.yaml. Schema:',
-    '  version: "0.1"',
     '  layers: [{name, modules:[<glob>], forbidden_imports:[<layer>]}, ...]',
     'Tailor layers to the domain + language. Add a 1-line comment per',
     'layer summarising its responsibility. Add forbidden_imports',
@@ -549,7 +548,7 @@ export async function interpretOnboardingWithFallback(
       ? ensureTierBBannerYaml(parsed.capabilities)
       : renderGreenfieldCapabilitiesYaml(observed.projectName),
     architectureYaml: parsed.architecture.trim()
-      ? ensureTierBBannerYaml(parsed.architecture)
+      ? ensureTierBBannerYaml(stripArchVersionKey(parsed.architecture))
       : renderGreenfieldArchitectureYaml(observed.language),
     specSeedTitle: parsed.specSeedTitle.trim() || deterministicSeedTitle(intent),
     scenarios: extractScenarios(parsed.scenariosRaw),
@@ -659,6 +658,20 @@ function ensureTierBBannerYaml(body: string): string {
     return ensureTrailingNewline(trimmed);
   }
   return `${TIER_B_YAML_BANNER}\n${ensureTrailingNewline(trimmed)}`;
+}
+
+// Defensive strip: drop top-level `version: "..."` lines from an
+// LLM-emitted architecture body. The architecture schema (see
+// src/spec/schema.json::definitions.architecture) declares
+// `additionalProperties: false` with only `layers` + `forbidden_imports`
+// allowed, so any `version:` key the LLM still emits would fail
+// `clad sync`. The LLM prompt no longer requests one (v0.4.0); this
+// keeps cladding robust against models that learned the older shape.
+function stripArchVersionKey(body: string): string {
+  return body
+    .split('\n')
+    .filter((line) => !/^\s*version\s*:\s*["']?[0-9.]+["']?\s*$/.test(line))
+    .join('\n');
 }
 
 function emitSentinelMiss(cwd: string | undefined, payload: Record<string, unknown>): void {
@@ -853,7 +866,7 @@ export async function interpretRefinementWithFallback(
       ? wrapProjectContext(parsed.projectContext, observed.projectName, ONBOARDING_HEADER)
       : current.projectContextMd,
     capabilitiesYaml: parsed.capabilities.trim() ? ensureTierBBannerYaml(parsed.capabilities) : current.capabilitiesYaml,
-    architectureYaml: parsed.architecture.trim() ? ensureTierBBannerYaml(parsed.architecture) : current.architectureYaml,
+    architectureYaml: parsed.architecture.trim() ? ensureTierBBannerYaml(stripArchVersionKey(parsed.architecture)) : current.architectureYaml,
     specSeedTitle: parsed.specSeedTitle.trim() || deterministicSeedTitle(intent),
     scenarios: extractScenarios(parsed.scenariosRaw),
     aiHints: extractProjectMetadata(parsed.projectMetadataRaw),

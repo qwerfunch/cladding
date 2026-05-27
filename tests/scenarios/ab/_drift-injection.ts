@@ -23,17 +23,18 @@ import type {DriftFinding} from '../../../src/stages/types.js';
 // Mature-cladding-user setup
 //
 // The case tests at M2 call `claddingifyForDriftCatch(cwd, ...)` to
-// upgrade the freshly-onboarded tmpdir to a state that mature cladding
-// adopters would reach: (1) spec.yaml's inline placeholder F-001 is
-// cleared so the sharded F-4db939 file is visible to `loadSpec`; (2)
-// architecture.yaml is rewritten in the canonical schema (string[][]
-// + {from,to}[]) that `ARCHITECTURE_FROM_SPEC` expects.
+// upgrade the freshly-onboarded tmpdir to the canonical-architecture
+// shape that mature cladding adopters would reach. spec.yaml's
+// `features:` block is normalised to `features: []` (defensive — the
+// v0.4.0 seed already emits this; left as a no-op on fresh inits, still
+// useful for tmpdirs onboarded by older cladding versions). Architecture
+// is rewritten in the canonical schema (string[][] layers + {from,to}[]
+// forbidden_imports) that `ARCHITECTURE_FROM_SPEC` expects.
 //
-// These two transforms are cladding-internal bugs the framework
+// The architecture rewrite remains a cladding-internal bug the framework
 // surfaces honestly (LLM-emitted onboarding artifacts use a different
-// schema than the spec validator + detector expect). Tracking as a
-// follow-up; the case tests work around them so the H6 measurement
-// reflects what's possible after one round of manual cleanup.
+// schema than the spec validator + detector expect). The case tests work
+// around it so the H6 measurement reflects post-cleanup steady state.
 // ──────────────────────────────────────────────────────────────────
 
 export interface CanonicalArchitecture {
@@ -44,10 +45,10 @@ export interface CanonicalArchitecture {
 }
 
 export function claddingifyForDriftCatch(cwd: string, arch: CanonicalArchitecture): void {
-  // (1) Clear spec.yaml's inline F-001 so sharded features load. The
-  //     init-seeded spec.yaml ends with the `features:` block (no
-  //     sections after it), so truncating from `features:` to EOF and
-  //     writing `features: []` is safe.
+  // (1) Normalise spec.yaml's `features:` block to `features: []`. The
+  //     v0.4.0 seed already emits this — this is a defensive no-op on
+  //     fresh inits and a safe truncate-and-rewrite on tmpdirs onboarded
+  //     by older cladding versions.
   const specPath = join(cwd, 'spec.yaml');
   if (existsSync(specPath)) {
     const body = readFileSync(specPath, 'utf8');

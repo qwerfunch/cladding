@@ -133,13 +133,15 @@ acceptance_criteria:
 
   - id: AC-013
     ears: event
-    condition: when `clad init` finishes scaffolding spec + 4-tier docs AND `claude` binary is on PATH
-    action: invoke `claude plugin install claude-code@cladding --scope project` in the project directory so the plugin is enabled at project scope (recorded in `.claude/settings.json`)
-    response: users opening the project in Claude Code see cladding skills and commands automatically without an additional setup step
-    text: When `clad init` finishes scaffolding and the claude binary is on
-      PATH, the system shall invoke `claude plugin install claude-code@cladding
-      --scope project` so users opening the project in Claude Code see
-      cladding skills and commands automatically.
+    condition: when `clad init` runs and a project-local AGENTS.md or CLAUDE.md exists that carries v0.3.x markers (e.g. `_meta.enrichment_status`, `first-task enrichment rule`, lone `clad_create_feature` MCP tool wording with no `clad` CLI qualifier)
+    action: refresh the stale file in place (AGENTS.md replaced wholesale; CLAUDE.md replaces only the `## cladding` section while preserving user content outside that marker block)
+    response: AI sessions opened in projects scaffolded by older cladding versions do not surface stale "use the MCP tool" guidance that triggers spurious MCP-server prompts in hosts where cladding is not wired as an MCP server (e.g. Claude Code)
+    text: When `clad init` runs and an existing AGENTS.md or CLAUDE.md carries
+      v0.3.x markers, the system shall refresh the stale file in place
+      without requiring `--force` (AGENTS.md replaced wholesale; CLAUDE.md
+      replaces only the `## cladding` section while preserving outside
+      content), so AI sessions do not surface stale guidance that confuses
+      hosts where cladding is not wired as an MCP server.
 
   - id: AC-014
     ears: state

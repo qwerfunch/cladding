@@ -456,6 +456,7 @@ clad setup                  # connect your AI tools (Claude / Codex / Gemini)</c
       </tbody>
     </table>
     <p style="font-size:13px;color:#64748b;margin-top:8px"><code>clad setup</code> invokes the per-host activation commands automatically when <code>claude</code> / <code>gemini</code> binaries are on PATH. Safe to re-run after a cladding upgrade or after installing another AI tool.</p>
+    <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:12px 0;background:#f8fafc;color:#475569;font-size:13px"><strong>About the MCP server.</strong> Every host gets cladding wired as an MCP server — only the wire <em>location</em> differs. Claude Code and Gemini CLI auto-start it through the plugin/extension manifest's <code>mcpServers</code> field; Codex through <code>~/.codex/config.toml</code> <code>[mcp_servers.cladding]</code>; Cursor through <code>~/.cursor/mcp.json</code>. You never invoke MCP directly — no <code>/mcp</code> slash, no manual server-connect step. The AI in each host calls cladding's tools (<code>clad_create_feature</code>, etc.) in response to <em>natural-language requests</em>; you keep typing <code>/cladding:init</code> plus normal chat.</blockquote>
   </details>
 
   <h3 id="step-2--init-create-the-project-spec">Step 2 — Init (create the project spec)</h3>

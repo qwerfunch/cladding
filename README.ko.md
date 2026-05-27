@@ -244,6 +244,8 @@ clad setup                  # AI 도구 자동 연결 (Claude / Codex / Gemini)
 | Cursor (`~/.cursor/`) | `~/.cursor/mcp.json` 의 `mcpServers.cladding` | (JSON entry 자체) |
 
 `clad setup` 은 claude / gemini binary 가 PATH 에 있을 때 각 host 의 활성화 명령을 자동 호출. cladding 업그레이드 시나 새 AI 도구 설치 후 다시 실행해도 안전합니다.
+
+> **MCP 서버에 대하여.** 4 host 모두 cladding 을 MCP 서버로 wire 합니다 — wire *위치* 만 다릅니다. Claude Code 와 Gemini CLI 는 plugin/extension manifest 의 `mcpServers` 필드로 자동 기동, Codex 는 `~/.codex/config.toml` 의 `[mcp_servers.cladding]`, Cursor 는 `~/.cursor/mcp.json`. MCP 는 사용자가 직접 호출하는 것이 아닙니다 — `/mcp` 슬래시도, 수동 연결 단계도 없습니다. 각 host 의 AI 가 **자연어 요청** 에 응답해 cladding 의 도구 (`clad_create_feature` 등) 를 호출하며, 사용자는 `/cladding:init` + 일반 대화만 입력합니다.
 </details>
 
 ### 2단계 — Init (프로젝트 spec 생성)

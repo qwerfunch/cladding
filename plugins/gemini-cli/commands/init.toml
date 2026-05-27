@@ -33,7 +33,6 @@ The LLM dispatcher then produces **domain-aware** artifacts that exceed what the
 - `docs/project-context.md` — Why/What/Purpose with inferred domain context (compliance norms, scale assumptions, common patterns)
 - `spec/capabilities.yaml` — user-stated + inferred capabilities (3-8 entries; payment → idempotency, webhook signing; ML → data lineage, eval harness; SaaS → multi-tenancy, audit log)
 - `spec/architecture.yaml` — layers tailored to domain + language
-- `spec.yaml` F-001 title — a real first feature ("결제 인증 흐름"), not "Your first feature"
 - 2-3 follow-up clarifying questions printed to stdout as CLI hints (product/business level — not technical jargon)
 
 **AI orchestrators MUST ask the user for intent before invoking `clad init` on a greenfield workspace** (see `src/agents/orchestrator.md` principle 6). A bare `clad init` on a brand-new project falls back to generic toolchain seeds and misses the user's intent. For existing projects (≥3 source files) bare `clad init` is fine — the observed scan path captures shape directly.
@@ -68,7 +67,7 @@ Each seed carries a header marking it as a greenfield template. After you write 
 
 After init:
 
-1. Edit `spec.yaml`. The seed declares a placeholder `F-001` (legacy sequential id reserved for placeholders); **new features use the hash-based id `F-<hash6>`** (v0.3.9+) — filename `<slug>-<hash6>.yaml`, `id: F-<hash6>`, `slug: <slug>`. Generate with `node -e "console.log('F-' + require('node:crypto').randomBytes(3).toString('hex'))"`.
+1. Edit `spec.yaml` (project metadata). Features are added on demand — ask the AI in natural language ("add a feature for login flow"), call the `clad_create_feature` MCP tool, or use the `clad` CLI. Feature shards always use the hash-based id `F-<hash6>` (v0.3.9+) — filename `<slug>-<hash6>.yaml`, `id: F-<hash6>`, `slug: <slug>`. `clad init` does **not** write a legacy `F-001` placeholder for external users (v0.4.0+).
 2. Run `clad sync` to verify the spec is valid.
 3. Run `clad check` to see which Iron Law stages are wired up for the toolchain cladding detects in the cwd.
 4. (Optional) Run `clad doctor` to confirm `.cladding/events.log.jsonl` shows no `sentinel_miss` events from the scan refinement.

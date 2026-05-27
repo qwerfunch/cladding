@@ -13,8 +13,6 @@
 
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {basename, dirname, join, resolve} from 'node:path';
-import {spawnSync} from 'node:child_process';
-import {platform} from 'node:os';
 
 import {
   interpretScanWithFallback,
@@ -91,8 +89,9 @@ const SCENARIOS_README = [
   'system enables, not the architecture layers your code is organised into.',
   '',
   'You do not author scenario YAML by hand. They are auto-registered when you',
-  'request a feature through `clad_create_feature` or through natural-language',
-  'conversation with your AI host. The scenario your request belongs to is',
+  'request a feature through natural-language conversation with your AI host —',
+  'the host invokes the `clad` CLI (or the `clad_create_feature` MCP tool when',
+  'cladding is wired as an MCP server). The scenario your request belongs to is',
   'inferred together with the feature itself.',
   '',
   'This directory is intentionally empty at scan time. The first scenario lands',
@@ -165,13 +164,16 @@ function hasAnyAiHint(h: NonNullable<SpecSeedMetadata['ai_hints']>): boolean {
   );
 }
 
-// v0.3.49 (F-99c6e5) — `specSeed` now emits `features: []` so the
-// sharded layout activates from day one. F-001 lives in
-// `spec/features/F-001-<hash>.yaml` instead of inline. This unblocks
-// every spec-gated detector (MISSING_IMPLEMENTATION, AC_DRIFT,
-// UNTESTED_AC, …) which previously couldn't see user-authored shards
-// when the inline F-001 placeholder kept the master `features` array
-// non-empty.
+// v0.3.49 (F-99c6e5) — `specSeed` emits `features: []` so the sharded
+// layout activates from day one. Every spec-gated detector
+// (MISSING_IMPLEMENTATION, AC_DRIFT, UNTESTED_AC, …) reads
+// `spec/features/<slug>-<hash6>.yaml` shards directly.
+//
+// v0.4.0 — no placeholder shard is written at init time. External users
+// receive a clean spec; the AI (or `clad_create_feature` / the `clad` CLI)
+// registers real features on demand using the hash-based filename model.
+// The legacy `F-NNN` sequential format is reserved for cladding's own
+// historical features and is never produced for external users.
 //
 // v0.3.49 (F-3a5339) — Project also accepts optional metadata (description,
 // version, repository, intent_summary). When the intent path is taken,
@@ -244,58 +246,12 @@ function specSeed(
   ].join('\n');
 }
 
-/** Renders the placeholder F-001 shard written alongside the sharded spec.yaml seed. */
-function f001SeedShard(seedTitle?: string): string {
-  const title = (seedTitle ?? 'Your first feature').replace(/"/g, '\\"');
-  return [
-    '# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual',
-    'id: F-001',
-    'slug: first-feature',
-    `title: "${title}"`,
-    'status: planned',
-    'modules: []',
-    'acceptance_criteria:',
-    '  - id: AC-001',
-    '    ears: ubiquitous',
-    '    text: "Replace this with what F-001 actually shall do."',
-    '',
-  ].join('\n');
-}
-
 function appendIfMissing(gitignorePath: string, marker: string, line: string): boolean {
   const existing = existsSync(gitignorePath) ? readFileSync(gitignorePath, 'utf8') : '';
   if (existing.includes(marker)) return false;
   const ensureNewline = existing.length > 0 && !existing.endsWith('\n') ? '\n' : '';
   writeFileSync(gitignorePath, `${existing}${ensureNewline}\n# Cladding runtime state\n${line}\n`);
   return true;
-}
-
-/**
- * F-80d19d (E) — project-scope plugin activation. Best-effort, non-blocking.
- * Each host's plugin install is attempted only if its CLI binary is on PATH.
- * Returns human-readable status notes for the `skipped` array in InitResult.
- */
-async function activateProjectScopePlugins(cwd: string): Promise<string[]> {
-  const notes: string[] = [];
-  const whichCmd = platform() === 'win32' ? 'where' : 'which';
-
-  // Claude Code — project-scope install.
-  if (spawnSync(whichCmd, ['claude'], {stdio: 'ignore'}).status === 0) {
-    const r = spawnSync(
-      'claude',
-      ['plugin', 'install', 'claude-code@cladding', '--scope', 'project'],
-      {cwd, encoding: 'utf8', timeout: 30_000},
-    );
-    if (r.status === 0) {
-      notes.push('Claude Code plugin enabled at project scope (claude plugin install claude-code@cladding --scope project)');
-    } else {
-      const stderr = (r.stderr ?? '').trim();
-      // Common case: already enabled at user scope. Treat any well-formed error as informational.
-      if (stderr) notes.push(`Claude Code project-scope install skipped: ${stderr.split('\n')[0]}`);
-    }
-  }
-
-  return notes;
 }
 
 /**
@@ -422,15 +378,6 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
     writeFileSync(specPath, specSeed(projectName, language, seedMetadata));
     created.push('spec.yaml');
   }
-  const f001Path = join(cwd, 'spec', 'features', 'F-001-first.yaml');
-  if (existsSync(f001Path) && !force) {
-    skipped.push('spec/features/F-001-first.yaml (exists; pass --force to overwrite)');
-  } else {
-    mkdirSync(dirname(f001Path), {recursive: true});
-    writeFileSync(f001Path, f001SeedShard(onboarding?.specSeedTitle));
-    created.push('spec/features/F-001-first.yaml');
-  }
-
   // 2. .cladding/ runtime dir
   const claddingDir = join(cwd, '.cladding');
   if (existsSync(claddingDir)) {
@@ -561,10 +508,15 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
   // F-90d054 — project-local host AI instruction surfaces.
   // AGENTS.md is the cross-tool entry point (Codex · Cursor · Continue ·
   // Copilot · Aider). CLAUDE.md is Claude Code's project memory — appended
-  // idempotently so existing user content is preserved.
+  // idempotently so existing user content is preserved. v0.4.0 — when the
+  // existing file carries v0.3.x markers (e.g. `_meta.enrichment_status`,
+  // lone `clad_create_feature MCP tool`), it is refreshed in place so AI
+  // sessions don't see stale guidance.
   const agentsResult = writeAgentsMd(cwd, {force});
   if (agentsResult === 'created' || agentsResult === 'overwritten') {
     created.push('AGENTS.md');
+  } else if (agentsResult === 'refreshed-stale') {
+    created.push('AGENTS.md (refreshed — v0.3.x guidance replaced)');
   } else {
     skipped.push('AGENTS.md (exists; pass --force to overwrite)');
   }
@@ -573,6 +525,8 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
     created.push('CLAUDE.md');
   } else if (claudeResult === 'appended') {
     created.push('CLAUDE.md (## cladding section appended)');
+  } else if (claudeResult === 'refreshed-stale') {
+    created.push('CLAUDE.md (## cladding section refreshed — v0.3.x guidance replaced)');
   } else {
     skipped.push('CLAUDE.md (## cladding section already present)');
   }
@@ -591,16 +545,6 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
       `host wire was set up at v${lastSetup} (current binary v${pkgVersion}) — symlinks usually auto-follow, but run \`clad setup\` to be sure`,
     );
   }
-
-  // F-80d19d (E) — project-scope plugin activation. After spec + 4-tier docs
-  // are scaffolded, also enable cladding plugins inside this project so that
-  // Claude Code (and any other detected host) picks up cladding skills /
-  // commands the moment the AI tool reopens the project. This is the
-  // self-dogfood path: cladding repo itself benefits from this when a new
-  // maintainer clones it, and external users get cladding the first time
-  // they cd into their project after `/cladding init`.
-  const projectActivation = await activateProjectScopePlugins(cwd);
-  for (const note of projectActivation) skipped.push(note);
 
   return {
     created,

@@ -310,8 +310,14 @@ export function runCheckCommand(opts: {internal?: boolean; strict?: boolean}): v
     ['stage_4.2', runUat],
   ] as const;
   let worst = 0;
+  let anyFailed = false;
   for (const [name, run] of stages) {
-    const r = run({}) as {pass: boolean; exitCode: number};
+    const r = run({}) as {
+      pass: boolean;
+      exitCode: number;
+      stderr?: string;
+      findings?: readonly {detector: string; severity: string; message: string; path?: string}[];
+    };
     const label = opts.internal ? name : gateLabel(name);
     if (r.pass) {
       pulse('pass', label);
@@ -319,10 +325,44 @@ export function runCheckCommand(opts: {internal?: boolean; strict?: boolean}): v
       pulse('skip', label);
     } else {
       pulse('fail', label);
+      printStageDetails(r);
+      anyFailed = true;
       if (r.exitCode > worst) worst = r.exitCode;
     }
   }
+  if (anyFailed) {
+    process.stdout.write('\nℹ Run `clad doctor` for the event log, or `clad sync` to validate spec shards. Drift findings above name the offending detector.\n');
+  }
   process.exit(worst);
+}
+
+function printStageDetails(r: {
+  stderr?: string;
+  findings?: readonly {detector: string; severity: string; message: string; path?: string}[];
+}): void {
+  if (r.findings && r.findings.length > 0) {
+    const errors = r.findings.filter((f) => f.severity === 'error');
+    const warns = r.findings.filter((f) => f.severity === 'warn');
+    const surface = errors.length > 0 ? errors : warns;
+    for (const f of surface.slice(0, 3)) {
+      const where = f.path ? ` ${f.path}` : '';
+      process.stdout.write(`    [${f.detector}]${where} — ${truncate(f.message, 140)}\n`);
+    }
+    if (surface.length > 3) {
+      process.stdout.write(`    … and ${surface.length - 3} more finding(s)\n`);
+    }
+    return;
+  }
+  if (r.stderr && r.stderr.trim().length > 0) {
+    const first = r.stderr.split('\n').find((l) => l.trim().length > 0);
+    if (first) {
+      process.stdout.write(`    ${truncate(first.trim(), 160)}\n`);
+    }
+  }
+}
+
+function truncate(s: string, max: number): string {
+  return s.length <= max ? s : `${s.slice(0, max - 1)}…`;
 }
 
 /** Handler for `clad panel`. Renders the Integrity Panel. */

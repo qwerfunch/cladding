@@ -8,6 +8,13 @@
   "license": "MIT",
   "homepage": "https://github.com/qwerfunch/cladding",
   "repository": "https://github.com/qwerfunch/cladding.git",
+  "mcpServers": {
+    "cladding": {
+      "command": "clad",
+      "args": ["serve"],
+      "description": "cladding MCP server — exposes spec / drift / events / personas as tools, resources, prompts. Auto-starts when this plugin is enabled; no manual `claude mcp add` needed."
+    }
+  },
   "ironclad": {
     "spec-version": "0.0.23",
     "spec-url": "https://github.com/qwerfunch/ironclad",

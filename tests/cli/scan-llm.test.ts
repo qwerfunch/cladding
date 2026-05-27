@@ -207,7 +207,8 @@ describe('deterministicInterpret', () => {
 
   test('architecture yaml lists every observed layer with empty forbidden_imports', () => {
     const r = deterministicInterpret(fakeScan());
-    expect(r.architectureYaml).toContain('version: "0.1"');
+    // v0.4.0 — no `version:` key (schema rejects it).
+    expect(r.architectureYaml).not.toContain('version:');
     expect(r.architectureYaml).toContain('name: core');
     expect(r.architectureYaml).toContain('name: cli');
     expect(r.architectureYaml).toContain('forbidden_imports: []');

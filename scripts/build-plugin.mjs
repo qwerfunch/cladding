@@ -1,12 +1,13 @@
-// Cladding · plugin asset builder (v0.3.1 → v0.3.6, F-076 · F-077 · F-081).
+// Cladding · plugin asset builder (v0.3.1 → v0.4.x, F-076 · F-077 · F-081).
 //
 // Single source of truth: src/agents/*.md (personas) + skills/*/SKILL.md
 // (verbs). This script generates the host-specific plugin layouts:
 //
-//   Claude Code (repo root, v0.3.1, F-076):
+//   Claude Code (plugins/claude-code/, v0.4.0):
 //     agents/<id>.md       ← src/agents/<id>.md (verbatim copy)
-//     skills/<verb>/...    ← already authored at repo root (canonical)
-//     .mcp.json            ← already at repo root (canonical)
+//     commands/init.md     ← skills/init/SKILL.md (single user-facing verb)
+//     .claude-plugin/plugin.json — declares mcpServers.cladding (canonical
+//       MCP server declaration; replaces the v0.3.x repo-root `.mcp.json`).
 //
 //   Codex (plugins/codex/, v0.3.2, F-077):
 //     skills/<verb>/SKILL.md   ← copied from repo-root skills/<verb>/SKILL.md
