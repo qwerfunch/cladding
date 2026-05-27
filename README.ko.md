@@ -75,7 +75,7 @@ AI 가 짠 코드의 *왜* 가 코드만 봐서는 안 잡힌다.
 
 존재하지 않는 API · 함수 · 옵션을 호출하는 코드 생성.
 
-→ 28 detector + 13 단계 gate 가 매 commit 차단
+→ 27 detector + 13 단계 gate 가 매 commit 차단
 
 ✓ **production 사고 사전 차단** — CI 가 hallucination 코드를 자동 reject
 
@@ -146,7 +146,7 @@ spec 이 *왜* (무엇을 왜 만드는지) 를 기록하는 곳. 4-tier (A/B/C/
 | Stage | 무엇을 검사하나 |
 |---|---|
 | **1.1 Type · 1.2 Lint** | 타입 오류 · 코드 스타일 |
-| **1.3 Drift** | 28 detector 의 spec ↔ 코드 어긋남 |
+| **1.3 Drift** | 27 detector 의 spec ↔ 코드 어긋남 |
 | **1.4 Commit · 1.5 Arch · 1.6 Secret** | 작업트리 clean · architecture invariant (forbidden import 등) · API 키 노출 |
 | **2.1 Unit · 2.2 Cov** | 단위 테스트 통과 · 프로젝트 coverage threshold |
 | **3.1 Smoke · 3.2 Perf · 3.3 Visual** | e2e 핵심 기능 동작 · 성능 예산 · UI 시각 회귀 |
@@ -164,7 +164,7 @@ spec · code · test 사이 7 카테고리의 어긋남을 자동으로 잡아�
 <tr><td>spec ↔ code drift</td><td>spec 에 있는데 코드에 없거나, 코드에 있는데 spec 에 없음</td><td align="center">6</td><td><code>UNMAPPED_ARTIFACT</code>, <code>MISSING_IMPLEMENTATION</code>, <code>AC_DRIFT</code></td></tr>
 <tr><td>code ↔ test</td><td>코드는 있는데 테스트 없음 · 커버리지 부족</td><td align="center">6</td><td><code>MISSING_TESTS</code>, <code>COVERAGE_DROP</code>, <code>HARDCODED_SECRET</code></td></tr>
 <tr><td>spec ↔ test</td><td>spec 의 AC 가 테스트로 검증 안 됨</td><td align="center">4</td><td><code>UNTESTED_AC</code>, <code>STATUS_DRIFT</code>, <code>STALE_EVIDENCE</code></td></tr>
-<tr><td>spec maintenance</td><td>spec 자체의 위생 (slug 충돌 · ID 중복)</td><td align="center">5</td><td><code>SLUG_CONFLICT</code>, <code>ID_COLLISION</code>, <code>ENRICHMENT_PENDING</code></td></tr>
+<tr><td>spec maintenance</td><td>spec 자체의 위생 (slug 충돌 · ID 중복)</td><td align="center">4</td><td><code>SLUG_CONFLICT</code>, <code>ID_COLLISION</code></td></tr>
 <tr><td>environment integrity</td><td>빌드 환경 · 메타 파일 무결성</td><td align="center">3</td><td><code>HARNESS_INTEGRITY</code>, <code>META_INTEGRITY</code></td></tr>
 <tr><td>architecture · capability</td><td>spec 의 아키텍처 · capability 정의와 코드 불일치</td><td align="center">2</td><td><code>ARCHITECTURE_FROM_SPEC</code>, <code>CAPABILITIES_FEATURE_MAPPING</code></td></tr>
 <tr><td>governance · policy</td><td>ai_hints 정책 위반 (예: 금지 패턴 사용)</td><td align="center">2</td><td><code>AI_HINTS_FORBIDDEN_PATTERN</code>, <code>ABSENCE_OF_GOVERNANCE</code></td></tr>
@@ -212,50 +212,61 @@ cladding 의 차별점은 *결합* — 위 네 카테고리의 핵심을 *하나
 
 ## Install
 
-cladding 은 두 가지 경로로 시작할 수 있다 — 어느 쪽이든 *같은 spec · 같은 정책 · 같은 검증 흐름* 에 도착한다.
+두 단계 — 인프라 설치 → 프로젝트 spec 생성.
 
-### 방법 1 — 마켓플레이스 (가장 빠름)
+### 1단계 — 인프라 설치
 
-Claude Code · Codex CLI · Gemini CLI 의 마켓플레이스에서 cladding 을 설치한 뒤, AI 에게 한 줄 명령:
+작업 방식에 맞는 경로 선택 (어느 쪽이든 결과 동일):
 
-```
-/cladding init "B2B 결제 SaaS"
-```
-
-AI 가 그 자리에서 spec · 4-tier 문서 · 정책을 자동으로 채운다. 별도의 npm 설치 불필요.
-
-### 방법 2 — npm (터미널 · CI · AI 도구가 없는 환경)
+**(a) npm** — 터미널 / CI 사용자
 
 ```bash
-npm install -g cladding
-clad init "B2B 결제 SaaS"
-clad check
+npm install -g cladding   # cladding CLI 설치
+cd <project>                # 프로젝트로 이동
+clad setup                  # AI 도구 자동 연결 (Claude / Codex / Gemini)
 ```
 
-`npm install -g cladding` 의 postinstall 훅이 다음 4 개 채널을 자동으로 연결한다:
+**(b) 마켓플레이스** — AI 도구 plugin 사용자
 
-| 호스트 | 자동 연결 위치 |
-|---|---|
-| Claude Code | `~/.claude/plugins/cladding` |
-| Codex CLI (skills) | `~/.agents/skills/cladding-*` |
-| Codex CLI (MCP 서버) | `~/.codex/config.toml` 의 `[mcp_servers.cladding]` |
-| Gemini CLI | `~/.gemini/extensions/cladding` |
+1. AI 도구의 plugin 마켓플레이스 열기 (Claude Code · Codex CLI · Gemini CLI)
+2. **cladding** 검색 → 설치
+3. `clad setup` 불필요 — plugin 매니페스트가 자동 연결
 
-이후 어느 AI 도구에서든 `/cladding init` 또는 `clad init` 모두 동일하게 동작한다.
+<details>
+<summary><code>clad setup</code> 이 연결하는 위치 (5 host)</summary>
 
-> `npm install --ignore-scripts` 로 설치한 경우 postinstall 이 건너뛰어지지만, 첫 `clad init` 실행 시 자동으로 재시도한다.
+| 호스트 (감지 시) | wire 위치 | 자동 활성화 |
+|---|---|---|
+| Claude Code (`~/.claude/`) | `~/.claude/plugins/cladding` | `claude plugin marketplace add` + `install` |
+| Codex CLI skills (`~/.agents/`) | `~/.agents/skills/cladding-*` | (Codex 재시작 시 자동) |
+| Codex CLI MCP 서버 (`~/.codex/`) | `~/.codex/config.toml` 의 `[mcp_servers.cladding]` | (TOML entry 자체) |
+| Gemini CLI (`~/.gemini/`) | `~/.gemini/extensions/cladding` | `gemini extensions link` |
+| Cursor (`~/.cursor/`) | `~/.cursor/mcp.json` 의 `mcpServers.cladding` | (JSON entry 자체) |
+
+`clad setup` 은 claude / gemini binary 가 PATH 에 있을 때 각 host 의 활성화 명령을 자동 호출. cladding 업그레이드 시나 새 AI 도구 설치 후 다시 실행해도 안전합니다.
+
+> **MCP 서버에 대하여.** 4 host 모두 cladding 을 MCP 서버로 wire 합니다 — wire *위치* 만 다릅니다. Claude Code 와 Gemini CLI 는 plugin/extension manifest 의 `mcpServers` 필드로 자동 기동, Codex 는 `~/.codex/config.toml` 의 `[mcp_servers.cladding]`, Cursor 는 `~/.cursor/mcp.json`. MCP 는 사용자가 직접 호출하는 것이 아닙니다 — `/mcp` 슬래시도, 수동 연결 단계도 없습니다. 각 host 의 AI 가 **자연어 요청** 에 응답해 cladding 의 도구 (`clad_create_feature` 등) 를 호출하며, 사용자는 `/cladding:init` + 일반 대화만 입력합니다.
+</details>
+
+### 2단계 — Init (프로젝트 spec 생성)
+
+프로젝트 디렉토리에서, AI 도구 안에서 한 번 호출:
+
+```
+[AI 도구 안] /cladding:init "B2B 결제 SaaS"
+```
+
+`spec.yaml` + 4-tier 문서가 자동 생성됩니다. 프로젝트당 한 번.
 
 ### 세 가지 init 시나리오
 
-`clad init` 은 자연어 intent 를 받아 *상황에 맞는 path* 를 자동 선택한다. 같은 명령, 세 가지 시작점.
+`/cladding:init` 은 자연어 intent 를 받아 *상황에 맞는 path* 를 자동 선택한다. 같은 명령, 세 가지 시작점.
 
-| 시작 상황 | 명령 (npm 기준) | 무엇이 일어나는가 |
+| 시작 상황 | 명령 | 무엇이 일어나는가 |
 |---|---|---|
-| **아이디어만 있을 때** | `clad init "B2B 결제 SaaS 만들거야"` | LLM 이 도메인 분석 → spec · 문서 · 정책 자동 생성 + 2–3 가지 후속 질문 출력 |
-| **기획 문서가 있을 때** | `clad init docs/plan.md` | cladding 이 파일 경로를 인식 → 내용을 자동 로드해서 intent 로 사용 (절대/상대 경로 모두 지원) |
-| **기존 프로젝트 도입** | `clad init "이 프로젝트에 cladding 적용해줘"` | 기존 코드 자동 스캔 (≥3 source files) → 관찰한 패턴 + intent 결합 |
-
-> 마켓플레이스 (Claude Code · Codex CLI · Gemini CLI) 에서는 `/cladding init "..."` 형식으로 동일하게 사용 — 자유 텍스트도, `/cladding init docs/plan.md` 같은 경로도 같게 받는다.
+| **아이디어만 있을 때** | `/cladding:init "B2B 결제 SaaS 만들거야"` | LLM 이 도메인 분석 → spec · 문서 · 정책 자동 생성 + 2–3 가지 후속 질문 출력 |
+| **기획 문서가 있을 때** | `/cladding:init docs/plan.md` | cladding 이 파일 경로를 인식 → 내용을 자동 로드해서 intent 로 사용 (절대/상대 경로 모두 지원) |
+| **기존 프로젝트 도입** | `/cladding:init "이 프로젝트에 cladding 적용해줘"` | 기존 코드 자동 스캔 (≥3 source files) → 관찰한 패턴 + intent 결합 |
 
 ### init 한 번이면 끝
 
@@ -302,7 +313,7 @@ cladding 의 목표는 *spec ↔ 코드 어긋남을 막는 인프라가 되는 
 - [Why cladding (project context)](docs/project-context.md)
 - [4-tier governance model](docs/ssot-model.md)
 - [Hash-based feature ID](docs/spec-ids-multi-dev.md)
-- [28 detector catalog](src/stages/detectors/README.md)
+- [27 detector catalog](src/stages/detectors/README.md)
 - [Benchmark — event store trap catch](docs/benchmarks/event-store-trap-catch.md)
 - [A/B evaluation cases](docs/ab-evaluation/)
 - [Governance · roadmap to 1.0](GOVERNANCE.md)

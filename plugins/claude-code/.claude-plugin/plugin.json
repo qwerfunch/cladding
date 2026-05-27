@@ -1,13 +1,19 @@
 {
   "name": "cladding",
-  "version": "0.3.60",
+  "version": "0.4.0",
   "description": "Reference implementation of the Ironclad standard — multi-agent dev harness for Claude Code.",
-  "author": "qwerfunch",
+  "author": {
+    "name": "qwerfunch"
+  },
   "license": "MIT",
   "homepage": "https://github.com/qwerfunch/cladding",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/qwerfunch/cladding.git"
+  "repository": "https://github.com/qwerfunch/cladding.git",
+  "mcpServers": {
+    "cladding": {
+      "command": "clad",
+      "args": ["serve"],
+      "description": "cladding MCP server — exposes spec / drift / events / personas as tools, resources, prompts. Auto-starts when this plugin is enabled; no manual `claude mcp add` needed."
+    }
   },
   "ironclad": {
     "spec-version": "0.0.23",
@@ -17,12 +23,12 @@
     "spec-fetched": "2026-05-18",
     "target": {
       "iron-law": "L4",
-      "detectors": "28/28",
+      "detectors": "27/27",
       "ears": "full"
     },
     "current": {
       "iron-law": "L4",
-      "detectors": "28/28",
+      "detectors": "27/27",
       "ears": "syntactic",
       "phase": "L21.12 — Territory → Integrity Panel rename (vocab anchored to Trinity of Integrity)",
       "stages-implemented": ["stage_1.1", "stage_1.2", "stage_1.3", "stage_1.4", "stage_1.5", "stage_1.6", "stage_2.1", "stage_2.2", "stage_3.1", "stage_3.2", "stage_3.3", "stage_4.1", "stage_4.2"],

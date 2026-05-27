@@ -297,7 +297,6 @@ export function renderGreenfieldArchitectureYaml(language: string): string {
   const defaults = resolveDefaults(language);
   const lines: string[] = [
     '# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad refine',
-    'version: "0.1"',
     '# Greenfield seed — no import graph observed yet. Re-run',
     '# `clad init --scan` after creating your source layout to capture',
     '# observed layers + forbidden_imports candidates; the observed body',

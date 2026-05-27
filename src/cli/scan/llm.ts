@@ -110,7 +110,6 @@ export function buildPrompt(scan: ScanResult): string {
     '',
     '=== ARCHITECTURE_YAML ===',
     'Write spec/architecture.yaml. Schema:',
-    '  version: "0.1"',
     '  layers: [{name, modules:[<glob>], forbidden_imports:[<layer>]}, ...]',
     'Use the observed import graph to infer forbidden_imports (pairs',
     'never seen in the graph become candidates). Add a 1-line comment',
@@ -384,7 +383,6 @@ function renderArchitectureYaml(
 ): string {
   const lines: string[] = [
     '# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init --scan',
-    'version: "0.1"',
     '# `forbidden_imports` lists layer pairs the scan never observed in',
     '# your import graph — they are candidates, not enforced rules.',
     '# Prune the list to the ones you actually want to forbid before committing.',

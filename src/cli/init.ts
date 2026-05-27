@@ -35,9 +35,8 @@ import {
 import {saveState, type OnboardingState} from './scan/onboarding-state.js';
 import {detectToolchain} from '../stages/toolchain/detect.js';
 import {detectContext} from '../init/detect.js';
-import {buildMarker, patchMarkerInSpec, renderMarkerYaml, type EnrichmentMarker} from '../init/marker.js';
 import {writeAgentsMd, writeClaudeMdSection} from '../init/host-instructions.js';
-import {retryPostinstallIfNeeded} from '../init/postinstall-fallback.js';
+import {getCurrentCladdingVersion, getLastSetupVersion} from '../init/host-setup.js';
 import {loadIntentFromPathIfApplicable} from './intent-from-path.js';
 
 export interface InitOptions {
@@ -90,8 +89,9 @@ const SCENARIOS_README = [
   'system enables, not the architecture layers your code is organised into.',
   '',
   'You do not author scenario YAML by hand. They are auto-registered when you',
-  'request a feature through `clad_create_feature` or through natural-language',
-  'conversation with your AI host. The scenario your request belongs to is',
+  'request a feature through natural-language conversation with your AI host —',
+  'the host invokes the `clad` CLI (or the `clad_create_feature` MCP tool when',
+  'cladding is wired as an MCP server). The scenario your request belongs to is',
   'inferred together with the feature itself.',
   '',
   'This directory is intentionally empty at scan time. The first scenario lands',
@@ -164,13 +164,16 @@ function hasAnyAiHint(h: NonNullable<SpecSeedMetadata['ai_hints']>): boolean {
   );
 }
 
-// v0.3.49 (F-99c6e5) — `specSeed` now emits `features: []` so the
-// sharded layout activates from day one. F-001 lives in
-// `spec/features/F-001-<hash>.yaml` instead of inline. This unblocks
-// every spec-gated detector (MISSING_IMPLEMENTATION, AC_DRIFT,
-// UNTESTED_AC, …) which previously couldn't see user-authored shards
-// when the inline F-001 placeholder kept the master `features` array
-// non-empty.
+// v0.3.49 (F-99c6e5) — `specSeed` emits `features: []` so the sharded
+// layout activates from day one. Every spec-gated detector
+// (MISSING_IMPLEMENTATION, AC_DRIFT, UNTESTED_AC, …) reads
+// `spec/features/<slug>-<hash6>.yaml` shards directly.
+//
+// v0.4.0 — no placeholder shard is written at init time. External users
+// receive a clean spec; the AI (or `clad_create_feature` / the `clad` CLI)
+// registers real features on demand using the hash-based filename model.
+// The legacy `F-NNN` sequential format is reserved for cladding's own
+// historical features and is never produced for external users.
 //
 // v0.3.49 (F-3a5339) — Project also accepts optional metadata (description,
 // version, repository, intent_summary). When the intent path is taken,
@@ -180,7 +183,6 @@ function specSeed(
   projectName: string,
   language: string,
   metadata?: SpecSeedMetadata,
-  marker?: EnrichmentMarker,
 ): string {
   const projectLines = [
     `  name: ${projectName}`,
@@ -236,31 +238,10 @@ function specSeed(
     '',
     'schema: "0.1"',
     '',
-    // F-90d054 — lazy enrichment marker. Host AI consumes this on its first
-    // task in the project and removes it once every scope item is filled.
-    ...(marker ? [renderMarkerYaml(marker), ''] : []),
     'project:',
     ...projectLines,
     '',
     'features: []',
-    '',
-  ].join('\n');
-}
-
-/** Renders the placeholder F-001 shard written alongside the sharded spec.yaml seed. */
-function f001SeedShard(seedTitle?: string): string {
-  const title = (seedTitle ?? 'Your first feature').replace(/"/g, '\\"');
-  return [
-    '# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual',
-    'id: F-001',
-    'slug: first-feature',
-    `title: "${title}"`,
-    'status: planned',
-    'modules: []',
-    'acceptance_criteria:',
-    '  - id: AC-001',
-    '    ears: ubiquitous',
-    '    text: "Replace this with what F-001 actually shall do."',
     '',
   ].join('\n');
 }
@@ -367,36 +348,20 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
 
   // F-90d054 — observe the project once to build the lazy enrichment marker.
   // detectContext is cheap (one synchronous walk capped at depth 12, skipping
-  // node_modules/.git/dist/etc) and gives host AI the ground truth it needs
-  // to populate the enrichment scope without invention.
+  // detectContext is still used by host-instructions (AGENTS.md / CLAUDE.md)
+  // for the project context summary it embeds in those files.
   const ctx = detectContext(cwd);
-  const marker = buildMarker(ctx);
 
   // 1. spec.yaml + F-001 sharded placeholder
   //
   // v0.3.49 (F-99c6e5): spec.yaml seed now carries `features: []` and
   // the F-001 placeholder lives at `spec/features/F-001-first.yaml`.
-  // This activates the sharded-loader path from day one — every
-  // spec-gated detector now sees user-authored shards instead of
-  // being blinded by the legacy inline placeholder.
-  // v0.3.60 (F-90d054): seed now carries `_meta` enrichment marker so
-  // host AI can finish what `clad init` couldn't (intent reasoning,
-  // ai_hints inference, EARS-shaped AC) on its first task.
+  // v0.4.0 (F-80d19d): removed F-90d054's `_meta.enrichment_status` marker —
+  // project-scope plugin auto-activation in clad init guarantees an AI
+  // session, so the lazy-enrichment scaffold is no longer needed.
   const specPath = join(cwd, 'spec.yaml');
   if (existsSync(specPath) && !force) {
-    // F-90d054 AC-012 — Idempotent re-run. Preserve every line of the existing
-    // spec body and only refresh `_meta` when `detected` observations actually
-    // changed. The host AI then sees the new pending scope on its next task.
-    const existing = readFileSync(specPath, 'utf8');
-    const patched = patchMarkerInSpec(existing, ctx);
-    if (patched.updated) {
-      writeFileSync(specPath, patched.body);
-      created.push(
-        `spec.yaml (_meta refreshed; re-activated: ${patched.reactivated.join(', ')})`,
-      );
-    } else {
-      skipped.push('spec.yaml (exists; _meta already current)');
-    }
+    skipped.push('spec.yaml (exists)');
   } else {
     // v0.3.49 (F-3a5339) — when an intent is provided, seed the
     // project metadata fields too so spec.yaml has a meaningful
@@ -410,18 +375,9 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
           ai_hints: onboarding?.aiHints,
         }
       : undefined;
-    writeFileSync(specPath, specSeed(projectName, language, seedMetadata, marker));
+    writeFileSync(specPath, specSeed(projectName, language, seedMetadata));
     created.push('spec.yaml');
   }
-  const f001Path = join(cwd, 'spec', 'features', 'F-001-first.yaml');
-  if (existsSync(f001Path) && !force) {
-    skipped.push('spec/features/F-001-first.yaml (exists; pass --force to overwrite)');
-  } else {
-    mkdirSync(dirname(f001Path), {recursive: true});
-    writeFileSync(f001Path, f001SeedShard(onboarding?.specSeedTitle));
-    created.push('spec/features/F-001-first.yaml');
-  }
-
   // 2. .cladding/ runtime dir
   const claddingDir = join(cwd, '.cladding');
   if (existsSync(claddingDir)) {
@@ -552,10 +508,15 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
   // F-90d054 — project-local host AI instruction surfaces.
   // AGENTS.md is the cross-tool entry point (Codex · Cursor · Continue ·
   // Copilot · Aider). CLAUDE.md is Claude Code's project memory — appended
-  // idempotently so existing user content is preserved.
+  // idempotently so existing user content is preserved. v0.4.0 — when the
+  // existing file carries v0.3.x markers (e.g. `_meta.enrichment_status`,
+  // lone `clad_create_feature MCP tool`), it is refreshed in place so AI
+  // sessions don't see stale guidance.
   const agentsResult = writeAgentsMd(cwd, {force});
   if (agentsResult === 'created' || agentsResult === 'overwritten') {
     created.push('AGENTS.md');
+  } else if (agentsResult === 'refreshed-stale') {
+    created.push('AGENTS.md (refreshed — v0.3.x guidance replaced)');
   } else {
     skipped.push('AGENTS.md (exists; pass --force to overwrite)');
   }
@@ -564,17 +525,25 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
     created.push('CLAUDE.md');
   } else if (claudeResult === 'appended') {
     created.push('CLAUDE.md (## cladding section appended)');
+  } else if (claudeResult === 'refreshed-stale') {
+    created.push('CLAUDE.md (## cladding section refreshed — v0.3.x guidance replaced)');
   } else {
     skipped.push('CLAUDE.md (## cladding section already present)');
   }
 
-  // F-90d054 — postinstall fallback retry. Users who installed cladding
-  // with `npm install --ignore-scripts` (or whose CI skipped postinstall)
-  // get the global wiring set up here instead. Best-effort; failures do
-  // not block init.
-  const fallback = retryPostinstallIfNeeded();
-  if (fallback.attempted && fallback.exitCode === 0) {
-    created.push('global host wiring (postinstall retry)');
+  // F-80d19d — friendly warning when host channels were never wired or are
+  // out of sync with the current cladding binary. `clad setup` is the explicit
+  // command for wiring; this is informational only and does not block init.
+  const lastSetup = getLastSetupVersion();
+  const pkgVersion = getCurrentCladdingVersion();
+  if (lastSetup == null) {
+    skipped.push(
+      'host channels not wired yet — run `clad setup` to enable `/cladding init` from Claude Code / Codex / Gemini',
+    );
+  } else if (pkgVersion && lastSetup !== pkgVersion) {
+    skipped.push(
+      `host wire was set up at v${lastSetup} (current binary v${pkgVersion}) — symlinks usually auto-follow, but run \`clad setup\` to be sure`,
+    );
   }
 
   return {

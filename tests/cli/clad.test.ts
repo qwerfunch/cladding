@@ -397,7 +397,7 @@ describe('cli/clad — handler exports', () => {
 });
 
 describe('cli/clad — createProgram', () => {
-  test('returns a Command with all 12 verbs registered', () => {
+  test('returns a Command with all 13 verbs registered', () => {
     const program = clad.createProgram();
     const names = program.commands.map((c) => c.name());
     expect(names).toEqual([
@@ -405,6 +405,7 @@ describe('cli/clad — createProgram', () => {
       'work',
       'drive',
       'sync',
+      'setup',
       'check',
       'checkpoint',
       'rollback',
@@ -418,7 +419,7 @@ describe('cli/clad — createProgram', () => {
 
   test('program version matches current package version', () => {
     const program = clad.createProgram();
-    expect(program.version()).toBe('0.3.60');
+    expect(program.version()).toBe('0.4.0');
   });
 });
 

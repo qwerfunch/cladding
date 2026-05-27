@@ -90,13 +90,18 @@ describe('greenfield lifecycle — 결제 SaaS for B2B intent', () => {
     expect(result.clarifyingQuestions?.length).toBe(3);
     expect(result.onboardingMode).toBe('greenfield');
 
-    // F-001 title is intent-derived. v0.3.49 (F-99c6e5): F-001 lives
-    // in the sharded file, not inline in spec.yaml.
-    const f001Body = (await import('node:fs')).readFileSync(
-      join(scenario.path, 'spec/features/F-001-first.yaml'),
+    // v0.4.0 — no F-001 placeholder shard. Intent surfaces via
+    // `spec.yaml::project.intent_summary` and `docs/project-context.md`.
+    expect(
+      (await import('node:fs')).existsSync(
+        join(scenario.path, 'spec/features/F-001-first.yaml'),
+      ),
+    ).toBe(false);
+    const projectContext = (await import('node:fs')).readFileSync(
+      join(scenario.path, 'docs/project-context.md'),
       'utf8',
     );
-    expect(f001Body).toContain('결제 인증 흐름');
+    expect(projectContext).toContain('결제');
   });
 
   test('S1 → S2 refine: state advances, proposal divert fires, capabilities grow', async () => {
@@ -148,8 +153,8 @@ describe('greenfield lifecycle — 결제 SaaS for B2B intent', () => {
     );
 
     // S4: cross-tier consistency. capabilities-feature-mapping warns
-    // about orphan capabilities (only payment-auth has F-001 mapped);
-    // that's expected for an early-stage workspace.
+    // about orphan capabilities (no features are mapped yet — early-stage
+    // workspace with `features: []`); warnings don't block this assertion.
     // META_INTEGRITY expects cladding's own spec/schema.json which the
     // tmpdir doesn't carry — that detector is a cladding-self check,
     // not a consumer-project gate, so we let it through here.

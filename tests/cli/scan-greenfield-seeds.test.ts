@@ -104,10 +104,10 @@ describe('renderGreenfieldConventionsMd', () => {
 });
 
 describe('renderGreenfieldArchitectureYaml', () => {
-  test('TypeScript default — version + empty layers + TS layer baseline in comment', () => {
+  test('TypeScript default — empty layers + TS layer baseline in comment (no schema-rejected version key, v0.4.0)', () => {
     const out = renderGreenfieldArchitectureYaml('typescript');
     expect(out).toMatch(/^# Cladding · Tier B · SSoT/);
-    expect(out).toContain('version: "0.1"');
+    expect(out).not.toContain('version:');
     expect(out).toContain('Greenfield seed');
     expect(out).toContain('Typical TypeScript baseline:');
     expect(out).toContain('#  src/cli/');

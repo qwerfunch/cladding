@@ -22,7 +22,7 @@
 </p>
 
 <p align="center">
-  Reference implementation of the <a href="https://github.com/qwerfunch/ironclad">Ironclad</a> standard. 28 detectors and a 13-stage gate verify, on every commit, that the code your AI assistant wrote still matches the spec.
+  Reference implementation of the <a href="https://github.com/qwerfunch/ironclad">Ironclad</a> standard. 27 detectors and a 13-stage gate verify, on every commit, that the code your AI assistant wrote still matches the spec.
 </p>
 
 <!-- ─────────────── HERO ─────────────── -->
@@ -75,7 +75,7 @@ The same spec produces code with inconsistent patterns and structure.
 
 Generated code calls APIs, functions, or options that don't exist.
 
-→ 28 detectors and a 13-stage gate block hallucinated code on every commit.
+→ 27 detectors and a 13-stage gate block hallucinated code on every commit.
 
 ✓ **Production incidents prevented up front** — CI auto-rejects hallucinated code before it merges.
 
@@ -149,13 +149,13 @@ Every change has to clear all 13 stages — typically called from CI, a git pre-
 | Stage | What it checks |
 |---|---|
 | **1.1 Type · 1.2 Lint** | type errors · code style |
-| **1.3 Drift** | spec ↔ code mismatches across 28 detectors |
+| **1.3 Drift** | spec ↔ code mismatches across 27 detectors |
 | **1.4 Commit · 1.5 Arch · 1.6 Secret** | clean working tree · architecture invariants (forbidden imports, etc.) · leaked API keys |
 | **2.1 Unit · 2.2 Cov** | unit tests pass · project coverage threshold |
 | **3.1 Smoke · 3.2 Perf · 3.3 Visual** | end-to-end critical paths · performance budgets · visual regression |
 | **4.1 Audit · 4.2 UAT** | every AC (acceptance criteria) has at least one piece of evidence · every `status=done` feature has at least one piece of evidence |
 
-### 3. Tests — 28 drift detectors
+### 3. Tests — 27 drift detectors
 
 Seven categories of mismatch across spec · code · test, all caught automatically. Full catalog: [src/stages/detectors/README.md](src/stages/detectors/README.md).
 
@@ -167,7 +167,7 @@ Seven categories of mismatch across spec · code · test, all caught automatical
 <tr><td>spec ↔ code drift</td><td>something in the spec missing from code, or in code with nothing in the spec</td><td align="center">6</td><td><code>UNMAPPED_ARTIFACT</code>, <code>MISSING_IMPLEMENTATION</code>, <code>AC_DRIFT</code></td></tr>
 <tr><td>code ↔ test</td><td>code without tests · coverage falling below threshold</td><td align="center">6</td><td><code>MISSING_TESTS</code>, <code>COVERAGE_DROP</code>, <code>HARDCODED_SECRET</code></td></tr>
 <tr><td>spec ↔ test</td><td>an AC in the spec that no test actually verifies</td><td align="center">4</td><td><code>UNTESTED_AC</code>, <code>STATUS_DRIFT</code>, <code>STALE_EVIDENCE</code></td></tr>
-<tr><td>spec maintenance</td><td>spec hygiene — slug collisions, ID duplicates</td><td align="center">5</td><td><code>SLUG_CONFLICT</code>, <code>ID_COLLISION</code>, <code>ENRICHMENT_PENDING</code></td></tr>
+<tr><td>spec maintenance</td><td>spec hygiene — slug collisions, ID duplicates</td><td align="center">4</td><td><code>SLUG_CONFLICT</code>, <code>ID_COLLISION</code></td></tr>
 <tr><td>environment integrity</td><td>build environment and meta-file integrity</td><td align="center">3</td><td><code>HARNESS_INTEGRITY</code>, <code>META_INTEGRITY</code></td></tr>
 <tr><td>architecture · capability</td><td>code that breaks the architecture or capability shape declared in the spec</td><td align="center">2</td><td><code>ARCHITECTURE_FROM_SPEC</code>, <code>CAPABILITIES_FEATURE_MAPPING</code></td></tr>
 <tr><td>governance · policy</td><td>code that breaks an `ai_hints` policy (e.g. forbidden patterns)</td><td align="center">2</td><td><code>AI_HINTS_FORBIDDEN_PATTERN</code>, <code>ABSENCE_OF_GOVERNANCE</code></td></tr>
@@ -216,50 +216,61 @@ cladding's edge is the *combination* — it folds the strongest parts of all fou
 <!-- ─────────────── Install ─────────────── -->
 ## Install
 
-There are two paths into cladding — either one lands you in the same place, with the same spec · policies · verification loop.
+Two steps: install the infrastructure, then create the project spec.
 
-### Path 1 — Marketplace (fastest)
+### Step 1 — Install the infrastructure
 
-Install cladding from the Claude Code · Codex CLI · Gemini CLI marketplace, then say one line to the AI:
+Pick the route that fits how you work — both land in the same place:
 
-```
-/cladding init "B2B payment SaaS"
-```
-
-The AI fills in the spec, the 4-tier docs, and the policies on the spot. No separate npm install required.
-
-### Path 2 — npm (terminal · CI · environments without an AI tool)
+**(a) npm** — for terminal / CI users
 
 ```bash
-npm install -g cladding
-clad init "B2B payment SaaS"
-clad check
+npm install -g cladding   # install the cladding CLI
+cd <project>                # go to your project
+clad setup                  # connect your AI tools (Claude / Codex / Gemini)
 ```
 
-`npm install -g cladding`'s postinstall hook wires up four channels automatically:
+**(b) Marketplace** — for AI-tool plugin users
 
-| Host | Auto-wired location |
-|---|---|
-| Claude Code | `~/.claude/plugins/cladding` |
-| Codex CLI (skills) | `~/.agents/skills/cladding-*` |
-| Codex CLI (MCP server) | `[mcp_servers.cladding]` in `~/.codex/config.toml` |
-| Gemini CLI | `~/.gemini/extensions/cladding` |
+1. Open the plugin marketplace inside your AI tool (Claude Code · Codex CLI · Gemini CLI)
+2. Search for **cladding** and install it
+3. No `clad setup` needed — the plugin manifest wires everything
 
-After that, `/cladding init` and `clad init` work identically from any AI tool.
+<details>
+<summary>Where <code>clad setup</code> connects (5 host channels)</summary>
 
-> If you installed with `npm install --ignore-scripts`, the postinstall is skipped — but the first `clad init` retries it automatically.
+| Host (when detected) | Wired location | Auto-activation |
+|---|---|---|
+| Claude Code (`~/.claude/`) | `~/.claude/plugins/cladding` | `claude plugin marketplace add` + `claude plugin install claude-code@cladding` |
+| Codex CLI skills (`~/.agents/`) | `~/.agents/skills/cladding-*` | (auto on Codex restart) |
+| Codex CLI MCP server (`~/.codex/`) | `[mcp_servers.cladding]` in `~/.codex/config.toml` | (TOML entry itself) |
+| Gemini CLI (`~/.gemini/`) | `~/.gemini/extensions/cladding` | `gemini extensions link` |
+| Cursor (`~/.cursor/`) | `mcpServers.cladding` in `~/.cursor/mcp.json` | (JSON entry itself) |
+
+`clad setup` invokes the per-host activation commands automatically when `claude` / `gemini` binaries are on PATH. Safe to re-run after a cladding upgrade or after installing another AI tool.
+
+> **About the MCP server.** Every host gets cladding wired as an MCP server — only the wire *location* differs. Claude Code and Gemini CLI auto-start it through the plugin/extension manifest's `mcpServers` field; Codex through `~/.codex/config.toml` `[mcp_servers.cladding]`; Cursor through `~/.cursor/mcp.json`. You never invoke MCP directly — no `/mcp` slash, no manual server-connect step. The AI in each host calls cladding's tools (`clad_create_feature`, etc.) in response to **natural-language requests**; you keep typing `/cladding:init` plus normal chat.
+</details>
+
+### Step 2 — Init (create the project spec)
+
+Inside your project, run it once from your AI tool:
+
+```
+[inside your AI tool] /cladding:init "B2B payment SaaS"
+```
+
+This creates `spec.yaml` and the 4-tier docs. One-time per project.
 
 ### Three init scenarios
 
-`clad init` takes a natural-language intent and picks the right path on its own. Same command, three starting points.
+`/cladding:init` takes a natural-language intent and picks the right path on its own. Same command, three starting points.
 
-| Starting point | Command (npm path) | What happens |
+| Starting point | Command | What happens |
 |---|---|---|
-| **An idea, nothing else** | `clad init "I want to build a B2B payment SaaS"` | LLM infers the domain → spec · docs · policies generated, with 2–3 follow-up questions printed |
-| **A planning doc** | `clad init docs/plan.md` | cladding detects the file path, loads its contents, and uses them as the intent (absolute and relative paths both work) |
-| **Adopting into an existing project** | `clad init "apply cladding to this project"` | scans the existing code (≥3 source files trigger it) → observed patterns are merged with the intent |
-
-> In a marketplace install (Claude Code · Codex CLI · Gemini CLI) the format is `/cladding init "..."` — works the same with free text *and* with paths like `/cladding init docs/plan.md`.
+| **An idea, nothing else** | `/cladding:init "I want to build a B2B payment SaaS"` | LLM infers the domain → spec · docs · policies generated, with 2–3 follow-up questions printed |
+| **A planning doc** | `/cladding:init docs/plan.md` | cladding detects the file path, loads its contents, and uses them as the intent (absolute and relative paths both work) |
+| **Adopting into an existing project** | `/cladding:init "apply cladding to this project"` | scans the existing code (≥3 source files trigger it) → observed patterns are merged with the intent |
 
 ### Init once, then carry on
 
@@ -307,7 +318,7 @@ cladding's goal is to *be the infrastructure that prevents spec ↔ code drift* 
 - [Why cladding (project context)](docs/project-context.md)
 - [4-tier governance model](docs/ssot-model.md)
 - [Hash-based feature IDs](docs/spec-ids-multi-dev.md)
-- [28 detector catalog](src/stages/detectors/README.md)
+- [27 detector catalog](src/stages/detectors/README.md)
 - [Benchmark — event store trap catch](docs/benchmarks/event-store-trap-catch.md)
 - [A/B evaluation cases](docs/ab-evaluation/)
 - [Governance · roadmap to 1.0](GOVERNANCE.md)

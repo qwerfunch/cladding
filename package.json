@@ -1,6 +1,6 @@
 {
   "name": "cladding",
-  "version": "0.3.60",
+  "version": "0.4.0",
   "description": "Reference implementation of the Ironclad standard — multi-agent dev harness for Claude Code.",
   "type": "module",
   "license": "MIT",
@@ -16,12 +16,9 @@
   "files": [
     "bin/",
     "dist/",
-    "agents/",
-    "commands/",
     ".claude-plugin/",
     ".mcp.json",
     "plugins/",
-    "scripts/postinstall.mjs",
     "AGENTS.md",
     "CODE_OF_CONDUCT.md",
     "CONTRIBUTING.md",
@@ -56,8 +53,7 @@
     "build": "node scripts/build.mjs && node scripts/build-plugin.mjs",
     "build:plugin": "node scripts/build-plugin.mjs",
     "version-bump": "node scripts/version-bump.mjs",
-    "prepare": "node -e \"require('node:fs').existsSync('dist/clad.js') || require('node:child_process').execSync('npm run build', {stdio: 'inherit'})\"",
-    "postinstall": "node scripts/postinstall.mjs"
+    "prepare": "node -e \"require('node:fs').existsSync('dist/clad.js') || require('node:child_process').execSync('npm run build', {stdio: 'inherit'})\""
   },
   "devDependencies": {
     "@secretlint/secretlint-rule-preset-recommend": "^13.0.2",

@@ -26,7 +26,7 @@ function seedTree(dir: string, detectorCount: number, declaredCurrent: string, d
   mkdirSync(join(dir, 'src', 'agents'), {recursive: true});
   mkdirSync(join(dir, 'skills'), {recursive: true});
   mkdirSync(join(dir, 'src', 'stages', 'detectors'), {recursive: true});
-  mkdirSync(join(dir, '.claude-plugin'), {recursive: true});
+  mkdirSync(join(dir, 'plugins', 'claude-code', '.claude-plugin'), {recursive: true});
 
   for (let i = 0; i < detectorCount; i++) {
     writeFileSync(join(dir, 'src', 'stages', 'detectors', `det-${i}.ts`), '// stub\n');
@@ -46,7 +46,7 @@ function seedTree(dir: string, detectorCount: number, declaredCurrent: string, d
     },
   };
   writeFileSync(
-    join(dir, '.claude-plugin', 'plugin.json'),
+    join(dir, 'plugins', 'claude-code', '.claude-plugin', 'plugin.json'),
     JSON.stringify(manifest, null, 2) + '\n',
   );
 }
@@ -72,7 +72,7 @@ describe('scripts/build-plugin.mjs · Phase D detector count', () => {
     const out = run(tmp);
     expect(out).toMatch(/detectors: recomputed → 7\/7/);
     const manifest = JSON.parse(
-      readFileSync(join(tmp, '.claude-plugin', 'plugin.json'), 'utf8'),
+      readFileSync(join(tmp, 'plugins', 'claude-code', '.claude-plugin', 'plugin.json'), 'utf8'),
     );
     expect(manifest.ironclad.current.detectors).toBe('7/7');
     expect(manifest.ironclad.target.detectors).toBe('7/7');
@@ -88,7 +88,7 @@ describe('scripts/build-plugin.mjs · Phase D detector count', () => {
     seedTree(tmp, 3, '2/2', '2/2');
     run(tmp);
     const manifest = JSON.parse(
-      readFileSync(join(tmp, '.claude-plugin', 'plugin.json'), 'utf8'),
+      readFileSync(join(tmp, 'plugins', 'claude-code', '.claude-plugin', 'plugin.json'), 'utf8'),
     );
     expect(manifest.ironclad.other.detectors).toBe('99/99');
   });
@@ -98,12 +98,12 @@ describe('scripts/build-plugin.mjs · Phase D detector count', () => {
     // the script counted it, this test would see "8/8" not "7/7".
     seedTree(tmp, 7, '0/0', '0/0');
     const manifest = JSON.parse(
-      readFileSync(join(tmp, '.claude-plugin', 'plugin.json'), 'utf8'),
+      readFileSync(join(tmp, 'plugins', 'claude-code', '.claude-plugin', 'plugin.json'), 'utf8'),
     );
     expect(manifest.ironclad.current.detectors).toBe('0/0');
     run(tmp);
     const after = JSON.parse(
-      readFileSync(join(tmp, '.claude-plugin', 'plugin.json'), 'utf8'),
+      readFileSync(join(tmp, 'plugins', 'claude-code', '.claude-plugin', 'plugin.json'), 'utf8'),
     );
     expect(after.ironclad.current.detectors).toBe('7/7');
   });

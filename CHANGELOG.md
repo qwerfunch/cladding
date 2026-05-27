@@ -5,6 +5,127 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] — 2026-05-27 — `clad setup` command — split npm install from host wire (F-80d19d)
+
+**Reverting F-90d054's npm `postinstall` side effect.** v0.3.60 made `npm install -g cladding` automatically wire four host AI channels in `$HOME` (`~/.claude/`, `~/.gemini/`, `~/.codex/`, `~/.agents/`). The convenience was real — npm-path users got `/cladding init` for free — but the cost was steep: every npm install touched four global directories whether or not the user had those AI tools, CI sandboxes needed `CLADDING_SKIP_POSTINSTALL=1`, and `clad init` carried a fallback retry path. v0.4.0 splits the responsibility: install is install, wire is wire.
+
+### Added
+
+- **New command `clad setup`** — explicit host channel wirer. One command handles six scenarios in a single run:
+  - **first wire** — create symlinks for detected hosts
+  - **update** — re-wire if the existing symlink target is a different cladding root (e.g. after `nvm` switch or manifest schema change)
+  - **delta** — wire only the newly detected host when a user installs a new AI tool between runs
+  - **repair** — re-create symlinks deleted by the user or reset by the host AI
+  - **no-op** — print "already wired" without filesystem changes when everything matches
+  - **conflict** — refuse to overwrite directory-copy wires (Windows fallback) with custom changes unless `--force` is supplied
+- **`src/init/host-setup.ts`** — TypeScript implementation of the wirer, replacing the `scripts/postinstall.mjs` JavaScript hook. Detects each host via its home directory (`~/.claude/`, `~/.gemini/`, `~/.codex/`, `~/.agents/`); undetected hosts are skipped (no surprise `$HOME` directories).
+- **`~/.cladding/setup-status.json`** — records the last `cladding_version`, wiring report, and errors. `clad init` reads it to detect version skew.
+- **Friendly stdout** — `clad setup` always ends with a numbered "다음 단계" block (1. open AI tool → 2. cd to project → 3. `/cladding init "..."` → 4. start coding).
+- **`spec/features/setup-command-80d19d.yaml`** (F-80d19d) — 10 acceptance criteria covering install / update / delta / repair / no-op / conflict / not-installed-skip / init-skew-warning / npm-install-no-side-effect / next-step-guidance.
+- **`tests/cli/setup.test.ts`** — 10 unit tests, one per AC, exercising the wirer against a mocked `$HOME`.
+
+### Changed
+
+- **`clad init`** — removed the F-90d054 postinstall-fallback retry path. `clad init` now never wires host channels on its own. If no `setup-status.json` exists, it appends a friendly skipped notice ("host channels not wired yet — run `clad setup`") and continues with spec generation. If the binary version differs from the recorded setup version, it appends a softer notice ("symlinks usually auto-follow, but run `clad setup` to be sure"). Neither blocks spec creation.
+- **`src/cli/clad.ts`** — registers `.command('setup')` with `--force` and `--quiet` flags.
+
+### Removed
+
+- **`scripts/postinstall.mjs`** — deleted. The npm `postinstall` lifecycle hook is no longer registered in `package.json`. `npm install -g cladding` now produces zero filesystem side effects in `$HOME`.
+- **`src/init/postinstall-fallback.ts`** — deleted. The retry path inside `clad init` is gone with it.
+- **`package.json` `"postinstall"` script** — removed from `scripts`. **`scripts/postinstall.mjs`** also removed from the `files[]` publish list.
+
+### Why v0.4.0 (minor bump)
+
+Behavioral change for npm-path users (one extra `clad setup` command between install and init). Backward-safe in practice — existing v0.3.60 wires (symlinks/config.toml entries) survive the upgrade unchanged. Marketplace-path users are unaffected (the marketplace manifest still handles wiring on install).
+
+### Migration
+
+- **Upgrading from v0.3.60** — `npm install -g cladding@0.4.0`. Symlinks created by v0.3.60's postinstall already point at the cladding package root, so they auto-follow the upgrade with no action. Re-run `clad setup` only if you switched node managers (nvm) or moved your home directory.
+- **Fresh install** — `npm install -g cladding && clad setup && clad init "..."`.
+- **Marketplace** — unchanged. `/cladding init "..."` works as before.
+
+### Auto-activation — 5-host plugin install runs automatically
+
+`clad setup` does not stop at symlinks. After wiring each detected host channel, it auto-invokes the host's plugin activation command (non-interactive, 30s timeout each):
+
+- **Claude Code** — `claude plugin marketplace add ~/.claude/plugins/cladding --scope user` + `claude plugin install claude-code@cladding --scope user`
+- **Gemini CLI** — `gemini extensions link ~/.gemini/extensions/cladding` (skipped if `gemini extensions list` already shows cladding)
+- **Codex CLI skills** — auto-detected from `~/.agents/skills/` on Codex restart (no command needed)
+- **Codex MCP** — the TOML entry itself is the registration (no command needed)
+- **Cursor** — the `~/.cursor/mcp.json` entry itself is the registration (no command needed)
+
+Each channel's `↳ 활성화:` line in stdout reports `✓ 자동 완료` or `✗ 자동 시도 실패 — 수동:` followed by the fallback command. If `claude` or `gemini` binary isn't on PATH, the manual command is shown instead. Existing v0.3.60 wires are preserved.
+
+### Fixed — plugin manifest now declares the MCP server (ISSUE-002, packaging gap)
+
+`plugins/claude-code/.claude-plugin/plugin.json` now carries an `mcpServers` field. Prior v0.4.x packages shipped the plugin's commands and agents but *not* the MCP server declaration — so consumer projects (any project outside cladding's own repo) opened Claude Code with the cladding plugin loaded but the `clad_create_feature` / `clad_list_features` / `clad_run_check` / `clad_get_events` / `clad_create_scenario` tools missing. AGENTS.md's "use `clad_create_feature` MCP tool" guidance was therefore impossible to follow, which contributed to spec drift in adopting projects (see logcat-on `docs/cladding-issues.md` ISSUE-001).
+
+With the fix, enabling the cladding plugin (`claude plugin install claude-code@cladding`) auto-starts cladding's MCP server in every project — same model as Codex's `~/.codex/config.toml` wire. No `claude mcp add` user action; no manual server-connect step. The server appears in trust scope of the plugin (it does **not** surface in `claude mcp list` — that listing only shows user-added MCP servers, not plugin-declared ones).
+
+Repo root `.mcp.json` was removed at the same time — it was a v0.3.x leftover from when the plugin lived at the repo root, and after Layer 1 it would just duplicate the canonical declaration in the plugin manifest.
+
+The README's MCP narrative was corrected accordingly: every host gets cladding as an MCP server (only the wire *location* differs between plugin manifest, Codex's TOML, and Cursor's JSON); the v0.4.0 line claiming "Claude Code and Gemini CLI ... don't need MCP wired" was rationalizing a packaging bug as design intent.
+
+**Migration for existing v0.4.0 users**: run `clad setup --force` (or `claude plugin install claude-code@cladding --force --scope user`) to refresh the plugin cache, then restart Claude Code. The MCP tools should appear in the AI's tool list inside any project where the plugin is enabled.
+
+### Fixed — four findings surfaced by end-to-end verification
+
+A multi-host verification pass (Claude Code + Gemini CLI driving `/cladding:init` across bare / intent / path-intent / existing-adoption scenarios, plus a dev cycle of hand-authored hash-based feature → `clad sync` → `clad check` → drift inject) surfaced four issues that v0.4.0 now resolves:
+
+- **F1 (high) — `spec/architecture.yaml` seed emitted `version: "0.1"` which `clad sync` rejected.** The architecture schema (`src/spec/schema.json::definitions.architecture`) declares `additionalProperties: false` with only `layers` + `forbidden_imports` allowed, so the seed contradicted the schema and made cladding's own dogfood fail validation. Removed `version: "0.1"` from `renderGreenfieldArchitectureYaml`, from the LLM-rendered observed-scan architecture (`src/cli/scan/llm.ts`), and from both LLM prompt templates (`src/cli/scan/llm.ts` + `src/cli/scan/intent-onboarding.ts`). Added a defensive `stripArchVersionKey` helper applied to LLM-emitted architecture bodies in `interpretOnboardingWithFallback` + `applyRefineDelta` so models trained on the older shape don't reintroduce the broken key.
+- **F2 (medium) — Gemini CLI's extension `GEMINI.md` did not surface the EARS feature-shard schema** loudly enough; the Gemini AI authored ACs with `description:` and got rejected by `clad sync` on its first pass. Added an "Authoring feature shards (read before writing one)" section to `plugins/gemini-cli/GEMINI.md` that lays out the canonical filename (`<slug>-<hash6>.yaml`), id (`F-<hash6>`), required body shape, EARS templates for each of the six AC kinds, and the explicit "do NOT use `description:`" callout.
+- **F3 (low) — `gemini -p --yolo` still required `--skip-trust`** to run cladding from non-trusted directories (e.g. CI runners, `/tmp` workspaces). Documented the headless flag and the `GEMINI_CLI_TRUST_WORKSPACE=true` env-var alternative in `plugins/gemini-cli/GEMINI.md`.
+- **F4 (low) — `clad check` printed only one-line pass/fail labels per stage**, hiding the *why* of every failure unless the user knew to invoke `clad doctor`. `runCheckCommand` now indents the first three error-severity drift findings (`[DETECTOR_NAME] path — message`) under each failed Drift stage, and the first line of stderr under each non-drift failed stage. A footer hint (`ℹ Run \`clad doctor\` for the event log, or \`clad sync\` to validate spec shards.`) appears whenever any stage fails. Output stays terse enough to scan, while the *cause* of each `✗` is now legible without follow-up commands.
+
+Verification artifacts live at `/tmp/clad-verify/REPORT.md` (5/5 scenarios passing after the fixes). Test suite: 973/973.
+
+### Docs — MCP server's role clarified in README
+
+A short blockquote next to the `clad setup` 5-host table now states explicitly that the MCP server is not user-facing — it is the plumbing channel through which Codex CLI and Cursor's AI register features (`clad_create_feature`), look up spec entries, and tail audit events in response to natural-language requests. Claude Code and Gemini CLI reach the same surface through plugin commands and extensions, so they don't need MCP wired. The user-facing surface is always `/cladding:init` plus normal chat. (Docs-only; no behavior change.)
+
+### 5th host — Cursor
+
+`clad setup` now detects `~/.cursor/` and writes `mcpServers.cladding = { command: "clad", args: ["serve"] }` into `~/.cursor/mcp.json` (JSON merge). Cursor picks up cladding as an MCP server on restart — no separate activation.
+
+### `plugins/claude-code/` subdirectory — Claude marketplace fix
+
+cladding's Claude Code plugin moved from the repo root (`agents/` + `commands/` + `.claude-plugin/plugin.json`) into `plugins/claude-code/` (parallel to existing `plugins/codex/` and `plugins/gemini-cli/`). The repo-root `.claude-plugin/marketplace.json` now points `source: "./plugins/claude-code"`. Without this split, `claude plugin install` failed with *"source type your Claude Code version does not support"* because Claude Code's marketplace model requires the plugin source to be a subdirectory, not the marketplace root.
+
+`plugin.json` schema fixes: `author` is now an object (`{name: ...}`), `repository` is a string URL.
+
+### Removed — `spec.yaml._meta.enrichment_status` lazy marker (F-90d054)
+
+F-80d19d's `clad setup` step now provisions every detected host as part of the explicit setup flow, so a host AI is always available when the user opens the project. The lazy-enrichment scaffold — which existed because v0.3.60's `npm install -g cladding` path could not summon an AI session at install time — is no longer needed.
+
+- **Deleted**: `src/init/marker.ts`, `src/stages/detectors/enrichment-pending.ts`, `tests/init/marker.test.ts`, `tests/stages/enrichment-pending.test.ts`
+- **Schema removal**: `spec.yaml._meta` block (`enrichment_status` / `enrichment_scope` / `detected` / `enriched_by` / `enriched_at`) removed from `src/spec/schema.json`. Existing specs that still carry `_meta` continue to validate because cladding ignores unknown top-level keys, but `clad init` no longer writes the block on fresh projects.
+- **AGENTS.md / CLAUDE.md templates**: the *first-task enrichment rule* section removed from `src/init/host-instructions.ts`
+- **Detector count**: 28 → **27**. The `spec maintenance` category drops from 5 → 4 (removed `ENRICHMENT_PENDING`).
+- **F-90d054 spec**: marked `status: archived` with a pointer to F-80d19d
+- **Slash command surface**: Claude Code and Gemini CLI now expose only `/cladding:init` (legacy `/cladding:clad` wrapper and per-verb `.toml` shards removed). Other verbs are invoked by the AI via natural language → `clad <verb>` CLI; Codex skills retain all 12 verbs because Codex auto-invokes them without slash exposure.
+
+### Removed — placeholder `spec/features/F-001-first.yaml` seed from `clad init`
+
+`clad init` no longer writes a legacy-format `F-001-first.yaml` seed feature into external user projects. The seed previously emitted `id: F-001` + `slug: first-feature` — exactly the *F-NNN sequential format* cladding's own `CLAUDE.md` forbids for new spec entries (the hash-based `<slug>-<hash6>.yaml` model has been the standard since v0.3.9). External users now receive a clean `spec.yaml` with `features: []` and an empty `spec/features/` directory; the AI registers real features on demand via `clad_create_feature` (MCP) or the `clad` CLI, always using hash-based filenames + IDs. The historical `F-001` ~ `F-083` files inside cladding's own repo stay sequential — they're stable identifiers in audit logs and historical references (per the `CLAUDE.md` maintainer invariant).
+
+- **Deleted**: `f001SeedShard()` function + its call site in `src/cli/init.ts`
+- **Tests updated**: `tests/cli/init.test.ts` now asserts the F-001 placeholder is *not* created and `features: []` is present; `tests/scenarios/greenfield-lifecycle.test.ts` swaps the F-001 body assertion for a `docs/project-context.md` intent check
+- **Docs**: `skills/init/SKILL.md` and `src/agents/orchestrator.md` no longer mention the F-001 placeholder; post-init guidance now points users at `clad_create_feature` / natural-language conversation
+- **AB-evaluation metric**: cladding-group `Tier A artifacts` count drops from 4 → 3 (no more F-001 shard)
+
+### Stale instruction-file auto refresh — `clad init`
+
+`clad init` now detects v0.3.x markers in any existing project-local `AGENTS.md` / `CLAUDE.md` (`_meta.enrichment_status`, `first-task enrichment rule`, or a lone `clad_create_feature` MCP-tool wording with no `clad` CLI qualifier) and rewrites the file in place without requiring `--force`. AGENTS.md is replaced wholesale; CLAUDE.md replaces only the `## cladding` section so any user content outside the marker block survives. This closes the v0.3.60 → v0.4.0 migration gap where stale "use the MCP tool" guidance was triggering MCP-server prompts inside Claude Code (which does not get the cladding MCP server — only Codex / Cursor do).
+
+Template wording was also softened: the AGENTS.md and CLAUDE.md templates plus the `spec/scenarios/README.md` payload no longer mention `clad_create_feature` MCP tool as the only option — they reference the `clad` CLI first and condition the MCP-tool callout on hosts that wire cladding as an MCP server.
+
+### Removed — `claude plugin install --scope project` inside `clad init`
+
+The user-scope plugin install performed by `clad setup` is sufficient on every code path: marketplace users get plugin activation for free, npm users run `clad setup` once, and the cladding repo itself ships `.claude/settings.json` for maintainers. The redundant project-scope install inside `clad init` was triggering Claude Code permission/trust prompts every time a user ran `/cladding:init`, with no functional benefit. `clad init` no longer spawns `claude plugin install --scope project`.
+
+---
+
 ## [0.3.60] — 2026-05-22 — `clad init` host wiring + lazy enrichment marker (F-90d054)
 
 **Closing the onboarding marriage.** Until now `clad init` scaffolded `spec.yaml` + 4-tier docs but left every host AI wiring (Claude Code plugin / Codex skills / Gemini extension / MCP server / cross-tool AGENTS.md) to the user. And `npm`-path users had no way to populate the spec without an `ANTHROPIC_API_KEY` — a real LLM gap vs the plugin-path. This cycle fuses both.

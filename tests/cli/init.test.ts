@@ -24,18 +24,17 @@ describe('runInit', () => {
     expect(existsSync(join(dir, '.cladding'))).toBe(true);
   });
 
-  test('seed spec.yaml is valid YAML with schema 0.1, F-001 lives in sharded file', async () => {
+  test('seed spec.yaml has empty features[] — no legacy F-001 placeholder shard written (v0.4.0)', async () => {
     await runInit({cwd: dir});
-    // v0.3.49 (F-99c6e5): spec.yaml carries `features: []`; F-001
-    // lives at spec/features/F-001-first.yaml so the sharded loader
-    // activates from day one.
+    // v0.3.49 (F-99c6e5): spec.yaml carries `features: []`.
+    // v0.4.0: no `spec/features/F-001-first.yaml` placeholder is written.
+    // External users register real features on demand via `clad_create_feature`
+    // (hash-based filename + id); the legacy `F-NNN` format is reserved for
+    // cladding's own historical features.
     const yaml = readFileSync(join(dir, 'spec.yaml'), 'utf8');
     expect(yaml).toContain('schema: "0.1"');
     expect(yaml).toContain('features: []');
-    const f001 = readFileSync(join(dir, 'spec/features/F-001-first.yaml'), 'utf8');
-    expect(f001).toContain('id: F-001');
-    expect(f001).toContain('AC-001');
-    expect(f001).toContain('ubiquitous');
+    expect(existsSync(join(dir, 'spec/features/F-001-first.yaml'))).toBe(false);
   });
 
   test('idempotent — second call creates nothing', async () => {
@@ -136,7 +135,10 @@ describe('runInit', () => {
     // TS default is reached when no manifest is present (falls back to TS)
     expect(conv).toContain('greenfield seed for TypeScript');
     expect(conv).toContain('| indent | two-space |');
-    expect(arch).toContain('version: "0.1"');
+    // v0.4.0 — architecture seed no longer emits a `version:` key; the
+    // architecture schema declares `additionalProperties: false`, so any
+    // `version:` would be rejected by `clad sync`.
+    expect(arch).not.toContain('version:');
     expect(arch).toContain('Greenfield seed');
     expect(arch).toContain('layers: []');
     expect(caps).toContain('schema: "0.1"');

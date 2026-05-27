@@ -1,0 +1,155 @@
+id: F-80d19d
+slug: setup-command
+title: "clad setup command — explicit host wire (replaces F-90d054 postinstall hook)"
+status: in_progress
+modules:
+  - src/init/host-setup.ts
+  - src/cli/clad.ts
+  - src/cli/init.ts
+  - plugins/claude-code/.claude-plugin/plugin.json
+  - .claude-plugin/marketplace.json
+  - .claude/settings.json
+acceptance_criteria:
+  - id: AC-001
+    ears: event
+    condition: when the user runs `clad setup` and one or more of the four supported AI tool home directories exist (`~/.claude/`, `~/.gemini/`, `~/.codex/`, `~/.agents/`)
+    action: wire only the detected channels (Claude plugin / Gemini extension / Codex skills / Codex MCP) and leave undetected hosts untouched
+    response: the user gets host channels wired exclusively for AI tools they actually have installed, with no surprise directories created in `$HOME`
+    text: When the user runs `clad setup` and one or more of the four supported AI
+      tool home directories exist, the system shall wire only the detected
+      channels and leave undetected hosts untouched, so the user gets host
+      channels wired exclusively for installed AI tools with no surprise
+      directories created in $HOME.
+
+  - id: AC-002
+    ears: state
+    condition: while every detected host channel is already wired to the current cladding root (target match)
+    action: report each channel as "already wired" and perform no filesystem changes
+    response: idempotent re-run prints a clean "Nothing to do" summary
+    text: While every detected host channel is already wired to the current
+      cladding root, the system shall report each channel as already wired and
+      perform no filesystem changes, so idempotent re-runs print a clean
+      summary without side effects.
+
+  - id: AC-003
+    ears: event
+    condition: when the user runs `clad setup` after installing a new AI tool that was not detected on the previous run
+    action: wire only the newly detected channel (delta wire) while leaving previously wired channels untouched
+    response: the new tool gets a cladding channel without re-touching the already-wired ones
+    text: When the user runs `clad setup` after installing a new AI tool that
+      was not detected on the previous run, the system shall wire only the
+      newly detected channel while leaving previously wired channels
+      untouched, so the new tool gets a cladding channel without re-touching
+      the already-wired ones.
+
+  - id: AC-004
+    ears: event
+    condition: when the user runs `clad setup` after upgrading cladding to a new version whose package root resolves to a different absolute path than the existing symlink target
+    action: replace the symlink target with the new cladding root (re-wire)
+    response: host channels point at the upgraded cladding without manual cleanup
+    text: When the user runs `clad setup` after upgrading cladding to a new
+      version whose package root differs from the existing symlink target,
+      the system shall replace the symlink target with the new cladding
+      root, so host channels point at the upgraded cladding without manual
+      cleanup.
+
+  - id: AC-005
+    ears: event
+    condition: when the user runs `clad setup` and one or more channel symlinks have been deleted (host AI may have reset its plugin directory, or the user removed them)
+    action: re-create the missing symlinks (same effect as a first-time wire for those channels)
+    response: "`clad setup` works as a repair command without a separate flag"
+    text: When the user runs `clad setup` and one or more channel symlinks
+      have been deleted, the system shall re-create the missing symlinks,
+      so `clad setup` works as a repair command without a separate flag.
+
+  - id: AC-006
+    ears: state
+    condition: while `clad init` runs in a project and no `~/.cladding/setup-status.json` exists (user never ran `clad setup`)
+    action: print a friendly skipped notice ("host channels not wired yet — run `clad setup` to enable `/cladding init` from Claude Code / Codex / Gemini") and continue with spec generation
+    response: missing host wire does not block spec creation; user is guided to the next step
+    text: While `clad init` runs and no setup-status.json exists, the system
+      shall print a friendly skipped notice naming `clad setup` and continue
+      with spec generation, so missing host wire does not block spec creation
+      and the user is guided to the next step.
+
+  - id: AC-007
+    ears: state
+    condition: while `clad init` runs and the cladding binary version differs from the version recorded in `~/.cladding/setup-status.json` from the last `clad setup` run
+    action: print a friendly skipped notice that symlinks usually auto-follow but `clad setup` can be re-run to be sure, and continue with spec generation
+    response: version-skew is surfaced without blocking; the user can choose whether to re-run setup
+    text: While `clad init` runs and the cladding binary version differs from
+      the version recorded in setup-status.json, the system shall print a
+      friendly skipped notice and continue with spec generation, so version
+      skew is surfaced without blocking and the user can choose whether to
+      re-run setup.
+
+  - id: AC-008
+    ears: unwanted
+    condition: if a user runs `npm install -g cladding` (or `--ignore-scripts`, or any npm install flavour)
+    action: do not execute any host-wiring side effects during install (no postinstall hook registered in package.json `scripts`)
+    response: "`npm install` is pure binary installation with zero filesystem side effects in `$HOME`"
+    text: If a user runs `npm install -g cladding`, the system shall not
+      execute any host-wiring side effects during install, so `npm install`
+      is pure binary installation with zero filesystem side effects in $HOME.
+
+  - id: AC-009
+    ears: unwanted
+    condition: if a channel link exists as a directory copy (Windows non-admin fallback) and its mtime/contents diverge from the cladding root (user may have customised in place)
+    action: emit a `skipped-different` / `conflict` notice in the report and refuse to overwrite unless `--force` is supplied
+    response: user customisations under host plugin directories are preserved unless the user explicitly opts in to overwrite
+    text: If a channel link is a directory copy and its contents diverge from
+      the cladding root, the system shall emit a conflict notice and refuse
+      to overwrite unless `--force` is supplied, so user customisations are
+      preserved unless explicitly overridden.
+
+  - id: AC-010
+    ears: event
+    condition: when `clad setup` finishes successfully (any combination of created / unchanged / rewired / copied / skipped-not-installed)
+    action: print a numbered "다음 단계" guidance block (open AI tool → cd to project → `/cladding init "..."` → start coding) as the last stdout block
+    response: the user always sees a concrete next-step recipe at the end of the report
+    text: When `clad setup` finishes successfully, the system shall print a
+      numbered "다음 단계" guidance block as the last stdout block, so the
+      user always sees a concrete next-step recipe at the end of the
+      report.
+
+  - id: AC-011
+    ears: event
+    condition: when `clad setup` runs on a machine where `~/.cursor/` exists (Cursor IDE installed)
+    action: write or merge the `mcpServers.cladding` entry into `~/.cursor/mcp.json` (JSON merge, preserving other entries) so Cursor picks up cladding as an MCP server on restart
+    response: Cursor users get cladding wired without manual JSON edits
+    text: When `clad setup` runs and `~/.cursor/` exists, the system shall
+      merge `mcpServers.cladding = {command, args}` into `~/.cursor/mcp.json`
+      so Cursor users get cladding wired without manual JSON edits.
+
+  - id: AC-012
+    ears: event
+    condition: when `clad setup` finishes wiring a host channel AND the corresponding host CLI binary (claude / gemini) is on PATH
+    action: invoke the host's plugin activation command non-interactively (`claude plugin marketplace add` + `claude plugin install claude-code@cladding`, `gemini extensions link`); on failure fall back to printing the manual command in the activation hint
+    response: users with a host CLI binary on PATH get the plugin enabled in one command; users without one get a precise manual command
+    text: When `clad setup` finishes wiring a channel and the corresponding
+      host CLI binary is on PATH, the system shall invoke the host's plugin
+      activation command non-interactively, so users get the plugin enabled
+      in one command, and otherwise fall back to printing the manual command.
+
+  - id: AC-013
+    ears: event
+    condition: when `clad init` runs and a project-local AGENTS.md or CLAUDE.md exists that carries v0.3.x markers (e.g. `_meta.enrichment_status`, `first-task enrichment rule`, lone `clad_create_feature` MCP tool wording with no `clad` CLI qualifier)
+    action: refresh the stale file in place (AGENTS.md replaced wholesale; CLAUDE.md replaces only the `## cladding` section while preserving user content outside that marker block)
+    response: AI sessions opened in projects scaffolded by older cladding versions do not surface stale "use the MCP tool" guidance that triggers spurious MCP-server prompts in hosts where cladding is not wired as an MCP server (e.g. Claude Code)
+    text: When `clad init` runs and an existing AGENTS.md or CLAUDE.md carries
+      v0.3.x markers, the system shall refresh the stale file in place
+      without requiring `--force` (AGENTS.md replaced wholesale; CLAUDE.md
+      replaces only the `## cladding` section while preserving outside
+      content), so AI sessions do not surface stale guidance that confuses
+      hosts where cladding is not wired as an MCP server.
+
+  - id: AC-014
+    ears: state
+    condition: while a maintainer clones the cladding repository and opens it with Claude Code
+    action: ensure the repo ships a `.claude/settings.json` with `enabledPlugins["claude-code@cladding"] = true` so Claude Code activates the local cladding plugin on entry (dogfood self-activation)
+    response: cladding repo behaves like any external cladding-managed project — no separate "activate cladding for cladding" step required for maintainers
+    text: While a maintainer clones the cladding repository and opens it
+      with Claude Code, the system shall ship a `.claude/settings.json`
+      with `enabledPlugins["claude-code@cladding"] = true` so Claude Code
+      activates the local cladding plugin on entry without a separate
+      maintainer-only setup step.
