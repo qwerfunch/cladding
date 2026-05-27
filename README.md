@@ -255,28 +255,20 @@ clad setup                  # connect your AI tools (Claude / Codex / Gemini)
 Inside your project, run it once from your AI tool:
 
 ```
-[inside your AI tool] /cladding init "B2B payment SaaS"
-```
-
-Or from the terminal directly:
-
-```bash
-clad init "B2B payment SaaS"
+[inside your AI tool] /cladding:init "B2B payment SaaS"
 ```
 
 This creates `spec.yaml` and the 4-tier docs. One-time per project.
 
 ### Three init scenarios
 
-`clad init` takes a natural-language intent and picks the right path on its own. Same command, three starting points.
+`/cladding:init` takes a natural-language intent and picks the right path on its own. Same command, three starting points.
 
-| Starting point | Command (npm path) | What happens |
+| Starting point | Command | What happens |
 |---|---|---|
-| **An idea, nothing else** | `clad init "I want to build a B2B payment SaaS"` | LLM infers the domain → spec · docs · policies generated, with 2–3 follow-up questions printed |
-| **A planning doc** | `clad init docs/plan.md` | cladding detects the file path, loads its contents, and uses them as the intent (absolute and relative paths both work) |
-| **Adopting into an existing project** | `clad init "apply cladding to this project"` | scans the existing code (≥3 source files trigger it) → observed patterns are merged with the intent |
-
-> In a marketplace install (Claude Code · Codex CLI · Gemini CLI) the format is `/cladding init "..."` — works the same with free text *and* with paths like `/cladding init docs/plan.md`.
+| **An idea, nothing else** | `/cladding:init "I want to build a B2B payment SaaS"` | LLM infers the domain → spec · docs · policies generated, with 2–3 follow-up questions printed |
+| **A planning doc** | `/cladding:init docs/plan.md` | cladding detects the file path, loads its contents, and uses them as the intent (absolute and relative paths both work) |
+| **Adopting into an existing project** | `/cladding:init "apply cladding to this project"` | scans the existing code (≥3 source files trigger it) → observed patterns are merged with the intent |
 
 ### Init once, then carry on
 

@@ -251,28 +251,20 @@ clad setup                  # AI 도구 자동 연결 (Claude / Codex / Gemini)
 프로젝트 디렉토리에서, AI 도구 안에서 한 번 호출:
 
 ```
-[AI 도구 안] /cladding init "B2B 결제 SaaS"
-```
-
-또는 터미널 직접:
-
-```bash
-clad init "B2B 결제 SaaS"
+[AI 도구 안] /cladding:init "B2B 결제 SaaS"
 ```
 
 `spec.yaml` + 4-tier 문서가 자동 생성됩니다. 프로젝트당 한 번.
 
 ### 세 가지 init 시나리오
 
-`clad init` 은 자연어 intent 를 받아 *상황에 맞는 path* 를 자동 선택한다. 같은 명령, 세 가지 시작점.
+`/cladding:init` 은 자연어 intent 를 받아 *상황에 맞는 path* 를 자동 선택한다. 같은 명령, 세 가지 시작점.
 
-| 시작 상황 | 명령 (npm 기준) | 무엇이 일어나는가 |
+| 시작 상황 | 명령 | 무엇이 일어나는가 |
 |---|---|---|
-| **아이디어만 있을 때** | `clad init "B2B 결제 SaaS 만들거야"` | LLM 이 도메인 분석 → spec · 문서 · 정책 자동 생성 + 2–3 가지 후속 질문 출력 |
-| **기획 문서가 있을 때** | `clad init docs/plan.md` | cladding 이 파일 경로를 인식 → 내용을 자동 로드해서 intent 로 사용 (절대/상대 경로 모두 지원) |
-| **기존 프로젝트 도입** | `clad init "이 프로젝트에 cladding 적용해줘"` | 기존 코드 자동 스캔 (≥3 source files) → 관찰한 패턴 + intent 결합 |
-
-> 마켓플레이스 (Claude Code · Codex CLI · Gemini CLI) 에서는 `/cladding init "..."` 형식으로 동일하게 사용 — 자유 텍스트도, `/cladding init docs/plan.md` 같은 경로도 같게 받는다.
+| **아이디어만 있을 때** | `/cladding:init "B2B 결제 SaaS 만들거야"` | LLM 이 도메인 분석 → spec · 문서 · 정책 자동 생성 + 2–3 가지 후속 질문 출력 |
+| **기획 문서가 있을 때** | `/cladding:init docs/plan.md` | cladding 이 파일 경로를 인식 → 내용을 자동 로드해서 intent 로 사용 (절대/상대 경로 모두 지원) |
+| **기존 프로젝트 도입** | `/cladding:init "이 프로젝트에 cladding 적용해줘"` | 기존 코드 자동 스캔 (≥3 source files) → 관찰한 패턴 + intent 결합 |
 
 ### init 한 번이면 끝
 

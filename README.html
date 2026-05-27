@@ -460,24 +460,21 @@ clad setup                  # connect your AI tools (Claude / Codex / Gemini)</c
 
   <h3 id="step-2--init-create-the-project-spec">Step 2 — Init (create the project spec)</h3>
   <p>Inside your project, run it once from your AI tool:</p>
-  <pre><code>[inside your AI tool] /cladding init "B2B payment SaaS"</code></pre>
-  <p>Or from the terminal directly:</p>
-  <pre><code>clad init "B2B payment SaaS"</code></pre>
+  <pre><code>[inside your AI tool] /cladding:init "B2B payment SaaS"</code></pre>
   <p>This creates <code>spec.yaml</code> and the 4-tier docs. One-time per project.</p>
 
   <h3>Three init scenarios</h3>
-  <p><code>clad init</code> takes a natural-language intent and picks the right path on its own. Same command, three starting points.</p>
+  <p><code>/cladding:init</code> takes a natural-language intent and picks the right path on its own. Same command, three starting points.</p>
   <table>
     <thead>
-      <tr><th>Starting point</th><th>Command (npm path)</th><th>What happens</th></tr>
+      <tr><th>Starting point</th><th>Command</th><th>What happens</th></tr>
     </thead>
     <tbody>
-      <tr><td><strong>An idea, nothing else</strong></td><td><code>clad init "I want to build a B2B payment SaaS"</code></td><td>LLM infers the domain → spec · docs · policies generated, with 2–3 follow-up questions printed</td></tr>
-      <tr><td><strong>A planning doc</strong></td><td><code>clad init docs/plan.md</code></td><td>cladding detects the file path, loads its contents, and uses them as the intent (absolute and relative paths both work)</td></tr>
-      <tr><td><strong>Adopting into an existing project</strong></td><td><code>clad init "apply cladding to this project"</code></td><td>scans the existing code (≥3 source files trigger it) → observed patterns are merged with the intent</td></tr>
+      <tr><td><strong>An idea, nothing else</strong></td><td><code>/cladding:init "I want to build a B2B payment SaaS"</code></td><td>LLM infers the domain → spec · docs · policies generated, with 2–3 follow-up questions printed</td></tr>
+      <tr><td><strong>A planning doc</strong></td><td><code>/cladding:init docs/plan.md</code></td><td>cladding detects the file path, loads its contents, and uses them as the intent (absolute and relative paths both work)</td></tr>
+      <tr><td><strong>Adopting into an existing project</strong></td><td><code>/cladding:init "apply cladding to this project"</code></td><td>scans the existing code (≥3 source files trigger it) → observed patterns are merged with the intent</td></tr>
     </tbody>
   </table>
-  <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:16px 0;background:#f8fafc;color:#475569;font-size:14px">In a marketplace install (Claude Code · Codex CLI · Gemini CLI) the format is <code>/cladding init "..."</code> — works the same with free text <em>and</em> with paths like <code>/cladding init docs/plan.md</code>.</blockquote>
 
   <h3>Init once, then carry on</h3>
   <p>cladding's goal is to <em>be the infrastructure that prevents spec ↔ code drift</em> — after init, you just keep coding. The AI references the spec while it writes, and <code>clad check</code> runs automatically in CI or as a pre-commit hook to block anything that drifts. No extra commands to remember.</p>

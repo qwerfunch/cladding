@@ -460,24 +460,21 @@ clad setup                  # AI 도구 자동 연결 (Claude / Codex / Gemini)<
 
   <h3 id="step-2--init-프로젝트-spec-생성">2단계 — Init (프로젝트 spec 생성)</h3>
   <p>프로젝트 디렉토리에서, AI 도구 안에서 한 번 호출:</p>
-  <pre><code>[AI 도구 안] /cladding init "B2B 결제 SaaS"</code></pre>
-  <p>또는 터미널 직접:</p>
-  <pre><code>clad init "B2B 결제 SaaS"</code></pre>
+  <pre><code>[AI 도구 안] /cladding:init "B2B 결제 SaaS"</code></pre>
   <p><code>spec.yaml</code> + 4-tier 문서가 자동 생성됩니다. 프로젝트당 한 번.</p>
 
   <h3>세 가지 init 시나리오</h3>
-  <p><code>clad init</code> 은 자연어 intent 를 받아 <em>상황에 맞는 path</em> 를 자동 선택한다. 같은 명령, 세 가지 시작점.</p>
+  <p><code>/cladding:init</code> 은 자연어 intent 를 받아 <em>상황에 맞는 path</em> 를 자동 선택한다. 같은 명령, 세 가지 시작점.</p>
   <table>
     <thead>
-      <tr><th>시작 상황</th><th>명령 (npm 기준)</th><th>무엇이 일어나는가</th></tr>
+      <tr><th>시작 상황</th><th>명령</th><th>무엇이 일어나는가</th></tr>
     </thead>
     <tbody>
-      <tr><td><strong>아이디어만 있을 때</strong></td><td><code>clad init "B2B 결제 SaaS 만들거야"</code></td><td>LLM 이 도메인 분석 → spec · 문서 · 정책 자동 생성 + 2–3 가지 후속 질문 출력</td></tr>
-      <tr><td><strong>기획 문서가 있을 때</strong></td><td><code>clad init docs/plan.md</code></td><td>cladding 이 파일 경로를 인식 → 내용을 자동 로드해서 intent 로 사용 (절대/상대 경로 모두 지원)</td></tr>
-      <tr><td><strong>기존 프로젝트 도입</strong></td><td><code>clad init "이 프로젝트에 cladding 적용해줘"</code></td><td>기존 코드 자동 스캔 (≥3 source files) → 관찰한 패턴 + intent 결합</td></tr>
+      <tr><td><strong>아이디어만 있을 때</strong></td><td><code>/cladding:init "B2B 결제 SaaS 만들거야"</code></td><td>LLM 이 도메인 분석 → spec · 문서 · 정책 자동 생성 + 2–3 가지 후속 질문 출력</td></tr>
+      <tr><td><strong>기획 문서가 있을 때</strong></td><td><code>/cladding:init docs/plan.md</code></td><td>cladding 이 파일 경로를 인식 → 내용을 자동 로드해서 intent 로 사용 (절대/상대 경로 모두 지원)</td></tr>
+      <tr><td><strong>기존 프로젝트 도입</strong></td><td><code>/cladding:init "이 프로젝트에 cladding 적용해줘"</code></td><td>기존 코드 자동 스캔 (≥3 source files) → 관찰한 패턴 + intent 결합</td></tr>
     </tbody>
   </table>
-  <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:16px 0;background:#f8fafc;color:#475569;font-size:14px">마켓플레이스 (Claude Code · Codex CLI · Gemini CLI) 에서는 <code>/cladding init "..."</code> 형식으로 동일하게 사용 — 자유 텍스트도, <code>/cladding init docs/plan.md</code> 같은 경로도 같게 받는다.</blockquote>
 
   <h3>init 한 번이면 끝</h3>
   <p>cladding 의 목표는 <em>spec ↔ 코드 어긋남을 막는 인프라가 되는 것</em> — init 이후로는 평소처럼 개발하면 된다. AI 도구가 spec 을 참조하며 코드를 짜고, <code>clad check</code> 가 CI · pre-commit hook 에서 자동으로 돌아 어긋남이 있으면 차단한다. 추가 수동 명령 불필요.</p>
