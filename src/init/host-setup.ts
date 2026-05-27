@@ -32,6 +32,7 @@ import {
 } from 'node:fs';
 import {homedir, platform} from 'node:os';
 import {dirname, join, resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
 
 export type ChannelResult =
   | 'created'
@@ -118,8 +119,18 @@ function isSymlink(linkPath: string): boolean {
   }
 }
 
+/** Like existsSync but also returns true for dangling symlinks (existsSync follows targets). */
+function pathExists(linkPath: string): boolean {
+  try {
+    lstatSync(linkPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function wireChannel(target: string, link: string, opts: {force: boolean; isWin: boolean}): ChannelResult {
-  if (existsSync(link)) {
+  if (pathExists(link)) {
     if (isSymlink(link)) {
       const existing = resolveSymlink(link);
       if (existing === target) return 'unchanged';
@@ -412,12 +423,28 @@ export async function runHostSetup(opts: SetupOptions = {}): Promise<SetupResult
 }
 
 function resolveDefaultPkgRoot(): string {
-  // Resolves the cladding package root from this file's location:
-  // src/init/host-setup.ts → cladding root is two levels up.
-  // After build, dist/init/host-setup.js → also two levels up.
-  // Use require.resolve fallback for safety.
+  // Resolves the cladding package root from this file's location.
+  // ESM build outputs a single bundled dist/clad.js (see scripts/build.mjs),
+  // so we walk up from that file's location until we find a package.json
+  // whose name is "cladding". This is robust to bundlers, symlinks, and any
+  // future restructuring of the dist/ output.
   try {
-    return resolve(__dirname, '..', '..');
+    const here = fileURLToPath(import.meta.url);
+    let cur = dirname(here);
+    for (let depth = 0; depth < 6; depth++) {
+      const pkgPath = join(cur, 'package.json');
+      try {
+        const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as {name?: string};
+        if (pkg.name === 'cladding') return cur;
+      } catch {
+        // fallthrough
+      }
+      const parent = dirname(cur);
+      if (parent === cur) break;
+      cur = parent;
+    }
+    // Fallback: assume two levels up from this file (src/init/x.ts pattern).
+    return resolve(dirname(here), '..', '..');
   } catch {
     return process.cwd();
   }
