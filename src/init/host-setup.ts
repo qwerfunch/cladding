@@ -55,6 +55,7 @@ export interface SetupResult {
     readonly gemini_extension: ChannelResult;
     readonly codex_skills: ReadonlyArray<CodexSkillResult>;
     readonly codex_mcp: ChannelResult;
+    readonly cursor_mcp: ChannelResult;
   };
   readonly errors: ReadonlyArray<{step: string; message: string}>;
   readonly statusFile: string;
@@ -76,6 +77,7 @@ interface HostDetection {
   readonly gemini: boolean;
   readonly codex: boolean;
   readonly agents: boolean;
+  readonly cursor: boolean;
 }
 
 interface SetupStatus {
@@ -94,6 +96,7 @@ function detectHosts(home: string): HostDetection {
     gemini: existsSync(join(home, '.gemini')),
     codex: existsSync(join(home, '.codex')),
     agents: existsSync(join(home, '.agents')),
+    cursor: existsSync(join(home, '.cursor')),
   };
 }
 
@@ -204,6 +207,36 @@ function wireCodexSkills(
   return out;
 }
 
+function wireCursorMcp(home: string): ChannelResult {
+  try {
+    const cursorConfigPath = join(home, '.cursor', 'mcp.json');
+    ensureDir(dirname(cursorConfigPath));
+    const existing = existsSync(cursorConfigPath)
+      ? (JSON.parse(readFileSync(cursorConfigPath, 'utf8')) as Record<string, unknown>)
+      : {};
+    if (!existing.mcpServers || typeof existing.mcpServers !== 'object') {
+      existing.mcpServers = {};
+    }
+    const mcpServers = existing.mcpServers as Record<string, unknown>;
+    const ourEntry = {
+      command: 'clad',
+      args: ['serve'],
+    };
+    const current = mcpServers.cladding as {command?: string; args?: unknown} | undefined;
+    const isSame =
+      current &&
+      current.command === ourEntry.command &&
+      JSON.stringify(current.args) === JSON.stringify(ourEntry.args);
+    if (isSame) return 'unchanged';
+    const hadCurrent = current != null;
+    mcpServers.cladding = ourEntry;
+    writeFileSync(cursorConfigPath, JSON.stringify(existing, null, 2));
+    return hadCurrent ? 'rewired' : 'created';
+  } catch {
+    return 'failed';
+  }
+}
+
 async function wireCodexMcp(home: string): Promise<ChannelResult> {
   try {
     const codexConfigPath = join(home, '.codex', 'config.toml');
@@ -283,21 +316,24 @@ function formatChannelLine(name: string, result: ChannelResult, target?: string)
 
 const WIRED_STATES: ReadonlySet<ChannelResult> = new Set(['created', 'rewired', 'unchanged', 'copied']);
 
-function pushActivationHint(lines: string[], channel: 'claude' | 'gemini' | 'codex-skills' | 'codex-mcp', wired: boolean): void {
+function pushActivationHint(lines: string[], channel: 'claude' | 'gemini' | 'codex-skills' | 'codex-mcp' | 'cursor', wired: boolean): void {
   if (!wired) return;
   switch (channel) {
     case 'claude':
-      lines.push('     ↳ 활성화 (필수): `claude plugin add ~/.claude/plugins/cladding`');
-      lines.push('       또는 Claude Code 안: `/plugin marketplace add file://~/.claude/plugins/cladding`');
+      lines.push('     ↳ 활성화 (필수): `claude plugin marketplace add ~/.claude/plugins/cladding`');
+      lines.push('       후 `claude plugin install claude-code@cladding --scope user`');
       break;
     case 'gemini':
-      lines.push('     ↳ 활성화: Gemini CLI 의 plugin 등록 명령 (host docs 참조)');
+      lines.push('     ↳ 활성화: `gemini extensions link ~/.gemini/extensions/cladding`');
       break;
     case 'codex-skills':
-      lines.push('     ↳ Codex CLI 가 ~/.agents/skills/ 자동 인식 (별도 활성화 불필요)');
+      lines.push('     ↳ Codex CLI 가 ~/.agents/skills/ 자동 인식 (재시작 시 적용)');
       break;
     case 'codex-mcp':
       lines.push('     ↳ TOML entry 자체가 등록 — 별도 활성화 불필요');
+      break;
+    case 'cursor':
+      lines.push('     ↳ ~/.cursor/mcp.json 자체가 등록 — Cursor 재시작 시 적용');
       break;
   }
 }
@@ -331,13 +367,17 @@ function printReport(result: SetupResult, detection: HostDetection, opts: {quiet
   lines.push(formatChannelLine('Codex MCP', codexMcpState));
   pushActivationHint(lines, 'codex-mcp', WIRED_STATES.has(codexMcpState));
 
+  const cursorState = detection.cursor ? result.wiring.cursor_mcp : 'skipped-not-installed';
+  lines.push(formatChannelLine('Cursor', cursorState));
+  pushActivationHint(lines, 'cursor', WIRED_STATES.has(cursorState));
+
   lines.push('');
   const wiredCount = countWired(result.wiring, detection);
   const detectedCount = countDetected(detection);
   if (wiredCount === detectedCount && detectedCount > 0) {
     lines.push(`${wiredCount}/${detectedCount} detected channels wired. Status: ${result.statusFile}`);
   } else if (detectedCount === 0) {
-    lines.push('AI 도구가 감지되지 않았습니다. Claude Code / Codex CLI / Gemini CLI 중 하나라도 설치 후 다시 실행하세요.');
+    lines.push('AI 도구가 감지되지 않았습니다. Claude Code / Codex / Gemini CLI / Cursor 중 하나라도 설치 후 다시 실행하세요.');
   } else {
     lines.push(`${wiredCount}/${detectedCount} detected channels wired (some skipped/failed). Status: ${result.statusFile}`);
   }
@@ -375,7 +415,8 @@ function countDetected(detection: HostDetection): number {
     (detection.claude ? 1 : 0) +
     (detection.gemini ? 1 : 0) +
     (detection.agents ? 1 : 0) +
-    (detection.codex ? 1 : 0)
+    (detection.codex ? 1 : 0) +
+    (detection.cursor ? 1 : 0)
   );
 }
 
@@ -386,6 +427,7 @@ function countWired(wiring: SetupResult['wiring'], detection: HostDetection): nu
   if (detection.gemini && wiredStates.has(wiring.gemini_extension)) n++;
   if (detection.agents && wiring.codex_skills.some((s) => wiredStates.has(s.result))) n++;
   if (detection.codex && wiredStates.has(wiring.codex_mcp)) n++;
+  if (detection.cursor && wiredStates.has(wiring.cursor_mcp)) n++;
   return n;
 }
 
@@ -412,8 +454,11 @@ export async function runHostSetup(opts: SetupOptions = {}): Promise<SetupResult
   const codex_mcp: ChannelResult = detection.codex
     ? await wireCodexMcp(home)
     : 'skipped-not-installed';
+  const cursor_mcp: ChannelResult = detection.cursor
+    ? wireCursorMcp(home)
+    : 'skipped-not-installed';
 
-  for (const state of [claude_plugin, gemini_extension, codex_mcp]) {
+  for (const state of [claude_plugin, gemini_extension, codex_mcp, cursor_mcp]) {
     if (state === 'failed') errors.push({step: state, message: 'wire failed'});
   }
   for (const s of codex_skills) {
@@ -421,7 +466,7 @@ export async function runHostSetup(opts: SetupOptions = {}): Promise<SetupResult
   }
 
   const result: SetupResult = {
-    wiring: {claude_plugin, gemini_extension, codex_skills, codex_mcp},
+    wiring: {claude_plugin, gemini_extension, codex_skills, codex_mcp, cursor_mcp},
     errors,
     statusFile,
     cladding_root: pkgRoot,
