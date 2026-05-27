@@ -222,8 +222,8 @@ cladding 의 차별점은 *결합* — 위 네 카테고리의 핵심을 *하나
 
 ```bash
 npm install -g cladding   # cladding CLI 설치
+clad setup                  # AI 도구 자동 연결 (machine-wide; Claude / Codex / Gemini)
 cd <project>                # 프로젝트로 이동
-clad setup                  # AI 도구 (Claude / Codex / Gemini) 자동 연결
 ```
 
 **(b) 마켓플레이스** — AI 도구 plugin 사용자
