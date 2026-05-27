@@ -55,7 +55,7 @@ acceptance_criteria:
     evidence_refs: [scripts/build-plugin.mjs]
   - id: AC-227
     ears: ubiquitous
-    action: keep the legacy commands/clad.md surface for backward compatibility
-    response: commands/clad.md remains in the plugin root; users running an older Claude Code version that prefers commands/<name>.md over skills/<name>/SKILL.md still get a working /cladding:clad <verb> wrapper
-    text: The system shall keep the legacy commands/clad.md surface so users on an older Claude Code release still have a working `/cladding:clad <verb>` slash command; the modern skills/ surface (v0.3.1+) coexists rather than replaces.
-    evidence_refs: [commands/clad.md]
+    action: expose `init` as the only user-facing slash command per host plugin (Claude Code / Gemini CLI)
+    response: plugins/claude-code/commands/init.md and plugins/gemini-cli/commands/init.toml are the only files in their respective commands directories; the legacy commands/clad.md wrapper is removed because v0.4.0 standardised on `/cladding:init` and other verbs (check, sync, panel, etc.) are invoked by the AI via natural language → `clad <verb>` CLI
+    text: The system shall expose `init` as the only user-facing slash command per host plugin (Claude Code, Gemini CLI), removing the legacy commands/clad.md wrapper and per-verb .toml files, because cladding is infrastructure (drift is auto-detected, gate runs in CI) and the user only invokes `init` directly at project start.
+    evidence_refs: [plugins/claude-code/commands/init.md, plugins/gemini-cli/commands/init.toml]

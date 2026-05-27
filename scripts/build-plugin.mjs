@@ -25,7 +25,7 @@
 //
 // Run: `npm run build:plugin` or as part of `npm run build`.
 
-import {copyFileSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync} from 'node:fs';
+import {copyFileSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 
 import {parse as parseYaml} from 'yaml';
@@ -64,6 +64,29 @@ writeFileSync(
     'Edit the source under `src/agents/<id>.md`, then re-run the build.\n',
 );
 console.log(`cladding plugin · claude-code: copied ${claudeGenerated.length} agents → ${CLAUDE_AGENTS}/`);
+
+// v0.4.0 (F-80d19d): Claude Code commands = `init` only (user-facing slash).
+// Other verbs are invoked by the AI via natural language → `clad <verb>` CLI;
+// keeping them out of the slash auto-complete keeps the namespace clean.
+const CLAUDE_COMMANDS = `${CLAUDE_PLUGIN_DIR}/commands`;
+mkdirSync(CLAUDE_COMMANDS, {recursive: true});
+const initSkill = join(SRC_SKILLS, 'init', 'SKILL.md');
+try {
+  statSync(initSkill);
+  copyFileSync(initSkill, join(CLAUDE_COMMANDS, 'init.md'));
+  // Sweep stale per-verb commands from earlier builds (verb.md files and the
+  // legacy clad.md wrapper).
+  for (const file of readdirSync(CLAUDE_COMMANDS)) {
+    if (file === 'init.md') continue;
+    if (!file.endsWith('.md')) continue;
+    rmSync(join(CLAUDE_COMMANDS, file));
+  }
+  console.log(`cladding plugin · claude-code: generated init slash command → ${CLAUDE_COMMANDS}/init.md`);
+} catch {
+  // skills/init/SKILL.md missing — leave the commands dir untouched and log
+  // a warning so the build still completes for partial source trees.
+  console.warn(`cladding plugin · claude-code: ${initSkill} not found — slash command skipped`);
+}
 
 // --- Phase B — Codex mirror (plugins/codex/skills/) -------------------
 
@@ -187,9 +210,16 @@ function renderToml(description, body) {
   return `${desc}\nprompt = """\n${escaped}\n"""\n`;
 }
 
+// v0.4.0 (F-80d19d): slash command 노출 = `init` 만. 다른 verb 는 AI 가
+// 자연어로 인식해 `clad <verb>` CLI 를 직접 호출하므로 사용자가 slash
+// auto-complete 에서 직접 볼 필요 없음. Codex skills 는 AI 자동 invoke
+// 라 12 verb 유지 (Phase B 그대로).
+const USER_FACING_VERBS = new Set(['init']);
+
 let geminiVerbCount = 0;
 const geminiWarnings = [];
 for (const verb of readdirSync(SRC_SKILLS)) {
+  if (!USER_FACING_VERBS.has(verb)) continue;
   const srcDir = join(SRC_SKILLS, verb);
   if (!statSync(srcDir).isDirectory()) continue;
   const srcFile = join(srcDir, 'SKILL.md');
@@ -213,6 +243,15 @@ for (const verb of readdirSync(SRC_SKILLS)) {
   const toml = renderToml(description, body);
   writeFileSync(join(GEMINI_COMMANDS, `${verb}.toml`), toml);
   geminiVerbCount++;
+}
+
+// Clean up any stale verb .toml files from earlier builds (when all 12 verbs
+// were emitted). Only the verbs in USER_FACING_VERBS should remain.
+for (const file of readdirSync(GEMINI_COMMANDS)) {
+  if (!file.endsWith('.toml')) continue;
+  const verb = file.replace(/\.toml$/, '');
+  if (USER_FACING_VERBS.has(verb)) continue;
+  rmSync(join(GEMINI_COMMANDS, file));
 }
 
 // AUTO-GENERATED sentinel — same pattern the Claude Code mirror uses.
