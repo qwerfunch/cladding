@@ -212,18 +212,28 @@ cladding 의 차별점은 *결합* — 위 네 카테고리의 핵심을 *하나
 
 ## Install
 
-cladding 시작 = 2 단계 가이드. **인프라 설치 → spec 셋업** 순서.
+두 단계 — 인프라 설치 → 프로젝트 spec 생성.
 
-> **마켓플레이스 (Claude Code · Codex · Gemini CLI plugin) 부터 시작하시나요?** 1단계는 건너뜁니다 — plugin 매니페스트가 host wire 자동 처리. 바로 [2단계](#2단계--init-프로젝트-spec-셋업) 로.
+### 1단계 — 인프라 설치
 
-### 1단계 — 인프라 설치 (npm 경로)
+작업 방식에 맞는 경로 선택 (어느 쪽이든 결과 동일):
+
+**(a) npm** — 터미널 / CI 사용자
 
 ```bash
-npm install -g cladding   # binary 만, $HOME 영향 0
-clad setup                  # 감지된 AI 도구의 host channel wire
+npm install -g cladding   # cladding CLI 설치
+cd <project>                # 프로젝트로 이동
+clad setup                  # AI 도구 (Claude / Codex / Gemini) 자동 연결
 ```
 
-`clad setup` 은 *실제 설치된* host 만 wire — 사용 안 하는 도구는 건너뛴다 (디렉토리 안 만듦):
+**(b) 마켓플레이스** — AI 도구 plugin 사용자
+
+1. AI 도구의 plugin 마켓플레이스 열기 (Claude Code · Codex CLI · Gemini CLI)
+2. **cladding** 검색 → 설치
+3. `clad setup` 불필요 — plugin 매니페스트가 자동 연결
+
+<details>
+<summary><code>clad setup</code> 이 연결하는 위치</summary>
 
 | 호스트 (감지 시) | wire 위치 |
 |---|---|
@@ -232,19 +242,18 @@ clad setup                  # 감지된 AI 도구의 host channel wire
 | Codex CLI MCP 서버 (`~/.codex/`) | `~/.codex/config.toml` 의 `[mcp_servers.cladding]` |
 | Gemini CLI (`~/.gemini/`) | `~/.gemini/extensions/cladding` |
 
-`clad setup` 은 idempotent — 한 명령이 6 시나리오 처리: 최초 wire · 업데이트 · delta wire (새 AI 도구 추가 후) · repair (symlink 삭제됨) · no-op · conflict 감지. cladding 업그레이드 시나 새 AI 도구 설치 후 언제든 재실행 안전.
+cladding 업그레이드 시나 새 AI 도구 설치 후 다시 실행해도 안전합니다.
+</details>
 
-> `npm install -g cladding` 은 **postinstall 훅 없음** — install 은 순수 binary 배치만. host channel wire 는 `clad setup` 명시 호출.
+### 2단계 — Init (프로젝트 spec 생성)
 
-### 2단계 — Init (프로젝트 spec 셋업)
-
-AI 도구 활성 후, 프로젝트 디렉토리에서 한 번 호출:
+프로젝트 디렉토리에서, AI 도구 안에서 한 번 호출:
 
 ```
 [AI 도구 안] /cladding init "B2B 결제 SaaS"
 ```
 
-terminal-only 사용자 (LLM 없이):
+또는 터미널 직접:
 
 ```bash
 clad init "B2B 결제 SaaS"

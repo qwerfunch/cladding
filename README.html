@@ -426,32 +426,43 @@
 
   <!-- ─────────────── Install ─────────────── -->
   <h2>Install</h2>
-  <p>Two sequential steps: <strong>install the infrastructure</strong>, then <strong>init the spec</strong>.</p>
+  <p>Two steps: install the infrastructure, then create the project spec.</p>
 
-  <blockquote style="border-left:4px solid #2563eb;padding:8px 16px;margin:16px 0;background:#eff6ff;color:#1e3a8a;font-size:14px"><strong>Coming in via a marketplace plugin (Claude Code · Codex · Gemini CLI)?</strong> You can skip step 1 — the plugin manifest already wires the host. Jump straight to <a href="#step-2--init-create-the-project-spec">step 2</a>.</blockquote>
+  <h3>Step 1 — Install the infrastructure</h3>
+  <p>Pick the route that fits how you work — both land in the same place:</p>
 
-  <h3>Step 1 — Install the infrastructure (npm path)</h3>
-  <pre><code>npm install -g cladding   # binary only, zero side effects in $HOME
-clad setup                  # wire host channels for detected AI tools</code></pre>
-  <p><code>clad setup</code> only wires hosts that are actually installed on your machine — undetected ones are skipped, no surprise directories get created:</p>
-  <table>
-    <thead><tr><th>Host (when detected)</th><th>Wired location</th></tr></thead>
-    <tbody>
-      <tr><td>Claude Code (<code>~/.claude/</code>)</td><td><code>~/.claude/plugins/cladding</code></td></tr>
-      <tr><td>Codex CLI skills (<code>~/.agents/</code>)</td><td><code>~/.agents/skills/cladding-*</code></td></tr>
-      <tr><td>Codex CLI MCP server (<code>~/.codex/</code>)</td><td><code>[mcp_servers.cladding]</code> in <code>~/.codex/config.toml</code></td></tr>
-      <tr><td>Gemini CLI (<code>~/.gemini/</code>)</td><td><code>~/.gemini/extensions/cladding</code></td></tr>
-    </tbody>
-  </table>
-  <p><code>clad setup</code> is idempotent — one command covers six scenarios: first wire, version update, delta (after you install a new AI tool), repair (after a symlink is deleted), no-op, and conflict detection. Safe to re-run after a cladding upgrade or after installing another AI tool.</p>
-  <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:16px 0;background:#f8fafc;color:#475569;font-size:14px"><code>npm install -g cladding</code> has <strong>no postinstall hook</strong>. Installation is pure binary placement; host wiring is opted into explicitly via <code>clad setup</code>.</blockquote>
+  <p><strong>(a) npm</strong> — for terminal / CI users</p>
+  <pre><code>npm install -g cladding   # install the cladding CLI
+cd &lt;project&gt;                # go to your project
+clad setup                  # connect your AI tools (Claude / Codex / Gemini)</code></pre>
+
+  <p><strong>(b) Marketplace</strong> — for AI-tool plugin users</p>
+  <ol>
+    <li>Open the plugin marketplace inside your AI tool (Claude Code · Codex CLI · Gemini CLI)</li>
+    <li>Search for <strong>cladding</strong> and install it</li>
+    <li>No <code>clad setup</code> needed — the plugin manifest wires everything</li>
+  </ol>
+
+  <details style="margin:16px 0;background:#f8fafc;border-radius:6px;padding:12px 16px">
+    <summary style="cursor:pointer;color:#475569;font-size:14px">Where <code>clad setup</code> connects</summary>
+    <table style="margin-top:12px">
+      <thead><tr><th>Host (when detected)</th><th>Wired location</th></tr></thead>
+      <tbody>
+        <tr><td>Claude Code (<code>~/.claude/</code>)</td><td><code>~/.claude/plugins/cladding</code></td></tr>
+        <tr><td>Codex CLI skills (<code>~/.agents/</code>)</td><td><code>~/.agents/skills/cladding-*</code></td></tr>
+        <tr><td>Codex CLI MCP server (<code>~/.codex/</code>)</td><td><code>[mcp_servers.cladding]</code> in <code>~/.codex/config.toml</code></td></tr>
+        <tr><td>Gemini CLI (<code>~/.gemini/</code>)</td><td><code>~/.gemini/extensions/cladding</code></td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:13px;color:#64748b;margin-top:8px">Safe to re-run after a cladding upgrade or after installing another AI tool.</p>
+  </details>
 
   <h3 id="step-2--init-create-the-project-spec">Step 2 — Init (create the project spec)</h3>
-  <p>Open your AI tool, <code>cd</code> into your project, then run once:</p>
+  <p>Inside your project, run it once from your AI tool:</p>
   <pre><code>[inside your AI tool] /cladding init "B2B payment SaaS"</code></pre>
-  <p>Terminal-only users (no AI tool):</p>
+  <p>Or from the terminal directly:</p>
   <pre><code>clad init "B2B payment SaaS"</code></pre>
-  <p>This creates <code>spec.yaml</code> + the 4-tier docs. Done once per project.</p>
+  <p>This creates <code>spec.yaml</code> and the 4-tier docs. One-time per project.</p>
 
   <h3>Three init scenarios</h3>
   <p><code>clad init</code> takes a natural-language intent and picks the right path on its own. Same command, three starting points.</p>
