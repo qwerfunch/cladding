@@ -13,6 +13,8 @@
 
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {basename, dirname, join, resolve} from 'node:path';
+import {spawnSync} from 'node:child_process';
+import {platform} from 'node:os';
 
 import {
   interpretScanWithFallback,
@@ -271,6 +273,34 @@ function appendIfMissing(gitignorePath: string, marker: string, line: string): b
   const ensureNewline = existing.length > 0 && !existing.endsWith('\n') ? '\n' : '';
   writeFileSync(gitignorePath, `${existing}${ensureNewline}\n# Cladding runtime state\n${line}\n`);
   return true;
+}
+
+/**
+ * F-80d19d (E) — project-scope plugin activation. Best-effort, non-blocking.
+ * Each host's plugin install is attempted only if its CLI binary is on PATH.
+ * Returns human-readable status notes for the `skipped` array in InitResult.
+ */
+async function activateProjectScopePlugins(cwd: string): Promise<string[]> {
+  const notes: string[] = [];
+  const whichCmd = platform() === 'win32' ? 'where' : 'which';
+
+  // Claude Code — project-scope install.
+  if (spawnSync(whichCmd, ['claude'], {stdio: 'ignore'}).status === 0) {
+    const r = spawnSync(
+      'claude',
+      ['plugin', 'install', 'claude-code@cladding', '--scope', 'project'],
+      {cwd, encoding: 'utf8', timeout: 30_000},
+    );
+    if (r.status === 0) {
+      notes.push('Claude Code plugin enabled at project scope (claude plugin install claude-code@cladding --scope project)');
+    } else {
+      const stderr = (r.stderr ?? '').trim();
+      // Common case: already enabled at user scope. Treat any well-formed error as informational.
+      if (stderr) notes.push(`Claude Code project-scope install skipped: ${stderr.split('\n')[0]}`);
+    }
+  }
+
+  return notes;
 }
 
 /**
@@ -582,6 +612,16 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
       `host wire was set up at v${lastSetup} (current binary v${pkgVersion}) — symlinks usually auto-follow, but run \`clad setup\` to be sure`,
     );
   }
+
+  // F-80d19d (E) — project-scope plugin activation. After spec + 4-tier docs
+  // are scaffolded, also enable cladding plugins inside this project so that
+  // Claude Code (and any other detected host) picks up cladding skills /
+  // commands the moment the AI tool reopens the project. This is the
+  // self-dogfood path: cladding repo itself benefits from this when a new
+  // maintainer clones it, and external users get cladding the first time
+  // they cd into their project after `/cladding init`.
+  const projectActivation = await activateProjectScopePlugins(cwd);
+  for (const note of projectActivation) skipped.push(note);
 
   return {
     created,
