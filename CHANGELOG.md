@@ -45,6 +45,17 @@ Behavioral change for npm-path users (one extra `clad setup` command between ins
 - **Fresh install** — `npm install -g cladding && clad setup && clad init "..."`.
 - **Marketplace** — unchanged. `/cladding init "..."` works as before.
 
+### Behavior note — plugin activation is a separate step
+
+`clad setup` creates host symlinks (`~/.claude/plugins/cladding`, `~/.gemini/extensions/cladding`) and TOML entries (`~/.codex/config.toml [mcp_servers.cladding]`) but it does **not** activate plugins inside Claude Code / Gemini CLI by itself. Those hosts require explicit registration:
+
+- **Claude Code** — `claude plugin add ~/.claude/plugins/cladding` (terminal) or `/plugin marketplace add file://~/.claude/plugins/cladding` (inside Claude Code)
+- **Gemini CLI** — host-specific plugin registration command (see Gemini CLI docs)
+- **Codex CLI skills** — auto-detected from `~/.agents/skills/` (no extra step)
+- **Codex MCP** — the TOML entry itself is the registration (no extra step)
+
+`clad setup` ships clear per-channel `↳ 활성화` (activation) hints in its stdout output so users see the exact command they need. v0.4.1 will automate the registration call when the host CLI binary is detected on PATH.
+
 ---
 
 ## [0.3.60] — 2026-05-22 — `clad init` host wiring + lazy enrichment marker (F-90d054)

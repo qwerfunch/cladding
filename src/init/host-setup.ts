@@ -281,23 +281,41 @@ function formatChannelLine(name: string, result: ChannelResult, target?: string)
   return `  ${icon} ${name.padEnd(28)} → ${label}${target ? ` (${target})` : ''}`;
 }
 
+const WIRED_STATES: ReadonlySet<ChannelResult> = new Set(['created', 'rewired', 'unchanged', 'copied']);
+
+function pushActivationHint(lines: string[], channel: 'claude' | 'gemini' | 'codex-skills' | 'codex-mcp', wired: boolean): void {
+  if (!wired) return;
+  switch (channel) {
+    case 'claude':
+      lines.push('     ↳ 활성화 (필수): `claude plugin add ~/.claude/plugins/cladding`');
+      lines.push('       또는 Claude Code 안: `/plugin marketplace add file://~/.claude/plugins/cladding`');
+      break;
+    case 'gemini':
+      lines.push('     ↳ 활성화: Gemini CLI 의 plugin 등록 명령 (host docs 참조)');
+      break;
+    case 'codex-skills':
+      lines.push('     ↳ Codex CLI 가 ~/.agents/skills/ 자동 인식 (별도 활성화 불필요)');
+      break;
+    case 'codex-mcp':
+      lines.push('     ↳ TOML entry 자체가 등록 — 별도 활성화 불필요');
+      break;
+  }
+}
+
 function printReport(result: SetupResult, detection: HostDetection, opts: {quiet?: boolean}): void {
   if (opts.quiet) return;
   const lines: string[] = [];
   lines.push('cladding setup — wiring detected AI tools');
   lines.push('');
-  lines.push(
-    formatChannelLine(
-      'Claude Code',
-      detection.claude ? result.wiring.claude_plugin : 'skipped-not-installed',
-    ),
-  );
-  lines.push(
-    formatChannelLine(
-      'Gemini CLI',
-      detection.gemini ? result.wiring.gemini_extension : 'skipped-not-installed',
-    ),
-  );
+
+  const claudeState = detection.claude ? result.wiring.claude_plugin : 'skipped-not-installed';
+  lines.push(formatChannelLine('Claude Code', claudeState));
+  pushActivationHint(lines, 'claude', WIRED_STATES.has(claudeState));
+
+  const geminiState = detection.gemini ? result.wiring.gemini_extension : 'skipped-not-installed';
+  lines.push(formatChannelLine('Gemini CLI', geminiState));
+  pushActivationHint(lines, 'gemini', WIRED_STATES.has(geminiState));
+
   const skillsSummary = detection.agents
     ? summarizeSkills(result.wiring.codex_skills)
     : 'skipped-not-installed';
@@ -306,12 +324,13 @@ function printReport(result: SetupResult, detection: HostDetection, opts: {quiet
       ? `  ✓ ${'Codex skills'.padEnd(28)} → ${skillsSummary}`
       : formatChannelLine('Codex skills', 'skipped-not-installed'),
   );
-  lines.push(
-    formatChannelLine(
-      'Codex MCP',
-      detection.codex ? result.wiring.codex_mcp : 'skipped-not-installed',
-    ),
-  );
+  const skillsWired = detection.agents && result.wiring.codex_skills.some((s) => WIRED_STATES.has(s.result));
+  pushActivationHint(lines, 'codex-skills', skillsWired);
+
+  const codexMcpState = detection.codex ? result.wiring.codex_mcp : 'skipped-not-installed';
+  lines.push(formatChannelLine('Codex MCP', codexMcpState));
+  pushActivationHint(lines, 'codex-mcp', WIRED_STATES.has(codexMcpState));
+
   lines.push('');
   const wiredCount = countWired(result.wiring, detection);
   const detectedCount = countDetected(detection);
@@ -328,8 +347,8 @@ function printReport(result: SetupResult, detection: HostDetection, opts: {quiet
   }
   lines.push('');
   lines.push('다음 단계:');
-  lines.push('  1. AI 도구 (Claude Code / Codex / Gemini) 를 켭니다');
-  lines.push('  2. 프로젝트 디렉토리로 이동');
+  lines.push('  1. Claude Code / Gemini CLI 에서 plugin 활성화 (위 ↳ 안내 참조)');
+  lines.push('  2. AI 도구 켜고 프로젝트 디렉토리로 이동');
   lines.push('  3. /cladding init "..." 입력 (LLM 안에서)');
   lines.push('  4. 개발 시작 — cladding 이 매 commit 마다 spec ↔ 코드 동기 자동 검사');
   process.stdout.write(lines.join('\n') + '\n');
