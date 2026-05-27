@@ -16,7 +16,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-954%2F954-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-973%2F973-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/coverage-93.89%25%2B-brightgreen" alt="coverage"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -278,7 +278,7 @@ cladding 의 목표는 *spec ↔ 코드 어긋남을 막는 인프라가 되는 
 <tr style="border:none">
 <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
 <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">version</div>
-<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">v0.3.60</div>
+<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">v0.4.0</div>
 <div style="font-size:11px;color:#64748b">2026-05</div>
 </td>
 <td style="text-align:center;width:140px;background:#dcfce7;padding:18px 10px;border-radius:8px;border:none">
@@ -288,7 +288,7 @@ cladding 의 목표는 *spec ↔ 코드 어긋남을 막는 인프라가 되는 
 </td>
 <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
 <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">tests</div>
-<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">954<span style="font-size:16px;color:#94a3b8">/954</span></div>
+<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">973<span style="font-size:16px;color:#94a3b8">/973</span></div>
 <div style="font-size:11px;color:#64748b">all pass</div>
 </td>
 <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
@@ -298,13 +298,13 @@ cladding 의 목표는 *spec ↔ 코드 어긋남을 막는 인프라가 되는 
 </td>
 <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
 <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">features</div>
-<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">135</div>
+<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">136</div>
 <div style="font-size:11px;color:#64748b">spec 정의</div>
 </td>
 </tr>
 </table>
 
-<sub>101 test files · Claude Code · OpenAI Codex · Gemini CLI 마켓플레이스 설치 가능.</sub>
+<sub>100 test files · Claude Code · OpenAI Codex · Gemini CLI 마켓플레이스 설치 가능.</sub>
 
 > **Ironclad 1.0 까지의 길** — 1.0 은 *독립적인 두 개의 구현이 L4 검증 셋을 통과해야* 잠긴다 ([GOVERNANCE § 1](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md)). cladding 이 첫 번째.
 
