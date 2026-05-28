@@ -43,6 +43,18 @@
 <tr><td colspan="2" align="center"><sub>Same spec · same model · <a href="docs/benchmarks/event-store-trap-catch.md">event-sourcing store benchmark</a></sub></td></tr>
 </table>
 
+<!-- ─────────────── Quick start ─────────────── -->
+## Quick start
+
+```bash
+npm install -g cladding   # global CLI
+clad setup                # global wiring — Claude / Codex / Gemini / Cursor
+# then inside your project, from your AI tool:
+/cladding:init "your project intent"
+```
+
+[Full install options, marketplace route, and host channel table ↓](#install)
+
 ## Why
 
 <table>
@@ -225,9 +237,9 @@ Pick the route that fits how you work — both land in the same place:
 **(a) npm** — for terminal / CI users
 
 ```bash
-npm install -g cladding   # install the cladding CLI
-cd <project>                # go to your project
-clad setup                  # connect your AI tools (Claude / Codex / Gemini)
+npm install -g cladding   # install the cladding CLI (global)
+clad setup                # connect your AI tools (global — Claude / Codex / Gemini / Cursor)
+cd <project>              # for the next step (clad setup itself is project-agnostic)
 ```
 
 **(b) Marketplace** — for AI-tool plugin users
