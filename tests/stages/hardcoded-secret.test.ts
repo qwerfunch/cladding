@@ -108,4 +108,23 @@ describe('HARDCODED_SECRET detector', () => {
     const findings = hardcodedSecret.run({cwd: dir});
     expect(findings[0].message).toContain('exit 2');
   });
+
+  test('secretlint exits with "config is not found" → info, not error (unconfigured)', () => {
+    // Dogfood-discovered (2026-05-29): every external user project that
+    // hasn't set up .secretlintrc gets secretlint exit 1 + the config-
+    // not-found message. The detector now recognises that and returns
+    // info ("present but unconfigured"), preserving error severity for
+    // real secret-detection hits.
+    writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
+    execaSyncMock.mockReturnValueOnce({
+      exitCode: 1,
+      stdout: '',
+      stderr:
+        'Error: secretlint config is not found\nSecretlint require .secretlintrc config file.',
+    });
+    const findings = hardcodedSecret.run({cwd: dir});
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe('info');
+    expect(findings[0].message).toContain('present but not configured');
+  });
 });

@@ -61,6 +61,24 @@ function runHardcodedSecret(opts: CommandStageOptions): readonly DriftFinding[] 
   if (exitCode === 0) return [];
   const stderr = (proc.stderr ?? '').toString().trim();
   const stdout = (proc.stdout ?? '').toString().trim();
+  const combined = `${stderr}\n${stdout}`;
+
+  // secretlint exits non-zero with "config is not found" when no
+  // .secretlintrc(.json) sits at the cwd. Treat that as "scanner present
+  // but unconfigured" — same severity as "scanner not installed" (info,
+  // not error). Otherwise every external user project that never set up
+  // secretlint would see a phantom HARDCODED_SECRET error on every
+  // clad check, blocking the drift gate for no real security signal.
+  if (/secretlint .*config (is not found|file is not found)/i.test(combined)) {
+    return [
+      {
+        detector: NAME,
+        severity: 'info',
+        message: `${spec.cmd} present but not configured — add .secretlintrc.json (e.g. {"rules": [{"id": "@secretlint/secretlint-rule-preset-recommend"}]}) to enable scanning`,
+      },
+    ];
+  }
+
   const detail = stderr || stdout || `exit ${exitCode}`;
   return [
     {
