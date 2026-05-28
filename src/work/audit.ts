@@ -25,6 +25,9 @@ const WORK_EVENT_TYPES = new Set([
   'work_timed_out',
 ]);
 
+/** Tier values that natively support sub-agent dispatch. Used by drift detection. */
+const TIERS_WITH_SUB_AGENT_SUPPORT: ReadonlySet<number> = new Set([1, 2]);
+
 export type WorkTransactionStatus = 'open' | 'completed' | 'abandoned' | 'timed_out';
 
 export interface TransactionRecord {
@@ -58,6 +61,28 @@ export interface FileDiffReport {
   readonly unmapped: readonly string[];
 }
 
+/**
+ * 0.4.11 PR-B — dispatch_drift report. Flags work_entered events
+ * where a Tier 1 / Tier 2 host (native sub-agent support) chose
+ * the 'host-self-inject' dispatch mode instead of 'sub-agent'.
+ * Non-blocking — the auditor only surfaces the divergence so the
+ * orchestrator can decide whether to nudge future dispatches back
+ * onto the sub-agent surface.
+ *
+ * Backward-compat work_entered events (pre-0.4.11, no host/tier
+ * fields) are silently omitted from the report — the auditor cannot
+ * fabricate dispatch decisions from absent data.
+ */
+export interface DispatchDriftReport {
+  readonly featureId: string;
+  readonly enteredAt: string;
+  readonly host: string;
+  readonly tier: number;
+  readonly dispatchMode: string;
+  /** Human-readable diagnostic for the orchestrator to surface. */
+  readonly reason: string;
+}
+
 export interface WorkComplianceReport {
   readonly openTransactions: ReadonlyArray<{
     readonly featureId: string;
@@ -68,12 +93,21 @@ export interface WorkComplianceReport {
   readonly orphanWindows: ReadonlyArray<OrphanWindow>;
   /** Present only when `auditOptions.includeFileDiff === true`. */
   readonly fileDiffs?: ReadonlyArray<FileDiffReport>;
+  /**
+   * 0.4.11 PR-B — dispatch divergences detected by inspecting
+   * work_entered events' host/tier/dispatchMode fields. Empty array
+   * when nothing diverged; never undefined so callers can iterate
+   * safely.
+   */
+  readonly dispatchDrifts: ReadonlyArray<DispatchDriftReport>;
   readonly summary: {
     readonly totalEntered: number;
     readonly totalCompleted: number;
     readonly totalAbandoned: number;
     readonly totalTimedOut: number;
     readonly stillOpen: number;
+    /** 0.4.11 PR-B — count of dispatchDrifts. */
+    readonly dispatchDriftCount: number;
   };
 }
 
@@ -128,6 +162,7 @@ export function auditWorkCompliance(opts: AuditOptions = {}): WorkComplianceRepo
     }));
 
   const orphanWindows = buildOrphanWindows(transactions, now, cutoff, orphanThresholdMs);
+  const dispatchDrifts = detectDispatchDrifts(workEvents);
 
   const summary = {
     totalEntered: transactions.length,
@@ -135,11 +170,47 @@ export function auditWorkCompliance(opts: AuditOptions = {}): WorkComplianceRepo
     totalAbandoned: transactions.filter((t) => t.status === 'abandoned').length,
     totalTimedOut: transactions.filter((t) => t.status === 'timed_out').length,
     stillOpen: openTransactions.length,
+    dispatchDriftCount: dispatchDrifts.length,
   };
 
   const fileDiffs = opts.includeFileDiff ? collectFileDiffs(cwd) : undefined;
 
-  return {openTransactions, transactions, orphanWindows, fileDiffs, summary};
+  return {openTransactions, transactions, orphanWindows, fileDiffs, dispatchDrifts, summary};
+}
+
+/**
+ * Walks `work_entered` events and flags any where the host has native
+ * sub-agent support (Tier 1 or Tier 2) but the dispatchMode is
+ * 'host-self-inject'. Backward-compat events lacking host/tier/
+ * dispatchMode fields are skipped silently.
+ */
+function detectDispatchDrifts(workEvents: readonly Event[]): DispatchDriftReport[] {
+  const out: DispatchDriftReport[] = [];
+  for (const e of workEvents) {
+    if (e.type !== 'work_entered') continue;
+    const payload = e.payload as Record<string, unknown>;
+    const host = typeof payload.host === 'string' ? payload.host : undefined;
+    const tier = typeof payload.tier === 'number' ? payload.tier : undefined;
+    const dispatchMode = typeof payload.dispatchMode === 'string' ? payload.dispatchMode : undefined;
+    const feature =
+      typeof payload.feature === 'string'
+        ? payload.feature
+        : typeof payload.featureId === 'string'
+          ? payload.featureId
+          : undefined;
+    if (!host || tier === undefined || !dispatchMode || !feature) continue;
+    if (!TIERS_WITH_SUB_AGENT_SUPPORT.has(tier)) continue;
+    if (dispatchMode !== 'host-self-inject') continue;
+    out.push({
+      featureId: feature,
+      enteredAt: e.timestamp,
+      host,
+      tier,
+      dispatchMode,
+      reason: `Tier ${tier} host (${host}) used host-self-inject instead of native sub-agent dispatch.`,
+    });
+  }
+  return out;
 }
 
 /**

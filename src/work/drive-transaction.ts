@@ -45,10 +45,38 @@ export interface ExecuteDriveOptions {
   readonly cwd?: string;
 }
 
+/**
+ * A parallel-dispatch group from topologicalGroups (0.4.11 PR-B).
+ * Every feature in a group is dependency-disjoint from every other
+ * feature in the same group, so the host AI may fan them out
+ * concurrently (Claude Code: parallel Task() calls; Codex:
+ * `agents.max_threads`; Cursor: `/multitask`; Gemini: multiple
+ * `@agent` invocations).
+ *
+ * Groups are returned in ordinal order — every feature in group N
+ * may start as soon as every feature in groups 0..N-1 has completed.
+ */
+export interface ParallelGroup {
+  readonly ordinal: number;
+  readonly featureIds: readonly string[];
+}
+
 export interface ExecuteDriveResult {
   readonly scenarioId: string;
   readonly scenarioTitle: string;
+  /**
+   * Flat dependency-sorted feature id list. Kept for one minor cycle
+   * (0.4.x) for backward-compat with hosts that don't yet consume
+   * `groups`. New host AIs should read `groups` instead — it carries
+   * the parallel-dispatch hint missing from the flat order.
+   */
   readonly plan: readonly string[];
+  /**
+   * 0.4.11 PR-B — Kahn-levels grouping. groups[0] has no dependencies
+   * inside the scenario; groups[i] depends only on groups[0..i-1].
+   * Within a group, features may run concurrently.
+   */
+  readonly groups: readonly ParallelGroup[];
   /** First feature in the plan, already entered via enterWork. Undefined when plan is empty (all features already done). */
   readonly firstWork?: EnterWorkResult;
   /** Free-form instructions for the host AI on what to do with the remaining plan. */
@@ -84,12 +112,15 @@ export function executeDrive(opts: ExecuteDriveOptions): ExecuteDriveResult {
   }
   const ordered = topologicalSort(targets);
   const plan = ordered.map((f) => f.id);
+  const groups = topologicalGroups(targets);
 
   appendEvent(
     cwd,
     newEvent('drive_started', {
       scenarioId: scenario.id,
       plan,
+      // 0.4.11 PR-B — parallel groups on the event payload for audit.
+      groups: groups.map((g) => ({ordinal: g.ordinal, featureIds: g.featureIds})),
       intent: opts.intent ?? null,
     }),
   );
@@ -107,8 +138,9 @@ export function executeDrive(opts: ExecuteDriveOptions): ExecuteDriveResult {
     scenarioId: scenario.id,
     scenarioTitle: scenario.title,
     plan,
+    groups,
     firstWork,
-    instructions: instructionsFor(scenario, plan),
+    instructions: instructionsFor(scenario, plan, groups),
   };
 }
 
@@ -219,6 +251,63 @@ function topologicalSort(features: readonly Feature[]): Feature[] {
   return sorted;
 }
 
+/**
+ * Kahn-levels topological grouping (0.4.11 PR-B). Each group contains
+ * features whose `depends_on` (scoped to the same scenario) resolve
+ * to features already completed in an earlier group. Within a group,
+ * features have no mutual dependencies → safe to fan out in parallel.
+ *
+ * Out-of-scenario `depends_on` entries are treated as "already done"
+ * (matches the flat sort's existing semantics — drive only orders
+ * within the scenario's feature set).
+ *
+ * Cycles or unresolvable deps collapse into a final trailing group
+ * containing all leftover features in input order. The host AI sees
+ * this and may abandon the scenario; the auditor can flag the
+ * pathological group later.
+ */
+function topologicalGroups(features: readonly Feature[]): ParallelGroup[] {
+  const featureIds = new Set(features.map((f) => f.id));
+  const done = new Set<string>();
+  const remaining = [...features];
+  const groups: ParallelGroup[] = [];
+  let ordinal = 0;
+
+  while (remaining.length > 0) {
+    // Pick every feature whose in-scenario deps are all done.
+    const readyIdx: number[] = [];
+    for (let i = 0; i < remaining.length; i++) {
+      const f = remaining[i];
+      const inScopeDeps = (f.depends_on ?? []).filter((d) => featureIds.has(d));
+      if (inScopeDeps.every((d) => done.has(d))) {
+        readyIdx.push(i);
+      }
+    }
+
+    if (readyIdx.length === 0) {
+      // Cycle / unresolvable → emit the leftovers as one final group.
+      groups.push({ordinal, featureIds: remaining.map((f) => f.id)});
+      break;
+    }
+
+    // readyIdx is ascending — picking in that order preserves input
+    // stability within the group.
+    const groupFeatures: Feature[] = [];
+    for (const idx of readyIdx) groupFeatures.push(remaining[idx]);
+    groups.push({ordinal, featureIds: groupFeatures.map((f) => f.id)});
+
+    // Remove picked features from remaining (highest-to-lowest so the
+    // earlier indices stay valid).
+    for (let i = readyIdx.length - 1; i >= 0; i--) {
+      remaining.splice(readyIdx[i], 1);
+    }
+    for (const f of groupFeatures) done.add(f.id);
+    ordinal++;
+  }
+
+  return groups;
+}
+
 function tokenize(text: string): string[] {
   return text
     .toLowerCase()
@@ -226,7 +315,11 @@ function tokenize(text: string): string[] {
     .filter((t) => t.length >= 2);
 }
 
-function instructionsFor(scenario: Scenario, plan: readonly string[]): string {
+function instructionsFor(
+  scenario: Scenario,
+  plan: readonly string[],
+  groups: readonly ParallelGroup[],
+): string {
   if (plan.length === 0) {
     return `Drive scenario ${scenario.id} has no ready features (all done/archived). No work needed.`;
   }
@@ -237,8 +330,17 @@ function instructionsFor(scenario: Scenario, plan: readonly string[]): string {
       `Finally call complete_drive with scenarioId: "${scenario.id}" to seal the drive transaction.`,
     ].join(' ');
   }
+  // 0.4.11 PR-B — surface parallel groups when more than one level
+  // exists. Single-level groups (everything parallel) and fully-serial
+  // chains (one feature per group) reduce to the same flat narrative.
+  const hasParallelism = groups.some((g) => g.featureIds.length > 1);
+  const groupNarrative = hasParallelism
+    ? ` Features split into ${groups.length} parallel group(s): ${groups
+        .map((g) => `[${g.featureIds.join(', ')}]`)
+        .join(' → ')}. Within a group, dispatches may run concurrently.`
+    : '';
   return [
-    `Drive scenario ${scenario.id} resolved into ${plan.length} ready features: ${plan.join(' → ')}.`,
+    `Drive scenario ${scenario.id} resolved into ${plan.length} ready features: ${plan.join(' → ')}.${groupNarrative}`,
     `The first (${plan[0]}) has been auto-entered.`,
     `After each complete_work, call enter_work on the next featureId in plan, then complete_work, repeat.`,
     `When the last feature completes, call complete_drive with scenarioId: "${scenario.id}".`,

@@ -5,6 +5,56 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — 0.5.0 multi-agent first #4 — capability enforcement + dispatch mode + parallel groups (PR-B / 0.4.11)
+
+Tightens the foundation laid by PR-A.1/A.2/A.3. Three changes wired through the work + drive transactions:
+
+### Added
+
+- **`src/agents/capability-map.ts`** — capability-to-tool tables for the 4 host families:
+  - Claude-style (Claude Code / Cursor / Antigravity): `read` → `Read`/`Glob`/`Grep`, `write` → `Write`, `edit` → `Edit`, `exec` → `Bash`, `dispatch` → `Task`
+  - Gemini: snake_case variants (`ReadFile`/`WriteFile`/`EditFile`/`Shell`/`SubAgent`)
+  - Codex: `deriveCodexSandbox()` — `read` → `read-only`, write/edit/exec → `workspace-write` (never escalates to `danger-full-access` automatically; explicit `hostHints.sandbox_mode` is the only path there)
+  - Codex MCP allowlist: `['cladding']` for every persona (Codex gates per-MCP-server, not per-tool — finer-grained allowlist is a PR-C concern)
+- **`src/agents/capabilities.ts`** — `translateCapabilities(persona, host)` discriminated-union envelope:
+  - Claude Code: `{tools[], permissionMode?, maxTurns?}`
+  - Cursor / Antigravity: `{tools[], maxTurns?}`
+  - Codex: `{mcpServers[], sandboxMode, maxTurns?}`
+  - Gemini: `{allowedTools[], maxTurns?}`
+  - Generic (Tier 3): `{}` — no enforcement (host-self-inject path)
+- **`EnterWorkOptions.dispatchMode?`** — `'sub-agent' | 'host-self-inject'`. Default derived from Tier: Tier 1/2 → `'sub-agent'`, Tier 3 → `'host-self-inject'`. Explicit override always wins.
+- **`EnterWorkResult.dispatchMode`** — always populated (string, no undefined).
+- **`EnterWorkResult.capabilityEnvelope`** — host-shaped envelope from `translateCapabilities`. Always populated (Tier 3 returns `{host: 'generic'}` empty envelope).
+- **`work_entered` event payload** — now carries `host`, `tier`, `dispatchMode` for retrospective audit.
+- **`WorkComplianceReport.dispatchDrifts`** + `summary.dispatchDriftCount` (`src/work/audit.ts`) — flags any `work_entered` where Tier 1/2 host chose `host-self-inject`. Backward-compat events lacking those fields are silently omitted. Non-blocking — the orchestrator surfaces drifts for awareness, doesn't refuse the request.
+- **`DispatchDriftReport`** interface — `{featureId, enteredAt, host, tier, dispatchMode, reason}`.
+- **`ExecuteDriveResult.groups: ParallelGroup[]`** — Kahn-levels grouping (`src/work/drive-transaction.ts`). `groups[0]` has no in-scenario deps; `groups[i]` depends only on `groups[0..i-1]`. Within a group, features have no mutual dependencies — host AI may fan out concurrently (Claude Code parallel `Task()`, Codex `agents.max_threads`, Cursor `/multitask`, Gemini multiple `@agent`).
+- **`drive_started` event payload** — carries `groups` alongside the existing flat `plan`.
+- **`tests/agents/capabilities.test.ts`** — 27 tests covering capability-to-tool tables, Codex sandbox derivation, per-host envelope shape, hostHints overrides, real-persona round-trip.
+- **`tests/work/dispatch-mode.test.ts`** — 18 tests covering default dispatchMode per Tier, explicit override, capabilityEnvelope shape per host, dispatch_drift detection across Tier 1/2/3.
+- **`tests/work/drive-parallel.test.ts`** — 10 tests covering empty/single/serial chain/diamond/mixed scenarios, cycle fallback, out-of-scope deps treated as satisfied, done-features dropped before grouping, groups echoed on event + instructions narrative.
+
+### Changed
+
+- `enterWork` resolves dispatchMode from Tier when not explicitly passed. Backward compat: existing callers see no behavioural change unless they read the new fields.
+- `executeDrive` now returns `groups` alongside `plan` (flat order kept for one minor cycle for backward compat with hosts that don't yet consume groups).
+- `executeDrive` instructions narrative mentions parallel groups when any group has >1 feature.
+- `auditWorkCompliance` return shape gains `dispatchDrifts` (always present, empty array when nothing diverged) + `summary.dispatchDriftCount`.
+
+### Why
+
+PR-A.3 emitted a dispatch hint but had nothing to enforce — capability gating still relied on each persona's frontmatter `tools` field, which drifted between hosts. PR-B makes the capability set the single source of truth and projects it into each host's native tool/sandbox shape, so the same persona can dispatch with consistent guarantees across Claude Code, Codex, Cursor, Antigravity, and Gemini. Dispatch_drift detection closes the loop — when a Tier 1 host bypasses the sub-agent surface, the orchestrator sees it and can nudge future calls back on track. Parallel groups unlock fan-out on the 4 hosts that all gained native concurrent sub-agent dispatch in 2026.
+
+### Sub-PR sequence (0.5.0 roadmap)
+
+- ✅ PR-A.1 — routing.yaml + resolver (#173)
+- ✅ PR-A.2 — persona hostHints + detect_host MCP (#174)
+- ✅ PR-A.3 — 4-host transpile + enterWork dispatchHint (#175)
+- ✅ **PR-B (this PR, 0.4.11)** — capability enforcement + dispatch mode + parallel groups
+- PR-C — Antigravity migration docs + version bump 0.5.0
+
+Tests: 1165/1165 (was 1110, +55 new). No regression.
+
 ## [Unreleased] — 0.5.0 multi-agent first #3 — 4-host transpile + enterWork dispatchHint (PR-A.3)
 
 Third and final sub-patch of the 0.5.0 multi-agent first redesign foundation (PR-A). Adds the build-plugin Phase E that emits each host's native sub-agent manifest from the single canonical persona spec, and wires `enterWork` to consume the routing resolver + host detection.

@@ -13,7 +13,8 @@
 
 import {spawnSync} from 'node:child_process';
 
-import {detectHost, type HostName} from '../agents/host-detect.js';
+import {translateCapabilities, type CapabilityEnvelope} from '../agents/capabilities.js';
+import {detectHost, type HostName, type HostTier} from '../agents/host-detect.js';
 import {loadPersona} from '../agents/loader.js';
 import {resolvePersona} from '../agents/routing.js';
 import {newEvent, appendEvent} from '../events/log.js';
@@ -38,6 +39,29 @@ import {
 /** Default implicit-close timeout (10 minutes). Override via spec.yaml ai_hints.work_timeout_seconds. */
 export const DEFAULT_WORK_TIMEOUT_MS = 10 * 60 * 1000;
 
+/**
+ * How the host AI should run the persona returned by enterWork.
+ *
+ *   - 'sub-agent': dispatch the persona as a native sub-agent via the
+ *     host's sub-agent surface (Tier 1 hosts: Claude Code Task, Codex
+ *     agent, Cursor mode_switch, Antigravity spawn_subagent). Tier 2
+ *     (Gemini) uses @agent explicit dispatch. Isolated context, the
+ *     `capabilityEnvelope` gates tool access.
+ *   - 'host-self-inject': adopt the personaPrompt body into the
+ *     current turn's system prompt (the option-1 0.4.x default).
+ *     Used on Tier 3 (generic) where no native sub-agent surface
+ *     exists, and as a backward-compat escape hatch on Tier 1/2.
+ *
+ * Default per Tier (0.4.11 PR-B):
+ *   Tier 1, Tier 2 → 'sub-agent'
+ *   Tier 3         → 'host-self-inject'
+ *
+ * `dispatch_drift` auditor warns when a Tier 1 host runs with
+ * 'host-self-inject' (the host has native sub-agent support but
+ * chose to bypass it — non-fatal but worth surfacing).
+ */
+export type DispatchMode = 'sub-agent' | 'host-self-inject';
+
 export interface EnterWorkOptions {
   readonly featureId: string;
   /** Free-form intent the host AI extracted from the user prompt. */
@@ -56,6 +80,13 @@ export interface EnterWorkOptions {
    * env mutation; production code rarely needs to.
    */
   readonly hostOverride?: HostName;
+  /**
+   * Optional explicit dispatch mode (0.4.11 PR-B). When omitted, the
+   * mode is derived from Tier: Tier 1/2 → 'sub-agent', Tier 3 →
+   * 'host-self-inject'. Setting this to 'host-self-inject' on a Tier 1
+   * host trips the dispatch_drift auditor (non-fatal warning).
+   */
+  readonly dispatchMode?: DispatchMode;
 }
 
 /**
@@ -89,6 +120,18 @@ export interface EnterWorkResult {
   readonly subAgentDispatchHint?: SubAgentDispatchHint;
   /** Routing trace — which rule matched (or '__fallback__'). */
   readonly routing?: {readonly matchedRule: string; readonly parallelGroup?: string};
+  /**
+   * Resolved dispatch mode (0.4.11 PR-B) — what the host AI should
+   * do with the persona. Always present, derived from Tier when not
+   * explicitly passed via EnterWorkOptions.dispatchMode.
+   */
+  readonly dispatchMode: DispatchMode;
+  /**
+   * Host-native capability envelope (0.4.11 PR-B). Shape depends on
+   * host — see {@link CapabilityEnvelope}. Always present (Tier 3
+   * gets the `{host: 'generic'}` empty envelope).
+   */
+  readonly capabilityEnvelope: CapabilityEnvelope;
 }
 
 /** Tier 1 / Tier 2 host → dispatch tool name. Tier 3 → no entry. */
@@ -112,7 +155,12 @@ const DISPATCH_TOOL_BY_HOST: Readonly<Partial<Record<HostName, string>>> = {
  */
 export function enterWork(opts: EnterWorkOptions): EnterWorkResult {
   const cwd = opts.cwd ?? '.';
-  const host = opts.hostOverride ?? detectHost().host;
+  const detection = opts.hostOverride
+    ? {host: opts.hostOverride, tier: tierForHost(opts.hostOverride)}
+    : detectHost();
+  const host = detection.host;
+  const tier = detection.tier;
+  const dispatchMode: DispatchMode = opts.dispatchMode ?? defaultDispatchMode(tier);
 
   // Idempotent fast path — already entered, just hand back the
   // registry record without re-emitting events or re-touching status.
@@ -126,6 +174,8 @@ export function enterWork(opts: EnterWorkOptions): EnterWorkResult {
       personaId: existing.personaId,
       personaPrompt: persona.body,
       instructions: instructionsFor(existing.scope, 'resumed'),
+      dispatchMode,
+      capabilityEnvelope: translateCapabilities(persona, host),
       ...buildDispatchExtras(host, existing.personaId, undefined),
     };
   }
@@ -170,6 +220,12 @@ export function enterWork(opts: EnterWorkOptions): EnterWorkResult {
       intent: opts.intent ?? null,
       personaId,
       modules: scope.modules,
+      // 0.4.11 PR-B — host/tier/dispatchMode go on every work_entered
+      // event so the auditor can compute dispatch_drift without
+      // re-running detectHost retrospectively.
+      host,
+      tier,
+      dispatchMode,
       ...(routingResult
         ? {
             routing: {
@@ -188,8 +244,35 @@ export function enterWork(opts: EnterWorkOptions): EnterWorkResult {
     personaId,
     personaPrompt: persona.body,
     instructions: instructionsFor(scope, 'entered'),
+    dispatchMode,
+    capabilityEnvelope: translateCapabilities(persona, host),
     ...buildDispatchExtras(host, personaId, routingResult),
   };
+}
+
+/**
+ * Default dispatch mode per Tier (0.4.11 PR-B):
+ *   Tier 1, 2 → 'sub-agent' (native sub-agent surface available)
+ *   Tier 3    → 'host-self-inject' (no sub-agent surface)
+ */
+function defaultDispatchMode(tier: HostTier): DispatchMode {
+  return tier <= 2 ? 'sub-agent' : 'host-self-inject';
+}
+
+/** Tier lookup for the test-only hostOverride path — mirrors host-detect.ts TIER_MAP. */
+function tierForHost(host: HostName): HostTier {
+  switch (host) {
+    case 'claude-code':
+    case 'codex':
+    case 'cursor':
+    case 'antigravity':
+      return 1;
+    case 'gemini':
+      return 2;
+    case 'generic':
+    default:
+      return 3;
+  }
 }
 
 /**
