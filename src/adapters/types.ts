@@ -26,6 +26,31 @@ export type AdapterMode = 'host' | 'sdk';
 export type Capability = 'read' | 'write' | 'edit' | 'exec' | 'dispatch';
 
 /**
+ * Host-specific hints declared in persona frontmatter (0.4.10 PR-A.2).
+ * Optional in every field — adapters that don't recognise a hint
+ * silently skip it, so existing personas (no hostHints) parse
+ * identically to v0.4.x. The 4-host transpiler in
+ * `scripts/build-plugin.mjs` (PR-A.3) maps these into each host's
+ * native sub-agent manifest format.
+ *
+ * Field semantics:
+ *   - model: Anthropic / Codex model family hint (e.g. 'sonnet', 'opus', 'haiku', or a full id like 'claude-sonnet-4-5'). Host adapters resolve aliases.
+ *   - permissionMode: Claude Code permission mode ('default' | 'plan' | 'acceptEdits' | 'bypassPermissions' | 'dontAsk'). Ignored on hosts without per-agent permission gates.
+ *   - sandbox_mode: Codex sandbox enum ('read-only' | 'workspace-write' | 'danger-full-access'). Mapped from permissionMode when omitted.
+ *   - maxTurns: cap on agentic turns the sub-agent may take before halting.
+ *   - skills: skill names to preload into the sub-agent's startup context.
+ *   - isolation: 'session' (default — shared context) | 'worktree' (Claude Code sub-agent in isolated git worktree).
+ */
+export interface PersonaHostHints {
+  readonly model?: string;
+  readonly permissionMode?: 'default' | 'plan' | 'acceptEdits' | 'bypassPermissions' | 'dontAsk';
+  readonly sandbox_mode?: 'read-only' | 'workspace-write' | 'danger-full-access';
+  readonly maxTurns?: number;
+  readonly skills?: readonly string[];
+  readonly isolation?: 'session' | 'worktree';
+}
+
+/**
  * Persona definition the runtime hands to the adapter.
  *
  * The body is the prose prompt loaded from `agents/<name>.md`; the
@@ -41,6 +66,11 @@ export interface PersonaSpec {
   readonly body: string;
   /** Provider-agnostic capability set this persona is authorised to use. */
   readonly capabilities: ReadonlySet<Capability>;
+  /**
+   * Host-specific hints (0.4.10 PR-A.2). Optional; absent fields fall
+   * back to host defaults. See {@link PersonaHostHints} for semantics.
+   */
+  readonly hostHints?: PersonaHostHints;
 }
 
 /**

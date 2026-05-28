@@ -21,7 +21,7 @@ import {fileURLToPath} from 'node:url';
 
 import {parse as parseYaml} from 'yaml';
 
-import type {Capability, PersonaSpec} from '../adapters/types.js';
+import type {Capability, PersonaHostHints, PersonaSpec} from '../adapters/types.js';
 
 const CAPABILITY_VALUES: ReadonlySet<string> = new Set<string>([
   'read',
@@ -31,11 +31,36 @@ const CAPABILITY_VALUES: ReadonlySet<string> = new Set<string>([
   'dispatch',
 ]);
 
+const PERMISSION_MODES: ReadonlySet<string> = new Set<string>([
+  'default',
+  'plan',
+  'acceptEdits',
+  'bypassPermissions',
+  'dontAsk',
+]);
+
+const SANDBOX_MODES: ReadonlySet<string> = new Set<string>([
+  'read-only',
+  'workspace-write',
+  'danger-full-access',
+]);
+
+const ISOLATION_VALUES: ReadonlySet<string> = new Set<string>(['session', 'worktree']);
+
 interface Frontmatter {
   readonly name?: string;
   readonly description?: string;
   readonly tools?: string;
   readonly capabilities?: readonly string[];
+  // 0.4.10 PR-A.2 — host-specific hints (all optional). Unknown values
+  // are silently dropped at normalize time so the loader never throws
+  // on a forward-compat frontmatter from a newer persona spec.
+  readonly model?: string;
+  readonly permissionMode?: string;
+  readonly sandbox_mode?: string;
+  readonly maxTurns?: number;
+  readonly skills?: readonly string[];
+  readonly isolation?: string;
 }
 
 /** Cache keyed by absolute file path so different cwds stay isolated. */
@@ -83,11 +108,47 @@ function resolveAgentPath(id: string, rootDir?: string): string {
 function parseAgentFile(id: string, raw: string): PersonaSpec {
   const {frontmatter, body} = splitFrontmatter(raw);
   const capabilities = normalizeCapabilities(frontmatter.capabilities);
+  const hostHints = normalizeHostHints(frontmatter);
   return {
     id: frontmatter.name ?? id,
     body: body.trim(),
     capabilities,
+    ...(hostHints ? {hostHints} : {}),
   };
+}
+
+/**
+ * Pulls host-hint fields out of frontmatter, validating enum values
+ * silently (unknown values are dropped — the loader never throws on
+ * forward-compat frontmatter, since older cladding builds must
+ * tolerate persona files written for newer hosts).
+ *
+ * Returns undefined when no host hint is present so the PersonaSpec
+ * stays minimal for personas that don't declare any hint.
+ */
+function normalizeHostHints(frontmatter: Frontmatter): PersonaHostHints | undefined {
+  const hints: Record<string, unknown> = {};
+  if (typeof frontmatter.model === 'string' && frontmatter.model.length > 0) {
+    hints.model = frontmatter.model;
+  }
+  if (typeof frontmatter.permissionMode === 'string' && PERMISSION_MODES.has(frontmatter.permissionMode)) {
+    hints.permissionMode = frontmatter.permissionMode;
+  }
+  if (typeof frontmatter.sandbox_mode === 'string' && SANDBOX_MODES.has(frontmatter.sandbox_mode)) {
+    hints.sandbox_mode = frontmatter.sandbox_mode;
+  }
+  if (typeof frontmatter.maxTurns === 'number' && Number.isFinite(frontmatter.maxTurns) && frontmatter.maxTurns > 0) {
+    hints.maxTurns = Math.floor(frontmatter.maxTurns);
+  }
+  if (Array.isArray(frontmatter.skills) && frontmatter.skills.length > 0) {
+    const cleaned = frontmatter.skills.filter((s): s is string => typeof s === 'string' && s.length > 0);
+    if (cleaned.length > 0) hints.skills = cleaned;
+  }
+  if (typeof frontmatter.isolation === 'string' && ISOLATION_VALUES.has(frontmatter.isolation)) {
+    hints.isolation = frontmatter.isolation;
+  }
+  if (Object.keys(hints).length === 0) return undefined;
+  return hints as PersonaHostHints;
 }
 
 /**

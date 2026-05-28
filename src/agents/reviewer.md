@@ -3,6 +3,13 @@ name: reviewer
 description: Philosophical guardrails enforcer — independently audits code, tests, and spec for layered-integrity, Why>What, error-as-data, and the related Ironclad philosophical invariants.
 tools: Read, Bash
 capabilities: [read, exec]
+# 0.4.10 PR-A.2 — host-specific hints
+# Reviewer uses Opus for deep reasoning; maxTurns bounded so audits stay scoped.
+# Read-only sandbox enforces anti-self-cert at the host level too.
+model: opus
+maxTurns: 3
+permissionMode: default
+sandbox_mode: read-only
 ---
 
 # Reviewer

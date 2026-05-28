@@ -5,6 +5,48 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — 0.5.0 multi-agent first #2 — persona hostHints + detect_host MCP (PR-A.2)
+
+Second sub-patch of the 0.5.0 multi-agent first redesign. Extends the canonical persona spec (`src/agents/*.md` frontmatter) with 4-host compatibility fields and adds the `detect_host` MCP tool. Sets up the inputs PR-A.3 needs to wire `enterWork` dispatchHint + the 4-host transpile.
+
+### Added
+
+- **`src/adapters/types.ts`** `PersonaHostHints` interface — optional frontmatter fields:
+  - `model`: 'sonnet' / 'opus' / 'haiku' or full model id
+  - `permissionMode`: 'default' / 'plan' / 'acceptEdits' / 'bypassPermissions' / 'dontAsk' (Claude Code permission mode)
+  - `sandbox_mode`: 'read-only' / 'workspace-write' / 'danger-full-access' (Codex sandbox)
+  - `maxTurns`: positive integer cap on agentic turns
+  - `skills`: array of skill names to preload
+  - `isolation`: 'session' (default — shared context) / 'worktree' (Claude Code isolated git worktree)
+- **`PersonaSpec.hostHints?`** — optional field; absent when the persona declares no host hint. Existing personas (no hints) parse identically — backward compat 100%.
+- **`src/agents/loader.ts`** `normalizeHostHints()` — pulls host-hint fields out of frontmatter, validates enum values silently (unknown values dropped — forward-compat with future cladding personas).
+- **`src/agents/host-detect.ts`** (new) — `detectHost(env)` returns `{host, tier, signals, overridden}`. Detection priority: CLADDING_HOST override → ANTIGRAVITY_* → CLAUDECODE → CODEX_* → CURSOR_* / TERM_PROGRAM=cursor → GEMINI_* → generic.
+- **`src/serve/server.ts`** `detect_host` MCP tool — exposes the detection result to host AIs (used by PR-A.3's dispatchHint shaper).
+- **5 persona `.md` files updated** with appropriate hostHints:
+  - `orchestrator`: model=sonnet, permissionMode=plan, sandbox_mode=workspace-write (planning-first)
+  - `librarian`: model=sonnet, permissionMode=acceptEdits (spec authoring)
+  - `reviewer`: model=opus, maxTurns=3, permissionMode=default, sandbox_mode=read-only (deep reasoning, anti-self-cert at host level)
+  - `specialists`: model=sonnet, permissionMode=acceptEdits (implementation)
+  - `observability`: model=haiku, maxTurns=5, sandbox_mode=read-only (cheap log aggregation)
+- **`tests/agents/host-detect.test.ts`** — 16 tests covering empty env / all 5 hosts / priority order / CLADDING_HOST override / invalid override / case-insensitivity / multiple signals / empty-string ignore.
+- **`tests/agents/loader.hostHints.test.ts`** — 11 tests covering backward compat (no hints → undefined) / each field parse / fractional maxTurns floored / invalid enum values silently dropped / forward-compat.
+
+### Wire-free for enterWork
+
+`enterWork` does **not** yet consume `PersonaSpec.hostHints` or call `detect_host`. PR-A.3 wires the consumers (build-plugin.mjs 4-host transpile reads hostHints to emit each host's native sub-agent manifest; enterWork dispatchHint reads detect_host to decide Tier-1 sub-agent payload).
+
+### Why
+
+Multi-agent first requires each persona to express not just *what* it does but *how* the host should run it (which model, which permission scope, how many turns, whether isolated). The 4 hosts (Claude Code, Codex, Cursor, Antigravity) each have different native sub-agent manifest formats, but they share semantically similar fields — modelling those once on the canonical persona spec means PR-A.3's 4-host transpile is a per-host emitter rather than per-host authoring.
+
+### Sub-PR split (running track)
+
+- ✅ A.1 — routing.yaml + resolver (PR #173)
+- **A.2 (this PR)** — persona hostHints + detect_host MCP
+- A.3 — build-plugin.mjs 4-host transpile + enterWork dispatchHint + work_entered.routing event payload
+
+Tests: 1086/1086 (was 1059, +27 new). No regression.
+
 ## [Unreleased] — 0.5.0 multi-agent first #1 — agents/routing.yaml + deterministic resolver (PR-A.1)
 
 First sub-patch of the 0.5.0 multi-agent first redesign. PR-A is sub-split into A.1/A.2/A.3 to keep each PR reviewable (~300-500 lines each). A.1 is the foundation — pure deterministic routing logic that A.2 (frontmatter expansion) and A.3 (4-host transpile + dispatchHint) build on.

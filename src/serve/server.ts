@@ -33,6 +33,7 @@ import {subscribeAudit} from '../hitl/audit.js';
 import {loadSpec} from '../spec/load.js';
 import {createFeature, createScenario} from '../spec/new.js';
 import {runDrift} from '../stages/drift.js';
+import {detectHost} from '../agents/host-detect.js';
 import {auditWorkCompliance} from '../work/audit.js';
 import {completeDrive, executeDrive} from '../work/drive-transaction.js';
 import {abandonWork, completeWork, enterWork} from '../work/transaction.js';
@@ -63,6 +64,8 @@ export const TOOL_NAMES = [
   'complete_drive',
   // 0.4.6 — Layer-D auditor MCP tool (F-89406c, plan §"4-Layer defense").
   'audit_work_compliance',
+  // 0.4.10 PR-A.2 — host detection MCP tool for the 4-host multi-agent first redesign.
+  'detect_host',
 ] as const;
 
 /** Resource URIs cladding's MCP server exposes (stable wire identifiers). */
@@ -619,6 +622,34 @@ function registerTools(server: McpServer, cwd: string): void {
           sinceMs: args.sinceMs,
           orphanThresholdMs: args.orphanThresholdMs,
         });
+        return {content: [{type: 'text', text: JSON.stringify(result, null, 2)}]};
+      } catch (err) {
+        return {isError: true, content: [{type: 'text', text: (err as Error).message}]};
+      }
+    },
+  );
+
+  // ── 0.4.10 PR-A.2 host detection ──
+  // Reports the active host + tier (1/2/3) so host AIs can branch on
+  // capability (e.g. only Tier 1 receives sub-agent dispatch hints).
+  // PR-A.3 will consume this from enterWork to shape its response.
+
+  server.registerTool(
+    'detect_host',
+    {
+      title: 'Identify the active AI host + multi-agent tier',
+      description:
+        'Returns {host, tier, signals, overridden}. host ∈ {claude-code, codex, cursor, ' +
+        'antigravity, gemini, generic}. tier ∈ {1, 2, 3}: Tier 1 = native sub-agent dispatch ' +
+        '(Claude Code/Codex/Cursor/Antigravity); Tier 2 = sub-agent preview (Gemini, sunsetting ' +
+        'June 18 2026 → Antigravity); Tier 3 = multi-persona fallback. Detection reads ' +
+        'process.env signals (CLAUDECODE / CODEX_* / CURSOR_* / TERM_PROGRAM / GEMINI_* / ' +
+        'ANTIGRAVITY_*). Override via CLADDING_HOST env when a wrapper sets misleading signals.',
+      inputSchema: {},
+    },
+    async () => {
+      try {
+        const result = detectHost();
         return {content: [{type: 'text', text: JSON.stringify(result, null, 2)}]};
       } catch (err) {
         return {isError: true, content: [{type: 'text', text: (err as Error).message}]};
