@@ -33,3 +33,8 @@ capabilities:
     summary: "Measures cladding vs vanilla Claude Code across 8 structural + 2 outcome dimensions"
     surface: feature
     features: [F-4db939, F-ba2e05]
+  - id: work-transactions
+    title: "Work / drive transactions (0.5.0)"
+    summary: "Spec-anchored execute_work / execute_drive MCP tools — work runs the feature-unit transaction (scope-aware iron law + spec writer); drive runs the scenario-unit transaction (orchestrator dispatching work units)"
+    surface: tool
+    features: [F-bb3c9f, F-89406c, F-d23cd4, F-ca18ea]

@@ -1,0 +1,49 @@
+id: F-d23cd4
+slug: execute-drive-mcp-tool
+title: "execute_drive MCP tool — scenario-scope orchestrator dispatching work units"
+status: in_progress
+modules:
+  - src/work/drive-transaction.ts
+  - src/serve/server.ts
+acceptance_criteria:
+  - id: AC-001
+    text: >-
+      MCP tool execute_drive({scenarioId}) iterates scenario.features
+      via spec/load.ts, picks the next ready feature (depends_on
+      satisfied) and calls executeWork on it sequentially. Scenario
+      drives the unit of bundled work — work drives the unit of
+      atomic change.
+  - id: AC-002
+    text: >-
+      MCP tool execute_drive({intent}) is the orchestrator entry —
+      the orchestrator persona parses the intent (deterministic
+      first; LLM sampling is a 0.5.x option), matches it against
+      existing spec/scenarios/*.yaml flow text, and either binds to
+      an existing scenario or registers a new one via the existing
+      clad_create_scenario MCP tool before dispatching work.
+  - id: AC-003
+    text: >-
+      Parallel work dispatch is gated on the dependency graph —
+      features whose depends_on are all satisfied may run
+      concurrently when the scenario authorises it, otherwise the
+      default is sequential. Concurrent execution preserves the
+      ReviewerIdentityCollisionError invariant.
+  - id: AC-004
+    text: >-
+      Drive progress is broadcast via standard MCP
+      `notifications/progress` (all four hosts — Claude Code, Codex,
+      Cursor, Gemini — support this), so the user sees per-feature
+      status without poll requests.
+  - id: AC-005
+    text: >-
+      Drive end-of-run emits a `drive_completed` event with
+      {scenarioId, featuresAttempted, featuresPassed, featuresFailed,
+      durationMs} into .cladding/events.log.jsonl. Per-feature
+      pass/fail follows from the underlying executeWork transactions.
+  - id: AC-006
+    text: >-
+      Like enter_work, the execute_drive tool description carries
+      the Layer-B compulsion string "MUST be called before any
+      Edit/Write/file-mutation tool when the user request spans
+      multiple features or a whole user journey" — single-feature
+      atomic work still routes through enter_work.

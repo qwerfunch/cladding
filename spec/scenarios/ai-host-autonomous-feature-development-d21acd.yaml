@@ -1,0 +1,34 @@
+id: S-d21acd
+slug: ai-host-autonomous-feature-development
+title: "AI host autonomously develops a feature end-to-end via cladding work transaction"
+flow: >-
+  A developer types a single behavior-changing prompt into their AI host
+  (Claude Code / Codex / Cursor / Gemini) — "fix the login redirect bug",
+  "add OAuth", "refactor the spec writer", etc. The host AI reads the
+  trigger guidance F-8880ee plants in AGENTS.md and CLAUDE.md (and the
+  Layer-B compulsion baked into each MCP tool description), and reaches
+  for `enter_work` BEFORE its first Edit/Write tool call. cladding
+  registers the active transaction (F-ca18ea), bumps the feature status
+  to in_progress via the atomic writer F-bb3c9f, and returns the
+  specialists persona prompt plus the scoped module list. The host AI
+  adopts the persona for the rest of the turn, edits code inside the
+  scope, then calls `complete_work` with optional evidence. cladding
+  runs the scope-aware iron law (drift --scope of F-bb3c9f, type, lint,
+  arch, reviewer with anti-self-cert), transitions the feature to
+  status: done, and appends evidence. Every step emits an event the
+  Layer-D orchestrator can audit on the next turn for unmapped code
+  changes. When the user's prompt is "묶음 있는 규모" (multi-feature) the
+  same flow happens through `execute_drive(scenarioId or intent)`
+  instead — the orchestrator persona decomposes the intent into a work
+  sequence, dispatches them, and broadcasts progress via MCP
+  notifications. The whole loop runs without any human CLI invocation
+  of `clad work` or `clad drive` — those externalize-CLI handles are
+  removed in 0.4.8. Host-agnostic by construction (MCP transport),
+  IDE-agnostic because no file-system watcher is needed.
+features:
+  - F-8880ee
+  - F-e528a6
+  - F-bb3c9f
+  - F-89406c
+  - F-d23cd4
+  - F-ca18ea

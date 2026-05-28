@@ -1,0 +1,52 @@
+id: F-ca18ea
+slug: work-transaction-state-machine
+title: "work transaction lifecycle FSM — enter/complete/abandon + implicit close"
+status: in_progress
+modules:
+  - src/work/transaction.ts
+  - src/work/registry.ts
+acceptance_criteria:
+  - id: AC-001
+    text: >-
+      The work transaction FSM has four states (idle, entered,
+      completed, abandoned) and one terminal pseudo-state
+      (timed-out). Transitions: enter_work moves idle → entered;
+      complete_work moves entered → completed; abandon_work moves
+      entered → abandoned; the implicit-close timeout moves entered
+      → timed-out (status preserved).
+  - id: AC-002
+    text: >-
+      An active-work registry lives at .cladding/work-registry.json
+      and tracks {featureId → {enteredAt, intent, personaId, scope}}
+      for every currently-open work. The registry is read on server
+      start so a cladding restart does not silently lose mid-flight
+      transactions.
+  - id: AC-003
+    text: >-
+      Implicit-close fires on three triggers (whichever first):
+      (a) wall-clock timeout, default 10 minutes, configurable via
+      spec.yaml::project.ai_hints.work_timeout_seconds; (b) host
+      Stop hook reaches cladding via the existing event stream
+      (Claude Code in 0.4.7, other hosts later); (c) a subsequent
+      enter_work or execute_drive call carries a different
+      featureId — orchestrator infers the user has moved on.
+  - id: AC-004
+    text: >-
+      Implicit close NEVER rewrites status (in_progress stays
+      in_progress) — rollback / scratch-isolation is a 0.5.x
+      candidate. The Layer-D orchestrator emits a warn-level
+      `work_timed_out` event so the next session can either resume
+      or explicitly abandon.
+  - id: AC-005
+    text: >-
+      Concurrent multi-work entry is supported (parallel work). Two
+      enter_work calls on different featureIds add independent
+      registry entries. A second enter_work on the same featureId
+      while an entry exists is idempotent (returns the existing
+      registry record, does NOT re-emit the persona prompt).
+  - id: AC-006
+    text: >-
+      Registry persistence survives crash: every mutation (enter /
+      complete / abandon / timeout) is atomic-written via the same
+      temp-file + rename pattern src/spec/update.ts uses, so readers
+      never observe a torn registry file.

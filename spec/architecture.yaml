@@ -23,6 +23,7 @@ layers:
     - ui
   - - stages
     - adapters
+    - work
   - - drive
     - serve
   - - cli
@@ -50,3 +51,14 @@ forbidden_imports:
     to: cli
   - from: adapters
     to: serve
+  # work transaction (0.5.0) — middle-tier wrapper invoked by drive/serve.
+  # Same foundation/orchestration boundary as stages: spec/foundation
+  # may not call into work; work may not call up into drive/serve/cli.
+  - from: spec
+    to: work
+  - from: work
+    to: drive
+  - from: work
+    to: serve
+  - from: work
+    to: cli

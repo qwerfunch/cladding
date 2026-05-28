@@ -33,6 +33,7 @@ import {subscribeAudit} from '../hitl/audit.js';
 import {loadSpec} from '../spec/load.js';
 import {createFeature, createScenario} from '../spec/new.js';
 import {runDrift} from '../stages/drift.js';
+import {abandonWork, completeWork, enterWork} from '../work/transaction.js';
 
 /** Persona ids registered as MCP prompts (mirrors src/agents/). */
 export const PERSONA_IDS = [
@@ -51,6 +52,10 @@ export const TOOL_NAMES = [
   'clad_get_events',
   'clad_create_feature',
   'clad_create_scenario',
+  // 0.4.3 — work transaction MCP tools (F-89406c / F-ca18ea).
+  'enter_work',
+  'complete_work',
+  'abandon_work',
 ] as const;
 
 /** Resource URIs cladding's MCP server exposes (stable wire identifiers). */
@@ -379,6 +384,118 @@ function registerTools(server: McpServer, cwd: string): void {
           isError: true,
           content: [{type: 'text', text: (err as Error).message}],
         };
+      }
+    },
+  );
+
+  // ── 0.4.3 work transaction tools (F-89406c / F-ca18ea) ──
+  // MUST-clause baked into every description so host AI prompt-engineering
+  // (Layer B of the 4-layer defense) picks it up alongside the Layer A
+  // trigger guidance in AGENTS.md / CLAUDE.md.
+
+  server.registerTool(
+    'enter_work',
+    {
+      title: 'Enter a work transaction on a single feature',
+      description:
+        'MUST be called BEFORE any Edit / Write / file-mutation tool when the user request ' +
+        'touches a single feature. Transitions the feature from planned → in_progress and ' +
+        'returns the specialists persona prompt + the scoped module list. The host AI then ' +
+        "adopts that persona for the turn — cladding never dispatches an LLM itself. " +
+        'Call complete_work when the change is done, or abandon_work to back out.',
+      inputSchema: {
+        featureId: z
+          .string()
+          .regex(/^F-(\d{3,}|[a-f0-9]{6,})$/)
+          .describe('Target feature id (e.g. F-89406c). Must already exist in spec/features/.'),
+        intent: z
+          .string()
+          .optional()
+          .describe('Free-form intent the host AI extracted from the user prompt (for the event log).'),
+        personaId: z
+          .enum(['specialists', 'reviewer'])
+          .optional()
+          .describe("Persona to adopt. Defaults to 'specialists'."),
+      },
+    },
+    async (args) => {
+      try {
+        const result = enterWork({
+          featureId: args.featureId,
+          intent: args.intent,
+          personaId: args.personaId,
+          cwd,
+        });
+        return {content: [{type: 'text', text: JSON.stringify(result, null, 2)}]};
+      } catch (err) {
+        return {isError: true, content: [{type: 'text', text: (err as Error).message}]};
+      }
+    },
+  );
+
+  server.registerTool(
+    'complete_work',
+    {
+      title: 'Close a work transaction with the scope-aware iron law gate',
+      description:
+        'MUST be called AFTER the last code-edit tool call of a work transaction. Runs ' +
+        'scope-aware drift detection (the 27 detectors restricted to feature.modules), ' +
+        'transitions the feature in_progress → done on pass, appends any supplied evidence ' +
+        'refs, and removes the registry entry. On iron-law failure the status stays ' +
+        'in_progress and the call can be retried after fixing the drift.',
+      inputSchema: {
+        featureId: z
+          .string()
+          .regex(/^F-(\d{3,}|[a-f0-9]{6,})$/)
+          .describe('Same featureId that was passed to enter_work.'),
+        evidence: z
+          .array(
+            z.object({
+              acId: z.string().describe('Acceptance criterion id (e.g. AC-001).'),
+              ref: z.string().describe('Evidence ref string — tests/foo.test.ts, script:NAME, fixture:NAME, etc.'),
+            }),
+          )
+          .optional()
+          .describe('Optional evidence to append to acceptance_criteria[].evidence_refs.'),
+      },
+    },
+    async (args) => {
+      try {
+        const result = completeWork({
+          featureId: args.featureId,
+          evidence: args.evidence,
+          cwd,
+        });
+        return {content: [{type: 'text', text: JSON.stringify(result, null, 2)}]};
+      } catch (err) {
+        return {isError: true, content: [{type: 'text', text: (err as Error).message}]};
+      }
+    },
+  );
+
+  server.registerTool(
+    'abandon_work',
+    {
+      title: 'Cancel an open work transaction without changing status',
+      description:
+        'Use when the user changes direction mid-turn or the scope turns out to be wrong. ' +
+        'Removes the registry entry, records a work_abandoned event, and PRESERVES the ' +
+        'feature status (in_progress stays in_progress — no rollback in 0.4.x). A later ' +
+        'enter_work on the same featureId resumes from the same status.',
+      inputSchema: {
+        featureId: z
+          .string()
+          .regex(/^F-(\d{3,}|[a-f0-9]{6,})$/)
+          .describe('Same featureId that was passed to enter_work.'),
+        reason: z.string().describe('Why the work is being abandoned (recorded in the event log).'),
+      },
+    },
+    async (args) => {
+      try {
+        const result = abandonWork({featureId: args.featureId, reason: args.reason, cwd});
+        return {content: [{type: 'text', text: JSON.stringify(result, null, 2)}]};
+      } catch (err) {
+        return {isError: true, content: [{type: 'text', text: (err as Error).message}]};
       }
     },
   );

@@ -1,0 +1,56 @@
+id: F-89406c
+slug: execute-work-mcp-tool
+title: "execute_work MCP tool — single-feature transaction with scope-aware iron law"
+status: in_progress
+modules:
+  - src/work/transaction.ts
+  - src/serve/server.ts
+acceptance_criteria:
+  - id: AC-001
+    text: >-
+      MCP tool enter_work({featureId, intent?}) is registered on the
+      cladding MCP server. Calling it transitions the feature from
+      planned → in_progress via src/spec/update.ts:updateFeatureStatus
+      (already idempotent if the feature is already in_progress) and
+      adds the feature to the active-work registry.
+  - id: AC-002
+    text: >-
+      enter_work response carries {persona_prompt, spec_scope:
+      {slug, modules}, instructions} so the host AI adopts the
+      specialists persona for the next turn (option 1 — cladding
+      never dispatches an LLM itself, the host's own model is used).
+      Read-only call to src/spec/update.ts:getFeatureScope.
+  - id: AC-003
+    text: >-
+      MCP tool complete_work({featureId, evidence?}) runs the
+      scope-aware iron law: src/stages/drift.ts runDrift({scope:
+      feature.modules}) plus type/lint/arch gates plus the reviewer
+      persona dispatch (anti-self-cert enforced via the existing
+      ReviewerIdentityCollisionError barrier). On pass, the feature
+      transitions in_progress → done and any supplied evidence is
+      appended via src/spec/update.ts:appendEvidence.
+  - id: AC-004
+    text: >-
+      MCP tool abandon_work({featureId, reason}) removes the feature
+      from the active-work registry, preserves its current status
+      (no rollback in 0.4.x — that's a 0.5.x candidate), and emits a
+      `work_abandoned` event into .cladding/events.log.jsonl carrying
+      the reason text.
+  - id: AC-005
+    text: >-
+      All three tool descriptions include the Layer-B compulsion
+      string "MUST be called before any Edit/Write/file-mutation
+      tool" so host AI prompt-engineering picks it up alongside the
+      AGENTS.md/CLAUDE.md trigger guidance (Layer A from F-8880ee).
+  - id: AC-006
+    text: >-
+      Invalid status transitions thrown by updateFeatureStatus
+      (e.g. enter_work on an archived feature) surface as a structured
+      MCP tool error with the offending transition (`planned → done`,
+      `archived → in_progress`), not a generic exception.
+  - id: AC-007
+    text: >-
+      Every enter_work / complete_work / abandon_work emits a typed
+      event into .cladding/events.log.jsonl so the Layer-D post-hoc
+      orchestrator (planned for 0.4.6) can later detect unmapped
+      Edit/Write that occurred outside any active transaction.

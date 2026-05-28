@@ -5,6 +5,32 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — 0.5.0 transaction MCP tools #2 (F-89406c / F-d23cd4 / F-ca18ea)
+
+Second patch of the 0.5.0 work/drive transaction roadmap. Lands the first wire-level surface — `enter_work` / `complete_work` / `abandon_work` MCP tools, the lifecycle FSM behind them, and the SSoT artifacts that anchor the 0.5.0 vision in spec.
+
+### Added
+
+- **`src/work/transaction.ts`** + **`src/work/registry.ts`** (F-89406c / F-ca18ea) — the single-feature work transaction layer:
+  - `enterWork({featureId, intent?, personaId?})` — transitions feature `planned → in_progress` via `src/spec/update.ts:updateFeatureStatus`, registers the active-work entry under `.cladding/work-registry.json`, returns persona prompt + scoped module list. Idempotent on featureId (a second call returns `'resumed'` without re-emitting events or re-touching status).
+  - `completeWork({featureId, evidence?})` — runs the scope-aware drift gate (`runDrift({scope: feature.modules})` from 0.4.2), transitions `in_progress → done` on pass and appends optional evidence via `appendEvidence`. Fail branch keeps status as `in_progress`, returns drift findings, and leaves the registry entry so the caller can retry after fixing the drift.
+  - `abandonWork({featureId, reason})` — preserves status, removes the registry entry, emits a `work_abandoned` event.
+  - `.cladding/work-registry.json` atomic-written via temp-file + rename (same pattern as `src/spec/update.ts`); survives cladding-server restart so mid-flight transactions are not silently lost.
+- **`src/serve/server.ts`** — `enter_work` / `complete_work` / `abandon_work` MCP tools registered. Each tool `description` carries the Layer-B compulsion string ("**MUST** be called BEFORE any Edit / Write / file-mutation tool when …") so host-AI prompt-engineering picks it up alongside the Layer-A trigger guidance in `AGENTS.md` / `CLAUDE.md` (F-8880ee, landed in 0.4.1).
+- **`src/events/log.ts`** — 4 new `EventType` variants: `work_entered` / `work_completed` / `work_abandoned` / `work_timed_out`.
+- **Spec shards** (Tier A): `spec/features/execute-work-mcp-tool-89406c.yaml` (F-89406c, 7 AC), `execute-drive-mcp-tool-d23cd4.yaml` (F-d23cd4, 6 AC — wire-level lands in 0.4.4), `work-transaction-state-machine-ca18ea.yaml` (F-ca18ea, 6 AC).
+- **Scenario** (Tier A): `spec/scenarios/ai-host-autonomous-feature-development-d21acd.yaml` (S-d21acd) — the live user-journey anchor `execute_drive` will target in 0.4.4.
+- **`spec/architecture.yaml`** — new `work` layer (middle tier, peer of `stages` / `adapters`) + forbidden_imports (`spec → work`, `work → drive`, `work → serve`, `work → cli`).
+- **`spec/capabilities.yaml`** — new `work-transactions` capability binding F-bb3c9f + F-89406c + F-d23cd4 + F-ca18ea.
+- **`docs/0.5.0-architecture.md`** — Tier-B design doc: 4-layer defense (A/B/C/D), persona dispatch option 1 (host AI is the LLM — cladding never dispatches), implicit-close lifecycle (host Stop hook / next-prompt switch / wall-clock timeout), and the rationale for rejecting watch-daemon + host-specific-only models.
+- **`tests/work/registry.test.ts`** (9 tests) + **`tests/work/transaction.test.ts`** (8 tests) — 17 new unit tests covering load/save/atomic/expired + enter/complete/abandon + transition validation + idempotence + iron-law pass/fail branches.
+
+### Why
+
+0.4.2 landed the writer + scope-aware drift; this patch puts the actual transaction tools on the wire and registers the SSoT shape the 0.5.0 roadmap leans on. The work transaction is the host-agnostic boundary — host AIs reach for `enter_work` via MCP regardless of whether the underlying host is Claude Code, Cursor, Codex, or Gemini, because MCP transport is the one piece that genuinely is host-agnostic in 2026. `execute_drive` is registered in spec (F-d23cd4) but its wire-level implementation + orchestrator routing land in 0.4.4 — the boundary between work and drive is now spec-anchored (drive = scenario unit, work = feature unit) and architecturally enforced via the new `work` layer.
+
+Tests: 1011/1011 (was 994, +17 new). No regression on the existing suites or on the drift baseline.
+
 ## [Unreleased] — 0.5.0 transaction foundation #1 (F-bb3c9f)
 
 First patch of the 0.5.0 work/drive transaction roadmap. Adds the two pieces every later patch depends on: an atomic spec-yaml writer for status / evidence mutations, and a scope filter on the drift stage so a `work` transaction can run drift detection scoped to the feature's modules only (instead of the project-wide 27-detector full scan).

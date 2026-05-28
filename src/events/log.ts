@@ -35,7 +35,18 @@ export type EventType =
   //   error:           string              // present iff cause === 'dispatcher_error' (truncated)
   // Configured-no-LLM paths (dispatcher === null or ctx === null) do NOT emit;
   // they are deliberate offline/greenfield runs, not a miss.
-  | 'sentinel_miss';
+  | 'sentinel_miss'
+  // v0.4.3 — work transaction lifecycle (F-89406c / F-d23cd4 / F-ca18ea).
+  // Emitted by src/work/transaction.ts on every enter / complete / abandon
+  // / implicit-close trigger. Standard payload:
+  //   feature:    string  // featureId
+  //   intent?:    string  // free text from the caller (enter_work only)
+  //   reason?:    string  // abandon reason or timeout cause
+  //   driftPass?: boolean // complete_work scope-aware iron law result
+  | 'work_entered'
+  | 'work_completed'
+  | 'work_abandoned'
+  | 'work_timed_out';
 
 /** One JSONL line in events.log.jsonl. */
 export interface Event {
