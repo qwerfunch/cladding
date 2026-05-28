@@ -13,7 +13,7 @@
 // invaluable as cladding evolves — refactoring the schema and
 // forgetting to update types.ts surfaces immediately.
 
-import {readFileSync} from 'node:fs';
+import {existsSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
 
 import {loadSpec} from '../../spec/load.js';
@@ -33,6 +33,15 @@ function runMetaIntegrity(opts: CommandStageOptions): readonly DriftFinding[] {
   const {cwd = '.'} = opts;
   const schemaPath = join(cwd, 'src', 'spec', 'schema.json');
   const findings: DriftFinding[] = [];
+
+  // META_INTEGRITY is a self-check on cladding's own spec subsystem —
+  // it verifies that the checked-in JSON Schema declares the keys the
+  // runtime types depend on. External user projects do NOT ship that
+  // file (the schema lives inside the cladding npm package's dist).
+  // Skip silently when the schema is absent at cwd so the detector
+  // is a self-check inside cladding's repo and a no-op everywhere
+  // else, instead of a false-positive ERROR on every clad check.
+  if (!existsSync(schemaPath)) return findings;
 
   let schema: SchemaShape;
   try {

@@ -78,12 +78,15 @@ describe('META_INTEGRITY detector', () => {
     expect(findings[0].message).toContain('unreadable or invalid JSON');
   });
 
-  test('schema.json absent → single error finding (early return)', () => {
-    // No spec/schema.json written
+  test('schema.json absent → silent no-op (external user projects do not ship the schema)', () => {
+    // No spec/schema.json written. Pre-0.5.1 behaviour was to emit
+    // an ERROR finding here, but that fired on every external user
+    // project (the schema lives inside the cladding npm package, not
+    // in the user's cwd). META_INTEGRITY is a maintainer self-check
+    // — when the schema is absent there's nothing to check, so the
+    // detector returns no findings rather than a false positive.
     const findings = metaIntegrity.run({cwd: dir});
-    expect(findings).toHaveLength(1);
-    expect(findings[0].severity).toBe('error');
-    expect(findings[0].message).toContain('unreadable');
+    expect(findings).toEqual([]);
   });
 
   test('spec.yaml schema version unsupported → error finding', () => {
