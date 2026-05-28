@@ -1,0 +1,22 @@
+id: F-e528a6
+slug: bin-clad-windows-esm-shim
+title: "bin/clad uses pathToFileURL for Windows ESM dynamic import"
+status: in_progress
+modules:
+  - bin/clad
+acceptance_criteria:
+  - id: AC-001
+    text: >-
+      bin/clad wraps the dist bundle absolute path in pathToFileURL(...).href
+      before passing it to await import(), so Windows users can run any
+      `clad <verb>` command without ERR_UNSUPPORTED_ESM_URL_SCHEME.
+  - id: AC-002
+    text: >-
+      POSIX (macOS / Linux) behavior is unchanged — pathToFileURL is
+      idempotent for absolute paths, and `node bin/clad --help` /
+      `node bin/clad --version` continue to work as before.
+  - id: AC-003
+    text: >-
+      Development fallback (dist absent) is untouched — the spawnSync
+      branch that invokes tsx with src/cli/clad.ts still runs verbatim
+      because spawn args do not go through the ESM loader.

@@ -16,11 +16,12 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **`bin/clad`** (F-e528a6) — wrap the dist bundle absolute path in `pathToFileURL(...).href` before `await import()`. Windows users hit `ERR_UNSUPPORTED_ESM_URL_SCHEME` immediately on any `clad <verb>` invocation because Node's ESM loader read `C:` as a URL scheme; POSIX worked by accident because `/`-leading paths are accepted unwrapped. Fixes Windows being a hard blocker for every `clad <verb>` since v0.4.0.
 - **`scripts/version-bump.mjs`** — SITES entry #2 updated from the stale `.claude-plugin/plugin.json` to `plugins/claude-code/.claude-plugin/plugin.json`. The file moved in v0.4.0 (commit `ccd9bf1`) but the bump script was not refreshed at that time, so v0.4.0 shipped with one site silently un-bumped (ENOENT swallowed). With the fix, `npm run version-bump -- X.Y.Z` once again touches all 7 sites atomically.
 
 ### Why
 
-Pre-v0.4.0 templates explained that `spec.yaml` is SSoT and that `clad_create_feature` is the right tool, but never said *when* to call it. In practice AI sessions skipped feature registration whenever the user phrased the request as "fix X" / "refactor Y" or worked through Claude Code plan mode first — `spec/features/` stayed empty while real code was being written. Closing the gap at the guidance layer is cheaper than adding a runtime hook and plays well with the existing `UNMAPPED_ARTIFACT` safety net. A self-review pass then corrected one misleading shorthand ("slug field is editable" → full rename procedure) and unified the imperative voice across the two template surfaces. The 0.4.1 cut also picks up the version-bump path fix discovered while preparing this release.
+Pre-v0.4.0 templates explained that `spec.yaml` is SSoT and that `clad_create_feature` is the right tool, but never said *when* to call it. In practice AI sessions skipped feature registration whenever the user phrased the request as "fix X" / "refactor Y" or worked through Claude Code plan mode first — `spec/features/` stayed empty while real code was being written. Closing the gap at the guidance layer is cheaper than adding a runtime hook and plays well with the existing `UNMAPPED_ARTIFACT` safety net. A self-review pass then corrected one misleading shorthand ("slug field is editable" → full rename procedure) and unified the imperative voice across the two template surfaces. The 0.4.1 cut also bundles two release/install pipeline fixes discovered while preparing this release — the `version-bump.mjs` SITES path and a Windows ESM shim in `bin/clad` that blocked every `clad <verb>` invocation on Windows since v0.4.0.
 
 ## [0.4.0] — 2026-05-27 — `clad setup` command — split npm install from host wire (F-80d19d)
 

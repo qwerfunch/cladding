@@ -12,7 +12,7 @@
 
 import {existsSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
-import {fileURLToPath} from 'node:url';
+import {fileURLToPath, pathToFileURL} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import process from 'node:process';
 
@@ -20,7 +20,11 @@ const here = dirname(fileURLToPath(import.meta.url));
 const bundle = resolve(here, '..', 'dist', 'clad.js');
 
 if (existsSync(bundle)) {
-  await import(bundle);
+  // Wrap in `pathToFileURL(...).href` so Windows absolute paths (`C:\…`)
+  // become valid `file://` URLs. POSIX `/`-leading paths worked unwrapped
+  // by accident; Windows raised ERR_UNSUPPORTED_ESM_URL_SCHEME because
+  // Node's ESM loader read `C:` as a URL scheme. See F-e528a6.
+  await import(pathToFileURL(bundle).href);
 } else {
   const source = resolve(here, '..', 'src', 'cli', 'clad.ts');
   const result = spawnSync('npx', ['tsx', source, ...process.argv.slice(2)], {
