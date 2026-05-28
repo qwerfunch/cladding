@@ -5,6 +5,42 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — 0.5.0 transaction MCP tools #5 — reviewer guidance + Layer-D auditor (F-89406c)
+
+Fifth patch of the 0.5.0 work/drive transaction roadmap. Adds two pieces of the **four-layer defense** outlined in `docs/0.5.0-architecture.md`:
+- the **reviewer guidance** the host AI needs to self-switch personas after `complete_work` (option-1 dispatch),
+- the **Layer-D auditor** that surfaces still-open transactions and orphan windows from the event log.
+
+### Added
+
+- **`src/work/audit.ts`** (Layer-D) — `auditWorkCompliance({cwd, sinceMs?, orphanThresholdMs?, now?})` reads `.cladding/events.log.jsonl`, pairs `work_entered` with the matching close (`completed | abandoned | timed_out`), and returns:
+  - `openTransactions` — still-open work with their `ageMs`,
+  - `transactions` — full record with `enteredAt` / `closedAt` / `durationMs`,
+  - `orphanWindows` — temporal gaps between transactions where the host AI may have edited code outside any work scope,
+  - `summary` — counts per status.
+  Read-only. File-system diff cross-referencing lands in 0.4.7 once the per-host `PreToolUse` hook adapter is wired.
+- **`src/serve/server.ts`** — new MCP tool `audit_work_compliance` registered, exposing the Layer-D report to host AIs.
+
+### Changed
+
+- **`src/work/transaction.ts`** `completeWork`:
+  - On `status: 'completed'`, the result now carries **`reviewerGuidance: string`** — the reviewer persona body the host AI is expected to adopt for a self-review pass on the next turn (option-1 dispatch, same model as `enterWork`'s specialists prompt).
+  - Persona-load failure is non-fatal (`reviewerGuidance` stays undefined) so the already-successful status transition does not regress on a stray missing-file error.
+- **`src/serve/server.ts`** `complete_work` description updated to mention the new `reviewerGuidance` field.
+
+### Why
+
+The 0.5.0 four-layer defense calls for a reviewer dispatch step plus a post-hoc orchestrator that flags work happening outside any registered transaction. This patch lands the host-agnostic, write-free parts:
+- reviewer guidance is just a string in the response — the host AI's own LLM does the review (option-1 dispatch); no MCP sampling dependency.
+- the auditor reads the event log only — no file-system observation, no git invocation — so it works on every host where cladding runs and surfaces actionable signal (open transactions to resume / abandon, orphan windows to investigate).
+
+**Intentionally deferred:**
+- Identity-checked `review_work` MCP tool with the existing `ReviewerIdentityCollisionError` runtime barrier — 0.5.x, once anti-self-cert rollback transactions land.
+- File-system diff cross-referencing (orphan window → actual unmapped files) — 0.4.7, alongside the Layer-C per-host hook adapter.
+- Layer-A trigger guidance v2 (AGENTS.md / CLAUDE.md namedrop of `enter_work` / `execute_drive`) — must land after PR #164 (v1 trigger guidance) merges to avoid `host-instructions.ts` conflict.
+
+Tests: 1032/1032 (was 1023, +9 new on the auditor). No regression.
+
 ## [Unreleased] — 0.5.0 transaction MCP tools #4 — completeWork L1 gates (F-89406c)
 
 Fourth patch of the 0.5.0 work/drive transaction roadmap. Closes the iron-law gap in `completeWork` — drift was already gating in 0.4.3; this patch adds the remaining L1 stages (type / lint / arch). The work transaction now runs the full L1 band before transitioning a feature to `done`.

@@ -154,6 +154,16 @@ export interface CompleteWorkResult {
     readonly message: string;
   }>;
   readonly evidenceAppended: number;
+  /**
+   * Reviewer persona body — present only on `status: 'completed'`. The
+   * host AI is expected to adopt this persona for a self-review pass
+   * on the next turn (option-1 dispatch, like enterWork). A future
+   * identity-checked `review_work` MCP tool will land in 0.5.x once
+   * the anti-self-cert rollback transaction is in place; until then
+   * Layer-A trigger guidance (AGENTS.md / CLAUDE.md) carries the
+   * caller-side discipline.
+   */
+  readonly reviewerGuidance?: string;
 }
 
 /**
@@ -263,12 +273,25 @@ export function completeWork(opts: CompleteWorkOptions): CompleteWorkResult {
     }),
   );
 
+  // 0.4.6 — return reviewer guidance so the host AI can self-switch
+  // personas on the next turn. Persona body loaded lazily; failure here
+  // (missing reviewer.md, agents dir not resolved) should not block the
+  // already-successful transition, so we swallow and leave guidance
+  // undefined.
+  let reviewerGuidance: string | undefined;
+  try {
+    reviewerGuidance = loadPersona('reviewer').body;
+  } catch {
+    // Persona load failure is non-fatal for the transition.
+  }
+
   return {
     featureId: opts.featureId,
     status: 'completed',
     gates,
     driftFindings: findings,
     evidenceAppended,
+    reviewerGuidance,
   };
 }
 

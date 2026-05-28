@@ -33,6 +33,7 @@ import {subscribeAudit} from '../hitl/audit.js';
 import {loadSpec} from '../spec/load.js';
 import {createFeature, createScenario} from '../spec/new.js';
 import {runDrift} from '../stages/drift.js';
+import {auditWorkCompliance} from '../work/audit.js';
 import {completeDrive, executeDrive} from '../work/drive-transaction.js';
 import {abandonWork, completeWork, enterWork} from '../work/transaction.js';
 
@@ -60,6 +61,8 @@ export const TOOL_NAMES = [
   // 0.4.4 — drive transaction MCP tools (F-d23cd4).
   'execute_drive',
   'complete_drive',
+  // 0.4.6 — Layer-D auditor MCP tool (F-89406c, plan §"4-Layer defense").
+  'audit_work_compliance',
 ] as const;
 
 /** Resource URIs cladding's MCP server exposes (stable wire identifiers). */
@@ -440,13 +443,16 @@ function registerTools(server: McpServer, cwd: string): void {
   server.registerTool(
     'complete_work',
     {
-      title: 'Close a work transaction with the scope-aware iron law gate',
+      title: 'Close a work transaction with the full L1 iron-law gate',
       description:
-        'MUST be called AFTER the last code-edit tool call of a work transaction. Runs ' +
-        'scope-aware drift detection (the 27 detectors restricted to feature.modules), ' +
-        'transitions the feature in_progress → done on pass, appends any supplied evidence ' +
-        'refs, and removes the registry entry. On iron-law failure the status stays ' +
-        'in_progress and the call can be retried after fixing the drift.',
+        'MUST be called AFTER the last code-edit tool call of a work transaction. Runs the ' +
+        'full L1 band — drift (27 detectors scoped to feature.modules) + type (stage 1.1) + ' +
+        'lint (stage 1.2) + arch (stage 1.5). On pass: transitions the feature in_progress → ' +
+        'done, appends any supplied evidence refs, removes the registry entry, and returns a ' +
+        '`reviewerGuidance` field carrying the reviewer persona body — the host AI is expected ' +
+        'to self-switch personas on the next turn and audit the change before the user merges. ' +
+        'On iron-law failure the status stays in_progress and the call can be retried after ' +
+        'fixing the offending gate.',
       inputSchema: {
         featureId: z
           .string()
@@ -567,6 +573,52 @@ function registerTools(server: McpServer, cwd: string): void {
     async (args) => {
       try {
         const result = completeDrive({scenarioId: args.scenarioId, cwd});
+        return {content: [{type: 'text', text: JSON.stringify(result, null, 2)}]};
+      } catch (err) {
+        return {isError: true, content: [{type: 'text', text: (err as Error).message}]};
+      }
+    },
+  );
+
+  // ── 0.4.6 Layer-D auditor ──
+  // Read-only inspection of .cladding/events.log.jsonl. Surfaces still-
+  // open transactions, completed/abandoned/timed-out records, and the
+  // temporal "orphan windows" between transactions where the host AI
+  // may have edited code outside any work scope.
+
+  server.registerTool(
+    'audit_work_compliance',
+    {
+      title: 'Layer-D compliance audit — open transactions + orphan windows',
+      description:
+        'Call at the end of a turn (or when a session resumes) to inspect recent work ' +
+        'transactions. Reports still-open transactions (caller should resume or abandon), ' +
+        'completed / abandoned / timed-out records, and temporal "orphan windows" where ' +
+        'the host AI may have edited code outside any transaction. 0.4.6 is event-log ' +
+        'analysis only; file-system diff cross-referencing lands in 0.4.7 once the ' +
+        'per-host PreToolUse hook adapter is wired.',
+      inputSchema: {
+        sinceMs: z
+          .number()
+          .int()
+          .positive()
+          .optional()
+          .describe('Only consider events newer than this many ms. Default: 86_400_000 (24h).'),
+        orphanThresholdMs: z
+          .number()
+          .int()
+          .nonnegative()
+          .optional()
+          .describe('Orphan windows shorter than this are ignored. Default: 5_000 (5s).'),
+      },
+    },
+    async (args) => {
+      try {
+        const result = auditWorkCompliance({
+          cwd,
+          sinceMs: args.sinceMs,
+          orphanThresholdMs: args.orphanThresholdMs,
+        });
         return {content: [{type: 'text', text: JSON.stringify(result, null, 2)}]};
       } catch (err) {
         return {isError: true, content: [{type: 'text', text: (err as Error).message}]};
