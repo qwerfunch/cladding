@@ -5,6 +5,34 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — 0.5.0 transaction MCP tools #8 — Codex + Cursor Layer-C hooks (F-89406c)
+
+Eighth patch of the 0.5.0 work/drive transaction roadmap. Extends the Layer-C pre-edit enforcement hook from Claude Code (0.4.7) to Codex CLI and Cursor IDE. Same host-agnostic `.cladding/work-registry.json` check; both new scripts use the universal **`exit 2 + stderr message`** deny pattern (Claude Code uses the `hookSpecificOutput` JSON shape it formalised first).
+
+### Added
+
+- **`plugins/codex/hooks/pre-tool-use.mjs`** — Codex CLI PreToolUse hook script. Mirrors the Claude Code wire-up. Deny path: `exit 2` + stderr message naming `enter_work` / `execute_drive`. Same fail-open semantics for missing registry / corrupt JSON / malformed stdin.
+- **`plugins/cursor/hooks/pre-edit.mjs`** — Cursor IDE pre-edit hook script. Same semantics. Targets the closest-to-PreToolUse event Cursor v1.7+ exposes via `~/.cursor/hooks.json` (`beforeShellExecution` / `beforeMCPExecution` are the closest analogues — see the manual wire-up snippet in `plugins/cursor/README.md`).
+- **`plugins/cursor/README.md`** — new file. Documents the Cursor integration surface (MCP via `~/.cursor/mcp.json` + hooks via `~/.cursor/hooks.json` + per-project `.cursorrules`), the manual hook wire-up, and the auto-wire roadmap.
+- **`tests/work/hooks-multi-host.test.ts`** — 12 new tests (6 per host) covering the same matrix as the Claude Code suite: no-registry / empty / active / corrupt / malformed-stdin / empty-payload branches.
+
+### Intentionally deferred
+
+- **Auto-wire via `clad setup`** — `wireCodexHook` / `wireCursorHook` helpers alongside the existing `wireCodexMcp` / `wireCursorMcp`. Gated on each host's hook-manifest schema stabilising in their public docs. Until then, manual wire-up per `plugins/cursor/README.md`.
+- **Gemini CLI lifecycle hooks** — Gemini's `BeforeTool` / `AfterTool` / etc. are documented as CLI-internal callbacks (no `~/.gemini/extensions/...` registration path for cladding to wire). Defer pending confirmation that Gemini exposes an external-script hook surface.
+- **Codex Automations** (webhook + cron external triggers) — separate integration surface from inline hooks. Deferred as a 0.5.x experiment — useful for CI / cron-driven cladding runs rather than inline Layer-C enforcement.
+
+### Why now
+
+0.4.7 landed Claude Code Layer-C. cladding's MCP server already serves Codex and Cursor as first-class hosts via `clad setup`; extending Layer-C to those two hosts means the same defense level applies to ~80% of cladding usage instead of just Claude Code.
+
+The exit 2 + stderr pattern was chosen for the new scripts (vs the `hookSpecificOutput` JSON pattern Claude Code's hook spec defines) because:
+
+1. **Universal** — every host that runs hook scripts surfaces exit-code-2 + stderr back to the user model. The Claude Code JSON shape may or may not be supported by Codex / Cursor without docs verification.
+2. **Forward-compatible** — once Codex / Cursor publish their exact hook-response contract, swap the scripts to the richer JSON shape. The exit-code path stays as the fallback.
+
+Tests: 1047/1047 (was 1035, +12 new on the two host hooks). No regression.
+
 ## [Unreleased] — 0.5.0 transaction MCP tools #7 — remove `clad work` / `clad drive` CLI surface (F-89406c)
 
 Seventh patch of the 0.5.0 work/drive transaction roadmap. **BREAKING CHANGE** — removes the `clad work` and `clad drive` CLI commands. Both are now MCP-only: host AIs reach for `enter_work` / `complete_work` / `abandon_work` / `execute_drive` / `complete_drive` via the cladding MCP server (`clad serve`).
