@@ -5,6 +5,33 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — 0.5.0 multi-agent first #1 — agents/routing.yaml + deterministic resolver (PR-A.1)
+
+First sub-patch of the 0.5.0 multi-agent first redesign. PR-A is sub-split into A.1/A.2/A.3 to keep each PR reviewable (~300-500 lines each). A.1 is the foundation — pure deterministic routing logic that A.2 (frontmatter expansion) and A.3 (4-host transpile + dispatchHint) build on.
+
+### Added
+
+- **`agents/routing.yaml`** (new) — intent + `scope.modules` → persona mapping. 7 default rules: `spec-mutation` (spec/* → librarian) / `stage-or-detector` (src/stages/* → specialists) / `architecture-review` (intent tokens → reviewer) / `observability` (intent tokens → observability) / `hitl-or-audit` (src/hitl/* → reviewer) / `work-or-drive-transaction` (src/work, src/drive → specialists) / `default` (→ specialists). First-match-wins, AND between fields (`module_prefix` + `intent_tokens`), OR within field. Trailing slash on prefixes optional.
+- **`src/agents/routing.ts`** (new) — `resolvePersona({featureId, intent, scope, cwd, preferredPersona?})` returns `{personaId, matchedRule, parallelGroup?}`. Pure function — same input always same output. Failures (missing/malformed yaml) collapse to fallback `'specialists'` with `matchedRule: '__fallback__'`. `spec.yaml::project.ai_hints.preferred_persona` (passed as `preferredPersona`) overrides only on the default rule (`matchedRule: 'default+ai_hints'`).
+- **`tests/agents/routing.test.ts`** — 12 tests covering: no-yaml fallback / module_prefix match / intent_tokens match / first-match-wins / AND between fields / preferredPersona tie-breaker on default only / non-default rules ignore preferredPersona / malformed yaml / empty rules array / trailing-slash optional / exact path match / case-insensitive intent matching.
+
+### Why
+
+The 0.4.x line ended with `enter_work` defaulting to `personaId: 'specialists'` when the caller didn't supply one (`src/work/transaction.ts:69`). The 0.5.0 multi-agent first redesign needs the host AI to dispatch the *right* persona for each work (librarian for spec edits, reviewer for audits, observability for telemetry, etc.). Hard-coding the matrix inside `enterWork` is brittle; externalizing it to `agents/routing.yaml` makes the matrix:
+- editable per-project (overriding the default cladding rules)
+- inspectable (the resolved rule name flows into the `work_entered` event payload in PR-A.3)
+- testable in isolation (no work-transaction setup needed for routing tests)
+
+A.1 is wire-free — `resolvePersona` is not yet called from `enterWork`. PR-A.3 wires it. Shipping the resolver standalone first means A.2's frontmatter changes don't accidentally bundle a behaviour change.
+
+### Sub-PR split
+
+- **A.1 (this PR)** — `agents/routing.yaml` + `src/agents/routing.ts` + tests
+- A.2 — persona frontmatter expansion (model / permissionMode / sandbox_mode / maxTurns / skills / isolation) + `src/agents/loader.ts` + `PersonaSpec.hostHints` + `detect_host` MCP tool
+- A.3 — `scripts/build-plugin.mjs` 4-host transpile + `enterWork` dispatchHint + `work_entered.routing` event payload
+
+Tests: 1059/1059 (was 1047, +12 new). No regression.
+
 ## [Unreleased] — 0.5.0 transaction MCP tools #8 — Codex + Cursor Layer-C hooks (F-89406c)
 
 Eighth patch of the 0.5.0 work/drive transaction roadmap. Extends the Layer-C pre-edit enforcement hook from Claude Code (0.4.7) to Codex CLI and Cursor IDE. Same host-agnostic `.cladding/work-registry.json` check; both new scripts use the universal **`exit 2 + stderr message`** deny pattern (Claude Code uses the `hookSpecificOutput` JSON shape it formalised first).

@@ -1,0 +1,68 @@
+# Cladding · agents · routing config (0.4.10, PR-A)
+#
+# Deterministic intent + scope → persona mapping. Evaluated top-to-bottom;
+# the first rule whose `when` matches wins.
+#
+# Consumed by:
+#   - src/agents/routing.ts:resolvePersona — pure-data resolver used by
+#     src/work/transaction.ts:enterWork when no explicit personaId.
+#
+# Match semantics (when clause; any field listed = AND, list values = OR):
+#   - module_prefix: array of path prefixes. Match if any feature.modules[]
+#     starts with any prefix (trailing '/' optional).
+#   - intent_tokens: array of lowercase substrings. Match if intent text
+#     contains any token (intent is lowercased before matching).
+#   - Empty when: {} = default rule (always matches; place last).
+#
+# Override priority:
+#   1. Explicit enterWork({personaId: ...}) — bypasses routing entirely.
+#   2. First-match rule below.
+#   3. spec.yaml::project.ai_hints.preferred_persona — tie-breaker for the
+#      default rule only (when matchedRule === '__fallback__').
+#   4. Hard-coded fallback: 'specialists'.
+#
+# parallel_group: features sharing the same group key within a drive's
+# topological level run sequentially (single sub-agent); different keys
+# run concurrently. Used by 0.4.11 execute_drive parallel dispatch.
+version: 1
+rules:
+  - name: spec-mutation
+    when:
+      module_prefix: [spec/, src/spec/]
+    persona: librarian
+    parallel_group: spec
+
+  - name: stage-or-detector
+    when:
+      module_prefix: [src/stages/]
+    persona: specialists
+    parallel_group: stages
+
+  - name: architecture-review
+    when:
+      intent_tokens: [review, architecture, philosophy, audit, guardrail]
+    persona: reviewer
+    # No parallel_group — reviewer is single-threaded by design (anti-self-cert).
+
+  - name: observability
+    when:
+      intent_tokens: [doctor, logs, drift, diagnose, metric, telemetry]
+    persona: observability
+    parallel_group: obs
+
+  - name: hitl-or-audit
+    when:
+      module_prefix: [src/hitl/]
+    persona: reviewer
+    # No parallel_group.
+
+  - name: work-or-drive-transaction
+    when:
+      module_prefix: [src/work/, src/drive/]
+    persona: specialists
+    parallel_group: work
+
+  - name: default
+    when: {}
+    persona: specialists
+    parallel_group: code
