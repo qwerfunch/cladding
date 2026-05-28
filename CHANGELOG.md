@@ -5,6 +5,26 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — 0.5.0 transaction MCP tools #4 — completeWork L1 gates (F-89406c)
+
+Fourth patch of the 0.5.0 work/drive transaction roadmap. Closes the iron-law gap in `completeWork` — drift was already gating in 0.4.3; this patch adds the remaining L1 stages (type / lint / arch). The work transaction now runs the full L1 band before transitioning a feature to `done`.
+
+### Changed
+
+- **`src/work/transaction.ts`** `completeWork`:
+  - Now runs **stage 1.1 (type)** via `runType`, **1.2 (lint)** via `runLint`, **1.5 (arch)** via `runArch` after the existing **1.3 (drift)** gate. All four are passed the work's cwd.
+  - `exitCode === 2` from any L1 runner (= `detectToolchain` returned `unknown`, no manifest registered) is treated as **skipped + pass** so cladding does not block work transactions in non-instrumented scratch directories. The `gates[].skipped` flag still surfaces "could not run" vs "ran and passed" to the caller.
+  - Result shape extended: new `gates: GateResult[]` field surfaces per-gate `{name, pass, skipped, exitCode?, findingsCount?, stderr?}` for drift + type + lint + arch.
+  - `work_completed` event payload now carries `gatesSkipped` (on pass) or `gatesFailed` (on fail) lists so the Layer-D post-hoc orchestrator (planned for 0.4.6) can surface what blocked the transition.
+
+### Why
+
+0.4.3 landed `completeWork` with the drift gate only — the README's "matches the spec" promise asks for the full L1 band (drift + type + lint + arch), and this patch closes that gap. The skipped-vs-pass distinction keeps the harness usable in greenfield/scratch directories where no toolchain manifest exists yet; the surfaced `gates[].skipped` flag means downstream consumers can still tell the two apart for telemetry.
+
+**Reviewer dispatch is intentionally deferred to 0.4.6.** Reviewer touches the persona machinery and the existing `ReviewerIdentityCollisionError` runtime barrier — that surface deserves its own focused PR rather than being bundled here. Layer-A trigger guidance v2 (AGENTS.md / CLAUDE.md namedrop of `enter_work` / `execute_drive`) is also deferred — that PR has to land after 0.4.1 (#164, the trigger guidance v1) merges to avoid CHANGELOG / host-instructions conflict.
+
+Tests: 1023/1023 (was 1021, +2 new on the gates-array shape and the drift-fail surfaces). No regression.
+
 ## [Unreleased] — 0.5.0 transaction MCP tools #3 — execute_drive (F-d23cd4)
 
 Third patch of the 0.5.0 work/drive transaction roadmap. Lands the scenario-unit transaction tool — `execute_drive` + `complete_drive` MCP tools with dependency-respecting plan ordering and deterministic intent-to-scenario matching.

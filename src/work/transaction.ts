@@ -20,7 +20,10 @@ import {
   FeatureNotFoundError,
   InvalidStatusTransitionError,
 } from '../spec/update.js';
+import {runArch} from '../stages/arch.js';
 import {runDrift} from '../stages/drift.js';
+import {runLint} from '../stages/lint.js';
+import {runType} from '../stages/type.js';
 import {
   type ActiveWork,
   getActiveWork,
@@ -125,9 +128,24 @@ export interface CompleteWorkOptions {
   readonly cwd?: string;
 }
 
+export interface GateResult {
+  readonly name: 'drift' | 'type' | 'lint' | 'arch';
+  readonly pass: boolean;
+  /** True iff the gate could not run for lack of toolchain (exitCode 2 from stage runners). Counted as `pass` for compatibility — production callers still surface this in the result. */
+  readonly skipped: boolean;
+  /** Underlying stage exitCode (0 = pass; 2 = toolchain absent; other = real fail). */
+  readonly exitCode?: number;
+  /** Drift findings (drift gate only). Empty for the other three. */
+  readonly findingsCount?: number;
+  /** Stage stderr (when present). */
+  readonly stderr?: string;
+}
+
 export interface CompleteWorkResult {
   readonly featureId: string;
   readonly status: 'completed' | 'iron_law_failed';
+  /** Per-gate results: drift + type + lint + arch (0.4.5). */
+  readonly gates: ReadonlyArray<GateResult>;
   /** Scope-aware drift report — present in both pass and fail branches. */
   readonly driftFindings: ReadonlyArray<{
     readonly detector: string;
@@ -146,15 +164,22 @@ export interface CompleteWorkResult {
  * (caller may retry complete_work after fixing the drift), event
  * carries `driftPass: false`.
  *
- * 0.4.3 scope: stage 1.3 (drift, scoped to feature.modules). Adding
- * the L1 gates (type / lint / arch) and the reviewer dispatch is the
- * 0.4.5 patch — kept minimal here so the transaction shape itself
- * lands first and the iron-law expansion is a focused follow-up.
+ * 0.4.5 scope: stage 1.3 (drift, scoped to feature.modules) + stage 1.1
+ * (type), 1.2 (lint), 1.5 (arch). Reviewer dispatch lands in 0.4.6.
+ *
+ * Each L1 stage runner returns exitCode 2 when no toolchain is
+ * detected (no package.json, no tsconfig, no Cargo.toml, …). 0.4.5
+ * treats `skipped` as `pass` so callers running cladding inside a
+ * non-instrumented scratch directory don't get blocked — the
+ * `gates[].skipped` flag is still surfaced so consumers can tell
+ * "ran and passed" apart from "could not run".
  */
 export function completeWork(opts: CompleteWorkOptions): CompleteWorkResult {
   const cwd = opts.cwd ?? '.';
 
   const scope = getFeatureScope(cwd, opts.featureId);
+
+  // Gate 1.3 — scope-aware drift (the existing 0.4.3 path).
   const driftReport = runDrift({cwd, scope: scope.modules});
   const findings = driftReport.findings.map((f) => ({
     detector: f.detector,
@@ -162,19 +187,58 @@ export function completeWork(opts: CompleteWorkOptions): CompleteWorkResult {
     path: f.path,
     message: f.message,
   }));
+  const driftGate: GateResult = {
+    name: 'drift',
+    pass: driftReport.pass,
+    skipped: false,
+    exitCode: driftReport.exitCode,
+    findingsCount: findings.length,
+  };
 
-  if (!driftReport.pass) {
+  // Gates 1.1 / 1.2 / 1.5 — type / lint / arch (0.4.5 additions).
+  // exitCode 2 == toolchain unknown -> counted as skipped+pass.
+  const typeRaw = runType({cwd});
+  const lintRaw = runLint({cwd});
+  const archRaw = runArch({cwd});
+  const typeGate: GateResult = {
+    name: 'type',
+    pass: typeRaw.pass || typeRaw.exitCode === 2,
+    skipped: typeRaw.exitCode === 2,
+    exitCode: typeRaw.exitCode,
+    stderr: typeRaw.stderr,
+  };
+  const lintGate: GateResult = {
+    name: 'lint',
+    pass: lintRaw.pass || lintRaw.exitCode === 2,
+    skipped: lintRaw.exitCode === 2,
+    exitCode: lintRaw.exitCode,
+    stderr: lintRaw.stderr,
+  };
+  const archGate: GateResult = {
+    name: 'arch',
+    pass: archRaw.pass || archRaw.exitCode === 2,
+    skipped: archRaw.exitCode === 2,
+    exitCode: archRaw.exitCode,
+    stderr: archRaw.stderr,
+  };
+
+  const gates: GateResult[] = [driftGate, typeGate, lintGate, archGate];
+  const allPass = gates.every((g) => g.pass);
+
+  if (!allPass) {
+    const failed = gates.filter((g) => !g.pass).map((g) => g.name);
     appendEvent(
       cwd,
       newEvent('work_completed', {
         feature: opts.featureId,
-        driftPass: false,
-        errorCount: findings.filter((f) => f.severity === 'error').length,
+        driftPass: driftGate.pass,
+        gatesFailed: failed,
       }),
     );
     return {
       featureId: opts.featureId,
       status: 'iron_law_failed',
+      gates,
       driftFindings: findings,
       evidenceAppended: 0,
     };
@@ -194,6 +258,7 @@ export function completeWork(opts: CompleteWorkOptions): CompleteWorkResult {
     newEvent('work_completed', {
       feature: opts.featureId,
       driftPass: true,
+      gatesSkipped: gates.filter((g) => g.skipped).map((g) => g.name),
       evidenceAppended,
     }),
   );
@@ -201,6 +266,7 @@ export function completeWork(opts: CompleteWorkOptions): CompleteWorkResult {
   return {
     featureId: opts.featureId,
     status: 'completed',
+    gates,
     driftFindings: findings,
     evidenceAppended,
   };

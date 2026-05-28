@@ -168,6 +168,55 @@ describe('completeWork', () => {
     expect(yaml).toContain('status: in_progress');
     expect(getActiveWork(cwd, 'F-eeeeee')).toBeDefined(); // not removed
   });
+
+  test('0.4.5 — gates array carries all four L1 results (drift + type + lint + arch)', () => {
+    seedFeature(
+      cwd,
+      'demo-aabbcc.yaml',
+      'id: F-aabbcc\nslug: demo\nstatus: planned\nmodules: []\nacceptance_criteria: []\n',
+    );
+    enterWork({featureId: 'F-aabbcc', cwd});
+    registerDetector(ALWAYS_PASS);
+
+    const result = completeWork({featureId: 'F-aabbcc', cwd});
+    // Shape assertions only — the per-gate pass/skipped values depend on
+    // whether the test environment's ancestor directories carry a
+    // toolchain manifest detectToolchain resolves (cwd is a tmpdir but
+    // detectToolchain only inspects the immediate cwd, so the L1 gates
+    // typically skip; this assertion stays robust either way).
+    expect(result.gates).toHaveLength(4);
+    expect(result.gates.map((g) => g.name).sort()).toEqual(['arch', 'drift', 'lint', 'type']);
+
+    const drift = result.gates.find((g) => g.name === 'drift')!;
+    expect(drift.skipped).toBe(false);
+    expect(drift.pass).toBe(true);
+
+    for (const name of ['type', 'lint', 'arch'] as const) {
+      const g = result.gates.find((x) => x.name === name)!;
+      // Either the gate skipped (no toolchain) or it ran. Both branches
+      // are valid; the contract is that `pass` is set in both cases.
+      expect(typeof g.pass).toBe('boolean');
+      if (g.skipped) expect(g.pass).toBe(true);
+    }
+  });
+
+  test('0.4.5 — drift failure surfaces in gates[] and blocks completion', () => {
+    seedFeature(
+      cwd,
+      'demo-bbccdd.yaml',
+      'id: F-bbccdd\nslug: demo\nstatus: planned\nmodules: []\nacceptance_criteria: []\n',
+    );
+    enterWork({featureId: 'F-bbccdd', cwd});
+    registerDetector(ALWAYS_FAIL);
+
+    const result = completeWork({featureId: 'F-bbccdd', cwd});
+    expect(result.status).toBe('iron_law_failed');
+    const driftGate = result.gates.find((g) => g.name === 'drift')!;
+    expect(driftGate.pass).toBe(false);
+    // drift must be in the failed-gates list (other gates may or may
+    // not also fail depending on toolchain detection).
+    expect(result.gates.filter((g) => !g.pass).map((g) => g.name)).toContain('drift');
+  });
 });
 
 describe('abandonWork', () => {
