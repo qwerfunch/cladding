@@ -5,6 +5,52 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — 0.5.0 transaction MCP tools #7 — remove `clad work` / `clad drive` CLI surface (F-89406c)
+
+Seventh patch of the 0.5.0 work/drive transaction roadmap. **BREAKING CHANGE** — removes the `clad work` and `clad drive` CLI commands. Both are now MCP-only: host AIs reach for `enter_work` / `complete_work` / `abandon_work` / `execute_drive` / `complete_drive` via the cladding MCP server (`clad serve`).
+
+### Removed (BREAKING)
+
+- **`clad work [verb]`** CLI command — was a v0.2.x stub that never had a real implementation. Replacement: **`enter_work({featureId, intent?})`** MCP tool (0.4.3 PR #166).
+- **`clad drive [goal]`** CLI command — the autonomous loop. Replacement: **`execute_drive({scenarioId | intent})`** MCP tool (0.4.4 PR #167). The runtime previously behind `clad drive` (`src/drive/loop.ts:runDriveLoop`) is preserved for unit-test coverage but is no longer reachable through any external surface.
+- `runWorkCommand` and `runDriveCommand` exports from `src/cli/clad.ts` (along with their tests in `tests/cli/clad.test.ts`).
+
+### Changed
+
+- **`createProgram()`** registers 11 verbs instead of 13 — `work` and `drive` no longer appear. `tests/cli/clad.test.ts` updated to assert the new list.
+- **`src/core/postmortem.ts`** — the auto-generated post-mortem now points at `enter_work` (with the featureId) and `execute_drive` (for bundled retries) instead of the removed CLI verbs.
+- **`plugins/codex/skills/work/SKILL.md`** + **`drive/SKILL.md`** — replaced with deprecation notices pointing at the MCP replacements.
+- **`AGENTS.md`** §6 — drops the `clad drive` mention in favour of "the `execute_drive` MCP tool".
+
+### Migration
+
+If your workflow used `clad drive`:
+
+```bash
+# Old (removed):
+clad drive
+clad drive --json
+clad drive --max-iterations 10
+
+# New: from your host AI (Claude Code / Cursor / Codex / Gemini),
+# ask for the execute_drive MCP tool with a scenarioId or intent.
+# See docs/0.5.0-architecture.md §"Two transaction units" for the
+# rationale and the full enter_work / complete_work cycle.
+```
+
+If your workflow used `clad work [verb]`: this command was always a stub (no real handler). The replacement is `enter_work({featureId})` invoked by your host AI through MCP.
+
+### Why a CLI surface removal at all?
+
+The 0.5.0 model is that host AIs drive cladding through transactions, not that humans invoke a CLI verb that prompts an LLM. Two reasons:
+
+1. **Host-agnostic**: MCP is the only host-AI integration surface that works the same on Claude Code, Cursor, Codex, and Gemini. A CLI verb that needs to dispatch an LLM ends up either coupling to one specific host (sampling on Claude Code), needing its own API key (cost + key management nightmare), or being a no-op stub (which `clad work` was).
+2. **Four-layer defense alignment**: Layer-A trigger guidance + Layer-B MCP tool MUST-clauses + Layer-C PreToolUse hook + Layer-D auditor all operate on the MCP transaction model. A parallel CLI surface would need its own four-layer defense and double the maintenance cost without adding cladding-shaped value.
+
+`docs/0.5.0-architecture.md` carries the full rationale.
+
+Tests: 1040/1040 (unchanged from 0.4.7 — net-zero: removed 5 CLI tests, the create-program test count went from 13 → 11, no new tests added). No new regression.
+
 ## [Unreleased] — 0.5.0 transaction MCP tools #6 — file-diff audit + Claude Code Layer-C hook (F-89406c)
 
 Sixth patch of the 0.5.0 work/drive transaction roadmap. Lands the remaining two pieces of the four-layer defense outlined in `docs/0.5.0-architecture.md`:

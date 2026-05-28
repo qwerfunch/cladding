@@ -34,7 +34,7 @@ import {computeInventory, writeInventoryToSpecYaml} from '../spec/inventory.js';
 import {loadSpec} from '../spec/load.js';
 import {pulse} from '../ui/pulse.js';
 import {renderPanel} from '../ui/panel.js';
-import {featureLabel, gateLabel, haltMessage} from '../ui/softShell.js';
+import {gateLabel} from '../ui/softShell.js';
 
 /** Handler for `clad serve`. Boots the MCP server over stdio. */
 export async function runServeCommand(opts: {cwd?: string}): Promise<void> {
@@ -128,59 +128,13 @@ export async function runInitCommand(
   process.exit(0);
 }
 
-/** Handler for `clad work [verb]`. Stub — full intent handling lands later. */
-export function runWorkCommand(verb?: string): void {
-  if (!verb) {
-    pulse('note', 'work', 'specify a stage or natural-language intent');
-    process.exit(2);
-    return;
-  }
-  pulse('start', `work ${verb}`);
-  process.exit(0);
-}
-
-interface DriveCommandOptions {
-  cwd?: string;
-  maxIterations: string;
-  maxWallClockMs: string;
-  maxRetries: string;
-  json?: boolean;
-}
-
-/** Handler for `clad drive [goal]`. Runs the autonomous loop. */
-export async function runDriveCommand(
-  goal: string | undefined,
-  opts: DriveCommandOptions,
-): Promise<void> {
-  const {runDriveLoop} = await import('../drive/loop.js');
-  const result = await runDriveLoop({
-    cwd: opts.cwd,
-    goal,
-    budget: {
-      maxIterations: Number(opts.maxIterations),
-      maxWallClockMs: Number(opts.maxWallClockMs),
-      maxRetriesPerFeature: Number(opts.maxRetries),
-    },
-  });
-  const tag = result.halt.class === 'ALL_FEATURES_DONE' ? 'pass' : 'note';
-  if (opts.json) {
-    pulse(
-      tag,
-      'drive',
-      `halt=${result.halt.class} iter=${result.iterations} features=${result.featuresTouched.length} stubs=${result.stubsCreated.length} gates=${result.gateRuns}`,
-    );
-    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
-  } else {
-    const spec = loadSpec(opts.cwd ?? '.');
-    const touched = result.featuresTouched.map((id) => featureLabel(id, spec));
-    const summary = `${haltMessage(result.halt, spec)} iter=${result.iterations} features=${touched.length} stubs=${result.stubsCreated.length} gates=${result.gateRuns}`;
-    pulse(tag, 'drive', summary);
-    if (touched.length > 0) {
-      process.stdout.write(`Touched: ${touched.join(', ')}\n`);
-    }
-  }
-  process.exit(result.halt.class === 'UNCAUGHT_ERROR' ? 1 : 0);
-}
+// Removed in 0.4.8 — `clad work` (stub since v0.2.x) and `clad drive`
+// (autonomous loop). Both are now MCP-only: host AIs reach for
+// `enter_work` / `execute_drive` via the cladding MCP server (see
+// src/work/transaction.ts + src/work/drive-transaction.ts). The
+// runDriveLoop runtime in src/drive/loop.ts stays in place for
+// unit-test coverage but is no longer reachable through the CLI.
+// See docs/0.5.0-architecture.md §"Two transaction units".
 
 /**
  * Handler for `clad sync`. Validates the spec and reports feature
@@ -404,20 +358,9 @@ export function createProgram(): Command {
     .option('--roots <list>', 'Override scanner source roots, comma-separated (e.g. packages/a/src,packages/b/src). Otherwise inferred from manifests + directory heuristics.')
     .action(runInitCommand);
 
-  program
-    .command('work [verb]')
-    .description('Run a stage or a free-form intent')
-    .action(runWorkCommand);
-
-  program
-    .command('drive [goal]')
-    .description('Autonomous loop — iterate ready features, dispatch specialist + reviewer personas, run L1 gates, enforce anti-self-cert, record evidence')
-    .option('--cwd <path>', 'target project directory (default cwd)')
-    .option('--max-iterations <n>', 'cap iterations (default 50)', '50')
-    .option('--max-wall-clock-ms <ms>', 'cap wall clock (default 600000)', '600000')
-    .option('--max-retries <n>', 'cap retries per feature (default 3)', '3')
-    .option('--json', 'emit the raw internal result (Iron Core view); default is a plain Soft Shell summary')
-    .action(runDriveCommand);
+  // 0.4.8 — `work` and `drive` CLI commands removed. Use the MCP
+  // tools enter_work / complete_work / abandon_work / execute_drive /
+  // complete_drive via `clad serve` instead.
 
   program
     .command('sync')

@@ -64,7 +64,8 @@ describe('core/postmortem', () => {
     expect(body).toContain('3 (budget exhausted)');
     expect(body).toContain('abc123def456');
     expect(body).toContain('git checkout abc123def456abc123def456abc123def456abcd');
-    expect(body).toContain('clad work F-200');
+    expect(body).toContain('enter_work');
+    expect(body).toContain('F-200');
     expect(body).toContain('librarian');
   });
 

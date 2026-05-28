@@ -1,34 +1,19 @@
 ---
-description: Stage entry-point — run a single Iron Law stage by name or a free-form intent. As of v0.3.40 the verb is a stub that prints a status line and exits 0; full intent handling lands in a later cycle. Use when documenting the intended surface, not for production work.
+description: REMOVED in v0.4.8 — `clad work` external CLI command no longer exists. The work transaction is now an MCP-only surface (`enter_work` / `complete_work` / `abandon_work` via `clad serve`). Host AIs call these MCP tools directly; users do not invoke a CLI verb for work.
 ---
 
-# Cladding work
+# Cladding work — REMOVED (v0.4.8)
 
-Run `clad work [verb]` from the project root. Currently the handler is a stub:
+The `clad work` CLI command was removed in v0.4.8 as part of the 0.5.0 work/drive transaction roadmap. Single-feature work is now an **MCP-only** surface — host AIs (Claude Code, Cursor, Codex, Gemini) reach for the tools below via the cladding MCP server (`clad serve`).
 
-- No argument → prints `· work  specify a stage or natural-language intent` and exits `2`.
-- Any argument → prints `· work <arg>` and exits `0`. No stage runner is dispatched, no spec is loaded, no working-tree mutation happens.
+## MCP replacements
 
-```
-clad work             # exit 2, asks for an argument
-clad work stage_1.1   # exit 0, no-op
-clad work "scan the codebase and surface architecture drift"  # exit 0, no-op
-```
+- **`enter_work({featureId, intent?})`** — opens a transaction. Transitions the feature `planned → in_progress`, registers the active work, returns the specialists persona prompt + scoped module list. Host AI adopts the persona for the next turn.
+- **`complete_work({featureId, evidence?})`** — closes the transaction with the full L1 iron-law gate (drift + type + lint + arch). On pass: `in_progress → done`. On fail: status stays `in_progress`, retry after fixing.
+- **`abandon_work({featureId, reason})`** — cancels without changing status (resume later).
 
-## Why the stub stays
+See `docs/0.5.0-architecture.md` for the four-layer defense, persona-dispatch option-1 design, and the implicit-close lifecycle.
 
-The verb is reserved for the future intent-routing entry point that combines `clad route <prompt>` (intent classification) with the per-stage runner dispatch (currently called directly via `clad check`, `clad drive`, …). Shipping the verb as a stub now keeps the CLI registry stable so:
+## Why this changed
 
-- Documentation (this file, `commands/clad.md`, plugin manifests) references the verb without breakage.
-- Plugin distributions (`plugins/codex/skills/work.md`, `plugins/gemini-cli/commands/work.md`) carry the placeholder.
-- A later cycle can swap in the real handler without renaming the verb.
-
-## For production work today
-
-Use the concrete verbs instead:
-
-- A specific stage → `clad check --internal` then read the failing stage code, or invoke the stage runner directly (e.g. `npm run stage:drift`).
-- A natural-language intent → `clad route <prompt>` to see which verb the router resolves to, then run that verb directly.
-- An autonomous loop over the spec → `clad drive`.
-
-The orchestrator persona (`src/agents/orchestrator.md`) does intent routing inside a Claude Code session; `clad work` is reserved for the CLI surface of the same routing once the implementation lands.
+The CLI `clad work` was a v0.2.x stub that never had a real implementation. v0.4.x landed the actual transaction logic behind MCP tools so it is host-AI-callable across every host cladding supports — without the host needing to invoke a subprocess and parse output. See the 0.4.3 / 0.4.5 / 0.4.6 / 0.4.7 CHANGELOG entries (or the consolidated 0.5.0 release notes once cut).

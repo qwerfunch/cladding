@@ -89,7 +89,8 @@ export function writePostMortem(cwd: string, ctx: PostMortemContext): string {
     `${recovery}\n` +
     '```\n' +
     '\n' +
-    `Then resume with \`clad drive\` or \`clad work ${ctx.featureId}\`.\n` +
+    `Then resume by calling the \`enter_work\` MCP tool with featureId: ${ctx.featureId} ` +
+    `(or \`execute_drive\` with the parent scenario for a bundled retry).\n` +
     '\n' +
     '## Notes\n' +
     '\n' +

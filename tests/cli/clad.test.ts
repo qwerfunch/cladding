@@ -178,15 +178,8 @@ describe('cli/clad — handler exports', () => {
     expect(stdout).toContain('주 사용자가 개인? 사업자?');
   });
 
-  test('runWorkCommand without verb exits 2', () => {
-    clad.runWorkCommand();
-    expect(exitCalls).toEqual([2]);
-  });
-
-  test('runWorkCommand with verb exits 0', () => {
-    clad.runWorkCommand('sync');
-    expect(exitCalls).toEqual([0]);
-  });
+  // 0.4.8 — runWorkCommand / runDriveCommand removed; both moved to
+  // MCP-only (enter_work / execute_drive via clad serve). Tests deleted.
 
   test('runSyncCommand on valid spec exits 0', () => {
     loadSpecMock.mockReturnValueOnce({features: [{id: 'F-001'}, {id: 'F-002'}]});
@@ -339,71 +332,18 @@ describe('cli/clad — handler exports', () => {
     expect(exitCalls).toEqual([1]);
   });
 
-  test('runDriveCommand happy path exits 0 with summary text', async () => {
-    runDriveLoopMock.mockResolvedValueOnce({
-      halt: {class: 'ALL_FEATURES_DONE', detail: 'done', iteration: 5},
-      iterations: 5,
-      featuresTouched: ['F-001'],
-      stubsCreated: [],
-      gateRuns: 15,
-    });
-    loadSpecMock.mockReturnValueOnce({features: [{id: 'F-001', title: 'alpha'}]});
-    await clad.runDriveCommand(undefined, {
-      maxIterations: '50',
-      maxWallClockMs: '600000',
-      maxRetries: '3',
-    });
-    expect(runDriveLoopMock).toHaveBeenCalledOnce();
-    expect(exitCalls).toEqual([0]);
-  });
-
-  test('runDriveCommand UNCAUGHT_ERROR exits 1', async () => {
-    runDriveLoopMock.mockResolvedValueOnce({
-      halt: {class: 'UNCAUGHT_ERROR', detail: 'spec load failed', iteration: 0},
-      iterations: 0,
-      featuresTouched: [],
-      stubsCreated: [],
-      gateRuns: 0,
-    });
-    loadSpecMock.mockReturnValueOnce({features: []});
-    await clad.runDriveCommand(undefined, {
-      maxIterations: '50',
-      maxWallClockMs: '600000',
-      maxRetries: '3',
-    });
-    expect(exitCalls).toEqual([1]);
-  });
-
-  test('runDriveCommand --json emits raw result to stdout', async () => {
-    runDriveLoopMock.mockResolvedValueOnce({
-      halt: {class: 'ALL_FEATURES_DONE', detail: 'done', iteration: 1},
-      iterations: 1,
-      featuresTouched: [],
-      stubsCreated: [],
-      gateRuns: 3,
-    });
-    await clad.runDriveCommand('goal text', {
-      maxIterations: '10',
-      maxWallClockMs: '60000',
-      maxRetries: '2',
-      json: true,
-    });
-    const calls = stdoutSpy.mock.calls.map((c: unknown[]) => c[0]);
-    expect(
-      calls.some((c: unknown) => typeof c === 'string' && c.includes('ALL_FEATURES_DONE')),
-    ).toBe(true);
-    expect(exitCalls).toEqual([0]);
-  });
+  // 0.4.8 — runDriveCommand removed; the autonomous-loop entry point
+  // is now MCP-only via execute_drive. runDriveLoop runtime stays in
+  // src/drive/loop.ts for unit-test coverage but is unreachable from
+  // the CLI.
 });
 
 describe('cli/clad — createProgram', () => {
-  test('returns a Command with all 13 verbs registered', () => {
+  test('returns a Command with all 11 verbs registered (0.4.8 — work/drive moved to MCP)', () => {
     const program = clad.createProgram();
     const names = program.commands.map((c) => c.name());
     expect(names).toEqual([
       'init',
-      'work',
-      'drive',
       'sync',
       'setup',
       'check',
