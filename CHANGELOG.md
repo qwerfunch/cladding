@@ -5,394 +5,106 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — 0.5.0 multi-agent first #4 — capability enforcement + dispatch mode + parallel groups (PR-B / 0.4.11)
 
-Tightens the foundation laid by PR-A.1/A.2/A.3. Three changes wired through the work + drive transactions:
+## [0.5.0] — 2026-05-29 — work/drive transaction MCP + host-agnostic multi-agent first
+
+The 0.5.0 release closes the "spec ↔ code ↔ tests run as a single cycle" promise that 0.4.x infrastructure laid groundwork for, and re-frames cladding around the 2026 multi-agent reality (4 hosts with native sub-agent surfaces). Twelve patches converged here, in two thematic blocks: **work/drive transaction MCP tools** (the "how does cladding wrap actual AI work?" answer) and **host-agnostic multi-agent first** (the "how does cladding express agents across 4 hosts?" answer).
+
+### Theme 1 — work/drive transaction MCP tools
+
+Two transaction units replace the v0.4.x advisory dispatch:
+
+- **Single-feature work** — `enter_work` / `complete_work` / `abandon_work` MCP tools. `enter_work({featureId, intent?})` flips spec status `planned → in_progress`, captures git HEAD as `baseRef`, registers the active work in `.cladding/work-registry.json`, returns the persona prompt + scoped module list + (PR-B) capability envelope + dispatch hint. `complete_work({evidence[]})` runs scope-aware L1 gates (Type / Lint / Drift / Arch), flips status `→ done`, appends evidence to `.cladding/audit.log.jsonl`.
+- **Scenario-unit drive** — `execute_drive({scenarioId | intent})` / `complete_drive`. Topologically sorts scenario features by `depends_on`, auto-enters the first ready feature, returns the ordered `plan[]` + (PR-B) parallel `groups[]` so the host AI can fan out independent work concurrently.
+
+### Theme 2 — host-agnostic multi-agent first
+
+Earlier drafts framed cladding as "Claude Code first + fallback for others". The 2026 reality is that **Claude Code · Codex · Cursor · Antigravity** all shipped mature native sub-agent surfaces by April 2026, and **Gemini CLI** has sub-agent preview through its 2026-06-18 sunset → Antigravity. cladding 0.5.0 treats all four as Tier 1 (Antigravity included) and Gemini as Tier 2 (transitioning). The persona spec is canonical; manifests are transpiled.
 
 ### Added
 
-- **`src/agents/capability-map.ts`** — capability-to-tool tables for the 4 host families:
-  - Claude-style (Claude Code / Cursor / Antigravity): `read` → `Read`/`Glob`/`Grep`, `write` → `Write`, `edit` → `Edit`, `exec` → `Bash`, `dispatch` → `Task`
-  - Gemini: snake_case variants (`ReadFile`/`WriteFile`/`EditFile`/`Shell`/`SubAgent`)
-  - Codex: `deriveCodexSandbox()` — `read` → `read-only`, write/edit/exec → `workspace-write` (never escalates to `danger-full-access` automatically; explicit `hostHints.sandbox_mode` is the only path there)
-  - Codex MCP allowlist: `['cladding']` for every persona (Codex gates per-MCP-server, not per-tool — finer-grained allowlist is a PR-C concern)
-- **`src/agents/capabilities.ts`** — `translateCapabilities(persona, host)` discriminated-union envelope:
-  - Claude Code: `{tools[], permissionMode?, maxTurns?}`
-  - Cursor / Antigravity: `{tools[], maxTurns?}`
-  - Codex: `{mcpServers[], sandboxMode, maxTurns?}`
-  - Gemini: `{allowedTools[], maxTurns?}`
-  - Generic (Tier 3): `{}` — no enforcement (host-self-inject path)
-- **`EnterWorkOptions.dispatchMode?`** — `'sub-agent' | 'host-self-inject'`. Default derived from Tier: Tier 1/2 → `'sub-agent'`, Tier 3 → `'host-self-inject'`. Explicit override always wins.
-- **`EnterWorkResult.dispatchMode`** — always populated (string, no undefined).
-- **`EnterWorkResult.capabilityEnvelope`** — host-shaped envelope from `translateCapabilities`. Always populated (Tier 3 returns `{host: 'generic'}` empty envelope).
-- **`work_entered` event payload** — now carries `host`, `tier`, `dispatchMode` for retrospective audit.
-- **`WorkComplianceReport.dispatchDrifts`** + `summary.dispatchDriftCount` (`src/work/audit.ts`) — flags any `work_entered` where Tier 1/2 host chose `host-self-inject`. Backward-compat events lacking those fields are silently omitted. Non-blocking — the orchestrator surfaces drifts for awareness, doesn't refuse the request.
-- **`DispatchDriftReport`** interface — `{featureId, enteredAt, host, tier, dispatchMode, reason}`.
-- **`ExecuteDriveResult.groups: ParallelGroup[]`** — Kahn-levels grouping (`src/work/drive-transaction.ts`). `groups[0]` has no in-scenario deps; `groups[i]` depends only on `groups[0..i-1]`. Within a group, features have no mutual dependencies — host AI may fan out concurrently (Claude Code parallel `Task()`, Codex `agents.max_threads`, Cursor `/multitask`, Gemini multiple `@agent`).
-- **`drive_started` event payload** — carries `groups` alongside the existing flat `plan`.
-- **`tests/agents/capabilities.test.ts`** — 27 tests covering capability-to-tool tables, Codex sandbox derivation, per-host envelope shape, hostHints overrides, real-persona round-trip.
-- **`tests/work/dispatch-mode.test.ts`** — 18 tests covering default dispatchMode per Tier, explicit override, capabilityEnvelope shape per host, dispatch_drift detection across Tier 1/2/3.
-- **`tests/work/drive-parallel.test.ts`** — 10 tests covering empty/single/serial chain/diamond/mixed scenarios, cycle fallback, out-of-scope deps treated as satisfied, done-features dropped before grouping, groups echoed on event + instructions narrative.
+#### Work / drive transaction MCP tools
+
+- **`src/work/transaction.ts`** — `enterWork` / `completeWork` / `abandonWork`. Idempotent on `featureId`. `enterWork` populates `baseRef` for Layer-D file-diff correlation.
+- **`src/work/drive-transaction.ts`** — `executeDrive` / `completeDrive`. Intent matching against scenario titles + flow text; explicit `scenarioId` always wins. `drive_started` event carries the resolved plan.
+- **`src/work/registry.ts`** — `.cladding/work-registry.json` active-work tracker. Multi-process-safe; the registry survives process death.
+- **`src/work/audit.ts`** Layer-D auditor — `auditWorkCompliance({cwd, sinceMs?, includeFileDiff?})` reports `openTransactions`, `transactions`, `orphanWindows`, optional `fileDiffs` (git-backed in-scope vs unmapped classification), and the PR-B `dispatchDrifts` array. Surfaces via `audit_work_compliance` MCP tool.
+- **Scope-aware drift** — `clad check --scope <module-prefix>` runs only the detectors whose paths fall inside the prefix. Enables per-work-transaction drift without the project-wide 27-detector cost.
+- **Atomic spec writer** (`src/spec/update.ts`) — `updateFeatureStatus` + `appendEvidence` write feature shards atomically (temp + rename); preserves YAML formatting, no clobbering hand-edits.
+
+#### Four-layer defense (advisory + enforced)
+
+- **Layer A — trigger guidance** in `AGENTS.md` / `CLAUDE.md`. Compels the host AI to call `enter_work` before the first code-edit tool.
+- **Layer B — MCP tool description compulsion.** Every transaction tool's `description` field carries the MUST-clause. Host-agnostic.
+- **Layer C — host-specific pre-edit hooks.** Claude Code (`plugins/claude-code/hooks/pre-tool-use.mjs` registered via `plugins/claude-code/.claude-plugin/plugin.json` `hooks` field). Codex (`plugins/codex/hooks/pre-tool-use.mjs`) + Cursor (`plugins/cursor/hooks/pre-edit.mjs`) use the universal `exit 2 + stderr` deny pattern. All three deny `Edit|Write|MultiEdit` when no active work; silent fail-open on missing registry / corrupt JSON.
+- **Layer D — post-hoc auditor + dispatch_drift.** `auditWorkCompliance` reports file-diff drift (PR #169) and dispatch divergence (PR-B). Non-blocking; surfaces for orchestrator review.
+
+#### Multi-agent first (PR-A.1 → PR-B)
+
+- **`agents/routing.yaml` + `src/agents/routing.ts`** (PR-A.1) — deterministic persona resolver. 7 default rules; first-match wins; AND between `module_prefix` + `intent_tokens`; OR within each field. Fallback chain: explicit `personaId` → matched rule → `spec.yaml::project.ai_hints.preferred_persona` → `'specialists'`.
+- **`PersonaHostHints`** + extended persona frontmatter (PR-A.2) — optional `model` / `permissionMode` / `sandbox_mode` / `maxTurns` / `skills` / `isolation` fields per persona; consumed by the 4-host transpiler + capability translator.
+- **`src/agents/host-detect.ts`** + `detect_host` MCP tool (PR-A.2) — env-signal-based host detection (`CLADDING_HOST` override → ANTIGRAVITY_* → CLAUDECODE → CODEX_* → CURSOR_* → GEMINI_* → generic). Returns `{host, tier, signals, overridden}`.
+- **`scripts/build-plugin.mjs` Phase E** (PR-A.3) — 4-host sub-agent transpile. Reads `src/agents/*.md`; emits:
+  - `plugins/claude-code/.claude-plugin/plugin.json` `agents[]` (sorted, deterministic)
+  - `plugins/codex/agents/<id>.toml`
+  - `plugins/cursor/modes.json` (Custom Modes 2026)
+  - `plugins/gemini-cli/agents/<id>.md` (snake_case `allowed_tools`)
+- **`enterWork` `subAgentDispatchHint`** (PR-A.3) — per-Tier dispatch hint: `Task` / `agent` / `mode_switch` / `spawn_subagent` on Tier 1, `@agent` `{advisory: true}` on Tier 2 (Gemini), absent on Tier 3.
+- **`enterWork` `routing` trace** (PR-A.3) — `{matchedRule, parallelGroup?}` echoed onto `EnterWorkResult` and the `work_entered` event for audit-trail.
+- **`src/agents/capabilities.ts` + `capability-map.ts`** (PR-B) — `translateCapabilities(persona, host)` discriminated-union envelope. Claude-style hosts get `tools[]`; Codex gets `mcpServers[]` + `sandboxMode`; Gemini gets `allowedTools[]` (snake_case); generic gets `{}`. `hostHints.sandbox_mode` overrides Codex derivation (only path to `danger-full-access`).
+- **`EnterWorkOptions.dispatchMode`** (PR-B) — `'sub-agent' | 'host-self-inject'`. Tier 1/2 default = `'sub-agent'`, Tier 3 default = `'host-self-inject'`. Explicit override always wins.
+- **`work_entered` event payload gains `host`/`tier`/`dispatchMode`** (PR-B) — for retrospective `dispatch_drift` detection.
+- **`auditWorkCompliance.dispatchDrifts[]` + `DispatchDriftReport`** (PR-B) — flags Tier 1/2 work that chose `host-self-inject`. Non-blocking.
+- **`ExecuteDriveResult.groups: ParallelGroup[]`** (PR-B) — Kahn-levels topological grouping. Hosts with native parallel sub-agent dispatch fan out a group concurrently (Claude Code multiple `Task()`, Codex `agents.max_threads`, Cursor `/multitask`, Gemini multiple `@agent`).
+
+#### Docs
+
+- **`docs/0.5.0-architecture.md`** rewritten — tiers simplified to 1/2/3, 4-host transpile diagram, dispatch flow, capability envelope reference, Antigravity transition policy.
+- **`docs/migration/gemini-to-antigravity.md`** new — side-by-side compatibility table, step-by-step migration, deprecation timeline (0.6.0 deprecation, 0.7.0 removal).
+- **`AGENTS.md`** §6/§7 rewritten — multi-host policy reflects Tier 1/2/3 + dispatch mode default + capability envelope.
+- **`CLAUDE.md`** — persona + routing + capabilities section added; plugin mirror notes extended to cover Phase E outputs.
+- **`README.md` / `README.ko.md`** — Multi-agent tier compatibility table added next to the host channel section.
 
 ### Changed
 
-- `enterWork` resolves dispatchMode from Tier when not explicitly passed. Backward compat: existing callers see no behavioural change unless they read the new fields.
-- `executeDrive` now returns `groups` alongside `plan` (flat order kept for one minor cycle for backward compat with hosts that don't yet consume groups).
+- `clad init` no longer creates the `F-001-first.yaml` placeholder shard. External users start with empty `features: []`; the AI registers real features via `clad_create_feature` MCP tool.
+- `clad init` no longer spawns `claude plugin install --scope project` (was triggering Claude Code permission prompts on every `/cladding:init`).
+- `enterWork` resolves persona via `routing.yaml` when no explicit `personaId` is passed (was hard-coded `'specialists'`).
+- `auditWorkCompliance` return shape gains `dispatchDrifts` (always present) + `summary.dispatchDriftCount`.
 - `executeDrive` instructions narrative mentions parallel groups when any group has >1 feature.
-- `auditWorkCompliance` return shape gains `dispatchDrifts` (always present, empty array when nothing diverged) + `summary.dispatchDriftCount`.
-
-### Why
-
-PR-A.3 emitted a dispatch hint but had nothing to enforce — capability gating still relied on each persona's frontmatter `tools` field, which drifted between hosts. PR-B makes the capability set the single source of truth and projects it into each host's native tool/sandbox shape, so the same persona can dispatch with consistent guarantees across Claude Code, Codex, Cursor, Antigravity, and Gemini. Dispatch_drift detection closes the loop — when a Tier 1 host bypasses the sub-agent surface, the orchestrator sees it and can nudge future calls back on track. Parallel groups unlock fan-out on the 4 hosts that all gained native concurrent sub-agent dispatch in 2026.
-
-### Sub-PR sequence (0.5.0 roadmap)
-
-- ✅ PR-A.1 — routing.yaml + resolver (#173)
-- ✅ PR-A.2 — persona hostHints + detect_host MCP (#174)
-- ✅ PR-A.3 — 4-host transpile + enterWork dispatchHint (#175)
-- ✅ **PR-B (this PR, 0.4.11)** — capability enforcement + dispatch mode + parallel groups
-- PR-C — Antigravity migration docs + version bump 0.5.0
-
-Tests: 1165/1165 (was 1110, +55 new). No regression.
-
-## [Unreleased] — 0.5.0 multi-agent first #3 — 4-host transpile + enterWork dispatchHint (PR-A.3)
-
-Third and final sub-patch of the 0.5.0 multi-agent first redesign foundation (PR-A). Adds the build-plugin Phase E that emits each host's native sub-agent manifest from the single canonical persona spec, and wires `enterWork` to consume the routing resolver + host detection.
-
-### Added
-
-- **`scripts/build-plugin.mjs` Phase E** — 4-host sub-agent transpile, deterministic & idempotent:
-  - **E.1 Claude Code** — rewrites `plugins/claude-code/.claude-plugin/plugin.json` `agents[]` to `[{name, path: './agents/<id>.md'}, ...]` (sorted alphabetically for stable diffs).
-  - **E.2 Codex** — emits `plugins/codex/agents/<id>.toml` per persona (`name`, `description`, `model`, `sandbox_mode`, `max_turns`, `developer_instructions`).
-  - **E.3 Cursor** — emits single `plugins/cursor/modes.json` with `{version: 1, modes: [{name, description, instructions, model, tools, max_turns?}, ...]}` (Cursor Custom Modes 2026 schema). Creates `plugins/cursor/` dir if missing.
-  - **E.4 Gemini** — emits `plugins/gemini-cli/agents/<id>.md` with Gemini-style YAML frontmatter (`allowed_tools` instead of Claude's `tools` field). Tracks Gemini sunset → Antigravity migration in 0.6.0.
-- **`src/work/transaction.ts`** `EnterWorkResult.subAgentDispatchHint?` — per-host dispatch hint emitted on Tier 1 / Tier 2 hosts:
-  - Tier 1 (Claude Code → `Task`, Codex → `agent`, Cursor → `mode_switch`, Antigravity → `spawn_subagent`)
-  - Tier 2 (Gemini → `@agent`, `advisory: true`)
-  - Tier 3 (generic) → absent (host AI keeps using `personaPrompt` self-inject)
-- **`src/work/transaction.ts`** `EnterWorkResult.routing?` — `{matchedRule, parallelGroup?}` trace from `resolvePersona`. Absent when caller passes explicit `personaId` (resolver bypassed). Echoed onto the `work_entered` event payload for audit-trail.
-- **`EnterWorkOptions.hostOverride?`** — test-only escape hatch to inject a `HostName` without mutating `process.env`. Production code rarely needs it.
-- **`tests/scripts/build-plugin-transpile-4host.test.ts`** — 14 tests covering each host's output shape + cross-host persona inventory consistency.
-- **`tests/work/dispatch-hint.test.ts`** — 10 tests covering Tier 1 (4 hosts) / Tier 2 (Gemini advisory) / Tier 3 (generic absent) hint shape + routing trace presence/absence + resumed-work hint persistence.
-
-### Changed
-
-- `enterWork()` now calls `resolvePersona()` automatically when `opts.personaId` is omitted (was: hard-coded `'specialists'`). Explicit `personaId` still bypasses the resolver.
-- `enterWork()` now calls `detectHost()` to determine the Tier-appropriate dispatch hint. Backward compat 100% — the new fields are optional; existing callers that ignore them behave identically.
-- `work_entered` event payload gains optional `routing: {matchedRule, parallelGroup}` field when the resolver ran.
-
-### Why
-
-PR-A.1 added the deterministic routing data. PR-A.2 added the per-persona host hints. PR-A.3 closes the loop: the build script projects those hints into each host's native manifest, and the work transaction emits a dispatch hint the host AI can act on. From here PR-B (0.4.11) tightens dispatch via `dispatchMode: 'sub-agent'` default + a `dispatch_drift` auditor, and adds per-host capability emitters + parallel topological groups.
-
-### Sub-PR split (final)
-
-- ✅ A.1 — routing.yaml + resolver (PR #173)
-- ✅ A.2 — persona hostHints + detect_host MCP (PR #174)
-- ✅ **A.3 (this PR)** — build-plugin.mjs 4-host transpile + enterWork dispatchHint
-
-Tests: 1110/1110 (was 1086, +24 new). No regression.
-
-## [Unreleased] — 0.5.0 multi-agent first #2 — persona hostHints + detect_host MCP (PR-A.2)
-
-Second sub-patch of the 0.5.0 multi-agent first redesign. Extends the canonical persona spec (`src/agents/*.md` frontmatter) with 4-host compatibility fields and adds the `detect_host` MCP tool. Sets up the inputs PR-A.3 needs to wire `enterWork` dispatchHint + the 4-host transpile.
-
-### Added
-
-- **`src/adapters/types.ts`** `PersonaHostHints` interface — optional frontmatter fields:
-  - `model`: 'sonnet' / 'opus' / 'haiku' or full model id
-  - `permissionMode`: 'default' / 'plan' / 'acceptEdits' / 'bypassPermissions' / 'dontAsk' (Claude Code permission mode)
-  - `sandbox_mode`: 'read-only' / 'workspace-write' / 'danger-full-access' (Codex sandbox)
-  - `maxTurns`: positive integer cap on agentic turns
-  - `skills`: array of skill names to preload
-  - `isolation`: 'session' (default — shared context) / 'worktree' (Claude Code isolated git worktree)
-- **`PersonaSpec.hostHints?`** — optional field; absent when the persona declares no host hint. Existing personas (no hints) parse identically — backward compat 100%.
-- **`src/agents/loader.ts`** `normalizeHostHints()` — pulls host-hint fields out of frontmatter, validates enum values silently (unknown values dropped — forward-compat with future cladding personas).
-- **`src/agents/host-detect.ts`** (new) — `detectHost(env)` returns `{host, tier, signals, overridden}`. Detection priority: CLADDING_HOST override → ANTIGRAVITY_* → CLAUDECODE → CODEX_* → CURSOR_* / TERM_PROGRAM=cursor → GEMINI_* → generic.
-- **`src/serve/server.ts`** `detect_host` MCP tool — exposes the detection result to host AIs (used by PR-A.3's dispatchHint shaper).
-- **5 persona `.md` files updated** with appropriate hostHints:
-  - `orchestrator`: model=sonnet, permissionMode=plan, sandbox_mode=workspace-write (planning-first)
-  - `librarian`: model=sonnet, permissionMode=acceptEdits (spec authoring)
-  - `reviewer`: model=opus, maxTurns=3, permissionMode=default, sandbox_mode=read-only (deep reasoning, anti-self-cert at host level)
-  - `specialists`: model=sonnet, permissionMode=acceptEdits (implementation)
-  - `observability`: model=haiku, maxTurns=5, sandbox_mode=read-only (cheap log aggregation)
-- **`tests/agents/host-detect.test.ts`** — 16 tests covering empty env / all 5 hosts / priority order / CLADDING_HOST override / invalid override / case-insensitivity / multiple signals / empty-string ignore.
-- **`tests/agents/loader.hostHints.test.ts`** — 11 tests covering backward compat (no hints → undefined) / each field parse / fractional maxTurns floored / invalid enum values silently dropped / forward-compat.
-
-### Wire-free for enterWork
-
-`enterWork` does **not** yet consume `PersonaSpec.hostHints` or call `detect_host`. PR-A.3 wires the consumers (build-plugin.mjs 4-host transpile reads hostHints to emit each host's native sub-agent manifest; enterWork dispatchHint reads detect_host to decide Tier-1 sub-agent payload).
-
-### Why
-
-Multi-agent first requires each persona to express not just *what* it does but *how* the host should run it (which model, which permission scope, how many turns, whether isolated). The 4 hosts (Claude Code, Codex, Cursor, Antigravity) each have different native sub-agent manifest formats, but they share semantically similar fields — modelling those once on the canonical persona spec means PR-A.3's 4-host transpile is a per-host emitter rather than per-host authoring.
-
-### Sub-PR split (running track)
-
-- ✅ A.1 — routing.yaml + resolver (PR #173)
-- **A.2 (this PR)** — persona hostHints + detect_host MCP
-- A.3 — build-plugin.mjs 4-host transpile + enterWork dispatchHint + work_entered.routing event payload
-
-Tests: 1086/1086 (was 1059, +27 new). No regression.
-
-## [Unreleased] — 0.5.0 multi-agent first #1 — agents/routing.yaml + deterministic resolver (PR-A.1)
-
-First sub-patch of the 0.5.0 multi-agent first redesign. PR-A is sub-split into A.1/A.2/A.3 to keep each PR reviewable (~300-500 lines each). A.1 is the foundation — pure deterministic routing logic that A.2 (frontmatter expansion) and A.3 (4-host transpile + dispatchHint) build on.
-
-### Added
-
-- **`agents/routing.yaml`** (new) — intent + `scope.modules` → persona mapping. 7 default rules: `spec-mutation` (spec/* → librarian) / `stage-or-detector` (src/stages/* → specialists) / `architecture-review` (intent tokens → reviewer) / `observability` (intent tokens → observability) / `hitl-or-audit` (src/hitl/* → reviewer) / `work-or-drive-transaction` (src/work, src/drive → specialists) / `default` (→ specialists). First-match-wins, AND between fields (`module_prefix` + `intent_tokens`), OR within field. Trailing slash on prefixes optional.
-- **`src/agents/routing.ts`** (new) — `resolvePersona({featureId, intent, scope, cwd, preferredPersona?})` returns `{personaId, matchedRule, parallelGroup?}`. Pure function — same input always same output. Failures (missing/malformed yaml) collapse to fallback `'specialists'` with `matchedRule: '__fallback__'`. `spec.yaml::project.ai_hints.preferred_persona` (passed as `preferredPersona`) overrides only on the default rule (`matchedRule: 'default+ai_hints'`).
-- **`tests/agents/routing.test.ts`** — 12 tests covering: no-yaml fallback / module_prefix match / intent_tokens match / first-match-wins / AND between fields / preferredPersona tie-breaker on default only / non-default rules ignore preferredPersona / malformed yaml / empty rules array / trailing-slash optional / exact path match / case-insensitive intent matching.
-
-### Why
-
-The 0.4.x line ended with `enter_work` defaulting to `personaId: 'specialists'` when the caller didn't supply one (`src/work/transaction.ts:69`). The 0.5.0 multi-agent first redesign needs the host AI to dispatch the *right* persona for each work (librarian for spec edits, reviewer for audits, observability for telemetry, etc.). Hard-coding the matrix inside `enterWork` is brittle; externalizing it to `agents/routing.yaml` makes the matrix:
-- editable per-project (overriding the default cladding rules)
-- inspectable (the resolved rule name flows into the `work_entered` event payload in PR-A.3)
-- testable in isolation (no work-transaction setup needed for routing tests)
-
-A.1 is wire-free — `resolvePersona` is not yet called from `enterWork`. PR-A.3 wires it. Shipping the resolver standalone first means A.2's frontmatter changes don't accidentally bundle a behaviour change.
-
-### Sub-PR split
-
-- **A.1 (this PR)** — `agents/routing.yaml` + `src/agents/routing.ts` + tests
-- A.2 — persona frontmatter expansion (model / permissionMode / sandbox_mode / maxTurns / skills / isolation) + `src/agents/loader.ts` + `PersonaSpec.hostHints` + `detect_host` MCP tool
-- A.3 — `scripts/build-plugin.mjs` 4-host transpile + `enterWork` dispatchHint + `work_entered.routing` event payload
-
-Tests: 1059/1059 (was 1047, +12 new). No regression.
-
-## [Unreleased] — 0.5.0 transaction MCP tools #8 — Codex + Cursor Layer-C hooks (F-89406c)
-
-Eighth patch of the 0.5.0 work/drive transaction roadmap. Extends the Layer-C pre-edit enforcement hook from Claude Code (0.4.7) to Codex CLI and Cursor IDE. Same host-agnostic `.cladding/work-registry.json` check; both new scripts use the universal **`exit 2 + stderr message`** deny pattern (Claude Code uses the `hookSpecificOutput` JSON shape it formalised first).
-
-### Added
-
-- **`plugins/codex/hooks/pre-tool-use.mjs`** — Codex CLI PreToolUse hook script. Mirrors the Claude Code wire-up. Deny path: `exit 2` + stderr message naming `enter_work` / `execute_drive`. Same fail-open semantics for missing registry / corrupt JSON / malformed stdin.
-- **`plugins/cursor/hooks/pre-edit.mjs`** — Cursor IDE pre-edit hook script. Same semantics. Targets the closest-to-PreToolUse event Cursor v1.7+ exposes via `~/.cursor/hooks.json` (`beforeShellExecution` / `beforeMCPExecution` are the closest analogues — see the manual wire-up snippet in `plugins/cursor/README.md`).
-- **`plugins/cursor/README.md`** — new file. Documents the Cursor integration surface (MCP via `~/.cursor/mcp.json` + hooks via `~/.cursor/hooks.json` + per-project `.cursorrules`), the manual hook wire-up, and the auto-wire roadmap.
-- **`tests/work/hooks-multi-host.test.ts`** — 12 new tests (6 per host) covering the same matrix as the Claude Code suite: no-registry / empty / active / corrupt / malformed-stdin / empty-payload branches.
-
-### Intentionally deferred
-
-- **Auto-wire via `clad setup`** — `wireCodexHook` / `wireCursorHook` helpers alongside the existing `wireCodexMcp` / `wireCursorMcp`. Gated on each host's hook-manifest schema stabilising in their public docs. Until then, manual wire-up per `plugins/cursor/README.md`.
-- **Gemini CLI lifecycle hooks** — Gemini's `BeforeTool` / `AfterTool` / etc. are documented as CLI-internal callbacks (no `~/.gemini/extensions/...` registration path for cladding to wire). Defer pending confirmation that Gemini exposes an external-script hook surface.
-- **Codex Automations** (webhook + cron external triggers) — separate integration surface from inline hooks. Deferred as a 0.5.x experiment — useful for CI / cron-driven cladding runs rather than inline Layer-C enforcement.
-
-### Why now
-
-0.4.7 landed Claude Code Layer-C. cladding's MCP server already serves Codex and Cursor as first-class hosts via `clad setup`; extending Layer-C to those two hosts means the same defense level applies to ~80% of cladding usage instead of just Claude Code.
-
-The exit 2 + stderr pattern was chosen for the new scripts (vs the `hookSpecificOutput` JSON pattern Claude Code's hook spec defines) because:
-
-1. **Universal** — every host that runs hook scripts surfaces exit-code-2 + stderr back to the user model. The Claude Code JSON shape may or may not be supported by Codex / Cursor without docs verification.
-2. **Forward-compatible** — once Codex / Cursor publish their exact hook-response contract, swap the scripts to the richer JSON shape. The exit-code path stays as the fallback.
-
-Tests: 1047/1047 (was 1035, +12 new on the two host hooks). No regression.
-
-## [Unreleased] — 0.5.0 transaction MCP tools #7 — remove `clad work` / `clad drive` CLI surface (F-89406c)
-
-Seventh patch of the 0.5.0 work/drive transaction roadmap. **BREAKING CHANGE** — removes the `clad work` and `clad drive` CLI commands. Both are now MCP-only: host AIs reach for `enter_work` / `complete_work` / `abandon_work` / `execute_drive` / `complete_drive` via the cladding MCP server (`clad serve`).
+- `scripts/version-bump.mjs` site #2 path corrected to `plugins/claude-code/.claude-plugin/plugin.json` (was the v0.3.x root path).
 
 ### Removed (BREAKING)
 
-- **`clad work [verb]`** CLI command — was a v0.2.x stub that never had a real implementation. Replacement: **`enter_work({featureId, intent?})`** MCP tool (0.4.3 PR #166).
-- **`clad drive [goal]`** CLI command — the autonomous loop. Replacement: **`execute_drive({scenarioId | intent})`** MCP tool (0.4.4 PR #167). The runtime previously behind `clad drive` (`src/drive/loop.ts:runDriveLoop`) is preserved for unit-test coverage but is no longer reachable through any external surface.
-- `runWorkCommand` and `runDriveCommand` exports from `src/cli/clad.ts` (along with their tests in `tests/cli/clad.test.ts`).
+- **`clad work` CLI command** — was a stub since v0.2.x. Replacement: `enter_work({featureId, intent?})` MCP tool.
+- **`clad drive` CLI command** — autonomous loop CLI. Replacement: `execute_drive({scenarioId | intent})` MCP tool. The runtime (`src/drive/loop.ts:runDriveLoop`) is preserved for unit-test coverage but no longer reachable through any external surface.
+- **`runWorkCommand` / `runDriveCommand`** exports from `src/cli/clad.ts`.
 
-### Changed
+### Breaking Changes (summary)
 
-- **`createProgram()`** registers 11 verbs instead of 13 — `work` and `drive` no longer appear. `tests/cli/clad.test.ts` updated to assert the new list.
-- **`src/core/postmortem.ts`** — the auto-generated post-mortem now points at `enter_work` (with the featureId) and `execute_drive` (for bundled retries) instead of the removed CLI verbs.
-- **`plugins/codex/skills/work/SKILL.md`** + **`drive/SKILL.md`** — replaced with deprecation notices pointing at the MCP replacements.
-- **`AGENTS.md`** §6 — drops the `clad drive` mention in favour of "the `execute_drive` MCP tool".
+1. **`clad work` / `clad drive` CLI removed.** Migrate to the MCP transaction tools (`enter_work` / `complete_work` / `execute_drive` / `complete_drive`). The runtime is unchanged; only the CLI verb surface is gone.
+2. **`enter_work` default dispatchMode = `'sub-agent'`** on Tier 1/2 hosts (PR-B). Existing callers that adopted the v0.4.x option-1 host-self-inject pattern on a Tier 1 host will now see `dispatch_drift` reports unless they pass `dispatchMode: 'host-self-inject'` explicitly.
+3. **`ExecuteDriveResult` now carries `groups: ParallelGroup[]`** alongside `plan`. The flat `plan` field is kept for one minor cycle — consumers should migrate to `groups` ahead of 0.6.0 which removes `plan`.
+4. **New `plugins/{codex,cursor,gemini-cli}/agents/` directories** ship with the package. Hand-edits are clobbered by `scripts/build-plugin.mjs` Phase E; treat them as transpile outputs only.
 
 ### Migration
 
-If your workflow used `clad drive`:
+- **Upgrading from v0.4.0**: `npm install -g cladding@0.5.0`. The plugin manifests update on the next `clad setup` / marketplace refresh. Existing `~/.claude/`, `~/.cursor/`, `~/.codex/`, `~/.gemini/` wires are preserved.
+- **From `clad drive` workflows**: ask your host AI for the `execute_drive` MCP tool with a `scenarioId` or `intent`. See `docs/0.5.0-architecture.md` §"Two transaction units".
+- **From `clad work` workflows**: was a no-op stub; switch to `enter_work` via your host AI's MCP surface.
+- **Gemini CLI users**: read [`docs/migration/gemini-to-antigravity.md`](docs/migration/gemini-to-antigravity.md) — Gemini CLI sub-agent surface sunsets 2026-06-18.
+- **Tier 1 host AIs**: the dispatch hint expects you to invoke the named tool (Task / agent / mode_switch / spawn_subagent) rather than self-inject the persona prompt. Self-inject still works (Tier 3 path) but trips `dispatch_drift` reports.
 
-```bash
-# Old (removed):
-clad drive
-clad drive --json
-clad drive --max-iterations 10
+### Tests
 
-# New: from your host AI (Claude Code / Cursor / Codex / Gemini),
-# ask for the execute_drive MCP tool with a scenarioId or intent.
-# See docs/0.5.0-architecture.md §"Two transaction units" for the
-# rationale and the full enter_work / complete_work cycle.
-```
+1165/1165 passing (was 973 at 0.4.0, +192 net new across the 12 patches). 115 test files. Full regression run is green.
 
-If your workflow used `clad work [verb]`: this command was always a stub (no real handler). The replacement is `enter_work({featureId})` invoked by your host AI through MCP.
+### Sub-PR sequence
 
-### Why a CLI surface removal at all?
+Each of the 12 sub-patches that converged here shipped as its own [Unreleased] entry through the 0.4.x development cycle. The granular history is preserved in git log + the consolidated PRs (#164 onward). The two thematic blocks landed via:
 
-The 0.5.0 model is that host AIs drive cladding through transactions, not that humans invoke a CLI verb that prompts an LLM. Two reasons:
-
-1. **Host-agnostic**: MCP is the only host-AI integration surface that works the same on Claude Code, Cursor, Codex, and Gemini. A CLI verb that needs to dispatch an LLM ends up either coupling to one specific host (sampling on Claude Code), needing its own API key (cost + key management nightmare), or being a no-op stub (which `clad work` was).
-2. **Four-layer defense alignment**: Layer-A trigger guidance + Layer-B MCP tool MUST-clauses + Layer-C PreToolUse hook + Layer-D auditor all operate on the MCP transaction model. A parallel CLI surface would need its own four-layer defense and double the maintenance cost without adding cladding-shaped value.
-
-`docs/0.5.0-architecture.md` carries the full rationale.
-
-Tests: 1040/1040 (unchanged from 0.4.7 — net-zero: removed 5 CLI tests, the create-program test count went from 13 → 11, no new tests added). No new regression.
-
-## [Unreleased] — 0.5.0 transaction MCP tools #6 — file-diff audit + Claude Code Layer-C hook (F-89406c)
-
-Sixth patch of the 0.5.0 work/drive transaction roadmap. Lands the remaining two pieces of the four-layer defense outlined in `docs/0.5.0-architecture.md`:
-- **File-system diff cross-referencing** — the Layer-D auditor can now classify actual changed files (via `git diff`) as in-scope vs unmapped, not just temporal orphan windows.
-- **Claude Code Layer-C hook** — `PreToolUse(Edit|Write|MultiEdit)` denies the edit when no work transaction is open.
-
-### Added
-
-- **`src/work/registry.ts`** `ActiveWork.baseRef?: string` — git HEAD sha captured at `enter_work` time for the file-diff cross-reference. Silent undefined when git is missing or cwd is not a working tree.
-- **`src/work/transaction.ts`** `enterWork` — best-effort `git rev-parse HEAD` (2s timeout) populates `baseRef` on the registry entry. Failure is non-fatal.
-- **`src/work/audit.ts`** `auditWorkCompliance({includeFileDiff: true})` — for every open transaction with a `baseRef`, runs `git diff --name-only baseRef HEAD` and classifies the changed file list into `inScope` (prefix-or-exact match against `feature.modules`) vs `unmapped`. Surfaces as `report.fileDiffs[]`.
-- **`plugins/claude-code/hooks/pre-tool-use.mjs`** — Layer-C hook. Reads `.cladding/work-registry.json`; **denies** the Edit/Write/MultiEdit tool call with an `enter_work` instruction when zero active transactions; **silent allow** in all other cases (no registry = cladding not initialised in this cwd, corrupt registry = fail-open, malformed stdin = fail-open).
-- **`plugins/claude-code/hooks/hooks.json`** — Claude Code hook config wiring `PreToolUse(Edit|Write|MultiEdit)` → `pre-tool-use.mjs`. Registered in `plugins/claude-code/.claude-plugin/plugin.json` via the new `"hooks": "./hooks/hooks.json"` field.
-- **`tests/work/audit.test.ts`** — 2 new tests on `fileDiffs` shape (undefined by default, empty array when no active work + git absent).
-- **`tests/work/hook-pre-tool-use.test.ts`** — 6 new tests spawning the hook script (no-registry/empty/active/corrupt/malformed-stdin/cwd-fallback branches).
-
-### Why
-
-0.4.6 landed the Layer-D event-log auditor (open transactions + orphan windows). That report says "the host AI may have edited code outside any work" but cannot say *which* files. This patch closes that gap with a git-backed cross-reference: when the auditor is asked for `fileDiffs`, it actually classifies the diff against each open work's declared scope.
-
-The Layer-C Claude Code hook lifts cladding's discipline from advisory (Layer A/B/D) to **enforced** on the host where most cladding usage happens. Other hosts get the same wire-up once their hook formats stabilise (Cursor v1.7 hooks.json next, Codex Automations after, Gemini last — Gemini's lifecycle hooks are CLI-internal-only so Layer C will remain Claude Code / Cursor / Codex for the foreseeable future).
-
-**Intentionally deferred:**
-- Untracked-file handling in the file-diff (currently tracked-only via `git diff --name-only`) — 0.4.8 candidate, depends on whether `git status --porcelain` produces useful signal without false positives.
-- Cursor / Codex / Gemini host-specific hook adapters — 0.4.8+, gated on per-host hook format research.
-- Identity-checked `review_work` MCP tool — still 0.5.x (anti-self-cert rollback required first).
-- Layer-A trigger guidance v2 — still pending PR #164 merge.
-
-Tests: 1040/1040 (was 1032, +8 new). No regression.
-
-## [Unreleased] — 0.5.0 transaction MCP tools #5 — reviewer guidance + Layer-D auditor (F-89406c)
-
-Fifth patch of the 0.5.0 work/drive transaction roadmap. Adds two pieces of the **four-layer defense** outlined in `docs/0.5.0-architecture.md`:
-- the **reviewer guidance** the host AI needs to self-switch personas after `complete_work` (option-1 dispatch),
-- the **Layer-D auditor** that surfaces still-open transactions and orphan windows from the event log.
-
-### Added
-
-- **`src/work/audit.ts`** (Layer-D) — `auditWorkCompliance({cwd, sinceMs?, orphanThresholdMs?, now?})` reads `.cladding/events.log.jsonl`, pairs `work_entered` with the matching close (`completed | abandoned | timed_out`), and returns:
-  - `openTransactions` — still-open work with their `ageMs`,
-  - `transactions` — full record with `enteredAt` / `closedAt` / `durationMs`,
-  - `orphanWindows` — temporal gaps between transactions where the host AI may have edited code outside any work scope,
-  - `summary` — counts per status.
-  Read-only. File-system diff cross-referencing lands in 0.4.7 once the per-host `PreToolUse` hook adapter is wired.
-- **`src/serve/server.ts`** — new MCP tool `audit_work_compliance` registered, exposing the Layer-D report to host AIs.
-
-### Changed
-
-- **`src/work/transaction.ts`** `completeWork`:
-  - On `status: 'completed'`, the result now carries **`reviewerGuidance: string`** — the reviewer persona body the host AI is expected to adopt for a self-review pass on the next turn (option-1 dispatch, same model as `enterWork`'s specialists prompt).
-  - Persona-load failure is non-fatal (`reviewerGuidance` stays undefined) so the already-successful status transition does not regress on a stray missing-file error.
-- **`src/serve/server.ts`** `complete_work` description updated to mention the new `reviewerGuidance` field.
-
-### Why
-
-The 0.5.0 four-layer defense calls for a reviewer dispatch step plus a post-hoc orchestrator that flags work happening outside any registered transaction. This patch lands the host-agnostic, write-free parts:
-- reviewer guidance is just a string in the response — the host AI's own LLM does the review (option-1 dispatch); no MCP sampling dependency.
-- the auditor reads the event log only — no file-system observation, no git invocation — so it works on every host where cladding runs and surfaces actionable signal (open transactions to resume / abandon, orphan windows to investigate).
-
-**Intentionally deferred:**
-- Identity-checked `review_work` MCP tool with the existing `ReviewerIdentityCollisionError` runtime barrier — 0.5.x, once anti-self-cert rollback transactions land.
-- File-system diff cross-referencing (orphan window → actual unmapped files) — 0.4.7, alongside the Layer-C per-host hook adapter.
-- Layer-A trigger guidance v2 (AGENTS.md / CLAUDE.md namedrop of `enter_work` / `execute_drive`) — must land after PR #164 (v1 trigger guidance) merges to avoid `host-instructions.ts` conflict.
-
-Tests: 1032/1032 (was 1023, +9 new on the auditor). No regression.
-
-## [Unreleased] — 0.5.0 transaction MCP tools #4 — completeWork L1 gates (F-89406c)
-
-Fourth patch of the 0.5.0 work/drive transaction roadmap. Closes the iron-law gap in `completeWork` — drift was already gating in 0.4.3; this patch adds the remaining L1 stages (type / lint / arch). The work transaction now runs the full L1 band before transitioning a feature to `done`.
-
-### Changed
-
-- **`src/work/transaction.ts`** `completeWork`:
-  - Now runs **stage 1.1 (type)** via `runType`, **1.2 (lint)** via `runLint`, **1.5 (arch)** via `runArch` after the existing **1.3 (drift)** gate. All four are passed the work's cwd.
-  - `exitCode === 2` from any L1 runner (= `detectToolchain` returned `unknown`, no manifest registered) is treated as **skipped + pass** so cladding does not block work transactions in non-instrumented scratch directories. The `gates[].skipped` flag still surfaces "could not run" vs "ran and passed" to the caller.
-  - Result shape extended: new `gates: GateResult[]` field surfaces per-gate `{name, pass, skipped, exitCode?, findingsCount?, stderr?}` for drift + type + lint + arch.
-  - `work_completed` event payload now carries `gatesSkipped` (on pass) or `gatesFailed` (on fail) lists so the Layer-D post-hoc orchestrator (planned for 0.4.6) can surface what blocked the transition.
-
-### Why
-
-0.4.3 landed `completeWork` with the drift gate only — the README's "matches the spec" promise asks for the full L1 band (drift + type + lint + arch), and this patch closes that gap. The skipped-vs-pass distinction keeps the harness usable in greenfield/scratch directories where no toolchain manifest exists yet; the surfaced `gates[].skipped` flag means downstream consumers can still tell the two apart for telemetry.
-
-**Reviewer dispatch is intentionally deferred to 0.4.6.** Reviewer touches the persona machinery and the existing `ReviewerIdentityCollisionError` runtime barrier — that surface deserves its own focused PR rather than being bundled here. Layer-A trigger guidance v2 (AGENTS.md / CLAUDE.md namedrop of `enter_work` / `execute_drive`) is also deferred — that PR has to land after 0.4.1 (#164, the trigger guidance v1) merges to avoid CHANGELOG / host-instructions conflict.
-
-Tests: 1023/1023 (was 1021, +2 new on the gates-array shape and the drift-fail surfaces). No regression.
-
-## [Unreleased] — 0.5.0 transaction MCP tools #3 — execute_drive (F-d23cd4)
-
-Third patch of the 0.5.0 work/drive transaction roadmap. Lands the scenario-unit transaction tool — `execute_drive` + `complete_drive` MCP tools with dependency-respecting plan ordering and deterministic intent-to-scenario matching.
-
-### Added
-
-- **`src/work/drive-transaction.ts`** (F-d23cd4) — the bundled-work transaction layer on top of 0.4.3's single-feature work transaction:
-  - `executeDrive({scenarioId | intent})` — loads the scenario (direct id or deterministic substring/token match against `scenario.title` + `scenario.flow`), filters out features whose status is already `done`/`archived`, topologically sorts the rest by `depends_on`, auto-enters the first ready feature via `enterWork`, and returns `{plan, firstWork, instructions}`. Emits a `drive_started` event with the full plan.
-  - `completeDrive({scenarioId})` — re-reads the scenario from disk, partitions every referenced feature into `featuresPassed` (status: `done | archived`), `featuresFailed` (status: `blocked`), and `featuresPending` (anything else), and emits a `drive_completed` event with the partition. Does NOT mutate spec.yaml — each feature's status was already written by its underlying `complete_work`.
-  - Custom errors: `ScenarioNotFoundError` (unknown scenarioId), `NoMatchingScenarioError` (intent matched zero scenarios).
-- **`src/events/log.ts`** — 2 new `EventType` variants: `drive_started` / `drive_completed`.
-- **`src/serve/server.ts`** — `execute_drive` / `complete_drive` MCP tools registered. Both descriptions carry the Layer-B MUST-clause ("MUST be called BEFORE any Edit/Write tool when the user request spans multiple features or a whole user journey").
-- **`tests/work/drive-transaction.test.ts`** — 10 new unit tests covering scenarioId mode (plan + auto-enter + event), intent mode (substring + token-overlap matching), dependency-respecting topo-sort, done/archived skipping, empty-plan handling, completion partition, and error paths.
-
-### Why
-
-0.4.3 landed the work transaction (atomic, single-feature). This patch lands the bundled-work boundary on top. The host AI now has **two distinct entry points**: `enter_work` for atomic single-feature changes ("fix login bug"), `execute_drive` for multi-feature scenarios ("결제 모듈 추가해줘", "refactor onboarding"). The boundary `drive = scenario unit, work = feature unit` is now wire-level enforceable in addition to spec-anchored.
-
-Intent-to-scenario matching is deterministic in 0.4.4 (substring boost + token overlap against title + flow). LLM-based matching via MCP `sampling/createMessage` is a 0.5.x option — sampling is only stable on Claude Code today.
-
-Tests: 1021/1021 (was 1011, +10 new). No regression on existing suites or the drift baseline.
-
-## [Unreleased] — 0.5.0 transaction MCP tools #2 (F-89406c / F-d23cd4 / F-ca18ea)
-
-Second patch of the 0.5.0 work/drive transaction roadmap. Lands the first wire-level surface — `enter_work` / `complete_work` / `abandon_work` MCP tools, the lifecycle FSM behind them, and the SSoT artifacts that anchor the 0.5.0 vision in spec.
-
-### Added
-
-- **`src/work/transaction.ts`** + **`src/work/registry.ts`** (F-89406c / F-ca18ea) — the single-feature work transaction layer:
-  - `enterWork({featureId, intent?, personaId?})` — transitions feature `planned → in_progress` via `src/spec/update.ts:updateFeatureStatus`, registers the active-work entry under `.cladding/work-registry.json`, returns persona prompt + scoped module list. Idempotent on featureId (a second call returns `'resumed'` without re-emitting events or re-touching status).
-  - `completeWork({featureId, evidence?})` — runs the scope-aware drift gate (`runDrift({scope: feature.modules})` from 0.4.2), transitions `in_progress → done` on pass and appends optional evidence via `appendEvidence`. Fail branch keeps status as `in_progress`, returns drift findings, and leaves the registry entry so the caller can retry after fixing the drift.
-  - `abandonWork({featureId, reason})` — preserves status, removes the registry entry, emits a `work_abandoned` event.
-  - `.cladding/work-registry.json` atomic-written via temp-file + rename (same pattern as `src/spec/update.ts`); survives cladding-server restart so mid-flight transactions are not silently lost.
-- **`src/serve/server.ts`** — `enter_work` / `complete_work` / `abandon_work` MCP tools registered. Each tool `description` carries the Layer-B compulsion string ("**MUST** be called BEFORE any Edit / Write / file-mutation tool when …") so host-AI prompt-engineering picks it up alongside the Layer-A trigger guidance in `AGENTS.md` / `CLAUDE.md` (F-8880ee, landed in 0.4.1).
-- **`src/events/log.ts`** — 4 new `EventType` variants: `work_entered` / `work_completed` / `work_abandoned` / `work_timed_out`.
-- **Spec shards** (Tier A): `spec/features/execute-work-mcp-tool-89406c.yaml` (F-89406c, 7 AC), `execute-drive-mcp-tool-d23cd4.yaml` (F-d23cd4, 6 AC — wire-level lands in 0.4.4), `work-transaction-state-machine-ca18ea.yaml` (F-ca18ea, 6 AC).
-- **Scenario** (Tier A): `spec/scenarios/ai-host-autonomous-feature-development-d21acd.yaml` (S-d21acd) — the live user-journey anchor `execute_drive` will target in 0.4.4.
-- **`spec/architecture.yaml`** — new `work` layer (middle tier, peer of `stages` / `adapters`) + forbidden_imports (`spec → work`, `work → drive`, `work → serve`, `work → cli`).
-- **`spec/capabilities.yaml`** — new `work-transactions` capability binding F-bb3c9f + F-89406c + F-d23cd4 + F-ca18ea.
-- **`docs/0.5.0-architecture.md`** — Tier-B design doc: 4-layer defense (A/B/C/D), persona dispatch option 1 (host AI is the LLM — cladding never dispatches), implicit-close lifecycle (host Stop hook / next-prompt switch / wall-clock timeout), and the rationale for rejecting watch-daemon + host-specific-only models.
-- **`tests/work/registry.test.ts`** (9 tests) + **`tests/work/transaction.test.ts`** (8 tests) — 17 new unit tests covering load/save/atomic/expired + enter/complete/abandon + transition validation + idempotence + iron-law pass/fail branches.
-
-### Why
-
-0.4.2 landed the writer + scope-aware drift; this patch puts the actual transaction tools on the wire and registers the SSoT shape the 0.5.0 roadmap leans on. The work transaction is the host-agnostic boundary — host AIs reach for `enter_work` via MCP regardless of whether the underlying host is Claude Code, Cursor, Codex, or Gemini, because MCP transport is the one piece that genuinely is host-agnostic in 2026. `execute_drive` is registered in spec (F-d23cd4) but its wire-level implementation + orchestrator routing land in 0.4.4 — the boundary between work and drive is now spec-anchored (drive = scenario unit, work = feature unit) and architecturally enforced via the new `work` layer.
-
-Tests: 1011/1011 (was 994, +17 new). No regression on the existing suites or on the drift baseline.
-
-## [Unreleased] — 0.5.0 transaction foundation #1 (F-bb3c9f)
-
-First patch of the 0.5.0 work/drive transaction roadmap. Adds the two pieces every later patch depends on: an atomic spec-yaml writer for status / evidence mutations, and a scope filter on the drift stage so a `work` transaction can run drift detection scoped to the feature's modules only (instead of the project-wide 27-detector full scan).
-
-### Added
-
-- **`src/spec/update.ts`** (F-bb3c9f) — atomic writer layer for feature shards:
-  - `findFeatureFile(cwd, featureId)` locates a shard via F-`<hash6>` suffix shortcut, legacy F-NNN.yaml direct match, or a first-line `id:` scan; throws `FeatureNotFoundError` on miss.
-  - `updateFeatureStatus(cwd, featureId, newStatus)` replaces only the top-level `status:` line via a precise regex, preserves comments / spacing, validates the transition against a fixed `STATUS_TRANSITIONS` table (throws `InvalidStatusTransitionError` for jumps like `planned → done`), and writes via temp-file + rename so readers never observe a half-written file.
-  - `getFeatureScope(cwd, featureId)` returns `{slug, modules}` for the scope-aware iron law.
-  - `appendEvidence(cwd, featureId, acId, evidence)` appends idempotently to the targeted AC's `evidence_refs` via the yaml Document API.
-- **`src/stages/drift.ts` `scope` option** — `runDrift({scope: [...]})` drops findings whose `path` is not inside any scope entry; findings without `path` (project-level invariants like `HARNESS_INTEGRITY`) are always kept. Matching is prefix-or-exact (no glob in 0.4.2 — glob support is a later patch). CLI `--scope src/work,src/spec` exposed.
-- **`spec/features/spec-update-writer-bb3c9f.yaml`** — feature shard (F-bb3c9f, 9 acceptance criteria).
-- **`tests/spec/update.test.ts`** — 12 unit tests covering find / update / scope / evidence.
-- **`tests/stages/drift.test.ts`** — 8 new tests for the scope filter (no regressions on the existing strict/registry suites).
-
-### Changed
-
-- **`spec/capabilities.yaml`** — F-bb3c9f registered under the `spec-governance` capability.
-
-### Why
-
-The 0.5.0 roadmap (see plan + previous CHANGELOG entries) makes `execute_work` and `execute_drive` MCP transactions the only way to mutate feature state. Those transactions need (a) a writer they can call to advance `status` and append evidence without clobbering hand-edits and (b) a drift detector that runs scoped to the work's modules instead of project-wide (the existing 27-detector full scan is too heavy for a per-work boundary). This patch lands both. No CLI surface change — `clad check --strict` and existing detectors behave identically.
+- **Transaction MCP tools** (#1 foundation → #8 multi-host hooks): PRs #164 through PR-A.0's foundation branch.
+- **Multi-agent first**: PR-A.1 (#173 — routing) → PR-A.2 (#174 — hostHints + detect_host) → PR-A.3 (#175 — 4-host transpile + dispatchHint) → PR-B (#176 — capabilities + dispatchMode + parallel groups).
 
 ## [0.4.0] — 2026-05-27 — `clad setup` command — split npm install from host wire (F-80d19d)
 

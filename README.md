@@ -264,6 +264,18 @@ cd <project>              # for the next step (clad setup itself is project-agno
 > **About the MCP server.** Every host gets cladding wired as an MCP server — only the wire *location* differs. Claude Code and Gemini CLI auto-start it through the plugin/extension manifest's `mcpServers` field; Codex through `~/.codex/config.toml` `[mcp_servers.cladding]`; Cursor through `~/.cursor/mcp.json`. You never invoke MCP directly — no `/mcp` slash, no manual server-connect step. The AI in each host calls cladding's tools (`clad_create_feature`, etc.) in response to **natural-language requests**; you keep typing `/cladding:init` plus normal chat.
 
 > **Benchmark.** v0.4.0 measurements show ~60% consistency improvement and ~50% LOC reduction vs unguided AI coding on a fixed task, with 100% drift detection across a 5-iteration dev cycle. Full methodology and honest caveats (some of the consistency gain is the "more-specific-prompt" effect, not exclusively cladding) in [`docs/benchmarks/v0.4.0-consistency-bench.md`](docs/benchmarks/v0.4.0-consistency-bench.md).
+
+#### Multi-agent tier compatibility (v0.5.0)
+
+cladding is **host-agnostic multi-agent first**. The same canonical persona spec transpiles to each host's native sub-agent manifest, and `enter_work` returns a host-shaped dispatch hint + capability envelope:
+
+| Tier | Hosts | Dispatch | Notes |
+|---|---|---|---|
+| **1** | Claude Code · Codex · Cursor · Antigravity | native sub-agent auto-dispatch (`Task` / `agent` / `mode_switch` / `spawn_subagent`) | full native parallel groups |
+| **2** | Gemini CLI | `@agent` explicit dispatch (advisory) | **sunset 2026-06-18 → Antigravity** — see [migration guide](docs/migration/gemini-to-antigravity.md) |
+| **3** | generic / unknown | persona prompt self-inject | no enforcement; fall-through path |
+
+Full design rationale: [`docs/0.5.0-architecture.md`](docs/0.5.0-architecture.md).
 </details>
 
 ### Step 2 — Init (create the project spec)
