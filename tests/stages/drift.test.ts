@@ -85,3 +85,86 @@ describe('drift --strict mode (F-051)', () => {
     expect(report.pass).toBe(true);
   });
 });
+
+describe('drift --scope filter (0.4.2)', () => {
+  const inScope: DriftDetector = {
+    name: 'TEST_IN_SCOPE',
+    run: () => [
+      {detector: 'TEST_IN_SCOPE', severity: 'error' as const, path: 'src/work/loop.ts', message: 'inside'},
+    ],
+  };
+  const outOfScope: DriftDetector = {
+    name: 'TEST_OUT_OF_SCOPE',
+    run: () => [
+      {detector: 'TEST_OUT_OF_SCOPE', severity: 'error' as const, path: 'src/other/file.ts', message: 'outside'},
+    ],
+  };
+  const projectLevel: DriftDetector = {
+    name: 'TEST_PROJECT_LEVEL',
+    run: () => [
+      {detector: 'TEST_PROJECT_LEVEL', severity: 'error' as const, message: 'no path — cross-cutting'},
+    ],
+  };
+
+  beforeEach(() => clearDetectors());
+  afterEach(() => clearDetectors());
+
+  test('no scope → all findings kept (regression check)', () => {
+    registerDetector(inScope);
+    registerDetector(outOfScope);
+    const report = runDrift({cwd: '.'});
+    expect(report.findings).toHaveLength(2);
+  });
+
+  test('scope keeps matching path findings, drops out-of-scope', () => {
+    registerDetector(inScope);
+    registerDetector(outOfScope);
+    const report = runDrift({cwd: '.', scope: ['src/work/']});
+    expect(report.findings).toHaveLength(1);
+    expect(report.findings[0].detector).toBe('TEST_IN_SCOPE');
+  });
+
+  test('project-level findings (no path) bypass the scope filter', () => {
+    registerDetector(outOfScope);
+    registerDetector(projectLevel);
+    const report = runDrift({cwd: '.', scope: ['src/work/']});
+    expect(report.findings).toHaveLength(1);
+    expect(report.findings[0].detector).toBe('TEST_PROJECT_LEVEL');
+  });
+
+  test('multiple scope entries are OR-ed', () => {
+    registerDetector(inScope);
+    registerDetector(outOfScope);
+    const report = runDrift({cwd: '.', scope: ['src/work/', 'src/other/']});
+    expect(report.findings).toHaveLength(2);
+  });
+
+  test('trailing slash is optional — scope "src/work" matches src/work/loop.ts', () => {
+    registerDetector(inScope);
+    const report = runDrift({cwd: '.', scope: ['src/work']});
+    expect(report.findings).toHaveLength(1);
+  });
+
+  test('exact path match works (no trailing slash needed)', () => {
+    const exact: DriftDetector = {
+      name: 'TEST_EXACT',
+      run: () => [{detector: 'TEST_EXACT', severity: 'error' as const, path: 'README.md', message: 'x'}],
+    };
+    registerDetector(exact);
+    const report = runDrift({cwd: '.', scope: ['README.md']});
+    expect(report.findings).toHaveLength(1);
+  });
+
+  test('pass policy still applies after scope filter (in_scope error fails stage)', () => {
+    registerDetector(inScope);
+    const report = runDrift({cwd: '.', scope: ['src/work/']});
+    expect(report.pass).toBe(false);
+  });
+
+  test('all findings filtered out → stage passes', () => {
+    registerDetector(outOfScope);
+    const report = runDrift({cwd: '.', scope: ['src/work/']});
+    expect(report.pass).toBe(true);
+    expect(report.findings).toHaveLength(0);
+  });
+});

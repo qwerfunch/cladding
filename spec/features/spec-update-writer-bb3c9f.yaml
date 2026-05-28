@@ -1,0 +1,62 @@
+id: F-bb3c9f
+slug: spec-update-writer
+title: "Atomic spec writer + scope-aware drift filter (0.5.0 transaction foundation)"
+status: in_progress
+modules:
+  - src/spec/update.ts
+  - src/stages/drift.ts
+acceptance_criteria:
+  - id: AC-001
+    text: >-
+      src/spec/update.ts exposes findFeatureFile(cwd, featureId) that
+      locates spec/features/<slug>-<hash>.yaml via the F-<hash6>
+      shortcut, falls back to legacy F-NNN.yaml direct match, and to a
+      first-five-line id: scan; throws FeatureNotFoundError for unknown
+      ids.
+  - id: AC-002
+    text: >-
+      updateFeatureStatus(cwd, featureId, newStatus) replaces only the
+      top-level status: line via line-precise regex, preserves all
+      other lines / comments / spacing, and uses temp-file + rename for
+      atomicity (readers never observe a half-written file).
+  - id: AC-003
+    text: >-
+      updateFeatureStatus validates transitions against
+      STATUS_TRANSITIONS (planned→{in_progress, blocked, archived};
+      in_progress→{done, blocked, archived}; blocked→{planned,
+      in_progress, archived}; done→{archived}; archived→none) and
+      throws InvalidStatusTransitionError on disallowed jumps such as
+      planned→done.
+  - id: AC-004
+    text: >-
+      updateFeatureStatus is idempotent when oldStatus === newStatus —
+      the file is not rewritten and the oldStatus is returned.
+  - id: AC-005
+    text: >-
+      getFeatureScope(cwd, featureId) returns {slug, modules} parsed
+      from the yaml; modules defaults to [] when the field is absent.
+      Read-only — supplies the scope array a work transaction passes
+      into runDrift({scope}).
+  - id: AC-006
+    text: >-
+      appendEvidence(cwd, featureId, acId, evidence) adds evidence to
+      the targeted AC's evidence_refs via the yaml Document API
+      (creating the array when absent), is idempotent against
+      duplicates, and throws when no AC matches acId.
+  - id: AC-007
+    text: >-
+      src/stages/drift.ts runDrift accepts an optional scope:
+      readonly string[] in DriftOptions. When set, findings whose
+      `path` is not inside any scope entry are dropped; findings with
+      no `path` (project-level invariants like HARNESS_INTEGRITY) are
+      always kept.
+  - id: AC-008
+    text: >-
+      Scope matching is prefix-or-exact (no glob in 0.4.2). "src/work"
+      and "src/work/" both match "src/work/loop.ts"; multiple scope
+      entries are OR-ed. Full glob support is a later patch.
+  - id: AC-009
+    text: >-
+      CLI invocation `tsx src/stages/drift.ts --scope src/work,src/spec`
+      parses the comma-separated list into the scope option and passes
+      it through to runDrift unchanged.

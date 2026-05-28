@@ -5,6 +5,30 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — 0.5.0 transaction foundation #1 (F-bb3c9f)
+
+First patch of the 0.5.0 work/drive transaction roadmap. Adds the two pieces every later patch depends on: an atomic spec-yaml writer for status / evidence mutations, and a scope filter on the drift stage so a `work` transaction can run drift detection scoped to the feature's modules only (instead of the project-wide 27-detector full scan).
+
+### Added
+
+- **`src/spec/update.ts`** (F-bb3c9f) — atomic writer layer for feature shards:
+  - `findFeatureFile(cwd, featureId)` locates a shard via F-`<hash6>` suffix shortcut, legacy F-NNN.yaml direct match, or a first-line `id:` scan; throws `FeatureNotFoundError` on miss.
+  - `updateFeatureStatus(cwd, featureId, newStatus)` replaces only the top-level `status:` line via a precise regex, preserves comments / spacing, validates the transition against a fixed `STATUS_TRANSITIONS` table (throws `InvalidStatusTransitionError` for jumps like `planned → done`), and writes via temp-file + rename so readers never observe a half-written file.
+  - `getFeatureScope(cwd, featureId)` returns `{slug, modules}` for the scope-aware iron law.
+  - `appendEvidence(cwd, featureId, acId, evidence)` appends idempotently to the targeted AC's `evidence_refs` via the yaml Document API.
+- **`src/stages/drift.ts` `scope` option** — `runDrift({scope: [...]})` drops findings whose `path` is not inside any scope entry; findings without `path` (project-level invariants like `HARNESS_INTEGRITY`) are always kept. Matching is prefix-or-exact (no glob in 0.4.2 — glob support is a later patch). CLI `--scope src/work,src/spec` exposed.
+- **`spec/features/spec-update-writer-bb3c9f.yaml`** — feature shard (F-bb3c9f, 9 acceptance criteria).
+- **`tests/spec/update.test.ts`** — 12 unit tests covering find / update / scope / evidence.
+- **`tests/stages/drift.test.ts`** — 8 new tests for the scope filter (no regressions on the existing strict/registry suites).
+
+### Changed
+
+- **`spec/capabilities.yaml`** — F-bb3c9f registered under the `spec-governance` capability.
+
+### Why
+
+The 0.5.0 roadmap (see plan + previous CHANGELOG entries) makes `execute_work` and `execute_drive` MCP transactions the only way to mutate feature state. Those transactions need (a) a writer they can call to advance `status` and append evidence without clobbering hand-edits and (b) a drift detector that runs scoped to the work's modules instead of project-wide (the existing 27-detector full scan is too heavy for a per-work boundary). This patch lands both. No CLI surface change — `clad check --strict` and existing detectors behave identically.
+
 ## [0.4.0] — 2026-05-27 — `clad setup` command — split npm install from host wire (F-80d19d)
 
 **Reverting F-90d054's npm `postinstall` side effect.** v0.3.60 made `npm install -g cladding` automatically wire four host AI channels in `$HOME` (`~/.claude/`, `~/.gemini/`, `~/.codex/`, `~/.agents/`). The convenience was real — npm-path users got `/cladding init` for free — but the cost was steep: every npm install touched four global directories whether or not the user had those AI tools, CI sandboxes needed `CLADDING_SKIP_POSTINSTALL=1`, and `clad init` carried a fallback retry path. v0.4.0 splits the responsibility: install is install, wire is wire.

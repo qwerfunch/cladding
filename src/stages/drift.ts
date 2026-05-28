@@ -62,6 +62,31 @@ export interface DriftOptions extends CommandStageOptions {
    * @see stages/detectors/README.md — "Opt-in strict mode".
    */
   readonly strict?: boolean;
+  /**
+   * Optional scope filter (0.4.2, foundation for work-transaction
+   * scope-aware iron law). Each entry is a path prefix or exact path
+   * (no glob — added in a later patch). When set, only findings whose
+   * `path` matches one of the scopes are kept; project-level findings
+   * with no `path` are always kept (HARNESS_INTEGRITY etc.).
+   *
+   * Example: `scope: ['src/work/']` keeps only findings under that
+   * directory plus any project-level finding.
+   *
+   * @see src/spec/update.ts `getFeatureScope` — supplies the modules
+   *      list a `work` transaction passes in.
+   */
+  readonly scope?: readonly string[];
+}
+
+/** Returns true when the given path is inside any of the scope entries. */
+function pathInScope(path: string, scope: readonly string[]): boolean {
+  for (const s of scope) {
+    if (!s) continue;
+    if (path === s) return true;
+    const prefix = s.endsWith('/') ? s : `${s}/`;
+    if (path.startsWith(prefix)) return true;
+  }
+  return false;
 }
 
 /**
@@ -81,10 +106,16 @@ export interface DriftOptions extends CommandStageOptions {
  * @see stages/detectors/README.md — severity matrix + strict mode.
  */
 export function runDrift(opts: DriftOptions = {}): DriftReport {
-  const findings: DriftFinding[] = [];
+  const raw: DriftFinding[] = [];
   for (const detector of detectors) {
-    findings.push(...detector.run(opts));
+    raw.push(...detector.run(opts));
   }
+  // Scope filter (0.4.2). Project-level findings (no `path`) bypass the
+  // filter — they reflect cross-cutting invariants, not module work.
+  const findings =
+    opts.scope && opts.scope.length > 0
+      ? raw.filter((f) => !f.path || pathInScope(f.path, opts.scope!))
+      : raw;
   const failingSeverities: ReadonlySet<DriftFinding['severity']> = opts.strict
     ? new Set<DriftFinding['severity']>(['error', 'warn'])
     : new Set<DriftFinding['severity']>(['error']);
@@ -99,11 +130,19 @@ export function runDrift(opts: DriftOptions = {}): DriftReport {
 
 // CLI entry — `tsx stages/drift.ts` or `npm run stage:drift`. Supports
 // `--strict` to promote warn findings to fail-grade (matches the
-// `clad check --strict` behaviour).
+// `clad check --strict` behaviour) and `--scope <path>[,<path>]` to
+// restrict findings to one or more module prefixes (0.4.2 foundation
+// for work-transaction scope-aware drift; full glob support lands in
+// a later patch).
 const isCliEntry = !(globalThis as {__CLADDING_BUNDLED?: boolean}).__CLADDING_BUNDLED && import.meta.url === `file://${process.argv[1]}`;
 if (isCliEntry) {
   const strict = process.argv.includes('--strict');
-  const report = runDrift({strict});
+  const scopeIdx = process.argv.indexOf('--scope');
+  const scope =
+    scopeIdx >= 0 && scopeIdx + 1 < process.argv.length
+      ? process.argv[scopeIdx + 1].split(',').map((s) => s.trim()).filter(Boolean)
+      : undefined;
+  const report = runDrift({strict, scope});
   console.log(JSON.stringify(report));
   process.exit(report.exitCode);
 }
