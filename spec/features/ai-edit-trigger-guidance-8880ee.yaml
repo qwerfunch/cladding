@@ -1,0 +1,57 @@
+id: F-8880ee
+slug: ai-edit-trigger-guidance
+title: "Explicit code-edit trigger guidance in AGENTS.md / CLAUDE.md"
+status: in_progress
+modules:
+  - src/init/host-instructions.ts
+acceptance_criteria:
+  - id: AC-001
+    text: >-
+      AGENTS_MD_TEMPLATE includes a "When to invoke clad_create_feature"
+      section listing the three primary trigger cases: (a) implementation
+      prompts without "feature"/"기능" keywords, (b) just exited plan
+      mode, (c) unclear final scope (use a provisional slug).
+  - id: AC-002
+    text: >-
+      CLAUDE_MD_SECTION includes a "Call clad_create_feature before the
+      first code-edit tool" bullet covering the same three trigger cases
+      and using the same imperative voice as AGENTS_MD_TEMPLATE.
+  - id: AC-003
+    text: >-
+      Both templates still pass isStaleInstructions() — the new wording
+      pairs every clad_create_feature mention with a `clad` CLI reference
+      (or a non-MCP-tool context) so the v0.3.x stale regex does not
+      trigger.
+  - id: AC-004
+    text: >-
+      Existing host-instructions tests continue to pass: AGENTS_MD_TEMPLATE
+      and CLAUDE_MD_SECTION are compared as exported constants, so the new
+      bodies flow through every "created / overwritten / refreshed-stale"
+      assertion automatically.
+  - id: AC-005
+    text: >-
+      Both templates state the slug rename procedure correctly — slug is
+      baked into both the filename (<slug>-<hash>.yaml) and the slug:
+      field, so a later rename requires `git mv` on the file PLUS a
+      matching slug: field edit. The misleading "slug field is editable"
+      shorthand is removed.
+  - id: AC-006
+    text: >-
+      CLAUDE_MD_SECTION uses the same imperative tone as AGENTS_MD_TEMPLATE
+      and src/agents/orchestrator.md (verb-first, e.g. "Call
+      clad_create_feature ..." rather than "Before the first ...").
+  - id: AC-007
+    text: >-
+      Both templates include a provisional-slug example
+      (e.g. `wip-<short-description>`) so AI sessions register with a
+      consistent shape rather than improvising arbitrary slugs that risk
+      SLUG_CONFLICT.
+  - id: AC-008
+    text: >-
+      Both templates state that multi-feature sessions require one
+      clad_create_feature call per logically distinct feature, not a
+      single catch-all shard.
+  - id: AC-009
+    text: >-
+      Both templates instruct AI sessions to pair clad_create_feature with
+      clad_create_scenario when the work introduces a new user journey.

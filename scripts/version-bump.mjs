@@ -45,9 +45,10 @@ const SITES = [
     /"version": "(\d+\.\d+\.\d+)"/,
     (v) => `"version": "${v}"`,
   ),
-  // 2. .claude-plugin/plugin.json
+  // 2. plugins/claude-code/.claude-plugin/plugin.json
+  //    (moved from .claude-plugin/plugin.json in v0.4.0 — commit ccd9bf1)
   siteFor(
-    '.claude-plugin/plugin.json',
+    'plugins/claude-code/.claude-plugin/plugin.json',
     /"version": "(\d+\.\d+\.\d+)"/,
     (v) => `"version": "${v}"`,
   ),

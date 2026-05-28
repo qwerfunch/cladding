@@ -32,6 +32,29 @@ This project is managed by **cladding** — the Spec-Anchored Agent Harness.
 The agent that writes a unit of work must not be the agent that signs off
 on it. librarian writes spec, reviewer audits, specialists implement.
 
+## When to invoke \`clad_create_feature\`
+
+Call **before** the first code-edit tool (Edit / Write / file mutation) in
+any session that changes behavior, even when:
+
+- the user did not say "add a feature" / "기능 추가" — implementation
+  prompts ("fix X", "refactor Y", "make it do Z") still count
+- you have just exited plan mode and are about to implement what the plan
+  described — the implementation phase needs its own feature shard
+- the final scope is unclear — register a provisional slug now
+  (e.g. \`wip-<short-description>\`). The hash id is the stable
+  identifier; the slug is baked into both the filename
+  (\`<slug>-<hash>.yaml\`) and the \`slug:\` field, so a later rename
+  requires \`git mv\` on the file **plus** a matching \`slug:\` edit
+- the work spans multiple logically distinct features — make one
+  \`clad_create_feature\` call per distinct feature, not a single
+  catch-all shard
+- the work also introduces a new user journey — pair the feature with
+  a \`clad_create_scenario\` call so the journey is registered too
+
+Skip only for read-only sessions (questions, code review, git-history
+queries) and single-line typo / formatting fixes.
+
 ## More
 
 See \`CLAUDE.md\` for Claude Code-specific memory, and
@@ -57,6 +80,18 @@ own work (anti-self-cert invariant).
 \`clad\` CLI or invoke cladding through the \`/cladding:init\` slash
 command. The multi-developer-safe model is in
 \`docs/spec-ids-multi-dev.md\`.
+
+**Call \`clad_create_feature\` before the first code-edit tool** in
+any session that changes behavior — implementation prompts without
+the words "feature" / "기능" still count (e.g. "fix X", "refactor Y",
+or implementing right after \`ExitPlanMode\`). If the slug isn't
+clear, register a provisional one (e.g. \`wip-<short-description>\`);
+the slug is baked into both the filename (\`<slug>-<hash>.yaml\`)
+and the \`slug:\` field, so a later rename needs \`git mv\` plus a
+matching field edit. Make one call per logically distinct feature,
+and pair with \`clad_create_scenario\` when the work introduces a
+new user journey. Skip read-only sessions and single-line typo
+fixes.
 
 **The 27 detectors** — \`clad check --strict\` runs every drift detector.
 Don't suppress findings; either fix them or update spec.

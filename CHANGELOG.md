@@ -5,6 +5,23 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] — 2026-05-28 — explicit edit-trigger guidance in host AI templates (F-8880ee)
+
+### Changed
+
+- **`src/init/host-instructions.ts`** — `AGENTS_MD_TEMPLATE` and `CLAUDE_MD_SECTION` now say *when* a host AI must invoke `clad_create_feature`: before the first code-edit tool call in any behavior-changing session, including implementation prompts that omit the "feature" / "기능" keyword and the moment a session exits plan mode. The clause also (a) gives a provisional-slug example (`wip-<short-description>`), (b) states the correct rename procedure — `git mv` on the file **plus** a `slug:` field edit, since the slug is baked into both the filename (`<slug>-<hash>.yaml`) and the field, (c) requires one call per logically distinct feature in multi-feature sessions, and (d) tells the session to pair with `clad_create_scenario` when a new user journey is introduced. The CLAUDE.md wording uses the same imperative voice as the cross-tool AGENTS.md version.
+- **`spec/features/ai-edit-trigger-guidance-8880ee.yaml`** — new feature shard (F-8880ee, 9 acceptance criteria).
+- **`spec/capabilities.yaml`** — F-8880ee added to the `spec-governance` capability's `features[]` so `CAPABILITIES_FEATURE_MAPPING` no longer warns about an orphan id.
+- **`spec/features/init-host-autowire-90d054.yaml`** — removed `src/init/host-instructions.ts` from the archived feature's `modules[]` (ownership transferred to F-8880ee), eliminating one `STALE_SPECIFICATION` finding on that file. AC-008/009/010 remain as a historical record of the original AGENTS.md / CLAUDE.md write contract.
+
+### Fixed
+
+- **`scripts/version-bump.mjs`** — SITES entry #2 updated from the stale `.claude-plugin/plugin.json` to `plugins/claude-code/.claude-plugin/plugin.json`. The file moved in v0.4.0 (commit `ccd9bf1`) but the bump script was not refreshed at that time, so v0.4.0 shipped with one site silently un-bumped (ENOENT swallowed). With the fix, `npm run version-bump -- X.Y.Z` once again touches all 7 sites atomically.
+
+### Why
+
+Pre-v0.4.0 templates explained that `spec.yaml` is SSoT and that `clad_create_feature` is the right tool, but never said *when* to call it. In practice AI sessions skipped feature registration whenever the user phrased the request as "fix X" / "refactor Y" or worked through Claude Code plan mode first — `spec/features/` stayed empty while real code was being written. Closing the gap at the guidance layer is cheaper than adding a runtime hook and plays well with the existing `UNMAPPED_ARTIFACT` safety net. A self-review pass then corrected one misleading shorthand ("slug field is editable" → full rename procedure) and unified the imperative voice across the two template surfaces. The 0.4.1 cut also picks up the version-bump path fix discovered while preparing this release.
+
 ## [0.4.0] — 2026-05-27 — `clad setup` command — split npm install from host wire (F-80d19d)
 
 **Reverting F-90d054's npm `postinstall` side effect.** v0.3.60 made `npm install -g cladding` automatically wire four host AI channels in `$HOME` (`~/.claude/`, `~/.gemini/`, `~/.codex/`, `~/.agents/`). The convenience was real — npm-path users got `/cladding init` for free — but the cost was steep: every npm install touched four global directories whether or not the user had those AI tools, CI sandboxes needed `CLADDING_SKIP_POSTINSTALL=1`, and `clad init` carried a fallback retry path. v0.4.0 splits the responsibility: install is install, wire is wire.

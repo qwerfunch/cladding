@@ -22,7 +22,7 @@ capabilities:
     title: "Spec governance (4-tier SSoT)"
     summary: "Tier A/B/C/D model with explicit refresh authority + banner convention"
     surface: feature
-    features: [F-d12edf, F-4747ef]
+    features: [F-d12edf, F-4747ef, F-8880ee]
   - id: mcp-host
     title: "MCP host (clad serve)"
     summary: "Exposes cladding's verbs as MCP tools for AI agents to drive directly"

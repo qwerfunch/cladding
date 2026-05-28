@@ -21,9 +21,9 @@ function seedProject(dir: string, version: string): void {
     join(dir, 'package.json'),
     `{\n  "name": "probe",\n  "version": "${version}"\n}\n`,
   );
-  mkdirSync(join(dir, '.claude-plugin'), {recursive: true});
+  mkdirSync(join(dir, 'plugins', 'claude-code', '.claude-plugin'), {recursive: true});
   writeFileSync(
-    join(dir, '.claude-plugin', 'plugin.json'),
+    join(dir, 'plugins', 'claude-code', '.claude-plugin', 'plugin.json'),
     `{\n  "name": "probe",\n  "version": "${version}"\n}\n`,
   );
   mkdirSync(join(dir, 'plugins', 'codex', '.codex-plugin'), {recursive: true});
@@ -87,7 +87,7 @@ describe('version-bump.mjs (F-090, v0.3.15)', () => {
     expect(result.stdout).toContain('7 files updated to 0.3.15');
 
     expect(readFileSync(join(dir, 'package.json'), 'utf8')).toContain('"version": "0.3.15"');
-    expect(readFileSync(join(dir, '.claude-plugin', 'plugin.json'), 'utf8')).toContain('"version": "0.3.15"');
+    expect(readFileSync(join(dir, 'plugins', 'claude-code', '.claude-plugin', 'plugin.json'), 'utf8')).toContain('"version": "0.3.15"');
     expect(readFileSync(join(dir, 'plugins', 'codex', '.codex-plugin', 'plugin.json'), 'utf8')).toContain('"version": "0.3.15"');
     expect(readFileSync(join(dir, 'plugins', 'gemini-cli', 'gemini-extension.json'), 'utf8')).toContain('"version": "0.3.15"');
     expect(readFileSync(join(dir, 'src', 'cli', 'clad.ts'), 'utf8')).toContain(".version('0.3.15')");

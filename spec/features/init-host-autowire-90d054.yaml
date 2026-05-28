@@ -4,7 +4,10 @@ title: "clad init writes host wiring + enrichment marker (archived; superseded b
 status: archived
 modules:
   - src/init/detect.ts
-  - src/init/host-instructions.ts
+# src/init/host-instructions.ts ownership transferred to F-8880ee (active) —
+# the v0.4.x trigger-guidance work supersedes this archived feature's claim
+# on the template body. AC-008/009/010 here remain as historical record of
+# the original AGENTS.md / CLAUDE.md write contract.
 acceptance_criteria:
   # ── Host wiring (npm postinstall + clad init fallback retry) ──
   - id: AC-001
