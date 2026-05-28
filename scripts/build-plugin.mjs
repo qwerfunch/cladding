@@ -339,3 +339,233 @@ if (claudeResult.changed) {
     `cladding plugin · detectors: ${detectorCount}/${detectorCount} (already in sync)`,
   );
 }
+
+// --- Phase E — 4-host sub-agent transpile (0.4.10 PR-A.3) -------------
+//
+// Single canonical persona spec (src/agents/*.md) → each host's native
+// sub-agent manifest format. The four hosts diverge in syntax:
+//   - Claude Code: .md frontmatter (already mirrored in Phase A);
+//     PR-A.3 also adds plugin.json `agents[]` array for the loader.
+//   - Codex CLI: TOML (`.codex/agents/<id>.toml`); fields:
+//     name / description / developer_instructions / model / sandbox_mode.
+//   - Cursor IDE: single JSON file (`modes.json`) with mode array;
+//     fields: name / model / tools / instructions.
+//   - Gemini CLI: .md frontmatter (Claude Code lookalike); fields:
+//     name / description / model / tools / allowed_tools.
+//
+// All four read hostHints from the canonical frontmatter (PR-A.2). Field
+// mapping is intentional — keeps the per-host emitter pure-data so the
+// transpile is testable in isolation.
+
+/**
+ * Parses a persona .md file into {id, frontmatter, body}. Re-implements
+ * the small subset of loader.ts needed at build time (loader is TS;
+ * this script is .mjs and runs at npm pack time without compilation).
+ */
+function parsePersonaFile(src) {
+  const raw = readFileSync(src, 'utf8');
+  if (!raw.startsWith('---\n')) return null;
+  const end = raw.indexOf('\n---\n', 4);
+  if (end === -1) return null;
+  const yamlText = raw.slice(4, end);
+  const body = raw.slice(end + 5).trim();
+  const frontmatter = parseYaml(yamlText) ?? {};
+  return {frontmatter, body};
+}
+
+/**
+ * Returns the canonical persona list as [{id, frontmatter, body}].
+ * Used by every Phase-E emitter so persona discovery is centralised.
+ */
+function loadAllPersonas() {
+  const out = [];
+  for (const entry of readdirSync(SRC_AGENTS)) {
+    if (!entry.endsWith('.md')) continue;
+    if (entry === 'README.md') continue;
+    const src = join(SRC_AGENTS, entry);
+    if (!statSync(src).isFile()) continue;
+    const id = entry.replace(/\.md$/, '');
+    const parsed = parsePersonaFile(src);
+    if (!parsed) continue;
+    out.push({id, ...parsed});
+  }
+  return out;
+}
+
+const ALL_PERSONAS = loadAllPersonas();
+
+// E.1 — Claude Code: plugin.json `agents[]` declaration.
+// Plugin manifest references the .md files already emitted by Phase A.
+// Format follows the Claude Code 2026 plugin spec: each entry is
+// {name, path}; the loader resolves path relative to the plugin root.
+function rewriteClaudeAgentsArray(jsonPath, personas) {
+  const original = readFileSync(jsonPath, 'utf8');
+  const arrayLines = personas.map((p) => `    {"name": "${p.id}", "path": "./agents/${p.id}.md"}`);
+  const want = `"agents": [\n${arrayLines.join(',\n')}\n  ]`;
+  // Anchor to the line that already declares "hooks": "./hooks/hooks.json"
+  // (added in 0.4.7 PR #170). Insert agents[] after it. Idempotent: if
+  // an existing agents[] array is present, replace it.
+  if (/"agents":\s*\[[\s\S]*?\]/.test(original)) {
+    const updated = original.replace(/"agents":\s*\[[\s\S]*?\]/, want);
+    if (updated === original) return {changed: false};
+    writeFileSync(jsonPath, updated);
+    return {changed: true};
+  }
+  // Insert after the `hooks` line.
+  const hookMatch = original.match(/("hooks":\s*"\.\/hooks\/hooks\.json",?)/);
+  if (!hookMatch) {
+    // No hooks line — graceful no-op (Claude Code plugin manifest layout changed).
+    return {changed: false};
+  }
+  const insertion = `${hookMatch[1]}\n  ${want},`;
+  const updated = original.replace(hookMatch[1], insertion);
+  if (updated === original) return {changed: false};
+  writeFileSync(jsonPath, updated);
+  return {changed: true};
+}
+
+const claudeAgentsResult = rewriteClaudeAgentsArray(CLAUDE_PLUGIN_JSON, ALL_PERSONAS);
+console.log(
+  `cladding plugin · claude-code: agents[] in plugin.json — ${
+    claudeAgentsResult.changed ? 'updated' : 'already in sync'
+  } (${ALL_PERSONAS.length} entries)`,
+);
+
+// E.2 — Codex CLI: .codex/agents/<id>.toml.
+// Codex sub-agent TOML expects: name, description, developer_instructions,
+// model (optional), sandbox_mode (optional). The body of the .md becomes
+// developer_instructions (multi-line literal).
+function escapeTomlBasicE2(s) {
+  return String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+function renderCodexAgentToml(persona) {
+  const hints = persona.frontmatter ?? {};
+  const name = String(hints.name ?? persona.id);
+  const description = String(hints.description ?? '');
+  const lines = [
+    `name = "${escapeTomlBasicE2(name)}"`,
+    `description = "${escapeTomlBasicE2(description)}"`,
+  ];
+  if (hints.model) lines.push(`model = "${escapeTomlBasicE2(hints.model)}"`);
+  if (hints.sandbox_mode) lines.push(`sandbox_mode = "${escapeTomlBasicE2(hints.sandbox_mode)}"`);
+  if (typeof hints.maxTurns === 'number') lines.push(`max_turns = ${Math.floor(hints.maxTurns)}`);
+  // developer_instructions as literal triple-quoted multi-line.
+  const body = persona.body.replace(/\s+$/, '');
+  if (body.includes("'''")) {
+    // Fallback to basic multi-line with escaping.
+    const escaped = body.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    lines.push(`developer_instructions = """\n${escaped}\n"""`);
+  } else {
+    lines.push(`developer_instructions = '''\n${body}\n'''`);
+  }
+  return lines.join('\n') + '\n';
+}
+
+const CODEX_AGENTS = 'plugins/codex/agents';
+mkdirSync(CODEX_AGENTS, {recursive: true});
+let codexAgentCount = 0;
+for (const persona of ALL_PERSONAS) {
+  const toml = renderCodexAgentToml(persona);
+  writeFileSync(join(CODEX_AGENTS, `${persona.id}.toml`), toml);
+  codexAgentCount++;
+}
+writeFileSync(
+  join(CODEX_AGENTS, 'README.md'),
+  '<!-- AUTO-GENERATED by scripts/build-plugin.mjs Phase E — do not edit. -->\n' +
+    '<!-- Canonical source: src/agents/<id>.md. -->\n' +
+    '\n' +
+    '# Cladding Codex plugin · agents/ (sub-agent TOML)\n' +
+    '\n' +
+    'Generated from `src/agents/<id>.md` by Phase E of build-plugin.mjs.\n' +
+    'Codex sub-agent TOML schema (2026): `name`, `description`,\n' +
+    '`developer_instructions`, optional `model` / `sandbox_mode` /\n' +
+    '`max_turns`.\n',
+);
+console.log(`cladding plugin · codex: emitted ${codexAgentCount} sub-agent TOML → ${CODEX_AGENTS}/`);
+
+// E.3 — Cursor IDE: single modes.json file (Custom Modes 2026).
+// Cursor mode object: {name, model, tools, instructions}. The Cursor
+// frontmatter `tools` enum overlaps with Claude Code's, so we pass it
+// through verbatim.
+function renderCursorModes(personas) {
+  const modes = personas.map((p) => {
+    const fm = p.frontmatter ?? {};
+    const mode = {
+      name: String(fm.name ?? p.id),
+      description: String(fm.description ?? ''),
+      instructions: p.body,
+    };
+    if (fm.model) mode.model = String(fm.model);
+    if (fm.tools) mode.tools = String(fm.tools).split(',').map((t) => t.trim()).filter(Boolean);
+    if (typeof fm.maxTurns === 'number') mode.max_turns = Math.floor(fm.maxTurns);
+    return mode;
+  });
+  return JSON.stringify({version: 1, modes}, null, 2) + '\n';
+}
+
+const CURSOR_DIR = 'plugins/cursor';
+const CURSOR_MODES_JSON = join(CURSOR_DIR, 'modes.json');
+mkdirSync(CURSOR_DIR, {recursive: true});
+const cursorModesBody = renderCursorModes(ALL_PERSONAS);
+let cursorChanged = true;
+try {
+  const existing = readFileSync(CURSOR_MODES_JSON, 'utf8');
+  if (existing === cursorModesBody) cursorChanged = false;
+} catch {
+  // file absent — write new
+}
+if (cursorChanged) writeFileSync(CURSOR_MODES_JSON, cursorModesBody);
+console.log(
+  `cladding plugin · cursor: emitted modes.json — ${
+    cursorChanged ? 'updated' : 'already in sync'
+  } (${ALL_PERSONAS.length} modes)`,
+);
+
+// E.4 — Gemini CLI: .gemini/agents/<id>.md (Claude Code lookalike).
+// Gemini frontmatter is YAML, almost identical to Claude Code.
+// We strip Claude-Code-specific fields (permissionMode, isolation are
+// CC-specific) and emit a Gemini-friendly subset.
+function renderGeminiAgent(persona) {
+  const fm = persona.frontmatter ?? {};
+  const lines = ['---'];
+  lines.push(`name: ${fm.name ?? persona.id}`);
+  if (fm.description) lines.push(`description: ${fm.description}`);
+  if (fm.model) lines.push(`model: ${fm.model}`);
+  // Gemini uses `allowed_tools` (snake_case) instead of `tools`.
+  if (fm.tools) {
+    const toolList = String(fm.tools).split(',').map((t) => t.trim()).filter(Boolean);
+    lines.push(`allowed_tools:\n${toolList.map((t) => `  - ${t}`).join('\n')}`);
+  }
+  if (typeof fm.maxTurns === 'number') lines.push(`max_turns: ${Math.floor(fm.maxTurns)}`);
+  lines.push('---');
+  lines.push('');
+  lines.push(persona.body);
+  lines.push('');
+  return lines.join('\n');
+}
+
+const GEMINI_AGENTS = 'plugins/gemini-cli/agents';
+mkdirSync(GEMINI_AGENTS, {recursive: true});
+let geminiAgentCount = 0;
+for (const persona of ALL_PERSONAS) {
+  const md = renderGeminiAgent(persona);
+  writeFileSync(join(GEMINI_AGENTS, `${persona.id}.md`), md);
+  geminiAgentCount++;
+}
+writeFileSync(
+  join(GEMINI_AGENTS, 'README.md'),
+  '<!-- AUTO-GENERATED by scripts/build-plugin.mjs Phase E — do not edit. -->\n' +
+    '<!-- Canonical source: src/agents/<id>.md. -->\n' +
+    '\n' +
+    '# Cladding Gemini CLI plugin · agents/ (sub-agent .md)\n' +
+    '\n' +
+    'Generated from `src/agents/<id>.md` by Phase E of build-plugin.mjs.\n' +
+    'Gemini sub-agent .md schema (2026, Apr release): YAML frontmatter\n' +
+    'with `name` / `description` / `model` / `allowed_tools` /\n' +
+    '`max_turns`. Drops Claude-Code-specific fields (permissionMode,\n' +
+    'isolation, sandbox_mode).\n',
+);
+console.log(
+  `cladding plugin · gemini-cli: emitted ${geminiAgentCount} sub-agent .md → ${GEMINI_AGENTS}/`,
+);

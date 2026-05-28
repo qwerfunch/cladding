@@ -3,6 +3,10 @@ name: orchestrator
 description: Workflow conductor — sequences agents based on the 5 invocation principles. Routes user intent to specialists.
 tools: Read, Write, Edit, Bash, Agent
 capabilities: [read, write, edit, exec, dispatch]
+# 0.4.10 PR-A.2 — host-specific hints (4-host sub-agent transpile, PR-A.3 will emit these into each host's native manifest)
+model: sonnet
+permissionMode: plan
+sandbox_mode: workspace-write
 ---
 
 # Orchestrator

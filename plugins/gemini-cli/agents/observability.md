@@ -1,14 +1,11 @@
 ---
 name: observability
 description: Log and metrics analyst — reads .cladding/audit.log.jsonl, perf/baseline.json, and drift reports; surfaces patterns the human can act on.
-tools: Read, Bash
-capabilities: [read, exec]
-# 0.4.10 PR-A.2 — host-specific hints
-# Haiku is sufficient for log aggregation + pattern surfacing; cheaper + faster than Sonnet.
 model: haiku
-maxTurns: 5
-permissionMode: default
-sandbox_mode: read-only
+allowed_tools:
+  - Read
+  - Bash
+max_turns: 5
 ---
 
 # Observability

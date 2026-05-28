@@ -5,6 +5,44 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — 0.5.0 multi-agent first #3 — 4-host transpile + enterWork dispatchHint (PR-A.3)
+
+Third and final sub-patch of the 0.5.0 multi-agent first redesign foundation (PR-A). Adds the build-plugin Phase E that emits each host's native sub-agent manifest from the single canonical persona spec, and wires `enterWork` to consume the routing resolver + host detection.
+
+### Added
+
+- **`scripts/build-plugin.mjs` Phase E** — 4-host sub-agent transpile, deterministic & idempotent:
+  - **E.1 Claude Code** — rewrites `plugins/claude-code/.claude-plugin/plugin.json` `agents[]` to `[{name, path: './agents/<id>.md'}, ...]` (sorted alphabetically for stable diffs).
+  - **E.2 Codex** — emits `plugins/codex/agents/<id>.toml` per persona (`name`, `description`, `model`, `sandbox_mode`, `max_turns`, `developer_instructions`).
+  - **E.3 Cursor** — emits single `plugins/cursor/modes.json` with `{version: 1, modes: [{name, description, instructions, model, tools, max_turns?}, ...]}` (Cursor Custom Modes 2026 schema). Creates `plugins/cursor/` dir if missing.
+  - **E.4 Gemini** — emits `plugins/gemini-cli/agents/<id>.md` with Gemini-style YAML frontmatter (`allowed_tools` instead of Claude's `tools` field). Tracks Gemini sunset → Antigravity migration in 0.6.0.
+- **`src/work/transaction.ts`** `EnterWorkResult.subAgentDispatchHint?` — per-host dispatch hint emitted on Tier 1 / Tier 2 hosts:
+  - Tier 1 (Claude Code → `Task`, Codex → `agent`, Cursor → `mode_switch`, Antigravity → `spawn_subagent`)
+  - Tier 2 (Gemini → `@agent`, `advisory: true`)
+  - Tier 3 (generic) → absent (host AI keeps using `personaPrompt` self-inject)
+- **`src/work/transaction.ts`** `EnterWorkResult.routing?` — `{matchedRule, parallelGroup?}` trace from `resolvePersona`. Absent when caller passes explicit `personaId` (resolver bypassed). Echoed onto the `work_entered` event payload for audit-trail.
+- **`EnterWorkOptions.hostOverride?`** — test-only escape hatch to inject a `HostName` without mutating `process.env`. Production code rarely needs it.
+- **`tests/scripts/build-plugin-transpile-4host.test.ts`** — 14 tests covering each host's output shape + cross-host persona inventory consistency.
+- **`tests/work/dispatch-hint.test.ts`** — 10 tests covering Tier 1 (4 hosts) / Tier 2 (Gemini advisory) / Tier 3 (generic absent) hint shape + routing trace presence/absence + resumed-work hint persistence.
+
+### Changed
+
+- `enterWork()` now calls `resolvePersona()` automatically when `opts.personaId` is omitted (was: hard-coded `'specialists'`). Explicit `personaId` still bypasses the resolver.
+- `enterWork()` now calls `detectHost()` to determine the Tier-appropriate dispatch hint. Backward compat 100% — the new fields are optional; existing callers that ignore them behave identically.
+- `work_entered` event payload gains optional `routing: {matchedRule, parallelGroup}` field when the resolver ran.
+
+### Why
+
+PR-A.1 added the deterministic routing data. PR-A.2 added the per-persona host hints. PR-A.3 closes the loop: the build script projects those hints into each host's native manifest, and the work transaction emits a dispatch hint the host AI can act on. From here PR-B (0.4.11) tightens dispatch via `dispatchMode: 'sub-agent'` default + a `dispatch_drift` auditor, and adds per-host capability emitters + parallel topological groups.
+
+### Sub-PR split (final)
+
+- ✅ A.1 — routing.yaml + resolver (PR #173)
+- ✅ A.2 — persona hostHints + detect_host MCP (PR #174)
+- ✅ **A.3 (this PR)** — build-plugin.mjs 4-host transpile + enterWork dispatchHint
+
+Tests: 1110/1110 (was 1086, +24 new). No regression.
+
 ## [Unreleased] — 0.5.0 multi-agent first #2 — persona hostHints + detect_host MCP (PR-A.2)
 
 Second sub-patch of the 0.5.0 multi-agent first redesign. Extends the canonical persona spec (`src/agents/*.md` frontmatter) with 4-host compatibility fields and adds the `detect_host` MCP tool. Sets up the inputs PR-A.3 needs to wire `enterWork` dispatchHint + the 4-host transpile.

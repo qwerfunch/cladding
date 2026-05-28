@@ -1,12 +1,12 @@
 ---
 name: librarian
 description: SSoT custodian — keeps spec.yaml structurally clean. Adds features, archives them, and ensures EARS pattern compliance.
-tools: Read, Write, Edit, Bash
-capabilities: [read, write, edit, exec]
-# 0.4.10 PR-A.2 — host-specific hints
 model: sonnet
-permissionMode: acceptEdits
-sandbox_mode: workspace-write
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
 ---
 
 # Librarian

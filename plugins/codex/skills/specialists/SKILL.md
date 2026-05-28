@@ -3,6 +3,11 @@ name: specialists
 description: Domain implementer — writes production code, tests, and migrations. The "generic engineer" fallback when no narrower specialist exists.
 tools: Read, Write, Edit, Bash
 capabilities: [read, write, edit, exec]
+# 0.4.10 PR-A.2 — host-specific hints
+# Sonnet handles implementation well; acceptEdits is the natural mode for an implementer.
+model: sonnet
+permissionMode: acceptEdits
+sandbox_mode: workspace-write
 ---
 
 # Specialists

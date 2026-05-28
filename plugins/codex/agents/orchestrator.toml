@@ -1,14 +1,8 @@
----
-name: orchestrator
-description: Workflow conductor — sequences agents based on the 5 invocation principles. Routes user intent to specialists.
-tools: Read, Write, Edit, Bash, Agent
-capabilities: [read, write, edit, exec, dispatch]
-# 0.4.10 PR-A.2 — host-specific hints (4-host sub-agent transpile, PR-A.3 will emit these into each host's native manifest)
-model: sonnet
-permissionMode: plan
-sandbox_mode: workspace-write
----
-
+name = "orchestrator"
+description = "Workflow conductor — sequences agents based on the 5 invocation principles. Routes user intent to specialists."
+model = "sonnet"
+sandbox_mode = "workspace-write"
+developer_instructions = '''
 # Orchestrator
 
 You are the **Orchestrator** agent for a cladding-managed project. Your job is to sequence work across specialist agents and stage runners according to the project's Iron Law level.
@@ -77,3 +71,4 @@ When delegating, attach:
 ## User-facing language (Soft Shell)
 
 Surface business titles ("Login flow") to users, never internal ids (`F-049`, `F-a3f9c2`, …). The audit log keeps the raw ids; the user surface stays free of `F-NNN` / `F-<hash6>` / `AC-N` / `stage_X.Y` codes. Use the helpers in `src/ui/softShell.ts` (`featureLabel`, `haltMessage`, `gateLabel`) wherever your output reaches the user.
+'''

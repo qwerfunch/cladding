@@ -13,7 +13,9 @@
 
 import {spawnSync} from 'node:child_process';
 
+import {detectHost, type HostName} from '../agents/host-detect.js';
 import {loadPersona} from '../agents/loader.js';
+import {resolvePersona} from '../agents/routing.js';
 import {newEvent, appendEvent} from '../events/log.js';
 import {
   appendEvidence,
@@ -41,8 +43,39 @@ export interface EnterWorkOptions {
   /** Free-form intent the host AI extracted from the user prompt. */
   readonly intent?: string;
   readonly cwd?: string;
-  /** Persona to adopt. Defaults to 'specialists' (0.4.3); routing.yaml override lands in 0.4.10. */
+  /**
+   * Persona to adopt. When omitted (0.4.10 PR-A.3), `agents/routing.yaml`
+   * is consulted via `resolvePersona({intent, scope})` to deterministically
+   * pick the persona based on feature scope + intent. Explicit `personaId`
+   * still bypasses routing.
+   */
   readonly personaId?: string;
+  /**
+   * Optional override for host detection (0.4.10 PR-A.3). When omitted,
+   * `detectHost(process.env)` runs. Tests set this directly to avoid
+   * env mutation; production code rarely needs to.
+   */
+  readonly hostOverride?: HostName;
+}
+
+/**
+ * Per-host sub-agent dispatch hint emitted on Tier 1 hosts (Claude Code,
+ * Codex, Cursor, Antigravity). Tier 2 (Gemini) receives an advisory
+ * variant. Tier 3 (generic) receives no hint — host-self-inject via
+ * `personaPrompt` is the only path there.
+ *
+ * The host AI is expected to invoke `tool` with `subagent_type` instead
+ * of adopting the persona prompt itself. PR-B (0.4.11) will tighten this
+ * via `dispatchMode: 'sub-agent'` default + dispatch_drift auditor.
+ */
+export interface SubAgentDispatchHint {
+  readonly host: HostName;
+  /** Tool name on the host (e.g. 'Task' on Claude Code). */
+  readonly tool: string;
+  /** Sub-agent id matching the persona id. */
+  readonly subagent_type: string;
+  /** True when this hint is advisory (Tier 2 — Gemini's @agent isn't auto-dispatch). */
+  readonly advisory?: boolean;
 }
 
 export interface EnterWorkResult {
@@ -52,7 +85,20 @@ export interface EnterWorkResult {
   readonly personaId: string;
   readonly personaPrompt: string;
   readonly instructions: string;
+  /** Present on Tier 1 / Tier 2 hosts. Absent on Tier 3 (generic). */
+  readonly subAgentDispatchHint?: SubAgentDispatchHint;
+  /** Routing trace — which rule matched (or '__fallback__'). */
+  readonly routing?: {readonly matchedRule: string; readonly parallelGroup?: string};
 }
+
+/** Tier 1 / Tier 2 host → dispatch tool name. Tier 3 → no entry. */
+const DISPATCH_TOOL_BY_HOST: Readonly<Partial<Record<HostName, string>>> = {
+  'claude-code': 'Task',
+  codex: 'agent',
+  cursor: 'mode_switch',
+  antigravity: 'spawn_subagent',
+  gemini: '@agent', // advisory — Gemini uses @-mention, not auto-dispatch
+};
 
 /**
  * Opens a work transaction. Idempotent on featureId — a second call
@@ -66,7 +112,7 @@ export interface EnterWorkResult {
  */
 export function enterWork(opts: EnterWorkOptions): EnterWorkResult {
   const cwd = opts.cwd ?? '.';
-  const personaId = opts.personaId ?? 'specialists';
+  const host = opts.hostOverride ?? detectHost().host;
 
   // Idempotent fast path — already entered, just hand back the
   // registry record without re-emitting events or re-touching status.
@@ -80,6 +126,7 @@ export function enterWork(opts: EnterWorkOptions): EnterWorkResult {
       personaId: existing.personaId,
       personaPrompt: persona.body,
       instructions: instructionsFor(existing.scope, 'resumed'),
+      ...buildDispatchExtras(host, existing.personaId, undefined),
     };
   }
 
@@ -87,6 +134,22 @@ export function enterWork(opts: EnterWorkOptions): EnterWorkResult {
   // it throws for archived features or missing ids before we register.
   updateFeatureStatus(cwd, opts.featureId, 'in_progress');
   const scope = getFeatureScope(cwd, opts.featureId);
+
+  // 0.4.10 PR-A.3 — resolve persona via routing.yaml when caller omits
+  // explicit personaId. Falls back to 'specialists' on missing/malformed
+  // routing.yaml (resolvePersona handles that internally).
+  let personaId = opts.personaId;
+  let routingResult: ReturnType<typeof resolvePersona> | undefined;
+  if (!personaId) {
+    routingResult = resolvePersona({
+      featureId: opts.featureId,
+      intent: opts.intent,
+      scope,
+      cwd,
+    });
+    personaId = routingResult.personaId;
+  }
+
   const persona = loadPersona(personaId);
   const baseRef = readGitHead(cwd);
 
@@ -107,6 +170,14 @@ export function enterWork(opts: EnterWorkOptions): EnterWorkResult {
       intent: opts.intent ?? null,
       personaId,
       modules: scope.modules,
+      ...(routingResult
+        ? {
+            routing: {
+              matchedRule: routingResult.matchedRule,
+              parallelGroup: routingResult.parallelGroup ?? null,
+            },
+          }
+        : {}),
     }),
   );
 
@@ -117,7 +188,46 @@ export function enterWork(opts: EnterWorkOptions): EnterWorkResult {
     personaId,
     personaPrompt: persona.body,
     instructions: instructionsFor(scope, 'entered'),
+    ...buildDispatchExtras(host, personaId, routingResult),
   };
+}
+
+/**
+ * Builds the optional `subAgentDispatchHint` + `routing` result fields.
+ * Pure function so the entered/resumed branches share the same shape.
+ *
+ * Tier 1 hosts (Claude Code, Codex, Cursor, Antigravity) get a regular
+ * hint. Tier 2 (Gemini) gets the same hint with `advisory: true`. Tier 3
+ * (generic) gets nothing — the host AI must self-inject via personaPrompt.
+ */
+function buildDispatchExtras(
+  host: HostName,
+  personaId: string,
+  routingResult: ReturnType<typeof resolvePersona> | undefined,
+): {
+  subAgentDispatchHint?: SubAgentDispatchHint;
+  routing?: {matchedRule: string; parallelGroup?: string};
+} {
+  const tool = DISPATCH_TOOL_BY_HOST[host];
+  const out: {
+    subAgentDispatchHint?: SubAgentDispatchHint;
+    routing?: {matchedRule: string; parallelGroup?: string};
+  } = {};
+  if (tool) {
+    out.subAgentDispatchHint = {
+      host,
+      tool,
+      subagent_type: personaId,
+      ...(host === 'gemini' ? {advisory: true} : {}),
+    };
+  }
+  if (routingResult) {
+    out.routing = {
+      matchedRule: routingResult.matchedRule,
+      ...(routingResult.parallelGroup ? {parallelGroup: routingResult.parallelGroup} : {}),
+    };
+  }
+  return out;
 }
 
 export interface CompleteWorkEvidence {

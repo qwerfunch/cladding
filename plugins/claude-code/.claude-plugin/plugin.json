@@ -33,6 +33,13 @@
     }
   },
   "hooks": "./hooks/hooks.json",
+  "agents": [
+    {"name": "librarian", "path": "./agents/librarian.md"},
+    {"name": "observability", "path": "./agents/observability.md"},
+    {"name": "orchestrator", "path": "./agents/orchestrator.md"},
+    {"name": "reviewer", "path": "./agents/reviewer.md"},
+    {"name": "specialists", "path": "./agents/specialists.md"}
+  ],
   "ironclad": {
     "spec-version": "0.0.23",
     "spec-url": "https://github.com/qwerfunch/ironclad",
