@@ -32,6 +32,7 @@
       "description": "cladding MCP server — exposes spec / drift / events / personas as tools, resources, prompts. Auto-starts when this plugin is enabled; no manual `claude mcp add` needed."
     }
   },
+  "hooks": "./hooks/hooks.json",
   "ironclad": {
     "spec-version": "0.0.23",
     "spec-url": "https://github.com/qwerfunch/ironclad",

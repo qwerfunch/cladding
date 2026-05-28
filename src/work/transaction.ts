@@ -11,6 +11,8 @@
 // injecting it as a system prompt. Keeps the harness host-agnostic and
 // cost-free. See docs/0.5.0-architecture.md §"Persona dispatch".
 
+import {spawnSync} from 'node:child_process';
+
 import {loadPersona} from '../agents/loader.js';
 import {newEvent, appendEvent} from '../events/log.js';
 import {
@@ -86,6 +88,7 @@ export function enterWork(opts: EnterWorkOptions): EnterWorkResult {
   updateFeatureStatus(cwd, opts.featureId, 'in_progress');
   const scope = getFeatureScope(cwd, opts.featureId);
   const persona = loadPersona(personaId);
+  const baseRef = readGitHead(cwd);
 
   const work: ActiveWork = {
     featureId: opts.featureId,
@@ -93,6 +96,7 @@ export function enterWork(opts: EnterWorkOptions): EnterWorkResult {
     intent: opts.intent,
     scope,
     personaId,
+    baseRef,
   };
   registerActiveWork(cwd, work);
 
@@ -341,6 +345,26 @@ function instructionsFor(
     `When the change is complete, call complete_work with optional evidence refs.`,
     `When you need to back out (user changed direction, scope too large), call abandon_work with a reason.`,
   ].join(' ');
+}
+
+/**
+ * Best-effort `git rev-parse HEAD` for the work transaction's
+ * baseRef. Returns undefined when git is not available, the cwd is
+ * not a git working tree, or the call errors for any other reason —
+ * the Layer-D file-diff cross-reference is opt-in and the work
+ * transaction itself must succeed even without git.
+ */
+function readGitHead(cwd: string): string | undefined {
+  try {
+    const result = spawnSync('git', ['rev-parse', 'HEAD'], {cwd, encoding: 'utf8', timeout: 2_000});
+    if (result.status === 0) {
+      const sha = result.stdout.trim();
+      if (/^[0-9a-f]{7,64}$/.test(sha)) return sha;
+    }
+  } catch {
+    // git missing or cwd not a repo — silent fallback
+  }
+  return undefined;
 }
 
 // Re-export error types so MCP handlers can catch them by name.

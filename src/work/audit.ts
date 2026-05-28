@@ -13,7 +13,10 @@
 // orchestrator can warn on suspicious patterns and Layer-D-aware
 // agents can request explicit `enter_work` before continuing.
 
+import {spawnSync} from 'node:child_process';
+
 import {readEvents, type Event} from '../events/log.js';
+import {listActiveWork} from './registry.js';
 
 const WORK_EVENT_TYPES = new Set([
   'work_entered',
@@ -40,6 +43,21 @@ export interface OrphanWindow {
   readonly durationMs: number;
 }
 
+/**
+ * Per-open-transaction file diff (0.4.7). Tracks tracked-file changes
+ * via `git diff baseRef..HEAD` and classifies them against the work's
+ * declared scope. Untracked files are NOT scanned in 0.4.7 — the
+ * heuristic favours git-controlled work over scratch experiments.
+ */
+export interface FileDiffReport {
+  readonly featureId: string;
+  readonly baseRef: string;
+  /** Files inside `work.scope.modules` (prefix-or-exact match). */
+  readonly inScope: readonly string[];
+  /** Files outside the work scope — Layer-D flags these for caller review. */
+  readonly unmapped: readonly string[];
+}
+
 export interface WorkComplianceReport {
   readonly openTransactions: ReadonlyArray<{
     readonly featureId: string;
@@ -48,6 +66,8 @@ export interface WorkComplianceReport {
   }>;
   readonly transactions: ReadonlyArray<TransactionRecord>;
   readonly orphanWindows: ReadonlyArray<OrphanWindow>;
+  /** Present only when `auditOptions.includeFileDiff === true`. */
+  readonly fileDiffs?: ReadonlyArray<FileDiffReport>;
   readonly summary: {
     readonly totalEntered: number;
     readonly totalCompleted: number;
@@ -68,6 +88,14 @@ export interface AuditOptions {
    * (gap between automated agent calls). Default: 5_000 (5s).
    */
   readonly orphanThresholdMs?: number;
+  /**
+   * 0.4.7 — when true, additionally cross-reference every open
+   * transaction with `git diff baseRef..HEAD` and classify changed
+   * files as in-scope vs unmapped. Requires git available + the
+   * cwd to be a git working tree; transactions without baseRef are
+   * silently omitted from the file-diff array.
+   */
+  readonly includeFileDiff?: boolean;
 }
 
 /**
@@ -109,7 +137,62 @@ export function auditWorkCompliance(opts: AuditOptions = {}): WorkComplianceRepo
     stillOpen: openTransactions.length,
   };
 
-  return {openTransactions, transactions, orphanWindows, summary};
+  const fileDiffs = opts.includeFileDiff ? collectFileDiffs(cwd) : undefined;
+
+  return {openTransactions, transactions, orphanWindows, fileDiffs, summary};
+}
+
+/**
+ * Cross-references every open transaction's `baseRef` with the
+ * current git HEAD via `git diff --name-only`. Returns a per-work
+ * classification (in-scope vs unmapped) so the host AI can surface
+ * "you edited files outside the active work scope" warnings.
+ *
+ * Silent fallback when git is missing / cwd is not a git repo /
+ * a specific transaction has no baseRef — Layer-D is opt-in and
+ * the auditor cannot fabricate diffs from nothing.
+ */
+function collectFileDiffs(cwd: string): FileDiffReport[] {
+  const out: FileDiffReport[] = [];
+  for (const work of listActiveWork(cwd)) {
+    if (!work.baseRef) continue;
+    const result = spawnSync('git', ['diff', '--name-only', work.baseRef, 'HEAD'], {
+      cwd,
+      encoding: 'utf8',
+      timeout: 5_000,
+    });
+    if (result.status !== 0) continue;
+    const changed = result.stdout
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+    const {inScope, unmapped} = partitionByScope(changed, work.scope.modules);
+    out.push({featureId: work.featureId, baseRef: work.baseRef, inScope, unmapped});
+  }
+  return out;
+}
+
+function partitionByScope(
+  files: readonly string[],
+  modules: readonly string[],
+): {inScope: string[]; unmapped: string[]} {
+  const inScope: string[] = [];
+  const unmapped: string[] = [];
+  for (const file of files) {
+    if (isFileInScope(file, modules)) inScope.push(file);
+    else unmapped.push(file);
+  }
+  return {inScope, unmapped};
+}
+
+function isFileInScope(file: string, modules: readonly string[]): boolean {
+  for (const m of modules) {
+    if (!m) continue;
+    if (file === m) return true;
+    const prefix = m.endsWith('/') ? m : `${m}/`;
+    if (file.startsWith(prefix)) return true;
+  }
+  return false;
 }
 
 function buildTransactions(workEvents: readonly Event[]): TransactionRecord[] {

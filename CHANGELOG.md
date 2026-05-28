@@ -5,6 +5,36 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — 0.5.0 transaction MCP tools #6 — file-diff audit + Claude Code Layer-C hook (F-89406c)
+
+Sixth patch of the 0.5.0 work/drive transaction roadmap. Lands the remaining two pieces of the four-layer defense outlined in `docs/0.5.0-architecture.md`:
+- **File-system diff cross-referencing** — the Layer-D auditor can now classify actual changed files (via `git diff`) as in-scope vs unmapped, not just temporal orphan windows.
+- **Claude Code Layer-C hook** — `PreToolUse(Edit|Write|MultiEdit)` denies the edit when no work transaction is open.
+
+### Added
+
+- **`src/work/registry.ts`** `ActiveWork.baseRef?: string` — git HEAD sha captured at `enter_work` time for the file-diff cross-reference. Silent undefined when git is missing or cwd is not a working tree.
+- **`src/work/transaction.ts`** `enterWork` — best-effort `git rev-parse HEAD` (2s timeout) populates `baseRef` on the registry entry. Failure is non-fatal.
+- **`src/work/audit.ts`** `auditWorkCompliance({includeFileDiff: true})` — for every open transaction with a `baseRef`, runs `git diff --name-only baseRef HEAD` and classifies the changed file list into `inScope` (prefix-or-exact match against `feature.modules`) vs `unmapped`. Surfaces as `report.fileDiffs[]`.
+- **`plugins/claude-code/hooks/pre-tool-use.mjs`** — Layer-C hook. Reads `.cladding/work-registry.json`; **denies** the Edit/Write/MultiEdit tool call with an `enter_work` instruction when zero active transactions; **silent allow** in all other cases (no registry = cladding not initialised in this cwd, corrupt registry = fail-open, malformed stdin = fail-open).
+- **`plugins/claude-code/hooks/hooks.json`** — Claude Code hook config wiring `PreToolUse(Edit|Write|MultiEdit)` → `pre-tool-use.mjs`. Registered in `plugins/claude-code/.claude-plugin/plugin.json` via the new `"hooks": "./hooks/hooks.json"` field.
+- **`tests/work/audit.test.ts`** — 2 new tests on `fileDiffs` shape (undefined by default, empty array when no active work + git absent).
+- **`tests/work/hook-pre-tool-use.test.ts`** — 6 new tests spawning the hook script (no-registry/empty/active/corrupt/malformed-stdin/cwd-fallback branches).
+
+### Why
+
+0.4.6 landed the Layer-D event-log auditor (open transactions + orphan windows). That report says "the host AI may have edited code outside any work" but cannot say *which* files. This patch closes that gap with a git-backed cross-reference: when the auditor is asked for `fileDiffs`, it actually classifies the diff against each open work's declared scope.
+
+The Layer-C Claude Code hook lifts cladding's discipline from advisory (Layer A/B/D) to **enforced** on the host where most cladding usage happens. Other hosts get the same wire-up once their hook formats stabilise (Cursor v1.7 hooks.json next, Codex Automations after, Gemini last — Gemini's lifecycle hooks are CLI-internal-only so Layer C will remain Claude Code / Cursor / Codex for the foreseeable future).
+
+**Intentionally deferred:**
+- Untracked-file handling in the file-diff (currently tracked-only via `git diff --name-only`) — 0.4.8 candidate, depends on whether `git status --porcelain` produces useful signal without false positives.
+- Cursor / Codex / Gemini host-specific hook adapters — 0.4.8+, gated on per-host hook format research.
+- Identity-checked `review_work` MCP tool — still 0.5.x (anti-self-cert rollback required first).
+- Layer-A trigger guidance v2 — still pending PR #164 merge.
+
+Tests: 1040/1040 (was 1032, +8 new). No regression.
+
 ## [Unreleased] — 0.5.0 transaction MCP tools #5 — reviewer guidance + Layer-D auditor (F-89406c)
 
 Fifth patch of the 0.5.0 work/drive transaction roadmap. Adds two pieces of the **four-layer defense** outlined in `docs/0.5.0-architecture.md`:

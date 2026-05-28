@@ -28,6 +28,13 @@ export interface ActiveWork {
   readonly scope: {readonly slug: string; readonly modules: readonly string[]};
   /** Persona id this transaction adopted (always 'specialists' in 0.4.3; routing.yaml in 0.4.10). */
   readonly personaId: string;
+  /**
+   * Git commit sha at enter_work time (0.4.7) — used by the Layer-D
+   * auditor's file-diff cross-reference to classify changed files as
+   * in-scope (under feature.modules) vs unmapped. Undefined when the
+   * cwd is not a git working tree or git is not available.
+   */
+  readonly baseRef?: string;
 }
 
 interface RegistryFile {

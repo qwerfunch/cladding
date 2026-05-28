@@ -112,4 +112,17 @@ describe('auditWorkCompliance', () => {
     const report = auditWorkCompliance({cwd, now: stubNow});
     expect(report.summary.totalEntered).toBe(0);
   });
+
+  test('0.4.7 — fileDiffs is undefined when includeFileDiff is false (default)', () => {
+    seedEvent(cwd, 'work_entered', {feature: 'F-aaaaaa'}, '2026-06-01T11:50:00.000Z');
+    const report = auditWorkCompliance({cwd, now: stubNow});
+    expect(report.fileDiffs).toBeUndefined();
+  });
+
+  test('0.4.7 — fileDiffs is an array (possibly empty) when includeFileDiff is true', () => {
+    // No active work registered + no git → fileDiffs is empty array.
+    const report = auditWorkCompliance({cwd, now: stubNow, includeFileDiff: true});
+    expect(Array.isArray(report.fileDiffs)).toBe(true);
+    expect(report.fileDiffs).toEqual([]);
+  });
 });
