@@ -43,6 +43,18 @@
 <tr><td colspan="2" align="center"><sub>같은 spec · 같은 모델로 측정 · <a href="docs/benchmarks/event-store-trap-catch.md">event-sourcing store 벤치마크</a></sub></td></tr>
 </table>
 
+<!-- ─────────────────────────── Quick start ─────────────────────────── -->
+## Quick start
+
+```bash
+npm install -g cladding   # 글로벌 CLI 설치
+clad setup                # 글로벌 wiring — Claude / Codex / Gemini / Cursor
+# 그 다음, 프로젝트 안에서, AI 도구로:
+/cladding:init "프로젝트 의도"
+```
+
+[전체 설치 옵션, 마켓플레이스 경로, 호스트 채널 표 ↓](#install)
+
 ## 왜 필요한가
 
 <table>
@@ -221,9 +233,9 @@ cladding 의 차별점은 *결합* — 위 네 카테고리의 핵심을 *하나
 **(a) npm** — 터미널 / CI 사용자
 
 ```bash
-npm install -g cladding   # cladding CLI 설치
-cd <project>                # 프로젝트로 이동
-clad setup                  # AI 도구 자동 연결 (Claude / Codex / Gemini)
+npm install -g cladding   # cladding CLI 설치 (글로벌)
+clad setup                # AI 도구 자동 연결 (글로벌 — Claude / Codex / Gemini / Cursor)
+cd <project>              # 다음 단계(/cladding:init)를 위해 — clad setup 자체는 프로젝트 무관
 ```
 
 **(b) 마켓플레이스** — AI 도구 plugin 사용자
