@@ -10,6 +10,16 @@
     "type": "git",
     "url": "https://github.com/qwerfunch/cladding.git"
   },
+  "bugs": {
+    "url": "https://github.com/qwerfunch/cladding/issues"
+  },
+  "keywords": [
+    "harness", "harness-engineering",
+    "spec-driven-development", "governance", "ironclad",
+    "drift-detection", "multi-agent", "audit-trail",
+    "ai-coding", "compliance", "architecture-enforcement",
+    "claude-code", "mcp-server", "claude-code-plugin"
+  ],
   "bin": {
     "clad": "./bin/clad"
   },

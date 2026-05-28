@@ -8,6 +8,23 @@
   "license": "MIT",
   "homepage": "https://github.com/qwerfunch/cladding",
   "repository": "https://github.com/qwerfunch/cladding.git",
+  "keywords": [
+    "harness",
+    "harness-engineering",
+    "spec-driven-development",
+    "governance",
+    "ironclad",
+    "drift-detection",
+    "multi-agent",
+    "audit-trail",
+    "code-quality",
+    "compliance",
+    "ai-coding",
+    "architecture-enforcement",
+    "claude-code",
+    "mcp-server"
+  ],
+  "bugs": "https://github.com/qwerfunch/cladding/issues",
   "mcpServers": {
     "cladding": {
       "command": "clad",
