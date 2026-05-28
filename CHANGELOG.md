@@ -5,6 +5,28 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — 0.5.0 transaction MCP tools #3 — execute_drive (F-d23cd4)
+
+Third patch of the 0.5.0 work/drive transaction roadmap. Lands the scenario-unit transaction tool — `execute_drive` + `complete_drive` MCP tools with dependency-respecting plan ordering and deterministic intent-to-scenario matching.
+
+### Added
+
+- **`src/work/drive-transaction.ts`** (F-d23cd4) — the bundled-work transaction layer on top of 0.4.3's single-feature work transaction:
+  - `executeDrive({scenarioId | intent})` — loads the scenario (direct id or deterministic substring/token match against `scenario.title` + `scenario.flow`), filters out features whose status is already `done`/`archived`, topologically sorts the rest by `depends_on`, auto-enters the first ready feature via `enterWork`, and returns `{plan, firstWork, instructions}`. Emits a `drive_started` event with the full plan.
+  - `completeDrive({scenarioId})` — re-reads the scenario from disk, partitions every referenced feature into `featuresPassed` (status: `done | archived`), `featuresFailed` (status: `blocked`), and `featuresPending` (anything else), and emits a `drive_completed` event with the partition. Does NOT mutate spec.yaml — each feature's status was already written by its underlying `complete_work`.
+  - Custom errors: `ScenarioNotFoundError` (unknown scenarioId), `NoMatchingScenarioError` (intent matched zero scenarios).
+- **`src/events/log.ts`** — 2 new `EventType` variants: `drive_started` / `drive_completed`.
+- **`src/serve/server.ts`** — `execute_drive` / `complete_drive` MCP tools registered. Both descriptions carry the Layer-B MUST-clause ("MUST be called BEFORE any Edit/Write tool when the user request spans multiple features or a whole user journey").
+- **`tests/work/drive-transaction.test.ts`** — 10 new unit tests covering scenarioId mode (plan + auto-enter + event), intent mode (substring + token-overlap matching), dependency-respecting topo-sort, done/archived skipping, empty-plan handling, completion partition, and error paths.
+
+### Why
+
+0.4.3 landed the work transaction (atomic, single-feature). This patch lands the bundled-work boundary on top. The host AI now has **two distinct entry points**: `enter_work` for atomic single-feature changes ("fix login bug"), `execute_drive` for multi-feature scenarios ("결제 모듈 추가해줘", "refactor onboarding"). The boundary `drive = scenario unit, work = feature unit` is now wire-level enforceable in addition to spec-anchored.
+
+Intent-to-scenario matching is deterministic in 0.4.4 (substring boost + token overlap against title + flow). LLM-based matching via MCP `sampling/createMessage` is a 0.5.x option — sampling is only stable on Claude Code today.
+
+Tests: 1021/1021 (was 1011, +10 new). No regression on existing suites or the drift baseline.
+
 ## [Unreleased] — 0.5.0 transaction MCP tools #2 (F-89406c / F-d23cd4 / F-ca18ea)
 
 Second patch of the 0.5.0 work/drive transaction roadmap. Lands the first wire-level surface — `enter_work` / `complete_work` / `abandon_work` MCP tools, the lifecycle FSM behind them, and the SSoT artifacts that anchor the 0.5.0 vision in spec.

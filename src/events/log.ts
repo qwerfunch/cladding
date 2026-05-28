@@ -46,7 +46,18 @@ export type EventType =
   | 'work_entered'
   | 'work_completed'
   | 'work_abandoned'
-  | 'work_timed_out';
+  | 'work_timed_out'
+  // v0.4.4 — drive transaction lifecycle (F-d23cd4).
+  // Emitted by src/work/drive-transaction.ts on entry / completion.
+  // Standard payload:
+  //   scenarioId:    string   // S-<hash6>
+  //   plan:          string[] // ordered featureIds the drive will dispatch
+  //   intent?:       string   // intent-mode caller's free text
+  //   completedAt?:  string   // ISO timestamp (drive_completed only)
+  //   featuresPassed?: string[]
+  //   featuresFailed?: string[]
+  | 'drive_started'
+  | 'drive_completed';
 
 /** One JSONL line in events.log.jsonl. */
 export interface Event {

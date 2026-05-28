@@ -33,6 +33,7 @@ import {subscribeAudit} from '../hitl/audit.js';
 import {loadSpec} from '../spec/load.js';
 import {createFeature, createScenario} from '../spec/new.js';
 import {runDrift} from '../stages/drift.js';
+import {completeDrive, executeDrive} from '../work/drive-transaction.js';
 import {abandonWork, completeWork, enterWork} from '../work/transaction.js';
 
 /** Persona ids registered as MCP prompts (mirrors src/agents/). */
@@ -56,6 +57,9 @@ export const TOOL_NAMES = [
   'enter_work',
   'complete_work',
   'abandon_work',
+  // 0.4.4 — drive transaction MCP tools (F-d23cd4).
+  'execute_drive',
+  'complete_drive',
 ] as const;
 
 /** Resource URIs cladding's MCP server exposes (stable wire identifiers). */
@@ -493,6 +497,76 @@ function registerTools(server: McpServer, cwd: string): void {
     async (args) => {
       try {
         const result = abandonWork({featureId: args.featureId, reason: args.reason, cwd});
+        return {content: [{type: 'text', text: JSON.stringify(result, null, 2)}]};
+      } catch (err) {
+        return {isError: true, content: [{type: 'text', text: (err as Error).message}]};
+      }
+    },
+  );
+
+  // ── 0.4.4 drive transaction tools (F-d23cd4) ──
+  // Same Layer-B MUST-clause pattern as the work tools; this set targets
+  // multi-feature scenarios (bundled work) rather than single features.
+
+  server.registerTool(
+    'execute_drive',
+    {
+      title: 'Open a drive transaction on a scenario (bundled multi-feature work)',
+      description:
+        'MUST be called BEFORE any Edit / Write / file-mutation tool when the user request ' +
+        'spans multiple features or a whole user journey ("결제 모듈 추가해줘", "refactor the spec ' +
+        'layer", "rewrite onboarding"). Atomic single-feature work goes through enter_work ' +
+        'instead. Loads the scenario, sorts its features by depends_on, auto-enters the first ' +
+        'ready feature via enter_work, and returns the ordered plan. The host AI then ' +
+        'iterates enter_work / complete_work for each remaining featureId in plan, and calls ' +
+        'complete_drive at the end to seal the scenario.',
+      inputSchema: {
+        scenarioId: z
+          .string()
+          .regex(/^S-(\d{3,}|[a-f0-9]{6,})$/)
+          .optional()
+          .describe('Direct scenario id (e.g. S-d21acd). Mutually exclusive with intent.'),
+        intent: z
+          .string()
+          .optional()
+          .describe(
+            'Free-form intent — cladding deterministically matches against scenario.title + ' +
+              'scenario.flow text in 0.4.4 (substring boost + token overlap). LLM-based ' +
+              'matching is a 0.5.x option.',
+          ),
+      },
+    },
+    async (args) => {
+      try {
+        const result = executeDrive({scenarioId: args.scenarioId, intent: args.intent, cwd});
+        return {content: [{type: 'text', text: JSON.stringify(result, null, 2)}]};
+      } catch (err) {
+        return {isError: true, content: [{type: 'text', text: (err as Error).message}]};
+      }
+    },
+  );
+
+  server.registerTool(
+    'complete_drive',
+    {
+      title: 'Seal a drive transaction after the last feature completes',
+      description:
+        'Call AFTER the last complete_work of a drive. Inspects every feature in the ' +
+        'scenario on disk, partitions into passed (status: done | archived) / failed ' +
+        '(status: blocked) / pending (anything else), and emits a drive_completed event ' +
+        'with the partition. Does NOT mutate spec.yaml — each feature\'s status was ' +
+        "already written by its underlying complete_work transition. Returns the partition " +
+        'so the host AI can summarise the drive outcome to the user.',
+      inputSchema: {
+        scenarioId: z
+          .string()
+          .regex(/^S-(\d{3,}|[a-f0-9]{6,})$/)
+          .describe('Same scenarioId that was passed to execute_drive.'),
+      },
+    },
+    async (args) => {
+      try {
+        const result = completeDrive({scenarioId: args.scenarioId, cwd});
         return {content: [{type: 'text', text: JSON.stringify(result, null, 2)}]};
       } catch (err) {
         return {isError: true, content: [{type: 'text', text: (err as Error).message}]};
