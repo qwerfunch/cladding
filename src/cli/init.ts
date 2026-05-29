@@ -37,6 +37,7 @@ import {detectToolchain} from '../stages/toolchain/detect.js';
 import {detectContext} from '../init/detect.js';
 import {writeAgentsMd, writeClaudeMdSection} from '../init/host-instructions.js';
 import {getCurrentCladdingVersion, getLastSetupVersion} from '../init/host-setup.js';
+import {installPreCommitHook} from '../init/git-hook.js';
 import {loadIntentFromPathIfApplicable} from './intent-from-path.js';
 
 export interface InitOptions {
@@ -58,6 +59,12 @@ export interface InitOptions {
    * greenfield, observed scan otherwise).
    */
   readonly intent?: string;
+  /**
+   * Opt-in (v0.4.x, Phase 2): install a git pre-commit hook that runs the fast
+   * spec-native gate (`clad check --tier=pre-commit`) on every commit. Off by
+   * default — cladding never touches `.git/` without this explicit opt-in.
+   */
+  readonly withHook?: boolean;
 }
 
 export interface InitResult {
@@ -544,6 +551,31 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
     skipped.push(
       `host wire was set up at v${lastSetup} (current binary v${pkgVersion}) — symlinks usually auto-follow, but run \`clad setup\` to be sure`,
     );
+  }
+
+  // Phase 2 (opt-in) — ambient enforcement via a git pre-commit hook. Off
+  // unless `--with-hook` is passed: cladding never writes to `.git/` without
+  // explicit consent. The hook runs `clad check --tier=pre-commit` (drift /
+  // arch / secret) so spec↔code drift is blocked at commit time automatically.
+  if (opts.withHook) {
+    const hook = installPreCommitHook(cwd, {version: pkgVersion ?? undefined});
+    switch (hook.result) {
+      case 'created':
+        created.push('.git/hooks/pre-commit (clad check --tier=pre-commit)');
+        break;
+      case 'updated':
+        created.push('.git/hooks/pre-commit (refreshed to current version)');
+        break;
+      case 'unchanged':
+        skipped.push('.git/hooks/pre-commit (already installed)');
+        break;
+      case 'skipped-foreign':
+        skipped.push('.git/hooks/pre-commit exists and is not cladding-authored — pass --force to overwrite');
+        break;
+      case 'skipped-no-git':
+        skipped.push('--with-hook: no .git directory — run `git init` first, then re-run with --with-hook');
+        break;
+    }
   }
 
   return {

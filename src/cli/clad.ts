@@ -83,6 +83,7 @@ export async function runInitCommand(
     scan?: boolean;
     noLlm?: boolean;
     roots?: string;
+    withHook?: boolean;
   },
 ): Promise<void> {
   const intent = intentTokens && intentTokens.length > 0 ? intentTokens.join(' ').trim() : undefined;
@@ -93,6 +94,7 @@ export async function runInitCommand(
     noLlm: opts.noLlm,
     roots: opts.roots ? opts.roots.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
     intent,
+    withHook: opts.withHook,
   });
   for (const c of result.created) pulse('pass', `created ${c}`);
   for (const s of result.skipped) pulse('skip', s);
@@ -442,6 +444,7 @@ export function createProgram(): Command {
     .option('--scan', 'Force-walk the existing codebase. Default auto-detects (≥3 source files trigger scan). Use --no-scan to skip even when source is present.')
     .option('--no-llm', 'Force the deterministic interpreter (skip the LLM dispatcher chain). Intent text falls back to a deterministic quote in project-context.md.')
     .option('--roots <list>', 'Override scanner source roots, comma-separated (e.g. packages/a/src,packages/b/src). Otherwise inferred from manifests + directory heuristics.')
+    .option('--with-hook', 'Install a git pre-commit hook running `clad check --tier=pre-commit` (drift/arch/secret). Opt-in; cladding never touches .git without it.')
     .action(runInitCommand);
 
   program
