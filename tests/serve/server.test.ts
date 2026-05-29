@@ -138,6 +138,29 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
+  test('read surfaces degrade gracefully when spec.yaml is absent (no crash)', async () => {
+    // A project that has not run `clad init` yet — spec.yaml is absent, so
+    // loadSpec throws. The read tools must return an isError reply (and the
+    // spec resource an error payload), not crash the MCP call.
+    const bare = mkdtempSync(join(tmpdir(), 'clad-serve-bare-'));
+    const {client, cleanup} = await makePair(bare);
+    try {
+      const list = await client.callTool({name: 'clad_list_features', arguments: {}});
+      expect(list.isError).toBe(true);
+      expect((list.content as Array<{text: string}>)[0].text).toContain('spec not loaded');
+
+      const get = await client.callTool({name: 'clad_get_feature', arguments: {id: 'F-001'}});
+      expect(get.isError).toBe(true);
+
+      const res = await client.readResource({uri: RESOURCE_URIS.spec});
+      const text = (res.contents as Array<{text: string}>)[0].text;
+      expect(JSON.parse(text).error).toContain('spec not loaded');
+    } finally {
+      await cleanup();
+      rmSync(bare, {recursive: true, force: true});
+    }
+  });
+
   test('clad_list_features slugSubstring filter (F-085, v0.3.10)', async () => {
     const {client, cleanup} = await makePair(dir);
     try {

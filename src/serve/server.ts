@@ -31,6 +31,7 @@ import {z} from 'zod';
 import {loadPersona} from '../agents/loader.js';
 import {subscribeAudit} from '../hitl/audit.js';
 import {loadSpec} from '../spec/load.js';
+import type {Spec} from '../spec/types.js';
 import {createFeature, createScenario} from '../spec/new.js';
 import {runDrift} from '../stages/drift.js';
 
@@ -145,6 +146,28 @@ function registerAuditNotifier(server: McpServer, cwd: string): void {
   });
 }
 
+/**
+ * Loads the spec, or returns a human-readable reason it could not be loaded.
+ *
+ * The read surfaces (clad_list_features / clad_get_feature / the spec
+ * resource) call `loadSpec`, which THROWS when spec.yaml is absent or
+ * unparseable. An absent spec is a normal "not initialised yet" state, not a
+ * server fault — an unguarded throw would crash the MCP tool call (the host
+ * sees an opaque internal error). This wraps the throw into a graceful result
+ * the handlers turn into an `isError` reply / error payload. (Detectors handle
+ * the same throw via their own try/catch — see detectors/with-spec.ts — so the
+ * `loadSpec` contract itself is intentionally left unchanged.)
+ */
+function loadSpecOrError(cwd: string): {readonly spec: Spec} | {readonly error: string} {
+  try {
+    return {spec: loadSpec(cwd)};
+  } catch (err) {
+    return {
+      error: `cladding: spec not loaded — ${(err as Error).message}. Run \`clad init\` to scaffold spec.yaml first.`,
+    };
+  }
+}
+
 function registerTools(server: McpServer, cwd: string): void {
   // clad_list_features — list features in the active spec.
   // v0.3.10 (F-085) — slug_substring + sort options.
@@ -171,7 +194,11 @@ function registerTools(server: McpServer, cwd: string): void {
       },
     },
     async (args) => {
-      const spec = loadSpec(cwd);
+      const loaded = loadSpecOrError(cwd);
+      if ('error' in loaded) {
+        return {isError: true, content: [{type: 'text', text: loaded.error}]};
+      }
+      const spec = loaded.spec;
       let filtered = spec.features;
       if (args.statusFilter) {
         filtered = filtered.filter((f) => f.status === args.statusFilter);
@@ -217,8 +244,11 @@ function registerTools(server: McpServer, cwd: string): void {
           content: [{type: 'text', text: 'provide either id or slug'}],
         };
       }
-      const spec = loadSpec(cwd);
-      const matches = spec.features.filter((f) => {
+      const loaded = loadSpecOrError(cwd);
+      if ('error' in loaded) {
+        return {isError: true, content: [{type: 'text', text: loaded.error}]};
+      }
+      const matches = loaded.spec.features.filter((f) => {
         if (args.id && f.id === args.id) return true;
         if (args.slug && (f as {slug?: string}).slug === args.slug) return true;
         return false;
@@ -433,13 +463,20 @@ function registerResources(server: McpServer, cwd: string): void {
       mimeType: 'application/json',
     },
     async () => {
-      const spec = loadSpec(cwd);
+      const loaded = loadSpecOrError(cwd);
+      // Resources have no isError channel — surface the reason in the JSON body
+      // so a client reading cladding://spec on an uninitialised project gets an
+      // explanatory payload instead of a crashed read.
+      const text =
+        'error' in loaded
+          ? JSON.stringify({error: loaded.error}, null, 2)
+          : JSON.stringify(loaded.spec, null, 2);
       return {
         contents: [
           {
             uri: RESOURCE_URIS.spec,
             mimeType: 'application/json',
-            text: JSON.stringify(spec, null, 2),
+            text,
           },
         ],
       };

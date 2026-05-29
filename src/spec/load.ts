@@ -53,7 +53,12 @@ export function loadSpec(cwd: string = '.', specPath: string = 'spec.yaml'): Spe
 
   const specDir = join(cwd, dirname(specPath), 'spec');
 
-  // Features: fill from spec/features/*.yaml when master is empty/missing.
+  // Features: fill from spec/features/*.yaml when the master's `features`
+  // field is empty/absent. NOTE: an absent master *file* throws at parseSpec
+  // above (see @throws) — this branch handles the sharded layout where the
+  // master EXISTS but carries metadata only. Callers that must tolerate an
+  // absent master (the MCP read tools) wrap loadSpec — see serve/server.ts
+  // loadSpecOrError; detectors wrap it via detectors/with-spec.ts.
   if (!partial.features || partial.features.length === 0) {
     const featureFiles = loadDirectory<Feature>(join(specDir, 'features'));
     if (featureFiles.length > 0) {
