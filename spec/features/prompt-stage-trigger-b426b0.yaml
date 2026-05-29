@@ -1,0 +1,30 @@
+id: F-b426b0
+slug: prompt-stage-trigger
+title: "Prompt-stage trigger automation — UserPromptSubmit hook + deterministic intent classifier"
+status: planned
+modules:
+  - src/intent/classifier.ts
+  - src/intent/lexicon.ts
+  - src/serve/server.ts
+  - plugins/claude-code/hooks/user-prompt-submit.mjs
+  - plugins/claude-code/hooks/hooks.json
+  - src/init/host-instructions.ts
+  - src/events/log.ts
+  - src/work/audit.ts
+  - src/cli/clad.ts
+acceptance_criteria:
+  - id: AC-001
+    text: "Ubiquitous: cladding ships a deterministic intent classifier (classifyIntent) that maps a user prompt to one of {dev-new, dev-modify, dev-review, non-dev, ambiguous} without any LLM call."
+  - id: AC-002
+    text: "Event: when classifyIntent receives a prompt with at least one DEV_NEW lexicon hit and no NON_DEV hits, it returns intent=dev-new with suggestedAction=clad_create_feature."
+  - id: AC-003
+    text: "Event: when classifyIntent receives a prompt with at least one DEV_MODIFY lexicon hit and no NON_DEV hits, it returns intent=dev-modify with suggestedAction=enter_work."
+  - id: AC-004
+    text: "State: while a project has loaded spec.features[], dev-modify classifications include a featureCandidates array of the top-3 spec features ranked by token overlap with the prompt."
+  - id: AC-005
+    text: "Unwanted: if a prompt contains BOTH dev-* and non-dev lexicon hits, classifyIntent returns intent=ambiguous with confidence=low and suggestedAction=silent (no spurious trigger)."
+  - id: AC-006
+    text: "Ubiquitous: the MCP server registers an assess_intent tool that wraps classifyIntent. Two identical promptText inputs always produce identical outputs across calls (deterministic)."
+  - id: AC-007
+    text: "Event: when assess_intent is called via MCP with a known dev-new prompt, the response payload includes {intent: 'dev-new', confidence, matchedTokens, suggestedAction: 'clad_create_feature'}."
+depends_on: []

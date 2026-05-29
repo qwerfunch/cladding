@@ -30,8 +30,10 @@ import {z} from 'zod';
 
 import {loadPersona} from '../agents/loader.js';
 import {subscribeAudit} from '../hitl/audit.js';
+import {classifyIntent} from '../intent/classifier.js';
 import {loadSpec} from '../spec/load.js';
 import {createFeature, createScenario} from '../spec/new.js';
+import type {Feature} from '../spec/types.js';
 import {runDrift} from '../stages/drift.js';
 import {detectHost} from '../agents/host-detect.js';
 import {auditWorkCompliance} from '../work/audit.js';
@@ -66,6 +68,11 @@ export const TOOL_NAMES = [
   'audit_work_compliance',
   // 0.4.10 PR-A.2 — host detection MCP tool for the 4-host multi-agent first redesign.
   'detect_host',
+  // 0.4.13 PR-D.1 (F-b426b0) — prompt-stage intent classifier MCP tool.
+  // Host AI on Codex/Cursor/Antigravity/Gemini self-calls before any
+  // Edit/Write to decide whether to enter_work / clad_create_feature.
+  // Claude Code additionally gets a UserPromptSubmit hook (PR-D.2).
+  'assess_intent',
 ] as const;
 
 /** Resource URIs cladding's MCP server exposes (stable wire identifiers). */
@@ -653,6 +660,67 @@ function registerTools(server: McpServer, cwd: string): void {
         return {content: [{type: 'text', text: JSON.stringify(result, null, 2)}]};
       } catch (err) {
         return {isError: true, content: [{type: 'text', text: (err as Error).message}]};
+      }
+    },
+  );
+
+  // ── 0.4.13 PR-D.1 prompt-stage intent classifier (F-b426b0) ──
+  // Deterministic — same promptText always produces the same output.
+  // No LLM call. Host AIs on Codex / Cursor / Antigravity / Gemini
+  // self-call this *before* any Edit/Write to decide whether to invoke
+  // enter_work / clad_create_feature. Claude Code additionally gets a
+  // UserPromptSubmit hook (PR-D.2) that injects the same hint into
+  // additionalContext automatically; the MCP tool stays available for
+  // explicit self-call even on Claude Code.
+
+  server.registerTool(
+    'assess_intent',
+    {
+      title: 'Classify a user prompt as dev intent (auto-trigger advisor)',
+      description:
+        'Call when you receive a user prompt and are unsure whether to trigger a ' +
+        'work/drive transaction. Returns {intent, confidence, matchedTokens, ' +
+        'suggestedAction, featureCandidates?}. intent ∈ {dev-new, dev-modify, ' +
+        'dev-review, non-dev, ambiguous}. suggestedAction ∈ {clad_create_feature, ' +
+        'enter_work, silent}. Use suggestedAction to decide the next call before any ' +
+        'Edit/Write tool. Deterministic — identical promptText always returns identical ' +
+        'output. Host AI MAY call this once per user turn; cladding never invokes an LLM.',
+      inputSchema: {
+        promptText: z
+          .string()
+          .describe('Raw user prompt text exactly as received from the user'),
+      },
+    },
+    async (args) => {
+      try {
+        let features:
+          | ReadonlyArray<{id: string; slug?: string; title?: string}>
+          | undefined;
+        try {
+          const spec = loadSpec(cwd);
+          features = spec.features.map((f) => ({
+            id: f.id,
+            // Feature type doesn't declare slug, but every sharded
+            // feature carries one on the YAML body — the type widening
+            // here keeps the candidate ranking working without a spec
+            // schema migration. Falls back to '' when truly absent.
+            slug: (f as Feature & {slug?: string}).slug,
+            title: f.title,
+          }));
+        } catch {
+          // spec not loadable (e.g. cladding not initialised in this
+          // cwd, or schema-invalid). Classification still works —
+          // featureCandidates simply absent.
+        }
+        const result = classifyIntent(args.promptText, {features});
+        return {
+          content: [{type: 'text', text: JSON.stringify(result, null, 2)}],
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{type: 'text', text: (err as Error).message}],
+        };
       }
     },
   );

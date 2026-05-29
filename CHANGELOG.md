@@ -6,6 +6,40 @@ Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 
+## [Unreleased] — 0.4.13 prompt-stage trigger automation #1 — deterministic intent classifier + assess_intent MCP tool (PR-D.1, F-b426b0)
+
+First of three sub-patches landing the prompt-stage trigger automation roadmap. Replaces the 0.5.0 "Edit/Write tool call is the dev-intent proxy" model with deterministic prompt-text classification. PR-D.1 ships the foundation (classifier + MCP tool); PR-D.2 adds the Claude Code `UserPromptSubmit` hook; PR-D.3 strengthens Layer A/D.
+
+### Why
+
+The 0.5.0 trigger model has known false-positive (config edits / README touches use Edit) and false-negative ("review this code" / "run the app" never touches Edit) failure modes — the Edit tool is a *proxy* for dev intent, not intent itself. PR-D.1 lets the host AI (or — in PR-D.2 — the UserPromptSubmit hook) classify the prompt deterministically *before* any tool call. Conservative trigger bias: ambiguous → silent (Layer C still enforces at Edit/Write time).
+
+### Added
+
+- **`src/intent/lexicon.ts`** (new) — KO + EN keyword sets across 4 categories (DEV_NEW / DEV_MODIFY / DEV_REVIEW / NON_DEV). Each set is mutually-exclusive (test-enforced). ASCII tokens match on word boundaries; Hangul tokens match as substring (CJK has no word separator).
+- **`src/intent/classifier.ts`** (new) — `classifyIntent(prompt, opts?)` deterministic function. Returns `{intent, confidence, matchedTokens, suggestedAction, featureCandidates?}`:
+  - `intent`: `'dev-new' | 'dev-modify' | 'dev-review' | 'non-dev' | 'ambiguous'`
+  - `suggestedAction`: `'clad_create_feature' | 'enter_work' | 'silent'`
+  - Conflict resolution (conservative bias toward triggering): dev-* + non-dev → ambiguous; dev-new + dev-modify → dev-new (more specific); dev-modify + dev-review → dev-modify (more committal).
+  - `featureCandidates`: top-3 spec features ranked by token overlap with prompt (only emitted for `dev-modify` and only when `spec.features[]` is loadable).
+- **`assess_intent` MCP tool** (`src/serve/server.ts`) — wraps `classifyIntent` so hosts without `UserPromptSubmit` hook support (Codex / Cursor / Antigravity / Gemini) can self-call. Deterministic — same `promptText` always returns identical output. `TOOL_NAMES` count: 13 → 14.
+- **`spec/features/prompt-stage-trigger-b426b0.yaml`** (F-b426b0) — 7 acceptance criteria covering ubiquitous classifier semantics, dev-new/dev-modify event branches, featureCandidates state, conflict resolution unwanted-condition, and MCP determinism.
+- **`tests/intent/lexicon.test.ts`** — 17 tests (word-boundary semantics, Hangul substring, mutual-exclusivity invariant, lowercase canonicalization, floor counts per category).
+- **`tests/intent/classifier.test.ts`** — 31 tests (5 categories × KO + EN, conflict resolution, featureCandidates ranking, determinism, dev-new doesn't emit candidates, no-match fallback).
+- **`tests/serve/assess-intent.test.ts`** — 7 MCP wire-path tests via InMemoryTransport (tool listed, 4 categories, determinism, spec-absent graceful fallback).
+
+### Why no breaking change
+
+All additive. `assess_intent` is a new tool; existing consumers are unaffected. `TOOL_NAMES.length` 13→14 only matters for `tests/serve/server.test.ts` (already uses `[...TOOL_NAMES].sort()` reference, auto-picks up).
+
+### Sub-PR sequence (0.4.13 roadmap)
+
+- ✅ **PR-D.1 (this PR)** — classifier + assess_intent MCP tool (foundation)
+- PR-D.2 — Claude Code `UserPromptSubmit` hook + `trigger_hint_emitted` event + `clad intent-classify --stdin` CLI subcommand
+- PR-D.3 — Layer A.1 (`CLAUDE.md` / `AGENTS.md` "Prompt-stage intent triage" section) + Layer D `trigger_missed` audit
+
+Tests: 1221/1221 (was 1166, +55 new). No regression.
+
 ## [0.5.0] — 2026-05-29 — work/drive transaction MCP + host-agnostic multi-agent first
 
 The 0.5.0 release closes the "spec ↔ code ↔ tests run as a single cycle" promise that 0.4.x infrastructure laid groundwork for, and re-frames cladding around the 2026 multi-agent reality (4 hosts with native sub-agent surfaces). Twelve patches converged here, in two thematic blocks: **work/drive transaction MCP tools** (the "how does cladding wrap actual AI work?" answer) and **host-agnostic multi-agent first** (the "how does cladding express agents across 4 hosts?" answer).
