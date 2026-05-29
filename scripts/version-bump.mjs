@@ -45,9 +45,12 @@ const SITES = [
     /"version": "(\d+\.\d+\.\d+)"/,
     (v) => `"version": "${v}"`,
   ),
-  // 2. .claude-plugin/plugin.json
+  // 2. plugins/claude-code/.claude-plugin/plugin.json
+  //    (root .claude-plugin/ holds marketplace.json; the Claude plugin
+  //    manifest lives under plugins/claude-code/, mirroring codex at SITE 3.
+  //    The old root path was stale and made `version-bump` error on the repo.)
   siteFor(
-    '.claude-plugin/plugin.json',
+    'plugins/claude-code/.claude-plugin/plugin.json',
     /"version": "(\d+\.\d+\.\d+)"/,
     (v) => `"version": "${v}"`,
   ),
