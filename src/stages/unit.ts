@@ -39,7 +39,18 @@ export function runUnit(opts: CommandStageOptions = {}): StageResult {
       stderr: `no unit test runner registered for language '${toolchain.language}'`,
     };
   }
-  const proc = execaSync(cmd, [...args], {cwd, reject: false});
+  let proc;
+  try {
+    proc = execaSync(cmd, [...args], {cwd, reject: false});
+  } catch (err) {
+    // Tool binary absent (ENOENT) → skip (exitCode 2), matching
+    // smoke/perf/visual. Without this, a missing test runner surfaces as
+    // a crash / false failure instead of an honest skip.
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+      return {stage: STAGE, pass: false, exitCode: 2, stderr: `'${cmd}' not installed`};
+    }
+    throw err;
+  }
   const exitCode = proc.exitCode ?? 1;
   const pass = exitCode === 0;
   const result: StageResult = {stage: STAGE, pass, exitCode};

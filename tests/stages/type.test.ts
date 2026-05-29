@@ -93,4 +93,20 @@ describe('runType (stage_1.1)', () => {
     expect(r.exitCode).toBe(1);
     expect(r.pass).toBe(false);
   });
+
+  test('tool binary missing (ENOENT) → skipped (exitCode=2), not a crash', () => {
+    // A detected language whose tool is simply not installed must SKIP
+    // (exitCode 2), not crash or false-fail (exitCode 1). Parity with
+    // smoke/perf/visual; fixes the brownfield false-failure (P3-FM-004).
+    writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
+    execaSyncMock.mockImplementationOnce(() => {
+      const err = new Error('spawn tsc ENOENT') as NodeJS.ErrnoException;
+      err.code = 'ENOENT';
+      throw err;
+    });
+    const r = runType({cwd: dir});
+    expect(r.pass).toBe(false);
+    expect(r.exitCode).toBe(2);
+    expect(r.stderr).toContain('not installed');
+  });
 });
