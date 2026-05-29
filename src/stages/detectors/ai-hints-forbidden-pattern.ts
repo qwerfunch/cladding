@@ -75,8 +75,9 @@ function runAiHintsForbiddenPattern(opts: CommandStageOptions): readonly DriftFi
   try {
     spec = loadSpec(cwd);
   } catch {
-    // No spec → nothing to check. Other detectors (ABSENCE_OF_GOVERNANCE)
-    // surface that condition.
+    // Load-failure policy (see detectors/with-spec.ts): within-spec-validity
+    // detector — no spec means no ai_hints.forbidden_patterns to scan for;
+    // ABSENCE_OF_GOVERNANCE + the info-emitting detectors surface the failure.
     return [];
   }
   const patterns = spec.project.ai_hints?.forbidden_patterns;

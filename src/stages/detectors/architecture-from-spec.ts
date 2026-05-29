@@ -48,6 +48,9 @@ function run(opts: CommandStageOptions): readonly DriftFinding[] {
   try {
     arch = loadSpec(cwd).architecture;
   } catch {
+    // Load-failure policy (see detectors/with-spec.ts): within-spec-validity
+    // detector — no spec means no architecture to enforce; ABSENCE_OF_GOVERNANCE
+    // + the info-emitting spec-vs-reality detectors surface the failure.
     return [];
   }
   if (!arch) return [];

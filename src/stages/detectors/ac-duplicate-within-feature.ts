@@ -22,6 +22,9 @@ function run(opts: CommandStageOptions): readonly DriftFinding[] {
   try {
     spec = loadSpec(cwd);
   } catch {
+    // Load-failure policy (see detectors/with-spec.ts): within-spec-validity
+    // detector — nothing to check without a loaded spec; ABSENCE_OF_GOVERNANCE
+    // + the info-emitting spec-vs-reality detectors already surface the failure.
     return [];
   }
   const findings: DriftFinding[] = [];

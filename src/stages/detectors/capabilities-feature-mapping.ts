@@ -84,6 +84,9 @@ function run(opts: CommandStageOptions): readonly DriftFinding[] {
     const spec = loadSpec(cwd);
     featureIds = new Set(spec.features.map((f) => f.id));
   } catch {
+    // Load-failure policy (see detectors/with-spec.ts): within-spec-validity
+    // detector — no spec means no capability↔feature links to validate;
+    // ABSENCE_OF_GOVERNANCE + the info-emitting detectors surface the failure.
     return [];
   }
 
