@@ -25,25 +25,18 @@
 // intentionally not yet bound — flagging them would drown the signal
 // with progress-noise.
 
-import {loadSpec} from '../../spec/load.js';
+import type {Spec} from '../../spec/types.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
+import {withSpec} from './with-spec.js';
 
 const NAME = 'MISSING_TESTS';
 
 function runMissingTests(opts: CommandStageOptions): readonly DriftFinding[] {
   const {cwd = '.'} = opts;
-  let spec;
-  try {
-    spec = loadSpec(cwd);
-  } catch (err) {
-    return [
-      {
-        detector: NAME,
-        severity: 'info',
-        message: `spec.yaml not loaded: ${(err as Error).message}`,
-      },
-    ];
-  }
+  return withSpec(cwd, NAME, detect);
+}
+
+function detect(spec: Spec): readonly DriftFinding[] {
   const findings: DriftFinding[] = [];
   for (const feature of spec.features) {
     if (feature.status !== 'done') continue;
