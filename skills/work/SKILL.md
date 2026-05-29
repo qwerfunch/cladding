@@ -1,18 +1,18 @@
 ---
-description: Stage entry-point — run a single Iron Law stage by name or a free-form intent. As of v0.3.40 the verb is a stub that prints a status line and exits 0; full intent handling lands in a later cycle. Use when documenting the intended surface, not for production work.
+description: Stage entry-point — run a single Iron Law stage by name or a free-form intent. The verb is reserved-but-unimplemented; it declines honestly with exitCode 2 (never reports success for work it did not do). Full intent handling lands in a later cycle. Use when documenting the intended surface, not for production work.
 ---
 
 # Cladding work
 
-Run `clad work [verb]` from the project root. Currently the handler is a stub:
+Run `clad work [verb]` from the project root. The handler is reserved-but-unimplemented and **declines honestly** — it never reports success for work it did not do:
 
 - No argument → prints `· work  specify a stage or natural-language intent` and exits `2`.
-- Any argument → prints `· work <arg>` and exits `0`. No stage runner is dispatched, no spec is loaded, no working-tree mutation happens.
+- Any argument → prints `↓ work <arg>  not implemented — …` and exits `2` (skipped / not-applicable). No stage runner is dispatched, no spec is loaded, no working-tree mutation happens.
 
 ```
 clad work             # exit 2, asks for an argument
-clad work stage_1.1   # exit 0, no-op
-clad work "scan the codebase and surface architecture drift"  # exit 0, no-op
+clad work stage_1.1   # exit 2, declines (not implemented)
+clad work "scan the codebase and surface architecture drift"  # exit 2, declines
 ```
 
 ## Why the stub stays

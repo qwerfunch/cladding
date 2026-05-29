@@ -24,6 +24,11 @@ clad drive --max-iterations 10
 clad drive --json
 ```
 
-**Heads-up**: `drive` modifies the working tree. The host adapter dispatches through MCP sampling when `clad serve` is the active MCP server; otherwise the Mock fallback keeps the loop testable without crossing a real LLM boundary.
+**Heads-up — `drive` needs a real LLM, and is for unattended/headless use only.** The host AI (Claude Code, Cursor, …) drives work *naturally in-session*; `clad drive` is the entry point for the **opposite** case — autonomous, no-human-in-the-loop progress (CI/cron/SDK). Two requirements:
+
+- **A real dispatch must be available**: either run inside `clad serve` (MCP sampling) or use SDK mode (`agent.mode = sdk` + an API key). With **neither**, the loop falls back to the **Mock transport** and produces empty module *stubs*, not real implementations — yet still reports a normal halt. Treat a standalone `clad drive` with no MCP server and no SDK key as **not doing real work**; verify with `clad doctor` afterward (a deterministic/Mock run is a red flag, not success).
+- `drive` modifies the working tree.
+
+> Known gap (tracked): standalone `drive` on the Mock fallback should hard-fail with `LLM_UNAVAILABLE` rather than silently stubbing. That change reconciles the adapter `healthCheck` parity contract (F-049 AC-089, which currently treats the Mock fallback as "ready") and is a deliberate follow-up, not yet shipped.
 
 After a drive session, run `clad doctor` over the same `--cwd` to confirm the LLM dispatcher behaved — any `sentinel_miss` events surface as a health summary so you can tell whether the loop ran with full LLM refinement or fell back to deterministic per-artifact.

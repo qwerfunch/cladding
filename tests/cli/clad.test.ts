@@ -183,9 +183,11 @@ describe('cli/clad — handler exports', () => {
     expect(exitCalls).toEqual([2]);
   });
 
-  test('runWorkCommand with verb exits 0', () => {
+  test('runWorkCommand with verb declines honestly (exit 2, never false-success)', () => {
+    // `work` is reserved-but-unimplemented. It must NOT exit 0 for work it did
+    // not do (command-level Vacuous Green); exitCode 2 = skipped/not-applicable.
     clad.runWorkCommand('sync');
-    expect(exitCalls).toEqual([0]);
+    expect(exitCalls).toEqual([2]);
   });
 
   test('runSyncCommand on valid spec exits 0', () => {

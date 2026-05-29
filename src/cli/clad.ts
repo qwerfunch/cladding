@@ -128,15 +128,28 @@ export async function runInitCommand(
   process.exit(0);
 }
 
-/** Handler for `clad work [verb]`. Stub — full intent handling lands later. */
+/**
+ * Handler for `clad work [verb]`. Reserved-but-unimplemented intent-routing
+ * entry point (see skills/work/SKILL.md).
+ *
+ * It must NOT exit 0 for work it did not do — a no-op that reports success is
+ * Vacuous Green at the command level (a script/CI calling `clad work X` would
+ * read the exit-0 as "done"). Until the real router lands, it declines
+ * honestly with exitCode 2 (not-applicable / skipped) and points at the
+ * working paths: `clad route <prompt>` to classify intent, then run the
+ * resolved verb — or just ask the AI host in natural language.
+ */
 export function runWorkCommand(verb?: string): void {
-  if (!verb) {
+  if (verb) {
+    pulse(
+      'skip',
+      `work ${verb}`,
+      'not implemented — run `clad route <prompt>` then the resolved verb, or ask your AI host in natural language',
+    );
+  } else {
     pulse('note', 'work', 'specify a stage or natural-language intent');
-    process.exit(2);
-    return;
   }
-  pulse('start', `work ${verb}`);
-  process.exit(0);
+  process.exit(2);
 }
 
 interface DriveCommandOptions {
