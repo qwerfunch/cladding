@@ -15,8 +15,9 @@
 import {existsSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
 
-import {loadSpec} from '../../spec/load.js';
+import type {Spec} from '../../spec/types.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
+import {withSpec} from './with-spec.js';
 
 const NAME = 'CONVENTION_DRIFT';
 
@@ -27,18 +28,10 @@ function startsWithComment(content: string): boolean {
 
 function runConventionDrift(opts: CommandStageOptions): readonly DriftFinding[] {
   const {cwd = '.'} = opts;
-  let spec;
-  try {
-    spec = loadSpec(cwd);
-  } catch (err) {
-    return [
-      {
-        detector: NAME,
-        severity: 'info',
-        message: `spec.yaml not loaded: ${(err as Error).message}`,
-      },
-    ];
-  }
+  return withSpec(cwd, NAME, (spec) => detect(spec, cwd));
+}
+
+function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
   const findings: DriftFinding[] = [];
   for (const feature of spec.features) {
     for (const modulePath of feature.modules ?? []) {

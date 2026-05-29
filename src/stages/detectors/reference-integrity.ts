@@ -7,9 +7,9 @@
 //   - scenarios[].features[]       → exists in features[].id
 // ADR ids (`adr_refs`) are scoped out until the ADR subsystem lands.
 
-import {loadSpec} from '../../spec/load.js';
-import type {Feature, Scenario} from '../../spec/types.js';
+import type {Feature, Scenario, Spec} from '../../spec/types.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
+import {withSpec} from './with-spec.js';
 
 const NAME = 'REFERENCE_INTEGRITY';
 
@@ -30,18 +30,10 @@ function refIssues(
 
 function runReferenceIntegrity(opts: CommandStageOptions): readonly DriftFinding[] {
   const {cwd = '.'} = opts;
-  let spec;
-  try {
-    spec = loadSpec(cwd);
-  } catch (err) {
-    return [
-      {
-        detector: NAME,
-        severity: 'info',
-        message: `spec.yaml not loaded: ${(err as Error).message}`,
-      },
-    ];
-  }
+  return withSpec(cwd, NAME, detect);
+}
+
+function detect(spec: Spec): readonly DriftFinding[] {
   const featureIds = new Set(spec.features.map((f: Feature) => f.id));
   const findings: DriftFinding[] = [];
   for (const f of spec.features) {

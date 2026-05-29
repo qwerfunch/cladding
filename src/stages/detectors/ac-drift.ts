@@ -18,25 +18,18 @@
 // inference and lands in T9 alongside the agent orchestrator.
 
 import {checkAllFeatures} from '../../spec/ears.js';
-import {loadSpec} from '../../spec/load.js';
+import type {Spec} from '../../spec/types.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
+import {withSpec} from './with-spec.js';
 
 const NAME = 'AC_DRIFT';
 
 function runAcDrift(opts: CommandStageOptions): readonly DriftFinding[] {
   const {cwd = '.'} = opts;
-  let spec;
-  try {
-    spec = loadSpec(cwd);
-  } catch (err) {
-    return [
-      {
-        detector: NAME,
-        severity: 'info',
-        message: `spec.yaml not loaded: ${(err as Error).message}`,
-      },
-    ];
-  }
+  return withSpec(cwd, NAME, detect);
+}
+
+function detect(spec: Spec): readonly DriftFinding[] {
   const findings: DriftFinding[] = [];
 
   // (1) structural floor.

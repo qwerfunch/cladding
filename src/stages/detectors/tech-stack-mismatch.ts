@@ -7,25 +7,18 @@
 // classic "we ported to TS but spec.yaml still says python" drift.
 
 import {detectToolchain} from '../toolchain/detect.js';
-import {loadSpec} from '../../spec/load.js';
+import type {Spec} from '../../spec/types.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
+import {withSpec} from './with-spec.js';
 
 const NAME = 'TECH_STACK_MISMATCH';
 
 function runTechStackMismatch(opts: CommandStageOptions): readonly DriftFinding[] {
   const {cwd = '.'} = opts;
-  let spec;
-  try {
-    spec = loadSpec(cwd);
-  } catch (err) {
-    return [
-      {
-        detector: NAME,
-        severity: 'info',
-        message: `spec.yaml not loaded: ${(err as Error).message}`,
-      },
-    ];
-  }
+  return withSpec(cwd, NAME, (spec) => detect(spec, cwd));
+}
+
+function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
   const detected = detectToolchain(cwd).language;
   if (detected === 'unknown') {
     return [

@@ -14,8 +14,9 @@ import {join} from 'node:path';
 
 import {globSync} from 'tinyglobby';
 
-import {loadSpec} from '../../spec/load.js';
+import type {Spec} from '../../spec/types.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
+import {withSpec} from './with-spec.js';
 
 const NAME = 'STALE_TESTS';
 const STALE_DAYS = 30;
@@ -34,18 +35,10 @@ function newestModuleMtime(cwd: string, modules: readonly string[]): number {
 
 function runStaleTests(opts: CommandStageOptions): readonly DriftFinding[] {
   const {cwd = '.'} = opts;
-  let spec;
-  try {
-    spec = loadSpec(cwd);
-  } catch (err) {
-    return [
-      {
-        detector: NAME,
-        severity: 'info',
-        message: `spec.yaml not loaded: ${(err as Error).message}`,
-      },
-    ];
-  }
+  return withSpec(cwd, NAME, (spec) => detect(spec, cwd));
+}
+
+function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
   const allModules = spec.features.flatMap((f) => f.modules ?? []);
   const newest = newestModuleMtime(cwd, allModules);
   if (newest === 0) return [];
