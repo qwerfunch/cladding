@@ -305,9 +305,35 @@ export async function runSetupCommand(opts: {force?: boolean; quiet?: boolean}):
   process.exit(result.errors.length > 0 ? 1 : 0);
 }
 
-/** Handler for `clad check`. Runs every Iron Law stage; exits with worst code. */
-export function runCheckCommand(opts: {internal?: boolean; strict?: boolean}): void {
-  const stages = [
+/**
+ * Stages run by each `clad check --tier` (Phase 2 ambient hooks). Each trigger
+ * runs the subset that is fast + meaningful in its context:
+ *   pre-commit — drift/arch/secret: cheap, spec-native, deterministic, no
+ *                whole-toolchain spawn → instant per-commit feedback.
+ *   pre-push   — + type/lint/unit/cov: deterministic but heavier; run before
+ *                push, not on every commit (avoids `--no-verify` fatigue).
+ *   all        — every stage (default; backward-compatible; CI uses this).
+ * Excluded from local hooks: commit(1.4) needs a clean tree (would always fail
+ * pre-commit); smoke/perf/visual(3.x) are probabilistic; audit/uat(4.x) need
+ * human evidence — these run in CI (`clad check`, i.e. tier=all).
+ * Exported for testing.
+ */
+export const TIER_STAGES: Record<string, readonly string[]> = {
+  'pre-commit': ['stage_1.3', 'stage_1.5', 'stage_1.6'],
+  'pre-push': ['stage_1.1', 'stage_1.2', 'stage_1.3', 'stage_1.5', 'stage_1.6', 'stage_2.1', 'stage_2.2'],
+  all: ['stage_1.1', 'stage_1.2', 'stage_1.3', 'stage_1.4', 'stage_1.5', 'stage_1.6', 'stage_2.1', 'stage_2.2', 'stage_3.1', 'stage_3.2', 'stage_3.3', 'stage_4.1', 'stage_4.2'],
+};
+
+/** Handler for `clad check`. Runs the tier's Iron Law stages; exits with worst code. */
+export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tier?: string}): void {
+  const tier = opts.tier ?? 'all';
+  const allowed = TIER_STAGES[tier];
+  if (!allowed) {
+    pulse('fail', 'check', `unknown --tier '${tier}' (expected: pre-commit | pre-push | all)`);
+    process.exit(2);
+    return;
+  }
+  const allStages = [
     ['stage_1.1', runType],
     ['stage_1.2', runLint],
     ['stage_1.3', () => runDrift({strict: opts.strict})],
@@ -322,6 +348,7 @@ export function runCheckCommand(opts: {internal?: boolean; strict?: boolean}): v
     ['stage_4.1', runAudit],
     ['stage_4.2', runUat],
   ] as const;
+  const stages = allStages.filter(([name]) => allowed.includes(name));
   let worst = 0;
   let anyFailed = false;
   for (const [name, run] of stages) {
@@ -453,6 +480,10 @@ export function createProgram(): Command {
     .description('Run every Iron Law stage and the drift detector suite')
     .option('--internal', 'show stage codes (`stage_1.1`) instead of names (`Type`)')
     .option('--strict', 'promote warn-severity drift findings to errors (CI / pre-publish gate)')
+    .option(
+      '--tier <tier>',
+      'run only the stages for a trigger: pre-commit (drift/arch/secret) | pre-push (+ type/lint/unit/cov) | all (default; full 13-stage gate, used by CI)',
+    )
     .action(runCheckCommand);
 
   program

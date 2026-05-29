@@ -190,6 +190,16 @@ describe('cli/clad — handler exports', () => {
     expect(exitCalls).toEqual([2]);
   });
 
+  test('runCheckCommand with unknown --tier exits 2 without running stages', () => {
+    clad.runCheckCommand({tier: 'no-such-tier'});
+    expect(exitCalls).toEqual([2]);
+  });
+
+  test('runCheckCommand --tier=pre-commit passes (drift/arch/secret all pass in mocks)', () => {
+    clad.runCheckCommand({tier: 'pre-commit'});
+    expect(exitCalls).toEqual([0]);
+  });
+
   test('runSyncCommand on valid spec exits 0', () => {
     loadSpecMock.mockReturnValueOnce({features: [{id: 'F-001'}, {id: 'F-002'}]});
     clad.runSyncCommand();
@@ -442,5 +452,33 @@ describe('cli/clad — runServeCommand', () => {
     // v0.2.26 (F-075): clad serve registers its own server so host
     // adapters route through McpSamplingTransport.
     expect(setMock).toHaveBeenCalledOnce();
+  });
+});
+
+describe('cli/clad — check --tier stage selection (Phase 2 ambient hooks)', () => {
+  test('pre-commit = drift/arch/secret only (cheap, spec-native)', () => {
+    expect(clad.TIER_STAGES['pre-commit']).toEqual(['stage_1.3', 'stage_1.5', 'stage_1.6']);
+    // Never the clean-tree commit stage (would always fail pre-commit), the
+    // probabilistic 3.x, the HITL 4.x, or the slow whole-toolchain/test stages.
+    for (const s of ['stage_1.1', 'stage_1.2', 'stage_1.4', 'stage_2.1', 'stage_2.2', 'stage_3.1', 'stage_3.2', 'stage_3.3', 'stage_4.1', 'stage_4.2']) {
+      expect(clad.TIER_STAGES['pre-commit']).not.toContain(s);
+    }
+  });
+
+  test('pre-push = pre-commit set + type/lint/unit/cov; never commit/probabilistic/HITL', () => {
+    expect(clad.TIER_STAGES['pre-push']).toEqual([
+      'stage_1.1', 'stage_1.2', 'stage_1.3', 'stage_1.5', 'stage_1.6', 'stage_2.1', 'stage_2.2',
+    ]);
+    for (const s of ['stage_1.4', 'stage_3.1', 'stage_3.2', 'stage_3.3', 'stage_4.1', 'stage_4.2']) {
+      expect(clad.TIER_STAGES['pre-push']).not.toContain(s);
+    }
+  });
+
+  test('all = every one of the 13 stages (default / CI gate)', () => {
+    expect(clad.TIER_STAGES['all']).toHaveLength(13);
+    // pre-commit + pre-push members are all a subset of `all`.
+    for (const s of [...clad.TIER_STAGES['pre-commit'], ...clad.TIER_STAGES['pre-push']]) {
+      expect(clad.TIER_STAGES['all']).toContain(s);
+    }
   });
 });
