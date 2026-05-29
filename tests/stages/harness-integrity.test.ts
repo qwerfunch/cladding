@@ -19,12 +19,12 @@ import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 import {harnessIntegrity} from '../../src/stages/detectors/harness-integrity.js';
 
 function writeManifest(dir: string, detectors: string | null, version = '0.0.0'): void {
-  mkdirSync(join(dir, '.claude-plugin'), {recursive: true});
+  mkdirSync(join(dir, 'plugins', 'claude-code', '.claude-plugin'), {recursive: true});
   const body: Record<string, unknown> = {name: 'x', version};
   if (detectors !== null) {
     body.ironclad = {current: {detectors}};
   }
-  writeFileSync(join(dir, '.claude-plugin', 'plugin.json'), JSON.stringify(body));
+  writeFileSync(join(dir, 'plugins', 'claude-code', '.claude-plugin', 'plugin.json'), JSON.stringify(body));
 }
 
 function writePackageJson(dir: string, version: string): void {
@@ -150,9 +150,9 @@ describe('HARNESS_INTEGRITY · per-host schema (F-080)', () => {
   });
 
   test('Claude Code manifest missing name → error finding', () => {
-    mkdirSync(join(dir, '.claude-plugin'), {recursive: true});
+    mkdirSync(join(dir, 'plugins', 'claude-code', '.claude-plugin'), {recursive: true});
     writeFileSync(
-      join(dir, '.claude-plugin', 'plugin.json'),
+      join(dir, 'plugins', 'claude-code', '.claude-plugin', 'plugin.json'),
       JSON.stringify({version: '0.3.5'}), // name omitted
     );
     const findings = harnessIntegrity.run({cwd: dir});

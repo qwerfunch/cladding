@@ -62,7 +62,7 @@ interface HostManifestSpec {
 }
 
 const HOSTS: readonly HostManifestSpec[] = [
-  {host: 'claude-code', path: '.claude-plugin/plugin.json', required: ['name', 'version']},
+  {host: 'claude-code', path: 'plugins/claude-code/.claude-plugin/plugin.json', required: ['name', 'version']},
   {
     host: 'codex',
     path: 'plugins/codex/.codex-plugin/plugin.json',
@@ -94,7 +94,7 @@ function readJsonIfPresent<T>(absolutePath: string): T | null {
 
 /** Detector count check — the original v0.2.4 invariant. */
 function checkDetectorCount(cwd: string, findings: DriftFinding[]): void {
-  const manifestPath = join(cwd, '.claude-plugin', 'plugin.json');
+  const manifestPath = join(cwd, 'plugins', 'claude-code', '.claude-plugin', 'plugin.json');
   let manifest: PluginManifest;
   try {
     manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as PluginManifest;
