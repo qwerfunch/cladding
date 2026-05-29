@@ -15,6 +15,7 @@ import {execaSync} from 'execa';
 
 import {detectToolchain} from './toolchain/detect.js';
 import type {CommandStageOptions, StageResult} from './types.js';
+import {missingToolSkip} from './util.js';
 
 const STAGE = 'stage_2.2';
 
@@ -32,18 +33,11 @@ export function runCov(opts: CommandStageOptions = {}): StageResult {
       stderr: `no coverage runner registered for language '${toolchain.language}'`,
     };
   }
-  let proc;
-  try {
-    proc = execaSync(cmd, [...args], {cwd, reject: false});
-  } catch (err) {
-    // Tool binary absent (ENOENT) → skip (exitCode 2), matching
-    // smoke/perf/visual. Without this, a missing coverage tool surfaces
-    // as a crash / false failure instead of an honest skip.
-    if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
-      return {stage: STAGE, pass: false, exitCode: 2, stderr: `'${cmd}' not installed`};
-    }
-    throw err;
-  }
+  const proc = execaSync(cmd, [...args], {cwd, reject: false});
+  // execaSync(reject:false) RETURNS (does not throw) on a missing binary;
+  // detect ENOENT on the result so a missing tool skips, not false-fails.
+  const skip = missingToolSkip(STAGE, cmd, proc);
+  if (skip) return skip;
   const exitCode = proc.exitCode ?? 1;
   const pass = exitCode === 0;
   const result: StageResult = {stage: STAGE, pass, exitCode};

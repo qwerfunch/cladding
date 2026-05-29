@@ -72,11 +72,9 @@ describe('runPerf (stage_3.2)', () => {
       join(dir, 'package.json'),
       JSON.stringify({name: 'x', scripts: {perf: 'echo'}}),
     );
-    const err = new Error('spawn ENOENT') as NodeJS.ErrnoException;
-    err.code = 'ENOENT';
-    execaSyncMock.mockImplementationOnce(() => {
-      throw err;
-    });
+    // execaSync(reject:false) does NOT throw on a missing binary — it RETURNS
+    // {exitCode: undefined, failed: true, code: 'ENOENT'} (verified empirically).
+    execaSyncMock.mockReturnValueOnce({exitCode: undefined, failed: true, code: 'ENOENT', stdout: '', stderr: ''});
     const r = runPerf({cwd: dir});
     expect(r.exitCode).toBe(2);
     expect(r.stderr).toContain('not installed');

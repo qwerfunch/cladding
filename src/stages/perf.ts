@@ -14,7 +14,7 @@ import {execaSync} from 'execa';
 
 import {detectToolchain} from './toolchain/detect.js';
 import type {CommandStageOptions, StageResult} from './types.js';
-import {isNpmScriptDefined} from './util.js';
+import {isNpmScriptDefined, missingToolSkip} from './util.js';
 
 const STAGE = 'stage_3.2';
 
@@ -35,16 +35,11 @@ export function runPerf(opts: CommandStageOptions = {}): StageResult {
   if (cmd === 'npm' && args[0] === 'run' && !isNpmScriptDefined(cwd, args[args.length - 1])) {
     return {stage: STAGE, pass: false, exitCode: 2, stderr: 'perf npm script not defined'};
   }
-  let proc;
-  try {
-    proc = execaSync(cmd, [...args], {cwd, reject: false});
-  } catch (err) {
-    const code = (err as NodeJS.ErrnoException).code;
-    if (code === 'ENOENT') {
-      return {stage: STAGE, pass: false, exitCode: 2, stderr: `'${cmd}' not installed`};
-    }
-    throw err;
-  }
+  const proc = execaSync(cmd, [...args], {cwd, reject: false});
+  // execaSync(reject:false) RETURNS (does not throw) on a missing binary;
+  // detect ENOENT on the result so a missing runner skips, not false-fails.
+  const skip = missingToolSkip(STAGE, cmd, proc);
+  if (skip) return skip;
   const exitCode = proc.exitCode ?? 1;
   const pass = exitCode === 0;
   const result: StageResult = {stage: STAGE, pass, exitCode};
