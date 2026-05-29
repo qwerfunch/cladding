@@ -77,7 +77,10 @@ const HOSTS: readonly HostManifestSpec[] = [
 
 function countDetectorFiles(cwd: string): number {
   const files = globSync(['src/stages/detectors/*.ts'], {cwd, dot: false});
-  return files.filter((f) => !f.endsWith('/index.ts') && !f.endsWith('\\index.ts')).length;
+  // Exclude the registry (index.ts) and shared helpers (with-spec.ts):
+  // they live alongside detectors but are not themselves detectors, so
+  // they must not inflate the count compared against plugin.json.
+  return files.filter((f) => !/[/\\](index|with-spec)\.ts$/.test(f)).length;
 }
 
 function readJsonIfPresent<T>(absolutePath: string): T | null {
@@ -173,6 +176,13 @@ function checkVersionConsistency(cwd: string, findings: DriftFinding[]): void {
       });
     }
   }
+  // NOTE: spec.yaml project.version is kept in lockstep by `npm run
+  // version-bump` (it is now a managed SITE — see scripts/version-bump.mjs).
+  // A *detector*-level spec.yaml-vs-package.json check is intentionally NOT
+  // added here: a general adopting project may legitimately version its
+  // spec.yaml independently of package.json, so an error would be a
+  // false-fail. If surfaced at all it belongs at `warn` with adopter-aware
+  // fixtures (Phase 2), not as a hard gate.
 }
 
 function runHarnessIntegrity(opts: CommandStageOptions): readonly DriftFinding[] {

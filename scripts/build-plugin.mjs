@@ -301,8 +301,10 @@ console.log(`cladding plugin · gemini-cli: transpiled ${geminiVerbCount} verbs 
 // pattern is tight.
 
 function countDetectorFiles() {
+  // Exclude the registry (index.ts) and shared helpers (with-spec.ts):
+  // they live alongside detectors but are not themselves detectors.
   return readdirSync(SRC_DETECTORS).filter(
-    (f) => f.endsWith('.ts') && f !== 'index.ts',
+    (f) => f.endsWith('.ts') && f !== 'index.ts' && f !== 'with-spec.ts',
   ).length;
 }
 

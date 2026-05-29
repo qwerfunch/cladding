@@ -81,6 +81,12 @@ const SITES = [
     /expect\(program\.version\(\)\)\.toBe\('(\d+\.\d+\.\d+)'\)/,
     (v) => `expect(program.version()).toBe('${v}')`,
   ),
+  // 8. spec.yaml — project.version (Tier A SSoT must track the binary)
+  siteFor(
+    'spec.yaml',
+    /  version: "(\d+\.\d+\.\d+)"/,
+    (v) => `  version: "${v}"`,
+  ),
 ];
 
 function fail(msg) {
