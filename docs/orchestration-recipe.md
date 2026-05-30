@@ -30,12 +30,12 @@ separate **git worktree** per concurrent unit so parallel writes never collide.
 3. **IMPLEMENT — `specialists` (code).** One implementer per unit writes production code in its
    own worktree. `clad checkpoint <featureId>` before each so a failed unit rolls back cleanly.
 
-4. **TEST — independent author.** A *separate* agent reads the feature's `acceptance_criteria`
-   **only** (never the implementation) and authors the acceptance tests bound to each AC's
-   `test_refs`. Implementer ≠ test-author makes Principle 2 (audit separation) **structural** —
-   the tests encode the spec, not the code. (Until the dedicated test-author agent lands,
-   dispatch `specialists` for tests in a SEPARATE invocation from the code one — a distinct
-   agent context — to preserve the separation.)
+4. **TEST — independent author.** A *separate* `specialists` dispatch — handed the feature's
+   `acceptance_criteria` **only** (never the implementation) — authors the acceptance tests bound
+   to each AC's `test_refs`. The code-dispatch and the test-dispatch are independent agent
+   contexts (the recipe never routes both to one dispatch), which makes Principle 2 (audit
+   separation) **structural** — the tests encode the spec, not the code. A dedicated `test-author`
+   persona is a future option; the separate-dispatch contract delivers the same independence now.
    - ▣ **Barrier:** `clad check --tier=pre-push --strict` — type / lint / unit / cov **and**
      drift (MISSING_IMPLEMENTATION, UNTESTED_AC, MISSING_TESTS, STATUS_DRIFT). Zero
      error-severity ⇒ proceed; otherwise loop back to 3/4 until green (loop-until-green).

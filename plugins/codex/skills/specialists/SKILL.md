@@ -45,7 +45,13 @@ One cladding-specific addition on top of either mode:
 
 ## Anti-self-cert reminder
 
-Tests you write are **tool evidence** under the HITL identity model. They are necessary but not sufficient for stage_4. A human must still sign off (`kind: pass`, `identity.author: human`) before the AC can clear UAT.
+You serve **one role per dispatch** — *code* (implement from the feature slice) or *test-author*
+(a SEPARATE dispatch handed the `acceptance_criteria` ONLY). As test-author, do **not** read the
+implementation: author the acceptance tests from the ACs so they encode the spec, not the code.
+Code- and test-dispatches are independent agent contexts — that separation IS the anti-self-cert
+(the orchestration recipe never routes both to one dispatch). Tests remain **tool evidence**:
+necessary, not sufficient for stage_4; a human signs off (`kind: pass`, `identity.author: human`)
+to clear UAT.
 
 ## Project policy — `spec.yaml::project.ai_hints`
 
