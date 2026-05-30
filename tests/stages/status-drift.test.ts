@@ -2,6 +2,8 @@
 //
 // Detector under test cross-checks `features[].status` with on-disk
 // module presence:
+//   - status='done' but declares NEITHER modules NOR acceptance_criteria →
+//     error (hollow completion — nothing to verify; must bind >=1 module OR AC)
 //   - status='done' but at least one module missing → error
 //     (feature is marked complete, yet implementation is gone or
 //     never landed — concrete drift)
@@ -100,10 +102,35 @@ describe('STATUS_DRIFT detector', () => {
     expect(statusDrift.run({cwd: dir})).toEqual([]);
   });
 
-  test('feature with no modules field is skipped entirely', () => {
+  test('status=done + NO modules + NO acceptance_criteria → hollow-completion error', () => {
+    // The Vacuous Green this closes: a done feature that declares nothing has
+    // nothing for any verifier to check, so it used to pass the gate on
+    // assertion alone. It must now be a blocking error.
     writeFileSync(
       join(dir, 'spec', 'features', 'F-001.yaml'),
       'id: F-001\ntitle: t\nstatus: done\n',
+    );
+    const findings = statusDrift.run({cwd: dir});
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe('error');
+    expect(findings[0].message).toContain('F-001');
+    expect(findings[0].message).toContain('hollow completion');
+  });
+
+  test('status=done + NO modules but HAS acceptance_criteria → no finding (AC satisfies the bind)', () => {
+    // A doc/design-only done feature binds via an acceptance criterion instead
+    // of a module — that is legitimate and must NOT false-fail.
+    writeFileSync(
+      join(dir, 'spec', 'features', 'F-001.yaml'),
+      'id: F-001\ntitle: t\nstatus: done\nacceptance_criteria:\n  - id: AC-001\n    text: The system shall do X.\n',
+    );
+    expect(statusDrift.run({cwd: dir})).toEqual([]);
+  });
+
+  test('status=in_progress + nothing declared → no finding (hollow check is done-only)', () => {
+    writeFileSync(
+      join(dir, 'spec', 'features', 'F-001.yaml'),
+      'id: F-001\ntitle: t\nstatus: in_progress\n',
     );
     expect(statusDrift.run({cwd: dir})).toEqual([]);
   });

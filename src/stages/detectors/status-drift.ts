@@ -2,6 +2,11 @@
 //
 // Detector #14 from the catalog (axis: spec_vs_test, severity: error).
 // Cross-checks `features[].status` against the filesystem:
+//   - status='done' but declares NEITHER modules NOR acceptance_criteria →
+//     error (hollow completion — nothing exists to verify, so every other
+//     verification detector skips it via empty-array iteration and the gate
+//     passes GREEN on a pure assertion; a done feature must bind to >=1 module
+//     OR declare >=1 acceptance criterion)
 //   - status='done' but at least one declared module is missing → error
 //     (the feature is marked complete yet its implementation is absent)
 //   - status='in_progress' but every declared module is missing → warn
@@ -30,6 +35,22 @@ function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
   const findings: DriftFinding[] = [];
   for (const feature of spec.features) {
     const modules = feature.modules ?? [];
+    const acs = feature.acceptance_criteria ?? [];
+    // Hollow completion: 'done' but declares nothing to verify. Without this,
+    // MISSING_IMPLEMENTATION / MISSING_TESTS / UNTESTED_AC / AC_DRIFT all iterate
+    // empty arrays and produce zero findings, so the feature passes the gate on
+    // assertion alone. Require >=1 module OR >=1 AC. (design/doc-only features
+    // still declare a doc module path or an AC, so this does not false-fail them.)
+    if (feature.status === 'done' && modules.length === 0 && acs.length === 0) {
+      findings.push({
+        detector: NAME,
+        severity: 'error',
+        message:
+          `feature ${feature.id} status='done' but declares no modules and no` +
+          ' acceptance_criteria — nothing to verify (hollow completion)',
+      });
+      continue;
+    }
     if (modules.length === 0) continue;
     const missing = modules.filter((m) => !existsSync(join(cwd, m)));
     if (missing.length === 0) continue;
