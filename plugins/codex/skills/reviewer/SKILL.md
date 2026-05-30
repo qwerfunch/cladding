@@ -51,6 +51,15 @@ For every audit, emit a single JSON object:
 }
 ```
 
+## Lens (multi-agent fan-out)
+
+With a **lens**, parallel reviewers (independent contexts) split the audit; their union is full
+coverage — **correctness** (guardrails above + meets the AC), **spec-conformance** (code + the
+independent tests satisfy every AC's `text` / `test_refs`; flag ACs with no test), **security**
+(Zero-Trust Input · Least Privilege), **performance** (hot-path cost). With no lens, audit all. A
+`passes: false` is a **hard block**: the recipe loops it back to `specialists` until green — a
+gate, not advice.
+
 ## Project policy — `spec.yaml::project.ai_hints`
 
 When auditing a diff, also check `spec.yaml::project.ai_hints`:
