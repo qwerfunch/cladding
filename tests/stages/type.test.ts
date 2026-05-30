@@ -8,7 +8,8 @@
 //                                                     (skipped, not failed)
 //   - tool exit 0                                    → pass=true
 //   - tool non-zero exit + stderr                   → pass=false, stderr attached
-//   - tool non-zero exit + no stderr                → pass=false, no stderr field
+//   - tool exit 2 (tsc type errors)                 → pass=false, exitCode 1 (NOT
+//                                                     the skip code 2 — see ranToolResult)
 //
 // execaSync is mocked with vi.mock('execa'). Real-binary coverage of
 // the subprocess paths is exercised by the conformance fixtures
@@ -69,13 +70,31 @@ describe('runType (stage_1.1)', () => {
     expect(r.stderr).toContain('TS2322');
   });
 
-  test('tool non-zero exit + no stderr → pass=false, no stderr field', () => {
+  test('tool exits 2 (tsc signals type errors) → BLOCKING fail exitCode 1, never the skip code 2', () => {
+    // `tsc --noEmit` exits 2 on type errors. The gate RESERVES stage exitCode 2
+    // for "skipped" (missing tool / unknown language), so a RAN-tool exit 2 must
+    // map to the blocking code 1 — otherwise `clad check` misclassifies a real
+    // type failure as a non-blocking skip (the canonical Vacuous Green that left
+    // 3 real type errors masked in cladding's own repo for multiple releases).
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
     execaSyncMock.mockReturnValueOnce({exitCode: 2, stdout: '', stderr: ''});
     const r = runType({cwd: dir});
     expect(r.pass).toBe(false);
-    expect(r.exitCode).toBe(2);
-    expect(r.stderr).toBeUndefined();
+    expect(r.exitCode).toBe(1);
+    expect(r.stderr).toBeUndefined(); // no output → no stderr field
+  });
+
+  test('tsc writes diagnostics to stdout (empty stderr) → surfaced as stderr so the gate shows WHY', () => {
+    writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
+    execaSyncMock.mockReturnValueOnce({
+      exitCode: 2,
+      stdout: 'src/x.ts(3,5): error TS2322: type mismatch',
+      stderr: '',
+    });
+    const r = runType({cwd: dir});
+    expect(r.pass).toBe(false);
+    expect(r.exitCode).toBe(1);
+    expect(r.stderr).toContain('TS2322'); // stdout fallback
   });
 
   test('explicit cmd/args override → bypasses toolchain', () => {

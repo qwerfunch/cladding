@@ -290,6 +290,10 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
       ['stage_1.5', runArch({cwd})],
     ] as const;
     gateRuns += gates.length;
+    // `exitCode !== 2` excludes genuine skips (missing tool / unknown language).
+    // Safe because stages map a ran-tool failure to exitCode 1, never 2 (see
+    // stages/util.ts::ranToolResult) — so a real type/lint/arch failure here is
+    // exitCode 1 and correctly blocks the feature from advancing.
     const failed = gates.find(([, r]) => !r.pass && r.exitCode !== 2);
     if (failed) {
       retries.set(ready.id, (retries.get(ready.id) ?? 0) + 1);

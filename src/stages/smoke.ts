@@ -17,7 +17,7 @@ import {execaSync} from 'execa';
 
 import {detectToolchain} from './toolchain/detect.js';
 import type {CommandStageOptions, StageResult} from './types.js';
-import {isNpmScriptDefined, missingToolSkip} from './util.js';
+import {isNpmScriptDefined, missingToolSkip, ranToolResult} from './util.js';
 
 const STAGE = 'stage_3.1';
 
@@ -45,11 +45,9 @@ export function runSmoke(opts: CommandStageOptions = {}): StageResult {
   // detect ENOENT on the result so a missing runner skips, not false-fails.
   const skip = missingToolSkip(STAGE, cmd, proc);
   if (skip) return skip;
-  const exitCode = proc.exitCode ?? 1;
-  const pass = exitCode === 0;
-  const result: StageResult = {stage: STAGE, pass, exitCode};
-  if (!pass) return {...result, stderr: (proc.stderr ?? '').toString().trim()};
-  return result;
+  // The runner RAN. Map its result to cladding's pass/fail/skip contract:
+  // any non-zero exit → blocking fail (1), never the tool's raw 2 (= skip).
+  return ranToolResult(STAGE, proc);
 }
 
 const isCliEntry = !(globalThis as {__CLADDING_BUNDLED?: boolean}).__CLADDING_BUNDLED && import.meta.url === `file://${process.argv[1]}`;

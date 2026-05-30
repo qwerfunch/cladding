@@ -34,7 +34,6 @@ import {
 } from './scan/intent-onboarding.js';
 import {saveState, type OnboardingState} from './scan/onboarding-state.js';
 import {detectToolchain} from '../stages/toolchain/detect.js';
-import {detectContext} from '../init/detect.js';
 import {writeAgentsMd, writeClaudeMdSection} from '../init/host-instructions.js';
 import {getCurrentCladdingVersion, getLastSetupVersion} from '../init/host-setup.js';
 import {installPreCommitHook} from '../init/git-hook.js';
@@ -352,12 +351,6 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
     };
     saveState(cwd, initialState);
   }
-
-  // F-90d054 — observe the project once to build the lazy enrichment marker.
-  // detectContext is cheap (one synchronous walk capped at depth 12, skipping
-  // detectContext is still used by host-instructions (AGENTS.md / CLAUDE.md)
-  // for the project context summary it embeds in those files.
-  const ctx = detectContext(cwd);
 
   // 1. spec.yaml + F-001 sharded placeholder
   //

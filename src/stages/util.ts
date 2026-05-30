@@ -33,6 +33,41 @@ export function missingToolSkip(
 }
 
 /**
+ * Builds a StageResult from a tool process that ACTUALLY RAN — i.e. the
+ * stage's skip pre-checks (unknown language, undefined npm script, missing
+ * binary via {@link missingToolSkip}) have already returned. Every command
+ * stage uses this for the post-run mapping.
+ *
+ * CRITICAL — exit-code semantics (the gate's pass/fail spine). `clad check`
+ * (clad.ts::runCheckCommand) RESERVES stage `exitCode === 2` for "cladding
+ * chose not to run" (skipped — NON-blocking). A tool that ran and found a real
+ * problem must therefore map to the blocking code 1 — NEVER the tool's raw
+ * exit code. `tsc --noEmit` exits 2 on type errors; relaying that 2 verbatim
+ * made the aggregator misclassify a real type failure as a skip, so the type
+ * gate was structurally incapable of failing — the canonical "Vacuous Green".
+ * This helper collapses ANY non-zero ran-tool exit to 1, so a stage exit 2 can
+ * only ever mean "skipped". Routing every command stage through here makes that
+ * invariant structural rather than per-stage discipline.
+ *
+ * Diagnostics: surfaces stderr, falling back to stdout — `tsc` writes its
+ * diagnostics to stdout, not stderr, so a failing gate still shows WHY.
+ *
+ * @param stage - Ironclad stage id for the result.
+ * @param proc - The value returned by `execaSync(…, {reject: false})`.
+ */
+export function ranToolResult(
+  stage: string,
+  proc: {readonly exitCode?: number | null; readonly stdout?: unknown; readonly stderr?: unknown},
+): StageResult {
+  const ran = proc.exitCode ?? 1;
+  if (ran === 0) return {stage, pass: true, exitCode: 0};
+  const detail = String(proc.stderr ?? '').trim() || String(proc.stdout ?? '').trim();
+  return detail
+    ? {stage, pass: false, exitCode: 1, stderr: detail}
+    : {stage, pass: false, exitCode: 1};
+}
+
+/**
  * Returns true when `cwd/package.json` declares a `scripts.<name>` entry.
  * Used by stages that delegate to `npm run <name>` so they can report
  * `exitCode 2` (skipped) instead of `exitCode 1` (fail) when the

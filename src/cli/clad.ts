@@ -364,6 +364,11 @@ export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tie
     if (r.pass) {
       pulse('pass', label);
     } else if (r.exitCode === 2) {
+      // INVARIANT: exitCode 2 means "skipped" (cladding chose not to run —
+      // tool missing / unknown language). It is NON-blocking. A stage that RAN
+      // and found a real problem MUST return exitCode 1, never 2 — see
+      // stages/util.ts::ranToolResult. (tsc exits 2 on type errors; relaying
+      // that raw 2 here is what let a real type failure pass as a skip.)
       pulse('skip', label);
     } else {
       pulse('fail', label);

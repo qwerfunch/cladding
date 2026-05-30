@@ -15,7 +15,7 @@ import {execaSync} from 'execa';
 
 import {detectToolchain} from './toolchain/detect.js';
 import type {CommandStageOptions, StageResult} from './types.js';
-import {missingToolSkip} from './util.js';
+import {missingToolSkip, ranToolResult} from './util.js';
 
 const STAGE = 'stage_1.1';
 
@@ -53,14 +53,9 @@ export function runType(opts: CommandStageOptions = {}): StageResult {
   // detect ENOENT on the result so a missing tool skips, not false-fails.
   const skip = missingToolSkip(STAGE, cmd, proc);
   if (skip) return skip;
-  const exitCode = proc.exitCode ?? 1;
-  const pass = exitCode === 0;
-  const result: StageResult = {stage: STAGE, pass, exitCode};
-  if (!pass) {
-    const stderr = (proc.stderr ?? '').toString().trim();
-    if (stderr) return {...result, stderr};
-  }
-  return result;
+  // The tool RAN. Map its result to cladding's pass/fail/skip contract:
+  // any non-zero exit → blocking fail (1), never the tool's raw 2 (= skip).
+  return ranToolResult(STAGE, proc);
 }
 
 // CLI entry — `tsx stages/type.ts` or `npm run stage:type`.

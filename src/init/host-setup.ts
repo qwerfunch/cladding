@@ -545,13 +545,14 @@ export async function runHostSetup(opts: SetupOptions = {}): Promise<SetupResult
 
   // Auto-activation — runs after symlink wire succeeds. Each host CLI command
   // is invoked non-interactively; failures fall back to stdout instructions.
-  const activation: ActivationContext = {};
-  if (WIRED_STATES.has(claude_plugin)) {
-    activation.claude = activateClaude(join(home, '.claude', 'plugins', 'cladding'));
-  }
-  if (WIRED_STATES.has(gemini_extension)) {
-    activation.gemini = activateGemini(join(home, '.gemini', 'extensions', 'cladding'));
-  }
+  const activation: ActivationContext = {
+    ...(WIRED_STATES.has(claude_plugin)
+      ? {claude: activateClaude(join(home, '.claude', 'plugins', 'cladding'))}
+      : {}),
+    ...(WIRED_STATES.has(gemini_extension)
+      ? {gemini: activateGemini(join(home, '.gemini', 'extensions', 'cladding'))}
+      : {}),
+  };
 
   const result: SetupResult = {
     wiring: {claude_plugin, gemini_extension, codex_skills, codex_mcp, cursor_mcp},
