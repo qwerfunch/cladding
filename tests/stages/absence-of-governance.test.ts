@@ -19,6 +19,10 @@ function touch(dir: string, relPath: string, body = ''): void {
   writeFileSync(abs, body);
 }
 
+// A minimal spec.yaml whose master parses into a usable mapping — "scaffold
+// present" means a READABLE SSoT root, not just an empty placeholder file.
+const VALID_MASTER = 'schema: "0.1"\nproject: {name: x, language: typescript}\nfeatures: []\n';
+
 describe('ABSENCE_OF_GOVERNANCE (F-99c6e5, v0.3.49)', () => {
   let dir: string;
   beforeEach(() => {
@@ -51,8 +55,45 @@ describe('ABSENCE_OF_GOVERNANCE (F-99c6e5, v0.3.49)', () => {
     expect(errors[0].message).toContain('SSoT root');
   });
 
+  test('spec.yaml PRESENT but malformed YAML → blocking error (not silently green)', () => {
+    // The P1 cure: a broken SSoT root must never pass the gate green. Every
+    // other Tier B/C artifact is present so the ONLY error is the broken master.
+    touch(dir, 'spec.yaml', 'project: {name: x'); // unterminated flow mapping → YAML throws
+    touch(dir, 'spec/architecture.yaml', VALID_MASTER);
+    touch(dir, 'spec/capabilities.yaml');
+    touch(dir, 'docs/project-context.md');
+    touch(dir, 'docs/conventions.md');
+    touch(dir, 'spec/scenarios/x-abc123.yaml');
+
+    const errors = absenceOfGovernance.run({cwd: dir}).filter((f) => f.severity === 'error');
+    expect(errors).toHaveLength(1);
+    expect(errors[0].path).toBe('spec.yaml');
+    expect(errors[0].message).toContain('unreadable');
+    expect(errors[0].message).toContain('governing nothing');
+  });
+
+  test('spec.yaml PRESENT but empty → blocking error (empty SSoT root cannot govern)', () => {
+    touch(dir, 'spec.yaml', '   \n');
+    touch(dir, 'spec/architecture.yaml', VALID_MASTER);
+    touch(dir, 'spec/capabilities.yaml');
+    touch(dir, 'docs/project-context.md');
+    touch(dir, 'docs/conventions.md');
+    touch(dir, 'spec/scenarios/x-abc123.yaml');
+
+    const errors = absenceOfGovernance.run({cwd: dir}).filter((f) => f.severity === 'error');
+    expect(errors).toHaveLength(1);
+    expect(errors[0].path).toBe('spec.yaml');
+    expect(errors[0].message).toContain('empty or not a YAML mapping');
+  });
+
+  test('spec.yaml PRESENT and a valid mapping → no spec.yaml error', () => {
+    touch(dir, 'spec.yaml', VALID_MASTER);
+    const errors = absenceOfGovernance.run({cwd: dir}).filter((f) => f.path === 'spec.yaml');
+    expect(errors).toHaveLength(0);
+  });
+
   test('full cladding scaffold present → no findings', () => {
-    touch(dir, 'spec.yaml');
+    touch(dir, 'spec.yaml', VALID_MASTER);
     touch(dir, 'spec/architecture.yaml');
     touch(dir, 'spec/capabilities.yaml');
     touch(dir, 'docs/project-context.md');
@@ -63,7 +104,7 @@ describe('ABSENCE_OF_GOVERNANCE (F-99c6e5, v0.3.49)', () => {
   });
 
   test('spec/scenarios/ exists but contains only README (no .yaml shards) → info finding', () => {
-    touch(dir, 'spec.yaml');
+    touch(dir, 'spec.yaml', VALID_MASTER);
     touch(dir, 'spec/architecture.yaml');
     touch(dir, 'spec/capabilities.yaml');
     touch(dir, 'docs/project-context.md');
@@ -77,7 +118,7 @@ describe('ABSENCE_OF_GOVERNANCE (F-99c6e5, v0.3.49)', () => {
   });
 
   test('only Tier B artifacts missing → 3 warn findings, no error', () => {
-    touch(dir, 'spec.yaml');
+    touch(dir, 'spec.yaml', VALID_MASTER);
     touch(dir, 'docs/conventions.md');
     touch(dir, 'spec/scenarios/x-abc123.yaml');
 

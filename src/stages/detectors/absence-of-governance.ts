@@ -30,6 +30,7 @@
 import {existsSync, readdirSync} from 'node:fs';
 import {join} from 'node:path';
 
+import {parseSpec} from '../../spec/parse.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
 
 const NAME = 'ABSENCE_OF_GOVERNANCE';
@@ -107,7 +108,49 @@ function runAbsenceOfGovernance(opts: CommandStageOptions): readonly DriftFindin
         ` (${check.purpose}). Run \`clad init --intent "<your goal>"\` to populate it.`,
     });
   }
+  // A spec.yaml that is PRESENT but unreadable is as ungoverned as an absent
+  // one: every spec-gated detector then returns info/[] and the gate would pass
+  // GREEN on a broken SSoT root (the P1 failure — "cladding applied but governs
+  // nothing"). Surface it as the single authoritative BLOCKING signal so the
+  // spec-vs-reality detectors can honestly stay non-blocking info (see
+  // detectors/with-spec.ts). Scoped to the MASTER not parsing into a usable
+  // mapping (malformed YAML / empty / non-object) — deliberately NOT schema
+  // validation, which would risk false-failing a mid-authoring spec; `clad sync`
+  // owns schema checking.
+  const specPath = join(cwd, 'spec.yaml');
+  if (existsSync(specPath)) {
+    const broken = masterParseFailure(specPath);
+    if (broken) {
+      findings.push({
+        detector: NAME,
+        severity: 'error',
+        path: 'spec.yaml',
+        message:
+          `spec.yaml is present but unreadable (${broken}) — cladding is governing` +
+          ' nothing. Fix the SSoT root, then `clad sync` to validate.',
+      });
+    }
+  }
   return findings;
+}
+
+/**
+ * Returns a reason string when `spec.yaml` exists but does not parse into a
+ * usable YAML mapping, or null when the master parses. parseSpec throws on
+ * malformed YAML and returns `undefined` on an empty file — both mean the SSoT
+ * root cannot govern.
+ */
+function masterParseFailure(specPath: string): string | null {
+  let parsed: unknown;
+  try {
+    parsed = parseSpec(specPath);
+  } catch (err) {
+    return `unparseable: ${(err as Error).message}`;
+  }
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return 'empty or not a YAML mapping';
+  }
+  return null;
 }
 
 export const absenceOfGovernance: DriftDetector = {

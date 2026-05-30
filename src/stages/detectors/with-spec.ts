@@ -34,12 +34,15 @@
 //   find inconsistencies *inside* a loaded spec (duplicate ids/slugs/ACs,
 //   forbidden-pattern scans driven by ai_hints, capability/architecture
 //   mappings); with no loadable spec there is genuinely nothing to check.
-//   The load failure is NOT hidden: ABSENCE_OF_GOVERNANCE reports an absent
-//   spec, and the 11 info-emitting detectors above report any load failure
-//   (including an unparseable spec). Adding 6 more "spec.yaml not loaded"
-//   lines would be pure noise, not extra honesty — so silence here is
-//   intentional, not Vacuous Green. Each of the 6 carries a one-line pointer
-//   back to this policy so the `return []` is not mistaken for an oversight.
+//   The load failure is NOT hidden, and crucially it is not silently GREEN:
+//   ABSENCE_OF_GOVERNANCE emits a BLOCKING error for both an absent spec AND a
+//   present-but-unreadable one (master that does not parse into a usable
+//   mapping), so a broken SSoT root can never pass the gate. On top of that
+//   blocking signal, the 11 info-emitting detectors above add the per-detector
+//   "why". Adding 6 more "spec.yaml not loaded" lines would be pure noise, not
+//   extra honesty — so silence here is intentional, not Vacuous Green. Each of
+//   the 6 carries a one-line pointer back to this policy so the `return []` is
+//   not mistaken for an oversight.
 //
 // @see docs/ssot-model.md — Cross-document consistency rules.
 
