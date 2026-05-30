@@ -21,12 +21,23 @@ import type {StageResult} from './types.js';
  * @param cmd - The command that was attempted (for the message).
  * @param proc - The value returned by `execaSync(…, {reject: false})`.
  */
+/**
+ * True when an `execaSync(…, {reject: false})` result indicates the binary was
+ * not found. CRITICAL: execaSync with `reject: false` RETURNS this state
+ * (`{code: 'ENOENT', exitCode: undefined}`) — it does NOT throw — so callers
+ * must inspect the RESULT, never a try/catch. A try/catch around the call is
+ * dead code and lets a missing tool fall through to a false failure.
+ */
+export function isMissingBinary(proc: {readonly code?: string}): boolean {
+  return proc.code === 'ENOENT';
+}
+
 export function missingToolSkip(
   stage: string,
   cmd: string,
   proc: {readonly code?: string; readonly exitCode?: number | null},
 ): StageResult | null {
-  if (proc.code === 'ENOENT') {
+  if (isMissingBinary(proc)) {
     return {stage, pass: false, exitCode: 2, stderr: `'${cmd}' not installed`};
   }
   return null;

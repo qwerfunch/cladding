@@ -68,20 +68,19 @@ describe('HARDCODED_SECRET detector', () => {
     expect(findings[0].message).toContain('config.ts:5');
   });
 
-  test('scanner ENOENT → info finding (binary not installed)', () => {
+  test('scanner not installed (ENOENT on RESULT) → info, NOT a false "secrets reported"', () => {
+    // execaSync(reject:false) RETURNS {code:'ENOENT', exitCode:undefined} for a
+    // missing binary — it does NOT throw. A registered-but-uninstalled scanner
+    // must yield an info skip, never a false error finding.
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
-    const err = new Error('spawn ENOENT') as NodeJS.ErrnoException;
-    err.code = 'ENOENT';
-    execaSyncMock.mockImplementationOnce(() => {
-      throw err;
-    });
+    execaSyncMock.mockReturnValueOnce({code: 'ENOENT', exitCode: undefined, stdout: '', stderr: ''});
     const findings = hardcodedSecret.run({cwd: dir});
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe('info');
     expect(findings[0].message).toContain('not installed');
   });
 
-  test('scanner throws non-ENOENT → re-thrown (defensive)', () => {
+  test('an unexpected throw is not swallowed (defensive — surfaces real bugs)', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
     const err = new Error('EACCES') as NodeJS.ErrnoException;
     err.code = 'EACCES';

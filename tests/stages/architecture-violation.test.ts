@@ -71,20 +71,19 @@ describe('ARCHITECTURE_VIOLATION detector', () => {
     expect(findings[0].message).toContain('Circular dependency');
   });
 
-  test('validator ENOENT → info finding (binary not installed)', () => {
+  test('validator not installed (ENOENT on RESULT) → info, NOT a false "violations"', () => {
+    // execaSync(reject:false) RETURNS {code:'ENOENT', exitCode:undefined} for a
+    // missing binary — it does NOT throw. A registered-but-uninstalled validator
+    // must yield an info skip, never a false architecture-violation error.
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
-    const err = new Error('spawn ENOENT') as NodeJS.ErrnoException;
-    err.code = 'ENOENT';
-    execaSyncMock.mockImplementationOnce(() => {
-      throw err;
-    });
+    execaSyncMock.mockReturnValueOnce({code: 'ENOENT', exitCode: undefined, stdout: '', stderr: ''});
     const findings = architectureViolation.run({cwd: dir});
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe('info');
     expect(findings[0].message).toContain('not installed');
   });
 
-  test('validator throws non-ENOENT → re-thrown', () => {
+  test('an unexpected throw is not swallowed (defensive)', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
     const err = new Error('EACCES') as NodeJS.ErrnoException;
     err.code = 'EACCES';

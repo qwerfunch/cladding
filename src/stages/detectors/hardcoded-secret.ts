@@ -13,6 +13,7 @@ import {execaSync} from 'execa';
 
 import {detectToolchain} from '../toolchain/detect.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
+import {isMissingBinary} from '../util.js';
 
 const NAME = 'HARDCODED_SECRET';
 
@@ -41,21 +42,19 @@ function runHardcodedSecret(opts: CommandStageOptions): readonly DriftFinding[] 
       },
     ];
   }
-  let proc;
-  try {
-    proc = execaSync(spec.cmd, [...spec.args], {cwd, reject: false});
-  } catch (err) {
-    const code = (err as NodeJS.ErrnoException).code;
-    if (code === 'ENOENT') {
-      return [
-        {
-          detector: NAME,
-          severity: 'info',
-          message: `secret scanner '${spec.cmd}' not installed`,
-        },
-      ];
-    }
-    throw err;
+  const proc = execaSync(spec.cmd, [...spec.args], {cwd, reject: false});
+  // execaSync(reject:false) RETURNS (does not throw) on a missing binary, so
+  // ENOENT must be detected on the RESULT — a try/catch here would be dead code
+  // and let a registered-but-uninstalled scanner fall through to a FALSE
+  // "reported secrets" error finding (a missing tool is a config gap, not a hit).
+  if (isMissingBinary(proc)) {
+    return [
+      {
+        detector: NAME,
+        severity: 'info',
+        message: `secret scanner '${spec.cmd}' not installed`,
+      },
+    ];
   }
   const exitCode = proc.exitCode ?? 1;
   if (exitCode === 0) return [];
