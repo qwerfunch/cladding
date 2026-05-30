@@ -6,6 +6,7 @@ status: done
 modules:
   - src/stages/detectors/with-spec.ts
   - src/init/git-hook.ts
+  - .github/workflows/ci.yml
   - tests/stages/util.test.ts
   - tests/init/git-hook.test.ts
   - tests/self-consistency.test.ts
@@ -33,6 +34,6 @@ acceptance_criteria:
   - id: AC-004
     ears: ubiquitous
     action: 'lock cladding''s own no-vacuous-green-against-itself invariants as CI-enforced self-consistency tests — detector-count prose claims equal allDetectors.length, spec.yaml project.version equals package.json version, and the Tier A/B artifacts carry the mandated first-line tier banner'
-    response: 'tests/self-consistency.test.ts asserts the corrected self-drift fixes (counts, version, banners) so any future regression fails CI; these are cladding-self checks, not shipped detectors, so an adopting project may legitimately diverge without being false-failed'
+    response: 'tests/self-consistency.test.ts asserts the corrected self-drift fixes (counts, version, banners), and .github/workflows/ci.yml runs `npm test` plus the strict spec-native self-gate (`clad check --tier=pre-commit --strict`) on every push/PR so any future regression actually fails CI rather than the lock being a vacuous claim; these are cladding-self checks, not shipped detectors, so an adopting project may legitimately diverge without being false-failed'
     text: The system shall enforce cladding's own self-consistency (detector-count claims, spec/package version parity, tier banners) as CI-locked tests so the drift-prevention tool cannot silently drift against itself.
     test_refs: [tests/self-consistency.test.ts]

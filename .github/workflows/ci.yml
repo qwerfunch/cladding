@@ -1,0 +1,52 @@
+name: CI
+
+# No Vacuous Green — cladding's own safeguards must actually run somewhere.
+# The self-consistency tests (tests/self-consistency.test.ts) and the
+# spec-native self-drift gate are only honest if a machine enforces them on
+# every change; otherwise "regression fails CI" is itself a vacuous claim.
+# See spec/features/no-vacuous-green-gate-contract-af96b1.yaml AC-004.
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  verify:
+    name: build · test · self-gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build (clad + plugin mirrors)
+        run: npm run build
+
+      - name: Plugin mirrors are committed in sync
+        # `npm run build` regenerates the committed host-plugin mirrors
+        # (plugins/**, generated commands/agents). If the build produced any
+        # change, a source edit was committed without rebuilding the mirror —
+        # that is drift. Fail loudly rather than ship a stale manifest.
+        run: git diff --exit-code
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test (full suite + self-consistency lock)
+        run: npm test
+
+      - name: Self-drift gate (spec-native, strict)
+        # cladding dogfoods its OWN drift gate under --strict: stale module
+        # paths, hollow `done` features, and archived-but-live modules fail
+        # CI instead of accumulating silently. Deterministic, no toolchain.
+        run: node bin/clad check --tier=pre-commit --strict

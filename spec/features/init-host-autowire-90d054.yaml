@@ -2,9 +2,12 @@ id: F-90d054
 slug: init-host-autowire
 title: "clad init writes host wiring + enrichment marker (archived; superseded by F-80d19d in v0.4.0)"
 status: archived
-modules:
-  - src/init/detect.ts
-  - src/init/host-instructions.ts
+# Modules cleared on archive (v0.4.1): src/init/detect.ts was deleted as
+# dead code (test-only); src/init/host-instructions.ts is retained by the
+# current init flow (src/cli/init.ts). An archived feature must not claim
+# live/existing modules — that is the STALE_SPECIFICATION self-drift this
+# clears. The history lives in this shard's acceptance_criteria + git.
+modules: []
 acceptance_criteria:
   # ── Host wiring (npm postinstall + clad init fallback retry) ──
   - id: AC-001
