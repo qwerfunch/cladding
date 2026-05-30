@@ -57,6 +57,26 @@ separate **git worktree** per concurrent unit so parallel writes never collide.
 |---|---|
 | SPEC per feature · IMPLEMENT∥TEST per independent unit (code and test are *different* agents) · REVIEW per lens | spec-valid (1▣) · gate-green (4▣) · review-consensus + done (5▣/6) |
 
+## Parallel execution & isolation
+
+Independent units (no shared `modules` in the `depends_on` DAG) fan out concurrently; dependent
+units serialize. The DAG — not an agent — decides what may run together. Isolation rules so
+parallel writes never corrupt each other:
+
+- **One git worktree per unit.** Run a unit's IMPLEMENT∥TEST inside its own worktree
+  (`git worktree add`) so concurrent code/test writes touch disjoint trees.
+- **Checkpoint before, rollback on fail.** `clad checkpoint <featureId>` pins HEAD + the spec
+  digest before a unit starts; if its gate (step 4 ▣) fails past the retry budget,
+  `clad rollback <featureId>` discards that unit cleanly — siblings are untouched.
+- **Merge on green only.** Merge a unit back to the integration branch after its local
+  type / lint / unit pass; the final ▣ (`clad check --strict`) runs on the *merged* tree so
+  cross-unit drift (a module two units both touched, a broken integration) is caught.
+- **Concurrency cap.** Fan out at most what the host engine schedules at once.
+- **Evidence under concurrency.** Each unit's dispatches record their own audit entries; the
+  integration gate is the authority on "done", so a mid-flight audit interleave never decides
+  completion. (Until per-worktree audit logs land, treat the merge barrier as the evidence
+  reconciliation point.)
+
 ## Execution surface
 
 - **Host-engine (in-session, the supported path):** the host (Claude Code) authors files with
