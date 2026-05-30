@@ -4,7 +4,7 @@ status: done
 modules:
   - CHANGELOG.md
   - README.ko.md
-  - commands/clad.md
+  - plugins/claude-code/commands/init.md
   - .gitignore
   - package.json
 acceptance_criteria:
@@ -31,13 +31,15 @@ acceptance_criteria:
 
   - id: AC-072
     ears: ubiquitous
-    action: expose every Cladding verb via the /cladding:clad slash command for
-      Claude Code plugin install sites
-    response: commands/clad.md frontmatter declares description; body lists the verbs
-    text: The system shall expose every Cladding verb via the /cladding:clad slash
-      command for Claude Code plugin install sites; commands/clad.md frontmatter
-      declares description and the body lists the verbs.
-    evidence_refs: [commands/clad.md]
+    action: expose cladding to Claude Code plugin install sites via a slash command
+    response: plugins/claude-code/commands/init.md frontmatter declares a description
+      and the body drives onboarding; v0.4.0 (F-076 AC-227) retired the legacy
+      /cladding:clad wrapper (commands/clad.md) in favour of /cladding:init, with
+      the remaining verbs invoked by the AI via natural language -> `clad <verb>` CLI
+    text: The system shall expose cladding to Claude Code plugin install sites via the
+      /cladding:init slash command (plugins/claude-code/commands/init.md); the legacy
+      /cladding:clad wrapper was retired in v0.4.0 per F-076 AC-227.
+    evidence_refs: [plugins/claude-code/commands/init.md]
 
   - id: AC-073
     ears: ubiquitous

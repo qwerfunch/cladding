@@ -4,12 +4,7 @@ status: done
 modules:
   - plugins/gemini-cli/gemini-extension.json
   - plugins/gemini-cli/GEMINI.md
-  - plugins/gemini-cli/commands/sync.toml
-  - plugins/gemini-cli/commands/check.toml
-  - plugins/gemini-cli/commands/panel.toml
-  - plugins/gemini-cli/commands/drive.toml
   - plugins/gemini-cli/commands/init.toml
-  - plugins/gemini-cli/commands/serve.toml
 depends_on: [F-049, F-073, F-076, F-077]
 acceptance_criteria:
   - id: AC-233
@@ -20,13 +15,11 @@ acceptance_criteria:
     evidence_refs: [plugins/gemini-cli/gemini-extension.json]
   - id: AC-234
     ears: ubiquitous
-    action: expose six cladding verbs as Gemini CLI custom commands in TOML format
-    response: 'plugins/gemini-cli/commands/ contains six .toml files (sync, check, panel, drive, init, serve), each with a description field for the /help menu and a prompt field describing the verb behaviour'
-    text: The system shall expose six cladding verbs (sync, check, panel, drive, init, serve) as Gemini CLI custom commands under plugins/gemini-cli/commands/<verb>.toml so Gemini users invoke them as /cladding:<verb>.
+    action: expose cladding's user-facing verb as a Gemini CLI custom command in TOML format
+    response: 'plugins/gemini-cli/commands/ contains init.toml with a description field for the /help menu and a prompt field describing the verb behaviour; v0.4.0 (F-80d19d) narrowed the transpiled slash commands to `init` only — the remaining verbs (sync, check, panel, drive, serve) are invoked by the AI via natural language -> `clad <verb>` CLI, matching the Claude Code plugin (F-076 AC-227)'
+    text: The system shall expose cladding's `init` verb as a Gemini CLI custom command under plugins/gemini-cli/commands/init.toml so Gemini users invoke it as /cladding:init; v0.4.0 narrowed the slash-command surface to `init` only.
     evidence_refs:
-      - plugins/gemini-cli/commands/sync.toml
-      - plugins/gemini-cli/commands/check.toml
-      - plugins/gemini-cli/commands/drive.toml
+      - plugins/gemini-cli/commands/init.toml
   - id: AC-235
     ears: ubiquitous
     action: provide a Gemini context file describing the personas and authentication invariant

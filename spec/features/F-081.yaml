@@ -3,20 +3,15 @@ title: SKILL.md → TOML build-time transpile for Gemini commands (v0.3.6)
 status: done
 modules:
   - scripts/build-plugin.mjs
-  - plugins/gemini-cli/commands/sync.toml
-  - plugins/gemini-cli/commands/check.toml
-  - plugins/gemini-cli/commands/panel.toml
-  - plugins/gemini-cli/commands/drive.toml
   - plugins/gemini-cli/commands/init.toml
-  - plugins/gemini-cli/commands/serve.toml
   - plugins/gemini-cli/commands/README.md
 depends_on: [F-078, F-076, F-077]
 acceptance_criteria:
   - id: AC-246
     ears: ubiquitous
-    action: transpile each repo-root skills/<verb>/SKILL.md into a Gemini CLI commands/<verb>.toml at build time
-    response: 'scripts/build-plugin.mjs adds a Phase C that splits each SKILL.md into YAML frontmatter and body, then emits plugins/gemini-cli/commands/<verb>.toml with `description` from the frontmatter and `prompt` from the body'
-    text: The system shall transpile each repo-root skills/<verb>/SKILL.md into a Gemini CLI commands/<verb>.toml at build time so the canonical SKILL.md source is the single source of truth and the TOML files are generated artifacts.
+    action: transpile each user-facing repo-root skills/<verb>/SKILL.md into a Gemini CLI commands/<verb>.toml at build time
+    response: 'scripts/build-plugin.mjs adds a Phase C that splits each user-facing SKILL.md into YAML frontmatter and body, then emits plugins/gemini-cli/commands/<verb>.toml with `description` from the frontmatter and `prompt` from the body; v0.4.0 (F-80d19d) narrowed USER_FACING_VERBS to `init`, and the build prunes stale per-verb .toml files so only the user-facing set remains'
+    text: The system shall transpile each user-facing repo-root skills/<verb>/SKILL.md into a Gemini CLI commands/<verb>.toml at build time so the canonical SKILL.md source is the single source of truth and the TOML files are generated artifacts.
     evidence_refs: [scripts/build-plugin.mjs]
   - id: AC-247
     ears: ubiquitous

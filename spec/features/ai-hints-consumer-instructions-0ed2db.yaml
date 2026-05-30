@@ -10,11 +10,11 @@ modules:
   - src/agents/reviewer.md
   - src/agents/observability.md
   - src/agents/orchestrator.md
-  - agents/specialists.md
-  - agents/librarian.md
-  - agents/reviewer.md
-  - agents/observability.md
-  - agents/orchestrator.md
+  - plugins/claude-code/agents/specialists.md
+  - plugins/claude-code/agents/librarian.md
+  - plugins/claude-code/agents/reviewer.md
+  - plugins/claude-code/agents/observability.md
+  - plugins/claude-code/agents/orchestrator.md
 depends_on:
   - F-32b1e0
   - F-00eb1a
@@ -37,11 +37,11 @@ acceptance_criteria:
       - src/agents/orchestrator.md
   - id: AC-003
     ears: ubiquitous
-    action: 'scripts/build-plugin.mjs mirrors the updated personas under agents/ and plugins/codex/skills/ and plugins/gemini-cli/commands/ — the Project policy section appears verbatim in the mirrored copies after npm run build:plugin'
+    action: 'scripts/build-plugin.mjs mirrors the updated personas under plugins/claude-code/agents/ and plugins/codex/skills/ — the Project policy section appears verbatim in the mirrored copies after npm run build:plugin'
     text: The system shall propagate the new Project policy section to all plugin manifest mirrors via build:plugin.
     evidence_refs:
-      - agents/specialists.md
-      - agents/librarian.md
+      - plugins/claude-code/agents/specialists.md
+      - plugins/claude-code/agents/librarian.md
       - plugins/codex/skills/specialists/SKILL.md
   - id: AC-004
     ears: ubiquitous
