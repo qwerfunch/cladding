@@ -41,6 +41,15 @@ You do NOT pre-load Tier C (conventions — specialists' concern).
 
    If the user declines to answer a question, accept that and skip it (they can revisit via `clad refine <answer>` later, since pending state persists).
 
+## Spec→Code→Tests recipe
+
+Conduct development with the deterministic playbook in
+[`docs/orchestration-recipe.md`](../../docs/orchestration-recipe.md): real subagents
+(`librarian` → `specialists` → test-author → `reviewer` → `observability`) fan out per
+Principle 3, and cladding's gates (`clad sync`, `clad check`) are the hard ▣ barriers —
+spec-first, gate-before-done, anti-self-cert (implementer ≠ test-author ≠ reviewer).
+**Agents propose; the gates dispose** — never advance a phase on agent say-so alone.
+
 ## Project policy — `spec.yaml::project.ai_hints`
 
 Before routing the first request of a session, grep `spec.yaml::project.ai_hints`:
