@@ -350,6 +350,34 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
       qa: onboarding.clarifyingQuestions.map((question) => ({question, answer: null})),
     };
     saveState(cwd, initialState);
+
+    // v0.4.1 (no-vacuous-green) — announce a non-firing dispatch. When the LLM
+    // dispatcher does not fully fire, the spec/scenarios are DETERMINISTIC STUBS
+    // (`scenarios: []`, the intent quoted verbatim) that look like a real
+    // domain-aware spec but aren't. A silent fallback is dispatch-layer vacuous
+    // green; make it loud so the user knows to wire a host / API key and re-run.
+    // `clad doctor` surfaces the underlying sentinel-miss telemetry.
+    if (onboarding.source !== 'llm') {
+      if (opts.noLlm) {
+        process.stderr.write(
+          '[clad init] ℹ deterministic mode (--no-llm): spec/scenarios are stubs derived from ' +
+            "the intent verbatim (scenarios empty). Re-run without --no-llm — or use 'clad refine' — " +
+            'for domain-aware generation.\n',
+        );
+      } else if (onboarding.source === 'deterministic') {
+        process.stderr.write(
+          '[clad init] ⚠ LLM dispatcher did not fire — spec/scenarios are deterministic stubs ' +
+            '(scenarios empty, intent quoted). Wire a host (run cladding as an MCP server in your AI ' +
+            "tool) or set an API key, then re-run or use 'clad refine'. See 'clad doctor' for details.\n",
+        );
+      } else {
+        // 'hybrid' — the dispatcher fired but some sentinels came back blank.
+        process.stderr.write(
+          '[clad init] ⚠ LLM dispatcher fired only partially — some spec/doc sections fell back to ' +
+            "deterministic stubs. Run 'clad refine' to complete them; see 'clad doctor' for the missed sections.\n",
+        );
+      }
+    }
   }
 
   // 1. spec.yaml + F-001 sharded placeholder

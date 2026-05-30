@@ -3,7 +3,7 @@
 import {existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {afterEach, beforeEach, describe, expect, test} from 'vitest';
+import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
 import {runInit} from '../../src/cli/init.js';
 
@@ -155,5 +155,63 @@ describe('runInit', () => {
     expect(conv).toContain('https://peps.python.org/pep-0008/');
     const arch = readFileSync(join(dir, 'spec/architecture.yaml'), 'utf8');
     expect(arch).toContain('Typical Python baseline:');
+  });
+
+  // v0.4.1 (no-vacuous-green) — a non-firing LLM dispatch must announce itself.
+  // A silent deterministic fallback produces stub spec/scenarios that look real.
+  describe('non-firing dispatch notice', () => {
+    function captureStderr(): {restore: () => void; text: () => string} {
+      const chunks: string[] = [];
+      const spy = vi
+        .spyOn(process.stderr, 'write')
+        .mockImplementation((chunk: string | Uint8Array): boolean => {
+          chunks.push(String(chunk));
+          return true;
+        });
+      return {restore: () => spy.mockRestore(), text: () => chunks.join('')};
+    }
+
+    test('intent with no available dispatcher warns loudly that the LLM did not fire', async () => {
+      // Force the no-dispatcher case independent of the host env: clear every
+      // provider key so selectDispatcher() returns null (no MCP host in tests).
+      vi.stubEnv('ANTHROPIC_API_KEY', '');
+      vi.stubEnv('OPENAI_API_KEY', '');
+      vi.stubEnv('GEMINI_API_KEY', '');
+      vi.stubEnv('GOOGLE_API_KEY', '');
+      const cap = captureStderr();
+      try {
+        await runInit({cwd: dir, intent: 'a B2B payment SaaS with Stripe and Toss'});
+      } finally {
+        cap.restore();
+        vi.unstubAllEnvs();
+      }
+      const out = cap.text();
+      expect(out).toContain('LLM dispatcher did not fire');
+      expect(out).toContain('clad doctor');
+    });
+
+    test('--no-llm prints the deterministic-mode notice, not the dispatcher-failure warning', async () => {
+      const cap = captureStderr();
+      try {
+        await runInit({cwd: dir, intent: 'a B2B payment SaaS', noLlm: true});
+      } finally {
+        cap.restore();
+      }
+      const out = cap.text();
+      expect(out).toContain('deterministic mode (--no-llm)');
+      expect(out).not.toContain('did not fire');
+    });
+
+    test('no intent → no dispatch notice at all (onboarding block skipped)', async () => {
+      const cap = captureStderr();
+      try {
+        await runInit({cwd: dir});
+      } finally {
+        cap.restore();
+      }
+      const out = cap.text();
+      expect(out).not.toContain('LLM dispatcher');
+      expect(out).not.toContain('deterministic mode (--no-llm)');
+    });
   });
 });
