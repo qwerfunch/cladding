@@ -13,6 +13,7 @@ import {Command} from 'commander';
 import {classifyIntent} from '../router/intent.js';
 import {runDoctorCommand} from './doctor.js';
 import {performDone} from './done.js';
+import {performUpdate} from './update.js';
 import {runInit} from './init.js';
 import {runRefineCommand} from './refine.js';
 import {runHostSetup} from '../init/host-setup.js';
@@ -309,6 +310,44 @@ export async function runSetupCommand(opts: {force?: boolean; quiet?: boolean}):
 }
 
 /**
+ * Handler for `clad update`. The one-command "after you upgraded the engine"
+ * step: re-wire hosts + reconcile the spec inventory + refresh the managed
+ * CLAUDE.md/AGENTS.md section (all safe + idempotent — see cli/update.ts), THEN
+ * run the now-stricter detectors in REPORT mode. The drift report never blocks
+ * and never edits the user's spec — it only surfaces the bar the upgrade raised,
+ * so `clad update` can't quietly hide that the engine got stricter. The engine
+ * itself is NOT self-updated here: `npm update -g cladding` is the user's step.
+ */
+export async function runUpdateCommand(opts: {cwd?: string} = {}): Promise<void> {
+  const cwd = opts.cwd ?? '.';
+  pulse('note', 'update', 'reconciling this project after the engine upgrade');
+  const r = await performUpdate(cwd, {
+    wireHosts: async () => (await runHostSetup({quiet: true})).errors.length,
+  });
+  pulse(r.wiringErrors > 0 ? 'fail' : 'pass', 'hosts', r.wiringErrors > 0 ? `${r.wiringErrors} wiring error(s)` : 're-wired');
+  if (!r.isProject) {
+    pulse('skip', 'spec', 'no spec.yaml here — run `clad init` to put this project under cladding');
+    process.exit(r.code);
+    return;
+  }
+  pulse('pass', 'spec', `inventory synced · ${r.features} features`);
+  pulse(r.claudeMd === 'refreshed-stale' ? 'note' : 'pass', 'CLAUDE.md', r.claudeMd);
+  pulse(r.agentsMd === 'refreshed-stale' ? 'note' : 'pass', 'AGENTS.md', r.agentsMd);
+  // Surface what the now-stricter detectors flag — REPORT only, never blocks.
+  process.stdout.write('\n→ drift check (report-only · does not block, does not edit your spec):\n');
+  const drift = runCheckStages({tier: 'pre-commit', strict: true});
+  if (drift.anyFailed) {
+    process.stdout.write(
+      '\nℹ The findings above are the bar this upgrade raised — not a failed update.' +
+      ' Reconcile them in YOUR spec when ready (`clad check --strict` for the full gate).\n',
+    );
+  } else {
+    pulse('pass', 'drift', 'clean against the stricter detectors');
+  }
+  process.exit(r.code);
+}
+
+/**
  * Stages run by each `clad check --tier` (Phase 2 ambient hooks). Each trigger
  * runs the subset that is fast + meaningful in its context:
  *   pre-commit — drift/arch/secret: cheap, spec-native, deterministic, no
@@ -512,6 +551,12 @@ export function createProgram(): Command {
     .option('--force', 'overwrite directory-copy wires (Windows fallback) even when changes detected')
     .option('--quiet', 'suppress stdout output')
     .action(runSetupCommand);
+
+  program
+    .command('update')
+    .description('After `npm update -g cladding`: re-wire hosts + sync inventory + refresh the managed CLAUDE.md/AGENTS.md section, then report (without blocking) what the now-stricter detectors flag')
+    .option('--cwd <path>', 'project directory to reconcile (default cwd)')
+    .action(runUpdateCommand);
 
   program
     .command('check')

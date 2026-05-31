@@ -290,6 +290,20 @@ This creates `spec.yaml` and the 4-tier docs. One-time per project.
 
 cladding's goal is to *be the infrastructure that prevents spec ↔ code drift* — after init, you just keep coding. The AI references the spec while it writes, and `clad check` runs automatically in CI or as a pre-commit hook to block anything that drifts. No extra commands to remember.
 
+### Upgrading
+
+cladding ships in two halves that upgrade differently:
+
+- **The engine** (`clad` binary, detectors, schema, personas) — *you* upgrade it: `npm update -g cladding` (marketplace users also run `claude plugin update`). The host wiring is a symlink that follows the new install, and the files cladding wrote into your repo (`spec.yaml`, `CLAUDE.md`, docs) are **your data** — they never change underneath you.
+- **Everything after that** — one idempotent command reconciles it:
+
+```
+npm update -g cladding     # you upgrade the engine
+clad update                # cladding reconciles this project
+```
+
+`clad update` re-wires the hosts, refreshes the `inventory:` snapshot, refreshes the cladding-managed section of `CLAUDE.md` / `AGENTS.md` (your own prose is preserved — staleness-based, never a blind overwrite), then **reports — without blocking or editing your spec — what the now-stricter detectors flag**. A stricter release can't quietly fail your project behind your back, and reconciling the findings stays your call. (It does *not* self-update the engine — that's the `npm` step above, on purpose.)
+
 <!-- ─────────────── Status ─────────────── -->
 ## Status
 
