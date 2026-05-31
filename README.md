@@ -292,18 +292,13 @@ cladding's goal is to *be the infrastructure that prevents spec ↔ code drift* 
 
 ### Upgrading
 
-cladding ships in two halves that upgrade differently:
-
-- **The engine** (`clad` binary, detectors, schema, personas) — *you* upgrade it: `npm update -g cladding` (marketplace users also run `claude plugin update`). The host wiring is a symlink that follows the new install, and the files cladding wrote into your repo (`spec.yaml`, `CLAUDE.md`, docs) are **your data** — they never change underneath you.
-- **Everything after that** — one idempotent command, run **from inside the project**, reconciles it:
-
 ```
-npm update -g cladding     # 1. upgrade the engine — run anywhere
-cd <your project>          # 2. clad update reconciles ONE project: the current dir
-clad update                # 3. cladding reconciles this project
+npm update -g cladding     # 1. upgrade the engine (marketplace: also `claude plugin update`)
+cd <your project>          # 2. clad update is per-project — cd into each one
+clad update                # 3. reconcile this project
 ```
 
-`clad update` reconciles the **current directory** (so `cd` into each project you want to update — it never reaches across your machine). It re-wires the hosts, refreshes the `inventory:` snapshot, refreshes the cladding-managed section of `CLAUDE.md` / `AGENTS.md` (your own prose is preserved — staleness-based, never a blind overwrite), then **reports — without blocking or editing your spec — what the now-stricter detectors flag**. A stricter release can't quietly fail your project behind your back, and reconciling the findings stays your call. (It does *not* self-update the engine — that's the `npm` step above, on purpose.)
+`clad update` re-wires the hosts and refreshes the `inventory:` snapshot + the managed `CLAUDE.md` / `AGENTS.md` section (your prose preserved), then **reports — without blocking or editing your spec — what the now-stricter detectors flag**. Your spec and docs are your data: never touched.
 
 <!-- ─────────────── Status ─────────────── -->
 ## Status

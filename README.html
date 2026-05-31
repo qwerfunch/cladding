@@ -482,15 +482,10 @@ clad setup                  # connect your AI tools (Claude / Codex / Gemini)</c
   <p>cladding's goal is to <em>be the infrastructure that prevents spec ↔ code drift</em> — after init, you just keep coding. The AI references the spec while it writes, and <code>clad check</code> runs automatically in CI or as a pre-commit hook to block anything that drifts. No extra commands to remember.</p>
 
   <h3>Upgrading</h3>
-  <p>cladding ships in two halves that upgrade differently:</p>
-  <ul>
-    <li><strong>The engine</strong> (<code>clad</code> binary, detectors, schema, personas) — <em>you</em> upgrade it: <code>npm update -g cladding</code> (marketplace users also run <code>claude plugin update</code>). The host wiring is a symlink that follows the new install, and the files cladding wrote into your repo (<code>spec.yaml</code>, <code>CLAUDE.md</code>, docs) are <strong>your data</strong> — they never change underneath you.</li>
-    <li><strong>Everything after that</strong> — one idempotent command, run <strong>from inside the project</strong>, reconciles it:</li>
-  </ul>
-  <pre><code>npm update -g cladding     # 1. upgrade the engine — run anywhere
-cd &lt;your project&gt;          # 2. clad update reconciles ONE project: the current dir
-clad update                # 3. cladding reconciles this project</code></pre>
-  <p><code>clad update</code> reconciles the <strong>current directory</strong> (so <code>cd</code> into each project you want to update — it never reaches across your machine). It re-wires the hosts, refreshes the <code>inventory:</code> snapshot, refreshes the cladding-managed section of <code>CLAUDE.md</code> / <code>AGENTS.md</code> (your own prose is preserved — staleness-based, never a blind overwrite), then <strong>reports — without blocking or editing your spec — what the now-stricter detectors flag</strong>. A stricter release can't quietly fail your project behind your back, and reconciling the findings stays your call. (It does <em>not</em> self-update the engine — that's the <code>npm</code> step above, on purpose.)</p>
+  <pre><code>npm update -g cladding     # 1. upgrade the engine (marketplace: also `claude plugin update`)
+cd &lt;your project&gt;          # 2. clad update is per-project — cd into each one
+clad update                # 3. reconcile this project</code></pre>
+  <p><code>clad update</code> re-wires the hosts and refreshes the <code>inventory:</code> snapshot + the managed <code>CLAUDE.md</code> / <code>AGENTS.md</code> section (your prose preserved), then <strong>reports — without blocking or editing your spec — what the now-stricter detectors flag</strong>. Your spec and docs are your data: never touched.</p>
 
   <!-- ─────────────── Status ─────────────── -->
   <h2>Status</h2>
