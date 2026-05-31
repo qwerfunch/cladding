@@ -46,7 +46,7 @@ When you add a drift detector under `src/stages/detectors/`:
 
 A user-explicit instruction ("release vX.Y.Z") triggers the ritual:
 
-1. `npm run version-bump -- X.Y.Z` (all nine sites) + `npm run build` + GREEN `npm test` / `clad check --strict`
+1. `npm run version-bump -- X.Y.Z` (all nine sites) + `npm install` (refresh the committed `package-lock.json` to the new version — CI's `npm ci` fails on a stale lock) + `npm run build` + GREEN `npm test` / `clad check --strict`
 2. develop → main fast-forward
 3. `git tag vX.Y.Z`
 4. push main + tag
