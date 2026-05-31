@@ -12,7 +12,7 @@
 // before committing — the comment in architecture.yaml says so
 // explicitly.
 
-import {basename, resolve, sep} from 'node:path';
+import {basename, resolve} from 'node:path';
 
 import {isJsLike} from './helpers.js';
 import {LAYER_BLACKLIST, ROOT_PROMOTION_THRESHOLD} from './thresholds.js';
@@ -44,7 +44,9 @@ export function layerOf(relPath: string, roots: readonly SourceRoot[]): string {
       return r.workspaceName ? `${r.workspaceName}:${layer}` : layer;
     }
   }
-  const segments = relPath.split(sep);
+  // relPath is always `/`-normalized (roots.ts builds it via `.split(sep).join('/')`),
+  // so split on `/`, not the platform `sep` — on Windows `sep='\\'` would never split.
+  const segments = relPath.split('/');
   if (segments.length > 1) return segments[0];
   return '_root';
 }

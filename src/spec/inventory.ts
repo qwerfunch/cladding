@@ -104,7 +104,11 @@ export function writeInventoryToSpecYaml(cwd: string, inventory: Inventory): voi
 
 /** Pure function — used both by writeInventoryToSpecYaml and by tests. */
 export function upsertInventoryBlock(body: string, inventory: Inventory): string {
-  const lines = body.split('\n');
+  // CRLF-safe: split on either ending so no `\r` survives on a line, do all the
+  // line surgery in LF, then restore the file's original ending at the single
+  // exit. A git-autocrlf checkout on Windows otherwise left mixed endings here.
+  const eol = body.includes('\r\n') ? '\r\n' : '\n';
+  const lines = body.split(/\r?\n/);
   const inventoryStart = lines.findIndex((line) => /^inventory:\s*$/.test(line));
 
   // Render the new inventory block.
@@ -118,11 +122,13 @@ export function upsertInventoryBlock(body: string, inventory: Inventory): string
     `  last_synced: ${JSON.stringify(inventory.last_synced ?? '')}`,
   ];
 
+  const withEol = (lf: string): string => (eol === '\r\n' ? lf.replace(/\n/g, '\r\n') : lf);
+
   if (inventoryStart < 0) {
     // No existing block — append to end (trim trailing newlines first).
-    let trimmed = body.replace(/\n+$/, '');
+    let trimmed = lines.join('\n').replace(/\n+$/, '');
     if (trimmed.length > 0) trimmed += '\n';
-    return `${trimmed}\n${newBlock.join('\n')}\n`;
+    return withEol(`${trimmed}\n${newBlock.join('\n')}\n`);
   }
 
   // Existing block — drop it (and the comment line right above, if it
@@ -144,5 +150,9 @@ export function upsertInventoryBlock(body: string, inventory: Inventory): string
   // Ensure exactly one blank line before the new block (and after, before next content).
   while (before.length > 0 && before[before.length - 1].trim() === '') before.pop();
   before.push('');
-  return [...before, ...newBlock, '', ...after.filter((l, i) => !(i === 0 && l.trim() === ''))].join('\n').replace(/\n{3,}/g, '\n\n');
+  return withEol(
+    [...before, ...newBlock, '', ...after.filter((l, i) => !(i === 0 && l.trim() === ''))]
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n'),
+  );
 }

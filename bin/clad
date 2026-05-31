@@ -12,7 +12,7 @@
 
 import {existsSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
-import {fileURLToPath} from 'node:url';
+import {fileURLToPath, pathToFileURL} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import process from 'node:process';
 
@@ -20,11 +20,18 @@ const here = dirname(fileURLToPath(import.meta.url));
 const bundle = resolve(here, '..', 'dist', 'clad.js');
 
 if (existsSync(bundle)) {
-  await import(bundle);
+  // `bundle` is an absolute filesystem path. On Windows it begins with a drive
+  // letter (`C:\…`), which the ESM loader rejects as URL scheme `c:`
+  // (ERR_UNSUPPORTED_ESM_URL_SCHEME). pathToFileURL → a valid file:// URL that
+  // import() accepts on every platform.
+  await import(pathToFileURL(bundle).href);
 } else {
   const source = resolve(here, '..', 'src', 'cli', 'clad.ts');
+  // shell:true on Windows so the `npx` shim (`npx.cmd`) resolves; on POSIX it's
+  // a real binary and shell is unnecessary.
   const result = spawnSync('npx', ['tsx', source, ...process.argv.slice(2)], {
     stdio: 'inherit',
+    shell: process.platform === 'win32',
   });
   process.exit(result.status ?? 1);
 }

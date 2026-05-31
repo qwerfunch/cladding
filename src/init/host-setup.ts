@@ -326,7 +326,14 @@ function detectBinary(name: string): boolean {
 
 /** Run a non-interactive activation command, return true on success. */
 function runActivation(command: string, args: readonly string[]): {ok: boolean; stderr: string} {
-  const result = spawnSync(command, args, {encoding: 'utf8', timeout: 30_000});
+  // shell:true on Windows — the host CLIs (claude/gemini/codex) install as `.cmd`
+  // shims that spawnSync cannot resolve without a shell, so without this the
+  // activation ENOENTs even though `where <cmd>` (detectBinary) found it.
+  const result = spawnSync(command, args, {
+    encoding: 'utf8',
+    timeout: 30_000,
+    shell: platform() === 'win32',
+  });
   return {ok: result.status === 0, stderr: result.stderr ?? ''};
 }
 
@@ -349,7 +356,11 @@ function activateGemini(extensionPath: string): ActivationResult {
   // Check if cladding extension is already installed/enabled — `gemini extensions
   // list` writes its output to stderr (verified against gemini 0.42.0), so we
   // grep both streams.
-  const list = spawnSync('gemini', ['extensions', 'list'], {encoding: 'utf8', timeout: 10_000});
+  const list = spawnSync('gemini', ['extensions', 'list'], {
+    encoding: 'utf8',
+    timeout: 10_000,
+    shell: platform() === 'win32', // `gemini` is a `.cmd` shim on Windows
+  });
   const combined = (list.stdout ?? '') + (list.stderr ?? '');
   if (list.status === 0 && /\bcladding\b/.test(combined)) {
     return {attempted: true, success: true};

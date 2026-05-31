@@ -104,6 +104,37 @@ describe('upsertInventoryBlock', () => {
     expect(featureLines.length).toBe(2); // top-level `features: []` + `  features: 5`
   });
 
+  /** No lone `\n` survives — every newline is part of a `\r\n` pair. */
+  const isAllCrlf = (s: string): boolean => s.includes('\r\n') && !s.replace(/\r\n/g, '').includes('\n');
+
+  test('CRLF body (no block) → CRLF output, no mixed endings', () => {
+    const body = 'schema: "0.1"\r\nproject:\r\n  name: x\r\nfeatures: []\r\n';
+    const out = upsertInventoryBlock(body, inv);
+    expect(out).toContain('  features: 5');
+    expect(out).toContain('name: x'); // original preserved
+    expect(isAllCrlf(out)).toBe(true);
+  });
+
+  test('CRLF body (existing block) → CRLF output, updated values, no lone \\n', () => {
+    const body = [
+      'schema: "0.1"',
+      'features: []',
+      '',
+      '# Auto-maintained by `clad sync` (F-5b9f9f). Do not edit by hand.',
+      'inventory:',
+      '  features: 1',
+      '  scenarios: 0',
+      '  capabilities: 0',
+      '  test_files: 0',
+      '  last_synced: "2026-05-20"',
+      '',
+    ].join('\r\n');
+    const out = upsertInventoryBlock(body, inv);
+    expect(out).toContain('  features: 5');
+    expect(out).toContain('  last_synced: "2026-05-21"');
+    expect(isAllCrlf(out)).toBe(true); // no mixed endings — the git-autocrlf Windows bug
+  });
+
   test('writeInventoryToSpecYaml round-trip', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-inv-write-'));
     try {
