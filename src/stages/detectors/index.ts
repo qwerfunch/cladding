@@ -25,6 +25,7 @@ import {slugConflict} from './slug-conflict.js';
 import {missingImplementation} from './missing-implementation.js';
 import {missingTests} from './missing-tests.js';
 import {performanceDrift} from './performance-drift.js';
+import {plannedBacklog} from './planned-backlog.js';
 import {referenceIntegrity} from './reference-integrity.js';
 import {staleEvidence} from './stale-evidence.js';
 import {staleSpecification} from './stale-specification.js';
@@ -65,4 +66,5 @@ export const allDetectors: readonly DriftDetector[] = [
   capabilitiesFeatureMapping,
   absenceOfGovernance,
   aiHintsForbiddenPattern,
+  plannedBacklog,
 ];

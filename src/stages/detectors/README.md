@@ -7,7 +7,7 @@ ironclad_spec_ref: https://github.com/qwerfunch/ironclad/blob/main/detectors.sch
 
 # Drift detectors — inventory
 
-20 detectors are wired into `stages/drift.ts` via `stages/detectors/index.ts`: the upstream Ironclad 19 plus the cladding-extension `FIXTURE_REFERENCE_INVALID` (v0.2.4). Each one is a pure function `(opts) => readonly DriftFinding[]`; the stage passes when no finding has `severity === 'error'`.
+29 detectors are wired into `stages/drift.ts` via `stages/detectors/index.ts`: the upstream Ironclad 19 plus cladding extensions (`FIXTURE_REFERENCE_INVALID` onward). The live count is the filesystem itself — `scripts/build-plugin.mjs` Phase D recounts `stages/detectors/*.ts` and rewrites `plugin.json` on every build, so this prose number and the table below are kept honest by `tests/self-consistency.test.ts` (and `tests/scripts/build-plugin-detector-count.test.ts`). Each detector is a pure function `(opts) => readonly DriftFinding[]`; the stage passes when no finding has `severity === 'error'`.
 
 ## Catalog
 
@@ -34,6 +34,14 @@ ironclad_spec_ref: https://github.com/qwerfunch/ironclad/blob/main/detectors.sch
 | 19 | `META_INTEGRITY` | environment | `meta-integrity.ts` | error | blind |
 | 20 | `FIXTURE_REFERENCE_INVALID` *(cladding extension, v0.2.4)* | spec ↔ fixture | `fixture-reference.ts` | warn | blind |
 | 21 | `ABSENCE_OF_GOVERNANCE` *(cladding extension, v0.3.49)* | scaffold | `absence-of-governance.ts` | graduated (error / warn / info) | blind |
+| 22 | `ID_COLLISION` *(cladding extension)* | within-spec | `id-collision.ts` | error | blind |
+| 23 | `SLUG_CONFLICT` *(cladding extension)* | within-spec | `slug-conflict.ts` | error | blind |
+| 24 | `AC_DUPLICATE_WITHIN_FEATURE` *(cladding extension)* | within-spec | `ac-duplicate-within-feature.ts` | error | blind |
+| 25 | `ARCHITECTURE_FROM_SPEC` *(cladding extension, v0.3.13)* | spec ↔ code | `architecture-from-spec.ts` | graduated (error / warn) | blind |
+| 26 | `CAPABILITIES_FEATURE_MAPPING` *(cladding extension)* | spec ↔ spec | `capabilities-feature-mapping.ts` | graduated (error / warn / info) | blind |
+| 27 | `AI_HINTS_FORBIDDEN_PATTERN` *(cladding extension, v0.3.57)* | spec ↔ code | `ai-hints-forbidden-pattern.ts` | error | blind |
+| 28 | `INVENTORY_DRIFT` *(cladding extension, v0.4.x)* | spec ↔ spec | `inventory-drift.ts` | error | blind |
+| 29 | `PLANNED_BACKLOG` *(cladding extension, v0.4.x)* | spec ↔ code | `planned-backlog.ts` | warn | **aware** *(planned-state)* |
 
 `axis` and `default severity` for rows 1–19 mirror the [Ironclad spec detectors.schema.json](https://github.com/qwerfunch/ironclad/blob/main/detectors.schema.json) catalog. Row 20 (`FIXTURE_REFERENCE_INVALID`) is a cladding-specific extension that promotes the `fixture:NAME` evidence-label convention from a free-form string into a validated anchor. It checks every `acceptance_criteria[].evidence_refs[fixture:X]` (and, for backward compatibility, `test_refs[fixture:X]`) citation against `conformance/fixtures.yaml`; an unregistered name emits a `warn` finding. User projects without a `conformance/fixtures.yaml` opt out (no findings). The `status policy` column is cladding-specific (see below).
 
@@ -41,11 +49,11 @@ ironclad_spec_ref: https://github.com/qwerfunch/ironclad/blob/main/detectors.sch
 
 Two detectors check whether each acceptance criterion of a feature has surfacing test evidence on disk. For a feature that is still being authored (`status: planned` or `status: in_progress`) the test files referenced by `acceptance_criteria[].test_refs` deliberately do not exist yet — flagging them as errors would drown the real signal in progress-noise.
 
-So `UNTESTED_AC` and `MISSING_TESTS` are **status-aware**: they only inspect features where `status === 'done'`. The other 17 detectors are **status-blind** — they check every feature regardless of lifecycle state, because their findings (a hard-coded secret in code, a broken cross-reference, a stale piece of evidence, an architecture-layer violation) are problems even when the surrounding feature is mid-flight.
+So `UNTESTED_AC` and `MISSING_TESTS` are **status-aware** in the `done`-direction: they only inspect features where `status === 'done'`. `PLANNED_BACKLOG` is status-aware in the *opposite* direction — it inspects only `planned`/`in_progress` features, because its whole job is to flag features that are specced but not yet built (the per-feature cadence). Every other detector is **status-blind** — it checks every feature regardless of lifecycle state, because its findings (a hard-coded secret in code, a broken cross-reference, a stale piece of evidence, an architecture-layer violation) are problems even when the surrounding feature is mid-flight.
 
 ### When you add a new detector
 
-Default to **status-blind**. Status-awareness is an exception, justified only when the detector's invariant is "test evidence is in place" — which by definition is a `done`-state question. If you're tempted to make a new detector status-aware for any other reason, open an issue first; that is a policy change worth discussing.
+Default to **status-blind**. Status-awareness is an exception, justified only when the detector's invariant is itself a lifecycle question — "test evidence is in place" (a `done`-state question, `UNTESTED_AC`/`MISSING_TESTS`) or "the spec hasn't raced ahead of the code" (a `planned`/`in_progress` question, `PLANNED_BACKLOG`). If you're tempted to make a new detector status-aware for any other reason, open an issue first; that is a policy change worth discussing.
 
 ### Upstream RFC candidate
 
