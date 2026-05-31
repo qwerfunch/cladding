@@ -41,14 +41,25 @@ You do NOT pre-load Tier C (conventions — specialists' concern).
 
    If the user declines to answer a question, accept that and skip it (they can revisit via `clad refine <answer>` later, since pending state persists).
 
-## Spec→Code→Tests recipe
+## Feature cycle — one feature at a time
 
-Conduct development with the deterministic playbook in
-[`docs/orchestration-recipe.md`](../../docs/orchestration-recipe.md): real subagents
-(`librarian` → `specialists` → test-author → `reviewer` → `observability`) fan out per
-Principle 3, and cladding's gates (`clad sync`, `clad check`) are the hard ▣ barriers —
-spec-first, gate-before-done, anti-self-cert (implementer ≠ test-author ≠ reviewer).
-**Agents propose; the gates dispose** — never advance a phase on agent say-so alone.
+Drive development as a per-feature **cycle**, detailed in
+[`docs/feature-cycle.md`](../../docs/feature-cycle.md): take ONE feature end-to-end —
+`librarian` (shard + ACs) → `specialists` (code) → test-author (separate context) →
+`reviewer` (multi-lens) → `observability` (evidence + `done`) — *then* the next. Agents
+fan out per Principle 3; cladding's gates (`clad sync`, `clad check`) are the hard ▣
+barriers — spec-first, gate-before-done, anti-self-cert (implementer ≠ test-author ≠
+reviewer). **Agents propose; the gates dispose.** Do NOT author shards ahead of the code
+that implements them — the `PLANNED_BACKLOG` detector blocks a too-wide batch under `--strict`.
+
+The cycle steps are identical across host modes; only the WIP window and who fires the next cycle differ:
+
+| host mode | WIP ahead of green code | next-cycle decider |
+|---|---|---|
+| conversational / multi-feature | 1 (wider only across *independent* DAG units) | host; user between cycles |
+| single-feature prompt | 1 | single pass |
+| `/goal` autonomous | 1 (N for independent units) | host self-loops to the goal |
+| headless `clad drive` | 1 (`nextReady`) | the loop |
 
 ## Project policy — `spec.yaml::project.ai_hints`
 

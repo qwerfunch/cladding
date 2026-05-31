@@ -1,10 +1,10 @@
 # Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
 id: F-3b3690
 slug: multi-agent-orchestration
-title: Multi-agent spec→code→tests orchestration recipe — host-engine harness (v0.4.x, S0–S4)
+title: Multi-agent spec→code→tests feature cycle — host-engine harness (v0.4.x, S0–S4)
 status: done
 modules:
-  - docs/orchestration-recipe.md
+  - docs/feature-cycle.md
   - src/agents/orchestrator.md
   - src/agents/specialists.md
   - src/agents/reviewer.md
@@ -19,25 +19,25 @@ acceptance_criteria:
     test_refs: [tests/cli/init.test.ts]
   - id: AC-002
     ears: ubiquitous
-    action: 'provide a deterministic spec→code→tests orchestration recipe (docs/orchestration-recipe.md) that the orchestrator conducts with real host subagents, where every phase barrier is a cladding gate (clad sync / clad check) rather than an agent''s opinion'
-    response: 'docs/orchestration-recipe.md defines the SPEC→PLAN→IMPLEMENT∥TEST→GATE→REVIEW→EVIDENCE flow with hard ▣ barriers (clad sync + drift before code = spec-first; clad check --tier=pre-push --strict before review; loop-until-green); src/agents/orchestrator.md points to it and operationalizes Principles 2 and 3'
-    text: The system shall drive development through a deterministic recipe where agents propose and cladding''s gates dispose, with spec-first enforced as a hard barrier.
-    evidence_refs: [docs/orchestration-recipe.md, src/agents/orchestrator.md]
+    action: 'provide a deterministic per-feature cycle (docs/feature-cycle.md) that the orchestrator runs ONE feature at a time with real host subagents, where every step barrier is a cladding gate (clad sync / clad check) rather than an agent''s opinion'
+    response: 'docs/feature-cycle.md defines the per-feature cycle SPEC→IMPLEMENT→TEST→REVIEW→DONE (one feature end-to-end, then the next; fan-out = N concurrent instances of the same cycle, never a global up-front SPEC phase) with hard ▣ barriers (clad sync + drift before code = spec-first; clad check --tier=pre-push --strict before review; loop-until-green); src/agents/orchestrator.md points to it and operationalizes Principles 2 and 3'
+    text: The system shall drive development through a deterministic per-feature cycle where agents propose and cladding''s gates dispose, with spec-first and one-feature-at-a-time enforced as hard barriers.
+    evidence_refs: [docs/feature-cycle.md, src/agents/orchestrator.md]
   - id: AC-003
     ears: ubiquitous
     action: 'author acceptance tests in a SEPARATE specialists dispatch handed the acceptance_criteria only, distinct from the code dispatch'
-    response: 'src/agents/specialists.md defines one-role-per-dispatch (code | test-author) and forbids the test-author from reading the implementation; the recipe never routes both roles to one dispatch, so the code-author and test-author are independent agent contexts — anti-self-cert is structural, not a name check'
+    response: 'src/agents/specialists.md defines one-role-per-dispatch (code | test-author) and forbids the test-author from reading the implementation; the cycle never routes both roles to one dispatch, so the code-author and test-author are independent agent contexts — anti-self-cert is structural, not a name check'
     text: The system shall author a feature''s acceptance tests in an independent agent dispatch that sees only the acceptance criteria, so the tests encode the spec rather than the implementation.
-    evidence_refs: [src/agents/specialists.md, docs/orchestration-recipe.md]
+    evidence_refs: [src/agents/specialists.md, docs/feature-cycle.md]
   - id: AC-004
     ears: ubiquitous
     action: 'fan out reviewers by lens (correctness · spec-conformance · security · performance) as independent read-only contexts whose passes:false is a hard block'
-    response: 'src/agents/reviewer.md gains a Lens section so parallel reviewers split the audit without overlap (their union is full coverage); a passes:false verdict is a hard block the recipe acts on by looping the violations back to specialists until green — a gate, not advice'
+    response: 'src/agents/reviewer.md gains a Lens section so parallel reviewers split the audit without overlap (their union is full coverage); a passes:false verdict is a hard block the cycle acts on by looping the violations back to specialists until green — a gate, not advice'
     text: The system shall review code and tests with parallel per-lens reviewers whose failing verdict blocks completion until resolved.
     evidence_refs: [src/agents/reviewer.md]
   - id: AC-005
     ears: ubiquitous
     action: 'run independent (non-overlapping-module) work-units in parallel with git-worktree isolation, checkpoint-before / rollback-on-fail, and merge-on-green into a final strict gate on the merged tree'
-    response: 'docs/orchestration-recipe.md "Parallel execution & isolation" gives one worktree per unit, clad checkpoint/rollback per unit, merge only after local type/lint/unit pass, and a final clad check --strict on the merged tree so cross-unit drift is caught; the DAG (not an agent) decides what fans out together'
+    response: 'docs/feature-cycle.md "Parallel execution & isolation" gives one worktree per unit, clad checkpoint/rollback per unit, merge only after local type/lint/unit pass, and a final clad check --strict on the merged tree so cross-unit drift is caught; the DAG (not an agent) decides what fans out together'
     text: The system shall fan out independent work-units in isolated git worktrees and reconcile them through a deterministic merge gate, so parallel implementation never corrupts siblings.
-    evidence_refs: [docs/orchestration-recipe.md]
+    evidence_refs: [docs/feature-cycle.md]

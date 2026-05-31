@@ -24,8 +24,18 @@ This project is managed by **cladding** — the Spec-Anchored Agent Harness.
   CLI (or, when your host has cladding wired as an MCP server,
   \`clad_create_feature\`).
 - \`docs/project-context.md\` is the Tier B design SSoT.
-- Run \`clad check --strict\` to verify spec ↔ code drift across 27
-  detectors.
+- Run \`clad check --strict\` to verify spec ↔ code drift across every
+  drift detector.
+
+## Feature cycle — one at a time
+
+Work ONE feature end-to-end before starting the next: author its shard
+**with** \`acceptance_criteria\` (+ \`modules\`) → implement → author its
+tests in a separate context → \`clad check --tier=pre-push --strict\`
+GREEN → only then the next feature. Do NOT author feature shards ahead of
+the code that implements them. Independent features (no shared
+\`modules\`) may run as parallel instances of this same cycle. Enforced by
+the \`PLANNED_BACKLOG\` detector; rationale in \`docs/feature-cycle.md\`.
 
 ## Persona separation (anti-self-cert)
 
@@ -53,12 +63,20 @@ satisfy the relevant \`features[]\` and \`acceptance_criteria\`. Run
 specialists implement. The agent that authors must not sign off on its
 own work (anti-self-cert invariant).
 
+**Feature cycle — one at a time** — Work ONE feature end-to-end before
+the next: author its shard with \`acceptance_criteria\` (+ \`modules\`) →
+implement → author tests (separate context) →
+\`clad check --tier=pre-push --strict\` GREEN → only then the next. Do NOT
+author shards ahead of the code that implements them. Independent features
+(no shared \`modules\`) may run as parallel instances of this same cycle.
+Enforced by the \`PLANNED_BACKLOG\` detector; see \`docs/feature-cycle.md\`.
+
 **Hash-based IDs** — Never hand-author \`F-NNN\` filenames; use the
 \`clad\` CLI or invoke cladding through the \`/cladding:init\` slash
 command. The multi-developer-safe model is in
 \`docs/spec-ids-multi-dev.md\`.
 
-**The 27 detectors** — \`clad check --strict\` runs every drift detector.
+**Drift detectors** — \`clad check --strict\` runs every drift detector.
 Don't suppress findings; either fix them or update spec.
 `;
 
@@ -74,12 +92,23 @@ const STALE_MARKERS = [
   'enrichment_scope',
 ];
 
+// Positive freshness marker: every v0.4.x+ cladding-authored block carries
+// the per-feature-cycle cadence rule. A cladding-authored file (one that
+// carries the anti-self-cert signature, so we never mistake a user's own
+// prose for stale cladding output) that PREDATES this rule must re-sync.
+const FRESH_MARKER = 'Feature cycle — one at a time';
+const CLADDING_AUTHORED_SIGNATURE = 'anti-self-cert';
+
 export function isStaleInstructions(body: string): boolean {
   if (STALE_MARKERS.some((m) => body.includes(m))) return true;
   // Lone "use clad_create_feature MCP tool" with no surrounding "clad CLI"
   // qualifier — the new template always pairs the two.
   const mcpMentioned = /clad_create_feature[^.\n]{0,40}MCP\s*\n?\s*tool/i.test(body);
   if (mcpMentioned && !body.includes('clad` CLI') && !body.includes('clad CLI')) {
+    return true;
+  }
+  // Cladding-authored but missing the feature-cycle cadence → pre-v0.4.x.
+  if (body.includes(CLADDING_AUTHORED_SIGNATURE) && !body.includes(FRESH_MARKER)) {
     return true;
   }
   return false;

@@ -192,6 +192,24 @@ describe('isStaleInstructions', () => {
     expect(isStaleInstructions(CLAUDE_MD_SECTION)).toBe(false);
   });
 
+  test('flags a cladding-authored block that predates the feature-cycle cadence', () => {
+    // Carries the anti-self-cert signature (so it is recognizably cladding's
+    // output) but lacks the v0.4.x feature-cycle rule → must re-sync.
+    const preCadence = [
+      '## cladding',
+      '',
+      '**Persona separation** — the agent that authors must not sign off on',
+      'its own work (anti-self-cert invariant).',
+      '',
+    ].join('\n');
+    expect(isStaleInstructions(preCadence)).toBe(true);
+  });
+
+  test('both v0.4.x templates carry the feature-cycle cadence marker', () => {
+    expect(AGENTS_MD_TEMPLATE).toContain('Feature cycle — one at a time');
+    expect(CLAUDE_MD_SECTION).toContain('Feature cycle — one at a time');
+  });
+
   test('does not flag arbitrary user prose', () => {
     expect(isStaleInstructions('# My notes\n\nNothing about cladding here.')).toBe(false);
   });

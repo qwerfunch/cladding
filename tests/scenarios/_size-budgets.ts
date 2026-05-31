@@ -37,7 +37,7 @@ function budget(maxLines: number, maxChars: number): SizeBudget {
 
 /** Persona system-prompt budgets (canonical sources under `src/agents/`). */
 export const PERSONA_BUDGETS = {
-  'src/agents/orchestrator.md': budget(85, 6500),   // baseline 75/5852 — v0.3.59 added Project policy section (F-0ed2db)
+  'src/agents/orchestrator.md': budget(107, 8000),  // baseline 96/7153 — v0.4.x reshaped recipe→feature-cycle + mode gloss (F-3b3690)
   'src/agents/librarian.md': budget(75, 4500),       // baseline 68/4149 — v0.3.59 added Project policy section (F-0ed2db)
   'src/agents/specialists.md': budget(75, 4000),     // baseline 68/3602 — v0.3.59 added Project policy section (F-0ed2db)
   'src/agents/reviewer.md': budget(80, 4000),        // baseline 70/3439 — v0.3.59 added Project policy section (F-0ed2db)
