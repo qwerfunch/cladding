@@ -12,7 +12,7 @@ capabilities:
     title: "Drift detection"
     summary: "31 detectors across spec ↔ code ↔ test axes; the load-bearing core of cladding"
     surface: feature
-    features: [F-99c6e5]
+    features: [F-99c6e5, F-3788c2, F-f44d1b, F-a4b512]
   - id: harness-cli
     title: "Harness CLI (clad)"
     summary: "12 verbs covering init, scan, refine, sync, check, drive, serve, doctor, …"
