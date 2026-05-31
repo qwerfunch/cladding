@@ -57,11 +57,12 @@ function runPlannedBacklog(opts: CommandStageOptions): readonly DriftFinding[] {
 }
 
 /**
- * Resolves the tolerated-backlog threshold. Constant by default; the optional
- * `ai_hints.max_planned_ahead` override is intentionally not wired yet (see
- * the file header) — this seam is where it lands when a project needs it.
+ * Resolves the tolerated-backlog threshold. Constant for now; the optional
+ * `ai_hints.max_planned_ahead` override is intentionally not wired yet (see the
+ * file header). When a project needs it, give this the `spec` and read
+ * `spec.project.ai_hints?.max_planned_ahead`, falling back to the constant.
  */
-function resolveThreshold(_spec: Spec): number {
+function resolveThreshold(): number {
   return DEFAULT_MAX_PLANNED_AHEAD;
 }
 
@@ -76,7 +77,7 @@ function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
     if (feature.status !== 'planned' && feature.status !== 'in_progress') continue;
     if (!hasCodeOnDisk(feature, cwd)) stalled.push(feature.id);
   }
-  const threshold = resolveThreshold(spec);
+  const threshold = resolveThreshold();
   if (stalled.length <= threshold) return [];
   const named = stalled.slice(0, MAX_NAMED).join(', ');
   const tail = stalled.length > MAX_NAMED ? ', …' : '';
