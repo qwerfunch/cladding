@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.0] — 2026-05-31 — No Vacuous Green: honest gates, the per-feature cadence, and an enforced SSoT
+## [0.5.0] — 2026-06-01 — No Vacuous Green: honest gates, the per-feature cadence, and an enforced SSoT
 
 **The theme: a gate that passes must mean the work was actually verified.** This release closes a
 family of "Vacuous Green" holes — places where `clad check` went green without checking anything —

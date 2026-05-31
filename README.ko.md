@@ -16,13 +16,13 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-973%2F973-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-1105%2F1105-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/coverage-93.89%25%2B-brightgreen" alt="coverage"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/qwerfunch/ironclad">Ironclad</a> 표준의 공식 reference 구현. AI 코딩 어시스턴트가 짠 코드가 spec 과 어긋나지 않는지 27 개의 검사기와 13 단계 검증 관문이 매 commit 마다 자동으로 대조한다.
+  <a href="https://github.com/qwerfunch/ironclad">Ironclad</a> 표준의 공식 reference 구현. AI 코딩 어시스턴트가 짠 코드가 spec 과 어긋나지 않는지 33 개의 검사기와 13 단계 검증 관문이 매 commit 마다 자동으로 대조한다.
 </p>
 
 <!-- ─────────────────────────── HERO ─────────────────────────── -->
@@ -87,7 +87,7 @@ AI 가 짠 코드의 *왜* 가 코드만 봐서는 안 잡힌다.
 
 존재하지 않는 API · 함수 · 옵션을 호출하는 코드 생성.
 
-→ 28 detector + 13 단계 gate 가 매 commit 차단
+→ 33 detector + 13 단계 gate 가 매 commit 차단
 
 ✓ **production 사고 사전 차단** — CI 가 hallucination 코드를 자동 reject
 
@@ -158,13 +158,13 @@ spec 이 *왜* (무엇을 왜 만드는지) 를 기록하는 곳. 4-tier (A/B/C/
 | Stage | 무엇을 검사하나 |
 |---|---|
 | **1.1 Type · 1.2 Lint** | 타입 오류 · 코드 스타일 |
-| **1.3 Drift** | 28 detector 의 spec ↔ 코드 어긋남 |
+| **1.3 Drift** | 33 detector 의 spec ↔ 코드 어긋남 |
 | **1.4 Commit · 1.5 Arch · 1.6 Secret** | 작업트리 clean · architecture invariant (forbidden import 등) · API 키 노출 |
 | **2.1 Unit · 2.2 Cov** | 단위 테스트 통과 · 프로젝트 coverage threshold |
 | **3.1 Smoke · 3.2 Perf · 3.3 Visual** | e2e 핵심 기능 동작 · 성능 예산 · UI 시각 회귀 |
 | **4.1 Audit · 4.2 UAT** | 모든 AC (acceptance criteria, 수용 기준) 에 증거 1건 이상 · 모든 `status=done` feature 에 증거 1건 이상 |
 
-### 3. Test — 27 개 어긋남 검사기 (drift detector)
+### 3. Test — 33 개 어긋남 검사기 (drift detector)
 
 spec · code · test 사이 7 카테고리의 어긋남을 자동으로 잡아낸다. 전체 카탈로그: [src/stages/detectors/README.md](src/stages/detectors/README.md).
 
@@ -173,13 +173,13 @@ spec · code · test 사이 7 카테고리의 어긋남을 자동으로 잡아�
 <tr><th>카테고리</th><th>무엇을 잡나</th><th align="center">수</th><th>대표 detector</th></tr>
 </thead>
 <tbody>
-<tr><td>spec ↔ code drift</td><td>spec 에 있는데 코드에 없거나, 코드에 있는데 spec 에 없음</td><td align="center">6</td><td><code>UNMAPPED_ARTIFACT</code>, <code>MISSING_IMPLEMENTATION</code>, <code>AC_DRIFT</code></td></tr>
+<tr><td>spec ↔ code drift</td><td>spec 에 있는데 코드에 없거나, 코드에 있는데 spec 에 없음</td><td align="center">7</td><td><code>UNMAPPED_ARTIFACT</code>, <code>MISSING_IMPLEMENTATION</code>, <code>AC_DRIFT</code>, <code>PLANNED_BACKLOG</code></td></tr>
 <tr><td>code ↔ test</td><td>코드는 있는데 테스트 없음 · 커버리지 부족</td><td align="center">6</td><td><code>MISSING_TESTS</code>, <code>COVERAGE_DROP</code>, <code>HARDCODED_SECRET</code></td></tr>
-<tr><td>spec ↔ test</td><td>spec 의 AC 가 테스트로 검증 안 됨</td><td align="center">4</td><td><code>UNTESTED_AC</code>, <code>STATUS_DRIFT</code>, <code>STALE_EVIDENCE</code></td></tr>
-<tr><td>spec maintenance</td><td>spec 자체의 위생 (slug 충돌 · ID 중복)</td><td align="center">4</td><td><code>SLUG_CONFLICT</code>, <code>ID_COLLISION</code></td></tr>
+<tr><td>spec ↔ test</td><td>spec 의 AC 가 테스트로 검증 안 됨</td><td align="center">5</td><td><code>UNTESTED_AC</code>, <code>STATUS_DRIFT</code>, <code>SCENARIO_COVERAGE</code></td></tr>
+<tr><td>spec maintenance</td><td>spec 자체의 위생 (slug 충돌 · ID 중복)</td><td align="center">6</td><td><code>SLUG_CONFLICT</code>, <code>ID_COLLISION</code>, <code>INVENTORY_DRIFT</code>, <code>DEPENDENCY_CYCLE</code></td></tr>
 <tr><td>environment integrity</td><td>빌드 환경 · 메타 파일 무결성</td><td align="center">3</td><td><code>HARNESS_INTEGRITY</code>, <code>META_INTEGRITY</code></td></tr>
 <tr><td>architecture · capability</td><td>spec 의 아키텍처 · capability 정의와 코드 불일치</td><td align="center">2</td><td><code>ARCHITECTURE_FROM_SPEC</code>, <code>CAPABILITIES_FEATURE_MAPPING</code></td></tr>
-<tr><td>governance · policy</td><td>ai_hints 정책 위반 (예: 금지 패턴 사용)</td><td align="center">2</td><td><code>AI_HINTS_FORBIDDEN_PATTERN</code>, <code>ABSENCE_OF_GOVERNANCE</code></td></tr>
+<tr><td>governance · policy</td><td>ai_hints 정책 위반 (예: 금지 패턴 사용)</td><td align="center">4</td><td><code>AI_HINTS_FORBIDDEN_PATTERN</code>, <code>HOLLOW_GOVERNANCE</code>, <code>PROJECT_CONTEXT_DRIFT</code></td></tr>
 </tbody>
 </table>
 
@@ -302,8 +302,8 @@ clad update                # 3. 새 버전에 맞게 정리
 <tr style="border:none">
 <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
 <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">version</div>
-<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">v0.4.0</div>
-<div style="font-size:11px;color:#64748b">2026-05</div>
+<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">v0.5.0</div>
+<div style="font-size:11px;color:#64748b">2026-06</div>
 </td>
 <td style="text-align:center;width:140px;background:#dcfce7;padding:18px 10px;border-radius:8px;border:none">
 <div style="font-size:11px;color:#15803d;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">준수 등급</div>
@@ -312,7 +312,7 @@ clad update                # 3. 새 버전에 맞게 정리
 </td>
 <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
 <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">tests</div>
-<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">973<span style="font-size:16px;color:#94a3b8">/973</span></div>
+<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">1105<span style="font-size:16px;color:#94a3b8">/1105</span></div>
 <div style="font-size:11px;color:#64748b">all pass</div>
 </td>
 <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
@@ -322,13 +322,13 @@ clad update                # 3. 새 버전에 맞게 정리
 </td>
 <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
 <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">features</div>
-<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">136</div>
+<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">148</div>
 <div style="font-size:11px;color:#64748b">spec 정의</div>
 </td>
 </tr>
 </table>
 
-<sub>100 test files · Claude Code · OpenAI Codex · Gemini CLI 마켓플레이스 설치 가능.</sub>
+<sub>112 test files · Claude Code · OpenAI Codex · Gemini CLI 마켓플레이스 설치 가능.</sub>
 
 > **Ironclad 1.0 까지의 길** — 1.0 은 *독립적인 두 개의 구현이 L4 검증 셋을 통과해야* 잠긴다 ([GOVERNANCE § 1](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md)). cladding 이 첫 번째.
 
@@ -337,7 +337,7 @@ clad update                # 3. 새 버전에 맞게 정리
 - [Why cladding (project context)](docs/project-context.md)
 - [4-tier governance model](docs/ssot-model.md)
 - [Hash-based feature ID](docs/spec-ids-multi-dev.md)
-- [28 detector catalog](src/stages/detectors/README.md)
+- [33 detector catalog](src/stages/detectors/README.md)
 - [Benchmark — event store trap catch](docs/benchmarks/event-store-trap-catch.md)
 - [A/B evaluation cases](docs/ab-evaluation/)
 - [Governance · roadmap to 1.0](GOVERNANCE.md)

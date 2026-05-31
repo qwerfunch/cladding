@@ -259,13 +259,13 @@
   <p class="badges">
     <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"></a>
     <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"></a>
-    <img src="https://img.shields.io/badge/tests-973%2F973-brightgreen" alt="tests">
+    <img src="https://img.shields.io/badge/tests-1105%2F1105-brightgreen" alt="tests">
     <img src="https://img.shields.io/badge/coverage-93.89%25%2B-brightgreen" alt="coverage">
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"></a>
   </p>
 
   <p class="lead">
-    Reference implementation of the <a href="https://github.com/qwerfunch/ironclad">Ironclad</a> standard. 27 detectors and a 13-stage gate verify, on every commit, that the code your AI assistant wrote still matches the spec.
+    Reference implementation of the <a href="https://github.com/qwerfunch/ironclad">Ironclad</a> standard. 33 detectors and a 13-stage gate verify, on every commit, that the code your AI assistant wrote still matches the spec.
   </p>
 
   <!-- ─────────────── HERO ─────────────── -->
@@ -303,7 +303,7 @@
     <div class="why-card">
       <div class="title">AI hallucination</div>
       <p>Generated code calls APIs, functions, or options that don't exist.</p>
-      <div class="arrow">→ 27 detectors + 13-stage gate block hallucinated code on every commit</div>
+      <div class="arrow">→ 33 detectors + 13-stage gate block hallucinated code on every commit</div>
       <div style="margin-top:10px;padding-top:10px;border-top:1px solid #d1fae5;font-size:13px;color:#15803d;font-weight:600">✓ <strong>Production incidents prevented up front</strong> — CI auto-rejects hallucinated code before it merges</div>
     </div>
   </div>
@@ -370,7 +370,7 @@
     </thead>
     <tbody>
       <tr><td><strong>1.1 Type · 1.2 Lint</strong></td><td>type errors · code style</td></tr>
-      <tr><td><strong>1.3 Drift</strong></td><td>spec ↔ code mismatches across 27 detectors</td></tr>
+      <tr><td><strong>1.3 Drift</strong></td><td>spec ↔ code mismatches across 33 detectors</td></tr>
       <tr><td><strong>1.4 Commit · 1.5 Arch · 1.6 Secret</strong></td><td>clean working tree · architecture invariants (forbidden imports, etc.) · leaked API keys</td></tr>
       <tr><td><strong>2.1 Unit · 2.2 Cov</strong></td><td>unit tests pass · project coverage threshold</td></tr>
       <tr><td><strong>3.1 Smoke · 3.2 Perf · 3.3 Visual</strong></td><td>end-to-end critical paths · performance budgets · visual regression</td></tr>
@@ -378,20 +378,20 @@
     </tbody>
   </table>
 
-  <h3>3. Tests — 27 drift detectors</h3>
+  <h3>3. Tests — 33 drift detectors</h3>
   <p>Seven categories of mismatch across spec · code · test, all caught automatically. Full catalog: <a href="src/stages/detectors/README.md">src/stages/detectors/README.md</a>.</p>
   <table>
     <thead>
       <tr><th>Category</th><th>What it catches</th><th class="center">Count</th><th>Representative detectors</th></tr>
     </thead>
     <tbody>
-      <tr><td>spec ↔ code drift</td><td>something in the spec missing from code, or in code with nothing in the spec</td><td class="center">6</td><td><code>UNMAPPED_ARTIFACT</code>, <code>MISSING_IMPLEMENTATION</code>, <code>AC_DRIFT</code></td></tr>
+      <tr><td>spec ↔ code drift</td><td>something in the spec missing from code, or in code with nothing in the spec</td><td class="center">7</td><td><code>UNMAPPED_ARTIFACT</code>, <code>MISSING_IMPLEMENTATION</code>, <code>AC_DRIFT</code>, <code>PLANNED_BACKLOG</code></td></tr>
       <tr><td>code ↔ test</td><td>code without tests · coverage falling below threshold</td><td class="center">6</td><td><code>MISSING_TESTS</code>, <code>COVERAGE_DROP</code>, <code>HARDCODED_SECRET</code></td></tr>
-      <tr><td>spec ↔ test</td><td>an AC in the spec that no test actually verifies</td><td class="center">4</td><td><code>UNTESTED_AC</code>, <code>STATUS_DRIFT</code>, <code>STALE_EVIDENCE</code></td></tr>
-      <tr><td>spec maintenance</td><td>spec hygiene — slug collisions, ID duplicates</td><td class="center">4</td><td><code>SLUG_CONFLICT</code>, <code>ID_COLLISION</code></td></tr>
+      <tr><td>spec ↔ test</td><td>an AC in the spec that no test actually verifies</td><td class="center">5</td><td><code>UNTESTED_AC</code>, <code>STATUS_DRIFT</code>, <code>SCENARIO_COVERAGE</code></td></tr>
+      <tr><td>spec maintenance</td><td>spec hygiene — slug collisions, ID duplicates</td><td class="center">6</td><td><code>SLUG_CONFLICT</code>, <code>ID_COLLISION</code>, <code>INVENTORY_DRIFT</code>, <code>DEPENDENCY_CYCLE</code></td></tr>
       <tr><td>environment integrity</td><td>build environment and meta-file integrity</td><td class="center">3</td><td><code>HARNESS_INTEGRITY</code>, <code>META_INTEGRITY</code></td></tr>
       <tr><td>architecture · capability</td><td>code that breaks the architecture or capability shape declared in the spec</td><td class="center">2</td><td><code>ARCHITECTURE_FROM_SPEC</code>, <code>CAPABILITIES_FEATURE_MAPPING</code></td></tr>
-      <tr><td>governance · policy</td><td>code that breaks an <code>ai_hints</code> policy (e.g. forbidden patterns)</td><td class="center">2</td><td><code>AI_HINTS_FORBIDDEN_PATTERN</code>, <code>ABSENCE_OF_GOVERNANCE</code></td></tr>
+      <tr><td>governance · policy</td><td>code that breaks an <code>ai_hints</code> policy (e.g. forbidden patterns)</td><td class="center">4</td><td><code>AI_HINTS_FORBIDDEN_PATTERN</code>, <code>HOLLOW_GOVERNANCE</code>, <code>PROJECT_CONTEXT_DRIFT</code></td></tr>
     </tbody>
   </table>
 
@@ -494,8 +494,8 @@ clad update                # 3. bring this project in line with the new version<
     <tr style="border:none">
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">version</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">v0.4.0</div>
-        <div style="font-size:11px;color:#64748b">2026-05</div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">v0.5.0</div>
+        <div style="font-size:11px;color:#64748b">2026-06</div>
       </td>
       <td style="text-align:center;width:140px;background:#dcfce7;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#15803d;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">conformance</div>
@@ -504,7 +504,7 @@ clad update                # 3. bring this project in line with the new version<
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">tests</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">973<span style="font-size:16px;color:#94a3b8">/973</span></div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">1105<span style="font-size:16px;color:#94a3b8">/1105</span></div>
         <div style="font-size:11px;color:#64748b">all pass</div>
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
@@ -514,13 +514,13 @@ clad update                # 3. bring this project in line with the new version<
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">features</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">136</div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">148</div>
         <div style="font-size:11px;color:#64748b">spec'd</div>
       </td>
     </tr>
   </table>
 
-  <p style="text-align:center;font-size:13px;color:#64748b;margin-top:12px">100 test files · installable from the Claude Code · OpenAI Codex · Gemini CLI marketplaces</p>
+  <p style="text-align:center;font-size:13px;color:#64748b;margin-top:12px">112 test files · installable from the Claude Code · OpenAI Codex · Gemini CLI marketplaces</p>
 
   <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:24px 0;background:#f8fafc;color:#475569;font-size:14px"><strong>Road to Ironclad 1.0</strong> — 1.0 locks when <em>two independent implementations pass the L4 conformance fixtures</em> (<a href="https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md">GOVERNANCE § 1</a>). cladding is the first one.</blockquote>
 
@@ -530,7 +530,7 @@ clad update                # 3. bring this project in line with the new version<
     <li><a href="docs/project-context.md">Why cladding (project context)</a></li>
     <li><a href="docs/ssot-model.md">4-tier governance model</a></li>
     <li><a href="docs/spec-ids-multi-dev.md">Hash-based feature IDs</a></li>
-    <li><a href="src/stages/detectors/README.md">27 detector catalog</a></li>
+    <li><a href="src/stages/detectors/README.md">33 detector catalog</a></li>
     <li><a href="docs/benchmarks/event-store-trap-catch.md">Benchmark — event store trap catch</a></li>
     <li><a href="docs/ab-evaluation/">A/B evaluation cases</a></li>
     <li><a href="GOVERNANCE.md">Governance · roadmap to 1.0</a></li>
