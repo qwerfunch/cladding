@@ -29,6 +29,7 @@ import {missingTests} from './missing-tests.js';
 import {performanceDrift} from './performance-drift.js';
 import {plannedBacklog} from './planned-backlog.js';
 import {referenceIntegrity} from './reference-integrity.js';
+import {scenarioCoverage} from './scenario-coverage.js';
 import {staleEvidence} from './stale-evidence.js';
 import {staleSpecification} from './stale-specification.js';
 import {staleTests} from './stale-tests.js';
@@ -71,4 +72,5 @@ export const allDetectors: readonly DriftDetector[] = [
   plannedBacklog,
   hollowGovernance,
   dependencyCycle,
+  scenarioCoverage,
 ];

@@ -45,7 +45,7 @@ Orphan artifacts get demoted (move to Tier D as historical reference) or removed
 |---|---|---|---|
 | `spec.yaml` | `clad_create_feature` / hand-edit | `spec/load.ts` → every detector + MCP server + CLI verbs | manual edit; `clad sync` validates |
 | `spec/features/<slug>-<hash6>.yaml` | `clad_create_feature` | merged into `Spec.features[]` on load | manual edit + validation |
-| `spec/scenarios/<slug>-<hash6>.yaml` | `clad init <intent>` onboarding (NEW v0.3.45) OR `clad_create_scenario` OR hand-edit | `REFERENCE_INTEGRITY` / `SLUG_CONFLICT` / `ID_COLLISION` detectors + future `SCENARIO_COVERAGE` | onboarding 7th sentinel emits; refine refreshes; `clad_create_scenario` adds. *(`clad_create_feature` does NOT bind scenarios — corrected v0.4.x.)* |
+| `spec/scenarios/<slug>-<hash6>.yaml` | `clad init <intent>` onboarding (NEW v0.3.45) OR `clad_create_scenario` OR hand-edit | `REFERENCE_INTEGRITY` / `SLUG_CONFLICT` / `ID_COLLISION` / `SCENARIO_COVERAGE` detectors | onboarding 7th sentinel emits; refine refreshes; `clad_create_scenario` adds. *(`clad_create_feature` does NOT bind scenarios — corrected v0.4.x.)* |
 
 ### Tier B — Design SSoT
 
@@ -166,10 +166,10 @@ Detector-enforced (today + this cycle):
 - **`HOLLOW_GOVERNANCE` (v0.4.x, J1)**: a grown project with a present-but-empty `capabilities`/`architecture` design tier
 - **`DEPENDENCY_CYCLE` (v0.4.x, J3)**: `features[].depends_on` is acyclic (pairs with `REFERENCE_INTEGRITY`'s existence check)
 - **`AI_HINTS_FORBIDDEN_PATTERN` (v0.3.57)**: code avoids `ai_hints.forbidden_patterns`
+- **`SCENARIO_COVERAGE` (v0.4.x, S-b)**: a grown project declares ≥1 scenario, and no scenario binds an empty `features[]`
 
 Detector-enforced (deferred to future cycles):
 - `ARTIFACT_HEADER_STALE`: the header banner accurately describes file state
-- `SCENARIO_COVERAGE`: each scenario's `features[]` cover its `flow` adequately *(design-tier EMPTINESS is now partly caught by `HOLLOW_GOVERNANCE`; per-scenario flow coverage is still deferred)*
 - `PROJECT_CONTEXT_DRIFT`: project-context.md aligns with capabilities + architecture *(still deferred — project-context.md remains seed-then-orphan; see docs/ssot-audit.md)*
 - `ORPHAN_FIXTURE`: registered fixtures actually cited
 

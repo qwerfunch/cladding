@@ -1,0 +1,30 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-315fd7
+slug: scenario-coverage-detector
+title: SCENARIO_COVERAGE detector — grown projects capture cross-feature flows (v0.4.x, S-b)
+status: done
+modules:
+  - src/stages/detectors/scenario-coverage.ts
+  - src/stages/detectors/index.ts
+depends_on:
+  - F-f44d1b
+acceptance_criteria:
+  - id: AC-001
+    ears: event
+    condition: when a project has at least DEFAULT_MIN_FEATURES_FOR_SCENARIOS features but declares no scenarios
+    action: 'emit one warn that cross-feature user-journey flows are not captured'
+    response: 'scenarios are Tier A but thinly enforced — both A/B builds shipped 0 scenarios over 20+ features and stayed green; this scale-gated, status-blind signal closes that gap, completing the deferred SCENARIO_COVERAGE from ssot-model.md'
+    text: When a grown project declares no scenarios, the system shall warn that cross-feature flows are uncaptured.
+    test_refs: [tests/stages/scenario-coverage.test.ts]
+  - id: AC-002
+    ears: unwanted
+    condition: if a scenario declares an empty features[] list
+    action: 'warn that the scenario binds no features regardless of project size'
+    text: If a scenario binds no features, the system shall warn that it is hollow — a scenario must cover at least one feature's flow.
+    test_refs: [tests/stages/scenario-coverage.test.ts]
+  - id: AC-003
+    ears: ubiquitous
+    action: 'classify both signals warn so a small or genuinely flow-free project is not hard-broken, while a push/CI under --strict blocks'
+    response: 'the signal rides the existing warn/strict dial; a small project under the threshold with no scenarios is silent'
+    text: The system shall classify scenario-coverage findings as warn — advisory locally, blocking under --strict.
+    test_refs: [tests/stages/scenario-coverage.test.ts]
