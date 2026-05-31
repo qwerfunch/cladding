@@ -71,6 +71,25 @@ Orphan artifacts get demoted (move to Tier D as historical reference) or removed
 | `.cladding/onboarding/state.yaml` | `clad init <intent>` + `clad refine` | `orchestrator` (drives Q&A loop) + `clad refine` itself | mutated on each refine; persists post-`status: done` as audit |
 | `.cladding/scan/*.proposal` | `writeArtifact` divert when target file already exists | humans review + manually accept/reject | one-shot per scan run |
 
+## Authoring verbs — create vs link vs refine (v0.4.x)
+
+The write surface uses three verbs, picked by the *shape* of the artifact — not one
+catch-all "create". Matching the verb to the artifact's nature keeps each tool
+single-responsibility (and keeps a tool's name honest as it grows).
+
+| Verb | Artifact shape | Operation | Tools |
+|---|---|---|---|
+| **create** | enumerable ENTITY (many per project, each distinct) | mint a NEW shard | `clad_create_feature`, `clad_create_scenario` |
+| **link** | accumulative RELATIONSHIP (a grouping that grows over time) | UPSERT — ensure-and-add | `clad_link_capability` (add a feature to a capability, creating it if absent) |
+| **refine** | holistic DOCUMENT (one per project, not enumerated) | LLM/manual rewrite | `clad refine` → `architecture.yaml`, `project-context.md`, `conventions.md` |
+
+A capability is **accumulative** (created once, then features land on it over time),
+so its verb is `link`, not `create` — re-"creating" an existing capability would
+collide. `clad_create_feature` therefore does NOT grow capabilities as a side effect
+(that would make its name lie); instead its result carries a non-mutating `hint` to
+call `clad_link_capability`. This is the deterministic development-time firing path
+for the Tier-B design SSoT, complementing the onboarding-time `clad refine` path.
+
 ## Header convention
 
 Every cladding-managed artifact carries a one-line tier banner as its **first line**:

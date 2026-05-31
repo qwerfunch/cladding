@@ -18,9 +18,11 @@
 // @see spec/features/F-084.yaml — this feature.
 
 import {createHash} from 'node:crypto';
-import {existsSync, mkdirSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {hostname, userInfo} from 'node:os';
 import {join} from 'node:path';
+
+import yaml from 'yaml';
 
 const SLUG_PATTERN = /^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/;
 
@@ -350,4 +352,149 @@ function generateScenarioId(slug: string): string {
   ].join('|');
   const hex = createHash('sha256').update(input).digest('hex').slice(0, 6);
   return `S-${hex}`;
+}
+
+// === Capability linking (v0.4.x) ===
+//
+// A capability is ACCUMULATIVE — created once, then features are added over time
+// as they land. So the authoring verb is NOT `create` (which mints a new distinct
+// entity, like a feature or scenario) but `link`: "ensure capability X exists and
+// includes feature F" (an upsert). This is the deterministic development-time
+// firing path for the Tier-B design SSoT — features grow the capability map as
+// they're built, instead of capabilities being written once at onboarding and
+// then orphaned (the gap HOLLOW_GOVERNANCE flags).
+//
+// It UPDATES the single `spec/capabilities.yaml` (unlike create_feature/scenario,
+// which write new shard files): everything before the top-level `capabilities:`
+// key is preserved verbatim (header comments + schema/source), and only the
+// capabilities block is re-emitted deterministically — so the output stays
+// schema-valid (J2) and human-authored header prose survives.
+
+const FEATURE_ID_PATTERN = /^F-(\d{3,}|[a-f0-9]{6,})$/;
+type CapabilitySurfaceValue = 'feature' | 'platform' | 'tool' | 'infrastructure';
+
+interface CapabilityRecord {
+  id: string;
+  title?: string;
+  summary?: string;
+  surface?: CapabilitySurfaceValue;
+  features?: string[];
+}
+
+export interface LinkCapabilityOptions {
+  /** Capability id (kebab-slug). Created if it does not exist yet. */
+  readonly capability: string;
+  /** Feature id (F-…) to add to the capability's `features[]`. */
+  readonly feature: string;
+  /** Title used only when the capability is newly created. */
+  readonly title?: string;
+  /** Summary used only when newly created. */
+  readonly summary?: string;
+  /** Surface used only when newly created. */
+  readonly surface?: CapabilitySurfaceValue;
+  /** Project root. Defaults to `.`. */
+  readonly cwd?: string;
+}
+
+export interface LinkCapabilityResult {
+  readonly capability: string;
+  readonly feature: string;
+  /** True when the capability did not exist and was created by this call. */
+  readonly created: boolean;
+  /** True when the feature was already in the capability's `features[]`. */
+  readonly alreadyLinked: boolean;
+  readonly path: string;
+}
+
+const DEFAULT_CAPABILITIES_HEADER =
+  '# Cladding · Tier B · SSoT — Design (editable) · Refreshed by: clad_link_capability / clad refine\n' +
+  '#\n' +
+  '# `features[]` lists the F-* ids that implement the capability. The\n' +
+  '# CAPABILITIES_FEATURE_MAPPING detector validates that every id resolves\n' +
+  '# to a real feature shard, and warns on orphan capabilities.\n' +
+  'schema: "0.1"\n' +
+  'source: spec.yaml\n';
+
+/**
+ * Upserts a feature↔capability link into `spec/capabilities.yaml`. If the
+ * capability id is unknown it is created (with the optional title/summary/surface);
+ * otherwise the feature is appended to its `features[]` (deduped). The file's
+ * header + `schema`/`source` are preserved; only the `capabilities:` block is
+ * re-rendered. Idempotent: linking an already-linked feature is a no-op write.
+ *
+ * @throws Error when `capability` is not a kebab-slug or `feature` is not an F-id.
+ */
+export function linkCapability(opts: LinkCapabilityOptions): LinkCapabilityResult {
+  const cwd = opts.cwd ?? '.';
+  const capId = opts.capability;
+  const feature = opts.feature;
+  if (!SLUG_PATTERN.test(capId)) {
+    throw new Error(`cladding: capability id '${capId}' is invalid — must match ${SLUG_PATTERN.source}`);
+  }
+  if (!FEATURE_ID_PATTERN.test(feature)) {
+    throw new Error(`cladding: feature id '${feature}' is invalid — must match ${FEATURE_ID_PATTERN.source}`);
+  }
+
+  const path = join(cwd, 'spec', 'capabilities.yaml');
+  let capabilities: CapabilityRecord[] = [];
+  let prefix = DEFAULT_CAPABILITIES_HEADER;
+
+  if (existsSync(path)) {
+    const raw = readFileSync(path, 'utf8');
+    const parsed = yaml.parse(raw) as {capabilities?: unknown} | null;
+    if (parsed && Array.isArray(parsed.capabilities)) {
+      capabilities = parsed.capabilities.filter(
+        (c): c is CapabilityRecord => typeof c === 'object' && c !== null,
+      ) as CapabilityRecord[];
+    }
+    // Preserve everything before the top-level `capabilities:` key; re-emit the rest.
+    const match = raw.search(/^capabilities:/m);
+    prefix = match >= 0 ? raw.slice(0, match) : raw.endsWith('\n') ? raw : `${raw}\n`;
+  } else {
+    mkdirSync(join(cwd, 'spec'), {recursive: true});
+  }
+
+  let created = false;
+  let alreadyLinked = false;
+  const existing = capabilities.find((c) => c.id === capId);
+  if (!existing) {
+    capabilities.push({
+      id: capId,
+      ...(opts.title ? {title: opts.title} : {}),
+      ...(opts.summary ? {summary: opts.summary} : {}),
+      ...(opts.surface ? {surface: opts.surface} : {}),
+      features: [feature],
+    });
+    created = true;
+  } else {
+    const feats = Array.isArray(existing.features) ? existing.features : [];
+    if (feats.includes(feature)) {
+      alreadyLinked = true;
+    } else {
+      existing.features = [...feats, feature];
+    }
+  }
+
+  writeFileSync(path, prefix + renderCapabilitiesBlock(capabilities), 'utf8');
+  return {capability: capId, feature, created, alreadyLinked, path};
+}
+
+/** Deterministically emits the `capabilities:` block (schema-valid order). */
+function renderCapabilitiesBlock(capabilities: readonly CapabilityRecord[]): string {
+  if (capabilities.length === 0) return 'capabilities: []\n';
+  const lines = ['capabilities:'];
+  for (const cap of capabilities) {
+    lines.push(`  - id: ${cap.id}`);
+    if (cap.title) lines.push(`    title: ${JSON.stringify(cap.title)}`);
+    if (cap.summary) lines.push(`    summary: ${JSON.stringify(cap.summary)}`);
+    if (cap.surface) lines.push(`    surface: ${cap.surface}`);
+    const feats = cap.features ?? [];
+    if (feats.length === 0) {
+      lines.push('    features: []');
+    } else {
+      lines.push(`    features: [${feats.join(', ')}]`);
+    }
+  }
+  lines.push('');
+  return lines.join('\n');
 }

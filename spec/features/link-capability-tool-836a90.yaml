@@ -1,0 +1,30 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-836a90
+slug: link-capability-tool
+title: clad_link_capability — accumulative capability authoring (the Tier-B firing path, v0.4.x)
+status: done
+modules:
+  - src/spec/new.ts
+  - src/serve/server.ts
+depends_on:
+  - F-f6d13e
+acceptance_criteria:
+  - id: AC-001
+    ears: event
+    condition: when clad_link_capability is invoked for a feature and a capability id
+    action: 'ensure the capability exists (create it if absent) and add the feature to its features[], deduped'
+    response: 'linkCapability is an UPSERT — a capability is accumulative (created once, then features land on it), so the verb is link not create; it updates the single spec/capabilities.yaml, preserving the header + schema/source and re-emitting only the capabilities block'
+    text: When clad_link_capability runs, the system shall upsert the feature into the named capability — creating the capability if it does not exist and otherwise appending the feature without duplication.
+    test_refs: [tests/spec/new-capability.test.ts]
+  - id: AC-002
+    ears: ubiquitous
+    action: 'keep clad_create_feature single-responsibility — it must not mutate capabilities.yaml as a side effect; instead its result carries a non-mutating hint to call clad_link_capability'
+    response: 'overloading create_feature to grow capabilities would make its name lie; the design separates create (mint a new entity) from link (accumulate a relationship), with a hint field bridging them'
+    text: The system shall not let clad_create_feature write capabilities; it shall only surface a non-mutating hint to link the feature, keeping the create verb honest.
+    test_refs: [tests/serve/server.test.ts]
+  - id: AC-003
+    ears: ubiquitous
+    action: 'emit schema-valid capabilities.yaml so the link is validated downstream (J2 schema + CAPABILITIES_FEATURE_MAPPING) and HOLLOW_GOVERNANCE stops warning once populated'
+    response: 'the deterministic capabilities-block emitter produces entries that pass the J2 capability schema; loadSpec validates the result'
+    text: The system shall emit schema-valid capabilities so a linked capability loads, validates, and resolves its feature references.
+    test_refs: [tests/spec/new-capability.test.ts]

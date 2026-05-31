@@ -32,7 +32,7 @@ import {loadPersona} from '../agents/loader.js';
 import {subscribeAudit} from '../hitl/audit.js';
 import {loadSpec} from '../spec/load.js';
 import type {Spec} from '../spec/types.js';
-import {createFeature, createScenario} from '../spec/new.js';
+import {createFeature, createScenario, linkCapability} from '../spec/new.js';
 import {computeInventory, writeInventoryToSpecYaml} from '../spec/inventory.js';
 import {runDrift} from '../stages/drift.js';
 
@@ -53,6 +53,7 @@ export const TOOL_NAMES = [
   'clad_get_events',
   'clad_create_feature',
   'clad_create_scenario',
+  'clad_link_capability',
 ] as const;
 
 /** Resource URIs cladding's MCP server exposes (stable wire identifiers). */
@@ -385,8 +386,17 @@ function registerTools(server: McpServer, cwd: string): void {
           cwd,
         });
         syncInventory(cwd);
+        // Non-mutating firing-path nudge: travels as a `hint` FIELD (keeps the
+        // payload valid JSON), never a silent write to capabilities.yaml.
+        const withHint = {
+          ...result,
+          hint:
+            'If this feature is user-facing, link it to a capability with clad_link_capability ' +
+            `(capability: <kebab-id>, feature: ${result.id}) so the Tier-B design SSoT grows with ` +
+            'development instead of being left an empty seed.',
+        };
         return {
-          content: [{type: 'text', text: JSON.stringify(result, null, 2)}],
+          content: [{type: 'text', text: JSON.stringify(withHint, null, 2)}],
         };
       } catch (err) {
         return {
@@ -431,6 +441,60 @@ function registerTools(server: McpServer, cwd: string): void {
           title: args.title,
           flow: args.flow,
           features: args.features,
+          cwd,
+        });
+        syncInventory(cwd);
+        return {
+          content: [{type: 'text', text: JSON.stringify(result, null, 2)}],
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{type: 'text', text: (err as Error).message}],
+        };
+      }
+    },
+  );
+
+  // clad_link_capability — UPSERT a feature↔capability link into
+  // spec/capabilities.yaml (v0.4.x). A capability is accumulative, so the verb
+  // is `link` (ensure-and-add), NOT `create`: it creates the capability if it
+  // does not exist yet and otherwise appends the feature to its features[]. This
+  // is the deterministic development-time firing path for the Tier-B design SSoT.
+  server.registerTool(
+    'clad_link_capability',
+    {
+      title: 'Link a feature to a capability',
+      description:
+        'Upserts a feature into spec/capabilities.yaml: creates the capability if absent, else ' +
+        'appends the feature to its features[] (deduped). A capability is ACCUMULATIVE, so the verb ' +
+        'is link, not create. Use this when a user-facing feature lands so the design tier grows ' +
+        'with development instead of being left an empty seed.',
+      inputSchema: {
+        capability: z
+          .string()
+          .regex(/^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/)
+          .describe("Capability id (kebab-slug, e.g. 'auth'). Created if it does not exist yet."),
+        feature: z
+          .string()
+          .regex(/^F-(\d{3,}|[a-f0-9]{6,})$/)
+          .describe('Feature id to add to the capability'),
+        title: z.string().optional().describe('Title, used only when the capability is newly created'),
+        summary: z.string().optional().describe('Summary, used only when newly created'),
+        surface: z
+          .enum(['feature', 'platform', 'tool', 'infrastructure'])
+          .optional()
+          .describe('Surface, used only when newly created'),
+      },
+    },
+    async (args) => {
+      try {
+        const result = linkCapability({
+          capability: args.capability,
+          feature: args.feature,
+          title: args.title,
+          summary: args.summary,
+          surface: args.surface,
           cwd,
         });
         syncInventory(cwd);
