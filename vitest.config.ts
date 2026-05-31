@@ -9,6 +9,13 @@ import {defineConfig} from 'vitest/config';
 export default defineConfig({
   test: {
     include: ['tests/**/*.test.ts'],
+    // The heavy scenario suites (init + observed-path scan over the 8-file
+    // fixtures, then detector snapshots) run ~6s locally but several × slower
+    // under the 2-core GitHub runner's worker contention. The default 5s
+    // timeout starves them there (green locally, red on CI). Give every test
+    // generous headroom; the genuinely-heaviest one sets its own 60s.
+    testTimeout: 30_000,
+    hookTimeout: 30_000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary'],

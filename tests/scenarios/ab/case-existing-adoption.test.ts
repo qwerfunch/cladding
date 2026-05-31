@@ -262,5 +262,8 @@ describe('A/B · existing-adoption — cladding vs vanilla on a populated TS pro
       outcome: {driftResults, queryResults},
     });
     writeOrAssertReport(REPORT_PATH, report);
-  }, 30_000);
+    // 60s: the heaviest scenario test — copies the fixture into TWO tmpdirs,
+    // runs two inits, and takes 4 detector snapshots. 30s held locally but
+    // still timed out on the 2-core CI runner under worker contention.
+  }, 60_000);
 });
