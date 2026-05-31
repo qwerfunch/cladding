@@ -93,9 +93,10 @@ and architecture each get one *empty-tolerant* soft detector; scenarios get only
 
 ## Fix roadmap (this branch — "no vacuous green")
 
-- [ ] **J1 · 🔴 `HOLLOW_GOVERNANCE` detector** — status-blind, scale-aware: features ≥ threshold AND
-  (`capabilities` empty OR `architecture.layers` empty) → `warn` (strict-blocking). Closes the
-  two-layer Vacuous Green. cladding's own spec (full tiers) stays green.
+- [x] **J1 · 🔴 `HOLLOW_GOVERNANCE` detector (#30)** — status-blind, scale-aware (features ≥ 8 AND
+  `capabilities`/`architecture.layers` present-but-empty → `warn`, strict-blocking). Closes the
+  two-layer Vacuous Green; division of labour with ABSENCE (existence) vs HOLLOW (present-but-empty).
+  Verified: arm B (23 feat) → 2 warns, B2 (6) → 0, cladding (full tiers) → 0. Shard F-f44d1b (done).
 - [ ] **J2 · 🔴 capabilities → `schema.json` + `Spec`** — permissive optional schema + `load.ts` merge,
   so Tier B gets parse-time validation.
 - [ ] **J3 · 🔴 `depends_on` cycle detection** — error on any cycle.

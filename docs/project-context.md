@@ -18,7 +18,7 @@ The 4-tier SSoT model (Tier A spec sealed → Tier B design editable → Tier C 
 
 ## 3. What is its purpose?
 
-To make AI-coupled development **measurably safer and more honest** than vanilla AI coding. Honest = drift becomes visible; measurable = 29 detectors fire actionable findings; safer = the Iron Law gates fail CI when artifacts diverge from code reality.
+To make AI-coupled development **measurably safer and more honest** than vanilla AI coding. Honest = drift becomes visible; measurable = 30 detectors fire actionable findings; safer = the Iron Law gates fail CI when artifacts diverge from code reality.
 
 ## Related governance documents
 

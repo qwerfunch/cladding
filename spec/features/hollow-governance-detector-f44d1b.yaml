@@ -1,0 +1,36 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-f44d1b
+slug: hollow-governance-detector
+title: HOLLOW_GOVERNANCE detector — close the design-tier Vacuous Green (v0.4.x)
+status: done
+modules:
+  - src/stages/detectors/hollow-governance.ts
+  - src/stages/detectors/index.ts
+depends_on:
+  - F-3788c2
+acceptance_criteria:
+  - id: AC-001
+    ears: event
+    condition: when a project has at least DEFAULT_MIN_FEATURES_FOR_DESIGN features and spec/capabilities.yaml exists but declares zero capabilities, or spec/architecture.yaml declares no layers
+    action: 'emit one warn finding per empty design artifact naming the feature count and the empty seed'
+    response: 'HOLLOW_GOVERNANCE adds the scale-aware, content-aware signal the existence-only ABSENCE_OF_GOVERNANCE and the empty-tolerant CAPABILITIES_FEATURE_MAPPING / ARCHITECTURE_FROM_SPEC miss — a grown project with a present-but-empty design SSoT'
+    text: When a project has grown past the design threshold yet its capabilities or architecture artifact is present but empty, the system shall emit a warn finding that the design SSoT is a hollow seed.
+    test_refs: [tests/stages/hollow-governance.test.ts]
+  - id: AC-002
+    ears: unwanted
+    condition: if the project has fewer than DEFAULT_MIN_FEATURES_FOR_DESIGN features
+    action: 'emit nothing — a small or early project may legitimately defer its architecture and capabilities'
+    text: If the project has fewer than the design threshold of features, the system shall not flag empty design artifacts, so small projects are never nagged.
+    test_refs: [tests/stages/hollow-governance.test.ts]
+  - id: AC-003
+    ears: ubiquitous
+    action: 'count ALL features regardless of status (status-blind), unlike PLANNED_BACKLOG which counts only planned/in_progress'
+    response: 'the design-tier gap appeared on all-done feature sets (the A/B builds), where a status-aware mirror of PLANNED_BACKLOG would no-op; HOLLOW_GOVERNANCE is deliberately status-blind on the total feature count'
+    text: The system shall count all features regardless of lifecycle status when deciding whether the design tier has grown stale, so an all-done feature set still triggers the check.
+    test_refs: [tests/stages/hollow-governance.test.ts]
+  - id: AC-004
+    ears: unwanted
+    condition: if a design artifact file is missing entirely
+    action: 'leave it to ABSENCE_OF_GOVERNANCE rather than double-reporting'
+    text: If spec/capabilities.yaml or spec/architecture.yaml is absent, the system shall not flag it here — existence is ABSENCE_OF_GOVERNANCE's concern; this detector owns present-but-empty content only.
+    test_refs: [tests/stages/hollow-governance.test.ts]
