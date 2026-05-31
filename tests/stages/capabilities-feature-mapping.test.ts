@@ -86,14 +86,14 @@ describe('CAPABILITIES_FEATURE_MAPPING detector', () => {
         'capabilities:',
         '  - id: auth',
         '    title: "Auth"',
-        '    features: [F-001, F-doesnotexist]',
+        '    features: [F-001, F-999000]',
         '',
       ].join('\n'),
     );
     const findings = capabilitiesFeatureMapping.run({cwd: dir});
     const errors = findings.filter((f) => f.severity === 'error');
     expect(errors.length).toBe(1);
-    expect(errors[0].message).toContain('F-doesnotexist');
+    expect(errors[0].message).toContain('F-999000');
     expect(errors[0].message).toContain('does not exist');
   });
 
@@ -176,7 +176,7 @@ describe('CAPABILITIES_FEATURE_MAPPING detector', () => {
         '    features: []',
         '  - id: bad',
         '    title: "Bad"',
-        '    features: [F-bad]',
+        '    features: [F-999000]',
         '',
       ].join('\n'),
     );

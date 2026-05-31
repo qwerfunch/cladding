@@ -210,6 +210,26 @@ export interface Inventory {
   readonly last_synced?: string;
 }
 
+/** Where a capability surfaces to its consumer. */
+export type CapabilitySurface = 'feature' | 'platform' | 'tool' | 'infrastructure';
+
+/**
+ * One Tier-B capability — a user-facing or platform-level grouping that
+ * `features[]` implement. Loaded from `spec/capabilities.yaml` into the typed
+ * Spec so it is schema-validated at parse time (not just read ad-hoc by a
+ * detector). `CAPABILITIES_FEATURE_MAPPING` validates each `features[]` id
+ * resolves to a real feature. Added v0.4.x (J2 of the SSoT-audit roadmap).
+ */
+export interface Capability {
+  /** kebab-slug id, unique within capabilities.yaml. */
+  readonly id: string;
+  readonly title?: string;
+  readonly summary?: string;
+  readonly surface?: CapabilitySurface;
+  /** Feature ids that implement this capability. */
+  readonly features?: readonly string[];
+}
+
 /** Root SSoT document. */
 export interface Spec {
   /** Schema version. Bumped on breaking shape change. */
@@ -218,6 +238,11 @@ export interface Spec {
   readonly features: readonly Feature[];
   readonly scenarios?: readonly Scenario[];
   readonly architecture?: Architecture;
+  /**
+   * Tier-B capabilities, merged from `spec/capabilities.yaml`. Optional —
+   * a small project may have none. Added v0.4.x (J2).
+   */
+  readonly capabilities?: readonly Capability[];
   /**
    * Auto-maintained shard counts. `clad sync` rewrites this block on
    * every run. Added v0.3.56 (F-5b9f9f).

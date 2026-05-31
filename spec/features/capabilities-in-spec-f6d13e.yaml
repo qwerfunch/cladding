@@ -1,0 +1,31 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-f6d13e
+slug: capabilities-in-spec
+title: Tier-B capabilities are schema-validated + loaded into the typed Spec (v0.4.x, J2)
+status: done
+modules:
+  - src/spec/types.ts
+  - src/spec/schema.json
+  - src/spec/load.ts
+depends_on:
+  - F-f44d1b
+acceptance_criteria:
+  - id: AC-001
+    ears: event
+    condition: when a spec is loaded and spec/capabilities.yaml is present
+    action: 'merge its capabilities[] array into the typed Spec.capabilities so it is schema-validated at parse time'
+    response: 'load.ts loads the capabilities array (out of the {schema, source, capabilities} wrapper) into the Spec, mirroring the architecture single-file load; the audit found Tier B had no schema and was read ad-hoc by one detector only'
+    text: When a project's spec is loaded with a capabilities file present, the system shall merge its capabilities into the typed Spec where the schema validates each entry.
+    test_refs: [tests/spec/load.test.ts]
+  - id: AC-002
+    ears: unwanted
+    condition: if a capability declares an invalid shape (e.g. an unknown surface value)
+    action: 'fail spec validation at load time rather than silently tolerating it'
+    text: If a capability is malformed, the system shall raise a parse-time validation error, so Tier B is held to the same schema authority as Tier A.
+    test_refs: [tests/spec/load.test.ts]
+  - id: AC-003
+    ears: ubiquitous
+    action: 'validate each capability feature reference against the F-id pattern, consistent with how scenario feature references are validated'
+    response: 'schema.json definitions.capability mirrors the scenario feature-ref pattern; CAPABILITIES_FEATURE_MAPPING remains the authority on reference EXISTENCE (a well-formed but absent id is its error, not a schema reject)'
+    text: The system shall validate capability feature references with the same F-id pattern used for scenarios, leaving existence checks to CAPABILITIES_FEATURE_MAPPING.
+    test_refs: [tests/stages/capabilities-feature-mapping.test.ts]

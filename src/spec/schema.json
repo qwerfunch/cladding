@@ -88,6 +88,11 @@
       "items": {"$ref": "#/definitions/scenario"}
     },
     "architecture": {"$ref": "#/definitions/architecture"},
+    "capabilities": {
+      "type": "array",
+      "description": "Tier-B capabilities merged from spec/capabilities.yaml — user-facing/platform groupings that features[] implement.",
+      "items": {"$ref": "#/definitions/capability"}
+    },
     "inventory": {
       "type": "object",
       "additionalProperties": false,
@@ -171,6 +176,21 @@
         "slug": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$"},
         "title": {"type": "string", "minLength": 1},
         "flow": {"type": "string"},
+        "features": {
+          "type": "array",
+          "items": {"type": "string", "pattern": "^F-(\\d{3,}|[a-f0-9]{6,})$"}
+        }
+      }
+    },
+    "capability": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$"},
+        "title": {"type": "string"},
+        "summary": {"type": "string"},
+        "surface": {"type": "string", "enum": ["feature", "platform", "tool", "infrastructure"]},
         "features": {
           "type": "array",
           "items": {"type": "string", "pattern": "^F-(\\d{3,}|[a-f0-9]{6,})$"}

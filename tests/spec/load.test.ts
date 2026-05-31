@@ -105,3 +105,54 @@ describe('loadSpec', () => {
     expect(spec.features[0].id).toBe('F-001');
   });
 });
+
+// J2 — Tier B capabilities are merged from spec/capabilities.yaml into the typed
+// Spec and schema-validated at parse time (not just read ad-hoc by a detector).
+describe('loadSpec — capabilities (Tier B)', () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'clad-load-cap-'));
+    writeFileSync(
+      join(dir, 'spec.yaml'),
+      'schema: "0.1"\nproject: {name: x, language: typescript}\n' +
+        'features:\n  - id: F-001\n    title: t\n    status: done\n',
+    );
+    mkdirSync(join(dir, 'spec'), {recursive: true});
+  });
+  afterEach(() => {
+    rmSync(dir, {recursive: true, force: true});
+  });
+
+  test('merges the capabilities[] array into spec.capabilities', () => {
+    writeFileSync(
+      join(dir, 'spec', 'capabilities.yaml'),
+      'schema: "0.1"\nsource: spec.yaml\ncapabilities:\n' +
+        '  - id: auth\n    title: Auth\n    surface: feature\n    features: [F-001]\n',
+    );
+    const spec = loadSpec(dir);
+    expect(spec.capabilities).toHaveLength(1);
+    expect(spec.capabilities?.[0].id).toBe('auth');
+    expect(spec.capabilities?.[0].surface).toBe('feature');
+  });
+
+  test('absent capabilities.yaml → spec.capabilities undefined', () => {
+    const spec = loadSpec(dir);
+    expect(spec.capabilities).toBeUndefined();
+  });
+
+  test('empty capabilities seed (capabilities: []) loads as an empty array', () => {
+    writeFileSync(join(dir, 'spec', 'capabilities.yaml'), 'schema: "0.1"\ncapabilities: []\n');
+    const spec = loadSpec(dir);
+    // `[]` is falsy-length so the loader leaves it absent rather than [] — either
+    // way the design tier is empty; HOLLOW_GOVERNANCE owns flagging that.
+    expect(spec.capabilities ?? []).toHaveLength(0);
+  });
+
+  test('a malformed capability is now a parse-time validation error (J2 win)', () => {
+    writeFileSync(
+      join(dir, 'spec', 'capabilities.yaml'),
+      'schema: "0.1"\ncapabilities:\n  - id: bad\n    surface: not-a-valid-surface\n',
+    );
+    expect(() => loadSpec(dir)).toThrow();
+  });
+});

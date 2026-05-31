@@ -97,8 +97,10 @@ and architecture each get one *empty-tolerant* soft detector; scenarios get only
   `capabilities`/`architecture.layers` present-but-empty → `warn`, strict-blocking). Closes the
   two-layer Vacuous Green; division of labour with ABSENCE (existence) vs HOLLOW (present-but-empty).
   Verified: arm B (23 feat) → 2 warns, B2 (6) → 0, cladding (full tiers) → 0. Shard F-f44d1b (done).
-- [ ] **J2 · 🔴 capabilities → `schema.json` + `Spec`** — permissive optional schema + `load.ts` merge,
-  so Tier B gets parse-time validation.
+- [x] **J2 · 🔴 capabilities → `schema.json` + `Spec`** — `Capability` type + `definitions.capability`
+  + `load.ts` merges `spec/capabilities.yaml` into `Spec.capabilities`, so Tier B is schema-validated
+  at parse time (a malformed capability now fails `loadSpec`). Feature-ref pattern matches scenarios;
+  existence stays CAPABILITIES_FEATURE_MAPPING's job. Shard F-f6d13e (done).
 - [ ] **J3 · 🔴 `depends_on` cycle detection** — error on any cycle.
 - [ ] **J4 · 🔴 reconcile `ssot-model.md` with code** — fix the scenario-binding claim, the
   `layer.modules` dead-link note, the `intent_summary` redundancy.

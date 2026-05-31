@@ -19,7 +19,7 @@ import {existsSync, readdirSync} from 'node:fs';
 import {dirname, join} from 'node:path';
 
 import {parseSpec} from './parse.js';
-import type {Architecture, Feature, Scenario, Spec} from './types.js';
+import type {Architecture, Capability, Feature, Scenario, Spec} from './types.js';
 import {assertSpec} from './validate.js';
 
 interface PartialSpec {
@@ -28,6 +28,7 @@ interface PartialSpec {
   features?: readonly Feature[];
   scenarios?: readonly Scenario[];
   architecture?: Architecture;
+  capabilities?: readonly Capability[];
 }
 
 function loadDirectory<T>(dir: string): T[] {
@@ -79,6 +80,20 @@ export function loadSpec(cwd: string = '.', specPath: string = 'spec.yaml'): Spe
     const archPath = join(specDir, 'architecture.yaml');
     if (existsSync(archPath)) {
       (partial as Record<string, unknown>).architecture = parseSpec(archPath) as Architecture;
+    }
+  }
+
+  // Capabilities: load the `capabilities` array out of `spec/capabilities.yaml`
+  // (a `{schema, source, capabilities}` wrapper) when the master has none inline,
+  // so Tier B is merged into the typed Spec and schema-validated at parse time
+  // rather than only read ad-hoc by a detector. Added v0.4.x (J2).
+  if (!partial.capabilities || partial.capabilities.length === 0) {
+    const capPath = join(specDir, 'capabilities.yaml');
+    if (existsSync(capPath)) {
+      const capFile = parseSpec(capPath) as {capabilities?: readonly Capability[]};
+      if (capFile && Array.isArray(capFile.capabilities)) {
+        (partial as Record<string, unknown>).capabilities = capFile.capabilities;
+      }
     }
   }
 
