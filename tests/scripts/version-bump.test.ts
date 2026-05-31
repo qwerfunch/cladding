@@ -1,9 +1,9 @@
 // Cladding · unit tests for scripts/version-bump.mjs (F-090)
 //
 // Tests run the script in a synthetic project tree (tmpdir with the
-// eight version-bearing files at exactly the same relative paths the
+// nine version-bearing files at exactly the same relative paths the
 // real script expects). Verifies:
-//   - all eight files updated atomically
+//   - all nine files updated atomically
 //   - idempotent (running with current version is a no-op)
 //   - invalid SemVer rejected
 //   - missing anchor in a file raises a clear error
@@ -56,6 +56,13 @@ function seedProject(dir: string, version: string): void {
     join(dir, 'spec.yaml'),
     `schema: "0.1"\nproject:\n  name: probe\n  version: "${version}"\n`,
   );
+  // 9th site (v0.5.x): .claude-plugin/marketplace.json — the catalog the Claude
+  // Code host reads for "update available"; nested under plugins[0].version.
+  mkdirSync(join(dir, '.claude-plugin'), {recursive: true});
+  writeFileSync(
+    join(dir, '.claude-plugin', 'marketplace.json'),
+    `{\n  "name": "probe",\n  "plugins": [\n    {\n      "name": "claude-code",\n      "version": "${version}"\n    }\n  ]\n}\n`,
+  );
 }
 
 function runScript(
@@ -85,11 +92,11 @@ describe('version-bump.mjs (F-090, v0.3.15)', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('happy path — bumps all eight files atomically', () => {
+  test('happy path — bumps all nine files atomically', () => {
     seedProject(dir, '0.3.14');
     const result = runScript(dir, ['0.3.15']);
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain('8 files updated to 0.3.15');
+    expect(result.stdout).toContain('9 files updated to 0.3.15');
 
     expect(readFileSync(join(dir, 'package.json'), 'utf8')).toContain('"version": "0.3.15"');
     expect(readFileSync(join(dir, 'plugins', 'claude-code', '.claude-plugin', 'plugin.json'), 'utf8')).toContain('"version": "0.3.15"');
@@ -99,6 +106,7 @@ describe('version-bump.mjs (F-090, v0.3.15)', () => {
     expect(readFileSync(join(dir, 'src', 'serve', 'server.ts'), 'utf8')).toContain("'0.3.15'");
     expect(readFileSync(join(dir, 'tests', 'cli', 'clad.test.ts'), 'utf8')).toContain("'0.3.15'");
     expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).toContain('  version: "0.3.15"');
+    expect(readFileSync(join(dir, '.claude-plugin', 'marketplace.json'), 'utf8')).toContain('"version": "0.3.15"');
   });
 
   test('idempotent — running with same version is a no-op', () => {

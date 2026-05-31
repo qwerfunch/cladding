@@ -4,7 +4,7 @@
 // layers (v0.3.5+, F-080):
 //   1. detector count (Claude Code plugin.json current.detectors)
 //   2. per-host manifest schema (name/version/description required)
-//   3. cross-manifest version drift (package.json ↔ 3 host manifests)
+//   3. cross-manifest version drift (package.json ↔ 3 host manifests + marketplace catalog)
 //
 // Regression target (v0.2.4): bumped detector count 19 → 20 when
 // FIXTURE_REFERENCE_INVALID landed. Regression target (v0.3.5):
@@ -59,6 +59,14 @@ function writeGeminiManifest(
 function writeDetectorFile(dir: string, name: string): void {
   mkdirSync(join(dir, 'src', 'stages', 'detectors'), {recursive: true});
   writeFileSync(join(dir, 'src', 'stages', 'detectors', name), `// ${name}\nexport const x = 1;\n`);
+}
+
+function writeMarketplace(dir: string, version: string, name = 'claude-code'): void {
+  mkdirSync(join(dir, '.claude-plugin'), {recursive: true});
+  writeFileSync(
+    join(dir, '.claude-plugin', 'marketplace.json'),
+    JSON.stringify({name: 'cladding', plugins: [{name, source: './x', version}]}),
+  );
 }
 
 describe('HARNESS_INTEGRITY · detector count (v0.2.4)', () => {
@@ -258,5 +266,36 @@ describe('HARNESS_INTEGRITY · cross-manifest version drift (F-080)', () => {
         f.message.includes("version='0.3.4'"),
     );
     expect(claudeDrift).toHaveLength(1);
+  });
+
+  test('marketplace.json catalog matches package.json → no version finding', () => {
+    writePackageJson(dir, '0.3.5');
+    writeManifest(dir, null, '0.3.5');
+    writeMarketplace(dir, '0.3.5');
+    const findings = harnessIntegrity.run({cwd: dir});
+    const versionFindings = findings.filter((f) => f.message.includes('version='));
+    expect(versionFindings).toEqual([]);
+  });
+
+  test('marketplace.json catalog lags package.json → error (the stale-catalog gap)', () => {
+    writePackageJson(dir, '0.5.0');
+    writeManifest(dir, null, '0.5.0');
+    writeMarketplace(dir, '0.4.0'); // catalog advertises a stale release
+    const findings = harnessIntegrity.run({cwd: dir});
+    const marketDrift = findings.filter(
+      (f) =>
+        f.severity === 'error' &&
+        f.message.includes('marketplace') &&
+        f.message.includes("version='0.4.0'"),
+    );
+    expect(marketDrift).toHaveLength(1);
+  });
+
+  test('marketplace.json absent → marketplace check skipped silently', () => {
+    writePackageJson(dir, '0.5.0');
+    writeManifest(dir, null, '0.5.0');
+    const findings = harnessIntegrity.run({cwd: dir});
+    const marketDrift = findings.filter((f) => f.message.includes('marketplace'));
+    expect(marketDrift).toEqual([]);
   });
 });

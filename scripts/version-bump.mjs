@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Cladding · version bump script (v0.3.15, F-090).
 //
-// Atomically bumps the version string across the seven files where
+// Atomically bumps the version string across the nine files where
 // it lives so two contributors don't have to manually hand-edit each
 // location and risk drifting them. HARNESS_INTEGRITY already catches
 // post-hoc drift, but doing the bump in one shot avoids the catch
@@ -14,7 +14,7 @@
 // The script:
 //   1. validates the target version against SemVer (major.minor.patch)
 //   2. reads the current version from package.json
-//   3. updates all seven sites with a literal string replace
+//   3. updates all nine sites with a literal string replace
 //   4. prints a summary of what changed
 //
 // It does NOT touch CHANGELOG.md, git, or run the build. Those are
@@ -89,6 +89,17 @@ const SITES = [
     'spec.yaml',
     /  version: "(\d+\.\d+\.\d+)"/,
     (v) => `  version: "${v}"`,
+  ),
+  // 9. .claude-plugin/marketplace.json — the marketplace CATALOG entry the
+  //    Claude Code host reads to detect "update available". Nested under
+  //    plugins[0].version; it is the only "version" key in the file, so the
+  //    shared anchor is unambiguous. It is NOT a HOST manifest, so
+  //    HARNESS_INTEGRITY checks it via a dedicated marketplace branch — keeping
+  //    it here means the catalog can never silently lag the release again.
+  siteFor(
+    '.claude-plugin/marketplace.json',
+    /"version": "(\d+\.\d+\.\d+)"/,
+    (v) => `"version": "${v}"`,
   ),
 ];
 

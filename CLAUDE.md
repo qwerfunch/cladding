@@ -25,7 +25,7 @@ Files `F-082` ~ `F-090` were the *drift period* (authored after v0.3.9 but bypas
 
 ## Version bumps — use the script
 
-Don't hand-edit version strings. There are seven sites; missing one breaks `HARNESS_INTEGRITY`. Run:
+Don't hand-edit version strings. There are nine sites (incl. `.claude-plugin/marketplace.json`, the marketplace *catalog* the Claude Code host reads to detect "update available"); missing one breaks `HARNESS_INTEGRITY` (which now also guards the marketplace catalog version). Run:
 
 ```bash
 npm run version-bump -- 0.3.X
@@ -44,14 +44,18 @@ When you add a drift detector under `src/stages/detectors/`:
 
 ## Release flow
 
-A user-explicit instruction ("release vX.Y.Z") triggers the four-step ritual:
+A user-explicit instruction ("release vX.Y.Z") triggers the ritual:
 
-1. develop → main fast-forward
-2. `git tag vX.Y.Z`
-3. push main + tag
-4. `gh release create vX.Y.Z --notes-file <CHANGELOG section>`
+1. `npm run version-bump -- X.Y.Z` (all nine sites) + `npm run build` + GREEN `npm test` / `clad check --strict`
+2. develop → main fast-forward
+3. `git tag vX.Y.Z`
+4. push main + tag
+5. **`npm publish`** — existing users install the engine via the global npm `clad`, so a tag + `gh release` alone does NOT reach them; the registry must carry the new version or they stay frozen on the old one. (`prepublishOnly` rebuilds dist + mirrors first, so the tarball is never stale.)
+6. `gh release create vX.Y.Z --notes-file <CHANGELOG section>`
 
-Never auto-tag or auto-release. Patch-first cadence — minor bumps (0.4.0 etc.) need explicit user confirmation.
+The marketplace plugin (Claude Code / Codex / Gemini) ships only the prompts + the `mcpServers` wiring and delegates the engine to the global `clad` — so **both channels must be released in lockstep**: `npm publish` for the engine, the bumped `marketplace.json` catalog (step 1) for the plugin's "update available" signal.
+
+Never auto-tag, auto-publish, or auto-release. Patch-first cadence — minor bumps (0.4.0 etc.) need explicit user confirmation.
 
 ## AI behavior guidance from `spec.yaml.project.ai_hints`
 

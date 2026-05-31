@@ -62,7 +62,8 @@
     "build": "node scripts/build.mjs && node scripts/build-plugin.mjs",
     "build:plugin": "node scripts/build-plugin.mjs",
     "version-bump": "node scripts/version-bump.mjs",
-    "prepare": "node -e \"require('node:fs').existsSync('dist/clad.js') || require('node:child_process').execSync('npm run build', {stdio: 'inherit'})\""
+    "prepare": "node -e \"require('node:fs').existsSync('dist/clad.js') || require('node:child_process').execSync('npm run build', {stdio: 'inherit'})\"",
+    "prepublishOnly": "npm run build"
   },
   "devDependencies": {
     "@secretlint/secretlint-rule-preset-recommend": "^13.0.2",

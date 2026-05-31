@@ -16,10 +16,12 @@
 //
 //   3. Cross-manifest version drift — `package.json`,
 //      `.claude-plugin/plugin.json`, `plugins/codex/.codex-plugin/
-//      plugin.json`, and `plugins/gemini-cli/gemini-extension.json`
+//      plugin.json`, `plugins/gemini-cli/gemini-extension.json`, and the
+//      `.claude-plugin/marketplace.json` catalog entry (`plugins[].version`,
+//      the version the Claude Code host reads to detect "update available")
 //      must all carry the same `version` string. Any pair in
 //      disagreement trips an error finding so a release can't ship
-//      with a half-bumped manifest set.
+//      with a half-bumped manifest set or a stale marketplace catalog.
 //
 // Filesystem-based rather than importing `allDetectors`, on purpose:
 // importing the registry would create a circular dependency the
@@ -50,6 +52,11 @@ interface PluginManifest {
 interface PackageJson {
   name?: string;
   version?: string;
+}
+
+/** Root `.claude-plugin/marketplace.json` — the catalog the Claude Code host reads. */
+interface MarketplaceManifest {
+  plugins?: ReadonlyArray<{name?: string; version?: string}>;
 }
 
 interface HostManifestSpec {
@@ -176,6 +183,29 @@ function checkVersionConsistency(cwd: string, findings: DriftFinding[]): void {
       });
     }
   }
+  // Marketplace catalog entry (root .claude-plugin/marketplace.json) — the
+  // version the Claude Code host reads to decide "update available". It is a
+  // version-bump SITE but lives outside HOSTS (nested under plugins[].version),
+  // so it is checked here explicitly; otherwise it silently lags and the catalog
+  // advertises a stale release (the 0.4.0-vs-0.5.0 drift that prompted this).
+  const marketAbs = join(cwd, '.claude-plugin', 'marketplace.json');
+  if (existsSync(marketAbs)) {
+    const market = readJsonIfPresent<MarketplaceManifest>(marketAbs);
+    for (const entry of market?.plugins ?? []) {
+      if (!entry?.version) continue;
+      if (entry.version !== baseline) {
+        findings.push({
+          detector: NAME,
+          severity: 'error',
+          message:
+            `marketplace: .claude-plugin/marketplace.json plugin '${entry.name ?? '?'}' ` +
+            `version='${entry.version}' but package.json version='${baseline}' — ` +
+            `the catalog advertises a stale version; bump it in lockstep`,
+        });
+      }
+    }
+  }
+
   // NOTE: spec.yaml project.version is kept in lockstep by `npm run
   // version-bump` (it is now a managed SITE — see scripts/version-bump.mjs).
   // A *detector*-level spec.yaml-vs-package.json check is intentionally NOT
