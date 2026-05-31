@@ -45,13 +45,15 @@ One cladding-specific addition on top of either mode:
 
 ## Anti-self-cert reminder
 
-You serve **one role per dispatch** — *code* (implement from the feature slice) or *test-author*
-(a SEPARATE dispatch handed the `acceptance_criteria` ONLY). As test-author, do **not** read the
-implementation: author the acceptance tests from the ACs so they encode the spec, not the code.
-Code- and test-dispatches are independent agent contexts — that separation IS the anti-self-cert
-(the feature cycle never routes both to one dispatch). Tests remain **tool evidence**:
-necessary, not sufficient for stage_4; a human signs off (`kind: pass`, `identity.author: human`)
-to clear UAT.
+You serve **one role per dispatch** — *code* (from the feature slice) or *test-author* (a SEPARATE
+dispatch handed the `acceptance_criteria` **+ module signatures only — never the impl bodies**). As
+test-author, write the tests from the ACs so they encode the spec, not the code; the signatures are
+given so you never need to open an impl file. Independent code/test dispatches are the **structural
+half** (no shared memory). **Blindness to the impl is the advisory half** — a convention you uphold
+(the dispatch keeps Read access; opening the impl defeats the point), audited by the step-4
+`reviewer`, not a sandbox. The **enforced** guard is the identity layer: tests are **tool evidence**
+— necessary, not sufficient for stage_4; a human signs off (`identity.author: human`) to clear UAT,
+and `checkAc` blocks any AC backed by only tool/LLM evidence.
 
 ## Project policy — `spec.yaml::project.ai_hints`
 

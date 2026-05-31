@@ -34,9 +34,18 @@ say-so alone, never skip a `▣`.
    feature in its own worktree. `clad checkpoint <featureId>` first so a failed cycle rolls back.
 
 3. **TEST — independent author.** A *separate* `specialists` dispatch — handed the feature's
-   `acceptance_criteria` **only** (never the implementation) — authors the acceptance tests bound
-   to each AC's `test_refs`. Implementer ≠ test-author = independent contexts → Principle 2 (audit
-   separation) is **structural**: the tests encode the spec, not the code.
+   `acceptance_criteria` **plus the module signatures (types / API surface) only, never the
+   implementation bodies** — authors the acceptance tests bound to each AC's `test_refs`.
+   Implementer ≠ test-author = independent contexts, so neither shares the other's working memory:
+   *that much* is structural. The stronger property — tests that encode the spec, not the code —
+   rests on the test-author staying **blind to the implementation**, and that blindness is
+   **advisory, not sandboxed**: the dispatch keeps Read access, so the separation holds only as far
+   as the prompt (ACs + signatures, no impl) and the step-4 reviewer's audit carry it. Hand it the
+   signatures precisely so it never *needs* to open an impl file. (cladding's *enforced*
+   anti-self-cert is the identity layer — `checkAc` requires human evidence before stage_4, and the
+   drive loop halts when reviewer identity equals the implementer's — not a guarantee that the
+   test-author never peeked. An A/B run found test-authors reading repository files in 4/4 features
+   despite the instruction; the reviewer remains the backstop.)
    - ▣ **Barrier:** `clad check --tier=pre-push --strict` — type / lint / unit / cov **and** drift
      (MISSING_IMPLEMENTATION, UNTESTED_AC, MISSING_TESTS, STATUS_DRIFT). Zero error-severity ⇒
      proceed; else loop back to 2/3 until green.

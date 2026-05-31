@@ -25,9 +25,9 @@ acceptance_criteria:
     evidence_refs: [docs/feature-cycle.md, src/agents/orchestrator.md]
   - id: AC-003
     ears: ubiquitous
-    action: 'author acceptance tests in a SEPARATE specialists dispatch handed the acceptance_criteria only, distinct from the code dispatch'
-    response: 'src/agents/specialists.md defines one-role-per-dispatch (code | test-author) and forbids the test-author from reading the implementation; the cycle never routes both roles to one dispatch, so the code-author and test-author are independent agent contexts — anti-self-cert is structural, not a name check'
-    text: The system shall author a feature''s acceptance tests in an independent agent dispatch that sees only the acceptance criteria, so the tests encode the spec rather than the implementation.
+    action: 'author acceptance tests in a SEPARATE specialists dispatch handed the acceptance_criteria + module signatures (not the implementation), distinct from the code dispatch'
+    response: 'src/agents/specialists.md defines one-role-per-dispatch (code | test-author): the test-author is handed the acceptance_criteria + module signatures only and instructed not to read the implementation, and the cycle never routes both roles to one dispatch, so the two are independent agent contexts with no shared memory (the structural half). Test-author blindness to the implementation is advisory — the dispatch keeps Read access, so it is upheld by the prompt + the reviewer''s audit, not a sandbox; the enforced anti-self-cert is the identity layer (checkAc requires human evidence before stage_4; the drive loop halts when reviewer identity equals the implementer''s)'
+    text: The system shall author a feature''s acceptance tests in an independent agent dispatch handed only the acceptance criteria and module signatures, so the tests are authored from the spec rather than the implementation.
     evidence_refs: [src/agents/specialists.md, docs/feature-cycle.md]
   - id: AC-004
     ears: ubiquitous

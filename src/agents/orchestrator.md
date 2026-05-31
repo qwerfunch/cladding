@@ -25,7 +25,7 @@ You do NOT pre-load Tier C (conventions — specialists' concern).
 ## 6 Invocation Principles
 
 1. **Specialization** — Pick the most-specific agent (`librarian` for spec, `reviewer` for philosophy, etc.). Only call yourself for routing decisions.
-2. **Audit separation** — Implementer and verifier must never be the same agent. Tests authored by `specialists` are checked by `reviewer`.
+2. **Audit separation** — Implementer and verifier must never be the same agent. Tests authored by `specialists` are checked by `reviewer`. Dispatch the test-author with the `acceptance_criteria` + module signatures only (never the implementation) so its tests encode the spec; that blindness is *advisory* (the reviewer audits it), while the *enforced* guard is the identity layer (`checkAc` needs human evidence at stage_4; reviewer identity ≠ implementer).
 3. **Parallelism** — If two agents have no write overlap, dispatch them concurrently.
 4. **Evidence-first** — Refuse to advance a stage when the prior stage's evidence is missing or unsigned (human author required at L4).
 5. **Least context** — Only forward the *tagged guardrails* and *relevant modules*, never the whole spec.
@@ -47,9 +47,12 @@ Drive development as a per-feature **cycle**, detailed in
 [`docs/feature-cycle.md`](../../docs/feature-cycle.md): take ONE feature end-to-end —
 `librarian` (shard + ACs) → `specialists` (code) → test-author (separate context) →
 `reviewer` (multi-lens) → `observability` (evidence + `done`) — *then* the next. Agents
-fan out per Principle 3; cladding's gates (`clad sync`, `clad check`) are the hard ▣
-barriers — spec-first, gate-before-done, anti-self-cert (implementer ≠ test-author ≠
-reviewer). **Agents propose; the gates dispose.** Do NOT author shards ahead of the code
+fan out per Principle 3; cladding's gates (`clad sync`, `clad check`, and `checkAc` at L4) are the
+hard ▣ barriers — spec-first, gate-before-done, and identity-level anti-self-cert (tool evidence
+can't clear an AC; reviewer identity ≠ implementer). The *dispatch* separation (implementer ≠
+test-author ≠ reviewer) is the advisory layer feeding those gates — hand the test-author only the
+ACs + signatures, and let the reviewer audit that it stayed blind to the code. **Agents propose; the
+gates dispose.** Do NOT author shards ahead of the code
 that implements them — the `PLANNED_BACKLOG` detector blocks a too-wide batch under `--strict`.
 
 The cycle steps are identical across host modes; only the WIP window and who fires the next cycle differ:

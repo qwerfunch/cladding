@@ -39,8 +39,8 @@ function budget(maxLines: number, maxChars: number): SizeBudget {
 export const PERSONA_BUDGETS = {
   'src/agents/orchestrator.md': budget(107, 8000),  // baseline 96/7153 — v0.4.x reshaped recipe→feature-cycle + mode gloss (F-3b3690)
   'src/agents/librarian.md': budget(75, 4500),       // baseline 68/4149 — v0.3.59 added Project policy section (F-0ed2db)
-  'src/agents/specialists.md': budget(75, 4000),     // baseline 68/3602 — v0.3.59 added Project policy section (F-0ed2db)
-  'src/agents/reviewer.md': budget(80, 4000),        // baseline 70/3439 — v0.3.59 added Project policy section (F-0ed2db)
+  'src/agents/specialists.md': budget(80, 4600),     // baseline 76/4246 — v0.5.x honest anti-self-cert: advisory blindness vs enforced identity layer + interface-stub (F-3b3690)
+  'src/agents/reviewer.md': budget(85, 4900),        // baseline 81/4533 — v0.5.x reviewer owns the advisory blindness audit no gate enforces (F-3b3690)
   'src/agents/observability.md': budget(60, 3500),   // baseline 50/3115 — v0.3.59 added Project policy section (F-0ed2db)
 } as const;
 

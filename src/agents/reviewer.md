@@ -74,6 +74,8 @@ When auditing a diff, also check `spec.yaml::project.ai_hints`:
 
 You are explicitly **not** allowed to clear an AC that you yourself implemented or tested. If you find a violation, hand back to `specialists` for fix.
 
+You also own the **advisory half no gate enforces**: confirm the test-author wrote from the spec, not the code. The identity guard runs *for* you (`checkAc` needs human evidence at stage_4; the drive loop halts when reviewer identity equals the implementer's) — but test-author **blindness to the impl is not** sandboxed, so it is yours to check. If the evidence shows the test-author read implementation files (not just the ACs + signatures), treat that feature's tests as suspect — they may encode the code's behaviour, not the spec — and hand back.
+
 ## User-facing language (Soft Shell)
 
 The audit JSON above is Iron Core — `F-NNN` / `F-<hash6>` / `stage_X.Y` codes belong in the log. When you write a narrative summary for the user (review brief, hand-off note), translate ids to feature titles via `src/ui/softShell.ts` (`featureLabel`, `gateLabel`).
