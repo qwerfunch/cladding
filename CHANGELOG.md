@@ -5,6 +5,71 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] — 2026-05-31 — No Vacuous Green: honest gates, the per-feature cadence, and an enforced SSoT
+
+**The theme: a gate that passes must mean the work was actually verified.** This release closes a
+family of "Vacuous Green" holes — places where `clad check` went green without checking anything —
+and turns the 4-tier SSoT from an advisory model into an enforced one. It also reshapes development
+around a per-feature cadence (spec → code → test → gated done → next) and gives the design tier a
+real authoring path. The drift-detector set grows **28 → 33**.
+
+### Added
+
+- **`clad done <featureId>`** — the honest-done floor. `status: done` was just the host writing YAML,
+  so a feature could be "done" while the strict gate was red. `clad done` flips the shard, runs
+  `clad check --tier=pre-push --strict` with the feature evaluated as done (flip-then-gate, so the
+  done-aware detectors apply), and keeps `done` only if GREEN — reverting otherwise. `runCheckCommand`
+  was split into a shared `runCheckStages`, so the done gate is provably the check gate.
+- **`clad_link_capability`** (MCP tool #7) — the deterministic Tier-B firing path. A capability is
+  *accumulative*, so the verb is `link` (upsert a feature into a capability, creating it if absent),
+  not `create`. Establishes the authoring verb taxonomy: **create** an entity (feature/scenario) ·
+  **link** a relationship (capability) · **refine** a document (architecture/project-context).
+- **Tier-B `capabilities` in the schema + typed `Spec`** — `spec/capabilities.yaml` is now merged
+  into the loaded Spec and JSON-Schema-validated at parse time (a malformed capability fails
+  `loadSpec`), instead of being read ad-hoc by one soft detector.
+- **5 new drift detectors** — `PLANNED_BACKLOG` (#29, too many code-less planned features = the spec
+  racing ahead of the code), `HOLLOW_GOVERNANCE` (#30, a grown project with an empty
+  `capabilities`/`architecture` design tier), `DEPENDENCY_CYCLE` (#31, a circular `depends_on` graph
+  that silently deadlocks the drive loop), `SCENARIO_COVERAGE` (#32, a grown project with no scenarios
+  / a hollow scenario), `PROJECT_CONTEXT_DRIFT` (#33, a `project-context.md` still on the unrefined
+  init template).
+- **The per-feature cadence as the cycle** — `docs/feature-cycle.md` (the orchestrator's per-feature
+  loop, mode-adaptive across conversational / single-feature / `/goal` / headless), the
+  "Feature cycle — one at a time" rule in the always-loaded CLAUDE.md + AGENTS templates, and the
+  orchestrator persona's mode gloss.
+- **`docs/ssot-audit.md`** — the recorded SSoT document-system audit (necessity / structure / firing /
+  enforcement) and its fix roadmap. Hash-model **acceptance-criterion ids** (`AC-<hash6>`) for
+  multi-dev merge safety, matching the feature/scenario hash model.
+
+### Changed
+
+- **`clad_create_feature` / `clad_create_scenario`** author rich shards (acceptance_criteria, modules,
+  flow) instead of empty stubs, and auto-sync the `inventory:` block on every create.
+- **Greenfield init seeds a high-quality baseline** — documented `docBlockRatio`, module purpose
+  headers, a "Why > What" conventions section, and a lean-core architecture note (greenfield only;
+  existing projects keep their observed conventions).
+- **`INVENTORY_DRIFT`** now also warns when the `inventory:` block is *absent* on a project with shards
+  (previously a free pass), closing the hollow-spec loophole from the absent side.
+- **`docs/ssot-model.md`** reconciled with code — dropped the false "`clad_create_feature` binds
+  scenarios" claim, documented the create/link/refine verb taxonomy, and moved the now-built detectors
+  from deferred to enforced.
+
+### Fixed (Vacuous Green closures)
+
+- A stage that RAN and failed can no longer pass as a "skip" (exit-2 vs exit-1 discipline).
+- Missing secret/architecture scanners now skip honestly (info), never false-report green.
+- A hollow `done` feature (no modules, no acceptance criteria) fails the gate (`STATUS_DRIFT`).
+- A present-but-broken `spec.yaml` fails `ABSENCE_OF_GOVERNANCE` instead of slipping through.
+- The two-layer design-tier Vacuous Green (empty seeds passing existence + empty-content checks) is
+  closed by `HOLLOW_GOVERNANCE`.
+
+### Why v0.5.0 (minor bump)
+
+Substantial additive, backward-compatible surface: a new CLI verb (`clad done`), a new MCP tool
+(`clad_link_capability`), 5 new detectors, capabilities in the schema, and hash-model AC ids (the
+schema accepts both legacy `AC-NNN` and the new hash). Existing specs, shards, and gates keep working;
+the new signals are `warn`-by-default (blocking only under `--strict`). No breaking changes.
+
 ## [0.4.0] — 2026-05-27 — `clad setup` command — split npm install from host wire (F-80d19d)
 
 **Reverting F-90d054's npm `postinstall` side effect.** v0.3.60 made `npm install -g cladding` automatically wire four host AI channels in `$HOME` (`~/.claude/`, `~/.gemini/`, `~/.codex/`, `~/.agents/`). The convenience was real — npm-path users got `/cladding init` for free — but the cost was steep: every npm install touched four global directories whether or not the user had those AI tools, CI sandboxes needed `CLADDING_SKIP_POSTINSTALL=1`, and `clad init` carried a fallback retry path. v0.4.0 splits the responsibility: install is install, wire is wire.
