@@ -481,6 +481,17 @@ clad setup                  # AI 도구 자동 연결 (Claude / Codex / Gemini)<
   <h3>init 한 번이면 끝</h3>
   <p>cladding 의 목표는 <em>spec ↔ 코드 어긋남을 막는 인프라가 되는 것</em> — init 이후로는 평소처럼 개발하면 된다. AI 도구가 spec 을 참조하며 코드를 짜고, <code>clad check</code> 가 CI · pre-commit hook 에서 자동으로 돌아 어긋남이 있으면 차단한다. 추가 수동 명령 불필요.</p>
 
+  <h3>업그레이드</h3>
+  <p>cladding 은 업그레이드 방식이 다른 <strong>두 부분</strong> 으로 나뉜다:</p>
+  <ul>
+    <li><strong>엔진</strong> (<code>clad</code> 바이너리, detector, schema, 페르소나) — <em>당신</em> 이 올린다: <code>npm update -g cladding</code> (마켓플레이스 사용자는 <code>claude plugin update</code> 도). host wire 는 새 설치를 따라가는 심링크이고, cladding 이 당신 레포에 쓴 파일 (<code>spec.yaml</code>, <code>CLAUDE.md</code>, docs) 은 <strong>당신의 데이터</strong> — 알아서 바뀌지 않는다.</li>
+    <li><strong>그 이후</strong> — <strong>프로젝트 안에서</strong> 한 번의 멱등 명령으로 정합한다:</li>
+  </ul>
+  <pre><code>npm update -g cladding     # 1. 엔진 업그레이드 — 어디서든
+cd &lt;your project&gt;          # 2. clad update 는 ONE 프로젝트(현재 디렉토리)만 정합
+clad update                # 3. cladding 이 이 프로젝트를 정합</code></pre>
+  <p><code>clad update</code> 는 <strong>현재 디렉토리</strong> 를 정합한다 (그러니 업데이트할 프로젝트마다 <code>cd</code> — 머신 전체를 훑지 않는다). host 재배선, <code>inventory:</code> 스냅샷 갱신, cladding 관리 구역의 <code>CLAUDE.md</code> / <code>AGENTS.md</code> 갱신(당신 본문은 보존 — staleness 기반, 무조건 덮어쓰기 아님) 후, <strong>강화된 detector 가 무엇을 잡는지 — 차단도 spec 수정도 없이 — 보고</strong> 한다. 더 엄격해진 릴리스가 당신 프로젝트를 조용히 실패시키지 못하고, 정합은 당신의 결정으로 남는다. (엔진 self-update 는 안 한다 — 그건 위의 <code>npm</code> 단계, 의도된 것.)</p>
+
   <!-- ─────────────── Status ─────────────── -->
   <h2>Status</h2>
 

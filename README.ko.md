@@ -286,6 +286,21 @@ cd <project>              # 다음 단계(/cladding:init)를 위해 — clad set
 
 cladding 의 목표는 *spec ↔ 코드 어긋남을 막는 인프라가 되는 것* — init 이후로는 평소처럼 개발하면 된다. AI 도구가 spec 을 참조하며 코드를 짜고, `clad check` 가 CI · pre-commit hook 에서 자동으로 돌아 어긋남이 있으면 차단한다. 추가 수동 명령 불필요.
 
+### 업그레이드
+
+cladding 은 업그레이드 방식이 다른 **두 부분** 으로 나뉜다:
+
+- **엔진** (`clad` 바이너리, detector, schema, 페르소나) — *당신* 이 올린다: `npm update -g cladding` (마켓플레이스 사용자는 `claude plugin update` 도). host wire 는 새 설치를 따라가는 심링크이고, cladding 이 당신 레포에 쓴 파일 (`spec.yaml`, `CLAUDE.md`, docs) 은 **당신의 데이터** — 알아서 바뀌지 않는다.
+- **그 이후** — **프로젝트 안에서** 한 번의 멱등 명령으로 정합한다:
+
+```
+npm update -g cladding     # 1. 엔진 업그레이드 — 어디서든
+cd <your project>          # 2. clad update 는 ONE 프로젝트(현재 디렉토리)만 정합
+clad update                # 3. cladding 이 이 프로젝트를 정합
+```
+
+`clad update` 는 **현재 디렉토리** 를 정합한다 (그러니 업데이트할 프로젝트마다 `cd` — 머신 전체를 훑지 않는다). host 재배선, `inventory:` 스냅샷 갱신, cladding 관리 구역의 `CLAUDE.md` / `AGENTS.md` 갱신(당신 본문은 보존 — staleness 기반, 무조건 덮어쓰기 아님) 후, **강화된 detector 가 무엇을 잡는지 — 차단도 spec 수정도 없이 — 보고** 한다. 더 엄격해진 릴리스가 당신 프로젝트를 조용히 실패시키지 못하고, 정합은 당신의 결정으로 남는다. (엔진 self-update 는 안 한다 — 그건 위의 `npm` 단계, 의도된 것.)
+
 ## Status
 
 <table style="margin:0 auto;border:none">
