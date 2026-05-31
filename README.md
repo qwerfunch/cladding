@@ -198,7 +198,7 @@ The 4 steps that wrap Spec → Code → Test into a single cycle. Merge if drift
 
 ## Multi-Agent Workflow
 
-cladding is a **5-agent system** working in concert. Each agent has a clear role under **CQS** (Command-Query Separation — the agents that *do* are kept apart from the agents that *verify*), so no agent can sign off on its own work. This is the foundation that maps cleanly to compliance regimes (EU AI Act · K-AI Framework · SOX).
+cladding is a **5-agent system** working in concert. The agents that *build* are kept separate from the agents that *verify* — so no agent ever signs off on its own work. That split maps cleanly to compliance regimes (EU AI Act · K-AI Framework · SOX).
 
 <div align="center">
 
@@ -274,7 +274,7 @@ Inside your project, run it once from your AI tool:
 [inside your AI tool] /cladding:init "B2B payment SaaS"
 ```
 
-This creates `spec.yaml` and the 4-tier docs. One-time per project.
+This creates your project's `spec.yaml` and its supporting docs — one time per project.
 
 ### Three init scenarios
 
@@ -288,17 +288,17 @@ This creates `spec.yaml` and the 4-tier docs. One-time per project.
 
 ### Init once, then carry on
 
-cladding's goal is to *be the infrastructure that prevents spec ↔ code drift* — after init, you just keep coding. The AI references the spec while it writes, and `clad check` runs automatically in CI or as a pre-commit hook to block anything that drifts. No extra commands to remember.
+Run init once and you're set — after that, just keep coding. cladding works in the background to keep your code and spec in sync, so there are no extra commands to remember.
 
 ### Upgrading
 
 ```
-npm update -g cladding     # 1. upgrade the engine (marketplace: also `claude plugin update`)
-cd <your project>          # 2. clad update is per-project — cd into each one
-clad update                # 3. reconcile this project
+npm update -g cladding     # 1. install the new cladding (marketplace: also `claude plugin update`)
+cd <your project>          # 2. once per project
+clad update                # 3. bring this project in line with the new version
 ```
 
-`clad update` reconnects your AI tools and refreshes the parts cladding manages — the `inventory:` count and the cladding section of `CLAUDE.md` / `AGENTS.md` — and leaves what you wrote alone. It then just **shows** what the newer, stricter checks flag — it never blocks and never edits your `spec.yaml`.
+After upgrading, run `clad update` once in each project. It never changes your code, `spec.yaml`, or docs, so it's always safe — and if the newer version is stricter, it just **points that out** (it won't block or fix anything).
 
 <!-- ─────────────── Status ─────────────── -->
 ## Status

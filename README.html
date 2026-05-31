@@ -403,7 +403,7 @@
 
   <!-- ─────────────── Multi-Agent Workflow ─────────────── -->
   <h2>Multi-Agent Workflow</h2>
-  <p>cladding is a <strong>5-agent system</strong> working in concert. Each agent has a clear role under <strong>CQS</strong> (Command-Query Separation — the agents that <em>do</em> are kept apart from the agents that <em>verify</em>), so no agent can sign off on its own work. This is the foundation that maps cleanly to compliance regimes (EU AI Act · K-AI Framework · SOX).</p>
+  <p>cladding is a <strong>5-agent system</strong> working in concert. The agents that <em>build</em> are kept separate from the agents that <em>verify</em> — so no agent ever signs off on its own work. That split maps cleanly to compliance regimes (EU AI Act · K-AI Framework · SOX).</p>
   <div class="diagram">
     <img src="docs/img/en/multi-agent.svg" alt="5 personas with CQS — orchestrator dispatches, librarian/specialist/reviewer act, observability watches metrics" width="680">
   </div>
@@ -463,7 +463,7 @@ clad setup                  # connect your AI tools (Claude / Codex / Gemini)</c
   <h3 id="step-2--init-create-the-project-spec">Step 2 — Init (create the project spec)</h3>
   <p>Inside your project, run it once from your AI tool:</p>
   <pre><code>[inside your AI tool] /cladding:init "B2B payment SaaS"</code></pre>
-  <p>This creates <code>spec.yaml</code> and the 4-tier docs. One-time per project.</p>
+  <p>This creates your project's <code>spec.yaml</code> and its supporting docs — one time per project.</p>
 
   <h3>Three init scenarios</h3>
   <p><code>/cladding:init</code> takes a natural-language intent and picks the right path on its own. Same command, three starting points.</p>
@@ -479,13 +479,13 @@ clad setup                  # connect your AI tools (Claude / Codex / Gemini)</c
   </table>
 
   <h3>Init once, then carry on</h3>
-  <p>cladding's goal is to <em>be the infrastructure that prevents spec ↔ code drift</em> — after init, you just keep coding. The AI references the spec while it writes, and <code>clad check</code> runs automatically in CI or as a pre-commit hook to block anything that drifts. No extra commands to remember.</p>
+  <p>Run init once and you're set — after that, just keep coding. cladding works in the background to keep your code and spec in sync, so there are no extra commands to remember.</p>
 
   <h3>Upgrading</h3>
-  <pre><code>npm update -g cladding     # 1. upgrade the engine (marketplace: also `claude plugin update`)
-cd &lt;your project&gt;          # 2. clad update is per-project — cd into each one
-clad update                # 3. reconcile this project</code></pre>
-  <p><code>clad update</code> reconnects your AI tools and refreshes the parts cladding manages — the <code>inventory:</code> count and the cladding section of <code>CLAUDE.md</code> / <code>AGENTS.md</code> — and leaves what you wrote alone. It then just <strong>shows</strong> what the newer, stricter checks flag — it never blocks and never edits your <code>spec.yaml</code>.</p>
+  <pre><code>npm update -g cladding     # 1. install the new cladding (marketplace: also `claude plugin update`)
+cd &lt;your project&gt;          # 2. once per project
+clad update                # 3. bring this project in line with the new version</code></pre>
+  <p>After upgrading, run <code>clad update</code> once in each project. It never changes your code, <code>spec.yaml</code>, or docs, so it's always safe — and if the newer version is stricter, it just <strong>points that out</strong> (it won't block or fix anything).</p>
 
   <!-- ─────────────── Status ─────────────── -->
   <h2>Status</h2>

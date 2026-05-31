@@ -195,7 +195,7 @@ Spec → Code → Test 를 한 cycle 로 묶는 4 step. drift 가 0 이면 merge
 
 ## Multi-Agent Workflow
 
-cladding 은 **5 명의 에이전트가 협업하는 다중 에이전트 (multi-agent) 시스템**. 각 에이전트는 명확한 역할 분담 — **CQS** (Command-Query Separation, *명령하는 역할* 과 *검증하는 역할* 의 분리) — 으로 자기가 짠 작업은 자기가 승인할 수 없다. 규제 · 감사 (EU AI Act · K-AI 기본법 · SOX) 기준에 그대로 매핑된다.
+cladding 은 **5 명의 에이전트가 협업하는 다중 에이전트 시스템**. **만드는** 에이전트와 **검증하는** 에이전트가 분리돼 있어, 어떤 에이전트도 자기가 짠 작업을 스스로 승인하지 못한다. 이 분리는 규제 · 감사 (EU AI Act · K-AI 기본법 · SOX) 기준에 그대로 매핑된다.
 
 <div align="center">
 
@@ -270,7 +270,7 @@ cd <project>              # 다음 단계(/cladding:init)를 위해 — clad set
 [AI 도구 안] /cladding:init "B2B 결제 SaaS"
 ```
 
-`spec.yaml` + 4-tier 문서가 자동 생성됩니다. 프로젝트당 한 번.
+프로젝트의 `spec.yaml` 과 관련 문서가 만들어진다 — 프로젝트당 한 번.
 
 ### 세 가지 init 시나리오
 
@@ -284,17 +284,17 @@ cd <project>              # 다음 단계(/cladding:init)를 위해 — clad set
 
 ### init 한 번이면 끝
 
-cladding 의 목표는 *spec ↔ 코드 어긋남을 막는 인프라가 되는 것* — init 이후로는 평소처럼 개발하면 된다. AI 도구가 spec 을 참조하며 코드를 짜고, `clad check` 가 CI · pre-commit hook 에서 자동으로 돌아 어긋남이 있으면 차단한다. 추가 수동 명령 불필요.
+한 번 init 하면 그걸로 끝 — 그 뒤론 평소처럼 개발하면 된다. cladding 이 배경에서 코드와 spec 이 어긋나지 않게 지켜주니, 따로 외울 명령은 없다.
 
 ### 업그레이드
 
 ```
-npm update -g cladding     # 1. 엔진 업그레이드 (마켓플레이스는 claude plugin update 도)
-cd <your project>          # 2. clad update 는 프로젝트별 — 각 프로젝트로 cd
-clad update                # 3. 이 프로젝트를 정합
+npm update -g cladding     # 1. cladding 새 버전 설치 (마켓플레이스: claude plugin update)
+cd <your project>          # 2. 프로젝트마다 한 번씩
+clad update                # 3. 새 버전에 맞게 정리
 ```
 
-`clad update` 는 AI 도구 연결과 cladding 이 관리하는 부분(`inventory:` 수치, `CLAUDE.md`/`AGENTS.md` 의 cladding 영역)만 맞춰주고, 당신이 직접 쓴 `spec.yaml`·문서는 건드리지 않는다. 그런 다음, 새 버전에서 더 깐깐해진 검사가 무엇을 짚는지 **보여주기만** 한다 — 막지도, 고치지도 않는다.
+업그레이드 후 프로젝트마다 `clad update` 를 한 번 돌리면 된다. 당신이 쓴 코드·`spec.yaml`·문서는 그대로 두니 안전하고, 새 버전이 더 깐깐해 짚을 게 있으면 **알려만** 준다 (막거나 고치지 않음).
 
 ## Status
 
