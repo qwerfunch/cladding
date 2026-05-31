@@ -12,6 +12,7 @@ import {Command} from 'commander';
 
 import {classifyIntent} from '../router/intent.js';
 import {runDoctorCommand} from './doctor.js';
+import {performDone} from './done.js';
 import {runInit} from './init.js';
 import {runRefineCommand} from './refine.js';
 import {runHostSetup} from '../init/host-setup.js';
@@ -326,14 +327,27 @@ export const TIER_STAGES: Record<string, readonly string[]> = {
   all: ['stage_1.1', 'stage_1.2', 'stage_1.3', 'stage_1.4', 'stage_1.5', 'stage_1.6', 'stage_2.1', 'stage_2.2', 'stage_3.1', 'stage_3.2', 'stage_3.3', 'stage_4.1', 'stage_4.2'],
 };
 
-/** Handler for `clad check`. Runs the tier's Iron Law stages; exits with worst code. */
-export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tier?: string}): void {
+/** Outcome of running a tier's stages — exported so `clad done` can gate on
+ *  the identical code path `clad check` uses (not a weaker re-implementation). */
+export interface CheckOutcome {
+  /** Worst exit code across the run stages (0 = all green/skip). */
+  readonly worst: number;
+  /** True when at least one stage RAN and failed (exitCode 1). */
+  readonly anyFailed: boolean;
+}
+
+/**
+ * Runs a tier's Iron Law stages in-process and reports the worst exit code.
+ * Shared by `clad check` (which wraps it with `process.exit`) and `clad done`
+ * (which gates the status flip on it), so the two verify against the SAME stage
+ * pipeline.
+ */
+export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier?: string}): CheckOutcome {
   const tier = opts.tier ?? 'all';
   const allowed = TIER_STAGES[tier];
   if (!allowed) {
     pulse('fail', 'check', `unknown --tier '${tier}' (expected: pre-commit | pre-push | all)`);
-    process.exit(2);
-    return;
+    return {worst: 2, anyFailed: true};
   }
   const allStages = [
     ['stage_1.1', runType],
@@ -380,7 +394,23 @@ export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tie
   if (anyFailed) {
     process.stdout.write('\nℹ Run `clad doctor` for the event log, or `clad sync` to validate spec shards. Drift findings above name the offending detector.\n');
   }
-  process.exit(worst);
+  return {worst, anyFailed};
+}
+
+/** Handler for `clad check`. Runs the tier's Iron Law stages; exits with worst code. */
+export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tier?: string}): void {
+  process.exit(runCheckStages(opts).worst);
+}
+
+/**
+ * Handler for `clad done <featureId>`. Gates the `status: done` transition on a
+ * GREEN `clad check --tier=pre-push --strict` (flip → gate → keep-or-revert),
+ * so `done` cannot claim more than the gate verifies. @see cli/done.ts
+ */
+export function runDoneCommand(featureId: string): void {
+  const r = performDone('.', featureId, {checkStages: runCheckStages});
+  pulse(r.ok ? 'pass' : 'fail', `done · ${featureId}`, r.reason);
+  process.exit(r.code);
 }
 
 function printStageDetails(r: {
@@ -498,6 +528,11 @@ export function createProgram(): Command {
     .command('checkpoint <featureId>')
     .description('Record a checkpoint event pinning git HEAD + spec digest for the feature (iron-law §2.5)')
     .action(runCheckpointCommand);
+
+  program
+    .command('done <featureId>')
+    .description('Mark a feature done ONLY if `clad check --tier=pre-push --strict` is GREEN (flip → gate → revert-on-red). Keeps `done` honest.')
+    .action(runDoneCommand);
 
   program
     .command('rollback <featureId>')

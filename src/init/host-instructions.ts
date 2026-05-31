@@ -31,11 +31,13 @@ This project is managed by **cladding** — the Spec-Anchored Agent Harness.
 
 Work ONE feature end-to-end before starting the next: author its shard
 **with** \`acceptance_criteria\` (+ \`modules\`) → implement → author its
-tests in a separate context → \`clad check --tier=pre-push --strict\`
-GREEN → only then the next feature. Do NOT author feature shards ahead of
-the code that implements them. Independent features (no shared
-\`modules\`) may run as parallel instances of this same cycle. Enforced by
-the \`PLANNED_BACKLOG\` detector; rationale in \`docs/feature-cycle.md\`.
+tests in a separate context → mark it done with \`clad done <featureId>\`
+(it sets \`status: done\` ONLY when \`clad check --tier=pre-push --strict\`
+is GREEN, reverting otherwise) → only then the next feature. Do NOT author
+feature shards ahead of the code, and do NOT hand-write \`status: done\`.
+Independent features (no shared \`modules\`) may run as parallel instances
+of this same cycle. Enforced by the \`PLANNED_BACKLOG\` detector; rationale
+in \`docs/feature-cycle.md\`.
 
 ## Persona separation (anti-self-cert)
 
@@ -65,10 +67,12 @@ own work (anti-self-cert invariant).
 
 **Feature cycle — one at a time** — Work ONE feature end-to-end before
 the next: author its shard with \`acceptance_criteria\` (+ \`modules\`) →
-implement → author tests (separate context) →
-\`clad check --tier=pre-push --strict\` GREEN → only then the next. Do NOT
-author shards ahead of the code that implements them. Independent features
-(no shared \`modules\`) may run as parallel instances of this same cycle.
+implement → author tests (separate context) → mark it done with
+\`clad done <featureId>\` (it flips \`status: done\` ONLY if
+\`clad check --tier=pre-push --strict\` is GREEN, reverting otherwise) →
+only then the next. Do NOT author shards ahead of the code that implements
+them, and do NOT hand-write \`status: done\`. Independent features (no
+shared \`modules\`) may run as parallel instances of this same cycle.
 Enforced by the \`PLANNED_BACKLOG\` detector; see \`docs/feature-cycle.md\`.
 
 **Hash-based IDs** — Never hand-author \`F-NNN\` filenames; use the

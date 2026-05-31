@@ -47,9 +47,12 @@ say-so alone, never skip a `▣`.
    - ▣ **Barrier:** reviewer **consensus** (≥ majority `passes`) **and** the step-3 gate still
      green. A reviewer that implemented or tested the feature may not clear it.
 
-5. **DONE — `observability`.** Record per-AC evidence to `.cladding/audit.log.jsonl`; flip
-   `status: done` **only now**; `clad sync` keeps the inventory honest. Sign-off identity ≠ any
-   implementer (independent agent, or a human at L4 / UAT). **Then start the next feature's cycle.**
+5. **DONE — `observability`.** Record per-AC evidence to `.cladding/audit.log.jsonl`, then flip
+   the feature to done with **`clad done <featureId>`** — it re-runs the pre-push strict gate with
+   the feature evaluated as done and writes `status: done` **only if that gate is GREEN**, reverting
+   otherwise. Do not hand-write `status: done`: the verb is what keeps "done" from claiming more than
+   the gate verifies. `clad sync` keeps the inventory honest. Sign-off identity ≠ any implementer
+   (independent agent, or a human at L4 / UAT). **Then start the next feature's cycle.**
 
 ## Parallelism = N concurrent instances of this same cycle
 

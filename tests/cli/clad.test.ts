@@ -409,7 +409,7 @@ describe('cli/clad — handler exports', () => {
 });
 
 describe('cli/clad — createProgram', () => {
-  test('returns a Command with all 13 verbs registered', () => {
+  test('returns a Command with all 14 verbs registered', () => {
     const program = clad.createProgram();
     const names = program.commands.map((c) => c.name());
     expect(names).toEqual([
@@ -420,6 +420,7 @@ describe('cli/clad — createProgram', () => {
       'setup',
       'check',
       'checkpoint',
+      'done',
       'rollback',
       'panel',
       'route',

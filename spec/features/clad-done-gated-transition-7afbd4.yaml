@@ -1,0 +1,34 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-7afbd4
+slug: clad-done-gated-transition
+title: clad done — the gated done-transition (honest done floor, v0.4.x)
+status: done
+modules:
+  - src/cli/done.ts
+depends_on:
+  - F-3788c2
+acceptance_criteria:
+  - id: AC-001
+    ears: event
+    condition: when `clad done <featureId>` runs and `clad check --tier=pre-push --strict` is GREEN
+    action: 'flip the feature shard status to done and report the strict gate passed'
+    text: When clad done runs for a feature and the pre-push strict gate is GREEN, the system shall set that feature's status to done and exit 0.
+    test_refs: [tests/cli/done.test.ts]
+  - id: AC-002
+    ears: unwanted
+    condition: if the pre-push strict gate is not GREEN
+    action: 'revert the shard to its exact prior bytes and leave the status unchanged'
+    text: If the strict gate is not GREEN, the system shall revert the shard byte-for-byte, leave the status unchanged, and exit non-zero — done is never claimed beyond what the gate verifies.
+    test_refs: [tests/cli/done.test.ts]
+  - id: AC-003
+    ears: event
+    condition: when clad done gates a feature
+    action: 'flip the status to done BEFORE running the gate so done-aware detectors (UNTESTED_AC, MISSING_TESTS) evaluate the feature as done'
+    text: When clad done gates a feature, the system shall flip the status to done before invoking the gate, so the done-aware detectors evaluate the feature's test evidence.
+    test_refs: [tests/cli/done.test.ts]
+  - id: AC-004
+    ears: ubiquitous
+    action: 'run the done gate through the same runCheckStages pipeline that clad check uses, not a weaker re-implementation'
+    response: 'src/cli/clad.ts extracts runCheckStages (shared by clad check and clad done); the done gate is provably the clad check gate at tier=pre-push --strict'
+    text: The system shall gate the done-transition through the same stage pipeline that clad check runs, so the floor cannot be weaker than the gate it claims.
+    test_refs: [tests/cli/done.test.ts]
