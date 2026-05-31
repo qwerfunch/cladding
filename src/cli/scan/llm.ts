@@ -110,7 +110,7 @@ export function buildPrompt(scan: ScanResult): string {
     '',
     '=== ARCHITECTURE_YAML ===',
     'Write spec/architecture.yaml. Schema:',
-    '  layers: [{name, modules:[<glob>], forbidden_imports:[<layer>]}, ...]',
+    '  layers: [{name, forbidden_imports:[<layer>]}, ...]',
     'Use the observed import graph to infer forbidden_imports (pairs',
     'never seen in the graph become candidates). Add a 1-line comment',
     'per layer summarising its responsibility.',

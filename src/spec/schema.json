@@ -141,7 +141,7 @@
       "required": ["id"],
       "additionalProperties": false,
       "properties": {
-        "id": {"type": "string", "pattern": "^AC-\\d{3,}$"},
+        "id": {"type": "string", "pattern": "^AC-(\\d{3,}|[a-f0-9]{6,})$"},
         "condition": {"type": "string"},
         "action": {"type": "string"},
         "response": {"type": "string"},

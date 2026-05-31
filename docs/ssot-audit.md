@@ -110,7 +110,19 @@ and architecture each get one *empty-tolerant* soft detector; scenarios get only
   (schema-loaded) + HOLLOW_GOVERNANCE; added the v0.4.x detectors (INVENTORY_DRIFT, PLANNED_BACKLOG,
   HOLLOW_GOVERNANCE, DEPENDENCY_CYCLE, AI_HINTS_FORBIDDEN_PATTERN) to the enforced list and noted
   what the deferred detectors now partly cover. (`layer.modules` dead-link + `intent_summary` collapse → J5.)
-- [ ] **J5 · 🟡 MED, as scope allows** — AC hash-ids (dual pattern), `layer.modules` consume-or-remove,
-  collapse `intent_summary` into `description`.
+- [x] **J5a · 🟡 AC hash-ids** — schema accepts `^AC-(\d{3,}|[a-f0-9]{6,})$` (dual, legacy `AC-NNN`
+  still valid) and `clad_create_feature` now generates `AC-<hash6>` (the AC-tier analogue of the
+  feature/scenario hash model), so two devs adding ACs to one shard on separate branches no longer
+  collide on `AC-001`.
+- [x] **J5b · 🟡 `layer.modules` dead link** — the LLM onboarding prompts no longer emit the
+  unconsumed `modules:[<glob>]` field, and `ArchitectureLayerObject.modules` is documented as
+  ADVISORY (not enforced). *Follow-up:* make `ARCHITECTURE_FROM_SPEC` consume the globs to turn it
+  into a live binding (deferred — a real detector enhancement, not a doc fix).
+- [~] **J5c · 🟢 `intent_summary` vs `description`** — DEFERRED with rationale. The adversarial verifier
+  found these byte-identical only in *auto-seeded* specs (`clad init` seeds both from `oneLine(intent)`);
+  cladding's own spec uses them distinctly (`description` = identity, `intent_summary` = the measurable
+  claim). The redundancy is a SEEDING duplication, not a schema flaw — the better fix is to seed them
+  distinctly, not to remove a field that has a legitimate (human-facing) use. Removing a schema field
+  for a cosmetic dedup isn't worth the churn across types/schema/init/spec/tests.
 
 *This document is the living record of the journey; each item is ticked as its fix lands.*

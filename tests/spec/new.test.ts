@@ -167,11 +167,13 @@ describe('createFeature — rich authoring (modules + acceptance_criteria)', () 
     const parsed = parseYaml(readFileSync(r.path, 'utf8'));
     expect(parsed.modules).toEqual(['src/auth/login.ts', 'src/auth/session.ts']);
     expect(parsed.acceptance_criteria).toHaveLength(2);
-    expect(parsed.acceptance_criteria[0].id).toBe('AC-001');
+    // AC ids are hash-model (AC-<hash6>) for multi-dev merge safety, like F-/S- ids.
+    expect(parsed.acceptance_criteria[0].id).toMatch(/^AC-[0-9a-f]{6}$/);
+    expect(parsed.acceptance_criteria[1].id).toMatch(/^AC-[0-9a-f]{6}$/);
+    expect(parsed.acceptance_criteria[0].id).not.toBe(parsed.acceptance_criteria[1].id);
     expect(parsed.acceptance_criteria[0].ears).toBe('ubiquitous');
     expect(parsed.acceptance_criteria[0].text).toContain('shall authenticate');
     expect(parsed.acceptance_criteria[0].test_refs).toEqual(['tests/auth/login.test.ts']);
-    expect(parsed.acceptance_criteria[1].id).toBe('AC-002');
     expect(parsed.acceptance_criteria[1].condition).toContain('invalid');
     expect(parsed.status).toBe('in_progress');
   });

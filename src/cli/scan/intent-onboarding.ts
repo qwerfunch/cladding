@@ -203,7 +203,7 @@ export function buildOnboardingPrompt(
     '',
     '=== ARCHITECTURE_YAML ===',
     'Full body for spec/architecture.yaml. Schema:',
-    '  layers: [{name, modules:[<glob>], forbidden_imports:[<layer>]}, ...]',
+    '  layers: [{name, forbidden_imports:[<layer>]}, ...]',
     'Tailor layers to the domain + language. Favor a lean, efficient',
     'structure — a pure, dependency-light core and no premature layers',
     '(a layer must earn its existence). Add a 1-line comment per layer',

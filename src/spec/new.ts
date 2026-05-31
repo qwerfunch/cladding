@@ -26,8 +26,9 @@ const SLUG_PATTERN = /^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/;
 
 /**
  * One acceptance criterion supplied at feature-creation time. `id` is
- * auto-assigned (`AC-001`, `AC-002`, …); every other field is optional but
- * constrained to the schema's `acceptance_criterion` properties
+ * auto-assigned as a hash (`AC-<hash6>`) for multi-dev merge safety — the
+ * AC-tier analogue of the feature/scenario hash model; every other field is
+ * optional but constrained to the schema's `acceptance_criterion` properties
  * (additionalProperties:false). Supplying these at creation is what stops a
  * `clad_create_feature` call from producing a hollow stub — the feature lands
  * with real, gate-checkable acceptance criteria, not an empty `[]`.
@@ -178,7 +179,7 @@ function renderYaml(args: {
   } else {
     lines.push('acceptance_criteria:');
     acs.forEach((ac, i) => {
-      lines.push(`  - id: AC-${String(i + 1).padStart(3, '0')}`);
+      lines.push(`  - id: ${generateAcId(args.slug, i, ac)}`);
       if (ac.ears) lines.push(`    ears: ${ac.ears}`);
       if (ac.condition) lines.push(`    condition: ${JSON.stringify(ac.condition)}`);
       if (ac.action) lines.push(`    action: ${JSON.stringify(ac.action)}`);
@@ -214,6 +215,29 @@ function generateFeatureId(slug: string): string {
   ].join('|');
   const hex = createHash('sha256').update(input).digest('hex').slice(0, 6);
   return `F-${hex}`;
+}
+
+/**
+ * Hash-model acceptance-criterion id, the AC-tier analogue of the feature/scenario
+ * hash. Sequential `AC-001`/`AC-002` collide when two developers add an AC to the
+ * same shard on separate branches (both pick the next ordinal); a per-AC hash —
+ * seeded with the slug, the AC index, its prose, and the same machine/clock
+ * entropy as `generateFeatureId` — makes independent additions merge-safe. The
+ * schema accepts both `AC-<hash6>` and the legacy `AC-NNN` (dual pattern).
+ */
+function generateAcId(slug: string, index: number, ac: AcceptanceCriterionInput): string {
+  const input = [
+    slug,
+    'AC',
+    String(index),
+    ac.text ?? ac.action ?? ac.response ?? '',
+    safeUserInfo(),
+    hostname(),
+    String(Date.now()),
+    process.hrtime.bigint().toString(),
+  ].join('|');
+  const hex = createHash('sha256').update(input).digest('hex').slice(0, 6);
+  return `AC-${hex}`;
 }
 
 function safeUserInfo(): string {

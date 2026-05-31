@@ -103,6 +103,14 @@ export interface Scenario {
  */
 export interface ArchitectureLayerObject {
   readonly name?: string;
+  /**
+   * ADVISORY (not yet enforced). Glob(s) naming the files in this layer.
+   * `ARCHITECTURE_FROM_SPEC` currently derives a layer's directory from
+   * `name` (`src/<name>/`) and does NOT consume these globs — so a declared
+   * `modules` is documentation for humans/reviewers, not a live binding. The
+   * LLM onboarding prompts no longer emit it (v0.4.x). Making the detector
+   * consume these globs is a tracked follow-up (docs/ssot-audit.md, J5b).
+   */
   readonly modules?: readonly string[];
   readonly forbidden_imports?: readonly string[];
 }

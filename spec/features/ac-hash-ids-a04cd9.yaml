@@ -1,0 +1,31 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-a04cd9
+slug: ac-hash-ids
+title: Hash-model acceptance-criterion ids + advisory architecture layer.modules (v0.4.x, J5)
+status: done
+modules:
+  - src/spec/new.ts
+  - src/spec/schema.json
+  - src/spec/types.ts
+depends_on:
+  - F-a4b512
+acceptance_criteria:
+  - id: AC-001
+    ears: event
+    condition: when clad_create_feature renders a feature's acceptance_criteria
+    action: 'assign each AC a hash-model id (AC-<hash6>) seeded with the slug, the AC index, and machine/clock entropy'
+    response: 'sequential AC-001/AC-002 collide when two developers add an AC to the same shard on separate branches; the per-AC hash is the AC-tier analogue of the feature/scenario hash model, making independent additions merge-safe'
+    text: When the create tool renders acceptance_criteria, the system shall assign each AC a hash-model id so concurrent additions to one shard do not collide.
+    test_refs: [tests/spec/new.test.ts]
+  - id: AC-002
+    ears: ubiquitous
+    action: 'accept both the legacy sequential AC-NNN and the new AC-<hash6> in the schema (dual pattern), so existing acceptance_criteria stay valid'
+    response: 'schema.json AC id pattern is ^AC-(\\d{3,}|[a-f0-9]{6,})$, mirroring the feature/scenario dual pattern; no existing shard breaks'
+    text: The system shall accept both legacy sequential and hash-model acceptance-criterion ids, so the change is backward-compatible.
+    test_refs: [tests/spec/new.test.ts]
+  - id: AC-003
+    ears: ubiquitous
+    action: 'mark architecture layer.modules as advisory and stop the LLM onboarding prompts from emitting it, since ARCHITECTURE_FROM_SPEC does not consume it'
+    response: 'the dead glob field is removed from the two onboarding prompts and the type documents it as advisory-not-enforced; full consumption is a tracked follow-up rather than a hidden dead link'
+    text: The system shall not generate the unconsumed architecture layer.modules field and shall document it as advisory, so the schema does not invite a link the detector cannot follow.
+    test_refs: [tests/spec/new.test.ts]
