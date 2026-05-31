@@ -66,34 +66,28 @@ writeFileSync(
 );
 console.log(`cladding plugin · claude-code: copied ${claudeGenerated.length} agents → ${CLAUDE_AGENTS}/`);
 
-// v0.4.0 (F-80d19d) + v0.4.x: Claude Code slash commands are reserved for
-// user-INITIATED entry points — not every CLI verb. `init` (start/adopt a
-// project) and `next` (drive the next feature through the cycle) qualify; the
-// rest stay AI-invoked via `clad <verb>`, keeping the slash namespace intentional.
+// v0.4.0 (F-80d19d): Claude Code commands = `init` only (user-facing slash).
+// Other verbs are invoked by the AI via natural language → `clad <verb>` CLI;
+// keeping them out of the slash auto-complete keeps the namespace clean.
 const CLAUDE_COMMANDS = `${CLAUDE_PLUGIN_DIR}/commands`;
 mkdirSync(CLAUDE_COMMANDS, {recursive: true});
-const CLAUDE_SLASH_VERBS = ['init', 'next'];
-const generatedSlash = [];
-for (const verb of CLAUDE_SLASH_VERBS) {
-  const skill = join(SRC_SKILLS, verb, 'SKILL.md');
-  try {
-    statSync(skill);
-    copyFileSync(skill, join(CLAUDE_COMMANDS, `${verb}.md`));
-    generatedSlash.push(`${verb}.md`);
-  } catch {
-    // Missing source skill — log + continue so a partial source tree still builds.
-    console.warn(`cladding plugin · claude-code: ${skill} not found — ${verb} slash command skipped`);
+const initSkill = join(SRC_SKILLS, 'init', 'SKILL.md');
+try {
+  statSync(initSkill);
+  copyFileSync(initSkill, join(CLAUDE_COMMANDS, 'init.md'));
+  // Sweep stale per-verb commands from earlier builds (verb.md files and the
+  // legacy clad.md wrapper).
+  for (const file of readdirSync(CLAUDE_COMMANDS)) {
+    if (file === 'init.md') continue;
+    if (!file.endsWith('.md')) continue;
+    rmSync(join(CLAUDE_COMMANDS, file));
   }
+  console.log(`cladding plugin · claude-code: generated init slash command → ${CLAUDE_COMMANDS}/init.md`);
+} catch {
+  // skills/init/SKILL.md missing — leave the commands dir untouched and log
+  // a warning so the build still completes for partial source trees.
+  console.warn(`cladding plugin · claude-code: ${initSkill} not found — slash command skipped`);
 }
-// Sweep stale commands from earlier builds (verb.md files + the legacy clad.md
-// wrapper) — anything not in the current slash set.
-for (const file of readdirSync(CLAUDE_COMMANDS)) {
-  if (!file.endsWith('.md') || generatedSlash.includes(file)) continue;
-  rmSync(join(CLAUDE_COMMANDS, file));
-}
-console.log(
-  `cladding plugin · claude-code: generated ${generatedSlash.length} slash command(s) [${generatedSlash.join(', ')}] → ${CLAUDE_COMMANDS}/`,
-);
 
 // --- Phase B — Codex mirror (plugins/codex/skills/) -------------------
 

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm -rf /tmp/dogfood-cladding/spec/features /tmp/dogfood-cladding/spec/scenarios/*.yaml /tmp/dogfood-cladding/.cladding/* /tmp/dogfood-cladding/src)",
+      "Bash(mkdir -p /tmp/dogfood-cladding/spec/features /tmp/dogfood-cladding/spec/scenarios)",
+      "Bash(npx tsx *)"
+    ]
+  }
+}
