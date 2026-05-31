@@ -39,12 +39,31 @@ function run(opts: CommandStageOptions): readonly DriftFinding[] {
     return [];
   }
 
-  const declared = spec.inventory;
-  // No inventory block declared (a hand-authored or pre-v0.3.56 spec) → nothing
-  // to drift-check; clad sync writes the block on its next run.
-  if (!declared) return [];
-
   const actual = computeInventory(cwd);
+
+  const declared = spec.inventory;
+  // No inventory block declared. Previously this returned [] — but that let a
+  // hollow spec (shards on disk, no recorded inventory) slip through entirely,
+  // the exact loophole this detector exists to close. So: if the project has any
+  // shards on disk, warn (run `clad sync` to record the block); a genuinely empty
+  // project (0 shards) legitimately needs no inventory and stays silent.
+  if (!declared) {
+    const present = DIMENSIONS.filter(([key]) => (actual[key] ?? 0) > 0);
+    if (present.length === 0) return [];
+    const summary = present.map(([key, label]) => `${actual[key] ?? 0} ${label}`).join(', ');
+    return [
+      {
+        detector: NAME,
+        severity: 'warn',
+        path: 'spec.yaml',
+        message:
+          `spec.yaml has no inventory: block, but the project has ${summary} on disk — ` +
+          'run `clad sync` to record the inventory so anyone reading spec.yaml sees its real scale.',
+      },
+    ];
+  }
+
+
   const findings: DriftFinding[] = [];
   for (const [key, label] of DIMENSIONS) {
     const d = declared[key] ?? 0;

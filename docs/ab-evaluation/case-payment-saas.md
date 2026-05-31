@@ -38,7 +38,7 @@ no spec, no scenarios, no architecture invariants.
 | Architecture layers | 3 | 0 | +3 |
 | Forbidden-import rules | 2 | 0 | +2 |
 | Detector errors | 0 | 1 | -1 |
-| Detector warnings | 5 | 3 | +2 |
+| Detector warnings | 6 | 3 | +3 |
 | Detector infos | 7 | 22 | -15 |
 | Tiered doc files | 2 | 0 | +2 |
 | Tiered docs (lines) | 61 | 0 | +61 |
@@ -54,7 +54,7 @@ no spec, no scenarios, no architecture invariants.
 **Detector outcomes** (META_INTEGRITY + HARDCODED_SECRET excluded — toolchain-only checks):
 
 ```
-A (Cladding) — errors: 0  warns: 5  infos: 7
+A (Cladding) — errors: 0  warns: 6  infos: 7
 
 B (Vanilla)  — errors: 1  warns: 3  infos: 22
   Sample errors:
@@ -77,7 +77,7 @@ B (Vanilla)  — errors: 1  warns: 3  infos: 22
 | Architecture layers | 3 | 0 | +3 |
 | Forbidden-import rules | 2 | 0 | +2 |
 | Detector errors | 1 | 1 | +0 |
-| Detector warnings | 7 | 3 | +4 |
+| Detector warnings | 8 | 3 | +5 |
 | Detector infos | 8 | 22 | -14 |
 | Tiered doc files | 2 | 0 | +2 |
 | Tiered docs (lines) | 61 | 0 | +61 |
@@ -93,7 +93,7 @@ B (Vanilla)  — errors: 1  warns: 3  infos: 22
 **Detector outcomes** (META_INTEGRITY + HARDCODED_SECRET excluded — toolchain-only checks):
 
 ```
-A (Cladding) — errors: 1  warns: 7  infos: 8
+A (Cladding) — errors: 1  warns: 8  infos: 8
   Sample errors:
     - [AC_DRIFT] F-4db939.AC-002 EARS: ears='unwanted' requires condition starting with 'if' — empty
 
@@ -107,7 +107,7 @@ B (Vanilla)  — errors: 1  warns: 3  infos: 22
 - **Structured artifacts**: cladding produces 9 tier-banner-bearing files vs vanilla's 0.
 - **Spec ↔ code traceability**: cladding emits 1 feature(s), 2 AC(s), 2 scenario(s), 3 capability(s); vanilla has 0 of each.
 - **Architecture enforcement**: cladding declares 3 layer(s) with 2 forbidden-import rule(s); vanilla has 0.
-- **Detector behavior**: cladding-managed tree → 1 error(s) / 7 warn(s) / 8 info(s). Vanilla tree → 1 / 3 / 22. The detectors that gate against spec (REFERENCE_INTEGRITY, MISSING_IMPLEMENTATION, ARCHITECTURE_FROM_SPEC, CAPABILITIES_FEATURE_MAPPING) need cladding's artifacts to evaluate — without them they silently pass. The "0 errors on vanilla" therefore is **absence of signal**, not absence of drift.
+- **Detector behavior**: cladding-managed tree → 1 error(s) / 8 warn(s) / 8 info(s). Vanilla tree → 1 / 3 / 22. The detectors that gate against spec (REFERENCE_INTEGRITY, MISSING_IMPLEMENTATION, ARCHITECTURE_FROM_SPEC, CAPABILITIES_FEATURE_MAPPING) need cladding's artifacts to evaluate — without them they silently pass. The "0 errors on vanilla" therefore is **absence of signal**, not absence of drift.
 - **Token cost**: cladding's cumulative artifact + code consumes ~1833 tokens vs vanilla's ~1399 (heuristic chars/4) — Δ ≈ 434 tokens, the price of structure.
 - **Code surface**: vanilla writes 5 source file(s) / 126 LoC + 2 test file(s) / 4 test case(s); cladding writes 1 / 11 + 1 / 1. (Vanilla front-loads code, cladding front-loads spec — both converge by M2.)
 

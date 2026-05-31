@@ -56,9 +56,22 @@ describe('INVENTORY_DRIFT detector', () => {
     expect(inventoryDrift.run({cwd: dir})).toEqual([]);
   });
 
-  test('skips silently when spec.yaml declares no inventory block (older/hand-authored spec)', () => {
+  test('warns when no inventory block is declared but shards exist (closes the absent-block loophole)', () => {
+    // The previous behaviour returned [] here — which let a hollow spec (shards on
+    // disk, no recorded inventory) slip through entirely. It must now nudge `clad sync`.
     writeFileSync(join(dir, 'spec.yaml'), specYaml(null));
     addShard('F-ddd444', 'one');
+    const findings = inventoryDrift.run({cwd: dir});
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe('warn');
+    expect(findings[0].message).toContain('no inventory: block');
+    expect(findings[0].message).toContain('1 feature');
+    expect(findings[0].message).toContain('clad sync');
+  });
+
+  test('skips silently when no inventory block AND no shards (a genuinely empty/fresh project)', () => {
+    writeFileSync(join(dir, 'spec.yaml'), specYaml(null));
+    // no shards added
     expect(inventoryDrift.run({cwd: dir})).toEqual([]);
   });
 
