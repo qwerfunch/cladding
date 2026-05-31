@@ -1,0 +1,30 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-a4b512
+slug: dependency-cycle-detector
+title: DEPENDENCY_CYCLE detector — error on a circular depends_on graph (v0.4.x, J3)
+status: done
+modules:
+  - src/stages/detectors/dependency-cycle.ts
+  - src/stages/detectors/index.ts
+depends_on:
+  - F-f6d13e
+acceptance_criteria:
+  - id: AC-001
+    ears: event
+    condition: when the features depends_on graph contains a cycle
+    action: 'emit one error finding per distinct cycle naming the feature ids on the cycle path'
+    response: 'a cycle leaves every member permanently un-ready, so nextReady (the drive loop) deadlocks and misreports BLOCKED_FEATURE; REFERENCE_INTEGRITY only checks dep existence, never acyclicity — this closes that gap'
+    text: When features[].depends_on contains a cycle, the system shall raise an error finding identifying the cycle so the drive-loop deadlock is caught at the gate.
+    test_refs: [tests/stages/dependency-cycle.test.ts]
+  - id: AC-002
+    ears: unwanted
+    condition: if a depends_on edge points at a feature id that does not exist
+    action: 'ignore that edge for cycle detection rather than treating it as a loop'
+    text: If a depends_on references a non-existent feature, the system shall not treat it as a cycle here — dangling references are REFERENCE_INTEGRITY's concern, so the two detectors do not double-report.
+    test_refs: [tests/stages/dependency-cycle.test.ts]
+  - id: AC-003
+    ears: ubiquitous
+    action: 'report each distinct cycle once (deduped) and classify it error, since a cycle is a hard structural defect that stalls autonomous progress'
+    response: 'the DFS three-colour traversal dedupes by the canonical cycle membership; error severity blocks the gate rather than merely warning'
+    text: The system shall report each distinct dependency cycle exactly once at error severity.
+    test_refs: [tests/stages/dependency-cycle.test.ts]

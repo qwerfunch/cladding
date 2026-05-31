@@ -101,7 +101,10 @@ and architecture each get one *empty-tolerant* soft detector; scenarios get only
   + `load.ts` merges `spec/capabilities.yaml` into `Spec.capabilities`, so Tier B is schema-validated
   at parse time (a malformed capability now fails `loadSpec`). Feature-ref pattern matches scenarios;
   existence stays CAPABILITIES_FEATURE_MAPPING's job. Shard F-f6d13e (done).
-- [ ] **J3 · 🔴 `depends_on` cycle detection** — error on any cycle.
+- [x] **J3 · 🔴 `DEPENDENCY_CYCLE` detector (#31)** — DFS three-colour cycle detection over
+  `features[].depends_on`; error per distinct cycle (deduped). Only edges to existing features are
+  traversed (dangling deps stay REFERENCE_INTEGRITY's job). Closes the silent `nextReady` deadlock.
+  Shard F-a4b512 (done).
 - [ ] **J4 · 🔴 reconcile `ssot-model.md` with code** — fix the scenario-binding claim, the
   `layer.modules` dead-link note, the `intent_summary` redundancy.
 - [ ] **J5 · 🟡 MED, as scope allows** — AC hash-ids (dual pattern), `layer.modules` consume-or-remove,
