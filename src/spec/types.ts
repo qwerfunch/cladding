@@ -74,6 +74,8 @@ export interface AcceptanceCriterion {
 export interface Feature {
   /** Stable id, e.g. `F-001`. */
   readonly id: string;
+  /** Kebab-slug (the shard filename stem); optional on legacy `F-NNN` shards. */
+  readonly slug?: string;
   readonly title: string;
   readonly status: FeatureStatus;
   /** File paths this feature touches. */

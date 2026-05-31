@@ -28,3 +28,10 @@ acceptance_criteria:
     response: 'the signal rides the existing warn/strict dial; a small project under the threshold with no scenarios is silent'
     text: The system shall classify scenario-coverage findings as warn — advisory locally, blocking under --strict.
     test_refs: [tests/stages/scenario-coverage.test.ts]
+  - id: AC-004
+    ears: event
+    condition: when a scenario's flow names a feature by its slug that the scenario does not bind in features[]
+    action: 'warn that the scenario is under-bound (its declared coverage under-states the flow it walks), naming the unbound feature(s)'
+    response: 'the A/B re-measurement surfaced a scenario that named 10 features in its flow but bound 7; exact-slug matching against real features means free prose and non-slug parentheticals never false-fire'
+    text: When a scenario's flow references a feature slug it does not bind, the system shall warn that the scenario under-states its coverage.
+    test_refs: [tests/stages/scenario-coverage.test.ts]

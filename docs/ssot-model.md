@@ -166,7 +166,7 @@ Detector-enforced (today + this cycle):
 - **`HOLLOW_GOVERNANCE` (v0.4.x, J1)**: a grown project with a present-but-empty `capabilities`/`architecture` design tier
 - **`DEPENDENCY_CYCLE` (v0.4.x, J3)**: `features[].depends_on` is acyclic (pairs with `REFERENCE_INTEGRITY`'s existence check)
 - **`AI_HINTS_FORBIDDEN_PATTERN` (v0.3.57)**: code avoids `ai_hints.forbidden_patterns`
-- **`SCENARIO_COVERAGE` (v0.4.x, S-b)**: a grown project declares ≥1 scenario, and no scenario binds an empty `features[]`
+- **`SCENARIO_COVERAGE` (v0.4.x, S-b)**: a grown project declares ≥1 scenario, no scenario binds an empty `features[]`, and no scenario under-states its coverage (its `flow` names a feature slug it doesn't bind)
 - **`PROJECT_CONTEXT_DRIFT` (v0.4.x, S-c)**: a grown project's `project-context.md` is not still the unrefined init template
 
 Detector-enforced (deferred to future cycles):

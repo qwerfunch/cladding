@@ -161,3 +161,64 @@ describe('SCENARIO_COVERAGE strict promotion (integration)', () => {
     expect(report.findings.some((f) => f.detector === 'SCENARIO_COVERAGE')).toBe(true);
   });
 });
+
+// Check 3 — UNDER-BOUND: a scenario whose `flow` names a feature by its slug (the
+// `(feature-slug)` convention) that it doesn't bind in features[]. Needs features
+// WITH slugs + a scenario WITH a flow, so it uses its own fixtures.
+describe('SCENARIO_COVERAGE under-bound flow (check 3)', () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'clad-scenario-ub-'));
+    // 3 features WITH slugs.
+    writeFileSync(
+      join(dir, 'spec.yaml'),
+      SPEC_HEADER +
+        'features:\n' +
+        '  - {id: F-001, slug: auth-register, title: t, status: planned}\n' +
+        '  - {id: F-002, slug: auth-login, title: t, status: planned}\n' +
+        '  - {id: F-003, slug: sprints, title: t, status: planned}\n',
+    );
+    mkdirSync(join(dir, 'spec', 'scenarios'), {recursive: true});
+  });
+  afterEach(() => rmSync(dir, {recursive: true, force: true}));
+
+  function writeFlowScenario(flow: string, binds: readonly string[]): void {
+    const feats = binds.map((f) => `  - ${f}`).join('\n');
+    writeFileSync(
+      join(dir, 'spec', 'scenarios', 'S-001.yaml'),
+      `id: S-001\ntitle: t\nflow: ${JSON.stringify(flow)}\nfeatures:\n${feats}\n`,
+    );
+  }
+
+  test('flow references a feature slug not in features[] → one under-bound warn naming it', () => {
+    writeFlowScenario('user registers (auth-register), logs in (auth-login), plans a (sprints)', ['F-001', 'F-002']);
+    const findings = scenarioCoverage.run({cwd: dir});
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe('warn');
+    expect(findings[0].message).toContain('S-001');
+    expect(findings[0].message).toContain('sprints');
+    expect(findings[0].message).toContain('F-003');
+    expect(findings[0].message).toContain('does not bind');
+    // the BOUND slugs (auth-register/login) are not named as offenders
+    expect(findings[0].message).not.toContain('auth-register');
+  });
+
+  test('flow references only BOUND feature slugs → no under-bound warn', () => {
+    writeFlowScenario('user registers (auth-register) then logs in (auth-login)', ['F-001', 'F-002']);
+    expect(scenarioCoverage.run({cwd: dir})).toEqual([]);
+  });
+
+  test('non-slug parentheticals (free prose) never false-fire', () => {
+    // `(type/lint/drift)` are not feature slugs — exact-slug matching ignores them.
+    writeFlowScenario('runs the gates (type/lint/drift) and ships', ['F-001']);
+    expect(scenarioCoverage.run({cwd: dir})).toEqual([]);
+  });
+
+  test('a scenario with no flow is not under-bound-checked', () => {
+    writeFileSync(
+      join(dir, 'spec', 'scenarios', 'S-001.yaml'),
+      'id: S-001\ntitle: t\nfeatures:\n  - F-001\n',
+    );
+    expect(scenarioCoverage.run({cwd: dir})).toEqual([]);
+  });
+});

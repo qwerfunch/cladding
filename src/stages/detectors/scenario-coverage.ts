@@ -7,13 +7,18 @@
 // no features. Both A/B builds shipped 0 scenarios over 20+ features and stayed
 // GREEN.
 //
-// This detector adds two coverage signals:
+// This detector adds three coverage signals:
 //   1. SCALE-GATED — once a project passes a feature threshold but declares NO
 //      scenarios, warn: a non-trivial product with zero captured cross-feature
 //      flows is under-specified. (status-blind on total feature count, like
 //      HOLLOW_GOVERNANCE — the gap appeared on all-`done` builds.)
-//   2. UNCONDITIONAL — a scenario whose `features[]` is empty is hollow (it
+//   2. UNCONDITIONAL HOLLOW — a scenario whose `features[]` is empty is hollow (it
 //      claims to cover a flow but binds nothing), warn regardless of size.
+//   3. UNDER-BOUND — a scenario whose `flow` names a feature by its slug (the
+//      `(feature-slug)` convention) that it doesn't bind in `features[]`, so its
+//      declared coverage under-states the flow it walks. Exact-slug match only, so
+//      free prose / non-slug parentheticals never false-fire. (The A/B re-measurement
+//      surfaced a scenario that named 10 features in its flow but bound 7.)
 //
 // warn, not error: a small or genuinely flow-free project (e.g. a pure library)
 // must not hard-break; the signal rides the warn/strict dial — advisory locally,
@@ -65,6 +70,39 @@ function detect(spec: Spec): readonly DriftFinding[] {
         message:
           `scenario ${s.id} binds no features (features: []) — a scenario must cover at least ` +
           "one feature's flow, or it should be removed.",
+      });
+    }
+  }
+
+  // 3. UNDER-BOUND scenario: the flow narrative references a feature by its slug
+  // (the `(feature-slug)` convention) that the scenario does not bind in features[].
+  // A flow that walks features it doesn't declare under-states its coverage — the
+  // A/B's onboarding scenario named 10 features in its flow but bound only 7, and
+  // checks 1+2 cannot see it. Only EXACT feature-slug matches count, so free prose
+  // and non-slug parentheticals (e.g. `(type/lint/drift)`) never false-fire.
+  const slugToId = new Map(
+    spec.features.filter((f) => typeof f.slug === 'string' && f.slug.length > 0).map((f) => [f.slug as string, f.id]),
+  );
+  for (const s of scenarios) {
+    if (!s.flow) continue;
+    const bound = new Set(s.features ?? []);
+    const unbound = new Map<string, string>(); // slug → id, deduped
+    for (const paren of s.flow.matchAll(/\(([^)]+)\)/g)) {
+      for (const token of paren[1].split(/[,/·]/)) {
+        const slug = token.trim();
+        const id = slugToId.get(slug);
+        if (id && !bound.has(id)) unbound.set(slug, id);
+      }
+    }
+    if (unbound.size > 0) {
+      const named = [...unbound].map(([slug, id]) => `${slug} (${id})`).join(', ');
+      findings.push({
+        detector: NAME,
+        severity: 'warn',
+        path: 'spec/scenarios/',
+        message:
+          `scenario ${s.id} flow references ${named} but features[] does not bind ${unbound.size === 1 ? 'it' : 'them'} ` +
+          '— bind every feature the flow walks, or trim the flow so coverage is not under-stated.',
       });
     }
   }
