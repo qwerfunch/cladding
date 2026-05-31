@@ -20,6 +20,13 @@ real authoring path. The drift-detector set grows **28 → 33**.
   `clad check --tier=pre-push --strict` with the feature evaluated as done (flip-then-gate, so the
   done-aware detectors apply), and keeps `done` only if GREEN — reverting otherwise. `runCheckCommand`
   was split into a shared `runCheckStages`, so the done gate is provably the check gate.
+- **`clad update`** — the one-command post-upgrade reconciliation (15th CLI verb). After
+  `npm update -g cladding`, run it from inside a project: it re-wires hosts, refreshes the
+  `inventory:` snapshot, refreshes the cladding-managed `CLAUDE.md` / `AGENTS.md` section
+  (staleness-based, your own prose preserved — never `--force`, never an LLM), then **reports —
+  without blocking or editing your spec — what the now-stricter detectors flag**, so a stricter
+  release can't quietly fail an unchanged project. It reconciles only the current directory (cd in
+  per project) and never self-updates the engine — `npm update -g cladding` is the user's step.
 - **`clad_link_capability`** (MCP tool #7) — the deterministic Tier-B firing path. A capability is
   *accumulative*, so the verb is `link` (upsert a feature into a capability, creating it if absent),
   not `create`. Establishes the authoring verb taxonomy: **create** an entity (feature/scenario) ·
@@ -31,8 +38,8 @@ real authoring path. The drift-detector set grows **28 → 33**.
   racing ahead of the code), `HOLLOW_GOVERNANCE` (#30, a grown project with an empty
   `capabilities`/`architecture` design tier), `DEPENDENCY_CYCLE` (#31, a circular `depends_on` graph
   that silently deadlocks the drive loop), `SCENARIO_COVERAGE` (#32, a grown project with no scenarios
-  / a hollow scenario), `PROJECT_CONTEXT_DRIFT` (#33, a `project-context.md` still on the unrefined
-  init template).
+  / a hollow scenario / an under-bound scenario whose flow names a feature it never binds),
+  `PROJECT_CONTEXT_DRIFT` (#33, a `project-context.md` still on the unrefined init template).
 - **The per-feature cadence as the cycle** — `docs/feature-cycle.md` (the orchestrator's per-feature
   loop, mode-adaptive across conversational / single-feature / `/goal` / headless), the
   "Feature cycle — one at a time" rule in the always-loaded CLAUDE.md + AGENTS templates, and the
@@ -53,6 +60,14 @@ real authoring path. The drift-detector set grows **28 → 33**.
 - **`docs/ssot-model.md`** reconciled with code — dropped the false "`clad_create_feature` binds
   scenarios" claim, documented the create/link/refine verb taxonomy, and moved the now-built detectors
   from deferred to enforced.
+- **Anti-self-cert is now stated honestly** across the personas, `docs/feature-cycle.md`, and spec
+  AC-003. The *enforced* identity layer (`checkAc` requires human evidence before stage_4; the drive
+  loop halts when reviewer identity equals the implementer's) is split from the *advisory* blindness
+  (a test-author not reading the implementation), which no gate enforces — an A/B run found
+  test-authors reading impl files in 4/4 features despite the instruction. The test-author dispatch is
+  now handed the acceptance criteria **+ module signatures only** (interface-stub, removing the reason
+  to peek), the reviewer explicitly owns auditing the blindness, and the overclaim
+  "anti-self-cert is structural, not a name check" is dropped.
 
 ### Fixed (Vacuous Green closures)
 
@@ -63,12 +78,29 @@ real authoring path. The drift-detector set grows **28 → 33**.
 - The two-layer design-tier Vacuous Green (empty seeds passing existence + empty-content checks) is
   closed by `HOLLOW_GOVERNANCE`.
 
+### Fixed (cross-platform & release hygiene)
+
+- **Windows: `clad` no longer crashes on every command.** `bin/clad` imported the dist bundle via a
+  raw absolute path, which the ESM loader rejects on Windows as URL scheme `c:`
+  (`ERR_UNSUPPORTED_ESM_URL_SCHEME`); it now resolves through `pathToFileURL`. Companion hardening:
+  host-setup activation spawns run through a shell on Windows (`.cmd` shims), the `inventory:` rewrite
+  is CRLF-safe, and `clad init --scan` layer inference splits on `/` rather than the platform
+  separator. CI is POSIX, so a source-level regression guard pins the `pathToFileURL` shape.
+- **The marketplace catalog can no longer ship a stale version.** `.claude-plugin/marketplace.json`
+  (the version the Claude Code host reads to detect "update available") was neither a `version-bump`
+  site nor a `HARNESS_INTEGRITY` check, so it lagged silently while the gate stayed green. It is now
+  the 9th version-bump site and a dedicated `HARNESS_INTEGRITY` branch — a half-bumped catalog fails
+  the gate.
+- **The release ritual now reaches existing users.** `npm publish` is a documented release step (the
+  engine runs from the global `clad`, so a tag + GitHub release alone never reached npm users), guarded
+  by `prepublishOnly: npm run build` so a publish can't ship a stale `dist/` or stale plugin mirrors.
+
 ### Why v0.5.0 (minor bump)
 
-Substantial additive, backward-compatible surface: a new CLI verb (`clad done`), a new MCP tool
-(`clad_link_capability`), 5 new detectors, capabilities in the schema, and hash-model AC ids (the
-schema accepts both legacy `AC-NNN` and the new hash). Existing specs, shards, and gates keep working;
-the new signals are `warn`-by-default (blocking only under `--strict`). No breaking changes.
+Substantial additive, backward-compatible surface: two new CLI verbs (`clad done`, `clad update`), a
+new MCP tool (`clad_link_capability`), 5 new detectors, capabilities in the schema, and hash-model AC
+ids (the schema accepts both legacy `AC-NNN` and the new hash). Existing specs, shards, and gates keep
+working; the new signals are `warn`-by-default (blocking only under `--strict`). No breaking changes.
 
 ## [0.4.0] — 2026-05-27 — `clad setup` command — split npm install from host wire (F-80d19d)
 
