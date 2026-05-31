@@ -26,10 +26,14 @@ describe('renderGreenfieldConventionsMd', () => {
     expect(out).toContain('| semicolon | present |');
     expect(out).toContain('| naming (exports) | camelCase |');
     expect(out).toContain('| naming (constants) | UPPER_SNAKE |');
-    expect(out).toContain('| docblock ratio | 0.00 |');
+    // v0.4.x — greenfield seeds a HIGH-QUALITY documentation default (not 0):
+    // a documented public surface + a module purpose header (Why > What).
+    expect(out).toContain('| docblock ratio | 0.50 |');
     expect(out).toContain('| import order | node-first |');
     expect(out).toContain('| test location | tests-dir |');
-    expect(out).toContain('| file header | (none) |');
+    expect(out).toContain('| file header | purpose header — what the module does + why it exists |');
+    expect(out).toContain('## Comments & documentation — Why > What');
+    expect(out).toContain('Every exported');
     expect(out).toContain('## Adding a new module');
     expect(out.endsWith('\n')).toBe(true);
   });
