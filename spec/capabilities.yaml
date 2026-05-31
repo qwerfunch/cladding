@@ -15,19 +15,19 @@ capabilities:
     features: [F-99c6e5, F-3788c2, F-f44d1b, F-a4b512]
   - id: harness-cli
     title: "Harness CLI (clad)"
-    summary: "12 verbs covering init, scan, refine, sync, check, drive, serve, doctor, …"
+    summary: "14 verbs covering init, scan, refine, sync, check, drive, serve, doctor, …"
     surface: tool
-    features: [F-09d68b, F-bb15e6]
+    features: [F-09d68b, F-bb15e6, F-7afbd4]
   - id: spec-governance
     title: "Spec governance (4-tier SSoT)"
     summary: "Tier A/B/C/D model with explicit refresh authority + banner convention"
     surface: feature
-    features: [F-d12edf, F-4747ef]
+    features: [F-d12edf, F-4747ef, F-f6d13e, F-a04cd9]
   - id: mcp-host
     title: "MCP host (clad serve)"
     summary: "Exposes cladding's verbs as MCP tools for AI agents to drive directly"
     surface: tool
-    features: [F-bb15e6]
+    features: [F-bb15e6, F-836a90]
   - id: ab-evaluation
     title: "A/B evaluation framework"
     summary: "Measures cladding vs vanilla Claude Code across 8 structural + 2 outcome dimensions"
