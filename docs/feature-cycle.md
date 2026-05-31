@@ -19,10 +19,16 @@ say-so alone, never skip a `▣`.
 ## The cycle (one feature; repeat)
 
 1. **SPEC — `librarian`.** Author *this* feature's shard now: `acceptance_criteria` (with
-   `test_refs`) + `modules` + any scenario it needs — in one `clad_create_feature` call (the tool
-   takes ACs/modules). Not the whole backlog; just the feature you're about to build.
-   - ▣ **Barrier:** `clad sync` + `clad check --tier=pre-commit` (AC_DRIFT, ID_COLLISION,
-     ABSENCE_OF_GOVERNANCE). **No code before this is green — spec-first is a hard gate.**
+   `test_refs`) + the `modules` you're about to build + any scenario it needs — in one
+   `clad_create_feature` call (the tool takes ACs/modules). Not the whole backlog; just the feature
+   you're about to build.
+   - ▣ **Barrier:** `clad sync` — the shard itself must be valid (schema, EARS shape, consistent
+     inventory) before any code. **Spec-first is the hard rule:** you author the shard *before* the
+     code, and no code that no feature claims may land (`UNMAPPED_ARTIFACT` blocks that at step 3's
+     gate). Run the *full* detector suite (`clad check`) at step 3, not here — the spec-vs-code
+     detectors (MISSING_IMPLEMENTATION, UNTESTED_AC) are status-blind and would fire on a shard
+     whose `modules` you've declared but not yet built. Declaring `modules` now is the binding step
+     3 verifies, not a promise to check before you've written them.
 
 2. **IMPLEMENT — `specialists` (code).** One implementer writes the production code for this
    feature in its own worktree. `clad checkpoint <featureId>` first so a failed cycle rolls back.

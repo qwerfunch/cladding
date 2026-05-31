@@ -20,7 +20,7 @@ acceptance_criteria:
   - id: AC-002
     ears: ubiquitous
     action: 'provide a deterministic per-feature cycle (docs/feature-cycle.md) that the orchestrator runs ONE feature at a time with real host subagents, where every step barrier is a cladding gate (clad sync / clad check) rather than an agent''s opinion'
-    response: 'docs/feature-cycle.md defines the per-feature cycle SPEC→IMPLEMENT→TEST→REVIEW→DONE (one feature end-to-end, then the next; fan-out = N concurrent instances of the same cycle, never a global up-front SPEC phase) with hard ▣ barriers (clad sync + drift before code = spec-first; clad check --tier=pre-push --strict before review; loop-until-green); src/agents/orchestrator.md points to it and operationalizes Principles 2 and 3'
+    response: 'docs/feature-cycle.md defines the per-feature cycle SPEC→IMPLEMENT→TEST→REVIEW→DONE (one feature end-to-end, then the next; fan-out = N concurrent instances of the same cycle, never a global up-front SPEC phase) with hard ▣ barriers (clad sync validates the shard before any code = spec-first; clad check --tier=pre-push --strict after implement, before review; loop-until-green); src/agents/orchestrator.md points to it and operationalizes Principles 2 and 3'
     text: The system shall drive development through a deterministic per-feature cycle where agents propose and cladding''s gates dispose, with spec-first and one-feature-at-a-time enforced as hard barriers.
     evidence_refs: [docs/feature-cycle.md, src/agents/orchestrator.md]
   - id: AC-003
