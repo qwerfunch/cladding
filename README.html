@@ -485,7 +485,7 @@ clad setup                  # connect your AI tools (Claude / Codex / Gemini)</c
   <pre><code>npm update -g cladding     # 1. upgrade the engine (marketplace: also `claude plugin update`)
 cd &lt;your project&gt;          # 2. clad update is per-project — cd into each one
 clad update                # 3. reconcile this project</code></pre>
-  <p><code>clad update</code> re-wires the hosts and refreshes the <code>inventory:</code> snapshot + the managed <code>CLAUDE.md</code> / <code>AGENTS.md</code> section (your prose preserved), then <strong>reports — without blocking or editing your spec — what the now-stricter detectors flag</strong>. Your spec and docs are your data: never touched.</p>
+  <p><code>clad update</code> reconnects your AI tools and refreshes the parts cladding manages — the <code>inventory:</code> count and the cladding section of <code>CLAUDE.md</code> / <code>AGENTS.md</code> — and leaves what you wrote alone. It then just <strong>shows</strong> what the newer, stricter checks flag — it never blocks and never edits your <code>spec.yaml</code>.</p>
 
   <!-- ─────────────── Status ─────────────── -->
   <h2>Status</h2>

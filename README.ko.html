@@ -485,7 +485,7 @@ clad setup                  # AI 도구 자동 연결 (Claude / Codex / Gemini)<
   <pre><code>npm update -g cladding     # 1. 엔진 업그레이드 (마켓플레이스는 claude plugin update 도)
 cd &lt;your project&gt;          # 2. clad update 는 프로젝트별 — 각 프로젝트로 cd
 clad update                # 3. 이 프로젝트를 정합</code></pre>
-  <p><code>clad update</code> 는 host 재배선 + <code>inventory:</code> 스냅샷 · 관리 구역 <code>CLAUDE.md</code> / <code>AGENTS.md</code> 갱신(본문 보존) 후, <strong>강화된 detector 가 무엇을 잡는지 — 차단도 spec 수정도 없이 — 보고</strong> 한다. spec 과 docs 는 당신의 데이터라 건드리지 않는다.</p>
+  <p><code>clad update</code> 는 AI 도구 연결과 cladding 이 관리하는 부분(<code>inventory:</code> 수치, <code>CLAUDE.md</code>/<code>AGENTS.md</code> 의 cladding 영역)만 맞춰주고, 당신이 직접 쓴 <code>spec.yaml</code>·문서는 건드리지 않는다. 그런 다음, 새 버전에서 더 깐깐해진 검사가 무엇을 짚는지 <strong>보여주기만</strong> 한다 — 막지도, 고치지도 않는다.</p>
 
   <!-- ─────────────── Status ─────────────── -->
   <h2>Status</h2>

@@ -294,7 +294,7 @@ cd <your project>          # 2. clad update 는 프로젝트별 — 각 프로�
 clad update                # 3. 이 프로젝트를 정합
 ```
 
-`clad update` 는 host 재배선 + `inventory:` 스냅샷 · 관리 구역 `CLAUDE.md` / `AGENTS.md` 갱신(본문 보존) 후, **강화된 detector 가 무엇을 잡는지 — 차단도 spec 수정도 없이 — 보고** 한다. spec 과 docs 는 당신의 데이터라 건드리지 않는다.
+`clad update` 는 AI 도구 연결과 cladding 이 관리하는 부분(`inventory:` 수치, `CLAUDE.md`/`AGENTS.md` 의 cladding 영역)만 맞춰주고, 당신이 직접 쓴 `spec.yaml`·문서는 건드리지 않는다. 그런 다음, 새 버전에서 더 깐깐해진 검사가 무엇을 짚는지 **보여주기만** 한다 — 막지도, 고치지도 않는다.
 
 ## Status
 

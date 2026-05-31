@@ -298,7 +298,7 @@ cd <your project>          # 2. clad update is per-project — cd into each one
 clad update                # 3. reconcile this project
 ```
 
-`clad update` re-wires the hosts and refreshes the `inventory:` snapshot + the managed `CLAUDE.md` / `AGENTS.md` section (your prose preserved), then **reports — without blocking or editing your spec — what the now-stricter detectors flag**. Your spec and docs are your data: never touched.
+`clad update` reconnects your AI tools and refreshes the parts cladding manages — the `inventory:` count and the cladding section of `CLAUDE.md` / `AGENTS.md` — and leaves what you wrote alone. It then just **shows** what the newer, stricter checks flag — it never blocks and never edits your `spec.yaml`.
 
 <!-- ─────────────── Status ─────────────── -->
 ## Status
