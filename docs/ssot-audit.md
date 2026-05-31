@@ -105,8 +105,11 @@ and architecture each get one *empty-tolerant* soft detector; scenarios get only
   `features[].depends_on`; error per distinct cycle (deduped). Only edges to existing features are
   traversed (dangling deps stay REFERENCE_INTEGRITY's job). Closes the silent `nextReady` deadlock.
   Shard F-a4b512 (done).
-- [ ] **J4 · 🔴 reconcile `ssot-model.md` with code** — fix the scenario-binding claim, the
-  `layer.modules` dead-link note, the `intent_summary` redundancy.
+- [x] **J4 · 🔴 reconcile `ssot-model.md` with code** — corrected the false "`clad_create_feature`
+  binds scenarios" claim (it has no scenario arg); updated the capabilities row to reflect J2
+  (schema-loaded) + HOLLOW_GOVERNANCE; added the v0.4.x detectors (INVENTORY_DRIFT, PLANNED_BACKLOG,
+  HOLLOW_GOVERNANCE, DEPENDENCY_CYCLE, AI_HINTS_FORBIDDEN_PATTERN) to the enforced list and noted
+  what the deferred detectors now partly cover. (`layer.modules` dead-link + `intent_summary` collapse → J5.)
 - [ ] **J5 · 🟡 MED, as scope allows** — AC hash-ids (dual pattern), `layer.modules` consume-or-remove,
   collapse `intent_summary` into `description`.
 

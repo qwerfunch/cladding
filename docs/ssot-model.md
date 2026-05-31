@@ -35,7 +35,7 @@ A Tier B artifact must answer: **who reads this and what decision do they make?*
 Orphan artifacts get demoted (move to Tier D as historical reference) or removed. This cycle resolves the v0.3.45 orphans:
 - `spec/capabilities.yaml` gains the `CAPABILITIES_FEATURE_MAPPING` detector
 - `docs/project-context.md` becomes the scenario generator's source (clear, named role)
-- `spec/scenarios/*.yaml` gains a clear producer (onboarding) and consumer (`clad_create_feature` binding)
+- `spec/scenarios/*.yaml` gains a clear producer (onboarding / `clad_create_scenario`) and consumer (the reference detectors + the host AI). *(NOTE v0.4.x: an earlier draft claimed `clad_create_feature` binds scenarios; it does not — `createFeature` in `src/spec/new.ts` takes no scenario argument. Scenarios are authored independently via `clad_create_scenario`.)*
 
 ## Artifact registry
 
@@ -45,14 +45,14 @@ Orphan artifacts get demoted (move to Tier D as historical reference) or removed
 |---|---|---|---|
 | `spec.yaml` | `clad_create_feature` / hand-edit | `spec/load.ts` → every detector + MCP server + CLI verbs | manual edit; `clad sync` validates |
 | `spec/features/<slug>-<hash6>.yaml` | `clad_create_feature` | merged into `Spec.features[]` on load | manual edit + validation |
-| `spec/scenarios/<slug>-<hash6>.yaml` | `clad init <intent>` onboarding (NEW v0.3.45) + `clad_create_feature` binding | `REFERENCE_INTEGRITY` / `SLUG_CONFLICT` / `ID_COLLISION` detectors + future `SCENARIO_COVERAGE` | onboarding 7th sentinel emits; refine refreshes; create-feature binds features |
+| `spec/scenarios/<slug>-<hash6>.yaml` | `clad init <intent>` onboarding (NEW v0.3.45) OR `clad_create_scenario` OR hand-edit | `REFERENCE_INTEGRITY` / `SLUG_CONFLICT` / `ID_COLLISION` detectors + future `SCENARIO_COVERAGE` | onboarding 7th sentinel emits; refine refreshes; `clad_create_scenario` adds. *(`clad_create_feature` does NOT bind scenarios — corrected v0.4.x.)* |
 
 ### Tier B — Design SSoT
 
 | Artifact | Producer | Consumer | Refresh trigger |
 |---|---|---|---|
 | `spec/architecture.yaml` | `clad init --scan` (observed) OR `clad init <intent>` (LLM) OR `clad refine` OR hand-edit | `ARCHITECTURE_FROM_SPEC` detector + `reviewer` (Layered Integrity guardrail) + `specialists` (layer boundary check when placing modules) | re-scan diverts to `.cladding/scan/*.proposal` |
-| `spec/capabilities.yaml` | `clad init <intent>` (LLM) OR `clad refine` OR hand-edit | **`CAPABILITIES_FEATURE_MAPPING` detector (NEW v0.3.45)** + future capability dashboards | re-scan diverts to proposal |
+| `spec/capabilities.yaml` | `clad init <intent>` (LLM) OR `clad refine` OR hand-edit | **schema-validated + merged into `Spec.capabilities` on load (v0.4.x, J2)** + `CAPABILITIES_FEATURE_MAPPING` (reference validity) + `HOLLOW_GOVERNANCE` (empty-tier guard, v0.4.x) | re-scan diverts to proposal |
 | `docs/project-context.md` | `clad init` (template/LLM-refined) OR `clad refine` OR hand-edit | AI personas (orchestrator/specialists) as Why/What/Purpose context input + **scenario generator (NEW v0.3.45) uses prose for user-journey extraction** + human onboarding readers | LLM-refined on init/refine; hand-edits preserved between |
 
 ### Tier C — Derived / Observable
@@ -139,14 +139,19 @@ Detector-enforced (today + this cycle):
 - `UNTESTED_AC`: `test_refs` resolve to real test files
 - `STATUS_DRIFT`: `status: done` features have modules
 - `ARCHITECTURE_FROM_SPEC`: imports don't cross `forbidden_imports` boundaries
-- `REFERENCE_INTEGRITY`: scenario `features[]`, feature `depends_on[]`, `superseded_by` resolve
+- `REFERENCE_INTEGRITY`: scenario `features[]`, feature `depends_on[]`, `superseded_by` resolve (existence)
 - `HARNESS_INTEGRITY`: plugin manifest version sync, detector count
 - **`CAPABILITIES_FEATURE_MAPPING` (NEW v0.3.45)**: capability `features[]` resolve to real features
+- **`INVENTORY_DRIFT` (v0.4.x)**: the `inventory:` counts match the on-disk shard reality
+- **`PLANNED_BACKLOG` (v0.4.x)**: too many `planned`/`in_progress` features with no code on disk (the spec racing ahead of the code)
+- **`HOLLOW_GOVERNANCE` (v0.4.x, J1)**: a grown project with a present-but-empty `capabilities`/`architecture` design tier
+- **`DEPENDENCY_CYCLE` (v0.4.x, J3)**: `features[].depends_on` is acyclic (pairs with `REFERENCE_INTEGRITY`'s existence check)
+- **`AI_HINTS_FORBIDDEN_PATTERN` (v0.3.57)**: code avoids `ai_hints.forbidden_patterns`
 
 Detector-enforced (deferred to future cycles):
 - `ARTIFACT_HEADER_STALE`: the header banner accurately describes file state
-- `SCENARIO_COVERAGE`: each scenario's `features[]` cover its `flow` adequately
-- `PROJECT_CONTEXT_DRIFT`: project-context.md aligns with capabilities + architecture
+- `SCENARIO_COVERAGE`: each scenario's `features[]` cover its `flow` adequately *(design-tier EMPTINESS is now partly caught by `HOLLOW_GOVERNANCE`; per-scenario flow coverage is still deferred)*
+- `PROJECT_CONTEXT_DRIFT`: project-context.md aligns with capabilities + architecture *(still deferred — project-context.md remains seed-then-orphan; see docs/ssot-audit.md)*
 - `ORPHAN_FIXTURE`: registered fixtures actually cited
 
 Conflict resolution (when same information lives in multiple tiers):
