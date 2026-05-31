@@ -33,6 +33,7 @@ import {subscribeAudit} from '../hitl/audit.js';
 import {loadSpec} from '../spec/load.js';
 import type {Spec} from '../spec/types.js';
 import {createFeature, createScenario} from '../spec/new.js';
+import {computeInventory, writeInventoryToSpecYaml} from '../spec/inventory.js';
 import {runDrift} from '../stages/drift.js';
 
 /** Persona ids registered as MCP prompts (mirrors src/agents/). */
@@ -333,9 +334,10 @@ function registerTools(server: McpServer, cwd: string): void {
       title: 'Create a new cladding feature',
       description:
         'Creates spec/features/<slug>.yaml with an auto-generated F-<hash> id. ' +
-        'Two concurrent invocations on separate branches produce distinct hash ' +
-        'ids by construction (input includes user + hostname + timestamp + ' +
-        'hrtime), so multi-developer concurrency is safe as long as slugs differ.',
+        'Author the feature WITH its acceptance_criteria (and modules) in this one ' +
+        'call — a feature created with no acceptance_criteria is a hollow stub that ' +
+        'governs nothing. Two concurrent invocations on separate branches produce ' +
+        'distinct hash ids by construction, so multi-developer concurrency is safe.',
       inputSchema: {
         slug: z
           .string()
@@ -348,6 +350,28 @@ function registerTools(server: McpServer, cwd: string): void {
           .enum(['planned', 'in_progress', 'done', 'blocked', 'archived'])
           .optional()
           .describe("Optional status; defaults to 'planned'"),
+        modules: z
+          .array(z.string())
+          .optional()
+          .describe('Module paths the feature binds to (e.g. ["src/auth/login.ts"]).'),
+        acceptance_criteria: z
+          .array(
+            z.object({
+              ears: z.enum(['ubiquitous', 'event', 'state', 'optional', 'unwanted']).optional(),
+              text: z.string().optional().describe('The "The system shall …" statement.'),
+              action: z.string().optional(),
+              response: z.string().optional(),
+              condition: z.string().optional().describe('Trigger/precondition for event/state EARS.'),
+              test_refs: z.array(z.string()).optional().describe('Paths to verifying tests.'),
+              evidence_refs: z.array(z.string()).optional(),
+              notes: z.string().optional(),
+            }),
+          )
+          .optional()
+          .describe(
+            'Acceptance criteria authored now (ids auto-assigned AC-001…). Strongly ' +
+              'preferred over an empty feature — this is what makes the feature governable.',
+          ),
       },
     },
     async (args) => {
@@ -356,8 +380,11 @@ function registerTools(server: McpServer, cwd: string): void {
           slug: args.slug,
           title: args.title,
           status: args.status,
+          modules: args.modules,
+          acceptance_criteria: args.acceptance_criteria,
           cwd,
         });
+        syncInventory(cwd);
         return {
           content: [{type: 'text', text: JSON.stringify(result, null, 2)}],
         };
@@ -387,6 +414,10 @@ function registerTools(server: McpServer, cwd: string): void {
           .regex(/^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/)
           .describe("Kebab-case slug (e.g. 'checkout-happy-path')"),
         title: z.string().optional().describe('Optional human-readable title; defaults to slug'),
+        flow: z
+          .string()
+          .optional()
+          .describe('Prose user-journey flow (what the user does, step by step).'),
         features: z
           .array(z.string().regex(/^F-(\d{3,}|[a-f0-9]{6,})$/))
           .optional()
@@ -398,9 +429,11 @@ function registerTools(server: McpServer, cwd: string): void {
         const result = createScenario({
           slug: args.slug,
           title: args.title,
+          flow: args.flow,
           features: args.features,
           cwd,
         });
+        syncInventory(cwd);
         return {
           content: [{type: 'text', text: JSON.stringify(result, null, 2)}],
         };
@@ -412,6 +445,23 @@ function registerTools(server: McpServer, cwd: string): void {
       }
     },
   );
+}
+
+/**
+ * Recomputes and writes `spec.yaml`'s `inventory:` block after a create tool
+ * adds a shard, so the project's stats never desync from the real shard count
+ * (an INVENTORY_DRIFT the new detector would otherwise flag). Best-effort: a
+ * create must not fail because an inventory write hiccupped, and a project
+ * without a `spec.yaml` (nothing to update) is silently skipped.
+ */
+function syncInventory(cwd: string): void {
+  try {
+    if (existsSync(join(cwd, 'spec.yaml'))) {
+      writeInventoryToSpecYaml(cwd, computeInventory(cwd));
+    }
+  } catch {
+    // intentional no-op — inventory sync is a convenience, not a gate.
+  }
 }
 
 /**

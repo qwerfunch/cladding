@@ -87,7 +87,7 @@ AI 가 짠 코드의 *왜* 가 코드만 봐서는 안 잡힌다.
 
 존재하지 않는 API · 함수 · 옵션을 호출하는 코드 생성.
 
-→ 27 detector + 13 단계 gate 가 매 commit 차단
+→ 28 detector + 13 단계 gate 가 매 commit 차단
 
 ✓ **production 사고 사전 차단** — CI 가 hallucination 코드를 자동 reject
 
@@ -158,7 +158,7 @@ spec 이 *왜* (무엇을 왜 만드는지) 를 기록하는 곳. 4-tier (A/B/C/
 | Stage | 무엇을 검사하나 |
 |---|---|
 | **1.1 Type · 1.2 Lint** | 타입 오류 · 코드 스타일 |
-| **1.3 Drift** | 27 detector 의 spec ↔ 코드 어긋남 |
+| **1.3 Drift** | 28 detector 의 spec ↔ 코드 어긋남 |
 | **1.4 Commit · 1.5 Arch · 1.6 Secret** | 작업트리 clean · architecture invariant (forbidden import 등) · API 키 노출 |
 | **2.1 Unit · 2.2 Cov** | 단위 테스트 통과 · 프로젝트 coverage threshold |
 | **3.1 Smoke · 3.2 Perf · 3.3 Visual** | e2e 핵심 기능 동작 · 성능 예산 · UI 시각 회귀 |
@@ -327,7 +327,7 @@ cladding 의 목표는 *spec ↔ 코드 어긋남을 막는 인프라가 되는 
 - [Why cladding (project context)](docs/project-context.md)
 - [4-tier governance model](docs/ssot-model.md)
 - [Hash-based feature ID](docs/spec-ids-multi-dev.md)
-- [27 detector catalog](src/stages/detectors/README.md)
+- [28 detector catalog](src/stages/detectors/README.md)
 - [Benchmark — event store trap catch](docs/benchmarks/event-store-trap-catch.md)
 - [A/B evaluation cases](docs/ab-evaluation/)
 - [Governance · roadmap to 1.0](GOVERNANCE.md)

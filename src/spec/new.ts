@@ -24,6 +24,33 @@ import {join} from 'node:path';
 
 const SLUG_PATTERN = /^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/;
 
+/**
+ * One acceptance criterion supplied at feature-creation time. `id` is
+ * auto-assigned (`AC-001`, `AC-002`, …); every other field is optional but
+ * constrained to the schema's `acceptance_criterion` properties
+ * (additionalProperties:false). Supplying these at creation is what stops a
+ * `clad_create_feature` call from producing a hollow stub — the feature lands
+ * with real, gate-checkable acceptance criteria, not an empty `[]`.
+ */
+export interface AcceptanceCriterionInput {
+  /** EARS pattern. */
+  readonly ears?: 'ubiquitous' | 'event' | 'state' | 'optional' | 'unwanted';
+  /** The "The system shall …" statement. */
+  readonly text?: string;
+  /** What the system does. */
+  readonly action?: string;
+  /** The observable response. */
+  readonly response?: string;
+  /** Trigger/precondition for event/state EARS. */
+  readonly condition?: string;
+  /** Paths to the tests that verify this AC (UNTESTED_AC gates these on done). */
+  readonly test_refs?: readonly string[];
+  /** Non-test evidence paths. */
+  readonly evidence_refs?: readonly string[];
+  /** Free-form note. */
+  readonly notes?: string;
+}
+
 export interface CreateFeatureOptions {
   /**
    * Kebab-case slug. Becomes the filename (`<slug>.yaml`) and the
@@ -36,6 +63,10 @@ export interface CreateFeatureOptions {
   readonly title?: string;
   /** Feature status at creation time. Defaults to `planned`. */
   readonly status?: 'planned' | 'in_progress' | 'done' | 'blocked' | 'archived';
+  /** Module paths the feature binds to. Omitted → `modules: []`. */
+  readonly modules?: readonly string[];
+  /** Acceptance criteria authored at creation. Omitted → `acceptance_criteria: []`. */
+  readonly acceptance_criteria?: readonly AcceptanceCriterionInput[];
   /** Project root. Defaults to `.`. */
   readonly cwd?: string;
 }
@@ -94,28 +125,76 @@ export function createFeature(opts: CreateFeatureOptions): CreateFeatureResult {
 
   const title = opts.title ?? slug;
   const status = opts.status ?? 'planned';
-  const yaml = renderYaml({id, slug, title, status});
+  const yaml = renderYaml({
+    id,
+    slug,
+    title,
+    status,
+    modules: opts.modules,
+    acceptance_criteria: opts.acceptance_criteria,
+  });
   writeFileSync(filePath, yaml, 'utf8');
 
   return {id, path: filePath, slug};
 }
 
 /**
- * Renders the minimal feature yaml. Hand-written rather than going
- * through the yaml package because the layout is fixed and a tiny
- * deterministic emitter avoids the indentation / key-order ambiguity
- * a general yaml dumper would introduce.
+ * Renders the feature yaml. Hand-written rather than going through the yaml
+ * package because the layout is fixed and a tiny deterministic emitter avoids
+ * the indentation / key-order ambiguity a general yaml dumper would introduce.
+ *
+ * Omitted `modules` / `acceptance_criteria` render as the empty `[]` stub
+ * (backward-compatible). When supplied, the feature lands with real, schema-
+ * valid content so a create call is not forced to produce a hollow stub.
+ * String scalars go through JSON.stringify — a JSON string is a valid YAML
+ * double-quoted scalar, so arbitrary text/EARS prose can't break the YAML.
  */
-function renderYaml(args: {id: string; slug: string; title: string; status: string}): string {
+function renderYaml(args: {
+  id: string;
+  slug: string;
+  title: string;
+  status: string;
+  modules?: readonly string[];
+  acceptance_criteria?: readonly AcceptanceCriterionInput[];
+}): string {
   const lines = [
     `id: ${args.id}`,
     `slug: ${args.slug}`,
     `title: ${JSON.stringify(args.title)}`,
     `status: ${args.status}`,
-    'modules: []',
-    'acceptance_criteria: []',
-    '',
   ];
+
+  const modules = args.modules ?? [];
+  if (modules.length === 0) {
+    lines.push('modules: []');
+  } else {
+    lines.push('modules:');
+    for (const m of modules) lines.push(`  - ${m}`);
+  }
+
+  const acs = args.acceptance_criteria ?? [];
+  if (acs.length === 0) {
+    lines.push('acceptance_criteria: []');
+  } else {
+    lines.push('acceptance_criteria:');
+    acs.forEach((ac, i) => {
+      lines.push(`  - id: AC-${String(i + 1).padStart(3, '0')}`);
+      if (ac.ears) lines.push(`    ears: ${ac.ears}`);
+      if (ac.condition) lines.push(`    condition: ${JSON.stringify(ac.condition)}`);
+      if (ac.action) lines.push(`    action: ${JSON.stringify(ac.action)}`);
+      if (ac.response) lines.push(`    response: ${JSON.stringify(ac.response)}`);
+      if (ac.text) lines.push(`    text: ${JSON.stringify(ac.text)}`);
+      if (ac.test_refs && ac.test_refs.length > 0) {
+        lines.push(`    test_refs: [${ac.test_refs.map((r) => JSON.stringify(r)).join(', ')}]`);
+      }
+      if (ac.evidence_refs && ac.evidence_refs.length > 0) {
+        lines.push(`    evidence_refs: [${ac.evidence_refs.map((r) => JSON.stringify(r)).join(', ')}]`);
+      }
+      if (ac.notes) lines.push(`    notes: ${JSON.stringify(ac.notes)}`);
+    });
+  }
+
+  lines.push('');
   return lines.join('\n');
 }
 
@@ -158,6 +237,8 @@ export interface CreateScenarioOptions {
   readonly slug: string;
   /** Optional title. Defaults to the slug. */
   readonly title?: string;
+  /** Optional prose flow (the user-journey narrative). Omitted → no `flow` line. */
+  readonly flow?: string;
   /** Optional list of feature ids the scenario touches. */
   readonly features?: readonly string[];
   /** Project root. Defaults to `.`. */
@@ -204,7 +285,7 @@ export function createScenario(opts: CreateScenarioOptions): CreateScenarioResul
   }
 
   const title = opts.title ?? slug;
-  const yaml = renderScenarioYaml({id, slug, title, features: opts.features ?? []});
+  const yaml = renderScenarioYaml({id, slug, title, flow: opts.flow, features: opts.features ?? []});
   writeFileSync(filePath, yaml, 'utf8');
 
   return {id, path: filePath, slug};
@@ -214,19 +295,23 @@ function renderScenarioYaml(args: {
   id: string;
   slug: string;
   title: string;
+  flow?: string;
   features: readonly string[];
 }): string {
-  const featuresLine =
-    args.features.length === 0
-      ? 'features: []'
-      : `features:\n${args.features.map((f) => `  - ${f}`).join('\n')}`;
-  return [
+  const lines = [
     `id: ${args.id}`,
     `slug: ${args.slug}`,
     `title: ${JSON.stringify(args.title)}`,
-    featuresLine,
-    '',
-  ].join('\n');
+  ];
+  if (args.flow) lines.push(`flow: ${JSON.stringify(args.flow)}`);
+  if (args.features.length === 0) {
+    lines.push('features: []');
+  } else {
+    lines.push('features:');
+    for (const f of args.features) lines.push(`  - ${f}`);
+  }
+  lines.push('');
+  return lines.join('\n');
 }
 
 function generateScenarioId(slug: string): string {

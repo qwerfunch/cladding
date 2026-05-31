@@ -19,6 +19,7 @@ import {fixtureReference} from './fixture-reference.js';
 import {hardcodedSecret} from './hardcoded-secret.js';
 import {harnessIntegrity} from './harness-integrity.js';
 import {idCollision} from './id-collision.js';
+import {inventoryDrift} from './inventory-drift.js';
 import {metaIntegrity} from './meta-integrity.js';
 import {slugConflict} from './slug-conflict.js';
 import {missingImplementation} from './missing-implementation.js';
@@ -58,6 +59,7 @@ export const allDetectors: readonly DriftDetector[] = [
   fixtureReference,
   slugConflict,
   idCollision,
+  inventoryDrift,
   acDuplicateWithinFeature,
   architectureFromSpec,
   capabilitiesFeatureMapping,

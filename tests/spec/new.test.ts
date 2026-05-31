@@ -15,7 +15,7 @@ import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 import {parse as parseYaml} from 'yaml';
 
-import {createFeature} from '../../src/spec/new.js';
+import {createFeature, createScenario} from '../../src/spec/new.js';
 
 describe('createFeature (F-084, v0.3.9)', () => {
   let dir: string;
@@ -134,5 +134,65 @@ describe('createFeature (F-084, v0.3.9)', () => {
     // hash-collision behaviour is asserted by the structural test of
     // the function's existsSync branch.
     expect(() => createFeature({slug: 'probe', cwd: dir})).not.toThrow();
+  });
+});
+
+// v0.4.x — a create call can now author a REAL feature (ACs + modules), not just
+// a hollow stub. The A/B run that motivated this showed 40 features created with
+// `acceptance_criteria: []` because the tool couldn't accept them.
+describe('createFeature — rich authoring (modules + acceptance_criteria)', () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'clad-new-rich-'));
+  });
+  afterEach(() => rmSync(dir, {recursive: true, force: true}));
+
+  test('persists modules and acceptance_criteria with auto-assigned AC ids; yaml parses', () => {
+    const r = createFeature({
+      cwd: dir,
+      slug: 'login-flow',
+      title: 'Login flow',
+      status: 'in_progress',
+      modules: ['src/auth/login.ts', 'src/auth/session.ts'],
+      acceptance_criteria: [
+        {
+          ears: 'ubiquitous',
+          action: 'authenticate a registered user',
+          text: 'The system shall authenticate a registered user with valid credentials.',
+          test_refs: ['tests/auth/login.test.ts'],
+        },
+        {ears: 'unwanted', condition: 'if credentials are invalid', text: 'The system shall reject the login.'},
+      ],
+    });
+    const parsed = parseYaml(readFileSync(r.path, 'utf8'));
+    expect(parsed.modules).toEqual(['src/auth/login.ts', 'src/auth/session.ts']);
+    expect(parsed.acceptance_criteria).toHaveLength(2);
+    expect(parsed.acceptance_criteria[0].id).toBe('AC-001');
+    expect(parsed.acceptance_criteria[0].ears).toBe('ubiquitous');
+    expect(parsed.acceptance_criteria[0].text).toContain('shall authenticate');
+    expect(parsed.acceptance_criteria[0].test_refs).toEqual(['tests/auth/login.test.ts']);
+    expect(parsed.acceptance_criteria[1].id).toBe('AC-002');
+    expect(parsed.acceptance_criteria[1].condition).toContain('invalid');
+    expect(parsed.status).toBe('in_progress');
+  });
+
+  test('omitting modules/ACs is unchanged — bare stub stays modules:[] / acceptance_criteria:[]', () => {
+    const r = createFeature({slug: 'bare', cwd: dir});
+    const parsed = parseYaml(readFileSync(r.path, 'utf8'));
+    expect(parsed.modules).toEqual([]);
+    expect(parsed.acceptance_criteria).toEqual([]);
+  });
+
+  test('createScenario persists a prose flow', () => {
+    const r = createScenario({
+      cwd: dir,
+      slug: 'checkout-happy-path',
+      title: 'Checkout happy path',
+      flow: 'User adds items · proceeds to checkout · pays · receives confirmation.',
+      features: ['F-aaa111'],
+    });
+    const parsed = parseYaml(readFileSync(r.path, 'utf8'));
+    expect(parsed.flow).toContain('receives confirmation');
+    expect(parsed.features).toEqual(['F-aaa111']);
   });
 });
