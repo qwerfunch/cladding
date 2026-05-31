@@ -167,10 +167,10 @@ Detector-enforced (today + this cycle):
 - **`DEPENDENCY_CYCLE` (v0.4.x, J3)**: `features[].depends_on` is acyclic (pairs with `REFERENCE_INTEGRITY`'s existence check)
 - **`AI_HINTS_FORBIDDEN_PATTERN` (v0.3.57)**: code avoids `ai_hints.forbidden_patterns`
 - **`SCENARIO_COVERAGE` (v0.4.x, S-b)**: a grown project declares ≥1 scenario, and no scenario binds an empty `features[]`
+- **`PROJECT_CONTEXT_DRIFT` (v0.4.x, S-c)**: a grown project's `project-context.md` is not still the unrefined init template
 
 Detector-enforced (deferred to future cycles):
 - `ARTIFACT_HEADER_STALE`: the header banner accurately describes file state
-- `PROJECT_CONTEXT_DRIFT`: project-context.md aligns with capabilities + architecture *(still deferred — project-context.md remains seed-then-orphan; see docs/ssot-audit.md)*
 - `ORPHAN_FIXTURE`: registered fixtures actually cited
 
 Conflict resolution (when same information lives in multiple tiers):

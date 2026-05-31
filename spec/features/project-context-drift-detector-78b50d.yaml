@@ -1,0 +1,30 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-78b50d
+slug: project-context-drift-detector
+title: PROJECT_CONTEXT_DRIFT detector — flag an unrefined project-context on a grown project (v0.4.x, S-c)
+status: done
+modules:
+  - src/stages/detectors/project-context-drift.ts
+  - src/stages/detectors/index.ts
+depends_on:
+  - F-315fd7
+acceptance_criteria:
+  - id: AC-001
+    ears: event
+    condition: when a project has at least DEFAULT_MIN_FEATURES_FOR_CONTEXT features and docs/project-context.md still carries an unrefined init-template placeholder marker
+    action: 'emit one warn that the Why/What/Purpose narrative was never filled in'
+    response: 'project-context.md has the weakest firing path — written once at onboarding, then orphaned; both A/B builds left the deterministic stub over 20+ features and stayed green; this closes the deferred PROJECT_CONTEXT_DRIFT from ssot-model.md by detecting the template placeholder sentinels'
+    text: When a grown project's project-context.md is still the unrefined init template, the system shall warn that its narrative was never filled in.
+    test_refs: [tests/stages/project-context-drift.test.ts]
+  - id: AC-002
+    ears: unwanted
+    condition: if the project is below the feature threshold or project-context.md has been refined (no placeholder markers)
+    action: 'emit nothing — a small/early project may leave it stubbed, and a refined doc replaces the placeholders with real prose'
+    text: If the project is small or its project-context has been refined, the system shall not flag it, so the signal targets only grown-but-unrefined projects.
+    test_refs: [tests/stages/project-context-drift.test.ts]
+  - id: AC-003
+    ears: unwanted
+    condition: if docs/project-context.md is absent entirely
+    action: 'leave it to ABSENCE_OF_GOVERNANCE rather than double-reporting'
+    text: If project-context.md is missing, the system shall not flag it here — existence is ABSENCE_OF_GOVERNANCE's concern; this detector owns the present-but-unrefined case.
+    test_refs: [tests/stages/project-context-drift.test.ts]

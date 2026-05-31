@@ -28,6 +28,7 @@ import {missingImplementation} from './missing-implementation.js';
 import {missingTests} from './missing-tests.js';
 import {performanceDrift} from './performance-drift.js';
 import {plannedBacklog} from './planned-backlog.js';
+import {projectContextDrift} from './project-context-drift.js';
 import {referenceIntegrity} from './reference-integrity.js';
 import {scenarioCoverage} from './scenario-coverage.js';
 import {staleEvidence} from './stale-evidence.js';
@@ -73,4 +74,5 @@ export const allDetectors: readonly DriftDetector[] = [
   hollowGovernance,
   dependencyCycle,
   scenarioCoverage,
+  projectContextDrift,
 ];
