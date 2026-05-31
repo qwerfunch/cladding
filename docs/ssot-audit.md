@@ -125,4 +125,30 @@ and architecture each get one *empty-tolerant* soft detector; scenarios get only
   distinctly, not to remove a field that has a legitimate (human-facing) use. Removing a schema field
   for a cosmetic dedup isn't worth the churn across types/schema/init/spec/tests.
 
+## Stabilization pass (v0.4.x — after the J-roadmap)
+
+Closing the remaining audit findings + the firing-path the J-roadmap surfaced:
+
+- [x] **`clad_link_capability`** — the Tier-B firing path, done RIGHT after a design re-examination.
+  A capability is ACCUMULATIVE, so the verb is `link` (upsert), not `create`; `clad_create_feature`
+  stays single-responsibility and only carries a non-mutating `hint`. Verb taxonomy
+  (**create** entity / **link** relationship / **refine** document) documented in ssot-model.md.
+- [x] **S-a · capability map honesty** — linked this branch's features to their capabilities via the
+  new tool; fixed the stale "12 verbs" → "14 verbs" summary.
+- [x] **S-b · `SCENARIO_COVERAGE` (#32)** — scale-gated: a grown project must declare ≥1 scenario, and
+  no scenario may bind an empty `features[]`. Closes the scenarios=0 hole both A/B builds fell into.
+- [x] **S-c · `PROJECT_CONTEXT_DRIFT` (#33)** — flags a grown project whose `project-context.md` is
+  still the unrefined init template (placeholder sentinels). Closes the seed-then-orphan gap.
+- [x] **S-d · `INVENTORY_DRIFT` absent-block** — an OMITTED `inventory:` block on a project with shards
+  now warns (was a free pass); the present-but-wrong case keeps its error.
+
+### Remaining — deliberate deferrals (not instability)
+- `ARTIFACT_HEADER_STALE` detector — low value + partial overlap with the self-consistency banner test.
+- Feature → scenario/capability **back-references** — a navigation *design decision* (one-directional
+  links work today via REFERENCE_INTEGRITY / CAPABILITIES_FEATURE_MAPPING), not a bug.
+- capability `surface`/`summary` have no machine consumer (human-facing prose) — LOW.
+- cladding's own scenarios bind legacy `F-001..F-010` (REFERENCE_INTEGRITY-valid) disjoint from the
+  hash-era capability features — a cosmetic dogfood-navigation gap, LOW.
+- `J5b` full `layer.modules` consumption + `J5c` `intent_summary` seeding split — as noted above.
+
 *This document is the living record of the journey; each item is ticked as its fix lands.*
