@@ -1,0 +1,29 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-97aa84
+slug: next-driver-skill
+title: /cladding:next — the in-session per-feature driver skill (v0.4.x)
+status: done
+modules:
+  - skills/next/SKILL.md
+  - scripts/build-plugin.mjs
+depends_on:
+  - F-7afbd4
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: 'provide an in-session per-feature driver skill that takes ONE feature end-to-end (spec → implement → tests → clad done) and stops, so the cadence is the execution structure rather than advice'
+    response: 'skills/next/SKILL.md defines the one-feature cycle ending at clad done (the gated transition, never a hand-written status flip) and names the PLANNED_BACKLOG floor; it is distinct from clad drive (headless, can stub)'
+    text: The system shall provide a /cladding:next driver skill that drives the next single feature through the full cladding cycle in-session and stops after one feature.
+    test_refs: [tests/scripts/driver-skill.test.ts]
+  - id: AC-002
+    ears: event
+    condition: when `npm run build:plugin` runs
+    action: 'generate the Claude Code slash command (plugins/claude-code/commands/next.md) and the Codex skill mirror verbatim from skills/next/SKILL.md'
+    text: When build:plugin runs, the system shall generate the next slash command and Codex skill as verbatim copies of the canonical skills/next/SKILL.md.
+    test_refs: [tests/scripts/driver-skill.test.ts]
+  - id: AC-003
+    ears: unwanted
+    condition: if the canonical skill is edited without rebuilding the host mirrors
+    action: 'fail the mirror-sync test so the drift cannot ship'
+    text: If skills/next/SKILL.md is edited without re-running build:plugin, the system shall fail the mirror-sync test rather than ship an out-of-date slash command.
+    test_refs: [tests/scripts/driver-skill.test.ts]
