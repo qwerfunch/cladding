@@ -311,17 +311,20 @@ export async function runSetupCommand(opts: {force?: boolean; quiet?: boolean}):
 
 /**
  * Handler for `clad update`. The one-command "after you upgraded the engine"
- * step: re-wire hosts + reconcile the spec inventory + refresh the managed
- * CLAUDE.md/AGENTS.md section (all safe + idempotent — see cli/update.ts), THEN
- * run the now-stricter detectors in REPORT mode. The drift report never blocks
- * and never edits the user's spec — it only surfaces the bar the upgrade raised,
- * so `clad update` can't quietly hide that the engine got stricter. The engine
- * itself is NOT self-updated here: `npm update -g cladding` is the user's step.
+ * step, run from INSIDE the project you want to reconcile: re-wire hosts +
+ * reconcile the spec inventory + refresh the managed CLAUDE.md/AGENTS.md section
+ * (all safe + idempotent — see cli/update.ts), THEN run the now-stricter
+ * detectors in REPORT mode. The drift report never blocks and never edits the
+ * user's spec — it only surfaces the bar the upgrade raised, so `clad update`
+ * can't quietly hide that the engine got stricter. It reconciles only the
+ * CURRENT directory (no `--cwd`): the inventory/section refresh and the drift
+ * report must all see the same tree, so the honest contract is "cd in, then
+ * run". The engine itself is NOT self-updated here: `npm update -g cladding` is
+ * the user's step.
  */
-export async function runUpdateCommand(opts: {cwd?: string} = {}): Promise<void> {
-  const cwd = opts.cwd ?? '.';
-  pulse('note', 'update', 'reconciling this project after the engine upgrade');
-  const r = await performUpdate(cwd, {
+export async function runUpdateCommand(): Promise<void> {
+  pulse('note', 'update', 'reconciling the current project after the engine upgrade');
+  const r = await performUpdate('.', {
     wireHosts: async () => (await runHostSetup({quiet: true})).errors.length,
   });
   pulse(r.wiringErrors > 0 ? 'fail' : 'pass', 'hosts', r.wiringErrors > 0 ? `${r.wiringErrors} wiring error(s)` : 're-wired');
@@ -554,8 +557,7 @@ export function createProgram(): Command {
 
   program
     .command('update')
-    .description('After `npm update -g cladding`: re-wire hosts + sync inventory + refresh the managed CLAUDE.md/AGENTS.md section, then report (without blocking) what the now-stricter detectors flag')
-    .option('--cwd <path>', 'project directory to reconcile (default cwd)')
+    .description('Run from a project dir AFTER `npm update -g cladding`: re-wire hosts + sync inventory + refresh the managed CLAUDE.md/AGENTS.md section, then report (without blocking) what the now-stricter detectors flag')
     .action(runUpdateCommand);
 
   program
