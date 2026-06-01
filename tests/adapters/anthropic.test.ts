@@ -95,7 +95,9 @@ describe('AnthropicTransport', () => {
     await t.invoke(PERSONA, CTX);
     expect(client.messages.create).toHaveBeenCalledOnce();
     const args = client.messages.create.mock.calls[0]?.[0];
-    expect(args.system).toBe('You are a code reviewer.');
+    // B3: persona prefix is sent as an ephemeral-cached system block (stable across
+    // dispatches → repeat calls re-read it from cache instead of re-billing it).
+    expect(args.system).toEqual([{type: 'text', text: 'You are a code reviewer.', cache_control: {type: 'ephemeral'}}]);
     expect(args.messages[0].role).toBe('user');
     expect(args.messages[0].content).toContain('F-001');
     expect(args.messages[0].content).toContain('No edits outside src/');
