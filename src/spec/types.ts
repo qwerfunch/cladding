@@ -54,6 +54,18 @@ export interface AcceptanceCriterion {
    */
   readonly test_refs?: readonly string[];
   /**
+   * Path(s) to the impl-blind spec-conformance oracle file(s) that verify
+   * this AC. Expected under `tests/oracle/` — the dir stage_2.3
+   * (runSpecConformance) executes. Parallel to {@link test_refs} but carries
+   * the SPEC-derived oracle (authored without sight of the impl), not the
+   * author's own test.
+   *
+   * @see stages/detectors/spec-conformance.ts — resolves each ref to disk
+   *      (INTEGRITY) and, when project.require_oracles is set, requires a
+   *      done AC to declare at least one (MANDATORY).
+   */
+  readonly oracle_refs?: readonly string[];
+  /**
    * Non-test verification artifacts that satisfy MISSING_TESTS:
    * `script:NAME` (npm script), `fixture:NAME` (conformance
    * fixture), or a doc/report path. Use this when the AC's truth
@@ -198,6 +210,13 @@ export interface Project {
    * "what problem does this project solve?". Optional.
    */
   readonly intent_summary?: string;
+  /**
+   * Opt-in: when true, every `status: done` AC must declare `oracle_refs`
+   * (the SPEC_CONFORMANCE MANDATORY rule). Default falsy → the detector
+   * enforces only INTEGRITY of declared refs, staying inert on legacy
+   * projects. See stages/detectors/spec-conformance.ts.
+   */
+  readonly require_oracles?: boolean;
   /**
    * AI behavior hints — preferred persona, token budget, forbidden patterns.
    * Added v0.3.56 (F-5b9f9f).

@@ -6,6 +6,8 @@ status: in_progress
 modules:
   - src/stages/spec-conformance.ts
   - tests/stages/spec-conformance.test.ts
+  - src/stages/detectors/spec-conformance.ts
+  - tests/stages/detectors/spec-conformance.test.ts
 depends_on:
   - F-021
 acceptance_criteria:
@@ -30,3 +32,10 @@ acceptance_criteria:
     response: an unconfigured project keeps a green gate instead of a false failure (the false-failure twin of Vacuous Green)
     text: If the test runner binary is not installed, the system shall skip rather than false-fail the stage.
     test_refs: [tests/stages/spec-conformance.test.ts]
+  - id: AC-004
+    ears: state
+    condition: while project.require_oracles is set
+    action: fail drift when a done AC declares no oracle_refs, and always fail when a declared oracle_ref does not resolve on disk
+    response: the SPEC_CONFORMANCE detector forces opted-in done features to carry a resolving oracle (which stage_2.3 then runs); inert when require_oracles is falsy so legacy projects and cladding-self are unaffected
+    text: While require_oracles is set, the system shall fail the gate for a done AC with no oracle, and always fail when a declared oracle_ref resolves to nothing.
+    test_refs: [tests/stages/detectors/spec-conformance.test.ts]

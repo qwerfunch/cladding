@@ -34,6 +34,10 @@
           "type": "string",
           "description": "TL;DR of docs/project-context.md. One sentence answering 'what problem does this project solve?'."
         },
+        "require_oracles": {
+          "type": "boolean",
+          "description": "Opt-in: when true, every done AC must declare oracle_refs (SPEC_CONFORMANCE MANDATORY rule). Default falsy."
+        },
         "ai_hints": {
           "type": "object",
           "additionalProperties": false,
@@ -153,6 +157,11 @@
         "test_refs": {
           "type": "array",
           "description": "Concrete code-test paths that verify this AC (e.g. tests/foo.test.ts). Restrict to executable test files; non-test evidence belongs in evidence_refs.",
+          "items": {"type": "string"}
+        },
+        "oracle_refs": {
+          "type": "array",
+          "description": "Impl-blind spec-conformance oracle file path(s), expected under tests/oracle/. Resolved on disk by SPEC_CONFORMANCE; required for done ACs when project.require_oracles is set.",
           "items": {"type": "string"}
         },
         "evidence_refs": {
