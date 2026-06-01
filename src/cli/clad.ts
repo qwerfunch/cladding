@@ -31,6 +31,7 @@ import {runType} from '../stages/type.js';
 import {runUat} from '../stages/uat.js';
 import {runUnit} from '../stages/unit.js';
 import {runVisual} from '../stages/visual.js';
+import type {DriftFinding} from '../stages/types.js';
 import {staleSpecification} from '../stages/detectors/stale-specification.js';
 import {findLatestCheckpoint, recordCheckpoint, recordRollback} from '../core/checkpoint.js';
 import {computeInventory, writeInventoryToSpecYaml} from '../spec/inventory.js';
@@ -385,11 +386,15 @@ export interface CheckOutcome {
  * (which gates the status flip on it), so the two verify against the SAME stage
  * pipeline.
  */
-export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier?: string}): CheckOutcome {
+export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier?: string; json?: boolean}): CheckOutcome {
   const tier = opts.tier ?? 'all';
   const allowed = TIER_STAGES[tier];
   if (!allowed) {
-    pulse('fail', 'check', `unknown --tier '${tier}' (expected: pre-commit | pre-push | all)`);
+    if (opts.json) {
+      process.stdout.write(`${JSON.stringify({tier, error: `unknown tier '${tier}'`, worst: 2, anyFailed: true, stages: []}, null, 2)}\n`);
+    } else {
+      pulse('fail', 'check', `unknown --tier '${tier}' (expected: pre-commit | pre-push | all)`);
+    }
     return {worst: 2, anyFailed: true};
   }
   const allStages = [
@@ -411,38 +416,47 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
   const stages = allStages.filter(([name]) => allowed.includes(name));
   let worst = 0;
   let anyFailed = false;
+  const collected: {stage: string; label: string; status: 'pass' | 'skip' | 'fail'; exitCode: number; stderr?: string; findings?: readonly DriftFinding[]}[] = [];
   for (const [name, run] of stages) {
     const r = run({}) as {
       pass: boolean;
       exitCode: number;
       stderr?: string;
-      findings?: readonly {detector: string; severity: string; message: string; path?: string}[];
+      findings?: readonly DriftFinding[];
     };
     const label = opts.internal ? name : gateLabel(name);
-    if (r.pass) {
-      pulse('pass', label);
-    } else if (r.exitCode === 2) {
-      // INVARIANT: exitCode 2 means "skipped" (cladding chose not to run —
-      // tool missing / unknown language). It is NON-blocking. A stage that RAN
-      // and found a real problem MUST return exitCode 1, never 2 — see
-      // stages/util.ts::ranToolResult. (tsc exits 2 on type errors; relaying
-      // that raw 2 here is what let a real type failure pass as a skip.)
-      pulse('skip', label);
-    } else {
-      pulse('fail', label);
-      printStageDetails(r);
+    // INVARIANT: exitCode 2 means "skipped" (cladding chose not to run — tool
+    // missing / unknown language). It is NON-blocking. A stage that RAN and
+    // found a real problem MUST return exitCode 1, never 2 — see
+    // stages/util.ts::ranToolResult. (tsc exits 2 on type errors; relaying that
+    // raw 2 here is what let a real type failure pass as a skip.)
+    const status: 'pass' | 'skip' | 'fail' = r.pass ? 'pass' : r.exitCode === 2 ? 'skip' : 'fail';
+    if (status === 'fail') {
       anyFailed = true;
       if (r.exitCode > worst) worst = r.exitCode;
     }
+    collected.push({stage: name, label, status, exitCode: r.exitCode, stderr: r.stderr, findings: r.findings});
+    if (!opts.json) {
+      if (status === 'fail') {
+        pulse('fail', label);
+        printStageDetails(r);
+      } else {
+        pulse(status, label);
+      }
+    }
   }
-  if (anyFailed) {
+  if (opts.json) {
+    // Machine-readable, UNTRUNCATED — findings carry file/line/suggestion so an
+    // agent fixes in one pass instead of re-running to discover where + what.
+    process.stdout.write(`${JSON.stringify({tier, worst, anyFailed, stages: collected}, null, 2)}\n`);
+  } else if (anyFailed) {
     process.stdout.write('\nℹ Run `clad doctor` for the event log, or `clad sync` to validate spec shards. Drift findings above name the offending detector.\n');
   }
   return {worst, anyFailed};
 }
 
 /** Handler for `clad check`. Runs the tier's Iron Law stages; exits with worst code. */
-export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tier?: string}): void {
+export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tier?: string; json?: boolean}): void {
   process.exit(runCheckStages(opts).worst);
 }
 
@@ -569,8 +583,9 @@ export function createProgram(): Command {
     .option('--strict', 'promote warn-severity drift findings to errors (CI / pre-publish gate)')
     .option(
       '--tier <tier>',
-      'run only the stages for a trigger: pre-commit (drift/arch/secret) | pre-push (+ type/lint/unit/cov) | all (default; full 13-stage gate, used by CI)',
+      'run only the stages for a trigger: pre-commit (drift/arch/secret) | pre-push (+ type/lint/unit/cov/spec-conformance) | all (default; full 14-stage gate, used by CI)',
     )
+    .option('--json', 'emit structured per-stage results (machine-readable: findings with file/line/suggestion, untruncated) — for agents/CI; cuts RED→fix round-trips')
     .action(runCheckCommand);
 
   program

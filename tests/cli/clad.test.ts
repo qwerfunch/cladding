@@ -26,6 +26,7 @@ vi.mock('../../src/stages/arch.js', () => ({runArch: vi.fn(() => ({pass: true, e
 vi.mock('../../src/stages/secret.js', () => ({runSecret: vi.fn(() => ({pass: true, exitCode: 0}))}));
 vi.mock('../../src/stages/unit.js', () => ({runUnit: vi.fn(() => ({pass: true, exitCode: 0}))}));
 vi.mock('../../src/stages/cov.js', () => ({runCov: vi.fn(() => ({pass: true, exitCode: 0}))}));
+vi.mock('../../src/stages/spec-conformance.js', () => ({runSpecConformance: vi.fn(() => ({pass: false, exitCode: 2}))}));
 vi.mock('../../src/stages/smoke.js', () => ({runSmoke: vi.fn(() => ({pass: false, exitCode: 2}))}));
 vi.mock('../../src/stages/perf.js', () => ({runPerf: vi.fn(() => ({pass: false, exitCode: 2}))}));
 vi.mock('../../src/stages/visual.js', () => ({runVisual: vi.fn(() => ({pass: false, exitCode: 2}))}));
@@ -83,6 +84,8 @@ const runInitMock = initMod.runInit as unknown as ReturnType<typeof vi.fn>;
 const loadSpecMock = specMod.loadSpec as unknown as ReturnType<typeof vi.fn>;
 const classifyMock = intentMod.classifyIntent as unknown as ReturnType<typeof vi.fn>;
 const runDriveLoopMock = driveMod.runDriveLoop as unknown as ReturnType<typeof vi.fn>;
+const pulseMod = await import('../../src/ui/pulse.js');
+const pulseMock = pulseMod.pulse as unknown as ReturnType<typeof vi.fn>;
 
 describe('cli/clad — handler exports', () => {
   let exitSpy: ReturnType<typeof vi.spyOn>;
@@ -102,10 +105,36 @@ describe('cli/clad — handler exports', () => {
     loadSpecMock.mockReset();
     classifyMock.mockReset();
     runDriveLoopMock.mockReset();
+    pulseMock.mockClear();
   });
   afterEach(() => {
     exitSpy.mockRestore();
     stdoutSpy.mockRestore();
+  });
+
+  // B1 (No-Vacuous-Green efficiency) — `clad check --json` emits ONE structured
+  // document instead of per-stage pulses, so an agent reads file/line/findings
+  // in one pass rather than parsing truncated prose + re-running. Additive: the
+  // default (non-json) pulse path is untouched.
+  test('runCheckStages --json emits a single structured document (no pulses)', () => {
+    const out = clad.runCheckStages({tier: 'pre-commit', json: true});
+    expect(out).toEqual({worst: 0, anyFailed: false});
+    // pulse() must NOT fire in json mode (would corrupt the machine-readable stream)
+    expect(pulseMock).not.toHaveBeenCalled();
+    const written = stdoutSpy.mock.calls.map((c: unknown[]) => String(c[0])).join('');
+    const doc = JSON.parse(written) as {tier: string; worst: number; anyFailed: boolean; stages: {stage: string; status: string; exitCode: number}[]};
+    expect(doc.tier).toBe('pre-commit');
+    expect(doc.worst).toBe(0);
+    expect(doc.stages.map((s) => s.stage)).toEqual(['stage_1.3', 'stage_1.5', 'stage_1.6']);
+    expect(doc.stages.every((s) => s.status === 'pass')).toBe(true);
+  });
+
+  test('runCheckStages --json on an unknown tier emits a structured error, not a pulse', () => {
+    const out = clad.runCheckStages({tier: 'bogus', json: true});
+    expect(out.worst).toBe(2);
+    expect(pulseMock).not.toHaveBeenCalled();
+    const doc = JSON.parse(stdoutSpy.mock.calls.map((c: unknown[]) => String(c[0])).join('')) as {error: string};
+    expect(doc.error).toContain("unknown tier 'bogus'");
   });
 
   test('runInitCommand exits 0 after scaffolding', async () => {
