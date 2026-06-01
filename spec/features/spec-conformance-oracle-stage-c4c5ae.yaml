@@ -1,0 +1,32 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-c4c5ae
+slug: spec-conformance-oracle-stage
+title: SPEC_CONFORMANCE — impl-blind oracle execution gate stage (stage_2.3, No-Vacuous-Green keystone)
+status: in_progress
+modules:
+  - src/stages/spec-conformance.ts
+  - tests/stages/spec-conformance.test.ts
+depends_on:
+  - F-021
+acceptance_criteria:
+  - id: AC-001
+    ears: event
+    condition: when an impl-blind, spec-derived oracle suite exists under tests/oracle/
+    action: run the project's detected test runner against that directory only, against the real implementation
+    response: stage_2.3 returns a blocking exitCode 1 on any oracle failure, so a GREEN gate can finally fail on latent spec non-conformance (the v6r 31/36 run flips GREEN→RED)
+    text: When an impl-blind oracle suite is present under tests/oracle/, the system shall run it against the implementation and fail the gate (exitCode 1) on any oracle failure.
+    test_refs: [tests/stages/spec-conformance.test.ts]
+  - id: AC-002
+    ears: unwanted
+    condition: if no oracle suite is present under tests/oracle/
+    action: emit a non-blocking skip (exitCode 2) rather than a silent false pass
+    response: the stage stays non-blocking when no oracle exists, leaving the presence/provenance obligation to the (forthcoming) SPEC_CONFORMANCE drift detector
+    text: If no oracle suite is present, the system shall skip (exitCode 2) rather than false-pass, so the absence of oracles is never reported as conformance.
+    test_refs: [tests/stages/spec-conformance.test.ts]
+  - id: AC-003
+    ears: unwanted
+    condition: if the detected test runner binary is missing (ENOENT)
+    action: map the missing binary to a skip (exitCode 2), never to a blocking failure
+    response: an unconfigured project keeps a green gate instead of a false failure (the false-failure twin of Vacuous Green)
+    text: If the test runner binary is not installed, the system shall skip rather than false-fail the stage.
+    test_refs: [tests/stages/spec-conformance.test.ts]

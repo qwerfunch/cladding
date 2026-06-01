@@ -26,6 +26,7 @@ import {runLint} from '../stages/lint.js';
 import {runPerf} from '../stages/perf.js';
 import {runSecret} from '../stages/secret.js';
 import {runSmoke} from '../stages/smoke.js';
+import {runSpecConformance} from '../stages/spec-conformance.js';
 import {runType} from '../stages/type.js';
 import {runUat} from '../stages/uat.js';
 import {runUnit} from '../stages/unit.js';
@@ -365,8 +366,8 @@ export async function runUpdateCommand(): Promise<void> {
  */
 export const TIER_STAGES: Record<string, readonly string[]> = {
   'pre-commit': ['stage_1.3', 'stage_1.5', 'stage_1.6'],
-  'pre-push': ['stage_1.1', 'stage_1.2', 'stage_1.3', 'stage_1.5', 'stage_1.6', 'stage_2.1', 'stage_2.2'],
-  all: ['stage_1.1', 'stage_1.2', 'stage_1.3', 'stage_1.4', 'stage_1.5', 'stage_1.6', 'stage_2.1', 'stage_2.2', 'stage_3.1', 'stage_3.2', 'stage_3.3', 'stage_4.1', 'stage_4.2'],
+  'pre-push': ['stage_1.1', 'stage_1.2', 'stage_1.3', 'stage_1.5', 'stage_1.6', 'stage_2.1', 'stage_2.2', 'stage_2.3'],
+  all: ['stage_1.1', 'stage_1.2', 'stage_1.3', 'stage_1.4', 'stage_1.5', 'stage_1.6', 'stage_2.1', 'stage_2.2', 'stage_2.3', 'stage_3.1', 'stage_3.2', 'stage_3.3', 'stage_4.1', 'stage_4.2'],
 };
 
 /** Outcome of running a tier's stages — exported so `clad done` can gate on
@@ -400,6 +401,7 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
     ['stage_1.6', runSecret],
     ['stage_2.1', runUnit],
     ['stage_2.2', runCov],
+    ['stage_2.3', runSpecConformance],
     ['stage_3.1', runSmoke],
     ['stage_3.2', runPerf],
     ['stage_3.3', runVisual],

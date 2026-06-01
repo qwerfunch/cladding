@@ -38,6 +38,7 @@ const GATE_LABELS: Readonly<Record<string, string>> = {
   'stage_1.6': 'Secret',
   'stage_2.1': 'Unit tests',
   'stage_2.2': 'Coverage',
+  'stage_2.3': 'Spec conformance',
   'stage_3.1': 'Smoke',
   'stage_3.2': 'Performance',
   'stage_3.3': 'Visual',
