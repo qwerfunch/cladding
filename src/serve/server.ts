@@ -277,17 +277,38 @@ function registerTools(server: McpServer, cwd: string): void {
     'clad_run_check',
     {
       title: 'Run cladding drift check',
-      description: 'Runs `clad check` drift detection; returns the structured result.',
+      description: 'Runs `clad check` drift detection. Returns a TERSE report by default (pass, error/warn counts, top 3 blocking findings) to keep the agent loop cheap; pass verbose:true for every finding incl. info-severity + suggestions.',
       inputSchema: {
         strict: z.boolean().optional().describe('Treat warnings as errors when true'),
+        verbose: z.boolean().optional().describe('Return the full report (all findings incl. info + suggestions) instead of the terse top-3 summary'),
       },
     },
     async (args) => {
       const result = runDrift({strict: args.strict, cwd});
-      return {
-        content: [{type: 'text', text: JSON.stringify(result, null, 2)}],
-        isError: !result.pass,
+      if (args.verbose) {
+        return {content: [{type: 'text', text: JSON.stringify(result, null, 2)}], isError: !result.pass};
+      }
+      // Terse by default: info-severity findings are advisory noise that re-enters
+      // the agent's context every turn; surface only the blocking few + counts.
+      const findings = result.findings ?? [];
+      const errs = findings.filter((f) => f.severity === 'error');
+      const warns = findings.filter((f) => f.severity === 'warn');
+      const top = (errs.length > 0 ? errs : warns).slice(0, 3).map((f) => ({
+        detector: f.detector,
+        severity: f.severity,
+        message: f.message,
+        ...(f.path ? {path: f.path} : {}),
+        ...(f.line ? {line: f.line} : {}),
+      }));
+      const terse = {
+        stage: result.stage,
+        pass: result.pass,
+        errorCount: errs.length,
+        warnCount: warns.length,
+        findings: top,
+        ...(errs.length + warns.length > top.length ? {truncated: true, hint: 'call clad_run_check with verbose:true for all findings'} : {}),
       };
+      return {content: [{type: 'text', text: JSON.stringify(terse, null, 2)}], isError: !result.pass};
     },
   );
 

@@ -276,6 +276,28 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
+  // B2 (No-Vacuous-Green efficiency) — terse by default keeps the gate result
+  // cheap as it re-enters the agent loop each turn; verbose opt-in keeps full debuggability.
+  test('clad_run_check is terse by default (counts + top-3); verbose returns the full report', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const terse = await client.callTool({name: 'clad_run_check', arguments: {}});
+      const t = JSON.parse((terse.content as Array<{type: string; text: string}>)[0].text);
+      expect(t).toHaveProperty('errorCount');
+      expect(t).toHaveProperty('warnCount');
+      expect(Array.isArray(t.findings)).toBe(true);
+      expect(t.findings.length).toBeLessThanOrEqual(3);
+
+      const full = await client.callTool({name: 'clad_run_check', arguments: {verbose: true}});
+      const f = JSON.parse((full.content as Array<{type: string; text: string}>)[0].text);
+      // verbose is the raw DriftReport — has findings but NOT the terse-only counts
+      expect(f).toHaveProperty('findings');
+      expect(f).not.toHaveProperty('errorCount');
+    } finally {
+      await cleanup();
+    }
+  });
+
   test('clad_get_events returns an empty list when the log is missing', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
