@@ -11,7 +11,7 @@
 // Sampling-based dispatch (v0.2.25) is out of scope here. This file is
 // concerned only with the read surface of `clad serve`.
 
-import {mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync} from 'node:fs';
+import {mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync, existsSync, readdirSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 
@@ -326,6 +326,33 @@ describe('serve/server — MCP read surface', () => {
       // distinguishes concurrent invocations.
       expect(parsed.path).toMatch(/spec\/features\/new-login-flow-[a-f0-9]{6}\.yaml$/);
       expect(result.isError).not.toBe(true);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  // Lever ① — clad_create_feature surfaces a malformed-EARS AC as an MCP error
+  // AT CREATION (the end-to-end path that makes the shift-left lever actually
+  // reach the agent), and writes no shard.
+  test('clad_create_feature REJECTS a malformed-EARS AC — isError + precise message, no shard written', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const result = await client.callTool({
+        name: 'clad_create_feature',
+        arguments: {
+          slug: 'bad-ears-flow',
+          title: 'x',
+          acceptance_criteria: [{ears: 'ubiquitous', condition: 'when the user logs in', text: 't'}],
+        },
+      });
+      expect(result.isError).toBe(true);
+      const text = (result.content as Array<{type: string; text: string}>)[0].text;
+      expect(text).toMatch(/EARS-shape issue/);
+      expect(text).toMatch(/ubiquitous.*but condition is present/);
+      // fail-before-write: no bad-ears-flow shard landed on disk
+      const featuresDir = join(dir, 'spec', 'features');
+      const landed = existsSync(featuresDir) ? readdirSync(featuresDir).filter((f) => f.startsWith('bad-ears-flow')) : [];
+      expect(landed).toEqual([]);
     } finally {
       await cleanup();
     }

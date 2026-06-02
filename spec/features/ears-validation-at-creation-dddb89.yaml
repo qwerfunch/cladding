@@ -1,0 +1,31 @@
+# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
+id: F-dddb89
+slug: ears-validation-at-creation
+title: Shift-left EARS validation — clad_create_feature rejects malformed AC shape at creation (Lever ①, spec-authoring friction)
+status: done
+modules:
+  - src/spec/ears.ts
+  - tests/spec/ears.test.ts
+  - src/spec/new.ts
+  - tests/spec/new.test.ts
+acceptance_criteria:
+  - id: AC-001
+    ears: event
+    condition: when createFeature receives an acceptance criterion whose EARS shape is malformed
+    action: reject the whole create call with a precise, per-AC fix message and write no shard file
+    response: the agent fixes the AC at creation instead of discovering it turns later via the AC_DRIFT gate (the create→sync→error→fix→sync friction AB1 measured at ~24 of the spec-authoring loop)
+    text: When createFeature is given a malformed-EARS AC, the system shall reject the call with a precise message and write nothing.
+    test_refs: [tests/spec/new.test.ts]
+  - id: AC-002
+    ears: ubiquitous
+    action: resolve the EARS-shape rule through one pure function (checkEarsShape) reused by both the creation-time validator and the gate-time checkAc/AC_DRIFT detector
+    response: the creation-time check and the gate can never disagree about what a valid EARS shape is (single source of truth, no drift)
+    text: The system shall apply one EARS-shape rule (checkEarsShape) at both creation time and gate time.
+    test_refs: [tests/spec/ears.test.ts]
+  - id: AC-003
+    ears: event
+    condition: when a single create call supplies multiple malformed ACs
+    action: aggregate every EARS-shape issue into one thrown error keyed by acceptance_criteria index
+    response: the agent sees all required fixes in one pass rather than looping one error at a time
+    text: When several ACs are malformed, the system shall surface all issues in one error.
+    test_refs: [tests/spec/new.test.ts]

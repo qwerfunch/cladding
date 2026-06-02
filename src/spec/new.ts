@@ -24,6 +24,8 @@ import {join} from 'node:path';
 
 import yaml from 'yaml';
 
+import {checkEarsShape} from './ears.js';
+
 const SLUG_PATTERN = /^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/;
 
 /**
@@ -112,6 +114,21 @@ export function createFeature(opts: CreateFeatureOptions): CreateFeatureResult {
       `cladding: slug '${slug}' is invalid — must match ${SLUG_PATTERN.source}`,
     );
   }
+  // Shift-left EARS validation: reject a malformed AC shape AT CREATION with a
+  // precise fix, instead of letting the agent discover it turns later via the
+  // AC_DRIFT gate (create→sync→error→fix→sync). Same rule as the gate
+  // (spec/ears.ts checkAc), applied here on the proposed inputs.
+  const earsIssues: string[] = [];
+  (opts.acceptance_criteria ?? []).forEach((ac, i) => {
+    const message = checkEarsShape(ac.ears, ac.condition);
+    if (message) earsIssues.push(`acceptance_criteria[${i}] (ears=${ac.ears ?? 'unspecified'}): ${message}`);
+  });
+  if (earsIssues.length > 0) {
+    throw new Error(
+      `cladding: feature '${slug}' has EARS-shape issue(s) — fix the AC(s) and retry create:\n  - ${earsIssues.join('\n  - ')}`,
+    );
+  }
+
   const cwd = opts.cwd ?? '.';
   const featuresDir = join(cwd, 'spec', 'features');
   mkdirSync(featuresDir, {recursive: true});
