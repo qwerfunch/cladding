@@ -2,7 +2,7 @@
 id: F-c4c5ae
 slug: spec-conformance-oracle-stage
 title: SPEC_CONFORMANCE — impl-blind oracle execution gate stage (stage_2.3, No-Vacuous-Green keystone)
-status: in_progress
+status: done
 modules:
   - src/stages/spec-conformance.ts
   - tests/stages/spec-conformance.test.ts

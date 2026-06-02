@@ -16,13 +16,17 @@
 //       because stage_2.3 only executes that directory, so an oracle
 //       elsewhere would never actually run.
 //
-//   (2) MANDATORY (OPT-IN): only when `spec.project.require_oracles === true`,
-//       a done AC that declares NO oracle_refs → error
-//       ("done AC lacks a spec-conformance oracle"). When the flag is
-//       falsy (the default), there is NO presence requirement — so the
-//       detector is INERT on cladding's own repo (149 done features, zero
-//       oracles today) and on every existing/legacy project. Adding it is
-//       safe everywhere; a project opts into the presence rule explicitly.
+//   (2) MANDATORY (OPT-IN, RISK-WEIGHTED): a done AC the project's oracle
+//       policy REQUIRES an oracle for, but which declares NONE → error. The
+//       requirement is resolved through oracle/policy.ts: `oracle_policy`
+//       (risk-weighted — high-risk EARS in `always_ears` + a deterministic
+//       `sample` of the rest) takes precedence over the legacy
+//       `require_oracles: true` (exhaustive). With NEITHER set (the default),
+//       there is NO presence requirement — so the detector is INERT on
+//       cladding's own repo (zero oracles today) and on every legacy project.
+//       Adding it is safe everywhere; a project opts in explicitly, and v8's
+//       finding (exhaustive oracles add ~0 quality at ~30% cost) makes the
+//       risk-weighted policy the recommended opt-in over the exhaustive boolean.
 //
 // Status policy: status-aware in the `done` direction (parallel to
 // UNTESTED_AC / MISSING_TESTS) — only `done` features are inspected.
@@ -49,6 +53,7 @@ import {existsSync} from 'node:fs';
 import {join} from 'node:path';
 
 import {readEvidence} from '../../hitl/audit.js';
+import {oracleRequired, resolveOraclePolicy} from '../../oracle/policy.js';
 import type {Spec} from '../../spec/types.js';
 import {ORACLE_DIR} from '../spec-conformance.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
@@ -63,11 +68,13 @@ function runSpecConformanceDetector(opts: CommandStageOptions): readonly DriftFi
 
 function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
   const findings: DriftFinding[] = [];
-  // MANDATORY + PROVENANCE halves are opt-in: only when the project flips it
-  // on. Mirror of ai-hints-forbidden-pattern.ts's early-gate. INTEGRITY is
-  // always-on. The audit log is read ONCE, and only when opted in.
-  const requireOracles = spec.project.require_oracles === true;
-  const evidence = requireOracles ? readEvidence(cwd) : [];
+  // MANDATORY + PROVENANCE halves are opt-in: active only when the project
+  // declares an `oracle_policy` (risk-weighted) or the legacy `require_oracles`
+  // (exhaustive). Resolved through ONE source of truth (oracle/policy.ts) so the
+  // gate and `clad oracle --required` never disagree. INTEGRITY is always-on.
+  // The audit log is read ONCE, and only when a mandate is active.
+  const policy = resolveOraclePolicy(spec.project);
+  const evidence = policy.mandateActive ? readEvidence(cwd) : [];
   const oracleEv = evidence.filter((e) => e.kind === 'oracle');
   // The implementer identity per feature = the specialist dispatch the drive
   // loop records (agent.ts:97-105, stage 'agent:specialists').
@@ -79,12 +86,19 @@ function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
     for (const ac of feature.acceptance_criteria ?? []) {
       const refs = ac.oracle_refs ?? [];
 
-      // (2) MANDATORY (opt-in): a done AC with no declared oracle.
-      if (requireOracles && refs.length === 0) {
+      // (2) MANDATORY (opt-in): a done AC the policy REQUIRES an oracle for
+      // (high-risk EARS or a deterministic sample hit, or exhaustive under
+      // legacy require_oracles) that declares none.
+      if (oracleRequired(policy, feature.id, ac) && refs.length === 0) {
+        const why = policy.exhaustive
+          ? 'project.require_oracles is set'
+          : ac.ears && policy.alwaysEars.has(ac.ears)
+            ? `oracle_policy.always_ears includes '${ac.ears}'`
+            : 'selected by oracle_policy.sample';
         findings.push({
           detector: NAME,
           severity: 'error',
-          message: `${feature.id}.${ac.id} done AC lacks a spec-conformance oracle (project.require_oracles is set; declare oracle_refs under ${ORACLE_DIR}/)`,
+          message: `${feature.id}.${ac.id} done AC lacks a spec-conformance oracle (${why}; declare oracle_refs under ${ORACLE_DIR}/)`,
         });
       }
 
@@ -111,7 +125,10 @@ function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
 
         // (3) PROVENANCE (opt-in): the oracle must be authored impl-blind by a
         // non-implementer. Checked from the `kind:'oracle'` audit record.
-        if (!requireOracles) continue;
+        // Runs whenever a mandate is active (policy or legacy require_oracles),
+        // on every DECLARED oracle — regardless of whether this specific AC was
+        // sampled-in, since a declared oracle should still be impl-blind.
+        if (!policy.mandateActive) continue;
         const prov = oracleEv.find((e) => e.featureId === feature.id && e.acId === ac.id && e.artifact === ref);
         if (!prov) {
           findings.push({

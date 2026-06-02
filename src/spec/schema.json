@@ -36,7 +36,25 @@
         },
         "require_oracles": {
           "type": "boolean",
-          "description": "Opt-in: when true, every done AC must declare oracle_refs (SPEC_CONFORMANCE MANDATORY rule). Default falsy."
+          "description": "Opt-in: when true, every done AC must declare oracle_refs (SPEC_CONFORMANCE MANDATORY rule, EXHAUSTIVE). Default falsy. Superseded by oracle_policy when present."
+        },
+        "oracle_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Risk-weighted oracle requirement. Takes precedence over require_oracles. Done ACs whose EARS category is in always_ears, plus a deterministic `sample` fraction of the rest, must declare oracle_refs. Absent = no mandate; require_oracles:true = exhaustive (sample 1.0).",
+          "properties": {
+            "always_ears": {
+              "type": "array",
+              "items": {"type": "string", "enum": ["ubiquitous", "event", "state", "optional", "unwanted"]},
+              "description": "EARS categories whose done ACs ALWAYS require an oracle (high-risk). Defaults to ['unwanted'] when omitted."
+            },
+            "sample": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Deterministic fraction [0,1] of the remaining (non-always_ears) done ACs that also require an oracle. 0 = only always_ears; 1 = exhaustive."
+            }
+          }
         },
         "ai_hints": {
           "type": "object",

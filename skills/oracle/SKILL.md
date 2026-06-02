@@ -9,6 +9,21 @@ oracle means "matches the spec," not "matches the code." The A/B that motivated 
 bugs a code-peeking (sighted) oracle rubber-stamped (7/8 vs 4/8). cladding owns no LLM — the blinding is **your
 discipline as the host**; cladding produces the brief, records provenance, and the gate audits it.
 
+## Which ACs need an oracle? (the policy)
+
+A project sets its requirement under `spec.yaml::project`:
+- **`oracle_policy: { always_ears: [unwanted], sample: 0.2 }`** (RECOMMENDED) — risk-weighted: author an oracle
+  for every done AC whose EARS category is in `always_ears` (default `['unwanted']` — error/edge handling),
+  PLUS a deterministic ~`sample` fraction of the rest. v8 showed exhaustive per-AC oracles add ~0 quality at
+  ~30% cost, so spot-check the bulk and concentrate verification where failures cluster.
+- **`require_oracles: true`** — EXHAUSTIVE (every done AC). Highest assurance, highest cost. `oracle_policy`
+  takes precedence when both are set.
+- **Neither** — no mandate (an authored oracle still runs + is recorded; a missing one is not forced).
+
+Run **`clad oracle --required`** to print the worklist — exactly which done ACs the policy demands an oracle
+for, which already have one, and why (`always:<ears>` / `sample` / `exhaustive`). Author oracles for the
+`← needs an impl-blind oracle` rows only; do NOT author for ACs the policy did not select.
+
 ## Protocol (three steps — do them in order)
 
 1. **Get the spec-only brief.** Run `clad oracle <featureId> --ac <acId>`. It prints the acceptance criterion
@@ -47,6 +62,8 @@ clad oracle F-1a2b3c --ac AC-004      # 1. print the blind brief
 - **First RED is ambiguous.** When a brand-new oracle fails on the current code, it is EITHER a real spec bug in
   the code (keep the oracle, fix the code) OR an over-strict oracle (the spec doesn't require it — revise/reject
   it). cladding cannot tell which without you. Decide deliberately; never auto-accept or auto-discard.
-- **Opt-in.** The presence + provenance rules only bind under `spec.yaml::project.require_oracles: true`. Without
-  it, an authored oracle still runs (stage_2.3) and its provenance is still recorded, but a missing oracle is not
-  forced.
+- **Opt-in + risk-weighted.** The presence + provenance rules bind under `project.oracle_policy` (risk-weighted,
+  recommended) or the legacy `project.require_oracles: true` (exhaustive). Without either, an authored oracle
+  still runs (stage_2.3) and its provenance is still recorded, but a missing oracle is not forced. Prefer
+  `oracle_policy` — exhaustive verification bought ~0 quality at ~30% cost in v8; concentrate the premium on the
+  high-risk (`unwanted`) ACs + a sample.

@@ -36,6 +36,7 @@ import {staleSpecification} from '../stages/detectors/stale-specification.js';
 import {findLatestCheckpoint, recordCheckpoint, recordRollback} from '../core/checkpoint.js';
 import {computeInventory, writeInventoryToSpecYaml} from '../spec/inventory.js';
 import {buildBlindPayload, renderBlindBrief} from '../oracle/payload.js';
+import {requiredOracleWorklist} from '../oracle/policy.js';
 import {loadSpec} from '../spec/load.js';
 import {pulse} from '../ui/pulse.js';
 import {renderPanel} from '../ui/panel.js';
@@ -479,13 +480,44 @@ export function runDoneCommand(featureId: string): void {
  * brief to a fresh blind sub-agent, which writes the oracle; the host then
  * records provenance via the `clad_author_oracle` MCP tool. @see oracle/payload.ts
  */
-export function runOracleCommand(featureId: string, opts: {ac?: string; cwd?: string} = {}): void {
+export function runOracleCommand(featureId: string | undefined, opts: {ac?: string; cwd?: string; required?: boolean} = {}): void {
   const cwd = opts.cwd ?? '.';
   let spec;
   try {
     spec = loadSpec(cwd);
   } catch (err) {
     pulse('fail', 'oracle', `spec not loaded: ${(err as Error).message}`);
+    process.exit(1);
+    return;
+  }
+
+  // `--required`: print the policy worklist (which done ACs the oracle_policy /
+  // require_oracles demands an oracle for) instead of a single feature's brief.
+  if (opts.required) {
+    if (featureId) {
+      // --required is project-wide; a positional featureId is meaningless here.
+      // Say so rather than silently dropping it (review nit, honesty lens).
+      process.stdout.write(`(note: --required lists the whole-project worklist; ignoring '${featureId}')\n`);
+    }
+    const rows = requiredOracleWorklist(spec);
+    if (rows.length === 0) {
+      process.stdout.write('No oracles required — set project.oracle_policy or require_oracles, or no done ACs match the policy.\n');
+      process.exit(0);
+      return;
+    }
+    const missing = rows.filter((r) => !r.hasOracle);
+    for (const r of rows) {
+      const mark = r.hasOracle ? '✓' : '·';
+      const tail = r.hasOracle ? '' : '  ← needs an impl-blind oracle';
+      process.stdout.write(`  ${mark} ${r.featureId}.${r.acId}  [${r.reason}${r.ears ? `:${r.ears}` : ''}]${tail}\n`);
+    }
+    process.stdout.write(`\n${rows.length} AC(s) required, ${missing.length} missing an oracle.\n`);
+    process.exit(missing.length > 0 ? 1 : 0);
+    return;
+  }
+
+  if (!featureId) {
+    pulse('fail', 'oracle', 'provide a <featureId> to print its blind brief, or --required to list the ACs the policy needs an oracle for');
     process.exit(1);
     return;
   }
@@ -627,11 +659,12 @@ export function createProgram(): Command {
     .action(runDoneCommand);
 
   program
-    .command('oracle <featureId>')
-    .description('Print the impl-blind oracle authoring brief (acceptance criteria + signatures, never the implementation). Hand it to a fresh blind sub-agent; record the result with clad_author_oracle. cladding calls no LLM.')
+    .command('oracle [featureId]')
+    .description('Print the impl-blind oracle authoring brief (acceptance criteria + signatures, never the implementation). Hand it to a fresh blind sub-agent; record the result with clad_author_oracle. cladding calls no LLM. Use --required to list which done ACs the project policy needs an oracle for.')
     .option('--ac <id>', 'restrict the brief to a single acceptance criterion')
+    .option('--required', 'list the done ACs the oracle_policy / require_oracles requires an oracle for (worklist), instead of a brief')
     .option('--cwd <path>', 'project root (defaults to .)')
-    .action((featureId: string, opts: {ac?: string; cwd?: string}) => runOracleCommand(featureId, opts));
+    .action((featureId: string | undefined, opts: {ac?: string; cwd?: string; required?: boolean}) => runOracleCommand(featureId, opts));
 
   program
     .command('rollback <featureId>')

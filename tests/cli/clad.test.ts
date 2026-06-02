@@ -415,6 +415,48 @@ describe('cli/clad — handler exports', () => {
     expect(exitCalls).toEqual([1]);
   });
 
+  // Lever 1 — `clad oracle --required` prints the policy worklist (which done
+  // ACs need an oracle) instead of a single feature's brief.
+  test('runOracleCommand --required lists policy-required ACs and exits 1 when one is missing', () => {
+    loadSpecMock.mockReturnValueOnce({
+      project: {name: 'p', language: 'typescript', oracle_policy: {always_ears: ['unwanted'], sample: 0}},
+      features: [
+        {
+          id: 'F-001', status: 'done', acceptance_criteria: [
+            {id: 'AC-001', ears: 'unwanted'},
+            {id: 'AC-002', ears: 'ubiquitous'},
+          ],
+        },
+      ],
+    });
+    clad.runOracleCommand(undefined, {required: true});
+    const out = stdoutSpy.mock.calls.map((c: unknown[]) => String(c[0])).join('');
+    expect(out).toContain('F-001.AC-001'); // unwanted ⇒ required
+    expect(out).not.toContain('F-001.AC-002'); // ubiquitous + sample 0 ⇒ not required
+    expect(out).toContain('1 missing');
+    expect(exitCalls).toEqual([1]);
+  });
+
+  test('runOracleCommand --required with NO mandate prints the no-oracles note and exits 0', () => {
+    loadSpecMock.mockReturnValueOnce({project: {name: 'p', language: 'typescript'}, features: []});
+    clad.runOracleCommand(undefined, {required: true});
+    const out = stdoutSpy.mock.calls.map((c: unknown[]) => String(c[0])).join('');
+    expect(out).toContain('No oracles required');
+    expect(exitCalls).toEqual([0]);
+  });
+
+  test('runOracleCommand --required with a stray featureId notes it is ignored (not silently dropped) and still lists the worklist', () => {
+    loadSpecMock.mockReturnValueOnce({
+      project: {name: 'p', language: 'typescript', oracle_policy: {always_ears: ['unwanted'], sample: 0}},
+      features: [{id: 'F-001', status: 'done', acceptance_criteria: [{id: 'AC-001', ears: 'unwanted'}]}],
+    });
+    clad.runOracleCommand('F-001', {required: true});
+    const out = stdoutSpy.mock.calls.map((c: unknown[]) => String(c[0])).join('');
+    expect(out).toContain("ignoring 'F-001'");
+    expect(out).toContain('F-001.AC-001');
+    expect(exitCalls).toEqual([1]);
+  });
+
   test('runDriveCommand --json emits raw result to stdout', async () => {
     runDriveLoopMock.mockResolvedValueOnce({
       halt: {class: 'ALL_FEATURES_DONE', detail: 'done', iteration: 1},

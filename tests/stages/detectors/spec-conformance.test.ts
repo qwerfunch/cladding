@@ -138,4 +138,34 @@ describe('SPEC_CONFORMANCE detector', () => {
     );
     expect(run()).toHaveLength(0);
   });
+
+  // Lever 1 — risk-weighted oracle_policy (replaces the all-or-nothing boolean).
+  /** A spec whose single done AC carries the given `ears`. */
+  const SPEC_EARS = (project: string, ears: string): string =>
+    `schema: "0.1"\nproject: {${project}}\nfeatures:\n  - id: F-001\n    title: f\n    status: done\n    acceptance_criteria:\n      - id: AC-001\n        ears: ${ears}\n        text: t\n        evidence_refs: [fixture:x]`;
+
+  test('POLICY always_ears: a done unwanted AC with no oracle ⇒ error (reason names always_ears)', () => {
+    writeSpec(SPEC_EARS("name: f, language: typescript, oracle_policy: {always_ears: ['unwanted']}", 'unwanted'));
+    const f = run();
+    expect(f).toHaveLength(1);
+    expect(f[0]?.severity).toBe('error');
+    expect(f[0]?.message).toContain("always_ears includes 'unwanted'");
+  });
+
+  test('POLICY sample 0: a done NON-always (ubiquitous) AC is NOT required ⇒ zero findings', () => {
+    writeSpec(SPEC_EARS("name: f, language: typescript, oracle_policy: {always_ears: ['unwanted'], sample: 0}", 'ubiquitous'));
+    expect(run()).toHaveLength(0);
+  });
+
+  test('POLICY sample 1.0: even a ubiquitous done AC is required ⇒ error', () => {
+    writeSpec(SPEC_EARS('name: f, language: typescript, oracle_policy: {sample: 1}', 'ubiquitous'));
+    const f = run();
+    expect(f).toHaveLength(1);
+    expect(f[0]?.message).toContain('selected by oracle_policy.sample');
+  });
+
+  test('PRECEDENCE: oracle_policy {sample:0} OVERRIDES require_oracles:true ⇒ ubiquitous AC not forced', () => {
+    writeSpec(SPEC_EARS('name: f, language: typescript, require_oracles: true, oracle_policy: {sample: 0}', 'ubiquitous'));
+    expect(run()).toHaveLength(0);
+  });
 });

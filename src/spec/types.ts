@@ -189,6 +189,29 @@ export interface AiHints {
   readonly preferred_patterns?: readonly PreferredPattern[];
 }
 
+/**
+ * Risk-weighted oracle requirement (v0.5.x). Replaces the all-or-nothing
+ * `require_oracles` boolean: instead of demanding an impl-blind oracle for
+ * EVERY done AC, demand one only for the high-risk EARS categories
+ * (`always_ears`) plus a deterministic `sample` fraction of the rest. v8
+ * showed exhaustive oracles add ~0 quality at ~30% cost — so the oracle is
+ * priced as opt-in governance insurance. Takes precedence over
+ * `require_oracles`. See oracle/policy.ts + stages/detectors/spec-conformance.ts.
+ */
+export interface OraclePolicy {
+  /**
+   * EARS categories whose `done` ACs ALWAYS require an oracle. Defaults to
+   * `['unwanted']` (error/edge handling — where failures cluster) when omitted.
+   */
+  readonly always_ears?: readonly EarsPattern[];
+  /**
+   * Deterministic fraction [0,1] of the remaining (non-`always_ears`) done ACs
+   * that also require an oracle. 0 = only `always_ears`; 1 = exhaustive.
+   * Default 0 when omitted.
+   */
+  readonly sample?: number;
+}
+
 /** Project-level metadata. */
 export interface Project {
   readonly name: string;
@@ -212,11 +235,18 @@ export interface Project {
   readonly intent_summary?: string;
   /**
    * Opt-in: when true, every `status: done` AC must declare `oracle_refs`
-   * (the SPEC_CONFORMANCE MANDATORY rule). Default falsy → the detector
-   * enforces only INTEGRITY of declared refs, staying inert on legacy
-   * projects. See stages/detectors/spec-conformance.ts.
+   * (the SPEC_CONFORMANCE MANDATORY rule, EXHAUSTIVE). Default falsy → the
+   * detector enforces only INTEGRITY of declared refs, staying inert on legacy
+   * projects. Superseded by `oracle_policy` when that is present (risk-weighted
+   * wins over the all-or-nothing boolean). See stages/detectors/spec-conformance.ts.
    */
   readonly require_oracles?: boolean;
+  /**
+   * Risk-weighted alternative to `require_oracles` — demand oracles only for
+   * high-risk + a deterministic sample of done ACs. Takes precedence over
+   * `require_oracles`. See OraclePolicy + oracle/policy.ts.
+   */
+  readonly oracle_policy?: OraclePolicy;
   /**
    * AI behavior hints — preferred persona, token budget, forbidden patterns.
    * Added v0.3.56 (F-5b9f9f).
