@@ -11,7 +11,7 @@
 // Sampling-based dispatch (v0.2.25) is out of scope here. This file is
 // concerned only with the read surface of `clad serve`.
 
-import {mkdtempSync, rmSync, writeFileSync, mkdirSync} from 'node:fs';
+import {mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 
@@ -326,6 +326,43 @@ describe('serve/server — MCP read surface', () => {
       // distinguishes concurrent invocations.
       expect(parsed.path).toMatch(/spec\/features\/new-login-flow-[a-f0-9]{6}\.yaml$/);
       expect(result.isError).not.toBe(true);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  // Phase 2 — clad_author_oracle records a host-authored impl-blind oracle:
+  // writes the test, records provenance, stamps oracle_refs onto the AC.
+  test('clad_author_oracle records the oracle + provenance + stamps oracle_refs', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const created = await client.callTool({
+        name: 'clad_create_feature',
+        arguments: {slug: 'widget', title: 'Widget', status: 'done', acceptance_criteria: [{text: 'does the thing'}]},
+      });
+      const createdParsed = JSON.parse((created.content as Array<{type: string; text: string}>)[0].text);
+      const featureId = createdParsed.id as string;
+      const shardPath = createdParsed.path as string; // createFeature returns an absolute path
+      // AC ids are auto-assigned (AC-<hash6> or AC-NNN) — read the real one back.
+      const acId = readFileSync(shardPath, 'utf8').match(/id:\s*(AC-\S+)/)?.[1] as string;
+
+      const result = await client.callTool({
+        name: 'clad_author_oracle',
+        arguments: {
+          featureId,
+          acId,
+          body: "import {test, expect} from 'vitest';\ntest('x', () => expect(1).toBe(1));",
+          readManifest: ['spec:acceptance_criteria'],
+          blind: true,
+          authorName: 'blind-subagent',
+        },
+      });
+      const parsed = JSON.parse((result.content as Array<{type: string; text: string}>)[0].text);
+      expect(parsed.ok).toBe(true);
+      expect(result.isError).not.toBe(true);
+      expect(parsed.oraclePath).toBe(`tests/oracle/${featureId}.${acId}.test.ts`);
+      // oracle_refs stamped onto the AC shard
+      expect(readFileSync(shardPath, 'utf8')).toContain(parsed.oraclePath);
     } finally {
       await cleanup();
     }

@@ -10,6 +10,8 @@ modules:
   - tests/stages/detectors/spec-conformance.test.ts
   - src/oracle/payload.ts
   - tests/oracle-payload.test.ts
+  - src/oracle/record.ts
+  - tests/oracle-record.test.ts
 depends_on:
   - F-021
 acceptance_criteria:
@@ -55,3 +57,10 @@ acceptance_criteria:
     response: the host hands the brief to a fresh blind sub-agent (cladding calls no LLM); the brief carries conservative under-assertion guidance to mitigate over-strict oracles
     text: When clad oracle is run, the system shall print an impl-blind authoring brief (acceptance criteria + decl-only signatures, never bodies) for a host-spawned blind sub-agent to author from.
     test_refs: [tests/oracle-payload.test.ts]
+  - id: AC-007
+    ears: event
+    condition: when the host calls clad_author_oracle with a sub-agent's oracle + read-manifest
+    action: write the oracle under tests/oracle/, record kind=oracle provenance (author, manifest, blind), and stamp oracle_refs onto the AC via a comment-preserving shard edit
+    response: the recorded provenance is what the SPEC_CONFORMANCE gate audits (author≠implementer, manifest∩modules=∅); the shard edit goes through the yaml Document API so comments and layout survive
+    text: When clad_author_oracle is called, the system shall write the oracle, record its impl-blind provenance, and stamp oracle_refs without malforming the shard.
+    test_refs: [tests/oracle-record.test.ts]
