@@ -19,3 +19,14 @@ clad check
 clad check --strict
 clad check --internal
 ```
+
+## Gate economy (tiers)
+
+Pick the cheapest tier that answers your question — the full pre-push suite is expensive and grows with
+the project:
+
+- `clad check --tier=pre-commit` — drift / arch / secret only (spec-vs-code, no full unit suite). Use for
+  fast inner-loop feedback while implementing.
+- `clad check --tier=pre-push --strict` — the full gate (type / lint / unit / cov + drift). This is what
+  `clad done <featureId>` already runs, so do NOT run it separately right before `clad done` — one
+  authoritative full gate per feature, not two. See `docs/feature-cycle.md` § Gate economy.

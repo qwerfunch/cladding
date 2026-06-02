@@ -106,3 +106,21 @@ gate still blocks a too-wide batch (fails safe).
 - **Headless `clad drive`:** a sequential reference loop — `nextReady` already drives ONE feature at
   a time. Its transports do **not** yet author code (the tool-use/mutation protocol is unbuilt), so
   a no-real-dispatch run is honestly degraded, never reported as success.
+
+## Gate economy — one authoritative full gate per feature
+
+The full pre-push gate (type / lint / unit / cov + drift) is the expensive step, and it grows with the
+suite. v8 measured the gate loop at ~11% of run turns, much of it REDUNDANT full-suite re-runs. Trim
+the churn WITHOUT weakening any gate (this changes nothing about what GREEN means — it only removes
+duplicate executions of a deterministic gate on an unchanged tree):
+
+- **`clad done` IS the authoritative full gate.** It re-runs `clad check --tier=pre-push --strict` and
+  flips status only on GREEN. Do NOT run a separate manual `clad check --tier=pre-push` immediately
+  before `clad done` — that runs the same expensive suite twice for one verdict.
+- **Inner-loop feedback is cheap + scoped.** While implementing (step 2/3), get fast signal from the
+  feature's OWN tests (`npx vitest run tests/<feature>.test.ts`) plus `clad check --tier=pre-commit`
+  (drift / spec-vs-code, no full suite) — not the whole suite on every edit. The full suite runs at the
+  step-3 barrier and authoritatively at `clad done`.
+- **Read the gate output; don't re-run to re-read it.** `clad check --json` and the terse MCP
+  `clad_run_check` return file / line / findings in one pass — fix from that rather than re-running the
+  gate just to see the same failure again.
