@@ -35,6 +35,7 @@ import type {DriftFinding} from '../stages/types.js';
 import {staleSpecification} from '../stages/detectors/stale-specification.js';
 import {findLatestCheckpoint, recordCheckpoint, recordRollback} from '../core/checkpoint.js';
 import {computeInventory, writeInventoryToSpecYaml} from '../spec/inventory.js';
+import {buildBlindPayload, renderBlindBrief} from '../oracle/payload.js';
 import {loadSpec} from '../spec/load.js';
 import {pulse} from '../ui/pulse.js';
 import {renderPanel} from '../ui/panel.js';
@@ -471,6 +472,33 @@ export function runDoneCommand(featureId: string): void {
   process.exit(r.code);
 }
 
+/**
+ * Handler for `clad oracle <featureId>`. Prints the deterministic, impl-blind
+ * authoring brief (acceptance criteria + module paths + decl-only signatures,
+ * NEVER bodies) for a feature/AC. cladding calls no LLM — the host hands this
+ * brief to a fresh blind sub-agent, which writes the oracle; the host then
+ * records provenance via the `clad_author_oracle` MCP tool. @see oracle/payload.ts
+ */
+export function runOracleCommand(featureId: string, opts: {ac?: string; cwd?: string} = {}): void {
+  const cwd = opts.cwd ?? '.';
+  let spec;
+  try {
+    spec = loadSpec(cwd);
+  } catch (err) {
+    pulse('fail', 'oracle', `spec not loaded: ${(err as Error).message}`);
+    process.exit(1);
+    return;
+  }
+  const payload = buildBlindPayload(spec, featureId, opts.ac, cwd);
+  if (!payload || payload.acs.length === 0) {
+    pulse('fail', 'oracle', `no acceptance criteria for ${featureId}${opts.ac ? `.${opts.ac}` : ''} — nothing to author a blind oracle from`);
+    process.exit(1);
+    return;
+  }
+  process.stdout.write(`${renderBlindBrief(payload)}\n`);
+  process.exit(0);
+}
+
 function printStageDetails(r: {
   stderr?: string;
   findings?: readonly {detector: string; severity: string; message: string; path?: string}[];
@@ -597,6 +625,13 @@ export function createProgram(): Command {
     .command('done <featureId>')
     .description('Mark a feature done ONLY if `clad check --tier=pre-push --strict` is GREEN (flip → gate → revert-on-red). Keeps `done` honest.')
     .action(runDoneCommand);
+
+  program
+    .command('oracle <featureId>')
+    .description('Print the impl-blind oracle authoring brief (acceptance criteria + signatures, never the implementation). Hand it to a fresh blind sub-agent; record the result with clad_author_oracle. cladding calls no LLM.')
+    .option('--ac <id>', 'restrict the brief to a single acceptance criterion')
+    .option('--cwd <path>', 'project root (defaults to .)')
+    .action((featureId: string, opts: {ac?: string; cwd?: string}) => runOracleCommand(featureId, opts));
 
   program
     .command('rollback <featureId>')

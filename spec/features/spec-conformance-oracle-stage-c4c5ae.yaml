@@ -8,6 +8,8 @@ modules:
   - tests/stages/spec-conformance.test.ts
   - src/stages/detectors/spec-conformance.ts
   - tests/stages/detectors/spec-conformance.test.ts
+  - src/oracle/payload.ts
+  - tests/oracle-payload.test.ts
 depends_on:
   - F-021
 acceptance_criteria:
@@ -46,4 +48,10 @@ acceptance_criteria:
     response: the gate enforces impl-blindness after the fact (author≠implementer + manifest∩modules=∅) on all paths; a self-reported (blind=false) manifest is checked but flagged info; structural authoring-time blindness is the clad oracle SDK path (Phase 2 authoring, deferred)
     text: While require_oracles is set, the system shall fail the gate when an oracle's recorded author is the implementer or its read-manifest intersects the feature's modules, so a passing oracle means impl-blind conformance.
     test_refs: [tests/stages/detectors/spec-conformance.test.ts]
-    test_refs: [tests/stages/detectors/spec-conformance.test.ts]
+  - id: AC-006
+    ears: event
+    condition: when a developer runs clad oracle on a feature
+    action: print a deterministic impl-blind authoring brief built from the acceptance criteria and module declarations only, never an implementation body
+    response: the host hands the brief to a fresh blind sub-agent (cladding calls no LLM); the brief carries conservative under-assertion guidance to mitigate over-strict oracles
+    text: When clad oracle is run, the system shall print an impl-blind authoring brief (acceptance criteria + decl-only signatures, never bodies) for a host-spawned blind sub-agent to author from.
+    test_refs: [tests/oracle-payload.test.ts]
