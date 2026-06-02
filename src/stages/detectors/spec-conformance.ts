@@ -30,17 +30,25 @@
 // planned/in_progress AC's intended oracle path need not exist yet.
 //
 // DEFERRED — PROVENANCE (Phase 2): the stronger guarantee that an oracle
-// was authored IMPL-BLIND (author != implementer, read against the SPEC
-// not the code) is NOT enforced here. It requires the `clad oracle`
-// authoring manifest (who wrote which oracle, against which spec rev),
-// which does not exist yet. This detector deliberately does NOT fake that
-// signal — it asserts only that a declared oracle resolves on disk and,
-// under require_oracles, that a done AC declares one. Provenance lands
-// once the authoring manifest does.
+// was authored IMPL-BLIND is checked here at GATE TIME (opt-in, under
+// require_oracles) by reading the `kind: 'oracle'` authoring-provenance
+// records in the audit log. Three deterministic structural checks per
+// declared oracle_ref: (i) a provenance record exists; (ii) the oracle
+// author identity != the feature's implementer identity (lifting the
+// drive-only reviewer barrier, agent.ts:91-95, into an all-paths gate
+// check); (iii) the author's read-manifest does NOT intersect the
+// feature's `modules` (the load-bearing impl-blindness invariant). A
+// self-reported (host-protocol, `blind:false`) manifest is still checked
+// against modules but flagged `info` so the honesty boundary stays visible.
+// AUTHORING-time blindness itself is structural only on the `clad oracle`
+// SDK path (cladding controls the prompt); the in-session/MCP path is a
+// host protocol this detector audits after the fact. DEFERRED to v2: a
+// spec-rev hash so oracle/spec drift is caught (no hash infra exists yet).
 
 import {existsSync} from 'node:fs';
 import {join} from 'node:path';
 
+import {readEvidence} from '../../hitl/audit.js';
 import type {Spec} from '../../spec/types.js';
 import {ORACLE_DIR} from '../spec-conformance.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
@@ -55,10 +63,16 @@ function runSpecConformanceDetector(opts: CommandStageOptions): readonly DriftFi
 
 function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
   const findings: DriftFinding[] = [];
-  // MANDATORY half is opt-in: only when the project flips it on. Mirror of
-  // ai-hints-forbidden-pattern.ts's early-gate — here it gates the presence
-  // rule, not the whole detector (INTEGRITY is always-on).
+  // MANDATORY + PROVENANCE halves are opt-in: only when the project flips it
+  // on. Mirror of ai-hints-forbidden-pattern.ts's early-gate. INTEGRITY is
+  // always-on. The audit log is read ONCE, and only when opted in.
   const requireOracles = spec.project.require_oracles === true;
+  const evidence = requireOracles ? readEvidence(cwd) : [];
+  const oracleEv = evidence.filter((e) => e.kind === 'oracle');
+  // The implementer identity per feature = the specialist dispatch the drive
+  // loop records (agent.ts:97-105, stage 'agent:specialists').
+  const implementerName = (featureId: string): string | undefined =>
+    evidence.find((e) => e.featureId === featureId && e.stage === 'agent:specialists')?.identity.name;
 
   for (const feature of spec.features) {
     if (feature.status !== 'done') continue;
@@ -92,6 +106,51 @@ function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
             severity: 'warn',
             path: ref,
             message: `${feature.id}.${ac.id} oracle_ref '${ref}' lives outside ${ORACLE_DIR}/ — stage_2.3 only runs ${ORACLE_DIR}/, so this oracle will not execute`,
+          });
+        }
+
+        // (3) PROVENANCE (opt-in): the oracle must be authored impl-blind by a
+        // non-implementer. Checked from the `kind:'oracle'` audit record.
+        if (!requireOracles) continue;
+        const prov = oracleEv.find((e) => e.featureId === feature.id && e.acId === ac.id && e.artifact === ref);
+        if (!prov) {
+          findings.push({
+            detector: NAME,
+            severity: 'error',
+            path: ref,
+            message: `${feature.id}.${ac.id} oracle '${ref}' has no authoring-provenance record — author it via 'clad oracle' (or clad_author_oracle) so impl-blindness can be verified`,
+          });
+          continue;
+        }
+        const implName = implementerName(feature.id);
+        if (implName && prov.identity.name === implName) {
+          findings.push({
+            detector: NAME,
+            severity: 'error',
+            path: ref,
+            message: `${feature.id}.${ac.id} oracle '${ref}' is NOT impl-blind: authored by the implementer ('${implName}')`,
+          });
+        } else if (!implName) {
+          findings.push({
+            detector: NAME,
+            severity: 'info',
+            message: `${feature.id}.${ac.id} oracle author≠implementer not verified — no implementer identity recorded (no clad drive history to compare)`,
+          });
+        }
+        const overlap = (prov.readManifest ?? []).filter((m) => (feature.modules ?? []).includes(m));
+        if (overlap.length > 0) {
+          findings.push({
+            detector: NAME,
+            severity: 'error',
+            path: ref,
+            message: `${feature.id}.${ac.id} oracle '${ref}' is NOT impl-blind: author read implementation file(s) the feature owns (${overlap.join(', ')})`,
+          });
+        }
+        if (prov.blind === false) {
+          findings.push({
+            detector: NAME,
+            severity: 'info',
+            message: `${feature.id}.${ac.id} oracle '${ref}' provenance is self-reported (host-protocol), not cladding-controlled — manifest checked, blindness unproven`,
           });
         }
       }

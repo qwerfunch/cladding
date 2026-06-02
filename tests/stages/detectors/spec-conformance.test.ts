@@ -32,6 +32,22 @@ function oracleFile(rel = 'tests/oracle/foo.test.ts'): void {
   mkdirSync(join(dir, 'tests/oracle'), {recursive: true});
   writeFileSync(join(dir, rel), "import {test, expect} from 'vitest';\ntest('x', () => expect(1).toBe(1));\n");
 }
+/** Write synthesized audit-log evidence (.cladding/audit.log.jsonl). */
+function writeEvidence(entries: object[]): void {
+  mkdirSync(join(dir, '.cladding'), {recursive: true});
+  writeFileSync(join(dir, '.cladding/audit.log.jsonl'), `${entries.map((e) => JSON.stringify(e)).join('\n')}\n`);
+}
+const oracleEv = (name: string, opts: {manifest?: string[]; blind?: boolean} = {}) => ({
+  id: 'ev-o', featureId: 'F-001', acId: 'AC-001', stage: 'stage_2.3',
+  identity: {author: 'llm', name, timestamp: '2026-06-02T00:00:00Z'},
+  kind: 'oracle', content: 'oracle authored', artifact: 'tests/oracle/foo.test.ts',
+  readManifest: opts.manifest ?? [], blind: opts.blind ?? true,
+});
+const implEv = (name: string) => ({
+  id: 'ev-i', featureId: 'F-001', acId: 'AC-001', stage: 'agent:specialists',
+  identity: {author: 'llm', name, timestamp: '2026-06-02T00:00:00Z'},
+  kind: 'note', content: 'implemented',
+});
 
 const SPEC = (project: string, acYaml: string): string =>
   `schema: "0.1"\nproject: {${project}}\nfeatures:\n  - id: F-001\n    title: f\n    status: done\n    acceptance_criteria:\n      - id: AC-001\n        ears: ubiquitous\n        text: t\n${acYaml}`;
@@ -50,10 +66,49 @@ describe('SPEC_CONFORMANCE detector', () => {
     expect(f[0]?.message).toContain('lacks a spec-conformance oracle');
   });
 
-  test('MANDATORY satisfied: require_oracles ON + resolving oracle_ref ⇒ no findings', () => {
+  test('PROVENANCE: require_oracles ON + oracle resolves but NO provenance record ⇒ error', () => {
     oracleFile();
     writeSpec(SPEC('name: f, language: typescript, require_oracles: true', '        oracle_refs: [tests/oracle/foo.test.ts]'));
+    const f = run();
+    expect(f).toHaveLength(1);
+    expect(f[0]?.severity).toBe('error');
+    expect(f[0]?.message).toContain('no authoring-provenance record');
+  });
+
+  test('FULLY SATISFIED: oracle resolves + clean provenance (author≠impl, manifest∩modules=∅) ⇒ no findings', () => {
+    oracleFile();
+    writeEvidence([implEv('impl-model'), oracleEv('oracle-model', {manifest: ['REQ.md'], blind: true})]);
+    writeSpec(SPEC('name: f, language: typescript, require_oracles: true', '        oracle_refs: [tests/oracle/foo.test.ts]'));
     expect(run()).toHaveLength(0);
+  });
+
+  test('PROVENANCE: oracle author == implementer ⇒ error (not impl-blind)', () => {
+    oracleFile();
+    writeEvidence([implEv('same-model'), oracleEv('same-model', {manifest: []})]);
+    writeSpec(SPEC('name: f, language: typescript, require_oracles: true', '        oracle_refs: [tests/oracle/foo.test.ts]'));
+    const f = run();
+    expect(f.some((x) => x.severity === 'error' && /NOT impl-blind: authored by the implementer/.test(x.message))).toBe(true);
+  });
+
+  test('PROVENANCE: read-manifest ∩ modules ≠ ∅ ⇒ error (author read the impl)', () => {
+    oracleFile();
+    writeEvidence([implEv('impl-model'), oracleEv('oracle-model', {manifest: ['src/sheet.ts']})]);
+    writeSpec(
+      'schema: "0.1"\nproject: {name: f, language: typescript, require_oracles: true}\nfeatures:\n' +
+        '  - id: F-001\n    title: f\n    status: done\n    modules: [src/sheet.ts]\n    acceptance_criteria:\n' +
+        '      - id: AC-001\n        ears: ubiquitous\n        text: t\n        oracle_refs: [tests/oracle/foo.test.ts]\n',
+    );
+    const f = run();
+    expect(f.some((x) => x.severity === 'error' && /author read implementation file/.test(x.message))).toBe(true);
+  });
+
+  test('PROVENANCE: blind=false (host self-reported) ⇒ info marker, manifest still checked (no error when clean)', () => {
+    oracleFile();
+    writeEvidence([implEv('impl-model'), oracleEv('oracle-model', {manifest: ['REQ.md'], blind: false})]);
+    writeSpec(SPEC('name: f, language: typescript, require_oracles: true', '        oracle_refs: [tests/oracle/foo.test.ts]'));
+    const f = run();
+    expect(f.every((x) => x.severity !== 'error')).toBe(true);
+    expect(f.some((x) => x.severity === 'info' && /self-reported/.test(x.message))).toBe(true);
   });
 
   test('INTEGRITY (always-on): declared oracle_ref to a missing file ⇒ error, even with require_oracles OFF', () => {
