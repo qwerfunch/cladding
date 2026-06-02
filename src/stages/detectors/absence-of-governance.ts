@@ -129,9 +129,53 @@ function runAbsenceOfGovernance(opts: CommandStageOptions): readonly DriftFindin
           `spec.yaml is present but unreadable (${broken}) — cladding is governing` +
           ' nothing. Fix the SSoT root, then `clad sync` to validate.',
       });
+    } else {
+      // The master can parse, but a sharded spec assembles spec/features/*.yaml +
+      // spec/scenarios/*.yaml, and a single unparseable SHARD makes loadSpec throw
+      // — which the spec-gated detectors swallow as non-blocking `info`
+      // (with-spec.ts). That let a malformed shard pass the gate GREEN: cladding's
+      // own Vacuous Green. Same parse-only scope as the master check (NOT schema —
+      // `clad sync` owns that): a shard whose YAML does not parse is blocking.
+      const shardBroken = shardParseFailure(cwd);
+      if (shardBroken) {
+        findings.push({
+          detector: NAME,
+          severity: 'error',
+          path: shardBroken.path,
+          message:
+            `spec shard '${shardBroken.path}' is present but unparseable (${shardBroken.reason}) —` +
+            ' loadSpec throws on it, so every spec-gated detector silently passes. Fix it, then `clad sync`.',
+        });
+      }
     }
   }
   return findings;
+}
+
+/**
+ * Returns the first spec SHARD (spec/features/*.yaml or spec/scenarios/*.yaml)
+ * whose YAML does not parse, or null when every shard parses. Parse-only — same
+ * scope as {@link masterParseFailure}; schema validity is `clad sync`'s job.
+ */
+function shardParseFailure(cwd: string): {path: string; reason: string} | null {
+  for (const sub of ['spec/features', 'spec/scenarios']) {
+    const dirAbs = join(cwd, sub);
+    if (!existsSync(dirAbs)) continue;
+    let entries: string[];
+    try {
+      entries = readdirSync(dirAbs).filter((n) => n.endsWith('.yaml') || n.endsWith('.yml'));
+    } catch {
+      continue;
+    }
+    for (const name of [...entries].sort()) {
+      try {
+        parseSpec(join(dirAbs, name));
+      } catch (err) {
+        return {path: `${sub}/${name}`, reason: (err as Error).message};
+      }
+    }
+  }
+  return null;
 }
 
 /**
