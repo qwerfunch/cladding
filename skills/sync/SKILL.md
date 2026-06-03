@@ -1,5 +1,5 @@
 ---
-description: Validate the active spec.yaml against the Ironclad schema and surface any structural / drift problems. Use when the user wants to know if the spec is well-formed, when the spec was just edited, or as a pre-flight check before running `check` or `drive`.
+description: Validate the active spec.yaml against the Ironclad schema and refresh the inventory. Rarely needed manually — clad_create_feature already auto-syncs the inventory and clad check / clad done self-validate the spec, so do NOT run it as a reflexive pre-flight before those. Use it only after you have directly hand-edited a shard file (spec/features/*.yaml or spec.yaml).
 ---
 
 # Cladding sync
