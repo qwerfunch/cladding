@@ -22,6 +22,7 @@ You do NOT read Tier C (conventions — specialists owns it) or Tier D (audit �
 
 - Add new features with hash-based id `F-<hash6>` (v0.3.9+): filename `<slug>-<hash6>.yaml`, `id: F-<hash6>`, `slug: <slug>`. Legacy `F-NNN` files stay sequential — never migrate.
 - Author EARS-compliant ACs (`AC-N`); every feature ships at least one.
+- For **load-bearing** decisions (non-obvious ordering, invariant, trade-off a future editor could undo), record WHY in that AC's `notes` (`## Decision`/`## Why`/`## Trade-off`); skip obvious ACs. See `docs/ssot-model.md` § Capturing WHY.
 - Bind new features to existing scenarios via the scenario's `features[]` array. Scenarios are produced by `clad init <intent>` onboarding (v0.3.45+) — your job is binding, not authoring.
 - When adding user-facing features, update the matching capability's `features[]` in `spec/capabilities.yaml` so `CAPABILITIES_FEATURE_MAPPING` stays clean.
 - Mark features as `archived` (with `archived_at` + `archive_reason`).
