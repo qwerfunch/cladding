@@ -5,48 +5,45 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.1] — 2026-06-05 — No Vacuous Green, Phase 2: the impl-blind oracle reaches the gate
+## [0.5.1] — 2026-06-05 — A gate that can catch a hidden bug
 
-**The theme: "GREEN" can now mean spec-conformant, not just self-test-green.** 0.5.0 closed the structural
-Vacuous-Green holes; 0.5.1 adds the keystone — an **impl-blind, spec-derived oracle** the gate runs
-deterministically, so `clad check` can finally fail on latent non-conformance the agent's own tests missed. It
-also ships a real bug fix every user project hits (the spurious `schema.json` ENOENT), shifts EARS validation
-left to creation time, and gives decision rationale a compact home. The drift-detector set grows **33 → 34**.
-All additions are opt-in and backward-compatible.
+**In one line:** until now, `clad check` went green whenever *your code's own tests* passed — even if the
+code didn't actually do what the spec asked. 0.5.1 lets the gate run a second, independent check, written
+from the spec *without looking at the code*, so a green gate can finally mean "this matches the spec," not
+just "the author's own tests passed." It also fixes a harmless-but-alarming error that showed up in *every*
+project, and makes writing specs a little less fiddly. **Everything new here is opt-in** — upgrading changes
+nothing until you turn it on.
 
 ### Added
 
-- **`SPEC_CONFORMANCE` detector (#34) + `stage_2.3` oracle execution** — the gate runs committed impl-blind
-  oracles against the real implementation; any oracle failure turns the gate RED. Provenance is enforced
-  (author ≠ implementer, read-manifest ∩ modules = ∅), so a passing oracle means "matches the spec," not
-  "matches what the coder tested." Opt-in via `project.oracle_policy`.
-- **`oracle_policy`** — a risk-weighted oracle requirement (`{always_ears, sample}`) replacing all-or-nothing
-  `require_oracles`; default keeps oracles off (the right default on a capable model).
-- **`clad oracle <featureId>`** — prints a deterministic, impl-blind authoring brief (AC text + decl-only
-  signatures, never a body) so the host can author an oracle blind. No API key — host-delegated.
-- **`clad_author_oracle` MCP tool** — records a host-authored oracle + provenance evidence (read-manifest,
-  blind, author identity) and stamps `oracle_refs`.
-- **`clad check --json`** — structured, untruncated gate output (exact file/line/fix per finding).
-- **EARS-at-creation** — `clad_create_feature` rejects a malformed AC EARS shape at creation, not later at the gate.
-- **WHY decision micro-format** — record decision rationale in `AcceptanceCriterion.notes` via
-  `## Decision` / `## Why` / `## Trade-off` (advisory; no schema/detector change). See `docs/ssot-model.md`.
-- **`skills/oracle`** — host protocol for spawning an impl-blind oracle author.
+- **An independent "did it really match the spec?" check (opt-in).** The gate can now run a spec-derived
+  test suite that was written without seeing the implementation, and check the code against the *spec*
+  rather than against the author's own assumptions — so a hidden mismatch the author's tests missed turns
+  the gate red. Turn it on per project with `oracle_policy` (off by default). New pieces:
+  `clad oracle` (get the spec-only brief), `clad_author_oracle` (record the result), the `SPEC_CONFORMANCE`
+  gate check, and a 34th drift detector.
+- **Spec mistakes are caught the moment you write them.** Creating a feature now rejects a malformed
+  acceptance criterion right away, instead of letting you find out later when the gate fails.
+- **`clad check --json`** — machine-readable gate results with the exact file, line, and suggested fix for
+  each finding (no more squinting at truncated text).
+- **A place to write down *why* a decision was made.** Record the reasoning behind a non-obvious choice in
+  an acceptance criterion's `notes` (`## Decision` / `## Why` / `## Trade-off`), so a future reader doesn't
+  "fix" it the wrong way. Optional — see `docs/ssot-model.md`.
 
 ### Changed
 
-- **Terse `clad_run_check` by default** (full output behind a verbose flag) — smaller per-turn context.
-- **Ephemeral prompt-cache the persona prefix** (SDK transport) — cheaper repeated dispatches.
-- **Gate economy** — one authoritative full gate per feature at `clad done`; cheap scoped checks in the inner
-  loop (docs/skill guidance).
-- **`clad sync` is rarely needed manually** — `clad_create_feature` auto-maintains inventory and check/done
-  self-validate; the skill/docs no longer recommend reflexive pre-flight syncs.
+- **Less noise, cheaper turns.** The in-session check returns a short summary by default (full detail on
+  request), the spec context is cached between steps, and the heavy gate runs once per feature (at
+  `clad done`) instead of repeatedly.
+- **You rarely need to run `clad sync` by hand anymore** — creating a feature keeps the inventory current,
+  and `check` / `done` validate on their own.
 
 ### Fixed
 
-- **`META_INTEGRITY` no longer false-errors on a missing `src/spec/schema.json`** — it skips when absent instead
-  of raising ENOENT in *every* user project (the bug made agents hand-craft a dummy schema).
-- **A malformed spec *shard* now fails the gate** (`ABSENCE_OF_GOVERNANCE`) — previously `loadSpec`'s throw was
-  swallowed as info, letting a broken shard pass GREEN (cladding's own Vacuous Green).
+- **No more false "schema.json not found" error.** Every project was hitting a spurious error about a
+  missing internal file; the gate now simply skips it when absent (it was never actually required).
+- **A broken spec file can no longer slip through green.** A malformed spec shard used to pass the gate
+  silently — it now correctly fails.
 
 ## [0.5.0] — 2026-06-01 — No Vacuous Green: honest gates, the per-feature cadence, and an enforced SSoT
 
