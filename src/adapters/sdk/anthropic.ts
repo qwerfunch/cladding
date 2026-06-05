@@ -24,6 +24,10 @@
 
 import process from 'node:process';
 
+import {appendEvent, newEvent} from '../../events/log.js';
+import {compressContext} from '../../optimizer/headroom.js';
+import type {CompressOutcome, OpenAIMessage} from '../../optimizer/headroom.js';
+import type {ContextKind} from '../../optimizer/profiles.js';
 import type {Transport} from '../host/transport.js';
 import type {
   AgentAdapter,
@@ -115,11 +119,31 @@ export class AnthropicTransport implements Transport {
     }
     if (!this.cachedClient) this.cachedClient = this.clientFactory(this.apiKey);
     const userMessage = buildUserMessage(ctx);
+
+    // Headroom seam (F-6aebb9). Route the assembled (system + user) payload
+    // through the compression engine before the API call. The outcome is
+    // ALWAYS usable — on disabled config or any bridge failure it is the
+    // original text — so this is transparent to the call below and to the
+    // drive loop. 'spec' profile: keep the persona prefix stable for cache
+    // hits, protect the active ask.
+    const kind: ContextKind = 'spec';
+    const outcome = await compressContext(
+      [
+        {role: 'system', content: persona.body},
+        {role: 'user', content: userMessage},
+      ],
+      kind,
+      this.model,
+    );
+    maybeEmitCompression(ctx.cwd, kind, outcome);
+    const system = pickContent(outcome.messages, 'system') ?? persona.body;
+    const userContent = pickContent(outcome.messages, 'user') ?? userMessage;
+
     const response = await this.cachedClient.messages.create({
       model: this.model,
       max_tokens: this.maxTokens,
-      system: persona.body,
-      messages: [{role: 'user', content: userMessage}],
+      system,
+      messages: [{role: 'user', content: userContent}],
     });
     const replyText = extractText(response.content);
     return {
@@ -143,6 +167,41 @@ export class AnthropicTransport implements Transport {
     }
     return Promise.resolve({ready: true});
   }
+}
+
+/** First message of `role` from a compressed/original payload, if present. */
+function pickContent(
+  messages: readonly OpenAIMessage[],
+  role: 'system' | 'user',
+): string | undefined {
+  return messages.find((m) => m.role === role)?.content;
+}
+
+/**
+ * Record a `compression` event when compression was actually attempted —
+ * i.e. not a deliberate no-op (disabled config or a sub-threshold payload).
+ * Lets the observability persona report realized savings + fallback rate
+ * without the seam itself depending on the events layer.
+ */
+function maybeEmitCompression(
+  cwd: string,
+  kind: ContextKind,
+  outcome: CompressOutcome,
+): void {
+  const reason = outcome.fallbackReason;
+  if (reason === 'disabled' || reason === 'below_min_tokens') return;
+  appendEvent(
+    cwd,
+    newEvent('compression', {
+      applied: outcome.applied,
+      kind,
+      tokensBefore: outcome.result?.tokensBefore ?? 0,
+      tokensAfter: outcome.result?.tokensAfter ?? 0,
+      tokensSaved: outcome.result?.tokensSaved ?? 0,
+      transformsApplied: outcome.result?.transformsApplied ?? [],
+      ...(reason ? {fallbackReason: reason} : {}),
+    }),
+  );
 }
 
 function buildUserMessage(ctx: AgentContext): string {

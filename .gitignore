@@ -62,3 +62,6 @@ playwright-report/
 # but should not bloat the repository — keep them local-only.
 docs/ab-evaluation-extended/scenarios/*/cladding/
 docs/ab-evaluation-extended/scenarios/*/vanilla/
+
+# Headroom A/B benchmark — local python venv (not committed)
+.venv-headroom/

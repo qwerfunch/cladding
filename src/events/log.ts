@@ -35,7 +35,21 @@ export type EventType =
   //   error:           string              // present iff cause === 'dispatcher_error' (truncated)
   // Configured-no-LLM paths (dispatcher === null or ctx === null) do NOT emit;
   // they are deliberate offline/greenfield runs, not a miss.
-  | 'sentinel_miss';
+  | 'sentinel_miss'
+  // F-6aebb9 / AC-93e942 — Headroom compression telemetry. Emitted once per
+  // dispatch where compression was attempted (i.e. enabled + above the
+  // min-token gate), so the observability persona and `clad doctor` can
+  // report realized savings and fallback rate. Standard payload:
+  //   applied:           boolean            // true iff a compressed payload was used
+  //   kind:              ContextKind        // which profile was selected
+  //   tokensBefore:      number             // pre-compression token count (0 if unknown)
+  //   tokensAfter:       number             // post-compression token count (0 if unknown)
+  //   tokensSaved:       number
+  //   transformsApplied: readonly string[]  // Headroom transforms that ran
+  //   fallbackReason:    string             // present iff applied === false
+  // Disabled / below-min-token runs do NOT emit — they are deliberate no-ops,
+  // not compression activity worth recording.
+  | 'compression';
 
 /** One JSONL line in events.log.jsonl. */
 export interface Event {

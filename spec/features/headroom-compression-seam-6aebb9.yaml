@@ -1,0 +1,65 @@
+id: F-6aebb9
+slug: headroom-compression-seam
+title: "Headroom context-compression seam (dark launch · serverless subprocess bridge)"
+status: in_progress
+modules:
+  - src/optimizer/headroom.ts
+  - src/optimizer/profiles.ts
+  - scripts/headroom_bridge.py
+  - src/adapters/sdk/anthropic.ts
+  - src/events/log.ts
+acceptance_criteria:
+  - id: AC-ac034f
+    ears: state
+    condition: "while Headroom is disabled (CLADDING_HEADROOM unset or 'off')"
+    action: "return the original messages unchanged with applied=false and fallbackReason='disabled'"
+    response: "src/optimizer/headroom.ts compressContext() reads CLADDING_HEADROOM via enabled(); when off it returns {messages, applied:false, fallbackReason:'disabled'} without spawning any subprocess — zero behavior change for the existing dispatch path"
+    text: "While Headroom is disabled, the system shall return the original messages unchanged so the harness behaves identically to a no-Headroom install."
+    test_refs: ["tests/optimizer/headroom.test.ts"]
+  - id: AC-b9218d
+    ears: unwanted
+    condition: "if the compression bridge fails (subprocess timeout, non-zero exit, malformed stdout, or missing python/headroom)"
+    action: "return the original messages without throwing, recording fallbackReason"
+    response: "src/optimizer/headroom.ts runBridge() rejects on timeout/exit/parse error; compressContext() catches and returns the original messages with applied=false and a fallbackReason string — correctness never depends on compression succeeding"
+    text: "If the compression bridge fails, then the system shall return the original messages without throwing."
+    test_refs: ["tests/optimizer/headroom.test.ts"]
+  - id: AC-8bd17a
+    ears: state
+    condition: "while the per-session consecutive failure count has reached max_consecutive_failures"
+    action: "skip compression for the remainder of the session and return the original messages with fallbackReason='circuit_open'"
+    response: "src/optimizer/headroom.ts tracks consecutiveFailures; once it reaches MAX_FAILURES (env CLADDING_HEADROOM_MAX_FAILS, default 3) compressContext() short-circuits to passthrough — a broken python env cannot impose an N× timeout tax"
+    text: "While the session failure count has reached the limit, the system shall skip compression (circuit open) and pass messages through unchanged."
+    test_refs: ["tests/optimizer/headroom.test.ts"]
+  - id: AC-00ac36
+    ears: state
+    condition: "while the estimated token count of the payload is below the configured minimum"
+    action: "skip compression and return the original messages with fallbackReason='below_min_tokens'"
+    response: "src/optimizer/headroom.ts approxTokens() heuristic gates against CLADDING_HEADROOM_MIN_TOKENS (default 1500); small payloads are not worth the subprocess cold-start cost so they pass through untouched"
+    text: "While the payload is below the minimum token threshold, the system shall skip compression to avoid subprocess overhead."
+    test_refs: ["tests/optimizer/headroom.test.ts"]
+  - id: AC-0bbaf3
+    ears: ubiquitous
+    action: "map each cladding context kind (logs, json, code, spec, history) to a Headroom CompressConfig posture"
+    response: "src/optimizer/profiles.ts exports PROFILES: Record<ContextKind, config> where logs→aggressive target_ratio 0.25, json→SmartCrusher defaults, code→protect_analysis_context with conservative 0.6, spec→0.7 protect, history→0.4 keep-recent; each posture sets compress_user_messages / compress_system_messages / protect_recent / min_tokens_to_compress"
+    text: "The system shall map each context kind to a Headroom compression profile so each data type (logs, JSON, code, spec, history) is compressed appropriately."
+    test_refs: ["tests/optimizer/headroom.test.ts"]
+  - id: AC-f408c8
+    ears: ubiquitous
+    action: "run the Headroom python library in-process via a one-shot stdin to stdout bridge with no long-running server or proxy"
+    response: "scripts/headroom_bridge.py reads {messages, model, config} on stdin, calls headroom.compress() (Rust core, no proxy), writes a camelCased CompressResult on stdout; ImportError or pipeline failure exits non-zero with {error} on stderr so the TS seam falls back to raw"
+    text: "The system shall perform compression through an in-process one-shot subprocess bridge, requiring no running server or proxy."
+    test_refs: ["tests/optimizer/headroom.test.ts"]
+  - id: AC-93e942
+    ears: event
+    condition: "when compression is attempted (not disabled and above the min-token gate)"
+    action: "append a compression event capturing tokensBefore, tokensAfter, transformsApplied, applied, and fallbackReason"
+    response: "src/events/log.ts gains the 'compression' EventType; compressContext() callers emit it with the CompressOutcome payload so the observability persona and clad doctor can report realized savings and fallback rate"
+    text: "When compression is attempted, the system shall append a compression event recording the before/after tokens and outcome."
+    test_refs: ["tests/optimizer/headroom.test.ts"]
+  - id: AC-e76e57
+    ears: event
+    condition: "when the Anthropic SDK adapter dispatches a persona turn"
+    action: "route the assembled system and user payload through compressContext before calling messages.create, then send whichever messages are returned"
+    response: "src/adapters/sdk/anthropic.ts invoke() calls compressContext([system, user], kind, model) between buildUserMessage() and messages.create(); it reads the returned system/user content (compressed or original) so a fallback is transparent to the API call and to drive/loop.ts"
+    text: "When the Anthropic SDK adapter dispatches, the system shall route its payload through the compression seam before the API call."
+    test_refs: ["tests/optimizer/headroom.test.ts"]
