@@ -92,6 +92,23 @@ describe('ABSENCE_OF_GOVERNANCE (F-99c6e5, v0.3.49)', () => {
     expect(errors).toHaveLength(0);
   });
 
+  test('master parses but a SHARD is malformed → blocking error (closes the shard Vacuous-Green hole)', () => {
+    // loadSpec throws on a malformed shard, which the spec-gated detectors swallow
+    // as non-blocking info — a malformed shard used to pass the gate GREEN.
+    touch(dir, 'spec.yaml', VALID_MASTER);
+    touch(dir, 'spec/features/bad-aaa111.yaml', 'id: F-bad\ndup: 1\ndup: 2\n'); // duplicate key → YAML throws
+    const errors = absenceOfGovernance.run({cwd: dir}).filter((f) => f.severity === 'error');
+    expect(errors).toHaveLength(1);
+    expect(errors[0].path).toBe('spec/features/bad-aaa111.yaml');
+    expect(errors[0].message).toContain('unparseable');
+  });
+
+  test('master + a VALID shard → no shard error (no false-fire on healthy shards)', () => {
+    touch(dir, 'spec.yaml', VALID_MASTER);
+    touch(dir, 'spec/features/ok-bbb222.yaml', 'id: F-ok\nslug: ok\ntitle: ok\nstatus: planned\n');
+    expect(absenceOfGovernance.run({cwd: dir}).filter((f) => f.severity === 'error')).toHaveLength(0);
+  });
+
   test('full cladding scaffold present → no findings', () => {
     touch(dir, 'spec.yaml', VALID_MASTER);
     touch(dir, 'spec/architecture.yaml');

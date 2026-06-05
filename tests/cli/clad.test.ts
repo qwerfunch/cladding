@@ -26,6 +26,7 @@ vi.mock('../../src/stages/arch.js', () => ({runArch: vi.fn(() => ({pass: true, e
 vi.mock('../../src/stages/secret.js', () => ({runSecret: vi.fn(() => ({pass: true, exitCode: 0}))}));
 vi.mock('../../src/stages/unit.js', () => ({runUnit: vi.fn(() => ({pass: true, exitCode: 0}))}));
 vi.mock('../../src/stages/cov.js', () => ({runCov: vi.fn(() => ({pass: true, exitCode: 0}))}));
+vi.mock('../../src/stages/spec-conformance.js', () => ({runSpecConformance: vi.fn(() => ({pass: false, exitCode: 2}))}));
 vi.mock('../../src/stages/smoke.js', () => ({runSmoke: vi.fn(() => ({pass: false, exitCode: 2}))}));
 vi.mock('../../src/stages/perf.js', () => ({runPerf: vi.fn(() => ({pass: false, exitCode: 2}))}));
 vi.mock('../../src/stages/visual.js', () => ({runVisual: vi.fn(() => ({pass: false, exitCode: 2}))}));
@@ -83,6 +84,8 @@ const runInitMock = initMod.runInit as unknown as ReturnType<typeof vi.fn>;
 const loadSpecMock = specMod.loadSpec as unknown as ReturnType<typeof vi.fn>;
 const classifyMock = intentMod.classifyIntent as unknown as ReturnType<typeof vi.fn>;
 const runDriveLoopMock = driveMod.runDriveLoop as unknown as ReturnType<typeof vi.fn>;
+const pulseMod = await import('../../src/ui/pulse.js');
+const pulseMock = pulseMod.pulse as unknown as ReturnType<typeof vi.fn>;
 
 describe('cli/clad — handler exports', () => {
   let exitSpy: ReturnType<typeof vi.spyOn>;
@@ -102,10 +105,36 @@ describe('cli/clad — handler exports', () => {
     loadSpecMock.mockReset();
     classifyMock.mockReset();
     runDriveLoopMock.mockReset();
+    pulseMock.mockClear();
   });
   afterEach(() => {
     exitSpy.mockRestore();
     stdoutSpy.mockRestore();
+  });
+
+  // B1 (No-Vacuous-Green efficiency) — `clad check --json` emits ONE structured
+  // document instead of per-stage pulses, so an agent reads file/line/findings
+  // in one pass rather than parsing truncated prose + re-running. Additive: the
+  // default (non-json) pulse path is untouched.
+  test('runCheckStages --json emits a single structured document (no pulses)', () => {
+    const out = clad.runCheckStages({tier: 'pre-commit', json: true});
+    expect(out).toEqual({worst: 0, anyFailed: false});
+    // pulse() must NOT fire in json mode (would corrupt the machine-readable stream)
+    expect(pulseMock).not.toHaveBeenCalled();
+    const written = stdoutSpy.mock.calls.map((c: unknown[]) => String(c[0])).join('');
+    const doc = JSON.parse(written) as {tier: string; worst: number; anyFailed: boolean; stages: {stage: string; status: string; exitCode: number}[]};
+    expect(doc.tier).toBe('pre-commit');
+    expect(doc.worst).toBe(0);
+    expect(doc.stages.map((s) => s.stage)).toEqual(['stage_1.3', 'stage_1.5', 'stage_1.6']);
+    expect(doc.stages.every((s) => s.status === 'pass')).toBe(true);
+  });
+
+  test('runCheckStages --json on an unknown tier emits a structured error, not a pulse', () => {
+    const out = clad.runCheckStages({tier: 'bogus', json: true});
+    expect(out.worst).toBe(2);
+    expect(pulseMock).not.toHaveBeenCalled();
+    const doc = JSON.parse(stdoutSpy.mock.calls.map((c: unknown[]) => String(c[0])).join('')) as {error: string};
+    expect(doc.error).toContain("unknown tier 'bogus'");
   });
 
   test('runInitCommand exits 0 after scaffolding', async () => {
@@ -386,6 +415,48 @@ describe('cli/clad — handler exports', () => {
     expect(exitCalls).toEqual([1]);
   });
 
+  // Lever 1 — `clad oracle --required` prints the policy worklist (which done
+  // ACs need an oracle) instead of a single feature's brief.
+  test('runOracleCommand --required lists policy-required ACs and exits 1 when one is missing', () => {
+    loadSpecMock.mockReturnValueOnce({
+      project: {name: 'p', language: 'typescript', oracle_policy: {always_ears: ['unwanted'], sample: 0}},
+      features: [
+        {
+          id: 'F-001', status: 'done', acceptance_criteria: [
+            {id: 'AC-001', ears: 'unwanted'},
+            {id: 'AC-002', ears: 'ubiquitous'},
+          ],
+        },
+      ],
+    });
+    clad.runOracleCommand(undefined, {required: true});
+    const out = stdoutSpy.mock.calls.map((c: unknown[]) => String(c[0])).join('');
+    expect(out).toContain('F-001.AC-001'); // unwanted ⇒ required
+    expect(out).not.toContain('F-001.AC-002'); // ubiquitous + sample 0 ⇒ not required
+    expect(out).toContain('1 missing');
+    expect(exitCalls).toEqual([1]);
+  });
+
+  test('runOracleCommand --required with NO mandate prints the no-oracles note and exits 0', () => {
+    loadSpecMock.mockReturnValueOnce({project: {name: 'p', language: 'typescript'}, features: []});
+    clad.runOracleCommand(undefined, {required: true});
+    const out = stdoutSpy.mock.calls.map((c: unknown[]) => String(c[0])).join('');
+    expect(out).toContain('No oracles required');
+    expect(exitCalls).toEqual([0]);
+  });
+
+  test('runOracleCommand --required with a stray featureId notes it is ignored (not silently dropped) and still lists the worklist', () => {
+    loadSpecMock.mockReturnValueOnce({
+      project: {name: 'p', language: 'typescript', oracle_policy: {always_ears: ['unwanted'], sample: 0}},
+      features: [{id: 'F-001', status: 'done', acceptance_criteria: [{id: 'AC-001', ears: 'unwanted'}]}],
+    });
+    clad.runOracleCommand('F-001', {required: true});
+    const out = stdoutSpy.mock.calls.map((c: unknown[]) => String(c[0])).join('');
+    expect(out).toContain("ignoring 'F-001'");
+    expect(out).toContain('F-001.AC-001');
+    expect(exitCalls).toEqual([1]);
+  });
+
   test('runDriveCommand --json emits raw result to stdout', async () => {
     runDriveLoopMock.mockResolvedValueOnce({
       halt: {class: 'ALL_FEATURES_DONE', detail: 'done', iteration: 1},
@@ -409,7 +480,7 @@ describe('cli/clad — handler exports', () => {
 });
 
 describe('cli/clad — createProgram', () => {
-  test('returns a Command with all 15 verbs registered', () => {
+  test('returns a Command with all 16 verbs registered', () => {
     const program = clad.createProgram();
     const names = program.commands.map((c) => c.name());
     expect(names).toEqual([
@@ -422,6 +493,7 @@ describe('cli/clad — createProgram', () => {
       'check',
       'checkpoint',
       'done',
+      'oracle',
       'rollback',
       'panel',
       'route',
@@ -462,22 +534,22 @@ describe('cli/clad — check --tier stage selection (Phase 2 ambient hooks)', ()
     expect(clad.TIER_STAGES['pre-commit']).toEqual(['stage_1.3', 'stage_1.5', 'stage_1.6']);
     // Never the clean-tree commit stage (would always fail pre-commit), the
     // probabilistic 3.x, the HITL 4.x, or the slow whole-toolchain/test stages.
-    for (const s of ['stage_1.1', 'stage_1.2', 'stage_1.4', 'stage_2.1', 'stage_2.2', 'stage_3.1', 'stage_3.2', 'stage_3.3', 'stage_4.1', 'stage_4.2']) {
+    for (const s of ['stage_1.1', 'stage_1.2', 'stage_1.4', 'stage_2.1', 'stage_2.2', 'stage_2.3', 'stage_3.1', 'stage_3.2', 'stage_3.3', 'stage_4.1', 'stage_4.2']) {
       expect(clad.TIER_STAGES['pre-commit']).not.toContain(s);
     }
   });
 
-  test('pre-push = pre-commit set + type/lint/unit/cov; never commit/probabilistic/HITL', () => {
+  test('pre-push = pre-commit set + type/lint/unit/cov/spec-conformance; never commit/probabilistic/HITL', () => {
     expect(clad.TIER_STAGES['pre-push']).toEqual([
-      'stage_1.1', 'stage_1.2', 'stage_1.3', 'stage_1.5', 'stage_1.6', 'stage_2.1', 'stage_2.2',
+      'stage_1.1', 'stage_1.2', 'stage_1.3', 'stage_1.5', 'stage_1.6', 'stage_2.1', 'stage_2.2', 'stage_2.3',
     ]);
     for (const s of ['stage_1.4', 'stage_3.1', 'stage_3.2', 'stage_3.3', 'stage_4.1', 'stage_4.2']) {
       expect(clad.TIER_STAGES['pre-push']).not.toContain(s);
     }
   });
 
-  test('all = every one of the 13 stages (default / CI gate)', () => {
-    expect(clad.TIER_STAGES['all']).toHaveLength(13);
+  test('all = every one of the 14 stages (default / CI gate)', () => {
+    expect(clad.TIER_STAGES['all']).toHaveLength(14);
     // pre-commit + pre-push members are all a subset of `all`.
     for (const s of [...clad.TIER_STAGES['pre-commit'], ...clad.TIER_STAGES['pre-push']]) {
       expect(clad.TIER_STAGES['all']).toContain(s);

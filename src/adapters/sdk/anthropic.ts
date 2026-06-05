@@ -52,7 +52,7 @@ interface AnthropicLike {
     create(params: {
       model: string;
       max_tokens: number;
-      system?: string;
+      system?: string | ReadonlyArray<{type: 'text'; text: string; cache_control?: {type: 'ephemeral'}}>;
       messages: ReadonlyArray<{role: 'user' | 'assistant'; content: string}>;
     }): Promise<{
       content: ReadonlyArray<{type: string; text?: string}>;
@@ -142,7 +142,15 @@ export class AnthropicTransport implements Transport {
     const response = await this.cachedClient.messages.create({
       model: this.model,
       max_tokens: this.maxTokens,
-      system,
+      // Cache the stable persona prefix (ephemeral, 5-min TTL): it is byte-identical
+      // across every dispatch of this persona, so repeat calls re-read it from cache
+      // instead of re-billing the full system prompt. `system` comes from the Headroom
+      // seam above; the 'spec' profile sets compress_system_messages=false so the prefix
+      // is protected and stays byte-identical to persona.body — the cache key remains
+      // stable even with compression enabled. The variable per-feature shard stays in the
+      // user message AFTER the cached prefix.
+      // (SDK transport only — the host/`claude -p` path caches independently.)
+      system: [{type: 'text', text: system, cache_control: {type: 'ephemeral'}}],
       messages: [{role: 'user', content: userContent}],
     });
     const replyText = extractText(response.content);

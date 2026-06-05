@@ -1,5 +1,5 @@
 ---
-description: Validate the active spec.yaml against the Ironclad schema and surface any structural / drift problems. Use when the user wants to know if the spec is well-formed, when the spec was just edited, or as a pre-flight check before running `check` or `drive`.
+description: Validate the active spec.yaml against the Ironclad schema and refresh the inventory. Rarely needed manually — clad_create_feature already auto-syncs the inventory and clad check / clad done self-validate the spec, so do NOT run it as a reflexive pre-flight before those. Use it only after you have directly hand-edited a shard file (spec/features/*.yaml or spec.yaml).
 ---
 
 # Cladding sync
@@ -16,3 +16,18 @@ Spec must be valid before `clad check`, `clad drive`, or any stage runner produc
 ```
 clad sync
 ```
+
+## When you actually need it (don't reflex-sync)
+
+You rarely need to run this MANUALLY — and a reflexive "just-in-case" sync after every
+operation is wasted work (in an A/B measurement, 28 of 30 manual `clad sync` calls found
+nothing to fix). The inventory + validation are already maintained for you:
+
+- **`clad_create_feature` auto-syncs the inventory** after each feature it writes (and rejects a
+  malformed AC at creation), so you don't need to sync after creating features.
+- **`clad check` / `clad done` validate the spec themselves** (drift stage), so you don't need
+  to pre-sync before them — a real drift surfaces in that gate anyway.
+
+Run `clad sync` only when you have **hand-edited a shard file directly** (`Edit`/`Write` on
+`spec/features/*.yaml` or `spec.yaml`), to refresh the inventory and re-validate that edit.
+Prefer `clad_create_feature` over hand-editing in the first place — then even this is unneeded.

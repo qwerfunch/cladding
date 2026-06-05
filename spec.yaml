@@ -13,7 +13,7 @@ project:
   description: "Reference implementation of the Ironclad harness for AI-coupled software."
   version: "0.5.0"
   repository: "https://github.com/qwerfunch/cladding"
-  intent_summary: "Make AI-coupled development measurably safer and more honest — 33 drift detectors + 4-tier SSoT governance + A/B-measurable cladding-vs-vanilla evaluation."
+  intent_summary: "Make AI-coupled development measurably safer and more honest — 34 drift detectors + 4-tier SSoT governance + A/B-measurable cladding-vs-vanilla evaluation."
   ai_hints:
     preferred_persona: software-engineer
     token_budget_per_session: 4000
@@ -36,8 +36,8 @@ project:
 
 # Auto-maintained by `clad sync` (F-5b9f9f). Do not edit by hand.
 inventory:
-  features: 149
+  features: 153
   scenarios: 2
   capabilities: 5
-  test_files: 112
+  test_files: 117
   last_synced: "2026-06-05"

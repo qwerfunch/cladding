@@ -13,7 +13,7 @@
 // invaluable as cladding evolves — refactoring the schema and
 // forgetting to update types.ts surfaces immediately.
 
-import {readFileSync} from 'node:fs';
+import {existsSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
 
 import {loadSpec} from '../../spec/load.js';
@@ -34,31 +34,42 @@ function runMetaIntegrity(opts: CommandStageOptions): readonly DriftFinding[] {
   const schemaPath = join(cwd, 'src', 'spec', 'schema.json');
   const findings: DriftFinding[] = [];
 
-  let schema: SchemaShape;
-  try {
-    schema = JSON.parse(readFileSync(schemaPath, 'utf8')) as SchemaShape;
-  } catch (err) {
-    findings.push({
-      detector: NAME,
-      severity: 'error',
-      message: `spec/schema.json unreadable or invalid JSON: ${(err as Error).message}`,
-    });
-    return findings;
-  }
-  for (const key of REQUIRED_ROOT_KEYS) {
-    if (!schema.required?.includes(key)) {
+  // The schema.json-vs-types coherence check is a CLADDING-SELF guard: that
+  // file ships only in the cladding SOURCE repo. In a user's cladding-managed
+  // project it never exists (the schema is bundled in the installed `clad`), so
+  // its ABSENCE means "not the cladding repo" → SKIP these checks silently
+  // rather than emit a false ENOENT error in every user project. (Same
+  // skip-when-absent pattern as the secret/arch scanners, commit 262d1e1.) A
+  // PRESENT-but-invalid schema.json (real repo corruption) is still an error.
+  // The spec.yaml schema-VERSION check below is independent and always runs.
+  if (existsSync(schemaPath)) {
+    let schema: SchemaShape | undefined;
+    try {
+      schema = JSON.parse(readFileSync(schemaPath, 'utf8')) as SchemaShape;
+    } catch (err) {
       findings.push({
         detector: NAME,
         severity: 'error',
-        message: `spec/schema.json does not require root key '${key}'`,
+        message: `spec/schema.json unreadable or invalid JSON: ${(err as Error).message}`,
       });
     }
-    if (!schema.properties?.[key]) {
-      findings.push({
-        detector: NAME,
-        severity: 'error',
-        message: `spec/schema.json does not declare property '${key}'`,
-      });
+    if (schema) {
+      for (const key of REQUIRED_ROOT_KEYS) {
+        if (!schema.required?.includes(key)) {
+          findings.push({
+            detector: NAME,
+            severity: 'error',
+            message: `spec/schema.json does not require root key '${key}'`,
+          });
+        }
+        if (!schema.properties?.[key]) {
+          findings.push({
+            detector: NAME,
+            severity: 'error',
+            message: `spec/schema.json does not declare property '${key}'`,
+          });
+        }
+      }
     }
   }
 

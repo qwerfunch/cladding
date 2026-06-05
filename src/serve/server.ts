@@ -33,6 +33,7 @@ import {subscribeAudit} from '../hitl/audit.js';
 import {loadSpec} from '../spec/load.js';
 import type {Spec} from '../spec/types.js';
 import {createFeature, createScenario, linkCapability} from '../spec/new.js';
+import {recordOracle} from '../oracle/record.js';
 import {computeInventory, writeInventoryToSpecYaml} from '../spec/inventory.js';
 import {runDrift} from '../stages/drift.js';
 
@@ -54,6 +55,7 @@ export const TOOL_NAMES = [
   'clad_create_feature',
   'clad_create_scenario',
   'clad_link_capability',
+  'clad_author_oracle',
 ] as const;
 
 /** Resource URIs cladding's MCP server exposes (stable wire identifiers). */
@@ -277,17 +279,38 @@ function registerTools(server: McpServer, cwd: string): void {
     'clad_run_check',
     {
       title: 'Run cladding drift check',
-      description: 'Runs `clad check` drift detection; returns the structured result.',
+      description: 'Runs `clad check` drift detection. Returns a TERSE report by default (pass, error/warn counts, top 3 blocking findings) to keep the agent loop cheap; pass verbose:true for every finding incl. info-severity + suggestions.',
       inputSchema: {
         strict: z.boolean().optional().describe('Treat warnings as errors when true'),
+        verbose: z.boolean().optional().describe('Return the full report (all findings incl. info + suggestions) instead of the terse top-3 summary'),
       },
     },
     async (args) => {
       const result = runDrift({strict: args.strict, cwd});
-      return {
-        content: [{type: 'text', text: JSON.stringify(result, null, 2)}],
-        isError: !result.pass,
+      if (args.verbose) {
+        return {content: [{type: 'text', text: JSON.stringify(result, null, 2)}], isError: !result.pass};
+      }
+      // Terse by default: info-severity findings are advisory noise that re-enters
+      // the agent's context every turn; surface only the blocking few + counts.
+      const findings = result.findings ?? [];
+      const errs = findings.filter((f) => f.severity === 'error');
+      const warns = findings.filter((f) => f.severity === 'warn');
+      const top = (errs.length > 0 ? errs : warns).slice(0, 3).map((f) => ({
+        detector: f.detector,
+        severity: f.severity,
+        message: f.message,
+        ...(f.path ? {path: f.path} : {}),
+        ...(f.line ? {line: f.line} : {}),
+      }));
+      const terse = {
+        stage: result.stage,
+        pass: result.pass,
+        errorCount: errs.length,
+        warnCount: warns.length,
+        findings: top,
+        ...(errs.length + warns.length > top.length ? {truncated: true, hint: 'call clad_run_check with verbose:true for all findings'} : {}),
       };
+      return {content: [{type: 'text', text: JSON.stringify(terse, null, 2)}], isError: !result.pass};
     },
   );
 
@@ -403,6 +426,52 @@ function registerTools(server: McpServer, cwd: string): void {
           isError: true,
           content: [{type: 'text', text: (err as Error).message}],
         };
+      }
+    },
+  );
+
+  // clad_author_oracle — record a host-authored impl-blind oracle + its
+  // provenance (Phase 2). cladding authors NO LLM call: the host runs
+  // `clad oracle` for the spec-only brief, dispatches a blind sub-agent, then
+  // records the result here so the SPEC_CONFORMANCE gate can audit it.
+  server.registerTool(
+    'clad_author_oracle',
+    {
+      title: 'Record an impl-blind spec-conformance oracle',
+      description:
+        'Records a host-authored conformance oracle for a feature AC + its impl-blind PROVENANCE, writes the test ' +
+        'under tests/oracle/, and stamps oracle_refs so the SPEC_CONFORMANCE gate verifies it. cladding does NOT ' +
+        'author the oracle. FIRST run `clad oracle <featureId> --ac <acId>` for the spec-only brief; spawn a FRESH ' +
+        'sub-agent given ONLY that brief (never the implementation); have it write the test; then call this with the ' +
+        'body + the manifest of exactly what the sub-agent saw. Blindness is your discipline — the gate audits the ' +
+        'manifest (manifest∩modules must be empty) and the author≠implementer identity, and records whether you ' +
+        'attested a clean (blind) context.',
+      inputSchema: {
+        featureId: z.string().describe('The F-<hash> feature id.'),
+        acId: z.string().describe('The AC-<id> the oracle verifies.'),
+        body: z.string().describe('The authored vitest oracle source (imports the module under test).'),
+        readManifest: z
+          .array(z.string())
+          .describe('EXACTLY what the blind sub-agent was shown (the clad oracle brief: spec/AC + signatures). MUST NOT include an implementation file the feature owns.'),
+        blind: z.boolean().optional().describe('True only if the sub-agent saw the spec-only brief and nothing else.'),
+        authorName: z.string().optional().describe('Oracle author identity (sub-agent / model id) — must differ from the implementer for the gate to pass.'),
+      },
+    },
+    async (args) => {
+      try {
+        const result = recordOracle({
+          featureId: args.featureId,
+          acId: args.acId,
+          body: args.body,
+          readManifest: args.readManifest,
+          blind: args.blind,
+          authorName: args.authorName,
+          cwd,
+        });
+        syncInventory(cwd);
+        return {content: [{type: 'text', text: JSON.stringify(result, null, 2)}], isError: !result.ok};
+      } catch (err) {
+        return {isError: true, content: [{type: 'text', text: (err as Error).message}]};
       }
     },
   );

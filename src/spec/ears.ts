@@ -42,66 +42,54 @@ function firstWord(text: string): string {
 }
 
 /**
+ * The pure EARS-shape rule for one AC, decoupled from spec identity so it can
+ * be reused at AUTHORING time (clad_create_feature, before ids/Feature exist)
+ * as well as at gate time (checkAc / AC_DRIFT). Returns a human-readable issue
+ * message, or null when the (pattern, condition) pair is well-formed.
+ *
+ * Returns a SINGLE message (not a list): the EARS rules are mutually exclusive,
+ * so one AC cannot simultaneously be e.g. ubiquitous-with-condition AND
+ * event-without-`when`.
+ *
+ * @param pattern - The declared EARS pattern (or undefined).
+ * @param conditionRaw - The AC's `condition` text (or undefined).
+ * @returns A single issue message, or null when shape is valid.
+ */
+export function checkEarsShape(pattern: EarsPattern | undefined, conditionRaw: string | undefined): string | null {
+  const condition = conditionRaw?.trim() ?? '';
+
+  if (!pattern) {
+    return condition.length > 0 ? 'condition is present but ears pattern is not declared' : null;
+  }
+  if (pattern === 'ubiquitous') {
+    return condition.length > 0 ? `ears='ubiquitous' but condition is present ('${condition.slice(0, 40)}…')` : null;
+  }
+  const expected = TRIGGERS[pattern];
+  if (condition.length === 0) {
+    return `ears='${pattern}' requires condition starting with '${expected}' — empty`;
+  }
+  if (firstWord(condition) !== expected) {
+    return `ears='${pattern}' requires condition to start with '${expected}' — got '${firstWord(condition)}'`;
+  }
+  return null;
+}
+
+/**
  * Checks a single AC against its declared EARS pattern.
  *
  * Returns zero issues when the AC's `condition` (or absence thereof)
  * matches the EARS pattern's trigger expectation. Returns one issue
  * per misalignment — typically a missing/misplaced trigger word.
+ * Thin wrapper over `checkEarsShape` that attaches spec identity.
  *
  * @param feature - The feature containing the AC (for context in messages).
  * @param ac - The acceptance criterion to validate.
  * @returns A (possibly empty) list of issues.
  */
 export function checkAc(feature: Feature, ac: AcceptanceCriterion): readonly EarsIssue[] {
-  const issues: EarsIssue[] = [];
-  const pattern = ac.ears;
-  const condition = ac.condition?.trim() ?? '';
-
-  if (!pattern) {
-    if (condition.length > 0) {
-      issues.push({
-        featureId: feature.id,
-        acId: ac.id,
-        pattern: 'unspecified',
-        message: 'condition is present but ears pattern is not declared',
-      });
-    }
-    return issues;
-  }
-
-  if (pattern === 'ubiquitous') {
-    if (condition.length > 0) {
-      issues.push({
-        featureId: feature.id,
-        acId: ac.id,
-        pattern,
-        message: `ears='ubiquitous' but condition is present ('${condition.slice(0, 40)}…')`,
-      });
-    }
-    return issues;
-  }
-
-  const expected = TRIGGERS[pattern];
-  if (condition.length === 0) {
-    issues.push({
-      featureId: feature.id,
-      acId: ac.id,
-      pattern,
-      message: `ears='${pattern}' requires condition starting with '${expected}' — empty`,
-    });
-    return issues;
-  }
-  if (firstWord(condition) !== expected) {
-    issues.push({
-      featureId: feature.id,
-      acId: ac.id,
-      pattern,
-      message:
-        `ears='${pattern}' requires condition to start with '${expected}' — got` +
-        ` '${firstWord(condition)}'`,
-    });
-  }
-  return issues;
+  const message = checkEarsShape(ac.ears, ac.condition);
+  if (!message) return [];
+  return [{featureId: feature.id, acId: ac.id, pattern: ac.ears ?? 'unspecified', message}];
 }
 
 /** Sweeps every AC in every feature; aggregates issues. */

@@ -78,12 +78,21 @@ describe('META_INTEGRITY detector', () => {
     expect(findings[0].message).toContain('unreadable or invalid JSON');
   });
 
-  test('schema.json absent → single error finding (early return)', () => {
-    // No spec/schema.json written
+  test('schema.json ABSENT (a user project, not the cladding repo) → no schema findings (SKIP, never a false ENOENT error)', () => {
+    // No src/spec/schema.json — the normal state of every user cladding project
+    // (the schema ships bundled in the installed `clad`). The detector must not
+    // emit a false ENOENT error in every such project. spec.yaml here is valid.
     const findings = metaIntegrity.run({cwd: dir});
-    expect(findings).toHaveLength(1);
-    expect(findings[0].severity).toBe('error');
-    expect(findings[0].message).toContain('unreadable');
+    expect(findings).toEqual([]);
+  });
+
+  test('schema.json absent but spec.yaml schema version is WRONG → the version check STILL fires (skip is scoped to the self-check only)', () => {
+    writeFileSync(
+      join(dir, 'spec.yaml'),
+      'schema: "9.9"\nproject: {name: x, language: typescript}\nfeatures: []\n',
+    );
+    const findings = metaIntegrity.run({cwd: dir});
+    expect(findings.some((f) => f.severity === 'error' && f.message.includes("schema='9.9'"))).toBe(true);
   });
 
   test('spec.yaml schema version unsupported → error finding', () => {

@@ -31,6 +31,7 @@ import {plannedBacklog} from './planned-backlog.js';
 import {projectContextDrift} from './project-context-drift.js';
 import {referenceIntegrity} from './reference-integrity.js';
 import {scenarioCoverage} from './scenario-coverage.js';
+import {specConformance} from './spec-conformance.js';
 import {staleEvidence} from './stale-evidence.js';
 import {staleSpecification} from './stale-specification.js';
 import {staleTests} from './stale-tests.js';
@@ -75,4 +76,5 @@ export const allDetectors: readonly DriftDetector[] = [
   dependencyCycle,
   scenarioCoverage,
   projectContextDrift,
+  specConformance,
 ];

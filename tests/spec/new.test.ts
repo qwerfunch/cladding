@@ -198,3 +198,78 @@ describe('createFeature — rich authoring (modules + acceptance_criteria)', () 
     expect(parsed.features).toEqual(['F-aaa111']);
   });
 });
+
+// Lever ① — shift-left EARS validation: clad_create_feature rejects a malformed
+// AC shape AT CREATION (precise fix) instead of letting the agent discover it
+// turns later via the AC_DRIFT gate (the create→sync→error→fix→sync friction the
+// AB1 measurement attributed ~24 of the spec-authoring loop to).
+describe('createFeature — EARS-shape validation at creation (Lever ①)', () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'clad-new-ears-'));
+  });
+  afterEach(() => {
+    rmSync(dir, {recursive: true, force: true});
+  });
+
+  test('REJECTS a ubiquitous AC that carries a condition — precise message, no file written', () => {
+    expect(() =>
+      createFeature({
+        slug: 'bad-ubiq',
+        cwd: dir,
+        acceptance_criteria: [{ears: 'ubiquitous', condition: 'when the user logs in', text: 't'}],
+      }),
+    ).toThrow(/EARS-shape issue.*ears='ubiquitous' but condition is present/s);
+    // fail-before-write: nothing landed on disk
+    expect(existsSync(join(dir, 'spec', 'features'))).toBe(false);
+  });
+
+  test("REJECTS an event AC whose condition doesn't start with 'when'", () => {
+    expect(() =>
+      createFeature({
+        slug: 'bad-event',
+        cwd: dir,
+        acceptance_criteria: [{ears: 'event', condition: 'the user submits', text: 't'}],
+      }),
+    ).toThrow(/ears='event' requires condition to start with 'when'/);
+  });
+
+  test('REJECTS a condition present with no ears pattern declared', () => {
+    expect(() =>
+      createFeature({slug: 'bad-noears', cwd: dir, acceptance_criteria: [{condition: 'if x', text: 't'}]}),
+    ).toThrow(/condition is present but ears pattern is not declared/);
+  });
+
+  test('ACCEPTS well-formed EARS (ubiquitous no-condition + unwanted if- + event when-) — writes the shard', () => {
+    const r = createFeature({
+      slug: 'good-ears',
+      cwd: dir,
+      acceptance_criteria: [
+        {ears: 'ubiquitous', text: 'The system shall render canonically.'},
+        {ears: 'unwanted', condition: 'if input is malformed', text: 'The system shall return #ERROR!.'},
+        {ears: 'event', condition: 'when the user submits', text: 'The system shall validate.'},
+      ],
+    });
+    expect(existsSync(r.path)).toBe(true);
+    const parsed = parseYaml(readFileSync(r.path, 'utf8'));
+    expect(parsed.acceptance_criteria).toHaveLength(3);
+  });
+
+  test('aggregates MULTIPLE issues in one throw (one create call surfaces all fixes at once)', () => {
+    let msg = '';
+    try {
+      createFeature({
+        slug: 'multi-bad',
+        cwd: dir,
+        acceptance_criteria: [
+          {ears: 'ubiquitous', condition: 'while active', text: 't'},
+          {ears: 'state', condition: 'the door is open', text: 't'},
+        ],
+      });
+    } catch (e) {
+      msg = (e as Error).message;
+    }
+    expect(msg).toMatch(/acceptance_criteria\[0\]/);
+    expect(msg).toMatch(/acceptance_criteria\[1\]/);
+  });
+});

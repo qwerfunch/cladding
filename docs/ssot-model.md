@@ -90,6 +90,34 @@ collide. `clad_create_feature` therefore does NOT grow capabilities as a side ef
 call `clad_link_capability`. This is the deterministic development-time firing path
 for the Tier-B design SSoT, complementing the onboarding-time `clad refine` path.
 
+## Capturing WHY — the decision micro-format (Tier A content)
+
+An `acceptance_criteria` entry captures **WHAT** (`action`) and the **outcome** (`response`); the **WHY** — the
+decision, the invariant it protects, the trade-off it accepts — has no designated home, so it leaks
+inconsistently into `text`/`response` (e.g. `F-7afbd4` AC-002/AC-004) or is missing (AC-003's flip-before-gate
+ordering), letting a future reader/agent "fix" an AC the wrong way.
+
+**Convention:** record WHY in the existing free-form `notes` field — no schema change, no detector:
+
+```yaml
+    notes: |
+      ## Decision  flip status→done BEFORE the gate, not after.
+      ## Why       a still-`planned` feature lets UNTESTED_AC/MISSING_TESTS skip it → done without test evidence.
+      ## Trade-off mutating before verifying forces the byte-exact revert in AC-002.
+```
+
+It is the inverse of spec-kit's per-feature `plan.md`/`research.md` files — the same concern-separation at ~1%
+of the volume, inside the shard. Two disciplines keep it compact and rot-resistant:
+
+- **TRIGGER** — write a note ONLY when a future reader could "fix" the AC the wrong way without the reason
+  (non-obvious ordering, invariant, trade-off); skip obvious ACs. Load-bearing notes get re-touched with the
+  code, so they rot less than boilerplate.
+- **LOCATION** — requirement-level WHY → `notes`; implementation-level WHY → a code comment co-edited with the impl.
+
+**Advisory, not gated, on purpose:** a mandatory-empty field would mass-fail the gate, and soft fields reach
+<20% adoption. Partial coverage on load-bearing decisions still beats zero. Promote to a typed field +
+warn-only detector ONLY if sustained adoption proves it maintained.
+
 ## Header convention
 
 Every cladding-managed artifact carries a one-line tier banner as its **first line**:

@@ -11,7 +11,7 @@
 // Sampling-based dispatch (v0.2.25) is out of scope here. This file is
 // concerned only with the read surface of `clad serve`.
 
-import {mkdtempSync, rmSync, writeFileSync, mkdirSync} from 'node:fs';
+import {mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync, existsSync, readdirSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 
@@ -276,6 +276,28 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
+  // B2 (No-Vacuous-Green efficiency) — terse by default keeps the gate result
+  // cheap as it re-enters the agent loop each turn; verbose opt-in keeps full debuggability.
+  test('clad_run_check is terse by default (counts + top-3); verbose returns the full report', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const terse = await client.callTool({name: 'clad_run_check', arguments: {}});
+      const t = JSON.parse((terse.content as Array<{type: string; text: string}>)[0].text);
+      expect(t).toHaveProperty('errorCount');
+      expect(t).toHaveProperty('warnCount');
+      expect(Array.isArray(t.findings)).toBe(true);
+      expect(t.findings.length).toBeLessThanOrEqual(3);
+
+      const full = await client.callTool({name: 'clad_run_check', arguments: {verbose: true}});
+      const f = JSON.parse((full.content as Array<{type: string; text: string}>)[0].text);
+      // verbose is the raw DriftReport — has findings but NOT the terse-only counts
+      expect(f).toHaveProperty('findings');
+      expect(f).not.toHaveProperty('errorCount');
+    } finally {
+      await cleanup();
+    }
+  });
+
   test('clad_get_events returns an empty list when the log is missing', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
@@ -304,6 +326,70 @@ describe('serve/server — MCP read surface', () => {
       // distinguishes concurrent invocations.
       expect(parsed.path).toMatch(/spec\/features\/new-login-flow-[a-f0-9]{6}\.yaml$/);
       expect(result.isError).not.toBe(true);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  // Lever ① — clad_create_feature surfaces a malformed-EARS AC as an MCP error
+  // AT CREATION (the end-to-end path that makes the shift-left lever actually
+  // reach the agent), and writes no shard.
+  test('clad_create_feature REJECTS a malformed-EARS AC — isError + precise message, no shard written', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const result = await client.callTool({
+        name: 'clad_create_feature',
+        arguments: {
+          slug: 'bad-ears-flow',
+          title: 'x',
+          acceptance_criteria: [{ears: 'ubiquitous', condition: 'when the user logs in', text: 't'}],
+        },
+      });
+      expect(result.isError).toBe(true);
+      const text = (result.content as Array<{type: string; text: string}>)[0].text;
+      expect(text).toMatch(/EARS-shape issue/);
+      expect(text).toMatch(/ubiquitous.*but condition is present/);
+      // fail-before-write: no bad-ears-flow shard landed on disk
+      const featuresDir = join(dir, 'spec', 'features');
+      const landed = existsSync(featuresDir) ? readdirSync(featuresDir).filter((f) => f.startsWith('bad-ears-flow')) : [];
+      expect(landed).toEqual([]);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  // Phase 2 — clad_author_oracle records a host-authored impl-blind oracle:
+  // writes the test, records provenance, stamps oracle_refs onto the AC.
+  test('clad_author_oracle records the oracle + provenance + stamps oracle_refs', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const created = await client.callTool({
+        name: 'clad_create_feature',
+        arguments: {slug: 'widget', title: 'Widget', status: 'done', acceptance_criteria: [{text: 'does the thing'}]},
+      });
+      const createdParsed = JSON.parse((created.content as Array<{type: string; text: string}>)[0].text);
+      const featureId = createdParsed.id as string;
+      const shardPath = createdParsed.path as string; // createFeature returns an absolute path
+      // AC ids are auto-assigned (AC-<hash6> or AC-NNN) — read the real one back.
+      const acId = readFileSync(shardPath, 'utf8').match(/id:\s*(AC-\S+)/)?.[1] as string;
+
+      const result = await client.callTool({
+        name: 'clad_author_oracle',
+        arguments: {
+          featureId,
+          acId,
+          body: "import {test, expect} from 'vitest';\ntest('x', () => expect(1).toBe(1));",
+          readManifest: ['spec:acceptance_criteria'],
+          blind: true,
+          authorName: 'blind-subagent',
+        },
+      });
+      const parsed = JSON.parse((result.content as Array<{type: string; text: string}>)[0].text);
+      expect(parsed.ok).toBe(true);
+      expect(result.isError).not.toBe(true);
+      expect(parsed.oraclePath).toBe(`tests/oracle/${featureId}.${acId}.test.ts`);
+      // oracle_refs stamped onto the AC shard
+      expect(readFileSync(shardPath, 'utf8')).toContain(parsed.oraclePath);
     } finally {
       await cleanup();
     }

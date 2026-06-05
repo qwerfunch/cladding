@@ -46,7 +46,7 @@ export const PERSONA_BUDGETS = {
 
 /** Meta documents that all personas reference (loaded once per session). */
 export const META_DOC_BUDGETS = {
-  'docs/ssot-model.md': budget(250, 16500),          // baseline 194/13676 (single policy doc)
+  'docs/ssot-model.md': budget(250, 18500),          // baseline 194/13676; v0.5.x +"Capturing WHY" decision micro-format convention
 } as const;
 
 /** LLM dispatcher prompt budgets (built in-memory). */

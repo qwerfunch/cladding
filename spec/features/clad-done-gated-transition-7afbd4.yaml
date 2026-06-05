@@ -26,6 +26,10 @@ acceptance_criteria:
     action: 'flip the status to done BEFORE running the gate so done-aware detectors (UNTESTED_AC, MISSING_TESTS) evaluate the feature as done'
     text: When clad done gates a feature, the system shall flip the status to done before invoking the gate, so the done-aware detectors evaluate the feature's test evidence.
     test_refs: [tests/cli/done.test.ts]
+    notes: |
+      ## Decision  flip status→done BEFORE the gate, not after.
+      ## Why       a still-`planned` feature lets the done-aware detectors (UNTESTED_AC, MISSING_TESTS) skip it → a feature could reach done without test evidence.
+      ## Trade-off mutating before verifying forces the byte-exact revert in AC-002 on a RED gate.
   - id: AC-004
     ears: ubiquitous
     action: 'run the done gate through the same runCheckStages pipeline that clad check uses, not a weaker re-implementation'

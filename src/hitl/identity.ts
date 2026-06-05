@@ -26,8 +26,12 @@ export interface Identity {
   readonly timestamp: string;
 }
 
-/** Kinds of evidence cladding records. */
-export type EvidenceKind = 'pass' | 'fail' | 'note' | 'attachment';
+/**
+ * Kinds of evidence cladding records. `oracle` (v0.5.x) is the
+ * spec-conformance oracle authoring-provenance record: who authored the
+ * impl-blind oracle, and what they were shown (the read-manifest).
+ */
+export type EvidenceKind = 'pass' | 'fail' | 'note' | 'attachment' | 'oracle';
 
 /** One audit-log entry. */
 export interface Evidence {
@@ -45,6 +49,20 @@ export interface Evidence {
   readonly content: string;
   /** Optional artifact path / hash (e.g. test report). */
   readonly artifact?: string;
+  /**
+   * Oracle-provenance only (`kind: 'oracle'`): the exact inputs the oracle
+   * author was shown. On the structurally-blind `clad oracle` path cladding
+   * builds the prompt, so this is trustworthy (spec/AC fields + module PATHS,
+   * never module bodies); on the host-protocol MCP path it is the host's
+   * self-reported list. SPEC_CONFORMANCE asserts `readManifest ∩ feature.modules = ∅`.
+   */
+  readonly readManifest?: readonly string[];
+  /**
+   * Oracle-provenance only: `true` when blindness is structurally guaranteed
+   * (cladding-controlled prompt); `false` when it is a self-reported
+   * host-protocol claim the gate can audit but not prove.
+   */
+  readonly blind?: boolean;
 }
 
 /** Constructor that fills timestamp + a short random id. */

@@ -2,7 +2,7 @@
 
 import {describe, expect, test} from 'vitest';
 
-import {checkAc} from '../../src/spec/ears.js';
+import {checkAc, checkEarsShape} from '../../src/spec/ears.js';
 import type {Feature} from '../../src/spec/types.js';
 
 const feature: Feature = {id: 'F-001', title: 't', status: 'done'};
@@ -43,5 +43,32 @@ describe('checkAc — EARS syntactic', () => {
     const result = checkAc(feature, {id: 'AC-001', condition: 'when x'});
     expect(result).toHaveLength(1);
     expect(result[0].pattern).toBe('unspecified');
+  });
+});
+
+// checkEarsShape — the pure rule extracted for reuse at AUTHORING time
+// (createFeature) as well as the gate (checkAc). Same logic, identity-free.
+describe('checkEarsShape — pure rule (reused by createFeature, Lever ①)', () => {
+  test('valid shapes return null', () => {
+    expect(checkEarsShape('ubiquitous', undefined)).toBeNull();
+    expect(checkEarsShape('event', 'when x')).toBeNull();
+    expect(checkEarsShape('state', 'while x')).toBeNull();
+    expect(checkEarsShape('optional', 'where x')).toBeNull();
+    expect(checkEarsShape('unwanted', 'if x')).toBeNull();
+    expect(checkEarsShape(undefined, undefined)).toBeNull();
+  });
+
+  test('invalid shapes return a message', () => {
+    expect(checkEarsShape('ubiquitous', 'when x')).toMatch(/ubiquitous.*condition is present/);
+    expect(checkEarsShape('event', 'submits')).toMatch(/requires condition to start with 'when'/);
+    expect(checkEarsShape('event', undefined)).toMatch(/requires condition starting with 'when' — empty/);
+    expect(checkEarsShape(undefined, 'if x')).toMatch(/condition is present but ears pattern is not declared/);
+  });
+
+  test('checkAc delegates to checkEarsShape (consistency)', () => {
+    const viaShape = checkEarsShape('ubiquitous', 'when x');
+    const viaAc = checkAc(feature, {id: 'A', ears: 'ubiquitous', condition: 'when x'});
+    expect(viaAc).toHaveLength(1);
+    expect(viaAc[0].message).toBe(viaShape);
   });
 });
