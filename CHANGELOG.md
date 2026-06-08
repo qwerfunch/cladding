@@ -5,6 +5,44 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] — 2026-06-08 — Fixes from installing 0.5.1 like a real user
+
+**In one line:** we installed 0.5.1 the way a new user does — from npm, then through the marketplace
+plugin — and fixed the rough edges that surfaced. The Claude Code plugin now works on its own without a
+separate global install, a green gate no longer hides "your tests never actually ran," and several error
+messages now tell you what to do instead of leaving you to guess. Nothing here changes a green build that was
+already honest; it closes the gaps where green wasn't.
+
+### Fixed
+
+- **The Claude Code marketplace plugin now works on its own.** Installing just the plugin used to leave its
+  MCP server dead unless you had *also* run `npm install -g cladding` — the server shelled out to a global
+  `clad` that wasn't there. The plugin now ships the engine inside itself and launches it directly, so it
+  works with nothing else installed. (Codex and Gemini still use the global `clad`; the README now says so
+  plainly.)
+- **A green gate can no longer hide "the tests never ran."** If the test runner wasn't installed, the gate
+  treated the skipped test step as a pass — so a feature marked *done* could be entirely unverified and still
+  go green. Under `--strict`, a *done* feature whose tests did not run now fails, with a message telling you
+  to install the test framework.
+- **A missing scanner is a setup gap, not a fake "secret found."** When the secret or architecture scanner
+  could not run (no config on a fresh project), the gate reported it as if it had *found* a violation. It now
+  correctly says it "couldn't scan" instead of raising a false alarm — and a scanner that genuinely finds
+  something still fails the gate.
+- **Agent personas load on a real install.** The five personas (orchestrator, librarian, reviewer,
+  observability, specialists) failed to resolve when cladding ran from an npm install rather than the source
+  tree; they are now shipped next to the engine and found in every run mode.
+- **Clearer `test_ref` errors.** A test reference that points at a specific test inside a file
+  (`tests/x.test.ts#parses a tag`) now resolves correctly, and when a reference really is broken the message
+  lists the forms it accepts instead of only saying it "resolves to nothing."
+
+### Changed
+
+- **`clad drive` is marked experimental and now fails honestly.** The headless autonomous loop needs an LLM
+  transport that is not built yet, and nothing auto-invokes it — the supported path is host-delegated (your
+  AI tool drives the per-feature cadence). A run that produces only empty stubs now says so and exits non-zero
+  instead of reporting "all work complete," and `clad rollback` makes clear that it prints the git command for
+  you to run rather than executing it itself.
+
 ## [0.5.1] — 2026-06-05 — A gate that can catch a hidden bug
 
 **In one line:** until now, `clad check` went green whenever *your code's own tests* passed — even if the

@@ -631,7 +631,7 @@ export function runRouteCommand(prompt: string): void {
  */
 export function createProgram(): Command {
   const program = new Command();
-  program.name('clad').description('Reference Ironclad CLI').version('0.5.1');
+  program.name('clad').description('Reference Ironclad CLI').version('0.5.2');
 
   program
     .command('init [intent...]')
