@@ -1,0 +1,266 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/qwerfunch/cladding/spec/schema.json",
+  "title": "Cladding Spec",
+  "description": "Minimal v0.1 SSoT schema. Captures 3-tier shape (scenarios + features + architecture) and EARS-structured AC. See ironclad-design/07 + 11.",
+  "type": "object",
+  "required": ["schema", "project", "features"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "type": "string",
+      "description": "Schema version, e.g. '0.1'."
+    },
+    "project": {
+      "type": "object",
+      "required": ["name", "language"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "language": {"type": "string", "minLength": 1},
+        "description": {
+          "type": "string",
+          "description": "One-line summary of what the project is for. Used as the spec.yaml 'front door' hint."
+        },
+        "version": {
+          "type": "string",
+          "description": "Current project version (e.g. '0.3.49'). Free-form; typically matches package.json or pyproject.toml."
+        },
+        "repository": {
+          "type": "string",
+          "description": "URL of the source repository (e.g. 'https://github.com/owner/repo')."
+        },
+        "intent_summary": {
+          "type": "string",
+          "description": "TL;DR of docs/project-context.md. One sentence answering 'what problem does this project solve?'."
+        },
+        "require_oracles": {
+          "type": "boolean",
+          "description": "Opt-in: when true, every done AC must declare oracle_refs (SPEC_CONFORMANCE MANDATORY rule, EXHAUSTIVE). Default falsy. Superseded by oracle_policy when present."
+        },
+        "oracle_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Risk-weighted oracle requirement. Takes precedence over require_oracles. Done ACs whose EARS category is in always_ears, plus a deterministic `sample` fraction of the rest, must declare oracle_refs. Absent = no mandate; require_oracles:true = exhaustive (sample 1.0).",
+          "properties": {
+            "always_ears": {
+              "type": "array",
+              "items": {"type": "string", "enum": ["ubiquitous", "event", "state", "optional", "unwanted"]},
+              "description": "EARS categories whose done ACs ALWAYS require an oracle (high-risk). Defaults to ['unwanted'] when omitted."
+            },
+            "sample": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Deterministic fraction [0,1] of the remaining (non-always_ears) done ACs that also require an oracle. 0 = only always_ears; 1 = exhaustive."
+            }
+          }
+        },
+        "ai_hints": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Optional behavior guidance for AI agents (Claude Code, Cursor, etc.) that load this spec.yaml at session start.",
+          "properties": {
+            "preferred_persona": {
+              "type": "string",
+              "description": "Which persona prompt to load by default (e.g. 'software-engineer', 'specialist', 'reviewer', 'observability', 'librarian')."
+            },
+            "token_budget_per_session": {
+              "type": "integer",
+              "minimum": 100,
+              "description": "Soft cap on tokens a single AI session should consume on this project."
+            },
+            "test_framework": {
+              "type": "string",
+              "description": "Preferred test framework slug (e.g. 'vitest', 'jest', 'pytest', 'cargo-test')."
+            },
+            "primary_branch": {
+              "type": "string",
+              "description": "Branch new feature work should target by default (e.g. 'develop', 'main')."
+            },
+            "forbidden_patterns": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Identifier substrings the AI should refuse to introduce (e.g. 'eval', 'dangerouslySetInnerHTML', 'exec(')."
+            },
+            "preferred_patterns": {
+              "type": "array",
+              "description": "Domain-relevant patterns the AI agent should prefer. Each entry is a {when, prefer, over?} triple — advisory only (no detector enforcement). v0.3.58+ (F-32b1e0).",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["when", "prefer"],
+                "properties": {
+                  "when": {"type": "string", "description": "Context where the preference applies (e.g. 'React state management')."},
+                  "prefer": {"type": "string", "description": "Pattern to prefer (e.g. 'useState, useReducer hooks')."},
+                  "over": {"type": "string", "description": "Pattern to avoid in favor of `prefer` (e.g. 'this.state, class components')."}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "features": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/feature"}
+    },
+    "scenarios": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/scenario"}
+    },
+    "architecture": {"$ref": "#/definitions/architecture"},
+    "capabilities": {
+      "type": "array",
+      "description": "Tier-B capabilities merged from spec/capabilities.yaml — user-facing/platform groupings that features[] implement.",
+      "items": {"$ref": "#/definitions/capability"}
+    },
+    "inventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Auto-maintained shard counts. `clad sync` rewrites this block on every run. Provides 1-file lookup for AI agents asking 'how big is this spec?'.",
+      "properties": {
+        "features": {"type": "integer", "minimum": 0, "description": "Count of spec/features/*.yaml shards."},
+        "scenarios": {"type": "integer", "minimum": 0, "description": "Count of spec/scenarios/*.yaml shards."},
+        "capabilities": {"type": "integer", "minimum": 0, "description": "Count of capabilities entries in spec/capabilities.yaml."},
+        "test_files": {"type": "integer", "minimum": 0, "description": "Count of *.test.ts(x) files under tests/."},
+        "last_synced": {
+          "type": "string",
+          "description": "ISO-8601 timestamp of the most recent `clad sync` that updated this inventory."
+        }
+      }
+    }
+  },
+  "definitions": {
+    "feature": {
+      "type": "object",
+      "required": ["id", "title", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "pattern": "^F-(\\d{3,}|[a-f0-9]{6,})$"},
+        "slug": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$"},
+        "title": {"type": "string", "minLength": 1},
+        "status": {
+          "type": "string",
+          "enum": ["planned", "in_progress", "done", "blocked", "archived"]
+        },
+        "modules": {"type": "array", "items": {"type": "string"}},
+        "acceptance_criteria": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/acceptance_criterion"}
+        },
+        "depends_on": {
+          "type": "array",
+          "items": {"type": "string", "pattern": "^F-(\\d{3,}|[a-f0-9]{6,})$"}
+        },
+        "archived_at": {"type": "string", "format": "date-time"},
+        "archive_reason": {"type": "string"},
+        "superseded_by": {"type": "string", "pattern": "^F-(\\d{3,}|[a-f0-9]{6,})$"}
+      }
+    },
+    "acceptance_criterion": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "pattern": "^AC-(\\d{3,}|[a-f0-9]{6,})$"},
+        "condition": {"type": "string"},
+        "action": {"type": "string"},
+        "response": {"type": "string"},
+        "ears": {
+          "type": "string",
+          "enum": ["ubiquitous", "event", "state", "optional", "unwanted"]
+        },
+        "text": {"type": "string"},
+        "test_refs": {
+          "type": "array",
+          "description": "Concrete code-test paths that verify this AC (e.g. tests/foo.test.ts). Restrict to executable test files; non-test evidence belongs in evidence_refs.",
+          "items": {"type": "string"}
+        },
+        "oracle_refs": {
+          "type": "array",
+          "description": "Impl-blind spec-conformance oracle file path(s), expected under tests/oracle/. Resolved on disk by SPEC_CONFORMANCE; required for done ACs when project.require_oracles is set.",
+          "items": {"type": "string"}
+        },
+        "evidence_refs": {
+          "type": "array",
+          "description": "Non-test verification artifacts: npm scripts (script:NAME or self-dogfood:NAME), conformance fixtures (fixture:NAME), docs (path/to.md), or measurement reports. Satisfies the MISSING_TESTS detector alongside test_refs.",
+          "items": {"type": "string"}
+        },
+        "notes": {"type": "string"},
+        "adr_refs": {
+          "type": "array",
+          "items": {"type": "string", "pattern": "^ADR-\\d{3,}$"}
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "required": ["id", "title"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "pattern": "^S-(\\d{3,}|[a-f0-9]{6,})$"},
+        "slug": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$"},
+        "title": {"type": "string", "minLength": 1},
+        "flow": {"type": "string"},
+        "features": {
+          "type": "array",
+          "items": {"type": "string", "pattern": "^F-(\\d{3,}|[a-f0-9]{6,})$"}
+        }
+      }
+    },
+    "capability": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$"},
+        "title": {"type": "string"},
+        "summary": {"type": "string"},
+        "surface": {"type": "string", "enum": ["feature", "platform", "tool", "infrastructure"]},
+        "features": {
+          "type": "array",
+          "items": {"type": "string", "pattern": "^F-(\\d{3,}|[a-f0-9]{6,})$"}
+        }
+      }
+    },
+    "architecture": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "layers": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "array",
+                "items": {"type": "string"}
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "name": {"type": "string"},
+                  "modules": {"type": "array", "items": {"type": "string"}},
+                  "forbidden_imports": {"type": "array", "items": {"type": "string"}}
+                }
+              }
+            ]
+          }
+        },
+        "forbidden_imports": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["from", "to"],
+            "additionalProperties": false,
+            "properties": {
+              "from": {"type": "string"},
+              "to": {"type": "string"}
+            }
+          }
+        }
+      }
+    }
+  }
+}

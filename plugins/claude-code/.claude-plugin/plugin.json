@@ -27,9 +27,9 @@
   "bugs": "https://github.com/qwerfunch/cladding/issues",
   "mcpServers": {
     "cladding": {
-      "command": "clad",
-      "args": ["serve"],
-      "description": "cladding MCP server — exposes spec / drift / events / personas as tools, resources, prompts. Auto-starts when this plugin is enabled; no manual `claude mcp add` needed."
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/dist/clad.js", "serve"],
+      "description": "cladding MCP server — exposes spec / drift / events / personas as tools, resources, prompts. Runs the engine bundled with this plugin (no global `clad` on PATH required). Auto-starts when this plugin is enabled; no manual `claude mcp add` needed."
     }
   },
   "ironclad": {

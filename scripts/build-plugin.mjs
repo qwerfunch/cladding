@@ -26,7 +26,17 @@
 //
 // Run: `npm run build:plugin` or as part of `npm run build`.
 
-import {copyFileSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync} from 'node:fs';
+import {
+  chmodSync,
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import {join} from 'node:path';
 
 import {parse as parseYaml} from 'yaml';
@@ -87,6 +97,41 @@ try {
   // skills/init/SKILL.md missing — leave the commands dir untouched and log
   // a warning so the build still completes for partial source trees.
   console.warn(`cladding plugin · claude-code: ${initSkill} not found — slash command skipped`);
+}
+
+// --- Phase A2 — Claude Code self-contained engine (v0.5.2) ------------
+//
+// The marketplace plugin is git-distributed (marketplace.json
+// `source: "./plugins/claude-code"`), so for its MCP server to launch
+// WITHOUT a global `clad` on PATH we ship the built engine alongside it.
+// plugin.json wires `command: node, args: [${CLAUDE_PLUGIN_ROOT}/dist/clad.js,
+// serve]` (inline mcpServers — the reliable spot for ${CLAUDE_PLUGIN_ROOT}
+// expansion, side-stepping the .mcp.json expansion bug, claude-code#9427).
+//
+// build.mjs runs before this script under `npm run build`, so dist/clad.js +
+// dist/schema.json + dist/agents/ already exist. The bundle is committed
+// (same model as the agent mirrors above) because the git source IS what users
+// install. Only the Claude Code lane is bundled — Codex/Gemini do not expand
+// ${CLAUDE_PLUGIN_ROOT}, so they keep the global `clad` command.
+const CLAUDE_DIST = `${CLAUDE_PLUGIN_DIR}/dist`;
+if (existsSync('dist/clad.js')) {
+  mkdirSync(`${CLAUDE_DIST}/agents`, {recursive: true});
+  copyFileSync('dist/clad.js', `${CLAUDE_DIST}/clad.js`);
+  chmodSync(`${CLAUDE_DIST}/clad.js`, 0o755);
+  copyFileSync('dist/schema.json', `${CLAUDE_DIST}/schema.json`);
+  let bundledPersonas = 0;
+  for (const f of readdirSync('dist/agents')) {
+    if (!f.endsWith('.md')) continue;
+    copyFileSync(`dist/agents/${f}`, `${CLAUDE_DIST}/agents/${f}`);
+    bundledPersonas++;
+  }
+  console.log(
+    `cladding plugin · claude-code: bundled engine (clad.js + schema.json + ${bundledPersonas} personas) → ${CLAUDE_DIST}/`,
+  );
+} else {
+  console.warn(
+    'cladding plugin · claude-code: dist/clad.js absent — run `npm run build` (build.mjs first) to bundle the standalone engine',
+  );
 }
 
 // --- Phase B — Codex mirror (plugins/codex/skills/) -------------------
