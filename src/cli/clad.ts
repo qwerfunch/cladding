@@ -173,6 +173,11 @@ export async function runDriveCommand(
   goal: string | undefined,
   opts: DriveCommandOptions,
 ): Promise<void> {
+  // `clad drive` is EXPERIMENTAL. The headless code-author transport is unbuilt
+  // and nothing auto-invokes it — the supported, exercised path is host-delegated
+  // (run `clad serve` and let your AI host loop the per-feature cadence). The loop
+  // halts honestly rather than certifying empty stubs when no real LLM is reachable.
+  pulse('note', 'drive', 'EXPERIMENTAL — prefer the host-delegated path (clad serve + your AI host). See docs/feature-cycle.md § Execution surface.');
   const {runDriveLoop} = await import('../drive/loop.js');
   const result = await runDriveLoop({
     cwd: opts.cwd,
@@ -200,7 +205,21 @@ export async function runDriveCommand(
       process.stdout.write(`Touched: ${touched.join(', ')}\n`);
     }
   }
-  process.exit(result.halt.class === 'UNCAUGHT_ERROR' ? 1 : 0);
+  // Honest exit code (anti-Vacuous-Green for the headless loop). A run that
+  // produced empty auto-stubs (no real implementation — the code-author transport
+  // is mock/unbuilt) is NOT a success even when the loop "cleared" features on the
+  // L1 floor: it implemented nothing. Surface that and exit non-zero, so a user or
+  // CI never reads a stub-only `clad drive` as done. Likewise any non-completion
+  // halt exits non-zero. Only a real, fully-cleared run is 0.
+  const vacuous = result.stubsCreated.length > 0;
+  if (vacuous) {
+    pulse(
+      'fail',
+      'drive',
+      `produced ${result.stubsCreated.length} empty auto-stub(s) and implemented nothing — the headless code-author needs a real LLM transport (set ANTHROPIC_API_KEY) or use the host-delegated path (clad serve + your AI host). This run did NOT do the work.`,
+    );
+  }
+  process.exit(result.halt.class === 'ALL_FEATURES_DONE' && !vacuous ? 0 : 1);
 }
 
 /**
@@ -298,7 +317,7 @@ export function runRollbackCommand(featureId: string, opts: {reason?: string} = 
   }
   recordRollback('.', featureId, cp, opts.reason);
   const head = cp.gitHead ? cp.gitHead.slice(0, 12) : '(no git)';
-  pulse('pass', `rollback · ${featureId}`, `target head=${head} ts=${cp.timestamp}`);
+  pulse('note', `rollback · ${featureId}`, `recorded — run the printed command to apply (cladding does not execute git) · target head=${head} ts=${cp.timestamp}`);
   if (cp.gitHead) {
     process.stdout.write(`Run: git checkout ${cp.gitHead}\n`);
   } else {
@@ -637,7 +656,7 @@ export function createProgram(): Command {
 
   program
     .command('drive [goal]')
-    .description('Autonomous loop — iterate ready features, dispatch specialist + reviewer personas, run L1 gates, enforce anti-self-cert, record evidence')
+    .description('(experimental) Headless autonomous loop — iterate ready features, dispatch specialist + reviewer personas, run L1 gates, record evidence. The supported, exercised path is host-delegated (clad serve + your AI host loops the cadence); this loop needs a real LLM transport and is not auto-invoked')
     .option('--cwd <path>', 'target project directory (default cwd)')
     .option('--max-iterations <n>', 'cap iterations (default 50)', '50')
     .option('--max-wall-clock-ms <ms>', 'cap wall clock (default 600000)', '600000')
