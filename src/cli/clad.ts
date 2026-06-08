@@ -447,6 +447,36 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
       }
     }
   }
+  // VACUOUS-GREEN GUARD (--strict only). "done = verified" must mean the tests
+  // actually RAN. If the Unit stage SKIPPED (no test runner installed) while the
+  // spec carries `done` features that declare `test_refs`, their implementation
+  // was never verified — under --strict that is NOT green. (`someRan` is too weak:
+  // Drift/Commit/Arch/Secret are pure-JS detectors that always run, so they would
+  // mask this.) Fires ONLY when there are tested-done features AND the runner
+  // skipped; a project with the test runner installed, or with no tested-done
+  // features, is unaffected. Non-strict keeps the lenient skip-as-pass contract.
+  if (opts.strict && allowed.includes('stage_2.1')) {
+    const unit = collected.find((c) => c.stage === 'stage_2.1');
+    if (unit && unit.status === 'skip') {
+      let unverifiedDone = 0;
+      try {
+        const spec = loadSpec();
+        for (const f of spec.features ?? []) {
+          if (f.status !== 'done') continue;
+          if ((f.acceptance_criteria ?? []).some((ac) => (ac.test_refs ?? []).length > 0)) unverifiedDone++;
+        }
+      } catch {
+        unverifiedDone = 0; // spec unreadable → other detectors handle it; don't block here
+      }
+      if (unverifiedDone > 0) {
+        worst = Math.max(worst, 1);
+        anyFailed = true;
+        const msg = `${unverifiedDone} done feature(s) declare tests but the test runner did not run (skipped) — the implementation was never verified. Install the test framework; under --strict, an unverifiable 'done' is not GREEN.`;
+        collected.push({stage: 'stage_2.1', label: 'Verification', status: 'fail', exitCode: 1, stderr: msg});
+        if (!opts.json) pulse('fail', 'Verification', msg);
+      }
+    }
+  }
   if (opts.json) {
     // Machine-readable, UNTRUNCATED — findings carry file/line/suggestion so an
     // agent fixes in one pass instead of re-running to discover where + what.
