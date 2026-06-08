@@ -3,7 +3,7 @@
 import {existsSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
 
-import type {StageResult} from './types.js';
+import type {DriftFinding, StageResult} from './types.js';
 
 /**
  * Detects an absent tool binary from an `execaSync(…, {reject: false})`
@@ -30,6 +30,39 @@ import type {StageResult} from './types.js';
  */
 export function isMissingBinary(proc: {readonly code?: string}): boolean {
   return proc.code === 'ENOENT';
+}
+
+/**
+ * Classifies the non-zero exit of a registered external SCANNER (secretlint, an
+ * arch validator) that RAN (its binary was present — see {@link isMissingBinary}).
+ * Distinguishes a REAL finding (block, error) from "could not run — config/setup
+ * gap" (non-blocking, info — the same category as a missing binary). The setup-gap
+ * signal is matched on the tool's own output with config/setup-error patterns that
+ * a genuine finding never carries (a secret hit or a cycle report does not say
+ * "config not found" / ENOENT), so this is tool-agnostic and never masks a true
+ * positive. WHY: a fresh project that simply hasn't configured the scanner (no
+ * `.secretlintrc`) was false-RED'd — secretlint exits non-zero with "config is not
+ * found", which was mis-reported as a hardcoded secret. A config gap is not a
+ * finding; it skips, like a missing binary does.
+ */
+const SCANNER_SETUP_FAILURE =
+  /config (is |file )?not found|no such file|ENOENT|cannot find (a |the )?(config|module|package|preset)|require[sd]?\b.{0,40}\bconfig/i;
+
+export function classifyScannerExit(
+  proc: {readonly exitCode?: number | null; readonly stdout?: unknown; readonly stderr?: unknown},
+  detector: string,
+  foundMsg: (detail: string) => string,
+  skippedMsg: (detail: string) => string,
+): DriftFinding[] {
+  const exitCode = proc.exitCode ?? 1;
+  if (exitCode === 0) return [];
+  const stderr = (proc.stderr ?? '').toString().trim();
+  const stdout = (proc.stdout ?? '').toString().trim();
+  const detail = (stderr || stdout || `exit ${exitCode}`).slice(0, 200);
+  if (SCANNER_SETUP_FAILURE.test(stderr) || SCANNER_SETUP_FAILURE.test(stdout)) {
+    return [{detector, severity: 'info', message: skippedMsg(detail)}];
+  }
+  return [{detector, severity: 'error', message: foundMsg(detail)}];
 }
 
 export function missingToolSkip(

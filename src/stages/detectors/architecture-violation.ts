@@ -11,7 +11,7 @@ import {execaSync} from 'execa';
 
 import {detectToolchain} from '../toolchain/detect.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
-import {isMissingBinary} from '../util.js';
+import {classifyScannerExit, isMissingBinary} from '../util.js';
 
 const NAME = 'ARCHITECTURE_VIOLATION';
 
@@ -54,18 +54,14 @@ function runArchitectureViolation(opts: CommandStageOptions): readonly DriftFind
       },
     ];
   }
-  const exitCode = proc.exitCode ?? 1;
-  if (exitCode === 0) return [];
-  const stdout = (proc.stdout ?? '').toString().trim();
-  const stderr = (proc.stderr ?? '').toString().trim();
-  const detail = stdout || stderr || `exit ${exitCode}`;
-  return [
-    {
-      detector: NAME,
-      severity: 'error',
-      message: `${spec.cmd} reported architecture violations: ${detail.slice(0, 300)}`,
-    },
-  ];
+  // The validator RAN but exited non-zero. A real cycle/boundary violation blocks
+  // (error); a config/setup gap (validator present but unconfigured) skips (info).
+  return classifyScannerExit(
+    proc,
+    NAME,
+    (detail) => `${spec.cmd} reported architecture violations: ${detail}`,
+    (detail) => `${spec.cmd} could not validate (config/setup gap, not a violation): ${detail}`,
+  );
 }
 
 export const architectureViolation: DriftDetector = {
