@@ -77,7 +77,18 @@ export function clearPersonaCache(): void {
 function resolveAgentPath(id: string, rootDir?: string): string {
   if (rootDir) return join(rootDir, 'agents', `${id}.md`);
   const here = dirname(fileURLToPath(import.meta.url));
-  return join(here, `${id}.md`);
+  // Personas live in a different place per run mode: dev-from-src (this module IS
+  // src/agents/, so the sibling <id>.md), the bundled binary (build.mjs copies them
+  // to dist/agents/ next to the dist/clad.js bundle), or — as a last resort — the
+  // packaged plugin tree. Earlier this returned only `dist/<id>.md`, which the build
+  // never produced, so `clad drive` and the MCP persona prompts crashed on a real
+  // npm install. Return the first candidate that exists.
+  const candidates = [
+    join(here, `${id}.md`), // dev: src/agents/<id>.md
+    join(here, 'agents', `${id}.md`), // bundled: dist/agents/<id>.md
+    join(here, '..', 'plugins', 'claude-code', 'agents', `${id}.md`), // packaged plugin tree
+  ];
+  return candidates.find((p) => existsSync(p)) ?? candidates[1];
 }
 
 function parseAgentFile(id: string, raw: string): PersonaSpec {
