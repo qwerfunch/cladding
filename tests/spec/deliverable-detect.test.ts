@@ -68,6 +68,22 @@ describe('deliverable auto-detection', () => {
     expect(detectDeliverable(dir)).toBeNull();
   });
 
+  test('entry is never calibrated against ITSELF under a relative cwd (the neu-proj ["run"] vacuous smoke)', () => {
+    // ./run exits 0 on ANY existing file path — including its own name "run". Under a
+    // RELATIVE cwd ('.') the old join()/resolve() mismatch left `abs` relative while
+    // entryAbs was absolute, so ./run was never excluded and got calibrated as its own
+    // input → smoke_args: ["run"], a meaningless smoke vouched is_safe_to_smoke:true.
+    // resolve() on both sides excludes the entry, so with no real sample → null.
+    writeRun('[ -z "$1" ] && exit 1; exit 0'); // no arg → 1; any arg (incl. "run") → 0
+    const prev = process.cwd();
+    try {
+      process.chdir(dir);
+      expect(detectDeliverable('.')).toBeNull();
+    } finally {
+      process.chdir(prev);
+    }
+  });
+
   test('upsertDeliverableBlock inserts under project and is idempotent', () => {
     writeSpec();
     const body = readFileSync(join(dir, 'spec.yaml'), 'utf8');

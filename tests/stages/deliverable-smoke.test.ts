@@ -38,6 +38,12 @@ function writeEntry(code: number): void {
   writeFileSync(p, `#!/bin/sh\nexit ${code}\n`);
   chmodSync(p, 0o755);
 }
+/** Write an executable ./run that prints `msg` to stderr, then exits with `code`. */
+function writeEntryStderr(code: number, msg: string): void {
+  const p = join(dir, 'run');
+  writeFileSync(p, `#!/bin/sh\necho "${msg}" >&2\nexit ${code}\n`);
+  chmodSync(p, 0o755);
+}
 const SAFE = '  deliverable:\n    path: ./run\n    is_safe_to_smoke: true\n';
 
 describe('stage_2.4 DELIVERABLE_SMOKE', () => {
@@ -88,6 +94,18 @@ describe('stage_2.4 DELIVERABLE_SMOKE', () => {
   test('respects expect_exit (a non-zero success code passes)', () => {
     writeSpec({deliverable: '  deliverable:\n    path: ./run\n    is_safe_to_smoke: true\n    expect_exit: 2\n'});
     writeEntry(2);
+    const r = runDeliverableSmoke({cwd: dir});
+    expect(r.pass).toBe(true);
+    expect(r.exitCode).toBe(0);
+  });
+
+  test('PASS even when a working entry writes a benign warning to stderr (no stderr over-block)', () => {
+    // Deliberate boundary: the smoke is exit-code-only. A healthy CLI legitimately
+    // writes to stderr (a Node --experimental-strip-types ExperimentalWarning), so a
+    // clean exit must still pass — failing on stderr would false-fail common TS-node
+    // entries. "Runs but prints wrong OUTPUT" stays the impl-blind oracle's job.
+    writeSpec({deliverable: SAFE});
+    writeEntryStderr(0, 'ExperimentalWarning: Type Stripping is experimental');
     const r = runDeliverableSmoke({cwd: dir});
     expect(r.pass).toBe(true);
     expect(r.exitCode).toBe(0);

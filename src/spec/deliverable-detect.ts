@@ -56,7 +56,15 @@ export function detectEntry(cwd: string): string | null {
   return null;
 }
 
-/** True iff `<entry> <args>` exits 0 on the current code (no crash / timeout). */
+/**
+ * True iff `<entry> <args>` exits 0 on the current code (no crash / timeout).
+ * Deliberately exit-code-only: stderr is NOT a calibration signal because a
+ * healthy CLI legitimately writes to it (a Node `--experimental-strip-types`
+ * ExperimentalWarning, a deprecation notice), so requiring clean stderr would
+ * silently refuse to vouch a common, working entry. The honest reach limit —
+ * a graceful CLI that prints errors to stdout yet exits 0 — is the impl-blind
+ * oracle's (stage_2.3) job, not the smoke's.
+ */
 function runsClean(cwd: string, entry: string, args: readonly string[]): boolean {
   try {
     const proc = execaSync(resolve(cwd, entry), [...args], {cwd, reject: false, timeout: CALIBRATE_TIMEOUT_MS});
@@ -86,7 +94,11 @@ function candidateInputs(cwd: string, entryAbs: string): string[] {
       }
       for (const e of entries) {
         if (e.name === 'node_modules' || e.name === '.git' || e.name.startsWith('.')) continue;
-        const abs = join(dir, e.name);
+        // resolve() (not join) so the entry-self exclusion below compares like for
+        // like: a relative `dir` (e.g. cwd='.') made `abs` relative while `entryAbs`
+        // is absolute, so `./run` was never excluded and got calibrated as its own
+        // input (`smoke_args: ["run"]` — the A/B's vacuous smoke). resolve normalises both.
+        const abs = resolve(dir, e.name);
         if (e.isDirectory()) queue.push(abs);
         else if (abs !== entryAbs && !NOT_AN_INPUT.test(e.name)) out.push(abs);
       }
