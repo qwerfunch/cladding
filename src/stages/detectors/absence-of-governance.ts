@@ -30,6 +30,7 @@
 import {existsSync, readdirSync} from 'node:fs';
 import {join} from 'node:path';
 
+import {loadSpec} from '../../spec/load.js';
 import {parseSpec} from '../../spec/parse.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
 
@@ -108,18 +109,27 @@ function runAbsenceOfGovernance(opts: CommandStageOptions): readonly DriftFindin
         ` (${check.purpose}). Run \`clad init --intent "<your goal>"\` to populate it.`,
     });
   }
-  // A spec.yaml that is PRESENT but unreadable is as ungoverned as an absent
-  // one: every spec-gated detector then returns info/[] and the gate would pass
-  // GREEN on a broken SSoT root (the P1 failure — "cladding applied but governs
-  // nothing"). Surface it as the single authoritative BLOCKING signal so the
-  // spec-vs-reality detectors can honestly stay non-blocking info (see
-  // detectors/with-spec.ts). Scoped to the MASTER not parsing into a usable
-  // mapping (malformed YAML / empty / non-object) — deliberately NOT schema
-  // validation, which would risk false-failing a mid-authoring spec; `clad sync`
-  // owns schema checking.
+  // A spec.yaml that is PRESENT but cannot be loaded is as ungoverned as an
+  // absent one: every spec-gated detector then returns info/[] and the gate would
+  // pass GREEN on a broken SSoT root (the P1 failure — "cladding applied but
+  // governs nothing"). Surface it as the single authoritative BLOCKING signal so
+  // the spec-vs-reality detectors can honestly stay non-blocking info (see
+  // detectors/with-spec.ts). THREE escalating scopes, each a genuine "cannot
+  // govern" state — never mere mid-authoring incompleteness, because an
+  // incomplete-but-VALID spec still loads cleanly:
+  //   (1) the MASTER not parsing into a usable mapping (malformed YAML/empty),
+  //   (2) a SHARD (spec/features|scenarios/*.yaml) not parsing,
+  //   (3) the assembled spec not LOADING — loadSpec throws on schema validation
+  //       (e.g. `architecture.layers:` null where the schema demands an array, or
+  //       a malformed architecture/capabilities file), the EXACT condition that
+  //       degrades every withSpec detector to non-blocking info.
+  // `clad sync` surfaces the same schema errors earlier in the loop; (3) is the
+  // gate-time backstop for a hand-edit that bypassed sync — without it a
+  // schema-invalid spec sails through `clad check`/`clad done` entirely green.
   const specPath = join(cwd, 'spec.yaml');
   if (existsSync(specPath)) {
     const broken = masterParseFailure(specPath);
+    const shardBroken = broken ? null : shardParseFailure(cwd);
     if (broken) {
       findings.push({
         detector: NAME,
@@ -129,22 +139,30 @@ function runAbsenceOfGovernance(opts: CommandStageOptions): readonly DriftFindin
           `spec.yaml is present but unreadable (${broken}) — cladding is governing` +
           ' nothing. Fix the SSoT root, then `clad sync` to validate.',
       });
+    } else if (shardBroken) {
+      findings.push({
+        detector: NAME,
+        severity: 'error',
+        path: shardBroken.path,
+        message:
+          `spec shard '${shardBroken.path}' is present but unparseable (${shardBroken.reason}) —` +
+          ' loadSpec throws on it, so every spec-gated detector silently passes. Fix it, then `clad sync`.',
+      });
     } else {
-      // The master can parse, but a sharded spec assembles spec/features/*.yaml +
-      // spec/scenarios/*.yaml, and a single unparseable SHARD makes loadSpec throw
-      // — which the spec-gated detectors swallow as non-blocking `info`
-      // (with-spec.ts). That let a malformed shard pass the gate GREEN: cladding's
-      // own Vacuous Green. Same parse-only scope as the master check (NOT schema —
-      // `clad sync` owns that): a shard whose YAML does not parse is blocking.
-      const shardBroken = shardParseFailure(cwd);
-      if (shardBroken) {
+      // (3) Master + every shard parse as YAML, but does the ASSEMBLED spec load?
+      // loadSpec schema-validates the merged master+shards+architecture+capabilities;
+      // on a schema-invalid spec it THROWS, and withSpec swallows that as info — so
+      // the whole drift layer would pass GREEN on a spec cladding itself rejects.
+      const loadFail = specLoadFailure(cwd);
+      if (loadFail) {
         findings.push({
           detector: NAME,
           severity: 'error',
-          path: shardBroken.path,
+          path: 'spec.yaml',
           message:
-            `spec shard '${shardBroken.path}' is present but unparseable (${shardBroken.reason}) —` +
-            ' loadSpec throws on it, so every spec-gated detector silently passes. Fix it, then `clad sync`.',
+            `spec.yaml is present and parses, but the assembled spec does not load (${loadFail}) —` +
+            ' every spec-gated detector then degrades to non-blocking info, so the gate would pass' +
+            ' GREEN on an unloadable SSoT. Fix it, then `clad sync` to validate.',
         });
       }
     }
@@ -176,6 +194,26 @@ function shardParseFailure(cwd: string): {path: string; reason: string} | null {
     }
   }
   return null;
+}
+
+/**
+ * Returns a reason string when the master + every shard PARSE as YAML, yet the
+ * assembled spec does not LOAD — i.e. `loadSpec` throws on schema validation
+ * (e.g. `architecture.layers:` null where the schema demands an array, or a
+ * malformed spec/architecture.yaml / spec/capabilities.yaml the parse-only checks
+ * above do not cover). Returns null when the spec loads. This is the schema-level
+ * sibling of {@link masterParseFailure}/{@link shardParseFailure}: it fires ONLY
+ * when loadSpec actually throws — the exact condition that degrades every withSpec
+ * detector to non-blocking info — so it is never a false mid-authoring nag (an
+ * incomplete-but-valid spec still loads).
+ */
+function specLoadFailure(cwd: string): string | null {
+  try {
+    loadSpec(cwd);
+    return null;
+  } catch (err) {
+    return (err as Error).message;
+  }
 }
 
 /**
