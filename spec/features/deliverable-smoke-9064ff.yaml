@@ -5,6 +5,7 @@ status: done
 modules:
   - src/stages/deliverable-smoke.ts
   - src/stages/detectors/deliverable-integrity.ts
+  - src/spec/deliverable-detect.ts
   - src/spec/types.ts
   - src/spec/schema.json
   - src/stages/detectors/index.ts
@@ -12,6 +13,20 @@ modules:
   - src/ui/softShell.ts
 depends_on: []
 acceptance_criteria:
+  - id: AC-5c5187
+    ears: ubiquitous
+    action: "auto-populate project.deliverable from a calibrated CLI entry when absent"
+    response: "sync writes a deliverable whose smoke invocation is proven to pass now, never enabling a false-failing one"
+    text: "The system shall, on sync (manual and clad_create_feature), auto-populate project.deliverable when it is absent and a detected CLI entry has a calibratable (proven-passing) smoke invocation — setting is_safe_to_smoke true only then — so DELIVERABLE_SMOKE engages without the agent configuring it correctly."
+    notes: |
+      ## Why
+      An A/B re-run proved a conservative autonomous agent, nudged by the DELIVERABLE_INTEGRITY warn,
+      declared the deliverable DISABLED (is_safe_to_smoke:false) with no smoke_args. Auto-detection runs
+      BEFORE the agent reacts and calibrates against the passing state, so it never false-fails a working
+      entry and removes the agent-configuration dependency. Honest reach limit: a file-consuming CLI with
+      no committed sample can't be calibrated — left undeclared (oracle/author territory).
+    test_refs:
+      - tests/spec/deliverable-detect.test.ts
   - id: AC-bab4d0
     ears: unwanted
     condition: "if the declared deliverable is executed and exits with an unexpected code"

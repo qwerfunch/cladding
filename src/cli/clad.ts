@@ -35,6 +35,7 @@ import {runVisual} from '../stages/visual.js';
 import type {DriftFinding} from '../stages/types.js';
 import {staleSpecification} from '../stages/detectors/stale-specification.js';
 import {findLatestCheckpoint, recordCheckpoint, recordRollback} from '../core/checkpoint.js';
+import {autoMaintainDeliverable} from '../spec/deliverable-detect.js';
 import {computeInventory, writeInventoryToSpecYaml} from '../spec/inventory.js';
 import {buildBlindPayload, renderBlindBrief} from '../oracle/payload.js';
 import {requiredOracleWorklist} from '../oracle/policy.js';
@@ -243,6 +244,18 @@ export function runSyncCommand(opts: {proposeArchive?: boolean} = {}): void {
     // file commit-stable across same-day runs.
     const inventory = computeInventory('.');
     writeInventoryToSpecYaml('.', inventory);
+    // v0.5.x — auto-populate project.deliverable when absent + a CLI entry is calibratable, so
+    // DELIVERABLE_SMOKE (stage_2.4) engages without the agent having to declare it correctly (the
+    // re-run showed a conservative agent declares it DISABLED). Calibrates against the passing state,
+    // so it never enables a false-failing invocation. One-time (skips once a deliverable is present).
+    const autoDeliverable = autoMaintainDeliverable('.');
+    if (autoDeliverable) {
+      pulse(
+        'note',
+        'deliverable',
+        `auto-detected entry '${autoDeliverable.path}' — the gate now smoke-tests it (stage_2.4). Opt out with is_safe_to_smoke: false.`,
+      );
+    }
     if (opts.proposeArchive) {
       const findings = staleSpecification.run({cwd: '.'});
       const proposals = findings.filter(
