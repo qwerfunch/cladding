@@ -56,6 +56,19 @@
             }
           }
         },
+        "deliverable": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path"],
+          "description": "The project's runnable entry point. DELIVERABLE_SMOKE (stage_2.4) executes it on smoke_args once a feature is done — but only when is_safe_to_smoke is true. The pure DELIVERABLE_INTEGRITY detector flags a declared-but-missing path.",
+          "properties": {
+            "path": {"type": "string", "minLength": 1, "description": "Executable entry path relative to the project root (e.g. './run'). Must be directly runnable or an interpreter."},
+            "smoke_args": {"type": "array", "items": {"type": "string"}, "description": "Args passed to the entry for the smoke run (e.g. ['--version']). Default []."},
+            "expect_exit": {"type": "integer", "description": "Exit code that means success. Default 0."},
+            "timeout_ms": {"type": "integer", "minimum": 1, "description": "Hard timeout for the smoke run in ms. Default 5000."},
+            "is_safe_to_smoke": {"type": "boolean", "description": "The gate executes the entry only when true (author vouches running it on smoke_args has no harmful side effects). Default false ⇒ skipped."}
+          }
+        },
         "ai_hints": {
           "type": "object",
           "additionalProperties": false,

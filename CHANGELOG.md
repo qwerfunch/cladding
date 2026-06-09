@@ -13,6 +13,17 @@ separate global install, a green gate no longer hides "your tests never actually
 messages now tell you what to do instead of leaving you to guess. Nothing here changes a green build that was
 already honest; it closes the gaps where green wasn't.
 
+### Added
+
+- **The gate now runs your project's actual entry point.** A new check (`Deliverable smoke`) executes the
+  deliverable you declare in `spec.yaml` (e.g. `./run`, your CLI) once a feature is done, and fails if it
+  crashes — catching the case where the code's own unit tests pass but the *shipped entry point* is broken
+  (because the tests exercise internals and never invoke the entry). It runs only an entry you explicitly mark
+  `is_safe_to_smoke: true`, with a timeout, and never on every commit — so it never auto-runs arbitrary code. A
+  companion detector warns when a finished feature ships code but declares no deliverable to smoke-test. It
+  costs nothing extra (no AI involved) — a cheap floor under the opt-in spec-conformance oracle, which still
+  owns the harder "runs but produces the wrong answer."
+
 ### Fixed
 
 - **The Claude Code marketplace plugin now works on its own.** Installing just the plugin used to leave its

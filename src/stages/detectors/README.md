@@ -7,7 +7,7 @@ ironclad_spec_ref: https://github.com/qwerfunch/ironclad/blob/main/detectors.sch
 
 # Drift detectors — inventory
 
-34 detectors are wired into `stages/drift.ts` via `stages/detectors/index.ts`: the upstream Ironclad 19 plus cladding extensions (`FIXTURE_REFERENCE_INVALID` onward). The live count is the filesystem itself — `scripts/build-plugin.mjs` Phase D recounts `stages/detectors/*.ts` and rewrites `plugin.json` on every build, so this prose number and the table below are kept honest by `tests/self-consistency.test.ts` (and `tests/scripts/build-plugin-detector-count.test.ts`). Each detector is a pure function `(opts) => readonly DriftFinding[]`; the stage passes when no finding has `severity === 'error'`.
+35 detectors are wired into `stages/drift.ts` via `stages/detectors/index.ts`: the upstream Ironclad 19 plus cladding extensions (`FIXTURE_REFERENCE_INVALID` onward). The live count is the filesystem itself — `scripts/build-plugin.mjs` Phase D recounts `stages/detectors/*.ts` and rewrites `plugin.json` on every build, so this prose number and the table below are kept honest by `tests/self-consistency.test.ts` (and `tests/scripts/build-plugin-detector-count.test.ts`). Each detector is a pure function `(opts) => readonly DriftFinding[]`; the stage passes when no finding has `severity === 'error'`.
 
 ## Catalog
 
@@ -47,6 +47,7 @@ ironclad_spec_ref: https://github.com/qwerfunch/ironclad/blob/main/detectors.sch
 | 32 | `SCENARIO_COVERAGE` *(cladding extension, v0.4.x)* | spec ↔ spec | `scenario-coverage.ts` | warn | blind *(scale-gated)* |
 | 33 | `PROJECT_CONTEXT_DRIFT` *(cladding extension, v0.4.x)* | spec ↔ doc | `project-context-drift.ts` | warn | blind *(scale-gated)* |
 | 34 | `SPEC_CONFORMANCE` *(cladding extension, v0.5.x)* | spec ↔ test | `spec-conformance.ts` | error | **aware** *(done-direction)* |
+| 35 | `DELIVERABLE_INTEGRITY` *(cladding extension, v0.5.x)* | spec ↔ code | `deliverable-integrity.ts` | error/warn | **aware** *(done-direction)* |
 
 `axis` and `default severity` for rows 1–19 mirror the [Ironclad spec detectors.schema.json](https://github.com/qwerfunch/ironclad/blob/main/detectors.schema.json) catalog. Row 20 (`FIXTURE_REFERENCE_INVALID`) is a cladding-specific extension that promotes the `fixture:NAME` evidence-label convention from a free-form string into a validated anchor. It checks every `acceptance_criteria[].evidence_refs[fixture:X]` (and, for backward compatibility, `test_refs[fixture:X]`) citation against `conformance/fixtures.yaml`; an unregistered name emits a `warn` finding. User projects without a `conformance/fixtures.yaml` opt out (no findings). The `status policy` column is cladding-specific (see below).
 

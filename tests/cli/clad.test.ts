@@ -534,22 +534,22 @@ describe('cli/clad — check --tier stage selection (Phase 2 ambient hooks)', ()
     expect(clad.TIER_STAGES['pre-commit']).toEqual(['stage_1.3', 'stage_1.5', 'stage_1.6']);
     // Never the clean-tree commit stage (would always fail pre-commit), the
     // probabilistic 3.x, the HITL 4.x, or the slow whole-toolchain/test stages.
-    for (const s of ['stage_1.1', 'stage_1.2', 'stage_1.4', 'stage_2.1', 'stage_2.2', 'stage_2.3', 'stage_3.1', 'stage_3.2', 'stage_3.3', 'stage_4.1', 'stage_4.2']) {
+    for (const s of ['stage_1.1', 'stage_1.2', 'stage_1.4', 'stage_2.1', 'stage_2.2', 'stage_2.3', 'stage_2.4', 'stage_3.1', 'stage_3.2', 'stage_3.3', 'stage_4.1', 'stage_4.2']) {
       expect(clad.TIER_STAGES['pre-commit']).not.toContain(s);
     }
   });
 
-  test('pre-push = pre-commit set + type/lint/unit/cov/spec-conformance; never commit/probabilistic/HITL', () => {
+  test('pre-push = pre-commit set + type/lint/unit/cov/spec-conformance/deliverable-smoke; never commit/probabilistic/HITL', () => {
     expect(clad.TIER_STAGES['pre-push']).toEqual([
-      'stage_1.1', 'stage_1.2', 'stage_1.3', 'stage_1.5', 'stage_1.6', 'stage_2.1', 'stage_2.2', 'stage_2.3',
+      'stage_1.1', 'stage_1.2', 'stage_1.3', 'stage_1.5', 'stage_1.6', 'stage_2.1', 'stage_2.2', 'stage_2.3', 'stage_2.4',
     ]);
     for (const s of ['stage_1.4', 'stage_3.1', 'stage_3.2', 'stage_3.3', 'stage_4.1', 'stage_4.2']) {
       expect(clad.TIER_STAGES['pre-push']).not.toContain(s);
     }
   });
 
-  test('all = every one of the 14 stages (default / CI gate)', () => {
-    expect(clad.TIER_STAGES['all']).toHaveLength(14);
+  test('all = every one of the 15 stages (default / CI gate)', () => {
+    expect(clad.TIER_STAGES['all']).toHaveLength(15);
     // pre-commit + pre-push members are all a subset of `all`.
     for (const s of [...clad.TIER_STAGES['pre-commit'], ...clad.TIER_STAGES['pre-push']]) {
       expect(clad.TIER_STAGES['all']).toContain(s);
