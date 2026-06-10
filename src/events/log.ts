@@ -50,7 +50,13 @@ export type EventType =
   | 'feature_created' // payload: feature, slug
   | 'scenario_created' // payload: scenario, slug
   | 'done_attempted' // payload: feature, worst, anyFailed, kept
-  | 'gate_run'; // payload: tier, strict, worst, anyFailed (deduped per HEAD)
+  | 'gate_run' // payload: tier, strict, worst, anyFailed (deduped per HEAD)
+  // v0.6.0 (F-1d23a6) — the Stop host hook blocked a session end on a FRESH
+  // deterministic-trio failure (drift strict / arch / secret). Fingerprint-
+  // keyed: an identical failure set demotes to allow without an event, so
+  // this fires only on new breakage — the demotion itself persists as
+  // .cladding/stop-block.json and resurfaces on the SessionStart card.
+  | 'stop_blocked'; // payload: count, fingerprint
 
 /** One JSONL line in events.log.jsonl. */
 export interface Event {

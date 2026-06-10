@@ -146,6 +146,28 @@ if (existsSync('dist/clad.js')) {
   );
 }
 
+// --- Phase A3 — Claude Code hooks wiring guard (v0.6.0, F-1d23a6) ------
+//
+// plugins/claude-code/hooks/hooks.json is CANONICAL (hand-authored in the
+// plugin dir, not generated) — this script never writes or sweeps it. The
+// guard only validates presence + JSON shape so a refactor of the sweep
+// logic above (or a bad merge) cannot silently ship the plugin without its
+// lifecycle wiring. tests/scripts/hooks-config.test.ts pins the full shape.
+
+const CLAUDE_HOOKS_JSON = `${CLAUDE_PLUGIN_DIR}/hooks/hooks.json`;
+try {
+  const hooksDoc = JSON.parse(readFileSync(CLAUDE_HOOKS_JSON, 'utf8'));
+  const hookEvents = Object.keys(hooksDoc.hooks ?? {});
+  if (hookEvents.length === 0) throw new Error('no events wired under "hooks"');
+  console.log(
+    `cladding plugin · claude-code: hooks wiring OK (${hookEvents.length} events) — ${CLAUDE_HOOKS_JSON}`,
+  );
+} catch (err) {
+  console.warn(
+    `cladding plugin · claude-code: WARN ${CLAUDE_HOOKS_JSON} missing/invalid (${err.message}) — lifecycle hooks will not fire`,
+  );
+}
+
 // --- Phase B — Codex mirror (plugins/codex/skills/) -------------------
 
 const CODEX_SKILLS = 'plugins/codex/skills';

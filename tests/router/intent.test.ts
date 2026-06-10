@@ -2,7 +2,7 @@
 
 import {describe, expect, test} from 'vitest';
 
-import {classifyIntent} from '../../src/router/intent.js';
+import {classifyIntent, suggestIntent} from '../../src/router/intent.js';
 
 describe('classifyIntent — clear-intent matches', () => {
   // 0.6.0: the former `work` verb's build/implement patterns classify to
@@ -99,5 +99,59 @@ describe('classifyIntent — rule order invariant', () => {
 
   test('"sync and check" → sync (sync rule evaluated before check)', () => {
     expect(classifyIntent('sync and check')).toBe('sync');
+  });
+});
+
+// 0.6.0 (F-1d23a6) — suggestion-only recall tier. Output is injected context
+// (UserPromptSubmit hook), never execution, so high recall is acceptable here
+// while classifyIntent's precision contract stays byte-identical.
+describe('suggestIntent — high-recall suggestion tier (F-1d23a6)', () => {
+  test('EN "add a login feature" → run, while classifyIntent stays unknown (pre-0.6 behavior unchanged)', () => {
+    expect(suggestIntent('add a login feature')).toBe('run');
+    expect(classifyIntent('add a login feature')).toBe('unknown');
+  });
+
+  test('EN "create a new api endpoint" → run', () => {
+    expect(suggestIntent('create a new api endpoint')).toBe('run');
+  });
+
+  test('EN "make a settings page" → run', () => {
+    expect(suggestIntent('make a settings page')).toBe('run');
+  });
+
+  test('EN "let\'s finish and ship this" → check', () => {
+    expect(suggestIntent("let's finish and ship this")).toBe('check');
+  });
+
+  test('EN "is the spec in sync with the code?" → check (consistency question, not the sync verb)', () => {
+    expect(suggestIntent('is the spec in sync with the code?')).toBe('check');
+  });
+
+  test('EN "is everything consistent?" → check', () => {
+    expect(suggestIntent('is everything consistent?')).toBe('check');
+  });
+
+  test('KO "로그인 기능 추가해줘" → run (existing KO patterns flow through)', () => {
+    expect(suggestIntent('로그인 기능 추가해줘')).toBe('run');
+  });
+
+  test('KO "결제 화면 만들어줘" → run', () => {
+    expect(suggestIntent('결제 화면 만들어줘')).toBe('run');
+  });
+
+  test('precision-tier verdicts pass through: "sync the spec" → sync', () => {
+    expect(suggestIntent('sync the spec')).toBe('sync');
+  });
+
+  test('negative control: "explain how auth works" → null', () => {
+    expect(suggestIntent('explain how auth works')).toBe(null);
+  });
+
+  test('negative control: "rename this variable" → null', () => {
+    expect(suggestIntent('rename this variable')).toBe(null);
+  });
+
+  test('bare verb without an artifact noun stays null: "add it to the list"', () => {
+    expect(suggestIntent('add it to the list')).toBe(null);
   });
 });

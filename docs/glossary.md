@@ -60,6 +60,7 @@
 | `checkpoint` | stable | Record a feature checkpoint event (git HEAD + spec digest). | 체크포인트 기록 |
 | `rollback` | stable | Record a rollback event + print the maintainer-runnable git command. | 롤백 기록 |
 | `route` | stable | Classify a natural-language prompt to a verb (debug surface for the router). | 의도 분류 |
+| `hook` | stable (0.6.0) | Host hook protocol adapter — consumes one host lifecycle event (SessionStart / UserPromptSubmit / PreToolUse / PostToolUse / Stop) as stdin JSON; always exits 0. | 호스트 훅 프로토콜 어댑터 |
 
 ## MCP tools (frozen wire identifiers)
 
@@ -79,7 +80,7 @@
 
 `stage_started` · `stage_completed` · `feature_activated` · `feature_completed` · `evidence_recorded` · `drift_detected` · `feature_checkpoint` · `feature_rolled_back` · `sentinel_miss`
 
-Added 0.6.0 (F-b84c38 — payloads carry `identity` + `head`): `feature_created` (spec shard authored) · `scenario_created` · `done_attempted` (gated flip, kept or reverted) · `gate_run` (tier verification outcome; deduped per identical HEAD/tier/strict/worst).
+Added 0.6.0 (F-b84c38 — payloads carry `identity` + `head`): `feature_created` (spec shard authored) · `scenario_created` · `done_attempted` (gated flip, kept or reverted) · `gate_run` (tier verification outcome; deduped per identical HEAD/tier/strict/worst) · `stop_blocked` (F-1d23a6 — the Stop host hook blocked a session end on a fresh failure fingerprint; identical fingerprints demote without an event).
 
 ## Spec schema fields (frozen)
 

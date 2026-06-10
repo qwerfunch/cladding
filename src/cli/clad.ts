@@ -13,6 +13,7 @@ import {Command} from 'commander';
 import {classifyIntent} from '../router/intent.js';
 import {runDoctorCommand} from './doctor.js';
 import {runDone} from './done.js';
+import {runHookCommand} from './hook.js';
 import {runUpdate} from './update.js';
 import {runInit} from './init.js';
 import {runClarifyCommand} from './clarify.js';
@@ -788,6 +789,15 @@ export function createProgram(): Command {
     .command('route <prompt>')
     .description('Classify a natural-language prompt to a verb')
     .action(runRouteCommand);
+
+  program
+    .command('hook <event>')
+    .description(
+      'Host hook protocol adapter — consume one host lifecycle event (SessionStart | UserPromptSubmit | ' +
+        'PreToolUse | PostToolUse | Stop) as stdin JSON and print the protocol response on stdout. ' +
+        'Always exits 0 so a hook failure never bricks the host session.',
+    )
+    .action(runHookCommand);
 
   program
     .command('serve')
