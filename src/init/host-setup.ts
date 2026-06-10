@@ -71,9 +71,19 @@ export interface SetupOptions {
   readonly home?: string;
   readonly pkgRoot?: string;
   readonly version?: string;
+  /** Run host CLI activation commands after wiring (default true). Tests must
+   * pass false: activation invokes the REAL `claude`/`gemini` binaries, which
+   * mutate the developer's actual host config — not the mocked home. */
+  readonly activate?: boolean;
+  /** Injectable activation runners so AC-012 is testable without spawning
+   * real host CLIs. Defaults to the real claude/gemini activators. */
+  readonly activators?: {
+    readonly claude?: (pluginPath: string) => ActivationResult;
+    readonly gemini?: (extensionPath: string) => ActivationResult;
+  };
 }
 
-interface HostDetection {
+export interface HostDetection {
   readonly claude: boolean;
   readonly gemini: boolean;
   readonly codex: boolean;
@@ -208,7 +218,19 @@ function wireCodexSkills(
   return out;
 }
 
-function wireCursorMcp(home: string): ChannelResult {
+/** How a host should launch the MCP server. Hosts spawn MCP servers with a
+ * minimal PATH, so a bare `clad` breaks for marketplace-only installs (the
+ * dead-server bug the Claude Code lane fixed by bundling, F-102). Prefer the
+ * absolute built engine under this package root — per-machine configs
+ * (~/.codex/config.toml, ~/.cursor/mcp.json) can carry machine paths safely.
+ * Fall back to the PATH-resolved verb only when no built engine exists. */
+export function resolveServeLaunch(pkgRoot: string): {command: string; args: string[]} {
+  const engine = join(pkgRoot, 'dist', 'clad.js');
+  if (existsSync(engine)) return {command: 'node', args: [engine, 'serve']};
+  return {command: 'clad', args: ['serve']};
+}
+
+function wireCursorMcp(home: string, launch: {command: string; args: string[]}): ChannelResult {
   try {
     const cursorConfigPath = join(home, '.cursor', 'mcp.json');
     ensureDir(dirname(cursorConfigPath));
@@ -220,8 +242,8 @@ function wireCursorMcp(home: string): ChannelResult {
     }
     const mcpServers = existing.mcpServers as Record<string, unknown>;
     const ourEntry = {
-      command: 'clad',
-      args: ['serve'],
+      command: launch.command,
+      args: launch.args,
     };
     const current = mcpServers.cladding as {command?: string; args?: unknown} | undefined;
     const isSame =
@@ -238,7 +260,7 @@ function wireCursorMcp(home: string): ChannelResult {
   }
 }
 
-async function wireCodexMcp(home: string): Promise<ChannelResult> {
+async function wireCodexMcp(home: string, launch: {command: string; args: string[]}): Promise<ChannelResult> {
   try {
     const codexConfigPath = join(home, '.codex', 'config.toml');
     ensureDir(dirname(codexConfigPath));
@@ -251,8 +273,8 @@ async function wireCodexMcp(home: string): Promise<ChannelResult> {
     }
     const mcpServers = existing.mcp_servers as Record<string, unknown>;
     const ourEntry = {
-      command: 'clad',
-      args: ['serve'],
+      command: launch.command,
+      args: launch.args,
       description: 'cladding MCP server (wired by `clad setup`)',
     };
     const current = mcpServers.cladding as {command?: string; args?: unknown} | undefined;
@@ -337,7 +359,7 @@ function runActivation(command: string, args: readonly string[]): {ok: boolean; 
   return {ok: result.status === 0, stderr: result.stderr ?? ''};
 }
 
-interface ActivationResult {
+export interface ActivationResult {
   readonly attempted: boolean;
   readonly success: boolean;
   readonly stderr?: string;
@@ -369,7 +391,7 @@ function activateGemini(extensionPath: string): ActivationResult {
   return {attempted: true, success: link.ok, stderr: link.stderr};
 }
 
-interface ActivationContext {
+export interface ActivationContext {
   readonly claude?: ActivationResult;
   readonly gemini?: ActivationResult;
 }
@@ -429,6 +451,16 @@ function printReport(
   opts: {quiet?: boolean},
 ): void {
   if (opts.quiet) return;
+  process.stdout.write(renderSetupReport(result, detection, activation) + '\n');
+}
+
+/** Pure renderer for the setup report (AC-010 — the numbered 다음 단계 block).
+ * Separated from printReport so the guidance contract is unit-testable. */
+export function renderSetupReport(
+  result: SetupResult,
+  detection: HostDetection,
+  activation: ActivationContext,
+): string {
   const lines: string[] = [];
   lines.push('cladding setup — wiring detected AI tools');
   lines.push('');
@@ -480,7 +512,7 @@ function printReport(
   lines.push('  2. 프로젝트 디렉토리로 이동');
   lines.push('  3. /cladding init "..." 입력 (LLM 안에서) 또는 `clad init "..."` (terminal)');
   lines.push('  4. 개발 시작 — cladding 이 매 commit 마다 spec ↔ 코드 동기 자동 검사');
-  process.stdout.write(lines.join('\n') + '\n');
+  return lines.join('\n');
 }
 
 function summarizeSkills(skills: ReadonlyArray<CodexSkillResult>): string {
@@ -540,11 +572,12 @@ export async function runHostSetup(opts: SetupOptions = {}): Promise<SetupResult
     ? wireGemini(home, pkgRoot, {force, isWin})
     : 'skipped-not-installed';
   const codex_skills = detection.agents ? wireCodexSkills(home, pkgRoot, {force, isWin}) : [];
+  const serveLaunch = resolveServeLaunch(pkgRoot);
   const codex_mcp: ChannelResult = detection.codex
-    ? await wireCodexMcp(home)
+    ? await wireCodexMcp(home, serveLaunch)
     : 'skipped-not-installed';
   const cursor_mcp: ChannelResult = detection.cursor
-    ? wireCursorMcp(home)
+    ? wireCursorMcp(home, serveLaunch)
     : 'skipped-not-installed';
 
   for (const state of [claude_plugin, gemini_extension, codex_mcp, cursor_mcp]) {
@@ -556,14 +589,21 @@ export async function runHostSetup(opts: SetupOptions = {}): Promise<SetupResult
 
   // Auto-activation — runs after symlink wire succeeds. Each host CLI command
   // is invoked non-interactively; failures fall back to stdout instructions.
-  const activation: ActivationContext = {
-    ...(WIRED_STATES.has(claude_plugin)
-      ? {claude: activateClaude(join(home, '.claude', 'plugins', 'cladding'))}
-      : {}),
-    ...(WIRED_STATES.has(gemini_extension)
-      ? {gemini: activateGemini(join(home, '.gemini', 'extensions', 'cladding'))}
-      : {}),
-  };
+  // Guarded by opts.activate: the real activators mutate the machine's actual
+  // host config (not the mocked home), so tests/CI must opt out.
+  const shouldActivate = opts.activate ?? true;
+  const claudeActivator = opts.activators?.claude ?? activateClaude;
+  const geminiActivator = opts.activators?.gemini ?? activateGemini;
+  const activation: ActivationContext = shouldActivate
+    ? {
+        ...(WIRED_STATES.has(claude_plugin)
+          ? {claude: claudeActivator(join(home, '.claude', 'plugins', 'cladding'))}
+          : {}),
+        ...(WIRED_STATES.has(gemini_extension)
+          ? {gemini: geminiActivator(join(home, '.gemini', 'extensions', 'cladding'))}
+          : {}),
+      }
+    : {};
 
   const result: SetupResult = {
     wiring: {claude_plugin, gemini_extension, codex_skills, codex_mcp, cursor_mcp},

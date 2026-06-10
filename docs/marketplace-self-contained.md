@@ -1,8 +1,14 @@
 # Design note — make the Claude Code marketplace plugin self-contained
 
-**Status:** accepted, deferred. Target: 0.5.1 / 0.6.0 (not 0.5.0).
-**Why deferred:** 0.5.0 is release-ready; this is an architecture change to how the
-marketplace plugin ships its engine, best landed as its own focused release.
+**Status:** Claude Code lane SHIPPED in 0.5.2 (85820fb — engine bundled, launched via
+`${CLAUDE_PLUGIN_ROOT}/dist/clad.js`). Codex MCP + Cursor lanes CLOSED in 0.6.0: their
+per-machine configs (`~/.codex/config.toml`, `~/.cursor/mcp.json`) are written by
+`clad setup` with the **absolute path** of the installed engine (`node <pkg>/dist/clad.js serve`),
+so a minimal-PATH host spawn no longer dead-servers. **Gemini CLI remains open**: its
+extension manifest is a symlinked static file (`plugins/gemini-cli/gemini-extension.json`,
+`command: "clad"`), so personalizing it per-machine would mutate the shared repo copy —
+Gemini stays PATH-dependent (`npm install -g cladding`) until that lane gets a copy+patch
+wire model. README states this split honestly.
 
 ## The gap
 
