@@ -4,6 +4,7 @@ title: "clad setup command — explicit host wire (replaces F-90d054 postinstall
 status: done
 modules:
   - src/init/host-setup.ts
+  - src/init/host-instructions.ts
   - src/cli/clad.ts
   - src/cli/init.ts
   - plugins/claude-code/.claude-plugin/plugin.json
