@@ -518,3 +518,50 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 });
+
+// ─── F-570a3f — MCP structural channel ───
+
+describe('MCP structural channel (F-570a3f)', () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'clad-serve-gate-'));
+    writeFileSync(join(dir, 'spec.yaml'), MINIMAL_SPEC);
+    mkdirSync(join(dir, '.cladding'), {recursive: true});
+  });
+  afterEach(() => {
+    rmSync(dir, {recursive: true, force: true});
+  });
+
+  test('clad_create_feature result carries schema_version and a gate field (JSON, not appended text)', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const res = await client.callTool({
+        name: 'clad_create_feature',
+        arguments: {slug: 'gate-footer-probe', acceptance_criteria: [{ears: 'ubiquitous', text: 'probe'}]},
+      });
+      const text = (res.content as Array<{type: string; text: string}>)[0].text;
+      const parsed = JSON.parse(text) as {schema_version?: number; gate?: {pass: boolean; findings: unknown[]}};
+      expect(parsed.schema_version).toBe(1);
+      expect(parsed.gate).toBeDefined();
+      expect(typeof parsed.gate!.pass).toBe('boolean');
+      expect(Array.isArray(parsed.gate!.findings)).toBe(true);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('clad_run_gate runs the real pipeline and returns the untruncated JSON outcome', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const res = await client.callTool({name: 'clad_run_gate', arguments: {tier: 'pre-commit'}});
+      const text = (res.content as Array<{type: string; text: string}>)[0].text;
+      const parsed = JSON.parse(text) as {schema_version?: number; tier?: string; worst?: number; stages?: unknown[]};
+      expect(parsed.schema_version).toBe(1);
+      expect(parsed.tier).toBe('pre-commit');
+      expect(typeof parsed.worst).toBe('number');
+      expect(Array.isArray(parsed.stages)).toBe(true);
+    } finally {
+      await cleanup();
+    }
+  }, 60_000);
+});

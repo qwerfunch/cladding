@@ -72,6 +72,7 @@
 | `clad_create_scenario` | Author a scenario shard with hash id. |
 | `clad_link_capability` | Upsert a capability ↔ feature binding (Tier B). |
 | `clad_author_oracle` | Record a host-authored impl-blind oracle + provenance. |
+| `clad_run_gate` | Run the real Iron Law gate for a tier in-session (0.6.0; strict by default). Payloads carry `schema_version`. |
 
 ## Event types (frozen)
 

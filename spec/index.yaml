@@ -109,6 +109,7 @@ features:
   F-4db939: {slug: ab-evaluation, status: done, modules: 9}
   F-50ff43: {slug: meta-integrity-skip-when-absent, status: done, modules: 2}
   F-56abaa: {slug: intent-aware-init, status: done, modules: 5}
+  F-570a3f: {slug: mcp-structural-channel, status: done, modules: 1}
   F-59f093: {slug: multidev-integration-test-and-scenario-regex, status: done, modules: 3}
   F-5b9f9f: {slug: spec-yaml-inventory-and-hints, status: done, modules: 6}
   F-5d3ed2: {slug: postmortem-on-rollback, status: done, modules: 2}

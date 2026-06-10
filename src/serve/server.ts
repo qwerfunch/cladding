@@ -18,8 +18,10 @@
 // @see src/cli/serve.ts — stdio process entry point.
 // @see spec/features/F-073.yaml — server scaffold AC matrix.
 
+import {spawnSync} from 'node:child_process';
 import {readFileSync, existsSync, statSync} from 'node:fs';
-import {join} from 'node:path';
+import {dirname, join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 
 import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
 import {
@@ -67,6 +69,7 @@ export const TOOL_NAMES = [
   'clad_create_scenario',
   'clad_link_capability',
   'clad_author_oracle',
+  'clad_run_gate',
 ] as const;
 
 /** Resource URIs cladding's MCP server exposes (stable wire identifiers). */
@@ -181,6 +184,43 @@ function loadSpecOrError(cwd: string): {readonly spec: Spec} | {readonly error: 
       error: `cladding: spec not loaded — ${(err as Error).message}. Run \`clad init\` to scaffold spec.yaml first.`,
     };
   }
+}
+
+/** Frozen wire field (F-570a3f): bump when a tool's payload shape changes. */
+const PAYLOAD_SCHEMA_VERSION = 1;
+
+/**
+ * F-570a3f — the gate state rides every mutating tool result as a JSON field
+ * (the withHint pattern; never appended text). Tool results are the one
+ * channel the model cannot not see, on every host — and Gemini/Codex have no
+ * lifecycle hooks, so this is their only structural enforcement channel.
+ */
+function gateFooter(cwd: string): {pass: boolean; findings: ReadonlyArray<{detector?: string; severity: string; message: string}>; next?: string} {
+  try {
+    const report = runDrift({cwd});
+    const findings = report.findings
+      .filter((f) => f.severity !== 'info')
+      .slice(0, 3)
+      .map((f) => ({detector: f.detector, severity: f.severity, message: f.message.slice(0, 220)}));
+    return report.pass
+      ? {pass: true, findings}
+      : {pass: false, findings, next: 'Resolve these findings, then verify with clad_run_gate (or `clad check --strict`) before `clad done`.'};
+  } catch {
+    return {pass: true, findings: []};
+  }
+}
+
+
+/** Locate the engine's bin shim relative to this module — works in the dist
+ * bundle (dist/clad.js → ../bin/clad) and the dev tree (src/serve/ → ../../bin/clad). */
+function engineShim(): string | null {
+  let dir = dirname(fileURLToPath(import.meta.url));
+  for (let i = 0; i < 5; i++) {
+    const candidate = join(dir, 'bin', 'clad');
+    if (existsSync(candidate)) return candidate;
+    dir = dirname(dir);
+  }
+  return null;
 }
 
 function registerTools(server: McpServer, cwd: string): void {
@@ -325,6 +365,65 @@ function registerTools(server: McpServer, cwd: string): void {
     },
   );
 
+  // clad_run_gate (F-570a3f) — run the REAL Iron Law pipeline in-session.
+  // Before this, the MCP surface could only run the drift detectors: an
+  // agent driving cladding through MCP never executed a single test. The
+  // gate runs via the engine's own bin shim in a subprocess — the serve
+  // layer must not import the cli layer (topology: cli → serve, never the
+  // reverse), and a separate process gives the same pipeline `clad check`
+  // and `clad done` use, byte-identical JSON included.
+  server.registerTool(
+    'clad_run_gate',
+    {
+      title: 'Run the full Iron Law gate',
+      description:
+        'Runs the real `clad check` pipeline for a tier (default pre-commit for latency; pre-push runs ' +
+        'type/lint/tests/coverage/conformance/smoke) and returns the untruncated JSON outcome. Strict by default — ' +
+        'this is the verification surface; use clad_run_check for the cheap drift-only view.',
+      inputSchema: {
+        tier: z.enum(['pre-commit', 'pre-push', 'all']).optional().describe('Stage tier (default pre-commit)'),
+        strict: z.boolean().optional().describe('Promote warn findings to blocking (default true)'),
+      },
+    },
+    async (args) => {
+      const shim = engineShim();
+      if (!shim) {
+        return {
+          isError: true,
+          content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, error: 'cladding engine shim (bin/clad) not found relative to the running server'})}],
+        };
+      }
+      const tier = args.tier ?? 'pre-commit';
+      const strict = args.strict !== false;
+      const res = spawnSync(shim, ['check', `--tier=${tier}`, ...(strict ? ['--strict'] : []), '--json'], {
+        cwd,
+        encoding: 'utf8',
+        timeout: 300_000,
+      });
+      try {
+        const doc = JSON.parse(res.stdout || '') as {worst?: number};
+        return {
+          isError: (doc.worst ?? 1) !== 0,
+          content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...doc}, null, 2)}],
+        };
+      } catch {
+        return {
+          isError: true,
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                schema_version: PAYLOAD_SCHEMA_VERSION,
+                error: 'gate produced no parseable JSON',
+                stderr: (res.stderr ?? '').slice(0, 400),
+              }),
+            },
+          ],
+        };
+      }
+    },
+  );
+
   // clad_get_events — return the last N events from .cladding/events.log.
   server.registerTool(
     'clad_get_events',
@@ -423,7 +522,9 @@ function registerTools(server: McpServer, cwd: string): void {
         // Non-mutating firing-path nudge: travels as a `hint` FIELD (keeps the
         // payload valid JSON), never a silent write to capabilities.yaml.
         const withHint = {
+          schema_version: PAYLOAD_SCHEMA_VERSION,
           ...result,
+          gate: gateFooter(cwd),
           hint:
             'If this feature is user-facing, link it to a capability with clad_link_capability ' +
             `(capability: <kebab-id>, feature: ${result.id}) so the Tier-B design SSoT grows with ` +
@@ -480,7 +581,7 @@ function registerTools(server: McpServer, cwd: string): void {
           cwd,
         });
         syncInventory(cwd);
-        return {content: [{type: 'text', text: JSON.stringify(result, null, 2)}], isError: !result.ok};
+        return {content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...result, gate: gateFooter(cwd)}, null, 2)}], isError: !result.ok};
       } catch (err) {
         return {isError: true, content: [{type: 'text', text: (err as Error).message}]};
       }
@@ -525,7 +626,7 @@ function registerTools(server: McpServer, cwd: string): void {
         });
         syncInventory(cwd);
         return {
-          content: [{type: 'text', text: JSON.stringify(result, null, 2)}],
+          content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...result, gate: gateFooter(cwd)}, null, 2)}],
         };
       } catch (err) {
         return {
@@ -579,7 +680,7 @@ function registerTools(server: McpServer, cwd: string): void {
         });
         syncInventory(cwd);
         return {
-          content: [{type: 'text', text: JSON.stringify(result, null, 2)}],
+          content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...result, gate: gateFooter(cwd)}, null, 2)}],
         };
       } catch (err) {
         return {
