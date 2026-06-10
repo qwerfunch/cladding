@@ -1,7 +1,7 @@
 id: F-5f6b45
 slug: init-path-intent
 title: "clad init recognizes file path as intent and auto-loads its contents"
-status: in_progress
+status: done
 modules:
   - src/cli/intent-from-path.ts
   - src/cli/init.ts
@@ -17,6 +17,8 @@ acceptance_criteria:
       the intent text fed to the onboarding LLM dispatcher, so the produced
       docs/project-context.md and spec/capabilities.yaml reflect the planning
       document rather than treating the path string itself as raw intent.
+    test_refs:
+      - "tests/cli/init-path-intent.test.ts#loads file contents when argument is a relative .md path under cwd"
 
   - id: AC-002
     ears: event
@@ -27,6 +29,8 @@ acceptance_criteria:
       a recognized extension, the system shall load and use the file contents
       identically to the relative-path case, so absolute and relative paths
       produce equivalent onboarding output.
+    test_refs:
+      - "tests/cli/init-path-intent.test.ts#loads file contents for an absolute path"
 
   - id: AC-003
     ears: unwanted
@@ -38,6 +42,8 @@ acceptance_criteria:
       shall emit a stderr warning that names the missing path and fall back to
       treating the original argument as free-text intent, so onboarding still
       proceeds and the user is told why their planning document was not loaded.
+    test_refs:
+      - "tests/cli/init-path-intent.test.ts#warns and falls back when path-like argument points to a missing file"
 
   - id: AC-004
     ears: state
@@ -48,6 +54,8 @@ acceptance_criteria:
       recognized text-file extensions), the system shall pass the argument
       through unchanged to the onboarding LLM dispatcher as free-text intent,
       so existing free-text intent behavior is preserved with zero regression.
+    test_refs:
+      - "tests/cli/init-path-intent.test.ts#passes free-text intent"
 
   - id: AC-005
     ears: unwanted
@@ -58,6 +66,8 @@ acceptance_criteria:
       that is not UTF-8 readable, the system shall not crash; it shall emit a
       stderr warning and fall back to treating the original argument as
       free-text intent.
+    test_refs:
+      - "tests/cli/init-path-intent.test.ts#warns and falls back when path resolves to a directory"
 
   - id: AC-006
     ears: event
@@ -69,4 +79,6 @@ acceptance_criteria:
       invoke the same `clad init` CLI such that AC-001 and AC-002 path
       resolution behavior is inherited automatically, so plugin users get
       identical path-aware intent loading without separate plugin-side code.
+    test_refs:
+      - "tests/cli/init-path-intent.test.ts#plugin and CLI callers share the same code path (helper is the single decision point)"
 
