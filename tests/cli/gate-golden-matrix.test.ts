@@ -10,9 +10,13 @@
 //   status  : pass when r.pass; else skip when exitCode === 2; else fail
 //   worst   : max exitCode over FAILED stages only — a skip's 2 never raises
 //             worst (skip is non-blocking by invariant)
-//   strict  : the ONLY skip→RED promotion is stage_2.1 (Unit) skipping while
-//             the spec has done features declaring test_refs (vacuous-green
-//             guard, appended as an extra 'Verification' fail entry)
+//   strict  : a skipped stage the spec DEMANDS is promoted to RED, appended
+//             as an extra 'Verification' fail entry (F-67d2e9 demand table):
+//               stage_1.1 — project.language declared AND ≥1 done feature
+//               stage_2.1 — ≥1 done feature declaring test_refs
+//               stage_2.3 — ≥1 done AC declaring oracle_refs
+//               stage_2.4 — deliverable is_safe_to_smoke:true AND ≥1 done feature
+//             No demand ⇒ skip stays non-blocking (the false-RED defense).
 //   unknown : unknown tier → {worst: 2, anyFailed: true}
 //
 // All stage runners are stubbed (no toolchain spawn); the whole matrix runs in
@@ -154,8 +158,9 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
           setAll(PASS);
           stubs[skipping].mockImplementation(() => SKIP);
           const doc = runMatrixCase(tier, strict);
-          // Pre-0.6 contract: NO skip blocks the gate when the spec has no
-          // tested-done features — not even Unit under strict.
+          // With NO spec demands (empty spec mock: no language, no done
+          // features, no oracles, no deliverable) no skip blocks the gate —
+          // the demand-gated policy's false-RED defense.
           expect(doc.worst, `${tier}/${skipping} strict=${strict}`).toBe(0);
           expect(doc.anyFailed, `${tier}/${skipping} strict=${strict}`).toBe(false);
           const skipped = doc.stages.filter((s) => s.status === 'skip').map((s) => s.stage);
@@ -165,32 +170,52 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
     }
   });
 
-  test('PINNED PROMOTION (the only one pre-0.6): Unit skip + strict + tested-done features → extra Verification fail entry, worst 1', () => {
-    loadSpecMock.mockImplementation(() => TESTED_DONE_SPEC);
-    for (const tier of ['pre-push', 'all']) {
+  const DEMAND_SPECS: Record<string, {spec: unknown; stage: StageName}> = {
+    'stage_1.1 — declared language + done feature': {
+      stage: 'stage_1.1',
+      spec: {project: {name: 'x', language: 'typescript'}, features: [{id: 'F-a', status: 'done', acceptance_criteria: []}]},
+    },
+    'stage_2.1 — done feature declaring test_refs': {
+      stage: 'stage_2.1',
+      spec: TESTED_DONE_SPEC,
+    },
+    'stage_2.3 — done AC declaring oracle_refs': {
+      stage: 'stage_2.3',
+      spec: {features: [{id: 'F-a', status: 'done', acceptance_criteria: [{id: 'AC-1', oracle_refs: ['tests/oracle/x.test.ts']}]}]},
+    },
+    'stage_2.4 — declared-safe deliverable + done feature': {
+      stage: 'stage_2.4',
+      spec: {project: {name: 'x', deliverable: {path: './run', is_safe_to_smoke: true}}, features: [{id: 'F-a', status: 'done', acceptance_criteria: []}]},
+    },
+  };
+
+  test('PINNED DEMAND TABLE (F-67d2e9): each demanded stage REDs on skip under strict, with an appended Verification fail entry', () => {
+    for (const [name, {spec, stage}] of Object.entries(DEMAND_SPECS)) {
+      loadSpecMock.mockImplementation(() => spec);
       setAll(PASS);
-      stubs['stage_2.1'].mockImplementation(() => SKIP);
-      const doc = runMatrixCase(tier, true);
-      expect(doc.worst, `${tier} guard fires`).toBe(1);
-      expect(doc.anyFailed).toBe(true);
-      const extra = doc.stages.filter((s) => s.stage === 'stage_2.1');
-      expect(extra.map((s) => s.status)).toEqual(['skip', 'fail']); // original skip + appended guard entry
+      stubs[stage].mockImplementation(() => SKIP);
+      const doc = runMatrixCase('pre-push', true);
+      expect(doc.worst, name).toBe(1);
+      expect(doc.anyFailed, name).toBe(true);
+      const entries = doc.stages.filter((s2) => s2.stage === stage);
+      expect(entries.map((s2) => s2.status), name).toEqual(['skip', 'fail']); // original skip + appended demand entry
     }
   });
 
-  test('the promotion does NOT fire: non-strict, or no tested-done features, or tier without stage_2.1', () => {
-    // non-strict with tested-done spec
-    loadSpecMock.mockImplementation(() => TESTED_DONE_SPEC);
+  test('demands do NOT fire: non-strict, or no demand in the spec, or the stage outside the tier', () => {
+    // non-strict with every demand present
+    loadSpecMock.mockImplementation(() => DEMAND_SPECS['stage_2.1 — done feature declaring test_refs'].spec);
     setAll(PASS);
     stubs['stage_2.1'].mockImplementation(() => SKIP);
     expect(runMatrixCase('pre-push', false).worst).toBe(0);
 
-    // strict but the only skipping stage is outside the guard (Cov)
+    // strict but the skipping stage has no demand (Cov is never demanded)
     setAll(PASS);
     stubs['stage_2.2'].mockImplementation(() => SKIP);
     expect(runMatrixCase('pre-push', true).worst).toBe(0);
 
-    // strict + unit skip but pre-commit tier has no stage_2.1 at all
+    // strict + demanded stage skipping, but pre-commit tier doesn't run it
+    loadSpecMock.mockImplementation(() => TESTED_DONE_SPEC);
     setAll(PASS);
     stubs['stage_2.1'].mockImplementation(() => SKIP);
     expect(runMatrixCase('pre-commit', true).worst).toBe(0);

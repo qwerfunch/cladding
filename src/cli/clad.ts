@@ -18,6 +18,7 @@ import {runInit} from './init.js';
 import {runClarifyCommand} from './clarify.js';
 import {runHostSetup} from '../init/host-setup.js';
 import {recordEvent} from '../events/log.js';
+import {strictSkipViolations} from '../stages/skip-policy.js';
 import {runArch} from '../stages/arch.js';
 import {runAudit} from '../stages/audit.js';
 import {runCommit} from '../stages/commit.js';
@@ -460,34 +461,24 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
       }
     }
   }
-  // VACUOUS-GREEN GUARD (--strict only). "done = verified" must mean the tests
-  // actually RAN. If the Unit stage SKIPPED (no test runner installed) while the
-  // spec carries `done` features that declare `test_refs`, their implementation
-  // was never verified — under --strict that is NOT green. (`someRan` is too weak:
-  // Drift/Commit/Arch/Secret are pure-JS detectors that always run, so they would
-  // mask this.) Fires ONLY when there are tested-done features AND the runner
-  // skipped; a project with the test runner installed, or with no tested-done
-  // features, is unaffected. Non-strict keeps the lenient skip-as-pass contract.
-  if (opts.strict && allowed.includes('stage_2.1')) {
-    const unit = collected.find((c) => c.stage === 'stage_2.1');
-    if (unit && unit.status === 'skip') {
-      let unverifiedDone = 0;
-      try {
-        const spec = loadSpec();
-        for (const f of spec.features ?? []) {
-          if (f.status !== 'done') continue;
-          if ((f.acceptance_criteria ?? []).some((ac) => (ac.test_refs ?? []).length > 0)) unverifiedDone++;
-        }
-      } catch {
-        unverifiedDone = 0; // spec unreadable → other detectors handle it; don't block here
-      }
-      if (unverifiedDone > 0) {
+  // STRICT SKIP-POLICY (F-67d2e9, generalizes the 0.5.x unit-only guard).
+  // Under --strict, a skipped stage the spec DEMANDS is a fail: 1.1 when a
+  // declared language ships done features, 2.1 when done features declare
+  // test_refs, 2.3 when done ACs declare oracle_refs, 2.4 when a declared-
+  // safe deliverable ships. Demand-gated — no demand keeps the lenient
+  // skip-as-pass contract; spec load failure yields no violations (ABSENCE_OF_
+  // GOVERNANCE owns that blocking signal). Table pinned in the gate golden matrix.
+  if (opts.strict) {
+    try {
+      const spec = loadSpec();
+      for (const v of strictSkipViolations(spec, collected)) {
         worst = Math.max(worst, 1);
         anyFailed = true;
-        const msg = `${unverifiedDone} done feature(s) declare tests but the test runner did not run (skipped) — the implementation was never verified. Install the test framework; under --strict, an unverifiable 'done' is not GREEN.`;
-        collected.push({stage: 'stage_2.1', label: 'Verification', status: 'fail', exitCode: 1, stderr: msg});
-        if (!opts.json) pulse('fail', 'Verification', msg);
+        collected.push({stage: v.stage, label: v.label, status: 'fail', exitCode: 1, stderr: v.message});
+        if (!opts.json) pulse('fail', v.label, v.message);
       }
+    } catch {
+      /* spec unreadable → other detectors own it; don't block here */
     }
   }
   if (opts.json) {

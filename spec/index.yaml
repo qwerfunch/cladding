@@ -114,6 +114,7 @@ features:
   F-5d3ed2: {slug: postmortem-on-rollback, status: done, modules: 2}
   F-5f6b45: {slug: init-path-intent, status: done, modules: 2}
   F-65814a: {slug: sentinel-miss-telemetry, status: done, modules: 3}
+  F-67d2e9: {slug: strict-skip-policy, status: done, modules: 2}
   F-67e33f: {slug: spec-id-multi-dev-safety, status: done, modules: 7}
   F-6d943d: {slug: version-bump-script, status: done, modules: 2}
   F-6f80e7: {slug: claude-code-dogfood, status: done, modules: 1}
