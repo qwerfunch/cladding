@@ -22,7 +22,7 @@
 </p>
 
 <p align="center">
-  Reference implementation of the <a href="https://github.com/qwerfunch/ironclad">Ironclad</a> standard. 34 detectors and a 13-stage gate verify, on every commit, that the code your AI assistant wrote still matches the spec.
+  Reference implementation of the <a href="https://github.com/qwerfunch/ironclad">Ironclad</a> standard. 35 detectors and a 13-stage gate verify, on every commit, that the code your AI assistant wrote still matches the spec.
 </p>
 
 <!-- ─────────────── HERO ─────────────── -->
@@ -87,7 +87,7 @@ The same spec produces code with inconsistent patterns and structure.
 
 Generated code calls APIs, functions, or options that don't exist.
 
-→ 34 detectors and a 13-stage gate block hallucinated code on every commit.
+→ 35 detectors and a 13-stage gate block hallucinated code on every commit.
 
 ✓ **Production incidents prevented up front** — CI auto-rejects hallucinated code before it merges.
 
@@ -161,7 +161,7 @@ Every change has to clear all 13 stages — typically called from CI, a git pre-
 | Stage | What it checks |
 |---|---|
 | **1.1 Type · 1.2 Lint** | type errors · code style |
-| **1.3 Drift** | spec ↔ code mismatches across 34 detectors |
+| **1.3 Drift** | spec ↔ code mismatches across 35 detectors |
 | **1.4 Commit · 1.5 Arch · 1.6 Secret** | clean working tree · architecture invariants (forbidden imports, etc.) · leaked API keys |
 | **2.1 Unit · 2.2 Cov** | unit tests pass · project coverage threshold |
 | **3.1 Smoke · 3.2 Perf · 3.3 Visual** | end-to-end critical paths · performance budgets · visual regression |
@@ -262,6 +262,8 @@ cd <project>              # for the next step (clad setup itself is project-agno
 `clad setup` invokes the per-host activation commands automatically when `claude` / `gemini` binaries are on PATH. Safe to re-run after a cladding upgrade or after installing another AI tool.
 
 > **About the MCP server.** Every host gets cladding wired as an MCP server — only the wire *location* differs. Claude Code and Gemini CLI auto-start it through the plugin/extension manifest's `mcpServers` field; Codex through `~/.codex/config.toml` `[mcp_servers.cladding]`; Cursor through `~/.cursor/mcp.json`. You never invoke MCP directly — no `/mcp` slash, no manual server-connect step. The AI in each host calls cladding's tools (`clad_create_feature`, etc.) in response to **natural-language requests**; you keep typing `/cladding:init` plus normal chat.
+>
+> **Engine: bundled vs. global.** The **Claude Code** marketplace plugin is self-contained — it ships the engine in the plugin and launches it via `${CLAUDE_PLUGIN_ROOT}/dist/clad.js`, so it needs **no** global install. **Codex MCP** (`~/.codex/config.toml`) and **Cursor** (`~/.cursor/mcp.json`) entries written by `clad setup` point at the **absolute path of the installed engine**, so they keep working even when the host spawns servers with a minimal `PATH` — but you still run `clad setup` once from an installed engine (step **a**). **Gemini CLI** is the remaining PATH-dependent lane: its extension manifest launches the bare `clad` command, so Gemini users need `npm install -g cladding`.
 
 > **Benchmark.** v0.4.0 measurements show ~60% consistency improvement and ~50% LOC reduction vs unguided AI coding on a fixed task, with 100% drift detection across a 5-iteration dev cycle. Full methodology and honest caveats (some of the consistency gain is the "more-specific-prompt" effect, not exclusively cladding) in [`docs/benchmarks/v0.4.0-consistency-bench.md`](docs/benchmarks/v0.4.0-consistency-bench.md).
 </details>
@@ -342,7 +344,7 @@ After upgrading, run `clad update` once in each project. It never changes your c
 - [Why cladding (project context)](docs/project-context.md)
 - [4-tier governance model](docs/ssot-model.md)
 - [Hash-based feature IDs](docs/spec-ids-multi-dev.md)
-- [34 detector catalog](src/stages/detectors/README.md)
+- [35 detector catalog](src/stages/detectors/README.md)
 - [Benchmark — event store trap catch](docs/benchmarks/event-store-trap-catch.md)
 - [A/B evaluation cases](docs/ab-evaluation/)
 - [Governance · roadmap to 1.0](GOVERNANCE.md)

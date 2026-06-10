@@ -13,7 +13,7 @@ import {execaSync} from 'execa';
 
 import {detectToolchain} from '../toolchain/detect.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
-import {isMissingBinary} from '../util.js';
+import {classifyScannerExit, isMissingBinary} from '../util.js';
 
 const NAME = 'HARDCODED_SECRET';
 
@@ -56,18 +56,15 @@ function runHardcodedSecret(opts: CommandStageOptions): readonly DriftFinding[] 
       },
     ];
   }
-  const exitCode = proc.exitCode ?? 1;
-  if (exitCode === 0) return [];
-  const stderr = (proc.stderr ?? '').toString().trim();
-  const stdout = (proc.stdout ?? '').toString().trim();
-  const detail = stderr || stdout || `exit ${exitCode}`;
-  return [
-    {
-      detector: NAME,
-      severity: 'error',
-      message: `${spec.cmd} reported secrets: ${detail.slice(0, 200)}`,
-    },
-  ];
+  // The scanner RAN but exited non-zero. A real secret hit blocks (error); a
+  // config/setup gap (e.g. no `.secretlintrc`) skips (info) — secretlint exits
+  // non-zero with "config is not found", which must NOT be reported as a secret.
+  return classifyScannerExit(
+    proc,
+    NAME,
+    (detail) => `${spec.cmd} reported secrets: ${detail}`,
+    (detail) => `${spec.cmd} could not scan (config/setup gap, not a secret): ${detail}`,
+  );
 }
 
 export const hardcodedSecret: DriftDetector = {

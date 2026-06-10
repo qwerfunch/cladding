@@ -34,6 +34,7 @@ import {loadSpec} from '../spec/load.js';
 import type {Spec} from '../spec/types.js';
 import {createFeature, createScenario, linkCapability} from '../spec/new.js';
 import {recordOracle} from '../oracle/record.js';
+import {autoMaintainDeliverable} from '../spec/deliverable-detect.js';
 import {computeInventory, writeInventoryToSpecYaml} from '../spec/inventory.js';
 import {runDrift} from '../stages/drift.js';
 
@@ -89,7 +90,7 @@ export function buildServer(opts: ServerOptions = {}): McpServer {
   const server = new McpServer(
     {
       name: opts.name ?? 'cladding',
-      version: opts.version ?? '0.5.1',
+      version: opts.version ?? '0.5.2',
     },
     {
       // Declare subscribe support so clients can subscribe to
@@ -591,6 +592,10 @@ function syncInventory(cwd: string): void {
   try {
     if (existsSync(join(cwd, 'spec.yaml'))) {
       writeInventoryToSpecYaml(cwd, computeInventory(cwd));
+      // v0.5.x — when a CLI entry now exists but no deliverable is declared, auto-populate it
+      // (calibrated to pass now) so DELIVERABLE_SMOKE engages BEFORE the agent reacts to the
+      // INTEGRITY warn and declares it disabled. One-time (skips once present).
+      autoMaintainDeliverable(cwd);
     }
   } catch {
     // intentional no-op — inventory sync is a convenience, not a gate.

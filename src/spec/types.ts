@@ -212,6 +212,36 @@ export interface OraclePolicy {
   readonly sample?: number;
 }
 
+/**
+ * The project's primary runnable deliverable (entry point) — the artifact a user
+ * actually invokes (e.g. `./run`, `./bin/cli`). DELIVERABLE_SMOKE (stage_2.4)
+ * EXECUTES it on `smoke_args` once any feature is `done`, asserting it does not
+ * crash — closing the "broken entry shipped green" gap that unit tests (which
+ * import internals, never the entry) structurally miss. Side-effect-bearing, so
+ * the gate runs it ONLY when the author vouches via `is_safe_to_smoke`. The
+ * companion pure detector DELIVERABLE_INTEGRITY flags a declared-but-missing path
+ * and warns when done features ship modules with no deliverable declared.
+ * v0.5.x. See stages/deliverable-smoke.ts.
+ */
+export interface Deliverable {
+  /** Executable entry path relative to the project root (e.g. `./run`). Must be directly runnable (shebang + exec bit) or an interpreter. */
+  readonly path: string;
+  /** Args passed to the entry for the smoke run (e.g. `['--version']`). Default `[]`. */
+  readonly smoke_args?: readonly string[];
+  /** Exit code that means success. Default `0`. */
+  readonly expect_exit?: number;
+  /** Hard timeout for the smoke run, ms. Default `5000`. */
+  readonly timeout_ms?: number;
+  /**
+   * The gate executes the entry ONLY when this is `true` — the author's explicit
+   * vouch that running it on `smoke_args` has no harmful side effects. Default
+   * falsy ⇒ DELIVERABLE_SMOKE skips (declaration-gated; never auto-runs arbitrary
+   * project code). A server/stateful entry should leave this false and rely on the
+   * impl-blind oracle instead.
+   */
+  readonly is_safe_to_smoke?: boolean;
+}
+
 /** Project-level metadata. */
 export interface Project {
   readonly name: string;
@@ -252,6 +282,12 @@ export interface Project {
    * Added v0.3.56 (F-5b9f9f).
    */
   readonly ai_hints?: AiHints;
+  /**
+   * The project's runnable deliverable/entry. When declared with
+   * `is_safe_to_smoke: true`, DELIVERABLE_SMOKE (stage_2.4) executes it once a
+   * feature is done to prove the shipped entry actually runs. See Deliverable.
+   */
+  readonly deliverable?: Deliverable;
 }
 
 /**

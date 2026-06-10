@@ -25,6 +25,7 @@ import {runDrift} from '../stages/drift.js';
 import {runLint} from '../stages/lint.js';
 import {runPerf} from '../stages/perf.js';
 import {runSecret} from '../stages/secret.js';
+import {runDeliverableSmoke} from '../stages/deliverable-smoke.js';
 import {runSmoke} from '../stages/smoke.js';
 import {runSpecConformance} from '../stages/spec-conformance.js';
 import {runType} from '../stages/type.js';
@@ -34,6 +35,7 @@ import {runVisual} from '../stages/visual.js';
 import type {DriftFinding} from '../stages/types.js';
 import {staleSpecification} from '../stages/detectors/stale-specification.js';
 import {findLatestCheckpoint, recordCheckpoint, recordRollback} from '../core/checkpoint.js';
+import {autoMaintainDeliverable} from '../spec/deliverable-detect.js';
 import {computeInventory, writeInventoryToSpecYaml} from '../spec/inventory.js';
 import {buildBlindPayload, renderBlindBrief} from '../oracle/payload.js';
 import {requiredOracleWorklist} from '../oracle/policy.js';
@@ -173,6 +175,11 @@ export async function runDriveCommand(
   goal: string | undefined,
   opts: DriveCommandOptions,
 ): Promise<void> {
+  // `clad drive` is EXPERIMENTAL. The headless code-author transport is unbuilt
+  // and nothing auto-invokes it — the supported, exercised path is host-delegated
+  // (run `clad serve` and let your AI host loop the per-feature cadence). The loop
+  // halts honestly rather than certifying empty stubs when no real LLM is reachable.
+  pulse('note', 'drive', 'EXPERIMENTAL — prefer the host-delegated path (clad serve + your AI host). See docs/feature-cycle.md § Execution surface.');
   const {runDriveLoop} = await import('../drive/loop.js');
   const result = await runDriveLoop({
     cwd: opts.cwd,
@@ -200,7 +207,21 @@ export async function runDriveCommand(
       process.stdout.write(`Touched: ${touched.join(', ')}\n`);
     }
   }
-  process.exit(result.halt.class === 'UNCAUGHT_ERROR' ? 1 : 0);
+  // Honest exit code (anti-Vacuous-Green for the headless loop). A run that
+  // produced empty auto-stubs (no real implementation — the code-author transport
+  // is mock/unbuilt) is NOT a success even when the loop "cleared" features on the
+  // L1 floor: it implemented nothing. Surface that and exit non-zero, so a user or
+  // CI never reads a stub-only `clad drive` as done. Likewise any non-completion
+  // halt exits non-zero. Only a real, fully-cleared run is 0.
+  const vacuous = result.stubsCreated.length > 0;
+  if (vacuous) {
+    pulse(
+      'fail',
+      'drive',
+      `produced ${result.stubsCreated.length} empty auto-stub(s) and implemented nothing — the headless code-author needs a real LLM transport (set ANTHROPIC_API_KEY) or use the host-delegated path (clad serve + your AI host). This run did NOT do the work.`,
+    );
+  }
+  process.exit(result.halt.class === 'ALL_FEATURES_DONE' && !vacuous ? 0 : 1);
 }
 
 /**
@@ -223,6 +244,18 @@ export function runSyncCommand(opts: {proposeArchive?: boolean} = {}): void {
     // file commit-stable across same-day runs.
     const inventory = computeInventory('.');
     writeInventoryToSpecYaml('.', inventory);
+    // v0.5.x — auto-populate project.deliverable when absent + a CLI entry is calibratable, so
+    // DELIVERABLE_SMOKE (stage_2.4) engages without the agent having to declare it correctly (the
+    // re-run showed a conservative agent declares it DISABLED). Calibrates against the passing state,
+    // so it never enables a false-failing invocation. One-time (skips once a deliverable is present).
+    const autoDeliverable = autoMaintainDeliverable('.');
+    if (autoDeliverable) {
+      pulse(
+        'note',
+        'deliverable',
+        `auto-detected entry '${autoDeliverable.path}' — the gate now smoke-tests it (stage_2.4). Opt out with is_safe_to_smoke: false.`,
+      );
+    }
     if (opts.proposeArchive) {
       const findings = staleSpecification.run({cwd: '.'});
       const proposals = findings.filter(
@@ -298,7 +331,7 @@ export function runRollbackCommand(featureId: string, opts: {reason?: string} = 
   }
   recordRollback('.', featureId, cp, opts.reason);
   const head = cp.gitHead ? cp.gitHead.slice(0, 12) : '(no git)';
-  pulse('pass', `rollback · ${featureId}`, `target head=${head} ts=${cp.timestamp}`);
+  pulse('note', `rollback · ${featureId}`, `recorded — run the printed command to apply (cladding does not execute git) · target head=${head} ts=${cp.timestamp}`);
   if (cp.gitHead) {
     process.stdout.write(`Run: git checkout ${cp.gitHead}\n`);
   } else {
@@ -369,8 +402,8 @@ export async function runUpdateCommand(): Promise<void> {
  */
 export const TIER_STAGES: Record<string, readonly string[]> = {
   'pre-commit': ['stage_1.3', 'stage_1.5', 'stage_1.6'],
-  'pre-push': ['stage_1.1', 'stage_1.2', 'stage_1.3', 'stage_1.5', 'stage_1.6', 'stage_2.1', 'stage_2.2', 'stage_2.3'],
-  all: ['stage_1.1', 'stage_1.2', 'stage_1.3', 'stage_1.4', 'stage_1.5', 'stage_1.6', 'stage_2.1', 'stage_2.2', 'stage_2.3', 'stage_3.1', 'stage_3.2', 'stage_3.3', 'stage_4.1', 'stage_4.2'],
+  'pre-push': ['stage_1.1', 'stage_1.2', 'stage_1.3', 'stage_1.5', 'stage_1.6', 'stage_2.1', 'stage_2.2', 'stage_2.3', 'stage_2.4'],
+  all: ['stage_1.1', 'stage_1.2', 'stage_1.3', 'stage_1.4', 'stage_1.5', 'stage_1.6', 'stage_2.1', 'stage_2.2', 'stage_2.3', 'stage_2.4', 'stage_3.1', 'stage_3.2', 'stage_3.3', 'stage_4.1', 'stage_4.2'],
 };
 
 /** Outcome of running a tier's stages — exported so `clad done` can gate on
@@ -409,6 +442,7 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
     ['stage_2.1', runUnit],
     ['stage_2.2', runCov],
     ['stage_2.3', runSpecConformance],
+    ['stage_2.4', runDeliverableSmoke],
     ['stage_3.1', runSmoke],
     ['stage_3.2', runPerf],
     ['stage_3.3', runVisual],
@@ -444,6 +478,36 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
         printStageDetails(r);
       } else {
         pulse(status, label);
+      }
+    }
+  }
+  // VACUOUS-GREEN GUARD (--strict only). "done = verified" must mean the tests
+  // actually RAN. If the Unit stage SKIPPED (no test runner installed) while the
+  // spec carries `done` features that declare `test_refs`, their implementation
+  // was never verified — under --strict that is NOT green. (`someRan` is too weak:
+  // Drift/Commit/Arch/Secret are pure-JS detectors that always run, so they would
+  // mask this.) Fires ONLY when there are tested-done features AND the runner
+  // skipped; a project with the test runner installed, or with no tested-done
+  // features, is unaffected. Non-strict keeps the lenient skip-as-pass contract.
+  if (opts.strict && allowed.includes('stage_2.1')) {
+    const unit = collected.find((c) => c.stage === 'stage_2.1');
+    if (unit && unit.status === 'skip') {
+      let unverifiedDone = 0;
+      try {
+        const spec = loadSpec();
+        for (const f of spec.features ?? []) {
+          if (f.status !== 'done') continue;
+          if ((f.acceptance_criteria ?? []).some((ac) => (ac.test_refs ?? []).length > 0)) unverifiedDone++;
+        }
+      } catch {
+        unverifiedDone = 0; // spec unreadable → other detectors handle it; don't block here
+      }
+      if (unverifiedDone > 0) {
+        worst = Math.max(worst, 1);
+        anyFailed = true;
+        const msg = `${unverifiedDone} done feature(s) declare tests but the test runner did not run (skipped) — the implementation was never verified. Install the test framework; under --strict, an unverifiable 'done' is not GREEN.`;
+        collected.push({stage: 'stage_2.1', label: 'Verification', status: 'fail', exitCode: 1, stderr: msg});
+        if (!opts.json) pulse('fail', 'Verification', msg);
       }
     }
   }
@@ -582,7 +646,7 @@ export function runRouteCommand(prompt: string): void {
  */
 export function createProgram(): Command {
   const program = new Command();
-  program.name('clad').description('Reference Ironclad CLI').version('0.5.1');
+  program.name('clad').description('Reference Ironclad CLI').version('0.5.2');
 
   program
     .command('init [intent...]')
@@ -607,7 +671,7 @@ export function createProgram(): Command {
 
   program
     .command('drive [goal]')
-    .description('Autonomous loop — iterate ready features, dispatch specialist + reviewer personas, run L1 gates, enforce anti-self-cert, record evidence')
+    .description('(experimental) Headless autonomous loop — iterate ready features, dispatch specialist + reviewer personas, run L1 gates, record evidence. The supported, exercised path is host-delegated (clad serve + your AI host loops the cadence); this loop needs a real LLM transport and is not auto-invoked')
     .option('--cwd <path>', 'target project directory (default cwd)')
     .option('--max-iterations <n>', 'cap iterations (default 50)', '50')
     .option('--max-wall-clock-ms <ms>', 'cap wall clock (default 600000)', '600000')

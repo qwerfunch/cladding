@@ -1,0 +1,76 @@
+id: F-9064ff
+slug: deliverable-smoke
+title: "Deliverable smoke — gate runs the declared entry (no broken-entry vacuous green)"
+status: done
+modules:
+  - src/stages/deliverable-smoke.ts
+  - src/stages/detectors/deliverable-integrity.ts
+  - src/spec/deliverable-detect.ts
+  - src/spec/types.ts
+  - src/spec/schema.json
+  - src/stages/detectors/index.ts
+  - src/cli/clad.ts
+  - src/ui/softShell.ts
+depends_on: []
+acceptance_criteria:
+  - id: AC-5c5187
+    ears: ubiquitous
+    action: "auto-populate project.deliverable from a calibrated CLI entry when absent"
+    response: "sync writes a deliverable whose smoke invocation is proven to pass now, never enabling a false-failing one"
+    text: "The system shall, on sync (manual and clad_create_feature), auto-populate project.deliverable when it is absent and a detected CLI entry has a calibratable (proven-passing) smoke invocation — setting is_safe_to_smoke true only then — so DELIVERABLE_SMOKE engages without the agent configuring it correctly."
+    notes: |
+      ## Why
+      An A/B re-run proved a conservative autonomous agent, nudged by the DELIVERABLE_INTEGRITY warn,
+      declared the deliverable DISABLED (is_safe_to_smoke:false) with no smoke_args. Auto-detection runs
+      BEFORE the agent reacts and calibrates against the passing state, so it never false-fails a working
+      entry and removes the agent-configuration dependency. Honest reach limit: a file-consuming CLI with
+      no committed sample can't be calibrated — left undeclared (oracle/author territory).
+    test_refs:
+      - tests/spec/deliverable-detect.test.ts
+  - id: AC-bab4d0
+    ears: unwanted
+    condition: "if the declared deliverable is executed and exits with an unexpected code"
+    action: "fail the gate"
+    response: "stage_2.4 returns a blocking exitCode 1 naming the actual vs expected exit"
+    text: "When project.deliverable.is_safe_to_smoke is true and the entry exits non-zero (≠ expect_exit), DELIVERABLE_SMOKE (stage_2.4) shall block the gate with exitCode 1 — catching a broken entry the unit tests, which import internals, never exercise."
+    notes: |
+      ## Why
+      The gate must run the *declared deliverable itself*, not an agent-authored test —
+      the Mini-Lang A/B benchmark showed an agent break ./run yet pass the gate because
+      its tests imported internals and never invoked the entry. exitCode 1 (never 2) so a
+      ran-and-failed entry can never masquerade as a skip (the Vacuous-Green invariant).
+    test_refs:
+      - tests/stages/deliverable-smoke.test.ts
+  - id: AC-7ec24b
+    ears: ubiquitous
+    action: "execute the declared deliverable only when the author vouched it is safe"
+    response: "skip (exitCode 2) unless is_safe_to_smoke is true and a feature is done"
+    text: "The system shall execute the declared deliverable only when is_safe_to_smoke is true and at least one feature is done; otherwise DELIVERABLE_SMOKE skips with exitCode 2 — never auto-executing arbitrary project code."
+    notes: |
+      ## Trade-off
+      Executing the deliverable bears real side effects (a server binds a port). Declaration-
+      gating + a hard timeout + pre-push-only placement (never pre-commit) bound them; the
+      cost is that an undeclared deliverable is not smoked (only warned by DELIVERABLE_INTEGRITY).
+    test_refs:
+      - tests/stages/deliverable-smoke.test.ts
+  - id: AC-93cb51
+    ears: unwanted
+    condition: "if project.deliverable.path is declared but absent on disk"
+    action: "block the gate"
+    response: "DELIVERABLE_INTEGRITY emits a blocking error"
+    text: "When project.deliverable.path is declared but does not exist on disk, the DELIVERABLE_INTEGRITY detector shall emit a blocking error."
+    test_refs:
+      - tests/stages/detectors/deliverable-integrity.test.ts
+  - id: AC-864efe
+    ears: optional
+    condition: "where done features ship modules but no deliverable is declared"
+    action: "leave an auditable advisory"
+    response: "DELIVERABLE_INTEGRITY emits a non-blocking warning"
+    text: "Where done features ship modules but no project.deliverable is declared, DELIVERABLE_INTEGRITY shall emit a non-blocking warning so that silencing the smoke (omitting the declaration) always leaves an auditable signal."
+    notes: |
+      ## Decision
+      Warn (not error) so legacy projects without a declared deliverable are not retro-failed,
+      while still nudging adoption — the deterministic floor is complementary to, not a
+      replacement for, the impl-blind oracle (stage_2.3), which alone catches "runs but wrong".
+    test_refs:
+      - tests/stages/detectors/deliverable-integrity.test.ts

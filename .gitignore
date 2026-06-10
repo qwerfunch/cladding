@@ -11,10 +11,16 @@ yarn.lock
 pnpm-lock.yaml
 
 # Build / dist
-dist/
+# Root-anchored: the repo-root dist/ is a build artifact and stays ignored,
+# but plugins/claude-code/dist/ is COMMITTED on purpose — the marketplace
+# plugin is git-distributed, so it must carry its bundled engine (v0.5.2).
+/dist/
 build/
 out/
 *.tsbuildinfo
+
+# Stray local artifacts (not part of the repo)
+presentation.zip
 
 # Coverage
 coverage/

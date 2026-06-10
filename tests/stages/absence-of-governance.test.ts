@@ -105,24 +105,59 @@ describe('ABSENCE_OF_GOVERNANCE (F-99c6e5, v0.3.49)', () => {
 
   test('master + a VALID shard → no shard error (no false-fire on healthy shards)', () => {
     touch(dir, 'spec.yaml', VALID_MASTER);
-    touch(dir, 'spec/features/ok-bbb222.yaml', 'id: F-ok\nslug: ok\ntitle: ok\nstatus: planned\n');
+    // A loadSpec-valid feature (schema-valid id/title/status) — not just YAML-parseable.
+    touch(dir, 'spec/features/ok-abc123.yaml', 'id: F-abc123\nslug: ok\ntitle: ok\nstatus: planned\n');
     expect(absenceOfGovernance.run({cwd: dir}).filter((f) => f.severity === 'error')).toHaveLength(0);
   });
 
-  test('full cladding scaffold present → no findings', () => {
+  test('master + shards parse but the assembled spec is SCHEMA-invalid (architecture.layers: null) → blocking error', () => {
+    // The Bank-Ledger audit hole: a YAML-valid but schema-invalid spec makes
+    // loadSpec THROW, which every withSpec detector swallows as non-blocking info
+    // (with-spec.ts) → the whole drift layer passes GREEN on a spec cladding itself
+    // rejects. ABSENCE must catch it where withSpec structurally cannot.
     touch(dir, 'spec.yaml', VALID_MASTER);
-    touch(dir, 'spec/architecture.yaml');
+    touch(dir, 'spec/architecture.yaml', 'layers:\n'); // null, not an array → schema-invalid (the cur-proj case)
+    const errors = absenceOfGovernance.run({cwd: dir}).filter((f) => f.severity === 'error');
+    expect(errors).toHaveLength(1);
+    expect(errors[0].path).toBe('spec.yaml');
+    expect(errors[0].message).toContain('does not load');
+  });
+
+  test('master + VALID architecture (layers: []) loads → no schema-load error (the neu-proj case is valid)', () => {
+    // The discriminator's other half: an empty-but-WELL-TYPED architecture loads
+    // cleanly, so it must NOT fire — only an unloadable spec is blocking.
+    touch(dir, 'spec.yaml', VALID_MASTER);
+    touch(dir, 'spec/architecture.yaml', 'layers: []\n');
+    expect(absenceOfGovernance.run({cwd: dir}).filter((f) => f.severity === 'error')).toHaveLength(0);
+  });
+
+  test('malformed-TYPE capabilities.yaml (YAML-valid, schema-invalid) → blocking error too', () => {
+    // The parse-only shard check covers spec/features|scenarios; a wrong-typed
+    // spec/capabilities.yaml or architecture.yaml only surfaces via loadSpec throwing.
+    touch(dir, 'spec.yaml', VALID_MASTER);
+    touch(dir, 'spec/capabilities.yaml', 'schema: "0.1"\ncapabilities:\n  - id: 123\n'); // id must be string; missing required fields
+    const errors = absenceOfGovernance.run({cwd: dir}).filter((f) => f.severity === 'error');
+    expect(errors).toHaveLength(1);
+    expect(errors[0].path).toBe('spec.yaml');
+    expect(errors[0].message).toContain('does not load');
+  });
+
+  test('full cladding scaffold present → no findings', () => {
+    // Artifacts present AND loadSpec-valid (the new schema-load backstop fires on a
+    // present-but-unloadable spec, so an empty placeholder is no longer "present enough").
+    touch(dir, 'spec.yaml', VALID_MASTER);
+    touch(dir, 'spec/architecture.yaml', 'layers: []\n');
     touch(dir, 'spec/capabilities.yaml');
     touch(dir, 'docs/project-context.md');
     touch(dir, 'docs/conventions.md');
-    touch(dir, 'spec/scenarios/payment-flow-abc123.yaml');
+    touch(dir, 'spec/scenarios/payment-flow-abc123.yaml', 'id: S-001\ntitle: payment flow\n');
 
     expect(absenceOfGovernance.run({cwd: dir})).toEqual([]);
   });
 
   test('spec/scenarios/ exists but contains only README (no .yaml shards) → info finding', () => {
     touch(dir, 'spec.yaml', VALID_MASTER);
-    touch(dir, 'spec/architecture.yaml');
+    touch(dir, 'spec/architecture.yaml', 'layers: []\n');
     touch(dir, 'spec/capabilities.yaml');
     touch(dir, 'docs/project-context.md');
     touch(dir, 'docs/conventions.md');
@@ -137,7 +172,7 @@ describe('ABSENCE_OF_GOVERNANCE (F-99c6e5, v0.3.49)', () => {
   test('only Tier B artifacts missing → 3 warn findings, no error', () => {
     touch(dir, 'spec.yaml', VALID_MASTER);
     touch(dir, 'docs/conventions.md');
-    touch(dir, 'spec/scenarios/x-abc123.yaml');
+    touch(dir, 'spec/scenarios/x-abc123.yaml', 'id: S-001\ntitle: t\n');
 
     const findings = absenceOfGovernance.run({cwd: dir});
     expect(findings.filter((f) => f.severity === 'error')).toHaveLength(0);

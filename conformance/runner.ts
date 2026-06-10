@@ -173,6 +173,10 @@ const fixtures: readonly Fixture[] = [
           properties: {schema: {}, project: {}, features: {}},
         }),
       );
+      // A done AC must declare verification (MISSING_TESTS is error-severity),
+      // so the clean fixture ships a real test file the ref resolves to.
+      mkdirSync(join(d, 'tests'), {recursive: true});
+      writeTs(d, 'tests/dummy.test.ts', 'export const tested = true;\n');
       writeFileSync(
         join(d, 'spec.yaml'),
         'schema: "0.1"\n' +
@@ -185,7 +189,8 @@ const fixtures: readonly Fixture[] = [
           '    acceptance_criteria:\n' +
           '      - id: AC-001\n' +
           '        ears: ubiquitous\n' +
-          '        text: dummy passes\n',
+          '        text: dummy passes\n' +
+          '        test_refs: [tests/dummy.test.ts]\n',
       );
     },
     run(d) {
@@ -592,12 +597,14 @@ const fixtures: readonly Fixture[] = [
   },
   {
     // F-011/AC-018 — MISSING_IMPLEMENTATION info finding when spec.yaml
-    // is absent. The detector emits one info-severity finding rather
-    // than failing the stage; drift overall remains pass=true because
-    // info < error.
+    // is absent. The detector itself emits one info-severity finding
+    // rather than failing — but since 8623225 the BLOCKING signal for an
+    // absent spec.yaml is owned by ABSENCE_OF_GOVERNANCE (error), so the
+    // drift stage overall fails. The assertion here is the detector's
+    // info finding; expectedPass mirrors the governance-wide contract.
     id: 'F-011_AC-018',
     stage: 'stage_1.3',
-    expectedPass: true,
+    expectedPass: false,
     setup(d) {
       // No spec.yaml on purpose; mirror schema.json so META_INTEGRITY
       // does not separately complain.
@@ -618,10 +625,11 @@ const fixtures: readonly Fixture[] = [
   {
     // F-012/AC-020 — UNMAPPED_ARTIFACT info finding when spec.yaml is
     // absent. Same setup as F-011/AC-018; both detectors emit info
-    // findings from the same shared error surface.
+    // findings from the same shared error surface. As above, the stage
+    // fails overall because ABSENCE_OF_GOVERNANCE blocks an absent spec.
     id: 'F-012_AC-020',
     stage: 'stage_1.3',
-    expectedPass: true,
+    expectedPass: false,
     setup(d) {
       mkdirSync(join(d, 'spec'), {recursive: true});
       writeFileSync(

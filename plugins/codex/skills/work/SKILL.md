@@ -29,6 +29,6 @@ Use the concrete verbs instead:
 
 - A specific stage → `clad check --internal` then read the failing stage code, or invoke the stage runner directly (e.g. `npm run stage:drift`).
 - A natural-language intent → `clad route <prompt>` to see which verb the router resolves to, then run that verb directly.
-- An autonomous loop over the spec → `clad drive`.
+- An autonomous loop over the spec → the **host-delegated path** (run `clad serve` and let your AI host loop the per-feature cadence) — this is the supported, exercised route. (`clad drive` is an experimental headless loop that needs a real LLM transport and is not auto-invoked.)
 
 The orchestrator persona (`src/agents/orchestrator.md`) does intent routing inside a Claude Code session; `clad work` is reserved for the CLI surface of the same routing once the implementation lands.

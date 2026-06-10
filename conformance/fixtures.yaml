@@ -167,11 +167,11 @@ fixtures:
   - name: F-011_AC-018
     stage: documentary
     kind: runnable
-    description: "F-011/AC-018 — If spec.yaml is absent or unparseable, the detector shall emit one info finding rather than failing the stage."
+    description: "F-011/AC-018 — If spec.yaml is absent or unparseable, the detector emits one info finding of its own; the stage still fails once via ABSENCE_OF_GOVERNANCE (governance-wide blocking signal)."
   - name: F-012_AC-020
     stage: documentary
     kind: runnable
-    description: "F-012/AC-020 — If spec.yaml is absent or unparseable, the detector shall emit one info finding rather than failing the stage."
+    description: "F-012/AC-020 — If spec.yaml is absent or unparseable, the detector emits one info finding of its own; the stage still fails once via ABSENCE_OF_GOVERNANCE (governance-wide blocking signal)."
   - name: F-013_AC-021
     stage: documentary
     kind: runnable

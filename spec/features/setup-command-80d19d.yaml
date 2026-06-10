@@ -1,7 +1,7 @@
 id: F-80d19d
 slug: setup-command
 title: "clad setup command — explicit host wire (replaces F-90d054 postinstall hook)"
-status: in_progress
+status: done
 modules:
   - src/init/host-setup.ts
   - src/cli/clad.ts
@@ -21,6 +21,8 @@ acceptance_criteria:
       channels wired exclusively for installed AI tools with no surprise
       directories created in $HOME.
 
+    test_refs:
+      - "tests/cli/setup.test.ts#wires only the host channels whose home directory exists"
   - id: AC-002
     ears: state
     condition: while every detected host channel is already wired to the current cladding root (target match)
@@ -31,6 +33,8 @@ acceptance_criteria:
       perform no filesystem changes, so idempotent re-runs print a clean
       summary without side effects.
 
+    test_refs:
+      - "tests/cli/setup.test.ts#second run reports already-wired without re-creating links"
   - id: AC-003
     ears: event
     condition: when the user runs `clad setup` after installing a new AI tool that was not detected on the previous run
@@ -42,6 +46,8 @@ acceptance_criteria:
       untouched, so the new tool gets a cladding channel without re-touching
       the already-wired ones.
 
+    test_refs:
+      - "tests/cli/setup.test.ts#delta-wires a host that was not installed on the previous run"
   - id: AC-004
     ears: event
     condition: when the user runs `clad setup` after upgrading cladding to a new version whose package root resolves to a different absolute path than the existing symlink target
@@ -53,6 +59,8 @@ acceptance_criteria:
       root, so host channels point at the upgraded cladding without manual
       cleanup.
 
+    test_refs:
+      - "tests/cli/setup.test.ts#re-wires when the symlink target no longer matches the current cladding root"
   - id: AC-005
     ears: event
     condition: when the user runs `clad setup` and one or more channel symlinks have been deleted (host AI may have reset its plugin directory, or the user removed them)
@@ -62,6 +70,8 @@ acceptance_criteria:
       have been deleted, the system shall re-create the missing symlinks,
       so `clad setup` works as a repair command without a separate flag.
 
+    test_refs:
+      - "tests/cli/setup.test.ts#re-creates a missing symlink as a repair"
   - id: AC-006
     ears: state
     condition: while `clad init` runs in a project and no `~/.cladding/setup-status.json` exists (user never ran `clad setup`)
@@ -72,6 +82,8 @@ acceptance_criteria:
       with spec generation, so missing host wire does not block spec creation
       and the user is guided to the next step.
 
+    test_refs:
+      - "tests/cli/setup.test.ts#hostWireNotice points at clad setup when no setup-status exists"
   - id: AC-007
     ears: state
     condition: while `clad init` runs and the cladding binary version differs from the version recorded in `~/.cladding/setup-status.json` from the last `clad setup` run
@@ -83,6 +95,8 @@ acceptance_criteria:
       skew is surfaced without blocking and the user can choose whether to
       re-run setup.
 
+    test_refs:
+      - "tests/cli/setup.test.ts#hostWireNotice flags version skew between wire and binary"
   - id: AC-008
     ears: unwanted
     condition: if a user runs `npm install -g cladding` (or `--ignore-scripts`, or any npm install flavour)
@@ -92,6 +106,8 @@ acceptance_criteria:
       execute any host-wiring side effects during install, so `npm install`
       is pure binary installation with zero filesystem side effects in $HOME.
 
+    test_refs:
+      - "tests/cli/setup.test.ts#importing host-setup does not wire anything on its own"
   - id: AC-009
     ears: unwanted
     condition: if a channel link exists as a directory copy (Windows non-admin fallback) and its mtime/contents diverge from the cladding root (user may have customised in place)
@@ -102,6 +118,8 @@ acceptance_criteria:
       to overwrite unless `--force` is supplied, so user customisations are
       preserved unless explicitly overridden.
 
+    test_refs:
+      - "tests/cli/setup.test.ts#refuses to overwrite a non-symlink wire without --force"
   - id: AC-010
     ears: event
     condition: when `clad setup` finishes successfully (any combination of created / unchanged / rewired / copied / skipped-not-installed)
@@ -112,6 +130,8 @@ acceptance_criteria:
       user always sees a concrete next-step recipe at the end of the
       report.
 
+    test_refs:
+      - "tests/cli/setup.test.ts#renderSetupReport ends with the numbered 다음 단계 guidance block"
   - id: AC-011
     ears: event
     condition: when `clad setup` runs on a machine where `~/.cursor/` exists (Cursor IDE installed)
@@ -121,6 +141,8 @@ acceptance_criteria:
       merge `mcpServers.cladding = {command, args}` into `~/.cursor/mcp.json`
       so Cursor users get cladding wired without manual JSON edits.
 
+    test_refs:
+      - "tests/cli/setup.test.ts#wires Cursor mcp.json with the absolute engine, preserving existing servers"
   - id: AC-012
     ears: event
     condition: when `clad setup` finishes wiring a host channel AND the corresponding host CLI binary (claude / gemini) is on PATH
@@ -131,6 +153,9 @@ acceptance_criteria:
       activation command non-interactively, so users get the plugin enabled
       in one command, and otherwise fall back to printing the manual command.
 
+    test_refs:
+      - "tests/cli/setup.test.ts#invokes the claude activator with the wired plugin path"
+      - "tests/cli/setup.test.ts#activate:false suppresses activation even when channels are wired"
   - id: AC-013
     ears: event
     condition: when `clad init` runs and a project-local AGENTS.md or CLAUDE.md exists that carries v0.3.x markers (e.g. `_meta.enrichment_status`, `first-task enrichment rule`, lone `clad_create_feature` MCP tool wording with no `clad` CLI qualifier)
@@ -143,6 +168,9 @@ acceptance_criteria:
       content), so AI sessions do not surface stale guidance that confuses
       hosts where cladding is not wired as an MCP server.
 
+    test_refs:
+      - "tests/init/host-instructions.test.ts#refreshes stale v0.3.x AGENTS.md without --force"
+      - "tests/init/host-instructions.test.ts#refreshes only the ## cladding section when v0.3.x markers are present"
   - id: AC-014
     ears: state
     condition: while a maintainer clones the cladding repository and opens it with Claude Code
@@ -153,3 +181,6 @@ acceptance_criteria:
       with `enabledPlugins["claude-code@cladding"] = true` so Claude Code
       activates the local cladding plugin on entry without a separate
       maintainer-only setup step.
+
+    evidence_refs:
+      - ".claude/settings.json"

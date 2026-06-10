@@ -9,7 +9,10 @@
 
 import {describe, expect, test} from 'vitest';
 
-import {missingToolSkip, ranToolResult} from '../../src/stages/util.js';
+import {classifyScannerExit, missingToolSkip, ranToolResult} from '../../src/stages/util.js';
+
+const found = (d: string) => `reported: ${d}`;
+const skipped = (d: string) => `could not run: ${d}`;
 
 describe('ranToolResult — ran-tool exit code → stage contract', () => {
   test('exit 0 → pass, exitCode 0, no stderr', () => {
@@ -74,5 +77,40 @@ describe('missingToolSkip — ENOENT is the ONLY exit-2 (skip) path', () => {
     expect(missingToolSkip('stage_x', 'mytool', {exitCode: 2})).toBeNull();
     expect(missingToolSkip('stage_x', 'mytool', {exitCode: 1})).toBeNull();
     expect(missingToolSkip('stage_x', 'mytool', {exitCode: 0})).toBeNull();
+  });
+});
+
+// Fix ② — a scanner (secretlint / arch validator) that RAN but exited non-zero:
+// a real finding BLOCKS (error); a config/setup gap SKIPS (info). secretlint
+// exits non-zero with "config is not found" when there is no .secretlintrc — that
+// must NOT be reported as a hardcoded secret (the cold-user false-RED).
+describe('classifyScannerExit — finding vs config/setup gap', () => {
+  test('exit 0 → no findings', () => {
+    expect(classifyScannerExit({exitCode: 0}, 'D', found, skipped)).toEqual([]);
+  });
+
+  test('config-not-found (secretlint) → INFO (non-blocking), not a finding', () => {
+    const out = classifyScannerExit(
+      {exitCode: 2, stderr: 'Error: secretlint config is not found\nSecretlint require .secretlintrc config file.'},
+      'HARDCODED_SECRET', found, skipped,
+    );
+    expect(out).toHaveLength(1);
+    expect(out[0].severity).toBe('info');
+    expect(out[0].message).toContain('could not run');
+  });
+
+  test('ENOENT/cannot-find-module in output → INFO (setup gap)', () => {
+    const out = classifyScannerExit({exitCode: 1, stderr: "Cannot find module '@secretlint/preset'"}, 'D', found, skipped);
+    expect(out[0].severity).toBe('info');
+  });
+
+  test('a REAL finding (no setup-error pattern) → ERROR (blocks the gate)', () => {
+    const out = classifyScannerExit(
+      {exitCode: 1, stdout: 'src/leak.ts:1:1 found AWS secret AKIAIOSFODNN7EXAMPLE'},
+      'HARDCODED_SECRET', found, skipped,
+    );
+    expect(out).toHaveLength(1);
+    expect(out[0].severity).toBe('error');
+    expect(out[0].message).toContain('reported');
   });
 });

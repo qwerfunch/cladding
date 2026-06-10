@@ -21,8 +21,10 @@ acceptance_criteria:
   - id: AC-020
     ears: unwanted
     condition: if spec.yaml is absent or unparseable
-    action: emit one info finding rather than failing
-    response: spec-less projects keep green CI
-    text: If spec.yaml is absent or unparseable, the detector shall emit one info
-      finding rather than failing the stage.
+    action: emit one info finding from this detector; the blocking signal is owned by ABSENCE_OF_GOVERNANCE
+    response: per-detector noise stays info-level while the absent/unreadable spec still blocks the gate (no vacuous green)
+    text: If spec.yaml is absent or unparseable, this detector shall emit one info
+      finding rather than a blocking error of its own; the authoritative blocking
+      signal for the missing/unreadable spec is ABSENCE_OF_GOVERNANCE, so the
+      stage fails exactly once for the governance gap instead of once per detector.
     evidence_refs: [fixture:F-012_AC-020]

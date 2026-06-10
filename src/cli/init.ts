@@ -260,6 +260,18 @@ function appendIfMissing(gitignorePath: string, marker: string, line: string): b
   return true;
 }
 
+/** F-80d19d AC-006/AC-007 — informational host-wire notice for `clad init`.
+ * Returns null when the wire state matches the running binary (no notice). */
+export function hostWireNotice(lastSetup: string | null, pkgVersion: string | null): string | null {
+  if (lastSetup == null) {
+    return 'host channels not wired yet — run `clad setup` to enable `/cladding init` from Claude Code / Codex / Gemini';
+  }
+  if (pkgVersion && lastSetup !== pkgVersion) {
+    return `host wire was set up at v${lastSetup} (current binary v${pkgVersion}) — symlinks usually auto-follow, but run \`clad setup\` to be sure`;
+  }
+  return null;
+}
+
 /**
  * Scaffolds a cladding workspace at `cwd`. Idempotent; safe by default.
  *
@@ -562,17 +574,9 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
   // F-80d19d — friendly warning when host channels were never wired or are
   // out of sync with the current cladding binary. `clad setup` is the explicit
   // command for wiring; this is informational only and does not block init.
-  const lastSetup = getLastSetupVersion();
   const pkgVersion = getCurrentCladdingVersion();
-  if (lastSetup == null) {
-    skipped.push(
-      'host channels not wired yet — run `clad setup` to enable `/cladding init` from Claude Code / Codex / Gemini',
-    );
-  } else if (pkgVersion && lastSetup !== pkgVersion) {
-    skipped.push(
-      `host wire was set up at v${lastSetup} (current binary v${pkgVersion}) — symlinks usually auto-follow, but run \`clad setup\` to be sure`,
-    );
-  }
+  const wireNotice = hostWireNotice(getLastSetupVersion(), pkgVersion);
+  if (wireNotice) skipped.push(wireNotice);
 
   // Phase 2 (opt-in) — ambient enforcement via a git pre-commit hook. Off
   // unless `--with-hook` is passed: cladding never writes to `.git/` without

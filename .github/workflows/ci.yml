@@ -45,6 +45,13 @@ jobs:
       - name: Test (full suite + self-consistency lock)
         run: npm test
 
+      - name: Conformance fixtures (stage contracts)
+        # The 33 runnable {pass,fail} fixture pairs are the executable form of
+        # the stage contracts. They drifted silently (3 stale expectations)
+        # precisely because nothing ran them on push — same Vacuous Green
+        # class the header warns about. Run them on every change.
+        run: npm run conformance
+
       - name: Self-drift gate (spec-native, strict)
         # cladding dogfoods its OWN drift gate under --strict: stale module
         # paths, hollow `done` features, and archived-but-live modules fail

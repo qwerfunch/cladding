@@ -41,12 +41,21 @@ function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
     for (const ac of feature.acceptance_criteria ?? []) {
       for (const ref of ac.test_refs ?? []) {
         if (isSkippable(ref)) continue;
-        if (existsSync(join(cwd, ref))) continue;
+        // A `path#anchor` test_ref points at a specific test WITHIN a file (a human
+        // pointer, e.g. `tests/x.test.ts#parses a tag`) — resolve only the path part.
+        // Earlier the whole string was checked literally, so a natural `#anchor` ref
+        // "resolved to nothing" with no hint of the accepted forms; an autonomous run
+        // burned dozens of turns reverse-engineering the detector.
+        const pathPart = ref.split('#', 1)[0];
+        if (existsSync(join(cwd, ref)) || (pathPart && existsSync(join(cwd, pathPart)))) continue;
         findings.push({
           detector: NAME,
           severity: 'error',
           path: ref,
-          message: `${feature.id}.${ac.id} test_ref '${ref}' resolves to nothing on disk`,
+          message:
+            `${feature.id}.${ac.id} test_ref '${ref}' resolves to nothing on disk — a test_ref must be a real ` +
+            `file path (e.g. 'tests/x.test.ts', optionally with a '#<test name>' anchor) or a ` +
+            `'self-dogfood:<script>' / 'fixture:<name>' prefix.`,
         });
       }
     }
