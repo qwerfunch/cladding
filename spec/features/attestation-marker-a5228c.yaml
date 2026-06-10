@@ -1,0 +1,39 @@
+id: F-a5228c
+slug: attestation-marker
+title: "Committed content-anchored attestation: GREEN strict verification stamps module tree-hashes; STALE_ATTESTATION catches unverified change"
+status: done
+modules:
+  - src/spec/attestation.ts
+  - src/stages/detectors/stale-attestation.ts
+  - src/stages/detectors/index.ts
+  - src/cli/clad.ts
+acceptance_criteria:
+  - id: AC-e93858
+    ears: event
+    condition: "when a strict pre-push/all gate run ends GREEN (or RED solely due to STALE_ATTESTATION findings while every verification stage passed)"
+    action: "write spec/attestation.yaml — a Tier-C, committed, id-sorted file mapping each done feature to the sha256 tree-hash of its modules — and in the solely-stale case count the run GREEN (this very run IS the re-verification the staleness demanded)"
+    response: "verification freshness is anchored on committed CONTENT — it survives fresh clones and CI, and is immune to squash/rebase SHA rewrites — and re-attestation can never deadlock on its own staleness warning"
+    text: "When a strict pre-push/all run ends GREEN (or RED solely from STALE_ATTESTATION with all verification stages passing), the system shall write spec/attestation.yaml mapping done features to module tree-hashes and count the solely-stale run GREEN."
+    notes: "## Why\nThe first design keyed staleness off the gitignored local events ledger — undefined on fresh clones/CI and squash-broken (review blockers E1+T3). Content anchoring (committed hashes of the modules themselves) is clone-portable and history-rewrite-immune.\n## Decision\nThe solely-stale exemption kills the deadlock: a stale warning blocking the very gate that re-verifies would make re-attestation impossible; in the cheap pre-commit tier (no tests run) staleness keeps blocking under strict — exactly 'you changed verified code, run the full gate'."
+    test_refs:
+      - "tests/cli/gate-golden-matrix.test.ts#PINNED (F-a5228c): solely-stale drift under strict pre-push is exempted, run counts GREEN, attestation stamps"
+      - "tests/cli/gate-golden-matrix.test.ts#a plain GREEN strict pre-push run stamps the attestation; non-strict does not"
+      - "tests/cli/gate-golden-matrix.test.ts#no exemption when drift carries any OTHER failing finding, or in the pre-commit tier"
+  - id: AC-4d16d1
+    ears: unwanted
+    condition: "if a done feature's current module tree-hash disagrees with its committed attestation entry (or a done feature has no entry while the file exists)"
+    action: "emit a warn finding naming the feature — 'modules changed since the last attested verification'"
+    response: "unverified change to shipped code is visible everywhere the spec goes, and blocks under --strict in tiers that cannot re-attest"
+    text: "If a done feature's module tree-hash disagrees with its attestation entry (or its entry is missing while the file exists), the detector shall warn naming the feature, blocking under strict in tiers that cannot re-attest."
+    test_refs:
+      - "tests/stages/stale-attestation.test.ts#a GREEN-stamped attestation matches — silent; editing a module — warn naming the feature"
+      - "tests/stages/stale-attestation.test.ts#a done feature missing from an existing attestation warns (never-attested shipped code)"
+  - id: AC-b3fe0c
+    ears: state
+    condition: "while spec/attestation.yaml is absent entirely"
+    action: "emit a single info finding ('verification state unknown — run the strict pre-push gate to attest') and never a blanket RED"
+    response: "adopting and upgrading projects are not retro-failed; the path to attested state is named"
+    text: "While spec/attestation.yaml is absent, the detector shall emit one info finding naming the attestation path and never a blanket RED, so upgrades and adoptions are not retro-failed."
+
+    test_refs:
+      - "tests/stages/stale-attestation.test.ts#absent attestation — ONE info finding naming the path to attested state (never blanket RED)"

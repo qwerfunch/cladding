@@ -40,6 +40,7 @@ import {findLatestCheckpoint, recordCheckpoint, recordRollback} from '../core/ch
 import {maintainDeliverable} from '../spec/deliverable-detect.js';
 import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../spec/inventory.js';
 import {repairTestRefs} from '../spec/test-ref-repair.js';
+import {writeAttestation} from '../spec/attestation.js';
 import {buildBlindPayload, renderBlindBrief} from '../oracle/payload.js';
 import {requiredOracleWorklist} from '../oracle/policy.js';
 import {loadSpec} from '../spec/load.js';
@@ -488,6 +489,42 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
       }
     } catch {
       /* spec unreadable → other detectors own it; don't block here */
+    }
+  }
+  // F-a5228c — verification attestation. Two halves:
+  //   EXEMPT  — when this strict pre-push/all run is RED *solely* from
+  //             STALE_ATTESTATION findings while every other stage passed,
+  //             count it GREEN: this very run IS the re-verification the
+  //             staleness demanded (otherwise re-attestation deadlocks on
+  //             its own warning). The cheap pre-commit tier gets no
+  //             exemption — there, staleness correctly says "run the full gate".
+  //   STAMP   — a GREEN strict pre-push/all run writes spec/attestation.yaml
+  //             (module tree-hashes per done feature), the committed,
+  //             clone-portable freshness anchor STALE_ATTESTATION compares.
+  if (opts.strict && (tier === 'pre-push' || tier === 'all')) {
+    const drift = collected.find((c) => c.stage === 'stage_1.3');
+    const strictFailing = (drift?.findings ?? []).filter((f) => f.severity === 'error' || f.severity === 'warn');
+    const solelyStale =
+      drift?.status === 'fail' &&
+      strictFailing.length > 0 &&
+      strictFailing.every((f) => f.detector === 'STALE_ATTESTATION');
+    const othersGreen = collected.every((c) => c.stage === 'stage_1.3' || c.status !== 'fail');
+    if (solelyStale && othersGreen && drift) {
+      drift.status = 'pass';
+      drift.exitCode = 0;
+      drift.stderr = 'stale attestation exempted — this run re-verified and re-attests';
+      anyFailed = collected.some((c) => c.status === 'fail');
+      worst = anyFailed ? Math.max(1, worst) : 0;
+      if (!opts.json) pulse('note', 'attestation', 'stale entries re-verified by this run — re-attesting');
+    }
+    if (!anyFailed) {
+      try {
+        if (writeAttestation('.', loadSpec())) {
+          if (!opts.json) pulse('note', 'attestation', 'spec/attestation.yaml refreshed (verified tree stamped)');
+        }
+      } catch {
+        /* unloadable spec → nothing to attest */
+      }
     }
   }
   if (opts.json) {

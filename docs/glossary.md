@@ -23,6 +23,7 @@
 | `AC` | Acceptance criterion — one verifiable behavior inside a feature. | 인수 기준 |
 | `oracle` | An impl-blind conformance test authored from the spec brief alone (`tests/oracle/`). | 구현-맹검 검증 테스트 |
 | `deliverable` | The shipped entry point the gate smoke-runs (stage_2.4). | 출하 진입점 |
+| `attestation` | The committed stamp (`spec/attestation.yaml`) a GREEN strict pre-push gate writes: module tree-hashes per done feature — the clone-portable answer to "when was this last verified?" (0.6.0). | 검증 도장 |
 
 ## Personas (alias-and-deprecate bucket)
 
@@ -98,6 +99,7 @@ IDs stay exactly as registered in `src/stages/detectors/index.ts` (audit-log sta
 | `STALE_EVIDENCE` | evidence **older than 90 days** |
 | `MISSING_IMPLEMENTATION` | spec declares a module the disk **doesn't have** |
 | `UNMAPPED_ARTIFACT` | disk has a source file **no feature claims** |
+| `STALE_ATTESTATION` | shipped (done) modules **changed since the last attested verification** (0.6.0; vs the committed `spec/attestation.yaml` stamp) |
 
 ## Naming conventions (enforced by review; see docs/code-style.md)
 

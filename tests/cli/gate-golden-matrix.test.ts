@@ -70,6 +70,9 @@ vi.mock('../../src/stages/uat.js', () => ({runUat: (...a: unknown[]) => stubs['s
 // the guard variant swaps in one done feature declaring test_refs.
 // gate_run emission (F-b84c38) is part of the pinned contract — mocked so the
 // matrix never writes to the real repo ledger, asserted explicitly below.
+const writeAttestationMock = vi.fn(() => true);
+vi.mock('../../src/spec/attestation.js', () => ({writeAttestation: (...a: unknown[]) => writeAttestationMock(...(a as []))}));
+
 const recordEventMock = vi.fn();
 vi.mock('../../src/events/log.js', () => ({recordEvent: (...a: unknown[]) => recordEventMock(...(a as []))}));
 
@@ -247,5 +250,53 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
     const gateRuns = recordEventMock.mock.calls.filter((c) => c[1] === 'gate_run');
     expect(gateRuns.length).toBe(1);
     expect(gateRuns[0][2]).toEqual({tier: 'pre-push', strict: true, worst: 0, anyFailed: false});
+  });
+
+  test('PINNED (F-a5228c): solely-stale drift under strict pre-push is exempted, run counts GREEN, attestation stamps', () => {
+    setAll(PASS);
+    writeAttestationMock.mockClear();
+    stubs['stage_1.3'].mockImplementation(() => ({
+      pass: false,
+      exitCode: 1,
+      findings: [{detector: 'STALE_ATTESTATION', severity: 'warn', message: 'stale'}],
+    }) as never);
+    const doc = runMatrixCase('pre-push', true);
+    expect(doc.worst).toBe(0);
+    expect(doc.anyFailed).toBe(false);
+    expect(doc.stages.find((s2) => s2.stage === 'stage_1.3')?.status).toBe('pass');
+    expect(writeAttestationMock).toHaveBeenCalledTimes(1);
+  });
+
+  test('no exemption when drift carries any OTHER failing finding, or in the pre-commit tier', () => {
+    // mixed findings → stays RED
+    setAll(PASS);
+    stubs['stage_1.3'].mockImplementation(() => ({
+      pass: false,
+      exitCode: 1,
+      findings: [
+        {detector: 'STALE_ATTESTATION', severity: 'warn', message: 'stale'},
+        {detector: 'MISSING_TESTS', severity: 'error', message: 'real'},
+      ],
+    }) as never);
+    expect(runMatrixCase('pre-push', true).worst).toBe(1);
+
+    // pre-commit tier cannot re-attest → solely-stale stays RED under strict
+    setAll(PASS);
+    stubs['stage_1.3'].mockImplementation(() => ({
+      pass: false,
+      exitCode: 1,
+      findings: [{detector: 'STALE_ATTESTATION', severity: 'warn', message: 'stale'}],
+    }) as never);
+    expect(runMatrixCase('pre-commit', true).worst).toBe(1);
+  });
+
+  test('a plain GREEN strict pre-push run stamps the attestation; non-strict does not', () => {
+    setAll(PASS);
+    writeAttestationMock.mockClear();
+    runMatrixCase('pre-push', true);
+    expect(writeAttestationMock).toHaveBeenCalledTimes(1);
+    writeAttestationMock.mockClear();
+    runMatrixCase('pre-push', false);
+    expect(writeAttestationMock).not.toHaveBeenCalled();
   });
 });

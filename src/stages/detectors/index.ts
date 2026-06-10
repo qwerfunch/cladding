@@ -15,6 +15,7 @@ import {capabilitiesFeatureMapping} from './capabilities-feature-mapping.js';
 import {conventionDrift} from './convention-drift.js';
 import {coverageDrop} from './coverage-drop.js';
 import {deliverableIntegrity} from './deliverable-integrity.js';
+import {staleAttestation} from './stale-attestation.js';
 import {dependencyCycle} from './dependency-cycle.js';
 import {evidenceMismatch} from './evidence-mismatch.js';
 import {fixtureReference} from './fixture-reference.js';
@@ -79,4 +80,5 @@ export const allDetectors: readonly DriftDetector[] = [
   projectContextDrift,
   specConformance,
   deliverableIntegrity,
+  staleAttestation,
 ];
