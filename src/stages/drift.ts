@@ -13,6 +13,8 @@
 
 import process from 'node:process';
 
+import {loadSpec, primeSpecCache} from '../spec/load.js';
+
 import {allDetectors} from './detectors/index.js';
 import type {
   CommandStageOptions,
@@ -82,8 +84,22 @@ export interface DriftOptions extends CommandStageOptions {
  */
 export function runDrift(opts: DriftOptions = {}): DriftReport {
   const findings: DriftFinding[] = [];
-  for (const detector of detectors) {
-    findings.push(...detector.run(opts));
+  // F-cd0415 — one spec load for the whole pass. Detectors are synchronous
+  // (Iron Law), so priming around this loop and clearing in finally cannot
+  // serve stale spec; a load failure primes nothing and every detector keeps
+  // its own established load-failure behavior (withSpec info / silent).
+  const cwd = opts.cwd ?? '.';
+  try {
+    primeSpecCache(cwd, loadSpec(cwd));
+  } catch {
+    primeSpecCache(cwd, null);
+  }
+  try {
+    for (const detector of detectors) {
+      findings.push(...detector.run(opts));
+    }
+  } finally {
+    primeSpecCache(cwd, null);
   }
   const failingSeverities: ReadonlySet<DriftFinding['severity']> = opts.strict
     ? new Set<DriftFinding['severity']>(['error', 'warn'])
