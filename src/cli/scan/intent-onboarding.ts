@@ -246,7 +246,6 @@ export function buildOnboardingPrompt(
     'AI behavior hints inferred from the intent. YAML with these optional',
     'keys (omit any you cannot confidently infer):',
     '  preferred_persona: <planner | developer | reviewer | observability | orchestrator>',
-    '  token_budget_per_session: <integer · default 4000>',
     '  test_framework: <vitest | jest | pytest | cargo-test | …>',
     '  primary_branch: <develop | main>',
     '  forbidden_patterns: ["eval(", "innerHTML", ...]  # identifier substrings the AI should refuse', // cladding-disable AI_HINTS_FORBIDDEN_PATTERN

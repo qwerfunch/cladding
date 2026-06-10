@@ -140,7 +140,7 @@ export interface SamplingCapableServer {
 export interface McpSamplingTransportOptions {
   /**
    * Maximum tokens the host's sampling call may return. Defaults to
-   * 4096 — same default as `AnthropicTransport` so a feature behaves
+   * 16384 — same default as `AnthropicTransport` so a feature behaves
    * the same regardless of which real transport is active.
    */
   readonly maxTokens?: number;
@@ -173,7 +173,7 @@ export class McpSamplingTransport implements Transport {
 
   constructor(server: SamplingCapableServer, opts: McpSamplingTransportOptions = {}) {
     this.server = server;
-    this.maxTokens = opts.maxTokens ?? 4096;
+    this.maxTokens = opts.maxTokens ?? 16384;
     this.id = opts.id ?? 'mcp-sampling:host';
   }
 

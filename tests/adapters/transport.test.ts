@@ -133,7 +133,7 @@ describe('McpSamplingTransport (F-074, v0.2.25)', () => {
     await t.invoke(persona, CTX);
     const call = createMessage.mock.calls[0][0];
     expect(call.systemPrompt).toBe('You are the reviewer.');
-    expect(call.maxTokens).toBe(4096);
+    expect(call.maxTokens).toBe(16384);
     expect(call.messages).toHaveLength(1);
     expect(call.messages[0].role).toBe('user');
     expect(call.messages[0].content.type).toBe('text');

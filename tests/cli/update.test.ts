@@ -57,3 +57,34 @@ describe('runUpdate', () => {
     expect(r2.code).toBe(0);
   });
 });
+
+// ─── F-b43066 — token_budget_per_session deprecation drains via the report ───
+
+describe('deprecation report (F-b43066)', () => {
+  test('flags ai_hints.token_budget_per_session as deprecated, report-only (code stays 0)', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-update-dep-'));
+    try {
+      writeFileSync(
+        join(dir, 'spec.yaml'),
+        'schema: "0.1"\nproject:\n  name: x\n  language: typescript\n  ai_hints:\n    token_budget_per_session: 4000\nfeatures: []\n',
+      );
+      const r = await runUpdate(dir, {wireHosts: async () => 0});
+      expect(r.deprecations.length).toBe(1);
+      expect(r.deprecations[0]).toContain('token_budget_per_session');
+      expect(r.code).toBe(0); // report-only — never blocks
+    } finally {
+      rmSync(dir, {recursive: true, force: true});
+    }
+  });
+
+  test('clean spec produces no deprecation lines', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-update-clean-'));
+    try {
+      writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: x\n  language: typescript\nfeatures: []\n');
+      const r = await runUpdate(dir, {wireHosts: async () => 0});
+      expect(r.deprecations).toEqual([]);
+    } finally {
+      rmSync(dir, {recursive: true, force: true});
+    }
+  });
+});

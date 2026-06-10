@@ -19,6 +19,9 @@
 // caller falls back to the deterministic interpreter — no LLM
 // dependency for offline / CI / no-key environments.
 
+import {readFileSync} from 'node:fs';
+import {join} from 'node:path';
+
 import {getHostMcpServer} from '../../adapters/host/sampling-context.js';
 import type {SamplingCapableServer} from '../../adapters/host/transport.js';
 import type {ScanLlmDispatcher} from './llm.js';
@@ -33,8 +36,25 @@ export interface DispatcherOptions {
   readonly apiKey?: string;
 }
 
-const DEFAULT_MODEL = 'claude-3-5-sonnet-latest';
-const DEFAULT_MAX_TOKENS = 4096;
+// Current-generation defaults (F-b43066). claude-sonnet-4-6 balances cost and
+// quality for onboarding/refinement; override per-project via
+// .cladding/config.yaml `agent.model`, per-call via opts.model.
+export const DEFAULT_MODEL = 'claude-sonnet-4-6';
+export const DEFAULT_MAX_TOKENS = 16384;
+
+/** Model precedence: explicit opts.model > .cladding/config.yaml agent.model
+ * > built-in default. Exported for tests. Never throws. */
+export function resolveModel(optsModel: string | undefined, cwd = '.'): string {
+  if (optsModel) return optsModel;
+  try {
+    const raw = readFileSync(join(cwd, '.cladding', 'config.yaml'), 'utf8');
+    const m = raw.match(/^\s*model:\s*['\"]?([\w.:-]+)['\"]?\s*$/m);
+    if (m) return m[1];
+  } catch {
+    /* no config file */
+  }
+  return DEFAULT_MODEL;
+}
 
 /**
  * Returns the highest-priority dispatcher available in the current
@@ -70,7 +90,7 @@ export function selectDispatcher(opts: DispatcherOptions = {}): ScanLlmDispatche
   // invocations.
   const anthropicKey = opts.apiKey ?? process.env.ANTHROPIC_API_KEY;
   if (anthropicKey) {
-    return createAnthropicDispatcher({apiKey: anthropicKey, model: opts.model ?? DEFAULT_MODEL});
+    return createAnthropicDispatcher({apiKey: anthropicKey, model: resolveModel(opts.model)});
   }
 
   // Priority 3 — OpenAI direct (fetch, no SDK dependency). F-90d054 v0.3.60.
@@ -78,7 +98,7 @@ export function selectDispatcher(opts: DispatcherOptions = {}): ScanLlmDispatche
   // endpoint so prompts compose just like Anthropic / MCP-sampling above.
   const openaiKey = process.env.OPENAI_API_KEY;
   if (openaiKey) {
-    return createOpenaiDispatcher({apiKey: openaiKey, model: opts.model ?? 'gpt-4o-mini'});
+    return createOpenaiDispatcher({apiKey: openaiKey, model: opts.model ?? 'gpt-4o-mini'}); // reserved lane — id updated when the SDK adapter lands
   }
 
   // Priority 4 — Google Gemini direct (fetch). F-90d054 v0.3.60.

@@ -1,0 +1,39 @@
+id: F-b43066
+slug: model-defaults-refresh
+title: "Current-generation SDK model defaults, 16k output ceiling, config-file model override, token_budget deprecation"
+status: done
+modules:
+  - src/cli/scan/dispatcher.ts
+  - src/adapters/sdk/anthropic.ts
+  - src/adapters/host/transport.ts
+  - src/cli/init.ts
+  - src/cli/update.ts
+  - src/spec/schema.json
+acceptance_criteria:
+  - id: AC-3c366e
+    ears: ubiquitous
+    text: "The system shall default the SDK dispatch paths to current-generation models (onboarding/refinement: claude-sonnet-4-6; agent transport: claude-opus-4-8) with a 16384-token output ceiling, replacing the two-generation-old claude-3-5-sonnet-latest / claude-opus-4-7 defaults and the 4096 clip that bottlenecked rich onboarding output."
+    notes: "## Why\nThe onboarding prompt begs for rich domain inference but the SDK path was pinned to a 2024-era cheap model with a 4k output clip — the cheapest correctness-relevant fix in the repo (design review T5/P2)."
+    test_refs:
+      - "tests/cli/scan-dispatcher.test.ts#defaults are current-generation with a 16k output ceiling"
+      - "tests/adapters/transport.test.ts"
+  - id: AC-5119fe
+    ears: event
+    condition: "when .cladding/config.yaml declares agent.model"
+    action: "use it for SDK dispatch unless an explicit per-call model override is given (precedence: explicit opts.model > config agent.model > built-in default)"
+    response: "projects pin their model without code changes and upgrades stop silently changing their brains"
+    text: "When .cladding/config.yaml declares agent.model, the system shall use it for SDK dispatch unless an explicit per-call model override is given (precedence: opts.model > config > default)."
+    test_refs:
+      - "tests/cli/scan-dispatcher.test.ts#precedence: explicit opts.model > config agent.model > built-in default"
+      - "tests/cli/scan-dispatcher.test.ts#a malformed config file degrades to the default (never throws)"
+  - id: AC-3da6fd
+    ears: state
+    condition: "while a spec carries ai_hints.token_budget_per_session (dead policy — zero runtime consumers)"
+    action: "stop writing the field from init/clarify templates and report a one-line deprecation in clad update; keep the schema accepting it until 0.7"
+    response: "existing user specs stay schema-valid (no false-RED on upgrade) while the dead knob drains out of the ecosystem"
+    text: "While a spec carries ai_hints.token_budget_per_session, the system shall keep accepting it (schema unchanged until 0.7) but no longer write it from init/clarify and shall report a one-line deprecation in clad update, so existing specs stay valid while the dead policy drains out."
+    notes: "## Decision\nalias-and-deprecate, not delete: the field sits inside additionalProperties:false — deleting it from the bundled schema would make every existing user spec schema-invalid, which since 8623225 fails their gate (review C3)."
+
+    test_refs:
+      - "tests/cli/update.test.ts#flags ai_hints.token_budget_per_session as deprecated, report-only (code stays 0)"
+      - "tests/cli/update.test.ts#clean spec produces no deprecation lines"

@@ -6,8 +6,11 @@
 // honour `--no-llm` (returns null without inspecting environment).
 
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
+import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 
-import {selectDispatcher} from '../../src/cli/scan/dispatcher.js';
+import {selectDispatcher, DEFAULT_MODEL, DEFAULT_MAX_TOKENS, resolveModel} from '../../src/cli/scan/dispatcher.js';
 import {setHostMcpServer} from '../../src/adapters/host/sampling-context.js';
 import type {SamplingCapableServer} from '../../src/adapters/host/transport.js';
 
@@ -110,5 +113,41 @@ describe('selectDispatcher', () => {
   test('--no-llm still wins over an MCP registration', () => {
     setHostMcpServer(fakeSamplingServer('mcp-reply'));
     expect(selectDispatcher({noLlm: true})).toBeNull();
+  });
+});
+
+// ─── F-b43066 — current-generation defaults + config-file model override ───
+
+describe('model resolution (F-b43066)', () => {
+  test('defaults are current-generation with a 16k output ceiling', () => {
+    expect(DEFAULT_MODEL).toBe('claude-sonnet-4-6');
+    expect(DEFAULT_MAX_TOKENS).toBe(16384);
+  });
+
+  test('precedence: explicit opts.model > config agent.model > built-in default', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-model-'));
+    try {
+      // no config → default
+      expect(resolveModel(undefined, dir)).toBe(DEFAULT_MODEL);
+      // config present → config wins over default
+      mkdirSync(join(dir, '.cladding'), {recursive: true});
+      writeFileSync(join(dir, '.cladding', 'config.yaml'), 'agent:\n  mode: sdk\n  model: claude-opus-4-8\n');
+      expect(resolveModel(undefined, dir)).toBe('claude-opus-4-8');
+      // explicit always wins
+      expect(resolveModel('claude-haiku-4-5-20251001', dir)).toBe('claude-haiku-4-5-20251001');
+    } finally {
+      rmSync(dir, {recursive: true, force: true});
+    }
+  });
+
+  test('a malformed config file degrades to the default (never throws)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-model-bad-'));
+    try {
+      mkdirSync(join(dir, '.cladding'), {recursive: true});
+      writeFileSync(join(dir, '.cladding', 'config.yaml'), ':::not yaml at all\n');
+      expect(resolveModel(undefined, dir)).toBe(DEFAULT_MODEL);
+    } finally {
+      rmSync(dir, {recursive: true, force: true});
+    }
   });
 });

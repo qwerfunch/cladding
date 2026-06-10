@@ -210,9 +210,9 @@ function specSeed(
     if (h.preferred_persona) {
       projectLines.push(`    preferred_persona: ${h.preferred_persona}`);
     }
-    if (typeof h.token_budget_per_session === 'number') {
-      projectLines.push(`    token_budget_per_session: ${h.token_budget_per_session}`);
-    }
+    // token_budget_per_session: DEPRECATED 0.6.0 (F-b43066) — zero runtime
+    // consumers ever existed; no longer written. The schema accepts existing
+    // specs carrying it until 0.7 (deleting now would false-RED them).
     if (h.test_framework) {
       projectLines.push(`    test_framework: ${h.test_framework}`);
     }

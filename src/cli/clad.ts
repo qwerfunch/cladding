@@ -350,6 +350,7 @@ export async function runUpdateCommand(): Promise<void> {
   pulse('pass', 'spec', `inventory synced · ${r.features} features`);
   pulse(r.claudeMd === 'refreshed-stale' ? 'note' : 'pass', 'CLAUDE.md', r.claudeMd);
   pulse(r.agentsMd === 'refreshed-stale' ? 'note' : 'pass', 'AGENTS.md', r.agentsMd);
+  for (const d of r.deprecations) pulse('note', 'deprecated', d);
   // Surface what the now-stricter detectors flag — REPORT only, never blocks.
   process.stdout.write('\n→ drift check (report-only · does not block, does not edit your spec):\n');
   const drift = runCheckStages({tier: 'pre-commit', strict: true});

@@ -25,7 +25,7 @@
 //     or rewriting the spec. Reconciling findings stays the user's call.
 //   * Idempotent: a second run with nothing stale is a clean no-op.
 
-import {existsSync} from 'node:fs';
+import {existsSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
 
 import {
@@ -59,6 +59,8 @@ export interface UpdateResult {
   readonly features: number;
   /** Process exit code: nonzero only on host-wiring failure (drift never blocks). */
   readonly code: number;
+  /** Report-only deprecation notices (F-b43066) — dead spec knobs draining out. */
+  readonly deprecations: readonly string[];
 }
 
 /**
@@ -81,6 +83,7 @@ export async function runUpdate(cwd: string, deps: UpdateDeps): Promise<UpdateRe
       agentsMd: 'n/a',
       features: 0,
       code: wiringErrors > 0 ? 1 : 0,
+      deprecations: [],
     };
   }
 
@@ -93,6 +96,20 @@ export async function runUpdate(cwd: string, deps: UpdateDeps): Promise<UpdateRe
   const claudeMd = writeClaudeMdSection(cwd);
   const agentsMd = writeAgentsMd(cwd);
 
+  // 4. Deprecation sweep (report-only, F-b43066): dead spec knobs that the
+  //    schema still accepts but 0.7 removes — surfaced here, never blocking.
+  const deprecations: string[] = [];
+  try {
+    const raw = readFileSync(join(cwd, 'spec.yaml'), 'utf8');
+    if (/^\s*token_budget_per_session:/m.test(raw)) {
+      deprecations.push(
+        'ai_hints.token_budget_per_session is deprecated (it never had a runtime consumer) — remove the line; the schema stops accepting it in 0.7.',
+      );
+    }
+  } catch {
+    /* report-only */
+  }
+
   return {
     isProject: true,
     wiringErrors,
@@ -100,5 +117,6 @@ export async function runUpdate(cwd: string, deps: UpdateDeps): Promise<UpdateRe
     agentsMd,
     features: inv.features ?? 0,
     code: wiringErrors > 0 ? 1 : 0,
+    deprecations,
   };
 }
