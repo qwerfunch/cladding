@@ -11,7 +11,7 @@
 import {existsSync, readFileSync, readdirSync, statSync, writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 
-import yaml from 'yaml';
+import yaml, {parse} from 'yaml';
 
 import type {Inventory} from './types.js';
 
@@ -155,4 +155,44 @@ export function upsertInventoryBlock(body: string, inventory: Inventory): string
       .join('\n')
       .replace(/\n{3,}/g, '\n\n'),
   );
+}
+
+/**
+ * F-37b4a8 — generated feature index. With sharding, "which feature owns X"
+ * was an N-file directory scan (the extended A/B's H10 caveat); this emits
+ * spec/index.yaml with ONE id-sorted line per feature so lookup is a 1-file
+ * grep at any shard count. Committed-but-derived (Tier C): regenerated on
+ * every sync; line-per-feature keeps git merges union-friendly. Unsharded
+ * specs (no spec/features/ dir) get no index — they already fit in one file.
+ */
+export function writeFeatureIndex(cwd: string = '.'): boolean {
+  const featuresDir = join(cwd, 'spec', 'features');
+  if (!existsSync(featuresDir)) return false;
+  const rows: string[] = [];
+  for (const file of readdirSync(featuresDir).sort()) {
+    if (!file.endsWith('.yaml') && !file.endsWith('.yml')) continue;
+    try {
+      const doc = parse(readFileSync(join(featuresDir, file), 'utf8')) as {
+        id?: string;
+        slug?: string;
+        status?: string;
+        modules?: unknown[];
+      } | null;
+      if (!doc?.id) continue;
+      const slug = doc.slug ?? file.replace(/\.(ya?ml)$/, '');
+      rows.push(`  ${doc.id}: {slug: ${slug}, status: ${doc.status ?? 'planned'}, modules: ${(doc.modules ?? []).length}}`);
+    } catch {
+      continue; // unparseable shard → ABSENCE_OF_GOVERNANCE owns that signal
+    }
+  }
+  rows.sort();
+  const body =
+    '# Cladding · Tier C — generated feature index (`clad sync`). Do not edit by hand.\n' +
+    '# One line per feature → 1-file lookup + line-independent merges\n' +
+    '# (suggested .gitattributes: `spec/index.yaml merge=union`).\n' +
+    'features:\n' +
+    rows.join('\n') +
+    '\n';
+  writeFileSync(join(cwd, 'spec', 'index.yaml'), body, 'utf8');
+  return true;
 }

@@ -35,7 +35,7 @@ import type {Spec} from '../spec/types.js';
 import {createFeature, createScenario, linkCapability} from '../spec/new.js';
 import {recordOracle} from '../oracle/record.js';
 import {maintainDeliverable} from '../spec/deliverable-detect.js';
-import {computeInventory, writeInventoryToSpecYaml} from '../spec/inventory.js';
+import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../spec/inventory.js';
 import {runDrift} from '../stages/drift.js';
 
 /** Persona ids registered as MCP prompts (mirrors src/agents/). */
@@ -602,6 +602,7 @@ function syncInventory(cwd: string): void {
   try {
     if (existsSync(join(cwd, 'spec.yaml'))) {
       writeInventoryToSpecYaml(cwd, computeInventory(cwd));
+      writeFeatureIndex(cwd); // F-37b4a8
       // v0.5.x — when a CLI entry now exists but no deliverable is declared, auto-populate it
       // (calibrated to pass now) so DELIVERABLE_SMOKE engages BEFORE the agent reacts to the
       // INTEGRITY warn and declares it disabled. One-time (skips once present).

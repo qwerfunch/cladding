@@ -34,7 +34,7 @@ import {
   writeAgentsMd,
   writeClaudeMdSection,
 } from '../init/host-instructions.js';
-import {computeInventory, writeInventoryToSpecYaml} from '../spec/inventory.js';
+import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../spec/inventory.js';
 
 /**
  * Injected so `runUpdate` is unit-testable without touching the global home
@@ -90,6 +90,7 @@ export async function runUpdate(cwd: string, deps: UpdateDeps): Promise<UpdateRe
   // 2. Reconcile the spec.yaml inventory snapshot (deterministic).
   const inv = computeInventory(cwd);
   writeInventoryToSpecYaml(cwd, inv);
+  writeFeatureIndex(cwd); // F-37b4a8
 
   // 3. Refresh the cladding-managed CLAUDE.md / AGENTS.md section — staleness-
   //    based only; user prose preserved, no `--force`, no LLM dispatch.
