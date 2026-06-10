@@ -18,7 +18,7 @@
 //             evidence.
 
 import {existsSync, readFileSync, readdirSync, statSync, writeFileSync} from 'node:fs';
-import {basename, join} from 'node:path';
+import {basename, join, relative} from 'node:path';
 
 import {parse} from 'yaml';
 
@@ -68,7 +68,7 @@ export function repairTestRefs(cwd: string = '.'): RepairOutcome {
   const testFiles = collectTestFiles(testsRoot);
   const byBasename = new Map<string, string[]>();
   for (const abs of testFiles) {
-    const rel = abs.slice(cwd.length + 1).split('\\').join('/');
+    const rel = relative(cwd, abs).split('\\').join('/');
     const list = byBasename.get(basename(abs)) ?? [];
     list.push(rel);
     byBasename.set(basename(abs), list);
@@ -103,6 +103,7 @@ export function repairTestRefs(cwd: string = '.'): RepairOutcome {
         const candidates = byBasename.get(basename(pathPart)) ?? [];
         if (candidates.length !== 1) continue; // ambiguous or none — never guess
         const to = ref.replace(pathPart, candidates[0]);
+        if (to === ref) continue; // no-op rewrite — never loop on our own output
         if (!body.includes(ref)) continue; // anchor formatting drift — leave it
         body = body.split(ref).join(to);
         repaired.push({shard: file, from: ref, to});
@@ -114,7 +115,7 @@ export function repairTestRefs(cwd: string = '.'): RepairOutcome {
     const slug = doc.slug ?? '';
     const moduleBases = (doc.modules ?? []).map((m) => basename(m).replace(/\.[jt]sx?$/, ''));
     const candidateForFeature = testFiles
-      .map((abs) => abs.slice(cwd.length + 1).split('\\').join('/'))
+      .map((abs) => relative(cwd, abs).split('\\').join('/'))
       .find((rel) => {
         const base = basename(rel).replace(TEST_FILE, '');
         return (slug !== '' && base === slug) || moduleBases.includes(base);

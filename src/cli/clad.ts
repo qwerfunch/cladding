@@ -70,7 +70,9 @@ export async function runServeCommand(opts: {cwd?: string}): Promise<void> {
   // stdout is reserved for MCP protocol traffic on stdio transport, so
   // status lines go to stderr via pulse (which writes to stderr by
   // default; verified below if pulse changes).
-  pulse('start', 'serve', `stdio transport · cwd=${opts.cwd ?? '.'}`);
+  // stdout IS the MCP wire — strict line-delimited JSON clients choke on a
+  // banner there (battery C8 note). The banner goes to stderr, bypassing pulse.
+  process.stderr.write(`· serve  stdio transport · cwd=${opts.cwd ?? '.'}\n`);
   await server.connect(transport);
   // The server runs until the client closes stdio; connect() does not
   // resolve until then on stdio transport, so we await it as-is. If a

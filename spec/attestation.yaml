@@ -4,10 +4,10 @@
 # --tier=pre-push --strict` GREEN refreshes. Content-anchored: survives
 # fresh clones and squash/rebase (suggested .gitattributes: merge=union).
 attested:
-  F-001: cc7d05038c247024
+  F-001: 3de7280ae661ceaa
   F-002: d5ca8e3ca1b269d5
   F-003: c1cefdf6bee2c3c0
-  F-004: 1233be35c9e82c73
+  F-004: 342f0fe86f722745
   F-005: 70c3b7166f297bff
   F-006: 488cb6f2d452a286
   F-007: d1c159c46d5a454f
@@ -45,7 +45,7 @@ attested:
   F-037: 7f811c5c8bc0e8e3
   F-038: 623c5ac64feb9e3e
   F-039: 2e60f3d899b72d7f
-  F-040: a6cc4381ad875b62
+  F-040: 5b855600d2bda73b
   F-041: cddb50fc41e49066
   F-042: d1f661281bb9fb6e
   F-043: 2c5f4a94e3e57e9b
@@ -53,9 +53,9 @@ attested:
   F-045: eeb04fc211501977
   F-046: 4b563fce74b6bb4b
   F-047: e68c5b0b35647e10
-  F-048: a577a3a32f428a29
+  F-048: b9864997753ea2c1
   F-049: 444a75986c1c3430
-  F-051: d63f7c84e4f580ff
+  F-051: e636093b99aade12
   F-052: 403959b4a46d140c
   F-053: e673116c3dde8c1b
   F-054: 5f5d30500bd8cd7f
@@ -68,7 +68,7 @@ attested:
   F-061: c16123610e8fe7fc
   F-062: 0ab83282a7f7b1ef
   F-063: a13418aa95289b63
-  F-064: daef9a71452d326a
+  F-064: b13b48b2ce8f5ecc
   F-065: e6ed3ef916201947
   F-066: 1760fa5caf84653e
   F-067: aeada205aea5596f
@@ -77,24 +77,24 @@ attested:
   F-070: e50bb5d3addc7720
   F-071: 3183a483a8015d4c
   F-072: 44e1d39139c816cc
-  F-073: 016799794d814678
+  F-073: 348d372064a04a1d
   F-074: c9803c1efc470ad8
-  F-075: 3d4b530873941b68
+  F-075: 0245ecf513ed4540
   F-076: a37187cde9a0318a
   F-077: 5bafce0435b5df21
   F-078: 330a78454dfa34a5
-  F-079: 18f4962ec6e3f5ca
+  F-079: 89e9f86de1e33081
   F-080: bd51bc264e04fef3
   F-081: 878b8a20e961f5ad
   F-098d3b: bae2b851def96844
-  F-09d68b: f4853d15543aeca3
+  F-09d68b: 949feb3739491293
   F-0ed2db: b7b137e43e5ce629
   F-12d740: 84ad71574d306c81
   F-16746b: 2f98a1261b9b1fc2
   F-17df0a: 915d13b33258d3fc
   F-18e951: 01eab8ebc703e140
   F-1c9166: 08e28a91d52bd266
-  F-1d23a6: 38329ea1398019aa
+  F-1d23a6: d19807887649c5c9
   F-1edb38: cf753d61550896d8
   F-24062d: 2ab478b2ccde28c0
   F-245bd5: cafb96e2d3365f7d
@@ -107,36 +107,36 @@ attested:
   F-3a5339: fd822cfdb173b2c3
   F-3b3690: 6b51fff97af39c6a
   F-40327b: 7e5a4ef6165201e3
-  F-417ff0: 6515d581c19c91ec
+  F-417ff0: 6a3fd175d71e6fcd
   F-42af48: 5090367871a2fffb
   F-4747ef: 5f7a07cb11560bb4
   F-4db939: c5f8f6fabcb3c27d
   F-50ff43: fac674314685a912
-  F-56abaa: 40f59238fd40a1d5
+  F-56abaa: 664034715811c7a1
   F-570a3f: 098424789b6306f6
   F-59f093: d34943aeb767cf0e
-  F-5b9f9f: 95dfe88e56faf514
+  F-5b9f9f: 012150ba71ff9fe8
   F-5d3ed2: 9452eac28760fb99
   F-5f6b45: 15323c4f5b619de7
   F-65814a: 2136c8b8c94ef535
-  F-67d2e9: db4b743150bc6c78
+  F-67d2e9: 2390003f8b98cc1d
   F-67e33f: 59de9fc59c41c256
   F-6d943d: 6af8ffadf36c5003
   F-6f80e7: 0c0e5b71ae22cc26
   F-78b50d: 9f7e513e89d92033
   F-7afbd4: 6a817bc7f6e9267e
-  F-7ce18e: d6db24187263f94d
+  F-7ce18e: 70a9b7eade88d058
   F-7fa4a7: 19b7709a0b2202e3
-  F-80d19d: daa8733b2d940ba8
+  F-80d19d: 8a86e47bd03f9233
   F-836a90: 7977fb34e8203eac
-  F-9064ff: d928027dc3d1f1ee
+  F-9064ff: 3940886cd5e802bb
   F-94dda4: 8dfb0267c45534f9
   F-99c6e5: 2be1c4cd36470806
   F-9a3b61: 4baa26103a280acc
-  F-9b643e: c0d6856c1608b5bd
+  F-9b643e: 413a37ddd6facc15
   F-a04cd9: dbfe8c7e80f2b9bc
   F-a4b512: adcbf9b404564b5c
-  F-a5228c: bbbe044493ea9de6
+  F-a5228c: bf73a114ce25848f
   F-aa7197: 7f561e4f3c902716
   F-ae61c1: d752e6fa6ced5516
   F-aee1da: a6d7525a6c547877
@@ -144,23 +144,23 @@ attested:
   F-af96b1: 474df26dc04724e0
   F-b43066: bad3cb273b7fc37e
   F-b61449: 7095ce00662e987d
-  F-b84c38: 739fe2fa4f5c531b
-  F-b99577: 381d73476bd2387d
+  F-b84c38: cf0e1f74e54585fc
+  F-b99577: 7e2dac9cd8ef4935
   F-ba2e05: 4ee2604ca6674573
   F-ba4b7a: c282e0e915ed547c
-  F-bb15e6: 937ae1317f59962c
+  F-bb15e6: eb18ecfe97537700
   F-bd07d7: 5deb2b62ea99d56a
-  F-bdcd90: 7764bbb31773d816
-  F-c037ae: deb3855ded5e683b
-  F-c2c996: 46e564db19efc637
-  F-c48eb2: 59f849cb2a42dfdf
-  F-c4c5ae: 65d4b9b7272b9ebe
+  F-bdcd90: 4489495e1c3e5e64
+  F-c037ae: c9900f6144ed53de
+  F-c2c996: a6f47b39cb495692
+  F-c48eb2: 4ed94b0a0fb9e69b
+  F-c4c5ae: 86b31343cc946972
   F-c8aef8: 02e07f929a1d0ded
   F-cd0415: 9cf6ce40e2a8b381
   F-cfba0c: 077c03b8a96f562b
   F-d12edf: 0b5ce2636145c0ff
   F-d3bde4: 915d13b33258d3fc
-  F-d49585: 42fa919b68058d51
+  F-d49585: 862089152ebc4bb6
   F-d7312b: f31809fb2513e35c
   F-dddb89: 1fbdc80b51a1654a
   F-eb732f: 9ff3d36d46957137

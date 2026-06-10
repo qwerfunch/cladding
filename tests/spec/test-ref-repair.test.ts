@@ -77,3 +77,61 @@ describe('repairTestRefs (F-c037ae)', () => {
     expect(readFileSync(join(dir, 'spec', 'features', 'other-flow-bbbb22.yaml'), 'utf8')).toBe(planned);
   });
 });
+
+// ─── 0.6.0 real-user battery regression (C4.2/C4.3) — the relative-cwd corruption ───
+
+describe('relative-cwd invocation (battery C4 regression)', () => {
+  test("repair under cwd='.' (the REAL clad sync path) writes the full path — no leading chars eaten, no self-repair loop", () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-refrepair-dot-'));
+    const prev = process.cwd();
+    try {
+      mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
+      mkdirSync(join(dir, 'tests', 'cli'), {recursive: true});
+      writeFileSync(join(dir, 'tests', 'cli', 'login.test.ts'), 'export {};\n');
+      writeFileSync(
+        join(dir, 'spec', 'features', 'login-flow-aaaa11.yaml'),
+        'id: F-aaaa11\nslug: login-flow\ntitle: t\nstatus: done\nmodules:\n  - src/login.ts\nacceptance_criteria:\n  - id: AC-001\n    ears: ubiquitous\n    text: t\n    test_refs:\n      - "tests/old/login.test.ts#logs in"\n',
+      );
+      process.chdir(dir);
+
+      const first = repairTestRefs('.');
+      expect(first.repaired).toEqual([
+        {shard: 'login-flow-aaaa11.yaml', from: 'tests/old/login.test.ts#logs in', to: 'tests/cli/login.test.ts#logs in'},
+      ]);
+      const body = readFileSync(join(dir, 'spec', 'features', 'login-flow-aaaa11.yaml'), 'utf8');
+      expect(body).toContain('"tests/cli/login.test.ts#logs in"'); // NOT "sts/cli/..."
+      expect(body).not.toContain('"sts/cli'); // the corrupt form started at the quote ('te' eaten)
+
+      // convergence: a second sync repairs nothing (no X → X loop)
+      const second = repairTestRefs('.');
+      expect(second.repaired).toEqual([]);
+    } finally {
+      process.chdir(prev);
+      rmSync(dir, {recursive: true, force: true});
+    }
+  });
+
+  test("derived suggestion under cwd='.' carries the full tests/ path", () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-derived-dot-'));
+    const prev = process.cwd();
+    try {
+      mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
+      mkdirSync(join(dir, 'tests', 'cli'), {recursive: true});
+      writeFileSync(join(dir, 'tests', 'cli', 'pay-flow.test.ts'), 'export {};\n');
+      writeFileSync(
+        join(dir, 'spec', 'features', 'pay-flow-bbbb22.yaml'),
+        'id: F-bbbb22\nslug: pay-flow\ntitle: t\nstatus: done\nmodules:\n  - src/pay.ts\nacceptance_criteria:\n  - id: AC-001\n    ears: ubiquitous\n    text: t\n',
+      );
+      process.chdir(dir);
+
+      const out = repairTestRefs('.');
+      expect(out.suggested).toEqual([{shard: 'pay-flow-bbbb22.yaml', ref: 'derived:tests/cli/pay-flow.test.ts'}]);
+      expect(readFileSync(join(dir, 'spec', 'features', 'pay-flow-bbbb22.yaml'), 'utf8')).toContain(
+        '"derived:tests/cli/pay-flow.test.ts"',
+      );
+    } finally {
+      process.chdir(prev);
+      rmSync(dir, {recursive: true, force: true});
+    }
+  });
+});
