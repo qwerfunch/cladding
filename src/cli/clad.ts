@@ -17,6 +17,7 @@ import {runUpdate} from './update.js';
 import {runInit} from './init.js';
 import {runClarifyCommand} from './clarify.js';
 import {runHostSetup} from '../init/host-setup.js';
+import {recordEvent} from '../events/log.js';
 import {runArch} from '../stages/arch.js';
 import {runAudit} from '../stages/audit.js';
 import {runCommit} from '../stages/commit.js';
@@ -494,6 +495,10 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
   } else if (anyFailed) {
     process.stdout.write('\nℹ Run `clad doctor` for the event log, or `clad sync` to validate spec shards. Drift findings above name the offending detector.\n');
   }
+  // F-b84c38 — verification freshness needs a data source: every tier run
+  // lands in the ledger (best-effort, deduped per identical HEAD/tier/strict/
+  // worst tuple so repeated identical runs add no growth).
+  recordEvent('.', 'gate_run', {tier, strict: opts.strict === true, worst, anyFailed});
   return {worst, anyFailed};
 }
 

@@ -64,6 +64,11 @@ vi.mock('../../src/stages/uat.js', () => ({runUat: (...a: unknown[]) => stubs['s
 
 // Swappable spec: default = NO tested-done features (guard never fires);
 // the guard variant swaps in one done feature declaring test_refs.
+// gate_run emission (F-b84c38) is part of the pinned contract — mocked so the
+// matrix never writes to the real repo ledger, asserted explicitly below.
+const recordEventMock = vi.fn();
+vi.mock('../../src/events/log.js', () => ({recordEvent: (...a: unknown[]) => recordEventMock(...(a as []))}));
+
 const loadSpecMock = vi.fn((): unknown => ({features: []}));
 vi.mock('../../src/spec/load.js', () => ({loadSpec: (...a: unknown[]) => loadSpecMock(...(a as []))}));
 
@@ -208,5 +213,14 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
     expect(doc.anyFailed).toBe(true);
     expect(doc.stages).toEqual([]);
     for (const fn of Object.values(stubs)) expect(fn).not.toHaveBeenCalled();
+  });
+
+  test('PINNED (0.6.0): every invocation records exactly one gate_run with tier/strict/worst/anyFailed', () => {
+    setAll(PASS);
+    recordEventMock.mockClear();
+    runMatrixCase('pre-push', true);
+    const gateRuns = recordEventMock.mock.calls.filter((c) => c[1] === 'gate_run');
+    expect(gateRuns.length).toBe(1);
+    expect(gateRuns[0][2]).toEqual({tier: 'pre-push', strict: true, worst: 0, anyFailed: false});
   });
 });

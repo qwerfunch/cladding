@@ -21,6 +21,8 @@
 
 import {createHash} from 'node:crypto';
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
+
+import {recordEvent} from '../events/log.js';
 import {hostname, userInfo} from 'node:os';
 import {join} from 'node:path';
 
@@ -156,6 +158,8 @@ export function createFeature(opts: CreateFeatureOptions): CreateFeatureResult {
     acceptance_criteria: opts.acceptance_criteria,
   });
   writeFileSync(filePath, yaml, 'utf8');
+  // F-b84c38 — spec authorship lands in the ledger (best-effort).
+  recordEvent(cwd, 'feature_created', {feature: id, slug});
 
   return {id, path: filePath, slug};
 }
@@ -332,6 +336,7 @@ export function createScenario(opts: CreateScenarioOptions): CreateScenarioResul
   const title = opts.title ?? slug;
   const yaml = renderScenarioYaml({id, slug, title, flow: opts.flow, features: opts.features ?? []});
   writeFileSync(filePath, yaml, 'utf8');
+  recordEvent(cwd, 'scenario_created', {scenario: id, slug});
 
   return {id, path: filePath, slug};
 }

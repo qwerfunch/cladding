@@ -8,6 +8,9 @@
 
 import {beforeEach, afterEach, describe, expect, test, vi} from 'vitest';
 
+vi.mock('../../src/events/log.js', () => ({recordEvent: vi.fn()}));
+
+
 vi.mock('../../src/cli/init.js', () => ({runInit: vi.fn()}));
 vi.mock('../../src/spec/load.js', () => ({loadSpec: vi.fn()}));
 vi.mock('../../src/router/intent.js', () => ({classifyIntent: vi.fn()}));

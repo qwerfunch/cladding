@@ -16,6 +16,7 @@ import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 import {parse as parseYaml} from 'yaml';
 
 import {createFeature, createScenario} from '../../src/spec/new.js';
+import {readEvents} from '../../src/events/log.js';
 
 describe('createFeature (F-084, v0.3.9)', () => {
   let dir: string;
@@ -271,5 +272,22 @@ describe('createFeature — EARS-shape validation at creation (Lever ①)', () =
     }
     expect(msg).toMatch(/acceptance_criteria\[0\]/);
     expect(msg).toMatch(/acceptance_criteria\[1\]/);
+  });
+});
+
+// ─── F-b84c38 — spec authorship lands in the ledger ───
+
+describe('createFeature ledger emission (F-b84c38)', () => {
+  test('feature_created carries id, slug, and identity', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-new-ev-'));
+    try {
+      const r = createFeature({slug: 'ledger-probe', cwd: dir});
+      const ev = readEvents(dir).filter((e) => e.type === 'feature_created');
+      expect(ev.length).toBe(1);
+      expect(ev[0].payload).toMatchObject({feature: r.id, slug: 'ledger-probe'});
+      expect((ev[0].payload as {identity?: {author?: string}}).identity?.author).toBe('human');
+    } finally {
+      rmSync(dir, {recursive: true, force: true});
+    }
   });
 });

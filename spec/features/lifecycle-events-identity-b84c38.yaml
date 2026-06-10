@@ -1,0 +1,53 @@
+id: F-b84c38
+slug: lifecycle-events-identity
+title: "Lifecycle events with identity: feature_created / done_attempted / gate_run land in the ledger"
+status: done
+modules:
+  - src/events/log.ts
+  - src/spec/new.ts
+  - src/cli/done.ts
+  - src/cli/clad.ts
+acceptance_criteria:
+  - id: AC-88923c
+    ears: event
+    condition: "when createFeature or createScenario writes a shard"
+    action: "append a feature_created / scenario_created event carrying the new id, slug, and the actor identity (git author when resolvable, else OS user)"
+    response: "spec authorship is reconstructable from the ledger instead of only from git archaeology"
+    text: "When createFeature or createScenario writes a shard, the system shall append a feature_created / scenario_created event carrying the new id, slug, and actor identity (git author when resolvable, else OS user), so spec authorship is reconstructable from the ledger."
+    notes: "## Why\nToday only scan/checkpoint/the deprecated loop emit events — the supported per-feature cadence leaves no trace, so neither engagement measurement (0.6 bench) nor staleness detection (attestation) has a data source. Identity reuses the hitl Identity shape; 23 hand-flipped dones proved why the ledger must say WHO."
+    test_refs:
+      - "tests/spec/new.test.ts#feature_created carries id, slug, and identity"
+      - "tests/events/log.test.ts#stamps identity and (when in a git repo) head into the payload"
+  - id: AC-ac4a10
+    ears: event
+    condition: "when runDone attempts a status flip"
+    action: "append a done_attempted event recording the feature id, the gate outcome (worst, anyFailed), whether the flip was kept or reverted, the git HEAD, and identity"
+    response: "every done transition — kept or reverted — is forensic data"
+    text: "When runDone attempts a status flip, the system shall append a done_attempted event recording feature id, gate outcome, kept-or-reverted, git HEAD, and identity, so every done transition is forensic data."
+    test_refs:
+      - "tests/cli/done.test.ts#records done_attempted with kept:true on a GREEN gate"
+      - "tests/cli/done.test.ts#records done_attempted with kept:false when the gate is RED and the flip reverts"
+  - id: AC-49da41
+    ears: event
+    condition: "when runCheckStages completes a tier run"
+    action: "append a gate_run event with tier, strict flag, worst code, anyFailed, git HEAD, and identity — deduplicated when an identical (HEAD, tier, strict, worst) tuple is already the ledger's latest gate_run"
+    response: "verification freshness has a data source without unbounded log growth from repeated identical runs"
+    text: "When runCheckStages completes a tier run, the system shall append a gate_run event with tier, strict, worst, anyFailed, git HEAD, and identity, deduplicating when an identical (HEAD, tier, strict, worst) tuple is already the latest gate_run, so verification freshness gains a data source without unbounded growth."
+    test_refs:
+      - "tests/cli/gate-golden-matrix.test.ts#PINNED (0.6.0): every invocation records exactly one gate_run with tier/strict/worst/anyFailed"
+      - "tests/events/log.test.ts#gate_run dedupes the identical (head, tier, strict, worst) tuple but appends on any change"
+  - id: AC-346653
+    ears: unwanted
+    condition: "if .cladding/events.log.jsonl exceeds the rotation threshold at append time"
+    action: "rename the live log to events.log.1.jsonl (replacing any previous roll) and start a fresh live log"
+    response: "reads stay bounded; at most two generations exist on disk"
+    text: "If the events log exceeds the rotation threshold (default 5 MB), the system shall roll it to events.log.1.jsonl before appending (single-generation roll, newest kept live), so unbounded append-only growth cannot make every doctor/read O(entire history)."
+    test_refs:
+      - "tests/events/log.test.ts#rolls the live log to events.log.1.jsonl past the threshold; reads stay bounded to the live file"
+  - id: AC-24c5f2
+    ears: ubiquitous
+    text: "The system shall keep event appends non-throwing (best-effort): a failure to resolve identity, stat the log, or write the event never breaks the calling command — the ledger observes the harness, it must not become a new failure mode."
+    notes: "## Decision\nerror-as-data: append failures degrade silently (the command outcome is unchanged). ## Trade-off\nA lost event is acceptable; a gate broken by its own telemetry is not."
+
+    test_refs:
+      - "tests/events/log.test.ts#never throws even when the cwd is not writable territory"
