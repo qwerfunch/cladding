@@ -100,6 +100,12 @@ export async function runUpdate(cwd: string, deps: UpdateDeps): Promise<UpdateRe
   // 4. Deprecation sweep (report-only, F-b43066): dead spec knobs that the
   //    schema still accepts but 0.7 removes — surfaced here, never blocking.
   const deprecations: string[] = [];
+  // F-16746b — CI is the authoritative gate; surface its absence (report-only).
+  if (!existsSync(join(cwd, '.github', 'workflows'))) {
+    deprecations.push(
+      'no CI workflow found — client hooks are per-dev bypassable; scaffold the authoritative gate with `clad init --with-ci`.',
+    );
+  }
   try {
     const raw = readFileSync(join(cwd, 'spec.yaml'), 'utf8');
     if (/^\s*token_budget_per_session:/m.test(raw)) {

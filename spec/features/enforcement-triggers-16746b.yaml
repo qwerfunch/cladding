@@ -1,0 +1,38 @@
+id: F-16746b
+slug: enforcement-triggers
+title: "Pre-push hook + CI workflow template — the strict tier finally has triggers, with CI named the authoritative gate"
+status: done
+modules:
+  - src/init/git-hook.ts
+  - src/cli/init.ts
+  - src/cli/update.ts
+acceptance_criteria:
+  - id: AC-b0e73e
+    ears: event
+    condition: "when clad init --with-hook runs in a git worktree"
+    action: "install BOTH cladding-marked hooks: pre-commit (cheap tier, unchanged) and pre-push running clad check --tier=pre-push --strict, with the same idempotent/foreign-hook-safe semantics"
+    response: "the tier containing tests/conformance/smoke finally has a local trigger — before this, pre-push existed only as a manual invocation"
+    text: "When clad init --with-hook runs in a git worktree, the system shall install both the pre-commit hook and a pre-push hook running the strict pre-push tier, with idempotent and foreign-hook-safe semantics."
+    notes: "## Why\nTIER_STAGES defined a pre-push tier since 0.4.x but NO pre-push hook installer existed — stage_2.3/2.4 had no local trigger at all (enterprise review blocker E2)."
+    test_refs:
+      - "tests/init/git-hook.test.ts#renders a strict pre-push hook and installs it alongside pre-commit"
+  - id: AC-a3152c
+    ears: event
+    condition: "when clad init --with-ci runs (or clad update finds no CI workflow while a spec exists)"
+    action: "scaffold .github/workflows/cladding.yml running clad check --tier=pre-push --strict --json on push/PR (update only suggests, never writes)"
+    response: "the authoritative gate exists server-side — client hooks are bypassable per-dev (--no-verify is printed in the hook itself); CI/branch protection is where enforcement is real"
+    text: "When clad init --with-ci runs, the system shall scaffold a CI workflow running the strict pre-push gate on push/PR; clad update shall suggest it when missing. Docs name CI the authoritative gate and hooks the latency reducers."
+    notes: "## Decision\nThe template is GitHub Actions (the dominant host); it is a starting point the user owns after scaffolding — cladding never edits an existing workflow."
+    test_refs:
+      - "tests/init/git-hook.test.ts#creates the authoritative-gate workflow once and never overwrites it"
+      - "tests/cli/update.test.ts#reports the missing authoritative gate with the --with-ci remediation"
+  - id: AC-bf640e
+    ears: unwanted
+    condition: "if a foreign hook or existing workflow occupies the target path"
+    action: "skip with a report line (hooks: force to override; CI: always skip)"
+    response: "user-owned enforcement is never silently replaced"
+    text: "If a foreign (non-cladding) pre-push hook or an existing CI workflow file is present, the system shall skip and report rather than overwrite (force flag required for hooks; CI scaffold never overwrites), so cladding never clobbers user-owned enforcement."
+
+    test_refs:
+      - "tests/init/git-hook.test.ts#a foreign pre-push hook is never overwritten without force"
+      - "tests/init/git-hook.test.ts#creates the authoritative-gate workflow once and never overwrites it"

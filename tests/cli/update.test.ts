@@ -5,7 +5,7 @@
 // The drift REPORT lives in the command wrapper (report-only), so it is not
 // exercised here — these tests pin the safe, idempotent mutations + exit code.
 
-import {mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
@@ -68,6 +68,7 @@ describe('deprecation report (F-b43066)', () => {
         join(dir, 'spec.yaml'),
         'schema: "0.1"\nproject:\n  name: x\n  language: typescript\n  ai_hints:\n    token_budget_per_session: 4000\nfeatures: []\n',
       );
+      mkdirSync(join(dir, '.github', 'workflows'), {recursive: true}); // isolate from the CI-absence notice (F-16746b)
       const r = await runUpdate(dir, {wireHosts: async () => 0});
       expect(r.deprecations.length).toBe(1);
       expect(r.deprecations[0]).toContain('token_budget_per_session');
@@ -81,8 +82,25 @@ describe('deprecation report (F-b43066)', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-update-clean-'));
     try {
       writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: x\n  language: typescript\nfeatures: []\n');
+      mkdirSync(join(dir, '.github', 'workflows'), {recursive: true});
       const r = await runUpdate(dir, {wireHosts: async () => 0});
       expect(r.deprecations).toEqual([]);
+    } finally {
+      rmSync(dir, {recursive: true, force: true});
+    }
+  });
+});
+
+// ─── F-16746b — CI-absence notice ───
+
+describe('CI-absence notice (F-16746b)', () => {
+  test('reports the missing authoritative gate with the --with-ci remediation', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-update-ci-'));
+    try {
+      writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: x\n  language: typescript\nfeatures: []\n');
+      const r = await runUpdate(dir, {wireHosts: async () => 0});
+      expect(r.deprecations.some((d) => d.includes('clad init --with-ci'))).toBe(true);
+      expect(r.code).toBe(0); // report-only
     } finally {
       rmSync(dir, {recursive: true, force: true});
     }
