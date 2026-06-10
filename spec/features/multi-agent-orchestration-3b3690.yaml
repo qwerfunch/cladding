@@ -6,7 +6,7 @@ status: done
 modules:
   - docs/feature-cycle.md
   - src/agents/orchestrator.md
-  - src/agents/specialists.md
+  - src/agents/developer.md
   - src/agents/reviewer.md
 depends_on:
   - F-af96b1
@@ -26,9 +26,9 @@ acceptance_criteria:
   - id: AC-003
     ears: ubiquitous
     action: 'author acceptance tests in a SEPARATE specialists dispatch handed the acceptance_criteria + module signatures (not the implementation), distinct from the code dispatch'
-    response: 'src/agents/specialists.md defines one-role-per-dispatch (code | test-author): the test-author is handed the acceptance_criteria + module signatures only and instructed not to read the implementation, and the cycle never routes both roles to one dispatch, so the two are independent agent contexts with no shared memory (the structural half). Test-author blindness to the implementation is advisory — the dispatch keeps Read access, so it is upheld by the prompt + the reviewer''s audit, not a sandbox; the enforced anti-self-cert is the identity layer (checkAc requires human evidence before stage_4; the drive loop halts when reviewer identity equals the implementer''s)'
+    response: 'src/agents/developer.md defines one-role-per-dispatch (code | test-author): the test-author is handed the acceptance_criteria + module signatures only and instructed not to read the implementation, and the cycle never routes both roles to one dispatch, so the two are independent agent contexts with no shared memory (the structural half). Test-author blindness to the implementation is advisory — the dispatch keeps Read access, so it is upheld by the prompt + the reviewer''s audit, not a sandbox; the enforced anti-self-cert is the identity layer (checkAc requires human evidence before stage_4; the drive loop halts when reviewer identity equals the implementer''s)'
     text: The system shall author a feature''s acceptance tests in an independent agent dispatch handed only the acceptance criteria and module signatures, so the tests are authored from the spec rather than the implementation.
-    evidence_refs: [src/agents/specialists.md, docs/feature-cycle.md]
+    evidence_refs: [src/agents/developer.md, docs/feature-cycle.md]
   - id: AC-004
     ears: ubiquitous
     action: 'fan out reviewers by lens (correctness · spec-conformance · security · performance) as independent read-only contexts whose passes:false is a hard block'

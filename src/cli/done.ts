@@ -22,7 +22,7 @@ import {join} from 'node:path';
 
 import {parseSpec} from '../spec/parse.js';
 
-/** Gate runner injected so tests can drive `performDone` without spawning tsc/vitest. */
+/** Gate runner injected so tests can drive `runDone` without spawning tsc/vitest. */
 export interface DoneDeps {
   /** Runs a tier's stages; returns the worst exit code (0 = GREEN). */
   readonly checkStages: (opts: {strict?: boolean; tier?: string}) => {worst: number};
@@ -89,7 +89,7 @@ export function setStatus(body: string, status: string): string {
  * All IO is the shard file under `cwd` plus the injected gate runner, so this
  * is unit-testable without the real toolchain.
  */
-export function performDone(cwd: string, featureId: string, deps: DoneDeps): DoneResult {
+export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneResult {
   if (!featureId) {
     return {ok: false, code: 2, featureId, reason: 'feature id required (e.g. clad done F-001)'};
   }

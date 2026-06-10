@@ -11,9 +11,9 @@ import type {AgentContext, PersonaSpec} from '../../src/adapters/types.js';
 
 let tmp: string;
 
-const specialists: PersonaSpec = {
-  id: 'specialists',
-  body: 'specialists prompt',
+const developer: PersonaSpec = {
+  id: 'developer',
+  body: 'developer prompt',
   capabilities: new Set(['read', 'write', 'edit', 'exec']),
 };
 
@@ -42,7 +42,7 @@ afterEach(() => {
 
 describe('runAgent', () => {
   test('dispatches via the auto-detected host adapter and records evidence', async () => {
-    const out = await runAgent(specialists, ctxFor('F-001'));
+    const out = await runAgent(developer, ctxFor('F-001'));
     expect(['claude-code', 'generic-mcp']).toContain(out.adapter);
     expect(out.result.identity.author).toBe('llm');
     expect(out.evidence.featureId).toBe('F-001');

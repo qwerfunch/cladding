@@ -32,7 +32,7 @@ When the latest checkpoint has no `gitHead` (the project is not a git repo), the
 
 - After an autonomous drive iteration that ended in `RETRY_THRESHOLD`, `GATE_NO_PROGRESS`, or `UNCAUGHT_ERROR`.
 - After a manual implementation attempt that introduced a regression you don't want to bisect.
-- Before re-running `clad drive` on the same feature so the loop starts from a known-good HEAD instead of an in-progress mess.
+- Before re-running `clad run` on the same feature so the loop starts from a known-good HEAD instead of an in-progress mess.
 
 ## Pair with
 

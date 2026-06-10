@@ -23,7 +23,7 @@ vi.mock('../../src/cli/scan/dispatcher.js', () => ({
 }));
 
 const {runInit} = await import('../../src/cli/init.js');
-const {runRefineCommand} = await import('../../src/cli/refine.js');
+const {runClarifyCommand} = await import('../../src/cli/clarify.js');
 const {
   mkScenarioCwd,
   writeUnderCwd,
@@ -49,7 +49,7 @@ describe('greenfield lifecycle — 결제 SaaS for B2B intent', () => {
 
   beforeEach(() => {
     scenario = mkScenarioCwd('clad-greenfield-lifecycle-');
-    // Silence process.exit so runInit / runRefineCommand can be called
+    // Silence process.exit so runInit / runClarifyCommand can be called
     // in sequence without aborting the test process.
     exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined as never) as never);
     stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
@@ -109,7 +109,7 @@ describe('greenfield lifecycle — 결제 SaaS for B2B intent', () => {
     await runInit({cwd: scenario.path, intent: '결제 SaaS for B2B'});
 
     dispatchMock.mockResolvedValueOnce(GREENFIELD_S2_RESPONSE);
-    await runRefineCommand(['법인', '사업자만'], {cwd: scenario.path});
+    await runClarifyCommand(['법인', '사업자만'], {cwd: scenario.path});
 
     // First pending question marked answered.
     const stateBody = (await import('node:fs')).readFileSync(
@@ -185,7 +185,7 @@ describe('greenfield lifecycle — 결제 SaaS for B2B intent', () => {
     await runInit({cwd: scenario.path, intent: '결제 SaaS for B2B'});
 
     dispatchMock.mockResolvedValueOnce(GREENFIELD_S2_RESPONSE);
-    await runRefineCommand(['법인', '사업자만'], {cwd: scenario.path});
+    await runClarifyCommand(['법인', '사업자만'], {cwd: scenario.path});
 
     // Spec has the expected minimum content.
     assertSpecCompleteness(scenario.path, {

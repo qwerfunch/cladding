@@ -6,15 +6,15 @@ modules:
   - plugins/codex/.mcp.json
   - plugins/codex/skills/sync/SKILL.md
   - plugins/codex/skills/check/SKILL.md
-  - plugins/codex/skills/panel/SKILL.md
-  - plugins/codex/skills/drive/SKILL.md
+  - plugins/codex/skills/status/SKILL.md
+  - plugins/codex/skills/run/SKILL.md
   - plugins/codex/skills/init/SKILL.md
   - plugins/codex/skills/serve/SKILL.md
   - plugins/codex/skills/orchestrator/SKILL.md
-  - plugins/codex/skills/librarian/SKILL.md
+  - plugins/codex/skills/planner/SKILL.md
   - plugins/codex/skills/reviewer/SKILL.md
   - plugins/codex/skills/observability/SKILL.md
-  - plugins/codex/skills/specialists/SKILL.md
+  - plugins/codex/skills/developer/SKILL.md
   - scripts/build-plugin.mjs
 depends_on: [F-049, F-073, F-076]
 acceptance_criteria:
@@ -45,9 +45,9 @@ acceptance_criteria:
     evidence_refs:
       - plugins/codex/skills/sync/SKILL.md
       - plugins/codex/skills/check/SKILL.md
-      - plugins/codex/skills/drive/SKILL.md
+      - plugins/codex/skills/run/SKILL.md
       - plugins/codex/skills/orchestrator/SKILL.md
-      - plugins/codex/skills/specialists/SKILL.md
+      - plugins/codex/skills/developer/SKILL.md
   - id: AC-232
     ears: unwanted
     condition: if a src/agents/<id>.md persona file lacks a 'description' YAML frontmatter field

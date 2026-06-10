@@ -10,11 +10,11 @@ When adding a new spec entry to `spec/features/` or `spec/scenarios/`:
 
 - **DO NOT** create `spec/features/F-NNN.yaml` (the legacy sequential format) by hand.
 - **DO** use the hash-based model:
-  - Filename: `<slug>-<hash6>.yaml` (e.g. `auth-bypass-c4d108.yaml`)
-  - Inside the yaml: `id: F-<hash6>` plus `slug: <slug>`
-  - The hash should be a 6-character hex string. Generate with:
+  - Filename: `<slug>-<hash>.yaml` (e.g. `auth-bypass-c4d108e9.yaml`)
+  - Inside the yaml: `id: F-<hash>` plus `slug: <slug>`
+  - The hash is an 8-character hex string since 0.6.0 (legacy 6-char ids stay valid). Generate with:
     ```bash
-    node -e "console.log('F-' + require('node:crypto').randomBytes(3).toString('hex'))"
+    node -e "console.log('F-' + require('node:crypto').randomBytes(4).toString('hex'))"
     ```
 
 This rule exists because v0.3.9 introduced the multi-developer-safe hash model and external users get hash-based IDs whenever they invoke `clad_create_feature` via their host AI. Cladding's own spec must dogfood the same model — otherwise the reference implementation drifts from what the standard recommends.
@@ -61,7 +61,7 @@ Never auto-tag, auto-publish, or auto-release. Patch-first cadence — minor bum
 
 When operating inside a cladding-managed project (cladding itself included), grep `spec.yaml::project.ai_hints` at session start. It is the SSoT for AI behavior policy:
 
-- **`preferred_persona`** — which persona prompt to default to (`software-engineer`, `librarian`, `reviewer`, `observability`, `orchestrator`)
+- **`preferred_persona`** — which persona prompt to default to (`planner`, `developer`, `reviewer`, `observability`, `orchestrator`)
 - **`token_budget_per_session`** — soft cap on session size
 - **`test_framework`, `primary_branch`** — operational defaults (e.g. `vitest`, `develop`)
 - **`forbidden_patterns`** — identifier substrings you must NOT introduce (detector `AI_HINTS_FORBIDDEN_PATTERN` #27 enforces; `clad check --strict` will block)
@@ -72,7 +72,7 @@ Together with `docs/conventions.md` (style observed from code) and `docs/project
 | Tier | File | Source | Refresh by |
 |---|---|---|---|
 | B | `spec.yaml::project.ai_hints` | LLM via `clad init --intent` OR user-authored | manual edit; `clad sync` validates |
-| B | `docs/project-context.md` | LLM via onboarding OR user-authored | `clad init`, `clad refine` |
+| B | `docs/project-context.md` | LLM via onboarding OR user-authored | `clad init`, `clad clarify` |
 | C | `docs/conventions.md` | derived from code | `clad init --scan` |
 
 When `ai_hints` conflicts with `CLAUDE.md` for cladding-self specifically, **`ai_hints` wins** (it's the project-scoped SSoT; CLAUDE.md is the meta-instruction layer).
@@ -92,8 +92,8 @@ This project is managed by **cladding** (Spec-Anchored Agent Harness).
 satisfy the relevant `features[]` and `acceptance_criteria`. Run
 `clad check --strict` before commit.
 
-**Persona separation** — librarian writes spec, reviewer audits,
-specialists implement. The agent that authors must not sign off on its
+**Persona separation** — planner writes spec, reviewer audits,
+developer implements. The agent that authors must not sign off on its
 own work (anti-self-cert invariant).
 
 **Feature cycle — one at a time** — Work ONE feature end-to-end before

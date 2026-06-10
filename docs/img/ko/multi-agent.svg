@@ -1,5 +1,5 @@
 <svg width="680" height="420" viewBox="0 0 680 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="multi-agent-title">
-  <title id="multi-agent-title">5 페르소나 권한 분리 (CQS) — orchestrator 가 분배, librarian/specialist/reviewer 가 작업, observability 가 메트릭 관찰</title>
+  <title id="multi-agent-title">5 페르소나 권한 분리 (CQS) — orchestrator 가 분배, planner/developer/reviewer 가 작업, observability 가 메트릭 관찰</title>
   <rect x="260" y="20" width="160" height="60" rx="8" fill="#1e293b"/>
   <text x="340" y="48" font-family="sans-serif" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">orchestrator</text>
   <text x="340" y="68" font-family="monospace" font-size="12" fill="#cbd5e1" text-anchor="middle">dispatch (분배) only</text>
@@ -13,11 +13,11 @@
   </g>
   <text x="335" y="115" font-family="sans-serif" font-size="11" font-style="italic" fill="#475569" text-anchor="middle">작업 분배</text>
   <rect x="60"  y="165" width="160" height="90" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
-  <text x="140" y="190" font-family="sans-serif" font-size="15" font-weight="700" fill="#15803d" text-anchor="middle">librarian</text>
+  <text x="140" y="190" font-family="sans-serif" font-size="15" font-weight="700" fill="#15803d" text-anchor="middle">planner</text>
   <text x="140" y="215" font-family="monospace" font-size="12" fill="#166534" text-anchor="middle">spec  ✎ write</text>
   <text x="140" y="235" font-family="monospace" font-size="12" fill="#166534" text-anchor="middle">code  ◎ read</text>
   <rect x="260" y="165" width="160" height="90" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
-  <text x="340" y="190" font-family="sans-serif" font-size="15" font-weight="700" fill="#1d4ed8" text-anchor="middle">specialist</text>
+  <text x="340" y="190" font-family="sans-serif" font-size="15" font-weight="700" fill="#1d4ed8" text-anchor="middle">developer</text>
   <text x="340" y="215" font-family="monospace" font-size="12" fill="#1e3a8a" text-anchor="middle">code  ✎ write</text>
   <text x="340" y="235" font-family="monospace" font-size="12" fill="#1e3a8a" text-anchor="middle">spec  ◎ read</text>
   <rect x="460" y="165" width="160" height="90" rx="8" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/>

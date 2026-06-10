@@ -5,12 +5,14 @@ import {describe, expect, test} from 'vitest';
 import {classifyIntent} from '../../src/router/intent.js';
 
 describe('classifyIntent — clear-intent matches', () => {
-  test('Korean "기능 만들어줘" → work', () => {
-    expect(classifyIntent('기능 X 만들어줘')).toBe('work');
+  // 0.6.0: the former `work` verb's build/implement patterns classify to
+  // `run` (the verb that absorbed the removed stub's slot).
+  test('Korean "기능 만들어줘" → run', () => {
+    expect(classifyIntent('기능 X 만들어줘')).toBe('run');
   });
 
-  test('English "build the feature" → work', () => {
-    expect(classifyIntent('please build the auth feature')).toBe('work');
+  test('English "build the feature" → run', () => {
+    expect(classifyIntent('please build the auth feature')).toBe('run');
   });
 
   test('Korean "새 프로젝트 시작해줘" → init', () => {
@@ -37,26 +39,27 @@ describe('classifyIntent — clear-intent matches', () => {
     expect(classifyIntent('sync the spec')).toBe('sync');
   });
 
-  test('Korean "드라이브 돌려" → drive', () => {
-    expect(classifyIntent('드라이브 돌려줘')).toBe('drive');
+  // 0.6.0: `drive` was renamed to `run`; the match patterns are unchanged.
+  test('Korean "드라이브 돌려" → run', () => {
+    expect(classifyIntent('드라이브 돌려줘')).toBe('run');
   });
 
-  test('English "execute the loop" → drive', () => {
-    expect(classifyIntent('execute the loop')).toBe('drive');
+  test('English "execute the loop" → run', () => {
+    expect(classifyIntent('execute the loop')).toBe('run');
   });
 
-  test('English "kick off the drive" → drive', () => {
-    expect(classifyIntent('kick off the drive')).toBe('drive');
+  test('English "kick off the drive" → run', () => {
+    expect(classifyIntent('kick off the drive')).toBe('run');
   });
 
-  test('Korean "이걸 끌고 가" → drive', () => {
-    expect(classifyIntent('이걸 끌고 가')).toBe('drive');
+  test('Korean "이걸 끌고 가" → run', () => {
+    expect(classifyIntent('이걸 끌고 가')).toBe('run');
   });
 });
 
 describe('classifyIntent — ambiguous or out-of-vocab → unknown', () => {
-  test('planning intent "기획 세워줘" → unknown (librarian territory)', () => {
-    // Drive means *executing* an already-defined plan, not *making* one.
+  test('planning intent "기획 세워줘" → unknown (planner territory)', () => {
+    // Run means *executing* an already-defined plan, not *making* one.
     expect(classifyIntent('기획 세워줘')).toBe('unknown');
   });
 
@@ -90,7 +93,7 @@ describe('classifyIntent — ambiguous or out-of-vocab → unknown', () => {
 });
 
 describe('classifyIntent — rule order invariant', () => {
-  test('"initialize and build" → init (init rule evaluated before work)', () => {
+  test('"initialize and build" → init (init rule evaluated before the broad build rule)', () => {
     expect(classifyIntent('initialize and build')).toBe('init');
   });
 

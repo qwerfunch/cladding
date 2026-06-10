@@ -76,10 +76,12 @@ function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
   const policy = resolveOraclePolicy(spec.project);
   const evidence = policy.mandateActive ? readEvidence(cwd) : [];
   const oracleEv = evidence.filter((e) => e.kind === 'oracle');
-  // The implementer identity per feature = the specialist dispatch the drive
-  // loop records (agent.ts:97-105, stage 'agent:specialists').
+  // The implementer identity per feature = the implementer dispatch the loop
+  // records (agent.ts, stage 'agent:developer'; pre-0.6.0 audit logs carry the
+  // persona's old id as 'agent:specialists' — both spellings stay readable).
+  const implementerStages = new Set(['agent:developer', 'agent:specialists']);
   const implementerName = (featureId: string): string | undefined =>
-    evidence.find((e) => e.featureId === featureId && e.stage === 'agent:specialists')?.identity.name;
+    evidence.find((e) => e.featureId === featureId && implementerStages.has(e.stage))?.identity.name;
 
   for (const feature of spec.features) {
     if (feature.status !== 'done') continue;

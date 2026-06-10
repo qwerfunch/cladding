@@ -76,7 +76,7 @@
           "properties": {
             "preferred_persona": {
               "type": "string",
-              "description": "Which persona prompt to load by default (e.g. 'software-engineer', 'specialist', 'reviewer', 'observability', 'librarian')."
+              "description": "Which persona prompt to load by default (e.g. 'planner', 'developer', 'reviewer', 'observability', 'orchestrator')."
             },
             "token_budget_per_session": {
               "type": "integer",

@@ -13,7 +13,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {findShardFile, performDone, setStatus} from '../../src/cli/done.js';
+import {findShardFile, runDone, setStatus} from '../../src/cli/done.js';
 
 // A realistic shard shape: a leading comment line, the id, a status, a
 // title, and a couple of acceptance-criteria lines.
@@ -110,7 +110,7 @@ describe('setStatus', () => {
   });
 });
 
-describe('performDone', () => {
+describe('runDone', () => {
   let dir: string;
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'clad-done-'));
@@ -121,7 +121,7 @@ describe('performDone', () => {
 
   test('GREEN gate keeps done and writes status: done to disk', () => {
     const path = writeShard(dir);
-    const res = performDone(dir, FEATURE_ID, {
+    const res = runDone(dir, FEATURE_ID, {
       checkStages: () => ({worst: 0}),
     });
     expect(res.ok).toBe(true);
@@ -137,7 +137,7 @@ describe('performDone', () => {
   test('RED gate reverts the shard byte-for-byte', () => {
     const path = writeShard(dir);
     const original = readFileSync(path, 'utf8');
-    const res = performDone(dir, FEATURE_ID, {
+    const res = runDone(dir, FEATURE_ID, {
       checkStages: () => ({worst: 1}),
     });
     expect(res.ok).toBe(false);
@@ -153,7 +153,7 @@ describe('performDone', () => {
   });
 
   test('empty feature id → code 2', () => {
-    const res = performDone(dir, '', {
+    const res = runDone(dir, '', {
       checkStages: () => ({worst: 0}),
     });
     expect(res.ok).toBe(false);
@@ -163,7 +163,7 @@ describe('performDone', () => {
 
   test('no matching shard → code 1 with "no feature shard"', () => {
     // spec/features/ does not exist at all.
-    const res = performDone(dir, FEATURE_ID, {
+    const res = runDone(dir, FEATURE_ID, {
       checkStages: () => ({worst: 0}),
     });
     expect(res.ok).toBe(false);
@@ -174,7 +174,7 @@ describe('performDone', () => {
   test('flip precedes the gate — the gate sees status: done already on disk', () => {
     const path = writeShard(dir);
     let sawDoneAtGateTime = false;
-    const res = performDone(dir, FEATURE_ID, {
+    const res = runDone(dir, FEATURE_ID, {
       checkStages: () => {
         // Read the shard at gate-call time and record whether the flip
         // already landed before the gate ran.
@@ -191,7 +191,7 @@ describe('performDone', () => {
   test('checkStages is invoked with {tier: "pre-push", strict: true}', () => {
     writeShard(dir);
     let captured: {strict?: boolean; tier?: string} | undefined;
-    performDone(dir, FEATURE_ID, {
+    runDone(dir, FEATURE_ID, {
       checkStages: (opts) => {
         captured = opts;
         return {worst: 0};

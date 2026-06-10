@@ -7,7 +7,7 @@
 // checkpoint the rollback targets, and a maintainer-runnable recovery
 // command. The Librarian agent persona is the authoring identity,
 // matching the ironclad-design role split (Librarian owns SSoT health
-// and history; specialists author code).
+// and history; developer authors code).
 //
 // File path: `.cladding/post-mortems/post-mortem-<F-id>-<ts>.md`.
 // The ts segment is the rollback event's ISO-8601 timestamp with
@@ -51,7 +51,7 @@ function isoToFilenameSegment(iso: string): string {
 /**
  * Writes the markdown post-mortem to `.cladding/post-mortems/` and
  * returns the absolute path. The directory is created on demand.
- * Authoring identity is `librarian` — matching the ironclad-design
+ * Authoring identity is `planner` — matching the ironclad-design
  * role split where SSoT history belongs to that persona.
  */
 export function writePostMortem(cwd: string, ctx: PostMortemContext): string {
@@ -68,7 +68,7 @@ export function writePostMortem(cwd: string, ctx: PostMortemContext): string {
   const body =
     `# Post-mortem · ${ctx.featureId}\n` +
     '\n' +
-    `_Authored by_ **librarian** · _Rolled back at_ \`${ctx.rolledBackAt}\`\n` +
+    `_Authored by_ **planner** · _Rolled back at_ \`${ctx.rolledBackAt}\`\n` +
     '\n' +
     '## What failed\n' +
     '\n' +
@@ -89,7 +89,7 @@ export function writePostMortem(cwd: string, ctx: PostMortemContext): string {
     `${recovery}\n` +
     '```\n' +
     '\n' +
-    `Then resume with \`clad drive\` or \`clad work ${ctx.featureId}\`.\n` +
+    `Then resume with \`clad run\` or the host-delegated path.\n` +
     '\n' +
     '## Notes\n' +
     '\n' +

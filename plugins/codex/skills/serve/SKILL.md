@@ -8,7 +8,7 @@ Run `clad serve` from the project root. Boots an MCP server over stdio that expo
 
 - **Tools**: `clad_list_features`, `clad_get_feature`, `clad_run_check`, `clad_get_events`.
 - **Resources**: `cladding://spec`, `cladding://events`, `cladding://audit`.
-- **Prompts**: 5 personas (orchestrator, librarian, reviewer, observability, specialists).
+- **Prompts**: 5 personas (orchestrator, planner, reviewer, observability, developer).
 - **Live audit notifications**: `notifications/resources/updated` fires for `cladding://audit` whenever a new evidence entry lands — a subscribed client can live-tail the audit log without polling.
 
 Registers itself in cladding's sampling context so the host adapters (`generic-mcp`, `claude-code`) route LLM dispatch through `McpSamplingTransport` instead of the Mock fallback.

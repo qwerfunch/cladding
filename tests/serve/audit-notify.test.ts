@@ -169,8 +169,8 @@ describe('serve · audit live notification (F-074)', () => {
         dir,
         newEvidence({
           featureId: 'F-001',
-          stage: 'agent:specialists',
-          identity: {author: 'llm', name: 'mcp-sampling:host:specialists', timestamp: '2026-05-19T00:00:00Z'},
+          stage: 'agent:developer',
+          identity: {author: 'llm', name: 'mcp-sampling:host:developer', timestamp: '2026-05-19T00:00:00Z'},
           kind: 'note',
           content: 'specialist authored',
         }),

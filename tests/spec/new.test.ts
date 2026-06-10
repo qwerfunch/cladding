@@ -2,7 +2,7 @@
 //
 // createFeature is the internal-only helper that issues a new sharded
 // feature file with a content-hash id. Tests cover:
-//   - happy path: slug → file written, id matches /^F-[a-f0-9]{6}$/
+//   - happy path: slug → file written, id matches /^F-[a-f0-9]{8}$/
 //   - slug validation: lowercase / kebab / length bounds
 //   - filename collision: existing <slug>.yaml rejected
 //   - hash collision: 2 invocations produce distinct ids (statistical)
@@ -29,7 +29,7 @@ describe('createFeature (F-084, v0.3.9)', () => {
   test('happy path — writes spec/features/<slug>-<hash>.yaml with hash id', () => {
     const r = createFeature({slug: 'login-flow', cwd: dir});
     expect(r.slug).toBe('login-flow');
-    expect(r.id).toMatch(/^F-[a-f0-9]{6}$/);
+    expect(r.id).toMatch(/^F-[a-f0-9]{8}$/);
     // filename = slug + hash; hash matches the id tail
     const hash = r.id.slice(2);
     expect(r.path).toBe(join(dir, 'spec', 'features', `login-flow-${hash}.yaml`));
@@ -168,8 +168,8 @@ describe('createFeature — rich authoring (modules + acceptance_criteria)', () 
     expect(parsed.modules).toEqual(['src/auth/login.ts', 'src/auth/session.ts']);
     expect(parsed.acceptance_criteria).toHaveLength(2);
     // AC ids are hash-model (AC-<hash6>) for multi-dev merge safety, like F-/S- ids.
-    expect(parsed.acceptance_criteria[0].id).toMatch(/^AC-[0-9a-f]{6}$/);
-    expect(parsed.acceptance_criteria[1].id).toMatch(/^AC-[0-9a-f]{6}$/);
+    expect(parsed.acceptance_criteria[0].id).toMatch(/^AC-[0-9a-f]{8}$/);
+    expect(parsed.acceptance_criteria[1].id).toMatch(/^AC-[0-9a-f]{8}$/);
     expect(parsed.acceptance_criteria[0].id).not.toBe(parsed.acceptance_criteria[1].id);
     expect(parsed.acceptance_criteria[0].ears).toBe('ubiquitous');
     expect(parsed.acceptance_criteria[0].text).toContain('shall authenticate');

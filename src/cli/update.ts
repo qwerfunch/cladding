@@ -37,9 +37,9 @@ import {
 import {computeInventory, writeInventoryToSpecYaml} from '../spec/inventory.js';
 
 /**
- * Injected so `performUpdate` is unit-testable without touching the global home
+ * Injected so `runUpdate` is unit-testable without touching the global home
  * dir. The drift REPORT is deliberately NOT here — it is report-only and lives
- * in the command wrapper, so `performUpdate` only ever does safe mutations.
+ * in the command wrapper, so `runUpdate` only ever does safe mutations.
  */
 export interface UpdateDeps {
   /** Re-wire host channels (wraps `runHostSetup`); resolves to the wiring-error count. */
@@ -69,7 +69,7 @@ export interface UpdateResult {
  * is unit-testable without the real toolchain or the user's home directory. The
  * stricter-detector REPORT is the caller's job (report-only, never blocks).
  */
-export async function performUpdate(cwd: string, deps: UpdateDeps): Promise<UpdateResult> {
+export async function runUpdate(cwd: string, deps: UpdateDeps): Promise<UpdateResult> {
   // 1. Re-wire hosts (global, idempotent) — useful even outside a project.
   const wiringErrors = await deps.wireHosts();
 

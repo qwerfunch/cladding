@@ -5,15 +5,15 @@ modules:
   - plugins/claude-code/.claude-plugin/plugin.json
   - skills/sync/SKILL.md
   - skills/check/SKILL.md
-  - skills/panel/SKILL.md
-  - skills/drive/SKILL.md
+  - skills/status/SKILL.md
+  - skills/run/SKILL.md
   - skills/init/SKILL.md
   - skills/serve/SKILL.md
   - plugins/claude-code/agents/orchestrator.md
-  - plugins/claude-code/agents/librarian.md
+  - plugins/claude-code/agents/planner.md
   - plugins/claude-code/agents/reviewer.md
   - plugins/claude-code/agents/observability.md
-  - plugins/claude-code/agents/specialists.md
+  - plugins/claude-code/agents/developer.md
   - scripts/build-plugin.mjs
 depends_on: [F-049, F-073]
 acceptance_criteria:
@@ -31,8 +31,8 @@ acceptance_criteria:
     evidence_refs:
       - skills/sync/SKILL.md
       - skills/check/SKILL.md
-      - skills/panel/SKILL.md
-      - skills/drive/SKILL.md
+      - skills/status/SKILL.md
+      - skills/run/SKILL.md
       - skills/init/SKILL.md
       - skills/serve/SKILL.md
   - id: AC-225
@@ -42,10 +42,10 @@ acceptance_criteria:
     text: The system shall mirror cladding's five persona files (orchestrator, librarian, reviewer, observability, specialists) from src/agents/ into plugins/claude-code/agents/ so Claude Code's agent picker surfaces them; the copy is performed by scripts/build-plugin.mjs and the result is committed to git.
     evidence_refs:
       - plugins/claude-code/agents/orchestrator.md
-      - plugins/claude-code/agents/librarian.md
+      - plugins/claude-code/agents/planner.md
       - plugins/claude-code/agents/reviewer.md
       - plugins/claude-code/agents/observability.md
-      - plugins/claude-code/agents/specialists.md
+      - plugins/claude-code/agents/developer.md
   - id: AC-226
     ears: state
     condition: while npm run build (or npm run build:plugin) is invoked

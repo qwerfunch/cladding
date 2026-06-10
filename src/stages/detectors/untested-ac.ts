@@ -12,7 +12,7 @@
 // test_refs document intended evidence paths that need not exist yet.
 //
 // The richer "test_refs resolve to a real vitest test name" variant
-// requires vitest AST introspection and lands behind the `specialists`
+// requires vitest AST introspection and lands behind the `developer`
 // agent later.
 
 import {existsSync} from 'node:fs';

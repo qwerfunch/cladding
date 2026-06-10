@@ -4,7 +4,7 @@
 // over InMemoryTransport. The tests check that:
 //   - all four tools are listed and callable
 //   - the three resources are listed and readable
-//   - all five persona prompts are listed
+//   - all five persona prompts are listed (+ the 0.6.0 alias prompts)
 //   - clad_get_feature gracefully reports an unknown id
 //   - clad_run_check returns the drift report shape
 //
@@ -19,7 +19,7 @@ import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {buildServer, PERSONA_IDS, RESOURCE_URIS, TOOL_NAMES} from '../../src/serve/server.js';
+import {buildServer, PERSONA_IDS, PERSONA_PROMPT_ALIASES, RESOURCE_URIS, TOOL_NAMES} from '../../src/serve/server.js';
 
 const MINIMAL_SPEC = `schema: "0.1"
 project:
@@ -98,12 +98,31 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
-  test('listPrompts surfaces every persona id', async () => {
+  test('listPrompts surfaces every persona id plus the 0.6.0 alias prompts', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const {prompts} = await client.listPrompts();
       const names = prompts.map((p) => p.name).sort();
-      expect(names).toEqual([...PERSONA_IDS].sort());
+      expect(names).toEqual(
+        [...PERSONA_IDS, ...Object.keys(PERSONA_PROMPT_ALIASES)].sort(),
+      );
+      // Alias prompts say so in the description (hosts read it).
+      const librarian = prompts.find((p) => p.name === 'librarian');
+      expect(librarian?.description).toContain("'librarian' is now 'planner'");
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test("getPrompt on the deprecated 'librarian' name serves the planner persona body", async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const aliased = await client.getPrompt({name: 'librarian', arguments: {}});
+      const canonical = await client.getPrompt({name: 'planner', arguments: {}});
+      const text = (name: typeof aliased) =>
+        (name.messages[0].content as {type: string; text: string}).text;
+      expect(text(aliased)).toBe(text(canonical));
+      expect(text(aliased)).toContain('Planner');
     } finally {
       await cleanup();
     }
@@ -321,10 +340,10 @@ describe('serve/server — MCP read surface', () => {
       const text = (result.content as Array<{type: string; text: string}>)[0].text;
       const parsed = JSON.parse(text);
       expect(parsed.slug).toBe('new-login-flow');
-      expect(parsed.id).toMatch(/^F-[a-f0-9]{6}$/);
+      expect(parsed.id).toMatch(/^F-[a-f0-9]{8}$/);
       // v0.3.10: filename is `<slug>-<hash>.yaml` so the hash entropy
       // distinguishes concurrent invocations.
-      expect(parsed.path).toMatch(/spec\/features\/new-login-flow-[a-f0-9]{6}\.yaml$/);
+      expect(parsed.path).toMatch(/spec\/features\/new-login-flow-[a-f0-9]{8}\.yaml$/);
       expect(result.isError).not.toBe(true);
     } finally {
       await cleanup();
@@ -429,8 +448,8 @@ describe('serve/server — MCP read surface', () => {
       const text = (result.content as Array<{type: string; text: string}>)[0].text;
       const parsed = JSON.parse(text);
       expect(parsed.slug).toBe('checkout-happy-path');
-      expect(parsed.id).toMatch(/^S-[a-f0-9]{6}$/);
-      expect(parsed.path).toMatch(/spec\/scenarios\/checkout-happy-path-[a-f0-9]{6}\.yaml$/);
+      expect(parsed.id).toMatch(/^S-[a-f0-9]{8}$/);
+      expect(parsed.path).toMatch(/spec\/scenarios\/checkout-happy-path-[a-f0-9]{8}\.yaml$/);
       expect(result.isError).not.toBe(true);
     } finally {
       await cleanup();

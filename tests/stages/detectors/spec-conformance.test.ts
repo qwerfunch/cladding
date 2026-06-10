@@ -43,8 +43,11 @@ const oracleEv = (name: string, opts: {manifest?: string[]; blind?: boolean} = {
   kind: 'oracle', content: 'oracle authored', artifact: 'tests/oracle/foo.test.ts',
   readManifest: opts.manifest ?? [], blind: opts.blind ?? true,
 });
-const implEv = (name: string) => ({
-  id: 'ev-i', featureId: 'F-001', acId: 'AC-001', stage: 'agent:specialists',
+// `stage` defaults to the pre-0.6.0 'agent:specialists' spelling on purpose:
+// old audit logs carry it, and the detector must keep matching both it and
+// the renamed 'agent:developer'.
+const implEv = (name: string, stage = 'agent:specialists') => ({
+  id: 'ev-i', featureId: 'F-001', acId: 'AC-001', stage,
   identity: {author: 'llm', name, timestamp: '2026-06-02T00:00:00Z'},
   kind: 'note', content: 'implemented',
 });
@@ -85,6 +88,14 @@ describe('SPEC_CONFORMANCE detector', () => {
   test('PROVENANCE: oracle author == implementer ⇒ error (not impl-blind)', () => {
     oracleFile();
     writeEvidence([implEv('same-model'), oracleEv('same-model', {manifest: []})]);
+    writeSpec(SPEC('name: f, language: typescript, require_oracles: true', '        oracle_refs: [tests/oracle/foo.test.ts]'));
+    const f = run();
+    expect(f.some((x) => x.severity === 'error' && /NOT impl-blind: authored by the implementer/.test(x.message))).toBe(true);
+  });
+
+  test("PROVENANCE: implementer recorded under the 0.6.0 'agent:developer' stage is matched too", () => {
+    oracleFile();
+    writeEvidence([implEv('same-model', 'agent:developer'), oracleEv('same-model', {manifest: []})]);
     writeSpec(SPEC('name: f, language: typescript, require_oracles: true', '        oracle_refs: [tests/oracle/foo.test.ts]'));
     const f = run();
     expect(f.some((x) => x.severity === 'error' && /NOT impl-blind: authored by the implementer/.test(x.message))).toBe(true);

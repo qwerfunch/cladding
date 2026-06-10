@@ -19,7 +19,7 @@ project:
     smoke_args: ["--version"]
     is_safe_to_smoke: true
   ai_hints:
-    preferred_persona: software-engineer
+    preferred_persona: developer
     token_budget_per_session: 4000
     test_framework: vitest
     primary_branch: develop
@@ -40,8 +40,8 @@ project:
 
 # Auto-maintained by `clad sync` (F-5b9f9f). Do not edit by hand.
 inventory:
-  features: 153
+  features: 154
   scenarios: 2
   capabilities: 5
   test_files: 122
-  last_synced: "2026-06-09"
+  last_synced: "2026-06-10"

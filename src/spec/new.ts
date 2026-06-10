@@ -5,11 +5,13 @@
 // multi-developer concurrency: two contributors can create features
 // simultaneously on separate branches without git merge conflicts as
 // long as their slugs differ — the hash id collision probability is
-// < 1/16M because the hash input includes user + hostname + timestamp
+// < 1/4.3B per pair (8 hex chars; widened from 6 in 0.6.0 because the
+// birthday bound at 6 hex reached ~50% near 5k features) and the hash
+// input includes user + hostname + timestamp
 // + hrtime.
 //
 // CLI surface: **none**. This function is invoked only from inside
-// cladding (drive loop, librarian persona dispatch) or via the
+// cladding (run loop, planner persona dispatch) or via the
 // `clad_create_feature` MCP tool that `clad serve` exposes to host
 // LLMs. A user never types a `clad spec new` command — they ask the
 // host AI ("add a feature for login-flow"), the host LLM calls the
@@ -105,7 +107,7 @@ export interface CreateFeatureResult {
  * @returns The newly-assigned id, the file path, and the slug.
  * @throws Error when `slug` is invalid or — extremely rarely — when
  *         the hash collides with an existing feature in this cwd
- *         (1/16M probability; the caller may retry).
+ *         (1/4.3B per-pair probability; the caller may retry).
  */
 export function createFeature(opts: CreateFeatureOptions): CreateFeatureResult {
   const slug = opts.slug;
@@ -137,9 +139,9 @@ export function createFeature(opts: CreateFeatureOptions): CreateFeatureResult {
   const hash = id.slice(2); // strip 'F-' prefix
   const filePath = join(featuresDir, `${slug}-${hash}.yaml`);
   if (existsSync(filePath)) {
-    // 1/16M coincidence — the caller can retry with a fresh timestamp.
+    // 1/4.3B coincidence — the caller can retry with a fresh timestamp.
     throw new Error(
-      `cladding: ${slug}-${hash}.yaml already exists (1/16M hash collision) — retry`,
+      `cladding: ${slug}-${hash}.yaml already exists (hash collision) — retry`,
     );
   }
 
@@ -221,7 +223,7 @@ function renderYaml(args: {
 /**
  * Generates a 6-character hex hash id. Inputs that distinguish two
  * concurrent invocations: slug, OS user, hostname, ms timestamp,
- * high-resolution nanosecond counter. Same hash twice = 1/16M
+ * high-resolution nanosecond counter. Same hash twice = 1/4.3B
  * coincidence; collision detection in the caller handles that.
  */
 function generateFeatureId(slug: string): string {
@@ -232,7 +234,7 @@ function generateFeatureId(slug: string): string {
     String(Date.now()),
     process.hrtime.bigint().toString(),
   ].join('|');
-  const hex = createHash('sha256').update(input).digest('hex').slice(0, 6);
+  const hex = createHash('sha256').update(input).digest('hex').slice(0, 8);
   return `F-${hex}`;
 }
 
@@ -255,7 +257,7 @@ function generateAcId(slug: string, index: number, ac: AcceptanceCriterionInput)
     String(Date.now()),
     process.hrtime.bigint().toString(),
   ].join('|');
-  const hex = createHash('sha256').update(input).digest('hex').slice(0, 6);
+  const hex = createHash('sha256').update(input).digest('hex').slice(0, 8);
   return `AC-${hex}`;
 }
 
@@ -323,7 +325,7 @@ export function createScenario(opts: CreateScenarioOptions): CreateScenarioResul
   const filePath = join(scenariosDir, `${slug}-${hash}.yaml`);
   if (existsSync(filePath)) {
     throw new Error(
-      `cladding: ${slug}-${hash}.yaml already exists (1/16M hash collision) — retry`,
+      `cladding: ${slug}-${hash}.yaml already exists (hash collision) — retry`,
     );
   }
 
@@ -367,7 +369,7 @@ function generateScenarioId(slug: string): string {
     String(Date.now()),
     process.hrtime.bigint().toString(),
   ].join('|');
-  const hex = createHash('sha256').update(input).digest('hex').slice(0, 6);
+  const hex = createHash('sha256').update(input).digest('hex').slice(0, 8);
   return `S-${hex}`;
 }
 

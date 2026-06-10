@@ -1,9 +1,9 @@
-// Cladding · `clad refine <answer>` — Q&A onboarding loop driver
+// Cladding · `clad clarify <answer>` — Q&A onboarding loop driver (verb renamed from `refine` in 0.6.0)
 //
 // After `clad init <intent>` writes `.cladding/onboarding/state.yaml`
 // with the LLM's clarifying questions, the orchestrator persona asks
 // the user each pending question one at a time. The user's reply is
-// forwarded as `clad refine <answer>` — this handler:
+// forwarded as `clad clarify <answer>` — this handler:
 //
 //   1. Loads the state file (errors out gracefully if absent).
 //   2. Marks the first pending question answered.
@@ -50,7 +50,7 @@ export interface RefineCommandOptions {
   readonly noLlm?: boolean;
 }
 
-/** Wire format for `clad refine --json`. */
+/** Wire format for `clad clarify --json`. */
 export interface RefineReport {
   readonly cwd: string;
   readonly answered: {readonly question: string; readonly answer: string} | null;
@@ -60,9 +60,9 @@ export interface RefineReport {
 }
 
 /**
- * Handler for `clad refine [answer...]`. The positional argument is
+ * Handler for `clad clarify [answer...]`. The positional argument is
  * joined with spaces so users can pass natural-language answers
- * without quoting: `clad refine 법인 사업자만 (개인사업자 제외)`.
+ * without quoting: `clad clarify 법인 사업자만 (개인사업자 제외)`.
  *
  * Exit codes:
  *   0 — answer accepted (or no-op when state is already `status: done`)
@@ -70,7 +70,7 @@ export interface RefineReport {
  *   2 — usage error (no state file present, or no answer provided
  *       while a pending question exists)
  */
-export async function runRefineCommand(
+export async function runClarifyCommand(
   answerTokens: readonly string[] | undefined,
   opts: RefineCommandOptions = {},
 ): Promise<void> {
@@ -79,14 +79,14 @@ export async function runRefineCommand(
   try {
     state = loadState(cwd);
   } catch (err) {
-    pulse('fail', 'refine', (err as Error).message);
+    pulse('fail', 'clarify', (err as Error).message);
     process.exit(1);
     return;
   }
   if (state === null) {
     pulse(
       'fail',
-      'refine',
+      'clarify',
       'no onboarding session — run `clad init <intent>` first to start the Q&A loop',
     );
     process.exit(2);
@@ -94,7 +94,7 @@ export async function runRefineCommand(
   }
 
   if (state.status === 'done') {
-    pulse('note', 'refine', 'onboarding already complete (state.yaml status: done)');
+    pulse('note', 'clarify', 'onboarding already complete (state.yaml status: done)');
     if (opts.json) {
       process.stdout.write(`${JSON.stringify(buildReport(cwd, null, [], null, state), null, 2)}\n`);
     }
@@ -108,7 +108,7 @@ export async function runRefineCommand(
     // false if the LLM was about to emit new questions; mark done.
     const done = markDone(state);
     saveState(cwd, done);
-    pulse('pass', 'refine', 'onboarding complete · state.yaml marked done');
+    pulse('pass', 'clarify', 'onboarding complete · state.yaml marked done');
     if (opts.json) {
       process.stdout.write(`${JSON.stringify(buildReport(cwd, null, [], null, done), null, 2)}\n`);
     }
@@ -120,8 +120,8 @@ export async function runRefineCommand(
   if (answer.length === 0) {
     pulse(
       'fail',
-      'refine',
-      `provide an answer for: "${state.qa[pendingIdx].question}" (usage: \`clad refine <answer>\`)`,
+      'clarify',
+      `provide an answer for: "${state.qa[pendingIdx].question}" (usage: \`clad clarify <answer>\`)`,
     );
     process.exit(2);
     return;
@@ -153,7 +153,7 @@ export async function runRefineCommand(
   );
 
   // Write the refined artifacts. The existing `writeArtifact` divert
-  // pattern is inlined here so `refine` does not depend on `init.ts`;
+  // pattern is inlined here so `clarify` does not depend on `init.ts`;
   // refresh on a populated file lands the new body in
   // `.cladding/scan/<basename>.proposal` instead of overwriting hand
   // edits.
@@ -164,7 +164,7 @@ export async function runRefineCommand(
   writeArtifact(cwd, 'spec/capabilities.yaml', refined.capabilitiesYaml, created, proposals);
   // v0.3.45 (F-d12edf) — refined scenarios land in spec/scenarios/
   // alongside the other refined artifacts; existing scenario files
-  // divert to .cladding/scan/<basename>.proposal so the librarian +
+  // divert to .cladding/scan/<basename>.proposal so the planner +
   // user can diff before promotion.
   for (const scenario of refined.scenarios) {
     const hash = scenario.id.replace(/^S-/, '');
@@ -197,7 +197,7 @@ export async function runRefineCommand(
     return;
   }
 
-  pulse('pass', 'refine', `answered · mode: ${refined.mode} · source: ${refined.source}`);
+  pulse('pass', 'clarify', `answered · mode: ${refined.mode} · source: ${refined.source}`);
   for (const c of created) pulse('pass', `created ${c}`);
   for (const p of proposals) pulse('note', 'proposal', p);
 
@@ -208,14 +208,14 @@ export async function runRefineCommand(
     }
     const remaining = updated.qa.filter((q) => q.answer === null);
     if (remaining.length > 0) {
-      process.stdout.write(`\n남은 질문: ${remaining.length} 개 · \`clad refine <답변>\` 으로 계속 진행.\n\n`);
+      process.stdout.write(`\n남은 질문: ${remaining.length} 개 · \`clad clarify <답변>\` 으로 계속 진행.\n\n`);
     }
   } else if (updated.status === 'done') {
     process.stdout.write('\n✓ 모든 질문에 답변 완료 — 온보딩 종료. state.yaml status: done.\n\n');
   } else {
     const remaining = updated.qa.filter((q) => q.answer === null);
     if (remaining.length > 0) {
-      process.stdout.write(`\n남은 질문: ${remaining.length} 개. \`clad refine <답변>\` 으로 계속 진행.\n\n`);
+      process.stdout.write(`\n남은 질문: ${remaining.length} 개. \`clad clarify <답변>\` 으로 계속 진행.\n\n`);
     }
   }
 
@@ -275,7 +275,7 @@ function writeArtifact(
 /**
  * Renders one onboarding scenario as a YAML shard. Identical body
  * shape to {@link init.ts::renderScenarioYaml}; duplicated here to
- * keep refine independent of init internals (and because Tier A
+ * keep clarify independent of init internals (and because Tier A
  * scenario YAML is small).
  */
 function renderScenarioYaml(scenario: {

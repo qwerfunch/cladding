@@ -42,7 +42,7 @@ in \`docs/feature-cycle.md\`.
 ## Persona separation (anti-self-cert)
 
 The agent that writes a unit of work must not be the agent that signs off
-on it. librarian writes spec, reviewer audits, specialists implement.
+on it. planner writes spec, reviewer audits, developer implements.
 
 ## More
 
@@ -61,8 +61,8 @@ This project is managed by **cladding** (Spec-Anchored Agent Harness).
 satisfy the relevant \`features[]\` and \`acceptance_criteria\`. Run
 \`clad check --strict\` before commit.
 
-**Persona separation** — librarian writes spec, reviewer audits,
-specialists implement. The agent that authors must not sign off on its
+**Persona separation** — planner writes spec, reviewer audits,
+developer implements. The agent that authors must not sign off on its
 own work (anti-self-cert invariant).
 
 **Feature cycle — one at a time** — Work ONE feature end-to-end before

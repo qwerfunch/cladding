@@ -14,7 +14,7 @@
 // a self-test gives the reference implementation honesty without imposing
 // it on adopters.
 
-import {readFileSync} from 'node:fs';
+import {readFileSync, readdirSync} from 'node:fs';
 import {join} from 'node:path';
 import {describe, expect, test} from 'vitest';
 
@@ -49,5 +49,74 @@ describe('cladding self-consistency (no Vacuous Green against itself)', () => {
     expect(read('spec.yaml').split('\n')[0]).toMatch(/^#\s*Cladding\s*·\s*Tier A\b/);
     expect(read('spec/architecture.yaml').split('\n')[0]).toMatch(/^#\s*Cladding\s*·\s*Tier B\b/);
     expect(read('spec/capabilities.yaml').split('\n')[0]).toMatch(/^#\s*Cladding\s*·\s*Tier B\b/);
+  });
+});
+
+describe('glossary is the terminology SSoT (F-7ce18e)', () => {
+  // Every public name must carry a glossary row — a name the glossary does
+  // not know is an unregistered term and fails here (AC-002). The glossary
+  // documents names as `name` (backticked); presence of the backticked token
+  // anywhere in the file counts as registered.
+  const glossary = read('docs/glossary.md');
+  const registered = (name: string): boolean => glossary.includes('`' + name + '`');
+
+  test('every CLI verb registered in clad.ts has a glossary row', () => {
+    const cli = read('src/cli/clad.ts');
+    // commander registrations: .command('<verb> [args...]') — first word is the verb.
+    const verbs = [...cli.matchAll(/\.command\('([a-z]+)[^']*'\)/g)].map((m) => m[1]);
+    expect(verbs.length).toBeGreaterThanOrEqual(14);
+    for (const v of new Set(verbs)) {
+      expect(registered(v), `CLI verb '${v}' is missing from docs/glossary.md`).toBe(true);
+    }
+  });
+
+  test('every persona file under src/agents/ has a glossary row', () => {
+    const ids = readdirSync(join(ROOT, 'src/agents'))
+      .filter((f) => f.endsWith('.md') && f !== 'README.md')
+      .map((f) => f.replace(/\.md$/, ''));
+    expect(ids.length).toBeGreaterThanOrEqual(5);
+    for (const id of ids) {
+      expect(registered(id), `persona '${id}' is missing from docs/glossary.md`).toBe(true);
+    }
+  });
+
+  test('every MCP tool registered in server.ts has a glossary row (frozen wire ids)', () => {
+    const server = read('src/serve/server.ts');
+    const tools = [...server.matchAll(/'(clad_[a-z_]+)'/g)].map((m) => m[1]);
+    expect(new Set(tools).size).toBeGreaterThanOrEqual(8);
+    for (const t of new Set(tools)) {
+      expect(registered(t), `MCP tool '${t}' is missing from docs/glossary.md`).toBe(true);
+    }
+  });
+
+  test('every event type has a glossary row (frozen wire ids)', () => {
+    // Strip // comments BEFORE matching — the union's doc comments quote
+    // payload values ('scan_artifacts' etc.) and contain semicolons that
+    // would truncate a naive capture.
+    const log = read('src/events/log.ts')
+      .split('\n')
+      .map((l) => l.replace(/\/\/.*$/, ''))
+      .join('\n');
+    const m = log.match(/export type EventType =([^;]+);/);
+    expect(m).not.toBeNull();
+    const types = [...m![1].matchAll(/'([a-z_]+)'/g)].map((x) => x[1]);
+    expect(types.length).toBeGreaterThanOrEqual(9);
+    for (const t of types) {
+      expect(registered(t), `event type '${t}' is missing from docs/glossary.md`).toBe(true);
+    }
+  });
+
+  test('deprecated aliases are documented as aliases pointing at their replacement', () => {
+    for (const [oldName, newName] of [
+      ['librarian', 'planner'],
+      ['specialists', 'developer'],
+      ['refine', 'clarify'],
+      ['panel', 'status'],
+      ['drive', 'run'],
+    ]) {
+      const row = glossary.split('\n').find((l) => l.includes('`' + oldName + '`') && l.includes('alias'));
+      expect(row, `'${oldName}' must have an alias row`).toBeDefined();
+      expect(row, `'${oldName}' alias row must name '${newName}'`).toContain('`' + newName + '`');
+    }
   });
 });

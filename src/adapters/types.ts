@@ -35,7 +35,7 @@ export type Capability = 'read' | 'write' | 'edit' | 'exec' | 'dispatch';
  * persona file declares).
  */
 export interface PersonaSpec {
-  /** Persona id matching `agents/<id>.md` (orchestrator · librarian · …). */
+  /** Persona id matching `agents/<id>.md` (orchestrator · planner · …). */
   readonly id: string;
   /** Free-form role + responsibilities, lifted from the persona file. */
   readonly body: string;

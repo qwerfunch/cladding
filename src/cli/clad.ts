@@ -1,4 +1,4 @@
-// Cladding · `clad` CLI entry — composes the 7 Iron Core verbs.
+// Cladding · `clad` CLI entry — composes the Iron Core verbs.
 //
 // Uses `commander` for parsing. Each verb's handler is exported as a
 // named function so unit tests can exercise it without spawning a
@@ -12,10 +12,10 @@ import {Command} from 'commander';
 
 import {classifyIntent} from '../router/intent.js';
 import {runDoctorCommand} from './doctor.js';
-import {performDone} from './done.js';
-import {performUpdate} from './update.js';
+import {runDone} from './done.js';
+import {runUpdate} from './update.js';
 import {runInit} from './init.js';
-import {runRefineCommand} from './refine.js';
+import {runClarifyCommand} from './clarify.js';
 import {runHostSetup} from '../init/host-setup.js';
 import {runArch} from '../stages/arch.js';
 import {runAudit} from '../stages/audit.js';
@@ -35,7 +35,7 @@ import {runVisual} from '../stages/visual.js';
 import type {DriftFinding} from '../stages/types.js';
 import {staleSpecification} from '../stages/detectors/stale-specification.js';
 import {findLatestCheckpoint, recordCheckpoint, recordRollback} from '../core/checkpoint.js';
-import {autoMaintainDeliverable} from '../spec/deliverable-detect.js';
+import {maintainDeliverable} from '../spec/deliverable-detect.js';
 import {computeInventory, writeInventoryToSpecYaml} from '../spec/inventory.js';
 import {buildBlindPayload, renderBlindBrief} from '../oracle/payload.js';
 import {requiredOracleWorklist} from '../oracle/policy.js';
@@ -138,31 +138,7 @@ export async function runInitCommand(
   process.exit(0);
 }
 
-/**
- * Handler for `clad work [verb]`. Reserved-but-unimplemented intent-routing
- * entry point (see skills/work/SKILL.md).
- *
- * It must NOT exit 0 for work it did not do — a no-op that reports success is
- * Vacuous Green at the command level (a script/CI calling `clad work X` would
- * read the exit-0 as "done"). Until the real router lands, it declines
- * honestly with exitCode 2 (not-applicable / skipped) and points at the
- * working paths: `clad route <prompt>` to classify intent, then run the
- * resolved verb — or just ask the AI host in natural language.
- */
-export function runWorkCommand(verb?: string): void {
-  if (verb) {
-    pulse(
-      'skip',
-      `work ${verb}`,
-      'not implemented — run `clad route <prompt>` then the resolved verb, or ask your AI host in natural language',
-    );
-  } else {
-    pulse('note', 'work', 'specify a stage or natural-language intent');
-  }
-  process.exit(2);
-}
-
-interface DriveCommandOptions {
+interface RunCommandOptions {
   cwd?: string;
   maxIterations: string;
   maxWallClockMs: string;
@@ -170,16 +146,16 @@ interface DriveCommandOptions {
   json?: boolean;
 }
 
-/** Handler for `clad drive [goal]`. Runs the autonomous loop. */
-export async function runDriveCommand(
+/** Handler for `clad run [goal]` (formerly `drive`). Runs the autonomous loop. */
+export async function runRunCommand(
   goal: string | undefined,
-  opts: DriveCommandOptions,
+  opts: RunCommandOptions,
 ): Promise<void> {
-  // `clad drive` is EXPERIMENTAL. The headless code-author transport is unbuilt
+  // `clad run` is EXPERIMENTAL. The headless code-author transport is unbuilt
   // and nothing auto-invokes it — the supported, exercised path is host-delegated
   // (run `clad serve` and let your AI host loop the per-feature cadence). The loop
   // halts honestly rather than certifying empty stubs when no real LLM is reachable.
-  pulse('note', 'drive', 'EXPERIMENTAL — prefer the host-delegated path (clad serve + your AI host). See docs/feature-cycle.md § Execution surface.');
+  pulse('note', 'run', 'EXPERIMENTAL — prefer the host-delegated path (clad serve + your AI host). See docs/feature-cycle.md § Execution surface.');
   const {runDriveLoop} = await import('../drive/loop.js');
   const result = await runDriveLoop({
     cwd: opts.cwd,
@@ -194,7 +170,7 @@ export async function runDriveCommand(
   if (opts.json) {
     pulse(
       tag,
-      'drive',
+      'run',
       `halt=${result.halt.class} iter=${result.iterations} features=${result.featuresTouched.length} stubs=${result.stubsCreated.length} gates=${result.gateRuns}`,
     );
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
@@ -202,7 +178,7 @@ export async function runDriveCommand(
     const spec = loadSpec(opts.cwd ?? '.');
     const touched = result.featuresTouched.map((id) => featureLabel(id, spec));
     const summary = `${haltMessage(result.halt, spec)} iter=${result.iterations} features=${touched.length} stubs=${result.stubsCreated.length} gates=${result.gateRuns}`;
-    pulse(tag, 'drive', summary);
+    pulse(tag, 'run', summary);
     if (touched.length > 0) {
       process.stdout.write(`Touched: ${touched.join(', ')}\n`);
     }
@@ -211,13 +187,13 @@ export async function runDriveCommand(
   // produced empty auto-stubs (no real implementation — the code-author transport
   // is mock/unbuilt) is NOT a success even when the loop "cleared" features on the
   // L1 floor: it implemented nothing. Surface that and exit non-zero, so a user or
-  // CI never reads a stub-only `clad drive` as done. Likewise any non-completion
+  // CI never reads a stub-only `clad run` as done. Likewise any non-completion
   // halt exits non-zero. Only a real, fully-cleared run is 0.
   const vacuous = result.stubsCreated.length > 0;
   if (vacuous) {
     pulse(
       'fail',
-      'drive',
+      'run',
       `produced ${result.stubsCreated.length} empty auto-stub(s) and implemented nothing — the headless code-author needs a real LLM transport (set ANTHROPIC_API_KEY) or use the host-delegated path (clad serve + your AI host). This run did NOT do the work.`,
     );
   }
@@ -248,7 +224,7 @@ export function runSyncCommand(opts: {proposeArchive?: boolean} = {}): void {
     // DELIVERABLE_SMOKE (stage_2.4) engages without the agent having to declare it correctly (the
     // re-run showed a conservative agent declares it DISABLED). Calibrates against the passing state,
     // so it never enables a false-failing invocation. One-time (skips once a deliverable is present).
-    const autoDeliverable = autoMaintainDeliverable('.');
+    const autoDeliverable = maintainDeliverable('.');
     if (autoDeliverable) {
       pulse(
         'note',
@@ -361,7 +337,7 @@ export async function runSetupCommand(opts: {force?: boolean; quiet?: boolean}):
  */
 export async function runUpdateCommand(): Promise<void> {
   pulse('note', 'update', 'reconciling the current project after the engine upgrade');
-  const r = await performUpdate('.', {
+  const r = await runUpdate('.', {
     wireHosts: async () => (await runHostSetup({quiet: true})).errors.length,
   });
   pulse(r.wiringErrors > 0 ? 'fail' : 'pass', 'hosts', r.wiringErrors > 0 ? `${r.wiringErrors} wiring error(s)` : 're-wired');
@@ -532,7 +508,7 @@ export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tie
  * so `done` cannot claim more than the gate verifies. @see cli/done.ts
  */
 export function runDoneCommand(featureId: string): void {
-  const r = performDone('.', featureId, {checkStages: runCheckStages});
+  const r = runDone('.', featureId, {checkStages: runCheckStages});
   pulse(r.ok ? 'pass' : 'fail', `done · ${featureId}`, r.reason);
   process.exit(r.code);
 }
@@ -624,8 +600,8 @@ function truncate(s: string, max: number): string {
   return s.length <= max ? s : `${s.slice(0, max - 1)}…`;
 }
 
-/** Handler for `clad panel`. Renders the Integrity Panel. */
-export function runPanelCommand(opts: {internal?: boolean}): void {
+/** Handler for `clad status` (formerly `panel`). Renders the feature × stage integrity matrix. */
+export function runStatusCommand(opts: {internal?: boolean}): void {
   const spec = loadSpec();
   process.stdout.write(`${renderPanel(spec, '.', {internal: opts.internal})}\n`);
   process.exit(0);
@@ -636,6 +612,30 @@ export function runRouteCommand(prompt: string): void {
   const intent = classifyIntent(prompt);
   pulse('note', `route → ${intent}`, prompt);
   process.exit(intent === 'unknown' ? 1 : 0);
+}
+
+/**
+ * 0.6.0 verb renames (alias-and-deprecate, docs/glossary.md). Commander keeps
+ * the old spellings working via `.alias()`; this map only powers the one-line
+ * stderr deprecation notice. The old verbs are removed in 0.7.
+ */
+export const RENAMED_VERBS: Readonly<Record<string, string>> = {
+  refine: 'clarify',
+  panel: 'status',
+  drive: 'run',
+};
+
+/**
+ * Prints the one-line deprecation notice when the invoked verb is a 0.6.0
+ * alias (`clad panel` → "'panel' is now 'status'"). stderr, never stdout —
+ * `--json` consumers and MCP stdio traffic stay clean.
+ */
+export function printVerbDeprecationNotice(verb: string | undefined): void {
+  const replacement = verb ? RENAMED_VERBS[verb] : undefined;
+  if (!replacement) return;
+  process.stderr.write(
+    `cladding: '${verb}' is now '${replacement}' — the old verb is removed in 0.7\n`,
+  );
 }
 
 /**
@@ -665,19 +665,15 @@ export function createProgram(): Command {
     .action(runInitCommand);
 
   program
-    .command('work [verb]')
-    .description('Run a stage or a free-form intent')
-    .action(runWorkCommand);
-
-  program
-    .command('drive [goal]')
-    .description('(experimental) Headless autonomous loop — iterate ready features, dispatch specialist + reviewer personas, run L1 gates, record evidence. The supported, exercised path is host-delegated (clad serve + your AI host loops the cadence); this loop needs a real LLM transport and is not auto-invoked')
+    .command('run [goal]')
+    .alias('drive') // 0.6.0 rename — `drive` is removed in 0.7
+    .description('(experimental) Headless autonomous loop — iterate ready features, dispatch developer + reviewer personas, run L1 gates, record evidence. The supported, exercised path is host-delegated (clad serve + your AI host loops the cadence); this loop needs a real LLM transport and is not auto-invoked')
     .option('--cwd <path>', 'target project directory (default cwd)')
     .option('--max-iterations <n>', 'cap iterations (default 50)', '50')
     .option('--max-wall-clock-ms <ms>', 'cap wall clock (default 600000)', '600000')
     .option('--max-retries <n>', 'cap retries per feature (default 3)', '3')
     .option('--json', 'emit the raw internal result (Iron Core view); default is a plain Soft Shell summary')
-    .action(runDriveCommand);
+    .action(runRunCommand);
 
   program
     .command('sync')
@@ -737,10 +733,11 @@ export function createProgram(): Command {
     .action(runRollbackCommand);
 
   program
-    .command('panel')
-    .description('Render the feature × stage Integrity Panel (business titles; use --internal for raw F-NNN ids)')
+    .command('status')
+    .alias('panel') // 0.6.0 rename — `panel` is removed in 0.7
+    .description('Render the feature × stage integrity matrix (business titles; use --internal for raw F-NNN ids)')
     .option('--internal', 'show internal F-NNN ids and stage codes')
-    .action(runPanelCommand);
+    .action(runStatusCommand);
 
   program
     .command('route <prompt>')
@@ -761,17 +758,18 @@ export function createProgram(): Command {
     .action(runDoctorCommand);
 
   program
-    .command('refine [answer...]')
+    .command('clarify [answer...]')
+    .alias('refine') // 0.6.0 rename — `refine` is removed in 0.7
     .description(
       'Advance the onboarding Q&A loop. Pass the user\'s answer to the next pending question as a positional ' +
-        '(no quotes needed, e.g. `clad refine 법인 사업자만`); the LLM refines spec/docs based on the full Q-A ' +
+        '(no quotes needed, e.g. `clad clarify 법인 사업자만`); the LLM refines spec/docs based on the full Q-A ' +
         'history and may emit new follow-up questions. Reads/writes `.cladding/onboarding/state.yaml`. Requires ' +
         '`clad init <intent>` to have started a session first.',
     )
     .option('--cwd <path>', 'project directory containing .cladding/onboarding/state.yaml (default cwd)')
     .option('--no-llm', 'force the deterministic interpreter (preserves current artifacts, logs the answer)')
     .option('--json', 'emit the raw RefineReport for tooling; default is the human-readable surface')
-    .action(runRefineCommand);
+    .action(runClarifyCommand);
 
   return program;
 }
@@ -784,4 +782,7 @@ export function createProgram(): Command {
 // handler exports without commander touching `process.argv`.
 const isBundled = Boolean((globalThis as {__CLADDING_BUNDLED?: boolean}).__CLADDING_BUNDLED);
 const isCliEntry = isBundled || import.meta.url === `file://${process.argv[1]}`;
-if (isCliEntry) createProgram().parse();
+if (isCliEntry) {
+  printVerbDeprecationNotice(process.argv[2]);
+  createProgram().parse();
+}

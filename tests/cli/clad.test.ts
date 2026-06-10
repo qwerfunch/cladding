@@ -207,18 +207,6 @@ describe('cli/clad — handler exports', () => {
     expect(stdout).toContain('주 사용자가 개인? 사업자?');
   });
 
-  test('runWorkCommand without verb exits 2', () => {
-    clad.runWorkCommand();
-    expect(exitCalls).toEqual([2]);
-  });
-
-  test('runWorkCommand with verb declines honestly (exit 2, never false-success)', () => {
-    // `work` is reserved-but-unimplemented. It must NOT exit 0 for work it did
-    // not do (command-level Vacuous Green); exitCode 2 = skipped/not-applicable.
-    clad.runWorkCommand('sync');
-    expect(exitCalls).toEqual([2]);
-  });
-
   test('runCheckCommand with unknown --tier exits 2 without running stages', () => {
     clad.runCheckCommand({tier: 'no-such-tier'});
     expect(exitCalls).toEqual([2]);
@@ -361,9 +349,9 @@ describe('cli/clad — handler exports', () => {
     expect(exitCalls).toEqual([1]);
   });
 
-  test('runPanelCommand exits 0 and writes to stdout', () => {
+  test('runStatusCommand exits 0 and writes to stdout', () => {
     loadSpecMock.mockReturnValueOnce({features: []});
-    clad.runPanelCommand({});
+    clad.runStatusCommand({});
     expect(stdoutSpy).toHaveBeenCalled();
     expect(exitCalls).toEqual([0]);
   });
@@ -380,7 +368,7 @@ describe('cli/clad — handler exports', () => {
     expect(exitCalls).toEqual([1]);
   });
 
-  test('runDriveCommand happy path exits 0 with summary text', async () => {
+  test('runRunCommand happy path exits 0 with summary text', async () => {
     runDriveLoopMock.mockResolvedValueOnce({
       halt: {class: 'ALL_FEATURES_DONE', detail: 'done', iteration: 5},
       iterations: 5,
@@ -389,7 +377,7 @@ describe('cli/clad — handler exports', () => {
       gateRuns: 15,
     });
     loadSpecMock.mockReturnValueOnce({features: [{id: 'F-001', title: 'alpha'}]});
-    await clad.runDriveCommand(undefined, {
+    await clad.runRunCommand(undefined, {
       maxIterations: '50',
       maxWallClockMs: '600000',
       maxRetries: '3',
@@ -398,7 +386,7 @@ describe('cli/clad — handler exports', () => {
     expect(exitCalls).toEqual([0]);
   });
 
-  test('runDriveCommand UNCAUGHT_ERROR exits 1', async () => {
+  test('runRunCommand UNCAUGHT_ERROR exits 1', async () => {
     runDriveLoopMock.mockResolvedValueOnce({
       halt: {class: 'UNCAUGHT_ERROR', detail: 'spec load failed', iteration: 0},
       iterations: 0,
@@ -407,7 +395,7 @@ describe('cli/clad — handler exports', () => {
       gateRuns: 0,
     });
     loadSpecMock.mockReturnValueOnce({features: []});
-    await clad.runDriveCommand(undefined, {
+    await clad.runRunCommand(undefined, {
       maxIterations: '50',
       maxWallClockMs: '600000',
       maxRetries: '3',
@@ -457,7 +445,7 @@ describe('cli/clad — handler exports', () => {
     expect(exitCalls).toEqual([1]);
   });
 
-  test('runDriveCommand --json emits raw result to stdout', async () => {
+  test('runRunCommand --json emits raw result to stdout', async () => {
     runDriveLoopMock.mockResolvedValueOnce({
       halt: {class: 'ALL_FEATURES_DONE', detail: 'done', iteration: 1},
       iterations: 1,
@@ -465,7 +453,7 @@ describe('cli/clad — handler exports', () => {
       stubsCreated: [],
       gateRuns: 3,
     });
-    await clad.runDriveCommand('goal text', {
+    await clad.runRunCommand('goal text', {
       maxIterations: '10',
       maxWallClockMs: '60000',
       maxRetries: '2',
@@ -480,13 +468,12 @@ describe('cli/clad — handler exports', () => {
 });
 
 describe('cli/clad — createProgram', () => {
-  test('returns a Command with all 16 verbs registered', () => {
+  test('returns a Command with all 15 verbs registered (work removed in 0.6.0)', () => {
     const program = clad.createProgram();
     const names = program.commands.map((c) => c.name());
     expect(names).toEqual([
       'init',
-      'work',
-      'drive',
+      'run',
       'sync',
       'setup',
       'update',
@@ -495,12 +482,41 @@ describe('cli/clad — createProgram', () => {
       'done',
       'oracle',
       'rollback',
-      'panel',
+      'status',
       'route',
       'serve',
       'doctor',
-      'refine',
+      'clarify',
     ]);
+  });
+
+  // 0.6.0 renames keep the old spellings working for one release via
+  // commander aliases; `work` is gone outright (no alias — it was a
+  // permanently-not-implemented stub).
+  test('renamed verbs keep their old names as aliases; work is removed', () => {
+    const program = clad.createProgram();
+    const aliasOf = (name: string) => program.commands.find((c) => c.name() === name)?.aliases() ?? [];
+    expect(aliasOf('run')).toContain('drive');
+    expect(aliasOf('status')).toContain('panel');
+    expect(aliasOf('clarify')).toContain('refine');
+    expect(program.commands.some((c) => c.name() === 'work' || c.aliases().includes('work'))).toBe(false);
+  });
+
+  test('printVerbDeprecationNotice writes one stderr line for an old verb, nothing for new/unknown', () => {
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    try {
+      clad.printVerbDeprecationNotice('panel');
+      expect(stderrSpy.mock.calls.map((c) => String(c[0])).join('')).toBe(
+        "cladding: 'panel' is now 'status' — the old verb is removed in 0.7\n",
+      );
+      stderrSpy.mockClear();
+      clad.printVerbDeprecationNotice('status');
+      clad.printVerbDeprecationNotice('no-such-verb');
+      clad.printVerbDeprecationNotice(undefined);
+      expect(stderrSpy).not.toHaveBeenCalled();
+    } finally {
+      stderrSpy.mockRestore();
+    }
   });
 
   test('program version matches current package version', () => {

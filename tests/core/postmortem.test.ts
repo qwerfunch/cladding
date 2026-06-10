@@ -64,8 +64,11 @@ describe('core/postmortem', () => {
     expect(body).toContain('3 (budget exhausted)');
     expect(body).toContain('abc123def456');
     expect(body).toContain('git checkout abc123def456abc123def456abc123def456abcd');
-    expect(body).toContain('clad work F-200');
-    expect(body).toContain('librarian');
+    // 0.6.0: the recovery line points at `clad run` (the removed `work` verb
+    // is no longer recommended).
+    expect(body).toContain('clad run');
+    expect(body).not.toContain('clad work');
+    expect(body).toContain('planner');
   });
 
   test('no-git-head checkpoint falls back to manual-restore guidance', () => {

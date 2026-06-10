@@ -13,7 +13,7 @@ import type {SamplingCapableServer} from '../../src/adapters/host/transport.js';
 import type {AgentContext, AgentResult, PersonaSpec} from '../../src/adapters/types.js';
 
 const persona: PersonaSpec = {
-  id: 'specialists',
+  id: 'developer',
   body: 'You are the Specialists agent. Implement the feature.',
   capabilities: new Set(['read', 'write', 'edit', 'exec']),
 };

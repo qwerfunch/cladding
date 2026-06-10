@@ -21,7 +21,7 @@ vi.mock('../../src/cli/scan/dispatcher.js', () => ({
 }));
 
 const {runInit} = await import('../../src/cli/init.js');
-const {runRefineCommand} = await import('../../src/cli/refine.js');
+const {runClarifyCommand} = await import('../../src/cli/clarify.js');
 const {mkScenarioCwd, copyFixture, writeUnderCwd, EXISTING_S2_RESPONSE} = await import('./_helpers.js');
 const {
   assertArtifactsPresent,
@@ -114,7 +114,7 @@ describe('existing-adoption lifecycle — "이 프로젝트 분석해서 클래�
     // — the test focus is on the divert mechanism + spec preservation,
     // not the LLM's actual refinement logic.
     dispatchMock.mockResolvedValueOnce(EXISTING_S2_RESPONSE);
-    await runRefineCommand(['멀티', '테넌트', '필요'], {cwd: scenario.path});
+    await runClarifyCommand(['멀티', '테넌트', '필요'], {cwd: scenario.path});
 
     // spec.yaml (Tier A, sealed) untouched by refine.
     const specBody = readFileSync(join(scenario.path, 'spec.yaml'), 'utf8');

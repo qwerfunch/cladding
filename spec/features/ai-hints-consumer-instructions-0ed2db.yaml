@@ -5,13 +5,13 @@ title: CLAUDE.md + 5 persona prompts gain explicit ai_hints consumer instruction
 status: done
 modules:
   - CLAUDE.md
-  - src/agents/specialists.md
-  - src/agents/librarian.md
+  - src/agents/developer.md
+  - src/agents/planner.md
   - src/agents/reviewer.md
   - src/agents/observability.md
   - src/agents/orchestrator.md
-  - plugins/claude-code/agents/specialists.md
-  - plugins/claude-code/agents/librarian.md
+  - plugins/claude-code/agents/developer.md
+  - plugins/claude-code/agents/planner.md
   - plugins/claude-code/agents/reviewer.md
   - plugins/claude-code/agents/observability.md
   - plugins/claude-code/agents/orchestrator.md
@@ -30,8 +30,8 @@ acceptance_criteria:
     action: 'each of the 5 canonical persona prompts under src/agents/ (specialists, librarian, reviewer, observability, orchestrator) gains a Project policy section that names how that persona should consume project.ai_hints (forbidden_patterns, preferred_patterns, preferred_persona)'
     text: The system shall add a Project policy section referencing ai_hints to all five persona prompts.
     evidence_refs:
-      - src/agents/specialists.md
-      - src/agents/librarian.md
+      - src/agents/developer.md
+      - src/agents/planner.md
       - src/agents/reviewer.md
       - src/agents/observability.md
       - src/agents/orchestrator.md
@@ -40,9 +40,9 @@ acceptance_criteria:
     action: 'scripts/build-plugin.mjs mirrors the updated personas under plugins/claude-code/agents/ and plugins/codex/skills/ — the Project policy section appears verbatim in the mirrored copies after npm run build:plugin'
     text: The system shall propagate the new Project policy section to all plugin manifest mirrors via build:plugin.
     evidence_refs:
-      - plugins/claude-code/agents/specialists.md
-      - plugins/claude-code/agents/librarian.md
-      - plugins/codex/skills/specialists/SKILL.md
+      - plugins/claude-code/agents/developer.md
+      - plugins/claude-code/agents/planner.md
+      - plugins/codex/skills/developer/SKILL.md
   - id: AC-004
     ears: ubiquitous
     action: 'preferred_patterns ceases to be dead-data: CLAUDE.md and persona prompts now constitute the actual consumer that grep ai_hints at session start, closing the loop opened by F-32b1e0'

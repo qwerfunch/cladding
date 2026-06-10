@@ -24,7 +24,7 @@ describe('createScenario (F-087, v0.3.12)', () => {
   test('writes spec/scenarios/<slug>-<hash>.yaml with hash id', () => {
     const r = createScenario({slug: 'checkout-happy-path', cwd: dir});
     expect(r.slug).toBe('checkout-happy-path');
-    expect(r.id).toMatch(/^S-[a-f0-9]{6}$/);
+    expect(r.id).toMatch(/^S-[a-f0-9]{8}$/);
     const hash = r.id.slice(2);
     expect(r.path).toBe(
       join(dir, 'spec', 'scenarios', `checkout-happy-path-${hash}.yaml`),

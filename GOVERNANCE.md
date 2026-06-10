@@ -86,7 +86,7 @@ The maintainer initiates a release with a single instruction (e.g. *"v0.1.0 rele
 Every PR must:
 
 1. Run `npm run typecheck && npm run lint && npm test && npm run stage:drift` clean.
-2. Add or update `spec.yaml` if it touches a shipped feature (`librarian` agent's territory).
+2. Add or update `spec.yaml` if it touches a shipped feature (`planner` agent's territory).
 3. Pass `npm run conformance` — 26/26 matched.
 4. Include a CHANGELOG entry under the right section (`Added` / `Changed` / `Deprecated` / `Removed` / `Fixed` / `Security`).
 

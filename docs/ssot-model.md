@@ -51,15 +51,15 @@ Orphan artifacts get demoted (move to Tier D as historical reference) or removed
 
 | Artifact | Producer | Consumer | Refresh trigger |
 |---|---|---|---|
-| `spec/architecture.yaml` | `clad init --scan` (observed) OR `clad init <intent>` (LLM) OR `clad refine` OR hand-edit | `ARCHITECTURE_FROM_SPEC` detector + `reviewer` (Layered Integrity guardrail) + `specialists` (layer boundary check when placing modules) | re-scan diverts to `.cladding/scan/*.proposal` |
-| `spec/capabilities.yaml` | `clad init <intent>` (LLM) OR `clad refine` OR hand-edit | **schema-validated + merged into `Spec.capabilities` on load (v0.4.x, J2)** + `CAPABILITIES_FEATURE_MAPPING` (reference validity) + `HOLLOW_GOVERNANCE` (empty-tier guard, v0.4.x) | re-scan diverts to proposal |
-| `docs/project-context.md` | `clad init` (template/LLM-refined) OR `clad refine` OR hand-edit | AI personas (orchestrator/specialists) as Why/What/Purpose context input + **scenario generator (NEW v0.3.45) uses prose for user-journey extraction** + human onboarding readers | LLM-refined on init/refine; hand-edits preserved between |
+| `spec/architecture.yaml` | `clad init --scan` (observed) OR `clad init <intent>` (LLM) OR `clad clarify` OR hand-edit | `ARCHITECTURE_FROM_SPEC` detector + `reviewer` (Layered Integrity guardrail) + `developer` (layer boundary check when placing modules) | re-scan diverts to `.cladding/scan/*.proposal` |
+| `spec/capabilities.yaml` | `clad init <intent>` (LLM) OR `clad clarify` OR hand-edit | **schema-validated + merged into `Spec.capabilities` on load (v0.4.x, J2)** + `CAPABILITIES_FEATURE_MAPPING` (reference validity) + `HOLLOW_GOVERNANCE` (empty-tier guard, v0.4.x) | re-scan diverts to proposal |
+| `docs/project-context.md` | `clad init` (template/LLM-refined) OR `clad clarify` OR hand-edit | AI personas (orchestrator/developer) as Why/What/Purpose context input + **scenario generator (NEW v0.3.45) uses prose for user-journey extraction** + human onboarding readers | LLM-refined on init/refine; hand-edits preserved between |
 
 ### Tier C — Derived / Observable
 
 | Artifact | Producer | Consumer | Refresh trigger |
 |---|---|---|---|
-| `docs/conventions.md` | `clad init --scan` (observed 14-signal table) OR greenfield seed (toolchain defaults) | `specialists` (when writing code) + human reviewers | re-scan diverts to proposal |
+| `docs/conventions.md` | `clad init --scan` (observed 14-signal table) OR greenfield seed (toolchain defaults) | `developer` (when writing code) + human reviewers | re-scan diverts to proposal |
 | `docs/code-style.md` | hand-authored (legacy; cladding-self only) | cladding contributors (legacy reference) | manual; will deprecate in favour of conventions.md |
 
 ### Tier D — Audit / Transient
@@ -68,7 +68,7 @@ Orphan artifacts get demoted (move to Tier D as historical reference) or removed
 |---|---|---|---|
 | `.cladding/events.log.jsonl` | every stage runner, checkpoint, drive loop, sentinel-miss emitter | `observability` persona + `clad doctor` + MCP resource subscriptions | append-only |
 | `.cladding/audit.log.jsonl` | evidence recorders (checkpoint, postmortem, manual signoff) | anti-self-cert validator + `clad rollback` | append-only |
-| `.cladding/onboarding/state.yaml` | `clad init <intent>` + `clad refine` | `orchestrator` (drives Q&A loop) + `clad refine` itself | mutated on each refine; persists post-`status: done` as audit |
+| `.cladding/onboarding/state.yaml` | `clad init <intent>` + `clad clarify` | `orchestrator` (drives Q&A loop) + `clad clarify` itself | mutated on each clarify; persists post-`status: done` as audit |
 | `.cladding/scan/*.proposal` | `writeArtifact` divert when target file already exists | humans review + manually accept/reject | one-shot per scan run |
 
 ## Authoring verbs — create vs link vs refine (v0.4.x)
@@ -81,14 +81,14 @@ single-responsibility (and keeps a tool's name honest as it grows).
 |---|---|---|---|
 | **create** | enumerable ENTITY (many per project, each distinct) | mint a NEW shard | `clad_create_feature`, `clad_create_scenario` |
 | **link** | accumulative RELATIONSHIP (a grouping that grows over time) | UPSERT — ensure-and-add | `clad_link_capability` (add a feature to a capability, creating it if absent) |
-| **refine** | holistic DOCUMENT (one per project, not enumerated) | LLM/manual rewrite | `clad refine` → `architecture.yaml`, `project-context.md`, `conventions.md` |
+| **refine** | holistic DOCUMENT (one per project, not enumerated) | LLM/manual rewrite | `clad clarify` (formerly `refine`) → `architecture.yaml`, `project-context.md`, `conventions.md` |
 
 A capability is **accumulative** (created once, then features land on it over time),
 so its verb is `link`, not `create` — re-"creating" an existing capability would
 collide. `clad_create_feature` therefore does NOT grow capabilities as a side effect
 (that would make its name lie); instead its result carries a non-mutating `hint` to
 call `clad_link_capability`. This is the deterministic development-time firing path
-for the Tier-B design SSoT, complementing the onboarding-time `clad refine` path.
+for the Tier-B design SSoT, complementing the onboarding-time `clad clarify` path.
 
 ## Capturing WHY — the decision micro-format (Tier A content)
 
@@ -172,8 +172,8 @@ Personas should load only the tiers they need for the task. Token cost scales wi
 
 | Persona | Always reads | When relevant | Never reads |
 |---|---|---|---|
-| `librarian` | Tier A (write target) | Tier B (cross-validate with current feature edit) | Tier D (let observability handle audit) |
-| `specialists` | Tier B (project-context for intent, architecture for layer boundary) + Tier C (conventions when writing) | Tier A (current feature slice only — see Least Context principle 5) | Tier D |
+| `planner` | Tier A (write target) | Tier B (cross-validate with current feature edit) | Tier D (let observability handle audit) |
+| `developer` | Tier B (project-context for intent, architecture for layer boundary) + Tier C (conventions when writing) | Tier A (current feature slice only — see Least Context principle 5) | Tier D |
 | `reviewer` | Tier A + Tier B + Tier C (whole context for audit) | Tier D evidence when validating anti-self-cert | — |
 | `orchestrator` | Tier B (project-context for routing) + Tier D `state.yaml` (Q&A loop) + Tier D `events.log` (audit-log slice for hand-off) | Tier A dispatch slice only (never the whole spec — Least Context principle 5) | — |
 | `observability` | Tier D (events.log + audit.log + perf + coverage) | — | Tier A / B / C (out of scope) |
@@ -213,7 +213,7 @@ Conflict resolution (when same information lives in multiple tiers):
 | `clad init` (bare, greenfield) | spec.yaml seed, .cladding/, .gitignore, project-context template, scenarios README, conventions/architecture/capabilities greenfield seeds | new files only — existing files skip via idempotency |
 | `clad init <intent>` (onboarding) | + project-context.md (LLM-refined), capabilities.yaml (LLM-inferred), architecture.yaml (LLM-inferred), spec.yaml F-001 title, **scenarios stubs (NEW v0.3.45)**, onboarding state.yaml | existing files divert to `.cladding/scan/*.proposal` |
 | `clad init --scan` (existing-project) | conventions.md (observed), architecture.yaml (observed), capabilities.yaml (README headings), project-context.md (LLM-refined) | existing files divert to proposal |
-| `clad refine <answer>` | project-context.md, capabilities.yaml, architecture.yaml, scenarios stubs (refined Q-A history) | existing files divert to proposal |
+| `clad clarify <answer>` | project-context.md, capabilities.yaml, architecture.yaml, scenarios stubs (refined Q-A history) | existing files divert to proposal |
 | `clad_create_feature` MCP tool | spec/features/<slug>-<hash6>.yaml + binds to existing scenario via `features[]` | rejects on collision |
 | append-only (Tier D) | events.log, audit.log entries | no divert — strict append |
 

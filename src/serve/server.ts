@@ -34,18 +34,28 @@ import {loadSpec} from '../spec/load.js';
 import type {Spec} from '../spec/types.js';
 import {createFeature, createScenario, linkCapability} from '../spec/new.js';
 import {recordOracle} from '../oracle/record.js';
-import {autoMaintainDeliverable} from '../spec/deliverable-detect.js';
+import {maintainDeliverable} from '../spec/deliverable-detect.js';
 import {computeInventory, writeInventoryToSpecYaml} from '../spec/inventory.js';
 import {runDrift} from '../stages/drift.js';
 
 /** Persona ids registered as MCP prompts (mirrors src/agents/). */
 export const PERSONA_IDS = [
   'orchestrator',
-  'librarian',
+  'planner',
   'reviewer',
   'observability',
-  'specialists',
+  'developer',
 ] as const;
+
+/**
+ * 0.6.0 persona renames (docs/glossary.md). The old prompt names stay
+ * registered as aliases serving the NEW persona body — hosts may have cached
+ * the prompt names — and are removed in 0.7.
+ */
+export const PERSONA_PROMPT_ALIASES: Readonly<Record<string, string>> = {
+  librarian: 'planner',
+  specialists: 'developer',
+};
 
 /** Tool names cladding's MCP server exposes (stable wire identifiers). */
 export const TOOL_NAMES = [
@@ -595,7 +605,7 @@ function syncInventory(cwd: string): void {
       // v0.5.x — when a CLI entry now exists but no deliverable is declared, auto-populate it
       // (calibrated to pass now) so DELIVERABLE_SMOKE engages BEFORE the agent reacts to the
       // INTEGRITY warn and declares it disabled. One-time (skips once present).
-      autoMaintainDeliverable(cwd);
+      maintainDeliverable(cwd);
     }
   } catch {
     // intentional no-op — inventory sync is a convenience, not a gate.
@@ -713,12 +723,12 @@ function registerResources(server: McpServer, cwd: string): void {
 }
 
 function registerPrompts(server: McpServer, cwd: string): void {
-  for (const id of PERSONA_IDS) {
+  const register = (promptName: string, personaId: string, description: string): void => {
     server.registerPrompt(
-      id,
+      promptName,
       {
-        title: `Cladding persona — ${id}`,
-        description: `Persona prompt body for the ${id} agent.`,
+        title: `Cladding persona — ${personaId}`,
+        description,
         argsSchema: {
           featureId: z
             .string()
@@ -727,7 +737,7 @@ function registerPrompts(server: McpServer, cwd: string): void {
         },
       },
       (args) => {
-        const persona = loadPersona(id);
+        const persona = loadPersona(personaId);
         const featureLine = args.featureId ? `\nActive feature: ${args.featureId}\n` : '';
         return {
           messages: [
@@ -741,6 +751,18 @@ function registerPrompts(server: McpServer, cwd: string): void {
           ],
         };
       },
+    );
+  };
+  for (const id of PERSONA_IDS) {
+    register(id, id, `Persona prompt body for the ${id} agent.`);
+  }
+  // 0.6.0 alias prompts — old names serve the renamed persona's body so hosts
+  // with cached prompt names keep working for one release; removed in 0.7.
+  for (const [oldName, newId] of Object.entries(PERSONA_PROMPT_ALIASES)) {
+    register(
+      oldName,
+      newId,
+      `Persona prompt body for the ${newId} agent. (Renamed: '${oldName}' is now '${newId}' in 0.6.0 — this alias is removed in 0.7.)`,
     );
   }
   // Suppress the unused-cwd lint — cwd is reserved for future

@@ -202,7 +202,7 @@ cladding is a **5-agent system** working in concert. The agents that *build* are
 
 <div align="center">
 
-<img src="docs/img/en/multi-agent.svg" alt="5 personas with CQS — orchestrator dispatches, librarian/specialist/reviewer act, observability watches metrics" width="680">
+<img src="docs/img/en/multi-agent.svg" alt="5 personas with CQS — orchestrator dispatches, planner/developer/reviewer act, observability watches metrics" width="680">
 
 </div>
 

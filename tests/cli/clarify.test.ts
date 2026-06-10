@@ -1,4 +1,4 @@
-// Cladding · unit tests for cli/refine (v0.3.44, F-09d68b)
+// Cladding · unit tests for cli/clarify (v0.3.44, F-09d68b; verb renamed from `refine` in 0.6.0)
 //
 // Integration-style tests over a tmpdir. The dispatcher chain is
 // mocked at module-load time so `--no-llm` deterministic and LLM
@@ -15,7 +15,7 @@ vi.mock('../../src/cli/scan/dispatcher.js', () => ({
   selectDispatcher: vi.fn((opts: {noLlm?: boolean}) => (opts?.noLlm ? null : dispatchMock)),
 }));
 
-const {runRefineCommand} = await import('../../src/cli/refine.js');
+const {runClarifyCommand} = await import('../../src/cli/clarify.js');
 const {saveState, loadState} = await import('../../src/cli/scan/onboarding-state.js');
 
 function seedState(cwd: string, qa: Array<{question: string; answer: string | null}>): void {
@@ -41,7 +41,7 @@ function seedArtifacts(cwd: string): void {
   writeFileSync(join(cwd, 'spec', 'architecture.yaml'), 'version: "0.1"\nlayers: []\n');
 }
 
-describe('runRefineCommand', () => {
+describe('runClarifyCommand', () => {
   let dir: string;
   let exitCalls: number[];
   let stdoutChunks: string[];
@@ -49,7 +49,7 @@ describe('runRefineCommand', () => {
   let stdoutSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), 'clad-refine-'));
+    dir = mkdtempSync(join(tmpdir(), 'clad-clarify-'));
     exitCalls = [];
     stdoutChunks = [];
     exitSpy = vi.spyOn(process, 'exit').mockImplementation(((code?: number) => {
@@ -70,21 +70,21 @@ describe('runRefineCommand', () => {
   });
 
   test('exit 2 when no state file exists', async () => {
-    await runRefineCommand(['answer'], {cwd: dir});
+    await runClarifyCommand(['answer'], {cwd: dir});
     expect(exitCalls).toEqual([2]);
   });
 
   test('exit 2 when no answer is provided but pending questions exist', async () => {
     seedState(dir, [{question: 'Q1?', answer: null}]);
     seedArtifacts(dir);
-    await runRefineCommand([], {cwd: dir});
+    await runClarifyCommand([], {cwd: dir});
     expect(exitCalls).toEqual([2]);
   });
 
   test('exit 0 with no-op when state status is already done', async () => {
     seedState(dir, [{question: 'Q1?', answer: 'A1'}]);
     saveState(dir, {...loadState(dir)!, status: 'done'});
-    await runRefineCommand(['stuff'], {cwd: dir});
+    await runClarifyCommand(['stuff'], {cwd: dir});
     expect(exitCalls).toEqual([0]);
   });
 
@@ -94,7 +94,7 @@ describe('runRefineCommand', () => {
       {question: '어떤 결제수단 우선?', answer: null},
     ]);
     seedArtifacts(dir);
-    await runRefineCommand(['법인', '사업자만'], {cwd: dir, noLlm: true});
+    await runClarifyCommand(['법인', '사업자만'], {cwd: dir, noLlm: true});
     expect(exitCalls).toEqual([0]);
     const after = loadState(dir)!;
     expect(after.qa[0].answer).toBe('법인 사업자만');
@@ -139,7 +139,7 @@ describe('runRefineCommand', () => {
         '- Q4?',
       ].join('\n'),
     );
-    await runRefineCommand(['A1'], {cwd: dir});
+    await runClarifyCommand(['A1'], {cwd: dir});
     expect(exitCalls).toEqual([0]);
     const after = loadState(dir)!;
     expect(after.qa[0].answer).toBe('A1');
@@ -172,7 +172,7 @@ describe('runRefineCommand', () => {
         '=== CLARIFYING_QUESTIONS ===',
       ].join('\n'),
     );
-    await runRefineCommand(['final answer'], {cwd: dir});
+    await runClarifyCommand(['final answer'], {cwd: dir});
     expect(exitCalls).toEqual([0]);
     const after = loadState(dir)!;
     expect(after.status).toBe('done');
@@ -197,7 +197,7 @@ describe('runRefineCommand', () => {
         '- newQ?',
       ].join('\n'),
     );
-    await runRefineCommand(['answer text'], {cwd: dir, json: true});
+    await runClarifyCommand(['answer text'], {cwd: dir, json: true});
     expect(exitCalls).toEqual([0]);
     const parsed = JSON.parse(stdoutChunks.join(''));
     expect(parsed.cwd).toBe(dir);

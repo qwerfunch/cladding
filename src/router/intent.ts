@@ -10,6 +10,12 @@
 // `unknown` return just hands the prompt back to the host's
 // natural-language layer where it belongs.
 //
+// 0.6.0 rename (docs/glossary.md): the former `drive` and `work`
+// intents both classify to `run` — `drive` was renamed and the
+// reserved `work` stub verb was removed, with `run` owning the
+// execute-the-plan slot. The match patterns of both old rules are
+// kept; only the returned verb changed.
+//
 // Adding a new language: add a key to `Rule.patterns` and supply
 // regex patterns alongside a fixture test file
 // (`tests/router/intent.<lang>.test.ts`). The matcher iterates every
@@ -20,8 +26,8 @@
 // @see docs/ux-routing-coverage.md — applied-status of all 12
 //      prescriptions from 03-ux-routing.md.
 
-/** The 5 Iron Core verbs cladding exposes, plus `unknown`. */
-export type Intent = 'init' | 'work' | 'drive' | 'sync' | 'check' | 'unknown';
+/** The Iron Core verbs cladding's router resolves, plus `unknown`. */
+export type Intent = 'init' | 'run' | 'sync' | 'check' | 'unknown';
 
 /** Pattern languages currently supported. Add a key to extend. */
 type Lang = 'en' | 'ko';
@@ -42,12 +48,12 @@ const RULES: readonly Rule[] = [
     },
   },
   {
-    intent: 'drive',
-    // Drive means "execute an already-defined plan as a feature
-    // group". Planning intents (plan · planning · roadmap · 기획 ·
-    // 로드맵) return `unknown` on purpose — they belong to the
-    // librarian persona and the host's natural-language layer, not
-    // to a fixed verb.
+    intent: 'run',
+    // Run means "execute an already-defined plan as a feature
+    // group" (the former `drive` patterns). Planning intents (plan ·
+    // planning · roadmap · 기획 · 로드맵) return `unknown` on
+    // purpose — they belong to the planner persona and the host's
+    // natural-language layer, not to a fixed verb.
     patterns: {
       en: [/\b(drive|execute|orchestrate)\b/i, /\bkick off\b/i],
       ko: [/(드라이브|실행해|진행해|돌려줘|끌고)/],
@@ -68,10 +74,12 @@ const RULES: readonly Rule[] = [
     },
   },
   {
-    intent: 'work',
-    // Broadest verb — placed last so it doesn't shadow more-specific
+    intent: 'run',
+    // Broadest rule — the former `work` verb's build/implement
+    // patterns, placed last so it doesn't shadow more-specific
     // intents (a `"initialize and build"` prompt routes to `init`,
-    // not `work`, because `init` is evaluated first).
+    // not `run`, because `init` is evaluated first). The `work` verb
+    // itself was removed in 0.6.0; `run` absorbs its classification.
     patterns: {
       en: [/\b(work|build|develop|implement|test)\b/i],
       ko: [/(만들어|구현|기능)/],
@@ -80,11 +88,11 @@ const RULES: readonly Rule[] = [
 ];
 
 /**
- * Classifies a free-form prompt to one of the 5 verbs.
+ * Classifies a free-form prompt to one of the router's verbs.
  *
- * Order of rule evaluation is fixed: init → drive → sync → check →
- * work. The work rule is broadest and lands last so it doesn't
- * shadow more-specific verbs.
+ * Order of rule evaluation is fixed: init → run (execute) → sync →
+ * check → run (build, the former `work` rule). The build rule is
+ * broadest and lands last so it doesn't shadow more-specific verbs.
  *
  * Ambiguous prompts (planning intents, vague phrases like
  * `"어떻게든 마무리"`, anything that does not cleanly map) return

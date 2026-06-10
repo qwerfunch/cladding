@@ -199,7 +199,7 @@ cladding 은 **5 명의 에이전트가 협업하는 다중 에이전트 시스�
 
 <div align="center">
 
-<img src="docs/img/ko/multi-agent.svg" alt="5 페르소나 권한 분리 (CQS) — orchestrator 가 분배, librarian/specialist/reviewer 가 작업, observability 가 메트릭 관찰" width="680">
+<img src="docs/img/ko/multi-agent.svg" alt="5 페르소나 권한 분리 (CQS) — orchestrator 가 분배, planner/developer/reviewer 가 작업, observability 가 메트릭 관찰" width="680">
 
 </div>
 

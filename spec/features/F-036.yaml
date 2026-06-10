@@ -3,10 +3,10 @@ title: 5-agent personas + invocation principles
 status: done
 modules:
   - src/agents/orchestrator.md
-  - src/agents/librarian.md
+  - src/agents/planner.md
   - src/agents/reviewer.md
   - src/agents/observability.md
-  - src/agents/specialists.md
+  - src/agents/developer.md
   - src/agents/README.md
 acceptance_criteria:
   - id: AC-055
@@ -20,10 +20,10 @@ acceptance_criteria:
       boundaries.
     evidence_refs:
       - src/agents/orchestrator.md
-      - src/agents/librarian.md
+      - src/agents/planner.md
       - src/agents/reviewer.md
       - src/agents/observability.md
-      - src/agents/specialists.md
+      - src/agents/developer.md
 
   - id: AC-056
     ears: ubiquitous
