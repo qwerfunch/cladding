@@ -112,7 +112,7 @@ AI 가 짠 코드의 *왜* 가 코드만 봐서는 안 잡힌다.
 </tbody>
 </table>
 
-<sub>Hero 의 8/8 vs 2/8 은 초기 벤치마크 (<a href="docs/benchmarks/event-store-trap-catch.md">상세</a>) · 대규모 측정 진행 중.</sub>
+<sub>Hero 의 8/8 vs 2/8 은 드리프트-트랩 검출 벤치마크의 결과입니다 (<a href="docs/benchmarks/event-store-trap-catch.md">상세</a> — 보편 주장 아님). 정직한 측정: 그린필드 단일 세션 빌드에서 최종 코드 <em>정합성</em>은 6~48-feature A/B 전부에서 바닐라와 통계적 동률 — cladding의 측정된 가치는 <strong>드리프트 검출 · 검증 정직성 · 스펙 추적성</strong>이며, 대규모 컨텍스트 가설은 단언 대신 <a href="docs/benchmarks/prereg-context-hypothesis.md">kill criterion과 함께 사전등록</a>되어 있습니다.</sub>
 
 ## How it works
 

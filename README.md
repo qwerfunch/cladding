@@ -22,7 +22,7 @@
 </p>
 
 <p align="center">
-  Reference implementation of the <a href="https://github.com/qwerfunch/ironclad">Ironclad</a> standard. 35 detectors and a 13-stage gate verify, on every commit, that the code your AI assistant wrote still matches the spec.
+  Reference implementation of the <a href="https://github.com/qwerfunch/ironclad">Ironclad</a> standard. 36 detectors and a 14-stage gate verify, on every commit, that the code your AI assistant wrote still matches the spec.
 </p>
 
 <!-- ─────────────── HERO ─────────────── -->
@@ -40,7 +40,8 @@
 <div style="font-size:13px;color:#15803d">traps caught · 100%</div>
 </td>
 </tr>
-<tr><td colspan="2" align="center"><sub>Same spec · same model · <a href="docs/benchmarks/event-store-trap-catch.md">event-sourcing store benchmark</a></sub></td></tr>
+<tr><td colspan="2" align="center"><sub>Same spec · same model · <a href="docs/benchmarks/event-store-trap-catch.md">event-sourcing store benchmark</a> (drift-trap detection — this benchmark, not a universal claim)</sub></td></tr>
+<tr><td colspan="2" align="center"><sub>Measured honestly: on greenfield single-session builds, final-code <em>conformance</em> was statistically tied with vanilla across 6–48-feature A/Bs — cladding's measured value is <strong>drift detection, verification honesty, and spec traceability</strong>, and the large-codebase context hypothesis is <a href="docs/benchmarks/prereg-context-hypothesis.md">pre-registered with a kill criterion</a> rather than asserted.</sub></td></tr>
 </table>
 
 <!-- ─────────────── Quick start ─────────────── -->
