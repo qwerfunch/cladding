@@ -75,3 +75,26 @@ describe('UNTESTED_AC detector', () => {
     expect(msg).toMatch(/fixture:/);
   });
 });
+
+// ─── F-c037ae — derived: refs are suggestions, not claims ───
+
+describe('derived: refs (F-c037ae)', () => {
+  test('UNTESTED_AC skips derived: refs from resolution (no finding for an unresolvable suggestion)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-derived-'));
+    try {
+      mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
+      writeFileSync(
+        join(dir, 'spec.yaml'),
+        'schema: "0.1"\nproject: {name: x, language: typescript}\nfeatures: []\n',
+      );
+      writeFileSync(
+        join(dir, 'spec', 'features', 'x-aaaa11.yaml'),
+        'id: F-aaaa11\nslug: x\ntitle: t\nstatus: done\nmodules: []\nacceptance_criteria:\n  - id: AC-001\n    ears: ubiquitous\n    text: t\n    test_refs: ["derived:tests/nowhere.test.ts", "spec.yaml"]\n',
+      );
+      const findings = untestedAc.run({cwd: dir});
+      expect(findings.filter((f) => f.detector === 'UNTESTED_AC')).toEqual([]);
+    } finally {
+      rmSync(dir, {recursive: true, force: true});
+    }
+  });
+});

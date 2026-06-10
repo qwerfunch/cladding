@@ -39,6 +39,7 @@ import {staleSpecification} from '../stages/detectors/stale-specification.js';
 import {findLatestCheckpoint, recordCheckpoint, recordRollback} from '../core/checkpoint.js';
 import {maintainDeliverable} from '../spec/deliverable-detect.js';
 import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../spec/inventory.js';
+import {repairTestRefs} from '../spec/test-ref-repair.js';
 import {buildBlindPayload, renderBlindBrief} from '../oracle/payload.js';
 import {requiredOracleWorklist} from '../oracle/policy.js';
 import {loadSpec} from '../spec/load.js';
@@ -223,6 +224,12 @@ export function runSyncCommand(opts: {proposeArchive?: boolean} = {}): void {
     const inventory = computeInventory('.');
     writeInventoryToSpecYaml('.', inventory);
     writeFeatureIndex('.'); // F-37b4a8 — 1-file feature lookup at scale
+    // F-c037ae — heal annotation drift before it rejects correct features:
+    // unique-basename repair of moved test_ref paths + derived: suggestions
+    // (which never satisfy a mandate — see MISSING_TESTS/UNTESTED_AC).
+    const refFixes = repairTestRefs('.');
+    for (const r of refFixes.repaired) pulse('note', 'test_refs', `repaired ${r.from} → ${r.to} (${r.shard})`);
+    for (const sug of refFixes.suggested) pulse('note', 'test_refs', `suggested ${sug.ref} (${sug.shard}) — confirm by removing the 'derived:' prefix`);
     // v0.5.x — auto-populate project.deliverable when absent + a CLI entry is calibratable, so
     // DELIVERABLE_SMOKE (stage_2.4) engages without the agent having to declare it correctly (the
     // re-run showed a conservative agent declares it DISABLED). Calibrates against the passing state,

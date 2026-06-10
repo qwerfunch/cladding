@@ -23,7 +23,10 @@ import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js
 import {withSpec} from './with-spec.js';
 
 const NAME = 'UNTESTED_AC';
-const SKIPPABLE_PREFIXES = ['self-dogfood:', 'fixture:'];
+// `derived:` (F-c037ae) — machine-suggested candidate, NOT author-confirmed:
+// skipped from resolution here AND ignored by MISSING_TESTS, so a suggestion
+// can never satisfy a verification mandate (no manufactured evidence).
+const SKIPPABLE_PREFIXES = ['self-dogfood:', 'fixture:', 'derived:'];
 
 function isSkippable(ref: string): boolean {
   return SKIPPABLE_PREFIXES.some((p) => ref.startsWith(p));
