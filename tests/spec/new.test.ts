@@ -291,3 +291,30 @@ describe('createFeature ledger emission (F-b84c38)', () => {
     }
   });
 });
+
+// ─── done is earned, not declared (mid-scale A/B finding) ───
+
+describe('done-at-creation guard', () => {
+  test("createFeature downgrades status:'done' to in_progress with a note naming clad done", () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-new-doneguard-'));
+    try {
+      const r = createFeature({slug: 'sneaky-done', status: 'done', cwd: dir});
+      const body = readFileSync(r.path, 'utf8');
+      expect(body).toContain('status: in_progress');
+      expect(body).not.toContain('status: done');
+      expect(r.note).toContain('clad done');
+    } finally {
+      rmSync(dir, {recursive: true, force: true});
+    }
+  });
+
+  test('other statuses pass through untouched (planned default, in_progress, blocked)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-new-status-'));
+    try {
+      expect(readFileSync(createFeature({slug: 'a', cwd: dir}).path, 'utf8')).toContain('status: planned');
+      expect(readFileSync(createFeature({slug: 'b', status: 'blocked', cwd: dir}).path, 'utf8')).toContain('status: blocked');
+    } finally {
+      rmSync(dir, {recursive: true, force: true});
+    }
+  });
+});

@@ -87,6 +87,8 @@ export interface CreateFeatureResult {
   readonly path: string;
   /** The slug as stored — same as the input, echoed for caller convenience. */
   readonly slug: string;
+  /** Present when a requested status was downgraded (done is earned, not declared). */
+  readonly note?: string;
 }
 
 /**
@@ -148,7 +150,12 @@ export function createFeature(opts: CreateFeatureOptions): CreateFeatureResult {
   }
 
   const title = opts.title ?? slug;
-  const status = opts.status ?? 'planned';
+  // F-?: 'done' is EARNED through the gate (flip→gate→revert in clad done),
+  // never declared at birth — the mid-scale A/B caught an agent creating
+  // shards as status:'done' through this MCP path, skipping the earn ritual
+  // and the PreToolUse hand-flip hook entirely. Downgrade with a visible note.
+  const requestedDone = opts.status === 'done';
+  const status = requestedDone ? 'in_progress' : (opts.status ?? 'planned');
   const yaml = renderYaml({
     id,
     slug,
@@ -161,7 +168,19 @@ export function createFeature(opts: CreateFeatureOptions): CreateFeatureResult {
   // F-b84c38 — spec authorship lands in the ledger (best-effort).
   recordEvent(cwd, 'feature_created', {feature: id, slug});
 
-  return {id, path: filePath, slug};
+  return {
+    id,
+    path: filePath,
+    slug,
+    ...(requestedDone
+      ? {
+          note:
+            "status 'done' is earned, not declared — created as in_progress; run `clad done " +
+            id +
+            '` once the strict gate is GREEN.',
+        }
+      : {}),
+  };
 }
 
 /**
