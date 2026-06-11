@@ -44,9 +44,16 @@ export function isMissingBinary(proc: {readonly code?: string}): boolean {
  * `.secretlintrc`) was false-RED'd — secretlint exits non-zero with "config is not
  * found", which was mis-reported as a hardcoded secret. A config gap is not a
  * finding; it skips, like a missing binary does.
+ *
+ * `canceled due to missing packages` / `could not determine executable` are npm
+ * exec's refusals when `npx --no-install <tool>` cannot resolve the tool — the
+ * tool never ran, so it cannot have found anything. Missed in the first
+ * `--no-install` pass: local runs hid it because ~/.npm/_npx still cached tools
+ * from the pre-`--no-install` era, while fresh CI runners exposed it as a false
+ * ARCHITECTURE_VIOLATION error (breaking the committed A/B report baselines).
  */
 const SCANNER_SETUP_FAILURE =
-  /config (is |file )?not found|no such file|ENOENT|cannot find (a |the )?(config|module|package|preset)|require[sd]?\b.{0,40}\bconfig/i;
+  /config (is |file )?not found|no such file|ENOENT|cannot find (a |the )?(config|module|package|preset)|require[sd]?\b.{0,40}\bconfig|canceled due to missing packages|could not determine executable/i;
 
 export function classifyScannerExit(
   proc: {readonly exitCode?: number | null; readonly stdout?: unknown; readonly stderr?: unknown},

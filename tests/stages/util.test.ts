@@ -113,4 +113,25 @@ describe('classifyScannerExit — finding vs config/setup gap', () => {
     expect(out[0].severity).toBe('error');
     expect(out[0].message).toContain('reported');
   });
+
+  // npm exec refuses to run an unresolvable tool under `npx --no-install` — the
+  // scanner never executed, so this is a setup gap, not a violation. Verbatim
+  // message from the CI runners that broke develop (2026-06-11): local ~/.npm/_npx
+  // caches masked it; fresh runners surfaced the false ARCHITECTURE_VIOLATION.
+  test('npx canceled-due-to-missing-packages → INFO (tool never ran)', () => {
+    const out = classifyScannerExit(
+      {exitCode: 1, stderr: 'npm error npx canceled due to missing packages and no YES option: ["madge@8.0.0"]'},
+      'ARCHITECTURE_VIOLATION', found, skipped,
+    );
+    expect(out).toHaveLength(1);
+    expect(out[0].severity).toBe('info');
+  });
+
+  test("npx could-not-determine-executable → INFO (npm exec's other refusal)", () => {
+    const out = classifyScannerExit(
+      {exitCode: 1, stderr: 'npm error could not determine executable to run'},
+      'ARCHITECTURE_VIOLATION', found, skipped,
+    );
+    expect(out[0].severity).toBe('info');
+  });
 });
