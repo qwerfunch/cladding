@@ -36,6 +36,7 @@ import {loadSpec} from '../spec/load.js';
 import type {Spec} from '../spec/types.js';
 import {createFeature, createScenario, linkCapability} from '../spec/new.js';
 import {recordOracle} from '../oracle/record.js';
+import {doneFeatureCount, oracleRequired, resolveOraclePolicy} from '../oracle/policy.js';
 import {maintainDeliverable} from '../spec/deliverable-detect.js';
 import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../spec/inventory.js';
 import {runDrift} from '../stages/drift.js';
@@ -553,7 +554,7 @@ function registerTools(server: McpServer, cwd: string): void {
       description:
         'Records a host-authored conformance oracle for a feature AC + its impl-blind PROVENANCE, writes the test ' +
         'under tests/oracle/, and stamps oracle_refs so the SPEC_CONFORMANCE gate verifies it. cladding does NOT ' +
-        'author the oracle. FIRST run `clad oracle <featureId> --ac <acId>` for the spec-only brief; spawn a FRESH ' +
+        'author the oracle. AUTHOR ONLY ACs on the policy worklist (`clad oracle --required`) — an empty worklist means do not author unless the user explicitly asks (out-of-policy recordings are labeled voluntary). FIRST run `clad oracle <featureId> --ac <acId>` for the spec-only brief; spawn a FRESH ' +
         'sub-agent given ONLY that brief (never the implementation); have it write the test; then call this with the ' +
         'body + the manifest of exactly what the sub-agent saw. Blindness is your discipline — the gate audits the ' +
         'manifest (manifest∩modules must be empty) and the author≠implementer identity, and records whether you ' +
@@ -581,7 +582,28 @@ function registerTools(server: McpServer, cwd: string): void {
           cwd,
         });
         syncInventory(cwd);
-        return {content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...result, gate: gateFooter(cwd)}, null, 2)}], isError: !result.ok};
+        // F-551a1c — the policy must bind BEHAVIOR, not just the gate: the
+        // 0.6.0 A/B measured 42-52% of output tokens going to VOLUNTARY
+        // exhaustive authoring under a no-mandate policy. Out-of-policy
+        // recording stays allowed (extra verification is never forbidden) but
+        // is labeled, so the spend is informed.
+        let voluntary: {voluntary: true; cost_note: string} | Record<string, never> = {};
+        try {
+          const spec = loadSpec(cwd);
+          const policy = resolveOraclePolicy(spec.project, doneFeatureCount(spec));
+          const feature = spec.features.find((f) => f.id === args.featureId);
+          const ac = feature?.acceptance_criteria?.find((a) => a.id === args.acId);
+          if (!ac || !oracleRequired(policy, args.featureId, ac)) {
+            voluntary = {
+              voluntary: true,
+              cost_note:
+                "this AC is not on the project's oracle worklist (`clad oracle --required`) — recording anyway as voluntary; prefer policy-listed ACs to keep token spend inside the declared verification budget.",
+            };
+          }
+        } catch {
+          /* unreadable spec → skip the label, never the recording */
+        }
+        return {content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...result, ...voluntary, gate: gateFooter(cwd)}, null, 2)}], isError: !result.ok};
       } catch (err) {
         return {isError: true, content: [{type: 'text', text: (err as Error).message}]};
       }

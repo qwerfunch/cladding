@@ -565,3 +565,33 @@ describe('MCP structural channel (F-570a3f)', () => {
     }
   }, 60_000);
 });
+
+// ─── F-551a1c — out-of-policy oracle recording is labeled voluntary ───
+
+describe('voluntary oracle labeling (F-551a1c)', () => {
+  test('recording an oracle for an AC no policy requires carries voluntary:true + a cost note', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-serve-vol-'));
+    writeFileSync(join(dir, 'spec.yaml'), MINIMAL_SPEC);
+    mkdirSync(join(dir, '.cladding'), {recursive: true});
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const created = await client.callTool({
+        name: 'clad_create_feature',
+        arguments: {slug: 'vol-probe', status: 'done', acceptance_criteria: [{ears: 'ubiquitous', text: 'probe', test_refs: ['spec.yaml']}]},
+      });
+      const feature = JSON.parse((created.content as Array<{type: string; text: string}>)[0].text) as {id: string; path: string};
+      const shard = readFileSync(feature.path, 'utf8'); // result path is already absolute
+      const acId = /id: (AC-[0-9a-f]+)/.exec(shard)![1];
+      const res = await client.callTool({
+        name: 'clad_author_oracle',
+        arguments: {featureId: feature.id, acId, body: 'import {test} from "vitest"; test("t", () => {});', readManifest: ['spec brief'], blind: true, authorName: 'probe-blind'},
+      });
+      const parsed = JSON.parse((res.content as Array<{type: string; text: string}>)[0].text) as {voluntary?: boolean; cost_note?: string};
+      expect(parsed.voluntary).toBe(true);
+      expect(parsed.cost_note).toContain('clad oracle --required');
+    } finally {
+      await cleanup();
+      rmSync(dir, {recursive: true, force: true});
+    }
+  });
+});

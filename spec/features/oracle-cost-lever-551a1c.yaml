@@ -1,0 +1,37 @@
+id: F-551a1c
+slug: oracle-cost-lever
+title: "Oracle policy binds behavior, not just the gate: scale-graduated risk-weighted default + policy-aware authoring guidance"
+status: done
+modules:
+  - src/oracle/policy.ts
+  - src/serve/server.ts
+  - src/agents/developer.md
+  - skills/oracle/SKILL.md
+acceptance_criteria:
+  - id: AC-7bb981
+    ears: state
+    condition: "while a project has >=8 done features and declares neither oracle_policy nor require_oracles"
+    action: "resolve a scale-graduated risk-weighted default mandate ({always_ears: [unwanted], sample: 0}) in REPORT-ONLY mode: clad oracle --required lists the worklist and the SPEC_CONFORMANCE detector reports (info severity) rather than blocking; the report names how many done ACs are EARS-untagged and therefore invisible to the mandate"
+    response: "grown projects gain a visible, non-vacuous oracle obligation without a breaking behavior change; enforcement graduates in 0.7 on a defined denominator"
+    text: "While a grown project (>=8 done features) declares no oracle policy, the system shall resolve a report-only risk-weighted default ({always_ears:[unwanted]}) whose report names the EARS-untagged blind spot, so the obligation becomes visible without blocking."
+    notes: "## Why\nopt-in empirical gates do not get opted into (the DELIVERABLE_SMOKE lesson); but a hard default-on would false-RED legacy projects, and untagged-EARS projects would satisfy it vacuously (review T5) — hence report-only with the denominator named."
+    test_refs:
+      - "tests/oracle-policy.test.ts#a grown project (>=8 done) with no declared policy gains a REPORT-ONLY risk-weighted mandate"
+      - "tests/oracle-policy.test.ts#an explicit require_oracles: false is the project saying NO — never graduated"
+      - "tests/stages/detectors/spec-conformance.test.ts#a grown undeclared-policy project: missing unwanted-AC oracle is INFO (report), and the untagged denominator is named"
+  - id: AC-0e9245
+    ears: event
+    condition: "when clad_author_oracle records an oracle for an AC the resolved policy does NOT require"
+    action: "include voluntary: true and a one-line cost note in the result JSON (never block — extra verification is allowed, uninformed token spend is not)"
+    response: "agents and users see that they are spending beyond the project's declared verification budget"
+    text: "When clad_author_oracle records an oracle the policy does not require, the result shall carry voluntary: true and a cost note, so out-of-policy authoring is informed rather than silent."
+    notes: "## Why\nThe 0.6.0 A/B measured 42-52%% of output tokens going to VOLUNTARY exhaustive oracle authoring under an undeclared (= no-mandate) policy — prose guidance overrode the policy knob. The governance tool must not bypass its own governance."
+    test_refs:
+      - "tests/serve/server.test.ts#recording an oracle for an AC no policy requires carries voluntary:true + a cost note"
+  - id: AC-177022
+    ears: ubiquitous
+    text: "Persona and skill guidance shall key oracle authoring to the policy worklist (`clad oracle --required`) instead of unconditionally urging oracle creation: an empty worklist means do not author unless the user explicitly asks."
+    notes: "## Decision\nThe worklist command already exists and resolves through the single policy SSoT — guidance just has to point at it."
+
+    evidence_refs:
+      - "skills/oracle/SKILL.md"
