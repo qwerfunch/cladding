@@ -57,6 +57,8 @@ The marketplace plugin (Claude Code / Codex / Gemini) ships only the prompts + t
 
 Never auto-tag, auto-publish, or auto-release. Patch-first cadence — minor bumps (0.4.0 etc.) need explicit user confirmation.
 
+When a release goes through a PR instead of a direct fast-forward, **never squash-merge it**. A squash puts the release commit outside develop's ancestry, so the *next* release PR reports every file touched since as conflicting (the v0.5.2 squash via PR #180 made PR #181 show 31 phantom conflicts, resolved only by a manual `merge origin/main --ours` reconciliation commit). Use a merge commit, or keep the fast-forward flow.
+
 ## AI behavior guidance from `spec.yaml.project.ai_hints`
 
 When operating inside a cladding-managed project (cladding itself included), grep `spec.yaml::project.ai_hints` at session start. It is the SSoT for AI behavior policy:
