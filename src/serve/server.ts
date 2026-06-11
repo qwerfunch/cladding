@@ -39,6 +39,7 @@ import {recordOracle} from '../oracle/record.js';
 import {doneFeatureCount, oracleRequired, resolveOraclePolicy} from '../oracle/policy.js';
 import {maintainDeliverable} from '../spec/deliverable-detect.js';
 import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../spec/inventory.js';
+import {buildContextSlice} from '../optimizer/context-slice.js';
 import {runDrift} from '../stages/drift.js';
 
 /** Persona ids registered as MCP prompts (mirrors src/agents/). */
@@ -71,6 +72,7 @@ export const TOOL_NAMES = [
   'clad_link_capability',
   'clad_author_oracle',
   'clad_run_gate',
+  'clad_get_context',
 ] as const;
 
 /** Resource URIs cladding's MCP server exposes (stable wire identifiers). */
@@ -421,6 +423,35 @@ function registerTools(server: McpServer, cwd: string): void {
             },
           ],
         };
+      }
+    },
+  );
+
+  // clad_get_context (F-d2c806) — the Least Context principle, mechanized.
+  server.registerTool(
+    'clad_get_context',
+    {
+      title: 'Get the context slice for one feature',
+      description:
+        "Returns the working set for ONE feature in one call: the focus feature (full), its transitive " +
+        'depends_on ancestors (title+status), bound scenarios, the matching ai_hints patterns, and the union ' +
+        "of the feature's test_refs. Look up by feature id (F-…), slug, or a module path. Prefer this over " +
+        'reading shards by hand — dispatch the slice, never the whole spec.',
+      inputSchema: {
+        query: z.string().describe('Feature id (F-…), slug, or module path (e.g. src/auth/login.ts)'),
+      },
+    },
+    async (args) => {
+      try {
+        const spec = loadSpec(cwd);
+        const slice = buildContextSlice(spec, args.query);
+        const miss = 'not_found' in slice;
+        return {
+          isError: miss,
+          content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...slice}, null, 2)}],
+        };
+      } catch (err) {
+        return {isError: true, content: [{type: 'text', text: (err as Error).message}]};
       }
     },
   );

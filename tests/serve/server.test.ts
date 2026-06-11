@@ -595,3 +595,26 @@ describe('voluntary oracle labeling (F-551a1c)', () => {
     }
   });
 });
+
+// ─── F-d2c806 — clad_get_context over MCP ───
+
+describe('clad_get_context (F-d2c806)', () => {
+  test('returns the slice with schema_version; a miss is isError with the accepted forms', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-serve-ctx-'));
+    writeFileSync(join(dir, 'spec.yaml'), MINIMAL_SPEC);
+    mkdirSync(join(dir, '.cladding'), {recursive: true});
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const {tools} = await client.listTools();
+      expect(tools.map((t) => t.name)).toContain('clad_get_context');
+      const miss = await client.callTool({name: 'clad_get_context', arguments: {query: 'nope'}});
+      expect(miss.isError).toBe(true);
+      const parsed = JSON.parse((miss.content as Array<{type: string; text: string}>)[0].text) as {schema_version: number; not_found: string};
+      expect(parsed.schema_version).toBe(1);
+      expect(parsed.not_found).toBe('nope');
+    } finally {
+      await cleanup();
+      rmSync(dir, {recursive: true, force: true});
+    }
+  });
+});

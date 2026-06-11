@@ -471,7 +471,7 @@ describe('cli/clad — handler exports', () => {
 });
 
 describe('cli/clad — createProgram', () => {
-  test('returns a Command with all 16 verbs registered (work removed in 0.6.0; hook added by F-1d23a6)', () => {
+  test('returns a Command with all 17 verbs registered (work removed in 0.6.0; hook F-1d23a6, context F-d2c806)', () => {
     const program = clad.createProgram();
     const names = program.commands.map((c) => c.name());
     expect(names).toEqual([
@@ -486,6 +486,7 @@ describe('cli/clad — createProgram', () => {
       'oracle',
       'rollback',
       'status',
+      'context',
       'route',
       'hook',
       'serve',

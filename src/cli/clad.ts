@@ -19,6 +19,7 @@ import {runInit} from './init.js';
 import {runClarifyCommand} from './clarify.js';
 import {runHostSetup} from '../init/host-setup.js';
 import {recordEvent} from '../events/log.js';
+import {buildContextSlice} from '../optimizer/context-slice.js';
 import {strictSkipViolations} from '../stages/skip-policy.js';
 import {runArch} from '../stages/arch.js';
 import {runAudit} from '../stages/audit.js';
@@ -545,6 +546,19 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
 }
 
 /** Handler for `clad check`. Runs the tier's Iron Law stages; exits with worst code. */
+/** Handler for `clad context <query>` (F-d2c806) — print the context slice. */
+export function runContextCommand(query: string): void {
+  try {
+    const spec = loadSpec();
+    const slice = buildContextSlice(spec, query);
+    process.stdout.write(`${JSON.stringify(slice, null, 2)}\n`);
+    process.exit('not_found' in slice ? 1 : 0);
+  } catch (err) {
+    pulse('fail', 'context', (err as Error).message);
+    process.exit(1);
+  }
+}
+
 export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tier?: string; json?: boolean}): void {
   process.exit(runCheckStages(opts).worst);
 }
@@ -786,6 +800,11 @@ export function createProgram(): Command {
     .description('Render the feature × stage integrity matrix (business titles; use --internal for raw F-NNN ids)')
     .option('--internal', 'show internal F-NNN ids and stage codes')
     .action(runStatusCommand);
+
+  program
+    .command('context <query>')
+    .description('Print the context slice for one feature — id (F-…), slug, or module path (F-d2c806)')
+    .action(runContextCommand);
 
   program
     .command('route <prompt>')

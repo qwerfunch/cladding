@@ -60,6 +60,7 @@
 | `checkpoint` | stable | Record a feature checkpoint event (git HEAD + spec digest). | 체크포인트 기록 |
 | `rollback` | stable | Record a rollback event + print the maintainer-runnable git command. | 롤백 기록 |
 | `route` | stable | Classify a natural-language prompt to a verb (debug surface for the router). | 의도 분류 |
+| `context` | stable (0.6.0) | Print the context slice for one feature (focus + ancestors + scenarios + ai_hints + test_refs) — the Least Context principle, mechanized. | 컨텍스트 슬라이스 |
 | `hook` | stable (0.6.0) | Host hook protocol adapter — consumes one host lifecycle event (SessionStart / UserPromptSubmit / PreToolUse / PostToolUse / Stop) as stdin JSON; always exits 0. | 호스트 훅 프로토콜 어댑터 |
 
 ## MCP tools (frozen wire identifiers)
@@ -75,6 +76,7 @@
 | `clad_link_capability` | Upsert a capability ↔ feature binding (Tier B). |
 | `clad_author_oracle` | Record a host-authored impl-blind oracle + provenance. |
 | `clad_run_gate` | Run the real Iron Law gate for a tier in-session (0.6.0; strict by default). Payloads carry `schema_version`. |
+| `clad_get_context` | The context slice for one feature by id/slug/module path (0.6.0) — dispatch the slice, never the whole spec. |
 
 ## Event types (frozen)
 
