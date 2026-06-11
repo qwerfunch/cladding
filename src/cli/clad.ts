@@ -11,6 +11,7 @@ import process from 'node:process';
 import {Command} from 'commander';
 
 import {classifyIntent} from '../router/intent.js';
+import {runChangelogCommand} from './changelog.js';
 import {runDoctorCommand} from './doctor.js';
 import {runDone} from './done.js';
 import {runHookCommand} from './hook.js';
@@ -805,6 +806,20 @@ export function createProgram(): Command {
     .command('context <query>')
     .description('Print the context slice for one feature — id (F-…), slug, or module path (F-d2c806)')
     .action(runContextCommand);
+
+  program
+    .command('changelog')
+    .description(
+      'Render shipped changes since a git ref into human-facing documents (F-904495a5). Default: capability-grouped ' +
+        'markdown from feature titles + acceptance sentences (no internal ids). --json emits the deterministic ' +
+        'manifest hosts render release notes from; --audit the id-keeping verification table; --catalog the full ' +
+        'capability → feature → acceptance catalog.',
+    )
+    .option('--since <ref>', 'git ref to diff from (default: the latest tag via `git describe --tags --abbrev=0`)')
+    .option('--json', 'print the deterministic ChangelogManifest as JSON (byte-identical across runs on the same state)')
+    .option('--audit', 'print the audit table — feature | AC | EARS | verification refs, each marked resolved ✓/✗')
+    .option('--catalog', 'print the full capability → feature → acceptance listing of the living spec (no git range)')
+    .action((opts: {since?: string; json?: boolean; audit?: boolean; catalog?: boolean}) => runChangelogCommand(opts));
 
   program
     .command('route <prompt>')

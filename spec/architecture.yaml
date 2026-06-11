@@ -15,6 +15,7 @@
 layers:
   - - spec
     - agents
+    - changelog
     - core
     - events
     - hitl
@@ -39,6 +40,16 @@ forbidden_imports:
   - from: spec
     to: cli
   - from: spec
+    to: serve
+  # changelog (foundation) mirrors spec's purity: the collector/renderers
+  # must stay importable by cli AND serve without dragging stage runners in.
+  - from: changelog
+    to: stages
+  - from: changelog
+    to: drive
+  - from: changelog
+    to: cli
+  - from: changelog
     to: serve
   - from: stages
     to: drive

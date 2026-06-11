@@ -157,6 +157,42 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
+  test('clad_changelog format=catalog renders the spec catalog without a git range (F-904495a5)', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const result = await client.callTool({
+        name: 'clad_changelog',
+        arguments: {format: 'catalog'},
+      });
+      expect(result.isError).toBeFalsy();
+      const text = (result.content as Array<{type: string; text: string}>)[0].text;
+      const parsed = JSON.parse(text);
+      expect(parsed.schema_version).toBe(1);
+      expect(parsed.format).toBe('catalog');
+      // The catalog is the prose comprehension surface — titles + AC sentences.
+      expect(parsed.content).toContain('# probe — capability catalog');
+      expect(parsed.content).toContain('### alpha');
+      expect(parsed.content).toContain('probe AC for serve tests');
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('clad_changelog reports an unknown since ref as isError, never an empty manifest (F-904495a5)', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      // The temp project dir is not a git repository, so any ref is unresolvable.
+      const result = await client.callTool({
+        name: 'clad_changelog',
+        arguments: {since: 'no-such-ref'},
+      });
+      expect(result.isError).toBe(true);
+      expect((result.content as Array<{text: string}>)[0].text).toContain('no-such-ref');
+    } finally {
+      await cleanup();
+    }
+  });
+
   test('read surfaces degrade gracefully when spec.yaml is absent (no crash)', async () => {
     // A project that has not run `clad init` yet — spec.yaml is absent, so
     // loadSpec throws. The read tools must return an isError reply (and the

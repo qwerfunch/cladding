@@ -31,6 +31,8 @@ import {
 import {z} from 'zod';
 
 import {loadPersona} from '../agents/loader.js';
+import {collectChangelog, defaultSinceRef} from '../changelog/collect.js';
+import {renderAuditTable, renderCatalog, renderChangelogMarkdown} from '../changelog/render.js';
 import {subscribeAudit} from '../hitl/audit.js';
 import {loadSpec} from '../spec/load.js';
 import type {Spec} from '../spec/types.js';
@@ -73,6 +75,7 @@ export const TOOL_NAMES = [
   'clad_author_oracle',
   'clad_run_gate',
   'clad_get_context',
+  'clad_changelog',
 ] as const;
 
 /** Resource URIs cladding's MCP server exposes (stable wire identifiers). */
@@ -449,6 +452,62 @@ function registerTools(server: McpServer, cwd: string): void {
         return {
           isError: miss,
           content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...slice}, null, 2)}],
+        };
+      } catch (err) {
+        return {isError: true, content: [{type: 'text', text: (err as Error).message}]};
+      }
+    },
+  );
+
+  // clad_changelog (F-904495a5) — the spec rendered into a shipped-changes
+  // manifest. The deterministic collector/renderers live in src/changelog/;
+  // the LLM host renders the human prose FROM the manifest, never from memory.
+  server.registerTool(
+    'clad_changelog',
+    {
+      title: 'Collect shipped changes since a git ref (changelog manifest)',
+      description:
+        'Returns the deterministic shipped-changes manifest for <since>..HEAD (default since: the latest tag): ' +
+        'feature shards classified (added-as-done / flipped-to-done / modified-while-done / archived) grouped by ' +
+        'capability with an uncategorized bucket, the spec inventory count diff, and conventional feat:/fix: ' +
+        "commits that name no feature id (work that shipped outside the spec). For HUMAN-FACING release notes, " +
+        "render from the manifest in the project's language(s), sourcing every claim from a feature title or " +
+        "acceptance-criterion sentence — never invent a change the manifest does not carry. format:'markdown' is " +
+        "the deterministic English fallback (no internal ids), 'audit' the id-keeping verification table " +
+        "(refs marked resolved ✓/✗), 'catalog' the full capability → feature → acceptance listing (no git range).",
+      inputSchema: {
+        since: z
+          .string()
+          .optional()
+          .describe('Git ref to diff from (default: latest tag via `git describe --tags --abbrev=0`)'),
+        format: z
+          .enum(['manifest', 'markdown', 'catalog', 'audit'])
+          .optional()
+          .describe("Payload format (default 'manifest')"),
+      },
+    },
+    async (args) => {
+      try {
+        const format = args.format ?? 'manifest';
+        if (format === 'catalog') {
+          const content = renderCatalog(loadSpec(cwd));
+          return {
+            content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, format, content}, null, 2)}],
+          };
+        }
+        const since = args.since ?? defaultSinceRef(cwd);
+        const manifest = collectChangelog(cwd, since);
+        if (format === 'manifest') {
+          return {
+            content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...manifest}, null, 2)}],
+          };
+        }
+        const content =
+          format === 'audit'
+            ? renderAuditTable(manifest, loadSpec(cwd), cwd)
+            : renderChangelogMarkdown(manifest);
+        return {
+          content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, format, content}, null, 2)}],
         };
       } catch (err) {
         return {isError: true, content: [{type: 'text', text: (err as Error).message}]};
