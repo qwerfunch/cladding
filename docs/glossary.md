@@ -36,6 +36,7 @@
 | `specialists` | alias → `developer` | Old name (plural form for a single persona); removal in 0.7. | (구명) |
 | `reviewer` | stable | Independent read-only auditor — anti-self-cert barrier; the most replicated community agent name, kept as-is. | 독립 감사자 |
 | `observability` | stable | Tier-D analyst over events/audit/perf logs (Anthropic Cookbook's own term for this role). | 로그·지표 분석자 |
+| `blind-author` | stable (0.6.0) | Impl-blind test/oracle author — tool-restricted (no Read/Grep/Glob/Edit), so blindness is structural, not promised. Input = the `clad oracle` brief only. | 맹검 작성자 |
 
 ## CLI verbs (alias-and-deprecate bucket)
 

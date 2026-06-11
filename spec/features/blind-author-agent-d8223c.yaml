@@ -1,0 +1,29 @@
+id: F-d8223c
+slug: blind-author-agent
+title: "blind-author agent — structurally tool-blinded test/oracle authoring (anti-self-cert by physics, not prose)"
+status: done
+modules:
+  - src/agents/blind-author.md
+acceptance_criteria:
+  - id: AC-862413
+    ears: ubiquitous
+    text: "The blind-author agent definition shall restrict tools to Write and Bash (test execution only) — no Read, Grep, Glob, or Edit — so the agent CANNOT see any implementation: its sole input is the spec-only brief from clad oracle pasted into its prompt, and 'authored impl-blind' becomes a structural fact rather than a self-reported boolean."
+    notes: "## Why\nAnti-self-cert blindness was prompt-advisory and leaked 4/4 in the A/B; the provenance record's blind flag is caller-asserted. Tool restriction is the only mechanism that makes the claim physical. ## Trade-off\nNo Edit means rewrites are whole-file Writes — acceptable for single oracle test files."
+    test_refs:
+      - "tests/agents/loader.test.ts#the canonical definition grants NO read-capable tool and no read capability"
+  - id: AC-386e48
+    ears: event
+    condition: "when the orchestrator/developer flow needs an oracle for a policy-required AC"
+    action: "spawn the blind-author agent with ONLY the clad oracle brief (never module paths or file contents), let it Write the test under tests/oracle/, then record provenance with blind: true via clad_author_oracle"
+    response: "the dispatch protocol is documented in the agent body and the orchestrator routing table, so hosts wire the structural barrier instead of inventing their own"
+    text: "When a policy-required oracle is needed, the documented dispatch protocol shall hand the blind-author agent only the spec brief and record provenance blind: true after it writes the test, so the structural barrier is the standard path."
+    evidence_refs:
+      - "src/agents/blind-author.md"
+      - "src/agents/orchestrator.md"
+  - id: AC-a3bcb9
+    ears: ubiquitous
+    text: "The agent shall be mirrored by the plugin build (agents/ + codex skills) and registered in the glossary like every persona, with the size-budget ratchet extended, so the new definition lives under the same drift discipline as the existing five."
+
+    test_refs:
+      - "tests/scenarios/_size-budgets.ts"
+      - "tests/self-consistency.test.ts#every persona file under src/agents/ has a glossary row"

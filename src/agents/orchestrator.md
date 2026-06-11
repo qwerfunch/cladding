@@ -81,6 +81,7 @@ Before routing the first request of a session, grep `spec.yaml::project.ai_hints
 |---|---|
 | "manage spec / scenarios / features" | planner |
 | "review architecture / philosophy" | reviewer |
+| author a policy-required oracle (`clad oracle --required`) | **blind-author** — hand it ONLY the `clad oracle` brief; record provenance `blind: true` after it writes |
 | "diagnose perf / logs / drift" | observability |
 | "is my LLM host healthy?" / "why did the scan fall back to deterministic?" | observability (runs `clad doctor` over `.cladding/events.log.jsonl`) |
 | "build, test, fix" | developer |

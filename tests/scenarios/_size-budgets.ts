@@ -40,6 +40,7 @@ export const PERSONA_BUDGETS = {
   'src/agents/orchestrator.md': budget(107, 8000),  // baseline 96/7153 — v0.4.x reshaped recipe→feature-cycle + mode gloss (F-3b3690)
   'src/agents/planner.md': budget(75, 4500),         // baseline 68/4149 — v0.3.59 added Project policy section (F-0ed2db); renamed from librarian (0.6.0)
   'src/agents/developer.md': budget(80, 4600),       // baseline 76/4246 — v0.5.x honest anti-self-cert: advisory blindness vs enforced identity layer + interface-stub (F-3b3690); renamed from specialists (0.6.0)
+  'src/agents/blind-author.md': budget(45, 2600),   // 0.6.0 (F-d8223c) — structural anti-self-cert: tool-restricted, contract-only body
   'src/agents/reviewer.md': budget(85, 4900),        // baseline 81/4533 — v0.5.x reviewer owns the advisory blindness audit no gate enforces (F-3b3690)
   'src/agents/observability.md': budget(60, 3500),   // baseline 50/3115 — v0.3.59 added Project policy section (F-0ed2db)
 } as const;

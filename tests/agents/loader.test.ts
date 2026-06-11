@@ -12,7 +12,7 @@
 //   - 0.6.0 alias resolution: librarian → planner, specialists → developer
 //     (old id loads the new persona + one-line stderr deprecation notice)
 
-import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
+import {readFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
@@ -155,5 +155,21 @@ describe('loadPersona', () => {
     const reparsed = loadPersona('mut', root);
     expect(reparsed).not.toBe(first);
     expect(reparsed.id).toBe('v2');
+  });
+});
+
+// ─── F-d8223c — the blind-author definition is structurally blinded ───
+
+describe('blind-author (F-d8223c)', () => {
+  test('the canonical definition grants NO read-capable tool and no read capability', () => {
+    const raw = readFileSync(join(process.cwd(), 'src', 'agents', 'blind-author.md'), 'utf8');
+    const toolsLine = /^tools:\s*(.+)$/m.exec(raw)![1];
+    expect(toolsLine).toContain('Write');
+    for (const forbidden of ['Read', 'Grep', 'Glob', 'Edit']) {
+      expect(toolsLine.includes(forbidden), `${forbidden} must not be granted`).toBe(false);
+    }
+    const p = loadPersona('blind-author');
+    expect(p.capabilities.has('write')).toBe(true);
+    expect(p.capabilities.has('read')).toBe(false);
   });
 });
