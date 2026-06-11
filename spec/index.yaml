@@ -132,6 +132,7 @@ features:
   F-9064ff: {slug: deliverable-smoke, status: done, modules: 8}
   F-90d054: {slug: init-host-autowire, status: archived, modules: 0}
   F-94dda4: {slug: scan-polyglot, status: done, modules: 2}
+  F-95a096: {slug: ops-visibility-polish, status: done, modules: 3}
   F-99c6e5: {slug: cladding-self-fixes, status: done, modules: 13}
   F-9a3b61: {slug: ab-ext-uncommit-demos, status: done, modules: 3}
   F-9b643e: {slug: scan-conventions, status: done, modules: 5}

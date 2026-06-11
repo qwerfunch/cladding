@@ -1,0 +1,32 @@
+id: F-95a096
+slug: ops-visibility-polish
+title: "0.6.0 polish: completion-claim done card, doctor governance summary, status attestation column"
+status: done
+modules:
+  - src/cli/hook.ts
+  - src/cli/doctor.ts
+  - src/ui/panel.ts
+acceptance_criteria:
+  - id: AC-8c0e12
+    ears: event
+    condition: "when UserPromptSubmit carries a completion-claim utterance (wrap up / looks done / mark done / ship it / 마무리 / 완료 처리)"
+    action: "inject a dedicated card naming the earn path (clad done <id> after a GREEN strict gate) instead of the generic check suggestion"
+    response: "the measured weakest engagement surface (the c-bucket: zero governed completions even hooks-on) gets a targeted mechanical nudge"
+    text: "When a completion-claim utterance arrives, the hook shall inject the dedicated earn-path card (clad done after a GREEN strict gate), so the weakest measured engagement surface gets a direct mechanism."
+    notes: "## Why\nThe 0.6.0 engagement sample failed the ENTIRE completion-claim bucket on both arms — 'looks done, wrap it up' produced no gated clad done within the caps."
+    test_refs:
+      - tests/cli/hook.test.ts
+  - id: AC-846ce0
+    ears: event
+    condition: "when clad doctor runs in a project with a lifecycle ledger"
+    action: "report the governance operations summary — gate runs (with the last run's tier/strict/worst), done attempts and rejections, stop_blocked count plus any unresolved stop-block, and attestation presence/entry count — in text and in the --json report"
+    response: "the operator can finally read the ledger 0.6.0 writes without parsing JSONL by hand"
+    text: "When clad doctor runs, it shall summarize the governance ledger (gate runs + last outcome, done attempts/rejections, stop blocks + unresolved, attestation entries) in text and --json."
+    test_refs:
+      - tests/cli/doctor.test.ts
+  - id: AC-df6871
+    ears: ubiquitous
+    text: "The clad status matrix shall carry an attestation-freshness column per feature: verified-current when the recorded module hash matches, stale when it differs or the done feature has no entry, and a neutral mark when not applicable (no attestation file, non-done, or no modules), so verification freshness is visible in one screen."
+    notes: "## Why\n'Is this tree verified right now?' had no single-screen answer — the attestation file exists but nothing rendered it."
+    test_refs:
+      - tests/ui/panel.test.ts

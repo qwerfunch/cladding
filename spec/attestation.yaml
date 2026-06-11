@@ -45,7 +45,7 @@ attested:
   F-037: 7f811c5c8bc0e8e3
   F-038: 623c5ac64feb9e3e
   F-039: 2e60f3d899b72d7f
-  F-040: 88b93b8471fd673d
+  F-040: fafcaaf6b13119e1
   F-041: cddb50fc41e49066
   F-042: d1f661281bb9fb6e
   F-043: 2c5f4a94e3e57e9b
@@ -67,7 +67,7 @@ attested:
   F-060: 96dc261212a0dd3d
   F-061: c16123610e8fe7fc
   F-062: 0ab83282a7f7b1ef
-  F-063: 87d5f3332c3a1ebd
+  F-063: 76a719993cc71fa8
   F-064: da16475dd8f030a0
   F-065: e6ed3ef916201947
   F-066: 1760fa5caf84653e
@@ -88,23 +88,23 @@ attested:
   F-081: 878b8a20e961f5ad
   F-098d3b: bae2b851def96844
   F-09d68b: d7be8171dad20fa6
-  F-0ed2db: 85222bc449ac6302
+  F-0ed2db: f59e1869a8808ffb
   F-12d740: 84ad71574d306c81
   F-16746b: 2f98a1261b9b1fc2
   F-17df0a: 915d13b33258d3fc
   F-18e951: df7bd67676e86ef5
   F-1c9166: 08e28a91d52bd266
-  F-1d23a6: 161ab59a02699217
+  F-1d23a6: 29193da6fad1c3bc
   F-1edb38: cf753d61550896d8
   F-24062d: 84646f41e534c62b
-  F-245bd5: cafb96e2d3365f7d
+  F-245bd5: c77fb6a1d805352c
   F-2de65d: 84ad71574d306c81
   F-315fd7: d9a03c343c031fe3
   F-31eeb8: d88a9880d29ae411
-  F-32b1e0: 567f9a6d33fb6423
+  F-32b1e0: 77360adf48115fe7
   F-3788c2: 322c76f17c623e43
   F-37b4a8: b6ef1e99dc2edcbd
-  F-3a5339: b12da58b2c2d09be
+  F-3a5339: d88f83b95d45275b
   F-3b3690: 66c098ef8c25ad29
   F-40327b: 53629de0c02bb642
   F-417ff0: 0aee2e9d0820a73f
@@ -116,7 +116,7 @@ attested:
   F-56abaa: e860e11715a3ae16
   F-570a3f: af716ff28abfaad1
   F-59f093: d34943aeb767cf0e
-  F-5b9f9f: 27ea9036660d8f3c
+  F-5b9f9f: c754d126ceabfdbf
   F-5d3ed2: 9452eac28760fb99
   F-5f6b45: 15323c4f5b619de7
   F-65814a: 2136c8b8c94ef535
@@ -126,13 +126,14 @@ attested:
   F-6f80e7: 0c0e5b71ae22cc26
   F-78b50d: 9f7e513e89d92033
   F-7afbd4: 6a817bc7f6e9267e
-  F-7ce18e: 1ece113eeb97a258
+  F-7ce18e: 05f4bbe89365ba12
   F-7fa4a7: 19b7709a0b2202e3
   F-80d19d: 3e127d73eda5d8ec
   F-836a90: 3d7352fddf511120
   F-904495a5: 8f5cf87e4b43c53c
   F-9064ff: 89fe25931805ebfa
   F-94dda4: 8dfb0267c45534f9
+  F-95a096: c6ca03ea8b16a112
   F-99c6e5: 2be1c4cd36470806
   F-9a3b61: 4baa26103a280acc
   F-9b643e: e4f1bad366872a00
@@ -150,7 +151,7 @@ attested:
   F-b99577: 2bbc79bca4862714
   F-ba2e05: 4ee2604ca6674573
   F-ba4b7a: c282e0e915ed547c
-  F-bb15e6: 978a53b9cd6d5082
+  F-bb15e6: 429de91481a06309
   F-bd07d7: 5deb2b62ea99d56a
   F-bdcd90: 36368d13e1d696b3
   F-c037ae: afbbab5ee7516e09

@@ -14,6 +14,12 @@
 // the model to behave) to structure (the host mechanically injecting the
 // spec map and mechanically blocking hand-flipped `status: done`).
 //
+// HONEST LIMIT: PreToolUse only sees Edit/Write/MultiEdit tool calls — a
+// YAML edit made THROUGH Bash (sed, heredoc, git apply) bypasses the block
+// lane entirely. The Stop hook's deterministic trio is the second lane that
+// catches the result after the fact (annotation-free done trips MISSING_TESTS
+// etc.). Blocking is lane one, post-hoc detection is lane two; neither alone.
+//
 // @see plugins/claude-code/hooks/hooks.json — the shipped wiring (AC-03da31).
 // @see spec/features/host-hooks-1d23a6.yaml — the contract.
 
@@ -158,10 +164,23 @@ const INTENT_HINTS: Readonly<Partial<Record<Intent, string>>> = {
   init: 'scaffold with /cladding:init',
 };
 
+// Completion claims were the WEAKEST measured engagement surface (the 0.6.0
+// engagement sample failed the entire c-bucket on both arms): "looks done,
+// wrap it up" produced no gated `clad done`. A dedicated card beats the
+// generic check suggestion here (F-95a096).
+const COMPLETION_CLAIM =
+  /\b(wrap (it |this )?up|looks? (all )?done|mark (it |this |.{0,24})?done|finish(ed)? (it|this|up)|ship it)\b|마무리|완료 ?처리|끝난 ?것 ?같|완료해/i;
+
 /** Renders the one-line routing suggestion, or nothing for unclassifiable prompts. */
 function renderPromptSuggestion(input: unknown): string {
   const prompt = asString(asRecord(input).prompt);
   if (prompt.length === 0) return '';
+  if (COMPLETION_CLAIM.test(prompt)) {
+    return (
+      'cladding: completion is EARNED, not declared — run `clad done <F-id>` ' +
+      '(the strict gate flips it only when GREEN); in-progress ids are one grep away in spec/index.yaml'
+    );
+  }
   const intent = suggestIntent(prompt);
   const hint = intent ? INTENT_HINTS[intent] : undefined;
   if (!intent || !hint) return '';

@@ -120,6 +120,31 @@ describe('UserPromptSubmit — one-line routing suggestion', () => {
   test("'explain how auth works' → empty (no suggestion, no noise)", () => {
     expect(runHookEvent('UserPromptSubmit', {prompt: 'explain how auth works'}, cwd)).toBe('');
   });
+
+  // F-95a096 — a completion CLAIM gets the earn-path card, not an intent route.
+  // "done" must be earned through the gate; the card points at `clad done`.
+  const EARN_CARD =
+    'cladding: completion is EARNED, not declared — run `clad done <F-id>` ' +
+    '(the strict gate flips it only when GREEN); in-progress ids are one grep away in spec/index.yaml';
+
+  test("'looks done, wrap it up' → earn-path card naming clad done", () => {
+    expect(runHookEvent('UserPromptSubmit', {prompt: 'looks done, wrap it up'}, cwd)).toBe(EARN_CARD);
+  });
+
+  test('Korean completion claim (마무리하고 완료 처리해줘) → same card', () => {
+    expect(runHookEvent('UserPromptSubmit', {prompt: '마무리하고 완료 처리해줘'}, cwd)).toBe(EARN_CARD);
+  });
+
+  test('the claim card wins over intent routing when both would match', () => {
+    // 'mark the auth feature done' also smells like run work; the claim card
+    // must take precedence (the early return) or the earn-path nudge is lost.
+    expect(runHookEvent('UserPromptSubmit', {prompt: 'mark the auth feature done'}, cwd)).toBe(EARN_CARD);
+  });
+
+  test("negative control: 'add a finished-goods inventory feature' is NOT a claim", () => {
+    const out = runHookEvent('UserPromptSubmit', {prompt: 'add a finished-goods inventory feature'}, cwd);
+    expect(out).not.toContain('EARNED');
+  });
 });
 
 describe('PreToolUse — structural guard on spec edits', () => {

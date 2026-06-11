@@ -61,6 +61,13 @@ human-readable documents, and the oracle policy controls its own cost.
   enforcement is real).
 - **Terminology SSoT** — `docs/glossary.md` (EN + KO) locked by the test
   suite; new feature ids are 8-hex (birthday-safe at thousands of shards).
+- **Ops visibility polish (F-95a096)** — a completion-claim utterance
+  ("looks done, wrap it up", "마무리") gets a dedicated earn-path card naming
+  `clad done` (the weakest measured engagement surface in the 0.6.0 A/B);
+  `clad doctor` summarizes the governance ledger (gate runs + last outcome,
+  done attempts/rejections, stop blocks, attestation entries) in text and
+  `--json`; `clad status` gains an `att` column — attestation freshness per
+  feature (✓ current / ! stale-or-unstamped / · n/a / - no attestation yet).
 
 ### Changed
 
