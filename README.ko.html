@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>cladding — Unified Governance for AI-Coupled Engineering</title>
+<title>cladding — 호스트 LLM을 감싸는 검증 외장재</title>
 <style>
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
@@ -72,7 +72,7 @@
   }
   ul, ol { margin: 14px 0 14px 28px; padding: 0; }
   li { margin: 8px 0; }
-  svg { max-width: 100%; height: auto; display: block; }
+  img.diagram-img { max-width: 100%; height: auto; }
   hr { border: 0; border-top: 1px solid #e2e8f0; margin: 48px 0; }
 
   /* Tagline */
@@ -106,15 +106,64 @@
     line-height: 1.6;
   }
 
-  /* HERO cards */
+  /* Goal statement under the hero diagram */
+  .goal {
+    text-align: center;
+    margin: 28px auto 8px;
+    max-width: 760px;
+  }
+  .goal .what {
+    font-size: 20px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.55;
+  }
+  .goal .what em { font-style: normal; color: #16a34a; }
+  .goal .why {
+    font-size: 15px;
+    color: #475569;
+    margin-top: 10px;
+  }
+
+  /* 전 · 후 · 기록 3-card */
+  .flow-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin: 24px 0;
+  }
+  .flow-card {
+    border-radius: 10px;
+    padding: 20px 22px;
+    border: 1.5px solid #e2e8f0;
+  }
+  .flow-card.before { background: #f0fdf4; border-color: #bbf7d0; }
+  .flow-card.after  { background: #fffbeb; border-color: #fde68a; }
+  .flow-card.record { background: #f8fafc; border-color: #cbd5e1; }
+  .flow-card .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    padding: 3px 10px;
+    border-radius: 99px;
+    margin-bottom: 10px;
+  }
+  .flow-card.before .badge { background: #dcfce7; color: #15803d; }
+  .flow-card.after  .badge { background: #fef3c7; color: #b45309; }
+  .flow-card.record .badge { background: #e2e8f0; color: #475569; }
+  .flow-card .title { font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
+  .flow-card p { margin: 8px 0; font-size: 14px; line-height: 1.65; color: #475569; }
+  .flow-card ul { margin: 8px 0 0 18px; }
+  .flow-card li { font-size: 13.5px; color: #475569; margin: 5px 0; }
+
+  /* HERO benchmark cards */
   .hero {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
-    margin: 32px 0 8px;
+    margin: 32px auto 8px;
     max-width: 760px;
-    margin-left: auto;
-    margin-right: auto;
   }
   .hero-card {
     padding: 36px 28px;
@@ -136,9 +185,7 @@
     margin: 16px 0;
     letter-spacing: -2px;
   }
-  .hero-card .sub {
-    font-size: 13px;
-  }
+  .hero-card .sub { font-size: 13px; }
   .hero-card.vanilla .label,
   .hero-card.vanilla .sub { color: #64748b; }
   .hero-card.vanilla .number { color: #94a3b8; }
@@ -152,37 +199,16 @@
     margin-top: 12px;
   }
 
-  /* Why cards */
-  .why-cards {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    margin: 24px 0;
+  /* Earn callout */
+  .earn {
+    background: #f0fdf4;
+    border: 1.5px solid #bbf7d0;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 20px 0;
   }
-  .why-card {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 20px 22px;
-  }
-  .why-card .title {
-    font-size: 15px;
-    font-weight: 700;
-    color: #0f172a;
-    margin-bottom: 8px;
-  }
-  .why-card p {
-    margin: 8px 0;
-    font-size: 14px;
-    line-height: 1.6;
-    color: #475569;
-  }
-  .why-card .arrow {
-    margin-top: 12px;
-    font-size: 13px;
-    color: #16a34a;
-    font-weight: 600;
-  }
+  .earn .line { font-size: 15px; color: #166534; margin: 6px 0; }
+  .earn code { background: #dcfce7; }
 
   /* Tables */
   table {
@@ -204,17 +230,12 @@
   td.center { text-align: center; }
   td.vanilla-cell { color: #64748b; text-align: center; }
   td.cladding-cell { color: #16a34a; font-weight: 700; text-align: center; }
-  td.tick-strong { color: #16a34a; font-weight: 700; text-align: center; font-size: 16px; }
-  td.tick { color: #16a34a; text-align: center; }
-  td.dash { color: #cbd5e1; text-align: center; }
-  td.partial { color: #ca8a04; text-align: center; }
 
   /* Diagram container */
   .diagram {
     margin: 24px 0;
     text-align: center;
   }
-  .diagram svg { margin: 0 auto; }
 
   /* Section spacing under h2 */
   h2 + p, h2 + div { margin-top: 8px; }
@@ -236,7 +257,7 @@
     h2 { font-size: 24px; margin-top: 48px; }
     .hero { grid-template-columns: 1fr; }
     .hero-card .number { font-size: 56px; }
-    .why-cards { grid-template-columns: 1fr; }
+    .flow-cards { grid-template-columns: 1fr; }
     table { font-size: 13px; }
     th, td { padding: 10px 12px; }
   }
@@ -252,91 +273,156 @@
   <h1>cladding</h1>
 
   <p class="tagline">
-    <strong>Unified Governance for AI-Coupled Engineering.</strong><br>
-    AI 가 짠 코드도 사람이 짠 코드만큼 검증되도록.
+    <strong>코드는 LLM이 쓴다 — cladding은 그 전과 후를 책임진다.</strong><br>
+    cladding(외장재)이라는 이름 그대로, 호스트 LLM을 감싸는 검증 층.
   </p>
 
   <p class="badges">
     <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"></a>
     <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"></a>
-    <img src="https://img.shields.io/badge/tests-1105%2F1105-brightgreen" alt="tests">
-    <img src="https://img.shields.io/badge/coverage-93.89%25%2B-brightgreen" alt="coverage">
+    <img src="https://img.shields.io/badge/tests-1384%2F1384-brightgreen" alt="tests">
+    <img src="https://img.shields.io/badge/detectors-36-brightgreen" alt="detectors">
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"></a>
   </p>
 
   <p class="lead">
-    <a href="https://github.com/qwerfunch/ironclad">Ironclad</a> 표준의 공식 reference 구현. AI 코딩 어시스턴트가 짠 코드가 spec 과 어긋나지 않는지 33 개의 검사기와 13 단계 검증 관문이 매 commit 마다 자동으로 대조한다.
+    <a href="https://github.com/qwerfunch/ironclad">Ironclad</a> 표준의 공식 reference 구현.<br>
+    호스트 LLM(Claude Code · Codex · Gemini · Cursor)이 일을 <em>시작하기 전</em>에 프로젝트의 의도를 넣어 주고,<br>
+    일을 <em>마친 후</em>에 36개 검출기와 15단계 게이트로 결과를 검증한다. 같은 목표를 향한 분업이다.
   </p>
 
-  <!-- ─────────────── HERO ─────────────── -->
+  <!-- ─────────────── 핵심 다이어그램: 호스트 LLM과의 협력 루프 ─────────────── -->
+  <div class="diagram">
+    <img class="diagram-img" src="docs/img/ko/relationship.svg" alt="호스트 LLM 전(의도 주입) · 후(검증) · 기록(피드백 루프) — cladding이 LLM을 감싸는 협력 구조" width="920">
+  </div>
+
+  <div class="goal">
+    <p class="what">
+      이 루프가 노리는 것은 하나 —<br>
+      AI의 <em>"다 됐습니다"</em>를 말이 아니라 <em>증명</em>으로 만드는 것.
+    </p>
+    <p class="why">
+      의도는 기록으로 남고 · 어긋남은 자동으로 막히고 · 완료는 검증 서명으로 증명된다.<br>
+      그래서 AI가 짠 코드를 <strong>사람이 짠 코드만큼 믿고</strong> 내보낼 수 있다.
+    </p>
+    <p class="why" style="margin-top:14px">
+      개발자인 당신에게는 — AI 코드 리뷰에 쓰는 시간이 줄고, 6개월 뒤에도 코드의 <em>왜</em>가 남아 있고,<br>
+      배포 전 "정말 다 된 건가"를 더 이상 감으로 판단하지 않아도 된다는 뜻이다.
+    </p>
+  </div>
+
+  <!-- ─────────────── 함께 일하는 방식 ─────────────── -->
+  <h2>호스트 LLM과 어떻게 함께 일하나</h2>
+  <p>
+    cladding은 코드를 쓰지 않는다. 코드를 쓰는 건 언제나 <strong>호스트 LLM</strong>이다.
+    cladding이 맡는 건 LLM이 잘하지 못하는 두 가지 — <em>시작할 때 의도를 정확히 기억시키는 일</em>과
+    <em>끝났을 때 결과를 기계적으로 검증하는 일</em>이다.
+  </p>
+
+  <div class="flow-cards">
+    <div class="flow-card before">
+      <span class="badge">전 — 의도를 넣는다</span>
+      <div class="title">LLM이 올바른 컨텍스트로 시작하도록</div>
+      <ul>
+        <li><strong>프로젝트 지도 주입</strong> — 대화를 시작할 때마다 "기능 몇 개, 무엇이 진행 중, 마지막 검증 결과"가 자동으로 LLM에게 전달된다</li>
+        <li><strong>꼭 필요한 의도만 추출</strong> — 지금 작업할 기능의 <em>왜</em>·관련 기능·검증 기준만 추려서 준다 (스펙 전체를 덤프하지 않는다)</li>
+        <li><strong>프로젝트 규칙 적용</strong> — 팀이 정한 금지 패턴·선호 패턴이 매번 표준 지시로 들어간다</li>
+      </ul>
+    </div>
+    <div class="flow-card after">
+      <span class="badge">후 — 결과를 검증한다</span>
+      <div class="title">LLM의 산출물이 스펙과 어긋나면 차단</div>
+      <ul>
+        <li><strong>15단계 검증 관문</strong> — 타입·린트·테스트·커버리지·아키텍처·시크릿·E2E·증거를 한 번에</li>
+        <li><strong>36가지 어긋남 검사</strong> — 스펙↔코드↔테스트가 서로 맞는지 모든 방향에서 자동 대조</li>
+        <li><strong>구현을 못 보는 채점자</strong> — 코드를 읽을 수 없는 별도 에이전트가 스펙만 보고 쓴 테스트로 채점</li>
+        <li><strong>실행물 직접 구동</strong> — "테스트는 통과인데 프로그램은 안 도는" 상황을 실제 실행으로 차단</li>
+      </ul>
+    </div>
+    <div class="flow-card record">
+      <span class="badge">기록 — 다음 턴의 입력</span>
+      <div class="title">검증 결과가 다시 LLM의 컨텍스트로</div>
+      <ul>
+        <li><strong>검증 서명</strong> — 모든 검사를 통과한 코드 상태가 "이 시점에 검증됐다"는 서명으로 저장소에 남는다</li>
+        <li><strong>감사 장부</strong> — 모든 검증 실행·완료 시도·차단이 누가·언제·어떤 결과였는지 기록된다</li>
+        <li><strong>수리 카드</strong> — 결정적 검사(어긋남·아키텍처·시크릿) 실패를 남긴 채 대화를 끝내려 하면 한 번 막아서고, 실패 요약을 다음 대화 시작에 자동으로 실어 보낸다</li>
+      </ul>
+    </div>
+  </div>
+
+  <p style="text-align:center;font-size:14px;color:#475569">
+    이 루프가 도는 동안 사용자는 <strong>평소처럼 자연어로 개발</strong>하면 된다 — 외울 명령이 없다.
+  </p>
+  <p style="font-size:13px;color:#64748b;text-align:center;margin-top:4px">
+    실시간 개입(지도 주입 · 즉시 차단 · 종료 차단)은 Claude Code에서 전부 동작한다.
+    Codex · Gemini · Cursor에서는 같은 검증을 대화 속 도구 호출과 git·CI 관문으로 수행한다.
+  </p>
+
+  <!-- ─────────────── 증거 ─────────────── -->
+  <h2>측정으로 말하면</h2>
   <div class="hero">
     <div class="hero-card vanilla">
       <div class="label">일반 (vanilla) AI 코딩</div>
       <div class="number">2/8</div>
-      <div class="sub">함정 포착 · 25%</div>
+      <div class="sub">스펙 함정 포착 · 25%</div>
     </div>
     <div class="hero-card cladding">
       <div class="label">cladding</div>
       <div class="number">8/8</div>
-      <div class="sub">함정 포착 · 100%</div>
+      <div class="sub">스펙 함정 포착 · 100%</div>
     </div>
   </div>
   <p class="hero-caption">
-    같은 spec · 같은 모델로 측정 · <a href="docs/benchmarks/event-store-trap-catch.md">event-sourcing store 벤치마크</a>
+    같은 spec · 같은 조건 · <a href="docs/benchmarks/event-store-trap-catch.md">event-sourcing store 벤치마크</a>
   </p>
 
-  <!-- ─────────────── 왜 필요한가 ─────────────── -->
-  <h2>왜 필요한가</h2>
-  <div class="why-cards">
-    <div class="why-card">
-      <div class="title">3개월 뒤 의도 추적 불가</div>
-      <p>AI 가 짠 코드의 <em>왜</em> 가 코드만 봐서는 안 잡힌다.</p>
-      <div class="arrow">→ <code>spec/features/*.yaml</code> 이 <em>왜</em> 의 영구 기록</div>
-      <div style="margin-top:10px;padding-top:10px;border-top:1px solid #d1fae5;font-size:13px;color:#15803d;font-weight:600">✓ <strong>AI 가 시간을 견딘다</strong> — 6개월 뒤에도 AI 가 spec 보고 의도 즉시 파악 (신규 입사자도 같은 진입점)</div>
-    </div>
-    <div class="why-card">
-      <div class="title">AI 답이 매번 다름</div>
-      <p>같은 spec 으로 짠 코드의 패턴과 구조가 일관성 없다.</p>
-      <div class="arrow">→ spec 이 <em>고정 기준</em> 으로 각 commit 검증</div>
-      <div style="margin-top:10px;padding-top:10px;border-top:1px solid #d1fae5;font-size:13px;color:#15803d;font-weight:600">✓ <strong>엔터프라이즈 채택 가능</strong> — 팀 · PR 간 코드 스타일 · 패턴 일관</div>
-    </div>
-    <div class="why-card">
-      <div class="title">AI hallucination</div>
-      <p>존재하지 않는 API · 함수 · 옵션을 호출하는 코드 생성.</p>
-      <div class="arrow">→ 33 detector + 13 단계 gate 가 매 commit 차단</div>
-      <div style="margin-top:10px;padding-top:10px;border-top:1px solid #d1fae5;font-size:13px;color:#15803d;font-weight:600">✓ <strong>production 사고 사전 차단</strong> — CI 가 hallucination 코드를 자동 reject</div>
-    </div>
+  <!-- ─────────────── done은 획득 ─────────────── -->
+  <h2>done은 선언이 아니라 획득이다</h2>
+  <p>
+    AI 코딩의 고질병은 <em>"다 됐습니다"</em> 가 검증 없이 선언되는 것이다. cladding에서 feature의
+    <code>status: done</code>은 쓰는 값이 아니라 <strong>얻는 값</strong>이다.
+  </p>
+  <div class="diagram">
+    <img class="diagram-img" src="docs/img/ko/intervention.svg" alt="한 장면 — LLM의 done 선언을 훅이 차단하고, 게이트 RED가 수리 카드로 피드백되고, GREEN일 때만 done이 획득되는 과정" width="920">
   </div>
+  <div class="earn">
+    <div class="line">① AI가 완료 표시를 <em>직접 써넣으려</em> 하면 → <strong>그 자리에서 차단</strong>된다 ("완료는 검증으로 얻으세요") <span style="font-size:13px;color:#64748b">— Claude Code 실시간 기준, 다른 host는 게이트·CI가 같은 역할</span></div>
+    <div class="line">② AI가 완료를 <em>요청</em>하면 → 결정적 9단계(타입·린트·어긋남·아키텍처·시크릿·테스트·커버리지·스펙 적합성·실행물 구동)를 전부 돌려 <strong>모두 통과할 때만</strong> 완료로 기록, 하나라도 실패면 자동 되돌림 — E2E·증거 단계는 CI의 전체 15단계가 맡는다</div>
+    <div class="line">③ 통과와 동시에 <strong>검증 서명</strong>이 남는다 — "이 코드가 이 시점에 검증됐다"는 커밋 가능한 증거</div>
+    <div class="line">④ 실패를 남긴 채 대화를 끝내려 하면 → <strong>한 번 막아서고</strong>(같은 실패로 또 끝내면 통과시키는 대신 기록) 수리 카드를 다음 대화로 넘긴다</div>
+  </div>
+  <p style="font-size:13.5px;color:#64748b">
+    한계도 그대로 공개한다: 즉시 차단이 못 보는 우회 경로가 존재하며, 그 경우는 사후 검증(관문·어긋남 검사)이 잡는다.
+    즉시 차단이 1차 방어선, 사후 검증이 2차 방어선이고 어느 쪽도 단독 보증이 아니다.
+  </p>
 
   <!-- ─────────────── 차이점 ─────────────── -->
-  <h2>차이점</h2>
-  <p>같은 문제 상황에서 <em>일반적인 (vanilla) AI 코딩 환경</em>과 cladding 환경이 어떻게 다르게 동작하는지.</p>
+  <h2>무엇이 달라지나</h2>
+  <p>같은 상황에서 <em>일반 AI 코딩 환경</em>과 cladding 환경의 동작 차이.</p>
   <table>
     <thead>
       <tr><th>상황</th><th class="center">일반 AI 코딩</th><th class="center">cladding</th></tr>
     </thead>
     <tbody>
-      <tr><td><strong>코드가 spec 과 어긋날 때</strong></td><td class="vanilla-cell">review 에서 <em>발견하면</em> fix</td><td class="cladding-cell">매 commit 자동 차단</td></tr>
-      <tr><td><strong>두 명이 같은 기능 동시에 만들 때</strong></td><td class="vanilla-cell">merge conflict 발생</td><td class="cladding-cell">hash ID 로 다른 파일 → 충돌 0</td></tr>
-      <tr><td><strong>AI 가 짠 코드를 누가 검증?</strong></td><td class="vanilla-cell">작성한 AI 가 자기 검증 (위험)</td><td class="cladding-cell">별도 reviewer agent 가 분업 검증</td></tr>
-      <tr><td><strong>AI 도구 (Claude → Cursor) 바꿀 때</strong></td><td class="vanilla-cell">도구마다 재구성 필요</td><td class="cladding-cell">1 spec → 4 host 자동 미러링</td></tr>
-      <tr><td><strong>spec 의 권위</strong></td><td class="vanilla-cell">AI 가 매번 다르게 해석</td><td class="cladding-cell">봉인된 spec 이 단일 기준</td></tr>
+      <tr><td><strong>코드가 spec과 어긋날 때</strong></td><td class="vanilla-cell">리뷰에서 <em>발견하면</em> 수정</td><td class="cladding-cell">편집 직후 자동 감지(알림) · 어긋난 채로는 "완료"가 통과 못 함</td></tr>
+      <tr><td><strong>AI가 "다 됐다"고 할 때</strong></td><td class="vanilla-cell">말을 믿는 수밖에</td><td class="cladding-cell">게이트 GREEN일 때만 done 획득</td></tr>
+      <tr><td><strong>세션을 실패 상태로 끝낼 때</strong></td><td class="vanilla-cell">그대로 종료, 다음에 잊힘</td><td class="cladding-cell">종료를 한 번 막고 수리 카드 인계</td></tr>
+      <tr><td><strong>두 명이 동시에 feature 추가</strong></td><td class="vanilla-cell">merge conflict</td><td class="cladding-cell">hash-8 ID · 파일 분리 → 충돌 0</td></tr>
+      <tr><td><strong>AI가 짠 코드를 누가 검증?</strong></td><td class="vanilla-cell">작성한 AI가 자기 검증 (위험)</td><td class="cladding-cell">구현을 못 보는 채점자 + 기계 관문</td></tr>
+      <tr><td><strong>AI 도구를 바꿀 때</strong></td><td class="vanilla-cell">도구마다 재구성</td><td class="cladding-cell">1 spec → 4 host 자동 연결</td></tr>
     </tbody>
   </table>
-  <p style="text-align: center; font-size: 13px; color: #64748b; margin-top: 8px;">
-    Hero 의 8/8 vs 2/8 은 초기 벤치마크 (<a href="docs/benchmarks/event-store-trap-catch.md">상세</a>) · 대규모 측정 진행 중.
-  </p>
 
   <!-- ─────────────── How it works ─────────────── -->
   <h2>How it works</h2>
-  <p><strong>Spec → Code → Tests</strong> 가 한 cycle 로 순환한다 — spec 이 <em>왜</em> 를 기록하고, Iron Law 가 검증하고, Drift detector 가 어긋남을 차단한다.</p>
+  <p><strong>Spec → Code → Tests</strong>가 한 cycle로 순환한다 — spec이 <em>왜</em>를 기록하고, 게이트가 검증하고, detector가 어긋남을 차단한다.</p>
 
   <div class="diagram">
-    <img src="docs/img/ko/cycle.svg" alt="Spec → Code → Tests 가 한 cycle 로 순환 — 한 feature lifecycle" width="700">
+    <img class="diagram-img" src="docs/img/ko/cycle.svg" alt="Spec → Code → Tests 순환 — 15단계 검증과 36 drift detector가 cycle을 지킨다" width="700">
   </div>
 
-  <h3>1. Spec — SSoT, 의도의 단일 기준</h3>
-  <p>spec 이 <em>왜</em> (무엇을 왜 만드는지) 를 기록하는 곳. 4-tier (A/B/C/D) 단일 진실 출처 (Single Source of Truth) — <em>의도가 위, 구현물이 아래</em>.</p>
+  <h3>1. Spec — 의도의 단일 기준 (SSoT)</h3>
+  <p>spec이 <em>왜</em>(무엇을 왜 만드는지)를 기록한다. 4-tier 단일 진실 출처 — <em>의도가 위, 구현물이 아래</em>.</p>
 
   <table>
     <thead>
@@ -344,24 +430,24 @@
     </thead>
     <tbody>
       <tr><td><strong>A — Spec</strong></td><td>의도 (무엇을 만들까)</td><td>사람이 정의</td><td>봉인 · LLM 수정 금지</td></tr>
-      <tr><td><strong>B — Design</strong></td><td>설계 (어떻게 만들까)</td><td>사람이 자유 편집</td><td>A 와 일치 검증</td></tr>
-      <tr><td><strong>C — Derived</strong></td><td>구현물 (코드 · 테스트)</td><td>LLM · 사람</td><td>코드 보고 자동 재생성</td></tr>
+      <tr><td><strong>B — Design</strong></td><td>설계 (어떻게 만들까)</td><td>사람이 자유 편집</td><td>A와 일치 검증</td></tr>
+      <tr><td><strong>C — Derived</strong></td><td>구현물 (코드 · 테스트) + <strong>attestation</strong> (검증 서명)</td><td>LLM · 사람</td><td>코드 보고 자동 재생성</td></tr>
       <tr><td><strong>D — Audit</strong></td><td>감사 기록 (무엇이 일어났나)</td><td>append-only</td><td>수정 불가</td></tr>
     </tbody>
   </table>
 
-  <p><strong>A 가 B 보다 우선</strong> — 코드와 spec 이 다르면 <em>코드가</em> 틀린 것. 의도(A)가 변하면 모든 게 흔들리기 때문에 LLM 이 못 건드리도록 봉인.</p>
+  <p><strong>A가 아래 모든 tier보다 우선</strong> — spec(A)과 코드(C)가 다르면 틀린 쪽은 <em>코드</em>다. 의도(A)가 흔들리면 모든 게 흔들리므로 LLM이 못 건드리게 봉인한다.</p>
 
-  <p><strong>샤딩 · multi-dev 안전</strong> — <code>spec/features/&lt;slug&gt;-&lt;hash6&gt;.yaml</code> 처럼 <em>feature 마다 별도 파일</em> + <em>6-자리 hash ID</em> (예: <code>F-5f6b45</code>). 두 명이 동시에 새 feature 를 만들어도 <em>다른 파일·다른 ID</em> 라 merge conflict 0. 자세히는 <a href="docs/spec-ids-multi-dev.md">Hash-based feature IDs</a>.</p>
+  <p><strong>샤딩 · multi-dev 안전</strong> — <code>spec/features/&lt;slug&gt;-&lt;hash&gt;.yaml</code>처럼 <em>feature마다 별도 파일</em> + <em>8자리 hash ID</em> (예: <code>F-d86375d8</code>). 두 명이 동시에 새 feature를 만들어도 <em>다른 파일·다른 ID</em>라 merge conflict 0. 자세히는 <a href="docs/spec-ids-multi-dev.md">Hash-based feature IDs</a>.</p>
 
   <div class="diagram">
-    <img src="docs/img/ko/ssot-tier.svg" alt="4-tier SSoT — A(Spec) → B(Design) → C(Derived) → D(Audit), A 가 B 보다 우선" width="640">
+    <img class="diagram-img" src="docs/img/ko/ssot-tier.svg" alt="4-tier SSoT — A(Spec) → B(Design) → C(Derived + attestation) → D(Audit), A가 B보다 우선" width="640">
   </div>
 
-  <h3>2. Code — Iron Law (필수 통과) gate</h3>
-  <p>모든 변경은 13 단계 gate 를 통과해야 한다 — 보통 CI step · git pre-push hook · <code>clad check</code> 수동 호출 어디서든 실행. 각 stage 가 자체 unit test 와 함께 ship 된다.</p>
+  <h3>2. Gate — 15단계 Iron Law</h3>
+  <p>"완료"로 인정받으려면 strict 게이트(15단계 중 결정적 9단계)를 전부 통과해야 하고, E2E·증거까지 포함한 전체 15단계는 CI가 돌린다. 같은 검사 엔진을 시점별 묶음으로 건다 — commit 때 빠른 3단계(git hook 설치 시), push·완료 시점에 9단계, CI에서 15단계 전부. 깊이가 다를 뿐 검사 로직은 동일하다.</p>
   <div class="diagram">
-    <img src="docs/img/ko/iron-law.svg" alt="13 단계 Iron Law gate — clad check 호출 시 static(6) · test(2) · e2e(3) · evidence(2) 를 모두 통과 (CI / git hook / 수동 어디서든)" width="640">
+    <img class="diagram-img" src="docs/img/ko/iron-law.svg" alt="15단계 Iron Law 게이트 — 정적(6) · 테스트·적합성(4) · E2E(3) · 증거(2), GREEN이면 attestation 서명" width="640">
   </div>
 
   <table>
@@ -370,122 +456,119 @@
     </thead>
     <tbody>
       <tr><td><strong>1.1 Type · 1.2 Lint</strong></td><td>타입 오류 · 코드 스타일</td></tr>
-      <tr><td><strong>1.3 Drift</strong></td><td>33 detector 의 spec ↔ 코드 어긋남</td></tr>
-      <tr><td><strong>1.4 Commit · 1.5 Arch · 1.6 Secret</strong></td><td>작업트리 clean · architecture invariant (forbidden import 등) · API 키 노출</td></tr>
-      <tr><td><strong>2.1 Unit · 2.2 Cov</strong></td><td>단위 테스트 통과 · 프로젝트 coverage threshold</td></tr>
-      <tr><td><strong>3.1 Smoke · 3.2 Perf · 3.3 Visual</strong></td><td>e2e 핵심 기능 동작 · 성능 예산 · UI 시각 회귀</td></tr>
-      <tr><td><strong>4.1 Audit · 4.2 UAT</strong></td><td>모든 AC (acceptance criteria, 수용 기준) 에 증거 1건 이상 · 모든 <code>status=done</code> feature 에 증거 1건 이상</td></tr>
+      <tr><td><strong>1.3 Drift</strong></td><td>36 detector의 spec ↔ 코드 어긋남</td></tr>
+      <tr><td><strong>1.4 Commit · 1.5 Arch · 1.6 Secret</strong></td><td>작업트리 clean · architecture invariant · API 키 노출</td></tr>
+      <tr><td><strong>2.1 Unit · 2.2 Coverage</strong></td><td>단위 테스트 통과 · coverage 하락 차단</td></tr>
+      <tr><td><strong>2.3 Spec conformance · 2.4 Deliverable smoke</strong></td><td>구현을 못 본 채점자의 테스트 통과 · 선언된 실행물이 실제로 도는지 <em>("테스트는 통과인데 결과물은 안 도는" 빈 초록 차단)</em></td></tr>
+      <tr><td><strong>3.1 Smoke · 3.2 Perf · 3.3 Visual</strong></td><td>e2e 핵심 동작 · 성능 예산 · UI 시각 회귀</td></tr>
+      <tr><td><strong>4.1 Audit · 4.2 UAT</strong></td><td>모든 AC(수용 기준)에 증거 1건 이상 · 모든 done feature에 증거 1건 이상</td></tr>
     </tbody>
   </table>
 
-  <h3>3. Test — 33 개 어긋남 검사기 (drift detector)</h3>
-  <p>spec · code · test 사이 7 카테고리의 어긋남을 자동으로 잡아낸다. 전체 카탈로그: <a href="src/stages/detectors/README.md">src/stages/detectors/README.md</a>.</p>
+  <h3>3. Detector — 36개 어긋남 검출기</h3>
+  <p>spec · code · test 사이 모든 방향의 어긋남을 자동 검출한다. 전체 카탈로그: <a href="src/stages/detectors/README.md">detector catalog</a>.</p>
   <table>
     <thead>
-      <tr><th>카테고리</th><th>무엇을 잡나</th><th class="center">수</th><th>대표 detector</th></tr>
+      <tr><th>방향</th><th>무엇을 잡나</th><th class="center">수</th><th>대표 detector</th></tr>
     </thead>
     <tbody>
-      <tr><td>spec ↔ code drift</td><td>spec 에 있는데 코드에 없거나, 코드에 있는데 spec 에 없음</td><td class="center">7</td><td><code>UNMAPPED_ARTIFACT</code>, <code>MISSING_IMPLEMENTATION</code>, <code>AC_DRIFT</code>, <code>PLANNED_BACKLOG</code></td></tr>
-      <tr><td>code ↔ test</td><td>코드는 있는데 테스트 없음 · 커버리지 부족</td><td class="center">6</td><td><code>MISSING_TESTS</code>, <code>COVERAGE_DROP</code>, <code>HARDCODED_SECRET</code></td></tr>
-      <tr><td>spec ↔ test</td><td>spec 의 AC 가 테스트로 검증 안 됨</td><td class="center">5</td><td><code>UNTESTED_AC</code>, <code>STATUS_DRIFT</code>, <code>SCENARIO_COVERAGE</code></td></tr>
-      <tr><td>spec maintenance</td><td>spec 자체의 위생 (slug 충돌 · ID 중복)</td><td class="center">6</td><td><code>SLUG_CONFLICT</code>, <code>ID_COLLISION</code>, <code>INVENTORY_DRIFT</code>, <code>DEPENDENCY_CYCLE</code></td></tr>
-      <tr><td>environment integrity</td><td>빌드 환경 · 메타 파일 무결성</td><td class="center">3</td><td><code>HARNESS_INTEGRITY</code>, <code>META_INTEGRITY</code></td></tr>
-      <tr><td>architecture · capability</td><td>spec 의 아키텍처 · capability 정의와 코드 불일치</td><td class="center">2</td><td><code>ARCHITECTURE_FROM_SPEC</code>, <code>CAPABILITIES_FEATURE_MAPPING</code></td></tr>
-      <tr><td>governance · policy</td><td>ai_hints 정책 위반 (예: 금지 패턴 사용)</td><td class="center">4</td><td><code>AI_HINTS_FORBIDDEN_PATTERN</code>, <code>HOLLOW_GOVERNANCE</code>, <code>PROJECT_CONTEXT_DRIFT</code></td></tr>
+      <tr><td>spec ↔ code</td><td>spec에 있는데 코드에 없거나, 코드가 spec을 벗어남</td><td class="center">10</td><td><code>MISSING_IMPLEMENTATION</code>, <code>AC_DRIFT</code>, <code>DELIVERABLE_INTEGRITY</code></td></tr>
+      <tr><td>code ↔ test</td><td>코드는 있는데 테스트 없음 · 커버리지 하락 · 시크릿</td><td class="center">6</td><td><code>MISSING_TESTS</code>, <code>COVERAGE_DROP</code>, <code>HARDCODED_SECRET</code></td></tr>
+      <tr><td>spec ↔ test</td><td>spec의 AC가 테스트로 검증 안 됨 · 상태 거짓</td><td class="center">5</td><td><code>UNTESTED_AC</code>, <code>STATUS_DRIFT</code>, <code>SPEC_CONFORMANCE</code></td></tr>
+      <tr><td>spec 위생</td><td>spec 자체의 무결성 (ID 충돌 · 순환 의존)</td><td class="center">8</td><td><code>ID_COLLISION</code>, <code>SLUG_CONFLICT</code>, <code>DEPENDENCY_CYCLE</code></td></tr>
+      <tr><td>환경 무결성</td><td>빌드 환경 · 메타 파일</td><td class="center">3</td><td><code>HARNESS_INTEGRITY</code>, <code>META_INTEGRITY</code></td></tr>
+      <tr><td>검증 신선도</td><td>검증 서명 이후 코드가 바뀌었는지</td><td class="center">1</td><td><code>STALE_ATTESTATION</code> <em>(0.6.0 신규)</em></td></tr>
+      <tr><td>거버넌스 · 문서</td><td>정책 위반 · 문서 표류</td><td class="center">3</td><td><code>ABSENCE_OF_GOVERNANCE</code>, <code>PROJECT_CONTEXT_DRIFT</code></td></tr>
     </tbody>
   </table>
 
-  <h3>4. Cycle — 한 feature 의 lifecycle</h3>
-  <p>Spec → Code → Test 를 한 cycle 로 묶는 4 step. drift 가 0 이면 merge, 1 이상이면 block.</p>
+  <h3>4. Cycle — 한 feature의 생애주기</h3>
+  <p>정의 → 동기화 → 구현 → <strong>획득</strong>. 모든 검사를 통과해야 "완료"를 얻는다.</p>
   <div class="diagram">
-    <img src="docs/img/ko/workflow.svg" alt="한 feature 의 lifecycle — Define → Sync → Implement → Verify, drift 0 이면 merge / 그 외 block" width="720">
+    <img class="diagram-img" src="docs/img/ko/workflow.svg" alt="한 feature의 생애주기 — 정의 → 동기화 → 구현 → 획득, 검사를 모두 통과하면 완료 획득 / 실패면 자동 되돌림" width="760">
   </div>
 
-  <!-- ─────────────── Multi-Agent Workflow ─────────────── -->
-  <h2>Multi-Agent Workflow</h2>
-  <p>cladding 은 <strong>5 명의 에이전트가 협업하는 다중 에이전트 시스템</strong>. <strong>만드는</strong> 에이전트와 <strong>검증하는</strong> 에이전트가 분리돼 있어, 어떤 에이전트도 자기가 짠 작업을 스스로 승인하지 못한다. 이 분리는 규제 · 감사 (EU AI Act · K-AI 기본법 · SOX) 기준에 그대로 매핑된다.</p>
+  <!-- ─────────────── Multi-Agent ─────────────── -->
+  <h2>Multi-Agent — 만드는 자와 검증하는 자의 분리</h2>
+  <p>
+    <strong>만드는</strong> 에이전트와 <strong>검증하는</strong> 에이전트가 분리돼 있어 어떤 에이전트도 자기 작업을
+    스스로 승인하지 못한다. 0.6.0의 <strong>blind-author</strong>는 한 발 더 나간다 — 테스트를 쓰는 에이전트에게
+    <em>구현을 읽을 도구 자체가 없다</em>(Read/Grep 미부여). "구현 안 보고 썼다"가 약속이 아니라 구조적 사실이 된다.
+    이 분리는 규제·감사(EU AI Act · SOX) 기준에 그대로 매핑된다.
+  </p>
   <div class="diagram">
-    <img src="docs/img/ko/multi-agent.svg" alt="5 페르소나 권한 분리 (CQS) — orchestrator 가 분배, librarian/specialist/reviewer 가 작업, observability 가 메트릭 관찰" width="680">
+    <img class="diagram-img" src="docs/img/ko/multi-agent.svg" alt="페르소나 권한 분리 — orchestrator가 분배, planner/developer/reviewer가 작업, blind-author는 구현을 못 보는 테스트 작성자, observability가 관찰" width="700">
   </div>
 
   <!-- ─────────────── Ecosystem ─────────────── -->
   <h2>Ecosystem</h2>
-  <p>기존 세 카테고리의 결합부에 cladding 이 있다.</p>
+  <p>기존 세 카테고리의 결합부에 cladding이 있다.</p>
   <div class="diagram">
-    <img src="docs/img/ko/ecosystem.svg" alt="Ecosystem Venn — SDD · Runners · Multi-agent Governance 세 카테고리의 결합부에 cladding 이 위치" width="640">
+    <img class="diagram-img" src="docs/img/ko/ecosystem.svg" alt="Ecosystem Venn — SDD · 실행기 · Multi-agent 거버넌스 세 카테고리의 결합부에 cladding" width="640">
   </div>
 
   <h3>인접 도구와의 차이</h3>
   <ul>
-    <li><strong>Spec Kit · OpenSpec · Tessl · Kiro</strong> — <em>spec 을 잘 쓰게</em> 도와주는 도구. cladding 은 거기에 더해 <em>그 spec 과 실제 코드가 어긋나지 않는지 매 commit 자동 검사</em> 한다.</li>
-    <li><strong>BMAD · ChatDev · Claude Code Agent Teams</strong> — <em>여러 AI 에이전트가 역할을 나눠 협업하는 시스템</em>. cladding 의 5 에이전트는 그 위에 <em>spec · 코드 · 감사 기록</em> 까지 결합해 동작한다.</li>
-    <li><strong>tdd-guard</strong> — <em>AI 가 테스트를 먼저 쓰도록 강제</em> 하는 도구. cladding 의 13 단계 검사 중 Unit · Coverage 항목이 같은 일을 한다.</li>
-    <li><strong>OpenHands · Cline · Aider · Goose</strong> — <em>AI 에게 코드를 짜게 시키는 실행기</em>. cladding 은 그 실행기가 짠 코드를 <em>검증 · 통제하는 상위 레이어</em> 다.</li>
+    <li><strong>Spec Kit · OpenSpec · Tessl · Kiro</strong> — <em>spec을 잘 쓰게</em> 도와주는 도구. cladding은 거기에 더해 <em>그 spec과 실제 코드가 어긋나지 않는지 개발 루프 안에서 계속 자동 대조</em>한다 — 완료 시점·commit·CI까지.</li>
+    <li><strong>BMAD · ChatDev · Claude Code Agent Teams</strong> — <em>여러 AI 에이전트의 역할 분담</em> 시스템. cladding의 에이전트 분업은 그 위에 <em>spec · 게이트 · 감사 기록</em>까지 결합해 동작한다.</li>
+    <li><strong>tdd-guard</strong> — <em>AI가 테스트를 먼저 쓰도록 강제</em>하는 도구. cladding의 15단계 중 Unit · Coverage · oracle 단계가 같은 일을 더 구조적으로 한다.</li>
+    <li><strong>OpenHands · Cline · Aider · Goose</strong> — <em>AI에게 코드를 짜게 시키는 실행기</em>. cladding은 그 실행기가 짠 코드를 <em>검증·통제하는 상위 레이어</em>다.</li>
   </ul>
-  <p>cladding 의 차별점은 <em>결합</em> — 위 네 카테고리의 핵심을 <em>하나의 검증 흐름</em> 으로 묶는 것.</p>
+  <p>cladding의 차별점은 <em>결합</em> — 위 카테고리의 핵심을 <em>하나의 검증 루프</em>로 묶는 것.</p>
 
   <!-- ─────────────── Install ─────────────── -->
   <h2>Install</h2>
   <p>두 단계 — 인프라 설치 → 프로젝트 spec 생성.</p>
 
-  <h3>1단계 — 인프라 설치</h3>
-  <p>작업 방식에 맞는 경로 선택 (어느 쪽이든 결과 동일):</p>
-
-  <p><strong>(a) npm</strong> — 터미널 / CI 사용자</p>
+  <h3>1단계 — 인프라 설치 (npm)</h3>
   <pre><code>npm install -g cladding   # cladding CLI 설치
 cd &lt;project&gt;                # 프로젝트로 이동
-clad setup                  # AI 도구 자동 연결 (Claude / Codex / Gemini)</code></pre>
-
-  <p><strong>(b) 마켓플레이스</strong> — AI 도구 plugin 사용자</p>
-  <ol>
-    <li>AI 도구의 plugin 마켓플레이스 열기 (Claude Code · Codex CLI · Gemini CLI)</li>
-    <li><strong>cladding</strong> 검색 → 설치</li>
-    <li><code>clad setup</code> 불필요 — plugin 매니페스트가 자동 연결</li>
-  </ol>
+clad setup                  # AI 도구 자동 연결 (Claude / Codex / Gemini / Cursor)</code></pre>
+  <p style="font-size:14px;color:#475569"><code>clad setup</code> 한 번이면 설치된 AI 도구들을 자동 감지해 전부 연결한다 — 도구별 설정을 따로 할 필요가 없다.</p>
 
   <details style="margin:16px 0;background:#f8fafc;border-radius:6px;padding:12px 16px">
-    <summary style="cursor:pointer;color:#475569;font-size:14px"><code>clad setup</code> 이 연결하는 위치 (5 host)</summary>
+    <summary style="cursor:pointer;color:#475569;font-size:14px"><code>clad setup</code>이 연결하는 위치 (4개 host · 5개 연결 지점)</summary>
     <table style="margin-top:12px">
       <thead><tr><th>호스트 (감지 시)</th><th>wire 위치</th><th>자동 활성화</th></tr></thead>
       <tbody>
         <tr><td>Claude Code (<code>~/.claude/</code>)</td><td><code>~/.claude/plugins/cladding</code></td><td><code>claude plugin marketplace add</code> + <code>install</code></td></tr>
         <tr><td>Codex CLI skills (<code>~/.agents/</code>)</td><td><code>~/.agents/skills/cladding-*</code></td><td>(Codex 재시작 시 자동)</td></tr>
-        <tr><td>Codex CLI MCP 서버 (<code>~/.codex/</code>)</td><td><code>~/.codex/config.toml</code> 의 <code>[mcp_servers.cladding]</code></td><td>(TOML entry 자체)</td></tr>
+        <tr><td>Codex CLI MCP 서버 (<code>~/.codex/</code>)</td><td><code>~/.codex/config.toml</code>의 <code>[mcp_servers.cladding]</code></td><td>(TOML entry 자체)</td></tr>
         <tr><td>Gemini CLI (<code>~/.gemini/</code>)</td><td><code>~/.gemini/extensions/cladding</code></td><td><code>gemini extensions link</code></td></tr>
-        <tr><td>Cursor (<code>~/.cursor/</code>)</td><td><code>~/.cursor/mcp.json</code> 의 <code>mcpServers.cladding</code></td><td>(JSON entry 자체)</td></tr>
+        <tr><td>Cursor (<code>~/.cursor/</code>)</td><td><code>~/.cursor/mcp.json</code>의 <code>mcpServers.cladding</code></td><td>(JSON entry 자체)</td></tr>
       </tbody>
     </table>
-    <p style="font-size:13px;color:#64748b;margin-top:8px"><code>clad setup</code> 은 <code>claude</code> / <code>gemini</code> binary 가 PATH 에 있을 때 각 host 의 활성화 명령을 자동 호출. cladding 업그레이드 시나 새 AI 도구 설치 후 다시 실행해도 안전합니다.</p>
-    <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:12px 0;background:#f8fafc;color:#475569;font-size:13px"><strong>MCP 서버에 대하여.</strong> 4 host 모두 cladding 을 MCP 서버로 wire 합니다 — wire <em>위치</em> 만 다릅니다. Claude Code 와 Gemini CLI 는 plugin/extension manifest 의 <code>mcpServers</code> 필드로 자동 기동, Codex 는 <code>~/.codex/config.toml</code> 의 <code>[mcp_servers.cladding]</code>, Cursor 는 <code>~/.cursor/mcp.json</code>. MCP 는 사용자가 직접 호출하는 것이 아닙니다 — <code>/mcp</code> 슬래시도, 수동 연결 단계도 없습니다. 각 host 의 AI 가 <em>자연어 요청</em> 에 응답해 cladding 의 도구 (<code>clad_create_feature</code> 등) 를 호출하며, 사용자는 <code>/cladding:init</code> + 일반 대화만 입력합니다.</blockquote>
-    <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:12px 0;background:#f8fafc;color:#475569;font-size:13px"><strong>벤치마크.</strong> v0.4.0 측정 결과 동일 task 에서 ~60% 일관성 향상 + ~50% 코드량 감소, 5-iteration dev cycle 에서 100% drift 검출. 전체 methodology 와 솔직한 caveats (일관성 향상의 일부는 "더 상세한 prompt" 효과 — cladding 단독 기여 아님) 는 <a href="docs/benchmarks/v0.4.0-consistency-bench.md"><code>docs/benchmarks/v0.4.0-consistency-bench.md</code></a> 참조.</blockquote>
+    <p style="font-size:13px;color:#64748b;margin-top:8px"><code>clad setup</code>은 <code>claude</code> / <code>gemini</code> binary가 PATH에 있을 때 각 host의 활성화 명령을 자동 호출. 업그레이드 후나 새 AI 도구 설치 후 다시 실행해도 안전하다.</p>
+    <p style="font-size:13px;color:#64748b;margin-top:8px"><strong>검증 수준(정직 고지):</strong> Claude Code는 실사용 캠페인으로 전 기능 검증됨(실시간 개입 포함). Codex · Gemini CLI는 배선 자동화 + 기본 동작 확인. Cursor는 연결은 자동이지만 실사용 검증이 아직이다 — 검증되는 대로 갱신.</p>
+    <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:12px 0;background:#f8fafc;color:#475569;font-size:13px"><strong>MCP 서버에 대하여.</strong> 4 host 모두 cladding을 MCP 서버로 wire한다 — wire <em>위치</em>만 다르다. MCP는 사용자가 직접 호출하는 것이 아니다 — <code>/mcp</code> 슬래시도, 수동 연결 단계도 없다. 각 host의 AI가 <em>자연어 요청</em>에 응답해 cladding의 기능을 알아서 호출하며, 사용자는 <code>/cladding:init</code> 한 번과 일반 대화만 입력한다.</blockquote>
   </details>
 
-  <h3 id="step-2--init-프로젝트-spec-생성">2단계 — Init (프로젝트 spec 생성)</h3>
+  <h3>2단계 — Init (프로젝트 spec 생성)</h3>
   <p>프로젝트 디렉토리에서, AI 도구 안에서 한 번 호출:</p>
   <pre><code>[AI 도구 안] /cladding:init "B2B 결제 SaaS"</code></pre>
-  <p>프로젝트의 <code>spec.yaml</code> 과 관련 문서가 만들어진다 — 프로젝트당 한 번.</p>
+  <p>프로젝트의 <code>spec.yaml</code>과 관련 문서가 만들어진다 — 프로젝트당 한 번.</p>
+  <p style="font-size:14px;color:#475569">강제력을 높이려면: <code>clad init --with-hook</code>(pre-commit + pre-push git hook 설치) · <code>clad init --with-ci</code>(CI 게이트 스캐폴드 — 진짜 강제는 CI에서).</p>
 
   <h3>세 가지 init 시나리오</h3>
-  <p><code>/cladding:init</code> 은 자연어 intent 를 받아 <em>상황에 맞는 path</em> 를 자동 선택한다. 같은 명령, 세 가지 시작점.</p>
   <table>
     <thead>
       <tr><th>시작 상황</th><th>명령</th><th>무엇이 일어나는가</th></tr>
     </thead>
     <tbody>
-      <tr><td><strong>아이디어만 있을 때</strong></td><td><code>/cladding:init "B2B 결제 SaaS 만들거야"</code></td><td>LLM 이 도메인 분석 → spec · 문서 · 정책 자동 생성 + 2–3 가지 후속 질문 출력</td></tr>
-      <tr><td><strong>기획 문서가 있을 때</strong></td><td><code>/cladding:init docs/plan.md</code></td><td>cladding 이 파일 경로를 인식 → 내용을 자동 로드해서 intent 로 사용 (절대/상대 경로 모두 지원)</td></tr>
-      <tr><td><strong>기존 프로젝트 도입</strong></td><td><code>/cladding:init "이 프로젝트에 cladding 적용해줘"</code></td><td>기존 코드 자동 스캔 (≥3 source files) → 관찰한 패턴 + intent 결합</td></tr>
+      <tr><td><strong>아이디어만 있을 때</strong></td><td><code>/cladding:init "B2B 결제 SaaS 만들거야"</code></td><td>LLM이 도메인 분석 → spec · 문서 · 정책 자동 생성 + 후속 질문 2–3개</td></tr>
+      <tr><td><strong>기획 문서가 있을 때</strong></td><td><code>/cladding:init docs/plan.md</code></td><td>파일 경로 인식 → 내용을 자동 로드해 intent로 사용</td></tr>
+      <tr><td><strong>기존 프로젝트 도입</strong></td><td><code>/cladding:init "이 프로젝트에 cladding 적용해줘"</code></td><td>기존 코드 자동 스캔 → 관찰한 패턴 + intent 결합</td></tr>
     </tbody>
   </table>
 
   <h3>init 한 번이면 끝</h3>
-  <p>한 번 init 하면 그걸로 끝 — 그 뒤론 평소처럼 개발하면 된다. cladding 이 배경에서 코드와 spec 이 어긋나지 않게 지켜주니, 따로 외울 명령은 없다.</p>
+  <p>한 번 init하면 그걸로 끝 — 그 뒤론 평소처럼 개발하면 된다. cladding이 배경에서 전·후 루프를 돌리니, 따로 외울 명령은 없다.</p>
 
   <h3>업그레이드</h3>
-  <pre><code>npm update -g cladding     # 1. cladding 새 버전 설치 (마켓플레이스: claude plugin update)
+  <pre><code>npm update -g cladding     # 1. 새 버전 설치
 cd &lt;your project&gt;          # 2. 프로젝트마다 한 번씩
 clad update                # 3. 새 버전에 맞게 정리</code></pre>
-  <p>업그레이드 후 프로젝트마다 <code>clad update</code> 를 한 번 돌리면 된다. 당신이 쓴 코드·<code>spec.yaml</code>·문서는 그대로 두니 안전하고, 새 버전이 더 깐깐해 짚을 게 있으면 <strong>알려만</strong> 준다 (막거나 고치지 않음).</p>
+  <p>당신이 쓴 코드·<code>spec.yaml</code>·문서는 그대로 두니 안전하고, 새 버전이 더 깐깐해 짚을 게 있으면 <strong>알려만</strong> 준다 (막거나 고치지 않음).</p>
 
   <!-- ─────────────── Status ─────────────── -->
   <h2>Status</h2>
@@ -494,35 +577,35 @@ clad update                # 3. 새 버전에 맞게 정리</code></pre>
     <tr style="border:none">
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">version</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">v0.5.0</div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">v0.6.0</div>
         <div style="font-size:11px;color:#64748b">2026-06</div>
       </td>
       <td style="text-align:center;width:140px;background:#dcfce7;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#15803d;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">준수 등급</div>
         <div style="font-size:24px;font-weight:800;color:#16a34a;margin:8px 0;letter-spacing:-0.5px">L4</div>
-        <div style="font-size:11px;color:#15803d">최고 · 자가 선언</div>
+        <div style="font-size:11px;color:#15803d"><a href="https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md" style="color:#15803d">L0–L4 중 최고 · 자가 선언</a></div>
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">tests</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">1105<span style="font-size:16px;color:#94a3b8">/1105</span></div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">1384<span style="font-size:16px;color:#94a3b8">/1384</span></div>
         <div style="font-size:11px;color:#64748b">all pass</div>
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
-        <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">coverage</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">93.89<span style="font-size:16px;color:#94a3b8">%+</span></div>
-        <div style="font-size:11px;color:#64748b">enforced</div>
+        <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">gate</div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">15<span style="font-size:16px;color:#94a3b8"> 단계</span></div>
+        <div style="font-size:11px;color:#64748b">36 detectors</div>
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">features</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">148</div>
-        <div style="font-size:11px;color:#64748b">spec 정의</div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">171</div>
+        <div style="font-size:11px;color:#64748b">170 done · 자기 스펙</div>
       </td>
     </tr>
   </table>
 
-  <p style="text-align:center;font-size:13px;color:#64748b;margin-top:12px">112 test files · Claude Code · OpenAI Codex · Gemini CLI 마켓플레이스 설치 가능</p>
+  <p style="text-align:center;font-size:13px;color:#64748b;margin-top:12px">134 test files · coverage는 COVERAGE_DROP detector가 하락 차단 · 설치는 npm 단일 경로(<code>npm install -g cladding</code>)</p>
 
-  <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:24px 0;background:#f8fafc;color:#475569;font-size:14px"><strong>Ironclad 1.0 까지의 길</strong> — 1.0 은 <em>독립적인 두 개의 구현이 L4 검증 셋을 통과해야</em> 잠긴다 (<a href="https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md">GOVERNANCE § 1</a>). cladding 이 첫 번째.</blockquote>
+  <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:24px 0;background:#f8fafc;color:#475569;font-size:14px"><strong>Ironclad 1.0까지의 길</strong> — 1.0은 <em>독립적인 두 개의 구현이 L4 검증 셋을 통과해야</em> 잠긴다 (<a href="https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md">GOVERNANCE § 1</a>). cladding이 첫 번째.</blockquote>
 
   <!-- ─────────────── Docs ─────────────── -->
   <h2>Docs</h2>
@@ -530,9 +613,10 @@ clad update                # 3. 새 버전에 맞게 정리</code></pre>
     <li><a href="docs/project-context.md">Why cladding (project context)</a></li>
     <li><a href="docs/ssot-model.md">4-tier governance model</a></li>
     <li><a href="docs/spec-ids-multi-dev.md">Hash-based feature ID</a></li>
-    <li><a href="src/stages/detectors/README.md">33 detector catalog</a></li>
+    <li><a href="src/stages/detectors/README.md">36 detector catalog</a></li>
+    <li><a href="docs/glossary.md">용어집 (EN · KO)</a></li>
+    <li><a href="docs/benchmarks/v0.6.0-real-user-verification.md">실사용 검증 캠페인 (0.6.0)</a></li>
     <li><a href="docs/benchmarks/event-store-trap-catch.md">Benchmark — event store trap catch</a></li>
-    <li><a href="docs/ab-evaluation/">A/B evaluation cases</a></li>
     <li><a href="GOVERNANCE.md">Governance · roadmap to 1.0</a></li>
   </ul>
 

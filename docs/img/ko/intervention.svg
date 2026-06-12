@@ -1,0 +1,73 @@
+<svg width="768" height="344" viewBox="0 0 960 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="intervention-title">
+  <title id="intervention-title">한 장면 — '다 됐습니다'가 진실이 되기까지: AI의 완료 직접 기입을 cladding이 차단하고, 15단계 검사의 실패가 피드백되어 수리 후 검증 서명과 함께 완료를 획득</title>
+  <defs>
+    <marker id="ah" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L9,4 L0,8 z" fill="#475569"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="960" height="430" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="17" font-weight="700" fill="#0f172a" text-anchor="middle">한 장면 — '다 됐습니다'가 진실이 되기까지</text>
+
+  <!-- ① Host LLM (blue) -->
+  <rect x="28" y="62" width="258" height="116" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="44" y="88" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="16" font-weight="700" fill="#2563eb">①</text>
+  <text x="68" y="88" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="14" font-weight="700" fill="#0f172a">호스트 LLM</text>
+  <!-- speech bubble -->
+  <rect x="40" y="100" width="234" height="44" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+  <path d="M62,101 L70,91 L78,101" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="52" y="118" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="11.5" fill="#475569">기능 완성했습니다 —</text>
+  <text x="52" y="135" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="11.5" fill="#475569">done 처리할게요</text>
+  <text x="44" y="166" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="10.5" fill="#64748b">(완료 표시를 직접 쓰려 함)</text>
+
+  <!-- arrow ① → ② -->
+  <text x="318" y="114" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="10.5" fill="#64748b" text-anchor="middle">가로채기</text>
+  <line x1="286" y1="126" x2="348" y2="126" stroke="#475569" stroke-width="1.5" marker-end="url(#ah)"/>
+
+  <!-- ② cladding hook blocks (red) -->
+  <rect x="350" y="62" width="258" height="116" rx="10" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+  <text x="366" y="88" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="16" font-weight="700" fill="#dc2626">②</text>
+  <text x="390" y="88" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="14" font-weight="700" fill="#0f172a">cladding — 즉시 차단</text>
+  <text x="366" y="120" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="11.5" fill="#475569">done은 쓰는 값이 아닙니다</text>
+  <text x="366" y="140" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="11.5" fill="#475569">→ <tspan font-weight="700" fill="#dc2626">검증으로 얻으세요</tspan></text>
+
+  <!-- arrow ② → ③ -->
+  <text x="640" y="100" font-family="'SF Mono', Menlo, monospace" font-size="10" fill="#64748b" text-anchor="middle">완료 요청</text>
+  <text x="640" y="114" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="10.5" fill="#64748b" text-anchor="middle">실행</text>
+  <line x1="608" y1="126" x2="670" y2="126" stroke="#475569" stroke-width="1.5" marker-end="url(#ah)"/>
+
+  <!-- ③ 15-stage gate (amber) -->
+  <rect x="672" y="62" width="258" height="116" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+  <text x="688" y="88" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="16" font-weight="700" fill="#d97706">③</text>
+  <text x="712" y="88" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="14" font-weight="700" fill="#0f172a">15단계 게이트 실행</text>
+  <text x="688" y="120" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="11.5" fill="#475569"><tspan font-weight="700" fill="#dc2626">✗ RED</tspan> — AC-3 테스트 없음</text>
+  <text x="688" y="140" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="11.5" fill="#475569"><tspan font-weight="700" fill="#dc2626">✗</tspan> 커버리지 하락 (81% → 76%)</text>
+
+  <!-- arrow ③ → ④ (feedback) -->
+  <text x="787" y="214" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="10.5" fill="#64748b" text-anchor="end">실패 내용이 컨텍스트로</text>
+  <text x="787" y="230" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="10.5" fill="#64748b" text-anchor="end">(피드백)</text>
+  <line x1="801" y1="178" x2="801" y2="266" stroke="#475569" stroke-width="1.5" marker-end="url(#ah)"/>
+
+  <!-- ④ LLM repairs (blue) -->
+  <rect x="640" y="268" width="292" height="116" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="656" y="294" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="16" font-weight="700" fill="#2563eb">④</text>
+  <text x="680" y="294" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="14" font-weight="700" fill="#0f172a">LLM이 수리</text>
+  <text x="656" y="326" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="11.5" fill="#475569">수리 카드를 받아 테스트 보강</text>
+  <text x="656" y="346" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="10.5" fill="#64748b">AC-3 테스트 추가 · 커버리지 회복</text>
+
+  <!-- arrow ④ → ⑤ -->
+  <text x="617" y="314" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="10.5" fill="#64748b" text-anchor="middle">재검증</text>
+  <line x1="640" y1="326" x2="594" y2="326" stroke="#475569" stroke-width="1.5" marker-end="url(#ah)"/>
+
+  <!-- ⑤ done earned (green) -->
+  <rect x="240" y="268" width="352" height="116" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="256" y="294" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="16" font-weight="700" fill="#16a34a">⑤</text>
+  <text x="280" y="294" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="14" font-weight="700" fill="#0f172a">done 획득</text>
+  <text x="256" y="326" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="11.5" fill="#475569">검사 <tspan font-weight="700" fill="#16a34a">전부 통과</tspan> → 완료 기록</text>
+  <text x="256" y="346" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="11.5" fill="#475569">+ <tspan font-family="'SF Mono', Menlo, monospace">attestation</tspan> 서명</text>
+
+  <!-- closing caption -->
+  <text x="416" y="410" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#64748b" text-anchor="middle">이제 '다 됐다'는 말이 아니라 증명이다</text>
+</svg>

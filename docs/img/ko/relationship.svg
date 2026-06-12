@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 568" width="720" height="426">
+  <defs>
+    <marker id="ah" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L9,4 L0,8 z" fill="#475569"/>
+    </marker>
+    <marker id="ah-green" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L9,4 L0,8 z" fill="#16a34a"/>
+    </marker>
+    <marker id="ah-red" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L9,4 L0,8 z" fill="#dc2626"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="960" height="568" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="480" y="40" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="17" font-weight="700" fill="#0f172a">cladding × 호스트 LLM — 목표는 ‘스펙대로 검증된 코드’</text>
+
+  <!-- LEFT group: 전 (intent in) -->
+  <rect x="32" y="88" width="216" height="216" rx="10" fill="#f8fafc" stroke="#16a34a" stroke-width="2"/>
+  <text x="140" y="116" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="13.5" font-weight="700" fill="#15803d">전 — spec의 의도를 넣는다</text>
+  <rect x="46" y="132" width="188" height="52" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="140" y="155" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a">spec에 기록된 의도 중</text>
+  <text x="140" y="173" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a">지금 필요한 것만 추출</text>
+  <rect x="46" y="194" width="188" height="36" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="140" y="217" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a">프로젝트 지도 자동 주입</text>
+  <rect x="46" y="240" width="188" height="52" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="140" y="263" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a">팀 규칙 적용</text>
+  <text x="140" y="281" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a">(금지·선호 패턴)</text>
+
+  <!-- CENTER: host LLM -->
+  <rect x="354" y="120" width="252" height="152" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="480" y="172" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="21" font-weight="700" fill="#0f172a">호스트 LLM</text>
+  <text x="480" y="201" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="10.5" fill="#475569">Claude Code · Codex · Gemini · Cursor</text>
+  <text x="480" y="240" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12.5" font-weight="600" fill="#2563eb">코드를 쓴다 — 생성은 LLM의 일</text>
+
+  <!-- RIGHT group: 후 (verify out) -->
+  <rect x="712" y="88" width="216" height="216" rx="10" fill="#f8fafc" stroke="#d97706" stroke-width="2"/>
+  <text x="820" y="116" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="13.5" font-weight="700" fill="#b45309">후 — 결과를 검증한다</text>
+  <rect x="726" y="132" width="188" height="40" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+  <text x="820" y="157" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a">15단계 검증 관문</text>
+  <rect x="726" y="184" width="188" height="40" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+  <text x="820" y="209" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a">36가지 어긋남 검사</text>
+  <rect x="726" y="236" width="188" height="56" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+  <text x="820" y="259" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a">구현 못 보는 채점자</text>
+  <text x="820" y="277" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a">실행물 직접 구동</text>
+
+  <!-- main flow arrows -->
+  <line x1="248" y1="196" x2="350" y2="196" stroke="#475569" stroke-width="1.8" marker-end="url(#ah)"/>
+  <text x="300" y="182" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="10.5" fill="#475569">올바른 의도로 시작</text>
+  <line x1="606" y1="196" x2="708" y2="196" stroke="#475569" stroke-width="1.8" marker-end="url(#ah)"/>
+  <text x="658" y="182" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="10.5" fill="#475569">생성물 전수 검사</text>
+
+  <!-- outcome arrows from amber group -->
+  <line x1="830" y1="304" x2="830" y2="346" stroke="#16a34a" stroke-width="1.8" marker-end="url(#ah-green)"/>
+  <line x1="736" y1="304" x2="646.8" y2="347.1" stroke="#dc2626" stroke-width="1.8" marker-end="url(#ah-red)"/>
+
+  <!-- outcome chips -->
+  <rect x="688" y="348" width="252" height="40" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="814" y="372.5" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a">통과 → 완료 획득 · 검증 서명</text>
+  <rect x="515" y="348" width="160" height="40" rx="10" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5"/>
+  <text x="595" y="372.5" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a">차단 → 수리 카드</text>
+
+  <!-- arrows into record band -->
+  <line x1="814" y1="388" x2="814" y2="426" stroke="#475569" stroke-width="1.5" marker-end="url(#ah)"/>
+  <line x1="595" y1="388" x2="595" y2="426" stroke="#475569" stroke-width="1.5" marker-end="url(#ah)"/>
+
+  <!-- record band -->
+  <rect x="240" y="428" width="640" height="58" rx="10" fill="#e2e8f0" stroke="#64748b" stroke-width="1.5"/>
+  <text x="560" y="452" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12.5" font-weight="700" fill="#334155">기록 — 다음 턴의 입력이 된다</text>
+  <text x="560" y="472" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#475569">감사 장부 · 검증 서명 · 수리 카드</text>
+
+  <!-- feedback loop: record -> left group -->
+  <path d="M 240 457 C 164 457, 100 438, 96 384 C 93 348, 99 322, 109 308" fill="none" stroke="#16a34a" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ah-green)"/>
+  <text x="208" y="402" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" font-weight="700" fill="#15803d">피드백 루프</text>
+  <text x="208" y="420" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="11" fill="#475569">검증 결과가 다시 컨텍스트로</text>
+
+  <!-- captions -->
+  <text x="480" y="528" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#64748b">cladding = 외장재. LLM을 대체하지 않는다 — 감싼다.</text>
+  <text x="480" y="550" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12.5" font-weight="700" fill="#16a34a">목표는 하나 — AI의 ‘다 됐습니다’를 말이 아니라 증명으로 만드는 것.</text>
+</svg>
