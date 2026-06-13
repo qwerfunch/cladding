@@ -1,39 +1,69 @@
-<svg width="680" height="420" viewBox="0 0 680 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="multi-agent-title">
-  <title id="multi-agent-title">5 personas with CQS — orchestrator dispatches, planner/developer/reviewer act, observability watches metrics</title>
-  <rect x="260" y="20" width="160" height="60" rx="8" fill="#1e293b"/>
-  <text x="340" y="48" font-family="sans-serif" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">orchestrator</text>
-  <text x="340" y="68" font-family="monospace" font-size="12" fill="#cbd5e1" text-anchor="middle">dispatch only</text>
-  <g stroke="#1e293b" stroke-width="2" fill="#1e293b">
-    <line x1="340" y1="80" x2="140" y2="160"/>
-    <polygon points="142,154 134,162 148,164"/>
-    <line x1="340" y1="80" x2="340" y2="160"/>
-    <polygon points="334,154 340,164 346,154"/>
-    <line x1="340" y1="80" x2="540" y2="160"/>
-    <polygon points="538,154 546,162 532,164"/>
+<svg width="724" height="456" viewBox="0 0 724 456" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="multi-agent-title">
+  <title id="multi-agent-title">Persona privilege separation (CQS) — orchestrator dispatches, planner/developer/reviewer/blind-author do the work, observability watches the metrics. The agent that builds is separated from the agent that verifies.</title>
+  <defs>
+    <marker id="ah" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L9,4 L0,8 z" fill="#475569"/>
+    </marker>
+  </defs>
+
+  <!-- Title + regulation mapping line -->
+  <text x="362" y="36" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="17" font-weight="700" fill="#0f172a" text-anchor="middle">Persona privilege separation (CQS)</text>
+  <text x="362" y="56" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#64748b" text-anchor="middle">Maps directly onto EU AI Act · SOX audit-separation criteria</text>
+
+  <!-- orchestrator (blue) -->
+  <rect x="252" y="72" width="220" height="56" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="362" y="96" font-family="'SF Mono', Menlo, monospace" font-size="14" font-weight="700" fill="#0f172a" text-anchor="middle">orchestrator</text>
+  <text x="362" y="116" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#475569" text-anchor="middle">dispatches work</text>
+
+  <!-- dispatch arrows: orchestrator -> workers -->
+  <g stroke="#475569" stroke-width="1.5" fill="none">
+    <line x1="270" y1="128" x2="92"  y2="188" marker-end="url(#ah)"/>
+    <line x1="330" y1="128" x2="254" y2="188" marker-end="url(#ah)"/>
+    <line x1="394" y1="128" x2="418" y2="188" marker-end="url(#ah)"/>
+    <line x1="454" y1="128" x2="606" y2="188" marker-end="url(#ah)"/>
   </g>
-  <text x="335" y="115" font-family="sans-serif" font-size="11" font-style="italic" fill="#475569" text-anchor="middle">dispatches work</text>
-  <rect x="60"  y="165" width="160" height="90" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
-  <text x="140" y="190" font-family="sans-serif" font-size="15" font-weight="700" fill="#15803d" text-anchor="middle">planner</text>
-  <text x="140" y="215" font-family="monospace" font-size="12" fill="#166534" text-anchor="middle">spec  ✎ write</text>
-  <text x="140" y="235" font-family="monospace" font-size="12" fill="#166534" text-anchor="middle">code  ◎ read</text>
-  <rect x="260" y="165" width="160" height="90" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
-  <text x="340" y="190" font-family="sans-serif" font-size="15" font-weight="700" fill="#1d4ed8" text-anchor="middle">developer</text>
-  <text x="340" y="215" font-family="monospace" font-size="12" fill="#1e3a8a" text-anchor="middle">code  ✎ write</text>
-  <text x="340" y="235" font-family="monospace" font-size="12" fill="#1e3a8a" text-anchor="middle">spec  ◎ read</text>
-  <rect x="460" y="165" width="160" height="90" rx="8" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/>
-  <text x="540" y="190" font-family="sans-serif" font-size="15" font-weight="700" fill="#854d0e" text-anchor="middle">reviewer</text>
-  <text x="540" y="215" font-family="monospace" font-size="12" fill="#713f12" text-anchor="middle">audit ⚖ only</text>
-  <text x="540" y="235" font-family="monospace" font-size="12" fill="#713f12" text-anchor="middle">all   ◎ read</text>
-  <g stroke="#1e293b" stroke-width="2" fill="#1e293b">
-    <line x1="140" y1="255" x2="340" y2="320"/>
-    <polygon points="335,314 343,323 329,324"/>
-    <line x1="340" y1="255" x2="340" y2="320"/>
-    <polygon points="334,314 340,324 346,314"/>
-    <line x1="540" y1="255" x2="340" y2="320"/>
-    <polygon points="345,314 337,322 351,324"/>
+
+  <!-- planner (green) -->
+  <rect x="16" y="190" width="148" height="100" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="90" y="232" font-family="'SF Mono', Menlo, monospace" font-size="14" font-weight="700" fill="#0f172a" text-anchor="middle">planner</text>
+  <text x="90" y="258" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#475569" text-anchor="middle">writes spec</text>
+
+  <!-- developer (blue) -->
+  <rect x="180" y="190" width="148" height="100" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="254" y="232" font-family="'SF Mono', Menlo, monospace" font-size="14" font-weight="700" fill="#0f172a" text-anchor="middle">developer</text>
+  <text x="254" y="258" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#475569" text-anchor="middle">writes code</text>
+
+  <!-- reviewer (amber) -->
+  <rect x="344" y="190" width="148" height="100" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+  <text x="418" y="232" font-family="'SF Mono', Menlo, monospace" font-size="14" font-weight="700" fill="#0f172a" text-anchor="middle">reviewer</text>
+  <text x="418" y="258" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#475569" text-anchor="middle">audits · approves</text>
+
+  <!-- blind-author (dashed chip) -->
+  <rect x="508" y="190" width="200" height="100" rx="10" fill="#f8fafc" stroke="#64748b" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="608" y="216" font-family="'SF Mono', Menlo, monospace" font-size="13" font-weight="700" fill="#0f172a" text-anchor="middle">blind-author</text>
+  <text x="608" y="240" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="11" fill="#475569" text-anchor="middle">test author who</text>
+  <text x="608" y="256" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="11" fill="#475569" text-anchor="middle">cannot see the impl</text>
+  <text x="608" y="276" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="11" fill="#64748b" text-anchor="middle">(no read access at all)</text>
+
+  <!-- converging arrows: workers -> observability -->
+  <g stroke="#475569" stroke-width="1.5" fill="none">
+    <line x1="90"  y1="290" x2="290" y2="338" marker-end="url(#ah)"/>
+    <line x1="254" y1="290" x2="330" y2="338" marker-end="url(#ah)"/>
+    <line x1="418" y1="290" x2="394" y2="338" marker-end="url(#ah)"/>
+    <line x1="608" y1="290" x2="434" y2="338" marker-end="url(#ah)"/>
   </g>
-  <rect x="260" y="325" width="160" height="60" rx="8" fill="#f1f5f9" stroke="#475569" stroke-width="2"/>
-  <text x="340" y="353" font-family="sans-serif" font-size="15" font-weight="700" fill="#334155" text-anchor="middle">observability</text>
-  <text x="340" y="373" font-family="monospace" font-size="12" fill="#475569" text-anchor="middle">metrics  ◎ read</text>
-  <text x="340" y="408" font-family="sans-serif" font-size="13" font-weight="700" fill="#1e293b" text-anchor="middle">no self-sign-off  ·  command(write) and query(read) separated (CQS)</text>
+
+  <!-- observability (slate) -->
+  <rect x="252" y="340" width="220" height="64" rx="10" fill="#e2e8f0" stroke="#64748b" stroke-width="2"/>
+  <text x="362" y="364" font-family="'SF Mono', Menlo, monospace" font-size="14" font-weight="700" fill="#0f172a" text-anchor="middle">observability</text>
+  <text x="362" y="386" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#475569" text-anchor="middle">watches the metrics</text>
+
+  <!-- anti-self-cert side note (red) -->
+  <rect x="496" y="340" width="212" height="72" rx="10" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5"/>
+  <text x="602" y="362" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a" text-anchor="middle">the agent that builds</text>
+  <text x="602" y="381" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a" text-anchor="middle">≠ the agent that verifies</text>
+  <text x="602" y="400" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" font-weight="700" fill="#dc2626" text-anchor="middle">no self-approval (CQS)</text>
+
+  <!-- caption -->
+  <text x="362" y="436" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#64748b" text-anchor="middle">Approvals are recorded in <tspan font-family="'SF Mono', Menlo, monospace">attestation.yaml</tspan>; done status is earned only by passing the full gate</text>
 </svg>

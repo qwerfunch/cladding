@@ -1,32 +1,46 @@
-<svg width="720" height="240" viewBox="0 0 720 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="workflow-title">
-  <title id="workflow-title">One feature's lifecycle — Define → Sync → Implement → Verify, merge if drift=0 / block otherwise</title>
-  <g font-family="sans-serif">
-    <rect x="20"  y="70" width="120" height="80" rx="8" fill="#f8fafc" stroke="#1e293b" stroke-width="2"/>
-    <text x="80"  y="105" font-size="16" font-weight="700" fill="#1e293b" text-anchor="middle">① Define</text>
-    <text x="80"  y="128" font-size="11" font-family="monospace" fill="#475569" text-anchor="middle">spec/features/</text>
-    <rect x="170" y="70" width="120" height="80" rx="8" fill="#f8fafc" stroke="#1e293b" stroke-width="2"/>
-    <text x="230" y="105" font-size="16" font-weight="700" fill="#1e293b" text-anchor="middle">② Sync</text>
-    <text x="230" y="128" font-size="11" font-family="monospace" fill="#475569" text-anchor="middle">clad sync</text>
-    <rect x="320" y="70" width="120" height="80" rx="8" fill="#f8fafc" stroke="#1e293b" stroke-width="2"/>
-    <text x="380" y="105" font-size="16" font-weight="700" fill="#1e293b" text-anchor="middle">③ Implement</text>
-    <text x="380" y="128" font-size="11" fill="#475569" text-anchor="middle">AI writes the code</text>
-    <rect x="470" y="70" width="120" height="80" rx="8" fill="#f8fafc" stroke="#1e293b" stroke-width="2"/>
-    <text x="530" y="105" font-size="16" font-weight="700" fill="#1e293b" text-anchor="middle">④ Verify</text>
-    <text x="530" y="128" font-size="11" font-family="monospace" fill="#475569" text-anchor="middle">clad check</text>
-  </g>
-  <g stroke="#1e293b" stroke-width="2" fill="#1e293b">
-    <line x1="140" y1="110" x2="165" y2="110"/><polygon points="160,105 170,110 160,115"/>
-    <line x1="290" y1="110" x2="315" y2="110"/><polygon points="310,105 320,110 310,115"/>
-    <line x1="440" y1="110" x2="465" y2="110"/><polygon points="460,105 470,110 460,115"/>
-  </g>
-  <g stroke="#1e293b" stroke-width="2" fill="none">
-    <path d="M 590 110 L 620 110 L 620 60 L 660 60" />
-    <path d="M 590 110 L 620 110 L 620 160 L 660 160" />
-  </g>
-  <polygon points="650,55 660,60 650,65" fill="#16a34a"/>
-  <polygon points="650,155 660,160 650,165" fill="#ef4444"/>
-  <text x="665" y="58"  font-family="sans-serif" font-size="13" font-weight="700" fill="#16a34a">drift = 0</text>
-  <text x="665" y="73"  font-family="sans-serif" font-size="12" fill="#15803d">→ merge ✓</text>
-  <text x="665" y="158" font-family="sans-serif" font-size="13" font-weight="700" fill="#ef4444">drift &gt; 0</text>
-  <text x="665" y="173" font-family="sans-serif" font-size="12" fill="#b91c1c">→ block ✗</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 276" width="760" height="276">
+  <defs>
+    <marker id="ah" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 z" fill="#475569"/></marker>
+    <marker id="ah-green" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 z" fill="#16a34a"/></marker>
+    <marker id="ah-red" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 z" fill="#dc2626"/></marker>
+  </defs>
+
+  <text x="382" y="32" text-anchor="middle" font-family="-apple-system, 'Segoe UI', 'Noto Sans', sans-serif" font-size="17" font-weight="700" fill="#0f172a">The lifecycle of one feature</text>
+
+  <!-- step boxes -->
+  <rect x="24" y="52" width="142" height="58" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="95" y="76" text-anchor="middle" font-family="-apple-system, 'Segoe UI', 'Noto Sans', sans-serif" font-size="14" font-weight="700" fill="#0f172a">① Define</text>
+  <text x="95" y="95" text-anchor="middle" font-family="-apple-system, 'Segoe UI', 'Noto Sans', sans-serif" font-size="11.5" fill="#475569">record feature intent</text>
+
+  <rect x="198" y="52" width="142" height="58" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="269" y="76" text-anchor="middle" font-family="-apple-system, 'Segoe UI', 'Noto Sans', sans-serif" font-size="14" font-weight="700" fill="#0f172a">② Sync</text>
+  <text x="269" y="95" text-anchor="middle" font-family="-apple-system, 'Segoe UI', 'Noto Sans', sans-serif" font-size="11.5" fill="#475569">validate &amp; heal spec</text>
+
+  <rect x="372" y="52" width="142" height="58" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="443" y="76" text-anchor="middle" font-family="-apple-system, 'Segoe UI', 'Noto Sans', sans-serif" font-size="14" font-weight="700" fill="#0f172a">③ Implement</text>
+  <text x="443" y="95" text-anchor="middle" font-family="-apple-system, 'Segoe UI', 'Noto Sans', sans-serif" font-size="11.5" fill="#475569">LLM writes code + tests</text>
+
+  <rect x="546" y="52" width="142" height="58" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+  <text x="617" y="76" text-anchor="middle" font-family="-apple-system, 'Segoe UI', 'Noto Sans', sans-serif" font-size="14" font-weight="700" fill="#0f172a">④ Earn</text>
+  <text x="617" y="95" text-anchor="middle" font-family="-apple-system, 'Segoe UI', 'Noto Sans', sans-serif" font-size="11.5" fill="#475569">request completion</text>
+
+  <!-- step arrows -->
+  <line x1="167" y1="81" x2="196" y2="81" stroke="#475569" stroke-width="1.5" marker-end="url(#ah)"/>
+  <line x1="341" y1="81" x2="370" y2="81" stroke="#475569" stroke-width="1.5" marker-end="url(#ah)"/>
+  <line x1="515" y1="81" x2="544" y2="81" stroke="#475569" stroke-width="1.5" marker-end="url(#ah)"/>
+
+  <!-- fork: green pass -->
+  <line x1="648" y1="111" x2="648" y2="188" stroke="#16a34a" stroke-width="1.5" marker-end="url(#ah-green)"/>
+  <text x="656" y="155" text-anchor="start" font-family="-apple-system, 'Segoe UI', 'Noto Sans', sans-serif" font-size="11.5" fill="#16a34a">all checks pass</text>
+  <rect x="527" y="190" width="180" height="36" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="617" y="212" text-anchor="middle" font-family="-apple-system, 'Segoe UI', 'Noto Sans', sans-serif" font-size="12" font-weight="600" fill="#0f172a">completion earned · signed off</text>
+
+  <!-- fork: red fail -->
+  <path d="M 576,111 L 576,150 L 340,150 L 340,188" fill="none" stroke="#dc2626" stroke-width="1.5" marker-end="url(#ah-red)"/>
+  <text x="458" y="143" text-anchor="middle" font-family="-apple-system, 'Segoe UI', 'Noto Sans', sans-serif" font-size="11.5" fill="#dc2626">any check fails</text>
+  <rect x="190" y="190" width="300" height="36" rx="10" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+  <text x="340" y="212" text-anchor="middle" font-family="-apple-system, 'Segoe UI', 'Noto Sans', sans-serif" font-size="12" font-weight="600" fill="#0f172a">auto-revert — completion is earned, not written</text>
+
+  <!-- caption -->
+  <text x="382" y="254" text-anchor="middle" font-family="-apple-system, 'Segoe UI', 'Noto Sans', sans-serif" font-size="12" fill="#64748b">hand-writing a done marker is blocked on the spot</text>
 </svg>

@@ -157,48 +157,6 @@
   .flow-card ul { margin: 8px 0 0 18px; }
   .flow-card li { font-size: 13.5px; color: #475569; margin: 5px 0; }
 
-  /* HERO benchmark cards */
-  .hero {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    margin: 32px auto 8px;
-    max-width: 760px;
-  }
-  .hero-card {
-    padding: 36px 28px;
-    border-radius: 12px;
-    text-align: center;
-  }
-  .hero-card.vanilla { background: #f1f5f9; }
-  .hero-card.cladding { background: #dcfce7; }
-  .hero-card .label {
-    font-size: 12px;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    font-weight: 600;
-  }
-  .hero-card .number {
-    font-size: 72px;
-    font-weight: 800;
-    line-height: 1;
-    margin: 16px 0;
-    letter-spacing: -2px;
-  }
-  .hero-card .sub { font-size: 13px; }
-  .hero-card.vanilla .label,
-  .hero-card.vanilla .sub { color: #64748b; }
-  .hero-card.vanilla .number { color: #94a3b8; }
-  .hero-card.cladding .label,
-  .hero-card.cladding .sub { color: #15803d; }
-  .hero-card.cladding .number { color: #16a34a; }
-  .hero-caption {
-    text-align: center;
-    font-size: 13px;
-    color: #64748b;
-    margin-top: 12px;
-  }
-
   /* Earn callout */
   .earn {
     background: #f0fdf4;
@@ -255,8 +213,6 @@
     .container { padding: 32px 16px 64px; }
     h1 { font-size: 40px; }
     h2 { font-size: 24px; margin-top: 48px; }
-    .hero { grid-template-columns: 1fr; }
-    .hero-card .number { font-size: 56px; }
     .flow-cards { grid-template-columns: 1fr; }
     table { font-size: 13px; }
     th, td { padding: 10px 12px; }
@@ -356,24 +312,6 @@
   <p style="font-size:13px;color:#64748b;text-align:center;margin-top:4px">
     실시간 개입(지도 주입 · 즉시 차단 · 종료 차단)은 Claude Code에서 전부 동작한다.
     Codex · Gemini · Cursor에서는 같은 검증을 대화 속 도구 호출과 git·CI 관문으로 수행한다.
-  </p>
-
-  <!-- ─────────────── 증거 ─────────────── -->
-  <h2>측정으로 말하면</h2>
-  <div class="hero">
-    <div class="hero-card vanilla">
-      <div class="label">일반 (vanilla) AI 코딩</div>
-      <div class="number">2/8</div>
-      <div class="sub">스펙 함정 포착 · 25%</div>
-    </div>
-    <div class="hero-card cladding">
-      <div class="label">cladding</div>
-      <div class="number">8/8</div>
-      <div class="sub">스펙 함정 포착 · 100%</div>
-    </div>
-  </div>
-  <p class="hero-caption">
-    같은 spec · 같은 조건 · <a href="docs/benchmarks/event-store-trap-catch.md">event-sourcing store 벤치마크</a>
   </p>
 
   <!-- ─────────────── done은 획득 ─────────────── -->
@@ -615,8 +553,6 @@ clad update                # 3. 새 버전에 맞게 정리</code></pre>
     <li><a href="docs/spec-ids-multi-dev.md">Hash-based feature ID</a></li>
     <li><a href="src/stages/detectors/README.md">36 detector catalog</a></li>
     <li><a href="docs/glossary.md">용어집 (EN · KO)</a></li>
-    <li><a href="docs/benchmarks/v0.6.0-real-user-verification.md">실사용 검증 캠페인 (0.6.0)</a></li>
-    <li><a href="docs/benchmarks/event-store-trap-catch.md">Benchmark — event store trap catch</a></li>
     <li><a href="GOVERNANCE.md">Governance · roadmap to 1.0</a></li>
   </ul>
 

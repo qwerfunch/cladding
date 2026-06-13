@@ -1,47 +1,75 @@
-<svg width="640" height="460" viewBox="0 0 640 460" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="iron-law-title">
-  <title id="iron-law-title">13-stage Iron Law gate — every change must clear static(6) · test(2) · e2e(3) · evidence(2) wherever `clad check` runs (CI / git hook / manual)</title>
-  <rect x="270" y="10" width="100" height="40" rx="6" fill="#1e293b"/>
-  <text x="320" y="35" font-family="sans-serif" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">Change</text>
-  <text x="380" y="25" font-family="sans-serif" font-size="11" fill="#475569">or any `clad check` call</text>
-  <text x="380" y="40" font-family="monospace" font-size="11" fill="#64748b">CI · git hook · manual</text>
-  <line x1="320" y1="50" x2="320" y2="75" stroke="#1e293b" stroke-width="2"/>
-  <polygon points="314,69 320,79 326,69" fill="#1e293b"/>
-  <rect x="40" y="80" width="560" height="72" rx="8" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/>
-  <text x="60" y="103" font-family="sans-serif" font-size="14" font-weight="700" fill="#854d0e">stage_1 · static  (6)</text>
-  <g font-family="monospace" font-size="13" fill="#713f12">
-    <text x="60"  y="135">Type</text>
-    <text x="135" y="135">Lint</text>
-    <text x="200" y="135">Drift</text>
-    <text x="275" y="135">Commit</text>
-    <text x="365" y="135">Arch</text>
-    <text x="430" y="135">Secret</text>
-  </g>
-  <line x1="320" y1="152" x2="320" y2="172" stroke="#1e293b" stroke-width="2"/>
-  <polygon points="314,166 320,176 326,166" fill="#1e293b"/>
-  <rect x="40" y="177" width="560" height="60" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
-  <text x="60" y="200" font-family="sans-serif" font-size="14" font-weight="700" fill="#1d4ed8">stage_2 · test  (2)</text>
-  <g font-family="monospace" font-size="13" fill="#1e3a8a">
-    <text x="60"  y="225">Unit</text>
-    <text x="135" y="225">Cov</text>
-  </g>
-  <line x1="320" y1="237" x2="320" y2="257" stroke="#1e293b" stroke-width="2"/>
-  <polygon points="314,251 320,261 326,251" fill="#1e293b"/>
-  <rect x="40" y="262" width="560" height="60" rx="8" fill="#e0e7ff" stroke="#6366f1" stroke-width="2"/>
-  <text x="60" y="285" font-family="sans-serif" font-size="14" font-weight="700" fill="#4338ca">stage_3 · e2e  (3)</text>
-  <g font-family="monospace" font-size="13" fill="#312e81">
-    <text x="60"  y="310">Smoke</text>
-    <text x="140" y="310">Perf</text>
-    <text x="200" y="310">Visual</text>
-  </g>
-  <line x1="320" y1="322" x2="320" y2="342" stroke="#1e293b" stroke-width="2"/>
-  <polygon points="314,336 320,346 326,336" fill="#1e293b"/>
-  <rect x="40" y="347" width="560" height="60" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
-  <text x="60" y="370" font-family="sans-serif" font-size="14" font-weight="700" fill="#15803d">stage_4 · evidence  (2)</text>
-  <g font-family="monospace" font-size="13" fill="#14532d">
-    <text x="60"  y="395">Audit</text>
-    <text x="140" y="395">UAT</text>
-  </g>
-  <line x1="320" y1="407" x2="320" y2="427" stroke="#1e293b" stroke-width="2"/>
-  <polygon points="314,421 320,431 326,421" fill="#1e293b"/>
-  <text x="320" y="448" font-family="sans-serif" font-size="13" font-weight="700" fill="#16a34a" text-anchor="middle">all pass → merge OK    ✗    any fail → block</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 584" width="640" height="584">
+  <defs>
+    <marker id="ah" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 z" fill="#475569"/></marker>
+    <marker id="ah-green" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 z" fill="#16a34a"/></marker>
+    <marker id="ah-red" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 z" fill="#dc2626"/></marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="320" y="32" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="17" font-weight="700" fill="#0f172a">15-stage gate — all of it in one verification</text>
+
+  <!-- stage_1 band -->
+  <rect x="16" y="54" width="608" height="112" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+  <text x="32" y="76" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="13" font-weight="700" fill="#0f172a"><tspan font-family="'SF Mono', Menlo, monospace" fill="#b45309">stage_1</tspan><tspan>&#160;·&#160;static checks (6)</tspan></text>
+  <rect x="32" y="88" width="184" height="28" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="124" y="106" text-anchor="middle" font-family="'SF Mono', Menlo, monospace" font-size="11" fill="#0f172a">Type</text>
+  <rect x="228" y="88" width="184" height="28" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="320" y="106" text-anchor="middle" font-family="'SF Mono', Menlo, monospace" font-size="11" fill="#0f172a">Lint</text>
+  <rect x="424" y="88" width="184" height="28" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="516" y="106" text-anchor="middle" font-family="'SF Mono', Menlo, monospace" font-size="11" fill="#0f172a">Drift (36 detectors)</text>
+  <rect x="32" y="126" width="184" height="28" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="124" y="144" text-anchor="middle" font-family="'SF Mono', Menlo, monospace" font-size="11" fill="#0f172a">Commit</text>
+  <rect x="228" y="126" width="184" height="28" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="320" y="144" text-anchor="middle" font-family="'SF Mono', Menlo, monospace" font-size="11" fill="#0f172a">Arch</text>
+  <rect x="424" y="126" width="184" height="28" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="516" y="144" text-anchor="middle" font-family="'SF Mono', Menlo, monospace" font-size="11" fill="#0f172a">Secret</text>
+
+  <line x1="320" y1="166" x2="320" y2="192" stroke="#475569" stroke-width="1.8" marker-end="url(#ah)"/>
+
+  <!-- stage_2 band -->
+  <rect x="16" y="194" width="608" height="72" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+  <text x="32" y="216" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="13" font-weight="700" fill="#0f172a"><tspan font-family="'SF Mono', Menlo, monospace" fill="#b45309">stage_2</tspan><tspan>&#160;·&#160;tests · conformance (4)</tspan></text>
+  <rect x="52" y="228" width="64" height="28" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="84" y="246" text-anchor="middle" font-family="'SF Mono', Menlo, monospace" font-size="11" fill="#0f172a">Unit</text>
+  <rect x="128" y="228" width="96" height="28" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="176" y="246" text-anchor="middle" font-family="'SF Mono', Menlo, monospace" font-size="11" fill="#0f172a">Coverage</text>
+  <rect x="236" y="228" width="200" height="28" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="336" y="246" text-anchor="middle" font-family="'SF Mono', Menlo, monospace" font-size="11" fill="#0f172a">Spec conformance (oracle)</text>
+  <rect x="448" y="228" width="140" height="28" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="518" y="246" text-anchor="middle" font-family="'SF Mono', Menlo, monospace" font-size="11" fill="#0f172a">Deliverable smoke</text>
+
+  <line x1="320" y1="266" x2="320" y2="292" stroke="#475569" stroke-width="1.8" marker-end="url(#ah)"/>
+
+  <!-- stage_3 band -->
+  <rect x="16" y="294" width="608" height="72" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+  <text x="32" y="316" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="13" font-weight="700" fill="#0f172a"><tspan font-family="'SF Mono', Menlo, monospace" fill="#b45309">stage_3</tspan><tspan>&#160;·&#160;E2E (3)</tspan></text>
+  <rect x="193" y="328" width="80" height="28" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="233" y="346" text-anchor="middle" font-family="'SF Mono', Menlo, monospace" font-size="11" fill="#0f172a">Smoke</text>
+  <rect x="285" y="328" width="70" height="28" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="320" y="346" text-anchor="middle" font-family="'SF Mono', Menlo, monospace" font-size="11" fill="#0f172a">Perf</text>
+  <rect x="367" y="328" width="80" height="28" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="407" y="346" text-anchor="middle" font-family="'SF Mono', Menlo, monospace" font-size="11" fill="#0f172a">Visual</text>
+
+  <line x1="320" y1="366" x2="320" y2="392" stroke="#475569" stroke-width="1.8" marker-end="url(#ah)"/>
+
+  <!-- stage_4 band -->
+  <rect x="16" y="394" width="608" height="72" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+  <text x="32" y="416" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="13" font-weight="700" fill="#0f172a"><tspan font-family="'SF Mono', Menlo, monospace" fill="#b45309">stage_4</tspan><tspan>&#160;·&#160;evidence (2)</tspan></text>
+  <rect x="239" y="428" width="80" height="28" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="279" y="446" text-anchor="middle" font-family="'SF Mono', Menlo, monospace" font-size="11" fill="#0f172a">Audit</text>
+  <rect x="331" y="428" width="70" height="28" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="366" y="446" text-anchor="middle" font-family="'SF Mono', Menlo, monospace" font-size="11" fill="#0f172a">UAT</text>
+
+  <!-- diverging outcome arrows -->
+  <path d="M320,466 L202,498" fill="none" stroke="#16a34a" stroke-width="1.8" marker-end="url(#ah-green)"/>
+  <path d="M320,466 L490,498" fill="none" stroke="#dc2626" stroke-width="1.8" marker-end="url(#ah-red)"/>
+
+  <!-- outcome chips -->
+  <rect x="36" y="500" width="330" height="40" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="201" y="525" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12.5" font-weight="700" fill="#0f172a">Pass → verified signature (this code is verified)</text>
+  <rect x="378" y="500" width="226" height="40" rx="10" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+  <text x="491" y="525" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12.5" font-weight="700" fill="#0f172a">Fail → blocked · cannot complete</text>
+
+  <!-- caption -->
+  <text x="320" y="564" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#64748b">CI · git hook · manual call — the same 15 stages apply wherever you run it</text>
 </svg>
