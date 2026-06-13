@@ -12,7 +12,7 @@
 // test_refs document intended evidence paths that need not exist yet.
 //
 // The richer "test_refs resolve to a real vitest test name" variant
-// requires vitest AST introspection and lands behind the `specialists`
+// requires vitest AST introspection and lands behind the `developer`
 // agent later.
 
 import {existsSync} from 'node:fs';
@@ -23,7 +23,10 @@ import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js
 import {withSpec} from './with-spec.js';
 
 const NAME = 'UNTESTED_AC';
-const SKIPPABLE_PREFIXES = ['self-dogfood:', 'fixture:'];
+// `derived:` (F-c037ae) — machine-suggested candidate, NOT author-confirmed:
+// skipped from resolution here AND ignored by MISSING_TESTS, so a suggestion
+// can never satisfy a verification mandate (no manufactured evidence).
+const SKIPPABLE_PREFIXES = ['self-dogfood:', 'fixture:', 'derived:'];
 
 function isSkippable(ref: string): boolean {
   return SKIPPABLE_PREFIXES.some((p) => ref.startsWith(p));

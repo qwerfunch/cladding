@@ -30,6 +30,10 @@ export const DEFAULT_ALWAYS_EARS = ['unwanted'] as const;
 export interface ResolvedOraclePolicy {
   /** Any mandate at all? When false the detector enforces only INTEGRITY. */
   readonly mandateActive: boolean;
+  /** F-551a1c — scale-graduated default: the mandate REPORTS (info severity,
+   * worklist visible) but never blocks. Explicit policies are never
+   * report-only; enforcement of the graduated default lands in 0.7. */
+  readonly reportOnly: boolean;
   /** Legacy `require_oracles: true` — every done AC is required. */
   readonly exhaustive: boolean;
   /** EARS categories whose done ACs ALWAYS require an oracle. */
@@ -49,20 +53,39 @@ function clamp01(n: number): number {
  * an empty `oracle_policy: {}` means "oracle the `unwanted` ACs, sample 0 of
  * the rest" — the minimal risk-weighted default.
  */
-export function resolveOraclePolicy(project: Project): ResolvedOraclePolicy {
+export function resolveOraclePolicy(project: Project, doneFeatureCount = 0): ResolvedOraclePolicy {
   if (project.oracle_policy) {
     const p = project.oracle_policy;
     return {
       mandateActive: true,
+      reportOnly: false,
       exhaustive: false,
       alwaysEars: new Set(p.always_ears ?? DEFAULT_ALWAYS_EARS),
       sample: clamp01(p.sample ?? 0),
     };
   }
   if (project.require_oracles === true) {
-    return {mandateActive: true, exhaustive: true, alwaysEars: new Set(), sample: 1};
+    return {mandateActive: true, reportOnly: false, exhaustive: true, alwaysEars: new Set(), sample: 1};
   }
-  return {mandateActive: false, exhaustive: false, alwaysEars: new Set(), sample: 0};
+  // F-551a1c — scale-graduated, REPORT-ONLY default. Opt-in empirical gates do
+  // not get opted into (the DELIVERABLE_SMOKE lesson), so a grown project with
+  // no declared policy gains a visible risk-weighted obligation — but an
+  // explicit `require_oracles: false` is the project saying no: respected.
+  if (project.require_oracles === undefined && doneFeatureCount >= 8) {
+    return {
+      mandateActive: true,
+      reportOnly: true,
+      exhaustive: false,
+      alwaysEars: new Set(DEFAULT_ALWAYS_EARS),
+      sample: 0,
+    };
+  }
+  return {mandateActive: false, reportOnly: false, exhaustive: false, alwaysEars: new Set(), sample: 0};
+}
+
+/** Count of done features — the graduation scale for the default mandate. */
+export function doneFeatureCount(spec: Spec): number {
+  return (spec.features ?? []).filter((f) => f.status === 'done').length;
 }
 
 /**
@@ -107,7 +130,7 @@ export interface OracleWorklistRow {
  * the CLI, and tests share one derivation. Empty when no mandate is active.
  */
 export function requiredOracleWorklist(spec: Spec): OracleWorklistRow[] {
-  const policy = resolveOraclePolicy(spec.project);
+  const policy = resolveOraclePolicy(spec.project, doneFeatureCount(spec));
   const rows: OracleWorklistRow[] = [];
   if (!policy.mandateActive) return rows;
   for (const feature of spec.features) {

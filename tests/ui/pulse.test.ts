@@ -110,15 +110,15 @@ describe('pulseProgress + pulseProgressEnd', () => {
 
   test('non-TTY: pulseProgress is silent (no write)', () => {
     setTty(false);
-    pulseProgress('drive', 'F-001', 'specialist');
-    pulseProgress('drive', 'F-001', 'L1 gates');
-    pulseProgress('drive', 'F-001', 'reviewer');
+    pulseProgress('run', 'F-001', 'specialist');
+    pulseProgress('run', 'F-001', 'L1 gates');
+    pulseProgress('run', 'F-001', 'reviewer');
     expect(writeSpy).not.toHaveBeenCalled();
   });
 
   test('non-TTY: pulseProgressEnd emits one line equivalent to pulse', () => {
     setTty(false);
-    pulseProgress('drive', 'F-001', 'specialist');
+    pulseProgress('run', 'F-001', 'specialist');
     pulseProgressEnd('pass', 'F-001', 'done');
     // Only the End call writes; the intermediate Progress was silent.
     expect(writeSpy).toHaveBeenCalledOnce();
@@ -127,18 +127,18 @@ describe('pulseProgress + pulseProgressEnd', () => {
 
   test('TTY: pulseProgress writes a clear-line escape and stays open (no newline)', () => {
     setTty(true);
-    pulseProgress('drive', 'F-001', 'specialist');
+    pulseProgress('run', 'F-001', 'specialist');
     const out = writeSpy.mock.calls[0]?.[0] as string;
     expect(out).toContain('\r\x1b[K'); // clear-line
-    expect(out).toContain('drive · F-001');
+    expect(out).toContain('run · F-001');
     expect(out).toContain('specialist');
     expect(out.endsWith('\n')).toBe(false); // stays in-place
   });
 
   test('TTY: successive pulseProgress calls each begin with clear-line', () => {
     setTty(true);
-    pulseProgress('drive', 'F-001', 'specialist');
-    pulseProgress('drive', 'F-001', 'L1 gates');
+    pulseProgress('run', 'F-001', 'specialist');
+    pulseProgress('run', 'F-001', 'L1 gates');
     expect(writeSpy).toHaveBeenCalledTimes(2);
     for (const call of writeSpy.mock.calls) {
       expect(call[0] as string).toContain('\r\x1b[K');

@@ -30,7 +30,7 @@ upstream_ssot: https://github.com/qwerfunch/harness-boot/blob/main/ironclad-desi
 
 ## What unblocks the remaining items
 
-- **P-03 · P-08 · P-09 · P-10** all depend on cladding gaining an explicit Manual vs Autonomous mode state machine. Once `clad work` enters Manual mode, drift-check cadence tightens (P-09), file writes pass a confirmation gate (P-10), and the agent's routing posture demotes from proactive to approval-waiting (P-08). The 3-path intent model (P-03) then layers on top, distinguishing inquiry from execution.
+- **P-03 · P-08 · P-09 · P-10** all depend on cladding gaining an explicit Manual vs Autonomous mode state machine. Once `clad run` (which absorbed the removed `work` verb in 0.6.0) enters Manual mode, drift-check cadence tightens (P-09), file writes pass a confirmation gate (P-10), and the agent's routing posture demotes from proactive to approval-waiting (P-08). The 3-path intent model (P-03) then layers on top, distinguishing inquiry from execution.
 - **P-04** (JIT reverse sync) requires a side watcher that surfaces spec/code drift only at task boundaries — different from the always-on drift detectors which run inside the Iron Law gates. The implementation is small but the trigger heuristics deserve a dedicated patch.
 - **P-05** (choice-based remediation) becomes meaningful once a gate failure is paired with one or more candidate remedy commands. The shapes (`sync --reverse` / `replan` / `heal --refs` / `prune --spec`) already exist as Iron Core verbs; what's missing is the user-facing decision menu.
 - **P-07** Pulse UI animated bar — a small UI polish using `process.stdout.write` carriage returns. Worth bundling with the next user-visible patch.

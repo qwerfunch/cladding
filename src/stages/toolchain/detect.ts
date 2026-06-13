@@ -25,12 +25,19 @@ const CHAIN: readonly Entry[] = [
     language: 'typescript',
     manifests: ['package.json'],
     gates: {
-      type: {cmd: 'npx', args: ['tsc', '--noEmit']},
-      lint: {cmd: 'npx', args: ['eslint', '.']},
-      test: {cmd: 'npx', args: ['vitest', 'run']},
-      coverage: {cmd: 'npx', args: ['vitest', 'run', '--coverage']},
-      secret: {cmd: 'npx', args: ['secretlint', '**/*']},
-      arch: {cmd: 'npx', args: ['madge', '--circular', '--extensions', 'ts', '.']},
+      // --no-install everywhere (0.6.0, battery NOTE 1): a bare `npx tsc`
+      // AUTO-INSTALLS the typosquat package `tsc@2.0.4` (not TypeScript) on
+      // toolchain-less machines — the gate must never fetch and execute an
+      // unpinned third-party package. Absent tool → npx exits non-zero with
+      // "not found" → the stage's missing-tool classification → skip (exit 2),
+      // which the strict demand table (F-67d2e9) escalates when the spec
+      // relies on the stage.
+      type: {cmd: 'npx', args: ['--no-install', 'tsc', '--noEmit']},
+      lint: {cmd: 'npx', args: ['--no-install', 'eslint', '.']},
+      test: {cmd: 'npx', args: ['--no-install', 'vitest', 'run']},
+      coverage: {cmd: 'npx', args: ['--no-install', 'vitest', 'run', '--coverage']},
+      secret: {cmd: 'npx', args: ['--no-install', 'secretlint', '**/*']},
+      arch: {cmd: 'npx', args: ['--no-install', 'madge', '--circular', '--extensions', 'ts', '.']},
       smoke: {cmd: 'npm', args: ['run', '--silent', 'smoke']},
       perf: {cmd: 'npm', args: ['run', '--silent', 'perf']},
       visual: {cmd: 'npm', args: ['run', '--silent', 'visual']},

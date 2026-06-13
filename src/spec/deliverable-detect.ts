@@ -5,7 +5,7 @@
 // conservative autonomous agent, nudged by the DELIVERABLE_INTEGRITY warn, declared it DISABLED
 // (is_safe_to_smoke:false) with NO smoke_args. So the fix never engaged.
 //
-// `clad sync` calls autoMaintainDeliverable: when project.deliverable is ABSENT and a CLI entry is
+// `clad sync` calls maintainDeliverable: when project.deliverable is ABSENT and a CLI entry is
 // detected, cladding CALIBRATES a smoke invocation against the CURRENT (passing) code — and only sets
 // is_safe_to_smoke:true once it has PROVEN an invocation that exits 0 right now. This guarantees no
 // false-fail (a working entry is never red-flagged) and removes the agent-configuration dependency for
@@ -159,7 +159,7 @@ export function upsertDeliverableBlock(body: string, d: Deliverable): string {
  * Returns the populated Deliverable (for reporting) or null. One-time per project (skips once present),
  * so the calibration's process-spawn side effect happens at most once.
  */
-export function autoMaintainDeliverable(cwd = '.'): Deliverable | null {
+export function maintainDeliverable(cwd = '.'): Deliverable | null {
   const path = join(cwd, 'spec.yaml');
   if (!existsSync(path)) return null;
   const body = readFileSync(path, 'utf8');

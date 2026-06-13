@@ -84,7 +84,7 @@ function run(opts: CommandStageOptions): readonly DriftFinding[] {
  * by its runtime shape. Top-level `forbidden_imports` augments any object-form
  * rules derived from per-layer entries.
  */
-function normalizeArchitecture(arch: Architecture): {
+export function normalizeArchitecture(arch: Architecture): {
   readonly layers: ReadonlySet<string>;
   readonly forbiddenImports: readonly {readonly from: string; readonly to: string}[];
 } {

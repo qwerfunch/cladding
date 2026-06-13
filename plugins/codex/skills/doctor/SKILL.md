@@ -27,7 +27,7 @@ The text surface prints:
 ## When to run
 
 - After `clad init --scan` to confirm the scan refinement ran with full LLM coverage (no `sentinel_miss` events).
-- After `clad drive` to confirm the autonomous loop received refined replies from the configured host.
+- After `clad run` to confirm the autonomous loop received refined replies from the configured host.
 - Periodically in CI to track miss rate across sampling-policy changes.
 - Before reporting "the LLM seems off" to a host (Claude Code / Cursor / Continue) — the breakdown tells you whether the issue is dispatcher transport (`cause: dispatcher_error`) or model output quality (`cause: blank_section`).
 

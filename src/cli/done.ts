@@ -18,14 +18,15 @@
 // evaluates the feature as done, then revert if it does not hold.
 
 import {existsSync, readFileSync, readdirSync, writeFileSync} from 'node:fs';
+import {recordEvent} from '../events/log.js';
 import {join} from 'node:path';
 
 import {parseSpec} from '../spec/parse.js';
 
-/** Gate runner injected so tests can drive `performDone` without spawning tsc/vitest. */
+/** Gate runner injected so tests can drive `runDone` without spawning tsc/vitest. */
 export interface DoneDeps {
   /** Runs a tier's stages; returns the worst exit code (0 = GREEN). */
-  readonly checkStages: (opts: {strict?: boolean; tier?: string}) => {worst: number};
+  readonly checkStages: (opts: {strict?: boolean; tier?: string}) => {worst: number; anyFailed?: boolean};
 }
 
 /** Outcome of a `clad done` attempt — `code` is the process exit code. */
@@ -89,7 +90,7 @@ export function setStatus(body: string, status: string): string {
  * All IO is the shard file under `cwd` plus the injected gate runner, so this
  * is unit-testable without the real toolchain.
  */
-export function performDone(cwd: string, featureId: string, deps: DoneDeps): DoneResult {
+export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneResult {
   if (!featureId) {
     return {ok: false, code: 2, featureId, reason: 'feature id required (e.g. clad done F-001)'};
   }
@@ -108,7 +109,9 @@ export function performDone(cwd: string, featureId: string, deps: DoneDeps): Don
   // Flip to done BEFORE gating so the done-aware detectors evaluate this
   // feature's test evidence (see module header).
   writeFileSync(hit.path, setStatus(original, 'done'));
-  const {worst} = deps.checkStages({tier: 'pre-push', strict: true});
+  const {worst, anyFailed} = deps.checkStages({tier: 'pre-push', strict: true});
+  // F-b84c38 — every done transition (kept or reverted) is forensic data.
+  recordEvent(cwd, 'done_attempted', {feature: featureId, worst, anyFailed: anyFailed ?? worst > 0, kept: worst === 0});
   if (worst === 0) {
     return {
       ok: true,

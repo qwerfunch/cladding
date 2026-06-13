@@ -9,11 +9,11 @@ Human-readable documentation for cladding. Mixed-tier: design SSoT (Tier B) live
 | File | Tier | Authority | Refresh trigger | Consumer |
 |---|---|---|---|---|
 | `ssot-model.md` | **B** | governance policy (this directory's index) | manual | every persona/skill references it instead of repeating policy |
-| `project-context.md` (in adopting projects) | **B** | SSoT — intent + Why/What/Purpose | `clad init` / `clad refine` (LLM-refined) | AI personas (orchestrator/specialists) + scenario generator + human onboarding readers |
-| `conventions.md` (in adopting projects) | **C** | derived from observed code OR greenfield seed | `clad init --scan` | `specialists` persona when writing code + human reviewers |
+| `project-context.md` (in adopting projects) | **B** | SSoT — intent + Why/What/Purpose | `clad init` / `clad clarify` (LLM-refined) | AI personas (orchestrator/developer) + scenario generator + human onboarding readers |
+| `conventions.md` (in adopting projects) | **C** | derived from observed code OR greenfield seed | `clad init --scan` | `developer` persona when writing code + human reviewers |
 | `code-style.md` | **C** | hand-authored, legacy (cladding-self only) | manual | cladding contributors (legacy reference; will deprecate in favour of conventions.md) |
 | `multi-provider-roadmap.md` | **B** | design SSoT — host vs SDK adapter model | manual | maintainers + adopters routing through multi-host adapters |
-| `spec-ids-multi-dev.md` | **B** | design SSoT — hash-based ID conventions (v0.3.9+) | manual | librarian persona + every spec author |
+| `spec-ids-multi-dev.md` | **B** | design SSoT — hash-based ID conventions (v0.3.9+) | manual | planner persona + every spec author |
 | `ux-routing-coverage.md` | **B** | design SSoT — Soft Shell coverage status | manual | reviewer + roadmap planners |
 | `benchmarks/` | **D** audit (post-hoc reports) | append-only per benchmark run | manual benchmark commits | maintainers reviewing performance regressions |
 | `dogfood/` | **D** audit (post-hoc reports) | append-only per dogfood session | manual dogfood commits | maintainers reviewing harness behaviour on real adoption |

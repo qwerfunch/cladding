@@ -100,7 +100,7 @@ export function buildPrompt(scan: ScanResult): string {
     ? readmeHeadings.map((h) => `- ${h}`).join('\n')
     : '(none observed)';
   return [
-    'You are the librarian agent of a project that just adopted cladding.',
+    'You are the planner agent of a project that just adopted cladding.',
     'Four deliverables. Use the exact sentinels below so output is parsable.',
     '',
     '=== CONVENTIONS_MD ===',
@@ -469,7 +469,7 @@ export function buildProjectContextPrompt(ctx: ProjectContext, projectName: stri
         .join('\n\n')
     : '(none extracted)';
   return [
-    `You are the librarian agent for the project "${projectName}".`,
+    `You are the planner agent for the project "${projectName}".`,
     'You will turn observed README + docs into the Why / What / Purpose',
     'sections of docs/project-context.md. Use the exact sentinels below',
     'so the output is parsable.',

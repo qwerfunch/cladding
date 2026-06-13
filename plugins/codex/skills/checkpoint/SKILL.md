@@ -22,7 +22,7 @@ The output is a single Pulse line: `✓ checkpoint · <featureId>  head=<sha12> 
 
 ## When to use
 
-- Before invoking `clad drive` on a single feature so the loop's `RETRY_THRESHOLD` halt has a target to roll back to.
+- Before invoking `clad run` on a single feature so the loop's `RETRY_THRESHOLD` halt has a target to roll back to.
 - Before a manual refactor large enough that `git stash` is unwieldy.
 - Right after `clad sync` reports the spec is valid, so the checkpoint pins exactly the validated spec digest the implementation will start from.
 

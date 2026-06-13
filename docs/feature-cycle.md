@@ -18,7 +18,7 @@ say-so alone, never skip a `▣`.
 
 ## The cycle (one feature; repeat)
 
-1. **SPEC — `librarian`.** Author *this* feature's shard now: `acceptance_criteria` (with
+1. **SPEC — `planner` (formerly `librarian`).** Author *this* feature's shard now: `acceptance_criteria` (with
    `test_refs`) + the `modules` you're about to build + any scenario it needs — in one
    `clad_create_feature` call (the tool takes ACs/modules). Not the whole backlog; just the feature
    you're about to build.
@@ -30,10 +30,10 @@ say-so alone, never skip a `▣`.
      whose `modules` you've declared but not yet built. Declaring `modules` now is the binding step
      3 verifies, not a promise to check before you've written them.
 
-2. **IMPLEMENT — `specialists` (code).** One implementer writes the production code for this
+2. **IMPLEMENT — `developer` (code; formerly `specialists`).** One implementer writes the production code for this
    feature in its own worktree. `clad checkpoint <featureId>` first so a failed cycle rolls back.
 
-3. **TEST — independent author.** A *separate* `specialists` dispatch — handed the feature's
+3. **TEST — independent author.** A *separate* `developer` dispatch — handed the feature's
    `acceptance_criteria` **plus the module signatures (types / API surface) only, never the
    implementation bodies** — authors the acceptance tests bound to each AC's `test_refs`.
    Implementer ≠ test-author = independent contexts, so neither shares the other's working memory:
@@ -78,7 +78,7 @@ its dependency's code.
 | conversational → multi-feature | 1 (wider only across *independent* DAG units) | host; user between cycles |
 | prompt → ONE feature | 1 | single pass |
 | `/goal` → autonomous | 1 (N for independent units) | host self-loops to the goal |
-| headless `clad drive` | 1 (`nextReady` already does this) | the loop |
+| headless `clad run` | 1 (`nextReady` already does this) | the loop |
 
 The cycle steps are **byte-identical across modes** — no mode-specific control-flow. The
 always-loaded CLAUDE.md states the cadence so the host structures its own plan around it, and the
@@ -101,9 +101,9 @@ gate still blocks a too-wide batch (fails safe).
 ## Execution surface
 
 - **Host-engine (in-session, the supported path):** the host (Claude Code) authors files with its
-  own Write/Edit when it embodies `cladding:specialists`; cladding owns the cycle + the gates, the
+  own Write/Edit when it embodies `cladding:developer`; cladding owns the cycle + the gates, the
   host owns the parallel execution engine.
-- **Headless `clad drive`:** a sequential reference loop — `nextReady` already drives ONE feature at
+- **Headless `clad run` (formerly `drive`):** a sequential reference loop — `nextReady` already drives ONE feature at
   a time. Its transports do **not** yet author code (the tool-use/mutation protocol is unbuilt), so
   a no-real-dispatch run is honestly degraded, never reported as success.
 

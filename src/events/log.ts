@@ -6,11 +6,18 @@
 // events is "what happened, when". They live in the same directory
 // but each has its own append-only file.
 
-import {appendFileSync, existsSync, mkdirSync, readFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
+import {appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, statSync} from 'node:fs';
+import {userInfo} from 'node:os';
 import {dirname, join} from 'node:path';
+
+import type {Identity} from '../hitl/identity.js';
 
 const EVENTS_DIR = '.cladding';
 const EVENTS_FILE = 'events.log.jsonl';
+const EVENTS_ROLL = 'events.log.1.jsonl';
+/** Roll the live log past this size (F-b84c38 AC — bounded reads). */
+const ROTATE_BYTES = 5 * 1024 * 1024;
 
 /** Types of lifecycle events the harness records. */
 export type EventType =
@@ -35,7 +42,21 @@ export type EventType =
   //   error:           string              // present iff cause === 'dispatcher_error' (truncated)
   // Configured-no-LLM paths (dispatcher === null or ctx === null) do NOT emit;
   // they are deliberate offline/greenfield runs, not a miss.
-  | 'sentinel_miss';
+  | 'sentinel_miss'
+  // v0.6.0 (F-b84c38) — the supported per-feature cadence finally leaves a
+  // trace. Each payload carries `identity` (git author or OS user) and `head`
+  // (git HEAD sha) added by recordEvent; 23 hand-flipped dones proved the
+  // ledger must say WHO, and the attestation/engagement work needs WHEN.
+  | 'feature_created' // payload: feature, slug
+  | 'scenario_created' // payload: scenario, slug
+  | 'done_attempted' // payload: feature, worst, anyFailed, kept
+  | 'gate_run' // payload: tier, strict, worst, anyFailed (deduped per HEAD)
+  // v0.6.0 (F-1d23a6) — the Stop host hook blocked a session end on a FRESH
+  // deterministic-trio failure (drift strict / arch / secret). Fingerprint-
+  // keyed: an identical failure set demotes to allow without an event, so
+  // this fires only on new breakage — the demotion itself persists as
+  // .cladding/stop-block.json and resurfaces on the SessionStart card.
+  | 'stop_blocked'; // payload: count, fingerprint
 
 /** One JSONL line in events.log.jsonl. */
 export interface Event {
@@ -52,11 +73,20 @@ function eventsPath(cwd: string): string {
   return join(cwd, EVENTS_DIR, EVENTS_FILE);
 }
 
-/** Append a single event. Creates the directory if needed. */
+/** Append a single event. Creates the directory if needed. Rolls the live log
+ * to `events.log.1.jsonl` (single generation, newest kept live) past
+ * ROTATE_BYTES so reads stay bounded. */
 export function appendEvent(cwd: string, event: Event): void {
   const path = eventsPath(cwd);
   const dir = dirname(path);
   if (!existsSync(dir)) mkdirSync(dir, {recursive: true});
+  try {
+    if (existsSync(path) && statSync(path).size > ROTATE_BYTES) {
+      renameSync(path, join(dir, EVENTS_ROLL)); // replaces any previous roll
+    }
+  } catch {
+    // Rotation is best-effort; a failed roll must not lose the append.
+  }
   appendFileSync(path, `${JSON.stringify(event)}\n`, 'utf8');
 }
 
@@ -80,4 +110,77 @@ export function newEvent(type: EventType, payload: Record<string, unknown>): Eve
     type,
     payload,
   };
+}
+
+/** Actor identity for lifecycle events: git author when resolvable (the
+ * stable handle a team recognizes), else the OS user. Never throws. */
+export function resolveActorIdentity(cwd: string): Identity {
+  let name: string | undefined;
+  try {
+    name = execFileSync('git', ['config', 'user.name'], {cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore']}).trim() || undefined;
+  } catch {
+    /* git absent or unconfigured */
+  }
+  if (!name) {
+    try {
+      name = userInfo().username;
+    } catch {
+      name = undefined;
+    }
+  }
+  return {author: 'human', name, timestamp: new Date().toISOString()};
+}
+
+function gitHead(cwd: string): string | undefined {
+  try {
+    return execFileSync('git', ['rev-parse', 'HEAD'], {cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore']}).trim();
+  } catch {
+    return undefined;
+  }
+}
+
+/** Latest event of a type, or null. Scans the (rotation-bounded) live log. */
+export function latestEventOfType(cwd: string, type: EventType): Event | null {
+  try {
+    const events = readEvents(cwd);
+    for (let i = events.length - 1; i >= 0; i--) {
+      if (events[i].type === type) return events[i];
+    }
+  } catch {
+    /* unreadable ledger = no precedent */
+  }
+  return null;
+}
+
+/**
+ * Record a lifecycle event with actor identity + git HEAD stamped into the
+ * payload (F-b84c38). BEST-EFFORT BY CONTRACT: the ledger observes the
+ * harness; a telemetry failure must never break the calling command, so every
+ * failure path degrades to a silent no-op.
+ *
+ * `gate_run` dedupe: when the latest gate_run already carries the identical
+ * (head, tier, strict, worst) tuple, the append is skipped — repeated
+ * identical runs on the same tree add no information, only log growth.
+ */
+export function recordEvent(cwd: string, type: EventType, payload: Record<string, unknown>): void {
+  try {
+    const head = gitHead(cwd);
+    const identity = resolveActorIdentity(cwd);
+    const full = {...payload, head, identity};
+    if (type === 'gate_run') {
+      const prev = latestEventOfType(cwd, 'gate_run');
+      if (
+        prev &&
+        prev.payload.head === head &&
+        prev.payload.tier === payload.tier &&
+        prev.payload.strict === payload.strict &&
+        prev.payload.worst === payload.worst
+      ) {
+        return;
+      }
+    }
+    appendEvent(cwd, newEvent(type, full));
+  } catch {
+    // error-as-data at the boundary: the command outcome is unchanged.
+  }
 }

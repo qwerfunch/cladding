@@ -53,7 +53,7 @@ import {existsSync} from 'node:fs';
 import {join} from 'node:path';
 
 import {readEvidence} from '../../hitl/audit.js';
-import {oracleRequired, resolveOraclePolicy} from '../../oracle/policy.js';
+import {doneFeatureCount, oracleRequired, resolveOraclePolicy} from '../../oracle/policy.js';
 import type {Spec} from '../../spec/types.js';
 import {ORACLE_DIR} from '../spec-conformance.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
@@ -73,13 +73,18 @@ function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
   // (exhaustive). Resolved through ONE source of truth (oracle/policy.ts) so the
   // gate and `clad oracle --required` never disagree. INTEGRITY is always-on.
   // The audit log is read ONCE, and only when a mandate is active.
-  const policy = resolveOraclePolicy(spec.project);
+  const policy = resolveOraclePolicy(spec.project, doneFeatureCount(spec));
+  // F-551a1c — the graduated default REPORTS (info) instead of blocking;
+  // explicit policies keep error severity. Enforcement graduates in 0.7.
+  const mandateSeverity = policy.reportOnly ? ('info' as const) : ('error' as const);
   const evidence = policy.mandateActive ? readEvidence(cwd) : [];
   const oracleEv = evidence.filter((e) => e.kind === 'oracle');
-  // The implementer identity per feature = the specialist dispatch the drive
-  // loop records (agent.ts:97-105, stage 'agent:specialists').
+  // The implementer identity per feature = the implementer dispatch the loop
+  // records (agent.ts, stage 'agent:developer'; pre-0.6.0 audit logs carry the
+  // persona's old id as 'agent:specialists' — both spellings stay readable).
+  const implementerStages = new Set(['agent:developer', 'agent:specialists']);
   const implementerName = (featureId: string): string | undefined =>
-    evidence.find((e) => e.featureId === featureId && e.stage === 'agent:specialists')?.identity.name;
+    evidence.find((e) => e.featureId === featureId && implementerStages.has(e.stage))?.identity.name;
 
   for (const feature of spec.features) {
     if (feature.status !== 'done') continue;
@@ -97,8 +102,10 @@ function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
             : 'selected by oracle_policy.sample';
         findings.push({
           detector: NAME,
-          severity: 'error',
-          message: `${feature.id}.${ac.id} done AC lacks a spec-conformance oracle (${why}; declare oracle_refs under ${ORACLE_DIR}/)`,
+          severity: mandateSeverity,
+          message:
+            `${feature.id}.${ac.id} done AC lacks a spec-conformance oracle (${why}; declare oracle_refs under ${ORACLE_DIR}/)` +
+            (policy.reportOnly ? ' [report-only — the graduated default enforces in 0.7]' : ''),
         });
       }
 
@@ -173,6 +180,25 @@ function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
       }
     }
   }
+
+  // F-551a1c — name the blind spot: EARS-untagged done ACs are invisible to a
+  // risk-weighted mandate (always_ears can never match them). Without this
+  // line a legacy untagged project would satisfy the mandate vacuously
+  // ("0 required, 0 missing") — the report must carry its own denominator.
+  if (policy.mandateActive && !policy.exhaustive) {
+    const untagged = spec.features
+      .filter((f) => f.status === 'done')
+      .flatMap((f) => f.acceptance_criteria ?? [])
+      .filter((ac) => !ac.ears).length;
+    if (untagged > 0) {
+      findings.push({
+        detector: NAME,
+        severity: 'info',
+        message: `${untagged} done AC(s) carry no EARS tag and are invisible to the risk-weighted oracle mandate — tag them (ubiquitous/event/state/optional/unwanted) for the mandate to mean anything.`,
+      });
+    }
+  }
+
   return findings;
 }
 

@@ -1,4 +1,4 @@
-// Cladding · `clad` CLI entry — composes the 7 Iron Core verbs.
+// Cladding · `clad` CLI entry — composes the Iron Core verbs.
 //
 // Uses `commander` for parsing. Each verb's handler is exported as a
 // named function so unit tests can exercise it without spawning a
@@ -11,12 +11,17 @@ import process from 'node:process';
 import {Command} from 'commander';
 
 import {classifyIntent} from '../router/intent.js';
+import {runChangelogCommand} from './changelog.js';
 import {runDoctorCommand} from './doctor.js';
-import {performDone} from './done.js';
-import {performUpdate} from './update.js';
+import {runDone} from './done.js';
+import {runHookCommand} from './hook.js';
+import {runUpdate} from './update.js';
 import {runInit} from './init.js';
-import {runRefineCommand} from './refine.js';
+import {runClarifyCommand} from './clarify.js';
 import {runHostSetup} from '../init/host-setup.js';
+import {recordEvent} from '../events/log.js';
+import {buildContextSlice} from '../optimizer/context-slice.js';
+import {strictSkipViolations} from '../stages/skip-policy.js';
 import {runArch} from '../stages/arch.js';
 import {runAudit} from '../stages/audit.js';
 import {runCommit} from '../stages/commit.js';
@@ -35,8 +40,10 @@ import {runVisual} from '../stages/visual.js';
 import type {DriftFinding} from '../stages/types.js';
 import {staleSpecification} from '../stages/detectors/stale-specification.js';
 import {findLatestCheckpoint, recordCheckpoint, recordRollback} from '../core/checkpoint.js';
-import {autoMaintainDeliverable} from '../spec/deliverable-detect.js';
-import {computeInventory, writeInventoryToSpecYaml} from '../spec/inventory.js';
+import {maintainDeliverable} from '../spec/deliverable-detect.js';
+import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../spec/inventory.js';
+import {repairTestRefs} from '../spec/test-ref-repair.js';
+import {writeAttestation} from '../spec/attestation.js';
 import {buildBlindPayload, renderBlindBrief} from '../oracle/payload.js';
 import {requiredOracleWorklist} from '../oracle/policy.js';
 import {loadSpec} from '../spec/load.js';
@@ -65,7 +72,9 @@ export async function runServeCommand(opts: {cwd?: string}): Promise<void> {
   // stdout is reserved for MCP protocol traffic on stdio transport, so
   // status lines go to stderr via pulse (which writes to stderr by
   // default; verified below if pulse changes).
-  pulse('start', 'serve', `stdio transport · cwd=${opts.cwd ?? '.'}`);
+  // stdout IS the MCP wire — strict line-delimited JSON clients choke on a
+  // banner there (battery C8 note). The banner goes to stderr, bypassing pulse.
+  process.stderr.write(`· serve  stdio transport · cwd=${opts.cwd ?? '.'}\n`);
   await server.connect(transport);
   // The server runs until the client closes stdio; connect() does not
   // resolve until then on stdio transport, so we await it as-is. If a
@@ -92,6 +101,7 @@ export async function runInitCommand(
     noLlm?: boolean;
     roots?: string;
     withHook?: boolean;
+    withCi?: boolean;
   },
 ): Promise<void> {
   const intent = intentTokens && intentTokens.length > 0 ? intentTokens.join(' ').trim() : undefined;
@@ -103,6 +113,7 @@ export async function runInitCommand(
     roots: opts.roots ? opts.roots.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
     intent,
     withHook: opts.withHook,
+    withCi: opts.withCi,
   });
   for (const c of result.created) pulse('pass', `created ${c}`);
   for (const s of result.skipped) pulse('skip', s);
@@ -138,31 +149,7 @@ export async function runInitCommand(
   process.exit(0);
 }
 
-/**
- * Handler for `clad work [verb]`. Reserved-but-unimplemented intent-routing
- * entry point (see skills/work/SKILL.md).
- *
- * It must NOT exit 0 for work it did not do — a no-op that reports success is
- * Vacuous Green at the command level (a script/CI calling `clad work X` would
- * read the exit-0 as "done"). Until the real router lands, it declines
- * honestly with exitCode 2 (not-applicable / skipped) and points at the
- * working paths: `clad route <prompt>` to classify intent, then run the
- * resolved verb — or just ask the AI host in natural language.
- */
-export function runWorkCommand(verb?: string): void {
-  if (verb) {
-    pulse(
-      'skip',
-      `work ${verb}`,
-      'not implemented — run `clad route <prompt>` then the resolved verb, or ask your AI host in natural language',
-    );
-  } else {
-    pulse('note', 'work', 'specify a stage or natural-language intent');
-  }
-  process.exit(2);
-}
-
-interface DriveCommandOptions {
+interface RunCommandOptions {
   cwd?: string;
   maxIterations: string;
   maxWallClockMs: string;
@@ -170,16 +157,16 @@ interface DriveCommandOptions {
   json?: boolean;
 }
 
-/** Handler for `clad drive [goal]`. Runs the autonomous loop. */
-export async function runDriveCommand(
+/** Handler for `clad run [goal]` (formerly `drive`). Runs the autonomous loop. */
+export async function runRunCommand(
   goal: string | undefined,
-  opts: DriveCommandOptions,
+  opts: RunCommandOptions,
 ): Promise<void> {
-  // `clad drive` is EXPERIMENTAL. The headless code-author transport is unbuilt
+  // `clad run` is EXPERIMENTAL. The headless code-author transport is unbuilt
   // and nothing auto-invokes it — the supported, exercised path is host-delegated
   // (run `clad serve` and let your AI host loop the per-feature cadence). The loop
   // halts honestly rather than certifying empty stubs when no real LLM is reachable.
-  pulse('note', 'drive', 'EXPERIMENTAL — prefer the host-delegated path (clad serve + your AI host). See docs/feature-cycle.md § Execution surface.');
+  pulse('note', 'run', 'EXPERIMENTAL — prefer the host-delegated path (clad serve + your AI host). See docs/feature-cycle.md § Execution surface.');
   const {runDriveLoop} = await import('../drive/loop.js');
   const result = await runDriveLoop({
     cwd: opts.cwd,
@@ -194,7 +181,7 @@ export async function runDriveCommand(
   if (opts.json) {
     pulse(
       tag,
-      'drive',
+      'run',
       `halt=${result.halt.class} iter=${result.iterations} features=${result.featuresTouched.length} stubs=${result.stubsCreated.length} gates=${result.gateRuns}`,
     );
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
@@ -202,7 +189,7 @@ export async function runDriveCommand(
     const spec = loadSpec(opts.cwd ?? '.');
     const touched = result.featuresTouched.map((id) => featureLabel(id, spec));
     const summary = `${haltMessage(result.halt, spec)} iter=${result.iterations} features=${touched.length} stubs=${result.stubsCreated.length} gates=${result.gateRuns}`;
-    pulse(tag, 'drive', summary);
+    pulse(tag, 'run', summary);
     if (touched.length > 0) {
       process.stdout.write(`Touched: ${touched.join(', ')}\n`);
     }
@@ -211,13 +198,13 @@ export async function runDriveCommand(
   // produced empty auto-stubs (no real implementation — the code-author transport
   // is mock/unbuilt) is NOT a success even when the loop "cleared" features on the
   // L1 floor: it implemented nothing. Surface that and exit non-zero, so a user or
-  // CI never reads a stub-only `clad drive` as done. Likewise any non-completion
+  // CI never reads a stub-only `clad run` as done. Likewise any non-completion
   // halt exits non-zero. Only a real, fully-cleared run is 0.
   const vacuous = result.stubsCreated.length > 0;
   if (vacuous) {
     pulse(
       'fail',
-      'drive',
+      'run',
       `produced ${result.stubsCreated.length} empty auto-stub(s) and implemented nothing — the headless code-author needs a real LLM transport (set ANTHROPIC_API_KEY) or use the host-delegated path (clad serve + your AI host). This run did NOT do the work.`,
     );
   }
@@ -244,11 +231,18 @@ export function runSyncCommand(opts: {proposeArchive?: boolean} = {}): void {
     // file commit-stable across same-day runs.
     const inventory = computeInventory('.');
     writeInventoryToSpecYaml('.', inventory);
+    writeFeatureIndex('.'); // F-37b4a8 — 1-file feature lookup at scale
+    // F-c037ae — heal annotation drift before it rejects correct features:
+    // unique-basename repair of moved test_ref paths + derived: suggestions
+    // (which never satisfy a mandate — see MISSING_TESTS/UNTESTED_AC).
+    const refFixes = repairTestRefs('.');
+    for (const r of refFixes.repaired) pulse('note', 'test_refs', `repaired ${r.from} → ${r.to} (${r.shard})`);
+    for (const sug of refFixes.suggested) pulse('note', 'test_refs', `suggested ${sug.ref} (${sug.shard}) — confirm by removing the 'derived:' prefix`);
     // v0.5.x — auto-populate project.deliverable when absent + a CLI entry is calibratable, so
     // DELIVERABLE_SMOKE (stage_2.4) engages without the agent having to declare it correctly (the
     // re-run showed a conservative agent declares it DISABLED). Calibrates against the passing state,
     // so it never enables a false-failing invocation. One-time (skips once a deliverable is present).
-    const autoDeliverable = autoMaintainDeliverable('.');
+    const autoDeliverable = maintainDeliverable('.');
     if (autoDeliverable) {
       pulse(
         'note',
@@ -361,7 +355,7 @@ export async function runSetupCommand(opts: {force?: boolean; quiet?: boolean}):
  */
 export async function runUpdateCommand(): Promise<void> {
   pulse('note', 'update', 'reconciling the current project after the engine upgrade');
-  const r = await performUpdate('.', {
+  const r = await runUpdate('.', {
     wireHosts: async () => (await runHostSetup({quiet: true})).errors.length,
   });
   pulse(r.wiringErrors > 0 ? 'fail' : 'pass', 'hosts', r.wiringErrors > 0 ? `${r.wiringErrors} wiring error(s)` : 're-wired');
@@ -373,6 +367,7 @@ export async function runUpdateCommand(): Promise<void> {
   pulse('pass', 'spec', `inventory synced · ${r.features} features`);
   pulse(r.claudeMd === 'refreshed-stale' ? 'note' : 'pass', 'CLAUDE.md', r.claudeMd);
   pulse(r.agentsMd === 'refreshed-stale' ? 'note' : 'pass', 'AGENTS.md', r.agentsMd);
+  for (const d of r.deprecations) pulse('note', 'deprecated', d);
   // Surface what the now-stricter detectors flag — REPORT only, never blocks.
   process.stdout.write('\n→ drift check (report-only · does not block, does not edit your spec):\n');
   const drift = runCheckStages({tier: 'pre-commit', strict: true});
@@ -481,33 +476,59 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
       }
     }
   }
-  // VACUOUS-GREEN GUARD (--strict only). "done = verified" must mean the tests
-  // actually RAN. If the Unit stage SKIPPED (no test runner installed) while the
-  // spec carries `done` features that declare `test_refs`, their implementation
-  // was never verified — under --strict that is NOT green. (`someRan` is too weak:
-  // Drift/Commit/Arch/Secret are pure-JS detectors that always run, so they would
-  // mask this.) Fires ONLY when there are tested-done features AND the runner
-  // skipped; a project with the test runner installed, or with no tested-done
-  // features, is unaffected. Non-strict keeps the lenient skip-as-pass contract.
-  if (opts.strict && allowed.includes('stage_2.1')) {
-    const unit = collected.find((c) => c.stage === 'stage_2.1');
-    if (unit && unit.status === 'skip') {
-      let unverifiedDone = 0;
-      try {
-        const spec = loadSpec();
-        for (const f of spec.features ?? []) {
-          if (f.status !== 'done') continue;
-          if ((f.acceptance_criteria ?? []).some((ac) => (ac.test_refs ?? []).length > 0)) unverifiedDone++;
-        }
-      } catch {
-        unverifiedDone = 0; // spec unreadable → other detectors handle it; don't block here
-      }
-      if (unverifiedDone > 0) {
+  // STRICT SKIP-POLICY (F-67d2e9, generalizes the 0.5.x unit-only guard).
+  // Under --strict, a skipped stage the spec DEMANDS is a fail: 1.1 when a
+  // declared language ships done features, 2.1 when done features declare
+  // test_refs, 2.3 when done ACs declare oracle_refs, 2.4 when a declared-
+  // safe deliverable ships. Demand-gated — no demand keeps the lenient
+  // skip-as-pass contract; spec load failure yields no violations (ABSENCE_OF_
+  // GOVERNANCE owns that blocking signal). Table pinned in the gate golden matrix.
+  if (opts.strict) {
+    try {
+      const spec = loadSpec();
+      for (const v of strictSkipViolations(spec, collected)) {
         worst = Math.max(worst, 1);
         anyFailed = true;
-        const msg = `${unverifiedDone} done feature(s) declare tests but the test runner did not run (skipped) — the implementation was never verified. Install the test framework; under --strict, an unverifiable 'done' is not GREEN.`;
-        collected.push({stage: 'stage_2.1', label: 'Verification', status: 'fail', exitCode: 1, stderr: msg});
-        if (!opts.json) pulse('fail', 'Verification', msg);
+        collected.push({stage: v.stage, label: v.label, status: 'fail', exitCode: 1, stderr: v.message});
+        if (!opts.json) pulse('fail', v.label, v.message);
+      }
+    } catch {
+      /* spec unreadable → other detectors own it; don't block here */
+    }
+  }
+  // F-a5228c — verification attestation. Two halves:
+  //   EXEMPT  — when this strict pre-push/all run is RED *solely* from
+  //             STALE_ATTESTATION findings while every other stage passed,
+  //             count it GREEN: this very run IS the re-verification the
+  //             staleness demanded (otherwise re-attestation deadlocks on
+  //             its own warning). The cheap pre-commit tier gets no
+  //             exemption — there, staleness correctly says "run the full gate".
+  //   STAMP   — a GREEN strict pre-push/all run writes spec/attestation.yaml
+  //             (module tree-hashes per done feature), the committed,
+  //             clone-portable freshness anchor STALE_ATTESTATION compares.
+  if (opts.strict && (tier === 'pre-push' || tier === 'all')) {
+    const drift = collected.find((c) => c.stage === 'stage_1.3');
+    const strictFailing = (drift?.findings ?? []).filter((f) => f.severity === 'error' || f.severity === 'warn');
+    const solelyStale =
+      drift?.status === 'fail' &&
+      strictFailing.length > 0 &&
+      strictFailing.every((f) => f.detector === 'STALE_ATTESTATION');
+    const othersGreen = collected.every((c) => c.stage === 'stage_1.3' || c.status !== 'fail');
+    if (solelyStale && othersGreen && drift) {
+      drift.status = 'pass';
+      drift.exitCode = 0;
+      drift.stderr = 'stale attestation exempted — this run re-verified and re-attests';
+      anyFailed = collected.some((c) => c.status === 'fail');
+      worst = anyFailed ? Math.max(1, worst) : 0;
+      if (!opts.json) pulse('note', 'attestation', 'stale entries re-verified by this run — re-attesting');
+    }
+    if (!anyFailed) {
+      try {
+        if (writeAttestation('.', loadSpec())) {
+          if (!opts.json) pulse('note', 'attestation', 'spec/attestation.yaml refreshed (verified tree stamped)');
+        }
+      } catch {
+        /* unloadable spec → nothing to attest */
       }
     }
   }
@@ -518,10 +539,27 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
   } else if (anyFailed) {
     process.stdout.write('\nℹ Run `clad doctor` for the event log, or `clad sync` to validate spec shards. Drift findings above name the offending detector.\n');
   }
+  // F-b84c38 — verification freshness needs a data source: every tier run
+  // lands in the ledger (best-effort, deduped per identical HEAD/tier/strict/
+  // worst tuple so repeated identical runs add no growth).
+  recordEvent('.', 'gate_run', {tier, strict: opts.strict === true, worst, anyFailed});
   return {worst, anyFailed};
 }
 
 /** Handler for `clad check`. Runs the tier's Iron Law stages; exits with worst code. */
+/** Handler for `clad context <query>` (F-d2c806) — print the context slice. */
+export function runContextCommand(query: string): void {
+  try {
+    const spec = loadSpec();
+    const slice = buildContextSlice(spec, query);
+    process.stdout.write(`${JSON.stringify(slice, null, 2)}\n`);
+    process.exit('not_found' in slice ? 1 : 0);
+  } catch (err) {
+    pulse('fail', 'context', (err as Error).message);
+    process.exit(1);
+  }
+}
+
 export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tier?: string; json?: boolean}): void {
   process.exit(runCheckStages(opts).worst);
 }
@@ -532,7 +570,7 @@ export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tie
  * so `done` cannot claim more than the gate verifies. @see cli/done.ts
  */
 export function runDoneCommand(featureId: string): void {
-  const r = performDone('.', featureId, {checkStages: runCheckStages});
+  const r = runDone('.', featureId, {checkStages: runCheckStages});
   pulse(r.ok ? 'pass' : 'fail', `done · ${featureId}`, r.reason);
   process.exit(r.code);
 }
@@ -624,8 +662,8 @@ function truncate(s: string, max: number): string {
   return s.length <= max ? s : `${s.slice(0, max - 1)}…`;
 }
 
-/** Handler for `clad panel`. Renders the Integrity Panel. */
-export function runPanelCommand(opts: {internal?: boolean}): void {
+/** Handler for `clad status` (formerly `panel`). Renders the feature × stage integrity matrix. */
+export function runStatusCommand(opts: {internal?: boolean}): void {
   const spec = loadSpec();
   process.stdout.write(`${renderPanel(spec, '.', {internal: opts.internal})}\n`);
   process.exit(0);
@@ -639,6 +677,30 @@ export function runRouteCommand(prompt: string): void {
 }
 
 /**
+ * 0.6.0 verb renames (alias-and-deprecate, docs/glossary.md). Commander keeps
+ * the old spellings working via `.alias()`; this map only powers the one-line
+ * stderr deprecation notice. The old verbs are removed in 0.7.
+ */
+export const RENAMED_VERBS: Readonly<Record<string, string>> = {
+  refine: 'clarify',
+  panel: 'status',
+  drive: 'run',
+};
+
+/**
+ * Prints the one-line deprecation notice when the invoked verb is a 0.6.0
+ * alias (`clad panel` → "'panel' is now 'status'"). stderr, never stdout —
+ * `--json` consumers and MCP stdio traffic stay clean.
+ */
+export function printVerbDeprecationNotice(verb: string | undefined): void {
+  const replacement = verb ? RENAMED_VERBS[verb] : undefined;
+  if (!replacement) return;
+  process.stderr.write(
+    `cladding: '${verb}' is now '${replacement}' — the old verb is removed in 0.7\n`,
+  );
+}
+
+/**
  * Builds the commander Program with every verb wired up. Exported so
  * unit tests can invoke specific subcommands via
  * `createProgram().parse([verb, ...args], {from: 'user'})` without
@@ -646,7 +708,7 @@ export function runRouteCommand(prompt: string): void {
  */
 export function createProgram(): Command {
   const program = new Command();
-  program.name('clad').description('Reference Ironclad CLI').version('0.5.2');
+  program.name('clad').description('Reference Ironclad CLI').version('0.6.0');
 
   program
     .command('init [intent...]')
@@ -661,23 +723,20 @@ export function createProgram(): Command {
     .option('--scan', 'Force-walk the existing codebase. Default auto-detects (≥3 source files trigger scan). Use --no-scan to skip even when source is present.')
     .option('--no-llm', 'Force the deterministic interpreter (skip the LLM dispatcher chain). Intent text falls back to a deterministic quote in project-context.md.')
     .option('--roots <list>', 'Override scanner source roots, comma-separated (e.g. packages/a/src,packages/b/src). Otherwise inferred from manifests + directory heuristics.')
-    .option('--with-hook', 'Install a git pre-commit hook running `clad check --tier=pre-commit` (drift/arch/secret). Opt-in; cladding never touches .git without it.')
+    .option('--with-hook', 'Install git pre-commit (cheap tier) AND pre-push (strict tier) hooks. Opt-in; cladding never touches .git without it.')
+    .option('--with-ci', 'Scaffold .github/workflows/cladding.yml running the strict pre-push gate — the authoritative enforcement layer.')
     .action(runInitCommand);
 
   program
-    .command('work [verb]')
-    .description('Run a stage or a free-form intent')
-    .action(runWorkCommand);
-
-  program
-    .command('drive [goal]')
-    .description('(experimental) Headless autonomous loop — iterate ready features, dispatch specialist + reviewer personas, run L1 gates, record evidence. The supported, exercised path is host-delegated (clad serve + your AI host loops the cadence); this loop needs a real LLM transport and is not auto-invoked')
+    .command('run [goal]')
+    .alias('drive') // 0.6.0 rename — `drive` is removed in 0.7
+    .description('(experimental) Headless autonomous loop — iterate ready features, dispatch developer + reviewer personas, run L1 gates, record evidence. The supported, exercised path is host-delegated (clad serve + your AI host loops the cadence); this loop needs a real LLM transport and is not auto-invoked')
     .option('--cwd <path>', 'target project directory (default cwd)')
     .option('--max-iterations <n>', 'cap iterations (default 50)', '50')
     .option('--max-wall-clock-ms <ms>', 'cap wall clock (default 600000)', '600000')
     .option('--max-retries <n>', 'cap retries per feature (default 3)', '3')
     .option('--json', 'emit the raw internal result (Iron Core view); default is a plain Soft Shell summary')
-    .action(runDriveCommand);
+    .action(runRunCommand);
 
   program
     .command('sync')
@@ -737,15 +796,44 @@ export function createProgram(): Command {
     .action(runRollbackCommand);
 
   program
-    .command('panel')
-    .description('Render the feature × stage Integrity Panel (business titles; use --internal for raw F-NNN ids)')
+    .command('status')
+    .alias('panel') // 0.6.0 rename — `panel` is removed in 0.7
+    .description('Render the feature × stage integrity matrix (business titles; use --internal for raw F-NNN ids)')
     .option('--internal', 'show internal F-NNN ids and stage codes')
-    .action(runPanelCommand);
+    .action(runStatusCommand);
+
+  program
+    .command('context <query>')
+    .description('Print the context slice for one feature — id (F-…), slug, or module path (F-d2c806)')
+    .action(runContextCommand);
+
+  program
+    .command('changelog')
+    .description(
+      'Render shipped changes since a git ref into human-facing documents (F-904495a5). Default: capability-grouped ' +
+        'markdown from feature titles + acceptance sentences (no internal ids). --json emits the deterministic ' +
+        'manifest hosts render release notes from; --audit the id-keeping verification table; --catalog the full ' +
+        'capability → feature → acceptance catalog.',
+    )
+    .option('--since <ref>', 'git ref to diff from (default: the latest tag via `git describe --tags --abbrev=0`)')
+    .option('--json', 'print the deterministic ChangelogManifest as JSON (byte-identical across runs on the same state)')
+    .option('--audit', 'print the audit table — feature | AC | EARS | verification refs, each marked resolved ✓/✗')
+    .option('--catalog', 'print the full capability → feature → acceptance listing of the living spec (no git range)')
+    .action((opts: {since?: string; json?: boolean; audit?: boolean; catalog?: boolean}) => runChangelogCommand(opts));
 
   program
     .command('route <prompt>')
     .description('Classify a natural-language prompt to a verb')
     .action(runRouteCommand);
+
+  program
+    .command('hook <event>')
+    .description(
+      'Host hook protocol adapter — consume one host lifecycle event (SessionStart | UserPromptSubmit | ' +
+        'PreToolUse | PostToolUse | Stop) as stdin JSON and print the protocol response on stdout. ' +
+        'Always exits 0 so a hook failure never bricks the host session.',
+    )
+    .action(runHookCommand);
 
   program
     .command('serve')
@@ -761,17 +849,18 @@ export function createProgram(): Command {
     .action(runDoctorCommand);
 
   program
-    .command('refine [answer...]')
+    .command('clarify [answer...]')
+    .alias('refine') // 0.6.0 rename — `refine` is removed in 0.7
     .description(
       'Advance the onboarding Q&A loop. Pass the user\'s answer to the next pending question as a positional ' +
-        '(no quotes needed, e.g. `clad refine 법인 사업자만`); the LLM refines spec/docs based on the full Q-A ' +
+        '(no quotes needed, e.g. `clad clarify 법인 사업자만`); the LLM refines spec/docs based on the full Q-A ' +
         'history and may emit new follow-up questions. Reads/writes `.cladding/onboarding/state.yaml`. Requires ' +
         '`clad init <intent>` to have started a session first.',
     )
     .option('--cwd <path>', 'project directory containing .cladding/onboarding/state.yaml (default cwd)')
     .option('--no-llm', 'force the deterministic interpreter (preserves current artifacts, logs the answer)')
     .option('--json', 'emit the raw RefineReport for tooling; default is the human-readable surface')
-    .action(runRefineCommand);
+    .action(runClarifyCommand);
 
   return program;
 }
@@ -784,4 +873,7 @@ export function createProgram(): Command {
 // handler exports without commander touching `process.argv`.
 const isBundled = Boolean((globalThis as {__CLADDING_BUNDLED?: boolean}).__CLADDING_BUNDLED);
 const isCliEntry = isBundled || import.meta.url === `file://${process.argv[1]}`;
-if (isCliEntry) createProgram().parse();
+if (isCliEntry) {
+  printVerbDeprecationNotice(process.argv[2]);
+  createProgram().parse();
+}

@@ -5,6 +5,104 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] — 2026-06-11 — Structural Harness
+
+**In one line:** governance stops being a request — hooks enforce it, a committed
+attestation stamps what was actually verified, the spec finally renders into
+human-readable documents, and the oracle policy controls its own cost.
+
+### Added
+
+- **Host hooks (Claude Code)** — the plugin ships five lifecycle hooks:
+  every session starts with the spec map injected; editing `status: done` into
+  a shard by hand is *blocked* (run `clad done` — it's earned, not written);
+  ending a session on fresh gate failures is blocked once (an identical,
+  unfixable failure lets you leave and resurfaces next session); drift nudges
+  after edits; natural prompts get a one-line routing suggestion.
+- **Verification attestation** — a GREEN strict `pre-push` gate writes
+  `spec/attestation.yaml` (a content hash per done feature, committed). The
+  new `STALE_ATTESTATION` detector (#36) flags shipped code that changed since
+  its last verified state — on fresh clones, in CI, and across squash/rebase.
+- **Strict skip-policy demand table** — under `--strict`, a skipped stage the
+  spec relies on is RED: declared language + done features demand the type
+  check; declared tests demand the runner; declared oracles demand the
+  conformance stage; a declared-safe deliverable demands the smoke. No demand →
+  skips stay green (no new false REDs).
+- **test_ref self-healing** — `clad sync` repairs refs whose files moved
+  (unique-basename match, anchor preserved) and suggests `derived:` candidates
+  for unannotated done ACs. Suggestions never satisfy the gate — only removing
+  the prefix (author confirmation) makes them count.
+- **`clad changelog`** — the spec renders into documents: capability-grouped
+  release notes, `--audit` (every AC with its verification refs marked
+  resolved/missing), `--catalog` (the whole spec in plain sentences). MCP tool
+  `clad_changelog` + a skill that renders EN+KO in this file's house style.
+- **`clad context` / `clad_get_context`** — the working set for one feature in
+  one call (focus + ancestors + scenarios + ai_hints + test_refs). Look up by
+  id, slug, or module path.
+- **`clad_run_gate`** — run the real gate pipeline from inside a session
+  (the MCP surface could previously only run drift). Mutating MCP tools now
+  return the gate state as a JSON field, and payloads carry `schema_version`.
+- **blind-author agent** — test/oracle authoring with *no read tools at all*:
+  "authored impl-blind" becomes a property of the toolset, not a promise.
+- **Oracle policy that binds behavior** — grown projects (≥8 done features)
+  get a report-only risk-weighted mandate (`unwanted` ACs; enforcement in
+  0.7) whose report names the EARS-untagged blind spot; out-of-policy
+  `clad_author_oracle` recordings are labeled `voluntary` with a cost note;
+  guidance keys authoring to `clad oracle --required`.
+- **Lifecycle ledger** — feature creation, every `done` attempt (kept or
+  reverted), and every gate run land in `.cladding/events.log.jsonl` with the
+  actor identity and git HEAD; logs rotate at 5 MB.
+- **`spec/index.yaml`** — one generated line per feature: lookup is a 1-file
+  grep at any scale (with `merge=union` friendliness and an INVENTORY_DRIFT
+  staleness check).
+- **Enforcement triggers** — `clad init --with-hook` installs pre-commit AND
+  pre-push hooks; `clad init --with-ci` scaffolds the authoritative CI gate
+  (`fetch-depth: 0`; client hooks are latency reducers, CI is where
+  enforcement is real).
+- **Terminology SSoT** — `docs/glossary.md` (EN + KO) locked by the test
+  suite; new feature ids are 8-hex (birthday-safe at thousands of shards).
+- **Ops visibility polish (F-95a096)** — a completion-claim utterance
+  ("looks done, wrap it up", "마무리") gets a dedicated earn-path card naming
+  `clad done` (the weakest measured engagement surface in the 0.6.0 A/B);
+  `clad doctor` summarizes the governance ledger (gate runs + last outcome,
+  done attempts/rejections, stop blocks, attestation entries) in text and
+  `--json`; `clad status` gains an `att` column — attestation freshness per
+  feature (✓ current / ! stale-or-unstamped / · n/a / - no attestation yet).
+
+### Changed
+
+- Renames with one-release aliases (removal in 0.7): `librarian` → `planner`,
+  `specialists` → `developer`, `refine` → `clarify`, `panel` → `status`,
+  `drive` → `run`. The never-implemented `work` stub is removed.
+- SDK model defaults move to the current generation with a 16k output
+  ceiling; pin per-project via `.cladding/config.yaml` `agent.model`.
+- A drift pass loads the spec once instead of once per detector — a
+  5,000-shard gate runs in ~1.4 s (machine-enforced budget).
+
+### Fixed (found by installing 0.6.0 like a real user)
+
+- `clad sync`'s test_ref repair corrupted paths under the real invocation
+  (`cwd='.'`) and looped on its own output — fixed with regression tests that
+  run exactly the real way.
+- The gate no longer auto-installs npm packages: bare `npx tsc` on a
+  toolchain-less machine fetched and executed the typosquat `tsc@2.0.4`.
+  All toolchain calls are `npx --no-install`; an absent tool is an honest
+  skip the demand table escalates.
+- `clad serve`'s banner moved off stdout (the MCP wire) to stderr.
+
+### Deprecated
+
+- `ai_hints.token_budget_per_session` (never had a runtime consumer) — still
+  accepted, no longer written; removal in 0.7.
+
+### Verified
+
+- Real-user battery 31/31 on a tarball install; three-arm hard-task build
+  measured (the full report: `docs/benchmarks/v0.6.0-real-user-verification.md`)
+  — hooks halve the cost of running cladding and produced the only
+  defect-free arm; honest readings included (greenfield conformance remains
+  tied with vanilla; the premium buys traceability and enforcement).
+
 ## [0.5.2] — 2026-06-08 — Fixes from installing 0.5.1 like a real user
 
 **In one line:** we installed 0.5.1 the way a new user does — from npm, then through the marketplace

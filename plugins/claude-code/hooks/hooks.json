@@ -1,0 +1,9 @@
+{
+  "hooks": {
+    "SessionStart": [{"hooks": [{"type": "command", "command": "node ${CLAUDE_PLUGIN_ROOT}/dist/clad.js hook SessionStart"}]}],
+    "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "node ${CLAUDE_PLUGIN_ROOT}/dist/clad.js hook UserPromptSubmit"}]}],
+    "PreToolUse": [{"matcher": "Edit|Write|MultiEdit", "hooks": [{"type": "command", "command": "node ${CLAUDE_PLUGIN_ROOT}/dist/clad.js hook PreToolUse"}]}],
+    "PostToolUse": [{"matcher": "Edit|Write|MultiEdit", "hooks": [{"type": "command", "command": "node ${CLAUDE_PLUGIN_ROOT}/dist/clad.js hook PostToolUse"}]}],
+    "Stop": [{"hooks": [{"type": "command", "command": "node ${CLAUDE_PLUGIN_ROOT}/dist/clad.js hook Stop"}]}]
+  }
+}

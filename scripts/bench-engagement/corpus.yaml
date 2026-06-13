@@ -1,0 +1,227 @@
+# Cladding · engagement bench corpus (0.6, review findings V6/V7)
+#
+# 40 utterances across six buckets. Each entry pins WHAT a harness-engaged
+# session must (or must not) leave behind as artifacts — events in
+# .cladding/events.log.jsonl plus the git diff — never a judgment call.
+# Scored by scripts/bench-engagement/score.ts; protocol in README.md.
+#
+# Buckets:
+#   a — feature-creation        (8: 4 EN / 4 KO)  → spec_authored
+#   b — implementation-continuation (6)           → gate_run
+#   c — completion-claims       (6)               → done_correct
+#   d — verification-asks       (6)               → gate_run
+#   e — negative controls       (8)               → no_spec_mutation
+#   f — greenfield-init intents (6)               → spec_authored
+
+utterances:
+  # ── a · feature-creation ──────────────────────────────────────────
+  - id: a1
+    bucket: a
+    lang: en
+    text: "Add a login feature with email and password."
+    expect: {spec_authored: true}
+  - id: a2
+    bucket: a
+    lang: en
+    text: "We need a password-reset flow — add it as a new feature and plan the work."
+    expect: {spec_authored: true}
+  - id: a3
+    bucket: a
+    lang: en
+    text: "Create a feature for exporting reports as CSV."
+    expect: {spec_authored: true}
+  - id: a4
+    bucket: a
+    lang: en
+    text: "Add rate limiting to the public API as a new feature."
+    expect: {spec_authored: true}
+  - id: a5
+    bucket: a
+    lang: ko
+    text: "결제 취소 기능 넣어줘."
+    expect: {spec_authored: true}
+  - id: a6
+    bucket: a
+    lang: ko
+    text: "회원 탈퇴 기능 추가해 줘."
+    expect: {spec_authored: true}
+  - id: a7
+    bucket: a
+    lang: ko
+    text: "주문 내역 검색 기능을 새로 만들어 줘."
+    expect: {spec_authored: true}
+  - id: a8
+    bucket: a
+    lang: ko
+    text: "알림 설정 기능 하나 추가하자."
+    expect: {spec_authored: true}
+
+  # ── b · implementation-continuation ───────────────────────────────
+  - id: b1
+    bucket: b
+    lang: en
+    text: "Continue implementing the login feature where we left off."
+    expect: {gate_run: true}
+  - id: b2
+    bucket: b
+    lang: en
+    text: "Keep going — finish the remaining acceptance criteria."
+    expect: {gate_run: true}
+  - id: b3
+    bucket: b
+    lang: en
+    text: "Pick up the in-progress feature and complete the next module."
+    expect: {gate_run: true}
+  - id: b4
+    bucket: b
+    lang: ko
+    text: "하던 기능 마저 구현해 줘."
+    expect: {gate_run: true}
+  - id: b5
+    bucket: b
+    lang: ko
+    text: "다음 단계 계속 진행해."
+    expect: {gate_run: true}
+  - id: b6
+    bucket: b
+    lang: ko
+    text: "남은 작업 이어서 해줘."
+    expect: {gate_run: true}
+
+  # ── c · completion-claims ─────────────────────────────────────────
+  - id: c1
+    bucket: c
+    lang: en
+    text: "Looks done, wrap it up."
+    expect: {done_correct: true}
+  - id: c2
+    bucket: c
+    lang: en
+    text: "I think the feature is finished — mark it complete."
+    expect: {done_correct: true}
+  - id: c3
+    bucket: c
+    lang: en
+    text: "Ship it; we're done here."
+    expect: {done_correct: true}
+  - id: c4
+    bucket: c
+    lang: ko
+    text: "다 된 것 같은데 마무리해 줘."
+    expect: {done_correct: true}
+  - id: c5
+    bucket: c
+    lang: ko
+    text: "이 기능 완료 처리해."
+    expect: {done_correct: true}
+  - id: c6
+    bucket: c
+    lang: ko
+    text: "끝난 것 같으니 done으로 바꿔 줘."
+    expect: {done_correct: true}
+
+  # ── d · verification-asks ─────────────────────────────────────────
+  - id: d1
+    bucket: d
+    lang: en
+    text: "Is everything consistent?"
+    expect: {gate_run: true}
+  - id: d2
+    bucket: d
+    lang: en
+    text: "Does the spec still match the code?"
+    expect: {gate_run: true}
+  - id: d3
+    bucket: d
+    lang: en
+    text: "Run whatever checks we have and tell me the state of the project."
+    expect: {gate_run: true}
+  - id: d4
+    bucket: d
+    lang: ko
+    text: "지금 스펙이랑 코드 일치해?"
+    expect: {gate_run: true}
+  - id: d5
+    bucket: d
+    lang: ko
+    text: "전체 상태 점검해 줘."
+    expect: {gate_run: true}
+  - id: d6
+    bucket: d
+    lang: ko
+    text: "드리프트 없는지 확인해 줘."
+    expect: {gate_run: true}
+
+  # ── e · negative controls (must NOT mutate spec) ──────────────────
+  - id: e1
+    bucket: e
+    lang: en
+    text: "Explain how auth works in this codebase."
+    expect: {no_spec_mutation: true}
+  - id: e2
+    bucket: e
+    lang: en
+    text: "Rename this variable to something clearer."
+    expect: {no_spec_mutation: true}
+  - id: e3
+    bucket: e
+    lang: en
+    text: "What does the drift detector do?"
+    expect: {no_spec_mutation: true}
+  - id: e4
+    bucket: e
+    lang: en
+    text: "Fix the formatting in this file, nothing else."
+    expect: {no_spec_mutation: true}
+  - id: e5
+    bucket: e
+    lang: ko
+    text: "이 프로젝트 인증 흐름 설명해 줘."
+    expect: {no_spec_mutation: true}
+  - id: e6
+    bucket: e
+    lang: ko
+    text: "이 변수 이름만 바꿔 줘."
+    expect: {no_spec_mutation: true}
+  - id: e7
+    bucket: e
+    lang: ko
+    text: "이 함수가 뭐 하는 건지 알려줘."
+    expect: {no_spec_mutation: true}
+  - id: e8
+    bucket: e
+    lang: ko
+    text: "오타만 고쳐 줘. 다른 건 건드리지 마."
+    expect: {no_spec_mutation: true}
+
+  # ── f · greenfield-init intents ───────────────────────────────────
+  - id: f1
+    bucket: f
+    lang: en
+    text: "Start a new project: a B2B invoicing SaaS — set up the spec workspace."
+    expect: {spec_authored: true}
+  - id: f2
+    bucket: f
+    lang: en
+    text: "Initialize cladding for this empty repo; it's going to be a CLI todo app."
+    expect: {spec_authored: true}
+  - id: f3
+    bucket: f
+    lang: en
+    text: "Bootstrap the governance scaffold for a new payments service."
+    expect: {spec_authored: true}
+  - id: f4
+    bucket: f
+    lang: ko
+    text: "새 프로젝트 시작할 건데 결제 SaaS용으로 스펙 셋업해 줘."
+    expect: {spec_authored: true}
+  - id: f5
+    bucket: f
+    lang: ko
+    text: "빈 저장소에 클래딩 적용해 줘. 채팅 봇 만들 거야."
+    expect: {spec_authored: true}
+  - id: f6
+    bucket: f
+    lang: ko
+    text: "신규 프로젝트 온보딩 진행해 줘."
+    expect: {spec_authored: true}

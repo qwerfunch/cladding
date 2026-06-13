@@ -2,15 +2,17 @@
 
 import {describe, expect, test} from 'vitest';
 
-import {classifyIntent} from '../../src/router/intent.js';
+import {classifyIntent, suggestIntent} from '../../src/router/intent.js';
 
 describe('classifyIntent — clear-intent matches', () => {
-  test('Korean "기능 만들어줘" → work', () => {
-    expect(classifyIntent('기능 X 만들어줘')).toBe('work');
+  // 0.6.0: the former `work` verb's build/implement patterns classify to
+  // `run` (the verb that absorbed the removed stub's slot).
+  test('Korean "기능 만들어줘" → run', () => {
+    expect(classifyIntent('기능 X 만들어줘')).toBe('run');
   });
 
-  test('English "build the feature" → work', () => {
-    expect(classifyIntent('please build the auth feature')).toBe('work');
+  test('English "build the feature" → run', () => {
+    expect(classifyIntent('please build the auth feature')).toBe('run');
   });
 
   test('Korean "새 프로젝트 시작해줘" → init', () => {
@@ -37,26 +39,27 @@ describe('classifyIntent — clear-intent matches', () => {
     expect(classifyIntent('sync the spec')).toBe('sync');
   });
 
-  test('Korean "드라이브 돌려" → drive', () => {
-    expect(classifyIntent('드라이브 돌려줘')).toBe('drive');
+  // 0.6.0: `drive` was renamed to `run`; the match patterns are unchanged.
+  test('Korean "드라이브 돌려" → run', () => {
+    expect(classifyIntent('드라이브 돌려줘')).toBe('run');
   });
 
-  test('English "execute the loop" → drive', () => {
-    expect(classifyIntent('execute the loop')).toBe('drive');
+  test('English "execute the loop" → run', () => {
+    expect(classifyIntent('execute the loop')).toBe('run');
   });
 
-  test('English "kick off the drive" → drive', () => {
-    expect(classifyIntent('kick off the drive')).toBe('drive');
+  test('English "kick off the drive" → run', () => {
+    expect(classifyIntent('kick off the drive')).toBe('run');
   });
 
-  test('Korean "이걸 끌고 가" → drive', () => {
-    expect(classifyIntent('이걸 끌고 가')).toBe('drive');
+  test('Korean "이걸 끌고 가" → run', () => {
+    expect(classifyIntent('이걸 끌고 가')).toBe('run');
   });
 });
 
 describe('classifyIntent — ambiguous or out-of-vocab → unknown', () => {
-  test('planning intent "기획 세워줘" → unknown (librarian territory)', () => {
-    // Drive means *executing* an already-defined plan, not *making* one.
+  test('planning intent "기획 세워줘" → unknown (planner territory)', () => {
+    // Run means *executing* an already-defined plan, not *making* one.
     expect(classifyIntent('기획 세워줘')).toBe('unknown');
   });
 
@@ -90,11 +93,65 @@ describe('classifyIntent — ambiguous or out-of-vocab → unknown', () => {
 });
 
 describe('classifyIntent — rule order invariant', () => {
-  test('"initialize and build" → init (init rule evaluated before work)', () => {
+  test('"initialize and build" → init (init rule evaluated before the broad build rule)', () => {
     expect(classifyIntent('initialize and build')).toBe('init');
   });
 
   test('"sync and check" → sync (sync rule evaluated before check)', () => {
     expect(classifyIntent('sync and check')).toBe('sync');
+  });
+});
+
+// 0.6.0 (F-1d23a6) — suggestion-only recall tier. Output is injected context
+// (UserPromptSubmit hook), never execution, so high recall is acceptable here
+// while classifyIntent's precision contract stays byte-identical.
+describe('suggestIntent — high-recall suggestion tier (F-1d23a6)', () => {
+  test('EN "add a login feature" → run, while classifyIntent stays unknown (pre-0.6 behavior unchanged)', () => {
+    expect(suggestIntent('add a login feature')).toBe('run');
+    expect(classifyIntent('add a login feature')).toBe('unknown');
+  });
+
+  test('EN "create a new api endpoint" → run', () => {
+    expect(suggestIntent('create a new api endpoint')).toBe('run');
+  });
+
+  test('EN "make a settings page" → run', () => {
+    expect(suggestIntent('make a settings page')).toBe('run');
+  });
+
+  test('EN "let\'s finish and ship this" → check', () => {
+    expect(suggestIntent("let's finish and ship this")).toBe('check');
+  });
+
+  test('EN "is the spec in sync with the code?" → check (consistency question, not the sync verb)', () => {
+    expect(suggestIntent('is the spec in sync with the code?')).toBe('check');
+  });
+
+  test('EN "is everything consistent?" → check', () => {
+    expect(suggestIntent('is everything consistent?')).toBe('check');
+  });
+
+  test('KO "로그인 기능 추가해줘" → run (existing KO patterns flow through)', () => {
+    expect(suggestIntent('로그인 기능 추가해줘')).toBe('run');
+  });
+
+  test('KO "결제 화면 만들어줘" → run', () => {
+    expect(suggestIntent('결제 화면 만들어줘')).toBe('run');
+  });
+
+  test('precision-tier verdicts pass through: "sync the spec" → sync', () => {
+    expect(suggestIntent('sync the spec')).toBe('sync');
+  });
+
+  test('negative control: "explain how auth works" → null', () => {
+    expect(suggestIntent('explain how auth works')).toBe(null);
+  });
+
+  test('negative control: "rename this variable" → null', () => {
+    expect(suggestIntent('rename this variable')).toBe(null);
+  });
+
+  test('bare verb without an artifact noun stays null: "add it to the list"', () => {
+    expect(suggestIntent('add it to the list')).toBe(null);
   });
 });

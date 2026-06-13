@@ -36,7 +36,7 @@ import {saveState, type OnboardingState} from './scan/onboarding-state.js';
 import {detectToolchain} from '../stages/toolchain/detect.js';
 import {writeAgentsMd, writeClaudeMdSection} from '../init/host-instructions.js';
 import {getCurrentCladdingVersion, getLastSetupVersion} from '../init/host-setup.js';
-import {installPreCommitHook} from '../init/git-hook.js';
+import {installGitHook} from '../init/git-hook.js';
 import {loadIntentFromPathIfApplicable} from './intent-from-path.js';
 
 export interface InitOptions {
@@ -64,6 +64,8 @@ export interface InitOptions {
    * default — cladding never touches `.git/` without this explicit opt-in.
    */
   readonly withHook?: boolean;
+  /** Scaffold the authoritative CI gate workflow (F-16746b). */
+  readonly withCi?: boolean;
 }
 
 export interface InitResult {
@@ -210,9 +212,9 @@ function specSeed(
     if (h.preferred_persona) {
       projectLines.push(`    preferred_persona: ${h.preferred_persona}`);
     }
-    if (typeof h.token_budget_per_session === 'number') {
-      projectLines.push(`    token_budget_per_session: ${h.token_budget_per_session}`);
-    }
+    // token_budget_per_session: DEPRECATED 0.6.0 (F-b43066) — zero runtime
+    // consumers ever existed; no longer written. The schema accepts existing
+    // specs carrying it until 0.7 (deleting now would false-RED them).
     if (h.test_framework) {
       projectLines.push(`    test_framework: ${h.test_framework}`);
     }
@@ -258,6 +260,43 @@ function appendIfMissing(gitignorePath: string, marker: string, line: string): b
   const ensureNewline = existing.length > 0 && !existing.endsWith('\n') ? '\n' : '';
   writeFileSync(gitignorePath, `${existing}${ensureNewline}\n# Cladding runtime state\n${line}\n`);
   return true;
+}
+
+
+/** F-16746b — the authoritative gate: client hooks are per-dev bypassable
+ * (--no-verify is printed in the hook body itself); CI + branch protection is
+ * where enforcement is real. Scaffolds a starting-point workflow the user
+ * owns afterwards; never overwrites an existing file. */
+export function scaffoldCiWorkflow(cwd: string): 'created' | 'exists' {
+  const path = join(cwd, '.github', 'workflows', 'cladding.yml');
+  if (existsSync(path)) return 'exists';
+  mkdirSync(join(cwd, '.github', 'workflows'), {recursive: true});
+  writeFileSync(
+    path,
+    [
+      '# Cladding · authoritative gate — scaffolded by `clad init --with-ci`.',
+      '# Local git hooks reduce latency; THIS check (as a required status check',
+      '# under branch protection) is where enforcement is real.',
+      'name: cladding gate',
+      'on:',
+      '  push:',
+      '  pull_request:',
+      'jobs:',
+      '  gate:',
+      '    runs-on: ubuntu-latest',
+      '    steps:',
+      '      - uses: actions/checkout@v4',
+      '        with:',
+      '          fetch-depth: 0 # history-aware detectors (attestation/staleness) need more than a shallow clone',
+      '      - uses: actions/setup-node@v4',
+      '        with: {node-version: 22}',
+      '      - run: npm ci || npm install',
+      '      - run: npx --yes cladding check --tier=pre-push --strict --json',
+      '',
+    ].join('\n'),
+    'utf8',
+  );
+  return 'created';
 }
 
 /** F-80d19d AC-006/AC-007 — informational host-wire notice for `clad init`.
@@ -583,23 +622,39 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
   // explicit consent. The hook runs `clad check --tier=pre-commit` (drift /
   // arch / secret) so spec↔code drift is blocked at commit time automatically.
   if (opts.withHook) {
-    const hook = installPreCommitHook(cwd, {version: pkgVersion ?? undefined});
-    switch (hook.result) {
-      case 'created':
-        created.push('.git/hooks/pre-commit (clad check --tier=pre-commit)');
-        break;
-      case 'updated':
-        created.push('.git/hooks/pre-commit (refreshed to current version)');
-        break;
-      case 'unchanged':
-        skipped.push('.git/hooks/pre-commit (already installed)');
-        break;
-      case 'skipped-foreign':
-        skipped.push('.git/hooks/pre-commit exists and is not cladding-authored — pass --force to overwrite');
-        break;
-      case 'skipped-no-git':
-        skipped.push('--with-hook: no .git directory — run `git init` first, then re-run with --with-hook');
-        break;
+    // F-16746b — one opt-in installs the full local ladder: pre-commit
+    // (cheap, every commit) AND pre-push (strict tier — its first local
+    // trigger). CI remains the authoritative gate; hooks reduce latency.
+    for (const kind of ['pre-commit', 'pre-push'] as const) {
+      const tierNote = kind === 'pre-commit' ? 'clad check --tier=pre-commit' : 'clad check --tier=pre-push --strict';
+      const hook = installGitHook(kind, cwd, {version: pkgVersion ?? undefined});
+      switch (hook.result) {
+        case 'created':
+          created.push(`.git/hooks/${kind} (${tierNote})`);
+          break;
+        case 'updated':
+          created.push(`.git/hooks/${kind} (refreshed to current version)`);
+          break;
+        case 'unchanged':
+          skipped.push(`.git/hooks/${kind} (already installed)`);
+          break;
+        case 'skipped-foreign':
+          skipped.push(`.git/hooks/${kind} exists and is not cladding-authored — pass --force to overwrite`);
+          break;
+        case 'skipped-no-git':
+          skipped.push('--with-hook: no .git directory — run `git init` first, then re-run with --with-hook');
+          break;
+      }
+      if (hook.result === 'skipped-no-git') break; // one notice is enough
+    }
+  }
+
+  if (opts.withCi) {
+    const ci = scaffoldCiWorkflow(cwd);
+    if (ci === 'created') {
+      created.push('.github/workflows/cladding.yml (clad check --tier=pre-push --strict — the authoritative gate)');
+    } else if (ci === 'exists') {
+      skipped.push('.github/workflows/cladding.yml already exists — cladding never overwrites a CI workflow');
     }
   }
 

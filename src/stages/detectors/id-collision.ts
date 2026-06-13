@@ -2,9 +2,9 @@
 //
 // Catches the case where two features OR two scenarios in the loaded
 // spec carry the same `id`. With the new hash-id model the collision
-// probability is < 1/16M (the hash input bundles slug + user +
+// probability is < 1/4.3B per pair at 8 hex (the hash input bundles slug + user +
 // hostname + timestamp + hrtime), but the detector still checks
-// because a 1/16M event is not 0 and the audit trail breaks the
+// because a hash-collision event is not 0 and the audit trail breaks the
 // moment two items share an id. Also catches the legacy case of a
 // duplicate F-NNN / S-NNN that a human might have copy-pasted.
 //

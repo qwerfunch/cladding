@@ -61,16 +61,16 @@ interface AnthropicLike {
 export interface AnthropicTransportOptions {
   /** Override for the API key (defaults to process.env.ANTHROPIC_API_KEY). */
   readonly apiKey?: string;
-  /** Model id (defaults to `claude-opus-4-7`, the current strongest model). */
+  /** Model id (defaults to `claude-opus-4-8`, the current strongest model). */
   readonly model?: string;
-  /** Maximum output tokens per dispatch (defaults to 4096). */
+  /** Maximum output tokens per dispatch (defaults to 16384). */
   readonly maxTokens?: number;
   /** Test seam — supply a pre-built client to skip the dynamic import. */
   readonly clientFactory?: (apiKey: string) => AnthropicLike;
 }
 
-const DEFAULT_MODEL = 'claude-opus-4-7';
-const DEFAULT_MAX_TOKENS = 4096;
+const DEFAULT_MODEL = 'claude-opus-4-8';
+const DEFAULT_MAX_TOKENS = 16384;
 
 /**
  * Real-LLM Transport. Dispatches through the Anthropic API and

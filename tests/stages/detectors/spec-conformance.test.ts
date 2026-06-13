@@ -43,8 +43,11 @@ const oracleEv = (name: string, opts: {manifest?: string[]; blind?: boolean} = {
   kind: 'oracle', content: 'oracle authored', artifact: 'tests/oracle/foo.test.ts',
   readManifest: opts.manifest ?? [], blind: opts.blind ?? true,
 });
-const implEv = (name: string) => ({
-  id: 'ev-i', featureId: 'F-001', acId: 'AC-001', stage: 'agent:specialists',
+// `stage` defaults to the pre-0.6.0 'agent:specialists' spelling on purpose:
+// old audit logs carry it, and the detector must keep matching both it and
+// the renamed 'agent:developer'.
+const implEv = (name: string, stage = 'agent:specialists') => ({
+  id: 'ev-i', featureId: 'F-001', acId: 'AC-001', stage,
   identity: {author: 'llm', name, timestamp: '2026-06-02T00:00:00Z'},
   kind: 'note', content: 'implemented',
 });
@@ -85,6 +88,14 @@ describe('SPEC_CONFORMANCE detector', () => {
   test('PROVENANCE: oracle author == implementer ⇒ error (not impl-blind)', () => {
     oracleFile();
     writeEvidence([implEv('same-model'), oracleEv('same-model', {manifest: []})]);
+    writeSpec(SPEC('name: f, language: typescript, require_oracles: true', '        oracle_refs: [tests/oracle/foo.test.ts]'));
+    const f = run();
+    expect(f.some((x) => x.severity === 'error' && /NOT impl-blind: authored by the implementer/.test(x.message))).toBe(true);
+  });
+
+  test("PROVENANCE: implementer recorded under the 0.6.0 'agent:developer' stage is matched too", () => {
+    oracleFile();
+    writeEvidence([implEv('same-model', 'agent:developer'), oracleEv('same-model', {manifest: []})]);
     writeSpec(SPEC('name: f, language: typescript, require_oracles: true', '        oracle_refs: [tests/oracle/foo.test.ts]'));
     const f = run();
     expect(f.some((x) => x.severity === 'error' && /NOT impl-blind: authored by the implementer/.test(x.message))).toBe(true);
@@ -167,5 +178,53 @@ describe('SPEC_CONFORMANCE detector', () => {
   test('PRECEDENCE: oracle_policy {sample:0} OVERRIDES require_oracles:true ⇒ ubiquitous AC not forced', () => {
     writeSpec(SPEC_EARS('name: f, language: typescript, require_oracles: true, oracle_policy: {sample: 0}', 'ubiquitous'));
     expect(run()).toHaveLength(0);
+  });
+});
+
+// ─── F-551a1c — graduated mandate reports, never blocks; the denominator is named ───
+
+describe('graduated report-only mandate (F-551a1c)', () => {
+  test('a grown undeclared-policy project: missing unwanted-AC oracle is INFO (report), and the untagged denominator is named', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-sc-grad-'));
+    try {
+      mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
+      writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nproject: {name: x, language: typescript}\nfeatures: []\n');
+      for (let i = 0; i < 8; i++) {
+        const tagged = i === 0
+          ? '  - {id: AC-001, ears: unwanted, text: rejects bad input, test_refs: [spec.yaml]}\n'
+          : '  - {id: AC-001, text: t, test_refs: [spec.yaml]}\n'; // untagged
+        writeFileSync(
+          join(dir, 'spec', 'features', `f${i}-aaaa000${i}.yaml`),
+          `id: F-aaaa000${i}\nslug: f${i}\ntitle: t\nstatus: done\nmodules: []\nacceptance_criteria:\n${tagged}`,
+        );
+      }
+      const findings = specConformance.run({cwd: dir});
+      const mandate = findings.filter((f) => f.message.includes('lacks a spec-conformance oracle'));
+      expect(mandate.length).toBe(1); // only the unwanted-tagged AC is required
+      expect(mandate[0].severity).toBe('info'); // report-only — never blocks
+      expect(mandate[0].message).toContain('report-only');
+      const denom = findings.find((f) => f.message.includes('no EARS tag'));
+      expect(denom?.severity).toBe('info');
+      expect(denom?.message).toContain('7 done AC(s)');
+    } finally {
+      rmSync(dir, {recursive: true, force: true});
+    }
+  });
+
+  test('an EXPLICIT oracle_policy keeps blocking severity (no report-only dilution)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-sc-explicit-'));
+    try {
+      mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
+      writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: x\n  language: typescript\n  oracle_policy: {}\nfeatures: []\n');
+      writeFileSync(
+        join(dir, 'spec', 'features', 'f-bbbb0001.yaml'),
+        'id: F-bbbb0001\nslug: f\ntitle: t\nstatus: done\nmodules: []\nacceptance_criteria:\n  - {id: AC-001, ears: unwanted, text: rejects, test_refs: [spec.yaml]}\n',
+      );
+      const findings = specConformance.run({cwd: dir});
+      const mandate = findings.find((f) => f.message.includes('lacks a spec-conformance oracle'));
+      expect(mandate?.severity).toBe('error');
+    } finally {
+      rmSync(dir, {recursive: true, force: true});
+    }
   });
 });

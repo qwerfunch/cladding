@@ -1,0 +1,36 @@
+id: F-37b4a8
+slug: feature-index-file
+title: "clad sync generates spec/index.yaml — one line per feature for 1-file lookup at scale"
+status: done
+modules:
+  - src/spec/inventory.ts
+  - src/stages/detectors/inventory-drift.ts
+acceptance_criteria:
+  - id: AC-9f9309
+    ears: event
+    condition: "when clad sync (or the MCP syncInventory path) runs on a sharded spec"
+    action: "regenerate spec/index.yaml: a Tier-C-bannered, id-sorted mapping with one line per feature (id: {slug, status, modules: <count>})"
+    response: "\"which feature owns X\" becomes a 1-file grep at any shard count instead of an N-file directory scan (the H10 linear-scan caveat)"
+    text: "When sync runs on a sharded spec, the system shall regenerate spec/index.yaml as a Tier-C-bannered, id-sorted mapping with one line per feature, so feature lookup is a 1-file grep at any scale."
+    notes: "## Why\nWith sharding there is no feature index anywhere — locating a feature is a 150+-file scan; the project's own extended A/B flagged this (H10 caveat). One sorted line per feature also keeps git merges line-independent (committed-but-derived; union-friendly)."
+    test_refs:
+      - "tests/spec/inventory.test.ts#emits an id-sorted, Tier-C-bannered, one-line-per-feature index"
+      - "tests/spec/inventory.test.ts#regeneration is idempotent (byte-identical on unchanged shards)"
+  - id: AC-f1a3f5
+    ears: unwanted
+    condition: "if the committed index disagrees with the shards on disk"
+    action: "emit an INVENTORY_DRIFT finding naming the missing/extra ids with the clad sync cure"
+    response: "the index stays honest or visibly broken — never confidently wrong"
+    text: "If spec/index.yaml exists but its feature-id set disagrees with the shards on disk, the INVENTORY_DRIFT detector shall flag it with the clad sync remediation, so a stale committed index cannot silently mislead agents that trust it."
+    test_refs:
+      - "tests/stages/inventory-drift.test.ts#flags a committed index whose id set disagrees with shards, names both directions, cures with clad sync"
+      - "tests/stages/inventory-drift.test.ts#a regenerated (fresh) index produces no index finding"
+  - id: AC-7e3086
+    ears: state
+    condition: "while the spec is unsharded"
+    action: "skip index generation"
+    response: "no extra generated files for projects that fit in one spec.yaml"
+    text: "While the project is unsharded (features inline in spec.yaml), the system shall not generate an index file, so small projects keep their single-file shape."
+
+    test_refs:
+      - "tests/spec/inventory.test.ts#unsharded project (no spec/features/) gets no index file"

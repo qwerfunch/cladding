@@ -8,7 +8,7 @@ ironclad-track: T9 (multi-agent orchestrator)
 
 ## [CLAIM]
 
-The 5 agent personas — orchestrator · librarian · reviewer · observability · specialists — each shipped as a Claude Code subagent (frontmatter + system prompt). Their canonical source lives in this directory; `npm run build:plugin` mirrors them into `agents/`, `plugins/codex/skills/`, and `plugins/gemini-cli/commands/`.
+The 5 agent personas — orchestrator · planner (formerly `librarian`) · reviewer · observability · developer (formerly `specialists`) — each shipped as a Claude Code subagent (frontmatter + system prompt). Their canonical source lives in this directory; `npm run build:plugin` mirrors them into `agents/`, `plugins/codex/skills/`, and `plugins/gemini-cli/commands/`.
 
 ## [PERSONAS]
 
@@ -16,11 +16,11 @@ Each persona's individual `.md` carries a "Sources (what you read, by Tier)" sec
 
 | name | role | tools | reads (by tier) | writes |
 |---|---|---|---|---|
-| `orchestrator` | Workflow conductor; routes intent to specialists | Read, Write, Edit, Bash, Agent | B (project-context) + D (events.log, onboarding state) + A (dispatch slice) | (delegates only) |
-| `librarian` | SSoT custodian; spec.yaml + EARS hygiene | Read, Write, Edit, Bash | A (write target) + B (cross-validate) | spec.yaml, spec/** |
+| `orchestrator` | Workflow conductor; routes intent to the right persona | Read, Write, Edit, Bash, Agent | B (project-context) + D (events.log, onboarding state) + A (dispatch slice) | (delegates only) |
+| `planner` | Spec author-custodian; spec.yaml + EARS hygiene | Read, Write, Edit, Bash | A (write target) + B (cross-validate) | spec.yaml, spec/** |
 | `reviewer` | Philosophical guardrails; independent audit | Read, Bash | A + B + C + D evidence | (none — audit only) |
 | `observability` | Log + metrics analyst | Read, Bash | D only (events.log, audit.log, perf, coverage) | (reports only) |
-| `specialists` | Domain implementer (code, tests, migrations) | Read, Write, Edit, Bash | B (project-context, architecture, capabilities) + C (conventions) + A (current feature slice) | stages/, tests/, hitl/ |
+| `developer` | Implementer (code, tests, migrations) | Read, Write, Edit, Bash | B (project-context, architecture, capabilities) + C (conventions) + A (current feature slice) | stages/, tests/, hitl/ |
 
 ## [INVOCATION_PRINCIPLES]
 
@@ -42,9 +42,9 @@ Each delegation carries:
 ## [BOUNDARIES]
 
 Cross-boundary rules:
-- `librarian` never touches `src/stages/` · `src/hitl/` · production code
+- `planner` never touches `src/stages/` · `src/hitl/` · production code
 - `reviewer` never writes anywhere (read-only by design)
-- `specialists` never edits `spec.yaml` (file for `librarian` instead)
+- `developer` never edits `spec.yaml` (file for `planner` instead)
 - `observability` never invents metrics (only aggregates existing artifacts)
 - `orchestrator` only delegates; it implements nothing
 

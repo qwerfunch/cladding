@@ -101,10 +101,10 @@ describe('drive loop · real AnthropicTransport integration', () => {
         '        ears: ubiquitous\n' +
         '        text: integration target\n',
     );
-    // Persona files for specialists + reviewer — minimal frontmatter
+    // Persona files for developer + reviewer — minimal frontmatter
     const agentsDir = join(dir, 'agents');
     writeFileSync(
-      `${agentsDir}-specialists.md`,
+      `${agentsDir}-developer.md`,
       '', // not used since loader looks in <here>/<id>.md by default
     );
     // We rely on cladding's bundled agents at the repo's own agents/ — drive's
@@ -140,11 +140,11 @@ describe('drive loop · real AnthropicTransport integration', () => {
     // Both calls return text from the same fake client → the
     // resulting identity.name is the same persona-tagged form.
     // BUT AnthropicTransport tags identity.name as
-    // `sdk:claude-anthropic:<personaId>`. specialists and reviewer
+    // `sdk:claude-anthropic:<personaId>`. developer and reviewer
     // have different persona ids, so the names differ — no collision.
     //
     // To FORCE a collision, we monkey-patch the transport so it
-    // returns identity.name=`sdk:claude-anthropic:specialists` for
+    // returns identity.name=`sdk:claude-anthropic:developer` for
     // BOTH calls. Easiest way: clientFactory returns the same client,
     // but we override invoke at the Transport layer for this test.
     //
@@ -156,7 +156,7 @@ describe('drive loop · real AnthropicTransport integration', () => {
         return {
           identity: {
             author: 'llm' as const,
-            name: 'sdk:claude-anthropic:specialists', // SAME for both personas
+            name: 'sdk:claude-anthropic:developer', // SAME for both personas
             timestamp: new Date().toISOString(),
           },
           summary: `[forced] ${persona.id}`,

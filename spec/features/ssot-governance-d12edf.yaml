@@ -9,20 +9,20 @@ modules:
   - spec/README.md
   - src/cli/scan/intent-onboarding.ts
   - src/cli/init.ts
-  - src/cli/refine.ts
+  - src/cli/clarify.ts
   - src/cli/scan/greenfield-seeds.ts
   - src/cli/scan/llm.ts
   - src/cli/scan/onboarding-state.ts
   - src/stages/detectors/capabilities-feature-mapping.ts
   - src/stages/detectors/index.ts
   - src/agents/orchestrator.md
-  - src/agents/librarian.md
+  - src/agents/planner.md
   - src/agents/reviewer.md
   - src/agents/observability.md
-  - src/agents/specialists.md
+  - src/agents/developer.md
   - src/agents/README.md
   - skills/init/SKILL.md
-  - skills/refine/SKILL.md
+  - skills/clarify/SKILL.md
 depends_on:
   - F-09d68b
 acceptance_criteria:
@@ -52,16 +52,16 @@ acceptance_criteria:
     test_refs: [tests/cli/intent-onboarding.test.ts]
   - id: AC-005
     ears: ubiquitous
-    action: wire src/cli/init.ts and src/cli/refine.ts to persist onboarding scenarios as Tier A shards under spec/scenarios/<slug>-<hash6>.yaml
+    action: wire src/cli/init.ts and src/cli/clarify.ts to persist onboarding scenarios as Tier A shards under spec/scenarios/<slug>-<hash6>.yaml
     response: 'init.ts iterates onboarding.scenarios after writing other artifacts and calls writeArtifact for each scenario, generating filenames from slug + hash and bodies from renderScenarioYaml; refine.ts adds the same loop after refining other artifacts so existing scenario files divert to .cladding/scan/<basename>.proposal; renderScenarioYaml emits the Tier A banner + {id, slug, title, flow, features: []} shape; clad_create_feature can later bind features to existing scenarios via the features[] array (the consumer for spec/scenarios/*.yaml`s flow field)'
-    text: The system shall wire src/cli/init.ts and src/cli/refine.ts to persist onboarding scenarios as Tier A shards under spec/scenarios/<slug>-<hash6>.yaml.
-    evidence_refs: [src/cli/init.ts, src/cli/refine.ts]
+    text: The system shall wire src/cli/init.ts and src/cli/clarify.ts to persist onboarding scenarios as Tier A shards under spec/scenarios/<slug>-<hash6>.yaml.
+    evidence_refs: [src/cli/init.ts, src/cli/clarify.ts]
   - id: AC-006
     ears: ubiquitous
     action: realign every persona prompt with the 4-tier model so each agent names the tier slice it consumes and points to docs/ssot-model.md instead of repeating policy
-    response: 'src/agents/orchestrator.md adds a Sources (by Tier) table naming B (project-context) + D (events.log, state.yaml) + A (dispatch slice only) and explicitly excludes Tier C; src/agents/librarian.md adds Sources A (write target) + B (cross-validate); src/agents/specialists.md adds Sources B (project-context, architecture, capabilities) + C (conventions) + A (current feature slice); src/agents/reviewer.md adds Sources A + B + C + D with the tier conflict-resolution rule (A wins); src/agents/observability.md adds Sources D only; src/agents/README.md PERSONAS table reshapes the reads column to name the tier slice; net effect: persona prompts repeat less policy and reference ssot-model.md once for the shared definitions'
+    response: 'src/agents/orchestrator.md adds a Sources (by Tier) table naming B (project-context) + D (events.log, state.yaml) + A (dispatch slice only) and explicitly excludes Tier C; src/agents/planner.md adds Sources A (write target) + B (cross-validate); src/agents/developer.md adds Sources B (project-context, architecture, capabilities) + C (conventions) + A (current feature slice); src/agents/reviewer.md adds Sources A + B + C + D with the tier conflict-resolution rule (A wins); src/agents/observability.md adds Sources D only; src/agents/README.md PERSONAS table reshapes the reads column to name the tier slice; net effect: persona prompts repeat less policy and reference ssot-model.md once for the shared definitions'
     text: The system shall realign every persona prompt with the 4-tier model so each agent names the tier slice it consumes and points to docs/ssot-model.md instead of repeating policy.
-    evidence_refs: [src/agents/orchestrator.md, src/agents/librarian.md, src/agents/specialists.md, src/agents/reviewer.md, src/agents/observability.md, src/agents/README.md]
+    evidence_refs: [src/agents/orchestrator.md, src/agents/planner.md, src/agents/developer.md, src/agents/reviewer.md, src/agents/observability.md, src/agents/README.md]
   - id: AC-007
     ears: state
     condition: while the directory layout already encodes domain (spec/, docs/, .cladding/)

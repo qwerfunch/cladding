@@ -1,6 +1,6 @@
 // Cladding · spec · inventory tests (F-5b9f9f, v0.3.56)
 
-import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
@@ -8,6 +8,7 @@ import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 import {
   computeInventory,
   upsertInventoryBlock,
+  writeFeatureIndex,
   writeInventoryToSpecYaml,
 } from '../../src/spec/inventory.js';
 
@@ -159,5 +160,48 @@ describe('upsertInventoryBlock', () => {
     } finally {
       rmSync(dir, {recursive: true, force: true});
     }
+  });
+});
+
+// ─── F-37b4a8 — generated feature index ───
+
+describe('writeFeatureIndex (F-37b4a8)', () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'clad-index-'));
+  });
+  afterEach(() => rmSync(dir, {recursive: true, force: true}));
+
+  const shard = (id: string, slug: string, status: string, modules: number): string =>
+    `id: ${id}\nslug: ${slug}\nstatus: ${status}\nmodules:\n${Array.from({length: modules}, (_, i) => `  - src/m${i}.ts`).join('\n')}\n`;
+
+  test('emits an id-sorted, Tier-C-bannered, one-line-per-feature index', () => {
+    mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
+    writeFileSync(join(dir, 'spec', 'features', 'b-zz9999.yaml'), shard('F-zz9999', 'b-feat', 'done', 2));
+    writeFileSync(join(dir, 'spec', 'features', 'a-aa1111.yaml'), shard('F-aa1111', 'a-feat', 'in_progress', 1));
+
+    expect(writeFeatureIndex(dir)).toBe(true);
+    const body = readFileSync(join(dir, 'spec', 'index.yaml'), 'utf8');
+    expect(body.startsWith('# Cladding · Tier C')).toBe(true);
+    const lines = body.split('\n').filter((l) => l.startsWith('  F-'));
+    expect(lines).toEqual([
+      '  F-aa1111: {slug: a-feat, status: in_progress, modules: 1}',
+      '  F-zz9999: {slug: b-feat, status: done, modules: 2}',
+    ]);
+  });
+
+  test('regeneration is idempotent (byte-identical on unchanged shards)', () => {
+    mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
+    writeFileSync(join(dir, 'spec', 'features', 'a-aa1111.yaml'), shard('F-aa1111', 'a-feat', 'done', 0));
+    writeFeatureIndex(dir);
+    const first = readFileSync(join(dir, 'spec', 'index.yaml'), 'utf8');
+    writeFeatureIndex(dir);
+    expect(readFileSync(join(dir, 'spec', 'index.yaml'), 'utf8')).toBe(first);
+  });
+
+  test('unsharded project (no spec/features/) gets no index file', () => {
+    mkdirSync(join(dir, 'spec'), {recursive: true});
+    expect(writeFeatureIndex(dir)).toBe(false);
+    expect(existsSync(join(dir, 'spec', 'index.yaml'))).toBe(false);
   });
 });

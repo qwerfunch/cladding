@@ -16,7 +16,7 @@
 // inline OR `spec/architecture.yaml` (single file, mutually exclusive).
 
 import {existsSync, readdirSync} from 'node:fs';
-import {dirname, join} from 'node:path';
+import {dirname, join, resolve} from 'node:path';
 
 import {parseSpec} from './parse.js';
 import type {Architecture, Capability, Feature, Scenario, Spec} from './types.js';
@@ -48,7 +48,28 @@ function loadDirectory<T>(dir: string): T[] {
  *         merged result fails schema validation.
  * @see spec/parse.ts · spec/validate.ts
  */
+// ─── Run-scoped spec cache (F-cd0415) ───
+// Every withSpec detector independently re-parsed the whole shard tree —
+// O(detectors × shards) YAML parses per gate run. Detectors are synchronous
+// by Iron Law, so a cache primed around the synchronous runDrift loop and
+// cleared in finally cannot go stale mid-run, and the MCP server's
+// long-lived process never carries it across requests.
+let runCache: {readonly cwd: string; readonly spec: Spec} | null = null;
+
+/** Prime (or clear, with null) the run-scoped cache. Callers MUST clear in a
+ * finally block — a primed cache outliving its run would serve stale spec. */
+export function primeSpecCache(cwd: string, spec: Spec | null): void {
+  runCache = spec ? {cwd: resolve(cwd), spec} : null;
+}
+
 export function loadSpec(cwd: string = '.', specPath: string = 'spec.yaml'): Spec {
+  if (runCache && specPath === 'spec.yaml' && resolve(cwd) === runCache.cwd) {
+    return runCache.spec;
+  }
+  return loadSpecFromDisk(cwd, specPath);
+}
+
+function loadSpecFromDisk(cwd: string, specPath: string): Spec {
   const masterPath = join(cwd, specPath);
   const partial = parseSpec(masterPath) as PartialSpec;
 

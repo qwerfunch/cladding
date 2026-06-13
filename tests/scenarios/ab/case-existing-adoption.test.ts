@@ -19,6 +19,25 @@ import {mkdirSync, readFileSync, writeFileSync} from 'node:fs';
 import yaml from 'yaml';
 
 vi.mock('../../../src/ui/pulse.js', () => ({pulse: vi.fn()}));
+
+// Host-tool determinism (CI break, 2026-06-11): the deterministic battery must
+// not depend on which external scanners (madge, secretlint) the HOST happens to
+// resolve — stale ~/.npm/_npx caches made detector counts machine-dependent.
+// Strip the external-scanner gates; their detectors then emit the stable
+// "no validator registered" info on every machine.
+vi.mock('../../../src/stages/toolchain/detect.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../../src/stages/toolchain/detect.js')>();
+  return {
+    ...real,
+    detectToolchain: (cwd: string = '.') => {
+      const t = real.detectToolchain(cwd);
+      const gates = {...t.gates} as Record<string, unknown>;
+      delete gates.arch;
+      delete gates.secret;
+      return {...t, gates} as ReturnType<typeof real.detectToolchain>;
+    },
+  };
+});
 const dispatchMock = vi.fn<(p: string) => Promise<string>>();
 vi.mock('../../../src/cli/scan/dispatcher.js', () => ({
   selectDispatcher: vi.fn((opts?: {noLlm?: boolean}) => (opts?.noLlm ? null : dispatchMock)),

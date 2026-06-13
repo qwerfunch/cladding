@@ -52,14 +52,21 @@ const CLAUDE_PLUGIN_JSON = `${CLAUDE_PLUGIN_DIR}/.claude-plugin/plugin.json`;
 const CLAUDE_AGENTS = `${CLAUDE_PLUGIN_DIR}/agents`;
 mkdirSync(CLAUDE_AGENTS, {recursive: true});
 
+// Canonical persona file list — used to copy AND to sweep stale mirror files
+// from earlier builds (e.g. the pre-0.6.0 `librarian.md` / `specialists.md`,
+// renamed to planner/developer). A mirror must track src/agents exactly.
+const personaFiles = readdirSync(SRC_AGENTS).filter(
+  (f) => f.endsWith('.md') && f !== 'README.md' && statSync(join(SRC_AGENTS, f)).isFile(),
+);
+
 const claudeGenerated = [];
-for (const entry of readdirSync(SRC_AGENTS)) {
-  if (!entry.endsWith('.md')) continue;
-  if (entry === 'README.md') continue;
-  const src = join(SRC_AGENTS, entry);
-  if (!statSync(src).isFile()) continue;
-  copyFileSync(src, join(CLAUDE_AGENTS, entry));
+for (const entry of personaFiles) {
+  copyFileSync(join(SRC_AGENTS, entry), join(CLAUDE_AGENTS, entry));
   claudeGenerated.push(entry);
+}
+for (const file of readdirSync(CLAUDE_AGENTS)) {
+  if (!file.endsWith('.md') || file === 'README.md') continue;
+  if (!personaFiles.includes(file)) rmSync(join(CLAUDE_AGENTS, file));
 }
 writeFileSync(
   join(CLAUDE_AGENTS, 'README.md'),
@@ -125,12 +132,39 @@ if (existsSync('dist/clad.js')) {
     copyFileSync(`dist/agents/${f}`, `${CLAUDE_DIST}/agents/${f}`);
     bundledPersonas++;
   }
+  // Sweep personas that no longer exist in dist/agents (0.6.0 renames).
+  const distPersonas = readdirSync('dist/agents').filter((f) => f.endsWith('.md'));
+  for (const f of readdirSync(`${CLAUDE_DIST}/agents`)) {
+    if (f.endsWith('.md') && !distPersonas.includes(f)) rmSync(`${CLAUDE_DIST}/agents/${f}`);
+  }
   console.log(
     `cladding plugin · claude-code: bundled engine (clad.js + schema.json + ${bundledPersonas} personas) → ${CLAUDE_DIST}/`,
   );
 } else {
   console.warn(
     'cladding plugin · claude-code: dist/clad.js absent — run `npm run build` (build.mjs first) to bundle the standalone engine',
+  );
+}
+
+// --- Phase A3 — Claude Code hooks wiring guard (v0.6.0, F-1d23a6) ------
+//
+// plugins/claude-code/hooks/hooks.json is CANONICAL (hand-authored in the
+// plugin dir, not generated) — this script never writes or sweeps it. The
+// guard only validates presence + JSON shape so a refactor of the sweep
+// logic above (or a bad merge) cannot silently ship the plugin without its
+// lifecycle wiring. tests/scripts/hooks-config.test.ts pins the full shape.
+
+const CLAUDE_HOOKS_JSON = `${CLAUDE_PLUGIN_DIR}/hooks/hooks.json`;
+try {
+  const hooksDoc = JSON.parse(readFileSync(CLAUDE_HOOKS_JSON, 'utf8'));
+  const hookEvents = Object.keys(hooksDoc.hooks ?? {});
+  if (hookEvents.length === 0) throw new Error('no events wired under "hooks"');
+  console.log(
+    `cladding plugin · claude-code: hooks wiring OK (${hookEvents.length} events) — ${CLAUDE_HOOKS_JSON}`,
+  );
+} catch (err) {
+  console.warn(
+    `cladding plugin · claude-code: WARN ${CLAUDE_HOOKS_JSON} missing/invalid (${err.message}) — lifecycle hooks will not fire`,
   );
 }
 
@@ -180,6 +214,26 @@ for (const entry of readdirSync(SRC_AGENTS)) {
   }
   writeFileSync(join(dstDir, 'SKILL.md'), content);
   codexPersonaCount++;
+}
+
+// 3) sweep stale skill dirs from earlier builds — anything that is neither a
+// current verb skill nor a current persona (e.g. the removed `work` verb, the
+// pre-0.6.0 `librarian`/`specialists` persona dirs). The mirror must track
+// the two canonical sources exactly.
+const codexExpected = new Set([
+  ...readdirSync(SRC_SKILLS).filter((v) => {
+    try {
+      return statSync(join(SRC_SKILLS, v, 'SKILL.md')).isFile();
+    } catch {
+      return false;
+    }
+  }),
+  ...personaFiles.map((f) => f.replace(/\.md$/, '')),
+]);
+for (const entry of readdirSync(CODEX_SKILLS)) {
+  const full = join(CODEX_SKILLS, entry);
+  if (!statSync(full).isDirectory()) continue;
+  if (!codexExpected.has(entry)) rmSync(full, {recursive: true});
 }
 
 writeFileSync(

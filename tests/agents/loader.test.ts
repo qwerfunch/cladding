@@ -9,11 +9,13 @@
 //   - file missing: throws an Error with a useful message
 //   - rootDir option: looks up a custom path instead of the bundled one
 //   - cache reuse + clearPersonaCache
+//   - 0.6.0 alias resolution: librarian → planner, specialists → developer
+//     (old id loads the new persona + one-line stderr deprecation notice)
 
-import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
+import {readFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {afterEach, beforeEach, describe, expect, test} from 'vitest';
+import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
 import {clearPersonaCache, loadPersona} from '../../src/agents/loader.js';
 
@@ -46,11 +48,11 @@ describe('loadPersona', () => {
 
   test('falls back to file id when frontmatter omits name', () => {
     writeFileSync(
-      join(agentsDir, 'librarian.md'),
+      join(agentsDir, 'planner.md'),
       '---\ncapabilities:\n  - read\n---\nbody\n',
     );
-    const p = loadPersona('librarian', root);
-    expect(p.id).toBe('librarian');
+    const p = loadPersona('planner', root);
+    expect(p.id).toBe('planner');
   });
 
   test('missing frontmatter → whole file is body, no capabilities', () => {
@@ -97,6 +99,47 @@ describe('loadPersona', () => {
     expect(a).toBe(b); // cache returns the same reference
   });
 
+  // 0.6.0 renames (docs/glossary.md): the old persona ids stay loadable for
+  // one minor release; resolving one loads the NEW file and prints a one-line
+  // stderr deprecation notice naming the replacement.
+  test("resolves deprecated id 'librarian' to the planner persona with a deprecation notice", () => {
+    writeFileSync(
+      join(agentsDir, 'planner.md'),
+      '---\nname: planner\ncapabilities: [read, write]\n---\nplanner body\n',
+    );
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    try {
+      const p = loadPersona('librarian', root);
+      expect(p.id).toBe('planner');
+      expect(p.body).toBe('planner body');
+      const written = stderrSpy.mock.calls.map((c) => String(c[0])).join('');
+      expect(written).toContain(
+        "cladding: persona 'librarian' is now 'planner' — the old id is removed in 0.7",
+      );
+    } finally {
+      stderrSpy.mockRestore();
+    }
+  });
+
+  test("resolves deprecated id 'specialists' to the developer persona with a deprecation notice", () => {
+    writeFileSync(
+      join(agentsDir, 'developer.md'),
+      '---\nname: developer\ncapabilities: [read, write, edit, exec]\n---\ndeveloper body\n',
+    );
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    try {
+      const p = loadPersona('specialists', root);
+      expect(p.id).toBe('developer');
+      expect(p.body).toBe('developer body');
+      const written = stderrSpy.mock.calls.map((c) => String(c[0])).join('');
+      expect(written).toContain(
+        "cladding: persona 'specialists' is now 'developer' — the old id is removed in 0.7",
+      );
+    } finally {
+      stderrSpy.mockRestore();
+    }
+  });
+
   test('clearPersonaCache forces a re-parse', () => {
     writeFileSync(
       join(agentsDir, 'mut.md'),
@@ -112,5 +155,21 @@ describe('loadPersona', () => {
     const reparsed = loadPersona('mut', root);
     expect(reparsed).not.toBe(first);
     expect(reparsed.id).toBe('v2');
+  });
+});
+
+// ─── F-d8223c — the blind-author definition is structurally blinded ───
+
+describe('blind-author (F-d8223c)', () => {
+  test('the canonical definition grants NO read-capable tool and no read capability', () => {
+    const raw = readFileSync(join(process.cwd(), 'src', 'agents', 'blind-author.md'), 'utf8');
+    const toolsLine = /^tools:\s*(.+)$/m.exec(raw)![1];
+    expect(toolsLine).toContain('Write');
+    for (const forbidden of ['Read', 'Grep', 'Glob', 'Edit']) {
+      expect(toolsLine.includes(forbidden), `${forbidden} must not be granted`).toBe(false);
+    }
+    const p = loadPersona('blind-author');
+    expect(p.capabilities.has('write')).toBe(true);
+    expect(p.capabilities.has('read')).toBe(false);
   });
 });

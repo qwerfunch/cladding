@@ -2,7 +2,7 @@
 //
 // Parses an `agents/<id>.md` file into a {@link PersonaSpec} so the
 // drive loop can hand it to an adapter. The five personas
-// (orchestrator · librarian · reviewer · observability · specialists)
+// (orchestrator · planner · reviewer · observability · developer)
 // each declare a YAML frontmatter that names them, their description,
 // the Claude Code `tools:` enum, and the provider-agnostic
 // `capabilities:` set; the body is the prose prompt every adapter
@@ -42,26 +42,47 @@ interface Frontmatter {
 const cache = new Map<string, PersonaSpec>();
 
 /**
+ * 0.6.0 persona renames (alias-and-deprecate, docs/glossary.md). Resolving an
+ * old id loads the NEW persona file and emits a one-line stderr deprecation
+ * notice; the old ids are removed in 0.7.
+ */
+export const PERSONA_ALIASES: Readonly<Record<string, string>> = {
+  librarian: 'planner',
+  specialists: 'developer',
+};
+
+/**
  * Returns the {@link PersonaSpec} for the named persona.
  *
  * Looks for `agents/<id>.md` relative to {@link rootDir}. When the
  * file is missing the function throws — the drive loop should map
  * the error to a `UNCAUGHT_ERROR` halt and surface it to the user.
  *
- * @param id - Persona id (`orchestrator` · `librarian` · `reviewer`
- *     · `observability` · `specialists`).
+ * Deprecated ids (`librarian` → `planner`, `specialists` →
+ * `developer`) still resolve through {@link PERSONA_ALIASES} for the
+ * 0.6.x line, with a one-line stderr notice naming the replacement.
+ *
+ * @param id - Persona id (`orchestrator` · `planner` · `reviewer`
+ *     · `observability` · `developer`), or a deprecated alias.
  * @param rootDir - Optional root directory containing the `agents/`
  *     folder. Defaults to the cladding package's own `agents/`.
  * @returns Parsed persona spec ready to hand to `runAgent`.
  */
 export function loadPersona(id: string, rootDir?: string): PersonaSpec {
-  const path = resolveAgentPath(id, rootDir);
+  const replacement = PERSONA_ALIASES[id];
+  if (replacement) {
+    process.stderr.write(
+      `cladding: persona '${id}' is now '${replacement}' — the old id is removed in 0.7\n`,
+    );
+  }
+  const resolvedId = replacement ?? id;
+  const path = resolveAgentPath(resolvedId, rootDir);
   const cached = cache.get(path);
   if (cached) return cached;
   if (!existsSync(path)) {
-    throw new Error(`agents/${id}.md not found at ${path}`);
+    throw new Error(`agents/${resolvedId}.md not found at ${path}`);
   }
-  const spec = parseAgentFile(id, readFileSync(path, 'utf8'));
+  const spec = parseAgentFile(resolvedId, readFileSync(path, 'utf8'));
   cache.set(path, spec);
   return spec;
 }
@@ -81,7 +102,7 @@ function resolveAgentPath(id: string, rootDir?: string): string {
   // src/agents/, so the sibling <id>.md), the bundled binary (build.mjs copies them
   // to dist/agents/ next to the dist/clad.js bundle), or — as a last resort — the
   // packaged plugin tree. Earlier this returned only `dist/<id>.md`, which the build
-  // never produced, so `clad drive` and the MCP persona prompts crashed on a real
+  // never produced, so `clad run` and the MCP persona prompts crashed on a real
   // npm install. Return the first candidate that exists.
   const candidates = [
     join(here, `${id}.md`), // dev: src/agents/<id>.md

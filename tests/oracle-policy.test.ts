@@ -139,3 +139,30 @@ describe('requiredOracleWorklist', () => {
     expect(rows.every((r) => r.reason === 'exhaustive')).toBe(true);
   });
 });
+
+// ─── F-551a1c — scale-graduated report-only default ───
+
+describe('graduated default (F-551a1c)', () => {
+  test('a grown project (>=8 done) with no declared policy gains a REPORT-ONLY risk-weighted mandate', () => {
+    const r = resolveOraclePolicy(project({}), 8);
+    expect(r.mandateActive).toBe(true);
+    expect(r.reportOnly).toBe(true);
+    expect([...r.alwaysEars]).toEqual(['unwanted']);
+    expect(r.sample).toBe(0);
+  });
+
+  test('below the scale gate (7 done) the default stays inert', () => {
+    const r = resolveOraclePolicy(project({}), 7);
+    expect(r.mandateActive).toBe(false);
+  });
+
+  test('an explicit require_oracles: false is the project saying NO — never graduated', () => {
+    const r = resolveOraclePolicy(project({require_oracles: false}), 50);
+    expect(r.mandateActive).toBe(false);
+  });
+
+  test('explicit policies are never report-only', () => {
+    expect(resolveOraclePolicy(project({oracle_policy: {}}), 50).reportOnly).toBe(false);
+    expect(resolveOraclePolicy(project({require_oracles: true}), 50).reportOnly).toBe(false);
+  });
+});

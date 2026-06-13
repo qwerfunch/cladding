@@ -2,7 +2,7 @@
 //
 // createFeature is the internal-only helper that issues a new sharded
 // feature file with a content-hash id. Tests cover:
-//   - happy path: slug → file written, id matches /^F-[a-f0-9]{6}$/
+//   - happy path: slug → file written, id matches /^F-[a-f0-9]{8}$/
 //   - slug validation: lowercase / kebab / length bounds
 //   - filename collision: existing <slug>.yaml rejected
 //   - hash collision: 2 invocations produce distinct ids (statistical)
@@ -16,6 +16,7 @@ import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 import {parse as parseYaml} from 'yaml';
 
 import {createFeature, createScenario} from '../../src/spec/new.js';
+import {readEvents} from '../../src/events/log.js';
 
 describe('createFeature (F-084, v0.3.9)', () => {
   let dir: string;
@@ -29,7 +30,7 @@ describe('createFeature (F-084, v0.3.9)', () => {
   test('happy path — writes spec/features/<slug>-<hash>.yaml with hash id', () => {
     const r = createFeature({slug: 'login-flow', cwd: dir});
     expect(r.slug).toBe('login-flow');
-    expect(r.id).toMatch(/^F-[a-f0-9]{6}$/);
+    expect(r.id).toMatch(/^F-[a-f0-9]{8}$/);
     // filename = slug + hash; hash matches the id tail
     const hash = r.id.slice(2);
     expect(r.path).toBe(join(dir, 'spec', 'features', `login-flow-${hash}.yaml`));
@@ -168,8 +169,8 @@ describe('createFeature — rich authoring (modules + acceptance_criteria)', () 
     expect(parsed.modules).toEqual(['src/auth/login.ts', 'src/auth/session.ts']);
     expect(parsed.acceptance_criteria).toHaveLength(2);
     // AC ids are hash-model (AC-<hash6>) for multi-dev merge safety, like F-/S- ids.
-    expect(parsed.acceptance_criteria[0].id).toMatch(/^AC-[0-9a-f]{6}$/);
-    expect(parsed.acceptance_criteria[1].id).toMatch(/^AC-[0-9a-f]{6}$/);
+    expect(parsed.acceptance_criteria[0].id).toMatch(/^AC-[0-9a-f]{8}$/);
+    expect(parsed.acceptance_criteria[1].id).toMatch(/^AC-[0-9a-f]{8}$/);
     expect(parsed.acceptance_criteria[0].id).not.toBe(parsed.acceptance_criteria[1].id);
     expect(parsed.acceptance_criteria[0].ears).toBe('ubiquitous');
     expect(parsed.acceptance_criteria[0].text).toContain('shall authenticate');
@@ -271,5 +272,49 @@ describe('createFeature — EARS-shape validation at creation (Lever ①)', () =
     }
     expect(msg).toMatch(/acceptance_criteria\[0\]/);
     expect(msg).toMatch(/acceptance_criteria\[1\]/);
+  });
+});
+
+// ─── F-b84c38 — spec authorship lands in the ledger ───
+
+describe('createFeature ledger emission (F-b84c38)', () => {
+  test('feature_created carries id, slug, and identity', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-new-ev-'));
+    try {
+      const r = createFeature({slug: 'ledger-probe', cwd: dir});
+      const ev = readEvents(dir).filter((e) => e.type === 'feature_created');
+      expect(ev.length).toBe(1);
+      expect(ev[0].payload).toMatchObject({feature: r.id, slug: 'ledger-probe'});
+      expect((ev[0].payload as {identity?: {author?: string}}).identity?.author).toBe('human');
+    } finally {
+      rmSync(dir, {recursive: true, force: true});
+    }
+  });
+});
+
+// ─── done is earned, not declared (mid-scale A/B finding) ───
+
+describe('done-at-creation guard', () => {
+  test("createFeature downgrades status:'done' to in_progress with a note naming clad done", () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-new-doneguard-'));
+    try {
+      const r = createFeature({slug: 'sneaky-done', status: 'done', cwd: dir});
+      const body = readFileSync(r.path, 'utf8');
+      expect(body).toContain('status: in_progress');
+      expect(body).not.toContain('status: done');
+      expect(r.note).toContain('clad done');
+    } finally {
+      rmSync(dir, {recursive: true, force: true});
+    }
+  });
+
+  test('other statuses pass through untouched (planned default, in_progress, blocked)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-new-status-'));
+    try {
+      expect(readFileSync(createFeature({slug: 'a', cwd: dir}).path, 'utf8')).toContain('status: planned');
+      expect(readFileSync(createFeature({slug: 'b', status: 'blocked', cwd: dir}).path, 'utf8')).toContain('status: blocked');
+    } finally {
+      rmSync(dir, {recursive: true, force: true});
+    }
   });
 });

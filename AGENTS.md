@@ -4,7 +4,7 @@ This file is the cross-tool entry point for any AI coding agent working on cladd
 
 ## 1. Project
 
-cladding is the reference implementation of the [Ironclad](https://github.com/qwerfunch/ironclad) standard. Multi-agent dev harness; 13 Iron Law stages; 35 drift detectors; polyglot toolchain (9 languages). Successor to harness-boot.
+cladding is the reference implementation of the [Ironclad](https://github.com/qwerfunch/ironclad) standard. Multi-agent dev harness; 13 Iron Law stages; 36 drift detectors; polyglot toolchain (9 languages). Successor to harness-boot.
 
 ## 2. Setup
 
@@ -45,7 +45,7 @@ Branch off `develop`, never `main`. Open the PR against `develop`. The maintaine
 
 ## 6. Agent personas
 
-cladding ships five persona definitions under `src/agents/`. **Planning intents** (deciding scope · drafting acceptance criteria · drawing a roadmap) are librarian-territory and surface through natural language to the host AI tool, not through a fixed CLI verb. `clad drive` is for *executing* an already-defined plan as a feature group, not for *making* a plan.
+cladding ships five persona definitions under `src/agents/`. **Planning intents** (deciding scope · drafting acceptance criteria · drawing a roadmap) are planner-territory (the persona formerly named `librarian`) and surface through natural language to the host AI tool, not through a fixed CLI verb. `clad run` (formerly `drive`) is for *executing* an already-defined plan as a feature group, not for *making* a plan.
 
 Each file is markdown with a YAML frontmatter that declares two parallel keys:
 

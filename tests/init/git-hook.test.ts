@@ -5,7 +5,8 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {installPreCommitHook, renderPreCommitHook} from '../../src/init/git-hook.js';
+import {installPreCommitHook, renderPreCommitHook, installGitHook} from '../../src/init/git-hook.js';
+import {scaffoldCiWorkflow} from '../../src/cli/init.js';
 
 describe('installPreCommitHook', () => {
   let dir: string;
@@ -62,5 +63,56 @@ describe('installPreCommitHook', () => {
     expect(body.startsWith('#!/bin/sh')).toBe(true);
     expect(body).toContain('not found on PATH');
     expect(body).toContain('exit 0'); // missing tool must NOT block every commit
+  });
+});
+
+// ─── F-16746b — pre-push hook + kind-generalized installer ───
+
+describe('installGitHook pre-push (F-16746b)', () => {
+  test('renders a strict pre-push hook and installs it alongside pre-commit', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-prepush-'));
+    try {
+      mkdirSync(join(dir, '.git'), {recursive: true});
+      const r = installGitHook('pre-push', dir, {version: '0.6.0'});
+      expect(r.result).toBe('created');
+      const body = readFileSync(join(dir, '.git', 'hooks', 'pre-push'), 'utf8');
+      expect(body).toContain('check --tier=pre-push --strict');
+      expect(body).toContain('cladding pre-push hook');
+      // idempotent
+      expect(installGitHook('pre-push', dir, {version: '0.6.0'}).result).toBe('unchanged');
+    } finally {
+      rmSync(dir, {recursive: true, force: true});
+    }
+  });
+
+  test('a foreign pre-push hook is never overwritten without force', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-prepush-foreign-'));
+    try {
+      mkdirSync(join(dir, '.git', 'hooks'), {recursive: true});
+      writeFileSync(join(dir, '.git', 'hooks', 'pre-push'), '#!/bin/sh\n# user hook\nexit 0\n');
+      expect(installGitHook('pre-push', dir).result).toBe('skipped-foreign');
+      expect(readFileSync(join(dir, '.git', 'hooks', 'pre-push'), 'utf8')).toContain('user hook');
+      expect(installGitHook('pre-push', dir, {force: true}).result).toBe('created');
+    } finally {
+      rmSync(dir, {recursive: true, force: true});
+    }
+  });
+});
+
+describe('scaffoldCiWorkflow (F-16746b)', () => {
+  test('creates the authoritative-gate workflow once and never overwrites it', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-ci-'));
+    try {
+      expect(scaffoldCiWorkflow(dir)).toBe('created');
+      const p = join(dir, '.github', 'workflows', 'cladding.yml');
+      const body = readFileSync(p, 'utf8');
+      expect(body).toContain('check --tier=pre-push --strict --json');
+      expect(body).toContain('fetch-depth: 0');
+      writeFileSync(p, '# user-owned\n');
+      expect(scaffoldCiWorkflow(dir)).toBe('exists');
+      expect(readFileSync(p, 'utf8')).toBe('# user-owned\n');
+    } finally {
+      rmSync(dir, {recursive: true, force: true});
+    }
   });
 });

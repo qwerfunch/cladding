@@ -41,13 +41,21 @@ function detect(spec: Spec): readonly DriftFinding[] {
   for (const feature of spec.features) {
     if (feature.status !== 'done') continue;
     for (const ac of feature.acceptance_criteria ?? []) {
-      const hasTestRefs = (ac.test_refs?.length ?? 0) > 0;
+      // F-c037ae — a `derived:` ref is a machine SUGGESTION, not verification:
+      // counting it would convert "verification absent" into fabricated green.
+      const confirmedTestRefs = (ac.test_refs ?? []).filter((r) => !r.startsWith('derived:'));
+      const hasTestRefs = confirmedTestRefs.length > 0;
       const hasEvidenceRefs = (ac.evidence_refs?.length ?? 0) > 0;
+      const derivedOnly = !hasTestRefs && !hasEvidenceRefs && (ac.test_refs?.length ?? 0) > 0;
       if (!hasTestRefs && !hasEvidenceRefs) {
         findings.push({
           detector: NAME,
           severity: 'error',
-          message: `${feature.id}.${ac.id} declares no test_refs or evidence_refs — AC is unverified`,
+          message:
+            `${feature.id}.${ac.id} declares no test_refs or evidence_refs — AC is unverified` +
+            (derivedOnly
+              ? " (a 'derived:' candidate exists — confirm it by removing the prefix, or author a real ref)"
+              : ''),
         });
       }
     }

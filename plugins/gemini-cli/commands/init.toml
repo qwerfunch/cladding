@@ -63,7 +63,7 @@ When `--scan` does **not** fire (brand-new project with <3 source files), `clad 
 - `spec/architecture.yaml` — `version: "0.1"` + empty `layers: []` + a language-specific baseline suggestion in the header comment (TypeScript → `src/cli/` / `src/core/` / `src/lib/` / `src/ui/`, Python → `src/<package>/` / `tests/`, Go → `cmd/` / `pkg/` / `internal/`, …).
 - `spec/capabilities.yaml` — `schema: "0.1"` + `source: README.md` + empty `capabilities: []` + guidance comment on the per-entry shape.
 
-Each seed carries a header marking it as a greenfield template. After you write initial code (and optionally a README), re-run `clad init --scan`; the observed bodies divert to `.cladding/scan/<basename>.proposal` so you can diff seed vs reality and merge the parts you want. Personas downstream (`specialists`, `librarian`) therefore treat every scan artifact as **always present**, with the SEED header telling them which mode is live.
+Each seed carries a header marking it as a greenfield template. After you write initial code (and optionally a README), re-run `clad init --scan`; the observed bodies divert to `.cladding/scan/<basename>.proposal` so you can diff seed vs reality and merge the parts you want. Personas downstream (`developer`, `planner`) therefore treat every scan artifact as **always present**, with the SEED header telling them which mode is live.
 
 After init:
 

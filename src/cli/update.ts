@@ -25,7 +25,7 @@
 //     or rewriting the spec. Reconciling findings stays the user's call.
 //   * Idempotent: a second run with nothing stale is a clean no-op.
 
-import {existsSync} from 'node:fs';
+import {existsSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
 
 import {
@@ -34,12 +34,12 @@ import {
   writeAgentsMd,
   writeClaudeMdSection,
 } from '../init/host-instructions.js';
-import {computeInventory, writeInventoryToSpecYaml} from '../spec/inventory.js';
+import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../spec/inventory.js';
 
 /**
- * Injected so `performUpdate` is unit-testable without touching the global home
+ * Injected so `runUpdate` is unit-testable without touching the global home
  * dir. The drift REPORT is deliberately NOT here — it is report-only and lives
- * in the command wrapper, so `performUpdate` only ever does safe mutations.
+ * in the command wrapper, so `runUpdate` only ever does safe mutations.
  */
 export interface UpdateDeps {
   /** Re-wire host channels (wraps `runHostSetup`); resolves to the wiring-error count. */
@@ -59,6 +59,8 @@ export interface UpdateResult {
   readonly features: number;
   /** Process exit code: nonzero only on host-wiring failure (drift never blocks). */
   readonly code: number;
+  /** Report-only deprecation notices (F-b43066) — dead spec knobs draining out. */
+  readonly deprecations: readonly string[];
 }
 
 /**
@@ -69,7 +71,7 @@ export interface UpdateResult {
  * is unit-testable without the real toolchain or the user's home directory. The
  * stricter-detector REPORT is the caller's job (report-only, never blocks).
  */
-export async function performUpdate(cwd: string, deps: UpdateDeps): Promise<UpdateResult> {
+export async function runUpdate(cwd: string, deps: UpdateDeps): Promise<UpdateResult> {
   // 1. Re-wire hosts (global, idempotent) — useful even outside a project.
   const wiringErrors = await deps.wireHosts();
 
@@ -81,17 +83,39 @@ export async function performUpdate(cwd: string, deps: UpdateDeps): Promise<Upda
       agentsMd: 'n/a',
       features: 0,
       code: wiringErrors > 0 ? 1 : 0,
+      deprecations: [],
     };
   }
 
   // 2. Reconcile the spec.yaml inventory snapshot (deterministic).
   const inv = computeInventory(cwd);
   writeInventoryToSpecYaml(cwd, inv);
+  writeFeatureIndex(cwd); // F-37b4a8
 
   // 3. Refresh the cladding-managed CLAUDE.md / AGENTS.md section — staleness-
   //    based only; user prose preserved, no `--force`, no LLM dispatch.
   const claudeMd = writeClaudeMdSection(cwd);
   const agentsMd = writeAgentsMd(cwd);
+
+  // 4. Deprecation sweep (report-only, F-b43066): dead spec knobs that the
+  //    schema still accepts but 0.7 removes — surfaced here, never blocking.
+  const deprecations: string[] = [];
+  // F-16746b — CI is the authoritative gate; surface its absence (report-only).
+  if (!existsSync(join(cwd, '.github', 'workflows'))) {
+    deprecations.push(
+      'no CI workflow found — client hooks are per-dev bypassable; scaffold the authoritative gate with `clad init --with-ci`.',
+    );
+  }
+  try {
+    const raw = readFileSync(join(cwd, 'spec.yaml'), 'utf8');
+    if (/^\s*token_budget_per_session:/m.test(raw)) {
+      deprecations.push(
+        'ai_hints.token_budget_per_session is deprecated (it never had a runtime consumer) — remove the line; the schema stops accepting it in 0.7.',
+      );
+    }
+  } catch {
+    /* report-only */
+  }
 
   return {
     isProject: true,
@@ -100,5 +124,6 @@ export async function performUpdate(cwd: string, deps: UpdateDeps): Promise<Upda
     agentsMd,
     features: inv.features ?? 0,
     code: wiringErrors > 0 ? 1 : 0,
+    deprecations,
   };
 }

@@ -13,7 +13,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {appendEvent, newEvent, readEvents} from '../../src/events/log.js';
+import {appendEvent, newEvent, readEvents, recordEvent} from '../../src/events/log.js';
 
 describe('events/log.ts', () => {
   let dir: string;
@@ -78,5 +78,63 @@ describe('events/log.ts', () => {
     mkdirSync(join(dir, '.cladding'), {recursive: true});
     appendEvent(dir, newEvent('evidence_recorded', {}));
     expect(readEvents(dir)).toHaveLength(1);
+  });
+});
+
+// ─── F-b84c38 — lifecycle events with identity ───
+
+describe('recordEvent (F-b84c38)', () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'clad-events-'));
+  });
+  afterEach(() => rmSync(dir, {recursive: true, force: true}));
+
+  test('stamps identity and (when in a git repo) head into the payload', () => {
+    recordEvent(dir, 'feature_created', {feature: 'F-test', slug: 'x'});
+    const events = readEvents(dir);
+    expect(events.length).toBe(1);
+    const p = events[0].payload as {identity?: {author: string; name?: string}; head?: string};
+    expect(p.identity?.author).toBe('human');
+    expect(typeof p.identity?.name).toBe('string'); // git author or OS user — always resolvable on a dev box
+  });
+
+  test('never throws even when the cwd is not writable territory', () => {
+    expect(() => recordEvent('/nonexistent/deeply/bogus', 'gate_run', {tier: 'all'})).not.toThrow();
+  });
+
+  test('gate_run dedupes the identical (head, tier, strict, worst) tuple but appends on any change', () => {
+    recordEvent(dir, 'gate_run', {tier: 'pre-push', strict: true, worst: 0, anyFailed: false});
+    recordEvent(dir, 'gate_run', {tier: 'pre-push', strict: true, worst: 0, anyFailed: false}); // identical → skipped
+    recordEvent(dir, 'gate_run', {tier: 'pre-push', strict: true, worst: 1, anyFailed: true}); // worst changed → appended
+    recordEvent(dir, 'gate_run', {tier: 'pre-commit', strict: true, worst: 1, anyFailed: true}); // tier changed → appended
+    const runs = readEvents(dir).filter((e) => e.type === 'gate_run');
+    expect(runs.length).toBe(3);
+  });
+
+  test('non-gate_run types are never deduped', () => {
+    recordEvent(dir, 'done_attempted', {feature: 'F-x', worst: 0, kept: true});
+    recordEvent(dir, 'done_attempted', {feature: 'F-x', worst: 0, kept: true});
+    expect(readEvents(dir).filter((e) => e.type === 'done_attempted').length).toBe(2);
+  });
+});
+
+describe('rotation (F-b84c38)', () => {
+  test('rolls the live log to events.log.1.jsonl past the threshold; reads stay bounded to the live file', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-events-rot-'));
+    try {
+      const live = join(dir, '.cladding', 'events.log.jsonl');
+      mkdirSync(join(dir, '.cladding'), {recursive: true});
+      // Seed a live log just past 5 MB.
+      const line = `${JSON.stringify(newEvent('drift_detected', {pad: 'x'.repeat(1024)}))}\n`;
+      writeFileSync(live, line.repeat(Math.ceil((5 * 1024 * 1024) / line.length) + 10));
+      appendEvent(dir, newEvent('gate_run', {tier: 'all'}));
+      expect(existsSync(join(dir, '.cladding', 'events.log.1.jsonl'))).toBe(true);
+      const events = readEvents(dir);
+      expect(events.length).toBe(1); // live log restarted with just the new event
+      expect(events[0].type).toBe('gate_run');
+    } finally {
+      rmSync(dir, {recursive: true, force: true});
+    }
   });
 });

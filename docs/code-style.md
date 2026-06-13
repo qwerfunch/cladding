@@ -1,6 +1,6 @@
 # Code style
 
-This document is the single source of truth for code style and comment policy across cladding. AGENTS.md and `src/agents/specialists.md` both point here; if a contradiction appears, this file wins, and the others must be patched in the same change.
+This document is the single source of truth for code style and comment policy across cladding. AGENTS.md and `src/agents/developer.md` both point here; if a contradiction appears, this file wins, and the others must be patched in the same change.
 
 ## Code style — Google Style Guides per language
 

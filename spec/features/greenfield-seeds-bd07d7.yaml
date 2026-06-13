@@ -5,8 +5,8 @@ status: done
 modules:
   - src/cli/scan/greenfield-seeds.ts
   - src/cli/init.ts
-  - src/agents/specialists.md
-  - src/agents/librarian.md
+  - src/agents/developer.md
+  - src/agents/planner.md
   - skills/init/SKILL.md
 depends_on:
   - F-40327b
@@ -45,6 +45,6 @@ acceptance_criteria:
   - id: AC-006
     ears: ubiquitous
     action: realign the persona and skill prompts so they treat every scan artifact as always-present and drop the if-absent branch from their guidance
-    response: 'src/agents/specialists.md Code policy collapses to single-state guidance (follow docs/conventions.md, header marks seed vs observed mode); src/agents/librarian.md What you do gains a bullet declaring spec/architecture.yaml + spec/capabilities.yaml are always seeded by clad init and refined to observed bodies by clad init --scan with hand edits staying in the live file; skills/init/SKILL.md gains a Greenfield seeds (v0.3.42+) subsection naming the three seeds and the per-language defaults so adopters can predict the body shape before running the verb'
+    response: 'src/agents/developer.md Code policy collapses to single-state guidance (follow docs/conventions.md, header marks seed vs observed mode); src/agents/planner.md What you do gains a bullet declaring spec/architecture.yaml + spec/capabilities.yaml are always seeded by clad init and refined to observed bodies by clad init --scan with hand edits staying in the live file; skills/init/SKILL.md gains a Greenfield seeds (v0.3.42+) subsection naming the three seeds and the per-language defaults so adopters can predict the body shape before running the verb'
     text: The system shall realign the persona and skill prompts so they treat every scan artifact as always-present and drop the if-absent branch from their guidance.
-    evidence_refs: [src/agents/specialists.md, src/agents/librarian.md, skills/init/SKILL.md]
+    evidence_refs: [src/agents/developer.md, src/agents/planner.md, skills/init/SKILL.md]

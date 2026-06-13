@@ -5,7 +5,9 @@
 // anchor term "Trinity of Integrity"; the legacy filename is kept
 // for traceability). Surfaces "what's covered, what's drifting,
 // what's untracked" as a single text grid. One row per feature, one
-// column per Iron Law stage. Each cell:
+// column per Iron Law stage, plus a trailing `att` column for
+// attestation freshness (spec/attestation.yaml vs current module
+// tree-hashes, F-95a096). Each cell:
 //
 //   ✓  passed
 //   ·  skipped (n/a or not run)
@@ -18,6 +20,7 @@
 
 import {failingAcs} from '../hitl/anti-self-cert.js';
 import {readEvidence} from '../hitl/audit.js';
+import {moduleTreeHash, readAttestation} from '../spec/attestation.js';
 import type {Feature, Spec} from '../spec/types.js';
 import {gateLabel} from './softShell.js';
 
@@ -56,6 +59,24 @@ function cellFor(feature: Feature, stage: string, cwd: string): CellGlyph {
   return '-';
 }
 
+/** F-95a096 — attestation freshness per feature, one glyph:
+ *   ✓  done feature whose module tree-hash matches spec/attestation.yaml
+ *   !  done feature that is unstamped or whose modules changed since the stamp
+ *   ·  n/a (not done, or no modules to attest)
+ *   -  no attestation file yet (verification state unknown) */
+function attestationGlyph(
+  feature: Feature,
+  attested: ReadonlyMap<string, string> | null,
+  cwd: string,
+): CellGlyph {
+  const modules = feature.modules ?? [];
+  if (feature.status !== 'done' || modules.length === 0) return '·';
+  if (attested === null) return '-';
+  const stamp = attested.get(feature.id);
+  if (stamp === undefined) return '!';
+  return stamp === moduleTreeHash(cwd, modules) ? '✓' : '!';
+}
+
 /**
  * Renders a feature × stage grid as a multi-line string.
  *
@@ -73,14 +94,18 @@ export function renderPanel(
   opts: PanelOptions = {},
 ): string {
   const internal = opts.internal ?? false;
-  const stageHeaders = STAGES.map((s) => (internal ? s.replace('stage_', '') : abbreviateGate(s)));
+  const attested = readAttestation(cwd);
+  const stageHeaders = [
+    ...STAGES.map((s) => (internal ? s.replace('stage_', '') : abbreviateGate(s))),
+    'att',
+  ];
   const header = internal
     ? `feature      ${stageHeaders.join(' ')}`
     : `feature${' '.repeat(28)}${stageHeaders.join(' ')}`;
   const rows: RowOutcome[] = spec.features.map((f) => ({
     featureId: f.id,
     title: f.title || f.id,
-    cells: STAGES.map((s) => cellFor(f, s, cwd)),
+    cells: [...STAGES.map((s) => cellFor(f, s, cwd)), attestationGlyph(f, attested, cwd)],
   }));
   const lines = rows.map((r) => {
     const cells = r.cells.join('   ');

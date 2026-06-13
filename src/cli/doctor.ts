@@ -15,9 +15,12 @@
 // so it stays a peer surface that adopters reach for diagnostics, not
 // a gate.
 
+import {existsSync} from 'node:fs';
+import {join} from 'node:path';
 import process from 'node:process';
 
-import {readEvents} from '../events/log.js';
+import {readEvents, type Event} from '../events/log.js';
+import {readAttestation} from '../spec/attestation.js';
 import {pulse} from '../ui/pulse.js';
 import {
   summarizeEvents,
@@ -37,6 +40,34 @@ export interface DoctorReport {
   readonly cwd: string;
   readonly events: EventCounts;
   readonly sentinelMiss: SentinelMissSummary;
+  /** F-95a096 — the governance ledger 0.6.0 writes, summarized for operators. */
+  readonly governance: GovernanceSummary;
+}
+
+export interface GovernanceSummary {
+  readonly gateRuns: number;
+  readonly lastGate: {readonly tier?: string; readonly strict?: boolean; readonly worst?: number} | null;
+  readonly doneAttempts: number;
+  readonly doneRejected: number;
+  readonly stopBlocked: number;
+  readonly unresolvedStopBlock: boolean;
+  readonly attestation: {readonly present: boolean; readonly entries: number};
+}
+
+function summarizeGovernance(cwd: string, events: readonly Event[]): GovernanceSummary {
+  const gateRuns = events.filter((e) => e.type === 'gate_run');
+  const dones = events.filter((e) => e.type === 'done_attempted');
+  const last = gateRuns.at(-1)?.payload;
+  const attested = readAttestation(cwd);
+  return {
+    gateRuns: gateRuns.length,
+    lastGate: last ? {tier: last.tier as string, strict: last.strict as boolean, worst: last.worst as number} : null,
+    doneAttempts: dones.length,
+    doneRejected: dones.filter((e) => e.payload.kept !== true).length,
+    stopBlocked: events.filter((e) => e.type === 'stop_blocked').length,
+    unresolvedStopBlock: existsSync(join(cwd, '.cladding', 'stop-block.json')),
+    attestation: {present: attested !== null, entries: attested?.size ?? 0},
+  };
 }
 
 /**
@@ -60,7 +91,8 @@ export function runDoctorCommand(opts: DoctorCommandOptions = {}): void {
 
   const eventCounts = summarizeEvents(events);
   const sentinelMiss = summarizeSentinelMisses(events);
-  const report: DoctorReport = {cwd, events: eventCounts, sentinelMiss};
+  const governance = summarizeGovernance(cwd, events);
+  const report: DoctorReport = {cwd, events: eventCounts, sentinelMiss, governance};
 
   if (opts.json) {
     process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
@@ -99,6 +131,23 @@ function renderTextReport(report: DoctorReport): void {
   if (typeLine.length > 0) {
     process.stdout.write(`Events:  ${typeLine}\n`);
   }
+
+  // F-95a096 — the governance ledger, readable without parsing JSONL by hand.
+  // Rendered before the sentinel-miss early return: gate/done/stop state is
+  // worth a glance even when the dispatcher is perfectly healthy.
+  process.stdout.write('\nGovernance (lifecycle ledger)\n');
+  const g = report.governance;
+  const lastGate = g.lastGate
+    ? `${g.lastGate.tier} strict=${g.lastGate.strict} → ${g.lastGate.worst === 0 ? 'GREEN' : 'RED'}`
+    : 'never recorded';
+  process.stdout.write(`  gate runs: ${g.gateRuns}  (last: ${lastGate})\n`);
+  process.stdout.write(`  done attempts: ${g.doneAttempts}  rejected by the gate: ${g.doneRejected}\n`);
+  process.stdout.write(`  stop blocks: ${g.stopBlocked}${g.unresolvedStopBlock ? '  ⚠ UNRESOLVED stop-block pending' : ''}\n`);
+  process.stdout.write(
+    g.attestation.present
+      ? `  attestation: ${g.attestation.entries} feature(s) stamped (spec/attestation.yaml)\n`
+      : '  attestation: none — run `clad check --tier=pre-push --strict` GREEN once to stamp\n',
+  );
 
   if (sentinelMiss.total === 0) {
     return;

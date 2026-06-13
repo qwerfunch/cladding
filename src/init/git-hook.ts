@@ -20,8 +20,21 @@
 import {chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 
-/** Marker line that identifies a hook as cladding-authored (for idempotency). */
-const HOOK_MARKER = 'cladding pre-commit hook';
+/** Marker prefix identifying a hook as cladding-authored (for idempotency). */
+const HOOK_MARKER_PREFIX = 'cladding ';
+
+export type HookKind = 'pre-commit' | 'pre-push';
+
+/** Per-kind gate invocation. pre-push carries --strict: it is the local
+ * mirror of the authoritative CI gate (F-16746b), not the cheap subset. */
+const HOOK_CHECK_ARGS: Record<HookKind, string> = {
+  'pre-commit': 'check --tier=pre-commit',
+  'pre-push': 'check --tier=pre-push --strict',
+};
+const HOOK_PURPOSE: Record<HookKind, string> = {
+  'pre-commit': 'Runs the fast spec-native gate (drift / arch / secret) before each commit.',
+  'pre-push': 'Runs the strict verification tier (type / lint / drift / tests / coverage / conformance / smoke) before each push.',
+};
 
 export type HookInstallResult =
   | 'created'
@@ -47,23 +60,29 @@ export interface HookInstallOptions {
  * layer. When `clad` IS found, the hook `exec`s it so `clad check`'s exit code
  * becomes the hook's exit code (non-zero → git aborts the commit).
  */
-export function renderPreCommitHook(version: string): string {
+export function renderGitHook(kind: HookKind, version: string): string {
+  const args = HOOK_CHECK_ARGS[kind];
   return [
     '#!/bin/sh',
-    `# ${HOOK_MARKER} — installed by \`clad init --with-hook\` (cladding v${version})`,
-    '# Runs the fast spec-native gate (drift / arch / secret) before each commit.',
-    '# Bypass once: git commit --no-verify   |   Remove: delete this file.',
+    `# ${HOOK_MARKER_PREFIX}${kind} hook — installed by \`clad init --with-hook\` (cladding v${version})`,
+    `# ${HOOK_PURPOSE[kind]}`,
+    `# Bypass once: git ${kind === 'pre-commit' ? 'commit' : 'push'} --no-verify   |   Remove: delete this file.`,
     'if command -v clad >/dev/null 2>&1; then',
-    '  exec clad check --tier=pre-commit',
+    `  exec clad ${args}`,
     'fi',
     'if command -v npx >/dev/null 2>&1; then',
-    '  exec npx --no-install cladding check --tier=pre-commit',
+    `  exec npx --no-install cladding ${args}`,
     'fi',
-    'echo "cladding pre-commit: \'clad\' not found on PATH — enforcement skipped' +
+    `echo "cladding ${kind}: 'clad' not found on PATH — enforcement skipped` +
       ' (install: npm i -g cladding). The CI gate still enforces." >&2',
     'exit 0',
     '',
   ].join('\n');
+}
+
+/** Back-compat wrapper (pre-0.6 callers/tests). */
+export function renderPreCommitHook(version: string): string {
+  return renderGitHook('pre-commit', version);
 }
 
 /**
@@ -82,9 +101,18 @@ export function installPreCommitHook(
   cwd: string,
   opts: HookInstallOptions = {},
 ): {readonly result: HookInstallResult; readonly path: string} {
+  return installGitHook('pre-commit', cwd, opts);
+}
+
+/** Installs (or refreshes) a cladding git hook of the given kind (F-16746b). */
+export function installGitHook(
+  kind: HookKind,
+  cwd: string,
+  opts: HookInstallOptions = {},
+): {readonly result: HookInstallResult; readonly path: string} {
   const version = opts.version ?? '0.0.0';
   const gitPath = join(cwd, '.git');
-  const hookPath = join(cwd, '.git', 'hooks', 'pre-commit');
+  const hookPath = join(cwd, '.git', 'hooks', kind);
   // Only the common worktree layout (a real `.git/` directory) is handled.
   // A `.git` file (submodule / linked worktree) points elsewhere — skip
   // rather than write to the wrong place.
@@ -92,10 +120,10 @@ export function installPreCommitHook(
     return {result: 'skipped-no-git', path: hookPath};
   }
 
-  const body = renderPreCommitHook(version);
+  const body = renderGitHook(kind, version);
   if (existsSync(hookPath)) {
     const existing = readFileSync(hookPath, 'utf8');
-    const ours = existing.includes(HOOK_MARKER);
+    const ours = existing.includes(`${HOOK_MARKER_PREFIX}${kind} hook`);
     if (ours) {
       if (existing === body) return {result: 'unchanged', path: hookPath};
       writeHook(hookPath, body);

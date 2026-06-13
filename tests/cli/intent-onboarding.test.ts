@@ -179,8 +179,8 @@ describe('extractProjectMetadata (F-00eb1a)', () => {
   });
 
   test('partial block → only present keys', () => {
-    const out = extractProjectMetadata('preferred_persona: librarian\n');
-    expect(out).toEqual({preferred_persona: 'librarian'});
+    const out = extractProjectMetadata('preferred_persona: planner\n');
+    expect(out).toEqual({preferred_persona: 'planner'});
   });
 
   test('malformed YAML → undefined', () => {

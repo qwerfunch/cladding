@@ -6,9 +6,9 @@ Two or more contributors can add new features or scenarios to a cladding-applied
 
 | Layer | Identifier | Scope | Multi-dev safety |
 |---|---|---|---|
-| **Filename** | `<slug>-<hash6>.yaml` (e.g. `login-flow-a3f9c2.yaml`) | one per feature or scenario | ✅ Two contributors with the same slug get different hashes → different file paths → no `git merge` collision |
-| **Feature id** | `F-<hash6>` (e.g. `F-a3f9c2`) — same hash as filename | globally unique by construction | ✅ 1/16M collision probability; `ID_COLLISION` detector catches the rest |
-| **Scenario id** | `S-<hash6>` (e.g. `S-c4d108`) — full feature-symmetric model since v0.3.12 | globally unique by construction | ✅ Same guarantees as features; `F-*` and `S-*` are separate id namespaces |
+| **Filename** | `<slug>-<hash>.yaml` (8 hex since 0.6.0, legacy 6 hex valid; e.g. `login-flow-a3f9c2e1.yaml`) | one per feature or scenario | ✅ Two contributors with the same slug get different hashes → different file paths → no `git merge` collision |
+| **Feature id** | `F-<hash>` (e.g. `F-a3f9c2e1`) — same hash as filename | globally unique by construction | ✅ < 1/4.3B per-pair collision at 8 hex (6-hex birthday bound neared 50% at ~5k features); `ID_COLLISION` detector catches the rest |
+| **Scenario id** | `S-<hash>` (e.g. `S-c4d108e9`) — full feature-symmetric model since v0.3.12 | globally unique by construction | ✅ Same guarantees as features; `F-*` and `S-*` are separate id namespaces |
 | **Slug** (yaml field) | `login-flow` | human-readable anchor, separate namespaces for features vs scenarios | ⚠️ Two contributors picking the same slug within the same namespace is *expected* if they have the same intent; `SLUG_CONFLICT` detector raises this as an error so a human resolves it |
 | **AC id** | `AC-001` ~ `AC-NNN` | **feature-scoped sequential** | ✅ `F-001.AC-001` and `F-002.AC-001` coexist freely; `AC_DUPLICATE_WITHIN_FEATURE` catches intra-feature duplicates |
 | **Legacy `F-NNN` / `S-NNN`** | `F-001` ~ `F-083`, `S-001`, `S-002` | global sequential (pre-v0.3.9 / pre-v0.3.12) | ✅ Coexists with the new model forever — no migration required |

@@ -1,32 +1,47 @@
 <svg width="700" height="460" viewBox="0 0 700 460" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="cycle-title">
-  <title id="cycle-title">Spec → Code → Tests 가 한 cycle 로 순환 — 한 feature lifecycle</title>
-  <rect x="240" y="30" width="220" height="90" rx="45" fill="#dcfce7" stroke="#16a34a" stroke-width="2.5"/>
-  <text x="350" y="62" font-family="sans-serif" font-size="18" font-weight="800" fill="#15803d" text-anchor="middle">Spec — SSoT</text>
-  <text x="350" y="84" font-family="sans-serif" font-size="12" fill="#166534" text-anchor="middle">의도(왜)가 기록된 곳</text>
-  <text x="350" y="103" font-family="monospace" font-size="11" fill="#166534" text-anchor="middle">spec.yaml</text>
+  <title id="cycle-title">Spec → Code → Tests 순환 — 한 feature lifecycle</title>
+  <defs>
+    <marker id="ah" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L9,4 L0,8 z" fill="#475569"/>
+    </marker>
+  </defs>
 
-  <rect x="430" y="310" width="220" height="90" rx="45" fill="#dbeafe" stroke="#2563eb" stroke-width="2.5"/>
-  <text x="540" y="342" font-family="sans-serif" font-size="18" font-weight="800" fill="#1d4ed8" text-anchor="middle">Code — Iron Law</text>
-  <text x="540" y="364" font-family="sans-serif" font-size="12" fill="#1e3a8a" text-anchor="middle">13 단계 필수 검증</text>
-  <text x="540" y="383" font-family="monospace" font-size="11" fill="#1e3a8a" text-anchor="middle">clad check</text>
+  <!-- Title -->
+  <text x="350" y="30" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="17" font-weight="700" fill="#0f172a" text-anchor="middle">Spec → Code → Tests 순환</text>
 
-  <rect x="50" y="310" width="220" height="90" rx="45" fill="#fef9c3" stroke="#ca8a04" stroke-width="2.5"/>
-  <text x="160" y="342" font-family="sans-serif" font-size="17" font-weight="800" fill="#854d0e" text-anchor="middle">Tests — Drift Detection</text>
-  <text x="160" y="364" font-family="sans-serif" font-size="12" fill="#713f12" text-anchor="middle">27 어긋남 검사기 · 7 카테고리</text>
-  <text x="160" y="383" font-family="monospace" font-size="11" fill="#713f12" text-anchor="middle">매 commit 자동</text>
+  <!-- Spec box (top, green) -->
+  <rect x="225" y="54" width="250" height="82" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="350" y="82" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="16" font-weight="700" fill="#0f172a" text-anchor="middle">Spec</text>
+  <text x="350" y="104" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#475569" text-anchor="middle">의도의 기록</text>
+  <text x="350" y="123" font-family="'SF Mono', Menlo, monospace" font-size="11" fill="#64748b" text-anchor="middle">spec/features/*.yaml</text>
 
-  <path d="M 460 110 Q 620 220 540 308" fill="none" stroke="#1e293b" stroke-width="2.5"/>
-  <polygon points="532,300 543,310 533,315" fill="#1e293b"/>
-  <text x="610" y="215" font-family="sans-serif" font-size="13" font-style="italic" font-weight="600" fill="#475569" text-anchor="middle">enforces</text>
+  <!-- Code box (bottom-right, blue) -->
+  <rect x="425" y="330" width="255" height="75" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="552" y="360" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="16" font-weight="700" fill="#0f172a" text-anchor="middle">Code</text>
+  <text x="552" y="386" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#475569" text-anchor="middle">구현 — LLM이 작성</text>
 
-  <line x1="430" y1="355" x2="282" y2="355" stroke="#1e293b" stroke-width="2.5"/>
-  <polygon points="290,349 278,355 290,361" fill="#1e293b"/>
-  <text x="355" y="345" font-family="sans-serif" font-size="13" font-style="italic" font-weight="600" fill="#475569" text-anchor="middle">detects</text>
+  <!-- Tests box (bottom-left, amber) -->
+  <rect x="20" y="330" width="255" height="75" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+  <text x="147" y="360" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="16" font-weight="700" fill="#0f172a" text-anchor="middle">Tests</text>
+  <text x="147" y="386" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#475569" text-anchor="middle">증거 — AC ↔ test 연결</text>
 
-  <path d="M 160 310 Q 80 220 240 110" fill="none" stroke="#1e293b" stroke-width="2.5"/>
-  <polygon points="237,118 247,108 252,120" fill="#1e293b"/>
-  <text x="90" y="215" font-family="sans-serif" font-size="13" font-style="italic" font-weight="600" fill="#475569" text-anchor="middle">feeds back</text>
+  <!-- Arrow: Spec → Code (right side, clockwise) -->
+  <path d="M 475 108 Q 625 200 545 328" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#ah)"/>
+  <text x="515" y="212" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="13" font-weight="600" fill="#475569" text-anchor="middle">의도 주입</text>
 
-  <text x="350" y="218" font-family="sans-serif" font-size="14" font-weight="700" fill="#1e293b" text-anchor="middle">한 feature lifecycle</text>
-  <text x="350" y="238" font-family="sans-serif" font-size="11" fill="#64748b" text-anchor="middle">매 commit 통과해야 merge</text>
+  <!-- Arrow: Code → Tests (bottom) -->
+  <line x1="425" y1="368" x2="277" y2="368" stroke="#475569" stroke-width="2" marker-end="url(#ah)"/>
+  <text x="350" y="357" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="13" font-weight="600" fill="#475569" text-anchor="middle">검증</text>
+
+  <!-- Arrow: Tests → Spec (left side, clockwise) -->
+  <path d="M 150 330 Q 75 200 223 110" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#ah)"/>
+  <text x="185" y="200" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="13" font-weight="600" fill="#475569" text-anchor="middle">어긋남은 차단</text>
+  <text x="185" y="219" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="13" font-weight="600" fill="#475569" text-anchor="middle">갱신은 기록</text>
+
+  <!-- Center: the gate -->
+  <text x="350" y="232" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="13" font-weight="700" fill="#0f172a" text-anchor="middle">검증 관문</text>
+  <text x="350" y="254" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#475569" text-anchor="middle">15단계 필수 검증 · 36가지 어긋남 검사</text>
+
+  <!-- Caption -->
+  <text x="350" y="438" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#64748b" text-anchor="middle">한 feature 씩 — 검증 통과로 완료를 획득해야 cycle이 닫힌다</text>
 </svg>

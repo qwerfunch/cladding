@@ -10,6 +10,7 @@ import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
 import {inventoryDrift} from '../../src/stages/detectors/inventory-drift.js';
+import {writeFeatureIndex} from '../../src/spec/inventory.js';
 
 const BASE = 'schema: "0.1"\nproject: {name: x, language: typescript}\nfeatures: []\n';
 
@@ -78,5 +79,44 @@ describe('INVENTORY_DRIFT detector', () => {
   test('skips silently when there is no loadable spec (within-spec-validity policy)', () => {
     // no spec.yaml written
     expect(inventoryDrift.run({cwd: dir})).toEqual([]);
+  });
+});
+
+// ─── F-37b4a8 — stale committed index is drift ───
+
+describe('index staleness (F-37b4a8)', () => {
+  test('flags a committed index whose id set disagrees with shards, names both directions, cures with clad sync', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-invdrift-idx-'));
+    try {
+      mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
+      writeFileSync(join(dir, 'spec', 'features', 'real-aaaa11.yaml'), 'id: F-aaaa11\nslug: real\ntitle: real\nstatus: done\nmodules: []\nacceptance_criteria:\n  - {id: AC-001, ears: ubiquitous, text: t, test_refs: [spec.yaml]}\n');
+      writeFileSync(
+        join(dir, 'spec', 'index.yaml'),
+        'features:\n  F-gone99: {slug: ghost, status: done, modules: 0}\n',
+      );
+      writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nproject: {name: x, language: typescript}\nfeatures: []\n');
+      const findings = inventoryDrift.run({cwd: dir});
+      const idx = findings.find((f) => f.path === 'spec/index.yaml');
+      expect(idx?.severity).toBe('error');
+      expect(idx?.message).toContain('F-aaaa11');
+      expect(idx?.message).toContain('F-gone99');
+      expect(idx?.message).toContain('clad sync');
+    } finally {
+      rmSync(dir, {recursive: true, force: true});
+    }
+  });
+
+  test('a regenerated (fresh) index produces no index finding', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-invdrift-fresh-'));
+    try {
+      mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
+      writeFileSync(join(dir, 'spec', 'features', 'real-aaaa11.yaml'), 'id: F-aaaa11\nslug: real\ntitle: real\nstatus: done\nmodules: []\nacceptance_criteria:\n  - {id: AC-001, ears: ubiquitous, text: t, test_refs: [spec.yaml]}\n');
+      writeFeatureIndex(dir);
+      writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nproject: {name: x, language: typescript}\nfeatures: []\n');
+      const findings = inventoryDrift.run({cwd: dir});
+      expect(findings.find((f) => f.path === 'spec/index.yaml')).toBeUndefined();
+    } finally {
+      rmSync(dir, {recursive: true, force: true});
+    }
   });
 });

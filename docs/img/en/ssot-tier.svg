@@ -1,25 +1,57 @@
-<svg width="640" height="440" viewBox="0 0 640 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ssot-tier-title">
-  <title id="ssot-tier-title">4-tier SSoT — A(Spec) → B(Design) → C(Derived) → D(Audit), A outranks B</title>
-  <rect x="40" y="20" width="560" height="72" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
-  <text x="60" y="48" font-family="sans-serif" font-size="16" font-weight="700" fill="#15803d">A — Spec  ·  intent (what to build)</text>
-  <text x="60" y="74" font-family="monospace" font-size="13" fill="#166534">spec.yaml  ·  spec/features/*.yaml</text>
-  <line x1="320" y1="92" x2="320" y2="120" stroke="#1e293b" stroke-width="2"/>
-  <polygon points="314,114 320,124 326,114" fill="#1e293b"/>
-  <text x="332" y="111" font-family="sans-serif" font-size="12" font-style="italic" fill="#475569">A outranks</text>
-  <rect x="40" y="125" width="560" height="92" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
-  <text x="60" y="153" font-family="sans-serif" font-size="16" font-weight="700" fill="#1d4ed8">B — Design  ·  design (how to build it)</text>
-  <text x="60" y="180" font-family="monospace" font-size="13" fill="#1e40af">architecture.yaml  ·  project-context.md</text>
-  <text x="60" y="200" font-family="monospace" font-size="13" fill="#1e40af">ai_hints  ·  conventions.md</text>
-  <line x1="320" y1="217" x2="320" y2="245" stroke="#1e293b" stroke-width="2"/>
-  <polygon points="314,239 320,249 326,239" fill="#1e293b"/>
-  <text x="332" y="236" font-family="sans-serif" font-size="12" font-style="italic" fill="#475569">implement</text>
-  <rect x="40" y="250" width="560" height="72" rx="8" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
-  <text x="60" y="278" font-family="sans-serif" font-size="16" font-weight="700" fill="#334155">C — Derived  ·  implementation (code · tests)</text>
-  <text x="60" y="304" font-family="monospace" font-size="13" fill="#475569">src/**/*.ts  ·  tests/**/*.test.ts</text>
-  <line x1="320" y1="322" x2="320" y2="350" stroke="#1e293b" stroke-width="2"/>
-  <polygon points="314,344 320,354 326,344" fill="#1e293b"/>
-  <text x="332" y="341" font-family="sans-serif" font-size="12" font-style="italic" fill="#475569">event log</text>
-  <rect x="40" y="355" width="560" height="65" rx="8" fill="#e2e8f0" stroke="#475569" stroke-width="2"/>
-  <text x="60" y="383" font-family="sans-serif" font-size="16" font-weight="700" fill="#1e293b">D — Audit  ·  audit log (what actually happened)</text>
-  <text x="60" y="408" font-family="monospace" font-size="13" fill="#334155">.cladding/events.log.jsonl</text>
+<svg width="640" height="540" viewBox="0 0 640 540" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ssot-tier-title">
+  <title id="ssot-tier-title">4-Tier SSoT — A(Spec) → B(Design) → C(Derived) → D(Audit), A outranks B</title>
+  <defs>
+    <marker id="ah" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L9,4 L0,8 z" fill="#475569"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="320" y="36" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="17" font-weight="700" fill="#0f172a">4-Tier SSoT — single source of truth (v0.6.0)</text>
+
+  <!-- Band A : Spec -->
+  <rect x="20" y="56" width="424" height="84" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="232" y="83" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="15" font-weight="700" fill="#15803d">A — Spec</text>
+  <text x="232" y="105" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="13" fill="#0f172a">intent · human-defined · sealed (LLM may not edit)</text>
+  <text x="232" y="126" text-anchor="middle" font-family="'SF Mono', Menlo, monospace" font-size="11.5" fill="#475569">spec.yaml · spec/features/&lt;slug&gt;-&lt;hash8&gt;.yaml</text>
+
+  <!-- Arrow A -> B -->
+  <line x1="232" y1="142" x2="232" y2="166" stroke="#475569" stroke-width="1.8" marker-end="url(#ah)"/>
+  <text x="246" y="158" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#64748b">A outranks</text>
+
+  <!-- Band B : Design -->
+  <rect x="20" y="168" width="424" height="84" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="232" y="195" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="15" font-weight="700" fill="#1d4ed8">B — Design</text>
+  <text x="232" y="217" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="13" fill="#0f172a">design · humans edit freely · checked against A</text>
+  <text x="232" y="238" text-anchor="middle" font-family="'SF Mono', Menlo, monospace" font-size="11.5" fill="#475569">architecture.yaml · ai_hints · conventions.md</text>
+
+  <!-- Arrow B -> C -->
+  <line x1="232" y1="254" x2="232" y2="278" stroke="#475569" stroke-width="1.8" marker-end="url(#ah)"/>
+  <text x="246" y="270" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#64748b">implement</text>
+
+  <!-- Band C : Derived -->
+  <rect x="20" y="280" width="424" height="104" rx="10" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="232" y="307" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="15" font-weight="700" fill="#334155">C — Derived</text>
+  <text x="232" y="329" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="13" fill="#0f172a">artifacts (code · tests) + attestation</text>
+  <text x="232" y="349" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="13" fill="#475569">auto-regenerated · attestation earned by passing the gate</text>
+  <text x="232" y="370" text-anchor="middle" font-family="'SF Mono', Menlo, monospace" font-size="11.5" fill="#475569">src/ · tests/ · attestation.yaml</text>
+
+  <!-- Arrow C -> D -->
+  <line x1="232" y1="386" x2="232" y2="410" stroke="#475569" stroke-width="1.8" marker-end="url(#ah)"/>
+  <text x="246" y="402" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#64748b">event log</text>
+
+  <!-- Band D : Audit -->
+  <rect x="20" y="412" width="424" height="84" rx="10" fill="#e2e8f0" stroke="#64748b" stroke-width="2"/>
+  <text x="232" y="439" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="15" font-weight="700" fill="#1e293b">D — Audit</text>
+  <text x="232" y="461" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="13" fill="#0f172a">audit log · append-only · immutable</text>
+  <text x="232" y="482" text-anchor="middle" font-family="'SF Mono', Menlo, monospace" font-size="11.5" fill="#475569">.cladding/events.log.jsonl</text>
+
+  <!-- Side annotation bracket : spans A..C -->
+  <path d="M466,60 h-6 v320 h6" fill="none" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="478" y="200" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="13" font-weight="700" fill="#0f172a">A outranks B</text>
+  <text x="478" y="222" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#475569">if code and spec disagree,</text>
+  <text x="478" y="240" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#475569">the code is wrong</text>
+
+  <!-- Caption -->
+  <text x="320" y="522" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#64748b">tier alignment is enforced by the 15-stage gate · 36 drift detectors</text>
 </svg>

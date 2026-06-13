@@ -10,7 +10,7 @@ import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
 import {
-  autoMaintainDeliverable,
+  maintainDeliverable,
   detectDeliverable,
   detectEntry,
   hasDeliverable,
@@ -95,12 +95,12 @@ describe('deliverable auto-detection', () => {
     expect(upsertDeliverableBlock(out, {path: './x', is_safe_to_smoke: true})).toBe(out); // no override
   });
 
-  test('autoMaintainDeliverable writes a calibrated deliverable, then skips on re-run', () => {
+  test('maintainDeliverable writes a calibrated deliverable, then skips on re-run', () => {
     writeSpec();
     writeRun('exit 0');
-    const d = autoMaintainDeliverable(dir);
+    const d = maintainDeliverable(dir);
     expect(d?.is_safe_to_smoke).toBe(true);
     expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).toMatch(/deliverable:/);
-    expect(autoMaintainDeliverable(dir)).toBeNull(); // already present → no-op
+    expect(maintainDeliverable(dir)).toBeNull(); // already present → no-op
   });
 });

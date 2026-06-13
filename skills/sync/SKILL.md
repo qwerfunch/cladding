@@ -11,7 +11,7 @@ Run `clad sync` from the project root. The command:
 - Reports the feature count and any validation failures.
 - Exits non-zero when the spec is invalid so CI can gate on it.
 
-Spec must be valid before `clad check`, `clad drive`, or any stage runner produces meaningful output. If `sync` fails, fix the reported issues first.
+Spec must be valid before `clad check`, `clad run`, or any stage runner produces meaningful output. If `sync` fails, fix the reported issues first.
 
 ```
 clad sync

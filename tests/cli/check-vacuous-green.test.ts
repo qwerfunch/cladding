@@ -19,6 +19,8 @@ vi.mock('../../src/stages/unit.js', () => ({runUnit: vi.fn(skip)}));
 vi.mock('../../src/stages/cov.js', () => ({runCov: vi.fn(pass)}));
 vi.mock('../../src/stages/spec-conformance.js', () => ({runSpecConformance: vi.fn(pass)}));
 
+vi.mock('../../src/events/log.js', () => ({recordEvent: vi.fn()}));
+
 vi.mock('../../src/spec/load.js', () => ({
   loadSpec: vi.fn(() => ({
     features: [

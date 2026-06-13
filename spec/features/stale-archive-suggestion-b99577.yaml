@@ -6,7 +6,7 @@ modules:
   - src/stages/types.ts
   - src/stages/detectors/stale-specification.ts
   - src/cli/clad.ts
-  - src/agents/librarian.md
+  - src/agents/planner.md
 depends_on:
   - F-12d740
 acceptance_criteria:
@@ -37,6 +37,6 @@ acceptance_criteria:
   - id: AC-005
     ears: ubiquitous
     action: document Tier 2 responsibility in the Librarian agent persona
-    response: 'src/agents/librarian.md What-you-do section gains a Tier 2 bullet that names clad sync --propose-archive and clarifies that the agent confirms each candidate before writing archived_at + archive_reason; the never-archive-silently invariant from earlier versions stays intact'
+    response: 'src/agents/planner.md What-you-do section gains a Tier 2 bullet that names clad sync --propose-archive and clarifies that the agent confirms each candidate before writing archived_at + archive_reason; the never-archive-silently invariant from earlier versions stays intact'
     text: The system shall document the Tier 2 responsibility in the Librarian agent persona so a future Librarian invocation knows the new entry point and the human-in-the-loop boundary remains explicit.
-    evidence_refs: [src/agents/librarian.md]
+    evidence_refs: [src/agents/planner.md]

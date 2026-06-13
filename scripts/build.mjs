@@ -52,9 +52,20 @@ copyFileSync('src/spec/schema.json', 'dist/schema.json');
 // Copy the persona prompts next to the bundle so the agent loader
 // (loadPersona → resolveAgentPath) finds them on a real npm install — the
 // bundle's `__dirname` is `dist/`, so personas must live at `dist/agents/<id>.md`.
-// Without this, `clad drive` and the MCP persona prompts crashed (the build only
+// Without this, `clad run` and the MCP persona prompts crashed (the build only
 // shipped personas under plugins/, never next to the bundle).
 mkdirSync('dist/agents', {recursive: true});
+// Sweep stale personas from earlier builds first (e.g. the pre-0.6.0
+// `librarian.md` / `specialists.md` — renamed to planner/developer). The
+// filesystem mirror must track src/agents exactly, or a removed persona
+// would silently keep loading from the stale copy.
+import {rmSync, existsSync} from 'node:fs';
+const srcPersonas = new Set(readdirSync('src/agents').filter((f) => f.endsWith('.md')));
+if (existsSync('dist/agents')) {
+  for (const f of readdirSync('dist/agents')) {
+    if (f.endsWith('.md') && !srcPersonas.has(f)) rmSync(`dist/agents/${f}`);
+  }
+}
 let personaCount = 0;
 for (const f of readdirSync('src/agents')) {
   if (!f.endsWith('.md')) continue;

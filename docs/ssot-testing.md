@@ -15,7 +15,7 @@ Empty tmpdir + user intent "결제 SaaS for B2B":
 | Stage | What happens | What we assert |
 |---|---|---|
 | **S1** | `clad init <intent>` with LLM-mocked onboarding response | All 4 tiers present, every artifact's first line is the standard Tier banner, F-001 title is intent-derived, 2 scenarios shards land |
-| **S2** | `clad refine 법인 사업자만` | First pending question marked answered, existing artifacts diverted to `.cladding/scan/*.proposal`, capabilities grow by 1 |
+| **S2** | `clad clarify 법인 사업자만` | First pending question marked answered, existing artifacts diverted to `.cladding/scan/*.proposal`, capabilities grow by 1 |
 | **S3** | Test writes 3+ TS files matching the architecture's suggested layers | (no command — simulates real-world development) |
 | **S4** | Cross-tier consistency check (`assertCrossTierClean`) | `CAPABILITIES_FEATURE_MAPPING` + `ARCHITECTURE_FROM_SPEC` + `REFERENCE_INTEGRITY` emit zero errors |
 | **S5** | `clad init --scan` re-runs after code was written | `docs/conventions.md` + `spec/architecture.yaml` diverted to proposal; live files preserve onboarding seed |
@@ -29,7 +29,7 @@ Pre-existing TS project (`tests/scenarios/_fixtures/sample-existing-ts/`, 8 sour
 |---|---|---|
 | **S1** | Test copies fixture into tmpdir | `SCAN_AUTO_THRESHOLD ≥ 3` satisfied |
 | **S2** | `clad init <adoption-intent>` with LLM-mocked existing-adoption response | `onboardingMode = 'existing-adoption'`, observed layers (api/lib/util) in `architecture.yaml`, capabilities from README headings (Install/Usage/API) |
-| **S3** | `clad refine` with a follow-up answer | Tier A `spec.yaml` untouched, Tier B artifacts diverted to proposal |
+| **S3** | `clad clarify` with a follow-up answer | Tier A `spec.yaml` untouched, Tier B artifacts diverted to proposal |
 | **S4** | Hand-author a new feature shard `spec/features/refund-flow-abc123.yaml` + its module | Tier A banner on the new shard; module on disk |
 | **S5** | Bind F-abc123 to the 'api' capability via `features[]` | `CAPABILITIES_FEATURE_MAPPING` accepts the link (no errors) |
 | **S6** | Final digest + size budget assertion | Same as greenfield S6 |
@@ -96,7 +96,7 @@ Each lifecycle test's final stage calls `assertNoBudgetOverages` which prints a 
 
 [persona]
   ✓ src/agents/orchestrator.md: 64 lines · 4962 chars · ~1241 tokens  (budget: 80L / 5500c / ~1375t)
-  ✓ src/agents/librarian.md: 58 lines · 3426 chars · ~857 tokens  (budget: 75L / 4200c / ~1050t)
+  ✓ src/agents/planner.md: 58 lines · 3426 chars · ~857 tokens  (budget: 75L / 4200c / ~1050t)
   …
 
 [meta-doc]
@@ -117,7 +117,7 @@ PR #131's claim is that the 4-tier model improves development output quality. Th
 
 2. **Cross-document drift errors → 0** — every detector emits clean at end-of-lifecycle. `CAPABILITIES_FEATURE_MAPPING` confirms the capability ↔ feature link in Case 2 S5.
 
-3. **Refresh policy preserved** — re-running `clad init --scan` (Greenfield S5) and `clad refine` (S2) diverts to `.cladding/scan/*.proposal` instead of overwriting user edits. `assertProposalDivert` codifies this.
+3. **Refresh policy preserved** — re-running `clad init --scan` (Greenfield S5) and `clad clarify` (S2) diverts to `.cladding/scan/*.proposal` instead of overwriting user edits. `assertProposalDivert` codifies this.
 
 If these three signals stay green across the full lifecycle, the SSoT model is delivering the promised quality improvement. If any regress, the failing test names the gap.
 

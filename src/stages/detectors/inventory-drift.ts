@@ -13,7 +13,10 @@
 // always `clad sync` (and the create tools now auto-sync, so a fresh project
 // should never trip this — it catches hand-edits and stale checkouts).
 
+import {existsSync, readFileSync, readdirSync} from 'node:fs';
+
 import {computeInventory} from '../../spec/inventory.js';
+import {join} from 'node:path';
 import {loadSpec} from '../../spec/load.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
 
@@ -49,9 +52,10 @@ function run(opts: CommandStageOptions): readonly DriftFinding[] {
   // project (0 shards) legitimately needs no inventory and stays silent.
   if (!declared) {
     const present = DIMENSIONS.filter(([key]) => (actual[key] ?? 0) > 0);
-    if (present.length === 0) return [];
+    if (present.length === 0) return indexStaleness(cwd);
     const summary = present.map(([key, label]) => `${actual[key] ?? 0} ${label}`).join(', ');
     return [
+      ...indexStaleness(cwd),
       {
         detector: NAME,
         severity: 'warn',
@@ -79,7 +83,54 @@ function run(opts: CommandStageOptions): readonly DriftFinding[] {
       });
     }
   }
+  findings.push(...indexStaleness(cwd));
   return findings;
+}
+
+/**
+ * F-37b4a8 — the committed generated index must agree with the shards. A
+ * stale index is worse than none: agents trust it for 1-file lookup, so a
+ * missing/extra id silently misleads them. Same cure as count drift.
+ */
+function indexStaleness(cwd: string): readonly DriftFinding[] {
+  const indexPath = join(cwd, 'spec', 'index.yaml');
+  const featuresDir = join(cwd, 'spec', 'features');
+  if (!existsSync(indexPath) || !existsSync(featuresDir)) return [];
+  const inIndex = new Set<string>();
+  try {
+    for (const line of readFileSync(indexPath, 'utf8').split('\n')) {
+      const m = line.match(/^  (F-[\w-]+):/);
+      if (m) inIndex.add(m[1]);
+    }
+  } catch {
+    return [];
+  }
+  const onDisk = new Set<string>();
+  try {
+    for (const file of readdirSync(featuresDir)) {
+      if (!file.endsWith('.yaml') && !file.endsWith('.yml')) continue;
+      const m = readFileSync(join(featuresDir, file), 'utf8').match(/^id:\s*['\"]?(F-[\w-]+)['\"]?/m);
+      if (m) onDisk.add(m[1]);
+    }
+  } catch {
+    return [];
+  }
+  const missing = [...onDisk].filter((id) => !inIndex.has(id)).sort();
+  const extra = [...inIndex].filter((id) => !onDisk.has(id)).sort();
+  if (missing.length === 0 && extra.length === 0) return [];
+  const parts: string[] = [];
+  if (missing.length > 0) parts.push(`missing from index: ${missing.join(', ')}`);
+  if (extra.length > 0) parts.push(`in index but not on disk: ${extra.join(', ')}`);
+  return [
+    {
+      detector: NAME,
+      severity: 'error',
+      path: 'spec/index.yaml',
+      message:
+        `spec/index.yaml disagrees with spec/features/ (${parts.join('; ')})` +
+        ' — run `clad sync` to regenerate (a stale index silently misleads agents that trust it for lookup).',
+    },
+  ];
 }
 
 export const inventoryDrift: DriftDetector = {name: NAME, run};

@@ -3,7 +3,7 @@
 // v0.2.0 rewires the v0.1 deterministic floor so each ready feature
 // is now authored through the {@link AgentAdapter} layer:
 //
-//   1. specialists persona drafts the implementation (mock or real),
+//   1. developer persona drafts the implementation (mock or real),
 //   2. its mutations are applied to the working tree,
 //   3. L1 gates (Type / Lint / Arch) verify the result,
 //   4. reviewer persona inspects in a separate dispatch — the
@@ -192,7 +192,7 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
     spec.features.filter((f) => f.status === 'done' || f.status === 'archived').map((f) => f.id),
   );
 
-  const specialists = loadPersona('specialists');
+  const developer = loadPersona('developer');
   const reviewer = loadPersona('reviewer');
 
   while (true) {
@@ -257,10 +257,10 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
     const ctx = ctxFor(cwd, ready);
 
     // Step 1 — specialist authors the implementation.
-    pulseProgress('drive', ready.id, 'specialist');
+    pulseProgress('run', ready.id, 'specialist');
     let specialistIdentity: string | undefined;
     try {
-      const specialistOut = await runAgent(specialists, ctx);
+      const specialistOut = await runAgent(developer, ctx);
       specialistIdentity = specialistOut.result.identity.name;
       applyMutations(cwd, specialistOut.result.mutations);
     } catch (err) {
@@ -283,7 +283,7 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
     // is partially stubbed and a spec-wide MISSING_IMPLEMENTATION
     // sweep would always fail. `clad check` covers drift after the
     // loop completes.
-    pulseProgress('drive', ready.id, 'L1 gates');
+    pulseProgress('run', ready.id, 'L1 gates');
     const gates = [
       ['stage_1.1', runType({cwd})],
       ['stage_1.2', runLint({cwd})],
@@ -310,7 +310,7 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
     // Step 4 — reviewer inspects. ReviewerIdentityCollisionError
     // bubbles up from drive/agent.ts when the adapter returns an
     // identity equal to the specialist — halt with HUMAN_REQUIRED.
-    pulseProgress('drive', ready.id, 'reviewer');
+    pulseProgress('run', ready.id, 'reviewer');
     try {
       await runAgent(reviewer, ctx, {implementerIdentityName: specialistIdentity});
     } catch (err) {
@@ -333,7 +333,7 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
     // Step 5 — UAT (stage_4.2) requires a human-pass evidence.
     // Without one the loop pauses for sign-off instead of marking
     // the feature done.
-    pulseProgress('drive', ready.id, 'UAT');
+    pulseProgress('run', ready.id, 'UAT');
     const uat = runUat({cwd});
     if (!uat.pass && uat.exitCode !== 2) {
       pulseProgressEnd('fail', ready.id, 'UAT human sign-off required');
@@ -363,7 +363,7 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
           featureId: ready.id,
           stage: 'stage_1.3',
           kind: 'pass',
-          content: 'clad drive — L1 gates pass after specialist + reviewer dispatch',
+          content: 'clad run — L1 gates pass after specialist + reviewer dispatch',
           identity: {author: 'tool', name: 'clad-drive'},
         }),
       );
@@ -376,7 +376,7 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
             acId,
             stage: 'stage_1.3',
             kind: 'pass',
-            content: `clad drive — L1 gates pass for ${acId}`,
+            content: `clad run — L1 gates pass for ${acId}`,
             identity: {author: 'tool', name: 'clad-drive'},
           }),
         );

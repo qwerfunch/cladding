@@ -76,12 +76,12 @@
           "properties": {
             "preferred_persona": {
               "type": "string",
-              "description": "Which persona prompt to load by default (e.g. 'software-engineer', 'specialist', 'reviewer', 'observability', 'librarian')."
+              "description": "Which persona prompt to load by default (e.g. 'planner', 'developer', 'reviewer', 'observability', 'orchestrator')."
             },
             "token_budget_per_session": {
               "type": "integer",
               "minimum": 100,
-              "description": "Soft cap on tokens a single AI session should consume on this project."
+              "description": "DEPRECATED 0.6.0 (F-b43066): never had a runtime consumer; no longer written by init/clarify. Accepted for backward compatibility; removal in 0.7. Soft cap on tokens a single AI session should consume on this project."
             },
             "test_framework": {
               "type": "string",

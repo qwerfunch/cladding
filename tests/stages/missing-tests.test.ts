@@ -124,3 +124,26 @@ describe('MISSING_TESTS detector', () => {
     expect(acIds).toEqual(['AC-001', 'AC-003']);
   });
 });
+
+// ─── F-c037ae — derived-only refs do NOT satisfy verification ───
+
+describe('derived-only refs (F-c037ae)', () => {
+  test('an AC whose only test_ref is derived: stays UNVERIFIED, and the message points at confirmation', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-mt-derived-'));
+    try {
+      mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
+      writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nproject: {name: x, language: typescript}\nfeatures: []\n');
+      writeFileSync(
+        join(dir, 'spec', 'features', 'x-aaaa11.yaml'),
+        'id: F-aaaa11\nslug: x\ntitle: t\nstatus: done\nmodules: []\nacceptance_criteria:\n  - id: AC-001\n    ears: ubiquitous\n    text: t\n    test_refs: ["derived:tests/cli/x.test.ts"]\n',
+      );
+      const findings = missingTests.run({cwd: dir});
+      const hit = findings.find((f) => f.detector === 'MISSING_TESTS');
+      expect(hit?.severity).toBe('error');
+      expect(hit?.message).toContain('derived:');
+      expect(hit?.message).toContain('removing the prefix');
+    } finally {
+      rmSync(dir, {recursive: true, force: true});
+    }
+  });
+});

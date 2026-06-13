@@ -19,7 +19,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {unmappedArtifact} from '../../src/stages/detectors/unmapped-artifact.js';
+import {scanPatterns, unmappedArtifact} from '../../src/stages/detectors/unmapped-artifact.js';
 
 const SPEC_HEADER =
   'schema: "0.1"\n' +
@@ -107,5 +107,83 @@ describe('UNMAPPED_ARTIFACT detector', () => {
       'id: F-002\ntitle: t\nstatus: done\nmodules: [src/stages/b.ts]\n',
     );
     expect(unmappedArtifact.run({cwd: dir})).toEqual([]);
+  });
+});
+
+// ─── F-aee61f — scan roots derive from declared architecture layers ───
+
+const EIGHT_FEATURES = Array.from({length: 8}, (_, i) => ({
+  id: `F-00000${i}`,
+  title: 't',
+  status: 'done',
+  modules: [],
+  acceptance_criteria: [],
+}));
+
+describe('scanPatterns (F-aee61f)', () => {
+  test('scale gate: under 8 features the legacy narrow patterns apply even with layers declared', () => {
+    const spec = {
+      project: {name: 'x', language: 'typescript'},
+      features: EIGHT_FEATURES.slice(0, 3),
+      architecture: {layers: [['cli']]},
+    } as never;
+    expect(scanPatterns(spec)).toEqual(['src/stages/**/*.ts', 'src/spec/**/*.ts']);
+  });
+
+  test('derives one src/<layer> pattern per declared layer (canonical string-tier form), language-aware', () => {
+    const spec = {
+      project: {name: 'x', language: 'typescript'},
+      features: EIGHT_FEATURES,
+      architecture: {layers: [['cli', 'serve'], ['core']]},
+    } as never;
+    expect(scanPatterns(spec)).toEqual(['src/cli/**/*.ts', 'src/core/**/*.ts', 'src/serve/**/*.ts']);
+  });
+
+  test('accepts the {name} object layer form and non-TS languages', () => {
+    const spec = {
+      project: {name: 'x', language: 'python'},
+      features: EIGHT_FEATURES,
+      architecture: {layers: [{name: 'api'}, {name: 'domain'}]},
+    } as never;
+    expect(scanPatterns(spec)).toEqual(['src/api/**/*.py', 'src/domain/**/*.py']);
+  });
+
+  test('falls back to the legacy narrow patterns when no architecture is declared', () => {
+    const spec = {project: {name: 'x', language: 'typescript'}, features: []} as never;
+    expect(scanPatterns(spec)).toEqual(['src/stages/**/*.ts', 'src/spec/**/*.ts']);
+  });
+
+  test('a file in a declared layer that no feature claims is now FOUND (was blind pre-0.6)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-unmapped-arch-'));
+    try {
+      mkdirSync(join(dir, 'src', 'router'), {recursive: true});
+      writeFileSync(join(dir, 'src', 'router', 'orphan.ts'), 'export const x = 1;\n');
+      writeFileSync(
+        join(dir, 'spec.yaml'),
+        [
+          'schema: "0.1"',
+          'project: {name: f, language: typescript}',
+          'architecture:',
+          '  layers:',
+          '    - [router]',
+          'features:',
+          ...Array.from({length: 8}, (_, i) =>
+            [
+              `  - id: F-10000${i}`,
+              '    title: t',
+              '    status: done',
+              '    modules: []',
+              '    acceptance_criteria:',
+              '      - {id: AC-001, ears: ubiquitous, text: t, test_refs: [spec.yaml]}',
+            ].join('\n'),
+          ),
+        ].join('\n') + '\n',
+      );
+      const findings = unmappedArtifact.run({cwd: dir});
+      const hit = findings.find((f) => f.path === 'src/router/orphan.ts');
+      expect(hit?.severity).toBe('error');
+    } finally {
+      rmSync(dir, {recursive: true, force: true});
+    }
   });
 });

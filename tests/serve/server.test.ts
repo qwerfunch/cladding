@@ -4,7 +4,7 @@
 // over InMemoryTransport. The tests check that:
 //   - all four tools are listed and callable
 //   - the three resources are listed and readable
-//   - all five persona prompts are listed
+//   - all five persona prompts are listed (+ the 0.6.0 alias prompts)
 //   - clad_get_feature gracefully reports an unknown id
 //   - clad_run_check returns the drift report shape
 //
@@ -19,7 +19,7 @@ import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {buildServer, PERSONA_IDS, RESOURCE_URIS, TOOL_NAMES} from '../../src/serve/server.js';
+import {buildServer, PERSONA_IDS, PERSONA_PROMPT_ALIASES, RESOURCE_URIS, TOOL_NAMES} from '../../src/serve/server.js';
 
 const MINIMAL_SPEC = `schema: "0.1"
 project:
@@ -98,12 +98,31 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
-  test('listPrompts surfaces every persona id', async () => {
+  test('listPrompts surfaces every persona id plus the 0.6.0 alias prompts', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const {prompts} = await client.listPrompts();
       const names = prompts.map((p) => p.name).sort();
-      expect(names).toEqual([...PERSONA_IDS].sort());
+      expect(names).toEqual(
+        [...PERSONA_IDS, ...Object.keys(PERSONA_PROMPT_ALIASES)].sort(),
+      );
+      // Alias prompts say so in the description (hosts read it).
+      const librarian = prompts.find((p) => p.name === 'librarian');
+      expect(librarian?.description).toContain("'librarian' is now 'planner'");
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test("getPrompt on the deprecated 'librarian' name serves the planner persona body", async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const aliased = await client.getPrompt({name: 'librarian', arguments: {}});
+      const canonical = await client.getPrompt({name: 'planner', arguments: {}});
+      const text = (name: typeof aliased) =>
+        (name.messages[0].content as {type: string; text: string}).text;
+      expect(text(aliased)).toBe(text(canonical));
+      expect(text(aliased)).toContain('Planner');
     } finally {
       await cleanup();
     }
@@ -133,6 +152,42 @@ describe('serve/server — MCP read surface', () => {
       const parsed = JSON.parse(text);
       expect(parsed.total).toBe(1);
       expect(parsed.features[0].id).toBe('F-001');
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('clad_changelog format=catalog renders the spec catalog without a git range (F-904495a5)', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const result = await client.callTool({
+        name: 'clad_changelog',
+        arguments: {format: 'catalog'},
+      });
+      expect(result.isError).toBeFalsy();
+      const text = (result.content as Array<{type: string; text: string}>)[0].text;
+      const parsed = JSON.parse(text);
+      expect(parsed.schema_version).toBe(1);
+      expect(parsed.format).toBe('catalog');
+      // The catalog is the prose comprehension surface — titles + AC sentences.
+      expect(parsed.content).toContain('# probe — capability catalog');
+      expect(parsed.content).toContain('### alpha');
+      expect(parsed.content).toContain('probe AC for serve tests');
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('clad_changelog reports an unknown since ref as isError, never an empty manifest (F-904495a5)', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      // The temp project dir is not a git repository, so any ref is unresolvable.
+      const result = await client.callTool({
+        name: 'clad_changelog',
+        arguments: {since: 'no-such-ref'},
+      });
+      expect(result.isError).toBe(true);
+      expect((result.content as Array<{text: string}>)[0].text).toContain('no-such-ref');
     } finally {
       await cleanup();
     }
@@ -321,10 +376,10 @@ describe('serve/server — MCP read surface', () => {
       const text = (result.content as Array<{type: string; text: string}>)[0].text;
       const parsed = JSON.parse(text);
       expect(parsed.slug).toBe('new-login-flow');
-      expect(parsed.id).toMatch(/^F-[a-f0-9]{6}$/);
+      expect(parsed.id).toMatch(/^F-[a-f0-9]{8}$/);
       // v0.3.10: filename is `<slug>-<hash>.yaml` so the hash entropy
       // distinguishes concurrent invocations.
-      expect(parsed.path).toMatch(/spec\/features\/new-login-flow-[a-f0-9]{6}\.yaml$/);
+      expect(parsed.path).toMatch(/spec\/features\/new-login-flow-[a-f0-9]{8}\.yaml$/);
       expect(result.isError).not.toBe(true);
     } finally {
       await cleanup();
@@ -429,8 +484,8 @@ describe('serve/server — MCP read surface', () => {
       const text = (result.content as Array<{type: string; text: string}>)[0].text;
       const parsed = JSON.parse(text);
       expect(parsed.slug).toBe('checkout-happy-path');
-      expect(parsed.id).toMatch(/^S-[a-f0-9]{6}$/);
-      expect(parsed.path).toMatch(/spec\/scenarios\/checkout-happy-path-[a-f0-9]{6}\.yaml$/);
+      expect(parsed.id).toMatch(/^S-[a-f0-9]{8}$/);
+      expect(parsed.path).toMatch(/spec\/scenarios\/checkout-happy-path-[a-f0-9]{8}\.yaml$/);
       expect(result.isError).not.toBe(true);
     } finally {
       await cleanup();
@@ -496,6 +551,106 @@ describe('serve/server — MCP read surface', () => {
       expect(text.length).toBeGreaterThan(100);
     } finally {
       await cleanup();
+    }
+  });
+});
+
+// ─── F-570a3f — MCP structural channel ───
+
+describe('MCP structural channel (F-570a3f)', () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'clad-serve-gate-'));
+    writeFileSync(join(dir, 'spec.yaml'), MINIMAL_SPEC);
+    mkdirSync(join(dir, '.cladding'), {recursive: true});
+  });
+  afterEach(() => {
+    rmSync(dir, {recursive: true, force: true});
+  });
+
+  test('clad_create_feature result carries schema_version and a gate field (JSON, not appended text)', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const res = await client.callTool({
+        name: 'clad_create_feature',
+        arguments: {slug: 'gate-footer-probe', acceptance_criteria: [{ears: 'ubiquitous', text: 'probe'}]},
+      });
+      const text = (res.content as Array<{type: string; text: string}>)[0].text;
+      const parsed = JSON.parse(text) as {schema_version?: number; gate?: {pass: boolean; findings: unknown[]}};
+      expect(parsed.schema_version).toBe(1);
+      expect(parsed.gate).toBeDefined();
+      expect(typeof parsed.gate!.pass).toBe('boolean');
+      expect(Array.isArray(parsed.gate!.findings)).toBe(true);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('clad_run_gate runs the real pipeline and returns the untruncated JSON outcome', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const res = await client.callTool({name: 'clad_run_gate', arguments: {tier: 'pre-commit'}});
+      const text = (res.content as Array<{type: string; text: string}>)[0].text;
+      const parsed = JSON.parse(text) as {schema_version?: number; tier?: string; worst?: number; stages?: unknown[]};
+      expect(parsed.schema_version).toBe(1);
+      expect(parsed.tier).toBe('pre-commit');
+      expect(typeof parsed.worst).toBe('number');
+      expect(Array.isArray(parsed.stages)).toBe(true);
+    } finally {
+      await cleanup();
+    }
+  }, 60_000);
+});
+
+// ─── F-551a1c — out-of-policy oracle recording is labeled voluntary ───
+
+describe('voluntary oracle labeling (F-551a1c)', () => {
+  test('recording an oracle for an AC no policy requires carries voluntary:true + a cost note', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-serve-vol-'));
+    writeFileSync(join(dir, 'spec.yaml'), MINIMAL_SPEC);
+    mkdirSync(join(dir, '.cladding'), {recursive: true});
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const created = await client.callTool({
+        name: 'clad_create_feature',
+        arguments: {slug: 'vol-probe', status: 'done', acceptance_criteria: [{ears: 'ubiquitous', text: 'probe', test_refs: ['spec.yaml']}]},
+      });
+      const feature = JSON.parse((created.content as Array<{type: string; text: string}>)[0].text) as {id: string; path: string};
+      const shard = readFileSync(feature.path, 'utf8'); // result path is already absolute
+      const acId = /id: (AC-[0-9a-f]+)/.exec(shard)![1];
+      const res = await client.callTool({
+        name: 'clad_author_oracle',
+        arguments: {featureId: feature.id, acId, body: 'import {test} from "vitest"; test("t", () => {});', readManifest: ['spec brief'], blind: true, authorName: 'probe-blind'},
+      });
+      const parsed = JSON.parse((res.content as Array<{type: string; text: string}>)[0].text) as {voluntary?: boolean; cost_note?: string};
+      expect(parsed.voluntary).toBe(true);
+      expect(parsed.cost_note).toContain('clad oracle --required');
+    } finally {
+      await cleanup();
+      rmSync(dir, {recursive: true, force: true});
+    }
+  });
+});
+
+// ─── F-d2c806 — clad_get_context over MCP ───
+
+describe('clad_get_context (F-d2c806)', () => {
+  test('returns the slice with schema_version; a miss is isError with the accepted forms', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-serve-ctx-'));
+    writeFileSync(join(dir, 'spec.yaml'), MINIMAL_SPEC);
+    mkdirSync(join(dir, '.cladding'), {recursive: true});
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const {tools} = await client.listTools();
+      expect(tools.map((t) => t.name)).toContain('clad_get_context');
+      const miss = await client.callTool({name: 'clad_get_context', arguments: {query: 'nope'}});
+      expect(miss.isError).toBe(true);
+      const parsed = JSON.parse((miss.content as Array<{type: string; text: string}>)[0].text) as {schema_version: number; not_found: string};
+      expect(parsed.schema_version).toBe(1);
+      expect(parsed.not_found).toBe('nope');
+    } finally {
+      await cleanup();
+      rmSync(dir, {recursive: true, force: true});
     }
   });
 });
