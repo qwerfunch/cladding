@@ -56,6 +56,12 @@
             }
           }
         },
+        "coverage_floor": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Line-coverage floor (percent) the COVERAGE_DROP detector enforces. Default 70. Project-wide (vitest coverage is a single project number). Lower it where instrumentation overhead — perf harnesses, generated files — makes a uniform 70 punitive; raise it to demand more."
+        },
         "deliverable": {
           "type": "object",
           "additionalProperties": false,

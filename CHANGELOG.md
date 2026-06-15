@@ -5,6 +5,18 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Configurable coverage floor** — `spec.yaml::project.coverage_floor` (a
+  percent in `[0,100]`) overrides the `COVERAGE_DROP` detector's 70% default.
+  The floor is project-WIDE because vitest coverage is a single project number
+  and the detector has no per-feature context: lower it where instrumentation
+  overhead — perf harnesses, generated files — makes a uniform 70 punitive so a
+  correct feature can still earn `done`; raise it to demand more. An absent or
+  invalid spec falls back to 70 (the check keeps working spec-less). (F-14ad7e75)
+
 ## [0.6.0] — 2026-06-11 — Structural Harness
 
 **In one line:** governance stops being a request — hooks enforce it, a committed

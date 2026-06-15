@@ -75,4 +75,48 @@ describe('COVERAGE_DROP detector', () => {
     expect(findings[0].severity).toBe('warn');
     expect(findings[0].message).toContain('0.0%');
   });
+
+  // ─── project.coverage_floor override (F-14ad7e75) ───
+  function writeSpec(d: string, body: string): void {
+    writeFileSync(join(d, 'spec.yaml'), body);
+  }
+  const specWithFloor = (floor: number): string =>
+    `schema: "0.1"\nproject:\n  name: t\n  language: typescript\n  coverage_floor: ${floor}\nfeatures: []\n`;
+
+  test('coverage_floor lowers the floor → coverage above the override is silent', () => {
+    // 55% warns at the default 70, but a project declaring a 50 floor accepts it.
+    writeSummary(dir, JSON.stringify({total: {lines: {pct: 55}}}));
+    writeSpec(dir, specWithFloor(50));
+    expect(coverageDrop.run({cwd: dir})).toEqual([]);
+  });
+
+  test('coverage_floor raises the floor → coverage below the override warns', () => {
+    // 75% is silent at the default 70, but a 90 floor demands more.
+    writeSummary(dir, JSON.stringify({total: {lines: {pct: 75}}}));
+    writeSpec(dir, specWithFloor(90));
+    const findings = coverageDrop.run({cwd: dir});
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe('warn');
+    expect(findings[0].message).toContain('75.0%');
+    expect(findings[0].message).toContain('90%');
+  });
+
+  test('warn message names the configured floor, not the default', () => {
+    writeSummary(dir, JSON.stringify({total: {lines: {pct: 40}}}));
+    writeSpec(dir, specWithFloor(50));
+    expect(coverageDrop.run({cwd: dir})[0].message).toContain('50%');
+  });
+
+  test('out-of-range coverage_floor → spec rejected, falls back to default 70', () => {
+    // 150 violates the schema max(100): loadSpec throws, resolveFloor defaults to 70.
+    writeSummary(dir, JSON.stringify({total: {lines: {pct: 65}}}));
+    writeSpec(dir, specWithFloor(150));
+    expect(coverageDrop.run({cwd: dir})[0].message).toContain('70%');
+  });
+
+  test('valid spec without coverage_floor → default 70', () => {
+    writeSummary(dir, JSON.stringify({total: {lines: {pct: 65}}}));
+    writeSpec(dir, 'schema: "0.1"\nproject:\n  name: t\n  language: typescript\nfeatures: []\n');
+    expect(coverageDrop.run({cwd: dir})[0].message).toContain('70%');
+  });
 });

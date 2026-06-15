@@ -278,6 +278,16 @@ export interface Project {
    */
   readonly oracle_policy?: OraclePolicy;
   /**
+   * Line-coverage floor (percent) the COVERAGE_DROP detector enforces.
+   * Default 70 when omitted. Project-WIDE, because vitest coverage is a single
+   * project-level number (the detector has no per-feature context): lower it
+   * where instrumentation overhead — perf harnesses, generated files — makes a
+   * uniform 70 punitive, raise it to demand more. A spec that is absent or
+   * invalid falls back to 70 (the gate must keep working spec-less). Added
+   * v0.6.1 (F-14ad7e75).
+   */
+  readonly coverage_floor?: number;
+  /**
    * AI behavior hints — preferred persona, token budget, forbidden patterns.
    * Added v0.3.56 (F-5b9f9f).
    */
