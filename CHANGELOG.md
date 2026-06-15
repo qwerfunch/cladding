@@ -9,20 +9,16 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- **Configurable coverage floor** — `spec.yaml::project.coverage_floor` (a
-  percent in `[0,100]`) overrides the `COVERAGE_DROP` detector's 70% default.
-  The floor is project-WIDE because vitest coverage is a single project number
-  and the detector has no per-feature context: lower it where instrumentation
-  overhead — perf harnesses, generated files — makes a uniform 70 punitive so a
-  correct feature can still earn `done`; raise it to demand more. An absent or
-  invalid spec falls back to 70 (the check keeps working spec-less). (F-14ad7e75)
 - **Lint config detection** — stage_1.2 now picks the linter a TypeScript/
   JavaScript project actually configured instead of always assuming eslint:
-  `biome.json`/`biome.jsonc` → biome, `.oxlintrc.json` → oxlint (biome wins when
-  both exist), no linter config → the eslint default (unchanged). A biome/oxlint
-  project gates `✓ Lint` natively — no eslint shim. Detection only decides which
-  tool to invoke; `--no-install` is preserved, so a configured-but-absent linter
-  still skips (never installed), and the choice never leaks across languages.
+  `biome.json`/`biome.jsonc` → biome, `.oxlintrc.json`/`.oxlintrc.jsonc`/
+  `oxlint.config.ts` → oxlint (biome wins when both exist), no linter config →
+  the eslint default (unchanged). A biome/oxlint project gates `✓ Lint`
+  natively — no eslint shim. Detection only decides which tool to invoke;
+  `--no-install` is preserved, so a configured-but-absent linter still skips
+  (never installed), and the choice never leaks across languages. Detection is
+  by config-file presence, so a biome.json with linting disabled still resolves
+  to biome (override via the cmd/args seam if you lint with another tool).
   (F-b2094740)
 
 ## [0.6.0] — 2026-06-11 — Structural Harness

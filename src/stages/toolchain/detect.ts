@@ -173,10 +173,17 @@ function hasExtensionFile(cwd: string, suffix: string): string | undefined {
  * invoke, it NEVER installs one. A configured-but-absent linter still resolves
  * to skip via stage_1.2's missing-tool path (lint.ts), which `--strict`'s
  * skip-policy escalates when the spec relies on lint.
+ *
+ * CAVEAT — detection is by config-file PRESENCE, not content. A biome.json with
+ * `linter.enabled: false` (biome used only for formatting) still resolves to the
+ * biome lint gate, and `biome lint` then exits 0 — a filename cannot distinguish
+ * "configured to lint" from "configured to format only". A project that lints
+ * with a different tool overrides via CommandStageOptions (the cmd/args seam).
  */
 const TS_LINTERS: ReadonlyArray<{readonly configs: readonly string[]; readonly gate: ToolSpec}> = [
   {configs: ['biome.json', 'biome.jsonc'], gate: {cmd: 'npx', args: ['--no-install', 'biome', 'lint', '.']}},
-  {configs: ['.oxlintrc.json'], gate: {cmd: 'npx', args: ['--no-install', 'oxlint']}},
+  // oxlint auto-detects all three filenames in cwd (oxc.rs config reference).
+  {configs: ['.oxlintrc.json', '.oxlintrc.jsonc', 'oxlint.config.ts'], gate: {cmd: 'npx', args: ['--no-install', 'oxlint']}},
 ];
 
 /** The project's configured TS/JS lint gate, or `fallback` (eslint) when none. */

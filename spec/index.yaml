@@ -88,7 +88,6 @@ features:
   F-09d68b: {slug: clad-refine, status: done, modules: 7}
   F-0ed2db: {slug: ai-hints-consumer-instructions, status: done, modules: 11}
   F-12d740: {slug: atomic-ac-evidence-fanout, status: done, modules: 1}
-  F-14ad7e75: {slug: coverage-floor-config, status: done, modules: 3}
   F-16746b: {slug: enforcement-triggers, status: done, modules: 3}
   F-17df0a: {slug: scan-artifacts-llm-refinement, status: done, modules: 3}
   F-18e951: {slug: drift-baseline-cleanup, status: done, modules: 7}

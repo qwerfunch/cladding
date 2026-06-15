@@ -63,6 +63,30 @@ describe('detectToolchain', () => {
     expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npx', args: ['--no-install', 'oxlint']});
   });
 
+  test('typescript + .oxlintrc.jsonc → lint gate is oxlint', () => {
+    writeFileSync(join(dir, 'package.json'), '{}');
+    writeFileSync(join(dir, '.oxlintrc.jsonc'), '{}');
+    expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npx', args: ['--no-install', 'oxlint']});
+  });
+
+  test('typescript + oxlint.config.ts → lint gate is oxlint', () => {
+    writeFileSync(join(dir, 'package.json'), '{}');
+    writeFileSync(join(dir, 'oxlint.config.ts'), 'export default {}');
+    expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npx', args: ['--no-install', 'oxlint']});
+  });
+
+  test('selection follows config presence — add biome.json swaps to biome, remove it falls back to eslint', () => {
+    // State-transition: proves resolveTsLint actually reads the filesystem each call,
+    // not a hard-coded return (defeats the one-way-test critique).
+    writeFileSync(join(dir, 'package.json'), '{}');
+    const eslintGate = {cmd: 'npx', args: ['--no-install', 'eslint', '.']};
+    expect(detectToolchain(dir).gates.lint).toEqual(eslintGate);
+    writeFileSync(join(dir, 'biome.json'), '{}');
+    expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npx', args: ['--no-install', 'biome', 'lint', '.']});
+    rmSync(join(dir, 'biome.json'));
+    expect(detectToolchain(dir).gates.lint).toEqual(eslintGate);
+  });
+
   test('typescript with no linter config → lint gate stays eslint (default preserved)', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npx', args: ['--no-install', 'eslint', '.']});
