@@ -16,6 +16,14 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
   overhead — perf harnesses, generated files — makes a uniform 70 punitive so a
   correct feature can still earn `done`; raise it to demand more. An absent or
   invalid spec falls back to 70 (the check keeps working spec-less). (F-14ad7e75)
+- **Lint config detection** — stage_1.2 now picks the linter a TypeScript/
+  JavaScript project actually configured instead of always assuming eslint:
+  `biome.json`/`biome.jsonc` → biome, `.oxlintrc.json` → oxlint (biome wins when
+  both exist), no linter config → the eslint default (unchanged). A biome/oxlint
+  project gates `✓ Lint` natively — no eslint shim. Detection only decides which
+  tool to invoke; `--no-install` is preserved, so a configured-but-absent linter
+  still skips (never installed), and the choice never leaks across languages.
+  (F-b2094740)
 
 ## [0.6.0] — 2026-06-11 — Structural Harness
 

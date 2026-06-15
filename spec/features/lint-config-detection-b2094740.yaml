@@ -1,0 +1,43 @@
+id: F-b2094740
+slug: lint-config-detection
+title: "Lint config detection — stage_1.2 picks the project's configured linter, not always eslint"
+status: done
+modules:
+  - src/stages/toolchain/detect.ts
+depends_on: []
+acceptance_criteria:
+  - id: AC-7bf859
+    ears: ubiquitous
+    action: "resolve the TypeScript/JavaScript lint gate from the linter the project actually configured"
+    response: "detectToolchain selects biome when biome.json/biome.jsonc is present, oxlint when .oxlintrc.json is present (biome winning when both are), and keeps the eslint default when no linter config is present — so prior eslint and config-less projects behave exactly as before"
+    text: "The system shall resolve the stage_1.2 lint gate for a TypeScript/JavaScript project from the linter that project configured — selecting biome on a biome.json/biome.jsonc, oxlint on a .oxlintrc.json (biome taking precedence when both exist), and falling back to the eslint default when no linter config is present — so a biome- or oxlint-based project gates natively without an eslint shim, while eslint and config-less projects keep their existing behavior."
+    notes: |
+      ## Why
+      stage_1.2 is the polyglot lint gate that `clad done` must pass, and it
+      detected only the LANGUAGE (via manifest), then hardcoded eslint within
+      TypeScript — so a biome/oxlint project could not turn ✓ Lint green without
+      bridging eslint in. The JS/TS ecosystem has several mainstream linters; the
+      honest gate runs the one the project declared, read from its config file,
+      not a single assumed default.
+    test_refs:
+      - "tests/stages/toolchain.test.ts#typescript + biome.json → lint gate is biome"
+      - "tests/stages/toolchain.test.ts#typescript + .oxlintrc.json → lint gate is oxlint"
+      - "tests/stages/toolchain.test.ts#typescript with no linter config → lint gate stays eslint (default preserved)"
+      - "tests/stages/toolchain.test.ts#biome takes precedence over oxlint when both configs present"
+  - id: AC-86822d
+    ears: unwanted
+    condition: "if a non-TypeScript project carries a stray linter config, or the resolved linter is not installed"
+    action: "neither leak the TS linter choice across languages nor install anything"
+    response: "the resolution applies only to the typescript entry (other languages keep their single curated default), and every TS lint gate keeps --no-install so a configured-but-absent linter resolves to skip via stage_1.2's missing-tool path rather than being fetched"
+    text: "If a non-TypeScript project carries a stray linter config (e.g. a python project with a biome.json) or the resolved linter is not installed, then the system shall neither apply the TS linter choice to that other language nor install the tool — the config-driven resolution is scoped to the typescript entry, and every gate retains --no-install so a missing linter skips (the strict skip-policy escalates it) instead of being fetched and executed."
+    notes: |
+      ## Why
+      Two invariants must survive the new detection: (1) the --no-install
+      typosquat defense (0.6.0) — detection decides WHICH tool to call, never
+      installs one; (2) language isolation — a config file for one ecosystem must
+      not rewrite another language's gate. Both are error-as-data: a missing or
+      mis-placed tool is a skip/visible signal, never a silent install or a
+      crash.
+    test_refs:
+      - "tests/stages/toolchain.test.ts#biome.json does not leak into a non-TS language"
+      - "tests/stages/toolchain.test.ts#linter detection only swaps lint — other TS gates keep their default"

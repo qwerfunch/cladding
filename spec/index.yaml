@@ -145,6 +145,7 @@ features:
   F-aee1da: {slug: scan-residuals, status: done, modules: 3}
   F-aee61f: {slug: scan-roots-from-architecture, status: done, modules: 1}
   F-af96b1: {slug: no-vacuous-green-gate-contract, status: done, modules: 6}
+  F-b2094740: {slug: lint-config-detection, status: done, modules: 1}
   F-b43066: {slug: model-defaults-refresh, status: done, modules: 6}
   F-b61449: {slug: gemini-cli-dogfood, status: done, modules: 1}
   F-b84c38: {slug: lifecycle-events-identity, status: done, modules: 4}

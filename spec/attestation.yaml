@@ -4,10 +4,10 @@
 # --tier=pre-push --strict` GREEN refreshes. Content-anchored: survives
 # fresh clones and squash/rebase (suggested .gitattributes: merge=union).
 attested:
-  F-001: 3de7280ae661ceaa
+  F-001: f90c80e113921900
   F-002: d5ca8e3ca1b269d5
   F-003: c1cefdf6bee2c3c0
-  F-004: 342f0fe86f722745
+  F-004: b6a10256d8f19a74
   F-005: 70c3b7166f297bff
   F-006: 488cb6f2d452a286
   F-007: d1c159c46d5a454f
@@ -28,7 +28,7 @@ attested:
   F-020: 2c5f4a94e3e57e9b
   F-021: b98ec387d7c8f6d0
   F-022: 8f596a1c737f6d42
-  F-023: f8da5651d5ca4e38
+  F-023: acb172847d37f05e
   F-024: 09ea0755dfe36d74
   F-025: fa850b7097993fcb
   F-026: 76dd8b915882a547
@@ -49,7 +49,7 @@ attested:
   F-041: cddb50fc41e49066
   F-042: d1f661281bb9fb6e
   F-043: 2c5f4a94e3e57e9b
-  F-044: fa2b0e3087676ac6
+  F-044: f744bdd853558297
   F-045: eeb04fc211501977
   F-046: 4b563fce74b6bb4b
   F-047: 9172bb5bf584e5e1
@@ -83,7 +83,7 @@ attested:
   F-076: 50188cafd90d6337
   F-077: 240361b81f826d2a
   F-078: a25a0a0c0c7f4935
-  F-079: 68a2c82b4ff956d0
+  F-079: f1ab18ec2406023e
   F-080: bd51bc264e04fef3
   F-081: 878b8a20e961f5ad
   F-098d3b: bae2b851def96844
@@ -102,10 +102,10 @@ attested:
   F-2de65d: 84ad71574d306c81
   F-315fd7: d9a03c343c031fe3
   F-31eeb8: d88a9880d29ae411
-  F-32b1e0: 00cc1aac1c760981
+  F-32b1e0: e323ccb1712e35e6
   F-3788c2: 322c76f17c623e43
   F-37b4a8: b6ef1e99dc2edcbd
-  F-3a5339: a60c4bd1816801cd
+  F-3a5339: ebb5dcc2b0028a02
   F-3b3690: 66c098ef8c25ad29
   F-40327b: 53629de0c02bb642
   F-417ff0: 0aee2e9d0820a73f
@@ -117,7 +117,7 @@ attested:
   F-56abaa: e860e11715a3ae16
   F-570a3f: af716ff28abfaad1
   F-59f093: 1828a6feb96c7d80
-  F-5b9f9f: 21e4097f20ba6b45
+  F-5b9f9f: b5f5dd1874310ff7
   F-5d3ed2: 9452eac28760fb99
   F-5f6b45: 15323c4f5b619de7
   F-65814a: 2136c8b8c94ef535
@@ -146,6 +146,7 @@ attested:
   F-aee1da: a6d7525a6c547877
   F-aee61f: 2073f6fa9da90a65
   F-af96b1: e75ca2cb3412a7a5
+  F-b2094740: 988179dff268fbfb
   F-b43066: ced8b51b85db042b
   F-b61449: 7095ce00662e987d
   F-b84c38: ad96eb3f2e01fd2a
