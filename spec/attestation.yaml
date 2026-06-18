@@ -4,19 +4,19 @@
 # --tier=pre-push --strict` GREEN refreshes. Content-anchored: survives
 # fresh clones and squash/rebase (suggested .gitattributes: merge=union).
 attested:
-  F-001: 3de7280ae661ceaa
+  F-001: 30057bd9e6e9e3b4
   F-002: d5ca8e3ca1b269d5
   F-003: c1cefdf6bee2c3c0
-  F-004: 342f0fe86f722745
+  F-004: 3695757e5f9a12b3
   F-005: 70c3b7166f297bff
   F-006: 488cb6f2d452a286
   F-007: d1c159c46d5a454f
   F-008: 86cb22d725182847
   F-009: 80831c8be1440e79
-  F-00eb1a: e38c451adf910682
+  F-00eb1a: 0052e715f0d2ce5e
   F-010: b5ade3ba31661602
   F-011: efd71e966a937fab
-  F-012: 2073f6fa9da90a65
+  F-012: e009b9eb07addd30
   F-013: 082bfb079fecf10b
   F-0144b9: 0e4a1cbe2378a1cd
   F-014: 00bab4a06108f736
@@ -28,10 +28,10 @@ attested:
   F-020: 2c5f4a94e3e57e9b
   F-021: b98ec387d7c8f6d0
   F-022: 8f596a1c737f6d42
-  F-023: f8da5651d5ca4e38
+  F-023: 0750053cfe0b8a30
   F-024: 09ea0755dfe36d74
-  F-025: fa850b7097993fcb
-  F-026: 1e7610f72da8baf6
+  F-025: 187339b684896b8e
+  F-026: 847f3eda0cb98476
   F-027: 7f4b1a055f141bb7
   F-028: c53b0e2b7682ad45
   F-029: 47a06c8f40f48f63
@@ -43,7 +43,7 @@ attested:
   F-035: fb4a11bd47de8e4b
   F-036: aa3a179718915c1f
   F-037: 7f811c5c8bc0e8e3
-  F-038: 623c5ac64feb9e3e
+  F-038: 1338100beadb15a6
   F-039: 2e60f3d899b72d7f
   F-040: fafcaaf6b13119e1
   F-041: cddb50fc41e49066
@@ -95,20 +95,20 @@ attested:
   F-18e951: df7bd67676e86ef5
   F-1c9166: 5997dfd40ba76f0b
   F-1d23a6: 29193da6fad1c3bc
-  F-1edb38: cf753d61550896d8
+  F-1edb38: 64283112a3ab96ce
   F-24062d: 84646f41e534c62b
   F-245bd5: c77fb6a1d805352c
   F-2de65d: 84ad71574d306c81
   F-315fd7: d9a03c343c031fe3
   F-31eeb8: d88a9880d29ae411
-  F-32b1e0: 3c8f762e0b320b55
+  F-32b1e0: efb0e41b838076eb
   F-3788c2: 322c76f17c623e43
   F-37b4a8: b6ef1e99dc2edcbd
-  F-3a5339: c5c030da035d9c7f
+  F-3a5339: 8b94301412afccb4
   F-3b3690: 66c098ef8c25ad29
   F-40327b: 53629de0c02bb642
   F-417ff0: 0aee2e9d0820a73f
-  F-42af48: 6cc05409162be403
+  F-42af48: d5c989097f3ba811
   F-4747ef: ae95a19aa0a0311d
   F-4db939: c2e93cb9c9cef03d
   F-50ff43: fac674314685a912
@@ -116,7 +116,7 @@ attested:
   F-56abaa: e860e11715a3ae16
   F-570a3f: af716ff28abfaad1
   F-59f093: d34943aeb767cf0e
-  F-5b9f9f: 3c8a82f7a9e1bb2c
+  F-5b9f9f: ca8615c10daa13d0
   F-5d3ed2: 9452eac28760fb99
   F-5f6b45: 15323c4f5b619de7
   F-65814a: 2136c8b8c94ef535
@@ -134,7 +134,7 @@ attested:
   F-9064ff: 89fe25931805ebfa
   F-94dda4: 8dfb0267c45534f9
   F-95a096: c6ca03ea8b16a112
-  F-99c6e5: f71b45d86acd2dca
+  F-99c6e5: 1c737126abdcd51a
   F-9a3b61: 4baa26103a280acc
   F-9b643e: e4f1bad366872a00
   F-a04cd9: b699d4759733f226
@@ -143,7 +143,7 @@ attested:
   F-aa7197: 7f561e4f3c902716
   F-ae61c1: 9bfd87053198f4a1
   F-aee1da: a6d7525a6c547877
-  F-aee61f: 2073f6fa9da90a65
+  F-aee61f: e009b9eb07addd30
   F-af96b1: e75ca2cb3412a7a5
   F-b43066: bad3cb273b7fc37e
   F-b61449: 7095ce00662e987d
@@ -152,21 +152,22 @@ attested:
   F-ba2e05: d3c37a21f256e70a
   F-ba4b7a: c282e0e915ed547c
   F-bb15e6: 429de91481a06309
-  F-bd07d7: 5deb2b62ea99d56a
+  F-bd07d7: 32e18ba16bebfb28
   F-bdcd90: 36368d13e1d696b3
   F-c037ae: afbbab5ee7516e09
   F-c2c996: c1378639e7a7a1e8
-  F-c48eb2: 4eb2668872e29dd5
+  F-c48eb2: 79166748ff0ffaad
   F-c4c5ae: 528d5b5a6e9cbdd2
   F-c8aef8: 02e07f929a1d0ded
   F-cd0415: 9cf6ce40e2a8b381
   F-cfba0c: 077c03b8a96f562b
-  F-d12edf: 2f2b5bb60f6eea65
+  F-d12edf: 70d84b46966f6020
   F-d2c806: d6ee712e05705dd5
   F-d3bde4: 915d13b33258d3fc
   F-d49585: abb21a028d6e463b
   F-d7312b: 8da11e999756653e
   F-d8223c: 0501e9564231899b
+  F-dd51b42c: 63530c582dadf869
   F-dddb89: 40b6596be12f3e63
   F-eb732f: 9ff3d36d46957137
   F-ef2fd9: 4da05cead2099ba1

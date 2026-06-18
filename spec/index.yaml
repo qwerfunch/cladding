@@ -166,6 +166,7 @@ features:
   F-d49585: {slug: gate-golden-matrix, status: done, modules: 2}
   F-d7312b: {slug: scenario-hash-model, status: done, modules: 5}
   F-d8223c: {slug: blind-author-agent, status: done, modules: 1}
+  F-dd51b42c: {slug: kotlin-first-class-toolchain, status: done, modules: 11}
   F-dddb89: {slug: ears-validation-at-creation, status: done, modules: 4}
   F-eb732f: {slug: spec-authoring-anti-hollow, status: done, modules: 2}
   F-ef2fd9: {slug: ab-ext-dashboard, status: done, modules: 7}

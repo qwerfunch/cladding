@@ -31,6 +31,16 @@ const EXT_BY_LANGUAGE: Record<string, string> = {
   python: 'py',
   rust: 'rs',
   go: 'go',
+  kotlin: 'kt',
+};
+
+/**
+ * Layer-scan root per language. Defaults to `src` (where the other
+ * languages keep their layer dirs); Kotlin nests its layers under the
+ * Gradle/Maven `src/main/kotlin` source set.
+ */
+const ROOT_BY_LANGUAGE: Record<string, string> = {
+  kotlin: 'src/main/kotlin',
 };
 
 /**
@@ -53,8 +63,10 @@ export function scanPatterns(spec: Spec): readonly string[] {
   if ((spec.features ?? []).length < MIN_FEATURES_FOR_FULL_SCAN) return LEGACY_SCAN_PATTERNS;
   const {layers} = normalizeArchitecture(spec.architecture ?? {});
   if (layers.size === 0) return LEGACY_SCAN_PATTERNS;
-  const ext = EXT_BY_LANGUAGE[spec.project?.language ?? ''] ?? 'ts';
-  return [...layers].sort().map((l) => `src/${l}/**/*.${ext}`);
+  const language = spec.project?.language ?? '';
+  const ext = EXT_BY_LANGUAGE[language] ?? 'ts';
+  const root = ROOT_BY_LANGUAGE[language] ?? 'src';
+  return [...layers].sort().map((l) => `${root}/${l}/**/*.${ext}`);
 }
 
 /**

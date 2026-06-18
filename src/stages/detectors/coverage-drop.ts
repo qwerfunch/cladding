@@ -13,10 +13,10 @@
 import {existsSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
 
+import {resolveLanguageConfig} from '../toolchain/language-config.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
 
 const NAME = 'COVERAGE_DROP';
-const COVERAGE_SUMMARY = 'coverage/coverage-summary.json';
 const FLOOR_PERCENT = 70;
 
 interface CoverageSummary {
@@ -26,31 +26,68 @@ interface CoverageSummary {
   };
 }
 
+/** Istanbul/vitest `coverage-summary.json` → total line pct, or null if absent. */
+function readIstanbulLinePct(body: string): number | null {
+  const summary = JSON.parse(body) as CoverageSummary;
+  return summary.total?.lines?.pct ?? 0;
+}
+
+/**
+ * JaCoCo XML (`jacocoTestReport`) → overall LINE pct.
+ *
+ * JaCoCo emits one `<counter type="LINE" missed=… covered=…/>` per class,
+ * per package, and a final report-level aggregate — the aggregate is the
+ * LAST LINE counter in the document. pct = covered / (covered + missed).
+ */
+function readJacocoLinePct(body: string): number | null {
+  const re = /<counter\s+type="LINE"\s+missed="(\d+)"\s+covered="(\d+)"/g;
+  let last: RegExpExecArray | null = null;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(body)) !== null) last = m;
+  if (!last) return null;
+  const missed = Number(last[1]);
+  const covered = Number(last[2]);
+  const total = missed + covered;
+  return total === 0 ? 100 : (covered / total) * 100;
+}
+
 function runCoverageDrop(opts: CommandStageOptions): readonly DriftFinding[] {
   const {cwd = '.'} = opts;
-  const path = join(cwd, COVERAGE_SUMMARY);
+  const cfg = resolveLanguageConfig(cwd);
+  const summaryRel = cfg.coverageSummary;
+  const path = join(cwd, summaryRel);
   if (!existsSync(path)) {
     return [
       {
         detector: NAME,
         severity: 'info',
-        message: `${COVERAGE_SUMMARY} not present — run stage_2.2 first`,
+        message: `${summaryRel} not present — run stage_2.2 first`,
       },
     ];
   }
-  let summary: CoverageSummary;
+  let lines: number | null;
   try {
-    summary = JSON.parse(readFileSync(path, 'utf8')) as CoverageSummary;
+    const body = readFileSync(path, 'utf8');
+    lines =
+      cfg.coverageFormat === 'jacoco-xml' ? readJacocoLinePct(body) : readIstanbulLinePct(body);
   } catch (err) {
     return [
       {
         detector: NAME,
         severity: 'warn',
-        message: `${COVERAGE_SUMMARY} unparseable: ${(err as Error).message}`,
+        message: `${summaryRel} unparseable: ${(err as Error).message}`,
       },
     ];
   }
-  const lines = summary.total?.lines?.pct ?? 0;
+  if (lines === null) {
+    return [
+      {
+        detector: NAME,
+        severity: 'warn',
+        message: `${summaryRel} contained no line-coverage counter`,
+      },
+    ];
+  }
   if (lines >= FLOOR_PERCENT) return [];
   return [
     {
