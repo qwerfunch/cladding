@@ -74,6 +74,20 @@ describe('detectToolchain', () => {
     expect(tc.gates.arch).toBeUndefined();
   });
 
+  test('coverage gate selects koverXmlReport when the build declares Kover', () => {
+    writeFileSync(join(dir, 'build.gradle.kts'), 'plugins { id("org.jetbrains.kotlinx.kover") }');
+    writeKotlinSource(dir);
+    expect(detectToolchain(dir).gates.coverage?.args).toEqual(['koverXmlReport']);
+  });
+
+  test('gate.coverage: jacoco config forces jacocoTestReport even with Kover present', () => {
+    writeFileSync(join(dir, 'build.gradle.kts'), 'plugins { id("org.jetbrains.kotlinx.kover") }');
+    writeKotlinSource(dir);
+    mkdirSync(join(dir, '.cladding'), {recursive: true});
+    writeFileSync(join(dir, '.cladding', 'config.yaml'), 'gate:\n  coverage: jacoco\n');
+    expect(detectToolchain(dir).gates.coverage?.args).toEqual(['jacocoTestReport']);
+  });
+
   test('build.gradle.kts + a .kt source but NO gradlew → bare gradle command', () => {
     writeFileSync(join(dir, 'build.gradle.kts'), '');
     writeKotlinSource(dir);

@@ -189,16 +189,29 @@ describe('runDone', () => {
     expect(sawDoneAtGateTime).toBe(true);
   });
 
-  test('checkStages is invoked with {tier: "pre-push", strict: true}', () => {
+  test('checkStages is invoked with {tier: "pre-push", strict: true} + the feature modules', () => {
     writeShard(dir);
-    let captured: {strict?: boolean; tier?: string} | undefined;
+    let captured: {strict?: boolean; tier?: string; focusModules?: readonly string[]} | undefined;
     runDone(dir, FEATURE_ID, {
       checkStages: (opts) => {
         captured = opts;
         return {worst: 0};
       },
     });
-    expect(captured).toEqual({tier: 'pre-push', strict: true});
+    // A modules-less shard forwards an empty scope → whole-repo (unchanged).
+    expect(captured).toEqual({tier: 'pre-push', strict: true, focusModules: []});
+  });
+
+  test('forwards the focus feature modules to scope the gate', () => {
+    writeShard(dir, SHARD_BODY + 'modules:\n  - worker/aggregator\n  - worker/ingest\n');
+    let captured: {focusModules?: readonly string[]} | undefined;
+    runDone(dir, FEATURE_ID, {
+      checkStages: (opts) => {
+        captured = opts;
+        return {worst: 0};
+      },
+    });
+    expect(captured?.focusModules).toEqual(['worker/aggregator', 'worker/ingest']);
   });
 });
 

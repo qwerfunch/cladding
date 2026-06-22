@@ -416,7 +416,7 @@ export interface CheckOutcome {
  * (which gates the status flip on it), so the two verify against the SAME stage
  * pipeline.
  */
-export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier?: string; json?: boolean}): CheckOutcome {
+export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier?: string; json?: boolean; focusModules?: readonly string[]}): CheckOutcome {
   const tier = opts.tier ?? 'all';
   const allowed = TIER_STAGES[tier];
   if (!allowed) {
@@ -427,15 +427,19 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
     }
     return {worst: 2, anyFailed: true};
   }
+  // Focus-feature module scope (Gradle monorepos): forwarded to every command
+  // stage and to the drift suite so the coverage detector reads per-module
+  // reports. Empty/absent → whole-repo (the unchanged default). @see toolchain/scoped-command.ts
+  const base: {focusModules?: readonly string[]} = {focusModules: opts.focusModules};
   const allStages = [
-    ['stage_1.1', runType],
-    ['stage_1.2', runLint],
-    ['stage_1.3', () => runDrift({strict: opts.strict})],
+    ['stage_1.1', () => runType(base)],
+    ['stage_1.2', () => runLint(base)],
+    ['stage_1.3', () => runDrift({...base, strict: opts.strict})],
     ['stage_1.4', runCommit],
     ['stage_1.5', runArch],
     ['stage_1.6', runSecret],
-    ['stage_2.1', runUnit],
-    ['stage_2.2', runCov],
+    ['stage_2.1', () => runUnit(base)],
+    ['stage_2.2', () => runCov(base)],
     ['stage_2.3', runSpecConformance],
     ['stage_2.4', runDeliverableSmoke],
     ['stage_3.1', runSmoke],
@@ -560,8 +564,27 @@ export function runContextCommand(query: string): void {
   }
 }
 
-export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tier?: string; json?: boolean}): void {
-  process.exit(runCheckStages(opts).worst);
+export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tier?: string; json?: boolean; feature?: string}): void {
+  let focusModules: readonly string[] | undefined;
+  if (opts.feature) {
+    // Opt-in module scope: resolve the named feature's modules. clad check
+    // without --feature stays whole-repo (CI / tier=all unchanged).
+    try {
+      const spec = loadSpec();
+      const f = (spec.features ?? []).find(
+        (x) => x.id === opts.feature || (x as {slug?: string}).slug === opts.feature,
+      );
+      if (!f) {
+        pulse('fail', 'check', `no feature '${opts.feature}' in spec — cannot scope gate`);
+        process.exit(1);
+      }
+      focusModules = f.modules;
+    } catch (err) {
+      pulse('fail', 'check', (err as Error).message);
+      process.exit(1);
+    }
+  }
+  process.exit(runCheckStages({...opts, focusModules}).worst);
 }
 
 /**
@@ -708,7 +731,7 @@ export function printVerbDeprecationNotice(verb: string | undefined): void {
  */
 export function createProgram(): Command {
   const program = new Command();
-  program.name('clad').description('Reference Ironclad CLI').version('0.6.0');
+  program.name('clad').description('Reference Ironclad CLI').version('0.6.1');
 
   program
     .command('init [intent...]')
@@ -769,6 +792,7 @@ export function createProgram(): Command {
       'run only the stages for a trigger: pre-commit (drift/arch/secret) | pre-push (+ type/lint/unit/cov/spec-conformance) | all (default; full 14-stage gate, used by CI)',
     )
     .option('--json', 'emit structured per-stage results (machine-readable: findings with file/line/suggestion, untruncated) — for agents/CI; cuts RED→fix round-trips')
+    .option('--feature <id>', 'scope the gate to this feature\'s modules[] (Gradle monorepos): runs only :project: tasks instead of the root aggregate. No-op for non-Gradle repos or modules-less features')
     .action(runCheckCommand);
 
   program

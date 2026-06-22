@@ -13,6 +13,7 @@ import {existsSync, readdirSync} from 'node:fs';
 import type {Dirent} from 'node:fs';
 import {join} from 'node:path';
 
+import {kotlinCoverageTask} from './coverage-tool.js';
 import type {Language, Toolchain, ToolchainGates} from './types.js';
 
 interface Entry {
@@ -50,7 +51,9 @@ function kotlinGates(cwd: string): ToolchainGates {
     type: {cmd: g, args: ['compileKotlin', 'compileTestKotlin']},
     lint: {cmd: g, args: ['ktlintCheck']},
     test: {cmd: g, args: ['test']},
-    coverage: {cmd: g, args: ['jacocoTestReport']},
+    // Coverage tool is selectable: explicit `.cladding/config.yaml`
+    // gate.coverage, else Kover auto-detect, else jacoco. @see coverage-tool.ts
+    coverage: {cmd: g, args: [kotlinCoverageTask(cwd)]},
     secret: {cmd: 'gitleaks', args: ['detect', '--no-banner']},
     // No `arch` gate: the Kotlin/JVM compiler enforces acyclic module
     // imports, and forbidden-layer rules are enforced spec-side by the
