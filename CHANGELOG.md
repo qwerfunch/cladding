@@ -5,6 +5,22 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Lint config detection** — stage_1.2 now picks the linter a TypeScript/
+  JavaScript project actually configured instead of always assuming eslint:
+  `biome.json`/`biome.jsonc` → biome, `.oxlintrc.json`/`.oxlintrc.jsonc`/
+  `oxlint.config.ts` → oxlint (biome wins when both exist), no linter config →
+  the eslint default (unchanged). A biome/oxlint project gates `✓ Lint`
+  natively — no eslint shim. Detection only decides which tool to invoke;
+  `--no-install` is preserved, so a configured-but-absent linter still skips
+  (never installed), and the choice never leaks across languages. Detection is
+  by config-file presence, so a biome.json with linting disabled still resolves
+  to biome (override via the cmd/args seam if you lint with another tool).
+  (F-b2094740)
+
 ## [0.6.0] — 2026-06-11 — Structural Harness
 
 **In one line:** governance stops being a request — hooks enforce it, a committed

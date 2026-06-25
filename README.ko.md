@@ -17,7 +17,7 @@
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
   <img src="https://img.shields.io/badge/tests-1384%2F1384-brightgreen" alt="tests"/>
-  <img src="https://img.shields.io/badge/detectors-36-brightgreen" alt="detectors"/>
+  <img src="https://img.shields.io/badge/detectors-37-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
 
@@ -141,7 +141,7 @@ AI 코딩의 고질병은 *"다 됐습니다"* 가 검증 없이 선언되는 �
 
 <div align="center">
 
-<img src="docs/img/ko/cycle.svg" alt="Spec → Code → Tests 순환 — 15단계 검증과 36 drift detector가 cycle을 지킨다" width="700">
+<img src="docs/img/ko/cycle.svg" alt="Spec → Code → Tests 순환 — 15단계 검증과 37 drift detector가 cycle을 지킨다" width="700">
 
 </div>
 
@@ -179,7 +179,7 @@ spec이 *왜*(무엇을 왜 만드는지)를 기록한다. 4-tier 단일 진실 
 | Stage | 무엇을 검사하나 |
 |---|---|
 | **1.1 Type · 1.2 Lint** | 타입 오류 · 코드 스타일 |
-| **1.3 Drift** | 36 detector의 spec ↔ 코드 어긋남 |
+| **1.3 Drift** | 37 detector의 spec ↔ 코드 어긋남 |
 | **1.4 Commit · 1.5 Arch · 1.6 Secret** | 작업트리 clean · architecture invariant · API 키 노출 |
 | **2.1 Unit · 2.2 Coverage** | 단위 테스트 통과 · coverage 하락 차단 |
 | **2.3 Spec conformance · 2.4 Deliverable smoke** | 구현을 못 본 채점자의 테스트 통과 · 선언된 실행물이 실제로 도는지 *("테스트는 통과인데 결과물은 안 도는" 빈 초록 차단)* |
@@ -333,7 +333,7 @@ clad update                # 3. 새 버전에 맞게 정리
 <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
 <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">gate</div>
 <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">15<span style="font-size:16px;color:#94a3b8"> 단계</span></div>
-<div style="font-size:11px;color:#64748b">36 detectors</div>
+<div style="font-size:11px;color:#64748b">37 detectors</div>
 </td>
 <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
 <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">features</div>
@@ -352,7 +352,7 @@ clad update                # 3. 새 버전에 맞게 정리
 - [Why cladding (project context)](docs/project-context.md)
 - [4-tier governance model](docs/ssot-model.md)
 - [Hash-based feature ID](docs/spec-ids-multi-dev.md)
-- [36 detector catalog](src/stages/detectors/README.md)
+- [37 detector catalog](src/stages/detectors/README.md)
 - [용어집 (EN · KO)](docs/glossary.md)
 - [Governance · roadmap to 1.0](GOVERNANCE.md)
 

@@ -7,7 +7,7 @@ ironclad_spec_ref: https://github.com/qwerfunch/ironclad/blob/main/detectors.sch
 
 # Drift detectors — inventory
 
-36 detectors are wired into `stages/drift.ts` via `stages/detectors/index.ts`: the upstream Ironclad 19 plus cladding extensions (`FIXTURE_REFERENCE_INVALID` onward). The live count is the filesystem itself — `scripts/build-plugin.mjs` Phase D recounts `stages/detectors/*.ts` and rewrites `plugin.json` on every build, so this prose number and the table below are kept honest by `tests/self-consistency.test.ts` (and `tests/scripts/build-plugin-detector-count.test.ts`). Each detector is a pure function `(opts) => readonly DriftFinding[]`; the stage passes when no finding has `severity === 'error'`.
+37 detectors are wired into `stages/drift.ts` via `stages/detectors/index.ts`: the upstream Ironclad 19 plus cladding extensions (`FIXTURE_REFERENCE_INVALID` onward). The live count is the filesystem itself — `scripts/build-plugin.mjs` Phase D recounts `stages/detectors/*.ts` and rewrites `plugin.json` on every build, so this prose number and the table below are kept honest by `tests/self-consistency.test.ts` (and `tests/scripts/build-plugin-detector-count.test.ts`). Each detector is a pure function `(opts) => readonly DriftFinding[]`; the stage passes when no finding has `severity === 'error'`.
 
 ## Catalog
 
