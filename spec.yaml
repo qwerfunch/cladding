@@ -11,7 +11,7 @@ project:
   name: cladding
   language: typescript
   description: "Reference implementation of the Ironclad harness for AI-coupled software."
-  version: "0.6.0"
+  version: "0.6.1"
   repository: "https://github.com/qwerfunch/cladding"
   intent_summary: "Make AI-coupled development measurably safer and more honest — 37 drift detectors + 4-tier SSoT governance + A/B-measurable cladding-vs-vanilla evaluation."
   deliverable:

@@ -320,7 +320,7 @@ Your code · `spec.yaml` · docs are left untouched, so it's safe — and if the
 <tr>
 <td align="center" width="140" style="background:#f8fafc;padding:18px 10px;border-radius:8px">
 <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">version</div>
-<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">v0.6.0</div>
+<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">v0.6.1</div>
 <div style="font-size:11px;color:#64748b">2026-06</div>
 </td>
 <td align="center" width="140" style="background:#dcfce7;padding:18px 10px;border-radius:8px">

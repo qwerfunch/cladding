@@ -7,7 +7,7 @@
   </defs>
 
   <!-- Title -->
-  <text x="320" y="36" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="17" font-weight="700" fill="#0f172a">4-Tier SSoT — 진실의 원천 계층 (v0.6.0)</text>
+  <text x="320" y="36" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="17" font-weight="700" fill="#0f172a">4-Tier SSoT — 진실의 원천 계층 (v0.6.1)</text>
 
   <!-- Band A : Spec -->
   <rect x="20" y="56" width="424" height="84" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
