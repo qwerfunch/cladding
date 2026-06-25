@@ -7,6 +7,45 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.2] — 2026-06-25 — Honest Count
+
+**In one line:** the published number of verification stages was wrong — it said
+13 (the CLI said 14) while the gate has been running 15 all along — so this fixes
+the number everywhere and makes it derive from the gate itself, so it can't
+silently drift again.
+
+> **Heads-up:** nothing changes about how the gate runs — it already ran all 15
+> stages. Only the *advertised* count was off; no project behaves differently.
+
+### Fixed
+
+- **The advertised stage count (13 → 15).** The Claude Code manifest's stage list
+  was missing two stages the gate actually runs — spec-conformance and
+  deliverable-smoke — so it claimed 13; the CLI `--tier` help said 14; the README
+  said 15. Every surface now agrees on **15**. Check-instruction examples
+  ("13/13 stages clean") now read "15-stage gate green" — on a clean tree the
+  gate shows 9 passed and 6 skipped, so a fixed "N/N" would just be wrong a
+  different way.
+- **Two stale code comments** corrected to match the code: an impl-blindness
+  provenance check marked "deferred" that actually ships (it runs under an oracle
+  mandate), and an architecture field said to be no longer emitted that the scan
+  still emits. Plus a stale detector count in the check skill (24 → 37).
+
+### Added
+
+- **A self-check that keeps the count honest.** The plugin build now derives the
+  published stage list from the single list the gate actually runs, and an
+  integrity check fails if any manifest disagrees. The earlier 13-vs-15 gap had
+  shipped undetected because nothing guarded that list; it is now a live binding,
+  not a hand-maintained number.
+
+### Changed
+
+- **Contributor flow documented as git-flow with PR-always** — every merge lands
+  via PR, and `develop → main` is always a merge commit, never a squash (a past
+  squash put release commits outside `develop`'s ancestry and phantom-conflicted
+  the next release). Maintainer-facing only (`CLAUDE.md`).
+
 ## [0.6.1] — 2026-06-25 — Honest Smoke
 
 **In one line:** the final gate now actually runs your finished program and checks it

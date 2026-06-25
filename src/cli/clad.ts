@@ -712,7 +712,7 @@ export function printVerbDeprecationNotice(verb: string | undefined): void {
  */
 export function createProgram(): Command {
   const program = new Command();
-  program.name('clad').description('Reference Ironclad CLI').version('0.6.1');
+  program.name('clad').description('Reference Ironclad CLI').version('0.6.2');
 
   program
     .command('init [intent...]')
@@ -770,7 +770,7 @@ export function createProgram(): Command {
     .option('--strict', 'promote warn-severity drift findings to errors (CI / pre-publish gate)')
     .option(
       '--tier <tier>',
-      'run only the stages for a trigger: pre-commit (drift/arch/secret) | pre-push (+ type/lint/unit/cov/spec-conformance) | all (default; full 14-stage gate, used by CI)',
+      'run only the stages for a trigger: pre-commit (drift/arch/secret) | pre-push (+ type/lint/unit/cov/spec-conformance/deliverable-smoke) | all (default; full 15-stage gate, used by CI)',
     )
     .option('--json', 'emit structured per-stage results (machine-readable: findings with file/line/suggestion, untruncated) — for agents/CI; cuts RED→fix round-trips')
     .action(runCheckCommand);

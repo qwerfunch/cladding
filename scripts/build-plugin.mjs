@@ -440,3 +440,44 @@ if (claudeResult.changed) {
     `cladding plugin · detectors: ${detectorCount}/${detectorCount} (already in sync)`,
   );
 }
+
+// --- Phase E — stages-implemented auto-derive (v0.6.2) ----------------
+//
+// Same rationale as Phase D: the Claude Code manifest's `stages-implemented`
+// array must mirror what the engine actually runs (TIER_STAGES.all in
+// src/cli/clad.ts). Hand-maintained it silently drifted (13 listed vs 15
+// run) and HARNESS_INTEGRITY's stage-list check now guards it — so derive it
+// here from the one canonical source (source TEXT, not import, to match the
+// detector's anti-circular constraint) and rewrite the array. Idempotent.
+
+function deriveStageList(cliSource) {
+  const m = cliSource.match(/TIER_STAGES[\s\S]*?\ball:\s*\[([^\]]*)\]/);
+  if (!m) return null;
+  return [...m[1].matchAll(/['"]([^'"]+)['"]/g)].map((x) => x[1]);
+}
+
+function rewriteStageList(jsonPath, stages) {
+  const original = readFileSync(jsonPath, 'utf8');
+  const want = `[${stages.map((s) => `"${s}"`).join(', ')}]`;
+  const updated = original.replace(/("stages-implemented":\s*)\[[^\]]*\]/, `$1${want}`);
+  if (updated === original) return {changed: false};
+  writeFileSync(jsonPath, updated);
+  return {changed: true};
+}
+
+const CLI_SOURCE = 'src/cli/clad.ts';
+if (existsSync(CLI_SOURCE)) {
+  const stages = deriveStageList(readFileSync(CLI_SOURCE, 'utf8'));
+  if (stages && stages.length > 0) {
+    const stageResult = rewriteStageList(CLAUDE_PLUGIN_JSON, stages);
+    console.log(
+      stageResult.changed
+        ? `cladding plugin · stages: re-derived → ${stages.length} stages (updated ${CLAUDE_PLUGIN_JSON})`
+        : `cladding plugin · stages: ${stages.length} stages (already in sync)`,
+    );
+  } else {
+    console.warn(
+      `cladding plugin · stages: could not parse TIER_STAGES.all from ${CLI_SOURCE} — array left as-is`,
+    );
+  }
+}

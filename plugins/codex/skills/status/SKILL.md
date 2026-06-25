@@ -7,7 +7,7 @@ description: Render the feature × stage integrity matrix — every feature vs e
 Run `clad status` from the project root. Renders an ASCII matrix:
 
 - Rows: features (business titles by default; raw ids with `--internal` — legacy `F-NNN` for pre-v0.3.9 features, `F-<hash6>` for v0.3.9+).
-- Columns: 13 Iron Law stages.
+- Columns: 15 Iron Law stages.
 - Cells: pass · skip · fail · not-yet-attempted.
 
 Use this after `clad check` to see *which features* failed *which stages* at a glance, not just the aggregate exit code.

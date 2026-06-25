@@ -14,7 +14,7 @@ Thanks for your interest in helping make code iron-clad.
    npm test
    npm run typecheck
    npm run lint
-   node bin/clad check       # 13/13 stages clean on a clean tree
+   node bin/clad check       # 15-stage gate, green on a clean tree
    ```
    When you change a stage, a detector, or the conformance contract, also run `npm run conformance` to re-verify the 26 fixtures. The runner is a contributor self-audit tool — it depends on dev-only toolchain binaries (`tsc` / `eslint` / `madge` / `secretlint` / `vitest`), so it works after a contributor install (`npm install`), **not** after the end-user install (`npm install -g cladding`).
 5. **Add a CHANGELOG entry** under the next-release heading, in the right [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) section (`Added` / `Changed` / `Deprecated` / `Removed` / `Fixed` / `Security`).

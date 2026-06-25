@@ -5,7 +5,7 @@ This extension wires Gemini CLI to **cladding**, a multi-agent dev harness imple
 ## What you get when this extension is enabled
 
 - **`/cladding:sync`** — validate `spec.yaml` against the Ironclad schema
-- **`/cladding:check`** — run all 13 Iron Law stages + the drift detector suite
+- **`/cladding:check`** — run all 15 Iron Law stages + the drift detector suite
 - **`/cladding:panel`** — feature × stage Integrity Panel (project-wide status board)
 - **`/cladding:drive`** — autonomous loop (iterate features, dispatch specialists + reviewer)
 - **`/cladding:init`** — scaffold a new cladding workspace

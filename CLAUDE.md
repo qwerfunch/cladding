@@ -47,9 +47,9 @@ When you add a drift detector under `src/stages/detectors/`:
 A user-explicit instruction ("release vX.Y.Z") triggers the ritual:
 
 1. `npm run version-bump -- X.Y.Z` (all nine sites) + `npm install` (refresh the committed `package-lock.json` to the new version — CI's `npm ci` fails on a stale lock) + `npm run build` + GREEN `npm test` / `clad check --strict`
-2. develop → main fast-forward
-3. `git tag vX.Y.Z`
-4. push main + tag
+2. open a **PR `develop → main`** and merge it with the GitHub **"Create a merge commit"** button — NEVER squash, NEVER rebase (see the squash-ban below)
+3. `git tag vX.Y.Z` on main's merge commit
+4. push main + tag, then **back-merge `main → develop`** (`git checkout develop && git merge origin/main && git push`) so develop keeps the release commit in its ancestry — skip this and the next release PR phantom-conflicts
 5. **`npm publish`** — existing users install the engine via the global npm `clad`, so a tag + `gh release` alone does NOT reach them; the registry must carry the new version or they stay frozen on the old one. (`prepublishOnly` rebuilds dist + mirrors first, so the tarball is never stale.)
 6. `gh release create vX.Y.Z --notes-file <CHANGELOG section>`
 
@@ -57,7 +57,7 @@ The marketplace plugin (Claude Code / Codex / Gemini) ships only the prompts + t
 
 Never auto-tag, auto-publish, or auto-release. Patch-first cadence — minor bumps (0.4.0 etc.) need explicit user confirmation.
 
-When a release goes through a PR instead of a direct fast-forward, **never squash-merge it**. A squash puts the release commit outside develop's ancestry, so the *next* release PR reports every file touched since as conflicting (the v0.5.2 squash via PR #180 made PR #181 show 31 phantom conflicts, resolved only by a manual `merge origin/main --ours` reconciliation commit). Use a merge commit, or keep the fast-forward flow.
+**All merges go through a PR — git-flow, always.** `feature/* → develop` and `develop → main` both land via PR; no direct pushes that bypass review. For `develop → main`, **always use a merge commit — NEVER squash, NEVER rebase.** A squash puts the release commit outside develop's ancestry, so the *next* release PR reports every file touched since as conflicting (the v0.5.2 squash via PR #180 made PR #181 show 31 phantom conflicts; #183's squash left develop unreconciled until a manual `merge origin/main` reconciliation on 2026-06-25). GitHub has no per-branch merge-method lock, so this is a hand-enforced convention: deliberately pick "Create a merge commit" on every `develop → main` PR, then back-merge `main → develop` (step 4) to keep develop a clean superset. Squashing `feature/* → develop` PRs is fine — only the `develop → main` direction causes the divergence.
 
 ## AI behavior guidance from `spec.yaml.project.ai_hints`
 
