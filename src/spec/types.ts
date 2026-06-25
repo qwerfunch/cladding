@@ -122,8 +122,10 @@ export interface ArchitectureLayerObject {
    * `ARCHITECTURE_FROM_SPEC` currently derives a layer's directory from
    * `name` (`src/<name>/`) and does NOT consume these globs — so a declared
    * `modules` is documentation for humans/reviewers, not a live binding. The
-   * LLM onboarding prompts no longer emit it (v0.4.x). Making the detector
-   * consume these globs is a tracked follow-up (docs/ssot-audit.md, J5b).
+   * deterministic scan renderer (`renderArchitectureYaml`, src/cli/scan/llm.ts)
+   * still emits it on `clad init --scan`, so it is live-but-advisory in real
+   * specs. Making the detector consume these globs is a tracked follow-up
+   * (docs/ssot-audit.md, J5b).
    */
   readonly modules?: readonly string[];
   readonly forbidden_imports?: readonly string[];
