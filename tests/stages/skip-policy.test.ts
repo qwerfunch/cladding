@@ -21,11 +21,9 @@ describe('strictSkipViolations (F-67d2e9)', () => {
     expect(strictSkipViolations(planned, skip('stage_2.3')).length).toBe(0);
   });
 
-  test('2.4: safe deliverable + done → violation; is_safe_to_smoke false → none (declared opt-out respected)', () => {
+  test('2.4 is RETIRED from skip-policy (F-c′) — the smoke demand now lives in SMOKE_PROBE_DEMAND', () => {
     const safe = {project: {name: 'x', deliverable: {path: './run', is_safe_to_smoke: true}}, features: [{id: 'F-a', status: 'done'}]} as never;
-    expect(strictSkipViolations(safe, skip('stage_2.4')).length).toBe(1);
-    const optOut = {project: {name: 'x', deliverable: {path: './run', is_safe_to_smoke: false}}, features: [{id: 'F-a', status: 'done'}]} as never;
-    expect(strictSkipViolations(optOut, skip('stage_2.4')).length).toBe(0);
+    expect(strictSkipViolations(safe, skip('stage_2.4')).length).toBe(0); // no longer a skip-policy demand
   });
 
   test('a demanded stage that PASSED (not skipped) yields no violation', () => {
@@ -42,13 +40,7 @@ describe('strictSkipViolations (F-67d2e9)', () => {
       {stage: 'stage_1.1', status: 'skip' as const},
       {stage: 'stage_2.1', status: 'skip' as const},
       {stage: 'stage_2.3', status: 'skip' as const},
-      {stage: 'stage_2.4', status: 'skip' as const},
     ];
-    expect(strictSkipViolations(spec, outcomes).map((v) => v.stage)).toEqual([
-      'stage_1.1',
-      'stage_2.1',
-      'stage_2.3',
-      'stage_2.4',
-    ]);
+    expect(strictSkipViolations(spec, outcomes).map((v) => v.stage)).toEqual(['stage_1.1', 'stage_2.1', 'stage_2.3']);
   });
 });

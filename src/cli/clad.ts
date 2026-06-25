@@ -37,7 +37,8 @@ import {runType} from '../stages/type.js';
 import {runUat} from '../stages/uat.js';
 import {runUnit} from '../stages/unit.js';
 import {runVisual} from '../stages/visual.js';
-import type {DriftFinding} from '../stages/types.js';
+import type {DriftFinding, Disposition} from '../stages/types.js';
+import {gateStatusOf, isBlocking, worstContribution, type GateStatus} from '../stages/disposition.js';
 import {staleSpecification} from '../stages/detectors/stale-specification.js';
 import {findLatestCheckpoint, recordCheckpoint, recordRollback} from '../core/checkpoint.js';
 import {maintainDeliverable} from '../spec/deliverable-detect.js';
@@ -47,7 +48,7 @@ import {writeAttestation} from '../spec/attestation.js';
 import {buildBlindPayload, renderBlindBrief} from '../oracle/payload.js';
 import {requiredOracleWorklist} from '../oracle/policy.js';
 import {loadSpec} from '../spec/load.js';
-import {pulse} from '../ui/pulse.js';
+import {pulse, type PulseKind} from '../ui/pulse.js';
 import {renderPanel} from '../ui/panel.js';
 import {featureLabel, gateLabel, haltMessage} from '../ui/softShell.js';
 
@@ -447,13 +448,19 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
   const stages = allStages.filter(([name]) => allowed.includes(name));
   let worst = 0;
   let anyFailed = false;
-  const collected: {stage: string; label: string; status: 'pass' | 'skip' | 'fail'; exitCode: number; stderr?: string; findings?: readonly DriftFinding[]}[] = [];
+  // Smoke dispositions widen the legacy 3-bucket spine (F-e0f6c7; see stages/disposition.ts).
+  // Map a gate status to one of pulse's 5 kinds at the call site (no PulseKind churn):
+  // blocking → fail glyph; na → skip; liveness → note (ran, not green-as-smoke).
+  const pulseKindOf = (s: GateStatus): PulseKind =>
+    s === 'pass' ? 'pass' : s === 'liveness' ? 'note' : s === 'na' ? 'skip' : isBlocking(s) ? 'fail' : 'skip';
+  const collected: {stage: string; label: string; status: GateStatus; exitCode: number; stderr?: string; findings?: readonly DriftFinding[]}[] = [];
   for (const [name, run] of stages) {
     const r = run({}) as {
       pass: boolean;
       exitCode: number;
       stderr?: string;
       findings?: readonly DriftFinding[];
+      disposition?: Disposition;
     };
     const label = opts.internal ? name : gateLabel(name);
     // INVARIANT: exitCode 2 means "skipped" (cladding chose not to run — tool
@@ -461,19 +468,16 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
     // found a real problem MUST return exitCode 1, never 2 — see
     // stages/util.ts::ranToolResult. (tsc exits 2 on type errors; relaying that
     // raw 2 here is what let a real type failure pass as a skip.)
-    const status: 'pass' | 'skip' | 'fail' = r.pass ? 'pass' : r.exitCode === 2 ? 'skip' : 'fail';
-    if (status === 'fail') {
+    // Disposition-first (F-e0f6c7): see stages/disposition.ts.
+    const status = gateStatusOf(r);
+    if (isBlocking(status)) {
       anyFailed = true;
-      if (r.exitCode > worst) worst = r.exitCode;
+      worst = Math.max(worst, worstContribution(r, status));
     }
     collected.push({stage: name, label, status, exitCode: r.exitCode, stderr: r.stderr, findings: r.findings});
     if (!opts.json) {
-      if (status === 'fail') {
-        pulse('fail', label);
-        printStageDetails(r);
-      } else {
-        pulse(status, label);
-      }
+      pulse(pulseKindOf(status), label);
+      if (isBlocking(status)) printStageDetails(r);
     }
   }
   // STRICT SKIP-POLICY (F-67d2e9, generalizes the 0.5.x unit-only guard).
@@ -513,12 +517,12 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
       drift?.status === 'fail' &&
       strictFailing.length > 0 &&
       strictFailing.every((f) => f.detector === 'STALE_ATTESTATION');
-    const othersGreen = collected.every((c) => c.stage === 'stage_1.3' || c.status !== 'fail');
+    const othersGreen = collected.every((c) => c.stage === 'stage_1.3' || !isBlocking(c.status));
     if (solelyStale && othersGreen && drift) {
       drift.status = 'pass';
       drift.exitCode = 0;
       drift.stderr = 'stale attestation exempted — this run re-verified and re-attests';
-      anyFailed = collected.some((c) => c.status === 'fail');
+      anyFailed = collected.some((c) => isBlocking(c.status));
       worst = anyFailed ? Math.max(1, worst) : 0;
       if (!opts.json) pulse('note', 'attestation', 'stale entries re-verified by this run — re-attesting');
     }

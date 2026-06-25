@@ -41,12 +41,12 @@
     "spec-fetched": "2026-05-18",
     "target": {
       "iron-law": "L4",
-      "detectors": "36/36",
+      "detectors": "37/37",
       "ears": "full"
     },
     "current": {
       "iron-law": "L4",
-      "detectors": "36/36",
+      "detectors": "37/37",
       "ears": "syntactic",
       "phase": "L21.12 — Territory → Integrity Panel rename (vocab anchored to Trinity of Integrity)",
       "stages-implemented": ["stage_1.1", "stage_1.2", "stage_1.3", "stage_1.4", "stage_1.5", "stage_1.6", "stage_2.1", "stage_2.2", "stage_3.1", "stage_3.2", "stage_3.3", "stage_4.1", "stage_4.2"],
