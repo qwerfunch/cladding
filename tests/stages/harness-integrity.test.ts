@@ -61,6 +61,29 @@ function writeDetectorFile(dir: string, name: string): void {
   writeFileSync(join(dir, 'src', 'stages', 'detectors', name), `// ${name}\nexport const x = 1;\n`);
 }
 
+/** Synthetic src/cli/clad.ts carrying a TIER_STAGES block the stage-list check parses. */
+function writeCliSource(dir: string, stages: readonly string[]): void {
+  mkdirSync(join(dir, 'src', 'cli'), {recursive: true});
+  const all = stages.map((s) => `'${s}'`).join(', ');
+  writeFileSync(
+    join(dir, 'src', 'cli', 'clad.ts'),
+    `export const TIER_STAGES = {\n  'pre-commit': ['stage_1.3'],\n  all: [${all}],\n};\n`,
+  );
+}
+
+/**
+ * Claude Code manifest carrying a stages-implemented array (null = field omitted).
+ * Nested under ironclad.current to mirror the REAL manifest layout — a top-level
+ * key here would let the detector read undefined and pass vacuously (the exact
+ * false-confidence the deliberate-break test caught).
+ */
+function writeManifestStages(dir: string, stages: readonly string[] | null, version = '0.0.0'): void {
+  mkdirSync(join(dir, 'plugins', 'claude-code', '.claude-plugin'), {recursive: true});
+  const body: Record<string, unknown> = {name: 'x', version};
+  if (stages !== null) body.ironclad = {current: {'stages-implemented': stages}};
+  writeFileSync(join(dir, 'plugins', 'claude-code', '.claude-plugin', 'plugin.json'), JSON.stringify(body));
+}
+
 function writeMarketplace(dir: string, version: string, name = 'claude-code'): void {
   mkdirSync(join(dir, '.claude-plugin'), {recursive: true});
   writeFileSync(
@@ -297,5 +320,53 @@ describe('HARNESS_INTEGRITY · cross-manifest version drift (F-080)', () => {
     const findings = harnessIntegrity.run({cwd: dir});
     const marketDrift = findings.filter((f) => f.message.includes('marketplace'));
     expect(marketDrift).toEqual([]);
+  });
+});
+
+describe('HARNESS_INTEGRITY · stage list (v0.6.2)', () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'clad-harness-int-'));
+  });
+  afterEach(() => {
+    rmSync(dir, {recursive: true, force: true});
+  });
+
+  test('manifest stages-implemented matches TIER_STAGES.all → no finding', () => {
+    writeCliSource(dir, ['stage_1.1', 'stage_2.3', 'stage_2.4', 'stage_4.2']);
+    writeManifestStages(dir, ['stage_1.1', 'stage_2.3', 'stage_2.4', 'stage_4.2']);
+    const findings = harnessIntegrity.run({cwd: dir});
+    expect(findings.filter((f) => f.message.includes('stages-implemented'))).toEqual([]);
+  });
+
+  test('manifest omits stages the engine runs → error finding (the 13-vs-15 drift)', () => {
+    writeCliSource(dir, ['stage_1.1', 'stage_2.3', 'stage_2.4', 'stage_4.2']);
+    writeManifestStages(dir, ['stage_1.1', 'stage_4.2']); // stage_2.3 + stage_2.4 missing
+    const findings = harnessIntegrity.run({cwd: dir});
+    const stageErr = findings.filter((f) => f.severity === 'error' && f.message.includes('stages-implemented'));
+    expect(stageErr).toHaveLength(1);
+    expect(stageErr[0].message).toContain('missing [stage_2.3, stage_2.4]');
+  });
+
+  test('manifest lists a stage the engine does not run → error (unexpected)', () => {
+    writeCliSource(dir, ['stage_1.1', 'stage_4.2']);
+    writeManifestStages(dir, ['stage_1.1', 'stage_4.2', 'stage_9.9']);
+    const findings = harnessIntegrity.run({cwd: dir});
+    const stageErr = findings.filter((f) => f.severity === 'error' && f.message.includes('stages-implemented'));
+    expect(stageErr).toHaveLength(1);
+    expect(stageErr[0].message).toContain('unexpected [stage_9.9]');
+  });
+
+  test('stages-implemented field absent → silent (opt-in metadata)', () => {
+    writeCliSource(dir, ['stage_1.1', 'stage_4.2']);
+    writeManifestStages(dir, null);
+    const findings = harnessIntegrity.run({cwd: dir});
+    expect(findings.filter((f) => f.message.includes('stages-implemented'))).toEqual([]);
+  });
+
+  test('cli source absent (adopting project) → silent', () => {
+    writeManifestStages(dir, ['stage_1.1']); // manifest present, but no src/cli/clad.ts
+    const findings = harnessIntegrity.run({cwd: dir});
+    expect(findings.filter((f) => f.message.includes('stages-implemented'))).toEqual([]);
   });
 });

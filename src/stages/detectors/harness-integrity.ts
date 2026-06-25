@@ -23,9 +23,19 @@
 //      disagreement trips an error finding so a release can't ship
 //      with a half-bumped manifest set or a stale marketplace catalog.
 //
-// Filesystem-based rather than importing `allDetectors`, on purpose:
-// importing the registry would create a circular dependency the
-// ARCHITECTURE_VIOLATION detector would immediately flag.
+//   4. Stage list (v0.6.2) — the Claude Code manifest's
+//      `stages-implemented` array must equal the engine's TIER_STAGES.all
+//      (the stages `clad check` actually runs, declared in
+//      src/cli/clad.ts). Hand-maintained, it silently drifted (13 listed
+//      vs 15 run) and shipped UNDETECTED because nothing guarded it; this
+//      check closes that self-honesty blind spot. `npm run build:plugin`
+//      re-derives the array from the same source, so the fix is "rebuild".
+//
+// Filesystem/source-text based rather than importing `allDetectors` or
+// `TIER_STAGES`, on purpose: importing a sibling/higher layer (the
+// registry, or the cli layer) would create a dependency the
+// ARCHITECTURE_VIOLATION detector would immediately flag. So the stage
+// list is parsed from the cli SOURCE TEXT, never imported.
 //
 // @see spec/features/F-080.yaml — this extension.
 
@@ -45,6 +55,7 @@ interface PluginManifest {
   ironclad?: {
     current?: {
       detectors?: string;
+      'stages-implemented'?: readonly string[];
     };
   };
 }
@@ -215,10 +226,58 @@ function checkVersionConsistency(cwd: string, findings: DriftFinding[]): void {
   // fixtures (Phase 2), not as a hard gate.
 }
 
+/**
+ * Extracts the stage ids of `TIER_STAGES.all` from the cli source TEXT.
+ * Source-text (not import) on purpose — same anti-circular reason
+ * `countDetectorFiles` globs files instead of importing the registry: a
+ * detector importing the cli layer would trip ARCHITECTURE_VIOLATION.
+ * Anchored to `TIER_STAGES` so a stray `all:` elsewhere can't match.
+ * Returns [] when the block is absent/unparseable (→ caller skips, no false-fail).
+ */
+function parseTierAllStages(cliSource: string): string[] {
+  const m = cliSource.match(/TIER_STAGES[\s\S]*?\ball:\s*\[([^\]]*)\]/);
+  if (!m) return [];
+  return [...m[1].matchAll(/['"]([^'"]+)['"]/g)].map((x) => x[1]);
+}
+
+/** Stage-list check — plugin.json stages-implemented must equal TIER_STAGES.all. */
+function checkStageList(cwd: string, findings: DriftFinding[]): void {
+  const cliPath = join(cwd, 'src', 'cli', 'clad.ts');
+  const manifestPath = join(cwd, 'plugins', 'claude-code', '.claude-plugin', 'plugin.json');
+  // Only meaningful inside cladding's OWN repo; an adopting project has neither
+  // file, so skip silently (checkDetectorCount already reports a missing manifest).
+  if (!existsSync(cliPath) || !existsSync(manifestPath)) return;
+  const canonical = parseTierAllStages(readFileSync(cliPath, 'utf8'));
+  if (canonical.length === 0) return; // unparseable source → don't false-fail
+  const manifest = readJsonIfPresent<PluginManifest>(manifestPath);
+  // Lives under ironclad.current (alongside the detector count), not at top level.
+  const declared = manifest?.ironclad?.current?.['stages-implemented'];
+  if (!Array.isArray(declared)) return; // opt-in metadata; absent → silent
+  const want = new Set(canonical);
+  const have = new Set(declared);
+  const missing = canonical.filter((s) => !have.has(s));
+  const unexpected = declared.filter((s) => !want.has(s));
+  if (missing.length === 0 && unexpected.length === 0) return;
+  const parts = [
+    missing.length ? `missing [${missing.join(', ')}]` : '',
+    unexpected.length ? `unexpected [${unexpected.join(', ')}]` : '',
+  ]
+    .filter(Boolean)
+    .join('; ');
+  findings.push({
+    detector: NAME,
+    severity: 'error',
+    message:
+      `plugins/claude-code/.claude-plugin/plugin.json stages-implemented disagrees ` +
+      `with TIER_STAGES.all (src/cli/clad.ts): ${parts} — run \`npm run build:plugin\` to re-derive`,
+  });
+}
+
 function runHarnessIntegrity(opts: CommandStageOptions): readonly DriftFinding[] {
   const {cwd = '.'} = opts;
   const findings: DriftFinding[] = [];
   checkDetectorCount(cwd, findings);
+  checkStageList(cwd, findings);
   checkHostSchemas(cwd, findings);
   checkVersionConsistency(cwd, findings);
   return findings;
