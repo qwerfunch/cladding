@@ -46,6 +46,24 @@ function writeEntryStderr(code: number, msg: string): void {
 }
 const SAFE = '  deliverable:\n    path: ./run\n    is_safe_to_smoke: true\n';
 
+/** Write an executable ./run that prints `out` to stdout, then exits with `code`. */
+function writeEntryEcho(out: string, code: number): void {
+  const p = join(dir, 'run');
+  writeFileSync(p, `#!/bin/sh\necho "${out}"\nexit ${code}\n`);
+  chmodSync(p, 0o755);
+}
+/** Write a spec.yaml whose project carries a `smoke:` block (F-g'). */
+function writeSmokeSpec(smokeBlock: string, done = true): void {
+  writeFileSync(
+    join(dir, 'spec.yaml'),
+    `schema: "0.1"\nproject:\n  name: t\n  language: typescript\n${smokeBlock}` +
+      `features:\n  - id: F-001\n    title: f\n    status: ${done ? 'done' : 'planned'}\n` +
+      '    modules: [src/x.ts]\n    acceptance_criteria:\n      - id: AC-001\n        ears: ubiquitous\n        text: t\n',
+  );
+}
+const CLI_PROBE = (token?: string): string =>
+  '  smoke:\n    - kind: cli\n      run: ["./run"]\n' + (token ? `      expect:\n        token: "${token}"\n` : '');
+
 describe('stage_2.4 DELIVERABLE_SMOKE', () => {
   test('SKIP (exit 2) when no deliverable is declared', () => {
     writeSpec();
@@ -74,12 +92,13 @@ describe('stage_2.4 DELIVERABLE_SMOKE', () => {
     expect(r.exitCode).toBe(2);
   });
 
-  test('PASS when the declared entry runs and exits 0', () => {
+  test('LIVENESS when the declared entry runs and exits 0 (exit-only ⇒ not a green PASS)', () => {
     writeSpec({deliverable: SAFE});
     writeEntry(0);
     const r = runDeliverableSmoke({cwd: dir});
     expect(r.pass).toBe(true);
     expect(r.exitCode).toBe(0);
+    expect(r.disposition).toBe('liveness'); // F-8f419e — non-green, non-blocking
   });
 
   test('FAIL (exit 1) when the declared entry CRASHES — the S5 reproduction', () => {
@@ -97,6 +116,7 @@ describe('stage_2.4 DELIVERABLE_SMOKE', () => {
     const r = runDeliverableSmoke({cwd: dir});
     expect(r.pass).toBe(true);
     expect(r.exitCode).toBe(0);
+    expect(r.disposition).toBe('liveness');
   });
 
   test('PASS even when a working entry writes a benign warning to stderr (no stderr over-block)', () => {
@@ -109,5 +129,52 @@ describe('stage_2.4 DELIVERABLE_SMOKE', () => {
     const r = runDeliverableSmoke({cwd: dir});
     expect(r.pass).toBe(true);
     expect(r.exitCode).toBe(0);
+    expect(r.disposition).toBe('liveness');
+  });
+});
+
+describe("stage_2.4 functional smoke probes (F-g')", () => {
+  test('PASS (green) when a cli probe runs clean AND stdout contains the AC token', () => {
+    writeSmokeSpec(CLI_PROBE('HELLO'));
+    writeEntryEcho('say HELLO world', 0);
+    const r = runDeliverableSmoke({cwd: dir});
+    expect(r.disposition).toBe('pass'); // §17.2 — the liveness→pass upgrade
+    expect(r.exitCode).toBe(0);
+  });
+
+  test('LIVENESS when a cli probe runs clean but declares NO token (exit-only)', () => {
+    writeSmokeSpec(CLI_PROBE());
+    writeEntryEcho('whatever', 0);
+    const r = runDeliverableSmoke({cwd: dir});
+    expect(r.disposition).toBe('liveness');
+  });
+
+  test('FAIL (blocking) when the probe exits clean but the AC token is ABSENT from stdout', () => {
+    writeSmokeSpec(CLI_PROBE('HELLO'));
+    writeEntryEcho('nothing here', 0);
+    const r = runDeliverableSmoke({cwd: dir});
+    expect(r.disposition).toBe('fail');
+    expect(r.exitCode).toBe(1);
+    expect(r.stderr).toMatch(/did not contain the AC token/);
+  });
+
+  test('FAIL when the probe exits non-zero (entry crashed)', () => {
+    writeSmokeSpec(CLI_PROBE('HELLO'));
+    writeEntryEcho('HELLO', 1);
+    const r = runDeliverableSmoke({cwd: dir});
+    expect(r.exitCode).toBe(1);
+  });
+
+  test('N/A for a kind:none probe (nothing to run)', () => {
+    writeSmokeSpec('  smoke:\n    - kind: none\n');
+    const r = runDeliverableSmoke({cwd: dir});
+    expect(r.disposition).toBe('na');
+  });
+
+  test('a smoke probe takes precedence over the legacy deliverable', () => {
+    writeSmokeSpec('  deliverable:\n    path: ./run\n    is_safe_to_smoke: true\n' + CLI_PROBE('HELLO'));
+    writeEntryEcho('HELLO', 0);
+    const r = runDeliverableSmoke({cwd: dir});
+    expect(r.disposition).toBe('pass');
   });
 });

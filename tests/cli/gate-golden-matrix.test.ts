@@ -186,10 +186,8 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
       stage: 'stage_2.3',
       spec: {features: [{id: 'F-a', status: 'done', acceptance_criteria: [{id: 'AC-1', oracle_refs: ['tests/oracle/x.test.ts']}]}]},
     },
-    'stage_2.4 — declared-safe deliverable + done feature': {
-      stage: 'stage_2.4',
-      spec: {project: {name: 'x', deliverable: {path: './run', is_safe_to_smoke: true}}, features: [{id: 'F-a', status: 'done', acceptance_criteria: []}]},
-    },
+    // stage_2.4 retired from skip-policy (F-c') — the smoke demand is now the
+    // SMOKE_PROBE_DEMAND drift detector (stage_1.3), covered in its own unit test.
   };
 
   test('PINNED DEMAND TABLE (F-67d2e9): each demanded stage REDs on skip under strict, with an appended Verification fail entry', () => {

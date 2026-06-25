@@ -1,0 +1,23 @@
+id: F-7076f7
+slug: smoke-probe-demand
+title: "Smoke probe demand — no probe for a runnable done feature is a finding, not a free pass"
+status: done
+modules:
+  - src/stages/detectors/smoke-probe-demand.ts
+  - src/stages/detectors/index.ts
+  - src/stages/skip-policy.ts
+acceptance_criteria:
+  - id: AC-111865
+    ears: event
+    condition: "when a done feature ships a runnable deliverable with no functional smoke probe"
+    text: "When at least one feature is done and the project ships a runnable deliverable but declares no functional smoke probe (project.smoke), SMOKE_PROBE_DEMAND shall emit a warn — the host may choose the smoke method but may not skip smoke."
+    test_refs: ["tests/stages/detectors/smoke-probe-demand.test.ts"]
+  - id: AC-7f8630
+    ears: ubiquitous
+    text: "SMOKE_PROBE_DEMAND shall be the sole owner of the smoke demand: the skip-policy stage_2.4 arm is retired so the demand fires on every drift tier rather than only under --strict."
+    test_refs: ["tests/stages/skip-policy.test.ts", "tests/cli/gate-golden-matrix.test.ts"]
+  - id: AC-5abfc0
+    ears: unwanted
+    condition: "if a functional smoke probe is declared, or the project has no runnable deliverable, or nothing is done"
+    text: "If a functional smoke probe is declared, or the project has no runnable deliverable, or no feature is done, the detector shall raise no demand."
+    test_refs: ["tests/stages/detectors/smoke-probe-demand.test.ts"]

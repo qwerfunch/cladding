@@ -242,6 +242,35 @@ export interface Deliverable {
   readonly is_safe_to_smoke?: boolean;
 }
 
+/** Expected result of a smoke probe (F-g'). */
+export interface SmokeProbeExpect {
+  /** AC id this probe verifies. */
+  readonly ac?: string;
+  /** Exit code that means success. Default 0. */
+  readonly exit?: number;
+  /**
+   * AC-observable token the deliverable must emit on stdout. Present + matched ⇒
+   * a green PASS; ABSENT ⇒ the clean run is exit-only LIVENESS (non-green).
+   */
+  readonly token?: string;
+}
+
+/**
+ * A functional smoke probe (F-g'). The gate RE-EXECUTES it (LLM proposes / gate
+ * disposes): kind:cli runs `run` argv and asserts exit (+ optional token);
+ * kind:none has nothing to run (library/static) ⇒ N/A. Disposition mapping lives
+ * in stages/disposition.ts; the runner is stages/deliverable-smoke.ts.
+ */
+export interface SmokeProbe {
+  readonly kind: 'cli' | 'none';
+  /** argv for kind:cli (no shell); cwd = project root. */
+  readonly run?: readonly string[];
+  readonly expect?: SmokeProbeExpect;
+  readonly binds?: {readonly feature?: string; readonly modules?: readonly string[]};
+  /** Why this probe proves the AC (Why>What). */
+  readonly why?: string;
+}
+
 /** Project-level metadata. */
 export interface Project {
   readonly name: string;
@@ -288,6 +317,13 @@ export interface Project {
    * feature is done to prove the shipped entry actually runs. See Deliverable.
    */
   readonly deliverable?: Deliverable;
+  /**
+   * Functional smoke probes (F-g'). The gate RE-EXECUTES each: a cli probe whose
+   * stdout contains `expect.token` reads PASS; an exit-only probe (no token) reads
+   * LIVENESS (non-green); kind:none reads N/A. When present, takes precedence over
+   * the legacy `deliverable` in stage_2.4. See stages/deliverable-smoke.ts.
+   */
+  readonly smoke?: readonly SmokeProbe[];
 }
 
 /**

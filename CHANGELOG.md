@@ -5,6 +5,51 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [0.6.1] — 2026-06-25 — Honest Smoke
+
+**In one line:** the final gate now actually runs your finished program and checks it
+does the right thing — instead of only confirming it started — and honestly says when
+it can't.
+
+> **Heads-up:** nothing breaks, but a project that only confirmed its program *starts*
+> will now read **amber ("ran, but not really checked")** instead of green, until you
+> tell cladding how to verify a real result (a command + the output you expect).
+
+### Added
+
+- **Five honest gate results** — *passed* / *failed* / *couldn't run here* (needs a
+  database, a device…) / *needs a person to confirm* / *nothing to run* — instead of
+  quietly marking the unknowns green.
+- **Functional smoke checks** (`project.smoke`) — tell cladding how to exercise your
+  app (a command + the output you expect); the gate re-runs it and only calls it
+  *passed* when the real output matches.
+- **A "you skipped the check" detector** — a finished feature that ships a runnable
+  program but declares no check is now flagged (blocks under `--strict`), not a free pass.
+- **Lint config detection** — stage_1.2 picks the linter the project actually
+  configured (`biome` / `oxlint`) instead of always assuming eslint; no linter config
+  keeps the eslint default. Detection never installs and never leaks across languages.
+  (F-b2094740)
+
+### Changed
+
+- **"It started" no longer counts as "verified"** — a program that merely runs without
+  crashing now reads *ran, but not really checked* (amber), turning green only once you
+  give it a real check. cladding holds itself to this too.
+- **"Couldn't run" and "needs a person" now block** — honest non-results, never a
+  silent green.
+- **One new check (37 total)** — the published count was re-synced across the READMEs,
+  spec, docs, and diagrams; the A/B comparison reports were regenerated.
+
+### Fixed
+
+- **"Passes its tests but is actually broken"** — a program could ship green while its
+  real entry produced the wrong output (it started, exited cleanly, printed garbage).
+  The gate now re-runs the real program and catches it, for the behaviors you ask it to
+  check. Validated on fresh projects and in a 3-way build against 0.6.0 (which let the
+  broken program through), at essentially no extra cost.
+
 ## [0.6.0] — 2026-06-11 — Structural Harness
 
 **In one line:** governance stops being a request — hooks enforce it, a committed

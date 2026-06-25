@@ -21,7 +21,10 @@ export interface SkipViolation {
 }
 
 /** Stages this policy can demand, in pipeline order. */
-const DEMANDABLE = ['stage_1.1', 'stage_2.1', 'stage_2.3', 'stage_2.4'] as const;
+// stage_2.4 retired here (F-c') — the smoke demand moved to the pure
+// SMOKE_PROBE_DEMAND detector (stage_1.3), the SOLE owner, so it fires on every
+// drift tier rather than only under --strict skip-policy.
+const DEMANDABLE = ['stage_1.1', 'stage_2.1', 'stage_2.3'] as const;
 type Demandable = (typeof DEMANDABLE)[number];
 
 function doneFeatures(spec: Spec): readonly Spec['features'][number][] {
@@ -65,14 +68,6 @@ function demand(spec: Spec, stage: Demandable): string | null {
         "the declared oracles never executed. Under --strict, declared-but-unrun verification is not GREEN."
       );
     }
-    case 'stage_2.4': {
-      const d = spec.project?.deliverable as {is_safe_to_smoke?: boolean} | undefined;
-      if (d?.is_safe_to_smoke !== true || done.length === 0) return null;
-      return (
-        'project.deliverable is declared safe to smoke and done features ship, but the smoke stage ' +
-        "skipped — the entry point was never exercised. Under --strict, a declared-but-unsmoked deliverable is not GREEN."
-      );
-    }
   }
 }
 
@@ -84,7 +79,9 @@ function demand(spec: Spec, stage: Demandable): string | null {
  */
 export function strictSkipViolations(
   spec: Spec,
-  outcomes: ReadonlyArray<{readonly stage: string; readonly status: 'pass' | 'skip' | 'fail'}>,
+  // `status` is widened from the legacy 3-bucket to any gate status (smoke adds
+  // pending_env/advisory/na/liveness, F-e0f6c7); this policy only keys on 'skip'.
+  outcomes: ReadonlyArray<{readonly stage: string; readonly status: string}>,
 ): readonly SkipViolation[] {
   const violations: SkipViolation[] = [];
   for (const stage of DEMANDABLE) {
