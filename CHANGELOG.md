@@ -7,6 +7,8 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.3] — 2026-06-26
+
 ### Added
 
 - **Module-scoped gate (Kotlin Gradle monorepos)** — when a focus feature
