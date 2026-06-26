@@ -7,15 +7,27 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.3] — 2026-06-26 — Honest Status
+
+**In one line:** the one-line-per-feature index that agents grep (and that feeds
+the session-start status card) can no longer lie about a feature's status — `clad
+done` keeps it fresh, and the staleness check now catches a wrong status, not just
+a missing id.
+
+> **Heads-up:** nothing changes for a green project. This closes a case where a
+> finished feature kept reading *in progress* in `spec/index.yaml` until the next
+> `clad sync` — and where that stale status slipped past the gate.
+
 ### Fixed
 
-- **The feature index no longer lies about status.** `clad done` now refreshes
-  `spec/index.yaml` in the same step it marks a feature done (and on a reverted
-  gate it re-syncs back), so the one-line-per-feature index agents grep — and the
-  SessionStart status card that reads it — never shows a finished feature as still
-  in progress. The `INVENTORY_DRIFT` check now also compares each row's *status*
-  to the shard (not just the id set), so a stale status is caught instead of
-  passing the gate green. (F-37b4a8)
+- **`clad done` refreshes the index in the same step.** On a kept flip the index
+  row becomes *done* immediately (no `clad sync` needed); on a reverted flip it
+  re-syncs back to the original status. The refresh runs *before* the gate so the
+  new status-aware check can't red the flip's own write.
+- **The staleness check compares each row's status, not just the id set.** A
+  `done` shard with an `in_progress` index row is now caught instead of passing
+  `clad check --strict` green. Both sides default to *planned* and strip quotes,
+  so a status-less or quoted shard never false-flags. (F-37b4a8)
 
 ## [0.6.2] — 2026-06-25 — Honest Count
 
