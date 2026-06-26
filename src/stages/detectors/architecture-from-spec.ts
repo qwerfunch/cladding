@@ -38,6 +38,8 @@ import {globSync} from 'tinyglobby';
 
 import {loadSpec} from '../../spec/load.js';
 import type {Architecture, ArchitectureLayerObject} from '../../spec/types.js';
+import {resolveLanguageConfig} from '../toolchain/language-config.js';
+import type {LanguageConfig} from '../toolchain/language-config.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
 
 const NAME = 'ARCHITECTURE_FROM_SPEC';
@@ -45,8 +47,11 @@ const NAME = 'ARCHITECTURE_FROM_SPEC';
 function run(opts: CommandStageOptions): readonly DriftFinding[] {
   const {cwd = '.'} = opts;
   let arch: Architecture | undefined;
+  let language: string | undefined;
   try {
-    arch = loadSpec(cwd).architecture;
+    const spec = loadSpec(cwd);
+    arch = spec.architecture;
+    language = spec.project?.language;
   } catch {
     // Load-failure policy (see detectors/with-spec.ts): within-spec-validity
     // detector — no spec means no architecture to enforce; ABSENCE_OF_GOVERNANCE
@@ -55,15 +60,18 @@ function run(opts: CommandStageOptions): readonly DriftFinding[] {
   }
   if (!arch) return [];
 
+  // Source root, file extension, and import syntax all flex by language so a
+  // Kotlin project's layers under src/main/kotlin are inspected, not skipped.
+  const cfg = resolveLanguageConfig(cwd, language);
   const findings: DriftFinding[] = [];
   const {layers, forbiddenImports} = normalizeArchitecture(arch);
 
   if (layers.size > 0) {
-    checkUndeclaredDirectories(cwd, layers, findings);
-    checkEmptyLayers(cwd, layers, findings);
+    checkUndeclaredDirectories(cwd, cfg, layers, findings);
+    checkEmptyLayers(cwd, cfg, layers, findings);
   }
   if (forbiddenImports.length > 0) {
-    checkForbiddenImports(cwd, forbiddenImports, findings);
+    checkForbiddenImports(cwd, cfg, forbiddenImports, findings);
   }
   return findings;
 }
@@ -114,13 +122,15 @@ export function normalizeArchitecture(arch: Architecture): {
   };
 }
 
-/** src/ 의 1-depth 디렉토리 중 declaredLayers 에 없는 것 → warn */
+/** <mainRoot>/ 의 1-depth 디렉토리 중 declaredLayers 에 없는 것 → warn */
 function checkUndeclaredDirectories(
   cwd: string,
+  cfg: LanguageConfig,
   declaredLayers: ReadonlySet<string>,
   findings: DriftFinding[],
 ): void {
-  const srcPath = join(cwd, 'src');
+  const root = cfg.mainRoot;
+  const srcPath = join(cwd, root);
   if (!existsSync(srcPath)) return;
   for (const entry of readdirSync(srcPath)) {
     const abs = join(srcPath, entry);
@@ -129,19 +139,21 @@ function checkUndeclaredDirectories(
     findings.push({
       detector: NAME,
       severity: 'warn',
-      path: `src/${entry}/`,
-      message: `src/${entry}/ is not declared in spec/architecture.yaml layers — add it or remove the directory`,
+      path: `${root}/${entry}/`,
+      message: `${root}/${entry}/ is not declared in spec/architecture.yaml layers — add it or remove the directory`,
     });
   }
 }
 
-/** declaredLayers 중 src/<layer>/ 가 실제 없는 것 → warn */
+/** declaredLayers 중 <mainRoot>/<layer>/ 가 실제 없는 것 → warn */
 function checkEmptyLayers(
   cwd: string,
+  cfg: LanguageConfig,
   declaredLayers: ReadonlySet<string>,
   findings: DriftFinding[],
 ): void {
-  const srcPath = join(cwd, 'src');
+  const root = cfg.mainRoot;
+  const srcPath = join(cwd, root);
   if (!existsSync(srcPath)) return;
   for (const layer of declaredLayers) {
     const layerPath = join(srcPath, layer);
@@ -149,29 +161,29 @@ function checkEmptyLayers(
     findings.push({
       detector: NAME,
       severity: 'warn',
-      path: `src/${layer}/`,
-      message: `spec/architecture.yaml declares layer '${layer}' but src/${layer}/ does not exist — fix the spec or create the directory`,
+      path: `${root}/${layer}/`,
+      message: `spec/architecture.yaml declares layer '${layer}' but ${root}/${layer}/ does not exist — fix the spec or create the directory`,
     });
   }
 }
 
-// import statement matcher — captures the from-string for both
-// `import X from '...'` and `import('...')` forms.
-const IMPORT_RE = /(?:import\s+(?:[\s\S]*?\sfrom\s+)?|import\s*\()['"]([^'"]+)['"]\)?/g;
-
 /**
- * src/<from-layer>/**.ts 의 모든 import 가 src/<to-layer>/* 를
- * reference 하면 error. Relative path 의 layer segment 매칭으로 충분.
+ * <mainRoot>/<from-layer>/**.<ext> 의 모든 import 가 <to-layer> 를
+ * reference 하면 error. Import 매칭은 language-config 가 결정 — TS 는
+ * relative path segment, JVM(Kotlin) 은 dotted package segment.
  */
 function checkForbiddenImports(
   cwd: string,
+  cfg: LanguageConfig,
   rules: readonly {from: string; to: string}[],
   findings: DriftFinding[],
 ): void {
+  const root = cfg.mainRoot;
+  const importRe = cfg.importMatcher;
   for (const rule of rules) {
-    const fromDir = join(cwd, 'src', rule.from);
+    const fromDir = join(cwd, root, rule.from);
     if (!existsSync(fromDir)) continue;
-    const files = globSync(['**/*.ts'], {cwd: fromDir, dot: false});
+    const files = globSync([`**/*.${cfg.ext}`], {cwd: fromDir, dot: false});
     for (const rel of files) {
       const abs = join(fromDir, rel);
       let body: string;
@@ -181,16 +193,16 @@ function checkForbiddenImports(
         continue;
       }
       let match: RegExpExecArray | null;
-      IMPORT_RE.lastIndex = 0;
-      while ((match = IMPORT_RE.exec(body)) !== null) {
+      importRe.lastIndex = 0;
+      while ((match = importRe.exec(body)) !== null) {
         const importPath = match[1];
-        if (!importsLayer(importPath, rule.to)) continue;
+        if (!importsLayer(importPath, rule.to, cfg.importStyle)) continue;
         findings.push({
           detector: NAME,
           severity: 'error',
-          path: `src/${rule.from}/${rel}`,
+          path: `${root}/${rule.from}/${rel}`,
           message:
-            `src/${rule.from}/${rel} imports from '${importPath}' which crosses into the '${rule.to}' layer — ` +
+            `${root}/${rule.from}/${rel} imports from '${importPath}' which crosses into the '${rule.to}' layer — ` +
             `spec/architecture.yaml forbids imports from '${rule.from}' to '${rule.to}'`,
         });
       }
@@ -199,15 +211,24 @@ function checkForbiddenImports(
 }
 
 /**
- * Returns true when the relative import path resolves to a file
- * under `<layer>/`. Looks at the *path segments* of the relative
- * specifier, which is enough because cladding uses kebab-case
- * single-segment layer names that round-trip through `/`.
+ * Returns true when an import specifier reaches into `<layer>/`.
  *
- * External-package imports (no leading `.`) are excluded — they
- * never live under src/ and can never trigger a layer rule.
+ * - `relative` (TS/ES): only `./…` paths are considered (external-package
+ *   imports never live under src/). Layer match = a `/`-segment equals the
+ *   layer. Cladding uses kebab-case single-segment layer names that
+ *   round-trip through `/`.
+ * - `dotted` (JVM/Kotlin): `import a.b.C` has no leading-dot signal, so the
+ *   package's `.`-segments are matched directly. A segment equal to the
+ *   layer name means the import crosses into that layer.
  */
-function importsLayer(importPath: string, layer: string): boolean {
+function importsLayer(
+  importPath: string,
+  layer: string,
+  style: LanguageConfig['importStyle'],
+): boolean {
+  if (style === 'dotted') {
+    return importPath.split('.').includes(layer);
+  }
   if (!importPath.startsWith('.')) return false;
   const segments = importPath.split('/');
   return segments.includes(layer);

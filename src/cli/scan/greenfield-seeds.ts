@@ -158,6 +158,23 @@ const JAVA_CONVENTIONS: Conventions = {
   moduleBoilerplate: null,
 };
 
+const KOTLIN_CONVENTIONS: Conventions = {
+  indent: 'four-space',
+  quote: 'double',
+  semicolon: 'absent',
+  namingExports: 'camelCase',
+  namingConstants: 'UPPER_SNAKE',
+  docBlockRatio: 0.5,
+  docTagCounts: {'@param': 0, '@returns': 0, '@throws': 0, '@example': 0, '@see': 0, '@deprecated': 0},
+  importOrder: 'external-first',
+  exportPattern: 'named-only',
+  errorHandling: 'throw-primary',
+  typeDefLocation: 'inline',
+  fileHeaderPattern: 'purpose header — what the module does + why it exists',
+  testLocation: 'tests-dir',
+  moduleBoilerplate: null,
+};
+
 /**
  * Per-language seed mapping. Adding a new toolchain means appending
  * one entry to this object — both renderers read from the same source.
@@ -233,6 +250,15 @@ const DEFAULTS: Readonly<Record<string, LanguageDefaults>> = {
     architectureBaseline: [
       '  src/main/java/<package>/   — production code',
       '  src/test/java/<package>/   — JUnit tests',
+    ],
+  },
+  kotlin: {
+    displayName: 'Kotlin',
+    conventions: KOTLIN_CONVENTIONS,
+    styleGuideUrl: 'https://kotlinlang.org/docs/coding-conventions.html',
+    architectureBaseline: [
+      '  src/main/kotlin/<package>/   — production code',
+      '  src/test/kotlin/<package>/   — JUnit / Kotest tests',
     ],
   },
 };

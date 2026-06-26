@@ -12,6 +12,7 @@ export type Language =
   | 'rust'
   | 'go'
   | 'java'
+  | 'kotlin'
   | 'php'
   | 'ruby'
   | 'elixir'

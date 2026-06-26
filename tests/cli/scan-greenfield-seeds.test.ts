@@ -70,6 +70,17 @@ describe('renderGreenfieldConventionsMd', () => {
     expect(out).toContain('https://google.github.io/styleguide/javaguide.html');
   });
 
+  test('Kotlin default — 4-space + double quote + absent semicolon + kotlinlang style URL (F-dd51b42c)', () => {
+    const out = renderGreenfieldConventionsMd('kotlin', 'demo');
+    expect(out).toContain('greenfield seed for Kotlin');
+    expect(out).toContain('greenfield seed (language: Kotlin)');
+    expect(out).toContain('| indent | four-space |');
+    expect(out).toContain('| quote | double |');
+    expect(out).toContain('| semicolon | absent |');
+    expect(out).toContain('| naming (exports) | camelCase |');
+    expect(out).toContain('https://kotlinlang.org/docs/coding-conventions.html');
+  });
+
   test('Unknown language falls back to TypeScript defaults', () => {
     const out = renderGreenfieldConventionsMd('unknown', 'demo');
     expect(out).toContain('greenfield seed for TypeScript');
@@ -136,6 +147,14 @@ describe('renderGreenfieldArchitectureYaml', () => {
     expect(out).toContain('#  cmd/<binary>/');
     expect(out).toContain('#  pkg/');
     expect(out).toContain('#  internal/');
+  });
+
+  test('Kotlin default — src/main/kotlin/ + src/test/kotlin/ baseline (F-dd51b42c)', () => {
+    const out = renderGreenfieldArchitectureYaml('kotlin');
+    expect(out).toContain('Typical Kotlin baseline:');
+    expect(out).toContain('#  src/main/kotlin/<package>/');
+    expect(out).toContain('#  src/test/kotlin/<package>/');
+    expect(out).toContain('layers: []');
   });
 
   test('Unknown language falls back to TypeScript baseline', () => {

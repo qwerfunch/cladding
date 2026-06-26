@@ -26,7 +26,18 @@ import {parseSpec} from '../spec/parse.js';
 /** Gate runner injected so tests can drive `runDone` without spawning tsc/vitest. */
 export interface DoneDeps {
   /** Runs a tier's stages; returns the worst exit code (0 = GREEN). */
-  readonly checkStages: (opts: {strict?: boolean; tier?: string}) => {worst: number; anyFailed?: boolean};
+  readonly checkStages: (opts: {
+    strict?: boolean;
+    tier?: string;
+    focusModules?: readonly string[];
+  }) => {worst: number; anyFailed?: boolean};
+  /**
+   * Regenerate the committed feature index after a status flip (on BOTH the
+   * kept and the reverted branch) so spec/index.yaml's per-row status never lags
+   * the shard. Optional + injected so unit tests stay hermetic; wired to
+   * writeFeatureIndex in runDoneCommand. (F-37b4a8 — index status fidelity.)
+   */
+  readonly onIndex?: (cwd: string) => void;
 }
 
 /** Outcome of a `clad done` attempt — `code` is the process exit code. */
@@ -42,6 +53,8 @@ export interface DoneResult {
 interface ShardHit {
   readonly path: string;
   readonly status: string;
+  /** The feature's declared `modules[]` — forwarded to scope the gate. */
+  readonly modules: readonly string[];
 }
 
 /**
@@ -61,9 +74,12 @@ export function findShardFile(cwd: string, featureId: string): ShardHit | null {
     } catch {
       continue;
     }
-    const rec = doc as {id?: unknown; status?: unknown};
+    const rec = doc as {id?: unknown; status?: unknown; modules?: unknown};
     if (rec && rec.id === featureId) {
-      return {path, status: typeof rec.status === 'string' ? rec.status : ''};
+      const modules = Array.isArray(rec.modules)
+        ? rec.modules.filter((m): m is string => typeof m === 'string')
+        : [];
+      return {path, status: typeof rec.status === 'string' ? rec.status : '', modules};
     }
   }
   return null;
@@ -109,7 +125,18 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
   // Flip to done BEFORE gating so the done-aware detectors evaluate this
   // feature's test evidence (see module header).
   writeFileSync(hit.path, setStatus(original, 'done'));
-  const {worst, anyFailed} = deps.checkStages({tier: 'pre-push', strict: true});
+  // Keep the committed index honest BEFORE gating: pre-push runs the
+  // status-aware INVENTORY_DRIFT detector, so the index must already reflect
+  // this flip — otherwise the new detector would RED this very write and the
+  // gate would revert every legitimate `clad done`. (F-37b4a8)
+  deps.onIndex?.(cwd);
+  // Scope the gate to THIS feature's modules (Gradle monorepos). Empty → the
+  // gate runs whole-repo, exactly as before. @see toolchain/scoped-command.ts
+  const {worst, anyFailed} = deps.checkStages({
+    tier: 'pre-push',
+    strict: true,
+    focusModules: hit.modules,
+  });
   // F-b84c38 — every done transition (kept or reverted) is forensic data.
   recordEvent(cwd, 'done_attempted', {feature: featureId, worst, anyFailed: anyFailed ?? worst > 0, kept: worst === 0});
   if (worst === 0) {
@@ -124,6 +151,9 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
   }
   // Red gate: the feature has not earned done. Revert to exactly what was there.
   writeFileSync(hit.path, original);
+  // Shard restored → re-sync the index symmetrically, else it would keep the
+  // pre-gate `done` row against a reverted shard (inverse staleness). (F-37b4a8)
+  deps.onIndex?.(cwd);
   return {
     ok: false,
     code: 1,

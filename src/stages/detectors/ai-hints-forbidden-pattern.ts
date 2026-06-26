@@ -17,11 +17,12 @@ import {existsSync, readFileSync, readdirSync, statSync} from 'node:fs';
 import {join, relative} from 'node:path';
 
 import {loadSpec} from '../../spec/load.js';
+import {resolveLanguageConfig} from '../toolchain/language-config.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
 
 const NAME = 'AI_HINTS_FORBIDDEN_PATTERN';
 
-function walkTsFiles(rootAbs: string): readonly string[] {
+function walkSourceFiles(rootAbs: string, extensions: readonly string[]): readonly string[] {
   if (!existsSync(rootAbs)) return [];
   const out: string[] = [];
   const queue: string[] = [rootAbs];
@@ -44,7 +45,7 @@ function walkTsFiles(rootAbs: string): readonly string[] {
       }
       if (s.isDirectory()) {
         queue.push(abs);
-      } else if (name.endsWith('.ts') || name.endsWith('.tsx')) {
+      } else if (extensions.some((e) => name.endsWith(e))) {
         out.push(abs);
       }
     }
@@ -83,8 +84,10 @@ function runAiHintsForbiddenPattern(opts: CommandStageOptions): readonly DriftFi
   const patterns = spec.project.ai_hints?.forbidden_patterns;
   if (!patterns || patterns.length === 0) return [];
 
-  const srcRoot = join(cwd, 'src');
-  const files = walkTsFiles(srcRoot);
+  const cfg = resolveLanguageConfig(cwd, spec.project?.language);
+  const files = cfg.sourceRoots.flatMap((root) =>
+    walkSourceFiles(join(cwd, root), cfg.extensions),
+  );
   if (files.length === 0) return [];
 
   const findings: DriftFinding[] = [];

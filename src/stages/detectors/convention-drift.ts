@@ -16,6 +16,7 @@ import {existsSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
 
 import type {Spec} from '../../spec/types.js';
+import {resolveLanguageConfig} from '../toolchain/language-config.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
 import {withSpec} from './with-spec.js';
 
@@ -32,10 +33,11 @@ function runConventionDrift(opts: CommandStageOptions): readonly DriftFinding[] 
 }
 
 function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
+  const cfg = resolveLanguageConfig(cwd, spec.project?.language);
   const findings: DriftFinding[] = [];
   for (const feature of spec.features) {
     for (const modulePath of feature.modules ?? []) {
-      if (!modulePath.endsWith('.ts')) continue;
+      if (!cfg.extensions.some((e) => modulePath.endsWith(e))) continue;
       const abs = join(cwd, modulePath);
       if (!existsSync(abs)) continue;
       const content = readFileSync(abs, 'utf8');
