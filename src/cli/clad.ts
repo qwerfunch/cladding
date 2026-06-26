@@ -597,7 +597,7 @@ export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tie
  * so `done` cannot claim more than the gate verifies. @see cli/done.ts
  */
 export function runDoneCommand(featureId: string): void {
-  const r = runDone('.', featureId, {checkStages: runCheckStages});
+  const r = runDone('.', featureId, {checkStages: runCheckStages, onIndex: writeFeatureIndex});
   pulse(r.ok ? 'pass' : 'fail', `done · ${featureId}`, r.reason);
   process.exit(r.code);
 }
