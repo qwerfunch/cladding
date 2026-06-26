@@ -27,6 +27,13 @@ import {parseSpec} from '../spec/parse.js';
 export interface DoneDeps {
   /** Runs a tier's stages; returns the worst exit code (0 = GREEN). */
   readonly checkStages: (opts: {strict?: boolean; tier?: string}) => {worst: number; anyFailed?: boolean};
+  /**
+   * Regenerate the committed feature index after a status flip (on BOTH the
+   * kept and the reverted branch) so spec/index.yaml's per-row status never lags
+   * the shard. Optional + injected so unit tests stay hermetic; wired to
+   * writeFeatureIndex in runDoneCommand. (F-37b4a8 — index status fidelity.)
+   */
+  readonly onIndex?: (cwd: string) => void;
 }
 
 /** Outcome of a `clad done` attempt — `code` is the process exit code. */
@@ -109,6 +116,11 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
   // Flip to done BEFORE gating so the done-aware detectors evaluate this
   // feature's test evidence (see module header).
   writeFileSync(hit.path, setStatus(original, 'done'));
+  // Keep the committed index honest BEFORE gating: pre-push runs the
+  // status-aware INVENTORY_DRIFT detector, so the index must already reflect
+  // this flip — otherwise the new detector would RED this very write and the
+  // gate would revert every legitimate `clad done`. (F-37b4a8)
+  deps.onIndex?.(cwd);
   const {worst, anyFailed} = deps.checkStages({tier: 'pre-push', strict: true});
   // F-b84c38 — every done transition (kept or reverted) is forensic data.
   recordEvent(cwd, 'done_attempted', {feature: featureId, worst, anyFailed: anyFailed ?? worst > 0, kept: worst === 0});
@@ -124,6 +136,9 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
   }
   // Red gate: the feature has not earned done. Revert to exactly what was there.
   writeFileSync(hit.path, original);
+  // Shard restored → re-sync the index symmetrically, else it would keep the
+  // pre-gate `done` row against a reverted shard (inverse staleness). (F-37b4a8)
+  deps.onIndex?.(cwd);
   return {
     ok: false,
     code: 1,

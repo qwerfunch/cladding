@@ -7,6 +7,16 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The feature index no longer lies about status.** `clad done` now refreshes
+  `spec/index.yaml` in the same step it marks a feature done (and on a reverted
+  gate it re-syncs back), so the one-line-per-feature index agents grep — and the
+  SessionStart status card that reads it — never shows a finished feature as still
+  in progress. The `INVENTORY_DRIFT` check now also compares each row's *status*
+  to the shard (not just the id set), so a stale status is caught instead of
+  passing the gate green. (F-37b4a8)
+
 ## [0.6.2] — 2026-06-25 — Honest Count
 
 **In one line:** the published number of verification stages was wrong — it said
