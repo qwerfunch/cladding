@@ -33,9 +33,10 @@
 // "Carries a spec-conformance oracle" is a done-state question; a
 // planned/in_progress AC's intended oracle path need not exist yet.
 //
-// DEFERRED — PROVENANCE (Phase 2): the stronger guarantee that an oracle
-// was authored IMPL-BLIND is checked here at GATE TIME (opt-in, under
-// require_oracles) by reading the `kind: 'oracle'` authoring-provenance
+// PROVENANCE (Phase 2 — SHIPPED): the stronger guarantee that an oracle
+// was authored IMPL-BLIND is checked here at GATE TIME — active only under
+// an oracle mandate (`policy.mandateActive`, i.e. opt-in via oracle_policy /
+// require_oracles) — by reading the `kind: 'oracle'` authoring-provenance
 // records in the audit log. Three deterministic structural checks per
 // declared oracle_ref: (i) a provenance record exists; (ii) the oracle
 // author identity != the feature's implementer identity (lifting the

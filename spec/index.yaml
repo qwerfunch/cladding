@@ -107,6 +107,7 @@ features:
   F-40327b: {slug: persona-skill-md-cleanup, status: done, modules: 14}
   F-417ff0: {slug: scan-llm-dispatcher-chain, status: done, modules: 5}
   F-42af48: {slug: architecture-from-spec, status: done, modules: 2}
+  F-43d8e3: {slug: smoke-probe-token-pass, status: done, modules: 3}
   F-4747ef: {slug: ssot-lifecycle-tests, status: done, modules: 9}
   F-4db939: {slug: ab-evaluation, status: done, modules: 9}
   F-50ff43: {slug: meta-integrity-skip-when-absent, status: done, modules: 2}
@@ -122,12 +123,14 @@ features:
   F-67e33f: {slug: spec-id-multi-dev-safety, status: done, modules: 7}
   F-6d943d: {slug: version-bump-script, status: done, modules: 2}
   F-6f80e7: {slug: claude-code-dogfood, status: done, modules: 1}
+  F-7076f7: {slug: smoke-probe-demand, status: done, modules: 3}
   F-78b50d: {slug: project-context-drift-detector, status: done, modules: 2}
   F-7afbd4: {slug: clad-done-gated-transition, status: done, modules: 1}
   F-7ce18e: {slug: glossary-naming-convention, status: done, modules: 7}
   F-7fa4a7: {slug: mcp-sampling-dispatcher, status: done, modules: 1}
   F-80d19d: {slug: setup-command, status: done, modules: 7}
   F-836a90: {slug: link-capability-tool, status: done, modules: 2}
+  F-8f419e: {slug: smoke-legacy-liveness, status: done, modules: 1}
   F-904495a5: {slug: changelog-render, status: done, modules: 5}
   F-9064ff: {slug: deliverable-smoke, status: done, modules: 8}
   F-90d054: {slug: init-host-autowire, status: archived, modules: 0}
@@ -144,6 +147,7 @@ features:
   F-aee1da: {slug: scan-residuals, status: done, modules: 3}
   F-aee61f: {slug: scan-roots-from-architecture, status: done, modules: 1}
   F-af96b1: {slug: no-vacuous-green-gate-contract, status: done, modules: 6}
+  F-b2094740: {slug: lint-config-detection, status: done, modules: 1}
   F-b43066: {slug: model-defaults-refresh, status: done, modules: 6}
   F-b61449: {slug: gemini-cli-dogfood, status: done, modules: 1}
   F-b84c38: {slug: lifecycle-events-identity, status: done, modules: 4}
@@ -169,6 +173,7 @@ features:
   F-d8223c: {slug: blind-author-agent, status: done, modules: 1}
   F-dd51b42c: {slug: kotlin-first-class-toolchain, status: done, modules: 11}
   F-dddb89: {slug: ears-validation-at-creation, status: done, modules: 4}
+  F-e0f6c7: {slug: smoke-disposition-spine, status: done, modules: 3}
   F-eb732f: {slug: spec-authoring-anti-hollow, status: done, modules: 2}
   F-ef2fd9: {slug: ab-ext-dashboard, status: done, modules: 7}
   F-f334fa: {slug: ab-ext-scenarios-emit, status: done, modules: 3}

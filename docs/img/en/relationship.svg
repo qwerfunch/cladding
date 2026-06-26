@@ -40,7 +40,7 @@
   <rect x="726" y="132" width="188" height="40" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
   <text x="820" y="157" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a">15-stage gate</text>
   <rect x="726" y="184" width="188" height="40" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
-  <text x="820" y="209" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a">36 drift detectors</text>
+  <text x="820" y="209" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a">37 drift detectors</text>
   <rect x="726" y="236" width="188" height="56" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
   <text x="820" y="259" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a">impl-blind grader</text>
   <text x="820" y="277" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a">runs the deliverable directly</text>

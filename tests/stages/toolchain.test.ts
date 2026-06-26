@@ -115,6 +115,73 @@ describe('detectToolchain', () => {
     expect(tc.language).toBe('java');
     expect(tc.gates.type?.cmd).toBe('mvn');
   });
+  // ─── TS/JS linter config detection (F-b2094740) ───
+  test('typescript + biome.json → lint gate is biome', () => {
+    writeFileSync(join(dir, 'package.json'), '{}');
+    writeFileSync(join(dir, 'biome.json'), '{}');
+    const tc = detectToolchain(dir);
+    expect(tc.language).toBe('typescript');
+    expect(tc.gates.lint).toEqual({cmd: 'npx', args: ['--no-install', 'biome', 'lint', '.']});
+  });
+
+  test('typescript + .oxlintrc.json → lint gate is oxlint', () => {
+    writeFileSync(join(dir, 'package.json'), '{}');
+    writeFileSync(join(dir, '.oxlintrc.json'), '{}');
+    expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npx', args: ['--no-install', 'oxlint']});
+  });
+
+  test('typescript + .oxlintrc.jsonc → lint gate is oxlint', () => {
+    writeFileSync(join(dir, 'package.json'), '{}');
+    writeFileSync(join(dir, '.oxlintrc.jsonc'), '{}');
+    expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npx', args: ['--no-install', 'oxlint']});
+  });
+
+  test('typescript + oxlint.config.ts → lint gate is oxlint', () => {
+    writeFileSync(join(dir, 'package.json'), '{}');
+    writeFileSync(join(dir, 'oxlint.config.ts'), 'export default {}');
+    expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npx', args: ['--no-install', 'oxlint']});
+  });
+
+  test('selection follows config presence — add biome.json swaps to biome, remove it falls back to eslint', () => {
+    // State-transition: proves resolveTsLint actually reads the filesystem each call,
+    // not a hard-coded return (defeats the one-way-test critique).
+    writeFileSync(join(dir, 'package.json'), '{}');
+    const eslintGate = {cmd: 'npx', args: ['--no-install', 'eslint', '.']};
+    expect(detectToolchain(dir).gates.lint).toEqual(eslintGate);
+    writeFileSync(join(dir, 'biome.json'), '{}');
+    expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npx', args: ['--no-install', 'biome', 'lint', '.']});
+    rmSync(join(dir, 'biome.json'));
+    expect(detectToolchain(dir).gates.lint).toEqual(eslintGate);
+  });
+
+  test('typescript with no linter config → lint gate stays eslint (default preserved)', () => {
+    writeFileSync(join(dir, 'package.json'), '{}');
+    expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npx', args: ['--no-install', 'eslint', '.']});
+  });
+
+  test('biome takes precedence over oxlint when both configs present', () => {
+    writeFileSync(join(dir, 'package.json'), '{}');
+    writeFileSync(join(dir, 'biome.json'), '{}');
+    writeFileSync(join(dir, '.oxlintrc.json'), '{}');
+    expect(detectToolchain(dir).gates.lint?.args).toContain('biome');
+  });
+
+  test('linter detection only swaps lint — other TS gates keep their default', () => {
+    writeFileSync(join(dir, 'package.json'), '{}');
+    writeFileSync(join(dir, 'biome.json'), '{}');
+    const tc = detectToolchain(dir);
+    expect(tc.gates.type).toEqual({cmd: 'npx', args: ['--no-install', 'tsc', '--noEmit']});
+    expect(tc.gates.test).toEqual({cmd: 'npx', args: ['--no-install', 'vitest', 'run']});
+  });
+
+  test('biome.json does not leak into a non-TS language', () => {
+    // a python project carrying a stray biome.json still lints with ruff
+    writeFileSync(join(dir, 'pyproject.toml'), '');
+    writeFileSync(join(dir, 'biome.json'), '{}');
+    const tc = detectToolchain(dir);
+    expect(tc.language).toBe('python');
+    expect(tc.gates.lint).toEqual({cmd: 'ruff', args: ['check', '.']});
+  });
 });
 
 describe('gradleCmd', () => {

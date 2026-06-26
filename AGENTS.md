@@ -4,7 +4,7 @@ This file is the cross-tool entry point for any AI coding agent working on cladd
 
 ## 1. Project
 
-cladding is the reference implementation of the [Ironclad](https://github.com/qwerfunch/ironclad) standard. Multi-agent dev harness; 13 Iron Law stages; 36 drift detectors; polyglot toolchain (9 languages). Successor to harness-boot.
+cladding is the reference implementation of the [Ironclad](https://github.com/qwerfunch/ironclad) standard. Multi-agent dev harness; 15 Iron Law stages; 37 drift detectors; polyglot toolchain (9 languages). Successor to harness-boot.
 
 ## 2. Setup
 
@@ -24,7 +24,7 @@ Requires Node ≥ 20.
 
 ## 3. Verify before pushing
 
-Run all four. The first three must pass cleanly; the fourth must show 13/13 stages on a clean working tree.
+Run all four. The first three must pass cleanly; the fourth must be green (the 15-stage gate) on a clean working tree.
 
 ```
 npm test

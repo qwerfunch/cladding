@@ -28,7 +28,7 @@ assignees: ''
 |---|---|---|
 | stage / detector | <!-- e.g. stage_1.3 Drift --> | <!-- e.g. UNTESTED_AC false-positive --> |
 | exit code | <!-- e.g. 0 --> | <!-- e.g. 1 --> |
-| output | <!-- e.g. "13/13 stages clean" --> | <!-- paste relevant output --> |
+| output | <!-- e.g. "15-stage gate green" --> | <!-- paste relevant output --> |
 
 ## Environment
 

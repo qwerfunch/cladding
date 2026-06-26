@@ -17,14 +17,14 @@
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
   <img src="https://img.shields.io/badge/tests-1384%2F1384-brightgreen" alt="tests"/>
-  <img src="https://img.shields.io/badge/detectors-36-brightgreen" alt="detectors"/>
+  <img src="https://img.shields.io/badge/detectors-37-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
 
 <p align="center">
   The official reference implementation of the <a href="https://github.com/qwerfunch/ironclad">Ironclad</a> standard.<br/>
   Before your host LLM (Claude Code · Codex · Gemini · Cursor) <em>starts</em> work, cladding feeds it the project's intent;<br/>
-  after it <em>finishes</em>, cladding verifies the result with 36 detectors and a 15-stage gate. A division of labor toward the same goal.
+  after it <em>finishes</em>, cladding verifies the result with 37 detectors and a 15-stage gate. A division of labor toward the same goal.
 </p>
 
 <!-- ─────────────── Host-LLM partnership loop ─────────────── -->
@@ -140,7 +140,7 @@ How a *vanilla AI coding environment* and a cladding environment behave in the s
 
 <div align="center">
 
-<img src="docs/img/en/cycle.svg" alt="Spec → Code → Tests cycle — the 15-stage verification and 36 drift detectors guard the cycle" width="700">
+<img src="docs/img/en/cycle.svg" alt="Spec → Code → Tests cycle — the 15-stage verification and 37 drift detectors guard the cycle" width="700">
 
 </div>
 
@@ -178,14 +178,14 @@ To be recognized as "done," a change must clear the strict gate (9 of the 15 sta
 | Stage | What it checks |
 |---|---|
 | **1.1 Type · 1.2 Lint** | type errors · code style |
-| **1.3 Drift** | spec ↔ code mismatches across 36 detectors |
+| **1.3 Drift** | spec ↔ code mismatches across 37 detectors |
 | **1.4 Commit · 1.5 Arch · 1.6 Secret** | clean working tree · architecture invariants · leaked API keys |
 | **2.1 Unit · 2.2 Coverage** | unit tests pass · coverage drop blocked |
 | **2.3 Spec conformance · 2.4 Deliverable smoke** | the implementation-blind grader's tests pass · the declared deliverable actually runs *(blocks the empty-green "tests pass but the deliverable doesn't run")* |
 | **3.1 Smoke · 3.2 Perf · 3.3 Visual** | e2e critical paths · performance budgets · UI visual regression |
 | **4.1 Audit · 4.2 UAT** | every AC (acceptance criterion) has at least one piece of evidence · every done feature has at least one piece of evidence |
 
-### 3. Detector — 36 drift detectors
+### 3. Detector — 37 drift detectors
 
 Drift in every direction across spec · code · test is detected automatically. Full catalog: [detector catalog](src/stages/detectors/README.md).
 
@@ -320,7 +320,7 @@ Your code · `spec.yaml` · docs are left untouched, so it's safe — and if the
 <tr>
 <td align="center" width="140" style="background:#f8fafc;padding:18px 10px;border-radius:8px">
 <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">version</div>
-<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">v0.6.0</div>
+<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">v0.6.1</div>
 <div style="font-size:11px;color:#64748b">2026-06</div>
 </td>
 <td align="center" width="140" style="background:#dcfce7;padding:18px 10px;border-radius:8px">
@@ -336,7 +336,7 @@ Your code · `spec.yaml` · docs are left untouched, so it's safe — and if the
 <td align="center" width="140" style="background:#f8fafc;padding:18px 10px;border-radius:8px">
 <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">gate</div>
 <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">15<span style="font-size:16px;color:#94a3b8"> stages</span></div>
-<div style="font-size:11px;color:#64748b">36 detectors</div>
+<div style="font-size:11px;color:#64748b">37 detectors</div>
 </td>
 <td align="center" width="140" style="background:#f8fafc;padding:18px 10px;border-radius:8px">
 <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">features</div>
@@ -355,7 +355,7 @@ Your code · `spec.yaml` · docs are left untouched, so it's safe — and if the
 - [Why cladding (project context)](docs/project-context.md)
 - [4-tier governance model](docs/ssot-model.md)
 - [Hash-based feature IDs](docs/spec-ids-multi-dev.md)
-- [36 detector catalog](src/stages/detectors/README.md)
+- [37 detector catalog](src/stages/detectors/README.md)
 - [Glossary (EN · KO)](docs/glossary.md)
 - [Governance · roadmap to 1.0](GOVERNANCE.md)
 

@@ -4,7 +4,9 @@
 // Cargo.toml → go.mod → pom.xml → build.gradle → composer.json → mix.exs →
 // .csproj → Gemfile` and returns the first match. Each language has a
 // curated default per gate (chosen as the *most common* tool, not the only
-// one — users override per-stage via `CommandStageOptions`).
+// one — users override per-stage via `CommandStageOptions`). The TS/JS lint
+// gate additionally auto-selects biome/oxlint over the eslint default by
+// linter config-file presence (`resolveTsLint`); detection never installs.
 //
 // This is the polyglot adapter: cladding itself stays language-agnostic;
 // the *user project* decides which language tools run.
@@ -14,7 +16,7 @@ import type {Dirent} from 'node:fs';
 import {join} from 'node:path';
 
 import {kotlinCoverageTask} from './coverage-tool.js';
-import type {Language, Toolchain, ToolchainGates} from './types.js';
+import type {Language, Toolchain, ToolchainGates, ToolSpec} from './types.js';
 
 interface Entry {
   readonly language: Language;
@@ -246,6 +248,41 @@ function hasExtensionFile(cwd: string, suffix: string): string | undefined {
 }
 
 /**
+ * TypeScript/JavaScript linter resolution by config-file presence (F-b2094740).
+ *
+ * `package.json` maps to one language ('typescript'), but the JS/TS ecosystem
+ * has several common linters. Rather than hardcode eslint, detect the linter
+ * the project actually configured and gate with THAT — so a biome/oxlint
+ * project passes stage_1.2 natively, no eslint shim. Precedence: biome →
+ * oxlint → eslint (the default, also used when no linter config is present, so
+ * eslint and config-less projects behave exactly as before).
+ *
+ * `--no-install` is kept on every gate: detection only decides WHICH tool to
+ * invoke, it NEVER installs one. A configured-but-absent linter still resolves
+ * to skip via stage_1.2's missing-tool path (lint.ts), which `--strict`'s
+ * skip-policy escalates when the spec relies on lint.
+ *
+ * CAVEAT — detection is by config-file PRESENCE, not content. A biome.json with
+ * `linter.enabled: false` (biome used only for formatting) still resolves to the
+ * biome lint gate, and `biome lint` then exits 0 — a filename cannot distinguish
+ * "configured to lint" from "configured to format only". A project that lints
+ * with a different tool overrides via CommandStageOptions (the cmd/args seam).
+ */
+const TS_LINTERS: ReadonlyArray<{readonly configs: readonly string[]; readonly gate: ToolSpec}> = [
+  {configs: ['biome.json', 'biome.jsonc'], gate: {cmd: 'npx', args: ['--no-install', 'biome', 'lint', '.']}},
+  // oxlint auto-detects all three filenames in cwd (oxc.rs config reference).
+  {configs: ['.oxlintrc.json', '.oxlintrc.jsonc', 'oxlint.config.ts'], gate: {cmd: 'npx', args: ['--no-install', 'oxlint']}},
+];
+
+/** The project's configured TS/JS lint gate, or `fallback` (eslint) when none. */
+function resolveTsLint(cwd: string, fallback: ToolSpec): ToolSpec {
+  for (const linter of TS_LINTERS) {
+    if (linter.configs.some((c) => existsSync(join(cwd, c)))) return linter.gate;
+  }
+  return fallback;
+}
+
+/**
  * Detects the project's toolchain by walking a priority chain of manifests.
  *
  * The first matching language wins. `.csproj` / `.sln` / `.fsproj` are matched
@@ -273,7 +310,15 @@ export function detectToolchain(cwd: string = '.'): Toolchain {
     // its required source extensions is present; otherwise fall through to
     // the next entry (Java).
     if (entry.requiresSource && !hasSourceFile(cwd, entry.requiresSource)) continue;
-    const gates = typeof entry.gates === 'function' ? entry.gates(cwd) : entry.gates;
+    // Kotlin gates are a function of cwd (gradlew vs gradle); resolve first.
+    const baseGates = typeof entry.gates === 'function' ? entry.gates(cwd) : entry.gates;
+    // TS/JS: pick the linter the project configured (biome/oxlint) over the
+    // eslint default, so a non-eslint project gates natively. Other languages
+    // keep their single curated default.
+    const gates =
+      entry.language === 'typescript' && baseGates.lint
+        ? {...baseGates, lint: resolveTsLint(cwd, baseGates.lint)}
+        : baseGates;
     return {language: entry.language, manifest, gates};
   }
   return UNKNOWN;

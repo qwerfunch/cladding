@@ -39,6 +39,88 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
     fails loudly (never a silent whole-repo fallback). The hook point is
     language-neutral; non-Gradle build tools are a follow-up.
 
+## [0.6.2] — 2026-06-25 — Honest Count
+
+**In one line:** the published number of verification stages was wrong — it said
+13 (the CLI said 14) while the gate has been running 15 all along — so this fixes
+the number everywhere and makes it derive from the gate itself, so it can't
+silently drift again.
+
+> **Heads-up:** nothing changes about how the gate runs — it already ran all 15
+> stages. Only the *advertised* count was off; no project behaves differently.
+
+### Fixed
+
+- **The advertised stage count (13 → 15).** The Claude Code manifest's stage list
+  was missing two stages the gate actually runs — spec-conformance and
+  deliverable-smoke — so it claimed 13; the CLI `--tier` help said 14; the README
+  said 15. Every surface now agrees on **15**. Check-instruction examples
+  ("13/13 stages clean") now read "15-stage gate green" — on a clean tree the
+  gate shows 9 passed and 6 skipped, so a fixed "N/N" would just be wrong a
+  different way.
+- **Two stale code comments** corrected to match the code: an impl-blindness
+  provenance check marked "deferred" that actually ships (it runs under an oracle
+  mandate), and an architecture field said to be no longer emitted that the scan
+  still emits. Plus a stale detector count in the check skill (24 → 37).
+
+### Added
+
+- **A self-check that keeps the count honest.** The plugin build now derives the
+  published stage list from the single list the gate actually runs, and an
+  integrity check fails if any manifest disagrees. The earlier 13-vs-15 gap had
+  shipped undetected because nothing guarded that list; it is now a live binding,
+  not a hand-maintained number.
+
+### Changed
+
+- **Contributor flow documented as git-flow with PR-always** — every merge lands
+  via PR, and `develop → main` is always a merge commit, never a squash (a past
+  squash put release commits outside `develop`'s ancestry and phantom-conflicted
+  the next release). Maintainer-facing only (`CLAUDE.md`).
+
+## [0.6.1] — 2026-06-25 — Honest Smoke
+
+**In one line:** the final gate now actually runs your finished program and checks it
+does the right thing — instead of only confirming it started — and honestly says when
+it can't.
+
+> **Heads-up:** nothing breaks, but a project that only confirmed its program *starts*
+> will now read **amber ("ran, but not really checked")** instead of green, until you
+> tell cladding how to verify a real result (a command + the output you expect).
+
+### Added
+
+- **Five honest gate results** — *passed* / *failed* / *couldn't run here* (needs a
+  database, a device…) / *needs a person to confirm* / *nothing to run* — instead of
+  quietly marking the unknowns green.
+- **Functional smoke checks** (`project.smoke`) — tell cladding how to exercise your
+  app (a command + the output you expect); the gate re-runs it and only calls it
+  *passed* when the real output matches.
+- **A "you skipped the check" detector** — a finished feature that ships a runnable
+  program but declares no check is now flagged (blocks under `--strict`), not a free pass.
+- **Lint config detection** — stage_1.2 picks the linter the project actually
+  configured (`biome` / `oxlint`) instead of always assuming eslint; no linter config
+  keeps the eslint default. Detection never installs and never leaks across languages.
+  (F-b2094740)
+
+### Changed
+
+- **"It started" no longer counts as "verified"** — a program that merely runs without
+  crashing now reads *ran, but not really checked* (amber), turning green only once you
+  give it a real check. cladding holds itself to this too.
+- **"Couldn't run" and "needs a person" now block** — honest non-results, never a
+  silent green.
+- **One new check (37 total)** — the published count was re-synced across the READMEs,
+  spec, docs, and diagrams; the A/B comparison reports were regenerated.
+
+### Fixed
+
+- **"Passes its tests but is actually broken"** — a program could ship green while its
+  real entry produced the wrong output (it started, exited cleanly, printed garbage).
+  The gate now re-runs the real program and catches it, for the behaviors you ask it to
+  check. Validated on fresh projects and in a 3-way build against 0.6.0 (which let the
+  broken program through), at essentially no extra cost.
+
 ## [0.6.0] — 2026-06-11 — Structural Harness
 
 **In one line:** governance stops being a request — hooks enforce it, a committed

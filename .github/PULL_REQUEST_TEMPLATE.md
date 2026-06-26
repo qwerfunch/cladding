@@ -18,7 +18,7 @@ GOVERNANCE.md §4.3 is the source of truth for the PR contract.
 - [ ] `npm test` — all tests pass
 - [ ] `npm run stage:drift` — zero error-severity findings
 - [ ] `npm run conformance` — 26/26 fixtures matched
-- [ ] `node bin/clad check` — 13/13 stages clean on a clean tree
+- [ ] `node bin/clad check` — 15-stage gate green on a clean tree
 - [ ] If this PR touches a shipped feature, `spec.yaml` (or the relevant `spec/features/F-NNN.yaml`) is updated
 - [ ] A `CHANGELOG.md` entry is added under the next-release heading in the right section (`Added` / `Changed` / `Deprecated` / `Removed` / `Fixed` / `Security`)
 

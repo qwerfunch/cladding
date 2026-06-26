@@ -4,6 +4,31 @@
 // returns a {@link StageResult} so downstream consumers (CLI, future
 // orchestrator) can treat all stages uniformly.
 
+/**
+ * Honest gate dispositions for the smoke stage (F-e0f6c7). The 14 legacy stages
+ * keep the exit-code spine (pass / exit-2 skip / fail); a stage that emits a
+ * `disposition` overrides that mapping in the gate reducer. Blocking set =
+ * {fail, pending_env, advisory} → exit 1, NEVER the non-blocking exit-2 skip lane.
+ *   pass        — gate re-executed the recipe; expect met.
+ *   fail        — gate re-executed; expect not met → blocking.
+ *   pending_env — `requires` not satisfiable here; never exercised → non-green, blocking.
+ *   advisory    — un-gate-able (device/GUI/mutating); needs human sign-off → non-green, blocking until signed.
+ *   na          — nothing to run (library/static) → non-green, non-blocking.
+ *   liveness    — legacy exit-only deliverable ran clean but NOT AC-verified → non-green, non-blocking.
+ */
+export type Disposition = 'pass' | 'fail' | 'pending_env' | 'advisory' | 'na' | 'liveness';
+
+/** One probe's outcome within the smoke stage. `kind` widens to ProbeKind with the schema (F-g'). */
+export interface ProbeOutcome {
+  readonly id: string;
+  readonly kind: string;
+  readonly disposition: Disposition;
+  readonly bindsFeature?: string;
+  readonly bindsModules?: readonly string[];
+  readonly why?: string;
+  readonly detail?: string;
+}
+
 /** Result emitted by every Ironclad stage runner. JSON-serializable. */
 export interface StageResult {
   /** Ironclad stage id, e.g. `stage_1.1`. */
@@ -14,6 +39,14 @@ export interface StageResult {
   readonly exitCode: number;
   /** Captured stderr; populated only on failure. */
   readonly stderr?: string;
+  /**
+   * NEW (F-e0f6c7) — when present, the gate reducer uses this as the stage's
+   * top-line status INSTEAD of the exit-code mapping. Absent for the 14 legacy
+   * stages. Blocking dispositions carry `exitCode: 1`, never 2.
+   */
+  readonly disposition?: Disposition;
+  /** NEW (F-e0f6c7) — per-probe outcomes for JSON/audit/demand reconciliation. */
+  readonly probes?: readonly ProbeOutcome[];
 }
 
 /** Shared options for any stage that wraps an external command. */
