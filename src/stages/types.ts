@@ -57,6 +57,14 @@ export interface CommandStageOptions {
   readonly cmd?: string;
   /** Arguments passed to the executable (default depends on the stage). */
   readonly args?: readonly string[];
+  /**
+   * Repo-relative module paths of the focus feature. When present (and the
+   * project is a Gradle monorepo under the default `feature` scope), the
+   * command stages narrow their Gradle tasks to just these modules' projects
+   * instead of the root aggregate. Empty/absent → whole-repo (unchanged).
+   * @see toolchain/scoped-command.ts — resolution precedence.
+   */
+  readonly focusModules?: readonly string[];
 }
 
 /**

@@ -94,7 +94,27 @@ function readManifestRoots(cwd: string): readonly SourceRoot[] {
   roots.push(...readPyprojectPackages(cwd));
   roots.push(...readCargoWorkspace(cwd));
   roots.push(...readGoMod(cwd));
+  roots.push(...readGradleMavenRoots(cwd));
   return dedupe(roots);
+}
+
+/**
+ * Gradle/Maven (JVM) source-set roots. Without this, a Kotlin/Java project's
+ * `src/` heuristic would surface `src/main` / `src/test` as layers — JVM keeps
+ * its real source under `src/main/kotlin` and `src/main/java`. We surface
+ * those (plus the test source sets) when a JVM manifest is present.
+ */
+function readGradleMavenRoots(cwd: string): readonly SourceRoot[] {
+  const hasJvmManifest = ['build.gradle.kts', 'build.gradle', 'pom.xml'].some((m) =>
+    existsSync(join(cwd, m)),
+  );
+  if (!hasJvmManifest) return [];
+  const out: SourceRoot[] = [];
+  for (const dir of ['src/main/kotlin', 'src/main/java', 'src/test/kotlin', 'src/test/java']) {
+    const root = resolveRoot(cwd, dir, undefined, 'manifest');
+    if (root) out.push(root);
+  }
+  return out;
 }
 
 function readPackageJsonWorkspaces(cwd: string): readonly SourceRoot[] {

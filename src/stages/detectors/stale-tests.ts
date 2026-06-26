@@ -15,12 +15,12 @@ import {join} from 'node:path';
 import {globSync} from 'tinyglobby';
 
 import type {Spec} from '../../spec/types.js';
+import {resolveLanguageConfig} from '../toolchain/language-config.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
 import {withSpec} from './with-spec.js';
 
 const NAME = 'STALE_TESTS';
 const STALE_DAYS = 30;
-const TEST_PATTERN = ['tests/**/*.test.ts'];
 
 function newestModuleMtime(cwd: string, modules: readonly string[]): number {
   let newest = 0;
@@ -39,11 +39,12 @@ function runStaleTests(opts: CommandStageOptions): readonly DriftFinding[] {
 }
 
 function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
+  const cfg = resolveLanguageConfig(cwd, spec.project?.language);
   const allModules = spec.features.flatMap((f) => f.modules ?? []);
   const newest = newestModuleMtime(cwd, allModules);
   if (newest === 0) return [];
 
-  const testFiles = globSync([...TEST_PATTERN], {cwd, dot: false});
+  const testFiles = globSync([...cfg.testGlobs], {cwd, dot: false});
   if (testFiles.length === 0) return [];
 
   const findings: DriftFinding[] = [];

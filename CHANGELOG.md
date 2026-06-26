@@ -11,12 +11,42 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 **In one line:** the one-line-per-feature index that agents grep (and that feeds
 the session-start status card) can no longer lie about a feature's status — `clad
-done` keeps it fresh, and the staleness check now catches a wrong status, not just
-a missing id.
+done` keeps it fresh, and the staleness check now catches a wrong status; plus a
+first-class Kotlin module-scoped gate with selectable Kover/JaCoCo coverage.
 
 > **Heads-up:** nothing changes for a green project. This closes a case where a
 > finished feature kept reading *in progress* in `spec/index.yaml` until the next
 > `clad sync` — and where that stale status slipped past the gate.
+
+### Added
+
+- **Module-scoped gate (Kotlin Gradle monorepos)** — when a focus feature
+  declares `modules[]`, the command stages (type / lint / unit / coverage) now
+  run **only that feature's Gradle projects** instead of the root aggregate.
+  `clad done <id>` scopes automatically from the feature's modules; `clad check
+  --feature <id>` opts a manual run in (plain `clad check` stays whole-repo, so
+  CI is unchanged). Module paths map to Gradle project paths by walking up to
+  the nearest `build.gradle[.kts]` + `gradle.properties` ancestor
+  (`worker/agg/app` → `:worker:agg:app`), de-duplicated and run in a single
+  batched `./gradlew :a:test :b:test …` invocation.
+  - **Selectable Kotlin coverage (Kover | JaCoCo)** — the coverage tool is
+    chosen by `.cladding/config.yaml` `gate.coverage: kover | jacoco` (explicit,
+    highest precedence), else auto-detected (Kover plugin id referenced in the
+    root build, `settings`, version catalog `gradle/libs.versions.toml`, or a
+    `buildSrc`/`build-logic` convention plugin), else JaCoCo. The selection sets
+    BOTH the Gradle task (`koverXmlReport` / `jacocoTestReport`) and the report
+    path the `COVERAGE_DROP` detector reads — at the whole-repo gate and, applied
+    per module, the scoped gate. The detector probes Kover-first then JaCoCo by
+    existence and merges each scoped module's LINE counters into one aggregate.
+  - **`.cladding/config.yaml` `gate:` block** — optional override:
+    `gate.scope: feature | repo` (default `feature`; `repo` forces the old
+    whole-repo behavior) and `gate.commands.{type,lint,test,coverage}` templates
+    where a `{modules:TASK}` token expands to one `:project:TASK` per focus
+    project.
+  - **Backward-compatible** — non-Gradle languages, features with no `modules[]`,
+    and `gate.scope: repo` all run exactly as before. An unmappable module path
+    fails loudly (never a silent whole-repo fallback). The hook point is
+    language-neutral; non-Gradle build tools are a follow-up.
 
 ### Fixed
 
