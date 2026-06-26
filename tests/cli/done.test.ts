@@ -15,6 +15,7 @@ import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
 import {findShardFile, runDone, setStatus} from '../../src/cli/done.js';
 import {readEvents} from '../../src/events/log.js';
+import {writeFeatureIndex} from '../../src/spec/inventory.js';
 
 // A realistic shard shape: a leading comment line, the id, a status, a
 // title, and a couple of acceptance-criteria lines.
@@ -118,6 +119,44 @@ describe('runDone', () => {
   });
   afterEach(() => {
     rmSync(dir, {recursive: true, force: true});
+  });
+
+  // ── F-37b4a8 — index status fidelity: clad done re-syncs the committed index ──
+
+  test('a kept flip re-syncs the feature index to status: done', () => {
+    const path = writeShard(dir);
+    writeFeatureIndex(dir); // index starts mirroring the shard (in_progress)
+    expect(readFileSync(join(dir, 'spec', 'index.yaml'), 'utf8')).toContain('status: in_progress');
+    runDone(dir, FEATURE_ID, {checkStages: () => ({worst: 0}), onIndex: writeFeatureIndex});
+    const indexAfter = readFileSync(join(dir, 'spec', 'index.yaml'), 'utf8');
+    expect(indexAfter).toContain('status: done');
+    expect(indexAfter).not.toContain('status: in_progress');
+    expect(readFileSync(path, 'utf8')).toContain('status: done'); // shard kept done
+  });
+
+  test('a reverted (red gate) flip re-syncs the index back to the original status', () => {
+    writeShard(dir);
+    writeFeatureIndex(dir);
+    runDone(dir, FEATURE_ID, {checkStages: () => ({worst: 1}), onIndex: writeFeatureIndex});
+    const indexAfter = readFileSync(join(dir, 'spec', 'index.yaml'), 'utf8');
+    // Shard reverted to in_progress → index re-synced symmetrically (no inverse staleness).
+    expect(indexAfter).toContain('status: in_progress');
+    expect(indexAfter).not.toContain('status: done');
+  });
+
+  test('the index is refreshed before the gate runs so the status-aware detector sees a consistent index', () => {
+    writeShard(dir);
+    writeFeatureIndex(dir);
+    let indexSaidDoneAtGateTime = false;
+    runDone(dir, FEATURE_ID, {
+      checkStages: () => {
+        indexSaidDoneAtGateTime = readFileSync(join(dir, 'spec', 'index.yaml'), 'utf8').includes('status: done');
+        return {worst: 0};
+      },
+      onIndex: writeFeatureIndex,
+    });
+    // Backfill runs PRE-gate → INVENTORY_DRIFT sees index==shard==done, never REDs the flip's own write.
+    expect(indexSaidDoneAtGateTime).toBe(true);
   });
 
   test('GREEN gate keeps done and writes status: done to disk', () => {
