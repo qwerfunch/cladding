@@ -27,17 +27,28 @@ function fakeSamplingServer(reply: string): SamplingCapableServer {
 }
 
 describe('selectDispatcher', () => {
-  let restoreEnv: string | undefined;
+  // selectDispatcher walks four provider lanes (Anthropic, OpenAI, Gemini,
+  // Google — F-90d054 v0.3.60). Any provider key present in the ambient
+  // environment would make `selectDispatcher()` return a live dispatcher and
+  // break the "no key" assertions, so snapshot and clear ALL of them, not just
+  // ANTHROPIC_API_KEY.
+  const PROVIDER_KEYS = ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'GEMINI_API_KEY', 'GOOGLE_API_KEY'] as const;
+  let restoreEnv: Record<string, string | undefined> = {};
 
   beforeEach(() => {
-    restoreEnv = process.env.ANTHROPIC_API_KEY;
-    delete process.env.ANTHROPIC_API_KEY;
+    restoreEnv = {};
+    for (const k of PROVIDER_KEYS) {
+      restoreEnv[k] = process.env[k];
+      delete process.env[k];
+    }
     setHostMcpServer(null);
   });
 
   afterEach(() => {
-    if (restoreEnv === undefined) delete process.env.ANTHROPIC_API_KEY;
-    else process.env.ANTHROPIC_API_KEY = restoreEnv;
+    for (const k of PROVIDER_KEYS) {
+      if (restoreEnv[k] === undefined) delete process.env[k];
+      else process.env[k] = restoreEnv[k];
+    }
     setHostMcpServer(null);
     vi.restoreAllMocks();
   });

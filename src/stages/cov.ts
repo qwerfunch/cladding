@@ -13,7 +13,7 @@ import process from 'node:process';
 
 import {execaSync} from 'execa';
 
-import {detectToolchain} from './toolchain/detect.js';
+import {resolveStageCommand} from './toolchain/scoped-command.js';
 import type {CommandStageOptions, StageResult} from './types.js';
 import {missingToolSkip, ranToolResult} from './util.js';
 
@@ -21,16 +21,20 @@ const STAGE = 'stage_2.2';
 
 export function runCov(opts: CommandStageOptions = {}): StageResult {
   const {cwd = '.'} = opts;
-  const toolchain = detectToolchain(cwd);
-  const spec = toolchain.gates.coverage;
-  const cmd = opts.cmd ?? spec?.cmd;
-  const args = opts.args ?? spec?.args;
+  let cmd: string | undefined;
+  let args: readonly string[] | undefined;
+  let language: string;
+  try {
+    ({cmd, args, language} = resolveStageCommand('coverage', opts));
+  } catch (err) {
+    return {stage: STAGE, pass: false, exitCode: 1, stderr: (err as Error).message};
+  }
   if (!cmd || !args) {
     return {
       stage: STAGE,
       pass: false,
       exitCode: 2,
-      stderr: `no coverage runner registered for language '${toolchain.language}'`,
+      stderr: `no coverage runner registered for language '${language}'`,
     };
   }
   const proc = execaSync(cmd, [...args], {cwd, reject: false});

@@ -1,11 +1,18 @@
 // Cladding · unit tests for stages/toolchain/detect.ts
 
-import {mkdtempSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {detectToolchain} from '../../src/stages/toolchain/detect.js';
+import {detectToolchain, gradleCmd} from '../../src/stages/toolchain/detect.js';
+
+/** Writes a nested Kotlin source file (`src/main/kotlin/com/x/App.kt`). */
+function writeKotlinSource(dir: string): void {
+  const kt = join(dir, 'src', 'main', 'kotlin', 'com', 'x');
+  mkdirSync(kt, {recursive: true});
+  writeFileSync(join(kt, 'App.kt'), 'package com.x\nfun main() {}\n');
+}
 
 describe('detectToolchain', () => {
   let dir: string;
@@ -48,6 +55,66 @@ describe('detectToolchain', () => {
     expect(detectToolchain(dir).language).toBe('typescript');
   });
 
+  // ─── Kotlin first-class support (F-dd51b42c) ───
+
+  test('build.gradle.kts + a nested .kt source → kotlin, ./gradlew gates when wrapper present', () => {
+    writeFileSync(join(dir, 'build.gradle.kts'), '');
+    writeFileSync(join(dir, 'gradlew'), '#!/bin/sh\n');
+    writeKotlinSource(dir);
+    const tc = detectToolchain(dir);
+    expect(tc.language).toBe('kotlin');
+    expect(tc.gates.type?.cmd).toBe('./gradlew');
+    expect(tc.gates.type?.args).toEqual(['compileKotlin', 'compileTestKotlin']);
+    expect(tc.gates.lint?.cmd).toBe('./gradlew');
+    expect(tc.gates.lint?.args).toEqual(['ktlintCheck']);
+    expect(tc.gates.test?.args).toEqual(['test']);
+    expect(tc.gates.coverage?.args).toEqual(['jacocoTestReport']);
+    expect(tc.gates.secret?.cmd).toBe('gitleaks');
+    // Kotlin deliberately ships no `arch` gate (spec-side ARCHITECTURE_FROM_SPEC).
+    expect(tc.gates.arch).toBeUndefined();
+  });
+
+  test('coverage gate selects koverXmlReport when the build declares Kover', () => {
+    writeFileSync(join(dir, 'build.gradle.kts'), 'plugins { id("org.jetbrains.kotlinx.kover") }');
+    writeKotlinSource(dir);
+    expect(detectToolchain(dir).gates.coverage?.args).toEqual(['koverXmlReport']);
+  });
+
+  test('gate.coverage: jacoco config forces jacocoTestReport even with Kover present', () => {
+    writeFileSync(join(dir, 'build.gradle.kts'), 'plugins { id("org.jetbrains.kotlinx.kover") }');
+    writeKotlinSource(dir);
+    mkdirSync(join(dir, '.cladding'), {recursive: true});
+    writeFileSync(join(dir, '.cladding', 'config.yaml'), 'gate:\n  coverage: jacoco\n');
+    expect(detectToolchain(dir).gates.coverage?.args).toEqual(['jacocoTestReport']);
+  });
+
+  test('build.gradle.kts + a .kt source but NO gradlew → bare gradle command', () => {
+    writeFileSync(join(dir, 'build.gradle.kts'), '');
+    writeKotlinSource(dir);
+    const tc = detectToolchain(dir);
+    expect(tc.language).toBe('kotlin');
+    expect(tc.gates.type?.cmd).toBe('gradle');
+  });
+
+  test('pom.xml + a .kt source → kotlin (Kotlin probed before Java)', () => {
+    writeFileSync(join(dir, 'pom.xml'), '<project/>');
+    writeKotlinSource(dir);
+    expect(detectToolchain(dir).language).toBe('kotlin');
+  });
+
+  test('pom.xml with NO .kt source → java fallback (no regression)', () => {
+    writeFileSync(join(dir, 'pom.xml'), '<project/>');
+    const tc = detectToolchain(dir);
+    expect(tc.language).toBe('java');
+    expect(tc.gates.type?.cmd).toBe('mvn');
+  });
+
+  test('build.gradle with NO .kt source → java fallback (no regression)', () => {
+    writeFileSync(join(dir, 'build.gradle'), '');
+    const tc = detectToolchain(dir);
+    expect(tc.language).toBe('java');
+    expect(tc.gates.type?.cmd).toBe('mvn');
+  });
   // ─── TS/JS linter config detection (F-b2094740) ───
   test('typescript + biome.json → lint gate is biome', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
@@ -114,5 +181,24 @@ describe('detectToolchain', () => {
     const tc = detectToolchain(dir);
     expect(tc.language).toBe('python');
     expect(tc.gates.lint).toEqual({cmd: 'ruff', args: ['check', '.']});
+  });
+});
+
+describe('gradleCmd', () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'clad-gradle-'));
+  });
+  afterEach(() => {
+    rmSync(dir, {recursive: true, force: true});
+  });
+
+  test('returns ./gradlew when a gradlew wrapper exists at the root', () => {
+    writeFileSync(join(dir, 'gradlew'), '#!/bin/sh\n');
+    expect(gradleCmd(dir)).toBe('./gradlew');
+  });
+
+  test('returns bare gradle when no wrapper is present', () => {
+    expect(gradleCmd(dir)).toBe('gradle');
   });
 });

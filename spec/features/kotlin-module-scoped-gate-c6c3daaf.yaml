@@ -1,0 +1,60 @@
+id: F-c6c3daaf
+slug: kotlin-module-scoped-gate
+title: "Module-scoped gate for Kotlin Gradle monorepos (focus feature.modules → :project: tasks)"
+status: in_progress
+modules:
+  - src/stages/toolchain/module-scope.ts
+  - src/stages/toolchain/gate-config.ts
+  - src/stages/toolchain/scoped-command.ts
+  - src/stages/toolchain/coverage-tool.ts
+  - src/stages/toolchain/detect.ts
+  - src/stages/type.ts
+  - src/stages/lint.ts
+  - src/stages/unit.ts
+  - src/stages/cov.ts
+  - src/stages/types.ts
+  - src/stages/detectors/coverage-drop.ts
+  - src/cli/clad.ts
+  - src/cli/done.ts
+acceptance_criteria:
+  - id: AC-e44c29b6
+    ears: event
+    condition: "when a focus feature declares modules[] and the project is a Gradle repo under the default feature scope"
+    action: "build the command-stage gates"
+    response: "run only that feature's Gradle projects in one batched ./gradlew invocation instead of the root aggregate"
+    text: "When a focus feature declares modules[] on a Gradle repo under the default feature scope, the system shall scope the type, lint, unit, and coverage stages to that feature's Gradle projects (a single batched ./gradlew :a:test :b:test … invocation) rather than the root aggregate task."
+    test_refs: ["tests/integration/kotlin-module-scope.test.ts", "tests/stages/toolchain/scoped-command.test.ts"]
+  - id: AC-0653c05d
+    ears: ubiquitous
+    action: "map a repo-relative module path to a Gradle project path"
+    response: "walk up to the nearest build.gradle[.kts]+gradle.properties ancestor, convert separators to colons, dedup and sort, and fail loudly on an unmappable path"
+    text: "The system shall map each repo-relative module path to a Gradle project path by walking up to the nearest ancestor directory holding both a build script and gradle.properties (normalizing a file path to its directory), converting path separators to a colon-prefixed project path, de-duplicating and deterministically sorting the result, and throwing a clear error — never a silent whole-repo fallback — when a path resolves to no Gradle project."
+    test_refs: ["tests/stages/toolchain/module-scope.test.ts"]
+  - id: AC-0c7ee62f
+    ears: event
+    condition: "when scoping the coverage stage on a Kotlin project"
+    action: "select the per-module coverage task and merge reports"
+    response: "use koverXmlReport for Kover-applied modules and jacocoTestReport otherwise, then merge each module's LINE counters into one aggregate"
+    text: "When the coverage stage is scoped on a Kotlin project, the system shall run :project:koverXmlReport for modules that apply the Kover plugin (reading build/reports/kover/report.xml) and :project:jacocoTestReport otherwise, and the COVERAGE_DROP detector shall collect each scoped module's report and merge their LINE counters into one aggregate percentage."
+    test_refs: ["tests/stages/detectors/coverage-drop-module-scope.test.ts", "tests/stages/toolchain/scoped-command.test.ts"]
+  - id: AC-c0f5a1b2
+    ears: event
+    condition: "when a Kotlin project's coverage gate runs (whole-repo or scoped)"
+    action: "select the coverage tool"
+    response: "honor .cladding/config.yaml gate.coverage (kover|jacoco), else auto-detect Kover (root build, settings, version catalog, buildSrc/build-logic), else default jacoco — setting both the Gradle task and the report path"
+    text: "When a Kotlin project's coverage gate runs, the system shall select Kover or JaCoCo by explicit .cladding/config.yaml gate.coverage first, else auto-detect the Kover plugin (root build, settings, gradle/libs.versions.toml version catalog, or a buildSrc/build-logic convention plugin), else default to JaCoCo — and the selection shall set BOTH the Gradle coverage task and the report path the COVERAGE_DROP detector reads."
+    test_refs: ["tests/stages/toolchain/coverage-tool.test.ts", "tests/stages/toolchain.test.ts", "tests/stages/detectors/coverage-drop-module-scope.test.ts"]
+  - id: AC-40882a42
+    ears: optional
+    condition: "where .cladding/config.yaml declares a gate block"
+    action: "honor the gate configuration"
+    response: "support gate.scope (feature|repo) and gate.commands templates whose {modules:TASK} token expands to one :project:TASK per focus project"
+    text: "Where .cladding/config.yaml declares a gate block, the system shall honor gate.scope (feature default, or repo to force the whole-repo aggregate) and gate.commands templates that replace toolchain auto-detection, expanding each {modules:TASK} token into one :project:TASK argument per focus project."
+    test_refs: ["tests/stages/toolchain/gate-config.test.ts", "tests/stages/toolchain/scoped-command.test.ts"]
+  - id: AC-9fe3c8c3
+    ears: unwanted
+    condition: "if the feature declares no modules[], the project is non-Gradle, or gate.scope is repo"
+    action: "run the gate"
+    response: "fall back to the original whole-repo behavior unchanged"
+    text: "If a feature declares no modules[], the project is a non-Gradle language, or gate.scope is repo, the system shall run the original whole-repo gate unchanged, so no existing behavior or snapshot regresses."
+    test_refs: ["tests/stages/toolchain/scoped-command.test.ts", "tests/integration/kotlin-module-scope.test.ts", "tests/cli/done.test.ts"]
