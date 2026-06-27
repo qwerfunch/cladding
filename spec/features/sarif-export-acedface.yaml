@@ -1,0 +1,48 @@
+id: F-acedface
+slug: sarif-export
+title: "SARIF 2.1.0 output mode for clad check (--format sarif)"
+status: done
+modules:
+  - src/stages/sarif.ts
+  - src/cli/clad.ts
+acceptance_criteria:
+  - id: AC-2dfce7a7
+    ears: event
+    condition: "when clad check is invoked with --format sarif"
+    action: "serialize the gate result as a SARIF 2.1.0 log to stdout"
+    response: "runCheckStages detects opts.format==='sarif' and writes toSarif(report) — a {$schema, version:'2.1.0', runs:[{tool.driver, results}]} document"
+    text: "When clad check is run with --format sarif, the system shall emit a SARIF 2.1.0 log of the gate findings."
+    test_refs: ["tests/stages/sarif.test.ts"]
+  - id: AC-4686f041
+    ears: ubiquitous
+    action: "map each DriftFinding onto a SARIF result and its detector onto a reportingDescriptor (rule)"
+    response: "toSarif maps detector→ruleId/rule, severity→level (error|warn|info → error|warning|note), and path+line→locations[].physicalLocation"
+    text: "The system shall map every drift finding's detector, severity, and file location onto the corresponding SARIF result and rule fields."
+    test_refs: ["tests/stages/sarif.test.ts"]
+  - id: AC-12ff7ffa
+    ears: ubiquitous
+    action: "attach a deterministic partialFingerprints value to each result"
+    response: "toSarif derives a sha256-based fingerprint from the finding's stable identity (detector+path+line+message) so re-runs do not create duplicate code-scanning alerts"
+    text: "The system shall attach a deterministic fingerprint to each SARIF result so repeated runs de-duplicate alerts."
+    test_refs: ["tests/stages/sarif.test.ts"]
+  - id: AC-0eabdc17
+    ears: unwanted
+    condition: "if a blocking stage produced no drift findings (e.g. a type or test failure)"
+    action: "still surface that failure as a SARIF result keyed on the stage id"
+    response: "toSarif emits a synthetic result (ruleId=stage id, level=error, message=stderr) for any blocking stage with zero findings, so a RED gate never serializes to a falsely-clean SARIF"
+    text: "If a blocking stage produced no findings, then the system shall still emit a SARIF result for it so a failing gate is never represented as clean."
+    test_refs: ["tests/stages/sarif.test.ts"]
+  - id: AC-ca59d7c7
+    ears: unwanted
+    condition: "if --format is given an unrecognized value"
+    action: "fail with a clear message and a non-zero exit code"
+    response: "runCheckStages returns {worst:2, anyFailed:true} and pulses 'unknown --format' when opts.format is set but not 'sarif'"
+    text: "If --format receives an unknown value, then the system shall report the error and exit non-zero."
+    test_refs: ["tests/stages/sarif.test.ts"]
+  - id: AC-e9bddf18
+    ears: state
+    condition: "while neither --json nor --format is supplied"
+    action: "leave the default human-readable gate output unchanged"
+    response: "the SARIF/JSON branches are additive; with no machine flag the Pulse summary path runs exactly as before"
+    text: "While no machine-output flag is set, the system shall keep the default gate output unchanged."
+    test_refs: ["tests/stages/sarif.test.ts"]

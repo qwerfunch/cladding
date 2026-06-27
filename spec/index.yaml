@@ -145,6 +145,7 @@ features:
   F-a4b512: {slug: dependency-cycle-detector, status: done, modules: 2}
   F-a5228c: {slug: attestation-marker, status: done, modules: 4}
   F-aa7197: {slug: scan-audit-residuals, status: done, modules: 2}
+  F-acedface: {slug: sarif-export, status: done, modules: 2}
   F-ae61c1: {slug: ab-tm-query-domain-fix, status: done, modules: 3}
   F-aee1da: {slug: scan-residuals, status: done, modules: 3}
   F-aee61f: {slug: scan-roots-from-architecture, status: done, modules: 1}

@@ -54,6 +54,27 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
   report grew by ~1.6 ms (vitest-shaped) to ~7.8 ms (pytest-shaped) per gate run
   — noise against the ~50 s gate.
 
+- **SARIF 2.1.0 output for `clad check`** (`F-acedface`) — `clad check --format
+  sarif` serializes the gate result as a SARIF 2.1.0 log, so every drift finding
+  surfaces inline on the PR diff and in the GitHub Security tab
+  (`github/codeql-action/upload-sarif`) and in any SARIF viewer, instead of
+  living only in the terminal/`--json` view. The mapping is 1:1 with the
+  existing finding shape — detector → rule, severity (`error`/`warn`/`info`) →
+  level (`error`/`warning`/`note`), `path`+`line` → `physicalLocation` — and each
+  result carries a deterministic `partialFingerprints` value so re-runs
+  de-duplicate alerts. A blocking stage that produced no findings (a type or test
+  failure) still surfaces as a result, so a RED gate never serializes to a
+  falsely-clean SARIF. Output is deterministic (no clock/PRNG); the default text
+  and `--json` outputs are unchanged.
+
+### Fixed
+
+- **Large `--json` / `--format sarif` output is no longer truncated when piped**
+  — `clad check`'s machine-output modes set `process.exitCode` and let stdout
+  drain instead of calling `process.exit()`, which could terminate before a
+  buffered stdout *pipe* (>64KB) flushed. Redirecting to a file was already safe;
+  piping to another process now is too.
+
 ## [0.6.3] — 2026-06-26 — Honest Status
 
 **In one line:** the one-line-per-feature index that agents grep (and that feeds

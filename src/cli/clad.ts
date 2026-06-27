@@ -39,6 +39,7 @@ import {runUnit} from '../stages/unit.js';
 import {runVisual} from '../stages/visual.js';
 import type {DriftFinding, Disposition} from '../stages/types.js';
 import {gateStatusOf, isBlocking, worstContribution, type GateStatus} from '../stages/disposition.js';
+import {toSarif} from '../stages/sarif.js';
 import {staleSpecification} from '../stages/detectors/stale-specification.js';
 import {findLatestCheckpoint, recordCheckpoint, recordRollback} from '../core/checkpoint.js';
 import {maintainDeliverable} from '../spec/deliverable-detect.js';
@@ -417,11 +418,19 @@ export interface CheckOutcome {
  * (which gates the status flip on it), so the two verify against the SAME stage
  * pipeline.
  */
-export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier?: string; json?: boolean; focusModules?: readonly string[]}): CheckOutcome {
+export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier?: string; json?: boolean; format?: string; version?: string; focusModules?: readonly string[]}): CheckOutcome {
   const tier = opts.tier ?? 'all';
+  // `--format sarif` is, like `--json`, a machine-readable mode: it suppresses
+  // the human Pulse output and emits a single structured document at the end.
+  const sarif = opts.format === 'sarif';
+  const machine = opts.json === true || sarif;
+  if (opts.format !== undefined && !sarif) {
+    pulse('fail', 'check', `unknown --format '${opts.format}' (expected: sarif)`);
+    return {worst: 2, anyFailed: true};
+  }
   const allowed = TIER_STAGES[tier];
   if (!allowed) {
-    if (opts.json) {
+    if (machine) {
       process.stdout.write(`${JSON.stringify({tier, error: `unknown tier '${tier}'`, worst: 2, anyFailed: true, stages: []}, null, 2)}\n`);
     } else {
       pulse('fail', 'check', `unknown --tier '${tier}' (expected: pre-commit | pre-push | all)`);
@@ -479,7 +488,7 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
       worst = Math.max(worst, worstContribution(r, status));
     }
     collected.push({stage: name, label, status, exitCode: r.exitCode, stderr: r.stderr, findings: r.findings});
-    if (!opts.json) {
+    if (!machine) {
       pulse(pulseKindOf(status), label);
       if (isBlocking(status)) printStageDetails(r);
     }
@@ -498,7 +507,7 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
         worst = Math.max(worst, 1);
         anyFailed = true;
         collected.push({stage: v.stage, label: v.label, status: 'fail', exitCode: 1, stderr: v.message});
-        if (!opts.json) pulse('fail', v.label, v.message);
+        if (!machine) pulse('fail', v.label, v.message);
       }
     } catch {
       /* spec unreadable → other detectors own it; don't block here */
@@ -528,19 +537,23 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
       drift.stderr = 'stale attestation exempted — this run re-verified and re-attests';
       anyFailed = collected.some((c) => isBlocking(c.status));
       worst = anyFailed ? Math.max(1, worst) : 0;
-      if (!opts.json) pulse('note', 'attestation', 'stale entries re-verified by this run — re-attesting');
+      if (!machine) pulse('note', 'attestation', 'stale entries re-verified by this run — re-attesting');
     }
     if (!anyFailed) {
       try {
         if (writeAttestation('.', loadSpec())) {
-          if (!opts.json) pulse('note', 'attestation', 'spec/attestation.yaml refreshed (verified tree stamped)');
+          if (!machine) pulse('note', 'attestation', 'spec/attestation.yaml refreshed (verified tree stamped)');
         }
       } catch {
         /* unloadable spec → nothing to attest */
       }
     }
   }
-  if (opts.json) {
+  if (sarif) {
+    // SARIF 2.1.0 — every drift finding (and any blocking stage with no
+    // findings) projected onto the GitHub code-scanning / SARIF-viewer surface.
+    process.stdout.write(`${JSON.stringify(toSarif({tier, worst, anyFailed, stages: collected}, {version: opts.version}), null, 2)}\n`);
+  } else if (opts.json) {
     // Machine-readable, UNTRUNCATED — findings carry file/line/suggestion so an
     // agent fixes in one pass instead of re-running to discover where + what.
     process.stdout.write(`${JSON.stringify({tier, worst, anyFailed, stages: collected}, null, 2)}\n`);
@@ -568,7 +581,7 @@ export function runContextCommand(query: string): void {
   }
 }
 
-export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tier?: string; json?: boolean; feature?: string}): void {
+export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tier?: string; json?: boolean; format?: string; version?: string; feature?: string}): void {
   let focusModules: readonly string[] | undefined;
   if (opts.feature) {
     // Opt-in module scope: resolve the named feature's modules. clad check
@@ -588,7 +601,14 @@ export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tie
       process.exit(1);
     }
   }
-  process.exit(runCheckStages({...opts, focusModules}).worst);
+  // Set exitCode rather than process.exit(): the machine-output modes
+  // (--json, --format sarif) can write >64KB to stdout, and process.exit()
+  // terminates before a buffered stdout PIPE flushes — truncating the document
+  // for any consumer that pipes (vs. redirects to a file). Letting the event
+  // loop drain guarantees the full payload is emitted, then Node exits with
+  // this code. The gate stages are all synchronous, so nothing keeps the loop
+  // alive past the flush.
+  process.exitCode = runCheckStages({...opts, focusModules}).worst;
 }
 
 /**
@@ -796,8 +816,11 @@ export function createProgram(): Command {
       'run only the stages for a trigger: pre-commit (drift/arch/secret) | pre-push (+ type/lint/unit/cov/spec-conformance/deliverable-smoke) | all (default; full 15-stage gate, used by CI)',
     )
     .option('--json', 'emit structured per-stage results (machine-readable: findings with file/line/suggestion, untruncated) — for agents/CI; cuts RED→fix round-trips')
+    .option('--format <format>', 'output format for results: sarif (SARIF 2.1.0 JSON for GitHub code scanning / SARIF viewers). Suppresses the human summary like --json')
     .option('--feature <id>', 'scope the gate to this feature\'s modules[] (Gradle monorepos): runs only :project: tasks instead of the root aggregate. No-op for non-Gradle repos or modules-less features')
-    .action(runCheckCommand);
+    .action((opts: {internal?: boolean; strict?: boolean; tier?: string; json?: boolean; format?: string; feature?: string}) =>
+      runCheckCommand({...opts, version: program.version()}),
+    );
 
   program
     .command('checkpoint <featureId>')
