@@ -7,6 +7,22 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **`UNVERIFIED_AC` drift detector — AC → test → *observed pass*** (`F-96700032`)
+  — closes the one soft spot in the otherwise execution-based gate. `UNTESTED_AC`
+  only checks that a done AC's `test_refs` *exist on disk*, so an empty file, a
+  `test.skip`, or a failing test still satisfied it. When a JUnit XML report is
+  available — `gate.test_report` in `.cladding/config.yaml`, or a conventional
+  path (`test-report.junit.xml`, `coverage/junit.xml`, `.cladding/test-report.junit.xml`)
+  — `UNVERIFIED_AC` confirms each done AC's referenced tests actually **ran and
+  passed**: failing/errored or only-skipped tests are an `error`, and a test_ref
+  absent from a present report is a `warn` (a scoped/partial run is legitimate;
+  `--strict` promotes it). **Graceful by default:** with no report present the
+  detector emits nothing, leaving `UNTESTED_AC`'s existence check as the baseline,
+  so projects that don't emit JUnit XML are unaffected. Parsing is pure and
+  regex-based (no XML dependency), mirroring the coverage-XML approach.
+
 ## [0.6.3] — 2026-06-26 — Honest Status
 
 **In one line:** the one-line-per-feature index that agents grep (and that feeds
