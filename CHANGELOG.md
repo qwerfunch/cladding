@@ -7,6 +7,40 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **`UNVERIFIED_AC` drift detector — AC → test → *observed pass*** (`F-96700032`)
+  — closes the one soft spot in the otherwise execution-based gate. `UNTESTED_AC`
+  only checks that a done AC's `test_refs` *exist on disk*, so an empty file, a
+  `test.skip`, or a failing test still satisfied it. When a JUnit XML report is
+  available — `gate.test_report` in `.cladding/config.yaml`, or a conventional
+  path (`test-report.junit.xml`, `coverage/junit.xml`, `.cladding/test-report.junit.xml`)
+  — `UNVERIFIED_AC` confirms each done AC's referenced tests actually **ran and
+  passed**: failing/errored or only-skipped tests are an `error`, and a test_ref
+  absent from a present report is a `warn` (a scoped/partial run is legitimate;
+  `--strict` promotes it). **Graceful by default:** with no report present the
+  detector emits nothing, leaving `UNTESTED_AC`'s existence check as the baseline,
+  so projects that don't emit JUnit XML are unaffected. Parsing is pure and
+  regex-based (no XML dependency), mirroring the coverage-XML approach.
+
+- **`UNVERIFIED_AC` multi-framework `test_ref`↔testcase matching** (`F-d980359c`)
+  — the matcher was effectively vitest-only: it keyed every testcase by its
+  `classname` and assumed that was a file path. pytest (`tests.test_foo`),
+  Java/Kotlin (`com.example.FooTest`), and `file=`-attribute emitters therefore
+  never matched, so a *passing* test read as **`absent`** (a false positive under
+  `--strict`) and a *real* fail/skip was mis-reported as "did not run". The
+  parser now indexes each testcase under every path-shaped key it can derive
+  (the `file=` attribute, the `classname` as-is, and a dot→slash conversion of a
+  dotted classname) and matches `test_refs` **extension-agnostically**
+  (`FooTest` ↔ `FooTest.kt`). **Confident-or-degrade:** a report whose keys are
+  none path-like (e.g. jest describe-title `classname`s that cannot be mapped to
+  files) is treated as unmappable and the detector emits nothing, rather than
+  flooding false `absent` findings — preserving the low-false-positive contract.
+  Measured A/B (OLD = `classname`-only): correct verdicts across a
+  vitest/pytest/Kotlin/jest matrix went **2/8 → 8/8**; parse cost on a 10k-case
+  report grew by ~1.6 ms (vitest-shaped) to ~7.8 ms (pytest-shaped) per gate run
+  — noise against the ~50 s gate.
+
 ## [0.6.3] — 2026-06-26 — Honest Status
 
 **In one line:** the one-line-per-feature index that agents grep (and that feeds
