@@ -146,7 +146,7 @@ describe('detectToolchain', () => {
     // State-transition: proves resolveTsLint actually reads the filesystem each call,
     // not a hard-coded return (defeats the one-way-test critique).
     writeFileSync(join(dir, 'package.json'), '{}');
-    const eslintGate = {cmd: 'npx', args: ['--no-install', 'eslint', '.']};
+    const eslintGate = {cmd: 'npx', args: ['--no-install', 'eslint', '.', '--cache', '--cache-location', '.cladding/cache/eslint']};
     expect(detectToolchain(dir).gates.lint).toEqual(eslintGate);
     writeFileSync(join(dir, 'biome.json'), '{}');
     expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npx', args: ['--no-install', 'biome', 'lint', '.']});
@@ -156,7 +156,7 @@ describe('detectToolchain', () => {
 
   test('typescript with no linter config → lint gate stays eslint (default preserved)', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
-    expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npx', args: ['--no-install', 'eslint', '.']});
+    expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npx', args: ['--no-install', 'eslint', '.', '--cache', '--cache-location', '.cladding/cache/eslint']});
   });
 
   test('biome takes precedence over oxlint when both configs present', () => {
@@ -170,7 +170,7 @@ describe('detectToolchain', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     writeFileSync(join(dir, 'biome.json'), '{}');
     const tc = detectToolchain(dir);
-    expect(tc.gates.type).toEqual({cmd: 'npx', args: ['--no-install', 'tsc', '--noEmit']});
+    expect(tc.gates.type).toEqual({cmd: 'npx', args: ['--no-install', 'tsc', '--noEmit', '--incremental', '--tsBuildInfoFile', '.cladding/cache/tsc.tsbuildinfo']});
     expect(tc.gates.test).toEqual({cmd: 'npx', args: ['--no-install', 'vitest', 'run']});
   });
 

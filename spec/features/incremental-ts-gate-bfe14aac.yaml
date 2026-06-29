@@ -1,0 +1,33 @@
+id: F-bfe14aac
+slug: incremental-ts-gate
+title: "Incremental TS gate — tsc --incremental + eslint --cache (sound; ~3.4s faster on warm re-runs)"
+status: done
+modules:
+  - src/stages/toolchain/detect.ts
+acceptance_criteria:
+  - id: AC-41107118
+    ears: ubiquitous
+    action: "run the TypeScript type gate as tsc --noEmit --incremental with a tsBuildInfoFile under .cladding/cache, so an unchanged re-check reuses the build cache"
+    response: "detectToolchain's typescript gates.type carries --incremental + --tsBuildInfoFile .cladding/cache/tsc.tsbuildinfo"
+    text: "The system shall run the TS type gate with tsc --incremental and a .cladding/cache build-info file."
+    test_refs: ["tests/stages/incremental-gate.test.ts"]
+  - id: AC-1f2116fa
+    ears: ubiquitous
+    action: "run the TypeScript lint gate as eslint --cache with a cache-location under .cladding/cache, so unchanged files reuse cached lint results"
+    response: "detectToolchain's typescript gates.lint carries --cache + --cache-location .cladding/cache/eslint"
+    text: "The system shall run the TS lint gate with eslint --cache and a .cladding/cache cache-location."
+    test_refs: ["tests/stages/incremental-gate.test.ts"]
+  - id: AC-f253b9fa
+    ears: state
+    condition: "while a build cache from a prior run exists and the tree is unchanged"
+    action: "still catch a newly-introduced type/lint error (incremental is sound, not a correctness shortcut)"
+    response: "tsc --incremental rebuilds the affected program slice and eslint --cache keys on file+config hash, so a real error is never masked — the cache only skips proven-unchanged work"
+    text: "While a cache exists, the system shall still catch any real type/lint error (sound incrementality)."
+    test_refs: ["tests/stages/incremental-gate.test.ts"]
+  - id: AC-dd80d585
+    ears: unwanted
+    condition: "if the gate writes its incremental caches"
+    action: "keep them under the .cladding/ namespace so they never pollute the managed project's git status"
+    response: "both cache paths live under .cladding/cache (already gitignored), not the project root"
+    text: "If the gate caches, then it shall write under .cladding/ so the project tree stays clean."
+    test_refs: ["tests/stages/incremental-gate.test.ts"]

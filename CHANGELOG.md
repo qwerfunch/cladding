@@ -7,6 +7,20 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Incremental TS gate — tsc `--incremental` + eslint `--cache`** (`F-bfe14aac`) — the
+  TypeScript type and lint gates re-ran from scratch every time. They now reuse a build
+  cache: `tsc --noEmit --incremental` (build-info file) and `eslint --cache`, both written
+  under `.cladding/cache/` (already gitignored, so the managed project's tree stays clean).
+  On an unchanged re-run — the local pre-commit/pre-push loop — measured on cladding's own
+  repo: **tsc 2.7s → 1.1s, eslint 2.5s → 0.6s (~3.4s saved)**. **Sound, not a shortcut:** a
+  newly-introduced type error is still caught with a stale build-info present (verified —
+  `tsc --incremental` rebuilds the affected program slice; `eslint --cache` keys on
+  file+config hash). Cold runs (fresh CI checkout) just rebuild the cache — no regression.
+  Test execution is deliberately **not** scoped — a gate must run the whole suite, so
+  changed-files/test-selection (unsound for a gate) was intentionally avoided.
+
 ## [0.8.1] — Adoption Proof + Friction Diet (2026-07-06)
 
 Adoption Proof + Friction Diet: the merge conflicts that plagued parallel

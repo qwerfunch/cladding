@@ -200,6 +200,7 @@ features:
   F-bc8ad013: {slug: mcp-description-diet, status: done, modules: 2}
   F-bd07d7: {slug: greenfield-seeds, status: done, modules: 5}
   F-bdcd90: {slug: oracle-policy-risk-weighted, status: done, modules: 8}
+  F-bfe14aac: {slug: incremental-ts-gate, status: done, modules: 1}
   F-c037ae: {slug: test-refs-repair, status: done, modules: 4}
   F-c2c996: {slug: checkpoint-events, status: done, modules: 3}
   F-c48eb2: {slug: scan-source-roots, status: done, modules: 5}

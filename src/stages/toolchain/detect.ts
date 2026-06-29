@@ -111,8 +111,15 @@ const CHAIN: readonly Entry[] = [
       // "not found" → the stage's missing-tool classification → skip (exit 2),
       // which the strict demand table (F-67d2e9) escalates when the spec
       // relies on the stage.
-      type: {cmd: 'npx', args: ['--no-install', 'tsc', '--noEmit']},
-      lint: {cmd: 'npx', args: ['--no-install', 'eslint', '.']},
+      // Incremental caches (F-bfe14aac): tsc --incremental reuses a build-info
+      // file and eslint --cache reuses per-file results, so an unchanged re-run
+      // (the local pre-commit/pre-push loop) skips proven-unchanged work —
+      // ~3.4s faster on cladding's own tree. SOUND, not a shortcut: tsc rebuilds
+      // the affected program slice (a new type error is still caught) and eslint
+      // keys the cache on file+config hash. Caches live under .cladding/ (already
+      // gitignored) so they never pollute the managed project's git status.
+      type: {cmd: 'npx', args: ['--no-install', 'tsc', '--noEmit', '--incremental', '--tsBuildInfoFile', '.cladding/cache/tsc.tsbuildinfo']},
+      lint: {cmd: 'npx', args: ['--no-install', 'eslint', '.', '--cache', '--cache-location', '.cladding/cache/eslint']},
       test: {cmd: 'npx', args: ['--no-install', 'vitest', 'run']},
       coverage: {cmd: 'npx', args: ['--no-install', 'vitest', 'run', '--coverage']},
       secret: {cmd: 'npx', args: ['--no-install', 'secretlint', '**/*']},
