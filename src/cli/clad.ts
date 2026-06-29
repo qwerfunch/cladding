@@ -155,6 +155,7 @@ interface RunCommandOptions {
   maxIterations: string;
   maxWallClockMs: string;
   maxRetries: string;
+  bestOf?: string;
   json?: boolean;
 }
 
@@ -177,6 +178,7 @@ export async function runRunCommand(
       maxWallClockMs: Number(opts.maxWallClockMs),
       maxRetriesPerFeature: Number(opts.maxRetries),
     },
+    bestOfN: opts.bestOf ? Number(opts.bestOf) : undefined,
   });
   const tag = result.halt.class === 'ALL_FEATURES_DONE' ? 'pass' : 'note';
   if (opts.json) {
@@ -762,6 +764,7 @@ export function createProgram(): Command {
     .option('--max-iterations <n>', 'cap iterations (default 50)', '50')
     .option('--max-wall-clock-ms <ms>', 'cap wall clock (default 600000)', '600000')
     .option('--max-retries <n>', 'cap retries per feature (default 3)', '3')
+    .option('--best-of <n>', 'best-of-N: generate N candidates per feature, gate each, apply only the gate-selected green winner (default 1 = single-pass). N>1 trades N× cost for higher P(green)', '1')
     .option('--json', 'emit the raw internal result (Iron Core view); default is a plain Soft Shell summary')
     .action(runRunCommand);
 

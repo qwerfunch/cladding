@@ -9,6 +9,21 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **best-of-N drive loop — the gate as a SELECTOR** (`F-ac92c812`, `clad run --best-of N`)
+  — cladding's deterministic execution-based gate was used as a single-pass
+  PASS/FAIL on one attempt. The 2025–26 thesis is that with a strong verifier,
+  solution coverage scales with the number of candidate attempts. `clad run`
+  can now generate **N candidate implementations** per feature, gate each in
+  **isolation** (apply → gate → revert), and apply only the gate-**selected**
+  green winner (ranked by fewest stub-fallbacks, then earliest attempt; audited
+  in the evidence log). Best-of-N never lowers the bar — a round with no green
+  candidate falls back to the existing retry/halt path. **Default `bestOfN <= 1`
+  is byte-for-byte the prior single-pass behavior** (verified: existing drive
+  tests unchanged). Honest scope: `clad run` is the EXPERIMENTAL autonomous
+  surface (the supported path is host-delegated), and N>1 trades N× generation
+  + gate cost for a higher per-feature P(green); the pure selector
+  (`src/drive/select.ts`) is the reusable core.
+
 - **EARS `complex` pattern — the 6th canonical shape** (`F-9d168287`) — `src/spec/ears.ts`
   implemented 5 of the 6 EARS patterns; the 6th, `complex` (a precondition combined
   with a trigger, e.g. *"While the aircraft is on the ground, when reverse thrust is

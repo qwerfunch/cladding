@@ -1,0 +1,42 @@
+id: F-ac92c812
+slug: best-of-n-drive
+title: "best-of-N drive loop — generate K candidates, let the gate SELECT the green winner (verifier-as-selector)"
+status: done
+modules:
+  - src/drive/select.ts
+  - src/drive/loop.ts
+acceptance_criteria:
+  - id: AC-b0359ac0
+    ears: ubiquitous
+    action: "filter K drive candidates to those whose L1 gates all pass (green) and return the best one, or null when none are green"
+    response: "selectBest in src/drive/select.ts treats the gate as a SELECTOR: green (every non-skipped gate passes) is the hard filter; returns the chosen candidate plus a deterministic ranking, or winner=null"
+    text: "The system shall select the best green candidate from K drive candidates via the gate, or none when no candidate is green."
+    test_refs: ["tests/drive/best-of-n.test.ts"]
+  - id: AC-9a084443
+    ears: event
+    condition: "when more than one candidate is green"
+    action: "rank deterministically (fewest stub-fallbacks, then earliest attempt) and keep the best green rather than the first"
+    response: "selectBest orders green candidates by ascending stubCount then ascending attempt index, so the most-real-implementation green candidate wins and ties resolve stably"
+    text: "When several candidates are green, the system shall keep the best-ranked green candidate (not merely the first)."
+    test_refs: ["tests/drive/best-of-n.test.ts"]
+  - id: AC-d8d1c9c6
+    ears: state
+    condition: "while bestOfN is unset or <= 1"
+    action: "run the drive loop exactly as before (single candidate, applied directly, no isolation)"
+    response: "runDriveLoop's default path is byte-for-byte the prior behavior; best-of-N is gated behind bestOfN > 1 so existing runs are unaffected"
+    text: "While bestOfN <= 1, the system shall behave exactly as the prior single-pass loop."
+    test_refs: ["tests/drive/best-of-n.test.ts"]
+  - id: AC-c0d82c50
+    ears: event
+    condition: "when bestOfN > 1"
+    action: "generate N candidates, gate each in isolation, apply only the selected winner to the working tree, and record the selection in the audit log"
+    response: "the loop collects N (mutations, gates) candidates without contaminating the real tree, applies the selectBest winner, and appends a selection event so the choice is auditable (not self-certified — selection is by the gate)"
+    text: "When bestOfN > 1, the system shall apply only the gate-selected winner and audit the selection."
+    test_refs: ["tests/drive/best-of-n.test.ts"]
+  - id: AC-a13fa64e
+    ears: unwanted
+    condition: "if no candidate is green"
+    action: "return winner=null so the loop falls back to its existing retry/halt path"
+    response: "best-of-N never lowers the bar — a no-green round behaves like the single-pass failure path (retry up to budget, then halt)"
+    text: "If no candidate is green, then the system shall fall back to the existing retry/halt path."
+    test_refs: ["tests/drive/best-of-n.test.ts"]

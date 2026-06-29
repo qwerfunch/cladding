@@ -23,11 +23,12 @@
 // @see adapters/types.ts — `AgentAdapter` contract.
 // @see drive/agent.ts — `runAgent` + reviewer barrier.
 
-import {existsSync, mkdirSync, rmSync, unlinkSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, readFileSync, rmSync, unlinkSync, writeFileSync} from 'node:fs';
 import {dirname, join} from 'node:path';
 
 import {loadPersona} from '../agents/loader.js';
 import {runAgent, ReviewerIdentityCollisionError} from './agent.js';
+import {runBestOfN, type Selection} from './select.js';
 import {selectAdapter} from '../adapters/index.js';
 import {findLatestCheckpoint, recordCheckpoint, recordRollback} from '../core/checkpoint.js';
 import {writePostMortem} from '../core/postmortem.js';
@@ -63,6 +64,13 @@ export interface DriveOptions {
    * live adapter.
    */
   readonly skipHealthCheck?: boolean;
+  /**
+   * best-of-N (F-ac92c812): generate this many candidate implementations per
+   * feature, gate each in isolation, and apply only the gate-selected green
+   * winner. `undefined`/`<= 1` keeps the original single-pass behavior. K > 1
+   * trades K× generation + gate cost for a higher per-feature P(green).
+   */
+  readonly bestOfN?: number;
 }
 
 export interface DriveResult {
@@ -123,6 +131,40 @@ function applyMutations(cwd: string, mutations: readonly AgentMutation[]): void 
     }
     mkdirSync(dirname(abs), {recursive: true});
     writeFileSync(abs, m.contents ?? '');
+  }
+}
+
+/**
+ * Snapshot the contents (or absence) of the paths a best-of-N candidate may
+ * touch, so the working tree can be reverted between attempts — only the
+ * selected winner is re-applied permanently. `null` == file absent before.
+ */
+function snapshotPaths(cwd: string, paths: readonly string[]): ReadonlyMap<string, string | null> {
+  const snap = new Map<string, string | null>();
+  for (const p of paths) {
+    if (snap.has(p)) continue;
+    const abs = join(cwd, p);
+    snap.set(p, existsSync(abs) ? readFileSync(abs, 'utf8') : null);
+  }
+  return snap;
+}
+
+/** Reverts the working tree to a {@link snapshotPaths} snapshot. */
+function restorePaths(cwd: string, snap: ReadonlyMap<string, string | null>): void {
+  for (const [p, contents] of snap) {
+    const abs = join(cwd, p);
+    if (contents === null) {
+      if (existsSync(abs)) {
+        try {
+          unlinkSync(abs);
+        } catch {
+          rmSync(abs, {recursive: true, force: true});
+        }
+      }
+      continue;
+    }
+    mkdirSync(dirname(abs), {recursive: true});
+    writeFileSync(abs, contents);
   }
 }
 
@@ -256,55 +298,117 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
     recordCheckpoint(cwd, ready.id);
     const ctx = ctxFor(cwd, ready);
 
-    // Step 1 — specialist authors the implementation.
-    pulseProgress('run', ready.id, 'specialist');
+    // Steps 1–3 — author the implementation, then L1 gates verify it.
+    // Drift (stage_1.3) stays intentionally excluded — the loop runs while
+    // the spec is partially stubbed and a spec-wide MISSING_IMPLEMENTATION
+    // sweep would always fail. `clad check` covers drift after the loop.
+    //
+    // best-of-N (F-ac92c812): when bestOfN > 1 the loop generates N candidates,
+    // gates each in ISOLATION (apply → gate → revert), and applies only the
+    // gate-SELECTED winner. bestOfN <= 1 keeps the original single-pass path.
+    const n = Math.max(1, Math.floor(opts.bestOfN ?? 1));
     let specialistIdentity: string | undefined;
-    try {
-      const specialistOut = await runAgent(developer, ctx);
-      specialistIdentity = specialistOut.result.identity.name;
-      applyMutations(cwd, specialistOut.result.mutations);
-    } catch (err) {
-      pulseProgressEnd('fail', ready.id, 'specialist dispatch failed');
-      return finish({
-        class: classifyTransportError(err),
-        detail: `specialist dispatch failed: ${(err as Error).message}`,
-        iteration,
-      });
-    }
 
-    // Step 2 — fall back to module stubs only when the adapter
-    // produced no concrete file mutations (mock stage).
-    for (const modulePath of ready.modules ?? []) {
-      if (ensureStub(cwd, modulePath)) stubsCreated.push(modulePath);
-    }
-
-    // Step 3 — L1 gates verify the produced state. Drift (stage_1.3)
-    // stays intentionally excluded — the loop runs while the spec
-    // is partially stubbed and a spec-wide MISSING_IMPLEMENTATION
-    // sweep would always fail. `clad check` covers drift after the
-    // loop completes.
-    pulseProgress('run', ready.id, 'L1 gates');
-    const gates = [
-      ['stage_1.1', runType({cwd})],
-      ['stage_1.2', runLint({cwd})],
-      ['stage_1.5', runArch({cwd})],
-    ] as const;
-    gateRuns += gates.length;
-    // `exitCode !== 2` excludes genuine skips (missing tool / unknown language).
-    // Safe because stages map a ran-tool failure to exitCode 1, never 2 (see
-    // stages/util.ts::ranToolResult) — so a real type/lint/arch failure here is
-    // exitCode 1 and correctly blocks the feature from advancing.
-    const failed = gates.find(([, r]) => !r.pass && r.exitCode !== 2);
-    if (failed) {
-      retries.set(ready.id, (retries.get(ready.id) ?? 0) + 1);
-      lastFailedGate.set(ready.id, failed[0]);
-      appendEvent(cwd, newEvent('drift_detected', {feature: ready.id, gate: failed[0]}));
-      pulseProgressEnd(
-        'fail',
-        ready.id,
-        `${failed[0]} fail · retry ${retries.get(ready.id) ?? 0}/${budget.maxRetriesPerFeature}`,
+    if (n > 1) {
+      let selection: Selection;
+      try {
+        ({selection} = await runBestOfN(n, async (attempt) => {
+          const out = await runAgent(developer, ctx);
+          const muts = out.result.mutations;
+          const touched = [...new Set([...muts.map((m) => m.path), ...(ready.modules ?? [])])];
+          const snap = snapshotPaths(cwd, touched);
+          applyMutations(cwd, muts);
+          let stubCount = 0;
+          for (const mp of ready.modules ?? []) if (ensureStub(cwd, mp)) stubCount += 1;
+          const gz = [
+            ['stage_1.1', runType({cwd})],
+            ['stage_1.2', runLint({cwd})],
+            ['stage_1.5', runArch({cwd})],
+          ] as const;
+          gateRuns += gz.length;
+          restorePaths(cwd, snap); // leave the tree clean for the next attempt / winner apply
+          return {
+            attempt,
+            identityName: out.result.identity.name,
+            mutations: muts,
+            gates: gz.map(([stage, r]) => ({stage, pass: r.pass, exitCode: r.exitCode})),
+            stubCount,
+          };
+        }));
+      } catch (err) {
+        pulseProgressEnd('fail', ready.id, 'specialist dispatch failed');
+        return finish({
+          class: classifyTransportError(err),
+          detail: `specialist dispatch failed: ${(err as Error).message}`,
+          iteration,
+        });
+      }
+      // The gate is the SELECTOR — record its choice in the audit log.
+      appendEvidence(
+        cwd,
+        newEvidence({
+          featureId: ready.id,
+          stage: 'stage_1.2',
+          kind: 'note',
+          content: `best-of-${n} selection — ${selection.reason}`,
+          identity: {author: 'tool', name: 'clad-run'},
+        }),
       );
-      continue;
+      if (!selection.winner) {
+        // No green candidate — best-of-N never lowers the bar; fall back to retry/halt.
+        retries.set(ready.id, (retries.get(ready.id) ?? 0) + 1);
+        const firstFail = selection.ranked.flatMap((r) => r.failingGates)[0] ?? 'stage_1.1';
+        lastFailedGate.set(ready.id, firstFail);
+        appendEvent(cwd, newEvent('drift_detected', {feature: ready.id, gate: firstFail}));
+        pulseProgressEnd(
+          'fail',
+          ready.id,
+          `best-of-${n}: 0 green · retry ${retries.get(ready.id) ?? 0}/${budget.maxRetriesPerFeature}`,
+        );
+        continue;
+      }
+      applyMutations(cwd, selection.winner.mutations);
+      for (const mp of ready.modules ?? []) if (ensureStub(cwd, mp)) stubsCreated.push(mp);
+      specialistIdentity = selection.winner.identityName;
+      pulseProgressEnd('pass', ready.id, `best-of-${n}: ${selection.reason}`);
+    } else {
+      // ===== default single-pass path (unchanged behavior) =====
+      pulseProgress('run', ready.id, 'specialist');
+      try {
+        const specialistOut = await runAgent(developer, ctx);
+        specialistIdentity = specialistOut.result.identity.name;
+        applyMutations(cwd, specialistOut.result.mutations);
+      } catch (err) {
+        pulseProgressEnd('fail', ready.id, 'specialist dispatch failed');
+        return finish({
+          class: classifyTransportError(err),
+          detail: `specialist dispatch failed: ${(err as Error).message}`,
+          iteration,
+        });
+      }
+      for (const modulePath of ready.modules ?? []) {
+        if (ensureStub(cwd, modulePath)) stubsCreated.push(modulePath);
+      }
+      pulseProgress('run', ready.id, 'L1 gates');
+      const gates = [
+        ['stage_1.1', runType({cwd})],
+        ['stage_1.2', runLint({cwd})],
+        ['stage_1.5', runArch({cwd})],
+      ] as const;
+      gateRuns += gates.length;
+      // `exitCode !== 2` excludes genuine skips (missing tool / unknown language).
+      const failed = gates.find(([, r]) => !r.pass && r.exitCode !== 2);
+      if (failed) {
+        retries.set(ready.id, (retries.get(ready.id) ?? 0) + 1);
+        lastFailedGate.set(ready.id, failed[0]);
+        appendEvent(cwd, newEvent('drift_detected', {feature: ready.id, gate: failed[0]}));
+        pulseProgressEnd(
+          'fail',
+          ready.id,
+          `${failed[0]} fail · retry ${retries.get(ready.id) ?? 0}/${budget.maxRetriesPerFeature}`,
+        );
+        continue;
+      }
     }
 
     // Step 4 — reviewer inspects. ReviewerIdentityCollisionError

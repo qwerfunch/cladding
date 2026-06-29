@@ -475,6 +475,24 @@ describe('runDriveLoop', () => {
     expect(r.stubsCreated.length).toBeGreaterThan(0); // mock returns 0 mutations → stub fallback
   });
 
+  test('best-of-N (F-ac92c812): bestOfN=3 gates 3 isolated candidates, applies the winner, then completes', async () => {
+    loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-001', status: 'planned', modules: ['stages/x.ts']}]));
+    const r = await runDriveLoop({cwd: dir, bestOfN: 3});
+    expect(r.halt.class).toBe('ALL_FEATURES_DONE');
+    // 3 candidates × 3 L1 gates = 9 gate runs (single-pass would be 3).
+    expect(r.gateRuns).toBe(9);
+    // 3 developer candidate dispatches + 1 reviewer dispatch.
+    expect(runAgentMock.mock.calls.length).toBe(4);
+    expect(r.featuresTouched).toContain('F-001');
+  });
+
+  test('best-of-N default (bestOfN<=1) keeps single-pass: one candidate, 3 gate runs', async () => {
+    loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-001', status: 'planned', modules: ['stages/x.ts']}]));
+    const r = await runDriveLoop({cwd: dir, bestOfN: 1});
+    expect(r.halt.class).toBe('ALL_FEATURES_DONE');
+    expect(r.gateRuns).toBe(3); // single candidate → 3 L1 gates (unchanged behavior)
+  });
+
   test('two features in dependency order both complete', async () => {
     loadSpecMock.mockReturnValueOnce(
       specOf([
