@@ -46,8 +46,8 @@ project:
 
 # Auto-maintained by `clad sync` (F-5b9f9f). Do not edit by hand.
 inventory:
-  features: 184
+  features: 185
   scenarios: 2
   capabilities: 6
-  test_files: 155
+  test_files: 156
   last_synced: "2026-06-29"

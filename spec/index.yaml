@@ -133,6 +133,7 @@ features:
   F-7ce18e: {slug: glossary-naming-convention, status: done, modules: 7}
   F-7fa4a7: {slug: mcp-sampling-dispatcher, status: done, modules: 1}
   F-80d19d: {slug: setup-command, status: done, modules: 7}
+  F-8234ec3c: {slug: graph-viewer-galaxy, status: done, modules: 2}
   F-836a90: {slug: link-capability-tool, status: done, modules: 2}
   F-8f419e: {slug: smoke-legacy-liveness, status: done, modules: 1}
   F-904495a5: {slug: changelog-render, status: done, modules: 5}

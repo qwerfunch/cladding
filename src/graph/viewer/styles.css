@@ -8,8 +8,11 @@
   --fg: #1f2328; --muted: #57606a; --accent: #bf6f00; --edge: rgba(80,90,100,.18);
 }
 * { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--fg);
+html, body { margin: 0; height: 100%; overflow: hidden; color: var(--fg);
   font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+/* deep-space field so the additive node-bloom reads as a glowing galaxy */
+body { background: radial-gradient(ellipse 80% 70% at 60% 44%, #121822 0%, #0a0e14 52%, #05070b 100%); }
+:root.light body { background: radial-gradient(ellipse 80% 70% at 60% 44%, #ffffff 0%, #eef1f5 55%, #e3e8ee 100%); }
 #stage { position: fixed; inset: 0; }
 canvas { display: block; width: 100vw; height: 100vh; cursor: grab; }
 canvas.grabbing { cursor: grabbing; }

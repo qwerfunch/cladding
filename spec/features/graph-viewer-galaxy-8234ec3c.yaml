@@ -1,0 +1,29 @@
+id: F-8234ec3c
+slug: graph-viewer-galaxy
+title: "Graph viewer — radial galaxy layout + always-on ambient animation + bloom/glow UX overhaul"
+status: done
+modules:
+  - src/graph/viewer/app.js
+  - src/graph/viewer/styles.css
+acceptance_criteria:
+  - id: AC-d092db6f
+    ears: event
+    condition: "when the viewer settles the layout"
+    action: "apply a radial-galaxy force (degree-weighted: high-degree hubs pulled toward the center, low-degree leaves toward the rim) plus charge + springs so the graph converges to a circular galaxy"
+    response: "the gathered graph reads as one circular mass with the load-bearing hubs forming a bright core — the shape people expect from this kind of graph"
+    text: "When the viewer settles, the system shall apply a degree-weighted radial force so the graph converges to a circular galaxy (hubs central, leaves on the rim) with finite, bounded positions."
+    test_refs: ["tests/graph/viewer-render.test.ts#settles into finite bounded positions with hubs pulled toward the center"]
+    notes: "## Why\nUser: 'these graphs are usually circular (when nodes gather it forms a circle)'. Radial-by-degree also encodes meaning: central = most-depended-on."
+  - id: AC-bec33744
+    ears: ubiquitous
+    response: "the graph feels alive even at rest; Calm gives a still image on demand"
+    text: "While idle (not interacting), the viewer shall keep a low-cost ambient animation alive — a slow global rotation plus node breathing, edge particles, and hub glow pulse — and a Calm toggle shall freeze it for static reading."
+    test_refs: ["tests/graph/viewer-render.test.ts#runs an ambient animation loop when idle"]
+    notes: "## Decision\nAmbient is O(n)/O(edges) DRAW only (rotation is a free global transform); physics stays burst-only. Default = ambient ON (idle animates), Calm = freeze."
+  - id: AC-c4dc13ea
+    ears: event
+    condition: "when the viewer renders a frame"
+    action: "draw every visible node with a bloom/glow pass over a deep-space background, and support click-to-focus (persistent neighborhood highlight + smooth recenter)"
+    response: "an extreme, legible visualization — glowing nodes on a dark field, click a node to study its neighborhood"
+    text: "When the viewer renders, the system shall draw every visible node (with a bloom glow pass) and support click-to-focus selection with a smooth recenter."
+    test_refs: ["tests/graph/viewer-render.test.ts#draws every visible node to the canvas"]
