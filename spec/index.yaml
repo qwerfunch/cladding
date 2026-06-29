@@ -140,6 +140,7 @@ features:
   F-99c6e5: {slug: cladding-self-fixes, status: done, modules: 13}
   F-9a3b61: {slug: ab-ext-uncommit-demos, status: done, modules: 3}
   F-9b643e: {slug: scan-conventions, status: done, modules: 5}
+  F-9d168287: {slug: ears-complex-pattern, status: done, modules: 6}
   F-a04cd9: {slug: ac-hash-ids, status: done, modules: 3}
   F-a4b512: {slug: dependency-cycle-detector, status: done, modules: 2}
   F-a5228c: {slug: attestation-marker, status: done, modules: 4}

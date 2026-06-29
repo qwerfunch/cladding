@@ -9,6 +9,19 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **EARS `complex` pattern — the 6th canonical shape** (`F-9d168287`) — `src/spec/ears.ts`
+  implemented 5 of the 6 EARS patterns; the 6th, `complex` (a precondition combined
+  with a trigger, e.g. *"While the aircraft is on the ground, when reverse thrust is
+  commanded, the system shall …"*), was missing, and the validator keyed on the first
+  trigger word only — so a multi-clause `While … when …` requirement either failed
+  validation or was forced into a single-keyword bucket, silently losing the trigger
+  clause. `complex` is now a first-class `EarsPattern`: `checkEarsShape` validates BOTH
+  clauses (a leading `while` precondition AND a `when` trigger) and names the missing
+  one, preserving the precondition→trigger relationship EARS exists to capture. Purely
+  additive — the existing five patterns validate exactly as before. The new value is
+  mirrored across every enum site (`types.ts`, `spec/schema.json` ac.ears + always_ears,
+  `new.ts`, the MCP server enum) to keep authoring/validation/schema in lockstep.
+
 - **`UNVERIFIED_AC` drift detector — AC → test → *observed pass*** (`F-96700032`)
   — closes the one soft spot in the otherwise execution-based gate. `UNTESTED_AC`
   only checks that a done AC's `test_refs` *exist on disk*, so an empty file, a

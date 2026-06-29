@@ -1,0 +1,39 @@
+id: F-9d168287
+slug: ears-complex-pattern
+title: "EARS complex pattern — first-class while+when (precondition+trigger), completing the 6th canonical EARS shape"
+status: done
+modules:
+  - src/spec/types.ts
+  - src/spec/ears.ts
+  - src/spec/new.ts
+  - src/serve/server.ts
+  - src/spec/schema.json
+  - src/stages/detectors/spec-conformance.ts
+acceptance_criteria:
+  - id: AC-76572b2d
+    ears: ubiquitous
+    action: "recognize 'complex' as a 6th first-class EARS pattern across the type, the JSON schema, the authoring helper, and the MCP server enum"
+    response: "EarsPattern in types.ts gains 'complex'; the same value is mirrored in spec/schema.json (ac.ears + always_ears), src/spec/new.ts, and src/serve/server.ts so authoring/validation/schema stay in lockstep (HARNESS_INTEGRITY)"
+    text: "The system shall recognize 'complex' as a first-class EARS pattern in every enum mirror."
+    test_refs: ["tests/spec/ears-complex.test.ts"]
+  - id: AC-39ede515
+    ears: event
+    condition: "when an AC declares ears='complex'"
+    action: "validate that the condition carries BOTH a 'while' precondition AND a 'when' trigger, rather than short-circuiting on the first trigger word"
+    response: "checkEarsShape returns null (valid) only when the condition starts with 'while' and also contains a 'when' clause; the two-clause precondition->trigger relationship is preserved instead of being mis-bucketed into a single keyword"
+    text: "When an AC is ears='complex', the system shall require both a while-precondition and a when-trigger."
+    test_refs: ["tests/spec/ears-complex.test.ts"]
+  - id: AC-7c4353a2
+    ears: unwanted
+    condition: "if a complex AC's condition is missing the while-precondition or the when-trigger"
+    action: "emit a shape issue naming the missing clause"
+    response: "checkEarsShape returns a message identifying whether the 'while' precondition or the 'when' trigger is absent, so the author gets an actionable fix"
+    text: "If a complex condition omits either clause, then the system shall emit a shape issue naming the missing clause."
+    test_refs: ["tests/spec/ears-complex.test.ts"]
+  - id: AC-d50b6082
+    ears: state
+    condition: "while validating the existing five patterns (ubiquitous/event/state/optional/unwanted)"
+    action: "leave their behavior unchanged"
+    response: "the five prior patterns validate exactly as before — 'complex' is purely additive and backward compatible; the TRIGGERS map handling for single-keyword patterns is untouched"
+    text: "While validating the original five patterns, the system shall behave exactly as before (backward compatible)."
+    test_refs: ["tests/spec/ears-complex.test.ts"]
