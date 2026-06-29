@@ -51,6 +51,19 @@ always-current graph you can query for impact and *see* in a graph viewer.
   viewer at a local address and **updates itself as you edit** — change the spec
   or a doc and the open page reflects it, no re-export. Agents can read the same
   always-current graph through the new `clad_get_graph` tool.
+- **An Obsidian-grade viewer.** The layout is now a continuously-running force
+  simulation: drag a node and the web stretches and recoils with real tension;
+  hovering pauses the motion so you can read; four force sliders (center / repel /
+  link / link distance) retune it live. Each node class has its own color — the
+  four spec layers, and code/test/doc each distinct — so the structure reads at a
+  glance.
+- **The killer: live conformance, healing as you watch.** Every node carries its
+  real spec↔code health, computed from cladding's own drift detectors — a feature
+  whose test went missing, a file no feature claims, a doc pointing at a deleted
+  feature. Problem nodes glow; **fix the drift and the glow clears in real time**
+  (`clad graph serve`), with a top "in-sync %" pill. The graph IS the gate, made
+  visible — something only a tool that keeps spec and code connected-and-current
+  can show. (Static exports embed a point-in-time snapshot.)
 
 **Notes**
 

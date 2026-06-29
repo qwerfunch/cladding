@@ -1,10 +1,11 @@
 id: F-8234ec3c
 slug: graph-viewer-galaxy
 title: "Graph viewer — radial galaxy layout + always-on ambient animation + bloom/glow UX overhaul"
-status: done
-modules:
-  - src/graph/viewer/app.js
-  - src/graph/viewer/styles.css
+status: archived
+archived_at: "2026-06-29T00:00:00Z"
+archive_reason: "Superseded by graph-viewer-obsidian (F-04f50847): the radial-by-degree layout, the global-rotation ambient, and edge particles were replaced by a continuous tension simulation with hover-pause; bloom + click-focus carried forward."
+superseded_by: F-04f50847
+modules: []
 acceptance_criteria:
   - id: AC-d092db6f
     ears: event

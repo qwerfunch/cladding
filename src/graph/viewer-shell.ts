@@ -42,7 +42,7 @@ function safeJson(value: unknown): string {
  * Deterministic: assets are static, the payload derives from the pre-sorted graph,
  * and no timestamps/random ids are emitted (so the same graph yields identical bytes).
  */
-export function toHtmlShell(graph: KnowledgeGraph): string {
+export function toHtmlShell(graph: KnowledgeGraph, health?: Readonly<Record<string, unknown>>): string {
   const styles = asset('styles.css');
   const app = asset('app.js');
   const payload = safeJson({
@@ -52,6 +52,11 @@ export function toHtmlShell(graph: KnowledgeGraph): string {
     tierMeta: TIER_META,
     codeColor: CODE_COLOR,
   });
+  // Static export: embed a point-in-time SSoT-health snapshot (live in `clad graph serve`).
+  const healthScript =
+    health && Object.keys(health).length > 0
+      ? `<script>window.__CLADDING_HEALTH=${safeJson(health)};</script>\n`
+      : '';
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -63,17 +68,20 @@ export function toHtmlShell(graph: KnowledgeGraph): string {
 <body>
 <div id="stage"><canvas id="g"></canvas></div>
 <button id="burger" title="menu" aria-label="toggle sidebar">☰</button>
+<div id="impact"></div>
 <aside id="side">
   <h1>cladding · knowledge graph</h1>
   <div class="sub">${graph.nodes.length} nodes · ${graph.edges.length} edges · spec ↔ code ↔ doc</div>
   <input id="search" placeholder="search slug / id / title…" autocomplete="off" spellcheck="false">
   <h2>view</h2>
   <div class="toggles">
-    <button id="mode">✦ Live</button>
     <button id="labels">labels</button>
+    <button id="health">health</button>
     <button id="theme">light</button>
     <button id="reset">reset</button>
   </div>
+  <h2>장력 (forces)</h2>
+  <div id="forces"></div>
   <h2>SSoT tiers</h2>
   <div id="tiers"></div>
   <h2>kinds</h2>
@@ -82,7 +90,7 @@ export function toHtmlShell(graph: KnowledgeGraph): string {
 <div id="tip"></div>
 <div id="hint">scroll = zoom · drag = pan · click node = pin · hover = focus</div>
 <script>window.__CLADDING_GRAPH=${payload};</script>
-<script>${app}</script>
+${healthScript}<script>${app}</script>
 </body>
 </html>
 `;

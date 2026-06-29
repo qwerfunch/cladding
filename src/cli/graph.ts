@@ -10,6 +10,7 @@ import {dirname, join} from 'node:path';
 import {buildGraph, resolveNodeId, subgraph} from '../graph/model.js';
 import {toDot, toJson, toMermaid, toObsidianVault} from '../graph/render.js';
 import {toHtmlShell} from '../graph/viewer-shell.js';
+import {nodeHealth} from '../stages/graph-health.js';
 import {graphStats, renderStats} from '../graph/stats.js';
 import {loadSpec} from '../spec/load.js';
 import {pulse} from '../ui/pulse.js';
@@ -60,7 +61,7 @@ export function runGraphExportCommand(opts: GraphExportOptions = {}): void {
         process.exit(1);
         return;
       }
-      const html = toHtmlShell(graph);
+      const html = toHtmlShell(graph, nodeHealth(graph, '.'));
       mkdirSync(dirname(opts.out), {recursive: true});
       writeFileSync(opts.out, html, 'utf8');
       pulse('pass', 'graph', `wrote a self-contained viewer to ${opts.out} — open it in a browser (offline)`);

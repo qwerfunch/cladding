@@ -16,12 +16,9 @@ import {join} from 'node:path';
 import {buildGraph} from '../graph/model.js';
 import {toJson} from '../graph/render.js';
 import {toHtmlShell} from '../graph/viewer-shell.js';
+import {nodeHealth} from '../stages/graph-health.js';
 import {loadSpec} from '../spec/load.js';
 import {pulse} from '../ui/pulse.js';
-
-// Injected into the served page only (not the frozen export): reload on SSE refresh.
-const SSE_RELOAD =
-  '<script>(function(){try{var e=new EventSource("/events");e.onmessage=function(){location.reload();};}catch(_){}})();</script>';
 
 export interface GraphServer {
   readonly port: number;
@@ -57,6 +54,12 @@ export function createGraphServer(opts: {readonly port?: number; readonly cwd?: 
         res.end(toJson(liveGraph()));
         return;
       }
+      if (path === '/health.json') {
+        // KILLER: live spec↔code conformance from cladding's drift detectors, per node.
+        res.writeHead(200, {'Content-Type': 'application/json', 'Cache-Control': 'no-store'});
+        res.end(JSON.stringify(nodeHealth(liveGraph(), cwd)));
+        return;
+      }
       if (path === '/events') {
         res.writeHead(200, {
           'Content-Type': 'text/event-stream',
@@ -69,9 +72,10 @@ export function createGraphServer(opts: {readonly port?: number; readonly cwd?: 
         return;
       }
       if (path === '/' || path === '/index.html') {
-        const html = toHtmlShell(liveGraph()).replace('</body>', `${SSE_RELOAD}\n</body>`);
+        // The viewer self-wires SSE (EventSource('events')) and re-fetches graph/health
+        // on refresh — health-only changes heal smoothly, structural changes reload.
         res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store'});
-        res.end(html);
+        res.end(toHtmlShell(liveGraph()));
         return;
       }
       res.writeHead(404, {'Content-Type': 'text/plain'});

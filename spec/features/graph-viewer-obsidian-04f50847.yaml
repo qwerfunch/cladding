@@ -1,0 +1,29 @@
+id: F-04f50847
+slug: graph-viewer-obsidian
+title: "Obsidian-grade viewer — continuous tension physics + hover-pause + force sliders + 6-color distinction"
+status: done
+modules:
+  - src/graph/viewer/app.js
+  - src/graph/viewer/styles.css
+  - src/graph/viewer-shell.ts
+acceptance_criteria:
+  - id: AC-906052ea
+    ears: event
+    condition: "when the user drags a node, and continuously while settling"
+    action: "run a continuous low-alpha simulation with an alphaTarget thermostat — drag reheats (alphaTarget≈0.3) so connected nodes follow elastically; hover pauses the simulation (motion freezes); release decays alpha to rest; no global rotation; frame-time normalized"
+    response: "the web stretches/recoils with real tension on drag, freezes under the cursor on hover, settles slowly and smoothly"
+    text: "When the user drags a node the system shall reheat a continuous simulation so connected nodes follow elastically; on hover it shall pause the simulation; and it shall apply no global rotation."
+    test_refs: ["tests/graph/viewer-render.test.ts#hover pauses the simulation and drag reheats it"]
+    notes: "## Why\nFrozen layout had no tension; hover must stop motion; rotation un-Obsidian; too fast. Replaced burst+freeze+rotation with continuous alpha thermostat + dt normalization + center-only pull (radial-by-degree removed)."
+  - id: AC-8ea2f245
+    ears: event
+    condition: "when the user adjusts a force slider (중심 장력 / 반발력 / 링크 장력 / 링크 거리)"
+    action: "live-update the corresponding simulation coefficient and persist it"
+    response: "the layout retunes in real time (Obsidian-style 장력 controls), persisted across reloads"
+    text: "When a force slider changes, the system shall live-update the matching coefficient (center/repel/link strength/link distance) and persist it."
+    test_refs: ["tests/graph/viewer-render.test.ts#force sliders retune live simulation coefficients"]
+  - id: AC-51d974a7
+    ears: ubiquitous
+    text: "Node color shall separate all classes: SSoT tiers A/B/C/D in distinct hues AND code/test/doc in their own distinct colors, so the node classes are distinguishable at a glance."
+    test_refs: ["tests/graph/viewer-render.test.ts#nodeColor separates tiers and code/test/doc"]
+    notes: "## Why\nTiers needed clearer separation + code/test/doc were all gray. nodeColor = tier hue if tiered (A blue/B purple/C teal/D amber) else kind color (module orange/test green/doc pink)."
