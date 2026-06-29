@@ -23,6 +23,24 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
   so projects that don't emit JUnit XML are unaffected. Parsing is pure and
   regex-based (no XML dependency), mirroring the coverage-XML approach.
 
+- **`UNVERIFIED_AC` multi-framework `test_ref`↔testcase matching** (`F-d980359c`)
+  — the matcher was effectively vitest-only: it keyed every testcase by its
+  `classname` and assumed that was a file path. pytest (`tests.test_foo`),
+  Java/Kotlin (`com.example.FooTest`), and `file=`-attribute emitters therefore
+  never matched, so a *passing* test read as **`absent`** (a false positive under
+  `--strict`) and a *real* fail/skip was mis-reported as "did not run". The
+  parser now indexes each testcase under every path-shaped key it can derive
+  (the `file=` attribute, the `classname` as-is, and a dot→slash conversion of a
+  dotted classname) and matches `test_refs` **extension-agnostically**
+  (`FooTest` ↔ `FooTest.kt`). **Confident-or-degrade:** a report whose keys are
+  none path-like (e.g. jest describe-title `classname`s that cannot be mapped to
+  files) is treated as unmappable and the detector emits nothing, rather than
+  flooding false `absent` findings — preserving the low-false-positive contract.
+  Measured A/B (OLD = `classname`-only): correct verdicts across a
+  vitest/pytest/Kotlin/jest matrix went **2/8 → 8/8**; parse cost on a 10k-case
+  report grew by ~1.6 ms (vitest-shaped) to ~7.8 ms (pytest-shaped) per gate run
+  — noise against the ~50 s gate.
+
 ## [0.6.3] — 2026-06-26 — Honest Status
 
 **In one line:** the one-line-per-feature index that agents grep (and that feeds

@@ -172,6 +172,7 @@ features:
   F-d49585: {slug: gate-golden-matrix, status: done, modules: 2}
   F-d7312b: {slug: scenario-hash-model, status: done, modules: 5}
   F-d8223c: {slug: blind-author-agent, status: done, modules: 1}
+  F-d980359c: {slug: junit-multiframework-matching, status: done, modules: 2}
   F-dd51b42c: {slug: kotlin-first-class-toolchain, status: done, modules: 11}
   F-dddb89: {slug: ears-validation-at-creation, status: done, modules: 4}
   F-e0f6c7: {slug: smoke-disposition-spine, status: done, modules: 3}

@@ -22,7 +22,7 @@ import {existsSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
 
 import type {Spec} from '../../spec/types.js';
-import {parseJUnitReport, lookupTestRef, type JUnitReport} from '../junit-report.js';
+import {parseJUnitReport, lookupTestRef, isPathLike, type JUnitReport} from '../junit-report.js';
 import {readGateConfig} from '../toolchain/gate-config.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
 import {withSpec} from './with-spec.js';
@@ -66,6 +66,11 @@ function runUnverifiedAc(opts: CommandStageOptions): readonly DriftFinding[] {
  * for unit testing without filesystem spec loading.
  */
 export function evaluateAcVerification(spec: Spec, report: JUnitReport): readonly DriftFinding[] {
+  // Confident-or-degrade (F-d980359c): if no report key is path-shaped, the
+  // emitter's classname convention (e.g. jest describe titles) can't be mapped
+  // to file-path test_refs — flagging every ref "absent" would be a false-
+  // positive flood, so degrade to a no-op and leave UNTESTED_AC as the baseline.
+  if (![...report.keys()].some(isPathLike)) return [];
   const findings: DriftFinding[] = [];
   for (const feature of spec.features) {
     if (feature.status !== 'done') continue;
