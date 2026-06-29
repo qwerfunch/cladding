@@ -44,6 +44,7 @@ import {staleSpecification} from '../stages/detectors/stale-specification.js';
 import {findLatestCheckpoint, recordCheckpoint, recordRollback} from '../core/checkpoint.js';
 import {maintainDeliverable} from '../spec/deliverable-detect.js';
 import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../spec/inventory.js';
+import {writeDocLinksYaml} from '../spec/doc-references.js';
 import {repairTestRefs} from '../spec/test-ref-repair.js';
 import {writeAttestation} from '../spec/attestation.js';
 import {buildBlindPayload, renderBlindBrief} from '../oracle/payload.js';
@@ -234,6 +235,7 @@ export function runSyncCommand(opts: {proposeArchive?: boolean} = {}): void {
     const inventory = computeInventory('.');
     writeInventoryToSpecYaml('.', inventory);
     writeFeatureIndex('.'); // F-37b4a8 — 1-file feature lookup at scale
+    writeDocLinksYaml('.'); // F-doc-graph — doc→spec/doc link index (Tier C)
     // F-c037ae — heal annotation drift before it rejects correct features:
     // unique-basename repair of moved test_ref paths + derived: suggestions
     // (which never satisfy a mandate — see MISSING_TESTS/UNTESTED_AC).
