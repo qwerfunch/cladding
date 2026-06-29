@@ -734,3 +734,44 @@ describe('clad_get_impact (F-7794a6bc)', () => {
     }
   });
 });
+
+// ─── F-64a5c159 — clad_get_graph (live knowledge graph) over MCP ───
+
+describe('clad_get_graph (F-64a5c159)', () => {
+  test('clad_get_graph returns the live graph; a focus miss is isError', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-serve-graph-'));
+    writeFileSync(join(dir, 'spec.yaml'), IMPACT_SPEC);
+    mkdirSync(join(dir, '.cladding'), {recursive: true});
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const {tools} = await client.listTools();
+      expect(tools.map((t) => t.name)).toContain('clad_get_graph');
+
+      const all = await client.callTool({name: 'clad_get_graph', arguments: {}});
+      expect(all.isError).toBeFalsy();
+      const graph = JSON.parse((all.content as Array<{type: string; text: string}>)[0].text) as {
+        schema_version: number;
+        nodes: Array<{id: string}>;
+        edges: unknown[];
+      };
+      expect(graph.schema_version).toBe(1);
+      expect(graph.nodes.some((n) => n.id === 'feature:F-001')).toBe(true);
+      expect(graph.edges.length).toBeGreaterThan(0);
+
+      const focused = await client.callTool({name: 'clad_get_graph', arguments: {query: 'F-001', max_depth: 1}});
+      expect(focused.isError).toBeFalsy();
+      const sub = JSON.parse((focused.content as Array<{type: string; text: string}>)[0].text) as {
+        nodes: Array<{id: string}>;
+      };
+      expect(sub.nodes.some((n) => n.id === 'feature:F-001')).toBe(true);
+
+      const gmiss = await client.callTool({name: 'clad_get_graph', arguments: {query: 'nope'}});
+      expect(gmiss.isError).toBe(true);
+      const gparsed = JSON.parse((gmiss.content as Array<{type: string; text: string}>)[0].text) as {not_found: string};
+      expect(gparsed.not_found).toBe('nope');
+    } finally {
+      await cleanup();
+      rmSync(dir, {recursive: true, force: true});
+    }
+  });
+});

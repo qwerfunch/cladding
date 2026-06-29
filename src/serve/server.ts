@@ -43,6 +43,7 @@ import {maintainDeliverable} from '../spec/deliverable-detect.js';
 import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../spec/inventory.js';
 import {buildContextSlice} from '../optimizer/context-slice.js';
 import {buildImpactSlice} from '../optimizer/reverse-slice.js';
+import {buildGraph, resolveNodeId, subgraph} from '../graph/model.js';
 import {runDrift} from '../stages/drift.js';
 
 /** Persona ids registered as MCP prompts (mirrors src/agents/). */
@@ -77,6 +78,7 @@ export const TOOL_NAMES = [
   'clad_run_gate',
   'clad_get_context',
   'clad_get_impact',
+  'clad_get_graph',
   'clad_changelog',
 ] as const;
 
@@ -494,6 +496,69 @@ function registerTools(server: McpServer, cwd: string): void {
         return {
           isError: miss,
           content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...slice}, null, 2)}],
+        };
+      } catch (err) {
+        return {isError: true, content: [{type: 'text', text: (err as Error).message}]};
+      }
+    },
+  );
+
+  // clad_get_graph (F-64a5c159) — the live spec↔code↔doc knowledge graph (or a
+  // focused neighborhood). Always recomputed from the current spec, so the graph
+  // an agent reads is never stale. Companion to the `clad graph serve` live view.
+  server.registerTool(
+    'clad_get_graph',
+    {
+      title: 'Get the live knowledge graph (nodes + edges)',
+      description:
+        'Returns the current spec↔code↔doc knowledge graph: nodes (feature/module/test/scenario/capability/doc, ' +
+        'tier-classified A/B/C/D, features labeled by slug) + typed edges (depends_on/touches/covers/binds/' +
+        'implements/references/links). Optionally focus on one node’s N-hop neighborhood. Recomputed live — never stale.',
+      inputSchema: {
+        query: z
+          .string()
+          .optional()
+          .describe('Focus node: feature id (F-…), slug, or module path. Omit for the whole graph.'),
+        max_depth: z
+          .number()
+          .int()
+          .positive()
+          .max(6)
+          .optional()
+          .describe('Neighborhood radius around the focus node (default: full graph from the focus)'),
+      },
+    },
+    async (args) => {
+      try {
+        const spec = loadSpec(cwd);
+        let graph = buildGraph(spec, cwd);
+        if (args.query) {
+          const focusId = resolveNodeId(spec, graph, args.query);
+          if (!focusId) {
+            return {
+              isError: true,
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(
+                    {
+                      schema_version: PAYLOAD_SCHEMA_VERSION,
+                      not_found: args.query,
+                      accepted_forms: ['feature id (F-…)', 'slug', 'module path'],
+                    },
+                    null,
+                    2,
+                  ),
+                },
+              ],
+            };
+          }
+          graph = subgraph(graph, focusId, args.max_depth ?? Infinity);
+        }
+        return {
+          content: [
+            {type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...graph}, null, 2)},
+          ],
         };
       } catch (err) {
         return {isError: true, content: [{type: 'text', text: (err as Error).message}]};

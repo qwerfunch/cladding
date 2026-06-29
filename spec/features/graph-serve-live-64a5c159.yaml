@@ -1,0 +1,32 @@
+id: F-64a5c159
+slug: graph-serve-live
+title: "Live graph view — clad graph serve (http + fs.watch + SSE auto-reload) + clad_get_graph MCP"
+status: done
+modules:
+  - src/cli/graph-serve.ts
+  - src/cli/clad.ts
+  - src/serve/server.ts
+acceptance_criteria:
+  - id: AC-6618e320
+    ears: event
+    condition: "when clad graph serve runs"
+    action: "boot a node:http server (stdlib, zero dep) whose GET / serves the viewer over the live graph, GET /graph.json returns the freshly recomputed graph JSON, and GET /events is a text/event-stream SSE channel"
+    response: "the user opens localhost once and the view reflects the CURRENT spec on every load — no re-export; build the view once, develop, it stays live"
+    text: "When clad graph serve runs, the system shall serve GET / (live viewer), GET /graph.json (freshly recomputed graph), and GET /events (SSE stream) from a stdlib node:http server."
+    test_refs: ["tests/cli/graph-serve.test.ts#serves the live viewer, a fresh graph json, and an SSE events stream"]
+    notes: "## Why\nUser reframe: the graph is a live derivation of the spec, so the view must auto-update as development proceeds, not be a re-exported snapshot. buildGraph is pure/stateless — recompute per request = always live, no stale-trap."
+  - id: AC-94d847fb
+    ears: event
+    condition: "when a watched spec or doc file changes while the server is running"
+    action: "debounce briefly then broadcast an SSE refresh event to all connected viewers"
+    response: "open browsers reload to the updated graph automatically — develop and the graph follows"
+    text: "When a watched spec/doc file changes, the server shall (debounced) broadcast an SSE refresh so connected viewers auto-update."
+    test_refs: ["tests/cli/graph-serve.test.ts#a watched-file change broadcasts an SSE refresh"]
+    notes: "## Decision\nnode:fs.watch (stdlib) on spec/ + docs/, ~400ms debounce (fs.watch is platform-racy; debounce coalesces). No stale-trap: server always recomputes; if it dies the connection closes (visible)."
+  - id: AC-236bcc1e
+    ears: event
+    condition: "when a host calls the clad_get_graph MCP tool"
+    action: "return the live knowledge-graph JSON (optionally focused) so agents read the current graph without a subprocess"
+    response: "an LLM references the always-current spec↔code↔doc graph in one call"
+    text: "When clad_get_graph is called, the system shall return the live graph JSON (nodes+edges, optionally a --focus neighborhood) with schema_version."
+    test_refs: ["tests/serve/server.test.ts#clad_get_graph returns the live graph; a focus miss is isError"]

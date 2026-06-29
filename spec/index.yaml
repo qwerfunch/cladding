@@ -120,6 +120,7 @@ features:
   F-5b9f9f: {slug: spec-yaml-inventory-and-hints, status: done, modules: 6}
   F-5d3ed2: {slug: postmortem-on-rollback, status: done, modules: 2}
   F-5f6b45: {slug: init-path-intent, status: done, modules: 2}
+  F-64a5c159: {slug: graph-serve-live, status: done, modules: 3}
   F-65814a: {slug: sentinel-miss-telemetry, status: done, modules: 3}
   F-67d2e9: {slug: strict-skip-policy, status: done, modules: 2}
   F-67e33f: {slug: spec-id-multi-dev-safety, status: done, modules: 7}

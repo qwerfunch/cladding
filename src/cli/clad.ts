@@ -23,6 +23,7 @@ import {recordEvent} from '../events/log.js';
 import {buildContextSlice} from '../optimizer/context-slice.js';
 import {buildImpactSlice} from '../optimizer/reverse-slice.js';
 import {runGraphExportCommand, runGraphStatsCommand} from './graph.js';
+import {runGraphServeCommand} from './graph-serve.js';
 import {strictSkipViolations} from '../stages/skip-policy.js';
 import {runArch} from '../stages/arch.js';
 import {runAudit} from '../stages/audit.js';
@@ -874,6 +875,13 @@ export function createProgram(): Command {
     .command('stats')
     .description('Report node/edge counts by kind and the top hubs by degree')
     .action(() => runGraphStatsCommand());
+  graph
+    .command('serve')
+    .description('Serve a LIVE graph at localhost — recomputes on each load + auto-reloads on spec/doc changes (F-64a5c159)')
+    .option('--port <n>', 'port to listen on (default 3000)')
+    .action((opts) => {
+      void runGraphServeCommand(opts);
+    });
 
   program
     .command('changelog')
