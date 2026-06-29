@@ -1,0 +1,18 @@
+{
+  "AC_DRIFT": {
+    "fp": 0,
+    "fn": 0
+  },
+  "STATUS_DRIFT": {
+    "fp": 0,
+    "fn": 0
+  },
+  "UNTESTED_AC": {
+    "fp": 0,
+    "fn": 0
+  },
+  "UNVERIFIED_AC": {
+    "fp": 0,
+    "fn": 0
+  }
+}

@@ -14,11 +14,20 @@
     "url": "https://github.com/qwerfunch/cladding/issues"
   },
   "keywords": [
-    "harness", "harness-engineering",
-    "spec-driven-development", "governance", "ironclad",
-    "drift-detection", "multi-agent", "audit-trail",
-    "ai-coding", "compliance", "architecture-enforcement",
-    "claude-code", "mcp-server", "claude-code-plugin"
+    "harness",
+    "harness-engineering",
+    "spec-driven-development",
+    "governance",
+    "ironclad",
+    "drift-detection",
+    "multi-agent",
+    "audit-trail",
+    "ai-coding",
+    "compliance",
+    "architecture-enforcement",
+    "claude-code",
+    "mcp-server",
+    "claude-code-plugin"
   ],
   "bin": {
     "clad": "./bin/clad"
@@ -64,7 +73,8 @@
     "watch": "node --watch-path=./src scripts/build.mjs",
     "version-bump": "node scripts/version-bump.mjs",
     "prepare": "node -e \"require('node:fs').existsSync('dist/clad.js') || require('node:child_process').execSync('npm run build', {stdio: 'inherit'})\"",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "audit:detectors": "tsx audit/detector-audit.ts"
   },
   "devDependencies": {
     "@secretlint/secretlint-rule-preset-recommend": "^13.0.2",

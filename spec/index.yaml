@@ -152,6 +152,7 @@ features:
   F-b43066: {slug: model-defaults-refresh, status: done, modules: 6}
   F-b61449: {slug: gemini-cli-dogfood, status: done, modules: 1}
   F-b84c38: {slug: lifecycle-events-identity, status: done, modules: 4}
+  F-b91fce34: {slug: detector-regression-audit, status: done, modules: 5}
   F-b99577: {slug: stale-archive-suggestion, status: done, modules: 4}
   F-ba2e05: {slug: ab-outcome-quality, status: done, modules: 8}
   F-ba4b7a: {slug: pulse-progressive, status: done, modules: 2}

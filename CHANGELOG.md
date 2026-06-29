@@ -9,6 +9,19 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Detector regression audit** (`F-b91fce34`, `npm run audit:detectors`) — closes
+  the meta-gap "the thing that judges everything is itself unjudged". A curated
+  adversarial corpus (`audit/corpus.ts`) pairs, per detector, **drift cases**
+  (must fire) with **clean / near-miss cases** (must stay silent); the scorer
+  counts TP/FP/FN/TN and fails if any detector's `fp` (noise) or `fn` (blindness,
+  the `SECURITY.md` security-adjacent risk) rises above a committed baseline
+  (`audit/detector-baseline.json`). **Honestly scoped:** these are *counts over a
+  curated corpus* — a regression guard — **not** population precision/recall, and
+  v1 covers pure detectors only (`UNTESTED_AC`, `STATUS_DRIFT`, `AC_DRIFT`,
+  `UNVERIFIED_AC`; shell-based `HARDCODED_SECRET` / `ARCHITECTURE_VIOLATION` /
+  `COVERAGE_DROP` are out of scope). Conformance asserts a detector *fires*; this
+  adds the missing *stays-silent-on-near-miss* direction.
+
 - **`UNVERIFIED_AC` drift detector — AC → test → *observed pass*** (`F-96700032`)
   — closes the one soft spot in the otherwise execution-based gate. `UNTESTED_AC`
   only checks that a done AC's `test_refs` *exist on disk*, so an empty file, a

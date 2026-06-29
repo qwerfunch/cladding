@@ -1,0 +1,44 @@
+id: F-b91fce34
+slug: detector-regression-audit
+title: "Detector regression audit — curated adversarial corpus + scorer + baseline (guard detectors from drifting toward noise/blindness)"
+status: done
+modules:
+  - audit/detector-audit.ts
+  - audit/corpus.ts
+  - audit/detector-baseline.json
+  - audit/README.md
+  - package.json
+acceptance_criteria:
+  - id: AC-f7637e77
+    ears: ubiquitous
+    action: "run each corpus case's named detector against a freshly materialized synthetic project and classify the outcome as TP / FP / FN / TN from {expect, fired}"
+    response: "audit/detector-audit.ts materializes each case in a temp dir, looks the detector up in allDetectors, runs it, and classifies: expect=drift→fired=TP/silent=FN, expect=clean→silent=TN/fired=FP"
+    text: "The system shall run each corpus case's detector against a synthetic project and classify the result as TP/FP/FN/TN."
+    test_refs: ["tests/audit/detector-audit.test.ts"]
+  - id: AC-3fc51137
+    ears: event
+    condition: "when a corpus case tagged expect:clean (an adversarial near-miss) causes its detector to fire"
+    action: "count it as a false-positive (noise) for that detector"
+    response: "the scorer increments fp for the detector — this is the net-new guard conformance fixtures do not provide (they assert firing, not silence on near-misses)"
+    text: "When an expect:clean case fires, the system shall count a false-positive."
+    test_refs: ["tests/audit/detector-audit.test.ts"]
+  - id: AC-5c6abfd2
+    ears: event
+    condition: "when a corpus case tagged expect:drift causes its detector to stay silent"
+    action: "count it as a false-negative (blindness — the documented security-adjacent risk)"
+    response: "the scorer increments fn for the detector"
+    text: "When an expect:drift case stays silent, the system shall count a false-negative."
+    test_refs: ["tests/audit/detector-audit.test.ts"]
+  - id: AC-72e22607
+    ears: unwanted
+    condition: "if any detector's observed fp or fn exceeds its committed baseline in audit/detector-baseline.json"
+    action: "exit non-zero so the regression is visible in review"
+    response: "the runner compares observed per-detector {fp,fn} against the baseline and exits 1 on any increase; --update-baseline rewrites it"
+    text: "If a detector's fp or fn rises above baseline, then the system shall exit non-zero."
+    test_refs: ["tests/audit/detector-audit.test.ts"]
+  - id: AC-a53fa3ad
+    ears: ubiquitous
+    action: "label the report as curated-corpus TP/FP/FN counts (a regression guard), NOT population precision/recall, and state that shell-based detectors (secret/arch/coverage) are out of v1 scope"
+    response: "the report header and audit/README document the honest framing so the numbers are not over-claimed as statistical accuracy"
+    text: "The system shall present its numbers as curated-corpus counts, not population accuracy, and declare the v1 detector-scope boundary."
+    test_refs: ["tests/audit/detector-audit.test.ts"]
