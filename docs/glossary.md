@@ -62,6 +62,7 @@
 | `rollback` | stable | Record a rollback event + print the maintainer-runnable git command. | 롤백 기록 |
 | `route` | stable | Classify a natural-language prompt to a verb (debug surface for the router). | 의도 분류 |
 | `context` | stable (0.6.0) | Print the context slice for one feature (focus + ancestors + scenarios + ai_hints + test_refs) — the Least Context principle, mechanized. | 컨텍스트 슬라이스 |
+| `impact` | stable (0.7.0) | Print the blast radius for a change — the transitive dependents of a feature/file plus the scenarios and the regression test set to re-run. The backward complement of `context` (what depends on this, vs what this needs). | 영향 반경(blast radius) |
 | `hook` | stable (0.6.0) | Host hook protocol adapter — consumes one host lifecycle event (SessionStart / UserPromptSubmit / PreToolUse / PostToolUse / Stop) as stdin JSON; always exits 0. Honest limit: PreToolUse blocking only sees Edit/Write tool calls — a YAML edit made through Bash bypasses lane one; the Stop hook's post-hoc detectors are lane two. Neither lane alone is the guarantee. | 호스트 훅 프로토콜 어댑터 |
 | `changelog` | stable (0.6.0) | Render shipped changes since a git ref into human-facing documents — capability-grouped markdown / `--json` manifest / `--audit` verification table / `--catalog` spec listing. Named `changelog` deliberately, NOT `digest` (which means cryptographic hash in this domain — see Naming conventions). | 변경 이력 렌더링 |
 
@@ -79,6 +80,7 @@
 | `clad_author_oracle` | Record a host-authored impl-blind oracle + provenance. |
 | `clad_run_gate` | Run the real Iron Law gate for a tier in-session (0.6.0; strict by default). Payloads carry `schema_version`. |
 | `clad_get_context` | The context slice for one feature by id/slug/module path (0.6.0) — dispatch the slice, never the whole spec. |
+| `clad_get_impact` | The blast-radius slice for a change by feature id/slug/module path (0.7.0) — transitive dependents + scenarios at risk + the regression test set; the backward complement of `clad_get_context`. |
 | `clad_changelog` | The deterministic shipped-changes manifest since a git ref (0.6.0) — the host renders human release notes FROM it, sourcing every claim from a feature title/AC sentence; `format: markdown \| audit \| catalog` for the deterministic renders. |
 
 ## Event types (frozen)

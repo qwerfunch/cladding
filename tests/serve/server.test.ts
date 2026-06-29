@@ -654,3 +654,83 @@ describe('clad_get_context (F-d2c806)', () => {
     }
   });
 });
+
+// ─── F-7794a6bc — clad_get_impact (blast radius) over MCP ───
+
+const IMPACT_SPEC = `schema: "0.1"
+project:
+  name: probe
+  language: typescript
+features:
+  - id: F-001
+    slug: core-thing
+    title: core
+    status: done
+    modules: [src/core.ts]
+    acceptance_criteria:
+      - id: AC-001
+        ears: ubiquitous
+        text: core AC
+        test_refs: ["tests/core.test.ts#core works"]
+  - id: F-002
+    slug: dependent-thing
+    title: dependent
+    status: done
+    depends_on: [F-001]
+    modules: [src/dependent.ts]
+    acceptance_criteria:
+      - id: AC-002
+        ears: ubiquitous
+        text: dependent AC
+        test_refs: ["tests/dependent.test.ts#dependent works"]
+`;
+
+describe('clad_get_impact (F-7794a6bc)', () => {
+  test('clad_get_impact returns the blast-radius slice; a miss is isError', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-serve-impact-'));
+    writeFileSync(join(dir, 'spec.yaml'), IMPACT_SPEC);
+    mkdirSync(join(dir, '.cladding'), {recursive: true});
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const {tools} = await client.listTools();
+      expect(tools.map((t) => t.name)).toContain('clad_get_impact');
+
+      // Changing F-001 should surface F-002 (its dependent) + the regression tests.
+      const hit = await client.callTool({name: 'clad_get_impact', arguments: {query: 'F-001'}});
+      expect(hit.isError).toBeFalsy();
+      const slice = JSON.parse((hit.content as Array<{type: string; text: string}>)[0].text) as {
+        schema_version: number;
+        focus: {id?: string};
+        impacted: Array<{id: string}>;
+        test_refs: string[];
+      };
+      expect(slice.schema_version).toBe(1);
+      expect(slice.focus.id).toBe('F-001');
+      expect(slice.impacted.map((i) => i.id)).toContain('F-002');
+      expect(slice.test_refs).toContain('tests/dependent.test.ts#dependent works');
+
+      // A module path fans out to its owners' radius too.
+      const byModule = await client.callTool({name: 'clad_get_impact', arguments: {query: 'src/core.ts'}});
+      expect(byModule.isError).toBeFalsy();
+      const mslice = JSON.parse((byModule.content as Array<{type: string; text: string}>)[0].text) as {
+        focus: {module?: string; owners?: string[]};
+        impacted: Array<{id: string}>;
+      };
+      expect(mslice.focus.module).toBe('src/core.ts');
+      expect(mslice.focus.owners).toContain('F-001');
+      expect(mslice.impacted.map((i) => i.id)).toContain('F-002');
+
+      const miss = await client.callTool({name: 'clad_get_impact', arguments: {query: 'nope'}});
+      expect(miss.isError).toBe(true);
+      const parsed = JSON.parse((miss.content as Array<{type: string; text: string}>)[0].text) as {
+        schema_version: number;
+        not_found: string;
+      };
+      expect(parsed.schema_version).toBe(1);
+      expect(parsed.not_found).toBe('nope');
+    } finally {
+      await cleanup();
+      rmSync(dir, {recursive: true, force: true});
+    }
+  });
+});

@@ -21,6 +21,7 @@ import {runClarifyCommand} from './clarify.js';
 import {runHostSetup} from '../init/host-setup.js';
 import {recordEvent} from '../events/log.js';
 import {buildContextSlice} from '../optimizer/context-slice.js';
+import {buildImpactSlice} from '../optimizer/reverse-slice.js';
 import {strictSkipViolations} from '../stages/skip-policy.js';
 import {runArch} from '../stages/arch.js';
 import {runAudit} from '../stages/audit.js';
@@ -568,6 +569,20 @@ export function runContextCommand(query: string): void {
   }
 }
 
+/** Handler for `clad impact <query>` (F-7794a6bc) — print the blast-radius slice. */
+export function runImpactCommand(query: string, opts: {depth?: string} = {}): void {
+  try {
+    const spec = loadSpec();
+    const depth = opts.depth !== undefined ? Number(opts.depth) : undefined;
+    const slice = buildImpactSlice(spec, query, {depth});
+    process.stdout.write(`${JSON.stringify(slice, null, 2)}\n`);
+    process.exit('not_found' in slice ? 1 : 0);
+  } catch (err) {
+    pulse('fail', 'impact', (err as Error).message);
+    process.exit(1);
+  }
+}
+
 export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tier?: string; json?: boolean; feature?: string}): void {
   let focusModules: readonly string[] | undefined;
   if (opts.feature) {
@@ -834,6 +849,12 @@ export function createProgram(): Command {
     .command('context <query>')
     .description('Print the context slice for one feature — id (F-…), slug, or module path (F-d2c806)')
     .action(runContextCommand);
+
+  program
+    .command('impact <query>')
+    .description('Print the blast radius for a change — what depends on a feature/file + the tests to re-run (F-7794a6bc)')
+    .option('--depth <n>', 'bound the dependent walk to N hops (default: the full transitive radius)')
+    .action((query, opts) => runImpactCommand(query, opts));
 
   program
     .command('changelog')

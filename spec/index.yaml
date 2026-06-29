@@ -124,6 +124,7 @@ features:
   F-6d943d: {slug: version-bump-script, status: done, modules: 2}
   F-6f80e7: {slug: claude-code-dogfood, status: done, modules: 1}
   F-7076f7: {slug: smoke-probe-demand, status: done, modules: 3}
+  F-7794a6bc: {slug: impact-blast-radius, status: done, modules: 3}
   F-78b50d: {slug: project-context-drift-detector, status: done, modules: 2}
   F-7afbd4: {slug: clad-done-gated-transition, status: done, modules: 1}
   F-7ce18e: {slug: glossary-naming-convention, status: done, modules: 7}

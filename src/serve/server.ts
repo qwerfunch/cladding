@@ -42,6 +42,7 @@ import {doneFeatureCount, oracleRequired, resolveOraclePolicy} from '../oracle/p
 import {maintainDeliverable} from '../spec/deliverable-detect.js';
 import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../spec/inventory.js';
 import {buildContextSlice} from '../optimizer/context-slice.js';
+import {buildImpactSlice} from '../optimizer/reverse-slice.js';
 import {runDrift} from '../stages/drift.js';
 
 /** Persona ids registered as MCP prompts (mirrors src/agents/). */
@@ -75,6 +76,7 @@ export const TOOL_NAMES = [
   'clad_author_oracle',
   'clad_run_gate',
   'clad_get_context',
+  'clad_get_impact',
   'clad_changelog',
 ] as const;
 
@@ -448,6 +450,46 @@ function registerTools(server: McpServer, cwd: string): void {
       try {
         const spec = loadSpec(cwd);
         const slice = buildContextSlice(spec, args.query);
+        const miss = 'not_found' in slice;
+        return {
+          isError: miss,
+          content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...slice}, null, 2)}],
+        };
+      } catch (err) {
+        return {isError: true, content: [{type: 'text', text: (err as Error).message}]};
+      }
+    },
+  );
+
+  // clad_get_impact (F-7794a6bc) — the backward complement of clad_get_context.
+  // "What breaks if I change this?" Walks the reverse-index dependents and
+  // returns the blast radius: impacted features, scenarios at risk, the
+  // regression test set to run, and the modules in the radius.
+  server.registerTool(
+    'clad_get_impact',
+    {
+      title: 'Get the blast radius for a change (reverse / impact slice)',
+      description:
+        "Returns what a change to ONE feature or file could break: the transitive dependents (id+title+status), " +
+        'the scenarios bound to any of them, the deduped union of their test_refs (the regression set to re-run), ' +
+        'and the modules in the radius. Look up by feature id (F-…), slug, or a module path — a module fans out to ' +
+        'ALL features that touch it. The backward complement of clad_get_context: forward = what this needs, ' +
+        'impact = what depends on this. Prefer this over grepping to scope a safe refactor.',
+      inputSchema: {
+        query: z.string().describe('Feature id (F-…), slug, or module path (e.g. src/spec/load.ts)'),
+        max_depth: z
+          .number()
+          .int()
+          .positive()
+          .max(6)
+          .optional()
+          .describe('Bound the dependent walk to N hops (default: unbounded — the full transitive radius)'),
+      },
+    },
+    async (args) => {
+      try {
+        const spec = loadSpec(cwd);
+        const slice = buildImpactSlice(spec, args.query, {depth: args.max_depth});
         const miss = 'not_found' in slice;
         return {
           isError: miss,
