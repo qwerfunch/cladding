@@ -6,13 +6,14 @@
 // architecture are optional in this brick — they unlock with later T2
 // bricks (sharding + per-tier validators).
 
-/** EARS pattern enum — see ironclad/ears.md (5 canonical patterns). */
+/** EARS pattern enum — see ironclad/ears.md (6 canonical patterns). */
 export type EarsPattern =
   | 'ubiquitous'
   | 'event'
   | 'state'
   | 'optional'
-  | 'unwanted';
+  | 'unwanted'
+  | 'complex';
 
 /** Feature lifecycle status. */
 export type FeatureStatus =

@@ -1,22 +1,26 @@
-// Cladding · EARS syntactic validator — 5 canonical patterns
+// Cladding · EARS syntactic validator — 6 canonical patterns
 //
-// EARS (Easy Approach to Requirements Syntax) defines 5 sentence
+// EARS (Easy Approach to Requirements Syntax) defines 6 sentence
 // shapes. This module checks the *syntactic* surface of each AC; the
 // semantic content (does the AC actually match the implementation?)
 // is left to the LLM-assisted AC_DRIFT enrichment in T9.
 //
-// Patterns (per ironclad/ears.md):
+// Patterns (per ironclad/ears.md and https://alistairmavin.com/ears/):
 //
-//   ubiquitous     "The system shall X."             — no trigger
-//   event-driven   "When Y, the system shall X."     — trigger 'when'
-//   state-driven   "While Y, the system shall X."    — trigger 'while'
-//   optional       "Where Y, the system shall X."    — trigger 'where'
-//   unwanted       "If Y, then the system shall X."  — trigger 'if'
+//   ubiquitous     "The system shall X."                       — no trigger
+//   event-driven   "When Y, the system shall X."               — trigger 'when'
+//   state-driven   "While Y, the system shall X."              — trigger 'while'
+//   optional       "Where Y, the system shall X."              — trigger 'where'
+//   unwanted       "If Y, then the system shall X."            — trigger 'if'
+//   complex        "While A, when B, the system shall X."      — precondition 'while' + trigger 'when'
 //
-// The validator is *syntactic, lenient*: it inspects only the trigger
-// keyword for non-ubiquitous patterns and only checks `condition`
-// (not the rendered `text`). A missing or misaligned trigger is the
-// cheapest, highest-signal failure mode to catch deterministically.
+// The validator is *syntactic, lenient*: for the five single-keyword
+// patterns it inspects only the leading trigger keyword; `complex`
+// combines a 'while' precondition with a 'when' trigger, so it checks
+// BOTH clauses rather than short-circuiting on the first word. It only
+// reads `condition` (not the rendered `text`). A missing or misaligned
+// trigger is the cheapest, highest-signal failure mode to catch
+// deterministically.
 
 import type {AcceptanceCriterion, EarsPattern, Feature} from './types.js';
 
@@ -28,12 +32,17 @@ export interface EarsIssue {
   readonly message: string;
 }
 
-const TRIGGERS: Record<Exclude<EarsPattern, 'ubiquitous'>, string> = {
+// Single-keyword patterns: the leading word IS the whole trigger. `complex`
+// is excluded — it combines two clauses and is validated separately.
+const TRIGGERS: Record<Exclude<EarsPattern, 'ubiquitous' | 'complex'>, string> = {
   event: 'when',
   state: 'while',
   optional: 'where',
   unwanted: 'if',
 };
+
+/** A 'when' trigger clause anywhere in the condition (word-boundary). */
+const WHEN_CLAUSE = /\bwhen\b/i;
 
 /** First non-whitespace word of the input, lower-cased. */
 function firstWord(text: string): string {
@@ -63,6 +72,23 @@ export function checkEarsShape(pattern: EarsPattern | undefined, conditionRaw: s
   }
   if (pattern === 'ubiquitous') {
     return condition.length > 0 ? `ears='ubiquitous' but condition is present ('${condition.slice(0, 40)}…')` : null;
+  }
+  if (pattern === 'complex') {
+    // A complex requirement combines a precondition with a trigger: "While A,
+    // when B, …". Validate BOTH clauses (not just the first word) so the
+    // precondition→trigger relationship EARS exists to capture is preserved.
+    if (condition.length === 0) {
+      return "ears='complex' requires a 'while' precondition and a 'when' trigger — empty";
+    }
+    const hasWhile = firstWord(condition) === 'while';
+    const hasWhen = WHEN_CLAUSE.test(condition);
+    if (!hasWhile) {
+      return `ears='complex' requires the condition to start with 'while' (precondition) — got '${firstWord(condition)}'`;
+    }
+    if (!hasWhen) {
+      return "ears='complex' requires a 'when' trigger clause after the 'while' precondition — none found";
+    }
+    return null;
   }
   const expected = TRIGGERS[pattern];
   if (condition.length === 0) {

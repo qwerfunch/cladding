@@ -582,7 +582,7 @@ function registerTools(server: McpServer, cwd: string): void {
         acceptance_criteria: z
           .array(
             z.object({
-              ears: z.enum(['ubiquitous', 'event', 'state', 'optional', 'unwanted']).optional(),
+              ears: z.enum(['ubiquitous', 'event', 'state', 'optional', 'unwanted', 'complex']).optional(),
               text: z.string().optional().describe('The "The system shall …" statement.'),
               action: z.string().optional(),
               response: z.string().optional(),

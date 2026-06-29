@@ -195,7 +195,7 @@ function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
       findings.push({
         detector: NAME,
         severity: 'info',
-        message: `${untagged} done AC(s) carry no EARS tag and are invisible to the risk-weighted oracle mandate — tag them (ubiquitous/event/state/optional/unwanted) for the mandate to mean anything.`,
+        message: `${untagged} done AC(s) carry no EARS tag and are invisible to the risk-weighted oracle mandate — tag them (ubiquitous/event/state/optional/unwanted/complex) for the mandate to mean anything.`,
       });
     }
   }

@@ -43,7 +43,7 @@ const SLUG_PATTERN = /^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/;
  */
 export interface AcceptanceCriterionInput {
   /** EARS pattern. */
-  readonly ears?: 'ubiquitous' | 'event' | 'state' | 'optional' | 'unwanted';
+  readonly ears?: 'ubiquitous' | 'event' | 'state' | 'optional' | 'unwanted' | 'complex';
   /** The "The system shall …" statement. */
   readonly text?: string;
   /** What the system does. */

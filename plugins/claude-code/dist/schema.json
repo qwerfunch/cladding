@@ -45,7 +45,7 @@
           "properties": {
             "always_ears": {
               "type": "array",
-              "items": {"type": "string", "enum": ["ubiquitous", "event", "state", "optional", "unwanted"]},
+              "items": {"type": "string", "enum": ["ubiquitous", "event", "state", "optional", "unwanted", "complex"]},
               "description": "EARS categories whose done ACs ALWAYS require an oracle (high-risk). Defaults to ['unwanted'] when omitted."
             },
             "sample": {
@@ -213,7 +213,7 @@
         "response": {"type": "string"},
         "ears": {
           "type": "string",
-          "enum": ["ubiquitous", "event", "state", "optional", "unwanted"]
+          "enum": ["ubiquitous", "event", "state", "optional", "unwanted", "complex"]
         },
         "text": {"type": "string"},
         "test_refs": {
