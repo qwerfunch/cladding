@@ -1,0 +1,38 @@
+id: F-5a49899e
+slug: gate-scanner-memo
+title: "Gate-scoped scanner memoization — spawn secretlint/madge ONCE per gate, not twice (the dedup secret.ts already claims)"
+status: done
+modules:
+  - src/stages/scanner-cache.ts
+  - src/stages/detectors/hardcoded-secret.ts
+  - src/stages/detectors/architecture-violation.ts
+  - src/cli/clad.ts
+  - src/stages/secret.ts
+acceptance_criteria:
+  - id: AC-10a55b5a
+    ears: ubiquitous
+    action: "memoize an external-scanner detector's findings by (cwd, cmd, args) within a primed gate pass so the underlying tool runs at most once"
+    response: "scanner-cache.ts exposes primeScannerCache(on)/memoizeScan(key, run); HARDCODED_SECRET (secretlint) and ARCHITECTURE_VIOLATION (madge) route their execaSync through memoizeScan"
+    text: "The system shall memoize external-scanner detector results within a primed gate pass."
+    test_refs: ["tests/stages/scanner-cache.test.ts"]
+  - id: AC-762ad120
+    ears: event
+    condition: "when the Drift stage and the Secret/Arch stage both invoke the same scanner detector in one gate run"
+    action: "spawn the external tool only once (the second invocation is a cache hit)"
+    response: "clad check primes the cache around the stage loop, so stage_1.3's HARDCODED_SECRET/ARCHITECTURE_VIOLATION and stage_1.6/1.5's re-invocation share one spawn — the dedup secret.ts's comment already promises"
+    text: "When two stages invoke the same scanner in one gate, the system shall spawn the tool only once."
+    test_refs: ["tests/stages/scanner-cache.test.ts"]
+  - id: AC-17bf2e7c
+    ears: state
+    condition: "while no gate cache is primed (a standalone detector call, or the MCP read path)"
+    action: "run the tool directly with no caching"
+    response: "memoizeScan with a null cache calls run() verbatim — behavior outside a primed gate is byte-for-byte unchanged"
+    text: "While no cache is primed, the system shall run the scanner directly (unchanged behavior)."
+    test_refs: ["tests/stages/scanner-cache.test.ts"]
+  - id: AC-6e6daf3a
+    ears: unwanted
+    condition: "if the cache was primed for a gate run"
+    action: "clear it in a finally so a long-lived process never serves a stale scan across runs"
+    response: "clad check clears the cache in a finally after the stage loop; a fresh Map is created per gate run, so the MCP server's long-lived process cannot carry a scan across requests"
+    text: "If the cache was primed, then the system shall clear it in a finally to avoid stale cross-run scans."
+    test_refs: ["tests/stages/scanner-cache.test.ts"]

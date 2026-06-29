@@ -7,6 +7,22 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Gate ~47% faster — secretlint/madge now spawn once per gate, not twice** (`F-5a49899e`)
+  — `HARDCODED_SECRET` (secretlint, ~4.4s) and `ARCHITECTURE_VIOLATION` (madge, ~1.4s)
+  shell out to an external tool and together are ~97% of the drift stage. They ran
+  **twice** per gate: once inside the Drift stage (which sweeps every detector) and
+  again as their dedicated Secret/Arch stage. `secret.ts` even documented that the
+  layering "avoids spawning the scanner twice" — but nothing enforced it. A new
+  gate-scoped memo (`src/stages/scanner-cache.ts`, mirroring the run-scoped spec cache
+  F-cd0415) makes the second invocation a cache hit, so each tool spawns once. Measured
+  on cladding's own repo (isolated worktree A/B): `clad check --tier=pre-commit`
+  **~11.9s → ~6.3s (−47%)**, with **identical findings** (a pass-through when no gate
+  cache is primed, so standalone/MCP behavior is unchanged; cleared in a `finally` so
+  the long-lived MCP server never serves a stale scan).
+
+
 ## [0.7.1] — 2026-07-02 — Honest Graph
 
 Repairs found by a deep multi-agent review of the 0.7.0 graph capability.

@@ -8,7 +8,10 @@
 // Thin adapter over the HARDCODED_SECRET drift detector: the detector
 // owns the tool invocation, this stage maps its findings to a StageResult.
 // Keeping the two layered avoids spawning the scanner twice when both
-// `runSecret` and `runDrift` execute in the same pipeline.
+// `runSecret` and `runDrift` execute in the same pipeline — ENFORCED since
+// F-5a49899e by the gate-scoped scanner memo (detectors/scanner-cache.ts):
+// `clad check` primes it around the stage loop, so the detector's secretlint
+// spawn from the Drift stage is reused here instead of re-run.
 
 import process from 'node:process';
 

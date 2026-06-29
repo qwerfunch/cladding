@@ -33,6 +33,7 @@ import {runAudit} from '../stages/audit.js';
 import {runCommit} from '../stages/commit.js';
 import {runCov} from '../stages/cov.js';
 import {runDrift} from '../stages/drift.js';
+import {primeScannerCache} from '../stages/scanner-cache.js';
 import {runLint} from '../stages/lint.js';
 import {runPerf} from '../stages/perf.js';
 import {runSecret} from '../stages/secret.js';
@@ -466,6 +467,13 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
   const pulseKindOf = (s: GateStatus): PulseKind =>
     s === 'pass' ? 'pass' : s === 'liveness' ? 'note' : s === 'na' ? 'skip' : isBlocking(s) ? 'fail' : 'skip';
   const collected: {stage: string; label: string; status: GateStatus; exitCode: number; stderr?: string; findings?: readonly DriftFinding[]}[] = [];
+  // Gate-scoped scanner memo (F-5a49899e): the Drift stage and the Secret/Arch
+  // stages each reach HARDCODED_SECRET / ARCHITECTURE_VIOLATION, which shell out
+  // to secretlint / madge (~4.4s / ~1.4s). Priming the memo here makes the second
+  // invocation a cache hit, so each tool spawns once per gate instead of twice.
+  // Cleared in finally — the long-lived MCP server must not carry a scan across runs.
+  primeScannerCache(true);
+  try {
   for (const [name, run] of stages) {
     const r = run({}) as {
       pass: boolean;
@@ -491,6 +499,9 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
       pulse(pulseKindOf(status), label);
       if (isBlocking(status)) printStageDetails(r);
     }
+  }
+  } finally {
+    primeScannerCache(false);
   }
   // STRICT SKIP-POLICY (F-67d2e9, generalizes the 0.5.x unit-only guard).
   // Under --strict, a skipped stage the spec DEMANDS is a fail: 1.1 when a
