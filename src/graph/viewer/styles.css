@@ -2,10 +2,12 @@
 :root {
   --bg: #0d1117; --panel: rgba(22,27,34,.92); --panel-border: #30363d;
   --fg: #e6edf3; --muted: #8b949e; --accent: #f59e0b; --edge: rgba(139,148,158,.22);
+  --node-stroke: rgba(8,11,16,.85);
 }
 :root.light {
   --bg: #f6f8fa; --panel: rgba(255,255,255,.94); --panel-border: #d0d7de;
   --fg: #1f2328; --muted: #57606a; --accent: #bf6f00; --edge: rgba(80,90,100,.18);
+  --node-stroke: rgba(255,255,255,.9);
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; overflow: hidden; color: var(--fg);

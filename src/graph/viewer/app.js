@@ -39,12 +39,12 @@
   nodes.forEach(function (n) { adj[n.id] = {}; });
   edges.forEach(function (e) { e.s.deg++; e.t.deg++; adj[e.s.id][e.t.id] = 1; adj[e.t.id][e.s.id] = 1; });
   var maxDeg = nodes.reduce(function (m, n) { return Math.max(m, n.deg); }, 1);
-  nodes.forEach(function (n) { n.norm = n.deg / maxDeg; });
-  function radius(n) { return Math.min(28, 4 + Math.sqrt(n.deg) * 2.5); }
-  function alphaOf(n) { return n.status && STATUS_ALPHA[n.status] != null ? STATUS_ALPHA[n.status] : 0.92; }
+  nodes.forEach(function (n) { n.norm = n.deg / maxDeg; n.r = Math.min(15, 3 + Math.sqrt(n.deg) * 1.7); });
+  function radius(n) { return n.r; }
+  function alphaOf(n) { return n.status && STATUS_ALPHA[n.status] != null ? STATUS_ALPHA[n.status] : 0.95; }
 
   // ---- simulation state (continuous, low-alpha) ----
-  var DEFAULT_FORCE = {center: 0.0016, repel: -260, linkForce: 0.05, linkDist: 70};
+  var DEFAULT_FORCE = {center: 0.0008, repel: -480, linkForce: 0.06, linkDist: 40};
   var force = {center: DEFAULT_FORCE.center, repel: DEFAULT_FORCE.repel, linkForce: DEFAULT_FORCE.linkForce, linkDist: DEFAULT_FORCE.linkDist};
   var alpha = 1, alphaTarget = 0, ALPHA_DECAY = 0.0228, ALPHA_MIN = 0.0015;
   var view = {k: 1, tx: 0, ty: 0}, target = {k: 1, tx: 0, ty: 0};
@@ -70,9 +70,12 @@
     for (i = 0; i < nodes.length; i++) {
       A = nodes[i];
       for (j = i + 1; j < nodes.length; j++) {
-        B = nodes[j]; dx = A.x - B.x; dy = A.y - B.y; d2 = dx * dx + dy * dy || 0.01;
-        f = K / d2; if (f < -FMAX) f = -FMAX; if (f > FMAX) f = FMAX; inv = 1 / Math.sqrt(d2);
+        B = nodes[j]; dx = A.x - B.x; dy = A.y - B.y; d2 = dx * dx + dy * dy || 0.01; inv = 1 / Math.sqrt(d2);
+        f = K / d2; if (f < -FMAX) f = -FMAX; if (f > FMAX) f = FMAX;
         fx = dx * inv * f; fy = dy * inv * f; A.vx -= fx; A.vy -= fy; B.vx += fx; B.vy += fy; // K<0 = repel
+        // collision: hard-separate overlapping nodes so the layout breathes (no confetti clump)
+        var dd = 1 / inv, minD = A.r + B.r + 7;
+        if (dd < minD) { var sep = (minD - dd) * 0.5 * inv; A.vx += dx * sep; A.vy += dy * sep; B.vx -= dx * sep; B.vy -= dy * sep; }
       }
     }
     for (i = 0; i < edges.length; i++) {
@@ -124,35 +127,32 @@
     var focus = selId ? byId[selId] : (hoverId ? byId[hoverId] : null);
     function lit(n) { return !focus || n.id === focus.id || adj[focus.id][n.id]; }
 
-    ctx.lineWidth = 1 / view.k; ctx.strokeStyle = getCSS('--edge');
+    // edges — colored by source, subtle; the web structure reads without clutter
+    ctx.lineWidth = 0.7 / view.k;
     for (var i = 0; i < edges.length; i++) {
       var e = edges[i]; if (!visible(e.s) || !visible(e.t)) continue;
-      ctx.globalAlpha = !focus ? 1 : (lit(e.s) || lit(e.t) ? 0.9 : 0.08);
+      var eon = !focus || lit(e.s) || lit(e.t);
+      ctx.globalAlpha = eon ? (focus ? 0.8 : 0.16) : 0.04;
+      ctx.strokeStyle = nodeColor(e.s);
       ctx.beginPath(); ctx.moveTo(e.s.x, e.s.y); ctx.lineTo(e.t.x, e.t.y); ctx.stroke();
     }
-    // additive bloom (hubs build a soft glow)
-    ctx.globalCompositeOperation = 'lighter';
-    for (var b = 0; b < nodes.length; b++) {
-      var nb = nodes[b]; if (!visible(nb) || (focus && !lit(nb))) continue;
-      ctx.globalAlpha = 0.05 + 0.14 * nb.norm; ctx.fillStyle = nodeColor(nb);
-      ctx.beginPath(); ctx.arc(nb.x, nb.y, radius(nb) * (2 + 1.3 * nb.norm), 0, 7); ctx.fill();
-    }
-    ctx.globalCompositeOperation = 'source-over';
-    // health halos (problem nodes pulse) — overlay, drawn under solid node
+    // health halo — a crisp pulsing ring (not a blob), drawn under the node
     if (HEALTH && healthOn) {
+      ctx.globalCompositeOperation = 'source-over';
       for (var hh = 0; hh < nodes.length; hh++) {
         var hn = nodes[hh]; if (!visible(hn)) continue; var hv = HEALTH[hn.id]; if (!hv) continue;
-        var pulse = 0.45 + 0.4 * Math.sin(T * 3 + hn.seed), col = hv.severity === 'error' ? '#ef4444' : '#f59e0b';
-        ctx.globalAlpha = pulse; ctx.fillStyle = col;
-        ctx.beginPath(); ctx.arc(hn.x, hn.y, radius(hn) + (hv.severity === 'error' ? 7 : 5), 0, 7); ctx.fill();
+        ctx.globalAlpha = 0.5 + 0.45 * Math.sin(T * 2.5 + hn.seed); ctx.strokeStyle = hv.severity === 'error' ? '#ef4444' : '#f59e0b';
+        ctx.lineWidth = 2.4 / view.k; ctx.beginPath(); ctx.arc(hn.x, hn.y, hn.r + 4.5, 0, 7); ctx.stroke();
       }
     }
-    // solid nodes
+    // nodes — solid fill + thin bg-colored ring so touching nodes stay crisp
+    var nodeStroke = getCSS('--node-stroke');
     for (var n2 = 0; n2 < nodes.length; n2++) {
       var n = nodes[n2]; if (!visible(n)) continue;
       var r = radius(n), isHit = matches(n), isSel = selId === n.id, dim = focus && !lit(n);
-      ctx.globalAlpha = dim ? 0.13 : alphaOf(n); ctx.fillStyle = nodeColor(n);
+      ctx.globalAlpha = dim ? 0.12 : alphaOf(n); ctx.fillStyle = nodeColor(n);
       ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, 7); ctx.fill();
+      if (!dim) { ctx.globalAlpha = 0.85; ctx.lineWidth = 1.2 / view.k; ctx.strokeStyle = nodeStroke; ctx.stroke(); }
       if (isSel || n.fx != null || isHit) { ctx.lineWidth = (isSel ? 2.5 : 2) / view.k; ctx.globalAlpha = 1; ctx.strokeStyle = isHit ? getCSS('--accent') : isSel ? '#fff' : '#ffd55e'; ctx.stroke(); }
       if ((showLabels || isHit || isSel || (focus && lit(n))) && (view.k > 0.5 || isHit || isSel)) {
         ctx.globalAlpha = dim ? 0.2 : 1; ctx.fillStyle = getCSS('--fg'); ctx.font = (11 / view.k) + 'px -apple-system, sans-serif'; ctx.textAlign = 'center';
