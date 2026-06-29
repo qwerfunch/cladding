@@ -40,7 +40,7 @@
 
   <!-- Center: the gate -->
   <text x="350" y="232" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="13" font-weight="700" fill="#0f172a" text-anchor="middle">the gate</text>
-  <text x="350" y="254" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#475569" text-anchor="middle">15-stage gate · 37 drift detectors</text>
+  <text x="350" y="254" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#475569" text-anchor="middle">15-stage gate · 38 drift detectors</text>
 
   <!-- Caption -->
   <text x="350" y="438" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#64748b" text-anchor="middle">one feature at a time — completion is earned by passing the gate, then the cycle closes</text>

@@ -63,6 +63,7 @@
 | `route` | stable | Classify a natural-language prompt to a verb (debug surface for the router). | 의도 분류 |
 | `context` | stable (0.6.0) | Print the context slice for one feature (focus + ancestors + scenarios + ai_hints + test_refs) — the Least Context principle, mechanized. | 컨텍스트 슬라이스 |
 | `impact` | stable (0.7.0) | Print the blast radius for a change — the transitive dependents of a feature/file plus the scenarios and the regression test set to re-run. The backward complement of `context` (what depends on this, vs what this needs). | 영향 반경(blast radius) |
+| `graph` | stable (0.7.0) | Render the spec↔code↔doc knowledge graph for a viewer (`export` → mermaid/dot/json/Obsidian-vault) or report its shape (`stats` → counts + hubs). Reuses best-in-class viewers instead of a bespoke UI. | 지식 그래프 |
 | `hook` | stable (0.6.0) | Host hook protocol adapter — consumes one host lifecycle event (SessionStart / UserPromptSubmit / PreToolUse / PostToolUse / Stop) as stdin JSON; always exits 0. Honest limit: PreToolUse blocking only sees Edit/Write tool calls — a YAML edit made through Bash bypasses lane one; the Stop hook's post-hoc detectors are lane two. Neither lane alone is the guarantee. | 호스트 훅 프로토콜 어댑터 |
 | `changelog` | stable (0.6.0) | Render shipped changes since a git ref into human-facing documents — capability-grouped markdown / `--json` manifest / `--audit` verification table / `--catalog` spec listing. Named `changelog` deliberately, NOT `digest` (which means cryptographic hash in this domain — see Naming conventions). | 변경 이력 렌더링 |
 

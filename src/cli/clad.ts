@@ -22,6 +22,7 @@ import {runHostSetup} from '../init/host-setup.js';
 import {recordEvent} from '../events/log.js';
 import {buildContextSlice} from '../optimizer/context-slice.js';
 import {buildImpactSlice} from '../optimizer/reverse-slice.js';
+import {runGraphExportCommand, runGraphStatsCommand} from './graph.js';
 import {strictSkipViolations} from '../stages/skip-policy.js';
 import {runArch} from '../stages/arch.js';
 import {runAudit} from '../stages/audit.js';
@@ -857,6 +858,22 @@ export function createProgram(): Command {
     .description('Print the blast radius for a change — what depends on a feature/file + the tests to re-run (F-7794a6bc)')
     .option('--depth <n>', 'bound the dependent walk to N hops (default: the full transitive radius)')
     .action((query, opts) => runImpactCommand(query, opts));
+
+  const graph = program
+    .command('graph')
+    .description('Render the spec↔code↔doc knowledge graph for a viewer, or report its shape (F-569f4b37)');
+  graph
+    .command('export')
+    .description('Export the graph: mermaid/dot/json to stdout, or an Obsidian vault to --out')
+    .option('--format <fmt>', 'mermaid | dot | json | obsidian (default: mermaid)')
+    .option('--focus <query>', 'restrict to a feature/file node’s neighborhood (id, slug, or module path)')
+    .option('--depth <n>', 'neighborhood radius around --focus (default: unbounded)')
+    .option('--out <path>', 'write to a file (or, for obsidian, a vault dir — default .cladding/graph)')
+    .action((opts) => runGraphExportCommand(opts));
+  graph
+    .command('stats')
+    .description('Report node/edge counts by kind and the top hubs by degree')
+    .action(() => runGraphStatsCommand());
 
   program
     .command('changelog')

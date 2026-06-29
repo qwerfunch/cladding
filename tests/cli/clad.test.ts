@@ -471,7 +471,7 @@ describe('cli/clad — handler exports', () => {
 });
 
 describe('cli/clad — createProgram', () => {
-  test('returns a Command with all 19 verbs registered (work removed in 0.6.0; hook F-1d23a6, context F-d2c806, impact F-7794a6bc, changelog F-904495a5)', () => {
+  test('returns a Command with all 20 verbs registered (work removed in 0.6.0; hook F-1d23a6, context F-d2c806, impact F-7794a6bc, graph F-569f4b37, changelog F-904495a5)', () => {
     const program = clad.createProgram();
     const names = program.commands.map((c) => c.name());
     expect(names).toEqual([
@@ -488,6 +488,7 @@ describe('cli/clad — createProgram', () => {
       'status',
       'context',
       'impact',
+      'graph',
       'changelog',
       'route',
       'hook',

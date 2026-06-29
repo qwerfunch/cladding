@@ -112,6 +112,7 @@ features:
   F-4db939: {slug: ab-evaluation, status: done, modules: 9}
   F-50ff43: {slug: meta-integrity-skip-when-absent, status: done, modules: 2}
   F-551a1c: {slug: oracle-cost-lever, status: done, modules: 4}
+  F-569f4b37: {slug: graph-export-viz, status: done, modules: 5}
   F-56abaa: {slug: intent-aware-init, status: done, modules: 5}
   F-570a3f: {slug: mcp-structural-channel, status: done, modules: 1}
   F-59f093: {slug: multidev-integration-test-and-scenario-regex, status: done, modules: 3}
