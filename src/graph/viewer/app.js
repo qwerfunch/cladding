@@ -87,8 +87,10 @@
     var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     nodes.forEach(function (n) { minX = Math.min(minX, n.x); maxX = Math.max(maxX, n.x); minY = Math.min(minY, n.y); maxY = Math.max(maxY, n.y); });
     var w = maxX - minX || 1, h = maxY - minY || 1;
-    view.k = Math.min(2, 0.86 * Math.min(W / w, H / h));
-    view.tx = W / 2 - (minX + maxX) / 2 * view.k; view.ty = H / 2 - (minY + maxY) / 2 * view.k;
+    var LEFT = window.innerWidth > 760 ? 280 : 0; // keep the graph clear of the sidebar
+    view.k = Math.min(2, 0.86 * Math.min((W - LEFT) / w, H / h));
+    view.tx = LEFT + (W - LEFT) / 2 - (minX + maxX) / 2 * view.k;
+    view.ty = H / 2 - (minY + maxY) / 2 * view.k;
   }
   function settle(n) { heat = n; }
 
