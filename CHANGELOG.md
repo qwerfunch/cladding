@@ -9,6 +9,19 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **Gate runs the test suite once, not twice** (`F-97abf5db`) — pre-push ran BOTH the
+  unit stage (`vitest run`) and the coverage stage (`vitest run --coverage`), executing
+  the full suite **twice** (~9.5s + ~10.7s). Since the coverage run already runs every
+  test, the unit run was redundant. A gate-scoped memo (mirroring the spec cache F-cd0415)
+  now shares ONE coverage run across both stages: the unit stage triggers it and, on a
+  GREEN run, reuses it instead of re-running. **Sound attribution:** a non-green coverage
+  run sends the unit stage to a tests-only fallback, so a *coverage-threshold* miss fails
+  coverage but not unit, and a *real test failure* still fails both (verified — a failing
+  test reds both stages). Measured on cladding's own repo: `clad check --tier=pre-push`
+  **~40.4s → ~30.1s (−~10s)**. Pass-through when unprimed (standalone stage / MCP), cleared
+  in a `finally`. Note: test *selection* (changed-files) stays out — a gate must run the
+  whole suite; this only removes the duplicate full run.
+
 - **Incremental TS gate — tsc `--incremental` + eslint `--cache`** (`F-bfe14aac`) — the
   TypeScript type and lint gates re-ran from scratch every time. They now reuse a build
   cache: `tsc --noEmit --incremental` (build-info file) and `eslint --cache`, both written

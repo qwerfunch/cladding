@@ -14,6 +14,7 @@ import process from 'node:process';
 import {execaSync} from 'execa';
 
 import {resolveStageCommand} from './toolchain/scoped-command.js';
+import {memoizeTestRun} from './test-run-cache.js';
 import type {CommandStageOptions, StageResult} from './types.js';
 import {missingToolSkip, ranToolResult} from './util.js';
 
@@ -37,7 +38,9 @@ export function runCov(opts: CommandStageOptions = {}): StageResult {
       stderr: `no coverage runner registered for language '${language}'`,
     };
   }
-  const proc = execaSync(cmd, [...args], {cwd, reject: false});
+  // Shared suite run (F-97abf5db): memoized by cwd so the unit stage (which ran
+  // first in a primed gate) and this stage execute the coverage suite only once.
+  const proc = memoizeTestRun(cwd, () => execaSync(cmd, [...args], {cwd, reject: false}));
   // execaSync(reject:false) RETURNS (does not throw) on a missing binary;
   // detect ENOENT on the result so a missing tool skips, not false-fails.
   const skip = missingToolSkip(STAGE, cmd, proc);

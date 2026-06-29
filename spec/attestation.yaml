@@ -18,7 +18,7 @@ attested_modules:
   .claude/settings.json: d0bba3583aef0960
   .github/workflows/ci.yml: 8ea99219cb80df60
   .gitignore: 1294975ba3b47043
-  CHANGELOG.md: 6bde902579cfde0f
+  CHANGELOG.md: c1debebe35e1aaed
   CLAUDE.md: 9d00a2ef785a76d1
   GOVERNANCE.md: 21cc28eaaf637a20
   README.html: 0458909731d3b683
@@ -105,7 +105,7 @@ attested_modules:
   skills/serve/SKILL.md: 4cee65dfb691e3b0
   skills/status/SKILL.md: b3cb6e7a12bf4023
   skills/sync/SKILL.md: 709c20212aa5627e
-  spec.yaml: c359b38ef6882c50
+  spec.yaml: 0a010e4acdd88f0c
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: c5d911049fbdcd48
   spec/features/: a4d0f0eb87fed960
@@ -138,7 +138,7 @@ attested_modules:
   src/cli: a4d0f0eb87fed960
   src/cli/benchmark.ts: 77f84d2a898d724f
   src/cli/changelog.ts: 2de1adb009b89ab4
-  src/cli/clad.ts: ba56b08ebe50303a
+  src/cli/clad.ts: 852844b80c82f9ae
   src/cli/clarify.ts: 0699edcdde49112b
   src/cli/doctor-hosts.ts: 1ad79105b47fd8e5
   src/cli/doctor.ts: b98b955fe75e7f7e
@@ -236,7 +236,7 @@ attested_modules:
   src/stages/arch.ts: 268422e53c6d20bb
   src/stages/audit.ts: 3ba117606f8a81a1
   src/stages/commit.ts: f6b6836af0a4d96c
-  src/stages/cov.ts: f7c7bff90ef9c868
+  src/stages/cov.ts: 86aab45a57eb37cb
   src/stages/deliverable-smoke.ts: 9ecfd4210e6ec5c0
   src/stages/detector-result-cache.ts: 93ea6af02ef361c5
   src/stages/detectors/README.md: 3a3512280a064a1f
@@ -293,6 +293,7 @@ attested_modules:
   src/stages/skip-policy.ts: 1a6412d708561cf0
   src/stages/smoke.ts: 486205cd691a2b0d
   src/stages/spec-conformance.ts: ba68465c4715cc65
+  src/stages/test-run-cache.ts: 1970882d5ffd20c1
   src/stages/toolchain/coverage-tool.ts: 310883060ed6d92e
   src/stages/toolchain/detect.ts: 5ddad20be1e58f47
   src/stages/toolchain/gate-config.ts: 35c31716191a3dee
@@ -303,7 +304,7 @@ attested_modules:
   src/stages/type.ts: d2859cd301bc002d
   src/stages/types.ts: aa857145b7b81e22
   src/stages/uat.ts: 62ec3e37a124f8c5
-  src/stages/unit.ts: 98d958cb124136ea
+  src/stages/unit.ts: b88fe550f20438b1
   src/stages/util.ts: 7943e14136ec2da7
   src/stages/visual.ts: 48bbb6e77f09ed63
   src/ui: a4d0f0eb87fed960
@@ -574,6 +575,7 @@ attested_features:
   F-95a096: ok
   F-96250595: ok
   F-96700032: ok
+  F-97abf5db: ok
   F-987be195: ok
   F-99c6e5: ok
   F-9a3b61: ok

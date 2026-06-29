@@ -13,10 +13,21 @@ import process from 'node:process';
 import {execaSync} from 'execa';
 
 import {resolveStageCommand} from './toolchain/scoped-command.js';
+import {isTestRunPrimed, memoizeTestRun, unitActionFromCoverage} from './test-run-cache.js';
 import type {CommandStageOptions, StageResult} from './types.js';
-import {missingToolSkip, ranToolResult} from './util.js';
+import {isMissingBinary, missingToolSkip, ranToolResult} from './util.js';
 
 const STAGE = 'stage_2.1';
+
+/** Resolve a stage command without throwing — returns null on any failure/absence. */
+function tryResolve(stage: 'test' | 'coverage', opts: CommandStageOptions): {cmd: string; args: readonly string[]} | null {
+  try {
+    const {cmd, args} = resolveStageCommand(stage, opts);
+    return cmd && args ? {cmd, args} : null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Runs the project's unit-test suite and returns an Ironclad-shaped result.
@@ -28,6 +39,19 @@ const STAGE = 'stage_2.1';
  */
 export function runUnit(opts: CommandStageOptions = {}): StageResult {
   const {cwd = '.'} = opts;
+  // Test-run dedup (F-97abf5db): in a primed gate, the coverage stage will run
+  // the full suite anyway. Share that one run — trigger it here (the unit stage
+  // runs first) and reuse on GREEN. A non-green coverage run falls through to a
+  // tests-only run below, so a coverage-threshold miss is never mis-attributed
+  // to the unit stage. Unprimed (standalone / MCP) skips this entirely.
+  if (isTestRunPrimed()) {
+    const cov = tryResolve('coverage', opts);
+    if (cov) {
+      const covProc = memoizeTestRun(cwd, () => execaSync(cov.cmd, [...cov.args], {cwd, reject: false}));
+      const action = unitActionFromCoverage({exitCode: covProc.exitCode, missingTool: isMissingBinary(covProc)});
+      if (action === 'reuse-pass') return {stage: STAGE, pass: true, exitCode: 0};
+    }
+  }
   let cmd: string | undefined;
   let args: readonly string[] | undefined;
   let language: string;

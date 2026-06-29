@@ -41,6 +41,7 @@ import {clearDetectorResultCache, primeDetectorResultCache} from '../stages/dete
 import {runCommit} from '../stages/commit.js';
 import {runCov} from '../stages/cov.js';
 import {runDrift} from '../stages/drift.js';
+import {primeTestRunCache} from '../stages/test-run-cache.js';
 import {runLint} from '../stages/lint.js';
 import {runPerf} from '../stages/perf.js';
 import {runSecret} from '../stages/secret.js';
@@ -489,6 +490,10 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
   // The stages here default cwd to '.', so prime the same root. Cleared in
   // finally — a session outliving the loop would serve stale findings.
   primeDetectorResultCache('.');
+  // Test-run dedup (F-97abf5db): share ONE suite run across the unit + coverage
+  // stages within this gate pass. Cleared in finally so the long-lived MCP
+  // server never reuses a test result across runs.
+  primeTestRunCache(true);
   try {
     for (const [name, run] of stages) {
       const r = run({}) as {
@@ -518,6 +523,7 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
     }
   } finally {
     clearDetectorResultCache();
+    primeTestRunCache(false);
   }
   // STRICT SKIP-POLICY (F-67d2e9, generalizes the 0.5.x unit-only guard).
   // Under --strict, a skipped stage the spec DEMANDS is a fail: 1.1 when a

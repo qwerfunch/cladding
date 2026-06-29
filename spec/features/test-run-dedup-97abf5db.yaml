@@ -1,0 +1,38 @@
+id: F-97abf5db
+slug: test-run-dedup
+title: "Test-run dedup — run the suite ONCE per gate (coverage run shared with the unit stage), sound attribution on failure"
+status: done
+modules:
+  - src/stages/test-run-cache.ts
+  - src/stages/unit.ts
+  - src/stages/cov.ts
+  - src/cli/clad.ts
+acceptance_criteria:
+  - id: AC-ccb4e6dc
+    ears: event
+    condition: "when both the unit (2.1) and coverage (2.2) stages run in a primed gate pass"
+    action: "execute the test suite only ONCE via a shared memoized coverage run, reused across both stages"
+    response: "test-run-cache.ts memoizes the coverage run by cwd; the unit stage triggers it and the coverage stage gets a cache hit, so vitest runs once instead of twice"
+    text: "When both test stages run in a primed gate, the suite shall execute once."
+    test_refs: ["tests/stages/test-run-dedup.test.ts"]
+  - id: AC-1cd3923c
+    ears: state
+    condition: "while the shared coverage run is GREEN (exit 0)"
+    action: "report the unit stage as pass without re-running the suite"
+    response: "a green coverage run proves all tests passed, so the unit stage reuses it (the common, speed-critical green path saves the duplicate ~9.5s run)"
+    text: "While the shared coverage run is green, the unit stage shall pass without re-running."
+    test_refs: ["tests/stages/test-run-dedup.test.ts"]
+  - id: AC-81e95cc4
+    ears: unwanted
+    condition: "if the shared coverage run is non-green"
+    action: "run the tests-only command for the unit stage so failure is attributed precisely"
+    response: "a real test failure fails BOTH stages; a coverage-threshold-only miss (tests pass) fails coverage but the unit stage's tests-only fallback passes — correct attribution, never a false unit pass on a real test failure"
+    text: "If the shared coverage run is non-green, then the unit stage shall re-run tests-only for precise attribution."
+    test_refs: ["tests/stages/test-run-dedup.test.ts"]
+  - id: AC-32ddd2a8
+    ears: state
+    condition: "while no cache is primed (standalone stage call / MCP) or the project has no coverage runner"
+    action: "run each stage's own command exactly as before"
+    response: "the dedup is a primed-gate optimization; unprimed or coverage-less projects keep byte-for-byte the prior per-stage behavior"
+    text: "While unprimed or coverage-less, each stage shall run its own command unchanged."
+    test_refs: ["tests/stages/test-run-dedup.test.ts"]

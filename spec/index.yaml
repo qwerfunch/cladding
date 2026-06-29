@@ -171,6 +171,7 @@ features:
   F-95a096: {slug: ops-visibility-polish, status: done, modules: 3}
   F-96250595: {slug: iterative-impact-slice, status: done, modules: 2}
   F-96700032: {slug: unverified-ac-junit, status: done, modules: 4}
+  F-97abf5db: {slug: test-run-dedup, status: done, modules: 4}
   F-987be195: {slug: docs-prune, status: done, modules: 4}
   F-99c6e5: {slug: cladding-self-fixes, status: done, modules: 13}
   F-9a3b61: {slug: ab-ext-uncommit-demos, status: done, modules: 3}
