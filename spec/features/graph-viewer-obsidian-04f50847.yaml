@@ -1,11 +1,11 @@
 id: F-04f50847
 slug: graph-viewer-obsidian
 title: "Obsidian-grade viewer — continuous tension physics + hover-pause + force sliders + 6-color distinction"
-status: done
-modules:
-  - src/graph/viewer/app.js
-  - src/graph/viewer/styles.css
-  - src/graph/viewer-shell.ts
+status: archived
+archived_at: "2026-06-29T00:00:00Z"
+archive_reason: "Superseded by webgl-stellar-viewer (F-77f7ead0): the hand-rolled 2D canvas viewer (continuous tension sim, hover-pause, force sliders) was replaced by a real three.js WebGL galaxy (instanced sphere stars + UnrealBloom, OrbitControls + idle auto-rotate) to match the referenced DeusData/codebase-memory-mcp design. The 6-color hue distinction carried forward (now hue × degree-luminosity); drag-tension / hover-pause / force-sliders were dropped for OrbitControls."
+superseded_by: F-77f7ead0
+modules: []
 acceptance_criteria:
   - id: AC-906052ea
     ears: event

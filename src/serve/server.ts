@@ -43,6 +43,7 @@ import {maintainDeliverable} from '../spec/deliverable-detect.js';
 import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../spec/inventory.js';
 import {buildContextSlice} from '../optimizer/context-slice.js';
 import {buildImpactSlice} from '../optimizer/reverse-slice.js';
+import {buildWorkingSet} from '../optimizer/working-set.js';
 import {buildGraph, resolveNodeId, subgraph} from '../graph/model.js';
 import {runDrift} from '../stages/drift.js';
 
@@ -77,6 +78,7 @@ export const TOOL_NAMES = [
   'clad_author_oracle',
   'clad_run_gate',
   'clad_get_context',
+  'clad_get_working_set',
   'clad_get_impact',
   'clad_get_graph',
   'clad_changelog',
@@ -463,6 +465,43 @@ function registerTools(server: McpServer, cwd: string): void {
     },
   );
 
+  // clad_get_working_set (F-06dfdad6) — the code-bearing, token-budgeted superset of
+  // clad_get_context: focus + module CODE + forward needs + backward breaks + verify + budget,
+  // fused in one call. clad_get_context stays frozen for hosts that cache its shape.
+  server.registerTool(
+    'clad_get_working_set',
+    {
+      title: 'Get the token-budgeted working set for one feature (code + needs + breaks)',
+      description:
+        'Returns ONE token-budgeted working set for a feature/module: must_edit (focus + full ACs + the ACTUAL ' +
+        'source code of its modules), needs (forward depends_on), breaks_if_changed (direct dependents + the ' +
+        'regression test set), verify (scenarios + tests + oracle_refs + EARS unwanted/state high-risk ACs), ' +
+        'guidance (ai_hints), and budget (what was clipped to fit). One call replaces reading the shard + opening ' +
+        'each module file + grepping deps/tests. Look up by feature id (F-…), slug, or module path.',
+      inputSchema: {
+        query: z.string().describe('Feature id (F-…), slug, or module path (e.g. src/auth/login.ts)'),
+        max_tokens: z
+          .number()
+          .int()
+          .positive()
+          .max(20000)
+          .optional()
+          .describe('Token budget for the payload (default 3000); distant deps then code then tests are clipped to fit'),
+      },
+    },
+    async (args) => {
+      try {
+        const ws = buildWorkingSet(loadSpec(cwd), args.query, {cwd, maxTokens: args.max_tokens});
+        return {
+          isError: 'not_found' in ws,
+          content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...ws}, null, 2)}],
+        };
+      } catch (err) {
+        return {isError: true, content: [{type: 'text', text: (err as Error).message}]};
+      }
+    },
+  );
+
   // clad_get_impact (F-7794a6bc) — the backward complement of clad_get_context.
   // "What breaks if I change this?" Walks the reverse-index dependents and
   // returns the blast radius: impacted features, scenarios at risk, the
@@ -511,7 +550,7 @@ function registerTools(server: McpServer, cwd: string): void {
     {
       title: 'Get the live knowledge graph (nodes + edges)',
       description:
-        'Returns the current spec↔code↔doc knowledge graph: nodes (feature/module/test/scenario/capability/doc, ' +
+        'Returns the current spec↔code↔doc knowledge graph: nodes (feature/module/skill/test/scenario/capability/doc, ' +
         'tier-classified A/B/C/D, features labeled by slug) + typed edges (depends_on/touches/covers/binds/' +
         'implements/references/links). Optionally focus on one node’s N-hop neighborhood. Recomputed live — never stale.',
       inputSchema: {

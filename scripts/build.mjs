@@ -73,15 +73,24 @@ for (const f of readdirSync('src/agents')) {
   personaCount++;
 }
 
-// Copy the graph viewer assets (client JS + CSS, read as text by viewer-shell.ts)
-// next to the bundle: the bundle's `import.meta.url` dir is `dist/`, so they must
-// live at `dist/viewer/<name>` for `clad graph export --format html` to inline them.
+// Bundle the 3D graph viewer (vanilla three.js + jsm addons + the pure stellar/layout
+// cores) into ONE offline IIFE asset. `clad graph export --format html` inlines it via
+// viewer-shell.ts, so the exported file renders with ZERO network. `three` is a
+// devDependency — bundled here at build time, never installed by end users (the shipped
+// dist/ already carries the bundle). styles.css is copied alongside (read as text too).
 mkdirSync('dist/viewer', {recursive: true});
-let viewerCount = 0;
-for (const f of readdirSync('src/graph/viewer')) {
-  copyFileSync(`src/graph/viewer/${f}`, `dist/viewer/${f}`);
-  viewerCount++;
-}
+await build({
+  entryPoints: ['src/graph/viewer/main.ts'],
+  bundle: true,
+  platform: 'browser',
+  target: 'es2020',
+  format: 'iife',
+  outfile: 'dist/viewer/app.js',
+  minify: true,
+  legalComments: 'none',
+});
+copyFileSync('src/graph/viewer/styles.css', 'dist/viewer/styles.css');
+const viewerCount = 2;
 
 chmodSync('dist/clad.js', 0o755);
 console.log(

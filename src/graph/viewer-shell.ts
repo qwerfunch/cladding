@@ -1,15 +1,14 @@
-// Cladding · graph · self-contained HTML viewer shell — F-02343cd1
+// Cladding · graph · self-contained HTML viewer shell — F-02343cd1 / F webgl-stellar-viewer
 //
-// toHtmlShell(graph) returns ONE offline HTML string: the graph data + a
-// dependency-free canvas force-directed viewer (src/graph/viewer/{app.js,styles.css}
-// inlined as text — no CDN, no <script src>, no build step). Hand-rolled instead of
-// vendoring a 50-80KB lib: truest to the zero-dep ethos, full aesthetic control,
-// ~40KB output. Tier color (SSoT A/B/C/D) + slug labels + status opacity come from
-// the model; the legend + palette are embedded for the client.
+// toHtmlShell(graph) returns ONE offline HTML string: the graph data + the WebGL stellar
+// galaxy viewer (the esbuild-bundled dist/viewer/app.js — three.js + jsm addons + the
+// stellar/layout cores — plus styles.css, inlined as text). No CDN, no <script src>: the
+// exported file renders with zero network. Tier color (SSoT A/B/C/D) + kind hue + slug
+// labels come from the model; the legend + palette are embedded for the client.
 //
-// The viewer assets are read at runtime relative to this module — dev resolves
-// src/graph/viewer/, the esbuild bundle resolves dist/viewer/ (build.mjs copies them,
-// the same pattern as dist/schema.json + dist/agents/).
+// The viewer assets are read at runtime relative to this module — the esbuild bundle
+// resolves dist/viewer/ (its import.meta.url dir is dist/); dev (tsx) falls back to the
+// repo's dist/viewer/ for app.js and to src/graph/viewer/ for live-edited styles.css.
 
 import {readFileSync} from 'node:fs';
 import {dirname, join} from 'node:path';
@@ -22,7 +21,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 
 /** Reads a viewer asset (dev: src/graph/viewer/, bundled: dist/viewer/). */
 function asset(name: string): string {
-  for (const p of [join(here, 'viewer', name), join(here, '..', 'graph', 'viewer', name)]) {
+  for (const p of [join(here, 'viewer', name), join(here, '..', 'graph', 'viewer', name), join(here, '..', '..', 'dist', 'viewer', name)]) {
     try {
       return readFileSync(p, 'utf8');
     } catch {
@@ -80,15 +79,13 @@ export function toHtmlShell(graph: KnowledgeGraph, health?: Readonly<Record<stri
     <button id="theme">light</button>
     <button id="reset">reset</button>
   </div>
-  <h2>장력 (forces)</h2>
-  <div id="forces"></div>
   <h2>SSoT tiers</h2>
   <div id="tiers"></div>
   <h2>kinds</h2>
   <div id="kinds"></div>
 </aside>
 <div id="tip"></div>
-<div id="hint">scroll = zoom · drag = pan · click node = pin · hover = focus</div>
+<div id="hint">drag = orbit · scroll = zoom · click node = focus · hover = details</div>
 <script>window.__CLADDING_GRAPH=${payload};</script>
 ${healthScript}<script>${app}</script>
 </body>

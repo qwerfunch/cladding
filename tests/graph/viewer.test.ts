@@ -131,9 +131,15 @@ describe('F-02343cd1 — SSoT-tier coloring + slug labels + self-contained HTML 
     expect(html).toContain('id="side"');
     expect(html).toContain('window.__CLADDING_GRAPH=');
 
-    expect(html).not.toContain('http://');
-    expect(html).not.toContain('https://');
+    // Self-contained / offline: assert no external resource LOADS. (The inlined three.js
+    // bundle carries a couple of benign URL *strings* — the XHTML namespace and a shader
+    // citation — which are not network fetches, so the old blanket `http://` check is the
+    // wrong proxy; this checks the real intent: nothing is fetched over the wire.)
     expect(html).not.toContain('<script src');
+    expect(html).not.toContain('<link ');
+    expect(html).not.toMatch(/\bsrc=["']https?:/);
+    expect(html).not.toMatch(/\bhref=["']https?:/);
+    expect(html).not.toMatch(/\b(?:fetch|import)\(\s*["']https?:/);
 
     expect(html).toContain(TIER_META.A.color);
     expect(html).toContain('my-slug');

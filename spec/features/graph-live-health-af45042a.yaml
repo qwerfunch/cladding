@@ -7,7 +7,7 @@ modules:
   - src/cli/graph-serve.ts
   - src/cli/graph.ts
   - src/graph/viewer-shell.ts
-  - src/graph/viewer/app.js
+  - src/graph/viewer/main.ts
 acceptance_criteria:
   - id: AC-2590c81a
     ears: event

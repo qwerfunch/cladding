@@ -63,6 +63,7 @@ function noteName(node: GraphNode): string {
 const SHAPE: Record<GraphNode['kind'], [string, string]> = {
   feature: ['[', ']'], //      rectangle
   module: ['[(', ')]'], //     cylinder (code on disk)
+  skill: ['[[', ']]'], //      subroutine (a skill / verb)
   test: ['([', '])'], //       stadium
   scenario: ['{{', '}}'], //   hexagon
   capability: ['((', '))'], // circle (high-level)

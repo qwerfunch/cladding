@@ -775,3 +775,10 @@ describe('clad_get_graph (F-64a5c159)', () => {
     }
   });
 });
+
+describe('clad_get_working_set (F-06dfdad6)', () => {
+  test('registers clad_get_working_set without touching clad_get_context', () => {
+    expect(TOOL_NAMES).toContain('clad_get_working_set');
+    expect(TOOL_NAMES).toContain('clad_get_context'); // the existing context tool stays registered + frozen
+  });
+});
