@@ -40,10 +40,25 @@ always-current graph you can query for impact and *see* in a graph viewer.
   for a navigable vault (one note per node with backlinks), `dot`/`json` for any
   graph tool. `--focus <id> --depth N` exports just one neighborhood. `stats`
   ranks the load-bearing hubs by degree.
+- **Our own graph viewer, colored by SSoT layer.** `clad graph export --format
+  html` writes one self-contained file you can double-click — a dependency-free
+  interactive graph (no internet, no install). Each spec layer gets its own color
+  (sealed spec / design / derived / audit), code sits in a neutral tone, and
+  features show their readable slug instead of an opaque id. Search, filter by
+  layer or kind, hover to light up a neighborhood, drag to pin, a "Live/Calm"
+  toggle, light/dark — all in one offline page.
+- **A live graph that follows your work.** `clad graph serve` opens the same
+  viewer at a local address and **updates itself as you edit** — change the spec
+  or a doc and the open page reflects it, no re-export. Agents can read the same
+  always-current graph through the new `clad_get_graph` tool.
 
 **Notes**
 
 - Drift detectors: 37 → 38 (`DOC_LINK_INTEGRITY`).
+- The viewer is hand-rolled (no bundled third-party graph library) to stay
+  dependency-free and fully offline; the layout draws itself and settles, then
+  stays calm. It is a way to *see and navigate* the spec↔code↔doc structure, not
+  a correctness check — run `clad check` for that.
 - Design + measured cost/benefit model: `docs/knowledge-graph/design.md`.
 
 ## [0.6.3] — 2026-06-26 — Honest Status
