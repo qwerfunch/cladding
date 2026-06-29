@@ -48,6 +48,6 @@ project:
 inventory:
   features: 182
   scenarios: 2
-  capabilities: 5
+  capabilities: 6
   test_files: 153
   last_synced: "2026-06-29"

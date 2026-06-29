@@ -7,6 +7,45 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Knowledge graph (spec↔code↔doc)
+
+**In one line:** the links between spec, code, tests, and docs — which until now
+only flowed one way and were scattered across shards — become a single,
+always-current graph you can query for impact and *see* in a graph viewer.
+
+> **Heads-up:** this is a **traceability and retrieval** capability, not a
+> correctness one. It does not make generated code more correct (cladding's own
+> A/B record shows that is orthogonal). What it does: pull the exact relevant
+> neighborhood in one call instead of grepping, and stop doc/spec links from
+> silently rotting.
+
+**Added**
+
+- **Reverse-edge index (backlinks).** Every forward edge the spec already carries
+  (`depends_on`, `modules`, `test_refs`) is now also queryable in reverse —
+  derived in memory, 0 bytes on disk. Module ownership is many-to-many on purpose
+  (a file records every feature that touches it).
+- **`clad impact <feature|file>` + the `clad_get_impact` agent tool.** The blast
+  radius for a change: everything that transitively depends on it, the scenarios
+  at risk, and the exact set of tests to re-run. The backward complement of
+  `clad context` (what this needs) ↔ impact (what depends on this). A module path
+  fans out to every feature that touches it.
+- **Doc graph + link integrity.** `clad sync` indexes which docs reference which
+  features and which docs link to which docs (`spec/_doc-links.yaml`). A new check
+  fails on a dead doc-to-doc link and warns on a doc citing a feature that no
+  longer exists. Scoped to skip fixture dirs, code examples, and docs marked
+  `clad-doc-links: ignore`, so it stays quiet on illustrative ids.
+- **`clad graph export` + `clad graph stats`.** See the whole spec↔code↔doc graph
+  in a viewer you already have: `--format mermaid` for a PR, `--format obsidian`
+  for a navigable vault (one note per node with backlinks), `dot`/`json` for any
+  graph tool. `--focus <id> --depth N` exports just one neighborhood. `stats`
+  ranks the load-bearing hubs by degree.
+
+**Notes**
+
+- Drift detectors: 37 → 38 (`DOC_LINK_INTEGRITY`).
+- Design + measured cost/benefit model: `docs/knowledge-graph/design.md`.
+
 ## [0.6.3] — 2026-06-26 — Honest Status
 
 **In one line:** the one-line-per-feature index that agents grep (and that feeds
