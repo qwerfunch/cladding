@@ -10,7 +10,45 @@
 //                graph navigably, in a tool the user already has.
 // All renderers are pure and deterministic (the model is pre-sorted).
 
-import type {EdgeKind, GraphNode, KnowledgeGraph} from './model.js';
+import type {EdgeKind, GraphNode, KnowledgeGraph, Tier} from './model.js';
+
+/**
+ * The SSoT 4-tier palette — color encodes governance authority (not code
+ * coupling). Tiers A/B/C/D + a neutral for code (module/test, no tier).
+ */
+export const TIER_META: Record<Tier, {readonly label: string; readonly color: string}> = {
+  A: {label: 'Spec · sealed', color: '#0066cc'}, // blue
+  B: {label: 'Design', color: '#7c3aed'}, //        purple
+  C: {label: 'Derived', color: '#64748b'}, //       slate
+  D: {label: 'Audit · transient', color: '#f59e0b'}, // amber
+};
+/** Color for non-tier nodes (modules, tests = code on disk). */
+export const CODE_COLOR = '#9ca3af'; // gray
+
+/** Node color by SSoT tier; code (no tier) falls back to the neutral. */
+export function getTierColor(tier?: Tier): string {
+  return tier ? TIER_META[tier].color : CODE_COLOR;
+}
+
+export interface TierLegendEntry {
+  readonly key: Tier | 'code';
+  readonly label: string;
+  readonly color: string;
+  readonly count: number;
+}
+
+/** Per-tier node counts + colors for a legend (A/B/C/D then code), deterministic. */
+export function getTierLegend(graph: KnowledgeGraph): TierLegendEntry[] {
+  const count = (pred: (n: GraphNode) => boolean): number => graph.nodes.filter(pred).length;
+  const tiers: TierLegendEntry[] = (['A', 'B', 'C', 'D'] as const).map((t) => ({
+    key: t,
+    label: TIER_META[t].label,
+    color: TIER_META[t].color,
+    count: count((n) => n.tier === t),
+  }));
+  tiers.push({key: 'code', label: 'Code', color: CODE_COLOR, count: count((n) => n.tier === undefined)});
+  return tiers.filter((e) => e.count > 0);
+}
 
 /** A mermaid/DOT-safe identifier derived from a node id. */
 function safeId(id: string): string {
@@ -31,7 +69,7 @@ const SHAPE: Record<GraphNode['kind'], [string, string]> = {
   doc: ['>', ']'], //          asymmetric (a note)
 };
 
-/** Mermaid `graph LR` of the (sub)graph. */
+/** Mermaid `graph LR` of the (sub)graph, with per-tier color classes. */
 export function toMermaid(graph: KnowledgeGraph): string {
   const lines: string[] = ['graph LR'];
   for (const n of graph.nodes) {
@@ -41,6 +79,14 @@ export function toMermaid(graph: KnowledgeGraph): string {
   }
   for (const e of graph.edges) {
     lines.push(`  ${safeId(e.from)} -->|${e.kind}| ${safeId(e.to)}`);
+  }
+  // Tier coloring: one classDef per tier present + a `code` class, then assign.
+  for (const {key, color} of getTierLegend(graph)) {
+    lines.push(`  classDef ${key} fill:${color},stroke:${color},color:#fff;`);
+    const members = graph.nodes
+      .filter((n) => (key === 'code' ? n.tier === undefined : n.tier === key))
+      .map((n) => safeId(n.id));
+    if (members.length > 0) lines.push(`  class ${members.join(',')} ${key};`);
   }
   return `${lines.join('\n')}\n`;
 }
@@ -87,6 +133,7 @@ export function toObsidianVault(graph: KnowledgeGraph): Map<string, string> {
     const lines: string[] = [
       '---',
       `kind: ${n.kind}`,
+      ...(n.tier ? [`tier: ${n.tier}`] : []),
       ...(n.status ? [`status: ${n.status}`] : []),
       `id: ${JSON.stringify(n.id)}`,
       '---',

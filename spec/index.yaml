@@ -26,6 +26,7 @@ features:
   F-020: {slug: F-020, status: done, modules: 1}
   F-021: {slug: F-021, status: done, modules: 1}
   F-022: {slug: F-022, status: done, modules: 1}
+  F-02343cd1: {slug: graph-html-viewer, status: done, modules: 5}
   F-023: {slug: F-023, status: done, modules: 6}
   F-024: {slug: F-024, status: done, modules: 1}
   F-025: {slug: F-025, status: done, modules: 1}

@@ -865,7 +865,7 @@ export function createProgram(): Command {
   graph
     .command('export')
     .description('Export the graph: mermaid/dot/json to stdout, or an Obsidian vault to --out')
-    .option('--format <fmt>', 'mermaid | dot | json | obsidian (default: mermaid)')
+    .option('--format <fmt>', 'mermaid | dot | json | obsidian | html (default: mermaid). html = a single self-contained offline viewer (requires --out)')
     .option('--focus <query>', 'restrict to a feature/file node’s neighborhood (id, slug, or module path)')
     .option('--depth <n>', 'neighborhood radius around --focus (default: unbounded)')
     .option('--out <path>', 'write to a file (or, for obsidian, a vault dir — default .cladding/graph)')

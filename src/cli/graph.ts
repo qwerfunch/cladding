@@ -9,11 +9,12 @@ import {dirname, join} from 'node:path';
 
 import {buildGraph, resolveNodeId, subgraph} from '../graph/model.js';
 import {toDot, toJson, toMermaid, toObsidianVault} from '../graph/render.js';
+import {toHtmlShell} from '../graph/viewer-shell.js';
 import {graphStats, renderStats} from '../graph/stats.js';
 import {loadSpec} from '../spec/load.js';
 import {pulse} from '../ui/pulse.js';
 
-export type GraphFormat = 'mermaid' | 'dot' | 'json' | 'obsidian';
+export type GraphFormat = 'mermaid' | 'dot' | 'json' | 'obsidian' | 'html';
 
 export interface GraphExportOptions {
   readonly format?: string;
@@ -49,6 +50,20 @@ export function runGraphExportCommand(opts: GraphExportOptions = {}): void {
         writeFileSync(abs, content, 'utf8');
       }
       pulse('pass', 'graph', `wrote ${vault.size} note(s) to ${outDir} — open it as an Obsidian vault`);
+      process.exit(0);
+      return;
+    }
+
+    if (format === 'html') {
+      if (!opts.out) {
+        pulse('fail', 'graph', '--format html requires --out <path> (a single self-contained .html file)');
+        process.exit(1);
+        return;
+      }
+      const html = toHtmlShell(graph);
+      mkdirSync(dirname(opts.out), {recursive: true});
+      writeFileSync(opts.out, html, 'utf8');
+      pulse('pass', 'graph', `wrote a self-contained viewer to ${opts.out} — open it in a browser (offline)`);
       process.exit(0);
       return;
     }

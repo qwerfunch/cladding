@@ -73,5 +73,17 @@ for (const f of readdirSync('src/agents')) {
   personaCount++;
 }
 
+// Copy the graph viewer assets (client JS + CSS, read as text by viewer-shell.ts)
+// next to the bundle: the bundle's `import.meta.url` dir is `dist/`, so they must
+// live at `dist/viewer/<name>` for `clad graph export --format html` to inline them.
+mkdirSync('dist/viewer', {recursive: true});
+let viewerCount = 0;
+for (const f of readdirSync('src/graph/viewer')) {
+  copyFileSync(`src/graph/viewer/${f}`, `dist/viewer/${f}`);
+  viewerCount++;
+}
+
 chmodSync('dist/clad.js', 0o755);
-console.log(`cladding: built dist/clad.js + dist/schema.json + ${personaCount} personas → dist/agents/`);
+console.log(
+  `cladding: built dist/clad.js + dist/schema.json + ${personaCount} personas → dist/agents/ + ${viewerCount} viewer asset(s) → dist/viewer/`,
+);
