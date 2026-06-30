@@ -11,7 +11,7 @@
 // This is the polyglot adapter: cladding itself stays language-agnostic;
 // the *user project* decides which language tools run.
 
-import {existsSync, readdirSync} from 'node:fs';
+import {existsSync, readFileSync, readdirSync} from 'node:fs';
 import type {Dirent} from 'node:fs';
 import {join} from 'node:path';
 
@@ -116,7 +116,11 @@ const CHAIN: readonly Entry[] = [
       test: {cmd: 'npx', args: ['--no-install', 'vitest', 'run']},
       coverage: {cmd: 'npx', args: ['--no-install', 'vitest', 'run', '--coverage']},
       secret: {cmd: 'npx', args: ['--no-install', 'secretlint', '**/*']},
-      arch: {cmd: 'npx', args: ['--no-install', 'madge', '--circular', '--extensions', 'ts', '.']},
+      // .tsx/.jsx/.js alongside .ts so circular-dependency detection covers
+      // React/JSX component trees, not only plain .ts (F-47b8bee5). madge
+      // excludes node_modules by default, so widening extensions does not pull
+      // the dependency tree into the scan.
+      arch: {cmd: 'npx', args: ['--no-install', 'madge', '--circular', '--extensions', 'ts,tsx,js,jsx', '.']},
       smoke: {cmd: 'npm', args: ['run', '--silent', 'smoke']},
       perf: {cmd: 'npm', args: ['run', '--silent', 'perf']},
       visual: {cmd: 'npm', args: ['run', '--silent', 'visual']},
@@ -283,6 +287,58 @@ function resolveTsLint(cwd: string, fallback: ToolSpec): ToolSpec {
 }
 
 /**
+ * TypeScript/JavaScript test-runner resolution by config-file presence
+ * (F-47b8bee5) — the test-gate analogue of `resolveTsLint`.
+ *
+ * `package.json` maps to one language, but the test gate defaulted to vitest
+ * unconditionally — so a Jest project (CRA, React Native, classic React) hit
+ * `npx --no-install vitest`, found nothing, and SILENTLY SKIPPED stage_2.1 /
+ * stage_2.2. Detect the Jest the project actually configured and gate with
+ * THAT. Precedence: jest config present → jest; else vitest (the default, also
+ * used config-less, so vitest and config-less projects behave exactly as
+ * before).
+ *
+ * `--no-install` is kept: detection only decides WHICH runner to invoke, never
+ * installs one. A configured-but-absent jest still resolves to skip via the
+ * stage's missing-tool path, which `--strict`'s skip-policy escalates.
+ *
+ * CAVEAT — by config PRESENCE, not content (mirrors `resolveTsLint`). A project
+ * carrying both a jest and a vitest config resolves to jest; one that tests with
+ * a different runner overrides via `.cladding/config.yaml::gate.commands`.
+ */
+const JEST_CONFIGS: readonly string[] = [
+  'jest.config.js', 'jest.config.ts', 'jest.config.mjs', 'jest.config.cjs', 'jest.config.json',
+];
+
+/** True when the project configures Jest — a jest.config.* file or a `jest` key in package.json. */
+function hasJestConfig(cwd: string): boolean {
+  if (JEST_CONFIGS.some((c) => existsSync(join(cwd, c)))) return true;
+  try {
+    const pkg = JSON.parse(readFileSync(join(cwd, 'package.json'), 'utf8')) as {jest?: unknown};
+    return pkg.jest !== undefined;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Applies TS/JS config-presence detection to the curated TS gates: linter
+ * (biome/oxlint/eslint via `resolveTsLint`) and test runner (jest/vitest via
+ * `hasJestConfig`). Other gates pass through unchanged.
+ */
+function resolveTsGates(cwd: string, base: ToolchainGates): ToolchainGates {
+  const out: ToolchainGates = base.lint ? {...base, lint: resolveTsLint(cwd, base.lint)} : {...base};
+  if (base.test && base.coverage && hasJestConfig(cwd)) {
+    return {
+      ...out,
+      test: {cmd: 'npx', args: ['--no-install', 'jest']},
+      coverage: {cmd: 'npx', args: ['--no-install', 'jest', '--coverage']},
+    };
+  }
+  return out;
+}
+
+/**
  * Detects the project's toolchain by walking a priority chain of manifests.
  *
  * The first matching language wins. `.csproj` / `.sln` / `.fsproj` are matched
@@ -312,13 +368,10 @@ export function detectToolchain(cwd: string = '.'): Toolchain {
     if (entry.requiresSource && !hasSourceFile(cwd, entry.requiresSource)) continue;
     // Kotlin gates are a function of cwd (gradlew vs gradle); resolve first.
     const baseGates = typeof entry.gates === 'function' ? entry.gates(cwd) : entry.gates;
-    // TS/JS: pick the linter the project configured (biome/oxlint) over the
-    // eslint default, so a non-eslint project gates natively. Other languages
-    // keep their single curated default.
-    const gates =
-      entry.language === 'typescript' && baseGates.lint
-        ? {...baseGates, lint: resolveTsLint(cwd, baseGates.lint)}
-        : baseGates;
+    // TS/JS: pick the linter (biome/oxlint) and test runner (jest) the project
+    // configured over the eslint/vitest defaults, so a non-eslint / Jest project
+    // gates natively. Other languages keep their single curated default.
+    const gates = entry.language === 'typescript' ? resolveTsGates(cwd, baseGates) : baseGates;
     return {language: entry.language, manifest, gates};
   }
   return UNKNOWN;

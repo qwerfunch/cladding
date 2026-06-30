@@ -1,0 +1,27 @@
+id: F-47b8bee5
+slug: ts-toolchain-jest-and-multiext-arch
+title: "TS/JS toolchain fidelity — jest test-gate auto-detection + multi-extension arch scan"
+status: done
+modules:
+  - src/stages/toolchain/detect.ts
+acceptance_criteria:
+  - id: AC-0d51828d
+    ears: event
+    condition: "when a jest config file (jest.config.js/.ts/.mjs/.cjs/.json) is present in a detected TypeScript/JavaScript project"
+    action: "resolve the test gate to `npx --no-install jest` and the coverage gate to `npx --no-install jest --coverage`"
+    response: "a Jest-based project (CRA, React Native, classic React) gates natively instead of silently skipping on a missing vitest"
+    text: "When a jest config file is present in a detected TypeScript/JavaScript project, the system shall resolve the test gate to `npx --no-install jest` and the coverage gate to `npx --no-install jest --coverage`."
+    test_refs: ["tests/stages/toolchain.test.ts"]
+  - id: AC-a3be7a76
+    ears: event
+    condition: "when no jest config file is present in a detected TypeScript/JavaScript project"
+    action: "keep the vitest test and coverage gate defaults unchanged"
+    response: "config-less and vitest projects behave exactly as before (backward compatible)"
+    text: "When no jest config file is present in a detected TypeScript/JavaScript project, the system shall keep the vitest `run` test gate and `run --coverage` coverage gate defaults unchanged."
+    test_refs: ["tests/stages/toolchain.test.ts"]
+  - id: AC-3a899053
+    ears: ubiquitous
+    action: "configure the architecture (madge --circular) gate to scan .ts, .tsx, .js, and .jsx source files"
+    response: "circular-dependency detection covers React/JSX component files, not only .ts"
+    text: "The system shall configure the TypeScript/JavaScript architecture gate to scan .ts, .tsx, .js, and .jsx source files so circular-dependency detection covers React/JSX component files."
+    test_refs: ["tests/stages/toolchain.test.ts"]
