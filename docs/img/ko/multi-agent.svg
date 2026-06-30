@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 724 456" width="724" height="456" role="img" aria-labelledby="multi-agent-title" font-family="-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif">
-  <title id="multi-agent-title">페르소나 권한 분리 — orchestrator가 분배, planner/developer/reviewer/blind-author가 작업, observability가 메트릭을 관찰. 만드는 에이전트와 검증하는 에이전트를 분리한다 (anti-self-cert).</title>
+  <title id="multi-agent-title">에이전트 역할 분리 — orchestrator가 분배, planner/developer/reviewer/blind-author가 작업, observability가 메트릭을 관찰. 만드는 에이전트와 검증하는 에이전트를 분리한다 (anti-self-cert).</title>
   <defs>
     <style>
       :root{
@@ -26,7 +26,7 @@
   <rect width="724" height="456" fill="#ffffff"/>
 
   <!-- title -->
-  <text x="362" y="38" text-anchor="middle" class="title">페르소나 권한 분리</text>
+  <text x="362" y="38" text-anchor="middle" class="title">에이전트 역할 분리</text>
   <rect x="320" y="48" width="84" height="3" rx="1.5" fill="#3b82f6"/>
   <text x="362" y="71" text-anchor="middle" class="sub0">EU AI Act · SOX가 요구하는 직무 분리 원칙과 맞닿는다</text>
 

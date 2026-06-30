@@ -302,7 +302,7 @@ The agents that **build** are kept separate from the agents that **verify**, so 
 
 <div align="center">
 
-<img src="docs/img/en/multi-agent.svg" alt="Persona privilege separation — orchestrator dispatches, planner/developer/reviewer act, blind-author is the test writer who can't see the implementation, observability watches" width="700">
+<img src="docs/img/en/multi-agent.svg" alt="Agent separation of duties — orchestrator dispatches, planner/developer/reviewer act, blind-author is the test writer who can't see the implementation, observability watches" width="700">
 
 </div>
 

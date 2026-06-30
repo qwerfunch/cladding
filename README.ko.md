@@ -305,7 +305,7 @@ spec · code · test 사이 모든 방향의 어긋남을 자동 검출한다. �
 
 <div align="center">
 
-<img src="docs/img/ko/multi-agent.svg" alt="페르소나 권한 분리 — orchestrator가 분배, planner/developer/reviewer가 작업, blind-author는 구현을 못 보는 테스트 작성자, observability가 관찰" width="700">
+<img src="docs/img/ko/multi-agent.svg" alt="에이전트 역할 분리 — orchestrator가 분배, planner/developer/reviewer가 작업, blind-author는 구현을 못 보는 테스트 작성자, observability가 관찰" width="700">
 
 </div>
 

@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 724 456" width="724" height="456" role="img" aria-labelledby="multi-agent-title" font-family="-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif">
-  <title id="multi-agent-title">Persona separation of duties — orchestrator dispatches; planner/developer/reviewer/blind-author do the work; observability watches metrics. The agent that builds is kept separate from the agent that verifies (anti-self-cert).</title>
+  <title id="multi-agent-title">Agent separation of duties — orchestrator dispatches; planner/developer/reviewer/blind-author do the work; observability watches metrics. The agent that builds is kept separate from the agent that verifies (anti-self-cert).</title>
   <defs>
     <style>
       :root{
@@ -26,7 +26,7 @@
   <rect width="724" height="456" fill="#ffffff"/>
 
   <!-- title -->
-  <text x="362" y="38" text-anchor="middle" class="title">Persona Separation of Duties</text>
+  <text x="362" y="38" text-anchor="middle" class="title">Agent Separation of Duties</text>
   <rect x="320" y="48" width="84" height="3" rx="1.5" fill="#3b82f6"/>
   <text x="362" y="71" text-anchor="middle" class="sub0">Aligns with the segregation-of-duties principle behind EU AI Act · SOX</text>
 
