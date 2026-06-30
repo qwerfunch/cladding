@@ -7,6 +7,7 @@
 // CLI behavior.
 
 import process from 'node:process';
+import {readFileSync} from 'node:fs';
 
 import {Command} from 'commander';
 
@@ -22,6 +23,8 @@ import {runHostSetup} from '../init/host-setup.js';
 import {recordEvent} from '../events/log.js';
 import {buildContextSlice} from '../optimizer/context-slice.js';
 import {buildImpactSlice} from '../optimizer/reverse-slice.js';
+import {inferDependsOn} from '../optimizer/infer-depends-on.js';
+import {measureGraphEfficiency} from '../optimizer/measurement.js';
 import {runGraphExportCommand, runGraphStatsCommand} from './graph.js';
 import {runGraphServeCommand} from './graph-serve.js';
 import {strictSkipViolations} from '../stages/skip-policy.js';
@@ -587,6 +590,68 @@ export function runImpactCommand(query: string, opts: {depth?: string} = {}): vo
   }
 }
 
+/**
+ * `clad infer-deps` (F-2be3e3bb) — reconstruct feature depends_on edges from the code import
+ * graph and print them as REVIEWABLE suggestions (does not write the spec — a human merges the
+ * edges, anti-self-cert). Surfaces the dependency graph cladding never auto-produced.
+ */
+export function runInferDepsCommand(opts: {ambiguity?: string} = {}): void {
+  try {
+    const spec = loadSpec();
+    const ambiguity = opts.ambiguity !== undefined ? Number(opts.ambiguity) : undefined;
+    const read = (p: string): string | null => {
+      try {
+        return readFileSync(p, 'utf8');
+      } catch {
+        return null;
+      }
+    };
+    const result = inferDependsOn(spec, read, ambiguity !== undefined ? {maxOwnerAmbiguity: ambiguity} : {});
+    process.stdout.write(`${JSON.stringify({suggestions: result.suggestions, new_edges: result.edges.length, already_declared: result.alreadyDeclared.length}, null, 2)}\n`);
+    process.exit(0);
+  } catch (err) {
+    pulse('fail', 'infer-deps', (err as Error).message);
+    process.exit(1);
+  }
+}
+
+/**
+ * `clad measure` (F-16138071) — deterministically report the search + context efficiency the
+ * graph provides per feature: working-set tokens vs the naive (shard + all module files)
+ * baseline, the dependency depth/edges it resolves for you, and the regression-set coverage.
+ * No agent, no test run — measures what the infrastructure CAN provide (an upper bound vs one
+ * naive baseline), not whether an agent adopts it.
+ */
+export function runMeasureCommand(opts: {json?: boolean} = {}): void {
+  try {
+    const spec = loadSpec();
+    const read = (p: string): string | null => {
+      try {
+        return readFileSync(p, 'utf8');
+      } catch {
+        return null;
+      }
+    };
+    const r = measureGraphEfficiency(spec, read, '.');
+    if (opts.json) {
+      process.stdout.write(`${JSON.stringify(r, null, 2)}\n`);
+    } else {
+      const lines = [
+        `graph efficiency · ${r.measured}/${r.featureCount} features`,
+        `  context: working-set ${r.context.medianSliceTokens} tok vs naive ${r.context.medianNaiveTokens} tok = ${r.context.medianShrinkFactor}x smaller (median)`,
+        `  search:  median ${r.search.medianDepth} hop(s) resolved (p95 ${r.search.p95Depth}), median ${r.search.medianEdges} edge(s)/feature (max hub ${r.search.maxEdges})`,
+        `  stability: median blast-radius coverage ${r.stability.medianCoverage}, median ${r.stability.medianRegressionTests} regression test(s) surfaced; stops ${JSON.stringify(r.stability.byStopReason)}`,
+        `  (deterministic upper bound vs the shard+all-modules baseline — not an agent-adoption measurement)`,
+      ];
+      process.stdout.write(`${lines.join('\n')}\n`);
+    }
+    process.exit(0);
+  } catch (err) {
+    pulse('fail', 'measure', (err as Error).message);
+    process.exit(1);
+  }
+}
+
 export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tier?: string; json?: boolean; feature?: string}): void {
   let focusModules: readonly string[] | undefined;
   if (opts.feature) {
@@ -859,6 +924,18 @@ export function createProgram(): Command {
     .description('Print the blast radius for a change — what depends on a feature/file + the tests to re-run (F-7794a6bc)')
     .option('--depth <n>', 'bound the dependent walk to N hops (default: the full transitive radius)')
     .action((query, opts) => runImpactCommand(query, opts));
+
+  program
+    .command('infer-deps')
+    .description('Suggest feature depends_on edges from the code import graph — the dependency edges cladding never auto-produced (F-2be3e3bb). Prints reviewable suggestions; does not write the spec.')
+    .option('--ambiguity <n>', 'emit edges for imports owned by ≤ N features (default 1 = unambiguous single-owner only)')
+    .action((opts) => runInferDepsCommand(opts));
+
+  program
+    .command('measure')
+    .description('Report the search + context efficiency the graph provides per feature — working-set tokens vs the naive baseline, dependency depth/edges resolved, regression-set coverage (F-16138071). Deterministic; no agent.')
+    .option('--json', 'emit the full per-feature report as JSON')
+    .action((opts) => runMeasureCommand(opts));
 
   const graph = program
     .command('graph')

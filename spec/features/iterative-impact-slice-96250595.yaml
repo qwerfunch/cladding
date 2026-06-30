@@ -1,0 +1,37 @@
+id: F-96250595
+slug: iterative-impact-slice
+title: "Iterative graph-anchored impact slice — widen from depth 1 until a deterministic sufficiency stop, self-describing"
+status: done
+depends_on:
+  - F-7794a6bc
+  - F-06dfdad6
+modules:
+  - src/optimizer/iterative-slice.ts
+  - src/optimizer/working-set.ts
+acceptance_criteria:
+  - id: AC-77a026
+    ears: event
+    condition: "when buildIterativeImpactSlice is called for a feature whose blast radius reaches beyond one hop"
+    action: "expand the impact radius hop-by-hop from initialDepth and stop at the first depth where a deterministic sufficiency criterion holds — coverage ≥ threshold, OR the ring added zero new dependents (exhaustion), OR two consecutive hops each added < the marginal-yield threshold"
+    response: "a narrow (1-hop) miss is automatically widened to capture the deeper dependents, while an already-complete radius stops immediately at depth 1 (no wasted expansion)"
+    text: "When buildIterativeImpactSlice runs, the system shall expand from initialDepth and stop at the first depth meeting a deterministic sufficiency criterion (coverage / exhaustion / marginal-yield), widening narrow misses but not over-expanding complete ones."
+    test_refs:
+      - "tests/optimizer/iterative-slice.test.ts#widens a narrow miss: a 2-hop dependent chain reaches depth 2"
+      - "tests/optimizer/iterative-slice.test.ts#stops at depth 1 when the radius is already complete"
+      - "tests/optimizer/iterative-slice.test.ts#stops on exhaustion when the reachable graph boundary is hit"
+    notes: "## Why\nFixed depth=1 (buildImpactSlice) under-reports 2nd-hop dependents — the 'narrow miss' that surfaced in the working-set A/Bs. ## Calibration\nDefault criteria (coverage 0.9 + marginal-yield 0.05 + exhaustion; NOT 'target-nodes') were chosen by simulating 522 cladding-self queries: 'target-nodes' fired at depth 1 everywhere (test_refs ride along immediately) and stopped at ~50% coverage = false completeness. Honest limit: cladding's large fan-out hubs never reach 90% coverage at any depth → they stop on marginal-yield/max-depth with an honest partial coverage, which is correct (giving all ~100 dependents would be noise)."
+  - id: AC-f77588
+    ears: ubiquitous
+    text: "The result shall be self-describing and deterministic: it carries depthUsed, a stoppedBy reason, and a coverage fraction (radius ∩ all-known-dependents); identical spec state yields byte-identical results so a host can cache and diff it. A coverage/exhaustion stop shall never report coverage below the threshold (no false completeness)."
+    test_refs:
+      - "tests/optimizer/iterative-slice.test.ts#reports depthUsed, stoppedBy, and coverage"
+      - "tests/optimizer/iterative-slice.test.ts#is deterministic for identical spec state"
+      - "tests/optimizer/iterative-slice.test.ts#a coverage or exhaustion stop never reports coverage below the threshold"
+  - id: AC-4c8e3f
+    ears: event
+    condition: "when buildIterativeImpactSlice is queried with an unresolved id/slug/module"
+    action: "return the same not_found miss shape as buildImpactSlice (single source of truth for the miss contract)"
+    response: "callers handle the miss identically whether they used the fixed or the iterative slice"
+    text: "When the query resolves to no feature, the system shall return the canonical buildImpactSlice not_found miss."
+    test_refs:
+      - "tests/optimizer/iterative-slice.test.ts#an unresolved query returns the canonical not_found miss"

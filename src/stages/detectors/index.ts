@@ -43,6 +43,7 @@ import {statusDrift} from './status-drift.js';
 import {techStackMismatch} from './tech-stack-mismatch.js';
 import {unmappedArtifact} from './unmapped-artifact.js';
 import {untestedAc} from './untested-ac.js';
+import {inferableDependsOn} from './inferable-depends-on.js';
 import type {DriftDetector} from '../types.js';
 
 /** Every detector cladding registers by default, in stable order. */
@@ -85,4 +86,5 @@ export const allDetectors: readonly DriftDetector[] = [
   deliverableIntegrity,
   smokeProbeDemand,
   staleAttestation,
+  inferableDependsOn,
 ];

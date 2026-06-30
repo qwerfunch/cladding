@@ -10,7 +10,7 @@
 
 import {codeExcerpt, estTokens, type CodeExcerpt} from './code-excerpt.js';
 import {buildContextSlice, type ContextLookupMiss} from './context-slice.js';
-import {buildImpactSlice} from './reverse-slice.js';
+import {buildIterativeImpactSlice} from './iterative-slice.js';
 import {reverseIndexOf} from '../spec/reverse-index.js';
 import type {Feature, Spec} from '../spec/types.js';
 
@@ -34,6 +34,8 @@ export interface WorkingSet {
   readonly breaks_if_changed: {
     readonly impacted: readonly Summary[];
     readonly regression_tests: readonly string[];
+    /** Self-describing radius: how far the blast-radius search widened + why it stopped + coverage of known dependents. */
+    readonly radius?: {readonly depth: number; readonly stopped_by: string; readonly coverage: number};
   };
   /** How to verify: scenarios, tests, oracle refs, and the high-risk (EARS unwanted/state) ACs. */
   readonly verify: {
@@ -88,10 +90,18 @@ export function buildWorkingSet(spec: Spec, query: string, opts: WorkingSetOptio
   if ('not_found' in ctx) return ctx; // identical miss contract — never diverge from F-d2c806
   const focus = ctx.focus;
 
-  // backward blast radius — DIRECT dependents only (depth 1) + regression test union.
-  const impact = buildImpactSlice(spec, focus.id, {depth: 1});
-  const impacted: readonly Summary[] = 'not_found' in impact ? [] : impact.impacted;
-  const regression: readonly string[] = 'not_found' in impact ? [] : impact.test_refs;
+  // backward blast radius — ITERATIVE: widen from depth 1 until a deterministic sufficiency
+  // criterion holds (coverage / exhaustion / marginal-yield), instead of a fixed depth-1 slice
+  // that under-reports 2nd-hop dependents (the "narrow miss"). The depth/coverage/stop reason
+  // are surfaced in `breaks_if_changed` so the result is self-describing, not a blind bound.
+  const iter = buildIterativeImpactSlice(spec, focus.id);
+  const impact = 'not_found' in iter ? null : iter.slice;
+  const impacted: readonly Summary[] = impact ? impact.impacted : [];
+  const regression: readonly string[] = impact ? impact.test_refs : [];
+  const radius =
+    'not_found' in iter
+      ? null
+      : {depth: iter.depthUsed, stopped_by: iter.stoppedBy, coverage: Math.round(iter.analysis.coverage * 100) / 100};
 
   const acs = focus.acceptance_criteria ?? [];
   const highRiskAcs = acs
@@ -111,7 +121,7 @@ export function buildWorkingSet(spec: Spec, query: string, opts: WorkingSetOptio
       ...(coOwners ? {co_owners: coOwners} : {}),
     },
     needs: ctx.ancestors,
-    breaks_if_changed: {impacted, regression_tests: regression},
+    breaks_if_changed: {impacted, regression_tests: regression, ...(radius ? {radius} : {})},
     verify: {scenarios: ctx.scenarios, test_refs: ctx.test_refs, oracle_refs: oracleRefs, high_risk_acs: highRiskAcs},
     guidance: {preferred_patterns: ctx.preferred_patterns},
     budget: {max_tokens: maxTokens, used_tokens: 0, truncated},

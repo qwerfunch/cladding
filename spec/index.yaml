@@ -91,6 +91,8 @@ features:
   F-09d68b: {slug: clad-refine, status: done, modules: 7}
   F-0ed2db: {slug: ai-hints-consumer-instructions, status: done, modules: 11}
   F-12d740: {slug: atomic-ac-evidence-fanout, status: done, modules: 1}
+  F-15999130: {slug: inferable-depends-on-detector, status: done, modules: 2}
+  F-16138071: {slug: graph-efficiency-measure, status: done, modules: 2}
   F-16746b: {slug: enforcement-triggers, status: done, modules: 3}
   F-17df0a: {slug: scan-artifacts-llm-refinement, status: done, modules: 3}
   F-18e951: {slug: drift-baseline-cleanup, status: done, modules: 7}
@@ -99,6 +101,7 @@ features:
   F-1edb38: {slug: scan-refactor, status: done, modules: 13}
   F-24062d: {slug: spec-id-hash-filename-and-lookup, status: done, modules: 3}
   F-245bd5: {slug: dogfood-recovery-v0-3-16, status: done, modules: 2}
+  F-2be3e3bb: {slug: infer-depends-on, status: done, modules: 2}
   F-2de65d: {slug: drive-auto-rollback, status: done, modules: 1}
   F-315fd7: {slug: scenario-coverage-detector, status: done, modules: 2}
   F-31eeb8: {slug: scan-bfs-walk, status: done, modules: 2}
@@ -144,6 +147,7 @@ features:
   F-90d054: {slug: init-host-autowire, status: archived, modules: 0}
   F-94dda4: {slug: scan-polyglot, status: done, modules: 2}
   F-95a096: {slug: ops-visibility-polish, status: done, modules: 3}
+  F-96250595: {slug: iterative-impact-slice, status: done, modules: 2}
   F-99c6e5: {slug: cladding-self-fixes, status: done, modules: 13}
   F-9a3b61: {slug: ab-ext-uncommit-demos, status: done, modules: 3}
   F-9b643e: {slug: scan-conventions, status: done, modules: 5}
