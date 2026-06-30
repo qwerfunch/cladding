@@ -28,31 +28,9 @@
 </p>
 
 <!-- ─────────────── Why an enterprise can trust AI with coding ─────────────── -->
-<table>
-<tr>
-<td width="33%" valign="top">
-
-**Only verified code ships as "done"**
-
-Even when the AI says "it's done," it has to clear the checks — so code that couldn't be verified is never recognized as complete.
-
-</td>
-<td width="33%" valign="top">
-
-**Who · what · why is all on the record**
-
-The evidence you need for audits, regulatory response, and handoff can be traced back at any time.
-
-</td>
-<td width="33%" valign="top">
-
-**It holds up as the team grows and you add more AIs**
-
-Because the spec is the shared baseline, conflicts and drift are blocked automatically.
-
-</td>
-</tr>
-</table>
+- **Only verified code ships as "done"** — Even when the AI says "it's done," it has to clear the checks — so code that couldn't be verified is never recognized as complete.
+- **Who · what · why is all on the record** — The evidence you need for audits, regulatory response, and handoff can be traced back at any time.
+- **It holds up as the team grows and you add more AIs** — Because the spec is the shared baseline, conflicts and drift are blocked automatically.
 
 <!-- ─────────────── Host-LLM partnership loop ─────────────── -->
 <div align="center">
@@ -61,29 +39,19 @@ Because the spec is the shared baseline, conflicts and drift are blocked automat
 
 </div>
 
-<p align="center">
-  <strong>This loop is after one thing —</strong><br/>
-  turning the AI's <em>"it's done"</em> from a <strong>claim</strong> into a <strong>proof</strong>.
-</p>
+> **This loop is after one thing —** turning the AI's *"it's done"* from a **claim** into a **proof**.
 
-<p align="center">
-  So you can ship code an AI wrote with <strong>the same trust as code a human wrote</strong>.
-</p>
+So you can ship code an AI wrote with **the same trust as code a human wrote**.
 
-<p align="center">
-  cladding builds <strong>itself</strong> with cladding too — 195 of its 199 features cleared the same gate, the first L4 implementation of the Ironclad standard.
-</p>
+cladding builds **itself** with cladding too — 195 of its 199 features cleared the same gate, the first L4 implementation of the Ironclad standard.
 
 <!-- ─────────────── How it partners with the host LLM ─────────────── -->
+
 ## How it works with your host LLM
 
 cladding doesn't write code — writing code is always the **host LLM's** job. What cladding owns is the *before* and the *after*: injecting the intent precisely before work starts, and mechanically verifying the result after it finishes.
 
-<table>
-<tr>
-<td width="33%" valign="top">
-
-**Before — inject the intent**
+#### Before — inject the intent
 
 *So the LLM starts with the right context.*
 
@@ -91,10 +59,7 @@ cladding doesn't write code — writing code is always the **host LLM's** job. W
 - **Only the intent that matters** — just the *why* of the feature at hand, its related features, and its acceptance criteria are pulled out (it does not dump the whole spec).
 - **Project rules applied** — the forbidden and preferred patterns the team agreed on go in as standing instructions every time.
 
-</td>
-<td width="33%" valign="top">
-
-**After — verify the result**
+#### After — verify the result
 
 *If the LLM's output drifts from the spec, block it.*
 
@@ -103,10 +68,7 @@ cladding doesn't write code — writing code is always the **host LLM's** job. W
 - **An implementation-blind grader** — a separate agent that *cannot read the code* grades it with tests written from the spec alone.
 - **Run the deliverable for real** — the "tests pass but the program doesn't run" situation is blocked by actually running it.
 
-</td>
-<td width="33%" valign="top">
-
-**Record — input for the next turn**
+#### Record — input for the next turn
 
 *Verification results flow back into the LLM's context.*
 
@@ -114,19 +76,12 @@ cladding doesn't write code — writing code is always the **host LLM's** job. W
 - **Audit ledger** — every verification run, completion attempt, and block is recorded with who · when · what result.
 - **Repair card** — try to end a conversation leaving a failure and it blocks you once, then carries the failure summary forward into the next conversation.
 
-</td>
-</tr>
-</table>
+While this loop runs, you just **develop in natural language as usual** — there are no commands to memorize.
 
-<p align="center">
-While this loop runs, you just <strong>develop in natural language as usual</strong> — there are no commands to memorize.
-</p>
-
-<p align="center">
 <sub>Real-time intervention (map injection · instant block · stop-block) all works on Claude Code. On Codex · Gemini · Cursor the same verification runs through in-conversation tool calls plus the git · CI gate.</sub>
-</p>
 
 <!-- ─────────────── done is earned ─────────────── -->
+
 ## "done" is earned, not declared
 
 The chronic disease of AI coding is *"it's done"* declared with no verification behind it. In cladding, a feature's `status: done` is not a value you write — it's a value you **earn**.
@@ -145,6 +100,7 @@ The chronic disease of AI coding is *"it's done"* declared with no verification 
 The limits are disclosed plainly too: bypass paths exist that the instant block can't see, and those are caught by after-the-fact verification (the gate · drift checks). The instant block is the first line of defense, after-the-fact verification the second — and neither is a standalone guarantee.
 
 <!-- ─────────────── What changes ─────────────── -->
+
 ## What changes
 
 How a *vanilla AI coding environment* and a cladding environment behave in the same situation.
@@ -159,6 +115,7 @@ How a *vanilla AI coding environment* and a cladding environment behave in the s
 | **Switching AI tools** | reconfigure per tool | one spec → 4 hosts wired automatically |
 
 <!-- ─────────────── Project map (knowledge graph) ─────────────── -->
+
 ## Project map — now you can see it and ask it <sub>new</sub>
 
 cladding always keeps a **map** inside it that connects spec · code · tests · docs. Now you can see that map with your own eyes.
@@ -166,9 +123,7 @@ cladding always keeps a **map** inside it that connects spec · code · tests ·
 > **Why this matters — the docs and the code don't drift apart.**
 > Docs lie as time passes — the code changes but the description stays put. cladding re-checks that connection every time the code is read, and blocks "done" while the two are out of sync.
 
-<p align="center">
-This is the mental map cladding has of your project — the bright <strong>blue</strong> glowing at the center is the <strong>spec</strong>, the <strong>orange</strong> around it is <strong>code</strong>, the <strong>green</strong> further out is <strong>tests</strong>, and <strong>pink</strong> is <strong>docs</strong>. The more connected a node is, the bigger it grows and the closer it's pulled to the center.
-</p>
+This is the mental map cladding has of your project — the bright **blue** glowing at the center is the **spec**, the **orange** around it is **code**, the **green** further out is **tests**, and **pink** is **docs**. The more connected a node is, the bigger it grows and the closer it's pulled to the center.
 
 <div align="center">
 
@@ -176,31 +131,9 @@ This is the mental map cladding has of your project — the bright <strong>blue<
 
 </div>
 
-<table>
-<tr>
-<td width="33%" valign="top">
-
-**See — the whole project on one canvas**
-
-Run `clad graph serve` and it opens in your browser; you see what connects to what at a glance.
-
-</td>
-<td width="33%" valign="top">
-
-**Ask — "what breaks if I change this?"**
-
-Ask the map and it tells you what's affected and which tests to run — it doesn't guess.
-
-</td>
-<td width="33%" valign="top">
-
-**Measure — it shines brighter the larger the project**
-
-The amount you have to look at when fixing something drops sharply — on average **4× less** than reading everything. The working set barely grows as code piles up, so the gap widens with scale. (`clad measure`)
-
-</td>
-</tr>
-</table>
+- **See — the whole project on one canvas** — Run `clad graph serve` and it opens in your browser; you see what connects to what at a glance.
+- **Ask — "what breaks if I change this?"** — Ask the map and it tells you what's affected and which tests to run — it doesn't guess.
+- **Measure — it shines brighter the larger the project** — The amount you have to look at when fixing something drops sharply — on average **4× less** than reading everything. The working set barely grows as code piles up, so the gap widens with scale. (`clad measure`)
 
 To launch it yourself — from your project folder:
 
@@ -212,6 +145,7 @@ clad graph export --format html --out graph.html  # or export to a single offlin
 <sub>`serve` refreshes the view on its own every time you edit the spec or docs · `export` is a single file you open straight in the browser, no server or dependencies. Both require cladding 0.7.0+.</sub>
 
 <!-- ─────────────── How it works ─────────────── -->
+
 ## How it works
 
 **Spec → Code → Tests** runs as a single cycle — the spec records the *why*, the gate verifies, and the detectors block drift.
@@ -267,21 +201,16 @@ To be recognized as "done," a change must clear the strict gate (9 of the 15 sta
 
 Drift in every direction across spec · code · test is detected automatically. Full catalog: [detector catalog](src/stages/detectors/README.md).
 
-<table>
-<thead>
-<tr><th>Direction</th><th>What it catches</th><th align="center">Count</th><th>Representative detectors</th></tr>
-</thead>
-<tbody>
-<tr><td>spec ↔ code</td><td>in the spec but missing from code, or code that strays from the spec</td><td align="center">10</td><td><code>MISSING_IMPLEMENTATION</code>, <code>AC_DRIFT</code>, <code>DELIVERABLE_INTEGRITY</code></td></tr>
-<tr><td>code ↔ test</td><td>code present but no tests · coverage drop · secrets</td><td align="center">6</td><td><code>MISSING_TESTS</code>, <code>COVERAGE_DROP</code>, <code>HARDCODED_SECRET</code></td></tr>
-<tr><td>spec ↔ test</td><td>an AC in the spec not verified by a test · false status</td><td align="center">6</td><td><code>UNTESTED_AC</code>, <code>STATUS_DRIFT</code>, <code>SPEC_CONFORMANCE</code></td></tr>
-<tr><td>spec hygiene</td><td>the spec's own integrity (ID collisions · dependency cycles)</td><td align="center">8</td><td><code>ID_COLLISION</code>, <code>SLUG_CONFLICT</code>, <code>DEPENDENCY_CYCLE</code></td></tr>
-<tr><td>environment integrity</td><td>build environment · meta files</td><td align="center">3</td><td><code>HARNESS_INTEGRITY</code>, <code>META_INTEGRITY</code></td></tr>
-<tr><td>verification freshness</td><td>whether code changed since the verification signature</td><td align="center">1</td><td><code>STALE_ATTESTATION</code> <em>(new)</em></td></tr>
-<tr><td>governance · docs</td><td>policy violations · doc drift</td><td align="center">3</td><td><code>ABSENCE_OF_GOVERNANCE</code>, <code>PROJECT_CONTEXT_DRIFT</code></td></tr>
-<tr><td>graph · doc links</td><td>broken doc ↔ spec links · missing dependency edges</td><td align="center">3</td><td><code>DOC_LINK_INTEGRITY</code>, <code>REFERENCE_INTEGRITY</code>, <code>INFERABLE_DEPENDS_ON</code> <em>(new)</em></td></tr>
-</tbody>
-</table>
+| Direction | What it catches | Count | Representative detectors |
+|---|---|---|---|
+| spec ↔ code | in the spec but missing from code, or code that strays from the spec | 10 | `MISSING_IMPLEMENTATION`, `AC_DRIFT`, `DELIVERABLE_INTEGRITY` |
+| code ↔ test | code present but no tests · coverage drop · secrets | 6 | `MISSING_TESTS`, `COVERAGE_DROP`, `HARDCODED_SECRET` |
+| spec ↔ test | an AC in the spec not verified by a test · false status | 6 | `UNTESTED_AC`, `STATUS_DRIFT`, `SPEC_CONFORMANCE` |
+| spec hygiene | the spec's own integrity (ID collisions · dependency cycles) | 8 | `ID_COLLISION`, `SLUG_CONFLICT`, `DEPENDENCY_CYCLE` |
+| environment integrity | build environment · meta files | 3 | `HARNESS_INTEGRITY`, `META_INTEGRITY` |
+| verification freshness | whether code changed since the verification signature | 1 | `STALE_ATTESTATION` *(new)* |
+| governance · docs | policy violations · doc drift | 3 | `ABSENCE_OF_GOVERNANCE`, `PROJECT_CONTEXT_DRIFT` |
+| graph · doc links | broken doc ↔ spec links · missing dependency edges | 3 | `DOC_LINK_INTEGRITY`, `REFERENCE_INTEGRITY`, `INFERABLE_DEPENDS_ON` *(new)* |
 
 The knowledge graph these power is a **traceability / retrieval** capability, not a correctness one — cladding's own A/B record shows correctness is orthogonal to governance. It tells you what connects to what and what to re-check; it does not claim the code is correct.
 
@@ -296,6 +225,7 @@ Define → Sync → Implement → **Earn**. You earn "done" only by passing ever
 </div>
 
 <!-- ─────────────── Multi-Agent ─────────────── -->
+
 ## Multi-Agent — separating the builder from the verifier
 
 The agents that **build** are kept separate from the agents that **verify**, so no agent can sign off on its own work. **blind-author** goes one step further — the agent that writes the tests *has no tool to read the implementation at all* (no Read/Grep granted). "Wrote it without looking at the implementation" becomes a structural fact, not a promise. This separation aligns with the segregation-of-duties principle that regulatory · audit regimes (EU AI Act · SOX) call for — it maps onto the spirit of those regimes, not a certification.
@@ -307,6 +237,7 @@ The agents that **build** are kept separate from the agents that **verify**, so 
 </div>
 
 <!-- ─────────────── Ecosystem ─────────────── -->
+
 ## Ecosystem
 
 cladding sits at the junction of three existing categories.
@@ -327,6 +258,7 @@ cladding sits at the junction of three existing categories.
 cladding's distinction is the *combination* — binding the core of the categories above into *one verification loop*.
 
 <!-- ─────────────── Install ─────────────── -->
+
 ## Install
 
 Two steps — install the infrastructure → create the project spec.
@@ -395,41 +327,17 @@ clad update                # 3. bring it in line with the new version
 Your code · `spec.yaml` · docs are left untouched, so it's safe — and if the newer version is stricter and has something to flag, it just **points it out** (it won't block or fix anything).
 
 <!-- ─────────────── Status ─────────────── -->
+
 ## Status
 
-<table align="center" border="0">
-<tr>
-<td align="center" width="140" style="background:#f8fafc;padding:18px 10px;border-radius:8px">
-<div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">version</div>
-<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">v0.7.0</div>
-<div style="font-size:11px;color:#64748b">2026-07</div>
-</td>
-<td align="center" width="140" style="background:#dcfce7;padding:18px 10px;border-radius:8px">
-<div style="font-size:11px;color:#15803d;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">conformance</div>
-<div style="font-size:24px;font-weight:800;color:#16a34a;margin:8px 0;letter-spacing:-0.5px">L4</div>
-<div style="font-size:11px;color:#15803d"><a href="https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md">top of L0–L4 · self-declared</a></div>
-</td>
-<td align="center" width="140" style="background:#f8fafc;padding:18px 10px;border-radius:8px">
-<div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">tests</div>
-<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">1665<span style="font-size:16px;color:#94a3b8">/1665</span></div>
-<div style="font-size:11px;color:#64748b">all pass</div>
-</td>
-<td align="center" width="140" style="background:#f8fafc;padding:18px 10px;border-radius:8px">
-<div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">gate</div>
-<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">15<span style="font-size:16px;color:#94a3b8"> stages</span></div>
-<div style="font-size:11px;color:#64748b">40 detectors</div>
-</td>
-<td align="center" width="140" style="background:#f8fafc;padding:18px 10px;border-radius:8px">
-<div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">features</div>
-<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">199</div>
-<div style="font-size:11px;color:#64748b">195 done · self-spec'd</div>
-</td>
-</tr>
-</table>
+| Version | Conformance | Tests | Gate | Features |
+|---|---|---|---|---|
+| v0.7.0 (2026-07) | L4 · [self-declared](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 1665 / 1665 | 15 stages · 40 detectors | 199 (195 done) |
 
-<p align="center"><sub>170 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector · single install path via npm (<code>npm install -g cladding</code>)</sub></p>
+<sub>170 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector · single install path via npm (`npm install -g cladding`)</sub>
 
 > **Road to Ironclad 1.0** — 1.0 locks only when *two independent implementations pass the L4 conformance fixtures* ([GOVERNANCE § 1](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md)). cladding is the first.
+
 
 ## Docs
 
@@ -439,6 +347,7 @@ Your code · `spec.yaml` · docs are left untouched, so it's safe — and if the
 - [40 detector catalog](src/stages/detectors/README.md)
 - [Glossary (EN · KO)](docs/glossary.md)
 - [Governance · roadmap to 1.0](GOVERNANCE.md)
+
 
 ## License
 
