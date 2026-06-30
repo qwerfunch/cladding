@@ -16,7 +16,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-1664%2F1664-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-1665%2F1665-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-40-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -411,7 +411,7 @@ clad update                # 3. 새 버전에 맞게 정리
 </td>
 <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
 <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">tests</div>
-<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">1664<span style="font-size:16px;color:#94a3b8">/1664</span></div>
+<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">1665<span style="font-size:16px;color:#94a3b8">/1665</span></div>
 <div style="font-size:11px;color:#64748b">all pass</div>
 </td>
 <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
@@ -427,7 +427,7 @@ clad update                # 3. 새 버전에 맞게 정리
 </tr>
 </table>
 
-<sub>169 test files · coverage는 COVERAGE_DROP detector가 하락 차단 · 설치는 npm 단일 경로(<code>npm install -g cladding</code>)</sub>
+<sub>170 test files · coverage는 COVERAGE_DROP detector가 하락 차단 · 설치는 npm 단일 경로(<code>npm install -g cladding</code>)</sub>
 
 > **Ironclad 1.0까지의 길** — 1.0은 *독립적인 두 개의 구현이 L4 검증 셋을 통과해야* 잠긴다 ([GOVERNANCE § 1](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md)). cladding이 첫 번째.
 

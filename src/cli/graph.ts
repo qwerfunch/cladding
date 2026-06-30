@@ -74,10 +74,13 @@ export function runGraphExportCommand(opts: GraphExportOptions = {}): void {
       mkdirSync(dirname(opts.out), {recursive: true});
       writeFileSync(opts.out, rendered, 'utf8');
       pulse('pass', 'graph', `wrote ${format} graph to ${opts.out}`);
+      process.exit(0);
     } else {
-      process.stdout.write(rendered);
+      // Flush before exit: on a pipe, stdout.write is async — exiting on the next
+      // line truncates output larger than the OS pipe buffer (~64 KiB on macOS).
+      // Exit from the write callback so the full payload drains first.
+      process.stdout.write(rendered, () => process.exit(0));
     }
-    process.exit(0);
   } catch (err) {
     pulse('fail', 'graph', (err as Error).message);
     process.exit(1);
@@ -88,8 +91,8 @@ export function runGraphExportCommand(opts: GraphExportOptions = {}): void {
 export function runGraphStatsCommand(): void {
   try {
     const graph = buildGraph(loadSpec(), '.');
-    process.stdout.write(renderStats(graphStats(graph)));
-    process.exit(0);
+    // Flush before exit (see runGraphExportCommand) so piped output never truncates.
+    process.stdout.write(renderStats(graphStats(graph)), () => process.exit(0));
   } catch (err) {
     pulse('fail', 'graph', (err as Error).message);
     process.exit(1);

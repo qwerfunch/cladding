@@ -16,7 +16,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-1664%2F1664-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-1665%2F1665-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-40-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -411,7 +411,7 @@ Your code · `spec.yaml` · docs are left untouched, so it's safe — and if the
 </td>
 <td align="center" width="140" style="background:#f8fafc;padding:18px 10px;border-radius:8px">
 <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">tests</div>
-<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">1664<span style="font-size:16px;color:#94a3b8">/1664</span></div>
+<div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">1665<span style="font-size:16px;color:#94a3b8">/1665</span></div>
 <div style="font-size:11px;color:#64748b">all pass</div>
 </td>
 <td align="center" width="140" style="background:#f8fafc;padding:18px 10px;border-radius:8px">
@@ -427,7 +427,7 @@ Your code · `spec.yaml` · docs are left untouched, so it's safe — and if the
 </tr>
 </table>
 
-<p align="center"><sub>169 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector · single install path via npm (<code>npm install -g cladding</code>)</sub></p>
+<p align="center"><sub>170 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector · single install path via npm (<code>npm install -g cladding</code>)</sub></p>
 
 > **Road to Ironclad 1.0** — 1.0 locks only when *two independent implementations pass the L4 conformance fixtures* ([GOVERNANCE § 1](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md)). cladding is the first.
 
