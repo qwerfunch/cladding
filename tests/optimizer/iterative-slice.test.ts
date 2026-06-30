@@ -50,7 +50,6 @@ const ALLOWED_STOPS = [
   'exhaustion',
   'coverage',
   'marginal-yield',
-  'token-budget',
   'max-depth',
 ] as const;
 

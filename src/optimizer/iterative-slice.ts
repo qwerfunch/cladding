@@ -23,7 +23,7 @@ import {buildImpactSlice, collectDependents, type ImpactLookupMiss, type ImpactS
 import {reverseIndexOf} from '../spec/reverse-index.js';
 import type {Spec} from '../spec/types.js';
 
-export type StopReason = 'exhaustion' | 'coverage' | 'marginal-yield' | 'token-budget' | 'max-depth';
+export type StopReason = 'exhaustion' | 'coverage' | 'marginal-yield' | 'max-depth';
 
 export interface IterativeImpactOptions {
   readonly initialDepth?: number;
