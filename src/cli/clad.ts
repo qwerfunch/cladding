@@ -607,7 +607,9 @@ export function runInferDepsCommand(opts: {ambiguity?: string} = {}): void {
       }
     };
     const result = inferDependsOn(spec, read, ambiguity !== undefined ? {maxOwnerAmbiguity: ambiguity} : {});
-    process.stdout.write(`${JSON.stringify({suggestions: result.suggestions, new_edges: result.edges.length, already_declared: result.alreadyDeclared.length}, null, 2)}\n`);
+    process.stdout.write(
+      `${JSON.stringify({suggestions: result.suggestions, new_edges: result.edges.length, already_declared: result.alreadyDeclared.length, dynamic_import_files: result.dynamicImportFiles}, null, 2)}\n`,
+    );
     process.exit(0);
   } catch (err) {
     pulse('fail', 'infer-deps', (err as Error).message);

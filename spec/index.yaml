@@ -90,6 +90,7 @@ features:
   F-098d3b: {slug: detector-count-auto-recompute, status: done, modules: 1}
   F-09d68b: {slug: clad-refine, status: done, modules: 7}
   F-0ed2db: {slug: ai-hints-consumer-instructions, status: done, modules: 11}
+  F-0f2984d0: {slug: infer-deps-dynamic-flag, status: done, modules: 2}
   F-12d740: {slug: atomic-ac-evidence-fanout, status: done, modules: 1}
   F-15999130: {slug: inferable-depends-on-detector, status: done, modules: 2}
   F-16138071: {slug: graph-efficiency-measure, status: done, modules: 2}
