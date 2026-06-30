@@ -29,15 +29,42 @@ describe('color constant tables', () => {
     expect(TIER_COL.D).toBe('#f59e0b');
   });
 
-  test('KIND_COL has the seven declared kinds (skill distinct from module)', () => {
-    expect(KIND_COL.feature).toBe('#3b82f6');
-    expect(KIND_COL.scenario).toBe('#22d3ee');
-    expect(KIND_COL.capability).toBe('#a855f7');
+  test('KIND_COL has the seven declared kinds (spec=blue · module=orange · test=green · docs=pink)', () => {
+    expect(KIND_COL.feature).toBe('#4f8ef7');
+    expect(KIND_COL.scenario).toBe('#45b5ed');
+    expect(KIND_COL.capability).toBe('#8f86f0');
     expect(KIND_COL.module).toBe('#f97316');
-    expect(KIND_COL.skill).toBe('#2dd4bf');
     expect(KIND_COL.test).toBe('#22c55e');
-    expect(KIND_COL.doc).toBe('#ec4899');
+    expect(KIND_COL.doc).toBe('#f368a8');
+    expect(KIND_COL.skill).toBe('#f7a8e6');
     expect(KIND_COL.skill).not.toBe(KIND_COL.module); // skills must NOT look like code
+  });
+
+  test('skill sits in the DOCS pink family (≈300-340° hue), not the CODE/TEST zone', () => {
+    // skill is SKILL.md, a document — its hue must be in the magenta-pink arc with doc, far from
+    // the orange module (≈25°) and green test (≈142°).
+    const hueOf = (hex: string): number => {
+      const v = parseInt(hex.slice(1), 16);
+      const r = ((v >> 16) & 255) / 255,
+        g = ((v >> 8) & 255) / 255,
+        b = (v & 255) / 255;
+      const mx = Math.max(r, g, b),
+        mn = Math.min(r, g, b),
+        d = mx - mn;
+      let h = 0;
+      if (d) {
+        if (mx === r) h = ((g - b) / d) % 6;
+        else if (mx === g) h = (b - r) / d + 2;
+        else h = (r - g) / d + 4;
+        h *= 60;
+        if (h < 0) h += 360;
+      }
+      return h;
+    };
+    const skillHue = hueOf(KIND_COL.skill);
+    expect(skillHue).toBeGreaterThan(295);
+    expect(skillHue).toBeLessThan(345);
+    expect(hueOf(KIND_COL.doc)).toBeGreaterThan(295); // doc is in the same pink family
   });
 
   test('EDGE_COL has the seven declared edge kinds', () => {
@@ -87,11 +114,13 @@ describe('hexToRgb01', () => {
 });
 
 describe('semanticHue', () => {
-  test('tier wins over kind', () => {
-    expect(semanticHue({tier: 'A', kind: 'module'})).toBe('#3b82f6');
+  test('kind always wins — tier never touches the node hue (double-encoding removed)', () => {
+    // Even a tiered node colors by kind: a tier-A module is orange (its kind), NOT tier-A blue.
+    expect(semanticHue({tier: 'A', kind: 'module'})).toBe('#f97316');
+    expect(semanticHue({tier: 'B', kind: 'test'})).toBe('#22c55e');
   });
 
-  test('no tier falls back to kind', () => {
+  test('kind maps to its KIND_COL hue', () => {
     expect(semanticHue({kind: 'module'})).toBe('#f97316');
   });
 
@@ -106,11 +135,15 @@ describe('semanticHue', () => {
     expect(new Set([m, t, d]).size).toBe(3);
   });
 
-  test('A/B/C tiers are distinct colors', () => {
-    const a = semanticHue({tier: 'A'});
-    const b = semanticHue({tier: 'B'});
-    const c = semanticHue({tier: 'C'});
-    expect(new Set([a, b, c]).size).toBe(3);
+  test('a tier-only node (no kind) falls back to DEFAULT_NODE — tier is not a hue', () => {
+    expect(semanticHue({tier: 'A'})).toBe(DEFAULT_NODE);
+    expect(semanticHue({tier: 'B'})).toBe(DEFAULT_NODE);
+    expect(semanticHue({tier: 'C'})).toBe(DEFAULT_NODE);
+  });
+
+  test('TIER_COL still carries distinct A/B/C/D colors for the sidebar tier FILTER', () => {
+    // Tier no longer colors a node, but the sidebar filter legend still needs distinct swatches.
+    expect(new Set([TIER_COL.A, TIER_COL.B, TIER_COL.C, TIER_COL.D]).size).toBe(4);
   });
 });
 

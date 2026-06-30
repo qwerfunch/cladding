@@ -154,4 +154,20 @@ describe('F-02343cd1 — SSoT-tier coloring + slug labels + self-contained HTML 
 
     expect(toHtmlShell(g)).toBe(toHtmlShell(g));
   });
+
+  test('sidebar groups kinds into spec/code/test/docs zones and labels tiers as a filter', () => {
+    const g: KnowledgeGraph = {
+      nodes: [{id: 'feature:F-1', kind: 'feature', label: 's', tier: 'A', status: 'done', detail: 'F'}],
+      edges: [],
+    };
+    const html = toHtmlShell(g);
+    // One color legend, grouped by what the node IS (the zone reads at a glance).
+    expect(html).toContain('id="kinds-spec"');
+    expect(html).toContain('id="kinds-code"');
+    expect(html).toContain('id="kinds-test"');
+    expect(html).toContain('id="kinds-docs"');
+    // Tier is demoted to a filter (no competing color legend) — label says so.
+    expect(html).toContain('SSoT layer');
+    expect(html).toContain('(filter)');
+  });
 });

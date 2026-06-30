@@ -79,10 +79,13 @@ export function toHtmlShell(graph: KnowledgeGraph, health?: Readonly<Record<stri
     <button id="theme">light</button>
     <button id="reset">reset</button>
   </div>
-  <h2>SSoT tiers</h2>
-  <div id="tiers"></div>
   <h2>kinds</h2>
-  <div id="kinds"></div>
+  <div class="zone"><h3>spec</h3><div id="kinds-spec"></div></div>
+  <div class="zone"><h3>code</h3><div id="kinds-code"></div></div>
+  <div class="zone"><h3>test</h3><div id="kinds-test"></div></div>
+  <div class="zone"><h3>docs</h3><div id="kinds-docs"></div></div>
+  <h2>SSoT layer <span class="hint-inline">(filter)</span></h2>
+  <div id="tiers"></div>
 </aside>
 <div id="tip"></div>
 <div id="hint">drag = orbit · scroll = zoom · click node = focus · hover = details</div>

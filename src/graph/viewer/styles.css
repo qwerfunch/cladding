@@ -35,6 +35,10 @@ canvas.grabbing { cursor: grabbing; }
 .row .nm { flex: 1; }
 .row .ct { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 11px; }
 .row.off .nm, .row.off .ct { opacity: .4; text-decoration: line-through; }
+.zone { margin: 2px 0 6px; }
+.zone h3 { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted);
+  margin: 6px 0 1px; opacity: .65; font-weight: 600; }
+.hint-inline { text-transform: none; letter-spacing: 0; opacity: .55; font-weight: 400; }
 .toggles { display: flex; flex-wrap: wrap; gap: 6px; }
 .toggles button { flex: 1 1 auto; padding: 6px 8px; border-radius: 7px; cursor: pointer;
   border: 1px solid var(--panel-border); background: var(--bg); color: var(--fg); font-size: 11px; }

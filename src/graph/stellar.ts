@@ -23,7 +23,7 @@ export interface ColorNode {
 
 export type Rgb = readonly [number, number, number];
 
-/** SSoT tier hue (A/B/C/D). Tier wins over kind when present. */
+/** SSoT tier hue (A/B/C/D) — used only by the sidebar tier FILTER, no longer by node hue. */
 export const TIER_COL: Readonly<Record<string, string>> = {
   A: '#3b82f6', // spec (sealed) — blue
   B: '#a855f7', // design — violet
@@ -31,15 +31,21 @@ export const TIER_COL: Readonly<Record<string, string>> = {
   D: '#f59e0b', // audit — amber
 };
 
-/** Per-kind hue for un-tiered nodes (code/test/doc/skill + spec kinds). */
+// Per-kind hue — the ONE thing a node's color encodes (tier no longer touches hue).
+// Grouped by what the node IS, so the group reads at a glance on the near-black galaxy:
+//   SPEC  = blue family (feature/scenario/capability) — similar blues, told apart by luminance
+//   CODE  = orange (module) · TEST = green (test) — the two strong anchors, deliberately far apart
+//   DOCS  = pink family (doc/skill) — skill is SKILL.md, a document, NOT code
+// All hexes verified Y≥125 (bloom floor) and clear of the 0-45° health-burn arc, EXCEPT module
+// orange (anchor, kept from the original) — the health burn pulses 2.2-3× so motion disambiguates.
 export const KIND_COL: Readonly<Record<string, string>> = {
-  feature: '#3b82f6',
-  scenario: '#22d3ee',
-  capability: '#a855f7',
-  module: '#f97316', // ordinary code/config (orange)
-  skill: '#2dd4bf', // skills/*/SKILL.md — distinct from code (turquoise)
-  test: '#22c55e',
-  doc: '#ec4899',
+  feature: '#4f8ef7', // SPEC — blue (anchor)
+  scenario: '#45b5ed', // SPEC — cyan-blue
+  capability: '#8f86f0', // SPEC — lavender-blue
+  module: '#f97316', // CODE — orange (anchor)
+  test: '#22c55e', // TEST — green (anchor)
+  doc: '#f368a8', // DOCS — rose
+  skill: '#f7a8e6', // DOCS — light pink (SKILL.md is a doc, not code)
 };
 
 /** Per-edge-kind hue (additive filaments). */
@@ -64,9 +70,13 @@ export function hexToRgb01(hex: string): Rgb {
   return [((v >> 16) & 255) / 255, ((v >> 8) & 255) / 255, (v & 255) / 255];
 }
 
-/** The semantic hue (hex): tier if tiered, else kind, else neutral. */
+/**
+ * The semantic hue (hex): KIND only, never tier. Encoding both tier and kind in one hue
+ * double-counted (tier is derivable from kind) and collided — same blue meant "feature" AND
+ * "tier A". Tier now lives in the sidebar filter + tooltip, not the node color.
+ */
 export function semanticHue(node: ColorNode): string {
-  return (node.tier && TIER_COL[node.tier]) || (node.kind && KIND_COL[node.kind]) || DEFAULT_NODE;
+  return (node.kind && KIND_COL[node.kind]) || DEFAULT_NODE;
 }
 
 /** Node sphere radius from degree — bounded so the biggest hub never dominates. */

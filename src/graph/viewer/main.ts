@@ -23,7 +23,7 @@ import {UnrealBloomPass} from 'three/examples/jsm/postprocessing/UnrealBloomPass
 import {OutputPass} from 'three/examples/jsm/postprocessing/OutputPass.js';
 
 import {computeLayout3d} from '../layout3d';
-import {edgeColor, edgeIntensity, instanceColor, KIND_COL, nodeRadius, semanticHue, TIER_COL} from '../stellar';
+import {edgeColor, edgeIntensity, instanceColor, KIND_COL, nodeRadius, semanticHue} from '../stellar';
 
 // What-I-write is what-renders: skip sRGB conversion so boosted (>1) linear colors bloom.
 THREE.ColorManagement.enabled = false;
@@ -182,6 +182,9 @@ THREE.ColorManagement.enabled = false;
   const enabledTier: Record<string, boolean> = {};
   ['feature', 'module', 'skill', 'test', 'scenario', 'capability', 'doc'].forEach((k) => (enabledKind[k] = true));
   ['A', 'B', 'C', 'D', 'code'].forEach((t) => (enabledTier[t] = true));
+  // Display label for a kind in the UI (sidebar + tooltip). The spec calls a feature's files
+  // "modules", but to a reader those are just code — show "code". Data model is unchanged.
+  const kindLabel = (k: string): string => (k === 'module' ? 'code' : k);
   let showLabels = true; // default ON (top-degree labels)
   let healthOn = true;
   let hoverId: string | null = null;
@@ -386,7 +389,7 @@ THREE.ColorManagement.enabled = false;
     const meta = mkEl('div', 'm');
     const k = mkEl('span', 'k');
     k.style.background = c;
-    k.textContent = n.kind + ' · ' + tl;
+    k.textContent = kindLabel(n.kind) + ' · ' + tl;
     meta.appendChild(k);
     if (n.status) meta.appendChild(document.createTextNode(' · ' + n.status));
     frag.append(title, meta);
@@ -471,9 +474,16 @@ THREE.ColorManagement.enabled = false;
     nodes.forEach((n) => (c[n.kind] = (c[n.kind] || 0) + 1));
     return c;
   }
-  function filterRow(key: string, name: string, sw: string, count: number, store: Record<string, boolean>): HTMLElement {
+  function filterRow(
+    key: string,
+    name: string,
+    sw: string,
+    count: number,
+    store: Record<string, boolean>,
+    noSwatch = false,
+  ): HTMLElement {
     const row = document.createElement('label');
-    row.className = 'row' + (store[key] ? '' : ' off');
+    row.className = 'row' + (store[key] ? '' : ' off') + (noSwatch ? ' noswatch' : '');
     const cb = document.createElement('input');
     cb.type = 'checkbox';
     cb.checked = !!store[key];
@@ -482,31 +492,45 @@ THREE.ColorManagement.enabled = false;
       row.className = 'row' + (cb.checked ? '' : ' off');
       rebuildAll();
     };
-    const s = document.createElement('span');
-    s.className = 'sw';
-    s.style.background = sw;
     const nm = document.createElement('span');
     nm.className = 'nm';
     nm.textContent = name;
     const ct = document.createElement('span');
     ct.className = 'ct';
     ct.textContent = String(count);
-    row.append(cb, s, nm, ct);
+    if (noSwatch) {
+      // Tier filter rows carry no color (tier isn't a hue) → checkbox + label only, no empty box.
+      row.append(cb, nm, ct);
+    } else {
+      const s = document.createElement('span');
+      s.className = 'sw';
+      s.style.background = sw;
+      row.append(cb, s, nm, ct);
+    }
     return row;
   }
+  // Kinds grouped by what the node IS — the color legend reads spec/code/test/docs at a glance.
+  const KIND_ZONES: ReadonlyArray<readonly [string, readonly string[]]> = [
+    ['spec', ['feature', 'scenario', 'capability']],
+    ['code', ['module']],
+    ['test', ['test']],
+    ['docs', ['doc', 'skill']],
+  ];
   function buildSidebar(): void {
     const kc = kindCounts();
-    const kh = document.getElementById('kinds');
-    if (kh) {
-      kh.replaceChildren();
-      Object.keys(enabledKind).forEach((k) => {
-        if (kc[k]) kh.appendChild(filterRow(k, k, KIND_COL[k] || '#9ca3af', kc[k], enabledKind));
+    KIND_ZONES.forEach(([zone, kinds]) => {
+      const box = document.getElementById('kinds-' + zone);
+      if (!box) return;
+      box.replaceChildren();
+      kinds.forEach((k) => {
+        if (kc[k]) box.appendChild(filterRow(k, kindLabel(k), KIND_COL[k] || '#9ca3af', kc[k], enabledKind));
       });
-    }
+    });
     const th = document.getElementById('tiers');
     if (th) {
       th.replaceChildren();
-      (G.legend || []).forEach((L: any) => th.appendChild(filterRow(L.key, L.label, TIER_COL[L.key] || L.color, L.count, enabledTier)));
+      // Tier is a FILTER only now (no longer a node hue) → render without a misleading color swatch.
+      (G.legend || []).forEach((L: any) => th.appendChild(filterRow(L.key, L.label, 'transparent', L.count, enabledTier, true)));
     }
   }
   function btn(id: string, on: boolean, fn: (b: HTMLElement) => void): void {

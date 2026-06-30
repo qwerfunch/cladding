@@ -17,10 +17,10 @@ import type {EdgeKind, GraphNode, KnowledgeGraph, Tier} from './model.js';
  * coupling). Tiers A/B/C/D + a neutral for code (module/test, no tier).
  */
 export const TIER_META: Record<Tier, {readonly label: string; readonly color: string}> = {
-  A: {label: 'Spec · sealed', color: '#0066cc'}, // blue
-  B: {label: 'Design', color: '#7c3aed'}, //        purple
-  C: {label: 'Derived', color: '#64748b'}, //       slate
-  D: {label: 'Audit · transient', color: '#f59e0b'}, // amber
+  A: {label: 'Spec', color: '#0066cc'}, //     blue (the sealed SSoT layer — label kept plain)
+  B: {label: 'Design', color: '#7c3aed'}, //   purple
+  C: {label: 'Derived', color: '#64748b'}, //  slate
+  D: {label: 'Audit', color: '#f59e0b'}, //    amber
 };
 /** Color for non-tier nodes (modules, tests = code on disk). */
 export const CODE_COLOR = '#9ca3af'; // gray
