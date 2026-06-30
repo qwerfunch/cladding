@@ -68,3 +68,6 @@ playwright-report/
 # but should not bloat the repository — keep them local-only.
 docs/ab-evaluation-extended/scenarios/*/cladding/
 docs/ab-evaluation-extended/scenarios/*/vanilla/
+
+# Local screen recordings — source for README GIFs, regeneratable; keep out of the repo.
+*.mov

@@ -1,47 +1,74 @@
-<svg width="700" height="460" viewBox="0 0 700 460" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="cycle-title">
+<svg width="700" height="470" viewBox="0 0 700 470" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="cycle-title" font-family="-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif">
   <title id="cycle-title">Spec → Code → Tests 순환 — 한 feature lifecycle</title>
   <defs>
-    <marker id="ah" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto">
-      <path d="M0,0 L9,4 L0,8 z" fill="#475569"/>
-    </marker>
+    <style>
+      :root{
+        --brand:#3b82f6; --brand-deep:#1d4ed8; --brand-soft:#eff6ff;
+        --ink:#0f172a; --text:#1e293b; --muted:#64748b; --faint:#94a3b8;
+        --border:#d8dfea; --surface:#ffffff; --ok:#16a34a; --block:#e11d48;
+      }
+      .title{font-size:19px;font-weight:800;fill:var(--ink);letter-spacing:-.3px}
+      .sub0{font-size:12.5px;fill:var(--muted)}
+      .hdr{font-size:13.5px;font-weight:700;fill:#ffffff}
+      .item{font-size:12.5px;fill:var(--text)}
+      .muted{font-size:10.5px;fill:var(--faint)}
+      .focal{font-size:20px;font-weight:800;fill:#ffffff;letter-spacing:-.3px}
+      .flow{font-size:10.5px;font-weight:600;fill:var(--brand-deep)}
+      .card{fill:var(--surface);stroke:var(--border);stroke-width:1.25}
+      .band{fill:var(--brand)} .focalbox{fill:var(--brand-deep)}
+      .okfill{fill:var(--ok)} .blockfill{fill:var(--block)} .inkfill{fill:var(--ink)}
+    </style>
+    <marker id="ab" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#3b82f6"/></marker>
+    <marker id="ag" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#16a34a"/></marker>
+    <marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#e11d48"/></marker>
   </defs>
 
+  <rect width="700" height="470" fill="#ffffff"/>
+
   <!-- Title -->
-  <text x="350" y="30" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="17" font-weight="700" fill="#0f172a" text-anchor="middle">Spec → Code → Tests 순환</text>
+  <text x="350" y="34" text-anchor="middle" class="title">Spec → Code → Tests 순환</text>
+  <rect x="308" y="44" width="84" height="3" rx="1.5" fill="#3b82f6"/>
+  <text x="350" y="66" text-anchor="middle" class="sub0">스펙이 권위 — 코드와 테스트는 스펙을 따른다</text>
 
-  <!-- Spec box (top, green) -->
-  <rect x="225" y="54" width="250" height="82" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
-  <text x="350" y="82" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="16" font-weight="700" fill="#0f172a" text-anchor="middle">Spec</text>
-  <text x="350" y="104" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#475569" text-anchor="middle">의도의 기록</text>
-  <text x="350" y="123" font-family="'SF Mono', Menlo, monospace" font-size="11" fill="#64748b" text-anchor="middle">spec/features/*.yaml</text>
+  <!-- Spec card : top center -->
+  <rect x="245" y="78" width="210" height="92" rx="14" class="card"/>
+  <path d="M245 108 L245 92 Q245 78 259 78 L441 78 Q455 78 455 92 L455 108 Z" class="band"/>
+  <text x="263" y="99" class="hdr">Spec · 의도의 기록</text>
+  <text x="265" y="134" class="item">▸ spec/features/*.yaml</text>
+  <text x="265" y="158" class="item">▸ 권위의 원천 (SSoT)</text>
 
-  <!-- Code box (bottom-right, blue) -->
-  <rect x="425" y="330" width="255" height="75" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
-  <text x="552" y="360" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="16" font-weight="700" fill="#0f172a" text-anchor="middle">Code</text>
-  <text x="552" y="386" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#475569" text-anchor="middle">구현 — LLM이 작성</text>
+  <!-- 검증 관문 : deep-blue focal -->
+  <rect x="285" y="206" width="130" height="72" rx="16" class="focalbox"/>
+  <text x="350" y="240" text-anchor="middle" class="focal">검증 관문</text>
+  <text x="350" y="262" text-anchor="middle" font-size="11.5" font-weight="600" fill="#dbeafe">15단계 · 39 검사</text>
 
-  <!-- Tests box (bottom-left, amber) -->
-  <rect x="20" y="330" width="255" height="75" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
-  <text x="147" y="360" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="16" font-weight="700" fill="#0f172a" text-anchor="middle">Tests</text>
-  <text x="147" y="386" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#475569" text-anchor="middle">증거 — AC ↔ test 연결</text>
+  <!-- Code card : bottom-right -->
+  <rect x="445" y="340" width="225" height="96" rx="14" class="card"/>
+  <path d="M445 370 L445 354 Q445 340 459 340 L656 340 Q670 340 670 354 L670 370 Z" class="band"/>
+  <text x="463" y="361" class="hdr">Code · 구현</text>
+  <text x="465" y="396" class="item">▸ 호스트 LLM이 작성</text>
+  <text x="465" y="420" class="item">▸ cladding은 코드 안 씀</text>
+
+  <!-- Tests card : bottom-left -->
+  <rect x="30" y="340" width="225" height="96" rx="14" class="card"/>
+  <path d="M30 370 L30 354 Q30 340 44 340 L241 340 Q255 340 255 354 L255 370 Z" class="band"/>
+  <text x="48" y="361" class="hdr">Tests · 증거</text>
+  <text x="50" y="396" class="item">▸ AC ↔ test 연결</text>
+  <text x="50" y="420" class="item">▸ 결과를 검증한다</text>
 
   <!-- Arrow: Spec → Code (right side, clockwise) -->
-  <path d="M 475 108 Q 625 200 545 328" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#ah)"/>
-  <text x="515" y="212" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="13" font-weight="600" fill="#475569" text-anchor="middle">의도 주입</text>
+  <path d="M 455 142 Q 640 205 557 336" fill="none" stroke="#3b82f6" stroke-width="2" marker-end="url(#ab)"/>
+  <text x="600" y="208" text-anchor="middle" class="flow">의도 주입</text>
 
   <!-- Arrow: Code → Tests (bottom) -->
-  <line x1="425" y1="368" x2="277" y2="368" stroke="#475569" stroke-width="2" marker-end="url(#ah)"/>
-  <text x="350" y="357" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="13" font-weight="600" fill="#475569" text-anchor="middle">검증</text>
+  <line x1="443" y1="388" x2="259" y2="388" stroke="#3b82f6" stroke-width="2" marker-end="url(#ab)"/>
+  <text x="350" y="378" text-anchor="middle" class="flow">검증</text>
 
   <!-- Arrow: Tests → Spec (left side, clockwise) -->
-  <path d="M 150 330 Q 75 200 223 110" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#ah)"/>
-  <text x="185" y="200" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="13" font-weight="600" fill="#475569" text-anchor="middle">어긋남은 차단</text>
-  <text x="185" y="219" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="13" font-weight="600" fill="#475569" text-anchor="middle">갱신은 기록</text>
-
-  <!-- Center: the gate -->
-  <text x="350" y="232" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="13" font-weight="700" fill="#0f172a" text-anchor="middle">검증 관문</text>
-  <text x="350" y="254" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#475569" text-anchor="middle">15단계 필수 검증 · 36가지 어긋남 검사</text>
+  <path d="M 120 338 Q 55 205 243 142" fill="none" stroke="#3b82f6" stroke-width="2" marker-end="url(#ab)"/>
+  <text x="100" y="206" text-anchor="middle" class="flow">어긋남은 차단</text>
+  <text x="100" y="223" text-anchor="middle" class="flow">갱신은 기록</text>
 
   <!-- Caption -->
-  <text x="350" y="438" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#64748b" text-anchor="middle">한 feature 씩 — 검증 통과로 완료를 획득해야 cycle이 닫힌다</text>
+  <text x="350" y="458" text-anchor="middle" class="sub0">한 feature씩 — 검증 통과로 완료를 획득해야 cycle이 닫힌다</text>
 </svg>
