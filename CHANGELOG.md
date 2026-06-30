@@ -67,12 +67,58 @@ always-current graph you can query for impact and *see* in a graph viewer.
 
 **Notes**
 
-- Drift detectors: 37 → 38 (`DOC_LINK_INTEGRITY`).
+- Drift detectors: 37 → 40 — this work adds `DOC_LINK_INTEGRITY` and `INFERABLE_DEPENDS_ON`; develop's `UNVERIFIED_AC` (below) is the third.
 - The viewer is hand-rolled (no bundled third-party graph library) to stay
   dependency-free and fully offline; the layout draws itself and settles, then
   stays calm. It is a way to *see and navigate* the spec↔code↔doc structure, not
   a correctness check — run `clad check` for that.
 - Design + measured cost/benefit model: `docs/knowledge-graph/design.md`.
+### Added
+
+- **EARS `complex` pattern — the 6th canonical shape** (`F-9d168287`) — `src/spec/ears.ts`
+  implemented 5 of the 6 EARS patterns; the 6th, `complex` (a precondition combined
+  with a trigger, e.g. *"While the aircraft is on the ground, when reverse thrust is
+  commanded, the system shall …"*), was missing, and the validator keyed on the first
+  trigger word only — so a multi-clause `While … when …` requirement either failed
+  validation or was forced into a single-keyword bucket, silently losing the trigger
+  clause. `complex` is now a first-class `EarsPattern`: `checkEarsShape` validates BOTH
+  clauses (a leading `while` precondition AND a `when` trigger) and names the missing
+  one, preserving the precondition→trigger relationship EARS exists to capture. Purely
+  additive — the existing five patterns validate exactly as before. The new value is
+  mirrored across every enum site (`types.ts`, `spec/schema.json` ac.ears + always_ears,
+  `new.ts`, the MCP server enum) to keep authoring/validation/schema in lockstep.
+
+- **`UNVERIFIED_AC` drift detector — AC → test → *observed pass*** (`F-96700032`)
+  — closes the one soft spot in the otherwise execution-based gate. `UNTESTED_AC`
+  only checks that a done AC's `test_refs` *exist on disk*, so an empty file, a
+  `test.skip`, or a failing test still satisfied it. When a JUnit XML report is
+  available — `gate.test_report` in `.cladding/config.yaml`, or a conventional
+  path (`test-report.junit.xml`, `coverage/junit.xml`, `.cladding/test-report.junit.xml`)
+  — `UNVERIFIED_AC` confirms each done AC's referenced tests actually **ran and
+  passed**: failing/errored or only-skipped tests are an `error`, and a test_ref
+  absent from a present report is a `warn` (a scoped/partial run is legitimate;
+  `--strict` promotes it). **Graceful by default:** with no report present the
+  detector emits nothing, leaving `UNTESTED_AC`'s existence check as the baseline,
+  so projects that don't emit JUnit XML are unaffected. Parsing is pure and
+  regex-based (no XML dependency), mirroring the coverage-XML approach.
+
+- **`UNVERIFIED_AC` multi-framework `test_ref`↔testcase matching** (`F-d980359c`)
+  — the matcher was effectively vitest-only: it keyed every testcase by its
+  `classname` and assumed that was a file path. pytest (`tests.test_foo`),
+  Java/Kotlin (`com.example.FooTest`), and `file=`-attribute emitters therefore
+  never matched, so a *passing* test read as **`absent`** (a false positive under
+  `--strict`) and a *real* fail/skip was mis-reported as "did not run". The
+  parser now indexes each testcase under every path-shaped key it can derive
+  (the `file=` attribute, the `classname` as-is, and a dot→slash conversion of a
+  dotted classname) and matches `test_refs` **extension-agnostically**
+  (`FooTest` ↔ `FooTest.kt`). **Confident-or-degrade:** a report whose keys are
+  none path-like (e.g. jest describe-title `classname`s that cannot be mapped to
+  files) is treated as unmappable and the detector emits nothing, rather than
+  flooding false `absent` findings — preserving the low-false-positive contract.
+  Measured A/B (OLD = `classname`-only): correct verdicts across a
+  vitest/pytest/Kotlin/jest matrix went **2/8 → 8/8**; parse cost on a 10k-case
+  report grew by ~1.6 ms (vitest-shaped) to ~7.8 ms (pytest-shaped) per gate run
+  — noise against the ~50 s gate.
 
 ## [0.6.3] — 2026-06-26 — Honest Status
 

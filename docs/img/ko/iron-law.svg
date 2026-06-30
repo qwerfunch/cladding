@@ -36,7 +36,7 @@
   <text x="596" y="99" text-anchor="end" font-size="11" fill="#bfdbfe">6단계 · 결정적</text>
   <text x="46" y="136" class="item">▸ Type</text>
   <text x="210" y="136" class="item">▸ Lint</text>
-  <text x="410" y="136" class="item">▸ Drift (39 검사)</text>
+  <text x="410" y="136" class="item">▸ Drift (40 검사)</text>
   <text x="46" y="160" class="item">▸ Commit</text>
   <text x="210" y="160" class="item">▸ Arch</text>
   <text x="410" y="160" class="item">▸ Secret</text>

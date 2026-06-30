@@ -235,8 +235,8 @@
   <p class="badges">
     <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"></a>
     <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"></a>
-    <img src="https://img.shields.io/badge/tests-1630%2F1630-brightgreen" alt="tests">
-    <img src="https://img.shields.io/badge/detectors-39-brightgreen" alt="detectors">
+    <img src="https://img.shields.io/badge/tests-1664%2F1664-brightgreen" alt="tests">
+    <img src="https://img.shields.io/badge/detectors-40-brightgreen" alt="detectors">
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"></a>
   </p>
 
@@ -276,7 +276,7 @@
       그래서 AI가 짠 코드를 <strong>사람이 짠 코드만큼 믿고</strong> 내보낼 수 있다.
     </p>
     <p class="why" style="margin-top:14px">
-      cladding은 <strong>자기 자신도 cladding으로 만든다</strong> — 기능 196개 중 192개가 같은 게이트를 통과했고, Ironclad 표준을 L4로 구현한 첫 사례다.
+      cladding은 <strong>자기 자신도 cladding으로 만든다</strong> — 기능 199개 중 195개가 같은 게이트를 통과했고, Ironclad 표준을 L4로 구현한 첫 사례다.
     </p>
   </div>
 
@@ -302,7 +302,7 @@
       <div class="title">LLM의 산출물이 스펙과 어긋나면 차단</div>
       <ul>
         <li><strong>15단계 검증 관문</strong> — 타입·린트·테스트·커버리지·아키텍처·시크릿을 한 번에</li>
-        <li><strong>39가지 어긋남 검사</strong> — 스펙↔코드↔테스트가 맞는지 모든 방향 자동 대조</li>
+        <li><strong>40가지 어긋남 검사</strong> — 스펙↔코드↔테스트가 맞는지 모든 방향 자동 대조</li>
         <li><strong>구현 못 보는 채점자</strong> — 코드 못 읽는 에이전트가 스펙만 보고 채점</li>
         <li><strong>실행물 직접 구동</strong> — "테스트는 통과인데 안 도는" 걸 실제 실행으로 차단</li>
       </ul>
@@ -410,7 +410,7 @@ clad graph export --format html --out graph.html  # 또는 오프라인 한 파�
   <p><strong>Spec → Code → Tests</strong>가 한 cycle로 순환한다 — spec이 <em>왜</em>를 기록하고, 게이트가 검증하고, detector가 어긋남을 차단한다.</p>
 
   <div class="diagram">
-    <img class="diagram-img" src="docs/img/ko/cycle.svg" alt="Spec → Code → Tests 순환 — 15단계 검증과 39 drift detector가 cycle을 지킨다" width="700">
+    <img class="diagram-img" src="docs/img/ko/cycle.svg" alt="Spec → Code → Tests 순환 — 15단계 검증과 40 drift detector가 cycle을 지킨다" width="700">
   </div>
 
   <h3>1. Spec — 모든 것의 기준 (SSoT)</h3>
@@ -448,7 +448,7 @@ clad graph export --format html --out graph.html  # 또는 오프라인 한 파�
     </thead>
     <tbody>
       <tr><td><strong>1.1 Type · 1.2 Lint</strong></td><td>타입 오류 · 코드 스타일</td></tr>
-      <tr><td><strong>1.3 Drift</strong></td><td>39 detector의 spec ↔ 코드 어긋남</td></tr>
+      <tr><td><strong>1.3 Drift</strong></td><td>40 detector의 spec ↔ 코드 어긋남</td></tr>
       <tr><td><strong>1.4 Commit · 1.5 Arch · 1.6 Secret</strong></td><td>작업트리 clean · architecture invariant · API 키 노출</td></tr>
       <tr><td><strong>2.1 Unit · 2.2 Coverage</strong></td><td>단위 테스트 통과 · coverage 하락 차단</td></tr>
       <tr><td><strong>2.3 Spec conformance · 2.4 Deliverable smoke</strong></td><td>구현을 못 본 채점자의 테스트 통과 · 선언된 실행물이 실제로 도는지 <em>("테스트는 통과인데 결과물은 안 도는" 빈 초록 차단)</em></td></tr>
@@ -580,13 +580,13 @@ clad update                # 3. 새 버전에 맞게 정리</code></pre>
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">tests</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">1630<span style="font-size:16px;color:#94a3b8">/1630</span></div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">1664<span style="font-size:16px;color:#94a3b8">/1664</span></div>
         <div style="font-size:11px;color:#64748b">all pass</div>
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">gate</div>
         <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">15<span style="font-size:16px;color:#94a3b8"> 단계</span></div>
-        <div style="font-size:11px;color:#64748b">39 detectors</div>
+        <div style="font-size:11px;color:#64748b">40 detectors</div>
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">features</div>
@@ -596,7 +596,7 @@ clad update                # 3. 새 버전에 맞게 정리</code></pre>
     </tr>
   </table>
 
-  <p style="text-align:center;font-size:13px;color:#64748b;margin-top:12px">166 test files · coverage는 COVERAGE_DROP detector가 하락 차단 · 설치는 npm 단일 경로(<code>npm install -g cladding</code>)</p>
+  <p style="text-align:center;font-size:13px;color:#64748b;margin-top:12px">169 test files · coverage는 COVERAGE_DROP detector가 하락 차단 · 설치는 npm 단일 경로(<code>npm install -g cladding</code>)</p>
 
   <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:24px 0;background:#f8fafc;color:#475569;font-size:14px"><strong>Ironclad 1.0까지의 길</strong> — 1.0은 <em>독립적인 두 개의 구현이 L4 검증 셋을 통과해야</em> 잠긴다 (<a href="https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md">GOVERNANCE § 1</a>). cladding이 첫 번째.</blockquote>
 
@@ -606,7 +606,7 @@ clad update                # 3. 새 버전에 맞게 정리</code></pre>
     <li><a href="docs/project-context.md">Why cladding (project context)</a></li>
     <li><a href="docs/ssot-model.md">4-tier governance model</a></li>
     <li><a href="docs/spec-ids-multi-dev.md">Hash-based feature ID</a></li>
-    <li><a href="src/stages/detectors/README.md">39 detector catalog</a></li>
+    <li><a href="src/stages/detectors/README.md">40 detector catalog</a></li>
     <li><a href="docs/glossary.md">용어집 (EN · KO)</a></li>
     <li><a href="GOVERNANCE.md">Governance · roadmap to 1.0</a></li>
   </ul>

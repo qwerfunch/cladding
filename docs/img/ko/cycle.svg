@@ -40,7 +40,7 @@
   <!-- 검증 관문 : deep-blue focal -->
   <rect x="285" y="206" width="130" height="72" rx="16" class="focalbox"/>
   <text x="350" y="240" text-anchor="middle" class="focal">검증 관문</text>
-  <text x="350" y="262" text-anchor="middle" font-size="11.5" font-weight="600" fill="#dbeafe">15단계 · 39 검사</text>
+  <text x="350" y="262" text-anchor="middle" font-size="11.5" font-weight="600" fill="#dbeafe">15단계 · 40 검사</text>
 
   <!-- Code card : bottom-right -->
   <rect x="445" y="340" width="225" height="96" rx="14" class="card"/>

@@ -41,6 +41,13 @@ export interface GateConfig {
    * COVERAGE_DROP detector reads. Absent → auto-detect, default jacoco.
    */
   readonly coverage?: CoverageTool;
+  /**
+   * Path to a JUnit XML test-result report (relative to cwd). When set and the
+   * file exists, UNVERIFIED_AC reads it to confirm each done AC's test_refs
+   * actually RAN and PASSED — closing the AC → test → observed-pass loop.
+   * Absent (or file missing) → the check degrades to existence-only UNTESTED_AC.
+   */
+  readonly testReport?: string;
 }
 
 const DEFAULT: GateConfig = {scope: 'feature'};
@@ -51,13 +58,14 @@ export function readGateConfig(cwd: string = '.'): GateConfig {
   if (!existsSync(path)) return DEFAULT;
   try {
     const parsed = parseYaml(readFileSync(path, 'utf8')) as {
-      gate?: {scope?: unknown; commands?: Record<string, unknown>; coverage?: unknown};
+      gate?: {scope?: unknown; commands?: Record<string, unknown>; coverage?: unknown; test_report?: unknown};
     } | null;
     const gate = parsed?.gate;
     if (!gate) return DEFAULT;
     const scope = gate.scope === 'repo' ? 'repo' : 'feature';
     const coverage: CoverageTool | undefined =
       gate.coverage === 'kover' || gate.coverage === 'jacoco' ? gate.coverage : undefined;
+    const testReport = typeof gate.test_report === 'string' ? gate.test_report : undefined;
     const commands: Partial<Record<ScopedStageKey, readonly string[]>> = {};
     if (gate.commands && typeof gate.commands === 'object') {
       for (const key of STAGE_KEYS) {
@@ -70,6 +78,7 @@ export function readGateConfig(cwd: string = '.'): GateConfig {
     const out: GateConfig = {scope};
     if (Object.keys(commands).length > 0) (out as {commands?: unknown}).commands = commands;
     if (coverage) (out as {coverage?: unknown}).coverage = coverage;
+    if (testReport) (out as {testReport?: unknown}).testReport = testReport;
     return out;
   } catch {
     return DEFAULT;

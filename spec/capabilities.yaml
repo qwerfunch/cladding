@@ -10,7 +10,7 @@ source: spec.yaml
 capabilities:
   - id: drift-detection
     title: "Drift detection"
-    summary: "39 detectors across spec ↔ code ↔ test axes; the load-bearing core of cladding"
+    summary: "40 detectors across spec ↔ code ↔ test axes; the load-bearing core of cladding"
     surface: feature
     features: [F-99c6e5, F-3788c2, F-f44d1b, F-a4b512]
   - id: harness-cli
