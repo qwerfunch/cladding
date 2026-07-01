@@ -115,7 +115,7 @@ export function buildServer(opts: ServerOptions = {}): McpServer {
   const server = new McpServer(
     {
       name: opts.name ?? 'cladding',
-      version: opts.version ?? '0.6.3',
+      version: opts.version ?? '0.7.0',
     },
     {
       // Declare subscribe support so clients can subscribe to
