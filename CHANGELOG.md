@@ -7,6 +7,8 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-07-01 — Knowledge Graph
+
 ### Knowledge graph (spec↔code↔doc)
 
 **In one line:** the links between spec, code, tests, and docs — which until now
