@@ -24,7 +24,7 @@
 <p align="center">
   The official reference implementation of the <a href="https://github.com/qwerfunch/ironclad">Ironclad</a> standard.<br/>
   Before your host LLM (Claude Code · Codex · Gemini · Cursor) <em>starts</em> work, cladding feeds it the project's intent;<br/>
-  after it <em>finishes</em>, cladding verifies the result with 40 detectors and a 15-stage gate. A division of labor toward the same goal.
+  after it <em>finishes</em>, cladding verifies the result with 40 detectors and a 15-stage gate.
 </p>
 
 <!-- ─────────────── Why an enterprise can trust AI with coding ─────────────── -->
@@ -49,8 +49,6 @@ cladding builds **itself** with cladding too — 195 of its 199 features cleared
 
 ## How it works with your host LLM
 
-cladding doesn't write code — writing code is always the **host LLM's** job. What cladding owns is the *before* and the *after*: injecting the intent precisely before work starts, and mechanically verifying the result after it finishes.
-
 #### Before — inject the intent
 
 *So the LLM starts with the right context.*
@@ -59,24 +57,7 @@ cladding doesn't write code — writing code is always the **host LLM's** job. W
 - **Only the intent that matters** — just the *why* of the feature at hand, its related features, and its acceptance criteria are pulled out (it does not dump the whole spec).
 - **Project rules applied** — the forbidden and preferred patterns the team agreed on go in as standing instructions every time.
 
-#### After — verify the result
-
-*If the LLM's output drifts from the spec, block it.*
-
-- **15-stage verification gate** — type · lint · tests · coverage · architecture · secrets, all in one pass.
-- **40 drift checks** — whether spec ↔ code ↔ test still agree, cross-checked automatically in every direction.
-- **An implementation-blind grader** — a separate agent that *cannot read the code* grades it with tests written from the spec alone.
-- **Run the deliverable for real** — the "tests pass but the program doesn't run" situation is blocked by actually running it.
-
-#### Record — input for the next turn
-
-*Verification results flow back into the LLM's context.*
-
-- **Verification signature** — the code state that cleared every check is saved to the repo as a signature: "this was verified at this point."
-- **Audit ledger** — every verification run, completion attempt, and block is recorded with who · when · what result.
-- **Repair card** — try to end a conversation leaving a failure and it blocks you once, then carries the failure summary forward into the next conversation.
-
-While this loop runs, you just **develop in natural language as usual** — there are no commands to memorize.
+**After — verify:** the 15-stage gate, 40 drift detectors, and an implementation-blind grader (below).
 
 <sub>Real-time intervention (map injection · instant block · stop-block) all works on Claude Code. On Codex · Gemini · Cursor the same verification runs through in-conversation tool calls plus the git · CI gate.</sub>
 
@@ -93,7 +74,7 @@ The chronic disease of AI coding is *"it's done"* declared with no verification 
 </div>
 
 1. When the AI tries to **write the completion mark itself** → it's **blocked on the spot** ("earn completion by verifying it").
-2. When the AI **requests** completion → all 9 deterministic stages (type · lint · drift · architecture · secret · tests · coverage · spec conformance · deliverable smoke) run, and it's recorded as done **only if every one passes**; one failure and it auto-reverts — the E2E · evidence stages are handled by CI's full 15.
+2. When the AI **requests** completion → all 9 deterministic stages run, and it's recorded as done **only if every one passes**; one failure and it auto-reverts — the E2E · evidence stages are handled by CI's full 15.
 3. The moment it passes, a **verification signature** is left behind — committable proof that "this code was verified at this point."
 4. Try to end a conversation leaving a failure → it **blocks you once** (end again on the same failure and it records the fact rather than letting it through) and carries the repair card into the next conversation.
 
@@ -123,7 +104,7 @@ cladding always keeps a **map** inside it that connects spec · code · tests ·
 > **Why this matters — the docs and the code don't drift apart.**
 > Docs lie as time passes — the code changes but the description stays put. cladding re-checks that connection every time the code is read, and blocks "done" while the two are out of sync.
 
-This is the mental map cladding has of your project — the bright **blue** glowing at the center is the **spec**, the **orange** around it is **code**, the **green** further out is **tests**, and **pink** is **docs**. The more connected a node is, the bigger it grows and the closer it's pulled to the center.
+Blue = spec (center), orange = code, green = tests, pink = docs; more-connected nodes grow larger and pull to the center.
 
 <div align="center">
 
@@ -133,7 +114,7 @@ This is the mental map cladding has of your project — the bright **blue** glow
 
 - **See — the whole project on one canvas** — Run `clad graph serve` and it opens in your browser; you see what connects to what at a glance.
 - **Ask — "what breaks if I change this?"** — Ask the map and it tells you what's affected and which tests to run — it doesn't guess.
-- **Measure — it shines brighter the larger the project** — The amount you have to look at when fixing something drops sharply — on average **4× less** than reading everything. The working set barely grows as code piles up, so the gap widens with scale. (`clad measure`)
+- **Measure — it shines brighter the larger the project** — The amount you have to look at when fixing something drops sharply — on average **4× less** than reading everything. (`clad measure`)
 
 To launch it yourself — from your project folder:
 
@@ -142,7 +123,7 @@ clad graph serve                                  # live graph — localhost:300
 clad graph export --format html --out graph.html  # or export to a single offline file (.html)
 ```
 
-<sub>`serve` refreshes the view on its own every time you edit the spec or docs · `export` is a single file you open straight in the browser, no server or dependencies. Both require cladding 0.7.0+.</sub>
+<sub>Both require cladding 0.7.0+.</sub>
 
 <!-- ─────────────── How it works ─────────────── -->
 
@@ -167,7 +148,7 @@ The spec records the *why* (what we're building and why). A 4-tier single source
 | **C — Derived** | implementation (code · tests) + **attestation** (verification signature) | the LLM writes | auto-regenerated by reading the code |
 | **D — Audit** | audit record (what actually happened) | auto-recorded (append-only) | immutable |
 
-**A outranks every tier below it** — if spec (A) and code (C) disagree, the *code* is the one that's wrong. If the intent (A) wavers, everything wavers, so it's sealed: it doesn't change without explicit human approval.
+**A outranks every tier below it** — if spec (A) and code (C) disagree, the *code* is the one that's wrong.
 
 **Sharded · multi-dev safe** — like `spec/features/<slug>-<hash8>.yaml`, *each feature gets its own file* + an *8-char hash ID* (e.g. `F-d86375d8`). Two devs creating new features at the same time land in *different files with different IDs*, so zero merge conflicts. Details: [Hash-based feature IDs](docs/spec-ids-multi-dev.md).
 
@@ -179,7 +160,7 @@ The spec records the *why* (what we're building and why). A 4-tier single source
 
 ### 2. Gate — the 15-stage Iron Law
 
-To be recognized as "done," a change must clear the strict gate (9 of the 15 stages are deterministic), and the full 15 stages — including E2E · evidence — are run by CI. The same check engine is applied in per-moment bundles split **by cost**: a fast 3 deterministic stages (drift · architecture · secret) at commit time when the git hook is installed, 9 deterministic stages at push · completion time, and all 15 in CI. Only the depth differs — the check logic is identical.
+One check engine, bundled **by cost**: 3 at commit, 9 at push/completion, all 15 in CI. Only the depth differs.
 
 <div align="center">
 
@@ -250,7 +231,7 @@ cladding sits at the junction of three existing categories.
 
 ### How it differs from the neighbors
 
-- **Spec Kit · OpenSpec · Tessl · Kiro** — tools that help you *write a good spec*. On top of that, cladding *keeps continuously cross-checking, inside the dev loop, that the spec and the actual code don't drift* — at completion time · commit · all the way through CI.
+- **Spec Kit · OpenSpec · Tessl · Kiro** — tools that help you *write a good spec*. On top of that, cladding *keeps continuously cross-checking, inside the dev loop, that the spec and the actual code don't drift*.
 - **BMAD · ChatDev · Claude Code Agent Teams** — systems for *splitting roles across multiple AI agents*. cladding's agent division of labor runs with *spec · gate · audit record* combined on top.
 - **tdd-guard** — a tool that *forces the AI to write tests first*. The Unit · Coverage · oracle stages among cladding's 15 do the same job, more structurally.
 - **OpenHands · Cline · Aider · Goose** — *runners that make the AI write code* (pure executors). cladding is the *upper layer that verifies and governs* the code those runners produce.
@@ -270,8 +251,6 @@ npm install -g cladding   # install the cladding CLI
 cd <project>              # move into the project
 clad setup                # auto-wire your AI tools (Claude / Codex / Gemini / Cursor)
 ```
-
-A single `clad setup` auto-detects the AI tools you have installed and wires them all — no per-tool configuration needed.
 
 <details>
 <summary>Where <code>clad setup</code> connects (4 hosts · 5 wire points)</summary>
@@ -334,7 +313,7 @@ Your code · `spec.yaml` · docs are left untouched, so it's safe — and if the
 |---|---|---|---|---|
 | v0.7.0 (2026-07) | L4 · [self-declared](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 1665 / 1665 | 15 stages · 40 detectors | 199 (195 done) |
 
-<sub>170 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector · single install path via npm (`npm install -g cladding`)</sub>
+<sub>170 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector</sub>
 
 > **Road to Ironclad 1.0** — 1.0 locks only when *two independent implementations pass the L4 conformance fixtures* ([GOVERNANCE § 1](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md)). cladding is the first.
 

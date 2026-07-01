@@ -243,7 +243,7 @@
   <p class="lead">
     The official reference implementation of the <a href="https://github.com/qwerfunch/ironclad">Ironclad</a> standard.<br>
     It feeds the project's intent to the host LLM (Claude Code · Codex · Gemini · Cursor) <em>before</em> work begins,<br>
-    and verifies the result with 40 detectors and a 15-stage gate <em>after</em> the work is done. A division of labor toward the same goal.
+    and verifies the result with 40 detectors and a 15-stage gate <em>after</em> the work is done.
   </p>
 
   <!-- ─────────────── Why an organization can trust AI with coding (intuition hook) ─────────────── -->
@@ -282,10 +282,6 @@
 
   <!-- ─────────────── How we work together ─────────────── -->
   <h2>How cladding works with your host LLM</h2>
-  <p>
-    cladding does not write code. The one writing code is always the <strong>host LLM</strong>.
-    What cladding handles is feeding it the exact intent <em>before</em> it starts, and verifying the result mechanically <em>after</em> it finishes.
-  </p>
 
   <div class="flow-cards">
     <div class="flow-card before">
@@ -297,30 +293,9 @@
         <li><strong>Apply project rules</strong> — the team's forbidden and preferred patterns go in as standing instructions every time</li>
       </ul>
     </div>
-    <div class="flow-card after">
-      <span class="badge">AFTER — VERIFY THE RESULT</span>
-      <div class="title">Block the LLM's output when it drifts from the spec</div>
-      <ul>
-        <li><strong>15-stage verification gate</strong> — type · lint · tests · coverage · architecture · secrets, all in one pass</li>
-        <li><strong>40 drift checks</strong> — automatic cross-checking in every direction that spec ↔ code ↔ tests stay aligned</li>
-        <li><strong>An implementation-blind grader</strong> — an agent that cannot read the code grades it from the spec alone</li>
-        <li><strong>Run the deliverable directly</strong> — actually executing it to block the "tests pass but it won't run" case</li>
-      </ul>
-    </div>
-    <div class="flow-card record">
-      <span class="badge">RECORD — INPUT FOR THE NEXT TURN</span>
-      <div class="title">Verification results flow back into the LLM's context</div>
-      <ul>
-        <li><strong>Verification signature</strong> — code that passed gets a "verified at this point" signature stored in the repo</li>
-        <li><strong>Audit ledger</strong> — every verification, completion attempt, and block is recorded with who, when, and the result</li>
-        <li><strong>Repair card</strong> — if you try to end while a failure remains, it stops you once and carries the summary into the next conversation</li>
-      </ul>
-    </div>
   </div>
 
-  <p style="text-align:center;font-size:14px;color:#475569">
-    While this loop runs, you just <strong>develop in natural language as usual</strong>.
-  </p>
+  <p style="text-align:center;font-size:14px;color:#475569"><strong>After — verify:</strong> the 15-stage gate, 40 drift detectors, and an implementation-blind grader (below).</p>
   <p style="font-size:13px;color:#64748b;text-align:center;margin-top:4px">
     Real-time intervention (map injection · instant block · stop block) works fully in Claude Code.
     On Codex · Gemini · Cursor the same verification runs through in-conversation tool calls and git · CI gates.
@@ -375,7 +350,7 @@
   </div>
 
   <p style="text-align:center;font-size:15px;color:#475569;margin:28px 0 0">
-    This is cladding's <strong>mental map</strong> of your project — the bright blue at the center is the spec, the orange around it is code, the green outside is tests, the pink is docs. The more connected a node is, the bigger it grows and the closer it's pulled to the center.
+    This is cladding's <strong>mental map</strong> of your project — blue = spec (center), orange = code, green = tests, pink = docs; more-connected nodes grow larger and pull to the center.
   </p>
   <div class="diagram">
     <img class="diagram-img" src="docs/img/en/graph.gif" alt="cladding knowledge graph — spec · code · tests · docs color-coded and connected (animated view)" width="920" style="border-radius:12px">
@@ -396,14 +371,14 @@
     <div class="flow-card record">
       <span class="badge">MEASURE</span>
       <div class="title">The larger the project, the brighter it shines</div>
-      <p>The amount you have to read to make a change drops sharply — on average <strong>4× less</strong> than reading everything. As code piles up the amount barely grows, so the gap widens with scale. (<code>clad measure</code>)</p>
+      <p>The amount you have to read to make a change drops sharply — on average <strong>4× less</strong> than reading everything. (<code>clad measure</code>)</p>
     </div>
   </div>
 
   <p style="font-size:14px;color:#475569;margin-top:18px">To launch it yourself — from your project folder:</p>
   <pre><code>clad graph serve                                  # live graph — localhost:3000, auto-reloads on save
 clad graph export --format html --out graph.html  # or export to a single offline .html file</code></pre>
-  <p style="font-size:13px;color:#64748b">serve refreshes the view on its own every time you edit a spec · doc · export is a single file you open straight in a browser, with no server or dependencies.</p>
+  <p style="font-size:13px;color:#64748b">Both require cladding 0.7.0+.</p>
 
   <!-- ─────────────── How it works ─────────────── -->
   <h2>How it works</h2>
@@ -428,7 +403,7 @@ clad graph export --format html --out graph.html  # or export to a single offlin
     </tbody>
   </table>
 
-  <p><strong>A takes precedence over every tier below</strong> — if the spec (A) and the code (C) differ, the wrong one is the <em>code</em>. If intent (A) wavers, everything wavers, so it is sealed — it doesn't change without human approval.</p>
+  <p><strong>A takes precedence over every tier below</strong> — if the spec (A) and the code (C) differ, the wrong one is the <em>code</em>.</p>
 
   <p><strong>Sharding · multi-dev safe</strong> — like <code>spec/features/&lt;slug&gt;-&lt;hash8&gt;.yaml</code>, with a <em>separate file per feature</em> + an <em>8-character hash ID</em> (e.g. <code>F-d86375d8</code>). Even if two people create a new feature at the same time, they get <em>different files · different IDs</em>, so merge conflicts are 0. Details in <a href="docs/spec-ids-multi-dev.md">Hash-based feature IDs</a>.</p>
 
@@ -437,7 +412,7 @@ clad graph export --format html --out graph.html  # or export to a single offlin
   </div>
 
   <h3>2. Gate — the 15-stage Iron Law</h3>
-  <p>To be recognized as "done", you must pass the strict gate (9 decisive of the 15 stages), and CI runs the full 15 stages including E2E · evidence. The same check engine runs as bundles split by point-in-time — a fast 3 stages at commit (when the git hook is installed), 9 stages at push · completion, all 15 in CI. Only the depth differs; the check logic is identical.</p>
+  <p>One check engine, bundled by cost — 3 stages at commit, 9 at push · completion, all 15 in CI. Only the depth differs.</p>
   <div class="diagram">
     <img class="diagram-img" src="docs/img/en/iron-law.svg" alt="15-stage Iron Law gate — static(6) · tests·conformance(4) · E2E(3) · evidence(2), attestation signed when GREEN" width="640">
   </div>
@@ -502,7 +477,7 @@ clad graph export --format html --out graph.html  # or export to a single offlin
 
   <h3>Differences from adjacent tools</h3>
   <ul>
-    <li><strong>Spec Kit · OpenSpec · Tessl · Kiro</strong> — tools that help you <em>write specs well</em>. On top of that, cladding <em>keeps automatically cross-checking that the spec and the actual code don't drift, inside the development loop</em> — all the way through completion · commit · CI.</li>
+    <li><strong>Spec Kit · OpenSpec · Tessl · Kiro</strong> — tools that help you <em>write specs well</em>. On top of that, cladding <em>keeps automatically cross-checking that the spec and the actual code don't drift, inside the development loop</em>.</li>
     <li><strong>BMAD · ChatDev · Claude Code Agent Teams</strong> — systems for <em>dividing roles among multiple AI agents</em>. cladding's agent division of labor operates on top of that, combined with <em>spec · gate · audit record</em>.</li>
     <li><strong>tdd-guard</strong> — a tool that <em>forces the AI to write tests first</em>. cladding's Unit · Coverage · oracle stages among the 15 do the same thing more structurally.</li>
     <li><strong>OpenHands · Cline · Aider · Goose</strong> — <em>runners that make the AI write code</em>. cladding is the <em>upper layer that verifies and controls</em> the code those runners write.</li>
@@ -517,7 +492,6 @@ clad graph export --format html --out graph.html  # or export to a single offlin
   <pre><code>npm install -g cladding   # install the cladding CLI
 cd &lt;project&gt;                # move into your project
 clad setup                  # auto-wire AI tools (Claude / Codex / Gemini / Cursor)</code></pre>
-  <p style="font-size:14px;color:#475569">A single <code>clad setup</code> auto-detects the installed AI tools and wires them all — no per-tool configuration needed.</p>
 
   <details style="margin:16px 0;background:#f8fafc;border-radius:6px;padding:12px 16px">
     <summary style="cursor:pointer;color:#475569;font-size:14px">Where <code>clad setup</code> wires (4 hosts · 5 connection points)</summary>
@@ -596,7 +570,7 @@ clad update                # 3. tidy up for the new version</code></pre>
     </tr>
   </table>
 
-  <p style="text-align:center;font-size:13px;color:#64748b;margin-top:12px">170 test files · coverage drop blocked by the COVERAGE_DROP detector · install via a single npm path (<code>npm install -g cladding</code>)</p>
+  <p style="text-align:center;font-size:13px;color:#64748b;margin-top:12px">170 test files · coverage drop blocked by the COVERAGE_DROP detector</p>
 
   <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:24px 0;background:#f8fafc;color:#475569;font-size:14px"><strong>The road to Ironclad 1.0</strong> — 1.0 locks only when <em>two independent implementations pass the L4 verification set</em> (<a href="https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md">GOVERNANCE § 1</a>). cladding is the first.</blockquote>
 
