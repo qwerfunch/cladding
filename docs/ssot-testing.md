@@ -1,4 +1,5 @@
 <!-- Cladding · Tier B · governance policy · Refreshed by: manual -->
+<!-- clad-doc-links: ignore — uses an illustrative F-abc123 example in a test-scenario table, not a real reference -->
 
 # SSoT testing strategy
 

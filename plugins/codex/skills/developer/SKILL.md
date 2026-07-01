@@ -71,6 +71,15 @@ Before writing code, grep `spec.yaml::project.ai_hints`:
 - Style / philosophy concern → file for `reviewer`.
 - Production metric anomaly → file for `observability`.
 
+## Graph-context tools (advisory)
+
+Before a non-trivial edit, pull the working set instead of reading the whole spec or grepping blind:
+
+- **`clad_get_working_set <F-id | slug | module>`** — ONE call returns the focus feature + its acceptance criteria + the actual **source code** of its modules + what it depends on (needs) + **what breaks if you change it** + the tests to run + the conventions, token-budgeted. Your default orientation for a feature.
+- **`clad_get_impact <module path>`** — scope a refactor's blast radius: transitive dependents + the regression set to re-run.
+
+Advisory (no detector enforces it) — but after your edits the hook auto-surfaces the impact (the PostToolUse card), so the blast radius is never invisible.
+
 ## User-facing language (Soft Shell)
 
 Any string your code writes to stdout / a log a user reads must use feature titles, never `F-NNN` (or `F-<hash6>` for v0.3.9+ features); stage names (`Drift`, `UAT`), never `stage_X.Y`. Use `src/ui/softShell.ts` (`featureLabel`, `haltMessage`, `gateLabel`). The audit log keeps the raw ids — those are for replay, not for users.

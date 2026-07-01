@@ -1,0 +1,27 @@
+id: F-af45042a
+slug: graph-live-health
+title: "KILLER — live SSoT conformance on the graph: nodes show drift-detector health, healing in real time"
+status: done
+modules:
+  - src/stages/graph-health.ts
+  - src/cli/graph-serve.ts
+  - src/cli/graph.ts
+  - src/graph/viewer-shell.ts
+  - src/graph/viewer/main.ts
+acceptance_criteria:
+  - id: AC-2590c81a
+    ears: event
+    condition: "when nodeHealth is computed for a graph and project root"
+    action: "run cladding's drift detectors and map each finding to the graph node it concerns (a module/test/doc path → that node; an F-id in the message → the feature node), aggregating worst severity per node"
+    response: "each node carries its live spec↔code conformance — the gate's truth, per node"
+    text: "When nodeHealth runs, the system shall map each drift finding to a graph node (path→module/test/doc, F-id→feature) and return per-node worst severity + which detectors fired."
+    test_refs: ["tests/graph/health.test.ts#maps an untested done-AC finding to its feature node", "tests/graph/health.test.ts#a healthy feature (resolving test_ref) is absent from the health map"]
+    notes: "## Why\nTHE KILLER: only cladding (spec-SSoT + 38 detectors) can tell, per node, whether spec↔code↔test↔doc conformance holds. Lives in stages/ (imports detectors; graph→stages is forbidden, stages→graph is fine)."
+  - id: AC-3d67e1c9
+    ears: event
+    condition: "when clad graph serve receives GET /health.json (and on every fs.watch refresh)"
+    action: "recompute nodeHealth from the current spec and return it live; the viewer overlays problem nodes (error=red pulse / warn=amber) and a conformance pill, smoothly re-coloring on SSE refresh"
+    response: "the graph becomes a LIVE conformance map — break the spec↔code bond and a node flares; fix it and it heals, in real time"
+    text: "When clad graph serve serves /health.json (live, watch-refreshed), the viewer shall overlay problem-node health and heal smoothly as drift is fixed."
+    test_refs: ["tests/graph/health.test.ts#returns a plain object keyed by graph node id"]
+    notes: "## Decision\nDefault is the pretty 6-color graph; health is an OVERLAY (problem nodes pulse), so healthy/new repos stay beautiful. The wow = the live red→green heal. Static export embeds a stamped snapshot."

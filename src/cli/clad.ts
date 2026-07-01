@@ -7,6 +7,7 @@
 // CLI behavior.
 
 import process from 'node:process';
+import {readFileSync} from 'node:fs';
 
 import {Command} from 'commander';
 
@@ -21,6 +22,11 @@ import {runClarifyCommand} from './clarify.js';
 import {runHostSetup} from '../init/host-setup.js';
 import {recordEvent} from '../events/log.js';
 import {buildContextSlice} from '../optimizer/context-slice.js';
+import {buildImpactSlice} from '../optimizer/reverse-slice.js';
+import {inferDependsOn} from '../optimizer/infer-depends-on.js';
+import {measureGraphEfficiency} from '../optimizer/measurement.js';
+import {runGraphExportCommand, runGraphStatsCommand} from './graph.js';
+import {runGraphServeCommand} from './graph-serve.js';
 import {strictSkipViolations} from '../stages/skip-policy.js';
 import {runArch} from '../stages/arch.js';
 import {runAudit} from '../stages/audit.js';
@@ -43,6 +49,7 @@ import {staleSpecification} from '../stages/detectors/stale-specification.js';
 import {findLatestCheckpoint, recordCheckpoint, recordRollback} from '../core/checkpoint.js';
 import {maintainDeliverable} from '../spec/deliverable-detect.js';
 import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../spec/inventory.js';
+import {writeDocLinksYaml} from '../spec/doc-references.js';
 import {repairTestRefs} from '../spec/test-ref-repair.js';
 import {writeAttestation} from '../spec/attestation.js';
 import {buildBlindPayload, renderBlindBrief} from '../oracle/payload.js';
@@ -233,6 +240,7 @@ export function runSyncCommand(opts: {proposeArchive?: boolean} = {}): void {
     const inventory = computeInventory('.');
     writeInventoryToSpecYaml('.', inventory);
     writeFeatureIndex('.'); // F-37b4a8 — 1-file feature lookup at scale
+    writeDocLinksYaml('.'); // F-doc-graph — doc→spec/doc link index (Tier C)
     // F-c037ae — heal annotation drift before it rejects correct features:
     // unique-basename repair of moved test_ref paths + derived: suggestions
     // (which never satisfy a mandate — see MISSING_TESTS/UNTESTED_AC).
@@ -568,6 +576,84 @@ export function runContextCommand(query: string): void {
   }
 }
 
+/** Handler for `clad impact <query>` (F-7794a6bc) — print the blast-radius slice. */
+export function runImpactCommand(query: string, opts: {depth?: string} = {}): void {
+  try {
+    const spec = loadSpec();
+    const depth = opts.depth !== undefined ? Number(opts.depth) : undefined;
+    const slice = buildImpactSlice(spec, query, {depth});
+    process.stdout.write(`${JSON.stringify(slice, null, 2)}\n`);
+    process.exit('not_found' in slice ? 1 : 0);
+  } catch (err) {
+    pulse('fail', 'impact', (err as Error).message);
+    process.exit(1);
+  }
+}
+
+/**
+ * `clad infer-deps` (F-2be3e3bb) — reconstruct feature depends_on edges from the code import
+ * graph and print them as REVIEWABLE suggestions (does not write the spec — a human merges the
+ * edges, anti-self-cert). Surfaces the dependency graph cladding never auto-produced.
+ */
+export function runInferDepsCommand(opts: {ambiguity?: string} = {}): void {
+  try {
+    const spec = loadSpec();
+    const ambiguity = opts.ambiguity !== undefined ? Number(opts.ambiguity) : undefined;
+    const read = (p: string): string | null => {
+      try {
+        return readFileSync(p, 'utf8');
+      } catch {
+        return null;
+      }
+    };
+    const result = inferDependsOn(spec, read, ambiguity !== undefined ? {maxOwnerAmbiguity: ambiguity} : {});
+    process.stdout.write(
+      `${JSON.stringify({suggestions: result.suggestions, new_edges: result.edges.length, already_declared: result.alreadyDeclared.length, dynamic_import_files: result.dynamicImportFiles}, null, 2)}\n`,
+    );
+    process.exit(0);
+  } catch (err) {
+    pulse('fail', 'infer-deps', (err as Error).message);
+    process.exit(1);
+  }
+}
+
+/**
+ * `clad measure` (F-16138071) — deterministically report the search + context efficiency the
+ * graph provides per feature: working-set tokens vs the naive (shard + all module files)
+ * baseline, the dependency depth/edges it resolves for you, and the regression-set coverage.
+ * No agent, no test run — measures what the infrastructure CAN provide (an upper bound vs one
+ * naive baseline), not whether an agent adopts it.
+ */
+export function runMeasureCommand(opts: {json?: boolean} = {}): void {
+  try {
+    const spec = loadSpec();
+    const read = (p: string): string | null => {
+      try {
+        return readFileSync(p, 'utf8');
+      } catch {
+        return null;
+      }
+    };
+    const r = measureGraphEfficiency(spec, read, '.');
+    if (opts.json) {
+      process.stdout.write(`${JSON.stringify(r, null, 2)}\n`);
+    } else {
+      const lines = [
+        `graph efficiency · ${r.measured}/${r.featureCount} features`,
+        `  context: working-set ${r.context.medianSliceTokens} tok vs naive ${r.context.medianNaiveTokens} tok = ${r.context.medianShrinkFactor}x smaller (median)`,
+        `  search:  median ${r.search.medianDepth} hop(s) resolved (p95 ${r.search.p95Depth}), median ${r.search.medianEdges} edge(s)/feature (max hub ${r.search.maxEdges})`,
+        `  stability: median blast-radius coverage ${r.stability.medianCoverage}, median ${r.stability.medianRegressionTests} regression test(s) surfaced; stops ${JSON.stringify(r.stability.byStopReason)}`,
+        `  (deterministic upper bound vs the shard+all-modules baseline — not an agent-adoption measurement)`,
+      ];
+      process.stdout.write(`${lines.join('\n')}\n`);
+    }
+    process.exit(0);
+  } catch (err) {
+    pulse('fail', 'measure', (err as Error).message);
+    process.exit(1);
+  }
+}
+
 export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tier?: string; json?: boolean; feature?: string}): void {
   let focusModules: readonly string[] | undefined;
   if (opts.feature) {
@@ -735,7 +821,7 @@ export function printVerbDeprecationNotice(verb: string | undefined): void {
  */
 export function createProgram(): Command {
   const program = new Command();
-  program.name('clad').description('Reference Ironclad CLI').version('0.6.3');
+  program.name('clad').description('Reference Ironclad CLI').version('0.7.0');
 
   program
     .command('init [intent...]')
@@ -834,6 +920,47 @@ export function createProgram(): Command {
     .command('context <query>')
     .description('Print the context slice for one feature — id (F-…), slug, or module path (F-d2c806)')
     .action(runContextCommand);
+
+  program
+    .command('impact <query>')
+    .description('Print the blast radius for a change — what depends on a feature/file + the tests to re-run (F-7794a6bc)')
+    .option('--depth <n>', 'bound the dependent walk to N hops (default: the full transitive radius)')
+    .action((query, opts) => runImpactCommand(query, opts));
+
+  program
+    .command('infer-deps')
+    .description('Suggest feature depends_on edges from the code import graph — the dependency edges cladding never auto-produced (F-2be3e3bb). Prints reviewable suggestions; does not write the spec.')
+    .option('--ambiguity <n>', 'emit edges for imports owned by ≤ N features (default 1 = unambiguous single-owner only)')
+    .action((opts) => runInferDepsCommand(opts));
+
+  program
+    .command('measure')
+    .description('Report the search + context efficiency the graph provides per feature — working-set tokens vs the naive baseline, dependency depth/edges resolved, regression-set coverage (F-16138071). Deterministic; no agent.')
+    .option('--json', 'emit the full per-feature report as JSON')
+    .action((opts) => runMeasureCommand(opts));
+
+  const graph = program
+    .command('graph')
+    .description('Render the spec↔code↔doc knowledge graph for a viewer, or report its shape (F-569f4b37)');
+  graph
+    .command('export')
+    .description('Export the graph: mermaid/dot/json to stdout, or an Obsidian vault to --out')
+    .option('--format <fmt>', 'mermaid | dot | json | obsidian | html (default: mermaid). html = a single self-contained offline viewer (requires --out)')
+    .option('--focus <query>', 'restrict to a feature/file node’s neighborhood (id, slug, or module path)')
+    .option('--depth <n>', 'neighborhood radius around --focus (default: unbounded)')
+    .option('--out <path>', 'write to a file (or, for obsidian, a vault dir — default .cladding/graph)')
+    .action((opts) => runGraphExportCommand(opts));
+  graph
+    .command('stats')
+    .description('Report node/edge counts by kind and the top hubs by degree')
+    .action(() => runGraphStatsCommand());
+  graph
+    .command('serve')
+    .description('Serve a LIVE graph at localhost — recomputes on each load + auto-reloads on spec/doc changes (F-64a5c159)')
+    .option('--port <n>', 'port to listen on (default 3000)')
+    .action((opts) => {
+      void runGraphServeCommand(opts);
+    });
 
   program
     .command('changelog')

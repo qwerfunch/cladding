@@ -11,9 +11,9 @@ project:
   name: cladding
   language: typescript
   description: "Reference implementation of the Ironclad harness for AI-coupled software."
-  version: "0.6.3"
+  version: "0.7.0"
   repository: "https://github.com/qwerfunch/cladding"
-  intent_summary: "Make AI-coupled development measurably safer and more honest — 37 drift detectors + 4-tier SSoT governance + A/B-measurable cladding-vs-vanilla evaluation."
+  intent_summary: "Make AI-coupled development measurably safer and more honest — 40 drift detectors + 4-tier SSoT governance + A/B-measurable cladding-vs-vanilla evaluation."
   deliverable:
     path: ./bin/clad
     smoke_args: ["--version"]
@@ -43,11 +43,14 @@ project:
       - when: "Iron Law stage logic + I/O orchestration"
         prefer: "pure stage core + CLI wrapper (e.g. runDrift → drift.ts CLI entry)"
         over: "mixed stage runner with embedded process.exit / stdout"
+      - when: "before a non-trivial edit to a feature or module"
+        prefer: "slice the working set first — clad_get_working_set <id|slug|module> (focus + module code + forward needs + backward breaks + tests to run), or clad_get_impact <module> to scope the blast radius"
+        over: "reading the whole spec by hand or editing blind"
 
 # Auto-maintained by `clad sync` (F-5b9f9f). Do not edit by hand.
 inventory:
-  features: 178
+  features: 199
   scenarios: 2
-  capabilities: 5
-  test_files: 146
-  last_synced: "2026-06-26"
+  capabilities: 6
+  test_files: 170
+  last_synced: "2026-07-01"

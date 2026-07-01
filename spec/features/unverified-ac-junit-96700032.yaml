@@ -1,0 +1,51 @@
+id: F-96700032
+slug: unverified-ac-junit
+title: "UNVERIFIED_AC — verify test_refs ran and passed via JUnit XML (close AC→test→observed-pass)"
+status: done
+modules:
+  - src/stages/junit-report.ts
+  - src/stages/detectors/unverified-ac.ts
+  - src/stages/toolchain/gate-config.ts
+  - src/stages/detectors/index.ts
+acceptance_criteria:
+  - id: AC-ab798b7c
+    ears: event
+    condition: "when a JUnit XML report is available (gate.test_report or a conventional path)"
+    action: "verify each done AC's test_refs actually ran and passed in the report"
+    response: "UNVERIFIED_AC reads the report via readGateConfig/default candidates, parses it with parseJUnitReport, and for each done AC test_ref looks up its observed result"
+    text: "When a JUnit report is present, the system shall verify that each done AC's referenced tests ran and passed."
+    test_refs: ["tests/stages/unverified-ac.test.ts"]
+  - id: AC-75ab1c26
+    ears: unwanted
+    condition: "if a test_ref's tests failed or errored in the report"
+    action: "emit an error-severity finding"
+    response: "evaluateAcVerification emits a UNVERIFIED_AC error finding when the matched file has fail>0"
+    text: "If a referenced test failed, then the system shall emit an error finding (a done AC must be backed by passing tests)."
+    test_refs: ["tests/stages/unverified-ac.test.ts"]
+  - id: AC-0ac3333c
+    ears: unwanted
+    condition: "if a test_ref ran only skipped tests (no passes)"
+    action: "emit an error-severity finding"
+    response: "evaluateAcVerification emits an error finding when pass===0 and skip>0 for the matched file"
+    text: "If a referenced test was only skipped, then the system shall emit an error finding (nothing verified the AC)."
+    test_refs: ["tests/stages/unverified-ac.test.ts"]
+  - id: AC-f1cb906a
+    ears: state
+    condition: "while a test_ref is absent from a present report"
+    action: "emit a warn-severity finding (a scoped/partial run is legitimate; --strict promotes)"
+    response: "evaluateAcVerification emits a warn finding when lookupTestRef returns undefined"
+    text: "While a referenced test has no observed result in a present report, the system shall emit a warn finding."
+    test_refs: ["tests/stages/unverified-ac.test.ts"]
+  - id: AC-44e7172f
+    ears: state
+    condition: "while no JUnit report is present"
+    action: "emit nothing so the existence-only UNTESTED_AC stays the baseline"
+    response: "runUnverifiedAc returns [] when resolveReportPath finds no report, before any spec load — graceful degradation"
+    text: "While no JUnit report is present, the system shall emit no findings and leave the existence check as the baseline."
+    test_refs: ["tests/stages/unverified-ac.test.ts"]
+  - id: AC-14bdc224
+    ears: ubiquitous
+    action: "parse JUnit XML into per-file pass/fail/skip aggregates without an XML dependency and match test_refs tolerantly"
+    response: "parseJUnitReport uses regex over <testcase classname> + failure/error/skipped children (mirroring the coverage XML approach); lookupTestRef matches exact, ./-prefixed, and path-suffix forms"
+    text: "The system shall parse JUnit XML deterministically without an XML dependency and match test_ref paths tolerantly."
+    test_refs: ["tests/stages/unverified-ac.test.ts"]

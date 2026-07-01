@@ -1,81 +1,84 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 568" width="720" height="426">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" width="920" height="537" font-family="-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif">
   <defs>
-    <marker id="ah" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto">
-      <path d="M0,0 L9,4 L0,8 z" fill="#475569"/>
-    </marker>
-    <marker id="ah-green" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto">
-      <path d="M0,0 L9,4 L0,8 z" fill="#16a34a"/>
-    </marker>
-    <marker id="ah-red" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto">
-      <path d="M0,0 L9,4 L0,8 z" fill="#dc2626"/>
-    </marker>
+    <style>
+      /* ── design tokens (blue-primary, flat / no shadow) ── */
+      :root{
+        --brand:#3b82f6; --brand-deep:#1d4ed8; --brand-soft:#eff6ff;
+        --ink:#0f172a; --text:#1e293b; --muted:#64748b; --faint:#94a3b8;
+        --border:#d8dfea; --surface:#ffffff; --ok:#16a34a; --block:#e11d48;
+      }
+      .title{font-size:19px;font-weight:800;fill:var(--ink);letter-spacing:-.3px}
+      .sub0{font-size:12.5px;fill:var(--muted)}
+      .hdr{font-size:13.5px;font-weight:700;fill:#ffffff}
+      .item{font-size:12.5px;fill:var(--text)}
+      .muted{font-size:10.5px;fill:var(--faint)}
+      .focal{font-size:21px;font-weight:800;fill:#ffffff;letter-spacing:-.3px}
+      .flow{font-size:10.5px;font-weight:600;fill:var(--brand-deep)}
+      .card{fill:var(--surface);stroke:var(--border);stroke-width:1.25}
+      .band{fill:var(--brand)} .focalbox{fill:var(--brand-deep)}
+      .okfill{fill:var(--ok)} .blockfill{fill:var(--block)} .inkfill{fill:var(--ink)}
+    </style>
+    <marker id="ab" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#3b82f6"/></marker>
+    <marker id="ag" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#16a34a"/></marker>
+    <marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#e11d48"/></marker>
   </defs>
 
-  <rect x="0" y="0" width="960" height="568" fill="#ffffff"/>
+  <rect width="960" height="560" fill="#ffffff"/>
 
-  <!-- Title -->
-  <text x="480" y="40" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="17" font-weight="700" fill="#0f172a">cladding × host LLM — the goal is &#8216;code verified against the spec&#8217;</text>
+  <text x="480" y="42" text-anchor="middle" class="title">cladding × host LLM</text>
+  <rect x="438" y="52" width="84" height="3" rx="1.5" fill="#3b82f6"/>
+  <text x="480" y="76" text-anchor="middle" class="sub0">The LLM writes the code — cladding handles before and after</text>
 
-  <!-- LEFT group: before (intent in) -->
-  <rect x="32" y="88" width="216" height="216" rx="10" fill="#f8fafc" stroke="#16a34a" stroke-width="2"/>
-  <text x="140" y="116" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12.5" font-weight="700" fill="#15803d">Before — inject the spec&#8217;s intent</text>
-  <rect x="46" y="132" width="188" height="52" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
-  <text x="140" y="155" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a">extract only what&#8217;s needed now</text>
-  <text x="140" y="173" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a">from the intent in the spec</text>
-  <rect x="46" y="194" width="188" height="36" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
-  <text x="140" y="217" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a">auto-inject the project map</text>
-  <rect x="46" y="240" width="188" height="52" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
-  <text x="140" y="263" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a">apply team rules</text>
-  <text x="140" y="281" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a">(forbidden / preferred patterns)</text>
+  <!-- before card -->
+  <rect x="40" y="108" width="236" height="186" rx="14" class="card"/>
+  <path d="M40 148 L40 122 Q40 108 54 108 L262 108 Q276 108 276 122 L276 148 Z" class="band"/>
+  <text x="60" y="133" class="hdr">Before · inject intent</text>
+  <text x="62" y="182" class="item">▸ Extract only needed intent</text>
+  <text x="62" y="214" class="item">▸ Auto-inject project map</text>
+  <text x="62" y="246" class="item">▸ Team rules: forbid · prefer</text>
+  <text x="62" y="274" class="muted">Never dumps the whole spec</text>
 
-  <!-- CENTER: host LLM -->
-  <rect x="354" y="120" width="252" height="152" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
-  <text x="480" y="172" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="21" font-weight="700" fill="#0f172a">host LLM</text>
-  <text x="480" y="201" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="10.5" fill="#475569">Claude Code · Codex · Gemini · Cursor</text>
-  <text x="480" y="240" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="11.5" font-weight="600" fill="#2563eb">writes the code — generation is the LLM&#8217;s job</text>
+  <!-- host LLM : deep-blue focal -->
+  <rect x="356" y="158" width="248" height="96" rx="16" class="focalbox"/>
+  <text x="480" y="198" text-anchor="middle" class="focal">host LLM</text>
+  <text x="480" y="219" text-anchor="middle" font-size="10.5" fill="#bfdbfe">Claude Code · Codex · Gemini · Cursor</text>
+  <text x="480" y="239" text-anchor="middle" font-size="11.5" font-weight="600" fill="#dbeafe">Writes the code — the LLM’s job</text>
 
-  <!-- RIGHT group: after (verify out) -->
-  <rect x="712" y="88" width="216" height="216" rx="10" fill="#f8fafc" stroke="#d97706" stroke-width="2"/>
-  <text x="820" y="116" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="13.5" font-weight="700" fill="#b45309">After — verify the result</text>
-  <rect x="726" y="132" width="188" height="40" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
-  <text x="820" y="157" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a">15-stage gate</text>
-  <rect x="726" y="184" width="188" height="40" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
-  <text x="820" y="209" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a">37 drift detectors</text>
-  <rect x="726" y="236" width="188" height="56" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
-  <text x="820" y="259" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a">impl-blind grader</text>
-  <text x="820" y="277" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a">runs the deliverable directly</text>
+  <!-- after card -->
+  <rect x="684" y="108" width="236" height="186" rx="14" class="card"/>
+  <path d="M684 148 L684 122 Q684 108 698 108 L906 108 Q920 108 920 122 L920 148 Z" class="band"/>
+  <text x="704" y="133" class="hdr">After · verify result</text>
+  <text x="706" y="180" class="item">▸ 15-stage verify gate</text>
+  <text x="706" y="209" class="item">▸ 40 drift checks</text>
+  <text x="706" y="238" class="item">▸ Impl-blind grader</text>
+  <text x="706" y="267" class="item">▸ Runs the artifact</text>
 
-  <!-- main flow arrows -->
-  <line x1="248" y1="196" x2="350" y2="196" stroke="#475569" stroke-width="1.8" marker-end="url(#ah)"/>
-  <text x="300" y="182" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="10.5" fill="#475569">start with the right intent</text>
-  <line x1="606" y1="196" x2="708" y2="196" stroke="#475569" stroke-width="1.8" marker-end="url(#ah)"/>
-  <text x="658" y="182" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="10.5" fill="#475569">check every output</text>
+  <!-- flow arrows -->
+  <line x1="282" y1="206" x2="350" y2="206" stroke="#3b82f6" stroke-width="2" marker-end="url(#ab)"/>
+  <text x="316" y="197" text-anchor="middle" class="flow">inject intent</text>
+  <line x1="610" y1="206" x2="678" y2="206" stroke="#3b82f6" stroke-width="2" marker-end="url(#ab)"/>
+  <text x="644" y="197" text-anchor="middle" class="flow">staged checks</text>
 
-  <!-- outcome arrows from amber group -->
-  <line x1="830" y1="304" x2="830" y2="346" stroke="#16a34a" stroke-width="1.8" marker-end="url(#ah-green)"/>
-  <line x1="736" y1="304" x2="646.8" y2="347.1" stroke="#dc2626" stroke-width="1.8" marker-end="url(#ah-red)"/>
+  <!-- outcomes -->
+  <line x1="800" y1="296" x2="632" y2="333" stroke="#16a34a" stroke-width="1.8" marker-end="url(#ag)"/>
+  <line x1="716" y1="296" x2="372" y2="333" stroke="#e11d48" stroke-width="1.8" marker-end="url(#ar)"/>
+  <rect x="530" y="336" width="172" height="40" rx="11" class="okfill"/>
+  <text x="616" y="361" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">Pass → earns done</text>
+  <rect x="258" y="336" width="172" height="40" rx="11" class="blockfill"/>
+  <text x="344" y="361" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">Block → done refused</text>
+  <line x1="616" y1="376" x2="616" y2="414" stroke="#94a3b8" stroke-width="1.6" marker-end="url(#ab)"/>
+  <line x1="344" y1="376" x2="344" y2="414" stroke="#94a3b8" stroke-width="1.6" marker-end="url(#ab)"/>
 
-  <!-- outcome chips -->
-  <rect x="688" y="348" width="252" height="40" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
-  <text x="814" y="372.5" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a">pass → completion earned · signed</text>
-  <rect x="515" y="348" width="160" height="40" rx="10" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5"/>
-  <text x="595" y="372.5" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#0f172a">block → repair card</text>
+  <!-- record band : ink anchor (both outcomes land here) -->
+  <rect x="258" y="418" width="444" height="58" rx="14" class="inkfill"/>
+  <text x="480" y="443" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">Record — input to the next turn</text>
+  <text x="480" y="462" text-anchor="middle" font-size="11" fill="#94a3b8">Audit ledger · verify signature · repair card</text>
 
-  <!-- arrows into record band -->
-  <line x1="814" y1="388" x2="814" y2="426" stroke="#475569" stroke-width="1.5" marker-end="url(#ah)"/>
-  <line x1="595" y1="388" x2="595" y2="426" stroke="#475569" stroke-width="1.5" marker-end="url(#ah)"/>
+  <!-- feedback loop -->
+  <path d="M 258 447 C 190 447, 150 410, 150 340 C 150 314, 158 300, 168 292" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#ab)"/>
+  <text x="158" y="412" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1d4ed8">Feedback loop</text>
+  <text x="158" y="429" text-anchor="middle" class="muted">Results re-enter context</text>
 
-  <!-- record band -->
-  <rect x="240" y="428" width="640" height="58" rx="10" fill="#e2e8f0" stroke="#64748b" stroke-width="1.5"/>
-  <text x="560" y="452" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12.5" font-weight="700" fill="#334155">Record — fed back as next-turn input</text>
-  <text x="560" y="472" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#475569">audit ledger · verification signature · repair card</text>
-
-  <!-- feedback loop: record -> left group -->
-  <path d="M 240 457 C 164 457, 100 438, 96 384 C 93 348, 99 322, 109 308" fill="none" stroke="#16a34a" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ah-green)"/>
-  <text x="208" y="402" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" font-weight="700" fill="#15803d">feedback loop</text>
-  <text x="208" y="420" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="11" fill="#475569">results flow back into context</text>
-
-  <!-- captions -->
-  <text x="480" y="528" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12" fill="#64748b">cladding = the cladding layer. It doesn&#8217;t replace the LLM — it wraps it.</text>
-  <text x="480" y="550" text-anchor="middle" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="12.5" font-weight="700" fill="#16a34a">One goal — turn the AI&#8217;s &#8216;all done&#8217; from a claim into proof.</text>
+  <text x="480" y="518" text-anchor="middle" class="sub0">cladding = the outer layer. It doesn’t replace the LLM — it wraps it.</text>
+  <text x="480" y="540" text-anchor="middle" font-size="13" font-weight="800" fill="#1d4ed8">One goal — turn AI’s “it’s done” from a claim into proof.</text>
 </svg>

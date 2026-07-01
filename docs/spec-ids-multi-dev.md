@@ -1,5 +1,7 @@
 # Multi-developer-safe spec IDs
 
+<!-- clad-doc-links: ignore — this guide uses illustrative F-id examples (e.g. F-c4d108) in prose, not real references -->
+
 Two or more contributors can add new features or scenarios to a cladding-applied project simultaneously without git merge conflicts. This document explains how and what to do when something looks off.
 
 ## The short version

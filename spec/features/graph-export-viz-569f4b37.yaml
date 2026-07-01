@@ -1,0 +1,47 @@
+id: F-569f4b37
+slug: graph-export-viz
+title: "Knowledge-graph model + export (mermaid / Obsidian vault / DOT / JSON) + hub stats — see the graph in best-in-class viewers"
+status: done
+modules:
+  - src/graph/model.ts
+  - src/graph/render.ts
+  - src/graph/stats.ts
+  - src/cli/graph.ts
+  - src/cli/clad.ts
+acceptance_criteria:
+  - id: AC-0b21a485
+    ears: event
+    condition: "when buildGraph is called with a loaded spec and project root"
+    action: "assemble a typed knowledge graph from the spec, the reverse-index, and the doc-link index"
+    response: "one in-memory graph carries feature/module/test/scenario/capability/doc nodes and depends_on/touches/covers/binds/implements/references/links edges — the unified SSoT graph every exporter and the LLM read"
+    text: "When buildGraph is called, the system shall assemble a deterministic typed knowledge graph (feature/module/test/scenario/capability/doc nodes; depends_on/touches/covers/binds/implements/references/links edges) from the spec + reverse-index + doc-link index."
+    test_refs: ["tests/graph/model.test.ts#assembles nodes and edges from spec, reverse-index, and doc links"]
+    notes: "## Why\nThe edges already exist scattered (forward in shards, backward in the reverse-index, doc edges in _doc-links). buildGraph is the single materialization every viewer + query reads. Pure, derived, deterministic."
+  - id: AC-0afdbdc6
+    ears: event
+    condition: "when clad graph export runs with --format mermaid, dot, or json"
+    action: "render the (optionally focused) graph to stdout in that format"
+    response: "the user sees the graph in GitHub-native mermaid, Graphviz, or any JSON graph viewer — no bespoke UI to build"
+    text: "When clad graph export --format mermaid|dot|json runs, the system shall render the graph to stdout in that format, deterministically."
+    test_refs: ["tests/graph/render.test.ts#renders deterministic mermaid, dot, and json"]
+  - id: AC-a5a942b7
+    ears: event
+    condition: "when clad graph export runs with --format obsidian --out <dir>"
+    action: "write a vault of one markdown note per node with [[wikilinks]] for outgoing edges and a Backlinks section for incoming"
+    response: "the user opens the folder in Obsidian and navigates the whole spec↔code↔doc graph visually, in a tool they already use"
+    text: "When clad graph export --format obsidian --out <dir> runs, the system shall write a markdown-vault (one note per node, [[wikilinks]] + Backlinks) renderable as a graph in Obsidian."
+    test_refs: ["tests/graph/render.test.ts#obsidian vault emits one note per node with wikilinks and backlinks"]
+  - id: AC-f8676994
+    ears: event
+    condition: "when clad graph stats runs"
+    action: "report node and edge counts by kind plus the highest-degree nodes (hubs)"
+    response: "humans and the LLM see what is load-bearing (the bright hubs) so they prioritise carefully around it"
+    text: "When clad graph stats runs, the system shall report node/edge counts by kind and the top hubs by degree."
+    test_refs: ["tests/graph/stats.test.ts#counts nodes and edges by kind and ranks hubs by degree"]
+  - id: AC-d95b03ac
+    ears: event
+    condition: "when a --focus <id/slug/module> (with optional --depth N) is supplied to export"
+    action: "restrict the graph to that node's N-hop neighborhood in both directions before rendering"
+    response: "a focused, legible subgraph (the neighborhood that matters) instead of an unreadable full-repo hairball"
+    text: "When --focus is supplied, the system shall restrict the exported graph to the focus node's N-hop (forward+backward) neighborhood."
+    test_refs: ["tests/graph/model.test.ts#subgraph restricts to the focus node neighborhood within depth"]

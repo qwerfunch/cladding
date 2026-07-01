@@ -26,6 +26,7 @@ features:
   F-020: {slug: F-020, status: done, modules: 1}
   F-021: {slug: F-021, status: done, modules: 1}
   F-022: {slug: F-022, status: done, modules: 1}
+  F-02343cd1: {slug: graph-html-viewer, status: done, modules: 5}
   F-023: {slug: F-023, status: done, modules: 6}
   F-024: {slug: F-024, status: done, modules: 1}
   F-025: {slug: F-025, status: done, modules: 1}
@@ -53,6 +54,7 @@ features:
   F-047: {slug: F-047, status: done, modules: 5}
   F-048: {slug: F-048, status: done, modules: 3}
   F-049: {slug: F-049, status: done, modules: 7}
+  F-04f50847: {slug: graph-viewer-obsidian, status: archived, modules: 0}
   F-051: {slug: F-051, status: done, modules: 5}
   F-052: {slug: F-052, status: done, modules: 5}
   F-053: {slug: F-053, status: done, modules: 6}
@@ -72,6 +74,7 @@ features:
   F-067: {slug: F-067, status: done, modules: 3}
   F-068: {slug: F-068, status: done, modules: 4}
   F-069: {slug: F-069, status: done, modules: 5}
+  F-06dfdad6: {slug: working-set-assembler, status: done, modules: 3}
   F-070: {slug: F-070, status: done, modules: 2}
   F-071: {slug: F-071, status: done, modules: 3}
   F-072: {slug: F-072, status: done, modules: 2}
@@ -87,7 +90,10 @@ features:
   F-098d3b: {slug: detector-count-auto-recompute, status: done, modules: 1}
   F-09d68b: {slug: clad-refine, status: done, modules: 7}
   F-0ed2db: {slug: ai-hints-consumer-instructions, status: done, modules: 11}
+  F-0f2984d0: {slug: infer-deps-dynamic-flag, status: done, modules: 2}
   F-12d740: {slug: atomic-ac-evidence-fanout, status: done, modules: 1}
+  F-15999130: {slug: inferable-depends-on-detector, status: done, modules: 2}
+  F-16138071: {slug: graph-efficiency-measure, status: done, modules: 2}
   F-16746b: {slug: enforcement-triggers, status: done, modules: 3}
   F-17df0a: {slug: scan-artifacts-llm-refinement, status: done, modules: 3}
   F-18e951: {slug: drift-baseline-cleanup, status: done, modules: 7}
@@ -96,6 +102,7 @@ features:
   F-1edb38: {slug: scan-refactor, status: done, modules: 13}
   F-24062d: {slug: spec-id-hash-filename-and-lookup, status: done, modules: 3}
   F-245bd5: {slug: dogfood-recovery-v0-3-16, status: done, modules: 2}
+  F-2be3e3bb: {slug: infer-depends-on, status: done, modules: 2}
   F-2de65d: {slug: drive-auto-rollback, status: done, modules: 1}
   F-315fd7: {slug: scenario-coverage-detector, status: done, modules: 2}
   F-31eeb8: {slug: scan-bfs-walk, status: done, modules: 2}
@@ -112,23 +119,29 @@ features:
   F-4db939: {slug: ab-evaluation, status: done, modules: 9}
   F-50ff43: {slug: meta-integrity-skip-when-absent, status: done, modules: 2}
   F-551a1c: {slug: oracle-cost-lever, status: done, modules: 4}
+  F-569f4b37: {slug: graph-export-viz, status: done, modules: 5}
   F-56abaa: {slug: intent-aware-init, status: done, modules: 5}
   F-570a3f: {slug: mcp-structural-channel, status: done, modules: 1}
   F-59f093: {slug: multidev-integration-test-and-scenario-regex, status: done, modules: 3}
+  F-5b188856: {slug: graph-color-groups, status: done, modules: 4}
   F-5b9f9f: {slug: spec-yaml-inventory-and-hints, status: done, modules: 6}
   F-5d3ed2: {slug: postmortem-on-rollback, status: done, modules: 2}
   F-5f6b45: {slug: init-path-intent, status: done, modules: 2}
+  F-64a5c159: {slug: graph-serve-live, status: done, modules: 3}
   F-65814a: {slug: sentinel-miss-telemetry, status: done, modules: 3}
   F-67d2e9: {slug: strict-skip-policy, status: done, modules: 2}
   F-67e33f: {slug: spec-id-multi-dev-safety, status: done, modules: 7}
   F-6d943d: {slug: version-bump-script, status: done, modules: 2}
   F-6f80e7: {slug: claude-code-dogfood, status: done, modules: 1}
   F-7076f7: {slug: smoke-probe-demand, status: done, modules: 3}
+  F-7794a6bc: {slug: impact-blast-radius, status: done, modules: 3}
+  F-77f7ead0: {slug: webgl-stellar-viewer, status: done, modules: 4}
   F-78b50d: {slug: project-context-drift-detector, status: done, modules: 2}
   F-7afbd4: {slug: clad-done-gated-transition, status: done, modules: 1}
   F-7ce18e: {slug: glossary-naming-convention, status: done, modules: 7}
   F-7fa4a7: {slug: mcp-sampling-dispatcher, status: done, modules: 1}
   F-80d19d: {slug: setup-command, status: done, modules: 7}
+  F-8234ec3c: {slug: graph-viewer-galaxy, status: archived, modules: 0}
   F-836a90: {slug: link-capability-tool, status: done, modules: 2}
   F-8f419e: {slug: smoke-legacy-liveness, status: done, modules: 1}
   F-904495a5: {slug: changelog-render, status: done, modules: 5}
@@ -136,9 +149,12 @@ features:
   F-90d054: {slug: init-host-autowire, status: archived, modules: 0}
   F-94dda4: {slug: scan-polyglot, status: done, modules: 2}
   F-95a096: {slug: ops-visibility-polish, status: done, modules: 3}
+  F-96250595: {slug: iterative-impact-slice, status: done, modules: 2}
+  F-96700032: {slug: unverified-ac-junit, status: done, modules: 4}
   F-99c6e5: {slug: cladding-self-fixes, status: done, modules: 13}
   F-9a3b61: {slug: ab-ext-uncommit-demos, status: done, modules: 3}
   F-9b643e: {slug: scan-conventions, status: done, modules: 5}
+  F-9d168287: {slug: ears-complex-pattern, status: done, modules: 6}
   F-a04cd9: {slug: ac-hash-ids, status: done, modules: 3}
   F-a4b512: {slug: dependency-cycle-detector, status: done, modules: 2}
   F-a5228c: {slug: attestation-marker, status: done, modules: 4}
@@ -146,6 +162,7 @@ features:
   F-ae61c1: {slug: ab-tm-query-domain-fix, status: done, modules: 3}
   F-aee1da: {slug: scan-residuals, status: done, modules: 3}
   F-aee61f: {slug: scan-roots-from-architecture, status: done, modules: 1}
+  F-af45042a: {slug: graph-live-health, status: done, modules: 5}
   F-af96b1: {slug: no-vacuous-green-gate-contract, status: done, modules: 6}
   F-b2094740: {slug: lint-config-detection, status: done, modules: 1}
   F-b43066: {slug: model-defaults-refresh, status: done, modules: 6}
@@ -169,12 +186,16 @@ features:
   F-d2c806: {slug: get-context-slice, status: done, modules: 3}
   F-d3bde4: {slug: capabilities-yaml-llm-extract, status: done, modules: 3}
   F-d49585: {slug: gate-golden-matrix, status: done, modules: 2}
+  F-d6b93648: {slug: graph-context-wiring, status: done, modules: 4}
   F-d7312b: {slug: scenario-hash-model, status: done, modules: 5}
   F-d8223c: {slug: blind-author-agent, status: done, modules: 1}
+  F-d980359c: {slug: junit-multiframework-matching, status: done, modules: 2}
   F-dd51b42c: {slug: kotlin-first-class-toolchain, status: done, modules: 11}
   F-dddb89: {slug: ears-validation-at-creation, status: done, modules: 4}
   F-e0f6c7: {slug: smoke-disposition-spine, status: done, modules: 3}
   F-eb732f: {slug: spec-authoring-anti-hollow, status: done, modules: 2}
+  F-ee47fc2b: {slug: reverse-index-core, status: done, modules: 1}
+  F-ee5f643e: {slug: doc-graph-links, status: done, modules: 4}
   F-ef2fd9: {slug: ab-ext-dashboard, status: done, modules: 7}
   F-f334fa: {slug: ab-ext-scenarios-emit, status: done, modules: 3}
   F-f44d1b: {slug: hollow-governance-detector, status: done, modules: 2}

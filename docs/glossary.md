@@ -62,6 +62,10 @@
 | `rollback` | stable | Record a rollback event + print the maintainer-runnable git command. | 롤백 기록 |
 | `route` | stable | Classify a natural-language prompt to a verb (debug surface for the router). | 의도 분류 |
 | `context` | stable (0.6.0) | Print the context slice for one feature (focus + ancestors + scenarios + ai_hints + test_refs) — the Least Context principle, mechanized. | 컨텍스트 슬라이스 |
+| `impact` | stable (0.7.0) | Print the blast radius for a change — the transitive dependents of a feature/file plus the scenarios and the regression test set to re-run. The backward complement of `context` (what depends on this, vs what this needs). | 영향 반경(blast radius) |
+| `measure` | stable (0.7.0) | Report the search + context efficiency the graph provides per feature — working-set tokens vs the naive (shard + all module files) baseline, dependency depth/edges resolved, regression-set coverage. Deterministic; measures what the graph CAN provide, not agent adoption. | 효율 측정 |
+| `infer`-deps | stable (0.7.0) | Suggest feature `depends_on` edges from the code import graph — the dependency edges cladding never auto-produced. Resolves each module's imports to the owning feature; prints reviewable suggestions (a human merges them — anti-self-cert). | 의존 추론 |
+| `graph` | stable (0.7.0) | Render the spec↔code↔doc knowledge graph for a viewer (`export` → mermaid/dot/json/Obsidian-vault) or report its shape (`stats` → counts + hubs). Reuses best-in-class viewers instead of a bespoke UI. | 지식 그래프 |
 | `hook` | stable (0.6.0) | Host hook protocol adapter — consumes one host lifecycle event (SessionStart / UserPromptSubmit / PreToolUse / PostToolUse / Stop) as stdin JSON; always exits 0. Honest limit: PreToolUse blocking only sees Edit/Write tool calls — a YAML edit made through Bash bypasses lane one; the Stop hook's post-hoc detectors are lane two. Neither lane alone is the guarantee. | 호스트 훅 프로토콜 어댑터 |
 | `changelog` | stable (0.6.0) | Render shipped changes since a git ref into human-facing documents — capability-grouped markdown / `--json` manifest / `--audit` verification table / `--catalog` spec listing. Named `changelog` deliberately, NOT `digest` (which means cryptographic hash in this domain — see Naming conventions). | 변경 이력 렌더링 |
 
@@ -79,6 +83,9 @@
 | `clad_author_oracle` | Record a host-authored impl-blind oracle + provenance. |
 | `clad_run_gate` | Run the real Iron Law gate for a tier in-session (0.6.0; strict by default). Payloads carry `schema_version`. |
 | `clad_get_context` | The context slice for one feature by id/slug/module path (0.6.0) — dispatch the slice, never the whole spec. |
+| `clad_get_working_set` | The token-budgeted working set for one feature/module (0.7.0) — focus + module CODE excerpts + forward needs + backward breaks + verify + budget, fused in one call; the code-bearing superset of `clad_get_context` (which stays frozen). |
+| `clad_get_impact` | The blast-radius slice for a change by feature id/slug/module path (0.7.0) — transitive dependents + scenarios at risk + the regression test set; the backward complement of `clad_get_context`. |
+| `clad_get_graph` | The live spec↔code↔doc knowledge graph (0.7.0) — tier-classified nodes (A/B/C/D) + typed edges, optionally a focused neighborhood; recomputed from the current spec so it is never stale. |
 | `clad_changelog` | The deterministic shipped-changes manifest since a git ref (0.6.0) — the host renders human release notes FROM it, sourcing every claim from a feature title/AC sentence; `format: markdown \| audit \| catalog` for the deterministic renders. |
 
 ## Event types (frozen)

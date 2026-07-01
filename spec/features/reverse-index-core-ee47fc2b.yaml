@@ -1,0 +1,33 @@
+id: F-ee47fc2b
+slug: reverse-index-core
+title: "Reverse-edge index — backlinks (dependents, module owners, test citations) derived from the spec, memoized per instance"
+status: done
+modules:
+  - src/spec/reverse-index.ts
+acceptance_criteria:
+  - id: AC-ea650cce
+    ears: event
+    condition: "when buildReverseIndex is called with a loaded spec"
+    action: "invert depends_on, modules, and acceptance_criteria test_refs into three maps derived purely from the spec without mutating it"
+    response: "callers get O(1) reverse lookups (direct dependents, module owners, test citations) instead of re-walking every shard per query"
+    text: "When buildReverseIndex is called with a loaded spec, the system shall produce three reverse maps — featureId→direct-dependent ids, module-path→owning-feature-id set, and test-file-path→citing-feature-id set — derived purely from the spec without mutating it."
+    test_refs: ["tests/spec/reverse-index.test.ts#inverts depends_on into a direct-dependents map"]
+    notes: "## Why\npruneToFeature walks depends_on UP (ancestors) only; there is no reverse lookup, so 'what depends on me / which features touch this file / which feature owns this test' force a full shard scan per query. This is the backlink seam the whole graph layer reuses."
+  - id: AC-5b48c3c7
+    ears: ubiquitous
+    response: "zero added cost after the first call; cache lifetime ties to the run-scoped spec object so it can never go stale"
+    text: "The reverseIndexOf accessor shall memoize the reverse index per spec instance (WeakMap-keyed), so repeated calls within one run reuse the first computation and never re-walk the feature set."
+    test_refs: ["tests/spec/reverse-index.test.ts#memoizes per spec instance"]
+    notes: "## Decision\nWeakMap<Spec,ReverseIndex> memo, NOT a mutable field on the readonly Spec. Cache is keyed by the spec object primeSpecCache already holds one-per-run, so it is auto-invalidated when the spec is replaced and GC-collected with it. No changes to types.ts/load.ts/drift.ts."
+  - id: AC-17365b3c
+    ears: ubiquitous
+    text: "Module ownership shall be many-to-many: a module path declared by N features shall map to the full set of N feature ids, reflecting that `modules` records every feature that touches a file, not exclusive ownership."
+    test_refs: ["tests/spec/reverse-index.test.ts#maps each module path to all owning features (many-to-many)"]
+    notes: "## Why\nGround-truth: 131/338 module paths in cladding-self are claimed by 2+ features. `modules` is a touched-by edge. A uniqueness check would be wrong; the value is the many-to-many co-change query."
+  - id: AC-7db4f09d
+    ears: unwanted
+    condition: "if a test_ref carries a recognised non-path prefix (derived:/fixture:/script:/self-dogfood:) or a #anchor suffix"
+    action: "exclude prefixed pseudo-refs from the citation index and key real refs by their path part only (anchor stripped)"
+    response: "the citation index maps clean test-file paths to citing features, never anchors or non-path pseudo-refs"
+    text: "If a test_ref carries a recognised non-path prefix or a #anchor, the system shall exclude prefixed pseudo-refs from the citation index and key real refs by path only (anchor stripped)."
+    test_refs: ["tests/spec/reverse-index.test.ts#skips prefixed pseudo-refs and strips anchors in test citations"]

@@ -33,6 +33,7 @@ import {performanceDrift} from './performance-drift.js';
 import {plannedBacklog} from './planned-backlog.js';
 import {projectContextDrift} from './project-context-drift.js';
 import {referenceIntegrity} from './reference-integrity.js';
+import {docReferenceIntegrity} from './doc-reference-integrity.js';
 import {scenarioCoverage} from './scenario-coverage.js';
 import {specConformance} from './spec-conformance.js';
 import {staleEvidence} from './stale-evidence.js';
@@ -42,6 +43,8 @@ import {statusDrift} from './status-drift.js';
 import {techStackMismatch} from './tech-stack-mismatch.js';
 import {unmappedArtifact} from './unmapped-artifact.js';
 import {untestedAc} from './untested-ac.js';
+import {inferableDependsOn} from './inferable-depends-on.js';
+import {unverifiedAc} from './unverified-ac.js';
 import type {DriftDetector} from '../types.js';
 
 /** Every detector cladding registers by default, in stable order. */
@@ -54,6 +57,7 @@ export const allDetectors: readonly DriftDetector[] = [
   statusDrift,
   staleSpecification,
   referenceIntegrity,
+  docReferenceIntegrity,
   harnessIntegrity,
   metaIntegrity,
   acDrift,
@@ -64,6 +68,7 @@ export const allDetectors: readonly DriftDetector[] = [
   evidenceMismatch,
   staleEvidence,
   untestedAc,
+  unverifiedAc,
   conventionDrift,
   fixtureReference,
   slugConflict,
@@ -83,4 +88,5 @@ export const allDetectors: readonly DriftDetector[] = [
   deliverableIntegrity,
   smokeProbeDemand,
   staleAttestation,
+  inferableDependsOn,
 ];

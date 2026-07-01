@@ -1,0 +1,35 @@
+id: F-16138071
+slug: graph-efficiency-measure
+title: "clad measure — deterministically quantify the search + context efficiency the graph provides per feature"
+status: done
+depends_on:
+  - F-06dfdad6
+  - F-96250595
+modules:
+  - src/optimizer/measurement.ts
+  - src/cli/clad.ts
+acceptance_criteria:
+  - id: AC-493895
+    ears: event
+    condition: "when measureGraphEfficiency runs over a spec with module files"
+    action: "for each feature compute the working-set token size, the naive baseline (shard + full text of all its module files), the dependency depth + edges the graph resolves, and the iterative slice's coverage + stop reason; aggregate to medians/p95"
+    response: "a per-feature + aggregate efficiency report quantifying what the graph hands you vs what you'd reconstruct by hand"
+    text: "When measureGraphEfficiency runs, the system shall produce per-feature and aggregate context-efficiency (slice vs naive tokens), search-efficiency (depth/edges), and regression-coverage metrics."
+    test_refs:
+      - "tests/optimizer/measurement.test.ts#computes the slice-vs-naive context ratio per feature"
+      - "tests/optimizer/measurement.test.ts#aggregates median shrink factor, search depth, and coverage"
+    notes: "## Why\nThe graph tooling's goal is search/context efficiency + stable dev at scale, NOT agent correctness — four correctness-framed A/Bs were NULL on the wrong axis. This measures the right axis DETERMINISTICALLY (no agent, no NULL risk). Measured on vapt (698-edge graph): median working-set 3028 tok vs naive 14442 = 4.1x smaller context. ## Honest scope\nUpper bound of what the infrastructure CAN provide vs ONE naive baseline (shard+all-modules) — NOT proof a strong agent adopts it (A/Bs show strong agents grep regardless)."
+  - id: AC-612e57
+    ears: ubiquitous
+    text: "Measurement shall be pure + deterministic given the spec and an injected file reader (no direct fs in the core; reader injected like code-excerpt), and shall never throw on a feature that resolves to a lookup miss (skip it)."
+    test_refs:
+      - "tests/optimizer/measurement.test.ts#is deterministic for identical spec and file contents"
+      - "tests/optimizer/measurement.test.ts#skips lookup misses without throwing"
+  - id: AC-d18961
+    ears: event
+    condition: "when the MCP/CLI surface registers commands"
+    action: "expose `clad measure` (table + --json) reusing measureGraphEfficiency, without altering existing verbs"
+    response: "the efficiency report is runnable from the CLI"
+    text: "When the CLI registers, the system shall add a `measure` verb that prints the efficiency report."
+    test_refs:
+      - "tests/cli/clad.test.ts#returns a Command with all 22 verbs registered (work removed in 0.6.0; hook F-1d23a6, context F-d2c806, impact F-7794a6bc, infer-deps F-2be3e3bb, measure F-16138071, graph F-569f4b37, changelog F-904495a5)"

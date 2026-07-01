@@ -1,0 +1,33 @@
+id: F-5b188856
+slug: graph-color-groups
+title: "graph viewer color system — hue=kind only, grouped spec(blue)/code(orange)/test(green)/docs(pink); skill is a doc"
+status: done
+depends_on:
+  - F-77f7ead0
+  - F-64a5c159
+modules:
+  - src/graph/stellar.ts
+  - src/graph/viewer-shell.ts
+  - src/graph/viewer/main.ts
+  - src/graph/viewer/styles.css
+acceptance_criteria:
+  - id: AC-590579
+    ears: ubiquitous
+    text: "A node's color shall encode KIND only — never tier. semanticHue ignores tier and returns the kind hue (or DEFAULT_NODE when kind is absent), removing the prior tier/kind double-encoding where one blue meant both 'feature' and 'tier A'."
+    test_refs:
+      - "tests/graph/stellar.test.ts#kind always wins — tier never touches the node hue (double-encoding removed)"
+      - "tests/graph/stellar.test.ts#a tier-only node (no kind) falls back to DEFAULT_NODE — tier is not a hue"
+    notes: "## Why\nThe sidebar showed the same blue labeled both 'Spec·sealed' (tier A) and 'feature' (kind) because semanticHue let tier win over kind. Tier is derivable from kind (feature→A, capability→B, code→none), so encoding both in one hue was redundant AND collided (feature+scenario both blue; tier-C teal ≈ skill turquoise). Hue now carries exactly one axis: kind. Tier moves to the sidebar filter + tooltip."
+  - id: AC-6b822a
+    ears: ubiquitous
+    text: "KIND_COL shall be a grouped palette readable as zones on the near-black galaxy: SPEC=blue family (feature/scenario/capability), module=orange anchor, test=green anchor, DOCS=pink family (doc/skill). skill (SKILL.md, a document) shall sit in the DOCS pink arc (≈300-340°), NOT the code/test zone; all hues stay above the bloom luminance floor."
+    test_refs:
+      - "tests/graph/stellar.test.ts#KIND_COL has the seven declared kinds (spec=blue · module=orange · test=green · docs=pink)"
+      - "tests/graph/stellar.test.ts#skill sits in the DOCS pink family (≈300-340° hue), not the CODE/TEST zone"
+    notes: "## Why\nUser anchors: spec=blue, module=orange, test=green (strong, instantly-separable). The rest adjust around them — SPEC a blue family, DOCS a pink family — so the group reads at a glance while each member stays distinct (luminance + small hue step). skill was turquoise (read as code); it is .md, so it belongs with doc. Palette verified by simulation: Y≥125 floor, colorblind 4-group separation, hub-whitening within-family distinctness. Honest residuals (accepted): module orange sits near the health-burn arc (disambiguated by the burn's 2.2-3× pulse vs static node), and orange↔green is the textbook red-green colorblind pair (conceptually adjacent code↔test, luminance backstop)."
+  - id: AC-21ae30
+    ears: ubiquitous
+    text: "The viewer sidebar shall present ONE color legend, grouping kinds into spec/code/test/docs zone sections; the SSoT tier section shall be a swatch-less filter (no competing color legend)."
+    test_refs:
+      - "tests/graph/viewer.test.ts#sidebar groups kinds into spec/code/test/docs zones and labels tiers as a filter"
+    notes: "## Why\nPreviously two colored legends (tiers + kinds) used overlapping colors, so the same blue appeared in both with different labels. With hue=kind, the kinds legend is the sole color key (grouped by zone so it teaches the spec/code/test/docs split), and tier becomes a filter rendered without a color swatch."

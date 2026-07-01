@@ -24,6 +24,7 @@ layers:
     - oracle
     - router
     - ui
+    - graph
   - - stages
     - adapters
   - - drive
@@ -50,6 +51,16 @@ forbidden_imports:
   - from: changelog
     to: cli
   - from: changelog
+    to: serve
+  # graph (foundation) derives a knowledge graph from the spec — it must stay a
+  # pure reader importable by cli AND serve without dragging stage runners in.
+  - from: graph
+    to: stages
+  - from: graph
+    to: drive
+  - from: graph
+    to: cli
+  - from: graph
     to: serve
   - from: stages
     to: drive

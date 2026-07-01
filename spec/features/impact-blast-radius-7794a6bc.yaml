@@ -1,0 +1,45 @@
+id: F-7794a6bc
+slug: impact-blast-radius
+title: "Blast-radius impact query — backward slice (what breaks if I change X) over MCP + CLI"
+status: done
+modules:
+  - src/optimizer/reverse-slice.ts
+  - src/serve/server.ts
+  - src/cli/clad.ts
+acceptance_criteria:
+  - id: AC-9980c9b0
+    ears: event
+    condition: "when buildImpactSlice is called with a feature id or slug"
+    action: "walk the reverse-index transitive dependents and assemble the blast radius"
+    response: "the caller gets, in one call, the focus feature, its transitive dependents (id+title+status summaries), the union of scenarios bound to focus or any dependent, the deduped union of their test_refs (the regression set to run), and the union of impacted module paths"
+    text: "When buildImpactSlice is called with a feature id or slug, the system shall return the focus feature plus its transitive dependents (summaries), the union of bound scenarios, the deduped union of test_refs (regression set), and the union of impacted module paths."
+    test_refs: ["tests/optimizer/reverse-slice.test.ts#feature query returns focus, transitive dependents, scenarios, test_refs union, impacted modules"]
+    notes: "## Why\nThis is the missing backward complement of clad_get_context: forward answers 'what does this need', impact answers 'what breaks if I change this'. The regression-test union is the LLM's safe-refactor set in a long project."
+  - id: AC-3f4f7202
+    ears: event
+    condition: "when the query is a module path"
+    action: "resolve it through the many-to-many moduleOwners to every feature that touches the file, then compute the blast radius from that owner set"
+    response: "changing a shared file surfaces ALL features that touch it and everything downstream, not just one owner"
+    text: "When the query is a module path, the system shall resolve it via the many-to-many moduleOwners to all owning features and compute the blast radius from that owner set, naming the module and its owners in the focus descriptor."
+    test_refs: ["tests/optimizer/reverse-slice.test.ts#module path query resolves all owners (many-to-many) and computes blast radius"]
+  - id: AC-6a73f6b1
+    ears: unwanted
+    condition: "if the query resolves to no feature and no module owner"
+    action: "return a not_found result naming the three accepted lookup forms"
+    response: "a miss teaches the caller the contract instead of returning an empty blast radius"
+    text: "If the query resolves to nothing, the system shall return a not_found result naming the accepted forms (feature id, slug, module path)."
+    test_refs: ["tests/optimizer/reverse-slice.test.ts#a miss returns not_found naming the accepted forms"]
+  - id: AC-7596b1b6
+    ears: event
+    condition: "when an optional depth is supplied"
+    action: "bound the transitive dependent walk to that many hops and emit every collection in stable sorted order"
+    response: "hub features stay queryable (bounded result) and identical spec state yields byte-identical slices (cacheable, diffable)"
+    text: "When an optional depth is supplied, the system shall bound the dependent walk to that many hops, and for identical spec state the slice shall be deterministic (stable ordering)."
+    test_refs: ["tests/optimizer/reverse-slice.test.ts#depth bounds the dependent walk and output is deterministic"]
+  - id: AC-c463ed55
+    ears: event
+    condition: "when a host calls the clad_get_impact MCP tool (or the CLI runs clad impact) with a query"
+    action: "return the blast-radius slice as JSON carrying schema_version"
+    response: "an agent gets the impact set for one change in one call; a miss is reported as an error result naming the accepted forms"
+    text: "When clad_get_impact / clad impact is called with a query, the system shall return the blast-radius slice with schema_version, and report a miss as an error result."
+    test_refs: ["tests/serve/server.test.ts#clad_get_impact returns the blast-radius slice; a miss is isError"]

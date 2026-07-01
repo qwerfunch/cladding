@@ -42,6 +42,9 @@ import {doneFeatureCount, oracleRequired, resolveOraclePolicy} from '../oracle/p
 import {maintainDeliverable} from '../spec/deliverable-detect.js';
 import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../spec/inventory.js';
 import {buildContextSlice} from '../optimizer/context-slice.js';
+import {buildImpactSlice} from '../optimizer/reverse-slice.js';
+import {buildWorkingSet} from '../optimizer/working-set.js';
+import {buildGraph, resolveNodeId, subgraph} from '../graph/model.js';
 import {runDrift} from '../stages/drift.js';
 
 /** Persona ids registered as MCP prompts (mirrors src/agents/). */
@@ -75,6 +78,9 @@ export const TOOL_NAMES = [
   'clad_author_oracle',
   'clad_run_gate',
   'clad_get_context',
+  'clad_get_working_set',
+  'clad_get_impact',
+  'clad_get_graph',
   'clad_changelog',
 ] as const;
 
@@ -109,7 +115,7 @@ export function buildServer(opts: ServerOptions = {}): McpServer {
   const server = new McpServer(
     {
       name: opts.name ?? 'cladding',
-      version: opts.version ?? '0.6.3',
+      version: opts.version ?? '0.7.0',
     },
     {
       // Declare subscribe support so clients can subscribe to
@@ -459,6 +465,146 @@ function registerTools(server: McpServer, cwd: string): void {
     },
   );
 
+  // clad_get_working_set (F-06dfdad6) — the code-bearing, token-budgeted superset of
+  // clad_get_context: focus + module CODE + forward needs + backward breaks + verify + budget,
+  // fused in one call. clad_get_context stays frozen for hosts that cache its shape.
+  server.registerTool(
+    'clad_get_working_set',
+    {
+      title: 'Get the token-budgeted working set for one feature (code + needs + breaks)',
+      description:
+        'Returns ONE token-budgeted working set for a feature/module: must_edit (focus + full ACs + the ACTUAL ' +
+        'source code of its modules), needs (forward depends_on), breaks_if_changed (direct dependents + the ' +
+        'regression test set), verify (scenarios + tests + oracle_refs + EARS unwanted/state high-risk ACs), ' +
+        'guidance (ai_hints), and budget (what was clipped to fit). One call replaces reading the shard + opening ' +
+        'each module file + grepping deps/tests. Look up by feature id (F-…), slug, or module path.',
+      inputSchema: {
+        query: z.string().describe('Feature id (F-…), slug, or module path (e.g. src/auth/login.ts)'),
+        max_tokens: z
+          .number()
+          .int()
+          .positive()
+          .max(20000)
+          .optional()
+          .describe('Token budget for the payload (default 3000); distant deps then code then tests are clipped to fit'),
+      },
+    },
+    async (args) => {
+      try {
+        const ws = buildWorkingSet(loadSpec(cwd), args.query, {cwd, maxTokens: args.max_tokens});
+        return {
+          isError: 'not_found' in ws,
+          content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...ws}, null, 2)}],
+        };
+      } catch (err) {
+        return {isError: true, content: [{type: 'text', text: (err as Error).message}]};
+      }
+    },
+  );
+
+  // clad_get_impact (F-7794a6bc) — the backward complement of clad_get_context.
+  // "What breaks if I change this?" Walks the reverse-index dependents and
+  // returns the blast radius: impacted features, scenarios at risk, the
+  // regression test set to run, and the modules in the radius.
+  server.registerTool(
+    'clad_get_impact',
+    {
+      title: 'Get the blast radius for a change (reverse / impact slice)',
+      description:
+        "Returns what a change to ONE feature or file could break: the transitive dependents (id+title+status), " +
+        'the scenarios bound to any of them, the deduped union of their test_refs (the regression set to re-run), ' +
+        'and the modules in the radius. Look up by feature id (F-…), slug, or a module path — a module fans out to ' +
+        'ALL features that touch it. The backward complement of clad_get_context: forward = what this needs, ' +
+        'impact = what depends on this. Prefer this over grepping to scope a safe refactor.',
+      inputSchema: {
+        query: z.string().describe('Feature id (F-…), slug, or module path (e.g. src/spec/load.ts)'),
+        max_depth: z
+          .number()
+          .int()
+          .positive()
+          .max(6)
+          .optional()
+          .describe('Bound the dependent walk to N hops (default: unbounded — the full transitive radius)'),
+      },
+    },
+    async (args) => {
+      try {
+        const spec = loadSpec(cwd);
+        const slice = buildImpactSlice(spec, args.query, {depth: args.max_depth});
+        const miss = 'not_found' in slice;
+        return {
+          isError: miss,
+          content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...slice}, null, 2)}],
+        };
+      } catch (err) {
+        return {isError: true, content: [{type: 'text', text: (err as Error).message}]};
+      }
+    },
+  );
+
+  // clad_get_graph (F-64a5c159) — the live spec↔code↔doc knowledge graph (or a
+  // focused neighborhood). Always recomputed from the current spec, so the graph
+  // an agent reads is never stale. Companion to the `clad graph serve` live view.
+  server.registerTool(
+    'clad_get_graph',
+    {
+      title: 'Get the live knowledge graph (nodes + edges)',
+      description:
+        'Returns the current spec↔code↔doc knowledge graph: nodes (feature/module/skill/test/scenario/capability/doc, ' +
+        'tier-classified A/B/C/D, features labeled by slug) + typed edges (depends_on/touches/covers/binds/' +
+        'implements/references/links). Optionally focus on one node’s N-hop neighborhood. Recomputed live — never stale.',
+      inputSchema: {
+        query: z
+          .string()
+          .optional()
+          .describe('Focus node: feature id (F-…), slug, or module path. Omit for the whole graph.'),
+        max_depth: z
+          .number()
+          .int()
+          .positive()
+          .max(6)
+          .optional()
+          .describe('Neighborhood radius around the focus node (default: full graph from the focus)'),
+      },
+    },
+    async (args) => {
+      try {
+        const spec = loadSpec(cwd);
+        let graph = buildGraph(spec, cwd);
+        if (args.query) {
+          const focusId = resolveNodeId(spec, graph, args.query);
+          if (!focusId) {
+            return {
+              isError: true,
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(
+                    {
+                      schema_version: PAYLOAD_SCHEMA_VERSION,
+                      not_found: args.query,
+                      accepted_forms: ['feature id (F-…)', 'slug', 'module path'],
+                    },
+                    null,
+                    2,
+                  ),
+                },
+              ],
+            };
+          }
+          graph = subgraph(graph, focusId, args.max_depth ?? Infinity);
+        }
+        return {
+          content: [
+            {type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...graph}, null, 2)},
+          ],
+        };
+      } catch (err) {
+        return {isError: true, content: [{type: 'text', text: (err as Error).message}]};
+      }
+    },
+  );
+
   // clad_changelog (F-904495a5) — the spec rendered into a shipped-changes
   // manifest. The deterministic collector/renderers live in src/changelog/;
   // the LLM host renders the human prose FROM the manifest, never from memory.
@@ -582,7 +728,7 @@ function registerTools(server: McpServer, cwd: string): void {
         acceptance_criteria: z
           .array(
             z.object({
-              ears: z.enum(['ubiquitous', 'event', 'state', 'optional', 'unwanted']).optional(),
+              ears: z.enum(['ubiquitous', 'event', 'state', 'optional', 'unwanted', 'complex']).optional(),
               text: z.string().optional().describe('The "The system shall …" statement.'),
               action: z.string().optional(),
               response: z.string().optional(),

@@ -1,0 +1,291 @@
+import {describe, test, expect, afterEach} from 'vitest';
+import {mkdtempSync, writeFileSync, rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {buildWorkingSet} from '../../src/optimizer/working-set.js';
+import type {Spec} from '../../src/spec/types.js';
+
+const tmpDirs: string[] = [];
+
+function makeTmp(): string {
+  const dir = mkdtempSync(join(tmpdir(), 'clad-ws-'));
+  tmpDirs.push(dir);
+  return dir;
+}
+
+afterEach(() => {
+  while (tmpDirs.length > 0) {
+    const dir = tmpDirs.pop();
+    if (dir) rmSync(dir, {recursive: true, force: true});
+  }
+});
+
+interface ACSeed {
+  id: string;
+  ears?: string;
+  text?: string;
+  test_refs?: string[];
+  oracle_refs?: string[];
+}
+
+interface FeatureSeed {
+  id: string;
+  slug: string;
+  title: string;
+  status?: string;
+  modules?: string[];
+  depends_on?: string[];
+  acceptance_criteria?: ACSeed[];
+}
+
+function ac(seed: ACSeed): ACSeed {
+  return {
+    id: seed.id,
+    ears: seed.ears ?? 'ubiquitous',
+    text: seed.text ?? 't',
+    test_refs: seed.test_refs ?? [],
+    oracle_refs: seed.oracle_refs ?? [],
+  };
+}
+
+function feature(seed: FeatureSeed): FeatureSeed {
+  return {
+    id: seed.id,
+    slug: seed.slug,
+    title: seed.title,
+    status: seed.status ?? 'done',
+    modules: seed.modules ?? [],
+    depends_on: seed.depends_on ?? [],
+    acceptance_criteria: seed.acceptance_criteria ?? [
+      ac({id: 'AC-001', ears: 'unwanted', text: 't', test_refs: ['tests/x.test.ts#a'], oracle_refs: ['o1']}),
+    ],
+  };
+}
+
+function makeSpec(features: FeatureSeed[], scenarios?: {id: string; title: string; features: string[]}[]): Spec {
+  return {
+    project: {
+      name: 't',
+      language: 'typescript',
+      ai_hints: {
+        preferred_patterns: [{when: 'w', prefer: 'p', over: 'o'}],
+      },
+    },
+    features,
+    scenarios: scenarios ?? [{id: 'S-1', title: 's', features: [features[0]?.id ?? 'F-aaa111']}],
+  } as unknown as Spec;
+}
+
+interface MinimalRef {
+  id: string;
+  title: string;
+  status?: string;
+}
+
+interface WorkingSetShape {
+  must_edit: {
+    id: string;
+    title: string;
+    status: string;
+    modules: string[];
+    acceptance_criteria: ACSeed[];
+    code: {path: string; text?: string; truncated?: boolean; omitted?: string; bytes?: number}[];
+    co_owners?: string[];
+  };
+  needs: MinimalRef[];
+  breaks_if_changed: {impacted: MinimalRef[]; regression_tests: string[]};
+  verify: {
+    scenarios: {id: string; title: string}[];
+    test_refs: string[];
+    oracle_refs: string[];
+    high_risk_acs: {id: string; ears: string}[];
+  };
+  guidance: {preferred_patterns: {when: string; prefer: string; over?: string}[]};
+  budget: {max_tokens: number; used_tokens: number; truncated: string[]};
+}
+
+interface MissShape {
+  not_found: string;
+  accepted_forms: string[];
+  discovery: string;
+}
+
+function isMiss(r: WorkingSetShape | MissShape): r is MissShape {
+  return Object.prototype.hasOwnProperty.call(r, 'not_found');
+}
+
+describe('working-set', () => {
+  test('resolves id, slug, and module path (multi-owner picks first + lists co-owners)', () => {
+    const spec = makeSpec([
+      feature({id: 'F-bbb222', slug: 'beta', title: 'Beta', modules: ['src/shared.ts']}),
+      feature({id: 'F-aaa111', slug: 'alpha', title: 'Alpha', modules: ['src/shared.ts']}),
+    ]);
+
+    const byModule = buildWorkingSet(spec, 'src/shared.ts') as WorkingSetShape | MissShape;
+    expect(isMiss(byModule)).toBe(false);
+    if (isMiss(byModule)) throw new Error('expected a working set');
+    expect(byModule.must_edit.id).toBe('F-aaa111');
+    expect(byModule.must_edit.co_owners).toBeDefined();
+    expect(byModule.must_edit.co_owners).toContain('F-aaa111');
+    expect(byModule.must_edit.co_owners).toContain('F-bbb222');
+    // sorted
+    const co = byModule.must_edit.co_owners ?? [];
+    expect([...co].sort()).toEqual(co);
+
+    const byId = buildWorkingSet(spec, 'F-aaa111') as WorkingSetShape | MissShape;
+    expect(isMiss(byId)).toBe(false);
+    if (isMiss(byId)) throw new Error('expected a working set');
+    expect(byId.must_edit.id).toBe('F-aaa111');
+
+    const bySlug = buildWorkingSet(spec, 'alpha') as WorkingSetShape | MissShape;
+    expect(isMiss(bySlug)).toBe(false);
+    if (isMiss(bySlug)) throw new Error('expected a working set');
+    expect(bySlug.must_edit.id).toBe('F-aaa111');
+  });
+
+  test('unknown query returns a not_found miss', () => {
+    const spec = makeSpec([feature({id: 'F-aaa111', slug: 'alpha', title: 'Alpha'})]);
+    const r = buildWorkingSet(spec, 'F-nope') as WorkingSetShape | MissShape;
+    expect(isMiss(r)).toBe(true);
+    if (!isMiss(r)) throw new Error('expected a miss');
+    expect(r.not_found).toBe('F-nope');
+    expect(Array.isArray(r.accepted_forms)).toBe(true);
+    expect(r.accepted_forms.length).toBeGreaterThan(0);
+    expect(typeof r.discovery).toBe('string');
+  });
+
+  test('fuses forward needs + backward breaks + verify + guidance into one payload', () => {
+    const spec = makeSpec([
+      feature({id: 'F-base', slug: 'base', title: 'Base', depends_on: []}),
+      feature({
+        id: 'F-mid',
+        slug: 'mid',
+        title: 'Mid',
+        depends_on: ['F-base'],
+        acceptance_criteria: [
+          ac({id: 'AC-001', ears: 'unwanted', test_refs: ['tests/b.test.ts#z', 'tests/a.test.ts#x']}),
+          ac({id: 'AC-002', ears: 'event', test_refs: ['tests/a.test.ts#x', 'tests/c.test.ts#y']}),
+        ],
+      }),
+      feature({id: 'F-top', slug: 'top', title: 'Top', depends_on: ['F-mid']}),
+    ]);
+
+    const r = buildWorkingSet(spec, 'F-mid') as WorkingSetShape | MissShape;
+    expect(isMiss(r)).toBe(false);
+    if (isMiss(r)) throw new Error('expected a working set');
+
+    // forward ancestor
+    expect(r.needs.map((n) => n.id)).toContain('F-base');
+
+    // backward direct dependent
+    expect(r.breaks_if_changed.impacted.map((i) => i.id)).toContain('F-top');
+
+    // guidance seeded pattern
+    expect(r.guidance.preferred_patterns).toEqual([{when: 'w', prefer: 'p', over: 'o'}]);
+
+    // verify.test_refs = union deduped + sorted
+    const expectedRefs = ['tests/a.test.ts#x', 'tests/b.test.ts#z', 'tests/c.test.ts#y'];
+    expect(r.verify.test_refs).toEqual(expectedRefs);
+
+    // all sections present
+    expect(r.must_edit).toBeDefined();
+    expect(r.needs).toBeDefined();
+    expect(r.breaks_if_changed).toBeDefined();
+    expect(r.verify).toBeDefined();
+    expect(r.guidance).toBeDefined();
+    expect(r.budget).toBeDefined();
+    expect(Array.isArray(r.verify.scenarios)).toBe(true);
+    expect(Array.isArray(r.verify.oracle_refs)).toBe(true);
+    expect(Array.isArray(r.verify.high_risk_acs)).toBe(true);
+    expect(Array.isArray(r.breaks_if_changed.regression_tests)).toBe(true);
+  });
+
+  test('flags EARS unwanted/state acceptance criteria as high-risk', () => {
+    const spec = makeSpec([
+      feature({
+        id: 'F-aaa111',
+        slug: 'alpha',
+        title: 'Alpha',
+        acceptance_criteria: [
+          ac({id: 'AC-001', ears: 'unwanted'}),
+          ac({id: 'AC-002', ears: 'state'}),
+          ac({id: 'AC-003', ears: 'ubiquitous'}),
+        ],
+      }),
+    ]);
+
+    const r = buildWorkingSet(spec, 'F-aaa111') as WorkingSetShape | MissShape;
+    expect(isMiss(r)).toBe(false);
+    if (isMiss(r)) throw new Error('expected a working set');
+
+    const ids = r.verify.high_risk_acs.map((a) => a.id).sort();
+    expect(ids).toEqual(['AC-001', 'AC-002']);
+    for (const entry of r.verify.high_risk_acs) {
+      expect(typeof entry.id).toBe('string');
+      expect(typeof entry.ears).toBe('string');
+    }
+    // ubiquitous not flagged
+    expect(r.verify.high_risk_acs.map((a) => a.id)).not.toContain('AC-003');
+  });
+
+  test('enforces the token budget and records what was truncated', () => {
+    // Large structural payload: 20 ancestor deps on the focus feature.
+    const ancestors: FeatureSeed[] = [];
+    const depIds: string[] = [];
+    for (let i = 0; i < 20; i++) {
+      const id = `F-d${String(i).padStart(2, '0')}`;
+      depIds.push(id);
+      ancestors.push(
+        feature({
+          id,
+          slug: `dep${i}`,
+          title: `Dependency number ${i} with a reasonably long descriptive title to add weight`,
+          depends_on: [],
+        }),
+      );
+    }
+    const focus = feature({id: 'F-focus', slug: 'focus', title: 'Focus', depends_on: depIds});
+    const bigSpec = makeSpec([focus, ...ancestors]);
+
+    const tight = buildWorkingSet(bigSpec, 'F-focus', {maxTokens: 600}) as WorkingSetShape | MissShape;
+    expect(isMiss(tight)).toBe(false);
+    if (isMiss(tight)) throw new Error('expected a working set');
+    expect(tight.budget.max_tokens).toBe(600);
+    expect(Array.isArray(tight.budget.truncated)).toBe(true);
+    expect(tight.budget.truncated.length).toBeGreaterThan(0);
+    expect(tight.needs.length).toBeLessThan(depIds.length);
+    // focus is always retained
+    expect(tight.must_edit.id).toBe('F-focus');
+
+    // Generous budget on a small feature -> nothing truncated, all ancestors present.
+    const smallSpec = makeSpec([
+      feature({id: 'F-base', slug: 'base', title: 'Base', depends_on: []}),
+      feature({id: 'F-leaf', slug: 'leaf', title: 'Leaf', depends_on: ['F-base']}),
+    ]);
+    const loose = buildWorkingSet(smallSpec, 'F-leaf', {maxTokens: 100000}) as WorkingSetShape | MissShape;
+    expect(isMiss(loose)).toBe(false);
+    if (isMiss(loose)) throw new Error('expected a working set');
+    expect(loose.budget.max_tokens).toBe(100000);
+    expect(loose.budget.truncated).toEqual([]);
+    expect(loose.needs.map((n) => n.id)).toContain('F-base');
+  });
+
+  test('is deterministic for identical spec + files', () => {
+    const dir = makeTmp();
+    writeFileSync(join(dir, 'mod.ts'), 'export const v = 1;\n', 'utf8');
+    const spec = makeSpec([
+      feature({id: 'F-base', slug: 'base', title: 'Base', depends_on: []}),
+      feature({
+        id: 'F-aaa111',
+        slug: 'alpha',
+        title: 'Alpha',
+        modules: ['mod.ts'],
+        depends_on: ['F-base'],
+      }),
+    ]);
+
+    const a = buildWorkingSet(spec, 'F-aaa111', {cwd: dir, maxTokens: 100000});
+    const b = buildWorkingSet(spec, 'F-aaa111', {cwd: dir, maxTokens: 100000});
+    expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+  });
+});

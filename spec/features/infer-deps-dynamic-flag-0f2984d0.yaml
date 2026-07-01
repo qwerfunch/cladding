@@ -1,0 +1,25 @@
+id: F-0f2984d0
+slug: infer-deps-dynamic-flag
+title: "infer-deps flags dynamic-import files — honest recall: surface what static extraction cannot see"
+status: done
+depends_on:
+  - F-2be3e3bb
+modules:
+  - src/optimizer/infer-depends-on.ts
+  - src/cli/clad.ts
+acceptance_criteria:
+  - id: AC-d7c33b
+    ears: event
+    condition: "when inferDependsOn scans a module that uses dynamic/runtime imports (importlib.import_module, __import__, getattr-based, or require(<expr>))"
+    action: "record that module path in dynamicImportFiles (sorted, deduped) — its dependencies cannot be extracted by static regex, so edges from it may be under-reported"
+    response: "the recall gap is surfaced for manual review, not silently dropped"
+    text: "When a module uses dynamic imports, the system shall list its path in dynamicImportFiles so the under-reported edges are visible, not hidden."
+    test_refs:
+      - "tests/optimizer/infer-depends-on-dynamic.test.ts#flags a module with dynamic imports in dynamicImportFiles"
+      - "tests/optimizer/infer-depends-on-dynamic.test.ts#leaves dynamicImportFiles empty when all imports are static"
+    notes: "## Why\nThe final vapt graph-traversal test measured inference recall at ~70-75% — the biggest remaining gap was dynamic imports (importlib/getattr) that regex extraction can't see (e.g. catalog/tool_inventory.py). Rather than silently miss them, surface the files so a maintainer reviews them by hand. Honest-recall, not a precision change (static edges from the same files are still inferred). clad infer-deps prints dynamic_import_files."
+  - id: AC-1781e6
+    ears: ubiquitous
+    text: "dynamicImportFiles shall be deterministic (sorted) and additive — it does not change which edges are inferred, only reports which files carry untrackable dependencies; clad infer-deps surfaces it as dynamic_import_files."
+    test_refs:
+      - "tests/optimizer/infer-depends-on-dynamic.test.ts#dynamicImportFiles is deterministic and does not alter inferred edges"

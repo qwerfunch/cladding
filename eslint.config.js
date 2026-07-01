@@ -8,7 +8,7 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['node_modules/**', 'dist/**', 'plugins/**/dist/**'],
+    ignores: ['node_modules/**', 'dist/**', 'plugins/**/dist/**', 'src/graph/viewer/**'],
   },
   ...tseslint.configs.recommended,
   {
