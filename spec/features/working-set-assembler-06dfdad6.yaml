@@ -1,0 +1,58 @@
+id: F-06dfdad6
+slug: working-set-assembler
+title: "Working-set assembler — one token-budgeted, code-bearing context payload (forward+backward fused) for LLM dev"
+status: done
+depends_on:
+  - F-d2c806
+  - F-7794a6bc
+modules:
+  - src/optimizer/working-set.ts
+  - src/optimizer/code-excerpt.ts
+  - src/serve/server.ts
+acceptance_criteria:
+  - id: AC-62d89e
+    ears: event
+    condition: "when buildWorkingSet is called with a feature id, slug, or module path"
+    action: "resolve the focus feature; for a module path claimed by multiple features pick the alphabetically-first owner id as focus and list all co-owners; for an unrecognized query return a not_found miss"
+    response: "a deterministic focus resolution that never throws on bad input"
+    text: "When buildWorkingSet runs, the system shall resolve the focus from id/slug/module (module multi-owner → alphabetically-first owner + co-owners listed) or return a not_found miss."
+    test_refs:
+      - "tests/optimizer/working-set.test.ts#resolves id, slug, and module path (multi-owner picks first + lists co-owners)"
+      - "tests/optimizer/working-set.test.ts#unknown query returns a not_found miss"
+    notes: "## Why\nFreeze F-d2c806's buildContextSlice + clad_get_context (schema_version=1, existing tests) — this is an ADDITIVE buildWorkingSet, never a mutation of the existing slice (sim verdict: backward-compat blocker)."
+  - id: AC-d2b3c8
+    ears: ubiquitous
+    text: "The working set shall fuse, in one structured payload: must-edit (focus feature + full ACs), needs (forward depends_on ancestors), breaks-if-changed (direct backward dependents + the regression test union), verify (scenarios + test_refs + oracle_refs + EARS unwanted/state high-risk AC flags), and guidance (ai_hints preferred_patterns) — so one call replaces the forward+backward two-call dance and the hand-grep."
+    test_refs:
+      - "tests/optimizer/working-set.test.ts#fuses forward needs + backward breaks + verify + guidance into one payload"
+      - "tests/optimizer/working-set.test.ts#flags EARS unwanted/state acceptance criteria as high-risk"
+  - id: AC-42bd08
+    ears: event
+    condition: "when the working set includes a focus module's source"
+    action: "read it through a path-safe reader — resolve within cwd, allow only a code-extension whitelist, return a binary/too-large/missing marker instead of throwing, and clip long files with a truncation marker"
+    response: "the LLM sees the actual code to edit, safely and bounded (no path traversal, no binary dump, no budget blowout)"
+    text: "When source is included, the system shall read it via a cwd-bounded, extension-whitelisted, clipping reader that degrades to a marker on binary/missing/oversize."
+    test_refs:
+      - "tests/optimizer/code-excerpt.test.ts#reads a code file clipped to the budget with a truncation marker"
+      - "tests/optimizer/code-excerpt.test.ts#rejects path traversal and non-whitelisted/binary/missing files safely"
+  - id: AC-05ea70
+    ears: unwanted
+    condition: "if the assembled payload would exceed the token budget (default 3000, configurable)"
+    action: "clip droppable sections in priority order — distant transitive ancestors, then code excerpts — and record what was dropped in budget.truncated[]; the focus (must-edit + ACs) is always retained"
+    response: "the droppable sections shrink to fit the budget and the LLM is told what was omitted; the focus is never dropped (so a focus larger than the cap is reported, not truncated)"
+    text: "While the payload would exceed the token budget, the system shall clip droppable sections (ancestors then code) and record budget.truncated[]; the focus is always retained even if it alone exceeds the cap."
+    test_refs:
+      - "tests/optimizer/working-set.test.ts#enforces the token budget and records what was truncated"
+  - id: AC-c2cef0
+    ears: event
+    condition: "when the MCP server registers its tools"
+    action: "expose a NEW clad_get_working_set tool (leaving clad_get_context and its schema_version untouched), and enumerate the skill node kind in clad_get_graph's description"
+    response: "hosts get the richer working set opt-in, with zero change to the existing context tool"
+    text: "When tools register, the system shall add clad_get_working_set without altering clad_get_context, and clad_get_graph's description shall list the skill kind."
+    test_refs:
+      - "tests/serve/server.test.ts#registers clad_get_working_set without touching clad_get_context"
+  - id: AC-833f1c
+    ears: ubiquitous
+    text: "For identical spec state and identical file contents, buildWorkingSet shall produce byte-identical structural ordering (stable sorts, no timestamps/random) so a host can cache and diff it."
+    test_refs:
+      - "tests/optimizer/working-set.test.ts#is deterministic for identical spec + files"

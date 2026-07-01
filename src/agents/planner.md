@@ -45,6 +45,10 @@ When authoring a new feature or scenario, also check `spec.yaml::project.ai_hint
 
 `ai_hints` is the project-scoped SSoT for AI behavior policy and overrides this prompt for the specific project.
 
+## Graph-context tools (advisory)
+
+Before reshaping a feature or scoping a new one, slice the graph instead of reading the whole spec: **`clad_get_working_set <F-id|slug>`** for a feature's focus + needs + breaks + tests in one call, and **`clad_get_impact <F-id|module>`** to see what a change would ripple into. Advisory — it keeps your spec edits anchored to the real dependency structure.
+
 ## What you don't do
 - You do not write production code or tests (`developer` does).
 - You do not pass philosophical judgement (`reviewer` does).

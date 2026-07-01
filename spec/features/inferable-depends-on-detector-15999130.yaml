@@ -1,0 +1,28 @@
+id: F-15999130
+slug: inferable-depends-on-detector
+title: "INFERABLE_DEPENDS_ON detector — flag (info) when code imports cross feature boundaries but depends_on is unrecorded"
+status: done
+depends_on:
+  - F-2be3e3bb
+modules:
+  - src/stages/detectors/inferable-depends-on.ts
+  - src/stages/detectors/index.ts
+acceptance_criteria:
+  - id: AC-40564f
+    ears: event
+    condition: "when the drift stage runs on a project whose features import across feature boundaries without declaring the matching depends_on"
+    action: "emit a SINGLE info-severity finding naming how many features + edges are inferable, pointing at `clad infer-deps`; emit nothing when there are no undeclared inferable edges"
+    response: "the empty-dependency-graph gap is surfaced (never silently) without ever failing the gate"
+    text: "When undeclared import-inferable depends_on edges exist, the detector shall emit exactly one info finding; otherwise none."
+    test_refs:
+      - "tests/stages/detectors/inferable-depends-on.test.ts#emits one info finding when undeclared inferable edges exist"
+      - "tests/stages/detectors/inferable-depends-on.test.ts#emits nothing when the dependency graph is fully declared"
+    notes: "## Why\nThe depends_on gap had TWO holes — 'produced by nothing' (closed by F-2be3e3bb clad infer-deps) and 'absence flagged by nothing'. This closes the second: without it, infer-deps is a latent tool nobody runs (the same trap that left the graph empty). ## Non-hostile by design\nINFO severity = never fails the gate even under --strict (which fails on error+warn only); a single AGGREGATE finding (not 157 per-feature) so real projects that never hand-authored depends_on aren't spammed or blocked."
+  - id: AC-e80942
+    ears: unwanted
+    condition: "if the spec is unreadable, has no features, or no cross-feature imports"
+    action: "safe-degrade to zero findings without throwing"
+    response: "the detector never breaks the drift stage on an empty/!invalid/import-less project"
+    text: "If inference cannot run or finds nothing, the detector shall return no findings and never throw."
+    test_refs:
+      - "tests/stages/detectors/inferable-depends-on.test.ts#safe-degrades to no findings on an import-less or empty spec"

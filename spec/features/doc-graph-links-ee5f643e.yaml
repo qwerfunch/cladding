@@ -1,0 +1,44 @@
+id: F-ee5f643e
+slug: doc-graph-links
+title: "Doc graph — doc→spec (F-id) + doc→doc (.md) link index and integrity, scoped to avoid example/fixture false positives"
+status: done
+modules:
+  - src/spec/doc-references.ts
+  - src/stages/detectors/doc-reference-integrity.ts
+  - src/stages/detectors/index.ts
+  - src/cli/clad.ts
+acceptance_criteria:
+  - id: AC-5c0ae481
+    ears: event
+    condition: "when clad sync runs (extractDocReferences)"
+    action: "scan docs/**/*.md (excluding fixture/benchmark dirs), strip code spans, and collect per-doc F-id references and resolved relative .md link targets, then write spec/_doc-links.yaml"
+    response: "the doc↔spec↔doc edges become a greppable Tier-C index ('which docs explain feature X') that the graph export and the LLM can read, regenerated every sync"
+    text: "When clad sync runs, the system shall extract per-doc F-id references and resolved relative .md links from docs/**/*.md (excluding fixture dirs, skipping code spans) and write them to spec/_doc-links.yaml deterministically."
+    test_refs: ["tests/spec/doc-references.test.ts#extracts F-ids and resolved .md links, excluding fixture dirs and code spans"]
+    notes: "## Why\n85 doc F-id refs + 26 doc↔doc links were validated by nothing — a renamed feature silently rotted prose. This is the 'all documents connected, always current' half of the graph."
+  - id: AC-cd5c3e00
+    ears: unwanted
+    condition: "if a doc's relative .md link resolves to no file on disk"
+    action: "emit a DOC_LINK_INTEGRITY error naming the doc and the missing target"
+    response: "moved/renamed docs can no longer leave silent dead links"
+    text: "If a doc's relative .md link resolves to no file, DOC_LINK_INTEGRITY shall emit an error naming the doc and the missing target."
+    test_refs: ["tests/stages/detectors/doc-reference-integrity.test.ts#a dead relative .md link is an error"]
+  - id: AC-3f1644f5
+    ears: unwanted
+    condition: "if a scoped doc references an F-id that resolves to no feature in the spec"
+    action: "emit a DOC_LINK_INTEGRITY warn naming the doc and the unknown id"
+    response: "a doc citing an archived/renamed feature is surfaced (blocks under --strict) instead of rotting silently"
+    text: "If a scoped doc references an unknown F-id, DOC_LINK_INTEGRITY shall warn, naming the doc and the id."
+    test_refs: ["tests/stages/detectors/doc-reference-integrity.test.ts#an unresolved F-id in a normal doc is a warn"]
+  - id: AC-f6f6188a
+    ears: unwanted
+    condition: "if a doc carries the clad-doc-links: ignore marker"
+    action: "exempt that doc from F-id resolution so its illustrative example ids never flag, while still checking its relative .md links"
+    response: "teaching docs full of example ids stay green without disabling dead-link checking"
+    text: "If a doc carries the clad-doc-links: ignore marker, the system shall exempt it from F-id resolution but still validate its .md links."
+    test_refs: ["tests/spec/doc-references.test.ts#an opted-out doc yields no features but still yields doc_links"]
+  - id: AC-a08b70e9
+    ears: ubiquitous
+    text: "Fixture/benchmark dirs (docs/ab-evaluation*, docs/dogfood, docs/benchmarks) and code spans (fenced and inline) shall be excluded from F-id extraction, so fixture-namespace ids and format examples never produce findings."
+    test_refs: ["tests/spec/doc-references.test.ts#fixture dirs and code-span ids are excluded"]
+    notes: "## Why\nGround-truth: 16/36 doc F-ids legitimately don't resolve — fixture-project ids + format examples like `F-abc123`. Scoping is what keeps the detector honest (zero false-RED on cladding-self)."

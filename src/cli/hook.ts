@@ -36,6 +36,8 @@ import {suggestIntent} from '../router/intent.js';
 import {runArch} from '../stages/arch.js';
 import {runDrift} from '../stages/drift.js';
 import {runSecret} from '../stages/secret.js';
+import {buildImpactSlice, type ImpactSlice} from '../optimizer/reverse-slice.js';
+import {loadSpec} from '../spec/load.js';
 
 // --- shared helpers ----------------------------------------------------
 
@@ -354,10 +356,37 @@ function isWatchedSourcePath(filePath: string): boolean {
   return SOURCE_FILE_EXT.test(filePath);
 }
 
+const MIN_EDIT_CHARS = 40; // below this an edit is too trivial to warrant an impact card
+
+/** Approximate changed-char magnitude of an Edit/Write/MultiEdit tool input (tiny-edit guard). */
+export function editMagnitude(toolInput: unknown): number {
+  const t = asRecord(toolInput);
+  if (typeof t.content === 'string') return t.content.length; // Write
+  if (Array.isArray(t.edits)) {
+    return (t.edits as unknown[]).reduce<number>((n, e) => n + asString(asRecord(e).new_string).length, 0); // MultiEdit
+  }
+  return asString(t.new_string).length; // Edit
+}
+
 /**
- * After a source edit, runs the drift detectors silently (debounced via
- * `.cladding/hook-drift-ts`) and surfaces a one-line nudge ONLY when
- * error-severity findings exist — ambient feedback, never a block.
+ * One-line impact card from a resolved slice — owning feature(s) + how many downstream
+ * features could break + how many regression tests to run. '' when the file touches no feature.
+ */
+export function formatImpactCard(slice: ImpactSlice, filePath: string): string {
+  const owners = slice.focus.owners ?? [];
+  const primary = slice.focus.id ?? owners[0];
+  if (!primary) return '';
+  const label = slice.focus.title ? `${primary} ${slice.focus.title}` : primary;
+  const co = owners.length > 1 ? ` (+${owners.length - 1} co-owner${owners.length > 2 ? 's' : ''})` : '';
+  const breaks = slice.impacted.length > 0 ? ` · breaks ${slice.impacted.length} feature(s)` : '';
+  const tests = slice.test_refs.length > 0 ? ` · run ${slice.test_refs.length} test(s)` : '';
+  return `cladding impact: ${filePath} → ${label}${co}${breaks}${tests}`;
+}
+
+/**
+ * After a source edit (debounced via `.cladding/hook-drift-ts`): surfaces a one-line IMPACT
+ * card (the blast radius of the file just edited — the push half of clad_get_working_set) and,
+ * when error-severity drift exists, a drift nudge. Ambient feedback, never a block.
  */
 function runPostToolUseDrift(input: unknown, cwd: string): string {
   const rec = asRecord(input);
@@ -378,10 +407,21 @@ function runPostToolUseDrift(input: unknown, cwd: string): string {
   } catch {
     /* unwritable stamp → still run; worst case is an extra drift pass */
   }
+  // Impact card: the blast radius of the file just edited (skip trivial edits; degrade to '').
+  let card = '';
+  if (editMagnitude(rec.tool_input) >= MIN_EDIT_CHARS) {
+    try {
+      const slice = buildImpactSlice(loadSpec(cwd), filePath);
+      if (!('not_found' in slice)) card = formatImpactCard(slice, filePath);
+    } catch {
+      /* spec unreadable → no card, still run drift */
+    }
+  }
   const report = runDrift({cwd});
   const errors = report.findings.filter((f) => f.severity === 'error');
-  if (errors.length === 0) return '';
-  return `cladding drift: ${errors.length} error(s) — ${errors[0].detector}: ${truncate(errors[0].message, 140)}`;
+  const drift =
+    errors.length === 0 ? '' : `cladding drift: ${errors.length} error(s) — ${errors[0].detector}: ${truncate(errors[0].message, 140)}`;
+  return [card, drift].filter(Boolean).join('\n');
 }
 
 // --- dispatch + CLI wrapper ---------------------------------------------

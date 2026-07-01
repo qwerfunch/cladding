@@ -7,6 +7,72 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Knowledge graph (spec↔code↔doc)
+
+**In one line:** the links between spec, code, tests, and docs — which until now
+only flowed one way and were scattered across shards — become a single,
+always-current graph you can query for impact and *see* in a graph viewer.
+
+> **Heads-up:** this is a **traceability and retrieval** capability, not a
+> correctness one. It does not make generated code more correct (cladding's own
+> A/B record shows that is orthogonal). What it does: pull the exact relevant
+> neighborhood in one call instead of grepping, and stop doc/spec links from
+> silently rotting.
+
+**Added**
+
+- **Reverse-edge index (backlinks).** Every forward edge the spec already carries
+  (`depends_on`, `modules`, `test_refs`) is now also queryable in reverse —
+  derived in memory, 0 bytes on disk. Module ownership is many-to-many on purpose
+  (a file records every feature that touches it).
+- **`clad impact <feature|file>` + the `clad_get_impact` agent tool.** The blast
+  radius for a change: everything that transitively depends on it, the scenarios
+  at risk, and the exact set of tests to re-run. The backward complement of
+  `clad context` (what this needs) ↔ impact (what depends on this). A module path
+  fans out to every feature that touches it.
+- **Doc graph + link integrity.** `clad sync` indexes which docs reference which
+  features and which docs link to which docs (`spec/_doc-links.yaml`). A new check
+  fails on a dead doc-to-doc link and warns on a doc citing a feature that no
+  longer exists. Scoped to skip fixture dirs, code examples, and docs marked
+  `clad-doc-links: ignore`, so it stays quiet on illustrative ids.
+- **`clad graph export` + `clad graph stats`.** See the whole spec↔code↔doc graph
+  in a viewer you already have: `--format mermaid` for a PR, `--format obsidian`
+  for a navigable vault (one note per node with backlinks), `dot`/`json` for any
+  graph tool. `--focus <id> --depth N` exports just one neighborhood. `stats`
+  ranks the load-bearing hubs by degree.
+- **Our own graph viewer, colored by SSoT layer.** `clad graph export --format
+  html` writes one self-contained file you can double-click — a dependency-free
+  interactive graph (no internet, no install). Each spec layer gets its own color
+  (sealed spec / design / derived / audit), code sits in a neutral tone, and
+  features show their readable slug instead of an opaque id. Search, filter by
+  layer or kind, hover to light up a neighborhood, drag to pin, a "Live/Calm"
+  toggle, light/dark — all in one offline page.
+- **A live graph that follows your work.** `clad graph serve` opens the same
+  viewer at a local address and **updates itself as you edit** — change the spec
+  or a doc and the open page reflects it, no re-export. Agents can read the same
+  always-current graph through the new `clad_get_graph` tool.
+- **An Obsidian-grade viewer.** The layout is now a continuously-running force
+  simulation: drag a node and the web stretches and recoils with real tension;
+  hovering pauses the motion so you can read; four force sliders (center / repel /
+  link / link distance) retune it live. Each node class has its own color — the
+  four spec layers, and code/test/doc each distinct — so the structure reads at a
+  glance.
+- **The killer: live conformance, healing as you watch.** Every node carries its
+  real spec↔code health, computed from cladding's own drift detectors — a feature
+  whose test went missing, a file no feature claims, a doc pointing at a deleted
+  feature. Problem nodes glow; **fix the drift and the glow clears in real time**
+  (`clad graph serve`), with a top "in-sync %" pill. The graph IS the gate, made
+  visible — something only a tool that keeps spec and code connected-and-current
+  can show. (Static exports embed a point-in-time snapshot.)
+
+**Notes**
+
+- Drift detectors: 37 → 40 — this work adds `DOC_LINK_INTEGRITY` and `INFERABLE_DEPENDS_ON`; develop's `UNVERIFIED_AC` (below) is the third.
+- The viewer is hand-rolled (no bundled third-party graph library) to stay
+  dependency-free and fully offline; the layout draws itself and settles, then
+  stays calm. It is a way to *see and navigate* the spec↔code↔doc structure, not
+  a correctness check — run `clad check` for that.
+- Design + measured cost/benefit model: `docs/knowledge-graph/design.md`.
 ### Added
 
 - **EARS `complex` pattern — the 6th canonical shape** (`F-9d168287`) — `src/spec/ears.ts`

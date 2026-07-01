@@ -1,0 +1,36 @@
+id: F-d6b93648
+slug: graph-context-wiring
+title: "Graph-context wiring — auto impact card on edits + advisory nudge so the working set is actually used"
+status: done
+depends_on:
+  - F-06dfdad6
+  - F-7794a6bc
+modules:
+  - src/cli/hook.ts
+  - spec.yaml
+  - src/agents/developer.md
+  - src/agents/planner.md
+acceptance_criteria:
+  - id: AC-ee0f17
+    ears: event
+    condition: "when a source-file Edit/Write/MultiEdit completes (PostToolUse) and the file touches a feature"
+    action: "emit a one-line impact card — the owning feature(s) + how many downstream features could break + how many regression tests to run — appended to (not replacing) the existing drift nudge; degrade to silence on any error and never block the edit"
+    response: "the AI automatically sees the blast radius of what it just edited, without having to call a tool"
+    text: "When a source edit completes, the system shall append a one-line impact card (owner + breaks + tests) derived from the impact slice, never blocking and degrading to silence on error."
+    test_refs:
+      - "tests/cli/impact-card.test.ts#formatImpactCard renders owner, breaks, and tests for a touched file"
+      - "tests/cli/impact-card.test.ts#formatImpactCard is empty when the file touches no feature"
+    notes: "## Why\nThe working set (F-06dfdad6) is a PULL tool the AI must remember to call. This is the PUSH half: PostToolUse is the only plain-text lane (PreToolUse is JSON-only — sim finding), so the blast radius is surfaced automatically AFTER the edit. The pure formatter is what's pinned; the hook I/O wiring is manual-smoke."
+  - id: AC-e49483
+    ears: state
+    condition: "while the edit's changed-text magnitude is below the tiny-edit threshold"
+    action: "skip the impact card (a one-character typo fix should not surface the whole dependency graph)"
+    response: "no impact-card noise for trivial edits"
+    text: "While an edit's changed-char magnitude is below the threshold, the system shall not emit an impact card."
+    test_refs:
+      - "tests/cli/impact-card.test.ts#editMagnitude measures Edit, Write, and MultiEdit changed-char size"
+  - id: AC-a42705
+    ears: ubiquitous
+    text: "The project's ai_hints.preferred_patterns and the developer + planner personas shall direct agents to slice the working set (clad_get_working_set) / scope the blast radius (clad_get_impact) BEFORE a non-trivial edit, over reading the whole spec or editing blind — advisory guidance (no detector enforces it)."
+    test_refs:
+      - "tests/cli/impact-card.test.ts#ai_hints and the developer persona steer agents to the working-set tools"

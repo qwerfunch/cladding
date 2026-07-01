@@ -1,0 +1,46 @@
+id: F-77f7ead0
+slug: webgl-stellar-viewer
+title: "WebGL stellar galaxy viewer — real three.js + UnrealBloom over the SSoT graph (semantic hue × degree luminosity), live health"
+status: done
+modules:
+  - src/graph/stellar.ts
+  - src/graph/layout3d.ts
+  - src/graph/viewer/main.ts
+  - src/graph/viewer/styles.css
+acceptance_criteria:
+  - id: AC-1a2b3c4d
+    ears: ubiquitous
+    text: "Node color shall encode meaning as HUE (SSoT tier A/B/C/D, else kind feature/scenario/capability/module/test/doc) while DEGREE drives LUMINOSITY (load-bearing hubs mixed toward white), and the final per-instance color shall be boosted above 1.0 so the bloom pass renders the excess as a glow corona."
+    test_refs:
+      - "tests/graph/stellar.test.ts#a healthy hub blooms (at least one channel > 1.0)"
+      - "tests/graph/stellar.test.ts#norm=1 channels >= norm=0 channels, at least one strictly greater"
+      - "tests/graph/stellar.test.ts#module, test and doc kinds are three distinct colors"
+    notes: "## Why\nUser: 'go identical to the reference design' (DeusData/codebase-memory-mcp). The reference colors stars BY DEGREE and boosts color >1.0 (meshBasicMaterial toneMapped=false) so UnrealBloom catches the corona. We keep cladding's VALUE — hue still encodes SSoT tier/kind — and fold the stellar luminosity on top (more information than the reference). ## Caveat\nThe WebGL scene itself (three.js InstancedMesh + UnrealBloomPass strength 1.2/radius 0.6/threshold 0.3 + OrbitControls + 60s idle auto-rotate) lives in src/graph/viewer/main.ts and is NOT headless-testable (no WebGL in vitest) — it is verified by manual browser smoke. These ACs pin the pure, tested cores (stellar.ts color math, layout3d.ts) that the scene consumes; this is deliberately NOT a vacuous green."
+  - id: AC-2b3c4d5e
+    ears: event
+    condition: "when a node carries live drift (a health override) versus when it is healthy"
+    action: "color the drift node as a red (error) / amber (warn) burn above 1.0 — the brightest thing in the field — and restore its tier/kind hue when the drift clears on an SSE refresh"
+    response: "drift flares red/amber brighter than any healthy star and heals back to its semantic hue in real time"
+    text: "When a node has drift, the system shall override its color to a red/amber burn brighter than any healthy node, and restore the semantic hue once the drift is fixed."
+    test_refs:
+      - "tests/graph/stellar.test.ts#error drift is the brightest: its max channel > any healthy node max channel"
+      - "tests/graph/stellar.test.ts#error red channel exceeds 1.0"
+    notes: "## Why\nThe live killer (F-af45042a) carried into the WebGL viewer: the color contract (drift = brightest burn) is pinned here; the SSE live-refresh/heal wiring is in main.ts (manually verified)."
+  - id: AC-3c4d5e6f
+    ears: event
+    condition: "when the viewer computes node positions for the graph"
+    action: "run a deterministic FNV-seeded 3D force layout (per-kind sphere shells + repulsion/edge-springs/anchor, displacement-capped) yielding finite, bounded positions identical for the same graph"
+    response: "a readable 3D galaxy you orbit, with reproducible positions (offline-export byte stability)"
+    text: "When the layout runs, the system shall compute finite, bounded (±4000), deterministic 3D positions for every node."
+    test_refs:
+      - "tests/graph/layout3d.test.ts#every coordinate is finite"
+      - "tests/graph/layout3d.test.ts#default opts: abs(coord) <= 4000"
+      - "tests/graph/layout3d.test.ts#two calls with identical input are deep-equal"
+  - id: AC-4d5e6f70
+    ears: ubiquitous
+    text: "Edges shall render as additive filaments colored by edge kind, with intensity scaled by focus — same-cluster brighter than cross when idle, both-endpoints-highlighted brightest, and skipped entirely when a highlight is active and neither endpoint is in it."
+    test_refs:
+      - "tests/graph/stellar.test.ts#known kind maps to its color"
+      - "tests/graph/stellar.test.ts#no highlight, same kind -> 0.25"
+      - "tests/graph/stellar.test.ts#highlight active, both endpoints hi -> 0.5"
+      - "tests/graph/stellar.test.ts#highlight active, neither hi -> 0 (skip)"
