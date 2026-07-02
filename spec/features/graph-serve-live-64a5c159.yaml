@@ -21,12 +21,13 @@ acceptance_criteria:
     action: "debounce briefly then broadcast an SSE refresh event to all connected viewers"
     response: "open browsers reload to the updated graph automatically — develop and the graph follows"
     text: "When a watched spec/doc file changes, the server shall (debounced) broadcast an SSE refresh so connected viewers auto-update."
-    test_refs: ["tests/cli/graph-serve.test.ts#a watched-file change broadcasts an SSE refresh"]
+    test_refs: ["tests/cli/graph-serve.test.ts#a REAL file change under a watched dir reaches SSE through fs.watch + debounce"]
     notes: "## Decision\nnode:fs.watch (stdlib) on spec/ + docs/, ~400ms debounce (fs.watch is platform-racy; debounce coalesces). No stale-trap: server always recomputes; if it dies the connection closes (visible)."
   - id: AC-236bcc1e
     ears: event
     condition: "when a host calls the clad_get_graph MCP tool"
-    action: "return the live knowledge-graph JSON (optionally focused) so agents read the current graph without a subprocess"
-    response: "an LLM references the always-current spec↔code↔doc graph in one call"
-    text: "When clad_get_graph is called, the system shall return the live graph JSON (nodes+edges, optionally a --focus neighborhood) with schema_version."
-    test_refs: ["tests/serve/server.test.ts#clad_get_graph returns the live graph; a focus miss is isError"]
+    action: "with a query, return the live focused neighborhood (a path query unions its kind-twins); without a query, return a compact graphStats summary instead of the full graph"
+    response: "an LLM references the always-current spec↔code↔doc graph in one call, without a ~70k-token unbudgeted payload riding the no-query form"
+    text: "When clad_get_graph is called with a query, the system shall return the live focused subgraph JSON with schema_version; when called without a query it shall return a stats summary (counts by kind + hubs), never the full node/edge dump."
+    test_refs: ["tests/serve/server.test.ts#no-query answers a stats SUMMARY (token-budget discipline), focus answers a subgraph, miss is isError"]
+    notes: "## Why (0.7.1)\nThe 0.7.0 no-query form returned the whole graph pretty-printed — measured 285KB (~70k tokens) on cladding-self in ONE MCP result, contradicting the working-set budget discipline. Summary + hint keeps the tool safe to call blind; full dumps live on the CLI (clad graph export)."

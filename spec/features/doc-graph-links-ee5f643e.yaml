@@ -4,6 +4,7 @@ title: "Doc graph — doc→spec (F-id) + doc→doc (.md) link index and integri
 status: done
 modules:
   - src/spec/doc-references.ts
+  - src/spec/feature-id.ts
   - src/stages/detectors/doc-reference-integrity.ts
   - src/stages/detectors/index.ts
   - src/cli/clad.ts

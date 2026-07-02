@@ -44,7 +44,7 @@ const cache = new Map<string, PersonaSpec>();
 /**
  * 0.6.0 persona renames (alias-and-deprecate, docs/glossary.md). Resolving an
  * old id loads the NEW persona file and emits a one-line stderr deprecation
- * notice; the old ids are removed in 0.7.
+ * notice; the old ids are removed in 0.8 (still shipped through 0.7.x).
  */
 export const PERSONA_ALIASES: Readonly<Record<string, string>> = {
   librarian: 'planner',
@@ -72,7 +72,7 @@ export function loadPersona(id: string, rootDir?: string): PersonaSpec {
   const replacement = PERSONA_ALIASES[id];
   if (replacement) {
     process.stderr.write(
-      `cladding: persona '${id}' is now '${replacement}' — the old id is removed in 0.7\n`,
+      `cladding: persona '${id}' is now '${replacement}' — the old id is removed in 0.8\n`,
     );
   }
   const resolvedId = replacement ?? id;

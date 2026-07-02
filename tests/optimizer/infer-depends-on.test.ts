@@ -183,7 +183,7 @@ describe('inferDependsOn', () => {
       expect(targets).toContain('F-d');
     });
 
-    test("export…from re-exports (barrel files) are dependencies — v0.7.0 missed them", () => {
+    test('export…from re-exports (barrel files) are dependencies — v0.7.0 missed them', () => {
       const spec = makeSpec([
         feature('F-barrel', ['src/api/index.ts']),
         feature('F-impl', ['src/api/impl.ts']),
