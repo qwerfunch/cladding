@@ -723,6 +723,7 @@ export function runMeasureCommand(opts: {json?: boolean; sessions?: boolean; tre
       process.stdout.write(`${lines.join('\n')}\n`);
       if (rec.appended) pulse('note', 'measure', 'snapshot recorded to .cladding/measure.jsonl — see `clad measure --trend`');
       else if (rec.reason === 'deduped') pulse('note', 'measure', 'commit+spec state unchanged since last snapshot — not recorded');
+      else if (rec.reason === 'no_head') pulse('note', 'measure', 'no git HEAD — snapshot not recorded (commit first; a head-less line has no reproduce target)');
     }
     process.exit(0);
   } catch (err) {
@@ -1082,7 +1083,14 @@ export function createProgram(): Command {
     .option('--json', 'print the deterministic ChangelogManifest as JSON (byte-identical across runs on the same state)')
     .option('--audit', 'print the audit table — feature | AC | EARS | verification refs, each marked resolved ✓/✗')
     .option('--catalog', 'print the full capability → feature → acceptance listing of the living spec (no git range)')
-    .action((opts: {since?: string; json?: boolean; audit?: boolean; catalog?: boolean}) => runChangelogCommand(opts));
+    .option(
+      '--measure',
+      "embed the release's own re-derivable measurement — but ONLY a snapshot taken at the current HEAD; " +
+        'no match renders a not-measured notice, never an older snapshot (F-ede6fa75)',
+    )
+    .action((opts: {since?: string; json?: boolean; audit?: boolean; catalog?: boolean; measure?: boolean}) =>
+      runChangelogCommand(opts),
+    );
 
   program
     .command('route <prompt>')

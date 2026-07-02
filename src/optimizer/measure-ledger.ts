@@ -13,6 +13,10 @@
 //
 // DEDUPE GRANULARITY = commit + spec-file state, NOT working-tree state.
 //   • `head`        moves only on a commit (readGitHead → git rev-parse HEAD).
+//     No HEAD at all (outside a repo / before the first commit) ⇒ the snapshot
+//     is unreproducible — no `git checkout <head>` target exists and the dedupe
+//     key degenerates to spec_digest alone — so the append is SKIPPED with
+//     reason 'no_head' rather than persisting an unanchorable line.
 //   • `spec_digest` (computeSpecDigest) hashes spec.yaml + spec/features/*.yaml
 //     + spec/scenarios/*.yaml ONLY — it does NOT hash src/.
 // So an *uncommitted edit to a source module* — which CAN change the measured
@@ -38,7 +42,9 @@ const LEDGER_FILE = 'measure.jsonl';
 export interface MeasureSnapshot {
   /** ISO 8601 time the snapshot was recorded. */
   readonly timestamp: string;
-  /** git HEAD sha, or null outside a repo (dedupe still works on spec_digest). */
+  /** git HEAD sha; null outside a repo / before the first commit — such a
+   *  snapshot exists only in memory (snapshotFromReport): the append skips it
+   *  with reason 'no_head', so a persisted line always carries a real sha. */
   readonly head: string | null;
   /** SHA-256 of the spec surface (spec.yaml + spec/features + spec/scenarios). */
   readonly spec_digest: string;
@@ -52,7 +58,7 @@ export interface MeasureSnapshot {
 /** Outcome of an append attempt — never a throw. The CLI may pulse a note. */
 export interface AppendResult {
   readonly appended: boolean;
-  readonly reason: 'appended' | 'deduped' | 'error';
+  readonly reason: 'appended' | 'deduped' | 'no_head' | 'error';
 }
 
 function ledgerPath(cwd: string): string {
@@ -75,14 +81,18 @@ export function snapshotFromReport(cwd: string, report: EfficiencyReport): Measu
 
 /**
  * Appends one summary snapshot to .cladding/measure.jsonl. Skips the write when
- * the newest existing snapshot carries an identical (head, spec_digest) pair, so
- * repeated runs on an unchanged commit+spec state add zero lines (AC-cf43f71c).
+ * git HEAD is unavailable (reason 'no_head' — a head:null line has no reproduce
+ * target and a degenerate dedupe key, see the header note) and when the newest
+ * existing snapshot carries an identical (head, spec_digest) pair, so repeated
+ * runs on an unchanged commit+spec state add zero lines (AC-cf43f71c).
  * BEST-EFFORT: any I/O failure degrades to {appended:false, reason:'error'} and
  * never throws (AC-2c4f07d8).
  */
 export function appendMeasureSnapshot(cwd: string, report: EfficiencyReport): AppendResult {
   try {
     const snap = snapshotFromReport(cwd, report);
+    // Unreproducible without a commit: `git checkout <head>` has no target.
+    if (snap.head === null) return {appended: false, reason: 'no_head'};
     const existing = readMeasureSnapshots(cwd);
     const newest = existing[existing.length - 1];
     if (newest && newest.head === snap.head && newest.spec_digest === snap.spec_digest) {
@@ -99,6 +109,24 @@ export function appendMeasureSnapshot(cwd: string, report: EfficiencyReport): Ap
   }
 }
 
+/** Tolerant line parse: skips malformed / foreign lines, keeps chronological order. */
+function parseSnapshotLines(raw: string): MeasureSnapshot[] {
+  const snaps: MeasureSnapshot[] = [];
+  for (const line of raw.split('\n')) {
+    const t = line.trim();
+    if (t.length === 0) continue;
+    try {
+      const obj = JSON.parse(t) as MeasureSnapshot;
+      if (obj && typeof obj === 'object' && obj.context && obj.search && obj.stability) {
+        snaps.push(obj);
+      }
+    } catch {
+      // skip malformed line — a torn write must not abort the whole read.
+    }
+  }
+  return snaps;
+}
+
 /**
  * Reads the ledger in append (chronological) order, tolerantly: malformed lines
  * are skipped rather than aborting the parse, so one bad write never blinds the
@@ -113,23 +141,49 @@ export function readMeasureSnapshots(cwd: string, limit?: number): readonly Meas
   } catch {
     return [];
   }
-  const snaps: MeasureSnapshot[] = [];
-  for (const line of raw.split('\n')) {
-    const t = line.trim();
-    if (t.length === 0) continue;
-    try {
-      const obj = JSON.parse(t) as MeasureSnapshot;
-      if (obj && typeof obj === 'object' && obj.context && obj.search && obj.stability) {
-        snaps.push(obj);
-      }
-    } catch {
-      // skip malformed line — a torn write must not abort the whole read.
-    }
-  }
+  const snaps = parseSnapshotLines(raw);
   return typeof limit === 'number' && limit >= 0 ? snaps.slice(-limit) : snaps;
 }
 
-function signed(n: number, digits = 0): string {
+/** Ledger read that distinguishes "genuinely empty" from "present but unparseable". */
+export interface MeasureLedgerRead {
+  /** Parsed snapshots in append order (empty when absent OR unreadable). */
+  readonly snapshots: readonly MeasureSnapshot[];
+  /**
+   * True when the ledger file exists with non-blank content but NO line parsed
+   * into a snapshot — a torn write, a foreign file, or an unreadable path. Lets
+   * a caller report `ledger unreadable` distinctly from `no snapshot` (the
+   * changelog --measure JSON manifest needs the explicit reason, F-ede6fa75).
+   */
+  readonly unreadable: boolean;
+}
+
+/**
+ * Reads the ledger AND reports readability. `readMeasureSnapshots` collapses
+ * "absent", "empty", and "unparseable" all to `[]`; this keeps them apart so a
+ * caller can say WHY there are no snapshots instead of guessing.
+ */
+export function readMeasureLedger(cwd: string): MeasureLedgerRead {
+  const path = ledgerPath(cwd);
+  if (!existsSync(path)) return {snapshots: [], unreadable: false};
+  let raw: string;
+  try {
+    raw = readFileSync(path, 'utf8');
+  } catch {
+    return {snapshots: [], unreadable: true};
+  }
+  const snapshots = parseSnapshotLines(raw);
+  const hadContent = raw.trim().length > 0;
+  return {snapshots, unreadable: hadContent && snapshots.length === 0};
+}
+
+/**
+ * Formats a numeric delta with an explicit sign (`+3`, `-2`, `0`, `+0.05`).
+ * The signed-delta primitive `renderTrend` uses — exported (F-ede6fa75) so the
+ * changelog's release-over-release delta line reuses the same math instead of
+ * re-deriving it and drifting.
+ */
+export function signed(n: number, digits = 0): string {
   const v = digits > 0 ? Math.round(n * 10 ** digits) / 10 ** digits : Math.round(n);
   const s = v.toFixed(digits);
   return v > 0 ? `+${s}` : s; // negatives already carry '-'; 0 → "0"

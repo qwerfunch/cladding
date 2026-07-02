@@ -11,6 +11,7 @@
 //   AC-cbd294d4  renderTrend last-N signed deltas + featureCount + disclaimer
 //   AC-220944e2  (no-trend absence rendering lives in the CLI-path suite)
 
+import {execFileSync} from 'node:child_process';
 import {mkdtempSync, mkdirSync, rmSync, writeFileSync, readFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -112,6 +113,15 @@ function snap(
 let dir: string;
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), 'clad-vt-mledger-'));
+  // Seed a git HEAD: the append refuses to persist a head:null snapshot (an
+  // unreproducible line — no checkout target, degenerate dedupe key), so the
+  // fixture needs one real commit for the append/dedupe/error paths to run.
+  execFileSync('git', ['init', '-q'], {cwd: dir, stdio: 'ignore'});
+  execFileSync(
+    'git',
+    ['-c', 'user.email=t@test', '-c', 'user.name=t', 'commit', '--allow-empty', '-q', '-m', 'seed'],
+    {cwd: dir, stdio: 'ignore'},
+  );
 });
 afterEach(() => {
   rmSync(dir, {recursive: true, force: true});
