@@ -60,10 +60,21 @@ export interface InferOptions {
 // Dynamic/runtime import patterns — dependencies static extraction cannot see (so a file with
 // these may have UNDER-reported edges; we surface it for manual review rather than pretend it's complete).
 const DYNAMIC_IMPORT = /\b(?:importlib\.import_module|importlib\.__import__|__import__\s*\(|import_module\s*\(|require\s*\(\s*[^'"\s)])/;
+// JS-only: dynamic import() with a NON-literal argument (a literal one IS extracted below).
+// Kept apart from DYNAMIC_IMPORT because `import\s*\(` would false-flag Python's
+// parenthesized `from x import (a, b)` form.
+const JS_DYNAMIC_NONLITERAL = /\bimport\s*\(\s*[^'"\s)]/;
 
 // Import extractors per language family. Each returns the raw imported "specifier" strings.
 const PY_IMPORT = /^\s*(?:from\s+([.\w]+)\s+import\b|import\s+([.\w]+))/gm;
-const JS_IMPORT = /(?:^|\n)\s*(?:import\b[^'"]*from\s*['"]([^'"]+)['"]|import\s*['"]([^'"]+)['"]|(?:const|let|var)\s+[^=]+=\s*require\(\s*['"]([^'"]+)['"]\s*\))/g;
+// Statement-position forms: import…from, side-effect import, export…from (re-exports —
+// barrel files are dependencies too; v0.7.0 missed them), and require().
+const JS_IMPORT =
+  /(?:^|\n)\s*(?:import\b[^'"]*from\s*['"]([^'"]+)['"]|import\s*['"]([^'"]+)['"]|export\b[^'"]*from\s*['"]([^'"]+)['"]|(?:const|let|var)\s+[^=]+=\s*require\(\s*['"]([^'"]+)['"]\s*\))/g;
+// Expression-position: dynamic import('./literal') — sits mid-line (await import(…)).
+const JS_DYNAMIC_LITERAL = /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
+
+const JS_EXTS: readonly string[] = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'];
 
 /** Lowercase ext check. */
 function ext(p: string): string {
@@ -105,9 +116,11 @@ function extractImports(source: string, fileExt: string): string[] {
   if (fileExt === '.py') {
     for (let m = PY_IMPORT.exec(source); m; m = PY_IMPORT.exec(source)) out.push(m[1] ?? m[2]);
     PY_IMPORT.lastIndex = 0;
-  } else if (['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'].includes(fileExt)) {
-    for (let m = JS_IMPORT.exec(source); m; m = JS_IMPORT.exec(source)) out.push(m[1] ?? m[2] ?? m[3]);
+  } else if (JS_EXTS.includes(fileExt)) {
+    for (let m = JS_IMPORT.exec(source); m; m = JS_IMPORT.exec(source)) out.push(m[1] ?? m[2] ?? m[3] ?? m[4]);
     JS_IMPORT.lastIndex = 0;
+    for (let m = JS_DYNAMIC_LITERAL.exec(source); m; m = JS_DYNAMIC_LITERAL.exec(source)) out.push(m[1]);
+    JS_DYNAMIC_LITERAL.lastIndex = 0;
   }
   return out.filter(Boolean);
 }
@@ -146,10 +159,14 @@ export function inferDependsOn(spec: Spec, read: ModuleReader, opts: InferOption
     const fromId = f.id;
     for (const modPath of f.modules ?? []) {
       const fileExt = ext(modPath);
-      if (fileExt !== '.py' && !['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'].includes(fileExt)) continue;
+      if (fileExt !== '.py' && !JS_EXTS.includes(fileExt)) continue;
       const src = read(modPath);
       if (src == null) continue;
-      if (DYNAMIC_IMPORT.test(src)) dynamicFiles.add(modPath); // edges may be under-reported here
+      // Under-reporting flags: runtime imports static extraction can't see —
+      // literal import('…') IS extracted; only the non-literal form is flagged.
+      if (DYNAMIC_IMPORT.test(src) || (JS_EXTS.includes(fileExt) && JS_DYNAMIC_NONLITERAL.test(src))) {
+        dynamicFiles.add(modPath); // edges may be under-reported here
+      }
       for (const spec0 of extractImports(src, fileExt)) {
         for (const key of importKeys(spec0, fileExt)) {
           const owners = resolve.get(key);
