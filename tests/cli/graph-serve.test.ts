@@ -1,4 +1,4 @@
-import {mkdtempSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdirSync, mkdtempSync, rmSync, watch, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import http from 'node:http';
@@ -106,7 +106,7 @@ describe('F-64a5c159 live graph HTTP server', () => {
     }
   });
 
-  test('a watched-file change broadcasts an SSE refresh', async () => {
+  test('broadcast() pushes an SSE refresh to connected clients', async () => {
     const srv = await createGraphServer({port: 0, cwd: dir});
     const chunks: string[] = [];
     const req = http.get(
@@ -125,6 +125,95 @@ describe('F-64a5c159 live graph HTTP server', () => {
       expect(chunks.join('')).toContain('data: refresh');
     } finally {
       req.destroy();
+      await srv.close();
+    }
+  });
+
+  test('a REAL file change under a watched dir reaches SSE through fs.watch + debounce', async ctx => {
+    // Capability probe: recursive fs.watch throws on platforms without it
+    // (Linux + Node < 20) — the server degrades to manual refresh there.
+    try {
+      const probe = watch(dir, {recursive: true}, () => undefined);
+      probe.close();
+    } catch {
+      ctx.skip();
+      return;
+    }
+    // The watcher covers spec/ and docs/ — the dir must exist BEFORE boot.
+    mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
+    const srv = await createGraphServer({port: 0, cwd: dir});
+    const chunks: string[] = [];
+    const req = http.get(
+      {host: '127.0.0.1', port: srv.port, path: '/events'},
+      res => {
+        res.setEncoding('utf8');
+        res.on('data', c => {
+          chunks.push(c as string);
+        });
+      },
+    );
+    try {
+      await new Promise(r => setTimeout(r, 100)); // let the connection register
+      writeFileSync(join(dir, 'spec', 'features', 'live-abc123.yaml'), 'id: F-abc999\n', 'utf8');
+      // fs.watch delivery + the server's 400ms debounce — poll generously.
+      const deadline = Date.now() + 5000;
+      while (Date.now() < deadline && !chunks.join('').includes('data: refresh')) {
+        await new Promise(r => setTimeout(r, 100));
+      }
+      expect(chunks.join('')).toContain('data: refresh');
+    } finally {
+      req.destroy();
+      await srv.close();
+    }
+  });
+
+  test('an unparseable spec answers 503 with a JSON error body, never 200 (error-as-data)', async () => {
+    // Mid-write / truncated YAML: liveGraph() throws AFTER the old code had
+    // already committed writeHead(200, application/json) — clients got a 200
+    // whose body was a prose YAML error. Now the body is computed first.
+    writeFileSync(join(dir, 'spec.yaml'), 'features:\n  - id: F-abc123\n   badly: indented\n', 'utf8');
+    const srv = await createGraphServer({port: 0, cwd: dir});
+    try {
+      for (const path of ['/graph.json', '/health.json', '/']) {
+        const r = await get(srv.port, path);
+        expect(r.status, `${path} must not pretend success`).toBe(503);
+        const doc = JSON.parse(r.body) as {error: string};
+        expect(doc.error.length).toBeGreaterThan(0);
+      }
+    } finally {
+      await srv.close();
+    }
+  });
+
+  test('a busy port rejects the boot promise cleanly instead of crashing the process', async () => {
+    const blocker = http.createServer(() => undefined);
+    await new Promise<void>(r => blocker.listen(0, '127.0.0.1', () => r()));
+    const addr = blocker.address();
+    const busyPort = typeof addr === 'object' && addr ? addr.port : 0;
+    try {
+      await expect(createGraphServer({port: busyPort, cwd: dir})).rejects.toThrow(/EADDRINUSE/);
+    } finally {
+      await new Promise<void>(r => blocker.close(() => r()));
+    }
+  });
+
+  test('a foreign Host header is refused (DNS-rebinding guard)', async () => {
+    const srv = await createGraphServer({port: 0, cwd: dir});
+    try {
+      const status = await new Promise<number>((resolve, reject) => {
+        const req = http.get(
+          {host: '127.0.0.1', port: srv.port, path: '/graph.json', headers: {Host: 'evil.example.com'}},
+          res => {
+            res.resume();
+            resolve(res.statusCode ?? 0);
+          },
+        );
+        req.on('error', reject);
+      });
+      expect(status).toBe(403);
+      const local = await get(srv.port, '/graph.json');
+      expect(local.status).toBe(200);
+    } finally {
       await srv.close();
     }
   });
