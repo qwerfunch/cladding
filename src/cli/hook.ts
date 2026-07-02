@@ -25,7 +25,7 @@
 
 import {createHash} from 'node:crypto';
 import {existsSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
-import {dirname, isAbsolute, join} from 'node:path';
+import {dirname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import process from 'node:process';
 
 import {parse as parseYaml} from 'yaml';
@@ -408,11 +408,14 @@ function runPostToolUseDrift(input: unknown, cwd: string): string {
     /* unwritable stamp → still run; worst case is an extra drift pass */
   }
   // Impact card: the blast radius of the file just edited (skip trivial edits; degrade to '').
+  // Hosts send tool_input.file_path ABSOLUTE while moduleOwners keys are repo-relative posix —
+  // without relativization the lookup never hits (measured 0/361 on cladding-self; 99.2% after).
   let card = '';
   if (editMagnitude(rec.tool_input) >= MIN_EDIT_CHARS) {
     try {
-      const slice = buildImpactSlice(loadSpec(cwd), filePath);
-      if (!('not_found' in slice)) card = formatImpactCard(slice, filePath);
+      const rel = isAbsolute(filePath) ? relative(resolve(cwd), filePath).split(sep).join('/') : filePath;
+      const slice = buildImpactSlice(loadSpec(cwd), rel);
+      if (!('not_found' in slice)) card = formatImpactCard(slice, rel);
     } catch {
       /* spec unreadable → no card, still run drift */
     }
