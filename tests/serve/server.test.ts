@@ -210,6 +210,15 @@ describe('serve/server — MCP read surface', () => {
       const res = await client.readResource({uri: RESOURCE_URIS.spec});
       const text = (res.contents as Array<{text: string}>)[0].text;
       expect(JSON.parse(text).error).toContain('spec not loaded');
+
+      // F-c6a32fff: the four graph tools carry the same recovery guidance —
+      // they used to surface a raw ENOENT with no way forward.
+      for (const name of ['clad_get_context', 'clad_get_working_set', 'clad_get_impact', 'clad_get_graph']) {
+        const r = await client.callTool({name, arguments: name === 'clad_get_graph' ? {} : {query: 'F-001'}});
+        expect(r.isError, `${name} must fail on an absent spec`).toBe(true);
+        const msg = (r.content as Array<{text: string}>)[0].text;
+        expect(msg, `${name} must carry the clad-init guidance`).toContain('clad init');
+      }
     } finally {
       await cleanup();
       rmSync(bare, {recursive: true, force: true});

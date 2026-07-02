@@ -169,4 +169,40 @@ describe('reverse-slice / impact (F-7794a6bc)', () => {
     if ('not_found' in bounded) throw new Error('unexpected miss');
     expect(bounded.impacted.map((i) => i.id)).toEqual(['B']);
   });
+
+  test('BLANK ledger: impacted:[] carries zero-counts + fallback hints — unknown, not safe (F-c6a32fff)', () => {
+    // The state of every freshly adopted project: features exist, no edges declared.
+    const spec = mkSpec([
+      {id: 'F-aaa111', title: 'A', status: 'done', modules: ['src/a.ts']},
+      {id: 'F-bbb222', title: 'B', status: 'done', modules: ['src/b.ts']},
+    ]);
+    const slice = buildImpactSlice(spec, 'F-aaa111');
+    if ('not_found' in slice) throw new Error('unexpected miss');
+    expect(slice.impacted).toEqual([]);
+    expect(slice.ledger?.depends_on_edges).toBe(0);
+    expect(slice.ledger?.test_ref_edges).toBe(0);
+    expect(slice.ledger?.fallback_hint).toContain('unknown, not safe');
+    expect(slice.ledger?.regression_hint).toContain('run the full suite');
+  });
+
+  test('DENSE ledger: a verified leaf shows real edge counts and NO hints — distinguishable from blank', () => {
+    const spec = mkSpec([
+      {
+        id: 'F-aaa111',
+        title: 'A',
+        status: 'done',
+        modules: ['src/a.ts'],
+        acceptance_criteria: [{id: 'AC-1', test_refs: ['tests/a.test.ts#x']}],
+      },
+      {id: 'F-bbb222', title: 'B', status: 'done', depends_on: ['F-aaa111']},
+      {id: 'F-leaf00', title: 'Leaf', status: 'done', modules: ['src/leaf.ts']}, // nothing depends on it
+    ]);
+    const slice = buildImpactSlice(spec, 'F-leaf00');
+    if ('not_found' in slice) throw new Error('unexpected miss');
+    expect(slice.impacted).toEqual([]); // same emptiness as blank map…
+    expect(slice.ledger?.depends_on_edges).toBe(1); // …but the ledger says edges exist
+    expect(slice.ledger?.test_ref_edges).toBe(1);
+    expect(slice.ledger?.fallback_hint).toBeUndefined();
+    expect(slice.ledger?.regression_hint).toBeUndefined();
+  });
 });

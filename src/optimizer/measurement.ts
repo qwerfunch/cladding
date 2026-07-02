@@ -49,8 +49,9 @@ export interface FeatureEfficiency {
   readonly edgesResolved: number;
   /** iterative stop reason — coverage = confident, marginal-yield/max-depth = honest partial. */
   readonly stoppedBy: string;
-  /** fraction of the true transitive blast radius the surfaced regression set covers (0..1). */
-  readonly coverage: number;
+  /** fraction of the true transitive blast radius the surfaced regression set covers (0..1);
+   *  null when zero dependents are known (no denominator — F-c6a32fff honesty contract). */
+  readonly coverage: number | null;
   /** count of regression tests the slice hands you to run. */
   readonly regressionTests: number;
 }
@@ -191,7 +192,9 @@ export function measureGraphEfficiency(spec: Spec, read: ModuleReader, cwd = '.'
     },
     stability: {
       byStopReason: byStop,
-      medianCoverage: Math.round(median(rows.map((r) => r.coverage)) * 100) / 100,
+      // Null coverages (no-known-dependents — no denominator) are excluded, not counted as 0/1.
+      medianCoverage:
+        Math.round(median(rows.map((r) => r.coverage).filter((c): c is number => c !== null)) * 100) / 100,
       medianRegressionTests: median(rows.map((r) => r.regressionTests)),
     },
     features: rows,

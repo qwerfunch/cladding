@@ -7,8 +7,40 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Fallback safety contract — the graph says "unknown" instead of "safe".**
+  Every impact answer now carries the spec-wide edge counts (`ledger`): on a
+  project whose dependency ledger is empty (every freshly adopted project),
+  `impacted: []` used to be byte-identical to a verified leaf — measured on a
+  real 196-feature clone, a feature with 10 actual dependents answered
+  "nothing breaks, coverage 1.0". A blank ledger now answers with explicit
+  zero-counts plus a hint to fall back to normal code search / the full test
+  suite; a feature with zero known dependents stops with
+  `no-known-dependents` and `coverage: null` (never a vacuous 100%), and the
+  working-set radius carries the denominator. The after-edit impact card
+  discloses `deps unledgered` on blank ledgers.
+
 ### Fixed
 
+- **Hooks no longer gate projects that never adopted cladding.** In a cwd
+  without spec.yaml (a non-cladding repo, or a subdirectory of a cladding
+  monorepo), the Stop hook falsely blocked the session once with
+  "governance absent" findings and wrote `.cladding/` state into the foreign
+  tree; the PostToolUse nudge did the same. Both now mirror the SessionStart
+  guard: not under cladding → silence, zero writes. (A present-but-broken
+  spec keeps its honest one-time block.)
+- **A gate that could not run no longer reports GREEN.** The gate footer on
+  mutating MCP tool results — the only structural channel for hosts without
+  lifecycle hooks — fabricated `{pass: true}` when the drift engine itself
+  threw; it now fails closed with `{pass: false, unavailable: true}` and
+  points at `clad check --strict`.
+- **Every graph-tool failure now says how to proceed without the graph.**
+  Absent spec → the "run `clad init`" guidance (was a raw ENOENT) on all four
+  graph tools; query misses carry the discovery hint on `clad_get_graph` too,
+  and discovery hints name the baseline fallback (normal code search). The
+  SessionStart card renders an unparseable spec with no resolvable counts as
+  "counts unavailable" instead of a healthy-looking "0 features".
 - **The after-edit impact card now actually fires.** Hosts send absolute file
   paths while the spec's module index is repo-relative, so the PostToolUse
   impact card (0.7.0) never rendered in real usage — 0/361 module paths resolved

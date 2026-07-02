@@ -37,4 +37,4 @@ capabilities:
     title: "Knowledge graph (spec↔code↔doc)"
     summary: "Always-current, bidirectional graph over the SSoT: reverse-index backlinks, blast-radius impact queries, doc↔spec/doc link integrity, and viewer exports (mermaid/Obsidian/DOT/JSON) + hub stats. Retrieval/traceability, not correctness."
     surface: tool
-    features: [F-ee47fc2b, F-7794a6bc, F-ee5f643e, F-569f4b37, F-02343cd1, F-64a5c159, F-8234ec3c, F-04f50847, F-af45042a]
+    features: [F-ee47fc2b, F-7794a6bc, F-ee5f643e, F-569f4b37, F-02343cd1, F-64a5c159, F-8234ec3c, F-04f50847, F-af45042a, F-c6a32fff]
