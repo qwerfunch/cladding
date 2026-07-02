@@ -248,6 +248,11 @@ describe('PreToolUse — structural guard on spec edits', () => {
 });
 
 describe('Stop — deterministic trio with fingerprint-keyed demotion', () => {
+  // The Stop gate only runs under cladding (F-c6a32fff): seed the master file.
+  beforeEach(() => {
+    writeFileSync(join(cwd, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: fixture\n', 'utf8');
+  });
+
   const TWO_FINDINGS: DriftReport = {
     pass: false,
     exitCode: 1,
@@ -323,6 +328,11 @@ describe('Stop — deterministic trio with fingerprint-keyed demotion', () => {
 });
 
 describe('PostToolUse — debounced drift nudge', () => {
+  // Drift nudges only run under cladding (F-c6a32fff): seed the master file.
+  beforeEach(() => {
+    writeFileSync(join(cwd, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: fixture\n', 'utf8');
+  });
+
   const ONE_ERROR: DriftReport = {
     pass: false,
     exitCode: 1,
@@ -390,6 +400,50 @@ describe('PostToolUse — debounced drift nudge', () => {
     expect(out).toContain('cladding impact: src/foo.ts → F-aaa111');
     expect(out).toContain('breaks 1 feature');
     expect(out).toContain('run 1 test');
+  });
+});
+
+describe('fallback safety — a spec-less cwd is not ours to gate (F-c6a32fff)', () => {
+  // v0.7.0 regression, reproduced with the shipped bundle: in a non-cladding
+  // repo (or a monorepo SUBDIR — the hook cwd is process.cwd()) the Stop hook
+  // falsely BLOCKED with ABSENCE_OF_GOVERNANCE and wrote .cladding/ state into
+  // a tree that never adopted cladding. These run UNSTUBBED-equivalent: the
+  // guard must fire before runDrift, so the stubs must never be called.
+  test('Stop in a spec-less cwd → silence, no drift run, no .cladding/ writes', () => {
+    expect(runHookEvent('Stop', {stop_hook_active: false}, cwd)).toBe('');
+    expect(driftStub).not.toHaveBeenCalled();
+    expect(existsSync(join(cwd, '.cladding'))).toBe(false);
+  });
+
+  test('PostToolUse in a spec-less cwd → silence, no drift run, no stamp write', () => {
+    const out = runHookEvent(
+      'PostToolUse',
+      {tool_name: 'Edit', tool_input: {file_path: 'src/foo.ts', new_string: 'x'.repeat(50)}},
+      cwd,
+    );
+    expect(out).toBe('');
+    expect(driftStub).not.toHaveBeenCalled();
+    expect(existsSync(join(cwd, '.cladding'))).toBe(false);
+  });
+
+  test('SessionStart over an unparseable spec with no other count source → honest counts-unavailable line', () => {
+    writeFileSync(join(cwd, 'spec.yaml'), 'features:\n  - id: F-x\n   badly: indented\n', 'utf8');
+    const out = runHookEvent('SessionStart', {}, cwd);
+    expect(out).toContain('spec.yaml present but unparseable — counts unavailable');
+    expect(out).not.toContain('0 features');
+  });
+
+  test('SessionStart over an unparseable spec WITH a healthy index → real counts, no false alarm', () => {
+    writeFileSync(join(cwd, 'spec.yaml'), 'features:\n  - id: F-x\n   badly: indented\n', 'utf8');
+    mkdirSync(join(cwd, 'spec'), {recursive: true});
+    writeFileSync(
+      join(cwd, 'spec', 'index.yaml'),
+      '# Cladding · Tier C\nfeatures:\n  F-aaa111: {slug: alpha, status: done, modules: 1}\n',
+      'utf8',
+    );
+    const out = runHookEvent('SessionStart', {}, cwd);
+    expect(out).toContain('cladding: 1 features (1 done, 0 in progress)');
+    expect(out).not.toContain('unparseable');
   });
 });
 

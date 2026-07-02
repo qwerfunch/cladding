@@ -289,6 +289,27 @@ describe('working-set', () => {
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
   });
 
+  test('blank-ledger radius: no-known-dependents, coverage null (not 0), denominator + ledger surfaced (F-c6a32fff)', () => {
+    // Zero depends_on and zero test_refs anywhere — the freshly-adopted state.
+    const spec = makeSpec([
+      feature({id: 'F-aaa111', slug: 'alpha', title: 'Alpha', acceptance_criteria: [ac({id: 'AC-001', test_refs: []})]}),
+      feature({id: 'F-bbb222', slug: 'beta', title: 'Beta', acceptance_criteria: [ac({id: 'AC-001', test_refs: []})]}),
+    ]);
+    const r = buildWorkingSet(spec, 'F-aaa111') as WorkingSetShape | MissShape;
+    expect(isMiss(r)).toBe(false);
+    if (isMiss(r)) throw new Error('expected a working set');
+    const breaks = r.breaks_if_changed as typeof r.breaks_if_changed & {
+      radius?: {depth: number; stopped_by: string; coverage: number | null; total_known_dependents: number};
+      ledger?: {depends_on_edges: number; test_ref_edges: number; fallback_hint?: string};
+    };
+    expect(breaks.radius?.stopped_by).toBe('no-known-dependents');
+    // JS null*100===0 — an unguarded round would render a FALSE "0% coverage".
+    expect(breaks.radius?.coverage).toBeNull();
+    expect(breaks.radius?.total_known_dependents).toBe(0);
+    expect(breaks.ledger?.depends_on_edges).toBe(0);
+    expect(breaks.ledger?.fallback_hint).toContain('unknown, not safe');
+  });
+
   test('a module query seeds ALL co-owners — their dependents and tests reach breaks_if_changed', () => {
     // v0.7.0 regression: only the alphabetically-first owner was seeded, so a
     // shared file's other owners contributed nothing to the blast radius

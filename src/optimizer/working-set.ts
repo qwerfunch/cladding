@@ -38,8 +38,17 @@ export interface WorkingSet {
   readonly breaks_if_changed: {
     readonly impacted: readonly Summary[];
     readonly regression_tests: readonly string[];
-    /** Self-describing radius: how far the blast-radius search widened + why it stopped + coverage of known dependents. */
-    readonly radius?: {readonly depth: number; readonly stopped_by: string; readonly coverage: number};
+    /** Self-describing radius: how far the blast-radius search widened + why it stopped + coverage
+     *  of known dependents (null when zero dependents are known — never a vacuous 1.0) + the
+     *  denominator itself so "0 known" survives to the consumer. */
+    readonly radius?: {
+      readonly depth: number;
+      readonly stopped_by: string;
+      readonly coverage: number | null;
+      readonly total_known_dependents: number;
+    };
+    /** Spec-wide ledger counts + blank-map fallback hints (from the impact slice — F-c6a32fff). */
+    readonly ledger?: import('./reverse-slice.js').LedgerSummary;
   };
   /** How to verify: scenarios, tests, oracle refs, and the high-risk (EARS unwanted/state) ACs. */
   readonly verify: {
@@ -112,7 +121,14 @@ export function buildWorkingSet(spec: Spec, query: string, opts: WorkingSetOptio
   const radius =
     'not_found' in iter
       ? null
-      : {depth: iter.depthUsed, stopped_by: iter.stoppedBy, coverage: Math.round(iter.analysis.coverage * 100) / 100};
+      : {
+          depth: iter.depthUsed,
+          stopped_by: iter.stoppedBy,
+          // Explicit null guard: JS coerces null*100 to 0, which would render the
+          // no-known-dependents state as a legitimate-looking FALSE "coverage: 0".
+          coverage: iter.analysis.coverage === null ? null : Math.round(iter.analysis.coverage * 100) / 100,
+          total_known_dependents: iter.analysis.totalKnownDependents,
+        };
 
   const acs = focus.acceptance_criteria ?? [];
   const highRiskAcs = acs
@@ -180,6 +196,7 @@ export function buildWorkingSet(spec: Spec, query: string, opts: WorkingSetOptio
     impacted: imp,
     regression_tests: reg,
     ...(radius ? {radius} : {}),
+    ...(impact?.ledger ? {ledger: impact.ledger} : {}),
   });
   const overWith = (imp: readonly Summary[], reg: readonly string[], di: number, dr: number): boolean => {
     const marker = di + dr > 0 ? [`breaks: omitted ${di} feature(s) / ${dr} test(s)`] : [];

@@ -208,7 +208,13 @@ const PAYLOAD_SCHEMA_VERSION = 1;
  * channel the model cannot not see, on every host — and Gemini/Codex have no
  * lifecycle hooks, so this is their only structural enforcement channel.
  */
-function gateFooter(cwd: string): {pass: boolean; findings: ReadonlyArray<{detector?: string; severity: string; message: string}>; next?: string} {
+function gateFooter(cwd: string): {
+  pass: boolean;
+  /** True when the drift engine itself failed — the gate DID NOT RUN (≠ verified green). */
+  unavailable?: boolean;
+  findings: ReadonlyArray<{detector?: string; severity: string; message: string}>;
+  next?: string;
+} {
   try {
     const report = runDrift({cwd});
     const findings = report.findings
@@ -219,7 +225,10 @@ function gateFooter(cwd: string): {pass: boolean; findings: ReadonlyArray<{detec
       ? {pass: true, findings}
       : {pass: false, findings, next: 'Resolve these findings, then verify with clad_run_gate (or `clad check --strict`) before `clad done`.'};
   } catch {
-    return {pass: true, findings: []};
+    // An engine fault must never read as a verified GREEN on the one structural
+    // channel hook-less hosts see (F-c6a32fff). pass:false is fail-closed; the
+    // explicit flag distinguishes "could not run" from "ran and found problems".
+    return {pass: false, unavailable: true, findings: [], next: 'gate could not run — verify with `clad check --strict`.'};
   }
 }
 
@@ -453,8 +462,11 @@ function registerTools(server: McpServer, cwd: string): void {
     },
     async (args) => {
       try {
-        const spec = loadSpec(cwd);
-        const slice = buildContextSlice(spec, args.query);
+        const loaded = loadSpecOrError(cwd);
+        if ('error' in loaded) {
+          return {isError: true, content: [{type: 'text', text: loaded.error}]};
+        }
+        const slice = buildContextSlice(loaded.spec, args.query);
         const miss = 'not_found' in slice;
         return {
           isError: miss,
@@ -492,7 +504,11 @@ function registerTools(server: McpServer, cwd: string): void {
     },
     async (args) => {
       try {
-        const ws = buildWorkingSet(loadSpec(cwd), args.query, {cwd, maxTokens: args.max_tokens});
+        const loaded = loadSpecOrError(cwd);
+        if ('error' in loaded) {
+          return {isError: true, content: [{type: 'text', text: loaded.error}]};
+        }
+        const ws = buildWorkingSet(loaded.spec, args.query, {cwd, maxTokens: args.max_tokens});
         return {
           isError: 'not_found' in ws,
           content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...ws}, null, 2)}],
@@ -530,8 +546,11 @@ function registerTools(server: McpServer, cwd: string): void {
     },
     async (args) => {
       try {
-        const spec = loadSpec(cwd);
-        const slice = buildImpactSlice(spec, args.query, {depth: args.max_depth});
+        const loaded = loadSpecOrError(cwd);
+        if ('error' in loaded) {
+          return {isError: true, content: [{type: 'text', text: loaded.error}]};
+        }
+        const slice = buildImpactSlice(loaded.spec, args.query, {depth: args.max_depth});
         const miss = 'not_found' in slice;
         return {
           isError: miss,
@@ -575,7 +594,11 @@ function registerTools(server: McpServer, cwd: string): void {
     },
     async (args) => {
       try {
-        const spec = loadSpec(cwd);
+        const loaded = loadSpecOrError(cwd);
+        if ('error' in loaded) {
+          return {isError: true, content: [{type: 'text', text: loaded.error}]};
+        }
+        const spec = loaded.spec;
         const graph = buildGraph(spec, cwd);
         if (!args.query) {
           return {
@@ -610,6 +633,9 @@ function registerTools(server: McpServer, cwd: string): void {
                     schema_version: PAYLOAD_SCHEMA_VERSION,
                     not_found: args.query,
                     accepted_forms: ['feature id (F-…)', 'slug', 'module path'],
+                    discovery:
+                      'grep spec/index.yaml — one line per feature (run clad sync if missing); ' +
+                      'if the query is a file, fall back to normal code search',
                   },
                   null,
                   2,

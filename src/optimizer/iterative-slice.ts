@@ -23,7 +23,7 @@ import {buildImpactSlice, collectDependents, type ImpactLookupMiss, type ImpactS
 import {reverseIndexOf} from '../spec/reverse-index.js';
 import type {Spec} from '../spec/types.js';
 
-export type StopReason = 'exhaustion' | 'coverage' | 'marginal-yield' | 'max-depth';
+export type StopReason = 'exhaustion' | 'coverage' | 'marginal-yield' | 'max-depth' | 'no-known-dependents';
 
 export interface IterativeImpactOptions {
   readonly initialDepth?: number;
@@ -45,8 +45,10 @@ export interface IterativeImpactResult {
   readonly analysis: {
     /** The k-th ring added 0 new dependents → the reachable graph boundary was hit. */
     readonly frontierExhausted: boolean;
-    /** Fraction of all known transitive dependents now in the radius (0..1). */
-    readonly coverage: number;
+    /** Fraction of all known transitive dependents now in the radius (0..1). NULL when the
+     *  denominator is zero — a vacuous 1.0 there read as "100% covered" on a blank ledger
+     *  (F-c6a32fff; 44% of cladding-self features take this path). */
+    readonly coverage: number | null;
     /** New-node fraction per hop: [yield@d1, yield@d2, …] — the expansion curve. */
     readonly marginalYields: readonly number[];
     /** Total transitive dependents reachable at unbounded depth (the coverage denominator). */
@@ -92,6 +94,22 @@ export function buildIterativeImpactSlice(
     return 'not_found' in miss ? miss : (miss as never);
   }
   const totalKnown = collectDependents(seedIds, ri.dependents, Infinity).size;
+
+  // ZERO KNOWN DEPENDENTS — a genuine leaf on a dense map, or a blank ledger where
+  // nothing was ever declared. Either way the widening loop has nothing to widen into,
+  // and the old fall-through (`coverage = 1, stoppedBy: 'coverage'`) actively claimed
+  // 100% completeness on both. Stop honestly instead; the slice's ledger counts are
+  // what distinguish leaf (edges elsewhere) from blank map (zero edges anywhere).
+  if (totalKnown === 0) {
+    const slice = buildImpactSlice(spec, query, {depth: initialDepth});
+    if ('not_found' in slice) return slice; // defensive; resolution already succeeded
+    return {
+      slice,
+      depthUsed: initialDepth,
+      stoppedBy: 'no-known-dependents',
+      analysis: {frontierExhausted: true, coverage: null, marginalYields: [0], totalKnownDependents: 0},
+    };
+  }
 
   const yields: number[] = [];
   let prevCount = 0;
