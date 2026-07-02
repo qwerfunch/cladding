@@ -89,6 +89,41 @@ const CONFIGS: Partial<Record<Language, LanguageConfig>> = {
 };
 
 /**
+ * Extensions cladding watches for the PostToolUse impact card (F-63b989e5),
+ * lowercased and dot-prefixed. Built from every registered
+ * {@link LanguageConfig.extensions} (TS `.ts .tsx`, Kotlin `.kt .kts`) unioned
+ * with a supplement table for the languages cladding *claims* to support but
+ * that do not yet carry a full LanguageConfig entry — they resolve to
+ * {@link TS_CONFIG} today (see {@link CONFIGS}), so their extensions live here
+ * until each grows its own entry. This is the single place to update when a new
+ * language is added, so the impact card never silently omits a claimed language.
+ */
+const SUPPLEMENTAL_EXTENSIONS: readonly string[] = [
+  // JS/TS family beyond the TS entry's own `.ts` / `.tsx`.
+  '.js',
+  '.jsx',
+  '.mts',
+  '.cts',
+  // Languages with no full LanguageConfig entry yet (all resolve to TS_CONFIG).
+  '.py',
+  '.rs',
+  '.go',
+  '.java',
+  '.rb',
+  '.php',
+  '.cs',
+  '.fs',
+  '.ex',
+  '.exs',
+];
+
+export const WATCHED_EXTENSIONS: ReadonlySet<string> = new Set<string>(
+  [...Object.values(CONFIGS).flatMap((c) => c?.extensions ?? []), ...SUPPLEMENTAL_EXTENSIONS].map((e) =>
+    e.toLowerCase(),
+  ),
+);
+
+/**
  * Resolves the {@link LanguageConfig} for a project. Prefers the explicit
  * `spec.project.language` (cheap, no filesystem walk) and falls back to
  * manifest detection; unknown or unlisted languages get the TS baseline.

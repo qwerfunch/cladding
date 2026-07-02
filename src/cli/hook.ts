@@ -25,7 +25,7 @@
 
 import {createHash} from 'node:crypto';
 import {existsSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
-import {dirname, isAbsolute, join, relative, resolve, sep} from 'node:path';
+import {dirname, extname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import process from 'node:process';
 
 import {parse as parseYaml} from 'yaml';
@@ -41,6 +41,7 @@ import {buildWorkingSet, type WorkingSet} from '../optimizer/working-set.js';
 import {formatWorkingSetCard, formatPushOneLiner} from '../optimizer/push-card.js';
 import {estTokens} from '../optimizer/code-excerpt.js';
 import {loadSpec} from '../spec/load.js';
+import {WATCHED_EXTENSIONS} from '../stages/toolchain/language-config.js';
 
 // --- shared helpers ----------------------------------------------------
 
@@ -403,12 +404,17 @@ function runStopGate(input: unknown, cwd: string): string {
 // --- PostToolUse — debounced drift nudge --------------------------------
 
 const DRIFT_DEBOUNCE_MS = 20_000;
-const SOURCE_FILE_EXT = /\.(ts|js|py|rs|go)$/i;
 
+// Extension arm derives from the language SSoT (WATCHED_EXTENSIONS in
+// stages/toolchain/language-config.ts) so every language cladding claims — incl.
+// .tsx/.jsx and the JVM/Ruby/PHP/C#/Elixir surface — fires an impact card outside
+// src/, not just the legacy 5-ext set (F-63b989e5). The src/-segment rule is
+// UNCHANGED: any path with a src/ segment stays watched regardless of extension.
+// Pure string/set membership — synchronous, no fs, no per-call regex rebuild.
 function isWatchedSourcePath(filePath: string): boolean {
   if (filePath.length === 0) return false;
   if (/(^|[\\/])src[\\/]/.test(filePath)) return true;
-  return SOURCE_FILE_EXT.test(filePath);
+  return WATCHED_EXTENSIONS.has(extname(filePath).toLowerCase());
 }
 
 const MIN_EDIT_CHARS = 40; // below this an edit is too trivial to warrant an impact card
