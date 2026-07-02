@@ -10,14 +10,22 @@
 // falsified by A/B; delivery is what the ledger can support.
 //
 // eligible = fired + skips EXCLUDING the aggregated high-frequency reasons
-// (not_write_tool / unwatched_path) — those are non-source-edit noise, not
-// missed cards, so counting them would deflate the fire-rate dishonestly.
+// (not_write_tool / unwatched_path — non-source-edit noise) AND the push
+// governor's by-design suppressions (dedup / ledger_exhausted — a card that
+// WOULD have fired but was intentionally withheld, F-35954d19). Counting
+// either as a missed card would deflate the fire-rate dishonestly.
 
 import type {Event} from './log.js';
 
 /** The two skip reasons aggregated across a debounce window (AC-8fc6bea0). They
  * are non-source-edit noise, so they never contribute to the eligible denominator. */
 const AGGREGATED_REASONS: ReadonlySet<string> = new Set(['not_write_tool', 'unwatched_path']);
+
+/** The push governor's by-design suppressions (F-35954d19): dedup (repeated
+ * (focus,file) fingerprint) and ledger_exhausted (session push budget). Excluded
+ * from eligible — they are deliberate withholdings, not missed fires — and
+ * surfaced separately via the `suppressed` field so they stay visible. */
+const SUPPRESSED_REASONS: ReadonlySet<string> = new Set(['dedup', 'ledger_exhausted']);
 
 export interface ValueDeliverySummary {
   /** Impact cards that produced output. */
@@ -26,8 +34,11 @@ export interface ValueDeliverySummary {
   readonly skipped: number;
   /** Per-reason skip histogram (aggregates expand into their per-reason counts). */
   readonly byReason: Readonly<Record<string, number>>;
-  /** fired + substantive skips (excludes not_write_tool / unwatched_path). */
+  /** fired + substantive skips (excludes not_write_tool / unwatched_path noise
+   *  AND the by-design suppressions dedup / ledger_exhausted). */
   readonly eligible: number;
+  /** Push-governor suppressions by design (F-35954d19) — withheld, not missed. */
+  readonly suppressed: {readonly dedup: number; readonly ledger_exhausted: number};
   /** fired / eligible, rounded to 3dp; 0 when eligible is 0 (never NaN). */
   readonly firedPct: number;
   /** MCP read-tool serves (working-set / context / impact). */
@@ -60,6 +71,7 @@ export function summarizeValueDelivery(events: readonly Event[]): ValueDeliveryS
   let promptSuggestions = 0;
   const byReason: Record<string, number> = {};
   const servedByTool: Record<string, number> = {};
+  const suppressed = {dedup: 0, ledger_exhausted: 0};
 
   for (const e of events) {
     const p = e.payload ?? {};
@@ -84,7 +96,9 @@ export function summarizeValueDelivery(events: readonly Event[]): ValueDeliveryS
         const reason = typeof p.reason === 'string' ? p.reason : 'unknown';
         byReason[reason] = (byReason[reason] ?? 0) + 1;
         skipped += 1;
-        if (!AGGREGATED_REASONS.has(reason)) eligibleSkips += 1;
+        if (reason === 'dedup') suppressed.dedup += 1;
+        else if (reason === 'ledger_exhausted') suppressed.ledger_exhausted += 1;
+        if (!AGGREGATED_REASONS.has(reason) && !SUPPRESSED_REASONS.has(reason)) eligibleSkips += 1;
         break;
       }
       case 'working_set_served': {
@@ -119,6 +133,7 @@ export function summarizeValueDelivery(events: readonly Event[]): ValueDeliveryS
     skipped,
     byReason,
     eligible,
+    suppressed,
     firedPct,
     servedWorkingSets,
     servedByTool,

@@ -62,7 +62,8 @@ export type EventType =
   // read serves) left ZERO trace, so the 0.7.1 "impact card fired 0%" bug was
   // invisible to the harness's own ledger. Each surface now records whether it
   // produced output. Payloads:
-  //   impact_card_fired:        file, feature, impacted (n), tests (n), unledgered (bool)
+  //   impact_card_fired:        file, feature, impacted (n), tests (n), unledgered (bool),
+  //                             tier (1|2 — Tier-2 is the mini working-set card, F-35954d19)
   //   impact_card_skipped:      reason ∈ ImpactSkipReason (closed enum, one per degrade
   //                             branch of runPostToolUseDrift). The two high-frequency
   //                             reasons (not_write_tool, unwatched_path) are AGGREGATED
@@ -85,6 +86,9 @@ export type EventType =
  * The enum makes silent (surface fired nothing) distinguishable from broken
  * (emission unwired) directly from the ledger. `no_spec` is a valid disposition
  * but is never emitted: a spec-less cwd gets no `.cladding/` writes (parity).
+ * `dedup`/`ledger_exhausted` were added by the mini working-set push card
+ * (F-35954d19): a repeated (focus,file) fingerprint and an exhausted per-session
+ * push-token budget are suppressions of a card that WOULD have fired, not misses.
  */
 export type ImpactSkipReason =
   | 'not_write_tool'
@@ -93,7 +97,9 @@ export type ImpactSkipReason =
   | 'debounced'
   | 'trivial_edit'
   | 'owner_miss'
-  | 'spec_unreadable';
+  | 'spec_unreadable'
+  | 'dedup'
+  | 'ledger_exhausted';
 
 /** One JSONL line in events.log.jsonl. */
 export interface Event {

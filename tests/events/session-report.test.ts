@@ -97,6 +97,7 @@ describe('summarizeValueDelivery — counts + histogram', () => {
       skipped: 0,
       byReason: {},
       eligible: 0,
+      suppressed: {dedup: 0, ledger_exhausted: 0}, // F-35954d19 — by-design withholdings field
       firedPct: 0,
       servedWorkingSets: 0,
       servedByTool: {},

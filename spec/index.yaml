@@ -107,6 +107,7 @@ features:
   F-315fd7: {slug: scenario-coverage-detector, status: done, modules: 2}
   F-31eeb8: {slug: scan-bfs-walk, status: done, modules: 2}
   F-32b1e0: {slug: ai-hints-preferred-patterns, status: done, modules: 6}
+  F-35954d19: {slug: post-tool-mini-working-set, status: done, modules: 4}
   F-3788c2: {slug: planned-backlog-detector, status: done, modules: 2}
   F-37b4a8: {slug: feature-index-file, status: done, modules: 3}
   F-3a5339: {slug: spec-yaml-metadata, status: done, modules: 5}

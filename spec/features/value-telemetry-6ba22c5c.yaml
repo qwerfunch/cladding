@@ -11,7 +11,7 @@ modules:
 acceptance_criteria:
   - id: AC-238a3658
     ears: ubiquitous
-    text: "The system shall define EventType members impact_card_fired, impact_card_skipped, session_card_rendered, prompt_suggestion_served, and working_set_served in src/events/log.ts, with impact_card_skipped.reason restricted to a closed enum (not_write_tool | unwatched_path | no_spec | debounced | trivial_edit | owner_miss | spec_unreadable) mapping one-to-one onto the degrade branches of runPostToolUseDrift."
+    text: "The system shall define EventType members impact_card_fired, impact_card_skipped, session_card_rendered, prompt_suggestion_served, and working_set_served in src/events/log.ts, with impact_card_skipped.reason restricted to a closed enum (not_write_tool | unwatched_path | no_spec | debounced | trivial_edit | owner_miss | spec_unreadable | dedup | ledger_exhausted) mapping one-to-one onto the degrade branches of runPostToolUseDrift and its mini working-set push card (F-35954d19)."
     notes: "WHY: the 0.7.1 impact-card 0%-firing bug was invisible to the harness itself — the closed reason enum makes silent-vs-broken distinguishable from the ledger alone."
     test_refs:
       - tests/events/value-telemetry-contract.test.ts

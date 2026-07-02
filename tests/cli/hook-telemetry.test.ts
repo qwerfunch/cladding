@@ -79,6 +79,12 @@ function stamp(): string {
 function clearStamp(): void {
   rmSync(stamp(), {force: true});
 }
+// F-35954d19: the session push governor dedups a repeated (focus,file) card. The
+// accounting corpus intentionally re-fires the SAME owned file, so clear the ledger
+// between fired edits to isolate the per-edit firing (analogous to clearStamp for debounce).
+function clearPushLedger(): void {
+  rmSync(join(cwd, '.cladding', 'hook-push-ledger.json'), {force: true});
+}
 function freshStamp(): void {
   mkdirSync(join(cwd, '.cladding'), {recursive: true});
   writeFileSync(stamp(), String(Date.now()), 'utf8');
@@ -145,6 +151,7 @@ describe('PostToolUse telemetry — accounting completeness', () => {
     //    accumulated aggregate window into one event (pending → 0)
     for (let i = 0; i < N.fired; i++) {
       clearStamp();
+      clearPushLedger();
       const out = post(sourceEdit('src/foo.ts', 60));
       expect(out).toContain('cladding impact: src/foo.ts → F-aaa111');
       cardsPrinted++;

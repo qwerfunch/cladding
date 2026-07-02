@@ -29,6 +29,9 @@ const REASONS: Record<ImpactSkipReason, true> = {
   trivial_edit: true,
   owner_miss: true,
   spec_unreadable: true,
+  // F-35954d19 — the mini working-set push card's session governor.
+  dedup: true,
+  ledger_exhausted: true,
 };
 
 const NEW_EVENT_TYPES = [
@@ -43,10 +46,12 @@ const _newTypesAreEventTypes: readonly EventType[] = NEW_EVENT_TYPES;
 void _newTypesAreEventTypes;
 
 describe('F-6ba22c5c AC-238a3658 — closed reason enum + event types', () => {
-  test('ImpactSkipReason is EXACTLY the closed 7-value set from the AC', () => {
+  test('ImpactSkipReason is EXACTLY the closed 9-value set from the AC', () => {
     expect(Object.keys(REASONS).sort()).toEqual(
       [
         'debounced',
+        'dedup',
+        'ledger_exhausted',
         'no_spec',
         'not_write_tool',
         'owner_miss',

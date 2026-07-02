@@ -37,6 +37,9 @@ import {runArch} from '../stages/arch.js';
 import {runDrift} from '../stages/drift.js';
 import {runSecret} from '../stages/secret.js';
 import {buildImpactSlice, type ImpactSlice} from '../optimizer/reverse-slice.js';
+import {buildWorkingSet, type WorkingSet} from '../optimizer/working-set.js';
+import {formatWorkingSetCard, formatPushOneLiner} from '../optimizer/push-card.js';
+import {estTokens} from '../optimizer/code-excerpt.js';
 import {loadSpec} from '../spec/load.js';
 
 // --- shared helpers ----------------------------------------------------
@@ -495,17 +498,139 @@ function recordImpactSkip(cwd: string, reason: ImpactSkipReason): void {
   recordEvent(cwd, 'impact_card_skipped', {reason});
 }
 
-/** Fired-card event; payload mirrors formatImpactCard's inputs (AC-373257b2 bijection). */
+/** Records one impact_card_fired + closes the aggregate window. `tier` is optional so the
+ * shipped fallback path (AC-38141a9e) emits the byte-identical pre-tier payload. */
+function recordFiredEvent(cwd: string, payload: Record<string, unknown>): void {
+  recordEvent(cwd, 'impact_card_fired', payload);
+  flushPendingSkipAgg(cwd); // a fired card closes the window → flush accumulated skips
+}
+
+/** Fired-card event for the SHIPPED slice path; payload mirrors formatImpactCard's inputs
+ * (AC-373257b2 bijection). Used only by the byte-identical fallback (working set unavailable). */
 function recordImpactFired(cwd: string, file: string, slice: ImpactSlice): void {
   const owners = slice.focus.owners ?? [];
-  recordEvent(cwd, 'impact_card_fired', {
+  recordFiredEvent(cwd, {
     file,
     feature: slice.focus.id ?? owners[0] ?? '',
     impacted: slice.impacted.length,
     tests: slice.test_refs.length,
     unledgered: slice.ledger?.depends_on_edges === 0,
   });
-  flushPendingSkipAgg(cwd); // a fired card closes the window → flush accumulated skips
+}
+
+// --- session push ledger (F-35954d19) ----------------------------------
+//
+// The mini working-set card is the push half of clad_get_working_set — richer, so it
+// needs a per-session governor: ONE Tier-2 card per (focus,file) per session (dedup),
+// and a hard per-session token ceiling (budget). State lives in a sidecar keyed by the
+// host session_id when present, else a 30-min rolling window. Sidecar contract (skip-agg
+// precedent): corrupt/missing/new-session/rollover → a fresh ledger, never a throw.
+
+const PUSH_LEDGER_FILE = 'hook-push-ledger.json';
+const PUSH_WINDOW_MS = 30 * 60 * 1000;
+/** Suppress further cards once this many pushed tokens accumulate in a session (AC-f4715e87). */
+const PUSH_BUDGET_TOKENS = 2500;
+const PUSH_BUDGET_NOTICE = 'cladding: push budget exhausted this session';
+
+interface PushLedger {
+  sessionKey: string;
+  windowStart: number;
+  est_tokens_pushed: number;
+  fingerprints: Record<string, number>;
+  notice_printed: boolean;
+}
+
+function pushLedgerPath(cwd: string): string {
+  return join(cwd, '.cladding', PUSH_LEDGER_FILE);
+}
+
+/** Parse the sidecar into a shape-checked ledger; corrupt/missing → null (caller freshens). */
+function readPushLedger(cwd: string): PushLedger | null {
+  try {
+    const o = JSON.parse(readFileSync(pushLedgerPath(cwd), 'utf8')) as Partial<PushLedger>;
+    if (!o || typeof o !== 'object') return null;
+    return {
+      sessionKey: typeof o.sessionKey === 'string' ? o.sessionKey : '',
+      windowStart: Number.isFinite(o.windowStart) ? Number(o.windowStart) : 0,
+      est_tokens_pushed: Number.isFinite(o.est_tokens_pushed) ? Number(o.est_tokens_pushed) : 0,
+      fingerprints: o.fingerprints && typeof o.fingerprints === 'object' ? {...(o.fingerprints as Record<string, number>)} : {},
+      notice_printed: o.notice_printed === true,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writePushLedger(cwd: string, led: PushLedger): void {
+  try {
+    mkdirSync(dirname(pushLedgerPath(cwd)), {recursive: true});
+    writeFileSync(pushLedgerPath(cwd), JSON.stringify(led), 'utf8');
+  } catch {
+    /* unwritable sidecar → the governor just won't persist; never a throw */
+  }
+}
+
+/** Load the ledger for this invocation, resetting on a new session key OR a rolled-over
+ * window (no session_id). sessionKey = host session_id when present, else a plain window. */
+function loadPushLedger(cwd: string, sessionId: string, now: number): PushLedger {
+  const key = sessionId ? `sid:${sessionId}` : 'win';
+  const led = readPushLedger(cwd);
+  if (!led || led.sessionKey !== key || (!sessionId && now - led.windowStart >= PUSH_WINDOW_MS)) {
+    return {sessionKey: key, windowStart: now, est_tokens_pushed: 0, fingerprints: {}, notice_printed: false};
+  }
+  return led;
+}
+
+/**
+ * The tiered push-card decision for an OWNED edit whose working set is built. Returns the
+ * card text to print ('' = silence) and applies the session governor as a side effect:
+ *   - budget exhausted (AC-f4715e87): suppress, one-time notice, record ledger_exhausted;
+ *   - fresh (focus,file): Tier-2 when consequences exist else the Tier-1 one-liner, fired;
+ *   - first repeat: degrade to the one-liner, record dedup;
+ *   - later repeats: silence, record dedup (AC-61ae9211).
+ */
+function emitPushCard(cwd: string, sessionId: string, rel: string, ws: WorkingSet): string {
+  const impacted = ws.breaks_if_changed.impacted;
+  const tests = ws.breaks_if_changed.regression_tests;
+  const highRisk = ws.verify.high_risk_acs;
+  const hasConsequences = impacted.length > 0 || tests.length > 0 || highRisk.length > 0;
+  const focusId = ws.must_edit.id;
+  const fp = `post_tool_use|${focusId}|${rel}`;
+  const now = Date.now();
+  const led = loadPushLedger(cwd, sessionId, now);
+
+  let card = '';
+  if (led.est_tokens_pushed > PUSH_BUDGET_TOKENS) {
+    // Budget exhausted: suppress cards entirely; the notice prints exactly once per session.
+    recordImpactSkip(cwd, 'ledger_exhausted');
+    if (!led.notice_printed) {
+      card = PUSH_BUDGET_NOTICE;
+      led.notice_printed = true;
+    }
+  } else {
+    const seen = led.fingerprints[fp] ?? 0;
+    if (seen === 0) {
+      card = hasConsequences ? formatWorkingSetCard(ws, rel) : formatPushOneLiner(ws, rel);
+      led.est_tokens_pushed += estTokens(card);
+      recordFiredEvent(cwd, {
+        file: rel,
+        feature: focusId,
+        impacted: impacted.length,
+        tests: tests.length,
+        unledgered: ws.breaks_if_changed.ledger?.depends_on_edges === 0,
+        tier: hasConsequences ? 2 : 1,
+      });
+    } else if (seen === 1) {
+      card = formatPushOneLiner(ws, rel); // one Tier-2 per (focus,file) is the dose — degrade
+      led.est_tokens_pushed += estTokens(card);
+      recordImpactSkip(cwd, 'dedup');
+    } else {
+      recordImpactSkip(cwd, 'dedup'); // silence from the third repeat onward
+    }
+    led.fingerprints[fp] = seen + 1;
+  }
+  writePushLedger(cwd, led);
+  return card;
 }
 
 /**
@@ -558,13 +683,28 @@ function runPostToolUseDrift(input: unknown, cwd: string): string {
   } else {
     try {
       const rel = isAbsolute(filePath) ? relative(resolve(cwd), filePath).split(sep).join('/') : filePath;
-      const slice = buildImpactSlice(loadSpec(cwd), rel);
-      if ('not_found' in slice) {
-        recordImpactSkip(cwd, 'owner_miss');
+      const spec = loadSpec(cwd);
+      // Tier path: the mini working-set card (code-free, 350-token lane — AC-1bfccb6b). A
+      // buildWorkingSet throw OR lookup miss falls back byte-identically to the shipped
+      // formatImpactCard path, leaving the six gates above untouched (AC-38141a9e).
+      let ws: WorkingSet | undefined;
+      try {
+        const built = buildWorkingSet(spec, rel, {includeCode: false, maxTokens: 350, cwd});
+        if (!('not_found' in built)) ws = built;
+      } catch {
+        ws = undefined;
+      }
+      if (ws) {
+        card = emitPushCard(cwd, asString(rec.session_id), rel, ws);
       } else {
-        card = formatImpactCard(slice, rel);
-        if (card) recordImpactFired(cwd, rel, slice);
-        else recordImpactSkip(cwd, 'owner_miss'); // found slice but no primary owner → no output
+        const slice = buildImpactSlice(spec, rel);
+        if ('not_found' in slice) {
+          recordImpactSkip(cwd, 'owner_miss');
+        } else {
+          card = formatImpactCard(slice, rel);
+          if (card) recordImpactFired(cwd, rel, slice);
+          else recordImpactSkip(cwd, 'owner_miss'); // found slice but no primary owner → no output
+        }
       }
     } catch {
       recordImpactSkip(cwd, 'spec_unreadable'); // spec unreadable → no card, still run drift

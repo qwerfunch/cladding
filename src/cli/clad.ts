@@ -649,13 +649,19 @@ function runSessionsMeasure(opts: {json?: boolean}): void {
     return;
   }
   const pct = (n: number): string => `${(n * 100).toFixed(1)}%`;
+  const suppressedTotal = summary.suppressed.dedup + summary.suppressed.ledger_exhausted;
   const lines = [
     'value delivery — measures whether cladding’s surfaces FIRED, not whether the agent ADOPTED them',
     `  impact card: ${summary.fired} fired / ${summary.eligible} eligible edit(s) = ${pct(summary.firedPct)} fired`,
     `  skips by reason: ${JSON.stringify(summary.byReason)}`,
+    // Push-governor withholdings (F-35954d19) are deliberate, so they get their own
+    // line instead of deflating the fired% denominator.
+    ...(suppressedTotal > 0
+      ? [`  suppressed by design: ${summary.suppressed.dedup} dedup, ${summary.suppressed.ledger_exhausted} budget-exhausted (excluded from eligible)`]
+      : []),
     `  MCP serves: ${summary.servedWorkingSets} read-serve(s) ${JSON.stringify(summary.servedByTool)} · ${pct(summary.truncationRate)} truncated`,
     `  other surfaces: ${summary.sessionCards} session card(s), ${summary.promptSuggestions} prompt suggestion(s)`,
-    '  (eligible = fired + substantive skips; not_write_tool / unwatched_path noise excluded)',
+    '  (eligible = fired + substantive skips; not_write_tool / unwatched_path noise and by-design suppressions excluded)',
   ];
   process.stdout.write(`${lines.join('\n')}\n`);
   process.exit(0);
