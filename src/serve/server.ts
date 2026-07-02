@@ -31,6 +31,7 @@ import {
 import {z} from 'zod';
 
 import {loadPersona} from '../agents/loader.js';
+import {recordEvent} from '../events/log.js';
 import {collectChangelog, defaultSinceRef} from '../changelog/collect.js';
 import {renderAuditTable, renderCatalog, renderChangelogMarkdown} from '../changelog/render.js';
 import {subscribeAudit} from '../hitl/audit.js';
@@ -232,6 +233,27 @@ function gateFooter(cwd: string): {
   }
 }
 
+
+/**
+ * Value-delivery telemetry (F-6ba22c5c): records that an MCP read tool served
+ * a result. Observer-only — recordEvent is best-effort and this is additionally
+ * wrapped, so a telemetry failure never changes the tool's returned content
+ * (AC-e9d041de). Reached only after loadSpecOrError succeeds, so a spec-less cwd
+ * (no .cladding/) is never written to.
+ */
+function recordServe(
+  cwd: string,
+  tool: string,
+  query: string,
+  resolved: boolean,
+  extra?: {truncated: boolean; sliceTokens: number},
+): void {
+  try {
+    recordEvent(cwd, 'working_set_served', {tool, query, resolved, ...(extra ?? {})});
+  } catch {
+    /* observer-only */
+  }
+}
 
 /** Locate the engine's bin shim relative to this module — works in the dist
  * bundle (dist/clad.js → ../bin/clad) and the dev tree (src/serve/ → ../../bin/clad). */
@@ -468,6 +490,7 @@ function registerTools(server: McpServer, cwd: string): void {
         }
         const slice = buildContextSlice(loaded.spec, args.query);
         const miss = 'not_found' in slice;
+        recordServe(cwd, 'clad_get_context', args.query, !miss);
         return {
           isError: miss,
           content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...slice}, null, 2)}],
@@ -509,6 +532,8 @@ function registerTools(server: McpServer, cwd: string): void {
           return {isError: true, content: [{type: 'text', text: loaded.error}]};
         }
         const ws = buildWorkingSet(loaded.spec, args.query, {cwd, maxTokens: args.max_tokens});
+        const budget = 'not_found' in ws ? null : {truncated: ws.budget.truncated.length > 0, sliceTokens: ws.budget.used_tokens};
+        recordServe(cwd, 'clad_get_working_set', args.query, budget !== null, budget ?? undefined);
         return {
           isError: 'not_found' in ws,
           content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...ws}, null, 2)}],
@@ -552,6 +577,7 @@ function registerTools(server: McpServer, cwd: string): void {
         }
         const slice = buildImpactSlice(loaded.spec, args.query, {depth: args.max_depth});
         const miss = 'not_found' in slice;
+        recordServe(cwd, 'clad_get_impact', args.query, !miss);
         return {
           isError: miss,
           content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...slice}, null, 2)}],

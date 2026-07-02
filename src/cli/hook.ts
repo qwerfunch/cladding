@@ -30,7 +30,7 @@ import process from 'node:process';
 
 import {parse as parseYaml} from 'yaml';
 
-import {latestEventOfType, recordEvent} from '../events/log.js';
+import {latestEventOfType, recordEvent, type ImpactSkipReason} from '../events/log.js';
 import type {Intent} from '../router/intent.js';
 import {suggestIntent} from '../router/intent.js';
 import {runArch} from '../stages/arch.js';
@@ -179,20 +179,27 @@ const INTENT_HINTS: Readonly<Partial<Record<Intent, string>>> = {
 const COMPLETION_CLAIM =
   /\b(wrap (it |this )?up|looks? (all )?done|mark (it |this |.{0,24})?done|finish(ed)? (it|this|up)|ship it)\b|마무리|완료 ?처리|끝난 ?것 ?같|완료해/i;
 
-/** Renders the one-line routing suggestion, or nothing for unclassifiable prompts. */
-function renderPromptSuggestion(input: unknown): string {
+/**
+ * Classifies a prompt into the suggestion it would serve (or null for
+ * unclassifiable prompts). Returns `kind` alongside the text so the telemetry
+ * payload (prompt_suggestion_served.kind) is a byte-exact bijection with what
+ * was rendered — the surface and its trace are computed once, together.
+ */
+function classifyPromptSuggestion(input: unknown): {readonly kind: string; readonly text: string} | null {
   const prompt = asString(asRecord(input).prompt);
-  if (prompt.length === 0) return '';
+  if (prompt.length === 0) return null;
   if (COMPLETION_CLAIM.test(prompt)) {
-    return (
-      'cladding: completion is EARNED, not declared — run `clad done <F-id>` ' +
-      '(the strict gate flips it only when GREEN); in-progress ids are one grep away in spec/index.yaml'
-    );
+    return {
+      kind: 'completion',
+      text:
+        'cladding: completion is EARNED, not declared — run `clad done <F-id>` ' +
+        '(the strict gate flips it only when GREEN); in-progress ids are one grep away in spec/index.yaml',
+    };
   }
   const intent = suggestIntent(prompt);
   const hint = intent ? INTENT_HINTS[intent] : undefined;
-  if (!intent || !hint) return '';
-  return `cladding: this looks like ${intent} work — ${hint}`;
+  if (!intent || !hint) return null;
+  return {kind: intent, text: `cladding: this looks like ${intent} work — ${hint}`};
 }
 
 // --- PreToolUse — structural guard on spec edits ------------------------
@@ -398,23 +405,141 @@ export function formatImpactCard(slice: ImpactSlice, filePath: string): string {
   return `cladding impact: ${filePath} → ${label}${co}${breaks}${tests}${unledgered}`;
 }
 
+// --- impact-card telemetry (F-6ba22c5c) --------------------------------
+//
+// Observer-only: every path below is wrapped so a telemetry failure leaves the
+// hook's stdout byte-identical (AC-e9d041de). recordEvent is already best-effort;
+// the sidecar I/O is guarded on top of it.
+//
+// Each hook invocation is a SEPARATE OS process, so in-memory aggregation across
+// events is impossible. The two high-frequency skip reasons (not_write_tool,
+// unwatched_path — fired on every Read / non-source edit) are accumulated in a
+// tiny fixed-size sidecar counter and flushed as ONE impact_card_skipped event
+// per DRIFT_DEBOUNCE_MS window (AC-8fc6bea0), so per-call skip volume cannot
+// rotate gate_run history out of the 5MB events.log.
+
+const SKIP_AGG_FILE = 'hook-skip-agg.json';
+
+interface SkipAgg {
+  windowStart: number;
+  not_write_tool: number;
+  unwatched_path: number;
+}
+
+function skipAggPath(cwd: string): string {
+  return join(cwd, '.cladding', SKIP_AGG_FILE);
+}
+
+/** Read the sidecar; corrupt/missing → a fresh window (never throws). */
+function readSkipAgg(cwd: string, now: number): SkipAgg {
+  try {
+    const o = JSON.parse(readFileSync(skipAggPath(cwd), 'utf8')) as Partial<SkipAgg>;
+    return {
+      windowStart: Number.isFinite(o.windowStart) ? Number(o.windowStart) : now,
+      not_write_tool: Number.isFinite(o.not_write_tool) ? Number(o.not_write_tool) : 0,
+      unwatched_path: Number.isFinite(o.unwatched_path) ? Number(o.unwatched_path) : 0,
+    };
+  } catch {
+    return {windowStart: now, not_write_tool: 0, unwatched_path: 0};
+  }
+}
+
+function writeSkipAgg(cwd: string, agg: SkipAgg): void {
+  try {
+    mkdirSync(dirname(skipAggPath(cwd)), {recursive: true});
+    writeFileSync(skipAggPath(cwd), JSON.stringify(agg), 'utf8');
+  } catch {
+    /* unwritable sidecar → aggregation just won't persist; never a throw */
+  }
+}
+
+/** Emit the accumulated counts as ONE impact_card_skipped event (if any), and
+ * return a fresh window. reason ∈ the closed enum; both counts ride the payload. */
+function flushSkipAgg(cwd: string, agg: SkipAgg, now: number): SkipAgg {
+  if (agg.not_write_tool > 0 || agg.unwatched_path > 0) {
+    recordEvent(cwd, 'impact_card_skipped', {
+      reason: agg.not_write_tool >= agg.unwatched_path ? 'not_write_tool' : 'unwatched_path',
+      aggregate: true,
+      counts: {not_write_tool: agg.not_write_tool, unwatched_path: agg.unwatched_path},
+      window_ms: now - agg.windowStart,
+    });
+  }
+  return {windowStart: now, not_write_tool: 0, unwatched_path: 0};
+}
+
+/** Increment a high-frequency skip counter; flush the previous window first when it rolled over. */
+function aggregateImpactSkip(cwd: string, reason: 'not_write_tool' | 'unwatched_path'): void {
+  try {
+    const now = Date.now();
+    let agg = readSkipAgg(cwd, now);
+    if (now - agg.windowStart >= DRIFT_DEBOUNCE_MS) agg = flushSkipAgg(cwd, agg, now);
+    agg[reason] += 1;
+    writeSkipAgg(cwd, agg);
+  } catch {
+    /* telemetry is observer-only */
+  }
+}
+
+/** Flush any pending high-frequency skips — called when a real card fires (the window closed). */
+function flushPendingSkipAgg(cwd: string): void {
+  try {
+    const now = Date.now();
+    writeSkipAgg(cwd, flushSkipAgg(cwd, readSkipAgg(cwd, now), now));
+  } catch {
+    /* observer-only */
+  }
+}
+
+/** Per-occurrence skip event for a substantive reason (all reasons but the two aggregated). */
+function recordImpactSkip(cwd: string, reason: ImpactSkipReason): void {
+  recordEvent(cwd, 'impact_card_skipped', {reason});
+}
+
+/** Fired-card event; payload mirrors formatImpactCard's inputs (AC-373257b2 bijection). */
+function recordImpactFired(cwd: string, file: string, slice: ImpactSlice): void {
+  const owners = slice.focus.owners ?? [];
+  recordEvent(cwd, 'impact_card_fired', {
+    file,
+    feature: slice.focus.id ?? owners[0] ?? '',
+    impacted: slice.impacted.length,
+    tests: slice.test_refs.length,
+    unledgered: slice.ledger?.depends_on_edges === 0,
+  });
+  flushPendingSkipAgg(cwd); // a fired card closes the window → flush accumulated skips
+}
+
 /**
  * After a source edit (debounced via `.cladding/hook-drift-ts`): surfaces a one-line IMPACT
  * card (the blast radius of the file just edited — the push half of clad_get_working_set) and,
  * when error-severity drift exists, a drift nudge. Ambient feedback, never a block.
+ *
+ * Each disposition also records value-delivery telemetry (F-6ba22c5c): a fired card →
+ * impact_card_fired; a skip → impact_card_skipped tagged with the branch reason. Telemetry is
+ * gated behind cladding presence so a spec-less cwd never gets .cladding/ writes (parity).
  */
 function runPostToolUseDrift(input: unknown, cwd: string): string {
   const rec = asRecord(input);
-  if (!WRITE_TOOLS.has(asString(rec.tool_name))) return '';
+  const underClad = existsSync(join(cwd, 'spec.yaml'));
+  if (!WRITE_TOOLS.has(asString(rec.tool_name))) {
+    if (underClad) aggregateImpactSkip(cwd, 'not_write_tool');
+    return '';
+  }
   const filePath = asString(asRecord(rec.tool_input).file_path);
-  if (!isWatchedSourcePath(filePath)) return '';
+  if (!isWatchedSourcePath(filePath)) {
+    if (underClad) aggregateImpactSkip(cwd, 'unwatched_path');
+    return '';
+  }
   // Not under cladding → no drift nudges and no .cladding/ writes (SessionStart parity).
-  if (!existsSync(join(cwd, 'spec.yaml'))) return '';
+  // Disposition `no_spec` is in the enum but never emitted: a spec-less cwd gets no telemetry write.
+  if (!underClad) return '';
   const stampPath = join(cwd, '.cladding', 'hook-drift-ts');
   const now = Date.now();
   try {
     const last = Number(readFileSync(stampPath, 'utf8').trim());
-    if (Number.isFinite(last) && now - last < DRIFT_DEBOUNCE_MS) return '';
+    if (Number.isFinite(last) && now - last < DRIFT_DEBOUNCE_MS) {
+      recordImpactSkip(cwd, 'debounced');
+      return '';
+    }
   } catch {
     /* no stamp yet → run */
   }
@@ -428,13 +553,21 @@ function runPostToolUseDrift(input: unknown, cwd: string): string {
   // Hosts send tool_input.file_path ABSOLUTE while moduleOwners keys are repo-relative posix —
   // without relativization the lookup never hits (measured 0/361 on cladding-self; 99.2% after).
   let card = '';
-  if (editMagnitude(rec.tool_input) >= MIN_EDIT_CHARS) {
+  if (editMagnitude(rec.tool_input) < MIN_EDIT_CHARS) {
+    recordImpactSkip(cwd, 'trivial_edit');
+  } else {
     try {
       const rel = isAbsolute(filePath) ? relative(resolve(cwd), filePath).split(sep).join('/') : filePath;
       const slice = buildImpactSlice(loadSpec(cwd), rel);
-      if (!('not_found' in slice)) card = formatImpactCard(slice, rel);
+      if ('not_found' in slice) {
+        recordImpactSkip(cwd, 'owner_miss');
+      } else {
+        card = formatImpactCard(slice, rel);
+        if (card) recordImpactFired(cwd, rel, slice);
+        else recordImpactSkip(cwd, 'owner_miss'); // found slice but no primary owner → no output
+      }
     } catch {
-      /* spec unreadable → no card, still run drift */
+      recordImpactSkip(cwd, 'spec_unreadable'); // spec unreadable → no card, still run drift
     }
   }
   const report = runDrift({cwd});
@@ -455,10 +588,30 @@ function runPostToolUseDrift(input: unknown, cwd: string): string {
 export function runHookEvent(event: string, input: unknown, cwd: string): string {
   try {
     switch (event) {
-      case 'SessionStart':
-        return renderSessionStartCard(cwd);
-      case 'UserPromptSubmit':
-        return renderPromptSuggestion(input);
+      case 'SessionStart': {
+        const out = renderSessionStartCard(cwd);
+        // Value-delivery telemetry (F-6ba22c5c): a non-empty card is a served surface.
+        // Wrapped separately so a telemetry failure can never swap `out` for '' (AC-e9d041de).
+        if (out.length > 0) {
+          try {
+            recordEvent(cwd, 'session_card_rendered', {bytes: Buffer.byteLength(out, 'utf8')});
+          } catch {
+            /* observer-only */
+          }
+        }
+        return out;
+      }
+      case 'UserPromptSubmit': {
+        const s = classifyPromptSuggestion(input);
+        if (s) {
+          try {
+            recordEvent(cwd, 'prompt_suggestion_served', {kind: s.kind});
+          } catch {
+            /* observer-only */
+          }
+        }
+        return s?.text ?? '';
+      }
       case 'PreToolUse':
         return resolvePreToolUseDecision(input, cwd);
       case 'Stop':

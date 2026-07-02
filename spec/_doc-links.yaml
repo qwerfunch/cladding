@@ -7,7 +7,7 @@ docs:
   "docs/conventions.md":
     doc_links: ["docs/code-style.md"]
   "docs/glossary.md":
-    features: [F-1d23a6, F-7ce18e, F-b84c38]
+    features: [F-1d23a6, F-6ba22c5c, F-7ce18e, F-b84c38]
   "docs/knowledge-graph/design.md":
     features: [F-02343cd1, F-64a5c159, F-77f7ead0]
   "docs/multi-provider-roadmap.md":

@@ -1,0 +1,55 @@
+id: F-6ba22c5c
+slug: value-telemetry
+title: "Value-delivery telemetry: card surfaces record fired/skipped events; clad measure --sessions aggregates them"
+status: done
+modules:
+  - src/events/log.ts
+  - src/cli/hook.ts
+  - src/serve/server.ts
+  - src/events/session-report.ts
+  - src/cli/clad.ts
+acceptance_criteria:
+  - id: AC-238a3658
+    ears: ubiquitous
+    text: "The system shall define EventType members impact_card_fired, impact_card_skipped, session_card_rendered, prompt_suggestion_served, and working_set_served in src/events/log.ts, with impact_card_skipped.reason restricted to a closed enum (not_write_tool | unwatched_path | no_spec | debounced | trivial_edit | owner_miss | spec_unreadable) mapping one-to-one onto the degrade branches of runPostToolUseDrift."
+    notes: "WHY: the 0.7.1 impact-card 0%-firing bug was invisible to the harness itself — the closed reason enum makes silent-vs-broken distinguishable from the ledger alone."
+    test_refs:
+      - tests/events/value-telemetry-contract.test.ts
+      - tests/cli/hook-telemetry.test.ts
+  - id: AC-373257b2
+    ears: event
+    condition: "when a value surface produces output — the PostToolUse impact card, the SessionStart card, the UserPromptSubmit suggestion, or an MCP serve of clad_get_working_set / clad_get_context / clad_get_impact"
+    text: "When a value surface produces output, the system shall record exactly one corresponding event (fired/rendered/served) with accurate payload fields (impact card: file, feature, impacted, tests, unledgered; working set: query, resolved, truncated, sliceTokens; cards: bytes)."
+    notes: "WHY: event-to-output bijection is what makes fire-rate a trustworthy number."
+    test_refs:
+      - tests/cli/hook-telemetry.test.ts
+      - tests/serve/serve-telemetry.test.ts
+  - id: AC-8fc6bea0
+    ears: state
+    condition: "while a DRIFT_DEBOUNCE_MS window is open"
+    text: "While a debounce window is open, the system shall aggregate high-frequency skip reasons (not_write_tool, unwatched_path) into at most one flushed impact_card_skipped event per window, so skip volume cannot rotate gate_run history out of events.log.jsonl."
+    notes: "WHY: 5MB rotation protects gate history; per-call skip events would evict it."
+    test_refs:
+      - tests/cli/hook-telemetry.test.ts
+  - id: AC-c070212c
+    ears: event
+    condition: "when clad measure --sessions runs over a ledger containing value-delivery events"
+    text: "When clad measure --sessions runs, the system shall report fired-vs-skipped counts, a per-reason skip histogram, and the fired percentage over eligible edits (eligible = fired + skipped excluding not_write_tool and unwatched_path), with a header stating the numbers measure delivery, not adoption."
+    notes: "WHY: adoption claims were falsified by A/B; delivery is what this can honestly measure."
+    test_refs:
+      - tests/cli/measure-sessions.test.ts
+      - tests/events/session-report.test.ts
+  - id: AC-2dff87ef
+    ears: unwanted
+    condition: "if the ledger contains zero value-delivery events"
+    text: "If the ledger contains zero value-delivery events, then clad measure --sessions shall print that no value-delivery telemetry was recorded and that surfaces may be silent OR emission may be unwired (cannot distinguish), and exit 0."
+    notes: "WHY: absence of telemetry must never render as 0% value nor as success."
+    test_refs:
+      - tests/cli/measure-sessions.test.ts
+  - id: AC-e9d041de
+    ears: unwanted
+    condition: "if event emission throws or the ledger is unwritable"
+    text: "If event emission fails for any reason, then the hosting hook or MCP handler shall return its normal output unchanged — telemetry is observer-only and extends the recordEvent silent-degrade contract."
+    notes: "WHY: a hook failure must never brick the host session (hook.ts invariant)."
+    test_refs:
+      - tests/cli/hook-telemetry.test.ts

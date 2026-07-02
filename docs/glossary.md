@@ -94,6 +94,8 @@
 
 Added 0.6.0 (F-b84c38 — payloads carry `identity` + `head`): `feature_created` (spec shard authored) · `scenario_created` · `done_attempted` (gated flip, kept or reverted) · `gate_run` (tier verification outcome; deduped per identical HEAD/tier/strict/worst) · `stop_blocked` (F-1d23a6 — the Stop host hook blocked a session end on a fresh failure fingerprint; identical fingerprints demote without an event).
 
+Added 0.8.0 (F-6ba22c5c — value-delivery telemetry, so a silent surface is distinguishable from an unwired one): `impact_card_fired` (a PostToolUse impact card produced output — payload file/feature/impacted/tests/unledgered) · `impact_card_skipped` (the card was skipped — `reason` ∈ a closed enum, one per degrade branch; the two high-frequency reasons are aggregated to one event per debounce window) · `session_card_rendered` (a non-empty SessionStart card — payload bytes) · `prompt_suggestion_served` (a non-empty UserPromptSubmit suggestion — payload kind) · `working_set_served` (an MCP read serve of `clad_get_working_set` / `clad_get_context` / `clad_get_impact` — payload tool/query/resolved). Summarized by `clad measure --sessions` as DELIVERY (did the surfaces fire), never adoption.
+
 ## Spec schema fields (frozen)
 
 `id` · `slug` · `title` · `status` · `modules` · `depends_on` · `acceptance_criteria` · `ears` · `text` · `condition` · `action` · `response` · `notes` · `test_refs` · `evidence_refs` · `oracle_refs` · `capabilities` · `scenarios` · `inventory` · `ai_hints` · `deliverable` · `oracle_policy`

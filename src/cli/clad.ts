@@ -20,7 +20,8 @@ import {runUpdate} from './update.js';
 import {runInit} from './init.js';
 import {runClarifyCommand} from './clarify.js';
 import {runHostSetup} from '../init/host-setup.js';
-import {recordEvent} from '../events/log.js';
+import {readEvents, recordEvent} from '../events/log.js';
+import {summarizeValueDelivery} from '../events/session-report.js';
 import {buildContextSlice} from '../optimizer/context-slice.js';
 import {buildImpactSlice} from '../optimizer/reverse-slice.js';
 import {inferDependsOn} from '../optimizer/infer-depends-on.js';
@@ -618,6 +619,49 @@ export function runInferDepsCommand(opts: {ambiguity?: string} = {}): void {
 }
 
 /**
+ * `clad measure --sessions` (F-6ba22c5c) — summarize the recorded value-delivery
+ * telemetry: impact-card fire rate over eligible edits, the per-reason skip histogram,
+ * and MCP read-serve counts. HONEST FRAMING: this measures DELIVERY (whether the value
+ * surfaces produced output), NEVER adoption (whether the agent then used them). Zero
+ * value-delivery events prints an honest can't-distinguish message and exits 0 — absence
+ * of telemetry must never render as 0% value nor as success.
+ */
+function runSessionsMeasure(opts: {json?: boolean}): void {
+  let events;
+  try {
+    events = readEvents('.');
+  } catch {
+    events = []; // unreadable/corrupt ledger → treat as no telemetry (never crash the report)
+  }
+  const summary = summarizeValueDelivery(events);
+  if (opts.json) {
+    process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
+    process.exit(0);
+    return;
+  }
+  if (summary.total === 0) {
+    process.stdout.write(
+      'no value-delivery telemetry was recorded — the value surfaces (impact card, session card, ' +
+        'prompt suggestion, MCP working-set serves) may simply be SILENT this session, OR their emission ' +
+        'may be UNWIRED. These two cases are indistinguishable from an empty ledger.\n',
+    );
+    process.exit(0);
+    return;
+  }
+  const pct = (n: number): string => `${(n * 100).toFixed(1)}%`;
+  const lines = [
+    'value delivery — measures whether cladding’s surfaces FIRED, not whether the agent ADOPTED them',
+    `  impact card: ${summary.fired} fired / ${summary.eligible} eligible edit(s) = ${pct(summary.firedPct)} fired`,
+    `  skips by reason: ${JSON.stringify(summary.byReason)}`,
+    `  MCP serves: ${summary.servedWorkingSets} read-serve(s) ${JSON.stringify(summary.servedByTool)} · ${pct(summary.truncationRate)} truncated`,
+    `  other surfaces: ${summary.sessionCards} session card(s), ${summary.promptSuggestions} prompt suggestion(s)`,
+    '  (eligible = fired + substantive skips; not_write_tool / unwatched_path noise excluded)',
+  ];
+  process.stdout.write(`${lines.join('\n')}\n`);
+  process.exit(0);
+}
+
+/**
  * `clad measure` (F-16138071) — deterministically report the search + context efficiency the
  * graph provides per feature: working-set tokens vs the naive (shard + all module files)
  * baseline, the dependency depth/edges it resolves for you, and the regression-set coverage.
@@ -629,8 +673,12 @@ export function runInferDepsCommand(opts: {ambiguity?: string} = {}): void {
  * ≈1x of naive (code + structured metadata). What the working set sells is the guaranteed
  * budget + the wired needs/breaks/verify context, not raw byte shrink.
  */
-export function runMeasureCommand(opts: {json?: boolean} = {}): void {
+export function runMeasureCommand(opts: {json?: boolean; sessions?: boolean} = {}): void {
   try {
+    if (opts.sessions) {
+      runSessionsMeasure(opts);
+      return;
+    }
     const spec = loadSpec();
     const read = (p: string): string | null => {
       try {
@@ -948,7 +996,8 @@ export function createProgram(): Command {
   program
     .command('measure')
     .description('Report the search + context efficiency the graph provides per feature — working-set tokens vs the naive baseline, dependency depth/edges resolved, regression-set coverage (F-16138071). Deterministic; no agent.')
-    .option('--json', 'emit the full per-feature report as JSON')
+    .option('--json', 'emit the full report as JSON')
+    .option('--sessions', 'summarize recorded value-delivery telemetry instead — impact-card fire rate over eligible edits, the per-reason skip histogram, and MCP read-serve counts. Measures DELIVERY (did the surfaces fire), NOT adoption (F-6ba22c5c).')
     .action((opts) => runMeasureCommand(opts));
 
   const graph = program
