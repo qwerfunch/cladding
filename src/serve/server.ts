@@ -60,7 +60,7 @@ export const PERSONA_IDS = [
 /**
  * 0.6.0 persona renames (docs/glossary.md). The old prompt names stay
  * registered as aliases serving the NEW persona body — hosts may have cached
- * the prompt names — and are removed in 0.7.
+ * the prompt names — and are removed in 0.8 (still shipped through 0.7.x).
  */
 export const PERSONA_PROMPT_ALIASES: Readonly<Record<string, string>> = {
   librarian: 'planner',
@@ -1151,12 +1151,12 @@ function registerPrompts(server: McpServer, cwd: string): void {
     register(id, id, `Persona prompt body for the ${id} agent.`);
   }
   // 0.6.0 alias prompts — old names serve the renamed persona's body so hosts
-  // with cached prompt names keep working for one release; removed in 0.7.
+  // with cached prompt names keep working; removed in 0.8.
   for (const [oldName, newId] of Object.entries(PERSONA_PROMPT_ALIASES)) {
     register(
       oldName,
       newId,
-      `Persona prompt body for the ${newId} agent. (Renamed: '${oldName}' is now '${newId}' in 0.6.0 — this alias is removed in 0.7.)`,
+      `Persona prompt body for the ${newId} agent. (Renamed: '${oldName}' is now '${newId}' in 0.6.0 — this alias is removed in 0.8.)`,
     );
   }
   // Suppress the unused-cwd lint — cwd is reserved for future

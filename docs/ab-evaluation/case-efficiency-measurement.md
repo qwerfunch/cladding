@@ -34,6 +34,17 @@ its shard+modules, and the graph resolves the dependency radius + the exact regr
 > different statistic from the 4.1× median-of-ratios, not a contradiction. Both come straight
 > from `clad measure` (`medianShrinkFactor` vs `medianSliceTokens`/`medianNaiveTokens`).
 
+> **Correction (0.7.1 — cap attribution).** A later validity check showed the shrink numbers
+> above are largely the working set's **3000-token default budget** doing the compressing, not
+> the graph: with the cap lifted, the structural slice is ≈**1.16× of naive** on cladding-self —
+> the slice is the code PLUS structured metadata, not a smaller artifact. On cladding-self
+> 163/199 features hit the cap (their "shrink" is cap arithmetic, ≈3.9×) while the 36 that fit
+> actually grow (0.7×). `clad measure` now reports the split (`fitsCount`/`truncatedCount`,
+> `medianShrinkFit`/`medianShrinkTruncated`, `medianStructuralRatio`) and its headline
+> attributes the reduction to the budget. Read the vapt 4.1× above the same way: the honest
+> claim is **a guaranteed token budget with needs/breaks/verify wiring attached**, not "N×
+> smaller context".
+
 ## Honest scope (what this does and does NOT claim)
 - This is the efficiency the **infrastructure CAN provide** — an upper bound vs **one** naive
   baseline (shard + all module files). It is real, deterministic, and model-independent.
@@ -49,10 +60,12 @@ its shard+modules, and the graph resolves the dependency radius + the exact regr
   cheaper end-to-end (it greps anyway). Consistent with the long-standing governance-⊥-correctness
   prior.
 - **Goal axes (search + context efficiency, stability/traceability)**: **POSITIVE + now quantified**
-  — 4.1× smaller context per change, dependency radius + regression set resolved deterministically,
-  a queryable/visualizable dependency graph (0→698 edges on vapt). This is the value to feature:
-  *cladding makes the context for a change small, the blast radius explicit, and the regression set
-  known* — for humans and for agents that choose to use it — not "smarter agents".
+  — a budget-guaranteed bounded context per change (see the 0.7.1 correction: the raw "4.1×
+  smaller" is the budget cap enforcing the bound, not structural shrink), dependency radius +
+  regression set resolved deterministically, a queryable/visualizable dependency graph (0→698
+  edges on vapt). This is the value to feature: *cladding makes the context for a change bounded,
+  the blast radius explicit, and the regression set known* — for humans and for agents that
+  choose to use it — not "smarter agents".
 
 **Reproduce:** `clad measure` (table) or `clad measure --json` (per-feature). Original vapt
 untouched; measured on a disposable clone. No push/deploy.

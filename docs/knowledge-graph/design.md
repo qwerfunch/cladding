@@ -1,10 +1,12 @@
 # Cladding Knowledge Graph — design & cost model
 
-> Status: design (v0.7.0 track). Honest framing: this layer improves **traceability
-> completeness** and **context-selection efficiency (retrieval)**. It does **not**
-> improve LLM correctness or "reasoning depth" — cladding's own A/B record shows
-> conformance is orthogonal to the spec layer (vanilla ties cladding across 6 domains).
-> We sell *connection that stays current* and *bounded context*, not smarter answers.
+> Status: design (v0.7.0 track), with a **post-ship addendum (§8)** recording where
+> the shipped capability deliberately departed from this document. Honest framing:
+> this layer improves **traceability completeness** and **context-selection
+> efficiency (retrieval)**. It does **not** improve LLM correctness or "reasoning
+> depth" — cladding's own A/B record shows conformance is orthogonal to the spec
+> layer (vanilla ties cladding across 6 domains). We sell *connection that stays
+> current* and *bounded context*, not smarter answers.
 
 ## 1. Why (the SSoT thesis, made queryable)
 
@@ -137,3 +139,32 @@ Each: author shard (hash id) → implement → blind-author tests (separate cont
 `clad done` (flips only on GREEN `clad check --tier=pre-push --strict`). Modules are
 shared (`src/spec`, `src/optimizer`, `src/serve`, `src/stages/detectors`), so the
 features run sequentially.
+
+## 8. Post-ship addendum (2026-07-02) — where v0.7.0 departed from this design
+
+This document froze the decision record as of planning. Three decisions were
+reversed or extended during delivery; recording them here keeps this doc honest
+instead of contradicting the shipped tree ("all documents connected, always
+current" must apply to the design doc itself).
+
+- **§5's "no bespoke web UI" was reversed.** v0.7.0 shipped a bespoke viewer
+  after all: a self-contained offline HTML export (`--format html`) and a live
+  server (`clad graph serve`, node:http + SSE auto-reload), rendering the graph
+  as a deterministic WebGL galaxy (three.js bundled — F-02343cd1, F-77f7ead0,
+  F-64a5c159). Why the reversal held up: the mermaid/DOT/Obsidian emitters
+  stayed (this section's real point — reuse where viewers exist), but no
+  existing viewer could show cladding's differentiator — per-node LIVE
+  spec↔code conformance from our own drift detectors (`/health.json`,
+  graph-health stage) — so the "high-effort, low-marginal-value" premise no
+  longer applied to that slice of value. The export formats and `stats` shipped
+  exactly as designed.
+- **`clad_get_dependents` shipped as `clad_get_impact`** (plus `clad impact` on
+  the CLI); the forward/backward pair is `clad_get_context` / `clad_get_impact`.
+- **Scope grew beyond §6 IN:** working-set assembly (`clad_get_working_set`),
+  iterative impact slicing, `clad infer-deps` (restoring the empty `depends_on`
+  data layer), and `clad measure` shipped in the same track.
+- **`spec/_doc-links.yaml` is a grep/human index, not the export source.**
+  buildGraph re-derives doc edges from `docs/` directly on every build (that is
+  what keeps the live view current); the yaml exists so "which docs explain
+  feature X" is one grep away and so reviews can diff doc-link changes. §5's
+  "graph-export source" phrasing overstated it.
