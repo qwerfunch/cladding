@@ -63,7 +63,10 @@ export type EventType =
   // invisible to the harness's own ledger. Each surface now records whether it
   // produced output. Payloads:
   //   impact_card_fired:        file, feature, impacted (n), tests (n), unledgered (bool),
-  //                             tier (1|2 — Tier-2 is the mini working-set card, F-35954d19)
+  //                             tier (1|2 — Tier-2 is the mini working-set card, F-35954d19),
+  //                             lane ('bash' when the mutation was attributed via the Bash
+  //                             git-delta lane, F-e7d59c88; ABSENT on native write-tool
+  //                             edits — additive field per the F-6ba22c5c precedent)
   //   impact_card_skipped:      reason ∈ ImpactSkipReason (closed enum, one per degrade
   //                             branch of runPostToolUseDrift). The two high-frequency
   //                             reasons (not_write_tool, unwatched_path) are AGGREGATED

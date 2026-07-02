@@ -48,7 +48,7 @@ attested:
   F-039: 2e60f3d899b72d7f
   F-040: b6d6cd74f8056afc
   F-041: cddb50fc41e49066
-  F-042: 6849cbd42c0a66b7
+  F-042: ed08b22c3192ae36
   F-043: 2c5f4a94e3e57e9b
   F-044: c695f1e075720068
   F-045: b494c9a80442ac20
@@ -99,7 +99,7 @@ attested:
   F-17df0a: 915d13b33258d3fc
   F-18e951: d907c170a230e052
   F-1c9166: 2ce80010271bbbed
-  F-1d23a6: 54eb204928f873d9
+  F-1d23a6: d00ad2097351933e
   F-1edb38: 64283112a3ab96ce
   F-24062d: 3bb8667b73dd2412
   F-245bd5: a8372aeb83acc411
@@ -107,11 +107,11 @@ attested:
   F-2de65d: 84ad71574d306c81
   F-315fd7: c3b042c80fa7c187
   F-31eeb8: d88a9880d29ae411
-  F-32b1e0: dda256014cad4dde
-  F-35954d19: 9d2e1e4531d3cfdc
+  F-32b1e0: 86481af039680d7d
+  F-35954d19: b8d348542cc4a11f
   F-3788c2: af9778dea8687b29
   F-37b4a8: e067655bad681488
-  F-3a5339: 21927ab05464b19b
+  F-3a5339: 00ac058ceb75479e
   F-3b3690: 6a36aad282d36f3a
   F-40327b: 8295358f7b813c8a
   F-417ff0: 7945844321b78fb8
@@ -126,15 +126,15 @@ attested:
   F-570a3f: fe83698d6248849e
   F-59f093: 26735424fba6308c
   F-5b188856: d1e2e4184aa76c12
-  F-5b9f9f: 17269eb858fc7a62
+  F-5b9f9f: 7853c31542d57169
   F-5d3ed2: 9452eac28760fb99
   F-5f6b45: 15323c4f5b619de7
-  F-63b989e5: cdb7892f5066416a
+  F-63b989e5: c395b6998d09a5fb
   F-64a5c159: 1fdfa89e315aedbf
-  F-65814a: 382b8b7d03ca097a
+  F-65814a: 3c7732f9ed1940b8
   F-67d2e9: 8f27ae0dcdeda027
   F-67e33f: 06535e7d70d23acf
-  F-6ba22c5c: 3557c6c21b3671a0
+  F-6ba22c5c: 45cd0f296f5aa3f4
   F-6d943d: 2b53bfced7b1e70d
   F-6f80e7: 0c0e5b71ae22cc26
   F-7076f7: 7e819e0d440f3ffe
@@ -150,7 +150,7 @@ attested:
   F-904495a5: b80c9d26ac144819
   F-9064ff: 4f0707385e0f4c81
   F-94dda4: 8dfb0267c45534f9
-  F-95a096: b72984e5e4b0cb38
+  F-95a096: a5dc70effe1d7bec
   F-96250595: e477d9cae1800be8
   F-96700032: 5ae97b4c82c14acc
   F-99c6e5: 8a8724852f1d6059
@@ -169,7 +169,7 @@ attested:
   F-b2094740: f379bf4feef6771a
   F-b43066: 9402b630adcf1eae
   F-b61449: 7095ce00662e987d
-  F-b84c38: a8e05de822d061fd
+  F-b84c38: 53a1967cf6cc37d3
   F-b99577: 994b8df824aadbb3
   F-ba2e05: 158e77c8af32514a
   F-ba4b7a: c282e0e915ed547c
@@ -177,10 +177,10 @@ attested:
   F-bd07d7: 4bf7e1baddf5d754
   F-bdcd90: a4a2d77a39284fa9
   F-c037ae: 4ddaceea85be7780
-  F-c2c996: 52a4c4285284f5a7
+  F-c2c996: 31bf0fb6d26fcad4
   F-c48eb2: 1272db3666d202ae
   F-c4c5ae: 18200d79542ae22e
-  F-c6a32fff: e0f6e0cd0d36ba5d
+  F-c6a32fff: fd1de3b2942eb3e1
   F-c6c3daaf: af5d584637245388
   F-c8aef8: 02e07f929a1d0ded
   F-cd0415: 9cf6ce40e2a8b381
@@ -189,13 +189,14 @@ attested:
   F-d2c806: e0294154bb50ecb0
   F-d3bde4: 915d13b33258d3fc
   F-d49585: 816471e714eb2425
-  F-d6b93648: 6cbd34b47bcb2561
+  F-d6b93648: 52e9a8b566dbd5e9
   F-d7312b: c7799a1ae157476f
   F-d8223c: 0501e9564231899b
   F-d980359c: 8f1559276afc5c03
   F-dd51b42c: e8e79caaead06fdc
   F-dddb89: f5625354e55eba9b
   F-e0f6c7: c91864e9c7bebd42
+  F-e7d59c88: 7fdaa4e1fbc60ce6
   F-eb732f: d8abb536ff850a7a
   F-ee47fc2b: adb87c97b8ccf6e1
   F-ee5f643e: d432d5662a2ce317
@@ -203,5 +204,5 @@ attested:
   F-f334fa: 5207f35968a0c9b2
   F-f44d1b: 62e0779d9c0ef11f
   F-f6d13e: fb5c242416832024
-  F-fb9b48a5: 83ad4d0ec301dc55
+  F-fb9b48a5: 9efe92c7db549493
   F-fcece7: f539ae3efd09efd8

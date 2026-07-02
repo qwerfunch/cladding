@@ -19,12 +19,16 @@
 // lane entirely. The Stop hook's deterministic trio is the second lane that
 // catches the result after the fact (annotation-free done trips MISSING_TESTS
 // etc.). Blocking is lane one, post-hoc detection is lane two; neither alone.
+// The CARD half of that Bash hole is closed since F-e7d59c88: PostToolUse also
+// matches Bash and attributes shell-made source mutations via git delta —
+// advisory context only, NEVER a block decision from shell parsing.
 //
 // @see plugins/claude-code/hooks/hooks.json — the shipped wiring (AC-03da31).
 // @see spec/features/host-hooks-1d23a6.yaml — the contract.
 
+import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {existsSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync} from 'node:fs';
 import {dirname, extname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import process from 'node:process';
 
@@ -546,8 +550,9 @@ function recordFiredEvent(cwd: string, payload: Record<string, unknown>): void {
 }
 
 /** Fired-card event for the SHIPPED slice path; payload mirrors formatImpactCard's inputs
- * (AC-373257b2 bijection). Used only by the byte-identical fallback (working set unavailable). */
-function recordImpactFired(cwd: string, file: string, slice: ImpactSlice): void {
+ * (AC-373257b2 bijection). Used only by the byte-identical fallback (working set unavailable).
+ * `lane` is the additive F-e7d59c88 tag ('bash' on the git-delta lane; absent on native edits). */
+function recordImpactFired(cwd: string, file: string, slice: ImpactSlice, lane?: 'bash'): void {
   const owners = slice.focus.owners ?? [];
   recordFiredEvent(cwd, {
     file,
@@ -555,6 +560,7 @@ function recordImpactFired(cwd: string, file: string, slice: ImpactSlice): void 
     impacted: slice.impacted.length,
     tests: slice.test_refs.length,
     unledgered: slice.ledger?.depends_on_edges === 0,
+    ...(lane ? {lane} : {}),
   });
 }
 
@@ -628,8 +634,12 @@ function loadPushLedger(cwd: string, sessionId: string, now: number): PushLedger
  *   - fresh (focus,file): Tier-2 when consequences exist else the Tier-1 one-liner, fired;
  *   - first repeat: degrade to the one-liner, record dedup;
  *   - later repeats: silence, record dedup (AC-61ae9211).
+ *
+ * `lane` tags impact_card_fired with the additive payload field lane:'bash'
+ * (F-e7d59c88); the ledger rules themselves are lane-agnostic (AC-977e6445) —
+ * a native Tier-2 for (focus,file) dedups a later Bash card for the same pair.
  */
-function emitPushCard(cwd: string, sessionId: string, rel: string, ws: WorkingSet): string {
+function emitPushCard(cwd: string, sessionId: string, rel: string, ws: WorkingSet, lane?: 'bash'): string {
   const impacted = ws.breaks_if_changed.impacted;
   const tests = ws.breaks_if_changed.regression_tests;
   const highRisk = ws.verify.high_risk_acs;
@@ -659,6 +669,7 @@ function emitPushCard(cwd: string, sessionId: string, rel: string, ws: WorkingSe
         tests: tests.length,
         unledgered: ws.breaks_if_changed.ledger?.depends_on_edges === 0,
         tier: hasConsequences ? 2 : 1,
+        ...(lane ? {lane} : {}),
       });
     } else if (seen === 1) {
       card = formatPushOneLiner(ws, rel); // one Tier-2 per (focus,file) is the dose — degrade
@@ -674,6 +685,264 @@ function emitPushCard(cwd: string, sessionId: string, rel: string, ws: WorkingSe
 }
 
 /**
+ * The shared owner-resolution → tiered-card pipeline, used by BOTH the native
+ * write-tool lane and the Bash git-delta lane (F-e7d59c88). `rel` must be
+ * repo-relative posix. `lane` tags impact_card_fired with the additive payload
+ * field lane:'bash'; skips reuse the existing reasons unchanged (AC-977e6445 —
+ * all F-35954d19 ledger rules apply lane-agnostically).
+ */
+function emitCardForPath(cwd: string, sessionId: string, rel: string, lane?: 'bash'): string {
+  try {
+    const spec = loadSpec(cwd);
+    // Tier path: the mini working-set card (code-free, 350-token lane — AC-1bfccb6b). A
+    // buildWorkingSet throw OR lookup miss falls back byte-identically to the shipped
+    // formatImpactCard path, leaving the callers' gates untouched (AC-38141a9e).
+    let ws: WorkingSet | undefined;
+    try {
+      const built = buildWorkingSet(spec, rel, {includeCode: false, maxTokens: 350, cwd});
+      if (!('not_found' in built)) ws = built;
+    } catch {
+      ws = undefined;
+    }
+    if (ws) return emitPushCard(cwd, sessionId, rel, ws, lane);
+    const slice = buildImpactSlice(spec, rel);
+    if ('not_found' in slice) {
+      recordImpactSkip(cwd, 'owner_miss');
+      return '';
+    }
+    const card = formatImpactCard(slice, rel);
+    if (card) recordImpactFired(cwd, rel, slice, lane);
+    else recordImpactSkip(cwd, 'owner_miss'); // found slice but no primary owner → no output
+    return card;
+  } catch {
+    recordImpactSkip(cwd, 'spec_unreadable'); // spec unreadable → no card
+    return '';
+  }
+}
+
+// --- PostToolUse · Bash lane — git-delta impact cards (F-e7d59c88) --------
+//
+// Edits made THROUGH Bash (sed -i, heredoc, tee, git apply, mv) bypass the
+// Edit|Write|MultiEdit matcher entirely — the sessions that shell out for
+// edits are exactly the ones with zero ambient impact context. This lane
+// closes the CARD half of that hole: the git working-tree delta since the
+// stored snapshot attributes the mutation to a watched source path and routes
+// it through the SAME tiered push pipeline (owner resolution, working-set
+// tiering, ledger dedup/budget, telemetry). The BLOCK half intentionally
+// stays open: a false-positive block on shell parsing is the fastest route to
+// users disabling hooks, so this lane NEVER emits a block decision
+// (AC-977e6445) — the Stop gate remains the enforcement lane.
+//
+// Fast path (AC-ab85ee3e): everything before the single `git status` spawn is
+// an in-process string check — spec presence, a separate 20s debounce stamp,
+// and a conservative read-only command allowlist — so the steady-state cost
+// per shell command inside a window is one readFileSync.
+
+const BASH_STAMP_FILE = 'hook-bash-ts';
+const TREE_STATE_FILE = 'hook-tree-state.json';
+/** Snapshot cap — bounds the per-window stat count and the sidecar size even
+ * on a mid-rebase 1000-file dirty tree (~200 statSync calls, ~15KB json). */
+const MAX_TREE_ENTRIES = 200;
+
+/** Read-only command PREFIXES (matched against the trimmed tool_input.command):
+ * a hit means "this command cannot have mutated source", so the lane skips the
+ * git spawn entirely. Conservative in both senses — a prefix only matches at a
+ * word boundary (`catalog` ≠ `cat`), and any shell metachar that could chain or
+ * redirect into a mutation (; & | < > backtick $( or a newline) disqualifies
+ * the match, so `echo x > src/a.ts` falls through to the delta check while a
+ * bare `echo x` stays on the fast path. A false NEGATIVE here only costs one
+ * git status per window; a false positive would cost a missed card. */
+const READ_ONLY_BASH_PREFIXES: readonly string[] = [
+  'git status',
+  'git log',
+  'git diff',
+  'git show',
+  'git branch',
+  'ls',
+  'cat',
+  'grep',
+  'rg',
+  'find',
+  'head',
+  'tail',
+  'wc',
+  'echo',
+  'pwd',
+  'which',
+  'node --version',
+  'npm test',
+  'npm run test',
+  'npx vitest',
+  'npx tsc',
+  'yarn test',
+];
+const SHELL_MUTATION_CHARS = /[;&|<>`\n]|\$\(/;
+
+function isReadOnlyBashCommand(command: string): boolean {
+  if (command.length === 0) return true; // no command → nothing mutated
+  if (SHELL_MUTATION_CHARS.test(command)) return false;
+  return READ_ONLY_BASH_PREFIXES.some((p) => command === p || (command.startsWith(p) && /\s/.test(command[p.length])));
+}
+
+function treeStatePath(cwd: string): string {
+  return join(cwd, '.cladding', TREE_STATE_FILE);
+}
+
+/** Read the tree snapshot — {paths: {"<repo-rel>": "<mtimeMs>:<size>"}}.
+ * Corrupt/missing → empty (sidecar contract: never a throw). */
+function readTreeSnapshot(cwd: string): Record<string, string> {
+  try {
+    const o = JSON.parse(readFileSync(treeStatePath(cwd), 'utf8')) as {paths?: unknown};
+    const paths = asRecord(o.paths);
+    const out: Record<string, string> = {};
+    for (const [k, v] of Object.entries(paths)) {
+      if (typeof v === 'string') out[k] = v;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function writeTreeSnapshot(cwd: string, paths: Record<string, string>): void {
+  try {
+    mkdirSync(dirname(treeStatePath(cwd)), {recursive: true});
+    writeFileSync(treeStatePath(cwd), JSON.stringify({paths}), 'utf8');
+  } catch {
+    /* unwritable snapshot → worst case is one re-attributed card; never a throw */
+  }
+}
+
+/**
+ * AC-4f2df3ee — a native Edit/Write/MultiEdit completion (fired OR skipped)
+ * refreshes JUST that path's snapshot entry, so the next Bash event cannot
+ * re-attribute the hand-tool edit to a shell command. statSync only, no
+ * subprocess. Per-edit adds may push the file past MAX_TREE_ENTRIES between
+ * Bash rebuilds; the next delta refresh re-caps.
+ */
+function updateTreeSnapshotEntry(cwd: string, filePath: string, rel: string): void {
+  try {
+    const st = statSync(isAbsolute(filePath) ? filePath : join(cwd, filePath));
+    const paths = readTreeSnapshot(cwd);
+    paths[rel] = `${st.mtimeMs}:${st.size}`;
+    writeTreeSnapshot(cwd, paths);
+  } catch {
+    /* unstat-able (deleted mid-flight) → skip; advisory lane, no error surface */
+  }
+}
+
+/** Repo-relative paths git currently reports changed/untracked — the ONE
+ * subprocess of the Bash lane. null when the cwd is not a git repo or git
+ * fails (AC-14c2e2ea → the caller degrades to silence, snapshot untouched). */
+function gitChangedPaths(cwd: string): string[] | null {
+  try {
+    const out = execFileSync('git', ['status', '--porcelain'], {
+      cwd,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      maxBuffer: 10 * 1024 * 1024,
+    });
+    const paths: string[] = [];
+    for (const line of out.split('\n')) {
+      if (line.length < 4) continue; // porcelain v1: XY<space>path — path starts at col 3
+      let p = line.slice(3);
+      const arrow = p.indexOf(' -> '); // staged rename: attribute the NEW path
+      if (arrow >= 0) p = p.slice(arrow + 4);
+      if (p.startsWith('"') && p.endsWith('"')) p = p.slice(1, -1); // porcelain quoting
+      if (p.length === 0 || p.endsWith('/')) continue; // collapsed untracked dir — not a file
+      paths.push(p);
+    }
+    return paths;
+  } catch {
+    return null;
+  }
+}
+
+interface BashDelta {
+  /** Most-recently-modified newly-mutated watched path (repo-rel posix). */
+  readonly path: string;
+  /** Fresh snapshot content covering the watched dirty set (≤ cap). */
+  readonly watched: Record<string, string>;
+}
+
+/** Diff the git-dirty watched set against the stored snapshot. newly-mutated =
+ * absent from the snapshot OR mtime/size differ (statSync, no extra subprocess).
+ * null = nothing to attribute (non-git / git failed / empty delta) → silence. */
+function detectBashDelta(cwd: string): BashDelta | null {
+  const changed = gitChangedPaths(cwd);
+  if (changed === null) return null;
+  const snapshot = readTreeSnapshot(cwd);
+  const watched: Record<string, string> = {};
+  let entries = 0;
+  let newest: {path: string; mtime: number} | null = null;
+  for (const p of changed) {
+    if (!isWatchedSourcePath(p)) continue;
+    if (entries >= MAX_TREE_ENTRIES) break;
+    let st;
+    try {
+      st = statSync(join(cwd, p));
+    } catch {
+      continue; // deleted since git looked → nothing to attribute
+    }
+    entries++;
+    const sig = `${st.mtimeMs}:${st.size}`;
+    watched[p] = sig;
+    if (snapshot[p] === sig) continue; // seen unchanged — e.g. a native edit already recorded (AC-4f2df3ee)
+    if (!newest || st.mtimeMs > newest.mtime) newest = {path: p, mtime: st.mtimeMs};
+  }
+  return newest ? {path: newest.path, watched} : null;
+}
+
+/**
+ * PostToolUse · Bash — attribution, not enforcement. Renders the same tiered
+ * push card as the native-edit lane for the most-recently-modified newly-
+ * mutated watched path, or degrades to silence. The min-chars gate does not
+ * apply (a Bash mutation has no old/new strings to measure), and the lane
+ * NEVER returns a block decision (AC-977e6445).
+ */
+function runBashLane(rec: Record<string, unknown>, cwd: string): string {
+  // Not under cladding → no output, no telemetry, no .cladding/ writes (parity).
+  if (!existsSync(join(cwd, 'spec.yaml'))) return '';
+  const now = Date.now();
+  // Separate stamp from the native lane's hook-drift-ts: Bash delta-checks once
+  // per 20s window without consuming (or being consumed by) native-edit debounce.
+  const stampPath = join(cwd, '.cladding', BASH_STAMP_FILE);
+  try {
+    const last = Number(readFileSync(stampPath, 'utf8').trim());
+    if (Number.isFinite(last) && now - last < DRIFT_DEBOUNCE_MS) {
+      recordImpactSkip(cwd, 'debounced');
+      return '';
+    }
+  } catch {
+    /* no stamp yet → proceed */
+  }
+  // Allowlist AFTER debounce, BEFORE any subprocess (AC-ab85ee3e). An allowlisted
+  // command does NOT write the stamp — `ls` must not consume the window a
+  // following `sed -i` needs. Counted into the existing not_write_tool sidecar
+  // aggregation: semantically "this tool call could not have mutated source",
+  // and the ImpactSkipReason enum stays closed (no new member).
+  const command = asString(asRecord(rec.tool_input).command).trim();
+  if (isReadOnlyBashCommand(command)) {
+    aggregateImpactSkip(cwd, 'not_write_tool');
+    return '';
+  }
+  // Stamp BEFORE the spawn: "≤1 git status per window" holds even if the spawn
+  // or the pipeline throws (and a non-git cwd is probed once per window, not
+  // once per shell command).
+  try {
+    mkdirSync(dirname(stampPath), {recursive: true});
+    writeFileSync(stampPath, String(now), 'utf8');
+  } catch {
+    /* unwritable stamp → still run; worst case is an extra delta check */
+  }
+  const delta = detectBashDelta(cwd);
+  if (delta === null) return ''; // AC-14c2e2ea: silence, NO snapshot write, no error
+  const card = emitCardForPath(cwd, asString(rec.session_id), delta.path, 'bash');
+  writeTreeSnapshot(cwd, delta.watched); // render-or-silence → the delta is now "seen"
+  return card;
+}
+
+/**
  * After a source edit (debounced via `.cladding/hook-drift-ts`): surfaces a one-line IMPACT
  * card (the blast radius of the file just edited — the push half of clad_get_working_set) and,
  * when error-severity drift exists, a drift nudge. Ambient feedback, never a block.
@@ -685,7 +954,11 @@ function emitPushCard(cwd: string, sessionId: string, rel: string, ws: WorkingSe
 function runPostToolUseDrift(input: unknown, cwd: string): string {
   const rec = asRecord(input);
   const underClad = existsSync(join(cwd, 'spec.yaml'));
-  if (!WRITE_TOOLS.has(asString(rec.tool_name))) {
+  const tool = asString(rec.tool_name);
+  // Bash routes to its own lane BEFORE the write-tool guard (F-e7d59c88):
+  // shell-made edits carry no file_path and need git-delta attribution instead.
+  if (tool === 'Bash') return runBashLane(rec, cwd);
+  if (!WRITE_TOOLS.has(tool)) {
     if (underClad) aggregateImpactSkip(cwd, 'not_write_tool');
     return '';
   }
@@ -697,6 +970,12 @@ function runPostToolUseDrift(input: unknown, cwd: string): string {
   // Not under cladding → no drift nudges and no .cladding/ writes (SessionStart parity).
   // Disposition `no_spec` is in the enum but never emitted: a spec-less cwd gets no telemetry write.
   if (!underClad) return '';
+  // Hosts send tool_input.file_path ABSOLUTE while moduleOwners keys are repo-relative posix —
+  // without relativization the lookup never hits (measured 0/361 on cladding-self; 99.2% after).
+  const rel = isAbsolute(filePath) ? relative(resolve(cwd), filePath).split(sep).join('/') : filePath;
+  // AC-4f2df3ee: whatever happens below (fired OR skipped), this native edit is now
+  // "seen" — the next Bash delta check must not re-attribute it to a shell command.
+  updateTreeSnapshotEntry(cwd, filePath, rel);
   const stampPath = join(cwd, '.cladding', 'hook-drift-ts');
   const now = Date.now();
   try {
@@ -715,40 +994,11 @@ function runPostToolUseDrift(input: unknown, cwd: string): string {
     /* unwritable stamp → still run; worst case is an extra drift pass */
   }
   // Impact card: the blast radius of the file just edited (skip trivial edits; degrade to '').
-  // Hosts send tool_input.file_path ABSOLUTE while moduleOwners keys are repo-relative posix —
-  // without relativization the lookup never hits (measured 0/361 on cladding-self; 99.2% after).
   let card = '';
   if (editMagnitude(rec.tool_input) < MIN_EDIT_CHARS) {
     recordImpactSkip(cwd, 'trivial_edit');
   } else {
-    try {
-      const rel = isAbsolute(filePath) ? relative(resolve(cwd), filePath).split(sep).join('/') : filePath;
-      const spec = loadSpec(cwd);
-      // Tier path: the mini working-set card (code-free, 350-token lane — AC-1bfccb6b). A
-      // buildWorkingSet throw OR lookup miss falls back byte-identically to the shipped
-      // formatImpactCard path, leaving the six gates above untouched (AC-38141a9e).
-      let ws: WorkingSet | undefined;
-      try {
-        const built = buildWorkingSet(spec, rel, {includeCode: false, maxTokens: 350, cwd});
-        if (!('not_found' in built)) ws = built;
-      } catch {
-        ws = undefined;
-      }
-      if (ws) {
-        card = emitPushCard(cwd, asString(rec.session_id), rel, ws);
-      } else {
-        const slice = buildImpactSlice(spec, rel);
-        if ('not_found' in slice) {
-          recordImpactSkip(cwd, 'owner_miss');
-        } else {
-          card = formatImpactCard(slice, rel);
-          if (card) recordImpactFired(cwd, rel, slice);
-          else recordImpactSkip(cwd, 'owner_miss'); // found slice but no primary owner → no output
-        }
-      }
-    } catch {
-      recordImpactSkip(cwd, 'spec_unreadable'); // spec unreadable → no card, still run drift
-    }
+    card = emitCardForPath(cwd, asString(rec.session_id), rel);
   }
   const report = runDrift({cwd});
   const errors = report.findings.filter((f) => f.severity === 'error');

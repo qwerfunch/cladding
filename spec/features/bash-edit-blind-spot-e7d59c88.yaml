@@ -1,0 +1,36 @@
+id: F-e7d59c88
+slug: bash-edit-blind-spot
+title: "Bash-lane impact cards: source mutations made through shell commands get the same push card via git-delta detection"
+status: done
+modules:
+  - src/cli/hook.ts
+  - plugins/claude-code/hooks/hooks.json
+acceptance_criteria:
+  - id: AC-d6c8d5ed
+    ears: event
+    condition: "when a PostToolUse event with tool_name Bash fires and the working-tree delta since the stored snapshot contains a path passing isWatchedSourcePath"
+    text: "When a Bash tool result reveals a mutated watched source path, the hook shall render the same tiered push card (F-35954d19 pipeline) for the most-recently-modified such path."
+    notes: "WHY: sed/heredoc/tee/git-apply edits bypass the Edit|Write matcher entirely — the sessions that shell out for edits are exactly the ones with zero ambient impact context today (hook.ts self-documents this hole)."
+    test_refs: [tests/cli/hook-bash-lane.test.ts]
+  - id: AC-ab85ee3e
+    ears: ubiquitous
+    text: "The system shall evaluate the debounce stamp and a conservative read-only command-prefix allowlist (git status/log/diff, ls, cat, grep, rg, find, node --version, npm test and similar) before spawning any git subprocess, and the Bash lane shall add at most one git status subprocess per debounce window."
+    notes: "WHY: PostToolUse Bash fires on every shell command — the fast path must stay in-process string checks."
+    test_refs: [tests/cli/hook-bash-lane.test.ts]
+  - id: AC-14c2e2ea
+    ears: unwanted
+    condition: "if the cwd is not a git repository or git status fails or the delta is empty"
+    text: "If git state is unavailable or no watched path changed, then the Bash lane shall degrade to silence without writing the tree snapshot and without emitting an error."
+    notes: "WHY: hook error-as-silence contract; non-git projects must lose nothing."
+    test_refs: [tests/cli/hook-bash-lane.test.ts]
+  - id: AC-4f2df3ee
+    ears: event
+    condition: "when an Edit, Write, or MultiEdit PostToolUse event completes"
+    text: "When a native write-tool event completes, the hook shall refresh the tree snapshot so a subsequent Bash event does not re-attribute that edit to the shell command."
+    notes: "WHY: attribution honesty — hand-tool edits must never double-fire through the Bash lane."
+    test_refs: [tests/cli/hook-bash-lane.test.ts]
+  - id: AC-977e6445
+    ears: ubiquitous
+    text: "The system shall never emit a block decision from the Bash lane; its output is advisory context only, and all F-35954d19 ledger rules (dedup, budget, telemetry reasons) apply unchanged."
+    notes: "WHY: a false-positive block on shell parsing is the fastest route to users disabling hooks; Stop-gate remains the enforcement lane."
+    test_refs: [tests/cli/hook-bash-lane.test.ts]
