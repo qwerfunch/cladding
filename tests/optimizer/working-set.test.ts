@@ -288,4 +288,79 @@ describe('working-set', () => {
     const b = buildWorkingSet(spec, 'F-aaa111', {cwd: dir, maxTokens: 100000});
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
   });
+
+  test('a module query seeds ALL co-owners — their dependents and tests reach breaks_if_changed', () => {
+    // v0.7.0 regression: only the alphabetically-first owner was seeded, so a
+    // shared file's other owners contributed nothing to the blast radius
+    // (src/cli/clad.ts on cladding-self: impacted 0 vs 83). Simulation
+    // fixture, now locked as a test.
+    const spec = makeSpec([
+      feature({
+        id: 'F-aaa111',
+        slug: 'alpha',
+        title: 'Alpha',
+        modules: ['src/shared.ts'],
+        acceptance_criteria: [ac({id: 'AC-001', test_refs: []})],
+      }),
+      feature({
+        id: 'F-bbb222',
+        slug: 'beta',
+        title: 'Beta',
+        modules: ['src/shared.ts'],
+        acceptance_criteria: [ac({id: 'AC-001', test_refs: ['tests/beta.test.ts']})],
+      }),
+      feature({
+        id: 'F-ccc333',
+        slug: 'gamma',
+        title: 'Gamma',
+        depends_on: ['F-bbb222'],
+        acceptance_criteria: [ac({id: 'AC-001', test_refs: ['tests/gamma.test.ts']})],
+      }),
+    ]);
+
+    const r = buildWorkingSet(spec, 'src/shared.ts') as WorkingSetShape | MissShape;
+    expect(isMiss(r)).toBe(false);
+    if (isMiss(r)) throw new Error('expected a working set');
+    expect(r.must_edit.id).toBe('F-aaa111'); // focus stays the first owner
+    // F-ccc333 is reachable only through co-owner F-bbb222 — the fan-out.
+    expect(r.breaks_if_changed.impacted.map((f) => f.id)).toContain('F-ccc333');
+    expect(r.breaks_if_changed.regression_tests).toContain('tests/gamma.test.ts');
+    expect(r.breaks_if_changed.regression_tests).toContain('tests/beta.test.ts');
+    // co-owners are seeds, not impacted — they already sit in co_owners.
+    expect(r.breaks_if_changed.impacted.map((f) => f.id)).not.toContain('F-bbb222');
+  });
+
+  test('budget pressure clips deeper dependents (and reports it) but never the depth-1 direct set', () => {
+    const deepTitle = 'E'.repeat(300);
+    const directs = ['F-d00001', 'F-d00002', 'F-d00003'].map((id, i) =>
+      feature({id, slug: `d${i}`, title: `D${i}`, depends_on: ['F-hub111']}),
+    );
+    const deepers = Array.from({length: 10}, (_, i) =>
+      feature({
+        id: `F-e${String(i).padStart(5, '0')}`,
+        slug: `e${i}`,
+        title: deepTitle,
+        depends_on: ['F-d00001'],
+        acceptance_criteria: [ac({id: 'AC-001', test_refs: [`tests/e${i}.test.ts`]})],
+      }),
+    );
+    const spec = makeSpec([feature({id: 'F-hub111', slug: 'hub', title: 'Hub'}), ...directs, ...deepers]);
+
+    const clipped = buildWorkingSet(spec, 'F-hub111', {maxTokens: 600}) as WorkingSetShape | MissShape;
+    expect(isMiss(clipped)).toBe(false);
+    if (isMiss(clipped)) throw new Error('expected a working set');
+    expect(clipped.budget.used_tokens).toBeLessThanOrEqual(600);
+    const keptIds = clipped.breaks_if_changed.impacted.map((f) => f.id);
+    for (const d of ['F-d00001', 'F-d00002', 'F-d00003']) expect(keptIds).toContain(d); // direct floor retained
+    expect(keptIds.length).toBeLessThan(13); // some deeper dependents dropped
+    expect(clipped.budget.truncated.some((t) => t.startsWith('breaks: omitted'))).toBe(true);
+    // the depth-1 floor's tests survive
+    expect(clipped.breaks_if_changed.regression_tests).toContain('tests/x.test.ts#a');
+
+    // Generous budget → pure no-op: full radius, no breaks marker.
+    const roomy = buildWorkingSet(spec, 'F-hub111', {maxTokens: 100000}) as WorkingSetShape | MissShape;
+    if (isMiss(roomy)) throw new Error('expected a working set');
+    expect(roomy.breaks_if_changed.impacted).toHaveLength(13);
+    expect(roomy.budget.truncated.some((t) => t.startsWith('breaks:'))).toBe(false);
+  });
 });

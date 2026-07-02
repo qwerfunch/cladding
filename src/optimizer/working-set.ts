@@ -11,6 +11,7 @@
 import {codeExcerpt, estTokens, type CodeExcerpt} from './code-excerpt.js';
 import {buildContextSlice, type ContextLookupMiss} from './context-slice.js';
 import {buildIterativeImpactSlice} from './iterative-slice.js';
+import {buildImpactSlice} from './reverse-slice.js';
 import {reverseIndexOf} from '../spec/reverse-index.js';
 import type {Feature, Spec} from '../spec/types.js';
 
@@ -30,7 +31,10 @@ export interface WorkingSet {
   };
   /** What it needs: transitive depends_on ancestors (forward). */
   readonly needs: readonly Summary[];
-  /** What breaks if you change it: direct dependents + the regression set (backward). */
+  /** What breaks if you change it: dependents + the regression set (backward). A module query
+   *  seeds ALL co-owners (fan-out). Under budget pressure deeper dependents and their tests are
+   *  clipped — the depth-1 direct set is always retained — with a `breaks: omitted …` entry in
+   *  budget.truncated. */
   readonly breaks_if_changed: {
     readonly impacted: readonly Summary[];
     readonly regression_tests: readonly string[];
@@ -94,7 +98,12 @@ export function buildWorkingSet(spec: Spec, query: string, opts: WorkingSetOptio
   // criterion holds (coverage / exhaustion / marginal-yield), instead of a fixed depth-1 slice
   // that under-reports 2nd-hop dependents (the "narrow miss"). The depth/coverage/stop reason
   // are surfaced in `breaks_if_changed` so the result is self-describing, not a blind bound.
-  const iter = buildIterativeImpactSlice(spec, focus.id);
+  // A MODULE query keeps its original form so the slice seeds EVERY co-owner (the fan-out) —
+  // seeding only the alphabetically-first owner under-reported shared files (src/cli/clad.ts:
+  // impacted 0 vs 83 measured on cladding-self). Co-owners sit in the seed set, so they appear
+  // in co_owners, not impacted; their dependents and tests are what the fan-out adds.
+  const backQuery = owners && owners.size > 0 ? query : focus.id;
+  const iter = buildIterativeImpactSlice(spec, backQuery);
   const impact = 'not_found' in iter ? null : iter.slice;
   const impacted: readonly Summary[] = impact ? impact.impacted : [];
   const regression: readonly string[] = impact ? impact.test_refs : [];
@@ -158,11 +167,74 @@ export function buildWorkingSet(spec: Spec, query: string, opts: WorkingSetOptio
     truncated.push('must-edit exceeds budget — retained in full (focus is never dropped)');
   }
 
-  const used = sizeOf(base, needs, code);
+  // 3. Clip the BACKWARD radius last (needs → code → breaks; simulation showed clipping breaks
+  //    before the code fill is strictly worse — marker inflation with zero code recovered).
+  //    Deeper dependents drop from the far end first, then tests outside the depth-1 floor;
+  //    the depth-1 direct set is never dropped (the must-edit precedent). Every fit check
+  //    measures WITH the pending 'breaks: omitted …' marker so the marker itself cannot push
+  //    the payload over — the +3..10-token overshoot the old loops carried. A payload already
+  //    inside the budget is returned byte-identical (the clip is a pure no-op).
+  const breaksOf = (imp: readonly Summary[], reg: readonly string[]): WorkingSet['breaks_if_changed'] => ({
+    impacted: imp,
+    regression_tests: reg,
+    ...(radius ? {radius} : {}),
+  });
+  const overWith = (imp: readonly Summary[], reg: readonly string[], di: number, dr: number): boolean => {
+    const marker = di + dr > 0 ? [`breaks: omitted ${di} feature(s) / ${dr} test(s)`] : [];
+    const trial = {
+      ...base,
+      needs,
+      must_edit: {...base.must_edit, code},
+      breaks_if_changed: breaksOf(imp, reg),
+      budget: {...base.budget, truncated: [...truncated, ...marker]},
+    };
+    return estTokens(JSON.stringify(trial)) > maxTokens;
+  };
+  let impKeep: readonly Summary[] = impacted;
+  let regKeep: readonly string[] = regression;
+  if (overWith(impKeep, regKeep, 0, 0)) {
+    const direct = buildImpactSlice(spec, backQuery, {depth: 1});
+    const directIds = new Set('not_found' in direct ? [] : direct.impacted.map((f) => f.id));
+    const floorTests = new Set('not_found' in direct ? [] : direct.test_refs);
+    // Retention order: direct dependents first, deeper ones behind them (drop from the end).
+    const ordered = [...impacted.filter((f) => directIds.has(f.id)), ...impacted.filter((f) => !directIds.has(f.id))];
+    let imp: readonly Summary[] = ordered;
+    let di = 0;
+    while (imp.length > directIds.size && overWith(imp, regKeep, di, 0)) {
+      imp = imp.slice(0, -1);
+      di++;
+    }
+    const reg = [...regression];
+    let dr = 0;
+    while (overWith(imp, reg, di, dr)) {
+      let cut = -1;
+      for (let i = reg.length - 1; i >= 0; i--) {
+        if (!floorTests.has(reg[i])) {
+          cut = i;
+          break;
+        }
+      }
+      if (cut < 0) break; // only depth-1-floor tests remain — never dropped
+      reg.splice(cut, 1);
+      dr++;
+    }
+    impKeep = imp;
+    regKeep = reg;
+    if (di + dr > 0) truncated.push(`breaks: omitted ${di} feature(s) / ${dr} test(s)`);
+    if (overWith(impKeep, regKeep, 0, 0)) {
+      truncated.push('breaks: direct set retained in full — exceeds budget');
+    }
+  }
+
+  const finalBreaks = breaksOf(impKeep, regKeep);
+  const used = estTokens(
+    JSON.stringify({...base, needs, must_edit: {...base.must_edit, code}, breaks_if_changed: finalBreaks}),
+  );
   return {
     ...base,
     needs,
     must_edit: {...base.must_edit, code},
+    breaks_if_changed: finalBreaks,
     budget: {max_tokens: maxTokens, used_tokens: used, truncated},
   };
 }
