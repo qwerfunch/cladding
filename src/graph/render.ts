@@ -70,36 +70,57 @@ const SHAPE: Record<GraphNode['kind'], [string, string]> = {
   doc: ['>', ']'], //          asymmetric (a note)
 };
 
+/** safeId collapses distinct ids to one identifier (src/a.ts vs src/a_ts) —
+ *  a deterministic suffix keeps every node distinct in the diagram. */
+function mermaidIds(graph: KnowledgeGraph): Map<string, string> {
+  const ids = new Map<string, string>();
+  const used = new Set<string>();
+  for (const n of graph.nodes) {
+    let s = safeId(n.id);
+    while (used.has(s)) s = `${s}_`;
+    used.add(s);
+    ids.set(n.id, s);
+  }
+  return ids;
+}
+
 /** Mermaid `graph LR` of the (sub)graph, with per-tier color classes. */
 export function toMermaid(graph: KnowledgeGraph): string {
+  const mid = mermaidIds(graph);
   const lines: string[] = ['graph LR'];
   for (const n of graph.nodes) {
     const [open, close] = SHAPE[n.kind];
-    const text = `${n.label}`.replace(/"/g, "'");
-    lines.push(`  ${safeId(n.id)}${open}"${text}"${close}`);
+    // Quotes and newlines break the quoted-label syntax silently — flatten both.
+    const text = `${n.label}`.replace(/"/g, "'").replace(/\s+/g, ' ');
+    lines.push(`  ${mid.get(n.id)}${open}"${text}"${close}`);
   }
   for (const e of graph.edges) {
-    lines.push(`  ${safeId(e.from)} -->|${e.kind}| ${safeId(e.to)}`);
+    lines.push(`  ${mid.get(e.from) ?? safeId(e.from)} -->|${e.kind}| ${mid.get(e.to) ?? safeId(e.to)}`);
   }
   // Tier coloring: one classDef per tier present + a `code` class, then assign.
   for (const {key, color} of getTierLegend(graph)) {
     lines.push(`  classDef ${key} fill:${color},stroke:${color},color:#fff;`);
     const members = graph.nodes
       .filter((n) => (key === 'code' ? n.tier === undefined : n.tier === key))
-      .map((n) => safeId(n.id));
+      .map((n) => mid.get(n.id) ?? safeId(n.id));
     if (members.length > 0) lines.push(`  class ${members.join(',')} ${key};`);
   }
   return `${lines.join('\n')}\n`;
+}
+
+/** DOT-safe double-quoted string: backslashes first, then quotes, newlines flattened. */
+function dotQuote(s: string): string {
+  return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\s+/g, ' ');
 }
 
 /** Graphviz DOT digraph. */
 export function toDot(graph: KnowledgeGraph): string {
   const lines: string[] = ['digraph cladding {', '  rankdir=LR;', '  node [shape=box];'];
   for (const n of graph.nodes) {
-    lines.push(`  "${n.id}" [label="${n.label.replace(/"/g, '\\"')}"];`);
+    lines.push(`  "${dotQuote(n.id)}" [label="${dotQuote(n.label)}"];`);
   }
   for (const e of graph.edges) {
-    lines.push(`  "${e.from}" -> "${e.to}" [label="${e.kind}"];`);
+    lines.push(`  "${dotQuote(e.from)}" -> "${dotQuote(e.to)}" [label="${e.kind}"];`);
   }
   lines.push('}');
   return `${lines.join('\n')}\n`;
@@ -126,7 +147,8 @@ export function toObsidianVault(graph: KnowledgeGraph): Map<string, string> {
 
   const link = (id: string): string => {
     const n = byId.get(id);
-    return n ? `[[${noteName(n)}|${n.label}]]` : `[[${id}]]`;
+    // Wikilink metacharacters in a label ('|', '[', ']') corrupt the link silently.
+    return n ? `[[${noteName(n)}|${n.label.replace(/[[\]|]/g, ' ')}]]` : `[[${id.replace(/[[\]|]/g, ' ')}]]`;
   };
 
   const vault = new Map<string, string>();

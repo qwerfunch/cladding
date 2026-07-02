@@ -714,8 +714,17 @@ function registerTools(server: McpServer, cwd: string): void {
         .split('\n')
         .filter((l) => l.trim().length > 0);
       const tail = lines.slice(-limit);
+      // A single corrupt/partial JSONL line (a mid-write tail read) must not
+      // crash the whole tool call — surface it as data instead.
+      const events = tail.map((l) => {
+        try {
+          return JSON.parse(l) as unknown;
+        } catch {
+          return {unparseable: l.slice(0, 200)};
+        }
+      });
       return {
-        content: [{type: 'text', text: JSON.stringify({events: tail.map((l) => JSON.parse(l))}, null, 2)}],
+        content: [{type: 'text', text: JSON.stringify({events}, null, 2)}],
       };
     },
   );
