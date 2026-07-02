@@ -25,7 +25,8 @@ import {summarizeValueDelivery} from '../events/session-report.js';
 import {buildContextSlice} from '../optimizer/context-slice.js';
 import {buildImpactSlice} from '../optimizer/reverse-slice.js';
 import {inferDependsOn} from '../optimizer/infer-depends-on.js';
-import {measureGraphEfficiency} from '../optimizer/measurement.js';
+import {measureGraphEfficiency, MEASUREMENT_DISCLAIMER} from '../optimizer/measurement.js';
+import {appendMeasureSnapshot, readMeasureSnapshots, renderTrend} from '../optimizer/measure-ledger.js';
 import {runGraphExportCommand, runGraphStatsCommand} from './graph.js';
 import {runGraphServeCommand} from './graph-serve.js';
 import {strictSkipViolations} from '../stages/skip-policy.js';
@@ -679,10 +680,14 @@ function runSessionsMeasure(opts: {json?: boolean}): void {
  * ≈1x of naive (code + structured metadata). What the working set sells is the guaranteed
  * budget + the wired needs/breaks/verify context, not raw byte shrink.
  */
-export function runMeasureCommand(opts: {json?: boolean; sessions?: boolean} = {}): void {
+export function runMeasureCommand(opts: {json?: boolean; sessions?: boolean; trend?: boolean | string} = {}): void {
   try {
     if (opts.sessions) {
       runSessionsMeasure(opts);
+      return;
+    }
+    if (opts.trend !== undefined && opts.trend !== false) {
+      runTrendMeasure(opts);
       return;
     }
     const spec = loadSpec();
@@ -694,6 +699,10 @@ export function runMeasureCommand(opts: {json?: boolean; sessions?: boolean} = {
       }
     };
     const r = measureGraphEfficiency(spec, read, '.');
+    // Persist the summary BEFORE printing so the numbers stop evaporating on
+    // stdout (F-39609db4). Best-effort: a failed/deduped write never blocks the
+    // report or changes the exit code.
+    const rec = appendMeasureSnapshot('.', r);
     if (opts.json) {
       process.stdout.write(`${JSON.stringify(r, null, 2)}\n`);
     } else {
@@ -709,15 +718,46 @@ export function runMeasureCommand(opts: {json?: boolean; sessions?: boolean} = {
         `           uncapped structural slice = ${c.medianStructuralRatio}x of naive — the value is the guaranteed budget + wired needs/breaks/verify, not raw shrink`,
         `  search:  median ${r.search.medianDepth} hop(s) resolved (p95 ${r.search.p95Depth}), median ${r.search.medianEdges} edge(s)/feature (max hub ${r.search.maxEdges})`,
         `  stability: median blast-radius coverage ${r.stability.medianCoverage}, median ${r.stability.medianRegressionTests} regression test(s) surfaced; stops ${JSON.stringify(r.stability.byStopReason)}`,
-        `  (deterministic upper bound vs the shard+all-modules baseline — not an agent-adoption measurement)`,
+        `  ${MEASUREMENT_DISCLAIMER}`,
       ];
       process.stdout.write(`${lines.join('\n')}\n`);
+      if (rec.appended) pulse('note', 'measure', 'snapshot recorded to .cladding/measure.jsonl — see `clad measure --trend`');
+      else if (rec.reason === 'deduped') pulse('note', 'measure', 'commit+spec state unchanged since last snapshot — not recorded');
     }
     process.exit(0);
   } catch (err) {
     pulse('fail', 'measure', (err as Error).message);
     process.exit(1);
   }
+}
+
+/**
+ * `clad measure --trend [n]` (F-39609db4) — render the last N (default 5)
+ * recorded snapshots with signed deltas so a regression/improvement over time is
+ * visible without re-reading raw stdout. With <2 snapshots there is no delta to
+ * show: state how many exist and exit 0, never fabricating one (AC-220944e2).
+ */
+function runTrendMeasure(opts: {json?: boolean; trend?: boolean | string}): void {
+  let snapshots;
+  try {
+    snapshots = readMeasureSnapshots('.');
+  } catch {
+    snapshots = []; // unreadable/corrupt ledger → treat as no history (never crash)
+  }
+  const n = typeof opts.trend === 'string' && Number.isFinite(Number(opts.trend)) ? Number(opts.trend) : 5;
+  const window = Math.max(1, Math.floor(n));
+  if (opts.json) {
+    process.stdout.write(`${JSON.stringify(snapshots.slice(-window), null, 2)}\n`);
+    process.exit(0);
+    return;
+  }
+  if (snapshots.length < 2) {
+    process.stdout.write(`no trend yet — ${snapshots.length} snapshot(s) recorded\n`);
+    process.exit(0);
+    return;
+  }
+  process.stdout.write(`${renderTrend(snapshots, window)}\n`);
+  process.exit(0);
 }
 
 export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tier?: string; json?: boolean; feature?: string}): void {
@@ -1004,6 +1044,7 @@ export function createProgram(): Command {
     .description('Report the search + context efficiency the graph provides per feature — working-set tokens vs the naive baseline, dependency depth/edges resolved, regression-set coverage (F-16138071). Deterministic; no agent.')
     .option('--json', 'emit the full report as JSON')
     .option('--sessions', 'summarize recorded value-delivery telemetry instead — impact-card fire rate over eligible edits, the per-reason skip histogram, and MCP read-serve counts. Measures DELIVERY (did the surfaces fire), NOT adoption (F-6ba22c5c).')
+    .option('--trend [n]', 'render the last N (default 5) recorded measure snapshots with signed deltas — spot efficiency drift over time from the deduped .cladding/measure.jsonl ledger (F-39609db4)')
     .action((opts) => runMeasureCommand(opts));
 
   const graph = program
