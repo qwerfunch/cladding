@@ -178,6 +178,7 @@ features:
   F-c2c996: {slug: checkpoint-events, status: done, modules: 3}
   F-c48eb2: {slug: scan-source-roots, status: done, modules: 5}
   F-c4c5ae: {slug: spec-conformance-oracle-stage, status: done, modules: 8}
+  F-c6a32fff: {slug: graph-honest-fallback, status: done, modules: 7}
   F-c6c3daaf: {slug: kotlin-module-scoped-gate, status: in_progress, modules: 13}
   F-c8aef8: {slug: project-context, status: done, modules: 5}
   F-cd0415: {slug: spec-load-once, status: done, modules: 2}
@@ -195,7 +196,7 @@ features:
   F-e0f6c7: {slug: smoke-disposition-spine, status: done, modules: 3}
   F-eb732f: {slug: spec-authoring-anti-hollow, status: done, modules: 2}
   F-ee47fc2b: {slug: reverse-index-core, status: done, modules: 1}
-  F-ee5f643e: {slug: doc-graph-links, status: done, modules: 4}
+  F-ee5f643e: {slug: doc-graph-links, status: done, modules: 5}
   F-ef2fd9: {slug: ab-ext-dashboard, status: done, modules: 7}
   F-f334fa: {slug: ab-ext-scenarios-emit, status: done, modules: 3}
   F-f44d1b: {slug: hollow-governance-detector, status: done, modules: 2}

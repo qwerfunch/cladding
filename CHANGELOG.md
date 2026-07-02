@@ -7,6 +7,110 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.7.1] — 2026-07-02 — Honest Graph
+
+Repairs found by a deep multi-agent review of the 0.7.0 graph capability.
+Every fix was simulation-verified against real repo data before coding, and
+the release was validated by an external real-usage battery against npm
+0.7.0 on a real 188-feature project: 23 scenarios, 15 measured improvements,
+0 regressions.
+
+### Added
+
+- **Fallback safety contract — the graph says "unknown" instead of "safe".**
+  Every impact answer now carries the spec-wide edge counts (`ledger`): on a
+  project whose dependency ledger is empty (every freshly adopted project),
+  `impacted: []` used to be byte-identical to a verified leaf — measured on a
+  real 196-feature clone, a feature with 10 actual dependents answered
+  "nothing breaks, coverage 1.0". A blank ledger now answers with explicit
+  zero-counts plus a hint to fall back to normal code search / the full test
+  suite; a feature with zero known dependents stops with
+  `no-known-dependents` and `coverage: null` (never a vacuous 100%), and the
+  working-set radius carries the denominator. The after-edit impact card
+  discloses `deps unledgered` on blank ledgers.
+
+### Fixed
+
+- **Hooks no longer gate projects that never adopted cladding.** In a cwd
+  without spec.yaml (a non-cladding repo, or a subdirectory of a cladding
+  monorepo), the Stop hook falsely blocked the session once with
+  "governance absent" findings and wrote `.cladding/` state into the foreign
+  tree; the PostToolUse nudge did the same. Both now mirror the SessionStart
+  guard: not under cladding → silence, zero writes. (A present-but-broken
+  spec keeps its honest one-time block.)
+- **A gate that could not run no longer reports GREEN.** The gate footer on
+  mutating MCP tool results — the only structural channel for hosts without
+  lifecycle hooks — fabricated `{pass: true}` when the drift engine itself
+  threw; it now fails closed with `{pass: false, unavailable: true}` and
+  points at `clad check --strict`.
+- **Every graph-tool failure now says how to proceed without the graph.**
+  Absent spec → the "run `clad init`" guidance (was a raw ENOENT) on all four
+  graph tools; query misses carry the discovery hint on `clad_get_graph` too,
+  and discovery hints name the baseline fallback (normal code search). The
+  SessionStart card renders an unparseable spec with no resolvable counts as
+  "counts unavailable" instead of a healthy-looking "0 features".
+- **The after-edit impact card now actually fires.** Hosts send absolute file
+  paths while the spec's module index is repo-relative, so the PostToolUse
+  impact card (0.7.0) never rendered in real usage — 0/361 module paths resolved
+  on cladding-self, 99.2% after relativizing. The card also shows the
+  repo-relative path now.
+- **Legacy `F-NNN` ids joined the doc graph.** The doc scanner matched only
+  hash-style ids, so docs referencing legacy features (F-001…F-083, 80 live
+  shards) produced no edges and no `DOC_LINK_INTEGRITY` validation. One shared
+  F-id lexer (`src/spec/feature-id.ts`) now feeds both scan sites — +10 doc
+  references restored on cladding-self, zero new warnings.
+- **Shared-file blast radius is complete.** `clad_get_working_set` on a module
+  path seeded only the alphabetically-first owner, silently dropping the other
+  owners' dependents and regression tests (a hub file reported 0 impacted vs the
+  real 83). Module queries fan out to every owner now, and `breaks_if_changed`
+  finally participates in the token budget: deeper dependents clip first, the
+  depth-1 direct set is never dropped, and every clip is reported in
+  `budget.truncated`.
+- **`clad measure` attributes its numbers honestly.** The headline shrink factor
+  was mostly the 3000-token budget cap doing the work, not the graph. The report
+  now splits cap-driven vs structural shrink (the uncapped slice is ≈1.16x of
+  naive on cladding-self — code plus metadata, not smaller) and the CLI headline
+  says "budget enforces Nx" instead of selling cap arithmetic as savings. The
+  injected file reader now feeds both the slice and the baseline (one universe).
+- **The live viewer can no longer render stale.** SSE refresh compared node
+  COUNTS, so edge-only and same-count changes never redrew — it now compares the
+  server's exact graph text. The health pill counts distinct files (a file's
+  module/test/doc twin nodes counted once), and the mobile sidebar button works.
+- **`clad graph serve` fails honestly.** A mid-write or unparseable spec used to
+  answer HTTP 200 + a prose error labeled as JSON — now 503 with a JSON error
+  payload. A busy port prints one clean line instead of a raw stack; watcher
+  errors degrade to manual refresh; foreign Host headers are refused
+  (DNS-rebinding guard); and `/health.json` parses the spec once instead of ~10×
+  per request (611ms → 81ms measured).
+- **Graph sources are reviewable again.** Three source files carried raw NUL
+  bytes, so git treated them as binary — the 0.7.0 graph core shipped with a
+  review-invisible diff. Replaced with the six-character backslash-u-0000 escapes (byte-identical at
+  runtime, attestation digests unchanged) and guarded by a hygiene test.
+- **One file, one focus.** The same path can exist as a module, a test, and a
+  doc node at once (95 such paths on cladding-self); focus queries
+  (`--focus`, `clad_get_graph`) and health badges now cover all of a path's
+  nodes instead of the first one found.
+- Renderer/CLI hygiene: mermaid ids no longer collide silently, DOT/mermaid/
+  Obsidian labels escape their metacharacters, a typo'd `--format`/`--depth`
+  fails loudly instead of falling back to mermaid, a corrupt event-log line no
+  longer crashes `clad_get_events`, and the viewer bundle keeps three.js's MIT
+  notice.
+
+### Changed
+
+- **`clad_get_graph` without a focus returns a stats summary** (node/edge counts
+  by kind + top hubs, ~2KB) instead of the whole graph — the full dump measured
+  ~285KB (~70k tokens) in a single MCP result on cladding-self and grows with
+  the project. Pass a query for a neighborhood; `clad graph export --format
+  json` still dumps everything.
+- **`clad infer-deps` sees re-exports and literal dynamic imports**
+  (`export … from './x.js'`, `import('./x.js')`) — barrel-file dependencies now
+  produce edges, and a non-literal `import(expr)` flags the file as
+  under-reported. The JS/TS extraction path is now covered by fixtures (it
+  shipped with none).
+- Deprecated verb/prompt aliases (0.6.0 renames) now say "removed in 0.8" —
+  0.7.0 still shipped every alias while the notice claimed removal in 0.7.
+
 ## [0.7.0] — 2026-07-01 — Knowledge Graph
 
 ### Knowledge graph (spec↔code↔doc)
@@ -43,22 +147,25 @@ always-current graph you can query for impact and *see* in a graph viewer.
   graph tool. `--focus <id> --depth N` exports just one neighborhood. `stats`
   ranks the load-bearing hubs by degree.
 - **Our own graph viewer, colored by SSoT layer.** `clad graph export --format
-  html` writes one self-contained file you can double-click — a dependency-free
-  interactive graph (no internet, no install). Each spec layer gets its own color
-  (sealed spec / design / derived / audit), code sits in a neutral tone, and
-  features show their readable slug instead of an opaque id. Search, filter by
-  layer or kind, hover to light up a neighborhood, drag to pin, a "Live/Calm"
-  toggle, light/dark — all in one offline page.
-- **A live graph that follows your work.** `clad graph serve` opens the same
+  html` writes one self-contained file you can double-click — a fully offline
+  interactive graph (no internet, no install; the rendering library is bundled
+  inside the file). Each spec layer gets its own color (sealed spec / design /
+  derived / audit), code sits in a neutral tone, and features show their
+  readable slug instead of an opaque id. Search, filter by layer or kind, hover
+  for details, click a node to fly to its neighborhood, light/dark — all in one
+  offline page. *(Corrected 0.7.1: this entry originally described an earlier
+  2D prototype with force sliders and a Live/Calm toggle that did not ship —
+  what shipped is the WebGL viewer below.)*
+- **A live graph that follows your work.** `clad graph serve` hosts the same
   viewer at a local address and **updates itself as you edit** — change the spec
   or a doc and the open page reflects it, no re-export. Agents can read the same
   always-current graph through the new `clad_get_graph` tool.
-- **An Obsidian-grade viewer.** The layout is now a continuously-running force
-  simulation: drag a node and the web stretches and recoils with real tension;
-  hovering pauses the motion so you can read; four force sliders (center / repel /
-  link / link distance) retune it live. Each node class has its own color — the
-  four spec layers, and code/test/doc each distinct — so the structure reads at a
-  glance.
+- **A galaxy you can orbit.** The viewer renders the whole graph as a WebGL 3D
+  galaxy (three.js, bundled offline): spec at the core, code/tests/docs fanning
+  outward on their own shells, hubs sized by how load-bearing they are. The
+  layout is deterministic — the same graph always lands in the same shape (no
+  randomness), so an export is reproducible byte-for-byte. Drag to orbit, scroll
+  to zoom, click to focus.
 - **The killer: live conformance, healing as you watch.** Every node carries its
   real spec↔code health, computed from cladding's own drift detectors — a feature
   whose test went missing, a file no feature claims, a doc pointing at a deleted
@@ -70,10 +177,10 @@ always-current graph you can query for impact and *see* in a graph viewer.
 **Notes**
 
 - Drift detectors: 37 → 40 — this work adds `DOC_LINK_INTEGRITY` and `INFERABLE_DEPENDS_ON`; develop's `UNVERIFIED_AC` (below) is the third.
-- The viewer is hand-rolled (no bundled third-party graph library) to stay
-  dependency-free and fully offline; the layout draws itself and settles, then
-  stays calm. It is a way to *see and navigate* the spec↔code↔doc structure, not
-  a correctness check — run `clad check` for that.
+- The viewer bundles three.js into the single offline file (no CDN, no network
+  request — *corrected 0.7.1: this note originally claimed "no bundled
+  third-party graph library"*). It is a way to *see and navigate* the
+  spec↔code↔doc structure, not a correctness check — run `clad check` for that.
 - Design + measured cost/benefit model: `docs/knowledge-graph/design.md`.
 ### Added
 

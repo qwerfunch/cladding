@@ -517,7 +517,7 @@ describe('cli/clad — createProgram', () => {
     try {
       clad.printVerbDeprecationNotice('panel');
       expect(stderrSpy.mock.calls.map((c) => String(c[0])).join('')).toBe(
-        "cladding: 'panel' is now 'status' — the old verb is removed in 0.7\n",
+        "cladding: 'panel' is now 'status' — the old verb is removed in 0.8\n",
       );
       stderrSpy.mockClear();
       clad.printVerbDeprecationNotice('status');
@@ -531,7 +531,7 @@ describe('cli/clad — createProgram', () => {
 
   test('program version matches current package version', () => {
     const program = clad.createProgram();
-    expect(program.version()).toBe('0.7.0');
+    expect(program.version()).toBe('0.7.1');
   });
 });
 

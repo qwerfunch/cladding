@@ -25,7 +25,7 @@
 
 import {createHash} from 'node:crypto';
 import {existsSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
-import {dirname, isAbsolute, join} from 'node:path';
+import {dirname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import process from 'node:process';
 
 import {parse as parseYaml} from 'yaml';
@@ -79,10 +79,11 @@ function renderSessionStartCard(cwd: string): string {
   const specPath = join(cwd, 'spec.yaml');
   if (!existsSync(specPath)) return '';
   let spec: SpecDoc = {};
+  let parseFailed = false;
   try {
     spec = (parseYaml(readFileSync(specPath, 'utf8')) as SpecDoc | null) ?? {};
   } catch {
-    /* unparseable spec → counts degrade to the inventory defaults below */
+    parseFailed = true; // counts may still resolve via spec/index.yaml (the primary source)
   }
 
   let total = 0;
@@ -132,8 +133,13 @@ function renderSessionStartCard(cwd: string): string {
       ? spec.scenarios.length
       : 0;
 
+  // An unparseable master with NO other count source must not render as a
+  // verified-empty "0 features" project (F-c6a32fff). Conditional on !counted:
+  // sharded projects usually still count fine via spec/index.yaml.
   const lines: string[] = [
-    `cladding: ${total} features (${done} done, ${inProgress.length} in progress) · ${scenarios} scenarios`,
+    parseFailed && !counted
+      ? 'cladding: spec.yaml present but unparseable — counts unavailable (run clad check)'
+      : `cladding: ${total} features (${done} done, ${inProgress.length} in progress) · ${scenarios} scenarios`,
   ];
   if (inProgress.length > 0) {
     lines.push(`in progress: ${inProgress.slice(0, 3).map((f) => `${f.id} ${f.slug}`).join(', ')}`);
@@ -282,6 +288,11 @@ function stopBlockPath(cwd: string): string {
  */
 function runStopGate(input: unknown, cwd: string): string {
   if (asRecord(input).stop_hook_active === true) return '';
+  // Not under cladding → not our session to gate (SessionStart parity, F-c6a32fff).
+  // Without this, a spec-less cwd (non-cladding repo, or a SUBDIR of a cladding
+  // monorepo — the hook cwd is process.cwd(), no upward search) got falsely
+  // BLOCKED by ABSENCE_OF_GOVERNANCE and had .cladding/ state written into it.
+  if (!existsSync(join(cwd, 'spec.yaml'))) return '';
   const failures: StopFailure[] = [];
   try {
     const drift = runDrift({strict: true, cwd});
@@ -380,7 +391,11 @@ export function formatImpactCard(slice: ImpactSlice, filePath: string): string {
   const co = owners.length > 1 ? ` (+${owners.length - 1} co-owner${owners.length > 2 ? 's' : ''})` : '';
   const breaks = slice.impacted.length > 0 ? ` · breaks ${slice.impacted.length} feature(s)` : '';
   const tests = slice.test_refs.length > 0 ? ` · run ${slice.test_refs.length} test(s)` : '';
-  return `cladding impact: ${filePath} → ${label}${co}${breaks}${tests}`;
+  // Blank ledger disclosure: empty breaks/tests segments must not read as "verified
+  // safe" when NO depends_on edge exists project-wide (strict === 0 — old-shaped
+  // slices without a ledger stay unmarked rather than mis-firing).
+  const unledgered = slice.ledger?.depends_on_edges === 0 ? ' · deps unledgered' : '';
+  return `cladding impact: ${filePath} → ${label}${co}${breaks}${tests}${unledgered}`;
 }
 
 /**
@@ -393,6 +408,8 @@ function runPostToolUseDrift(input: unknown, cwd: string): string {
   if (!WRITE_TOOLS.has(asString(rec.tool_name))) return '';
   const filePath = asString(asRecord(rec.tool_input).file_path);
   if (!isWatchedSourcePath(filePath)) return '';
+  // Not under cladding → no drift nudges and no .cladding/ writes (SessionStart parity).
+  if (!existsSync(join(cwd, 'spec.yaml'))) return '';
   const stampPath = join(cwd, '.cladding', 'hook-drift-ts');
   const now = Date.now();
   try {
@@ -408,11 +425,14 @@ function runPostToolUseDrift(input: unknown, cwd: string): string {
     /* unwritable stamp → still run; worst case is an extra drift pass */
   }
   // Impact card: the blast radius of the file just edited (skip trivial edits; degrade to '').
+  // Hosts send tool_input.file_path ABSOLUTE while moduleOwners keys are repo-relative posix —
+  // without relativization the lookup never hits (measured 0/361 on cladding-self; 99.2% after).
   let card = '';
   if (editMagnitude(rec.tool_input) >= MIN_EDIT_CHARS) {
     try {
-      const slice = buildImpactSlice(loadSpec(cwd), filePath);
-      if (!('not_found' in slice)) card = formatImpactCard(slice, filePath);
+      const rel = isAbsolute(filePath) ? relative(resolve(cwd), filePath).split(sep).join('/') : filePath;
+      const slice = buildImpactSlice(loadSpec(cwd), rel);
+      if (!('not_found' in slice)) card = formatImpactCard(slice, rel);
     } catch {
       /* spec unreadable → no card, still run drift */
     }

@@ -114,7 +114,7 @@ describe('loadPersona', () => {
       expect(p.body).toBe('planner body');
       const written = stderrSpy.mock.calls.map((c) => String(c[0])).join('');
       expect(written).toContain(
-        "cladding: persona 'librarian' is now 'planner' — the old id is removed in 0.7",
+        "cladding: persona 'librarian' is now 'planner' — the old id is removed in 0.8",
       );
     } finally {
       stderrSpy.mockRestore();
@@ -133,7 +133,7 @@ describe('loadPersona', () => {
       expect(p.body).toBe('developer body');
       const written = stderrSpy.mock.calls.map((c) => String(c[0])).join('');
       expect(written).toContain(
-        "cladding: persona 'specialists' is now 'developer' — the old id is removed in 0.7",
+        "cladding: persona 'specialists' is now 'developer' — the old id is removed in 0.8",
       );
     } finally {
       stderrSpy.mockRestore();

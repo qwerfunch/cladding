@@ -539,6 +539,10 @@ THREE.ColorManagement.enabled = false;
     if (on) b.classList.add('on');
     b.onclick = () => fn(b);
   }
+  // Mobile: the burger toggles the off-canvas sidebar (#side.show, styles.css ≤760px).
+  const burger = document.getElementById('burger');
+  const side = document.getElementById('side');
+  if (burger && side) burger.onclick = () => side.classList.toggle('show');
   const sb = document.getElementById('search') as HTMLInputElement | null;
   if (sb)
     sb.addEventListener('input', () => {
@@ -592,8 +596,13 @@ THREE.ColorManagement.enabled = false;
       el.style.display = 'none';
       return;
     }
-    let bad = 0;
-    for (const k in HEALTH) if (Object.prototype.hasOwnProperty.call(HEALTH, k)) bad++;
+    // Count distinct PATHS, not node keys: one file can exist as module:/test:/doc:
+    // twins that each carry the badge — raw key counting doubles the headline.
+    const seen = new Set<string>();
+    for (const k in HEALTH) {
+      if (Object.prototype.hasOwnProperty.call(HEALTH, k)) seen.add(k.slice(k.indexOf(':') + 1));
+    }
+    const bad = seen.size;
     const pct = Math.max(0, Math.round((1 - bad / (nodes.length || 1)) * 100));
     el.style.display = 'block';
     const dot = mkEl('span', 'dot');
@@ -611,8 +620,14 @@ THREE.ColorManagement.enabled = false;
   function liveWire(): void {
     if (typeof fetch !== 'function' || typeof EventSource !== 'function') return;
     fetch('graph.json', {cache: 'no-store'})
-      .then((r) => {
+      .then(async (r) => {
         if (!r.ok) return; // static export / file:// → embedded data only
+        // Change detection compares the SERVER's exact response text — the old
+        // nodes.length proxy missed edge-only and same-count node changes, so
+        // the view rendered stale. Never re-serialize client-side: toJson() is
+        // pretty-printed + trailing newline, a parse→stringify round-trip
+        // would mismatch on every poll.
+        const prevText = await r.text();
         const pull = (): void => {
           fetch('health.json', {cache: 'no-store'})
             .then((r2) => (r2.ok ? r2.json() : null))
@@ -623,13 +638,13 @@ THREE.ColorManagement.enabled = false;
         const es = new EventSource('events');
         es.onmessage = () => {
           fetch('graph.json', {cache: 'no-store'})
-            .then((r2) => (r2.ok ? r2.json() : null))
-            .then((g2) => {
-              if (g2 && g2.nodes && g2.nodes.length !== nodes.length) {
-                location.reload();
+            .then((r2) => (r2.ok ? r2.text() : null))
+            .then((t2) => {
+              if (t2 !== null && t2 !== prevText) {
+                location.reload(); // reload re-embeds the new graph and re-runs liveWire
                 return;
               }
-              pull(); // health-only → smooth heal
+              pull(); // unchanged graph (or a transient 503 mid-write) → health-only heal
             })
             .catch(() => undefined);
         };

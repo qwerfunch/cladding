@@ -1,6 +1,6 @@
 {
   "name": "cladding",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Reference implementation of the Ironclad standard — multi-agent dev harness for OpenAI Codex CLI / IDE / cloud. Exposes spec validation, drift detection, the Iron Law stage runner, and 5 agent personas as Codex skills + an auto-launched MCP server.",
   "author": {
     "name": "qwerfunch",

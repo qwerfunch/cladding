@@ -146,4 +146,18 @@ describe('buildIterativeImpactSlice', () => {
     expect(Array.isArray(result.accepted_forms)).toBe(true);
     expect(typeof result.discovery).toBe('string');
   });
+
+  test('zero known dependents stops honestly: no-known-dependents + coverage null, never a vacuous 1.0 (F-c6a32fff)', () => {
+    // Old behavior actively claimed completeness here: coverage=1 via the
+    // vacuous 0-denominator arm + stoppedBy 'coverage' — identical for a blank
+    // ledger and a genuine leaf, and identical to a real full-coverage stop.
+    const spec = chainSpec(); // F-A ← F-B ← F-C chain; F-C (the tip) has no dependents
+    const result = buildIterativeImpactSlice(spec, 'F-C');
+    if ('not_found' in result) throw new Error('expected a slice');
+    expect(result.stoppedBy).toBe('no-known-dependents');
+    expect(result.analysis.coverage).toBeNull();
+    expect(result.analysis.totalKnownDependents).toBe(0);
+    expect(result.analysis.frontierExhausted).toBe(true);
+    expect(result.slice.impacted).toEqual([]);
+  });
 });

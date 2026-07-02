@@ -31,7 +31,11 @@ function spec(features: Record<string, unknown>[]): Spec {
 }
 
 describe('measureGraphEfficiency', () => {
-  test('computes the slice-vs-naive context ratio per feature', () => {
+  test('the injected reader feeds BOTH slice and baseline — one universe, honest ratio', () => {
+    // Pre-v0.7.1 the slice read the real fs while the baseline read the
+    // injected reader, so a virtual module inflated the shrink factor. With
+    // one reader the module text lands on both sides: a module that fits the
+    // budget makes the slice ≈ naive + metadata (ratio ≈ 1, NOT a big shrink).
     const s = spec([feat('F-aaa111', 'a', ['pkg/a.py'])]);
     const read = (p: string): string | null =>
       p === 'pkg/a.py' ? 'x'.repeat(8000) : null;
@@ -43,32 +47,46 @@ describe('measureGraphEfficiency', () => {
     if (row === undefined) {
       throw new Error('expected a measured feature row');
     }
-    // A large module source makes the naive baseline (shard JSON + full module
-    // text) much bigger than the working-set slice.
-    expect(row.naiveTokens).toBeGreaterThan(row.sliceTokens);
-    expect(row.contextRatio).toBeLessThan(1);
+    // 8000 chars fits the default budget: the code rides the slice, so the
+    // slice cannot be dramatically smaller than naive — the honest reading.
+    expect(row.sliceTokens).toBeGreaterThan(2000); // the module text is IN the slice
+    expect(row.contextRatio).toBeGreaterThan(0.8);
     expect(row.contextRatio).toBeCloseTo(row.sliceTokens / row.naiveTokens, 5);
   });
 
-  test('aggregates median shrink factor, search depth, and coverage', () => {
+  test('splits cap-driven shrink from structural shrink (honest attribution)', () => {
     const features = [
       feat('F-aaa111', 'a', ['pkg/a.py']),
       feat('F-bbb222', 'b', ['pkg/b.py'], ['F-aaa111']),
       feat('F-ccc333', 'c', ['pkg/c.py'], ['F-bbb222']),
     ];
     const s = spec(features);
+    // 40k-char modules: naive ≈ 10k tokens, the 3000-token default budget
+    // clips the code — the "shrink" is the cap's arithmetic, and the report
+    // must say so instead of selling it as graph value.
     const source: Record<string, string> = {
-      'pkg/a.py': 'x'.repeat(8000),
-      'pkg/b.py': 'y'.repeat(9000),
-      'pkg/c.py': 'z'.repeat(7000),
+      'pkg/a.py': 'x'.repeat(40000),
+      'pkg/b.py': 'y'.repeat(40000),
+      'pkg/c.py': 'z'.repeat(40000),
     };
     const read = (p: string): string | null => source[p] ?? null;
 
     const result = measureGraphEfficiency(s, read);
 
     expect(result.measured).toBe(features.length);
-    // Bigger naive source than slice ⇒ shrink factor > 1.
+    expect(result.context.truncatedCount).toBe(3);
+    expect(result.context.fitsCount).toBe(0);
+    // Cap-driven shrink is real arithmetic (naive >> capped slice)…
+    expect(result.context.medianShrinkTruncated).toBeGreaterThan(1);
     expect(result.context.medianShrinkFactor).toBeGreaterThan(1);
+    // …but the UNCAPPED structural slice is naive + metadata, ratio ≈≥ 1 —
+    // the graph does not structurally shrink the bytes.
+    expect(result.context.medianStructuralRatio).toBeGreaterThanOrEqual(0.9);
+    for (const row of result.features) {
+      expect(row.budgetSaturated).toBe(true);
+      expect(row.structuralTokens).toBeGreaterThan(row.sliceTokens);
+    }
+
     expect(typeof result.search.medianDepth).toBe('number');
     expect(result.search.medianDepth).toBeGreaterThanOrEqual(1);
     expect(result.stability.medianCoverage).toBeGreaterThanOrEqual(0);
@@ -80,6 +98,21 @@ describe('measureGraphEfficiency', () => {
       0,
     );
     expect(stopReasonSum).toBeLessThanOrEqual(result.measured);
+  });
+
+  test('a fitting feature counts as fits (no cap attribution) and structural == budgeted', () => {
+    const s = spec([feat('F-eee555', 'e', ['pkg/e.py'])]);
+    const read = (p: string): string | null => (p === 'pkg/e.py' ? 'x'.repeat(800) : null);
+
+    const result = measureGraphEfficiency(s, read);
+
+    expect(result.context.fitsCount).toBe(1);
+    expect(result.context.truncatedCount).toBe(0);
+    const row = result.features[0];
+    if (row === undefined) throw new Error('expected a row');
+    expect(row.budgetSaturated).toBe(false);
+    // identical content; only the serialized budget.max_tokens digits differ (~3 tokens)
+    expect(Math.abs(row.structuralTokens - row.sliceTokens)).toBeLessThanOrEqual(5);
   });
 
   test('is deterministic for identical spec and file contents', () => {

@@ -30,6 +30,16 @@ describe('doc-references', () => {
   const byDoc = (s: {docs: readonly DocEntry[]}): Record<string, DocEntry> =>
     Object.fromEntries(s.docs.map((d) => [d.doc, d]));
 
+  test('legacy sequential F-NNN ids are extracted alongside hash ids (shared lexer)', () => {
+    // v0.7.0 regression: the doc axis matched only 6-8 hex ids, so prose
+    // referencing legacy shards (F-001…F-083, still live) produced no edges
+    // and no DOC_LINK_INTEGRITY validation. The shared feature-id lexer
+    // (src/spec/feature-id.ts) restores them.
+    wdoc('docs/legacy.md', 'Shipped in **v0.2.24 (F-073)** and F-049; hash sibling F-ee47fc2b. `F-001` in a code span stays ignored.');
+    const m = byDoc(extractDocReferences(dir));
+    expect(m['docs/legacy.md'].features).toEqual(['F-049', 'F-073', 'F-ee47fc2b']);
+  });
+
   test('extracts F-ids and resolved .md links, excluding fixture dirs and code spans', () => {
     wdoc('docs/a.md', 'see F-ee47fc2b and F-7794a6bc here. [link](./b.md). inline `F-cafef00d` ignored.');
     wdoc('docs/b.md', '# b');

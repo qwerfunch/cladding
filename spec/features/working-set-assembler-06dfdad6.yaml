@@ -22,10 +22,12 @@ acceptance_criteria:
     notes: "## Why\nFreeze F-d2c806's buildContextSlice + clad_get_context (schema_version=1, existing tests) — this is an ADDITIVE buildWorkingSet, never a mutation of the existing slice (sim verdict: backward-compat blocker)."
   - id: AC-d2b3c8
     ears: ubiquitous
-    text: "The working set shall fuse, in one structured payload: must-edit (focus feature + full ACs), needs (forward depends_on ancestors), breaks-if-changed (direct backward dependents + the regression test union), verify (scenarios + test_refs + oracle_refs + EARS unwanted/state high-risk AC flags), and guidance (ai_hints preferred_patterns) — so one call replaces the forward+backward two-call dance and the hand-grep."
+    text: "The working set shall fuse, in one structured payload: must-edit (focus feature + full ACs), needs (forward depends_on ancestors), breaks-if-changed (backward dependents + the regression test union — a module query seeds EVERY co-owner, not just the focus owner), verify (scenarios + test_refs + oracle_refs + EARS unwanted/state high-risk AC flags), and guidance (ai_hints preferred_patterns) — so one call replaces the forward+backward two-call dance and the hand-grep."
     test_refs:
       - "tests/optimizer/working-set.test.ts#fuses forward needs + backward breaks + verify + guidance into one payload"
       - "tests/optimizer/working-set.test.ts#flags EARS unwanted/state acceptance criteria as high-risk"
+      - "tests/optimizer/working-set.test.ts#a module query seeds ALL co-owners — their dependents and tests reach breaks_if_changed"
+    notes: "## Correction (0.7.1)\n0.7.0 computed the backward radius from the alphabetically-first owner only — a shared file's other owners contributed nothing (src/cli/clad.ts on cladding-self: impacted 0 vs the real 83). The module query now passes through to the iterative slice, which seeds all owners."
   - id: AC-42bd08
     ears: event
     condition: "when the working set includes a focus module's source"
@@ -38,11 +40,13 @@ acceptance_criteria:
   - id: AC-05ea70
     ears: unwanted
     condition: "if the assembled payload would exceed the token budget (default 3000, configurable)"
-    action: "clip droppable sections in priority order — distant transitive ancestors, then code excerpts — and record what was dropped in budget.truncated[]; the focus (must-edit + ACs) is always retained"
-    response: "the droppable sections shrink to fit the budget and the LLM is told what was omitted; the focus is never dropped (so a focus larger than the cap is reported, not truncated)"
-    text: "While the payload would exceed the token budget, the system shall clip droppable sections (ancestors then code) and record budget.truncated[]; the focus is always retained even if it alone exceeds the cap."
+    action: "clip droppable sections in priority order — distant transitive ancestors, then code excerpts, then the backward radius (deeper dependents from the far end first, then their tests; the depth-1 direct set is never dropped) — measuring each fit WITH the pending truncation marker, and record every clip in budget.truncated[]; the focus (must-edit + ACs) is always retained"
+    response: "the payload fits the budget even at hub features and tight caller budgets, the LLM is told exactly what was omitted, and the focus + direct blast radius are never dropped"
+    text: "While the payload would exceed the token budget, the system shall clip droppable sections (ancestors, then code, then deeper backward dependents/tests — never the depth-1 direct set) with marker-inclusive fit checks, and record budget.truncated[]; the focus is always retained even if it alone exceeds the cap."
     test_refs:
       - "tests/optimizer/working-set.test.ts#enforces the token budget and records what was truncated"
+      - "tests/optimizer/working-set.test.ts#budget pressure clips deeper dependents (and reports it) but never the depth-1 direct set"
+    notes: "## Correction (0.7.1)\n0.7.0 never clipped breaks_if_changed, so hub features + module fan-out broke the budget contract exactly where scale bites (simulated: fan-out doubles breach paths 17→33/144, worst 2.9x). Clip order (breaks AFTER code) was simulation-compared against clip-before-code and is strictly better; marker-inclusive fit checks close the +3..10-token overshoot the old loops carried."
   - id: AC-c2cef0
     ears: event
     condition: "when the MCP server registers its tools"

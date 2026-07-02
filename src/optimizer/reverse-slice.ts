@@ -11,8 +11,27 @@
 // re-run (the regression set), and the modules in the blast radius — bounded
 // and deterministic so a host can cache and diff it.
 
-import {reverseIndexOf} from '../spec/reverse-index.js';
+import {reverseIndexOf, type ReverseIndex} from '../spec/reverse-index.js';
 import type {Feature, Spec} from '../spec/types.js';
+
+/**
+ * Spec-wide edge counts — the FALLBACK-SAFETY disambiguator (F-c6a32fff).
+ * `impacted: []` on a blank ledger (zero depends_on edges anywhere — every
+ * freshly adopted project) is byte-identical to a verified leaf on a dense
+ * map; measured on a vapt clone, a feature with 10 real dependents answered
+ * "nothing breaks, coverage 1.0". These counts make the two distinguishable,
+ * and the hints tell the agent to fall back to its baseline behavior.
+ */
+export interface LedgerSummary {
+  /** Total depends_on edges declared spec-wide (sum over the reverse index). */
+  readonly depends_on_edges: number;
+  /** Total test_ref citations declared spec-wide (anchor-stripped, pseudo-refs excluded). */
+  readonly test_ref_edges: number;
+  /** Present ONLY when depends_on_edges === 0 — the answer means unknown, not safe. */
+  readonly fallback_hint?: string;
+  /** Present ONLY when test_ref_edges === 0 — the regression set is unknown. */
+  readonly regression_hint?: string;
+}
 
 export interface ImpactSlice {
   /** What was queried. Either a feature (id/title/status) or a module (path + owning features). */
@@ -32,6 +51,8 @@ export interface ImpactSlice {
   readonly scenarios: ReadonlyArray<{readonly id: string; readonly title: string}>;
   /** Deduped, sorted union of test_refs across the radius — the regression set to run. */
   readonly test_refs: readonly string[];
+  /** Spec-wide ledger counts + blank-map fallback hints. Optional for payload compat. */
+  readonly ledger?: LedgerSummary;
 }
 
 export interface ImpactLookupMiss {
@@ -69,6 +90,24 @@ export function collectDependents(
     hop++;
   }
   return result;
+}
+
+/** Spec-wide edge counts from the (memoised) reverse index — O(map size), ~0.04ms measured. */
+export function ledgerOf(ri: ReverseIndex): LedgerSummary {
+  let dep = 0;
+  for (const s of ri.dependents.values()) dep += s.size;
+  let test = 0;
+  for (const s of ri.testRefCitations.values()) test += s.size;
+  return {
+    depends_on_edges: dep,
+    test_ref_edges: test,
+    ...(dep === 0
+      ? {fallback_hint: 'dependency ledger is empty — impacted: [] means unknown, not safe; fall back to grep/imports'}
+      : {}),
+    ...(test === 0
+      ? {regression_hint: 'no test_refs declared project-wide — the regression set is unknown; run the full suite'}
+      : {}),
+  };
 }
 
 /** id (F-…) or slug → the feature; else null. */
@@ -116,7 +155,9 @@ export function buildImpactSlice(
     return {
       not_found: query,
       accepted_forms: ['feature id (F-…)', 'slug', 'module path (e.g. src/spec/load.ts)'],
-      discovery: 'grep spec/index.yaml — one line per feature; module paths live in each shard’s modules:',
+      discovery:
+        'grep spec/index.yaml — one line per feature (run clad sync if missing); module paths live in each ' +
+        'shard’s modules:; if the query is a file, fall back to normal code search — the graph only knows declared modules',
     };
   }
 
@@ -154,5 +195,5 @@ export function buildImpactSlice(
     ? {module: moduleQuery, owners: [...seedIds].sort()}
     : {id: seedFeatures[0].id, title: seedFeatures[0].title, status: seedFeatures[0].status};
 
-  return {focus, impacted, impacted_modules, scenarios, test_refs};
+  return {focus, impacted, impacted_modules, scenarios, test_refs, ledger: ledgerOf(ri)};
 }

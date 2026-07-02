@@ -156,4 +156,72 @@ describe('inferDependsOn', () => {
     });
     expect(result.suggestions['F-a']).toContain('F-c');
   });
+
+  // v0.7.0 shipped the whole JS/TS extraction branch with zero fixtures (all
+  // Python) — on a TypeScript project (cladding itself!) nothing pinned it.
+  describe('JS/TS extraction', () => {
+    test('import…from, side-effect import, and require() all resolve owned edges', () => {
+      const spec = makeSpec([
+        feature('F-a', ['src/app/main.ts']),
+        feature('F-b', ['src/lib/mod.ts']),
+        feature('F-c', ['src/lib/side.ts']),
+        feature('F-d', ['src/lib/legacy.ts']),
+      ]);
+      const read: Reader = (p) =>
+        p === 'src/app/main.ts'
+          ? [
+              "import {x} from '../lib/mod.js';",
+              "import '../lib/side.js';",
+              "const legacy = require('src/lib/legacy');",
+            ].join('\n')
+          : null;
+
+      const result = inferDependsOn(spec, read);
+      const targets = result.edges.filter((e) => e.from === 'F-a').map((e) => e.to);
+      expect(targets).toContain('F-b');
+      expect(targets).toContain('F-c');
+      expect(targets).toContain('F-d');
+    });
+
+    test('export…from re-exports (barrel files) are dependencies — v0.7.0 missed them', () => {
+      const spec = makeSpec([
+        feature('F-barrel', ['src/api/index.ts']),
+        feature('F-impl', ['src/api/impl.ts']),
+      ]);
+      const read: Reader = (p) =>
+        p === 'src/api/index.ts' ? "export {run} from './api/impl.js';\nexport * from 'src/api/impl';\n" : null;
+
+      const result = inferDependsOn(spec, read);
+      expect(result.edges).toContainEqual({from: 'F-barrel', to: 'F-impl', via: 'src/api/index.ts'});
+    });
+
+    test("a LITERAL dynamic import('…') is an edge; a non-literal one flags the file", () => {
+      const spec = makeSpec([
+        feature('F-a', ['src/app/lazy.ts']),
+        feature('F-b', ['src/lib/mod.ts']),
+        feature('F-x', ['src/app/plugin.ts']),
+      ]);
+      const read: Reader = (p) => {
+        if (p === 'src/app/lazy.ts') return "const m = await import('src/lib/mod');\n";
+        if (p === 'src/app/plugin.ts') return 'const m = await import(userChoice);\n';
+        return null;
+      };
+
+      const result = inferDependsOn(spec, read);
+      expect(result.edges).toContainEqual({from: 'F-a', to: 'F-b', via: 'src/app/lazy.ts'});
+      expect(result.dynamicImportFiles).toContain('src/app/plugin.ts');
+      expect(result.dynamicImportFiles).not.toContain('src/app/lazy.ts');
+    });
+
+    test('a bare single-segment specifier stays excluded (ambiguity rule holds in TS too)', () => {
+      const spec = makeSpec([
+        feature('F-a', ['src/app/main.ts']),
+        feature('F-b', ['utils.ts']), // single segment — no multi-segment key exists
+      ]);
+      const read: Reader = (p) => (p === 'src/app/main.ts' ? "import u from 'utils';\n" : null);
+
+      const result = inferDependsOn(spec, read);
+      expect(result.edges).toEqual([]);
+    });
+  });
 });

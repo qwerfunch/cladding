@@ -19,6 +19,8 @@
 import {existsSync, readdirSync, readFileSync, statSync, writeFileSync} from 'node:fs';
 import {dirname, join, normalize, relative} from 'node:path';
 
+import {featureIdRe} from './feature-id.js';
+
 /** Dir prefixes (cwd-relative, posix) whose F-ids belong to a separate namespace. */
 export const DOC_SCAN_EXCLUDE: readonly string[] = [
   'docs/ab-evaluation',
@@ -30,7 +32,7 @@ export const DOC_SCAN_EXCLUDE: readonly string[] = [
 /** A doc carrying this HTML-comment marker is exempt from F-id resolution. */
 export const DOC_LINKS_IGNORE_MARKER = 'clad-doc-links: ignore';
 
-const FEATURE_ID_RE = /\bF-[0-9a-f]{6,8}\b/g;
+// Canonical F-id lexer (legacy F-NNN + hash) — see src/spec/feature-id.ts.
 /** Markdown inline link to a relative .md target: `](path.md)` or `](path.md#anchor)`. */
 const MD_LINK_RE = /\]\(\s*([^)\s]+?\.md)(?:#[^)]*)?\s*\)/g;
 
@@ -118,7 +120,7 @@ export function extractDocReferences(cwd: string = '.'): DocRefScan {
     const optedOut = raw.includes(DOC_LINKS_IGNORE_MARKER);
     const prose = stripCodeSpans(raw);
 
-    const features = optedOut ? [] : [...new Set(prose.match(FEATURE_ID_RE) ?? [])].sort();
+    const features = optedOut ? [] : [...new Set(prose.match(featureIdRe('g')) ?? [])].sort();
 
     const links = new Set<string>();
     for (const m of prose.matchAll(MD_LINK_RE)) {

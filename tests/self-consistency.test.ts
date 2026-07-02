@@ -14,7 +14,7 @@
 // a self-test gives the reference implementation honesty without imposing
 // it on adopters.
 
-import {readFileSync, readdirSync} from 'node:fs';
+import {readFileSync, readdirSync, statSync} from 'node:fs';
 import {join} from 'node:path';
 import {describe, expect, test} from 'vitest';
 
@@ -118,5 +118,32 @@ describe('glossary is the terminology SSoT (F-7ce18e)', () => {
       expect(row, `'${oldName}' must have an alias row`).toBeDefined();
       expect(row, `'${oldName}' alias row must name '${newName}'`).toContain('`' + newName + '`');
     }
+  });
+
+  test('no source file carries a raw NUL byte (git would treat it as binary)', () => {
+    // v0.7.0 shipped src/graph/model.ts with literal 0x00 chars inside a
+    // template literal — git's binary heuristic then hid the ENTIRE file from
+    // every diff/blame/review ("Bin 0 -> 9363 bytes"). The escape sequence
+    // spelling (backslash-u-0000) is byte-identical at runtime; only the raw byte is
+    // banned. Scans the source tree, not node_modules/dist.
+    const offenders: string[] = [];
+    const walk = (dir: string): void => {
+      for (const name of readdirSync(join(ROOT, dir))) {
+        if (name.startsWith('.') || name === 'node_modules' || name === 'dist') continue;
+        const rel = join(dir, name);
+        let stat;
+        try {
+          stat = statSync(join(ROOT, rel));
+        } catch {
+          continue;
+        }
+        if (stat.isDirectory()) walk(rel);
+        else if (/\.(ts|tsx|mts|cts|js|mjs|md|yaml|yml|json|css)$/.test(name)) {
+          if (readFileSync(join(ROOT, rel)).includes(0)) offenders.push(rel);
+        }
+      }
+    };
+    for (const top of ['src', 'tests', 'spec', 'docs', 'skills', 'scripts']) walk(top);
+    expect(offenders, `raw 0x00 byte(s) found — use the '\\u0000' escape instead: ${offenders.join(', ')}`).toEqual([]);
   });
 });
