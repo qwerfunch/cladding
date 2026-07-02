@@ -7,7 +7,7 @@
 import {mkdirSync, writeFileSync} from 'node:fs';
 import {dirname, join} from 'node:path';
 
-import {buildGraph, resolveNodeId, subgraph} from '../graph/model.js';
+import {buildGraph, resolveNodeIds, subgraph} from '../graph/model.js';
 import {toDot, toJson, toMermaid, toObsidianVault} from '../graph/render.js';
 import {toHtmlShell} from '../graph/viewer-shell.js';
 import {nodeHealth} from '../stages/graph-health.js';
@@ -24,22 +24,38 @@ export interface GraphExportOptions {
   readonly out?: string;
 }
 
+const FORMATS: ReadonlySet<string> = new Set(['mermaid', 'dot', 'json', 'obsidian', 'html']);
+
 /** Handler for `clad graph export`. */
 export function runGraphExportCommand(opts: GraphExportOptions = {}): void {
   try {
-    const format = (opts.format ?? 'mermaid') as GraphFormat;
+    // A typo'd --format used to fall through SILENTLY to mermaid — fail loudly instead.
+    const requested = opts.format ?? 'mermaid';
+    if (!FORMATS.has(requested)) {
+      pulse('fail', 'graph', `unknown --format '${requested}' — use mermaid | dot | json | obsidian | html`);
+      process.exit(1);
+      return;
+    }
+    const format = requested as GraphFormat;
     const spec = loadSpec();
     let graph = buildGraph(spec, '.');
 
     if (opts.focus) {
-      const focusId = resolveNodeId(spec, graph, opts.focus);
-      if (!focusId) {
+      // A path focus seeds every kind-twin (module:/test:/doc: nodes of one file) —
+      // first-twin-only silently dropped the other twins' edges from the neighborhood.
+      const focusIds = resolveNodeIds(spec, graph, opts.focus);
+      if (focusIds.length === 0) {
         pulse('fail', 'graph', `no node matches '${opts.focus}' — try a feature id (F-…), slug, or module path`);
         process.exit(1);
         return;
       }
       const depth = opts.depth !== undefined ? Number(opts.depth) : Infinity;
-      graph = subgraph(graph, focusId, depth);
+      if (Number.isNaN(depth) || depth < 0) {
+        pulse('fail', 'graph', `--depth must be a non-negative number, got '${opts.depth}'`);
+        process.exit(1);
+        return;
+      }
+      graph = subgraph(graph, focusIds, depth);
     }
 
     if (format === 'obsidian') {

@@ -2,7 +2,7 @@ import {mkdtempSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
-import {buildGraph, subgraph, resolveNodeId, nodeId} from '../../src/graph/model.js';
+import {buildGraph, subgraph, resolveNodeId, resolveNodeIds, nodeId} from '../../src/graph/model.js';
 import type {Spec} from '../../src/spec/types.js';
 
 describe('graph model (F-569f4b37)', () => {
@@ -143,5 +143,44 @@ describe('graph model (F-569f4b37)', () => {
     expect(resolveNodeId(spec, g, 'A')).toBe('feature:A');
     expect(resolveNodeId(spec, g, 'zed')).toBe('feature:F-z');
     expect(resolveNodeId(spec, g, 'nope')).toBeNull();
+  });
+
+  test('a path query resolves ALL kind-twins and the subgraph seeds the union', () => {
+    // One file, two roles: feature A lists tests/shared.test.ts as a MODULE,
+    // feature B cites it as a TEST — two graph nodes for one path (95 such
+    // paths on cladding-self). First-twin-only focus dropped B's edges.
+    const spec = {
+      schema: '0.1',
+      project: {name: 'x', language: 'typescript'},
+      features: [
+        {id: 'F-aaa111', slug: 'alpha', title: 'A', status: 'done', modules: ['tests/shared.test.ts']},
+        {
+          id: 'F-bbb222',
+          slug: 'beta',
+          title: 'B',
+          status: 'done',
+          acceptance_criteria: [
+            {id: 'AC-001', ears: 'ubiquitous', text: 't', test_refs: ['tests/shared.test.ts#covers it']},
+          ],
+        },
+      ],
+      scenarios: [],
+      capabilities: [],
+    } as unknown as Spec;
+
+    const g = buildGraph(spec, cwd);
+    const twins = resolveNodeIds(spec, g, 'tests/shared.test.ts');
+    expect(twins.sort()).toEqual(['module:tests/shared.test.ts', 'test:tests/shared.test.ts']);
+
+    // Union focus reaches BOTH features at depth 1; the old single-twin focus reached one.
+    const union = subgraph(g, twins, 1);
+    const unionIds = union.nodes.map((n) => n.id);
+    expect(unionIds).toContain('feature:F-aaa111');
+    expect(unionIds).toContain('feature:F-bbb222');
+    const single = subgraph(g, 'module:tests/shared.test.ts', 1);
+    expect(single.nodes.map((n) => n.id)).not.toContain('feature:F-bbb222');
+
+    // The singular resolver keeps its first-twin contract for old callers.
+    expect(resolveNodeId(spec, g, 'tests/shared.test.ts')).toBe('module:tests/shared.test.ts');
   });
 });

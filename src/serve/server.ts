@@ -44,7 +44,8 @@ import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../
 import {buildContextSlice} from '../optimizer/context-slice.js';
 import {buildImpactSlice} from '../optimizer/reverse-slice.js';
 import {buildWorkingSet} from '../optimizer/working-set.js';
-import {buildGraph, resolveNodeId, subgraph} from '../graph/model.js';
+import {buildGraph, resolveNodeIds, subgraph} from '../graph/model.js';
+import {graphStats} from '../graph/stats.js';
 import {runDrift} from '../stages/drift.js';
 
 /** Persona ids registered as MCP prompts (mirrors src/agents/). */
@@ -542,61 +543,85 @@ function registerTools(server: McpServer, cwd: string): void {
     },
   );
 
-  // clad_get_graph (F-64a5c159) — the live spec↔code↔doc knowledge graph (or a
-  // focused neighborhood). Always recomputed from the current spec, so the graph
-  // an agent reads is never stale. Companion to the `clad graph serve` live view.
+  // clad_get_graph (F-64a5c159) — the live spec↔code↔doc knowledge graph as a
+  // focused neighborhood, or a stats SUMMARY when no focus is given. The whole
+  // graph is ~285KB (~70k tokens) on cladding-self and grows with the project —
+  // an unbudgeted MCP payload that contradicts the working-set discipline — so
+  // the no-query form answers with graphStats + hubs and points at the CLI
+  // export for full dumps. Always recomputed from the current spec (never stale).
   server.registerTool(
     'clad_get_graph',
     {
-      title: 'Get the live knowledge graph (nodes + edges)',
+      title: 'Get the live knowledge graph (focused neighborhood, or a stats summary)',
       description:
-        'Returns the current spec↔code↔doc knowledge graph: nodes (feature/module/skill/test/scenario/capability/doc, ' +
+        'With query: the focus node’s N-hop neighborhood — nodes (feature/module/skill/test/scenario/capability/doc, ' +
         'tier-classified A/B/C/D, features labeled by slug) + typed edges (depends_on/touches/covers/binds/' +
-        'implements/references/links). Optionally focus on one node’s N-hop neighborhood. Recomputed live — never stale.',
+        'implements/references/links); a path query unions all its kind-twins (module/test/doc nodes of one file). ' +
+        'WITHOUT query: a compact summary (node/edge counts by kind + top hubs) — the full graph is tens of ' +
+        'thousands of tokens, use `clad graph export --format json` for a complete dump. Recomputed live — never stale.',
       inputSchema: {
         query: z
           .string()
           .optional()
-          .describe('Focus node: feature id (F-…), slug, or module path. Omit for the whole graph.'),
+          .describe('Focus node: feature id (F-…), slug, or module path. Omit for the stats summary.'),
         max_depth: z
           .number()
           .int()
           .positive()
           .max(6)
           .optional()
-          .describe('Neighborhood radius around the focus node (default: full graph from the focus)'),
+          .describe('Neighborhood radius around the focus node (default: full reachable subgraph from the focus)'),
       },
     },
     async (args) => {
       try {
         const spec = loadSpec(cwd);
-        let graph = buildGraph(spec, cwd);
-        if (args.query) {
-          const focusId = resolveNodeId(spec, graph, args.query);
-          if (!focusId) {
-            return {
-              isError: true,
-              content: [
-                {
-                  type: 'text',
-                  text: JSON.stringify(
-                    {
-                      schema_version: PAYLOAD_SCHEMA_VERSION,
-                      not_found: args.query,
-                      accepted_forms: ['feature id (F-…)', 'slug', 'module path'],
-                    },
-                    null,
-                    2,
-                  ),
-                },
-              ],
-            };
-          }
-          graph = subgraph(graph, focusId, args.max_depth ?? Infinity);
+        const graph = buildGraph(spec, cwd);
+        if (!args.query) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    schema_version: PAYLOAD_SCHEMA_VERSION,
+                    summary: true,
+                    stats: graphStats(graph),
+                    hint:
+                      'pass query (feature id, slug, or module path) for a neighborhood subgraph; ' +
+                      '`clad graph export --format json` dumps the full graph',
+                  },
+                  null,
+                  2,
+                ),
+              },
+            ],
+          };
         }
+        const focusIds = resolveNodeIds(spec, graph, args.query);
+        if (focusIds.length === 0) {
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    schema_version: PAYLOAD_SCHEMA_VERSION,
+                    not_found: args.query,
+                    accepted_forms: ['feature id (F-…)', 'slug', 'module path'],
+                  },
+                  null,
+                  2,
+                ),
+              },
+            ],
+          };
+        }
+        const focused = subgraph(graph, focusIds, args.max_depth ?? Infinity);
         return {
           content: [
-            {type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...graph}, null, 2)},
+            {type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...focused}, null, 2)},
           ],
         };
       } catch (err) {

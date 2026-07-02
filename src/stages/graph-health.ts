@@ -24,6 +24,7 @@ import type {DriftDetector, DriftFinding} from './types.js';
 import {nodeId} from '../graph/model.js';
 import type {KnowledgeGraph} from '../graph/model.js';
 import {featureIdRe} from '../spec/feature-id.js';
+import {loadSpec, primeSpecCache} from '../spec/load.js';
 
 /** Per-node conformance health: worst severity + which detectors fired. */
 export interface NodeHealth {
@@ -46,17 +47,18 @@ const HEALTH_DETECTORS: readonly DriftDetector[] = [
   staleAttestation,
 ];
 
-/** Resolves a finding to the graph node it concerns, or null. */
-function findingNode(f: DriftFinding, ids: ReadonlySet<string>): string | null {
+/** Resolves a finding to EVERY graph node it concerns (a path badges all its
+ *  kind-twins — module:/test:/doc: nodes of one file; first-twin-only left the
+ *  other twins looking healthy). Empty when nothing matches. */
+function findingNodes(f: DriftFinding, ids: ReadonlySet<string>): string[] {
   if (f.path) {
     const p = f.path.split('#')[0].trim(); // test_refs carry `file#anchor`
-    for (const cand of [nodeId.module(p), nodeId.test(p), nodeId.doc(p)]) {
-      if (ids.has(cand)) return cand;
-    }
+    const twins = [nodeId.module(p), nodeId.test(p), nodeId.doc(p)].filter((cand) => ids.has(cand));
+    if (twins.length > 0) return twins;
   }
   const m = featureIdRe().exec(f.message ?? '');
-  if (m && ids.has(nodeId.feature(m[0]))) return nodeId.feature(m[0]);
-  return null;
+  if (m && ids.has(nodeId.feature(m[0]))) return [nodeId.feature(m[0])];
+  return [];
 }
 
 /**
@@ -68,22 +70,35 @@ function findingNode(f: DriftFinding, ids: ReadonlySet<string>): string | null {
 export function nodeHealth(graph: KnowledgeGraph, cwd: string = '.'): Record<string, NodeHealth> {
   const ids = new Set(graph.nodes.map((n) => n.id));
   const acc: Record<string, {severity: 'error' | 'warn'; count: number; detectors: Set<string>}> = {};
-  for (const detector of HEALTH_DETECTORS) {
-    let findings: readonly DriftFinding[] = [];
-    try {
-      findings = detector.run({cwd});
-    } catch {
-      continue; // a detector that can't load the spec just contributes nothing
+  // ONE spec parse for all detectors (the drift.ts run-scope pattern): each
+  // withSpec detector otherwise re-parses the whole shard tree — measured
+  // 611ms → 21ms for the loop on cladding-self. Best-effort: an unreadable
+  // spec leaves the cache unprimed and each detector degrades on its own.
+  try {
+    primeSpecCache(cwd, loadSpec(cwd));
+  } catch {
+    /* unreadable spec → detectors handle it individually */
+  }
+  try {
+    for (const detector of HEALTH_DETECTORS) {
+      let findings: readonly DriftFinding[] = [];
+      try {
+        findings = detector.run({cwd});
+      } catch {
+        continue; // a detector that can't load the spec just contributes nothing
+      }
+      for (const f of findings) {
+        if (f.severity !== 'error' && f.severity !== 'warn') continue;
+        for (const id of findingNodes(f, ids)) {
+          const cur = acc[id] ?? (acc[id] = {severity: 'warn', count: 0, detectors: new Set()});
+          cur.count += 1;
+          cur.detectors.add(f.detector);
+          if (f.severity === 'error') cur.severity = 'error';
+        }
+      }
     }
-    for (const f of findings) {
-      if (f.severity !== 'error' && f.severity !== 'warn') continue;
-      const id = findingNode(f, ids);
-      if (!id) continue;
-      const cur = acc[id] ?? (acc[id] = {severity: 'warn', count: 0, detectors: new Set()});
-      cur.count += 1;
-      cur.detectors.add(f.detector);
-      if (f.severity === 'error') cur.severity = 'error';
-    }
+  } finally {
+    primeSpecCache(cwd, null);
   }
   const out: Record<string, NodeHealth> = {};
   for (const id of Object.keys(acc).sort()) {

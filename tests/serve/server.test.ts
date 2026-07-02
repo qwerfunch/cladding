@@ -738,7 +738,7 @@ describe('clad_get_impact (F-7794a6bc)', () => {
 // ─── F-64a5c159 — clad_get_graph (live knowledge graph) over MCP ───
 
 describe('clad_get_graph (F-64a5c159)', () => {
-  test('clad_get_graph returns the live graph; a focus miss is isError', async () => {
+  test('no-query answers a stats SUMMARY (token-budget discipline), focus answers a subgraph, miss is isError', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-serve-graph-'));
     writeFileSync(join(dir, 'spec.yaml'), IMPACT_SPEC);
     mkdirSync(join(dir, '.cladding'), {recursive: true});
@@ -747,23 +747,32 @@ describe('clad_get_graph (F-64a5c159)', () => {
       const {tools} = await client.listTools();
       expect(tools.map((t) => t.name)).toContain('clad_get_graph');
 
+      // v0.7.1: the no-query form used to dump the WHOLE graph (~70k tokens on a
+      // mid-size project) into one MCP result — now it is a compact summary.
       const all = await client.callTool({name: 'clad_get_graph', arguments: {}});
       expect(all.isError).toBeFalsy();
-      const graph = JSON.parse((all.content as Array<{type: string; text: string}>)[0].text) as {
+      const summaryText = (all.content as Array<{type: string; text: string}>)[0].text;
+      const summary = JSON.parse(summaryText) as {
         schema_version: number;
-        nodes: Array<{id: string}>;
-        edges: unknown[];
+        summary: boolean;
+        stats: {nodeCount: number; edgeCount: number; hubs: Array<{id: string}>};
+        hint: string;
       };
-      expect(graph.schema_version).toBe(1);
-      expect(graph.nodes.some((n) => n.id === 'feature:F-001')).toBe(true);
-      expect(graph.edges.length).toBeGreaterThan(0);
+      expect(summary.schema_version).toBe(1);
+      expect(summary.summary).toBe(true);
+      expect(summary.stats.nodeCount).toBeGreaterThan(0);
+      expect(summary.stats.hubs.length).toBeGreaterThan(0);
+      expect(summary.hint).toContain('clad graph export');
+      expect(summaryText).not.toContain('"from"'); // no raw edge dump rides the summary
 
       const focused = await client.callTool({name: 'clad_get_graph', arguments: {query: 'F-001', max_depth: 1}});
       expect(focused.isError).toBeFalsy();
       const sub = JSON.parse((focused.content as Array<{type: string; text: string}>)[0].text) as {
         nodes: Array<{id: string}>;
+        edges: unknown[];
       };
       expect(sub.nodes.some((n) => n.id === 'feature:F-001')).toBe(true);
+      expect(sub.edges.length).toBeGreaterThan(0);
 
       const gmiss = await client.callTool({name: 'clad_get_graph', arguments: {query: 'nope'}});
       expect(gmiss.isError).toBe(true);
@@ -780,5 +789,41 @@ describe('clad_get_working_set (F-06dfdad6)', () => {
   test('registers clad_get_working_set without touching clad_get_context', () => {
     expect(TOOL_NAMES).toContain('clad_get_working_set');
     expect(TOOL_NAMES).toContain('clad_get_context'); // the existing context tool stays registered + frozen
+  });
+
+  test('clad_get_working_set round-trips real module CODE, echoes the budget, and misses as isError', async () => {
+    // The only prior test asserted a hand-maintained constant against itself
+    // (vacuous — the handler was never invoked). This drives the real MCP path
+    // the way clad_get_impact's test does.
+    const dir = mkdtempSync(join(tmpdir(), 'clad-serve-ws-'));
+    writeFileSync(join(dir, 'spec.yaml'), IMPACT_SPEC);
+    mkdirSync(join(dir, 'src'), {recursive: true});
+    writeFileSync(join(dir, 'src', 'core.ts'), 'export const CORE_MARKER = 42;\n', 'utf8');
+    mkdirSync(join(dir, '.cladding'), {recursive: true});
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const ok = await client.callTool({name: 'clad_get_working_set', arguments: {query: 'F-001', max_tokens: 5000}});
+      expect(ok.isError).toBeFalsy();
+      const ws = JSON.parse((ok.content as Array<{type: string; text: string}>)[0].text) as {
+        schema_version: number;
+        must_edit: {id: string; code: Array<{path: string; text?: string}>};
+        breaks_if_changed: {impacted: Array<{id: string}>; regression_tests: string[]};
+        budget: {max_tokens: number; used_tokens: number};
+      };
+      expect(ws.schema_version).toBe(1);
+      expect(ws.must_edit.id).toBe('F-001');
+      expect(ws.must_edit.code.some((c) => c.path === 'src/core.ts' && c.text?.includes('CORE_MARKER'))).toBe(true);
+      expect(ws.breaks_if_changed.impacted.map((f) => f.id)).toContain('F-002');
+      expect(ws.budget.max_tokens).toBe(5000); // the argument reaches buildWorkingSet
+      expect(ws.budget.used_tokens).toBeGreaterThan(0);
+
+      const miss = await client.callTool({name: 'clad_get_working_set', arguments: {query: 'nope'}});
+      expect(miss.isError).toBe(true);
+      const parsed = JSON.parse((miss.content as Array<{type: string; text: string}>)[0].text) as {not_found: string};
+      expect(parsed.not_found).toBe('nope');
+    } finally {
+      await cleanup();
+      rmSync(dir, {recursive: true, force: true});
+    }
   });
 });

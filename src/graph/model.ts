@@ -191,20 +191,27 @@ export function buildGraph(spec: Spec, cwd: string = '.'): KnowledgeGraph {
 }
 
 /**
- * Restricts the graph to `focus`'s N-hop neighbourhood, treating edges as
+ * Restricts the graph to the N-hop neighbourhood of `focus` (one node id or a
+ * seed SET — e.g. a path's kind-twins from resolveNodeIds), treating edges as
  * UNDIRECTED for reachability (so a focus feature pulls in both what it depends
- * on AND what depends on it). Returns the induced subgraph. An unknown focus id
+ * on AND what depends on it). Returns the induced subgraph. An unknown focus
  * yields an empty graph.
  */
-export function subgraph(graph: KnowledgeGraph, focus: string, depth: number = Infinity): KnowledgeGraph {
-  if (!graph.nodes.some((n) => n.id === focus)) return {nodes: [], edges: []};
+export function subgraph(
+  graph: KnowledgeGraph,
+  focus: string | readonly string[],
+  depth: number = Infinity,
+): KnowledgeGraph {
+  const present = new Set(graph.nodes.map((n) => n.id));
+  const seeds = (typeof focus === 'string' ? [focus] : focus).filter((id) => present.has(id));
+  if (seeds.length === 0) return {nodes: [], edges: []};
   const adj = new Map<string, Set<string>>();
   for (const e of graph.edges) {
     (adj.get(e.from) ?? adj.set(e.from, new Set()).get(e.from)!).add(e.to);
     (adj.get(e.to) ?? adj.set(e.to, new Set()).get(e.to)!).add(e.from);
   }
-  const keep = new Set<string>([focus]);
-  let frontier = [focus];
+  const keep = new Set<string>(seeds);
+  let frontier = [...seeds];
   let hop = 0;
   while (frontier.length > 0 && hop < depth) {
     const next: string[] = [];
@@ -225,12 +232,26 @@ export function subgraph(graph: KnowledgeGraph, focus: string, depth: number = I
   };
 }
 
-/** Resolves a user query (feature id/slug, or module path) to a graph node id, or null. */
-export function resolveNodeId(spec: Spec, graph: KnowledgeGraph, query: string): string | null {
+/**
+ * Resolves a user query to EVERY graph node it denotes. A feature id/slug is one
+ * node; a path query returns ALL its kind-twins — the same file materialises as
+ * up to three nodes (module:/test:/doc:, 95 such paths on cladding-self), and a
+ * focus query that picked only the first twin silently dropped the others'
+ * edges. Empty when nothing matches.
+ */
+export function resolveNodeIds(spec: Spec, graph: KnowledgeGraph, query: string): string[] {
   const features = spec.features ?? [];
   const byIdOrSlug =
     features.find((f) => f.id === query) ?? features.find((f) => (f as {slug?: string}).slug === query);
-  if (byIdOrSlug) return nodeId.feature(byIdOrSlug.id);
+  if (byIdOrSlug) return [nodeId.feature(byIdOrSlug.id)];
   const candidates = [nodeId.module(query), nodeId.doc(query), nodeId.test(query), nodeId.scenario(query), query];
-  return candidates.find((id) => graph.nodes.some((n) => n.id === id)) ?? null;
+  const present = new Set(graph.nodes.map((n) => n.id));
+  return candidates.filter((id) => present.has(id));
+}
+
+/** Resolves a user query (feature id/slug, or module path) to ONE graph node id, or null.
+ *  Prefer resolveNodeIds — this keeps the pre-0.7.1 first-twin contract for callers
+ *  that need exactly one id. */
+export function resolveNodeId(spec: Spec, graph: KnowledgeGraph, query: string): string | null {
+  return resolveNodeIds(spec, graph, query)[0] ?? null;
 }
