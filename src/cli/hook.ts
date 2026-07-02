@@ -68,10 +68,40 @@ interface SpecDoc {
   readonly inventory?: {readonly features?: unknown; readonly scenarios?: unknown};
   readonly features?: readonly {readonly id?: unknown; readonly slug?: unknown; readonly status?: unknown}[];
   readonly scenarios?: readonly unknown[];
+  readonly project?: unknown; // project.ai_hints.preferred_patterns → prefer lines (F-fb9b48a5)
 }
 
 const POLICY_LINE =
   'policy: spec is SSoT — author shards via clad_create_feature; flip done only via clad done; verify with clad_run_gate';
+
+// One-line push of the context-compiler tools (F-fb9b48a5, AC-b08371b3). Pull
+// tools go uncalled partly because they are unadvertised; this is the cheapest
+// push (once per session). Falsifiable via F-6ba22c5c telemetry.
+const TOOLS_LINE =
+  'tools: clad_get_working_set <id|slug|path> → focus+needs+breaks+tests · clad_get_impact <path> → blast radius';
+
+/**
+ * Best-effort `prefer:` lines from project.ai_hints.preferred_patterns — the
+ * first two entries only, values VERBATIM from spec.yaml, each truncated to 140
+ * chars (AC-14f7778c). ai_hints absent or malformed (project/ai_hints not an
+ * object, patterns not an array, an entry missing a field) → skipped silently,
+ * never a throw (AC-5303e049).
+ */
+function preferLines(spec: SpecDoc): string[] {
+  const ai = asRecord(asRecord(spec.project).ai_hints);
+  const patterns = ai.preferred_patterns;
+  if (!Array.isArray(patterns)) return [];
+  const out: string[] = [];
+  for (const p of patterns.slice(0, 2)) {
+    const entry = asRecord(p);
+    const prefer = asString(entry.prefer);
+    const over = asString(entry.over);
+    const when = asString(entry.when);
+    if (prefer.length === 0 || over.length === 0 || when.length === 0) continue;
+    out.push(truncate(`prefer: ${prefer} over ${over} (${when})`, 140));
+  }
+  return out;
+}
 
 /**
  * Renders the SessionStart context card — the spec map injected mechanically
@@ -162,6 +192,10 @@ function renderSessionStartCard(cwd: string): string {
       /* unreadable block file → omit the resurface line */
     }
   }
+  // tools → prefer → policy: the guidance tail (F-fb9b48a5). Ordering + the 9-line
+  // cap (AC-20893cbc) hold because in-progress is one truncated line, not per-id.
+  lines.push(TOOLS_LINE);
+  for (const line of preferLines(spec)) lines.push(line);
   lines.push(POLICY_LINE);
   return lines.join('\n');
 }

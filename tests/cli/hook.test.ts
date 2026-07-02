@@ -78,7 +78,7 @@ function seedProject(): void {
 }
 
 describe('SessionStart — context card', () => {
-  test('full card: index counts + in-progress list + last gate + stop-block + policy line', () => {
+  test('full card: index counts + in-progress list + last gate + stop-block + tools + policy line', () => {
     seedProject();
     appendEvent(
       cwd,
@@ -94,10 +94,14 @@ describe('SessionStart — context card', () => {
     expect(lines[1]).toBe('in progress: F-bbb222 beta');
     expect(lines[2]).toBe('last gate: pre-push strict=true → GREEN @ abcdef12');
     expect(lines[3]).toBe('unresolved stop-block: 2 finding(s) — AC_DRIFT');
+    // tools advertisement precedes the policy line; this fixture has no ai_hints → no prefer lines (F-fb9b48a5).
     expect(lines[4]).toBe(
+      'tools: clad_get_working_set <id|slug|path> → focus+needs+breaks+tests · clad_get_impact <path> → blast radius',
+    );
+    expect(lines[5]).toBe(
       'policy: spec is SSoT — author shards via clad_create_feature; flip done only via clad done; verify with clad_run_gate',
     );
-    expect(lines).toHaveLength(5);
+    expect(lines).toHaveLength(6);
   });
 
   test('a RED gate_run renders as RED', () => {
