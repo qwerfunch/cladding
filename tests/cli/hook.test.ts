@@ -347,6 +347,50 @@ describe('PostToolUse — debounced drift nudge', () => {
     expect(runHookEvent('PostToolUse', {tool_name: 'Bash', tool_input: {command: 'ls'}}, cwd)).toBe('');
     expect(driftStub).not.toHaveBeenCalled();
   });
+
+  test('impact card fires for a host-style ABSOLUTE file_path and shows the repo-relative path', () => {
+    // v0.7.0 regression: hosts send tool_input.file_path absolute while the
+    // module index keys are repo-relative — the card never rendered in real
+    // usage (0/361 on cladding-self). Locks the relativization seam.
+    writeFileSync(
+      join(cwd, 'spec.yaml'),
+      [
+        'schema: "0.1"',
+        'project: {name: t, language: typescript}',
+        'features:',
+        '  - id: F-aaa111',
+        '    slug: alpha',
+        '    title: alpha',
+        '    status: done',
+        '    modules: [src/foo.ts]',
+        '    acceptance_criteria:',
+        '      - id: AC-001',
+        '        ears: ubiquitous',
+        '        text: t',
+        '        test_refs: [tests/foo.test.ts]',
+        '  - id: F-bbb222',
+        '    slug: beta',
+        '    title: beta',
+        '    status: done',
+        '    depends_on: [F-aaa111]',
+        '    modules: [src/bar.ts]',
+        '    acceptance_criteria:',
+        '      - id: AC-001',
+        '        ears: ubiquitous',
+        '        text: t',
+        '',
+      ].join('\n'),
+      'utf8',
+    );
+    const out = runHookEvent(
+      'PostToolUse',
+      {tool_name: 'Edit', tool_input: {file_path: join(cwd, 'src/foo.ts'), new_string: 'x'.repeat(50)}},
+      cwd,
+    );
+    expect(out).toContain('cladding impact: src/foo.ts → F-aaa111');
+    expect(out).toContain('breaks 1 feature');
+    expect(out).toContain('run 1 test');
+  });
 });
 
 describe('protocol resilience', () => {

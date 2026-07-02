@@ -623,6 +623,11 @@ export function runInferDepsCommand(opts: {ambiguity?: string} = {}): void {
  * baseline, the dependency depth/edges it resolves for you, and the regression-set coverage.
  * No agent, no test run — measures what the infrastructure CAN provide (an upper bound vs one
  * naive baseline), not whether an agent adopts it.
+ *
+ * ATTRIBUTION (v0.7.1): the shrink number is split — for budget-capped features the reduction
+ * is the CAP doing the work (arithmetic, not graph value), and the uncapped structural slice is
+ * ≈1x of naive (code + structured metadata). What the working set sells is the guaranteed
+ * budget + the wired needs/breaks/verify context, not raw byte shrink.
  */
 export function runMeasureCommand(opts: {json?: boolean} = {}): void {
   try {
@@ -638,9 +643,16 @@ export function runMeasureCommand(opts: {json?: boolean} = {}): void {
     if (opts.json) {
       process.stdout.write(`${JSON.stringify(r, null, 2)}\n`);
     } else {
+      const c = r.context;
+      const capPart =
+        c.truncatedCount > 0
+          ? `budget enforces ${c.medianShrinkTruncated}x on ${c.truncatedCount} capped feature(s) (cap-driven)`
+          : 'no feature hit the budget cap';
+      const fitPart = c.fitsCount > 0 ? `${c.medianShrinkFit}x on ${c.fitsCount} fitting` : 'none fit untruncated';
       const lines = [
         `graph efficiency · ${r.measured}/${r.featureCount} features`,
-        `  context: working-set ${r.context.medianSliceTokens} tok vs naive ${r.context.medianNaiveTokens} tok = ${r.context.medianShrinkFactor}x smaller (median)`,
+        `  context: working-set ${c.medianSliceTokens} tok vs naive ${c.medianNaiveTokens} tok — ${capPart}, ${fitPart}`,
+        `           uncapped structural slice = ${c.medianStructuralRatio}x of naive — the value is the guaranteed budget + wired needs/breaks/verify, not raw shrink`,
         `  search:  median ${r.search.medianDepth} hop(s) resolved (p95 ${r.search.p95Depth}), median ${r.search.medianEdges} edge(s)/feature (max hub ${r.search.maxEdges})`,
         `  stability: median blast-radius coverage ${r.stability.medianCoverage}, median ${r.stability.medianRegressionTests} regression test(s) surfaced; stops ${JSON.stringify(r.stability.byStopReason)}`,
         `  (deterministic upper bound vs the shard+all-modules baseline — not an agent-adoption measurement)`,
@@ -792,7 +804,7 @@ export function runRouteCommand(prompt: string): void {
 /**
  * 0.6.0 verb renames (alias-and-deprecate, docs/glossary.md). Commander keeps
  * the old spellings working via `.alias()`; this map only powers the one-line
- * stderr deprecation notice. The old verbs are removed in 0.7.
+ * stderr deprecation notice. The old verbs are removed in 0.8 (still shipped through 0.7.x).
  */
 export const RENAMED_VERBS: Readonly<Record<string, string>> = {
   refine: 'clarify',
@@ -809,7 +821,7 @@ export function printVerbDeprecationNotice(verb: string | undefined): void {
   const replacement = verb ? RENAMED_VERBS[verb] : undefined;
   if (!replacement) return;
   process.stderr.write(
-    `cladding: '${verb}' is now '${replacement}' — the old verb is removed in 0.7\n`,
+    `cladding: '${verb}' is now '${replacement}' — the old verb is removed in 0.8\n`,
   );
 }
 
@@ -842,7 +854,7 @@ export function createProgram(): Command {
 
   program
     .command('run [goal]')
-    .alias('drive') // 0.6.0 rename — `drive` is removed in 0.7
+    .alias('drive') // 0.6.0 rename — `drive` is removed in 0.8
     .description('(experimental) Headless autonomous loop — iterate ready features, dispatch developer + reviewer personas, run L1 gates, record evidence. The supported, exercised path is host-delegated (clad serve + your AI host loops the cadence); this loop needs a real LLM transport and is not auto-invoked')
     .option('--cwd <path>', 'target project directory (default cwd)')
     .option('--max-iterations <n>', 'cap iterations (default 50)', '50')
@@ -911,7 +923,7 @@ export function createProgram(): Command {
 
   program
     .command('status')
-    .alias('panel') // 0.6.0 rename — `panel` is removed in 0.7
+    .alias('panel') // 0.6.0 rename — `panel` is removed in 0.8
     .description('Render the feature × stage integrity matrix (business titles; use --internal for raw F-NNN ids)')
     .option('--internal', 'show internal F-NNN ids and stage codes')
     .action(runStatusCommand);
@@ -1005,7 +1017,7 @@ export function createProgram(): Command {
 
   program
     .command('clarify [answer...]')
-    .alias('refine') // 0.6.0 rename — `refine` is removed in 0.7
+    .alias('refine') // 0.6.0 rename — `refine` is removed in 0.8
     .description(
       'Advance the onboarding Q&A loop. Pass the user\'s answer to the next pending question as a positional ' +
         '(no quotes needed, e.g. `clad clarify 법인 사업자만`); the LLM refines spec/docs based on the full Q-A ' +

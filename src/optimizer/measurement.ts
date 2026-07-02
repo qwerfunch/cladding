@@ -33,12 +33,16 @@ export type ModuleReader = (path: string) => string | null;
 
 export interface FeatureEfficiency {
   readonly id: string;
-  /** working-set payload tokens (what the slice hands you). */
+  /** working-set payload tokens (what the slice hands you, at the default budget). */
   readonly sliceTokens: number;
+  /** working-set payload tokens with the budget lifted — the STRUCTURAL slice size. */
+  readonly structuralTokens: number;
   /** naive baseline tokens: the shard + the full text of every module file. */
   readonly naiveTokens: number;
   /** sliceTokens / naiveTokens — < 1 means the slice is smaller (the context it saves). */
   readonly contextRatio: number;
+  /** True when the default budget truncated anything — the shrink is then CAP-DRIVEN. */
+  readonly budgetSaturated: boolean;
   /** hops the iterative slice expanded (≈ grep rounds to reconstruct the radius by hand). */
   readonly searchDepth: number;
   /** forward depends_on + backward dependents the graph resolves for you. */
@@ -57,8 +61,26 @@ export interface EfficiencyReport {
   readonly context: {
     /** median sliceTokens / naiveTokens across measured features (< 1 = smaller). */
     readonly medianContextRatio: number;
-    /** median naive / slice (e.g. 6.0 = "6x smaller"). Infinity-safe. */
+    /**
+     * median naive / slice at the default budget. HONEST ATTRIBUTION: when
+     * `truncatedCount` > 0 this number is largely the BUDGET CAP doing the
+     * shrinking, not the graph — read it as "the budget enforces this
+     * reduction", and read `medianStructuralRatio` for what the slice
+     * structurally is without a cap.
+     */
     readonly medianShrinkFactor: number;
+    /** features whose working set fit the default budget untouched. */
+    readonly fitsCount: number;
+    /** features the default budget truncated (code/needs/breaks clipped) — cap-driven shrink. */
+    readonly truncatedCount: number;
+    /** median naive/slice over fitting features only (the graph's own shrink). */
+    readonly medianShrinkFit: number;
+    /** median naive/slice over truncated features only (cap arithmetic, labeled as such). */
+    readonly medianShrinkTruncated: number;
+    /** median structuralTokens / naiveTokens — the uncapped slice vs naive (≈0.9 on cladding-self:
+     *  the slice is the code PLUS structured metadata; its value is the bounded budget + the
+     *  needs/breaks/verify wiring, NOT raw byte shrink). */
+    readonly medianStructuralRatio: number;
     readonly medianSliceTokens: number;
     readonly medianNaiveTokens: number;
   };
@@ -99,13 +121,18 @@ export function measureGraphEfficiency(spec: Spec, read: ModuleReader, cwd = '.'
   const rows: FeatureEfficiency[] = [];
 
   for (const f of features) {
-    const ws = buildWorkingSet(spec, f.id, {cwd});
+    // The injected reader feeds BOTH sides — slice and baseline read the same universe
+    // (before this, buildWorkingSet read the real fs while the baseline read `read`,
+    // so any virtual universe silently inflated the shrink factor).
+    const ws = buildWorkingSet(spec, f.id, {cwd, read});
     if ('not_found' in ws) continue;
+    const structural = buildWorkingSet(spec, f.id, {cwd, read, maxTokens: Number.MAX_SAFE_INTEGER});
     const it = buildIterativeImpactSlice(spec, f.id);
     const itOk = !('not_found' in it);
 
     // slice tokens = the assembled working-set payload.
     const sliceTokens = estTokens(JSON.stringify(ws));
+    const structuralTokens = 'not_found' in structural ? sliceTokens : estTokens(JSON.stringify(structural));
     // naive baseline = the shard object + the full text of every module file.
     let naive = estTokens(JSON.stringify(f));
     for (const m of f.modules ?? []) {
@@ -118,8 +145,10 @@ export function measureGraphEfficiency(spec: Spec, read: ModuleReader, cwd = '.'
     rows.push({
       id: f.id,
       sliceTokens,
+      structuralTokens,
       naiveTokens: naive,
       contextRatio: naive > 0 ? sliceTokens / naive : 1,
+      budgetSaturated: ws.budget.truncated.length > 0,
       searchDepth: itOk ? it.depthUsed : 1,
       edgesResolved: forward + backward,
       stoppedBy: itOk ? it.stoppedBy : 'n/a',
@@ -130,7 +159,13 @@ export function measureGraphEfficiency(spec: Spec, read: ModuleReader, cwd = '.'
 
   rows.sort((a, b) => a.id.localeCompare(b.id));
   const ratios = rows.map((r) => r.contextRatio);
-  const shrink = rows.filter((r) => r.sliceTokens > 0).map((r) => r.naiveTokens / r.sliceTokens);
+  const shrinkOf = (rs: readonly FeatureEfficiency[]): number[] =>
+    rs.filter((r) => r.sliceTokens > 0).map((r) => r.naiveTokens / r.sliceTokens);
+  const fits = rows.filter((r) => !r.budgetSaturated);
+  const capped = rows.filter((r) => r.budgetSaturated);
+  const structuralRatios = rows
+    .filter((r) => r.naiveTokens > 0)
+    .map((r) => r.structuralTokens / r.naiveTokens);
   const byStop: Record<string, number> = {};
   for (const r of rows) byStop[r.stoppedBy] = (byStop[r.stoppedBy] ?? 0) + 1;
 
@@ -139,7 +174,12 @@ export function measureGraphEfficiency(spec: Spec, read: ModuleReader, cwd = '.'
     measured: rows.length,
     context: {
       medianContextRatio: Math.round(median(ratios) * 1000) / 1000,
-      medianShrinkFactor: Math.round(median(shrink) * 10) / 10,
+      medianShrinkFactor: Math.round(median(shrinkOf(rows)) * 10) / 10,
+      fitsCount: fits.length,
+      truncatedCount: capped.length,
+      medianShrinkFit: Math.round(median(shrinkOf(fits)) * 10) / 10,
+      medianShrinkTruncated: Math.round(median(shrinkOf(capped)) * 10) / 10,
+      medianStructuralRatio: Math.round(median(structuralRatios) * 100) / 100,
       medianSliceTokens: Math.round(median(rows.map((r) => r.sliceTokens))),
       medianNaiveTokens: Math.round(median(rows.map((r) => r.naiveTokens))),
     },

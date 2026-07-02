@@ -44,7 +44,8 @@ import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../
 import {buildContextSlice} from '../optimizer/context-slice.js';
 import {buildImpactSlice} from '../optimizer/reverse-slice.js';
 import {buildWorkingSet} from '../optimizer/working-set.js';
-import {buildGraph, resolveNodeId, subgraph} from '../graph/model.js';
+import {buildGraph, resolveNodeIds, subgraph} from '../graph/model.js';
+import {graphStats} from '../graph/stats.js';
 import {runDrift} from '../stages/drift.js';
 
 /** Persona ids registered as MCP prompts (mirrors src/agents/). */
@@ -59,7 +60,7 @@ export const PERSONA_IDS = [
 /**
  * 0.6.0 persona renames (docs/glossary.md). The old prompt names stay
  * registered as aliases serving the NEW persona body — hosts may have cached
- * the prompt names — and are removed in 0.7.
+ * the prompt names — and are removed in 0.8 (still shipped through 0.7.x).
  */
 export const PERSONA_PROMPT_ALIASES: Readonly<Record<string, string>> = {
   librarian: 'planner',
@@ -542,61 +543,85 @@ function registerTools(server: McpServer, cwd: string): void {
     },
   );
 
-  // clad_get_graph (F-64a5c159) — the live spec↔code↔doc knowledge graph (or a
-  // focused neighborhood). Always recomputed from the current spec, so the graph
-  // an agent reads is never stale. Companion to the `clad graph serve` live view.
+  // clad_get_graph (F-64a5c159) — the live spec↔code↔doc knowledge graph as a
+  // focused neighborhood, or a stats SUMMARY when no focus is given. The whole
+  // graph is ~285KB (~70k tokens) on cladding-self and grows with the project —
+  // an unbudgeted MCP payload that contradicts the working-set discipline — so
+  // the no-query form answers with graphStats + hubs and points at the CLI
+  // export for full dumps. Always recomputed from the current spec (never stale).
   server.registerTool(
     'clad_get_graph',
     {
-      title: 'Get the live knowledge graph (nodes + edges)',
+      title: 'Get the live knowledge graph (focused neighborhood, or a stats summary)',
       description:
-        'Returns the current spec↔code↔doc knowledge graph: nodes (feature/module/skill/test/scenario/capability/doc, ' +
+        'With query: the focus node’s N-hop neighborhood — nodes (feature/module/skill/test/scenario/capability/doc, ' +
         'tier-classified A/B/C/D, features labeled by slug) + typed edges (depends_on/touches/covers/binds/' +
-        'implements/references/links). Optionally focus on one node’s N-hop neighborhood. Recomputed live — never stale.',
+        'implements/references/links); a path query unions all its kind-twins (module/test/doc nodes of one file). ' +
+        'WITHOUT query: a compact summary (node/edge counts by kind + top hubs) — the full graph is tens of ' +
+        'thousands of tokens, use `clad graph export --format json` for a complete dump. Recomputed live — never stale.',
       inputSchema: {
         query: z
           .string()
           .optional()
-          .describe('Focus node: feature id (F-…), slug, or module path. Omit for the whole graph.'),
+          .describe('Focus node: feature id (F-…), slug, or module path. Omit for the stats summary.'),
         max_depth: z
           .number()
           .int()
           .positive()
           .max(6)
           .optional()
-          .describe('Neighborhood radius around the focus node (default: full graph from the focus)'),
+          .describe('Neighborhood radius around the focus node (default: full reachable subgraph from the focus)'),
       },
     },
     async (args) => {
       try {
         const spec = loadSpec(cwd);
-        let graph = buildGraph(spec, cwd);
-        if (args.query) {
-          const focusId = resolveNodeId(spec, graph, args.query);
-          if (!focusId) {
-            return {
-              isError: true,
-              content: [
-                {
-                  type: 'text',
-                  text: JSON.stringify(
-                    {
-                      schema_version: PAYLOAD_SCHEMA_VERSION,
-                      not_found: args.query,
-                      accepted_forms: ['feature id (F-…)', 'slug', 'module path'],
-                    },
-                    null,
-                    2,
-                  ),
-                },
-              ],
-            };
-          }
-          graph = subgraph(graph, focusId, args.max_depth ?? Infinity);
+        const graph = buildGraph(spec, cwd);
+        if (!args.query) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    schema_version: PAYLOAD_SCHEMA_VERSION,
+                    summary: true,
+                    stats: graphStats(graph),
+                    hint:
+                      'pass query (feature id, slug, or module path) for a neighborhood subgraph; ' +
+                      '`clad graph export --format json` dumps the full graph',
+                  },
+                  null,
+                  2,
+                ),
+              },
+            ],
+          };
         }
+        const focusIds = resolveNodeIds(spec, graph, args.query);
+        if (focusIds.length === 0) {
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    schema_version: PAYLOAD_SCHEMA_VERSION,
+                    not_found: args.query,
+                    accepted_forms: ['feature id (F-…)', 'slug', 'module path'],
+                  },
+                  null,
+                  2,
+                ),
+              },
+            ],
+          };
+        }
+        const focused = subgraph(graph, focusIds, args.max_depth ?? Infinity);
         return {
           content: [
-            {type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...graph}, null, 2)},
+            {type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...focused}, null, 2)},
           ],
         };
       } catch (err) {
@@ -689,8 +714,17 @@ function registerTools(server: McpServer, cwd: string): void {
         .split('\n')
         .filter((l) => l.trim().length > 0);
       const tail = lines.slice(-limit);
+      // A single corrupt/partial JSONL line (a mid-write tail read) must not
+      // crash the whole tool call — surface it as data instead.
+      const events = tail.map((l) => {
+        try {
+          return JSON.parse(l) as unknown;
+        } catch {
+          return {unparseable: l.slice(0, 200)};
+        }
+      });
       return {
-        content: [{type: 'text', text: JSON.stringify({events: tail.map((l) => JSON.parse(l))}, null, 2)}],
+        content: [{type: 'text', text: JSON.stringify({events}, null, 2)}],
       };
     },
   );
@@ -1117,12 +1151,12 @@ function registerPrompts(server: McpServer, cwd: string): void {
     register(id, id, `Persona prompt body for the ${id} agent.`);
   }
   // 0.6.0 alias prompts — old names serve the renamed persona's body so hosts
-  // with cached prompt names keep working for one release; removed in 0.7.
+  // with cached prompt names keep working; removed in 0.8.
   for (const [oldName, newId] of Object.entries(PERSONA_PROMPT_ALIASES)) {
     register(
       oldName,
       newId,
-      `Persona prompt body for the ${newId} agent. (Renamed: '${oldName}' is now '${newId}' in 0.6.0 — this alias is removed in 0.7.)`,
+      `Persona prompt body for the ${newId} agent. (Renamed: '${oldName}' is now '${newId}' in 0.6.0 — this alias is removed in 0.8.)`,
     );
   }
   // Suppress the unused-cwd lint — cwd is reserved for future

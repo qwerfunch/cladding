@@ -517,7 +517,7 @@ describe('cli/clad — createProgram', () => {
     try {
       clad.printVerbDeprecationNotice('panel');
       expect(stderrSpy.mock.calls.map((c) => String(c[0])).join('')).toBe(
-        "cladding: 'panel' is now 'status' — the old verb is removed in 0.7\n",
+        "cladding: 'panel' is now 'status' — the old verb is removed in 0.8\n",
       );
       stderrSpy.mockClear();
       clad.printVerbDeprecationNotice('status');

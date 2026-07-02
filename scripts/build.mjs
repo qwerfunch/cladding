@@ -87,7 +87,9 @@ await build({
   format: 'iife',
   outfile: 'dist/viewer/app.js',
   minify: true,
-  legalComments: 'none',
+  // The viewer vendors three.js — its MIT notice must ride the bundle
+  // ('none' stripped it, a license violation for a distributed artifact).
+  legalComments: 'eof',
 });
 copyFileSync('src/graph/viewer/styles.css', 'dist/viewer/styles.css');
 const viewerCount = 2;

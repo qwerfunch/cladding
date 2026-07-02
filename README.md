@@ -112,7 +112,7 @@ Blue = spec (center), orange = code, green = tests, pink = docs; more-connected 
 
 </div>
 
-- **See — the whole project on one canvas** — Run `clad graph serve` and it opens in your browser; you see what connects to what at a glance.
+- **See — the whole project on one canvas** — Run `clad graph serve`, open the printed localhost address in your browser, and you see what connects to what at a glance.
 - **Ask — "what breaks if I change this?"** — Ask the map and it tells you what's affected and which tests to run — it doesn't guess.
 - **Measure — it shines brighter the larger the project** — The amount you have to look at when fixing something drops sharply — on average **4× less** than reading everything. (`clad measure`)
 

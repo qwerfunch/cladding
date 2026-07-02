@@ -48,16 +48,29 @@ export function createGraphServer(opts: {readonly port?: number; readonly cwd?: 
 
   const server = createServer((req, res) => {
     const path = (req.url ?? '/').split('?')[0];
+    // DNS-rebinding guard: the server binds 127.0.0.1, but a hostile web page can
+    // still point a rebound hostname at it — only local Host headers are served.
+    const host = (req.headers.host ?? '').split(':')[0];
+    if (host && host !== 'localhost' && host !== '127.0.0.1' && host !== '[::1]' && host !== '::1') {
+      res.writeHead(403, {'Content-Type': 'text/plain'});
+      res.end('forbidden host');
+      return;
+    }
     try {
+      // Bodies are computed BEFORE writeHead on every non-SSE route: a mid-write /
+      // unparseable spec throws in liveGraph(), and committing 200+JSON headers first
+      // turned that into an HTTP 200 with a prose YAML error as the "JSON" body.
       if (path === '/graph.json') {
+        const body = toJson(liveGraph());
         res.writeHead(200, {'Content-Type': 'application/json', 'Cache-Control': 'no-store'});
-        res.end(toJson(liveGraph()));
+        res.end(body);
         return;
       }
       if (path === '/health.json') {
         // KILLER: live spec↔code conformance from cladding's drift detectors, per node.
+        const body = JSON.stringify(nodeHealth(liveGraph(), cwd));
         res.writeHead(200, {'Content-Type': 'application/json', 'Cache-Control': 'no-store'});
-        res.end(JSON.stringify(nodeHealth(liveGraph(), cwd)));
+        res.end(body);
         return;
       }
       if (path === '/events') {
@@ -74,19 +87,30 @@ export function createGraphServer(opts: {readonly port?: number; readonly cwd?: 
       if (path === '/' || path === '/index.html') {
         // The viewer self-wires SSE (EventSource('events')) and re-fetches graph/health
         // on refresh — health-only changes heal smoothly, structural changes reload.
+        const body = toHtmlShell(liveGraph());
         res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store'});
-        res.end(toHtmlShell(liveGraph()));
+        res.end(body);
         return;
       }
       res.writeHead(404, {'Content-Type': 'text/plain'});
       res.end('not found');
     } catch (err) {
-      // Headers may already be sent (e.g. an SSE stream) — only set status if not.
-      if (!res.headersSent) res.writeHead(500, {'Content-Type': 'text/plain'});
-      try {
-        res.end((err as Error).message);
-      } catch {
-        /* socket already gone */
+      // Error-as-data: a temporarily unreadable spec is a 503 JSON payload the viewer
+      // can react to, never a 200. headersSent stays guarded for mid-stream failures
+      // (SSE) where the status line is already on the wire.
+      if (!res.headersSent) {
+        res.writeHead(503, {'Content-Type': 'application/json', 'Cache-Control': 'no-store'});
+        try {
+          res.end(JSON.stringify({error: (err as Error).message}));
+        } catch {
+          /* socket already gone */
+        }
+      } else {
+        try {
+          res.end();
+        } catch {
+          /* socket already gone */
+        }
       }
     }
   });
@@ -102,7 +126,17 @@ export function createGraphServer(opts: {readonly port?: number; readonly cwd?: 
     const abs = join(cwd, dir);
     if (!existsSync(abs)) continue;
     try {
-      watchers.push(watch(abs, {recursive: true}, onChange));
+      const w = watch(abs, {recursive: true}, onChange);
+      // A runtime watcher error (EMFILE, deleted root, …) must degrade to
+      // manual refresh — an unhandled 'error' event would crash the server.
+      w.on('error', () => {
+        try {
+          w.close();
+        } catch {
+          /* already closed */
+        }
+      });
+      watchers.push(w);
     } catch {
       /* recursive watch unsupported on this platform → skip (manual refresh still works) */
     }
@@ -119,7 +153,13 @@ export function createGraphServer(opts: {readonly port?: number; readonly cwd?: 
   }, 30000);
   if (typeof ka.unref === 'function') ka.unref();
 
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
+    // A listen failure (EADDRINUSE on a busy port) rejects the boot promise so the
+    // CLI's catch prints one pulse line — before this the 'error' event was unhandled
+    // and the process died with a raw stack while the promise never settled. The
+    // listener stays attached for the server's lifetime (rejecting a settled promise
+    // is a no-op) so later runtime errors can't crash the process either.
+    server.on('error', reject);
     server.listen(opts.port ?? 0, '127.0.0.1', () => {
       const addr = server.address();
       const port = typeof addr === 'object' && addr ? addr.port : (opts.port ?? 0);
