@@ -7,6 +7,14 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.7.1] — 2026-07-02 — Honest Graph
+
+Repairs found by a deep multi-agent review of the 0.7.0 graph capability.
+Every fix was simulation-verified against real repo data before coding, and
+the release was validated by an external real-usage battery against npm
+0.7.0 on a real 188-feature project: 23 scenarios, 15 measured improvements,
+0 regressions.
+
 ### Added
 
 - **Fallback safety contract — the graph says "unknown" instead of "safe".**

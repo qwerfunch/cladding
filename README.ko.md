@@ -16,7 +16,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-1665%2F1665-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-1691%2F1691-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-40-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -46,7 +46,7 @@
 
 그래서 AI가 짠 코드를 **사람이 짠 코드만큼 믿고** 내보낼 수 있다.
 
-cladding은 **자기 자신도 cladding으로 만든다** — 기능 199개 중 195개가 같은 게이트를 통과했고, Ironclad 표준을 L4로 구현한 첫 사례다.
+cladding은 **자기 자신도 cladding으로 만든다** — 기능 200개 중 196개가 같은 게이트를 통과했고, Ironclad 표준을 L4로 구현한 첫 사례다.
 
 
 ## 호스트 LLM과 어떻게 함께 일하나
@@ -307,7 +307,7 @@ clad update                # 3. 새 버전에 맞게 정리
 
 | version | 준수 등급 | tests | gate | features |
 |---|---|---|---|---|
-| v0.7.0 · 2026-07 | L4 · [L0–L4 중 최고 · 자가 선언](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 1665 / 1665 · all pass | 15 단계 · 40 detectors | 199 · 195 done · 자기 스펙 |
+| v0.7.1 · 2026-07 | L4 · [L0–L4 중 최고 · 자가 선언](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 1691 / 1691 · all pass | 15 단계 · 40 detectors | 200 · 196 done · 자기 스펙 |
 
 <sub>170 test files · capability 6개 · coverage는 COVERAGE_DROP detector가 하락 차단</sub>
 
