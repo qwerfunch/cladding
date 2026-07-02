@@ -156,7 +156,7 @@ export function inferDependsOn(spec: Spec, read: ModuleReader, opts: InferOption
           if (!owners || owners.size > maxAmbiguity) continue; // ambiguous shared module → weak signal, skip
           for (const ownerId of owners) {
             if (ownerId === fromId) continue; // a feature importing its own module is not a dep
-            const k = `${fromId} ${ownerId}`;
+            const k = `${fromId}\u0000${ownerId}`;
             const existing = edgeMap.get(k);
             if (!existing || modPath < existing.via) edgeMap.set(k, {from: fromId, to: ownerId, via: modPath});
           }
