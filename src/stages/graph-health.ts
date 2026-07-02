@@ -23,6 +23,7 @@ import {untestedAc} from './detectors/untested-ac.js';
 import type {DriftDetector, DriftFinding} from './types.js';
 import {nodeId} from '../graph/model.js';
 import type {KnowledgeGraph} from '../graph/model.js';
+import {featureIdRe} from '../spec/feature-id.js';
 
 /** Per-node conformance health: worst severity + which detectors fired. */
 export interface NodeHealth {
@@ -45,8 +46,6 @@ const HEALTH_DETECTORS: readonly DriftDetector[] = [
   staleAttestation,
 ];
 
-const FEATURE_ID = /\bF-(?:\d{3,}|[a-f0-9]{6,8})\b/;
-
 /** Resolves a finding to the graph node it concerns, or null. */
 function findingNode(f: DriftFinding, ids: ReadonlySet<string>): string | null {
   if (f.path) {
@@ -55,7 +54,7 @@ function findingNode(f: DriftFinding, ids: ReadonlySet<string>): string | null {
       if (ids.has(cand)) return cand;
     }
   }
-  const m = FEATURE_ID.exec(f.message ?? '');
+  const m = featureIdRe().exec(f.message ?? '');
   if (m && ids.has(nodeId.feature(m[0]))) return nodeId.feature(m[0]);
   return null;
 }
