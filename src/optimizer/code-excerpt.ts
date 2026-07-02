@@ -46,26 +46,40 @@ export function withinCwd(rel: string, cwd: string): boolean {
   return abs === root || abs.startsWith(root + sep);
 }
 
+/** Injectable source reader (measurement/tests) — returns file text or null when unreadable. */
+export type ExcerptReader = (rel: string) => string | null;
+
 /**
  * Reads `rel` (relative to `cwd`) as a bounded, path-safe excerpt. Never throws.
  * `maxChars` caps the included text; longer files are clipped with a marker.
+ * When `read` is supplied it replaces the filesystem — the same safety gates
+ * (path, extension, size, binary) apply, so a virtual universe measures like
+ * the real one (measurement.ts compares slice vs naive through ONE reader).
  */
-export function codeExcerpt(rel: string, cwd: string, maxChars: number): CodeExcerpt {
+export function codeExcerpt(rel: string, cwd: string, maxChars: number, read?: ExcerptReader): CodeExcerpt {
   if (!withinCwd(rel, cwd)) return {path: rel, omitted: 'unsafe-path'};
   if (!CODE_EXTS.has(extname(rel).toLowerCase())) return {path: rel, omitted: 'unsupported'};
-  const abs = resolve(cwd, rel);
-  let bytes: number;
-  try {
-    bytes = statSync(abs).size;
-  } catch {
-    return {path: rel, omitted: 'missing'};
-  }
-  if (bytes > MAX_READ_BYTES) return {path: rel, omitted: 'too-large', bytes};
   let raw: string;
-  try {
-    raw = readFileSync(abs, 'utf8');
-  } catch {
-    return {path: rel, omitted: 'missing', bytes};
+  let bytes: number;
+  if (read) {
+    const virtual = read(rel);
+    if (virtual == null) return {path: rel, omitted: 'missing'};
+    raw = virtual;
+    bytes = Buffer.byteLength(virtual, 'utf8');
+    if (bytes > MAX_READ_BYTES) return {path: rel, omitted: 'too-large', bytes};
+  } else {
+    const abs = resolve(cwd, rel);
+    try {
+      bytes = statSync(abs).size;
+    } catch {
+      return {path: rel, omitted: 'missing'};
+    }
+    if (bytes > MAX_READ_BYTES) return {path: rel, omitted: 'too-large', bytes};
+    try {
+      raw = readFileSync(abs, 'utf8');
+    } catch {
+      return {path: rel, omitted: 'missing', bytes};
+    }
   }
   if (raw.includes(NUL)) return {path: rel, omitted: 'binary', bytes};
   const budget = Math.max(0, Math.floor(maxChars));

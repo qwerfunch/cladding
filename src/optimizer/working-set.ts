@@ -8,7 +8,7 @@
 // buildContextSlice stays pure/frozen (sim verdict: backward-compat); this NEW function does
 // the impure file reads via code-excerpt.ts. Deterministic given identical spec + file content.
 
-import {codeExcerpt, estTokens, type CodeExcerpt} from './code-excerpt.js';
+import {codeExcerpt, estTokens, type CodeExcerpt, type ExcerptReader} from './code-excerpt.js';
 import {buildContextSlice, type ContextLookupMiss} from './context-slice.js';
 import {buildIterativeImpactSlice} from './iterative-slice.js';
 import {buildImpactSlice} from './reverse-slice.js';
@@ -59,6 +59,8 @@ export interface WorkingSet {
 export interface WorkingSetOptions {
   readonly cwd?: string;
   readonly maxTokens?: number;
+  /** Injected source reader — replaces the filesystem for code excerpts (measurement/tests). */
+  readonly read?: ExcerptReader;
 }
 
 const DEFAULT_MAX_TOKENS = 3000;
@@ -154,7 +156,7 @@ export function buildWorkingSet(spec: Spec, query: string, opts: WorkingSetOptio
       truncated.push(`code: omitted ${m} (budget)`);
       continue;
     }
-    const ex = codeExcerpt(m, cwd, Math.floor((maxTokens - before) * 4 * 0.8)); // 0.8 = JSON-escape headroom
+    const ex = codeExcerpt(m, cwd, Math.floor((maxTokens - before) * 4 * 0.8), opts.read); // 0.8 = JSON-escape headroom
     if (structuralTokens <= maxTokens && sizeOf(base, needs, [...code, ex]) > maxTokens) {
       truncated.push(`code: omitted ${m} (budget)`);
       continue;
