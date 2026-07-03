@@ -7,7 +7,7 @@ ironclad_spec_ref: https://github.com/qwerfunch/ironclad/blob/main/detectors.sch
 
 # Drift detectors — inventory
 
-38 detectors are wired into `stages/drift.ts` via `stages/detectors/index.ts`: the upstream Ironclad 19 plus cladding extensions (`FIXTURE_REFERENCE_INVALID` onward). The live count is the filesystem itself — `scripts/build-plugin.mjs` Phase D recounts `stages/detectors/*.ts` and rewrites `plugin.json` on every build, so this prose number and the table below are kept honest by `tests/self-consistency.test.ts` (and `tests/scripts/build-plugin-detector-count.test.ts`). Each detector is a pure function `(opts) => readonly DriftFinding[]`; the stage passes when no finding has `severity === 'error'`.
+41 detectors are wired into `stages/drift.ts` via `stages/detectors/index.ts`: the upstream Ironclad 19 plus cladding extensions (`FIXTURE_REFERENCE_INVALID` onward). The live count is the filesystem itself — `scripts/build-plugin.mjs` Phase D recounts `stages/detectors/*.ts` and rewrites `plugin.json` on every build, so this prose number and the table below are kept honest by `tests/self-consistency.test.ts` (and `tests/scripts/build-plugin-detector-count.test.ts`). Each detector is a pure function `(opts) => readonly DriftFinding[]`; the stage passes when no finding has `severity === 'error'`.
 
 ## Catalog
 
@@ -67,9 +67,9 @@ Default to **status-blind**. Status-awareness is an exception, justified only wh
 
 The current `detectors.schema.json` does not encode `status_policy` as a per-detector field. Promoting this column to a normative spec field is a candidate Ironclad RFC for a future minor bump; cladding's status-aware behavior is conformant in the meantime because the spec doesn't forbid it.
 
-## Severity reality vs the "19 detectors" headline
+## Severity reality — the load-bearing core vs the conditional majority
 
-A 2026-05-19 inject experiment (`cladding-abc/08-drift-inject/`) measured cladding's detector set on a controlled-inject baseline. The full report is `REPORT-DRIFT-INJECT-2026-05-19.md` in that folder. Key finding: the **headline "19 detectors" is technically true but oversells the bare metal**. A more honest framing:
+The wired count (41) is technically true but oversells the bare metal. Most detectors carry a precondition — external config, a coverage or perf report, a source-code anchor, or a `done`-state feature — before they can fire, and several more stay dormant until the spec grows past a scale threshold. A more honest framing separates the always-on core from the conditional majority:
 
 ### 3 always-error detectors (the load-bearing core)
 
@@ -81,11 +81,11 @@ These fire at `error` severity, on every feature regardless of status, against d
 | `MISSING_IMPLEMENTATION` | spec declares a module path; file absent on disk |
 | `STATUS_DRIFT` | feature `status: done` while a declared module is missing |
 
-In the inject experiment, these three fired confidently and were the only error-severity catches without preconditions.
+These three are the catches that fire at `error` against direct spec/disk/code evidence with no external tool or config precondition (`UNMAPPED_ARTIFACT`'s full scan activates once the spec has grown past the ≥8-feature scale gate — a day-1 adoption courtesy, not a tool dependency).
 
-### 16 conditional detectors
+### 38 conditional detectors
 
-Each one is real, but each has a condition that softens its day-1 utility:
+Each of the remaining 38 is real, but carries a condition — or stays dormant until the spec grows — that softens its day-1 utility:
 
 | condition class | detectors |
 |---|---|

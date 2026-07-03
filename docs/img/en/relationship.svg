@@ -49,7 +49,7 @@
   <path d="M684 148 L684 122 Q684 108 698 108 L906 108 Q920 108 920 122 L920 148 Z" class="band"/>
   <text x="704" y="133" class="hdr">After · verify result</text>
   <text x="706" y="180" class="item">▸ 15-stage verify gate</text>
-  <text x="706" y="209" class="item">▸ 40 drift checks</text>
+  <text x="706" y="209" class="item">▸ 41 drift checks</text>
   <text x="706" y="238" class="item">▸ Impl-blind grader</text>
   <text x="706" y="267" class="item">▸ Runs the artifact</text>
 
