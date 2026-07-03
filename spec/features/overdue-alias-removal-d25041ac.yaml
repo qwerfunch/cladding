@@ -1,7 +1,7 @@
 id: F-d25041ac
 slug: overdue-alias-removal
 title: "Remove overdue deprecated CLI aliases (drive/panel/refine) + skill stubs"
-status: planned
+status: done
 modules:
   - src/cli/clad.ts
   - tests/cli/clad.test.ts
