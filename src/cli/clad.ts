@@ -7,12 +7,15 @@
 // CLI behavior.
 
 import process from 'node:process';
-import {readFileSync} from 'node:fs';
+import {readFileSync, writeFileSync} from 'node:fs';
 
 import {Command} from 'commander';
 
 import {classifyIntent} from '../router/intent.js';
 import {runChangelogCommand} from './changelog.js';
+import {collectChangelog, defaultSinceRef} from '../changelog/collect.js';
+import {renderAuditTable, renderCatalog, renderChangelogMarkdown} from '../changelog/render.js';
+import {buildBundleHtml, type BundleChanges} from '../report/bundle.js';
 import {runReportCommand} from './report.js';
 import {runDoctorCommand} from './doctor.js';
 import {runDone} from './done.js';
@@ -20,7 +23,7 @@ import {runHookCommand} from './hook.js';
 import {runUpdate} from './update.js';
 import {runInit} from './init.js';
 import {runClarifyCommand} from './clarify.js';
-import {runHostSetup} from '../init/host-setup.js';
+import {getCurrentCladdingVersion, runHostSetup} from '../init/host-setup.js';
 import {readEvents, recordEvent} from '../events/log.js';
 import {summarizeValueDelivery} from '../events/session-report.js';
 import {buildContextSlice} from '../optimizer/context-slice.js';
@@ -49,7 +52,7 @@ import {runVisual} from '../stages/visual.js';
 import type {DriftFinding, Disposition} from '../stages/types.js';
 import {gateStatusOf, isBlocking, worstContribution, type GateStatus} from '../stages/disposition.js';
 import {staleSpecification} from '../stages/detectors/stale-specification.js';
-import {findLatestCheckpoint, recordCheckpoint, recordRollback} from '../core/checkpoint.js';
+import {findLatestCheckpoint, readGitHead, recordCheckpoint, recordRollback} from '../core/checkpoint.js';
 import {maintainDeliverable} from '../spec/deliverable-detect.js';
 import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../spec/inventory.js';
 import {writeDocLinksYaml} from '../spec/doc-references.js';
@@ -59,7 +62,7 @@ import {buildBlindPayload, renderBlindBrief} from '../oracle/payload.js';
 import {requiredOracleWorklist} from '../oracle/policy.js';
 import {loadSpec} from '../spec/load.js';
 import {pulse, type PulseKind} from '../ui/pulse.js';
-import {renderPanel} from '../ui/panel.js';
+import {buildPanelModel, renderPanel} from '../ui/panel.js';
 import {featureLabel, gateLabel, haltMessage} from '../ui/softShell.js';
 
 /** Handler for `clad serve`. Boots the MCP server over stdio. */
@@ -884,9 +887,91 @@ function truncate(s: string, max: number): string {
 }
 
 /** Handler for `clad status` (formerly `panel`). Renders the feature × stage integrity matrix. */
-export function runStatusCommand(opts: {internal?: boolean}): void {
+export function runStatusCommand(opts: {internal?: boolean; json?: boolean}): void {
   const spec = loadSpec();
+  if (opts.json) {
+    // AC-e5f48ce5 — expose the SAME row model the ANSI panel renders, from the
+    // split-out builder: one SSoT for terminal, JSON, and the audit bundle.
+    // The row model can exceed the 64KB pipe buffer (200+ features), so write
+    // then let the event loop DRAIN — process.exit() truncates a buffered pipe
+    // mid-write (the latent bug PR #201 fixed for `clad check`).
+    process.stdout.write(`${JSON.stringify(buildPanelModel(spec, '.'), null, 2)}\n`);
+    process.exitCode = 0;
+    return;
+  }
   process.stdout.write(`${renderPanel(spec, '.', {internal: opts.internal})}\n`);
+  process.exit(0);
+}
+
+/** Formats a byte count as a compact human size (B / KB / MB). */
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+/**
+ * Handler for `clad bundle --out <file.html> [--since <ref>]` (F-e940fffe).
+ *
+ * Gathers every audit surface — the spec, the feature × stage row model, git
+ * HEAD + version provenance, the capability catalog, and (for the range) the
+ * shipped changes + audit table — then hands the DATA to the pure
+ * buildBundleHtml renderer and writes one self-contained HTML file. All I/O
+ * lives here; the renderer stays pure so a fixed repo state + fixed `now`
+ * yields byte-identical output. A range that cannot be anchored degrades the
+ * changelog + audit sections to an explicit notice, never the whole bundle
+ * (AC-15bb0b99).
+ *
+ * `opts.now` (ISO string) is injectable so tests can pin the one
+ * nondeterministic input; the CLI leaves it undefined → wall clock.
+ */
+export function runBundleCommand(opts: {out?: string; since?: string; cwd?: string; now?: string}): void {
+  const cwd = opts.cwd ?? '.';
+  const out = (opts.out ?? '').trim();
+  if (out.length === 0) {
+    pulse('fail', 'bundle', 'missing --out <file.html> — the bundle needs a destination path');
+    process.exit(1);
+    return;
+  }
+
+  let html: string;
+  try {
+    const spec = loadSpec(cwd);
+    const panel = buildPanelModel(spec, cwd);
+    const provenance = {
+      gitHead: readGitHead(cwd),
+      version: getCurrentCladdingVersion(),
+      generatedAt: opts.now ?? new Date().toISOString(),
+    };
+    const catalogMarkdown = renderCatalog(spec);
+    let changes: BundleChanges;
+    try {
+      const sinceRef = opts.since ?? defaultSinceRef(cwd);
+      const manifest = collectChangelog(cwd, sinceRef);
+      changes = {
+        kind: 'present',
+        sinceRef,
+        changelogMarkdown: renderChangelogMarkdown(manifest),
+        auditMarkdown: renderAuditTable(manifest, spec, cwd),
+      };
+    } catch (err) {
+      changes = {kind: 'omitted', reason: (err as Error).message};
+    }
+    html = buildBundleHtml({spec, panel, provenance, catalogMarkdown, changes});
+  } catch (err) {
+    pulse('fail', 'bundle', (err as Error).message);
+    process.exit(1);
+    return;
+  }
+
+  try {
+    writeFileSync(out, html, 'utf8');
+  } catch (err) {
+    pulse('fail', 'bundle', `could not write ${out}: ${(err as Error).message}`);
+    process.exit(1);
+    return;
+  }
+  pulse('pass', 'bundle', `${out} · ${formatBytes(Buffer.byteLength(html, 'utf8'))}`);
   process.exit(0);
 }
 
@@ -1022,6 +1107,7 @@ export function createProgram(): Command {
     .alias('panel') // 0.6.0 rename — `panel` is removed in 0.8
     .description('Render the feature × stage integrity matrix (business titles; use --internal for raw F-NNN ids)')
     .option('--internal', 'show internal F-NNN ids and stage codes')
+    .option('--json', 'emit the row model as JSON — the same feature × stage matrix the ANSI panel renders (columns + per-feature glyph cells), one SSoT for terminal, JSON, and the audit bundle')
     .action(runStatusCommand);
 
   program
@@ -1108,6 +1194,19 @@ export function createProgram(): Command {
         'finding, for code-scanning UIs) | json (the raw deterministic model)',
     )
     .action((opts: {since?: string; format?: string}) => runReportCommand(opts));
+
+  program
+    .command('bundle')
+    .description(
+      'Write ONE self-contained HTML audit bundle (F-e940fffe) a non-coder can double-click — offline, zero ' +
+        'network, no CDN, no scripts. Contains the project header + inventory, the feature × stage matrix, the ' +
+        'capability catalog, shipped changes for the range, the audit table with resolved refs, and the attestation ' +
+        'summary, under a provenance banner (git HEAD, date, version). Deterministic modulo the date stamp. If no ' +
+        'anchor ref resolves, the changelog + audit sections show an omitted notice while the rest still renders.',
+    )
+    .requiredOption('--out <file.html>', 'destination path for the HTML bundle')
+    .option('--since <ref>', 'git ref to diff shipped changes from (default: the latest tag via `git describe --tags --abbrev=0`)')
+    .action((opts: {out?: string; since?: string}) => runBundleCommand(opts));
 
   program
     .command('route <prompt>')
