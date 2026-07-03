@@ -119,6 +119,7 @@ features:
   F-43d8e3: {slug: smoke-probe-token-pass, status: done, modules: 3}
   F-4747ef: {slug: ssot-lifecycle-tests, status: done, modules: 9}
   F-4db939: {slug: ab-evaluation, status: done, modules: 9}
+  F-4ef09f38: {slug: multi-probe-smoke, status: done, modules: 3}
   F-50ff43: {slug: meta-integrity-skip-when-absent, status: done, modules: 2}
   F-551a1c: {slug: oracle-cost-lever, status: done, modules: 4}
   F-569f4b37: {slug: graph-export-viz, status: done, modules: 5}

@@ -269,6 +269,18 @@ export interface SmokeProbe {
   /** argv for kind:cli (no shell); cwd = project root. */
   readonly run?: readonly string[];
   readonly expect?: SmokeProbeExpect;
+  /**
+   * Per-feature binding (F-4ef09f38) — the F-id this probe demands. Makes probe
+   * demand per-feature instead of project-global:
+   *   bound to a NOT-done feature ⇒ disposition `na`, argv NOT executed (nothing
+   *     shipped yet ⇒ nothing to smoke);
+   *   bound to a DONE feature ⇒ executes regardless of the project-global anyDone
+   *     rule (that specific thing shipped, so smoke it);
+   *   UNBOUND (omitted) ⇒ keeps the project-global anyDone gating unchanged.
+   * A dangling id (no matching feature in the spec) is annotation drift —
+   * SMOKE_PROBE_DEMAND warns (same disease as stale test_refs).
+   */
+  readonly feature?: string;
   readonly binds?: {readonly feature?: string; readonly modules?: readonly string[]};
   /** Why this probe proves the AC (Why>What). */
   readonly why?: string;
