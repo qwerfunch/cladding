@@ -995,30 +995,6 @@ export function runRouteCommand(prompt: string): void {
 }
 
 /**
- * 0.6.0 verb renames (alias-and-deprecate, docs/glossary.md). Commander keeps
- * the old spellings working via `.alias()`; this map only powers the one-line
- * stderr deprecation notice. The old verbs are removed in 0.8 (still shipped through 0.7.x).
- */
-export const RENAMED_VERBS: Readonly<Record<string, string>> = {
-  refine: 'clarify',
-  panel: 'status',
-  drive: 'run',
-};
-
-/**
- * Prints the one-line deprecation notice when the invoked verb is a 0.6.0
- * alias (`clad panel` → "'panel' is now 'status'"). stderr, never stdout —
- * `--json` consumers and MCP stdio traffic stay clean.
- */
-export function printVerbDeprecationNotice(verb: string | undefined): void {
-  const replacement = verb ? RENAMED_VERBS[verb] : undefined;
-  if (!replacement) return;
-  process.stderr.write(
-    `cladding: '${verb}' is now '${replacement}' — the old verb is removed in 0.8\n`,
-  );
-}
-
-/**
  * Builds the commander Program with every verb wired up. Exported so
  * unit tests can invoke specific subcommands via
  * `createProgram().parse([verb, ...args], {from: 'user'})` without
@@ -1047,7 +1023,6 @@ export function createProgram(): Command {
 
   program
     .command('run [goal]')
-    .alias('drive') // 0.6.0 rename — `drive` is removed in 0.8
     .description('(experimental) Headless autonomous loop — iterate ready features, dispatch developer + reviewer personas, run L1 gates, record evidence. The supported, exercised path is host-delegated (clad serve + your AI host loops the cadence); this loop needs a real LLM transport and is not auto-invoked')
     .option('--cwd <path>', 'target project directory (default cwd)')
     .option('--max-iterations <n>', 'cap iterations (default 50)', '50')
@@ -1116,7 +1091,6 @@ export function createProgram(): Command {
 
   program
     .command('status')
-    .alias('panel') // 0.6.0 rename — `panel` is removed in 0.8
     .description('Render the feature × stage integrity matrix (business titles; use --internal for raw F-NNN ids)')
     .option('--internal', 'show internal F-NNN ids and stage codes')
     .option('--json', 'emit the row model as JSON — the same feature × stage matrix the ANSI panel renders (columns + per-feature glyph cells), one SSoT for terminal, JSON, and the audit bundle')
@@ -1258,7 +1232,6 @@ export function createProgram(): Command {
 
   program
     .command('clarify [answer...]')
-    .alias('refine') // 0.6.0 rename — `refine` is removed in 0.8
     .description(
       'Advance the onboarding Q&A loop. Pass the user\'s answer to the next pending question as a positional ' +
         '(no quotes needed, e.g. `clad clarify 법인 사업자만`); the LLM refines spec/docs based on the full Q-A ' +
@@ -1282,6 +1255,5 @@ export function createProgram(): Command {
 const isBundled = Boolean((globalThis as {__CLADDING_BUNDLED?: boolean}).__CLADDING_BUNDLED);
 const isCliEntry = isBundled || import.meta.url === `file://${process.argv[1]}`;
 if (isCliEntry) {
-  printVerbDeprecationNotice(process.argv[2]);
   createProgram().parse();
 }

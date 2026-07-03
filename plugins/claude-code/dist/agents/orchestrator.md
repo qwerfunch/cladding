@@ -33,13 +33,13 @@ You do NOT pre-load Tier C (conventions — developer's concern).
 
    **Step 6a (init).** Before calling `clad init` on a greenfield project (empty directory or `<3` source files), **ASK THE USER for their project intent in one line**. A natural question is enough: "어떤 종류의 프로젝트인가요? 한 줄로 설명해주세요". Forward the user's reply as the positional intent: `clad init <answer>` (no quotes needed — commander treats trailing tokens as variadic). The init handler routes the LLM to produce a domain-aware project-context + capabilities + architecture + a real first-feature title (used when the AI later registers the first feature via `clad_create_feature`) + 2-3 product-level clarifying questions, and writes `.cladding/onboarding/state.yaml` with the questions marked pending. DO NOT call bare `clad init` on a greenfield workspace — the result is a generic toolchain scaffold that misses the user's actual intent. (For an existing project ≥3 source files, bare `clad init` is fine — the observed scan path captures the codebase shape directly.)
 
-   **Step 6b (refine loop).** After init, drive the Q&A loop until the onboarding state file is marked `status: done`:
+   **Step 6b (clarify loop).** After init, drive the Q&A loop until the onboarding state file is marked `status: done`:
    - Read `.cladding/onboarding/state.yaml` and find the first `answer: null` entry.
    - Ask the user that exact question in chat, verbatim. Do NOT rephrase technical-sounding questions into your own words — the LLM calibrated them at product-owner vocabulary level.
-   - When the user replies, run `clad refine <reply>` (no quotes needed). The handler marks the question answered, calls the LLM with the full Q-A history, refines `docs/project-context.md` + `spec/capabilities.yaml` + `spec/architecture.yaml`, and may add new follow-up questions.
-   - Loop until `clad refine --json` reports `status: "done"` OR the user says they have enough. Never invent extra questions — only the LLM's questions are sanctioned for this loop.
+   - When the user replies, run `clad clarify <reply>` (no quotes needed). The handler marks the question answered, calls the LLM with the full Q-A history, refines `docs/project-context.md` + `spec/capabilities.yaml` + `spec/architecture.yaml`, and may add new follow-up questions.
+   - Loop until `clad clarify --json` reports `status: "done"` OR the user says they have enough. Never invent extra questions — only the LLM's questions are sanctioned for this loop.
 
-   If the user declines to answer a question, accept that and skip it (they can revisit via `clad refine <answer>` later, since pending state persists).
+   If the user declines to answer a question, accept that and skip it (they can revisit via `clad clarify <answer>` later, since pending state persists).
 
 ## Feature cycle — one feature at a time
 
@@ -62,7 +62,7 @@ The cycle steps are identical across host modes; only the WIP window and who fir
 | conversational / multi-feature | 1 (wider only across *independent* DAG units) | host; user between cycles |
 | single-feature prompt | 1 | single pass |
 | `/goal` autonomous | 1 (N for independent units) | host self-loops to the goal |
-| headless `clad drive` | 1 (`nextReady`) | the loop |
+| headless `clad run` | 1 (`nextReady`) | the loop |
 
 ## Project policy — `spec.yaml::project.ai_hints`
 
