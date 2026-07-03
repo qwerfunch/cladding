@@ -263,6 +263,13 @@ clad setup                # auto-wire your AI tools (Claude / Codex / Gemini / C
 | Gemini CLI (`~/.gemini/`) | `~/.gemini/extensions/cladding` | `gemini extensions link` |
 | Cursor (`~/.cursor/`) | `mcpServers.cladding` in `~/.cursor/mcp.json` | (JSON entry itself) |
 
+<!-- clad:host-claims {"claude":"verified","codex":"not-run","gemini":"not-run","cursor":"wiring-only"} -->
+<!-- ^ machine-readable host-support claims. HOST_CLAIM_DRIFT compares these against the newest
+     docs/dogfood/matrix.md evidence fence and warns under `clad check --strict` if a claim exceeds it.
+     gemini/codex abstain ("not-run") until the matrix carries passing evidence for them — the 2026-07-03
+     live run graded gemini `fail` (gemini-cli 0.42.0 crashes on every prompt in this environment).
+     Refresh the evidence with `clad doctor --hosts` (with consent). -->
+
 `clad setup` invokes each host's activation command automatically when the `claude` / `gemini` binaries are on PATH. Safe to re-run after an upgrade or after installing a new AI tool.
 
 **Verification level (honesty note):** Claude Code is fully verified through real-usage campaigns (including real-time intervention). Codex · Gemini CLI have automated wiring + basic behavior confirmed. Cursor wires automatically, but real-usage verification is still pending — to be updated as it lands.

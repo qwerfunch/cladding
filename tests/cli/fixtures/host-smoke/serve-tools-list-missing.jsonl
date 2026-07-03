@@ -1,0 +1,2 @@
+{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2024-11-05","capabilities":{}}}
+{"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"some_other_tool","description":"Not cladding"},{"name":"another_tool","description":"Also not cladding"}]}}

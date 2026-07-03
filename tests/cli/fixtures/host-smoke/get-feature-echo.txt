@@ -1,0 +1,8 @@
+Loaded cached credentials.
+Calling clad_get_feature for F-5283985e and summarizing.
+
+F-5283985e (host-smoke-matrix) makes every host-support claim trace to a
+dated, machine-produced smoke artifact under .cladding/audit/ instead of
+prose. It has 5 acceptance criteria covering: consent-gated probing, not-run
+honesty, the matrix generator, the README drift detector, and grading Cursor
+as wiring-only. Current status: in progress.
