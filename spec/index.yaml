@@ -181,6 +181,7 @@ features:
   F-ba2e05: {slug: ab-outcome-quality, status: done, modules: 8}
   F-ba4b7a: {slug: pulse-progressive, status: done, modules: 2}
   F-bb15e6: {slug: clad-doctor, status: done, modules: 3}
+  F-bc8ad013: {slug: mcp-description-diet, status: planned, modules: 2}
   F-bd07d7: {slug: greenfield-seeds, status: done, modules: 5}
   F-bdcd90: {slug: oracle-policy-risk-weighted, status: done, modules: 8}
   F-c037ae: {slug: test-refs-repair, status: done, modules: 4}

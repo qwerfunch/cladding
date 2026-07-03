@@ -27,6 +27,14 @@ already largely exists (`REFERENCE_INTEGRITY`, `UNMAPPED_ARTIFACT`,
 `CAPABILITIES_FEATURE_MAPPING`, `ARCHITECTURE_FROM_SPEC`). We add the *reverse*
 direction, the *doc* axis, and a *view*.
 
+**The realized model** (`src/graph/model.ts`, since v0.7.0) — seven node kinds:
+`feature` · `module` · `skill` · `test` · `scenario` · `capability` · `doc`, each
+tier-classified A/B/C/D (features labeled by slug); and seven typed edges:
+`depends_on` (feature→feature) · `touches` (feature→module) · `covers` (feature→test) ·
+`binds` (scenario→feature) · `implements` (capability→feature) · `references` (doc→feature) ·
+`links` (doc→doc). A file-path query unions its kind-twins — the `module`/`test`/`doc`
+nodes of one path. This is the taxonomy the `clad_get_graph` MCP tool points here for.
+
 ## 2. Ground-truth that shaped the design
 
 Two measurements (run against cladding-self) overruled the "obvious" graph proposal:
