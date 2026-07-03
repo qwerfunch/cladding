@@ -1015,7 +1015,7 @@ export function printVerbDeprecationNotice(verb: string | undefined): void {
  */
 export function createProgram(): Command {
   const program = new Command();
-  program.name('clad').description('Reference Ironclad CLI').version('0.7.1');
+  program.name('clad').description('Reference Ironclad CLI').version('0.8.0');
 
   program
     .command('init [intent...]')

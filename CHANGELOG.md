@@ -7,6 +7,77 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.8.0] — Context Push (2026-07-03)
+
+The harness stops waiting to be asked: it pushes the right context at you as
+you work, proves its own surfaces actually fired, and adds an audit-ready
+review packet — plus first-class Python support.
+
+> **Heads-up:** the after-edit hooks now also watch shell commands
+> (`sed`/heredoc/`tee`) and more file types (`.tsx`/`.jsx`, Kotlin, Java, Ruby,
+> PHP, C#, Elixir), so expect impact cards in more places. The drift-detector
+> count goes **40 → 41**. Three new commands land — `clad report`,
+> `clad bundle`, `clad doctor --hosts`. And `clad measure` now saves snapshots
+> under `.cladding/` (compare runs with `--trend`).
+
+### Added
+
+- ▸ **A real impact card after every edit.** Change a file and the card now
+  sums up what breaks, which tests to re-run, and a rough risk level — kept
+  short by a per-session token budget and de-duplicated so it never repeats.
+- ▸ **Cards for shell-made edits.** Files changed through `sed`, heredocs, or
+  `tee` (not just the editor) are now detected and get the same card.
+- ▸ **Cards for more languages.** `.tsx`/`.jsx` and Kotlin, Java, Ruby, PHP,
+  C#, and Elixir files now surface impact cards, matching every language
+  cladding already reads.
+- ▸ **A session-start card that points the way.** When a session opens, the
+  card names the two context tools (working-set and impact) and echoes the
+  project's own preferred patterns.
+- ▸ **The harness proves its surfaces fired.** cladding records when each card
+  or hint actually showed (or was skipped); read it back with
+  `clad measure --sessions`.
+- ▸ **Measurement that remembers.** `clad measure` persists snapshots under
+  `.cladding/`, and `--trend` prints the deltas between runs.
+- ▸ **Reproducible release numbers.** `clad changelog --measure` embeds
+  measured, reproducible figures straight into the release notes.
+- ▸ **The final smoke gate runs every check you declared.** The deliverable
+  smoke stage now runs all declared probes and reports the worst result, bound
+  per feature — one skipped probe can no longer hide behind a passing one.
+- ▸ **Python is first-class.** Detectors read pytest test globs, `coverage.xml`
+  coverage, and dotted imports for the architecture checks.
+- ▸ **`clad report` — a PR review packet.** One command renders spec changes,
+  owning features, the regression set, and gate status as markdown, JSON, or
+  SARIF.
+- ▸ **`clad bundle` — a zero-install audit bundle.** Writes one self-contained
+  HTML file you can double-click (no install, no internet), plus a
+  `clad status --json` machine view.
+- ▸ **`clad doctor --hosts` — dated host receipts.** Produces dated evidence of
+  which hosts are verified, and a new detector warns when a README claims more
+  host support than that evidence backs.
+- ▸ **Kotlin Gradle module-scoped gate finalized.** The per-module gate for
+  Gradle monorepos is now settled and covered.
+
+### Changed
+
+- ▸ **Hooks also watch shell commands.** The after-tool matcher now includes
+  Bash, so a shell edit triggers the same impact card as an editor edit.
+- ▸ **41 drift detectors** (was 40) — the new one flags a README that claims
+  more host support than the evidence supports.
+- ▸ **cladding smokes its own version banner.** The project's smoke config now
+  runs a second probe (the CLI version output), exercising the new multi-probe
+  aggregation on every gate run.
+
+### Fixed
+
+- ▸ **A gate that crashes can never read green.** Verdict matching is now
+  word-bounded and a crashed CLI is never counted as a pass — closing a path
+  an empty green could slip through.
+- ▸ **No stray measurement snapshots.** `clad measure` no longer persists a
+  snapshot when there is no commit to anchor it to.
+- ▸ **Large `--json` output no longer truncates.** `clad report` /
+  `clad status --json` over ~64KB used to get cut off in a pipe; the output is
+  now fully drained before exit.
+
 ## [0.7.1] — 2026-07-02 — Honest Graph
 
 Repairs found by a deep multi-agent review of the 0.7.0 graph capability.
