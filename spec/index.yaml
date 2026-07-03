@@ -145,6 +145,7 @@ features:
   F-7afbd4: {slug: clad-done-gated-transition, status: done, modules: 1}
   F-7ce18e: {slug: glossary-naming-convention, status: done, modules: 7}
   F-7fa4a7: {slug: mcp-sampling-dispatcher, status: done, modules: 1}
+  F-803386ab: {slug: python-first-class, status: done, modules: 3}
   F-80d19d: {slug: setup-command, status: done, modules: 7}
   F-8234ec3c: {slug: graph-viewer-galaxy, status: archived, modules: 0}
   F-836a90: {slug: link-capability-tool, status: done, modules: 2}
