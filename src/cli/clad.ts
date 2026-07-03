@@ -13,6 +13,7 @@ import {Command} from 'commander';
 
 import {classifyIntent} from '../router/intent.js';
 import {runChangelogCommand} from './changelog.js';
+import {runReportCommand} from './report.js';
 import {runDoctorCommand} from './doctor.js';
 import {runDone} from './done.js';
 import {runHookCommand} from './hook.js';
@@ -1091,6 +1092,22 @@ export function createProgram(): Command {
     .action((opts: {since?: string; json?: boolean; audit?: boolean; catalog?: boolean; measure?: boolean}) =>
       runChangelogCommand(opts),
     );
+
+  program
+    .command('report')
+    .description(
+      'Render one deterministic review packet for a git range (F-f6cc5e5a) — spec-shard movement (from the ' +
+        'changelog), changed source files resolved to their owning features via the reverse index, the deduped ' +
+        'regression set, and gate + attestation state. For PR reviewers, team-leads, and auditors: it RENDERS, it ' +
+        'gates nothing. Byte-identical across two runs on the same repository state.',
+    )
+    .option('--since <ref>', 'git ref to diff from (default: the latest tag via `git describe --tags --abbrev=0`)')
+    .option(
+      '--format <fmt>',
+      'md (default, the four-section markdown packet) | sarif (SARIF 2.1.0 — one result per error/warn drift ' +
+        'finding, for code-scanning UIs) | json (the raw deterministic model)',
+    )
+    .action((opts: {since?: string; format?: string}) => runReportCommand(opts));
 
   program
     .command('route <prompt>')
