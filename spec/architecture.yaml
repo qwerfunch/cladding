@@ -81,6 +81,8 @@ forbidden_imports:
     to: cli
   - from: stages
     to: serve
+  - from: stages/detectors
+    to: adapters
   - from: adapters
     to: drive
   - from: adapters

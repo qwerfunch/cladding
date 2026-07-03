@@ -37,6 +37,7 @@ import {runGraphServeCommand} from './graph-serve.js';
 import {strictSkipViolations} from '../stages/skip-policy.js';
 import {runArch} from '../stages/arch.js';
 import {runAudit} from '../stages/audit.js';
+import {clearDetectorResultCache, primeDetectorResultCache} from '../stages/detector-result-cache.js';
 import {runCommit} from '../stages/commit.js';
 import {runCov} from '../stages/cov.js';
 import {runDrift} from '../stages/drift.js';
@@ -473,31 +474,41 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
   const pulseKindOf = (s: GateStatus): PulseKind =>
     s === 'pass' ? 'pass' : s === 'liveness' ? 'note' : s === 'na' ? 'skip' : isBlocking(s) ? 'fail' : 'skip';
   const collected: {stage: string; label: string; status: GateStatus; exitCode: number; stderr?: string; findings?: readonly DriftFinding[]}[] = [];
-  for (const [name, run] of stages) {
-    const r = run({}) as {
-      pass: boolean;
-      exitCode: number;
-      stderr?: string;
-      findings?: readonly DriftFinding[];
-      disposition?: Disposition;
-    };
-    const label = opts.internal ? name : gateLabel(name);
-    // INVARIANT: exitCode 2 means "skipped" (cladding chose not to run — tool
-    // missing / unknown language). It is NON-blocking. A stage that RAN and
-    // found a real problem MUST return exitCode 1, never 2 — see
-    // stages/util.ts::ranToolResult. (tsc exits 2 on type errors; relaying that
-    // raw 2 here is what let a real type failure pass as a skip.)
-    // Disposition-first (F-e0f6c7): see stages/disposition.ts.
-    const status = gateStatusOf(r);
-    if (isBlocking(status)) {
-      anyFailed = true;
-      worst = Math.max(worst, worstContribution(r, status));
+  // F-e53596dd — prime the run-scoped detector cache so the drift stage's
+  // ARCHITECTURE_VIOLATION + HARDCODED_SECRET runs are reused by stage_1.5/1.6
+  // instead of re-spawning madge + secretlint (~5s of duplicate work per run).
+  // The stages here default cwd to '.', so prime the same root. Cleared in
+  // finally — a session outliving the loop would serve stale findings.
+  primeDetectorResultCache('.');
+  try {
+    for (const [name, run] of stages) {
+      const r = run({}) as {
+        pass: boolean;
+        exitCode: number;
+        stderr?: string;
+        findings?: readonly DriftFinding[];
+        disposition?: Disposition;
+      };
+      const label = opts.internal ? name : gateLabel(name);
+      // INVARIANT: exitCode 2 means "skipped" (cladding chose not to run — tool
+      // missing / unknown language). It is NON-blocking. A stage that RAN and
+      // found a real problem MUST return exitCode 1, never 2 — see
+      // stages/util.ts::ranToolResult. (tsc exits 2 on type errors; relaying that
+      // raw 2 here is what let a real type failure pass as a skip.)
+      // Disposition-first (F-e0f6c7): see stages/disposition.ts.
+      const status = gateStatusOf(r);
+      if (isBlocking(status)) {
+        anyFailed = true;
+        worst = Math.max(worst, worstContribution(r, status));
+      }
+      collected.push({stage: name, label, status, exitCode: r.exitCode, stderr: r.stderr, findings: r.findings});
+      if (!opts.json) {
+        pulse(pulseKindOf(status), label);
+        if (isBlocking(status)) printStageDetails(r);
+      }
     }
-    collected.push({stage: name, label, status, exitCode: r.exitCode, stderr: r.stderr, findings: r.findings});
-    if (!opts.json) {
-      pulse(pulseKindOf(status), label);
-      if (isBlocking(status)) printStageDetails(r);
-    }
+  } finally {
+    clearDetectorResultCache();
   }
   // STRICT SKIP-POLICY (F-67d2e9, generalizes the 0.5.x unit-only guard).
   // Under --strict, a skipped stage the spec DEMANDS is a fail: 1.1 when a
@@ -984,30 +995,6 @@ export function runRouteCommand(prompt: string): void {
 }
 
 /**
- * 0.6.0 verb renames (alias-and-deprecate, docs/glossary.md). Commander keeps
- * the old spellings working via `.alias()`; this map only powers the one-line
- * stderr deprecation notice. The old verbs are removed in 0.8 (still shipped through 0.7.x).
- */
-export const RENAMED_VERBS: Readonly<Record<string, string>> = {
-  refine: 'clarify',
-  panel: 'status',
-  drive: 'run',
-};
-
-/**
- * Prints the one-line deprecation notice when the invoked verb is a 0.6.0
- * alias (`clad panel` → "'panel' is now 'status'"). stderr, never stdout —
- * `--json` consumers and MCP stdio traffic stay clean.
- */
-export function printVerbDeprecationNotice(verb: string | undefined): void {
-  const replacement = verb ? RENAMED_VERBS[verb] : undefined;
-  if (!replacement) return;
-  process.stderr.write(
-    `cladding: '${verb}' is now '${replacement}' — the old verb is removed in 0.8\n`,
-  );
-}
-
-/**
  * Builds the commander Program with every verb wired up. Exported so
  * unit tests can invoke specific subcommands via
  * `createProgram().parse([verb, ...args], {from: 'user'})` without
@@ -1036,7 +1023,6 @@ export function createProgram(): Command {
 
   program
     .command('run [goal]')
-    .alias('drive') // 0.6.0 rename — `drive` is removed in 0.8
     .description('(experimental) Headless autonomous loop — iterate ready features, dispatch developer + reviewer personas, run L1 gates, record evidence. The supported, exercised path is host-delegated (clad serve + your AI host loops the cadence); this loop needs a real LLM transport and is not auto-invoked')
     .option('--cwd <path>', 'target project directory (default cwd)')
     .option('--max-iterations <n>', 'cap iterations (default 50)', '50')
@@ -1105,7 +1091,6 @@ export function createProgram(): Command {
 
   program
     .command('status')
-    .alias('panel') // 0.6.0 rename — `panel` is removed in 0.8
     .description('Render the feature × stage integrity matrix (business titles; use --internal for raw F-NNN ids)')
     .option('--internal', 'show internal F-NNN ids and stage codes')
     .option('--json', 'emit the row model as JSON — the same feature × stage matrix the ANSI panel renders (columns + per-feature glyph cells), one SSoT for terminal, JSON, and the audit bundle')
@@ -1247,7 +1232,6 @@ export function createProgram(): Command {
 
   program
     .command('clarify [answer...]')
-    .alias('refine') // 0.6.0 rename — `refine` is removed in 0.8
     .description(
       'Advance the onboarding Q&A loop. Pass the user\'s answer to the next pending question as a positional ' +
         '(no quotes needed, e.g. `clad clarify 법인 사업자만`); the LLM refines spec/docs based on the full Q-A ' +
@@ -1271,6 +1255,5 @@ export function createProgram(): Command {
 const isBundled = Boolean((globalThis as {__CLADDING_BUNDLED?: boolean}).__CLADDING_BUNDLED);
 const isCliEntry = isBundled || import.meta.url === `file://${process.argv[1]}`;
 if (isCliEntry) {
-  printVerbDeprecationNotice(process.argv[2]);
   createProgram().parse();
 }

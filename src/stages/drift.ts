@@ -15,6 +15,9 @@ import process from 'node:process';
 
 import {loadSpec, primeSpecCache} from '../spec/load.js';
 
+import {storeDetectorResult} from './detector-result-cache.js';
+import {architectureViolation} from './detectors/architecture-violation.js';
+import {hardcodedSecret} from './detectors/hardcoded-secret.js';
 import {allDetectors} from './detectors/index.js';
 import type {
   CommandStageOptions,
@@ -24,6 +27,16 @@ import type {
 } from './types.js';
 
 const detectors: DriftDetector[] = [...allDetectors];
+
+// The two detectors whose findings stage_1.5 (arch) and stage_1.6 (secret)
+// re-consume. When a gate run has primed the detector-result cache, runDrift
+// publishes just these two findings sets so those adapter stages fold them
+// instead of re-spawning madge + secretlint (F-e53596dd). Keyed off the
+// detectors' own `name` so a rename stays in sync across the three sites.
+const CACHED_DETECTOR_NAMES: ReadonlySet<string> = new Set([
+  architectureViolation.name,
+  hardcodedSecret.name,
+]);
 
 /**
  * Registers a drift detector into the module-level registry.
@@ -96,7 +109,14 @@ export function runDrift(opts: DriftOptions = {}): DriftReport {
   }
   try {
     for (const detector of detectors) {
-      findings.push(...detector.run(opts));
+      const detectorFindings = detector.run(opts);
+      findings.push(...detectorFindings);
+      // Publish the arch/secret findings for stage_1.5/1.6 to reuse. No-op
+      // unless a gate-run session is primed (storeDetectorResult guards on it),
+      // so standalone / PostToolUse / MCP-drift runs are unchanged (F-e53596dd).
+      if (CACHED_DETECTOR_NAMES.has(detector.name)) {
+        storeDetectorResult(detector.name, cwd, detectorFindings);
+      }
     }
   } finally {
     primeSpecCache(cwd, null);

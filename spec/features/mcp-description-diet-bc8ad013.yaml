@@ -1,0 +1,24 @@
+id: F-bc8ad013
+slug: mcp-description-diet
+title: "MCP tool description diet — bounded session-resident cost"
+status: done
+modules:
+  - src/serve/server.ts
+  - tests/serve/description-budget.test.ts
+acceptance_criteria:
+  - id: AC-82b0e788
+    ears: ubiquitous
+    text: "The clad_create_feature, clad_changelog, and clad_get_graph tool descriptions in src/serve/server.ts shall each fit in ~2 lines (<=400 characters), with relocated rationale living in existing docs/skills (hash-concurrency in docs/spec-ids-multi-dev.md, changelog formats in skills/changelog, graph taxonomy in docs/knowledge-graph/design.md) rather than in the always-resident schema."
+    test_refs: ["tests/serve/description-budget.test.ts"]
+    notes: "WHY: tool descriptions are resident in every session (14,042B total for 14 tools at 0.8.0); these three carried workflow essays (2,115B/1,383B/1,138B) that agents pay for on every turn of every loop."
+  - id: AC-7f832957
+    ears: unwanted
+    condition: "if the impl-blind protocol markers disappear from clad_author_oracle's description"
+    text: "The description-budget suite shall fail, keeping the blind-authoring protocol resident for skill-less MCP hosts."
+    test_refs: ["tests/serve/description-budget.test.ts"]
+    notes: "WHY: build-plugin Phase C ships only the init skill to Gemini (USER_FACING_VERBS={'init'}), so for Gemini/generic-MCP hosts the clad_author_oracle description is the only copy of the blind protocol — adversarial review flagged trimming it as the dangerous half of this diet."
+  - id: AC-56434559
+    ears: ubiquitous
+    text: "Every registered MCP tool description shall fit a per-tool character budget enforced by the suite (general cap with a single documented exemption tier for clad_author_oracle), so description essays cannot silently regrow."
+    test_refs: ["tests/serve/description-budget.test.ts"]
+    notes: "WHY: without a budget tripwire the diet regresses one helpful edit at a time; the suite pins the ceiling the way self-consistency pins public counts."

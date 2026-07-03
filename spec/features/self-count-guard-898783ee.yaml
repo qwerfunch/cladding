@@ -1,0 +1,35 @@
+id: F-898783ee
+slug: self-count-guard
+title: "Self-consistency guard for public counts + doc drift repair"
+status: done
+modules:
+  - tests/self-consistency.test.ts
+  - src/stages/detectors/README.md
+  - docs/README.md
+  - docs/img/en/ecosystem.svg
+  - docs/img/ko/ecosystem.svg
+  - docs/img/en/relationship.svg
+  - docs/img/ko/relationship.svg
+acceptance_criteria:
+  - id: AC-3f0cc5c3
+    ears: event
+    condition: "when a detector-count numeral in README.md or src/stages/detectors/README.md drifts from the registry (allDetectors.length)"
+    text: "The self-consistency suite shall fail when detector-count prose in README.md or src/stages/detectors/README.md disagrees with allDetectors.length."
+    test_refs: ["tests/self-consistency.test.ts"]
+    notes: "WHY: the drift tool carried uncaught drift in its own docs — prose said 38, SVGs said 40, registry has 41; the existing guard covered only 4 files and neither README."
+  - id: AC-a5633112
+    ears: event
+    condition: "when the N-stage prose count in README.md or AGENTS.md drifts from TIER_STAGES.all.length"
+    text: "The self-consistency suite shall fail when the \"15-stage\" prose in README.md or AGENTS.md disagrees with TIER_STAGES.all.length."
+    test_refs: ["tests/self-consistency.test.ts"]
+    notes: "WHY: HARNESS_INTEGRITY guards plugin.json stage arrays but no check tied the prose headline to the tier table; TIER_STAGES already imports cleanly in tests (precedent tests/cli/clad.test.ts)."
+  - id: AC-a454cb4e
+    ears: ubiquitous
+    text: "src/stages/detectors/README.md prose and the four docs/img SVGs (en/ko ecosystem + relationship) shall state the live detector count (41), with the dead cladding-abc report link removed while preserving the severity-reality (core-vs-conditional) breakdown."
+    evidence_refs: ["src/stages/detectors/README.md", "docs/img/en/ecosystem.svg", "docs/img/ko/ecosystem.svg", "docs/img/en/relationship.svg", "docs/img/ko/relationship.svg"]
+    notes: "WHY: SVGs are hand-authored art (no generator — verified), excluded from the automated guard because tspan-split text and noun variance (checks vs detectors) make regex matching brittle; repair is manual, guard covers markdown prose only."
+  - id: AC-f779e18c
+    ears: ubiquitous
+    text: "docs/README.md tier index shall list every live doc under docs/ (adding the previously missing rows: glossary, feature-cycle, gate-scope, ssot-testing, ssot-audit, knowledge-graph/design, marketplace-self-contained)."
+    evidence_refs: ["docs/README.md"]
+    notes: "WHY: the index omissions made live docs read as orphaned; several deletion candidates in the 2026-07 audit were misjudged dead partly because the index never listed them."

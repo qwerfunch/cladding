@@ -47,11 +47,11 @@
 | `check` | stable | Run the Iron Law stages; `--tier`, `--strict`, `--json`. | 게이트 검사 |
 | `done` | stable | Gated completion flip: status→done only if the strict pre-push gate is GREEN. | 검증된 완료 처리 |
 | `clarify` | stable (0.6.0) | Continue the onboarding Q&A (spec-kit `/clarify` precedent). | 온보딩 질의 진행 |
-| `refine` | alias → `clarify` | Old name (no CLI precedent); removal in 0.7. | (구명) |
+| `refine` | removed | Old alias → `clarify` (no CLI precedent); removed — `clarify` is the only spelling now. | (제거됨) |
 | `status` | stable (0.6.0) | Render the feature × stage integrity matrix (`git status` convention). | 상태 매트릭스 |
-| `panel` | alias → `status` | Old name (no CLI precedent); removal in 0.7. | (구명) |
+| `panel` | removed | Old alias → `status` (no CLI precedent); removed — `status` is the only spelling now. | (제거됨) |
 | `run` | stable (0.6.0) | Autonomous feature loop (EXPERIMENTAL; host-delegated path preferred). | 자율 루프 실행 |
-| `drive` | alias → `run` | Old name (no CLI precedent); removal in 0.7. | (구명) |
+| `drive` | removed | Old alias → `run` (no CLI precedent); removed — `run` is the only spelling now. | (제거됨) |
 | `work` | removed (0.6.0) | Was a permanently not-implemented reserved stub (always exit 2) — dishonest surface; `run` owns the slot. | (제거됨) |
 | `serve` | stable | Start the MCP server over stdio. | MCP 서버 |
 | `oracle` | stable | Print the impl-blind authoring brief for a feature/AC. | 오라클 브리프 |

@@ -38,6 +38,7 @@ import {latestEventOfType, recordEvent, type ImpactSkipReason} from '../events/l
 import type {Intent} from '../router/intent.js';
 import {suggestIntent} from '../router/intent.js';
 import {runArch} from '../stages/arch.js';
+import {clearDetectorResultCache, primeDetectorResultCache} from '../stages/detector-result-cache.js';
 import {runDrift} from '../stages/drift.js';
 import {runSecret} from '../stages/secret.js';
 import {buildImpactSlice, type ImpactSlice} from '../optimizer/reverse-slice.js';
@@ -343,26 +344,36 @@ function runStopGate(input: unknown, cwd: string): string {
   // BLOCKED by ABSENCE_OF_GOVERNANCE and had .cladding/ state written into it.
   if (!existsSync(join(cwd, 'spec.yaml'))) return '';
   const failures: StopFailure[] = [];
+  // F-e53596dd — the Stop gate is the drift trio (drift strict / arch / secret)
+  // and paid the madge + secretlint double-spawn on EVERY turn. Prime the
+  // detector cache so runDrift publishes ARCHITECTURE_VIOLATION + HARDCODED_
+  // SECRET for the two adapter stages below; clear in finally (this runs
+  // in-process, so a leaked session would poison the next turn's gate).
+  primeDetectorResultCache(cwd);
   try {
-    const drift = runDrift({strict: true, cwd});
-    for (const f of drift.findings) {
-      if (f.severity === 'error' || f.severity === 'warn') {
-        failures.push({detector: f.detector, path: f.path ?? '', message: f.message});
-      }
-    }
-  } catch {
-    /* a broken stage must never brick the host — treat as no signal */
-  }
-  for (const [name, run] of [['ARCH', runArch], ['SECRET', runSecret]] as const) {
     try {
-      const r = run({cwd});
-      if (r.exitCode === 1) {
-        const firstLine = (r.stderr ?? '').split('\n').find((l) => l.trim().length > 0);
-        failures.push({detector: name, path: 'stage', message: firstLine ?? `${name.toLowerCase()} stage failed`});
+      const drift = runDrift({strict: true, cwd});
+      for (const f of drift.findings) {
+        if (f.severity === 'error' || f.severity === 'warn') {
+          failures.push({detector: f.detector, path: f.path ?? '', message: f.message});
+        }
       }
     } catch {
-      /* same — silent degrade */
+      /* a broken stage must never brick the host — treat as no signal */
     }
+    for (const [name, run] of [['ARCH', runArch], ['SECRET', runSecret]] as const) {
+      try {
+        const r = run({cwd});
+        if (r.exitCode === 1) {
+          const firstLine = (r.stderr ?? '').split('\n').find((l) => l.trim().length > 0);
+          failures.push({detector: name, path: 'stage', message: firstLine ?? `${name.toLowerCase()} stage failed`});
+        }
+      } catch {
+        /* same — silent degrade */
+      }
+    }
+  } finally {
+    clearDetectorResultCache();
   }
   const blockFile = stopBlockPath(cwd);
   if (failures.length === 0) {

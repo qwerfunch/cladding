@@ -49,7 +49,7 @@
   <path d="M684 148 L684 122 Q684 108 698 108 L906 108 Q920 108 920 122 L920 148 Z" class="band"/>
   <text x="704" y="133" class="hdr">후 · 결과를 검증한다</text>
   <text x="706" y="180" class="item">▸ 15단계 검증 관문</text>
-  <text x="706" y="209" class="item">▸ 40가지 어긋남 검사</text>
+  <text x="706" y="209" class="item">▸ 41가지 어긋남 검사</text>
   <text x="706" y="238" class="item">▸ 구현 못 보는 채점자</text>
   <text x="706" y="267" class="item">▸ 실행물 직접 구동</text>
 

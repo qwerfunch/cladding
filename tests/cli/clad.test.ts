@@ -502,32 +502,39 @@ describe('cli/clad — createProgram', () => {
     ]);
   });
 
-  // 0.6.0 renames keep the old spellings working for one release via
-  // commander aliases; `work` is gone outright (no alias — it was a
-  // permanently-not-implemented stub).
-  test('renamed verbs keep their old names as aliases; work is removed', () => {
+  // 0.8.0 removed the 0.6.0 compat aliases (`drive`→`run`, `panel`→`status`,
+  // `refine`→`clarify`), fulfilling the stderr notice shipped since 0.6.0.
+  // `work` was removed outright back in 0.6.0. All four must stay gone: never
+  // registered as a command name, never as an alias — the successor verb is
+  // the only spelling.
+  test('removed aliases stay removed; successors are the only spelling', () => {
     const program = clad.createProgram();
-    const aliasOf = (name: string) => program.commands.find((c) => c.name() === name)?.aliases() ?? [];
-    expect(aliasOf('run')).toContain('drive');
-    expect(aliasOf('status')).toContain('panel');
-    expect(aliasOf('clarify')).toContain('refine');
-    expect(program.commands.some((c) => c.name() === 'work' || c.aliases().includes('work'))).toBe(false);
+    const names = program.commands.map((c) => c.name());
+    const aliases = program.commands.flatMap((c) => c.aliases());
+    for (const gone of ['drive', 'panel', 'refine', 'work']) {
+      expect(names).not.toContain(gone);
+      expect(aliases).not.toContain(gone);
+    }
+    expect(names).toEqual(expect.arrayContaining(['run', 'status', 'clarify']));
   });
 
-  test('printVerbDeprecationNotice writes one stderr line for an old verb, nothing for new/unknown', () => {
-    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-    try {
-      clad.printVerbDeprecationNotice('panel');
-      expect(stderrSpy.mock.calls.map((c) => String(c[0])).join('')).toBe(
-        "cladding: 'panel' is now 'status' — the old verb is removed in 0.8\n",
-      );
-      stderrSpy.mockClear();
-      clad.printVerbDeprecationNotice('status');
-      clad.printVerbDeprecationNotice('no-such-verb');
-      clad.printVerbDeprecationNotice(undefined);
-      expect(stderrSpy).not.toHaveBeenCalled();
-    } finally {
-      stderrSpy.mockRestore();
+  // The removed spellings must fail closed: commander treats each as an unknown
+  // command and exits non-zero (no silent no-op, no deprecation-and-continue).
+  test('invoking a removed alias is a commander unknown-command error (non-zero exit)', () => {
+    for (const gone of ['drive', 'panel', 'refine']) {
+      const program = clad.createProgram();
+      program.exitOverride();
+      program.configureOutput({writeErr: () => {}, writeOut: () => {}});
+      let caught: {exitCode?: number; code?: string; message?: string} | undefined;
+      try {
+        program.parse([gone], {from: 'user'});
+      } catch (err) {
+        caught = err as {exitCode?: number; code?: string; message?: string};
+      }
+      expect(caught, `\`clad ${gone}\` should error`).toBeDefined();
+      expect(caught?.code).toBe('commander.unknownCommand');
+      expect(caught?.exitCode).not.toBe(0);
+      expect(caught?.message).toMatch(/unknown command/);
     }
   });
 

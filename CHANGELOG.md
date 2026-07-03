@@ -7,6 +7,17 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Removed
+
+- ▸ **The three renamed CLI verbs are gone.** `drive`, `panel`, and `refine` —
+  the old spellings kept working since 0.6.0 as aliases for `run`, `status`,
+  and `clarify` — are removed. Typing one now returns an unknown-command error;
+  use the new name instead.
+- ▸ **Their skill stubs are gone too.** The `drive`, `panel`, and `refine`
+  redirect skills under `skills/` (and their Codex mirror copies) are deleted.
+- This completes the removal the deprecation notice has promised on every use of
+  those verbs since 0.6.0.
+
 ## [0.8.0] — Context Push (2026-07-03)
 
 The harness stops waiting to be asked: it pushes the right context at you as

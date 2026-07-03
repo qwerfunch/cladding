@@ -1,0 +1,30 @@
+id: F-e53596dd
+slug: gate-run-detector-cache
+title: "Gate-run scoped detector result sharing — no double madge/secretlint"
+status: done
+modules:
+  - src/stages/detector-result-cache.ts
+  - src/stages/arch.ts
+  - src/stages/secret.ts
+  - src/stages/drift.ts
+  - src/cli/clad.ts
+  - src/cli/hook.ts
+  - tests/stages/detector-result-cache.test.ts
+acceptance_criteria:
+  - id: AC-f4163677
+    ears: event
+    condition: "when a gate run executes the drift stage before arch/secret within one primed cache session"
+    text: "stage_1.5 and stage_1.6 shall reuse the drift-stage ARCHITECTURE_VIOLATION and HARDCODED_SECRET findings without re-spawning madge/secretlint."
+    test_refs: ["tests/stages/detector-result-cache.test.ts"]
+    notes: "WHY: measured madge 1.27s + secretlint 3.75s each ran TWICE per pre-commit tier (drift runs both detectors, then arch/secret re-run the same detectors) — ~5.0s of the 11.4s tier; the Stop hook pays this on every agent-loop turn."
+  - id: AC-9bb78051
+    ears: event
+    condition: "when runArch or runSecret executes with no primed session or a cache miss (standalone stage, conformance fixture, cwd mismatch)"
+    text: "The stage shall fall through to the unchanged direct detector run (tool spawns exactly as before)."
+    test_refs: ["tests/stages/detector-result-cache.test.ts"]
+    notes: "WHY: conformance fixtures pin standalone runArch/runSecret semantics and detector-level tests pin execaSync call counts — the cache must live at the stage layer with miss-transparent fallthrough, never inside the detectors."
+  - id: AC-f48f9b90
+    ears: ubiquitous
+    text: "The cache session shall be primed and cleared at the gate-run seams (runCheckStages, runStopGate) with finally-clear, never outliving one run nor leaking across requests in long-lived processes."
+    test_refs: ["tests/stages/detector-result-cache.test.ts"]
+    notes: "WHY: primeSpecCache's lifetime ends inside runDrift's finally so it cannot serve later stages; spec/load.ts:54-56 warns run caches must not leak across the MCP server's requests — this cache needs the WIDER gate-run lifetime, cleared in finally at the seam."

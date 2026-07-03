@@ -12,6 +12,7 @@
 
 import process from 'node:process';
 
+import {readDetectorResult} from './detector-result-cache.js';
 import {hardcodedSecret} from './detectors/hardcoded-secret.js';
 import type {CommandStageOptions, StageResult} from './types.js';
 
@@ -29,7 +30,13 @@ const STAGE = 'stage_1.6';
  * @see stages/detectors/hardcoded-secret.ts — the underlying scanner call.
  */
 export function runSecret(opts: CommandStageOptions = {}): StageResult {
-  const findings = hardcodedSecret.run(opts);
+  // Reuse the drift stage's HARDCODED_SECRET findings when a gate run primed
+  // the session (F-e53596dd) — avoids a second secretlint spawn. On a miss (no
+  // session / standalone) run the detector directly: byte-identical. The
+  // detector emits only `error`/`info` severities (never `warn`), so a strict
+  // drift run stores the same findings this filter expects.
+  const cwd = opts.cwd ?? '.';
+  const findings = readDetectorResult(hardcodedSecret.name, cwd) ?? hardcodedSecret.run(opts);
   const errors = findings.filter((f) => f.severity === 'error');
   const pass = errors.length === 0;
   const result: StageResult = {stage: STAGE, pass, exitCode: pass ? 0 : 1};
