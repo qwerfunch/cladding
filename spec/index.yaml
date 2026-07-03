@@ -150,6 +150,7 @@ features:
   F-80d19d: {slug: setup-command, status: done, modules: 7}
   F-8234ec3c: {slug: graph-viewer-galaxy, status: archived, modules: 0}
   F-836a90: {slug: link-capability-tool, status: done, modules: 2}
+  F-898783ee: {slug: self-count-guard, status: planned, modules: 7}
   F-8f419e: {slug: smoke-legacy-liveness, status: done, modules: 1}
   F-904495a5: {slug: changelog-render, status: done, modules: 5}
   F-9064ff: {slug: deliverable-smoke, status: done, modules: 8}
@@ -171,6 +172,7 @@ features:
   F-aee61f: {slug: scan-roots-from-architecture, status: done, modules: 1}
   F-af45042a: {slug: graph-live-health, status: done, modules: 5}
   F-af96b1: {slug: no-vacuous-green-gate-contract, status: done, modules: 6}
+  F-b010427b: {slug: detector-layer-purity, status: planned, modules: 2}
   F-b2094740: {slug: lint-config-detection, status: done, modules: 1}
   F-b43066: {slug: model-defaults-refresh, status: done, modules: 6}
   F-b61449: {slug: gemini-cli-dogfood, status: done, modules: 1}
