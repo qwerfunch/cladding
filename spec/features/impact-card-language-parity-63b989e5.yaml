@@ -1,0 +1,34 @@
+id: F-63b989e5
+slug: impact-card-language-parity
+title: "Watched-path filter derives from the language SSoT — impact cards fire for every language cladding claims (incl. .tsx)"
+status: done
+modules:
+  - src/cli/hook.ts
+  - src/stages/toolchain/language-config.ts
+acceptance_criteria:
+  - id: AC-faae7baf
+    ears: event
+    condition: "when a PostToolUse event carries a file_path whose extension appears in any registered LanguageConfig extensions or in the exported WATCHED_EXTENSIONS table covering every language cladding supports"
+    text: "When an edited file's extension is registered in the language SSoT (including .tsx .jsx .mts .cts .kt .kts .java .rb .php .cs .fs .ex .exs alongside the existing .ts .js .py .rs .go), isWatchedSourcePath shall return true."
+    notes: "WHY: hook.ts hardcodes 5 extensions — .tsx is missing, so a Next.js app/page.tsx gets no impact card in cladding's core TS market; JVM/Ruby/PHP/C#/Elixir repos get none outside src/."
+    test_refs:
+      - tests/cli/watched-paths.test.ts
+  - id: AC-0a3cc0bb
+    ears: ubiquitous
+    text: "The system shall preserve the existing src/-path-segment rule and every existing watched-path verdict for the current test suite's cases, and the extension table shall live in src/stages/toolchain/ so a future language addition updates exactly one place."
+    notes: "WHY: SSoT — the same argument that motivated language-config.ts; zero regressions on shipped behavior."
+    test_refs:
+      - tests/cli/watched-paths.test.ts
+  - id: AC-25c3a256
+    ears: unwanted
+    condition: "if the edited file is a non-source artifact such as .md .yaml .yml .json .lock or a build script outside src/"
+    text: "If the edited file is a non-source artifact, then isWatchedSourcePath shall continue returning false so the impact card never fires on config or docs churn."
+    notes: "WHY: noise budget — widening reach must not widen noise."
+    test_refs:
+      - tests/cli/watched-paths.test.ts
+  - id: AC-7e325488
+    ears: ubiquitous
+    text: "The system shall keep isWatchedSourcePath synchronous and free of filesystem access (pure string/set check)."
+    notes: "WHY: this check runs on every PostToolUse event before any other gate; it must stay O(1)."
+    test_refs:
+      - tests/cli/watched-paths.test.ts

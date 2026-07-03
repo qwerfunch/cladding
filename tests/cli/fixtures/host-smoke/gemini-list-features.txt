@@ -1,0 +1,10 @@
+Loaded cached credentials.
+I'll use clad_list_features to list the first three features and show their ids.
+
+Here are the first three features in this project:
+
+1. F-5283985e — host-smoke-matrix: clad doctor --hosts smoke matrix
+2. F-06dfdad6 — working-set assembler: token-budgeted context slice
+3. F-96250595 — iterative impact slice: widen-until-sufficient
+
+Let me know if you'd like details on any of them.

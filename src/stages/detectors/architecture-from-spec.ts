@@ -66,6 +66,22 @@ function run(opts: CommandStageOptions): readonly DriftFinding[] {
   const findings: DriftFinding[] = [];
   const {layers, forbiddenImports} = normalizeArchitecture(arch);
 
+  // Visible skip (F-803386ab): when the spec declares layer rules but the
+  // language's mainRoot directory does not exist (e.g. a flat-layout Python
+  // repo with packages at the repo root), every check below would anchor on
+  // the missing <mainRoot>/ and silently no-op — leaving the user believing
+  // the rules are enforced. Say so instead, once, at info severity.
+  if ((layers.size > 0 || forbiddenImports.length > 0) && !existsSync(join(cwd, cfg.mainRoot))) {
+    return [
+      {
+        detector: NAME,
+        severity: 'info',
+        path: `${cfg.mainRoot}/`,
+        message: `architecture layers declared but ${cfg.mainRoot}/ not found — layer checks skipped (flat layout not yet supported)`,
+      },
+    ];
+  }
+
   if (layers.size > 0) {
     checkUndeclaredDirectories(cwd, cfg, layers, findings);
     checkEmptyLayers(cwd, cfg, layers, findings);

@@ -16,15 +16,15 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-1691%2F1691-brightgreen" alt="tests"/>
-  <img src="https://img.shields.io/badge/detectors-40-brightgreen" alt="detectors"/>
+  <img src="https://img.shields.io/badge/tests-2012%2F2012-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
 
 <p align="center">
   The official reference implementation of the <a href="https://github.com/qwerfunch/ironclad">Ironclad</a> standard.<br/>
   Before your host LLM (Claude Code · Codex · Gemini · Cursor) <em>starts</em> work, cladding feeds it the project's intent;<br/>
-  after it <em>finishes</em>, cladding verifies the result with 40 detectors and a 15-stage gate.
+  after it <em>finishes</em>, cladding verifies the result with 41 detectors and a 15-stage gate.
 </p>
 
 <!-- ─────────────── Why an enterprise can trust AI with coding ─────────────── -->
@@ -43,7 +43,7 @@
 
 So you can ship code an AI wrote with **the same trust as code a human wrote**.
 
-cladding builds **itself** with cladding too — 196 of its 200 features cleared the same gate, the first L4 implementation of the Ironclad standard.
+cladding builds **itself** with cladding too — 209 of its 212 features cleared the same gate, the first L4 implementation of the Ironclad standard.
 
 <!-- ─────────────── How it partners with the host LLM ─────────────── -->
 
@@ -57,7 +57,7 @@ cladding builds **itself** with cladding too — 196 of its 200 features cleared
 - **Only the intent that matters** — just the *why* of the feature at hand, its related features, and its acceptance criteria are pulled out (it does not dump the whole spec).
 - **Project rules applied** — the forbidden and preferred patterns the team agreed on go in as standing instructions every time.
 
-**After — verify:** the 15-stage gate, 40 drift detectors, and an implementation-blind grader (below).
+**After — verify:** the 15-stage gate, 41 drift detectors, and an implementation-blind grader (below).
 
 <sub>Real-time intervention (map injection · instant block · stop-block) all works on Claude Code. On Codex · Gemini · Cursor the same verification runs through in-conversation tool calls plus the git · CI gate.</sub>
 
@@ -133,7 +133,7 @@ clad graph export --format html --out graph.html  # or export to a single offlin
 
 <div align="center">
 
-<img src="docs/img/en/cycle.svg" alt="Spec → Code → Tests cycle — the 15-stage verification and 40 drift detectors guard the cycle" width="700">
+<img src="docs/img/en/cycle.svg" alt="Spec → Code → Tests cycle — the 15-stage verification and 41 drift detectors guard the cycle" width="700">
 
 </div>
 
@@ -171,14 +171,14 @@ One check engine, bundled **by cost**: 3 at commit, 9 at push/completion, all 15
 | Stage | What it checks |
 |---|---|
 | **1.1 Type · 1.2 Lint** | type errors · code style |
-| **1.3 Drift** | spec ↔ code mismatches across 40 detectors |
+| **1.3 Drift** | spec ↔ code mismatches across 41 detectors |
 | **1.4 Commit · 1.5 Arch · 1.6 Secret** | clean working tree · architecture invariants · leaked API keys |
 | **2.1 Unit · 2.2 Coverage** | unit tests pass · coverage drop blocked |
 | **2.3 Spec conformance · 2.4 Deliverable smoke** | the implementation-blind grader's tests pass · the declared deliverable actually runs *(blocks the empty-green "tests pass but the deliverable doesn't run")* |
 | **3.1 Smoke · 3.2 Perf · 3.3 Visual** | e2e critical paths · performance budgets · UI visual regression |
 | **4.1 Audit · 4.2 UAT** | every AC (acceptance criterion) has at least one piece of evidence · every done feature has at least one piece of evidence |
 
-### 3. Detector — 40 drift detectors
+### 3. Detector — 41 drift detectors
 
 Drift in every direction across spec · code · test is detected automatically. Full catalog: [detector catalog](src/stages/detectors/README.md).
 
@@ -190,7 +190,7 @@ Drift in every direction across spec · code · test is detected automatically. 
 | spec hygiene | the spec's own integrity (ID collisions · dependency cycles) | 8 | `ID_COLLISION`, `SLUG_CONFLICT`, `DEPENDENCY_CYCLE` |
 | environment integrity | build environment · meta files | 3 | `HARNESS_INTEGRITY`, `META_INTEGRITY` |
 | verification freshness | whether code changed since the verification signature | 1 | `STALE_ATTESTATION` *(new)* |
-| governance · docs | policy violations · doc drift | 3 | `ABSENCE_OF_GOVERNANCE`, `PROJECT_CONTEXT_DRIFT` |
+| governance · docs | policy violations · doc drift · README claims beyond the evidence | 4 | `ABSENCE_OF_GOVERNANCE`, `PROJECT_CONTEXT_DRIFT`, `HOST_CLAIM_DRIFT` *(new)* |
 | graph · doc links | broken doc ↔ spec links · missing dependency edges | 3 | `DOC_LINK_INTEGRITY`, `REFERENCE_INTEGRITY`, `INFERABLE_DEPENDS_ON` *(new)* |
 
 The knowledge graph these power is a **traceability / retrieval** capability, not a correctness one — cladding's own A/B record shows correctness is orthogonal to governance. It tells you what connects to what and what to re-check; it does not claim the code is correct.
@@ -263,6 +263,13 @@ clad setup                # auto-wire your AI tools (Claude / Codex / Gemini / C
 | Gemini CLI (`~/.gemini/`) | `~/.gemini/extensions/cladding` | `gemini extensions link` |
 | Cursor (`~/.cursor/`) | `mcpServers.cladding` in `~/.cursor/mcp.json` | (JSON entry itself) |
 
+<!-- clad:host-claims {"claude":"verified","codex":"not-run","gemini":"not-run","cursor":"wiring-only"} -->
+<!-- ^ machine-readable host-support claims. HOST_CLAIM_DRIFT compares these against the newest
+     docs/dogfood/matrix.md evidence fence and warns under `clad check --strict` if a claim exceeds it.
+     gemini/codex abstain ("not-run") until the matrix carries passing evidence for them — the 2026-07-03
+     live run graded gemini `fail` (gemini-cli 0.42.0 crashes on every prompt in this environment).
+     Refresh the evidence with `clad doctor --hosts` (with consent). -->
+
 `clad setup` invokes each host's activation command automatically when the `claude` / `gemini` binaries are on PATH. Safe to re-run after an upgrade or after installing a new AI tool.
 
 **Verification level (honesty note):** Claude Code is fully verified through real-usage campaigns (including real-time intervention). Codex · Gemini CLI have automated wiring + basic behavior confirmed. Cursor wires automatically, but real-usage verification is still pending — to be updated as it lands.
@@ -311,9 +318,9 @@ Your code · `spec.yaml` · docs are left untouched, so it's safe — and if the
 
 | Version | Conformance | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.7.1 (2026-07) | L4 · [self-declared](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 1691 / 1691 | 15 stages · 40 detectors | 200 (196 done) |
+| v0.8.0 (2026-07) | L4 · [self-declared](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2012 / 2012 | 15 stages · 41 detectors | 212 (209 done) |
 
-<sub>170 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector</sub>
+<sub>195 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector</sub>
 
 > **Road to Ironclad 1.0** — 1.0 locks only when *two independent implementations pass the L4 conformance fixtures* ([GOVERNANCE § 1](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md)). cladding is the first.
 
@@ -323,7 +330,7 @@ Your code · `spec.yaml` · docs are left untouched, so it's safe — and if the
 - [Why cladding (project context)](docs/project-context.md)
 - [4-tier governance model](docs/ssot-model.md)
 - [Hash-based feature IDs](docs/spec-ids-multi-dev.md)
-- [40 detector catalog](src/stages/detectors/README.md)
+- [41 detector catalog](src/stages/detectors/README.md)
 - [Glossary (EN · KO)](docs/glossary.md)
 - [Governance · roadmap to 1.0](GOVERNANCE.md)
 

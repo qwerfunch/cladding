@@ -68,6 +68,8 @@
 | `graph` | stable (0.7.0) | Render the spec↔code↔doc knowledge graph: `export` → mermaid/dot/json/Obsidian-vault or a self-contained offline `html` viewer (WebGL, three.js bundled); `serve` → the same viewer live on localhost, auto-reloading as spec/docs change; `stats` → counts + hubs. | 지식 그래프 |
 | `hook` | stable (0.6.0) | Host hook protocol adapter — consumes one host lifecycle event (SessionStart / UserPromptSubmit / PreToolUse / PostToolUse / Stop) as stdin JSON; always exits 0. Honest limit: PreToolUse blocking only sees Edit/Write tool calls — a YAML edit made through Bash bypasses lane one; the Stop hook's post-hoc detectors are lane two. Neither lane alone is the guarantee. | 호스트 훅 프로토콜 어댑터 |
 | `changelog` | stable (0.6.0) | Render shipped changes since a git ref into human-facing documents — capability-grouped markdown / `--json` manifest / `--audit` verification table / `--catalog` spec listing. Named `changelog` deliberately, NOT `digest` (which means cryptographic hash in this domain — see Naming conventions). | 변경 이력 렌더링 |
+| `report` | stable (0.8.0) | Render one deterministic review packet for a git range — spec-shard movement (from `changelog`), changed source files resolved to their owning features via the reverse index, the deduped regression set, and gate + attestation state. `--format md \| sarif \| json`. For PR reviewers/team-leads/auditors: it RENDERS, it gates nothing. | 리뷰 패킷 렌더링 |
+| `bundle` | stable (0.8.0) | Write ONE self-contained offline HTML audit bundle (`--out <file.html> [--since <ref>]`) a non-coder can double-click — provenance banner, project header + inventory, feature × stage matrix, capability catalog, shipped changes, audit table, attestation summary. Zero network, no scripts. Deterministic modulo the date stamp; a range that cannot be anchored degrades the changelog + audit sections to a notice while the rest still renders. | 감사 번들 |
 
 ## MCP tools (frozen wire identifiers)
 
@@ -93,6 +95,8 @@
 `stage_started` · `stage_completed` · `feature_activated` · `feature_completed` · `evidence_recorded` · `drift_detected` · `feature_checkpoint` · `feature_rolled_back` · `sentinel_miss`
 
 Added 0.6.0 (F-b84c38 — payloads carry `identity` + `head`): `feature_created` (spec shard authored) · `scenario_created` · `done_attempted` (gated flip, kept or reverted) · `gate_run` (tier verification outcome; deduped per identical HEAD/tier/strict/worst) · `stop_blocked` (F-1d23a6 — the Stop host hook blocked a session end on a fresh failure fingerprint; identical fingerprints demote without an event).
+
+Added 0.8.0 (F-6ba22c5c — value-delivery telemetry, so a silent surface is distinguishable from an unwired one): `impact_card_fired` (a PostToolUse impact card produced output — payload file/feature/impacted/tests/unledgered) · `impact_card_skipped` (the card was skipped — `reason` ∈ a closed enum, one per degrade branch; the two high-frequency reasons are aggregated to one event per debounce window) · `session_card_rendered` (a non-empty SessionStart card — payload bytes) · `prompt_suggestion_served` (a non-empty UserPromptSubmit suggestion — payload kind) · `working_set_served` (an MCP read serve of `clad_get_working_set` / `clad_get_context` / `clad_get_impact` — payload tool/query/resolved). Summarized by `clad measure --sessions` as DELIVERY (did the surfaces fire), never adoption.
 
 ## Spec schema fields (frozen)
 

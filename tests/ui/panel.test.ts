@@ -13,7 +13,7 @@ import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 import {appendEvidence} from '../../src/hitl/audit.js';
 import {newEvidence} from '../../src/hitl/identity.js';
 import type {Spec} from '../../src/spec/types.js';
-import {renderPanel} from '../../src/ui/panel.js';
+import {buildPanelModel, renderPanel} from '../../src/ui/panel.js';
 import {writeAttestation} from '../../src/spec/attestation.js';
 
 function specWith(features: Spec['features']): Spec {
@@ -214,5 +214,97 @@ describe('attestation column (F-95a096)', () => {
     const out = renderPanel(spec, dir, {internal: true});
     expect(attCell(out, 'F-ccc33333')).toBe('·');
     expect(attCell(out, 'F-ddd44444')).toBe('·');
+  });
+});
+
+// ─── F-e940fffe / AC-e5f48ce5 — the split-out row model + ANSI byte-identity ───
+//
+// buildPanelModel is the single SSoT behind the terminal view, `status --json`,
+// and the audit bundle. These tests pin (a) the model shape — columns then
+// per-row {featureId, title, status, cells} alignment — and (b) the ANSI output
+// of renderPanel byte-for-byte via goldens on a FIXED fixture (no attestation
+// file, no evidence, controlled statuses), so the model split can never drift
+// the terminal rendering.
+
+describe('buildPanelModel — row model SSoT (AC-e5f48ce5)', () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'clad-panel-model-'));
+  });
+  afterEach(() => {
+    rmSync(dir, {recursive: true, force: true});
+  });
+
+  /** Fixed fixture: statuses controlled, no attestation, no evidence. */
+  function goldenSpec(): Spec {
+    return specWith([
+      {id: 'F-aaaa1111', title: 'alpha feature', status: 'done', modules: ['src/a.ts']},
+      {id: 'F-bbbb2222', title: 'beta feature with a very long title that overflows', status: 'in_progress'},
+      {id: 'F-cccc3333', title: 'gamma feature', status: 'planned'},
+    ]);
+  }
+
+  const STAGE_COLUMNS = [
+    'stage_1.1', 'stage_1.2', 'stage_1.3', 'stage_1.4', 'stage_1.5', 'stage_1.6',
+    'stage_2.1', 'stage_2.2',
+    'stage_3.1', 'stage_3.2', 'stage_3.3',
+    'stage_4.1', 'stage_4.2',
+  ];
+
+  test('columns are the 13 Iron Law stages then the trailing att column', () => {
+    const model = buildPanelModel(goldenSpec(), dir);
+    expect(model.columns).toEqual([...STAGE_COLUMNS, 'att']);
+  });
+
+  test('one row per feature with {featureId, title, status, cells} aligned to columns', () => {
+    const spec = goldenSpec();
+    const model = buildPanelModel(spec, dir);
+    expect(model.rows).toHaveLength(spec.features.length);
+    for (const [i, row] of model.rows.entries()) {
+      expect(row.featureId).toBe(spec.features[i].id);
+      expect(row.title).toBe(spec.features[i].title);
+      expect(row.status).toBe(spec.features[i].status);
+      expect(row.cells).toHaveLength(model.columns.length);
+    }
+    // Controlled state: no evidence → L4 '·'; no attestation file → done+modules
+    // 'att' is '-', not-done 'att' is '·'; L1–L3 have no signal store → '-'.
+    expect(model.rows[0].cells).toEqual(['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '·', '·', '-']);
+    expect(model.rows[1].cells).toEqual(['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '·', '·', '·']);
+  });
+
+  test('row title falls back to the feature id when the title is empty', () => {
+    const model = buildPanelModel(specWith([{id: 'F-0099aaaa', title: '', status: 'done'}]), dir);
+    expect(model.rows[0].title).toBe('F-0099aaaa');
+  });
+
+  test('renderPanel derives from the model: each row line carries the model cells verbatim', () => {
+    const spec = goldenSpec();
+    const model = buildPanelModel(spec, dir);
+    const out = renderPanel(spec, dir, {internal: true});
+    for (const row of model.rows) {
+      const line = out.split('\n').find((l) => l.startsWith(row.featureId));
+      expect(line, `row for ${row.featureId}`).toBeDefined();
+      expect(line).toContain(row.cells.join('   '));
+    }
+  });
+
+  test('GOLDEN · default (Soft Shell) ANSI view is byte-identical to the pinned snapshot', () => {
+    const golden = [
+      'feature                            Typ Lin Dri Com Arc Sec Uni Cov Smo Per Vis Aud UAT att',
+      'alpha feature                       -   -   -   -   -   -   -   -   -   -   -   ·   ·   -',
+      'beta feature with a very long title -   -   -   -   -   -   -   -   -   -   -   ·   ·   ·',
+      'gamma feature                       -   -   -   -   -   -   -   -   -   -   -   ·   ·   ·',
+    ].join('\n');
+    expect(renderPanel(goldenSpec(), dir)).toBe(golden);
+  });
+
+  test('GOLDEN · internal (Iron Core) ANSI view is byte-identical to the pinned snapshot', () => {
+    const golden = [
+      'feature      1.1 1.2 1.3 1.4 1.5 1.6 2.1 2.2 3.1 3.2 3.3 4.1 4.2 att',
+      'F-aaaa1111   -   -   -   -   -   -   -   -   -   -   -   ·   ·   -  alpha feature',
+      'F-bbbb2222   -   -   -   -   -   -   -   -   -   -   -   ·   ·   ·  beta feature with a very long title that overflows',
+      'F-cccc3333   -   -   -   -   -   -   -   -   -   -   -   ·   ·   ·  gamma feature',
+    ].join('\n');
+    expect(renderPanel(goldenSpec(), dir, {internal: true})).toBe(golden);
   });
 });

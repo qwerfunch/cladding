@@ -107,8 +107,10 @@ features:
   F-315fd7: {slug: scenario-coverage-detector, status: done, modules: 2}
   F-31eeb8: {slug: scan-bfs-walk, status: done, modules: 2}
   F-32b1e0: {slug: ai-hints-preferred-patterns, status: done, modules: 6}
+  F-35954d19: {slug: post-tool-mini-working-set, status: done, modules: 4}
   F-3788c2: {slug: planned-backlog-detector, status: done, modules: 2}
   F-37b4a8: {slug: feature-index-file, status: done, modules: 3}
+  F-39609db4: {slug: measure-ledger, status: done, modules: 2}
   F-3a5339: {slug: spec-yaml-metadata, status: done, modules: 5}
   F-3b3690: {slug: multi-agent-orchestration, status: done, modules: 4}
   F-40327b: {slug: persona-skill-md-cleanup, status: done, modules: 14}
@@ -117,7 +119,9 @@ features:
   F-43d8e3: {slug: smoke-probe-token-pass, status: done, modules: 3}
   F-4747ef: {slug: ssot-lifecycle-tests, status: done, modules: 9}
   F-4db939: {slug: ab-evaluation, status: done, modules: 9}
+  F-4ef09f38: {slug: multi-probe-smoke, status: done, modules: 3}
   F-50ff43: {slug: meta-integrity-skip-when-absent, status: done, modules: 2}
+  F-5283985e: {slug: host-smoke-matrix, status: done, modules: 3}
   F-551a1c: {slug: oracle-cost-lever, status: done, modules: 4}
   F-569f4b37: {slug: graph-export-viz, status: done, modules: 5}
   F-56abaa: {slug: intent-aware-init, status: done, modules: 5}
@@ -127,10 +131,12 @@ features:
   F-5b9f9f: {slug: spec-yaml-inventory-and-hints, status: done, modules: 6}
   F-5d3ed2: {slug: postmortem-on-rollback, status: done, modules: 2}
   F-5f6b45: {slug: init-path-intent, status: done, modules: 2}
+  F-63b989e5: {slug: impact-card-language-parity, status: done, modules: 2}
   F-64a5c159: {slug: graph-serve-live, status: done, modules: 3}
   F-65814a: {slug: sentinel-miss-telemetry, status: done, modules: 3}
   F-67d2e9: {slug: strict-skip-policy, status: done, modules: 2}
   F-67e33f: {slug: spec-id-multi-dev-safety, status: done, modules: 7}
+  F-6ba22c5c: {slug: value-telemetry, status: done, modules: 5}
   F-6d943d: {slug: version-bump-script, status: done, modules: 2}
   F-6f80e7: {slug: claude-code-dogfood, status: done, modules: 1}
   F-7076f7: {slug: smoke-probe-demand, status: done, modules: 3}
@@ -140,6 +146,7 @@ features:
   F-7afbd4: {slug: clad-done-gated-transition, status: done, modules: 1}
   F-7ce18e: {slug: glossary-naming-convention, status: done, modules: 7}
   F-7fa4a7: {slug: mcp-sampling-dispatcher, status: done, modules: 1}
+  F-803386ab: {slug: python-first-class, status: done, modules: 3}
   F-80d19d: {slug: setup-command, status: done, modules: 7}
   F-8234ec3c: {slug: graph-viewer-galaxy, status: archived, modules: 0}
   F-836a90: {slug: link-capability-tool, status: done, modules: 2}
@@ -179,7 +186,7 @@ features:
   F-c48eb2: {slug: scan-source-roots, status: done, modules: 5}
   F-c4c5ae: {slug: spec-conformance-oracle-stage, status: done, modules: 8}
   F-c6a32fff: {slug: graph-honest-fallback, status: done, modules: 7}
-  F-c6c3daaf: {slug: kotlin-module-scoped-gate, status: in_progress, modules: 13}
+  F-c6c3daaf: {slug: kotlin-module-scoped-gate, status: done, modules: 13}
   F-c8aef8: {slug: project-context, status: done, modules: 5}
   F-cd0415: {slug: spec-load-once, status: done, modules: 2}
   F-cfba0c: {slug: scenarios-deprecate, status: done, modules: 3}
@@ -194,11 +201,16 @@ features:
   F-dd51b42c: {slug: kotlin-first-class-toolchain, status: done, modules: 11}
   F-dddb89: {slug: ears-validation-at-creation, status: done, modules: 4}
   F-e0f6c7: {slug: smoke-disposition-spine, status: done, modules: 3}
+  F-e7d59c88: {slug: bash-edit-blind-spot, status: done, modules: 2}
+  F-e940fffe: {slug: audit-bundle-html, status: done, modules: 3}
   F-eb732f: {slug: spec-authoring-anti-hollow, status: done, modules: 2}
+  F-ede6fa75: {slug: self-measuring-release, status: done, modules: 3}
   F-ee47fc2b: {slug: reverse-index-core, status: done, modules: 1}
   F-ee5f643e: {slug: doc-graph-links, status: done, modules: 5}
   F-ef2fd9: {slug: ab-ext-dashboard, status: done, modules: 7}
   F-f334fa: {slug: ab-ext-scenarios-emit, status: done, modules: 3}
   F-f44d1b: {slug: hollow-governance-detector, status: done, modules: 2}
+  F-f6cc5e5a: {slug: pr-review-packet, status: done, modules: 4}
   F-f6d13e: {slug: capabilities-in-spec, status: done, modules: 3}
+  F-fb9b48a5: {slug: session-start-guidance, status: done, modules: 1}
   F-fcece7: {slug: external-docs-update-v0-3-13, status: done, modules: 3}

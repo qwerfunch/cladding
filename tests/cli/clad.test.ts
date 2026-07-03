@@ -471,7 +471,7 @@ describe('cli/clad — handler exports', () => {
 });
 
 describe('cli/clad — createProgram', () => {
-  test('returns a Command with all 22 verbs registered (work removed in 0.6.0; hook F-1d23a6, context F-d2c806, impact F-7794a6bc, infer-deps F-2be3e3bb, measure F-16138071, graph F-569f4b37, changelog F-904495a5)', () => {
+  test('returns a Command with all 24 verbs registered (work removed in 0.6.0; hook F-1d23a6, context F-d2c806, impact F-7794a6bc, infer-deps F-2be3e3bb, measure F-16138071, graph F-569f4b37, changelog F-904495a5, report F-f6cc5e5a, bundle F-e940fffe)', () => {
     const program = clad.createProgram();
     const names = program.commands.map((c) => c.name());
     expect(names).toEqual([
@@ -492,6 +492,8 @@ describe('cli/clad — createProgram', () => {
       'measure',
       'graph',
       'changelog',
+      'report',
+      'bundle',
       'route',
       'hook',
       'serve',
@@ -531,7 +533,7 @@ describe('cli/clad — createProgram', () => {
 
   test('program version matches current package version', () => {
     const program = clad.createProgram();
-    expect(program.version()).toBe('0.7.1');
+    expect(program.version()).toBe('0.8.0');
   });
 });
 

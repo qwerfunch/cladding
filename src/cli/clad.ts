@@ -7,24 +7,31 @@
 // CLI behavior.
 
 import process from 'node:process';
-import {readFileSync} from 'node:fs';
+import {readFileSync, writeFileSync} from 'node:fs';
 
 import {Command} from 'commander';
 
 import {classifyIntent} from '../router/intent.js';
 import {runChangelogCommand} from './changelog.js';
+import {collectChangelog, defaultSinceRef} from '../changelog/collect.js';
+import {renderAuditTable, renderCatalog, renderChangelogMarkdown} from '../changelog/render.js';
+import {buildBundleHtml, type BundleChanges} from '../report/bundle.js';
+import {runReportCommand} from './report.js';
 import {runDoctorCommand} from './doctor.js';
+import {runDoctorHosts} from './doctor-hosts.js';
 import {runDone} from './done.js';
 import {runHookCommand} from './hook.js';
 import {runUpdate} from './update.js';
 import {runInit} from './init.js';
 import {runClarifyCommand} from './clarify.js';
-import {runHostSetup} from '../init/host-setup.js';
-import {recordEvent} from '../events/log.js';
+import {getCurrentCladdingVersion, runHostSetup} from '../init/host-setup.js';
+import {readEvents, recordEvent} from '../events/log.js';
+import {summarizeValueDelivery} from '../events/session-report.js';
 import {buildContextSlice} from '../optimizer/context-slice.js';
 import {buildImpactSlice} from '../optimizer/reverse-slice.js';
 import {inferDependsOn} from '../optimizer/infer-depends-on.js';
-import {measureGraphEfficiency} from '../optimizer/measurement.js';
+import {measureGraphEfficiency, MEASUREMENT_DISCLAIMER} from '../optimizer/measurement.js';
+import {appendMeasureSnapshot, readMeasureSnapshots, renderTrend} from '../optimizer/measure-ledger.js';
 import {runGraphExportCommand, runGraphStatsCommand} from './graph.js';
 import {runGraphServeCommand} from './graph-serve.js';
 import {strictSkipViolations} from '../stages/skip-policy.js';
@@ -46,7 +53,7 @@ import {runVisual} from '../stages/visual.js';
 import type {DriftFinding, Disposition} from '../stages/types.js';
 import {gateStatusOf, isBlocking, worstContribution, type GateStatus} from '../stages/disposition.js';
 import {staleSpecification} from '../stages/detectors/stale-specification.js';
-import {findLatestCheckpoint, recordCheckpoint, recordRollback} from '../core/checkpoint.js';
+import {findLatestCheckpoint, readGitHead, recordCheckpoint, recordRollback} from '../core/checkpoint.js';
 import {maintainDeliverable} from '../spec/deliverable-detect.js';
 import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../spec/inventory.js';
 import {writeDocLinksYaml} from '../spec/doc-references.js';
@@ -56,7 +63,7 @@ import {buildBlindPayload, renderBlindBrief} from '../oracle/payload.js';
 import {requiredOracleWorklist} from '../oracle/policy.js';
 import {loadSpec} from '../spec/load.js';
 import {pulse, type PulseKind} from '../ui/pulse.js';
-import {renderPanel} from '../ui/panel.js';
+import {buildPanelModel, renderPanel} from '../ui/panel.js';
 import {featureLabel, gateLabel, haltMessage} from '../ui/softShell.js';
 
 /** Handler for `clad serve`. Boots the MCP server over stdio. */
@@ -618,6 +625,55 @@ export function runInferDepsCommand(opts: {ambiguity?: string} = {}): void {
 }
 
 /**
+ * `clad measure --sessions` (F-6ba22c5c) — summarize the recorded value-delivery
+ * telemetry: impact-card fire rate over eligible edits, the per-reason skip histogram,
+ * and MCP read-serve counts. HONEST FRAMING: this measures DELIVERY (whether the value
+ * surfaces produced output), NEVER adoption (whether the agent then used them). Zero
+ * value-delivery events prints an honest can't-distinguish message and exits 0 — absence
+ * of telemetry must never render as 0% value nor as success.
+ */
+function runSessionsMeasure(opts: {json?: boolean}): void {
+  let events;
+  try {
+    events = readEvents('.');
+  } catch {
+    events = []; // unreadable/corrupt ledger → treat as no telemetry (never crash the report)
+  }
+  const summary = summarizeValueDelivery(events);
+  if (opts.json) {
+    process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
+    process.exit(0);
+    return;
+  }
+  if (summary.total === 0) {
+    process.stdout.write(
+      'no value-delivery telemetry was recorded — the value surfaces (impact card, session card, ' +
+        'prompt suggestion, MCP working-set serves) may simply be SILENT this session, OR their emission ' +
+        'may be UNWIRED. These two cases are indistinguishable from an empty ledger.\n',
+    );
+    process.exit(0);
+    return;
+  }
+  const pct = (n: number): string => `${(n * 100).toFixed(1)}%`;
+  const suppressedTotal = summary.suppressed.dedup + summary.suppressed.ledger_exhausted;
+  const lines = [
+    'value delivery — measures whether cladding’s surfaces FIRED, not whether the agent ADOPTED them',
+    `  impact card: ${summary.fired} fired / ${summary.eligible} eligible edit(s) = ${pct(summary.firedPct)} fired`,
+    `  skips by reason: ${JSON.stringify(summary.byReason)}`,
+    // Push-governor withholdings (F-35954d19) are deliberate, so they get their own
+    // line instead of deflating the fired% denominator.
+    ...(suppressedTotal > 0
+      ? [`  suppressed by design: ${summary.suppressed.dedup} dedup, ${summary.suppressed.ledger_exhausted} budget-exhausted (excluded from eligible)`]
+      : []),
+    `  MCP serves: ${summary.servedWorkingSets} read-serve(s) ${JSON.stringify(summary.servedByTool)} · ${pct(summary.truncationRate)} truncated`,
+    `  other surfaces: ${summary.sessionCards} session card(s), ${summary.promptSuggestions} prompt suggestion(s)`,
+    '  (eligible = fired + substantive skips; not_write_tool / unwatched_path noise and by-design suppressions excluded)',
+  ];
+  process.stdout.write(`${lines.join('\n')}\n`);
+  process.exit(0);
+}
+
+/**
  * `clad measure` (F-16138071) — deterministically report the search + context efficiency the
  * graph provides per feature: working-set tokens vs the naive (shard + all module files)
  * baseline, the dependency depth/edges it resolves for you, and the regression-set coverage.
@@ -629,8 +685,16 @@ export function runInferDepsCommand(opts: {ambiguity?: string} = {}): void {
  * ≈1x of naive (code + structured metadata). What the working set sells is the guaranteed
  * budget + the wired needs/breaks/verify context, not raw byte shrink.
  */
-export function runMeasureCommand(opts: {json?: boolean} = {}): void {
+export function runMeasureCommand(opts: {json?: boolean; sessions?: boolean; trend?: boolean | string} = {}): void {
   try {
+    if (opts.sessions) {
+      runSessionsMeasure(opts);
+      return;
+    }
+    if (opts.trend !== undefined && opts.trend !== false) {
+      runTrendMeasure(opts);
+      return;
+    }
     const spec = loadSpec();
     const read = (p: string): string | null => {
       try {
@@ -640,6 +704,10 @@ export function runMeasureCommand(opts: {json?: boolean} = {}): void {
       }
     };
     const r = measureGraphEfficiency(spec, read, '.');
+    // Persist the summary BEFORE printing so the numbers stop evaporating on
+    // stdout (F-39609db4). Best-effort: a failed/deduped write never blocks the
+    // report or changes the exit code.
+    const rec = appendMeasureSnapshot('.', r);
     if (opts.json) {
       process.stdout.write(`${JSON.stringify(r, null, 2)}\n`);
     } else {
@@ -655,15 +723,47 @@ export function runMeasureCommand(opts: {json?: boolean} = {}): void {
         `           uncapped structural slice = ${c.medianStructuralRatio}x of naive — the value is the guaranteed budget + wired needs/breaks/verify, not raw shrink`,
         `  search:  median ${r.search.medianDepth} hop(s) resolved (p95 ${r.search.p95Depth}), median ${r.search.medianEdges} edge(s)/feature (max hub ${r.search.maxEdges})`,
         `  stability: median blast-radius coverage ${r.stability.medianCoverage}, median ${r.stability.medianRegressionTests} regression test(s) surfaced; stops ${JSON.stringify(r.stability.byStopReason)}`,
-        `  (deterministic upper bound vs the shard+all-modules baseline — not an agent-adoption measurement)`,
+        `  ${MEASUREMENT_DISCLAIMER}`,
       ];
       process.stdout.write(`${lines.join('\n')}\n`);
+      if (rec.appended) pulse('note', 'measure', 'snapshot recorded to .cladding/measure.jsonl — see `clad measure --trend`');
+      else if (rec.reason === 'deduped') pulse('note', 'measure', 'commit+spec state unchanged since last snapshot — not recorded');
+      else if (rec.reason === 'no_head') pulse('note', 'measure', 'no git HEAD — snapshot not recorded (commit first; a head-less line has no reproduce target)');
     }
     process.exit(0);
   } catch (err) {
     pulse('fail', 'measure', (err as Error).message);
     process.exit(1);
   }
+}
+
+/**
+ * `clad measure --trend [n]` (F-39609db4) — render the last N (default 5)
+ * recorded snapshots with signed deltas so a regression/improvement over time is
+ * visible without re-reading raw stdout. With <2 snapshots there is no delta to
+ * show: state how many exist and exit 0, never fabricating one (AC-220944e2).
+ */
+function runTrendMeasure(opts: {json?: boolean; trend?: boolean | string}): void {
+  let snapshots;
+  try {
+    snapshots = readMeasureSnapshots('.');
+  } catch {
+    snapshots = []; // unreadable/corrupt ledger → treat as no history (never crash)
+  }
+  const n = typeof opts.trend === 'string' && Number.isFinite(Number(opts.trend)) ? Number(opts.trend) : 5;
+  const window = Math.max(1, Math.floor(n));
+  if (opts.json) {
+    process.stdout.write(`${JSON.stringify(snapshots.slice(-window), null, 2)}\n`);
+    process.exit(0);
+    return;
+  }
+  if (snapshots.length < 2) {
+    process.stdout.write(`no trend yet — ${snapshots.length} snapshot(s) recorded\n`);
+    process.exit(0);
+    return;
+  }
+  process.stdout.write(`${renderTrend(snapshots, window)}\n`);
+  process.exit(0);
 }
 
 export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tier?: string; json?: boolean; feature?: string}): void {
@@ -788,9 +888,91 @@ function truncate(s: string, max: number): string {
 }
 
 /** Handler for `clad status` (formerly `panel`). Renders the feature × stage integrity matrix. */
-export function runStatusCommand(opts: {internal?: boolean}): void {
+export function runStatusCommand(opts: {internal?: boolean; json?: boolean}): void {
   const spec = loadSpec();
+  if (opts.json) {
+    // AC-e5f48ce5 — expose the SAME row model the ANSI panel renders, from the
+    // split-out builder: one SSoT for terminal, JSON, and the audit bundle.
+    // The row model can exceed the 64KB pipe buffer (200+ features), so write
+    // then let the event loop DRAIN — process.exit() truncates a buffered pipe
+    // mid-write (the latent bug PR #201 fixed for `clad check`).
+    process.stdout.write(`${JSON.stringify(buildPanelModel(spec, '.'), null, 2)}\n`);
+    process.exitCode = 0;
+    return;
+  }
   process.stdout.write(`${renderPanel(spec, '.', {internal: opts.internal})}\n`);
+  process.exit(0);
+}
+
+/** Formats a byte count as a compact human size (B / KB / MB). */
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+/**
+ * Handler for `clad bundle --out <file.html> [--since <ref>]` (F-e940fffe).
+ *
+ * Gathers every audit surface — the spec, the feature × stage row model, git
+ * HEAD + version provenance, the capability catalog, and (for the range) the
+ * shipped changes + audit table — then hands the DATA to the pure
+ * buildBundleHtml renderer and writes one self-contained HTML file. All I/O
+ * lives here; the renderer stays pure so a fixed repo state + fixed `now`
+ * yields byte-identical output. A range that cannot be anchored degrades the
+ * changelog + audit sections to an explicit notice, never the whole bundle
+ * (AC-15bb0b99).
+ *
+ * `opts.now` (ISO string) is injectable so tests can pin the one
+ * nondeterministic input; the CLI leaves it undefined → wall clock.
+ */
+export function runBundleCommand(opts: {out?: string; since?: string; cwd?: string; now?: string}): void {
+  const cwd = opts.cwd ?? '.';
+  const out = (opts.out ?? '').trim();
+  if (out.length === 0) {
+    pulse('fail', 'bundle', 'missing --out <file.html> — the bundle needs a destination path');
+    process.exit(1);
+    return;
+  }
+
+  let html: string;
+  try {
+    const spec = loadSpec(cwd);
+    const panel = buildPanelModel(spec, cwd);
+    const provenance = {
+      gitHead: readGitHead(cwd),
+      version: getCurrentCladdingVersion(),
+      generatedAt: opts.now ?? new Date().toISOString(),
+    };
+    const catalogMarkdown = renderCatalog(spec);
+    let changes: BundleChanges;
+    try {
+      const sinceRef = opts.since ?? defaultSinceRef(cwd);
+      const manifest = collectChangelog(cwd, sinceRef);
+      changes = {
+        kind: 'present',
+        sinceRef,
+        changelogMarkdown: renderChangelogMarkdown(manifest),
+        auditMarkdown: renderAuditTable(manifest, spec, cwd),
+      };
+    } catch (err) {
+      changes = {kind: 'omitted', reason: (err as Error).message};
+    }
+    html = buildBundleHtml({spec, panel, provenance, catalogMarkdown, changes});
+  } catch (err) {
+    pulse('fail', 'bundle', (err as Error).message);
+    process.exit(1);
+    return;
+  }
+
+  try {
+    writeFileSync(out, html, 'utf8');
+  } catch (err) {
+    pulse('fail', 'bundle', `could not write ${out}: ${(err as Error).message}`);
+    process.exit(1);
+    return;
+  }
+  pulse('pass', 'bundle', `${out} · ${formatBytes(Buffer.byteLength(html, 'utf8'))}`);
   process.exit(0);
 }
 
@@ -833,7 +1015,7 @@ export function printVerbDeprecationNotice(verb: string | undefined): void {
  */
 export function createProgram(): Command {
   const program = new Command();
-  program.name('clad').description('Reference Ironclad CLI').version('0.7.1');
+  program.name('clad').description('Reference Ironclad CLI').version('0.8.0');
 
   program
     .command('init [intent...]')
@@ -926,6 +1108,7 @@ export function createProgram(): Command {
     .alias('panel') // 0.6.0 rename — `panel` is removed in 0.8
     .description('Render the feature × stage integrity matrix (business titles; use --internal for raw F-NNN ids)')
     .option('--internal', 'show internal F-NNN ids and stage codes')
+    .option('--json', 'emit the row model as JSON — the same feature × stage matrix the ANSI panel renders (columns + per-feature glyph cells), one SSoT for terminal, JSON, and the audit bundle')
     .action(runStatusCommand);
 
   program
@@ -948,7 +1131,9 @@ export function createProgram(): Command {
   program
     .command('measure')
     .description('Report the search + context efficiency the graph provides per feature — working-set tokens vs the naive baseline, dependency depth/edges resolved, regression-set coverage (F-16138071). Deterministic; no agent.')
-    .option('--json', 'emit the full per-feature report as JSON')
+    .option('--json', 'emit the full report as JSON')
+    .option('--sessions', 'summarize recorded value-delivery telemetry instead — impact-card fire rate over eligible edits, the per-reason skip histogram, and MCP read-serve counts. Measures DELIVERY (did the surfaces fire), NOT adoption (F-6ba22c5c).')
+    .option('--trend [n]', 'render the last N (default 5) recorded measure snapshots with signed deltas — spot efficiency drift over time from the deduped .cladding/measure.jsonl ledger (F-39609db4)')
     .action((opts) => runMeasureCommand(opts));
 
   const graph = program
@@ -986,7 +1171,43 @@ export function createProgram(): Command {
     .option('--json', 'print the deterministic ChangelogManifest as JSON (byte-identical across runs on the same state)')
     .option('--audit', 'print the audit table — feature | AC | EARS | verification refs, each marked resolved ✓/✗')
     .option('--catalog', 'print the full capability → feature → acceptance listing of the living spec (no git range)')
-    .action((opts: {since?: string; json?: boolean; audit?: boolean; catalog?: boolean}) => runChangelogCommand(opts));
+    .option(
+      '--measure',
+      "embed the release's own re-derivable measurement — but ONLY a snapshot taken at the current HEAD; " +
+        'no match renders a not-measured notice, never an older snapshot (F-ede6fa75)',
+    )
+    .action((opts: {since?: string; json?: boolean; audit?: boolean; catalog?: boolean; measure?: boolean}) =>
+      runChangelogCommand(opts),
+    );
+
+  program
+    .command('report')
+    .description(
+      'Render one deterministic review packet for a git range (F-f6cc5e5a) — spec-shard movement (from the ' +
+        'changelog), changed source files resolved to their owning features via the reverse index, the deduped ' +
+        'regression set, and gate + attestation state. For PR reviewers, team-leads, and auditors: it RENDERS, it ' +
+        'gates nothing. Byte-identical across two runs on the same repository state.',
+    )
+    .option('--since <ref>', 'git ref to diff from (default: the latest tag via `git describe --tags --abbrev=0`)')
+    .option(
+      '--format <fmt>',
+      'md (default, the four-section markdown packet) | sarif (SARIF 2.1.0 — one result per error/warn drift ' +
+        'finding, for code-scanning UIs) | json (the raw deterministic model)',
+    )
+    .action((opts: {since?: string; format?: string}) => runReportCommand(opts));
+
+  program
+    .command('bundle')
+    .description(
+      'Write ONE self-contained HTML audit bundle (F-e940fffe) a non-coder can double-click — offline, zero ' +
+        'network, no CDN, no scripts. Contains the project header + inventory, the feature × stage matrix, the ' +
+        'capability catalog, shipped changes for the range, the audit table with resolved refs, and the attestation ' +
+        'summary, under a provenance banner (git HEAD, date, version). Deterministic modulo the date stamp. If no ' +
+        'anchor ref resolves, the changelog + audit sections show an omitted notice while the rest still renders.',
+    )
+    .requiredOption('--out <file.html>', 'destination path for the HTML bundle')
+    .option('--since <ref>', 'git ref to diff shipped changes from (default: the latest tag via `git describe --tags --abbrev=0`)')
+    .action((opts: {out?: string; since?: string}) => runBundleCommand(opts));
 
   program
     .command('route <prompt>')
@@ -1013,7 +1234,16 @@ export function createProgram(): Command {
     .description('Summarise .cladding/events.log.jsonl — sentinel-miss frequency by phase/cause/fallback plus the top missed sentinels (LLM dispatcher health check)')
     .option('--cwd <path>', 'project directory to read events from (default cwd)')
     .option('--json', 'emit the raw DoctorReport for tooling; default is the human-readable surface')
-    .action(runDoctorCommand);
+    .option('--hosts', 'smoke-test host CLIs (claude/gemini/codex) + Cursor wiring → dated artifact + docs/dogfood/matrix.md. Live LLM prompts run only with consent (CLAD_HOST_SMOKE=1 or --yes); otherwise not-run')
+    .option('--yes', 'grant live-run consent for --hosts (equivalent to CLAD_HOST_SMOKE=1)')
+    .option('--matrix-only', 'regenerate docs/dogfood/matrix.md from the newest host-smoke artifact without any probing')
+    .action((opts) => {
+      if (opts.hosts || opts.matrixOnly) {
+        runDoctorHosts({cwd: opts.cwd, yes: opts.yes, matrixOnly: opts.matrixOnly});
+        return;
+      }
+      runDoctorCommand(opts);
+    });
 
   program
     .command('clarify [answer...]')

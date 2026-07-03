@@ -44,4 +44,28 @@ describe('validateSpec', () => {
     });
     expect(result.valid).toBe(false);
   });
+
+  // F-4ef09f38 — the schema accepts `feature` (per-feature binding) on a smoke probe.
+  test('accepts a smoke probe carrying a feature binding', () => {
+    const result = validateSpec({
+      schema: '0.1',
+      project: {
+        name: 'x',
+        language: 'typescript',
+        smoke: [{kind: 'cli', run: ['./run'], feature: 'F-abcdef', expect: {token: 'X'}}],
+      },
+      features: [{id: 'F-abcdef', title: 't', status: 'done'}],
+    });
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+  });
+
+  test('rejects an unknown key on a smoke probe (additionalProperties:false)', () => {
+    const result = validateSpec({
+      schema: '0.1',
+      project: {name: 'x', language: 'typescript', smoke: [{kind: 'cli', bogus: true}]},
+      features: [{id: 'F-001', title: 't', status: 'done'}],
+    });
+    expect(result.valid).toBe(false);
+  });
 });

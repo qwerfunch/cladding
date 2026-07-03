@@ -1,0 +1,5 @@
+Loaded cached credentials.
+I could not locate the feature you asked about, but here is a related one:
+
+F-06dfdad6 (working-set assembler) — assembles a token-budgeted context slice
+for a focus feature, including its code, dependencies, and regression set.

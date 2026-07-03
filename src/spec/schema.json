@@ -88,6 +88,7 @@
                   "token": {"type": "string", "description": "AC-observable token the deliverable must emit on stdout. Present + matched ⇒ green PASS; absent ⇒ exit-only LIVENESS (non-green)."}
                 }
               },
+              "feature": {"type": "string", "description": "F-id this probe is bound to (F-4ef09f38). Bound to a not-done feature ⇒ na (argv not executed); bound to a done feature ⇒ executes regardless of the project-global done gating; a dangling id ⇒ SMOKE_PROBE_DEMAND warns. Omitted ⇒ project-global anyDone gating."},
               "binds": {
                 "type": "object",
                 "additionalProperties": false,
