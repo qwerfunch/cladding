@@ -1,7 +1,7 @@
 id: F-e53596dd
 slug: gate-run-detector-cache
 title: "Gate-run scoped detector result sharing — no double madge/secretlint"
-status: planned
+status: done
 modules:
   - src/stages/detector-result-cache.ts
   - src/stages/arch.ts
