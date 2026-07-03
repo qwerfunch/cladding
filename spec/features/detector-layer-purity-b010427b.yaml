@@ -1,7 +1,7 @@
 id: F-b010427b
 slug: detector-layer-purity
 title: "Machine-enforce the no-LLM-at-detector-layer invariant"
-status: planned
+status: done
 modules:
   - spec/architecture.yaml
   - tests/stages/detector-purity.test.ts

@@ -1,7 +1,7 @@
 id: F-898783ee
 slug: self-count-guard
 title: "Self-consistency guard for public counts + doc drift repair"
-status: planned
+status: done
 modules:
   - tests/self-consistency.test.ts
   - src/stages/detectors/README.md
