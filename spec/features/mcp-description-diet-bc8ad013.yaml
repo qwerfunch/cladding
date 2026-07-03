@@ -1,7 +1,7 @@
 id: F-bc8ad013
 slug: mcp-description-diet
 title: "MCP tool description diet — bounded session-resident cost"
-status: planned
+status: done
 modules:
   - src/serve/server.ts
   - tests/serve/description-budget.test.ts
