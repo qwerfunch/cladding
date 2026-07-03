@@ -37,6 +37,7 @@ import {runGraphServeCommand} from './graph-serve.js';
 import {strictSkipViolations} from '../stages/skip-policy.js';
 import {runArch} from '../stages/arch.js';
 import {runAudit} from '../stages/audit.js';
+import {clearDetectorResultCache, primeDetectorResultCache} from '../stages/detector-result-cache.js';
 import {runCommit} from '../stages/commit.js';
 import {runCov} from '../stages/cov.js';
 import {runDrift} from '../stages/drift.js';
@@ -473,31 +474,41 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
   const pulseKindOf = (s: GateStatus): PulseKind =>
     s === 'pass' ? 'pass' : s === 'liveness' ? 'note' : s === 'na' ? 'skip' : isBlocking(s) ? 'fail' : 'skip';
   const collected: {stage: string; label: string; status: GateStatus; exitCode: number; stderr?: string; findings?: readonly DriftFinding[]}[] = [];
-  for (const [name, run] of stages) {
-    const r = run({}) as {
-      pass: boolean;
-      exitCode: number;
-      stderr?: string;
-      findings?: readonly DriftFinding[];
-      disposition?: Disposition;
-    };
-    const label = opts.internal ? name : gateLabel(name);
-    // INVARIANT: exitCode 2 means "skipped" (cladding chose not to run — tool
-    // missing / unknown language). It is NON-blocking. A stage that RAN and
-    // found a real problem MUST return exitCode 1, never 2 — see
-    // stages/util.ts::ranToolResult. (tsc exits 2 on type errors; relaying that
-    // raw 2 here is what let a real type failure pass as a skip.)
-    // Disposition-first (F-e0f6c7): see stages/disposition.ts.
-    const status = gateStatusOf(r);
-    if (isBlocking(status)) {
-      anyFailed = true;
-      worst = Math.max(worst, worstContribution(r, status));
+  // F-e53596dd — prime the run-scoped detector cache so the drift stage's
+  // ARCHITECTURE_VIOLATION + HARDCODED_SECRET runs are reused by stage_1.5/1.6
+  // instead of re-spawning madge + secretlint (~5s of duplicate work per run).
+  // The stages here default cwd to '.', so prime the same root. Cleared in
+  // finally — a session outliving the loop would serve stale findings.
+  primeDetectorResultCache('.');
+  try {
+    for (const [name, run] of stages) {
+      const r = run({}) as {
+        pass: boolean;
+        exitCode: number;
+        stderr?: string;
+        findings?: readonly DriftFinding[];
+        disposition?: Disposition;
+      };
+      const label = opts.internal ? name : gateLabel(name);
+      // INVARIANT: exitCode 2 means "skipped" (cladding chose not to run — tool
+      // missing / unknown language). It is NON-blocking. A stage that RAN and
+      // found a real problem MUST return exitCode 1, never 2 — see
+      // stages/util.ts::ranToolResult. (tsc exits 2 on type errors; relaying that
+      // raw 2 here is what let a real type failure pass as a skip.)
+      // Disposition-first (F-e0f6c7): see stages/disposition.ts.
+      const status = gateStatusOf(r);
+      if (isBlocking(status)) {
+        anyFailed = true;
+        worst = Math.max(worst, worstContribution(r, status));
+      }
+      collected.push({stage: name, label, status, exitCode: r.exitCode, stderr: r.stderr, findings: r.findings});
+      if (!opts.json) {
+        pulse(pulseKindOf(status), label);
+        if (isBlocking(status)) printStageDetails(r);
+      }
     }
-    collected.push({stage: name, label, status, exitCode: r.exitCode, stderr: r.stderr, findings: r.findings});
-    if (!opts.json) {
-      pulse(pulseKindOf(status), label);
-      if (isBlocking(status)) printStageDetails(r);
-    }
+  } finally {
+    clearDetectorResultCache();
   }
   // STRICT SKIP-POLICY (F-67d2e9, generalizes the 0.5.x unit-only guard).
   // Under --strict, a skipped stage the spec DEMANDS is a fail: 1.1 when a

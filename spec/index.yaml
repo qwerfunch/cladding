@@ -204,6 +204,7 @@ features:
   F-dd51b42c: {slug: kotlin-first-class-toolchain, status: done, modules: 11}
   F-dddb89: {slug: ears-validation-at-creation, status: done, modules: 4}
   F-e0f6c7: {slug: smoke-disposition-spine, status: done, modules: 3}
+  F-e53596dd: {slug: gate-run-detector-cache, status: planned, modules: 7}
   F-e7d59c88: {slug: bash-edit-blind-spot, status: done, modules: 2}
   F-e940fffe: {slug: audit-bundle-html, status: done, modules: 3}
   F-eb732f: {slug: spec-authoring-anti-hollow, status: done, modules: 2}
