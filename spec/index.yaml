@@ -90,7 +90,7 @@ features:
   F-081: {slug: F-081, status: done, modules: 3}
   F-098d3b: {slug: detector-count-auto-recompute, status: done, modules: 1}
   F-09d68b: {slug: clad-refine, status: done, modules: 7}
-  F-0e84628e: {slug: merge-ritual-docs, status: planned, modules: 2}
+  F-0e84628e: {slug: merge-ritual-docs, status: done, modules: 2}
   F-0ed2db: {slug: ai-hints-consumer-instructions, status: done, modules: 11}
   F-0f2984d0: {slug: infer-deps-dynamic-flag, status: done, modules: 2}
   F-10cc42d1: {slug: git-op-write-guard, status: done, modules: 5}

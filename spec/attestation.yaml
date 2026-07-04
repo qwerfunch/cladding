@@ -102,7 +102,7 @@ attested_modules:
   skills/serve/SKILL.md: 4cee65dfb691e3b0
   skills/status/SKILL.md: b3cb6e7a12bf4023
   skills/sync/SKILL.md: 709c20212aa5627e
-  spec.yaml: 9a12b2273143c1f1
+  spec.yaml: de87bb3e87ec16ef
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: c5d911049fbdcd48
   spec/features/: a4d0f0eb87fed960
@@ -491,6 +491,7 @@ attested_features:
   F-081: ok
   F-098d3b: ok
   F-09d68b: ok
+  F-0e84628e: ok
   F-0ed2db: ok
   F-0f2984d0: ok
   F-10cc42d1: ok
