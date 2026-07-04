@@ -219,4 +219,4 @@ features:
   F-f6d13e: {slug: capabilities-in-spec, status: done, modules: 3}
   F-fb9b48a5: {slug: session-start-guidance, status: done, modules: 1}
   F-fcece7: {slug: external-docs-update-v0-3-13, status: done, modules: 3}
-  F-fe0f7a96: {slug: removed-verb-guidance, status: planned, modules: 2}
+  F-fe0f7a96: {slug: removed-verb-guidance, status: done, modules: 2}

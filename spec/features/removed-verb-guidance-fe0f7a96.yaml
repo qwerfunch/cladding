@@ -1,7 +1,7 @@
 id: F-fe0f7a96
 slug: removed-verb-guidance
 title: "Guidance strings recommend live verbs, not the removed refine"
-status: planned
+status: done
 modules:
   - src/cli/init.ts
   - src/stages/detectors/project-context-drift.ts
