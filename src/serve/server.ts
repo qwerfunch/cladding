@@ -42,6 +42,7 @@ import {recordOracle} from '../oracle/record.js';
 import {doneFeatureCount, oracleRequired, resolveOraclePolicy} from '../oracle/policy.js';
 import {maintainDeliverable} from '../spec/deliverable-detect.js';
 import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../spec/inventory.js';
+import {gitOperationInProgress} from '../core/git-ops.js';
 import {buildContextSlice} from '../optimizer/context-slice.js';
 import {buildImpactSlice} from '../optimizer/reverse-slice.js';
 import {buildWorkingSet} from '../optimizer/working-set.js';
@@ -1040,6 +1041,7 @@ function registerTools(server: McpServer, cwd: string): void {
 function syncInventory(cwd: string): void {
   try {
     if (existsSync(join(cwd, 'spec.yaml'))) {
+      if (gitOperationInProgress(cwd)) return;
       writeInventoryToSpecYaml(cwd, computeInventory(cwd));
       writeFeatureIndex(cwd); // F-37b4a8
       // v0.5.x — when a CLI entry now exists but no deliverable is declared, auto-populate it

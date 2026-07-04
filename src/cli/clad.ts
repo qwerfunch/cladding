@@ -55,6 +55,7 @@ import type {DriftFinding, Disposition} from '../stages/types.js';
 import {gateStatusOf, isBlocking, worstContribution, type GateStatus} from '../stages/disposition.js';
 import {staleSpecification} from '../stages/detectors/stale-specification.js';
 import {findLatestCheckpoint, readGitHead, recordCheckpoint, recordRollback} from '../core/checkpoint.js';
+import {gitOperationInProgress, gitOperationInProgressName} from '../core/git-ops.js';
 import {maintainDeliverable} from '../spec/deliverable-detect.js';
 import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../spec/inventory.js';
 import {writeDocLinksYaml} from '../spec/doc-references.js';
@@ -245,27 +246,31 @@ export function runSyncCommand(opts: {proposeArchive?: boolean} = {}): void {
     // spec.yaml on every sync so AI agents can grep 1 file to see
     // the project's whole scale. Counts only — an unchanged-count
     // re-sync is byte-identical, so parallel branches don't conflict.
-    const inventory = computeInventory('.');
-    writeInventoryToSpecYaml('.', inventory);
-    writeFeatureIndex('.'); // F-37b4a8 — 1-file feature lookup at scale
-    writeDocLinksYaml('.'); // F-doc-graph — doc→spec/doc link index (Tier C)
-    // F-c037ae — heal annotation drift before it rejects correct features:
-    // unique-basename repair of moved test_ref paths + derived: suggestions
-    // (which never satisfy a mandate — see MISSING_TESTS/UNTESTED_AC).
-    const refFixes = repairTestRefs('.');
-    for (const r of refFixes.repaired) pulse('note', 'test_refs', `repaired ${r.from} → ${r.to} (${r.shard})`);
-    for (const sug of refFixes.suggested) pulse('note', 'test_refs', `suggested ${sug.ref} (${sug.shard}) — confirm by removing the 'derived:' prefix`);
-    // v0.5.x — auto-populate project.deliverable when absent + a CLI entry is calibratable, so
-    // DELIVERABLE_SMOKE (stage_2.4) engages without the agent having to declare it correctly (the
-    // re-run showed a conservative agent declares it DISABLED). Calibrates against the passing state,
-    // so it never enables a false-failing invocation. One-time (skips once a deliverable is present).
-    const autoDeliverable = maintainDeliverable('.');
-    if (autoDeliverable) {
-      pulse(
-        'note',
-        'deliverable',
-        `auto-detected entry '${autoDeliverable.path}' — the gate now smoke-tests it (stage_2.4). Opt out with is_safe_to_smoke: false.`,
-      );
+    if (gitOperationInProgress('.')) {
+      pulse('note', 'sync', 'derived-file writes deferred — git operation in progress; re-run after the merge/rebase completes.');
+    } else {
+      const inventory = computeInventory('.');
+      writeInventoryToSpecYaml('.', inventory);
+      writeFeatureIndex('.'); // F-37b4a8 — 1-file feature lookup at scale
+      writeDocLinksYaml('.'); // F-doc-graph — doc→spec/doc link index (Tier C)
+      // F-c037ae — heal annotation drift before it rejects correct features:
+      // unique-basename repair of moved test_ref paths + derived: suggestions
+      // (which never satisfy a mandate — see MISSING_TESTS/UNTESTED_AC).
+      const refFixes = repairTestRefs('.');
+      for (const r of refFixes.repaired) pulse('note', 'test_refs', `repaired ${r.from} → ${r.to} (${r.shard})`);
+      for (const sug of refFixes.suggested) pulse('note', 'test_refs', `suggested ${sug.ref} (${sug.shard}) — confirm by removing the 'derived:' prefix`);
+      // v0.5.x — auto-populate project.deliverable when absent + a CLI entry is calibratable, so
+      // DELIVERABLE_SMOKE (stage_2.4) engages without the agent having to declare it correctly (the
+      // re-run showed a conservative agent declares it DISABLED). Calibrates against the passing state,
+      // so it never enables a false-failing invocation. One-time (skips once a deliverable is present).
+      const autoDeliverable = maintainDeliverable('.');
+      if (autoDeliverable) {
+        pulse(
+          'note',
+          'deliverable',
+          `auto-detected entry '${autoDeliverable.path}' — the gate now smoke-tests it (stage_2.4). Opt out with is_safe_to_smoke: false.`,
+        );
+      }
     }
     if (opts.proposeArchive) {
       const findings = staleSpecification.run({cwd: '.'});
@@ -381,7 +386,11 @@ export async function runUpdateCommand(): Promise<void> {
     process.exit(r.code);
     return;
   }
-  pulse('pass', 'spec', `inventory synced · ${r.features} features`);
+  if (r.inventoryDeferred) {
+    pulse('note', 'spec', `inventory + index writes deferred — git operation in progress; re-run \`clad update\` after it completes (${r.features} features seen).`);
+  } else {
+    pulse('pass', 'spec', `inventory synced · ${r.features} features`);
+  }
   pulse(r.claudeMd === 'refreshed-stale' ? 'note' : 'pass', 'CLAUDE.md', r.claudeMd);
   pulse(r.agentsMd === 'refreshed-stale' ? 'note' : 'pass', 'AGENTS.md', r.agentsMd);
   for (const d of r.deprecations) pulse('note', 'deprecated', d);
@@ -557,12 +566,16 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
       if (!opts.json) pulse('note', 'attestation', 'stale entries re-verified by this run — re-attesting');
     }
     if (!anyFailed) {
-      try {
-        if (writeAttestation('.', loadSpec())) {
-          if (!opts.json) pulse('note', 'attestation', 'spec/attestation.yaml refreshed (verified tree stamped)');
+      if (gitOperationInProgress('.')) {
+        if (!opts.json) pulse('note', 'attestation', 'deferred — git operation in progress; run the gate again after the merge/rebase completes.');
+      } else {
+        try {
+          if (writeAttestation('.', loadSpec())) {
+            if (!opts.json) pulse('note', 'attestation', 'spec/attestation.yaml refreshed (verified tree stamped)');
+          }
+        } catch {
+          /* unloadable spec → nothing to attest */
         }
-      } catch {
-        /* unloadable spec → nothing to attest */
       }
     }
   }
@@ -806,7 +819,7 @@ export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tie
  * so `done` cannot claim more than the gate verifies. @see cli/done.ts
  */
 export function runDoneCommand(featureId: string): void {
-  const r = runDone('.', featureId, {checkStages: runCheckStages, onIndex: writeFeatureIndex});
+  const r = runDone('.', featureId, {checkStages: runCheckStages, onIndex: writeFeatureIndex, gitOpInProgress: gitOperationInProgressName});
   pulse(r.ok ? 'pass' : 'fail', `done · ${featureId}`, r.reason);
   process.exit(r.code);
 }

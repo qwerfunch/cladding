@@ -22,6 +22,7 @@ import {recordEvent} from '../events/log.js';
 import {join} from 'node:path';
 
 import {parseSpec} from '../spec/parse.js';
+import type {GitOperation} from '../core/git-ops.js';
 
 /** Gate runner injected so tests can drive `runDone` without spawning tsc/vitest. */
 export interface DoneDeps {
@@ -38,6 +39,15 @@ export interface DoneDeps {
    * writeFeatureIndex in runDoneCommand. (F-37b4a8 — index status fidelity.)
    */
   readonly onIndex?: (cwd: string) => void;
+  /**
+   * Names any git merge / rebase / cherry-pick in progress under `cwd` (else
+   * null). Injected + optional so unit tests stay hermetic: an omitted probe
+   * (or one returning null) leaves the transition unguarded exactly as before.
+   * Wired to gitOperationInProgressName in runDoneCommand — a settled tree is a
+   * precondition of an earned `done`, so a mid-operation flip is refused before
+   * any shard, index, or attestation write.
+   */
+  readonly gitOpInProgress?: (cwd: string) => GitOperation | null;
 }
 
 /** Outcome of a `clad done` attempt — `code` is the process exit code. */
@@ -109,6 +119,17 @@ export function setStatus(body: string, status: string): string {
 export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneResult {
   if (!featureId) {
     return {ok: false, code: 2, featureId, reason: 'feature id required (e.g. clad done F-001)'};
+  }
+  const op = deps.gitOpInProgress?.(cwd) ?? null;
+  if (op) {
+    return {
+      ok: false,
+      code: 1,
+      featureId,
+      reason:
+        `${op} in progress — refusing done until the tree settles.` +
+        ` Complete or abort the ${op}, then re-run \`clad done\`. No shard, attestation, or index was written.`,
+    };
   }
   const hit = findShardFile(cwd, featureId);
   if (!hit) {

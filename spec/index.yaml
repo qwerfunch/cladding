@@ -91,6 +91,7 @@ features:
   F-09d68b: {slug: clad-refine, status: done, modules: 7}
   F-0ed2db: {slug: ai-hints-consumer-instructions, status: done, modules: 11}
   F-0f2984d0: {slug: infer-deps-dynamic-flag, status: done, modules: 2}
+  F-10cc42d1: {slug: git-op-write-guard, status: done, modules: 5}
   F-12d740: {slug: atomic-ac-evidence-fanout, status: done, modules: 1}
   F-15999130: {slug: inferable-depends-on-detector, status: done, modules: 2}
   F-16138071: {slug: graph-efficiency-measure, status: done, modules: 2}
@@ -139,6 +140,7 @@ features:
   F-6ba22c5c: {slug: value-telemetry, status: done, modules: 5}
   F-6d943d: {slug: version-bump-script, status: done, modules: 2}
   F-6e49fd24: {slug: inventory-churn-diet, status: done, modules: 1}
+  F-6ed216f3: {slug: interactive-drift-profile, status: planned, modules: 5}
   F-6f80e7: {slug: claude-code-dogfood, status: done, modules: 1}
   F-7076f7: {slug: smoke-probe-demand, status: done, modules: 3}
   F-7794a6bc: {slug: impact-blast-radius, status: done, modules: 3}

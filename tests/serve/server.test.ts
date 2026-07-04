@@ -11,6 +11,7 @@
 // Sampling-based dispatch (v0.2.25) is out of scope here. This file is
 // concerned only with the read surface of `clad serve`.
 
+import {execFileSync} from 'node:child_process';
 import {mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync, existsSync, readdirSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -790,6 +791,68 @@ describe('clad_get_graph (F-64a5c159)', () => {
     } finally {
       await cleanup();
       rmSync(dir, {recursive: true, force: true});
+    }
+  });
+});
+
+// ─── F-10cc42d1 · AC-28d60113 — MCP syncInventory defers derived writes mid-op ───
+//
+// The create tools (clad_create_feature/scenario, capability link) recompute the
+// spec.yaml inventory + feature index after writing their shard. That derived
+// maintenance is the third writer the guard covers (with `clad sync` +
+// `clad update`): while a git operation is in progress it must be skipped so a
+// merge/rebase sees no surprise edits — while the create itself (the user's
+// explicit action) still succeeds. Driven over the real MCP client against a
+// git repo with a hand-seeded MERGE_HEAD (the probe reads the server's cwd).
+describe('MCP syncInventory git-operation write guard (F-10cc42d1 · AC-28d60113)', () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'clad-serve-gitop-'));
+    writeFileSync(join(dir, 'spec.yaml'), MINIMAL_SPEC);
+    mkdirSync(join(dir, '.cladding'), {recursive: true});
+    execFileSync('git', ['init', '-q'], {cwd: dir});
+  });
+  afterEach(() => {
+    rmSync(dir, {recursive: true, force: true});
+  });
+
+  test('a git op in progress: the shard is still created, but the inventory + index writes defer', async () => {
+    const specBefore = readFileSync(join(dir, 'spec.yaml'), 'utf8'); // MINIMAL_SPEC has no inventory block
+    writeFileSync(join(dir, '.git', 'MERGE_HEAD'), 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeef\n');
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const res = await client.callTool({
+        name: 'clad_create_feature',
+        arguments: {slug: 'mid-merge-feature', title: 'Mid merge', status: 'planned'},
+      });
+      // The create itself succeeds — only the DERIVED inventory sync is guarded.
+      expect(res.isError).not.toBe(true);
+      const parsed = JSON.parse((res.content as Array<{type: string; text: string}>)[0].text);
+      const shardPath = join(dir, 'spec', 'features', `${parsed.slug}-${parsed.id.slice(2)}.yaml`);
+      expect(existsSync(shardPath)).toBe(true); // shard landed on disk
+
+      // ... but spec.yaml is byte-for-byte unchanged (inventory writer skipped)
+      // and no derived feature index was materialized.
+      expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).toBe(specBefore);
+      expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).not.toContain('inventory:');
+      expect(existsSync(join(dir, 'spec', 'index.yaml'))).toBe(false);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('with no git op the same create recomputes the inventory + index (guard is not vacuous)', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const res = await client.callTool({
+        name: 'clad_create_feature',
+        arguments: {slug: 'settled-feature', title: 'Settled', status: 'planned'},
+      });
+      expect(res.isError).not.toBe(true);
+      expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).toContain('inventory:');
+      expect(existsSync(join(dir, 'spec', 'index.yaml'))).toBe(true);
+    } finally {
+      await cleanup();
     }
   });
 });

@@ -11,7 +11,7 @@
 import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {afterEach, beforeEach, describe, expect, test} from 'vitest';
+import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
 import {findShardFile, runDone, setStatus} from '../../src/cli/done.js';
 import {readEvents} from '../../src/events/log.js';
@@ -251,6 +251,74 @@ describe('runDone', () => {
       },
     });
     expect(captured?.focusModules).toEqual(['worker/aggregator', 'worker/ingest']);
+  });
+});
+
+// ─── F-10cc42d1 · AC-611089cf — clad done refuses on an in-progress git op ───
+//
+// A `done` verdict is only ever earned on a settled tree: a gate run mid-merge
+// hashes a half-merged tree. So when the injected probe names an operation,
+// runDone must refuse BEFORE any write — no shard flip, no index re-sync, and
+// (because the gate never runs) no attestation. The probe is injected exactly
+// as runDoneCommand wires the real gitOperationInProgressName.
+
+describe('runDone git-operation guard (F-10cc42d1 · AC-611089cf)', () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'clad-done-gitop-'));
+  });
+  afterEach(() => {
+    rmSync(dir, {recursive: true, force: true});
+  });
+
+  for (const op of ['merge', 'rebase', 'cherry-pick'] as const) {
+    test(`refuses done during a ${op}: not ok, non-zero exit, error names the ${op}, and NO writes happen`, () => {
+      const path = writeShard(dir);
+      const original = readFileSync(path, 'utf8');
+      const checkStages = vi.fn(() => ({worst: 0})); // GREEN if it ran — it must NOT
+      const onIndex = vi.fn();
+      const res = runDone(dir, FEATURE_ID, {checkStages, onIndex, gitOpInProgress: () => op});
+
+      // Refused with an explanatory, exit-worthy error that names the operation.
+      expect(res.ok).toBe(false);
+      expect(res.code).not.toBe(0);
+      expect(res.reason).toContain(op);
+
+      // The gate never ran (so attestation was never even attempted) and the
+      // committed index was never touched.
+      expect(checkStages).not.toHaveBeenCalled();
+      expect(onIndex).not.toHaveBeenCalled();
+
+      // The shard is byte-for-byte unchanged — status was NOT flipped to done.
+      const after = readFileSync(path, 'utf8');
+      expect(after).toBe(original);
+      expect(after).toContain('status: in_progress');
+      expect(after).not.toContain('status: done');
+    });
+  }
+
+  test('the refusal precedes the missing-shard lookup — an unknown id under a git op still refuses for the git op', () => {
+    // No shard on disk at all. The git-op refusal is the FIRST gate, so the
+    // reason is the operation, not "no feature shard".
+    const res = runDone(dir, 'F-nomatch', {checkStages: () => ({worst: 0}), gitOpInProgress: () => 'merge'});
+    expect(res.ok).toBe(false);
+    expect(res.reason).toContain('merge');
+    expect(res.reason).not.toContain('no feature shard');
+  });
+
+  test('a null probe leaves the transition unguarded — the GREEN path still flips to done', () => {
+    const path = writeShard(dir);
+    const res = runDone(dir, FEATURE_ID, {checkStages: () => ({worst: 0}), gitOpInProgress: () => null});
+    expect(res.ok).toBe(true);
+    expect(res.code).toBe(0);
+    expect(readFileSync(path, 'utf8')).toContain('status: done');
+  });
+
+  test('an omitted probe behaves exactly as before — GREEN gate flips to done', () => {
+    const path = writeShard(dir);
+    const res = runDone(dir, FEATURE_ID, {checkStages: () => ({worst: 0})});
+    expect(res.ok).toBe(true);
+    expect(readFileSync(path, 'utf8')).toContain('status: done');
   });
 });
 
