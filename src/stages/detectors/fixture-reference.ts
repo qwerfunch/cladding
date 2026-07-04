@@ -22,7 +22,7 @@
 //     force every label into the executable runner.
 //   - It does not catch orphan fixtures (registry entries no AC cites)
 //     — that's an informational signal best surfaced by a separate
-//     `clad panel` view, not a drift finding.
+//     `clad status` view, not a drift finding.
 //   - It does not load the YAML when the registry file is missing.
 //     User projects without a `conformance/fixtures.yaml` simply opt
 //     out; the detector returns no findings rather than warning that

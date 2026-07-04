@@ -6,6 +6,11 @@
 // is not exercised by these tests — importing the module is safe
 // because the guard suppresses it in non-bundled mode.
 
+import {execFileSync} from 'node:child_process';
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+
 import {beforeEach, afterEach, describe, expect, test, vi} from 'vitest';
 
 vi.mock('../../src/events/log.js', () => ({recordEvent: vi.fn()}));
@@ -590,4 +595,157 @@ describe('cli/clad — check --tier stage selection (Phase 2 ambient hooks)', ()
       expect(clad.TIER_STAGES['all']).toContain(s);
     }
   });
+});
+
+// ─── F-10cc42d1 · AC-28d60113 — `clad sync` defers ALL derived-file writers ───
+//
+// The six sync-path writers (inventory, feature index, doc-links, test_ref
+// repair, deliverable maintenance) all live in ONE branch gated by the git-op
+// probe. These tests drive the REAL runSyncCommand against a real git repo (the
+// probe reads `.` = the chdir'd fixture): with a hand-seeded MERGE_HEAD the
+// whole branch is skipped (proved by inventory + index + doc-links never
+// materializing) with a single deferral note and a success exit; without it,
+// the writers run (proving the guard is not vacuous).
+describe('cli/clad — runSyncCommand git-operation write guard (F-10cc42d1 · AC-28d60113)', () => {
+  let dir: string;
+  let cwd0: string;
+  let codes: number[];
+  let exitSpy: ReturnType<typeof vi.spyOn>;
+  let stdoutSpy: ReturnType<typeof vi.spyOn>;
+
+  const SPEC_YAML = 'schema: "0.1"\nproject:\n  name: probe\n  language: typescript\nfeatures: []\n';
+  const SHARD =
+    'id: F-abc123\nslug: thing\ntitle: A thing\nstatus: planned\nmodules: []\n' +
+    'acceptance_criteria:\n  - id: AC-001\n    ears: ubiquitous\n    text: The system shall do a thing.\n';
+
+  function fixture(): void {
+    execFileSync('git', ['init', '-q'], {cwd: dir});
+    writeFileSync(join(dir, 'spec.yaml'), SPEC_YAML);
+    mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
+    writeFileSync(join(dir, 'spec', 'features', 'thing-abc123.yaml'), SHARD);
+  }
+
+  beforeEach(() => {
+    cwd0 = process.cwd();
+    dir = mkdtempSync(join(tmpdir(), 'clad-sync-gitop-'));
+    codes = [];
+    exitSpy = vi.spyOn(process, 'exit').mockImplementation(((code?: number) => {
+      codes.push(code ?? 0);
+      return undefined as never;
+    }) as never);
+    stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    loadSpecMock.mockReset();
+    loadSpecMock.mockReturnValue({features: [{id: 'F-abc123'}]});
+    pulseMock.mockClear();
+  });
+  afterEach(() => {
+    process.chdir(cwd0); // restore BEFORE removing the fixture dir
+    exitSpy.mockRestore();
+    stdoutSpy.mockRestore();
+    rmSync(dir, {recursive: true, force: true});
+  });
+
+  test('a git op in progress defers every derived-file writer, emits one deferral note, and exits 0', () => {
+    fixture();
+    const specBefore = readFileSync(join(dir, 'spec.yaml'), 'utf8');
+    writeFileSync(join(dir, '.git', 'MERGE_HEAD'), 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeef\n');
+    process.chdir(dir);
+
+    clad.runSyncCommand();
+
+    // spec.yaml is byte-for-byte unchanged — the inventory writer was skipped.
+    expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).toBe(specBefore);
+    // the entire guarded branch was skipped — neither derived index materialized.
+    expect(existsSync(join(dir, 'spec', 'index.yaml'))).toBe(false);
+    expect(existsSync(join(dir, 'spec', '_doc-links.yaml'))).toBe(false);
+    // exactly ONE informational deferral note, and the command still exits 0.
+    const deferral = pulseMock.mock.calls.filter((c) => String(c[2] ?? '').includes('deferred'));
+    expect(deferral).toHaveLength(1);
+    expect(deferral[0][0]).toBe('note');
+    expect(codes).toContain(0);
+  });
+
+  test('with no git op the same run writes the derived files (the guard is not vacuous)', () => {
+    fixture();
+    process.chdir(dir);
+
+    clad.runSyncCommand();
+
+    expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).toContain('inventory:');
+    expect(existsSync(join(dir, 'spec', 'index.yaml'))).toBe(true);
+    const deferral = pulseMock.mock.calls.filter((c) => String(c[2] ?? '').includes('deferred'));
+    expect(deferral).toHaveLength(0);
+    expect(codes).toContain(0);
+  });
+});
+
+// ─── F-10cc42d1 · AC-578c6226 — a GREEN gate defers attestation mid-op ───
+//
+// A strict pre-push gate computes module tree-hashes; running it mid-merge and
+// stamping spec/attestation.yaml would fold a half-merged tree into the merge
+// commit as "verified". So even on a GREEN verdict the attestation write must
+// be deferred while a git op is in progress. Drives the REAL runCheckStages
+// (stages are the module-level GREEN mocks; deliverable-smoke is a real no-op
+// skip with no deliverable declared) against a chdir'd git fixture.
+describe('cli/clad — runCheckStages attestation write guard (F-10cc42d1 · AC-578c6226)', () => {
+  let dir: string;
+  let cwd0: string;
+  let stdoutSpy: ReturnType<typeof vi.spyOn>;
+
+  // A done feature with modules is what makes writeAttestation actually emit a
+  // file (its only honest author) — so the negative case can't pass vacuously.
+  const DONE_SPEC = {
+    project: {name: 'probe', language: 'typescript'},
+    features: [{id: 'F-001', slug: 'x', status: 'done', modules: ['README.md'], acceptance_criteria: []}],
+  };
+
+  function fixture(): void {
+    execFileSync('git', ['init', '-q'], {cwd: dir});
+    mkdirSync(join(dir, 'spec'), {recursive: true}); // writeAttestation targets spec/attestation.yaml
+    writeFileSync(join(dir, 'README.md'), 'x\n');
+  }
+
+  beforeEach(() => {
+    cwd0 = process.cwd();
+    dir = mkdtempSync(join(tmpdir(), 'clad-attest-gitop-'));
+    stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    loadSpecMock.mockReset();
+    loadSpecMock.mockReturnValue(DONE_SPEC);
+    pulseMock.mockClear();
+  });
+  afterEach(() => {
+    process.chdir(cwd0);
+    stdoutSpy.mockRestore();
+    rmSync(dir, {recursive: true, force: true});
+  });
+
+  test('a GREEN strict pre-push gate DEFERS spec/attestation.yaml while a git op is in progress + notes it', () => {
+    fixture();
+    writeFileSync(join(dir, '.git', 'MERGE_HEAD'), 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeef\n');
+    process.chdir(dir);
+
+    const out = clad.runCheckStages({tier: 'pre-push', strict: true});
+
+    // The gate really is GREEN — the precondition of the attestation stamp ...
+    expect(out.worst).toBe(0);
+    expect(out.anyFailed).toBe(false);
+    // ... yet the half-merged tree is NEVER stamped as verified.
+    expect(existsSync(join(dir, 'spec', 'attestation.yaml'))).toBe(false);
+    const deferral = pulseMock.mock.calls.filter(
+      (c) => c[1] === 'attestation' && String(c[2] ?? '').includes('deferred'),
+    );
+    expect(deferral).toHaveLength(1);
+  }, 60_000);
+
+  test('the same GREEN gate on a settled tree DOES write the attestation (guard is not vacuous)', () => {
+    fixture();
+    process.chdir(dir);
+
+    const out = clad.runCheckStages({tier: 'pre-push', strict: true});
+
+    expect(out.worst).toBe(0);
+    expect(existsSync(join(dir, 'spec', 'attestation.yaml'))).toBe(true);
+    // it stamped the done feature — proving the write path the merge case suppresses.
+    expect(readFileSync(join(dir, 'spec', 'attestation.yaml'), 'utf8')).toContain('F-001');
+  }, 60_000);
 });

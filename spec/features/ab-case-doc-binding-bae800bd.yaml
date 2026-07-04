@@ -1,0 +1,44 @@
+id: F-bae800bd
+slug: ab-case-doc-binding
+title: "A/B case-study docs bound into the knowledge graph via explicit doc-link declarations"
+status: done
+modules:
+  - src/spec/doc-references.ts
+  - docs/ab-evaluation/case-efficiency-measurement.md
+  - docs/ab-evaluation/case-working-set-landmine.md
+  - docs/ab-evaluation/case-graph-efficiency.md
+  - docs/ab-evaluation/case-iterative-vs-fixed-vapt.md
+  - docs/ab-evaluation/case-doverunner-scale.md
+acceptance_criteria:
+  - id: AC-b0e7dd4d
+    ears: event
+    condition: "when a markdown doc carries an explicit cladding doc-link declaration naming feature ids"
+    action: "the doc-reference extractor emits those doc-to-feature links, and clad sync materializes them into spec/_doc-links.yaml"
+    response: "evidence docs can be bound to the features they substantiate even when their prose never names an F-id"
+    text: "When a doc declares feature links explicitly, the system shall extract and materialize them in the doc-link index."
+    test_refs:
+      - "tests/spec/doc-references-declarations.test.ts#an explicit clad-doc-links declaration binds exactly the named ids"
+      - "tests/spec/doc-references-declarations.test.ts#declarations across multiple comment lines union their ids"
+      - "tests/spec/doc-references-declarations.test.ts#a clad-doc-links declaration inside a code fence is inert"
+      - "tests/spec/doc-references-declarations.test.ts#ids on a clad-doc-links: ignore line bind nothing"
+      - "tests/spec/doc-references-declarations.test.ts#writeDocLinksYaml materializes declared ids into spec/_doc-links.yaml"
+    notes: "## Why\nBacklog B9: five A/B case studies are knowledge-graph orphans — their prose reports findings without naming feature ids, so the extractor sees nothing. Deleting the NULL-result files was REJECTED (publication bias); binding keeps the evidence reachable from the features it substantiates. README.md's efficiency claim is receipted only by case-efficiency-measurement.md."
+  - id: AC-91d9d1a5
+    ears: ubiquitous
+    text: "The five A/B case docs (efficiency-measurement, working-set-landmine, graph-efficiency, iterative-vs-fixed-vapt, doverunner-scale) shall each carry a declaration binding them to the features their evidence substantiates (F-16138071 measure; F-06dfdad6 working-set; graph-related cases additionally F-7794a6bc where the content is impact/graph evidence), and the graph shall show them as linked doc nodes, not orphans."
+    test_refs:
+      - "tests/spec/doc-references-declarations.test.ts#each of the five A/B case docs binds every id it declares, all resolving to real features"
+      - "tests/spec/doc-references-declarations.test.ts#case-efficiency-measurement.md binds F-16138071 (the README efficiency receipt)"
+      - "tests/spec/doc-references-declarations.test.ts#every extracted excluded-dir doc carries an explicit declaration (no organic-id leakage)"
+  - id: AC-437fb005
+    ears: ubiquitous
+    text: "Docs without declarations shall extract byte-identically to the pre-change behavior, so adopter repos see no index churn."
+    test_refs:
+      - "tests/spec/doc-references-declarations.test.ts#an excluded-dir doc with organic ids and a link but no declaration is absent"
+      - "tests/spec/doc-references-declarations.test.ts#a normal doc without a declaration extracts organic ids and links unchanged"
+  - id: AC-2ee28415
+    ears: ubiquitous
+    text: "DOC_LINK_INTEGRITY shall stay green over the materialized declarations (every declared id resolves)."
+    test_refs:
+      - "tests/spec/doc-references-declarations.test.ts#DOC_LINK_INTEGRITY reports zero findings referencing the five A/B case docs (real repo)"
+      - "tests/spec/doc-references-declarations.test.ts#DOC_LINK_INTEGRITY warns on an unresolved declared id and stays silent when it resolves"

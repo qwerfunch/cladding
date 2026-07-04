@@ -2,6 +2,9 @@
 
 # A/B (efficiency) — does graph retrieval cost LESS to reach a correct refactor?
 
+<!-- Knowledge-graph binding — retrieval-cost A/B of the working-set assembler + impact slice (not the deterministic measure command); declared explicitly. -->
+<!-- clad-doc-links: F-06dfdad6, F-7794a6bc -->
+
 **Question (the user's).** The two prior A/Bs measured *regression rate* (accuracy) and were
 NULL — capable agents reached correct anyway. But retrieval **efficiency** is a different axis:
 getting "these 11 regression tests + these 29 modules" handed over should cost *less* than

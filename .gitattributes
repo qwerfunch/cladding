@@ -1,2 +1,1 @@
 spec/index.yaml merge=union
-spec/attestation.yaml merge=union

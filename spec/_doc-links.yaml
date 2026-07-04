@@ -4,6 +4,16 @@ schema: "0.1"
 docs:
   "docs/README.md":
     doc_links: ["docs/ssot-model.md", "spec/README.md", "src/agents/README.md"]
+  "docs/ab-evaluation/case-doverunner-scale.md":
+    features: [F-06dfdad6, F-7794a6bc]
+  "docs/ab-evaluation/case-efficiency-measurement.md":
+    features: [F-16138071]
+  "docs/ab-evaluation/case-graph-efficiency.md":
+    features: [F-06dfdad6, F-7794a6bc]
+  "docs/ab-evaluation/case-iterative-vs-fixed-vapt.md":
+    features: [F-7794a6bc, F-96250595]
+  "docs/ab-evaluation/case-working-set-landmine.md":
+    features: [F-06dfdad6]
   "docs/conventions.md":
     doc_links: ["docs/code-style.md"]
   "docs/glossary.md":
@@ -16,7 +26,7 @@ docs:
     features: [F-4db939, F-ba2e05]
     doc_links: ["docs/ab-evaluation/README.md", "docs/ssot-model.md", "docs/ssot-testing.md"]
   "docs/refinement-backlog.md":
-    features: [F-06dfdad6, F-073, F-16138071, F-d25041ac, F-fe0f7a96]
+    features: [F-06dfdad6, F-073, F-16138071, F-3c2bf8b9, F-d25041ac, F-fe0f7a96]
   "docs/ssot-audit.md":
     features: [F-a4b512, F-f44d1b, F-f6d13e]
   "docs/ssot-model.md":

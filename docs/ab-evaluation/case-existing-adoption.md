@@ -49,7 +49,7 @@ No spec, no architecture invariants — just code on the existing tree.
 | Test files | 1 | 1 | +0 |
 | Test LoC | 14 | 14 | +0 |
 | Test cases | 1 | 1 | +0 |
-| Total chars (artifacts + code) | 10828 | 3864 | +6964 |
+| Total chars (artifacts + code) | 10831 | 3864 | +6967 |
 | Estimated tokens | 2710 | 967 | +1743 |
 
 **Detector outcomes** (META_INTEGRITY + HARDCODED_SECRET excluded — toolchain-only checks):
@@ -88,7 +88,7 @@ B (Vanilla)  — errors: 1  warns: 3  infos: 28
 | Test files | 2 | 2 | +0 |
 | Test LoC | 27 | 27 | +0 |
 | Test cases | 3 | 3 | +0 |
-| Total chars (artifacts + code) | 12371 | 5115 | +7256 |
+| Total chars (artifacts + code) | 12374 | 5115 | +7259 |
 | Estimated tokens | 3096 | 1280 | +1816 |
 
 **Detector outcomes** (META_INTEGRITY + HARDCODED_SECRET excluded — toolchain-only checks):

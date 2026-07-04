@@ -20,7 +20,8 @@
 
 import {failingAcs} from '../hitl/anti-self-cert.js';
 import {readEvidence} from '../hitl/audit.js';
-import {moduleTreeHash, readAttestation} from '../spec/attestation.js';
+import {featureAttestation, readAttestation} from '../spec/attestation.js';
+import type {AttestationFile} from '../spec/attestation.js';
 import type {Feature, FeatureStatus, Spec} from '../spec/types.js';
 import {gateLabel} from './softShell.js';
 
@@ -81,22 +82,22 @@ function cellFor(feature: Feature, stage: string, cwd: string): CellGlyph {
   return '-';
 }
 
-/** F-95a096 — attestation freshness per feature, one glyph:
- *   ✓  done feature whose module tree-hash matches spec/attestation.yaml
+/** F-95a096 — attestation freshness per feature, one glyph (F-b0f898a6: the
+ * verdict now comes from the shared {@link featureAttestation} helper, so the
+ * panel and STALE_ATTESTATION agree on v1 and v2 files alike):
+ *   ✓  done feature whose attestation is fresh (every module hash matches)
  *   !  done feature that is unstamped or whose modules changed since the stamp
  *   ·  n/a (not done, or no modules to attest)
  *   -  no attestation file yet (verification state unknown) */
 function attestationGlyph(
   feature: Feature,
-  attested: ReadonlyMap<string, string> | null,
+  attested: AttestationFile | null,
   cwd: string,
 ): CellGlyph {
   const modules = feature.modules ?? [];
   if (feature.status !== 'done' || modules.length === 0) return '·';
   if (attested === null) return '-';
-  const stamp = attested.get(feature.id);
-  if (stamp === undefined) return '!';
-  return stamp === moduleTreeHash(cwd, modules) ? '✓' : '!';
+  return featureAttestation(attested, cwd, feature).state === 'fresh' ? '✓' : '!';
 }
 
 /**

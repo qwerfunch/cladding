@@ -2,6 +2,9 @@
 
 # A/B — does the working-set context tooling reduce regressions? (landmine trial)
 
+<!-- Knowledge-graph binding — the landmine A/B trialling the working-set assembler; declared explicitly because the dir is graph-excluded. -->
+<!-- clad-doc-links: F-06dfdad6 -->
+
 **Question.** Do `clad_get_working_set` (F-06dfdad6) + the PostToolUse impact card + the
 ai_hints/persona nudge (F-d6b93648) make an LLM **avoid introducing spec↔code drift** on a
 refactor that silently breaks a non-obvious downstream dependent — vs the old context path?

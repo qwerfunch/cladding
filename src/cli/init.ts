@@ -387,7 +387,7 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
     };
     onboarding = await interpretOnboardingWithFallback(intent, observed, dispatcher, cwd);
 
-    // v0.3.44 (F-09d68b) — persist the onboarding session so `clad refine`
+    // v0.3.44 (F-09d68b) — persist the onboarding session so `clad clarify`
     // can drive the Q&A loop without re-running the full intent prompt.
     // The state file lives at `.cladding/onboarding/state.yaml` and is
     // marked `status: done` once every question is answered.
@@ -685,7 +685,7 @@ function renderScenarioYaml(scenario: {
   const escapedTitle = scenario.title.replace(/"/g, '\\"');
   const flowLines = scenario.flow.split('\n').map((line) => `  ${line}`).join('\n');
   return [
-    '# Cladding · Tier A · SSoT — onboarding output, edit-friendly · Refreshed by: clad init / clad refine',
+    '# Cladding · Tier A · SSoT — onboarding output, edit-friendly · Refreshed by: clad init / clad clarify',
     `id: ${scenario.id}`,
     `slug: ${scenario.slug}`,
     `title: "${escapedTitle}"`,

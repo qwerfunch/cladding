@@ -66,5 +66,6 @@ function runArchitectureViolation(opts: CommandStageOptions): readonly DriftFind
 
 export const architectureViolation: DriftDetector = {
   name: NAME,
+  subprocess: true,
   run: runArchitectureViolation,
 };

@@ -1,0 +1,30 @@
+id: F-6e49fd24
+slug: inventory-churn-diet
+title: "Inventory block churn diet — stop emitting last_synced"
+status: done
+modules:
+  - src/spec/inventory.ts
+acceptance_criteria:
+  - id: AC-f2004981
+    ears: event
+    condition: "when clad sync or any inventory writer upserts the auto-maintained inventory block into spec.yaml"
+    action: "emit only the count fields (features, scenarios, capabilities, test_files) with no last_synced line"
+    response: "re-running sync with unchanged counts leaves spec.yaml byte-identical, so parallel branches no longer conflict on a date stamp"
+    text: "When the inventory block is upserted, the system shall emit count fields only — no last_synced — so an unchanged-count re-sync is byte-identical."
+    notes: "## Why\n43 commits touched spec.yaml since 2026-06-01; two branches each running sync produced a guaranteed conflict on the last_synced date line even when nothing real changed. Verified before design: zero production readers of last_synced (writer at inventory.ts:82,122 and a stale comment at clad.ts:246 only)."
+    test_refs:
+      - "tests/spec/inventory.test.ts#AC-f2004981 · upserted inventory block emits only count fields, never last_synced"
+      - "tests/spec/inventory.test.ts#AC-f2004981 · re-syncing unchanged counts leaves spec.yaml byte-identical"
+  - id: AC-d9915fe5
+    ears: event
+    condition: "when a spec.yaml still carries a legacy last_synced line inside the auto-maintained inventory block"
+    action: "rewrite the block without that line on the next inventory upsert, preserving all surrounding hand-authored content"
+    response: "adopter repos auto-migrate on their next sync with no manual edit and no breaking change"
+    text: "When a legacy last_synced line exists, the system shall drop it on the next inventory upsert while preserving all other spec.yaml content."
+    test_refs:
+      - "tests/spec/inventory.test.ts#AC-d9915fe5 · a legacy last_synced line is dropped on next upsert, all other content preserved"
+  - id: AC-de828ae2
+    ears: ubiquitous
+    text: "The Inventory type shall keep last_synced as an optional field so spec.yaml files written by older cladding versions still parse and validate."
+    test_refs:
+      - "tests/spec/inventory.test.ts#AC-de828ae2 · a spec.yaml carrying legacy last_synced still parses and validates"

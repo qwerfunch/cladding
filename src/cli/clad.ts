@@ -25,8 +25,8 @@ import {runUpdate} from './update.js';
 import {runInit} from './init.js';
 import {runClarifyCommand} from './clarify.js';
 import {getCurrentCladdingVersion, runHostSetup} from '../init/host-setup.js';
-import {readEvents, recordEvent} from '../events/log.js';
-import {summarizeValueDelivery} from '../events/session-report.js';
+import {readEvents, readEventsIncludingRolled, recordEvent} from '../events/log.js';
+import {B1_ADOPTION_THRESHOLDS, summarizeAdoption, summarizeValueDelivery, type AdoptionSummary, type AdoptionVerdict} from '../events/session-report.js';
 import {buildContextSlice} from '../optimizer/context-slice.js';
 import {buildImpactSlice} from '../optimizer/reverse-slice.js';
 import {inferDependsOn} from '../optimizer/infer-depends-on.js';
@@ -55,6 +55,7 @@ import type {DriftFinding, Disposition} from '../stages/types.js';
 import {gateStatusOf, isBlocking, worstContribution, type GateStatus} from '../stages/disposition.js';
 import {staleSpecification} from '../stages/detectors/stale-specification.js';
 import {findLatestCheckpoint, readGitHead, recordCheckpoint, recordRollback} from '../core/checkpoint.js';
+import {gitOperationInProgress, gitOperationInProgressName} from '../core/git-ops.js';
 import {maintainDeliverable} from '../spec/deliverable-detect.js';
 import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../spec/inventory.js';
 import {writeDocLinksYaml} from '../spec/doc-references.js';
@@ -243,29 +244,33 @@ export function runSyncCommand(opts: {proposeArchive?: boolean} = {}): void {
     const spec = loadSpec();
     // v0.3.56 (F-5b9f9f) — auto-rewrite the `inventory:` block in
     // spec.yaml on every sync so AI agents can grep 1 file to see
-    // the project's whole scale. ISO-date `last_synced` keeps the
-    // file commit-stable across same-day runs.
-    const inventory = computeInventory('.');
-    writeInventoryToSpecYaml('.', inventory);
-    writeFeatureIndex('.'); // F-37b4a8 — 1-file feature lookup at scale
-    writeDocLinksYaml('.'); // F-doc-graph — doc→spec/doc link index (Tier C)
-    // F-c037ae — heal annotation drift before it rejects correct features:
-    // unique-basename repair of moved test_ref paths + derived: suggestions
-    // (which never satisfy a mandate — see MISSING_TESTS/UNTESTED_AC).
-    const refFixes = repairTestRefs('.');
-    for (const r of refFixes.repaired) pulse('note', 'test_refs', `repaired ${r.from} → ${r.to} (${r.shard})`);
-    for (const sug of refFixes.suggested) pulse('note', 'test_refs', `suggested ${sug.ref} (${sug.shard}) — confirm by removing the 'derived:' prefix`);
-    // v0.5.x — auto-populate project.deliverable when absent + a CLI entry is calibratable, so
-    // DELIVERABLE_SMOKE (stage_2.4) engages without the agent having to declare it correctly (the
-    // re-run showed a conservative agent declares it DISABLED). Calibrates against the passing state,
-    // so it never enables a false-failing invocation. One-time (skips once a deliverable is present).
-    const autoDeliverable = maintainDeliverable('.');
-    if (autoDeliverable) {
-      pulse(
-        'note',
-        'deliverable',
-        `auto-detected entry '${autoDeliverable.path}' — the gate now smoke-tests it (stage_2.4). Opt out with is_safe_to_smoke: false.`,
-      );
+    // the project's whole scale. Counts only — an unchanged-count
+    // re-sync is byte-identical, so parallel branches don't conflict.
+    if (gitOperationInProgress('.')) {
+      pulse('note', 'sync', 'derived-file writes deferred — git operation in progress; re-run after the merge/rebase completes.');
+    } else {
+      const inventory = computeInventory('.');
+      writeInventoryToSpecYaml('.', inventory);
+      writeFeatureIndex('.'); // F-37b4a8 — 1-file feature lookup at scale
+      writeDocLinksYaml('.'); // F-doc-graph — doc→spec/doc link index (Tier C)
+      // F-c037ae — heal annotation drift before it rejects correct features:
+      // unique-basename repair of moved test_ref paths + derived: suggestions
+      // (which never satisfy a mandate — see MISSING_TESTS/UNTESTED_AC).
+      const refFixes = repairTestRefs('.');
+      for (const r of refFixes.repaired) pulse('note', 'test_refs', `repaired ${r.from} → ${r.to} (${r.shard})`);
+      for (const sug of refFixes.suggested) pulse('note', 'test_refs', `suggested ${sug.ref} (${sug.shard}) — confirm by removing the 'derived:' prefix`);
+      // v0.5.x — auto-populate project.deliverable when absent + a CLI entry is calibratable, so
+      // DELIVERABLE_SMOKE (stage_2.4) engages without the agent having to declare it correctly (the
+      // re-run showed a conservative agent declares it DISABLED). Calibrates against the passing state,
+      // so it never enables a false-failing invocation. One-time (skips once a deliverable is present).
+      const autoDeliverable = maintainDeliverable('.');
+      if (autoDeliverable) {
+        pulse(
+          'note',
+          'deliverable',
+          `auto-detected entry '${autoDeliverable.path}' — the gate now smoke-tests it (stage_2.4). Opt out with is_safe_to_smoke: false.`,
+        );
+      }
     }
     if (opts.proposeArchive) {
       const findings = staleSpecification.run({cwd: '.'});
@@ -381,7 +386,11 @@ export async function runUpdateCommand(): Promise<void> {
     process.exit(r.code);
     return;
   }
-  pulse('pass', 'spec', `inventory synced · ${r.features} features`);
+  if (r.inventoryDeferred) {
+    pulse('note', 'spec', `inventory + index writes deferred — git operation in progress; re-run \`clad update\` after it completes (${r.features} features seen).`);
+  } else {
+    pulse('pass', 'spec', `inventory synced · ${r.features} features`);
+  }
   pulse(r.claudeMd === 'refreshed-stale' ? 'note' : 'pass', 'CLAUDE.md', r.claudeMd);
   pulse(r.agentsMd === 'refreshed-stale' ? 'note' : 'pass', 'AGENTS.md', r.agentsMd);
   for (const d of r.deprecations) pulse('note', 'deprecated', d);
@@ -557,12 +566,16 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
       if (!opts.json) pulse('note', 'attestation', 'stale entries re-verified by this run — re-attesting');
     }
     if (!anyFailed) {
-      try {
-        if (writeAttestation('.', loadSpec())) {
-          if (!opts.json) pulse('note', 'attestation', 'spec/attestation.yaml refreshed (verified tree stamped)');
+      if (gitOperationInProgress('.')) {
+        if (!opts.json) pulse('note', 'attestation', 'deferred — git operation in progress; run the gate again after the merge/rebase completes.');
+      } else {
+        try {
+          if (writeAttestation('.', loadSpec())) {
+            if (!opts.json) pulse('note', 'attestation', 'spec/attestation.yaml refreshed (verified tree stamped)');
+          }
+        } catch {
+          /* unloadable spec → nothing to attest */
         }
-      } catch {
-        /* unloadable spec → nothing to attest */
       }
     }
   }
@@ -651,17 +664,33 @@ function runSessionsMeasure(opts: {json?: boolean}): void {
     events = []; // unreadable/corrupt ledger → treat as no telemetry (never crash the report)
   }
   const summary = summarizeValueDelivery(events);
+  // The B1 adoption verdict (F-1e7a10c3) reads the ROLLED generation too — a recent
+  // rotation must not drop completed cycles from view — and is gated ONLY on
+  // hasSignal, NEVER on summary.total. A cycles-only ledger (CLI usage, value lane
+  // silent/unwired) has total 0 yet hasSignal true, and is the strongest
+  // non-adoption evidence, so it must render alongside the SILENT/UNWIRED note.
+  let adoption: AdoptionSummary;
+  try {
+    adoption = summarizeAdoption(readEventsIncludingRolled('.'));
+  } catch {
+    adoption = summarizeAdoption([]); // unreadable ledger → no adoption signal
+  }
   if (opts.json) {
-    process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
+    // Additive `adoption` key (always present); every existing summary key stays byte-stable.
+    process.stdout.write(`${JSON.stringify({...summary, adoption}, null, 2)}\n`);
     process.exit(0);
     return;
   }
+  const adoptionLines = adoption.hasSignal ? renderAdoptionSection(adoption) : [];
   if (summary.total === 0) {
     process.stdout.write(
       'no value-delivery telemetry was recorded — the value surfaces (impact card, session card, ' +
         'prompt suggestion, MCP working-set serves) may simply be SILENT this session, OR their emission ' +
         'may be UNWIRED. These two cases are indistinguishable from an empty ledger.\n',
     );
+    // Co-render the adoption verdict when cycles ran but the value lane stayed silent
+    // (AC-95686e07): the SILENT/UNWIRED note above is byte-identical, the section follows.
+    if (adoptionLines.length > 0) process.stdout.write(`${adoptionLines.join('\n')}\n`);
     process.exit(0);
     return;
   }
@@ -680,8 +709,38 @@ function runSessionsMeasure(opts: {json?: boolean}): void {
     `  other surfaces: ${summary.sessionCards} session card(s), ${summary.promptSuggestions} prompt suggestion(s)`,
     '  (eligible = fired + substantive skips; not_write_tool / unwatched_path noise and by-design suppressions excluded)',
   ];
-  process.stdout.write(`${lines.join('\n')}\n`);
+  // A value-delivery ledger always carries adoption signal (every counted event type
+  // sets hasSignal), so the section renders here too — delivery first, then adoption.
+  process.stdout.write(`${[...lines, ...adoptionLines].join('\n')}\n`);
   process.exit(0);
+}
+
+/**
+ * The B1 adoption section for `clad measure --sessions` (F-1e7a10c3) — renders the
+ * pull-vs-push verdict in the SAME visual register as the value-delivery summary above
+ * (a column-0 header, then 2-space-indented `label: value` lines). At most 8 lines: the
+ * unmet-gate line is omitted when reasons is empty (a confirmed verdict). PULL (a resolved
+ * MCP read-serve) is the only adoption signal; the pushes cladding sent never raise a
+ * number, so the section reads WHY the verdict landed where it did.
+ */
+function renderAdoptionSection(a: AdoptionSummary): string[] {
+  const T = B1_ADOPTION_THRESHOLDS;
+  const pct = (n: number): string => `${(n * 100).toFixed(1)}%`;
+  const verdictLabel: Record<AdoptionVerdict, string> = {
+    confirmed: 'confirmed',
+    not_confirmed: 'not confirmed',
+    insufficient_data: 'insufficient data',
+  };
+  const lines = [
+    'adoption — did an agent CHOOSE to pull context, not just receive what cladding pushed',
+    `  verdict: ${verdictLabel[a.verdict]}`,
+    `  completed cycles: ${a.completedCycles} (min ${T.minCompletedCycles} to judge)`,
+    `  pulls: ${a.pullsTotal} resolved read-serve(s) ${JSON.stringify(a.pullsByTool)} (threshold ${T.minPulls}; pushes never counted)`,
+    `  cycle-pull rate: ${a.cyclesWithPull}/${a.completedCycles} = ${pct(a.cyclePullRate)} (threshold ${pct(T.minCyclePullRate)})`,
+    `  distinct heads: ${a.distinctHeads} (threshold ${T.minDistinctHeads})`,
+  ];
+  if (a.reasons.length > 0) lines.push(`  unmet: ${a.reasons.join(', ')}`);
+  return lines;
 }
 
 /**
@@ -806,7 +865,7 @@ export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tie
  * so `done` cannot claim more than the gate verifies. @see cli/done.ts
  */
 export function runDoneCommand(featureId: string): void {
-  const r = runDone('.', featureId, {checkStages: runCheckStages, onIndex: writeFeatureIndex});
+  const r = runDone('.', featureId, {checkStages: runCheckStages, onIndex: writeFeatureIndex, gitOpInProgress: gitOperationInProgressName});
   pulse(r.ok ? 'pass' : 'fail', `done · ${featureId}`, r.reason);
   process.exit(r.code);
 }

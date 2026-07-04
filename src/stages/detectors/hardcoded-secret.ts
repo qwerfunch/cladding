@@ -69,5 +69,6 @@ function runHardcodedSecret(opts: CommandStageOptions): readonly DriftFinding[] 
 
 export const hardcodedSecret: DriftDetector = {
   name: NAME,
+  subprocess: true,
   run: runHardcodedSecret,
 };

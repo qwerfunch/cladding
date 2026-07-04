@@ -1011,10 +1011,11 @@ function runPostToolUseDrift(input: unknown, cwd: string): string {
   } else {
     card = emitCardForPath(cwd, asString(rec.session_id), rel);
   }
-  const report = runDrift({cwd});
+  const report = runDrift({cwd, profile: 'interactive'});
   const errors = report.findings.filter((f) => f.severity === 'error');
+  const deferred = report.skippedDetectors?.length ? ` (+${report.skippedDetectors.length} deferred to commit)` : '';
   const drift =
-    errors.length === 0 ? '' : `cladding drift: ${errors.length} error(s) — ${errors[0].detector}: ${truncate(errors[0].message, 140)}`;
+    errors.length === 0 ? '' : `cladding drift: ${errors.length} error(s) — ${errors[0].detector}: ${truncate(errors[0].message, 140)}${deferred}`;
   return [card, drift].filter(Boolean).join('\n');
 }
 

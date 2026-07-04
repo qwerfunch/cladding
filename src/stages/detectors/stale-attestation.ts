@@ -15,7 +15,7 @@
 //                            strict pre-push gate itself exempts solely-
 //                            stale findings and re-attests (see clad.ts).
 
-import {moduleTreeHash, readAttestation} from '../../spec/attestation.js';
+import {featureAttestation, readAttestation} from '../../spec/attestation.js';
 import type {Spec} from '../../spec/types.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
 import {withSpec} from './with-spec.js';
@@ -47,17 +47,18 @@ function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
 
   const findings: DriftFinding[] = [];
   for (const f of done) {
-    const recorded = attested.get(f.id);
-    const current = moduleTreeHash(cwd, f.modules ?? []);
-    if (recorded === current) continue;
+    const state = featureAttestation(attested, cwd, f);
+    if (state.state === 'fresh') continue;
     findings.push({
       detector: NAME,
       severity: 'warn',
       path: 'spec/attestation.yaml',
       message:
-        recorded === undefined
+        state.state === 'unattested'
           ? `${f.id} is done but has no attestation entry — its modules were never verified by an attested gate. Run \`clad check --tier=pre-push --strict\` to attest.`
-          : `${f.id}'s modules changed since the last attested verification — shipped code is running ahead of its verification. Run \`clad check --tier=pre-push --strict\` to re-verify and re-attest.`,
+          : state.module
+            ? `${f.id}'s module ${state.module} changed since the last attested verification — shipped code is running ahead of its verification. Run \`clad check --tier=pre-push --strict\` to re-verify and re-attest.`
+            : `${f.id}'s modules changed since the last attested verification — shipped code is running ahead of its verification. Run \`clad check --tier=pre-push --strict\` to re-verify and re-attest.`,
     });
   }
   return findings;

@@ -115,6 +115,8 @@ export interface DriftFinding {
 export interface DriftReport extends StageResult {
   /** Findings from every registered detector, in registration order. */
   readonly findings: readonly DriftFinding[];
+  /** Subprocess detectors excluded under the interactive profile; `[]` when full. */
+  readonly skippedDetectors: readonly string[];
 }
 
 /**
@@ -129,6 +131,8 @@ export interface DriftReport extends StageResult {
 export interface DriftDetector {
   /** Stable identifier; matches `DriftFinding.detector`. */
   readonly name: string;
+  /** True for detectors that spawn a child process; excluded by the interactive profile. */
+  readonly subprocess?: true;
   /** Runs the detector and returns its findings (possibly empty). */
   run(opts: CommandStageOptions): readonly DriftFinding[];
 }

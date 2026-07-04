@@ -288,7 +288,7 @@ function renderScenarioYaml(scenario: {
   const escapedTitle = scenario.title.replace(/"/g, '\\"');
   const flowLines = scenario.flow.split('\n').map((line) => `  ${line}`).join('\n');
   return [
-    '# Cladding · Tier A · SSoT — onboarding output, edit-friendly · Refreshed by: clad init / clad refine',
+    '# Cladding · Tier A · SSoT — onboarding output, edit-friendly · Refreshed by: clad init / clad clarify',
     `id: ${scenario.id}`,
     `slug: ${scenario.slug}`,
     `title: "${escapedTitle}"`,

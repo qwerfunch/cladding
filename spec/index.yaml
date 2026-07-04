@@ -3,6 +3,7 @@
 # (suggested .gitattributes: `spec/index.yaml merge=union`).
 features:
   F-001: {slug: F-001, status: done, modules: 4}
+  F-0023ba22: {slug: adoption-reducer, status: done, modules: 2}
   F-002: {slug: F-002, status: done, modules: 1}
   F-003: {slug: F-003, status: done, modules: 2}
   F-004: {slug: F-004, status: done, modules: 2}
@@ -89,8 +90,10 @@ features:
   F-081: {slug: F-081, status: done, modules: 3}
   F-098d3b: {slug: detector-count-auto-recompute, status: done, modules: 1}
   F-09d68b: {slug: clad-refine, status: done, modules: 7}
+  F-0e84628e: {slug: merge-ritual-docs, status: done, modules: 2}
   F-0ed2db: {slug: ai-hints-consumer-instructions, status: done, modules: 11}
   F-0f2984d0: {slug: infer-deps-dynamic-flag, status: done, modules: 2}
+  F-10cc42d1: {slug: git-op-write-guard, status: done, modules: 5}
   F-12d740: {slug: atomic-ac-evidence-fanout, status: done, modules: 1}
   F-15999130: {slug: inferable-depends-on-detector, status: done, modules: 2}
   F-16138071: {slug: graph-efficiency-measure, status: done, modules: 2}
@@ -99,6 +102,7 @@ features:
   F-18e951: {slug: drift-baseline-cleanup, status: done, modules: 7}
   F-1c9166: {slug: readme-capability-sync, status: done, modules: 2}
   F-1d23a6: {slug: host-hooks, status: done, modules: 5}
+  F-1e7a10c3: {slug: adoption-report-surface, status: done, modules: 2}
   F-1edb38: {slug: scan-refactor, status: done, modules: 13}
   F-24062d: {slug: spec-id-hash-filename-and-lookup, status: done, modules: 3}
   F-245bd5: {slug: dogfood-recovery-v0-3-16, status: done, modules: 2}
@@ -113,11 +117,13 @@ features:
   F-39609db4: {slug: measure-ledger, status: done, modules: 2}
   F-3a5339: {slug: spec-yaml-metadata, status: done, modules: 5}
   F-3b3690: {slug: multi-agent-orchestration, status: done, modules: 4}
+  F-3c2bf8b9: {slug: readme-record-honesty, status: done, modules: 5}
   F-40327b: {slug: persona-skill-md-cleanup, status: done, modules: 14}
   F-417ff0: {slug: scan-llm-dispatcher-chain, status: done, modules: 5}
   F-42af48: {slug: architecture-from-spec, status: done, modules: 2}
   F-43d8e3: {slug: smoke-probe-token-pass, status: done, modules: 3}
   F-4747ef: {slug: ssot-lifecycle-tests, status: done, modules: 9}
+  F-49facde9: {slug: loop-engineering-readme, status: done, modules: 4}
   F-4db939: {slug: ab-evaluation, status: done, modules: 9}
   F-4ef09f38: {slug: multi-probe-smoke, status: done, modules: 3}
   F-50ff43: {slug: meta-integrity-skip-when-absent, status: done, modules: 2}
@@ -138,6 +144,8 @@ features:
   F-67e33f: {slug: spec-id-multi-dev-safety, status: done, modules: 7}
   F-6ba22c5c: {slug: value-telemetry, status: done, modules: 5}
   F-6d943d: {slug: version-bump-script, status: done, modules: 2}
+  F-6e49fd24: {slug: inventory-churn-diet, status: done, modules: 1}
+  F-6ed216f3: {slug: interactive-drift-profile, status: done, modules: 5}
   F-6f80e7: {slug: claude-code-dogfood, status: done, modules: 1}
   F-7076f7: {slug: smoke-probe-demand, status: done, modules: 3}
   F-7794a6bc: {slug: impact-blast-radius, status: done, modules: 3}
@@ -173,13 +181,16 @@ features:
   F-af45042a: {slug: graph-live-health, status: done, modules: 5}
   F-af96b1: {slug: no-vacuous-green-gate-contract, status: done, modules: 6}
   F-b010427b: {slug: detector-layer-purity, status: done, modules: 2}
+  F-b0f898a6: {slug: attestation-v2-per-module, status: done, modules: 3}
   F-b2094740: {slug: lint-config-detection, status: done, modules: 1}
   F-b43066: {slug: model-defaults-refresh, status: done, modules: 6}
   F-b61449: {slug: gemini-cli-dogfood, status: done, modules: 1}
   F-b84c38: {slug: lifecycle-events-identity, status: done, modules: 4}
+  F-b8d74801: {slug: verb-rename-residue-sweep, status: done, modules: 6}
   F-b99577: {slug: stale-archive-suggestion, status: done, modules: 4}
   F-ba2e05: {slug: ab-outcome-quality, status: done, modules: 8}
   F-ba4b7a: {slug: pulse-progressive, status: done, modules: 2}
+  F-bae800bd: {slug: ab-case-doc-binding, status: done, modules: 6}
   F-bb15e6: {slug: clad-doctor, status: done, modules: 3}
   F-bc8ad013: {slug: mcp-description-diet, status: done, modules: 2}
   F-bd07d7: {slug: greenfield-seeds, status: done, modules: 5}
@@ -207,6 +218,7 @@ features:
   F-e0f6c7: {slug: smoke-disposition-spine, status: done, modules: 3}
   F-e53596dd: {slug: gate-run-detector-cache, status: done, modules: 7}
   F-e7d59c88: {slug: bash-edit-blind-spot, status: done, modules: 2}
+  F-e803c149: {slug: b1-adoption-protocol, status: done, modules: 3}
   F-e940fffe: {slug: audit-bundle-html, status: done, modules: 3}
   F-eb732f: {slug: spec-authoring-anti-hollow, status: done, modules: 2}
   F-ede6fa75: {slug: self-measuring-release, status: done, modules: 3}

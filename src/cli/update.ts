@@ -35,6 +35,7 @@ import {
   writeClaudeMdSection,
 } from '../init/host-instructions.js';
 import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../spec/inventory.js';
+import {gitOperationInProgress} from '../core/git-ops.js';
 
 /**
  * Injected so `runUpdate` is unit-testable without touching the global home
@@ -61,6 +62,9 @@ export interface UpdateResult {
   readonly code: number;
   /** Report-only deprecation notices (F-b43066) — dead spec knobs draining out. */
   readonly deprecations: readonly string[];
+  /** True when a git operation was in progress, so the inventory + index writes
+   * were skipped (the caller reports the deferral instead of "synced"). */
+  readonly inventoryDeferred?: boolean;
 }
 
 /**
@@ -87,10 +91,15 @@ export async function runUpdate(cwd: string, deps: UpdateDeps): Promise<UpdateRe
     };
   }
 
-  // 2. Reconcile the spec.yaml inventory snapshot (deterministic).
+  // 2. Reconcile the spec.yaml inventory snapshot (deterministic). Skip the
+  //    writes (keep the read-only count for the report) while a git operation
+  //    is in progress, so a merge/rebase sees no surprise derived-file edits.
   const inv = computeInventory(cwd);
-  writeInventoryToSpecYaml(cwd, inv);
-  writeFeatureIndex(cwd); // F-37b4a8
+  const inventoryDeferred = gitOperationInProgress(cwd);
+  if (!inventoryDeferred) {
+    writeInventoryToSpecYaml(cwd, inv);
+    writeFeatureIndex(cwd); // F-37b4a8
+  }
 
   // 3. Refresh the cladding-managed CLAUDE.md / AGENTS.md section — staleness-
   //    based only; user prose preserved, no `--force`, no LLM dispatch.
@@ -125,5 +134,6 @@ export async function runUpdate(cwd: string, deps: UpdateDeps): Promise<UpdateRe
     features: inv.features ?? 0,
     code: wiringErrors > 0 ? 1 : 0,
     deprecations,
+    inventoryDeferred,
   };
 }

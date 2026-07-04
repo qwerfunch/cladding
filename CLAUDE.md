@@ -59,6 +59,10 @@ Never auto-tag, auto-publish, or auto-release. Patch-first cadence — minor bum
 
 **All merges go through a PR — git-flow, always.** `feature/* → develop` and `develop → main` both land via PR; no direct pushes that bypass review. For `develop → main`, **always use a merge commit — NEVER squash, NEVER rebase.** A squash puts the release commit outside develop's ancestry, so the *next* release PR reports every file touched since as conflicting (the v0.5.2 squash via PR #180 made PR #181 show 31 phantom conflicts; #183's squash left develop unreconciled until a manual `merge origin/main` reconciliation on 2026-06-25). GitHub has no per-branch merge-method lock, so this is a hand-enforced convention: deliberately pick "Create a merge commit" on every `develop → main` PR, then back-merge `main → develop` (step 4) to keep develop a clean superset. Squashing `feature/* → develop` PRs is fine — only the `develop → main` direction causes the divergence.
 
+## Derived-file merge conflicts — never hand-resolve
+
+`spec/attestation.yaml` and `spec/index.yaml` are harness-written. On a merge or rebase conflict in either, never hand-edit the hashes — both sides are stale against the merged tree, and only a GREEN `clad check --tier=pre-push --strict` gate computes the truth. Follow the canonical ritual in `docs/spec-ids-multi-dev.md` under **"Merging: derived files heal, never hand-resolve"** — do not duplicate the steps here.
+
 ## AI behavior guidance from `spec.yaml.project.ai_hints`
 
 When operating inside a cladding-managed project (cladding itself included), grep `spec.yaml::project.ai_hints` at session start. It is the SSoT for AI behavior policy:
