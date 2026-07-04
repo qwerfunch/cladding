@@ -7,17 +7,6 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Removed
-
-- ▸ **The three renamed CLI verbs are gone.** `drive`, `panel`, and `refine` —
-  the old spellings kept working since 0.6.0 as aliases for `run`, `status`,
-  and `clarify` — are removed. Typing one now returns an unknown-command error;
-  use the new name instead.
-- ▸ **Their skill stubs are gone too.** The `drive`, `panel`, and `refine`
-  redirect skills under `skills/` (and their Codex mirror copies) are deleted.
-- This completes the removal the deprecation notice has promised on every use of
-  those verbs since 0.6.0.
-
 ## [0.8.0] — Context Push (2026-07-03)
 
 The harness stops waiting to be asked: it pushes the right context at you as
@@ -36,6 +25,10 @@ review packet — plus first-class Python support.
 - ▸ **A real impact card after every edit.** Change a file and the card now
   sums up what breaks, which tests to re-run, and a rough risk level — kept
   short by a per-session token budget and de-duplicated so it never repeats.
+- ▸ **"No LLM at the detector layer" is now a machine rule.** An architecture
+  forbidden-import rule blocks the detector layer from reaching the agent
+  adapters, and a purity suite asserts no detector's run is async — this
+  Iron Law invariant was prose-only before.
 - ▸ **Cards for shell-made edits.** Files changed through `sed`, heredocs, or
   `tee` (not just the editor) are now detected and get the same card.
 - ▸ **Cards for more languages.** `.tsx`/`.jsx` and Kotlin, Java, Ruby, PHP,
@@ -77,6 +70,34 @@ review packet — plus first-class Python support.
 - ▸ **cladding smokes its own version banner.** The project's smoke config now
   runs a second probe (the CLI version output), exercising the new multi-probe
   aggregation on every gate run.
+- ▸ **The gate runs each tool once, not twice.** `madge` and `secretlint` used
+  to spawn twice per `clad check` — once in the drift stage, then again in the
+  thin architecture and secret adapter stages. A run-scoped result cache, primed
+  and cleared only at the gate seams, lets the adapter stages reuse the drift
+  findings instead of re-spawning. Measured on the pre-commit tier: 11.4s →
+  5.4-5.7s, one spawn per tool instead of two — a cost the Stop hook had been
+  paying on every agent-loop turn.
+- ▸ **Bounded MCP session cost.** Tool descriptions are resident in every
+  session and re-read on every loop turn. The three that carried workflow essays
+  — `clad_create_feature`, `clad_changelog`, `clad_get_graph` (2,115 / 1,383 /
+  1,138 bytes) — are trimmed to about two lines (≤400 characters) that point at
+  their canonical docs, and a budget test caps every description so they cannot
+  silently regrow.
+- ▸ **cladding guards its own counts.** The detector and stage counts printed in
+  the READMEs and agent docs are now asserted against the live registry by the
+  self-consistency suite — the tool that flags drift had itself drifted (its own
+  docs variously said 38 and 40 detectors while the registry carried 41).
+
+### Removed
+
+- ▸ **The three renamed CLI verbs are gone.** `drive`, `panel`, and `refine` —
+  the old spellings kept working since 0.6.0 as aliases for `run`, `status`,
+  and `clarify` — are removed. Typing one now returns an unknown-command error;
+  use the new name instead.
+- ▸ **Their skill stubs are gone too.** The `drive`, `panel`, and `refine`
+  redirect skills under `skills/` (and their Codex mirror copies) are deleted.
+- This completes the removal the deprecation notice has promised on every use of
+  those verbs since 0.6.0.
 
 ### Fixed
 

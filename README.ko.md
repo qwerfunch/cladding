@@ -16,7 +16,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-2012%2F2012-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-2035%2F2035-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -307,7 +307,7 @@ clad update                # 3. 새 버전에 맞게 정리
 
 | version | 준수 등급 | tests | gate | features |
 |---|---|---|---|---|
-| v0.8.0 · 2026-07 | L4 · [L0–L4 중 최고 · 자가 선언](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2012 / 2012 · all pass | 15 단계 · 41 detectors | 212 · 209 done · 자기 스펙 |
+| v0.8.0 · 2026-07 | L4 · [L0–L4 중 최고 · 자가 선언](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2035 / 2035 · all pass | 15 단계 · 41 detectors | 217 · 214 done · 자기 스펙 |
 
 <sub>195 test files · capability 6개 · coverage는 COVERAGE_DROP detector가 하락 차단</sub>
 
