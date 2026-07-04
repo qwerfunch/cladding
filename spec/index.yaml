@@ -101,6 +101,7 @@ features:
   F-18e951: {slug: drift-baseline-cleanup, status: done, modules: 7}
   F-1c9166: {slug: readme-capability-sync, status: done, modules: 2}
   F-1d23a6: {slug: host-hooks, status: done, modules: 5}
+  F-1e7a10c3: {slug: adoption-report-surface, status: done, modules: 2}
   F-1edb38: {slug: scan-refactor, status: done, modules: 13}
   F-24062d: {slug: spec-id-hash-filename-and-lookup, status: done, modules: 3}
   F-245bd5: {slug: dogfood-recovery-v0-3-16, status: done, modules: 2}
@@ -121,6 +122,7 @@ features:
   F-42af48: {slug: architecture-from-spec, status: done, modules: 2}
   F-43d8e3: {slug: smoke-probe-token-pass, status: done, modules: 3}
   F-4747ef: {slug: ssot-lifecycle-tests, status: done, modules: 9}
+  F-49facde9: {slug: loop-engineering-readme, status: planned, modules: 4}
   F-4db939: {slug: ab-evaluation, status: done, modules: 9}
   F-4ef09f38: {slug: multi-probe-smoke, status: done, modules: 3}
   F-50ff43: {slug: meta-integrity-skip-when-absent, status: done, modules: 2}
@@ -187,6 +189,7 @@ features:
   F-b99577: {slug: stale-archive-suggestion, status: done, modules: 4}
   F-ba2e05: {slug: ab-outcome-quality, status: done, modules: 8}
   F-ba4b7a: {slug: pulse-progressive, status: done, modules: 2}
+  F-bae800bd: {slug: ab-case-doc-binding, status: planned, modules: 6}
   F-bb15e6: {slug: clad-doctor, status: done, modules: 3}
   F-bc8ad013: {slug: mcp-description-diet, status: done, modules: 2}
   F-bd07d7: {slug: greenfield-seeds, status: done, modules: 5}
@@ -214,6 +217,7 @@ features:
   F-e0f6c7: {slug: smoke-disposition-spine, status: done, modules: 3}
   F-e53596dd: {slug: gate-run-detector-cache, status: done, modules: 7}
   F-e7d59c88: {slug: bash-edit-blind-spot, status: done, modules: 2}
+  F-e803c149: {slug: b1-adoption-protocol, status: planned, modules: 3}
   F-e940fffe: {slug: audit-bundle-html, status: done, modules: 3}
   F-eb732f: {slug: spec-authoring-anti-hollow, status: done, modules: 2}
   F-ede6fa75: {slug: self-measuring-release, status: done, modules: 3}

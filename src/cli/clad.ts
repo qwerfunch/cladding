@@ -25,8 +25,8 @@ import {runUpdate} from './update.js';
 import {runInit} from './init.js';
 import {runClarifyCommand} from './clarify.js';
 import {getCurrentCladdingVersion, runHostSetup} from '../init/host-setup.js';
-import {readEvents, recordEvent} from '../events/log.js';
-import {summarizeValueDelivery} from '../events/session-report.js';
+import {readEvents, readEventsIncludingRolled, recordEvent} from '../events/log.js';
+import {B1_ADOPTION_THRESHOLDS, summarizeAdoption, summarizeValueDelivery, type AdoptionSummary, type AdoptionVerdict} from '../events/session-report.js';
 import {buildContextSlice} from '../optimizer/context-slice.js';
 import {buildImpactSlice} from '../optimizer/reverse-slice.js';
 import {inferDependsOn} from '../optimizer/infer-depends-on.js';
@@ -664,17 +664,33 @@ function runSessionsMeasure(opts: {json?: boolean}): void {
     events = []; // unreadable/corrupt ledger → treat as no telemetry (never crash the report)
   }
   const summary = summarizeValueDelivery(events);
+  // The B1 adoption verdict (F-1e7a10c3) reads the ROLLED generation too — a recent
+  // rotation must not drop completed cycles from view — and is gated ONLY on
+  // hasSignal, NEVER on summary.total. A cycles-only ledger (CLI usage, value lane
+  // silent/unwired) has total 0 yet hasSignal true, and is the strongest
+  // non-adoption evidence, so it must render alongside the SILENT/UNWIRED note.
+  let adoption: AdoptionSummary;
+  try {
+    adoption = summarizeAdoption(readEventsIncludingRolled('.'));
+  } catch {
+    adoption = summarizeAdoption([]); // unreadable ledger → no adoption signal
+  }
   if (opts.json) {
-    process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
+    // Additive `adoption` key (always present); every existing summary key stays byte-stable.
+    process.stdout.write(`${JSON.stringify({...summary, adoption}, null, 2)}\n`);
     process.exit(0);
     return;
   }
+  const adoptionLines = adoption.hasSignal ? renderAdoptionSection(adoption) : [];
   if (summary.total === 0) {
     process.stdout.write(
       'no value-delivery telemetry was recorded — the value surfaces (impact card, session card, ' +
         'prompt suggestion, MCP working-set serves) may simply be SILENT this session, OR their emission ' +
         'may be UNWIRED. These two cases are indistinguishable from an empty ledger.\n',
     );
+    // Co-render the adoption verdict when cycles ran but the value lane stayed silent
+    // (AC-95686e07): the SILENT/UNWIRED note above is byte-identical, the section follows.
+    if (adoptionLines.length > 0) process.stdout.write(`${adoptionLines.join('\n')}\n`);
     process.exit(0);
     return;
   }
@@ -693,8 +709,38 @@ function runSessionsMeasure(opts: {json?: boolean}): void {
     `  other surfaces: ${summary.sessionCards} session card(s), ${summary.promptSuggestions} prompt suggestion(s)`,
     '  (eligible = fired + substantive skips; not_write_tool / unwatched_path noise and by-design suppressions excluded)',
   ];
-  process.stdout.write(`${lines.join('\n')}\n`);
+  // A value-delivery ledger always carries adoption signal (every counted event type
+  // sets hasSignal), so the section renders here too — delivery first, then adoption.
+  process.stdout.write(`${[...lines, ...adoptionLines].join('\n')}\n`);
   process.exit(0);
+}
+
+/**
+ * The B1 adoption section for `clad measure --sessions` (F-1e7a10c3) — renders the
+ * pull-vs-push verdict in the SAME visual register as the value-delivery summary above
+ * (a column-0 header, then 2-space-indented `label: value` lines). At most 8 lines: the
+ * unmet-gate line is omitted when reasons is empty (a confirmed verdict). PULL (a resolved
+ * MCP read-serve) is the only adoption signal; the pushes cladding sent never raise a
+ * number, so the section reads WHY the verdict landed where it did.
+ */
+function renderAdoptionSection(a: AdoptionSummary): string[] {
+  const T = B1_ADOPTION_THRESHOLDS;
+  const pct = (n: number): string => `${(n * 100).toFixed(1)}%`;
+  const verdictLabel: Record<AdoptionVerdict, string> = {
+    confirmed: 'confirmed',
+    not_confirmed: 'not confirmed',
+    insufficient_data: 'insufficient data',
+  };
+  const lines = [
+    'adoption — did an agent CHOOSE to pull context, not just receive what cladding pushed',
+    `  verdict: ${verdictLabel[a.verdict]}`,
+    `  completed cycles: ${a.completedCycles} (min ${T.minCompletedCycles} to judge)`,
+    `  pulls: ${a.pullsTotal} resolved read-serve(s) ${JSON.stringify(a.pullsByTool)} (threshold ${T.minPulls}; pushes never counted)`,
+    `  cycle-pull rate: ${a.cyclesWithPull}/${a.completedCycles} = ${pct(a.cyclePullRate)} (threshold ${pct(T.minCyclePullRate)})`,
+    `  distinct heads: ${a.distinctHeads} (threshold ${T.minDistinctHeads})`,
+  ];
+  if (a.reasons.length > 0) lines.push(`  unmet: ${a.reasons.join(', ')}`);
+  return lines;
 }
 
 /**

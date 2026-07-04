@@ -1,0 +1,35 @@
+id: F-1e7a10c3
+slug: adoption-report-surface
+title: "Adoption report surface — clad measure --sessions renders the B1 verdict"
+status: done
+modules:
+  - src/cli/clad.ts
+  - src/events/session-report.ts
+acceptance_criteria:
+  - id: AC-b281f9ec
+    ears: event
+    condition: "when clad measure --sessions renders and summarizeAdoption reports hasSignal true"
+    action: "append a compact adoption section (at most 8 lines): verdict, completed cycles, pulls total and by tool, cycle-pull-rate vs threshold, distinct heads, and the unmet-threshold reasons"
+    response: "the B1 decision data is readable at the same place the value-delivery summary already lives"
+    text: "When the sessions report renders with adoption signal present, the system shall append the adoption section, gated ONLY on hasSignal."
+    notes: "## Why\nThe adoption reducer (F-0023ba22) computes the B1 verdict but nothing renders it. Gating on hasSignal — never on ValueDeliverySummary.total — was the adversarial review's core repair: a cycles-only ledger (CLI-only usage, value lane unwired) is the strongest non-adoption evidence and must render, not be suppressed."
+    test_refs:
+      - tests/cli/measure-adoption.test.ts
+  - id: AC-14badb09
+    ears: ubiquitous
+    text: "The measure --sessions --json output shall gain an additive adoption key (always present in JSON mode) while every existing key stays byte-stable."
+    test_refs:
+      - tests/cli/measure-adoption.test.ts
+  - id: AC-95686e07
+    ears: ubiquitous
+    text: "The existing SILENT/UNWIRED message shall stay byte-identical and co-render with the adoption section when cycles ran while the value lane was silent or unwired."
+    test_refs:
+      - tests/cli/measure-adoption.test.ts
+  - id: AC-32fe3220
+    ears: event
+    condition: "when the ledger has no adoption signal (hasSignal false)"
+    action: "render exactly the pre-feature text output with no adoption section"
+    response: "empty and pre-0.8 ledgers see zero output change"
+    text: "When hasSignal is false, the text output shall be unchanged from the pre-feature behavior."
+    test_refs:
+      - tests/cli/measure-adoption.test.ts

@@ -4,6 +4,16 @@ schema: "0.1"
 docs:
   "docs/README.md":
     doc_links: ["docs/ssot-model.md", "spec/README.md", "src/agents/README.md"]
+  "docs/ab-evaluation/case-doverunner-scale.md":
+    features: [F-06dfdad6, F-7794a6bc]
+  "docs/ab-evaluation/case-efficiency-measurement.md":
+    features: [F-16138071]
+  "docs/ab-evaluation/case-graph-efficiency.md":
+    features: [F-06dfdad6, F-7794a6bc]
+  "docs/ab-evaluation/case-iterative-vs-fixed-vapt.md":
+    features: [F-7794a6bc, F-96250595]
+  "docs/ab-evaluation/case-working-set-landmine.md":
+    features: [F-06dfdad6]
   "docs/conventions.md":
     doc_links: ["docs/code-style.md"]
   "docs/glossary.md":
