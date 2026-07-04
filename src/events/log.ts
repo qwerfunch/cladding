@@ -56,7 +56,53 @@ export type EventType =
   // keyed: an identical failure set demotes to allow without an event, so
   // this fires only on new breakage — the demotion itself persists as
   // .cladding/stop-block.json and resurfaces on the SessionStart card.
-  | 'stop_blocked'; // payload: count, fingerprint
+  | 'stop_blocked' // payload: count, fingerprint
+  // v0.8.0 (F-6ba22c5c) — value-delivery telemetry. cladding's value surfaces
+  // (PostToolUse impact card, SessionStart card, UserPromptSubmit suggestion, MCP
+  // read serves) left ZERO trace, so the 0.7.1 "impact card fired 0%" bug was
+  // invisible to the harness's own ledger. Each surface now records whether it
+  // produced output. Payloads:
+  //   impact_card_fired:        file, feature, impacted (n), tests (n), unledgered (bool),
+  //                             tier (1|2 — Tier-2 is the mini working-set card, F-35954d19),
+  //                             lane ('bash' when the mutation was attributed via the Bash
+  //                             git-delta lane, F-e7d59c88; ABSENT on native write-tool
+  //                             edits — additive field per the F-6ba22c5c precedent)
+  //   impact_card_skipped:      reason ∈ ImpactSkipReason (closed enum, one per degrade
+  //                             branch of runPostToolUseDrift). The two high-frequency
+  //                             reasons (not_write_tool, unwatched_path) are AGGREGATED
+  //                             across a DRIFT_DEBOUNCE_MS window into ONE flushed event
+  //                             carrying {aggregate:true, counts:{not_write_tool, unwatched_path}}
+  //                             so per-call skips cannot rotate gate_run history out of the
+  //                             5MB log; the rest emit per occurrence.
+  //   session_card_rendered:    bytes
+  //   prompt_suggestion_served: kind ('completion' | intent verb)
+  //   working_set_served:       tool, query, resolved (bool), truncated?, sliceTokens?
+  | 'impact_card_fired'
+  | 'impact_card_skipped'
+  | 'session_card_rendered'
+  | 'prompt_suggestion_served'
+  | 'working_set_served';
+
+/**
+ * The closed set of reasons the PostToolUse impact card can be skipped —
+ * ONE per degrade branch of `runPostToolUseDrift` (F-6ba22c5c AC-238a3658).
+ * The enum makes silent (surface fired nothing) distinguishable from broken
+ * (emission unwired) directly from the ledger. `no_spec` is a valid disposition
+ * but is never emitted: a spec-less cwd gets no `.cladding/` writes (parity).
+ * `dedup`/`ledger_exhausted` were added by the mini working-set push card
+ * (F-35954d19): a repeated (focus,file) fingerprint and an exhausted per-session
+ * push-token budget are suppressions of a card that WOULD have fired, not misses.
+ */
+export type ImpactSkipReason =
+  | 'not_write_tool'
+  | 'unwatched_path'
+  | 'no_spec'
+  | 'debounced'
+  | 'trivial_edit'
+  | 'owner_miss'
+  | 'spec_unreadable'
+  | 'dedup'
+  | 'ledger_exhausted';
 
 /** One JSONL line in events.log.jsonl. */
 export interface Event {

@@ -52,3 +52,36 @@ describe('SMOKE_PROBE_DEMAND (F-c′)', () => {
     expect(smokeProbeDemand.run({cwd: dir}).length).toBe(0);
   });
 });
+
+// F-4ef09f38 AC-4 (AC-5e95db0b) — a probe.feature that resolves to no feature in
+// the spec is annotation drift: SMOKE_PROBE_DEMAND warns, naming the probe argv +
+// the dangling id. A valid binding raises no such warn.
+describe('SMOKE_PROBE_DEMAND · dangling feature binding (F-4ef09f38 AC-4)', () => {
+  /** Write a spec whose single cli probe binds `bound`, plus one done feature F-aaaaaa. */
+  function writeBoundSpec(bound: string): void {
+    writeFileSync(
+      join(dir, 'spec.yaml'),
+      'schema: "0.1"\nproject:\n  name: t\n  language: typescript\n' +
+        `  smoke:\n    - kind: cli\n      run: ["./run"]\n      feature: ${bound}\n` +
+        'features:\n  - id: F-aaaaaa\n    title: f\n    status: done\n',
+    );
+  }
+  const isDangling = (m: string): boolean => m.includes('dangling');
+
+  test('WARN naming the probe argv and the dangling id when the binding resolves to no feature', () => {
+    writeBoundSpec('F-dddddd'); // not present in features
+    const findings = smokeProbeDemand.run({cwd: dir});
+    const dangling = findings.filter((f) => isDangling(f.message));
+    expect(dangling).toHaveLength(1);
+    expect(dangling[0].detector).toBe('SMOKE_PROBE_DEMAND');
+    expect(dangling[0].severity).toBe('warn');
+    expect(dangling[0].message).toContain('./run'); // names the probe argv
+    expect(dangling[0].message).toContain('F-dddddd'); // names the dangling id
+  });
+
+  test('no dangling warn when the binding resolves to a real feature', () => {
+    writeBoundSpec('F-aaaaaa'); // present in features
+    const findings = smokeProbeDemand.run({cwd: dir});
+    expect(findings.filter((f) => isDangling(f.message))).toHaveLength(0);
+  });
+});

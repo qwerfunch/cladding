@@ -39,7 +39,7 @@ no spec, no scenarios, no architecture invariants.
 | Forbidden-import rules | 2 | 0 | +2 |
 | Detector errors | 0 | 1 | -1 |
 | Detector warnings | 6 | 3 | +3 |
-| Detector infos | 7 | 28 | -21 |
+| Detector infos | 8 | 28 | -20 |
 | Tiered doc files | 2 | 0 | +2 |
 | Tiered docs (lines) | 61 | 0 | +61 |
 | Other doc files | 0 | 1 | -1 |
@@ -54,7 +54,7 @@ no spec, no scenarios, no architecture invariants.
 **Detector outcomes** (META_INTEGRITY + HARDCODED_SECRET excluded — toolchain-only checks):
 
 ```
-A (Cladding) — errors: 0  warns: 6  infos: 7
+A (Cladding) — errors: 0  warns: 6  infos: 8
 
 B (Vanilla)  — errors: 1  warns: 3  infos: 28
   Sample errors:

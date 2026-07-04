@@ -1,0 +1,8 @@
+Loaded cached credentials.
+Running clad_run_check with strict=true and reporting the result.
+
+Gate result: RED — 2 drift findings.
+  - STALE_ATTESTATION (warn): 1 feature needs re-attestation
+  - UNTESTED_AC (warn): 1 acceptance criterion has no test_ref
+
+Overall: drift detected; the strict gate would block a push.

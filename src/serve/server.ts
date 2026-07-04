@@ -31,6 +31,7 @@ import {
 import {z} from 'zod';
 
 import {loadPersona} from '../agents/loader.js';
+import {recordEvent} from '../events/log.js';
 import {collectChangelog, defaultSinceRef} from '../changelog/collect.js';
 import {renderAuditTable, renderCatalog, renderChangelogMarkdown} from '../changelog/render.js';
 import {subscribeAudit} from '../hitl/audit.js';
@@ -116,7 +117,7 @@ export function buildServer(opts: ServerOptions = {}): McpServer {
   const server = new McpServer(
     {
       name: opts.name ?? 'cladding',
-      version: opts.version ?? '0.7.1',
+      version: opts.version ?? '0.8.0',
     },
     {
       // Declare subscribe support so clients can subscribe to
@@ -232,6 +233,27 @@ function gateFooter(cwd: string): {
   }
 }
 
+
+/**
+ * Value-delivery telemetry (F-6ba22c5c): records that an MCP read tool served
+ * a result. Observer-only — recordEvent is best-effort and this is additionally
+ * wrapped, so a telemetry failure never changes the tool's returned content
+ * (AC-e9d041de). Reached only after loadSpecOrError succeeds, so a spec-less cwd
+ * (no .cladding/) is never written to.
+ */
+function recordServe(
+  cwd: string,
+  tool: string,
+  query: string,
+  resolved: boolean,
+  extra?: {truncated: boolean; sliceTokens: number},
+): void {
+  try {
+    recordEvent(cwd, 'working_set_served', {tool, query, resolved, ...(extra ?? {})});
+  } catch {
+    /* observer-only */
+  }
+}
 
 /** Locate the engine's bin shim relative to this module — works in the dist
  * bundle (dist/clad.js → ../bin/clad) and the dev tree (src/serve/ → ../../bin/clad). */
@@ -468,6 +490,7 @@ function registerTools(server: McpServer, cwd: string): void {
         }
         const slice = buildContextSlice(loaded.spec, args.query);
         const miss = 'not_found' in slice;
+        recordServe(cwd, 'clad_get_context', args.query, !miss);
         return {
           isError: miss,
           content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...slice}, null, 2)}],
@@ -509,6 +532,8 @@ function registerTools(server: McpServer, cwd: string): void {
           return {isError: true, content: [{type: 'text', text: loaded.error}]};
         }
         const ws = buildWorkingSet(loaded.spec, args.query, {cwd, maxTokens: args.max_tokens});
+        const budget = 'not_found' in ws ? null : {truncated: ws.budget.truncated.length > 0, sliceTokens: ws.budget.used_tokens};
+        recordServe(cwd, 'clad_get_working_set', args.query, budget !== null, budget ?? undefined);
         return {
           isError: 'not_found' in ws,
           content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...ws}, null, 2)}],
@@ -552,6 +577,7 @@ function registerTools(server: McpServer, cwd: string): void {
         }
         const slice = buildImpactSlice(loaded.spec, args.query, {depth: args.max_depth});
         const miss = 'not_found' in slice;
+        recordServe(cwd, 'clad_get_impact', args.query, !miss);
         return {
           isError: miss,
           content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...slice}, null, 2)}],
@@ -573,11 +599,10 @@ function registerTools(server: McpServer, cwd: string): void {
     {
       title: 'Get the live knowledge graph (focused neighborhood, or a stats summary)',
       description:
-        'With query: the focus node’s N-hop neighborhood — nodes (feature/module/skill/test/scenario/capability/doc, ' +
-        'tier-classified A/B/C/D, features labeled by slug) + typed edges (depends_on/touches/covers/binds/' +
-        'implements/references/links); a path query unions all its kind-twins (module/test/doc nodes of one file). ' +
-        'WITHOUT query: a compact summary (node/edge counts by kind + top hubs) — the full graph is tens of ' +
-        'thousands of tokens, use `clad graph export --format json` for a complete dump. Recomputed live — never stale.',
+        'With query: the focus node’s N-hop neighborhood (typed nodes + edges; a path query unions its ' +
+        'kind-twins). WITHOUT query: a compact stats summary (counts by kind + top hubs) — the full graph is ' +
+        'tens of thousands of tokens, so use `clad graph export --format json` for a complete dump. ' +
+        'Recomputed live, never stale. Node kinds + edge types: docs/knowledge-graph/design.md.',
       inputSchema: {
         query: z
           .string()
@@ -664,14 +689,10 @@ function registerTools(server: McpServer, cwd: string): void {
     {
       title: 'Collect shipped changes since a git ref (changelog manifest)',
       description:
-        'Returns the deterministic shipped-changes manifest for <since>..HEAD (default since: the latest tag): ' +
-        'feature shards classified (added-as-done / flipped-to-done / modified-while-done / archived) grouped by ' +
-        'capability with an uncategorized bucket, the spec inventory count diff, and conventional feat:/fix: ' +
-        "commits that name no feature id (work that shipped outside the spec). For HUMAN-FACING release notes, " +
-        "render from the manifest in the project's language(s), sourcing every claim from a feature title or " +
-        "acceptance-criterion sentence — never invent a change the manifest does not carry. format:'markdown' is " +
-        "the deterministic English fallback (no internal ids), 'audit' the id-keeping verification table " +
-        "(refs marked resolved ✓/✗), 'catalog' the full capability → feature → acceptance listing (no git range).",
+        'The deterministic shipped-changes manifest for <since>..HEAD (default since: latest tag): done-feature ' +
+        'shards grouped by capability, the inventory count diff, and feat:/fix: commits naming no feature id. ' +
+        'For human release notes, render FROM the manifest — never invent a change it does not carry. ' +
+        'Formats (manifest/markdown/audit/catalog): skills/changelog/SKILL.md.',
       inputSchema: {
         since: z
           .string()
@@ -765,10 +786,9 @@ function registerTools(server: McpServer, cwd: string): void {
       title: 'Create a new cladding feature',
       description:
         'Creates spec/features/<slug>.yaml with an auto-generated F-<hash> id. ' +
-        'Author the feature WITH its acceptance_criteria (and modules) in this one ' +
-        'call — a feature created with no acceptance_criteria is a hollow stub that ' +
-        'governs nothing. Two concurrent invocations on separate branches produce ' +
-        'distinct hash ids by construction, so multi-developer concurrency is safe.',
+        'Author the feature WITH its acceptance_criteria (and modules) in this one call — an AC-less ' +
+        'feature is a hollow stub that governs nothing. Hash ids are collision-safe across concurrent ' +
+        'branches; see docs/spec-ids-multi-dev.md.',
       inputSchema: {
         slug: z
           .string()

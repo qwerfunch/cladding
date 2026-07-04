@@ -1,0 +1,20 @@
+id: F-fe0f7a96
+slug: removed-verb-guidance
+title: "Guidance strings recommend live verbs, not the removed refine"
+status: done
+modules:
+  - src/cli/init.ts
+  - src/stages/detectors/project-context-drift.ts
+acceptance_criteria:
+  - id: AC-4abc4282
+    ears: event
+    condition: "when clad init falls back to deterministic or hybrid stubs and prints remediation guidance"
+    text: "The guidance shall recommend the live verb `clad clarify`, never the removed `clad refine`."
+    test_refs: ["tests/cli/init.test.ts"]
+    notes: "WHY: F-d25041ac removed the refine alias, so the three init.ts remediation messages (~lines 415/422/428) were advising a command that now exits unknown-command — a verification tool steering users into an error; flagged as the highest-severity slice of backlog B11."
+  - id: AC-7ffc85fa
+    ears: ubiquitous
+    text: "The PROJECT_CONTEXT_DRIFT finding message shall recommend `clad clarify` for filling the template project context."
+    test_refs: ["tests/stages/project-context-drift.test.ts"]
+    evidence_refs: ["src/stages/detectors/project-context-drift.ts"]
+    notes: "WHY: same removed-verb advice at detector level (project-context-drift.ts:68); scenario-fixture banner strings (tests/scenarios/ab*/_*) stay untouched — they are the exact-match-pinned B11 remainder, deliberately out of scope."

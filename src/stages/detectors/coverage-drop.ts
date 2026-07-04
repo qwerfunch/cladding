@@ -13,6 +13,7 @@
 import {existsSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
 
+import {loadSpec} from '../../spec/load.js';
 import {
   COVERAGE_REPORTS_PROBE,
   kotlinCoverageReport,
@@ -64,6 +65,19 @@ function pct(missed: number, covered: number): number {
 function readJacocoLinePct(body: string): number | null {
   const c = lastLineCounter(body);
   return c === null ? null : pct(c.missed, c.covered);
+}
+
+/**
+ * Cobertura XML (coverage.py / `pytest --cov`) → overall LINE pct, or null when
+ * no report-level rate exists. The root `<coverage line-rate="0.85" …>` element
+ * carries the aggregate as a 0–1 fraction; per-package and per-class elements
+ * repeat the attribute, so the FIRST occurrence (the root's) is the report-level
+ * rate. Tolerant, regex-only parse — a malformed or attribute-less document
+ * yields null and never throws.
+ */
+function readCoberturaLinePct(body: string): number | null {
+  const m = /<coverage\b[^>]*\bline-rate="([0-9]*\.?[0-9]+)"/.exec(body);
+  return m ? Number(m[1]) * 100 : null;
 }
 
 /**
@@ -136,7 +150,17 @@ function runCoverageDrop(opts: CommandStageOptions): readonly DriftFinding[] {
     const scoped = runModuleScoped(cwd, opts.focusModules);
     if (scoped) return scoped;
   }
-  const cfg = resolveLanguageConfig(cwd);
+  // Language resolution mirrors ARCHITECTURE_FROM_SPEC: the spec's declared
+  // language wins over manifest detection, so a spec-language-python project
+  // without a pyproject.toml still gets the Cobertura reader (F-803386ab).
+  // No/invalid spec → undefined → detectToolchain fallback, exactly as before.
+  let specLanguage: string | undefined;
+  try {
+    specLanguage = loadSpec(cwd).project?.language;
+  } catch {
+    // Load-failure policy (see detectors/with-spec.ts): fall back to manifests.
+  }
+  const cfg = resolveLanguageConfig(cwd, specLanguage);
   // Kotlin: the coverage report is Kover OR JaCoCo. Probe both by existence
   // (Kover-first); when neither is present yet, name the resolved tool's path
   // so the "run stage_2.2 first" hint points at the right file.
@@ -158,7 +182,11 @@ function runCoverageDrop(opts: CommandStageOptions): readonly DriftFinding[] {
   try {
     const body = readFileSync(path, 'utf8');
     lines =
-      cfg.coverageFormat === 'jacoco-xml' ? readJacocoLinePct(body) : readIstanbulLinePct(body);
+      cfg.coverageFormat === 'jacoco-xml'
+        ? readJacocoLinePct(body)
+        : cfg.coverageFormat === 'cobertura-xml'
+          ? readCoberturaLinePct(body)
+          : readIstanbulLinePct(body);
   } catch (err) {
     return [
       {
@@ -169,6 +197,11 @@ function runCoverageDrop(opts: CommandStageOptions): readonly DriftFinding[] {
     ];
   }
   if (lines === null) {
+    // Cobertura: a present-but-unparseable report degrades to no findings —
+    // absent evidence is never fabricated into a coverage problem, and this is
+    // a new format so there is no prior warn behaviour to preserve. istanbul and
+    // jacoco keep their existing "no counter" warn (byte-for-byte no-regression).
+    if (cfg.coverageFormat === 'cobertura-xml') return [];
     return [
       {
         detector: NAME,

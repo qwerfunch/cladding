@@ -21,7 +21,7 @@
 import {failingAcs} from '../hitl/anti-self-cert.js';
 import {readEvidence} from '../hitl/audit.js';
 import {moduleTreeHash, readAttestation} from '../spec/attestation.js';
-import type {Feature, Spec} from '../spec/types.js';
+import type {Feature, FeatureStatus, Spec} from '../spec/types.js';
 import {gateLabel} from './softShell.js';
 
 const STAGES: readonly string[] = [
@@ -33,11 +33,33 @@ const STAGES: readonly string[] = [
 
 export type CellGlyph = '✓' | '·' | '!' | '✗' | '-';
 
-interface RowOutcome {
+/**
+ * One feature's row in the integrity matrix. `cells` carries one glyph per
+ * {@link PanelModel.columns} entry, in the same order — the Iron Law stages
+ * followed by the trailing `att` (attestation-freshness) pseudo-column.
+ */
+export interface PanelRow {
   readonly featureId: string;
+  /** Business title (`f.title`, falling back to the id). */
   readonly title: string;
+  readonly status: FeatureStatus;
   readonly cells: readonly CellGlyph[];
 }
+
+/**
+ * The row model behind the ANSI panel — the single SSoT the terminal view,
+ * `status --json`, and the audit bundle all consume (AC-e5f48ce5). Rows keep
+ * the raw feature id (machine/forensic surface); the Soft Shell hiding of ids
+ * is applied only by the ANSI/HTML VIEWS, not stored here.
+ */
+export interface PanelModel {
+  /** Ordered column ids: the Iron Law stages then the trailing `att` column. */
+  readonly columns: readonly string[];
+  readonly rows: readonly PanelRow[];
+}
+
+/** Column order the model exposes: every stage, then attestation freshness. */
+const COLUMNS: readonly string[] = [...STAGES, 'att'];
 
 /** Options for {@link renderPanel}. */
 export interface PanelOptions {
@@ -78,6 +100,25 @@ function attestationGlyph(
 }
 
 /**
+ * Builds the feature × stage row model — the pure(-of-view) SSoT the ANSI
+ * panel, `status --json`, and the audit bundle all render (AC-e5f48ce5). One
+ * row per feature; each row's `cells` line up with {@link PanelModel.columns}
+ * (every Iron Law stage, then the trailing `att` freshness column). Reads
+ * evidence + attestation from disk under `cwd`, but emits no view formatting —
+ * ids are kept raw and the Soft Shell hiding is the VIEW's job.
+ */
+export function buildPanelModel(spec: Spec, cwd: string = '.'): PanelModel {
+  const attested = readAttestation(cwd);
+  const rows: PanelRow[] = spec.features.map((f) => ({
+    featureId: f.id,
+    title: f.title || f.id,
+    status: f.status,
+    cells: [...STAGES.map((s) => cellFor(f, s, cwd)), attestationGlyph(f, attested, cwd)],
+  }));
+  return {columns: COLUMNS, rows};
+}
+
+/**
  * Renders a feature × stage grid as a multi-line string.
  *
  * The default Soft Shell view hides internal feature ids and uses
@@ -85,6 +126,9 @@ function attestationGlyph(
  * `{internal: true}` reverts to the Iron Core view that exposes
  * `F-NNN` and `stage_X.Y` codes — useful for cross-referencing the
  * audit log during forensic work.
+ *
+ * The row data comes from {@link buildPanelModel}; this function only formats
+ * that model, so the ANSI output stays byte-identical to the pre-split version.
  *
  * @see ironclad-design/03-ux-routing.md §1.2 — user-facing ID ban.
  */
@@ -94,7 +138,7 @@ export function renderPanel(
   opts: PanelOptions = {},
 ): string {
   const internal = opts.internal ?? false;
-  const attested = readAttestation(cwd);
+  const model = buildPanelModel(spec, cwd);
   const stageHeaders = [
     ...STAGES.map((s) => (internal ? s.replace('stage_', '') : abbreviateGate(s))),
     'att',
@@ -102,12 +146,7 @@ export function renderPanel(
   const header = internal
     ? `feature      ${stageHeaders.join(' ')}`
     : `feature${' '.repeat(28)}${stageHeaders.join(' ')}`;
-  const rows: RowOutcome[] = spec.features.map((f) => ({
-    featureId: f.id,
-    title: f.title || f.id,
-    cells: [...STAGES.map((s) => cellFor(f, s, cwd)), attestationGlyph(f, attested, cwd)],
-  }));
-  const lines = rows.map((r) => {
+  const lines = model.rows.map((r) => {
     const cells = r.cells.join('   ');
     if (internal) return `${r.featureId.padEnd(12)} ${cells}  ${r.title}`;
     return `${r.title.padEnd(35).slice(0, 35)} ${cells}`;

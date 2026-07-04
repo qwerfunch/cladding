@@ -1,0 +1,38 @@
+id: F-5283985e
+slug: host-smoke-matrix
+title: "clad doctor --hosts: host-support claims trace to a dated machine-produced smoke artifact; README claims drift-checked"
+status: done
+modules:
+  - src/cli/doctor-hosts.ts
+  - src/cli/clad.ts
+  - src/stages/detectors/host-claim-drift.ts
+acceptance_criteria:
+  - id: AC-87ebd442
+    ears: event
+    condition: "when clad doctor --hosts runs with live-run consent (CLAD_HOST_SMOKE=1 or interactive confirmation)"
+    text: "When host smoke runs with consent, the system shall execute at most 3 canned one-shot prompts per host CLI found on PATH (claude, gemini, codex) and record per-host pass, fail, or not-run with the observed sentinel evidence into a dated artifact under .cladding/audit/."
+    notes: "WHY: host verification is two hand-written dogfood docs pinned to v0.3.x — five minor versions stale; Codex explicitly deferred, Gemini drive-loop never exercised. Claims need dated receipts."
+    test_refs: [tests/cli/doctor-hosts.test.ts]
+  - id: AC-8dfa9cc4
+    ears: unwanted
+    condition: "if a host binary is absent from PATH or consent is not given"
+    text: "If a host cannot or may not be probed, then the system shall record not-run for that host — never pass."
+    notes: "WHY: no vacuous green applied to host claims; absence of evidence must render as absence."
+    test_refs: [tests/cli/doctor-hosts.test.ts]
+  - id: AC-57ab708c
+    ears: event
+    condition: "when a host-smoke artifact exists and the matrix generator runs"
+    text: "When the generator runs, the system shall render docs/dogfood/matrix.md from the newest artifact (host by surface by result by date by cladding version), and the sentinel parser shall be regression-testable against committed transcript fixtures with zero live LLM calls."
+    notes: "WHY: the human-triggered live run spends the user's quota once; CI regression-tests only the parser."
+    test_refs: [tests/cli/doctor-hosts.test.ts]
+  - id: AC-922cd29d
+    ears: unwanted
+    condition: "if the README host-claims block disagrees with the newest committed matrix"
+    text: "If README claims exceed the matrix evidence, then a drift detector shall emit a warn finding naming the host and the divergence, visible under clad check --strict."
+    notes: "WHY: the Cursor over-claim needed a manual honesty note once already — make the check structural."
+    test_refs: [tests/stages/detectors/host-claim-drift.test.ts]
+  - id: AC-6cbe51fc
+    ears: ubiquitous
+    text: "The system shall grade hosts without a headless verification surface (Cursor) as wiring-only in the matrix, asserting only that the MCP wiring file is written and clad serve answers a tools list over stdio."
+    notes: "WHY: honest grading — wiring-only is a real, checkable claim; end-to-end is not checkable headlessly for Cursor."
+    test_refs: [tests/cli/doctor-hosts.test.ts]

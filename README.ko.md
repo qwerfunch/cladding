@@ -16,15 +16,15 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-1691%2F1691-brightgreen" alt="tests"/>
-  <img src="https://img.shields.io/badge/detectors-40-brightgreen" alt="detectors"/>
+  <img src="https://img.shields.io/badge/tests-2035%2F2035-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
 
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad">Ironclad</a> 표준의 공식 reference 구현.<br/>
   호스트 LLM(Claude Code · Codex · Gemini · Cursor)이 일을 <em>시작하기 전</em>에 프로젝트의 의도를 넣어 주고,<br/>
-  일을 <em>마친 후</em>에 40개 검출기와 15단계 게이트로 결과를 검증한다.
+  일을 <em>마친 후</em>에 41개 검출기와 15단계 게이트로 결과를 검증한다.
 </p>
 
 <!-- ─────────────── 기업이 AI를 믿고 맡길 수 있는 이유 (직관 훅) ─────────────── -->
@@ -59,7 +59,7 @@ cladding은 **자기 자신도 cladding으로 만든다** — 기능 200개 중 
 - **필요한 의도만 추출** — 작업할 기능의 *왜*·관련 기능·검증 기준만 (전체 덤프 안 함)
 - **프로젝트 규칙 적용** — 팀의 금지·선호 패턴을 매번 표준 지시로
 
-**후 — 결과를 검증한다:** 15단계 게이트 · 40개 어긋남 검사 · 구현 못 보는 채점자가 스펙과 어긋난 산출물을 잡는다 (아래 ↓).
+**후 — 결과를 검증한다:** 15단계 게이트 · 41개 어긋남 검사 · 구현 못 보는 채점자가 스펙과 어긋난 산출물을 잡는다 (아래 ↓).
 
 <sub>실시간 개입(지도 주입 · 즉시 차단 · 종료 차단)은 Claude Code에서 전부 동작한다. Codex · Gemini · Cursor에서는 같은 검증을 대화 속 도구 호출과 git · CI 관문으로 수행한다.</sub>
 
@@ -135,7 +135,7 @@ clad graph export --format html --out graph.html  # 또는 오프라인 한 파�
 
 <div align="center">
 
-<img src="docs/img/ko/cycle.svg" alt="Spec → Code → Tests 순환 — 15단계 검증과 40 drift detector가 cycle을 지킨다" width="700">
+<img src="docs/img/ko/cycle.svg" alt="Spec → Code → Tests 순환 — 15단계 검증과 41 drift detector가 cycle을 지킨다" width="700">
 
 </div>
 
@@ -173,14 +173,14 @@ spec이 *왜*(무엇을 왜 만드는지)를 기록한다. 4계층 기준 체계
 | Stage | 무엇을 검사하나 |
 |---|---|
 | **1.1 Type · 1.2 Lint** | 타입 오류 · 코드 스타일 |
-| **1.3 Drift** | 40 detector의 spec ↔ 코드 어긋남 |
+| **1.3 Drift** | 41 detector의 spec ↔ 코드 어긋남 |
 | **1.4 Commit · 1.5 Arch · 1.6 Secret** | 작업트리 clean · architecture invariant · API 키 노출 |
 | **2.1 Unit · 2.2 Coverage** | 단위 테스트 통과 · coverage 하락 차단 |
 | **2.3 Spec conformance · 2.4 Deliverable smoke** | 구현을 못 본 채점자의 테스트 통과 · 선언된 실행물이 실제로 도는지 *("테스트는 통과인데 결과물은 안 도는" 빈 초록 차단)* |
 | **3.1 Smoke · 3.2 Perf · 3.3 Visual** | e2e 핵심 동작 · 성능 예산 · UI 시각 회귀 |
 | **4.1 Audit · 4.2 UAT** | 모든 AC(수용 기준)에 증거 1건 이상 · 모든 done feature에 증거 1건 이상 |
 
-### 3. Detector — 40개 어긋남 검출기
+### 3. Detector — 41개 어긋남 검출기
 
 spec · code · test 사이 모든 방향의 어긋남을 자동 검출한다. 전체 카탈로그: [detector catalog](src/stages/detectors/README.md).
 
@@ -192,7 +192,7 @@ spec · code · test 사이 모든 방향의 어긋남을 자동 검출한다. �
 | spec 위생 | spec 자체의 무결성 (ID 충돌 · 순환 의존) | 8 | `ID_COLLISION`, `SLUG_CONFLICT`, `DEPENDENCY_CYCLE` |
 | 환경 무결성 | 빌드 환경 · 메타 파일 | 3 | `HARNESS_INTEGRITY`, `META_INTEGRITY` |
 | 검증 신선도 | 검증 서명 이후 코드가 바뀌었는지 | 1 | `STALE_ATTESTATION` *(신규)* |
-| 거버넌스 · 문서 | 정책 위반 · 문서 표류 | 3 | `ABSENCE_OF_GOVERNANCE`, `PROJECT_CONTEXT_DRIFT` |
+| 거버넌스 · 문서 | 정책 위반 · 문서 표류 · 근거를 넘어선 README 주장 | 4 | `ABSENCE_OF_GOVERNANCE`, `PROJECT_CONTEXT_DRIFT`, `HOST_CLAIM_DRIFT` *(신규)* |
 | 그래프 · 문서 연결 | 문서↔스펙 링크 끊김 · 의존 엣지 누락 | 3 | `DOC_LINK_INTEGRITY`, `REFERENCE_INTEGRITY`, `INFERABLE_DEPENDS_ON` *(신규)* |
 
 ### 4. Cycle — 한 feature의 생애주기
@@ -307,9 +307,9 @@ clad update                # 3. 새 버전에 맞게 정리
 
 | version | 준수 등급 | tests | gate | features |
 |---|---|---|---|---|
-| v0.7.1 · 2026-07 | L4 · [L0–L4 중 최고 · 자가 선언](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 1691 / 1691 · all pass | 15 단계 · 40 detectors | 200 · 196 done · 자기 스펙 |
+| v0.8.0 · 2026-07 | L4 · [L0–L4 중 최고 · 자가 선언](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2035 / 2035 · all pass | 15 단계 · 41 detectors | 217 · 214 done · 자기 스펙 |
 
-<sub>170 test files · capability 6개 · coverage는 COVERAGE_DROP detector가 하락 차단</sub>
+<sub>195 test files · capability 6개 · coverage는 COVERAGE_DROP detector가 하락 차단</sub>
 
 > **Ironclad 1.0까지의 길** — 1.0은 *독립적인 두 개의 구현이 L4 검증 셋을 통과해야* 잠긴다 ([GOVERNANCE § 1](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md)). cladding이 첫 번째.
 
@@ -319,7 +319,7 @@ clad update                # 3. 새 버전에 맞게 정리
 - [Why cladding (project context)](docs/project-context.md)
 - [4-tier governance model](docs/ssot-model.md)
 - [Hash-based feature ID](docs/spec-ids-multi-dev.md)
-- [40 detector catalog](src/stages/detectors/README.md)
+- [41 detector catalog](src/stages/detectors/README.md)
 - [용어집 (EN · KO)](docs/glossary.md)
 - [Governance · roadmap to 1.0](GOVERNANCE.md)
 

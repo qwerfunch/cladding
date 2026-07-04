@@ -12,7 +12,9 @@
 //
 // Presence-only + demand-gated (v1): no demand when nothing is done, or when the
 // project has no runnable deliverable (a library/static project ⇒ N/A, owned by
-// the smoke stage). Per-feature/per-module binding is deferred (F-c full).
+// the smoke stage). Per-feature binding lands in F-4ef09f38: a probe bound to a
+// feature id that resolves to NO feature in the spec is annotation drift (same
+// disease as a stale test_ref) — warn naming the probe argv + the dangling id.
 
 import type {Spec} from '../../spec/types.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
@@ -20,14 +22,37 @@ import {withSpec} from './with-spec.js';
 
 const NAME = 'SMOKE_PROBE_DEMAND';
 
+/** AC-4 — a probe.feature that resolves to no feature in the spec is drift. */
+function danglingBindings(spec: Spec): DriftFinding[] {
+  const ids = new Set((spec.features ?? []).map((f) => f.id));
+  const findings: DriftFinding[] = [];
+  for (const probe of spec.project?.smoke ?? []) {
+    const bound = probe.feature;
+    if (bound === undefined || ids.has(bound)) continue;
+    const argv = (probe.run ?? []).join(' ') || `kind:${probe.kind}`;
+    findings.push({
+      detector: NAME,
+      severity: 'warn',
+      path: 'spec.yaml',
+      message:
+        `smoke probe '${argv}' binds feature ${bound}, which is not in the spec — a dangling binding ` +
+        'is annotation drift (the bound feature was renamed, archived, or never existed). Fix the id or drop the binding.',
+    });
+  }
+  return findings;
+}
+
 function detect(spec: Spec): readonly DriftFinding[] {
+  // AC-4 dangling-binding warn fires independently of the presence demand below.
+  const dangling = danglingBindings(spec);
   const done = (spec.features ?? []).filter((f) => f.status === 'done');
-  if (done.length === 0) return []; // nothing shipped — no demand yet
+  if (done.length === 0) return dangling; // nothing shipped — no presence demand yet
   const hasRunnableDeliverable = Boolean(spec.project?.deliverable);
-  if (!hasRunnableDeliverable) return []; // no runnable entry (library/static) ⇒ N/A, not a demand
+  if (!hasRunnableDeliverable) return dangling; // no runnable entry (library/static) ⇒ N/A, not a demand
   const hasProbe = (spec.project?.smoke ?? []).length > 0;
-  if (hasProbe) return []; // demand satisfied — a functional probe is declared
+  if (hasProbe) return dangling; // presence demand satisfied — a functional probe is declared
   return [
+    ...dangling,
     {
       detector: NAME,
       severity: 'warn',

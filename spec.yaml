@@ -11,9 +11,9 @@ project:
   name: cladding
   language: typescript
   description: "Reference implementation of the Ironclad harness for AI-coupled software."
-  version: "0.7.1"
+  version: "0.8.0"
   repository: "https://github.com/qwerfunch/cladding"
-  intent_summary: "Make AI-coupled development measurably safer and more honest — 40 drift detectors + 4-tier SSoT governance + A/B-measurable cladding-vs-vanilla evaluation."
+  intent_summary: "Make AI-coupled development measurably safer and more honest — 41 drift detectors + 4-tier SSoT governance + A/B-measurable cladding-vs-vanilla evaluation."
   deliverable:
     path: ./bin/clad
     smoke_args: ["--version"]
@@ -24,6 +24,11 @@ project:
       expect:
         token: "Reference Ironclad CLI"
       why: "Proves the shipped CLI boots and renders its command surface, not just exits 0 (F-g' dogfood: liveness→pass)."
+    - kind: cli
+      run: ["./bin/clad", "--version"]
+      expect:
+        token: "0."
+      why: "proves the shipped binary reports its version (F-4ef09f38 dogfood: 2-probe aggregation live)."
   ai_hints:
     preferred_persona: developer
     token_budget_per_session: 4000
@@ -49,8 +54,8 @@ project:
 
 # Auto-maintained by `clad sync` (F-5b9f9f). Do not edit by hand.
 inventory:
-  features: 200
+  features: 218
   scenarios: 2
   capabilities: 6
-  test_files: 171
-  last_synced: "2026-07-02"
+  test_files: 198
+  last_synced: "2026-07-04"

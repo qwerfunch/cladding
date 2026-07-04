@@ -7,6 +7,109 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.8.0] — Context Push (2026-07-03)
+
+The harness stops waiting to be asked: it pushes the right context at you as
+you work, proves its own surfaces actually fired, and adds an audit-ready
+review packet — plus first-class Python support.
+
+> **Heads-up:** the after-edit hooks now also watch shell commands
+> (`sed`/heredoc/`tee`) and more file types (`.tsx`/`.jsx`, Kotlin, Java, Ruby,
+> PHP, C#, Elixir), so expect impact cards in more places. The drift-detector
+> count goes **40 → 41**. Three new commands land — `clad report`,
+> `clad bundle`, `clad doctor --hosts`. And `clad measure` now saves snapshots
+> under `.cladding/` (compare runs with `--trend`).
+
+### Added
+
+- ▸ **A real impact card after every edit.** Change a file and the card now
+  sums up what breaks, which tests to re-run, and a rough risk level — kept
+  short by a per-session token budget and de-duplicated so it never repeats.
+- ▸ **"No LLM at the detector layer" is now a machine rule.** An architecture
+  forbidden-import rule blocks the detector layer from reaching the agent
+  adapters, and a purity suite asserts no detector's run is async — this
+  Iron Law invariant was prose-only before.
+- ▸ **Cards for shell-made edits.** Files changed through `sed`, heredocs, or
+  `tee` (not just the editor) are now detected and get the same card.
+- ▸ **Cards for more languages.** `.tsx`/`.jsx` and Kotlin, Java, Ruby, PHP,
+  C#, and Elixir files now surface impact cards, matching every language
+  cladding already reads.
+- ▸ **A session-start card that points the way.** When a session opens, the
+  card names the two context tools (working-set and impact) and echoes the
+  project's own preferred patterns.
+- ▸ **The harness proves its surfaces fired.** cladding records when each card
+  or hint actually showed (or was skipped); read it back with
+  `clad measure --sessions`.
+- ▸ **Measurement that remembers.** `clad measure` persists snapshots under
+  `.cladding/`, and `--trend` prints the deltas between runs.
+- ▸ **Reproducible release numbers.** `clad changelog --measure` embeds
+  measured, reproducible figures straight into the release notes.
+- ▸ **The final smoke gate runs every check you declared.** The deliverable
+  smoke stage now runs all declared probes and reports the worst result, bound
+  per feature — one skipped probe can no longer hide behind a passing one.
+- ▸ **Python is first-class.** Detectors read pytest test globs, `coverage.xml`
+  coverage, and dotted imports for the architecture checks.
+- ▸ **`clad report` — a PR review packet.** One command renders spec changes,
+  owning features, the regression set, and gate status as markdown, JSON, or
+  SARIF.
+- ▸ **`clad bundle` — a zero-install audit bundle.** Writes one self-contained
+  HTML file you can double-click (no install, no internet), plus a
+  `clad status --json` machine view.
+- ▸ **`clad doctor --hosts` — dated host receipts.** Produces dated evidence of
+  which hosts are verified, and a new detector warns when a README claims more
+  host support than that evidence backs.
+- ▸ **Kotlin Gradle module-scoped gate finalized.** The per-module gate for
+  Gradle monorepos is now settled and covered.
+
+### Changed
+
+- ▸ **Hooks also watch shell commands.** The after-tool matcher now includes
+  Bash, so a shell edit triggers the same impact card as an editor edit.
+- ▸ **41 drift detectors** (was 40) — the new one flags a README that claims
+  more host support than the evidence supports.
+- ▸ **cladding smokes its own version banner.** The project's smoke config now
+  runs a second probe (the CLI version output), exercising the new multi-probe
+  aggregation on every gate run.
+- ▸ **The gate runs each tool once, not twice.** `madge` and `secretlint` used
+  to spawn twice per `clad check` — once in the drift stage, then again in the
+  thin architecture and secret adapter stages. A run-scoped result cache, primed
+  and cleared only at the gate seams, lets the adapter stages reuse the drift
+  findings instead of re-spawning. Measured on the pre-commit tier: 11.4s →
+  5.4-5.7s, one spawn per tool instead of two — a cost the Stop hook had been
+  paying on every agent-loop turn.
+- ▸ **Bounded MCP session cost.** Tool descriptions are resident in every
+  session and re-read on every loop turn. The three that carried workflow essays
+  — `clad_create_feature`, `clad_changelog`, `clad_get_graph` (2,115 / 1,383 /
+  1,138 bytes) — are trimmed to about two lines (≤400 characters) that point at
+  their canonical docs, and a budget test caps every description so they cannot
+  silently regrow.
+- ▸ **cladding guards its own counts.** The detector and stage counts printed in
+  the READMEs and agent docs are now asserted against the live registry by the
+  self-consistency suite — the tool that flags drift had itself drifted (its own
+  docs variously said 38 and 40 detectors while the registry carried 41).
+
+### Removed
+
+- ▸ **The three renamed CLI verbs are gone.** `drive`, `panel`, and `refine` —
+  the old spellings kept working since 0.6.0 as aliases for `run`, `status`,
+  and `clarify` — are removed. Typing one now returns an unknown-command error;
+  use the new name instead.
+- ▸ **Their skill stubs are gone too.** The `drive`, `panel`, and `refine`
+  redirect skills under `skills/` (and their Codex mirror copies) are deleted.
+- This completes the removal the deprecation notice has promised on every use of
+  those verbs since 0.6.0.
+
+### Fixed
+
+- ▸ **A gate that crashes can never read green.** Verdict matching is now
+  word-bounded and a crashed CLI is never counted as a pass — closing a path
+  an empty green could slip through.
+- ▸ **No stray measurement snapshots.** `clad measure` no longer persists a
+  snapshot when there is no commit to anchor it to.
+- ▸ **Large `--json` output no longer truncates.** `clad report` /
+  `clad status --json` over ~64KB used to get cut off in a pipe; the output is
+  now fully drained before exit.
+
 ## [0.7.1] — 2026-07-02 — Honest Graph
 
 Repairs found by a deep multi-agent review of the 0.7.0 graph capability.

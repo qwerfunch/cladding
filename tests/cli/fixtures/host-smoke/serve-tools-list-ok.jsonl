@@ -1,0 +1,2 @@
+{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2024-11-05","capabilities":{"tools":{}},"serverInfo":{"name":"cladding","version":"0.8.0"}}}
+{"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"clad_list_features","description":"List features"},{"name":"clad_get_feature","description":"Get one feature"},{"name":"clad_run_check","description":"Run the strict gate"},{"name":"clad_get_working_set","description":"Assemble a working set"}]}}

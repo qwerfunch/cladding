@@ -49,10 +49,13 @@ describe('claude-code plugin hooks.json — five events wired to the bundled eng
     }
   });
 
-  test('tool-scoped events carry the Edit|Write|MultiEdit matcher', () => {
-    for (const event of ['PreToolUse', 'PostToolUse'] as const) {
-      expect(doc.hooks[event][0].matcher, `${event} matcher`).toBe('Edit|Write|MultiEdit');
-    }
+  test('tool-scoped events carry their tool matchers', () => {
+    // PreToolUse guards spec WRITES — the three native write tools only.
+    // PostToolUse additionally matches Bash since F-e7d59c88 (AC-d6c8d5ed):
+    // shell-made source mutations (sed -i, heredoc, tee) get the git-delta
+    // impact-card lane; the block lane stays write-tool-scoped.
+    expect(doc.hooks.PreToolUse[0].matcher, 'PreToolUse matcher').toBe('Edit|Write|MultiEdit');
+    expect(doc.hooks.PostToolUse[0].matcher, 'PostToolUse matcher').toBe('Edit|Write|MultiEdit|Bash');
   });
 
   test('plugin.json declares the hooks field pointing at hooks/hooks.json', () => {

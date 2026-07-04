@@ -23,6 +23,8 @@ import {existsSync} from 'node:fs';
 import {join} from 'node:path';
 
 import type {AcceptanceCriterion, Feature, Spec} from '../spec/types.js';
+import {signed, type MeasureSnapshot} from '../optimizer/measure-ledger.js';
+import {MEASUREMENT_DISCLAIMER} from '../optimizer/measurement.js';
 import type {ChangelogManifest, FeatureChangeKind} from './collect.js';
 import {acSentence} from './collect.js';
 
@@ -73,6 +75,73 @@ export function renderChangelogMarkdown(manifest: ChangelogManifest): string {
     );
   }
   while (lines[lines.length - 1] === '') lines.pop();
+  return lines.join('\n');
+}
+
+/** The resolved measurement context the CLI hands the pure renderer. */
+export interface MeasuredRenderInput {
+  /**
+   * The snapshot whose `head` equals the CURRENT git HEAD, or null when none
+   * matched. The CLI does the impure HEAD compare; this renderer NEVER decides
+   * what "matches" — it renders exactly what it is given, so a non-HEAD snapshot
+   * can never leak into the block (AC-36b1df91).
+   */
+  readonly snapshot: MeasureSnapshot | null;
+  /**
+   * The snapshot whose `head` equals the resolved `--since` ref commit, when
+   * both endpoints are measured — drives the release-over-release delta line
+   * (AC-a7e810b1). Undefined/null ⇒ no delta line.
+   */
+  readonly sinceSnapshot?: MeasureSnapshot | null;
+  /** Human label for the since endpoint on the delta line (e.g. the tag name). */
+  readonly sinceRef?: string;
+}
+
+/**
+ * Renders the "Measured (this release)" block from an ALREADY-RESOLVED snapshot,
+ * or the not-measured notice when none matched HEAD. Pure: no git, no fs — the
+ * CLI resolves the HEAD/since match and passes the data in.
+ *
+ * A matched block carries the honest numbers (features measured, median slice
+ * tokens vs naive, structural ratio, coverage, regression tests), the head +
+ * spec_digest, the exact reproduce command, and MEASUREMENT_DISCLAIMER verbatim
+ * (AC-713458d9, AC-38b63d18). No match renders the notice with ZERO numbers —
+ * an older snapshot's figures are never substituted (AC-36b1df91). Deterministic:
+ * the persisted timestamp is not rendered here, so two runs are byte-identical.
+ */
+export function renderMeasuredBlock(input: MeasuredRenderInput): string {
+  const snap = input.snapshot;
+  const lines: string[] = ['## Measured (this release)', ''];
+  // A snapshot with a null head cannot anchor a reproduce command — treat it as
+  // no match (the CLI already refuses a null-HEAD false-positive, this is belt).
+  if (!snap || !snap.head) {
+    lines.push('not measured at this commit — run clad measure before tagging');
+    return lines.join('\n');
+  }
+  const c = snap.context;
+  const st = snap.stability;
+  lines.push(`- features measured: ${snap.measured} of ${snap.featureCount}`);
+  lines.push(`- median slice tokens: ${c.medianSliceTokens} vs ${c.medianNaiveTokens} naive`);
+  lines.push(`- median structural ratio: ${c.medianStructuralRatio.toFixed(2)}`);
+  lines.push(`- median coverage: ${st.medianCoverage.toFixed(2)}`);
+  lines.push(`- regression tests surfaced: ${st.medianRegressionTests}`);
+  const since = input.sinceSnapshot;
+  if (since) {
+    const label = input.sinceRef ?? (since.head ? since.head.slice(0, 7) : 'previous');
+    lines.push(
+      `- since ${label}: ` +
+        `slice ${signed(c.medianSliceTokens - since.context.medianSliceTokens)} · ` +
+        `struct ${signed(c.medianStructuralRatio - since.context.medianStructuralRatio, 2)} · ` +
+        `cov ${signed(st.medianCoverage - since.stability.medianCoverage, 2)}`,
+    );
+  }
+  lines.push(
+    '',
+    `head ${snap.head.slice(0, 7)} · spec_digest ${snap.spec_digest}`,
+    `reproduce: git checkout ${snap.head} && clad measure`,
+    '',
+    MEASUREMENT_DISCLAIMER,
+  );
   return lines.join('\n');
 }
 

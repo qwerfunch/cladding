@@ -70,6 +70,9 @@ export interface WorkingSetOptions {
   readonly maxTokens?: number;
   /** Injected source reader — replaces the filesystem for code excerpts (measurement/tests). */
   readonly read?: ExcerptReader;
+  /** When false, skip the code-excerpt fill entirely (the hook push lane — the agent just
+   *  edited the file, so its content is already in context). Default true (F-35954d19). */
+  readonly includeCode?: boolean;
 }
 
 const DEFAULT_MAX_TOKENS = 3000;
@@ -166,19 +169,22 @@ export function buildWorkingSet(spec: Spec, query: string, opts: WorkingSetOptio
   //    unless the structural core alone already exceeds it (then must-edit is kept regardless).
   const structuralTokens = sizeOf(base, needs, []);
   const code: CodeExcerpt[] = [];
-  for (const m of [...(focus.modules ?? [])].sort()) {
-    const before = sizeOf(base, needs, code);
-    if (maxTokens - before <= 40) {
-      truncated.push(`code: omitted ${m} (budget)`);
-      continue;
+  // includeCode:false skips the excerpt fill wholesale (hook push lane — no code in stdout).
+  if (opts.includeCode !== false) {
+    for (const m of [...(focus.modules ?? [])].sort()) {
+      const before = sizeOf(base, needs, code);
+      if (maxTokens - before <= 40) {
+        truncated.push(`code: omitted ${m} (budget)`);
+        continue;
+      }
+      const ex = codeExcerpt(m, cwd, Math.floor((maxTokens - before) * 4 * 0.8), opts.read); // 0.8 = JSON-escape headroom
+      if (structuralTokens <= maxTokens && sizeOf(base, needs, [...code, ex]) > maxTokens) {
+        truncated.push(`code: omitted ${m} (budget)`);
+        continue;
+      }
+      code.push(ex);
+      if (ex.truncated) truncated.push(`code: clipped ${m}`);
     }
-    const ex = codeExcerpt(m, cwd, Math.floor((maxTokens - before) * 4 * 0.8), opts.read); // 0.8 = JSON-escape headroom
-    if (structuralTokens <= maxTokens && sizeOf(base, needs, [...code, ex]) > maxTokens) {
-      truncated.push(`code: omitted ${m} (budget)`);
-      continue;
-    }
-    code.push(ex);
-    if (ex.truncated) truncated.push(`code: clipped ${m}`);
   }
 
   if (structuralTokens > maxTokens) {

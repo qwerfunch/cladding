@@ -1,7 +1,7 @@
 id: F-c6c3daaf
 slug: kotlin-module-scoped-gate
 title: "Module-scoped gate for Kotlin Gradle monorepos (focus feature.modules → :project: tasks)"
-status: in_progress
+status: done
 modules:
   - src/stages/toolchain/module-scope.ts
   - src/stages/toolchain/gate-config.ts

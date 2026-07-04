@@ -1,6 +1,6 @@
 {
   "name": "cladding",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "Reference implementation of the Ironclad standard — multi-agent dev harness for OpenAI Codex CLI / IDE / cloud. Exposes spec validation, drift detection, the Iron Law stage runner, and 5 agent personas as Codex skills + an auto-launched MCP server.",
   "author": {
     "name": "qwerfunch",
@@ -23,7 +23,7 @@
   "interface": {
     "displayName": "Cladding (Ironclad)",
     "shortDescription": "Multi-agent dev harness — spec, drift, and 15 Iron Law stages.",
-    "longDescription": "Cladding is the reference implementation of the Ironclad standard, a graded falsifiable consistency standard for AI-coding harnesses. Install this plugin to get cladding's six skills (sync, check, panel, drive, init, serve), five persona prompts (orchestrator, librarian, reviewer, observability, specialists), and an auto-launched MCP server that exposes spec / drift / events / personas to Codex.",
+    "longDescription": "Cladding is the reference implementation of the Ironclad standard, a graded falsifiable consistency standard for AI-coding harnesses. Install this plugin to get cladding's verb skills (init, check, sync, status, and the rest under skills/), its persona prompts, and an auto-launched MCP server that exposes spec / drift / events / personas to Codex.",
     "developerName": "qwerfunch",
     "category": "developer-tools",
     "capabilities": ["mcp-server", "skills"],

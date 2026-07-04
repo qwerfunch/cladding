@@ -10,14 +10,14 @@ source: spec.yaml
 capabilities:
   - id: drift-detection
     title: "Drift detection"
-    summary: "40 detectors across spec ↔ code ↔ test axes; the load-bearing core of cladding"
+    summary: "41 detectors across spec ↔ code ↔ test axes; the load-bearing core of cladding"
     surface: feature
     features: [F-99c6e5, F-3788c2, F-f44d1b, F-a4b512]
   - id: harness-cli
     title: "Harness CLI (clad)"
     summary: "14 verbs covering init, scan, refine, sync, check, drive, serve, doctor, …"
     surface: tool
-    features: [F-09d68b, F-bb15e6, F-7afbd4]
+    features: [F-09d68b, F-bb15e6, F-7afbd4, F-6ba22c5c]
   - id: spec-governance
     title: "Spec governance (4-tier SSoT)"
     summary: "Tier A/B/C/D model with explicit refresh authority + banner convention"

@@ -22,6 +22,7 @@ layers:
     - init
     - optimizer
     - oracle
+    - report
     - router
     - ui
     - graph
@@ -62,12 +63,26 @@ forbidden_imports:
     to: cli
   - from: graph
     to: serve
+  # report (foundation) renders a review packet from spec/changelog/optimizer
+  # data the CLI composes — it must stay a pure renderer importable by cli AND
+  # serve without dragging stage runners in. The CLI runs the detectors and
+  # passes findings into the pure SARIF/markdown emitters.
+  - from: report
+    to: stages
+  - from: report
+    to: drive
+  - from: report
+    to: cli
+  - from: report
+    to: serve
   - from: stages
     to: drive
   - from: stages
     to: cli
   - from: stages
     to: serve
+  - from: stages/detectors
+    to: adapters
   - from: adapters
     to: drive
   - from: adapters

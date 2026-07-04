@@ -1,0 +1,20 @@
+id: F-b010427b
+slug: detector-layer-purity
+title: "Machine-enforce the no-LLM-at-detector-layer invariant"
+status: done
+modules:
+  - spec/architecture.yaml
+  - tests/stages/detector-purity.test.ts
+acceptance_criteria:
+  - id: AC-f74f18f9
+    ears: ubiquitous
+    text: "spec/architecture.yaml shall declare forbidden_imports from src/stages/detectors to src/adapters, so ARCHITECTURE_FROM_SPEC blocks any detector-to-adapters import as an error finding."
+    test_refs: ["tests/stages/detector-purity.test.ts"]
+    evidence_refs: ["spec/architecture.yaml"]
+    notes: "WHY: ai_hints declares detectors synchronous+deterministic with no LLM, but stages and adapters are same-tier peers so no rule enforced it; the serve half is already covered by the existing stages-to-serve rule (adding it again would duplicate)."
+  - id: AC-42870a39
+    ears: event
+    condition: "when any registered detector's run is declared async"
+    text: "The detector-purity suite shall fail when any allDetectors entry has an async run function."
+    test_refs: ["tests/stages/detector-purity.test.ts"]
+    notes: "WHY: the Iron Law detector contract (synchronous, deterministic, zero-LLM) was prose-only; an AsyncFunction guard is the cheapest structural tripwire without invoking detectors (invoking all 41 would spawn madge/secretlint subprocesses in unit tests)."

@@ -235,15 +235,15 @@
   <p class="badges">
     <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"></a>
     <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"></a>
-    <img src="https://img.shields.io/badge/tests-1691%2F1691-brightgreen" alt="tests">
-    <img src="https://img.shields.io/badge/detectors-40-brightgreen" alt="detectors">
+    <img src="https://img.shields.io/badge/tests-2035%2F2035-brightgreen" alt="tests">
+    <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors">
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"></a>
   </p>
 
   <p class="lead">
     The official reference implementation of the <a href="https://github.com/qwerfunch/ironclad">Ironclad</a> standard.<br>
     It feeds the project's intent to the host LLM (Claude Code · Codex · Gemini · Cursor) <em>before</em> work begins,<br>
-    and verifies the result with 40 detectors and a 15-stage gate <em>after</em> the work is done.
+    and verifies the result with 41 detectors and a 15-stage gate <em>after</em> the work is done.
   </p>
 
   <!-- ─────────────── Why an organization can trust AI with coding (intuition hook) ─────────────── -->
@@ -276,7 +276,7 @@
       So you can ship AI-written code <strong>trusting it as much as code a human wrote</strong>.
     </p>
     <p class="why" style="margin-top:14px">
-      cladding builds <strong>itself with cladding too</strong> — 196 of its 200 features passed the same gate, and it's the first L4 implementation of the Ironclad standard.
+      cladding builds <strong>itself with cladding too</strong> — 214 of its 217 features passed the same gate, and it's the first L4 implementation of the Ironclad standard.
     </p>
   </div>
 
@@ -295,7 +295,7 @@
     </div>
   </div>
 
-  <p style="text-align:center;font-size:14px;color:#475569"><strong>After — verify:</strong> the 15-stage gate, 40 drift detectors, and an implementation-blind grader (below).</p>
+  <p style="text-align:center;font-size:14px;color:#475569"><strong>After — verify:</strong> the 15-stage gate, 41 drift detectors, and an implementation-blind grader (below).</p>
   <p style="font-size:13px;color:#64748b;text-align:center;margin-top:4px">
     Real-time intervention (map injection · instant block · stop block) works fully in Claude Code.
     On Codex · Gemini · Cursor the same verification runs through in-conversation tool calls and git · CI gates.
@@ -385,7 +385,7 @@ clad graph export --format html --out graph.html  # or export to a single offlin
   <p><strong>Spec → Code → Tests</strong> circulates as one cycle — the spec records the <em>why</em>, the gate verifies, and detectors block drift.</p>
 
   <div class="diagram">
-    <img class="diagram-img" src="docs/img/en/cycle.svg" alt="Spec → Code → Tests cycle — a 15-stage verification and 40 drift detectors guard the cycle" width="700">
+    <img class="diagram-img" src="docs/img/en/cycle.svg" alt="Spec → Code → Tests cycle — a 15-stage verification and 41 drift detectors guard the cycle" width="700">
   </div>
 
   <h3>1. Spec — the standard for everything (SSoT)</h3>
@@ -423,7 +423,7 @@ clad graph export --format html --out graph.html  # or export to a single offlin
     </thead>
     <tbody>
       <tr><td><strong>1.1 Type · 1.2 Lint</strong></td><td>Type errors · code style</td></tr>
-      <tr><td><strong>1.3 Drift</strong></td><td>spec ↔ code drift across 40 detectors</td></tr>
+      <tr><td><strong>1.3 Drift</strong></td><td>spec ↔ code drift across 41 detectors</td></tr>
       <tr><td><strong>1.4 Commit · 1.5 Arch · 1.6 Secret</strong></td><td>Clean working tree · architecture invariant · API key exposure</td></tr>
       <tr><td><strong>2.1 Unit · 2.2 Coverage</strong></td><td>Unit tests pass · coverage drop blocked</td></tr>
       <tr><td><strong>2.3 Spec conformance · 2.4 Deliverable smoke</strong></td><td>The implementation-blind grader's tests pass · whether the declared deliverable actually runs <em>(blocks the "tests pass but the deliverable won't run" vacuous green)</em></td></tr>
@@ -432,7 +432,7 @@ clad graph export --format html --out graph.html  # or export to a single offlin
     </tbody>
   </table>
 
-  <h3>3. Detector — 40 drift detectors</h3>
+  <h3>3. Detector — 41 drift detectors</h3>
   <p>Automatically detects drift in every direction among spec · code · test. Full catalog: <a href="src/stages/detectors/README.md">detector catalog</a>.</p>
   <table>
     <thead>
@@ -445,7 +445,7 @@ clad graph export --format html --out graph.html  # or export to a single offlin
       <tr><td>spec hygiene</td><td>Integrity of the spec itself (ID collision · dependency cycle)</td><td class="center">8</td><td><code>ID_COLLISION</code>, <code>SLUG_CONFLICT</code>, <code>DEPENDENCY_CYCLE</code></td></tr>
       <tr><td>environment integrity</td><td>Build environment · meta files</td><td class="center">3</td><td><code>HARNESS_INTEGRITY</code>, <code>META_INTEGRITY</code></td></tr>
       <tr><td>verification freshness</td><td>Whether code changed after the verification signature</td><td class="center">1</td><td><code>STALE_ATTESTATION</code> <em>(new)</em></td></tr>
-      <tr><td>governance · docs</td><td>Policy violations · documentation drift</td><td class="center">3</td><td><code>ABSENCE_OF_GOVERNANCE</code>, <code>PROJECT_CONTEXT_DRIFT</code></td></tr>
+      <tr><td>governance · docs</td><td>Policy violations · documentation drift · README claims beyond the evidence</td><td class="center">4</td><td><code>ABSENCE_OF_GOVERNANCE</code>, <code>PROJECT_CONTEXT_DRIFT</code>, <code>HOST_CLAIM_DRIFT</code> <em>(new)</em></td></tr>
       <tr><td>graph · doc links</td><td>Broken doc ↔ spec links · missing dependency edges</td><td class="center">4</td><td><code>DOC_LINK_INTEGRITY</code>, <code>REFERENCE_INTEGRITY</code>, <code>INFERABLE_DEPENDS_ON</code> <em>(new)</em></td></tr>
     </tbody>
   </table>
@@ -544,7 +544,7 @@ clad update                # 3. tidy up for the new version</code></pre>
     <tr style="border:none">
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">version</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">v0.7.1</div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">v0.8.0</div>
         <div style="font-size:11px;color:#64748b">2026-07</div>
       </td>
       <td style="text-align:center;width:140px;background:#dcfce7;padding:18px 10px;border-radius:8px;border:none">
@@ -554,23 +554,23 @@ clad update                # 3. tidy up for the new version</code></pre>
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">tests</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">1691<span style="font-size:16px;color:#94a3b8">/1691</span></div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">2035<span style="font-size:16px;color:#94a3b8">/2035</span></div>
         <div style="font-size:11px;color:#64748b">all pass</div>
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">gate</div>
         <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">15<span style="font-size:16px;color:#94a3b8"> stages</span></div>
-        <div style="font-size:11px;color:#64748b">40 detectors</div>
+        <div style="font-size:11px;color:#64748b">41 detectors</div>
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">features</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">199</div>
-        <div style="font-size:11px;color:#64748b">195 done · self-spec</div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">217</div>
+        <div style="font-size:11px;color:#64748b">214 done · self-spec</div>
       </td>
     </tr>
   </table>
 
-  <p style="text-align:center;font-size:13px;color:#64748b;margin-top:12px">170 test files · coverage drop blocked by the COVERAGE_DROP detector</p>
+  <p style="text-align:center;font-size:13px;color:#64748b;margin-top:12px">195 test files · coverage drop blocked by the COVERAGE_DROP detector</p>
 
   <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:24px 0;background:#f8fafc;color:#475569;font-size:14px"><strong>The road to Ironclad 1.0</strong> — 1.0 locks only when <em>two independent implementations pass the L4 verification set</em> (<a href="https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md">GOVERNANCE § 1</a>). cladding is the first.</blockquote>
 
@@ -580,7 +580,7 @@ clad update                # 3. tidy up for the new version</code></pre>
     <li><a href="docs/project-context.md">Why cladding (project context)</a></li>
     <li><a href="docs/ssot-model.md">4-tier governance model</a></li>
     <li><a href="docs/spec-ids-multi-dev.md">Hash-based feature ID</a></li>
-    <li><a href="src/stages/detectors/README.md">40 detector catalog</a></li>
+    <li><a href="src/stages/detectors/README.md">41 detector catalog</a></li>
     <li><a href="docs/glossary.md">Glossary (EN · KO)</a></li>
     <li><a href="GOVERNANCE.md">Governance · roadmap to 1.0</a></li>
   </ul>
