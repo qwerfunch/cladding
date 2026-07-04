@@ -159,7 +159,7 @@ function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
           findings.push({
             detector: NAME,
             severity: 'info',
-            message: `${feature.id}.${ac.id} oracle author≠implementer not verified — no implementer identity recorded (no clad drive history to compare)`,
+            message: `${feature.id}.${ac.id} oracle author≠implementer not verified — no implementer identity recorded (no clad run history to compare)`,
           });
         }
         const overlap = (prov.readManifest ?? []).filter((m) => (feature.modules ?? []).includes(m));

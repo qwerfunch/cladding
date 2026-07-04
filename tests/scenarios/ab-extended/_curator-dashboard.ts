@@ -906,7 +906,7 @@ project:
 features: []
 `;
 
-const CLADDING_ARCHITECTURE_YAML = `# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad refine
+const CLADDING_ARCHITECTURE_YAML = `# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad clarify
 
 layers:
   - - components
@@ -923,7 +923,7 @@ forbidden_imports:
 function renderCladdingCapabilitiesYaml(): string {
   const byCategory = (cat: FeatureDef['category']) =>
     DASHBOARD_FEATURES.filter((f) => f.category === cat).map((f) => f.id).join(', ');
-  return `# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad refine
+  return `# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad clarify
 
 schema: "0.1"
 source: spec.yaml
@@ -956,7 +956,7 @@ capabilities:
 `;
 }
 
-const CLADDING_PROJECT_CONTEXT = `<!-- Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad refine -->
+const CLADDING_PROJECT_CONTEXT = `<!-- Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad clarify -->
 
 # dashboard — Project Context
 

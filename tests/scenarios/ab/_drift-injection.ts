@@ -61,7 +61,7 @@ export function claddingifyForDriftCatch(cwd: string, arch: CanonicalArchitectur
   const archPath = join(cwd, 'spec/architecture.yaml');
   if (existsSync(archPath)) {
     const lines: string[] = [
-      '# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad refine',
+      '# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad clarify',
       '# Canonicalized for ARCHITECTURE_FROM_SPEC detector compatibility.',
       'layers:',
     ];

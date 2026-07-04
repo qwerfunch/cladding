@@ -11,7 +11,7 @@
 // cladding's existing modules. It does not duplicate logic — every
 // handler calls a real cladding function and translates the result
 // into MCP shapes. That keeps `clad serve` and `clad check` /
-// `clad sync` / `clad drive` running the same drift detectors,
+// `clad sync` / `clad run` running the same drift detectors,
 // the same spec loader, the same audit log — only the transport
 // differs.
 //

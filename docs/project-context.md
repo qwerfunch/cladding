@@ -1,4 +1,4 @@
-<!-- Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad refine -->
+<!-- Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad clarify -->
 
 # Cladding — Project Context
 

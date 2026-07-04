@@ -378,7 +378,7 @@ describe('runDriveLoop', () => {
   });
 
   // Pulse UI progressive (v0.3.23, F-x) — drive loop emits per-phase
-  // in-place status updates so a user staring at clad drive sees
+  // in-place status updates so a user staring at clad run sees
   // what's happening instead of a frozen screen.
   describe('pulse progressive (Tier 2 #1)', () => {
     test('happy path emits pulseProgress for specialist · L1 · reviewer · UAT, then pass End', async () => {

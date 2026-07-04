@@ -4,7 +4,7 @@
 // session: the original user intent, the observed environment at init
 // time, and the list of clarifying questions with their answers
 // (null = pending). `clad init <intent>` writes the initial state,
-// `clad refine <answer>` advances it by marking the first pending
+// `clad clarify <answer>` advances it by marking the first pending
 // question answered + adding any new questions the LLM produced.
 //
 // Why YAML on disk? Same surface as the rest of cladding (`spec.yaml`,
@@ -93,7 +93,7 @@ export function saveState(cwd: string, state: OnboardingState): void {
   const dir = dirname(path);
   if (!existsSync(dir)) mkdirSync(dir, {recursive: true});
   const body = yaml.stringify(state, {lineWidth: 0});
-  const banner = '# Cladding · Tier D · transient — Q&A audit · Refreshed by: clad init / clad refine\n';
+  const banner = '# Cladding · Tier D · transient — Q&A audit · Refreshed by: clad init / clad clarify\n';
   const withBanner = body.startsWith('# Cladding · ') ? body : `${banner}${body}`;
   writeFileSync(path, `${withBanner.endsWith('\n') ? withBanner : `${withBanner}\n`}`, 'utf8');
 }

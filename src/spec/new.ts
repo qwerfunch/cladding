@@ -450,7 +450,7 @@ export interface LinkCapabilityResult {
 }
 
 const DEFAULT_CAPABILITIES_HEADER =
-  '# Cladding · Tier B · SSoT — Design (editable) · Refreshed by: clad_link_capability / clad refine\n' +
+  '# Cladding · Tier B · SSoT — Design (editable) · Refreshed by: clad_link_capability / clad clarify\n' +
   '#\n' +
   '# `features[]` lists the F-* ids that implement the capability. The\n' +
   '# CAPABILITIES_FEATURE_MAPPING detector validates that every id resolves\n' +

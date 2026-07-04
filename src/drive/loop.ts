@@ -96,7 +96,7 @@ function ensureStub(cwd: string, modulePath: string): boolean {
   mkdirSync(dirname(abs), {recursive: true});
   writeFileSync(
     abs,
-    '// auto-stub created by clad drive — replace with real implementation\nexport {};\n',
+    '// auto-stub created by clad run — replace with real implementation\nexport {};\n',
   );
   return true;
 }
