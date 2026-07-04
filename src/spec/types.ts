@@ -352,7 +352,7 @@ export interface Inventory {
   readonly scenarios?: number;
   readonly capabilities?: number;
   readonly test_files?: number;
-  /** ISO-8601 timestamp of the last sync that touched this block. */
+  /** Legacy — no longer written (F-6e49fd24). Kept optional so older spec.yaml files still parse + validate. */
   readonly last_synced?: string;
 }
 

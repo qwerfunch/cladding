@@ -5,8 +5,8 @@
 // and see the project's whole scale instead of walking spec/features/,
 // spec/scenarios/, tests/, etc.
 //
-// Last-synced uses ISO date (YYYY-MM-DD) only — keeps spec.yaml
-// commit-stable across multiple runs on the same day.
+// The block is counts only — an unchanged-count re-sync is
+// byte-identical, so parallel branches never conflict on it.
 
 import {existsSync, readFileSync, readdirSync, statSync, writeFileSync} from 'node:fs';
 import {join} from 'node:path';
@@ -70,17 +70,16 @@ function countCapabilities(cwd: string): number {
 }
 
 /**
- * Computes the current inventory by reading the disk. Uses ISO date
- * (YYYY-MM-DD) for `last_synced` so multiple sync runs on the same
- * day produce identical output (commit-stable).
+ * Computes the current inventory by reading the disk. Counts only —
+ * no timestamp — so repeated syncs on unchanged shards produce
+ * identical output (commit-stable).
  */
 export function computeInventory(cwd: string = '.'): Inventory {
   const features = countYamlShards(join(cwd, 'spec', 'features'));
   const scenarios = countYamlShards(join(cwd, 'spec', 'scenarios'));
   const capabilities = countCapabilities(cwd);
   const test_files = countTestFiles(join(cwd, 'tests'));
-  const last_synced = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  return {features, scenarios, capabilities, test_files, last_synced};
+  return {features, scenarios, capabilities, test_files};
 }
 
 /**
@@ -119,7 +118,6 @@ export function upsertInventoryBlock(body: string, inventory: Inventory): string
     `  scenarios: ${inventory.scenarios ?? 0}`,
     `  capabilities: ${inventory.capabilities ?? 0}`,
     `  test_files: ${inventory.test_files ?? 0}`,
-    `  last_synced: ${JSON.stringify(inventory.last_synced ?? '')}`,
   ];
 
   const withEol = (lf: string): string => (eol === '\r\n' ? lf.replace(/\n/g, '\r\n') : lf);

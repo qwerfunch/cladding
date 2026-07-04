@@ -243,8 +243,8 @@ export function runSyncCommand(opts: {proposeArchive?: boolean} = {}): void {
     const spec = loadSpec();
     // v0.3.56 (F-5b9f9f) — auto-rewrite the `inventory:` block in
     // spec.yaml on every sync so AI agents can grep 1 file to see
-    // the project's whole scale. ISO-date `last_synced` keeps the
-    // file commit-stable across same-day runs.
+    // the project's whole scale. Counts only — an unchanged-count
+    // re-sync is byte-identical, so parallel branches don't conflict.
     const inventory = computeInventory('.');
     writeInventoryToSpecYaml('.', inventory);
     writeFeatureIndex('.'); // F-37b4a8 — 1-file feature lookup at scale
