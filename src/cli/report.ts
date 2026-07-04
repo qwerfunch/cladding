@@ -32,7 +32,7 @@ import {
   type ReportInputs,
 } from '../report/report.js';
 import {toSarif} from '../report/sarif.js';
-import {readAttestation} from '../spec/attestation.js';
+import {attestedFeatureCount, readAttestation} from '../spec/attestation.js';
 import {loadSpec} from '../spec/load.js';
 import {reverseIndexOf} from '../spec/reverse-index.js';
 import type {Feature, Spec} from '../spec/types.js';
@@ -133,7 +133,7 @@ function gatherGateState(cwd: string): GateStateInput {
         anyFailed: typeof ev.payload.anyFailed === 'boolean' ? ev.payload.anyFailed : undefined,
       }
     : null;
-  return {attestedCount: att === null ? null : att.size, lastGateRun};
+  return {attestedCount: att === null ? null : attestedFeatureCount(att), lastGateRun};
 }
 
 /** Composes the pure model's inputs from the git range + the loaded spec. */

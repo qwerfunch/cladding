@@ -20,7 +20,7 @@ import {join} from 'node:path';
 import process from 'node:process';
 
 import {readEvents, type Event} from '../events/log.js';
-import {readAttestation} from '../spec/attestation.js';
+import {attestedFeatureCount, readAttestation} from '../spec/attestation.js';
 import {pulse} from '../ui/pulse.js';
 import {
   summarizeEvents,
@@ -66,7 +66,7 @@ function summarizeGovernance(cwd: string, events: readonly Event[]): GovernanceS
     doneRejected: dones.filter((e) => e.payload.kept !== true).length,
     stopBlocked: events.filter((e) => e.type === 'stop_blocked').length,
     unresolvedStopBlock: existsSync(join(cwd, '.cladding', 'stop-block.json')),
-    attestation: {present: attested !== null, entries: attested?.size ?? 0},
+    attestation: {present: attested !== null, entries: attested === null ? 0 : attestedFeatureCount(attested)},
   };
 }
 

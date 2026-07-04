@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {moduleTreeHash, readAttestation, writeAttestation} from '../../src/spec/attestation.js';
+import {moduleFileHash, readAttestation, writeAttestation} from '../../src/spec/attestation.js';
 import {loadSpec} from '../../src/spec/load.js';
 import {staleAttestation} from '../../src/stages/detectors/stale-attestation.js';
 
@@ -43,6 +43,17 @@ describe('attestation (F-a5228c)', () => {
     expect(findings[0].message).toContain('changed since the last attested verification');
   });
 
+  test('v2 stale detector message names the drifted module (F-b0f898a6 · AC-ec3d293e)', () => {
+    expect(writeAttestation(dir, loadSpec(dir))).toBe(true);
+    writeFileSync(join(dir, 'src', 'm.ts'), 'export const v = 3; // drifted\n');
+    const findings = staleAttestation.run({cwd: dir});
+    expect(findings.length).toBe(1);
+    expect(findings[0].severity).toBe('warn');
+    // v2's per-module resolution: the message points at the exact file.
+    expect(findings[0].message).toContain('src/m.ts');
+    expect(findings[0].message).toContain('F-aaaa11');
+  });
+
   test('a done feature missing from an existing attestation warns (never-attested shipped code)', () => {
     writeAttestation(dir, loadSpec(dir));
     writeFileSync(
@@ -55,15 +66,16 @@ describe('attestation (F-a5228c)', () => {
     expect(findings[0].message).toContain('no attestation entry');
   });
 
-  test('the file is content-anchored: id-sorted one-liners, hash changes only with module content', () => {
+  test('the file is content-anchored: per-module hash keyed by path + a constant feature marker, hash moves only with that file', () => {
     writeAttestation(dir, loadSpec(dir));
     const att = readAttestation(dir);
-    const h1 = att?.get('F-aaaa11');
+    const h1 = att?.modules?.get('src/m.ts');
     expect(h1).toMatch(/^[0-9a-f]{16}$/);
-    expect(moduleTreeHash(dir, ['src/m.ts'])).toBe(h1);
-    // unrelated file change does not move the hash
+    expect(moduleFileHash(dir, 'src/m.ts')).toBe(h1);
+    expect(att?.features?.has('F-aaaa11')).toBe(true);
+    // unrelated file change does not move the module hash
     writeFileSync(join(dir, 'spec.yaml'), readFileSync(join(dir, 'spec.yaml'), 'utf8') + '# comment\n');
-    expect(moduleTreeHash(dir, ['src/m.ts'])).toBe(h1);
+    expect(moduleFileHash(dir, 'src/m.ts')).toBe(h1);
   });
 
   test('no done features with modules → no attestation written, no findings', () => {
