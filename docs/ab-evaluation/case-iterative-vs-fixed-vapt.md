@@ -2,6 +2,9 @@
 
 # A/B — iterative vs fixed impact slice, on a now-populated graph (vapt)
 
+<!-- Knowledge-graph binding — compares the iterative impact slice against the fixed-depth impact slice; declared explicitly. -->
+<!-- clad-doc-links: F-96250595, F-7794a6bc -->
+
 **The question this finally answers.** Three prior A/Bs were NULL; we then found the root cause
 (the dependency graph was empty in real projects) and fixed it (`clad infer-deps` reconstructs
 `depends_on` from the import graph; the `INFERABLE_DEPENDS_ON` detector surfaces the gap). With

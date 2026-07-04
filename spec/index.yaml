@@ -189,7 +189,7 @@ features:
   F-b99577: {slug: stale-archive-suggestion, status: done, modules: 4}
   F-ba2e05: {slug: ab-outcome-quality, status: done, modules: 8}
   F-ba4b7a: {slug: pulse-progressive, status: done, modules: 2}
-  F-bae800bd: {slug: ab-case-doc-binding, status: planned, modules: 6}
+  F-bae800bd: {slug: ab-case-doc-binding, status: done, modules: 6}
   F-bb15e6: {slug: clad-doctor, status: done, modules: 3}
   F-bc8ad013: {slug: mcp-description-diet, status: done, modules: 2}
   F-bd07d7: {slug: greenfield-seeds, status: done, modules: 5}

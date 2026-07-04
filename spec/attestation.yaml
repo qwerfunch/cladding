@@ -35,8 +35,13 @@ attested_modules:
   docs/ab-evaluation-extended/scenarios/task-manager/report.md: fe3c789cc9b88eb1
   docs/ab-evaluation-extended/summary.md: d16f16836f94bd80
   docs/ab-evaluation/README.md: c4628aa23f83820b
+  docs/ab-evaluation/case-doverunner-scale.md: 2a435b6855823d41
+  docs/ab-evaluation/case-efficiency-measurement.md: 348aca146a7b2faa
   docs/ab-evaluation/case-existing-adoption.md: 767ec4e840bb7e8a
+  docs/ab-evaluation/case-graph-efficiency.md: 83d3956d14a1517d
+  docs/ab-evaluation/case-iterative-vs-fixed-vapt.md: 1d242b8b6071f343
   docs/ab-evaluation/case-payment-saas.md: 2c691c1645bdb0a1
+  docs/ab-evaluation/case-working-set-landmine.md: b4f44dc463e99722
   docs/ab-evaluation/summary.md: 11323a56ea86129a
   docs/benchmarks/event-store-spec-with-traps.md: 25443101cf0bbbe6
   docs/benchmarks/event-store-trap-catch.md: d7a59d0a6d498ec7
@@ -581,6 +586,7 @@ attested_features:
   F-b99577: ok
   F-ba2e05: ok
   F-ba4b7a: ok
+  F-bae800bd: ok
   F-bb15e6: ok
   F-bc8ad013: ok
   F-bd07d7: ok
