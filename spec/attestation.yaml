@@ -19,7 +19,7 @@ attested_modules:
   .github/workflows/ci.yml: 8ea99219cb80df60
   .gitignore: 1294975ba3b47043
   CHANGELOG.md: 485c612d775fb031
-  CLAUDE.md: 4b88673d62026442
+  CLAUDE.md: da2c7e912cffbe0f
   GOVERNANCE.md: 21cc28eaaf637a20
   README.html: 55cca416ab8446cd
   README.ko.html: 690e90fd451b94dd
@@ -43,6 +43,7 @@ attested_modules:
   docs/ab-evaluation/case-payment-saas.md: 2c691c1645bdb0a1
   docs/ab-evaluation/case-working-set-landmine.md: b4f44dc463e99722
   docs/ab-evaluation/summary.md: 11323a56ea86129a
+  docs/b1-adoption-protocol.md: 8f0480429614e70a
   docs/benchmarks/event-store-spec-with-traps.md: 25443101cf0bbbe6
   docs/benchmarks/event-store-trap-catch.md: d7a59d0a6d498ec7
   docs/code-style.md: f1fd100fa0d11c5e
@@ -55,7 +56,7 @@ attested_modules:
   docs/img/ko/ecosystem.svg: 7c9b2d68fdaa70cf
   docs/img/ko/relationship.svg: e71e2327ca835fcf
   docs/refinement-backlog.md: faee486613b5142c
-  docs/spec-ids-multi-dev.md: cb0b936bd8876346
+  docs/spec-ids-multi-dev.md: 28d58e84879f58b1
   docs/ssot-model.md: 2ecedd961ce4f721
   docs/ssot-testing.md: a067d2b99852db9a
   package.json: 3a79b5d9386b1463
@@ -101,7 +102,7 @@ attested_modules:
   skills/serve/SKILL.md: 4cee65dfb691e3b0
   skills/status/SKILL.md: b3cb6e7a12bf4023
   skills/sync/SKILL.md: 709c20212aa5627e
-  spec.yaml: 50af199bf03cd780
+  spec.yaml: 9a12b2273143c1f1
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: c5d911049fbdcd48
   spec/features/: a4d0f0eb87fed960
@@ -614,6 +615,7 @@ attested_features:
   F-e0f6c7: ok
   F-e53596dd: ok
   F-e7d59c88: ok
+  F-e803c149: ok
   F-e940fffe: ok
   F-eb732f: ok
   F-ede6fa75: ok

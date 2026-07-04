@@ -24,6 +24,7 @@
 | `oracle` | An impl-blind conformance test authored from the spec brief alone (`tests/oracle/`). | 구현-맹검 검증 테스트 |
 | `deliverable` | The shipped entry point the gate smoke-runs (stage_2.4). | 출하 진입점 |
 | `attestation` | The committed stamp (`spec/attestation.yaml`) a GREEN strict pre-push gate writes: module tree-hashes per done feature — the clone-portable answer to "when was this last verified?" (0.6.0). | 검증 도장 |
+| `adoption verdict` | Whether an agent CHOSE to **pull** context (a resolved `clad_get_working_set` / `clad_get_context` / `clad_get_impact` read-serve — the only adoption signal) vs what cladding merely **pushed** (impact / session / prompt cards — delivery, never adoption). Three values: `confirmed` \| `not_confirmed` \| `insufficient_data`. Gates the B1 cleanup — see docs/b1-adoption-protocol.md. | 채택 판정 (풀 대 푸시) |
 
 ## Personas (alias-and-deprecate bucket)
 
