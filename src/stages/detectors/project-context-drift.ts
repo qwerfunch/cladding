@@ -65,7 +65,7 @@ function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
       message:
         `${spec.features.length} features but docs/project-context.md is still the unrefined init ` +
         'template (it still carries the placeholder prompts) — the Why/What/Purpose narrative was ' +
-        'never filled in. Refine it with `clad refine` or by hand.',
+        'never filled in. Fill it in with `clad clarify` or by hand.',
     },
   ];
 }

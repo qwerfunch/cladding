@@ -412,20 +412,20 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
       if (opts.noLlm) {
         process.stderr.write(
           '[clad init] ℹ deterministic mode (--no-llm): spec/scenarios are stubs derived from ' +
-            "the intent verbatim (scenarios empty). Re-run without --no-llm — or use 'clad refine' — " +
+            "the intent verbatim (scenarios empty). Re-run without --no-llm — or use 'clad clarify' — " +
             'for domain-aware generation.\n',
         );
       } else if (onboarding.source === 'deterministic') {
         process.stderr.write(
           '[clad init] ⚠ LLM dispatcher did not fire — spec/scenarios are deterministic stubs ' +
             '(scenarios empty, intent quoted). Wire a host (run cladding as an MCP server in your AI ' +
-            "tool) or set an API key, then re-run or use 'clad refine'. See 'clad doctor' for details.\n",
+            "tool) or set an API key, then re-run or use 'clad clarify'. See 'clad doctor' for details.\n",
         );
       } else {
         // 'hybrid' — the dispatcher fired but some sentinels came back blank.
         process.stderr.write(
           '[clad init] ⚠ LLM dispatcher fired only partially — some spec/doc sections fell back to ' +
-            "deterministic stubs. Run 'clad refine' to complete them; see 'clad doctor' for the missed sections.\n",
+            "deterministic stubs. Run 'clad clarify' to complete them; see 'clad doctor' for the missed sections.\n",
         );
       }
     }

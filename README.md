@@ -16,7 +16,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-2012%2F2012-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-2035%2F2035-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -43,7 +43,7 @@
 
 So you can ship code an AI wrote with **the same trust as code a human wrote**.
 
-cladding builds **itself** with cladding too — 209 of its 212 features cleared the same gate, the first L4 implementation of the Ironclad standard.
+cladding builds **itself** with cladding too — 214 of its 217 features cleared the same gate, the first L4 implementation of the Ironclad standard.
 
 <!-- ─────────────── How it partners with the host LLM ─────────────── -->
 
@@ -318,7 +318,7 @@ Your code · `spec.yaml` · docs are left untouched, so it's safe — and if the
 
 | Version | Conformance | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.8.0 (2026-07) | L4 · [self-declared](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2012 / 2012 | 15 stages · 41 detectors | 212 (209 done) |
+| v0.8.0 (2026-07) | L4 · [self-declared](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2035 / 2035 | 15 stages · 41 detectors | 217 (214 done) |
 
 <sub>195 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector</sub>
 
