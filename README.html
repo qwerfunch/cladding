@@ -253,8 +253,8 @@
       <p>Even when the AI says "it's done", it has to pass the checks — so code that wasn't verified is never accepted as 'done'.</p>
     </div>
     <div class="flow-card">
-      <div class="title">Who did what, and why — all of it stays on the record</div>
-      <p>The evidence you need for audits, regulatory response, and handoff can be traced back at any time.</p>
+      <div class="title">What shipped is on the record</div>
+      <p>What was verified is stamped into committed content, who and when land in the local session ledger, and why lives in the spec — so handoff and review can trace decisions without archaeology.</p>
     </div>
     <div class="flow-card">
       <div class="title">It holds up as the team grows and you add more AIs</div>
@@ -399,7 +399,7 @@ clad graph export --format html --out graph.html  # or export to a single offlin
       <tr><td><strong>A — Spec</strong></td><td>Intent (what · why)</td><td>Humans define intent → the LLM writes it in EARS form</td><td>Doesn't change without human approval · top priority</td></tr>
       <tr><td><strong>B — Design</strong></td><td>Design (how)</td><td>Humans steer the direction → the LLM writes it</td><td>Checked for consistency with A</td></tr>
       <tr><td><strong>C — Derived</strong></td><td>Artifacts (code · tests) + <strong>attestation</strong> (verification signature)</td><td>The LLM writes it</td><td>Auto-regenerated from the code</td></tr>
-      <tr><td><strong>D — Audit</strong></td><td>Audit record (what happened)</td><td>Auto-recorded (append-only)</td><td>Immutable</td></tr>
+      <tr><td><strong>D — Audit</strong></td><td>Audit record (what happened)</td><td>Auto-recorded (append-only)</td><td>Local</td></tr>
     </tbody>
   </table>
 
@@ -462,7 +462,7 @@ clad graph export --format html --out graph.html  # or export to a single offlin
     The <strong>making</strong> agent and the <strong>verifying</strong> agent are separated, so no agent can approve its own work
     by itself. <strong>blind-author</strong> goes one step further — the agent that writes the tests
     <em>has no tool to read the implementation at all</em> (no Read/Grep granted). "Written without seeing the implementation" becomes a structural fact, not a promise.
-    This separation aligns with the segregation-of-duties principle that regulatory · audit frameworks (EU AI Act · SOX) call for.
+    This separation aligns with the segregation-of-duties principle that regulatory · audit frameworks (EU AI Act · SOX) call for — it maps onto the spirit of those frameworks, not a certification.
   </p>
   <div class="diagram">
     <img class="diagram-img" src="docs/img/en/multi-agent.svg" alt="Agent separation of duties — orchestrator distributes, planner/developer/reviewer work, blind-author writes tests without seeing the implementation, observability observes" width="700">

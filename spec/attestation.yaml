@@ -21,8 +21,10 @@ attested_modules:
   CHANGELOG.md: 485c612d775fb031
   CLAUDE.md: 4b88673d62026442
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.ko.md: c662f84bf2cafa44
-  README.md: bf59775d2481593c
+  README.html: 776e03493d34f6ce
+  README.ko.html: 06982bf78dd77a8d
+  README.ko.md: ce257a0baa260cb1
+  README.md: 47c2a291c322041f
   SECURITY.md: 0b2c6349bf7a0921
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 7db2915eeaefbc2f
@@ -47,6 +49,7 @@ attested_modules:
   docs/img/en/relationship.svg: 67470f930df33119
   docs/img/ko/ecosystem.svg: 7c9b2d68fdaa70cf
   docs/img/ko/relationship.svg: e71e2327ca835fcf
+  docs/refinement-backlog.md: af408a93f0a1fc19
   docs/spec-ids-multi-dev.md: cb0b936bd8876346
   docs/ssot-model.md: 2ecedd961ce4f721
   docs/ssot-testing.md: a067d2b99852db9a
@@ -93,7 +96,7 @@ attested_modules:
   skills/serve/SKILL.md: 4cee65dfb691e3b0
   skills/status/SKILL.md: b3cb6e7a12bf4023
   skills/sync/SKILL.md: 709c20212aa5627e
-  spec.yaml: ee714692fee88ca0
+  spec.yaml: 19573af783482aba
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: c5d911049fbdcd48
   spec/features/: a4d0f0eb87fed960
@@ -164,8 +167,8 @@ attested_modules:
   src/drive/halt.ts: 386dd57f84f8e297
   src/drive/loop.ts: 0f1a58b22b0244e1
   src/events: a4d0f0eb87fed960
-  src/events/log.ts: 6eecf24d62e72af7
-  src/events/session-report.ts: 08e10b9a0c3ac143
+  src/events/log.ts: e87bad66622ee0ff
+  src/events/session-report.ts: d0b34f848c360334
   src/graph/layout3d.ts: fdbf08bacad2c049
   src/graph/model.ts: 9dfae1cb48bfe3d5
   src/graph/render.ts: fd228d5929fd0b47
@@ -506,6 +509,7 @@ attested_features:
   F-39609db4: ok
   F-3a5339: ok
   F-3b3690: ok
+  F-3c2bf8b9: ok
   F-40327b: ok
   F-417ff0: ok
   F-42af48: ok
