@@ -456,6 +456,21 @@ clad graph export --format html --out graph.html  # or export to a single offlin
     <img class="diagram-img" src="docs/img/en/workflow.svg" alt="Lifecycle of one feature — define → sync → implement → earn, completion earned when all checks pass / auto-reverted on failure" width="760">
   </div>
 
+  <!-- ─────────────── Agent-loop verifier ─────────────── -->
+  <h2>Using cladding as your agent loop's verifier</h2>
+  <p>
+    You own the loop — whatever harness or orchestrator drives your agent. cladding is the
+    <strong>verifier and state layer inside it</strong>: it doesn't run your loop, it tells the loop what's still wrong and when it's allowed to stop.
+  </p>
+  <ul>
+    <li><strong>Feedback signal</strong> — run <code>clad check --json</code> each iteration. The verdict is machine-readable: a top-level <code>anyFailed</code> and a <code>worst</code> severity, plus per-stage <code>findings[]</code> where each entry carries its <code>detector</code>, <code>severity</code>, and <code>message</code>. Feed that straight back as the loop's error signal — no scraping console text.</li>
+    <li><strong>Honest stop</strong> — gate the loop on <code>clad done</code>, not on the agent's say-so. It flips a feature to <code>done</code> only when the strict pre-push gate is GREEN, and reverts otherwise. "The loop says it's finished" becomes "the gate let it stand."</li>
+    <li><strong>Loop memory</strong> — the local event log (<code>.cladding/events.log.jsonl</code>, gitignored) carries what happened across iterations: gate runs (deduped per HEAD), done attempts, drift firings, value serves. The next iteration reads it as local working memory — not a durable or authoritative record, and it rotates at 5 MB (a single generation), so the oldest entries fall away.</li>
+  </ul>
+  <p>
+    The honest boundary: this hardens the loop's <strong>stop condition and feedback signal</strong>, not the model's code quality. cladding's own A/B record is the receipt — governance is orthogonal to correctness.
+  </p>
+
   <!-- ─────────────── Multi-Agent ─────────────── -->
   <h2>Multi-Agent — separating the maker from the verifier</h2>
   <p>

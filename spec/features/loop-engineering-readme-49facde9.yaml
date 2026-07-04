@@ -1,0 +1,29 @@
+id: F-49facde9
+slug: loop-engineering-readme
+title: "Loop-engineering README section — cladding as the agent loop's verifier and state layer"
+status: done
+modules:
+  - README.md
+  - README.ko.md
+  - README.html
+  - README.ko.html
+acceptance_criteria:
+  - id: AC-a101072b
+    ears: ubiquitous
+    text: "All four README variants shall carry a loop-engineering section presenting cladding as the agent loop's verifier/state layer: clad check --json as the machine-readable feedback signal, the done flip-gate-revert as the honest stop condition, and the local event log as loop memory."
+    notes: "## Why\nBacklog B8: positioning content for the agent-loop audience — the honest frame this project can actually defend (verification signal + earned stop + local memory), replacing correctness claims the A/B program refuted."
+    test_refs:
+      - tests/readme-loop-section.test.ts
+  - id: AC-1660fbaa
+    ears: unwanted
+    condition: "if the section makes a falsifiable universal claim about the ledger"
+    action: "fail the pin test"
+    response: "the loop-memory paragraph must respect reality: gate_run events dedupe per HEAD and the log is a local, rotating file — never claim every run is recorded or that it is an audit trail"
+    text: "If the section claims every gate run is recorded or calls the event log an audit trail, the pin test shall fail."
+    test_refs:
+      - tests/readme-loop-section.test.ts
+  - id: AC-f3e3d35d
+    ears: ubiquitous
+    text: "The section shall have EN/KO parity and consistent placement across the markdown and HTML variants."
+    test_refs:
+      - tests/readme-loop-section.test.ts

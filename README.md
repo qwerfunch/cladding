@@ -205,6 +205,18 @@ Define → Sync → Implement → **Earn**. You earn "done" only by passing ever
 
 </div>
 
+<!-- ─────────────── Agent-loop verifier ─────────────── -->
+
+## Using cladding as your agent loop's verifier
+
+You own the loop — whatever harness or orchestrator drives your agent. cladding is the **verifier and state layer inside it**: it doesn't run your loop, it tells the loop what's still wrong and when it's allowed to stop.
+
+- **Feedback signal** — run `clad check --json` each iteration. The verdict is machine-readable: a top-level `anyFailed` and a `worst` severity, plus per-stage `findings[]` where each entry carries its `detector`, `severity`, and `message`. Feed that straight back as the loop's error signal — no scraping console text.
+- **Honest stop** — gate the loop on `clad done`, not on the agent's say-so. It flips a feature to `done` only when the strict pre-push gate is GREEN, and reverts otherwise. "The loop says it's finished" becomes "the gate let it stand."
+- **Loop memory** — the local event log (`.cladding/events.log.jsonl`, gitignored) carries what happened across iterations: gate runs (deduped per HEAD), done attempts, drift firings, value serves. The next iteration reads it as local working memory — not a durable or authoritative record, and it rotates at 5 MB (a single generation), so the oldest entries fall away.
+
+The honest boundary: this hardens the loop's **stop condition and feedback signal**, not the model's code quality. cladding's own A/B record is the receipt — governance is orthogonal to correctness.
+
 <!-- ─────────────── Multi-Agent ─────────────── -->
 
 ## Multi-Agent — separating the builder from the verifier
