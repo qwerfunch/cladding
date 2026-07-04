@@ -399,6 +399,7 @@ attested_modules:
   vitest.config.ts: 0abd6ec1dd506fee
 attested_features:
   F-001: ok
+  F-0023ba22: ok
   F-002: ok
   F-003: ok
   F-004: ok

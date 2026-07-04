@@ -136,9 +136,8 @@ export function appendEvent(cwd: string, event: Event): void {
   appendFileSync(path, `${JSON.stringify(event)}\n`, 'utf8');
 }
 
-/** Read every event in append order. */
-export function readEvents(cwd: string): readonly Event[] {
-  const path = eventsPath(cwd);
+/** Parse one events-log file in append order; a missing or empty file → []. */
+function readEventsFile(path: string): Event[] {
   if (!existsSync(path)) return [];
   const raw = readFileSync(path, 'utf8').trim();
   if (raw.length === 0) return [];
@@ -146,6 +145,23 @@ export function readEvents(cwd: string): readonly Event[] {
     .split('\n')
     .filter((line) => line.length > 0)
     .map((line) => JSON.parse(line) as Event);
+}
+
+/** Read every event in the live log in append order. */
+export function readEvents(cwd: string): readonly Event[] {
+  return readEventsFile(eventsPath(cwd));
+}
+
+/**
+ * Read the rolled generation (`events.log.1.jsonl` — the older half a size
+ * rotation left behind) followed by the live log, in append order. Missing
+ * files contribute nothing. `appendEvent` keeps a SINGLE rolled generation, so
+ * at most two files are concatenated. The adoption reducer (F-0023ba22) reads
+ * through this so a recent rotation can't drop completed cycles out of view
+ * (AC-345af0b5).
+ */
+export function readEventsIncludingRolled(cwd: string): readonly Event[] {
+  return [...readEventsFile(join(cwd, EVENTS_DIR, EVENTS_ROLL)), ...readEventsFile(eventsPath(cwd))];
 }
 
 /** Convenience constructor — fills id + timestamp. */

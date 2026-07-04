@@ -3,7 +3,7 @@
 # (suggested .gitattributes: `spec/index.yaml merge=union`).
 features:
   F-001: {slug: F-001, status: done, modules: 4}
-  F-0023ba22: {slug: adoption-reducer, status: planned, modules: 2}
+  F-0023ba22: {slug: adoption-reducer, status: done, modules: 2}
   F-002: {slug: F-002, status: done, modules: 1}
   F-003: {slug: F-003, status: done, modules: 2}
   F-004: {slug: F-004, status: done, modules: 2}
