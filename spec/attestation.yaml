@@ -43,7 +43,7 @@ attested_modules:
   docs/ab-evaluation/case-payment-saas.md: 0ecb089a576de638
   docs/ab-evaluation/case-working-set-landmine.md: b4f44dc463e99722
   docs/ab-evaluation/summary.md: 59e527a531f13209
-  docs/b1-adoption-protocol.md: 8f0480429614e70a
+  docs/b1-adoption-protocol.md: a041d8ad5ba1447f
   docs/benchmarks/event-store-spec-with-traps.md: 25443101cf0bbbe6
   docs/benchmarks/event-store-trap-catch.md: d7a59d0a6d498ec7
   docs/benchmarks/v0.4.0-consistency-bench.md: e49a0dc671ff6672

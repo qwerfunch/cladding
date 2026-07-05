@@ -4,6 +4,8 @@ schema: "0.1"
 docs:
   "docs/README.md":
     doc_links: ["docs/ssot-model.md", "spec/README.md", "src/agents/README.md"]
+  "docs/ab-evaluation/case-081-cycle-conformance.md":
+    features: [F-0023ba22, F-10cc42d1, F-1e7a10c3, F-6ed216f3, F-b0f898a6]
   "docs/ab-evaluation/case-doverunner-scale.md":
     features: [F-06dfdad6, F-7794a6bc]
   "docs/ab-evaluation/case-efficiency-measurement.md":
