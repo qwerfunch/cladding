@@ -41,17 +41,25 @@ describe('cladding self-consistency (no Vacuous Green against itself)', () => {
 
   test('README prose detector-count claims match the actual detector count (F-898783ee)', () => {
     const actual = allDetectors.length;
-    // Two README files headline cladding's own detector count. Each regex is
-    // scoped to that file's HEADLINE phrasing so per-subset counts never
-    // false-trip: README.md also says "41 detectors"/"41 detector" and lists
-    // bare "10"/"6"/… per-direction cells in the detector table, while
+    // Three README-family files headline cladding's own detector count. Each
+    // regex is scoped to that file's HEADLINE phrasing so per-subset counts
+    // never false-trip: README.md also says "41 detectors"/"41 detector" and
+    // lists bare "10"/"6"/… per-direction cells in the detector table, while
     // src/stages/detectors/README.md discusses the historical upstream
     // "19 detectors" headline and the "3 always-error" / "16 conditional"
     // subsets. Anchoring on "drift detectors" (README) and "detectors are
     // wired" (inventory) captures only the live-count claim in each.
+    //
+    // README.ko.md (AC-4772bf42): the KO headline mixes Korean and English —
+    // "41개 검출기" (Korean noun) plus "41 detector(s)" (English). Anchoring on
+    // the English "detector" token captures every numbered claim (all four read
+    // 41) while skipping the Korean-noun phrasings and the per-direction "수"
+    // table cells (numbers followed by a detector NAME, not the word
+    // "detector"), so the KO variant can no longer silently drift from the EN.
     const guards: Array<{file: string; re: RegExp; label: string}> = [
       {file: 'README.md', re: /(\d+)\s+drift detectors/g, label: '"<N> drift detectors"'},
       {file: 'src/stages/detectors/README.md', re: /(\d+)\s+detectors are wired/g, label: '"<N> detectors are wired"'},
+      {file: 'README.ko.md', re: /(\d+)\s+(?:drift\s+)?detectors?\b/gi, label: '"<N> [drift] detector(s)" (KO)'},
     ];
     for (const {file, re, label} of guards) {
       const matches = [...read(file).matchAll(re)];
@@ -68,9 +76,16 @@ describe('cladding self-consistency (no Vacuous Green against itself)', () => {
     // stages". The README regex requires the numeral ADJACENT to "stage(s)"
     // (a single hyphen or space) so the "9 deterministic stages" subset claim
     // never false-trips; the AGENTS regex tolerates the "Iron Law" infix.
+    //
+    // README.ko.md (AC-4772bf42): the KO stage noun is "단계", which the file
+    // ALSO uses for subsets ("3단계"/"9단계" per tier) and setup steps
+    // ("1단계"/"2단계"). Anchoring on "<N>단계" immediately followed by
+    // "게이트"/"Iron Law" captures only the four total-gate claims (all 15) and
+    // never the subset/step counts.
     const guards: Array<{file: string; re: RegExp; label: string}> = [
       {file: 'README.md', re: /(\d+)[-\s]stages?\b/g, label: '"<N>-stage"/"<N> stages"'},
       {file: 'AGENTS.md', re: /(\d+)\s+(?:Iron Law\s+)?stages\b/g, label: '"<N> Iron Law stages"'},
+      {file: 'README.ko.md', re: /(\d+)단계\s+(?:게이트|Iron Law)/g, label: '"<N>단계 게이트/Iron Law" (KO)'},
     ];
     for (const {file, re, label} of guards) {
       const matches = [...read(file).matchAll(re)];

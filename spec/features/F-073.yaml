@@ -27,8 +27,8 @@ acceptance_criteria:
   - id: AC-209
     ears: ubiquitous
     action: register the five persona bodies as MCP prompts
-    response: buildServer registers one prompt per persona id (orchestrator, librarian, reviewer, observability, specialists); each prompt accepts an optional featureId argument that gets interpolated into the prompt body
-    text: The system shall register the five cladding personas (orchestrator, librarian, reviewer, observability, specialists) as MCP prompts so an MCP client can request the persona body without re-parsing src/agents/.
+    response: buildServer registers one prompt per persona id (orchestrator, planner, reviewer, observability, developer); each prompt accepts an optional featureId argument that gets interpolated into the prompt body
+    text: The system shall register the five cladding personas (orchestrator, planner, reviewer, observability, developer) as MCP prompts so an MCP client can request the persona body without re-parsing src/agents/.
     test_refs: [tests/serve/server.test.ts]
   - id: AC-210
     ears: state

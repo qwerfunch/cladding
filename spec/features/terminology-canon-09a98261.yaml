@@ -1,0 +1,41 @@
+id: F-09a98261
+slug: terminology-canon
+title: "Terminology canon — one concept, one name: glossary rows, gloss unification, two string repairs, shard prose refresh"
+status: done
+modules:
+  - docs/glossary.md
+  - README.md
+  - README.ko.md
+  - README.html
+  - README.ko.html
+  - src/cli/clad.ts
+  - src/oracle/payload.ts
+  - tests/self-consistency.test.ts
+acceptance_criteria:
+  - id: AC-5a249349
+    ears: ubiquitous
+    text: "The glossary shall define the previously missing concept rows — the impact-card family (Tier-1 one-liner, Tier-2 rich card; the mini-working-set-card label retired), session card, prompt suggestion, the context-slice-vs-working-set rule, the phases/stages/tiers/detectors counting quartet, the clad check --strict ≡ clad_run_gate vs clad_run_check drift-subset mapping, and the drive-loop internal-name note — each with its KO gloss."
+    notes: "## Why\n2026-07-05 terminology audit: the worst live confusion is cross-surface — CLI check means the FULL gate while MCP clad_run_check means the drift-only view (ids frozen wire, so the mapping row is the only fix); the card family had 5-6 names for 3 things; the counting nouns (4/15/3/41) had no defining row."
+    test_refs:
+      - tests/terminology-canon.test.ts
+  - id: AC-c73c675e
+    ears: ubiquitous
+    text: "The attestation gloss shall be one canonical pair — EN verification signature, KO 검증 서명 — across the glossary and all four README variants; identifier names stay unchanged."
+    test_refs:
+      - tests/terminology-canon.test.ts
+  - id: AC-1c0c639e
+    ears: ubiquitous
+    text: "The two user-visible string defects shall be repaired: the clad status --json help no longer names the removed ANSI panel (integrity-matrix wording), and the oracle brief header names itself impl-blind consistently with the CLI help, the provenance record, and the glossary."
+    test_refs:
+      - tests/terminology-canon.test.ts
+  - id: AC-4772bf42
+    ears: ubiquitous
+    text: "The self-consistency count guard shall also cover README.ko.md's detector and stage numbers, so the KO variant can no longer silently drift."
+    notes: "## Why\nThe guard covered README.md, AGENTS.md, and the detectors README only; the KO numbers were correct by luck, not by test."
+    test_refs:
+      - tests/terminology-canon.test.ts
+  - id: AC-50704241
+    ears: ubiquitous
+    text: "The seven done shards whose prose enumerates pre-rename verbs or personas as current shall present the current sets (run/status; planner, developer, reviewer, observability, orchestrator, blind-author) — name enumerations only, no AC meaning change, and code back-compat matchers that parse historical records stay untouched."
+    test_refs:
+      - tests/terminology-canon.test.ts

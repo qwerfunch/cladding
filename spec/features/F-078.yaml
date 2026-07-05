@@ -16,14 +16,14 @@ acceptance_criteria:
   - id: AC-234
     ears: ubiquitous
     action: expose cladding's user-facing verb as a Gemini CLI custom command in TOML format
-    response: 'plugins/gemini-cli/commands/ contains init.toml with a description field for the /help menu and a prompt field describing the verb behaviour; v0.4.0 (F-80d19d) narrowed the transpiled slash commands to `init` only — the remaining verbs (sync, check, panel, drive, serve) are invoked by the AI via natural language -> `clad <verb>` CLI, matching the Claude Code plugin (F-076 AC-227)'
+    response: 'plugins/gemini-cli/commands/ contains init.toml with a description field for the /help menu and a prompt field describing the verb behaviour; v0.4.0 (F-80d19d) narrowed the transpiled slash commands to `init` only — the remaining verbs (sync, check, status, run, serve) are invoked by the AI via natural language -> `clad <verb>` CLI, matching the Claude Code plugin (F-076 AC-227)'
     text: The system shall expose cladding's `init` verb as a Gemini CLI custom command under plugins/gemini-cli/commands/init.toml so Gemini users invoke it as /cladding:init; v0.4.0 narrowed the slash-command surface to `init` only.
     evidence_refs:
       - plugins/gemini-cli/commands/init.toml
   - id: AC-235
     ears: ubiquitous
     action: provide a Gemini context file describing the personas and authentication invariant
-    response: plugins/gemini-cli/GEMINI.md introduces cladding to Gemini, lists the six commands, summarises the five personas (orchestrator · librarian · reviewer · observability · specialists), and explicitly states the no-API-key invariant
+    response: plugins/gemini-cli/GEMINI.md introduces cladding to Gemini, lists the six commands, summarises the five personas (orchestrator · planner · reviewer · observability · developer), and explicitly states the no-API-key invariant
     text: The system shall provide plugins/gemini-cli/GEMINI.md as the extension context file so Gemini, when the extension is loaded, has the persona vocabulary and authentication model in its context window from session start.
     evidence_refs: [plugins/gemini-cli/GEMINI.md]
   - id: AC-236

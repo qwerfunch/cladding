@@ -29,7 +29,7 @@ acceptance_criteria:
   - id: AC-002
     ears: ubiquitous
     action: bring the four existing skills/<verb>/SKILL.md surfaces back to parity with the current clad CLI
-    response: 'skills/init/SKILL.md grows the --scan, --no-llm, and --roots flag entries, documents the scan artifacts (docs/conventions.md, spec/architecture.yaml, spec/capabilities.yaml, docs/project-context.md, spec/scenarios/README.md), and clarifies that new features use F-<hash6> with a one-liner generator command; skills/run/SKILL.md adds the --cwd <path> flag and a post-drive clad doctor cross-reference; skills/status/SKILL.md disambiguates legacy F-NNN from F-<hash6> in the rows description; skills/check/SKILL.md notes that the Drift stage runs every active detector under src/stages/detectors/ with the current 24/24 count and the build-plugin auto-recount mechanism'
+    response: 'skills/init/SKILL.md grows the --scan, --no-llm, and --roots flag entries, documents the scan artifacts (docs/conventions.md, spec/architecture.yaml, spec/capabilities.yaml, docs/project-context.md, spec/scenarios/README.md), and clarifies that new features use F-<hash6> with a one-liner generator command; skills/run/SKILL.md adds the --cwd <path> flag and a post-run clad doctor cross-reference; skills/status/SKILL.md disambiguates legacy F-NNN from F-<hash6> in the rows description; skills/check/SKILL.md notes that the Drift stage runs every active detector under src/stages/detectors/ with the current 24/24 count and the build-plugin auto-recount mechanism'
     text: The system shall bring the four existing skills/<verb>/SKILL.md surfaces back to parity with the current clad CLI so adopters do not discover undocumented flags by reading the binary's --help output.
     evidence_refs: [skills/init/SKILL.md, skills/run/SKILL.md, skills/status/SKILL.md, skills/check/SKILL.md]
   - id: AC-003
@@ -48,7 +48,7 @@ acceptance_criteria:
     ears: state
     condition: while the canonical persona sources reference the inline src/ui/softShell.ts helpers
     action: remove the broken ironclad-design/03-ux-routing.md §1.2 cross-link from every persona because the helper names already convey the guidance
-    response: 'all five personas (specialists / librarian / orchestrator / reviewer / observability) drop the trailing "See ironclad-design/03-ux-routing.md §1.2" sentence; the Soft Shell paragraph keeps its substantive guidance (use featureLabel / gateLabel / haltMessage from src/ui/softShell.ts) so no behavioural advice is lost; a grep for "ironclad-design" across src/agents/ and skills/ returns zero results post-edit so a future build cannot silently re-introduce the broken path'
+    response: 'all five personas (developer / planner / orchestrator / reviewer / observability) drop the trailing "See ironclad-design/03-ux-routing.md §1.2" sentence; the Soft Shell paragraph keeps its substantive guidance (use featureLabel / gateLabel / haltMessage from src/ui/softShell.ts) so no behavioural advice is lost; a grep for "ironclad-design" across src/agents/ and skills/ returns zero results post-edit so a future build cannot silently re-introduce the broken path'
     text: While the canonical persona sources reference the inline src/ui/softShell.ts helpers, the system shall remove the broken ironclad-design/03-ux-routing.md §1.2 cross-link from every persona because the helper names already convey the guidance.
     evidence_refs: [src/agents/]
   - id: AC-006

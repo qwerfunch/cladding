@@ -40,8 +40,8 @@ acceptance_criteria:
   - id: AC-231
     ears: ubiquitous
     action: expose six verbs and five personas as Codex skills
-    response: 'plugins/codex/skills/ contains 11 SKILL.md entries — sync, check, panel, drive, init, serve (verbs) + orchestrator, librarian, reviewer, observability, specialists (personas)'
-    text: The system shall expose six cladding verbs (sync, check, panel, drive, init, serve) and five persona prompts (orchestrator, librarian, reviewer, observability, specialists) as Codex skills under plugins/codex/skills/<id>/SKILL.md.
+    response: 'plugins/codex/skills/ contains 11 SKILL.md entries — sync, check, status, run, init, serve (verbs) + orchestrator, planner, reviewer, observability, developer (personas)'
+    text: The system shall expose six cladding verbs (sync, check, status, run, init, serve) and five persona prompts (orchestrator, planner, reviewer, observability, developer) as Codex skills under plugins/codex/skills/<id>/SKILL.md.
     evidence_refs:
       - plugins/codex/skills/sync/SKILL.md
       - plugins/codex/skills/check/SKILL.md

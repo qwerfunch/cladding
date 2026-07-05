@@ -1152,7 +1152,7 @@ export function createProgram(): Command {
     .command('status')
     .description('Render the feature × stage integrity matrix (business titles; use --internal for raw F-NNN ids)')
     .option('--internal', 'show internal F-NNN ids and stage codes')
-    .option('--json', 'emit the row model as JSON — the same feature × stage matrix the ANSI panel renders (columns + per-feature glyph cells), one SSoT for terminal, JSON, and the audit bundle')
+    .option('--json', 'emit the row model as JSON — the same feature × stage integrity matrix rendered to the terminal (columns + per-feature glyph cells), one SSoT for terminal, JSON, and the audit bundle')
     .action(runStatusCommand);
 
   program
