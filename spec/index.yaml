@@ -89,6 +89,7 @@ features:
   F-080: {slug: F-080, status: done, modules: 2}
   F-081: {slug: F-081, status: done, modules: 3}
   F-098d3b: {slug: detector-count-auto-recompute, status: done, modules: 1}
+  F-09a98261: {slug: terminology-canon, status: done, modules: 8}
   F-09d68b: {slug: clad-refine, status: done, modules: 7}
   F-0e84628e: {slug: merge-ritual-docs, status: done, modules: 2}
   F-0ed2db: {slug: ai-hints-consumer-instructions, status: done, modules: 11}
@@ -103,9 +104,12 @@ features:
   F-1c9166: {slug: readme-capability-sync, status: done, modules: 2}
   F-1d23a6: {slug: host-hooks, status: done, modules: 5}
   F-1e7a10c3: {slug: adoption-report-surface, status: done, modules: 2}
+  F-1e9ef827: {slug: measure-extract, status: done, modules: 2}
   F-1edb38: {slug: scan-refactor, status: done, modules: 13}
   F-24062d: {slug: spec-id-hash-filename-and-lookup, status: done, modules: 3}
   F-245bd5: {slug: dogfood-recovery-v0-3-16, status: done, modules: 2}
+  F-27e56a00: {slug: benchmarks-prune, status: done, modules: 4}
+  F-288864ae: {slug: claude-md-diet, status: done, modules: 2}
   F-2be3e3bb: {slug: infer-depends-on, status: done, modules: 2}
   F-2de65d: {slug: drive-auto-rollback, status: done, modules: 1}
   F-315fd7: {slug: scenario-coverage-detector, status: done, modules: 2}
@@ -167,6 +171,7 @@ features:
   F-95a096: {slug: ops-visibility-polish, status: done, modules: 3}
   F-96250595: {slug: iterative-impact-slice, status: done, modules: 2}
   F-96700032: {slug: unverified-ac-junit, status: done, modules: 4}
+  F-987be195: {slug: docs-prune, status: done, modules: 4}
   F-99c6e5: {slug: cladding-self-fixes, status: done, modules: 13}
   F-9a3b61: {slug: ab-ext-uncommit-demos, status: done, modules: 3}
   F-9b643e: {slug: scan-conventions, status: done, modules: 5}
@@ -199,6 +204,7 @@ features:
   F-c2c996: {slug: checkpoint-events, status: done, modules: 3}
   F-c48eb2: {slug: scan-source-roots, status: done, modules: 5}
   F-c4c5ae: {slug: spec-conformance-oracle-stage, status: done, modules: 8}
+  F-c58263b8: {slug: code-compact, status: done, modules: 12}
   F-c6a32fff: {slug: graph-honest-fallback, status: done, modules: 7}
   F-c6c3daaf: {slug: kotlin-module-scoped-gate, status: done, modules: 13}
   F-c8aef8: {slug: project-context, status: done, modules: 5}

@@ -55,33 +55,23 @@ export const CLAUDE_MD_SECTION_MARKER = '## cladding';
 
 export const CLAUDE_MD_SECTION = `## cladding
 
-This project is managed by **cladding** (Spec-Anchored Agent Harness).
+**Spec is SSoT** — \`spec.yaml\` is authoritative; code must satisfy its
+\`features[]\` and \`acceptance_criteria\`. Run \`clad check --strict\` before commit.
 
-**Spec is SSoT** — \`spec.yaml\` is authoritative. Any code change must
-satisfy the relevant \`features[]\` and \`acceptance_criteria\`. Run
-\`clad check --strict\` before commit.
+**Persona separation** — planner writes spec, reviewer audits, developer
+implements; whoever authors a unit must not sign off on it (anti-self-cert).
 
-**Persona separation** — planner writes spec, reviewer audits,
-developer implements. The agent that authors must not sign off on its
-own work (anti-self-cert invariant).
+**Feature cycle — one at a time** — One feature end-to-end before the next:
+author its shard (\`acceptance_criteria\` + \`modules\`) → implement → author tests
+in a separate context → \`clad done <featureId>\` (sets \`status: done\` only when
+\`clad check --tier=pre-push --strict\` is GREEN). Never author shards ahead of
+their code, or hand-write \`status: done\`. See \`docs/feature-cycle.md\`.
 
-**Feature cycle — one at a time** — Work ONE feature end-to-end before
-the next: author its shard with \`acceptance_criteria\` (+ \`modules\`) →
-implement → author tests (separate context) → mark it done with
-\`clad done <featureId>\` (it flips \`status: done\` ONLY if
-\`clad check --tier=pre-push --strict\` is GREEN, reverting otherwise) →
-only then the next. Do NOT author shards ahead of the code that implements
-them, and do NOT hand-write \`status: done\`. Independent features (no
-shared \`modules\`) may run as parallel instances of this same cycle.
-Enforced by the \`PLANNED_BACKLOG\` detector; see \`docs/feature-cycle.md\`.
+**Hash-based IDs** — Never hand-author \`F-NNN\` filenames; use the \`clad\` CLI
+(or \`/cladding:init\`). Model in \`docs/spec-ids-multi-dev.md\`.
 
-**Hash-based IDs** — Never hand-author \`F-NNN\` filenames; use the
-\`clad\` CLI or invoke cladding through the \`/cladding:init\` slash
-command. The multi-developer-safe model is in
-\`docs/spec-ids-multi-dev.md\`.
-
-**Drift detectors** — \`clad check --strict\` runs every drift detector.
-Don't suppress findings; either fix them or update spec.
+**Drift detectors** — \`clad check --strict\` runs them all; don't suppress
+findings — fix them or update spec.
 `;
 
 // v0.3.x markers that disappeared in v0.4.0. When detected in an existing

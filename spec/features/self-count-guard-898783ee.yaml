@@ -30,6 +30,6 @@ acceptance_criteria:
     notes: "WHY: SVGs are hand-authored art (no generator — verified), excluded from the automated guard because tspan-split text and noun variance (checks vs detectors) make regex matching brittle; repair is manual, guard covers markdown prose only."
   - id: AC-f779e18c
     ears: ubiquitous
-    text: "docs/README.md tier index shall list every live doc under docs/ (adding the previously missing rows: glossary, feature-cycle, gate-scope, ssot-testing, ssot-audit, knowledge-graph/design, marketplace-self-contained)."
+    text: "docs/README.md tier index shall list every live doc under docs/ (adding the previously missing rows: glossary, feature-cycle, gate-scope, ssot-testing, knowledge-graph/design)."
     evidence_refs: ["docs/README.md"]
     notes: "WHY: the index omissions made live docs read as orphaned; several deletion candidates in the 2026-07 audit were misjudged dead partly because the index never listed them."

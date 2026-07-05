@@ -27,7 +27,7 @@ acceptance_criteria:
     evidence_refs: [CLAUDE.md]
   - id: AC-002
     ears: ubiquitous
-    action: 'each of the 5 canonical persona prompts under src/agents/ (specialists, librarian, reviewer, observability, orchestrator) gains a Project policy section that names how that persona should consume project.ai_hints (forbidden_patterns, preferred_patterns, preferred_persona)'
+    action: 'each of the 5 canonical persona prompts under src/agents/ (developer, planner, reviewer, observability, orchestrator) gains a Project policy section that names how that persona should consume project.ai_hints (forbidden_patterns, preferred_patterns, preferred_persona)'
     text: The system shall add a Project policy section referencing ai_hints to all five persona prompts.
     evidence_refs:
       - src/agents/developer.md

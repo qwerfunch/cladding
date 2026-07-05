@@ -16,7 +16,7 @@ The kinds of reports that belong here:
 - A reproducible way to corrupt the audit log (`.cladding/audit.log.jsonl`) or events log such that an external auditor cannot reconstruct the lifecycle of a feature.
 - A way to make a drift detector silently miss a real spec/code/test mismatch (false-negative). False-positives are bugs; false-negatives are security-adjacent because they erode the falsifiability claim.
 - Credential or secret exposure in the toolchain (e.g. `src/stages/secret.ts` failing to redact a known secret pattern).
-- Arbitrary code execution through any CLI verb (`clad init`, `clad work`, `clad drive`, `clad sync`, `clad check`, `clad serve`, …) against an untrusted spec or workspace.
+- Arbitrary code execution through any CLI verb (`clad init`, `clad run`, `clad sync`, `clad check`, `clad serve`, …) against an untrusted spec or workspace.
 
 ## MCP server (`clad serve`) — invariants
 
@@ -39,5 +39,5 @@ While in `0.x`, only the **latest minor release** receives security fixes. Once 
 
 | Version | Security fixes |
 |---|---|
-| 0.1.x | ✅ latest minor |
-| < 0.1.0 | ❌ pre-release; no fixes backported |
+| Latest `0.x` minor | ✅ receives fixes |
+| Any older release | ❌ upgrade to the latest minor |

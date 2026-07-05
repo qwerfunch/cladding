@@ -2,6 +2,8 @@
 
 # A/B Evaluation: existing-adoption
 
+_Snapshot note (2026-07-05): detector count was 25 at this run; the suite has since grown to 41 (0.8.x). Body preserved as an append-only snapshot._
+
 **Intent:** `이 프로젝트 분석해서 환불 기능 추가`
 
 Existing-adoption case: a populated 8-source-file TypeScript service

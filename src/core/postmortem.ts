@@ -5,8 +5,8 @@
 // module writes a markdown file documenting the failure context — the
 // feature id, the gate that failed last, the retry count, the
 // checkpoint the rollback targets, and a maintainer-runnable recovery
-// command. The Librarian agent persona is the authoring identity,
-// matching the ironclad-design role split (Librarian owns SSoT health
+// command. The planner agent persona is the authoring identity,
+// matching the ironclad-design role split (planner owns SSoT health
 // and history; developer authors code).
 //
 // File path: `.cladding/post-mortems/post-mortem-<F-id>-<ts>.md`.

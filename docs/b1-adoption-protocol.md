@@ -115,6 +115,8 @@ Append-only. One row per recorded run; never edit a prior row.
 | date | repo | completedCycles | pullsTotal | cyclePullRate | distinctHeads | verdict | note |
 |---|---|---|---|---|---|---|---|
 | 2026-07-05 | cladding-self | 64 | 0 | 0.0 | 55 | not_confirmed | 0.8.1 development itself — orchestrated via MCP create/gate; subagents read files directly; zero working-set pulls |
+| 2026-07-06 | ab-081 s4-induced (fixture) | 1 | 1 | 0.0 | 1 | insufficient_data | guidance-nudged Sonnet pulled BEFORE creating its module (unresolved → correctly excluded); a post-cycle resolved pull counted but fell outside the cycle window — meter verified end-to-end (docs/ab-evaluation/case-081-cycle-conformance.md) |
+| 2026-07-06 | ab-081 s4-uninduced (fixture) | 1 | 0 | 0.0 | 1 | insufficient_data | cycles-only ledger still renders (hasSignal true) — non-adoption evidence is reported, never suppressed |
 
 ## Reading the numbers honestly
 

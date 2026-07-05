@@ -40,12 +40,8 @@ function runProjectContextDrift(opts: CommandStageOptions): readonly DriftFindin
   return withSpec(cwd, NAME, (spec) => detect(spec, cwd));
 }
 
-function resolveThreshold(): number {
-  return DEFAULT_MIN_FEATURES_FOR_CONTEXT;
-}
-
 function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
-  if (spec.features.length < resolveThreshold()) return [];
+  if (spec.features.length < DEFAULT_MIN_FEATURES_FOR_CONTEXT) return [];
   const path = join(cwd, 'docs', 'project-context.md');
   if (!existsSync(path)) return []; // absence is ABSENCE_OF_GOVERNANCE's job
 

@@ -73,7 +73,7 @@ export function buildBlindPayload(spec: Spec, featureId: string, acId: string | 
  *  under-assertion guidance that mitigates the v7 over-strict (spurious) mode. */
 export function renderBlindBrief(p: OraclePayload): string {
   const lines: string[] = [];
-  lines.push(`# Spec-conformance oracle brief — ${p.featureId}: ${p.featureTitle}`);
+  lines.push(`# Impl-blind oracle brief — ${p.featureId}: ${p.featureTitle}`);
   lines.push('#');
   lines.push('# Author a conformance TEST SUITE from THIS SPECIFICATION ONLY. You have NOT been');
   lines.push('# shown the implementation and MUST NOT read it. Assert ONLY what the acceptance');

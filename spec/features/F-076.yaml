@@ -26,8 +26,8 @@ acceptance_criteria:
   - id: AC-224
     ears: ubiquitous
     action: expose cladding verbs as Claude Code skills
-    response: skills/<verb>/SKILL.md exists for each of sync, check, panel, drive, init, serve with YAML frontmatter declaring a description and a body explaining what the verb does and when to use it
-    text: The system shall expose cladding's six primary verbs (sync, check, panel, drive, init, serve) as Claude Code skills under skills/<verb>/SKILL.md so a user can invoke them via /cladding:<verb> instead of the bare CLI.
+    response: skills/<verb>/SKILL.md exists for each of sync, check, status, run, init, serve with YAML frontmatter declaring a description and a body explaining what the verb does and when to use it
+    text: The system shall expose cladding's six primary verbs (sync, check, status, run, init, serve) as Claude Code skills under skills/<verb>/SKILL.md so a user can invoke them via /cladding:<verb> instead of the bare CLI.
     evidence_refs:
       - skills/sync/SKILL.md
       - skills/check/SKILL.md
@@ -38,8 +38,8 @@ acceptance_criteria:
   - id: AC-225
     ears: ubiquitous
     action: mirror cladding's persona files into the plugin's agents directory
-    response: plugins/claude-code/agents/<persona>.md exists for each of orchestrator, librarian, reviewer, observability, specialists, copied verbatim from src/agents by scripts/build-plugin.mjs
-    text: The system shall mirror cladding's five persona files (orchestrator, librarian, reviewer, observability, specialists) from src/agents/ into plugins/claude-code/agents/ so Claude Code's agent picker surfaces them; the copy is performed by scripts/build-plugin.mjs and the result is committed to git.
+    response: plugins/claude-code/agents/<persona>.md exists for each of orchestrator, planner, reviewer, observability, developer, copied verbatim from src/agents by scripts/build-plugin.mjs
+    text: The system shall mirror cladding's five persona files (orchestrator, planner, reviewer, observability, developer) from src/agents/ into plugins/claude-code/agents/ so Claude Code's agent picker surfaces them; the copy is performed by scripts/build-plugin.mjs and the result is committed to git.
     evidence_refs:
       - plugins/claude-code/agents/orchestrator.md
       - plugins/claude-code/agents/planner.md
@@ -56,6 +56,6 @@ acceptance_criteria:
   - id: AC-227
     ears: ubiquitous
     action: expose `init` as the only user-facing slash command per host plugin (Claude Code / Gemini CLI)
-    response: plugins/claude-code/commands/init.md and plugins/gemini-cli/commands/init.toml are the only files in their respective commands directories; the legacy commands/clad.md wrapper is removed because v0.4.0 standardised on `/cladding:init` and other verbs (check, sync, panel, etc.) are invoked by the AI via natural language → `clad <verb>` CLI
+    response: plugins/claude-code/commands/init.md and plugins/gemini-cli/commands/init.toml are the only files in their respective commands directories; the legacy commands/clad.md wrapper is removed because v0.4.0 standardised on `/cladding:init` and other verbs (check, sync, status, etc.) are invoked by the AI via natural language → `clad <verb>` CLI
     text: The system shall expose `init` as the only user-facing slash command per host plugin (Claude Code, Gemini CLI), removing the legacy commands/clad.md wrapper and per-verb .toml files, because cladding is infrastructure (drift is auto-detected, gate runs in CI) and the user only invokes `init` directly at project start.
     evidence_refs: [plugins/claude-code/commands/init.md, plugins/gemini-cli/commands/init.toml]

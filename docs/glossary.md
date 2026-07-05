@@ -23,7 +23,7 @@
 | `AC` | Acceptance criterion — one verifiable behavior inside a feature. | 인수 기준 |
 | `oracle` | An impl-blind conformance test authored from the spec brief alone (`tests/oracle/`). | 구현-맹검 검증 테스트 |
 | `deliverable` | The shipped entry point the gate smoke-runs (stage_2.4). | 출하 진입점 |
-| `attestation` | The committed stamp (`spec/attestation.yaml`) a GREEN strict pre-push gate writes: module tree-hashes per done feature — the clone-portable answer to "when was this last verified?" (0.6.0). | 검증 도장 |
+| `attestation` | The verification signature (`spec/attestation.yaml`) a GREEN strict pre-push gate writes: module tree-hashes per done feature — the clone-portable answer to "when was this last verified?" (0.6.0). | 검증 서명 |
 | `adoption verdict` | Whether an agent CHOSE to **pull** context (a resolved `clad_get_working_set` / `clad_get_context` / `clad_get_impact` read-serve — the only adoption signal) vs what cladding merely **pushed** (impact / session / prompt cards — delivery, never adoption). Three values: `confirmed` \| `not_confirmed` \| `insufficient_data`. Gates the B1 cleanup — see docs/b1-adoption-protocol.md. | 채택 판정 (풀 대 푸시) |
 
 ## Personas (alias-and-deprecate bucket)
@@ -72,6 +72,15 @@
 | `report` | stable (0.8.0) | Render one deterministic review packet for a git range — spec-shard movement (from `changelog`), changed source files resolved to their owning features via the reverse index, the deduped regression set, and gate + attestation state. `--format md \| sarif \| json`. For PR reviewers/team-leads/auditors: it RENDERS, it gates nothing. | 리뷰 패킷 렌더링 |
 | `bundle` | stable (0.8.0) | Write ONE self-contained offline HTML audit bundle (`--out <file.html> [--since <ref>]`) a non-coder can double-click — provenance banner, project header + inventory, feature × stage matrix, capability catalog, shipped changes, audit table, attestation summary. Zero network, no scripts. Deterministic modulo the date stamp; a range that cannot be anchored degrades the changelog + audit sections to a notice while the rest still renders. | 감사 번들 |
 
+> **Internal name — the drive loop.** The `run` verb's loop is internally the
+> *drive loop* (`src/drive/loop.ts`), and its evidence identity is `clad-drive`,
+> frozen for audit-log compatibility — so `drive` persists in code paths and event
+> provenance even though the user-facing verb is `run` (never as a CLI verb: `drive`
+> was removed in 0.8.0).
+> KO: `run` 루프의 내부 이름은 *drive loop*(`src/drive/loop.ts`)이며, 증거 식별자
+> `clad-drive`는 감사 로그 호환을 위해 동결되어 있다 — 사용자 표면 verb는 `run`이지만
+> 코드 경로와 이벤트 기록에는 여전히 `drive`가 남는다.
+
 ## MCP tools (frozen wire identifiers)
 
 | Tool | Meaning |
@@ -90,6 +99,47 @@
 | `clad_get_impact` | The blast-radius slice for a change by feature id/slug/module path (0.7.0) — transitive dependents + scenarios at risk + the regression test set; the backward complement of `clad_get_context`. |
 | `clad_get_graph` | The live spec↔code↔doc knowledge graph (0.7.0) — tier-classified nodes (A/B/C/D) + typed edges, optionally a focused neighborhood; recomputed from the current spec so it is never stale. |
 | `clad_changelog` | The deterministic shipped-changes manifest since a git ref (0.6.0) — the host renders human release notes FROM it, sourcing every claim from a feature title/AC sentence; `format: markdown \| audit \| catalog` for the deterministic renders. |
+
+## Context surfaces (push vs pull)
+
+Cladding delivers spec context two ways. It **pushes** cards at host lifecycle
+events (delivery only — never an adoption signal); it serves **pull** slices when
+an agent explicitly asks (the only adoption signal — see `adoption verdict`). The
+push cards are telemetered as DELIVERY, never adoption.
+
+| Term | Definition | KO |
+|---|---|---|
+| `impact card` | The PostToolUse **push** card fired after a file edit. Two shapes: **Tier-1** = a one-liner (impacted feature + regression-test count); **Tier-2** = a rich card (working-set-backed, code-free, ~350-token lane). The label "mini working-set card" is **retired** — the rich shape is the `Tier-2 impact card`. Firing/skip is telemetered by `impact_card_fired` / `impact_card_skipped`. | 임팩트 카드 (푸시; Tier-1 한 줄 요약 · Tier-2 리치 카드) |
+| `session card` | The SessionStart **push** card — the project's at-a-glance state when a session opens. Telemetered by `session_card_rendered`. | 세션 카드 (SessionStart 푸시) |
+| `prompt suggestion` | The UserPromptSubmit **push** hint — a routing/context nudge attached to the user's prompt. Telemetered by `prompt_suggestion_served`. | 프롬프트 제안 (UserPromptSubmit 푸시) |
+| context slice vs working set | **context slice** = the frozen, **no-code** payload behind `clad context` / `clad_get_context` (focus + ancestors + scenarios + ai_hints + test_refs). **working set** = the **code-bearing** superset behind `clad_get_working_set` (that slice + module CODE excerpts + forward needs + backward breaks + budget). One is the pull-slice; the other is that slice plus code. | 컨텍스트 슬라이스(코드 없는 풀 페이로드) 대 워킹셋(코드 포함 상위집합) |
+
+## The check ≡ gate mapping (CLI vs MCP — the #1 confusion)
+
+Same verification, two spellings, plus one cheap subset. The wire ids are frozen,
+so this mapping — not a rename — is the fix:
+
+| Surface | Runs | KO |
+|---|---|---|
+| `clad check --strict` (CLI) | the **full** Iron Law gate — authoritative | 전체 게이트 (CLI) |
+| `clad_run_gate` (MCP) | the **full** Iron Law gate, in-session — the MCP twin of `clad check --strict` | 전체 게이트 (MCP, 세션 내) |
+| `clad_run_check` (MCP) | **only** the drift-detector subset (cheap, terse) — NOT the full gate | 드리프트 검사만 (경량) |
+
+So `clad check --strict` ≡ `clad_run_gate` (full verification); `clad_run_check`
+is the drift-only slice. The CLI `check` is FULL, the MCP `_check` is LIGHT — same
+stem, different surface.
+
+## Counting nouns (four axes — do not conflate)
+
+Four independent counts describe the gate; readers routinely merge them. Kept as
+four distinct Korean words too, so the conflation cannot survive translation:
+
+| Noun | Count | Counts | KO |
+|---|---|---|---|
+| phases | 4 | The Iron Law's arc: static quality → tests/conformance → QA → human evidence. | 페이즈 4 (철칙의 4국면 흐름) |
+| stages | 15 | The gate stages inside those phases (`stage_1.1` … `stage_4.x`; SSoT = `TIER_STAGES.all` in `src/cli/clad.ts`). | 스테이지 15 (SSoT: TIER_STAGES.all) |
+| tiers | 3 | The run scopes a caller selects: `pre-commit` (cheap) \| `pre-push` (+ heavier deterministic) \| `all` (full 15-stage). | 티어 3 (pre-commit·pre-push·all) |
+| detectors | 41 | The drift detectors the Drift stage runs (SSoT = `allDetectors` in `src/stages/detectors/index.ts`; count auto-recomputed at build). | 검출기 41 (SSoT: allDetectors) |
 
 ## Event types (frozen)
 
@@ -117,7 +167,7 @@ IDs stay exactly as registered in `src/stages/detectors/index.ts` (audit-log sta
 | `STALE_EVIDENCE` | evidence **older than 90 days** |
 | `MISSING_IMPLEMENTATION` | spec declares a module the disk **doesn't have** |
 | `UNMAPPED_ARTIFACT` | disk has a source file **no feature claims** |
-| `STALE_ATTESTATION` | shipped (done) modules **changed since the last attested verification** (0.6.0; vs the committed `spec/attestation.yaml` stamp) |
+| `STALE_ATTESTATION` | shipped (done) modules **changed since the last attested verification** (0.6.0; vs the committed `spec/attestation.yaml` verification signature) |
 
 ## Naming conventions (enforced by review; see docs/code-style.md)
 

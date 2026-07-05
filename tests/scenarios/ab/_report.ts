@@ -42,6 +42,10 @@ export function renderCaseReport(input: CaseReportInput): string {
   lines.push('');
   lines.push(`# A/B Evaluation: ${input.caseTitle}`);
   lines.push('');
+  lines.push(
+    '_Snapshot note (2026-07-05): detector count was 25 at this run; the suite has since grown to 41 (0.8.x). Body preserved as an append-only snapshot._',
+  );
+  lines.push('');
   lines.push(`**Intent:** \`${input.intent}\``);
   lines.push('');
   lines.push(input.description.trim());

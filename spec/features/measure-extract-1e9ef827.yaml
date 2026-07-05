@@ -1,0 +1,21 @@
+id: F-1e9ef827
+slug: measure-extract
+title: "Measure family extraction — clad.ts sheds ~150 lines with byte-identical output"
+status: done
+modules:
+  - src/cli/measure.ts
+  - src/cli/clad.ts
+acceptance_criteria:
+  - id: AC-30b84594
+    ears: ubiquitous
+    text: "The measure family's internal helpers (sessions renderer, adoption section renderer, trend renderer) shall live in src/cli/measure.ts, with runMeasureCommand remaining in clad.ts as a thin wrapper — the light variant that requires zero spec-shard module edits."
+    notes: "## Why\nclad.ts is the repo's largest file (1,318 lines) and ~40 shards bind it as a module, so MOVING exported command surfaces is systematically heavy; the measure internals are the one cohesive ~150-line block extractable with no shard ripple (2026-07-05 audit)."
+    test_refs:
+      - tests/measure-extract.test.ts
+  - id: AC-815591d4
+    ears: ubiquitous
+    text: "All four measure invocations (default, --sessions, --sessions --json, --trend) shall render byte-identically to the pre-extraction behavior, and the existing measure and adoption test suites shall stay green with zero test edits."
+    test_refs:
+      - tests/cli/measure-sessions.test.ts
+      - tests/cli/measure-adoption.test.ts
+      - tests/cli/measure-trend.test.ts

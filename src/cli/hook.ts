@@ -577,7 +577,7 @@ function recordImpactFired(cwd: string, file: string, slice: ImpactSlice, lane?:
 
 // --- session push ledger (F-35954d19) ----------------------------------
 //
-// The mini working-set card is the push half of clad_get_working_set — richer, so it
+// The Tier-2 impact card is the push half of clad_get_working_set — richer, so it
 // needs a per-session governor: ONE Tier-2 card per (focus,file) per session (dedup),
 // and a hard per-session token ceiling (budget). State lives in a sidecar keyed by the
 // host session_id when present, else a 30-min rolling window. Sidecar contract (skip-agg
@@ -705,7 +705,7 @@ function emitPushCard(cwd: string, sessionId: string, rel: string, ws: WorkingSe
 function emitCardForPath(cwd: string, sessionId: string, rel: string, lane?: 'bash'): string {
   try {
     const spec = loadSpec(cwd);
-    // Tier path: the mini working-set card (code-free, 350-token lane — AC-1bfccb6b). A
+    // Tier path: the Tier-2 impact card (code-free, 350-token lane — AC-1bfccb6b). A
     // buildWorkingSet throw OR lookup miss falls back byte-identically to the shipped
     // formatImpactCard path, leaving the callers' gates untouched (AC-38141a9e).
     let ws: WorkingSet | undefined;
