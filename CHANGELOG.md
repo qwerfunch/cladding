@@ -10,7 +10,10 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 Adoption Proof + Friction Diet: the merge conflicts that plagued parallel
 work are structurally gone, the per-edit hook is ~12× faster, the README
 says only what the record can prove, and "is the context tooling actually
-adopted?" finally has a written, measurable answer.
+adopted?" finally has a written, measurable answer. A cleanup pass then
+tidied the house: superseded docs deleted or compressed to abstracts, one
+canonical name per concept in the glossary, a 30% lighter CLAUDE.md
+template for adopters, and dead seams swept out of the code.
 
 > **Heads-up:** `spec/attestation.yaml` converts to a per-module v2 format
 > on your first GREEN strict pre-push gate after upgrading — automatic, no
@@ -46,6 +49,28 @@ adopted?" finally has a written, measurable answer.
 
 ### Changed
 
+- ▸ **Old docs are gone or shrunk, with the evidence preserved.** Two
+  superseded design notes are deleted (their one unique paragraph each
+  relocated to the code they described), two historical benchmark run-logs
+  are compressed to dated abstracts that keep the NULL findings — full
+  reports stay one git-history hop away — and the multi-provider roadmap
+  drops its stale planning prose while keeping the canonical Transport
+  section. Four benchmark documents are explicitly protected, including an
+  un-discharged pre-registration.
+- ▸ **One concept, one name.** The glossary now defines the impact-card
+  family, the context-slice vs working-set rule, the phases/stages/tiers/
+  detectors quartet, and the mapping that resolves the worst cross-surface
+  confusion: `clad check --strict` is `clad_run_gate` (the full gate);
+  `clad_run_check` is the cheap drift-only subset. The status help no
+  longer names the removed ANSI panel, the oracle brief calls itself
+  impl-blind everywhere, and the Korean README's counts join the
+  self-consistency guard.
+- ▸ **The adopter CLAUDE.md section is 30% lighter** with every policy
+  anchor intact — the freshness literals that keep `clad update` stable
+  are now directly test-pinned.
+- ▸ **Code compaction.** Four dead config seams inlined, git ref
+  resolution now lives in one place, and the measure family moved out of
+  the largest CLI file (124 lines) with byte-identical output.
 - ▸ **Attestation v2 — one line per module file.** The verification record
   no longer amplifies one shared-file edit into every co-owning feature's
   line: disjoint parallel work now merges clean under plain 3-way, GitHub
