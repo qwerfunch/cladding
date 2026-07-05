@@ -125,8 +125,10 @@ export interface ArchitectureLayerObject {
    * `modules` is documentation for humans/reviewers, not a live binding. The
    * deterministic scan renderer (`renderArchitectureYaml`, src/cli/scan/llm.ts)
    * still emits it on `clad init --scan`, so it is live-but-advisory in real
-   * specs. Making the detector consume these globs is a tracked follow-up
-   * (docs/ssot-audit.md, J5b).
+   * specs. Marking it advisory (rather than wiring the detector to consume the
+   * globs) is the deliberate J5b decision recorded in
+   * spec/features/ac-hash-ids-a04cd9.yaml (AC-003); full consumption stays a
+   * tracked follow-up there, not a hidden dead link.
    */
   readonly modules?: readonly string[];
   readonly forbidden_imports?: readonly string[];

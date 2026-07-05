@@ -187,6 +187,14 @@ function wireClaude(home: string, pkgRoot: string, opts: {force: boolean; isWin:
   return wireChannel(pkgRoot, join(home, '.claude', 'plugins', 'cladding'), opts);
 }
 
+// Gemini stays npm-delegated (needs the PATH-global `clad`): its extension
+// manifest (plugins/gemini-cli/gemini-extension.json) declares `command: "clad"`
+// and is wired by SYMLINK into ~/.gemini/extensions/, so the host reads the shared
+// repo copy directly. Making this lane self-contained would mean patching that
+// manifest to a per-machine bundled-engine path — but patching a symlinked file
+// mutates the shared copy for every project. Until Gemini moves to a copy+patch
+// wire model (as the Claude Code lane did in 0.5.2, pointing MCP at the bundled
+// engine via ${CLAUDE_PLUGIN_ROOT}), it requires `npm install -g cladding`.
 function wireGemini(home: string, pkgRoot: string, opts: {force: boolean; isWin: boolean}): ChannelResult {
   return wireChannel(join(pkgRoot, 'plugins', 'gemini-cli'), join(home, '.gemini', 'extensions', 'cladding'), opts);
 }

@@ -2,6 +2,8 @@
 
 # A/B Evaluation: payment-saas
 
+_Snapshot note (2026-07-05): detector count was 25 at this run; the suite has since grown to 41 (0.8.x). Body preserved as an append-only snapshot._
+
 **Intent:** `결제 SaaS for B2B Stripe Toss 지원`
 
 Greenfield case: an empty tmpdir + a one-line intent.

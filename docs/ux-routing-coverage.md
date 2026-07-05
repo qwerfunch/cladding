@@ -14,8 +14,8 @@ upstream_ssot: https://github.com/qwerfunch/harness-boot/blob/main/ironclad-desi
 | # | Prescription | Status | Where (cladding) | Notes |
 |---|---|---|---|---|
 | P-01 | Iron Core (internal strict IDs / commands) vs Soft Shell (external business language) boundary | partial | `src/ui/softShell.ts` (formatter), `src/router/intent.ts:3` (boundary comment) | The split now exists as a code layer, not just an aspiration. |
-| P-02 | Ban on user-facing `F-NNN` / `AC-N` | partial | `src/ui/panel.ts` default view (`renderPanel(spec)` hides ids), `src/cli/clad.ts drive` default (`haltMessage` instead of JSON) | `--internal` / `--json` flags surface the raw view; agents/*.md carry the "user-facing language" guideline. Audit log keeps raw ids. |
-| P-03 | 3-path intent (Contextual Inquiry · Implementation Loop · Strategic Orchestration) | not yet | `src/router/intent.ts` maps to 5 verbs (init/work/drive/sync/check), not 3 paths | Requires a mode state machine; queued for v0.2.0+. |
+| P-02 | Ban on user-facing `F-NNN` / `AC-N` | partial | `src/ui/panel.ts` default view (`renderPanel(spec)` hides ids), `src/cli/clad.ts run` default (`haltMessage` instead of JSON) | `--internal` / `--json` flags surface the raw view; agents/*.md carry the "user-facing language" guideline. Audit log keeps raw ids. |
+| P-03 | 3-path intent (Contextual Inquiry · Implementation Loop · Strategic Orchestration) | not yet | `src/router/intent.ts` maps to 4 verbs (init/run/sync/check), not 3 paths | Requires a mode state machine; queued for v0.2.0+. |
 | P-04 | JIT reverse sync (only at intentional breakpoints) | not yet | — | Requires a watcher and a confirmation gate; v0.2.0+. |
 | P-05 | Natural-language choice-based remediation | partial | `src/ui/softShell.ts` `haltMessage` returns a sentence; user can read and decide | Full choice menus (e.g. "sync code to spec / replan to match code / approve as intentional") land with the L4 remediation flow in v0.2.0+. |
 | P-06 | Soft Shell choice → Iron Core command deterministic mapping | partial | `src/router/intent.ts` (NL → verb) is deterministic; choice-based mapping pending P-05 | — |

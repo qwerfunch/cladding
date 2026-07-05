@@ -22,8 +22,6 @@ Human-readable documentation for cladding. Mixed-tier: design SSoT (Tier B) live
 | `knowledge-graph/design.md` | **B** | design SSoT — knowledge-graph model & cost | manual | maintainers + graph contributors |
 | `benchmarks/` | **D** audit (post-hoc reports) | append-only per benchmark run | manual benchmark commits | maintainers reviewing performance regressions |
 | `dogfood/` | **D** audit (post-hoc reports) | append-only per dogfood session | manual dogfood commits | maintainers reviewing harness behaviour on real adoption |
-| `ssot-audit.md` | **D** audit (post-hoc report) | v0.4.x SSoT document-system audit (2026-05-31) | manual audit commit | maintainers reviewing SSoT integrity |
-| `marketplace-self-contained.md` | **D** audit (shipped design note) | self-contained marketplace plugin — decisions & status | manual | maintainers + host-integration work |
 
 ## Why mixed tiers in one directory
 

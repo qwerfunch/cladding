@@ -55,6 +55,7 @@ attested_modules:
   docs/img/en/relationship.svg: 67470f930df33119
   docs/img/ko/ecosystem.svg: 7c9b2d68fdaa70cf
   docs/img/ko/relationship.svg: e71e2327ca835fcf
+  docs/multi-provider-roadmap.md: 1e5cf27ea1b18d06
   docs/refinement-backlog.md: 42afa26f02f1955f
   docs/spec-ids-multi-dev.md: 28d58e84879f58b1
   docs/ssot-model.md: 2ecedd961ce4f721
@@ -566,6 +567,7 @@ attested_features:
   F-95a096: ok
   F-96250595: ok
   F-96700032: ok
+  F-987be195: ok
   F-99c6e5: ok
   F-9a3b61: ok
   F-9b643e: ok
