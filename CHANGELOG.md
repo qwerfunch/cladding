@@ -7,6 +7,8 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.8.1] — Adoption Proof + Friction Diet (2026-07-06)
+
 Adoption Proof + Friction Diet: the merge conflicts that plagued parallel
 work are structurally gone, the per-edit hook is ~12× faster, the README
 says only what the record can prove, and "is the context tooling actually
