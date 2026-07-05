@@ -104,10 +104,12 @@ features:
   F-1c9166: {slug: readme-capability-sync, status: done, modules: 2}
   F-1d23a6: {slug: host-hooks, status: done, modules: 5}
   F-1e7a10c3: {slug: adoption-report-surface, status: done, modules: 2}
+  F-1e9ef827: {slug: measure-extract, status: planned, modules: 2}
   F-1edb38: {slug: scan-refactor, status: done, modules: 13}
   F-24062d: {slug: spec-id-hash-filename-and-lookup, status: done, modules: 3}
   F-245bd5: {slug: dogfood-recovery-v0-3-16, status: done, modules: 2}
   F-27e56a00: {slug: benchmarks-prune, status: done, modules: 4}
+  F-288864ae: {slug: claude-md-diet, status: done, modules: 2}
   F-2be3e3bb: {slug: infer-depends-on, status: done, modules: 2}
   F-2de65d: {slug: drive-auto-rollback, status: done, modules: 1}
   F-315fd7: {slug: scenario-coverage-detector, status: done, modules: 2}

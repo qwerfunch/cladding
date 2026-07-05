@@ -19,7 +19,7 @@ attested_modules:
   .github/workflows/ci.yml: 8ea99219cb80df60
   .gitignore: 1294975ba3b47043
   CHANGELOG.md: c25524ff061673e0
-  CLAUDE.md: da2c7e912cffbe0f
+  CLAUDE.md: 9d00a2ef785a76d1
   GOVERNANCE.md: 21cc28eaaf637a20
   README.html: 55cca416ab8446cd
   README.ko.html: 690e90fd451b94dd
@@ -105,7 +105,7 @@ attested_modules:
   skills/serve/SKILL.md: 4cee65dfb691e3b0
   skills/status/SKILL.md: b3cb6e7a12bf4023
   skills/sync/SKILL.md: 709c20212aa5627e
-  spec.yaml: 5d3f92a2023fcea5
+  spec.yaml: 6d20ac8f816f2613
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: c5d911049fbdcd48
   spec/features/: a4d0f0eb87fed960
@@ -138,7 +138,7 @@ attested_modules:
   src/cli: a4d0f0eb87fed960
   src/cli/benchmark.ts: 77f84d2a898d724f
   src/cli/changelog.ts: 2de1adb009b89ab4
-  src/cli/clad.ts: b997812f8873dee9
+  src/cli/clad.ts: cfa398c2ddb8ec6f
   src/cli/clarify.ts: 0699edcdde49112b
   src/cli/doctor-hosts.ts: 1ad79105b47fd8e5
   src/cli/doctor.ts: b98b955fe75e7f7e
@@ -191,7 +191,7 @@ attested_modules:
   src/hitl/audit.ts: 79b06e904815469a
   src/hitl/identity.ts: 52ff84aa666f1dab
   src/init/git-hook.ts: 4e02f177b3764ae8
-  src/init/host-instructions.ts: c2b3b130a9ae39dc
+  src/init/host-instructions.ts: 5c914336c011fc3d
   src/init/host-setup.ts: 7204682817a119f1
   src/optimizer: a4d0f0eb87fed960
   src/optimizer/code-excerpt.ts: e2c4598efcd28d2a
@@ -512,6 +512,7 @@ attested_features:
   F-24062d: ok
   F-245bd5: ok
   F-27e56a00: ok
+  F-288864ae: ok
   F-2be3e3bb: ok
   F-2de65d: ok
   F-315fd7: ok
