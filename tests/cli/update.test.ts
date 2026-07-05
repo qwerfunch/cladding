@@ -5,7 +5,8 @@
 // The drift REPORT lives in the command wrapper (report-only), so it is not
 // exercised here — these tests pin the safe, idempotent mutations + exit code.
 
-import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
@@ -88,6 +89,78 @@ describe('deprecation report (F-b43066)', () => {
     } finally {
       rmSync(dir, {recursive: true, force: true});
     }
+  });
+});
+
+// ─── F-10cc42d1 · AC-28d60113 — clad update defers derived-file writes mid-op ───
+//
+// `clad update` is one of the three derived-file writers (with `clad sync` and
+// the MCP syncInventory path). While a git merge/rebase/cherry-pick is in
+// progress, the inventory + feature-index writes must be skipped so a
+// half-merged tree sees no surprise edits — while the read-only report (feature
+// count, project detection) keeps working with a success exit. The guard reads
+// the REAL probe over `cwd`, so these tests drive it with a real git repo + a
+// hand-seeded MERGE_HEAD (no actual merge needed).
+
+describe('git-operation write guard (F-10cc42d1 · AC-28d60113 · update writer)', () => {
+  let dir: string;
+
+  // A minimal cladding-style fixture: a valid spec.yaml plus one on-disk shard
+  // (writeFeatureIndex only emits spec/index.yaml when spec/features/ exists).
+  const SHARD =
+    'id: F-abc123\n' +
+    'slug: thing\n' +
+    'title: A thing\n' +
+    'status: planned\n' +
+    'modules: []\n' +
+    'acceptance_criteria:\n' +
+    '  - id: AC-001\n' +
+    '    ears: ubiquitous\n' +
+    '    text: The system shall do a thing.\n';
+
+  function fixture(): void {
+    execFileSync('git', ['init', '-q'], {cwd: dir});
+    writeFileSync(join(dir, 'spec.yaml'), SPEC);
+    mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
+    writeFileSync(join(dir, 'spec', 'features', 'thing-abc123.yaml'), SHARD);
+    mkdirSync(join(dir, '.github', 'workflows'), {recursive: true}); // isolate from the CI-absence notice
+  }
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'clad-update-gitop-'));
+  });
+  afterEach(() => rmSync(dir, {recursive: true, force: true}));
+
+  test('a git op in progress defers the inventory + index writes; read-only report stays intact + success exit', async () => {
+    fixture();
+    const specBefore = readFileSync(join(dir, 'spec.yaml'), 'utf8');
+    // Seed the merge marker under the resolved git dir (`<dir>/.git` for a normal repo).
+    writeFileSync(join(dir, '.git', 'MERGE_HEAD'), 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeef\n');
+
+    const r = await runUpdate(dir, {wireHosts: okWire});
+
+    // Read-only reporting intact + success exit (never blocks on a git op).
+    expect(r.isProject).toBe(true);
+    expect(typeof r.features).toBe('number');
+    expect(r.inventoryDeferred).toBe(true);
+    expect(r.code).toBe(0);
+
+    // Derived files are byte-for-byte untouched: no inventory block folded into
+    // spec.yaml, and no spec/index.yaml materialized.
+    expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).toBe(specBefore);
+    expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).not.toContain('inventory:');
+    expect(existsSync(join(dir, 'spec', 'index.yaml'))).toBe(false);
+  });
+
+  test('with no git op the same run writes both derived files (the guard is not vacuous)', async () => {
+    fixture();
+    // No MERGE_HEAD seeded → settled tree.
+    const r = await runUpdate(dir, {wireHosts: okWire});
+
+    expect(r.inventoryDeferred).toBe(false);
+    expect(r.code).toBe(0);
+    expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).toContain('inventory:');
+    expect(existsSync(join(dir, 'spec', 'index.yaml'))).toBe(true);
   });
 });
 

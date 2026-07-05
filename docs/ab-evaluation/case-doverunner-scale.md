@@ -2,6 +2,9 @@
 
 # A/B (scale) — does the working-set tooling help on a real 400-module project?
 
+<!-- Knowledge-graph binding — working-set tooling + surfaced impact card, trialled at 400-module scale; declared explicitly. -->
+<!-- clad-doc-links: F-06dfdad6, F-7794a6bc -->
+
 **Question.** The toy CLOBBER A/B was NULL because the dependency was grep-discoverable.
 Does the working-set / impact-card tooling help at **real scale**, where a module's
 dependents are numerous + indirect + grep-noisy and the tests are scattered?

@@ -330,7 +330,7 @@ export function renderGreenfieldConventionsMd(language: string, projectName: str
 export function renderGreenfieldArchitectureYaml(language: string): string {
   const defaults = resolveDefaults(language);
   const lines: string[] = [
-    '# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad refine',
+    '# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad clarify',
     '# Greenfield seed — no import graph observed yet. Re-run',
     '# `clad init --scan` after creating your source layout to capture',
     '# observed layers + forbidden_imports candidates; the observed body',
@@ -363,7 +363,7 @@ export function renderGreenfieldArchitectureYaml(language: string): string {
  */
 export function renderGreenfieldCapabilitiesYaml(projectName: string): string {
   const lines: string[] = [
-    '# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad refine',
+    '# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad clarify',
     '# Greenfield seed — no README ## headings observed yet. Re-run',
     '# `clad init --scan` after writing your README; this file will be',
     '# regenerated from observed headings and divert to',

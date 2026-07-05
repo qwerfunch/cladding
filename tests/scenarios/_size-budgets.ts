@@ -68,7 +68,7 @@ export const LLM_PROMPT_BUDGETS = {
 
 /**
  * Generated-artifact budgets for the bodies cladding emits on
- * `clad init` / `clad init --scan` / `clad refine`. These are the
+ * `clad init` / `clad init --scan` / `clad clarify`. These are the
  * "first run after onboarding" sizes; values track the size after
  * a typical 2-3 refine iterations, so they bake in expected growth.
  */
@@ -120,7 +120,7 @@ export function checkBudget(
 /**
  * Computes the refinement prompt budget for a given Q-A history length
  * and current-body size. Used by lifecycle tests at stages where
- * `clad refine` runs after multiple turns.
+ * `clad clarify` runs after multiple turns.
  */
 export function refinementPromptBudget(qaPairs: number, currentBodyChars: number): SizeBudget {
   const baseTokens = LLM_PROMPT_BUDGETS.refinementBaseMaxTokens;

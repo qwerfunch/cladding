@@ -2,6 +2,9 @@
 
 # Measurement — search + context efficiency the graph provides (the goal axis)
 
+<!-- Knowledge-graph binding — this case study is the receipt for the `clad measure` efficiency work README.md cites; its prose reports the finding but sits in a graph-excluded dir, so the link is declared explicitly. -->
+<!-- clad-doc-links: F-16138071 -->
+
 **Why this exists.** The graph tooling's goal is **search-efficiency + context-efficiency +
 stable development at scale** — NOT making an agent more correct. Four correctness-framed A/Bs
 returned NULL, but correctness was never the goal; they measured the wrong axis. This measures

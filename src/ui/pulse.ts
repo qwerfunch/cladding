@@ -7,7 +7,7 @@
 //
 // v0.3.23 (ironclad-design 03-ux §4.1) adds a *progressive* surface
 // — `pulseProgress` + `pulseProgressEnd` — for long-running
-// operations like `clad drive`. The progressive API uses ANSI
+// operations like `clad run`. The progressive API uses ANSI
 // in-place updates on TTYs and stays silent on non-TTY (CI, pipes)
 // until `pulseProgressEnd` so the audit-log discipline of the
 // original `pulse` contract is preserved. The two surfaces are

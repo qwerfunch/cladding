@@ -62,6 +62,62 @@ The detector reports the conflict; the human decides what was meant. cladding do
 - Both files written: `login-flow-a3f9c2.yaml`, `login-flow-b7e102.yaml`.
 - Same outcome as Scenario 2 — `SLUG_CONFLICT` raises it on the next `clad check --strict`. Almost always indicates a mistake; the developer archives one.
 
+## Merging: derived files heal, never hand-resolve
+
+The scenarios above cover *authored* shard files. Two files under `spec/` are instead *derived* — written by the harness, never by hand:
+
+- `spec/attestation.yaml` — the Tier-C verification record; a GREEN `clad check --tier=pre-push --strict` gate is its only author.
+- `spec/index.yaml` — the feature index, refreshed by `clad sync`.
+
+When a merge, rebase, or cherry-pick conflicts in either one, **do not resolve the hashes by hand.** After a merge both sides are stale against the merged tree — neither the incoming nor the local value describes the code you actually end up with — so any hand-picked hash is wrong by construction. Only a GREEN strict pre-push gate can recompute the truth, and it will.
+
+### The ritual
+
+```bash
+# 1. Keep either side of the derived files — the values don't matter yet.
+git checkout --ours -- spec/attestation.yaml spec/index.yaml
+git add spec/attestation.yaml spec/index.yaml
+
+# 2. Finish the merge FIRST. A gate run mid-operation writes nothing to
+#    derived files — the write guard defers while a merge/rebase/cherry-pick
+#    is in flight, and `clad done` refuses outright — so a half-merged tree
+#    can never be stamped as verified.
+git commit --no-edit
+
+# 3. Run the gate. A GREEN result rewrites both files canonically.
+clad check --tier=pre-push --strict
+
+# 4. Commit the canonical rewrite.
+git add spec/attestation.yaml spec/index.yaml
+git commit -m "chore: canonicalize derived files after merge"
+```
+
+The order is load-bearing: because the write guard makes the gate a no-op mid-merge, the merge must be a completed commit before step 3 can rewrite anything. If the gate comes back RED it writes nothing — fix the real drift it reports and rerun; the rewrite only lands on GREEN.
+
+### Why conflicts still happen at all
+
+The machinery that shrinks the conflict surface cannot erase it:
+
+- **The PR surface ignores merge attributes.** A pull-request merge on GitHub is a server-side merge that never consults `.gitattributes` — no local merge driver and no `merge=union` attribute reaches it. A conflict a local merge would have auto-resolved can still surface in a PR. The ritual is unchanged: land the merge, run the gate.
+- **Adjacent sorted lines.** The attestation writes one sorted line per module file, so edits to *different* files merge cleanly — even on the PR surface. The boundary: two edits landing on the *same* sorted line, or on two *immediately adjacent* lines, still conflict, because git needs one unchanged buffer line between hunks. When they do, the conflict is exactly one line and sits right beside the real source conflict that caused it. Heal it with the ritual, not by reading the hashes.
+
+### The one-time v1→v2 transition
+
+Repos upgrading cross the attestation format over automatically. v1 keyed one hash per done feature over *all* its module bytes, so a single shared-file edit rewrote every co-owner's line — the top conflict surface in parallel work. v2 keys one hash per module *file* plus a constant `ok` marker per feature, so an edit moves exactly its own line. The first GREEN `clad check --tier=pre-push --strict` after upgrade performs the conversion; the reader accepts either layout in the meantime.
+
+One caveat for a branch cut *before* your repo crossed over: rebase past the conversion commit, and on any attestation conflict take the already-converted (v2) copy wholesale rather than splicing the two layouts by hand — then run the gate to recompute. (Accepting either side and running the gate also works — the gate rewrites canonically regardless — but keeping the v2 copy avoids leaving a stale v1 layout in the branch's intermediate commits.) A union-merge of the two formats produces a harmless dual-section file: the reader tolerates it, and the next GREEN gate canonicalizes it.
+
+### Attribute state
+
+The two derived files are configured differently in `.gitattributes` on purpose:
+
+| File | `.gitattributes` | Why |
+|---|---|---|
+| `spec/index.yaml` | `merge=union` | Append-mostly and high-churn; union concatenates both sides, and any duplicate rows heal within minutes on the next `clad sync`. |
+| `spec/attestation.yaml` | *(no attribute — deliberate)* | `merge=union` here silently reverts uncontested edits that get swept into an adjacent conflict zone (experimentally confirmed). A plain, loud conflict is safe — it heals via the ritual above. |
+
+This table is pinned to the real repository state: if `.gitattributes` ever changes for either file, update it here.
+
 ## Legacy F-NNN ↔ new F-`hash`
 
 Existing features (`F-001` through `F-083` at the time v0.3.9 shipped) keep their sequential ids and their `F-NNN.yaml` filenames forever. New features use the slug + hash model. The two models coexist:

@@ -143,3 +143,181 @@ export function summarizeValueDelivery(events: readonly Event[]): ValueDeliveryS
     total,
   };
 }
+
+// --- Adoption reducer (F-0023ba22) -----------------------------------------
+//
+// summarizeValueDelivery above answers "did a surface FIRE?" (delivery). This
+// answers the harder, adversarially-guarded question the B1 backlog item
+// (deprecate clad_get_context) is gated on: "did an agent CHOOSE to pull?"
+// (adoption). The guard against vacuous confirmation is the pull/push split:
+//
+//   PULL = a resolved working_set_served — an agent asked an MCP read tool for
+//          context and got a real slice back. This is the ONLY adoption signal.
+//   PUSH = impact_card_fired / impact_card_skipped / session_card_rendered /
+//          prompt_suggestion_served — hook-fired delivery. It proves cladding
+//          spoke, NOT that the agent listened, so it can never raise an adoption
+//          number or the verdict (AC-3362d108). The exclusion is STRUCTURAL: the
+//          push types below feed only the hasSignal flag; their payloads are
+//          never read for any adoption count.
+
+/** Three-valued adoption verdict. `insufficient_data` when the ledger is too
+ *  thin to judge (no signal, or fewer than the minimum completed cycles). */
+export type AdoptionVerdict = 'confirmed' | 'not_confirmed' | 'insufficient_data';
+
+/**
+ * B1 confirmation thresholds (F-0023ba22 AC-b200151f). Plain constants so they
+ * are trivially adjustable before release; the B1 protocol doc cites these exact
+ * values. EVERY one must clear for a `confirmed` verdict — a single accidental
+ * call or a push-only ledger falls short of all four.
+ */
+export const B1_ADOPTION_THRESHOLDS = {
+  /** Kept `clad done` flips required before adoption is even judgeable. */
+  minCompletedCycles: 3,
+  /** Resolved pull serves across the whole ledger. */
+  minPulls: 10,
+  /** Fraction of completed cycles whose window contained ≥1 pull. */
+  minCyclePullRate: 0.6,
+  /** Distinct git HEADs across pulls + dones — one busy session can't confirm. */
+  minDistinctHeads: 3,
+} as const;
+
+export interface AdoptionSummary {
+  /** The ledger carries at least one completed cycle or value-delivery event, so
+   *  a verdict is computable. Derived structurally from event types present —
+   *  NEVER from ValueDeliverySummary.total (AC-0d7273dd). */
+  readonly hasSignal: boolean;
+  /** done_attempted events that kept the flip (payload.kept === true). */
+  readonly completedCycles: number;
+  /** Resolved working_set_served serves (pushes never counted). */
+  readonly pullsTotal: number;
+  /** Resolved serves grouped by MCP tool name. */
+  readonly pullsByTool: Readonly<Record<string, number>>;
+  /** Completed cycles whose [start..done] window contained ≥1 pull. */
+  readonly cyclesWithPull: number;
+  /** cyclesWithPull / completedCycles, rounded to 3dp; 0 when no cycles (never NaN). */
+  readonly cyclePullRate: number;
+  /** Distinct git HEADs across pull + done_attempted events (real work states). */
+  readonly distinctHeads: number;
+  readonly verdict: AdoptionVerdict;
+  /** Machine-readable names of every unmet gate; empty iff verdict is confirmed. */
+  readonly reasons: readonly string[];
+}
+
+/**
+ * Reduces an event stream to the B1 adoption verdict. PURE, DETERMINISTIC, and
+ * NEVER THROWS: identical input yields an identical summary; malformed payload
+ * fields and unparseable timestamps degrade to safe defaults.
+ *
+ * COMPLETED CYCLE — a done_attempted whose payload.kept === true (done.ts emits
+ * `kept: worst === 0`, so this is a flip the pre-push gate let stand). Its window
+ * is [start .. done timestamp], where start is the nearest prior feature_created
+ * for the same feature id, or — when none is recorded (the shard predates this
+ * ledger generation) — the earliest event timestamp, a session-start anchor. A
+ * cycle "has a pull" when a resolved serve's timestamp falls inside that window
+ * (bounds inclusive, so a same-instant serve still counts).
+ */
+export function summarizeAdoption(events: readonly Event[]): AdoptionSummary {
+  const T = B1_ADOPTION_THRESHOLDS;
+  const parseTs = (e: Event): number => Date.parse(e.timestamp);
+
+  // Session-start anchor for completed cycles with no matching feature_created.
+  let earliest = Number.POSITIVE_INFINITY;
+  for (const e of events) {
+    const t = parseTs(e);
+    if (Number.isFinite(t) && t < earliest) earliest = t;
+  }
+
+  const pullTimes: number[] = [];
+  const pullsByTool: Record<string, number> = {};
+  let pullsTotal = 0;
+  const createdByFeature = new Map<string, number[]>();
+  const cycleWindows: {feature?: string; end: number}[] = [];
+  const heads = new Set<string>();
+  let hasSignal = false;
+
+  for (const e of events) {
+    const p = e.payload ?? {};
+    switch (e.type) {
+      case 'working_set_served': {
+        hasSignal = true; // any serve is value-delivery signal, even an unresolved miss
+        if (p.resolved === true) {
+          const tool = typeof p.tool === 'string' ? p.tool : 'unknown';
+          pullTimes.push(parseTs(e));
+          pullsByTool[tool] = (pullsByTool[tool] ?? 0) + 1;
+          pullsTotal++;
+          if (typeof p.head === 'string') heads.add(p.head);
+        }
+        break;
+      }
+      case 'feature_created': {
+        hasSignal = true;
+        const fid = typeof p.feature === 'string' ? p.feature : undefined;
+        const t = parseTs(e);
+        if (fid && Number.isFinite(t)) {
+          const arr = createdByFeature.get(fid);
+          if (arr) arr.push(t);
+          else createdByFeature.set(fid, [t]);
+        }
+        break;
+      }
+      case 'done_attempted': {
+        hasSignal = true;
+        if (typeof p.head === 'string') heads.add(p.head);
+        if (p.kept === true) {
+          cycleWindows.push({feature: typeof p.feature === 'string' ? p.feature : undefined, end: parseTs(e)});
+        }
+        break;
+      }
+      // PUSH surfaces — signal only, never an adoption number (AC-3362d108).
+      case 'impact_card_fired':
+      case 'impact_card_skipped':
+      case 'session_card_rendered':
+      case 'prompt_suggestion_served':
+        hasSignal = true;
+        break;
+      default:
+        break; // pre-0.8 / non-signal events (stage_started, gate_run, scenario_created, …)
+    }
+  }
+
+  const completedCycles = cycleWindows.length;
+  let cyclesWithPull = 0;
+  for (const cyc of cycleWindows) {
+    const end = cyc.end;
+    let start = Number.isFinite(earliest) ? earliest : end;
+    if (cyc.feature) {
+      const created = createdByFeature.get(cyc.feature);
+      if (created) {
+        let best = Number.NEGATIVE_INFINITY;
+        for (const c of created) if (c <= end && c > best) best = c;
+        if (Number.isFinite(best)) start = best;
+      }
+    }
+    if (pullTimes.some((t) => Number.isFinite(t) && t >= start && t <= end)) cyclesWithPull++;
+  }
+
+  const round3 = (n: number): number => Math.round(n * 1000) / 1000;
+  const cyclePullRate = completedCycles > 0 ? round3(cyclesWithPull / completedCycles) : 0;
+  const distinctHeads = heads.size;
+
+  // reasons name every unmet gate (empty iff confirmed); the verdict then reads
+  // straight off them. The rate gate uses the rounded rate so the reported number
+  // and the decision can never disagree.
+  const reasons: string[] = [];
+  if (!hasSignal) reasons.push('no_signal');
+  if (completedCycles < T.minCompletedCycles) reasons.push('insufficient_cycles');
+  if (pullsTotal < T.minPulls) reasons.push('insufficient_pulls');
+  if (cyclePullRate < T.minCyclePullRate) reasons.push('low_cycle_pull_rate');
+  if (distinctHeads < T.minDistinctHeads) reasons.push('insufficient_distinct_heads');
+
+  let verdict: AdoptionVerdict;
+  if (!hasSignal || completedCycles < T.minCompletedCycles) {
+    verdict = 'insufficient_data';
+  } else if (pullsTotal >= T.minPulls && cyclePullRate >= T.minCyclePullRate && distinctHeads >= T.minDistinctHeads) {
+    verdict = 'confirmed';
+  } else {
+    verdict = 'not_confirmed';
+  }
+
+  return {hasSignal, completedCycles, pullsTotal, pullsByTool, cyclesWithPull, cyclePullRate, distinctHeads, verdict, reasons};
+}

@@ -59,6 +59,10 @@ Never auto-tag, auto-publish, or auto-release. Patch-first cadence — minor bum
 
 **All merges go through a PR — git-flow, always.** `feature/* → develop` and `develop → main` both land via PR; no direct pushes that bypass review. For `develop → main`, **always use a merge commit — NEVER squash, NEVER rebase.** A squash puts the release commit outside develop's ancestry, so the *next* release PR reports every file touched since as conflicting (the v0.5.2 squash via PR #180 made PR #181 show 31 phantom conflicts; #183's squash left develop unreconciled until a manual `merge origin/main` reconciliation on 2026-06-25). GitHub has no per-branch merge-method lock, so this is a hand-enforced convention: deliberately pick "Create a merge commit" on every `develop → main` PR, then back-merge `main → develop` (step 4) to keep develop a clean superset. Squashing `feature/* → develop` PRs is fine — only the `develop → main` direction causes the divergence.
 
+## Derived-file merge conflicts — never hand-resolve
+
+`spec/attestation.yaml` and `spec/index.yaml` are harness-written. On a merge or rebase conflict in either, never hand-edit the hashes — both sides are stale against the merged tree, and only a GREEN `clad check --tier=pre-push --strict` gate computes the truth. Follow the canonical ritual in `docs/spec-ids-multi-dev.md` under **"Merging: derived files heal, never hand-resolve"** — do not duplicate the steps here.
+
 ## AI behavior guidance from `spec.yaml.project.ai_hints`
 
 When operating inside a cladding-managed project (cladding itself included), grep `spec.yaml::project.ai_hints` at session start. It is the SSoT for AI behavior policy:
@@ -88,30 +92,20 @@ When `ai_hints` conflicts with `CLAUDE.md` for cladding-self specifically, **`ai
 
 ## cladding
 
-This project is managed by **cladding** (Spec-Anchored Agent Harness).
+**Spec is SSoT** — `spec.yaml` is authoritative; code must satisfy its
+`features[]` and `acceptance_criteria`. Run `clad check --strict` before commit.
 
-**Spec is SSoT** — `spec.yaml` is authoritative. Any code change must
-satisfy the relevant `features[]` and `acceptance_criteria`. Run
-`clad check --strict` before commit.
+**Persona separation** — planner writes spec, reviewer audits, developer
+implements; whoever authors a unit must not sign off on it (anti-self-cert).
 
-**Persona separation** — planner writes spec, reviewer audits,
-developer implements. The agent that authors must not sign off on its
-own work (anti-self-cert invariant).
+**Feature cycle — one at a time** — One feature end-to-end before the next:
+author its shard (`acceptance_criteria` + `modules`) → implement → author tests
+in a separate context → `clad done <featureId>` (sets `status: done` only when
+`clad check --tier=pre-push --strict` is GREEN). Never author shards ahead of
+their code, or hand-write `status: done`. See `docs/feature-cycle.md`.
 
-**Feature cycle — one at a time** — Work ONE feature end-to-end before
-the next: author its shard with `acceptance_criteria` (+ `modules`) →
-implement → author tests (separate context) → mark it done with
-`clad done <featureId>` (it flips `status: done` ONLY if
-`clad check --tier=pre-push --strict` is GREEN, reverting otherwise) →
-only then the next. Do NOT author shards ahead of the code that implements
-them, and do NOT hand-write `status: done`. Independent features (no
-shared `modules`) may run as parallel instances of this same cycle.
-Enforced by the `PLANNED_BACKLOG` detector; see `docs/feature-cycle.md`.
+**Hash-based IDs** — Never hand-author `F-NNN` filenames; use the `clad` CLI
+(or `/cladding:init`). Model in `docs/spec-ids-multi-dev.md`.
 
-**Hash-based IDs** — Never hand-author `F-NNN` filenames; use the
-`clad` CLI or invoke cladding through the `/cladding:init` slash
-command. The multi-developer-safe model is in
-`docs/spec-ids-multi-dev.md`.
-
-**Drift detectors** — `clad check --strict` runs every drift detector.
-Don't suppress findings; either fix them or update spec.
+**Drift detectors** — `clad check --strict` runs them all; don't suppress
+findings — fix them or update spec.

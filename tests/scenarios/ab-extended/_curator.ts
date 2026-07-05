@@ -1035,7 +1035,7 @@ project:
 features: []
 `;
 
-const CLADDING_ARCHITECTURE_YAML = `# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad refine
+const CLADDING_ARCHITECTURE_YAML = `# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad clarify
 # Architecture layers (canonical schema). The ARCHITECTURE_FROM_SPEC detector
 # enforces forbidden-import rules across these layers.
 
@@ -1051,7 +1051,7 @@ forbidden_imports:
     to: hooks
 `;
 
-const CLADDING_CAPABILITIES_YAML = `# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad refine
+const CLADDING_CAPABILITIES_YAML = `# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad clarify
 # Capability ↔ feature traceability for task-manager.
 
 schema: "0.1"
@@ -1084,7 +1084,7 @@ capabilities:
     features: [{{F_LOCALSTORAGE}}, {{F_JSON_EXPORT}}]
 `;
 
-const CLADDING_PROJECT_CONTEXT = `<!-- Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad refine -->
+const CLADDING_PROJECT_CONTEXT = `<!-- Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad clarify -->
 
 # task-manager — Project Context
 

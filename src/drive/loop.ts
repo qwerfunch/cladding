@@ -96,7 +96,7 @@ function ensureStub(cwd: string, modulePath: string): boolean {
   mkdirSync(dirname(abs), {recursive: true});
   writeFileSync(
     abs,
-    '// auto-stub created by clad drive — replace with real implementation\nexport {};\n',
+    '// auto-stub created by clad run — replace with real implementation\nexport {};\n',
   );
   return true;
 }
@@ -218,7 +218,7 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
                 cp,
                 `retry budget exhausted after ${count} attempts`,
               );
-              // Phase 3.3 (ironclad-design 02-iron-law §2.5) — Librarian
+              // Phase 3.3 (ironclad-design 02-iron-law §2.5) — planner
               // authors a post-mortem markdown summarising the failure
               // so the next session has a starting brief. Phase 3.3
               // stops at file authoring; context injection into the

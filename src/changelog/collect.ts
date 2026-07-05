@@ -28,6 +28,7 @@ import {join} from 'node:path';
 
 import {parse as parseYaml} from 'yaml';
 
+import {refExists} from '../core/git-ops.js';
 import type {AcceptanceCriterion, Capability} from '../spec/types.js';
 
 /** How a feature shard's lifecycle moved across the `since..HEAD` range. */
@@ -163,9 +164,7 @@ function assertValidRef(cwd: string, sinceRef: string): void {
   if (ref.length === 0) {
     throw new Error('changelog: empty since ref — pass --since <tag|branch|sha>');
   }
-  try {
-    git(cwd, ['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]);
-  } catch {
+  if (!refExists(cwd, ref)) {
     throw new Error(
       `changelog: '${ref}' does not resolve to a commit in this repository — pass --since <tag|branch|sha> that exists. ` +
         'An unknown ref is an error, never a silently empty changelog.',

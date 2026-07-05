@@ -63,7 +63,7 @@ export type EventType =
   // invisible to the harness's own ledger. Each surface now records whether it
   // produced output. Payloads:
   //   impact_card_fired:        file, feature, impacted (n), tests (n), unledgered (bool),
-  //                             tier (1|2 — Tier-2 is the mini working-set card, F-35954d19),
+  //                             tier (1|2 — Tier-2 is the rich impact card, F-35954d19),
   //                             lane ('bash' when the mutation was attributed via the Bash
   //                             git-delta lane, F-e7d59c88; ABSENT on native write-tool
   //                             edits — additive field per the F-6ba22c5c precedent)
@@ -89,7 +89,7 @@ export type EventType =
  * The enum makes silent (surface fired nothing) distinguishable from broken
  * (emission unwired) directly from the ledger. `no_spec` is a valid disposition
  * but is never emitted: a spec-less cwd gets no `.cladding/` writes (parity).
- * `dedup`/`ledger_exhausted` were added by the mini working-set push card
+ * `dedup`/`ledger_exhausted` were added by the Tier-2 impact card
  * (F-35954d19): a repeated (focus,file) fingerprint and an exhausted per-session
  * push-token budget are suppressions of a card that WOULD have fired, not misses.
  */
@@ -136,9 +136,8 @@ export function appendEvent(cwd: string, event: Event): void {
   appendFileSync(path, `${JSON.stringify(event)}\n`, 'utf8');
 }
 
-/** Read every event in append order. */
-export function readEvents(cwd: string): readonly Event[] {
-  const path = eventsPath(cwd);
+/** Parse one events-log file in append order; a missing or empty file → []. */
+function readEventsFile(path: string): Event[] {
   if (!existsSync(path)) return [];
   const raw = readFileSync(path, 'utf8').trim();
   if (raw.length === 0) return [];
@@ -146,6 +145,23 @@ export function readEvents(cwd: string): readonly Event[] {
     .split('\n')
     .filter((line) => line.length > 0)
     .map((line) => JSON.parse(line) as Event);
+}
+
+/** Read every event in the live log in append order. */
+export function readEvents(cwd: string): readonly Event[] {
+  return readEventsFile(eventsPath(cwd));
+}
+
+/**
+ * Read the rolled generation (`events.log.1.jsonl` — the older half a size
+ * rotation left behind) followed by the live log, in append order. Missing
+ * files contribute nothing. `appendEvent` keeps a SINGLE rolled generation, so
+ * at most two files are concatenated. The adoption reducer (F-0023ba22) reads
+ * through this so a recent rotation can't drop completed cycles out of view
+ * (AC-345af0b5).
+ */
+export function readEventsIncludingRolled(cwd: string): readonly Event[] {
+  return [...readEventsFile(join(cwd, EVENTS_DIR, EVENTS_ROLL)), ...readEventsFile(eventsPath(cwd))];
 }
 
 /** Convenience constructor — fills id + timestamp. */
@@ -160,7 +176,7 @@ export function newEvent(type: EventType, payload: Record<string, unknown>): Eve
 
 /** Actor identity for lifecycle events: git author when resolvable (the
  * stable handle a team recognizes), else the OS user. Never throws. */
-export function resolveActorIdentity(cwd: string): Identity {
+function resolveActorIdentity(cwd: string): Identity {
   let name: string | undefined;
   try {
     name = execFileSync('git', ['config', 'user.name'], {cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore']}).trim() || undefined;

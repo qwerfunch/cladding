@@ -16,7 +16,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-2035%2F2035-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-2250%2F2250-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -30,7 +30,7 @@
 <!-- ─────────────── 기업이 AI를 믿고 맡길 수 있는 이유 (직관 훅) ─────────────── -->
 
 - **검증된 코드만 '완료'로 나간다** — AI가 "다 됐다"고 해도 검사를 통과해야 하니, 검증 못 한 코드는 '완료'로 인정되지 않는다.
-- **누가·무엇을·왜 했는지 다 기록에 남는다** — 감사·규제 대응과 인수인계에 필요한 근거를 언제든 추적할 수 있다.
+- **나간 것은 기록에 남는다** — 무엇을 검증했는지는 커밋된 내용(attestation)에 새겨지고, 누가·언제는 로컬 세션 로그에, 왜는 스펙에 남는다 — 그래서 인수인계와 리뷰가 결정을 일일이 파헤치지 않고도 추적할 수 있다.
 - **팀이 커지고 AI를 여러 개 붙여도 흔들리지 않는다** — 스펙이 공통 기준이라, 충돌과 표류를 자동으로 막는다.
 
 <!-- ─────────────── 핵심 다이어그램: 호스트 LLM과의 협력 루프 ─────────────── -->
@@ -46,7 +46,7 @@
 
 그래서 AI가 짠 코드를 **사람이 짠 코드만큼 믿고** 내보낼 수 있다.
 
-cladding은 **자기 자신도 cladding으로 만든다** — 기능 200개 중 196개가 같은 게이트를 통과했고, Ironclad 표준을 L4로 구현한 첫 사례다.
+cladding은 **자기 자신도 cladding으로 만든다** — 기능 236개 중 233개가 같은 게이트를 통과했고, Ironclad 표준을 L4로 구현한 첫 사례다.
 
 
 ## 호스트 LLM과 어떻게 함께 일하나
@@ -148,7 +148,7 @@ spec이 *왜*(무엇을 왜 만드는지)를 기록한다. 4계층 기준 체계
 | **A — Spec** | 의도 (무엇을 · 왜) | 사람이 의도 정의 → AI가 EARS로 작성 | 사람 승인 없이 안 바뀜 · 최우선 |
 | **B — Design** | 설계 (어떻게) | 사람이 방향 → AI가 작성 | A와 일치 검증 |
 | **C — Derived** | 구현물 (코드 · 테스트) + **attestation** (검증 서명) | AI가 작성 | 코드 보고 자동 재생성 |
-| **D — Audit** | 감사 기록 (무엇이 일어났나) | 자동 기록 (append-only) | 수정 불가 |
+| **D — Audit** | 감사 기록 (무엇이 일어났나) | 자동 기록 (append-only) | 로컬 |
 
 **A가 아래 모든 tier보다 우선** — spec(A)과 코드(C)가 다르면 틀린 쪽은 *코드*다.
 
@@ -206,9 +206,19 @@ spec · code · test 사이 모든 방향의 어긋남을 자동 검출한다. �
 </div>
 
 
+## 에이전트 루프의 검증자로 쓰기
+
+루프는 당신 것이다 — 에이전트를 돌리는 하네스든 오케스트레이터든. cladding은 그 안의 **검증자이자 상태 층**이다. 루프를 대신 돌리는 게 아니라, 무엇이 아직 잘못됐는지 그리고 언제 멈춰도 되는지를 루프에 알려 준다.
+
+- **피드백 신호** — 매 반복마다 `clad check --json`을 돌린다. 판정은 기계가 읽는다: 최상위 `anyFailed`와 `worst` 심각도, 그리고 각 항목이 `detector`·`severity`·`message`를 담은 `findings[]`. 콘솔 텍스트를 긁을 필요 없이 그대로 루프의 오류 신호로 되먹인다.
+- **정직한 멈춤** — 에이전트의 말이 아니라 `clad done`에 루프를 건다. strict pre-push 게이트가 GREEN일 때만 feature를 `done`으로 뒤집고, 아니면 되돌린다. "루프가 끝났다고 한다"가 "게이트가 통과시켰다"로 바뀐다.
+- **루프 기억** — 로컬 이벤트 로그(`.cladding/events.log.jsonl`, git 추적 제외)가 반복들 사이에 무슨 일이 있었는지 담는다: 게이트 실행(HEAD별 중복 제거), done 시도, 어긋남 발화, 가치 제공. 다음 반복이 로컬 작업 기억으로 읽는다 — 영속적이거나 권위 있는 기록은 아니고, 5 MB에서 한 세대만 회전하므로 오래된 항목은 밀려 사라진다.
+
+정직한 경계: 이건 루프의 **멈춤 조건과 피드백 신호**를 단단하게 할 뿐, 모델의 코드 품질을 올리지 않는다. cladding 자신의 A/B 기록이 그 영수증이다 — 거버넌스는 정확성과 직교한다.
+
 ## Multi-Agent — 만드는 자와 검증하는 자의 분리
 
-**만드는** 에이전트와 **검증하는** 에이전트가 분리돼 있어 어떤 에이전트도 자기 작업을 스스로 승인하지 못한다. **blind-author**는 한 발 더 나간다 — 테스트를 쓰는 에이전트에게 *구현을 읽을 도구 자체가 없다*(Read/Grep 미부여). "구현 안 보고 썼다"가 약속이 아니라 구조적 사실이 된다. 이 분리는 규제 · 감사(EU AI Act · SOX)가 요구하는 직무 분리 원칙과 맞닿아 있다.
+**만드는** 에이전트와 **검증하는** 에이전트가 분리돼 있어 어떤 에이전트도 자기 작업을 스스로 승인하지 못한다. **blind-author**는 한 발 더 나간다 — 테스트를 쓰는 에이전트에게 *구현을 읽을 도구 자체가 없다*(Read/Grep 미부여). "구현 안 보고 썼다"가 약속이 아니라 구조적 사실이 된다. 이 분리는 규제 · 감사(EU AI Act · SOX)가 요구하는 직무 분리 원칙과 맞닿아 있다 — 그 정신에 부합한다는 뜻이지, 인증이 아니다.
 
 <div align="center">
 
@@ -307,9 +317,9 @@ clad update                # 3. 새 버전에 맞게 정리
 
 | version | 준수 등급 | tests | gate | features |
 |---|---|---|---|---|
-| v0.8.0 · 2026-07 | L4 · [L0–L4 중 최고 · 자가 선언](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2035 / 2035 · all pass | 15 단계 · 41 detectors | 217 · 214 done · 자기 스펙 |
+| v0.8.1 · 2026-07 | L4 · [L0–L4 중 최고 · 자가 선언](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2250 / 2250 · all pass | 15 단계 · 41 detectors | 236 · 233 done · 자기 스펙 |
 
-<sub>195 test files · capability 6개 · coverage는 COVERAGE_DROP detector가 하락 차단</sub>
+<sub>217 test files · capability 6개 · coverage는 COVERAGE_DROP detector가 하락 차단</sub>
 
 > **Ironclad 1.0까지의 길** — 1.0은 *독립적인 두 개의 구현이 L4 검증 셋을 통과해야* 잠긴다 ([GOVERNANCE § 1](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md)). cladding이 첫 번째.
 

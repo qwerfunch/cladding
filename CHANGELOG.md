@@ -7,6 +7,104 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.8.1] — Adoption Proof + Friction Diet (2026-07-06)
+
+Adoption Proof + Friction Diet: the merge conflicts that plagued parallel
+work are structurally gone, the per-edit hook is ~12× faster, the README
+says only what the record can prove, and "is the context tooling actually
+adopted?" finally has a written, measurable answer. A cleanup pass then
+tidied the house: superseded docs deleted or compressed to abstracts, one
+canonical name per concept in the glossary, a 30% lighter CLAUDE.md
+template for adopters, and dead seams swept out of the code.
+
+> **Heads-up:** `spec/attestation.yaml` converts to a per-module v2 format
+> on your first GREEN strict pre-push gate after upgrading — automatic, no
+> manual step; older CLIs/plugins read the new file as "no entries" (warn
+> only) until they're updated too, so update both channels together.
+> `spec.yaml` stops carrying `last_synced`, and `.gitattributes` should drop
+> `merge=union` for the attestation file (`clad init --with-hook`/docs cover
+> it). The per-edit PostToolUse hook now defers the two subprocess detectors
+> (madge, secretlint) to Stop/commit — feedback moves from instant to
+> turn-end for those two only.
+
+### Added
+
+- ▸ **An adoption verdict with a written decision rule.** `clad measure
+  --sessions` now renders whether an agent actually *chose* to pull context
+  (resolved working-set serves) versus merely receiving pushed cards —
+  pushes can never raise the verdict. Thresholds live in code, the decision
+  rule and its observation window live in `docs/b1-adoption-protocol.md`,
+  and the first real data point is already recorded: 64 completed cycles,
+  0 pulls, not confirmed.
+- ▸ **Explicit doc→feature bindings.** Markdown docs can declare the
+  features their evidence supports with a `clad-doc-links` comment; the five
+  A/B case studies (including the NULL results) are now reachable from the
+  knowledge graph instead of being orphans.
+- ▸ **A canonical merge ritual.** `docs/spec-ids-multi-dev.md` documents the
+  one rule for derived-file conflicts — never hand-resolve; keep either
+  side, finish the merge, run the gate — including why PR-surface conflicts
+  still happen and the one-time v1→v2 transition.
+- ▸ **A loop-engineering section in the README** — using cladding as an
+  agent loop's verifier and state layer: `clad check --json` as the feedback
+  signal, `clad done` as the honest stop, the local event log as loop
+  memory (and never more than that).
+
+### Changed
+
+- ▸ **Old docs are gone or shrunk, with the evidence preserved.** Two
+  superseded design notes are deleted (their one unique paragraph each
+  relocated to the code they described), two historical benchmark run-logs
+  are compressed to dated abstracts that keep the NULL findings — full
+  reports stay one git-history hop away — and the multi-provider roadmap
+  drops its stale planning prose while keeping the canonical Transport
+  section. Four benchmark documents are explicitly protected, including an
+  un-discharged pre-registration.
+- ▸ **One concept, one name.** The glossary now defines the impact-card
+  family, the context-slice vs working-set rule, the phases/stages/tiers/
+  detectors quartet, and the mapping that resolves the worst cross-surface
+  confusion: `clad check --strict` is `clad_run_gate` (the full gate);
+  `clad_run_check` is the cheap drift-only subset. The status help no
+  longer names the removed ANSI panel, the oracle brief calls itself
+  impl-blind everywhere, and the Korean README's counts join the
+  self-consistency guard.
+- ▸ **The adopter CLAUDE.md section is 30% lighter** with every policy
+  anchor intact — the freshness literals that keep `clad update` stable
+  are now directly test-pinned.
+- ▸ **Code compaction.** Four dead config seams inlined, git ref
+  resolution now lives in one place, and the measure family moved out of
+  the largest CLI file (124 lines) with byte-identical output.
+- ▸ **Attestation v2 — one line per module file.** The verification record
+  no longer amplifies one shared-file edit into every co-owning feature's
+  line: disjoint parallel work now merges clean under plain 3-way, GitHub
+  PR surface included, and stale warnings name the exact drifted module.
+  Readers accept both formats; the gate converts on first GREEN. Validated
+  against real merges in 30 scratch repositories plus authentic v1 files
+  written by the published 0.8.0 CLI.
+- ▸ **The per-edit hook runs in-process detectors only.** PostToolUse drops
+  from ~5.8s to ~0.5s per significant edit (measured against the published
+  0.8.0); the two subprocess detectors still run at Stop and in every
+  commit-tier gate, and a registry test keeps the partition honest.
+- ▸ **`spec.yaml` stops emitting `last_synced`.** The inventory block is
+  counts-only, so re-syncing with unchanged counts is byte-identical and
+  parallel branches stop colliding on a date stamp. Legacy lines are
+  dropped automatically on the next sync.
+- ▸ **The README record claim matches reality.** What was verified lands in
+  committed content, who/when in the local session ledger, why in the spec
+  — the audits/regulatory-response wording is gone, the EU AI Act / SOX
+  sentence carries its not-a-certification hedge in all four variants, and
+  the SSoT table no longer calls a local rotating log immutable.
+- ▸ **Every emitted banner and message names only current verbs** — the last
+  `clad refine`/`clad drive`/`clad panel` residue is swept, guarded by a
+  tripwire test; adopter files with old banners stay recognized.
+
+### Fixed
+
+- ▸ **Gate, sync, update, and done no longer write derived files mid-merge.**
+  A merge/rebase/cherry-pick in progress defers attestation and inventory
+  writes (with a note) and refuses `clad done` outright — a half-merged tree
+  can never be stamped as verified. Validated against real conflicted
+  merges and cherry-picks.
+
 ## [0.8.0] — Context Push (2026-07-03)
 
 The harness stops waiting to be asked: it pushes the right context at you as

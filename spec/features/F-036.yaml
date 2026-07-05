@@ -11,11 +11,11 @@ modules:
 acceptance_criteria:
   - id: AC-055
     ears: ubiquitous
-    action: ship five agent personas (orchestrator · librarian · reviewer ·
-      observability · specialists) as Claude Code subagents
+    action: ship five agent personas (orchestrator · planner · reviewer ·
+      observability · developer) as Claude Code subagents
     response: each persona has a system prompt declaring scope, tools, and boundaries
-    text: The system shall ship five agent personas — orchestrator, librarian,
-      reviewer, observability, specialists — as Claude Code subagents under
+    text: The system shall ship five agent personas — orchestrator, planner,
+      reviewer, observability, developer — as Claude Code subagents under
       agents/*.md, each with a system prompt declaring scope, tools, and
       boundaries.
     evidence_refs:

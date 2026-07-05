@@ -9,12 +9,22 @@
 //
 // Scoping is deliberate (ground-truth: 16/36 doc F-ids legitimately don't
 // resolve — fixture-project ids + format examples):
-//   • EXCLUDE fixture/benchmark dirs (their ids live in a separate namespace);
+//   • EXCLUDE fixture/benchmark dirs from the ORGANIC scan (their prose ids +
+//     relative links live in a separate namespace) — but an EXPLICIT
+//     declaration still binds there, so an evidence doc parked under
+//     docs/ab-evaluation can opt precise features into the graph (B9: the five
+//     A/B case studies report findings without ever naming an F-id);
 //   • SKIP code spans (fenced ``` and inline `…`) — that is where format
 //     examples like `F-abc123` live;
 //   • per-file opt-out: a doc carrying the `clad-doc-links: ignore` marker is
 //     exempt from F-id resolution (teaching docs full of illustrative ids),
-//     while its dead-link check still applies.
+//     while its dead-link check still applies;
+//   • explicit declaration: a machine-directed comment
+//     `<!-- clad-doc-links: F-16138071, F-06dfdad6 -->` binds the doc to the
+//     named features even when its prose never mentions an F-id (and even in an
+//     excluded dir). One line may name many ids; many lines union. A value that
+//     starts with `ignore` is the opt-out sentinel above, never a declaration —
+//     so an ignore comment may safely spell out illustrative example ids.
 
 import {existsSync, readdirSync, readFileSync, statSync, writeFileSync} from 'node:fs';
 import {dirname, join, normalize, relative} from 'node:path';
@@ -36,10 +46,38 @@ export const DOC_LINKS_IGNORE_MARKER = 'clad-doc-links: ignore';
 /** Markdown inline link to a relative .md target: `](path.md)` or `](path.md#anchor)`. */
 const MD_LINK_RE = /\]\(\s*([^)\s]+?\.md)(?:#[^)]*)?\s*\)/g;
 
+/**
+ * Explicit, machine-directed binding — a `clad-doc-links:` comment naming one or
+ * more feature ids, e.g. `<!-- clad-doc-links: F-16138071, F-06dfdad6 -->`.
+ * Captures the value up to end-of-line or the comment close `>`.
+ */
+const DOC_LINKS_DECL_RE = /clad-doc-links:[ \t]*([^\n>]*)/g;
+
+/**
+ * F-ids named in explicit `clad-doc-links:` declarations (sorted, deduped). A
+ * declaration whose value starts with `ignore` is the per-doc opt-out sentinel
+ * (DOC_LINKS_IGNORE_MARKER), never a binding — so an ignore comment may spell
+ * out illustrative ids without them being extracted. Runs on the code-span-
+ * stripped prose, so a declaration shown inside a fence (teaching example) is
+ * inert, matching how organic F-ids are scoped.
+ */
+function declaredFeatureIds(prose: string): string[] {
+  const ids: string[] = [];
+  for (const m of prose.matchAll(DOC_LINKS_DECL_RE)) {
+    if (m[1].trim().startsWith('ignore')) continue;
+    for (const id of m[1].match(featureIdRe('g')) ?? []) ids.push(id);
+  }
+  return [...new Set(ids)].sort();
+}
+
 /** Per-doc extracted edges. Paths are cwd-relative posix. */
 export interface DocLinks {
   readonly doc: string;
-  /** F-ids referenced in prose (sorted, deduped). Empty when the doc opted out. */
+  /**
+   * F-ids bound to this doc (sorted, deduped): those referenced in prose plus
+   * any named in an explicit `clad-doc-links:` declaration. Empty when the doc
+   * opted out and declared nothing. For an excluded dir, ONLY declared ids.
+   */
   readonly features: readonly string[];
   /** Relative .md link targets, resolved to cwd-relative posix paths (sorted, deduped). */
   readonly doc_links: readonly string[];
@@ -65,7 +103,11 @@ function isExcluded(relPosix: string): boolean {
   return DOC_SCAN_EXCLUDE.some((prefix) => relPosix === prefix || relPosix.startsWith(`${prefix}/`));
 }
 
-/** Walks docs/ for *.md, skipping excluded dirs and dotfiles. cwd-relative posix paths. */
+/**
+ * Walks docs/ for *.md, skipping dotfiles. cwd-relative posix paths, sorted.
+ * Excluded dirs ARE walked (extractDocReferences narrows them to explicit
+ * declarations) so an evidence doc parked there can still bind features.
+ */
 function listDocs(cwd: string): string[] {
   const root = join(cwd, 'docs');
   if (!existsSync(root)) return [];
@@ -89,7 +131,6 @@ function listDocs(cwd: string): string[] {
         continue;
       }
       const rel = toPosix(relative(cwd, abs));
-      if (isExcluded(rel)) continue;
       if (s.isDirectory()) queue.push(abs);
       else if (name.endsWith('.md')) out.push(rel);
     }
@@ -117,10 +158,22 @@ export function extractDocReferences(cwd: string = '.'): DocRefScan {
     } catch {
       continue;
     }
-    const optedOut = raw.includes(DOC_LINKS_IGNORE_MARKER);
     const prose = stripCodeSpans(raw);
+    const declared = declaredFeatureIds(prose);
 
-    const features = optedOut ? [] : [...new Set(prose.match(featureIdRe('g')) ?? [])].sort();
+    if (isExcluded(docRel)) {
+      // Fixture/benchmark dirs contribute ONLY explicit declarations — their
+      // organic ids and relative links belong to a separate namespace. With no
+      // declaration the doc stays absent from the index, byte-identical to the
+      // pre-declaration behaviour (so adopter repos see no churn).
+      if (declared.length === 0) continue;
+      docs.push({doc: docRel, features: declared, doc_links: []});
+      continue;
+    }
+
+    const optedOut = raw.includes(DOC_LINKS_IGNORE_MARKER);
+    const organic = optedOut ? [] : (prose.match(featureIdRe('g')) ?? []);
+    const features = [...new Set([...organic, ...declared])].sort();
 
     const links = new Set<string>();
     for (const m of prose.matchAll(MD_LINK_RE)) {

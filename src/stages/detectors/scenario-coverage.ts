@@ -22,7 +22,7 @@
 //
 // warn, not error: a small or genuinely flow-free project (e.g. a pure library)
 // must not hard-break; the signal rides the warn/strict dial — advisory locally,
-// blocking under --strict. Threshold is a constant (ai_hints override seam later).
+// blocking under --strict. Threshold is a constant.
 
 import type {Spec} from '../../spec/types.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
@@ -38,18 +38,13 @@ function runScenarioCoverage(opts: CommandStageOptions): readonly DriftFinding[]
   return withSpec(cwd, NAME, (spec) => detect(spec));
 }
 
-/** Constant for now; an ai_hints override can plug in here later (cf. PLANNED_BACKLOG). */
-function resolveThreshold(): number {
-  return DEFAULT_MIN_FEATURES_FOR_SCENARIOS;
-}
-
 function detect(spec: Spec): readonly DriftFinding[] {
   const findings: DriftFinding[] = [];
   const featureCount = spec.features.length;
   const scenarios = spec.scenarios ?? [];
 
   // 1. Grown project with no cross-feature flows captured.
-  if (featureCount >= resolveThreshold() && scenarios.length === 0) {
+  if (featureCount >= DEFAULT_MIN_FEATURES_FOR_SCENARIOS && scenarios.length === 0) {
     findings.push({
       detector: NAME,
       severity: 'warn',

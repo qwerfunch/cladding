@@ -7,6 +7,8 @@ quality** measured (4 drift injections × 2 groups + 5 AI queries × 2 groups pe
 Both case reports are auto-generated and committed. Numbers below are pulled
 verbatim from the per-case markdowns.
 
+_Snapshot note (2026-07-05): detector count was 25 at this run; the suite has since grown to 41 (0.8.x). Body preserved as an append-only snapshot._
+
 ## Cases at a glance
 
 | Case | Intent | Seed | A at M2 | B at M2 |

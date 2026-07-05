@@ -235,7 +235,7 @@
   <p class="badges">
     <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"></a>
     <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"></a>
-    <img src="https://img.shields.io/badge/tests-2035%2F2035-brightgreen" alt="tests">
+    <img src="https://img.shields.io/badge/tests-2250%2F2250-brightgreen" alt="tests">
     <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors">
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"></a>
   </p>
@@ -253,8 +253,8 @@
       <p>Even when the AI says "it's done", it has to pass the checks — so code that wasn't verified is never accepted as 'done'.</p>
     </div>
     <div class="flow-card">
-      <div class="title">Who did what, and why — all of it stays on the record</div>
-      <p>The evidence you need for audits, regulatory response, and handoff can be traced back at any time.</p>
+      <div class="title">What shipped is on the record</div>
+      <p>What was verified is stamped into committed content, who and when land in the local session ledger, and why lives in the spec — so handoff and review can trace decisions without archaeology.</p>
     </div>
     <div class="flow-card">
       <div class="title">It holds up as the team grows and you add more AIs</div>
@@ -276,7 +276,7 @@
       So you can ship AI-written code <strong>trusting it as much as code a human wrote</strong>.
     </p>
     <p class="why" style="margin-top:14px">
-      cladding builds <strong>itself with cladding too</strong> — 214 of its 217 features passed the same gate, and it's the first L4 implementation of the Ironclad standard.
+      cladding builds <strong>itself with cladding too</strong> — 233 of its 236 features passed the same gate, and it's the first L4 implementation of the Ironclad standard.
     </p>
   </div>
 
@@ -399,7 +399,7 @@ clad graph export --format html --out graph.html  # or export to a single offlin
       <tr><td><strong>A — Spec</strong></td><td>Intent (what · why)</td><td>Humans define intent → the LLM writes it in EARS form</td><td>Doesn't change without human approval · top priority</td></tr>
       <tr><td><strong>B — Design</strong></td><td>Design (how)</td><td>Humans steer the direction → the LLM writes it</td><td>Checked for consistency with A</td></tr>
       <tr><td><strong>C — Derived</strong></td><td>Artifacts (code · tests) + <strong>attestation</strong> (verification signature)</td><td>The LLM writes it</td><td>Auto-regenerated from the code</td></tr>
-      <tr><td><strong>D — Audit</strong></td><td>Audit record (what happened)</td><td>Auto-recorded (append-only)</td><td>Immutable</td></tr>
+      <tr><td><strong>D — Audit</strong></td><td>Audit record (what happened)</td><td>Auto-recorded (append-only)</td><td>Local</td></tr>
     </tbody>
   </table>
 
@@ -456,13 +456,28 @@ clad graph export --format html --out graph.html  # or export to a single offlin
     <img class="diagram-img" src="docs/img/en/workflow.svg" alt="Lifecycle of one feature — define → sync → implement → earn, completion earned when all checks pass / auto-reverted on failure" width="760">
   </div>
 
+  <!-- ─────────────── Agent-loop verifier ─────────────── -->
+  <h2>Using cladding as your agent loop's verifier</h2>
+  <p>
+    You own the loop — whatever harness or orchestrator drives your agent. cladding is the
+    <strong>verifier and state layer inside it</strong>: it doesn't run your loop, it tells the loop what's still wrong and when it's allowed to stop.
+  </p>
+  <ul>
+    <li><strong>Feedback signal</strong> — run <code>clad check --json</code> each iteration. The verdict is machine-readable: a top-level <code>anyFailed</code> and a <code>worst</code> severity, plus per-stage <code>findings[]</code> where each entry carries its <code>detector</code>, <code>severity</code>, and <code>message</code>. Feed that straight back as the loop's error signal — no scraping console text.</li>
+    <li><strong>Honest stop</strong> — gate the loop on <code>clad done</code>, not on the agent's say-so. It flips a feature to <code>done</code> only when the strict pre-push gate is GREEN, and reverts otherwise. "The loop says it's finished" becomes "the gate let it stand."</li>
+    <li><strong>Loop memory</strong> — the local event log (<code>.cladding/events.log.jsonl</code>, gitignored) carries what happened across iterations: gate runs (deduped per HEAD), done attempts, drift firings, value serves. The next iteration reads it as local working memory — not a durable or authoritative record, and it rotates at 5 MB (a single generation), so the oldest entries fall away.</li>
+  </ul>
+  <p>
+    The honest boundary: this hardens the loop's <strong>stop condition and feedback signal</strong>, not the model's code quality. cladding's own A/B record is the receipt — governance is orthogonal to correctness.
+  </p>
+
   <!-- ─────────────── Multi-Agent ─────────────── -->
   <h2>Multi-Agent — separating the maker from the verifier</h2>
   <p>
     The <strong>making</strong> agent and the <strong>verifying</strong> agent are separated, so no agent can approve its own work
     by itself. <strong>blind-author</strong> goes one step further — the agent that writes the tests
     <em>has no tool to read the implementation at all</em> (no Read/Grep granted). "Written without seeing the implementation" becomes a structural fact, not a promise.
-    This separation aligns with the segregation-of-duties principle that regulatory · audit frameworks (EU AI Act · SOX) call for.
+    This separation aligns with the segregation-of-duties principle that regulatory · audit frameworks (EU AI Act · SOX) call for — it maps onto the spirit of those frameworks, not a certification.
   </p>
   <div class="diagram">
     <img class="diagram-img" src="docs/img/en/multi-agent.svg" alt="Agent separation of duties — orchestrator distributes, planner/developer/reviewer work, blind-author writes tests without seeing the implementation, observability observes" width="700">
@@ -544,7 +559,7 @@ clad update                # 3. tidy up for the new version</code></pre>
     <tr style="border:none">
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">version</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">v0.8.0</div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">v0.8.1</div>
         <div style="font-size:11px;color:#64748b">2026-07</div>
       </td>
       <td style="text-align:center;width:140px;background:#dcfce7;padding:18px 10px;border-radius:8px;border:none">
@@ -554,7 +569,7 @@ clad update                # 3. tidy up for the new version</code></pre>
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">tests</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">2035<span style="font-size:16px;color:#94a3b8">/2035</span></div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">2250<span style="font-size:16px;color:#94a3b8">/2250</span></div>
         <div style="font-size:11px;color:#64748b">all pass</div>
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
@@ -564,13 +579,13 @@ clad update                # 3. tidy up for the new version</code></pre>
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">features</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">217</div>
-        <div style="font-size:11px;color:#64748b">214 done · self-spec</div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">236</div>
+        <div style="font-size:11px;color:#64748b">233 done · self-spec</div>
       </td>
     </tr>
   </table>
 
-  <p style="text-align:center;font-size:13px;color:#64748b;margin-top:12px">195 test files · coverage drop blocked by the COVERAGE_DROP detector</p>
+  <p style="text-align:center;font-size:13px;color:#64748b;margin-top:12px">217 test files · coverage drop blocked by the COVERAGE_DROP detector</p>
 
   <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:24px 0;background:#f8fafc;color:#475569;font-size:14px"><strong>The road to Ironclad 1.0</strong> — 1.0 locks only when <em>two independent implementations pass the L4 verification set</em> (<a href="https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md">GOVERNANCE § 1</a>). cladding is the first.</blockquote>
 

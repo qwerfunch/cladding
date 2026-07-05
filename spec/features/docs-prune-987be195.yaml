@@ -1,0 +1,37 @@
+id: F-987be195
+slug: docs-prune
+title: "Docs prune — delete two superseded docs, compact the roadmap, freshness-fix the rest"
+status: done
+modules:
+  - docs/README.md
+  - docs/multi-provider-roadmap.md
+  - src/spec/types.ts
+  - src/init/host-setup.ts
+acceptance_criteria:
+  - id: AC-4c28425b
+    ears: event
+    condition: "when the two superseded docs (marketplace-self-contained, ssot-audit) are removed"
+    action: "relocate their sole unique content first — the Gemini-lane delegation WHY into a src/init/host-setup.ts comment, the J5b pointer in src/spec/types.ts re-anchored to the shard that carries the rationale — then drop their docs/README index rows"
+    response: "zero dangling references remain under src/, tests/, and docs/ (CHANGELOG history tolerated; the doc-link index regenerates at sync)"
+    text: "When the superseded docs are deleted, the system shall preserve their unique content at the referencing sites and leave zero dangling references outside history."
+    test_refs: ["tests/docs-prune.test.ts#zero references to the deleted filenames under src/, tests/, docs/", "tests/docs-prune.test.ts#repo-wide, the only remaining mentions are the pre-adjudicated tolerated files", "tests/docs-prune.test.ts#docs/README.md tier index no longer lists either deleted doc row", "tests/docs-prune.test.ts#src/init/host-setup.ts carries the Gemini npm-delegation WHY directly above wireGemini", "tests/docs-prune.test.ts#src/spec/types.ts J5b comment cites the ac-hash-ids shard, not the deleted doc"]
+    notes: "## Why\n2026-07-05 inventory: marketplace-self-contained.md (796w) has zero bindings of any kind; ssot-audit.md (1,546w) is a one-shot v0.4.x audit whose only live tie is one comment pointer. Both were pre-adjudicated as backlog B4/B5 with these exact relocation conditions."
+  - id: AC-51b8dbee
+    ears: ubiquitous
+    text: "docs/multi-provider-roadmap.md shall drop the superseded planned-v0.2.0 framing and all removed-verb mentions while keeping the Transport architectural decision section verbatim — its six code @see anchors must still resolve."
+    test_refs: ["tests/docs-prune.test.ts#the Transport architectural decision heading is present verbatim", "tests/docs-prune.test.ts#zero removed-verb phrases remain in the roadmap", "tests/docs-prune.test.ts#the three Transport-citing adapter files still name the section, and the section still resolves", "tests/docs-prune.test.ts#the other three @see anchors (adapter matrix ×2, two-modes overview ×1) still resolve to real headings", "tests/docs-prune.test.ts#all six @see docs/multi-provider-roadmap.md anchors are accounted for"]
+    notes: "## Why\nBacklog B6: the Transport section is canonical (6 adapter-file anchors + CHANGELOG reference); only the stale roadmap prose around it is dead weight."
+  - id: AC-28a53560
+    ears: ubiquitous
+    text: "The four A/B evaluation docs citing the historical 25-detector count shall carry a dated snapshot note near the top — body text unchanged — so a reader comparing them with the current 41-detector README is not misled while the append-only record stays intact."
+    test_refs: ["tests/docs-prune.test.ts#all four A/B docs carry the dated snapshot footnote near the top", "tests/docs-prune.test.ts#renderCaseReport (the generator) emits the footnote, so it is not a hand-edit the next regen would erase", "tests/scenarios/ab/case-payment-saas.test.ts#M1+M2: both groups deliver — committed report stays deterministic", "tests/scenarios/ab/case-existing-adoption.test.ts#M1+M2: both groups deliver — committed report stays deterministic"]
+  - id: AC-d7e98cfa
+    ears: event
+    condition: "when the near-orphan and oldest docs are freshness-checked (gate-scope, ux-routing-coverage, SECURITY.md)"
+    action: "fix factually stale statements minimally or add an explicit design-note status header where content describes unshipped design"
+    response: "no doc silently misrepresents shipped behavior"
+    text: "When freshness-checked, the remaining flagged docs shall either match shipped behavior or declare their design-note status."
+    evidence_refs:
+      - "SECURITY.md"
+      - "docs/ux-routing-coverage.md"
+      - "docs/gate-scope.md"

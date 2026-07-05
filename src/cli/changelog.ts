@@ -12,13 +12,13 @@
 // Exit codes: 0 rendered · 2 bad/missing since ref (usage-style — an unknown
 // ref must never render a silently empty changelog) · 1 other failure.
 
-import {execFileSync} from 'node:child_process';
 import process from 'node:process';
 
 import {collectChangelog, defaultSinceRef} from '../changelog/collect.js';
 import type {ChangelogManifest} from '../changelog/collect.js';
 import {renderAuditTable, renderCatalog, renderChangelogMarkdown, renderMeasuredBlock} from '../changelog/render.js';
 import {readGitHead} from '../core/checkpoint.js';
+import {resolveRefToCommit} from '../core/git-ops.js';
 import {readMeasureLedger, type MeasureSnapshot} from '../optimizer/measure-ledger.js';
 import {loadSpec} from '../spec/load.js';
 import {pulse} from '../ui/pulse.js';
@@ -42,20 +42,6 @@ interface MeasuredResolution {
   readonly reason: 'no snapshot at HEAD' | 'ledger unreadable' | null;
 }
 
-/** Resolves `<ref>^{commit}` to a full sha, or null when it does not resolve. */
-function revParseCommit(cwd: string, ref: string): string | null {
-  try {
-    return execFileSync('git', ['rev-parse', '--verify', '--quiet', `${ref}^{commit}`], {
-      cwd,
-      stdio: ['ignore', 'pipe', 'ignore'],
-    })
-      .toString('utf8')
-      .trim() || null;
-  } catch {
-    return null;
-  }
-}
-
 /** Newest snapshot whose head equals `sha` (full-sha compare), or null. */
 function latestForHead(snapshots: readonly MeasureSnapshot[], sha: string): MeasureSnapshot | null {
   for (let i = snapshots.length - 1; i >= 0; i--) {
@@ -76,7 +62,7 @@ function resolveMeasured(cwd: string, sinceRef: string): MeasuredResolution {
   if (unreadable) return {snapshot: null, sinceSnapshot: null, reason: 'ledger unreadable'};
   const head = readGitHead(cwd);
   const snapshot = head ? latestForHead(snapshots, head) : null;
-  const sinceCommit = revParseCommit(cwd, sinceRef);
+  const sinceCommit = resolveRefToCommit(cwd, sinceRef);
   const sinceSnapshot = sinceCommit ? latestForHead(snapshots, sinceCommit) : null;
   return {snapshot, sinceSnapshot, reason: snapshot ? null : 'no snapshot at HEAD'};
 }

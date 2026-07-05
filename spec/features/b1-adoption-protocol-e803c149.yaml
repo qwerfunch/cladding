@@ -1,0 +1,28 @@
+id: F-e803c149
+slug: b1-adoption-protocol
+title: "B1 adoption observation protocol — window, thresholds, fork, and the first real data point"
+status: done
+modules:
+  - docs/b1-adoption-protocol.md
+  - docs/refinement-backlog.md
+  - docs/glossary.md
+acceptance_criteria:
+  - id: AC-538802ac
+    ears: ubiquitous
+    text: "docs/b1-adoption-protocol.md shall state: the thresholds (citing B1_ADOPTION_THRESHOLDS values), the observation window (at least 10 cladding-self completed cycles plus at least 5 external-project cycles before the 0.9 cut), the runner and cadence (maintainer; weekly and at release prep), how to run it (clad measure --sessions, --json for the record), an append-only results table seeded with the first real data point, the bias caveats (per-machine locality, 5MB single-generation rotation, the silent-vs-unwired reading rule), and the explicit fork — confirmed leads to the B1 deprecation in 0.9, not_confirmed makes wiring/push improvement the next lever, never more capability."
+    notes: "## Why\nThe adoption reducer (F-0023ba22) and report surface (F-1e7a10c3) produce the verdict, but a verdict without a written decision rule invites motivated reading. The first real data point exists: 2026-07-05, cladding-self ledger, 64 completed cycles, 0 pulls, verdict not_confirmed — the protocol records it as row one."
+    test_refs:
+      - tests/b1-adoption-protocol.test.ts
+  - id: AC-8753c264
+    ears: event
+    condition: "when the refinement backlog names B1 (deprecate clad_get_context)"
+    action: "point its gating criterion at this protocol doc"
+    response: "the cleanup that motivated the metric is formally gated on the written rule"
+    text: "When B1 is read in the backlog, its row shall point at docs/b1-adoption-protocol.md as the gate."
+    test_refs:
+      - tests/b1-adoption-protocol.test.ts
+  - id: AC-d2182432
+    ears: ubiquitous
+    text: "docs/glossary.md shall define the adoption verdict (pull vs push, the three verdict values) and point at the protocol doc."
+    test_refs:
+      - tests/b1-adoption-protocol.test.ts

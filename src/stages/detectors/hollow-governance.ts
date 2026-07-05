@@ -23,8 +23,7 @@
 //
 // warn, not error: a small/early project legitimately defers its design docs, so
 // the signal rides the existing warn/strict dial — advisory locally, BLOCKING
-// under --strict at push/CI. The feature threshold is a hardcoded constant (an
-// ai_hints override can plug into resolveThreshold later, as with PLANNED_BACKLOG).
+// under --strict at push/CI. The feature threshold is a hardcoded constant.
 
 import {existsSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
@@ -49,11 +48,6 @@ function runHollowGovernance(opts: CommandStageOptions): readonly DriftFinding[]
   return withSpec(cwd, NAME, (spec) => detect(spec, cwd));
 }
 
-/** Constant for now; the ai_hints override seam lands here when a project needs it. */
-function resolveThreshold(): number {
-  return DEFAULT_MIN_FEATURES_FOR_DESIGN;
-}
-
 /** True when spec/capabilities.yaml exists but declares zero capabilities. */
 function capabilitiesPresentButEmpty(cwd: string): boolean {
   const path = join(cwd, 'spec/capabilities.yaml');
@@ -70,7 +64,7 @@ function capabilitiesPresentButEmpty(cwd: string): boolean {
 
 function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
   const featureCount = spec.features.length;
-  if (featureCount < resolveThreshold()) return [];
+  if (featureCount < DEFAULT_MIN_FEATURES_FOR_DESIGN) return [];
 
   const findings: DriftFinding[] = [];
 

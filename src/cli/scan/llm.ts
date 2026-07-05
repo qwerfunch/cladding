@@ -443,11 +443,11 @@ function quoteYamlString(s: string): string {
 }
 
 const PROJECT_CONTEXT_HEADER =
-  '<!-- Cladding · Tier B · SSoT — intent + Why/What/Purpose · Refreshed by: clad init / clad refine -->\n' +
+  '<!-- Cladding · Tier B · SSoT — intent + Why/What/Purpose · Refreshed by: clad init / clad clarify -->\n' +
   '<!-- Observed when README is present, template otherwise. Review and edit. -->';
 
 const PROJECT_CONTEXT_HEADER_LLM =
-  '<!-- Cladding · Tier B · SSoT — intent + Why/What/Purpose (LLM-refined) · Refreshed by: clad init / clad refine -->\n' +
+  '<!-- Cladding · Tier B · SSoT — intent + Why/What/Purpose (LLM-refined) · Refreshed by: clad init / clad clarify -->\n' +
   '<!-- Review the Why and Purpose sections — they were inferred from README + docs. -->';
 
 /**

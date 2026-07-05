@@ -24,6 +24,7 @@
 // anyway). It answers "what does the graph give you", not "does the agent use it".
 
 import {estTokens} from './code-excerpt.js';
+import type {ModuleReader} from './infer-depends-on.js';
 import {buildIterativeImpactSlice} from './iterative-slice.js';
 import {buildWorkingSet} from './working-set.js';
 import {reverseIndexOf} from '../spec/reverse-index.js';
@@ -37,8 +38,6 @@ import type {Spec} from '../spec/types.js';
  */
 export const MEASUREMENT_DISCLAIMER =
   '(deterministic upper bound vs the shard+all-modules baseline — not an agent-adoption measurement)';
-
-export type ModuleReader = (path: string) => string | null;
 
 export interface FeatureEfficiency {
   readonly id: string;

@@ -125,13 +125,13 @@ export interface OnboardingResult {
 }
 
 const ONBOARDING_HEADER =
-  '<!-- Cladding · Tier B · SSoT — intent + Why/What/Purpose · Refreshed by: clad init / clad refine -->\n' +
+  '<!-- Cladding · Tier B · SSoT — intent + Why/What/Purpose · Refreshed by: clad init / clad clarify -->\n' +
   '<!-- Onboarding refined from user intent + environment observation. ' +
   'Edit freely — re-running `clad init <new-intent>` diverts the new ' +
   'body to `.cladding/scan/project-context.md.proposal` for review. -->';
 
 const DETERMINISTIC_HEADER =
-  '<!-- Cladding · Tier B · SSoT — intent quoted (deterministic fallback) · Refreshed by: clad init / clad refine -->\n' +
+  '<!-- Cladding · Tier B · SSoT — intent quoted (deterministic fallback) · Refreshed by: clad init / clad clarify -->\n' +
   '<!-- LLM unavailable or response sentinel-miss; the body below ' +
   'quotes your intent verbatim. Re-run with a connected LLM dispatcher ' +
   'to capture inferred domain context. -->';
@@ -651,7 +651,7 @@ function ensureTrailingNewline(text: string): string {
  * (greenfield seed / LLM response / hand-edit) produced it.
  */
 const TIER_B_YAML_BANNER =
-  '# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad refine';
+  '# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad clarify';
 
 function ensureTierBBannerYaml(body: string): string {
   const trimmed = body.trimStart();
@@ -693,7 +693,7 @@ function truncateError(e: unknown): string {
 // Refinement path (v0.3.44 / F-09d68b)
 //
 // Once `clad init <intent>` has produced the initial onboarding state,
-// `clad refine <answer>` advances the Q&A loop: it records the user's
+// `clad clarify <answer>` advances the Q&A loop: it records the user's
 // answer to the next pending question, then re-runs the LLM with the
 // full Q-A history + current artifact bodies so the response can
 // refine each artifact based on the new information.

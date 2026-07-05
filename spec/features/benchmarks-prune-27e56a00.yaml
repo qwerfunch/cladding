@@ -1,0 +1,26 @@
+id: F-27e56a00
+slug: benchmarks-prune
+title: "Benchmarks prune — compress two superseded run-logs, amend the append-only policy, keep four protected"
+status: done
+modules:
+  - docs/README.md
+  - docs/refinement-backlog.md
+  - docs/benchmarks/v0.4.0-consistency-bench.md
+  - docs/benchmarks/v0.6.0-real-user-verification.md
+acceptance_criteria:
+  - id: AC-37cd2624
+    ears: event
+    condition: "when a superseded benchmark run-log is compressed"
+    action: "amend the governing policy first — the docs README benchmarks authority cell gains the compression carve-out and the backlog rejection bullet records the reopening evidence — then replace the body with a dated abstract at the SAME path carrying the report's own headline numbers, caveats, and NULL findings, plus a git-history pointer"
+    response: "history stays reachable, negative results stay published, and the live docs stop carrying thousands of superseded words"
+    text: "When compressing a benchmark run-log, the system shall amend the policy first and preserve headline results (including NULLs) in the dated abstract at the original path."
+    notes: "## Why\n2026-07-05 adjudication (all-shard cross-check): v0.4.0-consistency-bench's numbers back no live claim (the README efficiency receipt is case-efficiency-measurement.md), and v0.6.0-real-user-verification is operationally superseded by the 0.7.1 real-usage battery + 0.8.0 telemetry — but the latter records protected NULLs and shipped-bug catches, so compression (not deletion) is the honest form. Reopening the standing rejection with recorded evidence honors the backlog's own do-not-reopen-without-new-evidence rule."
+    test_refs: ["tests/benchmarks-prune.test.ts#both abstracts exist at their original paths and stay within the 25-line compression budget", "tests/benchmarks-prune.test.ts#both abstracts carry a git-history pointer line", "tests/benchmarks-prune.test.ts#the v0.4.0 abstract names the six-phase design and carries its own headline caveat", "tests/benchmarks-prune.test.ts#the v0.6.0 abstract carries the conformance NULLs, the 3 shipped-bug catches, and the oracle-policy defect", "tests/benchmarks-prune.test.ts#docs/README.md benchmarks row carries the compression carve-out wording", "tests/benchmarks-prune.test.ts#docs/refinement-backlog.md's bullet records the reopening evidence and a narrowed (not deleted) outcome"]
+  - id: AC-19da3bd1
+    ears: ubiquitous
+    text: "The four protected benchmark files (event-store spec and trap-catch pair, cross-vendor-spec-convergence, prereg-context-hypothesis) shall remain byte-identical — the event-store pair is bound as done-feature modules with a live GOVERNANCE citation, cross-vendor is a publication-bias-protected positive result, and the pre-registration is un-discharged (its experiment was never run)."
+    test_refs: ["tests/benchmarks-prune.test.ts#non-vacuous guard: all four protected paths are distinct and real", "tests/benchmarks-prune.test.ts#each protected file exceeds the 60-line stub threshold (was NOT compressed)", "tests/benchmarks-prune.test.ts#each protected file carries a distinctive marker sitting well past the top, not front-loaded like a stub", "tests/benchmarks-prune.test.ts#the backlog bullet identifies all four protected files as remaining byte-identical"]
+  - id: AC-1e657d14
+    ears: ubiquitous
+    text: "F-066's acceptance criterion describing README evidence links shall match reality: the living citation of the trap-catch result is GOVERNANCE.md, and no README carries a benchmarks link."
+    test_refs: ["tests/benchmarks-prune.test.ts#AC-178 no longer claims the READMEs carry a benchmarks Evidence section", "tests/benchmarks-prune.test.ts#planted-needle control — the retracted-claim needle has teeth", "tests/benchmarks-prune.test.ts#AC-178 cites GOVERNANCE.md as the living reference; evidence_refs re-pointed away from the READMEs", "tests/benchmarks-prune.test.ts#AC-178 still names both READMEs, but only to say a benchmarks Evidence section is not required"]

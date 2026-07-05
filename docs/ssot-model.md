@@ -133,12 +133,12 @@ For YAML files, use `# ` comments. For JSON/TOML, the convention defers to the f
 | Path | Header |
 |---|---|
 | `spec.yaml` | `# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual` |
-| `spec/architecture.yaml` | `# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad refine` |
-| `spec/capabilities.yaml` | `# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad refine` |
-| `spec/scenarios/<slug>-<hash6>.yaml` | `# Cladding · Tier A · SSoT — onboarding output, edit-friendly · Refreshed by: clad init / clad refine` |
-| `docs/project-context.md` | `<!-- Cladding · Tier B · SSoT — intent + Why/What/Purpose · Refreshed by: clad init / clad refine -->` |
+| `spec/architecture.yaml` | `# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad clarify` |
+| `spec/capabilities.yaml` | `# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad clarify` |
+| `spec/scenarios/<slug>-<hash6>.yaml` | `# Cladding · Tier A · SSoT — onboarding output, edit-friendly · Refreshed by: clad init / clad clarify` |
+| `docs/project-context.md` | `<!-- Cladding · Tier B · SSoT — intent + Why/What/Purpose · Refreshed by: clad init / clad clarify -->` |
 | `docs/conventions.md` | `<!-- Cladding · Tier C · derived from observed code · Refreshed by: clad init --scan -->` |
-| `.cladding/onboarding/state.yaml` | `# Cladding · Tier D · transient — Q&A audit · Refreshed by: clad init / clad refine` |
+| `.cladding/onboarding/state.yaml` | `# Cladding · Tier D · transient — Q&A audit · Refreshed by: clad init / clad clarify` |
 
 **Why first line, not embedded metadata?** A reading persona (or AI host) can fetch the first line via a cheap read (`head -1`) without loading the body. Tier identification becomes a constant-cost operation regardless of artifact size.
 

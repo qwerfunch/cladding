@@ -21,6 +21,7 @@ import {execFileSync} from 'node:child_process';
 import process from 'node:process';
 
 import {collectChangelog, defaultSinceRef, type ChangelogManifest} from '../changelog/collect.js';
+import {refExists} from '../core/git-ops.js';
 import {latestEventOfType} from '../events/log.js';
 import {buildImpactSlice, ledgerOf} from '../optimizer/reverse-slice.js';
 import {
@@ -32,7 +33,7 @@ import {
   type ReportInputs,
 } from '../report/report.js';
 import {toSarif} from '../report/sarif.js';
-import {readAttestation} from '../spec/attestation.js';
+import {attestedFeatureCount, readAttestation} from '../spec/attestation.js';
 import {loadSpec} from '../spec/load.js';
 import {reverseIndexOf} from '../spec/reverse-index.js';
 import type {Feature, Spec} from '../spec/types.js';
@@ -78,12 +79,7 @@ function assertRefResolves(cwd: string, ref: string): void {
   if (r.length === 0) {
     throw new Error('report: empty --since ref — pass --since <tag|branch|sha>');
   }
-  try {
-    execFileSync('git', ['rev-parse', '--verify', '--quiet', `${r}^{commit}`], {
-      cwd,
-      stdio: ['ignore', 'pipe', 'ignore'],
-    });
-  } catch {
+  if (!refExists(cwd, r)) {
     throw new Error(
       `report: '${r}' does not resolve to a commit in this repository — pass --since <tag|branch|sha> that exists. ` +
         'An unresolvable ref is an error, never a silently-empty report.',
@@ -133,7 +129,7 @@ function gatherGateState(cwd: string): GateStateInput {
         anyFailed: typeof ev.payload.anyFailed === 'boolean' ? ev.payload.anyFailed : undefined,
       }
     : null;
-  return {attestedCount: att === null ? null : att.size, lastGateRun};
+  return {attestedCount: att === null ? null : attestedFeatureCount(att), lastGateRun};
 }
 
 /** Composes the pure model's inputs from the git range + the loaded spec. */

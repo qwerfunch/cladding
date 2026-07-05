@@ -25,13 +25,13 @@ import {runUpdate} from './update.js';
 import {runInit} from './init.js';
 import {runClarifyCommand} from './clarify.js';
 import {getCurrentCladdingVersion, runHostSetup} from '../init/host-setup.js';
-import {readEvents, recordEvent} from '../events/log.js';
-import {summarizeValueDelivery} from '../events/session-report.js';
+import {recordEvent} from '../events/log.js';
 import {buildContextSlice} from '../optimizer/context-slice.js';
 import {buildImpactSlice} from '../optimizer/reverse-slice.js';
 import {inferDependsOn} from '../optimizer/infer-depends-on.js';
 import {measureGraphEfficiency, MEASUREMENT_DISCLAIMER} from '../optimizer/measurement.js';
-import {appendMeasureSnapshot, readMeasureSnapshots, renderTrend} from '../optimizer/measure-ledger.js';
+import {appendMeasureSnapshot} from '../optimizer/measure-ledger.js';
+import {runSessionsMeasure, runTrendMeasure} from './measure.js';
 import {runGraphExportCommand, runGraphStatsCommand} from './graph.js';
 import {runGraphServeCommand} from './graph-serve.js';
 import {strictSkipViolations} from '../stages/skip-policy.js';
@@ -55,6 +55,7 @@ import type {DriftFinding, Disposition} from '../stages/types.js';
 import {gateStatusOf, isBlocking, worstContribution, type GateStatus} from '../stages/disposition.js';
 import {staleSpecification} from '../stages/detectors/stale-specification.js';
 import {findLatestCheckpoint, readGitHead, recordCheckpoint, recordRollback} from '../core/checkpoint.js';
+import {gitOperationInProgress, gitOperationInProgressName} from '../core/git-ops.js';
 import {maintainDeliverable} from '../spec/deliverable-detect.js';
 import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../spec/inventory.js';
 import {writeDocLinksYaml} from '../spec/doc-references.js';
@@ -243,29 +244,33 @@ export function runSyncCommand(opts: {proposeArchive?: boolean} = {}): void {
     const spec = loadSpec();
     // v0.3.56 (F-5b9f9f) — auto-rewrite the `inventory:` block in
     // spec.yaml on every sync so AI agents can grep 1 file to see
-    // the project's whole scale. ISO-date `last_synced` keeps the
-    // file commit-stable across same-day runs.
-    const inventory = computeInventory('.');
-    writeInventoryToSpecYaml('.', inventory);
-    writeFeatureIndex('.'); // F-37b4a8 — 1-file feature lookup at scale
-    writeDocLinksYaml('.'); // F-doc-graph — doc→spec/doc link index (Tier C)
-    // F-c037ae — heal annotation drift before it rejects correct features:
-    // unique-basename repair of moved test_ref paths + derived: suggestions
-    // (which never satisfy a mandate — see MISSING_TESTS/UNTESTED_AC).
-    const refFixes = repairTestRefs('.');
-    for (const r of refFixes.repaired) pulse('note', 'test_refs', `repaired ${r.from} → ${r.to} (${r.shard})`);
-    for (const sug of refFixes.suggested) pulse('note', 'test_refs', `suggested ${sug.ref} (${sug.shard}) — confirm by removing the 'derived:' prefix`);
-    // v0.5.x — auto-populate project.deliverable when absent + a CLI entry is calibratable, so
-    // DELIVERABLE_SMOKE (stage_2.4) engages without the agent having to declare it correctly (the
-    // re-run showed a conservative agent declares it DISABLED). Calibrates against the passing state,
-    // so it never enables a false-failing invocation. One-time (skips once a deliverable is present).
-    const autoDeliverable = maintainDeliverable('.');
-    if (autoDeliverable) {
-      pulse(
-        'note',
-        'deliverable',
-        `auto-detected entry '${autoDeliverable.path}' — the gate now smoke-tests it (stage_2.4). Opt out with is_safe_to_smoke: false.`,
-      );
+    // the project's whole scale. Counts only — an unchanged-count
+    // re-sync is byte-identical, so parallel branches don't conflict.
+    if (gitOperationInProgress('.')) {
+      pulse('note', 'sync', 'derived-file writes deferred — git operation in progress; re-run after the merge/rebase completes.');
+    } else {
+      const inventory = computeInventory('.');
+      writeInventoryToSpecYaml('.', inventory);
+      writeFeatureIndex('.'); // F-37b4a8 — 1-file feature lookup at scale
+      writeDocLinksYaml('.'); // F-doc-graph — doc→spec/doc link index (Tier C)
+      // F-c037ae — heal annotation drift before it rejects correct features:
+      // unique-basename repair of moved test_ref paths + derived: suggestions
+      // (which never satisfy a mandate — see MISSING_TESTS/UNTESTED_AC).
+      const refFixes = repairTestRefs('.');
+      for (const r of refFixes.repaired) pulse('note', 'test_refs', `repaired ${r.from} → ${r.to} (${r.shard})`);
+      for (const sug of refFixes.suggested) pulse('note', 'test_refs', `suggested ${sug.ref} (${sug.shard}) — confirm by removing the 'derived:' prefix`);
+      // v0.5.x — auto-populate project.deliverable when absent + a CLI entry is calibratable, so
+      // DELIVERABLE_SMOKE (stage_2.4) engages without the agent having to declare it correctly (the
+      // re-run showed a conservative agent declares it DISABLED). Calibrates against the passing state,
+      // so it never enables a false-failing invocation. One-time (skips once a deliverable is present).
+      const autoDeliverable = maintainDeliverable('.');
+      if (autoDeliverable) {
+        pulse(
+          'note',
+          'deliverable',
+          `auto-detected entry '${autoDeliverable.path}' — the gate now smoke-tests it (stage_2.4). Opt out with is_safe_to_smoke: false.`,
+        );
+      }
     }
     if (opts.proposeArchive) {
       const findings = staleSpecification.run({cwd: '.'});
@@ -381,7 +386,11 @@ export async function runUpdateCommand(): Promise<void> {
     process.exit(r.code);
     return;
   }
-  pulse('pass', 'spec', `inventory synced · ${r.features} features`);
+  if (r.inventoryDeferred) {
+    pulse('note', 'spec', `inventory + index writes deferred — git operation in progress; re-run \`clad update\` after it completes (${r.features} features seen).`);
+  } else {
+    pulse('pass', 'spec', `inventory synced · ${r.features} features`);
+  }
   pulse(r.claudeMd === 'refreshed-stale' ? 'note' : 'pass', 'CLAUDE.md', r.claudeMd);
   pulse(r.agentsMd === 'refreshed-stale' ? 'note' : 'pass', 'AGENTS.md', r.agentsMd);
   for (const d of r.deprecations) pulse('note', 'deprecated', d);
@@ -557,12 +566,16 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
       if (!opts.json) pulse('note', 'attestation', 'stale entries re-verified by this run — re-attesting');
     }
     if (!anyFailed) {
-      try {
-        if (writeAttestation('.', loadSpec())) {
-          if (!opts.json) pulse('note', 'attestation', 'spec/attestation.yaml refreshed (verified tree stamped)');
+      if (gitOperationInProgress('.')) {
+        if (!opts.json) pulse('note', 'attestation', 'deferred — git operation in progress; run the gate again after the merge/rebase completes.');
+      } else {
+        try {
+          if (writeAttestation('.', loadSpec())) {
+            if (!opts.json) pulse('note', 'attestation', 'spec/attestation.yaml refreshed (verified tree stamped)');
+          }
+        } catch {
+          /* unloadable spec → nothing to attest */
         }
-      } catch {
-        /* unloadable spec → nothing to attest */
       }
     }
   }
@@ -636,55 +649,6 @@ export function runInferDepsCommand(opts: {ambiguity?: string} = {}): void {
 }
 
 /**
- * `clad measure --sessions` (F-6ba22c5c) — summarize the recorded value-delivery
- * telemetry: impact-card fire rate over eligible edits, the per-reason skip histogram,
- * and MCP read-serve counts. HONEST FRAMING: this measures DELIVERY (whether the value
- * surfaces produced output), NEVER adoption (whether the agent then used them). Zero
- * value-delivery events prints an honest can't-distinguish message and exits 0 — absence
- * of telemetry must never render as 0% value nor as success.
- */
-function runSessionsMeasure(opts: {json?: boolean}): void {
-  let events;
-  try {
-    events = readEvents('.');
-  } catch {
-    events = []; // unreadable/corrupt ledger → treat as no telemetry (never crash the report)
-  }
-  const summary = summarizeValueDelivery(events);
-  if (opts.json) {
-    process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
-    process.exit(0);
-    return;
-  }
-  if (summary.total === 0) {
-    process.stdout.write(
-      'no value-delivery telemetry was recorded — the value surfaces (impact card, session card, ' +
-        'prompt suggestion, MCP working-set serves) may simply be SILENT this session, OR their emission ' +
-        'may be UNWIRED. These two cases are indistinguishable from an empty ledger.\n',
-    );
-    process.exit(0);
-    return;
-  }
-  const pct = (n: number): string => `${(n * 100).toFixed(1)}%`;
-  const suppressedTotal = summary.suppressed.dedup + summary.suppressed.ledger_exhausted;
-  const lines = [
-    'value delivery — measures whether cladding’s surfaces FIRED, not whether the agent ADOPTED them',
-    `  impact card: ${summary.fired} fired / ${summary.eligible} eligible edit(s) = ${pct(summary.firedPct)} fired`,
-    `  skips by reason: ${JSON.stringify(summary.byReason)}`,
-    // Push-governor withholdings (F-35954d19) are deliberate, so they get their own
-    // line instead of deflating the fired% denominator.
-    ...(suppressedTotal > 0
-      ? [`  suppressed by design: ${summary.suppressed.dedup} dedup, ${summary.suppressed.ledger_exhausted} budget-exhausted (excluded from eligible)`]
-      : []),
-    `  MCP serves: ${summary.servedWorkingSets} read-serve(s) ${JSON.stringify(summary.servedByTool)} · ${pct(summary.truncationRate)} truncated`,
-    `  other surfaces: ${summary.sessionCards} session card(s), ${summary.promptSuggestions} prompt suggestion(s)`,
-    '  (eligible = fired + substantive skips; not_write_tool / unwatched_path noise and by-design suppressions excluded)',
-  ];
-  process.stdout.write(`${lines.join('\n')}\n`);
-  process.exit(0);
-}
-
-/**
  * `clad measure` (F-16138071) — deterministically report the search + context efficiency the
  * graph provides per feature: working-set tokens vs the naive (shard + all module files)
  * baseline, the dependency depth/edges it resolves for you, and the regression-set coverage.
@@ -748,35 +712,6 @@ export function runMeasureCommand(opts: {json?: boolean; sessions?: boolean; tre
   }
 }
 
-/**
- * `clad measure --trend [n]` (F-39609db4) — render the last N (default 5)
- * recorded snapshots with signed deltas so a regression/improvement over time is
- * visible without re-reading raw stdout. With <2 snapshots there is no delta to
- * show: state how many exist and exit 0, never fabricating one (AC-220944e2).
- */
-function runTrendMeasure(opts: {json?: boolean; trend?: boolean | string}): void {
-  let snapshots;
-  try {
-    snapshots = readMeasureSnapshots('.');
-  } catch {
-    snapshots = []; // unreadable/corrupt ledger → treat as no history (never crash)
-  }
-  const n = typeof opts.trend === 'string' && Number.isFinite(Number(opts.trend)) ? Number(opts.trend) : 5;
-  const window = Math.max(1, Math.floor(n));
-  if (opts.json) {
-    process.stdout.write(`${JSON.stringify(snapshots.slice(-window), null, 2)}\n`);
-    process.exit(0);
-    return;
-  }
-  if (snapshots.length < 2) {
-    process.stdout.write(`no trend yet — ${snapshots.length} snapshot(s) recorded\n`);
-    process.exit(0);
-    return;
-  }
-  process.stdout.write(`${renderTrend(snapshots, window)}\n`);
-  process.exit(0);
-}
-
 export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tier?: string; json?: boolean; feature?: string}): void {
   let focusModules: readonly string[] | undefined;
   if (opts.feature) {
@@ -806,7 +741,7 @@ export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tie
  * so `done` cannot claim more than the gate verifies. @see cli/done.ts
  */
 export function runDoneCommand(featureId: string): void {
-  const r = runDone('.', featureId, {checkStages: runCheckStages, onIndex: writeFeatureIndex});
+  const r = runDone('.', featureId, {checkStages: runCheckStages, onIndex: writeFeatureIndex, gitOpInProgress: gitOperationInProgressName});
   pulse(r.ok ? 'pass' : 'fail', `done · ${featureId}`, r.reason);
   process.exit(r.code);
 }
@@ -1002,7 +937,7 @@ export function runRouteCommand(prompt: string): void {
  */
 export function createProgram(): Command {
   const program = new Command();
-  program.name('clad').description('Reference Ironclad CLI').version('0.8.0');
+  program.name('clad').description('Reference Ironclad CLI').version('0.8.1');
 
   program
     .command('init [intent...]')
@@ -1093,7 +1028,7 @@ export function createProgram(): Command {
     .command('status')
     .description('Render the feature × stage integrity matrix (business titles; use --internal for raw F-NNN ids)')
     .option('--internal', 'show internal F-NNN ids and stage codes')
-    .option('--json', 'emit the row model as JSON — the same feature × stage matrix the ANSI panel renders (columns + per-feature glyph cells), one SSoT for terminal, JSON, and the audit bundle')
+    .option('--json', 'emit the row model as JSON — the same feature × stage integrity matrix rendered to the terminal (columns + per-feature glyph cells), one SSoT for terminal, JSON, and the audit bundle')
     .action(runStatusCommand);
 
   program
