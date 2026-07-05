@@ -148,6 +148,7 @@ attested_modules:
   src/cli/hook.ts: bc05844317f377c4
   src/cli/init.ts: eec7319d9f2496c0
   src/cli/intent-from-path.ts: e69862821d979f22
+  src/cli/measure.ts: 3a562f16589e26c2
   src/cli/report.ts: 911f859b2446834b
   src/cli/scan/architecture.ts: cf6198a750534b66
   src/cli/scan/conventions.ts: 577468c0fc3fdf6a
@@ -508,6 +509,7 @@ attested_features:
   F-1c9166: ok
   F-1d23a6: ok
   F-1e7a10c3: ok
+  F-1e9ef827: ok
   F-1edb38: ok
   F-24062d: ok
   F-245bd5: ok
