@@ -29,7 +29,7 @@ attested_modules:
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 7db2915eeaefbc2f
   conformance/runner.ts: 96c12a96c857f8c2
-  docs/README.md: f00807cc9294b64e
+  docs/README.md: 5672e5726104d845
   docs/ab-evaluation-extended/README.md: f690562df2e5ec06
   docs/ab-evaluation-extended/scenarios/dashboard/report.md: 9ad86472f76c2c29
   docs/ab-evaluation-extended/scenarios/task-manager/report.md: fe3c789cc9b88eb1
@@ -46,17 +46,19 @@ attested_modules:
   docs/b1-adoption-protocol.md: 8f0480429614e70a
   docs/benchmarks/event-store-spec-with-traps.md: 25443101cf0bbbe6
   docs/benchmarks/event-store-trap-catch.md: d7a59d0a6d498ec7
+  docs/benchmarks/v0.4.0-consistency-bench.md: e49a0dc671ff6672
+  docs/benchmarks/v0.6.0-real-user-verification.md: 9af806f48f681d1a
   docs/code-style.md: f1fd100fa0d11c5e
   docs/dogfood/claude-code-2026-05-20.md: 04870d41e75576d6
   docs/dogfood/gemini-cli-2026-05-20.md: 2da1ba66c4f108f0
   docs/feature-cycle.md: 49672a8cee9b1191
-  docs/glossary.md: a34dc4cd4d741851
+  docs/glossary.md: 1fa1a5cdecac2c34
   docs/img/en/ecosystem.svg: 686fb1eb2b93711c
   docs/img/en/relationship.svg: 67470f930df33119
   docs/img/ko/ecosystem.svg: 7c9b2d68fdaa70cf
   docs/img/ko/relationship.svg: e71e2327ca835fcf
   docs/multi-provider-roadmap.md: 1e5cf27ea1b18d06
-  docs/refinement-backlog.md: 42afa26f02f1955f
+  docs/refinement-backlog.md: 3e38d60bf987eef1
   docs/spec-ids-multi-dev.md: 28d58e84879f58b1
   docs/ssot-model.md: 2ecedd961ce4f721
   docs/ssot-testing.md: a067d2b99852db9a
@@ -103,7 +105,7 @@ attested_modules:
   skills/serve/SKILL.md: 4cee65dfb691e3b0
   skills/status/SKILL.md: b3cb6e7a12bf4023
   skills/sync/SKILL.md: 709c20212aa5627e
-  spec.yaml: 695195a18142c70a
+  spec.yaml: 5d3f92a2023fcea5
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: c5d911049fbdcd48
   spec/features/: a4d0f0eb87fed960
@@ -136,14 +138,14 @@ attested_modules:
   src/cli: a4d0f0eb87fed960
   src/cli/benchmark.ts: 77f84d2a898d724f
   src/cli/changelog.ts: 2de1adb009b89ab4
-  src/cli/clad.ts: 2cb80fd5b0a9981e
+  src/cli/clad.ts: b997812f8873dee9
   src/cli/clarify.ts: 0699edcdde49112b
   src/cli/doctor-hosts.ts: 1ad79105b47fd8e5
   src/cli/doctor.ts: b98b955fe75e7f7e
   src/cli/done.ts: ab848407e563b74b
   src/cli/graph-serve.ts: 23e6e389225d0f98
   src/cli/graph.ts: bab410061b8c746a
-  src/cli/hook.ts: ca8747cb1fd9060b
+  src/cli/hook.ts: bc05844317f377c4
   src/cli/init.ts: eec7319d9f2496c0
   src/cli/intent-from-path.ts: e69862821d979f22
   src/cli/report.ts: 911f859b2446834b
@@ -167,14 +169,14 @@ attested_modules:
   src/cli/update.ts: 6e8b44d72cf46269
   src/core/checkpoint.ts: 63300c2764533b6c
   src/core/git-ops.ts: 4544bde493a0628f
-  src/core/postmortem.ts: 9adf2a16906a1c2d
+  src/core/postmortem.ts: 73be29d5e8a16fd4
   src/core/telemetry-summary.ts: 6782bfaa6c3ecfa6
   src/drive: a4d0f0eb87fed960
   src/drive/agent.ts: 8daf2728db01a8c9
   src/drive/halt.ts: 386dd57f84f8e297
-  src/drive/loop.ts: 0f1a58b22b0244e1
+  src/drive/loop.ts: c37e15ece8e2ae41
   src/events: a4d0f0eb87fed960
-  src/events/log.ts: 62e3aea29065f47d
+  src/events/log.ts: dcef5c4cccd5ed9c
   src/events/session-report.ts: d0b34f848c360334
   src/graph/layout3d.ts: fdbf08bacad2c049
   src/graph/model.ts: 9dfae1cb48bfe3d5
@@ -204,7 +206,7 @@ attested_modules:
   src/optimizer/reverse-slice.ts: 81c2e99e65bdd359
   src/optimizer/tail.ts: 5cdce1a3afd1eb7e
   src/optimizer/working-set.ts: fd26740a8c0019ae
-  src/oracle/payload.ts: da58adf36da7cbae
+  src/oracle/payload.ts: 0171633d758ceed8
   src/oracle/policy.ts: 8919ad927bd59b08
   src/oracle/record.ts: 0b9c124225abe1ac
   src/report/bundle.ts: f8a2fb6c2d02326f
@@ -351,7 +353,7 @@ attested_modules:
   tests/scenarios/ab/case-payment-saas.test.ts: 280404fbbfd0e6a3
   tests/scenarios/existing-adoption-lifecycle.test.ts: 23011bf2cf1e1bfb
   tests/scenarios/greenfield-lifecycle.test.ts: a3f3cefd204f03cf
-  tests/self-consistency.test.ts: b199fdc0462e22fc
+  tests/self-consistency.test.ts: 44ac8d86665ee84e
   tests/serve/description-budget.test.ts: e1501907eff9b923
   tests/spec/ears.test.ts: e7385918da1d8c7a
   tests/spec/inventory.test.ts: 8dea6ae5d10ee513
@@ -508,6 +510,7 @@ attested_features:
   F-1edb38: ok
   F-24062d: ok
   F-245bd5: ok
+  F-27e56a00: ok
   F-2be3e3bb: ok
   F-2de65d: ok
   F-315fd7: ok

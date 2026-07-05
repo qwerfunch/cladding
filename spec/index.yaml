@@ -89,6 +89,7 @@ features:
   F-080: {slug: F-080, status: done, modules: 2}
   F-081: {slug: F-081, status: done, modules: 3}
   F-098d3b: {slug: detector-count-auto-recompute, status: done, modules: 1}
+  F-09a98261: {slug: terminology-canon, status: planned, modules: 8}
   F-09d68b: {slug: clad-refine, status: done, modules: 7}
   F-0e84628e: {slug: merge-ritual-docs, status: done, modules: 2}
   F-0ed2db: {slug: ai-hints-consumer-instructions, status: done, modules: 11}
@@ -106,6 +107,7 @@ features:
   F-1edb38: {slug: scan-refactor, status: done, modules: 13}
   F-24062d: {slug: spec-id-hash-filename-and-lookup, status: done, modules: 3}
   F-245bd5: {slug: dogfood-recovery-v0-3-16, status: done, modules: 2}
+  F-27e56a00: {slug: benchmarks-prune, status: done, modules: 4}
   F-2be3e3bb: {slug: infer-depends-on, status: done, modules: 2}
   F-2de65d: {slug: drive-auto-rollback, status: done, modules: 1}
   F-315fd7: {slug: scenario-coverage-detector, status: done, modules: 2}

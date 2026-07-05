@@ -19,12 +19,12 @@ acceptance_criteria:
       - docs/benchmarks/event-store-spec-with-traps.md
   - id: AC-178
     ears: ubiquitous
-    action: add an Evidence section to README.md + README.ko.md
-    response: both README files carry an "Evidence" section that summarises the trap-catch result (vanilla 25% vs cladding 100%) and links to docs/benchmarks/event-store-trap-catch.md
-    text: The system shall add an Evidence section to README.md and README.ko.md surfacing the controlled-benchmark trap-catch result with a link to the full document.
+    action: keep the trap-catch result's living citation in GOVERNANCE.md, not the READMEs
+    response: README.md and README.ko.md do not carry a benchmarks "Evidence" section; the living citation of the trap-catch result (vanilla 25% vs cladding 100%) is GOVERNANCE.md §5 "Differentiation evidence" (GOVERNANCE.md:120), which links docs/benchmarks/event-store-trap-catch.md
+    text: The system shall keep the controlled-benchmark trap-catch citation live in GOVERNANCE.md with a link to the full document; README.md and README.ko.md are not required to carry a benchmarks Evidence section.
+    notes: "## Why\n2026-07-05 drift fix (F-27e56a00): the READMEs were later rewritten without the Evidence section, so the original 'both READMEs carry an Evidence section linking trap-catch' claim went stale — no README carries a benchmarks link today. The surviving, living citation is GOVERNANCE.md:120; evidence_refs re-pointed there to match reality. Prose-only edit; modules list untouched."
     evidence_refs:
-      - README.md
-      - README.ko.md
+      - GOVERNANCE.md
   - id: AC-179
     ears: ubiquitous
     action: cite the benchmark in GOVERNANCE.md

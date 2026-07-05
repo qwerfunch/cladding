@@ -20,7 +20,7 @@ Human-readable documentation for cladding. Mixed-tier: design SSoT (Tier B) live
 | `gate-scope.md` | **B** | design SSoT — module-scoped gate for monorepos | manual | reviewer + monorepo adopters |
 | `ssot-testing.md` | **B** | governance policy — SSoT lifecycle test strategy | manual | reviewer + test-author developer |
 | `knowledge-graph/design.md` | **B** | design SSoT — knowledge-graph model & cost | manual | maintainers + graph contributors |
-| `benchmarks/` | **D** audit (post-hoc reports) | append-only per benchmark run | manual benchmark commits | maintainers reviewing performance regressions |
+| `benchmarks/` | **D** audit (post-hoc reports) | append-only per benchmark run; a superseded run-log may be compressed to a dated abstract + git-history pointer once no live claim cites its numbers | manual benchmark commits | maintainers reviewing performance regressions |
 | `dogfood/` | **D** audit (post-hoc reports) | append-only per dogfood session | manual dogfood commits | maintainers reviewing harness behaviour on real adoption |
 
 ## Why mixed tiers in one directory

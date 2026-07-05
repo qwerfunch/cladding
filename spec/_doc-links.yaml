@@ -26,7 +26,7 @@ docs:
     features: [F-4db939, F-ba2e05]
     doc_links: ["docs/ab-evaluation/README.md", "docs/ssot-model.md", "docs/ssot-testing.md"]
   "docs/refinement-backlog.md":
-    features: [F-06dfdad6, F-073, F-16138071, F-3c2bf8b9, F-d25041ac, F-fe0f7a96]
+    features: [F-066, F-06dfdad6, F-073, F-16138071, F-27e56a00, F-3c2bf8b9, F-d25041ac, F-fe0f7a96]
   "docs/ssot-model.md":
     features: [F-001]
   "docs/ssot-testing.md":
