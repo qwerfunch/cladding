@@ -25,24 +25,24 @@ attested_modules:
   README.ko.html: 690e90fd451b94dd
   README.ko.md: a70b6115a5aa83aa
   README.md: 4545ea9617fd3373
-  SECURITY.md: 0b2c6349bf7a0921
+  SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 7db2915eeaefbc2f
   conformance/runner.ts: 96c12a96c857f8c2
-  docs/README.md: 0d21efda2d8b58fc
+  docs/README.md: f00807cc9294b64e
   docs/ab-evaluation-extended/README.md: f690562df2e5ec06
   docs/ab-evaluation-extended/scenarios/dashboard/report.md: 9ad86472f76c2c29
   docs/ab-evaluation-extended/scenarios/task-manager/report.md: fe3c789cc9b88eb1
   docs/ab-evaluation-extended/summary.md: d16f16836f94bd80
-  docs/ab-evaluation/README.md: c4628aa23f83820b
+  docs/ab-evaluation/README.md: 2467808b9871dcf0
   docs/ab-evaluation/case-doverunner-scale.md: 2a435b6855823d41
   docs/ab-evaluation/case-efficiency-measurement.md: 348aca146a7b2faa
-  docs/ab-evaluation/case-existing-adoption.md: 767ec4e840bb7e8a
+  docs/ab-evaluation/case-existing-adoption.md: 6e205625d9036ec8
   docs/ab-evaluation/case-graph-efficiency.md: 83d3956d14a1517d
   docs/ab-evaluation/case-iterative-vs-fixed-vapt.md: 1d242b8b6071f343
-  docs/ab-evaluation/case-payment-saas.md: 2c691c1645bdb0a1
+  docs/ab-evaluation/case-payment-saas.md: 0ecb089a576de638
   docs/ab-evaluation/case-working-set-landmine.md: b4f44dc463e99722
-  docs/ab-evaluation/summary.md: 11323a56ea86129a
+  docs/ab-evaluation/summary.md: 59e527a531f13209
   docs/b1-adoption-protocol.md: 8f0480429614e70a
   docs/benchmarks/event-store-spec-with-traps.md: 25443101cf0bbbe6
   docs/benchmarks/event-store-trap-catch.md: d7a59d0a6d498ec7
@@ -55,7 +55,7 @@ attested_modules:
   docs/img/en/relationship.svg: 67470f930df33119
   docs/img/ko/ecosystem.svg: 7c9b2d68fdaa70cf
   docs/img/ko/relationship.svg: e71e2327ca835fcf
-  docs/refinement-backlog.md: faee486613b5142c
+  docs/refinement-backlog.md: 42afa26f02f1955f
   docs/spec-ids-multi-dev.md: 28d58e84879f58b1
   docs/ssot-model.md: 2ecedd961ce4f721
   docs/ssot-testing.md: a067d2b99852db9a
@@ -102,7 +102,7 @@ attested_modules:
   skills/serve/SKILL.md: 4cee65dfb691e3b0
   skills/status/SKILL.md: b3cb6e7a12bf4023
   skills/sync/SKILL.md: 709c20212aa5627e
-  spec.yaml: de87bb3e87ec16ef
+  spec.yaml: 695195a18142c70a
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: c5d911049fbdcd48
   spec/features/: a4d0f0eb87fed960
@@ -130,11 +130,11 @@ attested_modules:
   src/agents/orchestrator.md: 9f5a9439919b8d8f
   src/agents/planner.md: c2dc0b4c0045428a
   src/agents/reviewer.md: b2d7235036657d41
-  src/changelog/collect.ts: 1e4a93f43046e128
+  src/changelog/collect.ts: a6c936a7b8c34e2a
   src/changelog/render.ts: 83dd2d95f24ca68c
   src/cli: a4d0f0eb87fed960
   src/cli/benchmark.ts: 77f84d2a898d724f
-  src/cli/changelog.ts: 35daa73ec58ade1d
+  src/cli/changelog.ts: 2de1adb009b89ab4
   src/cli/clad.ts: 2cb80fd5b0a9981e
   src/cli/clarify.ts: 0699edcdde49112b
   src/cli/doctor-hosts.ts: 1ad79105b47fd8e5
@@ -145,7 +145,7 @@ attested_modules:
   src/cli/hook.ts: ca8747cb1fd9060b
   src/cli/init.ts: eec7319d9f2496c0
   src/cli/intent-from-path.ts: e69862821d979f22
-  src/cli/report.ts: f17676b0e83e6c22
+  src/cli/report.ts: 911f859b2446834b
   src/cli/scan/architecture.ts: cf6198a750534b66
   src/cli/scan/conventions.ts: 577468c0fc3fdf6a
   src/cli/scan/dispatcher.ts: 97bd3f12cece4fc4
@@ -165,7 +165,7 @@ attested_modules:
   src/cli/scan/walker.ts: 33e4448e365e47c6
   src/cli/update.ts: 6e8b44d72cf46269
   src/core/checkpoint.ts: 63300c2764533b6c
-  src/core/git-ops.ts: d622440e1f8d7282
+  src/core/git-ops.ts: 4544bde493a0628f
   src/core/postmortem.ts: 9adf2a16906a1c2d
   src/core/telemetry-summary.ts: 6782bfaa6c3ecfa6
   src/drive: a4d0f0eb87fed960
@@ -173,7 +173,7 @@ attested_modules:
   src/drive/halt.ts: 386dd57f84f8e297
   src/drive/loop.ts: 0f1a58b22b0244e1
   src/events: a4d0f0eb87fed960
-  src/events/log.ts: e87bad66622ee0ff
+  src/events/log.ts: 62e3aea29065f47d
   src/events/session-report.ts: d0b34f848c360334
   src/graph/layout3d.ts: fdbf08bacad2c049
   src/graph/model.ts: 9dfae1cb48bfe3d5
@@ -189,14 +189,14 @@ attested_modules:
   src/hitl/identity.ts: 52ff84aa666f1dab
   src/init/git-hook.ts: 4e02f177b3764ae8
   src/init/host-instructions.ts: c2b3b130a9ae39dc
-  src/init/host-setup.ts: c6c376ce9d37c557
+  src/init/host-setup.ts: 7204682817a119f1
   src/optimizer: a4d0f0eb87fed960
   src/optimizer/code-excerpt.ts: e2c4598efcd28d2a
   src/optimizer/context-slice.ts: b5864aaed1e7ae48
   src/optimizer/infer-depends-on.ts: 511d626a96b3da90
   src/optimizer/iterative-slice.ts: 67f8bcd4471eaeb9
   src/optimizer/measure-ledger.ts: 1e644cacaf878527
-  src/optimizer/measurement.ts: 108a0f541357ea2c
+  src/optimizer/measurement.ts: 55ab003adaec49a9
   src/optimizer/preamble.ts: f74d41daf8372cdf
   src/optimizer/prune.ts: f5f70fb850f167bc
   src/optimizer/push-card.ts: 860b5ac68f2db77e
@@ -226,7 +226,7 @@ attested_modules:
   src/spec/reverse-index.ts: d8b003eb8f1918c8
   src/spec/schema.json: 7e26bc66cb0fc359
   src/spec/test-ref-repair.ts: 5ce823b479aaaca3
-  src/spec/types.ts: 4e935892e1d5fdd6
+  src/spec/types.ts: 8279f66aed33d569
   src/spec/validate.ts: db88ca6512ab363a
   src/stages: a4d0f0eb87fed960
   src/stages/arch.ts: 268422e53c6d20bb
@@ -252,7 +252,7 @@ attested_modules:
   src/stages/detectors/fixture-reference.ts: 3ddfffa560f58f8d
   src/stages/detectors/hardcoded-secret.ts: d9fb55e3d2e429b6
   src/stages/detectors/harness-integrity.ts: 8af03028c9407378
-  src/stages/detectors/hollow-governance.ts: 1873e48fba56d02d
+  src/stages/detectors/hollow-governance.ts: 57d3f25c421f993b
   src/stages/detectors/host-claim-drift.ts: aad755cec4ce24d0
   src/stages/detectors/id-collision.ts: 9292f2dac0578276
   src/stages/detectors/index.ts: bb8d9398ea726cf5
@@ -262,10 +262,10 @@ attested_modules:
   src/stages/detectors/missing-implementation.ts: 71e1a456f3f57f5d
   src/stages/detectors/missing-tests.ts: 734f5eef48807dcd
   src/stages/detectors/performance-drift.ts: 69472d10fe946c14
-  src/stages/detectors/planned-backlog.ts: c67a8b03691efa46
-  src/stages/detectors/project-context-drift.ts: c938928343df4fc3
+  src/stages/detectors/planned-backlog.ts: f5be38ada5aae7d4
+  src/stages/detectors/project-context-drift.ts: d3643f369537a8e8
   src/stages/detectors/reference-integrity.ts: 8883766a4bf69c61
-  src/stages/detectors/scenario-coverage.ts: d8cb4ecf9b0f01f0
+  src/stages/detectors/scenario-coverage.ts: ff4cc3aa721abe26
   src/stages/detectors/slug-conflict.ts: 5d9b8feec12dce07
   src/stages/detectors/smoke-probe-demand.ts: 792b6d0d07f82a16
   src/stages/detectors/spec-conformance.ts: 8c74460349f0acef
@@ -344,7 +344,7 @@ attested_modules:
   tests/scenarios/ab/_ab-metrics.ts: b2be2a46d49f049a
   tests/scenarios/ab/_drift-injection.ts: 6618e96fd4eca840
   tests/scenarios/ab/_query-bench.ts: 11e0f8f2ad342f20
-  tests/scenarios/ab/_report.ts: ee224a82b35b3b7a
+  tests/scenarios/ab/_report.ts: f2f322fac2bfffc0
   tests/scenarios/ab/_vanilla-sim.ts: 1d7407f97cfc5e48
   tests/scenarios/ab/case-existing-adoption.test.ts: 430e095a4f08fec6
   tests/scenarios/ab/case-payment-saas.test.ts: 280404fbbfd0e6a3
@@ -598,6 +598,7 @@ attested_features:
   F-c2c996: ok
   F-c48eb2: ok
   F-c4c5ae: ok
+  F-c58263b8: ok
   F-c6a32fff: ok
   F-c6c3daaf: ok
   F-c8aef8: ok

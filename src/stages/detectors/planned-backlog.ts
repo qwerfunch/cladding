@@ -25,11 +25,6 @@
 // new mechanism. This is a cheap signal by design: it cannot see git history,
 // so "40 planned over a month" reads the same as "40 at once" — both are "the
 // spec raced ahead of the code", which is the invariant we want to hold.
-//
-// THRESHOLD: a hardcoded constant. A per-project override
-// (`spec.yaml::project.ai_hints.max_planned_ahead`) plugs into resolveThreshold
-// below — deliberately deferred until a real project legitimately plans wider,
-// to avoid spec-schema churn for a knob nobody has needed yet.
 
 import {existsSync} from 'node:fs';
 import {join} from 'node:path';
@@ -56,16 +51,6 @@ function runPlannedBacklog(opts: CommandStageOptions): readonly DriftFinding[] {
   return withSpec(cwd, NAME, (spec) => detect(spec, cwd));
 }
 
-/**
- * Resolves the tolerated-backlog threshold. Constant for now; the optional
- * `ai_hints.max_planned_ahead` override is intentionally not wired yet (see the
- * file header). When a project needs it, give this the `spec` and read
- * `spec.project.ai_hints?.max_planned_ahead`, falling back to the constant.
- */
-function resolveThreshold(): number {
-  return DEFAULT_MAX_PLANNED_AHEAD;
-}
-
 /** A feature "has code" iff it declares at least one module that exists on disk. */
 function hasCodeOnDisk(feature: Feature, cwd: string): boolean {
   return (feature.modules ?? []).some((m) => existsSync(join(cwd, m)));
@@ -77,7 +62,7 @@ function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
     if (feature.status !== 'planned' && feature.status !== 'in_progress') continue;
     if (!hasCodeOnDisk(feature, cwd)) stalled.push(feature.id);
   }
-  const threshold = resolveThreshold();
+  const threshold = DEFAULT_MAX_PLANNED_AHEAD;
   if (stalled.length <= threshold) return [];
   const named = stalled.slice(0, MAX_NAMED).join(', ');
   const tail = stalled.length > MAX_NAMED ? ', …' : '';

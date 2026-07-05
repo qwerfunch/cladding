@@ -167,6 +167,7 @@ features:
   F-95a096: {slug: ops-visibility-polish, status: done, modules: 3}
   F-96250595: {slug: iterative-impact-slice, status: done, modules: 2}
   F-96700032: {slug: unverified-ac-junit, status: done, modules: 4}
+  F-987be195: {slug: docs-prune, status: planned, modules: 4}
   F-99c6e5: {slug: cladding-self-fixes, status: done, modules: 13}
   F-9a3b61: {slug: ab-ext-uncommit-demos, status: done, modules: 3}
   F-9b643e: {slug: scan-conventions, status: done, modules: 5}
@@ -199,6 +200,7 @@ features:
   F-c2c996: {slug: checkpoint-events, status: done, modules: 3}
   F-c48eb2: {slug: scan-source-roots, status: done, modules: 5}
   F-c4c5ae: {slug: spec-conformance-oracle-stage, status: done, modules: 8}
+  F-c58263b8: {slug: code-compact, status: done, modules: 12}
   F-c6a32fff: {slug: graph-honest-fallback, status: done, modules: 7}
   F-c6c3daaf: {slug: kotlin-module-scoped-gate, status: done, modules: 13}
   F-c8aef8: {slug: project-context, status: done, modules: 5}

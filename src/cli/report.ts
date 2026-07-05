@@ -21,6 +21,7 @@ import {execFileSync} from 'node:child_process';
 import process from 'node:process';
 
 import {collectChangelog, defaultSinceRef, type ChangelogManifest} from '../changelog/collect.js';
+import {refExists} from '../core/git-ops.js';
 import {latestEventOfType} from '../events/log.js';
 import {buildImpactSlice, ledgerOf} from '../optimizer/reverse-slice.js';
 import {
@@ -78,12 +79,7 @@ function assertRefResolves(cwd: string, ref: string): void {
   if (r.length === 0) {
     throw new Error('report: empty --since ref — pass --since <tag|branch|sha>');
   }
-  try {
-    execFileSync('git', ['rev-parse', '--verify', '--quiet', `${r}^{commit}`], {
-      cwd,
-      stdio: ['ignore', 'pipe', 'ignore'],
-    });
-  } catch {
+  if (!refExists(cwd, r)) {
     throw new Error(
       `report: '${r}' does not resolve to a commit in this repository — pass --since <tag|branch|sha> that exists. ` +
         'An unresolvable ref is an error, never a silently-empty report.',

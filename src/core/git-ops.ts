@@ -62,3 +62,32 @@ export function gitOperationInProgressName(cwd: string): GitOperation | null {
 export function gitOperationInProgress(cwd: string): boolean {
   return gitOperationInProgressName(cwd) !== null;
 }
+
+/**
+ * Resolves `<ref>^{commit}` to its full commit sha via
+ * `git rev-parse --verify --quiet`, or null when the ref does not resolve to a
+ * commit (unknown ref, non-git dir, git absent). Never throws — the single
+ * ref-resolution probe behind refExists() and the changelog's since-ref
+ * resolution.
+ */
+export function resolveRefToCommit(cwd: string, ref: string): string | null {
+  try {
+    const sha = execFileSync('git', ['rev-parse', '--verify', '--quiet', `${ref}^{commit}`], {
+      cwd,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    return sha.length > 0 ? sha : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * True iff `ref` resolves to a commit in the repository at `cwd`. Never throws —
+ * any probe error (unknown ref, non-git dir, git absent) is false, like its
+ * sibling git-op probes.
+ */
+export function refExists(cwd: string, ref: string): boolean {
+  return resolveRefToCommit(cwd, ref) !== null;
+}

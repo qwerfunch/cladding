@@ -176,7 +176,7 @@ export function newEvent(type: EventType, payload: Record<string, unknown>): Eve
 
 /** Actor identity for lifecycle events: git author when resolvable (the
  * stable handle a team recognizes), else the OS user. Never throws. */
-export function resolveActorIdentity(cwd: string): Identity {
+function resolveActorIdentity(cwd: string): Identity {
   let name: string | undefined;
   try {
     name = execFileSync('git', ['config', 'user.name'], {cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore']}).trim() || undefined;
