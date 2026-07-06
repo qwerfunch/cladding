@@ -22,6 +22,7 @@ import {join} from 'node:path';
 
 import type {FeatureStatus, Spec} from '../../spec/types.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
+import {isSpecFirstWindow} from './spec-first-window.js';
 import {withSpec} from './with-spec.js';
 
 const NAME = 'MISSING_IMPLEMENTATION';
@@ -55,15 +56,6 @@ function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
     }
   }
   return findings;
-}
-
-// The spec-first window: while a feature is `planned` (shard authored) or
-// `in_progress` (implementing), its declared-but-absent modules are the
-// documented intermediate state — the cycle prescribes authoring the spec
-// entry before the code. Everything else (`done`, `archived`, `blocked`,
-// any future status) is treated as shipped-or-final and keeps the `error`.
-function isSpecFirstWindow(status: FeatureStatus): boolean {
-  return status === 'planned' || status === 'in_progress';
 }
 
 /**

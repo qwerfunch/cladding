@@ -147,7 +147,7 @@ export const DETECTOR_PLAIN: Readonly<Record<string, PlainEntry>> = {
   UNMAPPED_ARTIFACT: {lead: 'A source file exists that no feature in the spec claims', action: 'add it to a feature module list, or delete the file'},
   TECH_STACK_MISMATCH: {lead: 'The spec names one programming language but the code looks like another', action: 'update project.language in the spec to match the code'},
   STATUS_DRIFT: {lead: 'A feature is marked done but its files or checks do not back that up', action: 'add the missing modules, or set the status back'},
-  STALE_SPECIFICATION: {lead: 'A feature has inconsistent lifecycle labels — for example archived but still marked active', action: 'reconcile the feature status and archive fields'},
+  STALE_SPECIFICATION: {lead: "A feature's lifecycle labels don't match its actual state", action: 'reconcile the feature status and archive fields'},
   REFERENCE_INTEGRITY: {lead: 'The spec points to a feature id that does not exist', action: 'fix the reference or add the missing feature'},
   DOC_LINK_INTEGRITY: {lead: 'A documentation link or feature reference points to something that no longer exists', action: 'fix the broken link or reference in the doc'},
   HARNESS_INTEGRITY: {lead: 'The cladding setup is inconsistent — a version or count does not match across its files'},

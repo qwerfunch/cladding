@@ -204,6 +204,7 @@ features:
   F-bdcd90: {slug: oracle-policy-risk-weighted, status: done, modules: 8}
   F-c037ae: {slug: test-refs-repair, status: done, modules: 4}
   F-c2c996: {slug: checkpoint-events, status: done, modules: 3}
+  F-c3747d7d: {slug: spec-first-window-complete, status: done, modules: 5}
   F-c48eb2: {slug: scan-source-roots, status: done, modules: 5}
   F-c4c5ae: {slug: spec-conformance-oracle-stage, status: done, modules: 8}
   F-c58263b8: {slug: code-compact, status: done, modules: 12}

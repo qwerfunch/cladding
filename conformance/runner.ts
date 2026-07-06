@@ -724,13 +724,14 @@ const fixtures: readonly Fixture[] = [
     expectFindings: [{detector: 'STATUS_DRIFT', severity: 'error'}],
   },
   {
-    // F-014/AC-023 — the spec-first window is legal. A status=in_progress
-    // feature that declares modules while every one is still absent is the
-    // documented intermediate state (author the shard, then implement).
-    // STATUS_DRIFT emits its warn ("likely a stale start") and, since
-    // F-e8912be3, MISSING_IMPLEMENTATION emits `info` (not the old error)
-    // because the feature is inside that window. With no error finding the
-    // non-strict drift stage PASSES — this fixture pins the window as legal.
+    // F-014/AC-023 — the spec-first window is legal AND fully normalized. A
+    // status=in_progress feature that declares modules while every one is still
+    // absent is the documented intermediate state (author the shard, then
+    // implement). Since F-c3747d7d (U7) all three spec-vs-code detectors grade
+    // it `info`: MISSING_IMPLEMENTATION (F-e8912be3), plus STATUS_DRIFT and
+    // STALE_SPECIFICATION (both demoted from warn by F-c3747d7d). With ZERO
+    // error/warn from the window the non-strict drift stage PASSES — and, unlike
+    // before U7, --strict passes too (the two surviving warns used to block it).
     // (The trap that still fails is F-014/AC-022: done + missing → error.)
     id: 'F-014_AC-023',
     stage: 'stage_1.3',
@@ -764,8 +765,9 @@ const fixtures: readonly Fixture[] = [
       return runDrift({cwd: d});
     },
     expectFindings: [
-      {detector: 'STATUS_DRIFT', severity: 'warn'},
       {detector: 'MISSING_IMPLEMENTATION', severity: 'info'},
+      {detector: 'STATUS_DRIFT', severity: 'info'},
+      {detector: 'STALE_SPECIFICATION', severity: 'info'},
     ],
   },
   {

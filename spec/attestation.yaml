@@ -27,8 +27,8 @@ attested_modules:
   README.md: 97d366f5dbeac39d
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
-  conformance/fixtures.yaml: 8b3337025521cbc5
-  conformance/runner.ts: 6068a3a386df71b7
+  conformance/fixtures.yaml: 4b1b94dae1cd20b0
+  conformance/runner.ts: b9c9e71df85d382e
   docs/README.md: 5672e5726104d845
   docs/ab-evaluation-extended/README.md: f690562df2e5ec06
   docs/ab-evaluation-extended/scenarios/dashboard/report.md: 9ad86472f76c2c29
@@ -88,7 +88,7 @@ attested_modules:
   plugins/gemini-cli/commands/README.md: 3527d771578431bd
   plugins/gemini-cli/commands/init.toml: fbf24f25bb8cf921
   plugins/gemini-cli/gemini-extension.json: b5ac60214cd89d03
-  scripts/build-plugin.mjs: a7b34ecaf3690b6e
+  scripts/build-plugin.mjs: 57ffa3f0e6317a6b
   scripts/build.mjs: 3a4b204063024ef1
   scripts/migrate-dogfood-v0.3.16.mjs: 1e265fb370019996
   scripts/shard-spec.ts: 0c728bbc1e869421
@@ -105,7 +105,7 @@ attested_modules:
   skills/serve/SKILL.md: 4cee65dfb691e3b0
   skills/status/SKILL.md: b3cb6e7a12bf4023
   skills/sync/SKILL.md: 709c20212aa5627e
-  spec.yaml: c493f804182169fe
+  spec.yaml: 09e6b6d8427da305
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: c5d911049fbdcd48
   spec/features/: a4d0f0eb87fed960
@@ -255,7 +255,7 @@ attested_modules:
   src/stages/detectors/evidence-mismatch.ts: c633778b8f9ec0af
   src/stages/detectors/fixture-reference.ts: 3ddfffa560f58f8d
   src/stages/detectors/hardcoded-secret.ts: d9fb55e3d2e429b6
-  src/stages/detectors/harness-integrity.ts: 8af03028c9407378
+  src/stages/detectors/harness-integrity.ts: c9717bc296d6c11d
   src/stages/detectors/hollow-governance.ts: 57d3f25c421f993b
   src/stages/detectors/host-claim-drift.ts: aad755cec4ce24d0
   src/stages/detectors/id-collision.ts: 9292f2dac0578276
@@ -263,7 +263,7 @@ attested_modules:
   src/stages/detectors/inferable-depends-on.ts: 29dbc744efe3df00
   src/stages/detectors/inventory-drift.ts: 28c094367ded9c9f
   src/stages/detectors/meta-integrity.ts: 5464ff92880031e9
-  src/stages/detectors/missing-implementation.ts: b535482eb7c8a1ce
+  src/stages/detectors/missing-implementation.ts: b7f91e9ede000724
   src/stages/detectors/missing-tests.ts: 734f5eef48807dcd
   src/stages/detectors/performance-drift.ts: 69472d10fe946c14
   src/stages/detectors/planned-backlog.ts: a6850576b00d4a44
@@ -273,11 +273,12 @@ attested_modules:
   src/stages/detectors/slug-conflict.ts: 5d9b8feec12dce07
   src/stages/detectors/smoke-probe-demand.ts: 792b6d0d07f82a16
   src/stages/detectors/spec-conformance.ts: 8c74460349f0acef
+  src/stages/detectors/spec-first-window.ts: c29a1836eb5f0257
   src/stages/detectors/stale-attestation.ts: c0290be986333807
   src/stages/detectors/stale-evidence.ts: 01b4a3931f03714f
-  src/stages/detectors/stale-specification.ts: f39be5530830b311
+  src/stages/detectors/stale-specification.ts: 0fe84db592fd406d
   src/stages/detectors/stale-tests.ts: caf59404d1282201
-  src/stages/detectors/status-drift.ts: eeceaf26ffaa3b05
+  src/stages/detectors/status-drift.ts: 9cc5cf3f9b62ea00
   src/stages/detectors/tech-stack-mismatch.ts: 099162aff2c2966b
   src/stages/detectors/unmapped-artifact.ts: b29f7e277d8187ae
   src/stages/detectors/untested-ac.ts: 90725ef1fc9245d8
@@ -309,7 +310,7 @@ attested_modules:
   src/ui: a4d0f0eb87fed960
   src/ui/panel.ts: 8b78cb14dafb28fb
   src/ui/pulse.ts: ee4255f5c6e49f51
-  src/ui/softShell.ts: ccd8b98fb52e00ec
+  src/ui/softShell.ts: c095f4185ab3d624
   tests/adapters/anthropic.test.ts: fa2fc7faf032a782
   tests/adapters/index.test.ts: 4454e6b4ea05a74f
   tests/adapters/transport.test.ts: 68f22e9e8df7b813
@@ -393,9 +394,9 @@ attested_modules:
   tests/stages/smoke.test.ts: 99f97875d29ac5d3
   tests/stages/spec-conformance.test.ts: 9f6ac08e09d7b10b
   tests/stages/stale-evidence.test.ts: 8e8622f17eb7f955
-  tests/stages/stale-specification.test.ts: cc06086baf1201da
+  tests/stages/stale-specification.test.ts: 09bd06db377d890c
   tests/stages/stale-tests.test.ts: 1467ceedb8019e86
-  tests/stages/status-drift.test.ts: 09fe206b34d1be02
+  tests/stages/status-drift.test.ts: cff1092eeb23c268
   tests/stages/tech-stack-mismatch.test.ts: 878436ffd2f94c97
   tests/stages/toolchain.test.ts: 8bf0f6b544215d44
   tests/stages/type.test.ts: b57cf7455cae3b32
@@ -607,6 +608,7 @@ attested_features:
   F-bdcd90: ok
   F-c037ae: ok
   F-c2c996: ok
+  F-c3747d7d: ok
   F-c48eb2: ok
   F-c4c5ae: ok
   F-c58263b8: ok

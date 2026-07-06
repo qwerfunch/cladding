@@ -9,8 +9,10 @@
 //     OR declare >=1 acceptance criterion)
 //   - status='done' but at least one declared module is missing → error
 //     (the feature is marked complete yet its implementation is absent)
-//   - status='in_progress' but every declared module is missing → warn
-//     (likely a stale feature that never started)
+//   - status='in_progress' but every declared module is missing → info
+//     (the spec-first window — authoring the shard before the code is the
+//     documented normal state, F-c3747d7d; demoted from warn to match
+//     MISSING_IMPLEMENTATION so the Stop hook / --strict stop blocking it)
 //
 // Note: we deliberately do NOT consult git log in this brick — the goal
 // is a cheap signal, not a deep audit. The richer git-based version
@@ -22,6 +24,7 @@ import {join} from 'node:path';
 
 import type {Spec} from '../../spec/types.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
+import {isSpecFirstWindow} from './spec-first-window.js';
 import {withSpec} from './with-spec.js';
 
 const NAME = 'STATUS_DRIFT';
@@ -63,12 +66,19 @@ function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
           ` module(s) missing: ${missing.join(', ')}`,
       });
     } else if (feature.status === 'in_progress' && missing.length === modules.length) {
+      // Spec-first window (F-c3747d7d): an in_progress feature whose declared
+      // modules are ALL still absent is the documented author-then-implement
+      // state, not a stale start. `isSpecFirstWindow` (in_progress ∈ window)
+      // gates the grade to `info`, matching MISSING_IMPLEMENTATION, so the Stop
+      // hook and --strict gate stop fighting the normal cycle. The `done`
+      // branches above stay `error` — done is never spec-first (a shipped-code
+      // invariant, also double-guarded by MISSING_IMPLEMENTATION).
       findings.push({
         detector: NAME,
-        severity: 'warn',
+        severity: isSpecFirstWindow(feature.status) ? 'info' : 'warn',
         message:
-          `feature ${feature.id} status='in_progress' but every declared module is missing` +
-          ' — likely a stale start',
+          `feature ${feature.id} is in progress and none of its declared modules are` +
+          ' built yet — the normal state while implementing',
       });
     }
   }
