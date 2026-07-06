@@ -152,6 +152,7 @@ features:
   F-6ed216f3: {slug: interactive-drift-profile, status: done, modules: 5}
   F-6f80e7: {slug: claude-code-dogfood, status: done, modules: 1}
   F-7076f7: {slug: smoke-probe-demand, status: done, modules: 3}
+  F-723c81dd: {slug: agent-interpreter-rule, status: planned, modules: 7}
   F-7794a6bc: {slug: impact-blast-radius, status: done, modules: 3}
   F-77f7ead0: {slug: webgl-stellar-viewer, status: done, modules: 4}
   F-78b50d: {slug: project-context-drift-detector, status: done, modules: 2}
@@ -220,11 +221,13 @@ features:
   F-d8223c: {slug: blind-author-agent, status: done, modules: 1}
   F-d980359c: {slug: junit-multiframework-matching, status: done, modules: 2}
   F-dd51b42c: {slug: kotlin-first-class-toolchain, status: done, modules: 11}
+  F-dd8dc994: {slug: plain-first-finding-render, status: planned, modules: 5}
   F-dddb89: {slug: ears-validation-at-creation, status: done, modules: 4}
   F-e0f6c7: {slug: smoke-disposition-spine, status: done, modules: 3}
   F-e53596dd: {slug: gate-run-detector-cache, status: done, modules: 7}
   F-e7d59c88: {slug: bash-edit-blind-spot, status: done, modules: 2}
   F-e803c149: {slug: b1-adoption-protocol, status: done, modules: 3}
+  F-e8912be3: {slug: status-aware-missing-impl, status: done, modules: 3}
   F-e940fffe: {slug: audit-bundle-html, status: done, modules: 3}
   F-eb732f: {slug: spec-authoring-anti-hollow, status: done, modules: 2}
   F-ede6fa75: {slug: self-measuring-release, status: done, modules: 3}

@@ -5,11 +5,12 @@
 // the mirror of UNMAPPED_ARTIFACT — both check the spec ↔ code seam
 // from opposite directions.
 //
-// Status-blind: the detector flags missing modules for every feature
-// regardless of `status`. That's intentional — if a `done` or even an
-// `archived` feature declares a module that's gone, the discrepancy is
-// real spec drift. STATUS_DRIFT layers the status interpretation on
-// top; this detector just reports ground truth.
+// Status-aware (F-e8912be3): a missing module is an `error` for `done`
+// and `archived` features (real shipped-code drift, and `archived` is
+// guarded only here) but only `info` for `planned` / `in_progress` ones,
+// which sit inside the documented spec-first window (the shard is authored
+// before the code). STATUS_DRIFT layers the richer status interpretation
+// on top; this detector reports ground truth at the right severity.
 //
 // Spec absence → single `info` finding (opt-in on spec presence,
 // matching the rest of the spec-vs-code detector cohort).
@@ -100,7 +101,7 @@ describe('MISSING_IMPLEMENTATION detector', () => {
     expect(findings[0].message).toContain('spec.yaml not loaded');
   });
 
-  test('multiple features each contribute their own findings', () => {
+  test('multiple features each contribute their own finding, at status-appropriate severity', () => {
     writeFileSync(
       join(dir, 'spec', 'features', 'F-001.yaml'),
       'id: F-001\ntitle: t\nstatus: done\nmodules: [stages/a.ts]\n',
@@ -111,7 +112,11 @@ describe('MISSING_IMPLEMENTATION detector', () => {
     );
     const findings = missingImplementation.run({cwd: dir});
     expect(findings).toHaveLength(2);
-    const ids = findings.map((f) => f.message.match(/F-\d{3}/)?.[0]).sort();
-    expect(ids).toEqual(['F-001', 'F-002']);
+    const byId = new Map(findings.map((f) => [f.message.match(/F-\d{3}/)?.[0], f]));
+    expect([...byId.keys()].sort()).toEqual(['F-001', 'F-002']);
+    // done keeps the blocking error; in_progress still EMITS but as info
+    // (the spec-first window is normal, not drift).
+    expect(byId.get('F-001')?.severity).toBe('error');
+    expect(byId.get('F-002')?.severity).toBe('info');
   });
 });

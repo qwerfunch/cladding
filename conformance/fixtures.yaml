@@ -183,7 +183,7 @@ fixtures:
   - name: F-014_AC-023
     stage: documentary
     kind: runnable
-    description: "F-014/AC-023 — When status='in_progress' but every declared module is absent, the detector shall emit a warn finding suggesting a stale start."
+    description: "F-014/AC-023 — The spec-first window is legal: when a status='in_progress' feature declares modules that are all still absent, non-strict drift PASSES — STATUS_DRIFT warns ('likely a stale start') and MISSING_IMPLEMENTATION emits info (the normal author-then-implement window), with no blocking error."
   - name: F-015_AC-024
     stage: documentary
     kind: documentary
