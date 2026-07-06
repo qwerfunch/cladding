@@ -47,6 +47,7 @@ import {formatWorkingSetCard, formatPushOneLiner} from '../optimizer/push-card.j
 import {estTokens} from '../optimizer/code-excerpt.js';
 import {loadSpec} from '../spec/load.js';
 import {WATCHED_EXTENSIONS} from '../stages/toolchain/language-config.js';
+import {driftNudge, plainFinding, plainLead, resolveLocale, stopBlockMessage} from '../ui/softShell.js';
 
 // --- shared helpers ----------------------------------------------------
 
@@ -407,13 +408,16 @@ function runStopGate(input: unknown, cwd: string): string {
     /* unwritable state dir → still block; demotion just won't persist */
   }
   recordEvent(cwd, 'stop_blocked', {count: failures.length, fingerprint});
-  const top = failures
+  // Plain-first render (F-dd8dc994): a plain lead per top finding, the machine
+  // detail (detector · path) demoted to a parenthetical tail, in the resolved
+  // locale. The fingerprint above hashes detector|path — message-free, so this
+  // render change cannot move it (AC-ad2a34e1).
+  const locale = resolveLocale(cwd);
+  const examples = failures
     .slice(0, 2)
-    .map((f) => `${f.detector}: ${truncate(f.message, 120)}`)
+    .map((f) => plainFinding(f, locale))
     .join('; ');
-  return renderBlock(
-    `cladding gate: ${failures.length} finding(s) — ${top}. Fix or stop again to dismiss (re-surfaced next session).`,
-  );
+  return renderBlock(stopBlockMessage(failures.length, examples, locale));
 }
 
 // --- PostToolUse — debounced drift nudge --------------------------------
@@ -1014,8 +1018,15 @@ function runPostToolUseDrift(input: unknown, cwd: string): string {
   const report = runDrift({cwd, profile: 'interactive'});
   const errors = report.findings.filter((f) => f.severity === 'error');
   const deferred = report.skippedDetectors?.length ? ` (+${report.skippedDetectors.length} deferred to commit)` : '';
-  const drift =
-    errors.length === 0 ? '' : `cladding drift: ${errors.length} error(s) — ${errors[0].detector}: ${truncate(errors[0].message, 140)}${deferred}`;
+  // Plain-first render (F-dd8dc994): the plain lead leads; the detector id is
+  // demoted to a `(details: …)` tail; the deferred note is kept verbatim. The
+  // count is preserved. Unknown-detector fallback keeps the truncated message.
+  let drift = '';
+  if (errors.length > 0) {
+    const locale = resolveLocale(cwd);
+    const lead = plainLead(errors[0].detector, locale, truncate(errors[0].message, 140));
+    drift = driftNudge(errors.length, lead, errors[0].detector, deferred, locale);
+  }
   return [card, drift].filter(Boolean).join('\n');
 }
 

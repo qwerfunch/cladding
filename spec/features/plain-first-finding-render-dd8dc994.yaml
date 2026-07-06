@@ -1,0 +1,38 @@
+id: F-dd8dc994
+slug: plain-first-finding-render
+title: "Plain-first finding rendering — locale-aware human leads, machine detail demoted to the tail"
+status: done
+modules:
+  - src/ui/softShell.ts
+  - src/cli/hook.ts
+  - src/cli/clad.ts
+  - src/cli/done.ts
+  - src/spec/schema.json
+acceptance_criteria:
+  - id: AC-746969b3
+    ears: ubiquitous
+    text: "Every detector shall have a plain-language lead (and optional user action) in BOTH shipped locales (en, ko) in the Soft Shell catalog, enforced by a completeness test against the live detector registry — CLI commands may appear in actions, MCP tool names may not."
+    notes: "## Why\nAdopters meet raw DETECTOR_ID + mechanism text in the host UI. The Soft Shell layer is the declared human-render boundary and the glossary already carries per-detector plain + KO glosses — this wires the two loudest emitters through the boundary they were bypassing. Locale-direct rendering is required because hook text reaches the user raw, before any agent can translate."
+    test_refs:
+      - tests/plain-render.test.ts
+  - id: AC-263adf79
+    ears: event
+    condition: "when the Stop hook blocks, the after-edit drift line prints, the check block renders a finding, or done refuses"
+    action: "lead with the locale-resolved plain sentence and demote detector id and path to a parenthetical tail"
+    response: "a first-time user understands what happened and what to do without knowing any internal vocabulary"
+    text: "When the four human render sites emit a finding, the plain lead shall come first and the machine detail shall follow as a tail — in the resolved locale."
+    test_refs:
+      - tests/plain-render.test.ts
+  - id: AC-25f77cec
+    ears: ubiquitous
+    text: "Locale resolution shall be: spec.yaml project.locale (new optional field) → LANG/LC_ALL environment → en; resolution never throws and machine tails stay language-neutral."
+    test_refs:
+      - tests/plain-render.test.ts
+  - id: AC-ad2a34e1
+    ears: unwanted
+    condition: "if any machine contract changed — check --json, MCP outputs, SARIF, event payloads, detector name constants, or the stop-block fingerprint"
+    action: "fail the existing contract suites"
+    response: "the overhaul is render-only by construction"
+    text: "If a machine contract drifts, existing tests shall catch it — JSON, MCP, SARIF, events, and the dedup fingerprint stay byte-compatible."
+    test_refs:
+      - tests/plain-render.test.ts

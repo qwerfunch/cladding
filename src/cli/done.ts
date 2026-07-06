@@ -22,6 +22,7 @@ import {recordEvent} from '../events/log.js';
 import {join} from 'node:path';
 
 import {parseSpec} from '../spec/parse.js';
+import {doneRefusalLead, resolveLocale} from '../ui/softShell.js';
 import type {GitOperation} from '../core/git-ops.js';
 
 /** Gate runner injected so tests can drive `runDone` without spawning tsc/vitest. */
@@ -175,6 +176,9 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
   // Shard restored → re-sync the index symmetrically, else it would keep the
   // pre-gate `done` row against a reverted shard (inverse staleness). (F-37b4a8)
   deps.onIndex?.(cwd);
+  // Plain-first (F-dd8dc994): a locale-resolved plain lead first; the machine
+  // sentence (kept byte-for-byte) follows as a language-neutral tail so contract
+  // pins ('not GREEN', 'status left at') survive.
   return {
     ok: false,
     code: 1,
@@ -182,6 +186,7 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
     prevStatus: hit.status,
     shardPath: hit.path,
     reason:
+      `${doneRefusalLead(resolveLocale(cwd))}. ` +
       `strict gate not GREEN — status left at '${hit.status || 'unset'}'.` +
       ' Fix the failing stage(s) above, then re-run `clad done`.',
   };

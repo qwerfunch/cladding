@@ -25,6 +25,9 @@ vi.mock('../../src/ui/softShell.js', () => ({
   featureLabel: (id: string) => `LABEL(${id})`,
   gateLabel: (s: string) => `GATE(${s})`,
   haltMessage: (h: {class: string}) => `HALT(${h.class})`,
+  // F-dd8dc994: printStageDetails now resolves a locale + plain lead per finding.
+  resolveLocale: () => 'en',
+  plainLead: (detector: string, _l: unknown, fallback = '') => fallback || `LEAD(${detector})`,
 }));
 vi.mock('../../src/stages/type.js', () => ({runType: vi.fn(() => ({pass: true, exitCode: 0}))}));
 vi.mock('../../src/stages/lint.js', () => ({runLint: vi.fn(() => ({pass: true, exitCode: 0}))}));

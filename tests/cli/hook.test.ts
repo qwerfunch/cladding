@@ -253,8 +253,10 @@ describe('PreToolUse — structural guard on spec edits', () => {
 
 describe('Stop — deterministic trio with fingerprint-keyed demotion', () => {
   // The Stop gate only runs under cladding (F-c6a32fff): seed the master file.
+  // `locale: en` pins the plain-first render locale so these string pins are
+  // deterministic regardless of the developer's LANG (F-dd8dc994).
   beforeEach(() => {
-    writeFileSync(join(cwd, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: fixture\n', 'utf8');
+    writeFileSync(join(cwd, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: fixture\n  locale: en\n', 'utf8');
   });
 
   const TWO_FINDINGS: DriftReport = {
@@ -277,9 +279,11 @@ describe('Stop — deterministic trio with fingerprint-keyed demotion', () => {
     const out = runHookEvent('Stop', {stop_hook_active: false}, cwd);
     const doc = JSON.parse(out) as {decision: string; reason: string};
     expect(doc.decision).toBe('block');
-    expect(doc.reason).toContain('cladding gate: 2 finding(s)');
-    expect(doc.reason).toContain('AC_DRIFT: AC mismatch');
-    expect(doc.reason).toContain('MISSING_TESTS: no tests declared');
+    expect(doc.reason).toContain('cladding paused before finishing: 2 things');
+    // Plain-first render (F-dd8dc994): plain lead leads, machine detail demoted
+    // to the (detector · path) tail — which stays locale-neutral.
+    expect(doc.reason).toContain('(AC_DRIFT · spec/features/x.yaml)');
+    expect(doc.reason).toContain('(MISSING_TESTS · spec/features/y.yaml)');
     const sb = JSON.parse(readFileSync(join(cwd, '.cladding', 'stop-block.json'), 'utf8')) as {
       fingerprint: string;
       count: number;
@@ -324,8 +328,10 @@ describe('Stop — deterministic trio with fingerprint-keyed demotion', () => {
     archStub.mockImplementation(() => ({pass: false, exitCode: 1, stderr: 'layer breach: cli → detectors'}));
     const out = runHookEvent('Stop', {stop_hook_active: false}, cwd);
     const doc = JSON.parse(out) as {reason: string};
-    expect(doc.reason).toContain('1 finding(s)');
-    expect(doc.reason).toContain('ARCH: layer breach: cli → detectors');
+    expect(doc.reason).toContain('cladding paused before finishing: 1 thing');
+    // A synthetic ARCH finding has no catalog row → the raw stderr is the lead,
+    // with the (detector · path) tail (F-dd8dc994).
+    expect(doc.reason).toContain('layer breach: cli → detectors (ARCH · stage)');
     const sb = JSON.parse(readFileSync(join(cwd, '.cladding', 'stop-block.json'), 'utf8')) as {first: string};
     expect(sb.first).toBe('ARCH');
   });
@@ -333,8 +339,9 @@ describe('Stop — deterministic trio with fingerprint-keyed demotion', () => {
 
 describe('PostToolUse — debounced drift nudge', () => {
   // Drift nudges only run under cladding (F-c6a32fff): seed the master file.
+  // `locale: en` pins the plain-first render locale (F-dd8dc994).
   beforeEach(() => {
-    writeFileSync(join(cwd, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: fixture\n', 'utf8');
+    writeFileSync(join(cwd, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: fixture\n  locale: en\n', 'utf8');
   });
 
   const ONE_ERROR: DriftReport = {
@@ -346,7 +353,11 @@ describe('PostToolUse — debounced drift nudge', () => {
 
   test('error findings surface as one line; a second call inside the window is debounced empty', () => {
     driftStub.mockImplementation(() => ONE_ERROR);
-    expect(runHookEvent('PostToolUse', EDIT_SRC, cwd)).toBe('cladding drift: 1 error(s) — AC_DRIFT: spec/code mismatch in foo');
+    // Plain-first render (F-dd8dc994): the catalog lead leads; the detector id is
+    // demoted to a `(details: …)` tail; the count is preserved.
+    expect(runHookEvent('PostToolUse', EDIT_SRC, cwd)).toBe(
+      'cladding drift: 1 error(s) — An acceptance criterion is incomplete or out of sync with the spec (details: AC_DRIFT)',
+    );
     expect(runHookEvent('PostToolUse', EDIT_SRC, cwd)).toBe('');
     expect(driftStub).toHaveBeenCalledTimes(1);
   });
