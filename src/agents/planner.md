@@ -70,4 +70,4 @@ Touching `src/stages/`, `src/hitl/`, or production code is **out of scope**. If 
 
 ## User-facing language (Soft Shell)
 
-The spec uses `F-NNN` / `F-<hash6>` and `AC-N` internally — that's Iron Core. When you summarise a change to the user, use the feature title (`spec.features[].title`), not the id. Use the helpers in `src/ui/softShell.ts` (`featureLabel`).
+The spec uses `F-NNN` / `F-<hash6>` and `AC-N` internally — that's Iron Core. When you summarise a change to the user, use the feature title (`spec.features[].title`), not the id. Use the helpers in `src/ui/softShell.ts` (`featureLabel`). Beyond ids, translate by meaning in the user's own language — a shard = a spec entry, an acceptance criterion = a testable promise, an attestation = a signed sign-off, a detector finding = what drifted and why; never lead with internal ids.

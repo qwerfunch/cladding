@@ -70,12 +70,17 @@ describe('AC-9bea7d88 · the five policy anchors survive the diet, load-bearing 
   test('size regression guard — cannot silently regrow past the diet ceiling', () => {
     // Measured in BYTES (not .length/UTF-16 code units) because the AC's own
     // "~430 bytes / ~30%" claim is a byte count, and this template's em
-    // dashes/arrows cost more bytes than code units. Today (post-diet): 972
-    // bytes. Pre-diet: 1404 bytes. The ceiling sits comfortably above the
-    // diet result but well under the pre-diet size, so a future re-bloat
-    // trips this before it ships.
+    // dashes/arrows cost more bytes than code units. Diet result: 972 bytes.
+    // Pre-diet: 1404 bytes.
+    //
+    // Ceiling deliberately raised 1100 -> 1250 on 2026-07-06 (F-723c81dd): the
+    // interpreter rule ("Speak the user's language" — translate cladding terms
+    // into the user's own language, never lead with internal ids) is a sixth
+    // policy anchor that adds ~242 bytes (972 -> 1214). This is the guard's
+    // sanctioned amendment path — the anchor earns its bytes, the ceiling still
+    // sits well under the pre-diet 1404, so a future re-bloat trips before ship.
     const bytes = Buffer.byteLength(CLAUDE_MD_SECTION, 'utf8');
-    expect(bytes).toBeLessThan(1100);
+    expect(bytes).toBeLessThan(1250);
   });
 });
 

@@ -34,6 +34,10 @@
           "type": "string",
           "description": "TL;DR of docs/project-context.md. One sentence answering 'what problem does this project solve?'."
         },
+        "locale": {
+          "type": "string",
+          "description": "User-facing render locale for plain finding leads (Soft Shell). Shipped: 'en' | 'ko' | 'ja' | 'zh'. Deliberately a lenient free string (not an enum) so future locales need no schema bump; an unrecognized value falls through. Absent ⇒ .cladding/user-locale sidecar, then LANG/LC_ALL env, then 'en'."
+        },
         "require_oracles": {
           "type": "boolean",
           "description": "Opt-in: when true, every done AC must declare oracle_refs (SPEC_CONFORMANCE MANDATORY rule, EXHAUSTIVE). Default falsy. Superseded by oracle_policy when present."

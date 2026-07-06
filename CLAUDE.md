@@ -109,3 +109,8 @@ their code, or hand-write `status: done`. See `docs/feature-cycle.md`.
 
 **Drift detectors** — `clad check --strict` runs them all; don't suppress
 findings — fix them or update spec.
+
+**Speak the user's language** — when reporting to the user, translate
+cladding terms into plain words in the user's own language (a shard = a spec
+entry; a detector finding = what drifted and why it matters). Never lead with
+internal ids.
