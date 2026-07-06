@@ -40,7 +40,7 @@ const {readEvents} = await import('../../src/events/log.js');
 const {summarizeValueDelivery} = await import('../../src/events/session-report.js');
 
 // A valid spec: F-aaa111 owns src/foo.ts (+ a test_ref), F-bbb222 depends on it
-// so an edit to src/foo.ts "breaks 1 feature · runs 1 test" and fires a card.
+// so an edit to src/foo.ts has "1 feature depends on this · 1 test guards it" and fires a card.
 const VALID_SPEC = [
   'schema: "0.1"',
   'project: {name: t, language: typescript}',
@@ -205,8 +205,8 @@ describe('PostToolUse telemetry — accounting completeness', () => {
     clearStamp();
     const out = post(sourceEdit('src/foo.ts', 60));
     expect(out).toContain('cladding impact: src/foo.ts → F-aaa111');
-    expect(out).toContain('breaks 1 feature');
-    expect(out).toContain('run 1 test');
+    expect(out).toContain('1 feature depends on this');
+    expect(out).toContain('1 test guards it');
     const fired = readEvents(cwd).filter((e) => e.type === 'impact_card_fired');
     expect(fired).toHaveLength(1);
     expect(fired[0].payload).toMatchObject({file: 'src/foo.ts', feature: 'F-aaa111', impacted: 1, tests: 1, unledgered: false});

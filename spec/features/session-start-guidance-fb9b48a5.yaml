@@ -1,6 +1,6 @@
 id: F-fb9b48a5
 slug: session-start-guidance
-title: "SessionStart card advertises the context-compiler tools and injects ai_hints preferred patterns"
+title: "SessionStart card advertises the context capability and injects ai_hints preferred patterns"
 status: done
 modules:
   - src/cli/hook.ts
@@ -8,10 +8,10 @@ acceptance_criteria:
   - id: AC-b08371b3
     ears: event
     condition: "when the SessionStart hook fires in a cwd containing spec.yaml"
-    text: "When SessionStart fires in a cladding project, renderSessionStartCard shall append one tools-advertisement line naming clad_get_working_set and clad_get_impact with a compact hint of what each returns."
-    notes: "WHY: pull tools go uncalled partly because they are unadvertised — this is the cheapest push (once per session); falsifiable via F-6ba22c5c telemetry (if pull-call rate stays 0 after ~20 sessions, remove the line)."
+    text: "When SessionStart fires in a cladding project, renderSessionStartCard shall append one context-capability line describing what cladding can slice for the work at hand \u2014 naming NO MCP tool (agents discover tools via the protocol; users must never meet internal names)."
+    notes: "WHY (amended 2026-07-06, F-f46d5c61): the original tool-name advertisement carried its own falsification clause \u2014 remove if pull rate stays 0 \u2014 and the B1 protocol measured exactly that (64 cycles, 0 pulls). Names removed per the user-language pivot; the capability phrasing stays as the once-per-session nudge."
     test_refs:
-      - "tests/cli/hook-session-guidance.test.ts#names both context-compiler tools on exactly one line, after gate/stop-block, before policy"
+      - "tests/cli/hook-session-guidance.test.ts#exactly one context line, after gate/stop-block, before policy, naming NO MCP tool"
   - id: AC-14f7778c
     ears: optional
     condition: "where project.ai_hints.preferred_patterns is non-empty"

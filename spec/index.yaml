@@ -236,6 +236,7 @@ features:
   F-ef2fd9: {slug: ab-ext-dashboard, status: done, modules: 7}
   F-f334fa: {slug: ab-ext-scenarios-emit, status: done, modules: 3}
   F-f44d1b: {slug: hollow-governance-detector, status: done, modules: 2}
+  F-f46d5c61: {slug: human-first-cards, status: done, modules: 3}
   F-f6cc5e5a: {slug: pr-review-packet, status: done, modules: 4}
   F-f6d13e: {slug: capabilities-in-spec, status: done, modules: 3}
   F-fb9b48a5: {slug: session-start-guidance, status: done, modules: 1}

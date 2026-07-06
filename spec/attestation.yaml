@@ -105,7 +105,7 @@ attested_modules:
   skills/serve/SKILL.md: 4cee65dfb691e3b0
   skills/status/SKILL.md: b3cb6e7a12bf4023
   skills/sync/SKILL.md: 709c20212aa5627e
-  spec.yaml: 2da122761f779294
+  spec.yaml: 0a78f60ab74ad615
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: c5d911049fbdcd48
   spec/features/: a4d0f0eb87fed960
@@ -145,7 +145,7 @@ attested_modules:
   src/cli/done.ts: ecfd3344a47b6af3
   src/cli/graph-serve.ts: 23e6e389225d0f98
   src/cli/graph.ts: bab410061b8c746a
-  src/cli/hook.ts: b73e47f1b6b6de01
+  src/cli/hook.ts: 26629a5e4a44d95d
   src/cli/init.ts: eec7319d9f2496c0
   src/cli/intent-from-path.ts: e69862821d979f22
   src/cli/measure.ts: 3a562f16589e26c2
@@ -203,7 +203,7 @@ attested_modules:
   src/optimizer/measurement.ts: 55ab003adaec49a9
   src/optimizer/preamble.ts: f74d41daf8372cdf
   src/optimizer/prune.ts: f5f70fb850f167bc
-  src/optimizer/push-card.ts: 860b5ac68f2db77e
+  src/optimizer/push-card.ts: c7cc2d710fcfd1dc
   src/optimizer/reverse-slice.ts: 81c2e99e65bdd359
   src/optimizer/tail.ts: 5cdce1a3afd1eb7e
   src/optimizer/working-set.ts: fd26740a8c0019ae
@@ -239,7 +239,7 @@ attested_modules:
   src/stages/cov.ts: f7c7bff90ef9c868
   src/stages/deliverable-smoke.ts: 9ecfd4210e6ec5c0
   src/stages/detector-result-cache.ts: 93ea6af02ef361c5
-  src/stages/detectors/README.md: 3a3512280a064a1f
+  src/stages/detectors/README.md: 2e136e4f61e6d6bb
   src/stages/detectors/absence-of-governance.ts: 954d8ce5c45b3b32
   src/stages/detectors/ac-drift.ts: 1bceeae9ee99080b
   src/stages/detectors/ac-duplicate-within-feature.ts: 652ad48c8cd1ab2e
@@ -639,6 +639,7 @@ attested_features:
   F-ef2fd9: ok
   F-f334fa: ok
   F-f44d1b: ok
+  F-f46d5c61: ok
   F-f6cc5e5a: ok
   F-f6d13e: ok
   F-fb9b48a5: ok

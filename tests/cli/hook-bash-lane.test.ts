@@ -45,7 +45,7 @@ const {runHookEvent} = await import('../../src/cli/hook.js');
 const {readEvents} = await import('../../src/events/log.js');
 
 // F-aaa111 owns the given `modules` (+ a test_ref), F-bbb222 depends on it — so
-// a mutation to any owned module "breaks 1 feature · runs 1 test" and fires a
+// a mutation to any owned module has "1 feature depends on this · 1 test guards it" and fires a
 // Tier-2 card (consequences present). Mirrors the fixture the native-lane suite
 // (hook-telemetry) uses, with the module path parameterised.
 function makeSpec(modules: string[]): string {
@@ -148,7 +148,7 @@ describe('AC-d6c8d5ed · Bash-lane git-delta impact card', () => {
 
     const out = bash("sed -i '' 's/1/2/' src/app.ts");
     expect(out).toContain('cladding impact: src/app.ts → F-aaa111');
-    expect(out).toContain('breaks 1 feature'); // the tiered card's consequence segment
+    expect(out).toContain('1 feature depends on this'); // the tiered card's consequence segment (F-f46d5c61)
 
     const f = fired();
     expect(f).toHaveLength(1);

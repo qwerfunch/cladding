@@ -14,7 +14,7 @@ ironclad_spec_ref: https://github.com/qwerfunch/ironclad/blob/main/detectors.sch
 | # | name | axis | source | default severity | status policy |
 |---|---|---|---|---|---|
 | 1 | `UNMAPPED_ARTIFACT` | spec ↔ code | `unmapped-artifact.ts` | warn | blind |
-| 2 | `MISSING_IMPLEMENTATION` | spec ↔ code | `missing-implementation.ts` | error | blind |
+| 2 | `MISSING_IMPLEMENTATION` | spec ↔ code | `missing-implementation.ts` | error | **aware** *(spec-first window)* |
 | 3 | `AC_DRIFT` | spec ↔ code | `ac-drift.ts` | error | blind |
 | 4 | `TECH_STACK_MISMATCH` | spec ↔ code | `tech-stack-mismatch.ts` | warn | blind |
 | 5 | `ARCHITECTURE_VIOLATION` | spec ↔ code | `architecture-violation.ts` | error | blind |
@@ -57,7 +57,7 @@ ironclad_spec_ref: https://github.com/qwerfunch/ironclad/blob/main/detectors.sch
 
 Two detectors check whether each acceptance criterion of a feature has surfacing test evidence on disk. For a feature that is still being authored (`status: planned` or `status: in_progress`) the test files referenced by `acceptance_criteria[].test_refs` deliberately do not exist yet — flagging them as errors would drown the real signal in progress-noise.
 
-So `UNTESTED_AC` and `MISSING_TESTS` are **status-aware** in the `done`-direction: they only inspect features where `status === 'done'`. `PLANNED_BACKLOG` is status-aware in the *opposite* direction — it inspects only `planned`/`in_progress` features, because its whole job is to flag features that are specced but not yet built (the per-feature cadence). Every other detector is **status-blind** — it checks every feature regardless of lifecycle state, because its findings (a hard-coded secret in code, a broken cross-reference, a stale piece of evidence, an architecture-layer violation) are problems even when the surrounding feature is mid-flight.
+So `UNTESTED_AC` and `MISSING_TESTS` are **status-aware** in the `done`-direction: they only inspect features where `status === 'done'`. `PLANNED_BACKLOG` is status-aware in the *opposite* direction — it inspects only `planned`/`in_progress` features, because its whole job is to flag features that are specced but not yet built (the per-feature cadence). `MISSING_IMPLEMENTATION` is status-aware in a third way — it inspects every feature but **graduates severity by status**: a declared-but-absent module is an `error` for a `done`/`archived`/`blocked` feature (shipped-or-final drift, also guarded by `STATUS_DRIFT`) and only `info` for a `planned`/`in_progress` one, which sits inside the documented spec-first window where the shard is authored before the code exists. Every other detector is **status-blind** — it checks every feature regardless of lifecycle state, because its findings (a hard-coded secret in code, a broken cross-reference, a stale piece of evidence, an architecture-layer violation) are problems even when the surrounding feature is mid-flight.
 
 ### When you add a new detector
 

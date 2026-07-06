@@ -94,12 +94,13 @@ describe('SessionStart — context card', () => {
     expect(lines[1]).toBe('in progress: F-bbb222 beta');
     expect(lines[2]).toBe('last gate: pre-push strict=true → GREEN @ abcdef12');
     expect(lines[3]).toBe('unresolved stop-block: 2 finding(s) — AC_DRIFT');
-    // tools advertisement precedes the policy line; this fixture has no ai_hints → no prefer lines (F-fb9b48a5).
+    // context capability line precedes policy; no ai_hints → no prefer lines. Both lines are
+    // plain English with NO MCP tool names / no "shard" / no "SSoT" (F-f46d5c61, AC-2c63b999).
     expect(lines[4]).toBe(
-      'tools: clad_get_working_set <id|slug|path> → focus+needs+breaks+tests · clad_get_impact <path> → blast radius',
+      'context: before a non-trivial change, cladding can slice what a feature needs, what depends on it, and which tests guard it — ask for it',
     );
     expect(lines[5]).toBe(
-      'policy: spec is SSoT — author shards via clad_create_feature; flip done only via clad done; verify with clad_run_gate',
+      "policy: the spec is the source of truth — features are created and completed through cladding's verified flow",
     );
     expect(lines).toHaveLength(6);
   });
@@ -118,7 +119,7 @@ describe('SessionStart — context card', () => {
 describe('UserPromptSubmit — one-line routing suggestion', () => {
   test("'add a login feature' → suggestion line naming run + the feature cycle", () => {
     const out = runHookEvent('UserPromptSubmit', {prompt: 'add a login feature'}, cwd);
-    expect(out).toBe('cladding: this looks like run work — feature cycle: shard → implement → tests → clad done');
+    expect(out).toBe('cladding: this looks like run work — feature cycle: spec entry → implement → tests → clad done');
   });
 
   test("'explain how auth works' → empty (no suggestion, no noise)", () => {
@@ -128,8 +129,8 @@ describe('UserPromptSubmit — one-line routing suggestion', () => {
   // F-95a096 — a completion CLAIM gets the earn-path card, not an intent route.
   // "done" must be earned through the gate; the card points at `clad done`.
   const EARN_CARD =
-    'cladding: completion is EARNED, not declared — run `clad done <F-id>` ' +
-    '(the strict gate flips it only when GREEN); in-progress ids are one grep away in spec/index.yaml';
+    'cladding: completion is EARNED, not declared — run `clad done <F-id>`; ' +
+    'the strict gate flips it to done only when the checks pass';
 
   test("'looks done, wrap it up' → earn-path card naming clad done", () => {
     expect(runHookEvent('UserPromptSubmit', {prompt: 'looks done, wrap it up'}, cwd)).toBe(EARN_CARD);
@@ -211,7 +212,9 @@ describe('PreToolUse — structural guard on spec edits', () => {
     );
     const doc = JSON.parse(out) as {decision: string; reason: string};
     expect(doc.decision).toBe('block');
-    expect(doc.reason).toBe('hash ids only — use clad_create_feature');
+    expect(doc.reason).toBe(
+      'cladding assigns feature ids safely — ask it to create the spec entry instead of hand-writing the file',
+    );
   });
 
   test('MultiEdit with one done-flipping entry → block', () => {
@@ -413,8 +416,10 @@ describe('PostToolUse — debounced drift nudge', () => {
       cwd,
     );
     expect(out).toContain('cladding impact: src/foo.ts → F-aaa111');
-    expect(out).toContain('breaks 1 feature');
-    expect(out).toContain('run 1 test');
+    // Human-first consequence wording + the focus title (F-f46d5c61).
+    expect(out).toContain('F-aaa111 alpha'); // id + title, not a bare id
+    expect(out).toContain('1 feature depends on this');
+    expect(out).toContain('1 test guards it');
   });
 });
 
