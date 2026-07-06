@@ -256,10 +256,10 @@ describe('PreToolUse — structural guard on spec edits', () => {
 
 describe('Stop — deterministic trio with fingerprint-keyed demotion', () => {
   // The Stop gate only runs under cladding (F-c6a32fff): seed the master file.
-  // `locale: en` pins the plain-first render locale so these string pins are
-  // deterministic regardless of the developer's LANG (F-dd8dc994).
+  // Render is English by construction (F-9af291fa) — these string pins are
+  // deterministic regardless of the developer's LANG.
   beforeEach(() => {
-    writeFileSync(join(cwd, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: fixture\n  locale: en\n', 'utf8');
+    writeFileSync(join(cwd, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: fixture\n', 'utf8');
   });
 
   const TWO_FINDINGS: DriftReport = {
@@ -284,7 +284,7 @@ describe('Stop — deterministic trio with fingerprint-keyed demotion', () => {
     expect(doc.decision).toBe('block');
     expect(doc.reason).toContain('cladding paused before finishing: 2 things');
     // Plain-first render (F-dd8dc994): plain lead leads, machine detail demoted
-    // to the (detector · path) tail — which stays locale-neutral.
+    // to the (detector · path) tail — which stays language-neutral.
     expect(doc.reason).toContain('(AC_DRIFT · spec/features/x.yaml)');
     expect(doc.reason).toContain('(MISSING_TESTS · spec/features/y.yaml)');
     const sb = JSON.parse(readFileSync(join(cwd, '.cladding', 'stop-block.json'), 'utf8')) as {
@@ -342,9 +342,9 @@ describe('Stop — deterministic trio with fingerprint-keyed demotion', () => {
 
 describe('PostToolUse — debounced drift nudge', () => {
   // Drift nudges only run under cladding (F-c6a32fff): seed the master file.
-  // `locale: en` pins the plain-first render locale (F-dd8dc994).
+  // Render is English by construction (F-9af291fa).
   beforeEach(() => {
-    writeFileSync(join(cwd, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: fixture\n  locale: en\n', 'utf8');
+    writeFileSync(join(cwd, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: fixture\n', 'utf8');
   });
 
   const ONE_ERROR: DriftReport = {

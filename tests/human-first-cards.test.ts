@@ -371,8 +371,10 @@ describe('AC-37b6d2d6 — plain English single source; instruction-led, not dete
       expect(hookSrc).not.toContain('user-locale');
     });
 
-    test('sanity — resolveLocale is still used elsewhere in the file (Stop/PostToolUse); this pin is scoped, not a whole-file ban', () => {
-      expect(hookSrc).toContain('resolveLocale');
+    test('post-pivot (F-9af291fa) — src/cli/hook.ts references resolveLocale nowhere at all', () => {
+      // The locale machinery is gone: hook text is an agent-delivered channel,
+      // and the host agent renders the user's language from the English source.
+      expect(hookSrc).not.toContain('resolveLocale');
     });
   });
 });

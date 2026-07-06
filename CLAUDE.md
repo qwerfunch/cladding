@@ -112,5 +112,5 @@ findings — fix them or update spec.
 
 **Speak the user's language** — when reporting to the user, translate
 cladding terms into plain words in the user's own language (a shard = a spec
-entry; a detector finding = what drifted and why it matters). Never lead with
-internal ids.
+entry) — including cladding's own gate and hook messages: relay them by
+meaning. Never lead with internal ids.

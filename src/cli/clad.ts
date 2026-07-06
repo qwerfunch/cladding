@@ -66,7 +66,7 @@ import {requiredOracleWorklist} from '../oracle/policy.js';
 import {loadSpec} from '../spec/load.js';
 import {pulse, type PulseKind} from '../ui/pulse.js';
 import {buildPanelModel, renderPanel} from '../ui/panel.js';
-import {featureLabel, gateLabel, haltMessage, plainLead, resolveLocale, type PlainLocale} from '../ui/softShell.js';
+import {featureLabel, gateLabel, haltMessage, plainLead} from '../ui/softShell.js';
 
 /** Handler for `clad serve`. Boots the MCP server over stdio. */
 export async function runServeCommand(opts: {cwd?: string}): Promise<void> {
@@ -489,8 +489,6 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
   // The stages here default cwd to '.', so prime the same root. Cleared in
   // finally — a session outliving the loop would serve stale findings.
   primeDetectorResultCache('.');
-  // Plain-first render locale, resolved once for the whole block (F-dd8dc994).
-  const locale = resolveLocale('.');
   try {
     for (const [name, run] of stages) {
       const r = run({}) as {
@@ -515,7 +513,7 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
       collected.push({stage: name, label, status, exitCode: r.exitCode, stderr: r.stderr, findings: r.findings});
       if (!opts.json) {
         pulse(pulseKindOf(status), label);
-        if (isBlocking(status)) printStageDetails(r, locale);
+        if (isBlocking(status)) printStageDetails(r);
       }
     }
   } finally {
@@ -811,16 +809,16 @@ function printStageDetails(
     stderr?: string;
     findings?: readonly {detector: string; severity: string; message: string; path?: string}[];
   },
-  locale: PlainLocale,
 ): void {
   if (r.findings && r.findings.length > 0) {
     const errors = r.findings.filter((f) => f.severity === 'error');
     const warns = r.findings.filter((f) => f.severity === 'warn');
     const surface = errors.length > 0 ? errors : warns;
-    // Plain-first (F-dd8dc994): the plain lead leads, path + detector id demoted
-    // to the tail. Truncation budget preserved on the (short) lead.
+    // Plain-first (F-dd8dc994): the plain English lead leads, path + detector id
+    // demoted to the tail; the host agent renders the user's own language
+    // (F-9af291fa). Truncation budget preserved on the (short) lead.
     for (const f of surface.slice(0, 3)) {
-      const lead = truncate(plainLead(f.detector, locale, f.message), 140);
+      const lead = truncate(plainLead(f.detector, f.message), 140);
       const where = f.path ? ` — ${f.path}` : '';
       process.stdout.write(`    ${lead}${where} [${f.detector}]\n`);
     }

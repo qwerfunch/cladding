@@ -47,7 +47,7 @@ import {dependSegment, formatWorkingSetCard, formatPushOneLiner, guardSegment, U
 import {estTokens} from '../optimizer/code-excerpt.js';
 import {loadSpec} from '../spec/load.js';
 import {WATCHED_EXTENSIONS} from '../stages/toolchain/language-config.js';
-import {driftNudge, plainFinding, plainLead, resolveLocale, stopBlockMessage} from '../ui/softShell.js';
+import {driftNudge, plainFinding, plainLead, stopBlockMessage} from '../ui/softShell.js';
 
 // --- shared helpers ----------------------------------------------------
 
@@ -421,16 +421,15 @@ function runStopGate(input: unknown, cwd: string): string {
     /* unwritable state dir → still block; demotion just won't persist */
   }
   recordEvent(cwd, 'stop_blocked', {count: failures.length, fingerprint});
-  // Plain-first render (F-dd8dc994): a plain lead per top finding, the machine
-  // detail (detector · path) demoted to a parenthetical tail, in the resolved
-  // locale. The fingerprint above hashes detector|path — message-free, so this
-  // render change cannot move it (AC-ad2a34e1).
-  const locale = resolveLocale(cwd);
+  // Plain-first render (F-dd8dc994): a plain English lead per top finding, the
+  // machine detail (detector · path) demoted to a parenthetical tail. The host
+  // agent renders the user's own language (F-9af291fa). The fingerprint above
+  // hashes detector|path — message-free, so this render cannot move it (AC-ad2a34e1).
   const examples = failures
     .slice(0, 2)
-    .map((f) => plainFinding(f, locale))
+    .map((f) => plainFinding(f))
     .join('; ');
-  return renderBlock(stopBlockMessage(failures.length, examples, locale));
+  return renderBlock(stopBlockMessage(failures.length, examples));
 }
 
 // --- PostToolUse — debounced drift nudge --------------------------------
@@ -1033,14 +1032,14 @@ function runPostToolUseDrift(input: unknown, cwd: string): string {
   const report = runDrift({cwd, profile: 'interactive'});
   const errors = report.findings.filter((f) => f.severity === 'error');
   const deferred = report.skippedDetectors?.length ? ` (+${report.skippedDetectors.length} deferred to commit)` : '';
-  // Plain-first render (F-dd8dc994): the plain lead leads; the detector id is
-  // demoted to a `(details: …)` tail; the deferred note is kept verbatim. The
-  // count is preserved. Unknown-detector fallback keeps the truncated message.
+  // Plain-first render (F-dd8dc994): the plain English lead leads; the detector
+  // id is demoted to a `(details: …)` tail; the deferred note is kept verbatim.
+  // The count is preserved. Unknown-detector fallback keeps the truncated
+  // message. The host agent renders the user's own language (F-9af291fa).
   let drift = '';
   if (errors.length > 0) {
-    const locale = resolveLocale(cwd);
-    const lead = plainLead(errors[0].detector, locale, truncate(errors[0].message, 140));
-    drift = driftNudge(errors.length, lead, errors[0].detector, deferred, locale);
+    const lead = plainLead(errors[0].detector, truncate(errors[0].message, 140));
+    drift = driftNudge(errors.length, lead, errors[0].detector, deferred);
   }
   return [card, drift].filter(Boolean).join('\n');
 }

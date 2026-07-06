@@ -38,8 +38,8 @@ let cwd: string;
 beforeEach(() => {
   cwd = mkdtempSync(join(tmpdir(), 'clad-hook-profile-'));
   // Both lanes only engage under cladding (F-c6a32fff): seed the master file.
-  // `locale: en` pins the plain-first render locale (F-dd8dc994).
-  writeFileSync(join(cwd, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: fixture\n  locale: en\n', 'utf8');
+  // Render is English by construction (F-9af291fa).
+  writeFileSync(join(cwd, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: fixture\n', 'utf8');
   driftStub.mockImplementation(() => DRIFT_CLEAN);
   archStub.mockImplementation(() => STAGE_PASS);
   secretStub.mockImplementation(() => STAGE_PASS);

@@ -310,13 +310,6 @@ export interface Project {
    */
   readonly intent_summary?: string;
   /**
-   * User-facing render locale for plain finding leads (Soft Shell). One of the
-   * shipped locales (`'en'` | `'ko'`); a free string is accepted and resolved
-   * leniently (unknown ⇒ env → en). Absent ⇒ `LANG`/`LC_ALL`, then `'en'`.
-   * Added v0.8.2 (F-dd8dc994).
-   */
-  readonly locale?: string;
-  /**
    * Opt-in: when true, every `status: done` AC must declare `oracle_refs`
    * (the SPEC_CONFORMANCE MANDATORY rule, EXHAUSTIVE). Default falsy → the
    * detector enforces only INTEGRITY of declared refs, staying inert on legacy

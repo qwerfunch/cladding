@@ -49,8 +49,10 @@ on it. planner writes spec, reviewer audits, developer implements.
 When you report progress to the user, translate cladding's vocabulary into
 plain words in the user's own language — a shard is a spec entry, an
 attestation is a signed sign-off, a detector finding is what drifted and why
-it matters. Never lead with an internal id (\`F-…\`, \`AC-…\`, \`stage_X.Y\`):
-name the feature and the plain outcome instead.
+it matters. This includes cladding's own gate and hook messages: relay them in
+the user's language, by meaning, rather than echoing the raw text. Never lead
+with an internal id (\`F-…\`, \`AC-…\`, \`stage_X.Y\`): name the feature and the
+plain outcome instead.
 
 ## More
 
@@ -83,8 +85,8 @@ findings — fix them or update spec.
 
 **Speak the user's language** — when reporting to the user, translate
 cladding terms into plain words in the user's own language (a shard = a spec
-entry; a detector finding = what drifted and why it matters). Never lead with
-internal ids.
+entry) — including cladding's own gate and hook messages: relay them by
+meaning. Never lead with internal ids.
 `;
 
 // v0.3.x markers that disappeared in v0.4.0. When detected in an existing

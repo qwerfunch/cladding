@@ -1,0 +1,31 @@
+id: F-9af291fa
+slug: instruction-led-language
+title: "Instruction-led language — one English source, the agent renders the user's language"
+status: done
+modules:
+  - src/ui/softShell.ts
+  - src/init/host-instructions.ts
+  - CLAUDE.md
+acceptance_criteria:
+  - id: AC-71ce42e5
+    ears: ubiquitous
+    text: "The Soft Shell catalog and surface templates shall carry exactly one clear English string per detector and per surface — no locale types, no locale resolution, no user-locale sidecar reads, no project.locale field — with the plain-lead-first render order unchanged."
+    notes: "## Why\n2026-07-06 user pivot: cladding must not force-transform output languages. Static multi-locale catalogs, detection heuristics, and locale packs are the wrong mechanism — hook messages are agent-delivered channels, and the LLM renders the user's language naturally when instructed. The reviewed English leads survive as the single translation source."
+    test_refs:
+      - tests/instruction-led-language.test.ts
+  - id: AC-ddb938fb
+    ears: ubiquitous
+    text: "The interpreter instruction shall explicitly cover relaying — the injected CLAUDE.md anchor and the AGENTS.md rule direct the agent to relay cladding's own gate and hook messages in the user's language, by meaning — with both freshness literals verbatim and the size guard respected (or deliberately raised with a dated rationale)."
+    notes: "## Why\nThe positive half of the pivot: language capability moves from shipped strings to the instruction layer, where it handles every language for free."
+    test_refs:
+      - tests/instruction-led-language.test.ts
+      - tests/claude-md-diet.test.ts
+      - tests/agent-interpreter-rule.test.ts
+  - id: AC-3f34759a
+    ears: unwanted
+    condition: "if any locale-machinery symbol (locale resolution, locale types, the user-locale sidecar, project.locale) reappears under src/ or tests/"
+    action: "fail the structural sweep"
+    response: "the pivot cannot silently regress"
+    text: "If locale machinery reappears in source or tests, the structural sweep shall fail."
+    test_refs:
+      - tests/instruction-led-language.test.ts

@@ -1,17 +1,23 @@
-// Cladding · unit tests · plain-first finding render + 4-locale catalog (F-dd8dc994)
+// Cladding · unit tests · plain-first finding render + English catalog (F-dd8dc994, F-9af291fa)
 //
 // Sibling home: tests/ui/softShell.test.ts pins the PRE-EXISTING softShell
 // exports (featureLabel/haltMessage/gateLabel); this file is the AC-owning
-// suite for the NEW plain-first-render surface the same module grew —
-// DETECTOR_PLAIN, plainLead/plainFinding, the three surface templates, and
-// resolveLocale. It complements (does not duplicate) the existing-pin fallout
-// already covered in tests/cli/hook.test.ts, hook-interactive-profile.test.ts,
-// clad.test.ts, and done.test.ts.
+// suite for the plain-first-render surface the same module grew —
+// DETECTOR_PLAIN, plainLead/plainFinding, and the three surface templates. It
+// complements (does not duplicate) the existing-pin fallout already covered in
+// tests/cli/hook.test.ts, hook-interactive-profile.test.ts, clad.test.ts, and
+// done.test.ts.
+//
+// 2026-07-06 pivot (F-9af291fa): cladding no longer ships or resolves a locale.
+// The catalog carries exactly ONE clear English string per detector; the host
+// agent, directed by the interpreter instruction, renders the user's own
+// language by meaning. The former locale-resolution priority-chain suite is
+// gone — there is no locale machinery left to test.
 //
 // AC map (spec/features/plain-first-finding-render-dd8dc994.yaml):
-//   AC-746969b3 — DETECTOR_PLAIN catalog completeness (all locales, no MCP names)
+//   AC-746969b3 — DETECTOR_PLAIN catalog completeness (English, no MCP names)
 //   AC-263adf79 — plain lead first, machine detail demoted to a tail, per site
-//   AC-25f77cec — resolveLocale priority chain, never throws
+//   AC-25f77cec — machine tails stay language-neutral; no locale detection/storage
 //   AC-ad2a34e1 — machine contracts (raw finding shape, stop-block fingerprint)
 //                 stay byte-compatible
 //
@@ -19,14 +25,11 @@
 // (scratchpad/uxlang/U2-brief.md item 3) specifies a `(details: DETECTOR)`
 // tail for the PostToolUse drift line ONLY — the Stop block's tail (via
 // plainFinding) is `(DETECTOR · path)`. Both are asserted below, each on its
-// own site; neither uses the other's format. See U2-verify.md for the
-// verification note against a later paraphrase that conflated the two.
+// own site; neither uses the other's format.
 //
 // The check-block render site (src/cli/clad.ts printStageDetails) has no
 // exported template of its own (unlike the other three) — its literal format
-// is pinned here via a source-text assertion, and proven live against a real
-// `clad check` subprocess in the external-validation transcript (U2-verify.md
-// part C.3).
+// is pinned here via a source-text assertion.
 
 import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -44,12 +47,9 @@ import {
   driftNudge,
   plainFinding,
   plainLead,
-  resolveLocale,
   stopBlockMessage,
-  type PlainLocale,
 } from '../src/ui/softShell.js';
 
-const LOCALES: readonly PlainLocale[] = ['en', 'ko', 'ja', 'zh'];
 const ROOT = process.cwd();
 
 // ─── Stop / PostToolUse integration fixtures (mirrors tests/cli/hook.test.ts's
@@ -96,36 +96,32 @@ describe('DETECTOR_PLAIN catalog completeness (AC-746969b3)', () => {
     expect(extra).toEqual([]);
   });
 
-  test('every registered detector has a non-empty lead in all four shipped locales', () => {
+  test('every registered detector has a non-empty English lead', () => {
     for (const name of names) {
-      for (const locale of LOCALES) {
-        const lead = DETECTOR_PLAIN[name][locale].lead;
-        expect(lead.trim().length, `${name}.${locale}.lead`).toBeGreaterThan(0);
-      }
+      const lead = DETECTOR_PLAIN[name].lead;
+      expect(lead.trim().length, `${name}.lead`).toBeGreaterThan(0);
     }
   });
 
-  test('no MCP tool name (or a clad_-shaped identifier) appears in any action string, in any locale', () => {
+  test('no MCP tool name (or a clad_-shaped identifier) appears in any action string', () => {
     // Dynamic needles derived from the LIVE MCP registry (src/serve/server.ts
     // TOOL_NAMES) plus a broad clad_-shape regex — a future clad_* tool is
     // covered automatically, nothing to update here when one is added.
     const registryNeedles = TOOL_NAMES.flatMap((t) => [t, t.replace(/^clad_/, '')]);
     const mcpShapePattern = /\bclad_[a-z_]+/;
     for (const name of names) {
-      for (const locale of LOCALES) {
-        const action = DETECTOR_PLAIN[name][locale].action;
-        if (!action) continue;
-        expect(action, `${name}.${locale}.action`).not.toMatch(mcpShapePattern);
-        for (const needle of registryNeedles) {
-          expect(action, `${name}.${locale}.action should not name "${needle}"`).not.toContain(needle);
-        }
+      const action = DETECTOR_PLAIN[name].action;
+      if (!action) continue;
+      expect(action, `${name}.action`).not.toMatch(mcpShapePattern);
+      for (const needle of registryNeedles) {
+        expect(action, `${name}.action should not name "${needle}"`).not.toContain(needle);
       }
     }
   });
 
-  test('actions are CLI-friendly: at least one English action names a `clad <verb>` command', () => {
-    const enActions = names.map((n) => DETECTOR_PLAIN[n].en.action).filter((a): a is string => Boolean(a));
-    expect(enActions.some((a) => a.includes('clad '))).toBe(true);
+  test('actions are CLI-friendly: at least one action names a `clad <verb>` command', () => {
+    const actions = names.map((n) => DETECTOR_PLAIN[n].action).filter((a): a is string => Boolean(a));
+    expect(actions.some((a) => a.includes('clad '))).toBe(true);
   });
 });
 
@@ -138,101 +134,71 @@ describe('plainFinding render shape (AC-263adf79)', () => {
     message: "feature F-x declares module 'src/auth/login.ts' but the file does not exist",
   };
 
-  test('en: the plain lead comes first; detector + path are a parenthetical tail', () => {
-    const out = plainFinding(finding, 'en');
-    const lead = DETECTOR_PLAIN.MISSING_IMPLEMENTATION.en.lead;
+  test('the plain lead comes first; detector + path are a parenthetical tail', () => {
+    const out = plainFinding(finding);
+    const lead = DETECTOR_PLAIN.MISSING_IMPLEMENTATION.lead;
     expect(out).toBe(`${lead} (MISSING_IMPLEMENTATION · src/auth/login.ts)`);
     expect(out.indexOf(lead)).toBe(0);
     expect(out.indexOf('MISSING_IMPLEMENTATION')).toBeGreaterThan(lead.length);
     expect(out.indexOf('src/auth/login.ts')).toBeGreaterThan(out.indexOf('MISSING_IMPLEMENTATION'));
   });
 
-  test('ko: same order, localized lead', () => {
-    const out = plainFinding(finding, 'ko');
-    const lead = DETECTOR_PLAIN.MISSING_IMPLEMENTATION.ko.lead;
-    expect(out).toBe(`${lead} (MISSING_IMPLEMENTATION · src/auth/login.ts)`);
-    expect(out.indexOf(lead)).toBe(0);
-  });
-
   test('the raw machine message never leaks into the render when a catalog row exists', () => {
-    expect(plainFinding(finding, 'en')).not.toContain(finding.message);
+    expect(plainFinding(finding)).not.toContain(finding.message);
   });
 
   test('a finding with no catalog row falls back to its raw message as the lead — never swallowed', () => {
     const synthetic = {detector: 'ARCH', path: 'stage', message: 'layer breach: cli → detectors'};
-    expect(plainFinding(synthetic, 'en')).toBe('layer breach: cli → detectors (ARCH · stage)');
+    expect(plainFinding(synthetic)).toBe('layer breach: cli → detectors (ARCH · stage)');
   });
 
   test('a finding with no path omits the middle dot, keeping just the detector in the tail', () => {
     const noPath = {detector: 'HARNESS_INTEGRITY', message: 'raw'};
-    expect(plainFinding(noPath, 'en')).toBe(`${DETECTOR_PLAIN.HARNESS_INTEGRITY.en.lead} (HARNESS_INTEGRITY)`);
+    expect(plainFinding(noPath)).toBe(`${DETECTOR_PLAIN.HARNESS_INTEGRITY.lead} (HARNESS_INTEGRITY)`);
   });
 });
 
 describe('plainLead fallback for a detector with no catalog row', () => {
   test('falls back to the supplied raw message', () => {
-    expect(plainLead('NOT_A_REAL_DETECTOR', 'en', 'a raw message')).toBe('a raw message');
+    expect(plainLead('NOT_A_REAL_DETECTOR', 'a raw message')).toBe('a raw message');
   });
 
   test('falls back to the detector id itself when no fallback message is given either', () => {
-    expect(plainLead('NOT_A_REAL_DETECTOR', 'en')).toBe('NOT_A_REAL_DETECTOR');
+    expect(plainLead('NOT_A_REAL_DETECTOR')).toBe('NOT_A_REAL_DETECTOR');
   });
 
   test('a long fallback message is clipped to the render budget with an ellipsis', () => {
     const long = 'x'.repeat(300);
-    const out = plainLead('NOT_A_REAL_DETECTOR', 'en', long);
+    const out = plainLead('NOT_A_REAL_DETECTOR', long);
     expect(out.length).toBeLessThanOrEqual(160);
     expect(out.endsWith('…')).toBe(true);
   });
 
   test('a catalog hit ignores the fallback message entirely', () => {
-    expect(plainLead('AC_DRIFT', 'en', 'ignored raw text')).toBe(DETECTOR_PLAIN.AC_DRIFT.en.lead);
+    expect(plainLead('AC_DRIFT', 'ignored raw text')).toBe(DETECTOR_PLAIN.AC_DRIFT.lead);
   });
 });
 
 describe('surface templates — stopBlockMessage / driftNudge / doneRefusalLead', () => {
-  test('stopBlockMessage (en): singular "1 thing" vs plural "N things"', () => {
-    expect(stopBlockMessage(1, 'EX', 'en')).toBe(
+  test('stopBlockMessage: singular "1 thing" vs plural "N things"', () => {
+    expect(stopBlockMessage(1, 'EX')).toBe(
       "cladding paused before finishing: 1 thing doesn't match the spec yet — e.g. EX. In-progress work? Stop once more to snooze.",
     );
-    expect(stopBlockMessage(2, 'EX', 'en')).toBe(
+    expect(stopBlockMessage(2, 'EX')).toBe(
       "cladding paused before finishing: 2 things don't match the spec yet — e.g. EX. In-progress work? Stop once more to snooze.",
     );
   });
 
-  test('stopBlockMessage: ko/ja/zh localize the wrapper sentence, not just the example', () => {
-    const koOut = stopBlockMessage(1, 'EX', 'ko');
-    const jaOut = stopBlockMessage(1, 'EX', 'ja');
-    const zhOut = stopBlockMessage(1, 'EX', 'zh');
-    expect(koOut).toContain('cladding이 마무리를');
-    expect(jaOut).toContain('cladding が仕上げ');
-    expect(zhOut).toContain('cladding 在收尾');
-    for (const out of [koOut, jaOut, zhOut]) expect(out).toContain('EX');
-  });
-
-  test('driftNudge (en): exact wrapper, "(details: DETECTOR)" tail, deferred note kept verbatim', () => {
-    expect(driftNudge(3, 'lead text', 'AC_DRIFT', ' (+2 deferred to commit)', 'en')).toBe(
+  test('driftNudge: exact wrapper, "(details: DETECTOR)" tail, deferred note kept verbatim', () => {
+    expect(driftNudge(3, 'lead text', 'AC_DRIFT', ' (+2 deferred to commit)')).toBe(
       'cladding drift: 3 error(s) — lead text (details: AC_DRIFT) (+2 deferred to commit)',
     );
   });
 
-  test('driftNudge: ko/ja/zh localize the wrapper sentence, keep the (details: …) tail literal', () => {
-    const koOut = driftNudge(1, 'LEAD', 'X', '', 'ko');
-    const jaOut = driftNudge(1, 'LEAD', 'X', '', 'ja');
-    const zhOut = driftNudge(1, 'LEAD', 'X', '', 'zh');
-    expect(koOut).toContain('cladding 드리프트');
-    expect(jaOut).toContain('cladding ドリフト');
-    expect(zhOut).toContain('cladding 偏移');
-    for (const out of [koOut, jaOut, zhOut]) {
-      expect(out).toContain('LEAD');
-      expect(out).toContain('(details: X)');
-    }
-  });
-
-  test('doneRefusalLead: all four shipped locales are non-empty and distinct', () => {
-    const leads = LOCALES.map((l) => doneRefusalLead(l));
-    expect(new Set(leads).size).toBe(4);
-    for (const lead of leads) expect(lead.length).toBeGreaterThan(0);
+  test('doneRefusalLead: the English lead is non-empty and language-neutral thereafter', () => {
+    const lead = doneRefusalLead();
+    expect(lead.length).toBeGreaterThan(0);
+    expect(lead).toBe('the completion check found problems above — fix them and re-run');
   });
 });
 
@@ -240,16 +206,14 @@ describe('check-block render site — format pin (src/cli/clad.ts printStageDeta
   // printStageDetails is private to clad.ts (not exported), and clad.test.ts's
   // heavy stage-runner mock only guards it against throwing — it does not
   // assert the render shape. This pins the literal template so the
-  // `<lead> — <path> [<DETECTOR>]` order cannot silently regress; the SAME
-  // format is proven live against a real subprocess in the external
-  // validation transcript (U2-verify.md, part C.3).
-  test('the block-line template calls plainLead(detector, locale, message) and writes "… [${detector}]"', () => {
+  // `<lead> — <path> [<DETECTOR>]` order cannot silently regress.
+  test('the block-line template calls plainLead(detector, message) and writes "… [${detector}]"', () => {
     const src = readFileSync(join(ROOT, 'src/cli/clad.ts'), 'utf8');
     const start = src.indexOf('function printStageDetails');
     expect(start).toBeGreaterThan(-1);
     const nextFn = src.indexOf('\nfunction ', start + 1);
     const body = src.slice(start, nextFn === -1 ? undefined : nextFn);
-    expect(body).toContain('plainLead(f.detector, locale, f.message)');
+    expect(body).toContain('plainLead(f.detector, f.message)');
     expect(body).toMatch(/\$\{lead\}\$\{where\}\s*\[\$\{f\.detector\}\]/);
   });
 });
@@ -260,10 +224,9 @@ describe('hook integration — Stop + PostToolUse render sites', () => {
   beforeEach(() => {
     cwd = mkdtempSync(join(tmpdir(), 'clad-plain-hook-'));
     // Stop/PostToolUse only engage under cladding (F-c6a32fff): seed the
-    // master file. `locale: en` pins the render regardless of the developer's
-    // own LANG (mirrors hook.test.ts's fixture convention; kept minimal — no
-    // index.yaml, neither site under test reads it).
-    writeFileSync(join(cwd, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: fixture\n  locale: en\n', 'utf8');
+    // master file. Render is English by construction now (F-9af291fa) — no
+    // locale field. Kept minimal — no index.yaml, neither site reads it.
+    writeFileSync(join(cwd, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: fixture\n', 'utf8');
     driftStub.mockImplementation(() => DRIFT_CLEAN);
     archStub.mockImplementation(() => STAGE_PASS);
     secretStub.mockImplementation(() => STAGE_PASS);
@@ -291,7 +254,7 @@ describe('hook integration — Stop + PostToolUse render sites', () => {
       const out = runHookEvent('Stop', {stop_hook_active: false}, cwd);
       const doc = JSON.parse(out) as {decision: string; reason: string};
       expect(doc.decision).toBe('block');
-      const lead = DETECTOR_PLAIN.MISSING_IMPLEMENTATION.en.lead;
+      const lead = DETECTOR_PLAIN.MISSING_IMPLEMENTATION.lead;
       expect(doc.reason).toContain(lead);
       expect(doc.reason.indexOf('(MISSING_IMPLEMENTATION · src/auth/login.ts)')).toBeGreaterThan(doc.reason.indexOf(lead));
     });
@@ -325,7 +288,7 @@ describe('hook integration — Stop + PostToolUse render sites', () => {
         findings: [{detector: 'AC_DRIFT', severity: 'error', message: 'raw mechanism text, never shown'}],
       }));
       const out = runHookEvent('PostToolUse', {tool_name: 'Edit', tool_input: {file_path: 'src/foo.ts'}}, cwd);
-      expect(out).toContain(DETECTOR_PLAIN.AC_DRIFT.en.lead);
+      expect(out).toContain(DETECTOR_PLAIN.AC_DRIFT.lead);
       expect(out).toContain('(details: AC_DRIFT)');
       expect(out).not.toContain('raw mechanism text');
     });
@@ -348,95 +311,26 @@ describe('done refusal — plain lead prepended, machine tail preserved', () => 
   test('a RED gate prepends the English plain lead and keeps the exact machine-tail pins', () => {
     const res = runDone(dir, 'F-abc123', {checkStages: () => ({worst: 1})});
     expect(res.ok).toBe(false);
-    expect(res.reason.startsWith(doneRefusalLead('en'))).toBe(true);
-    expect(res.reason).toContain('not GREEN');
-    expect(res.reason).toContain('status left at');
-  });
-
-  test('project.locale: ko relocalizes ONLY the lead; the machine tail stays the language-neutral pin', () => {
-    writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: fixture\n  locale: ko\n', 'utf8');
-    const res = runDone(dir, 'F-abc123', {checkStages: () => ({worst: 1})});
-    expect(res.reason.startsWith(doneRefusalLead('ko'))).toBe(true);
+    expect(res.reason.startsWith(doneRefusalLead())).toBe(true);
     expect(res.reason).toContain('not GREEN');
     expect(res.reason).toContain('status left at');
   });
 });
 
-// ─── AC-25f77cec — locale resolution priority chain, never throws ─────────
+// ─── AC-25f77cec — machine tails stay language-neutral, no locale machinery ─
 
-describe('resolveLocale priority chain (AC-25f77cec)', () => {
-  let dir: string;
-
-  beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), 'clad-locale-'));
+describe('machine tails stay language-neutral (AC-25f77cec, 2026-07-06 pivot)', () => {
+  test('the plainFinding tail is the language-neutral (DETECTOR · path) pin regardless of the lead', () => {
+    const finding = {detector: 'MISSING_IMPLEMENTATION', path: 'src/x.ts', message: 'raw'};
+    const out = plainFinding(finding);
+    // The tail — everything from the opening paren on — carries only the
+    // detector id and path, no natural-language wording that could vary.
+    const tail = out.slice(out.indexOf('('));
+    expect(tail).toBe('(MISSING_IMPLEMENTATION · src/x.ts)');
   });
 
-  afterEach(() => {
-    rmSync(dir, {recursive: true, force: true});
-    vi.unstubAllEnvs();
-  });
-
-  function writeSpecLocale(locale: string): void {
-    writeFileSync(join(dir, 'spec.yaml'), `schema: "0.1"\nproject:\n  name: fixture\n  locale: ${locale}\n`, 'utf8');
-  }
-  function writeSidecar(locale: string): void {
-    mkdirSync(join(dir, '.cladding'), {recursive: true});
-    writeFileSync(join(dir, '.cladding', 'user-locale'), `${locale}\n`, 'utf8');
-  }
-
-  test('the .cladding/user-locale sidecar wins over project.locale', () => {
-    writeSpecLocale('en');
-    writeSidecar('ja');
-    vi.stubEnv('LANG', 'ko_KR.UTF-8');
-    expect(resolveLocale(dir)).toBe('ja');
-  });
-
-  test('project.locale wins over LANG when there is no sidecar', () => {
-    writeSpecLocale('zh');
-    vi.stubEnv('LANG', 'ko_KR.UTF-8');
-    expect(resolveLocale(dir)).toBe('zh');
-  });
-
-  test('LANG=ja_JP resolves to ja when neither sidecar nor project.locale is set', () => {
-    writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: fixture\n', 'utf8');
-    vi.stubEnv('LANG', 'ja_JP.UTF-8');
-    vi.stubEnv('LC_ALL', '');
-    expect(resolveLocale(dir)).toBe('ja');
-  });
-
-  test('a garbage sidecar value falls through to project.locale', () => {
-    writeSpecLocale('ko');
-    writeSidecar('xx-not-a-locale');
-    expect(resolveLocale(dir)).toBe('ko');
-  });
-
-  test('a garbage project.locale falls through to LANG', () => {
-    writeSpecLocale('not-a-real-locale');
-    vi.stubEnv('LANG', 'zh_CN.UTF-8');
-    expect(resolveLocale(dir)).toBe('zh');
-  });
-
-  test('garbage sidecar AND garbage project.locale fall through together, past an empty LANG, to en', () => {
-    writeSpecLocale('also-not-real');
-    writeSidecar('still-not-real');
-    vi.stubEnv('LANG', '');
-    vi.stubEnv('LC_ALL', '');
-    expect(resolveLocale(dir)).toBe('en');
-  });
-
-  test('a directory with no git, no spec.yaml, and no LANG resolves to en without throwing', () => {
-    vi.stubEnv('LANG', '');
-    vi.stubEnv('LC_ALL', '');
-    expect(() => resolveLocale(dir)).not.toThrow();
-    expect(resolveLocale(dir)).toBe('en');
-  });
-
-  test('an unparseable spec.yaml falls through safely instead of throwing', () => {
-    writeFileSync(join(dir, 'spec.yaml'), 'project: {locale: ko\n', 'utf8'); // unterminated flow mapping
-    vi.stubEnv('LANG', '');
-    vi.stubEnv('LC_ALL', '');
-    expect(() => resolveLocale(dir)).not.toThrow();
-    expect(resolveLocale(dir)).toBe('en');
+  test('the driftNudge (details: …) tail is the raw detector id, not a translated phrase', () => {
+    expect(driftNudge(1, 'LEAD', 'AC_DRIFT', '')).toContain('(details: AC_DRIFT)');
   });
 });
 
@@ -474,7 +368,7 @@ describe('contract stability — the raw finding shape stays machine, not plain 
     expect(hit!.message).toBe("feature F-aaa111 declares module 'src/nonexistent.ts' but the file does not exist");
     // The plain-render catalog lead is a DIFFERENT sentence — proves the
     // machine message was never swapped for the human lead at the source.
-    expect(hit!.message).not.toBe(DETECTOR_PLAIN.MISSING_IMPLEMENTATION.en.lead);
-    expect(hit!.message).not.toContain(DETECTOR_PLAIN.MISSING_IMPLEMENTATION.en.lead);
+    expect(hit!.message).not.toBe(DETECTOR_PLAIN.MISSING_IMPLEMENTATION.lead);
+    expect(hit!.message).not.toContain(DETECTOR_PLAIN.MISSING_IMPLEMENTATION.lead);
   });
 });

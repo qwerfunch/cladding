@@ -175,6 +175,7 @@ features:
   F-987be195: {slug: docs-prune, status: done, modules: 4}
   F-99c6e5: {slug: cladding-self-fixes, status: done, modules: 13}
   F-9a3b61: {slug: ab-ext-uncommit-demos, status: done, modules: 3}
+  F-9af291fa: {slug: instruction-led-language, status: done, modules: 3}
   F-9b643e: {slug: scan-conventions, status: done, modules: 5}
   F-9d168287: {slug: ears-complex-pattern, status: done, modules: 6}
   F-a04cd9: {slug: ac-hash-ids, status: done, modules: 3}

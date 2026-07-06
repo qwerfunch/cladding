@@ -11,8 +11,8 @@ modules:
 acceptance_criteria:
   - id: AC-746969b3
     ears: ubiquitous
-    text: "Every detector shall have a plain-language lead (and optional user action) in BOTH shipped locales (en, ko) in the Soft Shell catalog, enforced by a completeness test against the live detector registry — CLI commands may appear in actions, MCP tool names may not."
-    notes: "## Why\nAdopters meet raw DETECTOR_ID + mechanism text in the host UI. The Soft Shell layer is the declared human-render boundary and the glossary already carries per-detector plain + KO glosses — this wires the two loudest emitters through the boundary they were bypassing. Locale-direct rendering is required because hook text reaches the user raw, before any agent can translate."
+    text: "Every detector shall have exactly one clear plain-English lead (and optional user action) in the Soft Shell catalog, enforced by a completeness test against the live detector registry — CLI commands may appear in actions, MCP tool names may not."
+    notes: "## Why\nAdopters meet raw DETECTOR_ID + mechanism text in the host UI. The Soft Shell layer is the declared human-render boundary and the glossary already carries per-detector plain glosses — this wires the two loudest emitters through the boundary they were bypassing.\n\n## 2026-07-06 pivot (F-9af291fa)\nThe catalog carries exactly one clear English string per detector; the host agent renders the user's language via the interpreter instruction. cladding no longer ships or resolves a locale — the reviewed English leads are the single translation source."
     test_refs:
       - tests/plain-render.test.ts
   - id: AC-263adf79
@@ -20,12 +20,13 @@ acceptance_criteria:
     condition: "when the Stop hook blocks, the after-edit drift line prints, the check block renders a finding, or done refuses"
     action: "lead with the locale-resolved plain sentence and demote detector id and path to a parenthetical tail"
     response: "a first-time user understands what happened and what to do without knowing any internal vocabulary"
-    text: "When the four human render sites emit a finding, the plain lead shall come first and the machine detail shall follow as a tail — in the resolved locale."
+    text: "When the four human render sites emit a finding, the plain lead shall come first and the machine detail shall follow as a tail."
     test_refs:
       - tests/plain-render.test.ts
   - id: AC-25f77cec
     ears: ubiquitous
-    text: "Locale resolution shall be: spec.yaml project.locale (new optional field) → LANG/LC_ALL environment → en; resolution never throws and machine tails stay language-neutral."
+    text: "Machine tails (detector id + path) shall stay language-neutral, and no locale detection or storage shall exist — no locale resolution, no locale type, no user-locale sidecar, no project.locale field."
+    notes: "## Why\nThe 2026-07-06 pivot (F-9af291fa) removed the multi-locale catalog and the locale-resolution chain. cladding ships one clear English source; the host agent, directed by the interpreter instruction, renders the user's own language by meaning. This AC now guards the ABSENCE of locale machinery and the language-neutrality of machine tails, in place of the former resolution priority chain."
     test_refs:
       - tests/plain-render.test.ts
   - id: AC-ad2a34e1
