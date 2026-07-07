@@ -61,8 +61,8 @@ export interface RefineReport {
 
 /**
  * Handler for `clad clarify [answer...]`. The positional argument is
- * joined with spaces so users can pass natural-language answers
- * without quoting: `clad clarify 법인 사업자만 (개인사업자 제외)`.
+ * joined with spaces so users can pass natural-language answers in any
+ * language without quoting: `clad clarify B2B only (no sole proprietors)`.
  *
  * Exit codes:
  *   0 — answer accepted (or no-op when state is already `status: done`)
@@ -202,20 +202,20 @@ export async function runClarifyCommand(
   for (const p of proposals) pulse('note', 'proposal', p);
 
   if (refined.clarifyingQuestions.length > 0) {
-    process.stdout.write('\n💡 다음 질문:\n');
+    process.stdout.write('\n💡 Next questions:\n');
     for (const [i, q] of refined.clarifyingQuestions.entries()) {
       process.stdout.write(`   ${i + 1}. ${q}\n`);
     }
     const remaining = updated.qa.filter((q) => q.answer === null);
     if (remaining.length > 0) {
-      process.stdout.write(`\n남은 질문: ${remaining.length} 개 · \`clad clarify <답변>\` 으로 계속 진행.\n\n`);
+      process.stdout.write(`\n${remaining.length} question(s) left · continue with \`clad clarify <answer>\`.\n\n`);
     }
   } else if (updated.status === 'done') {
-    process.stdout.write('\n✓ 모든 질문에 답변 완료 — 온보딩 종료. state.yaml status: done.\n\n');
+    process.stdout.write('\n✓ All questions answered — onboarding complete. state.yaml status: done.\n\n');
   } else {
     const remaining = updated.qa.filter((q) => q.answer === null);
     if (remaining.length > 0) {
-      process.stdout.write(`\n남은 질문: ${remaining.length} 개. \`clad clarify <답변>\` 으로 계속 진행.\n\n`);
+      process.stdout.write(`\n${remaining.length} question(s) left. continue with \`clad clarify <answer>\`.\n\n`);
     }
   }
 

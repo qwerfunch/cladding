@@ -415,39 +415,39 @@ function pushActivationHint(
     case 'claude': {
       const a = activation?.claude;
       if (a?.attempted && a.success) {
-        lines.push('     ↳ 활성화: ✓ claude plugin marketplace add + install 자동 완료 (Claude Code 재시작 시 적용)');
+        lines.push('     ↳ Activate: ✓ claude plugin marketplace add + install done automatically (applies after Claude Code restart)');
       } else if (a?.attempted && !a.success) {
-        lines.push('     ↳ 활성화: ✗ 자동 시도 실패 — 수동:');
+        lines.push('     ↳ Activate: ✗ auto attempt failed — manual:');
         lines.push('       `claude plugin marketplace add ~/.claude/plugins/cladding`');
-        lines.push('       후 `claude plugin install claude-code@cladding --scope user`');
+        lines.push('       then `claude plugin install claude-code@cladding --scope user`');
       } else {
-        lines.push('     ↳ 활성화 (claude binary 없음): 수동:');
+        lines.push('     ↳ Activate (no claude binary): manual:');
         lines.push('       `claude plugin marketplace add ~/.claude/plugins/cladding`');
-        lines.push('       후 `claude plugin install claude-code@cladding --scope user`');
+        lines.push('       then `claude plugin install claude-code@cladding --scope user`');
       }
       break;
     }
     case 'gemini': {
       const a = activation?.gemini;
       if (a?.attempted && a.success) {
-        lines.push('     ↳ 활성화: ✓ gemini extensions link 자동 완료 (Gemini CLI 재시작 시 적용)');
+        lines.push('     ↳ Activate: ✓ gemini extensions link done automatically (applies after Gemini CLI restart)');
       } else if (a?.attempted && !a.success) {
-        lines.push('     ↳ 활성화: ✗ 자동 시도 실패 — 수동:');
+        lines.push('     ↳ Activate: ✗ auto attempt failed — manual:');
         lines.push('       `gemini extensions link ~/.gemini/extensions/cladding`');
       } else {
-        lines.push('     ↳ 활성화 (gemini binary 없음): 수동:');
+        lines.push('     ↳ Activate (no gemini binary): manual:');
         lines.push('       `gemini extensions link ~/.gemini/extensions/cladding`');
       }
       break;
     }
     case 'codex-skills':
-      lines.push('     ↳ Codex CLI 가 ~/.agents/skills/ 자동 인식 (재시작 시 적용)');
+      lines.push('     ↳ Codex CLI auto-detects ~/.agents/skills/ (applies after restart)');
       break;
     case 'codex-mcp':
-      lines.push('     ↳ TOML entry 자체가 등록 — 별도 활성화 불필요');
+      lines.push('     ↳ the TOML entry itself registers it — no separate activation needed');
       break;
     case 'cursor':
-      lines.push('     ↳ ~/.cursor/mcp.json 자체가 등록 — Cursor 재시작 시 적용');
+      lines.push('     ↳ ~/.cursor/mcp.json itself registers it — applies after Cursor restart');
       break;
   }
 }
@@ -462,7 +462,7 @@ function printReport(
   process.stdout.write(renderSetupReport(result, detection, activation) + '\n');
 }
 
-/** Pure renderer for the setup report (AC-010 — the numbered 다음 단계 block).
+/** Pure renderer for the setup report (AC-010 — the numbered "Next steps" block).
  * Separated from printReport so the guidance contract is unit-testable. */
 export function renderSetupReport(
   result: SetupResult,
@@ -506,7 +506,7 @@ export function renderSetupReport(
   if (wiredCount === detectedCount && detectedCount > 0) {
     lines.push(`${wiredCount}/${detectedCount} detected channels wired. Status: ${result.statusFile}`);
   } else if (detectedCount === 0) {
-    lines.push('AI 도구가 감지되지 않았습니다. Claude Code / Codex / Gemini CLI / Cursor 중 하나라도 설치 후 다시 실행하세요.');
+    lines.push('No AI tools detected. Install one of Claude Code / Codex / Gemini CLI / Cursor, then run this again.');
   } else {
     lines.push(`${wiredCount}/${detectedCount} detected channels wired (some skipped/failed). Status: ${result.statusFile}`);
   }
@@ -515,11 +515,11 @@ export function renderSetupReport(
     lines.push(`(version change detected: ${result.last_setup_version} → ${result.cladding_version})`);
   }
   lines.push('');
-  lines.push('다음 단계:');
-  lines.push('  1. AI 도구 (Claude Code / Codex / Gemini / Cursor) 를 재시작');
-  lines.push('  2. 프로젝트 디렉토리로 이동');
-  lines.push('  3. /cladding init "..." 입력 (LLM 안에서) 또는 `clad init "..."` (terminal)');
-  lines.push('  4. 개발 시작 — cladding 이 매 commit 마다 spec ↔ 코드 동기 자동 검사');
+  lines.push('Next steps:');
+  lines.push('  1. Restart your AI tool (Claude Code / Codex / Gemini / Cursor)');
+  lines.push('  2. Open the project directory');
+  lines.push('  3. Type /cladding init "..." (inside the LLM) or `clad init "..."` (terminal)');
+  lines.push('  4. Start building — cladding checks that spec ↔ code stay in sync on every commit');
   return lines.join('\n');
 }
 

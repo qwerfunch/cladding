@@ -143,7 +143,7 @@ export async function runInitCommand(
   // refine the spec. The questions are calibrated to product-owner
   // vocabulary — no implementation jargon.
   if (result.clarifyingQuestions && result.clarifyingQuestions.length > 0) {
-    process.stdout.write('\n💡 다음 정보가 있으면 더 정확한 스펙이 됩니다:\n');
+    process.stdout.write('\n💡 A few more details would sharpen the spec:\n');
     for (const [i, q] of result.clarifyingQuestions.entries()) {
       process.stdout.write(`   ${i + 1}. ${q}\n`);
     }
@@ -156,10 +156,10 @@ export async function runInitCommand(
     // power users who skip the chat flow.
     const greenfield = result.created.some((c) => c === 'docs/conventions.md');
     if (greenfield) {
-      process.stdout.write('\n💡 Tip: 더 정확한 스캐폴드를 원하시면\n');
+      process.stdout.write('\n💡 Tip: for a more precise scaffold, describe the project:\n');
       process.stdout.write('   clad init <project description>\n');
-      process.stdout.write('   예: clad init 결제 SaaS for B2B\n');
-      process.stdout.write('   기존 seeds 는 .cladding/scan/*.proposal 로 분기됩니다.\n\n');
+      process.stdout.write('   e.g. clad init payment SaaS for B2B\n');
+      process.stdout.write('   The existing seeds divert to .cladding/scan/*.proposal.\n\n');
     }
   }
 
@@ -949,7 +949,7 @@ export function createProgram(): Command {
     .command('init [intent...]')
     .description(
       'Scaffold a cladding workspace. Pass a free-text project description as positional argument ' +
-        '(e.g. `clad init 결제 SaaS for B2B`) to drive intent-aware onboarding — the LLM dispatcher then ' +
+        '(e.g. `clad init payment SaaS for B2B` — free text in any language) to drive intent-aware onboarding — the LLM dispatcher then ' +
         'produces domain-aware capabilities/architecture/project-context plus product-level follow-up questions. ' +
         'Bare `clad init` keeps the v0.3.42 behaviour (greenfield seeds, or observed scan when ≥3 source files exist).',
     )
@@ -1175,7 +1175,7 @@ export function createProgram(): Command {
     .command('clarify [answer...]')
     .description(
       'Advance the onboarding Q&A loop. Pass the user\'s answer to the next pending question as a positional ' +
-        '(no quotes needed, e.g. `clad clarify 법인 사업자만`); the LLM refines spec/docs based on the full Q-A ' +
+        '(no quotes needed, free text in any language, e.g. `clad clarify B2B only`); the LLM refines spec/docs based on the full Q-A ' +
         'history and may emit new follow-up questions. Reads/writes `.cladding/onboarding/state.yaml`. Requires ' +
         '`clad init <intent>` to have started a session first.',
     )

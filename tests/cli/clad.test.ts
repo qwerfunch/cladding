@@ -213,7 +213,11 @@ describe('cli/clad — handler exports', () => {
       intent: '결제 SaaS for B2B',
     });
     const stdout = stdoutSpy.mock.calls.map((c: readonly unknown[]) => String(c[0])).join('');
-    expect(stdout).toContain('💡 다음 정보가 있으면');
+    // cladding's own framing text is English single-source (F-5cac007a); the
+    // LLM-generated clarifying questions still flow through in the user's
+    // language (Korean here) — proving intent data is language-preserving
+    // while the framing is not hardcoded.
+    expect(stdout).toContain('💡 A few more details would sharpen the spec:');
     expect(stdout).toContain('주 사용자가 개인? 사업자?');
   });
 

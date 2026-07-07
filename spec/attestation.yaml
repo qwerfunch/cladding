@@ -105,7 +105,7 @@ attested_modules:
   skills/serve/SKILL.md: 4cee65dfb691e3b0
   skills/status/SKILL.md: b3cb6e7a12bf4023
   skills/sync/SKILL.md: 709c20212aa5627e
-  spec.yaml: c5fdad620ca75da1
+  spec.yaml: 065ceb6fe3da6b0a
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: c5d911049fbdcd48
   spec/features/: a4d0f0eb87fed960
@@ -138,8 +138,8 @@ attested_modules:
   src/cli: a4d0f0eb87fed960
   src/cli/benchmark.ts: 77f84d2a898d724f
   src/cli/changelog.ts: 2de1adb009b89ab4
-  src/cli/clad.ts: 6b5b422db9865978
-  src/cli/clarify.ts: 0699edcdde49112b
+  src/cli/clad.ts: 5e4de3ad594dba81
+  src/cli/clarify.ts: ff084951de081592
   src/cli/doctor-hosts.ts: 1ad79105b47fd8e5
   src/cli/doctor.ts: b98b955fe75e7f7e
   src/cli/done.ts: ad2b2d49034296bd
@@ -193,7 +193,7 @@ attested_modules:
   src/hitl/identity.ts: 52ff84aa666f1dab
   src/init/git-hook.ts: 4e02f177b3764ae8
   src/init/host-instructions.ts: f6d10695ef0c4763
-  src/init/host-setup.ts: 7204682817a119f1
+  src/init/host-setup.ts: ee6bca9c8fbc2fb2
   src/optimizer: a4d0f0eb87fed960
   src/optimizer/code-excerpt.ts: e2c4598efcd28d2a
   src/optimizer/context-slice.ts: b5864aaed1e7ae48
@@ -316,7 +316,7 @@ attested_modules:
   tests/adapters/transport.test.ts: 68f22e9e8df7b813
   tests/agents/loader.test.ts: a7df7b1c9a95d37d
   tests/cli/benchmark.test.ts: b4a87289605ee75f
-  tests/cli/clad.test.ts: 0455c3b6ca5a1163
+  tests/cli/clad.test.ts: e91ef5794389fc6a
   tests/cli/gate-golden-matrix.test.ts: 39cf615407a55abe
   tests/cli/init.test.ts: 3428a89708fc9330
   tests/cli/intent-onboarding.test.ts: 0681b98ce2e74c22
@@ -546,6 +546,7 @@ attested_features:
   F-59f093: ok
   F-5b188856: ok
   F-5b9f9f: ok
+  F-5cac007a: ok
   F-5d3ed2: ok
   F-5f6b45: ok
   F-63b989e5: ok
