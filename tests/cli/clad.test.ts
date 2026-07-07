@@ -551,7 +551,7 @@ describe('cli/clad — createProgram', () => {
 
   test('program version matches current package version', () => {
     const program = clad.createProgram();
-    expect(program.version()).toBe('0.8.1');
+    expect(program.version()).toBe('0.8.2');
   });
 });
 

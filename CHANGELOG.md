@@ -5,7 +5,17 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.8.2] — Human-first diagnostics + init/scan correctness (2026-07-07)
+
+Two threads land together: the "speak the user's language" UX pivot (plain-language
+findings, human-first cards, English single-source with agent relay, the spec-first
+window as a normal state) and three init/scan correctness fixes found while
+reproducing an onboarding bug.
+
+> **Heads-up:** An A/B against 0.8.1 confirmed all three fixes as correct defect
+> repairs but measured no user-facing behavioral gain under a capable AI host —
+> they ship as correctness and maintainability, not user wins. The genuine
+> beneficiary is the bare-terminal first-time adopter the A/B did not sample.
 
 ### Added
 
@@ -19,7 +29,8 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
   the host agent to translate cladding terms — including cladding's own
   gate and hook messages — into plain words in the user's own language.
   The shipped English strings are the single translation source; cladding
-  never detects or stores a locale.
+  never detects or stores a locale. The `clad init`, `clad setup`, and
+  `clad clarify` command output moved to that same English single-source too.
 
 ### Changed
 
@@ -35,6 +46,13 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **First-run onboarding no longer bricks the spec.** On a small or greenfield
+  project, `clad init` (and any `--scan`) wrote an empty `layers:` that parsed to
+  null and failed schema validation, so every later check reported the project as
+  ungoverned. It now emits `layers: []`.
+- **Scanned architecture globs match real files.** Layer globs dropped the source
+  root (`api/**` instead of `src/api/**`, matching nothing) and flat projects
+  leaked the project directory name into the committed spec. Both corrected.
 - **Docs matched to real detector behavior.** `docs/feature-cycle.md`
   wrongly claimed the untested-AC check ignores feature status, and the
   detector catalog row for missing-implementation now records the
