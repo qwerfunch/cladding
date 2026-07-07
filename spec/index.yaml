@@ -109,6 +109,7 @@ features:
   F-24062d: {slug: spec-id-hash-filename-and-lookup, status: done, modules: 3}
   F-245bd5: {slug: dogfood-recovery-v0-3-16, status: done, modules: 2}
   F-27e56a00: {slug: benchmarks-prune, status: done, modules: 4}
+  F-284be4f6: {slug: init-empty-layers-valid-yaml, status: done, modules: 1}
   F-288864ae: {slug: claude-md-diet, status: done, modules: 2}
   F-2be3e3bb: {slug: infer-depends-on, status: done, modules: 2}
   F-2de65d: {slug: drive-auto-rollback, status: done, modules: 1}

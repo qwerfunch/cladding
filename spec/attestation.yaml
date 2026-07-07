@@ -105,7 +105,7 @@ attested_modules:
   skills/serve/SKILL.md: 4cee65dfb691e3b0
   skills/status/SKILL.md: b3cb6e7a12bf4023
   skills/sync/SKILL.md: 709c20212aa5627e
-  spec.yaml: 09e6b6d8427da305
+  spec.yaml: 84cc72d8bceae4a4
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: c5d911049fbdcd48
   spec/features/: a4d0f0eb87fed960
@@ -159,7 +159,7 @@ attested_modules:
   src/cli/scan/helpers.ts: 396c73992ded0e22
   src/cli/scan/index.ts: c23f21c487c8abcb
   src/cli/scan/intent-onboarding.ts: bfc6960b621e0966
-  src/cli/scan/llm.ts: 74ac7ce670001de6
+  src/cli/scan/llm.ts: e6a91e97f9873531
   src/cli/scan/onboarding-state.ts: a5e8513fc8355e6e
   src/cli/scan/roots.ts: 7475eed8c9836531
   src/cli/scan/scenarios.ts: 6c2a4ce3b469a668
@@ -515,6 +515,7 @@ attested_features:
   F-24062d: ok
   F-245bd5: ok
   F-27e56a00: ok
+  F-284be4f6: ok
   F-288864ae: ok
   F-2be3e3bb: ok
   F-2de65d: ok
