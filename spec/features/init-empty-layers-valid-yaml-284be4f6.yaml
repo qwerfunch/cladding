@@ -1,0 +1,19 @@
+id: F-284be4f6
+slug: init-empty-layers-valid-yaml
+title: "clad init writes schema-valid architecture.yaml when the scan finds no layers"
+status: done
+modules:
+  - src/cli/scan/llm.ts
+acceptance_criteria:
+  - id: AC-a76ab3fd
+    ears: event
+    condition: "when the deterministic scan interpreter renders spec/architecture.yaml and the detected layer array is empty (a flat 3-4 file project on plain clad init, or clad init --scan on any project)"
+    text: "When renderArchitectureYaml is given an empty layer array, it shall emit the line 'layers: []' rather than a bare 'layers:', so the generated architecture.yaml parses to an empty array and the assembled spec loads instead of failing schema validation."
+    test_refs: ["tests/scan/init-empty-layers-valid-yaml.test.ts"]
+    notes: "Reproduced on npm cladding@0.8.1 AND current HEAD: bare 'layers:' parses to YAML null, fails schema.json's architecture.layers type:array, loadSpec throws, and every clad check then reports ABSENCE_OF_GOVERNANCE ('no cladding spec set up') on a brand-new adopter's first init. Trigger boundary = SCAN_AUTO_THRESHOLD(3) < files < ROOT_PROMOTION_THRESHOLD(5), or --scan forcing the scan. Fix mirrors greenfield-seeds.ts:350 which already emits 'layers: []'. Full repro: scratchpad/uxlang/initbug-repro.md."
+  - id: AC-743bfe4e
+    ears: unwanted
+    condition: "if the scan detects one or more layers"
+    text: "If the layer array is non-empty, then renderArchitectureYaml shall keep emitting the block form ('layers:' followed by one entry per layer), so the fix does not regress the normal multi-layer output."
+    test_refs: ["tests/scan/init-empty-layers-valid-yaml.test.ts"]
+    notes: "Anti-regression: the renderer keeps the block form ('layers:' followed by one entry per layer) for any non-empty input — only the empty-array input changes here. The correctness of each entry's dir/glob (source-root prefix) and the flat-root promotion rework are owned by the sibling feature [[scan-layer-glob-source-root]] (F-77a90ac6), not this renderer contract."

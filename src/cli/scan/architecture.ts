@@ -51,6 +51,36 @@ export function layerOf(relPath: string, roots: readonly SourceRoot[]): string {
   return '_root';
 }
 
+/**
+ * Resolves the full cwd-relative directory of a layer, so the emitted
+ * `modules` glob (`<dir>/**`) actually matches the layer's files.
+ *
+ * `layerOf` deliberately drops the source-root prefix to form a short,
+ * human-readable NAME (`api`, not `src/api`); this keeps it. The name is what
+ * the architecture detector resolves (via `<mainRoot>/<name>`), but the glob
+ * written into `spec/architecture.yaml` is cwd-relative, so it must carry the
+ * root prefix — otherwise a scanned `src/api/**` layer ships a `api/**` glob
+ * that matches nothing.
+ *
+ *   src/api/foo.ts            under root `src`             → `src/api`
+ *   packages/a/src/index.ts   under root `packages/a/src` → `packages/a/src`
+ *   top/mod.ts                (no matching root)           → `top`
+ */
+export function resolveLayerDir(relPath: string, roots: readonly SourceRoot[]): string {
+  for (const r of roots) {
+    if (r.relPath === '') continue;
+    const prefix = `${r.relPath}/`;
+    if (relPath === r.relPath || relPath.startsWith(prefix)) {
+      const inside = relPath.slice(prefix.length).split('/');
+      if (inside.length <= 1) return r.relPath; // direct file in the root → the root itself
+      return `${r.relPath}/${inside[0]}`; // subdir layer → root/segment
+    }
+  }
+  const segments = relPath.split('/');
+  if (segments.length > 1) return segments[0];
+  return '';
+}
+
 export interface GroupByLayerOptions {
   readonly cwd: string;
   readonly rootPromotionThreshold?: number;
@@ -110,7 +140,19 @@ export function extractArchitecture(
   const layers: Layer[] = [];
   for (const [name, layerFiles] of filesByLayer) {
     if (name === '_root') continue;
-    layers.push({name, dir: name, moduleCount: layerFiles.length});
+    // Drop the flat single-root promotion. `groupByLayer` renames the `_root`
+    // bucket to `basename(cwd)` when a flat project's files sit directly in the
+    // source root — but those files form no *sub*-layer: the object-form
+    // architecture the detector consumes resolves each layer as
+    // `<mainRoot>/<name>`, and there is no name that resolves back to the root
+    // itself. Emitting one produced a bogus layer named after the project
+    // directory with a `<basename>/**` glob that matched nothing. A flat
+    // project honestly has zero architecture layers (renders `layers: []`).
+    // The promoted bucket is identified by re-deriving its files' pre-promotion
+    // layer — flat-root files resolve to `_root`; workspace roots resolve to
+    // their `workspaceName`, so monorepo layers are untouched.
+    if (layerOf(layerFiles[0].relPath, roots) === '_root') continue;
+    layers.push({name, dir: resolveLayerDir(layerFiles[0].relPath, roots), moduleCount: layerFiles.length});
   }
   layers.sort((a, b) => a.name.localeCompare(b.name));
 

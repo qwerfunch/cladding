@@ -44,6 +44,16 @@ in \`docs/feature-cycle.md\`.
 The agent that writes a unit of work must not be the agent that signs off
 on it. planner writes spec, reviewer audits, developer implements.
 
+## Speak the user's language
+
+When you report progress to the user, translate cladding's vocabulary into
+plain words in the user's own language — a shard is a spec entry, an
+attestation is a signed sign-off, a detector finding is what drifted and why
+it matters. This includes cladding's own gate and hook messages: relay them in
+the user's language, by meaning, rather than echoing the raw text. Never lead
+with an internal id (\`F-…\`, \`AC-…\`, \`stage_X.Y\`): name the feature and the
+plain outcome instead.
+
 ## More
 
 See \`CLAUDE.md\` for Claude Code-specific memory, and
@@ -72,6 +82,11 @@ their code, or hand-write \`status: done\`. See \`docs/feature-cycle.md\`.
 
 **Drift detectors** — \`clad check --strict\` runs them all; don't suppress
 findings — fix them or update spec.
+
+**Speak the user's language** — when reporting to the user, translate
+cladding terms into plain words in the user's own language (a shard = a spec
+entry) — including cladding's own gate and hook messages: relay them by
+meaning. Never lead with internal ids.
 `;
 
 // v0.3.x markers that disappeared in v0.4.0. When detected in an existing

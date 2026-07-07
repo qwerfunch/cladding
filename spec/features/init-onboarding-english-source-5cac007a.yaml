@@ -1,0 +1,28 @@
+id: F-5cac007a
+slug: init-onboarding-english-source
+title: "init/onboarding CLI output is English single-source (the agent relays the user's language)"
+status: done
+modules:
+  - src/cli/clad.ts
+  - src/init/host-setup.ts
+  - src/cli/clarify.ts
+acceptance_criteria:
+  - id: AC-f12ce851
+    ears: ubiquitous
+    text: "The init/onboarding CLI output surfaces — the clad init completion hints, the clad setup host-wiring report (renderSetupReport + activation hints), and the clad clarify Q&A prompts — shall carry exactly one clear English string per line, with no hardcoded Korean output, completing the instruction-led-language pivot for the init/onboarding path."
+    test_refs: ["tests/cli/init-onboarding-english-source.test.ts", "tests/cli/setup.test.ts", "tests/cli/clad.test.ts"]
+    notes: "## Why\nF-9af291fa (2026-07-06) moved cladding's language capability from shipped strings to the instruction layer: one English source per surface, and the host agent relays it into the user's language via the CLAUDE.md/AGENTS.md rule. That pivot converted the Soft Shell catalog + host-instructions but left the init/onboarding CLI stdout (clad.ts hints, host-setup.ts report, clarify.ts prompts) hardcoded in Korean — a leftover that contradicts the pivot's own principle. English single-source lets the agent render every language for free."
+  - id: AC-b32265b7
+    ears: event
+    condition: "when renderSetupReport renders the host-wiring report (and when clad init / clad clarify print their hints)"
+    text: "When these surfaces render, the output shall lead with the plain English text (e.g. the setup report ends with a 'Next steps:' block) and contain no Hangul characters."
+    test_refs: ["tests/cli/init-onboarding-english-source.test.ts"]
+    notes: "## Why\nBehavioral proof, not just a source grep: the pure renderer renderSetupReport returns an English report, and the clad init hint stdout is English. Korean intent/answers still flow through as data (the LLM-generated clarifying questions remain in the user's language) — only cladding's own framing text is English."
+  - id: AC-7c50ac34
+    ears: unwanted
+    condition: "if src/cli/clad.ts, src/init/host-setup.ts, or src/cli/clarify.ts reintroduces a Hangul character in a user-facing output string"
+    action: "fail the structural sweep"
+    response: "the pivot cannot silently regress on the init/onboarding surface"
+    text: "If any of the three init/onboarding output files reintroduces Hangul, the structural sweep shall fail — input-matching regexes (which legitimately match Korean user input) live in src/cli/hook.ts and src/router/intent.ts, not these output files."
+    test_refs: ["tests/cli/init-onboarding-english-source.test.ts"]
+    notes: "## Why\nMirrors F-9af291fa's AC-3f34759a locale-machinery sweep: a regression guard so a future edit cannot re-hardcode a language on this surface. Scoped to the three output-only files; the input matchers and the LLM few-shot prompt (scan/intent-onboarding.ts, which teaches the dispatcher to emit user-language questions) are deliberately out of scope."

@@ -47,4 +47,4 @@ When summarising or labelling reports, also read `spec.yaml::project.ai_hints`:
 
 ## User-facing language (Soft Shell)
 
-The source artifacts above are Iron Core — they contain `F-NNN` / `F-<hash6>` / `AC-N` / `stage_X.Y` codes. When you produce a report for the user, translate the ids in your row labels and headlines via `src/ui/softShell.ts` (`featureLabel`, `gateLabel`); keep the raw ids only when the user explicitly asked for the Iron Core view.
+The source artifacts above are Iron Core — they contain `F-NNN` / `F-<hash6>` / `AC-N` / `stage_X.Y` codes. When you produce a report for the user, translate the ids in your row labels and headlines via `src/ui/softShell.ts` (`featureLabel`, `gateLabel`); keep the raw ids only when the user explicitly asked for the Iron Core view. Beyond ids, translate by meaning in the user's own language — a shard = a spec entry, an attestation = a signed sign-off, a detector finding = what drifted and why; never lead with internal ids.

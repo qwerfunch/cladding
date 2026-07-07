@@ -7,6 +7,39 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Plain-language findings.** The four human surfaces (turn-end gate,
+  per-edit nudge, `clad check` blocks, `clad done` refusals) now lead with
+  what drifted and what to do, in clear plain English; machine detail
+  (detector id · path) trails as a tail. JSON, SARIF, MCP, and event
+  outputs are byte-unchanged.
+- **Speak the user's language.** The instructions cladding injects
+  (CLAUDE.md section, AGENTS.md template, all five personas) now direct
+  the host agent to translate cladding terms — including cladding's own
+  gate and hook messages — into plain words in the user's own language.
+  The shipped English strings are the single translation source; cladding
+  never detects or stores a locale.
+
+### Changed
+
+- **The spec-first window stopped shouting.** A module that isn't built
+  yet on a planned/in-progress feature is now an info note ("the normal
+  state between authoring the spec entry and implementing it"), not a
+  blocking error. done/archived features keep the hard error, and
+  STATUS_DRIFT independently guards done features with missing files.
+- **Hook cards speak human.** Session and prompt cards and block reasons
+  drop internal vocabulary — no MCP tool names, no "shard"; in-progress
+  lists show feature titles next to ids; impact cards say "N features
+  depend on this" instead of "breaks N feature(s)".
+
+### Fixed
+
+- **Docs matched to real detector behavior.** `docs/feature-cycle.md`
+  wrongly claimed the untested-AC check ignores feature status, and the
+  detector catalog row for missing-implementation now records the
+  status-aware severity.
+
 ## [0.8.1] — Adoption Proof + Friction Diet (2026-07-06)
 
 Adoption Proof + Friction Diet: the merge conflicts that plagued parallel

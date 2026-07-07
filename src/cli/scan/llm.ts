@@ -386,7 +386,12 @@ function renderArchitectureYaml(
     '# `forbidden_imports` lists layer pairs the scan never observed in',
     '# your import graph — they are candidates, not enforced rules.',
     '# Prune the list to the ones you actually want to forbid before committing.',
-    'layers:',
+    // A bare `layers:` with no entries parses to YAML null and fails the
+    // schema's `type: array` check, so the whole spec fails to load — a flat
+    // 3–4 file project (or any `--scan` run) that yields zero layers would
+    // brick the adopter's first `clad init`. Render the empty case as an
+    // explicit empty array, mirroring greenfield-seeds.ts.
+    layers.length === 0 ? 'layers: []' : 'layers:',
   ];
   for (const l of layers) {
     const candidates = forbiddenCandidates[l.name] ?? [];

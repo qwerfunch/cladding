@@ -724,16 +724,18 @@ const fixtures: readonly Fixture[] = [
     expectFindings: [{detector: 'STATUS_DRIFT', severity: 'error'}],
   },
   {
-    // F-014/AC-023 — STATUS_DRIFT warn when a status=in_progress
-    // feature declares modules but every one is absent. The detector
-    // emits warn (less severe than the AC-022 done-with-missing case);
-    // however MISSING_IMPLEMENTATION is status-blind and still fires
-    // error on the same absent modules, so drift ultimately fails.
-    // The fixture's assertion is that the STATUS_DRIFT warn is
-    // present alongside the louder error, not that drift passes.
+    // F-014/AC-023 — the spec-first window is legal AND fully normalized. A
+    // status=in_progress feature that declares modules while every one is still
+    // absent is the documented intermediate state (author the shard, then
+    // implement). Since F-c3747d7d (U7) all three spec-vs-code detectors grade
+    // it `info`: MISSING_IMPLEMENTATION (F-e8912be3), plus STATUS_DRIFT and
+    // STALE_SPECIFICATION (both demoted from warn by F-c3747d7d). With ZERO
+    // error/warn from the window the non-strict drift stage PASSES — and, unlike
+    // before U7, --strict passes too (the two surviving warns used to block it).
+    // (The trap that still fails is F-014/AC-022: done + missing → error.)
     id: 'F-014_AC-023',
     stage: 'stage_1.3',
-    expectedPass: false,
+    expectedPass: true,
     setup(d) {
       mkdirSync(join(d, 'spec'), {recursive: true});
       writeFileSync(
@@ -762,7 +764,11 @@ const fixtures: readonly Fixture[] = [
     run(d) {
       return runDrift({cwd: d});
     },
-    expectFindings: [{detector: 'STATUS_DRIFT', severity: 'warn'}],
+    expectFindings: [
+      {detector: 'MISSING_IMPLEMENTATION', severity: 'info'},
+      {detector: 'STATUS_DRIFT', severity: 'info'},
+      {detector: 'STALE_SPECIFICATION', severity: 'info'},
+    ],
   },
   {
     // F-019/AC-029 — AC_DRIFT error when an AC has neither a rendered

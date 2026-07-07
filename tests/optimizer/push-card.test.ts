@@ -155,21 +155,23 @@ describe('formatWorkingSetCard — Tier-2 bounds (AC-816f10c3)', () => {
 // ─── AC-f912fd40 — Tier-1 one-liner shape + degrade ───
 
 describe('formatPushOneLiner — Tier-1 shape (AC-f912fd40)', () => {
-  test('zero-consequence, no depends_on edges → one-liner WITH deps-unledgered disclosure', () => {
+  test('zero-consequence, no depends_on edges → one-liner WITH dependency-map disclosure', () => {
     const ws = makeWs({dependsOnEdges: 0});
+    // F-f46d5c61: the focus shows id + TITLE ("F-focus Focus"), and the blank-ledger
+    // disclosure reads in plain English.
     expect(formatPushOneLiner(ws, 'src/focus.ts')).toBe(
-      'cladding impact: src/focus.ts → F-focus · deps unledgered',
+      'cladding impact: src/focus.ts → F-focus Focus · dependency map not yet recorded',
     );
   });
 
-  test('breaks/run segments appear only when non-empty; ledger>0 → no disclosure', () => {
+  test('depend/guard segments appear only when non-empty; ledger>0 → no disclosure', () => {
     const ws = makeWs({
       impacted: impactedList(2),
       regression: testList(3),
       dependsOnEdges: 4,
     });
     expect(formatPushOneLiner(ws, 'src/focus.ts')).toBe(
-      'cladding impact: src/focus.ts → F-focus · breaks 2 feature(s) · run 3 test(s)',
+      'cladding impact: src/focus.ts → F-focus Focus · 2 features depend on this · 3 tests guard it',
     );
   });
 

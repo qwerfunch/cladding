@@ -1,0 +1,34 @@
+id: F-c3747d7d
+slug: spec-first-window-complete
+title: "The spec-first window is one coherent normal state across all drift detectors"
+status: done
+modules:
+  - src/stages/detectors/spec-first-window.ts
+  - src/stages/detectors/status-drift.ts
+  - src/stages/detectors/stale-specification.ts
+  - src/stages/detectors/missing-implementation.ts
+  - src/ui/softShell.ts
+acceptance_criteria:
+  - id: AC-2f8fb0b6
+    ears: state
+    condition: "while a feature is planned or in_progress and every declared module is absent from disk (the spec-first window)"
+    text: "While a feature is in the spec-first window, STATUS_DRIFT's stale-start finding and STALE_SPECIFICATION's all-modules-vanished finding shall each be emitted at info severity, matching MISSING_IMPLEMENTATION, so no drift detector reports the documented author-then-implement state as a blocking error or warning."
+    test_refs: ["tests/spec-first-window-complete.test.ts"]
+    notes: "Completes U1 (F-e8912be3), which demoted only MISSING_IMPLEMENTATION. The Stop hook blocks on error OR warn (hook.ts:371) and --strict promotes warn, so the two surviving warns kept the spec-first window blocking the turn-end Stop — the exact screenshot symptom. Proven deterministically in ab-082/GATE-FINDING.md."
+  - id: AC-d8be9f4d
+    ears: unwanted
+    condition: "if a feature is done or archived with missing modules, or a feature has a genuine lifecycle inconsistency"
+    text: "If a feature is outside the spec-first window, then STATUS_DRIFT and STALE_SPECIFICATION shall keep their original error/warn severities, so done stays a shipped-code invariant and archived keeps its guards."
+    test_refs: ["tests/spec-first-window-complete.test.ts"]
+    notes: "Anti-regression: the demotion must be surgical to the planned/in_progress-all-missing branch only. done+missing stays error (double-guarded with missing-implementation), hollow-done stays error, archived branches stay warn."
+  - id: AC-c6b06ec4
+    ears: ubiquitous
+    text: "The spec-first window predicate shall be defined once and imported by every detector that consults it, so the window definition cannot drift between detectors."
+    test_refs: ["tests/spec-first-window-complete.test.ts"]
+    notes: "Hoist isSpecFirstWindow (currently private in missing-implementation.ts) to a shared module imported by all three detectors."
+  - id: AC-d574a481
+    ears: state
+    condition: "while a surviving error or warn finding from STATUS_DRIFT or STALE_SPECIFICATION is rendered to a human surface"
+    text: "While STATUS_DRIFT or STALE_SPECIFICATION renders on a human surface, its single plain-language lead shall be accurate for every sub-case it can still be shown for, so the user is never shown a lead describing a different sub-case than the one that fired."
+    test_refs: ["tests/spec-first-window-complete.test.ts"]
+    notes: "U2's one-lead-per-detector flattening currently shows 'A feature is marked done but its files do not back that up' for an in_progress stale-start (wrong). After U7 the window cases are info (not shown); the STALE_SPECIFICATION lead must be generalized so it reads true for its surviving warn sub-cases without re-introducing per-sub-case branching (U6 pivot)."

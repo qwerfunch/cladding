@@ -25,10 +25,11 @@ say-so alone, never skip a `▣`.
    - ▣ **Barrier:** `clad sync` — the shard itself must be valid (schema, EARS shape, consistent
      inventory) before any code. **Spec-first is the hard rule:** you author the shard *before* the
      code, and no code that no feature claims may land (`UNMAPPED_ARTIFACT` blocks that at step 3's
-     gate). Run the *full* detector suite (`clad check`) at step 3, not here — the spec-vs-code
-     detectors (MISSING_IMPLEMENTATION, UNTESTED_AC) are status-blind and would fire on a shard
-     whose `modules` you've declared but not yet built. Declaring `modules` now is the binding step
-     3 verifies, not a promise to check before you've written them.
+     gate). Run the *full* detector suite (`clad check`) at step 3, once the code and tests exist.
+     The spec-vs-code detectors are status-aware, so this window doesn't false-fail: UNTESTED_AC and
+     MISSING_TESTS are done-scoped, and MISSING_IMPLEMENTATION reports a declared-but-unbuilt module
+     as `info` — not a blocking error — while the feature is `planned` / `in_progress`. Declaring
+     `modules` now is the binding step 3 verifies, not a promise to check before you've written them.
 
 2. **IMPLEMENT — `developer` (code; formerly `specialists`).** One implementer writes the production code for this
    feature in its own worktree. `clad checkpoint <featureId>` first so a failed cycle rolls back.

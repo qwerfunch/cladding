@@ -6,16 +6,38 @@
 // (code-free) WorkingSet + the edited path, it emits text. The hook owns the
 // ledger/dedup/budget side effects; this file only formats.
 //
-// Line 1 is byte-compatible with formatImpactCard's MODULE-query wording (the
-// hook always queries a file path, so the focus is a module owner — id only, no
-// title). That parity is load-bearing: AC-f912fd40 requires the Tier-1 one-liner
-// (zero consequences) to be byte-identical to today's shipped card.
+// Line 1 shares its human-first wording with formatImpactCard (F-f46d5c61):
+// "N features depend on this", "N tests guard it", and the dependency-map
+// disclosure come from the shared helpers below, so the Tier-1 one-liner and the
+// legacy impact card read identically. The one enrichment the working set adds
+// that the data-poor impact slice cannot is the focus TITLE next to the id — the
+// slice only carries owner ids for a module query, so its module-query fallback
+// stays id-only while this one-liner shows "F-xxx <title>".
 
 import type {WorkingSet} from './working-set.js';
 
 const TOP_N = 3;
 const MAX_LINES = 5;
 const MAX_CHARS = 600;
+
+// ─── Human-first consequence wording (F-f46d5c61) ───
+// Shared by the Tier-1/Tier-2 push cards here and the legacy formatImpactCard in
+// the hook, so the phrasing is identical everywhere a card names a change's blast
+// radius. Plain English on purpose — this is the text the coding agent reads and
+// renders back to the user in their own language.
+
+/** One-liner segment "· N features depend on this" (or '' when nothing depends). */
+export function dependSegment(n: number): string {
+  return n > 0 ? ` · ${n} feature${n === 1 ? '' : 's'} depend${n === 1 ? 's' : ''} on this` : '';
+}
+
+/** One-liner segment "· N tests guard it" (or '' when there is no regression set). */
+export function guardSegment(n: number): string {
+  return n > 0 ? ` · ${n} test${n === 1 ? '' : 's'} guard${n === 1 ? 's' : ''} it` : '';
+}
+
+/** Blank-ledger disclosure — empty consequences mean "unknown", not "verified safe". */
+export const UNLEDGERED_NOTE = ' · dependency map not yet recorded';
 
 /**
  * The single-line impact card reconstructed from the working set — byte-compatible
@@ -26,16 +48,17 @@ const MAX_CHARS = 600;
 export function formatPushOneLiner(ws: WorkingSet, relPath: string): string {
   const primary = ws.must_edit.id;
   if (!primary) return '';
+  // Name the focus feature the way a person means it: id + title (F-f46d5c61). The
+  // working set carries must_edit.title, so this reads "F-xxx <title>" not a bare id.
+  const focus = ws.must_edit.title ? `${primary} ${ws.must_edit.title}` : primary;
   const owners = ws.must_edit.co_owners ?? [];
   const co = owners.length > 1 ? ` (+${owners.length - 1} co-owner${owners.length > 2 ? 's' : ''})` : '';
   const impacted = ws.breaks_if_changed.impacted;
   const tests = ws.breaks_if_changed.regression_tests;
-  const breaks = impacted.length > 0 ? ` · breaks ${impacted.length} feature(s)` : '';
-  const run = tests.length > 0 ? ` · run ${tests.length} test(s)` : '';
-  // Blank-ledger disclosure: empty breaks/run must not read as "verified safe" when NO
+  // Blank-ledger disclosure: empty consequences must not read as "verified safe" when NO
   // depends_on edge exists project-wide (mirrors formatImpactCard's `=== 0` check).
-  const unledgered = ws.breaks_if_changed.ledger?.depends_on_edges === 0 ? ' · deps unledgered' : '';
-  return `cladding impact: ${relPath} → ${primary}${co}${breaks}${run}${unledgered}`;
+  const unledgered = ws.breaks_if_changed.ledger?.depends_on_edges === 0 ? UNLEDGERED_NOTE : '';
+  return `cladding impact: ${relPath} → ${focus}${co}${dependSegment(impacted.length)}${guardSegment(tests.length)}${unledgered}`;
 }
 
 /**

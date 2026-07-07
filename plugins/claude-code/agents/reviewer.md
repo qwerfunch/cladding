@@ -78,4 +78,4 @@ You also own the **advisory half no gate enforces**: confirm the test-author wro
 
 ## User-facing language (Soft Shell)
 
-The audit JSON above is Iron Core — `F-NNN` / `F-<hash6>` / `stage_X.Y` codes belong in the log. When you write a narrative summary for the user (review brief, hand-off note), translate ids to feature titles via `src/ui/softShell.ts` (`featureLabel`, `gateLabel`).
+The audit JSON above is Iron Core — `F-NNN` / `F-<hash6>` / `stage_X.Y` codes belong in the log. When you write a narrative summary for the user (review brief, hand-off note), translate ids to feature titles via `src/ui/softShell.ts` (`featureLabel`, `gateLabel`). Beyond ids, translate by meaning in the user's own language — a shard = a spec entry, an attestation = a signed sign-off, a detector finding = what drifted and why; never lead with internal ids.

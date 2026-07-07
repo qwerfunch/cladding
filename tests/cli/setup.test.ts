@@ -311,7 +311,7 @@ describe('activation (AC-012) — non-interactive, injectable, opt-out', () => {
 });
 
 describe('setup report (AC-010) and init wire notices (AC-006/AC-007)', () => {
-  test('renderSetupReport ends with the numbered 다음 단계 guidance block', () => {
+  test('renderSetupReport ends with the numbered "Next steps" guidance block', () => {
     const result = {
       wiring: {
         claude_plugin: 'created',
@@ -330,11 +330,11 @@ describe('setup report (AC-010) and init wire notices (AC-006/AC-007)', () => {
 
     const report = renderSetupReport(result, detection, {});
 
-    expect(report).toContain('다음 단계:');
-    expect(report).toContain('1. AI 도구');
-    expect(report).toContain('2. 프로젝트 디렉토리로 이동');
-    expect(report).toContain('3. /cladding init');
-    expect(report).toContain('4. 개발 시작');
+    expect(report).toContain('Next steps:');
+    expect(report).toContain('1. Restart your AI tool');
+    expect(report).toContain('2. Open the project directory');
+    expect(report).toContain('3. Type /cladding init');
+    expect(report).toContain('4. Start building');
   });
 
   // AC-006 — never ran `clad setup`.
