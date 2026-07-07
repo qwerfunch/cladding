@@ -96,4 +96,4 @@ When delegating, attach:
 
 ## User-facing language (Soft Shell)
 
-Surface business titles ("Login flow") to users, never internal ids (`F-049`, `F-a3f9c2`, …). The audit log keeps the raw ids; the user surface stays free of `F-NNN` / `F-<hash6>` / `AC-N` / `stage_X.Y` codes. Use the helpers in `src/ui/softShell.ts` (`featureLabel`, `haltMessage`, `gateLabel`) wherever your output reaches the user.
+Surface business titles ("Login flow") to users, never internal ids (`F-049`, `F-a3f9c2`, …). The audit log keeps the raw ids; the user surface stays free of `F-NNN` / `F-<hash6>` / `AC-N` / `stage_X.Y` codes. Use the helpers in `src/ui/softShell.ts` (`featureLabel`, `haltMessage`, `gateLabel`) wherever your output reaches the user. Translate by meaning in the user's own language — shard = spec entry, attestation = sign-off, finding = what drifted and why; never lead with ids.

@@ -43,10 +43,11 @@ import {runDrift} from '../stages/drift.js';
 import {runSecret} from '../stages/secret.js';
 import {buildImpactSlice, type ImpactSlice} from '../optimizer/reverse-slice.js';
 import {buildWorkingSet, type WorkingSet} from '../optimizer/working-set.js';
-import {formatWorkingSetCard, formatPushOneLiner} from '../optimizer/push-card.js';
+import {dependSegment, formatWorkingSetCard, formatPushOneLiner, guardSegment, UNLEDGERED_NOTE} from '../optimizer/push-card.js';
 import {estTokens} from '../optimizer/code-excerpt.js';
 import {loadSpec} from '../spec/load.js';
 import {WATCHED_EXTENSIONS} from '../stages/toolchain/language-config.js';
+import {driftNudge, plainFinding, plainLead, stopBlockMessage} from '../ui/softShell.js';
 
 // --- shared helpers ----------------------------------------------------
 
@@ -77,14 +78,20 @@ interface SpecDoc {
   readonly project?: unknown; // project.ai_hints.preferred_patterns → prefer lines (F-fb9b48a5)
 }
 
+// Human-first policy line (F-f46d5c61, AC-2c63b999): no MCP tool names, no
+// "shards", no "SSoT" acronym. The `policy:` prefix is a structural pin (a
+// startsWith check in the session-guidance tests depends on it); the sentence
+// after it is plain English the coding agent renders back in the user's language.
 const POLICY_LINE =
-  'policy: spec is SSoT — author shards via clad_create_feature; flip done only via clad done; verify with clad_run_gate';
+  "policy: the spec is the source of truth — features are created and completed through cladding's verified flow";
 
-// One-line push of the context-compiler tools (F-fb9b48a5, AC-b08371b3). Pull
-// tools go uncalled partly because they are unadvertised; this is the cheapest
-// push (once per session). Falsifiable via F-6ba22c5c telemetry.
-const TOOLS_LINE =
-  'tools: clad_get_working_set <id|slug|path> → focus+needs+breaks+tests · clad_get_impact <path> → blast radius';
+// One-line push of cladding's context-compiler capability (F-fb9b48a5, superseded
+// by F-f46d5c61 AC-2c63b999). Adopters do not know the MCP tool names — the B1
+// data shows naming them drove zero pulls — so this advertises the CAPABILITY in
+// plain English instead. Agent-facing tool names live in the MCP descriptions and
+// the injected instruction files. The `context:` prefix is a structural pin.
+const CONTEXT_LINE =
+  'context: before a non-trivial change, cladding can slice what a feature needs, what depends on it, and which tests guard it — ask for it';
 
 /**
  * Best-effort `prefer:` lines from project.ai_hints.preferred_patterns — the
@@ -198,9 +205,9 @@ function renderSessionStartCard(cwd: string): string {
       /* unreadable block file → omit the resurface line */
     }
   }
-  // tools → prefer → policy: the guidance tail (F-fb9b48a5). Ordering + the 9-line
+  // context → prefer → policy: the guidance tail (F-fb9b48a5). Ordering + the 9-line
   // cap (AC-20893cbc) hold because in-progress is one truncated line, not per-id.
-  lines.push(TOOLS_LINE);
+  lines.push(CONTEXT_LINE);
   for (const line of preferLines(spec)) lines.push(line);
   lines.push(POLICY_LINE);
   return lines.join('\n');
@@ -208,9 +215,12 @@ function renderSessionStartCard(cwd: string): string {
 
 // --- UserPromptSubmit — one-line routing suggestion ---------------------
 
+// Suggestion hints (F-f46d5c61, AC-2c63b999): no MCP tool names — only CLI
+// commands the user could type (`clad check --strict`, `clad done`) — and "shard"
+// reworded to "spec entry". Plain English the coding agent relays in the user's tongue.
 const INTENT_HINTS: Readonly<Partial<Record<Intent, string>>> = {
-  run: 'feature cycle: shard → implement → tests → clad done',
-  check: 'verify with clad_run_gate or clad check --strict',
+  run: 'feature cycle: spec entry → implement → tests → clad done',
+  check: 'verify with clad check --strict',
   sync: 'clad sync validates + heals the spec',
   init: 'scaffold with /cladding:init',
 };
@@ -235,8 +245,8 @@ function classifyPromptSuggestion(input: unknown): {readonly kind: string; reado
     return {
       kind: 'completion',
       text:
-        'cladding: completion is EARNED, not declared — run `clad done <F-id>` ' +
-        '(the strict gate flips it only when GREEN); in-progress ids are one grep away in spec/index.yaml',
+        'cladding: completion is EARNED, not declared — run `clad done <F-id>`; ' +
+        'the strict gate flips it to done only when the checks pass',
     };
   }
   const intent = suggestIntent(prompt);
@@ -253,9 +263,13 @@ const ROOT_SPEC_PATH = /(^|[\\/])spec\.yaml$/;
 const DONE_LINE = /^\s*status:\s*done\b/m;
 const DONE_LINE_ALL = /^\s*status:\s*done\b/gm;
 
+// Block reasons (F-f46d5c61, AC-2c63b999). These are read by BOTH the user AND the
+// agent as denial feedback, so they stay action-guiding — capability phrasing with a
+// user-typeable CLI command, no MCP tool name, "spec entry" not "shard". Plain English.
 const DONE_BLOCK_REASON =
-  'status: done is earned, not written — run `clad done <id>` (the strict gate flips it only when GREEN).';
-const HASH_ID_REASON = 'hash ids only — use clad_create_feature';
+  'completion is earned — ask to run the completion gate (clad done) instead of writing status: done by hand';
+const HASH_ID_REASON =
+  'cladding assigns feature ids safely — ask it to create the spec entry instead of hand-writing the file';
 
 function renderBlock(reason: string): string {
   return JSON.stringify({decision: 'block', reason});
@@ -407,13 +421,15 @@ function runStopGate(input: unknown, cwd: string): string {
     /* unwritable state dir → still block; demotion just won't persist */
   }
   recordEvent(cwd, 'stop_blocked', {count: failures.length, fingerprint});
-  const top = failures
+  // Plain-first render (F-dd8dc994): a plain English lead per top finding, the
+  // machine detail (detector · path) demoted to a parenthetical tail. The host
+  // agent renders the user's own language (F-9af291fa). The fingerprint above
+  // hashes detector|path — message-free, so this render cannot move it (AC-ad2a34e1).
+  const examples = failures
     .slice(0, 2)
-    .map((f) => `${f.detector}: ${truncate(f.message, 120)}`)
+    .map((f) => plainFinding(f))
     .join('; ');
-  return renderBlock(
-    `cladding gate: ${failures.length} finding(s) — ${top}. Fix or stop again to dismiss (re-surfaced next session).`,
-  );
+  return renderBlock(stopBlockMessage(failures.length, examples));
 }
 
 // --- PostToolUse — debounced drift nudge --------------------------------
@@ -452,15 +468,17 @@ export function formatImpactCard(slice: ImpactSlice, filePath: string): string {
   const owners = slice.focus.owners ?? [];
   const primary = slice.focus.id ?? owners[0];
   if (!primary) return '';
+  // Feature titles alongside ids (F-f46d5c61, AC-2a7fed0c) when the slice carries
+  // one — a feature query does; a module query (the hook's usual case) surfaces
+  // only owner ids, so the data-poor fallback stays id-only.
   const label = slice.focus.title ? `${primary} ${slice.focus.title}` : primary;
   const co = owners.length > 1 ? ` (+${owners.length - 1} co-owner${owners.length > 2 ? 's' : ''})` : '';
-  const breaks = slice.impacted.length > 0 ? ` · breaks ${slice.impacted.length} feature(s)` : '';
-  const tests = slice.test_refs.length > 0 ? ` · run ${slice.test_refs.length} test(s)` : '';
-  // Blank ledger disclosure: empty breaks/tests segments must not read as "verified
+  // Blank ledger disclosure: empty consequence segments must not read as "verified
   // safe" when NO depends_on edge exists project-wide (strict === 0 — old-shaped
-  // slices without a ledger stay unmarked rather than mis-firing).
-  const unledgered = slice.ledger?.depends_on_edges === 0 ? ' · deps unledgered' : '';
-  return `cladding impact: ${filePath} → ${label}${co}${breaks}${tests}${unledgered}`;
+  // slices without a ledger stay unmarked rather than mis-firing). Wording shared
+  // with the push card so both surfaces read identically.
+  const unledgered = slice.ledger?.depends_on_edges === 0 ? UNLEDGERED_NOTE : '';
+  return `cladding impact: ${filePath} → ${label}${co}${dependSegment(slice.impacted.length)}${guardSegment(slice.test_refs.length)}${unledgered}`;
 }
 
 // --- impact-card telemetry (F-6ba22c5c) --------------------------------
@@ -1014,8 +1032,15 @@ function runPostToolUseDrift(input: unknown, cwd: string): string {
   const report = runDrift({cwd, profile: 'interactive'});
   const errors = report.findings.filter((f) => f.severity === 'error');
   const deferred = report.skippedDetectors?.length ? ` (+${report.skippedDetectors.length} deferred to commit)` : '';
-  const drift =
-    errors.length === 0 ? '' : `cladding drift: ${errors.length} error(s) — ${errors[0].detector}: ${truncate(errors[0].message, 140)}${deferred}`;
+  // Plain-first render (F-dd8dc994): the plain English lead leads; the detector
+  // id is demoted to a `(details: …)` tail; the deferred note is kept verbatim.
+  // The count is preserved. Unknown-detector fallback keeps the truncated
+  // message. The host agent renders the user's own language (F-9af291fa).
+  let drift = '';
+  if (errors.length > 0) {
+    const lead = plainLead(errors[0].detector, truncate(errors[0].message, 140));
+    drift = driftNudge(errors.length, lead, errors[0].detector, deferred);
+  }
   return [card, drift].filter(Boolean).join('\n');
 }
 

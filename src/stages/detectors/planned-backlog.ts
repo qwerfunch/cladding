@@ -8,12 +8,13 @@
 // (big-design-up-front / batch authoring), which breaks the spec↔code↔test
 // lockstep cladding keeps, and the detector emits ONE `warn`.
 //
-// WHY "no code on disk" and not "declared-but-missing module": a feature that
-// declares a module path which is missing is ALREADY a hard `error` via
-// MISSING_IMPLEMENTATION (status-blind, fires in every tier). The batch that
-// slips through every other detector is the one authored as AC-only shards with
-// NO modules yet — MISSING_IMPLEMENTATION has nothing to check, STATUS_DRIFT's
-// hollow guard is done-only, so 40 specced-but-codeless features pass GREEN.
+// WHY "no code on disk" and not "declared-but-missing module": while a feature
+// is planned / in_progress a declared-but-absent module is only `info` via
+// MISSING_IMPLEMENTATION (F-e8912be3 — the spec-first window is normal, not
+// drift; the hard `error` returns once the feature is `done`). So a lone
+// in-window feature does not block, and an AC-only shard with NO modules yet
+// leaves MISSING_IMPLEMENTATION nothing to check while STATUS_DRIFT's hollow
+// guard is done-only — 40 specced-but-codeless features would pass GREEN.
 // Counting "planned/in_progress with zero existing modules" is the signal that
 // closes exactly that gap (and subsumes the all-modules-missing case too).
 //

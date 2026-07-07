@@ -66,7 +66,7 @@ import {requiredOracleWorklist} from '../oracle/policy.js';
 import {loadSpec} from '../spec/load.js';
 import {pulse, type PulseKind} from '../ui/pulse.js';
 import {buildPanelModel, renderPanel} from '../ui/panel.js';
-import {featureLabel, gateLabel, haltMessage} from '../ui/softShell.js';
+import {featureLabel, gateLabel, haltMessage, plainLead} from '../ui/softShell.js';
 
 /** Handler for `clad serve`. Boots the MCP server over stdio. */
 export async function runServeCommand(opts: {cwd?: string}): Promise<void> {
@@ -143,7 +143,7 @@ export async function runInitCommand(
   // refine the spec. The questions are calibrated to product-owner
   // vocabulary — no implementation jargon.
   if (result.clarifyingQuestions && result.clarifyingQuestions.length > 0) {
-    process.stdout.write('\n💡 다음 정보가 있으면 더 정확한 스펙이 됩니다:\n');
+    process.stdout.write('\n💡 A few more details would sharpen the spec:\n');
     for (const [i, q] of result.clarifyingQuestions.entries()) {
       process.stdout.write(`   ${i + 1}. ${q}\n`);
     }
@@ -156,10 +156,10 @@ export async function runInitCommand(
     // power users who skip the chat flow.
     const greenfield = result.created.some((c) => c === 'docs/conventions.md');
     if (greenfield) {
-      process.stdout.write('\n💡 Tip: 더 정확한 스캐폴드를 원하시면\n');
+      process.stdout.write('\n💡 Tip: for a more precise scaffold, describe the project:\n');
       process.stdout.write('   clad init <project description>\n');
-      process.stdout.write('   예: clad init 결제 SaaS for B2B\n');
-      process.stdout.write('   기존 seeds 는 .cladding/scan/*.proposal 로 분기됩니다.\n\n');
+      process.stdout.write('   e.g. clad init payment SaaS for B2B\n');
+      process.stdout.write('   The existing seeds divert to .cladding/scan/*.proposal.\n\n');
     }
   }
 
@@ -804,17 +804,23 @@ export function runOracleCommand(featureId: string | undefined, opts: {ac?: stri
   process.exit(0);
 }
 
-function printStageDetails(r: {
-  stderr?: string;
-  findings?: readonly {detector: string; severity: string; message: string; path?: string}[];
-}): void {
+function printStageDetails(
+  r: {
+    stderr?: string;
+    findings?: readonly {detector: string; severity: string; message: string; path?: string}[];
+  },
+): void {
   if (r.findings && r.findings.length > 0) {
     const errors = r.findings.filter((f) => f.severity === 'error');
     const warns = r.findings.filter((f) => f.severity === 'warn');
     const surface = errors.length > 0 ? errors : warns;
+    // Plain-first (F-dd8dc994): the plain English lead leads, path + detector id
+    // demoted to the tail; the host agent renders the user's own language
+    // (F-9af291fa). Truncation budget preserved on the (short) lead.
     for (const f of surface.slice(0, 3)) {
-      const where = f.path ? ` ${f.path}` : '';
-      process.stdout.write(`    [${f.detector}]${where} — ${truncate(f.message, 140)}\n`);
+      const lead = truncate(plainLead(f.detector, f.message), 140);
+      const where = f.path ? ` — ${f.path}` : '';
+      process.stdout.write(`    ${lead}${where} [${f.detector}]\n`);
     }
     if (surface.length > 3) {
       process.stdout.write(`    … and ${surface.length - 3} more finding(s)\n`);
@@ -937,13 +943,13 @@ export function runRouteCommand(prompt: string): void {
  */
 export function createProgram(): Command {
   const program = new Command();
-  program.name('clad').description('Reference Ironclad CLI').version('0.8.1');
+  program.name('clad').description('Reference Ironclad CLI').version('0.8.2');
 
   program
     .command('init [intent...]')
     .description(
       'Scaffold a cladding workspace. Pass a free-text project description as positional argument ' +
-        '(e.g. `clad init 결제 SaaS for B2B`) to drive intent-aware onboarding — the LLM dispatcher then ' +
+        '(e.g. `clad init payment SaaS for B2B` — free text in any language) to drive intent-aware onboarding — the LLM dispatcher then ' +
         'produces domain-aware capabilities/architecture/project-context plus product-level follow-up questions. ' +
         'Bare `clad init` keeps the v0.3.42 behaviour (greenfield seeds, or observed scan when ≥3 source files exist).',
     )
@@ -1169,7 +1175,7 @@ export function createProgram(): Command {
     .command('clarify [answer...]')
     .description(
       'Advance the onboarding Q&A loop. Pass the user\'s answer to the next pending question as a positional ' +
-        '(no quotes needed, e.g. `clad clarify 법인 사업자만`); the LLM refines spec/docs based on the full Q-A ' +
+        '(no quotes needed, free text in any language, e.g. `clad clarify B2B only`); the LLM refines spec/docs based on the full Q-A ' +
         'history and may emit new follow-up questions. Reads/writes `.cladding/onboarding/state.yaml`. Requires ' +
         '`clad init <intent>` to have started a session first.',
     )

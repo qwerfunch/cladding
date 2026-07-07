@@ -20,9 +20,9 @@ describe('impact card', () => {
     expect(card).not.toBe('');
     expect(card).toContain('cladding impact:');
     expect(card).toContain('src/login.ts');
-    expect(card).toContain('F-abc123');
-    expect(card).toContain('breaks 2 feature');
-    expect(card).toContain('run 3 test');
+    expect(card).toContain('F-abc123 Login'); // focus id + title (F-f46d5c61)
+    expect(card).toContain('2 features depend on this');
+    expect(card).toContain('3 tests guard it');
 
     const moduleSlice: ImpactSlice = {
       focus: {module: 'src/x.ts', owners: ['F-aaa', 'F-bbb']},
@@ -60,7 +60,7 @@ describe('impact card', () => {
       ledger: {depends_on_edges: 0, test_ref_edges: 0},
     };
     const blankCard = formatImpactCard(blank, 'src/x.ts');
-    expect(blankCard).toContain('· deps unledgered'); // empty breaks/tests ≠ verified safe
+    expect(blankCard).toContain('· dependency map not yet recorded'); // empty breaks/tests ≠ verified safe
     expect(blankCard.split('\n')).toHaveLength(1); // stays a one-line card
 
     const dense: ImpactSlice = {
@@ -71,7 +71,7 @@ describe('impact card', () => {
       test_refs: [],
       ledger: {depends_on_edges: 246, test_ref_edges: 316},
     };
-    expect(formatImpactCard(dense, 'src/x.ts')).not.toContain('unledgered'); // verified leaf, no noise
+    expect(formatImpactCard(dense, 'src/x.ts')).not.toContain('dependency map'); // verified leaf, no noise
 
     // ownerless slice: the '' contract survives even with a blank ledger.
     const ownerless: ImpactSlice = {

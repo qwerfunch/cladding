@@ -95,10 +95,11 @@ const HOSTS: readonly HostManifestSpec[] = [
 
 function countDetectorFiles(cwd: string): number {
   const files = globSync(['src/stages/detectors/*.ts'], {cwd, dot: false});
-  // Exclude the registry (index.ts) and shared helpers (with-spec.ts):
-  // they live alongside detectors but are not themselves detectors, so
-  // they must not inflate the count compared against plugin.json.
-  return files.filter((f) => !/[/\\](index|with-spec)\.ts$/.test(f)).length;
+  // Exclude the registry (index.ts) and shared helpers (with-spec.ts,
+  // spec-first-window.ts): they live alongside detectors but are not
+  // themselves detectors (they export no DriftDetector), so they must not
+  // inflate the count compared against plugin.json.
+  return files.filter((f) => !/[/\\](index|with-spec|spec-first-window)\.ts$/.test(f)).length;
 }
 
 function readJsonIfPresent<T>(absolutePath: string): T | null {

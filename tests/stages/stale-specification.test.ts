@@ -5,7 +5,7 @@
 //   1. archived_at set but status != 'archived' → warn + propose-archive
 //   2. superseded_by set but archived_at missing → warn + propose-archive
 //   3. status='archived' but at least one module still exists → warn (no suggestion — removal cadence is project-owned)
-//   4. status in {planned, in_progress} with non-empty modules[] but every module vanished from disk → warn + propose-archive (Phased Decommissioning Tier 2, v0.3.19)
+//   4. status in {planned, in_progress} with non-empty modules[] but every module still absent → info, no suggestion (the spec-first window: authoring the shard before the code is normal, not stale — F-c3747d7d; was warn + propose-archive before U7)
 //
 // Each branch is exercised in isolation and in combination. The
 // detector is opt-in on spec presence (info on absence, not throw).
@@ -123,18 +123,22 @@ describe('STALE_SPECIFICATION detector', () => {
       expect(String(findings[0].suggestion?.args?.reason)).toContain('F-300');
     });
 
-    test('non-final feature with non-empty modules[] all vanished → propose-archive', () => {
+    test('non-final feature with non-empty modules[] all absent → info, NO propose-archive (spec-first window)', () => {
       // No file at stages/missing.ts → declared module does not exist.
+      // F-c3747d7d (U7): planned/in_progress + all declared modules absent is the
+      // documented spec-first window (author the shard, then implement) — the
+      // NORMAL state, not stale. Demoted warn → info (matching
+      // MISSING_IMPLEMENTATION / STATUS_DRIFT) and the propose-archive suggestion
+      // is dropped: you don't archive a feature you're actively implementing.
       writeFileSync(
         join(dir, 'spec', 'features', 'F-300.yaml'),
         'id: F-300\ntitle: t\nstatus: planned\nmodules: [stages/missing.ts]\n',
       );
       const findings = staleSpecification.run({cwd: dir});
       expect(findings).toHaveLength(1);
-      expect(findings[0].severity).toBe('warn');
-      expect(findings[0].suggestion?.action).toBe('propose-archive');
-      expect(findings[0].suggestion?.args?.featureId).toBe('F-300');
-      expect(String(findings[0].suggestion?.args?.reason)).toContain('vanished');
+      expect(findings[0].severity).toBe('info');
+      expect(findings[0].message).toContain("aren't built yet");
+      expect(findings[0].suggestion).toBeUndefined();
     });
 
     test('non-final feature with no modules declared → NO finding (design/doc-only is legitimate)', () => {

@@ -25,6 +25,8 @@ vi.mock('../../src/ui/softShell.js', () => ({
   featureLabel: (id: string) => `LABEL(${id})`,
   gateLabel: (s: string) => `GATE(${s})`,
   haltMessage: (h: {class: string}) => `HALT(${h.class})`,
+  // F-dd8dc994 / F-9af291fa: printStageDetails renders one plain English lead per finding.
+  plainLead: (detector: string, fallback = '') => fallback || `LEAD(${detector})`,
 }));
 vi.mock('../../src/stages/type.js', () => ({runType: vi.fn(() => ({pass: true, exitCode: 0}))}));
 vi.mock('../../src/stages/lint.js', () => ({runLint: vi.fn(() => ({pass: true, exitCode: 0}))}));
@@ -211,7 +213,11 @@ describe('cli/clad — handler exports', () => {
       intent: '결제 SaaS for B2B',
     });
     const stdout = stdoutSpy.mock.calls.map((c: readonly unknown[]) => String(c[0])).join('');
-    expect(stdout).toContain('💡 다음 정보가 있으면');
+    // cladding's own framing text is English single-source (F-5cac007a); the
+    // LLM-generated clarifying questions still flow through in the user's
+    // language (Korean here) — proving intent data is language-preserving
+    // while the framing is not hardcoded.
+    expect(stdout).toContain('💡 A few more details would sharpen the spec:');
     expect(stdout).toContain('주 사용자가 개인? 사업자?');
   });
 
@@ -545,7 +551,7 @@ describe('cli/clad — createProgram', () => {
 
   test('program version matches current package version', () => {
     const program = clad.createProgram();
-    expect(program.version()).toBe('0.8.1');
+    expect(program.version()).toBe('0.8.2');
   });
 });
 

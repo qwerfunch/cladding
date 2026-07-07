@@ -181,8 +181,8 @@ describe('Tier-2 card on an owned edit with consequences (AC-816f10c3)', () => {
     const lines = out.split('\n');
     expect(lines.length).toBeLessThanOrEqual(5);
     expect(out.length).toBeLessThanOrEqual(600);
-    // line 1: the one-liner with breaks + run
-    expect(lines[0]).toBe('cladding impact: src/foo.ts → F-aaa111 · breaks 1 feature(s) · run 1 test(s)');
+    // line 1: the one-liner — focus id + title, human-first consequence wording (F-f46d5c61)
+    expect(lines[0]).toBe('cladding impact: src/foo.ts → F-aaa111 alpha · 1 feature depends on this · 1 test guards it');
     // detail lines name the impacted id, the test path, and the high-risk AC count
     expect(out).toContain('breaks: F-bbb222 beta');
     expect(out).toContain('run: tests/foo.test.ts');
@@ -211,21 +211,24 @@ describe('hook stdout never carries a code excerpt (AC-1bfccb6b)', () => {
   });
 });
 
-// ─── AC-f912fd40 — zero consequences → byte-identical Tier-1 one-liner ───
+// ─── AC-f912fd40 — zero consequences → the Tier-1 one-liner ───
 
-describe('zero-consequence edit degrades to the legacy one-liner (AC-f912fd40)', () => {
-  test('output is byte-identical to formatImpactCard on the same fixture, incl. deps-unledgered; fired tier:1', () => {
+describe('zero-consequence edit degrades to the one-liner (AC-f912fd40)', () => {
+  test('degrade shares the legacy card, plus the focus TITLE the data-poor slice lacks (F-f46d5c61); fired tier:1', () => {
     seed(SPEC_SOLO);
     clearStamp();
     const out = post(edit('src/solo.ts', 60, 'sess-3'));
 
-    // Compute the legacy expectation independently from the same spec.
+    // Compute the legacy expectation independently from the same spec. The impact
+    // slice for a MODULE query carries only owner ids, so the legacy card is id-only;
+    // the working set the hook actually renders enriches it with the focus title.
     const slice = buildImpactSlice(loadSpec(cwd), 'src/solo.ts');
     if ('not_found' in slice) throw new Error('fixture should resolve the module owner');
     const legacy = formatImpactCard(slice, 'src/solo.ts');
+    expect(legacy).toBe('cladding impact: src/solo.ts → F-501010 · dependency map not yet recorded');
+    expect(out).toBe('cladding impact: src/solo.ts → F-501010 solo · dependency map not yet recorded');
 
-    expect(out).toBe(legacy);
-    expect(out).toContain('· deps unledgered'); // the disclosure survives the degrade
+    expect(out).toContain('· dependency map not yet recorded'); // the disclosure survives the degrade
     expect(out).not.toContain('\n'); // a single line — no consequence detail lines
 
     const f = fired();
@@ -248,7 +251,7 @@ describe('dedup ladder within a session (AC-61ae9211)', () => {
 
     clearStamp();
     const second = post(edit('src/a.ts', 60, sid));
-    expect(second).toBe('cladding impact: src/a.ts → F-ccc333 · breaks 1 feature(s)'); // Tier-1 degrade
+    expect(second).toBe('cladding impact: src/a.ts → F-ccc333 multi · 1 feature depends on this'); // Tier-1 degrade
     expect(second).not.toContain('risk:');
 
     clearStamp();

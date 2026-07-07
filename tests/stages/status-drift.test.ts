@@ -7,8 +7,10 @@
 //   - status='done' but at least one module missing → error
 //     (feature is marked complete, yet implementation is gone or
 //     never landed — concrete drift)
-//   - status='in_progress' but every module missing → warn
-//     (stale start signal; implementation hasn't begun)
+//   - status='in_progress' but every module missing → info
+//     (the spec-first window — authoring the shard before the code is the
+//     documented normal state, F-c3747d7d; demoted from warn to match
+//     MISSING_IMPLEMENTATION so the Stop hook / --strict stop blocking it)
 //
 // Status 'planned' and 'archived' are intentionally skipped — planned
 // features by definition don't have code yet, and archived features
@@ -65,15 +67,20 @@ describe('STATUS_DRIFT detector', () => {
     expect(findings[0].message).toContain('stages/missing.ts');
   });
 
-  test('status=in_progress + every module missing → warn finding', () => {
+  test('status=in_progress + every module missing → info finding (spec-first window)', () => {
     writeFileSync(
       join(dir, 'spec', 'features', 'F-001.yaml'),
       'id: F-001\ntitle: t\nstatus: in_progress\nmodules:\n  - stages/a.ts\n  - stages/b.ts\n',
     );
     const findings = statusDrift.run({cwd: dir});
     expect(findings).toHaveLength(1);
-    expect(findings[0].severity).toBe('warn');
-    expect(findings[0].message).toContain('every declared module is missing');
+    // F-c3747d7d (U7): in_progress + all-missing is the documented spec-first
+    // window (author the shard, then implement), NOT a stale start — demoted
+    // warn → info to match MISSING_IMPLEMENTATION so the Stop hook / --strict
+    // stop blocking the normal cycle.
+    expect(findings[0].severity).toBe('info');
+    expect(findings[0].message).toContain('none of its declared modules are');
+    expect(findings[0].message).toContain('the normal state while implementing');
   });
 
   test('status=in_progress + at least one module present → no finding', () => {

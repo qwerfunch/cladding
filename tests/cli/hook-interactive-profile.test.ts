@@ -38,6 +38,7 @@ let cwd: string;
 beforeEach(() => {
   cwd = mkdtempSync(join(tmpdir(), 'clad-hook-profile-'));
   // Both lanes only engage under cladding (F-c6a32fff): seed the master file.
+  // Render is English by construction (F-9af291fa).
   writeFileSync(join(cwd, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: fixture\n', 'utf8');
   driftStub.mockImplementation(() => DRIFT_CLEAN);
   archStub.mockImplementation(() => STAGE_PASS);
@@ -71,7 +72,10 @@ describe('PostToolUse renders the deferred subprocess detectors (AC-870a2ed8)', 
       }),
     );
     const out = runHookEvent('PostToolUse', {tool_name: 'Edit', tool_input: {file_path: 'src/foo.ts'}}, cwd);
-    expect(out).toContain('cladding drift: 1 error(s) — AC_DRIFT');
+    // Plain-first render (F-dd8dc994): the detector id moved to the `(details: …)`
+    // tail; the deferred note is kept verbatim after it.
+    expect(out).toContain('cladding drift: 1 error(s) —');
+    expect(out).toContain('(details: AC_DRIFT)');
     expect(out).toContain('(+2 deferred to commit)');
   });
 

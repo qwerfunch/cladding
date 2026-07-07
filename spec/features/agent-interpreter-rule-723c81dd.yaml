@@ -1,0 +1,26 @@
+id: F-723c81dd
+slug: agent-interpreter-rule
+title: "Agent interpreter rule — the host agent speaks the user's language, not cladding's"
+status: done
+modules:
+  - src/init/host-instructions.ts
+  - src/agents/orchestrator.md
+  - src/agents/developer.md
+  - src/agents/planner.md
+  - src/agents/reviewer.md
+  - src/agents/observability.md
+  - CLAUDE.md
+acceptance_criteria:
+  - id: AC-ad928912
+    ears: ubiquitous
+    text: "The injected CLAUDE.md section and the AGENTS.md template shall carry an interpreter rule: when reporting to the user, translate cladding terms into plain words in the user's own language and never lead with internal ids — with both freshness literals preserved verbatim."
+    notes: "## Why\nThe adopter screenshot shows the agent saying 'Shard AC 3개 추가 완료' — cladding's injected instructions teach shard-vocabulary and nothing tells the agent to translate. The rule is the third layer: hooks render plain (U2), cards drop jargon (U3), and the agent's own sentences translate (U4)."
+    test_refs: [tests/agent-interpreter-rule.test.ts]
+  - id: AC-6bf501f8
+    ears: ubiquitous
+    text: "All five persona prompts shall extend their user-facing-language section beyond id translation — shard, attestation, and detector findings are reported by meaning, in the user's language."
+    test_refs: [tests/agent-interpreter-rule.test.ts]
+  - id: AC-b3b7a118
+    ears: ubiquitous
+    text: "The template size guard shall be deliberately raised (with its rationale recorded in the test) rather than silently loosened, and the repository's own CLAUDE.md section shall equal the new template output byte-for-byte."
+    test_refs: [tests/agent-interpreter-rule.test.ts, tests/claude-md-diet.test.ts]

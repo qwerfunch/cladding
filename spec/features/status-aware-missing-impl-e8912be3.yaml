@@ -1,0 +1,33 @@
+id: F-e8912be3
+slug: status-aware-missing-impl
+title: "Status-aware MISSING_IMPLEMENTATION — the spec-first window is a normal state, not an error"
+status: done
+modules:
+  - src/stages/detectors/missing-implementation.ts
+  - conformance/runner.ts
+  - docs/feature-cycle.md
+acceptance_criteria:
+  - id: AC-daff1078
+    ears: state
+    condition: "while a feature is planned or in_progress"
+    action: "report a declared-but-missing module as an info finding whose message states this is the normal state between authoring the spec entry and implementing it"
+    response: "the documented spec-first cycle no longer fights the Stop hook or the pre-commit gate"
+    text: "While a feature is planned or in_progress, a missing declared module shall be an informational finding, not a blocking one."
+    notes: "## Why\nReal-adopter screenshot (2026-07-06): the Stop hook blocked a session with 'feature F-049cb0 declares module ... but the file does not exist' during the exact window the cycle documentation prescribes (author spec entry → implement). MISSING_IMPLEMENTATION was the only status-blind detector of its family — UNTESTED_AC and MISSING_TESTS are already done-scoped."
+    test_refs: [tests/status-aware-missing-impl.test.ts]
+  - id: AC-9f1a7ad1
+    ears: ubiquitous
+    text: "For done and archived features a missing declared module shall remain an error — done is independently guarded by STATUS_DRIFT, and archived coverage exists only in this detector."
+    notes: "## Why\nDemotion must not weaken the shipped-code invariant: done+missing stays a two-detector catch, archived+missing keeps its only guard."
+    test_refs: [tests/status-aware-missing-impl.test.ts, tests/stages/missing-implementation.test.ts]
+  - id: AC-e8e0bf03
+    ears: event
+    condition: "when the conformance fixture exercising an in_progress feature with all modules missing runs non-strict"
+    action: "expect pass (the residual signals are STATUS_DRIFT warn and the info finding)"
+    response: "the fixture documents the window as legal instead of pinning the old contradiction"
+    text: "When the in_progress all-missing fixture runs non-strict, it shall pass, and the fixture narrative shall state the window-is-legal intent."
+    test_refs: [tests/status-aware-missing-impl.test.ts]
+  - id: AC-5b108de2
+    ears: ubiquitous
+    text: "The feature-cycle documentation shall correctly describe the status policy — UNTESTED_AC is done-scoped (the previous text claiming it status-blind was wrong) and the missing-implementation window tolerance is documented."
+    test_refs: [tests/status-aware-missing-impl.test.ts]

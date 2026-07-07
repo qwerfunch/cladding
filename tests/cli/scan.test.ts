@@ -278,9 +278,15 @@ describe('scanRoot', () => {
     });
   });
 
-  // v0.3.27 — flat single-package (Go cobra-style) promotion
-  describe('flat single-package _root promotion (v0.3.27)', () => {
-    test('cwd-direct files (≥5) promote to a layer named after cwd basename', () => {
+  // v0.3.27 — flat single-package (Go cobra-style) handling.
+  // Reworked by F-<init-scan-layer-glob>: a flat project's cwd-direct files
+  // form NO architecture sub-layer. The old `_root`→basename(cwd) promotion
+  // produced a layer named after the project directory with a `<basename>/**`
+  // glob that matched nothing (the object-form architecture the detector
+  // consumes resolves each layer as `<mainRoot>/<name>`, and no name resolves
+  // back to the root itself). A flat project honestly has zero layers.
+  describe('flat single-package _root handling (v0.3.27, reworked)', () => {
+    test('cwd-direct files (≥5) do NOT promote to a bogus cwd-named layer', () => {
       seed(dir, {
         'a.go': 'package cobra\n\nfunc A() {}\n',
         'b.go': 'package cobra\n\nfunc B() {}\n',
@@ -290,11 +296,10 @@ describe('scanRoot', () => {
         'f.go': 'package cobra\n\nfunc F() {}\n',
       });
       const r = scanRoot({cwd: dir});
-      // Layer name = basename(tmpdir-prefix), so just assert non-empty
-      // and that the promoted layer carries the 6 files.
-      expect(r.architecture.layers.length).toBeGreaterThanOrEqual(1);
-      const promoted = r.architecture.layers[0];
-      expect(promoted.moduleCount).toBe(6);
+      // No sub-layer to name → `layers: []` (renders as valid empty array).
+      // Previously this promoted to a layer named basename(cwd) with a
+      // `<basename>/**` glob matching zero files.
+      expect(r.architecture.layers).toEqual([]);
     });
 
     test('cwd-direct files below threshold stay in _root and produce no layer', () => {

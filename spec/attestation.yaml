@@ -14,21 +14,21 @@
 # `clad check --tier=pre-push --strict`; the GREEN gate rewrites the truth.
 # Content-anchored: survives fresh clones and squash/rebase.
 attested_modules:
-  .claude-plugin/marketplace.json: 90c522016beb7fd6
+  .claude-plugin/marketplace.json: 4875265deab1e487
   .claude/settings.json: d0bba3583aef0960
   .github/workflows/ci.yml: 8ea99219cb80df60
   .gitignore: 1294975ba3b47043
-  CHANGELOG.md: 9d555731b158eed9
-  CLAUDE.md: 9d00a2ef785a76d1
+  CHANGELOG.md: eaa5f5793073be7f
+  CLAUDE.md: d81d8832976cd5ee
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: 0458909731d3b683
-  README.ko.html: 2dac07525d09fca3
-  README.ko.md: 9f103b2ab73bf2cd
-  README.md: 97d366f5dbeac39d
+  README.html: 48b4bd35908408db
+  README.ko.html: bdb58f0418820473
+  README.ko.md: 7610ca3b72d7933c
+  README.md: dd86f6d6d1899f97
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
-  conformance/fixtures.yaml: 7db2915eeaefbc2f
-  conformance/runner.ts: 96c12a96c857f8c2
+  conformance/fixtures.yaml: 4b1b94dae1cd20b0
+  conformance/runner.ts: b9c9e71df85d382e
   docs/README.md: 5672e5726104d845
   docs/ab-evaluation-extended/README.md: f690562df2e5ec06
   docs/ab-evaluation-extended/scenarios/dashboard/report.md: 9ad86472f76c2c29
@@ -37,7 +37,7 @@ attested_modules:
   docs/ab-evaluation/README.md: 2467808b9871dcf0
   docs/ab-evaluation/case-doverunner-scale.md: 2a435b6855823d41
   docs/ab-evaluation/case-efficiency-measurement.md: 348aca146a7b2faa
-  docs/ab-evaluation/case-existing-adoption.md: 6e205625d9036ec8
+  docs/ab-evaluation/case-existing-adoption.md: 8e86e9a3e60c64fe
   docs/ab-evaluation/case-graph-efficiency.md: 83d3956d14a1517d
   docs/ab-evaluation/case-iterative-vs-fixed-vapt.md: 1d242b8b6071f343
   docs/ab-evaluation/case-payment-saas.md: 0ecb089a576de638
@@ -51,7 +51,7 @@ attested_modules:
   docs/code-style.md: f1fd100fa0d11c5e
   docs/dogfood/claude-code-2026-05-20.md: 04870d41e75576d6
   docs/dogfood/gemini-cli-2026-05-20.md: 2da1ba66c4f108f0
-  docs/feature-cycle.md: 49672a8cee9b1191
+  docs/feature-cycle.md: 6af4ff8fe15db28a
   docs/glossary.md: 1fa1a5cdecac2c34
   docs/img/en/ecosystem.svg: 686fb1eb2b93711c
   docs/img/en/relationship.svg: 67470f930df33119
@@ -62,24 +62,24 @@ attested_modules:
   docs/spec-ids-multi-dev.md: 28d58e84879f58b1
   docs/ssot-model.md: 2ecedd961ce4f721
   docs/ssot-testing.md: a067d2b99852db9a
-  package.json: c8a9a11a8cc9e898
-  plugins/claude-code/.claude-plugin/plugin.json: 650b9033377f64f4
-  plugins/claude-code/agents/developer.md: 0f196ba5f82d67cc
-  plugins/claude-code/agents/observability.md: a6aa97c78f11baa6
-  plugins/claude-code/agents/orchestrator.md: 9f5a9439919b8d8f
-  plugins/claude-code/agents/planner.md: c2dc0b4c0045428a
-  plugins/claude-code/agents/reviewer.md: b2d7235036657d41
+  package.json: 763da9b4483037df
+  plugins/claude-code/.claude-plugin/plugin.json: 90190832d41aafb2
+  plugins/claude-code/agents/developer.md: b0ef3775132d159a
+  plugins/claude-code/agents/observability.md: 81f73e284ee9b3ba
+  plugins/claude-code/agents/orchestrator.md: d30919c2b78b88e4
+  plugins/claude-code/agents/planner.md: 9514f785ba65a58c
+  plugins/claude-code/agents/reviewer.md: 91922293457a3d6a
   plugins/claude-code/commands/init.md: b7b5beedee6ddafb
   plugins/claude-code/hooks/hooks.json: 42321ead26fb1da8
-  plugins/codex/.codex-plugin/plugin.json: b4c5b9273a349a89
+  plugins/codex/.codex-plugin/plugin.json: 75a45bd1527569fb
   plugins/codex/.mcp.json: 43e3f4b2af24aa18
   plugins/codex/skills/check/SKILL.md: 355826df90846d2f
-  plugins/codex/skills/developer/SKILL.md: 0f196ba5f82d67cc
+  plugins/codex/skills/developer/SKILL.md: b0ef3775132d159a
   plugins/codex/skills/init/SKILL.md: b7b5beedee6ddafb
-  plugins/codex/skills/observability/SKILL.md: a6aa97c78f11baa6
-  plugins/codex/skills/orchestrator/SKILL.md: 9f5a9439919b8d8f
-  plugins/codex/skills/planner/SKILL.md: c2dc0b4c0045428a
-  plugins/codex/skills/reviewer/SKILL.md: b2d7235036657d41
+  plugins/codex/skills/observability/SKILL.md: 81f73e284ee9b3ba
+  plugins/codex/skills/orchestrator/SKILL.md: d30919c2b78b88e4
+  plugins/codex/skills/planner/SKILL.md: 9514f785ba65a58c
+  plugins/codex/skills/reviewer/SKILL.md: 91922293457a3d6a
   plugins/codex/skills/run/SKILL.md: 43683062ac062846
   plugins/codex/skills/serve/SKILL.md: 4cee65dfb691e3b0
   plugins/codex/skills/status/SKILL.md: b3cb6e7a12bf4023
@@ -87,8 +87,8 @@ attested_modules:
   plugins/gemini-cli/GEMINI.md: ba08eaf2cd557a65
   plugins/gemini-cli/commands/README.md: 3527d771578431bd
   plugins/gemini-cli/commands/init.toml: fbf24f25bb8cf921
-  plugins/gemini-cli/gemini-extension.json: b5ac60214cd89d03
-  scripts/build-plugin.mjs: a7b34ecaf3690b6e
+  plugins/gemini-cli/gemini-extension.json: 2b2c445627994759
+  scripts/build-plugin.mjs: 57ffa3f0e6317a6b
   scripts/build.mjs: 3a4b204063024ef1
   scripts/migrate-dogfood-v0.3.16.mjs: 1e265fb370019996
   scripts/shard-spec.ts: 0c728bbc1e869421
@@ -105,7 +105,7 @@ attested_modules:
   skills/serve/SKILL.md: 4cee65dfb691e3b0
   skills/status/SKILL.md: b3cb6e7a12bf4023
   skills/sync/SKILL.md: 709c20212aa5627e
-  spec.yaml: 1273f772a301095a
+  spec.yaml: ac14df7ad5345d0f
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: c5d911049fbdcd48
   spec/features/: a4d0f0eb87fed960
@@ -127,30 +127,30 @@ attested_modules:
   src/agents: a4d0f0eb87fed960
   src/agents/README.md: 9f41809958439db2
   src/agents/blind-author.md: c4c89882adce01ce
-  src/agents/developer.md: 0f196ba5f82d67cc
+  src/agents/developer.md: b0ef3775132d159a
   src/agents/loader.ts: 6d35560c47f9ae85
-  src/agents/observability.md: a6aa97c78f11baa6
-  src/agents/orchestrator.md: 9f5a9439919b8d8f
-  src/agents/planner.md: c2dc0b4c0045428a
-  src/agents/reviewer.md: b2d7235036657d41
+  src/agents/observability.md: 81f73e284ee9b3ba
+  src/agents/orchestrator.md: d30919c2b78b88e4
+  src/agents/planner.md: 9514f785ba65a58c
+  src/agents/reviewer.md: 91922293457a3d6a
   src/changelog/collect.ts: a6c936a7b8c34e2a
   src/changelog/render.ts: 83dd2d95f24ca68c
   src/cli: a4d0f0eb87fed960
   src/cli/benchmark.ts: 77f84d2a898d724f
   src/cli/changelog.ts: 2de1adb009b89ab4
-  src/cli/clad.ts: ba56b08ebe50303a
-  src/cli/clarify.ts: 0699edcdde49112b
+  src/cli/clad.ts: 57f130c71eb939da
+  src/cli/clarify.ts: ff084951de081592
   src/cli/doctor-hosts.ts: 1ad79105b47fd8e5
   src/cli/doctor.ts: b98b955fe75e7f7e
-  src/cli/done.ts: ab848407e563b74b
+  src/cli/done.ts: ad2b2d49034296bd
   src/cli/graph-serve.ts: 23e6e389225d0f98
   src/cli/graph.ts: bab410061b8c746a
-  src/cli/hook.ts: bc05844317f377c4
+  src/cli/hook.ts: a856ab95e025bb75
   src/cli/init.ts: eec7319d9f2496c0
   src/cli/intent-from-path.ts: e69862821d979f22
   src/cli/measure.ts: 3a562f16589e26c2
   src/cli/report.ts: 911f859b2446834b
-  src/cli/scan/architecture.ts: cf6198a750534b66
+  src/cli/scan/architecture.ts: c9cfd5445ea77e45
   src/cli/scan/conventions.ts: 577468c0fc3fdf6a
   src/cli/scan/dispatcher.ts: 97bd3f12cece4fc4
   src/cli/scan/docs.ts: 31c440a54b0b7c4c
@@ -159,7 +159,7 @@ attested_modules:
   src/cli/scan/helpers.ts: 396c73992ded0e22
   src/cli/scan/index.ts: c23f21c487c8abcb
   src/cli/scan/intent-onboarding.ts: bfc6960b621e0966
-  src/cli/scan/llm.ts: 74ac7ce670001de6
+  src/cli/scan/llm.ts: e6a91e97f9873531
   src/cli/scan/onboarding-state.ts: a5e8513fc8355e6e
   src/cli/scan/roots.ts: 7475eed8c9836531
   src/cli/scan/scenarios.ts: 6c2a4ce3b469a668
@@ -192,8 +192,8 @@ attested_modules:
   src/hitl/audit.ts: 79b06e904815469a
   src/hitl/identity.ts: 52ff84aa666f1dab
   src/init/git-hook.ts: 4e02f177b3764ae8
-  src/init/host-instructions.ts: 5c914336c011fc3d
-  src/init/host-setup.ts: 7204682817a119f1
+  src/init/host-instructions.ts: f6d10695ef0c4763
+  src/init/host-setup.ts: ee6bca9c8fbc2fb2
   src/optimizer: a4d0f0eb87fed960
   src/optimizer/code-excerpt.ts: e2c4598efcd28d2a
   src/optimizer/context-slice.ts: b5864aaed1e7ae48
@@ -203,7 +203,7 @@ attested_modules:
   src/optimizer/measurement.ts: 55ab003adaec49a9
   src/optimizer/preamble.ts: f74d41daf8372cdf
   src/optimizer/prune.ts: f5f70fb850f167bc
-  src/optimizer/push-card.ts: 860b5ac68f2db77e
+  src/optimizer/push-card.ts: c7cc2d710fcfd1dc
   src/optimizer/reverse-slice.ts: 81c2e99e65bdd359
   src/optimizer/tail.ts: 5cdce1a3afd1eb7e
   src/optimizer/working-set.ts: fd26740a8c0019ae
@@ -215,7 +215,7 @@ attested_modules:
   src/report/sarif.ts: 71e97aceeb0a4473
   src/router: a4d0f0eb87fed960
   src/router/intent.ts: 430590f761b891a6
-  src/serve/server.ts: 5e82d104dedd9d77
+  src/serve/server.ts: ec214208cb6762ad
   src/spec: a4d0f0eb87fed960
   src/spec/attestation.ts: 294a1e99c42d4aef
   src/spec/cli.ts: 7a9bcd0f66677810
@@ -239,7 +239,7 @@ attested_modules:
   src/stages/cov.ts: f7c7bff90ef9c868
   src/stages/deliverable-smoke.ts: 9ecfd4210e6ec5c0
   src/stages/detector-result-cache.ts: 93ea6af02ef361c5
-  src/stages/detectors/README.md: 3a3512280a064a1f
+  src/stages/detectors/README.md: 2e136e4f61e6d6bb
   src/stages/detectors/absence-of-governance.ts: 954d8ce5c45b3b32
   src/stages/detectors/ac-drift.ts: 1bceeae9ee99080b
   src/stages/detectors/ac-duplicate-within-feature.ts: 652ad48c8cd1ab2e
@@ -255,7 +255,7 @@ attested_modules:
   src/stages/detectors/evidence-mismatch.ts: c633778b8f9ec0af
   src/stages/detectors/fixture-reference.ts: 3ddfffa560f58f8d
   src/stages/detectors/hardcoded-secret.ts: d9fb55e3d2e429b6
-  src/stages/detectors/harness-integrity.ts: 8af03028c9407378
+  src/stages/detectors/harness-integrity.ts: c9717bc296d6c11d
   src/stages/detectors/hollow-governance.ts: 57d3f25c421f993b
   src/stages/detectors/host-claim-drift.ts: aad755cec4ce24d0
   src/stages/detectors/id-collision.ts: 9292f2dac0578276
@@ -263,21 +263,22 @@ attested_modules:
   src/stages/detectors/inferable-depends-on.ts: 29dbc744efe3df00
   src/stages/detectors/inventory-drift.ts: 28c094367ded9c9f
   src/stages/detectors/meta-integrity.ts: 5464ff92880031e9
-  src/stages/detectors/missing-implementation.ts: 71e1a456f3f57f5d
+  src/stages/detectors/missing-implementation.ts: b7f91e9ede000724
   src/stages/detectors/missing-tests.ts: 734f5eef48807dcd
   src/stages/detectors/performance-drift.ts: 69472d10fe946c14
-  src/stages/detectors/planned-backlog.ts: f5be38ada5aae7d4
+  src/stages/detectors/planned-backlog.ts: a6850576b00d4a44
   src/stages/detectors/project-context-drift.ts: d3643f369537a8e8
   src/stages/detectors/reference-integrity.ts: 8883766a4bf69c61
   src/stages/detectors/scenario-coverage.ts: ff4cc3aa721abe26
   src/stages/detectors/slug-conflict.ts: 5d9b8feec12dce07
   src/stages/detectors/smoke-probe-demand.ts: 792b6d0d07f82a16
   src/stages/detectors/spec-conformance.ts: 8c74460349f0acef
+  src/stages/detectors/spec-first-window.ts: c29a1836eb5f0257
   src/stages/detectors/stale-attestation.ts: c0290be986333807
   src/stages/detectors/stale-evidence.ts: 01b4a3931f03714f
-  src/stages/detectors/stale-specification.ts: f39be5530830b311
+  src/stages/detectors/stale-specification.ts: 0fe84db592fd406d
   src/stages/detectors/stale-tests.ts: caf59404d1282201
-  src/stages/detectors/status-drift.ts: eeceaf26ffaa3b05
+  src/stages/detectors/status-drift.ts: 9cc5cf3f9b62ea00
   src/stages/detectors/tech-stack-mismatch.ts: 099162aff2c2966b
   src/stages/detectors/unmapped-artifact.ts: b29f7e277d8187ae
   src/stages/detectors/untested-ac.ts: 90725ef1fc9245d8
@@ -309,13 +310,13 @@ attested_modules:
   src/ui: a4d0f0eb87fed960
   src/ui/panel.ts: 8b78cb14dafb28fb
   src/ui/pulse.ts: ee4255f5c6e49f51
-  src/ui/softShell.ts: 5153baee37ce3403
+  src/ui/softShell.ts: c095f4185ab3d624
   tests/adapters/anthropic.test.ts: fa2fc7faf032a782
   tests/adapters/index.test.ts: 4454e6b4ea05a74f
   tests/adapters/transport.test.ts: 68f22e9e8df7b813
   tests/agents/loader.test.ts: a7df7b1c9a95d37d
   tests/cli/benchmark.test.ts: b4a87289605ee75f
-  tests/cli/clad.test.ts: b3668d5b81f6957b
+  tests/cli/clad.test.ts: 3b8a674c0c981c73
   tests/cli/gate-golden-matrix.test.ts: 39cf615407a55abe
   tests/cli/init.test.ts: 3428a89708fc9330
   tests/cli/intent-onboarding.test.ts: 0681b98ce2e74c22
@@ -384,7 +385,7 @@ attested_modules:
   tests/stages/inventory-drift.test.ts: 5641e9bdfadb2d52
   tests/stages/lint.test.ts: 7bb84adc4f4e0820
   tests/stages/meta-integrity.test.ts: f0781f010e95edd0
-  tests/stages/missing-implementation.test.ts: 273546ba4b6fb773
+  tests/stages/missing-implementation.test.ts: 2cf79871685fbdf4
   tests/stages/missing-tests.test.ts: feb49f3af71cc1af
   tests/stages/perf.test.ts: fe45635a3f49157a
   tests/stages/performance-drift.test.ts: 2c65fcd7a529fc23
@@ -393,9 +394,9 @@ attested_modules:
   tests/stages/smoke.test.ts: 99f97875d29ac5d3
   tests/stages/spec-conformance.test.ts: 9f6ac08e09d7b10b
   tests/stages/stale-evidence.test.ts: 8e8622f17eb7f955
-  tests/stages/stale-specification.test.ts: cc06086baf1201da
+  tests/stages/stale-specification.test.ts: 09bd06db377d890c
   tests/stages/stale-tests.test.ts: 1467ceedb8019e86
-  tests/stages/status-drift.test.ts: 09fe206b34d1be02
+  tests/stages/status-drift.test.ts: cff1092eeb23c268
   tests/stages/tech-stack-mismatch.test.ts: 878436ffd2f94c97
   tests/stages/toolchain.test.ts: 8bf0f6b544215d44
   tests/stages/type.test.ts: b57cf7455cae3b32
@@ -514,6 +515,7 @@ attested_features:
   F-24062d: ok
   F-245bd5: ok
   F-27e56a00: ok
+  F-284be4f6: ok
   F-288864ae: ok
   F-2be3e3bb: ok
   F-2de65d: ok
@@ -544,6 +546,7 @@ attested_features:
   F-59f093: ok
   F-5b188856: ok
   F-5b9f9f: ok
+  F-5cac007a: ok
   F-5d3ed2: ok
   F-5f6b45: ok
   F-63b989e5: ok
@@ -557,7 +560,9 @@ attested_features:
   F-6ed216f3: ok
   F-6f80e7: ok
   F-7076f7: ok
+  F-723c81dd: ok
   F-7794a6bc: ok
+  F-77a90ac6: ok
   F-77f7ead0: ok
   F-78b50d: ok
   F-7afbd4: ok
@@ -577,6 +582,7 @@ attested_features:
   F-987be195: ok
   F-99c6e5: ok
   F-9a3b61: ok
+  F-9af291fa: ok
   F-9b643e: ok
   F-9d168287: ok
   F-a04cd9: ok
@@ -605,6 +611,7 @@ attested_features:
   F-bdcd90: ok
   F-c037ae: ok
   F-c2c996: ok
+  F-c3747d7d: ok
   F-c48eb2: ok
   F-c4c5ae: ok
   F-c58263b8: ok
@@ -623,11 +630,13 @@ attested_features:
   F-d8223c: ok
   F-d980359c: ok
   F-dd51b42c: ok
+  F-dd8dc994: ok
   F-dddb89: ok
   F-e0f6c7: ok
   F-e53596dd: ok
   F-e7d59c88: ok
   F-e803c149: ok
+  F-e8912be3: ok
   F-e940fffe: ok
   F-eb732f: ok
   F-ede6fa75: ok
@@ -636,6 +645,7 @@ attested_features:
   F-ef2fd9: ok
   F-f334fa: ok
   F-f44d1b: ok
+  F-f46d5c61: ok
   F-f6cc5e5a: ok
   F-f6d13e: ok
   F-fb9b48a5: ok

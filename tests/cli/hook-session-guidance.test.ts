@@ -1,10 +1,12 @@
 // Cladding · SessionStart guidance tail (F-fb9b48a5)
 //
 // Derives expectations from the 4 ACs of session-start-guidance-fb9b48a5:
-//   AC-b08371b3  one tools-advertisement line naming both context-compiler tools
+//   AC-b08371b3  one context-capability line (F-f46d5c61 AC-2c63b999 superseded the
+//                original "name both tools" wording — the line now advertises the
+//                capability in plain English with NO MCP tool name)
 //   AC-14f7778c  ≤2 verbatim prefer lines from project.ai_hints.preferred_patterns, ≤140 chars
 //   AC-20893cbc  ≤9 lines at any feature count, canonical ordering
-//   AC-5303e049  absent/malformed ai_hints → tools line only, no prefer lines, no throw
+//   AC-5303e049  absent/malformed ai_hints → context line only, no prefer lines, no throw
 //
 // Drives runHookEvent('SessionStart', …) as a function against a throwaway
 // fixture dir. SessionStart never spawns the deterministic trio, so unlike
@@ -74,29 +76,28 @@ function seedStopBlock(): void {
   );
 }
 
-describe('AC-b08371b3 — tools-advertisement line', () => {
-  test('names both context-compiler tools on exactly one line, after gate/stop-block, before policy', () => {
+describe('AC-b08371b3 — context-capability line (F-f46d5c61: no MCP tool names)', () => {
+  test('exactly one context line, after gate/stop-block, before policy, naming NO MCP tool', () => {
     seedIndexProject();
     seedGate();
     seedStopBlock();
 
     const lines = runHookEvent('SessionStart', {}, cwd).split('\n');
-    const toolLines = lines.filter((l) => l.includes('clad_get_working_set'));
-    expect(toolLines).toHaveLength(1); // exactly one tools line
-    const tools = toolLines[0];
-    expect(tools).toContain('clad_get_impact'); // names BOTH tools
-    expect(tools).toContain('→'); // a compact hint of what each returns (→)
+    const ctxLines = lines.filter((l) => l.startsWith('context:'));
+    expect(ctxLines).toHaveLength(1); // exactly one context line
+    const ctx = ctxLines[0];
+    expect(ctx).not.toMatch(/clad_[a-z_]+/); // capability phrasing — no internal MCP tool name
 
     const idxGate = lines.findIndex((l) => l.startsWith('last gate:'));
     const idxStop = lines.findIndex((l) => l.startsWith('unresolved stop-block:'));
-    const idxTools = lines.indexOf(tools);
+    const idxCtx = lines.indexOf(ctx);
     const idxPolicy = lines.findIndex((l) => l.startsWith('policy:'));
     expect(idxGate).toBeGreaterThanOrEqual(0);
     expect(idxStop).toBeGreaterThanOrEqual(0);
     expect(idxPolicy).toBeGreaterThanOrEqual(0);
-    expect(idxTools).toBeGreaterThan(idxGate); // after gate
-    expect(idxTools).toBeGreaterThan(idxStop); // after stop-block
-    expect(idxTools).toBeLessThan(idxPolicy); // before policy
+    expect(idxCtx).toBeGreaterThan(idxGate); // after gate
+    expect(idxCtx).toBeGreaterThan(idxStop); // after stop-block
+    expect(idxCtx).toBeLessThan(idxPolicy); // before policy
   });
 });
 
@@ -178,7 +179,7 @@ describe('AC-20893cbc — ≤9 lines and canonical ordering', () => {
       inProg: lines.findIndex((l) => l.startsWith('in progress:')),
       gate: lines.findIndex((l) => l.startsWith('last gate:')),
       stop: lines.findIndex((l) => l.startsWith('unresolved stop-block:')),
-      tools: lines.findIndex((l) => l.includes('clad_get_working_set')),
+      ctx: lines.findIndex((l) => l.startsWith('context:')),
       prefer: lines.findIndex((l) => l.startsWith('prefer:')),
       policy: lines.findIndex((l) => l.startsWith('policy:')),
     };
@@ -186,8 +187,8 @@ describe('AC-20893cbc — ≤9 lines and canonical ordering', () => {
     expect(i.counts).toBeLessThan(i.inProg);
     expect(i.inProg).toBeLessThan(i.gate);
     expect(i.gate).toBeLessThan(i.stop);
-    expect(i.stop).toBeLessThan(i.tools);
-    expect(i.tools).toBeLessThan(i.prefer);
+    expect(i.stop).toBeLessThan(i.ctx);
+    expect(i.ctx).toBeLessThan(i.prefer);
     expect(i.prefer).toBeLessThan(i.policy);
   });
 
@@ -215,7 +216,7 @@ describe('AC-20893cbc — ≤9 lines and canonical ordering', () => {
   });
 });
 
-describe('AC-5303e049 — absent/malformed ai_hints → tools line only, no throw', () => {
+describe('AC-5303e049 — absent/malformed ai_hints → context line only, no throw', () => {
   const cases: {readonly name: string; readonly project: unknown}[] = [
     {name: 'ai_hints is a bare string', project: {name: 'x', ai_hints: 'oops'}},
     {name: 'preferred_patterns is a bare string', project: {name: 'x', ai_hints: {preferred_patterns: 'oops'}}},
@@ -236,7 +237,7 @@ describe('AC-5303e049 — absent/malformed ai_hints → tools line only, no thro
       // malformed hints must not collapse the whole card to error-as-silence
       expect(out.length).toBeGreaterThan(0);
       const lines = out.split('\n');
-      expect(lines.filter((l) => l.includes('clad_get_working_set'))).toHaveLength(1); // tools line survives
+      expect(lines.filter((l) => l.startsWith('context:'))).toHaveLength(1); // context line survives
       expect(lines.filter((l) => l.startsWith('prefer:'))).toHaveLength(0); // no prefer lines
     });
   }

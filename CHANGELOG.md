@@ -5,7 +5,58 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.8.2] — Human-first diagnostics + init/scan correctness (2026-07-07)
+
+Two threads land together: the "speak the user's language" UX pivot (plain-language
+findings, human-first cards, English single-source with agent relay, the spec-first
+window as a normal state) and three init/scan correctness fixes found while
+reproducing an onboarding bug.
+
+> **Heads-up:** An A/B against 0.8.1 confirmed all three fixes as correct defect
+> repairs but measured no user-facing behavioral gain under a capable AI host —
+> they ship as correctness and maintainability, not user wins. The genuine
+> beneficiary is the bare-terminal first-time adopter the A/B did not sample.
+
+### Added
+
+- **Plain-language findings.** The four human surfaces (turn-end gate,
+  per-edit nudge, `clad check` blocks, `clad done` refusals) now lead with
+  what drifted and what to do, in clear plain English; machine detail
+  (detector id · path) trails as a tail. JSON, SARIF, MCP, and event
+  outputs are byte-unchanged.
+- **Speak the user's language.** The instructions cladding injects
+  (CLAUDE.md section, AGENTS.md template, all five personas) now direct
+  the host agent to translate cladding terms — including cladding's own
+  gate and hook messages — into plain words in the user's own language.
+  The shipped English strings are the single translation source; cladding
+  never detects or stores a locale. The `clad init`, `clad setup`, and
+  `clad clarify` command output moved to that same English single-source too.
+
+### Changed
+
+- **The spec-first window stopped shouting.** A module that isn't built
+  yet on a planned/in-progress feature is now an info note ("the normal
+  state between authoring the spec entry and implementing it"), not a
+  blocking error. done/archived features keep the hard error, and
+  STATUS_DRIFT independently guards done features with missing files.
+- **Hook cards speak human.** Session and prompt cards and block reasons
+  drop internal vocabulary — no MCP tool names, no "shard"; in-progress
+  lists show feature titles next to ids; impact cards say "N features
+  depend on this" instead of "breaks N feature(s)".
+
+### Fixed
+
+- **First-run onboarding no longer bricks the spec.** On a small or greenfield
+  project, `clad init` (and any `--scan`) wrote an empty `layers:` that parsed to
+  null and failed schema validation, so every later check reported the project as
+  ungoverned. It now emits `layers: []`.
+- **Scanned architecture globs match real files.** Layer globs dropped the source
+  root (`api/**` instead of `src/api/**`, matching nothing) and flat projects
+  leaked the project directory name into the committed spec. Both corrected.
+- **Docs matched to real detector behavior.** `docs/feature-cycle.md`
+  wrongly claimed the untested-AC check ignores feature status, and the
+  detector catalog row for missing-implementation now records the
+  status-aware severity.
 
 ## [0.8.1] — Adoption Proof + Friction Diet (2026-07-06)
 
