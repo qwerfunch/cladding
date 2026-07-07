@@ -7,56 +7,27 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ## [0.8.2] — Human-first diagnostics + init/scan correctness (2026-07-07)
 
-Two threads land together: the "speak the user's language" UX pivot (plain-language
-findings, human-first cards, English single-source with agent relay, the spec-first
-window as a normal state) and three init/scan correctness fixes found while
-reproducing an onboarding bug.
+The "speak the user's language" UX pass, plus three init/scan fixes found while reproducing an onboarding bug.
 
-> **Heads-up:** An A/B against 0.8.1 confirmed all three fixes as correct defect
-> repairs but measured no user-facing behavioral gain under a capable AI host —
-> they ship as correctness and maintainability, not user wins. The genuine
-> beneficiary is the bare-terminal first-time adopter the A/B did not sample.
+> **Heads-up:** An A/B against 0.8.1 found all three fixes correct but with no measured user-facing gain under a capable AI host — they ship as correctness, not user wins. The real beneficiary is the bare-terminal first-timer.
 
 ### Added
 
-- **Plain-language findings.** The four human surfaces (turn-end gate,
-  per-edit nudge, `clad check` blocks, `clad done` refusals) now lead with
-  what drifted and what to do, in clear plain English; machine detail
-  (detector id · path) trails as a tail. JSON, SARIF, MCP, and event
-  outputs are byte-unchanged.
-- **Speak the user's language.** The instructions cladding injects
-  (CLAUDE.md section, AGENTS.md template, all five personas) now direct
-  the host agent to translate cladding terms — including cladding's own
-  gate and hook messages — into plain words in the user's own language.
-  The shipped English strings are the single translation source; cladding
-  never detects or stores a locale. The `clad init`, `clad setup`, and
-  `clad clarify` command output moved to that same English single-source too.
+- **Plain-language findings** — the four human surfaces lead with what drifted and what to do; machine detail (id · path) trails. JSON/SARIF/MCP/events byte-unchanged.
+- **Speak the user's language** — cladding ships one English source and the host agent renders the user's language; no locale detected or stored. `clad init`/`setup`/`clarify` output moved to it too.
 
 ### Changed
 
-- **The spec-first window stopped shouting.** A module that isn't built
-  yet on a planned/in-progress feature is now an info note ("the normal
-  state between authoring the spec entry and implementing it"), not a
-  blocking error. done/archived features keep the hard error, and
-  STATUS_DRIFT independently guards done features with missing files.
-- **Hook cards speak human.** Session and prompt cards and block reasons
-  drop internal vocabulary — no MCP tool names, no "shard"; in-progress
-  lists show feature titles next to ids; impact cards say "N features
-  depend on this" instead of "breaks N feature(s)".
+- **Spec-first window stopped shouting** — an unbuilt module on a planned/in-progress feature is an info note, not a block; done/archived keep the hard error.
+- **Cards speak human** — session/prompt cards and block reasons drop internal ids and tool names; impact cards say "N features depend on this."
 
 ### Fixed
 
-- **First-run onboarding no longer bricks the spec.** On a small or greenfield
-  project, `clad init` (and any `--scan`) wrote an empty `layers:` that parsed to
-  null and failed schema validation, so every later check reported the project as
-  ungoverned. It now emits `layers: []`.
-- **Scanned architecture globs match real files.** Layer globs dropped the source
-  root (`api/**` instead of `src/api/**`, matching nothing) and flat projects
-  leaked the project directory name into the committed spec. Both corrected.
-- **Docs matched to real detector behavior.** `docs/feature-cycle.md`
-  wrongly claimed the untested-AC check ignores feature status, and the
-  detector catalog row for missing-implementation now records the
-  status-aware severity.
+- **First-run no longer bricks the spec** — an empty `layers:` (null, schema-invalid) now renders `layers: []`, so a small project's first init stays governable.
+- **Scanned globs match real files** — layer globs gained the source root (`src/api/**`) and flat projects stop leaking the project directory name.
+- **Docs match detector behavior** — the feature-cycle doc and detector catalog now record the status-aware untested-AC / missing-implementation severity.
+
+Net: a correctness release, not a capability leap.
 
 ## [0.8.1] — Adoption Proof + Friction Diet (2026-07-06)
 
