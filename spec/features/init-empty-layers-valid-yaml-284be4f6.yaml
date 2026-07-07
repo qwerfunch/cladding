@@ -16,4 +16,4 @@ acceptance_criteria:
     condition: "if the scan detects one or more layers"
     text: "If the layer array is non-empty, then renderArchitectureYaml shall keep emitting the block form ('layers:' followed by one entry per layer), so the fix does not regress the normal multi-layer output."
     test_refs: ["tests/scan/init-empty-layers-valid-yaml.test.ts"]
-    notes: "Anti-regression: the flat-5-file (_root promoted) and subdirectory (src/api, src/db) cases must still render their layer entries exactly as before. Only the empty-array input changes."
+    notes: "Anti-regression: the renderer keeps the block form ('layers:' followed by one entry per layer) for any non-empty input — only the empty-array input changes here. The correctness of each entry's dir/glob (source-root prefix) and the flat-root promotion rework are owned by the sibling feature [[scan-layer-glob-source-root]] (F-77a90ac6), not this renderer contract."

@@ -155,6 +155,7 @@ features:
   F-7076f7: {slug: smoke-probe-demand, status: done, modules: 3}
   F-723c81dd: {slug: agent-interpreter-rule, status: done, modules: 7}
   F-7794a6bc: {slug: impact-blast-radius, status: done, modules: 3}
+  F-77a90ac6: {slug: scan-layer-glob-source-root, status: done, modules: 1}
   F-77f7ead0: {slug: webgl-stellar-viewer, status: done, modules: 4}
   F-78b50d: {slug: project-context-drift-detector, status: done, modules: 2}
   F-7afbd4: {slug: clad-done-gated-transition, status: done, modules: 1}

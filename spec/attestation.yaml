@@ -37,7 +37,7 @@ attested_modules:
   docs/ab-evaluation/README.md: 2467808b9871dcf0
   docs/ab-evaluation/case-doverunner-scale.md: 2a435b6855823d41
   docs/ab-evaluation/case-efficiency-measurement.md: 348aca146a7b2faa
-  docs/ab-evaluation/case-existing-adoption.md: 6e205625d9036ec8
+  docs/ab-evaluation/case-existing-adoption.md: 8e86e9a3e60c64fe
   docs/ab-evaluation/case-graph-efficiency.md: 83d3956d14a1517d
   docs/ab-evaluation/case-iterative-vs-fixed-vapt.md: 1d242b8b6071f343
   docs/ab-evaluation/case-payment-saas.md: 0ecb089a576de638
@@ -105,7 +105,7 @@ attested_modules:
   skills/serve/SKILL.md: 4cee65dfb691e3b0
   skills/status/SKILL.md: b3cb6e7a12bf4023
   skills/sync/SKILL.md: 709c20212aa5627e
-  spec.yaml: 84cc72d8bceae4a4
+  spec.yaml: c5fdad620ca75da1
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: c5d911049fbdcd48
   spec/features/: a4d0f0eb87fed960
@@ -150,7 +150,7 @@ attested_modules:
   src/cli/intent-from-path.ts: e69862821d979f22
   src/cli/measure.ts: 3a562f16589e26c2
   src/cli/report.ts: 911f859b2446834b
-  src/cli/scan/architecture.ts: cf6198a750534b66
+  src/cli/scan/architecture.ts: c9cfd5445ea77e45
   src/cli/scan/conventions.ts: 577468c0fc3fdf6a
   src/cli/scan/dispatcher.ts: 97bd3f12cece4fc4
   src/cli/scan/docs.ts: 31c440a54b0b7c4c
@@ -561,6 +561,7 @@ attested_features:
   F-7076f7: ok
   F-723c81dd: ok
   F-7794a6bc: ok
+  F-77a90ac6: ok
   F-77f7ead0: ok
   F-78b50d: ok
   F-7afbd4: ok
