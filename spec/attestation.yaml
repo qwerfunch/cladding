@@ -105,7 +105,7 @@ attested_modules:
   skills/serve/SKILL.md: 4cee65dfb691e3b0
   skills/status/SKILL.md: b3cb6e7a12bf4023
   skills/sync/SKILL.md: 709c20212aa5627e
-  spec.yaml: 0a81cdd82a9107a9
+  spec.yaml: eaa758259be6ca24
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -168,7 +168,7 @@ attested_modules:
   src/cli/scan/types.ts: ea0170aa88c1c14a
   src/cli/scan/walker.ts: 33e4448e365e47c6
   src/cli/update.ts: 6e8b44d72cf46269
-  src/cli/verdict.ts: 5815dbd22928b9e0
+  src/cli/verdict.ts: 7aa16b8739ab8e5f
   src/core/checkpoint.ts: 63300c2764533b6c
   src/core/git-ops.ts: 4544bde493a0628f
   src/core/postmortem.ts: 73be29d5e8a16fd4
@@ -314,7 +314,8 @@ attested_modules:
   src/ui/panel.ts: 8b78cb14dafb28fb
   src/ui/pulse.ts: ee4255f5c6e49f51
   src/ui/softShell.ts: c095f4185ab3d624
-  src/verdict/verdict.ts: 534ac90abd7bc90b
+  src/verdict/gate-progress.ts: ac75e3082cc97a40
+  src/verdict/verdict.ts: 493251b3a2c494d3
   tests/adapters/anthropic.test.ts: fa2fc7faf032a782
   tests/adapters/index.test.ts: 4454e6b4ea05a74f
   tests/adapters/transport.test.ts: 68f22e9e8df7b813
@@ -601,6 +602,7 @@ attested_features:
   F-af45042a: ok
   F-af96b1: ok
   F-b010427b: ok
+  F-b0c8ba2c: ok
   F-b0f898a6: ok
   F-b2094740: ok
   F-b43066: ok

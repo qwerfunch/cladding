@@ -193,6 +193,7 @@ features:
   F-af45042a: {slug: graph-live-health, status: done, modules: 5}
   F-af96b1: {slug: no-vacuous-green-gate-contract, status: done, modules: 6}
   F-b010427b: {slug: detector-layer-purity, status: done, modules: 2}
+  F-b0c8ba2c: {slug: gate-no-progress, status: done, modules: 1}
   F-b0f898a6: {slug: attestation-v2-per-module, status: done, modules: 3}
   F-b2094740: {slug: lint-config-detection, status: done, modules: 1}
   F-b43066: {slug: model-defaults-refresh, status: done, modules: 6}

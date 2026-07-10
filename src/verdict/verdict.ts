@@ -85,10 +85,30 @@ function firstLine(s: string | undefined): string | undefined {
 }
 
 /**
+ * The single most-actionable pointer over a set of BLOCKING stages — the one
+ * string both ITERATE and the stuck-escalate (GATE_NO_PROGRESS) surface, so they
+ * point at the identical finding. First path-bearing finding wins (preferring
+ * one that also carries a line), else the first stage's stderr raw-tail, else a
+ * bare stage-failed / gate-failed message.
+ */
+function mostActionable(blocking: readonly VerdictStage[]): string {
+  for (const s of blocking) {
+    const withPath = (s.findings ?? []).filter((f) => f.path && f.severity !== 'info');
+    if (withPath.length === 0) continue;
+    const pick = withPath.find((f) => f.line !== undefined) ?? withPath[0];
+    const loc = pick.line !== undefined ? `${pick.path}:${pick.line}` : pick.path;
+    return `${loc} ${pick.detector}: ${pick.message}`;
+  }
+  const first = blocking[0];
+  const tail = firstLine(first?.stderr);
+  return first ? (tail ? `${first.label}: ${tail}` : `${first.label} failed`) : 'gate failed';
+}
+
+/**
  * Reduce a gate outcome + spec to a single verdict. Pure — no IO, no spawn.
  * The order below is the contract (BOOTSTRAP → red split → green split).
  */
-export function computeVerdict(input: {outcome: VerdictOutcome; spec: Spec}): Verdict {
+export function computeVerdict(input: {outcome: VerdictOutcome; spec: Spec; stuck?: boolean}): Verdict {
   const {outcome, spec} = input;
   const features = spec.features ?? [];
   const live = features.filter(isLive);
@@ -128,30 +148,33 @@ export function computeVerdict(input: {outcome: VerdictOutcome; spec: Spec}): Ve
       };
     }
 
-    // ITERATE — surface the single most-actionable finding. Walk blocking stages
-    // in pipeline order; the first with a path-bearing finding wins (preferring
-    // one that also carries a line), else the first stage's stderr raw-tail.
-    // Only BLOCKING-severity findings (error/warn — warn blocks under the poll's
-    // strict gate) count: an `info` finding is advisory noise, never the reason
-    // the stage failed, so pointing the loop at one would misdirect it.
-    for (const s of blocking) {
-      const withPath = (s.findings ?? []).filter((f) => f.path && f.severity !== 'info');
-      if (withPath.length === 0) continue;
-      const pick = withPath.find((f) => f.line !== undefined) ?? withPath[0];
-      const loc = pick.line !== undefined ? `${pick.path}:${pick.line}` : pick.path;
+    // The single most-actionable finding — surfaced by both the stuck-escalate
+    // and the ITERATE below. Walk blocking stages in pipeline order; the first
+    // with a path-bearing finding wins (preferring one that also carries a
+    // line), else the first stage's stderr raw-tail. Only BLOCKING-severity
+    // findings (error/warn — warn blocks under the poll's strict gate) count: an
+    // `info` finding is advisory noise, never the reason the stage failed, so
+    // pointing the loop at one would misdirect it.
+    const actionable = mostActionable(blocking);
+
+    // ESCALATE (GATE_NO_PROGRESS) — the previous poll produced an IDENTICAL
+    // blocking-findings fingerprint (`stuck` computed by the handler from its own
+    // gitignored state). The loop tried and made no progress on an otherwise-
+    // iterable gate, so stop it and hand the SAME actionable pointer to a human
+    // instead of billing forever (AC-3e435423). This sits AFTER the HUMAN_REQUIRED
+    // check above so a genuine environment/human escalate keeps precedence, and
+    // it is a RECOMMENDATION the host may override, never a hard block.
+    if (input.stuck === true) {
       return {
-        verdict: 'ITERATE',
-        next_action: `${loc} ${pick.detector}: ${pick.message}`,
+        verdict: 'ESCALATE',
+        next_action: `${actionable} — no progress: identical gate findings twice, needs a human`,
         remaining,
+        halt_class: 'GATE_NO_PROGRESS',
       };
     }
-    const first = blocking[0];
-    const tail = firstLine(first?.stderr);
-    return {
-      verdict: 'ITERATE',
-      next_action: first ? (tail ? `${first.label}: ${tail}` : `${first.label} failed`) : 'gate failed',
-      remaining,
-    };
+
+    // ITERATE — a self-fixable finding to act on.
+    return {verdict: 'ITERATE', next_action: actionable, remaining};
   }
 
   // 3. GREEN (worst === 0, nothing failed). DONE is over the WHOLE goal and

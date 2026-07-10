@@ -12,10 +12,45 @@
 // cycle as a blocking ARCHITECTURE_VIOLATION. clad.ts imports us one-way and
 // passes runCheckStages in. DI also keeps the handler hermetically testable.
 
+import {mkdirSync, readFileSync, writeFileSync} from 'node:fs';
+import {dirname, join} from 'node:path';
 import process from 'node:process';
 
 import {loadSpec} from '../spec/load.js';
+import {fingerprintFindings, nextProgress, type ProgressState} from '../verdict/gate-progress.js';
 import {computeVerdict, type Verdict, type VerdictOutcome} from '../verdict/verdict.js';
+
+/** Gitignored per-poll progress state — the ONLY new write. Never a tracked
+ *  file, never attestation, so the poll-not-mutate lock holds for the tree. */
+function progressPath(): string {
+  return join(process.cwd(), '.cladding', 'verdict-progress.json');
+}
+
+/** Best-effort read of the previous poll's progress. Missing/corrupt → undefined
+ *  (a first-ever or unreadable state is simply "no prior" — never stuck). */
+function readProgress(): ProgressState | undefined {
+  try {
+    const raw = JSON.parse(readFileSync(progressPath(), 'utf8')) as {fingerprint?: unknown; repeat?: unknown};
+    const fingerprint = typeof raw.fingerprint === 'string' ? raw.fingerprint : undefined;
+    const repeat = typeof raw.repeat === 'number' ? raw.repeat : undefined;
+    if (fingerprint === undefined) return undefined;
+    return {fingerprint, repeat: repeat ?? 1};
+  } catch {
+    return undefined;
+  }
+}
+
+/** Best-effort persist of the new progress state. A write failure must NEVER
+ *  crash the poll or change the verdict — it just means "stuck" won't persist. */
+function writeProgress(state: ProgressState): void {
+  try {
+    const path = progressPath();
+    mkdirSync(dirname(path), {recursive: true});
+    writeFileSync(path, `${JSON.stringify(state)}\n`, 'utf8');
+  } catch {
+    /* unwritable state dir → poll still answers; the streak just won't persist */
+  }
+}
 
 /** Injected dependency: the REAL gate runner (runCheckStages), so the handler
  *  never reaches into the cli entry module. Return type is the reducer's
@@ -45,7 +80,18 @@ export function runVerdictCommand(opts: {json?: boolean; tier?: string}, deps: V
   }
 
   const outcome = deps.checkStages({tier: opts.tier ?? 'pre-push', strict: true, silent: true});
-  const v = computeVerdict({outcome, spec});
+
+  // Stuck detection (F-b0c8ba2c): fingerprint THIS run's blocking findings, compare
+  // to the previous poll's persisted state, and persist the new state. All of it
+  // lives in verdict's OWN gitignored state file — the gate is never touched (the
+  // `gate_run` event dedupes two identical stuck runs to one, so "stuck" cannot be
+  // read from there). computeVerdict stays PURE: `stuck` flows in as an input.
+  const prior = readProgress();
+  const currentFp = fingerprintFindings(outcome.stages ?? []);
+  const prog = nextProgress(currentFp, prior);
+  writeProgress({fingerprint: prog.fingerprint, repeat: prog.repeat});
+
+  const v = computeVerdict({outcome, spec, stuck: prog.stuck});
   emit(v, opts.json === true);
   process.exit(0);
 }
