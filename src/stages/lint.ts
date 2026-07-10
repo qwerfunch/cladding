@@ -12,6 +12,7 @@ import process from 'node:process';
 
 import {execaSync} from 'execa';
 
+import {withFindings} from './finding-parser.js';
 import {resolveStageCommand} from './toolchain/scoped-command.js';
 import type {CommandStageOptions, StageResult} from './types.js';
 import {missingToolSkip, ranToolResult} from './util.js';
@@ -57,7 +58,9 @@ export function runLint(opts: CommandStageOptions = {}): StageResult {
   if (skip) return skip;
   // The tool RAN. Map its result to cladding's pass/fail/skip contract:
   // any non-zero exit → blocking fail (1), never the tool's raw 2 (= skip).
-  return ranToolResult(STAGE, proc);
+  // ADDITIVE (F-b7873005): on failure, attach structured findings parsed from
+  // the linter's own output — the raw stderr is preserved unchanged.
+  return withFindings('lint', ranToolResult(STAGE, proc), proc);
 }
 
 // CLI entry — `tsx stages/lint.ts` or `npm run stage:lint`.

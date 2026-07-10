@@ -196,6 +196,7 @@ features:
   F-b2094740: {slug: lint-config-detection, status: done, modules: 1}
   F-b43066: {slug: model-defaults-refresh, status: done, modules: 6}
   F-b61449: {slug: gemini-cli-dogfood, status: done, modules: 1}
+  F-b7873005: {slug: gate-error-parser, status: done, modules: 1}
   F-b84c38: {slug: lifecycle-events-identity, status: done, modules: 4}
   F-b8d74801: {slug: verb-rename-residue-sweep, status: done, modules: 6}
   F-b99577: {slug: stale-archive-suggestion, status: done, modules: 4}

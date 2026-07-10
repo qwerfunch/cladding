@@ -105,7 +105,7 @@ attested_modules:
   skills/serve/SKILL.md: 4cee65dfb691e3b0
   skills/status/SKILL.md: b3cb6e7a12bf4023
   skills/sync/SKILL.md: 709c20212aa5627e
-  spec.yaml: 3ee1123753ea4cde
+  spec.yaml: 4d3a23417894ba42
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -287,9 +287,10 @@ attested_modules:
   src/stages/detectors/with-spec.ts: dcf3205e8d563574
   src/stages/disposition.ts: b7fd2e591235a326
   src/stages/drift.ts: d3993f3b168ceb34
+  src/stages/finding-parser.ts: 19a10c5fe216059c
   src/stages/graph-health.ts: a294f06796b0e293
   src/stages/junit-report.ts: f8466dc1e00140f1
-  src/stages/lint.ts: 37c06611ac1091d3
+  src/stages/lint.ts: 2f316b14e048eafb
   src/stages/perf.ts: 17888e913435e0fa
   src/stages/secret.ts: b90abc0e00c86219
   src/stages/skip-policy.ts: 1a6412d708561cf0
@@ -302,10 +303,10 @@ attested_modules:
   src/stages/toolchain/module-scope.ts: 88358ec3b84eedd3
   src/stages/toolchain/scoped-command.ts: f2dd6410c063279f
   src/stages/toolchain/types.ts: 936dcb9264e046c0
-  src/stages/type.ts: d2859cd301bc002d
-  src/stages/types.ts: aa857145b7b81e22
+  src/stages/type.ts: abe900ea8236d37f
+  src/stages/types.ts: 24b4dc30ec7d7f33
   src/stages/uat.ts: 62ec3e37a124f8c5
-  src/stages/unit.ts: 98d958cb124136ea
+  src/stages/unit.ts: 687576ffde17f947
   src/stages/util.ts: 7943e14136ec2da7
   src/stages/visual.ts: 48bbb6e77f09ed63
   src/ui: a4d0f0eb87fed960
@@ -602,6 +603,7 @@ attested_features:
   F-b2094740: ok
   F-b43066: ok
   F-b61449: ok
+  F-b7873005: ok
   F-b84c38: ok
   F-b8d74801: ok
   F-b99577: ok
