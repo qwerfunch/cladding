@@ -495,7 +495,7 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
     ['stage_1.4', runCommit],
     ['stage_1.5', runArch],
     ['stage_1.6', runSecret],
-    ['stage_2.1', () => runUnit(base)],
+    ['stage_2.1', () => runUnit({...base, strict: opts.strict})],
     ['stage_2.2', () => runCov(base)],
     ['stage_2.3', runSpecConformance],
     ['stage_2.4', runDeliverableSmoke],

@@ -105,7 +105,7 @@ attested_modules:
   skills/serve/SKILL.md: 4cee65dfb691e3b0
   skills/status/SKILL.md: b3cb6e7a12bf4023
   skills/sync/SKILL.md: 709c20212aa5627e
-  spec.yaml: eaa758259be6ca24
+  spec.yaml: ad520a343d026ad2
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -138,7 +138,7 @@ attested_modules:
   src/cli: a4d0f0eb87fed960
   src/cli/benchmark.ts: 77f84d2a898d724f
   src/cli/changelog.ts: 2de1adb009b89ab4
-  src/cli/clad.ts: 24c7d603aa5febc9
+  src/cli/clad.ts: 10ce71e346489cfa
   src/cli/clarify.ts: ff084951de081592
   src/cli/doctor-hosts.ts: 1ad79105b47fd8e5
   src/cli/doctor.ts: b98b955fe75e7f7e
@@ -307,8 +307,9 @@ attested_modules:
   src/stages/type.ts: abe900ea8236d37f
   src/stages/types.ts: 24b4dc30ec7d7f33
   src/stages/uat.ts: 62ec3e37a124f8c5
-  src/stages/unit.ts: 687576ffde17f947
+  src/stages/unit.ts: 3e1fa458ba075f23
   src/stages/util.ts: 7943e14136ec2da7
+  src/stages/vacuous-tests.ts: 8e71b81e151325af
   src/stages/visual.ts: 48bbb6e77f09ed63
   src/ui: a4d0f0eb87fed960
   src/ui/panel.ts: 8b78cb14dafb28fb
@@ -608,6 +609,7 @@ attested_features:
   F-b43066: ok
   F-b61449: ok
   F-b7873005: ok
+  F-b81d203e: ok
   F-b84c38: ok
   F-b8d74801: ok
   F-b99577: ok
