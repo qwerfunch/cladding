@@ -105,7 +105,7 @@ attested_modules:
   skills/serve/SKILL.md: 4cee65dfb691e3b0
   skills/status/SKILL.md: b3cb6e7a12bf4023
   skills/sync/SKILL.md: 709c20212aa5627e
-  spec.yaml: 4d3a23417894ba42
+  spec.yaml: 0a81cdd82a9107a9
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -203,11 +203,12 @@ attested_modules:
   src/optimizer/measure-ledger.ts: 1e644cacaf878527
   src/optimizer/measurement.ts: 55ab003adaec49a9
   src/optimizer/preamble.ts: f74d41daf8372cdf
+  src/optimizer/prior-attempts.ts: 5dd54d3a38312635
   src/optimizer/prune.ts: f5f70fb850f167bc
   src/optimizer/push-card.ts: c7cc2d710fcfd1dc
   src/optimizer/reverse-slice.ts: 81c2e99e65bdd359
   src/optimizer/tail.ts: 5cdce1a3afd1eb7e
-  src/optimizer/working-set.ts: fd26740a8c0019ae
+  src/optimizer/working-set.ts: 9eb05ceea841a674
   src/oracle/payload.ts: 0171633d758ceed8
   src/oracle/policy.ts: 8919ad927bd59b08
   src/oracle/record.ts: 0b9c124225abe1ac
@@ -547,6 +548,7 @@ attested_features:
   F-569f4b37: ok
   F-56abaa: ok
   F-570a3f: ok
+  F-59af798d: ok
   F-59f093: ok
   F-5b188856: ok
   F-5b9f9f: ok

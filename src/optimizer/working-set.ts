@@ -11,6 +11,7 @@
 import {codeExcerpt, estTokens, type CodeExcerpt, type ExcerptReader} from './code-excerpt.js';
 import {buildContextSlice, type ContextLookupMiss} from './context-slice.js';
 import {buildIterativeImpactSlice} from './iterative-slice.js';
+import {buildPriorAttempts, type PriorAttempts} from './prior-attempts.js';
 import {buildImpactSlice} from './reverse-slice.js';
 import {reverseIndexOf} from '../spec/reverse-index.js';
 import type {Feature, Spec} from '../spec/types.js';
@@ -61,6 +62,12 @@ export interface WorkingSet {
   readonly guidance: {
     readonly preferred_patterns: ReadonlyArray<{readonly when: string; readonly prefer: string; readonly over?: string}>;
   };
+  /** Prior failure history for the focus feature, compiled from the events log +
+   *  post-mortems (F-59af798d). OMITTED entirely when the feature has no recorded
+   *  history — so iteration N sees "attempts: 2, last failed stage_2.2" instead of
+   *  starting blind, and pays nothing on the common (no-history) path. Bounded +
+   *  measured inside `budget`; dropped first under budget pressure. */
+  readonly prior_attempts?: PriorAttempts;
   /** Token accounting + what was dropped to fit (must_edit is always retained). */
   readonly budget: {readonly max_tokens: number; readonly used_tokens: number; readonly truncated: readonly string[]};
 }
@@ -107,6 +114,11 @@ export function buildWorkingSet(spec: Spec, query: string, opts: WorkingSetOptio
   const ctx = buildContextSlice(spec, resolvedQuery);
   if ('not_found' in ctx) return ctx; // identical miss contract — never diverge from F-d2c806
   const focus = ctx.focus;
+
+  // Failure memory for the focus feature (F-59af798d). Best-effort + null-omit:
+  // `undefined` for a feature with no history (the common path), so the branch
+  // below is a pure no-op and the payload stays byte-identical to before.
+  const priorAttempts = buildPriorAttempts(cwd, focus.id);
 
   // backward blast radius — ITERATIVE: widen from depth 1 until a deterministic sufficiency
   // criterion holds (coverage / exhaustion / marginal-yield), instead of a fixed depth-1 slice
@@ -252,14 +264,21 @@ export function buildWorkingSet(spec: Spec, query: string, opts: WorkingSetOptio
   }
 
   const finalBreaks = breaksOf(impKeep, regKeep);
-  const used = estTokens(
-    JSON.stringify({...base, needs, must_edit: {...base.must_edit, code}, breaks_if_changed: finalBreaks}),
-  );
-  return {
-    ...base,
-    needs,
-    must_edit: {...base.must_edit, code},
-    breaks_if_changed: finalBreaks,
-    budget: {max_tokens: maxTokens, used_tokens: used, truncated},
-  };
+  const core = {...base, needs, must_edit: {...base.must_edit, code}, breaks_if_changed: finalBreaks};
+
+  // 4. Attach prior_attempts LAST, within LEFTOVER budget only (F-59af798d /
+  //    AC-13df5e54, the ZERO-side-effect lock). It competes inside the SAME
+  //    envelope and is the first section sacrificed under pressure, so it can
+  //    never push the set over budget or perturb any other section. Absent →
+  //    null-omit (AC-c3db73f1) and `core` is byte-identical to the pre-feature
+  //    output, so no existing consumer changes.
+  let payload: WorkingSet = core;
+  if (priorAttempts) {
+    const trial: WorkingSet = {...core, prior_attempts: priorAttempts};
+    if (estTokens(JSON.stringify(trial)) <= maxTokens) payload = trial;
+    else truncated.push('prior_attempts: omitted (budget)');
+  }
+
+  const used = estTokens(JSON.stringify(payload));
+  return {...payload, budget: {max_tokens: maxTokens, used_tokens: used, truncated}};
 }
