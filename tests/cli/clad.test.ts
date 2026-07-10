@@ -128,7 +128,11 @@ describe('cli/clad — handler exports', () => {
   // default (non-json) pulse path is untouched.
   test('runCheckStages --json emits a single structured document (no pulses)', () => {
     const out = clad.runCheckStages({tier: 'pre-commit', json: true});
-    expect(out).toEqual({worst: 0, anyFailed: false});
+    expect(out.worst).toBe(0);
+    expect(out.anyFailed).toBe(false);
+    // The return now carries the per-stage breakdown (StageOutcome[]) the verdict
+    // reducer reads (F-2e28cc72); existing callers ignore it.
+    expect(out.stages?.map((s) => s.stage)).toEqual(['stage_1.3', 'stage_1.5', 'stage_1.6']);
     // pulse() must NOT fire in json mode (would corrupt the machine-readable stream)
     expect(pulseMock).not.toHaveBeenCalled();
     const written = stdoutSpy.mock.calls.map((c: unknown[]) => String(c[0])).join('');
@@ -482,7 +486,7 @@ describe('cli/clad — handler exports', () => {
 });
 
 describe('cli/clad — createProgram', () => {
-  test('returns a Command with all 24 verbs registered (work removed in 0.6.0; hook F-1d23a6, context F-d2c806, impact F-7794a6bc, infer-deps F-2be3e3bb, measure F-16138071, graph F-569f4b37, changelog F-904495a5, report F-f6cc5e5a, bundle F-e940fffe)', () => {
+  test('returns a Command with all 25 verbs registered (work removed in 0.6.0; hook F-1d23a6, context F-d2c806, impact F-7794a6bc, verdict F-2e28cc72, infer-deps F-2be3e3bb, measure F-16138071, graph F-569f4b37, changelog F-904495a5, report F-f6cc5e5a, bundle F-e940fffe)', () => {
     const program = clad.createProgram();
     const names = program.commands.map((c) => c.name());
     expect(names).toEqual([
@@ -499,6 +503,7 @@ describe('cli/clad — createProgram', () => {
       'status',
       'context',
       'impact',
+      'verdict',
       'infer-deps',
       'measure',
       'graph',
