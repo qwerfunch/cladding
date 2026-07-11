@@ -105,7 +105,7 @@ attested_modules:
   skills/serve/SKILL.md: 4cee65dfb691e3b0
   skills/status/SKILL.md: b3cb6e7a12bf4023
   skills/sync/SKILL.md: 709c20212aa5627e
-  spec.yaml: cc9b29dcaeec953e
+  spec.yaml: 7200d326cd477c03
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -138,7 +138,7 @@ attested_modules:
   src/cli: a4d0f0eb87fed960
   src/cli/benchmark.ts: 77f84d2a898d724f
   src/cli/changelog.ts: 2de1adb009b89ab4
-  src/cli/clad.ts: cecc78ea115a5d87
+  src/cli/clad.ts: ea521ef6a48dfc9f
   src/cli/clarify.ts: ff084951de081592
   src/cli/doctor-hosts.ts: 1ad79105b47fd8e5
   src/cli/doctor.ts: b98b955fe75e7f7e
@@ -146,7 +146,7 @@ attested_modules:
   src/cli/graph-serve.ts: 23e6e389225d0f98
   src/cli/graph.ts: bab410061b8c746a
   src/cli/hook.ts: a856ab95e025bb75
-  src/cli/init.ts: eec7319d9f2496c0
+  src/cli/init.ts: 5e55fd44c53a93b9
   src/cli/intent-from-path.ts: e69862821d979f22
   src/cli/measure.ts: 3a562f16589e26c2
   src/cli/report.ts: 911f859b2446834b
@@ -167,7 +167,7 @@ attested_modules:
   src/cli/scan/thresholds.ts: ec0047b894a6aa6a
   src/cli/scan/types.ts: ea0170aa88c1c14a
   src/cli/scan/walker.ts: 33e4448e365e47c6
-  src/cli/update.ts: 6e8b44d72cf46269
+  src/cli/update.ts: bbd9c97bfc2b99ff
   src/cli/verdict.ts: 7aa16b8739ab8e5f
   src/core/checkpoint.ts: 63300c2764533b6c
   src/core/git-ops.ts: 4544bde493a0628f
@@ -192,6 +192,7 @@ attested_modules:
   src/hitl/anti-self-cert.ts: 53a714d8e489d00a
   src/hitl/audit.ts: 79b06e904815469a
   src/hitl/identity.ts: 52ff84aa666f1dab
+  src/init/agents-md.ts: c411aaa8b724d496
   src/init/git-hook.ts: 4e02f177b3764ae8
   src/init/host-instructions.ts: f6d10695ef0c4763
   src/init/host-setup.ts: ee6bca9c8fbc2fb2
@@ -597,6 +598,7 @@ attested_features:
   F-9b643e: ok
   F-9d168287: ok
   F-a04cd9: ok
+  F-a4085adf: ok
   F-a4b512: ok
   F-a5228c: ok
   F-aa7197: ok

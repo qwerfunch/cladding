@@ -61,6 +61,7 @@ import {gitOperationInProgress, gitOperationInProgressName} from '../core/git-op
 import {maintainDeliverable} from '../spec/deliverable-detect.js';
 import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../spec/inventory.js';
 import {writeDocLinksYaml} from '../spec/doc-references.js';
+import {writeSpecDrivenAgentsMd} from '../init/agents-md.js';
 import {repairTestRefs} from '../spec/test-ref-repair.js';
 import {writeAttestation} from '../spec/attestation.js';
 import {buildBlindPayload, renderBlindBrief} from '../oracle/payload.js';
@@ -255,6 +256,18 @@ export function runSyncCommand(opts: {proposeArchive?: boolean} = {}): void {
       writeInventoryToSpecYaml('.', inventory);
       writeFeatureIndex('.'); // F-37b4a8 — 1-file feature lookup at scale
       writeDocLinksYaml('.'); // F-doc-graph — doc→spec/doc link index (Tier C)
+      // F-a4085adf (#199) — refresh the spec-driven AGENTS.md managed block so
+      // cross-host agents (Codex/Gemini/Cursor/…) read the same spec-sourced
+      // guidance Claude gets. Marker-upsert: regenerates only the delimited
+      // block, preserves user prose, byte-stable on unchanged spec, and leaves a
+      // markerless (hand-authored) AGENTS.md untouched — so cladding's own root
+      // /AGENTS.md is never rewritten.
+      const agentsMd = writeSpecDrivenAgentsMd('.');
+      if (agentsMd === 'created') {
+        pulse('note', 'agents.md', 'wrote a spec-driven AGENTS.md so non-Claude agents share the same guidance.');
+      } else if (agentsMd === 'updated') {
+        pulse('note', 'agents.md', 'refreshed the AGENTS.md managed block from the current spec.');
+      }
       // F-c037ae — heal annotation drift before it rejects correct features:
       // unique-basename repair of moved test_ref paths + derived: suggestions
       // (which never satisfy a mandate — see MISSING_TESTS/UNTESTED_AC).

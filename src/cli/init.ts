@@ -34,7 +34,8 @@ import {
 } from './scan/intent-onboarding.js';
 import {saveState, type OnboardingState} from './scan/onboarding-state.js';
 import {detectToolchain} from '../stages/toolchain/detect.js';
-import {writeAgentsMd, writeClaudeMdSection} from '../init/host-instructions.js';
+import {writeClaudeMdSection} from '../init/host-instructions.js';
+import {writeSpecDrivenAgentsMd} from '../init/agents-md.js';
 import {getCurrentCladdingVersion, getLastSetupVersion} from '../init/host-setup.js';
 import {installGitHook} from '../init/git-hook.js';
 import {loadIntentFromPathIfApplicable} from './intent-from-path.js';
@@ -591,13 +592,21 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
   // existing file carries v0.3.x markers (e.g. `_meta.enrichment_status`,
   // lone `clad_create_feature MCP tool`), it is refreshed in place so AI
   // sessions don't see stale guidance.
-  const agentsResult = writeAgentsMd(cwd, {force});
-  if (agentsResult === 'created' || agentsResult === 'overwritten') {
+  // F-a4085adf (#199) — the adopter's AGENTS.md is now spec-driven: its managed
+  // block is rendered from spec.yaml (test framework, branch, forbidden/preferred
+  // patterns, preferred persona) + the cross-host persona→capability map, instead
+  // of a static template. Marker-upsert keeps re-emission prose-preserving and
+  // byte-stable, and a markerless (hand-authored) AGENTS.md is left untouched even
+  // under --force, protecting a user's own file.
+  const agentsResult = writeSpecDrivenAgentsMd(cwd);
+  if (agentsResult === 'created') {
     created.push('AGENTS.md');
-  } else if (agentsResult === 'refreshed-stale') {
-    created.push('AGENTS.md (refreshed — v0.3.x guidance replaced)');
+  } else if (agentsResult === 'updated') {
+    created.push('AGENTS.md (managed block refreshed from spec)');
+  } else if (agentsResult === 'skipped-unmanaged') {
+    skipped.push('AGENTS.md (hand-authored — no clad markers, left untouched)');
   } else {
-    skipped.push('AGENTS.md (exists; pass --force to overwrite)');
+    skipped.push('AGENTS.md (managed block already current)');
   }
   const claudeResult = writeClaudeMdSection(cwd, {force});
   if (claudeResult === 'created') {
