@@ -361,7 +361,7 @@ attested_modules:
   tests/scenarios/ab/case-payment-saas.test.ts: 280404fbbfd0e6a3
   tests/scenarios/existing-adoption-lifecycle.test.ts: 23011bf2cf1e1bfb
   tests/scenarios/greenfield-lifecycle.test.ts: a3f3cefd204f03cf
-  tests/self-consistency.test.ts: 44ac8d86665ee84e
+  tests/self-consistency.test.ts: e7fbd651f0c60c4a
   tests/serve/description-budget.test.ts: e1501907eff9b923
   tests/spec/ears.test.ts: e7385918da1d8c7a
   tests/spec/inventory.test.ts: 8dea6ae5d10ee513
