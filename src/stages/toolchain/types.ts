@@ -17,6 +17,8 @@ export type Language =
   | 'ruby'
   | 'elixir'
   | 'dotnet'
+  | 'swift'
+  | 'dart'
   | 'unknown';
 
 /** A concrete command (cmd + args) used to run one gate. */
