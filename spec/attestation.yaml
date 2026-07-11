@@ -105,7 +105,7 @@ attested_modules:
   skills/serve/SKILL.md: 4cee65dfb691e3b0
   skills/status/SKILL.md: b3cb6e7a12bf4023
   skills/sync/SKILL.md: 709c20212aa5627e
-  spec.yaml: ad520a343d026ad2
+  spec.yaml: 54359499e60ef20b
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -298,12 +298,12 @@ attested_modules:
   src/stages/smoke.ts: 486205cd691a2b0d
   src/stages/spec-conformance.ts: ba68465c4715cc65
   src/stages/toolchain/coverage-tool.ts: 310883060ed6d92e
-  src/stages/toolchain/detect.ts: 832ec7b91bbe56d0
+  src/stages/toolchain/detect.ts: 33e2f90c954a6c10
   src/stages/toolchain/gate-config.ts: 35c31716191a3dee
   src/stages/toolchain/language-config.ts: 65175718559b0710
   src/stages/toolchain/module-scope.ts: 88358ec3b84eedd3
   src/stages/toolchain/scoped-command.ts: f2dd6410c063279f
-  src/stages/toolchain/types.ts: 936dcb9264e046c0
+  src/stages/toolchain/types.ts: 05f018fb3dddc321
   src/stages/type.ts: abe900ea8236d37f
   src/stages/types.ts: 24b4dc30ec7d7f33
   src/stages/uat.ts: 62ec3e37a124f8c5
@@ -404,7 +404,7 @@ attested_modules:
   tests/stages/stale-tests.test.ts: 1467ceedb8019e86
   tests/stages/status-drift.test.ts: cff1092eeb23c268
   tests/stages/tech-stack-mismatch.test.ts: 878436ffd2f94c97
-  tests/stages/toolchain.test.ts: 8bf0f6b544215d44
+  tests/stages/toolchain.test.ts: 13b2229e49d1eaba
   tests/stages/type.test.ts: b57cf7455cae3b32
   tests/stages/uat.test.ts: 29c5bf3e7f3abc35
   tests/stages/unit.test.ts: cb1eea0a14681948
@@ -541,6 +541,7 @@ attested_features:
   F-42af48: ok
   F-43d8e3: ok
   F-4747ef: ok
+  F-47b8bee5: ok
   F-49facde9: ok
   F-4db939: ok
   F-4ef09f38: ok
@@ -644,6 +645,7 @@ attested_features:
   F-dd8dc994: ok
   F-dddb89: ok
   F-e0f6c7: ok
+  F-e4159959: ok
   F-e53596dd: ok
   F-e7d59c88: ok
   F-e803c149: ok
