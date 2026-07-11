@@ -39,6 +39,7 @@ import {strictSkipViolations} from '../stages/skip-policy.js';
 import {runArch} from '../stages/arch.js';
 import {runAudit} from '../stages/audit.js';
 import {clearDetectorResultCache, primeDetectorResultCache} from '../stages/detector-result-cache.js';
+import {clearTestRunCache, primeTestRunCache} from '../stages/test-run-cache.js';
 import {runCommit} from '../stages/commit.js';
 import {runCov} from '../stages/cov.js';
 import {runDrift} from '../stages/drift.js';
@@ -523,6 +524,11 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
   // The stages here default cwd to '.', so prime the same root. Cleared in
   // finally — a session outliving the loop would serve stale findings.
   primeDetectorResultCache('.');
+  // F-49f6f2d2 (#215) — prime the run-scoped shared-test-run cache so the unit
+  // stage (2.1) spawns ONE coverage+dual-json vitest run that the coverage stage
+  // (2.2) folds, instead of running the suite twice. Same '.' root, same
+  // finally-clear discipline; clear also unlinks the shared temp json.
+  primeTestRunCache('.');
   try {
     for (const [name, run] of stages) {
       const r = run({}) as {
@@ -552,6 +558,7 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
     }
   } finally {
     clearDetectorResultCache();
+    clearTestRunCache();
   }
   // STRICT SKIP-POLICY (F-67d2e9, generalizes the 0.5.x unit-only guard).
   // Under --strict, a skipped stage the spec DEMANDS is a fail: 1.1 when a
