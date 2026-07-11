@@ -24,9 +24,9 @@ acceptance_criteria:
     ears: ubiquitous
     action: 'with scenario shards in place, AI-query Q5 answers in 1 directory read per scenario — bringing the cladding low-cost answer rate from 2 of 5 to 3 of 5 in both scenarios while vanilla stays at 0 of 5'
     text: The system shall raise the AI-query low-cost answer rate from 2 of 5 to 3 of 5 in both scenarios.
-    test_refs: [docs/ab-evaluation-extended/scenarios/task-manager/report.md, docs/ab-evaluation-extended/scenarios/dashboard/report.md]
+    evidence_refs: [docs/ab-evaluation-extended/scenarios/task-manager/report.md, docs/ab-evaluation-extended/scenarios/dashboard/report.md]
   - id: AC-004
     ears: ubiquitous
     action: 'cross-scenario summary upgrades the H10 verdict from partial to supported (with caveat about Q1 and Q2 linear-scan) so AB-evaluation wrap-up reflects the new measurement'
     text: The system shall upgrade the H10 cross-scenario verdict to supported.
-    test_refs: [docs/ab-evaluation-extended/summary.md]
+    evidence_refs: [docs/ab-evaluation-extended/summary.md]

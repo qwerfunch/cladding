@@ -9,6 +9,16 @@ import {defineConfig} from 'vitest/config';
 export default defineConfig({
   test: {
     include: ['tests/**/*.test.ts'],
+    // Emit a JUnit report alongside the console output so cladding's own
+    // UNVERIFIED_AC detector can VERIFY (not just existence-check) that each
+    // done AC's test_refs actually ran and passed — closing the self-gate's
+    // AC→test→observed-pass loop (cladding dogfoods its own JUnit feature). The
+    // path is a DEFAULT_REPORT_CANDIDATE the detector auto-discovers; it lives
+    // under .cladding/ (gitignored) so it never pollutes git status. In CI
+    // `npm test` runs before `clad check`, so the gate reads a fresh, complete
+    // report; standalone `clad check` reads the prior run's (the documented
+    // degrade-to-existence baseline applies when no report is present yet).
+    reporters: ['default', ['junit', {outputFile: '.cladding/test-report.junit.xml'}]],
     // The heavy scenario suites (init + observed-path scan over the 8-file
     // fixtures, then detector snapshots) run ~6s locally but several × slower
     // under the 2-core GitHub runner's worker contention. The default 5s

@@ -32,7 +32,7 @@ acceptance_criteria:
     ears: ubiquitous
     action: 'dogfood cladding-self spec.yaml with ai_hints (preferred_persona software-engineer, token_budget_per_session 4000, test_framework vitest, primary_branch develop, forbidden_patterns including eval and innerHTML and dangerouslySetInnerHTML) plus the auto-emitted inventory block'
     text: The system shall dogfood ai_hints + inventory on cladding-self spec.yaml.
-    test_refs: [spec.yaml]
+    evidence_refs: [spec.yaml]
   - id: AC-005
     ears: ubiquitous
     action: 'last_synced field uses YYYY-MM-DD ISO date (not full ISO-8601 with time) so multiple sync runs on the same day produce identical spec.yaml content and do not create commit churn'
