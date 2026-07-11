@@ -1,0 +1,35 @@
+id: F-e4159959
+slug: swift-flutter-dart-toolchain
+title: "Polyglot toolchain — Swift (SPM) and Flutter/Dart gate detection"
+status: done
+modules:
+  - src/stages/toolchain/detect.ts
+  - src/stages/toolchain/types.ts
+acceptance_criteria:
+  - id: AC-aa3d5503
+    ears: event
+    condition: "when a Package.swift manifest is present in the project root"
+    action: "detect language 'swift' and resolve the gates to `swift build` (type), `swiftlint lint` (lint), `swift test` (test) and `swift test --enable-code-coverage` (coverage)"
+    response: "an SPM Swift package gates natively instead of resolving to 'unknown' and skipping every command stage"
+    text: "When a Package.swift manifest is present, the system shall detect language 'swift' and resolve the type/lint/test/coverage gates to swift build / swiftlint lint / swift test / swift test --enable-code-coverage respectively."
+    test_refs: ["tests/stages/toolchain.test.ts"]
+  - id: AC-61dd5a8e
+    ears: event
+    condition: "when a pubspec.yaml that declares a flutter dependency is present"
+    action: "detect language 'dart' and resolve the gates to `flutter analyze` (type), `flutter test` (test) and `flutter test --coverage` (coverage)"
+    response: "a Flutter app gates with the flutter toolchain rather than skipping"
+    text: "When a pubspec.yaml declaring a flutter dependency is present, the system shall detect language 'dart' and resolve the type/test/coverage gates to flutter analyze / flutter test / flutter test --coverage."
+    test_refs: ["tests/stages/toolchain.test.ts"]
+  - id: AC-4cb02211
+    ears: event
+    condition: "when a pubspec.yaml that does NOT declare a flutter dependency is present"
+    action: "detect language 'dart' and resolve the gates to `dart analyze` (type), `dart test` (test) and `dart test --coverage=coverage` (coverage)"
+    response: "a pure-Dart package gates with the dart CLI rather than the flutter wrapper"
+    text: "When a pubspec.yaml without a flutter dependency is present, the system shall detect language 'dart' and resolve the type/test/coverage gates to dart analyze / dart test / dart test --coverage=coverage."
+    test_refs: ["tests/stages/toolchain.test.ts"]
+  - id: AC-dca37b0a
+    ears: ubiquitous
+    action: "map the secret gate of the swift and dart toolchains to `gitleaks detect --no-banner` and omit the arch gate"
+    response: "secret scanning is consistent with the other compiled languages, and arch is intentionally absent because SPM/Dart enforce acyclic module imports at build time"
+    text: "The system shall map the swift and dart secret gate to gitleaks detect --no-banner and intentionally omit the architecture gate, consistent with the other compiled-language entries."
+    test_refs: ["tests/stages/toolchain.test.ts"]

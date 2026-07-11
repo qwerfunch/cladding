@@ -11,7 +11,7 @@
 // This is the polyglot adapter: cladding itself stays language-agnostic;
 // the *user project* decides which language tools run.
 
-import {existsSync, readdirSync} from 'node:fs';
+import {existsSync, readFileSync, readdirSync} from 'node:fs';
 import type {Dirent} from 'node:fs';
 import {join} from 'node:path';
 
@@ -61,6 +61,42 @@ function kotlinGates(cwd: string): ToolchainGates {
     // imports, and forbidden-layer rules are enforced spec-side by the
     // ARCHITECTURE_FROM_SPEC detector (dotted-import matcher).
   };
+}
+
+/**
+ * Dart vs Flutter share the `pubspec.yaml` manifest; the SDK in use is what
+ * tells them apart. A Flutter package declares the flutter SDK (a `flutter:`
+ * stanza or a `sdk: flutter` dependency), so its gates run through the
+ * `flutter` wrapper (which bundles the Flutter-aware analyzer + test harness);
+ * a pure-Dart package gates with the bare `dart` CLI. Gates are a thunk so the
+ * pubspec is read once per detection.
+ */
+function dartGates(cwd: string): ToolchainGates {
+  let isFlutter = false;
+  try {
+    isFlutter = /(^|\n)\s*flutter\s*:|sdk:\s*flutter/.test(readFileSync(join(cwd, 'pubspec.yaml'), 'utf8'));
+  } catch {
+    /* unreadable pubspec → treat as pure Dart */
+  }
+  const lint: ToolSpec = {cmd: 'dart', args: ['format', '--output=none', '--set-exit-if-changed', '.']};
+  const secret: ToolSpec = {cmd: 'gitleaks', args: ['detect', '--no-banner']};
+  return isFlutter
+    ? {
+        type: {cmd: 'flutter', args: ['analyze']},
+        lint,
+        test: {cmd: 'flutter', args: ['test']},
+        coverage: {cmd: 'flutter', args: ['test', '--coverage']},
+        secret,
+      }
+    : {
+        type: {cmd: 'dart', args: ['analyze']},
+        lint,
+        test: {cmd: 'dart', args: ['test']},
+        coverage: {cmd: 'dart', args: ['test', '--coverage=coverage']},
+        secret,
+      };
+  // No `arch` gate: Dart/Flutter package imports are resolved acyclically by
+  // the SDK build, mirroring the rust/go/kotlin "compiler enforces it" stance.
 }
 
 /** Directories never worth descending into when probing for source files. */
@@ -116,7 +152,11 @@ const CHAIN: readonly Entry[] = [
       test: {cmd: 'npx', args: ['--no-install', 'vitest', 'run']},
       coverage: {cmd: 'npx', args: ['--no-install', 'vitest', 'run', '--coverage']},
       secret: {cmd: 'npx', args: ['--no-install', 'secretlint', '**/*']},
-      arch: {cmd: 'npx', args: ['--no-install', 'madge', '--circular', '--extensions', 'ts', '.']},
+      // .tsx/.jsx/.js alongside .ts so circular-dependency detection covers
+      // React/JSX component trees, not only plain .ts (F-47b8bee5). madge
+      // excludes node_modules by default, so widening extensions does not pull
+      // the dependency tree into the scan.
+      arch: {cmd: 'npx', args: ['--no-install', 'madge', '--circular', '--extensions', 'ts,tsx,js,jsx', '.']},
       smoke: {cmd: 'npm', args: ['run', '--silent', 'smoke']},
       perf: {cmd: 'npm', args: ['run', '--silent', 'perf']},
       visual: {cmd: 'npm', args: ['run', '--silent', 'visual']},
@@ -222,6 +262,28 @@ const CHAIN: readonly Entry[] = [
       secret: {cmd: 'gitleaks', args: ['detect', '--no-banner']},
     },
   },
+  {
+    // Swift Package Manager. Xcode-only apps (no Package.swift) gate via a
+    // `.cladding/config.yaml::gate.commands` xcodebuild override — matching
+    // `.xcodeproj` here would wrongly point `swift build` at a project SPM
+    // cannot drive. No `arch` gate: SPM resolves module imports acyclically.
+    language: 'swift',
+    manifests: ['Package.swift'],
+    gates: {
+      type: {cmd: 'swift', args: ['build']},
+      lint: {cmd: 'swiftlint', args: ['lint']},
+      test: {cmd: 'swift', args: ['test']},
+      coverage: {cmd: 'swift', args: ['test', '--enable-code-coverage']},
+      secret: {cmd: 'gitleaks', args: ['detect', '--no-banner']},
+    },
+  },
+  {
+    // Dart + Flutter share pubspec.yaml; the gates thunk reads it to pick the
+    // `flutter` wrapper vs the bare `dart` CLI. @see dartGates.
+    language: 'dart',
+    manifests: ['pubspec.yaml'],
+    gates: dartGates,
+  },
 ];
 
 /** Empty toolchain returned when no manifest matches. */
@@ -283,6 +345,58 @@ function resolveTsLint(cwd: string, fallback: ToolSpec): ToolSpec {
 }
 
 /**
+ * TypeScript/JavaScript test-runner resolution by config-file presence
+ * (F-47b8bee5) — the test-gate analogue of `resolveTsLint`.
+ *
+ * `package.json` maps to one language, but the test gate defaulted to vitest
+ * unconditionally — so a Jest project (CRA, React Native, classic React) hit
+ * `npx --no-install vitest`, found nothing, and SILENTLY SKIPPED stage_2.1 /
+ * stage_2.2. Detect the Jest the project actually configured and gate with
+ * THAT. Precedence: jest config present → jest; else vitest (the default, also
+ * used config-less, so vitest and config-less projects behave exactly as
+ * before).
+ *
+ * `--no-install` is kept: detection only decides WHICH runner to invoke, never
+ * installs one. A configured-but-absent jest still resolves to skip via the
+ * stage's missing-tool path, which `--strict`'s skip-policy escalates.
+ *
+ * CAVEAT — by config PRESENCE, not content (mirrors `resolveTsLint`). A project
+ * carrying both a jest and a vitest config resolves to jest; one that tests with
+ * a different runner overrides via `.cladding/config.yaml::gate.commands`.
+ */
+const JEST_CONFIGS: readonly string[] = [
+  'jest.config.js', 'jest.config.ts', 'jest.config.mjs', 'jest.config.cjs', 'jest.config.json',
+];
+
+/** True when the project configures Jest — a jest.config.* file or a `jest` key in package.json. */
+function hasJestConfig(cwd: string): boolean {
+  if (JEST_CONFIGS.some((c) => existsSync(join(cwd, c)))) return true;
+  try {
+    const pkg = JSON.parse(readFileSync(join(cwd, 'package.json'), 'utf8')) as {jest?: unknown};
+    return pkg.jest !== undefined;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Applies TS/JS config-presence detection to the curated TS gates: linter
+ * (biome/oxlint/eslint via `resolveTsLint`) and test runner (jest/vitest via
+ * `hasJestConfig`). Other gates pass through unchanged.
+ */
+function resolveTsGates(cwd: string, base: ToolchainGates): ToolchainGates {
+  const out: ToolchainGates = base.lint ? {...base, lint: resolveTsLint(cwd, base.lint)} : {...base};
+  if (base.test && base.coverage && hasJestConfig(cwd)) {
+    return {
+      ...out,
+      test: {cmd: 'npx', args: ['--no-install', 'jest']},
+      coverage: {cmd: 'npx', args: ['--no-install', 'jest', '--coverage']},
+    };
+  }
+  return out;
+}
+
+/**
  * Detects the project's toolchain by walking a priority chain of manifests.
  *
  * The first matching language wins. `.csproj` / `.sln` / `.fsproj` are matched
@@ -312,13 +426,10 @@ export function detectToolchain(cwd: string = '.'): Toolchain {
     if (entry.requiresSource && !hasSourceFile(cwd, entry.requiresSource)) continue;
     // Kotlin gates are a function of cwd (gradlew vs gradle); resolve first.
     const baseGates = typeof entry.gates === 'function' ? entry.gates(cwd) : entry.gates;
-    // TS/JS: pick the linter the project configured (biome/oxlint) over the
-    // eslint default, so a non-eslint project gates natively. Other languages
-    // keep their single curated default.
-    const gates =
-      entry.language === 'typescript' && baseGates.lint
-        ? {...baseGates, lint: resolveTsLint(cwd, baseGates.lint)}
-        : baseGates;
+    // TS/JS: pick the linter (biome/oxlint) and test runner (jest) the project
+    // configured over the eslint/vitest defaults, so a non-eslint / Jest project
+    // gates natively. Other languages keep their single curated default.
+    const gates = entry.language === 'typescript' ? resolveTsGates(cwd, baseGates) : baseGates;
     return {language: entry.language, manifest, gates};
   }
   return UNKNOWN;
