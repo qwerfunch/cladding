@@ -31,9 +31,9 @@ import {join} from 'node:path';
 import {
   type AgentsMdResult,
   type ClaudeMdResult,
-  writeAgentsMd,
   writeClaudeMdSection,
 } from '../init/host-instructions.js';
+import {type SpecAgentsMdResult, writeSpecDrivenAgentsMd} from '../init/agents-md.js';
 import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../spec/inventory.js';
 import {gitOperationInProgress} from '../core/git-ops.js';
 
@@ -54,7 +54,7 @@ export interface UpdateResult {
   readonly wiringErrors: number;
   /** `writeClaudeMdSection` outcome, or `'n/a'` when not a project. */
   readonly claudeMd: ClaudeMdResult | 'n/a';
-  /** `writeAgentsMd` outcome, or `'n/a'` when not a project. */
+  /** Spec-driven AGENTS.md outcome (mapped onto AgentsMdResult), or `'n/a'` when not a project. */
   readonly agentsMd: AgentsMdResult | 'n/a';
   /** Feature count from the freshly-recomputed inventory. */
   readonly features: number;
@@ -65,6 +65,23 @@ export interface UpdateResult {
   /** True when a git operation was in progress, so the inventory + index writes
    * were skipped (the caller reports the deferral instead of "synced"). */
   readonly inventoryDeferred?: boolean;
+}
+
+/**
+ * Projects the spec-driven writer's outcome onto the legacy `AgentsMdResult`
+ * the update report already speaks. A regenerated-but-identical block and a
+ * hand-authored (markerless) file both read as a benign 'skipped-exists'; an
+ * actual block rewrite reads as 'refreshed-stale'.
+ */
+function mapAgentsMdResult(r: SpecAgentsMdResult): AgentsMdResult {
+  switch (r) {
+    case 'created':
+      return 'created';
+    case 'updated':
+      return 'refreshed-stale';
+    default: // 'unchanged' | 'skipped-unmanaged'
+      return 'skipped-exists';
+  }
 }
 
 /**
@@ -102,9 +119,14 @@ export async function runUpdate(cwd: string, deps: UpdateDeps): Promise<UpdateRe
   }
 
   // 3. Refresh the cladding-managed CLAUDE.md / AGENTS.md section — staleness-
-  //    based only; user prose preserved, no `--force`, no LLM dispatch.
+  //    based only; user prose preserved, no `--force`, no LLM dispatch. AGENTS.md
+  //    is now the spec-driven managed block (F-a4085adf, #199): a marker-upsert
+  //    that regenerates only the delimited block, is byte-stable on unchanged
+  //    spec, and leaves a markerless (hand-authored) file untouched. Its richer
+  //    outcome is mapped onto the existing AgentsMdResult contract the update
+  //    report speaks: a byte-stable / hand-authored no-op reads as 'skipped-exists'.
   const claudeMd = writeClaudeMdSection(cwd);
-  const agentsMd = writeAgentsMd(cwd);
+  const agentsMd = mapAgentsMdResult(writeSpecDrivenAgentsMd(cwd));
 
   // 4. Deprecation sweep (report-only, F-b43066): dead spec knobs that the
   //    schema still accepts but 0.7 removes — surfaced here, never blocking.
