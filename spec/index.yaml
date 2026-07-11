@@ -130,6 +130,7 @@ features:
   F-43d8e3: {slug: smoke-probe-token-pass, status: done, modules: 3}
   F-4747ef: {slug: ssot-lifecycle-tests, status: done, modules: 9}
   F-47b8bee5: {slug: ts-toolchain-jest-and-multiext-arch, status: done, modules: 1}
+  F-49f6f2d2: {slug: test-run-dedup, status: done, modules: 1}
   F-49facde9: {slug: loop-engineering-readme, status: done, modules: 4}
   F-4db939: {slug: ab-evaluation, status: done, modules: 9}
   F-4ef09f38: {slug: multi-probe-smoke, status: done, modules: 3}

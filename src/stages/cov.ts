@@ -13,6 +13,7 @@ import process from 'node:process';
 
 import {execaSync} from 'execa';
 
+import {peekSharedRun} from './test-run-cache.js';
 import {resolveStageCommand} from './toolchain/scoped-command.js';
 import type {CommandStageOptions, StageResult} from './types.js';
 import {missingToolSkip, ranToolResult} from './util.js';
@@ -37,7 +38,12 @@ export function runCov(opts: CommandStageOptions = {}): StageResult {
       stderr: `no coverage runner registered for language '${language}'`,
     };
   }
-  const proc = execaSync(cmd, [...args], {cwd, reject: false});
+  // F-49f6f2d2 (#215): on a primed vitest gate the unit stage (stage_2.1) already
+  // spawned the shared coverage+dual-json run — fold its exit signal here instead
+  // of spawning `vitest run --coverage` a second time. Unprimed / no shared run
+  // (non-vitest project, or unit fell through) → spawn as before, byte-for-byte.
+  const shared = peekSharedRun(cwd);
+  const proc = shared ? shared.proc : execaSync(cmd, [...args], {cwd, reject: false});
   // execaSync(reject:false) RETURNS (does not throw) on a missing binary;
   // detect ENOENT on the result so a missing tool skips, not false-fails.
   const skip = missingToolSkip(STAGE, cmd, proc);
