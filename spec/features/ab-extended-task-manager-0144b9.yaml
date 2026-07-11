@@ -44,4 +44,4 @@ acceptance_criteria:
     ears: ubiquitous
     action: 'verify all measurements support the new hypotheses H9 (linear scale), H10 (AI query cost partial — domain-tuned limitation), H11 (drift catch rate preserved at 3/4), H12 (capture duration bounded under 2s)'
     text: The system shall report H9, H10, H11, H12 verdicts with quantitative anchors.
-    test_refs: [docs/ab-evaluation-extended/summary.md]
+    evidence_refs: [docs/ab-evaluation-extended/summary.md]

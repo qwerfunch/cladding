@@ -25,5 +25,6 @@ acceptance_criteria:
     text: "The agent shall be mirrored by the plugin build (agents/ + codex skills) and registered in the glossary like every persona, with the size-budget ratchet extended, so the new definition lives under the same drift discipline as the existing five."
 
     test_refs:
-      - "tests/scenarios/_size-budgets.ts"
       - "tests/self-consistency.test.ts#every persona file under src/agents/ has a glossary row"
+    evidence_refs:
+      - "tests/scenarios/_size-budgets.ts"

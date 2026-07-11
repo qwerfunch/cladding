@@ -44,4 +44,4 @@ acceptance_criteria:
     action: surface real cladding bugs that the test had to work around — LLM seed architecture format incompatible with ARCHITECTURE_FROM_SPEC detector schema, and inline F-001 placeholder in init-seeded spec.yaml blocks sharded feature loading
     response: '_drift-injection.ts exports claddingifyForDriftCatch helper that (a) clears spec.yaml inline features so sharded F-4db939 loads via spec.load.ts heuristic, and (b) rewrites spec/architecture.yaml in canonical string[][] + {from,to}[] schema; comment block in the helper documents both as real cladding bugs tracked in docs/ab-evaluation/summary.md Future Work table'
     text: The system shall surface the architecture-schema mismatch and inline-F-001 blocker as known cladding bugs in the future-work table.
-    test_refs: [tests/scenarios/ab/_drift-injection.ts, docs/ab-evaluation/summary.md]
+    evidence_refs: [tests/scenarios/ab/_drift-injection.ts, docs/ab-evaluation/summary.md]

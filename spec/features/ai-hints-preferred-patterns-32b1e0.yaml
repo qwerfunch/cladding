@@ -37,4 +37,4 @@ acceptance_criteria:
     ears: ubiquitous
     action: 'dogfood cladding-self spec.yaml with 4 preferred_patterns covering new detector implementation, spec authoring, AI agent lookup, and Iron Law stage structure — each triple uses when plus prefer plus over to be both readable and actionable'
     text: The system shall dogfood preferred_patterns on cladding-self spec.yaml with 4 representative triples.
-    test_refs: [spec.yaml]
+    evidence_refs: [spec.yaml]

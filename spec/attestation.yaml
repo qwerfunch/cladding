@@ -413,7 +413,7 @@ attested_modules:
   tests/stages/visual.test.ts: dd819e7d25586b92
   tests/ui/panel.test.ts: ad9ea207f34b1c51
   tests/ui/pulse.test.ts: 30f1d091de9093ad
-  vitest.config.ts: 0abd6ec1dd506fee
+  vitest.config.ts: ea530544d4c3a338
 attested_features:
   F-001: ok
   F-0023ba22: ok
