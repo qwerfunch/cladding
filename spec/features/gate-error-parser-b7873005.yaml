@@ -1,0 +1,43 @@
+id: F-b7873005
+slug: gate-error-parser
+title: "gate-error finding-parser — structured file:line from tool-stage output"
+status: done
+modules:
+  - src/stages/finding-parser.ts
+acceptance_criteria:
+  - id: AC-6931d251
+    test_refs:
+      - tests/stages/finding-parser.test.ts
+    ears: ubiquitous
+    text: "The system shall parse a tool stage's machine-readable output (TypeScript, ESLint, Vitest) into structured findings — each carrying a file path, line, rule, and message — attached to the stage result, while preserving the raw output."
+    notes: "WHY: verdict.next_action already surfaces the first path-bearing finding; today tool stages return only raw stderr, so tool failures fall to the raw-tail. Populating findings[] makes next_action a structured file:line with no change to the verdict reducer."
+  - id: AC-20b69848
+    test_refs:
+      - tests/stages/finding-parser.test.ts
+    ears: unwanted
+    condition: "if a tool stage exits non-zero but yields no parsed finding"
+    response: "emit one synthetic finding derived from the raw output tail"
+    text: "If a tool stage exits non-zero but yields no parsed finding, the system shall emit a single synthetic finding derived from the raw output tail, so an unparsed failure is never presented as no problem."
+    notes: "Side-effect lock: 'no structure' must never read as 'no problem' — an unparsed failure still surfaces a pointer."
+  - id: AC-8e636e0b
+    test_refs:
+      - tests/stages/finding-parser.test.ts
+      - tests/verdict/verdict.test.ts
+    ears: state
+    condition: "while a failing tool stage carries at least one parsed finding"
+    text: "While a failing tool stage carries at least one parsed finding, clad verdict's next_action shall surface a structured path:line pointer rather than the raw stderr tail."
+    notes: "Integration with F-2e28cc72: no verdict change needed — the reducer already prefers path-bearing findings; this AC verifies the end-to-end wiring."
+  - id: AC-0fa3265d
+    test_refs:
+      - tests/stages/finding-parser.test.ts
+    ears: ubiquitous
+    text: "The system shall derive findings only from each tool's own structured output and shall not re-analyze the source (no independent AST or compiler pass), so a parsed finding never contradicts what the tool reported."
+    notes: "SOUNDNESS LOCK: parse the tool's own output (tsc --pretty false, eslint --format json, vitest --reporter=json); never re-derive via a second AST pass — that would be TS-only, break polyglot, and let the summary disagree with the tool (a new vacuous-green vector)."
+  - id: AC-bd425422
+    test_refs:
+      - tests/stages/finding-parser.test.ts
+    ears: unwanted
+    condition: "if a tool's structured output is unavailable or unrecognized"
+    response: "fall back to existing raw behavior with no error and no change to the gate outcome"
+    text: "If a tool's structured output is unavailable or unrecognized, the stage shall fall back to its existing raw behavior without error and without changing the gate outcome."
+    notes: "NO-SIDE-EFFECT LOCK: the parser is additive — parsing failure must never crash a stage or flip green/red. Pass/fail is still owned by the tool's exit code, never by whether parsing succeeded."

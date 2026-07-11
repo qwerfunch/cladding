@@ -47,6 +47,14 @@ export interface StageResult {
   readonly disposition?: Disposition;
   /** NEW (F-e0f6c7) — per-probe outcomes for JSON/audit/demand reconciliation. */
   readonly probes?: readonly ProbeOutcome[];
+  /**
+   * NEW (F-b7873005) — structured findings parsed from a FAILING tool stage's
+   * own output (tsc/eslint/vitest), each carrying path/line/detector/message.
+   * Additive: absent on green and on the legacy stages. The `DriftReport`
+   * subtype redeclares this required (drift always emits a findings array). The
+   * verdict reducer prefers the first path-bearing finding for `next_action`.
+   */
+  readonly findings?: readonly DriftFinding[];
 }
 
 /** Shared options for any stage that wraps an external command. */

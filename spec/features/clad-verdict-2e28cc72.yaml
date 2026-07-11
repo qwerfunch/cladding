@@ -1,0 +1,43 @@
+id: F-2e28cc72
+slug: clad-verdict
+title: "clad verdict — the loop's earned stop-condition poll"
+status: done
+modules:
+  - src/verdict/verdict.ts
+  - src/cli/verdict.ts
+acceptance_criteria:
+  - id: AC-1b403763
+    test_refs:
+      - tests/verdict/verdict.test.ts
+    ears: ubiquitous
+    text: "The system shall reduce the pre-push strict gate outcome and the feature statuses to a single verdict — one of DONE, ITERATE, ESCALATE, BLOCKED, or BOOTSTRAP — together with a next_action pointer and a remaining-features list."
+    notes: "WHY: a host loop must not re-implement the disposition→decision mapping over the raw gate dump; one poll answers iterate/escalate/stop."
+  - id: AC-acc5ae0a
+    test_refs:
+      - tests/verdict/verdict.test.ts
+    ears: unwanted
+    condition: "if the gate is GREEN yet every behavioral-proof stage is skip, na, or liveness"
+    response: "return ITERATE with a next_action requesting behavioral proof, never DONE"
+    text: "If the gate is GREEN but no behavioral-proof stage (unit, spec-conformance oracle, or deliverable-smoke) passed as a non-liveness green, the system shall return ITERATE and shall not return DONE."
+    notes: "WHY: DONE must require >=1 non-liveness behavioral proof (honest-smoke: liveness/na are non-green per src/stages/disposition.ts) — else verdict ships the confident-garbage 'finished' signal the gate exists to prevent."
+  - id: AC-a29d9485
+    test_refs:
+      - tests/verdict/verdict.test.ts
+    ears: state
+    condition: "while at least one non-archived feature has status other than done"
+    text: "While any non-archived feature is not status:done, the system shall not return DONE."
+    notes: "DONE is over the whole goal, not one feature."
+  - id: AC-5d88c6b9
+    test_refs:
+      - tests/cli/verdict-contract.test.ts
+    ears: ubiquitous
+    text: "The system shall compute the verdict over the same runCheckStages pipeline that clad done gates on, invoked exactly once per poll, and shall not re-implement the gate."
+    notes: "WHY: single gate touch — a second, laxer gate would drift from clad done and reintroduce vacuous-green. Latency guard: one gate execution per poll, never an added run."
+  - id: AC-eb5de98c
+    test_refs:
+      - tests/verdict/verdict.test.ts
+      - tests/cli/verdict-contract.test.ts
+    ears: state
+    condition: "while the command is invoked with --json"
+    text: "While invoked with --json the system shall emit the machine-readable verdict object, and the reducer function shall be pure and unit-testable without spawning the toolchain."
+    notes: "Pure reducer in src/verdict/verdict.ts (no cli import — topology cli→serve→verdict); CLI handler wires runCheckStages + loadSpec + reducer."

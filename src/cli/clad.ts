@@ -21,6 +21,7 @@ import {runDoctorCommand} from './doctor.js';
 import {runDoctorHosts} from './doctor-hosts.js';
 import {runDone} from './done.js';
 import {runHookCommand} from './hook.js';
+import {runVerdictCommand} from './verdict.js';
 import {runUpdate} from './update.js';
 import {runInit} from './init.js';
 import {runClarifyCommand} from './clarify.js';
@@ -427,6 +428,25 @@ export const TIER_STAGES: Record<string, readonly string[]> = {
   all: ['stage_1.1', 'stage_1.2', 'stage_1.3', 'stage_1.4', 'stage_1.5', 'stage_1.6', 'stage_2.1', 'stage_2.2', 'stage_2.3', 'stage_2.4', 'stage_3.1', 'stage_3.2', 'stage_3.3', 'stage_4.1', 'stage_4.2'],
 };
 
+/** Per-stage record collected during a gate run. Exported so the verdict
+ *  reducer (src/verdict/verdict.ts) can read the disposition + findings of each
+ *  stage WITHOUT re-running or re-implementing the pipeline. `status` is the
+ *  honest disposition (see stages/disposition.ts), NOT just the exit code. */
+export interface StageOutcome {
+  /** Ironclad stage id, e.g. `stage_2.1`. */
+  readonly stage: string;
+  /** User-facing label (or the raw id under `internal`). */
+  readonly label: string;
+  /** Honest gate disposition (pass/skip/fail/pending_env/advisory/na/liveness). */
+  readonly status: GateStatus;
+  /** Underlying exit code (1 for a disposition-blocking stage; 2 = skip lane). */
+  readonly exitCode: number;
+  /** Captured stderr; populated on failure. */
+  readonly stderr?: string;
+  /** Structured drift findings (only the drift stage carries these). */
+  readonly findings?: readonly DriftFinding[];
+}
+
 /** Outcome of running a tier's stages — exported so `clad done` can gate on
  *  the identical code path `clad check` uses (not a weaker re-implementation). */
 export interface CheckOutcome {
@@ -434,6 +454,12 @@ export interface CheckOutcome {
   readonly worst: number;
   /** True when at least one stage RAN and failed (exitCode 1). */
   readonly anyFailed: boolean;
+  /**
+   * Per-stage records for this run. Present when the caller wants the full
+   * disposition breakdown (verdict reducer); existing callers (`clad check`,
+   * `clad done`) ignore it. Absent on the early unknown-tier bail-out.
+   */
+  readonly stages?: readonly StageOutcome[];
 }
 
 /**
@@ -442,16 +468,21 @@ export interface CheckOutcome {
  * (which gates the status flip on it), so the two verify against the SAME stage
  * pipeline.
  */
-export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier?: string; json?: boolean; focusModules?: readonly string[]}): CheckOutcome {
+export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier?: string; json?: boolean; silent?: boolean; focusModules?: readonly string[]}): CheckOutcome {
   const tier = opts.tier ?? 'all';
+  // `silent` (the verdict poll) suppresses ALL user-facing IO — no pulse, no
+  // --json stdout write, no attestation stamp — but still computes the honest
+  // worst/anyFailed/stages and records the gate_run telemetry. A poll observes;
+  // it never speaks or mutates.
+  const silent = opts.silent === true;
   const allowed = TIER_STAGES[tier];
   if (!allowed) {
-    if (opts.json) {
+    if (opts.json && !silent) {
       process.stdout.write(`${JSON.stringify({tier, error: `unknown tier '${tier}'`, worst: 2, anyFailed: true, stages: []}, null, 2)}\n`);
-    } else {
+    } else if (!silent) {
       pulse('fail', 'check', `unknown --tier '${tier}' (expected: pre-commit | pre-push | all)`);
     }
-    return {worst: 2, anyFailed: true};
+    return {worst: 2, anyFailed: true, stages: []};
   }
   // Focus-feature module scope (Gradle monorepos): forwarded to every command
   // stage and to the drift suite so the coverage detector reads per-module
@@ -464,7 +495,7 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
     ['stage_1.4', runCommit],
     ['stage_1.5', runArch],
     ['stage_1.6', runSecret],
-    ['stage_2.1', () => runUnit(base)],
+    ['stage_2.1', () => runUnit({...base, strict: opts.strict})],
     ['stage_2.2', () => runCov(base)],
     ['stage_2.3', runSpecConformance],
     ['stage_2.4', runDeliverableSmoke],
@@ -482,6 +513,9 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
   // blocking → fail glyph; na → skip; liveness → note (ran, not green-as-smoke).
   const pulseKindOf = (s: GateStatus): PulseKind =>
     s === 'pass' ? 'pass' : s === 'liveness' ? 'note' : s === 'na' ? 'skip' : isBlocking(s) ? 'fail' : 'skip';
+  // Mutable during the run (the EXEMPT half below rewrites the drift row); the
+  // element shape matches StageOutcome exactly, so `collected` returns cleanly
+  // as `readonly StageOutcome[]`.
   const collected: {stage: string; label: string; status: GateStatus; exitCode: number; stderr?: string; findings?: readonly DriftFinding[]}[] = [];
   // F-e53596dd — prime the run-scoped detector cache so the drift stage's
   // ARCHITECTURE_VIOLATION + HARDCODED_SECRET runs are reused by stage_1.5/1.6
@@ -511,7 +545,7 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
         worst = Math.max(worst, worstContribution(r, status));
       }
       collected.push({stage: name, label, status, exitCode: r.exitCode, stderr: r.stderr, findings: r.findings});
-      if (!opts.json) {
+      if (!opts.json && !silent) {
         pulse(pulseKindOf(status), label);
         if (isBlocking(status)) printStageDetails(r);
       }
@@ -533,7 +567,7 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
         worst = Math.max(worst, 1);
         anyFailed = true;
         collected.push({stage: v.stage, label: v.label, status: 'fail', exitCode: 1, stderr: v.message});
-        if (!opts.json) pulse('fail', v.label, v.message);
+        if (!opts.json && !silent) pulse('fail', v.label, v.message);
       }
     } catch {
       /* spec unreadable → other detectors own it; don't block here */
@@ -549,6 +583,13 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
   //   STAMP   — a GREEN strict pre-push/all run writes spec/attestation.yaml
   //             (module tree-hashes per done feature), the committed,
   //             clone-portable freshness anchor STALE_ATTESTATION compares.
+  //   POLL    — under `silent` (the verdict poll) the EXEMPT half STILL runs: it
+  //             recomputes worst/anyFailed, which ARE the verdict, so a poll must
+  //             agree with `clad check`/`clad done` on a solely-stale tree
+  //             (AC-5d88c6b9 — same gate, one touch). Only the STAMP (the
+  //             writeAttestation mutation) is skipped: a poll is a read-only
+  //             stop-signal, never a verification of record. The next real
+  //             `clad check`/`clad done` does the writing.
   if (opts.strict && (tier === 'pre-push' || tier === 'all')) {
     const drift = collected.find((c) => c.stage === 'stage_1.3');
     const strictFailing = (drift?.findings ?? []).filter((f) => f.severity === 'error' || f.severity === 'warn');
@@ -563,9 +604,10 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
       drift.stderr = 'stale attestation exempted — this run re-verified and re-attests';
       anyFailed = collected.some((c) => isBlocking(c.status));
       worst = anyFailed ? Math.max(1, worst) : 0;
-      if (!opts.json) pulse('note', 'attestation', 'stale entries re-verified by this run — re-attesting');
+      if (!opts.json && !silent) pulse('note', 'attestation', 'stale entries re-verified by this run — re-attesting');
     }
-    if (!anyFailed) {
+    // STAMP — the mutation. A poll (silent) must never write spec/attestation.yaml.
+    if (!anyFailed && !silent) {
       if (gitOperationInProgress('.')) {
         if (!opts.json) pulse('note', 'attestation', 'deferred — git operation in progress; run the gate again after the merge/rebase completes.');
       } else {
@@ -579,18 +621,18 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
       }
     }
   }
-  if (opts.json) {
+  if (opts.json && !silent) {
     // Machine-readable, UNTRUNCATED — findings carry file/line/suggestion so an
     // agent fixes in one pass instead of re-running to discover where + what.
     process.stdout.write(`${JSON.stringify({tier, worst, anyFailed, stages: collected}, null, 2)}\n`);
-  } else if (anyFailed) {
+  } else if (anyFailed && !silent) {
     process.stdout.write('\nℹ Run `clad doctor` for the event log, or `clad sync` to validate spec shards. Drift findings above name the offending detector.\n');
   }
   // F-b84c38 — verification freshness needs a data source: every tier run
   // lands in the ledger (best-effort, deduped per identical HEAD/tier/strict/
-  // worst tuple so repeated identical runs add no growth).
+  // worst tuple so repeated identical runs add no growth). The poll counts too.
   recordEvent('.', 'gate_run', {tier, strict: opts.strict === true, worst, anyFailed});
-  return {worst, anyFailed};
+  return {worst, anyFailed, stages: collected};
 }
 
 /** Handler for `clad check`. Runs the tier's Iron Law stages; exits with worst code. */
@@ -1047,6 +1089,13 @@ export function createProgram(): Command {
     .description('Print the blast radius for a change — what depends on a feature/file + the tests to re-run (F-7794a6bc)')
     .option('--depth <n>', 'bound the dependent walk to N hops (default: the full transitive radius)')
     .action((query, opts) => runImpactCommand(query, opts));
+
+  program
+    .command('verdict')
+    .description('One-poll loop decision: DONE|ITERATE|ESCALATE|BLOCKED|BOOTSTRAP over the pre-push strict gate + feature statuses (F-2e28cc72). Single gate touch; DONE requires ≥1 non-liveness proof.')
+    .option('--json', 'emit the verdict object as JSON')
+    .option('--tier <tier>', 'gate tier (default pre-push)')
+    .action((opts) => runVerdictCommand(opts, {checkStages: runCheckStages}));
 
   program
     .command('infer-deps')

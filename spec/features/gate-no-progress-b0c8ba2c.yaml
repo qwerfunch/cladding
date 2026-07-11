@@ -1,0 +1,43 @@
+id: F-b0c8ba2c
+slug: gate-no-progress
+title: "GATE_NO_PROGRESS — verdict escalates when the gate is stuck"
+status: done
+modules:
+  - src/verdict/gate-progress.ts
+acceptance_criteria:
+  - id: AC-5c0552e5
+    test_refs:
+      - tests/verdict/gate-progress.test.ts
+    ears: ubiquitous
+    text: "On each gate run the system shall record a message-free fingerprint of the run's blocking findings (detector + path only, excluding volatile message text), so consecutive runs are comparable."
+    notes: "WHY: verdict is a stateless poll; to detect 'stuck' it must compare the current findings to the previous run's, which requires the fingerprint be persisted on the gate_run event. Reuses the Stop-hook's message-free detector|path primitive (src/cli/hook.ts:404-405)."
+  - id: AC-3e435423
+    test_refs:
+      - tests/verdict/gate-progress.test.ts
+    ears: event
+    condition: "when two consecutive gate runs produce an identical blocking-findings fingerprint"
+    response: "clad verdict returns ESCALATE with halt_class GATE_NO_PROGRESS"
+    text: "When two consecutive gate runs produce an identical blocking-findings fingerprint, clad verdict shall return ESCALATE with halt_class GATE_NO_PROGRESS instead of ITERATE."
+    notes: "Fills the declared-but-dead halt.ts GATE_NO_PROGRESS enum. Defends loop-engineering mistake #3 (no stop condition): a loop iterating forever on an unfixable failure is stopped and handed to a human instead of billing forever."
+  - id: AC-5437c244
+    test_refs:
+      - tests/verdict/gate-progress.test.ts
+    ears: unwanted
+    condition: "if the current gate is green or the current fingerprint differs from the previous run"
+    response: "do not return GATE_NO_PROGRESS"
+    text: "If the current gate is green, or the current fingerprint differs from the previous run, the system shall not return GATE_NO_PROGRESS."
+    notes: "NO-FALSE-STUCK LOCK: a progressing loop (findings changed = progress) or a passing loop must never be told it is stuck. GATE_NO_PROGRESS is a recommendation the host may override, never a hard block."
+  - id: AC-a2320103
+    test_refs:
+      - tests/verdict/gate-progress.test.ts
+    ears: ubiquitous
+    text: "The fingerprint shall exclude volatile content — messages, line numbers, and temporary paths — so a cosmetic difference cannot mask a genuine repeat and a genuine repeat is not missed."
+    notes: "SOUNDNESS: fingerprint too NARROW (includes volatile line/message) => 'identical' never matches => the class never fires (the anti-self-cert 'leaked 4/4' dead-guard trap). Sorted set of detector|path only."
+  - id: AC-d79df01a
+    test_refs:
+      - tests/verdict/gate-progress.test.ts
+    ears: unwanted
+    condition: "if there is no previous gate run to compare against"
+    response: "return ITERATE rather than GATE_NO_PROGRESS"
+    text: "If there is no previous gate run to compare against, the system shall return ITERATE rather than GATE_NO_PROGRESS."
+    notes: "A first failure is never 'stuck' — stuck requires at least two identical consecutive runs."

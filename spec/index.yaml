@@ -113,6 +113,7 @@ features:
   F-288864ae: {slug: claude-md-diet, status: done, modules: 2}
   F-2be3e3bb: {slug: infer-depends-on, status: done, modules: 2}
   F-2de65d: {slug: drive-auto-rollback, status: done, modules: 1}
+  F-2e28cc72: {slug: clad-verdict, status: done, modules: 2}
   F-315fd7: {slug: scenario-coverage-detector, status: done, modules: 2}
   F-31eeb8: {slug: scan-bfs-walk, status: done, modules: 2}
   F-32b1e0: {slug: ai-hints-preferred-patterns, status: done, modules: 6}
@@ -137,6 +138,7 @@ features:
   F-569f4b37: {slug: graph-export-viz, status: done, modules: 5}
   F-56abaa: {slug: intent-aware-init, status: done, modules: 5}
   F-570a3f: {slug: mcp-structural-channel, status: done, modules: 1}
+  F-59af798d: {slug: prior-attempts, status: done, modules: 1}
   F-59f093: {slug: multidev-integration-test-and-scenario-regex, status: done, modules: 3}
   F-5b188856: {slug: graph-color-groups, status: done, modules: 4}
   F-5b9f9f: {slug: spec-yaml-inventory-and-hints, status: done, modules: 6}
@@ -191,10 +193,13 @@ features:
   F-af45042a: {slug: graph-live-health, status: done, modules: 5}
   F-af96b1: {slug: no-vacuous-green-gate-contract, status: done, modules: 6}
   F-b010427b: {slug: detector-layer-purity, status: done, modules: 2}
+  F-b0c8ba2c: {slug: gate-no-progress, status: done, modules: 1}
   F-b0f898a6: {slug: attestation-v2-per-module, status: done, modules: 3}
   F-b2094740: {slug: lint-config-detection, status: done, modules: 1}
   F-b43066: {slug: model-defaults-refresh, status: done, modules: 6}
   F-b61449: {slug: gemini-cli-dogfood, status: done, modules: 1}
+  F-b7873005: {slug: gate-error-parser, status: done, modules: 1}
+  F-b81d203e: {slug: vacuous-test-guard, status: done, modules: 1}
   F-b84c38: {slug: lifecycle-events-identity, status: done, modules: 4}
   F-b8d74801: {slug: verb-rename-residue-sweep, status: done, modules: 6}
   F-b99577: {slug: stale-archive-suggestion, status: done, modules: 4}
