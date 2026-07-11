@@ -111,6 +111,10 @@ describe('cli/clad — handler exports', () => {
       return undefined as never;
     }) as never);
     stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    // runCheckCommand now sets process.exitCode (not process.exit) so large
+    // stdout flushes before exit — reset it per test, and restore after so a
+    // recorded failure code can't leak into vitest's own exit status.
+    process.exitCode = undefined;
     runInitMock.mockReset();
     loadSpecMock.mockReset();
     classifyMock.mockReset();
@@ -120,6 +124,7 @@ describe('cli/clad — handler exports', () => {
   afterEach(() => {
     exitSpy.mockRestore();
     stdoutSpy.mockRestore();
+    process.exitCode = 0;
   });
 
   // B1 (No-Vacuous-Green efficiency) — `clad check --json` emits ONE structured
@@ -227,12 +232,12 @@ describe('cli/clad — handler exports', () => {
 
   test('runCheckCommand with unknown --tier exits 2 without running stages', () => {
     clad.runCheckCommand({tier: 'no-such-tier'});
-    expect(exitCalls).toEqual([2]);
+    expect(process.exitCode).toBe(2);
   });
 
   test('runCheckCommand --tier=pre-commit passes (drift/arch/secret all pass in mocks)', () => {
     clad.runCheckCommand({tier: 'pre-commit'});
-    expect(exitCalls).toEqual([0]);
+    expect(process.exitCode).toBe(0);
   });
 
   test('runSyncCommand on valid spec exits 0', () => {
@@ -295,7 +300,7 @@ describe('cli/clad — handler exports', () => {
 
   test('runCheckCommand all-pass exits 0', () => {
     clad.runCheckCommand({});
-    expect(exitCalls).toEqual([0]);
+    expect(process.exitCode).toBe(0);
   });
 
   // Iron Law backbone Phase 1 (v0.3.20, F-x) — checkpoint + rollback
@@ -350,21 +355,21 @@ describe('cli/clad — handler exports', () => {
 
   test('runCheckCommand --internal uses internal stage codes', () => {
     clad.runCheckCommand({internal: true});
-    expect(exitCalls).toEqual([0]);
+    expect(process.exitCode).toBe(0);
   });
 
   test('runCheckCommand --strict forwards to drift', async () => {
     const {runDrift} = await import('../../src/stages/drift.js');
     clad.runCheckCommand({strict: true});
     expect(runDrift).toHaveBeenCalledWith({strict: true});
-    expect(exitCalls).toEqual([0]);
+    expect(process.exitCode).toBe(0);
   });
 
   test('runCheckCommand reports worst exit code on failures', async () => {
     const {runType} = await import('../../src/stages/type.js');
     (runType as unknown as ReturnType<typeof vi.fn>).mockReturnValueOnce({pass: false, exitCode: 1});
     clad.runCheckCommand({});
-    expect(exitCalls).toEqual([1]);
+    expect(process.exitCode).toBe(1);
   });
 
   test('runStatusCommand exits 0 and writes to stdout', () => {

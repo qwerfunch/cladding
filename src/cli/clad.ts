@@ -774,7 +774,12 @@ export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tie
       process.exit(1);
     }
   }
-  process.exit(runCheckStages({...opts, focusModules}).worst);
+  // Set process.exitCode rather than process.exit(): the machine-output mode
+  // (--json) can write >64KB to stdout, and process.exit() terminates before a
+  // buffered stdout PIPE flushes — truncating the document for any consumer
+  // that pipes (vs. redirects to a file). Letting the event loop drain
+  // guarantees the full payload is emitted, then Node exits with this code.
+  process.exitCode = runCheckStages({...opts, focusModules}).worst;
 }
 
 /**
