@@ -5,36 +5,39 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [0.8.3] — In-session loop stop-conditions, a vacuous-test guard, and a once-per-gate run (2026-07-12)
+## [0.8.3] — Agent loops that stop honestly, a guard against unverified "done", and a faster check (2026-07-12)
 
-The in-session agent loop learns when to stop, the gate stops accepting a "done" it can't verify, and the pre-push gate runs the test suite once instead of twice. Plus spec-driven onboarding for AGENTS.md hosts and broader toolchain detection from external contributions.
+This release helps you build AI agent loops that stop when the work is genuinely finished, closes a hole where a feature could look done without its tests ever running, makes the pre-push check faster, and ships native Japanese and Chinese documentation.
 
-The loop-facing pieces here — `clad verdict`, `GATE_NO_PROGRESS`, `prior_attempts`, structured gate errors — are **for loop engineering**: they make cladding the honest stop-condition and feedback signal inside an agent loop you drive, not a code-quality booster (governance stays orthogonal to correctness).
+If you build your own agent loop, cladding now gives that loop an honest "are we actually done?" answer and a clear "here's what's still broken" list. These loop features are **for loop engineering** — they harden when the loop may stop and what it fixes next, not the AI's code quality (cladding's own A/B testing is the receipt: this kind of governance is separate from code correctness).
 
-> **Heads-up:** The new vacuous-test guard is a gate condition — a feature marked `done` whose declared tests don't actually execute now fails `clad check --strict`. If you've carried a "green but unverified" feature, the strict gate surfaces it on upgrade. `clad init` also now writes an `AGENTS.md` generated from your spec (cladding's own file stays untouched).
+> **Heads-up — two things to know when you upgrade:**
+> - The strict check now flags any feature marked **done** whose declared tests don't actually run. A feature that looked green but was never truly verified will surface after upgrade.
+> - Setting up a project now also writes an `AGENTS.md` from your spec, so AGENTS.md-aware AI tools pick up your project's context on their own. Your existing files aren't touched.
 
 ### Added
 
-- **`clad verdict` — the loop's earned stop-condition.** A read-only poll that tells an in-session agent loop when it has genuinely finished, over the same gate as `clad check`/`clad done` — it reads the stop-signal, never mutates the record.
-- **Gate escalation when stuck** — `GATE_NO_PROGRESS` raises instead of looping forever when repeated attempts stop moving the gate.
-- **Compile-failure memory in the working set** — `prior_attempts` folds a feature's failed-build history into the context an agent receives, so it stops re-submitting the same broken fix.
-- **Structured gate errors** — tool output is parsed into `file:line` findings, cutting RED→fix round-trips.
-- **Spec-driven `AGENTS.md` for adopters** (closes #199) — `clad init` emits an `AGENTS.md` generated from the spec, so any AGENTS.md-aware host inherits project context; a markerless guard keeps cladding's own file immutable.
-- **Broader toolchain detection** — Swift / Flutter / Dart, plus TypeScript Jest and multi-extension projects.
+- **Tell your agent loop when it's genuinely finished** — a read-only check answers "is this actually done?" using the very same gate as a real completion; it only reports, it never changes anything.
+- **The loop gives up gracefully instead of spinning** — when repeated attempts stop making progress, it escalates rather than looping forever.
+- **The loop remembers what already failed to build** — past build failures are fed back in, so the AI stops resubmitting the same broken fix.
+- **Errors come back as exact file-and-line pointers**, so the loop fixes them in one pass instead of re-running just to find where the problem was.
+- **New projects get an `AGENTS.md` generated from their spec** (closes #199), so any AGENTS.md-aware AI tool inherits the project's intent; cladding's own copy is protected from being overwritten.
+- **More toolchains detected** — Swift, Flutter, Dart, plus TypeScript-with-Jest and mixed-file-extension projects.
+- **Native Japanese and Chinese READMEs** — written natively, not machine-translated, with translated diagrams. The docs switch between English · 한국어 · 日本語 · 中文.
 
 ### Changed
 
-- **The pre-push gate runs the test suite once** (closes #215) — a guard-compatible dedup removes the double run, cutting gate time ~28% while the vacuous-test guard still sees real execution.
-- **Non-test references reclassified as evidence** — ten spec entries move their non-test refs to `evidence_refs`, and the self-check emits a JUnit report of its own suite.
-- **Detector count is self-checked** — a self-consistency test pins the wired detector total (41) so the catalog can't silently drift from the code.
+- **The pre-push check runs your tests once, not twice** (closes #215) — about 28% faster, with the "did the tests really run?" guard fully intact.
+- **Tidier evidence bookkeeping** — some spec entries record their supporting material more accurately, and the self-check emits a standard test report.
+- **The tool self-checks its own advertised detector count**, so the docs can't quietly drift from the code.
 
 ### Fixed
 
-- **Pipe-safe `clad check` exit** (closes #221) — piping the check into `head` (or any reader that closes early) now exits cleanly via `process.exitCode` instead of crashing on a truncated write.
+- **`clad check` no longer crashes when its output is piped into something that stops reading early** — like `head` (closes #221).
 
 ### Security
 
-- **Closed a "green but unverified" hole in the gate** — the vacuous-test guard: a feature marked `done` whose declared tests don't actually run is now caught. cladding treats a gate that can be fooled into a false green as integrity-adjacent, and this closes one such path.
+- **Closed a "looks green but was never verified" hole** — a feature marked done whose tests don't actually run is now caught. cladding treats a check that can be tricked into a false pass as a trust issue, and this closes one way it could be tricked.
 
 ## [0.8.2] — Human-first diagnostics + init/scan correctness (2026-07-07)
 

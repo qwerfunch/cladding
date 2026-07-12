@@ -95,11 +95,11 @@ How a *vanilla AI coding environment* and a cladding environment behave in the s
 | **Who verifies the AI-written code?** | the AI that wrote it self-certifies (risky) | an implementation-blind grader + the mechanical gate |
 | **Switching AI tools** | reconfigure per tool | one spec → 4 hosts wired automatically |
 
-<!-- ─────────────── Project map (knowledge graph) ─────────────── -->
+<!-- ─────────────── Project graph (knowledge graph) ─────────────── -->
 
-## Project map — now you can see it and ask it <sub>new</sub>
+## Project graph — now you can see it and ask it <sub>new</sub>
 
-cladding always keeps a **map** inside it that connects spec · code · tests · docs. Now you can see that map with your own eyes.
+cladding always keeps a **graph** inside it that connects spec · code · tests · docs. Now you can see that graph with your own eyes.
 
 > **Why this matters — the docs and the code don't drift apart.**
 > Docs lie as time passes — the code changes but the description stays put. cladding re-checks that connection every time the code is read, and blocks "done" while the two are out of sync.
@@ -113,7 +113,7 @@ Blue = spec (center), orange = code, green = tests, pink = docs; more-connected 
 </div>
 
 - **See — the whole project on one canvas** — Run `clad graph serve`, open the printed localhost address in your browser, and you see what connects to what at a glance.
-- **Ask — "what breaks if I change this?"** — Ask the map and it tells you what's affected and which tests to run — it doesn't guess.
+- **Ask — "what breaks if I change this?"** — Ask the graph and it tells you what's affected and which tests to run — it doesn't guess.
 - **Measure — it shines brighter the larger the project** — The amount you have to look at when fixing something drops sharply — on average **4× less** than reading everything. (`clad measure`)
 
 To launch it yourself — from your project folder:
