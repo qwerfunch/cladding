@@ -50,7 +50,7 @@ The same situation, in a *vanilla AI setup* and in cladding.
 
 ## Who it's for
 
-- **Solo, running an agent loop** — cladding is the honest stop-condition and feedback signal your loop reads (see [agent-loop verifier](#using-cladding-as-your-agent-loops-verifier)).
+- **Building your own agent loop** — cladding is the honest stop-condition, feedback signal, and working memory your loop runs on (see [agent-loop verifier](#using-cladding-as-your-agent-loops-verifier)).
 - **A team adding AI contributors** — one spec is the shared baseline, so drift and merge conflicts are blocked automatically as you add people and models.
 - **An org that needs a verifiable record** — every `done` carries a committable verify signature, and the why behind each decision lives in the spec.
 
@@ -86,6 +86,18 @@ The chronic disease of AI coding is *"it's done"* declared with nothing behind i
 4. Try to **end a session on a failure** → **blocked once** (end again on the same failure and it records the fact rather than letting it through), and the repair card carries into the next conversation.
 
 Stated plainly: bypass paths exist that the instant block can't see; those are caught by the after-the-fact gate. Instant block is the first line of defense, the gate the second — neither is a standalone guarantee.
+
+<!-- ─────────────── Agent-loop verifier ─────────────── -->
+
+## Using cladding as your agent loop's verifier
+
+Building your own agent loop — your own harness or orchestrator? cladding is the honest **stop-condition, feedback signal, and working memory** your loop runs on: it doesn't drive the loop, it tells the loop what's still wrong and when it's *genuinely* allowed to stop — over the same gate that guards a human's commit.
+
+- **Feedback signal** — `clad check --json` each iteration returns a machine-readable verdict: a top-level `anyFailed` + `worst` severity, plus per-stage `findings[]` (each with its `detector`, `severity`, `message`). Feed it straight back as the loop's error signal — no console scraping.
+- **Honest stop** — gate the loop on `clad done`, not the agent's say-so. It flips a feature to `done` only when the strict pre-push gate is GREEN, and reverts otherwise. "The loop says it's finished" becomes "the gate let it stand."
+- **Loop memory** — the local event log (`.cladding/events.log.jsonl`, gitignored) carries gate runs, done attempts, and drift firings across iterations as working memory (not a durable record; rotates at 5 MB).
+
+The honest boundary: this hardens the loop's stop condition and feedback signal, not the model's code quality — **governance is orthogonal to correctness**, and cladding's own A/B record is the receipt.
 
 <!-- ─────────────── Project graph ─────────────── -->
 
@@ -126,16 +138,9 @@ clad graph export --format html --out graph.html  # or a single offline .html fi
 
 </div>
 
-**Spec — the single source of intent.** A 4-tier source of truth, top to bottom:
+**Spec — the project's long-term memory.** The LLM remembers nothing between sessions, so the spec is the durable, git-versioned store of *intent* cladding injects before each one — the *why* and *what* behind the code (the design tier just below holds the *how*), never a log of events. Four tiers, top to bottom — intent (A), sealed until a human signs off, then design (B), code + attestation (C), and audit (D); **A outranks all**, so if the spec and the code disagree, the *code* is what's wrong.
 
-| Tier | Holds | Written by | Authority |
-|---|---|---|---|
-| **A · Spec** | intent (what · why) | humans set the intent → the LLM writes it in EARS | sealed · no change without human sign-off · outranks all |
-| **B · Design** | design (how) | humans steer → the LLM writes | checked against A |
-| **C · Derived** | code · tests + **attestation** (the verify signature) | the LLM writes | auto-regenerated from the code |
-| **D · Audit** | what actually happened | auto-recorded, append-only | local |
-
-**A outranks all** — if the spec and the code disagree, the *code* is what's wrong. Each feature is its own sharded file with an 8-char hash ID, so two devs adding features at once never collide. A feature reads like this — intent as a testable acceptance criterion, in EARS form:
+Each feature is its own sharded file with an 8-char hash ID, so two devs adding features at once never collide. A feature reads like this — the *what*, written as a testable acceptance criterion:
 
 ```yaml
 # spec/features/checkout-a1b2c3d4.yaml
@@ -148,6 +153,8 @@ acceptance_criteria:
             shall return the original result and never double-charge."
     test_refs: ["tests/checkout/idempotency.test.ts#retry returns the original charge"]
 ```
+
+<sub>EARS keeps every criterion testable — `WHEN <trigger> … the system SHALL <response>`, the shape of the `text:` field above.</sub>
 
 → [4-tier model](docs/ssot-model.md) · [hash-based IDs](docs/spec-ids-multi-dev.md)
 
@@ -185,21 +192,9 @@ acceptance_criteria:
 | governance · docs | policy violations · doc drift · claims beyond the evidence | 4 |
 | graph · doc links | broken doc ↔ spec links · missing dependency edges | 3 |
 
-The graph these power is **traceability / retrieval, not a correctness claim** — it tells you what connects to what and what to re-check; it doesn't say the code is right. → [full detector catalog](src/stages/detectors/README.md)
+The graph these power is that long-term memory made queryable — **traceability / retrieval, not a correctness claim**: what connects to what and what to re-check, not that the code is right. → [full detector catalog](src/stages/detectors/README.md)
 
 One feature's lifecycle runs **Define → Sync → Implement → Earn** — you earn `done` only by passing every check.
-
-<!-- ─────────────── Agent-loop verifier ─────────────── -->
-
-## Using cladding as your agent loop's verifier
-
-You own the loop — whatever harness or orchestrator drives your agent. cladding is the **verifier and state layer inside it**: it doesn't run your loop, it tells the loop what's still wrong and when it's allowed to stop.
-
-- **Feedback signal** — `clad check --json` each iteration returns a machine-readable verdict: a top-level `anyFailed` + `worst` severity, plus per-stage `findings[]` (each with its `detector`, `severity`, `message`). Feed it straight back as the loop's error signal — no console scraping.
-- **Honest stop** — gate the loop on `clad done`, not the agent's say-so. It flips a feature to `done` only when the strict pre-push gate is GREEN, and reverts otherwise. "The loop says it's finished" becomes "the gate let it stand."
-- **Loop memory** — the local event log (`.cladding/events.log.jsonl`, gitignored) carries gate runs, done attempts, and drift firings across iterations as working memory (not a durable record; rotates at 5 MB).
-
-The honest boundary: this hardens the loop's **stop condition and feedback signal**, not the model's code quality. cladding's own A/B record is the receipt — **governance is orthogonal to correctness**.
 
 <!-- ─────────────── Multi-Agent ─────────────── -->
 
@@ -266,14 +261,24 @@ It creates the project's `spec.yaml` and supporting docs. After that, just devel
 
 ## Update
 
-Staying current is two commands — or just ask your AI tool to do it.
+Staying current is two commands — or one line to your AI tool.
 
 ```bash
 npm update -g cladding   # 1. get the new version
 clad update              # 2. once per project — bring it in line
 ```
 
-Inside your AI tool you can simply say *"update cladding to the latest version"* and it runs both steps for you. Either way your code · `spec.yaml` · docs are left untouched; if a stricter version has something to flag, it only **points it out** — it won't block or fix anything.
+…or just ask, the same way you ran init:
+
+```
+[inside your AI tool] update cladding to the latest version
+```
+
+Either way your code · `spec.yaml` · docs are left untouched — a stricter version only **points things out**, it never blocks or fixes on its own. If it flags fresh drift, hand that off the same way:
+
+```
+[inside your AI tool] reconcile the drift the update flagged
+```
 
 <!-- ─────────────── Status ─────────────── -->
 
