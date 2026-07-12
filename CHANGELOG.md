@@ -9,6 +9,8 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 The in-session agent loop learns when to stop, the gate stops accepting a "done" it can't verify, and the pre-push gate runs the test suite once instead of twice. Plus spec-driven onboarding for AGENTS.md hosts and broader toolchain detection from external contributions.
 
+The loop-facing pieces here — `clad verdict`, `GATE_NO_PROGRESS`, `prior_attempts`, structured gate errors — are **for loop engineering**: they make cladding the honest stop-condition and feedback signal inside an agent loop you drive, not a code-quality booster (governance stays orthogonal to correctness).
+
 > **Heads-up:** The new vacuous-test guard is a gate condition — a feature marked `done` whose declared tests don't actually execute now fails `clad check --strict`. If you've carried a "green but unverified" feature, the strict gate surfaces it on upgrade. `clad init` also now writes an `AGENTS.md` generated from your spec (cladding's own file stays untouched).
 
 ### Added

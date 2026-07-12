@@ -18,7 +18,7 @@ attested_modules:
   .claude/settings.json: d0bba3583aef0960
   .github/workflows/ci.yml: 8ea99219cb80df60
   .gitignore: 1294975ba3b47043
-  CHANGELOG.md: 8870ae193829f44b
+  CHANGELOG.md: b8f095eb75b89edc
   CLAUDE.md: d81d8832976cd5ee
   GOVERNANCE.md: 21cc28eaaf637a20
   README.html: cd14f67e1a52c3e5
