@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 540" width="640" height="540" role="img" aria-labelledby="ssot-tier-title" font-family="-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif">
+  <title id="ssot-tier-title">spec が真実の源 (4階層) — A(Spec) → B(Design) → C(Derived) → D(Audit)、上位層が下位層より優先</title>
+  <defs>
+    <style>
+      :root{
+        --brand:#3b82f6; --brand-deep:#1d4ed8; --brand-soft:#eff6ff;
+        --ink:#0f172a; --text:#1e293b; --muted:#64748b; --faint:#94a3b8;
+        --border:#d8dfea; --surface:#ffffff; --ok:#16a34a; --block:#e11d48;
+      }
+      .title{font-size:19px;font-weight:800;fill:var(--ink);letter-spacing:-.3px}
+      .sub0{font-size:12.5px;fill:var(--muted)}
+      .hdr{font-size:13.5px;font-weight:700;fill:#ffffff}
+      .item{font-size:12.5px;fill:var(--text)}
+      .muted{font-size:10.5px;fill:var(--faint)}
+      .focal{font-size:20px;font-weight:800;fill:#ffffff;letter-spacing:-.3px}
+      .flow{font-size:10.5px;font-weight:600;fill:var(--brand-deep)}
+      .card{fill:var(--surface);stroke:var(--border);stroke-width:1.25}
+      .band{fill:var(--brand)} .focalbox{fill:var(--brand-deep)}
+      .okfill{fill:var(--ok)} .blockfill{fill:var(--block)} .inkfill{fill:var(--ink)}
+    </style>
+    <marker id="ab" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#3b82f6"/></marker>
+    <marker id="ag" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#16a34a"/></marker>
+    <marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#e11d48"/></marker>
+  </defs>
+
+  <rect width="640" height="540" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="320" y="34" text-anchor="middle" class="title">spec が真実の源 — 4階層構造</text>
+  <rect x="278" y="44" width="84" height="3" rx="1.5" fill="#3b82f6"/>
+  <text x="320" y="66" text-anchor="middle" class="sub0">上位層が優先 — コードは spec に従う</text>
+
+  <!-- A : Spec (focal, deep blue anchor) -->
+  <rect x="28" y="78" width="408" height="96" rx="14" class="focalbox"/>
+  <text x="48" y="110" class="focal" font-size="15">A — Spec · 真実の源</text>
+  <text x="48" y="138" class="item" fill="#ffffff">▸ 人が意図を定義 → AI が EARS で記述</text>
+  <text x="48" y="161" font-size="10.5" fill="#bfdbfe">spec.yaml · features/&lt;slug&gt;-&lt;hash8&gt;.yaml</text>
+
+  <!-- arrow A -> B -->
+  <line x1="232" y1="174" x2="232" y2="194" stroke="#3b82f6" stroke-width="2" marker-end="url(#ab)"/>
+  <text x="242" y="189" class="flow">A が優先</text>
+
+  <!-- B : Design -->
+  <rect x="28" y="194" width="408" height="88" rx="14" class="card"/>
+  <path d="M28 224 L28 208 Q28 194 42 194 L422 194 Q436 194 436 208 L436 224 Z" class="band"/>
+  <text x="44" y="214" class="hdr">B — Design · 設計</text>
+  <text x="46" y="252" class="item">▸ 人が方向づけ · AI が記述 · A と整合確認</text>
+  <text x="46" y="274" class="muted">architecture.yaml · capabilities.yaml · project-context.md</text>
+
+  <!-- arrow B -> C -->
+  <line x1="232" y1="282" x2="232" y2="302" stroke="#3b82f6" stroke-width="2" marker-end="url(#ab)"/>
+  <text x="242" y="297" class="flow">実装</text>
+
+  <!-- C : Derived + attestation -->
+  <rect x="28" y="302" width="408" height="104" rx="14" class="card"/>
+  <path d="M28 332 L28 316 Q28 302 42 302 L422 302 Q436 302 436 316 L436 332 Z" class="band"/>
+  <text x="44" y="322" class="hdr">C — Derived · 成果物</text>
+  <text x="46" y="358" class="item">▸ コード · テスト + 検証署名 (attestation)</text>
+  <text x="46" y="380" class="item"><tspan fill="#16a34a">▸ </tspan>署名はゲート通過で獲得 · 自動再生成</text>
+  <text x="46" y="400" class="muted">src/ · tests/ · conventions.md · attestation.yaml</text>
+
+  <!-- arrow C -> D -->
+  <line x1="232" y1="406" x2="232" y2="426" stroke="#3b82f6" stroke-width="2" marker-end="url(#ab)"/>
+  <text x="242" y="421" class="flow">記録</text>
+
+  <!-- D : Audit -->
+  <rect x="28" y="426" width="408" height="84" rx="14" class="card"/>
+  <path d="M28 456 L28 440 Q28 426 42 426 L422 426 Q436 426 436 440 L436 456 Z" class="band"/>
+  <text x="44" y="446" class="hdr">D — Audit · 監査台帳</text>
+  <text x="46" y="482" class="item">▸ append-only · 変更不可 · 身元·HEAD を記録</text>
+  <text x="46" y="502" class="muted">.cladding/events.log.jsonl</text>
+
+  <!-- side annotation : A outranks lower tiers (spans A..C) -->
+  <path d="M456 82 h-6 v300 h6" fill="none" stroke="#d8dfea" stroke-width="1.5"/>
+  <text x="466" y="208" font-size="12.5" font-weight="700" fill="#1d4ed8">上位層が優先</text>
+  <text x="466" y="232" font-size="11" fill="#64748b">コード·spec 衝突時</text>
+  <text x="466" y="249" font-size="11" fill="#64748b">コードが誤り</text>
+
+  <!-- Caption -->
+  <text x="320" y="528" text-anchor="middle" class="sub0">階層の整合は 15段階ゲート · 40検査で検証</text>
+</svg>

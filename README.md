@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>English</strong> · <a href="README.ko.md">한국어</a>
+  <strong>English</strong> · <a href="README.ko.md">한국어</a> · <a href="README.ja.md">日本語</a> · <a href="README.zh.md">中文</a>
 </p>
 
 <h1 align="center">cladding</h1>
@@ -16,7 +16,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-2392%2F2392-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-2497%2F2497-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -43,7 +43,7 @@
 
 So you can ship code an AI wrote with **the same trust as code a human wrote**.
 
-cladding builds **itself** with cladding too — 242 of its 245 features cleared the same gate, the first L4 implementation of the Ironclad standard.
+cladding builds **itself** with cladding too — 251 of its 254 features cleared the same gate, the first L4 implementation of the Ironclad standard.
 
 <!-- ─────────────── How it partners with the host LLM ─────────────── -->
 
@@ -330,9 +330,9 @@ Your code · `spec.yaml` · docs are left untouched, so it's safe — and if the
 
 | Version | Conformance | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.8.2 (2026-07) | L4 · [self-declared](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2392 / 2392 | 15 stages · 41 detectors | 245 (242 done) |
+| v0.8.3 (2026-07) | L4 · [self-declared](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2497 / 2497 | 15 stages · 41 detectors | 254 (251 done) |
 
-<sub>226 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector</sub>
+<sub>234 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector</sub>
 
 > **Road to Ironclad 1.0** — 1.0 locks only when *two independent implementations pass the L4 conformance fixtures* ([GOVERNANCE § 1](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md)). cladding is the first.
 

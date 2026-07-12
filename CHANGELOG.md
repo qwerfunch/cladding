@@ -5,6 +5,35 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.3] — In-session loop stop-conditions, a vacuous-test guard, and a once-per-gate run (2026-07-12)
+
+The in-session agent loop learns when to stop, the gate stops accepting a "done" it can't verify, and the pre-push gate runs the test suite once instead of twice. Plus spec-driven onboarding for AGENTS.md hosts and broader toolchain detection from external contributions.
+
+> **Heads-up:** The new vacuous-test guard is a gate condition — a feature marked `done` whose declared tests don't actually execute now fails `clad check --strict`. If you've carried a "green but unverified" feature, the strict gate surfaces it on upgrade. `clad init` also now writes an `AGENTS.md` generated from your spec (cladding's own file stays untouched).
+
+### Added
+
+- **`clad verdict` — the loop's earned stop-condition.** A read-only poll that tells an in-session agent loop when it has genuinely finished, over the same gate as `clad check`/`clad done` — it reads the stop-signal, never mutates the record.
+- **Gate escalation when stuck** — `GATE_NO_PROGRESS` raises instead of looping forever when repeated attempts stop moving the gate.
+- **Compile-failure memory in the working set** — `prior_attempts` folds a feature's failed-build history into the context an agent receives, so it stops re-submitting the same broken fix.
+- **Structured gate errors** — tool output is parsed into `file:line` findings, cutting RED→fix round-trips.
+- **Spec-driven `AGENTS.md` for adopters** (closes #199) — `clad init` emits an `AGENTS.md` generated from the spec, so any AGENTS.md-aware host inherits project context; a markerless guard keeps cladding's own file immutable.
+- **Broader toolchain detection** — Swift / Flutter / Dart, plus TypeScript Jest and multi-extension projects.
+
+### Changed
+
+- **The pre-push gate runs the test suite once** (closes #215) — a guard-compatible dedup removes the double run, cutting gate time ~28% while the vacuous-test guard still sees real execution.
+- **Non-test references reclassified as evidence** — ten spec entries move their non-test refs to `evidence_refs`, and the self-check emits a JUnit report of its own suite.
+- **Detector count is self-checked** — a self-consistency test pins the wired detector total (41) so the catalog can't silently drift from the code.
+
+### Fixed
+
+- **Pipe-safe `clad check` exit** (closes #221) — piping the check into `head` (or any reader that closes early) now exits cleanly via `process.exitCode` instead of crashing on a truncated write.
+
+### Security
+
+- **Closed a "green but unverified" hole in the gate** — the vacuous-test guard: a feature marked `done` whose declared tests don't actually run is now caught. cladding treats a gate that can be fooled into a false green as integrity-adjacent, and this closes one such path.
+
 ## [0.8.2] — Human-first diagnostics + init/scan correctness (2026-07-07)
 
 The "speak the user's language" UX pass, plus three init/scan fixes found while reproducing an onboarding bug.

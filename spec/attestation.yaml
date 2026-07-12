@@ -14,17 +14,17 @@
 # `clad check --tier=pre-push --strict`; the GREEN gate rewrites the truth.
 # Content-anchored: survives fresh clones and squash/rebase.
 attested_modules:
-  .claude-plugin/marketplace.json: 4875265deab1e487
+  .claude-plugin/marketplace.json: 0dd39261bb5468e3
   .claude/settings.json: d0bba3583aef0960
   .github/workflows/ci.yml: 8ea99219cb80df60
   .gitignore: 1294975ba3b47043
-  CHANGELOG.md: 0c0ce6ff13bd4167
+  CHANGELOG.md: 8870ae193829f44b
   CLAUDE.md: d81d8832976cd5ee
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: 48b4bd35908408db
-  README.ko.html: bdb58f0418820473
-  README.ko.md: 7610ca3b72d7933c
-  README.md: dd86f6d6d1899f97
+  README.html: cd14f67e1a52c3e5
+  README.ko.html: 393fe0ee56468cc6
+  README.ko.md: 8e49fce559b8db07
+  README.md: 2b1f112e86f118ff
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -62,8 +62,8 @@ attested_modules:
   docs/spec-ids-multi-dev.md: 28d58e84879f58b1
   docs/ssot-model.md: 2ecedd961ce4f721
   docs/ssot-testing.md: a067d2b99852db9a
-  package.json: 763da9b4483037df
-  plugins/claude-code/.claude-plugin/plugin.json: 90190832d41aafb2
+  package.json: c100287dc642d44b
+  plugins/claude-code/.claude-plugin/plugin.json: 7493e69dee9ae24d
   plugins/claude-code/agents/developer.md: b0ef3775132d159a
   plugins/claude-code/agents/observability.md: 81f73e284ee9b3ba
   plugins/claude-code/agents/orchestrator.md: d30919c2b78b88e4
@@ -71,7 +71,7 @@ attested_modules:
   plugins/claude-code/agents/reviewer.md: 91922293457a3d6a
   plugins/claude-code/commands/init.md: b7b5beedee6ddafb
   plugins/claude-code/hooks/hooks.json: 42321ead26fb1da8
-  plugins/codex/.codex-plugin/plugin.json: 75a45bd1527569fb
+  plugins/codex/.codex-plugin/plugin.json: e2898491a8fd62b8
   plugins/codex/.mcp.json: 43e3f4b2af24aa18
   plugins/codex/skills/check/SKILL.md: 355826df90846d2f
   plugins/codex/skills/developer/SKILL.md: b0ef3775132d159a
@@ -87,7 +87,7 @@ attested_modules:
   plugins/gemini-cli/GEMINI.md: ba08eaf2cd557a65
   plugins/gemini-cli/commands/README.md: 3527d771578431bd
   plugins/gemini-cli/commands/init.toml: fbf24f25bb8cf921
-  plugins/gemini-cli/gemini-extension.json: 2b2c445627994759
+  plugins/gemini-cli/gemini-extension.json: 47685e98f1f67e11
   scripts/build-plugin.mjs: 57ffa3f0e6317a6b
   scripts/build.mjs: 3a4b204063024ef1
   scripts/migrate-dogfood-v0.3.16.mjs: 1e265fb370019996
@@ -105,7 +105,7 @@ attested_modules:
   skills/serve/SKILL.md: 4cee65dfb691e3b0
   skills/status/SKILL.md: b3cb6e7a12bf4023
   skills/sync/SKILL.md: 709c20212aa5627e
-  spec.yaml: 7200d326cd477c03
+  spec.yaml: d16fcb27b7afb3c6
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -138,7 +138,7 @@ attested_modules:
   src/cli: a4d0f0eb87fed960
   src/cli/benchmark.ts: 77f84d2a898d724f
   src/cli/changelog.ts: 2de1adb009b89ab4
-  src/cli/clad.ts: ea521ef6a48dfc9f
+  src/cli/clad.ts: aa1c4687e89be1f4
   src/cli/clarify.ts: ff084951de081592
   src/cli/doctor-hosts.ts: 1ad79105b47fd8e5
   src/cli/doctor.ts: b98b955fe75e7f7e
@@ -218,7 +218,7 @@ attested_modules:
   src/report/sarif.ts: 71e97aceeb0a4473
   src/router: a4d0f0eb87fed960
   src/router/intent.ts: 430590f761b891a6
-  src/serve/server.ts: f753bbbcc3f7010d
+  src/serve/server.ts: 0586a1785106e8d0
   src/spec: a4d0f0eb87fed960
   src/spec/attestation.ts: 294a1e99c42d4aef
   src/spec/cli.ts: 7a9bcd0f66677810
@@ -324,7 +324,7 @@ attested_modules:
   tests/adapters/transport.test.ts: 68f22e9e8df7b813
   tests/agents/loader.test.ts: a7df7b1c9a95d37d
   tests/cli/benchmark.test.ts: b4a87289605ee75f
-  tests/cli/clad.test.ts: fa8b6e7e6b0301d1
+  tests/cli/clad.test.ts: 6515b07cfd168433
   tests/cli/gate-golden-matrix.test.ts: 39cf615407a55abe
   tests/cli/init.test.ts: 3428a89708fc9330
   tests/cli/intent-onboarding.test.ts: 0681b98ce2e74c22

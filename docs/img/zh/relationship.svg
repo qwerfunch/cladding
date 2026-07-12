@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" width="920" height="537" font-family="-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif">
+  <defs>
+    <style>
+      /* ── design tokens (blue-primary, flat / no shadow) ── */
+      :root{
+        --brand:#3b82f6; --brand-deep:#1d4ed8; --brand-soft:#eff6ff;
+        --ink:#0f172a; --text:#1e293b; --muted:#64748b; --faint:#94a3b8;
+        --border:#d8dfea; --surface:#ffffff; --ok:#16a34a; --block:#e11d48;
+      }
+      .title{font-size:19px;font-weight:800;fill:var(--ink);letter-spacing:-.3px}
+      .sub0{font-size:12.5px;fill:var(--muted)}
+      .hdr{font-size:13.5px;font-weight:700;fill:#ffffff}
+      .item{font-size:12.5px;fill:var(--text)}
+      .muted{font-size:10.5px;fill:var(--faint)}
+      .focal{font-size:21px;font-weight:800;fill:#ffffff;letter-spacing:-.3px}
+      .flow{font-size:10.5px;font-weight:600;fill:var(--brand-deep)}
+      .card{fill:var(--surface);stroke:var(--border);stroke-width:1.25}
+      .band{fill:var(--brand)} .focalbox{fill:var(--brand-deep)}
+      .okfill{fill:var(--ok)} .blockfill{fill:var(--block)} .inkfill{fill:var(--ink)}
+    </style>
+    <marker id="ab" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#3b82f6"/></marker>
+    <marker id="ag" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#16a34a"/></marker>
+    <marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#e11d48"/></marker>
+  </defs>
+
+  <rect width="960" height="560" fill="#ffffff"/>
+
+  <text x="480" y="42" text-anchor="middle" class="title">cladding × 宿主 LLM</text>
+  <rect x="438" y="52" width="84" height="3" rx="1.5" fill="#3b82f6"/>
+  <text x="480" y="76" text-anchor="middle" class="sub0">代码由 LLM 编写，cladding 负责其前与后</text>
+
+  <!-- 전 card -->
+  <rect x="40" y="108" width="236" height="186" rx="14" class="card"/>
+  <path d="M40 148 L40 122 Q40 108 54 108 L262 108 Q276 108 276 122 L276 148 Z" class="band"/>
+  <text x="60" y="133" class="hdr">前 · 注入意图</text>
+  <text x="62" y="182" class="item">▸ 只提取所需意图</text>
+  <text x="62" y="214" class="item">▸ 自动注入项目地图</text>
+  <text x="62" y="246" class="item">▸ 应用团队规则 (禁止·偏好)</text>
+  <text x="62" y="274" class="muted">绝不转储整份 spec</text>
+
+  <!-- 호스트 LLM : deep-blue focal -->
+  <rect x="356" y="158" width="248" height="96" rx="16" class="focalbox"/>
+  <text x="480" y="198" text-anchor="middle" class="focal">宿主 LLM</text>
+  <text x="480" y="219" text-anchor="middle" font-size="10.5" fill="#bfdbfe">Claude Code · Codex · Gemini · Cursor</text>
+  <text x="480" y="239" text-anchor="middle" font-size="11.5" font-weight="600" fill="#dbeafe">编写代码 — 生成是 LLM 的活</text>
+
+  <!-- 후 card -->
+  <rect x="684" y="108" width="236" height="186" rx="14" class="card"/>
+  <path d="M684 148 L684 122 Q684 108 698 108 L906 108 Q920 108 920 122 L920 148 Z" class="band"/>
+  <text x="704" y="133" class="hdr">后 · 验证结果</text>
+  <text x="706" y="180" class="item">▸ 15 阶段验证关卡</text>
+  <text x="706" y="209" class="item">▸ 41 项漂移检查</text>
+  <text x="706" y="238" class="item">▸ 看不到实现的评分器</text>
+  <text x="706" y="267" class="item">▸ 直接运行交付物</text>
+
+  <!-- flow arrows -->
+  <line x1="282" y1="206" x2="350" y2="206" stroke="#3b82f6" stroke-width="2" marker-end="url(#ab)"/>
+  <text x="316" y="197" text-anchor="middle" class="flow">注入意图</text>
+  <line x1="610" y1="206" x2="678" y2="206" stroke="#3b82f6" stroke-width="2" marker-end="url(#ab)"/>
+  <text x="644" y="197" text-anchor="middle" class="flow">分阶段检查</text>
+
+  <!-- outcomes -->
+  <line x1="800" y1="296" x2="632" y2="333" stroke="#16a34a" stroke-width="1.8" marker-end="url(#ag)"/>
+  <line x1="716" y1="296" x2="372" y2="333" stroke="#e11d48" stroke-width="1.8" marker-end="url(#ar)"/>
+  <rect x="530" y="336" width="172" height="40" rx="11" class="okfill"/>
+  <text x="616" y="361" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">通过 → 赢得完成</text>
+  <rect x="258" y="336" width="172" height="40" rx="11" class="blockfill"/>
+  <text x="344" y="361" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">拦截 → 拒绝完成</text>
+  <line x1="616" y1="376" x2="616" y2="414" stroke="#94a3b8" stroke-width="1.6" marker-end="url(#ab)"/>
+  <line x1="344" y1="376" x2="344" y2="414" stroke="#94a3b8" stroke-width="1.6" marker-end="url(#ab)"/>
+
+  <!-- record band : ink anchor (both outcomes land here) -->
+  <rect x="258" y="418" width="444" height="58" rx="14" class="inkfill"/>
+  <text x="480" y="443" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">记录 — 下一轮的输入</text>
+  <text x="480" y="462" text-anchor="middle" font-size="11" fill="#94a3b8">审计账本 · 验证签名 · 修复卡片</text>
+
+  <!-- feedback loop -->
+  <path d="M 258 447 C 190 447, 150 410, 150 340 C 150 314, 158 300, 168 292" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#ab)"/>
+  <text x="158" y="412" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1d4ed8">反馈循环</text>
+  <text x="158" y="429" text-anchor="middle" class="muted">验证结果重回上下文</text>
+
+  <text x="480" y="518" text-anchor="middle" class="sub0">cladding = 外覆层。不取代 LLM，而是包裹它。</text>
+  <text x="480" y="540" text-anchor="middle" font-size="13" font-weight="800" fill="#1d4ed8">目标只有一个 — 让 AI 的“完成了”从一句话变成证明。</text>
+</svg>

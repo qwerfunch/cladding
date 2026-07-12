@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 644" width="640" height="644" font-family="-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif">
+  <defs>
+    <style>
+      :root{
+        --brand:#3b82f6; --brand-deep:#1d4ed8; --brand-soft:#eff6ff;
+        --ink:#0f172a; --text:#1e293b; --muted:#64748b; --faint:#94a3b8;
+        --border:#d8dfea; --surface:#ffffff; --ok:#16a34a; --block:#e11d48;
+      }
+      .title{font-size:19px;font-weight:800;fill:var(--ink);letter-spacing:-.3px}
+      .sub0{font-size:12.5px;fill:var(--muted)}
+      .hdr{font-size:13.5px;font-weight:700;fill:#ffffff}
+      .item{font-size:12.5px;fill:var(--text)}
+      .muted{font-size:10.5px;fill:var(--faint)}
+      .focal{font-size:20px;font-weight:800;fill:#ffffff;letter-spacing:-.3px}
+      .flow{font-size:10.5px;font-weight:600;fill:var(--brand-deep)}
+      .card{fill:var(--surface);stroke:var(--border);stroke-width:1.25}
+      .band{fill:var(--brand)} .focalbox{fill:var(--brand-deep)}
+      .okfill{fill:var(--ok)} .blockfill{fill:var(--block)} .inkfill{fill:var(--ink)}
+    </style>
+    <marker id="ab" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#3b82f6"/></marker>
+    <marker id="ag" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#16a34a"/></marker>
+    <marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#e11d48"/></marker>
+  </defs>
+
+  <rect width="640" height="644" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="320" y="34" text-anchor="middle" class="title">15 阶段验证关卡</text>
+  <rect x="278" y="44" width="84" height="3" rx="1.5" fill="#3b82f6"/>
+  <text x="320" y="64" text-anchor="middle" class="sub0">每个宿主与工具都用同一道关卡</text>
+
+  <!-- Stage 1 · static (6) -->
+  <rect x="24" y="78" width="592" height="90" rx="14" class="card"/>
+  <path d="M24 110 L24 92 Q24 78 38 78 L602 78 Q616 78 616 92 L616 110 Z" class="band"/>
+  <text x="44" y="99" class="hdr">1 · 静态检查</text>
+  <text x="596" y="99" text-anchor="end" font-size="11" fill="#bfdbfe">6 阶段 · 确定性</text>
+  <text x="46" y="136" class="item">▸ Type</text>
+  <text x="210" y="136" class="item">▸ Lint</text>
+  <text x="410" y="136" class="item">▸ Drift (40 检查)</text>
+  <text x="46" y="160" class="item">▸ Commit</text>
+  <text x="210" y="160" class="item">▸ Arch</text>
+  <text x="410" y="160" class="item">▸ Secret</text>
+
+  <line x1="320" y1="168" x2="320" y2="184" stroke="#3b82f6" stroke-width="2" marker-end="url(#ab)"/>
+
+  <!-- Stage 2 · test + conformance (4) -->
+  <rect x="24" y="186" width="592" height="90" rx="14" class="card"/>
+  <path d="M24 218 L24 200 Q24 186 38 186 L602 186 Q616 186 616 200 L616 218 Z" class="band"/>
+  <text x="44" y="207" class="hdr">2 · 测试 · 一致性</text>
+  <text x="596" y="207" text-anchor="end" font-size="11" fill="#bfdbfe">4 阶段 · 确定性</text>
+  <text x="46" y="244" class="item">▸ Unit</text>
+  <text x="330" y="244" class="item">▸ Coverage</text>
+  <text x="46" y="268" class="item">▸ spec 一致性 (oracle)</text>
+  <text x="330" y="268" class="item">▸ 直接运行交付物</text>
+
+  <line x1="320" y1="276" x2="320" y2="292" stroke="#3b82f6" stroke-width="2" marker-end="url(#ab)"/>
+
+  <!-- Stage 3 · e2e (3) -->
+  <rect x="24" y="294" width="592" height="62" rx="14" class="card"/>
+  <path d="M24 326 L24 308 Q24 294 38 294 L602 294 Q616 294 616 308 L616 326 Z" class="band"/>
+  <text x="44" y="315" class="hdr">3 · E2E</text>
+  <text x="596" y="315" text-anchor="end" font-size="11" fill="#bfdbfe">3 阶段 · 概率性</text>
+  <text x="46" y="350" class="item">▸ Smoke</text>
+  <text x="240" y="350" class="item">▸ Perf</text>
+  <text x="420" y="350" class="item">▸ Visual</text>
+
+  <line x1="320" y1="356" x2="320" y2="372" stroke="#3b82f6" stroke-width="2" marker-end="url(#ab)"/>
+
+  <!-- Stage 4 · evidence (2) -->
+  <rect x="24" y="374" width="592" height="62" rx="14" class="card"/>
+  <path d="M24 406 L24 388 Q24 374 38 374 L602 374 Q616 374 616 388 L616 406 Z" class="band"/>
+  <text x="44" y="395" class="hdr">4 · 证据</text>
+  <text x="596" y="395" text-anchor="end" font-size="11" fill="#bfdbfe">2 阶段 · 证据</text>
+  <text x="46" y="430" class="item">▸ Audit</text>
+  <text x="330" y="430" class="item">▸ UAT</text>
+
+  <!-- diverging outcome arrows -->
+  <line x1="300" y1="440" x2="180" y2="470" stroke="#16a34a" stroke-width="1.8" marker-end="url(#ag)"/>
+  <line x1="340" y1="440" x2="468" y2="470" stroke="#e11d48" stroke-width="1.8" marker-end="url(#ar)"/>
+
+  <!-- outcome chips -->
+  <rect x="24" y="474" width="290" height="40" rx="11" class="okfill"/>
+  <text x="169" y="499" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">通过 — 全部阶段 GREEN</text>
+  <rect x="350" y="474" width="266" height="40" rx="11" class="blockfill"/>
+  <text x="483" y="499" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">失败 — 拦截 · 无法完成</text>
+
+  <!-- pass → attestation record -->
+  <line x1="169" y1="514" x2="169" y2="544" stroke="#3b82f6" stroke-width="1.8" marker-end="url(#ab)"/>
+  <rect x="24" y="546" width="290" height="56" rx="14" class="inkfill"/>
+  <text x="169" y="572" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">验证签名 — 此代码已通过验证</text>
+  <text x="169" y="591" text-anchor="middle" font-size="10.5" fill="#94a3b8">sha256 模块树哈希 · 审计账本</text>
+
+  <!-- block side note -->
+  <text x="483" y="568" text-anchor="middle" class="muted">修复后重新验证</text>
+  <text x="483" y="586" text-anchor="middle" class="muted">完成仅在 GREEN 时赢得</text>
+
+  <!-- caption -->
+  <text x="320" y="626" text-anchor="middle" class="sub0">提交 3 · 推送·完成 9 · CI 15 — 按成本累加</text>
+</svg>
