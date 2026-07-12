@@ -125,6 +125,48 @@
     margin-top: 10px;
   }
 
+  /* 신뢰 · 추적 · 확장 3-beat */
+  .three-beat {
+    max-width: 760px;
+    margin: 24px auto 8px;
+    display: grid;
+    gap: 12px;
+  }
+  .three-beat .beat {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: #475569;
+    text-align: left;
+  }
+  .three-beat .k {
+    flex: 0 0 auto;
+    font-weight: 800;
+    font-size: 13px;
+    padding: 2px 12px;
+    border-radius: 99px;
+    color: #ffffff;
+    letter-spacing: 0.5px;
+  }
+  .three-beat .k.trust { background: #1d4ed8; }
+  .three-beat .k.trace { background: #64748b; }
+  .three-beat .k.scale { background: #3b82f6; }
+  .three-beat .v { flex: 1; }
+  .three-beat code { background: #eff6ff; }
+  .dogfood-line {
+    text-align: center;
+    color: #475569;
+    font-size: 15px;
+    max-width: 760px;
+    margin: 16px auto 0;
+  }
+
   /* 전 · 후 · 기록 3-card */
   .flow-cards {
     display: grid;
@@ -227,7 +269,7 @@
 
   <p class="tagline">
     <strong>기업이 AI에게 코딩을 맡기려면 세 가지가 필요하다 —<br>믿을 수 있고, 추적되고, 규모가 커져도 흔들리지 않아야 한다. cladding이 그 셋을 만든다.</strong><br>
-    호스트 LLM(Claude Code · Codex · Gemini · Cursor)을 감싼다: 일을 <em>시작하기 전</em>엔 프로젝트의 의도를 넣어 주고, <em>마친 후</em>엔 41개 검출기와 15단계 게이트로 결과를 검증한다.
+    cladding(외장재)이라는 이름 그대로, 호스트 LLM(Claude Code · Codex · Gemini · Cursor)을 감싼다: 일을 <em>시작하기 전</em>엔 프로젝트의 의도를 넣어 주고, <em>마친 후</em>엔 41개 검출기와 15단계 게이트로 결과를 검증한다.
   </p>
 
   <p class="badges">
@@ -249,15 +291,19 @@
       AI의 <em>"다 됐습니다"</em>를 말이 아니라 <em>증명</em>으로 만드는 것이다.
     </p>
     <p class="why">
-      그래서 AI가 짠 코드를 <strong>사람이 짠 코드만큼 믿고</strong> 내보낼 수 있다.
-    </p>
-    <p class="why" style="margin-top:14px">
-      cladding은 <strong>자기 자신도 cladding으로 만든다</strong> — 기능 254개 중 251개가 같은 게이트를 통과했고, Ironclad 표준을 L4로 구현한 첫 사례다.
-    </p>
-    <p class="why" style="margin-top:14px">
-      <strong>나간 것은 기록에 남는다</strong> — 무엇을 검증했는지는 커밋된 내용에 새겨지고, 누가·언제는 로컬 세션 로그에, 왜는 스펙에 남는다.
+      그래서 AI가 짠 코드를 <strong>사람이 짠 코드만큼 믿고</strong> 내보낼 수 있다 — 팀이 AI에게 코딩을 맡기는 데 필요한 세 가지다.
     </p>
   </div>
+
+  <div class="three-beat">
+    <div class="beat"><span class="k trust">신뢰</span><span class="v">모든 검사를 통과한 코드만 <code>done</code>으로 인정된다. 검증할 수 없는 "다 됐습니다"는 결코 통과하지 못한다.</span></div>
+    <div class="beat"><span class="k trace">추적</span><span class="v"><strong>나간 것은 기록에 남는다</strong>: 무엇을 검증했는지는 커밋된 내용에 새겨지고, 누가·언제는 로컬 세션 로그에, 왜는 스펙에 남아, 인수인계와 리뷰가 파헤치지 않아도 된다.</span></div>
+    <div class="beat"><span class="k scale">확장</span><span class="v">스펙이 공유 기준선이라, 팀과 AI 수가 늘어도 충돌과 어긋남이 자동으로 차단된다.</span></div>
+  </div>
+
+  <p class="dogfood-line">
+    cladding은 <strong>자기 자신도 cladding으로 만든다</strong> — 기능 254개 중 251개가 같은 게이트를 통과했고, Ironclad 표준을 L4로 구현한 첫 사례다.
+  </p>
 
   <!-- ─────────────── 무엇이 달라지나 ─────────────── -->
   <h2>무엇이 달라지나</h2>
@@ -275,6 +321,14 @@
       <tr><td><strong>AI 도구를 바꿀 때</strong></td><td class="vanilla-cell">도구마다 재구성</td><td class="cladding-cell">1 spec → 4 host 자동 연결</td></tr>
     </tbody>
   </table>
+
+  <!-- ─────────────── 누구를 위한 것 ─────────────── -->
+  <h2>누구를 위한 것</h2>
+  <ul>
+    <li><strong>혼자서 에이전트 루프를 돌리는 사람</strong> — cladding은 루프가 읽는 정직한 멈춤 조건이자 피드백 신호다(아래 에이전트 루프 검증자 섹션 참고).</li>
+    <li><strong>AI 기여자를 늘리는 팀</strong> — 스펙 하나가 공유 기준선이라, 사람과 모델을 늘려도 어긋남과 merge conflict가 자동으로 차단된다.</li>
+    <li><strong>검증 가능한 기록이 필요한 조직</strong> — 모든 <code>done</code>이 커밋 가능한 검증 서명을 지니고, 각 결정의 왜가 스펙에 남는다.</li>
+  </ul>
 
   <!-- ─────────────── cladding이 호스트 LLM을 감싸는 방식 ─────────────── -->
   <h2>cladding이 호스트 LLM을 감싸는 방식</h2>
@@ -335,6 +389,7 @@
   <div class="diagram">
     <img class="diagram-img" src="docs/img/ko/graph.gif" alt="cladding 지식 그래프 — 스펙·코드·테스트·문서가 색으로 구분되어 연결된 그래프(움직이는 화면)" width="920" style="border-radius:12px">
   </div>
+  <p style="text-align:center;font-size:13px;color:#64748b;margin-top:8px">파랑 = 스펙(가운데) · 주황 = 코드 · 초록 = 테스트 · 분홍 = 문서; 연결이 많은 노드일수록 커지고 가운데로 당겨진다.</p>
 
   <div class="flow-cards">
     <div class="flow-card before">
@@ -367,19 +422,65 @@ clad graph export --format html --out graph.html  # 또는 오프라인 한 파�
     <img class="diagram-img" src="docs/img/ko/cycle.svg" alt="Spec → Code → Tests 순환 — 15단계 검증과 41 drift detector가 cycle을 지킨다" width="700">
   </div>
 
-  <p><strong>Spec — 의도의 단일 출처.</strong> 4계층 기준 체계다: 의도(A) → 설계(B) → 코드 + 검증 서명(C) → 감사(D). <strong>A가 모든 계층보다 우선</strong> — spec과 코드가 다르면 틀린 쪽은 <em>코드</em>다. 기능마다 8자리 hash ID(<code>F-d86375d8</code>)를 가진 별도 샤드 파일이라, 두 명이 동시에 기능을 추가해도 절대 충돌하지 않는다. → <a href="docs/ssot-model.md">4계층 모델</a> · <a href="docs/spec-ids-multi-dev.md">hash 기반 ID</a></p>
+  <p><strong>Spec — 의도의 단일 출처.</strong> 위에서 아래로 4계층 기준 체계다:</p>
+  <table>
+    <thead>
+      <tr><th>계층</th><th>담는 것</th><th>작성자</th><th>권위</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>A · Spec</strong></td><td>의도(무엇 · 왜)</td><td>사람이 의도를 정하고 → LLM이 EARS로 쓴다</td><td>봉인 · 사람 승인 없이는 바뀌지 않는다 · 모든 계층보다 우선</td></tr>
+      <tr><td><strong>B · Design</strong></td><td>설계(어떻게)</td><td>사람이 방향을 잡고 → LLM이 쓴다</td><td>A에 비추어 검사</td></tr>
+      <tr><td><strong>C · Derived</strong></td><td>코드 · 테스트 + <strong>attestation</strong>(검증 서명)</td><td>LLM이 쓴다</td><td>코드에서 자동 재생성</td></tr>
+      <tr><td><strong>D · Audit</strong></td><td>실제로 일어난 일</td><td>자동 기록, append-only</td><td>로컬</td></tr>
+    </tbody>
+  </table>
+  <p><strong>A가 모든 계층보다 우선</strong> — spec과 코드가 다르면 틀린 쪽은 <em>코드</em>다. 기능마다 8자리 hash ID를 가진 별도 샤드 파일이라, 두 명이 동시에 기능을 추가해도 절대 충돌하지 않는다. 기능 하나는 이렇게 생겼다 — 의도를 검증 가능한 수용 기준으로, EARS 형식으로:</p>
+  <pre><code># spec/features/checkout-a1b2c3d4.yaml
+id: F-a1b2c3d4
+slug: checkout-idempotency
+status: done
+acceptance_criteria:
+  - id: AC-9f3e21a0
+    text: "When a charge is retried with the same idempotency key, the system
+            shall return the original result and never double-charge."
+    test_refs: ["tests/checkout/idempotency.test.ts#retry returns the original charge"]</code></pre>
+  <p>→ <a href="docs/ssot-model.md">4계층 모델</a> · <a href="docs/spec-ids-multi-dev.md">hash 기반 ID</a></p>
 
   <div class="diagram">
     <img class="diagram-img" src="docs/img/ko/ssot-tier.svg" alt="4-tier SSoT — A(Spec) → B(Design) → C(Derived + attestation) → D(Audit), A가 B보다 우선" width="640">
   </div>
 
-  <p><strong>Gate — 15단계 Iron Law.</strong> 검사 엔진은 하나, 비용에 따라 묶어서 건다: commit 때 3단계, push · 완료 시점에 9단계, CI에서 15단계 전부. 깊이만 다르다. → <a href="docs/gate-stages.md">15단계 전체</a></p>
+  <p><strong>Gate — 15단계 Iron Law.</strong> 검사 엔진은 하나, 비용에 따라 묶어서 건다 — commit 때 3단계, push · 완료 시점에 9단계, CI에서 15단계 전부:</p>
+  <ul>
+    <li><strong>정적 (6)</strong> — Type · Lint · Drift · Commit-clean · Architecture · Secrets</li>
+    <li><strong>테스트 · 적합성 (4)</strong> — Unit · Coverage · Spec-conformance(구현을 못 보는 채점자) · <strong>Deliverable smoke</strong> <em>(빈 초록을 차단한다: 테스트는 통과하는데 산출물은 한 번도 실행되지 않는 경우)</em></li>
+    <li><strong>E2E (3)</strong> — Smoke · Performance · Visual</li>
+    <li><strong>증거 (2)</strong> — Audit(모든 수용 기준에 증거가 있다) · UAT(모든 done 기능에 증거가 있다)</li>
+  </ul>
+  <p>→ <a href="docs/gate-stages.md">15단계 전체</a></p>
 
   <div class="diagram">
     <img class="diagram-img" src="docs/img/ko/iron-law.svg" alt="15단계 Iron Law 게이트 — 정적(6) · 테스트·적합성(4) · E2E(3) · 증거(2), GREEN이면 attestation 서명" width="640">
   </div>
 
-  <p><strong>Detector — 41개.</strong> spec · code · test 사이 모든 방향의 어긋남을 잡는다: 빠진 구현, 테스트 없는 수용 기준, 거짓 상태, 신선하지 않은 검증 서명, 근거를 넘어선 문서 주장. → <a href="src/stages/detectors/README.md">detector 카탈로그</a></p>
+  <p><strong>Detector — 41개 어긋남 검출기.</strong> spec · code · test가 어긋날 수 있는 모든 방향을 잡는다:</p>
+  <table>
+    <thead>
+      <tr><th>방향</th><th>잡는 것</th><th class="center">#</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>spec ↔ code</td><td>스펙에는 있는데 코드에 없거나, 스펙에서 벗어난 코드</td><td class="center">10</td></tr>
+      <tr><td>code ↔ test</td><td>테스트 없는 코드 · coverage 하락 · 새어 나간 비밀</td><td class="center">6</td></tr>
+      <tr><td>spec ↔ test</td><td>어떤 테스트도 검증하지 않는 수용 기준 · 거짓 상태</td><td class="center">6</td></tr>
+      <tr><td>spec 위생</td><td>스펙 자체의 무결성 — id 충돌 · 의존성 순환</td><td class="center">8</td></tr>
+      <tr><td>환경</td><td>빌드 환경 · meta 파일</td><td class="center">3</td></tr>
+      <tr><td>검증 신선도</td><td>검증 서명 이후 바뀐 코드</td><td class="center">1</td></tr>
+      <tr><td>거버넌스 · 문서</td><td>정책 위반 · 문서 어긋남 · 근거를 넘어선 주장</td><td class="center">4</td></tr>
+      <tr><td>그래프 · 문서 링크</td><td>끊어진 문서 ↔ 스펙 링크 · 빠진 의존성 엣지</td><td class="center">3</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:14px;color:#475569">이 검출기들이 떠받치는 그래프는 <strong>트레이서빌리티 · 검색이지 정확성 주장이 아니다</strong> — 무엇이 무엇과 연결됐고 무엇을 다시 확인해야 하는지는 알려 주지만, 코드가 맞다고 말해 주지는 않는다. → <a href="src/stages/detectors/README.md">detector 카탈로그 전체</a></p>
+  <p>한 기능의 생애주기는 <strong>Define → Sync → Implement → Earn</strong>으로 흐른다 — 모든 검사를 통과해야만 <code>done</code>을 얻는다.</p>
 
   <!-- ─────────────── 에이전트 루프 검증자 ─────────────── -->
   <h2>에이전트 루프의 검증자로 쓰기</h2>
@@ -430,6 +531,8 @@ clad graph export --format html --out graph.html  # 또는 오프라인 한 파�
 cd &lt;project&gt;              # 프로젝트로 이동
 clad setup                # AI 도구 자동 연결 (Claude · Codex · Gemini · Cursor)</code></pre>
 
+  <p style="font-size:13px;color:#64748b">각 호스트는 cladding을 AI가 알아서 호출하는 MCP 서버로 연결한다 — <code>/mcp</code> 명령도 수동 연결 단계도 없이, 그냥 대화하면 된다.</p>
+
   <p>그다음, 프로젝트당 한 번, AI 도구 안에서 init을 호출한다:</p>
   <pre><code>[AI 도구 안] /cladding:init "B2B 결제 SaaS"</code></pre>
   <p>프로젝트의 <code>spec.yaml</code> 과 관련 문서가 만들어진다. 그 뒤론 평소처럼 개발하면 된다 — cladding이 배경에서 전·후 루프를 돌리니 따로 외울 것은 없다. 강제력을 높이려면 <code>clad init --with-hook</code>(pre-commit + pre-push git hook) 이나 <code>clad init --with-ci</code>(CI 게이트 스캐폴드 — 진짜 강제는 CI에서 산다).</p>
@@ -448,6 +551,13 @@ clad setup                # AI 도구 자동 연결 (Claude · Codex · Gemini �
   <p style="font-size:14px;color:#475569">
     <strong>호스트 지원 현황(정직 고지):</strong> Claude Code는 실사용 캠페인으로 전 기능 검증됨(실시간 개입 포함). Codex · Gemini CLI는 배선 자동화 + 기본 동작 확인. Cursor는 연결은 자동이지만 실사용 검증이 아직이다. → <a href="docs/setup.md">설치 상세 · 호스트 배선 · MCP · 업그레이드</a>
   </p>
+
+  <!-- ─────────────── Update ─────────────── -->
+  <h2>Update</h2>
+  <p>최신 상태 유지는 두 명령 — 아니면 AI 도구에게 시키기만 하면 된다.</p>
+  <pre><code>npm update -g cladding   # 1. 새 버전 받기
+clad update              # 2. 프로젝트당 한 번 — 맞춰 정렬</code></pre>
+  <p>AI 도구에 <em>"cladding 최신 버전으로 업데이트해줘"</em>라고 말하면 두 단계를 알아서 실행한다. 어느 쪽이든 코드 · <code>spec.yaml</code> · 문서는 그대로 두고, 더 엄격해진 버전이 짚을 게 있으면 <strong>짚어만 준다</strong> — 막거나 고치지 않는다.</p>
 
   <!-- ─────────────── Status ─────────────── -->
   <h2>Status</h2>

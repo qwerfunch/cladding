@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>To trust AI with coding, an organization needs three things — that the code can be trusted,<br/>that it's traced, and that it holds up as you scale. cladding builds those three.</strong><br/>
-  It wraps your host LLM (Claude Code · Codex · Gemini · Cursor): <em>before</em> it starts, cladding feeds it the project's intent; <em>after</em> it finishes, cladding verifies the result with 41 detectors and a 15-stage gate.
+  True to its name (cladding = the outer layer), it wraps your host LLM (Claude Code · Codex · Gemini · Cursor): <em>before</em> it starts, cladding feeds it the project's intent; <em>after</em> it finishes, cladding verifies the result with 41 detectors and a 15-stage gate.
 </p>
 
 <p align="center">
@@ -25,9 +25,13 @@
 
 > **This loop is after one thing —** turning the AI's *"it's done"* from a **claim** into a **proof**.
 
-So you can ship AI-written code with **the same trust as human-written code**. cladding builds **itself** with cladding too — 251 of its 254 features cleared this same gate, the first L4 implementation of the [Ironclad](https://github.com/qwerfunch/ironclad) standard.
+So you can ship AI-written code with **the same trust as human-written code** — the three things a team needs to hand coding to AI:
 
-**What shipped is on the record** — what was verified is stamped into committed content, who and when land in the local session ledger, and why lives in the spec, so handoff and review trace decisions without archaeology.
+- **Trusted** — only code that cleared every check is recognized as `done`; an "it's done" you can't verify never passes.
+- **Traced** — **What shipped is on the record**: what was verified is stamped into committed content, who and when land in the local session ledger, and the why lives in the spec — so handoff and review skip the archaeology.
+- **Scales** — the spec is the shared baseline, so as the team and the number of AIs grow, conflicts and drift are blocked automatically.
+
+cladding builds **itself** with cladding too — 251 of its 254 features cleared this same gate, the first L4 implementation of the [Ironclad](https://github.com/qwerfunch/ironclad) standard.
 
 <!-- ─────────────── What changes ─────────────── -->
 
@@ -43,6 +47,12 @@ The same situation, in a *vanilla AI setup* and in cladding.
 | **Two devs add a feature at the same time** | merge conflict | hash-8 IDs · separate files → 0 conflicts |
 | **Who verifies the AI-written code?** | the AI that wrote it self-certifies (risky) | an implementation-blind grader + the mechanical gate |
 | **Switching AI tools** | reconfigure per tool | one spec → 4 hosts wired automatically |
+
+## Who it's for
+
+- **Solo, running an agent loop** — cladding is the honest stop-condition and feedback signal your loop reads (see [agent-loop verifier](#using-cladding-as-your-agent-loops-verifier)).
+- **A team adding AI contributors** — one spec is the shared baseline, so drift and merge conflicts are blocked automatically as you add people and models.
+- **An org that needs a verifiable record** — every `done` carries a committable verify signature, and the why behind each decision lives in the spec.
 
 <!-- ─────────────── How cladding wraps the host LLM ─────────────── -->
 
@@ -91,6 +101,8 @@ This is cladding's **internal graph of your project** — spec · code · tests 
 
 </div>
 
+<sub>Blue = spec (center) · orange = code · green = tests · pink = docs; the more a node connects, the larger it grows and the more it pulls toward the center.</sub>
+
 - **See** — run `clad graph serve` and the whole project opens in your browser; what connects to what, at a glance.
 - **Ask** — *"what breaks if I change this?"* The graph answers with the affected code and the tests to run — it doesn't guess.
 - **Measure** — the bigger the project, the more it saves: on average **4× less** to read when fixing something (`clad measure`).
@@ -114,7 +126,30 @@ clad graph export --format html --out graph.html  # or a single offline .html fi
 
 </div>
 
-**Spec — the single source of intent.** A 4-tier source of truth: intent (A) → design (B) → code + attestation (C) → audit (D). **A outranks all** — if spec and code disagree, the *code* is wrong. Each feature is its own sharded file with an 8-char hash ID (`F-d86375d8`), so two devs adding features at once never collide. → [4-tier model](docs/ssot-model.md) · [hash-based IDs](docs/spec-ids-multi-dev.md)
+**Spec — the single source of intent.** A 4-tier source of truth, top to bottom:
+
+| Tier | Holds | Written by | Authority |
+|---|---|---|---|
+| **A · Spec** | intent (what · why) | humans set the intent → the LLM writes it in EARS | sealed · no change without human sign-off · outranks all |
+| **B · Design** | design (how) | humans steer → the LLM writes | checked against A |
+| **C · Derived** | code · tests + **attestation** (the verify signature) | the LLM writes | auto-regenerated from the code |
+| **D · Audit** | what actually happened | auto-recorded, append-only | local |
+
+**A outranks all** — if the spec and the code disagree, the *code* is what's wrong. Each feature is its own sharded file with an 8-char hash ID, so two devs adding features at once never collide. A feature reads like this — intent as a testable acceptance criterion, in EARS form:
+
+```yaml
+# spec/features/checkout-a1b2c3d4.yaml
+id: F-a1b2c3d4
+slug: checkout-idempotency
+status: done
+acceptance_criteria:
+  - id: AC-9f3e21a0
+    text: "When a charge is retried with the same idempotency key, the system
+            shall return the original result and never double-charge."
+    test_refs: ["tests/checkout/idempotency.test.ts#retry returns the original charge"]
+```
+
+→ [4-tier model](docs/ssot-model.md) · [hash-based IDs](docs/spec-ids-multi-dev.md)
 
 <div align="center">
 
@@ -122,7 +157,14 @@ clad graph export --format html --out graph.html  # or a single offline .html fi
 
 </div>
 
-**Gate — the 15-stage Iron Law.** One check engine, bundled by cost: 3 at commit, 9 at push/completion, all 15 in CI. Only the depth differs. → [the 15 stages](docs/gate-stages.md)
+**Gate — the 15-stage Iron Law.** One check engine, bundled by cost — 3 run at commit, 9 at push/completion, all 15 in CI:
+
+- **Static (6)** — Type · Lint · Drift · Commit-clean · Architecture · Secrets
+- **Test & conformance (4)** — Unit · Coverage · Spec-conformance (the impl-blind grader) · **Deliverable smoke** *(blocks the empty green: tests pass but the deliverable never runs)*
+- **End-to-end (3)** — Smoke · Performance · Visual
+- **Evidence (2)** — Audit (every acceptance criterion has evidence) · UAT (every done feature has evidence)
+
+→ [the 15 stages](docs/gate-stages.md)
 
 <div align="center">
 
@@ -130,7 +172,22 @@ clad graph export --format html --out graph.html  # or a single offline .html fi
 
 </div>
 
-**Detectors — 41 of them.** They catch drift across spec · code · test in every direction: missing implementations, untested acceptance criteria, false status, stale attestations, docs that over-claim. → [detector catalog](src/stages/detectors/README.md)
+**Detectors — 41 drift detectors.** They catch every direction spec · code · test can diverge:
+
+| Direction | Catches | # |
+|---|---|--:|
+| spec ↔ code | in the spec but missing from code, or code that strays from it | 10 |
+| code ↔ test | code with no test · coverage drop · leaked secrets | 6 |
+| spec ↔ test | an acceptance criterion no test verifies · false status | 6 |
+| spec hygiene | the spec's own integrity — id collisions · dependency cycles | 8 |
+| environment | build environment · meta files | 3 |
+| verification freshness | code changed since its verify signature | 1 |
+| governance · docs | policy violations · doc drift · claims beyond the evidence | 4 |
+| graph · doc links | broken doc ↔ spec links · missing dependency edges | 3 |
+
+The graph these power is **traceability / retrieval, not a correctness claim** — it tells you what connects to what and what to re-check; it doesn't say the code is right. → [full detector catalog](src/stages/detectors/README.md)
+
+One feature's lifecycle runs **Define → Sync → Implement → Earn** — you earn `done` only by passing every check.
 
 <!-- ─────────────── Agent-loop verifier ─────────────── -->
 
@@ -185,6 +242,8 @@ cd <project>              # your project
 clad setup                # auto-wire your AI tools (Claude · Codex · Gemini · Cursor)
 ```
 
+<sub>Each host wires cladding as an MCP server the AI calls on its own — there's no `/mcp` command and no manual connect step; you just chat.</sub>
+
 Then, once per project, call init inside your AI tool:
 
 ```
@@ -202,6 +261,19 @@ It creates the project's `spec.yaml` and supporting docs. After that, just devel
 **Host support (honest):** Claude Code is fully verified through real-usage campaigns (incl. real-time intervention). Codex · Gemini CLI have automated wiring + basic behavior confirmed. Cursor wires automatically, but real-usage verification is still pending. → [setup details · host wiring · MCP · upgrading](docs/setup.md)
 
 <!-- clad:host-claims {"claude":"verified","codex":"not-run","gemini":"not-run","cursor":"wiring-only"} -->
+
+<!-- ─────────────── Update ─────────────── -->
+
+## Update
+
+Staying current is two commands — or just ask your AI tool to do it.
+
+```bash
+npm update -g cladding   # 1. get the new version
+clad update              # 2. once per project — bring it in line
+```
+
+Inside your AI tool you can simply say *"update cladding to the latest version"* and it runs both steps for you. Either way your code · `spec.yaml` · docs are left untouched; if a stricter version has something to flag, it only **points it out** — it won't block or fix anything.
 
 <!-- ─────────────── Status ─────────────── -->
 

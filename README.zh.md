@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>要放心把编码交给 AI，一个组织需要三样东西 ——<br/>代码可信、过程可追溯、规模扩张时依然稳固。cladding 把这三样一手做齐。</strong><br/>
-  它包裹住你的宿主 LLM（Claude Code · Codex · Gemini · Cursor）：在它<em>动手之前</em>，cladding 先把项目的意图喂给它；在它<em>收尾之后</em>，cladding 用 41 个检测器和 15 阶段门禁验证结果。
+  正如其名（cladding = 外覆层），它包裹住你的宿主 LLM（Claude Code · Codex · Gemini · Cursor）：在它<em>动手之前</em>，cladding 先把项目的意图喂给它；在它<em>收尾之后</em>，cladding 用 41 个检测器和 15 阶段门禁验证结果。
 </p>
 
 <p align="center">
@@ -25,11 +25,13 @@
 
 > **这个循环只瞄准一件事 ——** 把 AI 的*「做完了」*从一句**说辞**变成一份**证明**。
 
-于是，AI 写的代码，你可以**像信任人写的代码一样**放心地发出去。
+于是，AI 写的代码，你可以**像信任人写的代码一样**放心地发出去 —— 一个团队要把编码交给 AI，需要的正是这三样：
 
-cladding 连**自己**也是用 cladding 造的 —— 254 个 feature 里有 251 个通过了同一道门禁，成为 Ironclad 标准的首个 L4 实现。
+- **可信** —— 只有闯过每一道检查的代码，才被认作 `done`；一句你无法验证的「做完了」，永远过不了关。
+- **可追溯** —— **交付出去的一切都留有记录**：验证了什么，写进已提交的内容；谁、何时，记在本地会话账本；为什么，留在 spec —— 于是交接与评审无需考古，就能追溯每一个决定。
+- **可扩展** —— spec 是共享的基线，因此团队和 AI 数量一起增长时，冲突与漂移会被自动挡下。
 
-**交付出去的一切都留有记录** —— 验证了什么，写进已提交的内容；谁、何时，记在本地会话账本；为什么，留在 spec。于是交接与评审无需考古，就能追溯每一个决定。
+cladding 连**自己**也是用 cladding 造的 —— 254 个 feature 里有 251 个通过了同一道门禁，成为 [Ironclad](https://github.com/qwerfunch/ironclad) 标准的首个 L4 实现。
 
 <!-- ─────────────── What changes ─────────────── -->
 
@@ -45,6 +47,12 @@ cladding 连**自己**也是用 cladding 造的 —— 254 个 feature 里有 25
 | **两名开发者同时新增 feature** | 合并冲突 | 8 位 hash ID · 各自成文件 → 零冲突 |
 | **AI 写的代码谁来验证？** | 谁写谁自证（有风险） | 一个看不到实现的评分者 + 机械门禁 |
 | **切换 AI 工具** | 每换一个工具就重配一次 | 一份 spec → 自动接通 4 个宿主 |
+
+## 适合谁
+
+- **单人，跑着一套智能体循环** —— cladding 就是你的循环所读取的那个诚实的停止条件与反馈信号（见 [智能体循环验证者](#把-cladding-用作你智能体循环的验证者)）。
+- **一个正在引入 AI 协作者的团队** —— 一份 spec 就是共享基线，因此随着你加人、加模型，漂移与合并冲突都会被自动挡下。
+- **一个需要可核验记录的组织** —— 每一个 `done` 都带着一枚可提交的验证签名，而每个决定背后的「为什么」都留在 spec 里。
 
 <!-- ─────────────── How cladding wraps the host LLM ─────────────── -->
 
@@ -93,6 +101,8 @@ AI 编码的顽疾，就是那句背后没有任何验证的*「做完了」*。
 
 </div>
 
+<sub>蓝 = spec（居中）· 橙 = 代码 · 绿 = 测试 · 粉 = 文档；一个节点连接越多，它就长得越大、越往中心聚拢。</sub>
+
 - **看** —— 运行 `clad graph serve`，整个项目就在浏览器里打开；什么连着什么，一目了然。
 - **问** —— *「改这里会弄坏什么？」* 图谱会给出受影响的代码和该跑的测试 —— 它不靠猜。
 - **量** —— 项目越大，省得越多：修一处东西平均**少读 4×**（`clad measure`）。
@@ -116,7 +126,30 @@ clad graph export --format html --out graph.html  # 或导出为单个离线文�
 
 </div>
 
-**Spec —— 意图的唯一来源。** 一套四层的唯一事实来源：意图（A）→ 设计（B）→ 代码 + attestation（C）→ 审计（D）。**A 高于一切** —— 若 spec 与代码不一致，错的是*代码*。每个 feature 独占一个分片文件，配一个 8 位 hash ID（`F-d86375d8`），因此两名开发者同时新增 feature 也绝不会撞车。→ [四层模型](docs/ssot-model.md) · [基于 hash 的 ID](docs/spec-ids-multi-dev.md)
+**Spec —— 意图的唯一来源。** 一套自上而下的四层唯一事实来源：
+
+| 层级 | 承载 | 由谁写 | 权威 |
+|---|---|---|---|
+| **A · Spec** | 意图（是什么 · 为什么） | 人定意图 → LLM 用 EARS 句式写下 | 封存 · 未经人签字不得更改 · 高于一切 |
+| **B · Design** | 设计（怎么做） | 人掌舵 → LLM 落笔 | 对照 A 核查 |
+| **C · Derived** | 代码 · 测试 + **attestation**（验证签名） | LLM 编写 | 从代码自动再生 |
+| **D · Audit** | 实际发生了什么 | 自动记录，只追加 | 本地 |
+
+**A 高于一切** —— 若 spec 与代码不一致，错的是*代码*。每个 feature 独占一个分片文件，配一个 8 位 hash ID，因此两名开发者同时新增 feature 也绝不会撞车。一个 feature 读起来是这样 —— 把意图写成一条可测试的验收标准，用 EARS 句式：
+
+```yaml
+# spec/features/checkout-a1b2c3d4.yaml
+id: F-a1b2c3d4
+slug: checkout-idempotency
+status: done
+acceptance_criteria:
+  - id: AC-9f3e21a0
+    text: "When a charge is retried with the same idempotency key, the system
+            shall return the original result and never double-charge."
+    test_refs: ["tests/checkout/idempotency.test.ts#retry returns the original charge"]
+```
+
+→ [四层模型](docs/ssot-model.md) · [基于 hash 的 ID](docs/spec-ids-multi-dev.md)
 
 <div align="center">
 
@@ -124,7 +157,14 @@ clad graph export --format html --out graph.html  # 或导出为单个离线文�
 
 </div>
 
-**Gate —— 15 阶段 Iron Law。** 检查引擎只有一个，按成本分档打包：提交时 3 段，推送 / 完成时 9 段，CI 里 15 段全上。只是深度不同。→ [15 个阶段](docs/gate-stages.md)
+**Gate —— 15 阶段 Iron Law。** 检查引擎只有一个，按成本分档打包 —— 提交时跑 3 段，推送 / 完成时 9 段，CI 里 15 段全上：
+
+- **静态（6）** —— Type · Lint · Drift · Commit-clean · Architecture · Secrets
+- **测试与一致性（4）** —— Unit · Coverage · Spec-conformance（看不到实现的评分者）· **Deliverable smoke** *（挡住空绿：测试通过，可交付物却从未真正跑起来）*
+- **端到端（3）** —— Smoke · Performance · Visual
+- **证据（2）** —— Audit（每条验收标准都有证据）· UAT（每个 done 的 feature 都有证据）
+
+→ [15 个阶段](docs/gate-stages.md)
 
 <div align="center">
 
@@ -132,7 +172,22 @@ clad graph export --format html --out graph.html  # 或导出为单个离线文�
 
 </div>
 
-**Detectors —— 共 41 个。** 它们捕捉 spec · 代码 · 测试之间各个方向的漂移：缺失的实现、没有测试覆盖的验收标准、造假的状态、过期的验证签名、超出证据的文档主张。→ [检测器目录](src/stages/detectors/README.md)
+**Detectors —— 41 个漂移检测器。** 它们捕捉 spec · 代码 · 测试之间可能发生漂移的每一个方向：
+
+| 方向 | 捕捉什么 | 个数 |
+|---|---|--:|
+| spec ↔ 代码 | 写进 spec 却没落到代码，或代码偏离了它 | 10 |
+| 代码 ↔ 测试 | 没有测试的代码 · 覆盖率下降 · 泄露的密钥 | 6 |
+| spec ↔ 测试 | 没有任何测试验证的验收标准 · 造假的状态 | 6 |
+| spec 卫生 | spec 自身的完整性 —— id 撞号 · 依赖成环 | 8 |
+| 环境 | 构建环境 · 元文件 | 3 |
+| 验证新鲜度 | 代码在其验证签名之后又改动过 | 1 |
+| 治理 · 文档 | 策略违规 · 文档漂移 · 超出证据的主张 | 4 |
+| 图谱 · 文档链接 | 断掉的文档 ↔ spec 链接 · 缺失的依赖边 | 3 |
+
+这些检测器撑起的图谱，是**可追溯 / 检索，而非一份正确性主张** —— 它告诉你什么连着什么、该重新核查什么；它并不断言代码是对的。→ [完整检测器目录](src/stages/detectors/README.md)
+
+一个 feature 的生命周期走的是 **Define → Sync → Implement → Earn** —— 只有闯过每一道检查，你才挣得 `done`。
 
 <!-- ─────────────── Agent-loop verifier ─────────────── -->
 
@@ -187,6 +242,8 @@ cd <project>              # 进入项目目录
 clad setup                # 自动接通你的 AI 工具（Claude · Codex · Gemini · Cursor）
 ```
 
+<sub>每个宿主都把 cladding 接为一台 MCP 服务器，由 AI 自行调用 —— 没有 `/mcp` 命令，也无需手动连接，照常对话即可。</sub>
+
 随后，每个项目一次，在你的 AI 工具中调用 init：
 
 ```
@@ -202,6 +259,19 @@ clad setup                # 自动接通你的 AI 工具（Claude · Codex · Ge
 | **接入已有项目** | `/cladding:init "把 cladding 应用到这个项目"` | 扫描现有代码 → 把观察到的模式与你的意图融合 |
 
 **宿主支持（诚实说明）：** Claude Code 已通过真实使用的实测（含实时干预）全面验证。Codex · Gemini CLI 完成了自动接线 + 基本行为确认。Cursor 会自动接线，但真实使用的验证仍待补。→ [安装细节 · 宿主接线 · MCP · 升级](docs/setup.md)
+
+<!-- ─────────────── Update ─────────────── -->
+
+## Update
+
+保持最新只需两条命令 —— 或者干脆让你的 AI 工具替你跑。
+
+```bash
+npm update -g cladding   # 1. 取得新版本
+clad update              # 2. 每个项目一次 —— 与新版对齐
+```
+
+在 AI 工具里，你直接说一句*「把 cladding 更新到最新版本」*，它就会替你把这两步都跑完。无论哪种方式，你的代码 · `spec.yaml` · 文档都原封不动；若某个更严格的版本有东西要提醒，它也只是**指出来** —— 既不拦截，也不擅自修改。
 
 <!-- ─────────────── Status ─────────────── -->
 

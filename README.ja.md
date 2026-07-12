@@ -25,9 +25,13 @@
 
 > **このループが狙うのはただ一つ —** AI の *「できました」* を、口先の **主張** から **証明** へと変えることだ。
 
-だから、AI が書いたコードを **人が書いたコードと同じ信頼で** 送り出せる。cladding は **自分自身も cladding で作っている** — 254 個の feature のうち 251 個が同じゲートを通過した、[Ironclad](https://github.com/qwerfunch/ironclad) 標準を L4 で実装した最初の事例だ。
+だから、AI が書いたコードを **人が書いたコードと同じ信頼で** 送り出せる — チームがコーディングを AI に委ねるために要る三つ:
 
-**出荷されたものは記録に残る** — 何を検証したかはコミットされた内容に刻まれ、誰がいつやったかはローカルのセッション台帳に、なぜかは spec に残る。だから引き継ぎもレビューも、掘り起こさずに決定をたどれる。
+- **信頼できる** — すべてのチェックを通過したコードだけが `done` と認められる。検証できない「できました」は決して通らない。
+- **たどれる** — **出荷されたものは記録に残る**: 何を検証したかはコミットされた内容に刻まれ、誰がいつやったかはローカルのセッション台帳に、なぜかは spec に残る — だから引き継ぎもレビューも、掘り起こさずに済む。
+- **拡張しても揺るがない** — spec が共有の基準線なので、チームと AI の数が増えても、衝突と乖離は自動でせき止められる。
+
+cladding は **自分自身も cladding で作っている** — 254 個の feature のうち 251 個が同じゲートを通過した、[Ironclad](https://github.com/qwerfunch/ironclad) 標準を L4 で実装した最初の事例だ。
 
 <!-- ─────────────── What changes ─────────────── -->
 
@@ -43,6 +47,12 @@
 | **二人が同時に feature を追加する** | merge conflict | hash-8 ID · ファイル分離 → 衝突 0 |
 | **AI が書いたコードは誰が検証する？** | 書いた AI が自分で検証する（危うい） | 実装を見ない採点者 + 機械的なゲート |
 | **AI ツールを乗り換える** | ツールごとに再設定 | 1 つの spec → 4 つの host へ自動配線 |
+
+## 誰のためのものか
+
+- **一人でエージェントループを回す** — cladding は、あなたのループが読み取る正直な停止条件とフィードバック信号だ（[エージェントループの検証役](#エージェントループの検証役として使う)を参照）。
+- **AI の協働者を増やすチーム** — 一つの spec が共有の基準線なので、人とモデルを増やしても、乖離と merge conflict は自動でせき止められる。
+- **検証可能な記録が要る組織** — すべての `done` はコミット可能な検証署名を伴い、各決定の背後にある「なぜ」は spec に残る。
 
 <!-- ─────────────── How cladding wraps the host LLM ─────────────── -->
 
@@ -95,6 +105,8 @@ AI コーディングの持病は、検証の裏づけなしに *「できまし
 
 </div>
 
+<sub>青 = spec（中央）· オレンジ = コード · 緑 = テスト · ピンク = ドキュメント。つながりが多いノードほど大きくなり、中央へ引き寄せられる。</sub>
+
 - **見る** — `clad graph serve` を実行すると、プロジェクト全体がブラウザで開く。何が何につながっているか一目でわかる。
 - **尋ねる** — *「ここを直したら何が壊れる？」* グラフに尋ねれば、影響が及ぶコードと回すべきテストを教えてくれる — 当て推量ではない。
 - **測る** — プロジェクトが大きいほど効く: 何かを直すときに目を通す量が、平均 **4×** 少なくて済む（`clad measure`）。
@@ -118,7 +130,30 @@ clad graph export --format html --out graph.html  # または単一のオフラ�
 
 </div>
 
-**Spec — 意図の唯一の源。** 4 階層の単一の真実の源（SSoT）: 意図 (A) → 設計 (B) → コード + attestation (C) → 監査 (D)。**A がすべてに優先する** — spec とコードが食い違えば、間違っているのは *コード* の方だ。feature はそれぞれ 8 文字のハッシュ ID（`F-d86375d8`）を持つ専用ファイルに分かれるので、二人が同時に feature を追加しても衝突しない。→ [4 階層モデル](docs/ssot-model.md) · [ハッシュベースの ID](docs/spec-ids-multi-dev.md)
+**Spec — 意図の唯一の源。** 上から下へ、4 階層の単一の真実の源（SSoT）:
+
+| 階層 | 保持するもの | 書く主体 | 権威 |
+|---|---|---|---|
+| **A · Spec** | 意図（何を · なぜ） | 人が意図を定める → LLM が EARS で書く | 封印 · 人の承認なしに変更不可 · すべてに優先 |
+| **B · Design** | 設計（どのように） | 人が舵を取る → LLM が書く | A に照らして検査 |
+| **C · Derived** | コード · テスト + **attestation**（検証署名） | LLM が書く | コードから自動再生成 |
+| **D · Audit** | 実際に起きたこと | 自動記録、追記のみ | ローカル |
+
+**A がすべてに優先する** — spec とコードが食い違えば、間違っているのは *コード* の方だ。feature はそれぞれ 8 文字のハッシュ ID を持つ専用ファイルに分かれるので、二人が同時に feature を追加しても衝突しない。feature はこう書かれる — テスト可能な受け入れ基準としての意図を、EARS 形式で:
+
+```yaml
+# spec/features/checkout-a1b2c3d4.yaml
+id: F-a1b2c3d4
+slug: checkout-idempotency
+status: done
+acceptance_criteria:
+  - id: AC-9f3e21a0
+    text: "When a charge is retried with the same idempotency key, the system
+            shall return the original result and never double-charge."
+    test_refs: ["tests/checkout/idempotency.test.ts#retry returns the original charge"]
+```
+
+→ [4 階層モデル](docs/ssot-model.md) · [ハッシュベースの ID](docs/spec-ids-multi-dev.md)
 
 <div align="center">
 
@@ -126,7 +161,14 @@ clad graph export --format html --out graph.html  # または単一のオフラ�
 
 </div>
 
-**Gate — 15 段階の Iron Law。** 検査エンジンは一つ、コストで束ねる: commit で 3 段階、push · 完了で 9 段階、CI で 15 段階すべて。違うのは深さだけだ。→ [15 段階の詳細](docs/gate-stages.md)
+**Gate — 15 段階の Iron Law。** 検査エンジンは一つ、コストで束ねる — commit で 3 段階、push · 完了で 9 段階、CI で 15 段階すべて:
+
+- **Static (6)** — Type · Lint · Drift · Commit-clean · Architecture · Secrets
+- **Test & conformance (4)** — Unit · Coverage · Spec-conformance（実装を見ない採点者）· **Deliverable smoke** *（空グリーンを止める: テストは通るのに成果物が一度も動かない）*
+- **End-to-end (3)** — Smoke · Performance · Visual
+- **Evidence (2)** — Audit（すべての受け入れ基準に証拠がある）· UAT（すべての done feature に証拠がある）
+
+→ [15 段階の詳細](docs/gate-stages.md)
 
 <div align="center">
 
@@ -134,7 +176,22 @@ clad graph export --format html --out graph.html  # または単一のオフラ�
 
 </div>
 
-**Detector — 41 個の乖離検出器。** spec · code · test にまたがる、あらゆる方向の乖離を捕まえる: 実装の欠落、テストされていない受け入れ基準、虚偽のステータス、古くなった検証署名、根拠を超えたドキュメントの主張。→ [detector カタログ](src/stages/detectors/README.md)
+**Detector — 41 個の乖離検出器。** spec · code · test が食い違いうる、あらゆる方向を捕まえる:
+
+| 方向 | 捕まえるもの | 個数 |
+|---|---|--:|
+| spec ↔ code | spec にはあるのにコードにない、あるいはコードが spec から外れている | 10 |
+| code ↔ test | テストのないコード · カバレッジ低下 · 漏れた秘密情報 | 6 |
+| spec ↔ test | どのテストも検証しない受け入れ基準 · 虚偽のステータス | 6 |
+| spec hygiene | spec 自体の整合性 — id の衝突 · 依存の循環 | 8 |
+| environment | ビルド環境 · メタファイル | 3 |
+| verification freshness | 検証署名のあとに変わったコード | 1 |
+| governance · docs | ポリシー違反 · ドキュメントの乖離 · 根拠を超えた主張 | 4 |
+| graph · doc links | 壊れた doc ↔ spec のリンク · 欠けた依存エッジ | 3 |
+
+これらが支えるグラフは **トレーサビリティ / 検索であって、正確性の主張ではない** — 何が何につながり、何を再確認すべきかは教えるが、コードが正しいとは言わない。→ [detector カタログ全体](src/stages/detectors/README.md)
+
+一つの feature のライフサイクルは **Define → Sync → Implement → Earn** と進む — あらゆるチェックを通してはじめて `done` を勝ち取る。
 
 <!-- ─────────────── Agent-loop verifier ─────────────── -->
 
@@ -189,6 +246,8 @@ cd <project>              # プロジェクトへ移動
 clad setup                # AI ツールを自動配線（Claude · Codex · Gemini · Cursor）
 ```
 
+<sub>各ホストは cladding を MCP サーバーとして接続し、AI が自分で呼び出す — `/mcp` コマンドも手動での接続手順もなく、ただ普通に会話するだけでいい。</sub>
+
 続いて、プロジェクトにつき一度だけ、AI ツールの中から init を呼び出す:
 
 ```
@@ -204,6 +263,19 @@ clad setup                # AI ツールを自動配線（Claude · Codex · Gem
 | **既存プロジェクトへ導入する** | `/cladding:init "このプロジェクトに cladding を適用して"` | 既存コードをスキャン → 観察したパターンと intent を結合 |
 
 **host サポート（正直な注記）:** Claude Code は実利用キャンペーン（リアルタイム介入を含む）で全機能を検証済み。Codex · Gemini CLI は配線の自動化 + 基本動作を確認済み。Cursor は配線は自動だが、実利用での検証はまだこれから。→ [セットアップ詳細 · host 配線 · MCP · アップグレード](docs/setup.md)
+
+<!-- ─────────────── Update ─────────────── -->
+
+## Update
+
+最新に保つのはコマンド二つ — あるいは AI ツールに頼むだけでいい。
+
+```bash
+npm update -g cladding   # 1. 新しいバージョンを入れる
+clad update              # 2. プロジェクトにつき一度 — 足並みをそろえる
+```
+
+AI ツールの中では *「cladding を最新版に更新して」* と言うだけで、この二つのステップを代わりに実行してくれる。どちらの道でも、あなたのコード · `spec.yaml` · ドキュメントには手を触れない。より厳しいバージョンで指摘すべきことがあっても、**指摘するだけ** で、ブロックも修正もしない。
 
 <!-- ─────────────── Status ─────────────── -->
 

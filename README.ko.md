@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>기업이 AI에게 코딩을 맡기려면 세 가지가 필요하다 —<br/>믿을 수 있고, 추적되고, 규모가 커져도 흔들리지 않아야 한다. cladding이 그 셋을 만든다.</strong><br/>
-  호스트 LLM(Claude Code · Codex · Gemini · Cursor)을 감싼다: 일을 <em>시작하기 전</em>엔 프로젝트의 의도를 넣어 주고, <em>마친 후</em>엔 41개 검출기와 15단계 게이트로 결과를 검증한다.
+  cladding(외장재)이라는 이름 그대로, 호스트 LLM(Claude Code · Codex · Gemini · Cursor)을 감싼다: 일을 <em>시작하기 전</em>엔 프로젝트의 의도를 넣어 주고, <em>마친 후</em>엔 41개 검출기와 15단계 게이트로 결과를 검증한다.
 </p>
 
 <p align="center">
@@ -25,9 +25,13 @@
 
 > **이 루프가 노리는 것은 하나 —** AI의 *"다 됐습니다"*를 말이 아니라 **증명**으로 만드는 것이다.
 
-그래서 AI가 짠 코드를 **사람이 짠 코드만큼 믿고** 내보낼 수 있다. cladding은 **자기 자신도 cladding으로 만든다** — 기능 254개 중 251개가 같은 게이트를 통과했고, [Ironclad](https://github.com/qwerfunch/ironclad) 표준을 L4로 구현한 첫 사례다.
+그래서 AI가 짠 코드를 **사람이 짠 코드만큼 믿고** 내보낼 수 있다 — 팀이 AI에게 코딩을 맡기는 데 필요한 세 가지다.
 
-**나간 것은 기록에 남는다** — 무엇을 검증했는지는 커밋된 내용에 새겨지고, 누가·언제는 로컬 세션 로그에, 왜는 스펙에 남아, 인수인계와 리뷰가 파헤치지 않고도 결정을 추적한다.
+- **신뢰** — 모든 검사를 통과한 코드만 `done`으로 인정된다. 검증할 수 없는 "다 됐습니다"는 결코 통과하지 못한다.
+- **추적** — **나간 것은 기록에 남는다**: 무엇을 검증했는지는 커밋된 내용에 새겨지고, 누가·언제는 로컬 세션 로그에, 왜는 스펙에 남아, 인수인계와 리뷰가 파헤치지 않아도 된다.
+- **확장** — 스펙이 공유 기준선이라, 팀과 AI 수가 늘어도 충돌과 어긋남이 자동으로 차단된다.
+
+cladding은 **자기 자신도 cladding으로 만든다** — 기능 254개 중 251개가 같은 게이트를 통과했고, [Ironclad](https://github.com/qwerfunch/ironclad) 표준을 L4로 구현한 첫 사례다.
 
 <!-- ─────────────── 무엇이 달라지나 ─────────────── -->
 
@@ -43,6 +47,12 @@
 | **두 명이 동시에 feature 추가** | merge conflict | hash-8 ID · 파일 분리 → 충돌 0 |
 | **AI가 짠 코드를 누가 검증?** | 작성한 AI가 자기 검증 (위험) | 구현을 못 보는 채점자 + 기계 관문 |
 | **AI 도구를 바꿀 때** | 도구마다 재구성 | 1 spec → 4 host 자동 연결 |
+
+## 누구를 위한 것
+
+- **혼자서 에이전트 루프를 돌리는 사람** — cladding은 루프가 읽는 정직한 멈춤 조건이자 피드백 신호다([에이전트 루프 검증자](#에이전트-루프의-검증자로-쓰기) 참고).
+- **AI 기여자를 늘리는 팀** — 스펙 하나가 공유 기준선이라, 사람과 모델을 늘려도 어긋남과 merge conflict가 자동으로 차단된다.
+- **검증 가능한 기록이 필요한 조직** — 모든 `done`이 커밋 가능한 검증 서명을 지니고, 각 결정의 왜가 스펙에 남는다.
 
 <!-- ─────────────── cladding이 호스트 LLM을 감싸는 방식 ─────────────── -->
 
@@ -94,6 +104,8 @@ AI 코딩의 고질병은 *"다 됐습니다"* 가 검증 없이 선언되는 �
 
 </div>
 
+<sub>파랑 = 스펙(가운데) · 주황 = 코드 · 초록 = 테스트 · 분홍 = 문서; 연결이 많은 노드일수록 커지고 가운데로 당겨진다.</sub>
+
 - **본다** — `clad graph serve` 하면 프로젝트 전체가 브라우저에 떠서, 뭐가 뭐랑 연결됐는지 한눈에 보인다.
 - **물어본다** — *"이거 고치면 뭐가 깨지지?"* 그래프에 물어보면 영향받는 코드와 돌려야 할 테스트가 나온다 — 추측하지 않는다.
 - **재본다** — 프로젝트가 클수록 더 아낀다: 뭔가 고칠 때 읽어야 할 양이 평균 **4배 적다** (`clad measure`).
@@ -117,7 +129,30 @@ clad graph export --format html --out graph.html  # 또는 오프라인 한 파�
 
 </div>
 
-**Spec — 의도의 단일 출처.** 4계층 기준 체계다: 의도(A) → 설계(B) → 코드 + 검증 서명(C) → 감사(D). **A가 모든 계층보다 우선** — spec과 코드가 다르면 틀린 쪽은 *코드*다. 기능마다 8자리 hash ID(`F-d86375d8`)를 가진 별도 샤드 파일이라, 두 명이 동시에 기능을 추가해도 절대 충돌하지 않는다. → [4계층 모델](docs/ssot-model.md) · [hash 기반 ID](docs/spec-ids-multi-dev.md)
+**Spec — 의도의 단일 출처.** 위에서 아래로 4계층 기준 체계다:
+
+| 계층 | 담는 것 | 작성자 | 권위 |
+|---|---|---|---|
+| **A · Spec** | 의도(무엇 · 왜) | 사람이 의도를 정하고 → LLM이 EARS로 쓴다 | 봉인 · 사람 승인 없이는 바뀌지 않는다 · 모든 계층보다 우선 |
+| **B · Design** | 설계(어떻게) | 사람이 방향을 잡고 → LLM이 쓴다 | A에 비추어 검사 |
+| **C · Derived** | 코드 · 테스트 + **attestation**(검증 서명) | LLM이 쓴다 | 코드에서 자동 재생성 |
+| **D · Audit** | 실제로 일어난 일 | 자동 기록, append-only | 로컬 |
+
+**A가 모든 계층보다 우선** — spec과 코드가 다르면 틀린 쪽은 *코드*다. 기능마다 8자리 hash ID를 가진 별도 샤드 파일이라, 두 명이 동시에 기능을 추가해도 절대 충돌하지 않는다. 기능 하나는 이렇게 생겼다 — 의도를 검증 가능한 수용 기준으로, EARS 형식으로:
+
+```yaml
+# spec/features/checkout-a1b2c3d4.yaml
+id: F-a1b2c3d4
+slug: checkout-idempotency
+status: done
+acceptance_criteria:
+  - id: AC-9f3e21a0
+    text: "When a charge is retried with the same idempotency key, the system
+            shall return the original result and never double-charge."
+    test_refs: ["tests/checkout/idempotency.test.ts#retry returns the original charge"]
+```
+
+→ [4계층 모델](docs/ssot-model.md) · [hash 기반 ID](docs/spec-ids-multi-dev.md)
 
 <div align="center">
 
@@ -125,7 +160,14 @@ clad graph export --format html --out graph.html  # 또는 오프라인 한 파�
 
 </div>
 
-**Gate — 15단계 Iron Law.** 검사 엔진은 하나, 비용에 따라 묶어서 건다: commit 때 3단계, push · 완료 시점에 9단계, CI에서 15단계 전부. 깊이만 다르다. → [15단계 전체](docs/gate-stages.md)
+**Gate — 15단계 Iron Law.** 검사 엔진은 하나, 비용에 따라 묶어서 건다 — commit 때 3단계, push · 완료 시점에 9단계, CI에서 15단계 전부:
+
+- **정적 (6)** — Type · Lint · Drift · Commit-clean · Architecture · Secrets
+- **테스트 · 적합성 (4)** — Unit · Coverage · Spec-conformance(구현을 못 보는 채점자) · **Deliverable smoke** *(빈 초록을 차단한다: 테스트는 통과하는데 산출물은 한 번도 실행되지 않는 경우)*
+- **E2E (3)** — Smoke · Performance · Visual
+- **증거 (2)** — Audit(모든 수용 기준에 증거가 있다) · UAT(모든 done 기능에 증거가 있다)
+
+→ [15단계 전체](docs/gate-stages.md)
 
 <div align="center">
 
@@ -133,7 +175,22 @@ clad graph export --format html --out graph.html  # 또는 오프라인 한 파�
 
 </div>
 
-**Detector — 41개.** spec · code · test 사이 모든 방향의 어긋남을 잡는다: 빠진 구현, 테스트 없는 수용 기준, 거짓 상태, 신선하지 않은 검증 서명, 근거를 넘어선 문서 주장. → [detector 카탈로그](src/stages/detectors/README.md)
+**Detector — 41개 어긋남 검출기.** spec · code · test가 어긋날 수 있는 모든 방향을 잡는다:
+
+| 방향 | 잡는 것 | # |
+|---|---|--:|
+| spec ↔ code | 스펙에는 있는데 코드에 없거나, 스펙에서 벗어난 코드 | 10 |
+| code ↔ test | 테스트 없는 코드 · coverage 하락 · 새어 나간 비밀 | 6 |
+| spec ↔ test | 어떤 테스트도 검증하지 않는 수용 기준 · 거짓 상태 | 6 |
+| spec 위생 | 스펙 자체의 무결성 — id 충돌 · 의존성 순환 | 8 |
+| 환경 | 빌드 환경 · meta 파일 | 3 |
+| 검증 신선도 | 검증 서명 이후 바뀐 코드 | 1 |
+| 거버넌스 · 문서 | 정책 위반 · 문서 어긋남 · 근거를 넘어선 주장 | 4 |
+| 그래프 · 문서 링크 | 끊어진 문서 ↔ 스펙 링크 · 빠진 의존성 엣지 | 3 |
+
+이 검출기들이 떠받치는 그래프는 **트레이서빌리티 · 검색이지 정확성 주장이 아니다** — 무엇이 무엇과 연결됐고 무엇을 다시 확인해야 하는지는 알려 주지만, 코드가 맞다고 말해 주지는 않는다. → [detector 카탈로그 전체](src/stages/detectors/README.md)
+
+한 기능의 생애주기는 **Define → Sync → Implement → Earn**으로 흐른다 — 모든 검사를 통과해야만 `done`을 얻는다.
 
 <!-- ─────────────── 에이전트 루프의 검증자 ─────────────── -->
 
@@ -188,6 +245,8 @@ cd <project>              # 프로젝트로 이동
 clad setup                # AI 도구 자동 연결 (Claude · Codex · Gemini · Cursor)
 ```
 
+<sub>각 호스트는 cladding을 AI가 알아서 호출하는 MCP 서버로 연결한다 — `/mcp` 명령도 수동 연결 단계도 없이, 그냥 대화하면 된다.</sub>
+
 그다음, 프로젝트당 한 번, AI 도구 안에서 init을 호출한다:
 
 ```
@@ -203,6 +262,19 @@ clad setup                # AI 도구 자동 연결 (Claude · Codex · Gemini �
 | **기존 프로젝트 도입** | `/cladding:init "이 프로젝트에 cladding 적용해줘"` | 기존 코드 스캔 → 관찰한 패턴을 intent와 결합 |
 
 **호스트 지원 현황(정직 고지):** Claude Code는 실사용 캠페인으로 전 기능 검증됨(실시간 개입 포함). Codex · Gemini CLI는 배선 자동화 + 기본 동작 확인. Cursor는 연결은 자동이지만 실사용 검증이 아직이다. → [설치 상세 · 호스트 배선 · MCP · 업그레이드](docs/setup.md)
+
+<!-- ─────────────── Update ─────────────── -->
+
+## Update
+
+최신 상태 유지는 두 명령 — 아니면 AI 도구에게 시키기만 하면 된다.
+
+```bash
+npm update -g cladding   # 1. 새 버전 받기
+clad update              # 2. 프로젝트당 한 번 — 맞춰 정렬
+```
+
+AI 도구에 *"cladding 최신 버전으로 업데이트해줘"*라고 말하면 두 단계를 알아서 실행한다. 어느 쪽이든 코드 · `spec.yaml` · 문서는 그대로 두고, 더 엄격해진 버전이 짚을 게 있으면 **짚어만 준다** — 막거나 고치지 않는다.
 
 <!-- ─────────────── Status ─────────────── -->
 

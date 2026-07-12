@@ -227,7 +227,7 @@
 
   <p class="tagline">
     <strong>To trust AI with coding, an organization needs three things — that the code can be trusted, that it's traced, and that it holds up as you scale. cladding builds those three.</strong><br>
-    It wraps your host LLM (Claude Code · Codex · Gemini · Cursor): <em>before</em> it starts, cladding feeds it the project's intent; <em>after</em> it finishes, cladding verifies the result with 41 detectors and a 15-stage gate.
+    True to its name (cladding = the outer layer), it wraps your host LLM (Claude Code · Codex · Gemini · Cursor): <em>before</em> it starts, cladding feeds it the project's intent; <em>after</em> it finishes, cladding verifies the result with 41 detectors and a 15-stage gate.
   </p>
 
   <p class="badges">
@@ -249,15 +249,28 @@
       turning the AI's <em>"it's done"</em> from a claim into a <em>proof</em>.
     </p>
     <p class="why">
-      So you can ship AI-written code with <strong>the same trust as human-written code</strong>.
-    </p>
-    <p class="why" style="margin-top:14px">
-      cladding builds <strong>itself with cladding too</strong> — 251 of its 254 features cleared this same gate, the first L4 implementation of the Ironclad standard.
-    </p>
-    <p class="why" style="margin-top:14px">
-      <strong>What shipped is on the record</strong> — what was verified is stamped into committed content, who and when land in the local session ledger, and why lives in the spec.
+      So you can ship AI-written code with <strong>the same trust as human-written code</strong> — the three things a team needs to hand coding to AI:
     </p>
   </div>
+
+  <div class="flow-cards">
+    <div class="flow-card before">
+      <span class="badge">TRUSTED</span>
+      <p>Only code that cleared every check is recognized as <code>done</code>; an "it's done" you can't verify never passes.</p>
+    </div>
+    <div class="flow-card after">
+      <span class="badge">TRACED</span>
+      <p><strong>What shipped is on the record</strong>: what was verified is stamped into committed content, who and when land in the local session ledger, and the why lives in the spec — so handoff and review skip the archaeology.</p>
+    </div>
+    <div class="flow-card record">
+      <span class="badge">SCALES</span>
+      <p>The spec is the shared baseline, so as the team and the number of AIs grow, conflicts and drift are blocked automatically.</p>
+    </div>
+  </div>
+
+  <p style="text-align:center;font-size:15px;color:#475569;max-width:760px;margin:14px auto 0">
+    cladding builds <strong>itself with cladding too</strong> — 251 of its 254 features cleared this same gate, the first L4 implementation of the Ironclad standard.
+  </p>
 
   <!-- ─────────────── What changes ─────────────── -->
   <h2>What changes</h2>
@@ -275,6 +288,14 @@
       <tr><td><strong>Switching AI tools</strong></td><td class="vanilla-cell">reconfigure per tool</td><td class="cladding-cell">one spec → 4 hosts wired automatically</td></tr>
     </tbody>
   </table>
+
+  <!-- ─────────────── Who it's for ─────────────── -->
+  <h2>Who it's for</h2>
+  <ul>
+    <li><strong>Solo, running an agent loop</strong> — cladding is the honest stop-condition and feedback signal your loop reads (see the agent-loop verifier section below).</li>
+    <li><strong>A team adding AI contributors</strong> — one spec is the shared baseline, so drift and merge conflicts are blocked automatically as you add people and models.</li>
+    <li><strong>An org that needs a verifiable record</strong> — every <code>done</code> carries a committable verify signature, and the why behind each decision lives in the spec.</li>
+  </ul>
 
   <!-- ─────────────── How cladding wraps your host LLM ─────────────── -->
   <h2>How cladding wraps your host LLM</h2>
@@ -328,12 +349,12 @@
     <div class="line">Docs lie as time passes: the code changes, the description doesn't. cladding re-checks that link every time it reads the code, and blocks "done" while the two are out of sync.</div>
   </div>
 
-  <p style="text-align:center;font-size:15px;color:#475569;margin:28px 0 0">
-    Blue = spec (center), orange = code, green = tests, pink = docs; more-connected nodes grow larger and pull to the center.
-  </p>
   <div class="diagram">
     <img class="diagram-img" src="docs/img/en/graph.gif" alt="cladding knowledge graph — spec · code · tests · docs color-coded and connected (animated view)" width="920" style="border-radius:12px">
   </div>
+  <p style="text-align:center;font-size:13px;color:#64748b;margin:8px 0 0">
+    Blue = spec (center) · orange = code · green = tests · pink = docs; more-connected nodes grow larger and pull to the center.
+  </p>
 
   <div class="flow-cards">
     <div class="flow-card before">
@@ -366,19 +387,65 @@ clad graph export --format html --out graph.html  # or a single offline .html fi
   </div>
 
   <h3>Spec — the single source of intent</h3>
-  <p>A 4-tier source of truth: intent (A) → design (B) → code + attestation (C) → audit (D). <strong>A outranks all</strong> — if spec and code disagree, the <em>code</em> is wrong. Each feature is its own sharded file with an 8-char hash ID (<code>F-d86375d8</code>), so two devs adding features at once never collide. → <a href="docs/ssot-model.md">4-tier model</a> · <a href="docs/spec-ids-multi-dev.md">hash-based IDs</a></p>
+  <p>A 4-tier source of truth, top to bottom:</p>
+  <table>
+    <thead>
+      <tr><th>Tier</th><th>Holds</th><th>Written by</th><th>Authority</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>A · Spec</strong></td><td>intent (what · why)</td><td>humans set the intent → the LLM writes it in EARS</td><td>sealed · no change without human sign-off · outranks all</td></tr>
+      <tr><td><strong>B · Design</strong></td><td>design (how)</td><td>humans steer → the LLM writes</td><td>checked against A</td></tr>
+      <tr><td><strong>C · Derived</strong></td><td>code · tests + <strong>attestation</strong> (the verify signature)</td><td>the LLM writes</td><td>auto-regenerated from the code</td></tr>
+      <tr><td><strong>D · Audit</strong></td><td>what actually happened</td><td>auto-recorded, append-only</td><td>local</td></tr>
+    </tbody>
+  </table>
+  <p><strong>A outranks all</strong> — if the spec and the code disagree, the <em>code</em> is what's wrong. Each feature is its own sharded file with an 8-char hash ID, so two devs adding features at once never collide. A feature reads like this — intent as a testable acceptance criterion, in EARS form:</p>
+  <pre><code># spec/features/checkout-a1b2c3d4.yaml
+id: F-a1b2c3d4
+slug: checkout-idempotency
+status: done
+acceptance_criteria:
+  - id: AC-9f3e21a0
+    text: "When a charge is retried with the same idempotency key, the system
+            shall return the original result and never double-charge."
+    test_refs: ["tests/checkout/idempotency.test.ts#retry returns the original charge"]</code></pre>
+  <p style="font-size:14px">→ <a href="docs/ssot-model.md">4-tier model</a> · <a href="docs/spec-ids-multi-dev.md">hash-based IDs</a></p>
   <div class="diagram">
     <img class="diagram-img" src="docs/img/en/ssot-tier.svg" alt="4-tier SSoT — A(Spec) → B(Design) → C(Derived + attestation) → D(Audit), A outranks B" width="640">
   </div>
 
   <h3>Gate — the 15-stage Iron Law</h3>
-  <p>One check engine, bundled by cost: 3 stages at commit, 9 at push / completion, all 15 in CI. Only the depth differs. → <a href="docs/gate-stages.md">the 15 stages</a></p>
+  <p>One check engine, bundled by cost — 3 run at commit, 9 at push / completion, all 15 in CI:</p>
+  <ul>
+    <li><strong>Static (6)</strong> — Type · Lint · Drift · Commit-clean · Architecture · Secrets</li>
+    <li><strong>Test &amp; conformance (4)</strong> — Unit · Coverage · Spec-conformance (the impl-blind grader) · <strong>Deliverable smoke</strong> <em>(blocks the empty green: tests pass but the deliverable never runs)</em></li>
+    <li><strong>End-to-end (3)</strong> — Smoke · Performance · Visual</li>
+    <li><strong>Evidence (2)</strong> — Audit (every acceptance criterion has evidence) · UAT (every done feature has evidence)</li>
+  </ul>
+  <p style="font-size:14px">→ <a href="docs/gate-stages.md">the 15 stages</a></p>
   <div class="diagram">
     <img class="diagram-img" src="docs/img/en/iron-law.svg" alt="15-stage Iron Law gate — static(6) · tests·conformance(4) · E2E(3) · evidence(2), attestation signed when GREEN" width="640">
   </div>
 
-  <h3>Detectors — 41 of them</h3>
-  <p>They catch drift across spec · code · test in every direction: missing implementations, untested acceptance criteria, false status, stale attestations, docs that over-claim. → <a href="src/stages/detectors/README.md">detector catalog</a></p>
+  <h3>Detectors — 41 drift detectors</h3>
+  <p>They catch every direction spec · code · test can diverge:</p>
+  <table>
+    <thead>
+      <tr><th>Direction</th><th>Catches</th><th style="text-align:right">#</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>spec ↔ code</td><td>in the spec but missing from code, or code that strays from it</td><td style="text-align:right">10</td></tr>
+      <tr><td>code ↔ test</td><td>code with no test · coverage drop · leaked secrets</td><td style="text-align:right">6</td></tr>
+      <tr><td>spec ↔ test</td><td>an acceptance criterion no test verifies · false status</td><td style="text-align:right">6</td></tr>
+      <tr><td>spec hygiene</td><td>the spec's own integrity — id collisions · dependency cycles</td><td style="text-align:right">8</td></tr>
+      <tr><td>environment</td><td>build environment · meta files</td><td style="text-align:right">3</td></tr>
+      <tr><td>verification freshness</td><td>code changed since its verify signature</td><td style="text-align:right">1</td></tr>
+      <tr><td>governance · docs</td><td>policy violations · doc drift · claims beyond the evidence</td><td style="text-align:right">4</td></tr>
+      <tr><td>graph · doc links</td><td>broken doc ↔ spec links · missing dependency edges</td><td style="text-align:right">3</td></tr>
+    </tbody>
+  </table>
+  <p>The graph these power is <strong>traceability / retrieval, not a correctness claim</strong> — it tells you what connects to what and what to re-check; it doesn't say the code is right. → <a href="src/stages/detectors/README.md">full detector catalog</a></p>
+  <p>One feature's lifecycle runs <strong>Define → Sync → Implement → Earn</strong> — you earn <code>done</code> only by passing every check.</p>
 
   <!-- ─────────────── Agent-loop verifier ─────────────── -->
   <h2>Using cladding as your agent loop's verifier</h2>
@@ -428,6 +495,8 @@ clad graph export --format html --out graph.html  # or a single offline .html fi
 cd &lt;project&gt;              # your project
 clad setup                # auto-wire your AI tools (Claude · Codex · Gemini · Cursor)</code></pre>
 
+  <p style="font-size:13px;color:#64748b">Each host wires cladding as an MCP server the AI calls on its own — there's no <code>/mcp</code> command and no manual connect step; you just chat.</p>
+
   <p>Then, once per project, call init inside your AI tool:</p>
   <pre><code>[inside your AI tool] /cladding:init "B2B payment SaaS"</code></pre>
 
@@ -445,6 +514,13 @@ clad setup                # auto-wire your AI tools (Claude · Codex · Gemini �
   </table>
 
   <p style="font-size:14px;color:#475569"><strong>Host support (honest):</strong> Claude Code is fully verified through real-usage campaigns (incl. real-time intervention). Codex · Gemini CLI have automated wiring + basic behavior confirmed. Cursor wires automatically, but real-usage verification is still pending. → <a href="docs/setup.md">setup details · host wiring · MCP · upgrading</a></p>
+
+  <!-- ─────────────── Update ─────────────── -->
+  <h2>Update</h2>
+  <p>Staying current is two commands — or just ask your AI tool to do it.</p>
+  <pre><code>npm update -g cladding   # 1. get the new version
+clad update              # 2. once per project — bring it in line</code></pre>
+  <p>Inside your AI tool you can simply say <em>"update cladding to the latest version"</em> and it runs both steps for you. Either way your code · <code>spec.yaml</code> · docs are left untouched; if a stricter version has something to flag, it only <strong>points it out</strong> — it won't block or fix anything.</p>
 
   <!-- ─────────────── Status ─────────────── -->
   <h2>Status</h2>

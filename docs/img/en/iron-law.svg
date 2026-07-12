@@ -4,7 +4,7 @@
       :root{
         --brand:#3b82f6; --brand-deep:#1d4ed8; --brand-soft:#eff6ff;
         --ink:#6b7280; --text:#737a84; --muted:#6f757f; --faint:#8b919b;
-        --border:#8b93a1; --surface:none; --ok:#16a34a; --block:#e11d48; --brand-text:#3f76d6;
+        --border:#8b93a1; --surface:rgba(148,163,184,0.18); --ok:#16a34a; --block:#e11d48; --brand-text:#3f76d6;
       }
       .title{font-size:19px;font-weight:800;fill:var(--ink);letter-spacing:-.3px}
       .sub0{font-size:12.5px;fill:var(--muted)}
