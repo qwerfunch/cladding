@@ -18,6 +18,8 @@ docs:
     features: [F-06dfdad6]
   "docs/conventions.md":
     doc_links: ["docs/code-style.md"]
+  "docs/gate-stages.md":
+    doc_links: ["src/stages/detectors/README.md"]
   "docs/glossary.md":
     features: [F-1d23a6, F-6ba22c5c, F-7ce18e, F-b84c38]
   "docs/knowledge-graph/design.md":

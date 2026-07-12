@@ -21,10 +21,10 @@ attested_modules:
   CHANGELOG.md: d437104f3e6b98c3
   CLAUDE.md: d81d8832976cd5ee
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: 5b247f36f87ae3fd
-  README.ko.html: 0f5e250b33ede80e
-  README.ko.md: a3e15f15f2733458
-  README.md: 9386b029e637b95c
+  README.html: b5e78d10a55a1075
+  README.ko.html: dda83c6ccde0f278
+  README.ko.md: 481d91fe7dfd3941
+  README.md: cb6dbf58795487cd
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -53,10 +53,10 @@ attested_modules:
   docs/dogfood/gemini-cli-2026-05-20.md: 2da1ba66c4f108f0
   docs/feature-cycle.md: 6af4ff8fe15db28a
   docs/glossary.md: a098105826459c02
-  docs/img/en/ecosystem.svg: 686fb1eb2b93711c
-  docs/img/en/relationship.svg: 67470f930df33119
-  docs/img/ko/ecosystem.svg: 7c9b2d68fdaa70cf
-  docs/img/ko/relationship.svg: e71e2327ca835fcf
+  docs/img/en/ecosystem.svg: 5b73c875b86f4579
+  docs/img/en/relationship.svg: f6e428f1eef8b97e
+  docs/img/ko/ecosystem.svg: a871d62c188fb004
+  docs/img/ko/relationship.svg: 2710d7c5aecd9d51
   docs/multi-provider-roadmap.md: 1e5cf27ea1b18d06
   docs/refinement-backlog.md: 3e38d60bf987eef1
   docs/spec-ids-multi-dev.md: 28d58e84879f58b1

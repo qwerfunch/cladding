@@ -221,15 +221,13 @@
 <body>
 <div class="container">
 
-  <p style="text-align:center;margin:0 0 24px"><img src="docs/img/social-preview.png" alt="cladding — Unified Governance for AI-Coupled Engineering" style="width:100%;max-width:920px;border-radius:8px"></p>
-
   <p style="text-align:center;font-size:14px;color:#64748b;margin:0 0 12px"><strong>English</strong> · <a href="README.ko.html">한국어</a></p>
 
   <h1>cladding</h1>
 
   <p class="tagline">
-    <strong>To trust AI with coding, an organization needs three things —<br>that the code can be trusted, that it's traced, and that it holds up as you scale. cladding builds those three.</strong><br>
-    True to its name (cladding = the outer layer), it wraps the host LLM and verifies what comes before and after.
+    <strong>To trust AI with coding, an organization needs three things — that the code can be trusted, that it's traced, and that it holds up as you scale. cladding builds those three.</strong><br>
+    It wraps your host LLM (Claude Code · Codex · Gemini · Cursor): <em>before</em> it starts, cladding feeds it the project's intent; <em>after</em> it finishes, cladding verifies the result with 41 detectors and a 15-stage gate.
   </p>
 
   <p class="badges">
@@ -240,28 +238,6 @@
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"></a>
   </p>
 
-  <p class="lead">
-    The official reference implementation of the <a href="https://github.com/qwerfunch/ironclad">Ironclad</a> standard.<br>
-    It feeds the project's intent to the host LLM (Claude Code · Codex · Gemini · Cursor) <em>before</em> work begins,<br>
-    and verifies the result with 41 detectors and a 15-stage gate <em>after</em> the work is done.
-  </p>
-
-  <!-- ─────────────── Why an organization can trust AI with coding (intuition hook) ─────────────── -->
-  <div class="flow-cards">
-    <div class="flow-card">
-      <div class="title">Only verified code ships as 'done'</div>
-      <p>Even when the AI says "it's done", it has to pass the checks — so code that wasn't verified is never accepted as 'done'.</p>
-    </div>
-    <div class="flow-card">
-      <div class="title">What shipped is on the record</div>
-      <p>What was verified is stamped into committed content, who and when land in the local session ledger, and why lives in the spec — so handoff and review can trace decisions without archaeology.</p>
-    </div>
-    <div class="flow-card">
-      <div class="title">It holds up as the team grows and you add more AIs</div>
-      <p>Because the spec is the shared standard, conflicts and drift are blocked automatically.</p>
-    </div>
-  </div>
-
   <!-- ─────────────── Core diagram: the collaboration loop with the host LLM ─────────────── -->
   <div class="diagram">
     <img class="diagram-img" src="docs/img/en/relationship.svg" alt="Host LLM before (inject intent) · after (verify) · record (feedback loop) — how cladding wraps the LLM in a collaborative structure" width="920">
@@ -269,192 +245,140 @@
 
   <div class="goal">
     <p class="what">
-      This loop aims at one thing —<br>
+      This loop is after one thing —<br>
       turning the AI's <em>"it's done"</em> from a claim into a <em>proof</em>.
     </p>
     <p class="why">
-      So you can ship AI-written code <strong>trusting it as much as code a human wrote</strong>.
+      So you can ship AI-written code with <strong>the same trust as human-written code</strong>.
     </p>
     <p class="why" style="margin-top:14px">
-      cladding builds <strong>itself with cladding too</strong> — 251 of its 254 features passed the same gate, and it's the first L4 implementation of the Ironclad standard.
+      cladding builds <strong>itself with cladding too</strong> — 251 of its 254 features cleared this same gate, the first L4 implementation of the Ironclad standard.
+    </p>
+    <p class="why" style="margin-top:14px">
+      <strong>What shipped is on the record</strong> — what was verified is stamped into committed content, who and when land in the local session ledger, and why lives in the spec.
     </p>
   </div>
 
-  <!-- ─────────────── How we work together ─────────────── -->
-  <h2>How cladding works with your host LLM</h2>
+  <!-- ─────────────── What changes ─────────────── -->
+  <h2>What changes</h2>
+  <p>The same situation, in a <em>vanilla AI setup</em> and in cladding.</p>
+  <table>
+    <thead>
+      <tr><th>Situation</th><th class="center">Vanilla AI coding</th><th class="center">cladding</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Code drifts from the spec</strong></td><td class="vanilla-cell">fixed <em>if</em> a reviewer notices</td><td class="cladding-cell">auto-detected right after the edit · "done" can't pass while it's drifting</td></tr>
+      <tr><td><strong>The AI says "it's done"</strong></td><td class="vanilla-cell">you take its word</td><td class="cladding-cell">done earned only when the gate is GREEN</td></tr>
+      <tr><td><strong>Ending a session in a failing state</strong></td><td class="vanilla-cell">exits as-is, forgotten next time</td><td class="cladding-cell">the exit is blocked once, the repair card handed off</td></tr>
+      <tr><td><strong>Two devs add a feature at the same time</strong></td><td class="vanilla-cell">merge conflict</td><td class="cladding-cell">hash-8 IDs · separate files → 0 conflicts</td></tr>
+      <tr><td><strong>Who verifies the AI-written code?</strong></td><td class="vanilla-cell">the AI that wrote it self-certifies (risky)</td><td class="cladding-cell">an implementation-blind grader + the mechanical gate</td></tr>
+      <tr><td><strong>Switching AI tools</strong></td><td class="vanilla-cell">reconfigure per tool</td><td class="cladding-cell">one spec → 4 hosts wired automatically</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ─────────────── How cladding wraps your host LLM ─────────────── -->
+  <h2>How cladding wraps your host LLM</h2>
 
   <div class="flow-cards">
     <div class="flow-card before">
       <span class="badge">BEFORE — INJECT INTENT</span>
       <div class="title">So the LLM starts with the right context</div>
       <ul>
-        <li><strong>Project map injection</strong> — at the start of every session, the features, what's in progress, and the last verification result are handed over automatically <span style="font-size:13px;color:#64748b">(now you can see it with your eyes too ↓)</span></li>
-        <li><strong>Extract only the intent that matters</strong> — just the <em>why</em>, the related features, and the acceptance criteria for the feature you're working on (it does not dump the whole spec)</li>
-        <li><strong>Apply project rules</strong> — the team's forbidden and preferred patterns go in as standing instructions every time</li>
+        <li><strong>Only the intent that matters</strong> — the <em>why</em> of the feature at hand, its related features, and its acceptance criteria (never the whole spec)</li>
+        <li><strong>Project map injected</strong> — feature counts, what's in progress, and the last verification result, handed over at the start of every conversation <span style="font-size:13px;color:#64748b">(and now you can see it too ↓)</span></li>
+        <li><strong>Team rules applied</strong> — the forbidden and preferred patterns you agreed on, as standing instructions every time</li>
       </ul>
     </div>
   </div>
 
-  <p style="text-align:center;font-size:14px;color:#475569"><strong>After — verify:</strong> the 15-stage gate, 41 drift detectors, and an implementation-blind grader (below).</p>
+  <p style="text-align:center;font-size:14px;color:#475569"><strong>After — verify the result:</strong> the 15-stage gate, 41 drift detectors, and an <strong>implementation-blind grader</strong> — an agent that checks the work against the spec <em>with no tool to read the implementation</em>, so it can't rubber-stamp what it wrote.</p>
   <p style="font-size:13px;color:#64748b;text-align:center;margin-top:4px">
-    Real-time intervention (map injection · instant block · stop block) works fully in Claude Code.
-    On Codex · Gemini · Cursor the same verification runs through in-conversation tool calls and git · CI gates.
+    Real-time intervention (map injection · instant block · stop block) runs fully on Claude Code.
+    On Codex · Gemini · Cursor the same verification runs through in-conversation tool calls plus the git · CI gate.
   </p>
 
   <!-- ─────────────── done is earned ─────────────── -->
-  <h2>done is not declared, it's earned</h2>
+  <h2>"done" is earned, not declared</h2>
   <p>
-    The chronic disease of AI coding is that <em>"it's done"</em> gets declared without verification. In cladding, a feature's
-    <code>status: done</code> is not a value you write but a value you <strong>earn</strong>.
+    The chronic disease of AI coding is <em>"it's done"</em> declared with nothing behind it. In cladding, <code>status: done</code>
+    is not a value you write — it's a value you <strong>earn</strong>.
   </p>
   <div class="diagram">
     <img class="diagram-img" src="docs/img/en/intervention.svg" alt="One scene — a hook blocks the LLM's done declaration, a RED gate feeds back as a repair card, and done is earned only when GREEN" width="920">
   </div>
   <div class="earn">
-    <div class="line">① If the AI tries to <em>write the completion flag itself</em> → it is <strong>blocked on the spot</strong> ("earn completion through verification")</div>
-    <div class="line">② If the AI <em>requests</em> completion → it runs all 9 decisive stages and records done <strong>only when they all pass</strong>, auto-reverting if even one fails — the E2E · evidence stages are handled by CI's full 15 stages</div>
-    <div class="line">③ The moment it passes, a <strong>verification signature</strong> is left behind — committable proof that "this code was verified at this point"</div>
-    <div class="line">④ If you try to end a conversation while a failure remains → it <strong>stops you once</strong> (if you end again on the same failure, it records rather than letting it through) and carries the repair card into the next conversation</div>
+    <div class="line">① Try to <em>write the completion mark yourself</em> → <strong>blocked on the spot</strong> ("earn it by verifying it")</div>
+    <div class="line">② <em>Request</em> completion → all 9 deterministic stages run; recorded as done <strong>only if every one passes</strong>, else it auto-reverts (the E2E · evidence stages run in CI's full 15)</div>
+    <div class="line">③ The moment it passes, a <strong>verification signature</strong> is committed — proof that "this code was verified at this point"</div>
+    <div class="line">④ Try to <em>end a session on a failure</em> → <strong>blocked once</strong> (end again on the same failure and it records the fact rather than letting it through), and the repair card carries into the next conversation</div>
   </div>
   <p style="font-size:13.5px;color:#64748b">
-    The limits are disclosed openly too: bypass paths exist that the instant block can't see, and those are caught by after-the-fact verification (the gate · drift checks).
-    The instant block is the first line of defense, after-the-fact verification the second — and neither is a guarantee on its own.
+    Stated plainly: bypass paths exist that the instant block can't see; those are caught by the after-the-fact gate.
+    Instant block is the first line of defense, the gate the second — neither is a standalone guarantee.
   </p>
 
-  <!-- ─────────────── What changes ─────────────── -->
-  <h2>What changes</h2>
-  <p>How behavior differs between a <em>typical AI coding environment</em> and a cladding environment in the same situation.</p>
-  <table>
-    <thead>
-      <tr><th>Situation</th><th class="center">Typical AI coding</th><th class="center">cladding</th></tr>
-    </thead>
-    <tbody>
-      <tr><td><strong>When code drifts from the spec</strong></td><td class="vanilla-cell">Fixed <em>if</em> caught in review</td><td class="cladding-cell">Auto-detected right after editing (alert) · "done" can't pass while drifted</td></tr>
-      <tr><td><strong>When the AI says "it's done"</strong></td><td class="vanilla-cell">No choice but to trust its word</td><td class="cladding-cell">done earned only when the gate is GREEN</td></tr>
-      <tr><td><strong>When you end a session in a failed state</strong></td><td class="vanilla-cell">Ends as-is, forgotten next time</td><td class="cladding-cell">Stops the exit once and hands off a repair card</td></tr>
-      <tr><td><strong>Two people add a feature at once</strong></td><td class="vanilla-cell">merge conflict</td><td class="cladding-cell">hash-8 ID · separate files → 0 conflicts</td></tr>
-      <tr><td><strong>Who verifies AI-written code?</strong></td><td class="vanilla-cell">The AI that wrote it self-verifies (risky)</td><td class="cladding-cell">An implementation-blind grader + mechanical gate</td></tr>
-      <tr><td><strong>When you switch AI tools</strong></td><td class="vanilla-cell">Reconfigure per tool</td><td class="cladding-cell">1 spec → auto-wired to 4 hosts</td></tr>
-    </tbody>
-  </table>
-
   <!-- ─────────────── Project graph ─────────────── -->
-  <h2>Project graph — now you can see it and ask it <span style="font-size:13px;font-weight:400;color:#94a3b8">NEW</span></h2>
+  <h2>Project graph — see it and ask it <span style="font-size:13px;font-weight:400;color:#94a3b8">NEW</span></h2>
   <p>
-    cladding always keeps a <strong>graph</strong> inside it that links spec · code · tests · docs. Now you can see that graph with your own eyes.
+    This is cladding's <strong>internal graph of your project</strong> — spec · code · tests · docs, all connected. Now you can see it and ask it.
   </p>
 
   <div class="earn">
-    <div class="line"><strong>Why it's special — the explanation and the code don't drift apart.</strong></div>
-    <div class="line">Documentation lies as time passes — the code changes while the description stays put. cladding re-aligns that link every time the code is read, and blocks 'done' while they're out of sync.</div>
+    <div class="line"><strong>Why it matters — docs and code don't drift apart.</strong></div>
+    <div class="line">Docs lie as time passes: the code changes, the description doesn't. cladding re-checks that link every time it reads the code, and blocks "done" while the two are out of sync.</div>
   </div>
 
   <p style="text-align:center;font-size:15px;color:#475569;margin:28px 0 0">
-    This is cladding's <strong>internal graph</strong> of your project — blue = spec (center), orange = code, green = tests, pink = docs; more-connected nodes grow larger and pull to the center.
+    Blue = spec (center), orange = code, green = tests, pink = docs; more-connected nodes grow larger and pull to the center.
   </p>
   <div class="diagram">
     <img class="diagram-img" src="docs/img/en/graph.gif" alt="cladding knowledge graph — spec · code · tests · docs color-coded and connected (animated view)" width="920" style="border-radius:12px">
-
   </div>
 
   <div class="flow-cards">
     <div class="flow-card before">
       <span class="badge">SEE</span>
       <div class="title">Your whole project in one picture</div>
-      <p>Run <code>clad graph serve</code> and it opens in your browser, so you can see at a glance what connects to what.</p>
+      <p>Run <code>clad graph serve</code> and it opens in your browser — what connects to what, at a glance.</p>
     </div>
     <div class="flow-card after">
       <span class="badge">ASK</span>
       <div class="title">"What breaks if I change this?"</div>
-      <p>Ask the graph and it tells you what's affected and which tests to run — no guessing.</p>
+      <p>The graph answers with the affected code and the tests to run — it doesn't guess.</p>
     </div>
     <div class="flow-card record">
       <span class="badge">MEASURE</span>
-      <div class="title">The larger the project, the brighter it shines</div>
-      <p>The amount you have to read to make a change drops sharply — on average <strong>4× less</strong> than reading everything. (<code>clad measure</code>)</p>
+      <div class="title">The bigger the project, the more it saves</div>
+      <p>On average <strong>4× less</strong> to read when fixing something. (<code>clad measure</code>)</p>
     </div>
   </div>
 
-  <p style="font-size:14px;color:#475569;margin-top:18px">To launch it yourself — from your project folder:</p>
   <pre><code>clad graph serve                                  # live graph — localhost:3000, auto-reloads on save
-clad graph export --format html --out graph.html  # or export to a single offline .html file</code></pre>
-  <p style="font-size:13px;color:#64748b">Both require cladding 0.7.0+.</p>
+clad graph export --format html --out graph.html  # or a single offline .html file</code></pre>
+  <p style="font-size:13px;color:#64748b">Requires cladding 0.7.0+.</p>
 
-  <!-- ─────────────── How it works ─────────────── -->
-  <h2>How it works</h2>
-  <p><strong>Spec → Code → Tests</strong> circulates as one cycle — the spec records the <em>why</em>, the gate verifies, and detectors block drift.</p>
-
-  <div class="diagram">
-    <img class="diagram-img" src="docs/img/en/cycle.svg" alt="Spec → Code → Tests cycle — a 15-stage verification and 41 drift detectors guard the cycle" width="700">
-  </div>
-
-  <h3>1. Spec — the standard for everything (SSoT)</h3>
-  <p>The spec records the <em>why</em> (what is being built and why). A 4-tier single source of truth — <em>intent on top, artifacts below, and the code follows the spec</em>.</p>
-
-  <table>
-    <thead>
-      <tr><th>Tier</th><th>Role</th><th>Defined · authored by</th><th>Authority</th></tr>
-    </thead>
-    <tbody>
-      <tr><td><strong>A — Spec</strong></td><td>Intent (what · why)</td><td>Humans define intent → the LLM writes it in EARS form</td><td>Doesn't change without human approval · top priority</td></tr>
-      <tr><td><strong>B — Design</strong></td><td>Design (how)</td><td>Humans steer the direction → the LLM writes it</td><td>Checked for consistency with A</td></tr>
-      <tr><td><strong>C — Derived</strong></td><td>Artifacts (code · tests) + <strong>attestation</strong> (verification signature)</td><td>The LLM writes it</td><td>Auto-regenerated from the code</td></tr>
-      <tr><td><strong>D — Audit</strong></td><td>Audit record (what happened)</td><td>Auto-recorded (append-only)</td><td>Local</td></tr>
-    </tbody>
-  </table>
-
-  <p><strong>A takes precedence over every tier below</strong> — if the spec (A) and the code (C) differ, the wrong one is the <em>code</em>.</p>
-
-  <p><strong>Sharding · multi-dev safe</strong> — like <code>spec/features/&lt;slug&gt;-&lt;hash8&gt;.yaml</code>, with a <em>separate file per feature</em> + an <em>8-character hash ID</em> (e.g. <code>F-d86375d8</code>). Even if two people create a new feature at the same time, they get <em>different files · different IDs</em>, so merge conflicts are 0. Details in <a href="docs/spec-ids-multi-dev.md">Hash-based feature IDs</a>.</p>
+  <!-- ─────────────── Under the hood ─────────────── -->
+  <h2>Under the hood</h2>
+  <p><strong>Spec → Code → Tests</strong> as one cycle — the spec records the <em>why</em>, the gate verifies, the detectors block drift.</p>
 
   <div class="diagram">
-    <img class="diagram-img" src="docs/img/en/ssot-tier.svg" alt="4-tier SSoT — A(Spec) → B(Design) → C(Derived + attestation) → D(Audit), A takes precedence over B" width="640">
+    <img class="diagram-img" src="docs/img/en/cycle.svg" alt="Spec → Code → Tests cycle — the 15-stage verification and 41 drift detectors guard the cycle" width="700">
   </div>
 
-  <h3>2. Gate — the 15-stage Iron Law</h3>
-  <p>One check engine, bundled by cost — 3 stages at commit, 9 at push · completion, all 15 in CI. Only the depth differs.</p>
+  <h3>Spec — the single source of intent</h3>
+  <p>A 4-tier source of truth: intent (A) → design (B) → code + attestation (C) → audit (D). <strong>A outranks all</strong> — if spec and code disagree, the <em>code</em> is wrong. Each feature is its own sharded file with an 8-char hash ID (<code>F-d86375d8</code>), so two devs adding features at once never collide. → <a href="docs/ssot-model.md">4-tier model</a> · <a href="docs/spec-ids-multi-dev.md">hash-based IDs</a></p>
+  <div class="diagram">
+    <img class="diagram-img" src="docs/img/en/ssot-tier.svg" alt="4-tier SSoT — A(Spec) → B(Design) → C(Derived + attestation) → D(Audit), A outranks B" width="640">
+  </div>
+
+  <h3>Gate — the 15-stage Iron Law</h3>
+  <p>One check engine, bundled by cost: 3 stages at commit, 9 at push / completion, all 15 in CI. Only the depth differs. → <a href="docs/gate-stages.md">the 15 stages</a></p>
   <div class="diagram">
     <img class="diagram-img" src="docs/img/en/iron-law.svg" alt="15-stage Iron Law gate — static(6) · tests·conformance(4) · E2E(3) · evidence(2), attestation signed when GREEN" width="640">
   </div>
 
-  <table>
-    <thead>
-      <tr><th>Stage</th><th>What it checks</th></tr>
-    </thead>
-    <tbody>
-      <tr><td><strong>1.1 Type · 1.2 Lint</strong></td><td>Type errors · code style</td></tr>
-      <tr><td><strong>1.3 Drift</strong></td><td>spec ↔ code drift across 41 detectors</td></tr>
-      <tr><td><strong>1.4 Commit · 1.5 Arch · 1.6 Secret</strong></td><td>Clean working tree · architecture invariant · API key exposure</td></tr>
-      <tr><td><strong>2.1 Unit · 2.2 Coverage</strong></td><td>Unit tests pass · coverage drop blocked</td></tr>
-      <tr><td><strong>2.3 Spec conformance · 2.4 Deliverable smoke</strong></td><td>The implementation-blind grader's tests pass · whether the declared deliverable actually runs <em>(blocks the "tests pass but the deliverable won't run" vacuous green)</em></td></tr>
-      <tr><td><strong>3.1 Smoke · 3.2 Perf · 3.3 Visual</strong></td><td>e2e core behavior · performance budget · UI visual regression</td></tr>
-      <tr><td><strong>4.1 Audit · 4.2 UAT</strong></td><td>At least 1 piece of evidence per AC (acceptance criterion) · at least 1 piece of evidence per done feature</td></tr>
-    </tbody>
-  </table>
-
-  <h3>3. Detector — 41 drift detectors</h3>
-  <p>Automatically detects drift in every direction among spec · code · test. Full catalog: <a href="src/stages/detectors/README.md">detector catalog</a>.</p>
-  <table>
-    <thead>
-      <tr><th>Direction</th><th>What it catches</th><th class="center">Count</th><th>Representative detectors</th></tr>
-    </thead>
-    <tbody>
-      <tr><td>spec ↔ code</td><td>In the spec but not the code, or code straying from the spec</td><td class="center">10</td><td><code>MISSING_IMPLEMENTATION</code>, <code>AC_DRIFT</code>, <code>DELIVERABLE_INTEGRITY</code></td></tr>
-      <tr><td>code ↔ test</td><td>Code exists but no tests · coverage drop · secrets</td><td class="center">6</td><td><code>MISSING_TESTS</code>, <code>COVERAGE_DROP</code>, <code>HARDCODED_SECRET</code></td></tr>
-      <tr><td>spec ↔ test</td><td>Spec ACs not verified by tests · false status</td><td class="center">5</td><td><code>UNTESTED_AC</code>, <code>STATUS_DRIFT</code>, <code>SPEC_CONFORMANCE</code></td></tr>
-      <tr><td>spec hygiene</td><td>Integrity of the spec itself (ID collision · dependency cycle)</td><td class="center">8</td><td><code>ID_COLLISION</code>, <code>SLUG_CONFLICT</code>, <code>DEPENDENCY_CYCLE</code></td></tr>
-      <tr><td>environment integrity</td><td>Build environment · meta files</td><td class="center">3</td><td><code>HARNESS_INTEGRITY</code>, <code>META_INTEGRITY</code></td></tr>
-      <tr><td>verification freshness</td><td>Whether code changed after the verification signature</td><td class="center">1</td><td><code>STALE_ATTESTATION</code> <em>(new)</em></td></tr>
-      <tr><td>governance · docs</td><td>Policy violations · documentation drift · README claims beyond the evidence</td><td class="center">4</td><td><code>ABSENCE_OF_GOVERNANCE</code>, <code>PROJECT_CONTEXT_DRIFT</code>, <code>HOST_CLAIM_DRIFT</code> <em>(new)</em></td></tr>
-      <tr><td>graph · doc links</td><td>Broken doc ↔ spec links · missing dependency edges</td><td class="center">4</td><td><code>DOC_LINK_INTEGRITY</code>, <code>REFERENCE_INTEGRITY</code>, <code>INFERABLE_DEPENDS_ON</code> <em>(new)</em></td></tr>
-    </tbody>
-  </table>
-
-  <h3>4. Cycle — the lifecycle of one feature</h3>
-  <p>Define → sync → implement → <strong>earn</strong>. You earn "done" only by passing every check.</p>
-  <div class="diagram">
-    <img class="diagram-img" src="docs/img/en/workflow.svg" alt="Lifecycle of one feature — define → sync → implement → earn, completion earned when all checks pass / auto-reverted on failure" width="760">
-  </div>
+  <h3>Detectors — 41 of them</h3>
+  <p>They catch drift across spec · code · test in every direction: missing implementations, untested acceptance criteria, false status, stale attestations, docs that over-claim. → <a href="src/stages/detectors/README.md">detector catalog</a></p>
 
   <!-- ─────────────── Agent-loop verifier ─────────────── -->
   <h2>Using cladding as your agent loop's verifier</h2>
@@ -463,24 +387,24 @@ clad graph export --format html --out graph.html  # or export to a single offlin
     <strong>verifier and state layer inside it</strong>: it doesn't run your loop, it tells the loop what's still wrong and when it's allowed to stop.
   </p>
   <ul>
-    <li><strong>Feedback signal</strong> — run <code>clad check --json</code> each iteration. The verdict is machine-readable: a top-level <code>anyFailed</code> and a <code>worst</code> severity, plus per-stage <code>findings[]</code> where each entry carries its <code>detector</code>, <code>severity</code>, and <code>message</code>. Feed that straight back as the loop's error signal — no scraping console text.</li>
-    <li><strong>Honest stop</strong> — gate the loop on <code>clad done</code>, not on the agent's say-so. It flips a feature to <code>done</code> only when the strict pre-push gate is GREEN, and reverts otherwise. "The loop says it's finished" becomes "the gate let it stand."</li>
-    <li><strong>Loop memory</strong> — the local event log (<code>.cladding/events.log.jsonl</code>, gitignored) carries what happened across iterations: gate runs (deduped per HEAD), done attempts, drift firings, value serves. The next iteration reads it as local working memory — not a durable or authoritative record, and it rotates at 5 MB (a single generation), so the oldest entries fall away.</li>
+    <li><strong>Feedback signal</strong> — <code>clad check --json</code> each iteration returns a machine-readable verdict: a top-level <code>anyFailed</code> + <code>worst</code> severity, plus per-stage <code>findings[]</code> (each with its <code>detector</code>, <code>severity</code>, <code>message</code>). Feed it straight back as the loop's error signal — no console scraping.</li>
+    <li><strong>Honest stop</strong> — gate the loop on <code>clad done</code>, not the agent's say-so. It flips a feature to <code>done</code> only when the strict pre-push gate is GREEN, and reverts otherwise. "The loop says it's finished" becomes "the gate let it stand."</li>
+    <li><strong>Loop memory</strong> — the local event log (<code>.cladding/events.log.jsonl</code>, gitignored) carries gate runs, done attempts, and drift firings across iterations as working memory (not a durable record; rotates at 5 MB).</li>
   </ul>
   <p>
-    The honest boundary: this hardens the loop's <strong>stop condition and feedback signal</strong>, not the model's code quality. cladding's own A/B record is the receipt — governance is orthogonal to correctness.
+    The honest boundary: this hardens the loop's <strong>stop condition and feedback signal</strong>, not the model's code quality. cladding's own A/B record is the receipt — <strong>governance is orthogonal to correctness</strong>.
   </p>
 
   <!-- ─────────────── Multi-Agent ─────────────── -->
-  <h2>Multi-Agent — separating the maker from the verifier</h2>
+  <h2>Multi-Agent — separating the builder from the verifier</h2>
   <p>
-    The <strong>making</strong> agent and the <strong>verifying</strong> agent are separated, so no agent can approve its own work
-    by itself. <strong>blind-author</strong> goes one step further — the agent that writes the tests
-    <em>has no tool to read the implementation at all</em> (no Read/Grep granted). "Written without seeing the implementation" becomes a structural fact, not a promise.
-    This separation aligns with the segregation-of-duties principle that regulatory · audit frameworks (EU AI Act · SOX) call for — it maps onto the spirit of those frameworks, not a certification.
+    The agents that <strong>build</strong> are kept apart from the agents that <strong>verify</strong>, so none can sign off on its own work.
+    <strong>blind-author</strong> goes further — the agent that writes the tests <em>has no tool to read the implementation</em> (no Read/Grep granted).
+    "Wrote it without looking at the implementation" becomes a structural fact, not a promise.
+    This mirrors the segregation-of-duties principle that regulatory · audit regimes (EU AI Act · SOX) call for — the spirit of those regimes, not a certification.
   </p>
   <div class="diagram">
-    <img class="diagram-img" src="docs/img/en/multi-agent.svg" alt="Agent separation of duties — orchestrator distributes, planner/developer/reviewer work, blind-author writes tests without seeing the implementation, observability observes" width="700">
+    <img class="diagram-img" src="docs/img/en/multi-agent.svg" alt="Agent separation of duties — orchestrator dispatches, planner/developer/reviewer act, blind-author is the test writer who can't see the implementation, observability watches" width="700">
   </div>
 
   <!-- ─────────────── Ecosystem ─────────────── -->
@@ -490,67 +414,37 @@ clad graph export --format html --out graph.html  # or export to a single offlin
     <img class="diagram-img" src="docs/img/en/ecosystem.svg" alt="Ecosystem Venn — cladding at the junction of three categories: SDD · runners · multi-agent governance" width="640">
   </div>
 
-  <h3>Differences from adjacent tools</h3>
   <ul>
-    <li><strong>Spec Kit · OpenSpec · Tessl · Kiro</strong> — tools that help you <em>write specs well</em>. On top of that, cladding <em>keeps automatically cross-checking that the spec and the actual code don't drift, inside the development loop</em>.</li>
-    <li><strong>BMAD · ChatDev · Claude Code Agent Teams</strong> — systems for <em>dividing roles among multiple AI agents</em>. cladding's agent division of labor operates on top of that, combined with <em>spec · gate · audit record</em>.</li>
-    <li><strong>tdd-guard</strong> — a tool that <em>forces the AI to write tests first</em>. cladding's Unit · Coverage · oracle stages among the 15 do the same thing more structurally.</li>
-    <li><strong>OpenHands · Cline · Aider · Goose</strong> — <em>runners that make the AI write code</em>. cladding is the <em>upper layer that verifies and controls</em> the code those runners write.</li>
+    <li><strong>Spec Kit · OpenSpec · Tessl · Kiro</strong> help you <em>write a good spec</em>. cladding adds the part that <em>keeps cross-checking, inside the dev loop, that the spec and the code haven't drifted</em>.</li>
+    <li><strong>BMAD · ChatDev · Claude Code Agent Teams</strong> <em>split roles across AI agents</em>. cladding's division of labor runs with <em>spec · gate · audit record</em> on top.</li>
+    <li><strong>tdd-guard</strong> <em>forces the AI to write tests first</em>. cladding's Unit · Coverage · oracle stages do the same job, more structurally.</li>
+    <li><strong>OpenHands · Cline · Aider · Goose</strong> are <em>runners that make the AI write code</em>. cladding is the <em>upper layer that verifies and governs</em> what they produce.</li>
   </ul>
-  <p>cladding's distinction is the <em>combination</em> — tying the core of the above categories into <em>one verification loop</em>.</p>
+  <p>The distinction is the <em>combination</em> — binding those cores into <em>one verification loop</em>.</p>
 
   <!-- ─────────────── Install ─────────────── -->
   <h2>Install</h2>
-  <p>Two steps — install the infrastructure → create the project spec.</p>
+  <pre><code>npm install -g cladding   # the cladding CLI
+cd &lt;project&gt;              # your project
+clad setup                # auto-wire your AI tools (Claude · Codex · Gemini · Cursor)</code></pre>
 
-  <h3>Step 1 — Install the infrastructure (npm)</h3>
-  <pre><code>npm install -g cladding   # install the cladding CLI
-cd &lt;project&gt;                # move into your project
-clad setup                  # auto-wire AI tools (Claude / Codex / Gemini / Cursor)</code></pre>
+  <p>Then, once per project, call init inside your AI tool:</p>
+  <pre><code>[inside your AI tool] /cladding:init "B2B payment SaaS"</code></pre>
 
-  <details style="margin:16px 0;background:#f8fafc;border-radius:6px;padding:12px 16px">
-    <summary style="cursor:pointer;color:#475569;font-size:14px">Where <code>clad setup</code> wires (4 hosts · 5 connection points)</summary>
-    <table style="margin-top:12px">
-      <thead><tr><th>Host (when detected)</th><th>Wire location</th><th>Auto-activation</th></tr></thead>
-      <tbody>
-        <tr><td>Claude Code (<code>~/.claude/</code>)</td><td><code>~/.claude/plugins/cladding</code></td><td><code>claude plugin marketplace add</code> + <code>install</code></td></tr>
-        <tr><td>Codex CLI skills (<code>~/.agents/</code>)</td><td><code>~/.agents/skills/cladding-*</code></td><td>(automatic on Codex restart)</td></tr>
-        <tr><td>Codex CLI MCP server (<code>~/.codex/</code>)</td><td><code>[mcp_servers.cladding]</code> in <code>~/.codex/config.toml</code></td><td>(the TOML entry itself)</td></tr>
-        <tr><td>Gemini CLI (<code>~/.gemini/</code>)</td><td><code>~/.gemini/extensions/cladding</code></td><td><code>gemini extensions link</code></td></tr>
-        <tr><td>Cursor (<code>~/.cursor/</code>)</td><td><code>mcpServers.cladding</code> in <code>~/.cursor/mcp.json</code></td><td>(the JSON entry itself)</td></tr>
-      </tbody>
-    </table>
-    <p style="font-size:13px;color:#64748b;margin-top:8px"><code>clad setup</code> auto-invokes each host's activation command when the <code>claude</code> / <code>gemini</code> binary is on PATH. It's safe to re-run after an upgrade or after installing a new AI tool.</p>
-    <p style="font-size:13px;color:#64748b;margin-top:8px"><strong>Verification level (honest disclosure):</strong> Claude Code is verified across all features through real-usage campaigns (including real-time intervention). Codex · Gemini CLI have their wiring automated + basic behavior confirmed. Cursor wires automatically but is not yet real-usage verified — to be updated as verification lands.</p>
-    <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:12px 0;background:#f8fafc;color:#475569;font-size:13px"><strong>About the MCP server.</strong> All 4 hosts wire cladding as an MCP server — only the wire <em>location</em> differs. MCP is not something the user calls directly — there's no <code>/mcp</code> slash, no manual connection step. Each host's AI calls cladding's features on its own in response to <em>natural-language requests</em>, while the user types just one <code>/cladding:init</code> and ordinary conversation.</blockquote>
-  </details>
+  <p>It creates the project's <code>spec.yaml</code> and supporting docs. After that, just develop as usual — cladding runs the before/after loop in the background, with nothing to memorize. Raise enforcement with <code>clad init --with-hook</code> (pre-commit + pre-push git hooks) or <code>clad init --with-ci</code> (scaffold the CI gate, where true enforcement lives).</p>
 
-  <h3>Step 2 — Init (create the project spec)</h3>
-  <p>In the project directory, called once from inside the AI tool:</p>
-  <pre><code>[inside the AI tool] /cladding:init "B2B payments SaaS"</code></pre>
-  <p>The project's <code>spec.yaml</code> and related docs are created — once per project.</p>
-  <p style="font-size:14px;color:#475569">To raise enforcement: <code>clad init --with-hook</code> (installs pre-commit + pre-push git hooks) · <code>clad init --with-ci</code> (scaffolds the CI gate — real enforcement lives in CI).</p>
-
-  <h3>Three init scenarios</h3>
   <table>
     <thead>
-      <tr><th>Starting situation</th><th>Command</th><th>What happens</th></tr>
+      <tr><th>Starting point</th><th>Command</th><th>What happens</th></tr>
     </thead>
     <tbody>
-      <tr><td><strong>When you only have an idea</strong></td><td><code>/cladding:init "I'm going to build a B2B payments SaaS"</code></td><td>LLM analyzes the domain → auto-generates spec · docs · policy + 2–3 follow-up questions</td></tr>
-      <tr><td><strong>When you have a planning doc</strong></td><td><code>/cladding:init docs/plan.md</code></td><td>Recognizes the file path → auto-loads its content and uses it as intent</td></tr>
-      <tr><td><strong>Adopting into an existing project</strong></td><td><code>/cladding:init "apply cladding to this project"</code></td><td>Auto-scans the existing code → combines observed patterns + intent</td></tr>
+      <tr><td><strong>An idea, nothing else</strong></td><td><code>/cladding:init "I'm going to build a B2B payment SaaS"</code></td><td>the LLM analyzes the domain → spec · docs · policies + 2–3 follow-up questions</td></tr>
+      <tr><td><strong>A planning doc</strong></td><td><code>/cladding:init docs/plan.md</code></td><td>loads the file and uses its contents as intent</td></tr>
+      <tr><td><strong>An existing project</strong></td><td><code>/cladding:init "apply cladding to this project"</code></td><td>scans the existing code → observed patterns merged with your intent</td></tr>
     </tbody>
   </table>
 
-  <h3>One init and you're done</h3>
-  <p>Init once and that's it — after that you develop as usual. cladding runs the before/after loop in the background, so there are no commands to memorize.</p>
-
-  <h3>Upgrade</h3>
-  <pre><code>npm update -g cladding     # 1. install the new version
-cd &lt;your project&gt;          # 2. once per project
-clad update                # 3. tidy up for the new version</code></pre>
-  <p>Your code · <code>spec.yaml</code> · docs are left untouched, so it's safe; and if a stricter new version has something to point out, it <strong>only tells you</strong> (it won't block or fix).</p>
+  <p style="font-size:14px;color:#475569"><strong>Host support (honest):</strong> Claude Code is fully verified through real-usage campaigns (incl. real-time intervention). Codex · Gemini CLI have automated wiring + basic behavior confirmed. Cursor wires automatically, but real-usage verification is still pending. → <a href="docs/setup.md">setup details · host wiring · MCP · upgrading</a></p>
 
   <!-- ─────────────── Status ─────────────── -->
   <h2>Status</h2>
@@ -585,24 +479,26 @@ clad update                # 3. tidy up for the new version</code></pre>
     </tr>
   </table>
 
-  <p style="text-align:center;font-size:13px;color:#64748b;margin-top:12px">234 test files · coverage drop blocked by the COVERAGE_DROP detector</p>
+  <p style="text-align:center;font-size:13px;color:#64748b;margin-top:12px">234 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector</p>
 
-  <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:24px 0;background:#f8fafc;color:#475569;font-size:14px"><strong>The road to Ironclad 1.0</strong> — 1.0 locks only when <em>two independent implementations pass the L4 verification set</em> (<a href="https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md">GOVERNANCE § 1</a>). cladding is the first.</blockquote>
+  <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:24px 0;background:#f8fafc;color:#475569;font-size:14px"><strong>Road to Ironclad 1.0</strong> — 1.0 locks only when <em>two independent implementations pass the L4 conformance fixtures</em> (<a href="https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md">GOVERNANCE § 1</a>). cladding is the first.</blockquote>
 
   <!-- ─────────────── Docs ─────────────── -->
   <h2>Docs</h2>
   <ul>
     <li><a href="docs/project-context.md">Why cladding (project context)</a></li>
     <li><a href="docs/ssot-model.md">4-tier governance model</a></li>
-    <li><a href="docs/spec-ids-multi-dev.md">Hash-based feature ID</a></li>
+    <li><a href="docs/gate-stages.md">The 15 gate stages</a></li>
+    <li><a href="docs/spec-ids-multi-dev.md">Hash-based feature IDs</a></li>
     <li><a href="src/stages/detectors/README.md">41 detector catalog</a></li>
+    <li><a href="docs/setup.md">Setup · host wiring · upgrading</a></li>
     <li><a href="docs/glossary.md">Glossary (EN · KO)</a></li>
     <li><a href="GOVERNANCE.md">Governance · roadmap to 1.0</a></li>
   </ul>
 
   <!-- ─────────────── License ─────────────── -->
   <h2>License</h2>
-  <p>MIT. <a href="LICENSE">LICENSE</a> · related: <a href="https://github.com/qwerfunch/ironclad">Ironclad</a> (the standard being implemented) · <a href="https://github.com/qwerfunch/harness-boot">harness-boot</a> (seed).</p>
+  <p>MIT. <a href="LICENSE">LICENSE</a> · Related: <a href="https://github.com/qwerfunch/ironclad">Ironclad</a> (the standard cladding implements) · <a href="https://github.com/qwerfunch/harness-boot">harness-boot</a> (the seed).</p>
 
   <footer>
     cladding · MIT License

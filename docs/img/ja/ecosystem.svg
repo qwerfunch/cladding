@@ -4,8 +4,8 @@
     <style>
       :root{
         --brand:#3b82f6; --brand-deep:#1d4ed8; --brand-soft:#eff6ff;
-        --ink:#0f172a; --text:#1e293b; --muted:#64748b; --faint:#94a3b8;
-        --border:#d8dfea; --surface:#ffffff; --ok:#16a34a; --block:#e11d48;
+        --ink:#6b7280; --text:#737a84; --muted:#6f757f; --faint:#8b919b;
+        --border:#8b93a1; --surface:none; --ok:#16a34a; --block:#e11d48; --brand-text:#3f76d6;
       }
       .title{font-size:19px;font-weight:800;fill:var(--ink);letter-spacing:-.3px}
       .sub0{font-size:12.5px;fill:var(--muted)}
@@ -13,7 +13,7 @@
       .item{font-size:12.5px;fill:var(--text)}
       .muted{font-size:10.5px;fill:var(--faint)}
       .focal{font-size:20px;font-weight:800;fill:#ffffff;letter-spacing:-.3px}
-      .flow{font-size:10.5px;font-weight:600;fill:var(--brand-deep)}
+      .flow{font-size:10.5px;font-weight:600;fill:var(--brand-text)}
       .card{fill:var(--surface);stroke:var(--border);stroke-width:1.25}
       .band{fill:var(--brand)} .focalbox{fill:var(--brand-deep)}
       .okfill{fill:var(--ok)} .blockfill{fill:var(--block)} .inkfill{fill:var(--ink)}
@@ -23,7 +23,6 @@
     <marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#e11d48"/></marker>
   </defs>
 
-  <rect width="640" height="444" fill="#ffffff"/>
 
   <!-- Title -->
   <text x="320" y="34" text-anchor="middle" class="title">エコシステムにおける cladding の位置</text>
@@ -31,21 +30,21 @@
   <text x="320" y="64" text-anchor="middle" class="sub0">3つの流れが重なる交点</text>
 
   <!-- Venn circles (flat, blue-primary family) -->
-  <circle cx="240" cy="200" r="105" fill="#eff6ff" fill-opacity="0.75" stroke="#3b82f6" stroke-width="2"/>
-  <circle cx="400" cy="200" r="105" fill="#eff6ff" fill-opacity="0.5" stroke="#1d4ed8" stroke-width="2"/>
-  <circle cx="320" cy="300" r="105" fill="#f1f5f9" fill-opacity="0.75" stroke="#64748b" stroke-width="2"/>
+  <circle cx="240" cy="200" r="105" fill="none" fill-opacity="0.75" stroke="#3b82f6" stroke-width="2"/>
+  <circle cx="400" cy="200" r="105" fill="none" fill-opacity="0.5" stroke="#1d4ed8" stroke-width="2"/>
+  <circle cx="320" cy="300" r="105" fill="none" fill-opacity="0.75" stroke="#64748b" stroke-width="2"/>
 
   <!-- SDD label (top-left, above circle) -->
   <text x="122" y="92" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3b82f6">SDD — spec 作成</text>
-  <text x="122" y="110" text-anchor="middle" font-size="11" fill="#64748b">Spec Kit · OpenSpec · Kiro</text>
+  <text x="122" y="110" text-anchor="middle" font-size="11" fill="#6f757f">Spec Kit · OpenSpec · Kiro</text>
 
   <!-- Runner label (top-right, above circle) -->
-  <text x="516" y="92" text-anchor="middle" font-size="13.5" font-weight="700" fill="#1d4ed8">ランナー — AI がコード生成</text>
-  <text x="516" y="110" text-anchor="middle" font-size="11" fill="#64748b">OpenHands · Cline · Aider</text>
+  <text x="516" y="92" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3f76d6">ランナー — AI がコード生成</text>
+  <text x="516" y="110" text-anchor="middle" font-size="11" fill="#6f757f">OpenHands · Cline · Aider</text>
 
   <!-- Governance label (bottom-left, outside circles) -->
-  <text x="116" y="356" text-anchor="middle" font-size="13.5" font-weight="700" fill="#64748b">Multi-agent ガバナンス</text>
-  <text x="116" y="374" text-anchor="middle" font-size="11" fill="#64748b">BMAD · Agent Teams</text>
+  <text x="116" y="356" text-anchor="middle" font-size="13.5" font-weight="700" fill="#6f757f">Multi-agent ガバナンス</text>
+  <text x="116" y="374" text-anchor="middle" font-size="11" fill="#6f757f">BMAD · Agent Teams</text>
 
   <!-- cladding center : single deep-blue focal at the triple overlap -->
   <rect x="232" y="200" width="176" height="62" rx="14" class="focalbox"/>
@@ -53,5 +52,5 @@
   <text x="320" y="248" text-anchor="middle" font-size="11" fill="#dbeafe">3つを1つの検証ループに</text>
 
   <!-- Caption -->
-  <text x="320" y="430" text-anchor="middle" font-size="11" fill="#64748b">41 drift detectors · 15-stage gate</text>
+  <text x="320" y="430" text-anchor="middle" font-size="11" fill="#6f757f">41 drift detectors · 15-stage gate</text>
 </svg>
