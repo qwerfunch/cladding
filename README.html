@@ -249,7 +249,7 @@
       turning the AI's <em>"it's done"</em> from a claim into a <em>proof</em>.
     </p>
     <p class="why">
-      So you can ship AI-written code with <strong>the same trust as human-written code</strong> — the three things a team needs to hand coding to AI:
+      So you can ship AI-written code held to <strong>the same standard as human-written code</strong> — the three things an organization needs to hand coding to AI:
     </p>
   </div>
 
@@ -264,7 +264,7 @@
     </div>
     <div class="flow-card record">
       <span class="badge">SCALES</span>
-      <p>The spec is the shared baseline, so as the team and the number of AIs grow, conflicts and drift are blocked automatically.</p>
+      <p>Adding people and AIs would normally multiply conflicts and drift; because everyone works from one shared spec, those get caught automatically — so you can grow without it breaking down.</p>
     </div>
   </div>
 
@@ -282,7 +282,7 @@
     <tbody>
       <tr><td><strong>Code drifts from the spec</strong></td><td class="vanilla-cell">fixed <em>if</em> a reviewer notices</td><td class="cladding-cell">auto-detected right after the edit · "done" can't pass while it's drifting</td></tr>
       <tr><td><strong>The AI says "it's done"</strong></td><td class="vanilla-cell">you take its word</td><td class="cladding-cell">done earned only when the gate is GREEN</td></tr>
-      <tr><td><strong>Ending a session in a failing state</strong></td><td class="vanilla-cell">exits as-is, forgotten next time</td><td class="cladding-cell">the exit is blocked once, the repair card handed off</td></tr>
+      <tr><td><strong>Ending a session in a failing state</strong></td><td class="vanilla-cell">exits as-is, forgotten next time</td><td class="cladding-cell">the exit is blocked once, the failing checks handed off as a repair card</td></tr>
       <tr><td><strong>Two devs add a feature at the same time</strong></td><td class="vanilla-cell">merge conflict</td><td class="cladding-cell">hash-8 IDs · separate files → 0 conflicts</td></tr>
       <tr><td><strong>Who verifies the AI-written code?</strong></td><td class="vanilla-cell">the AI that wrote it self-certifies (risky)</td><td class="cladding-cell">an implementation-blind grader + the mechanical gate</td></tr>
       <tr><td><strong>Switching AI tools</strong></td><td class="vanilla-cell">reconfigure per tool</td><td class="cladding-cell">one spec → 4 hosts wired automatically</td></tr>
@@ -292,9 +292,9 @@
   <!-- ─────────────── Who it's for ─────────────── -->
   <h2>Who it's for</h2>
   <ul>
-    <li><strong>Building your own agent loop</strong> — cladding is the honest stop-condition, feedback signal, and working memory your loop runs on (see the agent-loop verifier section).</li>
-    <li><strong>A team adding AI contributors</strong> — one spec is the shared baseline, so drift and merge conflicts are blocked automatically as you add people and models.</li>
-    <li><strong>An org that needs a verifiable record</strong> — every <code>done</code> carries a committable verify signature, and the why behind each decision lives in the spec.</li>
+    <li><strong>A developer who has an AI write code</strong> — when the AI says "it's done," cladding doesn't take its word for it: it checks whether the work actually passes, and only then counts it as <code>done</code>. (Automating it in a loop? That's the loop section below.)</li>
+    <li><strong>A team of people and AIs</strong> — everyone works from the same spec, so when their changes clash or drift apart it's caught automatically, and no one breaks someone else's work by accident.</li>
+    <li><strong>An organization that has to prove its work</strong> — every <code>done</code> is recorded with the proof that it actually passed, so months later "was this verified? why was it built this way?" is answered by the repo, not by memory.</li>
   </ul>
 
   <!-- ─────────────── How cladding wraps your host LLM ─────────────── -->
@@ -331,7 +331,7 @@
     <div class="line">① Try to <em>write the completion mark yourself</em> → <strong>blocked on the spot</strong> ("earn it by verifying it")</div>
     <div class="line">② <em>Request</em> completion → all 9 deterministic stages run; recorded as done <strong>only if every one passes</strong>, else it auto-reverts (the E2E · evidence stages run in CI's full 15)</div>
     <div class="line">③ The moment it passes, a <strong>verification signature</strong> is committed — proof that "this code was verified at this point"</div>
-    <div class="line">④ Try to <em>end a session on a failure</em> → <strong>blocked once</strong> (end again on the same failure and it records the fact rather than letting it through), and the repair card carries into the next conversation</div>
+    <div class="line">④ Try to <em>end a session on a failure</em> → <strong>blocked once</strong> (end again on the same failure and it's logged as a known-failing exit rather than let through), and the repair card carries into the next conversation</div>
   </div>
   <p style="font-size:13.5px;color:#64748b">
     Stated plainly: bypass paths exist that the instant block can't see; those are caught by the after-the-fact gate.
@@ -339,23 +339,22 @@
   </p>
 
   <!-- ─────────────── Agent-loop verifier ─────────────── -->
-  <h2>Using cladding as your agent loop's verifier</h2>
+  <h2>cladding backs your AI loop</h2>
   <p>
-    Building your own agent loop — your own harness or orchestrator? cladding is the honest
-    <strong>stop-condition, feedback signal, and working memory</strong> your loop runs on: it doesn't drive the loop,
-    it tells the loop what's still wrong and when it's <em>genuinely</em> allowed to stop — over the same gate that guards a human's commit.
+    <strong>Loop engineering</strong> is a shift in how you use an AI: instead of prompting it step by step, you build a <strong>loop</strong> that drives it toward a goal and runs on its own — discover, plan, execute, verify, iterate. But a loop is only as honest as its <strong>verify</strong> step, and an AI left to check its own work just passes itself. So you put something in the loop that can truly say <strong>"no"</strong> — that's cladding: the check that grades your code against <em>your spec</em>, not the AI's opinion of its own work.
   </p>
+  <div class="diagram">
+    <img class="diagram-img" src="docs/img/en/loop.svg" alt="Loop-engineering cycle — discover, plan, execute, verify, iterate. cladding is the verify step: it checks the code against your spec and returns a verdict (it can't grade its own code). You set the goal; on a GREEN verdict you ship (done), otherwise the loop iterates." width="760">
+  </div>
+  <p>Three things it gives your loop:</p>
   <ul>
-    <li><strong>Feedback signal</strong> — <code>clad check --json</code> each iteration returns a machine-readable verdict: a top-level <code>anyFailed</code> + <code>worst</code> severity, plus per-stage <code>findings[]</code> (each with its <code>detector</code>, <code>severity</code>, <code>message</code>). Feed it straight back as the loop's error signal — no console scraping.</li>
-    <li><strong>Honest stop</strong> — gate the loop on <code>clad done</code>, not the agent's say-so. It flips a feature to <code>done</code> only when the strict pre-push gate is GREEN, and reverts otherwise. "The loop says it's finished" becomes "the gate let it stand."</li>
-    <li><strong>Loop memory</strong> — the local event log (<code>.cladding/events.log.jsonl</code>, gitignored) carries gate runs, done attempts, and drift firings across iterations as working memory (not a durable record; rotates at 5 MB).</li>
+    <li><strong>A signal it can act on</strong> — every pass you get back a plain, machine-readable result: what failed, where, and how bad. Feed it straight into the loop, no console-scraping (<code>clad check --json</code>).</li>
+    <li><strong>An honest stop</strong> — the loop ends on the gate, not the AI's word. A feature turns done only when the strict gate is GREEN, and reverts if it isn't. "The AI says it's finished" becomes "the gate let it stand."</li>
+    <li><strong>A memory across passes</strong> — a local log (<code>.cladding/events.log.jsonl</code>) remembers the last pass's checks, tries, and drift, so the next one doesn't start blind.</li>
   </ul>
-  <p>
-    The honest boundary: this hardens the loop's stop condition and feedback signal, not the model's code quality — <strong>governance is orthogonal to correctness</strong>, and cladding's own A/B record is the receipt.
-  </p>
 
   <!-- ─────────────── Project graph ─────────────── -->
-  <h2>Project graph — see it and ask it <span style="font-size:13px;font-weight:400;color:#94a3b8">NEW</span></h2>
+  <h2>Project graph — see it and ask it</h2>
   <p>
     This is cladding's <strong>internal graph of your project</strong> — spec · code · tests · docs, all connected. Now you can see it and ask it.
   </p>
@@ -386,7 +385,7 @@
     <div class="flow-card record">
       <span class="badge">MEASURE</span>
       <div class="title">The bigger the project, the more it saves</div>
-      <p>On average <strong>4× less</strong> to read when fixing something. (<code>clad measure</code>)</p>
+      <p>A median <strong>4× less</strong> to read when fixing something. (<code>clad measure</code> · <a href="docs/ab-evaluation/case-efficiency-measurement.md">how it's measured</a>)</p>
     </div>
   </div>
 
@@ -403,7 +402,7 @@ clad graph export --format html --out graph.html  # or a single offline .html fi
   </div>
 
   <h3>Spec — the project's long-term memory</h3>
-  <p>The LLM remembers nothing between sessions, so the spec is the durable, git-versioned store of <em>intent</em> cladding injects before each one — the <em>why</em> and <em>what</em> behind the code (the design tier just below holds the <em>how</em>), never a log of events. Four tiers, top to bottom — intent (A), sealed until a human signs off, then design (B), code + attestation (C), and audit (D); <strong>A outranks all</strong>, so if the spec and the code disagree, the <em>code</em> is what's wrong.</p>
+  <p>An LLM forgets everything between sessions, so the spec is where the project's <em>intent</em> lives: durable, versioned in git, and fed to the model before it starts. It holds the <em>why</em> and the <em>what</em>; the design tier just below holds the <em>how</em>. (It's the memory of intent, not a log of what happened.) Four tiers, top to bottom: intent (A) — sealed until a human signs off — then design (B), code + attestation (C), and audit (D). <strong>A outranks all</strong> — if the spec and the code ever disagree, the <em>code</em> is the one that's wrong.</p>
   <p>Each feature is its own sharded file with an 8-char hash ID, so two devs adding features at once never collide. A feature reads like this — the <em>what</em>, written as a testable acceptance criterion:</p>
   <pre><code># spec/features/checkout-a1b2c3d4.yaml
 id: F-a1b2c3d4
@@ -456,10 +455,10 @@ acceptance_criteria:
   <!-- ─────────────── Multi-Agent ─────────────── -->
   <h2>Multi-Agent — separating the builder from the verifier</h2>
   <p>
-    The agents that <strong>build</strong> are kept apart from the agents that <strong>verify</strong>, so none can sign off on its own work.
-    <strong>blind-author</strong> goes further — the agent that writes the tests <em>has no tool to read the implementation</em> (no Read/Grep granted).
-    "Wrote it without looking at the implementation" becomes a structural fact, not a promise.
-    This mirrors the segregation-of-duties principle that regulatory · audit regimes (EU AI Act · SOX) call for — the spirit of those regimes, not a certification.
+    The agents that <strong>build</strong> are kept apart from the agents that <strong>verify</strong>, so no agent signs off on its own work.
+    <strong>blind-author</strong> goes one step further: the agent that writes the tests literally <em>can't read the code</em> (it's given no Read/Grep tool).
+    So "wrote the tests without looking at the code" is a fact about how it's wired, not a promise.
+    It's the same <strong>separation of duties</strong> that audit rules like the EU AI Act and SOX ask for — in spirit, not a certification.
   </p>
   <div class="diagram">
     <img class="diagram-img" src="docs/img/en/multi-agent.svg" alt="Agent separation of duties — orchestrator dispatches, planner/developer/reviewer act, blind-author is the test writer who can't see the implementation, observability watches" width="700">
@@ -504,17 +503,17 @@ clad setup                # auto-wire your AI tools (Claude · Codex · Gemini �
     </tbody>
   </table>
 
-  <p style="font-size:14px;color:#475569"><strong>Host support (honest):</strong> Claude Code is fully verified through real-usage campaigns (incl. real-time intervention). Codex · Gemini CLI have automated wiring + basic behavior confirmed. Cursor wires automatically, but real-usage verification is still pending. → <a href="docs/setup.md">setup details · host wiring · MCP · upgrading</a></p>
+  <p style="font-size:14px;color:#475569"><strong>Host support (honest):</strong> Claude Code is fully verified through real-usage campaigns (incl. real-time intervention). Codex · Gemini CLI wire automatically; their behavior isn't verified yet. Cursor wires automatically, but real-usage verification is still pending. → <a href="docs/setup.md">setup details · host wiring · MCP · upgrading</a></p>
 
   <!-- ─────────────── Update ─────────────── -->
   <h2>Update</h2>
   <p>Staying current is two commands — or one line to your AI tool.</p>
   <pre><code>npm update -g cladding   # 1. get the new version
 clad update              # 2. once per project — bring it in line</code></pre>
-  <p>…or just ask, the same way you ran init:</p>
-  <pre><code>[inside your AI tool] update cladding to the latest version</code></pre>
-  <p>Either way your code · <code>spec.yaml</code> · docs are left untouched — a stricter version only <strong>points things out</strong>, it never blocks or fixes on its own. If it flags fresh drift, hand that off the same way:</p>
+  <p>Your code · <code>spec.yaml</code> · docs are left untouched — a stricter version only <strong>points things out</strong>, it never blocks or fixes on its own. If those two commands flag fresh drift, hand it to your AI tool:</p>
   <pre><code>[inside your AI tool] reconcile the drift the update flagged</code></pre>
+  <p>…or skip the commands and just ask, the same way you ran init — it runs the update for you:</p>
+  <pre><code>[inside your AI tool] update cladding to the latest version</code></pre>
 
   <!-- ─────────────── Status ─────────────── -->
   <h2>Status</h2>
@@ -557,6 +556,7 @@ clad update              # 2. once per project — bring it in line</code></pre>
   <h2>Docs</h2>
   <ul>
     <li><a href="docs/project-context.md">Why cladding (project context)</a></li>
+    <li><a href="docs/ab-evaluation/README.md">A/B & real-usage evidence</a></li>
     <li><a href="docs/ssot-model.md">4-tier governance model</a></li>
     <li><a href="docs/gate-stages.md">The 15 gate stages</a></li>
     <li><a href="docs/spec-ids-multi-dev.md">Hash-based feature IDs</a></li>

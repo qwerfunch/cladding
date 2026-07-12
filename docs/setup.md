@@ -19,8 +19,7 @@ the detail behind them: where each host is wired, how the MCP server works, and 
 binaries are on PATH. It is safe to re-run after an upgrade or after installing a new AI tool.
 
 **Verification level (honesty note).** Claude Code is fully verified through real-usage
-campaigns (including real-time intervention). Codex · Gemini CLI have automated wiring + basic
-behavior confirmed. Cursor wires automatically, but real-usage verification is still pending —
+campaigns (including real-time intervention). Codex · Gemini CLI wire automatically; their behavior isn't verified yet. Cursor wires automatically, but real-usage verification is still pending —
 to be updated as it lands. (The machine-readable claim lives in the README's `clad:host-claims`
 fence, which `HOST_CLAIM_DRIFT` polices against `docs/dogfood/matrix.md`.)
 

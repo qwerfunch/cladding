@@ -1,0 +1,90 @@
+<svg width="760" height="576" viewBox="0 0 760 576" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="loop-title" font-family="-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif">
+  <title id="loop-title">循环工程 — 探索 · 规划 · 执行 · 验证 · 迭代 的循环。cladding 就是验证这一步：把代码与你的 spec 比对，返回 GREEN 或问题清单，它评不了自己的代码。目标由你定，看裁定再决定收尾还是迭代，循环一直转到你叫停。模型给自己的代码打分，正是 AI 循环会崩的地方 —— 而验证由 cladding 来做，你就信得过。</title>
+  <defs>
+    <style>
+      :root{
+        --brand:#3b82f6; --brand-deep:#1d4ed8; --brand-soft:#eff6ff;
+        --ink:#6b7280; --text:#737a84; --muted:#6f757f; --faint:#8b919b;
+        --border:#8b93a1; --surface:rgba(148,163,184,0.18); --ok:#16a34a; --block:#e11d48; --brand-text:#3f76d6;
+      }
+      .title{font-size:19px;font-weight:800;fill:var(--ink);letter-spacing:-.3px}
+      .sub0{font-size:12.5px;fill:var(--muted)}
+      .hdr{font-size:13.5px;font-weight:700;fill:#ffffff}
+      .item{font-size:12.5px;fill:var(--text)}
+      .muted{font-size:10.5px;fill:var(--faint)}
+      .focal{font-size:20px;font-weight:800;fill:#ffffff;letter-spacing:-.3px}
+      .flow{font-size:10.5px;font-weight:600;fill:var(--brand-text)}
+      .card{fill:var(--surface);stroke:var(--border);stroke-width:1.25}
+      .band{fill:var(--brand)} .focalbox{fill:var(--brand-deep)}
+      .okfill{fill:var(--ok)} .blockfill{fill:var(--block)} .inkfill{fill:var(--ink)}
+      .stage{font-size:13px;font-weight:700;fill:var(--ink)}
+      .stagesub{font-size:10.5px;fill:var(--muted)}
+    </style>
+    <marker id="ab" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#3b82f6"/></marker>
+    <marker id="ag" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#16a34a"/></marker>
+    <marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#e11d48"/></marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="380" y="30" text-anchor="middle" class="title">循环工程</text>
+  <rect x="338" y="40" width="84" height="3" rx="1.5" fill="#3b82f6"/>
+  <text x="380" y="58" text-anchor="middle" class="sub0">目标由你定，循环自行运转 —— cladding 就是其中的验证一步</text>
+
+  <g transform="translate(0,-54)">
+  <!-- ===== the 5-stage cycle (clockwise) ===== -->
+
+  <!-- 探索 (upper-left) -->
+  <rect x="222" y="150" width="140" height="54" rx="13" class="card"/>
+  <text x="292" y="178" text-anchor="middle" class="stage">探索</text>
+  <text x="292" y="194" text-anchor="middle" class="stagesub">弄清需要什么</text>
+
+  <!-- 规划 (upper-right) -->
+  <rect x="398" y="150" width="140" height="54" rx="13" class="card"/>
+  <text x="468" y="178" text-anchor="middle" class="stage">规划</text>
+  <text x="468" y="194" text-anchor="middle" class="stagesub">→ 写你的 spec</text>
+
+  <!-- 执行 (right) -->
+  <rect x="454" y="320" width="140" height="54" rx="13" class="card"/>
+  <text x="524" y="348" text-anchor="middle" class="stage">执行</text>
+  <text x="524" y="364" text-anchor="middle" class="stagesub">AI 编写代码</text>
+
+  <!-- 迭代 (left) -->
+  <rect x="166" y="320" width="140" height="54" rx="13" class="card"/>
+  <text x="236" y="348" text-anchor="middle" class="stage">迭代</text>
+  <text x="236" y="364" text-anchor="middle" class="stagesub">修复问题</text>
+
+  <!-- Verify = cladding (bottom, spotlight) -->
+  <rect x="278" y="404" width="204" height="98" rx="15" class="focalbox"/>
+  <text x="380" y="432" text-anchor="middle" class="focal">cladding</text>
+  <text x="380" y="456" text-anchor="middle" font-size="11" fill="#bfdbfe">验证 — 与 spec 比对</text>
+  <text x="380" y="476" text-anchor="middle" font-size="11.5" font-weight="700" fill="#dbeafe">GREEN，或问题清单</text>
+  <text x="380" y="494" text-anchor="middle" font-size="10" fill="#bfdbfe">(它评不了自己的代码)</text>
+
+  <!-- you, in the middle of the loop -->
+  <text x="380" y="286" text-anchor="middle" class="flow">▸ 目标由你来定</text>
+  <text x="380" y="304" text-anchor="middle" class="stagesub">循环一直转到你叫停</text>
+
+  <!-- Ring arrows (clockwise) -->
+  <line x1="364" y1="177" x2="396" y2="177" stroke="#3b82f6" stroke-width="1.9" marker-end="url(#ab)"/>
+  <path d="M 510 204 Q 540 262 522 318" fill="none" stroke="#3b82f6" stroke-width="1.9" marker-end="url(#ab)"/>
+  <path d="M 500 374 Q 470 396 458 404" fill="none" stroke="#3b82f6" stroke-width="1.9" marker-end="url(#ab)"/>
+  <path d="M 300 402 Q 286 396 282 374" fill="none" stroke="#e11d48" stroke-width="1.9" marker-end="url(#ar)"/>
+  <text x="300" y="392" text-anchor="middle" font-size="10.5" font-weight="700" fill="#e11d48">FAIL</text>
+  <path d="M 250 318 Q 232 262 262 206" fill="none" stroke="#3b82f6" stroke-width="1.9" marker-end="url(#ab)"/>
+
+  <!-- PASS: Verify → done (exits the loop) -->
+  <line x1="380" y1="504" x2="380" y2="532" stroke="#16a34a" stroke-width="2" marker-end="url(#ag)"/>
+  <text x="394" y="522" text-anchor="start" font-size="10.5" font-weight="700" fill="#16a34a">PASS (GREEN)</text>
+  <rect x="300" y="534" width="160" height="52" rx="13" class="okfill"/>
+  <text x="380" y="560" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">完成 ✓</text>
+  <text x="380" y="577" text-anchor="middle" font-size="10.5" fill="#dcfce7">停下，或继续</text>
+
+  <!-- loop on: done → back to the start (下一个目标) -->
+  <path d="M 298 566 C 96 556, 30 450, 40 338 C 49 236, 140 192, 218 188" fill="none" stroke="#3b82f6" stroke-width="1.7" stroke-dasharray="5 4" marker-end="url(#ab)"/>
+  <text x="66" y="356" text-anchor="middle" class="flow">下一个目标</text>
+
+  <!-- Advantage, foregrounded -->
+  <text x="380" y="608" text-anchor="middle" class="sub0">模型给自己的活儿打分，只会一味给自己判及格 —— AI 循环崩的地方就是验证。</text>
+  <text x="380" y="626" text-anchor="middle" font-size="12.5" font-weight="800" fill="#3f76d6">cladding 是你信得过的验证：独立、对照你的 spec —— 所以 done 是挣来的，不是声明来的。</text>
+  </g>
+</svg>

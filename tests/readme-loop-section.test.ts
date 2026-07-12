@@ -27,12 +27,11 @@ const HTML_VARIANTS = [EN_HTML, KO_HTML];
 const ALL_VARIANTS = [...MD_VARIANTS, ...HTML_VARIANTS];
 
 // The section heading per variant — both the presence pin and the slice anchor.
-// Double quotes avoid escaping the apostrophe in "loop's" (eslint avoidEscape).
 const HEADING: Record<string, string> = {
-  [EN_MD]: "## Using cladding as your agent loop's verifier",
-  [KO_MD]: '## 에이전트 루프의 검증자로 쓰기',
-  [EN_HTML]: "<h2>Using cladding as your agent loop's verifier</h2>",
-  [KO_HTML]: '<h2>에이전트 루프의 검증자로 쓰기</h2>',
+  [EN_MD]: '## cladding backs your AI loop',
+  [KO_MD]: '## cladding이 당신의 AI 루프를 받쳐 준다',
+  [EN_HTML]: '<h2>cladding backs your AI loop</h2>',
+  [KO_HTML]: '<h2>cladding이 당신의 AI 루프를 받쳐 준다</h2>',
 };
 
 const isHtml = (f: string): boolean => f.endsWith('.html');
@@ -52,7 +51,7 @@ const sectionOf = (f: string): string => {
 };
 
 describe('AC-a101072b · all four README variants carry the loop-engineering section', () => {
-  test('every variant heads the section (EN "agent loop\'s verifier", KO "검증자") — files-visited === 4', () => {
+  test('every variant heads the section (EN "cladding backs your AI loop", KO "받쳐 준다") — files-visited === 4', () => {
     let visited = 0;
     for (const f of ALL_VARIANTS) {
       visited += 1;
