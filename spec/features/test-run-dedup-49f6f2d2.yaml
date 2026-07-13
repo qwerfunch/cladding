@@ -1,0 +1,43 @@
+id: F-49f6f2d2
+slug: test-run-dedup
+title: "gate-scoped test-run dedup — run the suite once, without disabling the vacuous-test guard"
+status: done
+modules:
+  - src/stages/test-run-cache.ts
+acceptance_criteria:
+  - id: AC-9a1c4e21
+    test_refs:
+      - tests/stages/test-run-dedup.test.ts
+    ears: state
+    condition: "while a gate is primed and the coverage runner is vitest"
+    text: "While a gate run is primed and the coverage runner is vitest, the system shall execute the test suite exactly once and share that run between the unit stage and the coverage stage."
+    notes: "The waste #215 names: pre-push runs vitest in stage_2.1 (unit) AND stage_2.2 (coverage). One shared coverage run serves both. Mirrors the run-scoped detector-result-cache lifetime (prime before the stage loop, clear in finally)."
+  - id: AC-6b2d81f7
+    test_refs:
+      - tests/stages/test-run-dedup.test.ts
+    ears: unwanted
+    condition: "if the unit stage reuses the shared coverage run under --strict"
+    response: "still run the vacuous-test guard against the shared per-test json before returning a unit result"
+    text: "If the unit stage reuses the shared coverage run under --strict, the system shall still evaluate the vacuous-test guard (F-b81d203e) against the shared per-test json and shall never return a passing unit result before the guard has run."
+    notes: "THE reason #216 was rejected: its reuse-pass path returned {pass:true} before the guard, silently disabling F-b81d203e. This AC forbids that: the guard is mandatory on the reuse path, not optional."
+  - id: AC-3f7e0c94
+    test_refs:
+      - tests/stages/test-run-dedup.test.ts
+    ears: state
+    condition: "while deduping on a vitest project"
+    text: "While deduping on a vitest project, the shared run shall carry the dual json reporter so the vacuous-test guard has the per-test results it consumes."
+    notes: "The shared command is the coverage command augmented with --reporter=default --reporter=json --outputFile=<tmp>. vitest reporters are orthogonal to --coverage, so one invocation yields both the coverage report and the per-test testResults[]."
+  - id: AC-8c5a2fb0
+    test_refs:
+      - tests/stages/test-run-dedup.test.ts
+    ears: unwanted
+    condition: "if the shared run is not green (a failing or coverage-threshold-missing run)"
+    response: "send the unit stage to a tests-only fallback so a coverage-threshold miss is not attributed to the unit stage"
+    text: "If the shared run is not green, the system shall run the unit stage's own tests-only command so a coverage-threshold-only miss is never mis-attributed as a unit-test failure."
+    notes: "Preserves #216's sound unitActionFromCoverage property: reuse-pass only on a green shared run; otherwise fall back."
+  - id: AC-2d4b9e63
+    test_refs:
+      - tests/stages/test-run-dedup.test.ts
+    ears: ubiquitous
+    text: "When no gate run is primed (a standalone stage call or the MCP read path), the shared-run cache shall be a pass-through, leaving unit and coverage behavior byte-for-byte unchanged."
+    notes: "Same pass-through discipline as detector-result-cache: a fresh map per gate run, cleared in finally, so the long-lived MCP server never serves a stale test result across requests."

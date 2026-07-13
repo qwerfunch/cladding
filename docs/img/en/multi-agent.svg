@@ -4,8 +4,8 @@
     <style>
       :root{
         --brand:#3b82f6; --brand-deep:#1d4ed8; --brand-soft:#eff6ff;
-        --ink:#0f172a; --text:#1e293b; --muted:#64748b; --faint:#94a3b8;
-        --border:#d8dfea; --surface:#ffffff; --ok:#16a34a; --block:#e11d48;
+        --ink:#6b7280; --text:#737a84; --muted:#6f757f; --faint:#8b919b;
+        --border:#8b93a1; --surface:rgba(148,163,184,0.18); --ok:#16a34a; --block:#e11d48; --brand-text:#3f76d6;
       }
       .title{font-size:19px;font-weight:800;fill:var(--ink);letter-spacing:-.3px}
       .sub0{font-size:12.5px;fill:var(--muted)}
@@ -13,7 +13,7 @@
       .item{font-size:12.5px;fill:var(--text)}
       .muted{font-size:10.5px;fill:var(--faint)}
       .focal{font-size:20px;font-weight:800;fill:#ffffff;letter-spacing:-.3px}
-      .flow{font-size:10.5px;font-weight:600;fill:var(--brand-deep)}
+      .flow{font-size:10.5px;font-weight:600;fill:var(--brand-text)}
       .card{fill:var(--surface);stroke:var(--border);stroke-width:1.25}
       .band{fill:var(--brand)} .focalbox{fill:var(--brand-deep)}
       .okfill{fill:var(--ok)} .blockfill{fill:var(--block)} .inkfill{fill:var(--ink)}
@@ -23,7 +23,6 @@
     <marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#e11d48"/></marker>
   </defs>
 
-  <rect width="724" height="456" fill="#ffffff"/>
 
   <!-- title -->
   <text x="362" y="38" text-anchor="middle" class="title">Agent Separation of Duties</text>
@@ -95,5 +94,5 @@
   <text x="464" y="416" class="muted">anti-self-cert invariant</text>
 
   <!-- caption -->
-  <text x="362" y="446" text-anchor="middle" class="sub0">Done is earned only by passing every gate — proof in <tspan font-family="'SF Mono', Menlo, monospace" fill="#1d4ed8">attestation.yaml</tspan></text>
+  <text x="362" y="446" text-anchor="middle" class="sub0">Done is earned only by passing every gate — proof in <tspan font-family="'SF Mono', Menlo, monospace" fill="#3f76d6">attestation.yaml</tspan></text>
 </svg>

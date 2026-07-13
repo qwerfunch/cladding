@@ -19,7 +19,7 @@ acceptance_criteria:
     ears: ubiquitous
     action: 'extract shared React + Vite + TS + Tailwind scaffold into _shared-scaffold.ts so multiple scenarios can reuse package.json / tsconfig / vite.config / tailwind.config / index.html / index.css / main.tsx / README templates without duplication'
     text: The system shall extract shared React + Vite scaffold into a single module reused by all extended scenarios.
-    test_refs: [tests/scenarios/ab-extended/_shared-scaffold.ts]
+    evidence_refs: [tests/scenarios/ab-extended/_shared-scaffold.ts]
   - id: AC-002
     ears: ubiquitous
     action: 'define 30 analytics-dashboard features across 5 categories (layout 8 + cards 8 + charts 5 + data 5 + preferences 4) with deterministic F-hash6 ids and a dashboard-domain capabilities binding'
@@ -44,4 +44,4 @@ acceptance_criteria:
     ears: ubiquitous
     action: 'rewrite docs/ab-evaluation-extended/summary.md as the cross-scenario verdict matrix declaring AB-마무리 (AB-evaluation wrap-up) complete — task-manager + dashboard share identical 3/4 cladding-exclusive drift catch rate proving cladding value generalizes across domains'
     text: The system shall declare AB-evaluation wrap-up complete with a cross-scenario verdict matrix proving domain-independence.
-    test_refs: [docs/ab-evaluation-extended/summary.md]
+    evidence_refs: [docs/ab-evaluation-extended/summary.md]

@@ -51,10 +51,10 @@ acceptance_criteria:
     action: surface the spec-gated-detector limitation honestly — vanilla's "0 errors" is absence of signal, not absence of drift, because detectors need spec to evaluate
     response: 'renderFindings explicitly notes "absence of signal, not absence of drift" in the per-case markdown; docs/ab-evaluation/README.md §Limitations item 2 expands on which detectors are spec-gated (REFERENCE_INTEGRITY, MISSING_IMPLEMENTATION, ARCHITECTURE_FROM_SPEC, CAPABILITIES_FEATURE_MAPPING); docs/ab-evaluation/summary.md verdict on H4 marks it ⚠️ Partially supported with major caveat'
     text: The system shall surface the spec-gated-detector limitation honestly in all 3 documents.
-    test_refs: [docs/ab-evaluation/README.md, docs/ab-evaluation/summary.md]
+    evidence_refs: [docs/ab-evaluation/README.md, docs/ab-evaluation/summary.md]
   - id: AC-007
     ears: ubiquitous
     action: ship the vanilla file sets at senior quality (real zod validation, executable handlers, multiple test cases, proper README) so the comparison stays fair and cladding's value does not depend on vanilla being underwritten
     response: 'tests/scenarios/ab/_vanilla-sim.ts vanilla code is real TypeScript with zod validation, executable handlers, multiple test cases, proper README structure (Install/Usage/API), production-grade package.json with vitest + typescript devDeps; docs/ab-evaluation/README.md §Limitations item 1 explicitly invites readers to inspect the file sets and judge fairness for themselves'
     text: The system shall ship vanilla file sets at senior quality so the comparison stays fair and cladding's value does not depend on vanilla being underwritten.
-    test_refs: [tests/scenarios/ab/_vanilla-sim.ts, docs/ab-evaluation/README.md]
+    evidence_refs: [tests/scenarios/ab/_vanilla-sim.ts, docs/ab-evaluation/README.md]

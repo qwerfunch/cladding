@@ -1,0 +1,90 @@
+<svg width="760" height="576" viewBox="0 0 760 576" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="loop-title" font-family="-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif">
+  <title id="loop-title">Loop engineering — the cycle Discover, Plan, Execute, Verify, Iterate. cladding is the Verify step: it checks the code against your spec and returns a verdict, it can't grade its own code. You set the goal and, on the verdict, ship (done) or iterate. Verify is where an AI loop breaks if the model grades its own work — cladding is the verify you can trust.</title>
+  <defs>
+    <style>
+      :root{
+        --brand:#3b82f6; --brand-deep:#1d4ed8; --brand-soft:#eff6ff;
+        --ink:#6b7280; --text:#737a84; --muted:#6f757f; --faint:#8b919b;
+        --border:#8b93a1; --surface:rgba(148,163,184,0.18); --ok:#16a34a; --block:#e11d48; --brand-text:#3f76d6;
+      }
+      .title{font-size:19px;font-weight:800;fill:var(--ink);letter-spacing:-.3px}
+      .sub0{font-size:12.5px;fill:var(--muted)}
+      .hdr{font-size:13.5px;font-weight:700;fill:#ffffff}
+      .item{font-size:12.5px;fill:var(--text)}
+      .muted{font-size:10.5px;fill:var(--faint)}
+      .focal{font-size:20px;font-weight:800;fill:#ffffff;letter-spacing:-.3px}
+      .flow{font-size:10.5px;font-weight:600;fill:var(--brand-text)}
+      .card{fill:var(--surface);stroke:var(--border);stroke-width:1.25}
+      .band{fill:var(--brand)} .focalbox{fill:var(--brand-deep)}
+      .okfill{fill:var(--ok)} .blockfill{fill:var(--block)} .inkfill{fill:var(--ink)}
+      .stage{font-size:13px;font-weight:700;fill:var(--ink)}
+      .stagesub{font-size:10.5px;fill:var(--muted)}
+    </style>
+    <marker id="ab" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#3b82f6"/></marker>
+    <marker id="ag" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#16a34a"/></marker>
+    <marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#e11d48"/></marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="380" y="30" text-anchor="middle" class="title">Loop engineering</text>
+  <rect x="338" y="40" width="84" height="3" rx="1.5" fill="#3b82f6"/>
+  <text x="380" y="58" text-anchor="middle" class="sub0">you set the goal, the loop runs itself — cladding is its Verify step</text>
+
+  <g transform="translate(0,-54)">
+  <!-- ===== the 5-stage cycle (clockwise) ===== -->
+
+  <!-- Discover (upper-left) -->
+  <rect x="222" y="150" width="140" height="54" rx="13" class="card"/>
+  <text x="292" y="178" text-anchor="middle" class="stage">Discover</text>
+  <text x="292" y="194" text-anchor="middle" class="stagesub">what’s needed</text>
+
+  <!-- Plan (upper-right) -->
+  <rect x="398" y="150" width="140" height="54" rx="13" class="card"/>
+  <text x="468" y="178" text-anchor="middle" class="stage">Plan</text>
+  <text x="468" y="194" text-anchor="middle" class="stagesub">→ write your spec</text>
+
+  <!-- Execute (right) -->
+  <rect x="454" y="320" width="140" height="54" rx="13" class="card"/>
+  <text x="524" y="348" text-anchor="middle" class="stage">Execute</text>
+  <text x="524" y="364" text-anchor="middle" class="stagesub">the AI writes code</text>
+
+  <!-- Iterate (left) -->
+  <rect x="166" y="320" width="140" height="54" rx="13" class="card"/>
+  <text x="236" y="348" text-anchor="middle" class="stage">Iterate</text>
+  <text x="236" y="364" text-anchor="middle" class="stagesub">fix the findings</text>
+
+  <!-- Verify = cladding (bottom, spotlight) -->
+  <rect x="278" y="404" width="204" height="98" rx="15" class="focalbox"/>
+  <text x="380" y="432" text-anchor="middle" class="focal">cladding</text>
+  <text x="380" y="456" text-anchor="middle" font-size="11" fill="#bfdbfe">Verify — checks vs your spec</text>
+  <text x="380" y="476" text-anchor="middle" font-size="11.5" font-weight="700" fill="#dbeafe">GREEN, or the findings</text>
+  <text x="380" y="494" text-anchor="middle" font-size="10" fill="#bfdbfe">(it can’t grade its own code)</text>
+
+  <!-- you, in the middle of the loop -->
+  <text x="380" y="286" text-anchor="middle" class="flow">▸ you set the goal</text>
+  <text x="380" y="304" text-anchor="middle" class="stagesub">the loop runs until you stop it</text>
+
+  <!-- Ring arrows (clockwise) -->
+  <line x1="364" y1="177" x2="396" y2="177" stroke="#3b82f6" stroke-width="1.9" marker-end="url(#ab)"/>
+  <path d="M 510 204 Q 540 262 522 318" fill="none" stroke="#3b82f6" stroke-width="1.9" marker-end="url(#ab)"/>
+  <path d="M 500 374 Q 470 396 458 404" fill="none" stroke="#3b82f6" stroke-width="1.9" marker-end="url(#ab)"/>
+  <path d="M 300 402 Q 286 396 282 374" fill="none" stroke="#e11d48" stroke-width="1.9" marker-end="url(#ar)"/>
+  <text x="300" y="392" text-anchor="middle" font-size="10.5" font-weight="700" fill="#e11d48">FAIL</text>
+  <path d="M 250 318 Q 232 262 262 206" fill="none" stroke="#3b82f6" stroke-width="1.9" marker-end="url(#ab)"/>
+
+  <!-- PASS: Verify → done (exits the loop) -->
+  <line x1="380" y1="504" x2="380" y2="532" stroke="#16a34a" stroke-width="2" marker-end="url(#ag)"/>
+  <text x="394" y="522" text-anchor="start" font-size="10.5" font-weight="700" fill="#16a34a">PASS (GREEN)</text>
+  <rect x="300" y="534" width="160" height="52" rx="13" class="okfill"/>
+  <text x="380" y="560" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">done ✓</text>
+  <text x="380" y="577" text-anchor="middle" font-size="10.5" fill="#dcfce7">stop here, or loop on</text>
+
+  <!-- loop on: done → back to the start (next goal) -->
+  <path d="M 298 566 C 96 556, 30 450, 40 338 C 49 236, 140 192, 218 188" fill="none" stroke="#3b82f6" stroke-width="1.7" stroke-dasharray="5 4" marker-end="url(#ab)"/>
+  <text x="66" y="356" text-anchor="middle" class="flow">next goal</text>
+
+  <!-- Advantage, foregrounded -->
+  <text x="380" y="608" text-anchor="middle" class="sub0">Verify is where an AI loop breaks — a model grading its own work just passes itself.</text>
+  <text x="380" y="626" text-anchor="middle" font-size="12.5" font-weight="800" fill="#3f76d6">cladding is the Verify you can trust: independent, against your spec — done is earned, not declared.</text>
+  </g>
+</svg>

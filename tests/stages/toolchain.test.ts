@@ -182,6 +182,103 @@ describe('detectToolchain', () => {
     expect(tc.language).toBe('python');
     expect(tc.gates.lint).toEqual({cmd: 'ruff', args: ['check', '.']});
   });
+
+  // ─── TS/JS test runner + arch extensions (F-47b8bee5) ───
+
+  test('typescript + jest.config.js → test gate is jest, coverage is jest --coverage', () => {
+    writeFileSync(join(dir, 'package.json'), '{}');
+    writeFileSync(join(dir, 'jest.config.js'), 'module.exports = {}');
+    const tc = detectToolchain(dir);
+    expect(tc.gates.test).toEqual({cmd: 'npx', args: ['--no-install', 'jest']});
+    expect(tc.gates.coverage).toEqual({cmd: 'npx', args: ['--no-install', 'jest', '--coverage']});
+  });
+
+  for (const cfg of ['jest.config.ts', 'jest.config.mjs', 'jest.config.cjs', 'jest.config.json']) {
+    test(`typescript + ${cfg} → test gate is jest`, () => {
+      writeFileSync(join(dir, 'package.json'), '{}');
+      writeFileSync(join(dir, cfg), '{}');
+      expect(detectToolchain(dir).gates.test?.args).toContain('jest');
+    });
+  }
+
+  test('package.json with a top-level "jest" key and no jest.config.* → test gate is jest', () => {
+    writeFileSync(join(dir, 'package.json'), '{"jest":{}}');
+    expect(detectToolchain(dir).gates.test).toEqual({cmd: 'npx', args: ['--no-install', 'jest']});
+  });
+
+  test('typescript with no jest config → test/coverage stay vitest (default preserved)', () => {
+    writeFileSync(join(dir, 'package.json'), '{}');
+    const tc = detectToolchain(dir);
+    expect(tc.gates.test).toEqual({cmd: 'npx', args: ['--no-install', 'vitest', 'run']});
+    expect(tc.gates.coverage).toEqual({cmd: 'npx', args: ['--no-install', 'vitest', 'run', '--coverage']});
+  });
+
+  test('test runner selection follows config presence — add jest.config.js swaps to jest, remove it falls back to vitest', () => {
+    // State-transition: proves the test-runner resolution reads the filesystem each call,
+    // not a hard-coded return.
+    writeFileSync(join(dir, 'package.json'), '{}');
+    const vitestGate = {cmd: 'npx', args: ['--no-install', 'vitest', 'run']};
+    expect(detectToolchain(dir).gates.test).toEqual(vitestGate);
+    writeFileSync(join(dir, 'jest.config.js'), 'module.exports = {}');
+    expect(detectToolchain(dir).gates.test).toEqual({cmd: 'npx', args: ['--no-install', 'jest']});
+    rmSync(join(dir, 'jest.config.js'));
+    expect(detectToolchain(dir).gates.test).toEqual(vitestGate);
+  });
+
+  test('jest.config.ts + biome.json compose — test gate is jest AND lint gate is biome (independent detections)', () => {
+    writeFileSync(join(dir, 'package.json'), '{}');
+    writeFileSync(join(dir, 'jest.config.ts'), 'export default {}');
+    writeFileSync(join(dir, 'biome.json'), '{}');
+    const tc = detectToolchain(dir);
+    expect(tc.gates.test?.args).toContain('jest');
+    expect(tc.gates.lint?.args).toContain('biome');
+  });
+
+  test('typescript arch gate scans ts,tsx,js,jsx extensions', () => {
+    writeFileSync(join(dir, 'package.json'), '{}');
+    expect(detectToolchain(dir).gates.arch).toEqual({cmd: 'npx', args: ['--no-install', 'madge', '--circular', '--extensions', 'ts,tsx,js,jsx', '.']});
+  });
+
+  // ─── Swift (SPM) + Flutter/Dart toolchain (F-e4159959) ───
+
+  test('Package.swift → swift, SPM build/test gates + swiftlint, no arch gate', () => {
+    writeFileSync(join(dir, 'Package.swift'), '// swift-tools-version:5.9\n');
+    const tc = detectToolchain(dir);
+    expect(tc.language).toBe('swift');
+    expect(tc.gates.type).toEqual({cmd: 'swift', args: ['build']});
+    expect(tc.gates.lint).toEqual({cmd: 'swiftlint', args: ['lint']});
+    expect(tc.gates.test).toEqual({cmd: 'swift', args: ['test']});
+    expect(tc.gates.coverage).toEqual({cmd: 'swift', args: ['test', '--enable-code-coverage']});
+    expect(tc.gates.secret).toEqual({cmd: 'gitleaks', args: ['detect', '--no-banner']});
+    expect(tc.gates.arch).toBeUndefined();
+  });
+
+  test('pubspec.yaml declaring flutter sdk → dart with flutter gates', () => {
+    writeFileSync(join(dir, 'pubspec.yaml'), 'name: app\ndependencies:\n  flutter:\n    sdk: flutter\n');
+    const tc = detectToolchain(dir);
+    expect(tc.language).toBe('dart');
+    expect(tc.gates.type).toEqual({cmd: 'flutter', args: ['analyze']});
+    expect(tc.gates.test).toEqual({cmd: 'flutter', args: ['test']});
+    expect(tc.gates.coverage).toEqual({cmd: 'flutter', args: ['test', '--coverage']});
+  });
+
+  test('pubspec.yaml without flutter → dart with plain dart gates', () => {
+    writeFileSync(join(dir, 'pubspec.yaml'), 'name: cli\ndependencies:\n  args: ^2.0.0\n');
+    const tc = detectToolchain(dir);
+    expect(tc.language).toBe('dart');
+    expect(tc.gates.type).toEqual({cmd: 'dart', args: ['analyze']});
+    expect(tc.gates.test).toEqual({cmd: 'dart', args: ['test']});
+    expect(tc.gates.coverage).toEqual({cmd: 'dart', args: ['test', '--coverage=coverage']});
+    expect(tc.gates.lint).toEqual({cmd: 'dart', args: ['format', '--output=none', '--set-exit-if-changed', '.']});
+    expect(tc.gates.arch).toBeUndefined();
+  });
+
+  test('flutter top-level stanza without sdk: flutter → still flutter gates', () => {
+    writeFileSync(join(dir, 'pubspec.yaml'), 'name: app\nflutter:\n  uses-material-design: true\n');
+    const tc = detectToolchain(dir);
+    expect(tc.language).toBe('dart');
+    expect(tc.gates.type).toEqual({cmd: 'flutter', args: ['analyze']});
+  });
 });
 
 describe('gradleCmd', () => {

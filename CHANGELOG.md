@@ -5,58 +5,63 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [0.8.2] — Human-first diagnostics + init/scan correctness (2026-07-07)
+## [0.8.3] — Agent loops that stop honestly, a guard against unverified "done", and a faster check (2026-07-12)
 
-Two threads land together: the "speak the user's language" UX pivot (plain-language
-findings, human-first cards, English single-source with agent relay, the spec-first
-window as a normal state) and three init/scan correctness fixes found while
-reproducing an onboarding bug.
+This release helps you build AI agent loops that stop when the work is genuinely finished, closes a hole where a feature could look done without its tests ever running, makes the pre-push check faster, and ships native Japanese and Chinese documentation.
 
-> **Heads-up:** An A/B against 0.8.1 confirmed all three fixes as correct defect
-> repairs but measured no user-facing behavioral gain under a capable AI host —
-> they ship as correctness and maintainability, not user wins. The genuine
-> beneficiary is the bare-terminal first-time adopter the A/B did not sample.
+If you build your own agent loop, cladding now gives that loop an honest "are we actually done?" answer and a clear "here's what's still broken" list. These loop features are **for loop engineering** — they harden when the loop may stop and what it fixes next, not the AI's code quality (cladding's own A/B testing is the receipt: this kind of governance is separate from code correctness).
+
+> **Heads-up — two things to know when you upgrade:**
+> - The strict check now flags any feature marked **done** whose declared tests don't actually run. A feature that looked green but was never truly verified will surface after upgrade.
+> - Setting up a project now also writes an `AGENTS.md` from your spec, so AGENTS.md-aware AI tools pick up your project's context on their own. Your existing files aren't touched.
 
 ### Added
 
-- **Plain-language findings.** The four human surfaces (turn-end gate,
-  per-edit nudge, `clad check` blocks, `clad done` refusals) now lead with
-  what drifted and what to do, in clear plain English; machine detail
-  (detector id · path) trails as a tail. JSON, SARIF, MCP, and event
-  outputs are byte-unchanged.
-- **Speak the user's language.** The instructions cladding injects
-  (CLAUDE.md section, AGENTS.md template, all five personas) now direct
-  the host agent to translate cladding terms — including cladding's own
-  gate and hook messages — into plain words in the user's own language.
-  The shipped English strings are the single translation source; cladding
-  never detects or stores a locale. The `clad init`, `clad setup`, and
-  `clad clarify` command output moved to that same English single-source too.
+- **Tell your agent loop when it's genuinely finished** — a read-only check answers "is this actually done?" using the very same gate as a real completion; it only reports, it never changes anything.
+- **The loop gives up gracefully instead of spinning** — when repeated attempts stop making progress, it escalates rather than looping forever.
+- **The loop remembers what already failed to build** — past build failures are fed back in, so the AI stops resubmitting the same broken fix.
+- **Errors come back as exact file-and-line pointers**, so the loop fixes them in one pass instead of re-running just to find where the problem was.
+- **New projects get an `AGENTS.md` generated from their spec** (closes #199), so any AGENTS.md-aware AI tool inherits the project's intent; cladding's own copy is protected from being overwritten.
+- **More toolchains detected** — Swift, Flutter, Dart, plus TypeScript-with-Jest and mixed-file-extension projects.
+- **Native Japanese and Chinese READMEs** — written natively, not machine-translated, with translated diagrams. The docs switch between English · 한국어 · 日本語 · 中文.
 
 ### Changed
 
-- **The spec-first window stopped shouting.** A module that isn't built
-  yet on a planned/in-progress feature is now an info note ("the normal
-  state between authoring the spec entry and implementing it"), not a
-  blocking error. done/archived features keep the hard error, and
-  STATUS_DRIFT independently guards done features with missing files.
-- **Hook cards speak human.** Session and prompt cards and block reasons
-  drop internal vocabulary — no MCP tool names, no "shard"; in-progress
-  lists show feature titles next to ids; impact cards say "N features
-  depend on this" instead of "breaks N feature(s)".
+- **The pre-push check runs your tests once, not twice** (closes #215) — about 28% faster, with the "did the tests really run?" guard fully intact.
+- **Tidier evidence bookkeeping** — some spec entries record their supporting material more accurately, and the self-check emits a standard test report.
+- **The tool self-checks its own advertised detector count**, so the docs can't quietly drift from the code.
 
 ### Fixed
 
-- **First-run onboarding no longer bricks the spec.** On a small or greenfield
-  project, `clad init` (and any `--scan`) wrote an empty `layers:` that parsed to
-  null and failed schema validation, so every later check reported the project as
-  ungoverned. It now emits `layers: []`.
-- **Scanned architecture globs match real files.** Layer globs dropped the source
-  root (`api/**` instead of `src/api/**`, matching nothing) and flat projects
-  leaked the project directory name into the committed spec. Both corrected.
-- **Docs matched to real detector behavior.** `docs/feature-cycle.md`
-  wrongly claimed the untested-AC check ignores feature status, and the
-  detector catalog row for missing-implementation now records the
-  status-aware severity.
+- **`clad check` no longer crashes when its output is piped into something that stops reading early** — like `head` (closes #221).
+
+### Security
+
+- **Closed a "looks green but was never verified" hole** — a feature marked done whose tests don't actually run is now caught. cladding treats a check that can be tricked into a false pass as a trust issue, and this closes one way it could be tricked.
+
+## [0.8.2] — Human-first diagnostics + init/scan correctness (2026-07-07)
+
+The "speak the user's language" UX pass, plus three init/scan fixes found while reproducing an onboarding bug.
+
+> **Heads-up:** An A/B against 0.8.1 found all three fixes correct but with no measured user-facing gain under a capable AI host — they ship as correctness, not user wins. The real beneficiary is the bare-terminal first-timer.
+
+### Added
+
+- **Plain-language findings** — the four human surfaces lead with what drifted and what to do; machine detail (id · path) trails. JSON/SARIF/MCP/events byte-unchanged.
+- **Speak the user's language** — cladding ships one English source and the host agent renders the user's language; no locale detected or stored. `clad init`/`setup`/`clarify` output moved to it too.
+
+### Changed
+
+- **Spec-first window stopped shouting** — an unbuilt module on a planned/in-progress feature is an info note, not a block; done/archived keep the hard error.
+- **Cards speak human** — session/prompt cards and block reasons drop internal ids and tool names; impact cards say "N features depend on this."
+
+### Fixed
+
+- **First-run no longer bricks the spec** — an empty `layers:` (null, schema-invalid) now renders `layers: []`, so a small project's first init stays governable.
+- **Scanned globs match real files** — layer globs gained the source root (`src/api/**`) and flat projects stop leaking the project directory name.
+- **Docs match detector behavior** — the feature-cycle doc and detector catalog now record the status-aware untested-AC / missing-implementation severity.
+
+Net: a correctness release, not a capability leap.
 
 ## [0.8.1] — Adoption Proof + Friction Diet (2026-07-06)
 

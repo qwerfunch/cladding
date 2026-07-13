@@ -1,0 +1,42 @@
+id: F-59af798d
+slug: prior-attempts
+title: "prior_attempts — compile failure history into the working set"
+status: done
+modules:
+  - src/optimizer/prior-attempts.ts
+acceptance_criteria:
+  - id: AC-7f162d16
+    test_refs:
+      - tests/optimizer/prior-attempts.test.ts
+    ears: ubiquitous
+    text: "The system shall compile a feature's prior-attempt history from the events log and post-mortems into a prior_attempts field on that feature's working set — carrying at least the attempt count, the last failed gate/stage, and a bounded drift history."
+    notes: "WHY: fills the seam postmortem.ts:18-24 names as open — cladding CAPTURES failure history but never COMPILES it back into the next iteration's context, so iteration N starts blind to why 1..N-1 failed (loop-engineering mistake #1)."
+  - id: AC-c3db73f1
+    test_refs:
+      - tests/optimizer/prior-attempts.test.ts
+    ears: unwanted
+    condition: "if a feature has no recorded prior attempts or post-mortems"
+    response: "omit the prior_attempts field entirely"
+    text: "If a feature has no recorded prior attempts or post-mortems, the system shall omit the prior_attempts field entirely rather than emit an empty structure."
+    notes: "NULL-OMIT LOCK (radius.coverage:null precedent): never an empty array/object pretending to be memory; zero cost on the common case (most features have no failure history)."
+  - id: AC-13df5e54
+    test_refs:
+      - tests/optimizer/prior-attempts.test.ts
+    ears: state
+    condition: "while the working set is assembled within its token budget"
+    text: "While the working set is assembled within its token budget, the prior_attempts summary shall be bounded — a compact summary, never raw post-mortem text — and shall not push the working set over its budget."
+    notes: "SIDE-EFFECT LOCK (#1 user requirement): prior_attempts must not bloat context — cap the drift-history entries, summarize (not raw post-mortem), and compete WITHIN the existing working-set token budget so it never degrades the model or accelerates compaction."
+  - id: AC-586795f9
+    test_refs:
+      - tests/optimizer/prior-attempts.test.ts
+    ears: ubiquitous
+    text: "The prior_attempts reducer shall be pure — derived only from the recorded ledgers (events log, post-mortems) — and shall run no gate and analyze no source code."
+    notes: "PURITY: a read-only reducer over .cladding ledgers; unit-testable without spawning the toolchain, and it is an UPPER BOUND on available memory, not a claim that iteration quality improves."
+  - id: AC-6bfaa04e
+    test_refs:
+      - tests/optimizer/prior-attempts.test.ts
+    ears: unwanted
+    condition: "if part of the attempt history has rotated out of the events log"
+    response: "mark the summary truncated rather than under-report silently"
+    text: "If part of the attempt history has rotated out of the events log, the system shall mark the summary as truncated rather than silently under-reporting."
+    notes: "HONESTY: readEventsIncludingRolled reads rolled + live; when a rotated generation is gone, set truncated_history so 'partial' is distinguishable from 'complete'."

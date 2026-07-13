@@ -4,8 +4,8 @@
       /* ── design tokens (blue-primary, flat / no shadow) ── */
       :root{
         --brand:#3b82f6; --brand-deep:#1d4ed8; --brand-soft:#eff6ff;
-        --ink:#0f172a; --text:#1e293b; --muted:#64748b; --faint:#94a3b8;
-        --border:#d8dfea; --surface:#ffffff; --ok:#16a34a; --block:#e11d48;
+        --ink:#6b7280; --text:#737a84; --muted:#6f757f; --faint:#8b919b;
+        --border:#8b93a1; --surface:rgba(148,163,184,0.18); --ok:#16a34a; --block:#e11d48; --brand-text:#3f76d6;
       }
       .title{font-size:19px;font-weight:800;fill:var(--ink);letter-spacing:-.3px}
       .sub0{font-size:12.5px;fill:var(--muted)}
@@ -13,7 +13,7 @@
       .item{font-size:12.5px;fill:var(--text)}
       .muted{font-size:10.5px;fill:var(--faint)}
       .focal{font-size:21px;font-weight:800;fill:#ffffff;letter-spacing:-.3px}
-      .flow{font-size:10.5px;font-weight:600;fill:var(--brand-deep)}
+      .flow{font-size:10.5px;font-weight:600;fill:var(--brand-text)}
       .card{fill:var(--surface);stroke:var(--border);stroke-width:1.25}
       .band{fill:var(--brand)} .focalbox{fill:var(--brand-deep)}
       .okfill{fill:var(--ok)} .blockfill{fill:var(--block)} .inkfill{fill:var(--ink)}
@@ -23,7 +23,6 @@
     <marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#e11d48"/></marker>
   </defs>
 
-  <rect width="960" height="560" fill="#ffffff"/>
 
   <text x="480" y="42" text-anchor="middle" class="title">cladding × 호스트 LLM</text>
   <rect x="438" y="52" width="84" height="3" rx="1.5" fill="#3b82f6"/>
@@ -66,19 +65,19 @@
   <text x="616" y="361" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">통과 → 완료 획득</text>
   <rect x="258" y="336" width="172" height="40" rx="11" class="blockfill"/>
   <text x="344" y="361" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">차단 → 완료 거부</text>
-  <line x1="616" y1="376" x2="616" y2="414" stroke="#94a3b8" stroke-width="1.6" marker-end="url(#ab)"/>
-  <line x1="344" y1="376" x2="344" y2="414" stroke="#94a3b8" stroke-width="1.6" marker-end="url(#ab)"/>
+  <line x1="616" y1="376" x2="616" y2="414" stroke="#8b93a1" stroke-width="1.6" marker-end="url(#ab)"/>
+  <line x1="344" y1="376" x2="344" y2="414" stroke="#8b93a1" stroke-width="1.6" marker-end="url(#ab)"/>
 
   <!-- record band : ink anchor (both outcomes land here) -->
   <rect x="258" y="418" width="444" height="58" rx="14" class="inkfill"/>
   <text x="480" y="443" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">기록 — 다음 턴의 입력</text>
-  <text x="480" y="462" text-anchor="middle" font-size="11" fill="#94a3b8">감사 장부 · 검증 서명 · 수리 카드</text>
+  <text x="480" y="462" text-anchor="middle" font-size="11" fill="#8b919b">감사 장부 · 검증 서명 · 수리 카드</text>
 
   <!-- feedback loop -->
   <path d="M 258 447 C 190 447, 150 410, 150 340 C 150 314, 158 300, 168 292" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#ab)"/>
-  <text x="158" y="412" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1d4ed8">피드백 루프</text>
+  <text x="158" y="412" text-anchor="middle" font-size="11.5" font-weight="700" fill="#3f76d6">피드백 루프</text>
   <text x="158" y="429" text-anchor="middle" class="muted">검증 결과가 다시 컨텍스트로</text>
 
   <text x="480" y="518" text-anchor="middle" class="sub0">cladding = 외장재. LLM을 대체하지 않는다 — 감싼다.</text>
-  <text x="480" y="540" text-anchor="middle" font-size="13" font-weight="800" fill="#1d4ed8">목표는 하나 — AI의 ‘다 됐습니다’를 말이 아니라 증명으로.</text>
+  <text x="480" y="540" text-anchor="middle" font-size="13" font-weight="800" fill="#3f76d6">목표는 하나 — AI의 ‘다 됐습니다’를 말이 아니라 증명으로.</text>
 </svg>

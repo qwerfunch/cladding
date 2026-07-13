@@ -80,6 +80,7 @@ export const TOOL_NAMES = [
   'clad_link_capability',
   'clad_author_oracle',
   'clad_run_gate',
+  'clad_verdict',
   'clad_get_context',
   'clad_get_working_set',
   'clad_get_impact',
@@ -118,7 +119,7 @@ export function buildServer(opts: ServerOptions = {}): McpServer {
   const server = new McpServer(
     {
       name: opts.name ?? 'cladding',
-      version: opts.version ?? '0.8.2',
+      version: opts.version ?? '0.8.3',
     },
     {
       // Declare subscribe support so clients can subscribe to
@@ -460,6 +461,63 @@ function registerTools(server: McpServer, cwd: string): void {
               text: JSON.stringify({
                 schema_version: PAYLOAD_SCHEMA_VERSION,
                 error: 'gate produced no parseable JSON',
+                stderr: (res.stderr ?? '').slice(0, 400),
+              }),
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // clad_verdict (F-2e28cc72) — the loop's earned stop-condition, one poll.
+  // SUBSUMES clad_run_gate for the loop: it runs the real pre-push strict gate
+  // ONCE and reduces it to a single decision, so a driving agent calls THIS per
+  // turn instead of the raw gate. Same subprocess pattern as clad_run_gate (the
+  // serve layer must not import the cli layer; a separate process gives the
+  // byte-identical pipeline). A poll that answers ITERATE/ESCALATE is a SUCCESS,
+  // not a tool error — isError stays false; only an unparseable poll is an error.
+  server.registerTool(
+    'clad_verdict',
+    {
+      title: 'Poll the loop verdict',
+      description:
+        'One-poll loop decision over the real pre-push strict gate + feature statuses. Runs the gate ONCE and ' +
+        'reduces it to {verdict, next_action, remaining} — call this INSTEAD OF clad_run_gate per loop turn, not in ' +
+        'addition. verdict is one of DONE|ITERATE|ESCALATE|BLOCKED|BOOTSTRAP; DONE requires a green gate AND every ' +
+        'feature done AND at least one non-liveness behavioral proof.',
+      inputSchema: {
+        tier: z.enum(['pre-commit', 'pre-push', 'all']).optional().describe('Gate tier (default pre-push)'),
+      },
+    },
+    async (args) => {
+      const shim = engineShim();
+      if (!shim) {
+        return {
+          isError: true,
+          content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, error: 'cladding engine shim (bin/clad) not found relative to the running server'})}],
+        };
+      }
+      const res = spawnSync(shim, ['verdict', '--json', ...(args.tier ? [`--tier=${args.tier}`] : [])], {
+        cwd,
+        encoding: 'utf8',
+        timeout: 300_000,
+      });
+      try {
+        const doc = JSON.parse(res.stdout || '') as Record<string, unknown>;
+        return {
+          isError: false,
+          content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...doc}, null, 2)}],
+        };
+      } catch {
+        return {
+          isError: true,
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                schema_version: PAYLOAD_SCHEMA_VERSION,
+                error: 'verdict produced no parseable JSON',
                 stderr: (res.stderr ?? '').slice(0, 400),
               }),
             },

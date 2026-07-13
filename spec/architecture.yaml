@@ -28,6 +28,7 @@ layers:
     - graph
   - - stages
     - adapters
+    - verdict
   - - drive
     - serve
   - - cli
@@ -80,6 +81,15 @@ forbidden_imports:
   - from: stages
     to: cli
   - from: stages
+    to: serve
+  # verdict (reducer tier, F-2e28cc72) is the PURE decision layer: it reads the
+  # disposition spine (stages/*) + spec types and is imported only by cli. It
+  # must never reach up into cli/serve/drive — topology cli → serve → verdict.
+  - from: verdict
+    to: drive
+  - from: verdict
+    to: cli
+  - from: verdict
     to: serve
   - from: stages/detectors
     to: adapters

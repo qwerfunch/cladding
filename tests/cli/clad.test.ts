@@ -111,6 +111,10 @@ describe('cli/clad — handler exports', () => {
       return undefined as never;
     }) as never);
     stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    // runCheckCommand now sets process.exitCode (not process.exit) so large
+    // stdout flushes before exit — reset it per test, and restore after so a
+    // recorded failure code can't leak into vitest's own exit status.
+    process.exitCode = undefined;
     runInitMock.mockReset();
     loadSpecMock.mockReset();
     classifyMock.mockReset();
@@ -120,6 +124,7 @@ describe('cli/clad — handler exports', () => {
   afterEach(() => {
     exitSpy.mockRestore();
     stdoutSpy.mockRestore();
+    process.exitCode = 0;
   });
 
   // B1 (No-Vacuous-Green efficiency) — `clad check --json` emits ONE structured
@@ -128,7 +133,11 @@ describe('cli/clad — handler exports', () => {
   // default (non-json) pulse path is untouched.
   test('runCheckStages --json emits a single structured document (no pulses)', () => {
     const out = clad.runCheckStages({tier: 'pre-commit', json: true});
-    expect(out).toEqual({worst: 0, anyFailed: false});
+    expect(out.worst).toBe(0);
+    expect(out.anyFailed).toBe(false);
+    // The return now carries the per-stage breakdown (StageOutcome[]) the verdict
+    // reducer reads (F-2e28cc72); existing callers ignore it.
+    expect(out.stages?.map((s) => s.stage)).toEqual(['stage_1.3', 'stage_1.5', 'stage_1.6']);
     // pulse() must NOT fire in json mode (would corrupt the machine-readable stream)
     expect(pulseMock).not.toHaveBeenCalled();
     const written = stdoutSpy.mock.calls.map((c: unknown[]) => String(c[0])).join('');
@@ -223,12 +232,12 @@ describe('cli/clad — handler exports', () => {
 
   test('runCheckCommand with unknown --tier exits 2 without running stages', () => {
     clad.runCheckCommand({tier: 'no-such-tier'});
-    expect(exitCalls).toEqual([2]);
+    expect(process.exitCode).toBe(2);
   });
 
   test('runCheckCommand --tier=pre-commit passes (drift/arch/secret all pass in mocks)', () => {
     clad.runCheckCommand({tier: 'pre-commit'});
-    expect(exitCalls).toEqual([0]);
+    expect(process.exitCode).toBe(0);
   });
 
   test('runSyncCommand on valid spec exits 0', () => {
@@ -291,7 +300,7 @@ describe('cli/clad — handler exports', () => {
 
   test('runCheckCommand all-pass exits 0', () => {
     clad.runCheckCommand({});
-    expect(exitCalls).toEqual([0]);
+    expect(process.exitCode).toBe(0);
   });
 
   // Iron Law backbone Phase 1 (v0.3.20, F-x) — checkpoint + rollback
@@ -346,21 +355,21 @@ describe('cli/clad — handler exports', () => {
 
   test('runCheckCommand --internal uses internal stage codes', () => {
     clad.runCheckCommand({internal: true});
-    expect(exitCalls).toEqual([0]);
+    expect(process.exitCode).toBe(0);
   });
 
   test('runCheckCommand --strict forwards to drift', async () => {
     const {runDrift} = await import('../../src/stages/drift.js');
     clad.runCheckCommand({strict: true});
     expect(runDrift).toHaveBeenCalledWith({strict: true});
-    expect(exitCalls).toEqual([0]);
+    expect(process.exitCode).toBe(0);
   });
 
   test('runCheckCommand reports worst exit code on failures', async () => {
     const {runType} = await import('../../src/stages/type.js');
     (runType as unknown as ReturnType<typeof vi.fn>).mockReturnValueOnce({pass: false, exitCode: 1});
     clad.runCheckCommand({});
-    expect(exitCalls).toEqual([1]);
+    expect(process.exitCode).toBe(1);
   });
 
   test('runStatusCommand exits 0 and writes to stdout', () => {
@@ -482,7 +491,7 @@ describe('cli/clad — handler exports', () => {
 });
 
 describe('cli/clad — createProgram', () => {
-  test('returns a Command with all 24 verbs registered (work removed in 0.6.0; hook F-1d23a6, context F-d2c806, impact F-7794a6bc, infer-deps F-2be3e3bb, measure F-16138071, graph F-569f4b37, changelog F-904495a5, report F-f6cc5e5a, bundle F-e940fffe)', () => {
+  test('returns a Command with all 25 verbs registered (work removed in 0.6.0; hook F-1d23a6, context F-d2c806, impact F-7794a6bc, verdict F-2e28cc72, infer-deps F-2be3e3bb, measure F-16138071, graph F-569f4b37, changelog F-904495a5, report F-f6cc5e5a, bundle F-e940fffe)', () => {
     const program = clad.createProgram();
     const names = program.commands.map((c) => c.name());
     expect(names).toEqual([
@@ -499,6 +508,7 @@ describe('cli/clad — createProgram', () => {
       'status',
       'context',
       'impact',
+      'verdict',
       'infer-deps',
       'measure',
       'graph',
@@ -551,7 +561,7 @@ describe('cli/clad — createProgram', () => {
 
   test('program version matches current package version', () => {
     const program = clad.createProgram();
-    expect(program.version()).toBe('0.8.2');
+    expect(program.version()).toBe('0.8.3');
   });
 });
 
