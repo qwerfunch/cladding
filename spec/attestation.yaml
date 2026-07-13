@@ -62,7 +62,7 @@ attested_modules:
   docs/spec-ids-multi-dev.md: 28d58e84879f58b1
   docs/ssot-model.md: 2ecedd961ce4f721
   docs/ssot-testing.md: a067d2b99852db9a
-  package.json: c100287dc642d44b
+  package.json: 0bb13c2629d681a4
   plugins/claude-code/.claude-plugin/plugin.json: 7493e69dee9ae24d
   plugins/claude-code/agents/developer.md: b0ef3775132d159a
   plugins/claude-code/agents/observability.md: 81f73e284ee9b3ba
