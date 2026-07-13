@@ -509,7 +509,8 @@ clad setup                # auto-wire your AI tools (Claude · Codex · Gemini �
   <h2>Update</h2>
   <p>Staying current is two commands — or one line to your AI tool.</p>
   <pre><code>npm update -g cladding   # 1. get the new version
-clad update              # 2. once per project — bring it in line</code></pre>
+cd &lt;project&gt;             # 2. your project
+clad update              # 3. bring it in line</code></pre>
   <p>Your code · <code>spec.yaml</code> · docs are left untouched — a stricter version only <strong>points things out</strong>, it never blocks or fixes on its own. If those two commands flag fresh drift, hand it to your AI tool:</p>
   <pre><code>[inside your AI tool] reconcile the drift the update flagged</code></pre>
   <p>…or skip the commands and just ask, the same way you ran init — it runs the update for you:</p>

@@ -546,7 +546,8 @@ clad setup                # AI 도구 자동 연결 (Claude · Codex · Gemini �
   <h2>Update</h2>
   <p>최신 상태 유지는 두 명령 — 아니면 AI 도구에게 한 줄이면 된다.</p>
   <pre><code>npm update -g cladding   # 1. 새 버전 받기
-clad update              # 2. 프로젝트당 한 번 — 맞춰 정렬</code></pre>
+cd &lt;project&gt;             # 2. 프로젝트로 이동
+clad update              # 3. 맞춰 정렬</code></pre>
   <p>코드 · <code>spec.yaml</code> · 문서는 그대로 둔다 — 더 엄격해진 버전은 <strong>짚어만 준다</strong>, 스스로 막거나 고치지 않는다. 위 두 명령이 새 어긋남을 짚으면, 그건 AI 도구에 넘기면 된다:</p>
   <pre><code>[AI 도구 안] 업데이트가 짚은 어긋남을 정리해줘</code></pre>
   <p>…아니면 두 명령을 건너뛰고 init 때처럼 그냥 말해도 된다 — 업데이트까지 알아서 해준다:</p>

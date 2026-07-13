@@ -21,10 +21,10 @@ attested_modules:
   CHANGELOG.md: d437104f3e6b98c3
   CLAUDE.md: d81d8832976cd5ee
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: 09e4702da1e867a4
-  README.ko.html: cb6d8af79147efdd
-  README.ko.md: 94d2f78ae20141c8
-  README.md: 036527c6a6962d17
+  README.html: 879094d34b157bdf
+  README.ko.html: 4cf3fa280dc89f5e
+  README.ko.md: 46cb7908fde99f14
+  README.md: ff1cdcdb5e4ce99b
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -62,7 +62,7 @@ attested_modules:
   docs/spec-ids-multi-dev.md: 28d58e84879f58b1
   docs/ssot-model.md: 2ecedd961ce4f721
   docs/ssot-testing.md: a067d2b99852db9a
-  package.json: c100287dc642d44b
+  package.json: 0bb13c2629d681a4
   plugins/claude-code/.claude-plugin/plugin.json: 7493e69dee9ae24d
   plugins/claude-code/agents/developer.md: b0ef3775132d159a
   plugins/claude-code/agents/observability.md: 81f73e284ee9b3ba

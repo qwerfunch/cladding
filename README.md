@@ -271,7 +271,8 @@ Staying current is two commands — or one line to your AI tool.
 
 ```bash
 npm update -g cladding   # 1. get the new version
-clad update              # 2. once per project — bring it in line
+cd <project>             # 2. your project
+clad update              # 3. bring it in line
 ```
 
 Your code · `spec.yaml` · docs are left untouched — a stricter version only **points things out**, it never blocks or fixes on its own. If those two commands flag fresh drift, hand it to your AI tool:

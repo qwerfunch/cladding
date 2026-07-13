@@ -272,7 +272,8 @@ clad setup                # AI 도구 자동 연결 (Claude · Codex · Gemini �
 
 ```bash
 npm update -g cladding   # 1. 새 버전 받기
-clad update              # 2. 프로젝트당 한 번 — 맞춰 정렬
+cd <project>             # 2. 프로젝트로 이동
+clad update              # 3. 맞춰 정렬
 ```
 
 코드 · `spec.yaml` · 문서는 그대로 둔다 — 더 엄격해진 버전은 **짚어만 준다**, 스스로 막거나 고치지 않는다. 위 두 명령이 새 어긋남을 짚으면, 그건 AI 도구에 넘기면 된다:
