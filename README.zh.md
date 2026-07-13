@@ -269,7 +269,8 @@ clad setup                # 自动接通你的 AI 工具（Claude · Codex · Ge
 
 ```bash
 npm update -g cladding   # 1. 取得新版本
-clad update              # 2. 每个项目一次 —— 与新版对齐
+cd <project>             # 2. 进入项目目录
+clad update              # 3. 与新版对齐
 ```
 
 你的代码 · `spec.yaml` · 文档都原封不动 —— 更严格的版本只是把东西**指出来**，既不拦截，也不擅自修改。若上面这两条命令标出了新的漂移，把它交给你的 AI 工具即可：
