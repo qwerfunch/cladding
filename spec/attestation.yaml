@@ -24,7 +24,7 @@ attested_modules:
   README.html: 1a020a2174f7e1a6
   README.ko.html: 90b6c2c123e863fa
   README.ko.md: abf66779d7a314d8
-  README.md: 9865e3c9b19a56a6
+  README.md: 8f7137aec82a278a
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -52,7 +52,7 @@ attested_modules:
   docs/dogfood/claude-code-2026-05-20.md: 04870d41e75576d6
   docs/dogfood/gemini-cli-2026-05-20.md: 2da1ba66c4f108f0
   docs/feature-cycle.md: 6af4ff8fe15db28a
-  docs/glossary.md: 4207bd5114b70df0
+  docs/glossary.md: 56619c81c8bfb424
   docs/img/en/ecosystem.svg: ed14d1d17f088b00
   docs/img/en/relationship.svg: c7a24203925b4664
   docs/img/ko/ecosystem.svg: 2b7341576c2af0a8
@@ -66,18 +66,18 @@ attested_modules:
   plugins/claude-code/.claude-plugin/plugin.json: 7493e69dee9ae24d
   plugins/claude-code/agents/developer.md: b0ef3775132d159a
   plugins/claude-code/agents/observability.md: 81f73e284ee9b3ba
-  plugins/claude-code/agents/orchestrator.md: d30919c2b78b88e4
+  plugins/claude-code/agents/orchestrator.md: 56b335a91e818e40
   plugins/claude-code/agents/planner.md: 9514f785ba65a58c
   plugins/claude-code/agents/reviewer.md: 91922293457a3d6a
-  plugins/claude-code/commands/init.md: da27018d417ccd26
+  plugins/claude-code/commands/init.md: 32b2bd25fbbc9a5a
   plugins/claude-code/hooks/hooks.json: 42321ead26fb1da8
   plugins/codex/.codex-plugin/plugin.json: e2898491a8fd62b8
   plugins/codex/.mcp.json: 43e3f4b2af24aa18
   plugins/codex/skills/check/SKILL.md: 355826df90846d2f
   plugins/codex/skills/developer/SKILL.md: b0ef3775132d159a
-  plugins/codex/skills/init/SKILL.md: da27018d417ccd26
+  plugins/codex/skills/init/SKILL.md: 32b2bd25fbbc9a5a
   plugins/codex/skills/observability/SKILL.md: 81f73e284ee9b3ba
-  plugins/codex/skills/orchestrator/SKILL.md: d30919c2b78b88e4
+  plugins/codex/skills/orchestrator/SKILL.md: 56b335a91e818e40
   plugins/codex/skills/planner/SKILL.md: 9514f785ba65a58c
   plugins/codex/skills/reviewer/SKILL.md: 91922293457a3d6a
   plugins/codex/skills/run/SKILL.md: 43683062ac062846
@@ -86,7 +86,7 @@ attested_modules:
   plugins/codex/skills/sync/SKILL.md: 709c20212aa5627e
   plugins/gemini-cli/GEMINI.md: ba08eaf2cd557a65
   plugins/gemini-cli/commands/README.md: 3527d771578431bd
-  plugins/gemini-cli/commands/init.toml: 959aae4aa0667332
+  plugins/gemini-cli/commands/init.toml: 6a0a5b7570f754d5
   plugins/gemini-cli/gemini-extension.json: 47685e98f1f67e11
   scripts/build-plugin.mjs: 57ffa3f0e6317a6b
   scripts/build.mjs: 3a4b204063024ef1
@@ -95,9 +95,9 @@ attested_modules:
   scripts/version-bump.mjs: 05a3aa76667ed9ce
   skills/check/SKILL.md: 355826df90846d2f
   skills/checkpoint/SKILL.md: 97bde8bd4553d38f
-  skills/clarify/SKILL.md: 4b1e37af84817586
+  skills/clarify/SKILL.md: 4cfc870233a356b2
   skills/doctor/SKILL.md: 5363d3b34e69c516
-  skills/init/SKILL.md: da27018d417ccd26
+  skills/init/SKILL.md: 32b2bd25fbbc9a5a
   skills/oracle/SKILL.md: 3fc7f21e0309dad3
   skills/rollback/SKILL.md: 2597ab798e61ded8
   skills/route/SKILL.md: 624a6cf60db7960d
@@ -130,7 +130,7 @@ attested_modules:
   src/agents/developer.md: b0ef3775132d159a
   src/agents/loader.ts: 6d35560c47f9ae85
   src/agents/observability.md: 81f73e284ee9b3ba
-  src/agents/orchestrator.md: d30919c2b78b88e4
+  src/agents/orchestrator.md: 56b335a91e818e40
   src/agents/planner.md: 9514f785ba65a58c
   src/agents/reviewer.md: 91922293457a3d6a
   src/changelog/collect.ts: a6c936a7b8c34e2a
@@ -138,15 +138,15 @@ attested_modules:
   src/cli: a4d0f0eb87fed960
   src/cli/benchmark.ts: 77f84d2a898d724f
   src/cli/changelog.ts: 2de1adb009b89ab4
-  src/cli/clad.ts: bb42e20baf8949e3
-  src/cli/clarify.ts: 3bcb68fe55e6c516
+  src/cli/clad.ts: cb33063566a9e86a
+  src/cli/clarify.ts: 21fd375caa5586ab
   src/cli/doctor-hosts.ts: 1ad79105b47fd8e5
   src/cli/doctor.ts: b98b955fe75e7f7e
   src/cli/done.ts: ad2b2d49034296bd
   src/cli/graph-serve.ts: 23e6e389225d0f98
   src/cli/graph.ts: bab410061b8c746a
   src/cli/hook.ts: 201f82f4c89e173f
-  src/cli/init.ts: caf68d5a9caf1409
+  src/cli/init.ts: 54c33d905644c4c1
   src/cli/intent-from-path.ts: e69862821d979f22
   src/cli/measure.ts: 3a562f16589e26c2
   src/cli/report.ts: 911f859b2446834b
@@ -218,7 +218,7 @@ attested_modules:
   src/report/sarif.ts: 71e97aceeb0a4473
   src/router: a4d0f0eb87fed960
   src/router/intent.ts: 430590f761b891a6
-  src/serve/server.ts: 98c24d3712507231
+  src/serve/server.ts: 7f44fae8da80fb14
   src/spec: a4d0f0eb87fed960
   src/spec/attestation.ts: 294a1e99c42d4aef
   src/spec/cli.ts: 7a9bcd0f66677810
@@ -324,7 +324,7 @@ attested_modules:
   tests/adapters/transport.test.ts: 68f22e9e8df7b813
   tests/agents/loader.test.ts: a7df7b1c9a95d37d
   tests/cli/benchmark.test.ts: b4a87289605ee75f
-  tests/cli/clad.test.ts: cb5bec7ba35f4b26
+  tests/cli/clad.test.ts: 85bd0782fc8e10c0
   tests/cli/gate-golden-matrix.test.ts: 39cf615407a55abe
   tests/cli/init.test.ts: 3428a89708fc9330
   tests/cli/intent-onboarding.test.ts: 0681b98ce2e74c22
