@@ -240,22 +240,27 @@ cladding의 차별점은 *결합* — 위 카테고리의 핵심을 *하나의 �
 
 ## Install
 
-### 1. 설치하고 AI 도구 연결하기
+### 1. 컴퓨터에 한 번 설치하기
 
 ```bash
 npm install -g cladding   # cladding CLI 설치
 clad setup                # AI 도구 자동 연결 (Claude · Codex · Antigravity · Cursor)
 ```
 
-위 명령은 어느 디렉터리에서든 실행할 수 있으며, 컴퓨터마다 한 번이면 된다. `clad setup`은 지원하는 AI 도구를 전역으로 연결할 뿐 프로젝트 파일을 만들거나 수정하지 않는다.
+두 명령은 어느 디렉터리에서든 실행할 수 있다. `clad setup`은 이 컴퓨터에 이미 설치된 AI 도구를 연결할 뿐 프로젝트 파일을 만들거나 수정하지 않는다. 지원하는 AI 도구를 나중에 추가했다면 `clad setup`만 다시 실행한다.
 
 ### 2. 프로젝트에서 AI 도구 실행하기
 
 ```bash
 cd <project>
+
+# 이 디렉터리에서 사용하는 AI 도구 하나를 실행한다:
+codex          # 또는: claude
+agy            # Antigravity
+cursor-agent   # Cursor Agent
 ```
 
-> **다음 단계:** 이 프로젝트 폴더에서 사용하는 AI 도구를 새로 시작한다. Codex · Claude Code · Antigravity(`agy`) · Cursor Agent(`cursor-agent`)는 이 디렉터리에서 실행하고, Cursor IDE는 이 폴더를 연다. `clad setup`의 연결은 새 세션부터 적용된다.
+자신이 사용하는 AI 도구의 명령 하나만 실행하면 된다. Cursor IDE는 `<project>` 폴더를 작업공간으로 연다. `clad setup` 뒤에는 반드시 AI 도구를 새 세션으로 시작한다. `cd`만 실행하고 끝내면 안 된다.
 
 ### 3. 프로젝트에 Cladding 한 번 적용하기
 
@@ -307,17 +312,19 @@ docs/plan.md를 기준으로 cladding을 적용해줘.
 cladding을 최신 버전으로 업데이트해줘.
 ```
 
-호스트에 터미널 및 전역 설치 권한이 있으면 AI가 두 업데이트 단계를 실행하고 새로 발견한 어긋남을 설명한다. 권한이 없으면 승인하거나 직접 실행할 명령을 안내한다.
+AI 도구에 터미널 및 전역 설치 권한이 있으면 CLI 업데이트, 호스트 배선 갱신, 현재 프로젝트 업데이트를 수행하고 새로 발견한 어긋남을 설명한다. 권한이 없으면 승인하거나 직접 실행할 명령을 안내한다.
 
 ### 또는 터미널에서 직접 업데이트하기
 
 ```bash
 npm update -g cladding   # 1. 새 버전 받기
-cd <project>             # 2. 프로젝트로 이동
-clad update              # 3. 설치된 버전에 프로젝트 맞추기
+clad setup               # 2. 이 컴퓨터의 AI 도구 연결 갱신
+
+cd <project>             # 3. Cladding 프로젝트로 이동
+clad update              # 4. 프로젝트를 설치된 버전에 맞추기
 ```
 
-업데이트는 사용자가 작성한 코드 · 기능/스펙 본문 · 문서를 보존한다. 파생된 인벤토리와 인덱스, `AGENTS.md` 또는 `CLAUDE.md`의 Cladding 관리 블록은 새 버전에 맞게 갱신될 수 있다. 새 버전이 어긋남을 발견하면 그 결과를 AI 도구에 넘기면 된다:
+앞의 두 명령은 컴퓨터에서 업데이트할 때 한 번만 실행한다. `clad update`는 업데이트하려는 각 Cladding 프로젝트에서 실행한다. 사용자가 작성한 코드 · 기능/스펙 본문 · 문서는 보존되며, 파생 데이터와 Cladding 관리 지침 블록만 갱신될 수 있다. 새 버전이 어긋남을 발견하면 그 결과를 AI 도구에 넘기면 된다:
 
 ```
 업데이트가 짚은 어긋남을 정리해줘.

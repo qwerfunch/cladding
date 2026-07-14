@@ -237,22 +237,29 @@ The distinction is the *combination* — binding those cores into *one verificat
 
 ## Install
 
-### 1. Install and connect your AI tools
+### 1. Install once on your machine
 
 ```bash
 npm install -g cladding   # the cladding CLI
 clad setup                # auto-wire your AI tools (Claude · Codex · Antigravity · Cursor)
 ```
 
-Run these once on your machine, from any directory. `clad setup` connects supported AI tools globally; it does not create or modify project files.
+Run both commands from any directory. `clad setup` connects the AI tools already installed on this
+machine; it does not create or modify project files. Run it again after adding another supported AI tool.
 
 ### 2. Start your AI tool from the project
 
 ```bash
 cd <project>
+
+# Start one of the AI tools from this directory:
+codex          # or: claude
+agy            # Antigravity
+cursor-agent   # Cursor Agent
 ```
 
-> **Next step:** Start your AI tool with this project as its workspace. Run Codex, Claude Code, Antigravity (`agy`), or Cursor Agent (`cursor-agent`) from this directory, or open this folder in Cursor. The connection created by `clad setup` takes effect in the new session.
+Use only the command for your AI tool. For Cursor IDE, open `<project>` as the workspace instead.
+Always start a new AI session after `clad setup`; changing directory alone is not enough.
 
 ### 3. Apply Cladding once
 
@@ -309,17 +316,23 @@ From your project, say:
 Update cladding to the latest version.
 ```
 
-If your host allows terminal and global-install access, the AI runs both update steps and explains any new drift. Otherwise, it shows you the commands to approve or run yourself.
+If the AI tool has terminal and global-install permission, it updates the CLI, refreshes host wiring,
+updates the current project, and explains any new drift. Otherwise, it shows the commands for you to approve or run.
 
 ### Or update from the terminal
 
 ```bash
 npm update -g cladding   # 1. get the new version
-cd <project>             # 2. your project
-clad update              # 3. align this project with the installed version
+clad setup                # 2. refresh this machine's AI-tool connections
+
+cd <project>              # 3. enter a Cladding project
+clad update               # 4. align that project with the installed version
 ```
 
-The update preserves your authored code, feature/spec content, and documentation. It may refresh derived inventory/index data and the Cladding-managed block in `AGENTS.md` or `CLAUDE.md`. If the new version reports drift, hand that result to your AI tool:
+Run the first two commands once per machine update. Run `clad update` in each Cladding project you
+want to upgrade. It preserves authored code, feature/spec content, and documentation; only derived
+data and Cladding-managed instruction blocks may be refreshed. If the new version reports drift,
+hand that result to your AI tool:
 
 ```
 Reconcile the drift the update flagged.

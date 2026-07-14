@@ -55,8 +55,9 @@ project, asking about Cladding, or running `clad setup` are not consent.
 
 ```bash
 npm update -g cladding     # 1. install the new version
-cd <your project>          # 2. once per project
-clad update                # 3. bring it in line with the new version
+clad setup                  # 2. refresh this machine's host wiring
+cd <your project>           # 3. once per project
+clad update                 # 4. bring it in line with the new version
 ```
 
 Your authored code, feature/spec content, and documentation are preserved. The command may refresh
