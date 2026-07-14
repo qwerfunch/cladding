@@ -21,10 +21,10 @@ attested_modules:
   CHANGELOG.md: d437104f3e6b98c3
   CLAUDE.md: d81d8832976cd5ee
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: 54c672f9db30bd61
-  README.ko.html: 3852cdae52ad9328
-  README.ko.md: fcc987d9e6b9450c
-  README.md: 033860f14ba378f8
+  README.html: 2c51bb11832c7844
+  README.ko.html: c6a0ad7c2e4c42dd
+  README.ko.md: 1890a603a0185c73
+  README.md: 06bb2a2d52b06ac0
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
