@@ -1,6 +1,6 @@
 ---
 name: planner
-description: SSoT custodian — keeps spec.yaml structurally clean. Adds features, archives them, and ensures EARS pattern compliance.
+description: SSoT custodian — keeps spec.yaml structurally clean. Adds features, archives them, and ensures EARS pattern compliance. Activate only when the connected project contains spec.yaml or the user explicitly names Cladding; ignore ordinary requests in uninitialized projects.
 tools: Read, Write, Edit, Bash
 capabilities: [read, write, edit, exec]
 ---

@@ -19,8 +19,9 @@ the detail behind them: where each host is wired, how the MCP server works, and 
 binaries are on PATH. It is safe to re-run after an upgrade or after installing a new AI tool.
 
 **Verification level (honesty note).** Claude Code is fully verified through real-usage
-campaigns (including real-time intervention). Codex · Gemini CLI wire automatically; their behavior isn't verified yet. Cursor wires automatically, but real-usage verification is still pending —
-to be updated as it lands. (The machine-readable claim lives in the README's `clad:host-claims`
+campaigns (including real-time intervention). Codex onboarding is live-verified for idea,
+planning-document, existing-project, and uninitialized control cases. Gemini CLI and Cursor wire
+automatically, but their real-usage onboarding verification is still pending. (The machine-readable claim lives in the README's `clad:host-claims`
 fence, which `HOST_CLAIM_DRIFT` polices against `docs/dogfood/matrix.md`.)
 
 ## About the MCP server
@@ -36,8 +37,9 @@ only standard MCP tool calls—not server-side sampling—and prevents incomplet
 drafts from partially changing the project.
 
 Initialization never writes immediately from the first natural-language request. The host previews
-the planned files and asks for confirmation; only a separate affirmative user reply authorizes the
-write step. Merely opening a project, asking about Cladding, or running `clad setup` is not consent.
+the planned file operations and shows a one-time approval phrase; only a separate user reply that
+exactly repeats that phrase authorizes the write step. Questions, paraphrases, merely opening a
+project, asking about Cladding, or running `clad setup` are not consent.
 
 | Host | Primary request | Optional explicit invocation |
 |---|---|---|

@@ -519,7 +519,7 @@ export function renderSetupReport(
   lines.push('  1. Restart your AI tool (Claude Code / Codex / Gemini / Cursor)');
   lines.push('  2. Open the project directory');
   lines.push('  3. Ask: "Apply Cladding to this project"');
-  lines.push('  4. Start building — cladding checks that spec ↔ code stay in sync on every commit');
+  lines.push('  4. Start building — use optional Git hooks or CI when you want automatic enforcement');
   return lines.join('\n');
 }
 

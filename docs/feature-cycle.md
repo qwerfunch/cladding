@@ -22,6 +22,11 @@ say-so alone, never skip a `▣`.
    `test_refs`) + the `modules` you're about to build + any scenario it needs — in one
    `clad_create_feature` call (the tool takes ACs/modules). Not the whole backlog; just the feature
    you're about to build.
+   Classify its design impact in the same call: `none` for a genuinely internal change,
+   `additive` to bind it to a capability and optional existing scenario, or `structural` when
+   architecture/project context must change. Additive links land with the shard. Structural impact
+   stays `review_required`; show the Tier-B diff and call `clad_resolve_design_impact` only after the
+   listed artifacts actually changed with user approval.
    - ▣ **Barrier:** `clad sync` — the shard itself must be valid (schema, EARS shape, consistent
      inventory) before any code. **Spec-first is the hard rule:** you author the shard *before* the
      code, and no code that no feature claims may land (`UNMAPPED_ARTIFACT` blocks that at step 3's
@@ -61,7 +66,8 @@ say-so alone, never skip a `▣`.
    the feature to done with **`clad done <featureId>`** — it re-runs the pre-push strict gate with
    the feature evaluated as done and writes `status: done` **only if that gate is GREEN**, reverting
    otherwise. Do not hand-write `status: done`: the verb is what keeps "done" from claiming more than
-   the gate verifies. `clad sync` keeps the inventory honest. Sign-off identity ≠ any implementer
+   the gate verifies. An unresolved structural design impact is refused before the gate runs.
+   `clad sync` keeps the inventory honest. Sign-off identity ≠ any implementer
    (independent agent, or a human at L4 / UAT). **Then start the next feature's cycle.**
 
 ## Parallelism = N concurrent instances of this same cycle

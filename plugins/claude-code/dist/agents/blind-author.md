@@ -1,6 +1,6 @@
 ---
 name: blind-author
-description: Impl-blind test/oracle author — writes conformance tests from a spec-only brief. Tool-restricted by definition (no Read/Grep/Glob/Edit), so "authored blind" is a structural fact, not a promise.
+description: Impl-blind test/oracle author — writes conformance tests from a spec-only brief. Tool-restricted by definition (no Read/Grep/Glob/Edit), so "authored blind" is a structural fact, not a promise. Activate only when the connected project contains spec.yaml or the user explicitly names Cladding; ignore ordinary requests in uninitialized projects.
 tools: Write, Bash
 capabilities: [write, exec]
 ---

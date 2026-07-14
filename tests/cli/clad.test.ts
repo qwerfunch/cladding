@@ -585,6 +585,7 @@ describe('cli/clad — runServeCommand', () => {
         initialize: expect.any(Function),
         prepareClarify: expect.any(Function),
         clarify: expect.any(Function),
+        resolveReview: expect.any(Function),
       },
     });
     expect(StdioMock).toHaveBeenCalledOnce();

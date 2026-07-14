@@ -194,6 +194,18 @@
           "type": "array",
           "items": {"$ref": "#/definitions/acceptance_criterion"}
         },
+        "design_impact": {
+          "type": "object",
+          "required": ["classification", "rationale", "status"],
+          "additionalProperties": false,
+          "properties": {
+            "classification": {"type": "string", "enum": ["none", "additive", "structural"]},
+            "rationale": {"type": "string", "minLength": 1},
+            "status": {"type": "string", "enum": ["resolved", "review_required"]},
+            "artifacts": {"type": "array", "items": {"type": "string"}},
+            "baseline_digests": {"type": "object", "additionalProperties": {"type": "string"}}
+          }
+        },
         "depends_on": {
           "type": "array",
           "items": {"type": "string", "pattern": "^F-(\\d{3,}|[a-f0-9]{6,})$"}

@@ -258,8 +258,8 @@ cd <project>
 
 Choose the starting point that fits and say it naturally in your AI tool.
 
-Cladding first inspects the project without changing it. Your AI shows the files it plans to create
-and asks for confirmation; initialization begins only after your separate affirmative reply.
+Cladding first inspects the project without changing it. Your AI shows the exact file operations and
+a one-time approval phrase; initialization begins only when you repeat that phrase in a separate reply.
 Opening a project or asking a question about Cladding never authorizes file changes.
 
 #### An idea, nothing else
@@ -268,7 +268,8 @@ Opening a project or asking a question about Cladding never authorizes file chan
 Start this B2B payment SaaS with Cladding.
 ```
 
-The LLM analyzes the domain, creates the spec, docs, and policies, then asks 2–3 follow-up questions.
+The LLM analyzes the domain and creates the spec, docs, and policies. It asks up to three follow-up
+questions only when an important product decision is still unresolved; a complete plan asks none.
 
 #### A planning document
 
@@ -286,7 +287,7 @@ Analyze this project and apply Cladding.
 
 Cladding scans the existing code and combines the observed patterns with your intent.
 
-> **Once initialization is complete, keep developing in the same conversation.** Ask for the next feature in plain language; the AI uses the generated spec and docs while cladding runs its verification loop in the background.
+> **Once initialization is complete, keep developing in the same conversation.** Ask for the next feature in plain language; the AI uses the generated spec and docs and keeps material design changes aligned as the project grows. Checks run when the host invokes them; use the optional Git hooks or CI gate when you want automatic enforcement.
 
 ```
 Implement email sign-in, including tests.

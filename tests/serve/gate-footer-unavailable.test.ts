@@ -44,7 +44,7 @@ describe('gateFooter — engine fault fails closed, never a fabricated GREEN', (
     try {
       const res = await client.callTool({
         name: 'clad_create_feature',
-        arguments: {slug: 'probe-feature', title: 'Probe'},
+        arguments: {slug: 'probe-feature', title: 'Probe', design_impact: {classification: 'none', rationale: 'test-only feature'}},
       });
       const doc = JSON.parse((res.content as Array<{type: string; text: string}>)[0].text) as {
         gate: {pass: boolean; unavailable?: boolean; findings: unknown[]; next?: string};

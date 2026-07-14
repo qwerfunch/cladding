@@ -1,5 +1,5 @@
 ---
-description: Run every Iron Law stage and the drift detector suite. Use when the user wants the full project health snapshot, a CI gate, or to verify nothing regressed before committing. Add --strict to promote warn-severity drift findings to errors.
+description: Run every Iron Law stage and the drift detector suite. Use when the user wants the full project health snapshot, a CI gate, or to verify nothing regressed before committing. Add --strict to promote warn-severity drift findings to errors. Activate only when the connected project contains spec.yaml or the user explicitly names Cladding; ignore ordinary requests in uninitialized projects.
 ---
 
 # Cladding check

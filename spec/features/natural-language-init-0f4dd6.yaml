@@ -10,6 +10,13 @@ modules:
   - src/cli/hook.ts
   - src/ui/softShell.ts
   - src/init/host-setup.ts
+  - src/init/agents-md.ts
+  - src/init/host-instructions.ts
+  - src/spec/new.ts
+  - src/spec/schema.json
+  - src/spec/types.ts
+  - src/cli/done.ts
+  - src/events/log.ts
   - README.md
   - docs/glossary.md
 depends_on: [F-56abaa, F-5f6b45, F-80d19d]
@@ -89,3 +96,67 @@ acceptance_criteria:
       All supported MCP hosts can call tools, but they do not expose a common cryptographic user-consent primitive.
       ## Trade-off
       The host instruction and verbatim confirmation field provide the strongest portable boundary; a malicious host could still fabricate consent, so this is not presented as a sandbox guarantee.
+  - id: AC-010
+    ears: unwanted
+    condition: if the apply request does not carry the exact one-time approval challenge shown in the read-only preview
+    action: reject initialization without writing project artifacts
+    response: questions, acknowledgements, and model-invented confirmations cannot be mistaken for user consent
+    text: If the apply request does not carry the exact one-time approval challenge shown in the read-only preview, the system shall reject initialization without writing project artifacts, so questions, acknowledgements, and model-invented confirmations cannot be mistaken for user consent.
+    test_refs: [tests/serve/init-tools.test.ts]
+    notes: |
+      ## Decision
+      Use a short preview-bound approval challenge rather than attempting to classify arbitrary affirmative prose across languages.
+      ## Why
+      MCP has no portable proof of which user turn produced an argument; exact challenge matching is the strongest host-neutral check available and makes accidental application materially harder.
+      ## Trade-off
+      Initialization is a one-time destructive boundary, so one explicit copy/confirm step is preferred over a lower-friction but ambiguous yes/no classifier.
+  - id: AC-011
+    ears: event
+    condition: when the supplied idea, planning document, and observed project already resolve the important product decisions
+    action: emit no follow-up questions
+    response: complete inputs can move directly into development while incomplete inputs receive at most three material product questions
+    text: When the supplied idea, planning document, and observed project already resolve the important product decisions, the system shall emit no follow-up questions, so complete inputs can move directly into development while incomplete inputs receive at most three material product questions.
+    test_refs: [tests/serve/init-tools.test.ts, tests/cli/intent-onboarding.test.ts]
+  - id: AC-012
+    ears: event
+    condition: when a planning document and existing source code are both present
+    action: combine the complete project-local document with an observed code scan in one onboarding preparation
+    response: hybrid projects do not have to discard either declared intent or sparse implementation evidence
+    text: When a planning document and existing source code are both present, the system shall combine the complete project-local document with an observed code scan in one onboarding preparation, so hybrid projects do not have to discard either declared intent or sparse implementation evidence.
+    test_refs: [tests/serve/init-tools.test.ts]
+  - id: AC-013
+    ears: event
+    condition: when a follow-up answer refines untouched Cladding-generated onboarding artifacts
+    action: update those artifacts atomically and keep onboarding active until every answer is represented in the active design
+    response: onboarding cannot report completion while the accepted answer exists only in a review proposal
+    text: When a follow-up answer refines untouched Cladding-generated onboarding artifacts, the system shall update those artifacts atomically and keep onboarding active until every answer is represented in the active design, so onboarding cannot report completion while the accepted answer exists only in a review proposal.
+    test_refs: [tests/serve/init-tools.test.ts, tests/cli/clarify.test.ts]
+  - id: AC-014
+    ears: unwanted
+    condition: if an onboarding artifact changed after the read-only preparation or a write fails while applying the draft
+    action: leave every authored project file at its pre-apply content and return a stale or failed result
+    response: initialization and clarification never leave a partially applied design
+    text: If an onboarding artifact changed after the read-only preparation or a write fails while applying the draft, the system shall leave every authored project file at its pre-apply content and return a stale or failed result, so initialization and clarification never leave a partially applied design.
+    test_refs: [tests/serve/init-tools.test.ts]
+  - id: AC-015
+    ears: event
+    condition: when onboarding completes
+    action: report that ordinary natural-language development may continue, distinguish on-demand checks from opt-in hook or CI enforcement, and require each material feature to resolve its design impact before done
+    response: the handoff is truthful and Tier-B design grows selectively with the project
+    text: When onboarding completes, the system shall report that ordinary natural-language development may continue, distinguish on-demand checks from opt-in hook or CI enforcement, and require each material feature to resolve its design impact before done, so the handoff is truthful and Tier-B design grows selectively with the project.
+    test_refs: [tests/serve/server.test.ts, tests/cli/done.test.ts]
+    evidence_refs: [README.md, src/init/agents-md.ts, src/serve/server.ts]
+  - id: AC-016
+    ears: event
+    condition: when a host restarts its MCP server between the read-only preview and the user's separate approval reply
+    action: validate a restart-safe approval envelope against the current workspace snapshot
+    response: headless and process-per-turn hosts can apply the approved preview while stale or replayed envelopes remain non-destructive
+    text: When a host restarts its MCP server between the read-only preview and the user's separate approval reply, the system shall validate a restart-safe approval envelope against the current workspace snapshot, so headless and process-per-turn hosts can apply the approved preview while stale or replayed envelopes remain non-destructive.
+    test_refs: [tests/serve/init-tools.test.ts]
+  - id: AC-017
+    ears: state
+    condition: while the connected project has no spec.yaml and the user has not explicitly named Cladding
+    action: keep every non-init Cladding skill ineligible for ordinary development requests
+    response: globally installed integrations do not route unrelated work through Cladding personas
+    text: While the connected project has no spec.yaml and the user has not explicitly named Cladding, the system shall keep every non-init Cladding skill ineligible for ordinary development requests, so globally installed integrations do not route unrelated work through Cladding personas.
+    test_refs: [tests/init/skill-activation.test.ts]

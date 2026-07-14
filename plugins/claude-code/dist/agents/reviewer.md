@@ -1,6 +1,6 @@
 ---
 name: reviewer
-description: Philosophical guardrails enforcer — independently audits code, tests, and spec for layered-integrity, Why>What, error-as-data, and the related Ironclad philosophical invariants.
+description: Philosophical guardrails enforcer — independently audits code, tests, and spec for layered-integrity, Why>What, error-as-data, and the related Ironclad philosophical invariants. Activate only when the connected project contains spec.yaml or the user explicitly names Cladding; ignore ordinary requests in uninitialized projects.
 tools: Read, Bash
 capabilities: [read, exec]
 ---

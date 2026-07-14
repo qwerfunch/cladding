@@ -1,5 +1,5 @@
 ---
-description: Summarise .cladding/events.log.jsonl — sentinel-miss frequency by phase × cause × fallback plus the top missed sentinels. Use when the user asks whether their LLM dispatcher (MCP sampling host, Anthropic SDK, …) is healthy, when scan / drive results look thinner than expected, or as a one-shot triage before tuning model / max_tokens / temperature.
+description: Summarise .cladding/events.log.jsonl — sentinel-miss frequency by phase × cause × fallback plus the top missed sentinels. Use when the user asks whether their LLM dispatcher (MCP sampling host, Anthropic SDK, …) is healthy, when scan / drive results look thinner than expected, or as a one-shot triage before tuning model / max_tokens / temperature. Activate only when the connected project contains spec.yaml or the user explicitly names Cladding; ignore ordinary requests in uninitialized projects.
 ---
 
 # Cladding doctor

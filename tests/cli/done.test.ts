@@ -174,6 +174,24 @@ describe('runDone', () => {
     expect(readFileSync(path, 'utf8')).toContain('status: done');
   });
 
+  test('an unresolved structural design impact blocks done before the gate runs', () => {
+    const body = SHARD_BODY +
+      'design_impact:\n' +
+      '  classification: structural\n' +
+      '  rationale: "new service boundary"\n' +
+      '  status: review_required\n' +
+      '  artifacts: ["spec/architecture.yaml"]\n';
+    const path = writeShard(dir, body);
+    const checkStages = vi.fn(() => ({worst: 0}));
+
+    const result = runDone(dir, FEATURE_ID, {checkStages});
+
+    expect(result.ok).toBe(false);
+    expect(result.reason).toContain('design impact still needs review');
+    expect(checkStages).not.toHaveBeenCalled();
+    expect(readFileSync(path, 'utf8')).toBe(body);
+  });
+
   test('RED gate reverts the shard byte-for-byte', () => {
     const path = writeShard(dir);
     const original = readFileSync(path, 'utf8');

@@ -1,5 +1,5 @@
 ---
-description: Record a feature checkpoint event pinning the current git HEAD plus a spec digest, so a later rollback can restore the exact pre-change state. Use before a non-trivial feature implementation, before a refactor that touches many files, or whenever the user wants a known-good safety net the autonomous drive loop can fall back to.
+description: Record a feature checkpoint event pinning the current git HEAD plus a spec digest, so a later rollback can restore the exact pre-change state. Use before a non-trivial feature implementation, before a refactor that touches many files, or whenever the user wants a known-good safety net the autonomous drive loop can fall back to. Activate only when the connected project contains spec.yaml or the user explicitly names Cladding; ignore ordinary requests in uninitialized projects.
 ---
 
 # Cladding checkpoint

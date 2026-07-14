@@ -94,6 +94,14 @@ export interface Feature {
   /** File paths this feature touches. */
   readonly modules?: readonly string[];
   readonly acceptance_criteria?: readonly AcceptanceCriterion[];
+  /** Feature-bound decision recording whether Tier-B design must evolve. */
+  readonly design_impact?: {
+    readonly classification: 'none' | 'additive' | 'structural';
+    readonly rationale: string;
+    readonly status: 'resolved' | 'review_required';
+    readonly artifacts?: readonly string[];
+    readonly baseline_digests?: Readonly<Record<string, string>>;
+  };
   /** Feature ids this one depends on. */
   readonly depends_on?: readonly string[];
   readonly archived_at?: string;

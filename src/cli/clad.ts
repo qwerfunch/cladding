@@ -24,7 +24,7 @@ import {runHookCommand} from './hook.js';
 import {runVerdictCommand} from './verdict.js';
 import {runUpdate} from './update.js';
 import {runInit} from './init.js';
-import {refineOnboarding, runClarifyCommand} from './clarify.js';
+import {refineOnboarding, resolveOnboardingReview, runClarifyCommand} from './clarify.js';
 import {prepareHostClarify, prepareHostInit, renderHostDraft} from './host-onboarding.js';
 import {getCurrentCladdingVersion, runHostSetup} from '../init/host-setup.js';
 import {recordEvent} from '../events/log.js';
@@ -89,6 +89,7 @@ export async function runServeCommand(opts: {cwd?: string}): Promise<void> {
       initialize: runInit,
       prepareClarify: (answer, {cwd}) => prepareHostClarify(cwd, answer),
       clarify: refineOnboarding,
+      resolveReview: (targets, {cwd}) => resolveOnboardingReview(targets, {cwd}),
     },
   });
   // v0.2.26 (F-075): register the server in the sampling context so

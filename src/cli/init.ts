@@ -33,7 +33,7 @@ import {
   type OnboardingResult,
 } from './scan/intent-onboarding.js';
 import type {ScanLlmDispatcher} from './scan/llm.js';
-import {saveState, type OnboardingState} from './scan/onboarding-state.js';
+import {captureArtifactDigests, loadState, saveState, type OnboardingState} from './scan/onboarding-state.js';
 import {detectToolchain} from '../stages/toolchain/detect.js';
 import {writeClaudeMdSection} from '../init/host-instructions.js';
 import {writeSpecDrivenAgentsMd} from '../init/agents-md.js';
@@ -670,6 +670,14 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
     } else if (ci === 'exists') {
       skipped.push('.github/workflows/cladding.yml already exists — cladding never overwrites a CI workflow');
     }
+  }
+
+  // The Q&A loop may overwrite only byte-identical Cladding-generated design.
+  // Capture after every initial artifact has landed so later user edits are
+  // diverted for review rather than silently replaced.
+  if (onboarding) {
+    const state = loadState(cwd);
+    if (state) saveState(cwd, {...state, artifactDigests: captureArtifactDigests(cwd)});
   }
 
   return {

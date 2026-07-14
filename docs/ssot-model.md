@@ -35,7 +35,7 @@ A Tier B artifact must answer: **who reads this and what decision do they make?*
 Orphan artifacts get demoted (move to Tier D as historical reference) or removed. This cycle resolves the v0.3.45 orphans:
 - `spec/capabilities.yaml` gains the `CAPABILITIES_FEATURE_MAPPING` detector
 - `docs/project-context.md` becomes the scenario generator's source (clear, named role)
-- `spec/scenarios/*.yaml` gains a clear producer (onboarding / `clad_create_scenario`) and consumer (the reference detectors + the host AI). *(NOTE v0.4.x: an earlier draft claimed `clad_create_feature` binds scenarios; it does not — `createFeature` in `src/spec/new.ts` takes no scenario argument. Scenarios are authored independently via `clad_create_scenario`.)*
+- `spec/scenarios/*.yaml` gains a clear producer (onboarding / `clad_create_scenario`) and consumer (the reference detectors + the host AI). The public `clad_create_feature` transaction may bind an existing scenario when its design impact is additive; the lower-level `createFeature` helper stays single-purpose.
 
 ## Artifact registry
 
@@ -84,11 +84,10 @@ single-responsibility (and keeps a tool's name honest as it grows).
 | **refine** | holistic DOCUMENT (one per project, not enumerated) | LLM/manual rewrite | `clad clarify` (formerly `refine`) → `architecture.yaml`, `project-context.md`, `conventions.md` |
 
 A capability is **accumulative** (created once, then features land on it over time),
-so its verb is `link`, not `create` — re-"creating" an existing capability would
-collide. `clad_create_feature` therefore does NOT grow capabilities as a side effect
-(that would make its name lie); instead its result carries a non-mutating `hint` to
-call `clad_link_capability`. This is the deterministic development-time firing path
-for the Tier-B design SSoT, complementing the onboarding-time `clad clarify` path.
+so its underlying verb remains `link`, not `create`. The public `clad_create_feature`
+transaction requires a design-impact decision: `additive` composes that link (and an
+optional scenario link) with feature creation; `structural` records the affected Tier-B
+artifacts as `review_required` until their approved contents actually change.
 
 ## Capturing WHY — the decision micro-format (Tier A content)
 
@@ -213,8 +212,8 @@ Conflict resolution (when same information lives in multiple tiers):
 | `clad init` (bare, greenfield) | spec.yaml seed, .cladding/, .gitignore, project-context template, scenarios README, conventions/architecture/capabilities greenfield seeds | new files only — existing files skip via idempotency |
 | `clad init <intent>` (onboarding) | + project-context.md (LLM-refined), capabilities.yaml (LLM-inferred), architecture.yaml (LLM-inferred), spec.yaml F-001 title, **scenarios stubs (NEW v0.3.45)**, onboarding state.yaml | existing files divert to `.cladding/scan/*.proposal` |
 | `clad init --scan` (existing-project) | conventions.md (observed), architecture.yaml (observed), capabilities.yaml (README headings), project-context.md (LLM-refined) | existing files divert to proposal |
-| `clad clarify <answer>` | project-context.md, capabilities.yaml, architecture.yaml, scenarios stubs (refined Q-A history) | existing files divert to proposal |
-| `clad_create_feature` MCP tool | spec/features/<slug>-<hash6>.yaml + binds to existing scenario via `features[]` | rejects on collision |
+| `clad clarify <answer>` | project-context.md, capabilities.yaml, architecture.yaml, scenarios stubs (refined Q-A history) | untouched generated design updates in place; user-edited design diverts to proposal and remains `needs_review` until explicitly accepted |
+| `clad_create_feature` MCP tool | spec/features/<slug>-<hash>.yaml + durable design-impact decision; additive capability/scenario links | structural impact remains review-required and blocks `clad done` |
 | append-only (Tier D) | events.log, audit.log entries | no divert — strict append |
 
 ## Quick decision flowchart for adding a new artifact

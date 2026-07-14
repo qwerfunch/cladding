@@ -1,5 +1,5 @@
 ---
-description: Boot cladding as an MCP server over stdio. Use only when the user wants to expose cladding's tools, resources, and persona prompts to a separate MCP client. Most users don't run this directly — the plugin's .mcp.json launches it automatically.
+description: Boot cladding as an MCP server over stdio. Use only when the user wants to expose cladding's tools, resources, and persona prompts to a separate MCP client. Most users don't run this directly — the plugin's .mcp.json launches it automatically. Activate only when the connected project contains spec.yaml or the user explicitly names Cladding; ignore ordinary requests in uninitialized projects.
 ---
 
 # Cladding serve

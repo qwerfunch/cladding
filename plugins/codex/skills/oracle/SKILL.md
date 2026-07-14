@@ -1,5 +1,5 @@
 ---
-description: Author an IMPL-BLIND spec-conformance oracle for a feature's acceptance criterion, so the gate verifies the code matches the SPEC (not just the author's own tests). cladding calls no LLM — YOU spawn a blind sub-agent from a spec-only brief, then record it. Author ONLY what `clad oracle --required` lists (the policy worklist) — an empty worklist means do not author unless the user explicitly asks; out-of-policy recordings are labeled voluntary and spend beyond the project's declared verification budget.
+description: Author an IMPL-BLIND spec-conformance oracle for a feature's acceptance criterion, so the gate verifies the code matches the SPEC (not just the author's own tests). cladding calls no LLM — YOU spawn a blind sub-agent from a spec-only brief, then record it. Author ONLY what `clad oracle --required` lists (the policy worklist) — an empty worklist means do not author unless the user explicitly asks; out-of-policy recordings are labeled voluntary and spend beyond the project's declared verification budget. Activate only when the connected project contains spec.yaml or the user explicitly names Cladding; ignore ordinary requests in uninitialized projects.
 ---
 
 # Cladding oracle — impl-blind conformance authoring

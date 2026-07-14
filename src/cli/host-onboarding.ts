@@ -25,7 +25,6 @@ export interface HostOnboardingDraft {
   readonly architecture: {
     readonly layers: ReadonlyArray<{readonly name: string; readonly forbidden_imports: readonly string[]}>;
   };
-  readonly first_feature_title: string;
   readonly scenarios: ReadonlyArray<{
     readonly slug: string;
     readonly title: string;
@@ -67,7 +66,9 @@ export function prepareHostInit(cwd: string, mode: string, intent: string): Host
     'Draft Cladding onboarding data from the user request and observations below.',
     'Return one object matching the supplied MCP draft schema; do not edit files or run shell commands.',
     'Use the user language. Infer useful domain practices, but keep questions at product/business level.',
-    'Produce 3-8 capabilities, 1-3 user-journey scenarios, and 2-3 questions.',
+    'Produce 3-8 capabilities and 1-3 user-journey scenarios.',
+    'Ask 0-3 product questions only for material decisions that the intent and observations do not already resolve.',
+    'A complete planning document must produce zero questions; record deferrable uncertainty in the draft instead of blocking development.',
     'Architecture layers must be lean and use kebab-case capability/scenario identifiers.',
     '',
     `Starting mode: ${mode}`,
@@ -126,7 +127,7 @@ export function renderHostDraft(draft: HostOnboardingDraft): string {
     '=== PROJECT_CONTEXT_MD ===', context,
     '=== CAPABILITIES_YAML ===', capabilities,
     '=== ARCHITECTURE_YAML ===', architecture,
-    '=== SPEC_SEED_TITLE ===', draft.first_feature_title,
+    '=== SPEC_SEED_TITLE ===', draft.project_context.purpose,
     '=== SCENARIOS_YAML ===', scenarios,
     '=== PROJECT_METADATA ===', metadata,
     '=== CLARIFYING_QUESTIONS ===', ...draft.questions.map((question) => `- ${question}`),
