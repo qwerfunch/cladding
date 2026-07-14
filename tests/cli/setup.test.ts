@@ -113,6 +113,21 @@ describe('runHostSetup', () => {
     expect(existsSync(join(home, '.cladding'))).toBe(false);
   });
 
+  test('setup wires only global host state and does not create project instructions', async () => {
+    const project = mkdtempSync(join(tmpdir(), 'clad-setup-project-'));
+    writeFileSync(join(project, 'user-file.txt'), 'keep');
+    mkdirSync(join(home, '.codex'), {recursive: true});
+
+    try {
+      await runHostSetup({home, pkgRoot, version: '0.4.0', quiet: true, activate: false});
+      expect(existsSync(join(project, 'AGENTS.md'))).toBe(false);
+      expect(existsSync(join(project, 'CLAUDE.md'))).toBe(false);
+      expect(readFileSync(join(project, 'user-file.txt'), 'utf8')).toBe('keep');
+    } finally {
+      rmSync(project, {recursive: true, force: true});
+    }
+  });
+
   // AC-009 — directory-copy fallback with diverged contents → skipped unless --force.
   test('refuses to overwrite a non-symlink wire without --force', async () => {
     mkdirSync(join(home, '.claude'), {recursive: true});
@@ -333,13 +348,17 @@ describe('setup report (AC-010) and init wire notices (AC-006/AC-007)', () => {
     expect(report).toContain('Next steps:');
     expect(report).toContain('1. Restart your AI tool');
     expect(report).toContain('2. Open the project directory');
-    expect(report).toContain('3. Type /cladding init');
+    expect(report).toContain('3. Ask: "Apply Cladding to this project"');
+    expect(report).not.toContain('clad init');
     expect(report).toContain('4. Start building');
   });
 
   // AC-006 — never ran `clad setup`.
   test('hostWireNotice points at clad setup when no setup-status exists', () => {
-    expect(hostWireNotice(null, '0.6.0')).toContain('run `clad setup`');
+    const notice = hostWireNotice(null, '0.6.0');
+    expect(notice).toContain('run `clad setup`');
+    expect(notice).toContain('ask it to apply Cladding');
+    expect(notice).not.toContain('/cladding init');
   });
 
   // AC-007 — wired at an older binary version.

@@ -1,0 +1,76 @@
+id: F-0f4dd6
+slug: natural-language-init
+title: "Natural-language init across skill and MCP hosts"
+status: in_progress
+modules:
+  - src/serve/server.ts
+  - src/cli/init.ts
+  - src/cli/clarify.ts
+  - src/cli/hook.ts
+  - src/ui/softShell.ts
+  - src/init/host-setup.ts
+  - README.md
+  - docs/glossary.md
+depends_on: [F-56abaa, F-5f6b45, F-80d19d]
+acceptance_criteria:
+  - id: AC-001
+    ears: ubiquitous
+    action: expose project initialization and onboarding answers as MCP tools that reuse the CLI core
+    response: MCP hosts can complete init and its follow-up Q&A without asking the user to run a shell command
+    text: The system shall expose project initialization and onboarding answers as MCP tools that reuse the CLI core, so MCP hosts can complete init and its follow-up Q&A without asking the user to run a shell command.
+    test_refs: [tests/serve/server.test.ts]
+  - id: AC-002
+    ears: event
+    condition: when a new-project initialization request omits the project idea
+    action: return a needs-input result before creating any project artifact
+    response: the host asks for intent instead of producing a generic scaffold
+    text: When a new-project initialization request omits the project idea, the system shall return a needs-input result before creating any project artifact, so the host asks for intent instead of producing a generic scaffold.
+    test_refs: [tests/serve/init-tools.test.ts]
+  - id: AC-003
+    ears: event
+    condition: when initialization uses a planning document
+    action: read a recognized UTF-8 text file confined to the connected project root and pass its complete body through the existing intent-aware onboarding path
+    response: the planning document is neither truncated nor mistaken for literal intent
+    text: When initialization uses a planning document, the system shall read a recognized UTF-8 text file confined to the connected project root and pass its complete body through the existing intent-aware onboarding path, so the planning document is neither truncated nor mistaken for literal intent.
+    test_refs: [tests/serve/init-tools.test.ts]
+  - id: AC-004
+    ears: event
+    condition: when initialization adopts an existing project
+    action: force the observed scan path even when the project contains fewer than three source files
+    response: sparse existing projects are not treated as greenfield ideas
+    text: When initialization adopts an existing project, the system shall force the observed scan path even when the project contains fewer than three source files, so sparse existing projects are not treated as greenfield ideas.
+    test_refs: [tests/serve/init-tools.test.ts]
+  - id: AC-005
+    ears: unwanted
+    condition: if the connected project already contains spec.yaml and refresh was not explicitly requested
+    action: return an already-initialized result without creating proposals or changing project files
+    response: repeated natural-language requests remain non-destructive
+    text: If the connected project already contains spec.yaml and refresh was not explicitly requested, the system shall return an already-initialized result without creating proposals or changing project files, so repeated natural-language requests remain non-destructive.
+    test_refs: [tests/serve/init-tools.test.ts]
+  - id: AC-006
+    ears: event
+    condition: when init or clarify returns pending product questions
+    action: include the next question and onboarding status in structured MCP output
+    response: the host can continue one answer at a time until onboarding is complete
+    text: When init or clarify returns pending product questions, the system shall include the next question and onboarding status in structured MCP output, so the host can continue one answer at a time until onboarding is complete.
+    test_refs: [tests/serve/init-tools.test.ts]
+  - id: AC-007
+    ears: state
+    condition: while clad setup wires host integrations
+    action: leave the current project tree unchanged and direct the user to open a project and request Cladding in natural language
+    response: global host setup never implies project adoption
+    text: While clad setup wires host integrations, the system shall leave the current project tree unchanged and direct the user to open a project and request Cladding in natural language, so global host setup never implies project adoption.
+    test_refs: [tests/cli/setup.test.ts]
+  - id: AC-008
+    ears: ubiquitous
+    action: document natural-language init as the primary path and describe each host's optional explicit invocation syntax accurately
+    response: Claude and Gemini use their slash command, Codex uses its Cladding skill picker, and MCP hosts use natural language
+    text: The system shall document natural-language init as the primary path and describe each host's optional explicit invocation syntax accurately, so Claude and Gemini use their slash command, Codex uses its Cladding skill picker, and MCP hosts use natural language.
+    evidence_refs: [README.md, docs/setup.md]
+    notes: |
+      ## Decision
+      Keep raw `clad init` as a compatibility and automation surface, not the primary onboarding UX.
+      ## Why
+      A host-neutral natural-language entry point preserves the product model while host-specific syntax remains an optional accelerator.
+      ## Trade-off
+      MCP init and clarify tools are required to make that promise deterministic for hosts without a bundled skill.

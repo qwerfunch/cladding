@@ -2,7 +2,7 @@
 
 # Setup details — host wiring, MCP, and upgrading
 
-The README covers the two commands you need (`clad setup` → `/cladding:init`). This page is
+The README covers the setup command and the natural-language request that follows it. This page is
 the detail behind them: where each host is wired, how the MCP server works, and how to upgrade.
 
 ## Where `clad setup` connects (4 hosts · 5 wire points)
@@ -26,9 +26,15 @@ fence, which `HOST_CLAIM_DRIFT` polices against `docs/dogfood/matrix.md`.)
 ## About the MCP server
 
 All 4 hosts wire cladding as an MCP server — only the wire *location* differs. MCP is not
-something you invoke directly: there is no `/mcp` slash and no manual connect step. The AI in
-each host calls cladding's tools on its own in response to *natural-language requests*; you only
-type `/cladding:init` once and then chat normally.
+something you invoke directly and there is no manual connect step. A host may provide an `/mcp`
+diagnostic view, but normal use starts by asking the AI to apply Cladding to the open project.
+
+| Host | Primary request | Optional explicit invocation |
+|---|---|---|
+| Claude Code | `Apply Cladding to this project` | `/cladding:init` |
+| Codex | `Apply Cladding to this project` | Type `$cladding`, then choose `init (cladding)` |
+| Gemini CLI | `Apply Cladding to this project` | `/cladding:init` |
+| Cursor | `Apply Cladding to this project` | Natural language routes through the connected onboarding tool |
 
 ## Upgrading
 

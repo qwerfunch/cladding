@@ -57,6 +57,8 @@ export interface RefineReport {
   readonly newQuestions: readonly string[];
   readonly mode: OnboardingResult['mode'] | null;
   readonly status: OnboardingState['status'];
+  readonly nextQuestion: string | null;
+  readonly remainingQuestions: number;
 }
 
 /**
@@ -235,6 +237,8 @@ function buildReport(
     newQuestions,
     mode,
     status: state.status,
+    nextQuestion: state.qa.find((qa) => qa.answer === null)?.question ?? null,
+    remainingQuestions: state.qa.filter((qa) => qa.answer === null).length,
   };
 }
 

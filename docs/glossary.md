@@ -86,6 +86,8 @@
 
 | Tool | Meaning |
 |---|---|
+| `clad_init` | Initialize Cladding from an idea, a project-local planning document, or an existing codebase. |
+| `clad_clarify` | Apply the user's answer to the next pending onboarding question. |
 | `clad_list_features` | Query features by status/slug. |
 | `clad_get_feature` | Fetch one feature + ACs by id or slug. |
 | `clad_run_check` | Run drift detection in-process (terse by default). |

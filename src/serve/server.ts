@@ -19,8 +19,8 @@
 // @see spec/features/F-073.yaml — server scaffold AC matrix.
 
 import {spawnSync} from 'node:child_process';
-import {readFileSync, existsSync, statSync} from 'node:fs';
-import {dirname, join} from 'node:path';
+import {readFileSync, existsSync, realpathSync, statSync} from 'node:fs';
+import {basename, dirname, extname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -71,6 +71,8 @@ export const PERSONA_PROMPT_ALIASES: Readonly<Record<string, string>> = {
 
 /** Tool names cladding's MCP server exposes (stable wire identifiers). */
 export const TOOL_NAMES = [
+  'clad_init',
+  'clad_clarify',
   'clad_list_features',
   'clad_get_feature',
   'clad_run_check',
@@ -266,10 +268,154 @@ function engineShim(): string | null {
     if (existsSync(candidate)) return candidate;
     dir = dirname(dir);
   }
+  // Marketplace plugins ship the self-contained dist/clad.js without the
+  // package-level bin/ shim. In that layout the running entry is itself the
+  // executable engine, so child verbs can safely re-enter it.
+  const runningEntry = process.argv[1];
+  if (runningEntry && basename(runningEntry) === 'clad.js' && existsSync(runningEntry)) {
+    return runningEntry;
+  }
   return null;
 }
 
+interface EngineJsonResult {
+  readonly ok: boolean;
+  readonly payload?: unknown;
+  readonly error?: string;
+}
+
+/** Runs a CLI verb through the shipped engine and parses its JSON boundary. */
+function runEngineJson(cwd: string, args: readonly string[]): EngineJsonResult {
+  const shim = engineShim();
+  if (!shim) return {ok: false, error: 'cladding engine shim was not found'};
+  const result = spawnSync(shim, args, {
+    cwd,
+    encoding: 'utf8',
+    maxBuffer: 10 * 1024 * 1024,
+  });
+  if (result.status !== 0) {
+    return {
+      ok: false,
+      error: (result.stderr || result.stdout || `cladding engine exited ${result.status ?? 'without a status'}`).trim(),
+    };
+  }
+  try {
+    return {ok: true, payload: JSON.parse(result.stdout)};
+  } catch {
+    return {ok: false, error: `cladding engine returned invalid JSON: ${result.stdout.slice(0, 500)}`};
+  }
+}
+
+const INTENT_FILE_EXTENSIONS = new Set(['.md', '.txt', '.yaml', '.yml', '.markdown']);
+
+/** Resolves a planning document without permitting reads outside the project. */
+function projectIntentPath(cwd: string, requested: string): {path?: string; error?: string} {
+  if (!requested.trim()) return {error: 'document_path is required for document mode'};
+  if (isAbsolute(requested)) return {error: 'document_path must be relative to the connected project'};
+  const root = realpathSync(resolve(cwd));
+  const candidate = resolve(root, requested);
+  if (!existsSync(candidate)) return {error: `planning document not found: ${requested}`};
+  let target: string;
+  try {
+    target = realpathSync(candidate);
+  } catch (error) {
+    return {error: `planning document could not be resolved: ${(error as Error).message}`};
+  }
+  const rel = relative(root, target);
+  if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
+    return {error: 'planning document must stay inside the connected project'};
+  }
+  if (!statSync(target).isFile()) return {error: 'planning document must be a regular file'};
+  if (!INTENT_FILE_EXTENSIONS.has(extname(target).toLowerCase())) {
+    return {error: 'planning document must be .md, .txt, .yaml, .yml, or .markdown'};
+  }
+  try {
+    readFileSync(target, 'utf8');
+  } catch (error) {
+    return {error: `planning document is not readable UTF-8 text: ${(error as Error).message}`};
+  }
+  return {path: rel};
+}
+
 function registerTools(server: McpServer, cwd: string): void {
+  server.registerTool(
+    'clad_init',
+    {
+      title: 'Initialize Cladding in the connected project',
+      description:
+        'Use only after the user explicitly asks to initialize or adopt Cladding. Supports a new idea, ' +
+        'a planning document inside the project, or adoption of an existing codebase. Returns product-level ' +
+        'follow-up questions; answer them with clad_clarify. Never call merely because a repository was opened.',
+      inputSchema: {
+        mode: z.enum(['idea', 'document', 'existing']).describe('The user\'s starting point'),
+        intent: z.string().optional().describe('Project idea, or optional adoption goal for existing mode'),
+        document_path: z.string().optional().describe('Project-relative planning document for document mode'),
+        refresh: z.boolean().optional().describe('Explicitly re-scan an already initialized project'),
+        no_llm: z.boolean().optional().describe('Use deterministic onboarding; intended for offline verification'),
+      },
+    },
+    async (args) => {
+      if (existsSync(join(cwd, 'spec.yaml')) && !args.refresh) {
+        return {
+          content: [{type: 'text', text: JSON.stringify({status: 'already_initialized', changed: false}, null, 2)}],
+        };
+      }
+      if (args.mode === 'idea' && !args.intent?.trim()) {
+        return {
+          content: [{type: 'text', text: JSON.stringify({status: 'needs_input', changed: false, question: 'What kind of project are you building?'}, null, 2)}],
+        };
+      }
+
+      const command = ['init'];
+      if (args.mode === 'document') {
+        const resolved = projectIntentPath(cwd, args.document_path ?? '');
+        if (resolved.error) {
+          return {isError: true, content: [{type: 'text', text: resolved.error}]};
+        }
+        command.push(resolved.path!);
+      } else if (args.intent?.trim()) {
+        command.push(args.intent.trim());
+      }
+      if (args.mode === 'existing') command.push('--scan');
+      if (args.no_llm) command.push('--no-llm');
+      command.push('--json');
+
+      const result = runEngineJson(cwd, command);
+      if (!result.ok) return {isError: true, content: [{type: 'text', text: result.error!}]};
+      const init = result.payload as {clarifyingQuestions?: readonly string[]};
+      const questions = init.clarifyingQuestions ?? [];
+      const payload = {
+        status: questions.length > 0 ? 'needs_answers' : 'initialized',
+        changed: true,
+        ...init,
+        nextQuestion: questions[0] ?? null,
+        remainingQuestions: questions.length,
+      };
+      return {content: [{type: 'text', text: JSON.stringify(payload, null, 2)}]};
+    },
+  );
+
+  server.registerTool(
+    'clad_clarify',
+    {
+      title: 'Answer the next Cladding onboarding question',
+      description:
+        'Pass the user\'s answer to the next pending product question after clad_init. Returns the next question ' +
+        'or a completed status. Do not invent answers.',
+      inputSchema: {
+        answer: z.string().min(1).describe('The user\'s answer, verbatim'),
+        no_llm: z.boolean().optional().describe('Use deterministic refinement; intended for offline verification'),
+      },
+    },
+    async (args) => {
+      const command = ['clarify', args.answer, '--json'];
+      if (args.no_llm) command.push('--no-llm');
+      const result = runEngineJson(cwd, command);
+      if (!result.ok) return {isError: true, content: [{type: 'text', text: result.error!}]};
+      return {content: [{type: 'text', text: JSON.stringify(result.payload, null, 2)}]};
+    },
+  );
+
   // clad_list_features — list features in the active spec.
   // v0.3.10 (F-085) — slug_substring + sort options.
   server.registerTool(

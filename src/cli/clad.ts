@@ -122,6 +122,7 @@ export async function runInitCommand(
     roots?: string;
     withHook?: boolean;
     withCi?: boolean;
+    json?: boolean;
   },
 ): Promise<void> {
   const intent = intentTokens && intentTokens.length > 0 ? intentTokens.join(' ').trim() : undefined;
@@ -135,6 +136,11 @@ export async function runInitCommand(
     withHook: opts.withHook,
     withCi: opts.withCi,
   });
+  if (opts.json) {
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    process.exit(0);
+    return;
+  }
   for (const c of result.created) pulse('pass', `created ${c}`);
   for (const s of result.skipped) pulse('skip', s);
   for (const p of result.proposals ?? []) pulse('note', 'proposal', p);
@@ -1027,6 +1033,7 @@ export function createProgram(): Command {
     .option('--roots <list>', 'Override scanner source roots, comma-separated (e.g. packages/a/src,packages/b/src). Otherwise inferred from manifests + directory heuristics.')
     .option('--with-hook', 'Install git pre-commit (cheap tier) AND pre-push (strict tier) hooks. Opt-in; cladding never touches .git without it.')
     .option('--with-ci', 'Scaffold .github/workflows/cladding.yml running the strict pre-push gate — the authoritative enforcement layer.')
+    .option('--json', 'emit the raw InitResult for tooling; default is the human-readable surface')
     .action(runInitCommand);
 
   program

@@ -1,0 +1,178 @@
+// Cladding · natural-language init MCP boundary (F-0f4dd6).
+
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {dirname, join} from 'node:path';
+
+import {Client} from '@modelcontextprotocol/sdk/client/index.js';
+import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js';
+import {afterEach, beforeEach, describe, expect, test} from 'vitest';
+
+import {saveState} from '../../src/cli/scan/onboarding-state.js';
+import {buildServer} from '../../src/serve/server.js';
+
+interface Pair {
+  readonly client: Client;
+  readonly cleanup: () => Promise<void>;
+}
+
+async function makePair(cwd: string): Promise<Pair> {
+  const server = buildServer({cwd, name: 'cladding-init-test', version: '0.0.0-test'});
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  const client = new Client({name: 'cladding-init-client', version: '0.0.0-test'});
+  await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
+  return {
+    client,
+    cleanup: async () => {
+      await client.close();
+      await server.close();
+    },
+  };
+}
+
+function payload(result: Awaited<ReturnType<Client['callTool']>>): Record<string, unknown> {
+  const text = (result.content as Array<{type: string; text: string}>)[0].text;
+  return JSON.parse(text) as Record<string, unknown>;
+}
+
+describe('serve/server — natural-language init tools', () => {
+  let dir: string;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'clad-mcp-init-'));
+  });
+
+  afterEach(() => {
+    rmSync(dir, {recursive: true, force: true});
+  });
+
+  test('idea mode asks for intent before writing any project artifact', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const result = await client.callTool({name: 'clad_init', arguments: {mode: 'idea'}});
+      expect(payload(result)).toMatchObject({status: 'needs_input', changed: false});
+      expect(readdirSync(dir)).toEqual([]);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('idea mode initializes through the shared engine and writes host instructions after spec', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const result = await client.callTool({
+        name: 'clad_init',
+        arguments: {mode: 'idea', intent: 'B2B payment SaaS', no_llm: true},
+      });
+      expect(result.isError).not.toBe(true);
+      expect(payload(result)).toMatchObject({status: 'initialized', changed: true});
+      expect(existsSync(join(dir, 'spec.yaml'))).toBe(true);
+      expect(existsSync(join(dir, 'AGENTS.md'))).toBe(true);
+      expect(existsSync(join(dir, 'CLAUDE.md'))).toBe(true);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('document mode loads the full project-local planning document', async () => {
+    mkdirSync(join(dir, 'docs'));
+    const plan = Array.from({length: 40}, (_, i) => `Section ${i}: payment requirement`).join('\n');
+    writeFileSync(join(dir, 'docs', 'plan.md'), plan);
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const result = await client.callTool({
+        name: 'clad_init',
+        arguments: {mode: 'document', document_path: 'docs/plan.md', no_llm: true},
+      });
+      expect(result.isError).not.toBe(true);
+      expect(readFileSync(join(dir, 'docs', 'project-context.md'), 'utf8')).toContain(plan);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('document mode rejects a path that escapes the connected project', async () => {
+    const outside = join(dirname(dir), 'outside-plan.md');
+    writeFileSync(outside, 'outside');
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const result = await client.callTool({
+        name: 'clad_init',
+        arguments: {mode: 'document', document_path: '../outside-plan.md', no_llm: true},
+      });
+      expect(result.isError).toBe(true);
+      expect(existsSync(join(dir, 'spec.yaml'))).toBe(false);
+    } finally {
+      await cleanup();
+      rmSync(outside, {force: true});
+    }
+  });
+
+  test('existing mode forces observed scanning for a sparse codebase', async () => {
+    mkdirSync(join(dir, 'src'));
+    writeFileSync(join(dir, 'src', 'index.ts'), 'export const value = 1;\n');
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const result = await client.callTool({
+        name: 'clad_init',
+        arguments: {mode: 'existing', no_llm: true},
+      });
+      expect(result.isError).not.toBe(true);
+      const conventions = readFileSync(join(dir, 'docs', 'conventions.md'), 'utf8');
+      expect(conventions).toContain('derived from observed code');
+      expect(conventions).toContain('## Observed style');
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('an initialized project returns without changing files unless refresh is explicit', async () => {
+    writeFileSync(join(dir, 'spec.yaml'), 'sentinel\n');
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const before = readFileSync(join(dir, 'spec.yaml'), 'utf8');
+      const result = await client.callTool({name: 'clad_init', arguments: {mode: 'existing'}});
+      expect(payload(result)).toEqual({status: 'already_initialized', changed: false});
+      expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).toBe(before);
+      expect(readdirSync(dir)).toEqual(['spec.yaml']);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('clarify returns the next pending question as structured output', async () => {
+    saveState(dir, {
+      intent: 'B2B payment SaaS',
+      language: 'typescript',
+      projectName: 'demo',
+      mode: 'greenfield',
+      startedAt: '2026-07-14T00:00:00.000Z',
+      status: 'active',
+      qa: [
+        {question: 'Who is the primary user?', answer: null},
+        {question: 'Which market launches first?', answer: null},
+      ],
+    });
+    mkdirSync(join(dir, 'docs'), {recursive: true});
+    mkdirSync(join(dir, 'spec'), {recursive: true});
+    writeFileSync(join(dir, 'docs', 'project-context.md'), '# Context\n');
+    writeFileSync(join(dir, 'spec', 'capabilities.yaml'), 'schema: "0.1"\ncapabilities: []\n');
+    writeFileSync(join(dir, 'spec', 'architecture.yaml'), 'version: "0.1"\nlayers: []\n');
+
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const result = await client.callTool({
+        name: 'clad_clarify',
+        arguments: {answer: 'Business operators', no_llm: true},
+      });
+      expect(result.isError).not.toBe(true);
+      expect(payload(result)).toMatchObject({
+        status: 'active',
+        nextQuestion: 'Which market launches first?',
+        remainingQuestions: 1,
+      });
+    } finally {
+      await cleanup();
+    }
+  });
+});

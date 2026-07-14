@@ -518,7 +518,7 @@ export function renderSetupReport(
   lines.push('Next steps:');
   lines.push('  1. Restart your AI tool (Claude Code / Codex / Gemini / Cursor)');
   lines.push('  2. Open the project directory');
-  lines.push('  3. Type /cladding init "..." (inside the LLM) or `clad init "..."` (terminal)');
+  lines.push('  3. Ask: "Apply Cladding to this project"');
   lines.push('  4. Start building — cladding checks that spec ↔ code stay in sync on every commit');
   return lines.join('\n');
 }

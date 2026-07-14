@@ -304,7 +304,7 @@ export function scaffoldCiWorkflow(cwd: string): 'created' | 'exists' {
  * Returns null when the wire state matches the running binary (no notice). */
 export function hostWireNotice(lastSetup: string | null, pkgVersion: string | null): string | null {
   if (lastSetup == null) {
-    return 'host channels not wired yet — run `clad setup` to enable `/cladding init` from Claude Code / Codex / Gemini';
+    return 'host channels not wired yet — run `clad setup`, restart your AI tool, then ask it to apply Cladding to this project';
   }
   if (pkgVersion && lastSetup !== pkgVersion) {
     return `host wire was set up at v${lastSetup} (current binary v${pkgVersion}) — symlinks usually auto-follow, but run \`clad setup\` to be sure`;

@@ -517,41 +517,47 @@ acceptance_criteria:
 
   <!-- ─────────────── Install ─────────────── -->
   <h2>Install</h2>
+  <h3>1. 설치하고 AI 도구 연결하기</h3>
   <pre><code>npm install -g cladding   # cladding CLI 설치
-cd &lt;project&gt;              # 프로젝트로 이동
 clad setup                # AI 도구 자동 연결 (Claude · Codex · Gemini · Cursor)</code></pre>
 
-  <p style="font-size:13px;color:#64748b">각 호스트는 cladding을 AI가 알아서 호출하는 MCP 서버로 연결한다 — <code>/mcp</code> 명령도 수동 연결 단계도 없이, 그냥 대화하면 된다.</p>
+  <p>위 명령은 어느 디렉터리에서든 실행할 수 있으며, 컴퓨터마다 한 번이면 된다. <code>clad setup</code>은 지원하는 AI 도구를 전역으로 연결할 뿐 프로젝트 파일을 만들거나 수정하지 않는다.</p>
 
-  <p>그다음, 프로젝트당 한 번, AI 도구 안에서 init을 호출한다:</p>
-  <pre><code>[AI 도구 안] /cladding:init "B2B 결제 SaaS"</code></pre>
-  <p>프로젝트의 <code>spec.yaml</code> 과 관련 문서가 만들어진다. 그 뒤론 평소처럼 개발하면 된다 — cladding이 배경에서 전·후 루프를 돌리니 따로 외울 것은 없다. 강제력을 높이려면 <code>clad init --with-hook</code>(pre-commit + pre-push git hook) 이나 <code>clad init --with-ci</code>(CI 게이트 스캐폴드 — 진짜 강제는 CI에서 산다).</p>
+  <h3>2. 프로젝트에서 AI 도구 실행하기</h3>
+  <pre><code>cd &lt;project&gt;</code></pre>
+  <blockquote><p><strong>다음 단계:</strong> 이 프로젝트 폴더에서 사용하는 AI 도구를 새로 시작한다. Codex · Claude Code · Gemini CLI는 이 디렉터리에서 실행하고, Cursor는 이 폴더를 연다. <code>clad setup</code>의 연결은 새 세션부터 적용된다.</p></blockquote>
 
-  <table>
-    <thead>
-      <tr><th>시작 상황</th><th>명령</th><th>무엇이 일어나는가</th></tr>
-    </thead>
-    <tbody>
-      <tr><td><strong>아이디어만 있을 때</strong></td><td><code>/cladding:init "B2B 결제 SaaS 만들거야"</code></td><td>LLM이 도메인 분석 → spec · 문서 · 정책 자동 생성 + 후속 질문 2–3개</td></tr>
-      <tr><td><strong>기획 문서가 있을 때</strong></td><td><code>/cladding:init docs/plan.md</code></td><td>파일을 로드해 내용을 intent로 사용</td></tr>
-      <tr><td><strong>기존 프로젝트 도입</strong></td><td><code>/cladding:init "이 프로젝트에 cladding 적용해줘"</code></td><td>기존 코드 스캔 → 관찰한 패턴을 intent와 결합</td></tr>
-    </tbody>
-  </table>
+  <h3>3. 프로젝트에 Cladding 한 번 적용하기</h3>
+  <p>자신의 시작 상황에 맞는 요청을 AI 도구에 자연스럽게 말한다.</p>
 
-  <p style="font-size:14px;color:#475569">
-    <strong>호스트 지원 현황(정직 고지):</strong> Claude Code는 실사용 캠페인으로 전 기능 검증됨(실시간 개입 포함). Codex · Gemini CLI는 연결은 자동이지만, 동작은 아직 검증 전이다. Cursor는 연결은 자동이지만 실사용 검증이 아직이다. → <a href="docs/setup.md">설치 상세 · 호스트 배선 · MCP · 업그레이드</a>
-  </p>
+  <h4>아이디어만 있을 때</h4>
+  <pre><code>B2B 결제 SaaS를 cladding으로 시작해줘.</code></pre>
+  <p>LLM이 도메인을 분석해 spec · 문서 · 정책을 만들고, 후속 질문 2–3개를 이어간다.</p>
+
+  <h4>기획 문서가 있을 때</h4>
+  <pre><code>docs/plan.md를 기준으로 cladding을 적용해줘.</code></pre>
+  <p>파일을 읽고 그 내용을 프로젝트 intent로 사용한다.</p>
+
+  <h4>기존 프로젝트에 도입할 때</h4>
+  <pre><code>현재 코드를 분석해서 cladding을 적용해줘.</code></pre>
+  <p>기존 코드를 스캔하고, 관찰한 패턴을 사용자의 intent와 결합한다.</p>
+
+  <blockquote><p><strong>초기화가 끝나면 같은 대화에서 바로 개발을 이어가면 된다.</strong> 다음 기능을 자연어로 요청하면 AI가 생성된 spec과 문서를 기준으로 개발하고, cladding은 배경에서 검증 루프를 실행한다.</p></blockquote>
+  <pre><code>이메일 로그인 기능을 테스트까지 포함해서 구현해줘.</code></pre>
+  <p>새로 외울 명령은 없다. 호스트별 명시 호출법, 더 강한 Git/CI 적용, 검증된 호스트 현황은 <a href="docs/setup.md">설치 상세</a>에서 확인할 수 있다.</p>
 
   <!-- ─────────────── Update ─────────────── -->
   <h2>Update</h2>
-  <p>최신 상태 유지는 두 명령 — 아니면 AI 도구에게 한 줄이면 된다.</p>
+  <h3>AI 도구에 요청하기 (추천)</h3>
+  <p>프로젝트에서 다음과 같이 말한다:</p>
+  <pre><code>cladding을 최신 버전으로 업데이트해줘.</code></pre>
+  <p>호스트에 터미널 및 전역 설치 권한이 있으면 AI가 두 업데이트 단계를 실행하고 새로 발견한 어긋남을 설명한다. 권한이 없으면 승인하거나 직접 실행할 명령을 안내한다.</p>
+  <h3>또는 터미널에서 직접 업데이트하기</h3>
   <pre><code>npm update -g cladding   # 1. 새 버전 받기
 cd &lt;project&gt;             # 2. 프로젝트로 이동
-clad update              # 3. 맞춰 정렬</code></pre>
-  <p>코드 · <code>spec.yaml</code> · 문서는 그대로 둔다 — 더 엄격해진 버전은 <strong>짚어만 준다</strong>, 스스로 막거나 고치지 않는다. 위 두 명령이 새 어긋남을 짚으면, 그건 AI 도구에 넘기면 된다:</p>
-  <pre><code>[AI 도구 안] 업데이트가 짚은 어긋남을 정리해줘</code></pre>
-  <p>…아니면 두 명령을 건너뛰고 init 때처럼 그냥 말해도 된다 — 업데이트까지 알아서 해준다:</p>
-  <pre><code>[AI 도구 안] cladding 최신 버전으로 업데이트해줘</code></pre>
+clad update              # 3. 설치된 버전에 프로젝트 맞추기</code></pre>
+  <p>업데이트는 코드 · <code>spec.yaml</code> · 문서를 보존한다. 새 버전이 어긋남을 발견하면 그 결과를 AI 도구에 넘기면 된다:</p>
+  <pre><code>업데이트가 짚은 어긋남을 정리해줘.</code></pre>
 
   <!-- ─────────────── Status ─────────────── -->
   <h2>Status</h2>

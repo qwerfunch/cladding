@@ -237,29 +237,58 @@ The distinction is the *combination* — binding those cores into *one verificat
 
 ## Install
 
+### 1. Install and connect your AI tools
+
 ```bash
 npm install -g cladding   # the cladding CLI
-cd <project>              # your project
 clad setup                # auto-wire your AI tools (Claude · Codex · Gemini · Cursor)
 ```
 
-<sub>Each host wires cladding as an MCP server the AI calls on its own — there's no `/mcp` command and no manual connect step; you just chat.</sub>
+Run these once on your machine, from any directory. `clad setup` connects supported AI tools globally; it does not create or modify project files.
 
-Then, once per project, call init inside your AI tool:
+### 2. Start your AI tool from the project
+
+```bash
+cd <project>
+```
+
+> **Next step:** Start your AI tool with this project as its workspace. Run Codex, Claude Code, or Gemini CLI from this directory, or open this folder in Cursor. The connection created by `clad setup` takes effect in the new session.
+
+### 3. Apply Cladding once
+
+Choose the starting point that fits and say it naturally in your AI tool.
+
+#### An idea, nothing else
 
 ```
-[inside your AI tool] /cladding:init "B2B payment SaaS"
+Start this B2B payment SaaS with Cladding.
 ```
 
-It creates the project's `spec.yaml` and supporting docs. After that, just develop as usual — cladding runs the before/after loop in the background, with nothing to memorize. Raise enforcement with `clad init --with-hook` (pre-commit + pre-push git hooks) or `clad init --with-ci` (scaffold the CI gate, where true enforcement lives).
+The LLM analyzes the domain, creates the spec, docs, and policies, then asks 2–3 follow-up questions.
 
-| Starting point | Command | What happens |
-|---|---|---|
-| **An idea, nothing else** | `/cladding:init "I'm going to build a B2B payment SaaS"` | the LLM analyzes the domain → spec · docs · policies + 2–3 follow-up questions |
-| **A planning doc** | `/cladding:init docs/plan.md` | loads the file and uses its contents as intent |
-| **An existing project** | `/cladding:init "apply cladding to this project"` | scans the existing code → observed patterns merged with your intent |
+#### A planning document
 
-**Host support (honest):** Claude Code is fully verified through real-usage campaigns (incl. real-time intervention). Codex · Gemini CLI wire automatically; their behavior isn't verified yet. Cursor wires automatically, but real-usage verification is still pending. → [setup details · host wiring · MCP · upgrading](docs/setup.md)
+```
+Apply Cladding using docs/plan.md.
+```
+
+Cladding loads the file and uses its contents as the project intent.
+
+#### An existing project
+
+```
+Analyze this project and apply Cladding.
+```
+
+Cladding scans the existing code and combines the observed patterns with your intent.
+
+> **Once initialization is complete, keep developing in the same conversation.** Ask for the next feature in plain language; the AI uses the generated spec and docs while cladding runs its verification loop in the background.
+
+```
+Implement email sign-in, including tests.
+```
+
+There is nothing new to memorize. For host-specific invocation, stricter Git/CI enforcement, and verified host status, see [setup details](docs/setup.md).
 
 <!-- clad:host-claims {"claude":"verified","codex":"not-run","gemini":"not-run","cursor":"wiring-only"} -->
 
@@ -267,25 +296,30 @@ It creates the project's `spec.yaml` and supporting docs. After that, just devel
 
 ## Update
 
-Staying current is two commands — or one line to your AI tool.
+### Ask your AI tool (recommended)
+
+From your project, say:
+
+```
+Update cladding to the latest version.
+```
+
+If your host allows terminal and global-install access, the AI runs both update steps and explains any new drift. Otherwise, it shows you the commands to approve or run yourself.
+
+### Or update from the terminal
 
 ```bash
 npm update -g cladding   # 1. get the new version
 cd <project>             # 2. your project
-clad update              # 3. bring it in line
+clad update              # 3. align this project with the installed version
 ```
 
-Your code · `spec.yaml` · docs are left untouched — a stricter version only **points things out**, it never blocks or fixes on its own. If those two commands flag fresh drift, hand it to your AI tool:
+The update preserves your code, `spec.yaml`, and docs. If the new version reports drift, hand that result to your AI tool:
 
 ```
-[inside your AI tool] reconcile the drift the update flagged
+Reconcile the drift the update flagged.
 ```
 
-…or skip the commands and just ask, the same way you ran init — it runs the update for you:
-
-```
-[inside your AI tool] update cladding to the latest version
-```
 
 <!-- ─────────────── Status ─────────────── -->
 

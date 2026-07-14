@@ -98,4 +98,4 @@ Behavior:
 - **Directory** ending in `.md` (rare) → stderr warning + free-text fallback.
 - **Non-text argument** (e.g. `결제 SaaS 만들거야`) → existing free-text behavior, zero regression.
 
-Plugin invocations (`/cladding init docs/plan.md` from Claude Code · Codex CLI · Gemini CLI marketplace installs) inherit this behavior automatically — every plugin skill shells out to the same `clad init` CLI.
+Host invocations inherit this behavior automatically because every skill, command, and MCP init tool delegates to the same `clad init` engine. Claude Code and Gemini CLI expose `/cladding:init`; in Codex, type `$cladding` and choose `init (cladding)`; MCP-only hosts can ask in natural language.
