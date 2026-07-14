@@ -86,8 +86,10 @@
 
 | Tool | Meaning |
 |---|---|
-| `clad_init` | Initialize Cladding from an idea, a project-local planning document, or an existing codebase. |
-| `clad_clarify` | Apply the user's answer to the next pending onboarding question. |
+| `clad_prepare_init` | Read the project and return a bounded briefing plus one-time token; never writes files. |
+| `clad_init` | Validate and apply the host model's structured onboarding draft. |
+| `clad_prepare_clarify` | Read current onboarding state and prepare a real user answer for host-model refinement. |
+| `clad_clarify` | Validate and apply the host model's structured refinement draft. |
 | `clad_list_features` | Query features by status/slug. |
 | `clad_get_feature` | Fetch one feature + ACs by id or slug. |
 | `clad_run_check` | Run drift detection in-process (terse by default). |

@@ -6,6 +6,7 @@ modules:
   - src/serve/server.ts
   - src/cli/init.ts
   - src/cli/clarify.ts
+  - src/cli/host-onboarding.ts
   - src/cli/hook.ts
   - src/ui/softShell.ts
   - src/init/host-setup.ts
@@ -74,3 +75,17 @@ acceptance_criteria:
       A host-neutral natural-language entry point preserves the product model while host-specific syntax remains an optional accelerator.
       ## Trade-off
       MCP init and clarify tools are required to make that promise deterministic for hosts without a bundled skill.
+  - id: AC-009
+    ears: unwanted
+    condition: if an initialization request has not been followed by a separate affirmative user confirmation after the read-only preview
+    action: reject the apply step without creating project artifacts
+    response: opening a project, asking about Cladding, or making the initial natural-language request cannot silently authorize file changes
+    text: If an initialization request has not been followed by a separate affirmative user confirmation after the read-only preview, the system shall reject the apply step without creating project artifacts, so opening a project, asking about Cladding, or making the initial natural-language request cannot silently authorize file changes.
+    test_refs: [tests/serve/init-tools.test.ts]
+    notes: |
+      ## Decision
+      Natural language may start the read-only preparation, but a distinct user turn authorizes the write.
+      ## Why
+      All supported MCP hosts can call tools, but they do not expose a common cryptographic user-consent primitive.
+      ## Trade-off
+      The host instruction and verbatim confirmation field provide the strongest portable boundary; a malicious host could still fabricate consent, so this is not presented as a sandbox guarantee.

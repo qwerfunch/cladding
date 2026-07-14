@@ -258,6 +258,10 @@ cd <project>
 
 Choose the starting point that fits and say it naturally in your AI tool.
 
+Cladding first inspects the project without changing it. Your AI shows the files it plans to create
+and asks for confirmation; initialization begins only after your separate affirmative reply.
+Opening a project or asking a question about Cladding never authorizes file changes.
+
 #### An idea, nothing else
 
 ```

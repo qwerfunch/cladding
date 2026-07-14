@@ -41,6 +41,7 @@ import {
   type RefinementQa,
 } from './scan/intent-onboarding.js';
 import {pulse} from '../ui/pulse.js';
+import type {ScanLlmDispatcher} from './scan/llm.js';
 
 export interface RefineCommandOptions {
   readonly cwd?: string;
@@ -48,6 +49,8 @@ export interface RefineCommandOptions {
   readonly json?: boolean;
   /** Force the deterministic interpreter (matches `clad init --no-llm`). */
   readonly noLlm?: boolean;
+  /** Host-produced refinement response; used by the MCP prepare/apply flow. */
+  readonly hostDispatcher?: ScanLlmDispatcher;
 }
 
 /** Wire format for `clad clarify --json`. */
@@ -143,7 +146,7 @@ export async function refineOnboarding(
   const qaHistory: RefinementQa[] = stateAfterAnswer.qa.flatMap((qa) =>
     qa.answer === null ? [] : [{question: qa.question, answer: qa.answer}],
   );
-  const dispatcher = selectDispatcher({noLlm: opts.noLlm});
+  const dispatcher = opts.hostDispatcher ?? selectDispatcher({noLlm: opts.noLlm});
   const refined = await interpretRefinementWithFallback(
     stateAfterAnswer.intent,
     observed,

@@ -29,6 +29,16 @@ All 4 hosts wire cladding as an MCP server — only the wire *location* differs.
 something you invoke directly and there is no manual connect step. A host may provide an `/mcp`
 diagnostic view, but normal use starts by asking the AI to apply Cladding to the open project.
 
+Every host follows the same portable onboarding protocol under the surface: Cladding first returns
+a read-only, bounded project briefing; the host's own model drafts structured onboarding data; then
+Cladding validates and writes it. Follow-up answers use the same prepare/apply split. This requires
+only standard MCP tool calls—not server-side sampling—and prevents incomplete, stale, or replayed
+drafts from partially changing the project.
+
+Initialization never writes immediately from the first natural-language request. The host previews
+the planned files and asks for confirmation; only a separate affirmative user reply authorizes the
+write step. Merely opening a project, asking about Cladding, or running `clad setup` is not consent.
+
 | Host | Primary request | Optional explicit invocation |
 |---|---|---|
 | Claude Code | `Apply Cladding to this project` | `/cladding:init` |

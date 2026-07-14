@@ -25,6 +25,7 @@ import {runVerdictCommand} from './verdict.js';
 import {runUpdate} from './update.js';
 import {runInit} from './init.js';
 import {refineOnboarding, runClarifyCommand} from './clarify.js';
+import {prepareHostClarify, prepareHostInit, renderHostDraft} from './host-onboarding.js';
 import {getCurrentCladdingVersion, runHostSetup} from '../init/host-setup.js';
 import {recordEvent} from '../events/log.js';
 import {buildContextSlice} from '../optimizer/context-slice.js';
@@ -83,7 +84,10 @@ export async function runServeCommand(opts: {cwd?: string}): Promise<void> {
   const server = buildServer({
     cwd: opts.cwd,
     onboarding: {
+      renderDraft: (draft) => renderHostDraft(draft as Parameters<typeof renderHostDraft>[0]),
+      prepareInit: ({cwd, mode, intent}) => prepareHostInit(cwd, mode, intent),
       initialize: runInit,
+      prepareClarify: (answer, {cwd}) => prepareHostClarify(cwd, answer),
       clarify: refineOnboarding,
     },
   });

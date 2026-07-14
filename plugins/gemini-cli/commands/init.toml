@@ -1,100 +1,24 @@
-description = "Scaffold a cladding workspace. Pass a free-text project description as positional argument to drive intent-aware onboarding — the LLM produces domain-aware spec/docs plus product-level follow-up questions. Use when the user wants to start a new Ironclad project, adopt cladding into an existing repo, or refresh artifacts via re-scan."
+description = "Scaffold a Cladding workspace from a new idea, a planning document, or an existing project. Use the MCP prepare/apply flow so the current host model drafts domain-aware artifacts without requiring MCP sampling or a shell command."
 prompt = '''
 # Cladding init
 
-Run `clad init` from the directory where the cladding workspace should live. Idempotent — skips files that already exist unless `--force` is supplied.
+Use this workflow only when the user explicitly asks to initialize, adopt, or refresh Cladding. Opening a repository alone is not consent to initialize it.
 
-## Artifacts produced (by Tier)
+## Required host workflow
 
-| Tier | File | Authority |
-|---|---|---|
-| A | `spec.yaml` (seed) | Spec SSoT (Iron Law sealed) |
-| A | `spec/scenarios/<slug>-<hash6>.yaml` (v0.3.45+, intent path only) | Spec SSoT (onboarding output) |
-| B | `spec/architecture.yaml` | Design SSoT |
-| B | `spec/capabilities.yaml` | Design SSoT |
-| B | `docs/project-context.md` | Design SSoT (intent + Why/What/Purpose) |
-| C | `docs/conventions.md` | derived from observed code OR greenfield seed |
-| D | `.cladding/onboarding/state.yaml` (intent path only) | transient — Q&A audit |
+1. If a greenfield request has no project intent, ask for one short description.
+2. Call `clad_prepare_init` with exactly one starting mode:
+   - `idea` with the user's description.
+   - `document` with a project-relative planning-document path.
+   - `existing` for an existing codebase; include an optional adoption goal.
+3. Read the returned prompt and observations. Draft the structured object required by `clad_init` using the current host model.
+4. Show `plannedChanges` and `confirmationQuestion` to the user, then stop and wait for a separate reply. The original initialization request is not confirmation.
+5. Only after an affirmative user reply, call `clad_init` with the one-time token, the draft, and that reply verbatim as `confirmation`.
+6. Ask the returned `nextQuestion` verbatim. Continue with the Cladding clarify workflow after the user answers.
 
-See [`docs/ssot-model.md`](../../docs/ssot-model.md) for the full 4-tier governance.
+Do not run `clad init` in a shell from an AI-host onboarding session. Do not use MCP sampling. If the MCP tools are absent, tell the user to run `clad setup`, restart the AI host in the project directory, and stop without writing project files.
 
-## Intent-aware onboarding (v0.3.43+)
+`clad_prepare_init` is read-only. Never call prepare and apply in the same assistant turn. Only `clad_init` writes artifacts, after explicit user confirmation plus schema and freshness validation. A stale, malformed, or replayed apply request must be prepared again.
 
-The strongest path is to pass the user's project intent as positional argument (no `--intent` keyword, no quotes needed):
-
-```
-clad init 결제 SaaS for B2B Stripe Toss 지원
-clad init AI 코드 리뷰 봇 만들거야
-clad init 이 프로젝트 분석해서 클래딩 적용해줘
-```
-
-The LLM dispatcher then produces **domain-aware** artifacts that exceed what the user explicitly stated:
-
-- `docs/project-context.md` — Why/What/Purpose with inferred domain context (compliance norms, scale assumptions, common patterns)
-- `spec/capabilities.yaml` — user-stated + inferred capabilities (3-8 entries; payment → idempotency, webhook signing; ML → data lineage, eval harness; SaaS → multi-tenancy, audit log)
-- `spec/architecture.yaml` — layers tailored to domain + language
-- 2-3 follow-up clarifying questions printed to stdout as CLI hints (product/business level — not technical jargon)
-
-**AI orchestrators MUST ask the user for intent before invoking `clad init` on a greenfield workspace** (see `src/agents/orchestrator.md` principle 6). A bare `clad init` on a brand-new project falls back to generic toolchain seeds and misses the user's intent. For existing projects (≥3 source files) bare `clad init` is fine — the observed scan path captures shape directly.
-
-## Flags
-
-- `--name <name>` — override the project name (default: cwd basename).
-- `--force` — overwrite an existing `spec.yaml`.
-- `--scan` — force-walk the existing codebase to write observed artifacts. Default auto-detects (≥3 source files trigger scan); use `--no-scan` to skip even when source is present. Orthogonal to positional intent — can combine (`clad init 결제 SaaS --scan`).
-- `--no-llm` — force the deterministic interpreter. Intent text still routes but falls back to a deterministic body quoting the intent verbatim.
-- `--roots <list>` — comma-separated source-root override (e.g. `packages/a/src,packages/b/src`). Otherwise inferred from manifests + directory heuristics.
-
-When `--scan` runs (or auto-runs on a codebase with ≥3 source files) it writes:
-
-- `docs/conventions.md` — observed indent / quote / naming / error-handling / test-location conventions plus a representative module quote.
-- `spec/architecture.yaml` — observed layers + forbidden-import candidates derived from the import graph.
-- `spec/capabilities.yaml` — README `##` headings rendered as capability candidates (v0.3.38+).
-- `docs/project-context.md` — forest-level Why / What / Purpose; LLM-refined when a dispatcher is available, deterministic template otherwise.
-- `spec/scenarios/README.md` — explains the scenarios-are-intent policy (v0.3.30+).
-
-Existing files are diverted to `.cladding/scan/*.proposal` rather than overwritten.
-
-### Greenfield seeds (v0.3.42+)
-
-When `--scan` does **not** fire (brand-new project with <3 source files), `clad init` still writes the same three artifacts as **greenfield seeds** so the spec/docs surface is always complete:
-
-- `docs/conventions.md` — toolchain-default 14-signal table. TypeScript → 2-space + single quote + camelCase + `tests-dir` test layout, Python → 4-space + double quote + snake_case, Go → tab + PascalCase + `sibling-test`, Rust → 4-space + snake_case + result-pattern, etc. Each seed inlines a one-line link to the canonical style guide (Google TS / PEP 8 / Effective Go / Google Java / …).
-- `spec/architecture.yaml` — `version: "0.1"` + empty `layers: []` + a language-specific baseline suggestion in the header comment (TypeScript → `src/cli/` / `src/core/` / `src/lib/` / `src/ui/`, Python → `src/<package>/` / `tests/`, Go → `cmd/` / `pkg/` / `internal/`, …).
-- `spec/capabilities.yaml` — `schema: "0.1"` + `source: README.md` + empty `capabilities: []` + guidance comment on the per-entry shape.
-
-Each seed carries a header marking it as a greenfield template. After you write initial code (and optionally a README), re-run `clad init --scan`; the observed bodies divert to `.cladding/scan/<basename>.proposal` so you can diff seed vs reality and merge the parts you want. Personas downstream (`developer`, `planner`) therefore treat every scan artifact as **always present**, with the SEED header telling them which mode is live.
-
-After init:
-
-1. Edit `spec.yaml` (project metadata). Features are added on demand — ask the AI in natural language ("add a feature for login flow"), call the `clad_create_feature` MCP tool, or use the `clad` CLI. Feature shards always use the hash-based id `F-<hash6>` (v0.3.9+) — filename `<slug>-<hash6>.yaml`, `id: F-<hash6>`, `slug: <slug>`. `clad init` does **not** write a legacy `F-001` placeholder for external users (v0.4.0+).
-2. Run `clad sync` to verify the spec is valid.
-3. Run `clad check` to see which Iron Law stages are wired up for the toolchain cladding detects in the cwd.
-4. (Optional) Run `clad doctor` to confirm `.cladding/events.log.jsonl` shows no `sentinel_miss` events from the scan refinement.
-
-```
-clad init                                    # bare (greenfield seeds + hint, or observed scan)
-clad init 결제 SaaS for B2B                   # intent-aware onboarding (positional, no quotes needed)
-clad init "AI 코드 리뷰 봇"                   # quotes OK too
-clad init 이 프로젝트 분석해서 클래딩 적용해줘    # intent that signals existing adoption
-clad init docs/plan.md                       # path-aware intent (v0.3.61+) — file contents auto-loaded as intent
-clad init /absolute/path/spec.md             # absolute path also supported (same .md/.txt/.yaml/.yml/.markdown rule)
-clad init --name my-project
-clad init --force
-clad init --scan --no-llm
-clad init --roots packages/a/src,packages/b/src
-```
-
-## Path-aware intent (v0.3.61+, F-5f6b45)
-
-When the positional argument looks like a text-file path (recognized extension `.md` / `.txt` / `.yaml` / `.yml` / `.markdown`) and the file exists under cwd, cladding loads the file body and forwards *that* to the onboarding LLM dispatcher — not the literal path string. This closes the gap where `clad init "$(cat docs/plan.md)"` (shell substitution) was the only way to feed a planning document into onboarding.
-
-Behavior:
-
-- **Existing text file** → contents become the intent. stderr prints `loaded intent from <absolute-path>` for transparency.
-- **Missing file** with a path-like extension → stderr warning + free-text fallback (the literal argument is forwarded as intent so onboarding still runs).
-- **Directory** ending in `.md` (rare) → stderr warning + free-text fallback.
-- **Non-text argument** (e.g. `결제 SaaS 만들거야`) → existing free-text behavior, zero regression.
-
-Host invocations inherit this behavior automatically because every skill, command, and MCP init tool delegates to the same `clad init` engine. Claude Code and Gemini CLI expose `/cladding:init`; in Codex, type `$cladding` and choose `init (cladding)`; MCP-only hosts can ask in natural language.
+The raw CLI remains available for terminal, CI, offline, and explicitly configured SDK automation; it is not the primary host onboarding path.
 '''

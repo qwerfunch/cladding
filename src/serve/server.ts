@@ -19,7 +19,8 @@
 // @see spec/features/F-073.yaml — server scaffold AC matrix.
 
 import {spawnSync} from 'node:child_process';
-import {readFileSync, existsSync, realpathSync, statSync} from 'node:fs';
+import {createHash, randomUUID} from 'node:crypto';
+import {readFileSync, existsSync, realpathSync, readdirSync, statSync} from 'node:fs';
 import {basename, dirname, extname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
@@ -71,7 +72,9 @@ export const PERSONA_PROMPT_ALIASES: Readonly<Record<string, string>> = {
 
 /** Tool names cladding's MCP server exposes (stable wire identifiers). */
 export const TOOL_NAMES = [
+  'clad_prepare_init',
   'clad_init',
+  'clad_prepare_clarify',
   'clad_clarify',
   'clad_list_features',
   'clad_get_feature',
@@ -110,11 +113,18 @@ export interface ServerOptions {
 
 /** Process-independent onboarding contract injected at the serve boundary. */
 export interface OnboardingOperations {
+  readonly renderDraft: (draft: unknown) => string;
+  readonly prepareInit: (opts: {cwd: string; mode: string; intent: string}) => {
+    readonly prompt: string;
+    readonly request: {readonly mode: string; readonly intent: string};
+    readonly observation: Record<string, unknown>;
+  };
   readonly initialize: (opts: {
     cwd: string;
     intent?: string;
     scan?: boolean;
     noLlm?: boolean;
+    hostDispatcher?: (prompt: string) => Promise<string>;
   }) => Promise<{
     readonly created?: readonly string[];
     readonly skipped?: readonly string[];
@@ -124,9 +134,13 @@ export interface OnboardingOperations {
     readonly onboardingMode?: 'greenfield' | 'existing-adoption' | 'mixed';
     readonly onboardingSource?: 'llm' | 'hybrid' | 'deterministic';
   }>;
+  readonly prepareClarify: (
+    answer: string,
+    opts: {cwd: string},
+  ) => {readonly prompt: string; readonly request: {readonly mode: string; readonly intent: string}; readonly observation: Record<string, unknown>} | {readonly error: string};
   readonly clarify: (
     answer: string,
-    opts: {cwd: string; noLlm?: boolean},
+    opts: {cwd: string; noLlm?: boolean; hostDispatcher?: (prompt: string) => Promise<string>},
   ) => Promise<{
     readonly ok: boolean;
     readonly error?: string;
@@ -153,6 +167,12 @@ export function buildServer(opts: ServerOptions = {}): McpServer {
       version: opts.version ?? '0.8.3',
     },
     {
+      instructions:
+        'For explicit Cladding onboarding, always call clad_prepare_init first, draft the requested structured data ' +
+        'with the current host model, show the planned changes, and wait for a separate user confirmation before ' +
+        'calling clad_init with its token and the confirmation verbatim. For each real user answer, call ' +
+        'clad_prepare_clarify and then clad_clarify. Never run onboarding shell commands or request MCP sampling. ' +
+        'Prepare tools are read-only; apply tools validate and write.',
       // Declare subscribe support so clients can subscribe to
       // cladding://audit and receive notifications/resources/updated
       // when new evidence lands. The wire-level handlers themselves
@@ -288,8 +308,7 @@ function recordServe(
   }
 }
 
-/** Locate the engine's bin shim relative to this module — works in the dist
- * bundle (dist/clad.js → ../bin/clad) and the dev tree (src/serve/ → ../../bin/clad). */
+/** Locates the CLI shim for legacy MCP tools that still wrap CLI verbs. */
 function engineShim(): string | null {
   let dir = dirname(fileURLToPath(import.meta.url));
   for (let i = 0; i < 5; i++) {
@@ -297,42 +316,10 @@ function engineShim(): string | null {
     if (existsSync(candidate)) return candidate;
     dir = dirname(dir);
   }
-  // Marketplace plugins ship the self-contained dist/clad.js without the
-  // package-level bin/ shim. In that layout the running entry is itself the
-  // executable engine, so child verbs can safely re-enter it.
   const runningEntry = process.argv[1];
-  if (runningEntry && basename(runningEntry) === 'clad.js' && existsSync(runningEntry)) {
-    return runningEntry;
-  }
-  return null;
-}
-
-interface EngineJsonResult {
-  readonly ok: boolean;
-  readonly payload?: unknown;
-  readonly error?: string;
-}
-
-/** Runs a CLI verb through the shipped engine and parses its JSON boundary. */
-function runEngineJson(cwd: string, args: readonly string[]): EngineJsonResult {
-  const shim = engineShim();
-  if (!shim) return {ok: false, error: 'cladding engine shim was not found'};
-  const result = spawnSync(shim, args, {
-    cwd,
-    encoding: 'utf8',
-    maxBuffer: 10 * 1024 * 1024,
-  });
-  if (result.status !== 0) {
-    return {
-      ok: false,
-      error: (result.stderr || result.stdout || `cladding engine exited ${result.status ?? 'without a status'}`).trim(),
-    };
-  }
-  try {
-    return {ok: true, payload: JSON.parse(result.stdout)};
-  } catch {
-    return {ok: false, error: `cladding engine returned invalid JSON: ${result.stdout.slice(0, 500)}`};
-  }
+  return runningEntry && basename(runningEntry) === 'clad.js' && existsSync(runningEntry)
+    ? runningEntry
+    : null;
 }
 
 const INTENT_FILE_EXTENSIONS = new Set(['.md', '.txt', '.yaml', '.yml', '.markdown']);
@@ -366,84 +353,187 @@ function projectIntentPath(cwd: string, requested: string): {path?: string; erro
   return {path: rel};
 }
 
+const hostDraftSchema = z.object({
+  mode: z.enum(['greenfield', 'existing-adoption', 'mixed']),
+  project_context: z.object({why: z.string().min(1), problem: z.string().min(1), purpose: z.string().min(1)}),
+  capabilities: z.array(z.object({
+    id: z.string().min(1),
+    title: z.string().min(1),
+    summary: z.string().min(1),
+    surface: z.enum(['feature', 'platform', 'tool', 'infrastructure']),
+  })).min(3).max(8),
+  architecture: z.object({layers: z.array(z.object({name: z.string().min(1), forbidden_imports: z.array(z.string())}))}),
+  first_feature_title: z.string().min(1),
+  scenarios: z.array(z.object({slug: z.string().min(1), title: z.string().min(1), flow: z.string().min(1)})).min(1).max(3),
+  questions: z.array(z.string().min(1)).max(3),
+  ai_hints: z.record(z.string(), z.unknown()).optional(),
+});
+
+interface PreparedOnboarding {
+  readonly kind: 'init' | 'clarify';
+  readonly snapshot: string;
+  readonly mode: 'idea' | 'document' | 'existing';
+  readonly intent: string;
+  readonly answer?: string;
+  readonly refresh?: boolean;
+}
+
+function workspaceSnapshot(cwd: string): string {
+  const hash = createHash('sha256');
+  const visit = (dir: string): void => {
+    if (!existsSync(dir)) return;
+    for (const entry of readdirSync(dir, {withFileTypes: true}).sort((a, b) => a.name.localeCompare(b.name))) {
+      if (entry.name === '.git' || entry.name === '.cladding' || entry.name === 'node_modules') continue;
+      const path = join(dir, entry.name);
+      const rel = relative(cwd, path);
+      if (entry.isDirectory()) visit(path);
+      else if (entry.isFile()) {
+        const stat = statSync(path);
+        hash.update(`${rel}\0${stat.size}\0${stat.mtimeMs}\n`);
+      }
+    }
+  };
+  visit(cwd);
+  return hash.digest('hex');
+}
+
+function mcpPayload(payload: Record<string, unknown>, isError = false): {
+  readonly isError?: boolean;
+  readonly structuredContent: Record<string, unknown>;
+  readonly content: Array<{readonly type: 'text'; readonly text: string}>;
+} {
+  return {
+    ...(isError ? {isError: true} : {}),
+    structuredContent: payload,
+    content: [{type: 'text', text: JSON.stringify(payload, null, 2)}],
+  };
+}
+
 function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOperations): void {
+  const prepared = new Map<string, PreparedOnboarding>();
+
+  server.registerTool(
+    'clad_prepare_init',
+    {
+      title: 'Prepare Cladding onboarding context',
+      description:
+        'Read-only first step for every explicit Cladding initialization request. Inspect the connected project, ' +
+        'then use this tool result to draft the structured input for clad_init. Never run clad init in a shell.',
+      inputSchema: {
+        mode: z.enum(['idea', 'document', 'existing']),
+        intent: z.string().optional(),
+        document_path: z.string().optional(),
+        refresh: z.boolean().optional(),
+      },
+      outputSchema: {
+        status: z.string(), changed: z.boolean(), schemaVersion: z.number().optional(), token: z.string().optional(),
+        prompt: z.string().optional(), request: z.object({mode: z.string(), intent: z.string()}).optional(),
+        observation: z.record(z.string(), z.unknown()).optional(), question: z.string().optional(), error: z.string().optional(),
+        plannedChanges: z.array(z.string()).optional(), confirmationQuestion: z.string().optional(),
+        requiresSeparateUserConfirmation: z.boolean().optional(),
+      },
+      annotations: {readOnlyHint: true, destructiveHint: false, idempotentHint: true},
+    },
+    async (args) => {
+      if (!onboarding) return mcpPayload({status: 'unavailable', changed: false}, true);
+      if (existsSync(join(cwd, 'spec.yaml')) && !args.refresh) {
+        return mcpPayload({status: 'already_initialized', changed: false});
+      }
+      let intent = args.intent?.trim() ?? '';
+      if (args.mode === 'idea' && !intent) {
+        return mcpPayload({status: 'needs_input', changed: false, question: 'What kind of project are you building?'});
+      }
+      if (args.mode === 'document') {
+        const resolved = projectIntentPath(cwd, args.document_path ?? '');
+        if (resolved.error) return mcpPayload({status: 'invalid_request', changed: false, error: resolved.error}, true);
+        intent = readFileSync(join(cwd, resolved.path!), 'utf8');
+      }
+      if (args.mode === 'existing' && !intent) intent = 'Adopt Cladding into the observed existing project.';
+      const briefing = onboarding.prepareInit({cwd, mode: args.mode, intent});
+      const token = randomUUID();
+      prepared.set(token, {
+        kind: 'init', snapshot: workspaceSnapshot(cwd), mode: args.mode, intent, refresh: args.refresh,
+      });
+      return mcpPayload({
+        status: 'needs_confirmation', changed: false, schemaVersion: 1, token,
+        prompt: briefing.prompt, request: briefing.request, observation: briefing.observation,
+        plannedChanges: args.refresh
+          ? ['Create review proposals for refreshed Cladding spec and design artifacts; preserve authored files.']
+          : ['Create spec.yaml and spec design files.', 'Create project context and conventions documents.', 'Create Cladding runtime state and managed AI-host instructions.'],
+        confirmationQuestion: 'Cladding will create the listed project files. Should I proceed with initialization?',
+        requiresSeparateUserConfirmation: true,
+      });
+    },
+  );
+
   server.registerTool(
     'clad_init',
     {
-      title: 'Initialize Cladding in the connected project',
+      title: 'Apply a validated Cladding onboarding draft',
       description:
-        'Use only after the user explicitly asks to initialize or adopt Cladding. Supports a new idea, ' +
-        'a planning document inside the project, or adoption of an existing codebase. Returns product-level ' +
-        'follow-up questions; answer them with clad_clarify. Never call merely because a repository was opened.',
+        'Write Cladding artifacts from the host model draft returned after clad_prepare_init. ' +
+        'Requires its one-time token; malformed, stale, or replayed requests do not write files.',
       inputSchema: {
-        mode: z.enum(['idea', 'document', 'existing']).describe('The user\'s starting point'),
-        intent: z.string().optional().describe('Project idea, or optional adoption goal for existing mode'),
-        document_path: z.string().optional().describe('Project-relative planning document for document mode'),
-        refresh: z.boolean().optional().describe('Explicitly re-scan an already initialized project'),
-        no_llm: z.boolean().optional().describe('Use deterministic onboarding; intended for offline verification'),
+        token: z.string().uuid(),
+        confirmation: z.string().min(1).describe('The user\'s separate confirmation reply, verbatim'),
+        draft: hostDraftSchema,
       },
+      outputSchema: {
+        status: z.string(), changed: z.boolean(), created: z.array(z.string()).optional(), skipped: z.array(z.string()).optional(),
+        language: z.string().optional(), proposals: z.array(z.string()).optional(), clarifyingQuestions: z.array(z.string()).optional(),
+        onboardingMode: z.enum(['greenfield', 'existing-adoption', 'mixed']).optional(), onboardingSource: z.string().optional(),
+        nextQuestion: z.string().nullable().optional(), remainingQuestions: z.number().optional(), error: z.string().optional(),
+        confirmation: z.string().optional(),
+      },
+      annotations: {readOnlyHint: false, destructiveHint: true, idempotentHint: false},
     },
     async (args) => {
-      if (existsSync(join(cwd, 'spec.yaml')) && !args.refresh) {
-        return {
-          content: [{type: 'text', text: JSON.stringify({status: 'already_initialized', changed: false}, null, 2)}],
-        };
+      const request = prepared.get(args.token);
+      if (!request || request.kind !== 'init') return mcpPayload({status: 'invalid_token', changed: false}, true);
+      if (args.confirmation.trim() === request.intent.trim()) {
+        return mcpPayload({status: 'confirmation_required', changed: false, error: 'A separate user confirmation is required after the preview.'}, true);
       }
-      if (args.mode === 'idea' && !args.intent?.trim()) {
-        return {
-          content: [{type: 'text', text: JSON.stringify({status: 'needs_input', changed: false, question: 'What kind of project are you building?'}, null, 2)}],
-        };
-      }
-
-      let intent: string | undefined;
-      if (args.mode === 'document') {
-        const resolved = projectIntentPath(cwd, args.document_path ?? '');
-        if (resolved.error) {
-          return {isError: true, content: [{type: 'text', text: resolved.error}]};
-        }
-        intent = resolved.path!;
-      } else if (args.intent?.trim()) {
-        intent = args.intent.trim();
-      }
-      let init: {
-        readonly created?: readonly string[];
-        readonly skipped?: readonly string[];
-        readonly language?: string;
-        readonly proposals?: readonly string[];
-        readonly clarifyingQuestions?: readonly string[];
-        readonly onboardingMode?: 'greenfield' | 'existing-adoption' | 'mixed';
-        readonly onboardingSource?: 'llm' | 'hybrid' | 'deterministic';
-      };
-      if (onboarding) {
-        init = await onboarding.initialize({
-          cwd,
-          intent,
-          scan: args.mode === 'existing' ? true : undefined,
-          noLlm: args.no_llm,
-        });
-      } else {
-        const command = ['init', ...(intent ? [intent] : [])];
-        if (args.mode === 'existing') command.push('--scan');
-        if (args.no_llm) command.push('--no-llm');
-        command.push('--json');
-        const result = runEngineJson(cwd, command);
-        if (!result.ok) return {isError: true, content: [{type: 'text', text: result.error!}]};
-        init = result.payload as typeof init;
-      }
+      if (request.snapshot !== workspaceSnapshot(cwd)) return mcpPayload({status: 'stale_preparation', changed: false}, true);
+      if (!onboarding) return mcpPayload({status: 'unavailable', changed: false}, true);
+      prepared.delete(args.token);
+      const response = onboarding.renderDraft(args.draft);
+      const init = await onboarding.initialize({
+        cwd, intent: request.intent, scan: request.mode === 'existing' ? true : undefined,
+        hostDispatcher: async () => response,
+      });
       const questions = init.clarifyingQuestions ?? [];
       const payload = {
-        status:
-          questions.length > 0
-            ? 'needs_answers'
-            : init.onboardingSource === 'deterministic'
-              ? 'initialized_with_fallback'
-              : 'initialized',
-        changed: true,
+        status: questions.length > 0 ? 'needs_answers' : 'initialized', changed: true,
         ...init,
+        onboardingSource: 'host',
+        confirmation: args.confirmation,
         nextQuestion: questions[0] ?? null,
         remainingQuestions: questions.length,
       };
-      return {content: [{type: 'text', text: JSON.stringify(payload, null, 2)}]};
+      return mcpPayload(payload);
+    },
+  );
+
+  server.registerTool(
+    'clad_prepare_clarify',
+    {
+      title: 'Prepare the next Cladding onboarding answer',
+      description: 'Read-only step. Pass the user answer verbatim, then draft the structured refinement for clad_clarify.',
+      inputSchema: {answer: z.string().min(1)},
+      outputSchema: {
+        status: z.string(), changed: z.boolean(), schemaVersion: z.number().optional(), token: z.string().optional(),
+        prompt: z.string().optional(), request: z.object({mode: z.string(), intent: z.string()}).optional(),
+        observation: z.record(z.string(), z.unknown()).optional(), error: z.string().optional(),
+      },
+      annotations: {readOnlyHint: true, destructiveHint: false, idempotentHint: true},
+    },
+    async (args) => {
+      if (!onboarding) return mcpPayload({status: 'unavailable', changed: false}, true);
+      const briefing = onboarding.prepareClarify(args.answer, {cwd});
+      if ('error' in briefing) return mcpPayload({status: 'invalid_state', changed: false, error: briefing.error}, true);
+      const token = randomUUID();
+      prepared.set(token, {kind: 'clarify', snapshot: workspaceSnapshot(cwd), mode: 'idea', intent: briefing.request.intent, answer: args.answer});
+      return mcpPayload({status: 'needs_host_draft', changed: false, schemaVersion: 1, token, prompt: briefing.prompt, request: briefing.request, observation: briefing.observation});
     },
   );
 
@@ -452,28 +542,30 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
     {
       title: 'Answer the next Cladding onboarding question',
       description:
-        'Pass the user\'s answer to the next pending product question after clad_init. Returns the next question ' +
-        'or a completed status. Do not invent answers.',
+        'Apply a host-model refinement after clad_prepare_clarify. Do not invent or alter the user answer.',
       inputSchema: {
         answer: z.string().min(1).describe('The user\'s answer, verbatim'),
-        no_llm: z.boolean().optional().describe('Use deterministic refinement; intended for offline verification'),
+        token: z.string().uuid(),
+        draft: hostDraftSchema,
       },
+      outputSchema: {
+        status: z.string(), changed: z.boolean(), cwd: z.string().optional(), answered: z.unknown().optional(),
+        newQuestions: z.array(z.string()).optional(), mode: z.enum(['greenfield', 'existing-adoption', 'mixed']).nullable().optional(),
+        nextQuestion: z.string().nullable().optional(), remainingQuestions: z.number().optional(), refinementSource: z.string().optional(),
+        error: z.string().optional(),
+      },
+      annotations: {readOnlyHint: false, destructiveHint: true, idempotentHint: false},
     },
     async (args) => {
-      if (onboarding) {
-        const outcome = await onboarding.clarify(args.answer, {cwd, noLlm: args.no_llm});
-        if (!outcome.ok) {
-          return {isError: true, content: [{type: 'text', text: outcome.error ?? 'onboarding clarification failed'}]};
-        }
-        return {
-          content: [{type: 'text', text: JSON.stringify({...((outcome.report ?? {}) as object), refinementSource: outcome.source}, null, 2)}],
-        };
-      }
-      const command = ['clarify', args.answer, '--json'];
-      if (args.no_llm) command.push('--no-llm');
-      const result = runEngineJson(cwd, command);
-      if (!result.ok) return {isError: true, content: [{type: 'text', text: result.error!}]};
-      return {content: [{type: 'text', text: JSON.stringify(result.payload, null, 2)}]};
+      const request = prepared.get(args.token);
+      if (!request || request.kind !== 'clarify' || request.answer !== args.answer) return mcpPayload({status: 'invalid_token', changed: false}, true);
+      if (request.snapshot !== workspaceSnapshot(cwd)) return mcpPayload({status: 'stale_preparation', changed: false}, true);
+      if (!onboarding) return mcpPayload({status: 'unavailable', changed: false}, true);
+      prepared.delete(args.token);
+      const response = onboarding.renderDraft(args.draft);
+      const outcome = await onboarding.clarify(args.answer, {cwd, hostDispatcher: async () => response});
+      if (!outcome.ok) return mcpPayload({status: 'failed', changed: false, error: outcome.error ?? 'onboarding clarification failed'}, true);
+      return mcpPayload({...((outcome.report ?? {}) as object), changed: true, refinementSource: 'host'});
     },
   );
 

@@ -580,7 +580,10 @@ describe('cli/clad — runServeCommand', () => {
     expect(buildMock).toHaveBeenCalledWith({
       cwd: '/tmp/probe',
       onboarding: {
+        renderDraft: expect.any(Function),
+        prepareInit: expect.any(Function),
         initialize: expect.any(Function),
+        prepareClarify: expect.any(Function),
         clarify: expect.any(Function),
       },
     });

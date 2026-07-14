@@ -7,11 +7,8 @@ import {dirname, join} from 'node:path';
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
-import {vi} from 'vitest';
-
-import type {SamplingCapableServer} from '../../src/adapters/host/transport.js';
-import {setHostMcpServer} from '../../src/adapters/host/sampling-context.js';
 import {refineOnboarding} from '../../src/cli/clarify.js';
+import {prepareHostClarify, prepareHostInit, renderHostDraft} from '../../src/cli/host-onboarding.js';
 import {runInit} from '../../src/cli/init.js';
 import {saveState} from '../../src/cli/scan/onboarding-state.js';
 import {buildServer} from '../../src/serve/server.js';
@@ -26,7 +23,13 @@ async function makePair(cwd: string): Promise<Pair> {
     cwd,
     name: 'cladding-init-test',
     version: '0.0.0-test',
-    onboarding: {initialize: runInit, clarify: refineOnboarding},
+    onboarding: {
+      renderDraft: (value) => renderHostDraft(value as Parameters<typeof renderHostDraft>[0]),
+      prepareInit: ({cwd: root, mode, intent}) => prepareHostInit(root, mode, intent),
+      initialize: runInit,
+      prepareClarify: (answer, {cwd: root}) => prepareHostClarify(root, answer),
+      clarify: refineOnboarding,
+    },
   });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({name: 'cladding-init-client', version: '0.0.0-test'});
@@ -45,6 +48,26 @@ function payload(result: Awaited<ReturnType<Client['callTool']>>): Record<string
   return JSON.parse(text) as Record<string, unknown>;
 }
 
+const draft = {
+  mode: 'greenfield',
+  project_context: {why: 'Enable reliable B2B payments.', problem: 'Payment operations are fragmented.', purpose: 'Give operators one safe workflow.'},
+  capabilities: [
+    {id: 'payments', title: 'Payments', summary: 'Process payments safely.', surface: 'feature'},
+    {id: 'audit', title: 'Audit', summary: 'Trace operator actions.', surface: 'platform'},
+    {id: 'webhooks', title: 'Webhooks', summary: 'Deliver signed events.', surface: 'infrastructure'},
+  ],
+  architecture: {layers: [{name: 'core', forbidden_imports: ['adapters']}]},
+  first_feature_title: 'Payment authorization',
+  scenarios: [{slug: 'payment-flow', title: 'Payment flow', flow: 'An operator requests and confirms a payment.'}],
+  questions: ['Which market launches first?'],
+} as const;
+const confirmation = 'Proceed with Cladding initialization.';
+
+async function prepare(client: Client, arguments_: Record<string, unknown>): Promise<string> {
+  const result = await client.callTool({name: 'clad_prepare_init', arguments: arguments_});
+  return payload(result).token as string;
+}
+
 describe('serve/server — natural-language init tools', () => {
   let dir: string;
 
@@ -59,7 +82,7 @@ describe('serve/server — natural-language init tools', () => {
   test('idea mode asks for intent before writing any project artifact', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
-      const result = await client.callTool({name: 'clad_init', arguments: {mode: 'idea'}});
+      const result = await client.callTool({name: 'clad_prepare_init', arguments: {mode: 'idea'}});
       expect(payload(result)).toMatchObject({status: 'needs_input', changed: false});
       expect(readdirSync(dir)).toEqual([]);
     } finally {
@@ -70,15 +93,13 @@ describe('serve/server — natural-language init tools', () => {
   test('idea mode initializes through the shared engine and writes host instructions after spec', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
-      const result = await client.callTool({
-        name: 'clad_init',
-        arguments: {mode: 'idea', intent: 'B2B payment SaaS', no_llm: true},
-      });
+      const token = await prepare(client, {mode: 'idea', intent: 'B2B payment SaaS'});
+      const result = await client.callTool({name: 'clad_init', arguments: {token, confirmation, draft}});
       expect(result.isError).not.toBe(true);
       expect(payload(result)).toMatchObject({
-        status: 'initialized_with_fallback',
+        status: 'needs_answers',
         changed: true,
-        onboardingSource: 'deterministic',
+        onboardingSource: 'host',
       });
       expect(existsSync(join(dir, 'spec.yaml'))).toBe(true);
       expect(existsSync(join(dir, 'AGENTS.md'))).toBe(true);
@@ -88,79 +109,64 @@ describe('serve/server — natural-language init tools', () => {
     }
   });
 
-  test('host sampling drives init and clarify in the MCP server process', async () => {
-    const createMessage = vi
-      .fn()
-      .mockResolvedValueOnce({
-        content: {
-          type: 'text',
-          text: [
-            '=== ONBOARDING_MODE ===',
-            'greenfield',
-            '=== PROJECT_CONTEXT_MD ===',
-            '# Payment platform context',
-            '=== CAPABILITIES_YAML ===',
-            'schema: "0.1"',
-            'capabilities:',
-            '  - id: payments',
-            '    title: "Payments"',
-            '=== ARCHITECTURE_YAML ===',
-            'layers: []',
-            '=== SPEC_SEED_TITLE ===',
-            'Payment platform',
-            '=== SCENARIOS_YAML ===',
-            '[]',
-            '=== PROJECT_METADATA_YAML ===',
-            '{}',
-            '=== CLARIFYING_QUESTIONS ===',
-            '- Which market launches first?',
-          ].join('\n'),
-        },
-      })
-      .mockResolvedValueOnce({
-        content: {
-          type: 'text',
-          text: [
-            '=== ONBOARDING_MODE ===',
-            'greenfield',
-            '=== PROJECT_CONTEXT_MD ===',
-            '# Korea launch context',
-            '=== CAPABILITIES_YAML ===',
-            'schema: "0.1"',
-            'capabilities: []',
-            '=== ARCHITECTURE_YAML ===',
-            'layers: []',
-            '=== SPEC_SEED_TITLE ===',
-            'Payment platform',
-            '=== CLARIFYING_QUESTIONS ===',
-          ].join('\n'),
-        },
-      });
-    const disposeSampling = setHostMcpServer({createMessage} as SamplingCapableServer);
+  test('initial request is not accepted as the separate write confirmation', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
-      const initialized = await client.callTool({
-        name: 'clad_init',
-        arguments: {mode: 'idea', intent: 'B2B payment SaaS'},
+      const intent = 'B2B payment SaaS';
+      const preparation = await client.callTool({name: 'clad_prepare_init', arguments: {mode: 'idea', intent}});
+      expect(payload(preparation)).toMatchObject({
+        status: 'needs_confirmation',
+        changed: false,
+        requiresSeparateUserConfirmation: true,
       });
+      const token = payload(preparation).token as string;
+      const result = await client.callTool({name: 'clad_init', arguments: {token, confirmation: intent, draft}});
+      expect(payload(result)).toMatchObject({status: 'confirmation_required', changed: false});
+      expect(existsSync(join(dir, 'spec.yaml'))).toBe(false);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('a malformed host draft is rejected before any write', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const token = await prepare(client, {mode: 'idea', intent: 'B2B payment SaaS'});
+      const result = await client.callTool({name: 'clad_init', arguments: {
+        token,
+        confirmation,
+        draft: {...draft, capabilities: []},
+      }});
+      expect(result.isError).toBe(true);
+      expect(existsSync(join(dir, 'spec.yaml'))).toBe(false);
+      expect(readdirSync(dir)).toEqual([]);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('tools-only MCP client drives init and clarify without sampling', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const token = await prepare(client, {mode: 'idea', intent: 'B2B payment SaaS'});
+      const initialized = await client.callTool({name: 'clad_init', arguments: {token, confirmation, draft}});
       expect(payload(initialized)).toMatchObject({
         status: 'needs_answers',
-        onboardingSource: 'llm',
+        onboardingSource: 'host',
         nextQuestion: 'Which market launches first?',
       });
 
-      const clarified = await client.callTool({
-        name: 'clad_clarify',
-        arguments: {answer: 'Korea'},
-      });
+      const preparedClarify = await client.callTool({name: 'clad_prepare_clarify', arguments: {answer: 'Korea'}});
+      const clarifyToken = payload(preparedClarify).token as string;
+      const clarified = await client.callTool({name: 'clad_clarify', arguments: {
+        answer: 'Korea', token: clarifyToken, draft: {...draft, questions: []},
+      }});
       expect(payload(clarified)).toMatchObject({
         status: 'done',
         remainingQuestions: 0,
-        refinementSource: 'llm',
+        refinementSource: 'host',
       });
-      expect(createMessage).toHaveBeenCalledTimes(2);
     } finally {
-      disposeSampling();
       await cleanup();
     }
   });
@@ -171,12 +177,13 @@ describe('serve/server — natural-language init tools', () => {
     writeFileSync(join(dir, 'docs', 'plan.md'), plan);
     const {client, cleanup} = await makePair(dir);
     try {
-      const result = await client.callTool({
-        name: 'clad_init',
-        arguments: {mode: 'document', document_path: 'docs/plan.md', no_llm: true},
-      });
+      const preparation = await client.callTool({name: 'clad_prepare_init', arguments: {mode: 'document', document_path: 'docs/plan.md'}});
+      const preparedPayload = payload(preparation);
+      expect(preparedPayload.prompt).toContain(plan);
+      const token = preparedPayload.token as string;
+      const result = await client.callTool({name: 'clad_init', arguments: {token, confirmation, draft}});
       expect(result.isError).not.toBe(true);
-      expect(readFileSync(join(dir, 'docs', 'project-context.md'), 'utf8')).toContain(plan);
+      expect(readFileSync(join(dir, 'docs', 'project-context.md'), 'utf8')).toContain('Enable reliable B2B payments.');
     } finally {
       await cleanup();
     }
@@ -188,7 +195,7 @@ describe('serve/server — natural-language init tools', () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const result = await client.callTool({
-        name: 'clad_init',
+        name: 'clad_prepare_init',
         arguments: {mode: 'document', document_path: '../outside-plan.md', no_llm: true},
       });
       expect(result.isError).toBe(true);
@@ -204,10 +211,8 @@ describe('serve/server — natural-language init tools', () => {
     writeFileSync(join(dir, 'src', 'index.ts'), 'export const value = 1;\n');
     const {client, cleanup} = await makePair(dir);
     try {
-      const result = await client.callTool({
-        name: 'clad_init',
-        arguments: {mode: 'existing', no_llm: true},
-      });
+      const token = await prepare(client, {mode: 'existing'});
+      const result = await client.callTool({name: 'clad_init', arguments: {token, confirmation, draft: {...draft, mode: 'existing-adoption'}}});
       expect(result.isError).not.toBe(true);
       const conventions = readFileSync(join(dir, 'docs', 'conventions.md'), 'utf8');
       expect(conventions).toContain('derived from observed code');
@@ -222,10 +227,31 @@ describe('serve/server — natural-language init tools', () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const before = readFileSync(join(dir, 'spec.yaml'), 'utf8');
-      const result = await client.callTool({name: 'clad_init', arguments: {mode: 'existing'}});
+      const result = await client.callTool({name: 'clad_prepare_init', arguments: {mode: 'existing'}});
       expect(payload(result)).toEqual({status: 'already_initialized', changed: false});
       expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).toBe(before);
       expect(readdirSync(dir)).toEqual(['spec.yaml']);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('stale and replayed apply tokens never write twice', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const staleToken = await prepare(client, {mode: 'idea', intent: 'B2B payment SaaS'});
+      writeFileSync(join(dir, 'README.md'), '# changed after prepare\n');
+      const stale = await client.callTool({name: 'clad_init', arguments: {token: staleToken, confirmation, draft}});
+      expect(payload(stale)).toMatchObject({status: 'stale_preparation', changed: false});
+      expect(existsSync(join(dir, 'spec.yaml'))).toBe(false);
+
+      const token = await prepare(client, {mode: 'idea', intent: 'B2B payment SaaS'});
+      const first = await client.callTool({name: 'clad_init', arguments: {token, confirmation, draft}});
+      expect(payload(first)).toMatchObject({changed: true});
+      const specBeforeReplay = readFileSync(join(dir, 'spec.yaml'), 'utf8');
+      const replay = await client.callTool({name: 'clad_init', arguments: {token, confirmation, draft}});
+      expect(payload(replay)).toMatchObject({status: 'invalid_token', changed: false});
+      expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).toBe(specBeforeReplay);
     } finally {
       await cleanup();
     }
@@ -252,10 +278,11 @@ describe('serve/server — natural-language init tools', () => {
 
     const {client, cleanup} = await makePair(dir);
     try {
-      const result = await client.callTool({
-        name: 'clad_clarify',
-        arguments: {answer: 'Business operators', no_llm: true},
-      });
+      const preparedClarify = await client.callTool({name: 'clad_prepare_clarify', arguments: {answer: 'Business operators'}});
+      const token = payload(preparedClarify).token as string;
+      const result = await client.callTool({name: 'clad_clarify', arguments: {
+        answer: 'Business operators', token, draft: {...draft, questions: []},
+      }});
       expect(result.isError).not.toBe(true);
       expect(payload(result)).toMatchObject({
         status: 'active',

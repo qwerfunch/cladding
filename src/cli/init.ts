@@ -32,6 +32,7 @@ import {
   type OnboardingObserved,
   type OnboardingResult,
 } from './scan/intent-onboarding.js';
+import type {ScanLlmDispatcher} from './scan/llm.js';
 import {saveState, type OnboardingState} from './scan/onboarding-state.js';
 import {detectToolchain} from '../stages/toolchain/detect.js';
 import {writeClaudeMdSection} from '../init/host-instructions.js';
@@ -67,6 +68,8 @@ export interface InitOptions {
   readonly withHook?: boolean;
   /** Scaffold the authoritative CI gate workflow (F-16746b). */
   readonly withCi?: boolean;
+  /** Host-produced onboarding response; used by the MCP prepare/apply flow. */
+  readonly hostDispatcher?: ScanLlmDispatcher;
 }
 
 export interface InitResult {
@@ -378,7 +381,7 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
   // dispatcher both fall back to a deterministic variant that quotes
   // the intent verbatim.
   let onboarding: OnboardingResult | null = null;
-  const dispatcher = selectDispatcher({noLlm: opts.noLlm});
+  const dispatcher = opts.hostDispatcher ?? selectDispatcher({noLlm: opts.noLlm});
   if (intent && intent.length > 0) {
     const observed: OnboardingObserved = {
       cwdBasename: basename(resolve(cwd)),
