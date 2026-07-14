@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-2497%2F2497-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-2522%2F2522-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -255,10 +255,11 @@ clad setup                # AI ツールを自動配線（Claude · Codex · Ant
 ```bash
 cd <project>
 
-# このディレクトリから、使用する AI ツールを一つ起動する:
-codex          # または: claude
-agy            # Antigravity
-cursor-agent   # Cursor Agent
+# 一つだけ選び、先頭の「#」を外して実行する:
+# codex          # Codex
+# claude         # Claude Code
+# agy            # Antigravity
+# cursor-agent   # Cursor Agent
 ```
 
 使用する AI ツールのコマンドを一つだけ実行する。Cursor IDE の場合は `<project>` をワークスペースとして開く。`clad setup` の後は必ず新しい AI セッションを開始する。`cd` だけで終えてはいけない。
@@ -338,9 +339,9 @@ clad update              # 4. プロジェクトをインストール済みバ�
 
 | Version | 準拠レベル | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.8.3（2026-07） | L4 · [自己申告](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2497 / 2497 | 15 段階 · 41 detectors | 254（251 done） |
+| v0.8.3（2026-07） | L4 · [自己申告](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2522 / 2522 | 15 段階 · 41 detectors | 255（251 done） |
 
-<sub>234 test files · capability 6 個 · カバレッジ低下は COVERAGE_DROP detector がブロック</sub>
+<sub>236 test files · capability 6 個 · カバレッジ低下は COVERAGE_DROP detector がブロック</sub>
 
 > **Ironclad 1.0 への道** — 1.0 は *独立した二つの実装が L4 準拠フィクスチャを通過してはじめて* 確定する（[GOVERNANCE § 1](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md)）。cladding はその一つ目だ。
 

@@ -15,11 +15,13 @@
 //     .mcp.json             ← already authored under plugins/codex/
 //     .codex-plugin/plugin.json ← already authored
 //
-//   Gemini CLI (plugins/gemini-cli/, v0.3.6, F-081):
+//   Legacy Gemini CLI (plugins/gemini-cli/, v0.3.6, F-081):
 //     commands/<verb>.toml ← transpiled from repo-root skills/<verb>/SKILL.md
 //                            (frontmatter.description → toml `description`,
 //                             body → toml `prompt` as a literal multi-line)
 //     gemini-extension.json + GEMINI.md already authored.
+//     Retained only so existing installations do not break during migration;
+//     new setup, verification, and support claims target Antigravity instead.
 //
 // The src side stays canonical — every loadPersona() call in the
 // runtime reads from src/agents. The drift detector enforces lockstep.

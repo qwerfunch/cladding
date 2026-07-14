@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-2497%2F2497-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-2522%2F2522-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -251,10 +251,11 @@ clad setup                # 自动接通你的 AI 工具（Claude · Codex · An
 ```bash
 cd <project>
 
-# 从此目录启动你使用的一个 AI 工具：
-codex          # 或：claude
-agy            # Antigravity
-cursor-agent   # Cursor Agent
+# 只选择一个，并删除行首的“#”后运行：
+# codex          # Codex
+# claude         # Claude Code
+# agy            # Antigravity
+# cursor-agent   # Cursor Agent
 ```
 
 只需运行自己所用 AI 工具对应的一条命令。使用 Cursor IDE 时，把 `<project>` 作为工作区打开。运行 `clad setup` 后必须启动一个新的 AI 会话；不能只执行 `cd` 就结束。
@@ -334,7 +335,7 @@ clad update              # 4. 让项目与已安装版本对齐
 
 | 版本 | 一致性 | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.8.3（2026-07） | L4 · [自我声明](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2497 / 2497 | 15 阶段 · 41 检测器 | 254（251 done） |
+| v0.8.3（2026-07） | L4 · [自我声明](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2522 / 2522 | 15 阶段 · 41 检测器 | 255（251 done） |
 
 <sub>234 个测试文件 · 6 项 capability · 覆盖率下降由 COVERAGE_DROP 检测器拦下</sub>
 

@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-2497%2F2497-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-2522%2F2522-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -252,10 +252,11 @@ machine; it does not create or modify project files. Run it again after adding a
 ```bash
 cd <project>
 
-# Start one of the AI tools from this directory:
-codex          # or: claude
-agy            # Antigravity
-cursor-agent   # Cursor Agent
+# Choose exactly one and remove its leading '#':
+# codex          # Codex
+# claude         # Claude Code
+# agy            # Antigravity
+# cursor-agent   # Cursor Agent
 ```
 
 Use only the command for your AI tool. For Cursor IDE, open `<project>` as the workspace instead.
@@ -345,9 +346,9 @@ Reconcile the drift the update flagged.
 
 | Version | Conformance | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.8.3 (2026-07) | L4 · [self-declared](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2497 / 2497 | 15 stages · 41 detectors | 254 (251 done) |
+| v0.8.3 (2026-07) | L4 · [self-declared](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2522 / 2522 | 15 stages · 41 detectors | 255 (251 done) |
 
-<sub>234 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector</sub>
+<sub>236 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector</sub>
 
 > **Road to Ironclad 1.0** — 1.0 locks only when *two independent implementations pass the L4 conformance fixtures* ([GOVERNANCE § 1](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md)). cladding is the first.
 

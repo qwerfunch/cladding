@@ -647,7 +647,8 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
       title: 'Apply a validated Cladding onboarding draft',
       description:
         'Write Cladding artifacts from the host model draft returned after clad_prepare_init. ' +
-        'Requires its one-time token; malformed, stale, or replayed requests do not write files.',
+        'Use the one-time token when the host retained it; process-per-turn hosts may use the exact approval phrase ' +
+        'through the short-lived machine-local cache. Malformed, stale, or replayed requests do not write files.',
       inputSchema: {
         token: z.string().min(1).max(MAX_APPROVAL_ENVELOPE_BYTES).optional(),
         confirmation: z.string().min(1).describe('The user\'s separate confirmation reply, verbatim'),

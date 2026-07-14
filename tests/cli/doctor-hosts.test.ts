@@ -11,7 +11,7 @@
 //   AC-87ebd442 · consent → ≤3 canned prompts/host, record pass/fail/not-run + evidence
 //   AC-8dfa9cc4 · absent binary OR no consent → not-run, NEVER pass; dated artifact
 //   AC-57ab708c · newest-artifact matrix render; parser vs committed fixtures
-//   AC-6cbe51fc · Cursor graded wiring-only (never verified) via clad serve tools/list
+//   AC-6cbe51fc · Cursor headless verification plus clad serve tools/list wiring evidence
 
 import {
   mkdirSync,
@@ -64,7 +64,7 @@ const ok = (stdout: string): PromptResult => ({stdout, stderr: '', timedOut: fal
 // ─── AC-57ab708c / AC-87ebd442 · the PURE sentinel parser vs committed fixtures ──
 
 describe('parseHostOutput — zero-LLM sentinel matcher against committed transcripts (AC-57ab708c)', () => {
-  test('list-features: a gemini listing with real F-ids passes', () => {
+  test('list-features: a committed host listing with real F-ids passes', () => {
     const p = parseHostOutput('list-features', fixture('gemini-list-features.txt'));
     expect(p.result).toBe('pass');
     expect(p.sentinel).toMatch(/feature id/i);
@@ -158,13 +158,14 @@ describe('runHostSmoke with consent — canned probing (AC-87ebd442)', () => {
     });
 
     // ≤3 canned prompts per host CLI found on PATH.
-    for (const host of ['claude', 'gemini', 'codex']) {
-      expect(calls.filter((c) => c.command === host)).toHaveLength(3);
+    for (const command of ['claude', 'agy', 'codex', 'cursor-agent']) {
+      expect(calls.filter((c) => c.command === command)).toHaveLength(3);
     }
     // All three surfaces passed their sentinel → verified.
     expect(artifact.hosts.claude.grade).toBe('verified');
-    expect(artifact.hosts.gemini.grade).toBe('verified');
+    expect(artifact.hosts.antigravity.grade).toBe('verified');
     expect(artifact.hosts.codex.grade).toBe('verified');
+    expect(artifact.hosts.cursor.grade).toBe('verified');
     // Every surface carries its recorded pass + evidence.
     const claudeSurfaces = artifact.hosts.claude.surfaces;
     expect(claudeSurfaces.map((s) => s.name)).toEqual(['list-features', 'get-feature', 'run-check']);
@@ -194,9 +195,9 @@ describe('runHostSmoke with consent — canned probing (AC-87ebd442)', () => {
       runPrompt: cannedRunner(calls, fixture('refusal.txt')),
       home,
     });
-    const list = artifact.hosts.gemini.surfaces.find((s) => s.name === 'list-features');
+    const list = artifact.hosts.antigravity.surfaces.find((s) => s.name === 'list-features');
     expect(list?.result).toBe('fail');
-    expect(artifact.hosts.gemini.grade).toBe('fail');
+    expect(artifact.hosts.antigravity.grade).toBe('fail');
   });
 });
 
@@ -219,7 +220,7 @@ describe('not-run honesty — absence never renders as a pass (AC-8dfa9cc4)', ()
 
   test('no consent (binary present) → every prompt host not-run with the consent reason', () => {
     const artifact = runHostSmoke(dir, {consent: false, hasBinary: () => true, home, version: 'x'});
-    for (const host of ['claude', 'gemini', 'codex'] as const) {
+    for (const host of ['claude', 'antigravity', 'codex', 'cursor'] as const) {
       const rec = artifact.hosts[host];
       expect(rec.grade).toBe('not-run');
       expect(rec.reason).toMatch(/consent not given/i);
@@ -230,7 +231,7 @@ describe('not-run honesty — absence never renders as a pass (AC-8dfa9cc4)', ()
 
   test('binary absent from PATH → not-run "binary not on PATH", even with consent', () => {
     const artifact = runHostSmoke(dir, {consent: true, hasBinary: () => false, home});
-    for (const host of ['claude', 'gemini', 'codex'] as const) {
+    for (const host of ['claude', 'antigravity', 'codex', 'cursor'] as const) {
       expect(artifact.hosts[host].grade).toBe('not-run');
       expect(artifact.hosts[host].reason).toMatch(/not on PATH/i);
     }
@@ -286,7 +287,7 @@ function mkArtifact(over: Partial<HostSmokeArtifact> = {}): HostSmokeArtifact {
           {name: 'run-check', result: 'pass', sentinel: 'a drift verdict', evidence: 'RED 2 findings'},
         ],
       },
-      gemini: {grade: 'not-run', surfaces: [], reason: 'consent not given (set CLAD_HOST_SMOKE=1)'},
+      antigravity: {grade: 'not-run', surfaces: [], reason: 'consent not given (set CLAD_HOST_SMOKE=1)'},
       codex: {grade: 'not-run', surfaces: [], reason: 'binary not on PATH'},
       cursor: {
         grade: 'wiring-ok',
@@ -298,7 +299,7 @@ function mkArtifact(over: Partial<HostSmokeArtifact> = {}): HostSmokeArtifact {
 }
 
 describe('renderHostMatrix — pure matrix generator (AC-57ab708c)', () => {
-  test('emits host × surface × result × date × version + grades fence + wiring-only legend', () => {
+  test('emits host × surface × result × date × version + grades fence + wiring evidence legend', () => {
     const md = renderHostMatrix(mkArtifact());
     expect(md).toContain('# Host support matrix');
     expect(md).toContain('| Host | list-features | get-feature | run-check | wiring | Grade |');
@@ -309,8 +310,7 @@ describe('renderHostMatrix — pure matrix generator (AC-57ab708c)', () => {
     expect(md).toMatch(/\| cursor \| — \| — \| — \| pass \| wiring-ok \|/);
     // The machine-readable fence the detector reads.
     expect(md).toContain(matrixGradesFence(mkArtifact()));
-    // The wiring-only legend (Cursor honesty note).
-    expect(md).toContain('wiring-only');
+    expect(md).toContain('Cursor additionally verifies');
   });
 
   test('matrixGradesFence is the four host grades as a parseable JSON comment', () => {
@@ -318,7 +318,7 @@ describe('renderHostMatrix — pure matrix generator (AC-57ab708c)', () => {
     const json = fence.replace('<!-- clad:matrix-grades ', '').replace(' -->', '');
     expect(JSON.parse(json)).toEqual({
       claude: 'verified',
-      gemini: 'not-run',
+      antigravity: 'not-run',
       codex: 'not-run',
       cursor: 'wiring-ok',
     });
@@ -353,6 +353,20 @@ describe('newest-artifact selection + --matrix-only (AC-57ab708c)', () => {
     expect(newest?.generatedAt).toBe('2026-07-01T00:00:00.000Z');
   });
 
+  test('legacy Gemini artifacts load without relabeling old evidence as Antigravity', () => {
+    const auditDir = join(dir, '.cladding', 'audit');
+    const legacy = mkArtifact() as unknown as {version: string; generatedAt: string; hosts: Record<string, unknown>};
+    legacy.hosts.gemini = legacy.hosts.antigravity;
+    delete legacy.hosts.antigravity;
+    legacy.generatedAt = '2026-08-01T00:00:00.000Z';
+    writeFileSync(join(auditDir, 'host-smoke-2026-08-01.json'), JSON.stringify(legacy, null, 2));
+
+    const newest = readNewestArtifact(dir);
+
+    expect(newest?.hosts.antigravity.grade).toBe('not-run');
+    expect(newest?.hosts.antigravity.reason).toMatch(/legacy artifact/i);
+  });
+
   test('--matrix-only regenerates from the newest artifact and is idempotent', () => {
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
     const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
@@ -373,7 +387,7 @@ describe('newest-artifact selection + --matrix-only (AC-57ab708c)', () => {
   });
 });
 
-// ─── AC-6cbe51fc · Cursor wiring-only (never verified) ───────────────────────────
+// ─── AC-6cbe51fc · Cursor headless prompt + wiring evidence ─────────────────────
 
 describe('parseServeToolsList — the clad serve tools/list probe (AC-6cbe51fc)', () => {
   test('a tools/list response containing clad_list_features → ok (wiring-ok)', () => {
@@ -397,7 +411,7 @@ describe('parseServeToolsList — the clad serve tools/list probe (AC-6cbe51fc)'
   });
 });
 
-describe('Cursor is graded wiring-only, never verified (AC-6cbe51fc)', () => {
+describe('Cursor is headlessly verified and carries separate wiring evidence (AC-6cbe51fc)', () => {
   let dir: string;
   let home: string;
 
@@ -420,49 +434,57 @@ describe('Cursor is graded wiring-only, never verified (AC-6cbe51fc)', () => {
     );
   };
 
-  test('wired + serve answers tools/list → wiring-ok (a checkable wiring claim, not verified)', () => {
+  const passingRunner: PromptRunner = (_command, args) => {
+    const joined = args.join(' ');
+    if (joined.includes('clad_list_features')) return ok(fixture('gemini-list-features.txt'));
+    if (joined.includes('clad_get_feature')) return ok(fixture('get-feature-echo.txt'));
+    if (joined.includes('clad_run_check')) return ok(fixture('run-check-drift.txt'));
+    return ok('');
+  };
+
+  test('headless prompts pass and wired serve answers tools/list → verified', () => {
     wireCursor();
     const artifact = runHostSmoke(dir, {
       consent: true,
-      hasBinary: () => false,
+      hasBinary: () => true,
+      runPrompt: passingRunner,
       home,
       probeServe: () => ({ok: true, toolCount: 4, evidence: 'tools/list → 4 tools'}),
     });
-    expect(artifact.hosts.cursor.grade).toBe('wiring-ok');
-    expect(artifact.hosts.cursor.grade).not.toBe('verified');
+    expect(artifact.hosts.cursor.grade).toBe('verified');
     const wiring = artifact.hosts.cursor.surfaces.find((s) => s.name === 'wiring');
     expect(wiring?.result).toBe('pass');
+    expect(artifact.hosts.cursor.surfaces.filter((s) => s.name !== 'wiring').every((s) => s.result === 'pass')).toBe(true);
   });
 
-  test('wired but serve does not answer → wiring-fail, never verified', () => {
+  test('headless prompts pass but configured serve does not answer → fail', () => {
     wireCursor();
     const artifact = runHostSmoke(dir, {
       consent: true,
-      hasBinary: () => false,
+      hasBinary: () => true,
+      runPrompt: passingRunner,
       home,
       probeServe: () => ({ok: false, toolCount: 0, evidence: 'no tools/list response'}),
     });
-    expect(artifact.hosts.cursor.grade).toBe('wiring-fail');
-    expect(artifact.hosts.cursor.grade).not.toBe('verified');
+    expect(artifact.hosts.cursor.grade).toBe('fail');
   });
 
-  test('not wired here (~/.cursor absent) → not-run, never a silent pass', () => {
+  test('binary absent and not wired here → not-run, never a silent pass', () => {
     const artifact = runHostSmoke(dir, {consent: true, hasBinary: () => false, home});
     expect(artifact.hosts.cursor.grade).toBe('not-run');
-    expect(artifact.hosts.cursor.reason).toMatch(/Cursor not detected/i);
+    expect(artifact.hosts.cursor.reason).toMatch(/binary not on PATH/i);
   });
 
-  test('the rendered matrix never grades cursor verified', () => {
+  test('the rendered matrix records Cursor prompt surfaces and wiring', () => {
     wireCursor();
     const artifact = runHostSmoke(dir, {
       consent: true,
-      hasBinary: () => false,
+      hasBinary: () => true,
+      runPrompt: passingRunner,
       home,
       probeServe: () => ({ok: true, toolCount: 4, evidence: 'ok'}),
     });
     const md = renderHostMatrix(artifact);
-    // cursor row exists and its grade cell is a wiring-* class, never verified.
-    expect(md).toMatch(/\| cursor \|.*\| (wiring-ok|wiring-fail|not-run) \|/);
-    expect(md).not.toMatch(/\| cursor \|.*\| verified \|/);
+    expect(md).toMatch(/\| cursor \| pass \| pass \| pass \| pass \| verified \|/);
   });
 });

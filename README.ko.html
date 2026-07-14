@@ -275,7 +275,7 @@
   <p class="badges">
     <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"></a>
     <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"></a>
-    <img src="https://img.shields.io/badge/tests-2497%2F2497-brightgreen" alt="tests">
+    <img src="https://img.shields.io/badge/tests-2522%2F2522-brightgreen" alt="tests">
     <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors">
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"></a>
   </p>
@@ -526,10 +526,11 @@ clad setup                # AI 도구 자동 연결 (Claude · Codex · Antigrav
   <h3>2. 프로젝트에서 AI 도구 실행하기</h3>
   <pre><code>cd &lt;project&gt;
 
-# 이 디렉터리에서 사용하는 AI 도구 하나를 실행한다:
-codex          # 또는: claude
-agy            # Antigravity
-cursor-agent   # Cursor Agent</code></pre>
+# 정확히 하나를 골라 앞의 '#'을 지우고 실행한다:
+# codex          # Codex
+# claude         # Claude Code
+# agy            # Antigravity
+# cursor-agent   # Cursor Agent</code></pre>
   <p>자신이 사용하는 AI 도구의 명령 하나만 실행하면 된다. Cursor IDE는 <code>&lt;project&gt;</code> 폴더를 작업공간으로 연다. <code>clad setup</code> 뒤에는 반드시 AI 도구를 새 세션으로 시작한다. <code>cd</code>만 실행하고 끝내면 안 된다.</p>
 
   <h3>3. 프로젝트에 Cladding 한 번 적용하기</h3>
@@ -583,7 +584,7 @@ clad update              # 4. 프로젝트를 설치된 버전에 맞추기</cod
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">tests</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">2497<span style="font-size:16px;color:#94a3b8">/2497</span></div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">2522<span style="font-size:16px;color:#94a3b8">/2522</span></div>
         <div style="font-size:11px;color:#64748b">all pass</div>
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
@@ -593,13 +594,13 @@ clad update              # 4. 프로젝트를 설치된 버전에 맞추기</cod
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">features</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">254</div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">255</div>
         <div style="font-size:11px;color:#64748b">251 done · 자기 스펙</div>
       </td>
     </tr>
   </table>
 
-  <p style="text-align:center;font-size:13px;color:#64748b;margin-top:12px">234 test files · capability 6개 · coverage는 COVERAGE_DROP detector가 하락 차단</p>
+  <p style="text-align:center;font-size:13px;color:#64748b;margin-top:12px">236 test files · capability 6개 · coverage는 COVERAGE_DROP detector가 하락 차단</p>
 
   <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:24px 0;background:#f8fafc;color:#475569;font-size:14px"><strong>Ironclad 1.0까지의 길</strong> — 1.0은 <em>독립적인 두 개의 구현이 L4 검증 셋을 통과해야</em> 잠긴다 (<a href="https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md">GOVERNANCE § 1</a>). cladding이 첫 번째.</blockquote>
 

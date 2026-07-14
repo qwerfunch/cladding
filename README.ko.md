@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-2497%2F2497-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-2522%2F2522-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -254,10 +254,11 @@ clad setup                # AI 도구 자동 연결 (Claude · Codex · Antigrav
 ```bash
 cd <project>
 
-# 이 디렉터리에서 사용하는 AI 도구 하나를 실행한다:
-codex          # 또는: claude
-agy            # Antigravity
-cursor-agent   # Cursor Agent
+# 정확히 하나를 골라 앞의 '#'을 지우고 실행한다:
+# codex          # Codex
+# claude         # Claude Code
+# agy            # Antigravity
+# cursor-agent   # Cursor Agent
 ```
 
 자신이 사용하는 AI 도구의 명령 하나만 실행하면 된다. Cursor IDE는 `<project>` 폴더를 작업공간으로 연다. `clad setup` 뒤에는 반드시 AI 도구를 새 세션으로 시작한다. `cd`만 실행하고 끝내면 안 된다.
@@ -337,9 +338,9 @@ clad update              # 4. 프로젝트를 설치된 버전에 맞추기
 
 | version | 준수 등급 | tests | gate | features |
 |---|---|---|---|---|
-| v0.8.3 · 2026-07 | L4 · [L0–L4 중 최고 · 자가 선언](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2497 / 2497 · all pass | 15 단계 · 41 detectors | 254 · 251 done · 자기 스펙 |
+| v0.8.3 · 2026-07 | L4 · [L0–L4 중 최고 · 자가 선언](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2522 / 2522 · all pass | 15 단계 · 41 detectors | 255 · 251 done · 자기 스펙 |
 
-<sub>234 test files · capability 6개 · coverage는 COVERAGE_DROP detector가 하락 차단</sub>
+<sub>236 test files · capability 6개 · coverage는 COVERAGE_DROP detector가 하락 차단</sub>
 
 > **Ironclad 1.0까지의 길** — 1.0은 *독립적인 두 개의 구현이 L4 검증 셋을 통과해야* 잠긴다 ([GOVERNANCE § 1](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md)). cladding이 첫 번째.
 

@@ -33,6 +33,6 @@ acceptance_criteria:
     test_refs: [tests/stages/detectors/host-claim-drift.test.ts]
   - id: AC-6cbe51fc
     ears: ubiquitous
-    text: "The system shall grade hosts without a headless verification surface (Cursor) as wiring-only in the matrix, asserting only that the MCP wiring file is written and clad serve answers a tools list over stdio."
-    notes: "WHY: honest grading — wiring-only is a real, checkable claim; end-to-end is not checkable headlessly for Cursor."
+    text: "The system shall headlessly prompt-probe Cursor Agent alongside Claude Code, Antigravity, and Codex, and shall additionally record whether Cursor's configured clad serve answers a tools list over stdio."
+    notes: "WHY: Cursor Agent now provides a headless CLI, so retaining the old wiring-only ceiling would understate directly observed end-to-end evidence."
     test_refs: [tests/cli/doctor-hosts.test.ts]

@@ -233,7 +233,7 @@
   <p class="badges">
     <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"></a>
     <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"></a>
-    <img src="https://img.shields.io/badge/tests-2497%2F2497-brightgreen" alt="tests">
+    <img src="https://img.shields.io/badge/tests-2522%2F2522-brightgreen" alt="tests">
     <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors">
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"></a>
   </p>
@@ -490,10 +490,11 @@ clad setup                # auto-wire your AI tools (Claude · Codex · Antigrav
   <h3>2. Start your AI tool from the project</h3>
   <pre><code>cd &lt;project&gt;
 
-# Start one of the AI tools from this directory:
-codex          # or: claude
-agy            # Antigravity
-cursor-agent   # Cursor Agent</code></pre>
+# Choose exactly one and remove its leading '#':
+# codex          # Codex
+# claude         # Claude Code
+# agy            # Antigravity
+# cursor-agent   # Cursor Agent</code></pre>
   <p>Use only the command for your AI tool. For Cursor IDE, open <code>&lt;project&gt;</code> as the workspace instead. Always start a new AI session after <code>clad setup</code>; changing directory alone is not enough.</p>
 
   <h3>3. Apply Cladding once</h3>
@@ -547,7 +548,7 @@ clad update               # 4. align that project with the installed version</co
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">tests</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">2497<span style="font-size:16px;color:#94a3b8">/2497</span></div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">2522<span style="font-size:16px;color:#94a3b8">/2522</span></div>
         <div style="font-size:11px;color:#64748b">all pass</div>
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
@@ -557,13 +558,13 @@ clad update               # 4. align that project with the installed version</co
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">features</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">254</div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">255</div>
         <div style="font-size:11px;color:#64748b">251 done · self-spec</div>
       </td>
     </tr>
   </table>
 
-  <p style="text-align:center;font-size:13px;color:#64748b;margin-top:12px">234 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector</p>
+  <p style="text-align:center;font-size:13px;color:#64748b;margin-top:12px">236 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector</p>
 
   <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:24px 0;background:#f8fafc;color:#475569;font-size:14px"><strong>Road to Ironclad 1.0</strong> — 1.0 locks only when <em>two independent implementations pass the L4 conformance fixtures</em> (<a href="https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md">GOVERNANCE § 1</a>). cladding is the first.</blockquote>
 
