@@ -7,7 +7,12 @@ import {dirname, join} from 'node:path';
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
+import {vi} from 'vitest';
 
+import type {SamplingCapableServer} from '../../src/adapters/host/transport.js';
+import {setHostMcpServer} from '../../src/adapters/host/sampling-context.js';
+import {refineOnboarding} from '../../src/cli/clarify.js';
+import {runInit} from '../../src/cli/init.js';
 import {saveState} from '../../src/cli/scan/onboarding-state.js';
 import {buildServer} from '../../src/serve/server.js';
 
@@ -17,7 +22,12 @@ interface Pair {
 }
 
 async function makePair(cwd: string): Promise<Pair> {
-  const server = buildServer({cwd, name: 'cladding-init-test', version: '0.0.0-test'});
+  const server = buildServer({
+    cwd,
+    name: 'cladding-init-test',
+    version: '0.0.0-test',
+    onboarding: {initialize: runInit, clarify: refineOnboarding},
+  });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({name: 'cladding-init-client', version: '0.0.0-test'});
   await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
@@ -65,11 +75,92 @@ describe('serve/server — natural-language init tools', () => {
         arguments: {mode: 'idea', intent: 'B2B payment SaaS', no_llm: true},
       });
       expect(result.isError).not.toBe(true);
-      expect(payload(result)).toMatchObject({status: 'initialized', changed: true});
+      expect(payload(result)).toMatchObject({
+        status: 'initialized_with_fallback',
+        changed: true,
+        onboardingSource: 'deterministic',
+      });
       expect(existsSync(join(dir, 'spec.yaml'))).toBe(true);
       expect(existsSync(join(dir, 'AGENTS.md'))).toBe(true);
       expect(existsSync(join(dir, 'CLAUDE.md'))).toBe(true);
     } finally {
+      await cleanup();
+    }
+  });
+
+  test('host sampling drives init and clarify in the MCP server process', async () => {
+    const createMessage = vi
+      .fn()
+      .mockResolvedValueOnce({
+        content: {
+          type: 'text',
+          text: [
+            '=== ONBOARDING_MODE ===',
+            'greenfield',
+            '=== PROJECT_CONTEXT_MD ===',
+            '# Payment platform context',
+            '=== CAPABILITIES_YAML ===',
+            'schema: "0.1"',
+            'capabilities:',
+            '  - id: payments',
+            '    title: "Payments"',
+            '=== ARCHITECTURE_YAML ===',
+            'layers: []',
+            '=== SPEC_SEED_TITLE ===',
+            'Payment platform',
+            '=== SCENARIOS_YAML ===',
+            '[]',
+            '=== PROJECT_METADATA_YAML ===',
+            '{}',
+            '=== CLARIFYING_QUESTIONS ===',
+            '- Which market launches first?',
+          ].join('\n'),
+        },
+      })
+      .mockResolvedValueOnce({
+        content: {
+          type: 'text',
+          text: [
+            '=== ONBOARDING_MODE ===',
+            'greenfield',
+            '=== PROJECT_CONTEXT_MD ===',
+            '# Korea launch context',
+            '=== CAPABILITIES_YAML ===',
+            'schema: "0.1"',
+            'capabilities: []',
+            '=== ARCHITECTURE_YAML ===',
+            'layers: []',
+            '=== SPEC_SEED_TITLE ===',
+            'Payment platform',
+            '=== CLARIFYING_QUESTIONS ===',
+          ].join('\n'),
+        },
+      });
+    const disposeSampling = setHostMcpServer({createMessage} as SamplingCapableServer);
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const initialized = await client.callTool({
+        name: 'clad_init',
+        arguments: {mode: 'idea', intent: 'B2B payment SaaS'},
+      });
+      expect(payload(initialized)).toMatchObject({
+        status: 'needs_answers',
+        onboardingSource: 'llm',
+        nextQuestion: 'Which market launches first?',
+      });
+
+      const clarified = await client.callTool({
+        name: 'clad_clarify',
+        arguments: {answer: 'Korea'},
+      });
+      expect(payload(clarified)).toMatchObject({
+        status: 'done',
+        remainingQuestions: 0,
+        refinementSource: 'llm',
+      });
+      expect(createMessage).toHaveBeenCalledTimes(2);
+    } finally {
+      disposeSampling();
       await cleanup();
     }
   });

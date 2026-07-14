@@ -44,5 +44,6 @@ cd <your project>          # 2. once per project
 clad update                # 3. bring it in line with the new version
 ```
 
-Your code · `spec.yaml` · docs are left untouched, so it is safe. If the newer version is
-stricter and has something to flag, it just **points it out** — it won't block or fix anything.
+Your authored code, feature/spec content, and documentation are preserved. The command may refresh
+derived inventory/index data and the Cladding-managed block in `AGENTS.md` or `CLAUDE.md`. If the
+newer version is stricter, it only **points out** drift — it does not rewrite authored project intent.

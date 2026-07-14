@@ -115,15 +115,18 @@ describe('runHostSetup', () => {
 
   test('setup wires only global host state and does not create project instructions', async () => {
     const project = mkdtempSync(join(tmpdir(), 'clad-setup-project-'));
+    const previousCwd = process.cwd();
     writeFileSync(join(project, 'user-file.txt'), 'keep');
     mkdirSync(join(home, '.codex'), {recursive: true});
 
     try {
+      process.chdir(project);
       await runHostSetup({home, pkgRoot, version: '0.4.0', quiet: true, activate: false});
       expect(existsSync(join(project, 'AGENTS.md'))).toBe(false);
       expect(existsSync(join(project, 'CLAUDE.md'))).toBe(false);
       expect(readFileSync(join(project, 'user-file.txt'), 'utf8')).toBe('keep');
     } finally {
+      process.chdir(previousCwd);
       rmSync(project, {recursive: true, force: true});
     }
   });

@@ -61,6 +61,134 @@ export interface RefineReport {
   readonly remainingQuestions: number;
 }
 
+/** Process-independent result used by both the CLI and MCP boundaries. */
+export interface RefineOutcome {
+  readonly ok: boolean;
+  readonly code: 0 | 1 | 2;
+  readonly report?: RefineReport;
+  readonly error?: string;
+  readonly message?: string;
+  readonly source?: OnboardingResult['source'];
+  readonly created: readonly string[];
+  readonly proposals: readonly string[];
+}
+
+/** Applies one onboarding answer without writing to stdout or exiting. */
+export async function refineOnboarding(
+  answer: string,
+  opts: Omit<RefineCommandOptions, 'json'> = {},
+): Promise<RefineOutcome> {
+  const cwd = opts.cwd ?? '.';
+  let state: OnboardingState | null;
+  try {
+    state = loadState(cwd);
+  } catch (err) {
+    return {ok: false, code: 1, error: (err as Error).message, created: [], proposals: []};
+  }
+  if (state === null) {
+    return {
+      ok: false,
+      code: 2,
+      error: 'no onboarding session — initialize Cladding with a project intent first',
+      created: [],
+      proposals: [],
+    };
+  }
+  if (state.status === 'done') {
+    return {
+      ok: true,
+      code: 0,
+      message: 'onboarding already complete (state.yaml status: done)',
+      report: buildReport(cwd, null, [], null, state),
+      created: [],
+      proposals: [],
+    };
+  }
+
+  const pendingIdx = firstPendingIndex(state);
+  if (pendingIdx === -1) {
+    const done = markDone(state);
+    saveState(cwd, done);
+    return {
+      ok: true,
+      code: 0,
+      message: 'onboarding complete · state.yaml marked done',
+      report: buildReport(cwd, null, [], null, done),
+      created: [],
+      proposals: [],
+    };
+  }
+  if (!answer.trim()) {
+    return {
+      ok: false,
+      code: 2,
+      error: `provide an answer for: "${state.qa[pendingIdx].question}"`,
+      created: [],
+      proposals: [],
+    };
+  }
+
+  const normalizedAnswer = answer.trim();
+  const stateAfterAnswer = markFirstPendingAnswered(state, normalizedAnswer);
+  const projectName = stateAfterAnswer.projectName || basename(resolve(cwd));
+  const observed: OnboardingObserved = {
+    cwdBasename: basename(resolve(cwd)),
+    language: stateAfterAnswer.language,
+    sourceFileCount: 0,
+    readmePresent: false,
+    readmeFirstParagraph: null,
+    projectName,
+  };
+  const current = loadCurrentArtifacts(cwd);
+  const qaHistory: RefinementQa[] = stateAfterAnswer.qa.flatMap((qa) =>
+    qa.answer === null ? [] : [{question: qa.question, answer: qa.answer}],
+  );
+  const dispatcher = selectDispatcher({noLlm: opts.noLlm});
+  const refined = await interpretRefinementWithFallback(
+    stateAfterAnswer.intent,
+    observed,
+    qaHistory,
+    current,
+    dispatcher,
+    cwd,
+  );
+
+  const proposals: string[] = [];
+  const created: string[] = [];
+  writeArtifact(cwd, 'docs/project-context.md', refined.projectContextMd, created, proposals);
+  writeArtifact(cwd, 'spec/architecture.yaml', refined.architectureYaml, created, proposals);
+  writeArtifact(cwd, 'spec/capabilities.yaml', refined.capabilitiesYaml, created, proposals);
+  for (const scenario of refined.scenarios) {
+    const hash = scenario.id.replace(/^S-/, '');
+    writeArtifact(
+      cwd,
+      `spec/scenarios/${scenario.slug}-${hash}.yaml`,
+      renderScenarioYaml(scenario),
+      created,
+      proposals,
+    );
+  }
+
+  let updated = appendNewQuestions(stateAfterAnswer, refined.clarifyingQuestions);
+  if (refined.clarifyingQuestions.length === 0 && isComplete(updated)) updated = markDone(updated);
+  saveState(cwd, updated);
+  const answeredQa = stateAfterAnswer.qa[pendingIdx];
+  return {
+    ok: true,
+    code: 0,
+    report: buildReport(
+      cwd,
+      {question: answeredQa.question, answer: normalizedAnswer},
+      refined.clarifyingQuestions,
+      refined.mode,
+      updated,
+    ),
+    source: refined.source,
+    created,
+    proposals,
+  };
+}
+
 /**
  * Handler for `clad clarify [answer...]`. The positional argument is
  * joined with spaces so users can pass natural-language answers in any
@@ -76,151 +204,39 @@ export async function runClarifyCommand(
   answerTokens: readonly string[] | undefined,
   opts: RefineCommandOptions = {},
 ): Promise<void> {
-  const cwd = opts.cwd ?? '.';
-  let state: OnboardingState | null;
-  try {
-    state = loadState(cwd);
-  } catch (err) {
-    pulse('fail', 'clarify', (err as Error).message);
-    process.exit(1);
-    return;
-  }
-  if (state === null) {
-    pulse(
-      'fail',
-      'clarify',
-      'no onboarding session — run `clad init <intent>` first to start the Q&A loop',
-    );
-    process.exit(2);
-    return;
-  }
-
-  if (state.status === 'done') {
-    pulse('note', 'clarify', 'onboarding already complete (state.yaml status: done)');
-    if (opts.json) {
-      process.stdout.write(`${JSON.stringify(buildReport(cwd, null, [], null, state), null, 2)}\n`);
-    }
-    process.exit(0);
-    return;
-  }
-
-  const pendingIdx = firstPendingIndex(state);
-  if (pendingIdx === -1) {
-    // Every existing question is answered but `isComplete` may still be
-    // false if the LLM was about to emit new questions; mark done.
-    const done = markDone(state);
-    saveState(cwd, done);
-    pulse('pass', 'clarify', 'onboarding complete · state.yaml marked done');
-    if (opts.json) {
-      process.stdout.write(`${JSON.stringify(buildReport(cwd, null, [], null, done), null, 2)}\n`);
-    }
-    process.exit(0);
-    return;
-  }
-
   const answer = (answerTokens ?? []).join(' ').trim();
-  if (answer.length === 0) {
-    pulse(
-      'fail',
-      'clarify',
-      `provide an answer for: "${state.qa[pendingIdx].question}" (usage: \`clad clarify <answer>\`)`,
-    );
-    process.exit(2);
+  const outcome = await refineOnboarding(answer, {cwd: opts.cwd, noLlm: opts.noLlm});
+  if (!outcome.ok) {
+    pulse('fail', 'clarify', outcome.error!);
+    process.exit(outcome.code);
     return;
   }
-
-  const stateAfterAnswer = markFirstPendingAnswered(state, answer);
-  const projectName = stateAfterAnswer.projectName || basename(resolve(cwd));
-  const observed: OnboardingObserved = {
-    cwdBasename: basename(resolve(cwd)),
-    language: stateAfterAnswer.language,
-    sourceFileCount: 0,
-    readmePresent: false,
-    readmeFirstParagraph: null,
-    projectName,
-  };
-  const current = loadCurrentArtifacts(cwd);
-  const qaHistory: RefinementQa[] = stateAfterAnswer.qa.flatMap((qa) =>
-    qa.answer === null ? [] : [{question: qa.question, answer: qa.answer}],
-  );
-
-  const dispatcher = selectDispatcher({noLlm: opts.noLlm});
-  const refined = await interpretRefinementWithFallback(
-    stateAfterAnswer.intent,
-    observed,
-    qaHistory,
-    current,
-    dispatcher,
-    cwd,
-  );
-
-  // Write the refined artifacts. The existing `writeArtifact` divert
-  // pattern is inlined here so `clarify` does not depend on `init.ts`;
-  // refresh on a populated file lands the new body in
-  // `.cladding/scan/<basename>.proposal` instead of overwriting hand
-  // edits.
-  const proposals: string[] = [];
-  const created: string[] = [];
-  writeArtifact(cwd, 'docs/project-context.md', refined.projectContextMd, created, proposals);
-  writeArtifact(cwd, 'spec/architecture.yaml', refined.architectureYaml, created, proposals);
-  writeArtifact(cwd, 'spec/capabilities.yaml', refined.capabilitiesYaml, created, proposals);
-  // v0.3.45 (F-d12edf) — refined scenarios land in spec/scenarios/
-  // alongside the other refined artifacts; existing scenario files
-  // divert to .cladding/scan/<basename>.proposal so the planner +
-  // user can diff before promotion.
-  for (const scenario of refined.scenarios) {
-    const hash = scenario.id.replace(/^S-/, '');
-    const filename = `spec/scenarios/${scenario.slug}-${hash}.yaml`;
-    const body = renderScenarioYaml(scenario);
-    writeArtifact(cwd, filename, body, created, proposals);
-  }
-
-  // Persist state: add new questions (de-dup), mark done when no more
-  // questions and every existing question is answered.
-  let updated = appendNewQuestions(stateAfterAnswer, refined.clarifyingQuestions);
-  if (refined.clarifyingQuestions.length === 0 && isComplete(updated)) {
-    updated = markDone(updated);
-  }
-  saveState(cwd, updated);
-
-  // Output
   if (opts.json) {
-    const answeredQa = stateAfterAnswer.qa[pendingIdx];
-    const report = buildReport(
-      cwd,
-      // safe — we just set this entry's answer via markFirstPendingAnswered
-      {question: answeredQa.question, answer: answer},
-      refined.clarifyingQuestions,
-      refined.mode,
-      updated,
-    );
-    process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify(outcome.report, null, 2)}\n`);
     process.exit(0);
     return;
   }
+  if (outcome.message) pulse('note', 'clarify', outcome.message);
+  if (outcome.source && outcome.report) {
+    pulse('pass', 'clarify', `answered · mode: ${outcome.report.mode} · source: ${outcome.source}`);
+  }
+  for (const c of outcome.created) pulse('pass', `created ${c}`);
+  for (const p of outcome.proposals) pulse('note', 'proposal', p);
 
-  pulse('pass', 'clarify', `answered · mode: ${refined.mode} · source: ${refined.source}`);
-  for (const c of created) pulse('pass', `created ${c}`);
-  for (const p of proposals) pulse('note', 'proposal', p);
-
-  if (refined.clarifyingQuestions.length > 0) {
+  const newQuestions = outcome.report?.newQuestions ?? [];
+  if (newQuestions.length > 0) {
     process.stdout.write('\n💡 Next questions:\n');
-    for (const [i, q] of refined.clarifyingQuestions.entries()) {
+    for (const [i, q] of newQuestions.entries()) {
       process.stdout.write(`   ${i + 1}. ${q}\n`);
     }
-    const remaining = updated.qa.filter((q) => q.answer === null);
-    if (remaining.length > 0) {
-      process.stdout.write(`\n${remaining.length} question(s) left · continue with \`clad clarify <answer>\`.\n\n`);
+    if ((outcome.report?.remainingQuestions ?? 0) > 0) {
+      process.stdout.write(`\n${outcome.report!.remainingQuestions} question(s) left · continue with \`clad clarify <answer>\`.\n\n`);
     }
-  } else if (updated.status === 'done') {
+  } else if (outcome.report?.status === 'done') {
     process.stdout.write('\n✓ All questions answered — onboarding complete. state.yaml status: done.\n\n');
-  } else {
-    const remaining = updated.qa.filter((q) => q.answer === null);
-    if (remaining.length > 0) {
-      process.stdout.write(`\n${remaining.length} question(s) left. continue with \`clad clarify <answer>\`.\n\n`);
-    }
+  } else if ((outcome.report?.remainingQuestions ?? 0) > 0) {
+    process.stdout.write(`\n${outcome.report!.remainingQuestions} question(s) left. continue with \`clad clarify <answer>\`.\n\n`);
   }
-
   process.exit(0);
 }
 

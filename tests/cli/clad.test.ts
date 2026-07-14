@@ -577,7 +577,13 @@ describe('cli/clad — runServeCommand', () => {
     StdioMock.mockClear();
     setMock.mockClear();
     await clad.runServeCommand({cwd: '/tmp/probe'});
-    expect(buildMock).toHaveBeenCalledWith({cwd: '/tmp/probe'});
+    expect(buildMock).toHaveBeenCalledWith({
+      cwd: '/tmp/probe',
+      onboarding: {
+        initialize: expect.any(Function),
+        clarify: expect.any(Function),
+      },
+    });
     expect(StdioMock).toHaveBeenCalledOnce();
     // v0.2.26 (F-075): clad serve registers its own server so host
     // adapters route through McpSamplingTransport.

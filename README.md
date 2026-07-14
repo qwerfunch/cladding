@@ -314,7 +314,7 @@ cd <project>             # 2. your project
 clad update              # 3. align this project with the installed version
 ```
 
-The update preserves your code, `spec.yaml`, and docs. If the new version reports drift, hand that result to your AI tool:
+The update preserves your authored code, feature/spec content, and documentation. It may refresh derived inventory/index data and the Cladding-managed block in `AGENTS.md` or `CLAUDE.md`. If the new version reports drift, hand that result to your AI tool:
 
 ```
 Reconcile the drift the update flagged.

@@ -24,7 +24,7 @@ import {runHookCommand} from './hook.js';
 import {runVerdictCommand} from './verdict.js';
 import {runUpdate} from './update.js';
 import {runInit} from './init.js';
-import {runClarifyCommand} from './clarify.js';
+import {refineOnboarding, runClarifyCommand} from './clarify.js';
 import {getCurrentCladdingVersion, runHostSetup} from '../init/host-setup.js';
 import {recordEvent} from '../events/log.js';
 import {buildContextSlice} from '../optimizer/context-slice.js';
@@ -80,7 +80,13 @@ export async function runServeCommand(opts: {cwd?: string}): Promise<void> {
     import('@modelcontextprotocol/sdk/server/stdio.js'),
     import('../adapters/host/sampling-context.js'),
   ]);
-  const server = buildServer({cwd: opts.cwd});
+  const server = buildServer({
+    cwd: opts.cwd,
+    onboarding: {
+      initialize: runInit,
+      clarify: refineOnboarding,
+    },
+  });
   // v0.2.26 (F-075): register the server in the sampling context so
   // the host adapters (`generic-mcp`, `claude-code`) automatically
   // route LLM dispatch through McpSamplingTransport instead of the

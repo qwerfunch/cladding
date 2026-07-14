@@ -18,7 +18,7 @@ acceptance_criteria:
     action: expose project initialization and onboarding answers as MCP tools that reuse the CLI core
     response: MCP hosts can complete init and its follow-up Q&A without asking the user to run a shell command
     text: The system shall expose project initialization and onboarding answers as MCP tools that reuse the CLI core, so MCP hosts can complete init and its follow-up Q&A without asking the user to run a shell command.
-    test_refs: [tests/serve/server.test.ts]
+    test_refs: [tests/serve/server.test.ts, tests/serve/init-tools.test.ts]
   - id: AC-002
     ears: event
     condition: when a new-project initialization request omits the project idea

@@ -104,6 +104,35 @@ export interface ServerOptions {
   readonly name?: string;
   /** Server version advertised to clients. */
   readonly version?: string;
+  /** In-process onboarding operations supplied by the CLI composition root. */
+  readonly onboarding?: OnboardingOperations;
+}
+
+/** Process-independent onboarding contract injected at the serve boundary. */
+export interface OnboardingOperations {
+  readonly initialize: (opts: {
+    cwd: string;
+    intent?: string;
+    scan?: boolean;
+    noLlm?: boolean;
+  }) => Promise<{
+    readonly created?: readonly string[];
+    readonly skipped?: readonly string[];
+    readonly language?: string;
+    readonly proposals?: readonly string[];
+    readonly clarifyingQuestions?: readonly string[];
+    readonly onboardingMode?: 'greenfield' | 'existing-adoption' | 'mixed';
+    readonly onboardingSource?: 'llm' | 'hybrid' | 'deterministic';
+  }>;
+  readonly clarify: (
+    answer: string,
+    opts: {cwd: string; noLlm?: boolean},
+  ) => Promise<{
+    readonly ok: boolean;
+    readonly error?: string;
+    readonly report?: unknown;
+    readonly source?: 'llm' | 'hybrid' | 'deterministic';
+  }>;
 }
 
 /**
@@ -134,7 +163,7 @@ export function buildServer(opts: ServerOptions = {}): McpServer {
     },
   );
 
-  registerTools(server, cwd);
+  registerTools(server, cwd, opts.onboarding);
   registerResources(server, cwd);
   registerPrompts(server, cwd);
   registerSubscribeHandlers(server);
@@ -337,7 +366,7 @@ function projectIntentPath(cwd: string, requested: string): {path?: string; erro
   return {path: rel};
 }
 
-function registerTools(server: McpServer, cwd: string): void {
+function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOperations): void {
   server.registerTool(
     'clad_init',
     {
@@ -366,26 +395,49 @@ function registerTools(server: McpServer, cwd: string): void {
         };
       }
 
-      const command = ['init'];
+      let intent: string | undefined;
       if (args.mode === 'document') {
         const resolved = projectIntentPath(cwd, args.document_path ?? '');
         if (resolved.error) {
           return {isError: true, content: [{type: 'text', text: resolved.error}]};
         }
-        command.push(resolved.path!);
+        intent = resolved.path!;
       } else if (args.intent?.trim()) {
-        command.push(args.intent.trim());
+        intent = args.intent.trim();
       }
-      if (args.mode === 'existing') command.push('--scan');
-      if (args.no_llm) command.push('--no-llm');
-      command.push('--json');
-
-      const result = runEngineJson(cwd, command);
-      if (!result.ok) return {isError: true, content: [{type: 'text', text: result.error!}]};
-      const init = result.payload as {clarifyingQuestions?: readonly string[]};
+      let init: {
+        readonly created?: readonly string[];
+        readonly skipped?: readonly string[];
+        readonly language?: string;
+        readonly proposals?: readonly string[];
+        readonly clarifyingQuestions?: readonly string[];
+        readonly onboardingMode?: 'greenfield' | 'existing-adoption' | 'mixed';
+        readonly onboardingSource?: 'llm' | 'hybrid' | 'deterministic';
+      };
+      if (onboarding) {
+        init = await onboarding.initialize({
+          cwd,
+          intent,
+          scan: args.mode === 'existing' ? true : undefined,
+          noLlm: args.no_llm,
+        });
+      } else {
+        const command = ['init', ...(intent ? [intent] : [])];
+        if (args.mode === 'existing') command.push('--scan');
+        if (args.no_llm) command.push('--no-llm');
+        command.push('--json');
+        const result = runEngineJson(cwd, command);
+        if (!result.ok) return {isError: true, content: [{type: 'text', text: result.error!}]};
+        init = result.payload as typeof init;
+      }
       const questions = init.clarifyingQuestions ?? [];
       const payload = {
-        status: questions.length > 0 ? 'needs_answers' : 'initialized',
+        status:
+          questions.length > 0
+            ? 'needs_answers'
+            : init.onboardingSource === 'deterministic'
+              ? 'initialized_with_fallback'
+              : 'initialized',
         changed: true,
         ...init,
         nextQuestion: questions[0] ?? null,
@@ -408,6 +460,15 @@ function registerTools(server: McpServer, cwd: string): void {
       },
     },
     async (args) => {
+      if (onboarding) {
+        const outcome = await onboarding.clarify(args.answer, {cwd, noLlm: args.no_llm});
+        if (!outcome.ok) {
+          return {isError: true, content: [{type: 'text', text: outcome.error ?? 'onboarding clarification failed'}]};
+        }
+        return {
+          content: [{type: 'text', text: JSON.stringify({...((outcome.report ?? {}) as object), refinementSource: outcome.source}, null, 2)}],
+        };
+      }
       const command = ['clarify', args.answer, '--json'];
       if (args.no_llm) command.push('--no-llm');
       const result = runEngineJson(cwd, command);

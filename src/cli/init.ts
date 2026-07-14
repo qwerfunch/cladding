@@ -83,6 +83,8 @@ export interface InitResult {
   readonly clarifyingQuestions?: readonly string[];
   /** Mode the onboarding pass classified the project as (intent path only). */
   readonly onboardingMode?: OnboardingResult['mode'];
+  /** Reports whether intent onboarding used the host LLM or a fallback. */
+  readonly onboardingSource?: OnboardingResult['source'];
 }
 
 // v0.3.30 — Scenarios in cladding capture *user journeys* (business
@@ -674,6 +676,7 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
     proposals: proposals.length ? proposals : undefined,
     clarifyingQuestions: onboarding?.clarifyingQuestions.length ? [...onboarding.clarifyingQuestions] : undefined,
     onboardingMode: onboarding?.mode,
+    onboardingSource: onboarding?.source,
   };
 }
 
