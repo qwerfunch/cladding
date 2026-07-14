@@ -256,7 +256,7 @@ clad setup                # AI ツールを自動配線（Claude · Codex · Ant
 cd <project>
 ```
 
-> **次のステップ:** このプロジェクトをワークスペースとして AI ツールを新しく起動する。Codex・Claude Code・Antigravity（`agy`）はこのディレクトリから実行し、Cursor ではこのフォルダを開く。`clad setup` の接続は新しいセッションから有効になる。
+> **次のステップ:** このプロジェクトをワークスペースとして AI ツールを新しく起動する。Codex・Claude Code・Antigravity（`agy`）・Cursor Agent（`cursor-agent`）はこのディレクトリから実行し、Cursor IDE ではこのフォルダを開く。`clad setup` の接続は新しいセッションから有効になる。
 
 ### 3. Cladding を一度適用する
 

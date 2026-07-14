@@ -252,7 +252,7 @@ clad setup                # 自动接通你的 AI 工具（Claude · Codex · An
 cd <project>
 ```
 
-> **下一步：** 以此项目文件夹作为工作区，重新启动所使用的 AI 工具。在该目录中运行 Codex、Claude Code 或 Antigravity（`agy`）；如果使用 Cursor，则打开此文件夹。`clad setup` 创建的连接会从新会话开始生效。
+> **下一步：** 以此项目文件夹作为工作区，重新启动所使用的 AI 工具。在该目录中运行 Codex、Claude Code、Antigravity（`agy`）或 Cursor Agent（`cursor-agent`）；如果使用 Cursor IDE，则打开此文件夹。`clad setup` 创建的连接会从新会话开始生效。
 
 ### 3. 为项目应用一次 Cladding
 

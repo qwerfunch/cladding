@@ -255,7 +255,7 @@ clad setup                # AI 도구 자동 연결 (Claude · Codex · Antigrav
 cd <project>
 ```
 
-> **다음 단계:** 이 프로젝트 폴더에서 사용하는 AI 도구를 새로 시작한다. Codex · Claude Code · Antigravity(`agy`)는 이 디렉터리에서 실행하고, Cursor는 이 폴더를 연다. `clad setup`의 연결은 새 세션부터 적용된다.
+> **다음 단계:** 이 프로젝트 폴더에서 사용하는 AI 도구를 새로 시작한다. Codex · Claude Code · Antigravity(`agy`) · Cursor Agent(`cursor-agent`)는 이 디렉터리에서 실행하고, Cursor IDE는 이 폴더를 연다. `clad setup`의 연결은 새 세션부터 적용된다.
 
 ### 3. 프로젝트에 Cladding 한 번 적용하기
 

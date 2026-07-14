@@ -22,8 +22,9 @@ after installing a new AI tool.
 **Verification level (honesty note).** Claude Code is fully verified through real-usage
 campaigns (including real-time intervention). Codex onboarding is live-verified for idea,
 planning-document, existing-project, and uninitialized control cases. Antigravity 1.1.0 is also
-live-verified for all three onboarding cases plus the uninitialized control case. Cursor wires
-automatically, but its real-usage onboarding verification is still pending. (The machine-readable claim lives in the README's `clad:host-claims`
+live-verified for all three onboarding cases plus the uninitialized control case. Cursor Agent
+`2026.07.09-a3815c0` is live-verified for the same four cases through its headless CLI and global
+MCP configuration. (The machine-readable claim lives in the README's `clad:host-claims`
 fence, which `HOST_CLAIM_DRIFT` polices against `docs/dogfood/matrix.md`.)
 
 ## About the MCP server
@@ -48,7 +49,7 @@ project, asking about Cladding, or running `clad setup` are not consent.
 | Claude Code | `Apply Cladding to this project` | `/cladding:init` |
 | Codex | `Apply Cladding to this project` | Type `$cladding`, then choose `init (cladding)` |
 | Antigravity | `Apply Cladding to this project` | `/cladding:init` from the installed plugin |
-| Cursor | `Apply Cladding to this project` | Natural language routes through the connected onboarding tool |
+| Cursor IDE / Agent | `Apply Cladding to this project` | Natural language routes through the connected onboarding tool |
 
 ## Upgrading
 

@@ -252,7 +252,7 @@ Run these once on your machine, from any directory. `clad setup` connects suppor
 cd <project>
 ```
 
-> **Next step:** Start your AI tool with this project as its workspace. Run Codex, Claude Code, or Antigravity (`agy`) from this directory, or open this folder in Cursor. The connection created by `clad setup` takes effect in the new session.
+> **Next step:** Start your AI tool with this project as its workspace. Run Codex, Claude Code, Antigravity (`agy`), or Cursor Agent (`cursor-agent`) from this directory, or open this folder in Cursor. The connection created by `clad setup` takes effect in the new session.
 
 ### 3. Apply Cladding once
 
@@ -295,7 +295,7 @@ Implement email sign-in, including tests.
 
 There is nothing new to memorize. For host-specific invocation, stricter Git/CI enforcement, and verified host status, see [setup details](docs/setup.md).
 
-<!-- clad:host-claims {"claude":"verified","codex":"not-run","antigravity":"verified","cursor":"wiring-only"} -->
+<!-- clad:host-claims {"claude":"verified","codex":"not-run","antigravity":"verified","cursor":"verified"} -->
 
 <!-- ─────────────── Update ─────────────── -->
 
