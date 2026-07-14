@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>To trust AI with coding, an organization needs three things — that the code can be trusted,<br/>that it's traced, and that it holds up as you scale. cladding builds those three.</strong><br/>
-  True to its name (cladding = the outer layer), it wraps your host LLM (Claude Code · Codex · Gemini · Cursor): <em>before</em> it starts, cladding feeds it the project's intent; <em>after</em> it finishes, cladding verifies the result with 41 detectors and a 15-stage gate.
+  True to its name (cladding = the outer layer), it wraps your host LLM (Claude Code · Codex · Antigravity · Cursor): <em>before</em> it starts, cladding feeds it the project's intent; <em>after</em> it finishes, cladding verifies the result with 41 detectors and a 15-stage gate.
 </p>
 
 <p align="center">
@@ -66,7 +66,7 @@ The same situation, in a *vanilla AI setup* and in cladding.
 
 **After — verify the result:** the 15-stage gate, 41 drift detectors, and an **implementation-blind grader** — an agent that checks the work against the spec *with no tool to read the implementation*, so it can't rubber-stamp what it wrote.
 
-<sub>Real-time intervention (map injection · instant block · stop-block) runs fully on Claude Code. On Codex · Gemini · Cursor the same verification runs through in-conversation tool calls plus the git · CI gate.</sub>
+<sub>Real-time intervention (map injection · instant block · stop-block) runs fully on Claude Code. On Codex · Antigravity · Cursor the same verification runs through in-conversation tool calls plus the git · CI gate.</sub>
 
 <!-- ─────────────── done is earned ─────────────── -->
 
@@ -241,7 +241,7 @@ The distinction is the *combination* — binding those cores into *one verificat
 
 ```bash
 npm install -g cladding   # the cladding CLI
-clad setup                # auto-wire your AI tools (Claude · Codex · Gemini · Cursor)
+clad setup                # auto-wire your AI tools (Claude · Codex · Antigravity · Cursor)
 ```
 
 Run these once on your machine, from any directory. `clad setup` connects supported AI tools globally; it does not create or modify project files.
@@ -252,7 +252,7 @@ Run these once on your machine, from any directory. `clad setup` connects suppor
 cd <project>
 ```
 
-> **Next step:** Start your AI tool with this project as its workspace. Run Codex, Claude Code, or Gemini CLI from this directory, or open this folder in Cursor. The connection created by `clad setup` takes effect in the new session.
+> **Next step:** Start your AI tool with this project as its workspace. Run Codex, Claude Code, or Antigravity (`agy`) from this directory, or open this folder in Cursor. The connection created by `clad setup` takes effect in the new session.
 
 ### 3. Apply Cladding once
 
@@ -295,7 +295,7 @@ Implement email sign-in, including tests.
 
 There is nothing new to memorize. For host-specific invocation, stricter Git/CI enforcement, and verified host status, see [setup details](docs/setup.md).
 
-<!-- clad:host-claims {"claude":"verified","codex":"not-run","gemini":"not-run","cursor":"wiring-only"} -->
+<!-- clad:host-claims {"claude":"verified","codex":"not-run","antigravity":"verified","cursor":"wiring-only"} -->
 
 <!-- ─────────────── Update ─────────────── -->
 

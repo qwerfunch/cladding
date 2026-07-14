@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>AI にコーディングを任せるには、組織に三つの条件が要る —<br/>コードを信頼でき、その足跡をたどれ、規模が大きくなっても揺るがないこと。cladding はその三つを築く。</strong><br/>
-  その名（外装材）のとおりホスト LLM（Claude Code · Codex · Gemini · Cursor）を包み込む — 作業を <em>始める前</em> に、cladding がプロジェクトの意図を渡し、作業を <em>終えた後</em> に、41 個の検出器と 15 段階のゲートで結果を検証する。
+  その名（外装材）のとおりホスト LLM（Claude Code · Codex · Antigravity · Cursor）を包み込む — 作業を <em>始める前</em> に、cladding がプロジェクトの意図を渡し、作業を <em>終えた後</em> に、41 個の検出器と 15 段階のゲートで結果を検証する。
 </p>
 
 <p align="center">
@@ -66,7 +66,7 @@ cladding は **自分自身も cladding で作っている** — 254 個の feat
 
 **後 — 検証する:** 15 段階のゲート、41 個の乖離検出器、そして **実装を見ない採点者** — spec に照らして作業を検査するエージェントで、*実装を読む手段を一切持たない* ため、自分が書いたものにお墨付きを与えることはできない。
 
-<sub>リアルタイム介入（マップ注入 · 即時ブロック · 終了ブロック）は Claude Code ですべて動作する。Codex · Gemini · Cursor では同じ検証を、会話中のツール呼び出しと git · CI のゲートで通す。</sub>
+<sub>リアルタイム介入（マップ注入 · 即時ブロック · 終了ブロック）は Claude Code ですべて動作する。Codex · Antigravity · Cursor では同じ検証を、会話中のツール呼び出しと git · CI のゲートで通す。</sub>
 
 <!-- ─────────────── done is earned ─────────────── -->
 
@@ -245,7 +245,7 @@ cladding の差別化点は *組み合わせ* にある — 上のカテゴリ�
 
 ```bash
 npm install -g cladding   # cladding CLI をインストール
-clad setup                # AI ツールを自動配線（Claude · Codex · Gemini · Cursor）
+clad setup                # AI ツールを自動配線（Claude · Codex · Antigravity · Cursor）
 ```
 
 上のコマンドはどのディレクトリからでも実行でき、マシンごとに一度だけでよい。`clad setup` は対応する AI ツールをグローバルに接続するだけで、プロジェクトファイルは作成・変更しない。
@@ -256,7 +256,7 @@ clad setup                # AI ツールを自動配線（Claude · Codex · Gem
 cd <project>
 ```
 
-> **次のステップ:** このプロジェクトをワークスペースとして AI ツールを新しく起動する。Codex・Claude Code・Gemini CLI はこのディレクトリから実行し、Cursor ではこのフォルダを開く。`clad setup` の接続は新しいセッションから有効になる。
+> **次のステップ:** このプロジェクトをワークスペースとして AI ツールを新しく起動する。Codex・Claude Code・Antigravity（`agy`）はこのディレクトリから実行し、Cursor ではこのフォルダを開く。`clad setup` の接続は新しいセッションから有効になる。
 
 ### 3. Cladding を一度適用する
 

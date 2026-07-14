@@ -62,7 +62,7 @@ describe('init-onboarding-english-source (F-5cac007a)', () => {
     const result = {
       wiring: {
         claude_plugin: 'created',
-        gemini_extension: 'skipped-not-installed',
+        antigravity_plugin: 'skipped-not-installed',
         codex_skills: [],
         codex_mcp: 'skipped-not-installed',
         cursor_mcp: 'skipped-not-installed',
@@ -75,7 +75,7 @@ describe('init-onboarding-english-source (F-5cac007a)', () => {
     } as const;
 
     test('the wiring report ends with an English "Next steps:" block, no Hangul', () => {
-      const detection = {claude: true, gemini: false, codex: false, agents: false, cursor: false};
+      const detection = {claude: true, antigravity: false, codex: false, agents: false, cursor: false};
       const report = renderSetupReport(result, detection, {claude: {attempted: true, success: true}});
       expect(report).toContain('Next steps:');
       expect(report).toContain('1. Restart your AI tool');
@@ -84,7 +84,7 @@ describe('init-onboarding-english-source (F-5cac007a)', () => {
     });
 
     test('the "no AI tools detected" branch is English, no Hangul', () => {
-      const detection = {claude: false, gemini: false, codex: false, agents: false, cursor: false};
+      const detection = {claude: false, antigravity: false, codex: false, agents: false, cursor: false};
       const report = renderSetupReport(result, detection, {});
       expect(report).toContain('No AI tools detected');
       expect(HANGUL.test(report)).toBe(false);

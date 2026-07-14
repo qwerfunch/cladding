@@ -2,7 +2,7 @@
 //
 // Wires up to four host AI auto-discovery channels, one symlink per channel:
 //   1. ~/.claude/plugins/cladding         → cladding pkg root
-//   2. ~/.gemini/extensions/cladding      → cladding/plugins/gemini-cli
+//   2. ~/.gemini/config/plugins/cladding  → cladding/plugins/antigravity
 //   3. ~/.agents/skills/cladding-<verb>   → cladding/plugins/codex/skills/<verb>
 //   4. ~/.codex/config.toml               → [mcp_servers.cladding] table merge
 //
@@ -14,8 +14,9 @@
 //   - no-op             — symlink target matches → skip
 //   - conflict          — directory copy with manual changes → warn, --force required
 //
-// Detection — host AI is "installed" iff its home directory exists (~/.claude/, ~/.gemini/,
-// ~/.agents/, ~/.codex/). Undetected hosts are skipped (no directories created).
+// Detection — host AI is "installed" iff its host-specific home exists. Antigravity is
+// detected by its config/runtime directories rather than the legacy Gemini CLI ~/.gemini
+// root, so an old Gemini install is never mistaken for AGY.
 
 import {
   cpSync,
@@ -53,7 +54,7 @@ export interface CodexSkillResult {
 export interface SetupResult {
   readonly wiring: {
     readonly claude_plugin: ChannelResult;
-    readonly gemini_extension: ChannelResult;
+    readonly antigravity_plugin: ChannelResult;
     readonly codex_skills: ReadonlyArray<CodexSkillResult>;
     readonly codex_mcp: ChannelResult;
     readonly cursor_mcp: ChannelResult;
@@ -72,20 +73,19 @@ export interface SetupOptions {
   readonly pkgRoot?: string;
   readonly version?: string;
   /** Run host CLI activation commands after wiring (default true). Tests must
-   * pass false: activation invokes the REAL `claude`/`gemini` binaries, which
+   * pass false: activation invokes the REAL host binaries, which
    * mutate the developer's actual host config — not the mocked home. */
   readonly activate?: boolean;
   /** Injectable activation runners so AC-012 is testable without spawning
-   * real host CLIs. Defaults to the real claude/gemini activators. */
+   * real host CLIs. Defaults to the real Claude activator. */
   readonly activators?: {
     readonly claude?: (pluginPath: string) => ActivationResult;
-    readonly gemini?: (extensionPath: string) => ActivationResult;
   };
 }
 
 export interface HostDetection {
   readonly claude: boolean;
-  readonly gemini: boolean;
+  readonly antigravity: boolean;
   readonly codex: boolean;
   readonly agents: boolean;
   readonly cursor: boolean;
@@ -104,7 +104,9 @@ const STATUS_FILENAME = 'setup-status.json';
 function detectHosts(home: string): HostDetection {
   return {
     claude: existsSync(join(home, '.claude')),
-    gemini: existsSync(join(home, '.gemini')),
+    antigravity:
+      existsSync(join(home, '.gemini', 'config')) ||
+      existsSync(join(home, '.gemini', 'antigravity-cli')),
     codex: existsSync(join(home, '.codex')),
     agents: existsSync(join(home, '.agents')),
     cursor: existsSync(join(home, '.cursor')),
@@ -187,16 +189,15 @@ function wireClaude(home: string, pkgRoot: string, opts: {force: boolean; isWin:
   return wireChannel(pkgRoot, join(home, '.claude', 'plugins', 'cladding'), opts);
 }
 
-// Gemini stays npm-delegated (needs the PATH-global `clad`): its extension
-// manifest (plugins/gemini-cli/gemini-extension.json) declares `command: "clad"`
-// and is wired by SYMLINK into ~/.gemini/extensions/, so the host reads the shared
-// repo copy directly. Making this lane self-contained would mean patching that
-// manifest to a per-machine bundled-engine path — but patching a symlinked file
-// mutates the shared copy for every project. Until Gemini moves to a copy+patch
-// wire model (as the Claude Code lane did in 0.5.2, pointing MCP at the bundled
-// engine via ${CLAUDE_PLUGIN_ROOT}), it requires `npm install -g cladding`.
-function wireGemini(home: string, pkgRoot: string, opts: {force: boolean; isWin: boolean}): ChannelResult {
-  return wireChannel(join(pkgRoot, 'plugins', 'gemini-cli'), join(home, '.gemini', 'extensions', 'cladding'), opts);
+// Antigravity discovers plugins under ~/.gemini/config/plugins. The plugin contains
+// both skills and mcp_config.json; its MCP launch remains npm-delegated to the
+// globally installed `clad` command.
+function wireAntigravity(home: string, pkgRoot: string, opts: {force: boolean; isWin: boolean}): ChannelResult {
+  return wireChannel(
+    join(pkgRoot, 'plugins', 'antigravity'),
+    join(home, '.gemini', 'config', 'plugins', 'cladding'),
+    opts,
+  );
 }
 
 function wireCodexSkills(
@@ -356,7 +357,7 @@ function detectBinary(name: string): boolean {
 
 /** Run a non-interactive activation command, return true on success. */
 function runActivation(command: string, args: readonly string[]): {ok: boolean; stderr: string} {
-  // shell:true on Windows — the host CLIs (claude/gemini/codex) install as `.cmd`
+  // shell:true on Windows — host CLIs install as `.cmd`
   // shims that spawnSync cannot resolve without a shell, so without this the
   // activation ENOENTs even though `where <cmd>` (detectBinary) found it.
   const result = spawnSync(command, args, {
@@ -381,32 +382,13 @@ function activateClaude(pluginPath: string): ActivationResult {
   return {attempted: true, success: install.ok, stderr: install.stderr};
 }
 
-function activateGemini(extensionPath: string): ActivationResult {
-  if (!detectBinary('gemini')) return {attempted: false, success: false};
-  // Check if cladding extension is already installed/enabled — `gemini extensions
-  // list` writes its output to stderr (verified against gemini 0.42.0), so we
-  // grep both streams.
-  const list = spawnSync('gemini', ['extensions', 'list'], {
-    encoding: 'utf8',
-    timeout: 10_000,
-    shell: platform() === 'win32', // `gemini` is a `.cmd` shim on Windows
-  });
-  const combined = (list.stdout ?? '') + (list.stderr ?? '');
-  if (list.status === 0 && /\bcladding\b/.test(combined)) {
-    return {attempted: true, success: true};
-  }
-  const link = runActivation('gemini', ['extensions', 'link', extensionPath]);
-  return {attempted: true, success: link.ok, stderr: link.stderr};
-}
-
 export interface ActivationContext {
   readonly claude?: ActivationResult;
-  readonly gemini?: ActivationResult;
 }
 
 function pushActivationHint(
   lines: string[],
-  channel: 'claude' | 'gemini' | 'codex-skills' | 'codex-mcp' | 'cursor',
+  channel: 'claude' | 'antigravity' | 'codex-skills' | 'codex-mcp' | 'cursor',
   wired: boolean,
   activation?: ActivationContext,
 ): void {
@@ -427,17 +409,8 @@ function pushActivationHint(
       }
       break;
     }
-    case 'gemini': {
-      const a = activation?.gemini;
-      if (a?.attempted && a.success) {
-        lines.push('     ↳ Activate: ✓ gemini extensions link done automatically (applies after Gemini CLI restart)');
-      } else if (a?.attempted && !a.success) {
-        lines.push('     ↳ Activate: ✗ auto attempt failed — manual:');
-        lines.push('       `gemini extensions link ~/.gemini/extensions/cladding`');
-      } else {
-        lines.push('     ↳ Activate (no gemini binary): manual:');
-        lines.push('       `gemini extensions link ~/.gemini/extensions/cladding`');
-      }
+    case 'antigravity': {
+      lines.push('     ↳ AGY auto-discovers ~/.gemini/config/plugins/ (applies after restart)');
       break;
     }
     case 'codex-skills':
@@ -477,9 +450,9 @@ export function renderSetupReport(
   lines.push(formatChannelLine('Claude Code', claudeState));
   pushActivationHint(lines, 'claude', WIRED_STATES.has(claudeState), activation);
 
-  const geminiState = detection.gemini ? result.wiring.gemini_extension : 'skipped-not-installed';
-  lines.push(formatChannelLine('Gemini CLI', geminiState));
-  pushActivationHint(lines, 'gemini', WIRED_STATES.has(geminiState), activation);
+  const antigravityState = detection.antigravity ? result.wiring.antigravity_plugin : 'skipped-not-installed';
+  lines.push(formatChannelLine('Antigravity (AGY)', antigravityState));
+  pushActivationHint(lines, 'antigravity', WIRED_STATES.has(antigravityState), activation);
 
   const skillsSummary = detection.agents
     ? summarizeSkills(result.wiring.codex_skills)
@@ -506,7 +479,7 @@ export function renderSetupReport(
   if (wiredCount === detectedCount && detectedCount > 0) {
     lines.push(`${wiredCount}/${detectedCount} detected channels wired. Status: ${result.statusFile}`);
   } else if (detectedCount === 0) {
-    lines.push('No AI tools detected. Install one of Claude Code / Codex / Gemini CLI / Cursor, then run this again.');
+    lines.push('No AI tools detected. Install one of Claude Code / Codex / Antigravity / Cursor, then run this again.');
   } else {
     lines.push(`${wiredCount}/${detectedCount} detected channels wired (some skipped/failed). Status: ${result.statusFile}`);
   }
@@ -516,7 +489,7 @@ export function renderSetupReport(
   }
   lines.push('');
   lines.push('Next steps:');
-  lines.push('  1. Restart your AI tool (Claude Code / Codex / Gemini / Cursor)');
+  lines.push('  1. Restart your AI tool (Claude Code / Codex / Antigravity / Cursor)');
   lines.push('  2. Open the project directory');
   lines.push('  3. Ask: "Apply Cladding to this project"');
   lines.push('  4. Start building — use optional Git hooks or CI when you want automatic enforcement');
@@ -542,7 +515,7 @@ function summarizeSkills(skills: ReadonlyArray<CodexSkillResult>): string {
 function countDetected(detection: HostDetection): number {
   return (
     (detection.claude ? 1 : 0) +
-    (detection.gemini ? 1 : 0) +
+    (detection.antigravity ? 1 : 0) +
     (detection.agents ? 1 : 0) +
     (detection.codex ? 1 : 0) +
     (detection.cursor ? 1 : 0)
@@ -553,7 +526,7 @@ function countWired(wiring: SetupResult['wiring'], detection: HostDetection): nu
   let n = 0;
   const wiredStates = new Set(['created', 'rewired', 'unchanged', 'copied']);
   if (detection.claude && wiredStates.has(wiring.claude_plugin)) n++;
-  if (detection.gemini && wiredStates.has(wiring.gemini_extension)) n++;
+  if (detection.antigravity && wiredStates.has(wiring.antigravity_plugin)) n++;
   if (detection.agents && wiring.codex_skills.some((s) => wiredStates.has(s.result))) n++;
   if (detection.codex && wiredStates.has(wiring.codex_mcp)) n++;
   if (detection.cursor && wiredStates.has(wiring.cursor_mcp)) n++;
@@ -576,8 +549,8 @@ export async function runHostSetup(opts: SetupOptions = {}): Promise<SetupResult
   const claude_plugin = detection.claude
     ? wireClaude(home, pkgRoot, {force, isWin})
     : 'skipped-not-installed';
-  const gemini_extension = detection.gemini
-    ? wireGemini(home, pkgRoot, {force, isWin})
+  const antigravity_plugin = detection.antigravity
+    ? wireAntigravity(home, pkgRoot, {force, isWin})
     : 'skipped-not-installed';
   const codex_skills = detection.agents ? wireCodexSkills(home, pkgRoot, {force, isWin}) : [];
   const serveLaunch = resolveServeLaunch(pkgRoot);
@@ -588,7 +561,7 @@ export async function runHostSetup(opts: SetupOptions = {}): Promise<SetupResult
     ? wireCursorMcp(home, serveLaunch)
     : 'skipped-not-installed';
 
-  for (const state of [claude_plugin, gemini_extension, codex_mcp, cursor_mcp]) {
+  for (const state of [claude_plugin, antigravity_plugin, codex_mcp, cursor_mcp]) {
     if (state === 'failed') errors.push({step: state, message: 'wire failed'});
   }
   for (const s of codex_skills) {
@@ -601,20 +574,16 @@ export async function runHostSetup(opts: SetupOptions = {}): Promise<SetupResult
   // host config (not the mocked home), so tests/CI must opt out.
   const shouldActivate = opts.activate ?? true;
   const claudeActivator = opts.activators?.claude ?? activateClaude;
-  const geminiActivator = opts.activators?.gemini ?? activateGemini;
   const activation: ActivationContext = shouldActivate
     ? {
         ...(WIRED_STATES.has(claude_plugin)
           ? {claude: claudeActivator(join(home, '.claude', 'plugins', 'cladding'))}
           : {}),
-        ...(WIRED_STATES.has(gemini_extension)
-          ? {gemini: geminiActivator(join(home, '.gemini', 'extensions', 'cladding'))}
-          : {}),
       }
     : {};
 
   const result: SetupResult = {
-    wiring: {claude_plugin, gemini_extension, codex_skills, codex_mcp, cursor_mcp},
+    wiring: {claude_plugin, antigravity_plugin, codex_skills, codex_mcp, cursor_mcp},
     errors,
     statusFile,
     cladding_root: pkgRoot,

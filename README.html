@@ -227,7 +227,7 @@
 
   <p class="tagline">
     <strong>To trust AI with coding, an organization needs three things — that the code can be trusted, that it's traced, and that it holds up as you scale. cladding builds those three.</strong><br>
-    True to its name (cladding = the outer layer), it wraps your host LLM (Claude Code · Codex · Gemini · Cursor): <em>before</em> it starts, cladding feeds it the project's intent; <em>after</em> it finishes, cladding verifies the result with 41 detectors and a 15-stage gate.
+    True to its name (cladding = the outer layer), it wraps your host LLM (Claude Code · Codex · Antigravity · Cursor): <em>before</em> it starts, cladding feeds it the project's intent; <em>after</em> it finishes, cladding verifies the result with 41 detectors and a 15-stage gate.
   </p>
 
   <p class="badges">
@@ -315,7 +315,7 @@
   <p style="text-align:center;font-size:14px;color:#475569"><strong>After — verify the result:</strong> the 15-stage gate, 41 drift detectors, and an <strong>implementation-blind grader</strong> — an agent that checks the work against the spec <em>with no tool to read the implementation</em>, so it can't rubber-stamp what it wrote.</p>
   <p style="font-size:13px;color:#64748b;text-align:center;margin-top:4px">
     Real-time intervention (map injection · instant block · stop block) runs fully on Claude Code.
-    On Codex · Gemini · Cursor the same verification runs through in-conversation tool calls plus the git · CI gate.
+    On Codex · Antigravity · Cursor the same verification runs through in-conversation tool calls plus the git · CI gate.
   </p>
 
   <!-- ─────────────── done is earned ─────────────── -->
@@ -483,13 +483,13 @@ acceptance_criteria:
   <h2>Install</h2>
   <h3>1. Install and connect your AI tools</h3>
   <pre><code>npm install -g cladding   # the cladding CLI
-clad setup                # auto-wire your AI tools (Claude · Codex · Gemini · Cursor)</code></pre>
+clad setup                # auto-wire your AI tools (Claude · Codex · Antigravity · Cursor)</code></pre>
 
   <p>Run these once on your machine, from any directory. <code>clad setup</code> connects supported AI tools globally; it does not create or modify project files.</p>
 
   <h3>2. Start your AI tool from the project</h3>
   <pre><code>cd &lt;project&gt;</code></pre>
-  <blockquote><p><strong>Next step:</strong> Start your AI tool with this project as its workspace. Run Codex, Claude Code, or Gemini CLI from this directory, or open this folder in Cursor. The connection created by <code>clad setup</code> takes effect in the new session.</p></blockquote>
+  <blockquote><p><strong>Next step:</strong> Start your AI tool with this project as its workspace. Run Codex, Claude Code, or Antigravity (<code>agy</code>) from this directory, or open this folder in Cursor. The connection created by <code>clad setup</code> takes effect in the new session.</p></blockquote>
 
   <h3>3. Apply Cladding once</h3>
   <p>Choose the starting point that fits and say it naturally in your AI tool.</p>

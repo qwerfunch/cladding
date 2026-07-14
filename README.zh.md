@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>要放心把编码交给 AI，一个组织需要三样东西 ——<br/>代码可信、过程可追溯、规模扩张时依然稳固。cladding 把这三样一手做齐。</strong><br/>
-  正如其名（cladding = 外覆层），它包裹住你的宿主 LLM（Claude Code · Codex · Gemini · Cursor）：在它<em>动手之前</em>，cladding 先把项目的意图喂给它；在它<em>收尾之后</em>，cladding 用 41 个检测器和 15 阶段门禁验证结果。
+  正如其名（cladding = 外覆层），它包裹住你的宿主 LLM（Claude Code · Codex · Antigravity · Cursor）：在它<em>动手之前</em>，cladding 先把项目的意图喂给它；在它<em>收尾之后</em>，cladding 用 41 个检测器和 15 阶段门禁验证结果。
 </p>
 
 <p align="center">
@@ -66,7 +66,7 @@ cladding 连**自己**也是用 cladding 造的 —— 254 个 feature 里有 25
 
 **之后 —— 验证结果：** 15 阶段门禁、41 个漂移检测器，外加一个**看不到实现的评分者** —— 这个智能体对照 spec 核查成果，却*没有任何读取实现的工具*，因此无法给自己写下的东西盖章放行。
 
-<sub>实时干预（注入地图 · 当场拦截 · 退出拦截）在 Claude Code 上全部可用。在 Codex · Gemini · Cursor 上，同样的验证通过对话中的工具调用，再加 git · CI 门禁来完成。</sub>
+<sub>实时干预（注入地图 · 当场拦截 · 退出拦截）在 Claude Code 上全部可用。在 Codex · Antigravity · Cursor 上，同样的验证通过对话中的工具调用，再加 git · CI 门禁来完成。</sub>
 
 <!-- ─────────────── done is earned ─────────────── -->
 
@@ -241,7 +241,7 @@ cladding 的独到之处在于*组合* —— 把上述品类的内核，绑进*
 
 ```bash
 npm install -g cladding   # 安装 cladding CLI
-clad setup                # 自动接通你的 AI 工具（Claude · Codex · Gemini · Cursor）
+clad setup                # 自动接通你的 AI 工具（Claude · Codex · Antigravity · Cursor）
 ```
 
 以上命令可以在任何目录运行，每台电脑只需执行一次。`clad setup` 只会全局连接支持的 AI 工具，不会创建或修改项目文件。
@@ -252,7 +252,7 @@ clad setup                # 自动接通你的 AI 工具（Claude · Codex · Ge
 cd <project>
 ```
 
-> **下一步：** 以此项目文件夹作为工作区，重新启动所使用的 AI 工具。在该目录中运行 Codex、Claude Code 或 Gemini CLI；如果使用 Cursor，则打开此文件夹。`clad setup` 创建的连接会从新会话开始生效。
+> **下一步：** 以此项目文件夹作为工作区，重新启动所使用的 AI 工具。在该目录中运行 Codex、Claude Code 或 Antigravity（`agy`）；如果使用 Cursor，则打开此文件夹。`clad setup` 创建的连接会从新会话开始生效。
 
 ### 3. 为项目应用一次 Cladding
 

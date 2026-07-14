@@ -132,13 +132,13 @@ describe('AC-4c28425b · deleted docs leave zero dangling references outside his
     }
   });
 
-  test('src/init/host-setup.ts carries the Gemini npm-delegation WHY directly above wireGemini', () => {
+  test('src/init/host-setup.ts carries the Antigravity npm-delegation WHY directly above wireAntigravity', () => {
     const hostSetup = read('src/init/host-setup.ts');
-    const fnIdx = hostSetup.indexOf('function wireGemini(');
-    expect(fnIdx, 'wireGemini function present').toBeGreaterThan(-1);
+    const fnIdx = hostSetup.indexOf('function wireAntigravity(');
+    expect(fnIdx, 'wireAntigravity function present').toBeGreaterThan(-1);
     const before = hostSetup.slice(Math.max(0, fnIdx - 1200), fnIdx);
-    expect(before, 'load-bearing WHY: the symlink-mutation hazard').toContain('mutates the shared copy for every project');
-    expect(before, 'names the mechanism: symlink wiring').toContain('SYMLINK');
+    expect(before, 'load-bearing WHY: AGY discovery path').toContain('~/.gemini/config/plugins');
+    expect(before, 'names the npm-delegated MCP launch').toContain('globally installed `clad`');
     expect(before, 'relocates the reasoning, not just a pointer to the deleted doc').not.toContain(MARKETPLACE_DOC);
   });
 

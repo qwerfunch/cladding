@@ -12,16 +12,18 @@ the detail behind them: where each host is wired, how the MCP server works, and 
 | Claude Code (`~/.claude/`) | `~/.claude/plugins/cladding` | `claude plugin marketplace add` + `install` |
 | Codex CLI skills (`~/.agents/`) | `~/.agents/skills/cladding-*` | (auto on Codex restart) |
 | Codex CLI MCP server (`~/.codex/`) | `[mcp_servers.cladding]` in `~/.codex/config.toml` | (TOML entry itself) |
-| Gemini CLI (`~/.gemini/`) | `~/.gemini/extensions/cladding` | `gemini extensions link` |
+| Antigravity (`agy`) | `~/.gemini/config/plugins/cladding` | (auto on AGY restart) |
 | Cursor (`~/.cursor/`) | `mcpServers.cladding` in `~/.cursor/mcp.json` | (JSON entry itself) |
 
-`clad setup` invokes each host's activation command automatically when the `claude` / `gemini`
-binaries are on PATH. It is safe to re-run after an upgrade or after installing a new AI tool.
+`clad setup` invokes Claude Code's activation command when `claude` is on PATH. Antigravity
+auto-discovers its wired plugin directory after restart. It is safe to re-run after an upgrade or
+after installing a new AI tool.
 
 **Verification level (honesty note).** Claude Code is fully verified through real-usage
 campaigns (including real-time intervention). Codex onboarding is live-verified for idea,
-planning-document, existing-project, and uninitialized control cases. Gemini CLI and Cursor wire
-automatically, but their real-usage onboarding verification is still pending. (The machine-readable claim lives in the README's `clad:host-claims`
+planning-document, existing-project, and uninitialized control cases. Antigravity 1.1.0 is also
+live-verified for all three onboarding cases plus the uninitialized control case. Cursor wires
+automatically, but its real-usage onboarding verification is still pending. (The machine-readable claim lives in the README's `clad:host-claims`
 fence, which `HOST_CLAIM_DRIFT` polices against `docs/dogfood/matrix.md`.)
 
 ## About the MCP server
@@ -45,7 +47,7 @@ project, asking about Cladding, or running `clad setup` are not consent.
 |---|---|---|
 | Claude Code | `Apply Cladding to this project` | `/cladding:init` |
 | Codex | `Apply Cladding to this project` | Type `$cladding`, then choose `init (cladding)` |
-| Gemini CLI | `Apply Cladding to this project` | `/cladding:init` |
+| Antigravity | `Apply Cladding to this project` | `/cladding:init` from the installed plugin |
 | Cursor | `Apply Cladding to this project` | Natural language routes through the connected onboarding tool |
 
 ## Upgrading

@@ -28,6 +28,7 @@
 
 import {
   chmodSync,
+  cpSync,
   copyFileSync,
   existsSync,
   mkdirSync,
@@ -253,6 +254,26 @@ writeFileSync(
 );
 console.log(
   `cladding plugin · codex: copied ${codexVerbCount} verbs + ${codexPersonaCount} personas → ${CODEX_SKILLS}/`,
+);
+
+// --- Phase B2 — Antigravity plugin skills mirror --------------------
+
+const ANTIGRAVITY_SKILLS = 'plugins/antigravity/skills';
+mkdirSync(ANTIGRAVITY_SKILLS, {recursive: true});
+for (const entry of readdirSync(CODEX_SKILLS)) {
+  if (entry === 'README.md') continue;
+  const src = join(CODEX_SKILLS, entry);
+  if (!statSync(src).isDirectory()) continue;
+  const dst = join(ANTIGRAVITY_SKILLS, entry);
+  rmSync(dst, {recursive: true, force: true});
+  cpSync(src, dst, {recursive: true});
+}
+for (const entry of readdirSync(ANTIGRAVITY_SKILLS)) {
+  if (!codexExpected.has(entry)) rmSync(join(ANTIGRAVITY_SKILLS, entry), {recursive: true, force: true});
+}
+rmSync(join(ANTIGRAVITY_SKILLS, 'README.md'), {force: true});
+console.log(
+  `cladding plugin · antigravity: copied ${codexVerbCount} verbs + ${codexPersonaCount} personas → ${ANTIGRAVITY_SKILLS}/`,
 );
 
 // --- Phase C — Gemini CLI mirror (plugins/gemini-cli/commands/) -------

@@ -1,7 +1,7 @@
 {
   "name": "cladding",
   "version": "0.8.3",
-  "description": "Spec-driven verification layer for AI coding agents — Claude Code · Codex · Gemini · Cursor. Intent in before it writes, result verified against your spec after. Reference implementation of the Ironclad standard.",
+  "description": "Spec-driven verification layer for AI coding agents — Claude Code · Codex · Antigravity · Cursor. Intent in before it writes, result verified against your spec after. Reference implementation of the Ironclad standard.",
   "type": "module",
   "license": "MIT",
   "author": "qwerfunch",
@@ -18,7 +18,7 @@
     "spec-driven-development", "governance", "ironclad",
     "drift-detection", "multi-agent", "loop-engineering", "verification",
     "ai-coding", "compliance", "architecture-enforcement",
-    "claude-code", "codex-cli", "gemini-cli", "cursor",
+    "claude-code", "codex-cli", "antigravity-cli", "cursor",
     "mcp-server", "claude-code-plugin"
   ],
   "bin": {

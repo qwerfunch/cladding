@@ -4,6 +4,8 @@ description: Advance Cladding onboarding after the user answers a pending produc
 
 # Cladding clarify
 
+Use this workflow only for an answer contained in a new user message after Cladding displayed the pending question. Never infer, synthesize, or reuse an answer from an initialization turn. If no new user answer exists, stop without calling either clarify tool.
+
 Use this workflow only after Cladding initialization returned a pending question and the user has answered it.
 
 1. Call `clad_prepare_clarify` with the user's answer verbatim.

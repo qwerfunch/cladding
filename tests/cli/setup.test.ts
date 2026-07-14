@@ -20,7 +20,7 @@ describe('runHostSetup', () => {
     home = mkdtempSync(join(tmpdir(), 'clad-setup-home-'));
     pkgRoot = mkdtempSync(join(tmpdir(), 'clad-setup-pkg-'));
     // Minimal pkg skeleton mirroring the real cladding layout the wirer expects.
-    mkdirSync(join(pkgRoot, 'plugins', 'gemini-cli'), {recursive: true});
+    mkdirSync(join(pkgRoot, 'plugins', 'antigravity'), {recursive: true});
     mkdirSync(join(pkgRoot, 'plugins', 'codex', 'skills', 'init'), {recursive: true});
     mkdirSync(join(pkgRoot, 'plugins', 'codex', 'skills', 'check'), {recursive: true});
     writeFileSync(join(pkgRoot, 'package.json'), JSON.stringify({version: '0.4.0'}));
@@ -35,12 +35,12 @@ describe('runHostSetup', () => {
   test('wires only the host channels whose home directory exists', async () => {
     mkdirSync(join(home, '.claude'), {recursive: true});
     mkdirSync(join(home, '.agents'), {recursive: true});
-    // .gemini and .codex intentionally absent.
+    // Antigravity and Codex intentionally absent.
 
     const result = await runHostSetup({home, pkgRoot, version: '0.4.0', quiet: true, activate: false});
 
     expect(result.wiring.claude_plugin).toBe('created');
-    expect(result.wiring.gemini_extension).toBe('skipped-not-installed');
+    expect(result.wiring.antigravity_plugin).toBe('skipped-not-installed');
     expect(result.wiring.codex_mcp).toBe('skipped-not-installed');
     expect(result.wiring.codex_skills.length).toBeGreaterThan(0);
     expect(existsSync(join(home, '.gemini'))).toBe(false);
@@ -62,13 +62,13 @@ describe('runHostSetup', () => {
   test('delta-wires a host that was not installed on the previous run', async () => {
     mkdirSync(join(home, '.claude'), {recursive: true});
     const first = await runHostSetup({home, pkgRoot, version: '0.4.0', quiet: true, activate: false});
-    expect(first.wiring.gemini_extension).toBe('skipped-not-installed');
+    expect(first.wiring.antigravity_plugin).toBe('skipped-not-installed');
 
-    // Simulate: user installs Gemini CLI between the two runs.
-    mkdirSync(join(home, '.gemini'), {recursive: true});
+    // Simulate: user installs Antigravity between the two runs.
+    mkdirSync(join(home, '.gemini', 'config'), {recursive: true});
     const second = await runHostSetup({home, pkgRoot, version: '0.4.0', quiet: true, activate: false});
 
-    expect(second.wiring.gemini_extension).toBe('created');
+    expect(second.wiring.antigravity_plugin).toBe('created');
     expect(second.wiring.claude_plugin).toBe('unchanged');
   });
 
@@ -195,7 +195,7 @@ describe('MCP serve launch resolution', () => {
   beforeEach(() => {
     home = mkdtempSync(join(tmpdir(), 'clad-setup-home-'));
     pkgRoot = mkdtempSync(join(tmpdir(), 'clad-setup-pkg-'));
-    mkdirSync(join(pkgRoot, 'plugins', 'gemini-cli'), {recursive: true});
+    mkdirSync(join(pkgRoot, 'plugins', 'antigravity'), {recursive: true});
     mkdirSync(join(pkgRoot, 'plugins', 'codex', 'skills', 'init'), {recursive: true});
     writeFileSync(join(pkgRoot, 'package.json'), JSON.stringify({version: '0.6.0'}));
   });
@@ -269,7 +269,7 @@ describe('activation (AC-012) — non-interactive, injectable, opt-out', () => {
   beforeEach(() => {
     home = mkdtempSync(join(tmpdir(), 'clad-setup-home-'));
     pkgRoot = mkdtempSync(join(tmpdir(), 'clad-setup-pkg-'));
-    mkdirSync(join(pkgRoot, 'plugins', 'gemini-cli'), {recursive: true});
+    mkdirSync(join(pkgRoot, 'plugins', 'antigravity'), {recursive: true});
     writeFileSync(join(pkgRoot, 'package.json'), JSON.stringify({version: '0.6.0'}));
   });
 
@@ -304,7 +304,6 @@ describe('activation (AC-012) — non-interactive, injectable, opt-out', () => {
       quiet: true,
       activators: {
         claude: (p) => (calls.push(p), {attempted: true, success: true}),
-        gemini: (p) => (calls.push(p), {attempted: true, success: true}),
       },
     });
 
@@ -333,7 +332,7 @@ describe('setup report (AC-010) and init wire notices (AC-006/AC-007)', () => {
     const result = {
       wiring: {
         claude_plugin: 'created',
-        gemini_extension: 'skipped-not-installed',
+        antigravity_plugin: 'skipped-not-installed',
         codex_skills: [],
         codex_mcp: 'skipped-not-installed',
         cursor_mcp: 'skipped-not-installed',
@@ -344,7 +343,7 @@ describe('setup report (AC-010) and init wire notices (AC-006/AC-007)', () => {
       cladding_version: '0.6.0',
       last_setup_version: null,
     } as const;
-    const detection = {claude: true, gemini: false, codex: false, agents: false, cursor: false};
+    const detection = {claude: true, antigravity: false, codex: false, agents: false, cursor: false};
 
     const report = renderSetupReport(result, detection, {});
 

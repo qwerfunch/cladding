@@ -24,6 +24,7 @@ import {readFileSync, existsSync, mkdirSync, realpathSync, readdirSync, rmSync, 
 import {basename, dirname, extname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {deflateRawSync, inflateRawSync} from 'node:zlib';
+import {tmpdir} from 'node:os';
 
 import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
 import {
@@ -178,7 +179,8 @@ export function buildServer(opts: ServerOptions = {}): McpServer {
         'For explicit Cladding onboarding, always call clad_prepare_init first, draft the requested structured data ' +
         'with the current host model, show the planned changes, and wait for a separate user confirmation before ' +
         'calling clad_init with its token and the confirmation verbatim. For each real user answer, call ' +
-        'clad_prepare_clarify and then clad_clarify. Never run onboarding shell commands or request MCP sampling. ' +
+        'clad_prepare_clarify and then clad_clarify only after a new user message supplies the answer. Never infer an ' +
+        'answer or call clarify during the initialization approval turn. Never run onboarding shell commands or request MCP sampling. ' +
         'Prepare tools are read-only; apply tools validate and write.',
       // Declare subscribe support so clients can subscribe to
       // cladding://audit and receive notifications/resources/updated
@@ -389,6 +391,7 @@ interface PreparedOnboarding {
 }
 
 const MAX_APPROVAL_ENVELOPE_BYTES = 1_000_000;
+const PREPARATION_TTL_MS = 30 * 60 * 1000;
 
 /**
  * Carries read-only preparation state across host process restarts.
@@ -419,6 +422,47 @@ function decodePreparedOnboarding(token: string): PreparedOnboarding | null {
   } catch {
     return null;
   }
+}
+
+function pendingPreparationPath(cwd: string, key: string): string {
+  const id = createHash('sha256').update(`${resolve(cwd)}\0${key}`).digest('hex');
+  return join(tmpdir(), 'cladding-onboarding-pending', `${id}.json`);
+}
+
+function persistPendingPreparation(
+  cwd: string,
+  key: string,
+  token: string,
+  request: PreparedOnboarding,
+): void {
+  const path = pendingPreparationPath(cwd, key);
+  mkdirSync(dirname(path), {recursive: true, mode: 0o700});
+  writeFileSync(path, JSON.stringify({expiresAt: Date.now() + PREPARATION_TTL_MS, token, request}), {mode: 0o600});
+}
+
+function loadPendingPreparation(
+  cwd: string,
+  key: string,
+): {readonly token: string; readonly request: PreparedOnboarding} | null {
+  const path = pendingPreparationPath(cwd, key);
+  try {
+    const parsed = JSON.parse(readFileSync(path, 'utf8')) as {
+      expiresAt?: number;
+      token?: string;
+      request?: PreparedOnboarding;
+    };
+    if (!parsed.expiresAt || parsed.expiresAt < Date.now() || !parsed.token || !parsed.request) {
+      rmSync(path, {force: true});
+      return null;
+    }
+    return {token: parsed.token, request: parsed.request};
+  } catch {
+    return null;
+  }
+}
+
+function removePendingPreparation(cwd: string, key: string): void {
+  rmSync(pendingPreparationPath(cwd, key), {force: true});
 }
 
 /** Returns a short, one-time phrase that is easy for a human to verify and hard to pass accidentally. */
@@ -546,7 +590,7 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
         requiresSeparateUserConfirmation: z.boolean().optional(),
         approvalChallenge: z.string().optional(),
       },
-      annotations: {readOnlyHint: true, destructiveHint: false, idempotentHint: true},
+      annotations: {readOnlyHint: false, destructiveHint: false, idempotentHint: true},
     },
     async (args) => {
       if (!onboarding) return mcpPayload({status: 'unavailable', changed: false}, true);
@@ -573,6 +617,7 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
       };
       const token = encodePreparedOnboarding(request);
       prepared.set(token, request);
+      persistPendingPreparation(cwd, challenge, token, request);
       return mcpPayload({
         status: 'needs_confirmation', changed: false, schemaVersion: 1, token,
         prompt: briefing.prompt, request: briefing.request, observation: briefing.observation,
@@ -604,7 +649,7 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
         'Write Cladding artifacts from the host model draft returned after clad_prepare_init. ' +
         'Requires its one-time token; malformed, stale, or replayed requests do not write files.',
       inputSchema: {
-        token: z.string().min(1).max(MAX_APPROVAL_ENVELOPE_BYTES),
+        token: z.string().min(1).max(MAX_APPROVAL_ENVELOPE_BYTES).optional(),
         confirmation: z.string().min(1).describe('The user\'s separate confirmation reply, verbatim'),
         draft: hostDraftSchema,
       },
@@ -618,7 +663,10 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
       annotations: {readOnlyHint: false, destructiveHint: true, idempotentHint: false},
     },
     async (args) => {
-      const request = prepared.get(args.token) ?? decodePreparedOnboarding(args.token);
+      const pending = loadPendingPreparation(cwd, args.confirmation.trim());
+      const request = (args.token
+        ? prepared.get(args.token) ?? decodePreparedOnboarding(args.token)
+        : null) ?? pending?.request;
       if (!request || request.kind !== 'init') return mcpPayload({status: 'invalid_token', changed: false}, true);
       if (!request.approvalChallenge || args.confirmation.trim() !== request.approvalChallenge) {
         return mcpPayload({
@@ -628,7 +676,8 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
       }
       if (request.snapshot !== onboardingPreparationSnapshot(cwd)) return mcpPayload({status: 'stale_preparation', changed: false}, true);
       if (!onboarding) return mcpPayload({status: 'unavailable', changed: false}, true);
-      prepared.delete(args.token);
+      if (args.token) prepared.delete(args.token);
+      removePendingPreparation(cwd, args.confirmation.trim());
       const response = onboarding.renderDraft(args.draft);
       const rollback = captureOnboardingRollback(cwd);
       let init: Awaited<ReturnType<OnboardingOperations['initialize']>>;
@@ -661,14 +710,16 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
     'clad_prepare_clarify',
     {
       title: 'Prepare the next Cladding onboarding answer',
-      description: 'Read-only step. Pass the user answer verbatim, then draft the structured refinement for clad_clarify.',
+      description:
+        'Use only after a new user message answers the displayed pending question. Pass that answer verbatim. ' +
+        'Never call during the initialization approval turn and never invent an answer.',
       inputSchema: {answer: z.string().min(1)},
       outputSchema: {
         status: z.string(), changed: z.boolean(), schemaVersion: z.number().optional(), token: z.string().optional(),
         prompt: z.string().optional(), request: z.object({mode: z.string(), intent: z.string()}).optional(),
         observation: z.record(z.string(), z.unknown()).optional(), error: z.string().optional(),
       },
-      annotations: {readOnlyHint: true, destructiveHint: false, idempotentHint: true},
+      annotations: {readOnlyHint: false, destructiveHint: false, idempotentHint: true},
     },
     async (args) => {
       if (!onboarding) return mcpPayload({status: 'unavailable', changed: false}, true);
@@ -679,6 +730,7 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
       };
       const token = encodePreparedOnboarding(request);
       prepared.set(token, request);
+      persistPendingPreparation(cwd, `clarify:${args.answer}`, token, request);
       return mcpPayload({status: 'needs_host_draft', changed: false, schemaVersion: 1, token, prompt: briefing.prompt, request: briefing.request, observation: briefing.observation});
     },
   );
@@ -688,10 +740,11 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
     {
       title: 'Answer the next Cladding onboarding question',
       description:
-        'Apply a host-model refinement after clad_prepare_clarify. Do not invent or alter the user answer.',
+        'Apply a host-model refinement only for an answer supplied in a new user message after the pending question. ' +
+        'Never call during the initialization approval turn; do not invent or alter the user answer.',
       inputSchema: {
         answer: z.string().min(1).describe('The user\'s answer, verbatim'),
-        token: z.string().min(1).max(MAX_APPROVAL_ENVELOPE_BYTES),
+        token: z.string().min(1).max(MAX_APPROVAL_ENVELOPE_BYTES).optional(),
         draft: hostDraftSchema,
       },
       outputSchema: {
@@ -704,11 +757,15 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
       annotations: {readOnlyHint: false, destructiveHint: true, idempotentHint: false},
     },
     async (args) => {
-      const request = prepared.get(args.token) ?? decodePreparedOnboarding(args.token);
+      const pending = loadPendingPreparation(cwd, `clarify:${args.answer}`);
+      const request = (args.token
+        ? prepared.get(args.token) ?? decodePreparedOnboarding(args.token)
+        : null) ?? pending?.request;
       if (!request || request.kind !== 'clarify' || request.answer !== args.answer) return mcpPayload({status: 'invalid_token', changed: false}, true);
       if (request.snapshot !== onboardingPreparationSnapshot(cwd)) return mcpPayload({status: 'stale_preparation', changed: false}, true);
       if (!onboarding) return mcpPayload({status: 'unavailable', changed: false}, true);
-      prepared.delete(args.token);
+      if (args.token) prepared.delete(args.token);
+      removePendingPreparation(cwd, `clarify:${args.answer}`);
       const response = onboarding.renderDraft(args.draft);
       const outcome = await onboarding.clarify(args.answer, {cwd, hostDispatcher: async () => response});
       if (!outcome.ok) return mcpPayload({status: 'failed', changed: false, error: outcome.error ?? 'onboarding clarification failed'}, true);

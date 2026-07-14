@@ -128,6 +128,25 @@ describe('serve/server — natural-language init tools', () => {
     }
   });
 
+  test('process-per-turn hosts can apply by exact challenge when they discard opaque tool tokens', async () => {
+    const first = await makePair(dir);
+    const prepared = await prepare(first.client, {mode: 'idea', intent: 'B2B payment SaaS'});
+    await first.cleanup();
+    expect(readdirSync(dir)).toEqual([]);
+
+    const second = await makePair(dir);
+    try {
+      const result = await second.client.callTool({name: 'clad_init', arguments: {
+        confirmation: prepared.confirmation,
+        draft,
+      }});
+      expect(result.isError).not.toBe(true);
+      expect(payload(result)).toMatchObject({changed: true, onboardingSource: 'host'});
+    } finally {
+      await second.cleanup();
+    }
+  });
+
   test('initial request is not accepted as the separate write confirmation', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
