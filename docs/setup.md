@@ -19,13 +19,16 @@ the detail behind them: where each host is wired, how the MCP server works, and 
 auto-discovers its wired plugin directory after restart. It is safe to re-run after an upgrade or
 after installing a new AI tool.
 
-**Verification level (honesty note).** Claude Code is fully verified through real-usage
-campaigns (including real-time intervention). Codex onboarding is live-verified for idea,
-planning-document, existing-project, and uninitialized control cases. Antigravity 1.1.0 is also
-live-verified for all three onboarding cases plus the uninitialized control case. Cursor Agent
-`2026.07.09-a3815c0` is live-verified for the same four cases through its headless CLI and global
-MCP configuration. (The machine-readable claim lives in the README's `clad:host-claims`
-fence, which `HOST_CLAIM_DRIFT` polices against `docs/dogfood/matrix.md`.)
+**Verification level (honesty note).** Claude Code's MCP/runtime surfaces and real-time
+intervention are verified through earlier real-usage campaigns; the natural-language onboarding
+flow introduced in this release has not yet been re-run live on Claude Code and remains a pending
+host campaign. Codex onboarding is live-verified for idea, planning-document, existing-project,
+and uninitialized control cases. Antigravity 1.1.0 is also live-verified for all three onboarding
+cases plus the uninitialized control case. Cursor Agent `2026.07.09-a3815c0` is live-verified for
+the same four cases through its headless CLI and global MCP configuration. (The machine-readable
+claim lives in the README's `clad:host-claims` fence, which `HOST_CLAIM_DRIFT` polices against
+`docs/dogfood/matrix.md`; its `verified` grade covers the doctor surfaces listed in that matrix,
+not every release-specific onboarding campaign.)
 
 ## About the MCP server
 
