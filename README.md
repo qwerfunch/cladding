@@ -306,7 +306,7 @@ Implement email sign-in, including tests.
 
 There is nothing new to memorize. For host-specific invocation, stricter Git/CI enforcement, and verified host status, see [setup details](docs/setup.md).
 
-<!-- clad:host-claims {"claude":"verified","codex":"not-run","antigravity":"verified","cursor":"verified"} -->
+<!-- clad:host-claims {"claude":"verified","codex":"verified","antigravity":"verified","cursor":"verified"} -->
 
 <!-- ─────────────── Update ─────────────── -->
 

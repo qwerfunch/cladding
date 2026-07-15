@@ -24,11 +24,13 @@ On upgrade, setup removes legacy global Cladding wires only when their ownership
 
 **Verification level (honesty note).** Claude Code's MCP/runtime surfaces and real-time
 intervention are verified through earlier real-usage campaigns; the natural-language onboarding
-flow introduced in this release has not yet been re-run live on Claude Code and remains a pending
-host campaign. Codex onboarding is live-verified for idea, planning-document, existing-project,
-and uninitialized control cases. Antigravity 1.1.0 is also live-verified for all three onboarding
-cases plus the uninitialized control case. Cursor Agent `2026.07.09-a3815c0` is live-verified for
-the same four cases through its headless CLI and global MCP configuration. (The machine-readable
+flow introduced in this release could not be re-run because the logged-in host reported its weekly
+quota exhausted; project MCP handshake and tool discovery passed, but onboarding remains pending.
+Codex CLI `0.144.3` is live-verified for idea, planning-document, existing-project, uninitialized
+controls, and all three doctor surfaces. Antigravity `1.1.2` is live-verified for all three
+onboarding cases plus both controls after disabling the legacy global plugin. Cursor Agent
+`2026.07.09-a3815c0` is live-verified for the same five cases through project-local MCP wiring.
+(The machine-readable
 claim lives in the README's `clad:host-claims` fence, which `HOST_CLAIM_DRIFT` polices against
 `docs/dogfood/matrix.md`; its `verified` grade covers the doctor surfaces listed in that matrix,
 not every release-specific onboarding campaign.)
@@ -41,9 +43,12 @@ diagnostic view, but normal use starts by asking the AI to apply Cladding to the
 
 Every host follows the same portable onboarding protocol under the surface: Cladding first returns
 a read-only, bounded project briefing; the host's own model drafts structured onboarding data; then
-Cladding validates and writes it. Follow-up answers use the same prepare/apply split. This requires
-only standard MCP tool calls—not server-side sampling—and prevents incomplete, stale, or replayed
-drafts from partially changing the project.
+Cladding validates and stages that draft before showing the approval phrase. Staging writes only an
+opaque, short-lived cache under the ignored `.cladding/host/` runtime boundary. A later host process
+can therefore apply the exact reviewed draft without reconstructing it from the approval code.
+Follow-up answers use the same prepare/apply safety boundary. This requires only standard MCP tool
+calls—not server-side sampling—and prevents incomplete, stale, or replayed drafts from partially
+changing the project.
 
 Initialization never writes immediately from the first natural-language request. The host previews
 the planned file operations and shows a one-time approval phrase; only a separate user reply that

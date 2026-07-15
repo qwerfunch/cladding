@@ -75,6 +75,7 @@ export const PERSONA_PROMPT_ALIASES: Readonly<Record<string, string>> = {
 /** Tool names cladding's MCP server exposes (stable wire identifiers). */
 export const TOOL_NAMES = [
   'clad_prepare_init',
+  'clad_stage_init',
   'clad_init',
   'clad_prepare_clarify',
   'clad_clarify',
@@ -177,8 +178,8 @@ export function buildServer(opts: ServerOptions = {}): McpServer {
     {
       instructions:
         'For explicit Cladding onboarding, always call clad_prepare_init first, draft the requested structured data ' +
-        'with the current host model, show the planned changes, and wait for a separate user confirmation before ' +
-        'calling clad_init with its token and the confirmation verbatim. For each real user answer, call ' +
+        'with the current host model, then call clad_stage_init before showing the planned changes. Wait for a separate ' +
+        'user confirmation before calling clad_init with the confirmation verbatim. For each real user answer, call ' +
         'clad_prepare_clarify and then clad_clarify only after a new user message supplies the answer. Never infer an ' +
         'answer or call clarify during the initialization approval turn. Never run onboarding shell commands or request MCP sampling. ' +
         'Prepare tools are read-only; apply tools validate and write.',
@@ -389,6 +390,7 @@ const hostDraftSchema = z.object({
   questions: z.array(z.string().min(1)).max(3),
   ai_hints: z.record(z.string(), z.unknown()).optional(),
 });
+type HostDraft = z.infer<typeof hostDraftSchema>;
 
 interface PreparedOnboarding {
   readonly kind: 'init' | 'clarify';
@@ -437,9 +439,11 @@ function decodePreparedOnboarding(token: string): PreparedOnboarding | null {
   }
 }
 
-function pendingPreparationPath(cwd: string, key: string): string {
+function pendingPreparationPath(cwd: string, key: string, durable = false): string {
   const id = createHash('sha256').update(`${resolve(cwd)}\0${key}`).digest('hex');
-  return join(tmpdir(), 'cladding-onboarding-pending', `${id}.json`);
+  return durable
+    ? join(cwd, '.cladding', 'host', 'onboarding-pending', `${id}.json`)
+    : join(tmpdir(), 'cladding-onboarding-pending', `${id}.json`);
 }
 
 function persistPendingPreparation(
@@ -447,35 +451,41 @@ function persistPendingPreparation(
   key: string,
   token: string,
   request: PreparedOnboarding,
+  draft?: HostDraft,
 ): void {
-  const path = pendingPreparationPath(cwd, key);
+  const path = pendingPreparationPath(cwd, key, draft != null);
   mkdirSync(dirname(path), {recursive: true, mode: 0o700});
-  writeFileSync(path, JSON.stringify({expiresAt: Date.now() + PREPARATION_TTL_MS, token, request}), {mode: 0o600});
+  writeFileSync(path, JSON.stringify({expiresAt: Date.now() + PREPARATION_TTL_MS, token, request, draft}), {mode: 0o600});
 }
 
 function loadPendingPreparation(
   cwd: string,
   key: string,
-): {readonly token: string; readonly request: PreparedOnboarding} | null {
-  const path = pendingPreparationPath(cwd, key);
-  try {
-    const parsed = JSON.parse(readFileSync(path, 'utf8')) as {
-      expiresAt?: number;
-      token?: string;
-      request?: PreparedOnboarding;
-    };
-    if (!parsed.expiresAt || parsed.expiresAt < Date.now() || !parsed.token || !parsed.request) {
-      rmSync(path, {force: true});
-      return null;
+): {readonly token: string; readonly request: PreparedOnboarding; readonly draft?: HostDraft} | null {
+  for (const durable of [true, false]) {
+    const path = pendingPreparationPath(cwd, key, durable);
+    try {
+      const parsed = JSON.parse(readFileSync(path, 'utf8')) as {
+        expiresAt?: number;
+        token?: string;
+        request?: PreparedOnboarding;
+        draft?: HostDraft;
+      };
+      if (!parsed.expiresAt || parsed.expiresAt < Date.now() || !parsed.token || !parsed.request) {
+        rmSync(path, {force: true});
+        continue;
+      }
+      return {token: parsed.token, request: parsed.request, draft: parsed.draft};
+    } catch {
+      // Try the other cache tier. A missing durable cache is normal before staging.
     }
-    return {token: parsed.token, request: parsed.request};
-  } catch {
-    return null;
   }
+  return null;
 }
 
 function removePendingPreparation(cwd: string, key: string): void {
   rmSync(pendingPreparationPath(cwd, key), {force: true});
+  rmSync(pendingPreparationPath(cwd, key, true), {force: true});
 }
 
 /** Returns a short, one-time phrase that is easy for a human to verify and hard to pass accidentally. */
@@ -655,17 +665,55 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
   );
 
   server.registerTool(
+    'clad_stage_init',
+    {
+      title: 'Stage a Cladding onboarding draft for approval',
+      description:
+        'Validate and temporarily cache the host-model draft from clad_prepare_init before showing the approval phrase. ' +
+        'This does not modify project files and lets a later host process apply the exact staged draft.',
+      inputSchema: {
+        token: z.string().min(1).max(MAX_APPROVAL_ENVELOPE_BYTES),
+        draft: hostDraftSchema,
+      },
+      outputSchema: {
+        status: z.string(), changed: z.boolean(), approvalChallenge: z.string().optional(),
+        confirmationQuestion: z.string().optional(), error: z.string().optional(),
+      },
+      annotations: {readOnlyHint: false, destructiveHint: false, idempotentHint: true},
+    },
+    async (args) => {
+      const request = prepared.get(args.token) ?? decodePreparedOnboarding(args.token);
+      if (!request || request.kind !== 'init' || !request.approvalChallenge) {
+        return mcpPayload({status: 'invalid_token', changed: false}, true);
+      }
+      if (request.snapshot !== onboardingPreparationSnapshot(cwd)) {
+        return mcpPayload({status: 'stale_preparation', changed: false}, true);
+      }
+      persistPendingPreparation(cwd, request.approvalChallenge, args.token, request, args.draft);
+      return mcpPayload({
+        status: 'staged',
+        changed: false,
+        approvalChallenge: request.approvalChallenge,
+        confirmationQuestion: `To apply these changes, reply with the exact approval phrase: ${request.approvalChallenge}`,
+      });
+    },
+  );
+
+  server.registerTool(
     'clad_init',
     {
       title: 'Apply a validated Cladding onboarding draft',
       description:
         'Write Cladding artifacts from the host model draft returned after clad_prepare_init. ' +
         'Use the one-time token when the host retained it; process-per-turn hosts may use the exact approval phrase ' +
-        'through the short-lived machine-local cache. Malformed, stale, or replayed requests do not write files.',
+        'through the short-lived project runtime cache. Copy the complete user message, including the APPLY CLADDING ' +
+        'prefix, into confirmation. Malformed, stale, or replayed requests do not write files.',
       inputSchema: {
         token: z.string().min(1).max(MAX_APPROVAL_ENVELOPE_BYTES).optional(),
-        confirmation: z.string().min(1).describe('The user\'s separate confirmation reply, verbatim'),
-        draft: hostDraftSchema,
+        confirmation: z.string().regex(/^APPLY CLADDING [A-F0-9]{6}$/).describe(
+          'The complete separate user reply, verbatim, including the APPLY CLADDING prefix',
+        ),
+        draft: hostDraftSchema.optional(),
       },
       outputSchema: {
         status: z.string(), changed: z.boolean(), created: z.array(z.string()).optional(), skipped: z.array(z.string()).optional(),
@@ -690,9 +738,16 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
       }
       if (request.snapshot !== onboardingPreparationSnapshot(cwd)) return mcpPayload({status: 'stale_preparation', changed: false}, true);
       if (!onboarding) return mcpPayload({status: 'unavailable', changed: false}, true);
+      const draft = args.draft ?? pending?.draft;
+      if (!draft) {
+        return mcpPayload({
+          status: 'draft_required', changed: false,
+          error: 'No staged onboarding draft is available. Prepare and stage the draft again before approval.',
+        }, true);
+      }
       if (args.token) prepared.delete(args.token);
       removePendingPreparation(cwd, args.confirmation.trim());
-      const response = onboarding.renderDraft(args.draft);
+      const response = onboarding.renderDraft(draft);
       const rollback = captureOnboardingRollback(cwd);
       let init: Awaited<ReturnType<OnboardingOperations['initialize']>>;
       try {

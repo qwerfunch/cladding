@@ -180,3 +180,17 @@ acceptance_criteria:
     response: project guidance has one shared source instead of diverging host copies
     text: The system shall use AGENTS.md as the generated cross-host instruction surface and preserve any existing CLAUDE.md without creating a new one, so project guidance has one shared source instead of diverging host copies.
     test_refs: [tests/cli/update.test.ts, tests/cli/init-onboarding-english-source.test.ts]
+  - id: AC-020
+    ears: event
+    condition: when a process-per-turn host stages a validated onboarding draft before showing the approval challenge
+    action: retain that exact draft only as ignored project runtime state and apply it after the complete approval phrase without asking the model to reconstruct intent
+    response: MCP process restarts cannot replace a planning document or observed project intent with an approval code
+    text: When a process-per-turn host stages a validated onboarding draft before showing the approval challenge, the system shall retain that exact draft only as ignored project runtime state and apply it after the complete approval phrase without asking the model to reconstruct intent, so MCP process restarts cannot replace a planning document or observed project intent with an approval code.
+    test_refs: [tests/serve/init-tools.test.ts]
+    notes: |
+      ## Decision
+      Add a read-only staging tool between host-model drafting and the destructive apply tool.
+      ## Why
+      Real Codex headless sessions reload MCP per turn and may isolate temporary directories; without a durable staged draft, a new model turn can reconstruct the wrong intent from the approval code.
+      ## Trade-off
+      Staging writes an opaque short-lived cache under the already ignored `.cladding/host/` runtime boundary, while authored spec and documentation remain untouched until exact approval.

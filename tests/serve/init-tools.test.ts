@@ -131,17 +131,49 @@ describe('serve/server — natural-language init tools', () => {
   test('process-per-turn hosts can apply by exact challenge when they discard opaque tool tokens', async () => {
     const first = await makePair(dir);
     const prepared = await prepare(first.client, {mode: 'idea', intent: 'B2B payment SaaS'});
+    const staged = await first.client.callTool({name: 'clad_stage_init', arguments: {
+      token: prepared.token,
+      draft,
+    }});
+    expect(payload(staged)).toMatchObject({
+      status: 'staged',
+      changed: false,
+      approvalChallenge: prepared.confirmation,
+    });
     await first.cleanup();
-    expect(readdirSync(dir)).toEqual([]);
+    expect(existsSync(join(dir, 'spec.yaml'))).toBe(false);
+    expect(existsSync(join(dir, 'AGENTS.md'))).toBe(false);
+    expect(existsSync(join(dir, '.cladding', 'host', 'onboarding-pending'))).toBe(true);
 
     const second = await makePair(dir);
     try {
       const result = await second.client.callTool({name: 'clad_init', arguments: {
         confirmation: prepared.confirmation,
-        draft,
       }});
       expect(result.isError).not.toBe(true);
       expect(payload(result)).toMatchObject({changed: true, onboardingSource: 'host'});
+    } finally {
+      await second.cleanup();
+    }
+  });
+
+  test('approval without a direct or staged draft fails closed', async () => {
+    const first = await makePair(dir);
+    const prepared = await prepare(first.client, {mode: 'document', document_path: (() => {
+      mkdirSync(join(dir, 'docs'), {recursive: true});
+      writeFileSync(join(dir, 'docs', 'plan.md'), 'Complete payment product plan.');
+      return 'docs/plan.md';
+    })()});
+    await first.cleanup();
+
+    const second = await makePair(dir);
+    try {
+      const result = await second.client.callTool({name: 'clad_init', arguments: {
+        confirmation: prepared.confirmation,
+      }});
+      expect(result.isError).toBe(true);
+      expect(payload(result)).toMatchObject({status: 'draft_required', changed: false});
+      expect(existsSync(join(dir, 'spec.yaml'))).toBe(false);
     } finally {
       await second.cleanup();
     }
@@ -159,7 +191,8 @@ describe('serve/server — natural-language init tools', () => {
       });
       const token = payload(preparation).token as string;
       const result = await client.callTool({name: 'clad_init', arguments: {token, confirmation: intent, draft}});
-      expect(payload(result)).toMatchObject({status: 'confirmation_required', changed: false});
+      expect(result.isError).toBe(true);
+      expect((result.content as Array<{text: string}>)[0].text).toContain('Invalid arguments');
       expect(existsSync(join(dir, 'spec.yaml'))).toBe(false);
     } finally {
       await cleanup();
@@ -175,7 +208,8 @@ describe('serve/server — natural-language init tools', () => {
         confirmation: 'Which files will be created?',
         draft,
       }});
-      expect(payload(result)).toMatchObject({status: 'confirmation_required', changed: false});
+      expect(result.isError).toBe(true);
+      expect((result.content as Array<{text: string}>)[0].text).toContain('Invalid arguments');
       expect(existsSync(join(dir, 'spec.yaml'))).toBe(false);
     } finally {
       await cleanup();

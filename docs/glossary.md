@@ -87,6 +87,7 @@
 | Tool | Meaning |
 |---|---|
 | `clad_prepare_init` | Read the project and return a bounded briefing plus one-time token; never writes files. |
+| `clad_stage_init` | Validate the host-model onboarding draft and cache it only as ignored project runtime state for a later approval turn. |
 | `clad_init` | Validate and apply the host model's structured onboarding draft. |
 | `clad_prepare_clarify` | Read current onboarding state and prepare a real user answer for host-model refinement. |
 | `clad_clarify` | Validate and apply the host model's structured refinement draft. |
