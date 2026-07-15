@@ -243,9 +243,11 @@ function runtimeBody(pkgRoot: string): string {
     "'use strict';",
     "const {spawn} = require('node:child_process');",
     `const engine = ${JSON.stringify(engine)};`,
-    "const child = spawn(process.execPath, [engine, 'serve'], {cwd: process.cwd(), stdio: 'inherit'});",
+    "const requested = process.argv.slice(2);",
+    "const args = requested.length > 0 ? requested : ['serve'];",
+    "const child = spawn(process.execPath, [engine, ...args], {cwd: process.cwd(), stdio: 'inherit'});",
     "for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => child.kill(signal));",
-    "child.on('error', (error) => { console.error(`cladding MCP launcher: ${error.message}`); process.exitCode = 1; });",
+    "child.on('error', (error) => { console.error(`cladding project launcher: ${error.message}`); process.exitCode = 1; });",
     "child.on('exit', (code, signal) => { process.exitCode = code ?? (signal ? 1 : 0); });",
     '',
   ].join('\n');

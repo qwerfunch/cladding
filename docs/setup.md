@@ -16,7 +16,7 @@ the detail behind them: where each host is wired, how the MCP server works, and 
 | Antigravity (`agy`) | `.agents/skills/cladding-init` + `.agents/mcp_config.json` |
 | Cursor | `.cursor/skills/cladding-init` + `.cursor/mcp.json` + bootstrap rule |
 
-The only machine-specific path lives in `.cladding/host/serve.cjs`, which is ignored project runtime state. Re-run setup on each developer machine. Host config files use the portable relative launcher path and preserve unrelated entries.
+The only machine-specific path lives in `.cladding/host/serve.cjs`, which is ignored project runtime state. Re-run setup on each developer machine. Host config files use the portable relative launcher path and preserve unrelated entries. With no arguments the launcher starts MCP; with arguments it forwards a normal CLI command to that exact same engine. Generated project guidance therefore uses `node .cladding/host/serve.cjs check --strict` and similar shell calls when the launcher exists, preventing a different global installation from silently validating the project with another build.
 
 Codex loads `.codex/config.toml` only for a trusted Git repository. Accept Codex's normal project-trust prompt when opening the repository; this is a Codex security boundary and `clad setup` does not bypass or pre-approve it.
 

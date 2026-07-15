@@ -12,8 +12,9 @@
 //      scenarios, warn: a non-trivial product with zero captured cross-feature
 //      flows is under-specified. (status-blind on total feature count, like
 //      HOLLOW_GOVERNANCE — the gap appeared on all-`done` builds.)
-//   2. UNCONDITIONAL HOLLOW — a scenario whose `features[]` is empty is hollow (it
-//      claims to cover a flow but binds nothing), warn regardless of size.
+//   2. GRADUATED HOLLOW — onboarding intentionally creates future journeys with
+//      empty `features[]`. Report them as info while the project is small, then
+//      warn at the same maturity threshold used by the no-scenarios check.
 //   3. UNDER-BOUND — a scenario whose `flow` names a feature by its slug (the
 //      `(feature-slug)` convention) that it doesn't bind in `features[]`, so its
 //      declared coverage under-states the flow it walks. Exact-slug match only, so
@@ -42,6 +43,7 @@ function detect(spec: Spec): readonly DriftFinding[] {
   const findings: DriftFinding[] = [];
   const featureCount = spec.features.length;
   const scenarios = spec.scenarios ?? [];
+  const isGrown = featureCount >= DEFAULT_MIN_FEATURES_FOR_SCENARIOS;
 
   // 1. Grown project with no cross-feature flows captured.
   if (featureCount >= DEFAULT_MIN_FEATURES_FOR_SCENARIOS && scenarios.length === 0) {
@@ -55,16 +57,19 @@ function detect(spec: Spec): readonly DriftFinding[] {
     });
   }
 
-  // 2. A scenario that binds no features is hollow (claims a flow, covers nothing).
+  // 2. An empty onboarding scenario is future design until the project grows;
+  // after that boundary the same unresolved link is blocking under --strict.
   for (const s of scenarios) {
     if ((s.features ?? []).length === 0) {
       findings.push({
         detector: NAME,
-        severity: 'warn',
+        severity: isGrown ? 'warn' : 'info',
         path: 'spec/scenarios/',
-        message:
-          `scenario ${s.id} binds no features (features: []) — a scenario must cover at least ` +
-          "one feature's flow, or it should be removed.",
+        message: isGrown
+          ? `scenario ${s.id} binds no features (features: []) — a grown project's scenario must cover at least ` +
+            "one feature's flow, or it should be removed."
+          : `scenario ${s.id} binds no features yet — retained as future onboarding intent; ` +
+            'bind it when a matching feature lands.',
       });
     }
   }

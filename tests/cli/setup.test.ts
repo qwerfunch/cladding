@@ -1,6 +1,7 @@
 // Cladding · project-scoped setup and legacy-global migration tests.
 
 import {existsSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
+import {spawnSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
@@ -18,7 +19,7 @@ describe('project-scoped runHostSetup', () => {
     pkgRoot = mkdtempSync(join(tmpdir(), 'clad-pkg-'));
     mkdirSync(join(pkgRoot, 'dist'), {recursive: true});
     mkdirSync(join(pkgRoot, 'plugins', 'codex', 'skills', 'init'), {recursive: true});
-    writeFileSync(join(pkgRoot, 'dist', 'clad.js'), '#!/usr/bin/env node\n');
+    writeFileSync(join(pkgRoot, 'dist', 'clad.js'), 'process.stdout.write(JSON.stringify(process.argv.slice(2)));\n');
     writeFileSync(join(pkgRoot, 'package.json'), JSON.stringify({name: 'cladding', version: '0.9.0'}));
     writeFileSync(
       join(pkgRoot, 'plugins', 'codex', 'skills', 'init', 'SKILL.md'),
@@ -68,6 +69,19 @@ describe('project-scoped runHostSetup', () => {
     expect(cursor).toContain('.cladding/host/serve.cjs');
     expect(codex).not.toContain(pkgRoot);
     expect(runtime).toContain(join(pkgRoot, 'dist', 'clad.js'));
+  });
+
+  test('project runtime pins MCP and shell commands to the same engine', async () => {
+    await runHostSetup({home, projectRoot: project, pkgRoot, quiet: true, activate: false});
+
+    const runtime = join(project, '.cladding', 'host', 'serve.cjs');
+    const mcp = spawnSync(process.execPath, [runtime], {cwd: project, encoding: 'utf8'});
+    const cli = spawnSync(process.execPath, [runtime, 'check', '--strict'], {cwd: project, encoding: 'utf8'});
+
+    expect(mcp.status).toBe(0);
+    expect(mcp.stdout).toBe('["serve"]');
+    expect(cli.status).toBe(0);
+    expect(cli.stdout).toBe('["check","--strict"]');
   });
 
   test('is idempotent and stores setup status under the project', async () => {

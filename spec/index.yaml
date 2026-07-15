@@ -94,7 +94,7 @@ features:
   F-0e84628e: {slug: merge-ritual-docs, status: done, modules: 2}
   F-0ed2db: {slug: ai-hints-consumer-instructions, status: done, modules: 11}
   F-0f2984d0: {slug: infer-deps-dynamic-flag, status: done, modules: 2}
-  F-0f4dd6: {slug: natural-language-init, status: in_progress, modules: 16}
+  F-0f4dd6: {slug: natural-language-init, status: in_progress, modules: 26}
   F-10cc42d1: {slug: git-op-write-guard, status: done, modules: 5}
   F-12d740: {slug: atomic-ac-evidence-fanout, status: done, modules: 1}
   F-15999130: {slug: inferable-depends-on-detector, status: done, modules: 2}
@@ -203,7 +203,7 @@ features:
   F-b43066: {slug: model-defaults-refresh, status: done, modules: 6}
   F-b61449: {slug: gemini-cli-dogfood, status: done, modules: 1}
   F-b7873005: {slug: gate-error-parser, status: done, modules: 1}
-  F-b81d203e: {slug: vacuous-test-guard, status: done, modules: 1}
+  F-b81d203e: {slug: vacuous-test-guard, status: done, modules: 2}
   F-b84c38: {slug: lifecycle-events-identity, status: done, modules: 4}
   F-b8d74801: {slug: verb-rename-residue-sweep, status: done, modules: 6}
   F-b99577: {slug: stale-archive-suggestion, status: done, modules: 4}

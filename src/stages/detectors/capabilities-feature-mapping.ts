@@ -14,11 +14,11 @@
 //      typo or a feature that was deleted without updating the
 //      capability registry.
 //
-//   2. **Orphan capability (warn)** — a capability whose `features[]`
-//      is empty (or missing) is not yet bound to any feature.
-//      Acceptable during early onboarding (clad init may emit
-//      capability stubs before features land), but should be
-//      resolved before release.
+//   2. **Orphan capability (graduated)** — a capability whose `features[]`
+//      is empty (or missing) is not yet bound to any feature. Intent-aware
+//      onboarding deliberately emits future capability seeds before features
+//      land, so the finding is info while a project is small and graduates to
+//      warn at the shared eight-feature maturity boundary.
 //
 //   3. **Unmapped feature (info)** — a feature in spec.yaml that no
 //      capability claims via its `features[]`. Acceptable for
@@ -44,6 +44,9 @@ import {loadSpec} from '../../spec/load.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
 
 const NAME = 'CAPABILITIES_FEATURE_MAPPING';
+
+/** Shared maturity boundary: below this count onboarding design is still expected to be ahead of implementation. */
+export const DEFAULT_MIN_FEATURES_FOR_CAPABILITY_BINDINGS = 8;
 
 interface CapabilityEntry {
   readonly id: string;
@@ -92,6 +95,7 @@ function run(opts: CommandStageOptions): readonly DriftFinding[] {
 
   const findings: DriftFinding[] = [];
   const featuresClaimedByCapabilities = new Set<string>();
+  const isGrown = featureIds.size >= DEFAULT_MIN_FEATURES_FOR_CAPABILITY_BINDINGS;
 
   for (const cap of capabilities) {
     if (typeof cap !== 'object' || cap === null) continue;
@@ -101,11 +105,13 @@ function run(opts: CommandStageOptions): readonly DriftFinding[] {
     if (features.length === 0) {
       findings.push({
         detector: NAME,
-        severity: 'warn',
+        severity: isGrown ? 'warn' : 'info',
         path: 'spec/capabilities.yaml',
-        message:
-          `capability "${capId}" has no features mapped — bind at least one feature via the features[] field, ` +
-          `or remove the capability if it's no longer relevant`,
+        message: isGrown
+          ? `capability "${capId}" has no features mapped — bind at least one feature via the features[] field, ` +
+            `or remove the capability if it's no longer relevant`
+          : `capability "${capId}" has no features mapped yet — retained as future onboarding intent; ` +
+            `bind it when a matching feature lands`,
       });
       continue;
     }

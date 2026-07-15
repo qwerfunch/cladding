@@ -121,42 +121,52 @@ describe('detectToolchain', () => {
     writeFileSync(join(dir, 'biome.json'), '{}');
     const tc = detectToolchain(dir);
     expect(tc.language).toBe('typescript');
-    expect(tc.gates.lint).toEqual({cmd: 'npx', args: ['--no-install', 'biome', 'lint', '.']});
+    expect(tc.gates.lint).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'biome', 'lint', '.']});
   });
 
   test('typescript + .oxlintrc.json → lint gate is oxlint', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     writeFileSync(join(dir, '.oxlintrc.json'), '{}');
-    expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npx', args: ['--no-install', 'oxlint']});
+    expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'oxlint']});
   });
 
   test('typescript + .oxlintrc.jsonc → lint gate is oxlint', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     writeFileSync(join(dir, '.oxlintrc.jsonc'), '{}');
-    expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npx', args: ['--no-install', 'oxlint']});
+    expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'oxlint']});
   });
 
   test('typescript + oxlint.config.ts → lint gate is oxlint', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     writeFileSync(join(dir, 'oxlint.config.ts'), 'export default {}');
-    expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npx', args: ['--no-install', 'oxlint']});
+    expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'oxlint']});
   });
 
-  test('selection follows config presence — add biome.json swaps to biome, remove it falls back to eslint', () => {
+  test('selection follows declarations — add biome.json enables biome, remove it leaves lint unconfigured', () => {
     // State-transition: proves resolveTsLint actually reads the filesystem each call,
     // not a hard-coded return (defeats the one-way-test critique).
     writeFileSync(join(dir, 'package.json'), '{}');
-    const eslintGate = {cmd: 'npx', args: ['--no-install', 'eslint', '.']};
-    expect(detectToolchain(dir).gates.lint).toEqual(eslintGate);
+    expect(detectToolchain(dir).gates.lint).toBeUndefined();
     writeFileSync(join(dir, 'biome.json'), '{}');
-    expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npx', args: ['--no-install', 'biome', 'lint', '.']});
+    expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'biome', 'lint', '.']});
     rmSync(join(dir, 'biome.json'));
-    expect(detectToolchain(dir).gates.lint).toEqual(eslintGate);
+    expect(detectToolchain(dir).gates.lint).toBeUndefined();
   });
 
-  test('typescript with no linter config → lint gate stays eslint (default preserved)', () => {
+  test('typescript with no lint script or config → lint gate is honestly unconfigured', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
-    expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npx', args: ['--no-install', 'eslint', '.']});
+    expect(detectToolchain(dir).gates.lint).toBeUndefined();
+  });
+
+  test('typescript scripts.lint → lint gate runs the exact project-owned workflow', () => {
+    writeFileSync(join(dir, 'package.json'), '{"scripts":{"lint":"eslint src --max-warnings=0"}}');
+    expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npm', args: ['run', '--silent', 'lint']});
+  });
+
+  test('typescript eslint config without lint script → lint gate is eslint', () => {
+    writeFileSync(join(dir, 'package.json'), '{}');
+    writeFileSync(join(dir, 'eslint.config.js'), 'export default []');
+    expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'eslint', '.']});
   });
 
   test('biome takes precedence over oxlint when both configs present', () => {
@@ -170,8 +180,8 @@ describe('detectToolchain', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     writeFileSync(join(dir, 'biome.json'), '{}');
     const tc = detectToolchain(dir);
-    expect(tc.gates.type).toEqual({cmd: 'npx', args: ['--no-install', 'tsc', '--noEmit']});
-    expect(tc.gates.test).toEqual({cmd: 'npx', args: ['--no-install', 'vitest', 'run']});
+    expect(tc.gates.type).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'tsc', '--noEmit']});
+    expect(tc.gates.test).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'vitest', 'run']});
   });
 
   test('biome.json does not leak into a non-TS language', () => {
@@ -189,8 +199,8 @@ describe('detectToolchain', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     writeFileSync(join(dir, 'jest.config.js'), 'module.exports = {}');
     const tc = detectToolchain(dir);
-    expect(tc.gates.test).toEqual({cmd: 'npx', args: ['--no-install', 'jest']});
-    expect(tc.gates.coverage).toEqual({cmd: 'npx', args: ['--no-install', 'jest', '--coverage']});
+    expect(tc.gates.test).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'jest']});
+    expect(tc.gates.coverage).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'jest', '--coverage']});
   });
 
   for (const cfg of ['jest.config.ts', 'jest.config.mjs', 'jest.config.cjs', 'jest.config.json']) {
@@ -203,24 +213,55 @@ describe('detectToolchain', () => {
 
   test('package.json with a top-level "jest" key and no jest.config.* → test gate is jest', () => {
     writeFileSync(join(dir, 'package.json'), '{"jest":{}}');
-    expect(detectToolchain(dir).gates.test).toEqual({cmd: 'npx', args: ['--no-install', 'jest']});
+    expect(detectToolchain(dir).gates.test).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'jest']});
   });
 
   test('typescript with no jest config → test/coverage stay vitest (default preserved)', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     const tc = detectToolchain(dir);
-    expect(tc.gates.test).toEqual({cmd: 'npx', args: ['--no-install', 'vitest', 'run']});
-    expect(tc.gates.coverage).toEqual({cmd: 'npx', args: ['--no-install', 'vitest', 'run', '--coverage']});
+    expect(tc.gates.test).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'vitest', 'run']});
+    expect(tc.gates.coverage).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'vitest', 'run', '--coverage']});
+  });
+
+  test('custom scripts.test → npm test and no assumed coverage runner', () => {
+    writeFileSync(join(dir, 'package.json'), '{"scripts":{"test":"npm run build && node --test dist/tests/app.test.js"}}');
+    const tc = detectToolchain(dir);
+    expect(tc.gates.test).toEqual({cmd: 'npm', args: ['test']});
+    expect(tc.gates.coverage).toBeUndefined();
+  });
+
+  test('custom test and coverage scripts → both exact project-owned workflows', () => {
+    writeFileSync(join(dir, 'package.json'), '{"scripts":{"test":"node --test","coverage":"c8 npm test"}}');
+    const tc = detectToolchain(dir);
+    expect(tc.gates.test).toEqual({cmd: 'npm', args: ['test']});
+    expect(tc.gates.coverage).toEqual({cmd: 'npm', args: ['run', '--silent', 'coverage']});
+  });
+
+  test('simple vitest script without a coverage provider keeps unit native but omits coverage', () => {
+    writeFileSync(join(dir, 'package.json'), '{"scripts":{"test":"vitest run"},"devDependencies":{"vitest":"^4.0.0"}}');
+    const tc = detectToolchain(dir);
+    expect(tc.gates.test).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'vitest', 'run']});
+    expect(tc.gates.coverage).toBeUndefined();
+  });
+
+  test('simple vitest script with a coverage provider preserves the native coverage gate', () => {
+    writeFileSync(join(dir, 'package.json'), '{"scripts":{"test":"vitest run"},"devDependencies":{"vitest":"^4.0.0","@vitest/coverage-v8":"^4.0.0"}}');
+    expect(detectToolchain(dir).gates.coverage).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'vitest', 'run', '--coverage']});
+  });
+
+  test('simple jest script selects jest without requiring a config file', () => {
+    writeFileSync(join(dir, 'package.json'), '{"scripts":{"test":"jest"}}');
+    expect(detectToolchain(dir).gates.test).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'jest']});
   });
 
   test('test runner selection follows config presence — add jest.config.js swaps to jest, remove it falls back to vitest', () => {
     // State-transition: proves the test-runner resolution reads the filesystem each call,
     // not a hard-coded return.
     writeFileSync(join(dir, 'package.json'), '{}');
-    const vitestGate = {cmd: 'npx', args: ['--no-install', 'vitest', 'run']};
+    const vitestGate = {cmd: 'npx', args: ['--offline', '--no-install', 'vitest', 'run']};
     expect(detectToolchain(dir).gates.test).toEqual(vitestGate);
     writeFileSync(join(dir, 'jest.config.js'), 'module.exports = {}');
-    expect(detectToolchain(dir).gates.test).toEqual({cmd: 'npx', args: ['--no-install', 'jest']});
+    expect(detectToolchain(dir).gates.test).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'jest']});
     rmSync(join(dir, 'jest.config.js'));
     expect(detectToolchain(dir).gates.test).toEqual(vitestGate);
   });
@@ -236,7 +277,7 @@ describe('detectToolchain', () => {
 
   test('typescript arch gate scans ts,tsx,js,jsx extensions', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
-    expect(detectToolchain(dir).gates.arch).toEqual({cmd: 'npx', args: ['--no-install', 'madge', '--circular', '--extensions', 'ts,tsx,js,jsx', '.']});
+    expect(detectToolchain(dir).gates.arch).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'madge', '--circular', '--extensions', 'ts,tsx,js,jsx', '.']});
   });
 
   // ─── Swift (SPM) + Flutter/Dart toolchain (F-e4159959) ───

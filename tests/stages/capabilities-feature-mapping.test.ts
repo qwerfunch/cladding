@@ -4,7 +4,7 @@
 // `capabilities[].features[]` against Tier A `spec.yaml` feature ids.
 // Three findings:
 //   - dangling feature id  → error
-//   - orphan capability    → warn
+//   - orphan capability    → info while small, warn once grown
 //   - feature without cap  → info
 //
 // Detector skips silently when capabilities.yaml is missing or
@@ -16,7 +16,10 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {capabilitiesFeatureMapping} from '../../src/stages/detectors/capabilities-feature-mapping.js';
+import {
+  capabilitiesFeatureMapping,
+  DEFAULT_MIN_FEATURES_FOR_CAPABILITY_BINDINGS,
+} from '../../src/stages/detectors/capabilities-feature-mapping.js';
 
 function writeSpec(dir: string, featureIds: readonly string[]): void {
   const features = featureIds
@@ -97,7 +100,7 @@ describe('CAPABILITIES_FEATURE_MAPPING detector', () => {
     expect(errors[0].message).toContain('does not exist');
   });
 
-  test('orphan capability (features: []) → warn finding', () => {
+  test('orphan capability below the maturity threshold → informational future intent', () => {
     writeSpec(dir, ['F-001']);
     writeCapabilities(
       dir,
@@ -112,13 +115,12 @@ describe('CAPABILITIES_FEATURE_MAPPING detector', () => {
       ].join('\n'),
     );
     const findings = capabilitiesFeatureMapping.run({cwd: dir});
-    const warns = findings.filter((f) => f.severity === 'warn');
-    expect(warns.length).toBe(1);
-    expect(warns[0].message).toContain('orphan-cap');
-    expect(warns[0].message).toContain('no features mapped');
+    const infos = findings.filter((f) => f.severity === 'info');
+    expect(infos.length).toBe(2); // orphan capability + F-001 not claimed
+    expect(infos.some((f) => f.message.includes('orphan-cap') && f.message.includes('future onboarding intent'))).toBe(true);
   });
 
-  test('capability without features field → warn (treated as orphan)', () => {
+  test('capability without features field below the threshold → info (treated as future intent)', () => {
     writeSpec(dir, ['F-001']);
     writeCapabilities(
       dir,
@@ -132,9 +134,31 @@ describe('CAPABILITIES_FEATURE_MAPPING detector', () => {
       ].join('\n'),
     );
     const findings = capabilitiesFeatureMapping.run({cwd: dir});
+    const infos = findings.filter((f) => f.severity === 'info');
+    expect(infos.some((f) => f.message.includes('missing-features-field'))).toBe(true);
+  });
+
+  test('orphan capability at the maturity threshold → warn finding', () => {
+    const ids = Array.from(
+      {length: DEFAULT_MIN_FEATURES_FOR_CAPABILITY_BINDINGS},
+      (_, index) => `F-${String(index + 1).padStart(3, '0')}`,
+    );
+    writeSpec(dir, ids);
+    writeCapabilities(
+      dir,
+      [
+        'schema: "0.1"',
+        'source: intent',
+        'capabilities:',
+        '  - id: overdue-binding',
+        '    features: []',
+        '',
+      ].join('\n'),
+    );
+    const findings = capabilitiesFeatureMapping.run({cwd: dir});
     const warns = findings.filter((f) => f.severity === 'warn');
-    expect(warns.length).toBe(1);
-    expect(warns[0].message).toContain('missing-features-field');
+    expect(warns).toHaveLength(1);
+    expect(warns[0].message).toContain('overdue-binding');
   });
 
   test('feature without capability → info finding', () => {
@@ -160,7 +184,7 @@ describe('CAPABILITIES_FEATURE_MAPPING detector', () => {
     ]));
   });
 
-  test('mixed findings: orphan + dangling + info', () => {
+  test('mixed findings: early orphan info + dangling error + unclaimed-feature info', () => {
     writeSpec(dir, ['F-001', 'F-002']);
     writeCapabilities(
       dir,
@@ -187,9 +211,9 @@ describe('CAPABILITIES_FEATURE_MAPPING detector', () => {
       info: findings.filter((f) => f.severity === 'info'),
     };
     expect(bySev.error.length).toBe(1);
-    expect(bySev.warn.length).toBe(1);
-    expect(bySev.info.length).toBe(1); // F-002 unclaimed
-    expect(bySev.info[0].message).toContain('F-002');
+    expect(bySev.warn.length).toBe(0);
+    expect(bySev.info.length).toBe(2); // early orphan + F-002 unclaimed
+    expect(bySev.info.some((f) => f.message.includes('F-002'))).toBe(true);
   });
 
   test('malformed YAML → skip silently (other detectors flag corruption)', () => {

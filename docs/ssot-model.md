@@ -187,13 +187,14 @@ Detector-enforced (today + this cycle):
 - `ARCHITECTURE_FROM_SPEC`: imports don't cross `forbidden_imports` boundaries
 - `REFERENCE_INTEGRITY`: scenario `features[]`, feature `depends_on[]`, `superseded_by` resolve (existence)
 - `HARNESS_INTEGRITY`: plugin manifest version sync, detector count
-- **`CAPABILITIES_FEATURE_MAPPING` (NEW v0.3.45)**: capability `features[]` resolve to real features
+- **`CAPABILITIES_FEATURE_MAPPING` (NEW v0.3.45)**: capability `features[]` resolve to real features;
+  unbound onboarding capabilities are informational below eight features and graduate to warnings once the project is grown
 - **`INVENTORY_DRIFT` (v0.4.x)**: the `inventory:` counts match the on-disk shard reality
 - **`PLANNED_BACKLOG` (v0.4.x)**: too many `planned`/`in_progress` features with no code on disk (the spec racing ahead of the code)
 - **`HOLLOW_GOVERNANCE` (v0.4.x, J1)**: a grown project with a present-but-empty `capabilities`/`architecture` design tier
 - **`DEPENDENCY_CYCLE` (v0.4.x, J3)**: `features[].depends_on` is acyclic (pairs with `REFERENCE_INTEGRITY`'s existence check)
 - **`AI_HINTS_FORBIDDEN_PATTERN` (v0.3.57)**: code avoids `ai_hints.forbidden_patterns`
-- **`SCENARIO_COVERAGE` (v0.4.x, S-b)**: a grown project declares ≥1 scenario, no scenario binds an empty `features[]`, and no scenario under-states its coverage (its `flow` names a feature slug it doesn't bind)
+- **`SCENARIO_COVERAGE` (v0.4.x, S-b)**: a grown project declares ≥1 scenario, no grown-project scenario binds an empty `features[]`, and no scenario under-states its coverage (its `flow` names a feature slug it doesn't bind); empty onboarding journeys stay informational below eight features
 - **`PROJECT_CONTEXT_DRIFT` (v0.4.x, S-c)**: a grown project's `project-context.md` is not still the unrefined init template
 
 Detector-enforced (deferred to future cycles):

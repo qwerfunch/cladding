@@ -37,10 +37,10 @@ attested_modules:
   docs/ab-evaluation/README.md: 2467808b9871dcf0
   docs/ab-evaluation/case-doverunner-scale.md: 2a435b6855823d41
   docs/ab-evaluation/case-efficiency-measurement.md: 348aca146a7b2faa
-  docs/ab-evaluation/case-existing-adoption.md: ba73162bf6f43a34
+  docs/ab-evaluation/case-existing-adoption.md: fc0997406abc7e61
   docs/ab-evaluation/case-graph-efficiency.md: 83d3956d14a1517d
   docs/ab-evaluation/case-iterative-vs-fixed-vapt.md: 1d242b8b6071f343
-  docs/ab-evaluation/case-payment-saas.md: a19608f25d0cf807
+  docs/ab-evaluation/case-payment-saas.md: 4f9306412e40cee2
   docs/ab-evaluation/case-working-set-landmine.md: b4f44dc463e99722
   docs/ab-evaluation/summary.md: 59e527a531f13209
   docs/b1-adoption-protocol.md: a041d8ad5ba1447f
@@ -60,7 +60,7 @@ attested_modules:
   docs/multi-provider-roadmap.md: 1e5cf27ea1b18d06
   docs/refinement-backlog.md: 3e38d60bf987eef1
   docs/spec-ids-multi-dev.md: 28d58e84879f58b1
-  docs/ssot-model.md: 35b911d1138b725e
+  docs/ssot-model.md: ab7933a8ef7b89b8
   docs/ssot-testing.md: abf3b2bd5acb29a1
   package.json: dadf1cd78af4d4a3
   plugins/claude-code/.claude-plugin/plugin.json: 7493e69dee9ae24d
@@ -192,10 +192,10 @@ attested_modules:
   src/hitl/anti-self-cert.ts: 53a714d8e489d00a
   src/hitl/audit.ts: 79b06e904815469a
   src/hitl/identity.ts: 52ff84aa666f1dab
-  src/init/agents-md.ts: cb15264f0a0f2f8c
+  src/init/agents-md.ts: 7dc05f6d82e5c3ce
   src/init/git-hook.ts: 4e02f177b3764ae8
   src/init/host-instructions.ts: f6d10695ef0c4763
-  src/init/host-setup.ts: 6d83a5a3a59131e4
+  src/init/host-setup.ts: 7567497d563ef587
   src/optimizer: a4d0f0eb87fed960
   src/optimizer/code-excerpt.ts: e2c4598efcd28d2a
   src/optimizer/context-slice.ts: b5864aaed1e7ae48
@@ -242,17 +242,17 @@ attested_modules:
   src/stages/cov.ts: 9797f9316e391a55
   src/stages/deliverable-smoke.ts: 9ecfd4210e6ec5c0
   src/stages/detector-result-cache.ts: 93ea6af02ef361c5
-  src/stages/detectors/README.md: 2e136e4f61e6d6bb
+  src/stages/detectors/README.md: 12e8d24351eef05c
   src/stages/detectors/absence-of-governance.ts: 954d8ce5c45b3b32
   src/stages/detectors/ac-drift.ts: 1bceeae9ee99080b
   src/stages/detectors/ac-duplicate-within-feature.ts: 652ad48c8cd1ab2e
   src/stages/detectors/ai-hints-forbidden-pattern.ts: 96b225595ffd4d0a
   src/stages/detectors/architecture-from-spec.ts: ee36fa5f94a5be2a
   src/stages/detectors/architecture-violation.ts: b5035317a61e5ebe
-  src/stages/detectors/capabilities-feature-mapping.ts: c969d5dfa45851e1
+  src/stages/detectors/capabilities-feature-mapping.ts: 4a245767d091d6ff
   src/stages/detectors/convention-drift.ts: 450cb86924dfcf82
   src/stages/detectors/coverage-drop.ts: 809d13599596793e
-  src/stages/detectors/deliverable-integrity.ts: 2d14f1064eeb41a7
+  src/stages/detectors/deliverable-integrity.ts: 40c4736774e9dfc6
   src/stages/detectors/dependency-cycle.ts: 873c8fdde00aa48b
   src/stages/detectors/doc-reference-integrity.ts: ac693db9c4bed946
   src/stages/detectors/evidence-mismatch.ts: c633778b8f9ec0af
@@ -272,7 +272,7 @@ attested_modules:
   src/stages/detectors/planned-backlog.ts: a6850576b00d4a44
   src/stages/detectors/project-context-drift.ts: d3643f369537a8e8
   src/stages/detectors/reference-integrity.ts: 8883766a4bf69c61
-  src/stages/detectors/scenario-coverage.ts: ff4cc3aa721abe26
+  src/stages/detectors/scenario-coverage.ts: 08bd9a808d9e85ed
   src/stages/detectors/slug-conflict.ts: 5d9b8feec12dce07
   src/stages/detectors/smoke-probe-demand.ts: 792b6d0d07f82a16
   src/stages/detectors/spec-conformance.ts: 8c74460349f0acef
@@ -300,7 +300,7 @@ attested_modules:
   src/stages/spec-conformance.ts: ba68465c4715cc65
   src/stages/test-run-cache.ts: 46df49ab73a1a72e
   src/stages/toolchain/coverage-tool.ts: 310883060ed6d92e
-  src/stages/toolchain/detect.ts: 33e2f90c954a6c10
+  src/stages/toolchain/detect.ts: 36d4947e5567bd5f
   src/stages/toolchain/gate-config.ts: 35c31716191a3dee
   src/stages/toolchain/language-config.ts: 65175718559b0710
   src/stages/toolchain/module-scope.ts: 88358ec3b84eedd3
@@ -309,8 +309,8 @@ attested_modules:
   src/stages/type.ts: abe900ea8236d37f
   src/stages/types.ts: 24b4dc30ec7d7f33
   src/stages/uat.ts: 62ec3e37a124f8c5
-  src/stages/unit.ts: f25add219b764f03
-  src/stages/util.ts: 7943e14136ec2da7
+  src/stages/unit.ts: f61e0b2c79ed97e2
+  src/stages/util.ts: 33e1a60e5bd097b9
   src/stages/vacuous-tests.ts: 8e71b81e151325af
   src/stages/visual.ts: 48bbb6e77f09ed63
   src/ui: a4d0f0eb87fed960
@@ -391,7 +391,7 @@ attested_modules:
   tests/stages/hardcoded-secret.test.ts: bf6adf480abdc4e0
   tests/stages/harness-integrity.test.ts: 72e1770566c8e877
   tests/stages/inventory-drift.test.ts: 5641e9bdfadb2d52
-  tests/stages/lint.test.ts: 7bb84adc4f4e0820
+  tests/stages/lint.test.ts: a5106351ff7aeabc
   tests/stages/meta-integrity.test.ts: f0781f010e95edd0
   tests/stages/missing-implementation.test.ts: 2cf79871685fbdf4
   tests/stages/missing-tests.test.ts: feb49f3af71cc1af
@@ -400,18 +400,18 @@ attested_modules:
   tests/stages/reference-integrity.test.ts: 0f919c06f0ff96f3
   tests/stages/secret.test.ts: 06291c1daf9df45c
   tests/stages/smoke.test.ts: 99f97875d29ac5d3
-  tests/stages/spec-conformance.test.ts: 9f6ac08e09d7b10b
+  tests/stages/spec-conformance.test.ts: bdd78493c15a4ee4
   tests/stages/stale-evidence.test.ts: 8e8622f17eb7f955
   tests/stages/stale-specification.test.ts: 09bd06db377d890c
   tests/stages/stale-tests.test.ts: 1467ceedb8019e86
   tests/stages/status-drift.test.ts: cff1092eeb23c268
   tests/stages/tech-stack-mismatch.test.ts: 878436ffd2f94c97
-  tests/stages/toolchain.test.ts: 13b2229e49d1eaba
+  tests/stages/toolchain.test.ts: 04e12be4ac1dee5c
   tests/stages/type.test.ts: b57cf7455cae3b32
   tests/stages/uat.test.ts: 29c5bf3e7f3abc35
-  tests/stages/unit.test.ts: cb1eea0a14681948
+  tests/stages/unit.test.ts: 97781210eb81bb25
   tests/stages/unmapped-artifact.test.ts: 6bfdae66990fd63a
-  tests/stages/util.test.ts: 6e0e86140028f336
+  tests/stages/util.test.ts: b78f4f467b752bf2
   tests/stages/visual.test.ts: dd819e7d25586b92
   tests/ui/panel.test.ts: ad9ea207f34b1c51
   tests/ui/pulse.test.ts: 30f1d091de9093ad

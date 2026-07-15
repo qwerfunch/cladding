@@ -53,7 +53,7 @@ export function isMissingBinary(proc: {readonly code?: string}): boolean {
  * ARCHITECTURE_VIOLATION error (breaking the committed A/B report baselines).
  */
 const SCANNER_SETUP_FAILURE =
-  /config (is |file )?not found|no such file|ENOENT|cannot find (a |the )?(config|module|package|preset)|require[sd]?\b.{0,40}\bconfig|canceled due to missing packages|could not determine executable/i;
+  /config (is |file )?not found|no such file|ENOENT|ENOTCACHED|ENOTFOUND|EAI_AGAIN|cannot find (a |the )?(config|module|package|preset)|require[sd]?\b.{0,40}\bconfig|canceled due to missing packages|could not determine executable/i;
 
 export function classifyScannerExit(
   proc: {readonly exitCode?: number | null; readonly stdout?: unknown; readonly stderr?: unknown},
@@ -75,10 +75,19 @@ export function classifyScannerExit(
 export function missingToolSkip(
   stage: string,
   cmd: string,
-  proc: {readonly code?: string; readonly exitCode?: number | null},
+  proc: {
+    readonly code?: string;
+    readonly exitCode?: number | null;
+    readonly stdout?: unknown;
+    readonly stderr?: unknown;
+  },
 ): StageResult | null {
   if (isMissingBinary(proc)) {
     return {stage, pass: false, exitCode: 2, stderr: `'${cmd}' not installed`};
+  }
+  const output = `${String(proc.stderr ?? '')}\n${String(proc.stdout ?? '')}`;
+  if (cmd === 'npx' && /ENOTCACHED|ENOTFOUND|EAI_AGAIN|canceled due to missing packages|could not determine executable/i.test(output)) {
+    return {stage, pass: false, exitCode: 2, stderr: `'npx' could not resolve the configured tool without installing it`};
   }
   return null;
 }

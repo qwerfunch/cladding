@@ -17,8 +17,18 @@ modules:
   - src/spec/types.ts
   - src/cli/done.ts
   - src/events/log.ts
+  - src/stages/detectors/capabilities-feature-mapping.ts
+  - src/stages/detectors/scenario-coverage.ts
+  - src/stages/detectors/deliverable-integrity.ts
+  - src/stages/toolchain/detect.ts
+  - src/stages/unit.ts
+  - src/stages/util.ts
   - README.md
   - docs/glossary.md
+  - docs/ssot-model.md
+  - docs/dogfood/codex-cli-2026-07-15.md
+  - src/stages/detectors/README.md
+  - src/stages/README.md
 depends_on: [F-56abaa, F-5f6b45, F-80d19d]
 acceptance_criteria:
   - id: AC-001
@@ -194,3 +204,73 @@ acceptance_criteria:
       Real Codex headless sessions reload MCP per turn and may isolate temporary directories; without a durable staged draft, a new model turn can reconstruct the wrong intent from the approval code.
       ## Trade-off
       Staging writes an opaque short-lived cache under the already ignored `.cladding/host/` runtime boundary, while authored spec and documentation remain untouched until exact approval.
+  - id: AC-021
+    ears: event
+    condition: when an activated project's ignored runtime launcher receives shell command arguments after initialization
+    action: forward those arguments to the exact engine used for MCP while retaining no-argument MCP startup
+    response: post-init shell validation cannot silently use a different global build from the connected MCP server
+    text: When the project runtime launcher receives shell command arguments, the system shall forward them to the same engine used for MCP while preserving no-argument MCP startup, so post-init validation cannot silently use another build.
+    test_refs: [tests/cli/setup.test.ts]
+    notes: |
+      ## Decision
+      Make the existing ignored Node launcher dual-purpose instead of adding a second machine-specific command surface.
+      ## Why
+      The live Codex campaign connected MCP to the branch build but resolved shell `clad` to an older global build carrying the same version string, so schema validation disagreed without an obvious version warning.
+      ## Trade-off
+      The launcher's historical `serve.cjs` name remains slightly narrower than its role, but existing host configurations stay compatible and every argument is forwarded without shell interpolation.
+  - id: AC-022
+    ears: state
+    condition: while the generated AGENTS.md guides ordinary development after initialization
+    action: prefer the project runtime for Cladding shell commands and require the declared test command to collect relevant tests without shell-expanded glob dependencies
+    response: agents use one engine and cannot treat a vacuous or host-specific test invocation as completion evidence
+    text: While generated project guidance directs ordinary development, the system shall prefer the project Cladding runtime and require non-vacuous, shell-portable test execution, so engine skew and host-specific test globs cannot masquerade as completion.
+    test_refs: [tests/init/agents-md.test.ts]
+  - id: AC-023
+    ears: state
+    condition: while an initialized project is below the shared eight-feature design-maturity threshold and retains unbound onboarding capabilities or scenarios
+    action: report those future design links as information while continuing to block dangling references and under-bound flows
+    response: the first ordinary feature can earn a strict done result without deleting valid future intent
+    text: While an initialized project is below the design-maturity threshold, the system shall treat unbound onboarding capabilities and scenarios as informational future intent while retaining blocking checks for invalid links, so an early feature can complete without erasing the roadmap.
+    test_refs: [tests/stages/capabilities-feature-mapping.test.ts, tests/stages/scenario-coverage.test.ts]
+    notes: |
+      ## Decision
+      Graduate empty-link findings from information to warning at the existing eight-feature maturity boundary.
+      ## Why
+      Onboarding intentionally authors three to eight future capabilities and one to three future journeys with empty feature links, while strict mode promotes every warning to an error. Treating those intentional seeds as warnings made the first `clad done` impossible.
+      ## Trade-off
+      Small projects may ship while retaining visibly informational future design; once the project reaches eight features, unresolved empty links become strict-gate blockers again.
+  - id: AC-024
+    ears: event
+    condition: when a TypeScript or JavaScript project declares lint, custom test, or coverage scripts after initialization
+    action: run those project-owned workflows before inferred ecosystem defaults and leave undeclared optional gates unregistered
+    response: Node test and other custom workflows are not replaced by unrelated cached or globally available ESLint and Vitest executables
+    text: When a TypeScript or JavaScript project declares its development scripts, the system shall run the project-owned lint, custom test, and coverage workflows before inferred defaults and leave undeclared optional gates unregistered, so an unrelated tool cannot make ordinary post-initialization development fail or pass.
+    test_refs: [tests/stages/toolchain.test.ts]
+    notes: |
+      ## Decision
+      Treat package scripts as executable project intent. Preserve the direct Vitest/Jest paths only for their simple canonical scripts, because those paths provide per-test evidence and single-run unit/coverage reuse.
+      ## Why
+      The live Codex project explicitly used Node's built-in test runner, yet the full gate invoked Vitest against both source and compiled tests, invoked unconfigured ESLint, and requested an absent Vitest coverage plug-in.
+      ## Trade-off
+      Optional lint and coverage stages honestly skip when the project declares neither a script nor configuration; strict test demand still blocks a missing unit runner whenever behavioral proof is required.
+  - id: AC-025
+    ears: unwanted
+    condition: if a unit command exits successfully but its recognized aggregate summary reports that zero tests executed
+    action: emit a blocking vacuous-tests finding in strict mode
+    response: a portable command typo or empty test selection cannot become completion evidence
+    text: If a unit command exits successfully but its recognized aggregate summary reports zero executed tests, the system shall emit a blocking vacuous-tests finding in strict mode, so an empty test selection cannot become completion evidence.
+    test_refs: [tests/stages/unit.test.ts]
+  - id: AC-026
+    ears: unwanted
+    condition: if an inferred npm tool is absent from a project during an offline or network-restricted development session
+    action: prohibit registry access and classify the unresolved tool as a visible setup gap
+    response: missing optional tooling neither stalls the host session nor becomes a false secret, architecture, lint, or test failure
+    text: If an inferred npm tool is absent during an offline or network-restricted development session, the system shall prohibit registry access and classify the unresolved tool as a visible setup gap, so missing optional tooling neither stalls the host nor masquerades as a product defect.
+    test_refs: [tests/stages/toolchain.test.ts, tests/stages/util.test.ts]
+  - id: AC-027
+    ears: state
+    condition: while an initialized project is below the shared eight-feature design-maturity threshold and its first completed domain or library slice has no runnable entry point yet
+    action: report the missing deliverable decision as information and retain the warning after the maturity boundary
+    response: the first feature can complete without inventing an unsafe smoke target while grown products must resolve the entry-point obligation
+    text: While an initialized project is below the design-maturity threshold and has no runnable entry point yet, the system shall treat the missing deliverable decision as information and restore the warning after the threshold, so the first feature can complete without inventing an unsafe smoke target.
+    test_refs: [tests/stages/detectors/deliverable-integrity.test.ts]

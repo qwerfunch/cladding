@@ -14,10 +14,10 @@ acceptance_criteria:
     test_refs: ["tests/stages/toolchain.test.ts"]
   - id: AC-a3be7a76
     ears: event
-    condition: "when no jest config file is present in a detected TypeScript/JavaScript project"
+    condition: "when no jest config and no custom test script is present in a detected TypeScript/JavaScript project"
     action: "keep the vitest test and coverage gate defaults unchanged"
-    response: "config-less and vitest projects behave exactly as before (backward compatible)"
-    text: "When no jest config file is present in a detected TypeScript/JavaScript project, the system shall keep the vitest `run` test gate and `run --coverage` coverage gate defaults unchanged."
+    response: "legacy config-less projects behave exactly as before while explicit custom runners remain authoritative"
+    text: "When no jest config and no custom test script is present in a detected TypeScript/JavaScript project, the system shall keep the vitest `run` test and `run --coverage` defaults unchanged."
     test_refs: ["tests/stages/toolchain.test.ts"]
   - id: AC-3a899053
     ears: ubiquitous

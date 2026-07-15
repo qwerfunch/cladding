@@ -77,7 +77,11 @@ describe('runSpecConformance (stage_2.3)', () => {
     seedOracle(dir);
     execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
     runSpecConformance({cwd: dir});
-    expect(execaSyncMock).toHaveBeenCalledWith('npx', ['--no-install', 'vitest', 'run', ORACLE_DIR], expect.any(Object));
+    expect(execaSyncMock).toHaveBeenCalledWith(
+      'npx',
+      ['--offline', '--no-install', 'vitest', 'run', ORACLE_DIR],
+      expect.any(Object),
+    );
   });
 
   test('missing runner binary (ENOENT) → skipped, not a false failure', () => {
