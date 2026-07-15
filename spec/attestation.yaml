@@ -23,8 +23,8 @@ attested_modules:
   GOVERNANCE.md: 21cc28eaaf637a20
   README.html: 227583ec95375954
   README.ko.html: 5ea397c6e72ff11b
-  README.ko.md: 30e8134c403232b1
-  README.md: 09323b6557720aca
+  README.ko.md: c23a202221cbcef4
+  README.md: ee306d0c8277e943
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -52,7 +52,7 @@ attested_modules:
   docs/dogfood/claude-code-2026-05-20.md: 04870d41e75576d6
   docs/dogfood/gemini-cli-2026-05-20.md: 2da1ba66c4f108f0
   docs/feature-cycle.md: b8c48c86d1f1e093
-  docs/glossary.md: 5c2d8f6a0837e3c9
+  docs/glossary.md: 1f2acc81a22cdd3e
   docs/img/en/ecosystem.svg: ed14d1d17f088b00
   docs/img/en/relationship.svg: c7a24203925b4664
   docs/img/ko/ecosystem.svg: 2b7341576c2af0a8
@@ -69,13 +69,13 @@ attested_modules:
   plugins/claude-code/agents/orchestrator.md: 18f41e1dbfe6d95b
   plugins/claude-code/agents/planner.md: 934753c28d5f1287
   plugins/claude-code/agents/reviewer.md: 9c4e095e60040473
-  plugins/claude-code/commands/init.md: 2d19f8ffebf41bb2
+  plugins/claude-code/commands/init.md: 6175a8492a6ee48c
   plugins/claude-code/hooks/hooks.json: 42321ead26fb1da8
   plugins/codex/.codex-plugin/plugin.json: e2898491a8fd62b8
   plugins/codex/.mcp.json: 43e3f4b2af24aa18
   plugins/codex/skills/check/SKILL.md: 455d912ce1d47b5a
   plugins/codex/skills/developer/SKILL.md: 40af2943253f6c72
-  plugins/codex/skills/init/SKILL.md: 2d19f8ffebf41bb2
+  plugins/codex/skills/init/SKILL.md: 6175a8492a6ee48c
   plugins/codex/skills/observability/SKILL.md: 5ea8f14b1c9b4a61
   plugins/codex/skills/orchestrator/SKILL.md: 18f41e1dbfe6d95b
   plugins/codex/skills/planner/SKILL.md: 934753c28d5f1287
@@ -86,7 +86,7 @@ attested_modules:
   plugins/codex/skills/sync/SKILL.md: 775c0f990a52a3d9
   plugins/gemini-cli/GEMINI.md: ba08eaf2cd557a65
   plugins/gemini-cli/commands/README.md: 3527d771578431bd
-  plugins/gemini-cli/commands/init.toml: a91afdccf4206c59
+  plugins/gemini-cli/commands/init.toml: e44c7ead9bd927b2
   plugins/gemini-cli/gemini-extension.json: 47685e98f1f67e11
   scripts/build-plugin.mjs: 7fabe2b6301b142a
   scripts/build.mjs: 3a4b204063024ef1
@@ -97,7 +97,7 @@ attested_modules:
   skills/checkpoint/SKILL.md: f723e8cfb8286a64
   skills/clarify/SKILL.md: 5d08bbb821258d03
   skills/doctor/SKILL.md: 6581c6c900c72d68
-  skills/init/SKILL.md: 2d19f8ffebf41bb2
+  skills/init/SKILL.md: 6175a8492a6ee48c
   skills/oracle/SKILL.md: 0986572a0a5604f6
   skills/rollback/SKILL.md: d472dc3a562b347b
   skills/route/SKILL.md: 5958830fef280c67
@@ -138,15 +138,15 @@ attested_modules:
   src/cli: a4d0f0eb87fed960
   src/cli/benchmark.ts: 77f84d2a898d724f
   src/cli/changelog.ts: 2de1adb009b89ab4
-  src/cli/clad.ts: e75a16da5809a319
+  src/cli/clad.ts: 85e7e3f59bddcd1d
   src/cli/clarify.ts: 393cc93a6feb698a
-  src/cli/doctor-hosts.ts: b6e47f8c5d545416
+  src/cli/doctor-hosts.ts: 093bf18c79cf363f
   src/cli/doctor.ts: b98b955fe75e7f7e
   src/cli/done.ts: 02bd4397eaf34fa1
   src/cli/graph-serve.ts: 23e6e389225d0f98
   src/cli/graph.ts: bab410061b8c746a
   src/cli/hook.ts: 201f82f4c89e173f
-  src/cli/init.ts: f4aef7a828a8cfda
+  src/cli/init.ts: 580469d8416910b4
   src/cli/intent-from-path.ts: e69862821d979f22
   src/cli/measure.ts: 3a562f16589e26c2
   src/cli/report.ts: 911f859b2446834b
@@ -167,7 +167,7 @@ attested_modules:
   src/cli/scan/thresholds.ts: ec0047b894a6aa6a
   src/cli/scan/types.ts: ea0170aa88c1c14a
   src/cli/scan/walker.ts: 33e4448e365e47c6
-  src/cli/update.ts: bbd9c97bfc2b99ff
+  src/cli/update.ts: b342feb657e33418
   src/cli/verdict.ts: 7aa16b8739ab8e5f
   src/core/checkpoint.ts: 63300c2764533b6c
   src/core/git-ops.ts: 4544bde493a0628f
@@ -195,7 +195,7 @@ attested_modules:
   src/init/agents-md.ts: cb15264f0a0f2f8c
   src/init/git-hook.ts: 4e02f177b3764ae8
   src/init/host-instructions.ts: f6d10695ef0c4763
-  src/init/host-setup.ts: b12ffb4a11019b45
+  src/init/host-setup.ts: 6d83a5a3a59131e4
   src/optimizer: a4d0f0eb87fed960
   src/optimizer/code-excerpt.ts: e2c4598efcd28d2a
   src/optimizer/context-slice.ts: b5864aaed1e7ae48
@@ -218,7 +218,7 @@ attested_modules:
   src/report/sarif.ts: 71e97aceeb0a4473
   src/router: a4d0f0eb87fed960
   src/router/intent.ts: 430590f761b891a6
-  src/serve/server.ts: 4b78c2a2a87b5741
+  src/serve/server.ts: ce75e0c6989f1bc8
   src/spec: a4d0f0eb87fed960
   src/spec/attestation.ts: 294a1e99c42d4aef
   src/spec/cli.ts: 7a9bcd0f66677810
