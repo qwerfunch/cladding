@@ -262,6 +262,19 @@ function loadSpecOrError(cwd: string): {readonly spec: Spec} | {readonly error: 
   }
 }
 
+/** Deterministic mutation boundary for a setup-only workspace. */
+function requireInitialized(cwd: string): string | null {
+  const loaded = loadSpecOrError(cwd);
+  if (!('error' in loaded)) return null;
+  return 'cladding: not_initialized — this project has host wiring but no valid spec.yaml; ' +
+    'ordinary work must remain ordinary until the user explicitly requests Cladding initialization.';
+}
+
+function initializedMutationBoundary(cwd: string): {isError: true; content: Array<{type: 'text'; text: string}>} | null {
+  const error = requireInitialized(cwd);
+  return error ? {isError: true, content: [{type: 'text', text: error}]} : null;
+}
+
 /** Frozen wire field (F-570a3f): bump when a tool's payload shape changes. */
 const PAYLOAD_SCHEMA_VERSION = 1;
 
@@ -498,7 +511,7 @@ function onboardingPreparationSnapshot(cwd: string): string {
 }
 
 const ONBOARDING_WRITE_ROOTS = [
-  'spec.yaml', '.gitignore', 'AGENTS.md', 'CLAUDE.md',
+  'spec.yaml', '.gitignore', 'AGENTS.md',
   'docs/conventions.md', 'docs/project-context.md',
   'spec/architecture.yaml', 'spec/capabilities.yaml', 'spec/scenarios',
   '.cladding/onboarding', '.cladding/scan',
@@ -632,7 +645,7 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
               'Create docs/project-context.md and docs/conventions.md.',
               'Create .cladding/onboarding/state.yaml and append .cladding/ to .gitignore.',
               'Create a managed AGENTS.md block; preserve an existing unmanaged AGENTS.md.',
-              'Create or append the Cladding section in CLAUDE.md.',
+              'Preserve any existing CLAUDE.md unchanged; AGENTS.md is the shared host instruction surface.',
             ],
         confirmationQuestion: `To apply these changes, reply with the exact approval phrase: ${challenge}`,
         approvalChallenge: challenge,
@@ -1435,6 +1448,8 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
       },
     },
     async (args) => {
+      const boundary = initializedMutationBoundary(cwd);
+      if (boundary) return boundary;
       const rollback = capturePathRollback(cwd, FEATURE_TRANSACTION_ROOTS);
       try {
         const result = createFeature({
@@ -1498,6 +1513,8 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
       },
     },
     async (args) => {
+      const boundary = initializedMutationBoundary(cwd);
+      if (boundary) return boundary;
       try {
         const result = resolveDesignImpact({feature: args.feature, cwd});
         syncInventory(cwd);
@@ -1540,6 +1557,8 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
       },
     },
     async (args) => {
+      const boundary = initializedMutationBoundary(cwd);
+      if (boundary) return boundary;
       try {
         const result = recordOracle({
           featureId: args.featureId,
@@ -1607,6 +1626,8 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
       },
     },
     async (args) => {
+      const boundary = initializedMutationBoundary(cwd);
+      if (boundary) return boundary;
       try {
         const result = createScenario({
           slug: args.slug,
@@ -1660,6 +1681,8 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
       },
     },
     async (args) => {
+      const boundary = initializedMutationBoundary(cwd);
+      if (boundary) return boundary;
       try {
         const result = linkCapability({
           capability: args.capability,

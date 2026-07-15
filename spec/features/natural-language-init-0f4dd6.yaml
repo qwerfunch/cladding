@@ -64,16 +64,23 @@ acceptance_criteria:
     test_refs: [tests/serve/init-tools.test.ts]
   - id: AC-007
     ears: state
-    condition: while clad setup wires host integrations
-    action: leave the current project tree unchanged and direct the user to open a project and request Cladding in natural language
-    response: global host setup never implies project adoption
-    text: While clad setup wires host integrations, the system shall leave the current project tree unchanged and direct the user to open a project and request Cladding in natural language, so global host setup never implies project adoption.
+    condition: while clad setup activates host integrations
+    action: write discovery configuration only inside the selected project and keep every other project free of Cladding skills and MCP tools
+    response: installing Cladding globally cannot influence unrelated host sessions
+    text: While clad setup activates host integrations, the system shall write discovery configuration only inside the selected project and keep every other project free of Cladding skills and MCP tools, so installing Cladding globally cannot influence unrelated host sessions.
     test_refs: [tests/cli/setup.test.ts]
+    notes: |
+      ## Decision
+      The npm package remains global, but host discovery is project-scoped.
+      ## Why
+      Host models receive every globally discovered skill description and MCP tool even when they never invoke it; prompt wording cannot provide a context-level isolation guarantee.
+      ## Trade-off
+      Each developer runs `clad setup` once per project and machine, gaining structural isolation at the cost of one explicit activation step.
   - id: AC-008
     ears: ubiquitous
     action: document natural-language init as the primary path and describe each host's optional explicit invocation syntax accurately
-    response: Claude and Gemini use their slash command, Codex uses its Cladding skill picker, and MCP hosts use natural language
-    text: The system shall document natural-language init as the primary path and describe each host's optional explicit invocation syntax accurately, so Claude and Gemini use their slash command, Codex uses its Cladding skill picker, and MCP hosts use natural language.
+    response: Claude Code, Codex, Antigravity, and Cursor receive accurate project-scoped startup guidance
+    text: The system shall document natural-language init as the primary path and describe each host's project-scoped startup accurately, so Claude Code, Codex, Antigravity, and Cursor receive accurate project-scoped startup guidance.
     evidence_refs: [README.md, docs/setup.md]
     notes: |
       ## Decision
@@ -155,8 +162,21 @@ acceptance_criteria:
     test_refs: [tests/serve/init-tools.test.ts]
   - id: AC-017
     ears: state
-    condition: while the connected project has no spec.yaml and the user has not explicitly named Cladding
-    action: keep every non-init Cladding skill ineligible for ordinary development requests
-    response: globally installed integrations do not route unrelated work through Cladding personas
-    text: While the connected project has no spec.yaml and the user has not explicitly named Cladding, the system shall keep every non-init Cladding skill ineligible for ordinary development requests, so globally installed integrations do not route unrelated work through Cladding personas.
-    test_refs: [tests/init/skill-activation.test.ts]
+    condition: while an activated project has no spec.yaml and the user has not explicitly named Cladding
+    action: expose only the narrowly described init bootstrap and reject non-init mutations before writing
+    response: ordinary development remains ordinary even after setup but before explicit initialization
+    text: While an activated project has no spec.yaml and the user has not explicitly named Cladding, the system shall expose only the narrowly described init bootstrap and reject non-init mutations before writing, so ordinary development remains ordinary even after setup but before explicit initialization.
+    test_refs: [tests/init/skill-activation.test.ts, tests/cli/setup.test.ts, tests/serve/server.test.ts]
+  - id: AC-018
+    ears: event
+    condition: when project-scoped setup finds a legacy global Cladding integration
+    action: remove only entries whose ownership is proven by a known Cladding package root or managed launch signature and preserve every ambiguous file
+    response: upgrading stops unrelated-project influence without deleting user configuration
+    text: When project-scoped setup finds a legacy global Cladding integration, the system shall remove only entries whose ownership is proven by a known Cladding package root or managed launch signature and preserve every ambiguous file, so upgrading stops unrelated-project influence without deleting user configuration.
+    test_refs: [tests/cli/setup.test.ts]
+  - id: AC-019
+    ears: ubiquitous
+    action: use AGENTS.md as the generated cross-host instruction surface and preserve any existing CLAUDE.md without creating a new one
+    response: project guidance has one shared source instead of diverging host copies
+    text: The system shall use AGENTS.md as the generated cross-host instruction surface and preserve any existing CLAUDE.md without creating a new one, so project guidance has one shared source instead of diverging host copies.
+    test_refs: [tests/cli/update.test.ts, tests/cli/init-onboarding-english-source.test.ts]

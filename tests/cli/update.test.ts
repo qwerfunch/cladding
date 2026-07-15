@@ -26,7 +26,6 @@ describe('runUpdate', () => {
   test('no spec.yaml → re-wires only, isProject false, no project files written', async () => {
     const r = await runUpdate(dir, {wireHosts: okWire});
     expect(r.isProject).toBe(false);
-    expect(r.claudeMd).toBe('n/a');
     expect(r.agentsMd).toBe('n/a');
     expect(r.code).toBe(0);
   });
@@ -37,13 +36,13 @@ describe('runUpdate', () => {
     expect(r.code).toBe(1);
   });
 
-  test('fresh project → inventory written, CLAUDE.md + AGENTS.md created, code 0', async () => {
+  test('fresh project → inventory written and AGENTS.md created without CLAUDE.md, code 0', async () => {
     writeFileSync(join(dir, 'spec.yaml'), SPEC);
     const r = await runUpdate(dir, {wireHosts: okWire});
     expect(r.isProject).toBe(true);
     expect(r.features).toBe(0);
-    expect(r.claudeMd).toBe('created');
     expect(r.agentsMd).toBe('created');
+    expect(existsSync(join(dir, 'CLAUDE.md'))).toBe(false);
     expect(r.code).toBe(0);
     // inventory block was materialized into spec.yaml
     expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).toContain('inventory:');
@@ -53,7 +52,6 @@ describe('runUpdate', () => {
     writeFileSync(join(dir, 'spec.yaml'), SPEC);
     await runUpdate(dir, {wireHosts: okWire});
     const r2 = await runUpdate(dir, {wireHosts: okWire});
-    expect(r2.claudeMd).toBe('unchanged'); // section already present + fresh
     expect(r2.agentsMd).toBe('skipped-exists'); // existing, non-stale
     expect(r2.code).toBe(0);
   });

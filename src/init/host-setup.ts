@@ -1,38 +1,24 @@
-// F-80d19d host setup — explicit `clad setup` command (replaces F-90d054 postinstall).
+// F-80d19d / F-0f4dd6 — explicit, project-scoped host setup.
 //
-// Wires up to four host AI auto-discovery channels, one symlink per channel:
-//   1. ~/.claude/plugins/cladding         → cladding pkg root
-//   2. ~/.gemini/config/plugins/cladding  → cladding/plugins/antigravity
-//   3. ~/.agents/skills/cladding-<verb>   → cladding/plugins/codex/skills/<verb>
-//   4. ~/.codex/config.toml               → [mcp_servers.cladding] table merge
-//
-// One command handles six scenarios:
-//   - first wire        — symlink absent → create
-//   - update            — symlink target differs from current cladding root → re-wire
-//   - delta host        — host AI newly installed since last setup → add wire
-//   - repair            — symlink missing → create (same as first wire)
-//   - no-op             — symlink target matches → skip
-//   - conflict          — directory copy with manual changes → warn, --force required
-//
-// Detection — host AI is "installed" iff its host-specific home exists. Antigravity is
-// detected by its config/runtime directories rather than the legacy Gemini CLI ~/.gemini
-// root, so an old Gemini install is never mistaken for AGY.
+// Installing the CLI globally must not make Cladding visible to every AI
+// session on the machine. `clad setup` therefore writes only project-local
+// discovery files. A small ignored launcher carries the machine-specific
+// package path; the checked-in host configs remain portable.
 
 import {
   cpSync,
   existsSync,
   lstatSync,
   mkdirSync,
-  readdirSync,
   readFileSync,
   readlinkSync,
+  readdirSync,
   rmSync,
   statSync,
-  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import {homedir, platform} from 'node:os';
-import {dirname, join, resolve} from 'node:path';
+import {dirname, isAbsolute, join, relative, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 
@@ -40,26 +26,41 @@ export type ChannelResult =
   | 'created'
   | 'unchanged'
   | 'rewired'
-  | 'copied'
+  | 'removed'
   | 'skipped-different'
   | 'skipped-not-installed'
+  | 'manual-required'
   | 'failed';
 
-export interface CodexSkillResult {
-  readonly verb: string;
-  readonly result: ChannelResult;
-  readonly message?: string;
+export type SetupHost = 'claude' | 'codex' | 'antigravity' | 'cursor';
+
+export interface HostDetection {
+  readonly claude: boolean;
+  readonly antigravity: boolean;
+  readonly codex: boolean;
+  readonly agents: boolean;
+  readonly cursor: boolean;
 }
 
 export interface SetupResult {
+  readonly projectRoot: string;
   readonly wiring: {
+    readonly runtime: ChannelResult;
+    readonly shared_init_skill: ChannelResult;
+    readonly claude: ChannelResult;
+    readonly codex: ChannelResult;
+    readonly antigravity: ChannelResult;
+    readonly cursor: ChannelResult;
+  };
+  readonly legacyCleanup: {
     readonly claude_plugin: ChannelResult;
     readonly antigravity_plugin: ChannelResult;
-    readonly codex_skills: ReadonlyArray<CodexSkillResult>;
+    readonly codex_skills: ChannelResult;
     readonly codex_mcp: ChannelResult;
     readonly cursor_mcp: ChannelResult;
   };
   readonly errors: ReadonlyArray<{step: string; message: string}>;
+  readonly warnings: ReadonlyArray<{step: string; message: string}>;
   readonly statusFile: string;
   readonly cladding_root: string;
   readonly cladding_version: string;
@@ -71,587 +72,468 @@ export interface SetupOptions {
   readonly quiet?: boolean;
   readonly home?: string;
   readonly pkgRoot?: string;
+  readonly projectRoot?: string;
   readonly version?: string;
-  /** Run host CLI activation commands after wiring (default true). Tests must
-   * pass false: activation invokes the REAL host binaries, which
-   * mutate the developer's actual host config — not the mocked home. */
+  readonly hosts?: readonly SetupHost[];
+  /** Host CLI cleanup is disabled by tests so no developer configuration is touched. */
   readonly activate?: boolean;
-  /** Injectable activation runners so AC-012 is testable without spawning
-   * real host CLIs. Defaults to the real Claude activator. */
-  readonly activators?: {
-    readonly claude?: (pluginPath: string) => ActivationResult;
-  };
-}
-
-export interface HostDetection {
-  readonly claude: boolean;
-  readonly antigravity: boolean;
-  readonly codex: boolean;
-  readonly agents: boolean;
-  readonly cursor: boolean;
 }
 
 interface SetupStatus {
-  cladding_root: string;
-  cladding_version: string;
-  last_run: string;
-  wiring: SetupResult['wiring'];
-  errors: SetupResult['errors'];
+  readonly project_root: string;
+  readonly cladding_root: string;
+  readonly cladding_version: string;
+  readonly last_run: string;
 }
 
 const STATUS_FILENAME = 'setup-status.json';
+const RUNTIME_RELATIVE = join('.cladding', 'host', 'serve.cjs');
+const ALL_HOSTS: readonly SetupHost[] = ['claude', 'codex', 'antigravity', 'cursor'];
 
-function detectHosts(home: string): HostDetection {
+function ensureDir(path: string): void {
+  mkdirSync(path, {recursive: true});
+}
+
+function readText(path: string): string | null {
+  try {
+    return readFileSync(path, 'utf8');
+  } catch {
+    return null;
+  }
+}
+
+function writeIfChanged(path: string, body: string): ChannelResult {
+  const previous = readText(path);
+  if (previous === body) return 'unchanged';
+  ensureDir(dirname(path));
+  writeFileSync(path, body, 'utf8');
+  return previous == null ? 'created' : 'rewired';
+}
+
+function isSymlink(path: string): boolean {
+  try {
+    return lstatSync(path).isSymbolicLink();
+  } catch {
+    return false;
+  }
+}
+
+function resolvedSymlink(path: string): string | null {
+  try {
+    return resolve(dirname(path), readlinkSync(path));
+  } catch {
+    return null;
+  }
+}
+
+function pathInside(path: string, root: string): boolean {
+  const delta = relative(resolve(root), resolve(path));
+  return delta === '' || (!delta.startsWith('..') && !isAbsolute(delta));
+}
+
+function knownRoots(home: string, pkgRoot: string): string[] {
+  const roots = [resolve(pkgRoot)];
+  const legacy = readText(join(home, '.cladding', STATUS_FILENAME));
+  if (legacy) {
+    try {
+      const parsed = JSON.parse(legacy) as {cladding_root?: unknown};
+      if (typeof parsed.cladding_root === 'string') roots.push(resolve(parsed.cladding_root));
+    } catch {
+      // A malformed advisory status file cannot establish ownership.
+    }
+  }
+  return [...new Set(roots)];
+}
+
+function removeOwnedSymlink(path: string, roots: readonly string[]): ChannelResult {
+  if (!existsSync(path) && !isSymlink(path)) return 'unchanged';
+  if (!isSymlink(path)) return 'skipped-different';
+  const target = resolvedSymlink(path);
+  if (!target || !roots.some((root) => pathInside(target, root))) return 'skipped-different';
+  try {
+    rmSync(path, {force: true});
+    return 'removed';
+  } catch {
+    return 'failed';
+  }
+}
+
+function removeOwnedCodexSkills(home: string, roots: readonly string[]): ChannelResult {
+  const skillsRoot = join(home, '.agents', 'skills');
+  if (!existsSync(skillsRoot)) return 'unchanged';
+  let removed = 0;
+  let conflicts = 0;
+  for (const name of readdirSync(skillsRoot)) {
+    if (!name.startsWith('cladding-')) continue;
+    const result = removeOwnedSymlink(join(skillsRoot, name), roots);
+    if (result === 'removed') removed++;
+    if (result === 'skipped-different') conflicts++;
+  }
+  if (conflicts > 0) return 'skipped-different';
+  return removed > 0 ? 'removed' : 'unchanged';
+}
+
+function isKnownLaunch(value: unknown, roots: readonly string[]): boolean {
+  if (!value || typeof value !== 'object') return false;
+  const entry = value as {command?: unknown; args?: unknown; description?: unknown};
+  const args = Array.isArray(entry.args) ? entry.args : [];
+  if (entry.command === 'clad' && args[0] === 'serve') return true;
+  if (typeof entry.description === 'string' && entry.description.includes('wired by `clad setup`')) return true;
+  if (typeof entry.description === 'string' && entry.description.includes('project-scoped by `clad setup`')) return true;
+  if (entry.command === 'node' && args[0] === RUNTIME_RELATIVE) return true;
+  return entry.command === 'node' && typeof args[0] === 'string' && roots.some((root) => pathInside(args[0] as string, root));
+}
+
+async function removeOwnedCodexMcp(home: string, roots: readonly string[]): Promise<ChannelResult> {
+  const path = join(home, '.codex', 'config.toml');
+  const raw = readText(path);
+  if (raw == null) return 'unchanged';
+  try {
+    const {parse, stringify} = await import('smol-toml');
+    const doc = parse(raw) as Record<string, unknown>;
+    const servers = doc.mcp_servers as Record<string, unknown> | undefined;
+    if (!servers?.cladding) return 'unchanged';
+    if (!isKnownLaunch(servers.cladding, roots)) return 'skipped-different';
+    delete servers.cladding;
+    if (Object.keys(servers).length === 0) delete doc.mcp_servers;
+    writeFileSync(path, stringify(doc), 'utf8');
+    return 'removed';
+  } catch {
+    return 'failed';
+  }
+}
+
+function removeOwnedCursorMcp(home: string, roots: readonly string[]): ChannelResult {
+  const path = join(home, '.cursor', 'mcp.json');
+  const raw = readText(path);
+  if (raw == null) return 'unchanged';
+  try {
+    const doc = JSON.parse(raw) as Record<string, unknown>;
+    const servers = doc.mcpServers as Record<string, unknown> | undefined;
+    if (!servers?.cladding) return 'unchanged';
+    if (!isKnownLaunch(servers.cladding, roots)) return 'skipped-different';
+    delete servers.cladding;
+    writeFileSync(path, `${JSON.stringify(doc, null, 2)}\n`, 'utf8');
+    return 'removed';
+  } catch {
+    return 'failed';
+  }
+}
+
+function detectBinary(name: string): boolean {
+  const command = platform() === 'win32' ? 'where' : 'which';
+  return spawnSync(command, [name], {stdio: 'ignore'}).status === 0;
+}
+
+function cleanupClaudeUserPlugin(enabled: boolean): ChannelResult {
+  if (!enabled || !detectBinary('claude')) return 'manual-required';
+  const result = spawnSync(
+    'claude',
+    ['plugin', 'uninstall', 'claude-code@cladding', '--scope', 'user', '--keep-data'],
+    {encoding: 'utf8', timeout: 30_000, shell: platform() === 'win32'},
+  );
+  if (result.status === 0) return 'removed';
+  const combined = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
+  return /not installed|not found/i.test(combined) ? 'unchanged' : 'manual-required';
+}
+
+function runtimeBody(pkgRoot: string): string {
+  const engine = join(pkgRoot, 'dist', 'clad.js');
+  return [
+    "'use strict';",
+    "const {spawn} = require('node:child_process');",
+    `const engine = ${JSON.stringify(engine)};`,
+    "const child = spawn(process.execPath, [engine, 'serve'], {cwd: process.cwd(), stdio: 'inherit'});",
+    "for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => child.kill(signal));",
+    "child.on('error', (error) => { console.error(`cladding MCP launcher: ${error.message}`); process.exitCode = 1; });",
+    "child.on('exit', (code, signal) => { process.exitCode = code ?? (signal ? 1 : 0); });",
+    '',
+  ].join('\n');
+}
+
+/** Keep machine-specific setup state out of a Git worktree without editing the shared .gitignore. */
+function ignoreLocalRuntime(projectRoot: string): void {
+  const exclude = join(projectRoot, '.git', 'info', 'exclude');
+  if (!existsSync(dirname(exclude))) return;
+  const entries = ['/.cladding/host/', '/.cladding/setup-status.json'];
+  const current = readText(exclude) ?? '';
+  const lines = current.split(/\r?\n/);
+  const missing = entries.filter((entry) => !lines.includes(entry));
+  if (missing.length === 0) return;
+  const separator = current.length > 0 && !current.endsWith('\n') ? '\n' : '';
+  writeFileSync(exclude, `${current}${separator}${missing.join('\n')}\n`, 'utf8');
+}
+
+/** Retained for callers that need the direct engine launch shape. */
+export function resolveServeLaunch(pkgRoot: string): {command: string; args: string[]} {
+  const engine = join(pkgRoot, 'dist', 'clad.js');
+  return existsSync(engine) ? {command: 'node', args: [engine, 'serve']} : {command: 'clad', args: ['serve']};
+}
+
+function mcpLaunch(): {command: string; args: string[]} {
+  return {command: 'node', args: [RUNTIME_RELATIVE]};
+}
+
+function copyManagedSkill(source: string, destination: string, force: boolean): ChannelResult {
+  if (!existsSync(source)) return 'failed';
+  if (existsSync(destination)) {
+    const current = readText(join(destination, 'SKILL.md'));
+    const expected = readText(join(source, 'SKILL.md'));
+    if (current === expected) return 'unchanged';
+    if (!force && current != null && !current.includes('# Cladding init')) return 'skipped-different';
+    rmSync(destination, {recursive: true, force: true});
+  }
+  ensureDir(dirname(destination));
+  cpSync(source, destination, {recursive: true, dereference: true});
+  return 'created';
+}
+
+function mergeJsonMcp(path: string, launch: {command: string; args: string[]}, force: boolean): ChannelResult {
+  try {
+    const raw = readText(path);
+    const doc = raw == null ? {} : (JSON.parse(raw) as Record<string, unknown>);
+    if (!doc.mcpServers || typeof doc.mcpServers !== 'object') doc.mcpServers = {};
+    const servers = doc.mcpServers as Record<string, unknown>;
+    const current = servers.cladding;
+    const next = {command: launch.command, args: launch.args};
+    if (JSON.stringify(current) === JSON.stringify(next)) return 'unchanged';
+    if (current && !force && !isKnownLaunch(current, [])) return 'skipped-different';
+    servers.cladding = next;
+    return writeIfChanged(path, `${JSON.stringify(doc, null, 2)}\n`);
+  } catch {
+    return 'failed';
+  }
+}
+
+async function mergeCodexMcp(path: string, launch: {command: string; args: string[]}, force: boolean): Promise<ChannelResult> {
+  try {
+    const {parse, stringify} = await import('smol-toml');
+    const raw = readText(path);
+    const doc = raw == null ? {} : (parse(raw) as Record<string, unknown>);
+    if (!doc.mcp_servers || typeof doc.mcp_servers !== 'object') doc.mcp_servers = {};
+    const servers = doc.mcp_servers as Record<string, unknown>;
+    const current = servers.cladding;
+    const next = {command: launch.command, args: launch.args, description: 'cladding MCP server (project-scoped by `clad setup`)'};
+    if (JSON.stringify(current) === JSON.stringify(next)) return 'unchanged';
+    if (current && !force && !isKnownLaunch(current, [])) return 'skipped-different';
+    servers.cladding = next;
+    return writeIfChanged(path, stringify(doc));
+  } catch {
+    return 'failed';
+  }
+}
+
+function writeCursorBootstrap(projectRoot: string): ChannelResult {
+  const body = [
+    '---',
+    'description: Cladding bootstrap boundary',
+    'alwaysApply: true',
+    '---',
+    '',
+    'Cladding is available only in this project. Do not initialize or invoke Cladding for ordinary work.',
+    'Use the cladding-init skill only when the user explicitly names Cladding and asks to initialize, adopt, or refresh it.',
+    '',
+  ].join('\n');
+  return writeIfChanged(join(projectRoot, '.cursor', 'rules', 'cladding-bootstrap.mdc'), body);
+}
+
+function combine(results: readonly ChannelResult[]): ChannelResult {
+  if (results.includes('failed')) return 'failed';
+  if (results.includes('skipped-different')) return 'skipped-different';
+  if (results.includes('manual-required')) return 'manual-required';
+  if (results.includes('removed')) return 'removed';
+  if (results.includes('rewired')) return 'rewired';
+  if (results.includes('created')) return 'created';
+  return 'unchanged';
+}
+
+function readLastSetupVersion(statusFile: string): string | null {
+  try {
+    return (JSON.parse(readFileSync(statusFile, 'utf8')) as SetupStatus).cladding_version ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function collectIssue(
+  result: ChannelResult,
+  step: string,
+  errors: Array<{step: string; message: string}>,
+  warnings: Array<{step: string; message: string}>,
+): void {
+  if (result === 'failed') errors.push({step, message: 'project wiring failed'});
+  if (result === 'skipped-different') warnings.push({step, message: 'existing non-Cladding configuration was preserved; use --force to replace only the cladding entry'});
+  if (result === 'manual-required') warnings.push({step, message: 'run `claude plugin uninstall claude-code@cladding --scope user --keep-data` to remove the legacy user plugin'});
+}
+
+/** Wire Cladding only into one project and remove provably-owned legacy globals. */
+export async function runHostSetup(opts: SetupOptions = {}): Promise<SetupResult> {
+  const home = opts.home ?? homedir();
+  const projectRoot = resolve(opts.projectRoot ?? process.cwd());
+  const pkgRoot = opts.pkgRoot ?? resolveDefaultPkgRoot();
+  const version = opts.version ?? readCladdingVersion(pkgRoot);
+  const hosts = new Set(opts.hosts ?? ALL_HOSTS);
+  const force = opts.force ?? false;
+  const statusFile = join(projectRoot, '.cladding', STATUS_FILENAME);
+  const lastVersion = readLastSetupVersion(statusFile);
+  const errors: Array<{step: string; message: string}> = [];
+  const warnings: Array<{step: string; message: string}> = [];
+
+  ensureDir(projectRoot);
+  ignoreLocalRuntime(projectRoot);
+  const runtime = writeIfChanged(join(projectRoot, RUNTIME_RELATIVE), runtimeBody(pkgRoot));
+  const initSource = join(pkgRoot, 'plugins', 'codex', 'skills', 'init');
+  const sharedSkill = hosts.has('codex') || hosts.has('antigravity')
+    ? copyManagedSkill(initSource, join(projectRoot, '.agents', 'skills', 'cladding-init'), force)
+    : 'unchanged';
+  const launch = mcpLaunch();
+
+  const codex = hosts.has('codex')
+    ? await mergeCodexMcp(join(projectRoot, '.codex', 'config.toml'), launch, force)
+    : 'skipped-not-installed';
+  const antigravity = hosts.has('antigravity')
+    ? mergeJsonMcp(join(projectRoot, '.agents', 'mcp_config.json'), launch, force)
+    : 'skipped-not-installed';
+  const claude = hosts.has('claude')
+    ? combine([
+        copyManagedSkill(initSource, join(projectRoot, '.claude', 'skills', 'cladding-init'), force),
+        mergeJsonMcp(join(projectRoot, '.mcp.json'), launch, force),
+      ])
+    : 'skipped-not-installed';
+  const cursor = hosts.has('cursor')
+    ? combine([
+        copyManagedSkill(initSource, join(projectRoot, '.cursor', 'skills', 'cladding-init'), force),
+        mergeJsonMcp(join(projectRoot, '.cursor', 'mcp.json'), launch, force),
+        writeCursorBootstrap(projectRoot),
+      ])
+    : 'skipped-not-installed';
+
+  const roots = knownRoots(home, pkgRoot);
+  const claudePluginLink = removeOwnedSymlink(join(home, '.claude', 'plugins', 'cladding'), roots);
+  const claudePluginInstall = claudePluginLink === 'removed'
+    ? cleanupClaudeUserPlugin(opts.activate ?? true)
+    : 'unchanged';
+  const legacyCleanup = {
+    claude_plugin: combine([claudePluginLink, claudePluginInstall]),
+    antigravity_plugin: removeOwnedSymlink(join(home, '.gemini', 'config', 'plugins', 'cladding'), roots),
+    codex_skills: removeOwnedCodexSkills(home, roots),
+    codex_mcp: await removeOwnedCodexMcp(home, roots),
+    cursor_mcp: removeOwnedCursorMcp(home, roots),
+  } as const;
+
+  const wiring = {runtime, shared_init_skill: sharedSkill, claude, codex, antigravity, cursor};
+  for (const [step, state] of Object.entries(wiring)) collectIssue(state, step, errors, warnings);
+  for (const [step, state] of Object.entries(legacyCleanup)) collectIssue(state, `legacy:${step}`, errors, warnings);
+
+  ensureDir(dirname(statusFile));
+  writeFileSync(statusFile, `${JSON.stringify({
+    project_root: projectRoot,
+    cladding_root: pkgRoot,
+    cladding_version: version,
+    last_run: new Date().toISOString(),
+  }, null, 2)}\n`, 'utf8');
+
+  const result: SetupResult = {
+    projectRoot,
+    wiring,
+    legacyCleanup,
+    errors,
+    warnings,
+    statusFile,
+    cladding_root: pkgRoot,
+    cladding_version: version,
+    last_setup_version: lastVersion,
+  };
+  if (!opts.quiet) process.stdout.write(`${renderSetupReport(result)}\n`);
+  return result;
+}
+
+function stateLabel(state: ChannelResult): string {
+  switch (state) {
+    case 'created': return 'wired';
+    case 'rewired': return 'updated';
+    case 'unchanged': return 'already ready';
+    case 'removed': return 'legacy global removed';
+    case 'skipped-not-installed': return 'not selected';
+    case 'skipped-different': return 'preserved conflict';
+    case 'manual-required': return 'manual cleanup required';
+    default: return 'failed';
+  }
+}
+
+/** Render a host-neutral setup summary without exposing internal package paths. */
+export function renderSetupReport(result: SetupResult, _detection?: HostDetection): string {
+  void _detection;
+  const lines = [
+    `cladding setup — project activation: ${result.projectRoot}`,
+    '',
+    `  Claude Code  → ${stateLabel(result.wiring.claude)}`,
+    `  Codex        → ${stateLabel(result.wiring.codex)}`,
+    `  Antigravity  → ${stateLabel(result.wiring.antigravity)}`,
+    `  Cursor       → ${stateLabel(result.wiring.cursor)}`,
+  ];
+  const cleaned = Object.values(result.legacyCleanup).filter((state) => state === 'removed').length;
+  if (cleaned > 0) lines.push('', `Removed ${cleaned} legacy global Cladding wire(s).`);
+  for (const warning of result.warnings) lines.push(`  ! ${warning.step}: ${warning.message}`);
+  lines.push(
+    '',
+    'Next steps:',
+    '  1. Start a new AI session in this project directory',
+    '  2. Ask: "Apply Cladding to this project"',
+    '  3. Review the preview and reply with its exact approval phrase',
+    '  4. After initialization, develop normally in natural language',
+  );
+  return lines.join('\n');
+}
+
+function resolveDefaultPkgRoot(): string {
+  const here = fileURLToPath(import.meta.url);
+  let current = dirname(here);
+  for (let depth = 0; depth < 7; depth++) {
+    try {
+      const pkg = JSON.parse(readFileSync(join(current, 'package.json'), 'utf8')) as {name?: string};
+      if (pkg.name === 'cladding') return current;
+    } catch {
+      // Continue towards the filesystem root.
+    }
+    current = dirname(current);
+  }
+  return resolve(dirname(here), '..');
+}
+
+function readCladdingVersion(pkgRoot: string): string {
+  try {
+    return (JSON.parse(readFileSync(join(pkgRoot, 'package.json'), 'utf8')) as {version?: string}).version ?? 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
+export function getCurrentCladdingVersion(): string | null {
+  const version = readCladdingVersion(resolveDefaultPkgRoot());
+  return version === 'unknown' ? null : version;
+}
+
+export function getLastSetupVersion(projectRoot: string = process.cwd()): string | null {
+  return readLastSetupVersion(join(resolve(projectRoot), '.cladding', STATUS_FILENAME));
+}
+
+/** Exported for diagnostics and tests; setup writes all selected hosts regardless of installation. */
+export function detectHosts(home: string = homedir()): HostDetection {
   return {
     claude: existsSync(join(home, '.claude')),
-    antigravity:
-      existsSync(join(home, '.gemini', 'config')) ||
-      existsSync(join(home, '.gemini', 'antigravity-cli')),
+    antigravity: existsSync(join(home, '.gemini', 'config')) || existsSync(join(home, '.gemini', 'antigravity-cli')),
     codex: existsSync(join(home, '.codex')),
     agents: existsSync(join(home, '.agents')),
     cursor: existsSync(join(home, '.cursor')),
   };
 }
 
-function ensureDir(p: string): void {
-  mkdirSync(p, {recursive: true});
-}
-
-function resolveSymlink(linkPath: string): string | null {
+/** Test-only sanity helper used to ensure copied skill roots contain directories. */
+export function isDirectory(path: string): boolean {
   try {
-    const target = readlinkSync(linkPath);
-    return resolve(dirname(linkPath), target);
-  } catch {
-    return null;
-  }
-}
-
-function isSymlink(linkPath: string): boolean {
-  try {
-    const stat = lstatSync(linkPath);
-    return stat.isSymbolicLink();
+    return statSync(path).isDirectory();
   } catch {
     return false;
-  }
-}
-
-/** Like existsSync but also returns true for dangling symlinks (existsSync follows targets). */
-function pathExists(linkPath: string): boolean {
-  try {
-    lstatSync(linkPath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function wireChannel(target: string, link: string, opts: {force: boolean; isWin: boolean}): ChannelResult {
-  if (pathExists(link)) {
-    if (isSymlink(link)) {
-      const existing = resolveSymlink(link);
-      if (existing === target) return 'unchanged';
-      // Symlink with different target → re-wire (safe, no user data loss)
-      try {
-        rmSync(link);
-      } catch {
-        return 'failed';
-      }
-      // fall through to create
-    } else {
-      // Directory copy or other — could contain user customizations
-      if (!opts.force) return 'skipped-different';
-      try {
-        rmSync(link, {recursive: true, force: true});
-      } catch {
-        return 'failed';
-      }
-    }
-  }
-  ensureDir(dirname(link));
-  try {
-    symlinkSync(target, link, opts.isWin ? 'junction' : 'dir');
-    return existsSync(link) ? (isSymlink(link) ? 'created' : 'created') : 'failed';
-  } catch (e: unknown) {
-    const err = e as NodeJS.ErrnoException;
-    if (opts.isWin && (err.code === 'EPERM' || err.code === 'EACCES')) {
-      try {
-        cpSync(target, link, {recursive: true, dereference: true});
-        return 'copied';
-      } catch {
-        return 'failed';
-      }
-    }
-    return 'failed';
-  }
-}
-
-function wireClaude(home: string, pkgRoot: string, opts: {force: boolean; isWin: boolean}): ChannelResult {
-  return wireChannel(pkgRoot, join(home, '.claude', 'plugins', 'cladding'), opts);
-}
-
-// Antigravity discovers plugins under ~/.gemini/config/plugins. The plugin contains
-// both skills and mcp_config.json; its MCP launch remains npm-delegated to the
-// globally installed `clad` command.
-function wireAntigravity(home: string, pkgRoot: string, opts: {force: boolean; isWin: boolean}): ChannelResult {
-  return wireChannel(
-    join(pkgRoot, 'plugins', 'antigravity'),
-    join(home, '.gemini', 'config', 'plugins', 'cladding'),
-    opts,
-  );
-}
-
-function wireCodexSkills(
-  home: string,
-  pkgRoot: string,
-  opts: {force: boolean; isWin: boolean},
-): CodexSkillResult[] {
-  const out: CodexSkillResult[] = [];
-  const codexSkillsDir = join(pkgRoot, 'plugins', 'codex', 'skills');
-  if (!existsSync(codexSkillsDir)) return out;
-  for (const verb of readdirSync(codexSkillsDir)) {
-    const verbPath = join(codexSkillsDir, verb);
-    try {
-      if (!statSync(verbPath).isDirectory()) continue;
-    } catch {
-      continue;
-    }
-    const linkPath = join(home, '.agents', 'skills', `cladding-${verb}`);
-    try {
-      const result = wireChannel(verbPath, linkPath, opts);
-      out.push({verb, result});
-    } catch (e: unknown) {
-      const err = e as Error;
-      out.push({verb, result: 'failed', message: err.message});
-    }
-  }
-  return out;
-}
-
-/** How a host should launch the MCP server. Hosts spawn MCP servers with a
- * minimal PATH, so a bare `clad` breaks for marketplace-only installs (the
- * dead-server bug the Claude Code lane fixed by bundling, F-102). Prefer the
- * absolute built engine under this package root — per-machine configs
- * (~/.codex/config.toml, ~/.cursor/mcp.json) can carry machine paths safely.
- * Fall back to the PATH-resolved verb only when no built engine exists. */
-export function resolveServeLaunch(pkgRoot: string): {command: string; args: string[]} {
-  const engine = join(pkgRoot, 'dist', 'clad.js');
-  if (existsSync(engine)) return {command: 'node', args: [engine, 'serve']};
-  return {command: 'clad', args: ['serve']};
-}
-
-function wireCursorMcp(home: string, launch: {command: string; args: string[]}): ChannelResult {
-  try {
-    const cursorConfigPath = join(home, '.cursor', 'mcp.json');
-    ensureDir(dirname(cursorConfigPath));
-    const existing = existsSync(cursorConfigPath)
-      ? (JSON.parse(readFileSync(cursorConfigPath, 'utf8')) as Record<string, unknown>)
-      : {};
-    if (!existing.mcpServers || typeof existing.mcpServers !== 'object') {
-      existing.mcpServers = {};
-    }
-    const mcpServers = existing.mcpServers as Record<string, unknown>;
-    const ourEntry = {
-      command: launch.command,
-      args: launch.args,
-    };
-    const current = mcpServers.cladding as {command?: string; args?: unknown} | undefined;
-    const isSame =
-      current &&
-      current.command === ourEntry.command &&
-      JSON.stringify(current.args) === JSON.stringify(ourEntry.args);
-    if (isSame) return 'unchanged';
-    const hadCurrent = current != null;
-    mcpServers.cladding = ourEntry;
-    writeFileSync(cursorConfigPath, JSON.stringify(existing, null, 2));
-    return hadCurrent ? 'rewired' : 'created';
-  } catch {
-    return 'failed';
-  }
-}
-
-async function wireCodexMcp(home: string, launch: {command: string; args: string[]}): Promise<ChannelResult> {
-  try {
-    const codexConfigPath = join(home, '.codex', 'config.toml');
-    ensureDir(dirname(codexConfigPath));
-    const {parse, stringify} = await import('smol-toml');
-    const existing = existsSync(codexConfigPath)
-      ? (parse(readFileSync(codexConfigPath, 'utf8')) as Record<string, unknown>)
-      : {};
-    if (!existing.mcp_servers || typeof existing.mcp_servers !== 'object') {
-      existing.mcp_servers = {};
-    }
-    const mcpServers = existing.mcp_servers as Record<string, unknown>;
-    const ourEntry = {
-      command: launch.command,
-      args: launch.args,
-      description: 'cladding MCP server (wired by `clad setup`)',
-    };
-    const current = mcpServers.cladding as {command?: string; args?: unknown} | undefined;
-    const isSame =
-      current &&
-      current.command === ourEntry.command &&
-      JSON.stringify(current.args) === JSON.stringify(ourEntry.args);
-    if (isSame) return 'unchanged';
-    const hadCurrent = current != null;
-    mcpServers.cladding = ourEntry;
-    writeFileSync(codexConfigPath, stringify(existing));
-    return hadCurrent ? 'rewired' : 'created';
-  } catch {
-    return 'failed';
-  }
-}
-
-function readLastSetupVersion(statusFile: string): string | null {
-  try {
-    const raw = readFileSync(statusFile, 'utf8');
-    const parsed = JSON.parse(raw) as Partial<SetupStatus>;
-    return parsed.cladding_version ?? null;
-  } catch {
-    return null;
-  }
-}
-
-function writeStatus(statusFile: string, status: SetupStatus): void {
-  try {
-    ensureDir(dirname(statusFile));
-    writeFileSync(statusFile, JSON.stringify(status, null, 2));
-  } catch {
-    // status file is advisory; failure here is not user-visible.
-  }
-}
-
-function formatChannelLine(name: string, result: ChannelResult, target?: string): string {
-  const icon =
-    result === 'created' || result === 'rewired' || result === 'copied' || result === 'unchanged'
-      ? '✓'
-      : result === 'skipped-not-installed'
-      ? '-'
-      : result === 'skipped-different'
-      ? '⚠'
-      : '✗';
-  const label =
-    result === 'created'
-      ? 'wired'
-      : result === 'rewired'
-      ? 're-wired (updated)'
-      : result === 'copied'
-      ? 'wired (directory copy, Windows fallback)'
-      : result === 'unchanged'
-      ? 'already wired'
-      : result === 'skipped-not-installed'
-      ? 'not installed, skipped'
-      : result === 'skipped-different'
-      ? 'conflict — manual change detected, use --force'
-      : 'failed';
-  return `  ${icon} ${name.padEnd(28)} → ${label}${target ? ` (${target})` : ''}`;
-}
-
-const WIRED_STATES: ReadonlySet<ChannelResult> = new Set(['created', 'rewired', 'unchanged', 'copied']);
-
-/** Check whether a binary exists in PATH using `which` (POSIX) or `where` (Win). */
-function detectBinary(name: string): boolean {
-  const cmd = platform() === 'win32' ? 'where' : 'which';
-  const result = spawnSync(cmd, [name], {stdio: 'ignore'});
-  return result.status === 0;
-}
-
-/** Run a non-interactive activation command, return true on success. */
-function runActivation(command: string, args: readonly string[]): {ok: boolean; stderr: string} {
-  // shell:true on Windows — host CLIs install as `.cmd`
-  // shims that spawnSync cannot resolve without a shell, so without this the
-  // activation ENOENTs even though `where <cmd>` (detectBinary) found it.
-  const result = spawnSync(command, args, {
-    encoding: 'utf8',
-    timeout: 30_000,
-    shell: platform() === 'win32',
-  });
-  return {ok: result.status === 0, stderr: result.stderr ?? ''};
-}
-
-export interface ActivationResult {
-  readonly attempted: boolean;
-  readonly success: boolean;
-  readonly stderr?: string;
-}
-
-function activateClaude(pluginPath: string): ActivationResult {
-  if (!detectBinary('claude')) return {attempted: false, success: false};
-  const add = runActivation('claude', ['plugin', 'marketplace', 'add', pluginPath, '--scope', 'user']);
-  if (!add.ok) return {attempted: true, success: false, stderr: add.stderr};
-  const install = runActivation('claude', ['plugin', 'install', 'claude-code@cladding', '--scope', 'user']);
-  return {attempted: true, success: install.ok, stderr: install.stderr};
-}
-
-export interface ActivationContext {
-  readonly claude?: ActivationResult;
-}
-
-function pushActivationHint(
-  lines: string[],
-  channel: 'claude' | 'antigravity' | 'codex-skills' | 'codex-mcp' | 'cursor',
-  wired: boolean,
-  activation?: ActivationContext,
-): void {
-  if (!wired) return;
-  switch (channel) {
-    case 'claude': {
-      const a = activation?.claude;
-      if (a?.attempted && a.success) {
-        lines.push('     ↳ Activate: ✓ claude plugin marketplace add + install done automatically (applies after Claude Code restart)');
-      } else if (a?.attempted && !a.success) {
-        lines.push('     ↳ Activate: ✗ auto attempt failed — manual:');
-        lines.push('       `claude plugin marketplace add ~/.claude/plugins/cladding`');
-        lines.push('       then `claude plugin install claude-code@cladding --scope user`');
-      } else {
-        lines.push('     ↳ Activate (no claude binary): manual:');
-        lines.push('       `claude plugin marketplace add ~/.claude/plugins/cladding`');
-        lines.push('       then `claude plugin install claude-code@cladding --scope user`');
-      }
-      break;
-    }
-    case 'antigravity': {
-      lines.push('     ↳ AGY auto-discovers ~/.gemini/config/plugins/ (applies after restart)');
-      break;
-    }
-    case 'codex-skills':
-      lines.push('     ↳ Codex CLI auto-detects ~/.agents/skills/ (applies after restart)');
-      break;
-    case 'codex-mcp':
-      lines.push('     ↳ the TOML entry itself registers it — no separate activation needed');
-      break;
-    case 'cursor':
-      lines.push('     ↳ ~/.cursor/mcp.json itself registers it — applies after Cursor restart');
-      break;
-  }
-}
-
-function printReport(
-  result: SetupResult,
-  detection: HostDetection,
-  activation: ActivationContext,
-  opts: {quiet?: boolean},
-): void {
-  if (opts.quiet) return;
-  process.stdout.write(renderSetupReport(result, detection, activation) + '\n');
-}
-
-/** Pure renderer for the setup report (AC-010 — the numbered "Next steps" block).
- * Separated from printReport so the guidance contract is unit-testable. */
-export function renderSetupReport(
-  result: SetupResult,
-  detection: HostDetection,
-  activation: ActivationContext,
-): string {
-  const lines: string[] = [];
-  lines.push('cladding setup — wiring detected AI tools');
-  lines.push('');
-
-  const claudeState = detection.claude ? result.wiring.claude_plugin : 'skipped-not-installed';
-  lines.push(formatChannelLine('Claude Code', claudeState));
-  pushActivationHint(lines, 'claude', WIRED_STATES.has(claudeState), activation);
-
-  const antigravityState = detection.antigravity ? result.wiring.antigravity_plugin : 'skipped-not-installed';
-  lines.push(formatChannelLine('Antigravity (AGY)', antigravityState));
-  pushActivationHint(lines, 'antigravity', WIRED_STATES.has(antigravityState), activation);
-
-  const skillsSummary = detection.agents
-    ? summarizeSkills(result.wiring.codex_skills)
-    : 'skipped-not-installed';
-  lines.push(
-    detection.agents
-      ? `  ✓ ${'Codex skills'.padEnd(28)} → ${skillsSummary}`
-      : formatChannelLine('Codex skills', 'skipped-not-installed'),
-  );
-  const skillsWired = detection.agents && result.wiring.codex_skills.some((s) => WIRED_STATES.has(s.result));
-  pushActivationHint(lines, 'codex-skills', skillsWired);
-
-  const codexMcpState = detection.codex ? result.wiring.codex_mcp : 'skipped-not-installed';
-  lines.push(formatChannelLine('Codex MCP', codexMcpState));
-  pushActivationHint(lines, 'codex-mcp', WIRED_STATES.has(codexMcpState));
-
-  const cursorState = detection.cursor ? result.wiring.cursor_mcp : 'skipped-not-installed';
-  lines.push(formatChannelLine('Cursor', cursorState));
-  pushActivationHint(lines, 'cursor', WIRED_STATES.has(cursorState));
-
-  lines.push('');
-  const wiredCount = countWired(result.wiring, detection);
-  const detectedCount = countDetected(detection);
-  if (wiredCount === detectedCount && detectedCount > 0) {
-    lines.push(`${wiredCount}/${detectedCount} detected channels wired. Status: ${result.statusFile}`);
-  } else if (detectedCount === 0) {
-    lines.push('No AI tools detected. Install one of Claude Code / Codex / Antigravity / Cursor, then run this again.');
-  } else {
-    lines.push(`${wiredCount}/${detectedCount} detected channels wired (some skipped/failed). Status: ${result.statusFile}`);
-  }
-  if (result.last_setup_version && result.last_setup_version !== result.cladding_version) {
-    lines.push('');
-    lines.push(`(version change detected: ${result.last_setup_version} → ${result.cladding_version})`);
-  }
-  lines.push('');
-  lines.push('Next steps:');
-  lines.push('  1. Restart your AI tool (Claude Code / Codex / Antigravity / Cursor)');
-  lines.push('  2. Open the project directory');
-  lines.push('  3. Ask: "Apply Cladding to this project"');
-  lines.push('  4. Start building — use optional Git hooks or CI when you want automatic enforcement');
-  return lines.join('\n');
-}
-
-function summarizeSkills(skills: ReadonlyArray<CodexSkillResult>): string {
-  if (skills.length === 0) return '0 verbs (skipped)';
-  const counts = skills.reduce<Record<string, number>>((acc, s) => {
-    acc[s.result] = (acc[s.result] ?? 0) + 1;
-    return acc;
-  }, {});
-  const parts: string[] = [];
-  if (counts.created) parts.push(`${counts.created} created`);
-  if (counts.rewired) parts.push(`${counts.rewired} re-wired`);
-  if (counts.unchanged) parts.push(`${counts.unchanged} already wired`);
-  if (counts.copied) parts.push(`${counts.copied} copied`);
-  if (counts.failed) parts.push(`${counts.failed} failed`);
-  if (counts['skipped-different']) parts.push(`${counts['skipped-different']} conflict`);
-  return `${skills.length} verb${skills.length === 1 ? '' : 's'} — ${parts.join(', ')}`;
-}
-
-function countDetected(detection: HostDetection): number {
-  return (
-    (detection.claude ? 1 : 0) +
-    (detection.antigravity ? 1 : 0) +
-    (detection.agents ? 1 : 0) +
-    (detection.codex ? 1 : 0) +
-    (detection.cursor ? 1 : 0)
-  );
-}
-
-function countWired(wiring: SetupResult['wiring'], detection: HostDetection): number {
-  let n = 0;
-  const wiredStates = new Set(['created', 'rewired', 'unchanged', 'copied']);
-  if (detection.claude && wiredStates.has(wiring.claude_plugin)) n++;
-  if (detection.antigravity && wiredStates.has(wiring.antigravity_plugin)) n++;
-  if (detection.agents && wiring.codex_skills.some((s) => wiredStates.has(s.result))) n++;
-  if (detection.codex && wiredStates.has(wiring.codex_mcp)) n++;
-  if (detection.cursor && wiredStates.has(wiring.cursor_mcp)) n++;
-  return n;
-}
-
-/** Run the `clad setup` host wiring (install + update + delta + repair). */
-export async function runHostSetup(opts: SetupOptions = {}): Promise<SetupResult> {
-  const home = opts.home ?? homedir();
-  const pkgRoot = opts.pkgRoot ?? resolveDefaultPkgRoot();
-  const version = opts.version ?? readCladingVersion(pkgRoot);
-  const isWin = platform() === 'win32';
-  const force = opts.force ?? false;
-  const statusFile = join(home, '.cladding', STATUS_FILENAME);
-
-  const lastVersion = readLastSetupVersion(statusFile);
-  const detection = detectHosts(home);
-  const errors: Array<{step: string; message: string}> = [];
-
-  const claude_plugin = detection.claude
-    ? wireClaude(home, pkgRoot, {force, isWin})
-    : 'skipped-not-installed';
-  const antigravity_plugin = detection.antigravity
-    ? wireAntigravity(home, pkgRoot, {force, isWin})
-    : 'skipped-not-installed';
-  const codex_skills = detection.agents ? wireCodexSkills(home, pkgRoot, {force, isWin}) : [];
-  const serveLaunch = resolveServeLaunch(pkgRoot);
-  const codex_mcp: ChannelResult = detection.codex
-    ? await wireCodexMcp(home, serveLaunch)
-    : 'skipped-not-installed';
-  const cursor_mcp: ChannelResult = detection.cursor
-    ? wireCursorMcp(home, serveLaunch)
-    : 'skipped-not-installed';
-
-  for (const state of [claude_plugin, antigravity_plugin, codex_mcp, cursor_mcp]) {
-    if (state === 'failed') errors.push({step: state, message: 'wire failed'});
-  }
-  for (const s of codex_skills) {
-    if (s.result === 'failed') errors.push({step: `codex_skill:${s.verb}`, message: s.message ?? 'wire failed'});
-  }
-
-  // Auto-activation — runs after symlink wire succeeds. Each host CLI command
-  // is invoked non-interactively; failures fall back to stdout instructions.
-  // Guarded by opts.activate: the real activators mutate the machine's actual
-  // host config (not the mocked home), so tests/CI must opt out.
-  const shouldActivate = opts.activate ?? true;
-  const claudeActivator = opts.activators?.claude ?? activateClaude;
-  const activation: ActivationContext = shouldActivate
-    ? {
-        ...(WIRED_STATES.has(claude_plugin)
-          ? {claude: claudeActivator(join(home, '.claude', 'plugins', 'cladding'))}
-          : {}),
-      }
-    : {};
-
-  const result: SetupResult = {
-    wiring: {claude_plugin, antigravity_plugin, codex_skills, codex_mcp, cursor_mcp},
-    errors,
-    statusFile,
-    cladding_root: pkgRoot,
-    cladding_version: version,
-    last_setup_version: lastVersion,
-  };
-
-  writeStatus(statusFile, {
-    cladding_root: pkgRoot,
-    cladding_version: version,
-    last_run: new Date().toISOString(),
-    wiring: result.wiring,
-    errors,
-  });
-
-  printReport(result, detection, activation, {quiet: opts.quiet});
-  return result;
-}
-
-function resolveDefaultPkgRoot(): string {
-  // Resolves the cladding package root from this file's location.
-  // ESM build outputs a single bundled dist/clad.js (see scripts/build.mjs),
-  // so we walk up from that file's location until we find a package.json
-  // whose name is "cladding". This is robust to bundlers, symlinks, and any
-  // future restructuring of the dist/ output.
-  try {
-    const here = fileURLToPath(import.meta.url);
-    let cur = dirname(here);
-    for (let depth = 0; depth < 6; depth++) {
-      const pkgPath = join(cur, 'package.json');
-      try {
-        const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as {name?: string};
-        if (pkg.name === 'cladding') return cur;
-      } catch {
-        // fallthrough
-      }
-      const parent = dirname(cur);
-      if (parent === cur) break;
-      cur = parent;
-    }
-    // Fallback: assume two levels up from this file (src/init/x.ts pattern).
-    return resolve(dirname(here), '..', '..');
-  } catch {
-    return process.cwd();
-  }
-}
-
-function readCladingVersion(pkgRoot: string): string {
-  try {
-    const pkg = JSON.parse(readFileSync(join(pkgRoot, 'package.json'), 'utf8')) as {version: string};
-    return pkg.version;
-  } catch {
-    return 'unknown';
-  }
-}
-
-/** Read the version recorded by the last `clad setup` run, or null if never run. */
-export function getLastSetupVersion(home: string = homedir()): string | null {
-  return readLastSetupVersion(join(home, '.cladding', STATUS_FILENAME));
-}
-
-/** Read the current cladding binary's package.json version, or null if unreadable. */
-export function getCurrentCladdingVersion(): string | null {
-  try {
-    const pkgRoot = resolveDefaultPkgRoot();
-    const v = readCladingVersion(pkgRoot);
-    return v === 'unknown' ? null : v;
-  } catch {
-    return null;
   }
 }

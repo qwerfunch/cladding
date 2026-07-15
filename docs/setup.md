@@ -5,19 +5,22 @@
 The README covers the setup command and the natural-language request that follows it. This page is
 the detail behind them: where each host is wired, how the MCP server works, and how to upgrade.
 
-## Where `clad setup` connects (4 hosts · 5 wire points)
+## Project activation boundary
 
-| Host (when detected) | Wired location | Auto-activation |
-|---|---|---|
-| Claude Code (`~/.claude/`) | `~/.claude/plugins/cladding` | `claude plugin marketplace add` + `install` |
-| Codex CLI skills (`~/.agents/`) | `~/.agents/skills/cladding-*` | (auto on Codex restart) |
-| Codex CLI MCP server (`~/.codex/`) | `[mcp_servers.cladding]` in `~/.codex/config.toml` | (TOML entry itself) |
-| Antigravity (`agy`) | `~/.gemini/config/plugins/cladding` | (auto on AGY restart) |
-| Cursor (`~/.cursor/`) | `mcpServers.cladding` in `~/.cursor/mcp.json` | (JSON entry itself) |
+`npm install -g cladding` installs only the CLI. Run `clad setup` **inside each project that should use Cladding**. Nothing is installed into a host's global skill or MCP catalog.
 
-`clad setup` invokes Claude Code's activation command when `claude` is on PATH. Antigravity
-auto-discovers its wired plugin directory after restart. It is safe to re-run after an upgrade or
-after installing a new AI tool.
+| Host | Project-scoped location |
+|---|---|
+| Claude Code | `.claude/skills/cladding-init` + `.mcp.json` |
+| Codex CLI | `.agents/skills/cladding-init` + `.codex/config.toml` |
+| Antigravity (`agy`) | `.agents/skills/cladding-init` + `.agents/mcp_config.json` |
+| Cursor | `.cursor/skills/cladding-init` + `.cursor/mcp.json` + bootstrap rule |
+
+The only machine-specific path lives in `.cladding/host/serve.cjs`, which is ignored project runtime state. Re-run setup on each developer machine. Host config files use the portable relative launcher path and preserve unrelated entries.
+
+Codex loads `.codex/config.toml` only for a trusted Git repository. Accept Codex's normal project-trust prompt when opening the repository; this is a Codex security boundary and `clad setup` does not bypass or pre-approve it.
+
+On upgrade, setup removes legacy global Cladding wires only when their ownership is provable. Ambiguous or hand-edited files are preserved and reported. If an old Claude user plugin remains, run `claude plugin uninstall claude-code@cladding --scope user --keep-data`.
 
 **Verification level (honesty note).** Claude Code's MCP/runtime surfaces and real-time
 intervention are verified through earlier real-usage campaigns; the natural-language onboarding
@@ -51,18 +54,18 @@ project, asking about Cladding, or running `clad setup` are not consent.
 |---|---|---|
 | Claude Code | `Apply Cladding to this project` | `/cladding:init` |
 | Codex | `Apply Cladding to this project` | Type `$cladding`, then choose `init (cladding)` |
-| Antigravity | `Apply Cladding to this project` | `/cladding:init` from the installed plugin |
+| Antigravity | `Apply Cladding to this project` | Select the project-local `cladding-init` skill |
 | Cursor IDE / Agent | `Apply Cladding to this project` | Natural language routes through the connected onboarding tool |
 
 ## Upgrading
 
 ```bash
 npm update -g cladding     # 1. install the new version
-clad setup                  # 2. refresh this machine's host wiring
-cd <your project>           # 3. once per project
-clad update                 # 4. bring it in line with the new version
+cd <your project>           # 2. select one Cladding project
+clad update                 # 3. refresh project wiring + derived state
 ```
 
 Your authored code, feature/spec content, and documentation are preserved. The command may refresh
-derived inventory/index data and the Cladding-managed block in `AGENTS.md` or `CLAUDE.md`. If the
+derived inventory/index data and the Cladding-managed block in `AGENTS.md`. Existing `CLAUDE.md`
+files are preserved and Cladding does not create a new one. If the
 newer version is stricter, it only **points out** drift — it does not rewrite authored project intent.

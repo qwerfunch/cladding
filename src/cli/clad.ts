@@ -388,16 +388,24 @@ export function runRollbackCommand(featureId: string, opts: {reason?: string} = 
   process.exit(0);
 }
 
-/** Handler for `clad setup`. Wires cladding into installed AI tool host channels. */
-export async function runSetupCommand(opts: {force?: boolean; quiet?: boolean}): Promise<void> {
-  const result = await runHostSetup({force: opts.force, quiet: opts.quiet});
+/** Handler for `clad setup`. Activates Cladding only for one project. */
+export async function runSetupCommand(opts: {force?: boolean; quiet?: boolean; project?: string; host?: string}): Promise<void> {
+  const hosts = opts.host && opts.host !== 'all'
+    ? [opts.host as 'claude' | 'codex' | 'antigravity' | 'cursor']
+    : undefined;
+  const result = await runHostSetup({
+    force: opts.force,
+    quiet: opts.quiet,
+    projectRoot: opts.project,
+    hosts,
+  });
   process.exit(result.errors.length > 0 ? 1 : 0);
 }
 
 /**
  * Handler for `clad update`. The one-command "after you upgraded the engine"
- * step, run from INSIDE the project you want to reconcile: re-wire hosts +
- * reconcile the spec inventory + refresh the managed CLAUDE.md/AGENTS.md section
+ * step, run from INSIDE the project you want to reconcile: refresh its host
+ * wiring + reconcile the spec inventory + refresh the managed AGENTS.md section
  * (all safe + idempotent — see cli/update.ts), THEN run the now-stricter
  * detectors in REPORT mode. The drift report never blocks and never edits the
  * user's spec — it only surfaces the bar the upgrade raised, so `clad update`
@@ -410,7 +418,7 @@ export async function runSetupCommand(opts: {force?: boolean; quiet?: boolean}):
 export async function runUpdateCommand(): Promise<void> {
   pulse('note', 'update', 'reconciling the current project after the engine upgrade');
   const r = await runUpdate('.', {
-    wireHosts: async () => (await runHostSetup({quiet: true})).errors.length,
+    wireHosts: async () => (await runHostSetup({quiet: true, projectRoot: '.'})).errors.length,
   });
   pulse(r.wiringErrors > 0 ? 'fail' : 'pass', 'hosts', r.wiringErrors > 0 ? `${r.wiringErrors} wiring error(s)` : 're-wired');
   if (!r.isProject) {
@@ -423,7 +431,6 @@ export async function runUpdateCommand(): Promise<void> {
   } else {
     pulse('pass', 'spec', `inventory synced · ${r.features} features`);
   }
-  pulse(r.claudeMd === 'refreshed-stale' ? 'note' : 'pass', 'CLAUDE.md', r.claudeMd);
   pulse(r.agentsMd === 'refreshed-stale' ? 'note' : 'pass', 'AGENTS.md', r.agentsMd);
   for (const d of r.deprecations) pulse('note', 'deprecated', d);
   // Surface what the now-stricter detectors flag — REPORT only, never blocks.
@@ -1068,14 +1075,16 @@ export function createProgram(): Command {
 
   program
     .command('setup')
-    .description('Wire cladding into installed AI tool host channels (Claude Code / Codex / Gemini)')
-    .option('--force', 'overwrite directory-copy wires (Windows fallback) even when changes detected')
+    .description('Activate Cladding only for the current project (Claude Code / Codex / Antigravity / Cursor)')
+    .option('--project <path>', 'activate a project other than the current directory')
+    .option('--host <host>', 'activate all hosts (default) or one of: claude, codex, antigravity, cursor', 'all')
+    .option('--force', 'replace an existing conflicting cladding-owned project entry')
     .option('--quiet', 'suppress stdout output')
     .action(runSetupCommand);
 
   program
     .command('update')
-    .description('Run from a project dir AFTER `npm update -g cladding`: re-wire hosts + sync inventory + refresh the managed CLAUDE.md/AGENTS.md section, then report (without blocking) what the now-stricter detectors flag')
+    .description('Run from a project dir AFTER `npm update -g cladding`: refresh project host wiring + sync inventory + refresh AGENTS.md, then report stricter detector findings')
     .action(runUpdateCommand);
 
   program

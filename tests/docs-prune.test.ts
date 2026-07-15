@@ -132,14 +132,14 @@ describe('AC-4c28425b · deleted docs leave zero dangling references outside his
     }
   });
 
-  test('src/init/host-setup.ts carries the Antigravity npm-delegation WHY directly above wireAntigravity', () => {
+  test('src/init/host-setup.ts carries the project-scoped Antigravity boundary directly', () => {
     const hostSetup = read('src/init/host-setup.ts');
-    const fnIdx = hostSetup.indexOf('function wireAntigravity(');
-    expect(fnIdx, 'wireAntigravity function present').toBeGreaterThan(-1);
-    const before = hostSetup.slice(Math.max(0, fnIdx - 1200), fnIdx);
-    expect(before, 'load-bearing WHY: AGY discovery path').toContain('~/.gemini/config/plugins');
-    expect(before, 'names the npm-delegated MCP launch').toContain('globally installed `clad`');
-    expect(before, 'relocates the reasoning, not just a pointer to the deleted doc').not.toContain(MARKETPLACE_DOC);
+    expect(hostSetup, 'load-bearing WHY: global install must not leak context').toContain(
+      'Installing the CLI globally must not make Cladding visible to every AI',
+    );
+    expect(hostSetup, 'AGY uses its project MCP discovery file').toContain("'.agents', 'mcp_config.json'");
+    expect(hostSetup, 'AGY shares only the project init skill').toContain("'.agents', 'skills', 'cladding-init'");
+    expect(hostSetup, 'does not point back to the deleted marketplace design').not.toContain(MARKETPLACE_DOC);
   });
 
   test('src/spec/types.ts J5b comment cites the ac-hash-ids shard, not the deleted doc', () => {

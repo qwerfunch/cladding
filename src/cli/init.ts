@@ -35,7 +35,6 @@ import {
 import type {ScanLlmDispatcher} from './scan/llm.js';
 import {captureArtifactDigests, loadState, saveState, type OnboardingState} from './scan/onboarding-state.js';
 import {detectToolchain} from '../stages/toolchain/detect.js';
-import {writeClaudeMdSection} from '../init/host-instructions.js';
 import {writeSpecDrivenAgentsMd} from '../init/agents-md.js';
 import {getCurrentCladdingVersion, getLastSetupVersion} from '../init/host-setup.js';
 import {installGitHook} from '../init/git-hook.js';
@@ -312,7 +311,7 @@ export function hostWireNotice(lastSetup: string | null, pkgVersion: string | nu
     return 'host channels not wired yet — run `clad setup`, restart your AI tool, then ask it to apply Cladding to this project';
   }
   if (pkgVersion && lastSetup !== pkgVersion) {
-    return `host wire was set up at v${lastSetup} (current binary v${pkgVersion}) — symlinks usually auto-follow, but run \`clad setup\` to be sure`;
+    return `this project's host wiring was set up at v${lastSetup} (current binary v${pkgVersion}) — run \`clad setup\` in this project to refresh its local runtime`;
   }
   return null;
 }
@@ -590,13 +589,9 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
     }
   }
 
-  // F-90d054 — project-local host AI instruction surfaces.
-  // AGENTS.md is the cross-tool entry point (Codex · Cursor · Continue ·
-  // Copilot · Aider). CLAUDE.md is Claude Code's project memory — appended
-  // idempotently so existing user content is preserved. v0.4.0 — when the
-  // existing file carries v0.3.x markers (e.g. `_meta.enrichment_status`,
-  // lone `clad_create_feature MCP tool`), it is refreshed in place so AI
-  // sessions don't see stale guidance.
+  // F-90d054 — AGENTS.md is the single cross-host instruction surface.
+  // Existing CLAUDE.md files belong to the user and are never created or
+  // changed by onboarding; Claude Code reads AGENTS.md as well.
   // F-a4085adf (#199) — the adopter's AGENTS.md is now spec-driven: its managed
   // block is rendered from spec.yaml (test framework, branch, forbidden/preferred
   // patterns, preferred persona) + the cross-host persona→capability map, instead
@@ -613,22 +608,11 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
   } else {
     skipped.push('AGENTS.md (managed block already current)');
   }
-  const claudeResult = writeClaudeMdSection(cwd, {force});
-  if (claudeResult === 'created') {
-    created.push('CLAUDE.md');
-  } else if (claudeResult === 'appended') {
-    created.push('CLAUDE.md (## cladding section appended)');
-  } else if (claudeResult === 'refreshed-stale') {
-    created.push('CLAUDE.md (## cladding section refreshed — v0.3.x guidance replaced)');
-  } else {
-    skipped.push('CLAUDE.md (## cladding section already present)');
-  }
-
   // F-80d19d — friendly warning when host channels were never wired or are
   // out of sync with the current cladding binary. `clad setup` is the explicit
   // command for wiring; this is informational only and does not block init.
   const pkgVersion = getCurrentCladdingVersion();
-  const wireNotice = hostWireNotice(getLastSetupVersion(), pkgVersion);
+  const wireNotice = hostWireNotice(getLastSetupVersion(cwd), pkgVersion);
   if (wireNotice) skipped.push(wireNotice);
 
   // Phase 2 (opt-in) — ambient enforcement via a git pre-commit hook. Off

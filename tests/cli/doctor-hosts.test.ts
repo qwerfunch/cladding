@@ -427,10 +427,10 @@ describe('Cursor is headlessly verified and carries separate wiring evidence (AC
   });
 
   const wireCursor = (): void => {
-    mkdirSync(join(home, '.cursor'), {recursive: true});
+    mkdirSync(join(dir, '.cursor'), {recursive: true});
     writeFileSync(
-      join(home, '.cursor', 'mcp.json'),
-      JSON.stringify({mcpServers: {cladding: {command: 'clad', args: ['serve']}}}),
+      join(dir, '.cursor', 'mcp.json'),
+      JSON.stringify({mcpServers: {cladding: {command: 'node', args: ['.cladding/host/serve.cjs']}}}),
     );
   };
 

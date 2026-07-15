@@ -245,15 +245,15 @@ cladding の差別化点は *組み合わせ* にある — 上のカテゴリ�
 
 ```bash
 npm install -g cladding   # cladding CLI をインストール
-clad setup                # AI ツールを自動配線（Claude · Codex · Antigravity · Cursor）
 ```
 
-二つのコマンドはどのディレクトリからでも実行できる。`clad setup` はこのマシンにインストール済みの AI ツールを接続するだけで、プロジェクトファイルは作成・変更しない。対応する AI ツールを後から追加した場合は、`clad setup` だけを再実行する。
+このコマンドはどのディレクトリからでも実行できる。CLI だけをインストールし、AI モデルのコンテキストにはまだ Cladding を追加しない。
 
-### 2. プロジェクトから AI ツールを起動する
+### 2. 使用するプロジェクトだけを有効化し、AI ツールを起動する
 
 ```bash
 cd <project>
+clad setup                # このプロジェクトだけに Cladding を接続する
 
 # 一つだけ選び、先頭の「#」を外して実行する:
 # codex          # Codex
@@ -262,7 +262,7 @@ cd <project>
 # cursor-agent   # Cursor Agent
 ```
 
-使用する AI ツールのコマンドを一つだけ実行する。Cursor IDE の場合は `<project>` をワークスペースとして開く。`clad setup` の後は必ず新しい AI セッションを開始する。`cd` だけで終えてはいけない。
+`clad setup` は Claude Code・Codex・Antigravity・Cursor の接続を現在のプロジェクト内だけに作る。setup を実行していない別プロジェクトのモデルコンテキストには、Cladding の skill や MCP ツールは入らない。使用する AI ツールのコマンドを一つだけ実行し、Cursor IDE では `<project>` をワークスペースとして開く。setup 後はこのフォルダから新しい AI セッションを開始する。Codex が Git リポジトリを初めて開いて信頼確認を表示した場合は承認する。信頼されるまで Codex はプロジェクト MCP 設定を意図的に読み込まない。
 
 ### 3. Cladding を一度適用する
 
@@ -320,13 +320,11 @@ AI ツールにターミナルとグローバルインストールの権限が�
 
 ```bash
 npm update -g cladding   # 1. 新しいバージョンを入れる
-clad setup               # 2. このマシンの AI ツール接続を更新する
-
-cd <project>             # 3. Cladding プロジェクトへ移動
-clad update              # 4. プロジェクトをインストール済みバージョンに合わせる
+cd <project>             # 2. Cladding プロジェクトへ移動
+clad update              # 3. プロジェクト接続と派生状態を更新する
 ```
 
-最初の二つはマシンの更新ごとに一度だけ実行する。`clad update` は更新する各 Cladding プロジェクトで実行する。ユーザーが作成したコード・機能や spec の本文・ドキュメントは保持され、派生データと Cladding 管理の指示ブロックだけが更新される場合がある。新しいバージョンが乖離を報告したら、その結果を AI ツールに渡せばよい:
+`clad update` は更新する各 Cladding プロジェクトで実行する。プロジェクト単位の setup も同時に更新するため、別途 `clad setup` を実行する必要はない。ユーザーが作成したコード・機能や spec の本文・ドキュメントは保持され、派生データと Cladding 管理の指示ブロックだけが更新される場合がある。新しいバージョンが乖離を報告したら、その結果を AI ツールに渡せばよい:
 
 ```
 更新で指摘された乖離を解消して。

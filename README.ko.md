@@ -244,15 +244,15 @@ cladding의 차별점은 *결합* — 위 카테고리의 핵심을 *하나의 �
 
 ```bash
 npm install -g cladding   # cladding CLI 설치
-clad setup                # AI 도구 자동 연결 (Claude · Codex · Antigravity · Cursor)
 ```
 
-두 명령은 어느 디렉터리에서든 실행할 수 있다. `clad setup`은 이 컴퓨터에 이미 설치된 AI 도구를 연결할 뿐 프로젝트 파일을 만들거나 수정하지 않는다. 지원하는 AI 도구를 나중에 추가했다면 `clad setup`만 다시 실행한다.
+이 단계는 어느 디렉터리에서 실행해도 된다. CLI만 설치하며 AI 도구에는 아직 Cladding 정보가 들어가지 않는다.
 
-### 2. 프로젝트에서 AI 도구 실행하기
+### 2. 사용할 프로젝트만 연결하고 AI 도구 실행하기
 
 ```bash
 cd <project>
+clad setup                # 이 프로젝트에만 AI 도구 연결
 
 # 정확히 하나를 골라 앞의 '#'을 지우고 실행한다:
 # codex          # Codex
@@ -261,7 +261,7 @@ cd <project>
 # cursor-agent   # Cursor Agent
 ```
 
-자신이 사용하는 AI 도구의 명령 하나만 실행하면 된다. Cursor IDE는 `<project>` 폴더를 작업공간으로 연다. `clad setup` 뒤에는 반드시 AI 도구를 새 세션으로 시작한다. `cd`만 실행하고 끝내면 안 된다.
+`clad setup`은 현재 프로젝트에만 Claude Code · Codex · Antigravity · Cursor 연결을 만든다. 설정하지 않은 다른 프로젝트의 모델 컨텍스트에는 Cladding skill이나 MCP 도구가 들어가지 않는다. Cursor IDE는 `<project>` 폴더를 작업공간으로 연다. setup 뒤에는 반드시 이 폴더에서 AI 도구를 새 세션으로 시작한다. Codex가 Git 저장소를 처음 열며 프로젝트 신뢰 여부를 물으면 승인한다. Codex는 신뢰하기 전까지 프로젝트 MCP 설정을 의도적으로 무시한다.
 
 ### 3. 프로젝트에 Cladding 한 번 적용하기
 
@@ -319,13 +319,11 @@ AI 도구에 터미널 및 전역 설치 권한이 있으면 CLI 업데이트, �
 
 ```bash
 npm update -g cladding   # 1. 새 버전 받기
-clad setup               # 2. 이 컴퓨터의 AI 도구 연결 갱신
-
-cd <project>             # 3. Cladding 프로젝트로 이동
-clad update              # 4. 프로젝트를 설치된 버전에 맞추기
+cd <project>             # 2. Cladding 프로젝트로 이동
+clad update              # 3. 프로젝트 연결과 파생 데이터를 함께 갱신
 ```
 
-앞의 두 명령은 컴퓨터에서 업데이트할 때 한 번만 실행한다. `clad update`는 업데이트하려는 각 Cladding 프로젝트에서 실행한다. 사용자가 작성한 코드 · 기능/스펙 본문 · 문서는 보존되며, 파생 데이터와 Cladding 관리 지침 블록만 갱신될 수 있다. 새 버전이 어긋남을 발견하면 그 결과를 AI 도구에 넘기면 된다:
+`clad update`는 업데이트하려는 각 Cladding 프로젝트에서 실행한다. 사용자가 작성한 코드 · 기능/스펙 본문 · 문서는 보존되며, 프로젝트 전용 호스트 연결과 파생 데이터, `AGENTS.md`의 Cladding 관리 블록만 갱신될 수 있다. 새 버전이 어긋남을 발견하면 그 결과를 AI 도구에 넘기면 된다:
 
 ```
 업데이트가 짚은 어긋남을 정리해줘.

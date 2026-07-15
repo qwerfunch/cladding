@@ -28,7 +28,11 @@ describe('gateFooter — engine fault fails closed, never a fabricated GREEN', (
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'clad-gatefooter-'));
-    writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: fixture\n', 'utf8');
+    writeFileSync(
+      join(dir, 'spec.yaml'),
+      'schema: "0.1"\nproject:\n  name: fixture\n  language: typescript\nfeatures: []\nscenarios: []\ncapabilities: []\n',
+      'utf8',
+    );
     mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
   });
 

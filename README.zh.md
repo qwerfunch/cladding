@@ -241,15 +241,15 @@ cladding 的独到之处在于*组合* —— 把上述品类的内核，绑进*
 
 ```bash
 npm install -g cladding   # 安装 cladding CLI
-clad setup                # 自动接通你的 AI 工具（Claude · Codex · Antigravity · Cursor）
 ```
 
-这两条命令可以在任何目录运行。`clad setup` 只连接这台电脑上已经安装的 AI 工具，不会创建或修改项目文件。以后新增支持的 AI 工具时，只需再次运行 `clad setup`。
+这条命令可以在任何目录运行。它只安装 CLI，不会把 Cladding 加入任何 AI 模型的上下文。
 
-### 2. 从项目中启动 AI 工具
+### 2. 只激活要使用的项目，然后启动 AI 工具
 
 ```bash
 cd <project>
+clad setup                # 只为这个项目连接 Cladding
 
 # 只选择一个，并删除行首的“#”后运行：
 # codex          # Codex
@@ -258,7 +258,7 @@ cd <project>
 # cursor-agent   # Cursor Agent
 ```
 
-只需运行自己所用 AI 工具对应的一条命令。使用 Cursor IDE 时，把 `<project>` 作为工作区打开。运行 `clad setup` 后必须启动一个新的 AI 会话；不能只执行 `cd` 就结束。
+`clad setup` 只在当前项目内创建 Claude Code、Codex、Antigravity 和 Cursor 的连接。没有运行 setup 的其他项目，其模型上下文不会出现 Cladding skill 或 MCP 工具。只需运行自己所用 AI 工具对应的一条命令；使用 Cursor IDE 时，把 `<project>` 作为工作区打开。setup 后请从此文件夹启动新的 AI 会话。Codex 首次打开 Git 仓库并询问是否信任项目时，请确认信任；在此之前，Codex 会有意忽略项目 MCP 配置。
 
 ### 3. 为项目应用一次 Cladding
 
@@ -316,13 +316,11 @@ Cladding 会扫描现有代码，并把观察到的模式与你的意图结合�
 
 ```bash
 npm update -g cladding   # 1. 取得新版本
-clad setup               # 2. 刷新这台电脑上的 AI 工具连接
-
-cd <project>             # 3. 进入 Cladding 项目
-clad update              # 4. 让项目与已安装版本对齐
+cd <project>             # 2. 进入 Cladding 项目
+clad update              # 3. 刷新项目连接和派生状态
 ```
 
-前两条命令每次更新在电脑上只需运行一次。`clad update` 需要在每个要升级的 Cladding 项目中运行。用户编写的代码、功能/spec 正文和文档会保留；只有派生数据和 Cladding 管理的指令区块可能被刷新。如果新版本报告了漂移，把结果交给 AI 工具即可：
+`clad update` 需要在每个要升级的 Cladding 项目中运行。它会同时刷新项目级 setup，因此不必另外运行 `clad setup`。用户编写的代码、功能/spec 正文和文档会保留；只有派生数据和 Cladding 管理的指令区块可能被刷新。如果新版本报告了漂移，把结果交给 AI 工具即可：
 
 ```
 修复这次更新标出的漂移。

@@ -222,6 +222,17 @@ describe('serve/server — MCP read surface', () => {
         const msg = (r.content as Array<{text: string}>)[0].text;
         expect(msg, `${name} must carry the clad-init guidance`).toContain('clad init');
       }
+
+      const mutation = await client.callTool({
+        name: 'clad_create_feature',
+        arguments: {
+          slug: 'must-not-exist',
+          design_impact: {classification: 'none', rationale: 'boundary probe'},
+        },
+      });
+      expect(mutation.isError).toBe(true);
+      expect((mutation.content as Array<{text: string}>)[0].text).toContain('not_initialized');
+      expect(existsSync(join(bare, 'spec'))).toBe(false);
     } finally {
       await cleanup();
       rmSync(bare, {recursive: true, force: true});

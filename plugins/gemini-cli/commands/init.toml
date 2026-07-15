@@ -1,4 +1,4 @@
-description = "Scaffold a Cladding workspace from a new idea, a planning document, or an existing project. Use the MCP prepare/apply flow so the current host model drafts domain-aware artifacts without requiring MCP sampling or a shell command."
+description = "Use only when the user explicitly names Cladding and asks to initialize, adopt, or refresh it; never use for an ordinary project creation or implementation request. Scaffold from an idea, planning document, or existing project through the MCP prepare/apply flow."
 prompt = '''
 # Cladding init
 

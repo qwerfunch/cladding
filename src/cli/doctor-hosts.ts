@@ -219,7 +219,7 @@ export type ServeProber = (command: string, args: readonly string[], cwd: string
 export interface HostSmokeOptions {
   /** Live prompts run only when true (CLAD_HOST_SMOKE=1 or --yes). */
   readonly consent?: boolean;
-  /** Home directory holding ~/.cursor/mcp.json (default os.homedir()). */
+  /** Home directory used only for host binary discovery and legacy diagnostics. */
   readonly home?: string;
   /** Clock injection for deterministic artifact timestamps in tests. */
   readonly now?: Date;
@@ -400,29 +400,26 @@ function probePromptHost(
  * The prompt probe supplies the overall host grade; this adds structural MCP
  * evidence and catches a dead configured server before spending model tokens.
  * Wiring grades:
- *   - not-run    — ~/.cursor absent (Cursor not installed here) OR no cladding
- *                  MCP entry (not wired). Absence of evidence, never a pass.
+ *   - not-run    — no project-local Cladding MCP entry. Absence of evidence,
+ *                  never a pass.
  *   - wiring-fail — cladding IS wired but `clad serve` does not answer tools/list.
  *   - wiring-ok  — wired AND `clad serve` answers a tools list over stdio.
  */
-function probeCursorWiring(home: string, cwd: string, probeServe: ServeProber): HostRecord {
-  const cursorDir = join(home, '.cursor');
+function probeCursorWiring(_home: string, cwd: string, probeServe: ServeProber): HostRecord {
+  const cursorDir = join(cwd, '.cursor');
   const mcpPath = join(cursorDir, 'mcp.json');
-  if (!existsSync(cursorDir)) {
-    return {grade: 'not-run', surfaces: [], reason: 'Cursor not detected (~/.cursor absent) — run `clad setup` to wire'};
-  }
   if (!existsSync(mcpPath)) {
-    return {grade: 'not-run', surfaces: [], reason: 'no ~/.cursor/mcp.json — run `clad setup` to wire cladding'};
+    return {grade: 'not-run', surfaces: [], reason: 'no project .cursor/mcp.json — run `clad setup` in this project'};
   }
   let entry: {command?: string; args?: unknown} | undefined;
   try {
     const parsed = JSON.parse(readFileSync(mcpPath, 'utf8')) as {mcpServers?: Record<string, unknown>};
     entry = parsed.mcpServers?.cladding as {command?: string; args?: unknown} | undefined;
   } catch {
-    return {grade: 'not-run', surfaces: [], reason: '~/.cursor/mcp.json is not valid JSON'};
+    return {grade: 'not-run', surfaces: [], reason: 'project .cursor/mcp.json is not valid JSON'};
   }
   if (!entry || typeof entry.command !== 'string') {
-    return {grade: 'not-run', surfaces: [], reason: 'no cladding MCP entry in ~/.cursor/mcp.json — run `clad setup`'};
+    return {grade: 'not-run', surfaces: [], reason: 'no Cladding entry in project .cursor/mcp.json — run `clad setup`'};
   }
   const args = Array.isArray(entry.args) ? (entry.args as string[]) : [];
   const probe = probeServe(entry.command, args, cwd);
@@ -434,7 +431,7 @@ function probeCursorWiring(home: string, cwd: string, probeServe: ServeProber): 
   };
   return probe.ok
     ? {grade: 'wiring-ok', surfaces: [surface]}
-    : {grade: 'wiring-fail', surfaces: [surface], reason: 'cladding is wired in ~/.cursor/mcp.json but `clad serve` did not answer tools/list'};
+    : {grade: 'wiring-fail', surfaces: [surface], reason: 'Cladding is wired in project .cursor/mcp.json but its launcher did not answer tools/list'};
 }
 
 /**

@@ -89,7 +89,7 @@ describe('serve/server — natural-language init tools', () => {
     }
   });
 
-  test('idea mode initializes through the shared engine and writes host instructions after spec', async () => {
+  test('idea mode initializes through the shared engine and writes only AGENTS.md after spec', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const {token, confirmation} = await prepare(client, {mode: 'idea', intent: 'B2B payment SaaS'});
@@ -102,7 +102,7 @@ describe('serve/server — natural-language init tools', () => {
       });
       expect(existsSync(join(dir, 'spec.yaml'))).toBe(true);
       expect(existsSync(join(dir, 'AGENTS.md'))).toBe(true);
-      expect(existsSync(join(dir, 'CLAUDE.md'))).toBe(true);
+      expect(existsSync(join(dir, 'CLAUDE.md'))).toBe(false);
     } finally {
       await cleanup();
     }
