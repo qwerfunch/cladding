@@ -76,7 +76,7 @@ export interface CreateFeatureOptions {
   readonly modules?: readonly string[];
   /** Acceptance criteria authored at creation. Omitted → `acceptance_criteria: []`. */
   readonly acceptance_criteria?: readonly AcceptanceCriterionInput[];
-  /** Durable Tier-B impact decision. Required by the public MCP authoring path. */
+  /** Optional durable Tier-B impact decision for hosts that support the richer authoring path. */
   readonly design_impact?: {
     readonly classification: 'none' | 'additive' | 'structural';
     readonly rationale: string;

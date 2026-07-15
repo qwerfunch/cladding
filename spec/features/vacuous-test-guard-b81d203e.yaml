@@ -49,3 +49,4 @@ acceptance_criteria:
     condition: "if a successful test command definitively reports zero executed tests"
     response: "emit a blocking VACUOUS_TESTS finding under strict mode"
     text: "If a successful test command definitively reports zero executed tests, the system shall emit a blocking VACUOUS_TESTS finding under strict mode."
+    notes: "This runner-independent aggregate guard owns the zero-test case discovered during onboarding handoff verification; it is not scoped to initialized projects."

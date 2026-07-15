@@ -4,8 +4,9 @@
 // — it NEVER executes anything (that is the stage's job). Two checks, done-only:
 //   - project.deliverable.path declared but ABSENT on disk → error (blocking): a
 //     project that has shipped a `done` feature must have its declared entry present.
-//   - done features ship modules[] but NO project.deliverable is declared → info
-//     before the shared eight-feature maturity boundary, warn after it:
+//   - done features ship modules[] but NO project.deliverable is declared → warn,
+//     with info-level grace only for explicitly marked onboarding seeds before
+//     the shared eight-feature maturity boundary:
 //     the gate cannot smoke-test the shipped entry, so a broken entry could ship
 //     green (the Mini-Lang S5 failure). The graduated signal keeps early
 //     domain/library slices completable while ensuring a grown project's omitted
@@ -23,7 +24,7 @@ import {withSpec} from './with-spec.js';
 
 const NAME = 'DELIVERABLE_INTEGRITY';
 
-/** Shared maturity scale: early domain/library slices need not expose an entry yet. */
+/** Shared maturity boundary for explicitly marked onboarding slices. */
 export const DEFAULT_MIN_FEATURES_FOR_DELIVERABLE = 8;
 
 function runDeliverableIntegrity(opts: CommandStageOptions): readonly DriftFinding[] {
@@ -36,10 +37,13 @@ function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
   const doneWithModules = spec.features.filter((f) => f.status === 'done' && (f.modules?.length ?? 0) > 0);
   if (!deliverable) {
     if (doneWithModules.length === 0) return [];
+    const onboardingGrace =
+      spec.project.onboarding_seeded === true &&
+      spec.features.length < DEFAULT_MIN_FEATURES_FOR_DELIVERABLE;
     return [
       {
         detector: NAME,
-        severity: spec.features.length >= DEFAULT_MIN_FEATURES_FOR_DELIVERABLE ? 'warn' : 'info',
+        severity: onboardingGrace ? 'info' : 'warn',
         message:
           `${doneWithModules.length} done feature(s) ship modules but project.deliverable is not declared — ` +
           'the gate cannot smoke-test the shipped entry, so a broken entry point could ship green. ' +

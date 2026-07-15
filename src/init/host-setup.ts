@@ -18,7 +18,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import {homedir, platform} from 'node:os';
-import {dirname, isAbsolute, join, relative, resolve} from 'node:path';
+import {basename, dirname, isAbsolute, join, relative, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 
@@ -32,10 +32,11 @@ export type ChannelResult =
   | 'manual-required'
   | 'failed';
 
-export type SetupHost = 'claude' | 'codex' | 'antigravity' | 'cursor';
+export type SetupHost = 'claude' | 'codex' | 'gemini' | 'antigravity' | 'cursor';
 
 export interface HostDetection {
   readonly claude: boolean;
+  readonly gemini: boolean;
   readonly antigravity: boolean;
   readonly codex: boolean;
   readonly agents: boolean;
@@ -49,11 +50,13 @@ export interface SetupResult {
     readonly shared_init_skill: ChannelResult;
     readonly claude: ChannelResult;
     readonly codex: ChannelResult;
+    readonly gemini: ChannelResult;
     readonly antigravity: ChannelResult;
     readonly cursor: ChannelResult;
   };
   readonly legacyCleanup: {
     readonly claude_plugin: ChannelResult;
+    readonly gemini_extension: ChannelResult;
     readonly antigravity_plugin: ChannelResult;
     readonly codex_skills: ChannelResult;
     readonly codex_mcp: ChannelResult;
@@ -88,7 +91,18 @@ interface SetupStatus {
 
 const STATUS_FILENAME = 'setup-status.json';
 const RUNTIME_RELATIVE = join('.cladding', 'host', 'serve.cjs');
-const ALL_HOSTS: readonly SetupHost[] = ['claude', 'codex', 'antigravity', 'cursor'];
+/**
+ * Project-local Gemini policy used only by the explicitly consented read-only host smoke.
+ *
+ * @see spec/features/host-smoke-matrix-5283985e.yaml AC-4a71e2
+ */
+export const GEMINI_DOCTOR_POLICY_RELATIVE = '.cladding/host/gemini-doctor-policy.toml';
+const ALL_HOSTS: readonly SetupHost[] = ['claude', 'codex', 'gemini', 'antigravity', 'cursor'];
+const CURSOR_READONLY_MCP_PERMISSIONS = [
+  'Mcp(cladding:clad_list_features)',
+  'Mcp(cladding:clad_get_feature)',
+  'Mcp(cladding:clad_run_check)',
+] as const;
 
 function ensureDir(path: string): void {
   mkdirSync(path, {recursive: true});
@@ -253,6 +267,36 @@ function runtimeBody(pkgRoot: string): string {
   ].join('\n');
 }
 
+/** Allow only the annotated read-only doctor surfaces while Gemini is in Plan Mode. */
+function geminiDoctorPolicyBody(): string {
+  return [
+    '[[rule]]',
+    'mcpName = "cladding"',
+    'toolName = "*"',
+    'decision = "deny"',
+    'priority = 100',
+    'modes = ["plan"]',
+    'interactive = false',
+    '',
+    '[[rule]]',
+    'mcpName = "cladding"',
+    'toolName = ["clad_list_features", "clad_get_feature", "clad_run_check"]',
+    'toolAnnotations = { readOnlyHint = true }',
+    'decision = "allow"',
+    'priority = 200',
+    'modes = ["plan"]',
+    'interactive = false',
+    '',
+    '[[rule]]',
+    'toolName = "exit_plan_mode"',
+    'decision = "deny"',
+    'priority = 200',
+    'modes = ["plan"]',
+    'interactive = false',
+    '',
+  ].join('\n');
+}
+
 /** Keep machine-specific setup state out of a Git worktree without editing the shared .gitignore. */
 function ignoreLocalRuntime(projectRoot: string): void {
   const exclude = join(projectRoot, '.git', 'info', 'exclude');
@@ -278,15 +322,21 @@ function mcpLaunch(): {command: string; args: string[]} {
 
 function copyManagedSkill(source: string, destination: string, force: boolean): ChannelResult {
   if (!existsSync(source)) return 'failed';
+  const sourceBody = readText(join(source, 'SKILL.md'));
+  if (sourceBody == null || !sourceBody.startsWith('---\n')) return 'failed';
+  const destinationName = basename(destination);
+  const expected = /^name:\s*.*$/m.test(sourceBody)
+    ? sourceBody.replace(/^name:\s*.*$/m, `name: ${destinationName}`)
+    : sourceBody.replace(/^---\n/, `---\nname: ${destinationName}\n`);
   if (existsSync(destination)) {
     const current = readText(join(destination, 'SKILL.md'));
-    const expected = readText(join(source, 'SKILL.md'));
     if (current === expected) return 'unchanged';
     if (!force && current != null && !current.includes('# Cladding init')) return 'skipped-different';
     rmSync(destination, {recursive: true, force: true});
   }
   ensureDir(dirname(destination));
   cpSync(source, destination, {recursive: true, dereference: true});
+  writeFileSync(join(destination, 'SKILL.md'), expected, 'utf8');
   return 'created';
 }
 
@@ -307,6 +357,49 @@ function mergeJsonMcp(path: string, launch: {command: string; args: string[]}, f
   }
 }
 
+/** Allow only Cladding's read-only doctor tools in project-local Cursor CLI sessions. */
+function mergeCursorCliPermissions(path: string): ChannelResult {
+  try {
+    const raw = readText(path);
+    const doc = raw == null ? {} : (JSON.parse(raw) as Record<string, unknown>);
+    const currentPermissions = doc.permissions;
+    if (
+      currentPermissions !== undefined &&
+      (typeof currentPermissions !== 'object' || currentPermissions === null || Array.isArray(currentPermissions))
+    ) {
+      return 'skipped-different';
+    }
+    const permissions = (currentPermissions ?? {}) as Record<string, unknown>;
+    const currentAllow = permissions.allow;
+    if (
+      currentAllow !== undefined &&
+      (!Array.isArray(currentAllow) || currentAllow.some((entry) => typeof entry !== 'string'))
+    ) {
+      return 'skipped-different';
+    }
+    const currentDeny = permissions.deny;
+    if (
+      currentDeny !== undefined &&
+      (!Array.isArray(currentDeny) || currentDeny.some((entry) => typeof entry !== 'string'))
+    ) {
+      return 'skipped-different';
+    }
+    const allow = (currentAllow ?? []) as string[];
+    const deny = (currentDeny ?? []) as string[];
+    const nextAllow = [...allow];
+    for (const permission of CURSOR_READONLY_MCP_PERMISSIONS) {
+      if (!nextAllow.includes(permission)) nextAllow.push(permission);
+    }
+    if (nextAllow.length === allow.length && currentDeny !== undefined) return 'unchanged';
+    permissions.allow = nextAllow;
+    permissions.deny = deny;
+    doc.permissions = permissions;
+    return writeIfChanged(path, `${JSON.stringify(doc, null, 2)}\n`);
+  } catch {
+    return 'failed';
+  }
+}
+
 async function mergeCodexMcp(path: string, launch: {command: string; args: string[]}, force: boolean): Promise<ChannelResult> {
   try {
     const {parse, stringify} = await import('smol-toml');
@@ -315,7 +408,12 @@ async function mergeCodexMcp(path: string, launch: {command: string; args: strin
     if (!doc.mcp_servers || typeof doc.mcp_servers !== 'object') doc.mcp_servers = {};
     const servers = doc.mcp_servers as Record<string, unknown>;
     const current = servers.cladding;
-    const next = {command: launch.command, args: launch.args, description: 'cladding MCP server (project-scoped by `clad setup`)'};
+    const next = {
+      command: launch.command,
+      args: launch.args,
+      description: 'cladding MCP server (project-scoped by `clad setup`)',
+      default_tools_approval_mode: 'writes',
+    };
     if (JSON.stringify(current) === JSON.stringify(next)) return 'unchanged';
     if (current && !force && !isKnownLaunch(current, [])) return 'skipped-different';
     servers.cladding = next;
@@ -383,15 +481,26 @@ export async function runHostSetup(opts: SetupOptions = {}): Promise<SetupResult
 
   ensureDir(projectRoot);
   ignoreLocalRuntime(projectRoot);
-  const runtime = writeIfChanged(join(projectRoot, RUNTIME_RELATIVE), runtimeBody(pkgRoot));
+  const runtimeParts: ChannelResult[] = [
+    writeIfChanged(join(projectRoot, RUNTIME_RELATIVE), runtimeBody(pkgRoot)),
+  ];
+  if (hosts.has('gemini')) {
+    runtimeParts.push(
+      writeIfChanged(join(projectRoot, GEMINI_DOCTOR_POLICY_RELATIVE), geminiDoctorPolicyBody()),
+    );
+  }
+  const runtime = combine(runtimeParts);
   const initSource = join(pkgRoot, 'plugins', 'codex', 'skills', 'init');
-  const sharedSkill = hosts.has('codex') || hosts.has('antigravity')
+  const sharedSkill = hosts.has('codex') || hosts.has('gemini') || hosts.has('antigravity')
     ? copyManagedSkill(initSource, join(projectRoot, '.agents', 'skills', 'cladding-init'), force)
     : 'unchanged';
   const launch = mcpLaunch();
 
   const codex = hosts.has('codex')
     ? await mergeCodexMcp(join(projectRoot, '.codex', 'config.toml'), launch, force)
+    : 'skipped-not-installed';
+  const gemini = hosts.has('gemini')
+    ? mergeJsonMcp(join(projectRoot, '.gemini', 'settings.json'), launch, force)
     : 'skipped-not-installed';
   const antigravity = hosts.has('antigravity')
     ? mergeJsonMcp(join(projectRoot, '.agents', 'mcp_config.json'), launch, force)
@@ -406,6 +515,7 @@ export async function runHostSetup(opts: SetupOptions = {}): Promise<SetupResult
     ? combine([
         copyManagedSkill(initSource, join(projectRoot, '.cursor', 'skills', 'cladding-init'), force),
         mergeJsonMcp(join(projectRoot, '.cursor', 'mcp.json'), launch, force),
+        mergeCursorCliPermissions(join(projectRoot, '.cursor', 'cli.json')),
         writeCursorBootstrap(projectRoot),
       ])
     : 'skipped-not-installed';
@@ -417,13 +527,14 @@ export async function runHostSetup(opts: SetupOptions = {}): Promise<SetupResult
     : 'unchanged';
   const legacyCleanup = {
     claude_plugin: combine([claudePluginLink, claudePluginInstall]),
+    gemini_extension: removeOwnedSymlink(join(home, '.gemini', 'extensions', 'cladding'), roots),
     antigravity_plugin: removeOwnedSymlink(join(home, '.gemini', 'config', 'plugins', 'cladding'), roots),
     codex_skills: removeOwnedCodexSkills(home, roots),
     codex_mcp: await removeOwnedCodexMcp(home, roots),
     cursor_mcp: removeOwnedCursorMcp(home, roots),
   } as const;
 
-  const wiring = {runtime, shared_init_skill: sharedSkill, claude, codex, antigravity, cursor};
+  const wiring = {runtime, shared_init_skill: sharedSkill, claude, codex, gemini, antigravity, cursor};
   for (const [step, state] of Object.entries(wiring)) collectIssue(state, step, errors, warnings);
   for (const [step, state] of Object.entries(legacyCleanup)) collectIssue(state, `legacy:${step}`, errors, warnings);
 
@@ -471,6 +582,7 @@ export function renderSetupReport(result: SetupResult, _detection?: HostDetectio
     '',
     `  Claude Code  → ${stateLabel(result.wiring.claude)}`,
     `  Codex        → ${stateLabel(result.wiring.codex)}`,
+    `  Gemini CLI   → ${stateLabel(result.wiring.gemini)}`,
     `  Antigravity  → ${stateLabel(result.wiring.antigravity)}`,
     `  Cursor       → ${stateLabel(result.wiring.cursor)}`,
   ];
@@ -524,6 +636,7 @@ export function getLastSetupVersion(projectRoot: string = process.cwd()): string
 export function detectHosts(home: string = homedir()): HostDetection {
   return {
     claude: existsSync(join(home, '.claude')),
+    gemini: existsSync(join(home, '.gemini')),
     antigravity: existsSync(join(home, '.gemini', 'config')) || existsSync(join(home, '.gemini', 'antigravity-cli')),
     codex: existsSync(join(home, '.codex')),
     agents: existsSync(join(home, '.agents')),

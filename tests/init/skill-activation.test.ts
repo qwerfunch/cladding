@@ -9,6 +9,11 @@ const ACTIVATION_GUARD =
   'Activate only when the connected project contains spec.yaml or the user explicitly names Cladding; ignore ordinary requests in uninitialized projects.';
 
 describe('Cladding skill activation boundary', () => {
+  test('the canonical init skill name matches its parent directory', () => {
+    const initSkill = readFileSync(join('skills', 'init', 'SKILL.md'), 'utf8');
+    expect(initSkill).toMatch(/^---\nname: init\ndescription: /);
+  });
+
   test('every non-init verb and persona description excludes unrelated uninitialized projects', () => {
     const verbFiles = readdirSync('skills')
       .filter((name) => name !== 'init')

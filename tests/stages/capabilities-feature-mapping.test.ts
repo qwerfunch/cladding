@@ -21,13 +21,18 @@ import {
   DEFAULT_MIN_FEATURES_FOR_CAPABILITY_BINDINGS,
 } from '../../src/stages/detectors/capabilities-feature-mapping.js';
 
-function writeSpec(dir: string, featureIds: readonly string[]): void {
+function writeSpec(
+  dir: string,
+  featureIds: readonly string[],
+  onboardingSeeded = false,
+): void {
   const features = featureIds
     .map((id) => `  - id: ${id}\n    title: "f"\n    status: planned\n    modules: []\n    acceptance_criteria:\n      - id: AC-001\n        ears: ubiquitous\n        text: "x"`)
     .join('\n');
   writeFileSync(
     join(dir, 'spec.yaml'),
-    `schema: "0.1"\nproject: {name: x, language: typescript}\nfeatures:\n${features || '[]'}\n`,
+    `schema: "0.1"\nproject: {name: x, language: typescript, onboarding_seeded: ${onboardingSeeded}}\n` +
+      `features:\n${features || '[]'}\n`,
   );
 }
 
@@ -101,7 +106,7 @@ describe('CAPABILITIES_FEATURE_MAPPING detector', () => {
   });
 
   test('orphan capability below the maturity threshold → informational future intent', () => {
-    writeSpec(dir, ['F-001']);
+    writeSpec(dir, ['F-001'], true);
     writeCapabilities(
       dir,
       [
@@ -121,7 +126,7 @@ describe('CAPABILITIES_FEATURE_MAPPING detector', () => {
   });
 
   test('capability without features field below the threshold → info (treated as future intent)', () => {
-    writeSpec(dir, ['F-001']);
+    writeSpec(dir, ['F-001'], true);
     writeCapabilities(
       dir,
       [
@@ -143,7 +148,7 @@ describe('CAPABILITIES_FEATURE_MAPPING detector', () => {
       {length: DEFAULT_MIN_FEATURES_FOR_CAPABILITY_BINDINGS},
       (_, index) => `F-${String(index + 1).padStart(3, '0')}`,
     );
-    writeSpec(dir, ids);
+    writeSpec(dir, ids, true);
     writeCapabilities(
       dir,
       [
@@ -185,7 +190,7 @@ describe('CAPABILITIES_FEATURE_MAPPING detector', () => {
   });
 
   test('mixed findings: early orphan info + dangling error + unclaimed-feature info', () => {
-    writeSpec(dir, ['F-001', 'F-002']);
+    writeSpec(dir, ['F-001', 'F-002'], true);
     writeCapabilities(
       dir,
       [
@@ -214,6 +219,26 @@ describe('CAPABILITIES_FEATURE_MAPPING detector', () => {
     expect(bySev.warn.length).toBe(0);
     expect(bySev.info.length).toBe(2); // early orphan + F-002 unclaimed
     expect(bySev.info.some((f) => f.message.includes('F-002'))).toBe(true);
+  });
+
+  test('legacy project below the threshold retains the established orphan warning', () => {
+    writeSpec(dir, ['F-001']);
+    writeCapabilities(
+      dir,
+      [
+        'schema: "0.1"',
+        'source: README.md',
+        'capabilities:',
+        '  - id: unresolved-capability',
+        '    features: []',
+        '',
+      ].join('\n'),
+    );
+
+    const findings = capabilitiesFeatureMapping.run({cwd: dir});
+    expect(findings.some((finding) =>
+      finding.severity === 'warn' && finding.message.includes('unresolved-capability'),
+    )).toBe(true);
   });
 
   test('malformed YAML → skip silently (other detectors flag corruption)', () => {

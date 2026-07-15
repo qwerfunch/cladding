@@ -72,6 +72,19 @@ export function classifyScannerExit(
   return [{detector, severity: 'error', message: foundMsg(detail)}];
 }
 
+/**
+ * Maps an unavailable command or unresolved offline npx target to a setup gap.
+ *
+ * The npx shell-level fallback is bound to the requested executable. A tool
+ * that starts successfully and then misses one of its own helper commands must
+ * remain a real failure instead of being hidden as an installation gap.
+ *
+ * @param stage - Ironclad stage id for the result.
+ * @param cmd - Command that was attempted.
+ * @param proc - Completed process result.
+ * @param args - Arguments passed to the command, used to identify an npx target.
+ * @returns A skipped setup-gap result, or null when the command actually ran.
+ */
 export function missingToolSkip(
   stage: string,
   cmd: string,
@@ -81,13 +94,27 @@ export function missingToolSkip(
     readonly stdout?: unknown;
     readonly stderr?: unknown;
   },
+  args: readonly string[] = [],
 ): StageResult | null {
   if (isMissingBinary(proc)) {
     return {stage, pass: false, exitCode: 2, stderr: `'${cmd}' not installed`};
   }
   const output = `${String(proc.stderr ?? '')}\n${String(proc.stdout ?? '')}`;
-  if (cmd === 'npx' && /ENOTCACHED|ENOTFOUND|EAI_AGAIN|canceled due to missing packages|could not determine executable/i.test(output)) {
-    return {stage, pass: false, exitCode: 2, stderr: `'npx' could not resolve the configured tool without installing it`};
+  const npxResolutionFailure =
+    /ENOTCACHED|ENOTFOUND|EAI_AGAIN|canceled due to missing packages|could not determine executable/i.test(output);
+  const npxTarget = args.find((arg) => arg !== '--' && !arg.startsWith('-'));
+  const escapedTarget = npxTarget?.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const npxShellMissing = proc.exitCode === 127 && escapedTarget !== undefined &&
+    new RegExp(`(?:^|[\\s:])${escapedTarget}: (?:command )?not found\\b`, 'i').test(output);
+  if (cmd === 'npx' && (npxResolutionFailure || npxShellMissing)) {
+    return {
+      stage,
+      pass: false,
+      exitCode: 2,
+      stderr:
+        "setup gap: 'npx' could not resolve the configured tool without installing it; " +
+        'the inferred tool is not installed or unavailable offline',
+    };
   }
   return null;
 }

@@ -200,6 +200,7 @@ function specSeed(
   const projectLines = [
     `  name: ${projectName}`,
     `  language: ${language}`,
+    '  onboarding_seeded: true',
   ];
   if (metadata?.description) {
     projectLines.push(`  description: ${quoted(metadata.description)}`);

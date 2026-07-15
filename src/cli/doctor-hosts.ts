@@ -1,12 +1,11 @@
 // Cladding · `clad doctor --hosts` — host-support smoke matrix (F-5283985e)
 //
-// Host verification used to be two hand-written dogfood docs pinned to v0.3.x
-// (docs/dogfood/claude-code-2026-05-20.md) — five minor versions
-// stale, with Codex deferred and Cursor once over-claimed in the README table.
+// Host verification used to rely on hand-written dogfood docs that could go
+// stale, leave supported hosts deferred, or over-claim a README table row.
 // This module makes every host-support claim trace to a DATED, machine-produced
 // smoke artifact instead of prose:
 //
-//   • runHostSmoke  — probes claude / agy / codex / cursor-agent CLIs (≤3 canned
+//   • runHostSmoke  — probes claude / gemini / agy / codex / cursor-agent CLIs (≤3 canned
 //                     one-shot prompts each), recording per-host
 //                     pass / fail / not-run with the observed sentinel evidence.
 //   • renderHostMatrix — pure renderer → docs/dogfood/matrix.md.
@@ -26,7 +25,7 @@ import {homedir, platform} from 'node:os';
 import {join} from 'node:path';
 import process from 'node:process';
 
-import {getCurrentCladdingVersion} from '../init/host-setup.js';
+import {GEMINI_DOCTOR_POLICY_RELATIVE, getCurrentCladdingVersion} from '../init/host-setup.js';
 import {loadSpec} from '../spec/load.js';
 import {pulse} from '../ui/pulse.js';
 
@@ -44,7 +43,7 @@ export type SurfaceResultKind = 'pass' | 'fail' | 'not-run';
 export type HostGrade = 'verified' | 'fail' | 'not-run' | 'wiring-ok' | 'wiring-fail';
 
 /** The prompt-probed CLI hosts (each has a headless one-shot surface). */
-export const PROMPT_HOSTS = ['claude', 'antigravity', 'codex', 'cursor'] as const;
+export const PROMPT_HOSTS = ['claude', 'gemini', 'antigravity', 'codex', 'cursor'] as const;
 export type PromptHost = (typeof PROMPT_HOSTS)[number];
 
 /** Result of matching one surface's output against its sentinel. */
@@ -78,6 +77,7 @@ export interface HostSmokeArtifact {
   readonly generatedAt: string;
   readonly hosts: {
     readonly claude: HostRecord;
+    readonly gemini: HostRecord;
     readonly antigravity: HostRecord;
     readonly codex: HostRecord;
     readonly cursor: HostRecord;
@@ -126,6 +126,15 @@ export function tail(text: string, max = 200): string {
  *                   generic feature-id pattern.
  */
 export function parseHostOutput(surface: SurfaceName, text: string, expectedId?: string): SurfaceParse {
+  const refusal =
+    /\b(?:MCP|tool|clad_[a-z0-9_]+)(?:\s+tool)?(?:\s+calls?)?[^.\n]{0,80}\b(?:rejected|denied|refused|cancelled|canceled|not approved)\b|\buser cancelle?d MCP tool call\b|\bno tool payload\b|\bdon't have a findings count\b|\bre-approve the cladding MCP tool\b/i;
+  if (refusal.test(text)) {
+    return {
+      result: 'fail',
+      sentinel: SURFACE_SENTINELS[surface].label,
+      evidence: tail(text),
+    };
+  }
   let pattern = SURFACE_SENTINELS[surface].pattern;
   let label = SURFACE_SENTINELS[surface].label;
   if (surface === 'get-feature' && expectedId) {
@@ -164,6 +173,7 @@ export const SURFACE_PROMPTS: Readonly<Record<SurfaceName, (id: string) => strin
 /**
  * How each host CLI runs a single non-interactive prompt:
  *   - claude → `claude -p "<prompt>" --output-format text`
+ *   - gemini → `gemini --skip-trust --approval-mode plan --policy <project-policy> -o text -p "<prompt>"`
  *   - antigravity → `agy --new-project -p "<prompt>"`
  *   - codex  → `codex exec "<prompt>"`  (Codex's non-interactive one-shot analog)
  *   - cursor → `cursor-agent -p --mode ask --trust --approve-mcps "<prompt>"`
@@ -172,6 +182,23 @@ export function buildPromptCommand(host: PromptHost, prompt: string): {command: 
   switch (host) {
     case 'claude':
       return {command: 'claude', args: ['-p', prompt, '--output-format', 'text']};
+    case 'gemini':
+      return {
+        command: 'gemini',
+        args: [
+          '--skip-trust',
+          '--approval-mode',
+          'plan',
+          '--policy',
+          GEMINI_DOCTOR_POLICY_RELATIVE,
+          '--allowed-mcp-server-names',
+          'cladding',
+          '-o',
+          'text',
+          '-p',
+          prompt,
+        ],
+      };
     case 'antigravity':
       return {command: 'agy', args: ['--new-project', '-p', prompt]};
     case 'codex':
@@ -375,8 +402,8 @@ function probePromptHost(
     }
     if (r.code !== 0) {
       // Exit-code gate — a crashed/refused CLI can never pass, no matter what
-      // its output text accidentally matches (first live run: gemini 0.42.0
-      // crashed with exit 1 and the trace still matched a loose sentinel).
+      // its output text accidentally matches (a live host crash once emitted a
+      // trace that still matched a loose sentinel).
       surfaces.push({
         name,
         result: 'fail',
@@ -478,6 +505,7 @@ export function runHostSmoke(cwd: string, opts: HostSmokeOptions = {}): HostSmok
     generatedAt: now.toISOString(),
     hosts: {
       claude: promptRecords.claude,
+      gemini: promptRecords.gemini,
       antigravity: promptRecords.antigravity,
       codex: promptRecords.codex,
       cursor,
@@ -493,6 +521,7 @@ export function runHostSmoke(cwd: string, opts: HostSmokeOptions = {}): HostSmok
 export function matrixGradesFence(artifact: HostSmokeArtifact): string {
   const grades = {
     claude: artifact.hosts.claude.grade,
+    gemini: artifact.hosts.gemini.grade,
     antigravity: artifact.hosts.antigravity.grade,
     codex: artifact.hosts.codex.grade,
     cursor: artifact.hosts.cursor.grade,
@@ -526,6 +555,7 @@ export function renderHostMatrix(artifact: HostSmokeArtifact): string {
   const promptRow = (name: string, r: HostRecord): string =>
     `| ${name} | ${surfaceCell(r, 'list-features')} | ${surfaceCell(r, 'get-feature')} | ${surfaceCell(r, 'run-check')} | — | ${r.grade} |`;
   lines.push(promptRow('claude', hosts.claude));
+  lines.push(promptRow('gemini', hosts.gemini));
   lines.push(promptRow('antigravity', hosts.antigravity));
   lines.push(promptRow('codex', hosts.codex));
   lines.push(
@@ -633,6 +663,7 @@ export function readNewestArtifact(cwd: string): HostSmokeArtifact | null {
         generatedAt: parsed.generatedAt,
         hosts: {
           claude,
+          gemini: parsed.hosts.gemini ?? fallback,
           antigravity: parsed.hosts.antigravity ?? fallback,
           codex,
           cursor,
@@ -694,7 +725,7 @@ export function runDoctorHosts(opts: DoctorHostsOptions = {}): void {
       : 'no live-run consent — LLM surfaces recorded not-run (set CLAD_HOST_SMOKE=1 to probe)',
   );
   process.stdout.write(
-    `  claude: ${g.claude.grade}   antigravity: ${g.antigravity.grade}   ` +
+    `  claude: ${g.claude.grade}   gemini: ${g.gemini.grade}   antigravity: ${g.antigravity.grade}   ` +
       `codex: ${g.codex.grade}   cursor: ${g.cursor.grade}\n`,
   );
   process.stdout.write(`  artifact: ${artifactFile}\n`);

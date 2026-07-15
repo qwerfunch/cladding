@@ -239,6 +239,24 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
+  test('doctor surfaces advertise read-only MCP annotations', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const {tools} = await client.listTools();
+      for (const name of ['clad_list_features', 'clad_get_feature', 'clad_run_check']) {
+        const tool = tools.find((candidate) => candidate.name === name);
+        expect(tool?.annotations).toMatchObject({
+          readOnlyHint: true,
+          destructiveHint: false,
+          idempotentHint: true,
+        });
+      }
+      expect(tools.find((tool) => tool.name === 'clad_init')?.annotations?.readOnlyHint).toBe(false);
+    } finally {
+      await cleanup();
+    }
+  });
+
   test('clad_list_features slugSubstring filter (F-085, v0.3.10)', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
@@ -404,6 +422,27 @@ describe('serve/server — MCP read surface', () => {
       // distinguishes concurrent invocations.
       expect(parsed.path).toMatch(/spec\/features\/new-login-flow-[a-f0-9]{8}\.yaml$/);
       expect(result.isError).not.toBe(true);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('clad_create_feature keeps the established create-only request compatible', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const result = await client.callTool({
+        name: 'clad_create_feature',
+        arguments: {slug: 'compatible-create', title: 'Compatible create', status: 'planned'},
+      });
+      expect(result.isError).not.toBe(true);
+      const payload = JSON.parse((result.content as Array<{type: string; text: string}>)[0].text) as {
+        path: string;
+        hint?: string;
+        designImpact?: unknown;
+      };
+      expect(payload.hint).toContain('clad_link_capability');
+      expect(payload.designImpact).toBeUndefined();
+      expect(readFileSync(payload.path, 'utf8')).not.toContain('design_impact:');
     } finally {
       await cleanup();
     }

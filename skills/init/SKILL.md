@@ -1,4 +1,5 @@
 ---
+name: init
 description: Use only when the user explicitly names Cladding and asks to initialize, adopt, or refresh it; never use for an ordinary project creation or implementation request. Scaffold from an idea, planning document, or existing project through the MCP prepare/apply flow.
 ---
 

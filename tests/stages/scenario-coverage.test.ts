@@ -26,7 +26,10 @@ import {
   scenarioCoverage,
 } from '../../src/stages/detectors/scenario-coverage.js';
 
-const SPEC_HEADER = 'schema: "0.1"\n' + 'project: {name: x, language: typescript}\n';
+function specHeader(onboardingSeeded = false): string {
+  return 'schema: "0.1"\n' +
+    `project: {name: x, language: typescript, onboarding_seeded: ${onboardingSeeded}}\n`;
+}
 
 /** Render N minimal inline feature entries (status-blind: all 'planned'). */
 function inlineFeatures(n: number): string {
@@ -38,8 +41,8 @@ function inlineFeatures(n: number): string {
 }
 
 /** Write spec.yaml with N inline features into `dir`. */
-function writeSpec(dir: string, featureCount: number): void {
-  writeFileSync(join(dir, 'spec.yaml'), SPEC_HEADER + inlineFeatures(featureCount));
+function writeSpec(dir: string, featureCount: number, onboardingSeeded = false): void {
+  writeFileSync(join(dir, 'spec.yaml'), specHeader(onboardingSeeded) + inlineFeatures(featureCount));
 }
 
 /**
@@ -97,7 +100,7 @@ describe('SCENARIO_COVERAGE detector', () => {
   });
 
   test('hollow scenario below threshold → exactly 1 informational future-intent finding', () => {
-    writeSpec(dir, 2);
+    writeSpec(dir, 2, true);
     writeScenario(dir, 1, []); // features: [] → hollow
     const findings = scenarioCoverage.run({cwd: dir});
     // Check 1 cannot fire: only 2 features AND a scenario exists.
@@ -106,6 +109,15 @@ describe('SCENARIO_COVERAGE detector', () => {
     expect(findings[0].message).toContain('S-001');
     expect(findings[0].message).toContain('future onboarding intent');
     expect(findings[0].path).toBe('spec/scenarios/');
+  });
+
+  test('legacy project below threshold retains the established hollow-scenario warning', () => {
+    writeSpec(dir, 2);
+    writeScenario(dir, 1, []);
+    const findings = scenarioCoverage.run({cwd: dir});
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe('warn');
+    expect(findings[0].message).not.toContain('future onboarding intent');
   });
 
   test('two hollow scenarios at threshold: 8 features + 2 hollow scenarios → exactly 2 warns (no "no scenarios" finding)', () => {
@@ -172,7 +184,7 @@ describe('SCENARIO_COVERAGE under-bound flow (check 3)', () => {
     // 3 features WITH slugs.
     writeFileSync(
       join(dir, 'spec.yaml'),
-      SPEC_HEADER +
+      specHeader() +
         'features:\n' +
         '  - {id: F-001, slug: auth-register, title: t, status: planned}\n' +
         '  - {id: F-002, slug: auth-login, title: t, status: planned}\n' +

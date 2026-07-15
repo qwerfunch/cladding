@@ -391,7 +391,7 @@ export function runRollbackCommand(featureId: string, opts: {reason?: string} = 
 /** Handler for `clad setup`. Activates Cladding only for one project. */
 export async function runSetupCommand(opts: {force?: boolean; quiet?: boolean; project?: string; host?: string}): Promise<void> {
   const hosts = opts.host && opts.host !== 'all'
-    ? [opts.host as 'claude' | 'codex' | 'antigravity' | 'cursor']
+    ? [opts.host as 'claude' | 'codex' | 'gemini' | 'antigravity' | 'cursor']
     : undefined;
   const result = await runHostSetup({
     force: opts.force,
@@ -405,7 +405,7 @@ export async function runSetupCommand(opts: {force?: boolean; quiet?: boolean; p
 /**
  * Handler for `clad update`. The one-command "after you upgraded the engine"
  * step, run from INSIDE the project you want to reconcile: refresh its host
- * wiring + reconcile the spec inventory + refresh the managed AGENTS.md section
+ * wiring + reconcile the spec inventory + refresh the managed CLAUDE.md/AGENTS.md section
  * (all safe + idempotent — see cli/update.ts), THEN run the now-stricter
  * detectors in REPORT mode. The drift report never blocks and never edits the
  * user's spec — it only surfaces the bar the upgrade raised, so `clad update`
@@ -431,6 +431,7 @@ export async function runUpdateCommand(): Promise<void> {
   } else {
     pulse('pass', 'spec', `inventory synced · ${r.features} features`);
   }
+  pulse(r.claudeMd === 'refreshed-stale' ? 'note' : 'pass', 'CLAUDE.md', r.claudeMd);
   pulse(r.agentsMd === 'refreshed-stale' ? 'note' : 'pass', 'AGENTS.md', r.agentsMd);
   for (const d of r.deprecations) pulse('note', 'deprecated', d);
   // Surface what the now-stricter detectors flag — REPORT only, never blocks.
@@ -1075,16 +1076,16 @@ export function createProgram(): Command {
 
   program
     .command('setup')
-    .description('Activate Cladding only for the current project (Claude Code / Codex / Antigravity / Cursor)')
+    .description('Activate Cladding only for the current project (Claude Code / Codex / Gemini / Antigravity / Cursor)')
     .option('--project <path>', 'activate a project other than the current directory')
-    .option('--host <host>', 'activate all hosts (default) or one of: claude, codex, antigravity, cursor', 'all')
+    .option('--host <host>', 'activate all hosts (default) or one of: claude, codex, gemini, antigravity, cursor', 'all')
     .option('--force', 'replace an existing conflicting cladding-owned project entry')
     .option('--quiet', 'suppress stdout output')
     .action(runSetupCommand);
 
   program
     .command('update')
-    .description('Run from a project dir AFTER `npm update -g cladding`: refresh project host wiring + sync inventory + refresh AGENTS.md, then report stricter detector findings')
+    .description('Run from a project dir AFTER `npm update -g cladding`: refresh project host wiring + sync inventory + refresh managed CLAUDE.md/AGENTS.md, then report stricter detector findings')
     .action(runUpdateCommand);
 
   program
@@ -1261,7 +1262,7 @@ export function createProgram(): Command {
     .description('Summarise .cladding/events.log.jsonl — sentinel-miss frequency by phase/cause/fallback plus the top missed sentinels (LLM dispatcher health check)')
     .option('--cwd <path>', 'project directory to read events from (default cwd)')
     .option('--json', 'emit the raw DoctorReport for tooling; default is the human-readable surface')
-    .option('--hosts', 'smoke-test host CLIs (Claude Code / Antigravity / Codex / Cursor) and project wiring → dated artifact + docs/dogfood/matrix.md. Live LLM prompts run only with consent (CLAD_HOST_SMOKE=1 or --yes); otherwise not-run')
+    .option('--hosts', 'smoke-test host CLIs (Claude Code / Gemini / Antigravity / Codex / Cursor) and project wiring → dated artifact + docs/dogfood/matrix.md. Live LLM prompts run only with consent (CLAD_HOST_SMOKE=1 or --yes); otherwise not-run')
     .option('--yes', 'grant live-run consent for --hosts (equivalent to CLAD_HOST_SMOKE=1)')
     .option('--matrix-only', 'regenerate docs/dogfood/matrix.md from the newest host-smoke artifact without any probing')
     .action((opts) => {

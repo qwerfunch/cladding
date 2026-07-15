@@ -28,7 +28,11 @@
 import {existsSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
 
-import {type AgentsMdResult} from '../init/host-instructions.js';
+import {
+  type AgentsMdResult,
+  type ClaudeMdResult,
+  writeClaudeMdSection,
+} from '../init/host-instructions.js';
 import {type SpecAgentsMdResult, writeSpecDrivenAgentsMd} from '../init/agents-md.js';
 import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../spec/inventory.js';
 import {gitOperationInProgress} from '../core/git-ops.js';
@@ -48,6 +52,8 @@ export interface UpdateResult {
   readonly isProject: boolean;
   /** Count of host channels that failed to wire (0 = clean). */
   readonly wiringErrors: number;
+  /** `writeClaudeMdSection` outcome, or `'n/a'` when not a project. */
+  readonly claudeMd: ClaudeMdResult | 'n/a';
   /** Spec-driven AGENTS.md outcome (mapped onto AgentsMdResult), or `'n/a'` when not a project. */
   readonly agentsMd: AgentsMdResult | 'n/a';
   /** Feature count from the freshly-recomputed inventory. */
@@ -94,6 +100,7 @@ export async function runUpdate(cwd: string, deps: UpdateDeps): Promise<UpdateRe
     return {
       isProject: false,
       wiringErrors,
+      claudeMd: 'n/a',
       agentsMd: 'n/a',
       features: 0,
       code: wiringErrors > 0 ? 1 : 0,
@@ -111,8 +118,12 @@ export async function runUpdate(cwd: string, deps: UpdateDeps): Promise<UpdateRe
     writeFeatureIndex(cwd); // F-37b4a8
   }
 
-  // 3. Refresh the cladding-managed AGENTS.md section — staleness-based only;
-  //    user prose preserved, no `--force`, no LLM dispatch. AGENTS.md
+  // 3. Preserve the established update contract: refresh both managed instruction
+  //    surfaces without overwriting user prose or invoking an LLM. New init
+  //    writes AGENTS.md only; update keeps existing adopters' Claude channel
+  //    functional across engine upgrades.
+  const claudeMd = writeClaudeMdSection(cwd);
+  //    AGENTS.md
   //    is now the spec-driven managed block (F-a4085adf, #199): a marker-upsert
   //    that regenerates only the delimited block, is byte-stable on unchanged
   //    spec, and leaves a markerless (hand-authored) file untouched. Its richer
@@ -143,6 +154,7 @@ export async function runUpdate(cwd: string, deps: UpdateDeps): Promise<UpdateRe
   return {
     isProject: true,
     wiringErrors,
+    claudeMd,
     agentsMd,
     features: inv.features ?? 0,
     code: wiringErrors > 0 ? 1 : 0,

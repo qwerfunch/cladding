@@ -18,6 +18,10 @@
       "properties": {
         "name": {"type": "string", "minLength": 1},
         "language": {"type": "string", "minLength": 1},
+        "onboarding_seeded": {
+          "type": "boolean",
+          "description": "True only when Cladding init authored the initial governance seeds. Used to scope early-project advisory findings without changing legacy-project behavior."
+        },
         "description": {
           "type": "string",
           "description": "One-line summary of what the project is for. Used as the spec.yaml 'front door' hint."

@@ -17,8 +17,8 @@
 //   2. **Orphan capability (graduated)** — a capability whose `features[]`
 //      is empty (or missing) is not yet bound to any feature. Intent-aware
 //      onboarding deliberately emits future capability seeds before features
-//      land, so the finding is info while a project is small and graduates to
-//      warn at the shared eight-feature maturity boundary.
+//      land. An explicit onboarding marker scopes information-level grace to
+//      those seeds; every unmarked project retains the warning at any size.
 //
 //   3. **Unmapped feature (info)** — a feature in spec.yaml that no
 //      capability claims via its `features[]`. Acceptable for
@@ -45,7 +45,7 @@ import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js
 
 const NAME = 'CAPABILITIES_FEATURE_MAPPING';
 
-/** Shared maturity boundary: below this count onboarding design is still expected to be ahead of implementation. */
+/** Shared maturity boundary for explicitly marked onboarding design seeds. */
 export const DEFAULT_MIN_FEATURES_FOR_CAPABILITY_BINDINGS = 8;
 
 interface CapabilityEntry {
@@ -83,9 +83,11 @@ function run(opts: CommandStageOptions): readonly DriftFinding[] {
   // separately; CAPABILITIES_FEATURE_MAPPING just exits silently when it
   // cannot load.
   let featureIds: Set<string>;
+  let onboardingSeeded = false;
   try {
     const spec = loadSpec(cwd);
     featureIds = new Set(spec.features.map((f) => f.id));
+    onboardingSeeded = spec.project.onboarding_seeded === true;
   } catch {
     // Load-failure policy (see detectors/with-spec.ts): within-spec-validity
     // detector — no spec means no capability↔feature links to validate;
@@ -95,7 +97,8 @@ function run(opts: CommandStageOptions): readonly DriftFinding[] {
 
   const findings: DriftFinding[] = [];
   const featuresClaimedByCapabilities = new Set<string>();
-  const isGrown = featureIds.size >= DEFAULT_MIN_FEATURES_FOR_CAPABILITY_BINDINGS;
+  const onboardingGrace =
+    onboardingSeeded && featureIds.size < DEFAULT_MIN_FEATURES_FOR_CAPABILITY_BINDINGS;
 
   for (const cap of capabilities) {
     if (typeof cap !== 'object' || cap === null) continue;
@@ -105,13 +108,13 @@ function run(opts: CommandStageOptions): readonly DriftFinding[] {
     if (features.length === 0) {
       findings.push({
         detector: NAME,
-        severity: isGrown ? 'warn' : 'info',
+        severity: onboardingGrace ? 'info' : 'warn',
         path: 'spec/capabilities.yaml',
-        message: isGrown
-          ? `capability "${capId}" has no features mapped — bind at least one feature via the features[] field, ` +
-            `or remove the capability if it's no longer relevant`
-          : `capability "${capId}" has no features mapped yet — retained as future onboarding intent; ` +
-            `bind it when a matching feature lands`,
+        message: onboardingGrace
+          ? `capability "${capId}" has no features mapped yet — retained as future onboarding intent; ` +
+            `bind it when a matching feature lands`
+          : `capability "${capId}" has no features mapped — bind at least one feature via the features[] field, ` +
+            `or remove the capability if it's no longer relevant`,
       });
       continue;
     }

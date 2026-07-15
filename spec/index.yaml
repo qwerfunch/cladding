@@ -94,7 +94,7 @@ features:
   F-0e84628e: {slug: merge-ritual-docs, status: done, modules: 2}
   F-0ed2db: {slug: ai-hints-consumer-instructions, status: done, modules: 11}
   F-0f2984d0: {slug: infer-deps-dynamic-flag, status: done, modules: 2}
-  F-0f4dd6: {slug: natural-language-init, status: in_progress, modules: 26}
+  F-0f4dd6: {slug: natural-language-init, status: done, modules: 29}
   F-10cc42d1: {slug: git-op-write-guard, status: done, modules: 5}
   F-12d740: {slug: atomic-ac-evidence-fanout, status: done, modules: 1}
   F-15999130: {slug: inferable-depends-on-detector, status: done, modules: 2}
@@ -136,7 +136,7 @@ features:
   F-4db939: {slug: ab-evaluation, status: done, modules: 9}
   F-4ef09f38: {slug: multi-probe-smoke, status: done, modules: 3}
   F-50ff43: {slug: meta-integrity-skip-when-absent, status: done, modules: 2}
-  F-5283985e: {slug: host-smoke-matrix, status: done, modules: 3}
+  F-5283985e: {slug: host-smoke-matrix, status: done, modules: 5}
   F-551a1c: {slug: oracle-cost-lever, status: done, modules: 4}
   F-569f4b37: {slug: graph-export-viz, status: done, modules: 5}
   F-56abaa: {slug: intent-aware-init, status: done, modules: 5}
@@ -195,7 +195,7 @@ features:
   F-aee1da: {slug: scan-residuals, status: done, modules: 3}
   F-aee61f: {slug: scan-roots-from-architecture, status: done, modules: 1}
   F-af45042a: {slug: graph-live-health, status: done, modules: 5}
-  F-af96b1: {slug: no-vacuous-green-gate-contract, status: done, modules: 6}
+  F-af96b1: {slug: no-vacuous-green-gate-contract, status: done, modules: 14}
   F-b010427b: {slug: detector-layer-purity, status: done, modules: 2}
   F-b0c8ba2c: {slug: gate-no-progress, status: done, modules: 1}
   F-b0f898a6: {slug: attestation-v2-per-module, status: done, modules: 3}
@@ -218,7 +218,7 @@ features:
   F-c2c996: {slug: checkpoint-events, status: done, modules: 3}
   F-c3747d7d: {slug: spec-first-window-complete, status: done, modules: 5}
   F-c48eb2: {slug: scan-source-roots, status: done, modules: 5}
-  F-c4c5ae: {slug: spec-conformance-oracle-stage, status: done, modules: 8}
+  F-c4c5ae: {slug: spec-conformance-oracle-stage, status: done, modules: 11}
   F-c58263b8: {slug: code-compact, status: done, modules: 12}
   F-c6a32fff: {slug: graph-honest-fallback, status: done, modules: 7}
   F-c6c3daaf: {slug: kotlin-module-scoped-gate, status: done, modules: 13}

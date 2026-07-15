@@ -13,12 +13,21 @@ the detail behind them: where each host is wired, how the MCP server works, and 
 |---|---|
 | Claude Code | `.claude/skills/cladding-init` + `.mcp.json` |
 | Codex CLI | `.agents/skills/cladding-init` + `.codex/config.toml` |
+| Gemini CLI | `.agents/skills/cladding-init` + `.gemini/settings.json` |
 | Antigravity (`agy`) | `.agents/skills/cladding-init` + `.agents/mcp_config.json` |
-| Cursor | `.cursor/skills/cladding-init` + `.cursor/mcp.json` + bootstrap rule |
+| Cursor | `.cursor/skills/cladding-init` + `.cursor/mcp.json` + `.cursor/cli.json` read-only tool allowlist + bootstrap rule |
 
 The only machine-specific path lives in `.cladding/host/serve.cjs`, which is ignored project runtime state. Re-run setup on each developer machine. Host config files use the portable relative launcher path and preserve unrelated entries. With no arguments the launcher starts MCP; with arguments it forwards a normal CLI command to that exact same engine. Generated project guidance therefore uses `node .cladding/host/serve.cjs check --strict` and similar shell calls when the launcher exists, preventing a different global installation from silently validating the project with another build.
 
 Codex loads `.codex/config.toml` only for a trusted Git repository. Accept Codex's normal project-trust prompt when opening the repository; this is a Codex security boundary and `clad setup` does not bypass or pre-approve it.
+
+Gemini likewise loads project skills and settings only after its normal folder-trust boundary is satisfied. Interactive use keeps that prompt intact; the explicitly consented doctor smoke uses Gemini's session-only trust override so a fresh verification fixture can exercise the project-local MCP connection without changing persistent trust settings.
+That smoke stays in Gemini Plan Mode and loads an ignored project policy permitting only the three
+annotated read-only doctor tools; it does not enable YOLO mode.
+
+Cursor's project CLI configuration allowlists only the three read-only doctor tools. It does not
+add a server-wide wildcard, and it preserves unrelated project allow/deny entries; write-capable
+Cladding tools retain Cursor's normal approval boundary.
 
 On upgrade, setup removes legacy global Cladding wires only when their ownership is provable. Ambiguous or hand-edited files are preserved and reported. If an old Claude user plugin remains, run `claude plugin uninstall claude-code@cladding --scope user --keep-data`.
 
@@ -26,6 +35,9 @@ On upgrade, setup removes legacy global Cladding wires only when their ownership
 intervention are verified through earlier real-usage campaigns; the natural-language onboarding
 flow introduced in this release could not be re-run because the logged-in host reported its weekly
 quota exhausted; project MCP handshake and tool discovery passed, but onboarding remains pending.
+Gemini's project-local skill discovery and MCP connection passed in an isolated HOME, but the
+available Google login was rejected before a model prompt could run, so its model surfaces remain
+`not-run` rather than being promoted from structural evidence.
 Codex CLI `0.144.3` is live-verified for idea, planning-document, existing-project, uninitialized
 controls, and all three doctor surfaces. Antigravity `1.1.2` is live-verified for all three
 onboarding cases plus both controls after disabling the legacy global plugin. Cursor Agent
@@ -37,7 +49,7 @@ not every release-specific onboarding campaign.)
 
 ## About the MCP server
 
-All 4 hosts wire cladding as an MCP server — only the wire *location* differs. MCP is not
+All 5 hosts wire cladding as an MCP server — only the wire *location* differs. MCP is not
 something you invoke directly and there is no manual connect step. A host may provide an `/mcp`
 diagnostic view, but normal use starts by asking the AI to apply Cladding to the open project.
 
@@ -59,6 +71,7 @@ project, asking about Cladding, or running `clad setup` are not consent.
 |---|---|---|
 | Claude Code | `Apply Cladding to this project` | `/cladding:init` |
 | Codex | `Apply Cladding to this project` | Type `$cladding`, then choose `init (cladding)` |
+| Gemini CLI | `Apply Cladding to this project` | Select the project-local `cladding-init` skill |
 | Antigravity | `Apply Cladding to this project` | Select the project-local `cladding-init` skill |
 | Cursor IDE / Agent | `Apply Cladding to this project` | Natural language routes through the connected onboarding tool |
 
@@ -71,6 +84,7 @@ clad update                 # 3. refresh project wiring + derived state
 ```
 
 Your authored code, feature/spec content, and documentation are preserved. The command may refresh
-derived inventory/index data and the Cladding-managed block in `AGENTS.md`. Existing `CLAUDE.md`
-files are preserved and Cladding does not create a new one. If the
+derived inventory/index data and the Cladding-managed blocks in `AGENTS.md` and `CLAUDE.md`.
+Onboarding itself does not create or change `CLAUDE.md`; the update command retains its established
+Claude-specific refresh for existing users while preserving their prose. If the
 newer version is stricter, it only **points out** drift — it does not rewrite authored project intent.

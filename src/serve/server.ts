@@ -889,6 +889,7 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
           .optional()
           .describe("'alphabetical' (default — by id) or 'recent' (by file mtime, newest first)"),
       },
+      annotations: {readOnlyHint: true, destructiveHint: false, idempotentHint: true},
     },
     async (args) => {
       const loaded = loadSpecOrError(cwd);
@@ -933,6 +934,7 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
         id: z.string().optional().describe('Feature id such as "F-049" or "F-a3f9c2"'),
         slug: z.string().optional().describe("Feature slug such as 'login-flow'"),
       },
+      annotations: {readOnlyHint: true, destructiveHint: false, idempotentHint: true},
     },
     async (args) => {
       if (!args.id && !args.slug) {
@@ -977,6 +979,7 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
         strict: z.boolean().optional().describe('Treat warnings as errors when true'),
         verbose: z.boolean().optional().describe('Return the full report (all findings incl. info + suggestions) instead of the terse top-3 summary'),
       },
+      annotations: {readOnlyHint: true, destructiveHint: false, idempotentHint: true},
     },
     async (args) => {
       const result = runDrift({strict: args.strict, cwd});
@@ -1497,8 +1500,9 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
               'spec/architecture.yaml', 'spec/capabilities.yaml', 'docs/project-context.md',
             ])).min(1),
           }),
-        ]).describe(
-          'Required design-impact decision. Structural changes remain review_required and block clad done until resolved.',
+        ]).optional().describe(
+          'Optional design-impact decision. Omit for the legacy-compatible create-only path; ' +
+            'structural changes remain review_required until resolved.',
         ),
       },
     },
@@ -1513,14 +1517,18 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
           status: args.status,
           modules: args.modules,
           acceptance_criteria: args.acceptance_criteria,
-          design_impact: {
-            classification: args.design_impact.classification,
-            rationale: args.design_impact.rationale,
-            artifacts: args.design_impact.classification === 'structural' ? args.design_impact.artifacts : undefined,
-          },
+          design_impact: args.design_impact
+            ? {
+                classification: args.design_impact.classification,
+                rationale: args.design_impact.rationale,
+                artifacts: args.design_impact.classification === 'structural'
+                  ? args.design_impact.artifacts
+                  : undefined,
+              }
+            : undefined,
           cwd,
         });
-        if (args.design_impact.classification === 'additive') {
+        if (args.design_impact?.classification === 'additive') {
           linkCapability({
             capability: args.design_impact.capability,
             feature: result.id,
@@ -1534,14 +1542,27 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
         syncInventory(cwd);
         // Non-mutating firing-path nudge: travels as a `hint` FIELD (keeps the
         // payload valid JSON), never a silent write to capabilities.yaml.
+        const designImpact = args.design_impact;
         const withHint = {
           schema_version: PAYLOAD_SCHEMA_VERSION,
           ...result,
           gate: gateFooter(cwd),
-          designImpact: args.design_impact.classification === 'structural'
-            ? {status: 'review_required', artifacts: args.design_impact.artifacts,
-                next: 'Preview and apply the listed Tier-B design changes, then call clad_resolve_design_impact.'}
-            : {status: 'resolved', classification: args.design_impact.classification},
+          ...(designImpact
+            ? {
+                designImpact: designImpact.classification === 'structural'
+                  ? {
+                      status: 'review_required',
+                      artifacts: designImpact.artifacts,
+                      next: 'Preview and apply the listed Tier-B design changes, then call clad_resolve_design_impact.',
+                    }
+                  : {status: 'resolved', classification: designImpact.classification},
+              }
+            : {
+                hint:
+                  'If this feature is user-facing, link it to a capability with clad_link_capability ' +
+                  `(capability: <kebab-id>, feature: ${result.id}) so the Tier-B design SSoT grows with ` +
+                  'development instead of being left an empty seed.',
+              }),
         };
         return {
           content: [{type: 'text', text: JSON.stringify(withHint, null, 2)}],

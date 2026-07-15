@@ -41,9 +41,10 @@ acceptance_criteria:
   - id: AC-003
     ears: ubiquitous
     action: resolve the spec/capabilities.yaml orphan by introducing the CAPABILITIES_FEATURE_MAPPING detector so the Tier B artifact gains an actual consumer
-    response: 'src/stages/detectors/capabilities-feature-mapping.ts exports a detector that loads spec/capabilities.yaml and spec.yaml, then emits error findings for capability features[] entries that reference a non-existent feature id, graduated info-to-warn findings for capabilities whose features[] is empty or missing (informational below eight features, warning once grown), and info findings for spec.yaml features that no capability claims; detector skips silently when capabilities.yaml is missing or capabilities array is empty (adoption hasn`t reached this artifact yet); registered in src/stages/detectors/index.ts (24 → 25 detectors)'
+    response: 'src/stages/detectors/capabilities-feature-mapping.ts exports a detector that loads spec/capabilities.yaml and spec.yaml, then emits error findings for capability features[] entries that reference a non-existent feature id, keeps the established warning for unbound capabilities, relaxes only Cladding-authored onboarding seeds to information below eight features, and emits info findings for spec.yaml features that no capability claims; detector skips silently when capabilities.yaml is missing or capabilities array is empty (adoption hasn`t reached this artifact yet); registered in src/stages/detectors/index.ts (24 → 25 detectors)'
     text: The system shall resolve the spec/capabilities.yaml orphan by introducing the CAPABILITIES_FEATURE_MAPPING detector so the Tier B artifact gains an actual consumer.
     test_refs: [tests/stages/capabilities-feature-mapping.test.ts]
+    notes: "The optional project.onboarding_seeded marker scopes the maturity grace to generated future intent; missing markers retain the established warning behavior."
   - id: AC-004
     ears: ubiquitous
     action: close the docs/project-context.md ↔ spec/scenarios loop by extending intent-aware onboarding to extract user-journey scenarios from the project-context prose

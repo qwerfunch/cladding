@@ -23,7 +23,13 @@ afterEach(() => {
   rmSync(dir, {recursive: true, force: true});
 });
 
-function writeSpec(opts: {deliverable?: string; done?: boolean; modules?: boolean; featureCount?: number} = {}): void {
+function writeSpec(opts: {
+  deliverable?: string;
+  done?: boolean;
+  modules?: boolean;
+  featureCount?: number;
+  onboardingSeeded?: boolean;
+} = {}): void {
   const done = opts.done ?? true;
   const deliverable = opts.deliverable ?? '';
   const modules = (opts.modules ?? true) ? '    modules: [src/x.ts]\n' : '';
@@ -38,7 +44,8 @@ function writeSpec(opts: {deliverable?: string; done?: boolean; modules?: boolea
   ).join('');
   writeFileSync(
     join(dir, 'spec.yaml'),
-    `schema: "0.1"\nproject:\n  name: t\n  language: typescript\n${deliverable}` +
+    'schema: "0.1"\nproject:\n  name: t\n  language: typescript\n' +
+      `  onboarding_seeded: ${opts.onboardingSeeded ?? false}\n${deliverable}` +
       `features:\n${features}`,
   );
 }
@@ -48,7 +55,7 @@ function run(): readonly {detector: string; severity: string; message: string}[]
 
 describe('DELIVERABLE_INTEGRITY detector', () => {
   test('INFO when an early project ships modules before declaring a deliverable', () => {
-    writeSpec();
+    writeSpec({onboardingSeeded: true});
     const findings = run();
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe('info');
@@ -56,11 +63,18 @@ describe('DELIVERABLE_INTEGRITY detector', () => {
   });
 
   test('WARN once a grown project still ships modules without a deliverable decision', () => {
-    writeSpec({featureCount: DEFAULT_MIN_FEATURES_FOR_DELIVERABLE});
+    writeSpec({featureCount: DEFAULT_MIN_FEATURES_FOR_DELIVERABLE, onboardingSeeded: true});
     const findings = run();
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe('warn');
     expect(findings[0].message).toMatch(/ship modules but project.deliverable is not declared/);
+  });
+
+  test('WARN for a legacy early project without an onboarding marker', () => {
+    writeSpec();
+    const findings = run();
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe('warn');
   });
 
   test('ERROR when deliverable.path is declared but missing on disk', () => {

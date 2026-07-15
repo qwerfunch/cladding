@@ -5,7 +5,16 @@
 // directory otherwise, and maps a real oracle failure to a blocking exit 1
 // (so GREEN can fail on latent non-conformance). execaSync is mocked.
 
-import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
@@ -60,6 +69,69 @@ describe('runSpecConformance (stage_2.3)', () => {
     seedOracle(dir);
     execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
     expect(runSpecConformance({cwd: dir}).pass).toBe(true);
+  });
+
+  test('oracle-only run restores the prior full JUnit report byte-for-byte', () => {
+    seedTs(dir);
+    seedOracle(dir);
+    const report = join(dir, '.cladding', 'test-report.junit.xml');
+    mkdirSync(join(dir, '.cladding'), {recursive: true});
+    writeFileSync(report, '<testsuites tests="2538"><testcase classname="tests/full.test.ts"/></testsuites>\n');
+    const fixedTime = new Date('2026-07-15T00:00:00.000Z');
+    utimesSync(report, fixedTime, fixedTime);
+    const original = readFileSync(report);
+    const originalMtime = statSync(report).mtimeMs;
+    execaSyncMock.mockImplementationOnce(() => {
+      writeFileSync(report, '<testsuites tests="36"><testcase classname="tests/oracle/x.test.ts"/></testsuites>\n');
+      return {exitCode: 0, stdout: '', stderr: ''};
+    });
+
+    expect(runSpecConformance({cwd: dir}).pass).toBe(true);
+
+    expect(readFileSync(report)).toEqual(original);
+    expect(statSync(report).mtimeMs).toBe(originalMtime);
+  });
+
+  test('oracle-only run removes a conventional JUnit report that it alone created', () => {
+    seedTs(dir);
+    seedOracle(dir);
+    const report = join(dir, '.cladding', 'test-report.junit.xml');
+    execaSyncMock.mockImplementationOnce(() => {
+      mkdirSync(join(dir, '.cladding'), {recursive: true});
+      writeFileSync(report, '<testsuites tests="1"/>\n');
+      return {exitCode: 0, stdout: '', stderr: ''};
+    });
+
+    expect(runSpecConformance({cwd: dir}).pass).toBe(true);
+
+    expect(existsSync(report)).toBe(false);
+  });
+
+  test('oracle-only run preserves both an explicit report and a framework-default report', () => {
+    seedTs(dir);
+    seedOracle(dir);
+    const configured = join(dir, 'reports', 'authoritative.xml');
+    const conventional = join(dir, '.cladding', 'test-report.junit.xml');
+    mkdirSync(join(dir, 'reports'), {recursive: true});
+    mkdirSync(join(dir, '.cladding'), {recursive: true});
+    writeFileSync(
+      join(dir, '.cladding', 'config.yaml'),
+      'gate:\n  test_report: reports/authoritative.xml\n',
+    );
+    writeFileSync(configured, '<testsuites tests="2540" name="configured"/>\n');
+    writeFileSync(conventional, '<testsuites tests="2540" name="framework-default"/>\n');
+    const configuredBefore = readFileSync(configured);
+    const conventionalBefore = readFileSync(conventional);
+    execaSyncMock.mockImplementationOnce(() => {
+      writeFileSync(configured, '<testsuites tests="36"/>\n');
+      writeFileSync(conventional, '<testsuites tests="36"/>\n');
+      return {exitCode: 0, stdout: '', stderr: ''};
+    });
+
+    expect(runSpecConformance({cwd: dir}).pass).toBe(true);
+
+    expect(readFileSync(configured)).toEqual(configuredBefore);
+    expect(readFileSync(conventional)).toEqual(conventionalBefore);
   });
 
   test('oracle present + suite fails → blocking exit 1 with stderr (GREEN can fail)', () => {

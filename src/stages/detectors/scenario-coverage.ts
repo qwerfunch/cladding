@@ -13,8 +13,8 @@
 //      flows is under-specified. (status-blind on total feature count, like
 //      HOLLOW_GOVERNANCE — the gap appeared on all-`done` builds.)
 //   2. GRADUATED HOLLOW — onboarding intentionally creates future journeys with
-//      empty `features[]`. Report them as info while the project is small, then
-//      warn at the same maturity threshold used by the no-scenarios check.
+//      empty `features[]`. Explicitly marked seeds are info while small, then
+//      warn at the maturity threshold; unmarked projects always retain warn.
 //   3. UNDER-BOUND — a scenario whose `flow` names a feature by its slug (the
 //      `(feature-slug)` convention) that it doesn't bind in `features[]`, so its
 //      declared coverage under-states the flow it walks. Exact-slug match only, so
@@ -31,7 +31,7 @@ import {withSpec} from './with-spec.js';
 
 const NAME = 'SCENARIO_COVERAGE';
 
-/** Below this feature count a project may legitimately have no scenarios yet. */
+/** Below this count explicitly marked onboarding scenarios receive grace. */
 export const DEFAULT_MIN_FEATURES_FOR_SCENARIOS = 8;
 
 function runScenarioCoverage(opts: CommandStageOptions): readonly DriftFinding[] {
@@ -44,6 +44,7 @@ function detect(spec: Spec): readonly DriftFinding[] {
   const featureCount = spec.features.length;
   const scenarios = spec.scenarios ?? [];
   const isGrown = featureCount >= DEFAULT_MIN_FEATURES_FOR_SCENARIOS;
+  const onboardingGrace = spec.project.onboarding_seeded === true && !isGrown;
 
   // 1. Grown project with no cross-feature flows captured.
   if (featureCount >= DEFAULT_MIN_FEATURES_FOR_SCENARIOS && scenarios.length === 0) {
@@ -57,19 +58,19 @@ function detect(spec: Spec): readonly DriftFinding[] {
     });
   }
 
-  // 2. An empty onboarding scenario is future design until the project grows;
-  // after that boundary the same unresolved link is blocking under --strict.
+  // 2. A marked empty onboarding scenario is future design until the project
+  // grows; unmarked scenarios preserve the established strict-mode warning.
   for (const s of scenarios) {
     if ((s.features ?? []).length === 0) {
       findings.push({
         detector: NAME,
-        severity: isGrown ? 'warn' : 'info',
+        severity: onboardingGrace ? 'info' : 'warn',
         path: 'spec/scenarios/',
-        message: isGrown
-          ? `scenario ${s.id} binds no features (features: []) — a grown project's scenario must cover at least ` +
-            "one feature's flow, or it should be removed."
-          : `scenario ${s.id} binds no features yet — retained as future onboarding intent; ` +
-            'bind it when a matching feature lands.',
+        message: onboardingGrace
+          ? `scenario ${s.id} binds no features yet — retained as future onboarding intent; ` +
+            'bind it when a matching feature lands.'
+          : `scenario ${s.id} binds no features (features: []) — a scenario must cover at least ` +
+            "one feature's flow, or it should be removed.",
       });
     }
   }

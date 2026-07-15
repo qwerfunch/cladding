@@ -61,8 +61,8 @@ describe('init-onboarding-english-source (F-5cac007a)', () => {
   describe('AC-002 — renderSetupReport is English single-source', () => {
     const result = {
       projectRoot: '/tmp/project',
-      wiring: {runtime: 'created', shared_init_skill: 'created', claude: 'created', codex: 'created', antigravity: 'created', cursor: 'created'},
-      legacyCleanup: {claude_plugin: 'unchanged', antigravity_plugin: 'unchanged', codex_skills: 'unchanged', codex_mcp: 'unchanged', cursor_mcp: 'unchanged'},
+      wiring: {runtime: 'created', shared_init_skill: 'created', claude: 'created', codex: 'created', gemini: 'created', antigravity: 'created', cursor: 'created'},
+      legacyCleanup: {claude_plugin: 'unchanged', gemini_extension: 'unchanged', antigravity_plugin: 'unchanged', codex_skills: 'unchanged', codex_mcp: 'unchanged', cursor_mcp: 'unchanged'},
       errors: [],
       warnings: [],
       statusFile: '/tmp/status.json',
@@ -72,7 +72,7 @@ describe('init-onboarding-english-source (F-5cac007a)', () => {
     } as const;
 
     test('the wiring report ends with an English "Next steps:" block, no Hangul', () => {
-      const detection = {claude: true, antigravity: false, codex: false, agents: false, cursor: false};
+      const detection = {claude: true, gemini: false, antigravity: false, codex: false, agents: false, cursor: false};
       const report = renderSetupReport(result, detection);
       expect(report).toContain('Next steps:');
       expect(report).toContain('1. Start a new AI session in this project directory');
@@ -80,7 +80,7 @@ describe('init-onboarding-english-source (F-5cac007a)', () => {
     });
 
     test('the "no AI tools detected" branch is English, no Hangul', () => {
-      const detection = {claude: false, antigravity: false, codex: false, agents: false, cursor: false};
+      const detection = {claude: false, gemini: false, antigravity: false, codex: false, agents: false, cursor: false};
       const report = renderSetupReport(result, detection);
       expect(report).toContain('project activation');
       expect(HANGUL.test(report)).toBe(false);

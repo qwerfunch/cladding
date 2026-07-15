@@ -96,6 +96,30 @@ describe('missingToolSkip — ENOENT is the ONLY exit-2 (skip) path', () => {
     expect(r?.exitCode).toBe(2);
   });
 
+  test('offline npx shell-level command miss → visible setup gap', () => {
+    const r = missingToolSkip('stage_x', 'npx', {
+      exitCode: 127,
+      stderr: '/bin/sh: vitest: command not found',
+    }, ['--offline', '--no-install', 'vitest', 'run']);
+    expect(r?.exitCode).toBe(2);
+    expect(r?.stderr).toContain('setup gap');
+    expect(r?.stderr).toContain('not installed');
+  });
+
+  test('missing helper inside a resolved npx tool remains a failure', () => {
+    expect(missingToolSkip('stage_x', 'npx', {
+      exitCode: 127,
+      stderr: '/bin/sh: project-helper: command not found',
+    }, ['--offline', '--no-install', 'vitest', 'run'])).toBeNull();
+  });
+
+  test('shell-level command miss from a project-owned npm script remains a failure', () => {
+    expect(missingToolSkip('stage_x', 'npm', {
+      exitCode: 127,
+      stderr: '/bin/sh: project-helper: command not found',
+    })).toBeNull();
+  });
+
   test('the same text from a project-owned npm script is still a real failure', () => {
     expect(missingToolSkip('stage_x', 'npm', {
       exitCode: 1,

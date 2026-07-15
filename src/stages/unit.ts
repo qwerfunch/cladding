@@ -105,7 +105,7 @@ function tryReuseSharedRun(opts: UnitStageOptions, cwd: string, guardOn: boolean
   if (!shared) return null; // cwd mismatch / unprimed → own run
   const {proc, jsonFile} = shared;
   // Missing binary → let the own-run path surface the honest skip (exit 2).
-  if (missingToolSkip(STAGE, covCmd, proc)) return null;
+  if (missingToolSkip(STAGE, covCmd, proc, baseArgs)) return null;
   const covResult = ranToolResult(STAGE, proc);
   if (unitActionFromCoverage(covResult) === 'fallback') return null; // not green → own tests-only run
   // reuse-pass: the shared run is GREEN. Under --strict the vacuous-test guard
@@ -177,7 +177,7 @@ export function runUnit(opts: UnitStageOptions = {}): StageResult {
     const proc = execaSync(cmd, [...runArgs], {cwd, reject: false});
     // execaSync(reject:false) RETURNS (does not throw) on a missing binary;
     // detect ENOENT on the result so a missing tool skips, not false-fails.
-    const skip = missingToolSkip(STAGE, cmd, proc);
+    const skip = missingToolSkip(STAGE, cmd, proc, runArgs);
     if (skip) return skip;
     // The tool RAN. Map its result to cladding's pass/fail/skip contract:
     // any non-zero exit → blocking fail (1), never the tool's raw 2 (= skip).

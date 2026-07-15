@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>기업이 AI에게 코딩을 맡기려면 세 가지가 필요하다 —<br/>믿을 수 있고, 추적되고, 규모가 커져도 흔들리지 않아야 한다. cladding이 그 셋을 만든다.</strong><br/>
-  cladding(외장재)이라는 이름 그대로, 호스트 LLM(Claude Code · Codex · Antigravity · Cursor)을 감싼다: 일을 <em>시작하기 전</em>엔 프로젝트의 의도를 넣어 주고, <em>마친 후</em>엔 41개 검출기와 15단계 게이트로 결과를 검증한다.
+  cladding(외장재)이라는 이름 그대로, 호스트 LLM(Claude Code · Codex · Gemini · Antigravity · Cursor)을 감싼다: 일을 <em>시작하기 전</em>엔 프로젝트의 의도를 넣어 주고, <em>마친 후</em>엔 41개 검출기와 15단계 게이트로 결과를 검증한다.
 </p>
 
 <p align="center">
@@ -46,7 +46,7 @@ cladding은 **자기 자신도 cladding으로 만든다** — 기능 254개 중 
 | **세션을 실패 상태로 끝낼 때** | 그대로 종료, 다음에 잊힘 | 종료를 한 번 막고, 실패한 검사를 수리 카드로 인계 |
 | **두 명이 동시에 feature 추가** | merge conflict | hash-8 ID · 파일 분리 → 충돌 0 |
 | **AI가 짠 코드를 누가 검증?** | 작성한 AI가 자기 검증 (위험) | 구현을 못 보는 채점자 + 기계 관문 |
-| **AI 도구를 바꿀 때** | 도구마다 재구성 | 1 spec → 4 host 자동 연결 |
+| **AI 도구를 바꿀 때** | 도구마다 재구성 | 1 spec → 5 host 자동 연결 |
 
 ## 누구를 위한 것
 
@@ -66,7 +66,7 @@ cladding은 **자기 자신도 cladding으로 만든다** — 기능 254개 중 
 
 **후 — 결과를 검증한다:** 15단계 게이트 · 41개 어긋남 검출기 · 그리고 **구현을 못 보는 채점자** — 구현을 읽을 도구 없이 산출물을 스펙과 대조하는 에이전트라, 자기가 쓴 것에 도장을 찍어 줄 수 없다.
 
-<sub>실시간 개입(지도 주입 · 즉시 차단 · 종료 차단)은 Claude Code에서 전부 동작한다. Codex · Antigravity · Cursor에서는 같은 검증을 대화 속 도구 호출과 git · CI 관문으로 수행한다.</sub>
+<sub>실시간 개입(지도 주입 · 즉시 차단 · 종료 차단)은 Claude Code에서 전부 동작한다. Codex · Gemini · Antigravity · Cursor에서는 같은 검증을 대화 속 도구 호출과 git · CI 관문으로 수행한다.</sub>
 
 <!-- ─────────────── done은 획득이다 ─────────────── -->
 
@@ -257,11 +257,12 @@ clad setup                # 이 프로젝트에만 AI 도구 연결
 # 정확히 하나를 골라 앞의 '#'을 지우고 실행한다:
 # codex          # Codex
 # claude         # Claude Code
+# gemini         # Gemini CLI
 # agy            # Antigravity
 # cursor-agent   # Cursor Agent
 ```
 
-`clad setup`은 현재 프로젝트에만 Claude Code · Codex · Antigravity · Cursor 연결을 만든다. 설정하지 않은 다른 프로젝트의 모델 컨텍스트에는 Cladding skill이나 MCP 도구가 들어가지 않는다. Cursor IDE는 `<project>` 폴더를 작업공간으로 연다. setup 뒤에는 반드시 이 폴더에서 AI 도구를 새 세션으로 시작한다. Codex가 Git 저장소를 처음 열며 프로젝트 신뢰 여부를 물으면 승인한다. Codex는 신뢰하기 전까지 프로젝트 MCP 설정을 의도적으로 무시한다.
+`clad setup`은 현재 프로젝트에만 Claude Code · Codex · Gemini · Antigravity · Cursor 연결을 만든다. 설정하지 않은 다른 프로젝트의 모델 컨텍스트에는 Cladding skill이나 MCP 도구가 들어가지 않는다. Cursor IDE는 `<project>` 폴더를 작업공간으로 연다. setup 뒤에는 반드시 이 폴더에서 AI 도구를 새 세션으로 시작한다. Codex와 Gemini가 프로젝트 신뢰 여부를 물으면 각 호스트의 정상 보안 경계에 따라 승인한다. 신뢰하기 전에는 프로젝트 로컬 MCP 설정이 의도적으로 적용되지 않는다.
 
 ### 3. 프로젝트에 Cladding 한 번 적용하기
 

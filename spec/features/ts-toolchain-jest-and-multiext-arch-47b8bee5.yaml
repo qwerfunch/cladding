@@ -19,6 +19,16 @@ acceptance_criteria:
     response: "legacy config-less projects behave exactly as before while explicit custom runners remain authoritative"
     text: "When no jest config and no custom test script is present in a detected TypeScript/JavaScript project, the system shall keep the vitest `run` test and `run --coverage` defaults unchanged."
     test_refs: ["tests/stages/toolchain.test.ts"]
+  - id: AC-4f0c9d
+    ears: event
+    condition: "when a TypeScript or JavaScript project declares a non-canonical test script or an explicit coverage script"
+    action: "run those project-owned workflows instead of substituting an inferred test runner, and omit coverage when neither a script nor supported runner coverage is available"
+    response: "Node's built-in test runner and other custom workflows remain authoritative without creating a false optional coverage gate"
+    text: "When a TypeScript or JavaScript project declares a custom test or coverage workflow, the system shall run the project-owned script before inferred ecosystem defaults and shall leave unsupported optional coverage unregistered."
+    notes: |
+      This general toolchain rule was isolated from onboarding handoff work so
+      its ownership and compatibility boundary are explicit for every project.
+    test_refs: ["tests/stages/toolchain.test.ts"]
   - id: AC-3a899053
     ears: ubiquitous
     action: "configure the architecture (madge --circular) gate to scan .ts, .tsx, .js, and .jsx source files"

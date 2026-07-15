@@ -58,7 +58,7 @@ export function runType(opts: CommandStageOptions = {}): StageResult {
   const proc = execaSync(cmd, [...args], {cwd, reject: false});
   // execaSync(reject:false) RETURNS (does not throw) on a missing binary;
   // detect ENOENT on the result so a missing tool skips, not false-fails.
-  const skip = missingToolSkip(STAGE, cmd, proc);
+  const skip = missingToolSkip(STAGE, cmd, proc, args);
   if (skip) return skip;
   // The tool RAN. Map its result to cladding's pass/fail/skip contract:
   // any non-zero exit → blocking fail (1), never the tool's raw 2 (= skip).

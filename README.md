@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>To trust AI with coding, an organization needs three things — that the code can be trusted,<br/>that it's traced, and that it holds up as you scale. cladding builds those three.</strong><br/>
-  True to its name (cladding = the outer layer), it wraps your host LLM (Claude Code · Codex · Antigravity · Cursor): <em>before</em> it starts, cladding feeds it the project's intent; <em>after</em> it finishes, cladding verifies the result with 41 detectors and a 15-stage gate.
+  True to its name (cladding = the outer layer), it wraps your host LLM (Claude Code · Codex · Gemini · Antigravity · Cursor): <em>before</em> it starts, cladding feeds it the project's intent; <em>after</em> it finishes, cladding verifies the result with 41 detectors and a 15-stage gate.
 </p>
 
 <p align="center">
@@ -46,7 +46,7 @@ The same situation, in a *vanilla AI setup* and in cladding.
 | **Ending a session in a failing state** | exits as-is, forgotten next time | the exit is blocked once, the failing checks handed off as a repair card |
 | **Two devs add a feature at the same time** | merge conflict | hash-8 IDs · separate files → 0 conflicts |
 | **Who verifies the AI-written code?** | the AI that wrote it self-certifies (risky) | an implementation-blind grader + the mechanical gate |
-| **Switching AI tools** | reconfigure per tool | one spec → 4 hosts wired automatically |
+| **Switching AI tools** | reconfigure per tool | one spec → 5 hosts wired automatically |
 
 ## Who it's for
 
@@ -66,7 +66,7 @@ The same situation, in a *vanilla AI setup* and in cladding.
 
 **After — verify the result:** the 15-stage gate, 41 drift detectors, and an **implementation-blind grader** — an agent that checks the work against the spec *with no tool to read the implementation*, so it can't rubber-stamp what it wrote.
 
-<sub>Real-time intervention (map injection · instant block · stop-block) runs fully on Claude Code. On Codex · Antigravity · Cursor the same verification runs through in-conversation tool calls plus the git · CI gate.</sub>
+<sub>Real-time intervention (map injection · instant block · stop-block) runs fully on Claude Code. On Codex · Gemini · Antigravity · Cursor the same verification runs through in-conversation tool calls plus the git · CI gate.</sub>
 
 <!-- ─────────────── done is earned ─────────────── -->
 
@@ -254,11 +254,12 @@ clad setup                # connect Cladding only to this project
 # Choose exactly one and remove its leading '#':
 # codex          # Codex
 # claude         # Claude Code
+# gemini         # Gemini CLI
 # agy            # Antigravity
 # cursor-agent   # Cursor Agent
 ```
 
-`clad setup` creates project-local connections for Claude Code, Codex, Antigravity, and Cursor. It
+`clad setup` creates project-local connections for Claude Code, Codex, Gemini, Antigravity, and Cursor. It
 does not expose Cladding skills or MCP tools in projects where setup was not run. Use only the command
 for your AI tool; for Cursor IDE, open `<project>` as the workspace. Start a new AI session from this
 folder after setup so the host discovers the project-local connection. When Codex first opens a Git
@@ -306,7 +307,7 @@ Implement email sign-in, including tests.
 
 There is nothing new to memorize. For host-specific invocation, stricter Git/CI enforcement, and verified host status, see [setup details](docs/setup.md).
 
-<!-- clad:host-claims {"claude":"verified","codex":"verified","antigravity":"verified","cursor":"verified"} -->
+<!-- clad:host-claims {"claude":"verified","gemini":"not-run","codex":"verified","antigravity":"verified","cursor":"verified"} -->
 
 <!-- ─────────────── Update ─────────────── -->
 

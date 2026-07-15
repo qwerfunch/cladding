@@ -5,12 +5,14 @@ status: done
 modules:
   - src/cli/doctor-hosts.ts
   - src/cli/clad.ts
+  - src/serve/server.ts
+  - src/init/host-setup.ts
   - src/stages/detectors/host-claim-drift.ts
 acceptance_criteria:
   - id: AC-87ebd442
     ears: event
     condition: "when clad doctor --hosts runs with live-run consent (CLAD_HOST_SMOKE=1 or interactive confirmation)"
-    text: "When host smoke runs with consent, the system shall execute at most 3 canned one-shot prompts per host CLI found on PATH (claude, gemini, codex) and record per-host pass, fail, or not-run with the observed sentinel evidence into a dated artifact under .cladding/audit/."
+    text: "When host smoke runs with consent, the system shall execute at most 3 canned one-shot prompts per supported host CLI found on PATH (Claude Code, Gemini, Antigravity, Codex, and Cursor) and record per-host pass, fail, or not-run with the observed sentinel evidence into a dated artifact under .cladding/audit/."
     notes: "WHY: host verification is two hand-written dogfood docs pinned to v0.3.x — five minor versions stale; Codex explicitly deferred, Gemini drive-loop never exercised. Claims need dated receipts."
     test_refs: [tests/cli/doctor-hosts.test.ts]
   - id: AC-8dfa9cc4
@@ -33,6 +35,26 @@ acceptance_criteria:
     test_refs: [tests/stages/detectors/host-claim-drift.test.ts]
   - id: AC-6cbe51fc
     ears: ubiquitous
-    text: "The system shall headlessly prompt-probe Cursor Agent alongside Claude Code, Antigravity, and Codex, and shall additionally record whether Cursor's configured clad serve answers a tools list over stdio."
+    text: "The system shall headlessly prompt-probe Cursor Agent alongside Claude Code, Gemini, Antigravity, and Codex, and shall additionally record whether Cursor's configured clad serve answers a tools list over stdio."
     notes: "WHY: Cursor Agent now provides a headless CLI, so retaining the old wiring-only ceiling would understate directly observed end-to-end evidence."
+    test_refs: [tests/cli/doctor-hosts.test.ts]
+  - id: AC-0d93bc
+    ears: event
+    condition: "when a committed host-smoke artifact predates a newly separated host row"
+    action: "load the recorded rows without relabeling their evidence and synthesize an honest not-run fallback for the absent host"
+    response: "matrix regeneration remains compatible while each host claim keeps its original provenance"
+    text: "When an older host-smoke artifact omits Gemini or Antigravity, the system shall preserve every recorded host row and represent the missing host as not-run instead of copying evidence between hosts."
+    test_refs: [tests/cli/doctor-hosts.test.ts]
+  - id: AC-4a71e2
+    ears: ubiquitous
+    action: "advertise the doctor MCP surfaces as read-only and configure project-local Codex, Gemini, and Cursor wiring to auto-approve only those read-only tools"
+    response: "headless verification can call the intended tools without granting a model unrestricted write access"
+    text: "The system shall mark list-features, get-feature, and drift-check MCP tools as read-only and shall keep write-capable tools approval-gated in project-local Codex, Gemini, and Cursor configuration."
+    test_refs: [tests/serve/server.test.ts, tests/cli/setup.test.ts]
+  - id: AC-8bf019
+    ears: unwanted
+    condition: "if a host refusal or cancellation echoes a requested feature id or the word findings"
+    action: "classify the surface as failed before applying the positive sentinel matcher"
+    response: "a denied MCP call cannot become a vacuous pass by paraphrasing the prompt"
+    text: "If a host rejects or cancels an MCP call, the system shall record that surface as failed even when the response repeats its expected sentinel."
     test_refs: [tests/cli/doctor-hosts.test.ts]

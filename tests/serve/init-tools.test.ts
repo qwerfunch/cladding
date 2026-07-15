@@ -101,6 +101,7 @@ describe('serve/server — natural-language init tools', () => {
         onboardingSource: 'host',
       });
       expect(existsSync(join(dir, 'spec.yaml'))).toBe(true);
+      expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).toContain('onboarding_seeded: true');
       expect(existsSync(join(dir, 'AGENTS.md'))).toBe(true);
       expect(existsSync(join(dir, 'CLAUDE.md'))).toBe(false);
     } finally {
