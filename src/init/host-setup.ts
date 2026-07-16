@@ -14,7 +14,6 @@ import {
   readlinkSync,
   readdirSync,
   rmSync,
-  statSync,
   writeFileSync,
 } from 'node:fs';
 import {homedir, platform} from 'node:os';
@@ -28,7 +27,7 @@ export type ChannelResult =
   | 'rewired'
   | 'removed'
   | 'skipped-different'
-  | 'skipped-not-installed'
+  | 'skipped-not-selected'
   | 'manual-required'
   | 'failed';
 
@@ -145,6 +144,13 @@ function pathInside(path: string, root: string): boolean {
   return delta === '' || (!delta.startsWith('..') && !isAbsolute(delta));
 }
 
+/**
+ * Ownership roots for legacy-cleanup gating. The HOME-tier status file is a
+ * frozen pre-0.9.0 artifact: only the old global installer wrote it, 0.9.0+
+ * setup writes the PROJECT-tier status file and never updates the home one —
+ * it is read here purely so wires created by that old install stay provably
+ * ours across engine moves.
+ */
 function knownRoots(home: string, pkgRoot: string): string[] {
   const roots = [resolve(pkgRoot)];
   const legacy = readText(join(home, '.cladding', STATUS_FILENAME));
@@ -392,12 +398,6 @@ function ignoreLocalRuntime(projectRoot: string): void {
   writeFileSync(exclude, `${current}${separator}${missing.join('\n')}\n`, 'utf8');
 }
 
-/** Retained for callers that need the direct engine launch shape. */
-export function resolveServeLaunch(pkgRoot: string): {command: string; args: string[]} {
-  const engine = join(pkgRoot, 'dist', 'clad.js');
-  return existsSync(engine) ? {command: 'node', args: [engine, 'serve']} : {command: 'clad', args: ['serve']};
-}
-
 function mcpLaunch(): {command: string; args: string[]} {
   return {command: 'node', args: [RUNTIME_RELATIVE]};
 }
@@ -600,10 +600,10 @@ export async function runHostSetup(opts: SetupOptions = {}): Promise<SetupResult
 
   const codex = hosts.has('codex')
     ? await mergeCodexMcp(join(projectRoot, '.codex', 'config.toml'), launch, force)
-    : 'skipped-not-installed';
+    : 'skipped-not-selected';
   const gemini = hosts.has('gemini')
     ? mergeJsonMcp(join(projectRoot, '.gemini', 'settings.json'), launch, force)
-    : 'skipped-not-installed';
+    : 'skipped-not-selected';
   const antigravity = hosts.has('antigravity')
     ? combine([
         // Forward-compat project file (agy 1.1.x does not read it yet) …
@@ -611,13 +611,13 @@ export async function runHostSetup(opts: SetupOptions = {}): Promise<SetupResult
         // … plus the machine-wide wire agy actually loads (see wireAntigravityGlobal).
         wireAntigravityGlobal(home, pkgRoot, force),
       ])
-    : 'skipped-not-installed';
+    : 'skipped-not-selected';
   const claude = hosts.has('claude')
     ? combine([
         copyManagedSkill(initSource, join(projectRoot, '.claude', 'skills', 'cladding-init'), force),
         mergeJsonMcp(join(projectRoot, '.mcp.json'), launch, force),
       ])
-    : 'skipped-not-installed';
+    : 'skipped-not-selected';
   const cursor = hosts.has('cursor')
     ? combine([
         copyManagedSkill(initSource, join(projectRoot, '.cursor', 'skills', 'cladding-init'), force),
@@ -625,7 +625,7 @@ export async function runHostSetup(opts: SetupOptions = {}): Promise<SetupResult
         mergeCursorCliPermissions(join(projectRoot, '.cursor', 'cli.json')),
         writeCursorBootstrap(projectRoot),
       ])
-    : 'skipped-not-installed';
+    : 'skipped-not-selected';
 
   const wiring = {runtime, shared_init_skill: sharedSkill, claude, codex, gemini, antigravity, cursor};
   if (hosts.size === 0) {
@@ -666,7 +666,7 @@ function stateLabel(state: ChannelResult): string {
     case 'rewired': return 'updated';
     case 'unchanged': return 'already ready';
     case 'removed': return 'legacy global removed';
-    case 'skipped-not-installed': return 'not selected';
+    case 'skipped-not-selected': return 'not selected';
     case 'skipped-different': return 'preserved conflict';
     case 'manual-required': return 'manual cleanup required';
     default: return 'failed';
@@ -744,13 +744,4 @@ export function detectHosts(home: string = homedir()): HostDetection {
     agents: existsSync(join(home, '.agents')),
     cursor: existsSync(join(home, '.cursor')),
   };
-}
-
-/** Test-only sanity helper used to ensure copied skill roots contain directories. */
-export function isDirectory(path: string): boolean {
-  try {
-    return statSync(path).isDirectory();
-  } catch {
-    return false;
-  }
 }

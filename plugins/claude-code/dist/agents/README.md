@@ -8,7 +8,7 @@ ironclad-track: T9 (multi-agent orchestrator)
 
 ## [CLAIM]
 
-The 5 agent personas — orchestrator · planner (formerly `librarian`) · reviewer · observability · developer (formerly `specialists`) — each shipped as a Claude Code subagent (frontmatter + system prompt). Their canonical source lives in this directory; `npm run build:plugin` mirrors them into `agents/`, `plugins/codex/skills/`, and `plugins/gemini-cli/commands/`.
+The 6 agent personas — orchestrator · planner (formerly `librarian`) · reviewer · observability · developer (formerly `specialists`) · blind-author — each shipped as a Claude Code subagent (frontmatter + system prompt). Their canonical source lives in this directory; `npm run build:plugin` mirrors them into `plugins/claude-code/agents/`, `plugins/codex/skills/`, and `plugins/antigravity/skills/`.
 
 ## [PERSONAS]
 
@@ -21,6 +21,7 @@ Each persona's individual `.md` carries a "Sources (what you read, by Tier)" sec
 | `reviewer` | Philosophical guardrails; independent audit | Read, Bash | A + B + C + D evidence | (none — audit only) |
 | `observability` | Log + metrics analyst | Read, Bash | D only (events.log, audit.log, perf, coverage) | (reports only) |
 | `developer` | Implementer (code, tests, migrations) | Read, Write, Edit, Bash | B (project-context, architecture, capabilities) + C (conventions) + A (current feature slice) | stages/, tests/, hitl/ |
+| `blind-author` | Impl-blind test/oracle author (no Read/Grep/Glob/Edit by construction) | Write, Bash | A (acceptance criteria + module signatures only — never the implementation) | tests/ (conformance oracles) |
 
 ## [INVOCATION_PRINCIPLES]
 
@@ -56,4 +57,4 @@ Cross-boundary rules:
 
 ## [TBD]
 
-- Routing config (`src/agents/routing.yaml`) with intent → agent mapping. `commands/clad.md` is the single user-facing verb manifest today; per-verb skills live under `skills/<verb>/SKILL.md` (auto-mirrored to `commands/<verb>.md`, `plugins/codex/skills/<verb>.md`, `plugins/gemini-cli/commands/<verb>.md`).
+- Routing config (`src/agents/routing.yaml`) with intent → agent mapping. Per-verb skills live under `skills/<verb>/SKILL.md`, auto-mirrored to `plugins/codex/skills/<verb>/` and `plugins/antigravity/skills/<verb>/` (Gemini receives only the init command as `plugins/gemini-cli/commands/init.toml`).

@@ -18,14 +18,14 @@ attested_modules:
   .github/workflows/ci.yml: 8ea99219cb80df60
   .gitignore: 1294975ba3b47043
   CHANGELOG.md: 1524903097b4f9b0
-  CLAUDE.md: d81d8832976cd5ee
+  CLAUDE.md: 16212c1749e6005d
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: ff98c3aaf8a6947f
-  README.ja.md: 299df920c0530e71
-  README.ko.html: 35bde93f37db20eb
-  README.ko.md: 7f1394d857a95084
-  README.md: cef6c17062f7d728
-  README.zh.md: 65dac6ea9c2308cc
+  README.html: dd6c44fc6c151ad4
+  README.ja.md: d4de131ac59941f8
+  README.ko.html: a494606ab7bfce8e
+  README.ko.md: 45c1a27b3f25c983
+  README.md: 5831410ed5c38337
+  README.zh.md: a6aef09c240f2b62
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -56,7 +56,7 @@ attested_modules:
   docs/dogfood/cursor-agent-2026-07-15.md: a2f621fd0c3b57af
   docs/dogfood/gemini-cli-2026-05-20.md: 2da1ba66c4f108f0
   docs/feature-cycle.md: b8c48c86d1f1e093
-  docs/glossary.md: 1f2acc81a22cdd3e
+  docs/glossary.md: 9e897b963c3aa88f
   docs/img/en/ecosystem.svg: ed14d1d17f088b00
   docs/img/en/relationship.svg: c7a24203925b4664
   docs/img/ko/ecosystem.svg: 2b7341576c2af0a8
@@ -65,7 +65,7 @@ attested_modules:
   docs/refinement-backlog.md: 3e38d60bf987eef1
   docs/setup.md: a5c062651d267983
   docs/spec-ids-multi-dev.md: 28d58e84879f58b1
-  docs/ssot-model.md: 13ac491b15bd77cd
+  docs/ssot-model.md: 66b9439e2f71ac4b
   docs/ssot-testing.md: abf3b2bd5acb29a1
   package-lock.json: 84fce6dd31da5308
   package.json: fb5fc393fb3f5e49
@@ -73,21 +73,21 @@ attested_modules:
   plugins/claude-code/agents/developer.md: 40af2943253f6c72
   plugins/claude-code/agents/observability.md: 5ea8f14b1c9b4a61
   plugins/claude-code/agents/orchestrator.md: 443c6e13ade590cf
-  plugins/claude-code/agents/planner.md: 934753c28d5f1287
+  plugins/claude-code/agents/planner.md: 5750002ebdfb43f1
   plugins/claude-code/agents/reviewer.md: 9c4e095e60040473
   plugins/claude-code/commands/init.md: bf567f3b4e22069a
   plugins/claude-code/hooks/hooks.json: 42321ead26fb1da8
   plugins/codex/.codex-plugin/plugin.json: 26d1bc595d1b996a
   plugins/codex/.mcp.json: 43e3f4b2af24aa18
-  plugins/codex/skills/check/SKILL.md: 455d912ce1d47b5a
+  plugins/codex/skills/check/SKILL.md: 6a665422af510e72
   plugins/codex/skills/developer/SKILL.md: 40af2943253f6c72
   plugins/codex/skills/init/SKILL.md: bf567f3b4e22069a
   plugins/codex/skills/observability/SKILL.md: 5ea8f14b1c9b4a61
   plugins/codex/skills/orchestrator/SKILL.md: 443c6e13ade590cf
-  plugins/codex/skills/planner/SKILL.md: 934753c28d5f1287
+  plugins/codex/skills/planner/SKILL.md: 5750002ebdfb43f1
   plugins/codex/skills/reviewer/SKILL.md: 9c4e095e60040473
   plugins/codex/skills/run/SKILL.md: 9f95ff17d70c8dd1
-  plugins/codex/skills/serve/SKILL.md: d65778260c663fbb
+  plugins/codex/skills/serve/SKILL.md: f08bbdbbfeb05041
   plugins/codex/skills/status/SKILL.md: 09faadc50b3449da
   plugins/codex/skills/sync/SKILL.md: 775c0f990a52a3d9
   plugins/gemini-cli/GEMINI.md: ba08eaf2cd557a65
@@ -101,16 +101,16 @@ attested_modules:
   scripts/test-count.d.mts: a392f5dea372a40e
   scripts/test-count.mjs: aea2620221c8d5ff
   scripts/version-bump.mjs: 770b066b8279db39
-  skills/check/SKILL.md: 455d912ce1d47b5a
+  skills/check/SKILL.md: 6a665422af510e72
   skills/checkpoint/SKILL.md: f723e8cfb8286a64
   skills/clarify/SKILL.md: 5d08bbb821258d03
   skills/doctor/SKILL.md: 6581c6c900c72d68
   skills/init/SKILL.md: bf567f3b4e22069a
-  skills/oracle/SKILL.md: 0986572a0a5604f6
+  skills/oracle/SKILL.md: 11e111ac0a4963c1
   skills/rollback/SKILL.md: d472dc3a562b347b
   skills/route/SKILL.md: 5958830fef280c67
   skills/run/SKILL.md: 9f95ff17d70c8dd1
-  skills/serve/SKILL.md: d65778260c663fbb
+  skills/serve/SKILL.md: f08bbdbbfeb05041
   skills/status/SKILL.md: 09faadc50b3449da
   skills/sync/SKILL.md: 775c0f990a52a3d9
   spec.yaml: 59840b10bd055d32
@@ -133,13 +133,13 @@ attested_modules:
   src/adapters/sdk/anthropic.ts: 9debe5cc61f039f1
   src/adapters/types.ts: f8e5643231a13e8d
   src/agents: a4d0f0eb87fed960
-  src/agents/README.md: 9f41809958439db2
+  src/agents/README.md: b9fe459af1d36e8d
   src/agents/blind-author.md: e9d2977f9879d3f9
   src/agents/developer.md: 40af2943253f6c72
   src/agents/loader.ts: 6d35560c47f9ae85
   src/agents/observability.md: 5ea8f14b1c9b4a61
   src/agents/orchestrator.md: 443c6e13ade590cf
-  src/agents/planner.md: 934753c28d5f1287
+  src/agents/planner.md: 5750002ebdfb43f1
   src/agents/reviewer.md: 9c4e095e60040473
   src/changelog/collect.ts: a6c936a7b8c34e2a
   src/changelog/render.ts: 83dd2d95f24ca68c
@@ -203,8 +203,8 @@ attested_modules:
   src/hitl/identity.ts: 52ff84aa666f1dab
   src/init/agents-md.ts: 7dc05f6d82e5c3ce
   src/init/git-hook.ts: 4e02f177b3764ae8
-  src/init/host-instructions.ts: b6dbb40fadbf4c2d
-  src/init/host-setup.ts: aa953fda8e37a197
+  src/init/host-instructions.ts: 7a066c646f0b6133
+  src/init/host-setup.ts: 158cc9306a746da1
   src/optimizer: a4d0f0eb87fed960
   src/optimizer/code-excerpt.ts: e2c4598efcd28d2a
   src/optimizer/context-slice.ts: b5864aaed1e7ae48

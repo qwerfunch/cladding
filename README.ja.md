@@ -6,13 +6,13 @@
 
 <p align="center">
   <strong>AI にコーディングを任せるには、組織に三つの条件が要る —<br/>コードを信頼でき、その足跡をたどれ、規模が大きくなっても揺るがないこと。cladding はその三つを築く。</strong><br/>
-  その名（外装材）のとおりホスト LLM（Claude Code · Codex · Antigravity · Cursor）を包み込む — 作業を <em>始める前</em> に、cladding がプロジェクトの意図を渡し、作業を <em>終えた後</em> に、41 個の検出器と 15 段階のゲートで結果を検証する。
+  その名（外装材）のとおりホスト LLM（Claude Code · Codex · Gemini · Antigravity · Cursor）を包み込む — 作業を <em>始める前</em> に、cladding がプロジェクトの意図を渡し、作業を <em>終えた後</em> に、41 個の検出器と 15 段階のゲートで結果を検証する。
 </p>
 
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-2566%2F2566-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-2561%2F2561-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -31,7 +31,7 @@
 - **たどれる** — **出荷されたものは記録に残る**: 何を検証したかはコミットされた内容に刻まれ、誰がいつやったかはローカルのセッション台帳に、なぜかは spec に残る — だから引き継ぎもレビューも、掘り起こさずに済む。
 - **拡張しても揺るがない** — 人と AI が増えれば、普通は衝突と乖離も増える。だが全員が一つの spec を基準に働くので、それらは自動でせき止められる — だから規模を広げても崩れない。
 
-cladding は **自分自身も cladding で作っている** — 254 個の feature のうち 251 個が同じゲートを通過した、[Ironclad](https://github.com/qwerfunch/ironclad) 標準を L4 で実装した最初の事例だ。
+cladding は **自分自身も cladding で作っている** — 255 個の feature のうち 252 個が同じゲートを通過した、[Ironclad](https://github.com/qwerfunch/ironclad) 標準を L4 で実装した最初の事例だ。
 
 <!-- ─────────────── What changes ─────────────── -->
 
@@ -46,7 +46,7 @@ cladding は **自分自身も cladding で作っている** — 254 個の feat
 | **失敗した状態でセッションを終える** | そのまま終了し、次回には忘れられる | 終了を一度止め、失敗したチェックを修正カードとして引き継ぐ |
 | **二人が同時に feature を追加する** | merge conflict | hash-8 ID · ファイル分離 → 衝突 0 |
 | **AI が書いたコードは誰が検証する？** | 書いた AI が自分で検証する（危うい） | 実装を見ない採点者 + 機械的なゲート |
-| **AI ツールを乗り換える** | ツールごとに再設定 | 1 つの spec → 4 つの host へ自動配線 |
+| **AI ツールを乗り換える** | ツールごとに再設定 | 1 つの spec → 5 つの host へ自動配線 |
 
 ## 誰のためのものか
 
@@ -66,7 +66,7 @@ cladding は **自分自身も cladding で作っている** — 254 個の feat
 
 **後 — 検証する:** 15 段階のゲート、41 個の乖離検出器、そして **実装を見ない採点者** — spec に照らして作業を検査するエージェントで、*実装を読む手段を一切持たない* ため、自分が書いたものにお墨付きを与えることはできない。
 
-<sub>リアルタイム介入（マップ注入 · 即時ブロック · 終了ブロック）は Claude Code ですべて動作する。Codex · Antigravity · Cursor では同じ検証を、会話中のツール呼び出しと git · CI のゲートで通す。</sub>
+<sub>リアルタイム介入（マップ注入 · 即時ブロック · 終了ブロック）は Claude Code ですべて動作する。Codex · Gemini · Antigravity · Cursor では同じ検証を、会話中のツール呼び出しと git · CI のゲートで通す。</sub>
 
 <!-- ─────────────── done is earned ─────────────── -->
 
@@ -263,7 +263,7 @@ clad setup                # このプロジェクトだけに Cladding を接続
 # cursor-agent   # Cursor Agent
 ```
 
-`clad setup` は Claude Code・Codex・Gemini・Antigravity・Cursor の接続を現在のプロジェクト内だけに作る。setup を実行していない別プロジェクトのモデルコンテキストには、Cladding の skill や MCP ツールは入らない。使用する AI ツールのコマンドを一つだけ実行し、Cursor IDE では `<project>` をワークスペースとして開く。setup 後はこのフォルダから新しい AI セッションを開始する。Codex や Gemini がプロジェクトの信頼確認を表示した場合は、それぞれの通常のセキュリティ境界に従って承認する。信頼されるまでプロジェクトローカルの MCP 設定は意図的に読み込まれない。
+`clad setup` はこのマシンで検出された AI ツール（Claude Code・Codex・Gemini・Antigravity・Cursor）を現在のプロジェクト内だけに接続する — ただし Antigravity はプロジェクトローカルの MCP 設定を読まないホストのため、唯一マシン単位で接続される（詳細は [setup ドキュメント](docs/setup.md)）。setup を実行していない別プロジェクトのモデルコンテキストには、Cladding の skill や MCP ツールは入らない。使用する AI ツールのコマンドを一つだけ実行し、Cursor IDE では `<project>` をワークスペースとして開く。setup 後はこのフォルダから新しい AI セッションを開始する。Codex や Gemini がプロジェクトの信頼確認を表示した場合は、それぞれの通常のセキュリティ境界に従って承認する。信頼されるまでプロジェクトローカルの MCP 設定は意図的に読み込まれない。
 
 ### 3. Cladding を一度適用する
 
@@ -339,7 +339,7 @@ clad update              # 3. プロジェクト接続と派生状態を更新�
 
 | Version | 準拠レベル | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.9.0（2026-07） | L4 · [自己申告](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2566 / 2566 | 15 段階 · 41 detectors | 255（251 done） |
+| v0.9.0（2026-07） | L4 · [自己申告](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2561 / 2561 | 15 段階 · 41 detectors | 255（252 done） |
 
 <sub>236 test files · capability 6 個 · カバレッジ低下は COVERAGE_DROP detector がブロック</sub>
 

@@ -71,11 +71,11 @@ describe('project-scoped runHostSetup', () => {
     const bareHome = mkdtempSync(join(tmpdir(), 'clad-barehome-'));
     try {
       const result = await runHostSetup({home: bareHome, projectRoot: project, pkgRoot, quiet: true, activate: false});
-      expect(result.wiring.claude).toBe('skipped-not-installed');
-      expect(result.wiring.codex).toBe('skipped-not-installed');
-      expect(result.wiring.gemini).toBe('skipped-not-installed');
-      expect(result.wiring.antigravity).toBe('skipped-not-installed');
-      expect(result.wiring.cursor).toBe('skipped-not-installed');
+      expect(result.wiring.claude).toBe('skipped-not-selected');
+      expect(result.wiring.codex).toBe('skipped-not-selected');
+      expect(result.wiring.gemini).toBe('skipped-not-selected');
+      expect(result.wiring.antigravity).toBe('skipped-not-selected');
+      expect(result.wiring.cursor).toBe('skipped-not-selected');
       expect(existsSync(join(project, '.codex'))).toBe(false);
       expect(existsSync(join(project, '.cursor'))).toBe(false);
       expect(result.warnings.some((w) => w.step === 'hosts')).toBe(true);
@@ -290,7 +290,7 @@ describe('project-scoped runHostSetup', () => {
   test('delta-wires a host that appears after the first run, leaving wired ones untouched', async () => {
     rmSync(join(home, '.cursor'), {recursive: true, force: true});
     const first = await runHostSetup({home, projectRoot: project, pkgRoot, quiet: true, activate: false});
-    expect(first.wiring.cursor).toBe('skipped-not-installed');
+    expect(first.wiring.cursor).toBe('skipped-not-selected');
     expect(existsSync(join(project, '.cursor'))).toBe(false);
 
     mkdirSync(join(home, '.cursor'), {recursive: true});

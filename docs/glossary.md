@@ -56,7 +56,7 @@
 | `work` | removed (0.6.0) | Was a permanently not-implemented reserved stub (always exit 2) — dishonest surface; `run` owns the slot. | (제거됨) |
 | `serve` | stable | Start the MCP server over stdio. | MCP 서버 |
 | `oracle` | stable | Print the impl-blind authoring brief for a feature/AC. | 오라클 브리프 |
-| `setup` | stable | Wire cladding into installed AI hosts (Claude/Codex/Gemini/Cursor). | 호스트 연결 |
+| `setup` | stable | Wire cladding into detected AI hosts (Claude/Codex/Gemini/Antigravity/Cursor). | 호스트 연결 |
 | `update` | stable | Post-upgrade reconciliation (re-wire, sync, report-only drift). | 업그레이드 정리 |
 | `doctor` | stable | Diagnose dispatcher/telemetry health from the events log (brew/npm `doctor` convention). | 환경 진단 |
 | `checkpoint` | stable | Record a feature checkpoint event (git HEAD + spec digest). | 체크포인트 기록 |

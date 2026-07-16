@@ -6,7 +6,7 @@ description: Boot cladding as an MCP server over stdio. Use only when the user w
 
 Run `clad serve` from the project root. Boots an MCP server over stdio that exposes:
 
-- **Tools**: `clad_list_features`, `clad_get_feature`, `clad_run_check`, `clad_get_events`.
+- **Tools**: the full development surface (feature/graph/context queries, checks, gate, changelog) plus the natural-language onboarding flow — `clad_prepare_init` / `clad_stage_init` / `clad_init` and the clarify pair. Before `spec.yaml` exists only the three onboarding bootstrap tools are exposed.
 - **Resources**: `cladding://spec`, `cladding://events`, `cladding://audit`.
 - **Prompts**: 5 personas (orchestrator, planner, reviewer, observability, developer).
 - **Live audit notifications**: `notifications/resources/updated` fires for `cladding://audit` whenever a new evidence entry lands — a subscribed client can live-tail the audit log without polling.

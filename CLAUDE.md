@@ -25,7 +25,7 @@ Files `F-082` ~ `F-090` were the *drift period* (authored after v0.3.9 but bypas
 
 ## Version bumps — use the script
 
-Don't hand-edit version strings. There are nine sites (incl. `.claude-plugin/marketplace.json`, the marketplace *catalog* the Claude Code host reads to detect "update available"); missing one breaks `HARNESS_INTEGRITY` (which now also guards the marketplace catalog version). Run:
+Don't hand-edit version strings. There are eleven sites (incl. `.claude-plugin/marketplace.json`, the marketplace *catalog* the Claude Code host reads to detect "update available"); missing one breaks `HARNESS_INTEGRITY` (which now also guards the marketplace catalog version). Run:
 
 ```bash
 npm run version-bump -- 0.3.X
@@ -46,7 +46,7 @@ When you add a drift detector under `src/stages/detectors/`:
 
 A user-explicit instruction ("release vX.Y.Z") triggers the ritual:
 
-1. `npm run version-bump -- X.Y.Z` (all nine sites) + `npm install` (refresh the committed `package-lock.json` to the new version — CI's `npm ci` fails on a stale lock) + `npm run build` + GREEN `npm test` / `clad check --strict`
+1. `npm run version-bump -- X.Y.Z` (all eleven sites) + `npm install` (refresh the committed `package-lock.json` to the new version — CI's `npm ci` fails on a stale lock) + `npm run build` + GREEN `npm test` / `clad check --strict`
 2. open a **PR `develop → main`** and merge it with the GitHub **"Create a merge commit"** button — NEVER squash, NEVER rebase (see the squash-ban below)
 3. `git tag vX.Y.Z` on main's merge commit
 4. push main + tag, then **back-merge `main → develop`** (`git checkout develop && git merge origin/main && git push`) so develop keeps the release commit in its ancestry — skip this and the next release PR phantom-conflicts

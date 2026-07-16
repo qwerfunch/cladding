@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-2566%2F2566-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-2561%2F2561-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -31,7 +31,7 @@
 - **추적** — **나간 것은 기록에 남는다**: 무엇을 검증했는지는 커밋된 내용에 새겨지고, 누가·언제는 로컬 세션 로그에, 왜는 스펙에 남아, 인수인계와 리뷰가 파헤치지 않아도 된다.
 - **확장** — 사람과 AI를 늘리면 보통 충돌과 어긋남도 함께 불어난다. 하지만 모두가 스펙 하나를 기준으로 일하니 그게 자동으로 걸린다 — 그래서 규모를 키워도 무너지지 않는다.
 
-cladding은 **자기 자신도 cladding으로 만든다** — 기능 254개 중 251개가 같은 게이트를 통과했고, [Ironclad](https://github.com/qwerfunch/ironclad) 표준을 L4로 구현한 첫 사례다.
+cladding은 **자기 자신도 cladding으로 만든다** — 기능 255개 중 252개가 같은 게이트를 통과했고, [Ironclad](https://github.com/qwerfunch/ironclad) 표준을 L4로 구현한 첫 사례다.
 
 <!-- ─────────────── 무엇이 달라지나 ─────────────── -->
 
@@ -262,7 +262,7 @@ clad setup                # 이 프로젝트에만 AI 도구 연결
 # cursor-agent   # Cursor Agent
 ```
 
-`clad setup`은 현재 프로젝트에만 Claude Code · Codex · Gemini · Antigravity · Cursor 연결을 만든다. 설정하지 않은 다른 프로젝트의 모델 컨텍스트에는 Cladding skill이나 MCP 도구가 들어가지 않는다. Cursor IDE는 `<project>` 폴더를 작업공간으로 연다. setup 뒤에는 반드시 이 폴더에서 AI 도구를 새 세션으로 시작한다. Codex와 Gemini가 프로젝트 신뢰 여부를 물으면 각 호스트의 정상 보안 경계에 따라 승인한다. 신뢰하기 전에는 프로젝트 로컬 MCP 설정이 의도적으로 적용되지 않는다.
+`clad setup`은 이 머신에서 감지된 AI 도구(Claude Code · Codex · Gemini · Antigravity · Cursor)를 현재 프로젝트에만 연결한다 — 단 Antigravity는 프로젝트-로컬 MCP 설정을 읽지 않는 호스트라 유일하게 머신 단위로 연결된다(자세한 내용은 [setup 문서](docs/setup.md)). 설정하지 않은 다른 프로젝트의 모델 컨텍스트에는 Cladding skill이나 MCP 도구가 들어가지 않는다. Cursor IDE는 `<project>` 폴더를 작업공간으로 연다. setup 뒤에는 반드시 이 폴더에서 AI 도구를 새 세션으로 시작한다. Codex와 Gemini가 프로젝트 신뢰 여부를 물으면 각 호스트의 정상 보안 경계에 따라 승인한다. 신뢰하기 전에는 프로젝트 로컬 MCP 설정이 의도적으로 적용되지 않는다.
 
 ### 3. 프로젝트에 Cladding 한 번 적용하기
 
@@ -338,7 +338,7 @@ clad update              # 3. 프로젝트 연결과 파생 데이터를 함께 
 
 | version | 준수 등급 | tests | gate | features |
 |---|---|---|---|---|
-| v0.9.0 · 2026-07 | L4 · [L0–L4 중 최고 · 자가 선언](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2566 / 2566 · all pass | 15 단계 · 41 detectors | 255 · 251 done · 자기 스펙 |
+| v0.9.0 · 2026-07 | L4 · [L0–L4 중 최고 · 자가 선언](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2561 / 2561 · all pass | 15 단계 · 41 detectors | 255 · 252 done · 자기 스펙 |
 
 <sub>236 test files · capability 6개 · coverage는 COVERAGE_DROP detector가 하락 차단</sub>
 

@@ -4,82 +4,18 @@
 // and AC-010 (CLAUDE.md `## cladding` section appended idempotently when
 // present).
 
-import {existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
+import {renderAgentsMdManagedBlock} from '../../src/init/agents-md.js';
 import {
-  AGENTS_MD_TEMPLATE,
-  CLAUDE_MD_SECTION,
+    CLAUDE_MD_SECTION,
   CLAUDE_MD_SECTION_MARKER,
   isStaleInstructions,
-  writeAgentsMd,
   writeClaudeMdSection,
 } from '../../src/init/host-instructions.js';
-
-describe('writeAgentsMd (F-90d054 AC-008)', () => {
-  let dir: string;
-  beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), 'clad-host-instr-'));
-  });
-  afterEach(() => {
-    rmSync(dir, {recursive: true, force: true});
-  });
-
-  test('creates AGENTS.md when absent', () => {
-    const r = writeAgentsMd(dir);
-    expect(r).toBe('created');
-    expect(existsSync(join(dir, 'AGENTS.md'))).toBe(true);
-    expect(readFileSync(join(dir, 'AGENTS.md'), 'utf8')).toBe(AGENTS_MD_TEMPLATE);
-  });
-
-  test('skips when AGENTS.md already exists (no --force)', () => {
-    writeFileSync(join(dir, 'AGENTS.md'), '# user-authored\n');
-    const r = writeAgentsMd(dir);
-    expect(r).toBe('skipped-exists');
-    expect(readFileSync(join(dir, 'AGENTS.md'), 'utf8')).toBe('# user-authored\n');
-  });
-
-  test('overwrites when --force', () => {
-    writeFileSync(join(dir, 'AGENTS.md'), '# user-authored\n');
-    const r = writeAgentsMd(dir, {force: true});
-    expect(r).toBe('overwritten');
-    expect(readFileSync(join(dir, 'AGENTS.md'), 'utf8')).toBe(AGENTS_MD_TEMPLATE);
-  });
-
-  // F-80d19d (v0.4.0) — removed F-90d054's `enrichment_status` rule from the
-  // AGENTS.md template since project-scope plugin auto-activation now
-  // guarantees an AI session at `clad init` time.
-
-  test('refreshes stale v0.3.x AGENTS.md without --force', () => {
-    const stale = [
-      '# AGENTS.md',
-      '',
-      'This project is managed by **cladding**.',
-      '',
-      '## cladding — first-task enrichment rule',
-      '',
-      'If `spec.yaml._meta.enrichment_status` equals "pending", run enrichment.',
-      '',
-      '- Never hand-author `F-NNN` filenames — use `clad_create_feature` MCP',
-      '  tool.',
-      '',
-    ].join('\n');
-    writeFileSync(join(dir, 'AGENTS.md'), stale);
-    const r = writeAgentsMd(dir);
-    expect(r).toBe('refreshed-stale');
-    expect(readFileSync(join(dir, 'AGENTS.md'), 'utf8')).toBe(AGENTS_MD_TEMPLATE);
-  });
-
-  test('does not refresh AGENTS.md that lacks v0.3.x markers', () => {
-    const userBody = '# AGENTS.md\n\nMy own notes — nothing about cladding.\n';
-    writeFileSync(join(dir, 'AGENTS.md'), userBody);
-    const r = writeAgentsMd(dir);
-    expect(r).toBe('skipped-exists');
-    expect(readFileSync(join(dir, 'AGENTS.md'), 'utf8')).toBe(userBody);
-  });
-});
 
 describe('writeClaudeMdSection (F-90d054 AC-009 + AC-010)', () => {
   let dir: string;
@@ -187,8 +123,8 @@ describe('isStaleInstructions', () => {
     ).toBe(true);
   });
 
-  test('does not flag the v0.4.0 conditional wording', () => {
-    expect(isStaleInstructions(AGENTS_MD_TEMPLATE)).toBe(false);
+  test('does not flag the current emitted surfaces (no re-sync churn)', () => {
+    expect(isStaleInstructions(renderAgentsMdManagedBlock(null))).toBe(false);
     expect(isStaleInstructions(CLAUDE_MD_SECTION)).toBe(false);
   });
 
@@ -205,8 +141,8 @@ describe('isStaleInstructions', () => {
     expect(isStaleInstructions(preCadence)).toBe(true);
   });
 
-  test('both v0.4.x templates carry the feature-cycle cadence marker', () => {
-    expect(AGENTS_MD_TEMPLATE).toContain('Feature cycle — one at a time');
+  test('both emitted surfaces carry the feature-cycle cadence marker', () => {
+    expect(renderAgentsMdManagedBlock(null)).toContain('Feature cycle — one at a time');
     expect(CLAUDE_MD_SECTION).toContain('Feature cycle — one at a time');
   });
 

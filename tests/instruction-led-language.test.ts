@@ -11,7 +11,7 @@
 //                 a hardcoded count), templates carry no locale parameter, and
 //                 the plain-lead-first render order is unchanged.
 //   AC-ddb938fb — the interpreter instruction (CLAUDE_MD_SECTION +
-//                 AGENTS_MD_TEMPLATE) explicitly directs the agent to relay
+//                 AGENTS_MD_BLOCK) explicitly directs the agent to relay
 //                 cladding's own gate/hook messages by meaning, both freshness
 //                 literals survive, and the size guard is respected.
 //   AC-3f34759a — unwanted-behaviour: no locale-machinery symbol may reappear
@@ -55,7 +55,11 @@ import {join, relative} from 'node:path';
 import {describe, expect, test} from 'vitest';
 
 import {allDetectors} from '../src/stages/detectors/index.js';
-import {AGENTS_MD_TEMPLATE, CLAUDE_MD_SECTION, isStaleInstructions} from '../src/init/host-instructions.js';
+import {CLAUDE_MD_SECTION, isStaleInstructions} from '../src/init/host-instructions.js';
+import {renderAgentsMdManagedBlock} from '../src/init/agents-md.js';
+
+// Live 0.9.0 surface for cross-host guidance (replaced AGENTS_MD_BLOCK).
+const AGENTS_MD_BLOCK = renderAgentsMdManagedBlock(null);
 import {
   DETECTOR_PLAIN,
   doneRefusalLead,
@@ -169,17 +173,17 @@ describe('AC-71ce42e5 — English-only catalog + templates, no locale machinery,
 // AC-ddb938fb — interpreter relay clause, freshness literals, size guard.
 // ═══════════════════════════════════════════════════════════════════════
 describe('AC-ddb938fb — interpreter relay clause, freshness literals, size guard', () => {
-  const GATE_AND_HOOK = /gate and hook messages/i;
-  const RELAY_BY_MEANING = /relay them(?: in the user's language,)? by meaning/i;
+  const GATE_AND_HOOK = /gate(?:\/| and )hook messages/i;
+  const RELAY_BY_MEANING = /relay (?:them|gate\/hook messages)(?: in the user's language,)? by meaning/i;
 
   test('CLAUDE_MD_SECTION explicitly directs relaying cladding\'s own gate/hook messages, by meaning', () => {
     expect(CLAUDE_MD_SECTION).toMatch(GATE_AND_HOOK);
     expect(norm(CLAUDE_MD_SECTION)).toMatch(RELAY_BY_MEANING);
   });
 
-  test('AGENTS_MD_TEMPLATE carries the equivalent relay clause', () => {
-    expect(AGENTS_MD_TEMPLATE).toMatch(GATE_AND_HOOK);
-    expect(norm(AGENTS_MD_TEMPLATE)).toMatch(RELAY_BY_MEANING);
+  test('the AGENTS.md managed block carries the equivalent relay clause', () => {
+    expect(AGENTS_MD_BLOCK).toMatch(GATE_AND_HOOK);
+    expect(norm(AGENTS_MD_BLOCK)).toMatch(RELAY_BY_MEANING);
   });
 
   test('planted-needle control: a stub anchor lacking the relay clause misses; the real sentence matches (both patterns)', () => {
@@ -197,7 +201,7 @@ describe('AC-ddb938fb — interpreter relay clause, freshness literals, size gua
   });
 
   test('both freshness literals survive verbatim in both templates', () => {
-    for (const tpl of [CLAUDE_MD_SECTION, AGENTS_MD_TEMPLATE]) {
+    for (const tpl of [CLAUDE_MD_SECTION, AGENTS_MD_BLOCK]) {
       expect(tpl).toContain('anti-self-cert');
       expect(tpl).toContain('Feature cycle — one at a time');
     }
@@ -205,7 +209,7 @@ describe('AC-ddb938fb — interpreter relay clause, freshness literals, size gua
 
   test('round trip holds: a freshly emitted section of either template is NOT stale (no re-sync churn)', () => {
     expect(isStaleInstructions(CLAUDE_MD_SECTION)).toBe(false);
-    expect(isStaleInstructions(AGENTS_MD_TEMPLATE)).toBe(false);
+    expect(isStaleInstructions(AGENTS_MD_BLOCK)).toBe(false);
   });
 
   test('CLAUDE_MD_SECTION stays under the ceiling declared in tests/claude-md-diet.test.ts (derived, not a duplicated magic number)', () => {

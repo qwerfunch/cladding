@@ -148,17 +148,15 @@ acceptance_criteria:
       - "tests/cli/setup.test.ts#cursor legacy cleanup drops an emptied mcpServers object instead of leaving an orphan"
   - id: AC-013
     ears: event
-    condition: when `clad init` runs and a project-local AGENTS.md or CLAUDE.md exists that carries v0.3.x markers (e.g. `_meta.enrichment_status`, `first-task enrichment rule`, lone `clad_create_feature` MCP tool wording with no `clad` CLI qualifier)
-    action: refresh the stale file in place (AGENTS.md replaced wholesale; CLAUDE.md replaces only the `## cladding` section while preserving user content outside that marker block)
+    condition: when `clad init` runs and a project-local CLAUDE.md exists whose `## cladding` section carries v0.3.x markers (e.g. `_meta.enrichment_status`, `first-task enrichment rule`, lone `clad_create_feature` MCP tool wording with no `clad` CLI qualifier)
+    action: refresh only the `## cladding` section in place while preserving user content outside that marker block (AGENTS.md is handled separately by the spec-driven managed block, which treats markerless files as user-owned and never rewrites them wholesale)
     response: AI sessions opened in projects scaffolded by older cladding versions do not surface stale "use the MCP tool" guidance that triggers spurious MCP-server prompts in hosts where cladding is not wired as an MCP server (e.g. Claude Code)
-    text: When `clad init` runs and an existing AGENTS.md or CLAUDE.md carries
-      v0.3.x markers, the system shall refresh the stale file in place
-      without requiring `--force` (AGENTS.md replaced wholesale; CLAUDE.md
-      replaces only the `## cladding` section while preserving outside
-      content), so AI sessions do not surface stale guidance that confuses
-      hosts where cladding is not wired as an MCP server.
+    text: When `clad init` runs and an existing CLAUDE.md `## cladding`
+      section carries v0.3.x markers, the system shall refresh that section
+      in place without requiring `--force` while preserving user content
+      outside the marker block, so AI sessions do not surface stale guidance
+      that confuses hosts where cladding is not wired as an MCP server.
     test_refs:
-      - "tests/init/host-instructions.test.ts#refreshes stale v0.3.x AGENTS.md without --force"
       - "tests/init/host-instructions.test.ts#refreshes only the ## cladding section when v0.3.x markers are present"
   - id: AC-014
     ears: state

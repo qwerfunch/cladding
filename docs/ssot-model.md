@@ -45,7 +45,7 @@ Orphan artifacts get demoted (move to Tier D as historical reference) or removed
 |---|---|---|---|
 | `spec.yaml` | `clad_create_feature` / hand-edit | `spec/load.ts` → every detector + MCP server + CLI verbs | manual edit; `clad sync` validates |
 | `spec/features/<slug>-<hash6>.yaml` | `clad_create_feature` | merged into `Spec.features[]` on load | manual edit + validation |
-| `spec/scenarios/<slug>-<hash6>.yaml` | `clad init <intent>` onboarding (NEW v0.3.45) OR `clad_create_scenario` OR hand-edit | `REFERENCE_INTEGRITY` / `SLUG_CONFLICT` / `ID_COLLISION` / `SCENARIO_COVERAGE` detectors | onboarding 7th sentinel emits; refine refreshes; `clad_create_scenario` adds. *(`clad_create_feature` does NOT bind scenarios — corrected v0.4.x.)* |
+| `spec/scenarios/<slug>-<hash6>.yaml` | `clad init <intent>` onboarding (NEW v0.3.45) OR `clad_create_scenario` OR hand-edit | `REFERENCE_INTEGRITY` / `SLUG_CONFLICT` / `ID_COLLISION` / `SCENARIO_COVERAGE` detectors | onboarding 7th sentinel emits; clarify refreshes; `clad_create_scenario` adds. *(`clad_create_feature` does NOT bind scenarios — corrected v0.4.x.)* |
 
 ### Tier B — Design SSoT
 
@@ -53,7 +53,7 @@ Orphan artifacts get demoted (move to Tier D as historical reference) or removed
 |---|---|---|---|
 | `spec/architecture.yaml` | `clad init --scan` (observed) OR `clad init <intent>` (LLM) OR `clad clarify` OR hand-edit | `ARCHITECTURE_FROM_SPEC` detector + `reviewer` (Layered Integrity guardrail) + `developer` (layer boundary check when placing modules) | re-scan diverts to `.cladding/scan/*.proposal` |
 | `spec/capabilities.yaml` | `clad init <intent>` (LLM) OR `clad clarify` OR hand-edit | **schema-validated + merged into `Spec.capabilities` on load (v0.4.x, J2)** + `CAPABILITIES_FEATURE_MAPPING` (reference validity) + `HOLLOW_GOVERNANCE` (empty-tier guard, v0.4.x) | re-scan diverts to proposal |
-| `docs/project-context.md` | `clad init` (template/LLM-refined) OR `clad clarify` OR hand-edit | AI personas (orchestrator/developer) as Why/What/Purpose context input + **scenario generator (NEW v0.3.45) uses prose for user-journey extraction** + human onboarding readers | LLM-refined on init/refine; hand-edits preserved between |
+| `docs/project-context.md` | `clad init` (template/LLM-refined) OR `clad clarify` OR hand-edit | AI personas (orchestrator/developer) as Why/What/Purpose context input + **scenario generator (NEW v0.3.45) uses prose for user-journey extraction** + human onboarding readers | LLM-refined on init/clarify; hand-edits preserved between |
 
 ### Tier C — Derived / Observable
 

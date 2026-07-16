@@ -6,7 +6,7 @@
 // never told the agent to translate it for the human. This suite pins the
 // three-layer fix's agent-facing layer (hooks render plain = U2, cards drop
 // jargon = U3, the agent's own sentences translate = U4, this feature):
-//   - AC-ad928912: CLAUDE_MD_SECTION + AGENTS_MD_TEMPLATE both carry the
+//   - AC-ad928912: CLAUDE_MD_SECTION + AGENTS_MD_BLOCK both carry the
 //     interpreter rule, both freshness literals still survive verbatim
 //     (isStaleInstructions must not self-flag a fresh emission), and
 //     CLAUDE_MD_SECTION stays under the (deliberately raised) byte ceiling.
@@ -30,7 +30,12 @@ import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {describe, expect, test} from 'vitest';
 
-import {AGENTS_MD_TEMPLATE, CLAUDE_MD_SECTION, isStaleInstructions} from '../src/init/host-instructions.js';
+import {CLAUDE_MD_SECTION, isStaleInstructions} from '../src/init/host-instructions.js';
+import {renderAgentsMdManagedBlock} from '../src/init/agents-md.js';
+
+// The live cross-host surface: the spec-driven AGENTS.md managed block
+// (F-a4085adf) replaced the old static AGENTS_MD_BLOCK in 0.9.0.
+const AGENTS_MD_BLOCK = renderAgentsMdManagedBlock(null);
 import {checkBudget, PERSONA_BUDGETS} from './scenarios/_size-budgets.js';
 import {measureFile} from './scenarios/_token-meter.js';
 
@@ -53,7 +58,7 @@ const NEVER_LEAD_WITH_IDS = /never lead with(?: an)?(?: internal)? ids?/i;
 const ATTESTATION_EQUIV = /attestation\s*=\s*(a\s+)?(signed\s+)?sign-off/i;
 const FINDING_EQUIV = /finding\s*=\s*what drifted/i;
 
-describe('AC-ad928912 · CLAUDE_MD_SECTION + AGENTS_MD_TEMPLATE carry the interpreter rule', () => {
+describe('AC-ad928912 · CLAUDE_MD_SECTION + the AGENTS.md managed block carry the interpreter rule', () => {
   test('CLAUDE_MD_SECTION leads with the "Speak the user\'s language" anchor', () => {
     expect(CLAUDE_MD_SECTION).toContain("**Speak the user's language**");
   });
@@ -66,15 +71,15 @@ describe('AC-ad928912 · CLAUDE_MD_SECTION + AGENTS_MD_TEMPLATE carry the interp
     expect(flat).toContain('plain words');
   });
 
-  test('AGENTS_MD_TEMPLATE carries the equivalent "Speak the user\'s language" section', () => {
-    expect(AGENTS_MD_TEMPLATE).toContain("## Speak the user's language");
-    const flat = norm(AGENTS_MD_TEMPLATE);
+  test('the AGENTS.md managed block carries the equivalent "Speak the user\'s language" section', () => {
+    expect(AGENTS_MD_BLOCK).toContain("## Speak the user's language");
+    const flat = norm(AGENTS_MD_BLOCK);
     expect(flat).toMatch(USERS_OWN_LANGUAGE);
     expect(flat).toMatch(NEVER_LEAD_WITH_IDS);
   });
 
   test('both freshness literals survive verbatim in both templates', () => {
-    for (const tpl of [CLAUDE_MD_SECTION, AGENTS_MD_TEMPLATE]) {
+    for (const tpl of [CLAUDE_MD_SECTION, AGENTS_MD_BLOCK]) {
       expect(tpl).toContain('anti-self-cert');
       expect(tpl).toContain('Feature cycle — one at a time');
     }
@@ -82,7 +87,7 @@ describe('AC-ad928912 · CLAUDE_MD_SECTION + AGENTS_MD_TEMPLATE carry the interp
 
   test('round trip holds: a freshly emitted section of either template is NOT stale (no re-sync churn)', () => {
     expect(isStaleInstructions(CLAUDE_MD_SECTION)).toBe(false);
-    expect(isStaleInstructions(AGENTS_MD_TEMPLATE)).toBe(false);
+    expect(isStaleInstructions(AGENTS_MD_BLOCK)).toBe(false);
   });
 
   test('CLAUDE_MD_SECTION stays under the 1250-byte ceiling (measured in bytes, not UTF-16 code units)', () => {
