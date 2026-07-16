@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-2522%2F2522-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-2556%2F2556-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -269,6 +269,7 @@ clad setup                # 이 프로젝트에만 AI 도구 연결
 자신의 시작 상황에 맞는 요청을 AI 도구에 자연스럽게 말한다.
 
 Cladding은 먼저 프로젝트를 읽기 전용으로 조사한다. AI가 정확한 파일 작업과 일회용 승인 문구를 보여주며, 사용자가 별도 답변에서 그 문구를 그대로 입력해야만 초기화가 시작된다. 프로젝트를 열거나 Cladding에 관해 질문하는 것만으로는 어떤 파일도 변경되지 않는다.
+이 정확 일치 단계는 우발적인 적용을 막지만, MCP는 도구 인자를 실제로 어느 사용자가 만들었는지 증명할 수 없다. 따라서 악의적이거나 침해된 호스트를 격리하는 샌드박스로 보아서는 안 된다.
 
 #### 아이디어만 있을 때
 
@@ -337,7 +338,7 @@ clad update              # 3. 프로젝트 연결과 파생 데이터를 함께 
 
 | version | 준수 등급 | tests | gate | features |
 |---|---|---|---|---|
-| v0.8.3 · 2026-07 | L4 · [L0–L4 중 최고 · 자가 선언](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2522 / 2522 · all pass | 15 단계 · 41 detectors | 255 · 251 done · 자기 스펙 |
+| v0.9.0 · 2026-07 | L4 · [L0–L4 중 최고 · 자가 선언](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2556 / 2556 · all pass | 15 단계 · 41 detectors | 255 · 251 done · 자기 스펙 |
 
 <sub>236 test files · capability 6개 · coverage는 COVERAGE_DROP detector가 하락 차단</sub>
 

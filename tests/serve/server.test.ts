@@ -196,32 +196,20 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
-  test('read surfaces degrade gracefully when spec.yaml is absent (no crash)', async () => {
-    // A project that has not run `clad init` yet — spec.yaml is absent, so
-    // loadSpec throws. The read tools must return an isError reply (and the
-    // spec resource an error payload), not crash the MCP call.
+  test('a project without spec.yaml exposes only the initialization bootstrap', async () => {
     const bare = mkdtempSync(join(tmpdir(), 'clad-serve-bare-'));
     const {client, cleanup} = await makePair(bare);
     try {
-      const list = await client.callTool({name: 'clad_list_features', arguments: {}});
-      expect(list.isError).toBe(true);
-      expect((list.content as Array<{text: string}>)[0].text).toContain('spec not loaded');
-
-      const get = await client.callTool({name: 'clad_get_feature', arguments: {id: 'F-001'}});
-      expect(get.isError).toBe(true);
+      const {tools} = await client.listTools();
+      expect(tools.map((tool) => tool.name).sort()).toEqual([
+        'clad_init',
+        'clad_prepare_init',
+        'clad_stage_init',
+      ]);
 
       const res = await client.readResource({uri: RESOURCE_URIS.spec});
       const text = (res.contents as Array<{text: string}>)[0].text;
       expect(JSON.parse(text).error).toContain('spec not loaded');
-
-      // F-c6a32fff: the four graph tools carry the same recovery guidance —
-      // they used to surface a raw ENOENT with no way forward.
-      for (const name of ['clad_get_context', 'clad_get_working_set', 'clad_get_impact', 'clad_get_graph']) {
-        const r = await client.callTool({name, arguments: name === 'clad_get_graph' ? {} : {query: 'F-001'}});
-        expect(r.isError, `${name} must fail on an absent spec`).toBe(true);
-        const msg = (r.content as Array<{text: string}>)[0].text;
-        expect(msg, `${name} must carry the clad-init guidance`).toContain('clad init');
-      }
 
       const mutation = await client.callTool({
         name: 'clad_create_feature',
@@ -231,7 +219,7 @@ describe('serve/server — MCP read surface', () => {
         },
       });
       expect(mutation.isError).toBe(true);
-      expect((mutation.content as Array<{text: string}>)[0].text).toContain('not_initialized');
+      expect((mutation.content as Array<{text: string}>)[0].text).toMatch(/not found/i);
       expect(existsSync(join(bare, 'spec'))).toBe(false);
     } finally {
       await cleanup();

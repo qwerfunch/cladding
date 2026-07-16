@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-2522%2F2522-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-2556%2F2556-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -254,17 +254,19 @@ clad setup                # 只为这个项目连接 Cladding
 # 只选择一个，并删除行首的“#”后运行：
 # codex          # Codex
 # claude         # Claude Code
+# gemini         # Gemini CLI
 # agy            # Antigravity
 # cursor-agent   # Cursor Agent
 ```
 
-`clad setup` 只在当前项目内创建 Claude Code、Codex、Antigravity 和 Cursor 的连接。没有运行 setup 的其他项目，其模型上下文不会出现 Cladding skill 或 MCP 工具。只需运行自己所用 AI 工具对应的一条命令；使用 Cursor IDE 时，把 `<project>` 作为工作区打开。setup 后请从此文件夹启动新的 AI 会话。Codex 首次打开 Git 仓库并询问是否信任项目时，请确认信任；在此之前，Codex 会有意忽略项目 MCP 配置。
+`clad setup` 只在当前项目内创建 Claude Code、Codex、Gemini、Antigravity 和 Cursor 的连接。没有运行 setup 的其他项目，其模型上下文不会出现 Cladding skill 或 MCP 工具。只需运行自己所用 AI 工具对应的一条命令；使用 Cursor IDE 时，把 `<project>` 作为工作区打开。setup 后请从此文件夹启动新的 AI 会话。Codex 或 Gemini 询问是否信任项目时，请按照各自主机的正常安全边界确认；在此之前，项目本地 MCP 配置会被有意忽略。
 
 ### 3. 为项目应用一次 Cladding
 
 根据自己的起点，用自然语言告诉 AI 工具。
 
 Cladding 会先以只读方式检查项目。AI 会展示准确的文件操作和一次性批准短语；只有当用户在单独回复中原样输入该短语时，初始化才会开始。仅仅打开项目或询问 Cladding 不会修改任何文件。
+这种精确匹配可防止意外应用，但 MCP 无法证明工具参数实际上由哪位用户提供；因此它不是隔离恶意或已受侵主机的沙箱。
 
 #### 只有一个想法时
 
@@ -333,7 +335,7 @@ clad update              # 3. 刷新项目连接和派生状态
 
 | 版本 | 一致性 | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.8.3（2026-07） | L4 · [自我声明](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2522 / 2522 | 15 阶段 · 41 检测器 | 255（251 done） |
+| v0.9.0（2026-07） | L4 · [自我声明](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2556 / 2556 | 15 阶段 · 41 检测器 | 255（251 done） |
 
 <sub>234 个测试文件 · 6 项 capability · 覆盖率下降由 COVERAGE_DROP 检测器拦下</sub>
 

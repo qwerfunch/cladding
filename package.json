@@ -1,6 +1,6 @@
 {
   "name": "cladding",
-  "version": "0.8.3",
+  "version": "0.9.0",
   "description": "Spec-driven verification layer for AI coding agents — Claude Code · Codex · Gemini · Antigravity · Cursor. Intent in before it writes, result verified against your spec after. Reference implementation of the Ironclad standard.",
   "type": "module",
   "license": "MIT",
@@ -60,10 +60,11 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "build": "node scripts/build.mjs && node scripts/build-plugin.mjs",
+    "build": "node scripts/test-count.mjs --check && node scripts/build.mjs && node scripts/build-plugin.mjs",
     "build:plugin": "node scripts/build-plugin.mjs",
     "watch": "node --watch-path=./src scripts/build.mjs",
     "version-bump": "node scripts/version-bump.mjs",
+    "test-count": "node scripts/test-count.mjs",
     "prepare": "node -e \"require('node:fs').existsSync('dist/clad.js') || require('node:child_process').execSync('npm run build', {stdio: 'inherit'})\"",
     "prepublishOnly": "npm run build"
   },

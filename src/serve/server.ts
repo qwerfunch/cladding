@@ -23,6 +23,7 @@ import {createHash, randomUUID} from 'node:crypto';
 import {readFileSync, existsSync, mkdirSync, realpathSync, readdirSync, rmSync, statSync, writeFileSync} from 'node:fs';
 import {basename, dirname, extname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {TextDecoder} from 'node:util';
 import {deflateRawSync, inflateRawSync} from 'node:zlib';
 import {tmpdir} from 'node:os';
 
@@ -173,7 +174,7 @@ export function buildServer(opts: ServerOptions = {}): McpServer {
   const server = new McpServer(
     {
       name: opts.name ?? 'cladding',
-      version: opts.version ?? '0.8.3',
+      version: opts.version ?? '0.9.0',
     },
     {
       instructions:
@@ -347,8 +348,12 @@ function engineShim(): string | null {
 
 const INTENT_FILE_EXTENSIONS = new Set(['.md', '.txt', '.yaml', '.yml', '.markdown']);
 
-/** Resolves a planning document without permitting reads outside the project. */
-function projectIntentPath(cwd: string, requested: string): {path?: string; error?: string} {
+/**
+ * Rejects ambiguous document paths and bytes before they reach the host model.
+ *
+ * @see spec/features/natural-language-init-0f4dd6.yaml AC-003
+ */
+function projectIntentPath(cwd: string, requested: string): {path?: string; text?: string; error?: string} {
   if (!requested.trim()) return {error: 'document_path is required for document mode'};
   if (isAbsolute(requested)) return {error: 'document_path must be relative to the connected project'};
   const root = realpathSync(resolve(cwd));
@@ -369,11 +374,11 @@ function projectIntentPath(cwd: string, requested: string): {path?: string; erro
     return {error: 'planning document must be .md, .txt, .yaml, .yml, or .markdown'};
   }
   try {
-    readFileSync(target, 'utf8');
+    const text = new TextDecoder('utf-8', {fatal: true}).decode(readFileSync(target));
+    return {path: rel, text};
   } catch (error) {
     return {error: `planning document is not readable UTF-8 text: ${(error as Error).message}`};
   }
-  return {path: rel};
 }
 
 const hostDraftSchema = z.object({
@@ -591,6 +596,12 @@ function mcpPayload(payload: Record<string, unknown>, isError = false): {
 
 function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOperations): void {
   const prepared = new Map<string, PreparedOnboarding>();
+  let initializedToolsRegistered = false;
+  const registerInitialized = (): void => {
+    if (initializedToolsRegistered) return;
+    initializedToolsRegistered = true;
+    registerInitializedTools(server, cwd, prepared, onboarding);
+  };
 
   server.registerTool(
     'clad_prepare_init',
@@ -627,7 +638,7 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
       if (args.mode === 'document') {
         const resolved = projectIntentPath(cwd, args.document_path ?? '');
         if (resolved.error) return mcpPayload({status: 'invalid_request', changed: false, error: resolved.error}, true);
-        intent = readFileSync(join(cwd, resolved.path!), 'utf8');
+        intent = resolved.text!;
       }
       if (args.mode === 'existing' && !intent) intent = 'Adopt Cladding into the observed existing project.';
       const briefing = onboarding.prepareInit({cwd, mode: args.mode, intent});
@@ -771,10 +782,25 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
         nextQuestion: questions[0] ?? null,
         remainingQuestions: questions.length,
       };
+      registerInitialized();
       return mcpPayload(payload);
     },
   );
 
+  if (existsSync(join(cwd, 'spec.yaml'))) registerInitialized();
+}
+
+/**
+ * Keeps ordinary development tool descriptions out of pre-init model context.
+ *
+ * @see spec/features/natural-language-init-0f4dd6.yaml AC-017
+ */
+function registerInitializedTools(
+  server: McpServer,
+  cwd: string,
+  prepared: Map<string, PreparedOnboarding>,
+  onboarding?: OnboardingOperations,
+): void {
   server.registerTool(
     'clad_prepare_clarify',
     {

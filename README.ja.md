@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-2522%2F2522-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-2556%2F2556-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -258,17 +258,19 @@ clad setup                # このプロジェクトだけに Cladding を接続
 # 一つだけ選び、先頭の「#」を外して実行する:
 # codex          # Codex
 # claude         # Claude Code
+# gemini         # Gemini CLI
 # agy            # Antigravity
 # cursor-agent   # Cursor Agent
 ```
 
-`clad setup` は Claude Code・Codex・Antigravity・Cursor の接続を現在のプロジェクト内だけに作る。setup を実行していない別プロジェクトのモデルコンテキストには、Cladding の skill や MCP ツールは入らない。使用する AI ツールのコマンドを一つだけ実行し、Cursor IDE では `<project>` をワークスペースとして開く。setup 後はこのフォルダから新しい AI セッションを開始する。Codex が Git リポジトリを初めて開いて信頼確認を表示した場合は承認する。信頼されるまで Codex はプロジェクト MCP 設定を意図的に読み込まない。
+`clad setup` は Claude Code・Codex・Gemini・Antigravity・Cursor の接続を現在のプロジェクト内だけに作る。setup を実行していない別プロジェクトのモデルコンテキストには、Cladding の skill や MCP ツールは入らない。使用する AI ツールのコマンドを一つだけ実行し、Cursor IDE では `<project>` をワークスペースとして開く。setup 後はこのフォルダから新しい AI セッションを開始する。Codex や Gemini がプロジェクトの信頼確認を表示した場合は、それぞれの通常のセキュリティ境界に従って承認する。信頼されるまでプロジェクトローカルの MCP 設定は意図的に読み込まれない。
 
 ### 3. Cladding を一度適用する
 
 自分の出発点に合う依頼を AI ツールへ自然な言葉で伝える。
 
 Cladding はまずプロジェクトを読み取り専用で調査する。AI が正確なファイル操作と一度限りの承認フレーズを示し、ユーザーが別の返信でそのフレーズをそのまま入力した場合にだけ初期化を開始する。プロジェクトを開いたり Cladding について質問したりするだけでは、ファイルは変更されない。
+この完全一致の手順は偶発的な適用を防ぐが、MCP はツール引数を実際にどのユーザーが作成したかを証明できない。そのため、悪意のある、または侵害されたホストに対するサンドボックスではない。
 
 #### アイデアだけがある場合
 
@@ -337,7 +339,7 @@ clad update              # 3. プロジェクト接続と派生状態を更新�
 
 | Version | 準拠レベル | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.8.3（2026-07） | L4 · [自己申告](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2522 / 2522 | 15 段階 · 41 detectors | 255（251 done） |
+| v0.9.0（2026-07） | L4 · [自己申告](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2556 / 2556 | 15 段階 · 41 detectors | 255（251 done） |
 
 <sub>236 test files · capability 6 個 · カバレッジ低下は COVERAGE_DROP detector がブロック</sub>
 

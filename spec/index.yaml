@@ -154,7 +154,7 @@ features:
   F-67d2e9: {slug: strict-skip-policy, status: done, modules: 2}
   F-67e33f: {slug: spec-id-multi-dev-safety, status: done, modules: 7}
   F-6ba22c5c: {slug: value-telemetry, status: done, modules: 5}
-  F-6d943d: {slug: version-bump-script, status: done, modules: 2}
+  F-6d943d: {slug: version-bump-script, status: done, modules: 4}
   F-6e49fd24: {slug: inventory-churn-diet, status: done, modules: 1}
   F-6ed216f3: {slug: interactive-drift-profile, status: done, modules: 5}
   F-6f80e7: {slug: claude-code-dogfood, status: done, modules: 1}
@@ -171,7 +171,7 @@ features:
   F-80d19d: {slug: setup-command, status: done, modules: 7}
   F-8234ec3c: {slug: graph-viewer-galaxy, status: archived, modules: 0}
   F-836a90: {slug: link-capability-tool, status: done, modules: 2}
-  F-898783ee: {slug: self-count-guard, status: done, modules: 7}
+  F-898783ee: {slug: self-count-guard, status: done, modules: 17}
   F-8f419e: {slug: smoke-legacy-liveness, status: done, modules: 1}
   F-904495a5: {slug: changelog-render, status: done, modules: 5}
   F-9064ff: {slug: deliverable-smoke, status: done, modules: 8}

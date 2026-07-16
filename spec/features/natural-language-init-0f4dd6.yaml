@@ -67,6 +67,7 @@ acceptance_criteria:
       the planning document is neither truncated nor mistaken for literal
       intent.
     test_refs: [ tests/serve/init-tools.test.ts ]
+    notes: "WHY: Node's permissive utf8 string decoder replaces malformed bytes; the MCP boundary uses a fatal UTF-8 decoder so a binary or corrupt document cannot silently become different intent."
   - id: AC-004
     ears: event
     condition: when initialization adopts an existing project
@@ -271,8 +272,10 @@ acceptance_criteria:
       [
         tests/init/skill-activation.test.ts,
         tests/cli/setup.test.ts,
-        tests/serve/server.test.ts
+        tests/serve/server.test.ts,
+        tests/serve/init-tools.test.ts
       ]
+    notes: "WHY: hiding post-init MCP tools removes their descriptions from pre-init model context; rejecting only at execution time did not satisfy the narrow-bootstrap context boundary."
   - id: AC-018
     ears: event
     condition: when project-scoped setup finds a legacy global Cladding integration

@@ -11,7 +11,7 @@ import {refineOnboarding, resolveOnboardingReview} from '../../src/cli/clarify.j
 import {prepareHostClarify, prepareHostInit, renderHostDraft} from '../../src/cli/host-onboarding.js';
 import {runInit} from '../../src/cli/init.js';
 import {captureArtifactDigests, loadState, saveState} from '../../src/cli/scan/onboarding-state.js';
-import {buildServer} from '../../src/serve/server.js';
+import {buildServer, TOOL_NAMES} from '../../src/serve/server.js';
 
 interface Pair {
   readonly client: Client;
@@ -81,6 +81,12 @@ describe('serve/server — natural-language init tools', () => {
   test('idea mode asks for intent before writing any project artifact', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
+      const {tools} = await client.listTools();
+      expect(tools.map((tool) => tool.name).sort()).toEqual([
+        'clad_init',
+        'clad_prepare_init',
+        'clad_stage_init',
+      ]);
       const result = await client.callTool({name: 'clad_prepare_init', arguments: {mode: 'idea'}});
       expect(payload(result)).toMatchObject({status: 'needs_input', changed: false});
       expect(readdirSync(dir)).toEqual([]);
@@ -104,6 +110,8 @@ describe('serve/server — natural-language init tools', () => {
       expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).toContain('onboarding_seeded: true');
       expect(existsSync(join(dir, 'AGENTS.md'))).toBe(true);
       expect(existsSync(join(dir, 'CLAUDE.md'))).toBe(false);
+      const {tools} = await client.listTools();
+      expect(tools.map((tool) => tool.name).sort()).toEqual([...TOOL_NAMES].sort());
     } finally {
       await cleanup();
     }
@@ -346,6 +354,24 @@ describe('serve/server — natural-language init tools', () => {
     }
   });
 
+  test('document mode rejects malformed UTF-8 before preparing or writing', async () => {
+    mkdirSync(join(dir, 'docs'));
+    writeFileSync(join(dir, 'docs', 'plan.md'), Buffer.from([0xc3, 0x28]));
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const result = await client.callTool({
+        name: 'clad_prepare_init',
+        arguments: {mode: 'document', document_path: 'docs/plan.md'},
+      });
+      expect(result.isError).toBe(true);
+      expect(payload(result)).toMatchObject({status: 'invalid_request', changed: false});
+      expect(payload(result).error).toMatch(/UTF-8/);
+      expect(existsSync(join(dir, 'spec.yaml'))).toBe(false);
+    } finally {
+      await cleanup();
+    }
+  });
+
   test('existing mode forces observed scanning for a sparse codebase', async () => {
     mkdirSync(join(dir, 'src'));
     writeFileSync(join(dir, 'src', 'index.ts'), 'export const value = 1;\n');
@@ -412,6 +438,7 @@ describe('serve/server — natural-language init tools', () => {
     });
     mkdirSync(join(dir, 'docs'), {recursive: true});
     mkdirSync(join(dir, 'spec'), {recursive: true});
+    writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: demo\n  language: typescript\nfeatures: []\n');
     writeFileSync(join(dir, 'docs', 'project-context.md'), '# Context\n');
     writeFileSync(join(dir, 'spec', 'capabilities.yaml'), 'schema: "0.1"\ncapabilities: []\n');
     writeFileSync(join(dir, 'spec', 'architecture.yaml'), 'version: "0.1"\nlayers: []\n');
@@ -447,6 +474,7 @@ describe('serve/server — natural-language init tools', () => {
     });
     mkdirSync(join(dir, 'docs'), {recursive: true});
     mkdirSync(join(dir, 'spec'), {recursive: true});
+    writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: demo\n  language: typescript\nfeatures: []\n');
     writeFileSync(join(dir, 'docs', 'project-context.md'), '# Context\n');
     writeFileSync(join(dir, 'spec', 'capabilities.yaml'), 'schema: "0.1"\ncapabilities: []\n');
     writeFileSync(join(dir, 'spec', 'architecture.yaml'), 'version: "0.1"\nlayers: []\n');

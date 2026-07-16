@@ -1,15 +1,15 @@
 // Cladding · unit tests for scripts/version-bump.mjs (F-090)
 //
 // Tests run the script in a synthetic project tree (tmpdir with the
-// nine version-bearing files at exactly the same relative paths the
+// ten version-bearing files at exactly the same relative paths the
 // real script expects). Verifies:
-//   - all nine files updated atomically
+//   - all eleven version sites updated atomically
 //   - idempotent (running with current version is a no-op)
 //   - invalid SemVer rejected
 //   - missing anchor in a file raises a clear error
 
 import {execFileSync, type ExecFileSyncOptions} from 'node:child_process';
-import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
@@ -19,7 +19,11 @@ const SCRIPT_PATH = join(process.cwd(), 'scripts', 'version-bump.mjs');
 function seedProject(dir: string, version: string): void {
   writeFileSync(
     join(dir, 'package.json'),
-    `{\n  "name": "probe",\n  "version": "${version}"\n}\n`,
+    `{\n  "name": "cladding",\n  "version": "${version}"\n}\n`,
+  );
+  writeFileSync(
+    join(dir, 'package-lock.json'),
+    `{\n  "name": "cladding",\n  "version": "${version}",\n  "lockfileVersion": 3,\n  "packages": {\n    "": {\n      "name": "cladding",\n      "version": "${version}"\n    }\n  }\n}\n`,
   );
   mkdirSync(join(dir, 'plugins', 'claude-code', '.claude-plugin'), {recursive: true});
   writeFileSync(
@@ -92,13 +96,14 @@ describe('version-bump.mjs (F-090, v0.3.15)', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('happy path — bumps all nine files atomically', () => {
+  test('happy path — bumps all eleven version sites atomically', () => {
     seedProject(dir, '0.3.14');
     const result = runScript(dir, ['0.3.15']);
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain('9 files updated to 0.3.15');
+    expect(result.stdout).toContain('11 version sites checked; 10 files updated to 0.3.15');
 
     expect(readFileSync(join(dir, 'package.json'), 'utf8')).toContain('"version": "0.3.15"');
+    expect(readFileSync(join(dir, 'package-lock.json'), 'utf8').match(/"version": "0\.3\.15"/g)).toHaveLength(2);
     expect(readFileSync(join(dir, 'plugins', 'claude-code', '.claude-plugin', 'plugin.json'), 'utf8')).toContain('"version": "0.3.15"');
     expect(readFileSync(join(dir, 'plugins', 'codex', '.codex-plugin', 'plugin.json'), 'utf8')).toContain('"version": "0.3.15"');
     expect(readFileSync(join(dir, 'plugins', 'gemini-cli', 'gemini-extension.json'), 'utf8')).toContain('"version": "0.3.15"');
@@ -145,5 +150,20 @@ describe('version-bump.mjs (F-090, v0.3.15)', () => {
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('package.json');
     expect(result.stderr).toContain('anchor');
+    expect(readFileSync(join(dir, 'src', 'cli', 'clad.ts'), 'utf8')).toContain(".version('0.3.14')");
+  });
+
+  test.skipIf(process.platform === 'win32')('a write failure restores files written earlier in the transaction', () => {
+    seedProject(dir, '0.3.14');
+    const blocked = join(dir, 'plugins', 'codex', '.codex-plugin', 'plugin.json');
+    chmodSync(blocked, 0o444);
+    const result = runScript(dir, ['0.3.15']);
+    chmodSync(blocked, 0o644);
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('version files restored');
+    expect(readFileSync(join(dir, 'package.json'), 'utf8')).toContain('"version": "0.3.14"');
+    expect(readFileSync(join(dir, 'package-lock.json'), 'utf8').match(/"version": "0\.3\.14"/g)).toHaveLength(2);
+    expect(readFileSync(blocked, 'utf8')).toContain('"version": "0.3.14"');
   });
 });

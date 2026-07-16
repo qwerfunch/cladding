@@ -66,6 +66,9 @@ Initialization never writes immediately from the first natural-language request.
 the planned file operations and shows a one-time approval phrase; only a separate user reply that
 exactly repeats that phrase authorizes the write step. Questions, paraphrases, merely opening a
 project, asking about Cladding, or running `clad setup` are not consent.
+Exact matching prevents accidental application, but standard MCP does not prove which user produced
+a tool argument. Treat the host as part of the trust boundary; this confirmation is not a sandbox
+against a malicious or compromised host.
 
 | Host | Primary request | Optional explicit invocation |
 |---|---|---|
