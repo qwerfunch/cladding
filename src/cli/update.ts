@@ -94,22 +94,24 @@ function mapAgentsMdResult(r: SpecAgentsMdResult): AgentsMdResult {
  * stricter-detector REPORT is the caller's job (report-only, never blocks).
  */
 export async function runUpdate(cwd: string, deps: UpdateDeps): Promise<UpdateResult> {
-  // 1. Re-wire host channels into the project (idempotent, project-local
-  //    since 0.9.0). Note: runs before the spec.yaml guard below, so update
-  //    scaffolds host wiring into cwd even when it is not a cladding project.
-  const wiringErrors = await deps.wireHosts();
-
+  // 0. Outside a cladding project, write NOTHING: no host wiring into an
+  //    arbitrary cwd, and no legacy-cleanup side effects (which include an
+  //    account-wide `claude plugin uninstall`). Wiring belongs to projects.
   if (!existsSync(join(cwd, 'spec.yaml'))) {
     return {
       isProject: false,
-      wiringErrors,
+      wiringErrors: 0,
       claudeMd: 'n/a',
       agentsMd: 'n/a',
       features: 0,
-      code: wiringErrors > 0 ? 1 : 0,
+      code: 0,
       deprecations: [],
     };
   }
+
+  // 1. Re-wire host channels into the project (idempotent, project-local
+  //    since 0.9.0).
+  const wiringErrors = await deps.wireHosts();
 
   // 2. Reconcile the spec.yaml inventory snapshot (deterministic). Skip the
   //    writes (keep the read-only count for the report) while a git operation

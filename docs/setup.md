@@ -14,12 +14,25 @@ the detail behind them: where each host is wired, how the MCP server works, and 
 | Claude Code | `.claude/skills/cladding-init` + `.mcp.json` |
 | Codex CLI | `.agents/skills/cladding-init` + `.codex/config.toml` |
 | Gemini CLI | `.agents/skills/cladding-init` + `.gemini/settings.json` |
-| Antigravity (`agy`) | `.agents/skills/cladding-init` + `.agents/mcp_config.json` |
+| Antigravity (`agy`) | `.agents/skills/cladding-init` + `.agents/mcp_config.json` (forward-compat) + machine-wide `~/.gemini/config/plugins/cladding/` — see the Antigravity note below |
 | Cursor | `.cursor/skills/cladding-init` + `.cursor/mcp.json` + `.cursor/cli.json` read-only tool allowlist + bootstrap rule |
 
 The only machine-specific path lives in `.cladding/host/serve.cjs`, which is ignored project runtime state. Re-run setup on each developer machine. Host config files use the portable relative launcher path and preserve unrelated entries. With no arguments the launcher starts MCP; with arguments it forwards a normal CLI command to that exact same engine. Generated project guidance therefore uses `node .cladding/host/serve.cjs check --strict` and similar shell calls when the launcher exists, preventing a different global installation from silently validating the project with another build.
 
-Codex loads `.codex/config.toml` only for a trusted Git repository. Accept Codex's normal project-trust prompt when opening the repository; this is a Codex security boundary and `clad setup` does not bypass or pre-approve it.
+With no `--host` option, setup wires only the hosts whose home markers exist on the machine and
+reports the rest as `not selected`; `clad setup --host all` forces every channel, `--host <name>`
+exactly one.
+
+Codex loads `.codex/config.toml` only for a trusted Git repository. Accept Codex's normal project-trust prompt when opening the repository; this is a Codex security boundary and `clad setup` does not bypass or pre-approve it. One consequence for scripted use: the project config asks Codex to approve write-capable tools, and Cladding annotates its onboarding tools honestly as non-read-only, so non-interactive `codex exec` auto-denies the onboarding prepare/stage/apply calls. Interactive Codex simply shows its approval prompt; headless automation must pass Codex's own approvals-bypass flag.
+
+**Antigravity is the one deliberate exception to project-local activation.** `agy` 1.1.2 reads MCP
+config only from machine-wide locations (`~/.gemini/config/mcp_config.json` or
+`~/.gemini/config/plugins/<name>/`) — it does not load a project `.agents/mcp_config.json`
+(verified live in the 0.9.0 campaign, including a negative control). Setup therefore also writes
+`~/.gemini/config/plugins/cladding/{plugin.json,mcp_config.json}` with an engine-absolute launch;
+agy spawns MCP servers with each session's working directory, so the single machine-wide wire stays
+project-aware. The project file is kept for forward compatibility, and the setup report calls the
+exception out. A foreign directory already at that path is preserved unless `--force` is given.
 
 Gemini likewise loads project skills and settings only after its normal folder-trust boundary is satisfied. Interactive use keeps that prompt intact; the explicitly consented doctor smoke uses Gemini's session-only trust override so a fresh verification fixture can exercise the project-local MCP connection without changing persistent trust settings.
 That smoke stays in Gemini Plan Mode and loads an ignored project policy permitting only the three
@@ -31,21 +44,22 @@ Cladding tools retain Cursor's normal approval boundary.
 
 On upgrade, setup removes legacy global Cladding wires only when their ownership is provable. Ambiguous or hand-edited files are preserved and reported. If an old Claude user plugin remains, run `claude plugin uninstall claude-code@cladding --scope user --keep-data`.
 
-**Verification level (honesty note).** Claude Code's MCP/runtime surfaces and real-time
-intervention are verified through earlier real-usage campaigns; the natural-language onboarding
-flow introduced in this release could not be re-run because the logged-in host reported its weekly
-quota exhausted; project MCP handshake and tool discovery passed, but onboarding remains pending.
-Gemini's project-local skill discovery and MCP connection passed in an isolated HOME, but the
-available Google login was rejected before a model prompt could run, so its model surfaces remain
-`not-run` rather than being promoted from structural evidence.
-Codex CLI `0.144.3` is live-verified for idea, planning-document, existing-project, uninitialized
-controls, and all three doctor surfaces. Antigravity `1.1.2` is live-verified for all three
-onboarding cases plus both controls after disabling the legacy global plugin. Cursor Agent
-`2026.07.09-a3815c0` is live-verified for the same five cases through project-local MCP wiring.
-(The machine-readable
-claim lives in the README's `clad:host-claims` fence, which `HOST_CLAIM_DRIFT` polices against
-`docs/dogfood/matrix.md`; its `verified` grade covers the doctor surfaces listed in that matrix,
-not every release-specific onboarding campaign.)
+**Verification level (honesty note, 0.9.0 packed-tarball campaign).** Claude Code `2.1.211` is
+live-verified end-to-end from a packed 0.9.0 install: project `.mcp.json` discovery behind the
+per-project approval gate, the full natural-language consent flow (stop at preview, paraphrase
+rejected, exact phrase applies), the clarify loop, and model-driven feature creation. Codex CLI
+`0.144.4` is live-verified for the same consent flow in a trusted repository, including a
+fresh-process apply that resolved the staged draft from the durable cache. Antigravity `1.1.2` is
+live-verified for the consent flow and clarify loop, but only through the machine-wide wire — a
+negative control proved it never reads the project MCP file, which is why setup writes the
+machine-wide wire described above. Gemini's project-local MCP connection and tool registration are
+structurally verified after folder trust; its model surfaces remain `not-run` because the available
+individual-tier login is rejected by Gemini CLI (`IneligibleTierError`). Cursor Agent
+`2026.07.09-a3815c0` passed structural verification (server ready, 22 tools enumerated, negative
+control) but its model replay is `not-run` for this campaign (account usage limit). (The
+machine-readable claim lives in the README's `clad:host-claims` fence, which `HOST_CLAIM_DRIFT`
+polices against `docs/dogfood/matrix.md`; its `verified` grade covers the doctor surfaces listed in
+that matrix, not every release-specific onboarding campaign.)
 
 ## About the MCP server
 

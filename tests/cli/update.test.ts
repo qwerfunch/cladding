@@ -23,15 +23,19 @@ describe('runUpdate', () => {
   });
   afterEach(() => rmSync(dir, {recursive: true, force: true}));
 
-  test('no spec.yaml → re-wires only, isProject false, no project files written', async () => {
-    const r = await runUpdate(dir, {wireHosts: okWire});
+  test('no spec.yaml → nothing runs: no wiring call, isProject false, no writes', async () => {
+    let wireCalled = false;
+    const r = await runUpdate(dir, {wireHosts: async () => { wireCalled = true; return 0; }});
+    expect(wireCalled).toBe(false); // wiring (and its legacy cleanup) must not fire outside a project
     expect(r.isProject).toBe(false);
+    expect(r.wiringErrors).toBe(0);
     expect(r.claudeMd).toBe('n/a');
     expect(r.agentsMd).toBe('n/a');
     expect(r.code).toBe(0);
   });
 
   test('host wiring failure → exit code 1 (the one thing that blocks)', async () => {
+    writeFileSync(join(dir, 'spec.yaml'), SPEC);
     const r = await runUpdate(dir, {wireHosts: async () => 2});
     expect(r.wiringErrors).toBe(2);
     expect(r.code).toBe(1);

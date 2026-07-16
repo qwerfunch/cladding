@@ -166,6 +166,50 @@ describe('serve/server — natural-language init tools', () => {
     }
   });
 
+  test('a tampered staged draft is rejected as draft_required, never rendered', async () => {
+    const first = await makePair(dir);
+    const prepared = await prepare(first.client, {mode: 'idea', intent: 'B2B payment SaaS'});
+    await first.client.callTool({name: 'clad_stage_init', arguments: {token: prepared.token, draft}});
+    await first.cleanup();
+
+    const cacheDir = join(dir, '.cladding', 'host', 'onboarding-pending');
+    const [entry] = readdirSync(cacheDir);
+    const cachePath = join(cacheDir, entry);
+    const cached = JSON.parse(readFileSync(cachePath, 'utf8')) as {draft: Record<string, unknown>};
+    cached.draft.project_context = null; // the crash-shape a raw renderDraft would hit
+    cached.draft.capabilities = 'garbage-not-an-array';
+    writeFileSync(cachePath, JSON.stringify(cached));
+
+    const second = await makePair(dir);
+    try {
+      const result = await second.client.callTool({name: 'clad_init', arguments: {
+        confirmation: prepared.confirmation,
+      }});
+      expect(result.isError).toBe(true);
+      expect(payload(result)).toMatchObject({status: 'draft_required', changed: false});
+      expect(existsSync(join(dir, 'spec.yaml'))).toBe(false);
+    } finally {
+      await second.cleanup();
+    }
+  });
+
+  test('staging sweeps expired consent-cache envelopes left by abandoned flows', async () => {
+    const cacheDir = join(dir, '.cladding', 'host', 'onboarding-pending');
+    mkdirSync(cacheDir, {recursive: true});
+    const stale = join(cacheDir, 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef.json');
+    writeFileSync(stale, JSON.stringify({expiresAt: Date.now() - 60_000, token: 'x', request: {}}));
+
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const prepared = await prepare(client, {mode: 'idea', intent: 'B2B payment SaaS'});
+      await client.callTool({name: 'clad_stage_init', arguments: {token: prepared.token, draft}});
+      expect(existsSync(stale)).toBe(false);
+      expect(readdirSync(cacheDir).length).toBe(1); // only the live envelope remains
+    } finally {
+      await cleanup();
+    }
+  });
+
   test('approval without a direct or staged draft fails closed', async () => {
     const first = await makePair(dir);
     const prepared = await prepare(first.client, {mode: 'document', document_path: (() => {

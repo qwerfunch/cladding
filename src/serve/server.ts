@@ -453,6 +453,30 @@ function pendingPreparationPath(cwd: string, key: string, durable = false): stri
     : join(tmpdir(), 'cladding-onboarding-pending', `${id}.json`);
 }
 
+/**
+ * Removes every expired consent-cache envelope in `dir`, not just the current
+ * key's: abandoned prepare flows used to leave 0600 envelopes behind until the
+ * next same-key load — on a shared machine the temp tier accumulated hundreds.
+ */
+function purgeExpiredPreparations(dir: string): void {
+  let names: string[];
+  try {
+    names = readdirSync(dir);
+  } catch {
+    return;
+  }
+  for (const name of names) {
+    if (!name.endsWith('.json')) continue;
+    const path = join(dir, name);
+    try {
+      const parsed = JSON.parse(readFileSync(path, 'utf8')) as {expiresAt?: number};
+      if (!parsed.expiresAt || parsed.expiresAt < Date.now()) rmSync(path, {force: true});
+    } catch {
+      rmSync(path, {force: true});
+    }
+  }
+}
+
 function persistPendingPreparation(
   cwd: string,
   key: string,
@@ -462,6 +486,7 @@ function persistPendingPreparation(
 ): void {
   const path = pendingPreparationPath(cwd, key, draft != null);
   mkdirSync(dirname(path), {recursive: true, mode: 0o700});
+  purgeExpiredPreparations(dirname(path));
   writeFileSync(path, JSON.stringify({expiresAt: Date.now() + PREPARATION_TTL_MS, token, request, draft}), {mode: 0o600});
 }
 
@@ -482,7 +507,18 @@ function loadPendingPreparation(
         rmSync(path, {force: true});
         continue;
       }
-      return {token: parsed.token, request: parsed.request, draft: parsed.draft};
+      if (parsed.draft !== undefined) {
+        // The durable cache crosses process boundaries, so a staged draft is
+        // re-validated on load — a tampered/corrupted cache must surface as
+        // draft_required, never reach renderDraft (AC-014 extension).
+        const revalidated = hostDraftSchema.safeParse(parsed.draft);
+        if (!revalidated.success) {
+          rmSync(path, {force: true});
+          continue;
+        }
+        return {token: parsed.token, request: parsed.request, draft: revalidated.data};
+      }
+      return {token: parsed.token, request: parsed.request};
     } catch {
       // Try the other cache tier. A missing durable cache is normal before staging.
     }

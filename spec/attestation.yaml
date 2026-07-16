@@ -14,19 +14,18 @@
 # `clad check --tier=pre-push --strict`; the GREEN gate rewrites the truth.
 # Content-anchored: survives fresh clones and squash/rebase.
 attested_modules:
-  .claude-plugin/marketplace.json: fc209569ca4e1d97
   .claude/settings.json: d0bba3583aef0960
   .github/workflows/ci.yml: 8ea99219cb80df60
   .gitignore: 1294975ba3b47043
   CHANGELOG.md: 704d913ae56b635a
   CLAUDE.md: d81d8832976cd5ee
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: 411c7bbcf7311f8c
-  README.ja.md: d5add7a87f3ab816
-  README.ko.html: 2c0015690f9d7c17
-  README.ko.md: a48294f5266901b9
-  README.md: 1ab8390ea0c2db80
-  README.zh.md: 60ac64b898bc8f6c
+  README.html: ff98c3aaf8a6947f
+  README.ja.md: 299df920c0530e71
+  README.ko.html: 35bde93f37db20eb
+  README.ko.md: 7f1394d857a95084
+  README.md: 5ce3c24d66ff2ed9
+  README.zh.md: 65dac6ea9c2308cc
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -64,7 +63,7 @@ attested_modules:
   docs/img/ko/relationship.svg: 9ec8fb2254978f37
   docs/multi-provider-roadmap.md: 1e5cf27ea1b18d06
   docs/refinement-backlog.md: 3e38d60bf987eef1
-  docs/setup.md: d6103a17a31f2418
+  docs/setup.md: a5c062651d267983
   docs/spec-ids-multi-dev.md: 28d58e84879f58b1
   docs/ssot-model.md: 13ac491b15bd77cd
   docs/ssot-testing.md: abf3b2bd5acb29a1
@@ -147,7 +146,7 @@ attested_modules:
   src/cli: a4d0f0eb87fed960
   src/cli/benchmark.ts: 77f84d2a898d724f
   src/cli/changelog.ts: 2de1adb009b89ab4
-  src/cli/clad.ts: ccb15bd40fcaab03
+  src/cli/clad.ts: 00d049c7acb5f761
   src/cli/clarify.ts: 393cc93a6feb698a
   src/cli/doctor-hosts.ts: d58d2580e76c09ed
   src/cli/doctor.ts: b98b955fe75e7f7e
@@ -177,7 +176,7 @@ attested_modules:
   src/cli/scan/thresholds.ts: ec0047b894a6aa6a
   src/cli/scan/types.ts: ea0170aa88c1c14a
   src/cli/scan/walker.ts: 33e4448e365e47c6
-  src/cli/update.ts: c607b3e638533508
+  src/cli/update.ts: b0151396c9a0f6ca
   src/cli/verdict.ts: 7aa16b8739ab8e5f
   src/core/checkpoint.ts: 63300c2764533b6c
   src/core/git-ops.ts: 4544bde493a0628f
@@ -205,7 +204,7 @@ attested_modules:
   src/init/agents-md.ts: 7dc05f6d82e5c3ce
   src/init/git-hook.ts: 4e02f177b3764ae8
   src/init/host-instructions.ts: b6dbb40fadbf4c2d
-  src/init/host-setup.ts: 83213a4bbed1e3bd
+  src/init/host-setup.ts: aa953fda8e37a197
   src/optimizer: a4d0f0eb87fed960
   src/optimizer/code-excerpt.ts: e2c4598efcd28d2a
   src/optimizer/context-slice.ts: b5864aaed1e7ae48
@@ -228,7 +227,7 @@ attested_modules:
   src/report/sarif.ts: 71e97aceeb0a4473
   src/router: a4d0f0eb87fed960
   src/router/intent.ts: 430590f761b891a6
-  src/serve/server.ts: c5bfc4e6caa09c15
+  src/serve/server.ts: 4b2d0b94854d3fb5
   src/spec: a4d0f0eb87fed960
   src/spec/attestation.ts: 294a1e99c42d4aef
   src/spec/cli.ts: 7a9bcd0f66677810

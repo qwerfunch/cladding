@@ -390,9 +390,12 @@ export function runRollbackCommand(featureId: string, opts: {reason?: string} = 
 
 /** Handler for `clad setup`. Activates Cladding only for one project. */
 export async function runSetupCommand(opts: {force?: boolean; quiet?: boolean; project?: string; host?: string}): Promise<void> {
-  const hosts = opts.host && opts.host !== 'all'
-    ? [opts.host as 'claude' | 'codex' | 'gemini' | 'antigravity' | 'cursor']
-    : undefined;
+  // No --host → detected hosts only (spec AC-001); --host all → every channel.
+  const hosts = !opts.host
+    ? undefined
+    : opts.host === 'all'
+      ? (['claude', 'codex', 'gemini', 'antigravity', 'cursor'] as const).slice()
+      : [opts.host as 'claude' | 'codex' | 'gemini' | 'antigravity' | 'cursor'];
   const result = await runHostSetup({
     force: opts.force,
     quiet: opts.quiet,
@@ -420,12 +423,12 @@ export async function runUpdateCommand(): Promise<void> {
   const r = await runUpdate('.', {
     wireHosts: async () => (await runHostSetup({quiet: true, projectRoot: '.'})).errors.length,
   });
-  pulse(r.wiringErrors > 0 ? 'fail' : 'pass', 'hosts', r.wiringErrors > 0 ? `${r.wiringErrors} wiring error(s)` : 're-wired');
   if (!r.isProject) {
-    pulse('skip', 'spec', 'no spec.yaml here — run `clad init` to put this project under cladding');
+    pulse('skip', 'update', 'no spec.yaml here — nothing re-wired. Run `clad update` inside a cladding project, or `clad init` to start one.');
     process.exit(r.code);
     return;
   }
+  pulse(r.wiringErrors > 0 ? 'fail' : 'pass', 'hosts', r.wiringErrors > 0 ? `${r.wiringErrors} wiring error(s)` : 're-wired');
   if (r.inventoryDeferred) {
     pulse('note', 'spec', `inventory + index writes deferred — git operation in progress; re-run \`clad update\` after it completes (${r.features} features seen).`);
   } else {
@@ -1078,7 +1081,7 @@ export function createProgram(): Command {
     .command('setup')
     .description('Activate Cladding only for the current project (Claude Code / Codex / Gemini / Antigravity / Cursor)')
     .option('--project <path>', 'activate a project other than the current directory')
-    .option('--host <host>', 'activate all hosts (default) or one of: claude, codex, gemini, antigravity, cursor', 'all')
+    .option('--host <host>', 'activate detected hosts (default), all, or one of: claude, codex, gemini, antigravity, cursor')
     .option('--force', 'replace an existing conflicting cladding-owned project entry')
     .option('--quiet', 'suppress stdout output')
     .action(runSetupCommand);

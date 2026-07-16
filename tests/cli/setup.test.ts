@@ -7,6 +7,7 @@ import {join, resolve} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
 import {getLastSetupVersion, renderSetupReport, runHostSetup} from '../../src/init/host-setup.js';
+import {hostWireNotice} from '../../src/cli/init.js';
 
 describe('project-scoped runHostSetup', () => {
   let home: string;
@@ -15,6 +16,11 @@ describe('project-scoped runHostSetup', () => {
 
   beforeEach(() => {
     home = mkdtempSync(join(tmpdir(), 'clad-home-'));
+    // Seed every host's home marker so default detection selects all five
+    // channels (AC-001: wire only detected hosts).
+    for (const marker of ['.claude', '.codex', join('.gemini', 'config'), '.cursor', '.agents']) {
+      mkdirSync(join(home, marker), {recursive: true});
+    }
     project = mkdtempSync(join(tmpdir(), 'clad-project-'));
     pkgRoot = mkdtempSync(join(tmpdir(), 'clad-pkg-'));
     mkdirSync(join(pkgRoot, 'dist'), {recursive: true});
@@ -50,9 +56,34 @@ describe('project-scoped runHostSetup', () => {
     expect(readFileSync(join(project, '.agents', 'skills', 'cladding-init', 'SKILL.md'), 'utf8'))
       .toContain('name: cladding-init');
     expect(existsSync(join(project, '.cursor', 'skills', 'cladding-init', 'SKILL.md'))).toBe(true);
-    expect(existsSync(join(home, '.agents'))).toBe(false);
-    expect(existsSync(join(home, '.codex'))).toBe(false);
-    expect(existsSync(join(home, '.gemini'))).toBe(false);
+    // Home gains ONLY the Antigravity machine-wide wire (agy reads no project
+    // MCP config — verified live); every other host stays project-local.
+    expect(existsSync(join(home, '.agents', 'skills'))).toBe(false);
+    expect(existsSync(join(home, '.codex', 'config.toml'))).toBe(false);
+    expect(existsSync(join(home, '.gemini', 'settings.json'))).toBe(false);
+    const agyWire = join(home, '.gemini', 'config', 'plugins', 'cladding');
+    expect(existsSync(join(agyWire, 'plugin.json'))).toBe(true);
+    const agyMcp = JSON.parse(readFileSync(join(agyWire, 'mcp_config.json'), 'utf8'));
+    expect(agyMcp.mcpServers.cladding.args).toEqual([join(pkgRoot, 'dist', 'clad.js'), 'serve']);
+  });
+
+  test('default detection wires nothing on a machine with no supported host', async () => {
+    const bareHome = mkdtempSync(join(tmpdir(), 'clad-barehome-'));
+    try {
+      const result = await runHostSetup({home: bareHome, projectRoot: project, pkgRoot, quiet: true, activate: false});
+      expect(result.wiring.claude).toBe('skipped-not-installed');
+      expect(result.wiring.codex).toBe('skipped-not-installed');
+      expect(result.wiring.gemini).toBe('skipped-not-installed');
+      expect(result.wiring.antigravity).toBe('skipped-not-installed');
+      expect(result.wiring.cursor).toBe('skipped-not-installed');
+      expect(existsSync(join(project, '.codex'))).toBe(false);
+      expect(existsSync(join(project, '.cursor'))).toBe(false);
+      expect(result.warnings.some((w) => w.step === 'hosts')).toBe(true);
+      // The shared runtime still lands, so explicit wiring stays one command away.
+      expect(existsSync(join(project, '.cladding', 'host', 'serve.cjs'))).toBe(true);
+    } finally {
+      rmSync(bareHome, {recursive: true, force: true});
+    }
   });
 
   test('keeps machine-specific runtime state out of a Git worktree', async () => {
@@ -254,6 +285,112 @@ describe('project-scoped runHostSetup', () => {
     expect(existsSync(join(home, '.agents', 'skills', 'cladding-init'))).toBe(false);
     expect(existsSync(join(home, '.gemini', 'extensions', 'cladding'))).toBe(false);
     expect(readFileSync(join(home, '.codex', 'config.toml'), 'utf8')).toContain('other');
+  });
+
+  test('delta-wires a host that appears after the first run, leaving wired ones untouched', async () => {
+    rmSync(join(home, '.cursor'), {recursive: true, force: true});
+    const first = await runHostSetup({home, projectRoot: project, pkgRoot, quiet: true, activate: false});
+    expect(first.wiring.cursor).toBe('skipped-not-installed');
+    expect(existsSync(join(project, '.cursor'))).toBe(false);
+
+    mkdirSync(join(home, '.cursor'), {recursive: true});
+    const second = await runHostSetup({home, projectRoot: project, pkgRoot, quiet: true, activate: false});
+    expect(second.wiring.cursor).toBe('created');
+    expect(second.wiring.codex).toBe('unchanged');
+    expect(existsSync(join(project, '.cursor', 'mcp.json'))).toBe(true);
+  });
+
+  test('re-wires the project runtime when the engine root changes (upgrade path)', async () => {
+    await runHostSetup({home, projectRoot: project, pkgRoot, quiet: true, activate: false});
+    const pkgRoot2 = mkdtempSync(join(tmpdir(), 'clad-pkg2-'));
+    try {
+      mkdirSync(join(pkgRoot2, 'dist'), {recursive: true});
+      mkdirSync(join(pkgRoot2, 'plugins', 'codex', 'skills', 'init'), {recursive: true});
+      writeFileSync(join(pkgRoot2, 'dist', 'clad.js'), 'process.stdout.write("v2");\n');
+      writeFileSync(join(pkgRoot2, 'package.json'), JSON.stringify({name: 'cladding', version: '0.9.1'}));
+      writeFileSync(join(pkgRoot2, 'plugins', 'codex', 'skills', 'init', 'SKILL.md'), '---\nname: init\ndescription: x\n---\n');
+
+      const result = await runHostSetup({home, projectRoot: project, pkgRoot: pkgRoot2, quiet: true, activate: false});
+      expect(result.wiring.runtime).toBe('rewired');
+      expect(readFileSync(join(project, '.cladding', 'host', 'serve.cjs'), 'utf8'))
+        .toContain(join(pkgRoot2, 'dist', 'clad.js'));
+    } finally {
+      rmSync(pkgRoot2, {recursive: true, force: true});
+    }
+  });
+
+  test('re-creates a deleted project runtime as a repair, no separate flag', async () => {
+    await runHostSetup({home, projectRoot: project, pkgRoot, quiet: true, activate: false});
+    rmSync(join(project, '.cladding', 'host', 'serve.cjs'));
+    const result = await runHostSetup({home, projectRoot: project, pkgRoot, quiet: true, activate: false});
+    expect(result.wiring.runtime).toBe('created');
+    expect(existsSync(join(project, '.cladding', 'host', 'serve.cjs'))).toBe(true);
+  });
+
+  test('hostWireNotice guides toward clad setup and surfaces version skew without blocking', () => {
+    expect(hostWireNotice(null, '0.9.0')).toContain('clad setup');
+    const skew = hostWireNotice('0.8.3', '0.9.0');
+    expect(skew).toContain('0.8.3');
+    expect(skew).toContain('0.9.0');
+    expect(hostWireNotice('0.9.0', '0.9.0')).toBeNull();
+  });
+
+  test('codex legacy cleanup preserves user comments and formatting outside the cladding entry', async () => {
+    mkdirSync(join(home, '.codex'), {recursive: true});
+    const before = [
+      '# precious top comment',
+      'model = "gpt-x" # inline note',
+      '',
+      '[mcp_servers.other]',
+      'command = "other"',
+      '',
+      '# cladding block below',
+      '[mcp_servers.cladding]',
+      'command = "node"',
+      `args = [${JSON.stringify(join(pkgRoot, 'dist', 'clad.js'))}, "serve"]`,
+      '',
+    ].join('\n');
+    writeFileSync(join(home, '.codex', 'config.toml'), before);
+
+    const result = await runHostSetup({home, projectRoot: project, pkgRoot, quiet: true, activate: false, hosts: ['claude']});
+
+    expect(result.legacyCleanup.codex_mcp).toBe('removed');
+    const after = readFileSync(join(home, '.codex', 'config.toml'), 'utf8');
+    expect(after).toContain('# precious top comment');
+    expect(after).toContain('model = "gpt-x" # inline note');
+    expect(after).toContain('[mcp_servers.other]');
+    // The section is gone; user prose (even a comment mentioning cladding) stays.
+    expect(after).not.toContain('[mcp_servers.cladding]');
+    expect(after).not.toContain('dist/clad.js');
+    expect(after).toContain('# cladding block below');
+  });
+
+  test('cursor legacy cleanup drops an emptied mcpServers object instead of leaving an orphan', async () => {
+    mkdirSync(join(home, '.cursor'), {recursive: true});
+    writeFileSync(join(home, '.cursor', 'mcp.json'), `${JSON.stringify({
+      mcpServers: {cladding: {command: 'node', args: [join(pkgRoot, 'dist', 'clad.js'), 'serve']}},
+    }, null, 2)}\n`);
+
+    const result = await runHostSetup({home, projectRoot: project, pkgRoot, quiet: true, activate: false, hosts: ['claude']});
+
+    expect(result.legacyCleanup.cursor_mcp).toBe('removed');
+    const after = JSON.parse(readFileSync(join(home, '.cursor', 'mcp.json'), 'utf8'));
+    expect(after.mcpServers).toBeUndefined();
+  });
+
+  test('a foreign real directory at the antigravity plugin path is preserved and reported', async () => {
+    const dir = join(home, '.gemini', 'config', 'plugins', 'cladding');
+    mkdirSync(dir, {recursive: true});
+    writeFileSync(join(dir, 'mcp_config.json'), `${JSON.stringify({
+      mcpServers: {cladding: {command: 'node', args: ['/somewhere/else/engine.js', 'serve']}},
+    }, null, 2)}\n`);
+
+    const result = await runHostSetup({home, projectRoot: project, pkgRoot, quiet: true, activate: false, hosts: ['antigravity']});
+
+    expect(result.legacyCleanup.antigravity_plugin).toBe('skipped-different');
+    expect(result.wiring.antigravity).toBe('skipped-different');
+    const kept = JSON.parse(readFileSync(join(dir, 'mcp_config.json'), 'utf8'));
+    expect(kept.mcpServers.cladding.args[0]).toBe('/somewhere/else/engine.js');
   });
 
   test('preserves unowned global files with Cladding-like names', async () => {
