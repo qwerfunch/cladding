@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "cladding": {
+      "command": "node",
+      "args": [
+        ".cladding/host/serve.cjs"
+      ]
+    }
+  }
+}

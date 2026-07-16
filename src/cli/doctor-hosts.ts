@@ -171,17 +171,22 @@ export const SURFACE_PROMPTS: Readonly<Record<SurfaceName, (id: string) => strin
 };
 
 /**
- * How each host CLI runs a single non-interactive prompt:
- *   - claude → `claude -p "<prompt>" --output-format text`
+ * How each host CLI runs a single non-interactive prompt. The smoke only ever
+ * fires behind explicit consent (CLAD_HOST_SMOKE=1 / --yes), which is why the
+ * non-interactive approval bypasses below are acceptable here and nowhere else:
+ * a headless probe cannot answer a host's approval prompt, and each probed
+ * cladding tool is one of the three read-only doctor surfaces.
+ *   - claude → `claude -p "<prompt>" --output-format text --settings <auto-approve project .mcp.json>`
  *   - gemini → `gemini --skip-trust --approval-mode plan --policy <project-policy> -o text -p "<prompt>"`
- *   - antigravity → `agy --new-project -p "<prompt>"`
- *   - codex  → `codex exec "<prompt>"`  (Codex's non-interactive one-shot analog)
+ *   - antigravity → `agy --dangerously-skip-permissions -p "<prompt>"` (in the project cwd — agy's
+ *     machine-wide wire resolves the project from the session directory)
+ *   - codex  → `codex exec --dangerously-bypass-approvals-and-sandbox "<prompt>"`
  *   - cursor → `cursor-agent -p --mode ask --trust --approve-mcps "<prompt>"`
  */
 export function buildPromptCommand(host: PromptHost, prompt: string): {command: string; args: string[]} {
   switch (host) {
     case 'claude':
-      return {command: 'claude', args: ['-p', prompt, '--output-format', 'text']};
+      return {command: 'claude', args: ['-p', prompt, '--output-format', 'text', '--settings', '{"enableAllProjectMcpServers":true}']};
     case 'gemini':
       return {
         command: 'gemini',
@@ -200,9 +205,9 @@ export function buildPromptCommand(host: PromptHost, prompt: string): {command: 
         ],
       };
     case 'antigravity':
-      return {command: 'agy', args: ['--new-project', '-p', prompt]};
+      return {command: 'agy', args: ['--dangerously-skip-permissions', '-p', prompt]};
     case 'codex':
-      return {command: 'codex', args: ['exec', prompt]};
+      return {command: 'codex', args: ['exec', '--dangerously-bypass-approvals-and-sandbox', prompt]};
     case 'cursor':
       return {command: 'cursor-agent', args: ['-p', '--mode', 'ask', '--trust', '--approve-mcps', prompt]};
   }
@@ -260,7 +265,13 @@ export interface HostSmokeOptions {
   readonly probeServe?: ServeProber;
 }
 
-const PROMPT_TIMEOUT_MS = 60_000;
+/** run-check executes the project's full gate inside the host turn — give it
+ * the room a real repository needs instead of grading slowness as failure. */
+const PROMPT_TIMEOUT_MS: Readonly<Record<SurfaceName, number>> = {
+  'list-features': 120_000,
+  'get-feature': 120_000,
+  'run-check': 300_000,
+};
 const SERVE_TIMEOUT_MS = 10_000;
 
 function defaultHasBinary(name: string): boolean {
@@ -390,13 +401,13 @@ function probePromptHost(
     }
     const prompt = SURFACE_PROMPTS[name](featureId ?? '');
     const {command, args} = buildPromptCommand(host, prompt);
-    const r = runPrompt(command, args, {cwd, timeoutMs: PROMPT_TIMEOUT_MS});
+    const r = runPrompt(command, args, {cwd, timeoutMs: PROMPT_TIMEOUT_MS[name]});
     if (r.timedOut) {
       surfaces.push({
         name,
         result: 'fail',
         sentinel: SURFACE_SENTINELS[name].label,
-        evidence: tail(`timed out after ${PROMPT_TIMEOUT_MS / 1000}s: ${r.stderr || r.stdout}`),
+        evidence: tail(`timed out after ${PROMPT_TIMEOUT_MS[name] / 1000}s: ${r.stderr || r.stdout}`),
       });
       continue;
     }

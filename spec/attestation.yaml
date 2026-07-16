@@ -17,14 +17,14 @@ attested_modules:
   .claude/settings.json: d0bba3583aef0960
   .github/workflows/ci.yml: 8ea99219cb80df60
   .gitignore: 1294975ba3b47043
-  CHANGELOG.md: 704d913ae56b635a
+  CHANGELOG.md: 1524903097b4f9b0
   CLAUDE.md: d81d8832976cd5ee
   GOVERNANCE.md: 21cc28eaaf637a20
   README.html: ff98c3aaf8a6947f
   README.ja.md: 299df920c0530e71
   README.ko.html: 35bde93f37db20eb
   README.ko.md: 7f1394d857a95084
-  README.md: 5ce3c24d66ff2ed9
+  README.md: cef6c17062f7d728
   README.zh.md: 65dac6ea9c2308cc
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
@@ -148,7 +148,7 @@ attested_modules:
   src/cli/changelog.ts: 2de1adb009b89ab4
   src/cli/clad.ts: 00d049c7acb5f761
   src/cli/clarify.ts: 393cc93a6feb698a
-  src/cli/doctor-hosts.ts: d58d2580e76c09ed
+  src/cli/doctor-hosts.ts: 1f0c2cec5a310b81
   src/cli/doctor.ts: b98b955fe75e7f7e
   src/cli/done.ts: 02bd4397eaf34fa1
   src/cli/graph-serve.ts: 23e6e389225d0f98

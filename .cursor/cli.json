@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Mcp(cladding:clad_list_features)",
+      "Mcp(cladding:clad_get_feature)",
+      "Mcp(cladding:clad_run_check)"
+    ],
+    "deny": []
+  }
+}

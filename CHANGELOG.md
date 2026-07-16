@@ -28,6 +28,17 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 - **A missing runnable deliverable stays honest.** Safe declared entries run, broken entries block, and an early onboarding seed is not forced to invent an unsafe smoke command.
 - **Verification evidence remains non-vacuous.** Done features must execute a passing declared test, spec-conformance oracles preserve full-suite evidence, and unavailable tools remain skips rather than false passes.
 
+### Hardened by the packed-tarball E2E campaign (2026-07-16)
+
+A live campaign installed the packed 0.9.0 tarball in isolation and drove real init scenarios through all five host CLIs (report: `docs/dogfood/e2e-0.9.0-packed-2026-07-16.md`). The consent boundary held on every host that ran; these defects were found and fixed:
+
+- **Setup wires only detected hosts by default.** Previously every project received all five hosts' config files regardless of what was installed; `clad setup --host all` remains the explicit override.
+- **Antigravity actually connects now.** agy reads MCP config machine-wide only (a negative control proved the project file is never loaded), so setup also writes an ownership-guarded `~/.gemini/config/plugins/cladding/` wire — the one stated exception to project-local activation; sessions still resolve the project from their working directory.
+- **`clad update` outside a cladding project writes nothing.** It used to scaffold host wiring into any directory and could reach an account-wide legacy plugin uninstall.
+- **Abandoned onboarding preparations no longer accumulate.** Expired consent-cache envelopes are swept on staging (hundreds had piled up in the shared temp dir), and a tampered staged draft is now re-validated and rejected cleanly instead of surfacing a raw crash.
+- **Legacy cleanup preserves your global config formatting.** The codex `config.toml` entry is now spliced out textually (comments and ordering survive, parse-verified), and cursor cleanup no longer leaves an orphan empty `mcpServers`.
+- **`clad doctor --hosts` probes match the project-local model** (project-MCP approval for the consented Claude probe, project-directory Antigravity probe, Codex approvals bypass, and a realistic gate timeout).
+
 ### Also changed
 
 - The deterministic collector found nine onboarding commit subjects that do not name a spec feature. Their user-visible behavior is covered by the spec-backed notes above, but their commit-to-spec linkage remains absent.
@@ -38,6 +49,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 - 아이디어·전체 UTF-8 기획 문서·기존 코드 중 어디서든 시작하고, 결정이 남은 경우에만 최대 3개의 핵심 질문을 받습니다.
 - 초기화 전에는 준비용 MCP 도구 3개만 노출되며, 정확한 일회용 승인 문구로 적용한 뒤 전체 개발 도구가 열립니다.
+- 실제 5개 호스트 CLI에 패키징된 tarball을 설치해 검증하는 E2E 캠페인을 거쳤습니다 — 설치된 호스트만 배선, Antigravity 연결 수리, 임시 파일 잔존 정리 등 캠페인이 찾은 결함을 모두 수정했습니다.
 - 호스트가 재시작돼도 검토한 초안을 그대로 적용하고, 실패·오래된 요청·재사용 요청은 프로젝트를 부분 변경 상태로 남기지 않습니다.
 
 ## [0.8.3] — Agent loops that stop honestly, a guard against unverified "done", and a faster check (2026-07-12)
