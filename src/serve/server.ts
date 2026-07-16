@@ -414,12 +414,14 @@ const MAX_APPROVAL_ENVELOPE_BYTES = 1_000_000;
 const PREPARATION_TTL_MS = 30 * 60 * 1000;
 
 /**
- * Carries read-only preparation state across host process restarts.
+ * Carries preparation state across host process restarts.
  *
  * The digest detects truncation/corruption; authorization still comes from the
  * separately displayed exact challenge. Workspace freshness makes a consumed
- * envelope stale after the first successful write without prepare writing any
- * hidden project state.
+ * envelope stale after the first successful write. Prepare writes no authored
+ * project files, but it does persist a TTL'd consent-cache envelope: under the
+ * OS temp dir (owner-only 0600) until a draft is staged, then under the
+ * ignored `.cladding/host/onboarding-pending/`.
  */
 function encodePreparedOnboarding(request: PreparedOnboarding): string {
   const body = deflateRawSync(Buffer.from(JSON.stringify(request))).toString('base64url');
@@ -608,7 +610,8 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
     {
       title: 'Prepare Cladding onboarding context',
       description:
-        'Read-only first step for every explicit Cladding initialization request. Inspect the connected project, ' +
+        'Non-destructive first step for every explicit Cladding initialization request: writes no authored project ' +
+        'files (only a TTL\'d consent cache). Inspect the connected project, ' +
         'then use this tool result to draft the structured input for clad_init. Never run clad init in a shell.',
       inputSchema: {
         mode: z.enum(['idea', 'document', 'existing']),

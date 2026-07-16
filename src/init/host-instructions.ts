@@ -4,10 +4,9 @@
 //   • <project>/AGENTS.md       — cross-tool (Codex/Cursor/Continue/Copilot/Aider)
 //   • <project>/CLAUDE.md       — Claude Code memory (idempotent append)
 //
-// Does NOT write `.claude-plugin/plugin.json`, `.mcp.json`, or
-// `.codex/config.toml` to the project — those live globally under the user's
-// home directory and are populated by the npm postinstall hook (and the
-// `clad init` fallback retry for users who ran with `--ignore-scripts`).
+// Does NOT write `.mcp.json`, `.codex/config.toml`, or the other host MCP
+// wiring files — those are project-local since 0.9.0 and are written by
+// `clad setup` (src/init/host-setup.ts), never at npm install time.
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';

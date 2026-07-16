@@ -73,7 +73,7 @@ attested_modules:
   plugins/claude-code/.claude-plugin/plugin.json: 3ece00e95ac4e232
   plugins/claude-code/agents/developer.md: 40af2943253f6c72
   plugins/claude-code/agents/observability.md: 5ea8f14b1c9b4a61
-  plugins/claude-code/agents/orchestrator.md: 18f41e1dbfe6d95b
+  plugins/claude-code/agents/orchestrator.md: 443c6e13ade590cf
   plugins/claude-code/agents/planner.md: 934753c28d5f1287
   plugins/claude-code/agents/reviewer.md: 9c4e095e60040473
   plugins/claude-code/commands/init.md: bf567f3b4e22069a
@@ -84,7 +84,7 @@ attested_modules:
   plugins/codex/skills/developer/SKILL.md: 40af2943253f6c72
   plugins/codex/skills/init/SKILL.md: bf567f3b4e22069a
   plugins/codex/skills/observability/SKILL.md: 5ea8f14b1c9b4a61
-  plugins/codex/skills/orchestrator/SKILL.md: 18f41e1dbfe6d95b
+  plugins/codex/skills/orchestrator/SKILL.md: 443c6e13ade590cf
   plugins/codex/skills/planner/SKILL.md: 934753c28d5f1287
   plugins/codex/skills/reviewer/SKILL.md: 9c4e095e60040473
   plugins/codex/skills/run/SKILL.md: 9f95ff17d70c8dd1
@@ -139,7 +139,7 @@ attested_modules:
   src/agents/developer.md: 40af2943253f6c72
   src/agents/loader.ts: 6d35560c47f9ae85
   src/agents/observability.md: 5ea8f14b1c9b4a61
-  src/agents/orchestrator.md: 18f41e1dbfe6d95b
+  src/agents/orchestrator.md: 443c6e13ade590cf
   src/agents/planner.md: 934753c28d5f1287
   src/agents/reviewer.md: 9c4e095e60040473
   src/changelog/collect.ts: a6c936a7b8c34e2a
@@ -177,7 +177,7 @@ attested_modules:
   src/cli/scan/thresholds.ts: ec0047b894a6aa6a
   src/cli/scan/types.ts: ea0170aa88c1c14a
   src/cli/scan/walker.ts: 33e4448e365e47c6
-  src/cli/update.ts: 26abe9f2e1d1e88f
+  src/cli/update.ts: c607b3e638533508
   src/cli/verdict.ts: 7aa16b8739ab8e5f
   src/core/checkpoint.ts: 63300c2764533b6c
   src/core/git-ops.ts: 4544bde493a0628f
@@ -204,7 +204,7 @@ attested_modules:
   src/hitl/identity.ts: 52ff84aa666f1dab
   src/init/agents-md.ts: 7dc05f6d82e5c3ce
   src/init/git-hook.ts: 4e02f177b3764ae8
-  src/init/host-instructions.ts: f6d10695ef0c4763
+  src/init/host-instructions.ts: b6dbb40fadbf4c2d
   src/init/host-setup.ts: 83213a4bbed1e3bd
   src/optimizer: a4d0f0eb87fed960
   src/optimizer/code-excerpt.ts: e2c4598efcd28d2a
@@ -228,7 +228,7 @@ attested_modules:
   src/report/sarif.ts: 71e97aceeb0a4473
   src/router: a4d0f0eb87fed960
   src/router/intent.ts: 430590f761b891a6
-  src/serve/server.ts: a19d47091ca3b212
+  src/serve/server.ts: c5bfc4e6caa09c15
   src/spec: a4d0f0eb87fed960
   src/spec/attestation.ts: 294a1e99c42d4aef
   src/spec/cli.ts: 7a9bcd0f66677810

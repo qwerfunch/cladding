@@ -38,9 +38,10 @@ import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../
 import {gitOperationInProgress} from '../core/git-ops.js';
 
 /**
- * Injected so `runUpdate` is unit-testable without touching the global home
- * dir. The drift REPORT is deliberately NOT here — it is report-only and lives
- * in the command wrapper, so `runUpdate` only ever does safe mutations.
+ * Injected so `runUpdate` is unit-testable without running the real host
+ * wiring (project-local since 0.9.0). The drift REPORT is deliberately NOT
+ * here — it is report-only and lives in the command wrapper, so `runUpdate`
+ * only ever does safe mutations.
  */
 export interface UpdateDeps {
   /** Re-wire host channels (wraps `runHostSetup`); resolves to the wiring-error count. */
@@ -48,7 +49,7 @@ export interface UpdateDeps {
 }
 
 export interface UpdateResult {
-  /** False when `cwd` has no spec.yaml — only the global re-wire ran. */
+  /** False when `cwd` has no spec.yaml — only the host re-wire ran. */
   readonly isProject: boolean;
   /** Count of host channels that failed to wire (0 = clean). */
   readonly wiringErrors: number;
@@ -93,7 +94,9 @@ function mapAgentsMdResult(r: SpecAgentsMdResult): AgentsMdResult {
  * stricter-detector REPORT is the caller's job (report-only, never blocks).
  */
 export async function runUpdate(cwd: string, deps: UpdateDeps): Promise<UpdateResult> {
-  // 1. Re-wire hosts (global, idempotent) — useful even outside a project.
+  // 1. Re-wire host channels into the project (idempotent, project-local
+  //    since 0.9.0). Note: runs before the spec.yaml guard below, so update
+  //    scaffolds host wiring into cwd even when it is not a cladding project.
   const wiringErrors = await deps.wireHosts();
 
   if (!existsSync(join(cwd, 'spec.yaml'))) {
