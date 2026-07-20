@@ -1,5 +1,5 @@
 ---
-description: Validate the active spec.yaml against the Ironclad schema and refresh the inventory. Rarely needed manually — clad_create_feature already auto-syncs the inventory and clad check / clad done self-validate the spec, so do NOT run it as a reflexive pre-flight before those. Use it only after you have directly hand-edited a shard file (spec/features/*.yaml or spec.yaml).
+description: Validate the active spec.yaml against the Ironclad schema and refresh the inventory. Rarely needed manually — clad_create_feature already auto-syncs the inventory and clad check / clad done self-validate the spec, so do NOT run it as a reflexive pre-flight before those. Use it only after you have directly hand-edited a shard file (spec/features/*.yaml or spec.yaml). Activate only when the connected project contains spec.yaml or the user explicitly names Cladding; ignore ordinary requests in uninitialized projects.
 ---
 
 # Cladding sync

@@ -45,7 +45,6 @@ const {mkScenarioCwd, copyFixture, writeUnderCwd, EXISTING_S2_RESPONSE} = await 
 const {
   assertArtifactsPresent,
   assertCrossTierClean,
-  assertProposalDivert,
   assertSpecCompleteness,
   assertTierBanner,
   assertNoBudgetOverages,
@@ -141,10 +140,10 @@ describe('existing-adoption lifecycle — "이 프로젝트 분석해서 클래�
     // No proposal for spec.yaml — refine doesn't write to Tier A directly.
     expect(existsSync(join(scenario.path, '.cladding/scan/spec.yaml.proposal'))).toBe(false);
 
-    // Tier B artifacts diverted to proposal (refine re-wrote them).
-    assertProposalDivert(scenario.path, 'docs/project-context.md');
-    assertProposalDivert(scenario.path, 'spec/capabilities.yaml');
-    assertProposalDivert(scenario.path, 'spec/architecture.yaml');
+    // Untouched generated Tier B artifacts are the active refined design.
+    expect(existsSync(join(scenario.path, '.cladding/scan/project-context.md.proposal'))).toBe(false);
+    expect(existsSync(join(scenario.path, '.cladding/scan/capabilities.yaml.proposal'))).toBe(false);
+    expect(existsSync(join(scenario.path, '.cladding/scan/architecture.yaml.proposal'))).toBe(false);
   });
 
   test('S4 simulate new feature: hand-authored shard registers cleanly', async () => {

@@ -6,13 +6,13 @@
 
 <p align="center">
   <strong>要放心把编码交给 AI，一个组织需要三样东西 ——<br/>代码可信、过程可追溯、规模扩张时依然稳固。cladding 把这三样一手做齐。</strong><br/>
-  正如其名（cladding = 外覆层），它包裹住你的宿主 LLM（Claude Code · Codex · Gemini · Cursor）：在它<em>动手之前</em>，cladding 先把项目的意图喂给它；在它<em>收尾之后</em>，cladding 用 41 个检测器和 15 阶段门禁验证结果。
+  正如其名（cladding = 外覆层），它包裹住你的宿主 LLM（Claude Code · Codex · Gemini · Antigravity · Cursor）：在它<em>动手之前</em>，cladding 先把项目的意图喂给它；在它<em>收尾之后</em>，cladding 用 41 个检测器和 15 阶段门禁验证结果。
 </p>
 
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-2497%2F2497-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-2561%2F2561-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -31,7 +31,7 @@
 - **可追溯** —— **交付出去的一切都留有记录**：验证了什么，写进已提交的内容；谁、何时，记在本地会话账本；为什么，留在 spec —— 于是交接与评审无需考古，就能追溯每一个决定。
 - **可扩展** —— 人和 AI 越多，通常冲突和漂移也越多。但所有人都以同一份 spec 为基准，这些会被自动挡下 —— 所以不断扩张也不会崩。
 
-cladding 连**自己**也是用 cladding 造的 —— 254 个 feature 里有 251 个通过了同一道门禁，成为 [Ironclad](https://github.com/qwerfunch/ironclad) 标准的首个 L4 实现。
+cladding 连**自己**也是用 cladding 造的 —— 255 个 feature 里有 252 个通过了同一道门禁，成为 [Ironclad](https://github.com/qwerfunch/ironclad) 标准的首个 L4 实现。
 
 <!-- ─────────────── What changes ─────────────── -->
 
@@ -46,7 +46,7 @@ cladding 连**自己**也是用 cladding 造的 —— 254 个 feature 里有 25
 | **在失败状态下结束会话** | 原样退出，下次就忘了 | 退出被拦一次，把失败的检查作为修复卡片交接下去 |
 | **两名开发者同时新增 feature** | 合并冲突 | 8 位 hash ID · 各自成文件 → 零冲突 |
 | **AI 写的代码谁来验证？** | 谁写谁自证（有风险） | 一个看不到实现的评分者 + 机械门禁 |
-| **切换 AI 工具** | 每换一个工具就重配一次 | 一份 spec → 自动接通 4 个宿主 |
+| **切换 AI 工具** | 每换一个工具就重配一次 | 一份 spec → 自动接通 5 个宿主 |
 
 ## 适合谁
 
@@ -66,7 +66,7 @@ cladding 连**自己**也是用 cladding 造的 —— 254 个 feature 里有 25
 
 **之后 —— 验证结果：** 15 阶段门禁、41 个漂移检测器，外加一个**看不到实现的评分者** —— 这个智能体对照 spec 核查成果，却*没有任何读取实现的工具*，因此无法给自己写下的东西盖章放行。
 
-<sub>实时干预（注入地图 · 当场拦截 · 退出拦截）在 Claude Code 上全部可用。在 Codex · Gemini · Cursor 上，同样的验证通过对话中的工具调用，再加 git · CI 门禁来完成。</sub>
+<sub>实时干预（注入地图 · 当场拦截 · 退出拦截）在 Claude Code 上全部可用。在 Codex · Gemini · Antigravity · Cursor 上，同样的验证通过对话中的工具调用，再加 git · CI 门禁来完成。</sub>
 
 <!-- ─────────────── done is earned ─────────────── -->
 
@@ -237,53 +237,97 @@ cladding 的独到之处在于*组合* —— 把上述品类的内核，绑进*
 
 ## Install
 
+### 1. 在电脑上安装一次
+
 ```bash
 npm install -g cladding   # 安装 cladding CLI
-cd <project>              # 进入项目目录
-clad setup                # 自动接通你的 AI 工具（Claude · Codex · Gemini · Cursor）
 ```
 
-<sub>每个宿主都把 cladding 接为一台 MCP 服务器，由 AI 自行调用 —— 没有 `/mcp` 命令，也无需手动连接，照常对话即可。</sub>
+这条命令可以在任何目录运行。它只安装 CLI，不会把 Cladding 加入任何 AI 模型的上下文。
 
-随后，每个项目一次，在你的 AI 工具中调用 init：
+### 2. 只激活要使用的项目，然后启动 AI 工具
+
+```bash
+cd <project>
+clad setup                # 只为这个项目连接 Cladding
+
+# 只选择一个，并删除行首的“#”后运行：
+# codex          # Codex
+# claude         # Claude Code
+# gemini         # Gemini CLI
+# agy            # Antigravity
+# cursor-agent   # Cursor Agent
+```
+
+`clad setup` 只把本机检测到的 AI 工具（Claude Code、Codex、Gemini、Antigravity、Cursor）连接到当前项目 —— 唯一的例外是 Antigravity：它不读取项目本地的 MCP 配置，因此只能按机器级别连接（详见 [setup 文档](docs/setup.md)）。没有运行 setup 的其他项目，其模型上下文不会出现 Cladding skill 或 MCP 工具。只需运行自己所用 AI 工具对应的一条命令；使用 Cursor IDE 时，把 `<project>` 作为工作区打开。setup 后请从此文件夹启动新的 AI 会话。Codex 或 Gemini 询问是否信任项目时，请按照各自主机的正常安全边界确认；在此之前，项目本地 MCP 配置会被有意忽略。
+
+### 3. 为项目应用一次 Cladding
+
+根据自己的起点，用自然语言告诉 AI 工具。
+
+Cladding 会先以只读方式检查项目。AI 会展示准确的文件操作和一次性批准短语；只有当用户在单独回复中原样输入该短语时，初始化才会开始。仅仅打开项目或询问 Cladding 不会修改任何文件。
+这种精确匹配可防止意外应用，但 MCP 无法证明工具参数实际上由哪位用户提供；因此它不是隔离恶意或已受侵主机的沙箱。
+
+#### 只有一个想法时
 
 ```
-[在你的 AI 工具中] /cladding:init "B2B 支付 SaaS"
+用 cladding 开始这个 B2B 支付 SaaS。
 ```
 
-它会创建项目的 `spec.yaml` 与配套文档。此后照常开发即可 —— cladding 会在后台跑那套「之前 / 之后」循环，没有需要记的命令。想提高强制力：`clad init --with-hook`（安装 pre-commit + pre-push git 钩子）或 `clad init --with-ci`（搭好 CI 门禁的脚手架 —— 真正的强制力在 CI 里）。
+LLM 会分析领域并创建 spec、文档和策略。只有关键产品决策尚未明确时才会提出最多 3 个后续问题；完整的规划不会被强制追问。
 
-| 起点 | 命令 | 会发生什么 |
-|---|---|---|
-| **只有一个想法，别无其他** | `/cladding:init "我要做一个 B2B 支付 SaaS"` | LLM 分析领域 → 生成 spec · 文档 · 策略 + 2–3 个追问 |
-| **已有一份规划文档** | `/cladding:init docs/plan.md` | 加载该文件，用其内容作为意图 |
-| **接入已有项目** | `/cladding:init "把 cladding 应用到这个项目"` | 扫描现有代码 → 把观察到的模式与你的意图融合 |
+#### 已有规划文档时
 
-**宿主支持（诚实说明）：** Claude Code 已通过真实使用的实测（含实时干预）全面验证。Codex · Gemini CLI 已自动接线，但行为尚未验证。Cursor 会自动接线，但真实使用的验证仍待补。→ [安装细节 · 宿主接线 · MCP · 升级](docs/setup.md)
+```
+根据 docs/plan.md 应用 cladding。
+```
+
+Cladding 会加载该文件，并将其内容作为项目意图。
+
+#### 接入已有项目时
+
+```
+分析当前代码并应用 cladding。
+```
+
+Cladding 会扫描现有代码，并把观察到的模式与你的意图结合起来。
+
+> **初始化完成后，直接在同一段对话中继续开发即可。** 用自然语言提出下一个功能，AI 会依据生成的 spec 和文档开发，并让重要设计随项目成长同步演进。检查会在宿主调用时运行；如需自动强制，请启用可选的 Git hook 或 CI gate。
+
+```
+实现邮箱登录功能，并包含测试。
+```
+
+无需再记新的命令。宿主专用调用方式、更严格的 Git/CI 执行方式以及已验证的宿主状态，请参阅[安装细节](docs/setup.md)。
 
 <!-- ─────────────── Update ─────────────── -->
 
 ## Update
 
-保持最新只需两条命令 —— 或者对你的 AI 工具说一句话。
+### 让 AI 工具更新（推荐）
+
+在项目中这样说：
+
+```
+把 cladding 更新到最新版本。
+```
+
+如果 AI 工具有终端和全局安装权限，它会更新 CLI、刷新宿主接线、更新当前项目，并解释新发现的漂移；否则，它会给出需要批准或手动执行的命令。
+
+### 或在终端中直接更新
 
 ```bash
 npm update -g cladding   # 1. 取得新版本
-cd <project>             # 2. 进入项目目录
-clad update              # 3. 与新版对齐
+cd <project>             # 2. 进入 Cladding 项目
+clad update              # 3. 刷新项目连接和派生状态
 ```
 
-你的代码 · `spec.yaml` · 文档都原封不动 —— 更严格的版本只是把东西**指出来**，既不拦截，也不擅自修改。若上面这两条命令标出了新的漂移，把它交给你的 AI 工具即可：
+`clad update` 需要在每个要升级的 Cladding 项目中运行。它会同时刷新项目级 setup，因此不必另外运行 `clad setup`。用户编写的代码、功能/spec 正文和文档会保留；只有派生数据和 Cladding 管理的指令区块可能被刷新。如果新版本报告了漂移，把结果交给 AI 工具即可：
 
 ```
-[在你的 AI 工具中] 修复这次更新标出的漂移
+修复这次更新标出的漂移。
 ```
 
-…或者跳过这两条命令，像你当初跑 init 那样直接说一句 —— 它会连更新一起帮你做：
-
-```
-[在你的 AI 工具中] 把 cladding 更新到最新版本
-```
 
 <!-- ─────────────── Status ─────────────── -->
 
@@ -291,9 +335,9 @@ clad update              # 3. 与新版对齐
 
 | 版本 | 一致性 | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.8.3（2026-07） | L4 · [自我声明](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2497 / 2497 | 15 阶段 · 41 检测器 | 254（251 done） |
+| v0.9.0（2026-07） | L4 · [自我声明](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2561 / 2561 | 15 阶段 · 41 检测器 | 255（252 done） |
 
-<sub>234 个测试文件 · 6 项 capability · 覆盖率下降由 COVERAGE_DROP 检测器拦下</sub>
+<sub>236 个测试文件 · 6 项 capability · 覆盖率下降由 COVERAGE_DROP 检测器拦下</sub>
 
 > **通往 Ironclad 1.0 之路** —— 只有当*两个独立实现都通过 L4 一致性测试夹具*时，1.0 才会锁定（[GOVERNANCE § 1](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md)）。cladding 是第一个。
 

@@ -15,11 +15,13 @@
 //     .mcp.json             ← already authored under plugins/codex/
 //     .codex-plugin/plugin.json ← already authored
 //
-//   Gemini CLI (plugins/gemini-cli/, v0.3.6, F-081):
+//   Legacy Gemini CLI (plugins/gemini-cli/, v0.3.6, F-081):
 //     commands/<verb>.toml ← transpiled from repo-root skills/<verb>/SKILL.md
 //                            (frontmatter.description → toml `description`,
 //                             body → toml `prompt` as a literal multi-line)
 //     gemini-extension.json + GEMINI.md already authored.
+//     Retained only so existing installations do not break during migration;
+//     new setup, verification, and support claims target Antigravity instead.
 //
 // The src side stays canonical — every loadPersona() call in the
 // runtime reads from src/agents. The drift detector enforces lockstep.
@@ -28,6 +30,7 @@
 
 import {
   chmodSync,
+  cpSync,
   copyFileSync,
   existsSync,
   mkdirSync,
@@ -253,6 +256,26 @@ writeFileSync(
 );
 console.log(
   `cladding plugin · codex: copied ${codexVerbCount} verbs + ${codexPersonaCount} personas → ${CODEX_SKILLS}/`,
+);
+
+// --- Phase B2 — Antigravity plugin skills mirror --------------------
+
+const ANTIGRAVITY_SKILLS = 'plugins/antigravity/skills';
+mkdirSync(ANTIGRAVITY_SKILLS, {recursive: true});
+for (const entry of readdirSync(CODEX_SKILLS)) {
+  if (entry === 'README.md') continue;
+  const src = join(CODEX_SKILLS, entry);
+  if (!statSync(src).isDirectory()) continue;
+  const dst = join(ANTIGRAVITY_SKILLS, entry);
+  rmSync(dst, {recursive: true, force: true});
+  cpSync(src, dst, {recursive: true});
+}
+for (const entry of readdirSync(ANTIGRAVITY_SKILLS)) {
+  if (!codexExpected.has(entry)) rmSync(join(ANTIGRAVITY_SKILLS, entry), {recursive: true, force: true});
+}
+rmSync(join(ANTIGRAVITY_SKILLS, 'README.md'), {force: true});
+console.log(
+  `cladding plugin · antigravity: copied ${codexVerbCount} verbs + ${codexPersonaCount} personas → ${ANTIGRAVITY_SKILLS}/`,
 );
 
 // --- Phase C — Gemini CLI mirror (plugins/gemini-cli/commands/) -------

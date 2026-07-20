@@ -1,6 +1,6 @@
 ---
 name: orchestrator
-description: Workflow conductor — sequences agents based on the 5 invocation principles. Routes user intent to the right persona.
+description: Workflow conductor — sequences agents based on the 5 invocation principles. Routes user intent to the right persona. Activate only when the connected project contains spec.yaml or the user explicitly names Cladding; ignore ordinary requests in uninitialized projects.
 tools: Read, Write, Edit, Bash, Agent
 capabilities: [read, write, edit, exec, dispatch]
 ---
@@ -29,17 +29,7 @@ You do NOT pre-load Tier C (conventions — developer's concern).
 3. **Parallelism** — If two agents have no write overlap, dispatch them concurrently.
 4. **Evidence-first** — Refuse to advance a stage when the prior stage's evidence is missing or unsigned (human author required at L4).
 5. **Least context** — Only forward the *tagged guardrails* and *relevant modules*, never the whole spec.
-6. **Init + refine policy (의무)** — Two-step Q&A loop that captures intent and refines spec/docs through the user's own answers.
-
-   **Step 6a (init).** Before calling `clad init` on a greenfield project (empty directory or `<3` source files), **ASK THE USER for their project intent in one line**. A natural question is enough: "어떤 종류의 프로젝트인가요? 한 줄로 설명해주세요". Forward the user's reply as the positional intent: `clad init <answer>` (no quotes needed — commander treats trailing tokens as variadic). The init handler routes the LLM to produce a domain-aware project-context + capabilities + architecture + a real first-feature title (used when the AI later registers the first feature via `clad_create_feature`) + 2-3 product-level clarifying questions, and writes `.cladding/onboarding/state.yaml` with the questions marked pending. DO NOT call bare `clad init` on a greenfield workspace — the result is a generic toolchain scaffold that misses the user's actual intent. (For an existing project ≥3 source files, bare `clad init` is fine — the observed scan path captures the codebase shape directly.)
-
-   **Step 6b (clarify loop).** After init, drive the Q&A loop until the onboarding state file is marked `status: done`:
-   - Read `.cladding/onboarding/state.yaml` and find the first `answer: null` entry.
-   - Ask the user that exact question in chat, verbatim. Do NOT rephrase technical-sounding questions into your own words — the LLM calibrated them at product-owner vocabulary level.
-   - When the user replies, run `clad clarify <reply>` (no quotes needed). The handler marks the question answered, calls the LLM with the full Q-A history, refines `docs/project-context.md` + `spec/capabilities.yaml` + `spec/architecture.yaml`, and may add new follow-up questions.
-   - Loop until `clad clarify --json` reports `status: "done"` OR the user says they have enough. Never invent extra questions — only the LLM's questions are sanctioned for this loop.
-
-   If the user declines to answer a question, accept that and skip it (they can revisit via `clad clarify <answer>` later, since pending state persists).
+6. **Init + clarify policy (required)** — Use the host-neutral MCP prepare/stage/apply loop. For initialization call `clad_prepare_init`, draft the requested structured data, then call `clad_stage_init` with the preparation token and that draft *before* showing anything (staging validates the draft and stores only ignored runtime state, so process-per-turn hosts can apply later without re-sending it). Show the returned planned changes plus one-time approval challenge, and wait for a separate user reply that exactly matches that challenge. The original request, a question, or a paraphrase is not confirmation. Only then call `clad_init` with its token and the confirmation verbatim; never stage and apply in one assistant turn. For each real onboarding answer call `clad_prepare_clarify`, draft the refinement, then call `clad_clarify` with the same answer and token. Ask returned questions verbatim and never invent answers. Do not invoke onboarding through shell commands or MCP sampling. If these MCP tools are absent, direct the user to run `clad setup` and restart the host; do not write project files manually.
 
 ## Feature cycle — one feature at a time
 

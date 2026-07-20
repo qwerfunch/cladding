@@ -4,6 +4,7 @@ title: "vacuous-test guard — a done feature's declared tests must actually exe
 status: done
 modules:
   - src/stages/vacuous-tests.ts
+  - src/stages/unit.ts
 acceptance_criteria:
   - id: AC-41e112d3
     test_refs:
@@ -24,9 +25,9 @@ acceptance_criteria:
     test_refs:
       - tests/stages/vacuous-tests.test.ts
     ears: unwanted
-    condition: "if the per-test data cannot be parsed or the test runner is unsupported"
+    condition: "if neither per-test data nor a definitive aggregate execution count can be parsed, or the test runner is unsupported"
     response: "fall back to the existing exit-code behavior with no error"
-    text: "If the per-test data cannot be parsed or the test runner is unsupported, the system shall fall back to the exit-code behavior without failing the gate."
+    text: "If neither per-test data nor a definitive aggregate execution count can be parsed, or the test runner is unsupported, the system shall fall back to the exit-code behavior without failing the gate."
     notes: "DEFENSIVE (non-negotiable): a parse failure must NEVER fail the gate. Guard fires only when we are confident."
   - id: AC-d7a9568e
     test_refs:
@@ -41,3 +42,11 @@ acceptance_criteria:
     ears: ubiquitous
     text: "The guard shall apply only to done features and shall preserve the test runner's human-readable output."
     notes: "Planned/in-progress features are legitimately incomplete. Dual-reporter (json to file + default to stdout) so clad check output stays readable."
+  - id: AC-0e76a1b2
+    test_refs:
+      - tests/stages/unit.test.ts
+    ears: unwanted
+    condition: "if a successful test command definitively reports zero executed tests"
+    response: "emit a blocking VACUOUS_TESTS finding under strict mode"
+    text: "If a successful test command definitively reports zero executed tests, the system shall emit a blocking VACUOUS_TESTS finding under strict mode."
+    notes: "This runner-independent aggregate guard owns the zero-test case discovered during onboarding handoff verification; it is not scoped to initialized projects."

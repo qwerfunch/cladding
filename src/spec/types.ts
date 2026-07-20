@@ -94,6 +94,14 @@ export interface Feature {
   /** File paths this feature touches. */
   readonly modules?: readonly string[];
   readonly acceptance_criteria?: readonly AcceptanceCriterion[];
+  /** Feature-bound decision recording whether Tier-B design must evolve. */
+  readonly design_impact?: {
+    readonly classification: 'none' | 'additive' | 'structural';
+    readonly rationale: string;
+    readonly status: 'resolved' | 'review_required';
+    readonly artifacts?: readonly string[];
+    readonly baseline_digests?: Readonly<Record<string, string>>;
+  };
   /** Feature ids this one depends on. */
   readonly depends_on?: readonly string[];
   readonly archived_at?: string;
@@ -292,6 +300,12 @@ export interface SmokeProbe {
 export interface Project {
   readonly name: string;
   readonly language: string;
+  /**
+   * True only for workspaces scaffolded by Cladding onboarding. Detectors use
+   * this durable marker to distinguish intentional future-design seeds from
+   * empty governance in legacy or hand-authored projects.
+   */
+  readonly onboarding_seeded?: boolean;
   /**
    * One-line summary of what the project is for. Renders as the
    * spec.yaml "front door" hint. Optional — kept opt-in so legacy

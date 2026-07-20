@@ -1,37 +1,23 @@
-// F-80d19d host setup — explicit `clad setup` command (replaces F-90d054 postinstall).
+// F-80d19d / F-0f4dd6 — explicit, project-scoped host setup.
 //
-// Wires up to four host AI auto-discovery channels, one symlink per channel:
-//   1. ~/.claude/plugins/cladding         → cladding pkg root
-//   2. ~/.gemini/extensions/cladding      → cladding/plugins/gemini-cli
-//   3. ~/.agents/skills/cladding-<verb>   → cladding/plugins/codex/skills/<verb>
-//   4. ~/.codex/config.toml               → [mcp_servers.cladding] table merge
-//
-// One command handles six scenarios:
-//   - first wire        — symlink absent → create
-//   - update            — symlink target differs from current cladding root → re-wire
-//   - delta host        — host AI newly installed since last setup → add wire
-//   - repair            — symlink missing → create (same as first wire)
-//   - no-op             — symlink target matches → skip
-//   - conflict          — directory copy with manual changes → warn, --force required
-//
-// Detection — host AI is "installed" iff its home directory exists (~/.claude/, ~/.gemini/,
-// ~/.agents/, ~/.codex/). Undetected hosts are skipped (no directories created).
+// Installing the CLI globally must not make Cladding visible to every AI
+// session on the machine. `clad setup` therefore writes only project-local
+// discovery files. A small ignored launcher carries the machine-specific
+// package path; the checked-in host configs remain portable.
 
 import {
   cpSync,
   existsSync,
   lstatSync,
   mkdirSync,
-  readdirSync,
   readFileSync,
   readlinkSync,
+  readdirSync,
   rmSync,
-  statSync,
-  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import {homedir, platform} from 'node:os';
-import {dirname, join, resolve} from 'node:path';
+import {basename, dirname, isAbsolute, join, relative, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 
@@ -39,26 +25,44 @@ export type ChannelResult =
   | 'created'
   | 'unchanged'
   | 'rewired'
-  | 'copied'
+  | 'removed'
   | 'skipped-different'
-  | 'skipped-not-installed'
+  | 'skipped-not-selected'
+  | 'manual-required'
   | 'failed';
 
-export interface CodexSkillResult {
-  readonly verb: string;
-  readonly result: ChannelResult;
-  readonly message?: string;
+export type SetupHost = 'claude' | 'codex' | 'gemini' | 'antigravity' | 'cursor';
+
+export interface HostDetection {
+  readonly claude: boolean;
+  readonly gemini: boolean;
+  readonly antigravity: boolean;
+  readonly codex: boolean;
+  readonly agents: boolean;
+  readonly cursor: boolean;
 }
 
 export interface SetupResult {
+  readonly projectRoot: string;
   readonly wiring: {
+    readonly runtime: ChannelResult;
+    readonly shared_init_skill: ChannelResult;
+    readonly claude: ChannelResult;
+    readonly codex: ChannelResult;
+    readonly gemini: ChannelResult;
+    readonly antigravity: ChannelResult;
+    readonly cursor: ChannelResult;
+  };
+  readonly legacyCleanup: {
     readonly claude_plugin: ChannelResult;
     readonly gemini_extension: ChannelResult;
-    readonly codex_skills: ReadonlyArray<CodexSkillResult>;
+    readonly antigravity_plugin: ChannelResult;
+    readonly codex_skills: ChannelResult;
     readonly codex_mcp: ChannelResult;
     readonly cursor_mcp: ChannelResult;
   };
   readonly errors: ReadonlyArray<{step: string; message: string}>;
+  readonly warnings: ReadonlyArray<{step: string; message: string}>;
   readonly statusFile: string;
   readonly cladding_root: string;
   readonly cladding_version: string;
@@ -70,619 +74,674 @@ export interface SetupOptions {
   readonly quiet?: boolean;
   readonly home?: string;
   readonly pkgRoot?: string;
+  readonly projectRoot?: string;
   readonly version?: string;
-  /** Run host CLI activation commands after wiring (default true). Tests must
-   * pass false: activation invokes the REAL `claude`/`gemini` binaries, which
-   * mutate the developer's actual host config — not the mocked home. */
+  readonly hosts?: readonly SetupHost[];
+  /** Host CLI cleanup is disabled by tests so no developer configuration is touched. */
   readonly activate?: boolean;
-  /** Injectable activation runners so AC-012 is testable without spawning
-   * real host CLIs. Defaults to the real claude/gemini activators. */
-  readonly activators?: {
-    readonly claude?: (pluginPath: string) => ActivationResult;
-    readonly gemini?: (extensionPath: string) => ActivationResult;
-  };
-}
-
-export interface HostDetection {
-  readonly claude: boolean;
-  readonly gemini: boolean;
-  readonly codex: boolean;
-  readonly agents: boolean;
-  readonly cursor: boolean;
 }
 
 interface SetupStatus {
-  cladding_root: string;
-  cladding_version: string;
-  last_run: string;
-  wiring: SetupResult['wiring'];
-  errors: SetupResult['errors'];
+  readonly project_root: string;
+  readonly cladding_root: string;
+  readonly cladding_version: string;
+  readonly last_run: string;
 }
 
 const STATUS_FILENAME = 'setup-status.json';
+const RUNTIME_RELATIVE = join('.cladding', 'host', 'serve.cjs');
+/**
+ * Project-local Gemini policy used only by the explicitly consented read-only host smoke.
+ *
+ * @see spec/features/host-smoke-matrix-5283985e.yaml AC-4a71e2
+ */
+export const GEMINI_DOCTOR_POLICY_RELATIVE = '.cladding/host/gemini-doctor-policy.toml';
+const ALL_HOSTS: readonly SetupHost[] = ['claude', 'codex', 'gemini', 'antigravity', 'cursor'];
+const CURSOR_READONLY_MCP_PERMISSIONS = [
+  'Mcp(cladding:clad_list_features)',
+  'Mcp(cladding:clad_get_feature)',
+  'Mcp(cladding:clad_run_check)',
+] as const;
 
-function detectHosts(home: string): HostDetection {
-  return {
-    claude: existsSync(join(home, '.claude')),
-    gemini: existsSync(join(home, '.gemini')),
-    codex: existsSync(join(home, '.codex')),
-    agents: existsSync(join(home, '.agents')),
-    cursor: existsSync(join(home, '.cursor')),
-  };
+function ensureDir(path: string): void {
+  mkdirSync(path, {recursive: true});
 }
 
-function ensureDir(p: string): void {
-  mkdirSync(p, {recursive: true});
-}
-
-function resolveSymlink(linkPath: string): string | null {
+function readText(path: string): string | null {
   try {
-    const target = readlinkSync(linkPath);
-    return resolve(dirname(linkPath), target);
+    return readFileSync(path, 'utf8');
   } catch {
     return null;
   }
 }
 
-function isSymlink(linkPath: string): boolean {
+function writeIfChanged(path: string, body: string): ChannelResult {
+  const previous = readText(path);
+  if (previous === body) return 'unchanged';
+  ensureDir(dirname(path));
+  writeFileSync(path, body, 'utf8');
+  return previous == null ? 'created' : 'rewired';
+}
+
+function isSymlink(path: string): boolean {
   try {
-    const stat = lstatSync(linkPath);
-    return stat.isSymbolicLink();
+    return lstatSync(path).isSymbolicLink();
   } catch {
     return false;
   }
 }
 
-/** Like existsSync but also returns true for dangling symlinks (existsSync follows targets). */
-function pathExists(linkPath: string): boolean {
+function resolvedSymlink(path: string): string | null {
   try {
-    lstatSync(linkPath);
-    return true;
+    return resolve(dirname(path), readlinkSync(path));
   } catch {
-    return false;
+    return null;
   }
 }
 
-function wireChannel(target: string, link: string, opts: {force: boolean; isWin: boolean}): ChannelResult {
-  if (pathExists(link)) {
-    if (isSymlink(link)) {
-      const existing = resolveSymlink(link);
-      if (existing === target) return 'unchanged';
-      // Symlink with different target → re-wire (safe, no user data loss)
-      try {
-        rmSync(link);
-      } catch {
-        return 'failed';
-      }
-      // fall through to create
-    } else {
-      // Directory copy or other — could contain user customizations
-      if (!opts.force) return 'skipped-different';
-      try {
-        rmSync(link, {recursive: true, force: true});
-      } catch {
-        return 'failed';
-      }
-    }
-  }
-  ensureDir(dirname(link));
-  try {
-    symlinkSync(target, link, opts.isWin ? 'junction' : 'dir');
-    return existsSync(link) ? (isSymlink(link) ? 'created' : 'created') : 'failed';
-  } catch (e: unknown) {
-    const err = e as NodeJS.ErrnoException;
-    if (opts.isWin && (err.code === 'EPERM' || err.code === 'EACCES')) {
-      try {
-        cpSync(target, link, {recursive: true, dereference: true});
-        return 'copied';
-      } catch {
-        return 'failed';
-      }
-    }
-    return 'failed';
-  }
+function pathInside(path: string, root: string): boolean {
+  const delta = relative(resolve(root), resolve(path));
+  return delta === '' || (!delta.startsWith('..') && !isAbsolute(delta));
 }
 
-function wireClaude(home: string, pkgRoot: string, opts: {force: boolean; isWin: boolean}): ChannelResult {
-  return wireChannel(pkgRoot, join(home, '.claude', 'plugins', 'cladding'), opts);
-}
-
-// Gemini stays npm-delegated (needs the PATH-global `clad`): its extension
-// manifest (plugins/gemini-cli/gemini-extension.json) declares `command: "clad"`
-// and is wired by SYMLINK into ~/.gemini/extensions/, so the host reads the shared
-// repo copy directly. Making this lane self-contained would mean patching that
-// manifest to a per-machine bundled-engine path — but patching a symlinked file
-// mutates the shared copy for every project. Until Gemini moves to a copy+patch
-// wire model (as the Claude Code lane did in 0.5.2, pointing MCP at the bundled
-// engine via ${CLAUDE_PLUGIN_ROOT}), it requires `npm install -g cladding`.
-function wireGemini(home: string, pkgRoot: string, opts: {force: boolean; isWin: boolean}): ChannelResult {
-  return wireChannel(join(pkgRoot, 'plugins', 'gemini-cli'), join(home, '.gemini', 'extensions', 'cladding'), opts);
-}
-
-function wireCodexSkills(
-  home: string,
-  pkgRoot: string,
-  opts: {force: boolean; isWin: boolean},
-): CodexSkillResult[] {
-  const out: CodexSkillResult[] = [];
-  const codexSkillsDir = join(pkgRoot, 'plugins', 'codex', 'skills');
-  if (!existsSync(codexSkillsDir)) return out;
-  for (const verb of readdirSync(codexSkillsDir)) {
-    const verbPath = join(codexSkillsDir, verb);
+/**
+ * Ownership roots for legacy-cleanup gating. The HOME-tier status file is a
+ * frozen pre-0.9.0 artifact: only the old global installer wrote it, 0.9.0+
+ * setup writes the PROJECT-tier status file and never updates the home one —
+ * it is read here purely so wires created by that old install stay provably
+ * ours across engine moves.
+ */
+function knownRoots(home: string, pkgRoot: string): string[] {
+  const roots = [resolve(pkgRoot)];
+  const legacy = readText(join(home, '.cladding', STATUS_FILENAME));
+  if (legacy) {
     try {
-      if (!statSync(verbPath).isDirectory()) continue;
+      const parsed = JSON.parse(legacy) as {cladding_root?: unknown};
+      if (typeof parsed.cladding_root === 'string') roots.push(resolve(parsed.cladding_root));
     } catch {
-      continue;
-    }
-    const linkPath = join(home, '.agents', 'skills', `cladding-${verb}`);
-    try {
-      const result = wireChannel(verbPath, linkPath, opts);
-      out.push({verb, result});
-    } catch (e: unknown) {
-      const err = e as Error;
-      out.push({verb, result: 'failed', message: err.message});
+      // A malformed advisory status file cannot establish ownership.
     }
   }
-  return out;
+  return [...new Set(roots)];
 }
 
-/** How a host should launch the MCP server. Hosts spawn MCP servers with a
- * minimal PATH, so a bare `clad` breaks for marketplace-only installs (the
- * dead-server bug the Claude Code lane fixed by bundling, F-102). Prefer the
- * absolute built engine under this package root — per-machine configs
- * (~/.codex/config.toml, ~/.cursor/mcp.json) can carry machine paths safely.
- * Fall back to the PATH-resolved verb only when no built engine exists. */
-export function resolveServeLaunch(pkgRoot: string): {command: string; args: string[]} {
-  const engine = join(pkgRoot, 'dist', 'clad.js');
-  if (existsSync(engine)) return {command: 'node', args: [engine, 'serve']};
-  return {command: 'clad', args: ['serve']};
-}
-
-function wireCursorMcp(home: string, launch: {command: string; args: string[]}): ChannelResult {
+function removeOwnedSymlink(path: string, roots: readonly string[]): ChannelResult {
+  if (!existsSync(path) && !isSymlink(path)) return 'unchanged';
+  if (!isSymlink(path)) return 'skipped-different';
+  const target = resolvedSymlink(path);
+  if (!target || !roots.some((root) => pathInside(target, root))) return 'skipped-different';
   try {
-    const cursorConfigPath = join(home, '.cursor', 'mcp.json');
-    ensureDir(dirname(cursorConfigPath));
-    const existing = existsSync(cursorConfigPath)
-      ? (JSON.parse(readFileSync(cursorConfigPath, 'utf8')) as Record<string, unknown>)
-      : {};
-    if (!existing.mcpServers || typeof existing.mcpServers !== 'object') {
-      existing.mcpServers = {};
-    }
-    const mcpServers = existing.mcpServers as Record<string, unknown>;
-    const ourEntry = {
-      command: launch.command,
-      args: launch.args,
-    };
-    const current = mcpServers.cladding as {command?: string; args?: unknown} | undefined;
-    const isSame =
-      current &&
-      current.command === ourEntry.command &&
-      JSON.stringify(current.args) === JSON.stringify(ourEntry.args);
-    if (isSame) return 'unchanged';
-    const hadCurrent = current != null;
-    mcpServers.cladding = ourEntry;
-    writeFileSync(cursorConfigPath, JSON.stringify(existing, null, 2));
-    return hadCurrent ? 'rewired' : 'created';
+    rmSync(path, {force: true});
+    return 'removed';
   } catch {
     return 'failed';
   }
 }
 
-async function wireCodexMcp(home: string, launch: {command: string; args: string[]}): Promise<ChannelResult> {
+function removeOwnedCodexSkills(home: string, roots: readonly string[]): ChannelResult {
+  const skillsRoot = join(home, '.agents', 'skills');
+  if (!existsSync(skillsRoot)) return 'unchanged';
+  let removed = 0;
+  let conflicts = 0;
+  for (const name of readdirSync(skillsRoot)) {
+    if (!name.startsWith('cladding-')) continue;
+    const result = removeOwnedSymlink(join(skillsRoot, name), roots);
+    if (result === 'removed') removed++;
+    if (result === 'skipped-different') conflicts++;
+  }
+  if (conflicts > 0) return 'skipped-different';
+  return removed > 0 ? 'removed' : 'unchanged';
+}
+
+function isKnownLaunch(value: unknown, roots: readonly string[]): boolean {
+  if (!value || typeof value !== 'object') return false;
+  const entry = value as {command?: unknown; args?: unknown; description?: unknown};
+  const args = Array.isArray(entry.args) ? entry.args : [];
+  if (entry.command === 'clad' && args[0] === 'serve') return true;
+  if (typeof entry.description === 'string' && entry.description.includes('wired by `clad setup`')) return true;
+  if (typeof entry.description === 'string' && entry.description.includes('project-scoped by `clad setup`')) return true;
+  if (entry.command === 'node' && args[0] === RUNTIME_RELATIVE) return true;
+  return entry.command === 'node' && typeof args[0] === 'string' && roots.some((root) => pathInside(args[0] as string, root));
+}
+
+/**
+ * Deletes the `[mcp_servers.cladding]` section from the raw TOML text without
+ * re-serializing the document, so the user's comments, ordering, and formatting
+ * everywhere else survive. Returns null when the section boundaries cannot be
+ * identified textually (caller falls back to the lossy stringify path).
+ */
+function spliceTomlSection(raw: string, header: string): string | null {
+  const lines = raw.split('\n');
+  const start = lines.findIndex((l) => l.trim() === header);
+  if (start === -1) return null;
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i++) {
+    const t = lines[i].trim();
+    if (t.startsWith('[') && !t.startsWith('#')) {
+      end = i;
+      break;
+    }
+  }
+  // Also drop blank lines directly above the removed section so no gap pile-up.
+  let cut = start;
+  while (cut > 0 && lines[cut - 1].trim() === '') cut--;
+  return [...lines.slice(0, cut), ...lines.slice(end)].join('\n');
+}
+
+async function removeOwnedCodexMcp(home: string, roots: readonly string[]): Promise<ChannelResult> {
+  const path = join(home, '.codex', 'config.toml');
+  const raw = readText(path);
+  if (raw == null) return 'unchanged';
   try {
-    const codexConfigPath = join(home, '.codex', 'config.toml');
-    ensureDir(dirname(codexConfigPath));
     const {parse, stringify} = await import('smol-toml');
-    const existing = existsSync(codexConfigPath)
-      ? (parse(readFileSync(codexConfigPath, 'utf8')) as Record<string, unknown>)
-      : {};
-    if (!existing.mcp_servers || typeof existing.mcp_servers !== 'object') {
-      existing.mcp_servers = {};
+    const doc = parse(raw) as Record<string, unknown>;
+    const servers = doc.mcp_servers as Record<string, unknown> | undefined;
+    if (!servers?.cladding) return 'unchanged';
+    if (!isKnownLaunch(servers.cladding, roots)) return 'skipped-different';
+    delete servers.cladding;
+    if (Object.keys(servers).length === 0) delete doc.mcp_servers;
+    // Prefer a text-level splice (preserves the user's comments/format across
+    // the rest of the file); verify by parsing before trusting it, and fall
+    // back to the canonical re-serialization only when the splice is unsound.
+    const spliced = spliceTomlSection(raw, '[mcp_servers.cladding]');
+    if (spliced != null) {
+      try {
+        if (JSON.stringify(parse(spliced)) === JSON.stringify(doc)) {
+          writeFileSync(path, spliced, 'utf8');
+          return 'removed';
+        }
+      } catch {
+        // fall through to the stringify path
+      }
     }
-    const mcpServers = existing.mcp_servers as Record<string, unknown>;
-    const ourEntry = {
-      command: launch.command,
-      args: launch.args,
-      description: 'cladding MCP server (wired by `clad setup`)',
-    };
-    const current = mcpServers.cladding as {command?: string; args?: unknown} | undefined;
-    const isSame =
-      current &&
-      current.command === ourEntry.command &&
-      JSON.stringify(current.args) === JSON.stringify(ourEntry.args);
-    if (isSame) return 'unchanged';
-    const hadCurrent = current != null;
-    mcpServers.cladding = ourEntry;
-    writeFileSync(codexConfigPath, stringify(existing));
-    return hadCurrent ? 'rewired' : 'created';
+    writeFileSync(path, stringify(doc), 'utf8');
+    return 'removed';
   } catch {
     return 'failed';
   }
+}
+
+function removeOwnedCursorMcp(home: string, roots: readonly string[]): ChannelResult {
+  const path = join(home, '.cursor', 'mcp.json');
+  const raw = readText(path);
+  if (raw == null) return 'unchanged';
+  try {
+    const doc = JSON.parse(raw) as Record<string, unknown>;
+    const servers = doc.mcpServers as Record<string, unknown> | undefined;
+    if (!servers?.cladding) return 'unchanged';
+    if (!isKnownLaunch(servers.cladding, roots)) return 'skipped-different';
+    delete servers.cladding;
+    if (Object.keys(servers).length === 0) delete doc.mcpServers;
+    writeFileSync(path, `${JSON.stringify(doc, null, 2)}\n`, 'utf8');
+    return 'removed';
+  } catch {
+    return 'failed';
+  }
+}
+
+/**
+ * Antigravity (agy 1.1.x) reads MCP config ONLY from machine-wide locations
+ * (`~/.gemini/config/mcp_config.json` or `~/.gemini/config/plugins/<name>/`),
+ * never from the project — verified live in the 0.9.0 E2E campaign. It does
+ * spawn MCP servers with the session's working directory, so one machine-wide
+ * wire pointing at the engine stays project-aware. This is the one deliberate
+ * exception to project-local activation, and the setup report says so.
+ */
+function wireAntigravityGlobal(home: string, pkgRoot: string, force: boolean): ChannelResult {
+  const dir = join(home, '.gemini', 'config', 'plugins', 'cladding');
+  // An unowned legacy symlink survived cleanup — never write through it.
+  if (isSymlink(dir)) return 'skipped-different';
+  const launch = {command: 'node', args: [join(pkgRoot, 'dist', 'clad.js'), 'serve']};
+  const mcp = mergeJsonMcp(join(dir, 'mcp_config.json'), launch, force);
+  if (mcp === 'skipped-different' || mcp === 'failed') return mcp;
+  const manifest = `${JSON.stringify({
+    $schema: 'https://antigravity.google/schemas/v1/plugin.json',
+    name: 'cladding',
+    description: 'Spec-driven verification and onboarding for Antigravity CLI (machine-wide MCP wire; the project is resolved from each session’s working directory).',
+  }, null, 2)}\n`;
+  return combine([mcp, writeIfChanged(join(dir, 'plugin.json'), manifest)]);
+}
+
+/**
+ * Legacy-cleanup gate for `~/.gemini/config/plugins/cladding`: the pre-0.9.0
+ * install left a SYMLINK here (owned → removed); 0.9.0 setup writes a REAL
+ * directory as the managed Antigravity wire (recognized launch → kept). A real
+ * directory with an unrecognized launch is foreign and is never removed.
+ */
+function cleanupAntigravityPlugin(home: string, roots: readonly string[]): ChannelResult {
+  const dir = join(home, '.gemini', 'config', 'plugins', 'cladding');
+  if (isSymlink(dir)) return removeOwnedSymlink(dir, roots);
+  const cfg = readText(join(dir, 'mcp_config.json'));
+  if (cfg == null) return 'unchanged';
+  try {
+    const servers = (JSON.parse(cfg) as {mcpServers?: Record<string, unknown>}).mcpServers;
+    if (servers?.cladding && !isKnownLaunch(servers.cladding, roots)) return 'skipped-different';
+    return 'unchanged';
+  } catch {
+    return 'skipped-different';
+  }
+}
+
+function detectBinary(name: string): boolean {
+  const command = platform() === 'win32' ? 'where' : 'which';
+  return spawnSync(command, [name], {stdio: 'ignore'}).status === 0;
+}
+
+function cleanupClaudeUserPlugin(enabled: boolean): ChannelResult {
+  if (!enabled || !detectBinary('claude')) return 'manual-required';
+  const result = spawnSync(
+    'claude',
+    ['plugin', 'uninstall', 'claude-code@cladding', '--scope', 'user', '--keep-data'],
+    {encoding: 'utf8', timeout: 30_000, shell: platform() === 'win32'},
+  );
+  if (result.status === 0) return 'removed';
+  const combined = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
+  return /not installed|not found/i.test(combined) ? 'unchanged' : 'manual-required';
+}
+
+function runtimeBody(pkgRoot: string): string {
+  const engine = join(pkgRoot, 'dist', 'clad.js');
+  return [
+    "'use strict';",
+    "const {spawn} = require('node:child_process');",
+    `const engine = ${JSON.stringify(engine)};`,
+    "const requested = process.argv.slice(2);",
+    "const args = requested.length > 0 ? requested : ['serve'];",
+    "const child = spawn(process.execPath, [engine, ...args], {cwd: process.cwd(), stdio: 'inherit'});",
+    "for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => child.kill(signal));",
+    "child.on('error', (error) => { console.error(`cladding project launcher: ${error.message}`); process.exitCode = 1; });",
+    "child.on('exit', (code, signal) => { process.exitCode = code ?? (signal ? 1 : 0); });",
+    '',
+  ].join('\n');
+}
+
+/** Allow only the annotated read-only doctor surfaces while Gemini is in Plan Mode. */
+function geminiDoctorPolicyBody(): string {
+  return [
+    '[[rule]]',
+    'mcpName = "cladding"',
+    'toolName = "*"',
+    'decision = "deny"',
+    'priority = 100',
+    'modes = ["plan"]',
+    'interactive = false',
+    '',
+    '[[rule]]',
+    'mcpName = "cladding"',
+    'toolName = ["clad_list_features", "clad_get_feature", "clad_run_check"]',
+    'toolAnnotations = { readOnlyHint = true }',
+    'decision = "allow"',
+    'priority = 200',
+    'modes = ["plan"]',
+    'interactive = false',
+    '',
+    '[[rule]]',
+    'toolName = "exit_plan_mode"',
+    'decision = "deny"',
+    'priority = 200',
+    'modes = ["plan"]',
+    'interactive = false',
+    '',
+  ].join('\n');
+}
+
+/** Keep machine-specific setup state out of a Git worktree without editing the shared .gitignore. */
+function ignoreLocalRuntime(projectRoot: string): void {
+  const exclude = join(projectRoot, '.git', 'info', 'exclude');
+  if (!existsSync(dirname(exclude))) return;
+  const entries = ['/.cladding/host/', '/.cladding/setup-status.json'];
+  const current = readText(exclude) ?? '';
+  const lines = current.split(/\r?\n/);
+  const missing = entries.filter((entry) => !lines.includes(entry));
+  if (missing.length === 0) return;
+  const separator = current.length > 0 && !current.endsWith('\n') ? '\n' : '';
+  writeFileSync(exclude, `${current}${separator}${missing.join('\n')}\n`, 'utf8');
+}
+
+function mcpLaunch(): {command: string; args: string[]} {
+  return {command: 'node', args: [RUNTIME_RELATIVE]};
+}
+
+function copyManagedSkill(source: string, destination: string, force: boolean): ChannelResult {
+  if (!existsSync(source)) return 'failed';
+  const sourceBody = readText(join(source, 'SKILL.md'));
+  if (sourceBody == null || !sourceBody.startsWith('---\n')) return 'failed';
+  const destinationName = basename(destination);
+  const expected = /^name:\s*.*$/m.test(sourceBody)
+    ? sourceBody.replace(/^name:\s*.*$/m, `name: ${destinationName}`)
+    : sourceBody.replace(/^---\n/, `---\nname: ${destinationName}\n`);
+  if (existsSync(destination)) {
+    const current = readText(join(destination, 'SKILL.md'));
+    if (current === expected) return 'unchanged';
+    if (!force && current != null && !current.includes('# Cladding init')) return 'skipped-different';
+    rmSync(destination, {recursive: true, force: true});
+  }
+  ensureDir(dirname(destination));
+  cpSync(source, destination, {recursive: true, dereference: true});
+  writeFileSync(join(destination, 'SKILL.md'), expected, 'utf8');
+  return 'created';
+}
+
+function mergeJsonMcp(path: string, launch: {command: string; args: string[]}, force: boolean): ChannelResult {
+  try {
+    const raw = readText(path);
+    const doc = raw == null ? {} : (JSON.parse(raw) as Record<string, unknown>);
+    if (!doc.mcpServers || typeof doc.mcpServers !== 'object') doc.mcpServers = {};
+    const servers = doc.mcpServers as Record<string, unknown>;
+    const current = servers.cladding;
+    const next = {command: launch.command, args: launch.args};
+    if (JSON.stringify(current) === JSON.stringify(next)) return 'unchanged';
+    if (current && !force && !isKnownLaunch(current, [])) return 'skipped-different';
+    servers.cladding = next;
+    return writeIfChanged(path, `${JSON.stringify(doc, null, 2)}\n`);
+  } catch {
+    return 'failed';
+  }
+}
+
+/** Allow only Cladding's read-only doctor tools in project-local Cursor CLI sessions. */
+function mergeCursorCliPermissions(path: string): ChannelResult {
+  try {
+    const raw = readText(path);
+    const doc = raw == null ? {} : (JSON.parse(raw) as Record<string, unknown>);
+    const currentPermissions = doc.permissions;
+    if (
+      currentPermissions !== undefined &&
+      (typeof currentPermissions !== 'object' || currentPermissions === null || Array.isArray(currentPermissions))
+    ) {
+      return 'skipped-different';
+    }
+    const permissions = (currentPermissions ?? {}) as Record<string, unknown>;
+    const currentAllow = permissions.allow;
+    if (
+      currentAllow !== undefined &&
+      (!Array.isArray(currentAllow) || currentAllow.some((entry) => typeof entry !== 'string'))
+    ) {
+      return 'skipped-different';
+    }
+    const currentDeny = permissions.deny;
+    if (
+      currentDeny !== undefined &&
+      (!Array.isArray(currentDeny) || currentDeny.some((entry) => typeof entry !== 'string'))
+    ) {
+      return 'skipped-different';
+    }
+    const allow = (currentAllow ?? []) as string[];
+    const deny = (currentDeny ?? []) as string[];
+    const nextAllow = [...allow];
+    for (const permission of CURSOR_READONLY_MCP_PERMISSIONS) {
+      if (!nextAllow.includes(permission)) nextAllow.push(permission);
+    }
+    if (nextAllow.length === allow.length && currentDeny !== undefined) return 'unchanged';
+    permissions.allow = nextAllow;
+    permissions.deny = deny;
+    doc.permissions = permissions;
+    return writeIfChanged(path, `${JSON.stringify(doc, null, 2)}\n`);
+  } catch {
+    return 'failed';
+  }
+}
+
+async function mergeCodexMcp(path: string, launch: {command: string; args: string[]}, force: boolean): Promise<ChannelResult> {
+  try {
+    const {parse, stringify} = await import('smol-toml');
+    const raw = readText(path);
+    const doc = raw == null ? {} : (parse(raw) as Record<string, unknown>);
+    if (!doc.mcp_servers || typeof doc.mcp_servers !== 'object') doc.mcp_servers = {};
+    const servers = doc.mcp_servers as Record<string, unknown>;
+    const current = servers.cladding;
+    const next = {
+      command: launch.command,
+      args: launch.args,
+      description: 'cladding MCP server (project-scoped by `clad setup`)',
+      default_tools_approval_mode: 'writes',
+    };
+    if (JSON.stringify(current) === JSON.stringify(next)) return 'unchanged';
+    if (current && !force && !isKnownLaunch(current, [])) return 'skipped-different';
+    servers.cladding = next;
+    return writeIfChanged(path, stringify(doc));
+  } catch {
+    return 'failed';
+  }
+}
+
+function writeCursorBootstrap(projectRoot: string): ChannelResult {
+  const body = [
+    '---',
+    'description: Cladding bootstrap boundary',
+    'alwaysApply: true',
+    '---',
+    '',
+    'Cladding is available only in this project. Do not initialize or invoke Cladding for ordinary work.',
+    'Use the cladding-init skill only when the user explicitly names Cladding and asks to initialize, adopt, or refresh it.',
+    '',
+  ].join('\n');
+  return writeIfChanged(join(projectRoot, '.cursor', 'rules', 'cladding-bootstrap.mdc'), body);
+}
+
+function combine(results: readonly ChannelResult[]): ChannelResult {
+  if (results.includes('failed')) return 'failed';
+  if (results.includes('skipped-different')) return 'skipped-different';
+  if (results.includes('manual-required')) return 'manual-required';
+  if (results.includes('removed')) return 'removed';
+  if (results.includes('rewired')) return 'rewired';
+  if (results.includes('created')) return 'created';
+  return 'unchanged';
 }
 
 function readLastSetupVersion(statusFile: string): string | null {
   try {
-    const raw = readFileSync(statusFile, 'utf8');
-    const parsed = JSON.parse(raw) as Partial<SetupStatus>;
-    return parsed.cladding_version ?? null;
+    return (JSON.parse(readFileSync(statusFile, 'utf8')) as SetupStatus).cladding_version ?? null;
   } catch {
     return null;
   }
 }
 
-function writeStatus(statusFile: string, status: SetupStatus): void {
-  try {
-    ensureDir(dirname(statusFile));
-    writeFileSync(statusFile, JSON.stringify(status, null, 2));
-  } catch {
-    // status file is advisory; failure here is not user-visible.
-  }
-}
-
-function formatChannelLine(name: string, result: ChannelResult, target?: string): string {
-  const icon =
-    result === 'created' || result === 'rewired' || result === 'copied' || result === 'unchanged'
-      ? '✓'
-      : result === 'skipped-not-installed'
-      ? '-'
-      : result === 'skipped-different'
-      ? '⚠'
-      : '✗';
-  const label =
-    result === 'created'
-      ? 'wired'
-      : result === 'rewired'
-      ? 're-wired (updated)'
-      : result === 'copied'
-      ? 'wired (directory copy, Windows fallback)'
-      : result === 'unchanged'
-      ? 'already wired'
-      : result === 'skipped-not-installed'
-      ? 'not installed, skipped'
-      : result === 'skipped-different'
-      ? 'conflict — manual change detected, use --force'
-      : 'failed';
-  return `  ${icon} ${name.padEnd(28)} → ${label}${target ? ` (${target})` : ''}`;
-}
-
-const WIRED_STATES: ReadonlySet<ChannelResult> = new Set(['created', 'rewired', 'unchanged', 'copied']);
-
-/** Check whether a binary exists in PATH using `which` (POSIX) or `where` (Win). */
-function detectBinary(name: string): boolean {
-  const cmd = platform() === 'win32' ? 'where' : 'which';
-  const result = spawnSync(cmd, [name], {stdio: 'ignore'});
-  return result.status === 0;
-}
-
-/** Run a non-interactive activation command, return true on success. */
-function runActivation(command: string, args: readonly string[]): {ok: boolean; stderr: string} {
-  // shell:true on Windows — the host CLIs (claude/gemini/codex) install as `.cmd`
-  // shims that spawnSync cannot resolve without a shell, so without this the
-  // activation ENOENTs even though `where <cmd>` (detectBinary) found it.
-  const result = spawnSync(command, args, {
-    encoding: 'utf8',
-    timeout: 30_000,
-    shell: platform() === 'win32',
-  });
-  return {ok: result.status === 0, stderr: result.stderr ?? ''};
-}
-
-export interface ActivationResult {
-  readonly attempted: boolean;
-  readonly success: boolean;
-  readonly stderr?: string;
-}
-
-function activateClaude(pluginPath: string): ActivationResult {
-  if (!detectBinary('claude')) return {attempted: false, success: false};
-  const add = runActivation('claude', ['plugin', 'marketplace', 'add', pluginPath, '--scope', 'user']);
-  if (!add.ok) return {attempted: true, success: false, stderr: add.stderr};
-  const install = runActivation('claude', ['plugin', 'install', 'claude-code@cladding', '--scope', 'user']);
-  return {attempted: true, success: install.ok, stderr: install.stderr};
-}
-
-function activateGemini(extensionPath: string): ActivationResult {
-  if (!detectBinary('gemini')) return {attempted: false, success: false};
-  // Check if cladding extension is already installed/enabled — `gemini extensions
-  // list` writes its output to stderr (verified against gemini 0.42.0), so we
-  // grep both streams.
-  const list = spawnSync('gemini', ['extensions', 'list'], {
-    encoding: 'utf8',
-    timeout: 10_000,
-    shell: platform() === 'win32', // `gemini` is a `.cmd` shim on Windows
-  });
-  const combined = (list.stdout ?? '') + (list.stderr ?? '');
-  if (list.status === 0 && /\bcladding\b/.test(combined)) {
-    return {attempted: true, success: true};
-  }
-  const link = runActivation('gemini', ['extensions', 'link', extensionPath]);
-  return {attempted: true, success: link.ok, stderr: link.stderr};
-}
-
-export interface ActivationContext {
-  readonly claude?: ActivationResult;
-  readonly gemini?: ActivationResult;
-}
-
-function pushActivationHint(
-  lines: string[],
-  channel: 'claude' | 'gemini' | 'codex-skills' | 'codex-mcp' | 'cursor',
-  wired: boolean,
-  activation?: ActivationContext,
+function collectIssue(
+  result: ChannelResult,
+  step: string,
+  errors: Array<{step: string; message: string}>,
+  warnings: Array<{step: string; message: string}>,
 ): void {
-  if (!wired) return;
-  switch (channel) {
-    case 'claude': {
-      const a = activation?.claude;
-      if (a?.attempted && a.success) {
-        lines.push('     ↳ Activate: ✓ claude plugin marketplace add + install done automatically (applies after Claude Code restart)');
-      } else if (a?.attempted && !a.success) {
-        lines.push('     ↳ Activate: ✗ auto attempt failed — manual:');
-        lines.push('       `claude plugin marketplace add ~/.claude/plugins/cladding`');
-        lines.push('       then `claude plugin install claude-code@cladding --scope user`');
-      } else {
-        lines.push('     ↳ Activate (no claude binary): manual:');
-        lines.push('       `claude plugin marketplace add ~/.claude/plugins/cladding`');
-        lines.push('       then `claude plugin install claude-code@cladding --scope user`');
-      }
-      break;
-    }
-    case 'gemini': {
-      const a = activation?.gemini;
-      if (a?.attempted && a.success) {
-        lines.push('     ↳ Activate: ✓ gemini extensions link done automatically (applies after Gemini CLI restart)');
-      } else if (a?.attempted && !a.success) {
-        lines.push('     ↳ Activate: ✗ auto attempt failed — manual:');
-        lines.push('       `gemini extensions link ~/.gemini/extensions/cladding`');
-      } else {
-        lines.push('     ↳ Activate (no gemini binary): manual:');
-        lines.push('       `gemini extensions link ~/.gemini/extensions/cladding`');
-      }
-      break;
-    }
-    case 'codex-skills':
-      lines.push('     ↳ Codex CLI auto-detects ~/.agents/skills/ (applies after restart)');
-      break;
-    case 'codex-mcp':
-      lines.push('     ↳ the TOML entry itself registers it — no separate activation needed');
-      break;
-    case 'cursor':
-      lines.push('     ↳ ~/.cursor/mcp.json itself registers it — applies after Cursor restart');
-      break;
-  }
+  if (result === 'failed') errors.push({step, message: 'project wiring failed'});
+  if (result === 'skipped-different') warnings.push({step, message: 'existing non-Cladding configuration was preserved; use --force to replace only the cladding entry'});
+  if (result === 'manual-required') warnings.push({step, message: 'run `claude plugin uninstall claude-code@cladding --scope user --keep-data` to remove the legacy user plugin'});
 }
 
-function printReport(
-  result: SetupResult,
-  detection: HostDetection,
-  activation: ActivationContext,
-  opts: {quiet?: boolean},
-): void {
-  if (opts.quiet) return;
-  process.stdout.write(renderSetupReport(result, detection, activation) + '\n');
-}
-
-/** Pure renderer for the setup report (AC-010 — the numbered "Next steps" block).
- * Separated from printReport so the guidance contract is unit-testable. */
-export function renderSetupReport(
-  result: SetupResult,
-  detection: HostDetection,
-  activation: ActivationContext,
-): string {
-  const lines: string[] = [];
-  lines.push('cladding setup — wiring detected AI tools');
-  lines.push('');
-
-  const claudeState = detection.claude ? result.wiring.claude_plugin : 'skipped-not-installed';
-  lines.push(formatChannelLine('Claude Code', claudeState));
-  pushActivationHint(lines, 'claude', WIRED_STATES.has(claudeState), activation);
-
-  const geminiState = detection.gemini ? result.wiring.gemini_extension : 'skipped-not-installed';
-  lines.push(formatChannelLine('Gemini CLI', geminiState));
-  pushActivationHint(lines, 'gemini', WIRED_STATES.has(geminiState), activation);
-
-  const skillsSummary = detection.agents
-    ? summarizeSkills(result.wiring.codex_skills)
-    : 'skipped-not-installed';
-  lines.push(
-    detection.agents
-      ? `  ✓ ${'Codex skills'.padEnd(28)} → ${skillsSummary}`
-      : formatChannelLine('Codex skills', 'skipped-not-installed'),
-  );
-  const skillsWired = detection.agents && result.wiring.codex_skills.some((s) => WIRED_STATES.has(s.result));
-  pushActivationHint(lines, 'codex-skills', skillsWired);
-
-  const codexMcpState = detection.codex ? result.wiring.codex_mcp : 'skipped-not-installed';
-  lines.push(formatChannelLine('Codex MCP', codexMcpState));
-  pushActivationHint(lines, 'codex-mcp', WIRED_STATES.has(codexMcpState));
-
-  const cursorState = detection.cursor ? result.wiring.cursor_mcp : 'skipped-not-installed';
-  lines.push(formatChannelLine('Cursor', cursorState));
-  pushActivationHint(lines, 'cursor', WIRED_STATES.has(cursorState));
-
-  lines.push('');
-  const wiredCount = countWired(result.wiring, detection);
-  const detectedCount = countDetected(detection);
-  if (wiredCount === detectedCount && detectedCount > 0) {
-    lines.push(`${wiredCount}/${detectedCount} detected channels wired. Status: ${result.statusFile}`);
-  } else if (detectedCount === 0) {
-    lines.push('No AI tools detected. Install one of Claude Code / Codex / Gemini CLI / Cursor, then run this again.');
-  } else {
-    lines.push(`${wiredCount}/${detectedCount} detected channels wired (some skipped/failed). Status: ${result.statusFile}`);
-  }
-  if (result.last_setup_version && result.last_setup_version !== result.cladding_version) {
-    lines.push('');
-    lines.push(`(version change detected: ${result.last_setup_version} → ${result.cladding_version})`);
-  }
-  lines.push('');
-  lines.push('Next steps:');
-  lines.push('  1. Restart your AI tool (Claude Code / Codex / Gemini / Cursor)');
-  lines.push('  2. Open the project directory');
-  lines.push('  3. Type /cladding init "..." (inside the LLM) or `clad init "..."` (terminal)');
-  lines.push('  4. Start building — cladding checks that spec ↔ code stay in sync on every commit');
-  return lines.join('\n');
-}
-
-function summarizeSkills(skills: ReadonlyArray<CodexSkillResult>): string {
-  if (skills.length === 0) return '0 verbs (skipped)';
-  const counts = skills.reduce<Record<string, number>>((acc, s) => {
-    acc[s.result] = (acc[s.result] ?? 0) + 1;
-    return acc;
-  }, {});
-  const parts: string[] = [];
-  if (counts.created) parts.push(`${counts.created} created`);
-  if (counts.rewired) parts.push(`${counts.rewired} re-wired`);
-  if (counts.unchanged) parts.push(`${counts.unchanged} already wired`);
-  if (counts.copied) parts.push(`${counts.copied} copied`);
-  if (counts.failed) parts.push(`${counts.failed} failed`);
-  if (counts['skipped-different']) parts.push(`${counts['skipped-different']} conflict`);
-  return `${skills.length} verb${skills.length === 1 ? '' : 's'} — ${parts.join(', ')}`;
-}
-
-function countDetected(detection: HostDetection): number {
-  return (
-    (detection.claude ? 1 : 0) +
-    (detection.gemini ? 1 : 0) +
-    (detection.agents ? 1 : 0) +
-    (detection.codex ? 1 : 0) +
-    (detection.cursor ? 1 : 0)
-  );
-}
-
-function countWired(wiring: SetupResult['wiring'], detection: HostDetection): number {
-  let n = 0;
-  const wiredStates = new Set(['created', 'rewired', 'unchanged', 'copied']);
-  if (detection.claude && wiredStates.has(wiring.claude_plugin)) n++;
-  if (detection.gemini && wiredStates.has(wiring.gemini_extension)) n++;
-  if (detection.agents && wiring.codex_skills.some((s) => wiredStates.has(s.result))) n++;
-  if (detection.codex && wiredStates.has(wiring.codex_mcp)) n++;
-  if (detection.cursor && wiredStates.has(wiring.cursor_mcp)) n++;
-  return n;
-}
-
-/** Run the `clad setup` host wiring (install + update + delta + repair). */
+/** Wire Cladding only into one project and remove provably-owned legacy globals. */
 export async function runHostSetup(opts: SetupOptions = {}): Promise<SetupResult> {
   const home = opts.home ?? homedir();
+  const projectRoot = resolve(opts.projectRoot ?? process.cwd());
   const pkgRoot = opts.pkgRoot ?? resolveDefaultPkgRoot();
-  const version = opts.version ?? readCladingVersion(pkgRoot);
-  const isWin = platform() === 'win32';
+  const version = opts.version ?? readCladdingVersion(pkgRoot);
+  // Default to the hosts actually present on this machine (spec AC-001:
+  // "wire only the detected channels"); `--host all` forces every channel.
+  const detected = detectHosts(home);
+  const hosts = new Set(opts.hosts ?? ALL_HOSTS.filter((h) => detected[h]));
   const force = opts.force ?? false;
-  const statusFile = join(home, '.cladding', STATUS_FILENAME);
-
+  const statusFile = join(projectRoot, '.cladding', STATUS_FILENAME);
   const lastVersion = readLastSetupVersion(statusFile);
-  const detection = detectHosts(home);
   const errors: Array<{step: string; message: string}> = [];
+  const warnings: Array<{step: string; message: string}> = [];
 
-  const claude_plugin = detection.claude
-    ? wireClaude(home, pkgRoot, {force, isWin})
-    : 'skipped-not-installed';
-  const gemini_extension = detection.gemini
-    ? wireGemini(home, pkgRoot, {force, isWin})
-    : 'skipped-not-installed';
-  const codex_skills = detection.agents ? wireCodexSkills(home, pkgRoot, {force, isWin}) : [];
-  const serveLaunch = resolveServeLaunch(pkgRoot);
-  const codex_mcp: ChannelResult = detection.codex
-    ? await wireCodexMcp(home, serveLaunch)
-    : 'skipped-not-installed';
-  const cursor_mcp: ChannelResult = detection.cursor
-    ? wireCursorMcp(home, serveLaunch)
-    : 'skipped-not-installed';
-
-  for (const state of [claude_plugin, gemini_extension, codex_mcp, cursor_mcp]) {
-    if (state === 'failed') errors.push({step: state, message: 'wire failed'});
+  ensureDir(projectRoot);
+  ignoreLocalRuntime(projectRoot);
+  const runtimeParts: ChannelResult[] = [
+    writeIfChanged(join(projectRoot, RUNTIME_RELATIVE), runtimeBody(pkgRoot)),
+  ];
+  if (hosts.has('gemini')) {
+    runtimeParts.push(
+      writeIfChanged(join(projectRoot, GEMINI_DOCTOR_POLICY_RELATIVE), geminiDoctorPolicyBody()),
+    );
   }
-  for (const s of codex_skills) {
-    if (s.result === 'failed') errors.push({step: `codex_skill:${s.verb}`, message: s.message ?? 'wire failed'});
-  }
+  const runtime = combine(runtimeParts);
+  const initSource = join(pkgRoot, 'plugins', 'codex', 'skills', 'init');
+  const sharedSkill = hosts.has('codex') || hosts.has('gemini') || hosts.has('antigravity')
+    ? copyManagedSkill(initSource, join(projectRoot, '.agents', 'skills', 'cladding-init'), force)
+    : 'unchanged';
+  const launch = mcpLaunch();
 
-  // Auto-activation — runs after symlink wire succeeds. Each host CLI command
-  // is invoked non-interactively; failures fall back to stdout instructions.
-  // Guarded by opts.activate: the real activators mutate the machine's actual
-  // host config (not the mocked home), so tests/CI must opt out.
-  const shouldActivate = opts.activate ?? true;
-  const claudeActivator = opts.activators?.claude ?? activateClaude;
-  const geminiActivator = opts.activators?.gemini ?? activateGemini;
-  const activation: ActivationContext = shouldActivate
-    ? {
-        ...(WIRED_STATES.has(claude_plugin)
-          ? {claude: claudeActivator(join(home, '.claude', 'plugins', 'cladding'))}
-          : {}),
-        ...(WIRED_STATES.has(gemini_extension)
-          ? {gemini: geminiActivator(join(home, '.gemini', 'extensions', 'cladding'))}
-          : {}),
-      }
-    : {};
+  // Legacy cleanup runs BEFORE wiring: the antigravity channel writes a
+  // machine-wide dir at the same path the pre-0.9.0 symlink occupied, and a
+  // merge through a still-present symlink would write into the legacy package.
+  const roots = knownRoots(home, pkgRoot);
+  const claudePluginLink = removeOwnedSymlink(join(home, '.claude', 'plugins', 'cladding'), roots);
+  const claudePluginInstall = claudePluginLink === 'removed'
+    ? cleanupClaudeUserPlugin(opts.activate ?? true)
+    : 'unchanged';
+  const legacyCleanup = {
+    claude_plugin: combine([claudePluginLink, claudePluginInstall]),
+    gemini_extension: removeOwnedSymlink(join(home, '.gemini', 'extensions', 'cladding'), roots),
+    antigravity_plugin: cleanupAntigravityPlugin(home, roots),
+    codex_skills: removeOwnedCodexSkills(home, roots),
+    codex_mcp: await removeOwnedCodexMcp(home, roots),
+    cursor_mcp: removeOwnedCursorMcp(home, roots),
+  } as const;
+
+  const codex = hosts.has('codex')
+    ? await mergeCodexMcp(join(projectRoot, '.codex', 'config.toml'), launch, force)
+    : 'skipped-not-selected';
+  const gemini = hosts.has('gemini')
+    ? mergeJsonMcp(join(projectRoot, '.gemini', 'settings.json'), launch, force)
+    : 'skipped-not-selected';
+  const antigravity = hosts.has('antigravity')
+    ? combine([
+        // Forward-compat project file (agy 1.1.x does not read it yet) …
+        mergeJsonMcp(join(projectRoot, '.agents', 'mcp_config.json'), launch, force),
+        // … plus the machine-wide wire agy actually loads (see wireAntigravityGlobal).
+        wireAntigravityGlobal(home, pkgRoot, force),
+      ])
+    : 'skipped-not-selected';
+  const claude = hosts.has('claude')
+    ? combine([
+        copyManagedSkill(initSource, join(projectRoot, '.claude', 'skills', 'cladding-init'), force),
+        mergeJsonMcp(join(projectRoot, '.mcp.json'), launch, force),
+      ])
+    : 'skipped-not-selected';
+  const cursor = hosts.has('cursor')
+    ? combine([
+        copyManagedSkill(initSource, join(projectRoot, '.cursor', 'skills', 'cladding-init'), force),
+        mergeJsonMcp(join(projectRoot, '.cursor', 'mcp.json'), launch, force),
+        mergeCursorCliPermissions(join(projectRoot, '.cursor', 'cli.json')),
+        writeCursorBootstrap(projectRoot),
+      ])
+    : 'skipped-not-selected';
+
+  const wiring = {runtime, shared_init_skill: sharedSkill, claude, codex, gemini, antigravity, cursor};
+  if (hosts.size === 0) {
+    warnings.push({
+      step: 'hosts',
+      message: 'no supported AI host detected on this machine — only the shared runtime was written; use `clad setup --host <name|all>` to wire explicitly',
+    });
+  }
+  for (const [step, state] of Object.entries(wiring)) collectIssue(state, step, errors, warnings);
+  for (const [step, state] of Object.entries(legacyCleanup)) collectIssue(state, `legacy:${step}`, errors, warnings);
+
+  ensureDir(dirname(statusFile));
+  writeFileSync(statusFile, `${JSON.stringify({
+    project_root: projectRoot,
+    cladding_root: pkgRoot,
+    cladding_version: version,
+    last_run: new Date().toISOString(),
+  }, null, 2)}\n`, 'utf8');
 
   const result: SetupResult = {
-    wiring: {claude_plugin, gemini_extension, codex_skills, codex_mcp, cursor_mcp},
+    projectRoot,
+    wiring,
+    legacyCleanup,
     errors,
+    warnings,
     statusFile,
     cladding_root: pkgRoot,
     cladding_version: version,
     last_setup_version: lastVersion,
   };
-
-  writeStatus(statusFile, {
-    cladding_root: pkgRoot,
-    cladding_version: version,
-    last_run: new Date().toISOString(),
-    wiring: result.wiring,
-    errors,
-  });
-
-  printReport(result, detection, activation, {quiet: opts.quiet});
+  if (!opts.quiet) process.stdout.write(`${renderSetupReport(result)}\n`);
   return result;
 }
 
-function resolveDefaultPkgRoot(): string {
-  // Resolves the cladding package root from this file's location.
-  // ESM build outputs a single bundled dist/clad.js (see scripts/build.mjs),
-  // so we walk up from that file's location until we find a package.json
-  // whose name is "cladding". This is robust to bundlers, symlinks, and any
-  // future restructuring of the dist/ output.
-  try {
-    const here = fileURLToPath(import.meta.url);
-    let cur = dirname(here);
-    for (let depth = 0; depth < 6; depth++) {
-      const pkgPath = join(cur, 'package.json');
-      try {
-        const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as {name?: string};
-        if (pkg.name === 'cladding') return cur;
-      } catch {
-        // fallthrough
-      }
-      const parent = dirname(cur);
-      if (parent === cur) break;
-      cur = parent;
-    }
-    // Fallback: assume two levels up from this file (src/init/x.ts pattern).
-    return resolve(dirname(here), '..', '..');
-  } catch {
-    return process.cwd();
+function stateLabel(state: ChannelResult): string {
+  switch (state) {
+    case 'created': return 'wired';
+    case 'rewired': return 'updated';
+    case 'unchanged': return 'already ready';
+    case 'removed': return 'legacy global removed';
+    case 'skipped-not-selected': return 'not selected';
+    case 'skipped-different': return 'preserved conflict';
+    case 'manual-required': return 'manual cleanup required';
+    default: return 'failed';
   }
 }
 
-function readCladingVersion(pkgRoot: string): string {
+/** Render a host-neutral setup summary without exposing internal package paths. */
+export function renderSetupReport(result: SetupResult, _detection?: HostDetection): string {
+  void _detection;
+  const lines = [
+    `cladding setup — project activation: ${result.projectRoot}`,
+    '',
+    `  Claude Code  → ${stateLabel(result.wiring.claude)}`,
+    `  Codex        → ${stateLabel(result.wiring.codex)}`,
+    `  Gemini CLI   → ${stateLabel(result.wiring.gemini)}`,
+    `  Antigravity  → ${stateLabel(result.wiring.antigravity)}`,
+    `  Cursor       → ${stateLabel(result.wiring.cursor)}`,
+  ];
+  if (result.wiring.antigravity === 'created' || result.wiring.antigravity === 'rewired') {
+    lines.push('', '  Note: Antigravity reads MCP config machine-wide only, so its wire lives in ~/.gemini/config/plugins/cladding (each session still resolves the project from its working directory).');
+  }
+  const cleaned = Object.values(result.legacyCleanup).filter((state) => state === 'removed').length;
+  if (cleaned > 0) lines.push('', `Removed ${cleaned} legacy global Cladding wire(s).`);
+  for (const warning of result.warnings) lines.push(`  ! ${warning.step}: ${warning.message}`);
+  lines.push(
+    '',
+    'Next steps:',
+    '  1. Start a new AI session in this project directory',
+    '  2. Ask: "Apply Cladding to this project"',
+    '  3. Review the preview and reply with its exact approval phrase',
+    '  4. After initialization, develop normally in natural language',
+  );
+  return lines.join('\n');
+}
+
+function resolveDefaultPkgRoot(): string {
+  const here = fileURLToPath(import.meta.url);
+  let current = dirname(here);
+  for (let depth = 0; depth < 7; depth++) {
+    try {
+      const pkg = JSON.parse(readFileSync(join(current, 'package.json'), 'utf8')) as {name?: string};
+      if (pkg.name === 'cladding') return current;
+    } catch {
+      // Continue towards the filesystem root.
+    }
+    current = dirname(current);
+  }
+  return resolve(dirname(here), '..');
+}
+
+function readCladdingVersion(pkgRoot: string): string {
   try {
-    const pkg = JSON.parse(readFileSync(join(pkgRoot, 'package.json'), 'utf8')) as {version: string};
-    return pkg.version;
+    return (JSON.parse(readFileSync(join(pkgRoot, 'package.json'), 'utf8')) as {version?: string}).version ?? 'unknown';
   } catch {
     return 'unknown';
   }
 }
 
-/** Read the version recorded by the last `clad setup` run, or null if never run. */
-export function getLastSetupVersion(home: string = homedir()): string | null {
-  return readLastSetupVersion(join(home, '.cladding', STATUS_FILENAME));
+export function getCurrentCladdingVersion(): string | null {
+  const version = readCladdingVersion(resolveDefaultPkgRoot());
+  return version === 'unknown' ? null : version;
 }
 
-/** Read the current cladding binary's package.json version, or null if unreadable. */
-export function getCurrentCladdingVersion(): string | null {
-  try {
-    const pkgRoot = resolveDefaultPkgRoot();
-    const v = readCladingVersion(pkgRoot);
-    return v === 'unknown' ? null : v;
-  } catch {
-    return null;
-  }
+export function getLastSetupVersion(projectRoot: string = process.cwd()): string | null {
+  return readLastSetupVersion(join(resolve(projectRoot), '.cladding', STATUS_FILENAME));
+}
+
+/** Exported for diagnostics and tests; setup writes all selected hosts regardless of installation. */
+export function detectHosts(home: string = homedir()): HostDetection {
+  return {
+    claude: existsSync(join(home, '.claude')),
+    gemini: existsSync(join(home, '.gemini')),
+    antigravity: existsSync(join(home, '.gemini', 'config')) || existsSync(join(home, '.gemini', 'antigravity-cli')),
+    codex: existsSync(join(home, '.codex')),
+    agents: existsSync(join(home, '.agents')),
+    cursor: existsSync(join(home, '.cursor')),
+  };
 }

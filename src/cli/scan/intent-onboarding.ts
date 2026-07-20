@@ -105,7 +105,7 @@ export interface OnboardingResult {
   readonly architectureYaml: string;
   /** Suggested title for the placeholder F-001 in `spec.yaml`. */
   readonly specSeedTitle: string;
-  /** 2-3 product/business-level questions the orchestrator can ask next. */
+  /** 0-3 unresolved product/business-level questions the orchestrator can ask next. */
   readonly clarifyingQuestions: readonly string[];
   /**
    * 1-3 user-journey scenarios extracted by the LLM from the intent
@@ -263,9 +263,10 @@ export function buildOnboardingPrompt(
     '- Leave the block EMPTY (no keys) if the intent is too vague to infer anything useful.',
     '',
     '=== CLARIFYING_QUESTIONS ===',
-    '2-3 PRODUCT/BUSINESS-level questions to ask the user next, one per',
+    '0-3 PRODUCT/BUSINESS-level questions to ask the user next, one per',
     'line. RULES (mandatory):',
-    '- Ask GOAL / AUDIENCE / SCOPE questions, not implementation choices.',
+    '- Ask only about material GOAL / AUDIENCE / SCOPE gaps, not implementation choices.',
+    '- If the supplied intent already resolves the important decisions, emit no questions.',
     '- Match vocabulary to what the user used in their intent.',
     '  - Casual intent ("결제 SaaS", "쇼핑몰") → plain-language questions.',
     '  - Technical intent ("PCI-DSS gateway") → deeper questions OK.',

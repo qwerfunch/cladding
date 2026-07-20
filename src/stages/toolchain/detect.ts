@@ -4,9 +4,9 @@
 // Cargo.toml → go.mod → pom.xml → build.gradle → composer.json → mix.exs →
 // .csproj → Gemfile` and returns the first match. Each language has a
 // curated default per gate (chosen as the *most common* tool, not the only
-// one — users override per-stage via `CommandStageOptions`). The TS/JS lint
-// gate additionally auto-selects biome/oxlint over the eslint default by
-// linter config-file presence (`resolveTsLint`); detection never installs.
+// one — users override per-stage via `CommandStageOptions`). For TS/JS,
+// explicit package scripts and config files refine those defaults so Cladding
+// runs the workflow the project declared; detection never installs.
 //
 // This is the polyglot adapter: cladding itself stays language-agnostic;
 // the *user project* decides which language tools run.
@@ -36,6 +36,20 @@ interface Entry {
    */
   readonly requiresSource?: readonly string[];
 }
+
+/** package.json fields that affect TS/JS gate selection. */
+interface PackageManifest {
+  readonly scripts?: Readonly<Record<string, string>>;
+  readonly dependencies?: Readonly<Record<string, string>>;
+  readonly devDependencies?: Readonly<Record<string, string>>;
+  readonly optionalDependencies?: Readonly<Record<string, string>>;
+  readonly peerDependencies?: Readonly<Record<string, string>>;
+  readonly eslintConfig?: unknown;
+  readonly jest?: unknown;
+}
+
+/** npx must resolve only already-installed/cacheable tools and never touch the network. */
+const NPX_LOCAL_ONLY = ['--offline', '--no-install'] as const;
 
 /**
  * Prefers the committed Gradle wrapper (`./gradlew`) over a bare `gradle`
@@ -140,23 +154,23 @@ const CHAIN: readonly Entry[] = [
     language: 'typescript',
     manifests: ['package.json'],
     gates: {
-      // --no-install everywhere (0.6.0, battery NOTE 1): a bare `npx tsc`
+      // --offline + --no-install everywhere: a bare `npx tsc`
       // AUTO-INSTALLS the typosquat package `tsc@2.0.4` (not TypeScript) on
       // toolchain-less machines — the gate must never fetch and execute an
       // unpinned third-party package. Absent tool → npx exits non-zero with
       // "not found" → the stage's missing-tool classification → skip (exit 2),
       // which the strict demand table (F-67d2e9) escalates when the spec
       // relies on the stage.
-      type: {cmd: 'npx', args: ['--no-install', 'tsc', '--noEmit']},
-      lint: {cmd: 'npx', args: ['--no-install', 'eslint', '.']},
-      test: {cmd: 'npx', args: ['--no-install', 'vitest', 'run']},
-      coverage: {cmd: 'npx', args: ['--no-install', 'vitest', 'run', '--coverage']},
-      secret: {cmd: 'npx', args: ['--no-install', 'secretlint', '**/*']},
+      type: {cmd: 'npx', args: [...NPX_LOCAL_ONLY, 'tsc', '--noEmit']},
+      lint: {cmd: 'npx', args: [...NPX_LOCAL_ONLY, 'eslint', '.']},
+      test: {cmd: 'npx', args: [...NPX_LOCAL_ONLY, 'vitest', 'run']},
+      coverage: {cmd: 'npx', args: [...NPX_LOCAL_ONLY, 'vitest', 'run', '--coverage']},
+      secret: {cmd: 'npx', args: [...NPX_LOCAL_ONLY, 'secretlint', '**/*']},
       // .tsx/.jsx/.js alongside .ts so circular-dependency detection covers
       // React/JSX component trees, not only plain .ts (F-47b8bee5). madge
       // excludes node_modules by default, so widening extensions does not pull
       // the dependency tree into the scan.
-      arch: {cmd: 'npx', args: ['--no-install', 'madge', '--circular', '--extensions', 'ts,tsx,js,jsx', '.']},
+      arch: {cmd: 'npx', args: [...NPX_LOCAL_ONLY, 'madge', '--circular', '--extensions', 'ts,tsx,js,jsx', '.']},
       smoke: {cmd: 'npm', args: ['run', '--silent', 'smoke']},
       perf: {cmd: 'npm', args: ['run', '--silent', 'perf']},
       visual: {cmd: 'npm', args: ['run', '--silent', 'visual']},
@@ -313,14 +327,13 @@ function hasExtensionFile(cwd: string, suffix: string): string | undefined {
  * TypeScript/JavaScript linter resolution by config-file presence (F-b2094740).
  *
  * `package.json` maps to one language ('typescript'), but the JS/TS ecosystem
- * has several common linters. Rather than hardcode eslint, detect the linter
- * the project actually configured and gate with THAT — so a biome/oxlint
- * project passes stage_1.2 natively, no eslint shim. Precedence: biome →
- * oxlint → eslint (the default, also used when no linter config is present, so
- * eslint and config-less projects behave exactly as before).
+ * has several common linters. Rather than hardcode eslint, run the project's
+ * explicit `scripts.lint` first, then detect a configured biome/oxlint/eslint.
+ * With no declaration, omit the gate: a package.json alone is not evidence
+ * that ESLint is installed or configured.
  *
- * `--no-install` is kept on every gate: detection only decides WHICH tool to
- * invoke, it NEVER installs one. A configured-but-absent linter still resolves
+ * `--offline --no-install` is kept on every gate: detection only decides WHICH
+ * tool to invoke, it NEVER installs one or contacts a registry. An absent linter resolves
  * to skip via stage_1.2's missing-tool path (lint.ts), which `--strict`'s
  * skip-policy escalates when the spec relies on lint.
  *
@@ -331,17 +344,57 @@ function hasExtensionFile(cwd: string, suffix: string): string | undefined {
  * with a different tool overrides via CommandStageOptions (the cmd/args seam).
  */
 const TS_LINTERS: ReadonlyArray<{readonly configs: readonly string[]; readonly gate: ToolSpec}> = [
-  {configs: ['biome.json', 'biome.jsonc'], gate: {cmd: 'npx', args: ['--no-install', 'biome', 'lint', '.']}},
+  {configs: ['biome.json', 'biome.jsonc'], gate: {cmd: 'npx', args: [...NPX_LOCAL_ONLY, 'biome', 'lint', '.']}},
   // oxlint auto-detects all three filenames in cwd (oxc.rs config reference).
-  {configs: ['.oxlintrc.json', '.oxlintrc.jsonc', 'oxlint.config.ts'], gate: {cmd: 'npx', args: ['--no-install', 'oxlint']}},
+  {configs: ['.oxlintrc.json', '.oxlintrc.jsonc', 'oxlint.config.ts'], gate: {cmd: 'npx', args: [...NPX_LOCAL_ONLY, 'oxlint']}},
 ];
 
-/** The project's configured TS/JS lint gate, or `fallback` (eslint) when none. */
-function resolveTsLint(cwd: string, fallback: ToolSpec): ToolSpec {
+const ESLINT_CONFIGS: readonly string[] = [
+  'eslint.config.js',
+  'eslint.config.mjs',
+  'eslint.config.cjs',
+  'eslint.config.ts',
+  'eslint.config.mts',
+  'eslint.config.cts',
+  '.eslintrc',
+  '.eslintrc.js',
+  '.eslintrc.cjs',
+  '.eslintrc.json',
+  '.eslintrc.yaml',
+  '.eslintrc.yml',
+];
+
+/** Reads package.json once for gate refinement; malformed input declares nothing. */
+function readPackageManifest(cwd: string): PackageManifest {
+  try {
+    return JSON.parse(readFileSync(join(cwd, 'package.json'), 'utf8')) as PackageManifest;
+  } catch {
+    return {};
+  }
+}
+
+/** True when a non-empty npm script is explicitly declared. */
+function packageScript(pkg: PackageManifest, name: string): string | undefined {
+  const script = pkg.scripts?.[name];
+  return typeof script === 'string' && script.trim().length > 0 ? script.trim() : undefined;
+}
+
+/** True when package.json declares a dependency in any installable section. */
+function hasPackageDependency(pkg: PackageManifest, name: string): boolean {
+  return [pkg.dependencies, pkg.devDependencies, pkg.optionalDependencies, pkg.peerDependencies]
+    .some((group) => group?.[name] !== undefined);
+}
+
+/** The project's declared TS/JS lint gate, or undefined when lint is unconfigured. */
+function resolveTsLint(cwd: string, eslintDefault: ToolSpec, pkg: PackageManifest): ToolSpec | undefined {
+  if (packageScript(pkg, 'lint')) return {cmd: 'npm', args: ['run', '--silent', 'lint']};
   for (const linter of TS_LINTERS) {
     if (linter.configs.some((c) => existsSync(join(cwd, c)))) return linter.gate;
   }
-  return fallback;
+  if (ESLINT_CONFIGS.some((c) => existsSync(join(cwd, c))) || pkg.eslintConfig !== undefined) {
+    return eslintDefault;
+  }
+  return undefined;
 }
 
 /**
@@ -350,14 +403,15 @@ function resolveTsLint(cwd: string, fallback: ToolSpec): ToolSpec {
  *
  * `package.json` maps to one language, but the test gate defaulted to vitest
  * unconditionally — so a Jest project (CRA, React Native, classic React) hit
- * `npx --no-install vitest`, found nothing, and SILENTLY SKIPPED stage_2.1 /
+ * the Vitest fallback, found nothing, and SILENTLY SKIPPED stage_2.1 /
  * stage_2.2. Detect the Jest the project actually configured and gate with
- * THAT. Precedence: jest config present → jest; else vitest (the default, also
- * used config-less, so vitest and config-less projects behave exactly as
- * before).
+ * THAT. An explicit non-Jest/Vitest `scripts.test` is authoritative and runs
+ * through npm (preserving build steps and Node's built-in runner); its coverage
+ * gate exists only when `scripts.coverage` is also declared. Otherwise the
+ * historical Jest-config → Jest → Vitest-default chain remains intact.
  *
- * `--no-install` is kept: detection only decides WHICH runner to invoke, never
- * installs one. A configured-but-absent jest still resolves to skip via the
+ * `--offline --no-install` is kept: detection only decides WHICH runner to
+ * invoke, never installs one or contacts a registry. An absent Jest resolves to skip via the
  * stage's missing-tool path, which `--strict`'s skip-policy escalates.
  *
  * CAVEAT — by config PRESENCE, not content (mirrors `resolveTsLint`). A project
@@ -369,14 +423,28 @@ const JEST_CONFIGS: readonly string[] = [
 ];
 
 /** True when the project configures Jest — a jest.config.* file or a `jest` key in package.json. */
-function hasJestConfig(cwd: string): boolean {
+function hasJestConfig(cwd: string, pkg: PackageManifest): boolean {
   if (JEST_CONFIGS.some((c) => existsSync(join(cwd, c)))) return true;
-  try {
-    const pkg = JSON.parse(readFileSync(join(cwd, 'package.json'), 'utf8')) as {jest?: unknown};
-    return pkg.jest !== undefined;
-  } catch {
-    return false;
+  return pkg.jest !== undefined;
+}
+
+/** Runner scripts simple enough to preserve the native Vitest/Jest gate path. */
+function simpleTestRunner(script: string): 'vitest' | 'jest' | undefined {
+  if (/^(?:(?:npx|npm exec)\s+(?:--offline\s+)?(?:--no-install\s+)?(?:--\s+)?)?vitest(?:\s+run)?$/i.test(script)) {
+    return 'vitest';
   }
+  if (/^(?:(?:npx|npm exec)\s+(?:--offline\s+)?(?:--no-install\s+)?(?:--\s+)?)?jest$/i.test(script)) {
+    return 'jest';
+  }
+  return undefined;
+}
+
+/** Drops one optional gate without mutating the curated base object. */
+function withoutGate(base: ToolchainGates, gate: 'lint' | 'coverage'): ToolchainGates {
+  const rest = {...base};
+  if (gate === 'lint') delete rest.lint;
+  else delete rest.coverage;
+  return rest;
 }
 
 /**
@@ -385,13 +453,37 @@ function hasJestConfig(cwd: string): boolean {
  * `hasJestConfig`). Other gates pass through unchanged.
  */
 function resolveTsGates(cwd: string, base: ToolchainGates): ToolchainGates {
-  const out: ToolchainGates = base.lint ? {...base, lint: resolveTsLint(cwd, base.lint)} : {...base};
-  if (base.test && base.coverage && hasJestConfig(cwd)) {
+  const pkg = readPackageManifest(cwd);
+  const lint = base.lint ? resolveTsLint(cwd, base.lint, pkg) : undefined;
+  let out: ToolchainGates = lint ? {...base, lint} : withoutGate(base, 'lint');
+  const testScript = packageScript(pkg, 'test');
+  const runner = testScript ? simpleTestRunner(testScript) : undefined;
+
+  if (testScript && !runner) {
+    out = withoutGate(out, 'coverage');
     return {
       ...out,
-      test: {cmd: 'npx', args: ['--no-install', 'jest']},
-      coverage: {cmd: 'npx', args: ['--no-install', 'jest', '--coverage']},
+      test: {cmd: 'npm', args: ['test']},
+      ...(packageScript(pkg, 'coverage')
+        ? {coverage: {cmd: 'npm', args: ['run', '--silent', 'coverage']}}
+        : {}),
     };
+  }
+
+  if (runner === 'jest' || (!testScript && hasJestConfig(cwd, pkg))) {
+    return {
+      ...out,
+      test: {cmd: 'npx', args: [...NPX_LOCAL_ONLY, 'jest']},
+      coverage: {cmd: 'npx', args: [...NPX_LOCAL_ONLY, 'jest', '--coverage']},
+    };
+  }
+
+  if (runner === 'vitest' && !packageScript(pkg, 'coverage')
+      && !hasPackageDependency(pkg, '@vitest/coverage-v8')
+      && !hasPackageDependency(pkg, '@vitest/coverage-istanbul')) {
+    out = withoutGate(out, 'coverage');
+  } else if (runner === 'vitest' && packageScript(pkg, 'coverage')) {
+    out = {...out, coverage: {cmd: 'npm', args: ['run', '--silent', 'coverage']}};
   }
   return out;
 }
@@ -426,9 +518,8 @@ export function detectToolchain(cwd: string = '.'): Toolchain {
     if (entry.requiresSource && !hasSourceFile(cwd, entry.requiresSource)) continue;
     // Kotlin gates are a function of cwd (gradlew vs gradle); resolve first.
     const baseGates = typeof entry.gates === 'function' ? entry.gates(cwd) : entry.gates;
-    // TS/JS: pick the linter (biome/oxlint) and test runner (jest) the project
-    // configured over the eslint/vitest defaults, so a non-eslint / Jest project
-    // gates natively. Other languages keep their single curated default.
+    // TS/JS: prefer declared npm workflows, then configured ecosystem tools.
+    // Other languages keep their single curated default.
     const gates = entry.language === 'typescript' ? resolveTsGates(cwd, baseGates) : baseGates;
     return {language: entry.language, manifest, gates};
   }

@@ -18,19 +18,85 @@
 // enforced separately by the SPEC_CONFORMANCE drift detector, so this stage
 // never false-passes by silence — it only reports on oracles that exist.
 
-import {existsSync, readdirSync} from 'node:fs';
+import {
+  chmodSync,
+  existsSync,
+  readFileSync,
+  readdirSync,
+  statSync,
+  unlinkSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs';
 import {join} from 'node:path';
 import process from 'node:process';
 
 import {execaSync} from 'execa';
 
 import {detectToolchain} from './toolchain/detect.js';
+import {testReportCandidatePaths} from './toolchain/gate-config.js';
 import type {CommandStageOptions, StageResult} from './types.js';
 import {missingToolSkip, ranToolResult} from './util.js';
 
 const STAGE = 'stage_2.3';
 /** Where spec-derived oracle suites live (relative to project root). */
 export const ORACLE_DIR = 'tests/oracle';
+
+interface TestReportSnapshot {
+  readonly path: string;
+  /** Undefined means the candidate did not exist before the scoped run. */
+  readonly body?: Buffer;
+  readonly mode?: number;
+  readonly atime?: Date;
+  readonly mtime?: Date;
+  /** A directory or other non-file candidate is never modified by restoration. */
+  readonly nonFile?: boolean;
+}
+
+/** Capture report bytes and observable file metadata before the partial run. */
+function snapshotTestReports(cwd: string): readonly TestReportSnapshot[] {
+  return testReportCandidatePaths(cwd).map((path) => {
+    try {
+      const stat = statSync(path);
+      if (!stat.isFile()) return {path, nonFile: true};
+      return {
+        path,
+        body: readFileSync(path),
+        mode: stat.mode,
+        atime: stat.atime,
+        mtime: stat.mtime,
+      };
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return {path};
+      throw error;
+    }
+  });
+}
+
+/** Restore existing reports and remove reports created only by the partial run. */
+function restoreTestReports(snapshots: readonly TestReportSnapshot[]): readonly string[] {
+  const errors: string[] = [];
+  for (const snapshot of snapshots) {
+    if (snapshot.nonFile) continue;
+    try {
+      if (snapshot.body === undefined) {
+        if (!existsSync(snapshot.path)) continue;
+        if (!statSync(snapshot.path).isFile()) {
+          errors.push(`${snapshot.path}: scoped oracle run created a non-file report candidate`);
+          continue;
+        }
+        unlinkSync(snapshot.path);
+        continue;
+      }
+      writeFileSync(snapshot.path, snapshot.body);
+      if (snapshot.mode !== undefined) chmodSync(snapshot.path, snapshot.mode);
+      if (snapshot.atime && snapshot.mtime) utimesSync(snapshot.path, snapshot.atime, snapshot.mtime);
+    } catch (error) {
+      errors.push(`${snapshot.path}: ${(error as Error).message}`);
+    }
+  }
+  return errors;
+}
 
 /** True when `dir` contains at least one test/spec file (any nesting depth). */
 function hasOracle(dir: string): boolean {
@@ -60,6 +126,7 @@ function hasOracle(dir: string): boolean {
  * @param opts - Optional cwd override.
  * @returns A stage result.
  * @see stages/detectors/spec-conformance.ts — the presence/provenance guard.
+ * @see spec/features/spec-conformance-oracle-stage-c4c5ae.yaml AC-008
  */
 export function runSpecConformance(opts: CommandStageOptions = {}): StageResult {
   const {cwd = '.'} = opts;
@@ -74,8 +141,49 @@ export function runSpecConformance(opts: CommandStageOptions = {}): StageResult 
   }
   // Point the detected test runner at the oracle dir only (npx vitest run
   // tests/oracle · pytest tests/oracle · …) — never the agent's own suite.
-  const proc = execaSync(test.cmd, [...test.args, ORACLE_DIR], {cwd, reject: false});
-  const skip = missingToolSkip(STAGE, test.cmd, proc);
+  //
+  // A project reporter can write every invocation to one authoritative JUnit
+  // path. Without isolation, this deliberately-partial oracle run replaces the
+  // full unit report; the NEXT strict gate then misreads every ordinary test_ref
+  // as unexecuted. Preserve every configured/conventional report candidate so
+  // stage_2.3 cannot leak its narrower selection into another stage or run.
+  let snapshots: readonly TestReportSnapshot[];
+  try {
+    snapshots = snapshotTestReports(cwd);
+  } catch (error) {
+    return {
+      stage: STAGE,
+      pass: false,
+      exitCode: 1,
+      stderr: `could not preserve the full test report before the scoped oracle run: ${(error as Error).message}`,
+    };
+  }
+  let proc: ReturnType<typeof execaSync> | undefined;
+  let runError: unknown;
+  const runArgs = [...test.args, ORACLE_DIR];
+  try {
+    proc = execaSync(test.cmd, runArgs, {cwd, reject: false});
+  } catch (error) {
+    runError = error;
+  }
+  const restoreErrors = restoreTestReports(snapshots);
+  if (restoreErrors.length > 0) {
+    return {
+      stage: STAGE,
+      pass: false,
+      exitCode: 1,
+      stderr: `could not restore the full test report after the scoped oracle run: ${restoreErrors.join('; ')}`,
+    };
+  }
+  if (runError || !proc) {
+    return {
+      stage: STAGE,
+      pass: false,
+      exitCode: 1,
+      stderr: `oracle runner failed to start: ${(runError as Error)?.message ?? 'unknown error'}`,
+    };
+  }
+  const skip = missingToolSkip(STAGE, test.cmd, proc, runArgs);
   if (skip) return skip;
   return ranToolResult(STAGE, proc);
 }

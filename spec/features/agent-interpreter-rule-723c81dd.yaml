@@ -13,7 +13,7 @@ modules:
 acceptance_criteria:
   - id: AC-ad928912
     ears: ubiquitous
-    text: "The injected CLAUDE.md section and the AGENTS.md template shall carry an interpreter rule: when reporting to the user, translate cladding terms into plain words in the user's own language and never lead with internal ids — with both freshness literals preserved verbatim."
+    text: "The injected CLAUDE.md section and the spec-driven AGENTS.md managed block shall carry an interpreter rule: when reporting to the user, translate cladding terms into plain words in the user's own language and never lead with internal ids — with both freshness literals preserved verbatim."
     notes: "## Why\nThe adopter screenshot shows the agent saying 'Shard AC 3개 추가 완료' — cladding's injected instructions teach shard-vocabulary and nothing tells the agent to translate. The rule is the third layer: hooks render plain (U2), cards drop jargon (U3), and the agent's own sentences translate (U4)."
     test_refs: [tests/agent-interpreter-rule.test.ts]
   - id: AC-6bf501f8

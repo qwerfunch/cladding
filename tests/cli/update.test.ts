@@ -23,27 +23,32 @@ describe('runUpdate', () => {
   });
   afterEach(() => rmSync(dir, {recursive: true, force: true}));
 
-  test('no spec.yaml → re-wires only, isProject false, no project files written', async () => {
-    const r = await runUpdate(dir, {wireHosts: okWire});
+  test('no spec.yaml → nothing runs: no wiring call, isProject false, no writes', async () => {
+    let wireCalled = false;
+    const r = await runUpdate(dir, {wireHosts: async () => { wireCalled = true; return 0; }});
+    expect(wireCalled).toBe(false); // wiring (and its legacy cleanup) must not fire outside a project
     expect(r.isProject).toBe(false);
+    expect(r.wiringErrors).toBe(0);
     expect(r.claudeMd).toBe('n/a');
     expect(r.agentsMd).toBe('n/a');
     expect(r.code).toBe(0);
   });
 
   test('host wiring failure → exit code 1 (the one thing that blocks)', async () => {
+    writeFileSync(join(dir, 'spec.yaml'), SPEC);
     const r = await runUpdate(dir, {wireHosts: async () => 2});
     expect(r.wiringErrors).toBe(2);
     expect(r.code).toBe(1);
   });
 
-  test('fresh project → inventory written, CLAUDE.md + AGENTS.md created, code 0', async () => {
+  test('fresh project → inventory and both established host instruction surfaces are written', async () => {
     writeFileSync(join(dir, 'spec.yaml'), SPEC);
     const r = await runUpdate(dir, {wireHosts: okWire});
     expect(r.isProject).toBe(true);
     expect(r.features).toBe(0);
     expect(r.claudeMd).toBe('created');
     expect(r.agentsMd).toBe('created');
+    expect(existsSync(join(dir, 'CLAUDE.md'))).toBe(true);
     expect(r.code).toBe(0);
     // inventory block was materialized into spec.yaml
     expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).toContain('inventory:');
@@ -53,7 +58,7 @@ describe('runUpdate', () => {
     writeFileSync(join(dir, 'spec.yaml'), SPEC);
     await runUpdate(dir, {wireHosts: okWire});
     const r2 = await runUpdate(dir, {wireHosts: okWire});
-    expect(r2.claudeMd).toBe('unchanged'); // section already present + fresh
+    expect(r2.claudeMd).toBe('unchanged');
     expect(r2.agentsMd).toBe('skipped-exists'); // existing, non-stale
     expect(r2.code).toBe(0);
   });

@@ -1,5 +1,5 @@
 ---
-description: Run every Iron Law stage and the drift detector suite. Use when the user wants the full project health snapshot, a CI gate, or to verify nothing regressed before committing. Add --strict to promote warn-severity drift findings to errors.
+description: Run every Iron Law stage and the drift detector suite. Use when the user wants the full project health snapshot, a CI gate, or to verify nothing regressed before committing. Add --strict to promote warn-severity drift findings to errors. Activate only when the connected project contains spec.yaml or the user explicitly names Cladding; ignore ordinary requests in uninitialized projects.
 ---
 
 # Cladding check
@@ -10,7 +10,7 @@ Run `clad check` from the project root. Runs the 15 Iron Law stages — Type / L
 - `1` — at least one stage actually failed (fix-required).
 - `2` — every result is skip (no fail-required input on the project yet).
 
-`--strict` promotes warn-severity drift findings to error, matching the CI / pre-publish gate. The Drift stage runs every active detector under `src/stages/detectors/` (37/37 as of v0.6.1 — `npm run build:plugin` Phase D recounts and writes the integer into `.claude-plugin/plugin.json`).
+`--strict` promotes warn-severity drift findings to error, matching the CI / pre-publish gate. The Drift stage runs every active detector under `src/stages/detectors/` — `npm run build:plugin` Phase D recounts them and writes the integer into each plugin manifest (e.g. `plugins/claude-code/.claude-plugin/plugin.json`), so the number is never hand-maintained.
 
 `--internal` shows stage codes (`stage_1.1`) instead of business names (`Type`). Default is the business-name surface; the audit log keeps internal ids regardless.
 

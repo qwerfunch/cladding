@@ -42,6 +42,25 @@ function isVitestRunner(cmd: string, args: readonly string[]): boolean {
 }
 
 /**
+ * Returns true only when a successful runner output definitively reports that
+ * every aggregate test count was zero. Multiple summaries can occur in npm
+ * workspaces; any positive count prevents a false alarm.
+ */
+function reportsZeroExecutedTests(proc: {readonly stdout?: unknown; readonly stderr?: unknown}): boolean {
+  const output = `${String(proc.stdout ?? '')}\n${String(proc.stderr ?? '')}`;
+  const counts: number[] = [];
+  const patterns = [
+    /^\s*#\s*tests\s+(\d+)\s*$/gim,
+    /^\s*ℹ\s+tests\s+(\d+)\s*$/gim,
+    /^\s*Tests:\s+.*?\b(\d+)\s+total\b.*$/gim,
+  ];
+  for (const pattern of patterns) {
+    for (const match of output.matchAll(pattern)) counts.push(Number(match[1]));
+  }
+  return counts.length > 0 && counts.every((count) => count === 0);
+}
+
+/**
  * Gate-scoped dedup fast path (F-49f6f2d2). On a primed vitest gate, the unit
  * stage reuses the ONE shared coverage+dual-json vitest run the coverage stage
  * (stage_2.2) will also fold — so `clad check --tier=pre-push` runs the suite
@@ -86,7 +105,7 @@ function tryReuseSharedRun(opts: UnitStageOptions, cwd: string, guardOn: boolean
   if (!shared) return null; // cwd mismatch / unprimed → own run
   const {proc, jsonFile} = shared;
   // Missing binary → let the own-run path surface the honest skip (exit 2).
-  if (missingToolSkip(STAGE, covCmd, proc)) return null;
+  if (missingToolSkip(STAGE, covCmd, proc, baseArgs)) return null;
   const covResult = ranToolResult(STAGE, proc);
   if (unitActionFromCoverage(covResult) === 'fallback') return null; // not green → own tests-only run
   // reuse-pass: the shared run is GREEN. Under --strict the vacuous-test guard
@@ -158,13 +177,21 @@ export function runUnit(opts: UnitStageOptions = {}): StageResult {
     const proc = execaSync(cmd, [...runArgs], {cwd, reject: false});
     // execaSync(reject:false) RETURNS (does not throw) on a missing binary;
     // detect ENOENT on the result so a missing tool skips, not false-fails.
-    const skip = missingToolSkip(STAGE, cmd, proc);
+    const skip = missingToolSkip(STAGE, cmd, proc, runArgs);
     if (skip) return skip;
     // The tool RAN. Map its result to cladding's pass/fail/skip contract:
     // any non-zero exit → blocking fail (1), never the tool's raw 2 (= skip).
     // ADDITIVE (F-b7873005): on failure, attach structured findings parsed from
     // the test runner's own output — the raw stderr is preserved unchanged.
     const base = withFindings('unit', ranToolResult(STAGE, proc), proc);
+    if (strict && base.pass && reportsZeroExecutedTests(proc)) {
+      const finding = {
+        detector: 'VACUOUS_TESTS',
+        severity: 'error' as const,
+        message: 'The unit test command exited successfully but reported zero executed tests.',
+      };
+      return {stage: STAGE, pass: false, exitCode: 1, findings: [finding], stderr: finding.message};
+    }
     // Vacuous-test guard (F-b81d203e): only escalate an otherwise-GREEN run — a
     // failing suite already blocks; a vacuous run exits 0 (skips don't fail) yet
     // must not read as verified. vacuousDoneFindings is total (never throws).

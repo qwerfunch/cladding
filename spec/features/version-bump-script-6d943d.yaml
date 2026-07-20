@@ -1,17 +1,19 @@
 id: F-6d943d
 slug: version-bump-script
-title: Atomic version-bump script — single command for 7 sync sites (v0.3.15)
+title: Atomic version-bump script — single command for 11 sync sites
 status: done
 modules:
   - scripts/version-bump.mjs
   - package.json
+  - package-lock.json
+  - tests/scripts/version-bump.test.ts
 depends_on: [F-080]
 acceptance_criteria:
   - id: AC-001
     ears: ubiquitous
-    action: ship a single-command script that atomically bumps the cladding version across all seven sites where it lives
-    response: 'scripts/version-bump.mjs accepts a single SemVer argument (major.minor.patch) and replaces the literal version string in package.json, .claude-plugin/plugin.json, plugins/codex/.codex-plugin/plugin.json, plugins/gemini-cli/gemini-extension.json, src/cli/clad.ts, src/serve/server.ts, and tests/cli/clad.test.ts; prints a per-file summary; exits non-zero on any error'
-    text: The system shall ship scripts/version-bump.mjs that atomically bumps the cladding version across all seven sites where it lives (package.json · 3 host manifests · src/cli/clad.ts · src/serve/server.ts · tests/cli/clad.test.ts) so the manual seven-edit ritual collapses into a single command and the HARNESS_INTEGRITY drift risk is eliminated at the source.
+    action: ship a single-command script that atomically bumps the cladding version across all eleven sites where it lives
+    response: 'scripts/version-bump.mjs accepts a single SemVer argument (major.minor.patch), validates all 11 version sites across 10 files including both package-lock.json copies, and writes only after every site validates; prints a per-site summary; exits non-zero without partial writes on any error'
+    text: The system shall ship scripts/version-bump.mjs that atomically bumps the cladding version across all eleven sites where it lives, including both package-lock.json copies and every host manifest, so the manual edit ritual collapses into a single command and version drift is eliminated at the source.
     test_refs: [tests/scripts/version-bump.test.ts]
   - id: AC-002
     ears: ubiquitous
@@ -35,8 +37,8 @@ acceptance_criteria:
     test_refs: [tests/scripts/version-bump.test.ts]
   - id: AC-005
     ears: state
-    condition: while one of the seven files has its anchor pattern broken (e.g. the version field renamed)
-    action: report which file is broken and exit non-zero without touching the other six
-    response: the script collects per-file errors and prints them under an `errors:` heading after the change summary; the other six files are bumped successfully but the exit code is non-zero so the user knows to investigate
-    text: While one of the seven files has its anchor pattern broken, the system shall report which file is broken and exit non-zero so a refactor that moves the version string is caught at the next bump rather than silently leaving one site stale.
+    condition: while one of the eleven version sites has its anchor pattern broken (e.g. the version field renamed)
+    action: report which file is broken and exit non-zero without writing any version-bearing file
+    response: the script validates every site before its write phase, prints errors under an `errors:` heading, leaves all 10 files unchanged, and exits non-zero
+    text: While one of the eleven version sites has its anchor pattern broken, the system shall report which file is broken and exit non-zero without partial writes, so a refactor that moves a version string cannot leave a half-bumped release.
     test_refs: [tests/scripts/version-bump.test.ts]

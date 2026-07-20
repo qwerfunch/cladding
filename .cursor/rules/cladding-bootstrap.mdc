@@ -1,0 +1,7 @@
+---
+description: Cladding bootstrap boundary
+alwaysApply: true
+---
+
+Cladding is available only in this project. Do not initialize or invoke Cladding for ordinary work.
+Use the cladding-init skill only when the user explicitly names Cladding and asks to initialize, adopt, or refresh it.

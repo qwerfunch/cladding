@@ -15,8 +15,8 @@ vi.mock('../../src/cli/scan/dispatcher.js', () => ({
   selectDispatcher: vi.fn((opts: {noLlm?: boolean}) => (opts?.noLlm ? null : dispatchMock)),
 }));
 
-const {runClarifyCommand} = await import('../../src/cli/clarify.js');
-const {saveState, loadState} = await import('../../src/cli/scan/onboarding-state.js');
+const {resolveOnboardingReview, runClarifyCommand} = await import('../../src/cli/clarify.js');
+const {captureArtifactDigests, saveState, loadState} = await import('../../src/cli/scan/onboarding-state.js');
 
 function seedState(cwd: string, qa: Array<{question: string; answer: string | null}>): void {
   saveState(cwd, {
@@ -39,6 +39,7 @@ function seedArtifacts(cwd: string): void {
     'schema: "0.1"\nsource: README.md\ncapabilities: []\n',
   );
   writeFileSync(join(cwd, 'spec', 'architecture.yaml'), 'version: "0.1"\nlayers: []\n');
+  saveState(cwd, {...loadState(cwd)!, artifactDigests: captureArtifactDigests(cwd)});
 }
 
 describe('runClarifyCommand', () => {
@@ -74,6 +75,18 @@ describe('runClarifyCommand', () => {
     expect(exitCalls).toEqual([2]);
   });
 
+  test('review resolution rejects a state-injected path outside onboarding artifacts', () => {
+    seedState(dir, []);
+    saveState(dir, {
+      ...loadState(dir)!,
+      status: 'needs_review',
+      pendingReview: ['../escape.yaml'],
+    });
+    const result = resolveOnboardingReview(['../escape.yaml'], {cwd: dir});
+    expect(result).toMatchObject({ok: false, changed: false});
+    expect(result.error).toMatch(/onboarding design artifacts/);
+  });
+
   test('exit 2 when no answer is provided but pending questions exist', async () => {
     seedState(dir, [{question: 'Q1?', answer: null}]);
     seedArtifacts(dir);
@@ -99,17 +112,12 @@ describe('runClarifyCommand', () => {
     const after = loadState(dir)!;
     expect(after.qa[0].answer).toBe('법인 사업자만');
     expect(after.qa[1].answer).toBeNull();
-    // capabilities + architecture untouched on disk because deterministic
-    // refinement preserves them — proposal file should not exist
-    expect(existsSync(join(dir, '.cladding', 'scan', 'capabilities.yaml.proposal'))).toBe(true);
-    // project-context gets a Q&A footnote appended; the proposal carries
-    // the new body
-    const proposal = readFileSync(
-      join(dir, '.cladding', 'scan', 'project-context.md.proposal'),
-      'utf8',
-    );
-    expect(proposal).toContain('Q&A log (refinement, LLM unavailable)');
-    expect(proposal).toContain('법인 사업자만');
+    // Untouched Cladding-generated design is refined in place so the active
+    // context—not a detached proposal—contains the accepted answer.
+    expect(existsSync(join(dir, '.cladding', 'scan', 'capabilities.yaml.proposal'))).toBe(false);
+    const context = readFileSync(join(dir, 'docs', 'project-context.md'), 'utf8');
+    expect(context).toContain('Q&A log (refinement, LLM unavailable)');
+    expect(context).toContain('법인 사업자만');
   });
 
   test('LLM success refines artifacts, adds new questions, keeps status active', async () => {
@@ -146,12 +154,20 @@ describe('runClarifyCommand', () => {
     // New questions appended (de-duped against existing)
     expect(after.qa.map((q) => q.question)).toEqual(['Q1?', 'Q2?', 'Q3?', 'Q4?']);
     expect(after.status).toBe('active');
-    // Existing artifacts diverted to proposal
-    const proposal = readFileSync(
-      join(dir, '.cladding', 'scan', 'project-context.md.proposal'),
-      'utf8',
-    );
-    expect(proposal).toContain('refined context');
+    expect(readFileSync(join(dir, 'docs', 'project-context.md'), 'utf8')).toContain('refined context');
+    expect(existsSync(join(dir, '.cladding', 'scan', 'project-context.md.proposal'))).toBe(false);
+  });
+
+  test('a user-edited design is preserved and onboarding remains in review', async () => {
+    seedState(dir, [{question: 'Q1?', answer: null}]);
+    seedArtifacts(dir);
+    writeFileSync(join(dir, 'docs', 'project-context.md'), '# user-authored context\n');
+
+    await runClarifyCommand(['A1'], {cwd: dir, noLlm: true});
+
+    expect(readFileSync(join(dir, 'docs', 'project-context.md'), 'utf8')).toBe('# user-authored context\n');
+    expect(existsSync(join(dir, '.cladding', 'scan', 'project-context.md.proposal'))).toBe(true);
+    expect(loadState(dir)!.status).toBe('needs_review');
   });
 
   test('LLM returns no new questions AND every existing question is answered → marks done', async () => {

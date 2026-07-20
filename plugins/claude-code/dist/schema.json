@@ -18,6 +18,10 @@
       "properties": {
         "name": {"type": "string", "minLength": 1},
         "language": {"type": "string", "minLength": 1},
+        "onboarding_seeded": {
+          "type": "boolean",
+          "description": "True only when Cladding init authored the initial governance seeds. Used to scope early-project advisory findings without changing legacy-project behavior."
+        },
         "description": {
           "type": "string",
           "description": "One-line summary of what the project is for. Used as the spec.yaml 'front door' hint."
@@ -193,6 +197,18 @@
         "acceptance_criteria": {
           "type": "array",
           "items": {"$ref": "#/definitions/acceptance_criterion"}
+        },
+        "design_impact": {
+          "type": "object",
+          "required": ["classification", "rationale", "status"],
+          "additionalProperties": false,
+          "properties": {
+            "classification": {"type": "string", "enum": ["none", "additive", "structural"]},
+            "rationale": {"type": "string", "minLength": 1},
+            "status": {"type": "string", "enum": ["resolved", "review_required"]},
+            "artifacts": {"type": "array", "items": {"type": "string"}},
+            "baseline_digests": {"type": "object", "additionalProperties": {"type": "string"}}
+          }
         },
         "depends_on": {
           "type": "array",

@@ -4,6 +4,14 @@ slug: no-vacuous-green-gate-contract
 title: No Vacuous Green — honest gate exit-contract, shared spec-load seam, ambient hook (v0.4.x)
 status: done
 modules:
+  - src/stages/util.ts
+  - src/stages/type.ts
+  - src/stages/lint.ts
+  - src/stages/unit.ts
+  - src/stages/cov.ts
+  - src/stages/smoke.ts
+  - src/stages/perf.ts
+  - src/stages/visual.ts
   - src/stages/detectors/with-spec.ts
   - src/init/git-hook.ts
   - .github/workflows/ci.yml
@@ -37,3 +45,13 @@ acceptance_criteria:
     response: 'tests/self-consistency.test.ts asserts the corrected self-drift fixes (counts, version, banners), and .github/workflows/ci.yml runs `npm test` plus the strict spec-native self-gate (`clad check --tier=pre-commit --strict`) on every push/PR so any future regression actually fails CI rather than the lock being a vacuous claim; these are cladding-self checks, not shipped detectors, so an adopting project may legitimately diverge without being false-failed'
     text: The system shall enforce cladding's own self-consistency (detector-count claims, spec/package version parity, tier banners) as CI-locked tests so the drift-prevention tool cannot silently drift against itself.
     test_refs: [tests/self-consistency.test.ts]
+  - id: AC-005
+    ears: event
+    condition: when a locally constrained npx invocation cannot resolve its requested executable without registry access
+    action: classify only that unresolved target as a visible setup gap while preserving failures from tools that did start
+    response: missing optional tooling neither stalls offline work nor hides a real nested-command failure
+    text: When an offline local-only npx invocation cannot resolve its requested executable, the system shall report a setup gap without contacting the registry, while a tool that started and failed internally shall remain a blocking failure.
+    notes: |
+      This general stage exit-contract rule was isolated from onboarding handoff
+      verification because it applies equally to legacy and hand-authored projects.
+    test_refs: [tests/stages/util.test.ts]

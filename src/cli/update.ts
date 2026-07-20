@@ -38,9 +38,10 @@ import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../
 import {gitOperationInProgress} from '../core/git-ops.js';
 
 /**
- * Injected so `runUpdate` is unit-testable without touching the global home
- * dir. The drift REPORT is deliberately NOT here — it is report-only and lives
- * in the command wrapper, so `runUpdate` only ever does safe mutations.
+ * Injected so `runUpdate` is unit-testable without running the real host
+ * wiring (project-local since 0.9.0). The drift REPORT is deliberately NOT
+ * here — it is report-only and lives in the command wrapper, so `runUpdate`
+ * only ever does safe mutations.
  */
 export interface UpdateDeps {
   /** Re-wire host channels (wraps `runHostSetup`); resolves to the wiring-error count. */
@@ -48,7 +49,7 @@ export interface UpdateDeps {
 }
 
 export interface UpdateResult {
-  /** False when `cwd` has no spec.yaml — only the global re-wire ran. */
+  /** False when `cwd` has no spec.yaml — only the host re-wire ran. */
   readonly isProject: boolean;
   /** Count of host channels that failed to wire (0 = clean). */
   readonly wiringErrors: number;
@@ -93,20 +94,24 @@ function mapAgentsMdResult(r: SpecAgentsMdResult): AgentsMdResult {
  * stricter-detector REPORT is the caller's job (report-only, never blocks).
  */
 export async function runUpdate(cwd: string, deps: UpdateDeps): Promise<UpdateResult> {
-  // 1. Re-wire hosts (global, idempotent) — useful even outside a project.
-  const wiringErrors = await deps.wireHosts();
-
+  // 0. Outside a cladding project, write NOTHING: no host wiring into an
+  //    arbitrary cwd, and no legacy-cleanup side effects (which include an
+  //    account-wide `claude plugin uninstall`). Wiring belongs to projects.
   if (!existsSync(join(cwd, 'spec.yaml'))) {
     return {
       isProject: false,
-      wiringErrors,
+      wiringErrors: 0,
       claudeMd: 'n/a',
       agentsMd: 'n/a',
       features: 0,
-      code: wiringErrors > 0 ? 1 : 0,
+      code: 0,
       deprecations: [],
     };
   }
+
+  // 1. Re-wire host channels into the project (idempotent, project-local
+  //    since 0.9.0).
+  const wiringErrors = await deps.wireHosts();
 
   // 2. Reconcile the spec.yaml inventory snapshot (deterministic). Skip the
   //    writes (keep the read-only count for the report) while a git operation
@@ -118,14 +123,17 @@ export async function runUpdate(cwd: string, deps: UpdateDeps): Promise<UpdateRe
     writeFeatureIndex(cwd); // F-37b4a8
   }
 
-  // 3. Refresh the cladding-managed CLAUDE.md / AGENTS.md section — staleness-
-  //    based only; user prose preserved, no `--force`, no LLM dispatch. AGENTS.md
+  // 3. Preserve the established update contract: refresh both managed instruction
+  //    surfaces without overwriting user prose or invoking an LLM. New init
+  //    writes AGENTS.md only; update keeps existing adopters' Claude channel
+  //    functional across engine upgrades.
+  const claudeMd = writeClaudeMdSection(cwd);
+  //    AGENTS.md
   //    is now the spec-driven managed block (F-a4085adf, #199): a marker-upsert
   //    that regenerates only the delimited block, is byte-stable on unchanged
   //    spec, and leaves a markerless (hand-authored) file untouched. Its richer
   //    outcome is mapped onto the existing AgentsMdResult contract the update
   //    report speaks: a byte-stable / hand-authored no-op reads as 'skipped-exists'.
-  const claudeMd = writeClaudeMdSection(cwd);
   const agentsMd = mapAgentsMdResult(writeSpecDrivenAgentsMd(cwd));
 
   // 4. Deprecation sweep (report-only, F-b43066): dead spec knobs that the

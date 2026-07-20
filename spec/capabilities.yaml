@@ -27,7 +27,7 @@ capabilities:
     title: "MCP host (clad serve)"
     summary: "Exposes cladding's verbs as MCP tools for AI agents to drive directly"
     surface: tool
-    features: [F-bb15e6, F-836a90]
+    features: [F-bb15e6, F-836a90, F-0f4dd6]
   - id: ab-evaluation
     title: "A/B evaluation framework"
     summary: "Measures cladding vs vanilla Claude Code across 8 structural + 2 outcome dimensions"

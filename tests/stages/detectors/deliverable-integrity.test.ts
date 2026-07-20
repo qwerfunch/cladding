@@ -10,7 +10,10 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {deliverableIntegrity} from '../../../src/stages/detectors/deliverable-integrity.js';
+import {
+  DEFAULT_MIN_FEATURES_FOR_DELIVERABLE,
+  deliverableIntegrity,
+} from '../../../src/stages/detectors/deliverable-integrity.js';
 
 let dir: string;
 beforeEach(() => {
@@ -20,15 +23,30 @@ afterEach(() => {
   rmSync(dir, {recursive: true, force: true});
 });
 
-function writeSpec(opts: {deliverable?: string; done?: boolean; modules?: boolean} = {}): void {
+function writeSpec(opts: {
+  deliverable?: string;
+  done?: boolean;
+  modules?: boolean;
+  featureCount?: number;
+  onboardingSeeded?: boolean;
+} = {}): void {
   const done = opts.done ?? true;
   const deliverable = opts.deliverable ?? '';
   const modules = (opts.modules ?? true) ? '    modules: [src/x.ts]\n' : '';
+  const featureCount = opts.featureCount ?? 1;
+  const features = Array.from({length: featureCount}, (_, index) =>
+    `  - id: F-${String(index + 1).padStart(3, '0')}\n` +
+      `    title: f${index + 1}\n` +
+      `    status: ${done ? 'done' : 'planned'}\n` +
+      modules +
+      `    acceptance_criteria:\n      - id: AC-${String(index + 1).padStart(3, '0')}\n` +
+      '        ears: ubiquitous\n        text: t\n',
+  ).join('');
   writeFileSync(
     join(dir, 'spec.yaml'),
-    `schema: "0.1"\nproject:\n  name: t\n  language: typescript\n${deliverable}` +
-      `features:\n  - id: F-001\n    title: f\n    status: ${done ? 'done' : 'planned'}\n${modules}` +
-      '    acceptance_criteria:\n      - id: AC-001\n        ears: ubiquitous\n        text: t\n',
+    'schema: "0.1"\nproject:\n  name: t\n  language: typescript\n' +
+      `  onboarding_seeded: ${opts.onboardingSeeded ?? false}\n${deliverable}` +
+      `features:\n${features}`,
   );
 }
 function run(): readonly {detector: string; severity: string; message: string}[] {
@@ -36,12 +54,27 @@ function run(): readonly {detector: string; severity: string; message: string}[]
 }
 
 describe('DELIVERABLE_INTEGRITY detector', () => {
-  test('WARN when done features ship modules but no deliverable is declared', () => {
-    writeSpec();
+  test('INFO when an early project ships modules before declaring a deliverable', () => {
+    writeSpec({onboardingSeeded: true});
+    const findings = run();
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe('info');
+    expect(findings[0].message).toMatch(/ship modules but project.deliverable is not declared/);
+  });
+
+  test('WARN once a grown project still ships modules without a deliverable decision', () => {
+    writeSpec({featureCount: DEFAULT_MIN_FEATURES_FOR_DELIVERABLE, onboardingSeeded: true});
     const findings = run();
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe('warn');
     expect(findings[0].message).toMatch(/ship modules but project.deliverable is not declared/);
+  });
+
+  test('WARN for a legacy early project without an onboarding marker', () => {
+    writeSpec();
+    const findings = run();
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe('warn');
   });
 
   test('ERROR when deliverable.path is declared but missing on disk', () => {

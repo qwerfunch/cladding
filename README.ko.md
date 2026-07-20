@@ -6,13 +6,13 @@
 
 <p align="center">
   <strong>기업이 AI에게 코딩을 맡기려면 세 가지가 필요하다 —<br/>믿을 수 있고, 추적되고, 규모가 커져도 흔들리지 않아야 한다. cladding이 그 셋을 만든다.</strong><br/>
-  cladding(외장재)이라는 이름 그대로, 호스트 LLM(Claude Code · Codex · Gemini · Cursor)을 감싼다: 일을 <em>시작하기 전</em>엔 프로젝트의 의도를 넣어 주고, <em>마친 후</em>엔 41개 검출기와 15단계 게이트로 결과를 검증한다.
+  cladding(외장재)이라는 이름 그대로, 호스트 LLM(Claude Code · Codex · Gemini · Antigravity · Cursor)을 감싼다: 일을 <em>시작하기 전</em>엔 프로젝트의 의도를 넣어 주고, <em>마친 후</em>엔 41개 검출기와 15단계 게이트로 결과를 검증한다.
 </p>
 
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-2497%2F2497-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-2561%2F2561-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -31,7 +31,7 @@
 - **추적** — **나간 것은 기록에 남는다**: 무엇을 검증했는지는 커밋된 내용에 새겨지고, 누가·언제는 로컬 세션 로그에, 왜는 스펙에 남아, 인수인계와 리뷰가 파헤치지 않아도 된다.
 - **확장** — 사람과 AI를 늘리면 보통 충돌과 어긋남도 함께 불어난다. 하지만 모두가 스펙 하나를 기준으로 일하니 그게 자동으로 걸린다 — 그래서 규모를 키워도 무너지지 않는다.
 
-cladding은 **자기 자신도 cladding으로 만든다** — 기능 254개 중 251개가 같은 게이트를 통과했고, [Ironclad](https://github.com/qwerfunch/ironclad) 표준을 L4로 구현한 첫 사례다.
+cladding은 **자기 자신도 cladding으로 만든다** — 기능 255개 중 252개가 같은 게이트를 통과했고, [Ironclad](https://github.com/qwerfunch/ironclad) 표준을 L4로 구현한 첫 사례다.
 
 <!-- ─────────────── 무엇이 달라지나 ─────────────── -->
 
@@ -46,7 +46,7 @@ cladding은 **자기 자신도 cladding으로 만든다** — 기능 254개 중 
 | **세션을 실패 상태로 끝낼 때** | 그대로 종료, 다음에 잊힘 | 종료를 한 번 막고, 실패한 검사를 수리 카드로 인계 |
 | **두 명이 동시에 feature 추가** | merge conflict | hash-8 ID · 파일 분리 → 충돌 0 |
 | **AI가 짠 코드를 누가 검증?** | 작성한 AI가 자기 검증 (위험) | 구현을 못 보는 채점자 + 기계 관문 |
-| **AI 도구를 바꿀 때** | 도구마다 재구성 | 1 spec → 4 host 자동 연결 |
+| **AI 도구를 바꿀 때** | 도구마다 재구성 | 1 spec → 5 host 자동 연결 |
 
 ## 누구를 위한 것
 
@@ -66,7 +66,7 @@ cladding은 **자기 자신도 cladding으로 만든다** — 기능 254개 중 
 
 **후 — 결과를 검증한다:** 15단계 게이트 · 41개 어긋남 검출기 · 그리고 **구현을 못 보는 채점자** — 구현을 읽을 도구 없이 산출물을 스펙과 대조하는 에이전트라, 자기가 쓴 것에 도장을 찍어 줄 수 없다.
 
-<sub>실시간 개입(지도 주입 · 즉시 차단 · 종료 차단)은 Claude Code에서 전부 동작한다. Codex · Gemini · Cursor에서는 같은 검증을 대화 속 도구 호출과 git · CI 관문으로 수행한다.</sub>
+<sub>실시간 개입(지도 주입 · 즉시 차단 · 종료 차단)은 Claude Code에서 전부 동작한다. Codex · Gemini · Antigravity · Cursor에서는 같은 검증을 대화 속 도구 호출과 git · CI 관문으로 수행한다.</sub>
 
 <!-- ─────────────── done은 획득이다 ─────────────── -->
 
@@ -240,53 +240,97 @@ cladding의 차별점은 *결합* — 위 카테고리의 핵심을 *하나의 �
 
 ## Install
 
+### 1. 컴퓨터에 한 번 설치하기
+
 ```bash
 npm install -g cladding   # cladding CLI 설치
-cd <project>              # 프로젝트로 이동
-clad setup                # AI 도구 자동 연결 (Claude · Codex · Gemini · Cursor)
 ```
 
-<sub>각 호스트는 cladding을 AI가 알아서 호출하는 MCP 서버로 연결한다 — `/mcp` 명령도 수동 연결 단계도 없이, 그냥 대화하면 된다.</sub>
+이 단계는 어느 디렉터리에서 실행해도 된다. CLI만 설치하며 AI 도구에는 아직 Cladding 정보가 들어가지 않는다.
 
-그다음, 프로젝트당 한 번, AI 도구 안에서 init을 호출한다:
+### 2. 사용할 프로젝트만 연결하고 AI 도구 실행하기
+
+```bash
+cd <project>
+clad setup                # 이 프로젝트에만 AI 도구 연결
+
+# 정확히 하나를 골라 앞의 '#'을 지우고 실행한다:
+# codex          # Codex
+# claude         # Claude Code
+# gemini         # Gemini CLI
+# agy            # Antigravity
+# cursor-agent   # Cursor Agent
+```
+
+`clad setup`은 이 머신에서 감지된 AI 도구(Claude Code · Codex · Gemini · Antigravity · Cursor)를 현재 프로젝트에만 연결한다 — 단 Antigravity는 프로젝트-로컬 MCP 설정을 읽지 않는 호스트라 유일하게 머신 단위로 연결된다(자세한 내용은 [setup 문서](docs/setup.md)). 설정하지 않은 다른 프로젝트의 모델 컨텍스트에는 Cladding skill이나 MCP 도구가 들어가지 않는다. Cursor IDE는 `<project>` 폴더를 작업공간으로 연다. setup 뒤에는 반드시 이 폴더에서 AI 도구를 새 세션으로 시작한다. Codex와 Gemini가 프로젝트 신뢰 여부를 물으면 각 호스트의 정상 보안 경계에 따라 승인한다. 신뢰하기 전에는 프로젝트 로컬 MCP 설정이 의도적으로 적용되지 않는다.
+
+### 3. 프로젝트에 Cladding 한 번 적용하기
+
+자신의 시작 상황에 맞는 요청을 AI 도구에 자연스럽게 말한다.
+
+Cladding은 먼저 프로젝트를 읽기 전용으로 조사한다. AI가 정확한 파일 작업과 일회용 승인 문구를 보여주며, 사용자가 별도 답변에서 그 문구를 그대로 입력해야만 초기화가 시작된다. 프로젝트를 열거나 Cladding에 관해 질문하는 것만으로는 어떤 파일도 변경되지 않는다.
+이 정확 일치 단계는 우발적인 적용을 막지만, MCP는 도구 인자를 실제로 어느 사용자가 만들었는지 증명할 수 없다. 따라서 악의적이거나 침해된 호스트를 격리하는 샌드박스로 보아서는 안 된다.
+
+#### 아이디어만 있을 때
 
 ```
-[AI 도구 안] /cladding:init "B2B 결제 SaaS"
+B2B 결제 SaaS를 cladding으로 시작해줘.
 ```
 
-프로젝트의 `spec.yaml` 과 관련 문서가 만들어진다. 그 뒤론 평소처럼 개발하면 된다 — cladding이 배경에서 전 · 후 루프를 돌리니 따로 외울 것은 없다. 강제력을 높이려면 `clad init --with-hook`(pre-commit + pre-push git hook) 이나 `clad init --with-ci`(CI 게이트 스캐폴드 — 진짜 강제는 CI에서 산다).
+LLM이 도메인을 분석해 spec · 문서 · 정책을 만든다. 중요한 제품 결정이 실제로 비어 있을 때만 후속 질문을 최대 3개 하며, 완성된 기획에는 질문하지 않는다.
 
-| 시작 상황 | 명령 | 무엇이 일어나는가 |
-|---|---|---|
-| **아이디어만 있을 때** | `/cladding:init "B2B 결제 SaaS 만들거야"` | LLM이 도메인 분석 → spec · 문서 · 정책 자동 생성 + 후속 질문 2–3개 |
-| **기획 문서가 있을 때** | `/cladding:init docs/plan.md` | 파일을 로드해 내용을 intent로 사용 |
-| **기존 프로젝트 도입** | `/cladding:init "이 프로젝트에 cladding 적용해줘"` | 기존 코드 스캔 → 관찰한 패턴을 intent와 결합 |
+#### 기획 문서가 있을 때
 
-**호스트 지원 현황(정직 고지):** Claude Code는 실사용 캠페인으로 전 기능 검증됨(실시간 개입 포함). Codex · Gemini CLI는 연결은 자동이지만, 동작은 아직 검증 전이다. Cursor는 연결은 자동이지만 실사용 검증이 아직이다. → [설치 상세 · 호스트 배선 · MCP · 업그레이드](docs/setup.md)
+```
+docs/plan.md를 기준으로 cladding을 적용해줘.
+```
+
+파일을 읽고 그 내용을 프로젝트 intent로 사용한다.
+
+#### 기존 프로젝트에 도입할 때
+
+```
+현재 코드를 분석해서 cladding을 적용해줘.
+```
+
+기존 코드를 스캔하고, 관찰한 패턴을 사용자의 intent와 결합한다.
+
+> **초기화가 끝나면 같은 대화에서 바로 개발을 이어가면 된다.** 다음 기능을 자연어로 요청하면 AI가 생성된 spec과 문서를 기준으로 개발하고, 중요한 설계 변경도 프로젝트 성장에 맞춰 함께 반영한다. 검사는 호스트가 호출할 때 실행되며, 자동 강제가 필요하면 선택형 Git hook이나 CI 게이트를 사용한다.
+
+```
+이메일 로그인 기능을 테스트까지 포함해서 구현해줘.
+```
+
+새로 외울 명령은 없다. 호스트별 명시 호출법, 더 강한 Git/CI 적용, 검증된 호스트 현황은 [설치 상세](docs/setup.md)에서 확인할 수 있다.
 
 <!-- ─────────────── Update ─────────────── -->
 
 ## Update
 
-최신 상태 유지는 두 명령 — 아니면 AI 도구에게 한 줄이면 된다.
+### AI 도구에 요청하기 (추천)
+
+프로젝트에서 다음과 같이 말한다:
+
+```
+cladding을 최신 버전으로 업데이트해줘.
+```
+
+AI 도구에 터미널 및 전역 설치 권한이 있으면 CLI 업데이트, 호스트 배선 갱신, 현재 프로젝트 업데이트를 수행하고 새로 발견한 어긋남을 설명한다. 권한이 없으면 승인하거나 직접 실행할 명령을 안내한다.
+
+### 또는 터미널에서 직접 업데이트하기
 
 ```bash
 npm update -g cladding   # 1. 새 버전 받기
-cd <project>             # 2. 프로젝트로 이동
-clad update              # 3. 맞춰 정렬
+cd <project>             # 2. Cladding 프로젝트로 이동
+clad update              # 3. 프로젝트 연결과 파생 데이터를 함께 갱신
 ```
 
-코드 · `spec.yaml` · 문서는 그대로 둔다 — 더 엄격해진 버전은 **짚어만 준다**, 스스로 막거나 고치지 않는다. 위 두 명령이 새 어긋남을 짚으면, 그건 AI 도구에 넘기면 된다:
+`clad update`는 업데이트하려는 각 Cladding 프로젝트에서 실행한다. 사용자가 작성한 코드 · 기능/스펙 본문 · 문서는 보존되며, 프로젝트 전용 호스트 연결과 파생 데이터, `AGENTS.md`의 Cladding 관리 블록만 갱신될 수 있다. 새 버전이 어긋남을 발견하면 그 결과를 AI 도구에 넘기면 된다:
 
 ```
-[AI 도구 안] 업데이트가 짚은 어긋남을 정리해줘
+업데이트가 짚은 어긋남을 정리해줘.
 ```
 
-…아니면 두 명령을 건너뛰고 init 때처럼 그냥 말해도 된다 — 업데이트까지 알아서 해준다:
-
-```
-[AI 도구 안] cladding 최신 버전으로 업데이트해줘
-```
 
 <!-- ─────────────── Status ─────────────── -->
 
@@ -294,9 +338,9 @@ clad update              # 3. 맞춰 정렬
 
 | version | 준수 등급 | tests | gate | features |
 |---|---|---|---|---|
-| v0.8.3 · 2026-07 | L4 · [L0–L4 중 최고 · 자가 선언](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2497 / 2497 · all pass | 15 단계 · 41 detectors | 254 · 251 done · 자기 스펙 |
+| v0.9.0 · 2026-07 | L4 · [L0–L4 중 최고 · 자가 선언](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2561 / 2561 · all pass | 15 단계 · 41 detectors | 255 · 252 done · 자기 스펙 |
 
-<sub>234 test files · capability 6개 · coverage는 COVERAGE_DROP detector가 하락 차단</sub>
+<sub>236 test files · capability 6개 · coverage는 COVERAGE_DROP detector가 하락 차단</sub>
 
 > **Ironclad 1.0까지의 길** — 1.0은 *독립적인 두 개의 구현이 L4 검증 셋을 통과해야* 잠긴다 ([GOVERNANCE § 1](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md)). cladding이 첫 번째.
 

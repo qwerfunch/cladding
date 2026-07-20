@@ -71,4 +71,22 @@ describe('runUnit (stage_2.1)', () => {
     execaSyncMock.mockReturnValueOnce({exitCode: null, stdout: '', stderr: ''});
     expect(runUnit({cwd: dir}).exitCode).toBe(1);
   });
+
+  test('strict mode rejects a successful runner that definitively reports zero tests', () => {
+    execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '# tests 0\n# pass 0', stderr: ''});
+    const r = runUnit({cwd: dir, cmd: 'npm', args: ['test'], strict: true});
+    expect(r.pass).toBe(false);
+    expect(r.exitCode).toBe(1);
+    expect(r.findings?.[0]?.detector).toBe('VACUOUS_TESTS');
+  });
+
+  test('zero-test summary remains backward-compatible outside strict mode', () => {
+    execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '# tests 0', stderr: ''});
+    expect(runUnit({cwd: dir, cmd: 'npm', args: ['test']}).pass).toBe(true);
+  });
+
+  test('multiple workspace summaries do not false-fail when any tests executed', () => {
+    execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '# tests 0\n# tests 3', stderr: ''});
+    expect(runUnit({cwd: dir, cmd: 'npm', args: ['test'], strict: true}).pass).toBe(true);
+  });
 });

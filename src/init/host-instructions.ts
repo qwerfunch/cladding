@@ -1,65 +1,18 @@
 // F-90d054 — project-local host AI instruction writers.
 //
 // Writes:
-//   • <project>/AGENTS.md       — cross-tool (Codex/Cursor/Continue/Copilot/Aider)
 //   • <project>/CLAUDE.md       — Claude Code memory (idempotent append)
 //
-// Does NOT write `.claude-plugin/plugin.json`, `.mcp.json`, or
-// `.codex/config.toml` to the project — those live globally under the user's
-// home directory and are populated by the npm postinstall hook (and the
-// `clad init` fallback retry for users who ran with `--ignore-scripts`).
+// AGENTS.md is NOT written here anymore: the spec-driven managed block
+// (src/init/agents-md.ts, F-a4085adf) replaced the old static template, and a
+// markerless file is treated as user-owned and never rewritten.
+//
+// Does NOT write `.mcp.json`, `.codex/config.toml`, or the other host MCP
+// wiring files — those are project-local since 0.9.0 and are written by
+// `clad setup` (src/init/host-setup.ts), never at npm install time.
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-
-export const AGENTS_MD_TEMPLATE = `# AGENTS.md
-
-This project is managed by **cladding** — the Spec-Anchored Agent Harness.
-
-## Single Source of Truth
-
-- \`spec.yaml\` is the authoritative spec (Tier A). Code must conform.
-- \`spec/features/<slug>-<hash>.yaml\` holds individual feature shards.
-  Never hand-author \`F-NNN\` filenames — ask cladding via the \`clad\`
-  CLI (or, when your host has cladding wired as an MCP server,
-  \`clad_create_feature\`).
-- \`docs/project-context.md\` is the Tier B design SSoT.
-- Run \`clad check --strict\` to verify spec ↔ code drift across every
-  drift detector.
-
-## Feature cycle — one at a time
-
-Work ONE feature end-to-end before starting the next: author its shard
-**with** \`acceptance_criteria\` (+ \`modules\`) → implement → author its
-tests in a separate context → mark it done with \`clad done <featureId>\`
-(it sets \`status: done\` ONLY when \`clad check --tier=pre-push --strict\`
-is GREEN, reverting otherwise) → only then the next feature. Do NOT author
-feature shards ahead of the code, and do NOT hand-write \`status: done\`.
-Independent features (no shared \`modules\`) may run as parallel instances
-of this same cycle. Enforced by the \`PLANNED_BACKLOG\` detector; rationale
-in \`docs/feature-cycle.md\`.
-
-## Persona separation (anti-self-cert)
-
-The agent that writes a unit of work must not be the agent that signs off
-on it. planner writes spec, reviewer audits, developer implements.
-
-## Speak the user's language
-
-When you report progress to the user, translate cladding's vocabulary into
-plain words in the user's own language — a shard is a spec entry, an
-attestation is a signed sign-off, a detector finding is what drifted and why
-it matters. This includes cladding's own gate and hook messages: relay them in
-the user's language, by meaning, rather than echoing the raw text. Never lead
-with an internal id (\`F-…\`, \`AC-…\`, \`stage_X.Y\`): name the feature and the
-plain outcome instead.
-
-## More
-
-See \`CLAUDE.md\` for Claude Code-specific memory, and
-\`spec/architecture.yaml\` for the layer / \`forbidden_imports\` invariants
-enforced by \`ARCHITECTURE_FROM_SPEC\`.
-`;
 
 export const CLAUDE_MD_SECTION_MARKER = '## cladding';
 
@@ -133,28 +86,6 @@ export type ClaudeMdResult =
   | 'appended'
   | 'unchanged'
   | 'refreshed-stale';
-
-export function writeAgentsMd(
-  targetDir: string,
-  opts: { readonly force?: boolean } = {},
-): AgentsMdResult {
-  const path = join(targetDir, 'AGENTS.md');
-  const existed = existsSync(path);
-  if (!existed) {
-    writeFileSync(path, AGENTS_MD_TEMPLATE);
-    return 'created';
-  }
-  if (opts.force) {
-    writeFileSync(path, AGENTS_MD_TEMPLATE);
-    return 'overwritten';
-  }
-  const existing = readFileSync(path, 'utf8');
-  if (isStaleInstructions(existing)) {
-    writeFileSync(path, AGENTS_MD_TEMPLATE);
-    return 'refreshed-stale';
-  }
-  return 'skipped-exists';
-}
 
 export function writeClaudeMdSection(
   targetDir: string,

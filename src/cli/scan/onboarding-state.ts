@@ -13,7 +13,8 @@
 // during the onboarding window; once `qa[].every(answered)` AND no new
 // questions emerge, the file is marked `status: done` (kept as audit).
 
-import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync} from 'node:fs';
 import {dirname, join} from 'node:path';
 
 import yaml from 'yaml';
@@ -46,9 +47,13 @@ export interface OnboardingState {
    * LLM emits no further questions AND every existing question has an
    * answer. The file stays on disk after `done` as an audit log.
    */
-  readonly status: 'active' | 'done';
+  readonly status: 'active' | 'needs_review' | 'done';
   /** Q-A history in arrival order; `answer: null` entries are still pending. */
   readonly qa: readonly OnboardingQa[];
+  /** Digests of the generated design last accepted into the active SSoT. */
+  readonly artifactDigests?: Readonly<Record<string, string>>;
+  /** Authored targets whose generated refinements await explicit review. */
+  readonly pendingReview?: readonly string[];
 }
 
 function statePath(cwd: string): string {
@@ -73,7 +78,7 @@ export function loadState(cwd: string): OnboardingState | null {
       ? (parsed.mode as OnboardingState['mode'])
       : 'greenfield',
     startedAt: String(parsed.startedAt ?? new Date().toISOString()),
-    status: parsed.status === 'done' ? 'done' : 'active',
+    status: parsed.status === 'done' ? 'done' : parsed.status === 'needs_review' ? 'needs_review' : 'active',
     qa: Array.isArray(parsed.qa)
       ? parsed.qa.map((entry) => ({
           question: String((entry as OnboardingQa)?.question ?? ''),
@@ -84,6 +89,11 @@ export function loadState(cwd: string): OnboardingState | null {
               : String((entry as OnboardingQa).answer),
         }))
       : [],
+    artifactDigests:
+      parsed.artifactDigests && typeof parsed.artifactDigests === 'object'
+        ? Object.fromEntries(Object.entries(parsed.artifactDigests).map(([path, digest]) => [path, String(digest)]))
+        : undefined,
+    pendingReview: Array.isArray(parsed.pendingReview) ? parsed.pendingReview.map(String) : undefined,
   };
 }
 
@@ -155,4 +165,34 @@ export function isComplete(state: OnboardingState): boolean {
 /** Returns a `status: 'done'` copy of the state. */
 export function markDone(state: OnboardingState): OnboardingState {
   return {...state, status: 'done'};
+}
+
+/** Tier-A/B artifacts whose accepted contents must include every onboarding answer. */
+export const ONBOARDING_DESIGN_ARTIFACTS = [
+  'docs/project-context.md',
+  'spec/architecture.yaml',
+  'spec/capabilities.yaml',
+] as const;
+
+/** Captures byte digests used to distinguish untouched generated design from user edits. */
+export function captureArtifactDigests(cwd: string): Readonly<Record<string, string>> {
+  const scenarioDir = join(cwd, 'spec', 'scenarios');
+  const scenarios = existsSync(scenarioDir)
+    ? readdirSync(scenarioDir)
+        .filter((name) => name.endsWith('.yaml'))
+        .map((name) => `spec/scenarios/${name}`)
+    : [];
+  return Object.fromEntries([...ONBOARDING_DESIGN_ARTIFACTS, ...scenarios].flatMap((relativePath) => {
+    const path = join(cwd, relativePath);
+    if (!existsSync(path)) return [];
+    return [[relativePath, createHash('sha256').update(readFileSync(path)).digest('hex')]];
+  }));
+}
+
+/** True only when every previously accepted design artifact is still byte-identical. */
+export function artifactsAreUntouched(cwd: string, state: OnboardingState): boolean {
+  const expected = state.artifactDigests;
+  if (!expected || Object.keys(expected).length === 0) return false;
+  const current = captureArtifactDigests(cwd);
+  return Object.entries(expected).every(([path, digest]) => current[path] === digest);
 }

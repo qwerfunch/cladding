@@ -78,6 +78,54 @@ describe('missingToolSkip — ENOENT is the ONLY exit-2 (skip) path', () => {
     expect(missingToolSkip('stage_x', 'mytool', {exitCode: 1})).toBeNull();
     expect(missingToolSkip('stage_x', 'mytool', {exitCode: 0})).toBeNull();
   });
+
+  test('npx refusal under --no-install → skip because the configured tool never ran', () => {
+    const r = missingToolSkip('stage_x', 'npx', {
+      exitCode: 1,
+      stderr: 'npm error npx canceled due to missing packages and no YES option: ["eslint@9"]',
+    });
+    expect(r?.exitCode).toBe(2);
+    expect(r?.stderr).toContain('could not resolve');
+  });
+
+  test('offline npx cache miss → skip immediately instead of becoming a tool failure', () => {
+    const r = missingToolSkip('stage_x', 'npx', {
+      exitCode: 1,
+      stderr: "npm error code ENOTCACHED\nnpm error cache mode is 'only-if-cached'",
+    });
+    expect(r?.exitCode).toBe(2);
+  });
+
+  test('offline npx shell-level command miss → visible setup gap', () => {
+    const r = missingToolSkip('stage_x', 'npx', {
+      exitCode: 127,
+      stderr: '/bin/sh: vitest: command not found',
+    }, ['--offline', '--no-install', 'vitest', 'run']);
+    expect(r?.exitCode).toBe(2);
+    expect(r?.stderr).toContain('setup gap');
+    expect(r?.stderr).toContain('not installed');
+  });
+
+  test('missing helper inside a resolved npx tool remains a failure', () => {
+    expect(missingToolSkip('stage_x', 'npx', {
+      exitCode: 127,
+      stderr: '/bin/sh: project-helper: command not found',
+    }, ['--offline', '--no-install', 'vitest', 'run'])).toBeNull();
+  });
+
+  test('shell-level command miss from a project-owned npm script remains a failure', () => {
+    expect(missingToolSkip('stage_x', 'npm', {
+      exitCode: 127,
+      stderr: '/bin/sh: project-helper: command not found',
+    })).toBeNull();
+  });
+
+  test('the same text from a project-owned npm script is still a real failure', () => {
+    expect(missingToolSkip('stage_x', 'npm', {
+      exitCode: 1,
+      stderr: 'could not determine executable to run',
+    })).toBeNull();
+  });
 });
 
 // Fix ② — a scanner (secretlint / arch validator) that RAN but exited non-zero:
@@ -130,6 +178,14 @@ describe('classifyScannerExit — finding vs config/setup gap', () => {
   test("npx could-not-determine-executable → INFO (npm exec's other refusal)", () => {
     const out = classifyScannerExit(
       {exitCode: 1, stderr: 'npm error could not determine executable to run'},
+      'ARCHITECTURE_VIOLATION', found, skipped,
+    );
+    expect(out[0].severity).toBe('info');
+  });
+
+  test('offline npx cache miss → INFO setup gap, never a scanner finding', () => {
+    const out = classifyScannerExit(
+      {exitCode: 1, stderr: 'npm error code ENOTCACHED'},
       'ARCHITECTURE_VIOLATION', found, skipped,
     );
     expect(out[0].severity).toBe('info');

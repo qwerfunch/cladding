@@ -6,13 +6,13 @@
 
 <p align="center">
   <strong>To trust AI with coding, an organization needs three things — that the code can be trusted,<br/>that it's traced, and that it holds up as you scale. cladding builds those three.</strong><br/>
-  True to its name (cladding = the outer layer), it wraps your host LLM (Claude Code · Codex · Gemini · Cursor): <em>before</em> it starts, cladding feeds it the project's intent; <em>after</em> it finishes, cladding verifies the result with 41 detectors and a 15-stage gate.
+  True to its name (cladding = the outer layer), it wraps your host LLM (Claude Code · Codex · Gemini · Antigravity · Cursor): <em>before</em> it starts, cladding feeds it the project's intent; <em>after</em> it finishes, cladding verifies the result with 41 detectors and a 15-stage gate.
 </p>
 
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-2497%2F2497-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-2561%2F2561-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -31,7 +31,7 @@ So you can ship AI-written code held to **the same standard as human-written cod
 - **Traced** — **What shipped is on the record**: what was verified is stamped into committed content, who and when land in the local session ledger, and the why lives in the spec — so handoff and review skip the archaeology.
 - **Scales** — adding people and AIs would normally multiply conflicts and drift; because everyone works from one shared spec, those get caught automatically — so you can grow without it breaking down.
 
-cladding builds **itself** with cladding too — 251 of its 254 features cleared this same gate, the first L4 implementation of the [Ironclad](https://github.com/qwerfunch/ironclad) standard.
+cladding builds **itself** with cladding too — 252 of its 255 features cleared this same gate, the first L4 implementation of the [Ironclad](https://github.com/qwerfunch/ironclad) standard.
 
 <!-- ─────────────── What changes ─────────────── -->
 
@@ -46,7 +46,7 @@ The same situation, in a *vanilla AI setup* and in cladding.
 | **Ending a session in a failing state** | exits as-is, forgotten next time | the exit is blocked once, the failing checks handed off as a repair card |
 | **Two devs add a feature at the same time** | merge conflict | hash-8 IDs · separate files → 0 conflicts |
 | **Who verifies the AI-written code?** | the AI that wrote it self-certifies (risky) | an implementation-blind grader + the mechanical gate |
-| **Switching AI tools** | reconfigure per tool | one spec → 4 hosts wired automatically |
+| **Switching AI tools** | reconfigure per tool | one spec → 5 hosts wired automatically |
 
 ## Who it's for
 
@@ -66,7 +66,7 @@ The same situation, in a *vanilla AI setup* and in cladding.
 
 **After — verify the result:** the 15-stage gate, 41 drift detectors, and an **implementation-blind grader** — an agent that checks the work against the spec *with no tool to read the implementation*, so it can't rubber-stamp what it wrote.
 
-<sub>Real-time intervention (map injection · instant block · stop-block) runs fully on Claude Code. On Codex · Gemini · Cursor the same verification runs through in-conversation tool calls plus the git · CI gate.</sub>
+<sub>Real-time intervention (map injection · instant block · stop-block) runs fully on Claude Code. On Codex · Gemini · Antigravity · Cursor the same verification runs through in-conversation tool calls plus the git · CI gate.</sub>
 
 <!-- ─────────────── done is earned ─────────────── -->
 
@@ -237,55 +237,114 @@ The distinction is the *combination* — binding those cores into *one verificat
 
 ## Install
 
+### 1. Install once on your machine
+
 ```bash
-npm install -g cladding   # the cladding CLI
-cd <project>              # your project
-clad setup                # auto-wire your AI tools (Claude · Codex · Gemini · Cursor)
+npm install -g cladding   # install only the cladding CLI
 ```
 
-<sub>Each host wires cladding as an MCP server the AI calls on its own — there's no `/mcp` command and no manual connect step; you just chat.</sub>
+This command may be run from any directory. It does not add Cladding to any AI model's context.
 
-Then, once per project, call init inside your AI tool:
+### 2. Activate one project, then start your AI tool
+
+```bash
+cd <project>
+clad setup                # connect Cladding only to this project
+
+# Choose exactly one and remove its leading '#':
+# codex          # Codex
+# claude         # Claude Code
+# gemini         # Gemini CLI
+# agy            # Antigravity
+# cursor-agent   # Cursor Agent
+```
+
+`clad setup` connects the AI tools it detects on your machine (Claude Code, Codex, Gemini, Antigravity,
+Cursor) to this project only — Antigravity is the one exception, wired machine-wide because it reads no
+project-local MCP config (details in [setup](docs/setup.md)). It does not expose Cladding skills or MCP
+tools in projects where setup was not run. Use only the command
+for your AI tool; for Cursor IDE, open `<project>` as the workspace. Start a new AI session from this
+folder after setup so the host discovers the project-local connection. When Codex first opens a Git
+repository, approve its normal project-trust prompt; Codex intentionally ignores project MCP config
+until the repository is trusted.
+
+### 3. Apply Cladding once
+
+Choose the starting point that fits and say it naturally in your AI tool.
+
+Cladding first inspects the project without changing it. Your AI shows the exact file operations and
+a one-time approval phrase; initialization begins only when you repeat that phrase in a separate reply.
+Opening a project or asking a question about Cladding never authorizes file changes.
+This exact-match step prevents accidental application; MCP cannot prove which user produced a tool
+argument, so it is not a sandbox against a malicious or compromised host.
+
+#### An idea, nothing else
 
 ```
-[inside your AI tool] /cladding:init "B2B payment SaaS"
+Start this B2B payment SaaS with Cladding.
 ```
 
-It creates the project's `spec.yaml` and supporting docs. After that, just develop as usual — cladding runs the before/after loop in the background, with nothing to memorize. Raise enforcement with `clad init --with-hook` (pre-commit + pre-push git hooks) or `clad init --with-ci` (scaffold the CI gate, where true enforcement lives).
+The LLM analyzes the domain and creates the spec, docs, and policies. It asks up to three follow-up
+questions only when an important product decision is still unresolved; a complete plan asks none.
 
-| Starting point | Command | What happens |
-|---|---|---|
-| **An idea, nothing else** | `/cladding:init "I'm going to build a B2B payment SaaS"` | the LLM analyzes the domain → spec · docs · policies + 2–3 follow-up questions |
-| **A planning doc** | `/cladding:init docs/plan.md` | loads the file and uses its contents as intent |
-| **An existing project** | `/cladding:init "apply cladding to this project"` | scans the existing code → observed patterns merged with your intent |
+#### A planning document
 
-**Host support (honest):** Claude Code is fully verified through real-usage campaigns (incl. real-time intervention). Codex · Gemini CLI wire automatically; their behavior isn't verified yet. Cursor wires automatically, but real-usage verification is still pending. → [setup details · host wiring · MCP · upgrading](docs/setup.md)
+```
+Apply Cladding using docs/plan.md.
+```
 
-<!-- clad:host-claims {"claude":"verified","codex":"not-run","gemini":"not-run","cursor":"wiring-only"} -->
+Cladding loads the file and uses its contents as the project intent.
+
+#### An existing project
+
+```
+Analyze this project and apply Cladding.
+```
+
+Cladding scans the existing code and combines the observed patterns with your intent.
+
+> **Once initialization is complete, keep developing in the same conversation.** Ask for the next feature in plain language; the AI uses the generated spec and docs and keeps material design changes aligned as the project grows. Checks run when the host invokes them; use the optional Git hooks or CI gate when you want automatic enforcement.
+
+```
+Implement email sign-in, including tests.
+```
+
+There is nothing new to memorize. For host-specific invocation, stricter Git/CI enforcement, and verified host status, see [setup details](docs/setup.md).
+
+<!-- clad:host-claims {"claude":"verified","gemini":"not-run","codex":"verified","antigravity":"verified","cursor":"not-run"} -->
 
 <!-- ─────────────── Update ─────────────── -->
 
 ## Update
 
-Staying current is two commands — or one line to your AI tool.
+### Ask your AI tool (recommended)
+
+From your project, say:
+
+```
+Update cladding to the latest version.
+```
+
+If the AI tool has terminal and global-install permission, it updates the CLI, refreshes host wiring,
+updates the current project, and explains any new drift. Otherwise, it shows the commands for you to approve or run.
+
+### Or update from the terminal
 
 ```bash
-npm update -g cladding   # 1. get the new version
-cd <project>             # 2. your project
-clad update              # 3. bring it in line
+npm update -g cladding   # 1. get the new CLI version
+cd <project>             # 2. enter one Cladding project
+clad update              # 3. refresh its host wiring and derived state
 ```
 
-Your code · `spec.yaml` · docs are left untouched — a stricter version only **points things out**, it never blocks or fixes on its own. If those two commands flag fresh drift, hand it to your AI tool:
+Run `clad update` in each Cladding project you want to upgrade. It also performs the project-scoped
+setup refresh, so a separate `clad setup` is unnecessary. It preserves authored code, feature/spec
+content, and documentation; only derived data and Cladding-managed instruction blocks may be refreshed. If the new version reports drift,
+hand that result to your AI tool:
 
 ```
-[inside your AI tool] reconcile the drift the update flagged
+Reconcile the drift the update flagged.
 ```
 
-…or skip the commands and just ask, the same way you ran init — it runs the update for you:
-
-```
-[inside your AI tool] update cladding to the latest version
-```
 
 <!-- ─────────────── Status ─────────────── -->
 
@@ -293,9 +352,9 @@ Your code · `spec.yaml` · docs are left untouched — a stricter version only 
 
 | Version | Conformance | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.8.3 (2026-07) | L4 · [self-declared](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2497 / 2497 | 15 stages · 41 detectors | 254 (251 done) |
+| v0.9.0 (2026-07) | L4 · [self-declared](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2561 / 2561 | 15 stages · 41 detectors | 255 (252 done) |
 
-<sub>234 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector</sub>
+<sub>236 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector</sub>
 
 > **Road to Ironclad 1.0** — 1.0 locks only when *two independent implementations pass the L4 conformance fixtures* ([GOVERNANCE § 1](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md)). cladding is the first.
 

@@ -4,6 +4,16 @@ title: "Self-consistency guard for public counts + doc drift repair"
 status: done
 modules:
   - tests/self-consistency.test.ts
+  - scripts/test-count.mjs
+  - scripts/test-count.d.mts
+  - tests/scripts/test-count.test.ts
+  - package.json
+  - README.md
+  - README.ko.md
+  - README.ja.md
+  - README.zh.md
+  - README.html
+  - README.ko.html
   - src/stages/detectors/README.md
   - docs/README.md
   - docs/img/en/ecosystem.svg
@@ -33,3 +43,9 @@ acceptance_criteria:
     text: "docs/README.md tier index shall list every live doc under docs/ (adding the previously missing rows: glossary, feature-cycle, gate-scope, ssot-testing, knowledge-graph/design)."
     evidence_refs: ["docs/README.md"]
     notes: "WHY: the index omissions made live docs read as orphaned; several deletion candidates in the 2026-07 audit were misjudged dead partly because the index never listed them."
+  - id: AC-8ded2bb9
+    ears: event
+    condition: "when Vitest's collected test total differs from a public README badge or release-status total"
+    text: "The release build shall fail with the file and collected total, while the explicit write mode shall update all six Markdown and HTML README variants only after every claim surface validates."
+    test_refs: ["tests/scripts/test-count.test.ts"]
+    notes: "WHY: the public 2522/2522 claim lagged the live 2551-test suite; deriving the number at build time prevents the reference implementation from publishing another stale all-pass total."

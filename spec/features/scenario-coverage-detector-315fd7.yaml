@@ -19,14 +19,14 @@ acceptance_criteria:
   - id: AC-002
     ears: unwanted
     condition: if a scenario declares an empty features[] list
-    action: 'warn that the scenario binds no features regardless of project size'
-    text: If a scenario binds no features, the system shall warn that it is hollow — a scenario must cover at least one feature's flow.
+    action: 'report that the scenario binds no features as a warning, relaxing only marked onboarding seeds to information below the maturity threshold'
+    text: If a scenario binds no features, the system shall warn about the unresolved link, except that a project explicitly marked as onboarding-seeded may retain it as information until the design-maturity threshold.
     test_refs: [tests/stages/scenario-coverage.test.ts]
   - id: AC-003
     ears: ubiquitous
-    action: 'classify both signals warn so a small or genuinely flow-free project is not hard-broken, while a push/CI under --strict blocks'
-    response: 'the signal rides the existing warn/strict dial; a small project under the threshold with no scenarios is silent'
-    text: The system shall classify scenario-coverage findings as warn — advisory locally, blocking under --strict.
+    action: 'classify grown-project scenario-coverage findings as warn while retaining only explicitly marked early onboarding seeds as info'
+    response: 'the grown-project signal rides the existing warn/strict dial, while generated future journeys do not alter the established behavior of legacy or hand-authored projects'
+    text: The system shall make grown-project scenario-coverage gaps blocking under strict mode while keeping explicitly marked early onboarding seeds informational and all unmarked hollow scenarios advisory.
     test_refs: [tests/stages/scenario-coverage.test.ts]
   - id: AC-004
     ears: event

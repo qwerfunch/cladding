@@ -9,8 +9,8 @@ acceptance_criteria:
   - id: AC-7bf859
     ears: ubiquitous
     action: "resolve the TypeScript/JavaScript lint gate from the linter the project actually configured"
-    response: "detectToolchain selects biome when biome.json/biome.jsonc is present, oxlint when any of its config files (.oxlintrc.json/.oxlintrc.jsonc/oxlint.config.ts) is present (biome winning when both are), and keeps the eslint default when no linter config is present — so prior eslint and config-less projects behave exactly as before"
-    text: "The system shall resolve the stage_1.2 lint gate for a TypeScript/JavaScript project from the linter that project configured — selecting biome on a biome.json/biome.jsonc, oxlint on any oxlint config file (.oxlintrc.json / .oxlintrc.jsonc / oxlint.config.ts, all auto-detected by oxlint), with biome taking precedence when both exist, and falling back to the eslint default when no linter config is present — so a biome- or oxlint-based project gates natively without an eslint shim, while eslint and config-less projects keep their existing behavior."
+    response: "detectToolchain runs scripts.lint when declared, otherwise selects biome, oxlint, or eslint from explicit configuration, and leaves an undeclared lint gate unregistered"
+    text: "The system shall resolve the stage_1.2 lint gate for a TypeScript/JavaScript project from the workflow that project declared — preferring scripts.lint, otherwise selecting biome on biome configuration, oxlint on oxlint configuration, or eslint on eslint configuration, and leaving lint unregistered when none is declared."
     notes: |
       ## Why
       stage_1.2 is the polyglot lint gate that `clad done` must pass, and it
@@ -19,14 +19,19 @@ acceptance_criteria:
       bridging eslint in. The JS/TS ecosystem has several mainstream linters; the
       honest gate runs the one the project declared, read from its config file,
       not a single assumed default.
+      This criterion also owns the project-script precedence requirement that
+      was first discovered during onboarding handoff verification; it applies
+      to every TypeScript or JavaScript project, not only initialized ones.
     test_refs:
       - "tests/stages/toolchain.test.ts#typescript + biome.json → lint gate is biome"
       - "tests/stages/toolchain.test.ts#typescript + .oxlintrc.json → lint gate is oxlint"
       - "tests/stages/toolchain.test.ts#typescript + .oxlintrc.jsonc → lint gate is oxlint"
       - "tests/stages/toolchain.test.ts#typescript + oxlint.config.ts → lint gate is oxlint"
-      - "tests/stages/toolchain.test.ts#typescript with no linter config → lint gate stays eslint (default preserved)"
+      - "tests/stages/toolchain.test.ts#typescript with no lint script or config → lint gate is honestly unconfigured"
+      - "tests/stages/toolchain.test.ts#typescript scripts.lint → lint gate runs the exact project-owned workflow"
+      - "tests/stages/toolchain.test.ts#typescript eslint config without lint script → lint gate is eslint"
       - "tests/stages/toolchain.test.ts#biome takes precedence over oxlint when both configs present"
-      - "tests/stages/toolchain.test.ts#selection follows config presence — add biome.json swaps to biome, remove it falls back to eslint"
+      - "tests/stages/toolchain.test.ts#selection follows declarations — add biome.json enables biome, remove it leaves lint unconfigured"
   - id: AC-86822d
     ears: unwanted
     condition: "if a non-TypeScript project carries a stray linter config, or the resolved linter is not installed"

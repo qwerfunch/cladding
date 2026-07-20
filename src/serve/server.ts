@@ -19,9 +19,13 @@
 // @see spec/features/F-073.yaml — server scaffold AC matrix.
 
 import {spawnSync} from 'node:child_process';
-import {readFileSync, existsSync, statSync} from 'node:fs';
-import {dirname, join} from 'node:path';
+import {createHash, randomUUID} from 'node:crypto';
+import {readFileSync, existsSync, mkdirSync, realpathSync, readdirSync, rmSync, statSync, writeFileSync} from 'node:fs';
+import {basename, dirname, extname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {TextDecoder} from 'node:util';
+import {deflateRawSync, inflateRawSync} from 'node:zlib';
+import {tmpdir} from 'node:os';
 
 import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
 import {
@@ -37,7 +41,7 @@ import {renderAuditTable, renderCatalog, renderChangelogMarkdown} from '../chang
 import {subscribeAudit} from '../hitl/audit.js';
 import {loadSpec} from '../spec/load.js';
 import type {Spec} from '../spec/types.js';
-import {createFeature, createScenario, linkCapability} from '../spec/new.js';
+import {createFeature, createScenario, linkCapability, linkScenario, resolveDesignImpact} from '../spec/new.js';
 import {recordOracle} from '../oracle/record.js';
 import {doneFeatureCount, oracleRequired, resolveOraclePolicy} from '../oracle/policy.js';
 import {maintainDeliverable} from '../spec/deliverable-detect.js';
@@ -71,11 +75,18 @@ export const PERSONA_PROMPT_ALIASES: Readonly<Record<string, string>> = {
 
 /** Tool names cladding's MCP server exposes (stable wire identifiers). */
 export const TOOL_NAMES = [
+  'clad_prepare_init',
+  'clad_stage_init',
+  'clad_init',
+  'clad_prepare_clarify',
+  'clad_clarify',
+  'clad_resolve_onboarding_review',
   'clad_list_features',
   'clad_get_feature',
   'clad_run_check',
   'clad_get_events',
   'clad_create_feature',
+  'clad_resolve_design_impact',
   'clad_create_scenario',
   'clad_link_capability',
   'clad_author_oracle',
@@ -102,6 +113,50 @@ export interface ServerOptions {
   readonly name?: string;
   /** Server version advertised to clients. */
   readonly version?: string;
+  /** In-process onboarding operations supplied by the CLI composition root. */
+  readonly onboarding?: OnboardingOperations;
+}
+
+/** Process-independent onboarding contract injected at the serve boundary. */
+export interface OnboardingOperations {
+  readonly renderDraft: (draft: unknown) => string;
+  readonly prepareInit: (opts: {cwd: string; mode: string; intent: string}) => {
+    readonly prompt: string;
+    readonly request: {readonly mode: string; readonly intent: string};
+    readonly observation: Record<string, unknown>;
+  };
+  readonly initialize: (opts: {
+    cwd: string;
+    intent?: string;
+    scan?: boolean;
+    noLlm?: boolean;
+    hostDispatcher?: (prompt: string) => Promise<string>;
+  }) => Promise<{
+    readonly created?: readonly string[];
+    readonly skipped?: readonly string[];
+    readonly language?: string;
+    readonly proposals?: readonly string[];
+    readonly clarifyingQuestions?: readonly string[];
+    readonly onboardingMode?: 'greenfield' | 'existing-adoption' | 'mixed';
+    readonly onboardingSource?: 'llm' | 'hybrid' | 'deterministic';
+  }>;
+  readonly prepareClarify: (
+    answer: string,
+    opts: {cwd: string},
+  ) => {readonly prompt: string; readonly request: {readonly mode: string; readonly intent: string}; readonly observation: Record<string, unknown>} | {readonly error: string};
+  readonly clarify: (
+    answer: string,
+    opts: {cwd: string; noLlm?: boolean; hostDispatcher?: (prompt: string) => Promise<string>},
+  ) => Promise<{
+    readonly ok: boolean;
+    readonly error?: string;
+    readonly report?: unknown;
+    readonly source?: 'llm' | 'hybrid' | 'deterministic';
+  }>;
+  readonly resolveReview: (
+    targets: readonly string[],
+    opts: {cwd: string},
+  ) => {readonly ok: boolean; readonly changed: boolean; readonly status?: string; readonly remaining?: readonly string[]; readonly error?: string};
 }
 
 /**
@@ -119,9 +174,16 @@ export function buildServer(opts: ServerOptions = {}): McpServer {
   const server = new McpServer(
     {
       name: opts.name ?? 'cladding',
-      version: opts.version ?? '0.8.3',
+      version: opts.version ?? '0.9.0',
     },
     {
+      instructions:
+        'For explicit Cladding onboarding, always call clad_prepare_init first, draft the requested structured data ' +
+        'with the current host model, then call clad_stage_init before showing the planned changes. Wait for a separate ' +
+        'user confirmation before calling clad_init with the confirmation verbatim. For each real user answer, call ' +
+        'clad_prepare_clarify and then clad_clarify only after a new user message supplies the answer. Never infer an ' +
+        'answer or call clarify during the initialization approval turn. Never run onboarding shell commands or request MCP sampling. ' +
+        'Prepare tools are read-only; apply tools validate and write.',
       // Declare subscribe support so clients can subscribe to
       // cladding://audit and receive notifications/resources/updated
       // when new evidence lands. The wire-level handlers themselves
@@ -132,7 +194,7 @@ export function buildServer(opts: ServerOptions = {}): McpServer {
     },
   );
 
-  registerTools(server, cwd);
+  registerTools(server, cwd, opts.onboarding);
   registerResources(server, cwd);
   registerPrompts(server, cwd);
   registerSubscribeHandlers(server);
@@ -202,6 +264,19 @@ function loadSpecOrError(cwd: string): {readonly spec: Spec} | {readonly error: 
   }
 }
 
+/** Deterministic mutation boundary for a setup-only workspace. */
+function requireInitialized(cwd: string): string | null {
+  const loaded = loadSpecOrError(cwd);
+  if (!('error' in loaded)) return null;
+  return 'cladding: not_initialized — this project has host wiring but no valid spec.yaml; ' +
+    'ordinary work must remain ordinary until the user explicitly requests Cladding initialization.';
+}
+
+function initializedMutationBoundary(cwd: string): {isError: true; content: Array<{type: 'text'; text: string}>} | null {
+  const error = requireInitialized(cwd);
+  return error ? {isError: true, content: [{type: 'text', text: error}]} : null;
+}
+
 /** Frozen wire field (F-570a3f): bump when a tool's payload shape changes. */
 const PAYLOAD_SCHEMA_VERSION = 1;
 
@@ -257,8 +332,7 @@ function recordServe(
   }
 }
 
-/** Locate the engine's bin shim relative to this module — works in the dist
- * bundle (dist/clad.js → ../bin/clad) and the dev tree (src/serve/ → ../../bin/clad). */
+/** Locates the CLI shim for legacy MCP tools that still wrap CLI verbs. */
 function engineShim(): string | null {
   let dir = dirname(fileURLToPath(import.meta.url));
   for (let i = 0; i < 5; i++) {
@@ -266,10 +340,597 @@ function engineShim(): string | null {
     if (existsSync(candidate)) return candidate;
     dir = dirname(dir);
   }
+  const runningEntry = process.argv[1];
+  return runningEntry && basename(runningEntry) === 'clad.js' && existsSync(runningEntry)
+    ? runningEntry
+    : null;
+}
+
+const INTENT_FILE_EXTENSIONS = new Set(['.md', '.txt', '.yaml', '.yml', '.markdown']);
+
+/**
+ * Rejects ambiguous document paths and bytes before they reach the host model.
+ *
+ * @see spec/features/natural-language-init-0f4dd6.yaml AC-003
+ */
+function projectIntentPath(cwd: string, requested: string): {path?: string; text?: string; error?: string} {
+  if (!requested.trim()) return {error: 'document_path is required for document mode'};
+  if (isAbsolute(requested)) return {error: 'document_path must be relative to the connected project'};
+  const root = realpathSync(resolve(cwd));
+  const candidate = resolve(root, requested);
+  if (!existsSync(candidate)) return {error: `planning document not found: ${requested}`};
+  let target: string;
+  try {
+    target = realpathSync(candidate);
+  } catch (error) {
+    return {error: `planning document could not be resolved: ${(error as Error).message}`};
+  }
+  const rel = relative(root, target);
+  if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
+    return {error: 'planning document must stay inside the connected project'};
+  }
+  if (!statSync(target).isFile()) return {error: 'planning document must be a regular file'};
+  if (!INTENT_FILE_EXTENSIONS.has(extname(target).toLowerCase())) {
+    return {error: 'planning document must be .md, .txt, .yaml, .yml, or .markdown'};
+  }
+  try {
+    const text = new TextDecoder('utf-8', {fatal: true}).decode(readFileSync(target));
+    return {path: rel, text};
+  } catch (error) {
+    return {error: `planning document is not readable UTF-8 text: ${(error as Error).message}`};
+  }
+}
+
+const hostDraftSchema = z.object({
+  mode: z.enum(['greenfield', 'existing-adoption', 'mixed']),
+  project_context: z.object({why: z.string().min(1), problem: z.string().min(1), purpose: z.string().min(1)}),
+  capabilities: z.array(z.object({
+    id: z.string().min(1),
+    title: z.string().min(1),
+    summary: z.string().min(1),
+    surface: z.enum(['feature', 'platform', 'tool', 'infrastructure']),
+  })).min(3).max(8),
+  architecture: z.object({layers: z.array(z.object({name: z.string().min(1), forbidden_imports: z.array(z.string())}))}),
+  scenarios: z.array(z.object({slug: z.string().min(1), title: z.string().min(1), flow: z.string().min(1)})).min(1).max(3),
+  questions: z.array(z.string().min(1)).max(3),
+  ai_hints: z.record(z.string(), z.unknown()).optional(),
+});
+type HostDraft = z.infer<typeof hostDraftSchema>;
+
+interface PreparedOnboarding {
+  readonly kind: 'init' | 'clarify';
+  readonly snapshot: string;
+  readonly mode: 'idea' | 'document' | 'existing';
+  readonly intent: string;
+  readonly answer?: string;
+  readonly refresh?: boolean;
+  /** Exact preview-bound phrase required at the destructive init boundary. */
+  readonly approvalChallenge?: string;
+  /** Force scan when any source code was observed, including document-led adoption. */
+  readonly scan?: boolean;
+}
+
+const MAX_APPROVAL_ENVELOPE_BYTES = 1_000_000;
+const PREPARATION_TTL_MS = 30 * 60 * 1000;
+
+/**
+ * Carries preparation state across host process restarts.
+ *
+ * The digest detects truncation/corruption; authorization still comes from the
+ * separately displayed exact challenge. Workspace freshness makes a consumed
+ * envelope stale after the first successful write. Prepare writes no authored
+ * project files, but it does persist a TTL'd consent-cache envelope: under the
+ * OS temp dir (owner-only 0600) until a draft is staged, then under the
+ * ignored `.cladding/host/onboarding-pending/`.
+ */
+function encodePreparedOnboarding(request: PreparedOnboarding): string {
+  const body = deflateRawSync(Buffer.from(JSON.stringify(request))).toString('base64url');
+  const digest = createHash('sha256').update(body).digest('hex').slice(0, 24);
+  return `v1.${digest}.${body}`;
+}
+
+function decodePreparedOnboarding(token: string): PreparedOnboarding | null {
+  const match = /^v1\.([a-f0-9]{24})\.([A-Za-z0-9_-]+)$/.exec(token);
+  if (!match) return null;
+  if (createHash('sha256').update(match[2]).digest('hex').slice(0, 24) !== match[1]) return null;
+  try {
+    const value = JSON.parse(inflateRawSync(Buffer.from(match[2], 'base64url'), {
+      maxOutputLength: MAX_APPROVAL_ENVELOPE_BYTES,
+    }).toString('utf8')) as PreparedOnboarding;
+    if ((value.kind !== 'init' && value.kind !== 'clarify') || typeof value.snapshot !== 'string' || typeof value.intent !== 'string') {
+      return null;
+    }
+    return value;
+  } catch {
+    return null;
+  }
+}
+
+function pendingPreparationPath(cwd: string, key: string, durable = false): string {
+  const id = createHash('sha256').update(`${resolve(cwd)}\0${key}`).digest('hex');
+  return durable
+    ? join(cwd, '.cladding', 'host', 'onboarding-pending', `${id}.json`)
+    : join(tmpdir(), 'cladding-onboarding-pending', `${id}.json`);
+}
+
+/**
+ * Removes every expired consent-cache envelope in `dir`, not just the current
+ * key's: abandoned prepare flows used to leave 0600 envelopes behind until the
+ * next same-key load — on a shared machine the temp tier accumulated hundreds.
+ */
+function purgeExpiredPreparations(dir: string): void {
+  let names: string[];
+  try {
+    names = readdirSync(dir);
+  } catch {
+    return;
+  }
+  for (const name of names) {
+    if (!name.endsWith('.json')) continue;
+    const path = join(dir, name);
+    try {
+      const parsed = JSON.parse(readFileSync(path, 'utf8')) as {expiresAt?: number};
+      if (!parsed.expiresAt || parsed.expiresAt < Date.now()) rmSync(path, {force: true});
+    } catch {
+      rmSync(path, {force: true});
+    }
+  }
+}
+
+function persistPendingPreparation(
+  cwd: string,
+  key: string,
+  token: string,
+  request: PreparedOnboarding,
+  draft?: HostDraft,
+): void {
+  const path = pendingPreparationPath(cwd, key, draft != null);
+  mkdirSync(dirname(path), {recursive: true, mode: 0o700});
+  purgeExpiredPreparations(dirname(path));
+  writeFileSync(path, JSON.stringify({expiresAt: Date.now() + PREPARATION_TTL_MS, token, request, draft}), {mode: 0o600});
+}
+
+function loadPendingPreparation(
+  cwd: string,
+  key: string,
+): {readonly token: string; readonly request: PreparedOnboarding; readonly draft?: HostDraft} | null {
+  for (const durable of [true, false]) {
+    const path = pendingPreparationPath(cwd, key, durable);
+    try {
+      const parsed = JSON.parse(readFileSync(path, 'utf8')) as {
+        expiresAt?: number;
+        token?: string;
+        request?: PreparedOnboarding;
+        draft?: HostDraft;
+      };
+      if (!parsed.expiresAt || parsed.expiresAt < Date.now() || !parsed.token || !parsed.request) {
+        rmSync(path, {force: true});
+        continue;
+      }
+      if (parsed.draft !== undefined) {
+        // The durable cache crosses process boundaries, so a staged draft is
+        // re-validated on load — a tampered/corrupted cache must surface as
+        // draft_required, never reach renderDraft (AC-014 extension).
+        const revalidated = hostDraftSchema.safeParse(parsed.draft);
+        if (!revalidated.success) {
+          rmSync(path, {force: true});
+          continue;
+        }
+        return {token: parsed.token, request: parsed.request, draft: revalidated.data};
+      }
+      return {token: parsed.token, request: parsed.request};
+    } catch {
+      // Try the other cache tier. A missing durable cache is normal before staging.
+    }
+  }
   return null;
 }
 
-function registerTools(server: McpServer, cwd: string): void {
+function removePendingPreparation(cwd: string, key: string): void {
+  rmSync(pendingPreparationPath(cwd, key), {force: true});
+  rmSync(pendingPreparationPath(cwd, key, true), {force: true});
+}
+
+/** Returns a short, one-time phrase that is easy for a human to verify and hard to pass accidentally. */
+function approvalChallenge(): string {
+  return `APPLY CLADDING ${randomUUID().slice(0, 6).toUpperCase()}`;
+}
+
+function workspaceSnapshot(cwd: string): string {
+  const hash = createHash('sha256');
+  const visit = (dir: string): void => {
+    if (!existsSync(dir)) return;
+    for (const entry of readdirSync(dir, {withFileTypes: true}).sort((a, b) => a.name.localeCompare(b.name))) {
+      if (entry.name === '.git' || entry.name === '.cladding' || entry.name === 'node_modules') continue;
+      const path = join(dir, entry.name);
+      const rel = relative(cwd, path);
+      if (entry.isDirectory()) visit(path);
+      else if (entry.isFile()) {
+        const stat = statSync(path);
+        hash.update(`${rel}\0${stat.size}\0${stat.mtimeMs}\n`);
+      }
+    }
+  };
+  visit(cwd);
+  return hash.digest('hex');
+}
+
+/** Binds approval to authored files plus the active onboarding conversation. */
+function onboardingPreparationSnapshot(cwd: string): string {
+  const hash = createHash('sha256').update(workspaceSnapshot(cwd));
+  const statePath = join(cwd, '.cladding', 'onboarding', 'state.yaml');
+  hash.update(existsSync(statePath) ? readFileSync(statePath) : Buffer.from('absent'));
+  return hash.digest('hex');
+}
+
+const ONBOARDING_WRITE_ROOTS = [
+  'spec.yaml', '.gitignore', 'AGENTS.md',
+  'docs/conventions.md', 'docs/project-context.md',
+  'spec/architecture.yaml', 'spec/capabilities.yaml', 'spec/scenarios',
+  '.cladding/onboarding', '.cladding/scan',
+] as const;
+
+interface OnboardingRollback {
+  readonly files: ReadonlyMap<string, Buffer>;
+  readonly directories: ReadonlySet<string>;
+}
+
+const FEATURE_TRANSACTION_ROOTS = [
+  'spec/features', 'spec/capabilities.yaml', 'spec/scenarios',
+  'spec.yaml', 'spec/index.yaml', '.cladding/events.log.jsonl',
+] as const;
+
+function capturePathRollback(cwd: string, roots: readonly string[]): OnboardingRollback {
+  const files = new Map<string, Buffer>();
+  const directories = new Set<string>();
+  const visit = (relativePath: string): void => {
+    const path = join(cwd, relativePath);
+    if (!existsSync(path)) return;
+    const stat = statSync(path);
+    if (stat.isFile()) {
+      files.set(relativePath, readFileSync(path));
+      return;
+    }
+    if (!stat.isDirectory()) return;
+    directories.add(relativePath);
+    for (const name of readdirSync(path)) visit(join(relativePath, name));
+  };
+  for (const root of roots) visit(root);
+  return {files, directories};
+}
+
+function restorePathRollback(cwd: string, roots: readonly string[], rollback: OnboardingRollback): void {
+  for (const root of roots) rmSync(join(cwd, root), {recursive: true, force: true});
+  for (const directory of [...rollback.directories].sort((a, b) => a.length - b.length)) {
+    mkdirSync(join(cwd, directory), {recursive: true});
+  }
+  for (const [relativePath, body] of rollback.files) {
+    mkdirSync(dirname(join(cwd, relativePath)), {recursive: true});
+    writeFileSync(join(cwd, relativePath), body);
+  }
+}
+
+/** Captures only paths the MCP onboarding core is allowed to mutate. */
+function captureOnboardingRollback(cwd: string): OnboardingRollback {
+  return capturePathRollback(cwd, ONBOARDING_WRITE_ROOTS);
+}
+
+/** Restores the bounded onboarding surface after any failed multi-file apply. */
+function restoreOnboardingRollback(cwd: string, rollback: OnboardingRollback): void {
+  restorePathRollback(cwd, ONBOARDING_WRITE_ROOTS, rollback);
+}
+
+function mcpPayload(payload: Record<string, unknown>, isError = false): {
+  readonly isError?: boolean;
+  readonly structuredContent: Record<string, unknown>;
+  readonly content: Array<{readonly type: 'text'; readonly text: string}>;
+} {
+  return {
+    ...(isError ? {isError: true} : {}),
+    structuredContent: payload,
+    content: [{type: 'text', text: JSON.stringify(payload, null, 2)}],
+  };
+}
+
+function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOperations): void {
+  const prepared = new Map<string, PreparedOnboarding>();
+  let initializedToolsRegistered = false;
+  const registerInitialized = (): void => {
+    if (initializedToolsRegistered) return;
+    initializedToolsRegistered = true;
+    registerInitializedTools(server, cwd, prepared, onboarding);
+  };
+
+  server.registerTool(
+    'clad_prepare_init',
+    {
+      title: 'Prepare Cladding onboarding context',
+      description:
+        'Non-destructive first step for every explicit Cladding initialization request: writes no authored project ' +
+        'files (only a TTL\'d consent cache). Inspect the connected project, ' +
+        'then use this tool result to draft the structured input for clad_init. Never run clad init in a shell.',
+      inputSchema: {
+        mode: z.enum(['idea', 'document', 'existing']),
+        intent: z.string().optional(),
+        document_path: z.string().optional(),
+        refresh: z.boolean().optional(),
+      },
+      outputSchema: {
+        status: z.string(), changed: z.boolean(), schemaVersion: z.number().optional(), token: z.string().optional(),
+        prompt: z.string().optional(), request: z.object({mode: z.string(), intent: z.string()}).optional(),
+        observation: z.record(z.string(), z.unknown()).optional(), question: z.string().optional(), error: z.string().optional(),
+        plannedChanges: z.array(z.string()).optional(), confirmationQuestion: z.string().optional(),
+        requiresSeparateUserConfirmation: z.boolean().optional(),
+        approvalChallenge: z.string().optional(),
+      },
+      annotations: {readOnlyHint: false, destructiveHint: false, idempotentHint: true},
+    },
+    async (args) => {
+      if (!onboarding) return mcpPayload({status: 'unavailable', changed: false}, true);
+      if (existsSync(join(cwd, 'spec.yaml')) && !args.refresh) {
+        return mcpPayload({status: 'already_initialized', changed: false});
+      }
+      let intent = args.intent?.trim() ?? '';
+      if (args.mode === 'idea' && !intent) {
+        return mcpPayload({status: 'needs_input', changed: false, question: 'What kind of project are you building?'});
+      }
+      if (args.mode === 'document') {
+        const resolved = projectIntentPath(cwd, args.document_path ?? '');
+        if (resolved.error) return mcpPayload({status: 'invalid_request', changed: false, error: resolved.error}, true);
+        intent = resolved.text!;
+      }
+      if (args.mode === 'existing' && !intent) intent = 'Adopt Cladding into the observed existing project.';
+      const briefing = onboarding.prepareInit({cwd, mode: args.mode, intent});
+      const challenge = approvalChallenge();
+      const observedSourceCount = Number(briefing.observation.source_file_count ?? 0);
+      const request: PreparedOnboarding = {
+        kind: 'init', snapshot: onboardingPreparationSnapshot(cwd), mode: args.mode, intent, refresh: args.refresh,
+        approvalChallenge: challenge,
+        scan: args.mode === 'existing' || observedSourceCount > 0,
+      };
+      const token = encodePreparedOnboarding(request);
+      prepared.set(token, request);
+      persistPendingPreparation(cwd, challenge, token, request);
+      return mcpPayload({
+        status: 'needs_confirmation', changed: false, schemaVersion: 1, token,
+        prompt: briefing.prompt, request: briefing.request, observation: briefing.observation,
+        plannedChanges: args.refresh
+          ? [
+              'Preserve authored files and write review proposals under .cladding/scan/.',
+              'Propose refreshed docs/project-context.md, spec/architecture.yaml, and spec/capabilities.yaml.',
+            ]
+          : [
+              'Create spec.yaml, spec/architecture.yaml, and spec/capabilities.yaml.',
+              'Create 1-3 spec/scenarios/*.yaml journey files.',
+              'Create docs/project-context.md and docs/conventions.md.',
+              'Create .cladding/onboarding/state.yaml and append .cladding/ to .gitignore.',
+              'Create a managed AGENTS.md block; preserve an existing unmanaged AGENTS.md.',
+              'Preserve any existing CLAUDE.md unchanged; AGENTS.md is the shared host instruction surface.',
+            ],
+        confirmationQuestion: `To apply these changes, reply with the exact approval phrase: ${challenge}`,
+        approvalChallenge: challenge,
+        requiresSeparateUserConfirmation: true,
+      });
+    },
+  );
+
+  server.registerTool(
+    'clad_stage_init',
+    {
+      title: 'Stage a Cladding onboarding draft for approval',
+      description:
+        'Validate and temporarily cache the host-model draft from clad_prepare_init before showing the approval phrase. ' +
+        'This does not modify project files and lets a later host process apply the exact staged draft.',
+      inputSchema: {
+        token: z.string().min(1).max(MAX_APPROVAL_ENVELOPE_BYTES),
+        draft: hostDraftSchema,
+      },
+      outputSchema: {
+        status: z.string(), changed: z.boolean(), approvalChallenge: z.string().optional(),
+        confirmationQuestion: z.string().optional(), error: z.string().optional(),
+      },
+      annotations: {readOnlyHint: false, destructiveHint: false, idempotentHint: true},
+    },
+    async (args) => {
+      const request = prepared.get(args.token) ?? decodePreparedOnboarding(args.token);
+      if (!request || request.kind !== 'init' || !request.approvalChallenge) {
+        return mcpPayload({status: 'invalid_token', changed: false}, true);
+      }
+      if (request.snapshot !== onboardingPreparationSnapshot(cwd)) {
+        return mcpPayload({status: 'stale_preparation', changed: false}, true);
+      }
+      persistPendingPreparation(cwd, request.approvalChallenge, args.token, request, args.draft);
+      return mcpPayload({
+        status: 'staged',
+        changed: false,
+        approvalChallenge: request.approvalChallenge,
+        confirmationQuestion: `To apply these changes, reply with the exact approval phrase: ${request.approvalChallenge}`,
+      });
+    },
+  );
+
+  server.registerTool(
+    'clad_init',
+    {
+      title: 'Apply a validated Cladding onboarding draft',
+      description:
+        'Write Cladding artifacts from the host model draft returned after clad_prepare_init. ' +
+        'Use the one-time token when the host retained it; process-per-turn hosts may use the exact approval phrase ' +
+        'through the short-lived project runtime cache. Copy the complete user message, including the APPLY CLADDING ' +
+        'prefix, into confirmation. Malformed, stale, or replayed requests do not write files.',
+      inputSchema: {
+        token: z.string().min(1).max(MAX_APPROVAL_ENVELOPE_BYTES).optional(),
+        confirmation: z.string().regex(/^APPLY CLADDING [A-F0-9]{6}$/).describe(
+          'The complete separate user reply, verbatim, including the APPLY CLADDING prefix',
+        ),
+        draft: hostDraftSchema.optional(),
+      },
+      outputSchema: {
+        status: z.string(), changed: z.boolean(), created: z.array(z.string()).optional(), skipped: z.array(z.string()).optional(),
+        language: z.string().optional(), proposals: z.array(z.string()).optional(), clarifyingQuestions: z.array(z.string()).optional(),
+        onboardingMode: z.enum(['greenfield', 'existing-adoption', 'mixed']).optional(), onboardingSource: z.string().optional(),
+        nextQuestion: z.string().nullable().optional(), remainingQuestions: z.number().optional(), error: z.string().optional(),
+        confirmation: z.string().optional(),
+      },
+      annotations: {readOnlyHint: false, destructiveHint: true, idempotentHint: false},
+    },
+    async (args) => {
+      const pending = loadPendingPreparation(cwd, args.confirmation.trim());
+      const request = (args.token
+        ? prepared.get(args.token) ?? decodePreparedOnboarding(args.token)
+        : null) ?? pending?.request;
+      if (!request || request.kind !== 'init') return mcpPayload({status: 'invalid_token', changed: false}, true);
+      if (!request.approvalChallenge || args.confirmation.trim() !== request.approvalChallenge) {
+        return mcpPayload({
+          status: 'confirmation_required', changed: false,
+          error: 'The exact one-time approval phrase shown in the preview is required.',
+        }, true);
+      }
+      if (request.snapshot !== onboardingPreparationSnapshot(cwd)) return mcpPayload({status: 'stale_preparation', changed: false}, true);
+      if (!onboarding) return mcpPayload({status: 'unavailable', changed: false}, true);
+      const draft = args.draft ?? pending?.draft;
+      if (!draft) {
+        return mcpPayload({
+          status: 'draft_required', changed: false,
+          error: 'No staged onboarding draft is available. Prepare and stage the draft again before approval.',
+        }, true);
+      }
+      if (args.token) prepared.delete(args.token);
+      removePendingPreparation(cwd, args.confirmation.trim());
+      const response = onboarding.renderDraft(draft);
+      const rollback = captureOnboardingRollback(cwd);
+      let init: Awaited<ReturnType<OnboardingOperations['initialize']>>;
+      try {
+        init = await onboarding.initialize({
+          cwd, intent: request.intent, scan: request.scan ? true : undefined,
+          hostDispatcher: async () => response,
+        });
+      } catch (error) {
+        restoreOnboardingRollback(cwd, rollback);
+        return mcpPayload({
+          status: 'failed', changed: false,
+          error: `Initialization failed; all onboarding files were restored: ${(error as Error).message}`,
+        }, true);
+      }
+      const questions = init.clarifyingQuestions ?? [];
+      const payload = {
+        status: questions.length > 0 ? 'needs_answers' : 'initialized', changed: true,
+        ...init,
+        onboardingSource: 'host',
+        confirmation: args.confirmation,
+        nextQuestion: questions[0] ?? null,
+        remainingQuestions: questions.length,
+      };
+      registerInitialized();
+      return mcpPayload(payload);
+    },
+  );
+
+  if (existsSync(join(cwd, 'spec.yaml'))) registerInitialized();
+}
+
+/**
+ * Keeps ordinary development tool descriptions out of pre-init model context.
+ *
+ * @see spec/features/natural-language-init-0f4dd6.yaml AC-017
+ */
+function registerInitializedTools(
+  server: McpServer,
+  cwd: string,
+  prepared: Map<string, PreparedOnboarding>,
+  onboarding?: OnboardingOperations,
+): void {
+  server.registerTool(
+    'clad_prepare_clarify',
+    {
+      title: 'Prepare the next Cladding onboarding answer',
+      description:
+        'Use only after a new user message answers the displayed pending question. Pass that answer verbatim. ' +
+        'Never call during the initialization approval turn and never invent an answer.',
+      inputSchema: {answer: z.string().min(1)},
+      outputSchema: {
+        status: z.string(), changed: z.boolean(), schemaVersion: z.number().optional(), token: z.string().optional(),
+        prompt: z.string().optional(), request: z.object({mode: z.string(), intent: z.string()}).optional(),
+        observation: z.record(z.string(), z.unknown()).optional(), error: z.string().optional(),
+      },
+      annotations: {readOnlyHint: false, destructiveHint: false, idempotentHint: true},
+    },
+    async (args) => {
+      if (!onboarding) return mcpPayload({status: 'unavailable', changed: false}, true);
+      const briefing = onboarding.prepareClarify(args.answer, {cwd});
+      if ('error' in briefing) return mcpPayload({status: 'invalid_state', changed: false, error: briefing.error}, true);
+      const request: PreparedOnboarding = {
+        kind: 'clarify', snapshot: onboardingPreparationSnapshot(cwd), mode: 'idea', intent: briefing.request.intent, answer: args.answer,
+      };
+      const token = encodePreparedOnboarding(request);
+      prepared.set(token, request);
+      persistPendingPreparation(cwd, `clarify:${args.answer}`, token, request);
+      return mcpPayload({status: 'needs_host_draft', changed: false, schemaVersion: 1, token, prompt: briefing.prompt, request: briefing.request, observation: briefing.observation});
+    },
+  );
+
+  server.registerTool(
+    'clad_clarify',
+    {
+      title: 'Answer the next Cladding onboarding question',
+      description:
+        'Apply a host-model refinement only for an answer supplied in a new user message after the pending question. ' +
+        'Never call during the initialization approval turn; do not invent or alter the user answer.',
+      inputSchema: {
+        answer: z.string().min(1).describe('The user\'s answer, verbatim'),
+        token: z.string().min(1).max(MAX_APPROVAL_ENVELOPE_BYTES).optional(),
+        draft: hostDraftSchema,
+      },
+      outputSchema: {
+        status: z.string(), changed: z.boolean(), cwd: z.string().optional(), answered: z.unknown().optional(),
+        newQuestions: z.array(z.string()).optional(), mode: z.enum(['greenfield', 'existing-adoption', 'mixed']).nullable().optional(),
+        nextQuestion: z.string().nullable().optional(), remainingQuestions: z.number().optional(), refinementSource: z.string().optional(),
+        pendingReview: z.array(z.string()).optional(),
+        error: z.string().optional(),
+      },
+      annotations: {readOnlyHint: false, destructiveHint: true, idempotentHint: false},
+    },
+    async (args) => {
+      const pending = loadPendingPreparation(cwd, `clarify:${args.answer}`);
+      const request = (args.token
+        ? prepared.get(args.token) ?? decodePreparedOnboarding(args.token)
+        : null) ?? pending?.request;
+      if (!request || request.kind !== 'clarify' || request.answer !== args.answer) return mcpPayload({status: 'invalid_token', changed: false}, true);
+      if (request.snapshot !== onboardingPreparationSnapshot(cwd)) return mcpPayload({status: 'stale_preparation', changed: false}, true);
+      if (!onboarding) return mcpPayload({status: 'unavailable', changed: false}, true);
+      if (args.token) prepared.delete(args.token);
+      removePendingPreparation(cwd, `clarify:${args.answer}`);
+      const response = onboarding.renderDraft(args.draft);
+      const outcome = await onboarding.clarify(args.answer, {cwd, hostDispatcher: async () => response});
+      if (!outcome.ok) return mcpPayload({status: 'failed', changed: false, error: outcome.error ?? 'onboarding clarification failed'}, true);
+      return mcpPayload({...((outcome.report ?? {}) as object), changed: true, refinementSource: 'host'});
+    },
+  );
+
+  server.registerTool(
+    'clad_resolve_onboarding_review',
+    {
+      title: 'Apply reviewed onboarding design proposals',
+      description:
+        'After showing proposal diffs and receiving explicit user approval, applies only the selected pending proposal targets. ' +
+        'Never call this automatically; authored design is preserved until the user reviews it.',
+      inputSchema: {
+        targets: z.array(z.string()).min(1).describe('Exact active artifact paths returned in pendingReview.'),
+      },
+      annotations: {readOnlyHint: false, destructiveHint: true, idempotentHint: false},
+    },
+    async (args) => {
+      if (!onboarding) return mcpPayload({status: 'unavailable', changed: false}, true);
+      const result = onboarding.resolveReview(args.targets, {cwd});
+      return mcpPayload({
+        status: result.status ?? (result.ok ? 'resolved' : 'failed'),
+        changed: result.changed,
+        remaining: result.remaining,
+        error: result.error,
+      }, !result.ok);
+    },
+  );
+
   // clad_list_features — list features in the active spec.
   // v0.3.10 (F-085) — slug_substring + sort options.
   server.registerTool(
@@ -293,6 +954,7 @@ function registerTools(server: McpServer, cwd: string): void {
           .optional()
           .describe("'alphabetical' (default — by id) or 'recent' (by file mtime, newest first)"),
       },
+      annotations: {readOnlyHint: true, destructiveHint: false, idempotentHint: true},
     },
     async (args) => {
       const loaded = loadSpecOrError(cwd);
@@ -337,6 +999,7 @@ function registerTools(server: McpServer, cwd: string): void {
         id: z.string().optional().describe('Feature id such as "F-049" or "F-a3f9c2"'),
         slug: z.string().optional().describe("Feature slug such as 'login-flow'"),
       },
+      annotations: {readOnlyHint: true, destructiveHint: false, idempotentHint: true},
     },
     async (args) => {
       if (!args.id && !args.slug) {
@@ -381,6 +1044,7 @@ function registerTools(server: McpServer, cwd: string): void {
         strict: z.boolean().optional().describe('Treat warnings as errors when true'),
         verbose: z.boolean().optional().describe('Return the full report (all findings incl. info + suggestions) instead of the terse top-3 summary'),
       },
+      annotations: {readOnlyHint: true, destructiveHint: false, idempotentHint: true},
     },
     async (args) => {
       const result = runDrift({strict: args.strict, cwd});
@@ -882,9 +1546,35 @@ function registerTools(server: McpServer, cwd: string): void {
             'Acceptance criteria authored now (ids auto-assigned AC-001…). Strongly ' +
               'preferred over an empty feature — this is what makes the feature governable.',
           ),
+        design_impact: z.discriminatedUnion('classification', [
+          z.object({
+            classification: z.literal('none'),
+            rationale: z.string().min(1),
+          }),
+          z.object({
+            classification: z.literal('additive'),
+            rationale: z.string().min(1),
+            capability: z.string().regex(/^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/),
+            capability_title: z.string().min(1).optional(),
+            scenario: z.string().min(1).optional(),
+          }),
+          z.object({
+            classification: z.literal('structural'),
+            rationale: z.string().min(1),
+            artifacts: z.array(z.enum([
+              'spec/architecture.yaml', 'spec/capabilities.yaml', 'docs/project-context.md',
+            ])).min(1),
+          }),
+        ]).optional().describe(
+          'Optional design-impact decision. Omit for the legacy-compatible create-only path; ' +
+            'structural changes remain review_required until resolved.',
+        ),
       },
     },
     async (args) => {
+      const boundary = initializedMutationBoundary(cwd);
+      if (boundary) return boundary;
+      const rollback = capturePathRollback(cwd, FEATURE_TRANSACTION_ROOTS);
       try {
         const result = createFeature({
           slug: args.slug,
@@ -892,28 +1582,90 @@ function registerTools(server: McpServer, cwd: string): void {
           status: args.status,
           modules: args.modules,
           acceptance_criteria: args.acceptance_criteria,
+          design_impact: args.design_impact
+            ? {
+                classification: args.design_impact.classification,
+                rationale: args.design_impact.rationale,
+                artifacts: args.design_impact.classification === 'structural'
+                  ? args.design_impact.artifacts
+                  : undefined,
+              }
+            : undefined,
           cwd,
         });
+        if (args.design_impact?.classification === 'additive') {
+          linkCapability({
+            capability: args.design_impact.capability,
+            feature: result.id,
+            title: args.design_impact.capability_title,
+            cwd,
+          });
+          if (args.design_impact.scenario) {
+            linkScenario({scenario: args.design_impact.scenario, feature: result.id, cwd});
+          }
+        }
         syncInventory(cwd);
         // Non-mutating firing-path nudge: travels as a `hint` FIELD (keeps the
         // payload valid JSON), never a silent write to capabilities.yaml.
+        const designImpact = args.design_impact;
         const withHint = {
           schema_version: PAYLOAD_SCHEMA_VERSION,
           ...result,
           gate: gateFooter(cwd),
-          hint:
-            'If this feature is user-facing, link it to a capability with clad_link_capability ' +
-            `(capability: <kebab-id>, feature: ${result.id}) so the Tier-B design SSoT grows with ` +
-            'development instead of being left an empty seed.',
+          ...(designImpact
+            ? {
+                designImpact: designImpact.classification === 'structural'
+                  ? {
+                      status: 'review_required',
+                      artifacts: designImpact.artifacts,
+                      next: 'Preview and apply the listed Tier-B design changes, then call clad_resolve_design_impact.',
+                    }
+                  : {status: 'resolved', classification: designImpact.classification},
+              }
+            : {
+                hint:
+                  'If this feature is user-facing, link it to a capability with clad_link_capability ' +
+                  `(capability: <kebab-id>, feature: ${result.id}) so the Tier-B design SSoT grows with ` +
+                  'development instead of being left an empty seed.',
+              }),
         };
         return {
           content: [{type: 'text', text: JSON.stringify(withHint, null, 2)}],
         };
       } catch (err) {
+        restorePathRollback(cwd, FEATURE_TRANSACTION_ROOTS, rollback);
         return {
           isError: true,
           content: [{type: 'text', text: (err as Error).message}],
         };
+      }
+    },
+  );
+
+  server.registerTool(
+    'clad_resolve_design_impact',
+    {
+      title: 'Resolve a reviewed structural design impact',
+      description:
+        'Marks a feature structural design impact resolved only after the user-approved Tier-B changes have been applied. ' +
+        'Do not call this merely to clear the gate; verify every artifact listed in the feature first.',
+      inputSchema: {
+        feature: z.string().describe('Feature id whose listed Tier-B design changes are now applied.'),
+      },
+    },
+    async (args) => {
+      const boundary = initializedMutationBoundary(cwd);
+      if (boundary) return boundary;
+      try {
+        const result = resolveDesignImpact({feature: args.feature, cwd});
+        syncInventory(cwd);
+        return {content: [{type: 'text', text: JSON.stringify({
+          schema_version: PAYLOAD_SCHEMA_VERSION,
+          ...result,
+          gate: gateFooter(cwd),
+        }, null, 2)}]};
+      } catch (error) {
+        return {isError: true, content: [{type: 'text', text: (error as Error).message}]};
       }
     },
   );
@@ -946,6 +1698,8 @@ function registerTools(server: McpServer, cwd: string): void {
       },
     },
     async (args) => {
+      const boundary = initializedMutationBoundary(cwd);
+      if (boundary) return boundary;
       try {
         const result = recordOracle({
           featureId: args.featureId,
@@ -1013,6 +1767,8 @@ function registerTools(server: McpServer, cwd: string): void {
       },
     },
     async (args) => {
+      const boundary = initializedMutationBoundary(cwd);
+      if (boundary) return boundary;
       try {
         const result = createScenario({
           slug: args.slug,
@@ -1066,6 +1822,8 @@ function registerTools(server: McpServer, cwd: string): void {
       },
     },
     async (args) => {
+      const boundary = initializedMutationBoundary(cwd);
+      if (boundary) return boundary;
       try {
         const result = linkCapability({
           capability: args.capability,

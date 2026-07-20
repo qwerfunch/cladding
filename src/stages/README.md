@@ -42,12 +42,12 @@ Ironclad iron-law stage implementations. One module per stage. Shared types in `
 | stage | file | pass criteria (Ironclad spec) | determinism | default tool |
 |---|---|---|---|---|
 | stage_1.1 Type | `type.ts` | type checker exit 0, no errors | deterministic | polyglot chain (TS→tsc · Py→mypy · Rust→cargo check · …) |
-| stage_1.2 Lint | `lint.ts` | linter exit 0, no errors | deterministic | polyglot chain (TS→eslint · Py→ruff · Rust→clippy · …) |
+| stage_1.2 Lint | `lint.ts` | linter exit 0, no errors | deterministic | project script/config, then polyglot chain (TS→eslint/biome/oxlint · Py→ruff · …) |
 | stage_1.3 Drift (core) | `drift.ts` | zero error-severity findings | deterministic | plug-in registry (1/19 detector wired) |
 | stage_1.4 Commit | `commit.ts` | working tree + index both clean | deterministic | `git status --porcelain` (language-agnostic) |
 | stage_1.5 Arch | `arch.ts` | no architecture rule violations | deterministic | toolchain chain (TS→madge --circular · Python→lint-imports) |
 | stage_1.6 Secret | `secret.ts` | no hardcoded secrets in tracked code | deterministic | toolchain chain (TS→secretlint · others→gitleaks) |
-| stage_2.1 Unit | `unit.ts` | unit-test runner exit 0 | deterministic | toolchain chain (TS→vitest · Python→pytest · Rust→cargo test · …) |
+| stage_2.1 Unit | `unit.ts` | runner exit 0 and, under strict mode, a non-zero executed-test count | deterministic | project script, then toolchain chain (TS→vitest/jest · Python→pytest · …) |
 
 ## [INTERFACE]
 
@@ -121,6 +121,12 @@ Output: one-line JSON on stdout, exit code matches stage result.
 | `@types/node` (dev) | Node.js stdlib types |
 
 Runtime: zero. Each stage module defers heavy lifting to the project's own toolchain (resolved by `toolchain/detect.ts`).
+
+For TypeScript/JavaScript projects, an explicit `scripts.lint` or a non-Jest/Vitest
+`scripts.test` is authoritative. Cladding invokes that npm workflow verbatim;
+it does not substitute ESLint or Vitest. Coverage is registered for a custom
+test runner only when `scripts.coverage` exists. An undeclared lint or coverage
+workflow is reported as skipped, not guessed from the presence of package.json.
 
 ## [POLYGLOT]
 

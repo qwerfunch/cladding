@@ -19,7 +19,10 @@ import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {describe, expect, test} from 'vitest';
 
-import {AGENTS_MD_TEMPLATE, CLAUDE_MD_SECTION, isStaleInstructions} from '../src/init/host-instructions.js';
+import {CLAUDE_MD_SECTION, isStaleInstructions} from '../src/init/host-instructions.js';
+import {renderAgentsMdManagedBlock} from '../src/init/agents-md.js';
+
+const AGENTS_MD_BLOCK = renderAgentsMdManagedBlock(null);
 
 const ROOT = process.cwd();
 const read = (rel: string): string => readFileSync(join(ROOT, rel), 'utf8');
@@ -33,12 +36,12 @@ describe('AC-b07dce5d · both freshness literals survive verbatim in the emitted
     expect(CLAUDE_MD_SECTION).toContain('Feature cycle — one at a time');
   });
 
-  // Symmetric pin: AGENTS_MD_TEMPLATE is out of scope for the diet but carries
-  // the same signature literal today (checked directly, not assumed) — if a
-  // future edit drops it there too, isStaleInstructions would misjudge a
-  // cladding-authored AGENTS.md as arbitrary user prose and never re-sync it.
-  test('AGENTS_MD_TEMPLATE also carries the anti-self-cert signature literal', () => {
-    expect(AGENTS_MD_TEMPLATE).toContain('anti-self-cert');
+  // Symmetric pin: the spec-driven AGENTS.md managed block is out of scope for
+  // the diet but carries the same signature literal today (checked directly,
+  // not assumed) — the anti-self-cert wording is the cross-host freshness
+  // signature shared by both instruction surfaces.
+  test('the AGENTS.md managed block also carries the anti-self-cert signature literal', () => {
+    expect(AGENTS_MD_BLOCK).toContain('anti-self-cert');
   });
 });
 

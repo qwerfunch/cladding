@@ -35,7 +35,7 @@ A Tier B artifact must answer: **who reads this and what decision do they make?*
 Orphan artifacts get demoted (move to Tier D as historical reference) or removed. This cycle resolves the v0.3.45 orphans:
 - `spec/capabilities.yaml` gains the `CAPABILITIES_FEATURE_MAPPING` detector
 - `docs/project-context.md` becomes the scenario generator's source (clear, named role)
-- `spec/scenarios/*.yaml` gains a clear producer (onboarding / `clad_create_scenario`) and consumer (the reference detectors + the host AI). *(NOTE v0.4.x: an earlier draft claimed `clad_create_feature` binds scenarios; it does not — `createFeature` in `src/spec/new.ts` takes no scenario argument. Scenarios are authored independently via `clad_create_scenario`.)*
+- `spec/scenarios/*.yaml` gains a clear producer (onboarding / `clad_create_scenario`) and consumer (the reference detectors + the host AI). The public `clad_create_feature` transaction may bind an existing scenario when its design impact is additive; the lower-level `createFeature` helper stays single-purpose.
 
 ## Artifact registry
 
@@ -45,7 +45,7 @@ Orphan artifacts get demoted (move to Tier D as historical reference) or removed
 |---|---|---|---|
 | `spec.yaml` | `clad_create_feature` / hand-edit | `spec/load.ts` → every detector + MCP server + CLI verbs | manual edit; `clad sync` validates |
 | `spec/features/<slug>-<hash6>.yaml` | `clad_create_feature` | merged into `Spec.features[]` on load | manual edit + validation |
-| `spec/scenarios/<slug>-<hash6>.yaml` | `clad init <intent>` onboarding (NEW v0.3.45) OR `clad_create_scenario` OR hand-edit | `REFERENCE_INTEGRITY` / `SLUG_CONFLICT` / `ID_COLLISION` / `SCENARIO_COVERAGE` detectors | onboarding 7th sentinel emits; refine refreshes; `clad_create_scenario` adds. *(`clad_create_feature` does NOT bind scenarios — corrected v0.4.x.)* |
+| `spec/scenarios/<slug>-<hash6>.yaml` | `clad init <intent>` onboarding (NEW v0.3.45) OR `clad_create_scenario` OR hand-edit | `REFERENCE_INTEGRITY` / `SLUG_CONFLICT` / `ID_COLLISION` / `SCENARIO_COVERAGE` detectors | onboarding 7th sentinel emits; clarify refreshes; `clad_create_scenario` adds. *(`clad_create_feature` does NOT bind scenarios — corrected v0.4.x.)* |
 
 ### Tier B — Design SSoT
 
@@ -53,7 +53,7 @@ Orphan artifacts get demoted (move to Tier D as historical reference) or removed
 |---|---|---|---|
 | `spec/architecture.yaml` | `clad init --scan` (observed) OR `clad init <intent>` (LLM) OR `clad clarify` OR hand-edit | `ARCHITECTURE_FROM_SPEC` detector + `reviewer` (Layered Integrity guardrail) + `developer` (layer boundary check when placing modules) | re-scan diverts to `.cladding/scan/*.proposal` |
 | `spec/capabilities.yaml` | `clad init <intent>` (LLM) OR `clad clarify` OR hand-edit | **schema-validated + merged into `Spec.capabilities` on load (v0.4.x, J2)** + `CAPABILITIES_FEATURE_MAPPING` (reference validity) + `HOLLOW_GOVERNANCE` (empty-tier guard, v0.4.x) | re-scan diverts to proposal |
-| `docs/project-context.md` | `clad init` (template/LLM-refined) OR `clad clarify` OR hand-edit | AI personas (orchestrator/developer) as Why/What/Purpose context input + **scenario generator (NEW v0.3.45) uses prose for user-journey extraction** + human onboarding readers | LLM-refined on init/refine; hand-edits preserved between |
+| `docs/project-context.md` | `clad init` (template/LLM-refined) OR `clad clarify` OR hand-edit | AI personas (orchestrator/developer) as Why/What/Purpose context input + **scenario generator (NEW v0.3.45) uses prose for user-journey extraction** + human onboarding readers | LLM-refined on init/clarify; hand-edits preserved between |
 
 ### Tier C — Derived / Observable
 
@@ -84,11 +84,10 @@ single-responsibility (and keeps a tool's name honest as it grows).
 | **refine** | holistic DOCUMENT (one per project, not enumerated) | LLM/manual rewrite | `clad clarify` (formerly `refine`) → `architecture.yaml`, `project-context.md`, `conventions.md` |
 
 A capability is **accumulative** (created once, then features land on it over time),
-so its verb is `link`, not `create` — re-"creating" an existing capability would
-collide. `clad_create_feature` therefore does NOT grow capabilities as a side effect
-(that would make its name lie); instead its result carries a non-mutating `hint` to
-call `clad_link_capability`. This is the deterministic development-time firing path
-for the Tier-B design SSoT, complementing the onboarding-time `clad clarify` path.
+so its underlying verb remains `link`, not `create`. The public `clad_create_feature`
+transaction requires a design-impact decision: `additive` composes that link (and an
+optional scenario link) with feature creation; `structural` records the affected Tier-B
+artifacts as `review_required` until their approved contents actually change.
 
 ## Capturing WHY — the decision micro-format (Tier A content)
 
@@ -188,13 +187,14 @@ Detector-enforced (today + this cycle):
 - `ARCHITECTURE_FROM_SPEC`: imports don't cross `forbidden_imports` boundaries
 - `REFERENCE_INTEGRITY`: scenario `features[]`, feature `depends_on[]`, `superseded_by` resolve (existence)
 - `HARNESS_INTEGRITY`: plugin manifest version sync, detector count
-- **`CAPABILITIES_FEATURE_MAPPING` (NEW v0.3.45)**: capability `features[]` resolve to real features
+- **`CAPABILITIES_FEATURE_MAPPING` (NEW v0.3.45)**: capability `features[]` resolve to real features;
+  unbound capabilities remain warnings unless the project carries Cladding's onboarding-seeded marker; marked seeds are informational below eight features and graduate to warnings once the project is grown
 - **`INVENTORY_DRIFT` (v0.4.x)**: the `inventory:` counts match the on-disk shard reality
 - **`PLANNED_BACKLOG` (v0.4.x)**: too many `planned`/`in_progress` features with no code on disk (the spec racing ahead of the code)
 - **`HOLLOW_GOVERNANCE` (v0.4.x, J1)**: a grown project with a present-but-empty `capabilities`/`architecture` design tier
 - **`DEPENDENCY_CYCLE` (v0.4.x, J3)**: `features[].depends_on` is acyclic (pairs with `REFERENCE_INTEGRITY`'s existence check)
 - **`AI_HINTS_FORBIDDEN_PATTERN` (v0.3.57)**: code avoids `ai_hints.forbidden_patterns`
-- **`SCENARIO_COVERAGE` (v0.4.x, S-b)**: a grown project declares ≥1 scenario, no scenario binds an empty `features[]`, and no scenario under-states its coverage (its `flow` names a feature slug it doesn't bind)
+- **`SCENARIO_COVERAGE` (v0.4.x, S-b)**: a grown project declares ≥1 scenario, no grown-project scenario binds an empty `features[]`, and no scenario under-states its coverage (its `flow` names a feature slug it doesn't bind); only explicitly marked onboarding journeys stay informational below eight features, while unmarked projects keep the established warning
 - **`PROJECT_CONTEXT_DRIFT` (v0.4.x, S-c)**: a grown project's `project-context.md` is not still the unrefined init template
 
 Detector-enforced (deferred to future cycles):
@@ -213,8 +213,8 @@ Conflict resolution (when same information lives in multiple tiers):
 | `clad init` (bare, greenfield) | spec.yaml seed, .cladding/, .gitignore, project-context template, scenarios README, conventions/architecture/capabilities greenfield seeds | new files only — existing files skip via idempotency |
 | `clad init <intent>` (onboarding) | + project-context.md (LLM-refined), capabilities.yaml (LLM-inferred), architecture.yaml (LLM-inferred), spec.yaml F-001 title, **scenarios stubs (NEW v0.3.45)**, onboarding state.yaml | existing files divert to `.cladding/scan/*.proposal` |
 | `clad init --scan` (existing-project) | conventions.md (observed), architecture.yaml (observed), capabilities.yaml (README headings), project-context.md (LLM-refined) | existing files divert to proposal |
-| `clad clarify <answer>` | project-context.md, capabilities.yaml, architecture.yaml, scenarios stubs (refined Q-A history) | existing files divert to proposal |
-| `clad_create_feature` MCP tool | spec/features/<slug>-<hash6>.yaml + binds to existing scenario via `features[]` | rejects on collision |
+| `clad clarify <answer>` | project-context.md, capabilities.yaml, architecture.yaml, scenarios stubs (refined Q-A history) | untouched generated design updates in place; user-edited design diverts to proposal and remains `needs_review` until explicitly accepted |
+| `clad_create_feature` MCP tool | spec/features/<slug>-<hash>.yaml + durable design-impact decision; additive capability/scenario links | structural impact remains review-required and blocks `clad done` |
 | append-only (Tier D) | events.log, audit.log entries | no divert — strict append |
 
 ## Quick decision flowchart for adding a new artifact
