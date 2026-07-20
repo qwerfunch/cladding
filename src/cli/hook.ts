@@ -222,7 +222,7 @@ const INTENT_HINTS: Readonly<Partial<Record<Intent, string>>> = {
   run: 'feature cycle: spec entry → implement → tests → clad done',
   check: 'verify with clad check --strict',
   sync: 'clad sync validates + heals the spec',
-  init: 'scaffold with /cladding:init',
+  init: 'apply Cladding to this project',
 };
 
 // Completion claims were the WEAKEST measured engagement surface (the 0.6.0
@@ -252,7 +252,8 @@ function classifyPromptSuggestion(input: unknown): {readonly kind: string; reado
   const intent = suggestIntent(prompt);
   const hint = intent ? INTENT_HINTS[intent] : undefined;
   if (!intent || !hint) return null;
-  return {kind: intent, text: `cladding: this looks like ${intent} work — ${hint}`};
+  const workLabel = intent === 'init' ? 'project setup' : `${intent} work`;
+  return {kind: intent, text: `cladding: this looks like ${workLabel} — ${hint}`};
 }
 
 // --- PreToolUse — structural guard on spec edits ------------------------

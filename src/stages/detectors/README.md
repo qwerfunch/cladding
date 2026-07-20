@@ -38,13 +38,13 @@ ironclad_spec_ref: https://github.com/qwerfunch/ironclad/blob/main/detectors.sch
 | 23 | `SLUG_CONFLICT` *(cladding extension)* | within-spec | `slug-conflict.ts` | error | blind |
 | 24 | `AC_DUPLICATE_WITHIN_FEATURE` *(cladding extension)* | within-spec | `ac-duplicate-within-feature.ts` | error | blind |
 | 25 | `ARCHITECTURE_FROM_SPEC` *(cladding extension, v0.3.13)* | spec ↔ code | `architecture-from-spec.ts` | graduated (error / warn) | blind |
-| 26 | `CAPABILITIES_FEATURE_MAPPING` *(cladding extension)* | spec ↔ spec | `capabilities-feature-mapping.ts` | graduated (error / warn / info) | blind |
+| 26 | `CAPABILITIES_FEATURE_MAPPING` *(cladding extension)* | spec ↔ spec | `capabilities-feature-mapping.ts` | graduated (error / grown warn / info) | blind |
 | 27 | `AI_HINTS_FORBIDDEN_PATTERN` *(cladding extension, v0.3.57)* | spec ↔ code | `ai-hints-forbidden-pattern.ts` | error | blind |
 | 28 | `INVENTORY_DRIFT` *(cladding extension, v0.4.x)* | spec ↔ spec | `inventory-drift.ts` | error | blind |
 | 29 | `PLANNED_BACKLOG` *(cladding extension, v0.4.x)* | spec ↔ code | `planned-backlog.ts` | warn | **aware** *(planned-state)* |
 | 30 | `HOLLOW_GOVERNANCE` *(cladding extension, v0.4.x)* | spec ↔ spec | `hollow-governance.ts` | warn | blind *(scale-gated)* |
 | 31 | `DEPENDENCY_CYCLE` *(cladding extension, v0.4.x)* | spec ↔ spec | `dependency-cycle.ts` | error | blind |
-| 32 | `SCENARIO_COVERAGE` *(cladding extension, v0.4.x)* | spec ↔ spec | `scenario-coverage.ts` | warn | blind *(scale-gated)* |
+| 32 | `SCENARIO_COVERAGE` *(cladding extension, v0.4.x)* | spec ↔ spec | `scenario-coverage.ts` | grown warn / early info | blind *(scale-gated)* |
 | 33 | `PROJECT_CONTEXT_DRIFT` *(cladding extension, v0.4.x)* | spec ↔ doc | `project-context-drift.ts` | warn | blind *(scale-gated)* |
 | 34 | `SPEC_CONFORMANCE` *(cladding extension, v0.5.x)* | spec ↔ test | `spec-conformance.ts` | error | **aware** *(done-direction)* |
 | 35 | `DELIVERABLE_INTEGRITY` *(cladding extension, v0.5.x)* | spec ↔ code | `deliverable-integrity.ts` | error/warn | **aware** *(done-direction)* |

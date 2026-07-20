@@ -16,7 +16,7 @@ Empty tmpdir + user intent "결제 SaaS for B2B":
 | Stage | What happens | What we assert |
 |---|---|---|
 | **S1** | `clad init <intent>` with LLM-mocked onboarding response | All 4 tiers present, every artifact's first line is the standard Tier banner, F-001 title is intent-derived, 2 scenarios shards land |
-| **S2** | `clad clarify 법인 사업자만` | First pending question marked answered, existing artifacts diverted to `.cladding/scan/*.proposal`, capabilities grow by 1 |
+| **S2** | `clad clarify 법인 사업자만` | First pending question marked answered; untouched generated design updates in place, while user-edited design stays preserved with review proposals |
 | **S3** | Test writes 3+ TS files matching the architecture's suggested layers | (no command — simulates real-world development) |
 | **S4** | Cross-tier consistency check (`assertCrossTierClean`) | `CAPABILITIES_FEATURE_MAPPING` + `ARCHITECTURE_FROM_SPEC` + `REFERENCE_INTEGRITY` emit zero errors |
 | **S5** | `clad init --scan` re-runs after code was written | `docs/conventions.md` + `spec/architecture.yaml` diverted to proposal; live files preserve onboarding seed |
@@ -118,7 +118,7 @@ PR #131's claim is that the 4-tier model improves development output quality. Th
 
 2. **Cross-document drift errors → 0** — every detector emits clean at end-of-lifecycle. `CAPABILITIES_FEATURE_MAPPING` confirms the capability ↔ feature link in Case 2 S5.
 
-3. **Refresh policy preserved** — re-running `clad init --scan` (Greenfield S5) and `clad clarify` (S2) diverts to `.cladding/scan/*.proposal` instead of overwriting user edits. `assertProposalDivert` codifies this.
+3. **Refresh policy preserved** — re-running `clad init --scan` (Greenfield S5) diverts to `.cladding/scan/*.proposal`. During active onboarding, `clad clarify` updates byte-identical generated design directly; if a user edited it, the answer remains `needs_review` and proposal-diverts until explicitly accepted.
 
 If these three signals stay green across the full lifecycle, the SSoT model is delivering the promised quality improvement. If any regress, the failing test names the gap.
 

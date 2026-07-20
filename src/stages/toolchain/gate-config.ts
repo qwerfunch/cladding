@@ -52,6 +52,20 @@ export interface GateConfig {
 
 const DEFAULT: GateConfig = {scope: 'feature'};
 
+/**
+ * Conventional JUnit paths inspected when `gate.test_report` is not explicit.
+ *
+ * Kept beside the gate config resolver so the detector that consumes a report
+ * and any scoped test stage that must preserve it share exactly one path set.
+ *
+ * @see spec/features/spec-conformance-oracle-stage-c4c5ae.yaml AC-008
+ */
+export const DEFAULT_TEST_REPORT_CANDIDATES = [
+  'test-report.junit.xml',
+  join('coverage', 'junit.xml'),
+  join('.cladding', 'test-report.junit.xml'),
+] as const;
+
 /** Reads `.cladding/config.yaml::gate`, returning the default on any absence/error. */
 export function readGateConfig(cwd: string = '.'): GateConfig {
   const path = join(cwd, '.cladding', 'config.yaml');
@@ -83,6 +97,44 @@ export function readGateConfig(cwd: string = '.'): GateConfig {
   } catch {
     return DEFAULT;
   }
+}
+
+/**
+ * Returns every test-report path a scoped test run must leave untouched.
+ *
+ * The explicit `gate.test_report`, when present, is returned first, followed by
+ * every conventional candidate. A scoped runner can still write its framework
+ * default in addition to the configured evidence path, so report preservation
+ * must cover both sets even though the detector consumes only the explicit one.
+ *
+ * @param cwd - Project root.
+ * @returns Absolute-or-cwd-joined report paths in detector precedence order.
+ * @see spec/features/spec-conformance-oracle-stage-c4c5ae.yaml AC-008
+ */
+export function testReportCandidatePaths(cwd: string = '.'): readonly string[] {
+  const configured = readGateConfig(cwd).testReport;
+  const candidates = configured
+    ? [configured, ...DEFAULT_TEST_REPORT_CANDIDATES]
+    : DEFAULT_TEST_REPORT_CANDIDATES;
+  return [...new Set(candidates.map((candidate) => join(cwd, candidate)))];
+}
+
+/**
+ * Resolves the first existing report using the detector's precedence rules.
+ *
+ * @param cwd - Project root.
+ * @returns The selected report path, or null when no report exists.
+ * @see spec/features/spec-conformance-oracle-stage-c4c5ae.yaml AC-008
+ */
+export function resolveTestReportPath(cwd: string = '.'): string | null {
+  const configured = readGateConfig(cwd).testReport;
+  if (configured) {
+    const path = join(cwd, configured);
+    return existsSync(path) ? path : null;
+  }
+  return DEFAULT_TEST_REPORT_CANDIDATES
+    .map((candidate) => join(cwd, candidate))
+    .find((candidate) => existsSync(candidate)) ?? null;
 }
 
 // `{modules:TASK}` — TASK is a Gradle task name (letters/digits/_.:- ).

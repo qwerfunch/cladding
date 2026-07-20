@@ -6,13 +6,13 @@
 
 <p align="center">
   <strong>AI にコーディングを任せるには、組織に三つの条件が要る —<br/>コードを信頼でき、その足跡をたどれ、規模が大きくなっても揺るがないこと。cladding はその三つを築く。</strong><br/>
-  その名（外装材）のとおりホスト LLM（Claude Code · Codex · Gemini · Cursor）を包み込む — 作業を <em>始める前</em> に、cladding がプロジェクトの意図を渡し、作業を <em>終えた後</em> に、41 個の検出器と 15 段階のゲートで結果を検証する。
+  その名（外装材）のとおりホスト LLM（Claude Code · Codex · Gemini · Antigravity · Cursor）を包み込む — 作業を <em>始める前</em> に、cladding がプロジェクトの意図を渡し、作業を <em>終えた後</em> に、41 個の検出器と 15 段階のゲートで結果を検証する。
 </p>
 
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-2497%2F2497-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-2561%2F2561-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -31,7 +31,7 @@
 - **たどれる** — **出荷されたものは記録に残る**: 何を検証したかはコミットされた内容に刻まれ、誰がいつやったかはローカルのセッション台帳に、なぜかは spec に残る — だから引き継ぎもレビューも、掘り起こさずに済む。
 - **拡張しても揺るがない** — 人と AI が増えれば、普通は衝突と乖離も増える。だが全員が一つの spec を基準に働くので、それらは自動でせき止められる — だから規模を広げても崩れない。
 
-cladding は **自分自身も cladding で作っている** — 254 個の feature のうち 251 個が同じゲートを通過した、[Ironclad](https://github.com/qwerfunch/ironclad) 標準を L4 で実装した最初の事例だ。
+cladding は **自分自身も cladding で作っている** — 255 個の feature のうち 252 個が同じゲートを通過した、[Ironclad](https://github.com/qwerfunch/ironclad) 標準を L4 で実装した最初の事例だ。
 
 <!-- ─────────────── What changes ─────────────── -->
 
@@ -46,7 +46,7 @@ cladding は **自分自身も cladding で作っている** — 254 個の feat
 | **失敗した状態でセッションを終える** | そのまま終了し、次回には忘れられる | 終了を一度止め、失敗したチェックを修正カードとして引き継ぐ |
 | **二人が同時に feature を追加する** | merge conflict | hash-8 ID · ファイル分離 → 衝突 0 |
 | **AI が書いたコードは誰が検証する？** | 書いた AI が自分で検証する（危うい） | 実装を見ない採点者 + 機械的なゲート |
-| **AI ツールを乗り換える** | ツールごとに再設定 | 1 つの spec → 4 つの host へ自動配線 |
+| **AI ツールを乗り換える** | ツールごとに再設定 | 1 つの spec → 5 つの host へ自動配線 |
 
 ## 誰のためのものか
 
@@ -66,7 +66,7 @@ cladding は **自分自身も cladding で作っている** — 254 個の feat
 
 **後 — 検証する:** 15 段階のゲート、41 個の乖離検出器、そして **実装を見ない採点者** — spec に照らして作業を検査するエージェントで、*実装を読む手段を一切持たない* ため、自分が書いたものにお墨付きを与えることはできない。
 
-<sub>リアルタイム介入（マップ注入 · 即時ブロック · 終了ブロック）は Claude Code ですべて動作する。Codex · Gemini · Cursor では同じ検証を、会話中のツール呼び出しと git · CI のゲートで通す。</sub>
+<sub>リアルタイム介入（マップ注入 · 即時ブロック · 終了ブロック）は Claude Code ですべて動作する。Codex · Gemini · Antigravity · Cursor では同じ検証を、会話中のツール呼び出しと git · CI のゲートで通す。</sub>
 
 <!-- ─────────────── done is earned ─────────────── -->
 
@@ -241,53 +241,97 @@ cladding の差別化点は *組み合わせ* にある — 上のカテゴリ�
 
 ## Install
 
+### 1. マシンに一度インストールする
+
 ```bash
 npm install -g cladding   # cladding CLI をインストール
-cd <project>              # プロジェクトへ移動
-clad setup                # AI ツールを自動配線（Claude · Codex · Gemini · Cursor）
 ```
 
-<sub>各ホストは cladding を MCP サーバーとして接続し、AI が自分で呼び出す — `/mcp` コマンドも手動での接続手順もなく、ただ普通に会話するだけでいい。</sub>
+このコマンドはどのディレクトリからでも実行できる。CLI だけをインストールし、AI モデルのコンテキストにはまだ Cladding を追加しない。
 
-続いて、プロジェクトにつき一度だけ、AI ツールの中から init を呼び出す:
+### 2. 使用するプロジェクトだけを有効化し、AI ツールを起動する
+
+```bash
+cd <project>
+clad setup                # このプロジェクトだけに Cladding を接続する
+
+# 一つだけ選び、先頭の「#」を外して実行する:
+# codex          # Codex
+# claude         # Claude Code
+# gemini         # Gemini CLI
+# agy            # Antigravity
+# cursor-agent   # Cursor Agent
+```
+
+`clad setup` はこのマシンで検出された AI ツール（Claude Code・Codex・Gemini・Antigravity・Cursor）を現在のプロジェクト内だけに接続する — ただし Antigravity はプロジェクトローカルの MCP 設定を読まないホストのため、唯一マシン単位で接続される（詳細は [setup ドキュメント](docs/setup.md)）。setup を実行していない別プロジェクトのモデルコンテキストには、Cladding の skill や MCP ツールは入らない。使用する AI ツールのコマンドを一つだけ実行し、Cursor IDE では `<project>` をワークスペースとして開く。setup 後はこのフォルダから新しい AI セッションを開始する。Codex や Gemini がプロジェクトの信頼確認を表示した場合は、それぞれの通常のセキュリティ境界に従って承認する。信頼されるまでプロジェクトローカルの MCP 設定は意図的に読み込まれない。
+
+### 3. Cladding を一度適用する
+
+自分の出発点に合う依頼を AI ツールへ自然な言葉で伝える。
+
+Cladding はまずプロジェクトを読み取り専用で調査する。AI が正確なファイル操作と一度限りの承認フレーズを示し、ユーザーが別の返信でそのフレーズをそのまま入力した場合にだけ初期化を開始する。プロジェクトを開いたり Cladding について質問したりするだけでは、ファイルは変更されない。
+この完全一致の手順は偶発的な適用を防ぐが、MCP はツール引数を実際にどのユーザーが作成したかを証明できない。そのため、悪意のある、または侵害されたホストに対するサンドボックスではない。
+
+#### アイデアだけがある場合
 
 ```
-[AI ツールの中で] /cladding:init "B2B 決済 SaaS"
+B2B 決済 SaaS を cladding で始めて。
 ```
 
-プロジェクトの `spec.yaml` と関連ドキュメントが作られる。あとはいつも通り開発するだけ — cladding が前 / 後のループを裏で回すので、覚えるコマンドはない。強制力を上げたいときは `clad init --with-hook`（pre-commit + pre-push の git hook）または `clad init --with-ci`（CI ゲートの雛形を生成 — 本当の強制は CI にある）。
+LLM がドメインを分析し、spec・ドキュメント・ポリシーを作成する。重要なプロダクト判断が未解決の場合にだけ最大 3 個の追加質問を行い、完成した計画には質問しない。
 
-| 出発点 | コマンド | 何が起きるか |
-|---|---|---|
-| **アイデアだけがある** | `/cladding:init "B2B 決済 SaaS を作る"` | LLM がドメインを分析 → spec · ドキュメント · ポリシーを自動生成 + 2〜3 個の追加質問 |
-| **企画ドキュメントがある** | `/cladding:init docs/plan.md` | ファイルを読み込み、その内容を intent として使う |
-| **既存プロジェクトへ導入する** | `/cladding:init "このプロジェクトに cladding を適用して"` | 既存コードをスキャン → 観察したパターンと intent を結合 |
+#### 企画ドキュメントがある場合
 
-**host サポート（正直な注記）:** Claude Code は実利用キャンペーン（リアルタイム介入を含む）で全機能を検証済み。Codex · Gemini CLI は配線は自動だが、動作はまだ未検証だ。Cursor は配線は自動だが、実利用での検証はまだこれから。→ [セットアップ詳細 · host 配線 · MCP · アップグレード](docs/setup.md)
+```
+docs/plan.md を基に cladding を適用して。
+```
+
+ファイルを読み込み、その内容をプロジェクトの intent として使用する。
+
+#### 既存プロジェクトへ導入する場合
+
+```
+現在のコードを分析して cladding を適用して。
+```
+
+既存コードをスキャンし、観察したパターンとユーザーの intent を組み合わせる。
+
+> **初期化が完了したら、同じ会話でそのまま開発を続ければよい。** 次の機能を自然な言葉で依頼すると、AI は生成された spec とドキュメントを基準に開発し、重要な設計変更もプロジェクトの成長に合わせて反映する。検査はホストが呼び出した時に実行され、自動強制が必要なら任意の Git hook または CI gate を使用する。
+
+```
+メールログイン機能をテスト込みで実装して。
+```
+
+新しく覚えるコマンドはない。ホスト別の明示的な呼び出し方、より強い Git/CI 適用、検証済みホストの状況は [セットアップ詳細](docs/setup.md) を参照。
 
 <!-- ─────────────── Update ─────────────── -->
 
 ## Update
 
-最新に保つのはコマンド二つ — あるいは AI ツールに一言頼むだけでいい。
+### AI ツールに依頼する（推奨）
+
+プロジェクトで次のように伝える:
+
+```
+cladding を最新版に更新して。
+```
+
+AI ツールにターミナルとグローバルインストールの権限があれば、CLI の更新、ホスト配線の更新、現在のプロジェクトの更新を実行し、新たな乖離を説明する。権限がなければ、承認または手動実行するコマンドを案内する。
+
+### またはターミナルで直接更新する
 
 ```bash
 npm update -g cladding   # 1. 新しいバージョンを入れる
-cd <project>             # 2. プロジェクトへ移動
-clad update              # 3. 足並みをそろえる
+cd <project>             # 2. Cladding プロジェクトへ移動
+clad update              # 3. プロジェクト接続と派生状態を更新する
 ```
 
-あなたのコード · `spec.yaml` · ドキュメントには手を触れない — より厳しいバージョンは、指摘すべきことがあっても **指摘するだけ** で、自分でブロックも修正もしない。上の二つのコマンドが新たな乖離を指摘したら、それは AI ツールに渡せばいい:
+`clad update` は更新する各 Cladding プロジェクトで実行する。プロジェクト単位の setup も同時に更新するため、別途 `clad setup` を実行する必要はない。ユーザーが作成したコード・機能や spec の本文・ドキュメントは保持され、派生データと Cladding 管理の指示ブロックだけが更新される場合がある。新しいバージョンが乖離を報告したら、その結果を AI ツールに渡せばよい:
 
 ```
-[AI ツールの中で] 更新で指摘された乖離を解消して
+更新で指摘された乖離を解消して。
 ```
 
-…あるいは二つのコマンドを飛ばして、init のときと同じように頼むだけでもいい — 更新まで代わりにやってくれる:
-
-```
-[AI ツールの中で] cladding を最新版に更新して
-```
 
 <!-- ─────────────── Status ─────────────── -->
 
@@ -295,9 +339,9 @@ clad update              # 3. 足並みをそろえる
 
 | Version | 準拠レベル | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.8.3（2026-07） | L4 · [自己申告](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2497 / 2497 | 15 段階 · 41 detectors | 254（251 done） |
+| v0.9.0（2026-07） | L4 · [自己申告](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2561 / 2561 | 15 段階 · 41 detectors | 255（252 done） |
 
-<sub>234 test files · capability 6 個 · カバレッジ低下は COVERAGE_DROP detector がブロック</sub>
+<sub>236 test files · capability 6 個 · カバレッジ低下は COVERAGE_DROP detector がブロック</sub>
 
 > **Ironclad 1.0 への道** — 1.0 は *独立した二つの実装が L4 準拠フィクスチャを通過してはじめて* 確定する（[GOVERNANCE § 1](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md)）。cladding はその一つ目だ。
 

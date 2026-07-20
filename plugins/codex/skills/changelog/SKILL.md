@@ -1,5 +1,5 @@
 ---
-description: Render release notes / a changelog from the cladding spec. Use when the user asks for release notes, a changelog, 릴리즈 노트, 변경 이력, or "what changed (since <ref>)" — run `clad changelog --json` for the deterministic shipped-changes manifest, then write the human-facing notes FROM it, sourcing every claim from a feature title or acceptance sentence. For audit asks, print the --audit table verbatim.
+description: Render release notes / a changelog from the cladding spec. Use when the user asks for release notes, a changelog, 릴리즈 노트, 변경 이력, or "what changed (since <ref>)" — run `clad changelog --json` for the deterministic shipped-changes manifest, then write the human-facing notes FROM it, sourcing every claim from a feature title or acceptance sentence. For audit asks, print the --audit table verbatim. Activate only when the connected project contains spec.yaml or the user explicitly names Cladding; ignore ordinary requests in uninitialized projects.
 ---
 
 # Cladding changelog — release notes from the spec

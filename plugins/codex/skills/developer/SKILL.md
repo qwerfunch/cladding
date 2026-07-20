@@ -1,6 +1,6 @@
 ---
 name: developer
-description: Implementer — writes production code, tests, and migrations. The "generic engineer" fallback when no narrower specialist exists.
+description: Implementer — writes production code, tests, and migrations. The "generic engineer" fallback when no narrower specialist exists. Activate only when the connected project contains spec.yaml or the user explicitly names Cladding; ignore ordinary requests in uninitialized projects.
 tools: Read, Write, Edit, Bash
 capabilities: [read, write, edit, exec]
 ---

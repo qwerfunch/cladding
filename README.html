@@ -227,13 +227,13 @@
 
   <p class="tagline">
     <strong>To trust AI with coding, an organization needs three things — that the code can be trusted, that it's traced, and that it holds up as you scale. cladding builds those three.</strong><br>
-    True to its name (cladding = the outer layer), it wraps your host LLM (Claude Code · Codex · Gemini · Cursor): <em>before</em> it starts, cladding feeds it the project's intent; <em>after</em> it finishes, cladding verifies the result with 41 detectors and a 15-stage gate.
+    True to its name (cladding = the outer layer), it wraps your host LLM (Claude Code · Codex · Gemini · Antigravity · Cursor): <em>before</em> it starts, cladding feeds it the project's intent; <em>after</em> it finishes, cladding verifies the result with 41 detectors and a 15-stage gate.
   </p>
 
   <p class="badges">
     <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"></a>
     <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"></a>
-    <img src="https://img.shields.io/badge/tests-2497%2F2497-brightgreen" alt="tests">
+    <img src="https://img.shields.io/badge/tests-2561%2F2561-brightgreen" alt="tests">
     <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors">
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"></a>
   </p>
@@ -269,7 +269,7 @@
   </div>
 
   <p style="text-align:center;font-size:15px;color:#475569;max-width:760px;margin:14px auto 0">
-    cladding builds <strong>itself with cladding too</strong> — 251 of its 254 features cleared this same gate, the first L4 implementation of the Ironclad standard.
+    cladding builds <strong>itself with cladding too</strong> — 252 of its 255 features cleared this same gate, the first L4 implementation of the Ironclad standard.
   </p>
 
   <!-- ─────────────── What changes ─────────────── -->
@@ -285,7 +285,7 @@
       <tr><td><strong>Ending a session in a failing state</strong></td><td class="vanilla-cell">exits as-is, forgotten next time</td><td class="cladding-cell">the exit is blocked once, the failing checks handed off as a repair card</td></tr>
       <tr><td><strong>Two devs add a feature at the same time</strong></td><td class="vanilla-cell">merge conflict</td><td class="cladding-cell">hash-8 IDs · separate files → 0 conflicts</td></tr>
       <tr><td><strong>Who verifies the AI-written code?</strong></td><td class="vanilla-cell">the AI that wrote it self-certifies (risky)</td><td class="cladding-cell">an implementation-blind grader + the mechanical gate</td></tr>
-      <tr><td><strong>Switching AI tools</strong></td><td class="vanilla-cell">reconfigure per tool</td><td class="cladding-cell">one spec → 4 hosts wired automatically</td></tr>
+      <tr><td><strong>Switching AI tools</strong></td><td class="vanilla-cell">reconfigure per tool</td><td class="cladding-cell">one spec → 5 hosts wired automatically</td></tr>
     </tbody>
   </table>
 
@@ -315,7 +315,7 @@
   <p style="text-align:center;font-size:14px;color:#475569"><strong>After — verify the result:</strong> the 15-stage gate, 41 drift detectors, and an <strong>implementation-blind grader</strong> — an agent that checks the work against the spec <em>with no tool to read the implementation</em>, so it can't rubber-stamp what it wrote.</p>
   <p style="font-size:13px;color:#64748b;text-align:center;margin-top:4px">
     Real-time intervention (map injection · instant block · stop block) runs fully on Claude Code.
-    On Codex · Gemini · Cursor the same verification runs through in-conversation tool calls plus the git · CI gate.
+    On Codex · Gemini · Antigravity · Cursor the same verification runs through in-conversation tool calls plus the git · CI gate.
   </p>
 
   <!-- ─────────────── done is earned ─────────────── -->
@@ -481,40 +481,55 @@ acceptance_criteria:
 
   <!-- ─────────────── Install ─────────────── -->
   <h2>Install</h2>
-  <pre><code>npm install -g cladding   # the cladding CLI
-cd &lt;project&gt;              # your project
-clad setup                # auto-wire your AI tools (Claude · Codex · Gemini · Cursor)</code></pre>
+  <h3>1. Install once on your machine</h3>
+  <pre><code>npm install -g cladding   # install only the cladding CLI</code></pre>
 
-  <p style="font-size:13px;color:#64748b">Each host wires cladding as an MCP server the AI calls on its own — there's no <code>/mcp</code> command and no manual connect step; you just chat.</p>
+  <p>This command may be run from any directory. It does not add Cladding to any AI model's context.</p>
 
-  <p>Then, once per project, call init inside your AI tool:</p>
-  <pre><code>[inside your AI tool] /cladding:init "B2B payment SaaS"</code></pre>
+  <h3>2. Activate one project, then start your AI tool</h3>
+  <pre><code>cd &lt;project&gt;
+clad setup                # connect Cladding only to this project
 
-  <p>It creates the project's <code>spec.yaml</code> and supporting docs. After that, just develop as usual — cladding runs the before/after loop in the background, with nothing to memorize. Raise enforcement with <code>clad init --with-hook</code> (pre-commit + pre-push git hooks) or <code>clad init --with-ci</code> (scaffold the CI gate, where true enforcement lives).</p>
+# Choose exactly one and remove its leading '#':
+# codex          # Codex
+# claude         # Claude Code
+# gemini         # Gemini CLI
+# agy            # Antigravity
+# cursor-agent   # Cursor Agent</code></pre>
+  <p><code>clad setup</code> connects the AI tools it detects on your machine (Claude Code, Codex, Gemini, Antigravity, Cursor) to this project only — Antigravity is the one exception, wired machine-wide because it reads no project-local MCP config (details in <a href="docs/setup.md">setup</a>). It does not expose Cladding skills or MCP tools in projects where setup was not run. Use only the command for your AI tool; for Cursor IDE, open <code>&lt;project&gt;</code> as the workspace. Start a new AI session from this folder after setup so the host discovers the project-local connection. When Codex first opens a Git repository, approve its normal project-trust prompt; Codex intentionally ignores project MCP config until the repository is trusted.</p>
 
-  <table>
-    <thead>
-      <tr><th>Starting point</th><th>Command</th><th>What happens</th></tr>
-    </thead>
-    <tbody>
-      <tr><td><strong>An idea, nothing else</strong></td><td><code>/cladding:init "I'm going to build a B2B payment SaaS"</code></td><td>the LLM analyzes the domain → spec · docs · policies + 2–3 follow-up questions</td></tr>
-      <tr><td><strong>A planning doc</strong></td><td><code>/cladding:init docs/plan.md</code></td><td>loads the file and uses its contents as intent</td></tr>
-      <tr><td><strong>An existing project</strong></td><td><code>/cladding:init "apply cladding to this project"</code></td><td>scans the existing code → observed patterns merged with your intent</td></tr>
-    </tbody>
-  </table>
+  <h3>3. Apply Cladding once</h3>
+  <p>Choose the starting point that fits and say it naturally in your AI tool.</p>
+  <p>Cladding first inspects the project without changing it. Your AI shows the exact file operations and a one-time approval phrase; initialization begins only when you repeat that phrase in a separate reply. Opening a project or asking a question about Cladding never authorizes file changes. This exact-match step prevents accidental application; MCP cannot prove which user produced a tool argument, so it is not a sandbox against a malicious or compromised host.</p>
 
-  <p style="font-size:14px;color:#475569"><strong>Host support (honest):</strong> Claude Code is fully verified through real-usage campaigns (incl. real-time intervention). Codex · Gemini CLI wire automatically; their behavior isn't verified yet. Cursor wires automatically, but real-usage verification is still pending. → <a href="docs/setup.md">setup details · host wiring · MCP · upgrading</a></p>
+  <h4>An idea, nothing else</h4>
+  <pre><code>Start this B2B payment SaaS with Cladding.</code></pre>
+  <p>The LLM analyzes the domain and creates the spec, docs, and policies. It asks up to three follow-up questions only when an important product decision is still unresolved; a complete plan asks none.</p>
+
+  <h4>A planning document</h4>
+  <pre><code>Apply Cladding using docs/plan.md.</code></pre>
+  <p>Cladding loads the file and uses its contents as the project intent.</p>
+
+  <h4>An existing project</h4>
+  <pre><code>Analyze this project and apply Cladding.</code></pre>
+  <p>Cladding scans the existing code and combines the observed patterns with your intent.</p>
+
+  <blockquote><p><strong>Once initialization is complete, keep developing in the same conversation.</strong> Ask for the next feature in plain language; the AI uses the generated spec and docs and keeps material design changes aligned as the project grows. Checks run when the host invokes them; use the optional Git hooks or CI gate when you want automatic enforcement.</p></blockquote>
+  <pre><code>Implement email sign-in, including tests.</code></pre>
+  <p>There is nothing new to memorize. For host-specific invocation, stricter Git/CI enforcement, and verified host status, see <a href="docs/setup.md">setup details</a>.</p>
 
   <!-- ─────────────── Update ─────────────── -->
   <h2>Update</h2>
-  <p>Staying current is two commands — or one line to your AI tool.</p>
-  <pre><code>npm update -g cladding   # 1. get the new version
-cd &lt;project&gt;             # 2. your project
-clad update              # 3. bring it in line</code></pre>
-  <p>Your code · <code>spec.yaml</code> · docs are left untouched — a stricter version only <strong>points things out</strong>, it never blocks or fixes on its own. If those two commands flag fresh drift, hand it to your AI tool:</p>
-  <pre><code>[inside your AI tool] reconcile the drift the update flagged</code></pre>
-  <p>…or skip the commands and just ask, the same way you ran init — it runs the update for you:</p>
-  <pre><code>[inside your AI tool] update cladding to the latest version</code></pre>
+  <h3>Ask your AI tool (recommended)</h3>
+  <p>From your project, say:</p>
+  <pre><code>Update cladding to the latest version.</code></pre>
+  <p>If the AI tool has terminal and global-install permission, it updates the CLI, refreshes host wiring, updates the current project, and explains any new drift. Otherwise, it shows the commands for you to approve or run.</p>
+  <h3>Or update from the terminal</h3>
+  <pre><code>npm update -g cladding   # 1. get the new CLI version
+cd &lt;project&gt;              # 2. enter one Cladding project
+clad update               # 3. refresh its host wiring and derived state</code></pre>
+  <p>Run <code>clad update</code> in each Cladding project you want to upgrade. It also performs the project-scoped setup refresh, so a separate <code>clad setup</code> is unnecessary. It preserves authored code, feature/spec content, and documentation; only derived data and Cladding-managed instruction blocks may be refreshed. If the new version reports drift, hand that result to your AI tool:</p>
+  <pre><code>Reconcile the drift the update flagged.</code></pre>
 
   <!-- ─────────────── Status ─────────────── -->
   <h2>Status</h2>
@@ -523,7 +538,7 @@ clad update              # 3. bring it in line</code></pre>
     <tr style="border:none">
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">version</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">v0.8.3</div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">v0.9.0</div>
         <div style="font-size:11px;color:#64748b">2026-07</div>
       </td>
       <td style="text-align:center;width:140px;background:#dcfce7;padding:18px 10px;border-radius:8px;border:none">
@@ -533,7 +548,7 @@ clad update              # 3. bring it in line</code></pre>
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">tests</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">2497<span style="font-size:16px;color:#94a3b8">/2497</span></div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">2561<span style="font-size:16px;color:#94a3b8">/2561</span></div>
         <div style="font-size:11px;color:#64748b">all pass</div>
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
@@ -543,13 +558,13 @@ clad update              # 3. bring it in line</code></pre>
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">features</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">254</div>
-        <div style="font-size:11px;color:#64748b">251 done · self-spec</div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">255</div>
+        <div style="font-size:11px;color:#64748b">252 done · self-spec</div>
       </td>
     </tr>
   </table>
 
-  <p style="text-align:center;font-size:13px;color:#64748b;margin-top:12px">234 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector</p>
+  <p style="text-align:center;font-size:13px;color:#64748b;margin-top:12px">236 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector</p>
 
   <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:24px 0;background:#f8fafc;color:#475569;font-size:14px"><strong>Road to Ironclad 1.0</strong> — 1.0 locks only when <em>two independent implementations pass the L4 conformance fixtures</em> (<a href="https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md">GOVERNANCE § 1</a>). cladding is the first.</blockquote>
 

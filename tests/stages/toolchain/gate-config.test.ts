@@ -10,7 +10,12 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {expandModuleTokens, readGateConfig} from '../../../src/stages/toolchain/gate-config.js';
+import {
+  expandModuleTokens,
+  readGateConfig,
+  resolveTestReportPath,
+  testReportCandidatePaths,
+} from '../../../src/stages/toolchain/gate-config.js';
 import type {GradleProject} from '../../../src/stages/toolchain/module-scope.js';
 
 let dir: string;
@@ -57,6 +62,32 @@ describe('readGateConfig', () => {
   test('ignores a non-string-array command entry', () => {
     writeConfig('gate:\n  commands:\n    test: "nope"\n');
     expect(readGateConfig(dir).commands).toBeUndefined();
+  });
+});
+
+describe('test report paths', () => {
+  test('defaults preserve every conventional report candidate in detector order', () => {
+    expect(testReportCandidatePaths(dir)).toEqual([
+      join(dir, 'test-report.junit.xml'),
+      join(dir, 'coverage', 'junit.xml'),
+      join(dir, '.cladding', 'test-report.junit.xml'),
+    ]);
+  });
+
+  test('an explicit report is first while conventional runner outputs remain protected', () => {
+    writeConfig('gate:\n  test_report: reports/authoritative.xml\n');
+    expect(testReportCandidatePaths(dir)).toEqual([
+      join(dir, 'reports', 'authoritative.xml'),
+      join(dir, 'test-report.junit.xml'),
+      join(dir, 'coverage', 'junit.xml'),
+      join(dir, '.cladding', 'test-report.junit.xml'),
+    ]);
+  });
+
+  test('a missing explicit report does not silently fall back to a conventional report', () => {
+    writeConfig('gate:\n  test_report: reports/missing.xml\n');
+    writeFileSync(join(dir, 'test-report.junit.xml'), '<testsuites/>\n');
+    expect(resolveTestReportPath(dir)).toBeNull();
   });
 });
 

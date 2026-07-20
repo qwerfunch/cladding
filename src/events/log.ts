@@ -48,6 +48,7 @@ export type EventType =
   // (git HEAD sha) added by recordEvent; 23 hand-flipped dones proved the
   // ledger must say WHO, and the attestation/engagement work needs WHEN.
   | 'feature_created' // payload: feature, slug
+  | 'design_impact_resolved' // payload: feature
   | 'scenario_created' // payload: scenario, slug
   | 'done_attempted' // payload: feature, worst, anyFailed, kept
   | 'gate_run' // payload: tier, strict, worst, anyFailed (deduped per HEAD)

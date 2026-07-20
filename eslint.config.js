@@ -8,7 +8,9 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['node_modules/**', 'dist/**', 'plugins/**/dist/**', 'src/graph/viewer/**'],
+    // .cladding/ is machine-local runtime state (e.g. the generated host
+    // launcher serve.cjs) — never authored source, so never linted.
+    ignores: ['node_modules/**', 'dist/**', 'plugins/**/dist/**', 'src/graph/viewer/**', '.cladding/**'],
   },
   ...tseslint.configs.recommended,
   {

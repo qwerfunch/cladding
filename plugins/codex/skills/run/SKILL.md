@@ -1,5 +1,5 @@
 ---
-description: Run cladding's autonomous loop — iterate ready features, dispatch the developer + reviewer personas through the active host adapter, run L1 gates, halt on HUMAN_REQUIRED or transport failure. Use only when the user explicitly asks for autonomous progress; the loop will modify files.
+description: Run cladding's autonomous loop — iterate ready features, dispatch the developer + reviewer personas through the active host adapter, run L1 gates, halt on HUMAN_REQUIRED or transport failure. Use only when the user explicitly asks for autonomous progress; the loop will modify files. Activate only when the connected project contains spec.yaml or the user explicitly names Cladding; ignore ordinary requests in uninitialized projects.
 ---
 
 # Cladding run (formerly `drive`)

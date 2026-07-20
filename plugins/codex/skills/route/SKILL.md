@@ -1,5 +1,5 @@
 ---
-description: Classify a natural-language prompt to one of cladding's verbs. Use when the user describes work in their own words and you want to see which built-in verb cladding's intent classifier would pick — primarily a debugging tool for the orchestrator persona and for verifying the router's coverage after adding new verbs.
+description: Classify a natural-language prompt to one of cladding's verbs. Use when the user describes work in their own words and you want to see which built-in verb cladding's intent classifier would pick — primarily a debugging tool for the orchestrator persona and for verifying the router's coverage after adding new verbs. Activate only when the connected project contains spec.yaml or the user explicitly names Cladding; ignore ordinary requests in uninitialized projects.
 ---
 
 # Cladding route

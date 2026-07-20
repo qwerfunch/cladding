@@ -1,5 +1,5 @@
 ---
-description: Render the feature × stage integrity matrix — every feature vs every Iron Law stage with pass/skip/fail markers. Use when the user wants a project-wide status board, a release-readiness view, or to spot which features are still behind which stage.
+description: Render the feature × stage integrity matrix — every feature vs every Iron Law stage with pass/skip/fail markers. Use when the user wants a project-wide status board, a release-readiness view, or to spot which features are still behind which stage. Activate only when the connected project contains spec.yaml or the user explicitly names Cladding; ignore ordinary requests in uninitialized projects.
 ---
 
 # Cladding status (formerly `panel`)

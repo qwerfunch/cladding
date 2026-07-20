@@ -28,6 +28,9 @@ const execaSyncMock = execaMod.execaSync as unknown as ReturnType<typeof vi.fn>;
 
 describe('runLint (stage_1.2)', () => {
   let dir: string;
+  const seedLintProject = () => {
+    writeFileSync(join(dir, 'package.json'), '{"name":"x","scripts":{"lint":"eslint ."}}\n');
+  };
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'clad-lint-stage-'));
     execaSyncMock.mockReset();
@@ -45,8 +48,8 @@ describe('runLint (stage_1.2)', () => {
     expect(execaSyncMock).not.toHaveBeenCalled();
   });
 
-  test('package.json present + tool exits 0 → pass=true', () => {
-    writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
+  test('declared lint workflow + tool exits 0 → pass=true', () => {
+    seedLintProject();
     execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
     const r = runLint({cwd: dir});
     expect(r.pass).toBe(true);
@@ -54,7 +57,7 @@ describe('runLint (stage_1.2)', () => {
   });
 
   test('tool non-zero exit + stderr → pass=false with stderr', () => {
-    writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
+    seedLintProject();
     execaSyncMock.mockReturnValueOnce({
       exitCode: 1,
       stdout: '',
@@ -66,7 +69,7 @@ describe('runLint (stage_1.2)', () => {
   });
 
   test('tool non-zero exit + no stderr → pass=false, no stderr field', () => {
-    writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
+    seedLintProject();
     execaSyncMock.mockReturnValueOnce({exitCode: 1, stdout: '', stderr: ''});
     const r = runLint({cwd: dir});
     expect(r.pass).toBe(false);
@@ -81,7 +84,7 @@ describe('runLint (stage_1.2)', () => {
   });
 
   test('null exit code defaults to 1', () => {
-    writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
+    seedLintProject();
     execaSyncMock.mockReturnValueOnce({exitCode: null, stdout: '', stderr: 'killed'});
     expect(runLint({cwd: dir}).exitCode).toBe(1);
   });

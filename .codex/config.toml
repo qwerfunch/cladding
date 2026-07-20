@@ -1,0 +1,5 @@
+[mcp_servers.cladding]
+command = "node"
+args = [ ".cladding/host/serve.cjs" ]
+description = "cladding MCP server (project-scoped by `clad setup`)"
+default_tools_approval_mode = "writes"

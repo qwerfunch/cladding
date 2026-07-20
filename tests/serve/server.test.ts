@@ -47,6 +47,8 @@ features:
         text: probe AC two
 `;
 
+const NO_DESIGN_IMPACT = {classification: 'none', rationale: 'test-only internal feature'} as const;
+
 interface Pair {
   client: Client;
   cleanup: () => Promise<void>;
@@ -194,35 +196,52 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
-  test('read surfaces degrade gracefully when spec.yaml is absent (no crash)', async () => {
-    // A project that has not run `clad init` yet — spec.yaml is absent, so
-    // loadSpec throws. The read tools must return an isError reply (and the
-    // spec resource an error payload), not crash the MCP call.
+  test('a project without spec.yaml exposes only the initialization bootstrap', async () => {
     const bare = mkdtempSync(join(tmpdir(), 'clad-serve-bare-'));
     const {client, cleanup} = await makePair(bare);
     try {
-      const list = await client.callTool({name: 'clad_list_features', arguments: {}});
-      expect(list.isError).toBe(true);
-      expect((list.content as Array<{text: string}>)[0].text).toContain('spec not loaded');
-
-      const get = await client.callTool({name: 'clad_get_feature', arguments: {id: 'F-001'}});
-      expect(get.isError).toBe(true);
+      const {tools} = await client.listTools();
+      expect(tools.map((tool) => tool.name).sort()).toEqual([
+        'clad_init',
+        'clad_prepare_init',
+        'clad_stage_init',
+      ]);
 
       const res = await client.readResource({uri: RESOURCE_URIS.spec});
       const text = (res.contents as Array<{text: string}>)[0].text;
       expect(JSON.parse(text).error).toContain('spec not loaded');
 
-      // F-c6a32fff: the four graph tools carry the same recovery guidance —
-      // they used to surface a raw ENOENT with no way forward.
-      for (const name of ['clad_get_context', 'clad_get_working_set', 'clad_get_impact', 'clad_get_graph']) {
-        const r = await client.callTool({name, arguments: name === 'clad_get_graph' ? {} : {query: 'F-001'}});
-        expect(r.isError, `${name} must fail on an absent spec`).toBe(true);
-        const msg = (r.content as Array<{text: string}>)[0].text;
-        expect(msg, `${name} must carry the clad-init guidance`).toContain('clad init');
-      }
+      const mutation = await client.callTool({
+        name: 'clad_create_feature',
+        arguments: {
+          slug: 'must-not-exist',
+          design_impact: {classification: 'none', rationale: 'boundary probe'},
+        },
+      });
+      expect(mutation.isError).toBe(true);
+      expect((mutation.content as Array<{text: string}>)[0].text).toMatch(/not found/i);
+      expect(existsSync(join(bare, 'spec'))).toBe(false);
     } finally {
       await cleanup();
       rmSync(bare, {recursive: true, force: true});
+    }
+  });
+
+  test('doctor surfaces advertise read-only MCP annotations', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const {tools} = await client.listTools();
+      for (const name of ['clad_list_features', 'clad_get_feature', 'clad_run_check']) {
+        const tool = tools.find((candidate) => candidate.name === name);
+        expect(tool?.annotations).toMatchObject({
+          readOnlyHint: true,
+          destructiveHint: false,
+          idempotentHint: true,
+        });
+      }
+      expect(tools.find((tool) => tool.name === 'clad_init')?.annotations?.readOnlyHint).toBe(false);
+    } finally {
+      await cleanup();
     }
   });
 
@@ -381,7 +400,7 @@ describe('serve/server — MCP read surface', () => {
     try {
       const result = await client.callTool({
         name: 'clad_create_feature',
-        arguments: {slug: 'new-login-flow', title: 'New login flow', status: 'planned'},
+        arguments: {slug: 'new-login-flow', title: 'New login flow', status: 'planned', design_impact: NO_DESIGN_IMPACT},
       });
       const text = (result.content as Array<{type: string; text: string}>)[0].text;
       const parsed = JSON.parse(text);
@@ -391,6 +410,118 @@ describe('serve/server — MCP read surface', () => {
       // distinguishes concurrent invocations.
       expect(parsed.path).toMatch(/spec\/features\/new-login-flow-[a-f0-9]{8}\.yaml$/);
       expect(result.isError).not.toBe(true);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('clad_create_feature keeps the established create-only request compatible', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const result = await client.callTool({
+        name: 'clad_create_feature',
+        arguments: {slug: 'compatible-create', title: 'Compatible create', status: 'planned'},
+      });
+      expect(result.isError).not.toBe(true);
+      const payload = JSON.parse((result.content as Array<{type: string; text: string}>)[0].text) as {
+        path: string;
+        hint?: string;
+        designImpact?: unknown;
+      };
+      expect(payload.hint).toContain('clad_link_capability');
+      expect(payload.designImpact).toBeUndefined();
+      expect(readFileSync(payload.path, 'utf8')).not.toContain('design_impact:');
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('feature creation resolves additive design and gates structural design until review', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      mkdirSync(join(dir, 'spec', 'scenarios'), {recursive: true});
+      writeFileSync(
+        join(dir, 'spec', 'scenarios', 'reporting-flow-a1b2c3.yaml'),
+        'id: S-a1b2c3\nslug: reporting-flow\ntitle: Reporting flow\nfeatures: []\n',
+      );
+      const additive = await client.callTool({
+        name: 'clad_create_feature',
+        arguments: {
+          slug: 'payment-export',
+          design_impact: {
+            classification: 'additive',
+            rationale: 'Extends the existing reporting surface.',
+            capability: 'reporting',
+            capability_title: 'Reporting',
+            scenario: 'reporting-flow',
+          },
+        },
+      });
+      const additivePayload = JSON.parse((additive.content as Array<{type: string; text: string}>)[0].text);
+      expect(additivePayload.designImpact.status).toBe('resolved');
+      expect(readFileSync(join(dir, 'spec', 'capabilities.yaml'), 'utf8')).toContain(additivePayload.id);
+      expect(readFileSync(join(dir, 'spec', 'scenarios', 'reporting-flow-a1b2c3.yaml'), 'utf8')).toContain(additivePayload.id);
+
+      const structural = await client.callTool({
+        name: 'clad_create_feature',
+        arguments: {
+          slug: 'payment-service-boundary',
+          design_impact: {
+            classification: 'structural',
+            rationale: 'Introduces a separately deployed payment service.',
+            artifacts: ['spec/architecture.yaml', 'docs/project-context.md'],
+          },
+        },
+      });
+      const structuralPayload = JSON.parse((structural.content as Array<{type: string; text: string}>)[0].text);
+      expect(structuralPayload.designImpact.status).toBe('review_required');
+      expect(readFileSync(structuralPayload.path, 'utf8')).toContain('status: review_required');
+
+      const premature = await client.callTool({
+        name: 'clad_resolve_design_impact',
+        arguments: {feature: structuralPayload.id},
+      });
+      expect(premature.isError).toBe(true);
+
+      mkdirSync(join(dir, 'docs'), {recursive: true});
+      writeFileSync(join(dir, 'spec', 'architecture.yaml'), 'layers: []\n');
+      writeFileSync(join(dir, 'docs', 'project-context.md'), '# Approved service boundary\n');
+
+      const resolved = await client.callTool({
+        name: 'clad_resolve_design_impact',
+        arguments: {feature: structuralPayload.id},
+      });
+      expect(resolved.isError).not.toBe(true);
+      expect(readFileSync(structuralPayload.path, 'utf8')).toContain('status: resolved');
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('feature creation rolls back every write when an additive design link fails', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const capabilitiesPath = join(dir, 'spec', 'capabilities.yaml');
+      const beforeCapabilities = existsSync(capabilitiesPath)
+        ? readFileSync(capabilitiesPath, 'utf8')
+        : null;
+      const featuresPath = join(dir, 'spec', 'features');
+      const beforeFeatures = existsSync(featuresPath) ? readdirSync(featuresPath).sort() : null;
+      const result = await client.callTool({
+        name: 'clad_create_feature',
+        arguments: {
+          slug: 'atomic-additive-feature',
+          design_impact: {
+            classification: 'additive',
+            rationale: 'Must connect to the declared journey atomically.',
+            capability: 'atomic-capability',
+            scenario: 'missing-scenario',
+          },
+        },
+      });
+      expect(result.isError).toBe(true);
+      expect(existsSync(featuresPath) ? readdirSync(featuresPath).sort() : null).toEqual(beforeFeatures);
+      expect(existsSync(capabilitiesPath) ? readFileSync(capabilitiesPath, 'utf8') : null).toBe(beforeCapabilities);
     } finally {
       await cleanup();
     }
@@ -407,6 +538,7 @@ describe('serve/server — MCP read surface', () => {
         arguments: {
           slug: 'bad-ears-flow',
           title: 'x',
+          design_impact: NO_DESIGN_IMPACT,
           acceptance_criteria: [{ears: 'ubiquitous', condition: 'when the user logs in', text: 't'}],
         },
       });
@@ -430,7 +562,7 @@ describe('serve/server — MCP read surface', () => {
     try {
       const created = await client.callTool({
         name: 'clad_create_feature',
-        arguments: {slug: 'widget', title: 'Widget', status: 'done', acceptance_criteria: [{text: 'does the thing'}]},
+        arguments: {slug: 'widget', title: 'Widget', status: 'done', design_impact: NO_DESIGN_IMPACT, acceptance_criteria: [{text: 'does the thing'}]},
       });
       const createdParsed = JSON.parse((created.content as Array<{type: string; text: string}>)[0].text);
       const featureId = createdParsed.id as string;
@@ -583,7 +715,7 @@ describe('MCP structural channel (F-570a3f)', () => {
     try {
       const res = await client.callTool({
         name: 'clad_create_feature',
-        arguments: {slug: 'gate-footer-probe', acceptance_criteria: [{ears: 'ubiquitous', text: 'probe'}]},
+        arguments: {slug: 'gate-footer-probe', design_impact: NO_DESIGN_IMPACT, acceptance_criteria: [{ears: 'ubiquitous', text: 'probe'}]},
       });
       const text = (res.content as Array<{type: string; text: string}>)[0].text;
       const parsed = JSON.parse(text) as {schema_version?: number; gate?: {pass: boolean; findings: unknown[]}};
@@ -623,7 +755,7 @@ describe('voluntary oracle labeling (F-551a1c)', () => {
     try {
       const created = await client.callTool({
         name: 'clad_create_feature',
-        arguments: {slug: 'vol-probe', status: 'done', acceptance_criteria: [{ears: 'ubiquitous', text: 'probe', test_refs: ['spec.yaml']}]},
+        arguments: {slug: 'vol-probe', status: 'done', design_impact: NO_DESIGN_IMPACT, acceptance_criteria: [{ears: 'ubiquitous', text: 'probe', test_refs: ['spec.yaml']}]},
       });
       const feature = JSON.parse((created.content as Array<{type: string; text: string}>)[0].text) as {id: string; path: string};
       const shard = readFileSync(feature.path, 'utf8'); // result path is already absolute
@@ -823,7 +955,7 @@ describe('MCP syncInventory git-operation write guard (F-10cc42d1 · AC-28d60113
     try {
       const res = await client.callTool({
         name: 'clad_create_feature',
-        arguments: {slug: 'mid-merge-feature', title: 'Mid merge', status: 'planned'},
+        arguments: {slug: 'mid-merge-feature', title: 'Mid merge', status: 'planned', design_impact: NO_DESIGN_IMPACT},
       });
       // The create itself succeeds — only the DERIVED inventory sync is guarded.
       expect(res.isError).not.toBe(true);
@@ -846,7 +978,7 @@ describe('MCP syncInventory git-operation write guard (F-10cc42d1 · AC-28d60113
     try {
       const res = await client.callTool({
         name: 'clad_create_feature',
-        arguments: {slug: 'settled-feature', title: 'Settled', status: 'planned'},
+        arguments: {slug: 'settled-feature', title: 'Settled', status: 'planned', design_impact: NO_DESIGN_IMPACT},
       });
       expect(res.isError).not.toBe(true);
       expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).toContain('inventory:');

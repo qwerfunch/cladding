@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Cladding · version bump script (v0.3.15, F-090).
 //
-// Atomically bumps the version string across the nine files where
+// Atomically bumps the version string across the eleven sites where
 // it lives so two contributors don't have to manually hand-edit each
 // location and risk drifting them. HARNESS_INTEGRITY already catches
 // post-hoc drift, but doing the bump in one shot avoids the catch
@@ -14,7 +14,7 @@
 // The script:
 //   1. validates the target version against SemVer (major.minor.patch)
 //   2. reads the current version from package.json
-//   3. updates all nine sites with a literal string replace
+//   3. validates all eleven sites before writing any file
 //   4. prints a summary of what changed
 //
 // It does NOT touch CHANGELOG.md, git, or run the build. Those are
@@ -45,52 +45,64 @@ const SITES = [
     /"version": "(\d+\.\d+\.\d+)"/,
     (v) => `"version": "${v}"`,
   ),
-  // 2. plugins/claude-code/.claude-plugin/plugin.json
+  // 2-3. package-lock.json — npm mirrors the root package version at the
+  // top level and in packages[""]. Both must move with package.json.
+  siteFor(
+    'package-lock.json',
+    /\{\n  "name": "cladding",\n  "version": "(\d+\.\d+\.\d+)"/,
+    (v) => `{\n  "name": "cladding",\n  "version": "${v}"`,
+  ),
+  siteFor(
+    'package-lock.json',
+    /"packages": \{\n    "": \{\n      "name": "cladding",\n      "version": "(\d+\.\d+\.\d+)"/,
+    (v) => `"packages": {\n    "": {\n      "name": "cladding",\n      "version": "${v}"`,
+  ),
+  // 4. plugins/claude-code/.claude-plugin/plugin.json
   //    (root .claude-plugin/ holds marketplace.json; the Claude plugin
-  //    manifest lives under plugins/claude-code/, mirroring codex at SITE 3.
+  //    manifest lives under plugins/claude-code/, mirroring codex at SITE 5.
   //    The old root path was stale and made `version-bump` error on the repo.)
   siteFor(
     'plugins/claude-code/.claude-plugin/plugin.json',
     /"version": "(\d+\.\d+\.\d+)"/,
     (v) => `"version": "${v}"`,
   ),
-  // 3. plugins/codex/.codex-plugin/plugin.json
+  // 5. plugins/codex/.codex-plugin/plugin.json
   siteFor(
     'plugins/codex/.codex-plugin/plugin.json',
     /"version": "(\d+\.\d+\.\d+)"/,
     (v) => `"version": "${v}"`,
   ),
-  // 4. plugins/gemini-cli/gemini-extension.json
+  // 6. plugins/gemini-cli/gemini-extension.json
   siteFor(
     'plugins/gemini-cli/gemini-extension.json',
     /"version": "(\d+\.\d+\.\d+)"/,
     (v) => `"version": "${v}"`,
   ),
-  // 5. src/cli/clad.ts — `.version('X.Y.Z')` chain on commander Program
+  // 7. src/cli/clad.ts — `.version('X.Y.Z')` chain on commander Program
   siteFor(
     'src/cli/clad.ts',
     /\.version\('(\d+\.\d+\.\d+)'\)/,
     (v) => `.version('${v}')`,
   ),
-  // 6. src/serve/server.ts — fallback `version: opts.version ?? 'X.Y.Z'`
+  // 8. src/serve/server.ts — fallback `version: opts.version ?? 'X.Y.Z'`
   siteFor(
     'src/serve/server.ts',
     /version: opts\.version \?\? '(\d+\.\d+\.\d+)'/,
     (v) => `version: opts.version ?? '${v}'`,
   ),
-  // 7. tests/cli/clad.test.ts — `expect(program.version()).toBe('X.Y.Z')`
+  // 9. tests/cli/clad.test.ts — `expect(program.version()).toBe('X.Y.Z')`
   siteFor(
     'tests/cli/clad.test.ts',
     /expect\(program\.version\(\)\)\.toBe\('(\d+\.\d+\.\d+)'\)/,
     (v) => `expect(program.version()).toBe('${v}')`,
   ),
-  // 8. spec.yaml — project.version (Tier A SSoT must track the binary)
+  // 10. spec.yaml — project.version (Tier A SSoT must track the binary)
   siteFor(
     'spec.yaml',
     /  version: "(\d+\.\d+\.\d+)"/,
     (v) => `  version: "${v}"`,
   ),
-  // 9. .claude-plugin/marketplace.json — the marketplace CATALOG entry the
+  // 11. .claude-plugin/marketplace.json — the marketplace CATALOG entry the
   //    Claude Code host reads to detect "update available". Nested under
   //    plugins[0].version; it is the only "version" key in the file, so the
   //    shared anchor is unambiguous. It is NOT a HOST manifest, so
@@ -120,13 +132,20 @@ function main() {
 
   const changes = [];
   const errors = [];
+  const originalBodies = new Map();
+  const nextBodies = new Map();
   for (const site of SITES) {
     let body;
-    try {
-      body = readFileSync(site.file, 'utf8');
-    } catch (err) {
-      errors.push(`${site.file}: cannot read (${err.message})`);
-      continue;
+    if (nextBodies.has(site.file)) {
+      body = nextBodies.get(site.file);
+    } else {
+      try {
+        body = readFileSync(site.file, 'utf8');
+        originalBodies.set(site.file, body);
+      } catch (err) {
+        errors.push(`${site.file}: cannot read (${err.message})`);
+        continue;
+      }
     }
     const match = site.anchor.exec(body);
     if (!match) {
@@ -144,7 +163,7 @@ function main() {
       errors.push(`${site.file}: replacement matched anchor but produced no diff — bug in formatNew`);
       continue;
     }
-    writeFileSync(site.file, next, 'utf8');
+    nextBodies.set(site.file, next);
     changes.push(`${site.file}: ${oldVersion} → ${newVersion}`);
   }
 
@@ -154,7 +173,34 @@ function main() {
     for (const e of errors) process.stderr.write(`  ${e}\n`);
     process.exit(1);
   }
-  process.stdout.write(`\ncladding version-bump: ${changes.length} files updated to ${newVersion}\n`);
+  let writtenFiles = 0;
+  const attemptedFiles = [];
+  try {
+    for (const [file, body] of nextBodies) {
+      if (body === originalBodies.get(file)) continue;
+      writeFileSync(file, body, 'utf8');
+      attemptedFiles.push(file);
+      writtenFiles++;
+    }
+  } catch (error) {
+    const rollbackErrors = [];
+    for (const file of attemptedFiles.reverse()) {
+      try {
+        writeFileSync(file, originalBodies.get(file), 'utf8');
+      } catch (rollbackError) {
+        rollbackErrors.push(`${file}: ${rollbackError.message}`);
+      }
+    }
+    process.stderr.write(`\nwrite failed; version files restored: ${error.message}\n`);
+    for (const rollbackError of rollbackErrors) {
+      process.stderr.write(`  rollback failed — ${rollbackError}\n`);
+    }
+    process.exit(1);
+  }
+  process.stdout.write(
+    `\ncladding version-bump: ${changes.length} version sites checked; ` +
+    `${writtenFiles} files updated to ${newVersion}\n`,
+  );
 }
 
 main();

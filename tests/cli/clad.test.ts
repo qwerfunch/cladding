@@ -561,7 +561,7 @@ describe('cli/clad — createProgram', () => {
 
   test('program version matches current package version', () => {
     const program = clad.createProgram();
-    expect(program.version()).toBe('0.8.3');
+    expect(program.version()).toBe('0.9.0');
   });
 });
 
@@ -577,7 +577,17 @@ describe('cli/clad — runServeCommand', () => {
     StdioMock.mockClear();
     setMock.mockClear();
     await clad.runServeCommand({cwd: '/tmp/probe'});
-    expect(buildMock).toHaveBeenCalledWith({cwd: '/tmp/probe'});
+    expect(buildMock).toHaveBeenCalledWith({
+      cwd: '/tmp/probe',
+      onboarding: {
+        renderDraft: expect.any(Function),
+        prepareInit: expect.any(Function),
+        initialize: expect.any(Function),
+        prepareClarify: expect.any(Function),
+        clarify: expect.any(Function),
+        resolveReview: expect.any(Function),
+      },
+    });
     expect(StdioMock).toHaveBeenCalledOnce();
     // v0.2.26 (F-075): clad serve registers its own server so host
     // adapters route through McpSamplingTransport.

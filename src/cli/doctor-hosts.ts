@@ -1,13 +1,12 @@
 // Cladding · `clad doctor --hosts` — host-support smoke matrix (F-5283985e)
 //
-// Host verification used to be two hand-written dogfood docs pinned to v0.3.x
-// (docs/dogfood/{claude-code,gemini-cli}-2026-05-20.md) — five minor versions
-// stale, with Codex deferred and Cursor once over-claimed in the README table.
+// Host verification used to rely on hand-written dogfood docs that could go
+// stale, leave supported hosts deferred, or over-claim a README table row.
 // This module makes every host-support claim trace to a DATED, machine-produced
 // smoke artifact instead of prose:
 //
-//   • runHostSmoke  — probes claude / gemini / codex CLIs (≤3 canned one-shot
-//                     prompts each) and Cursor (wiring-only), recording per-host
+//   • runHostSmoke  — probes claude / gemini / agy / codex / cursor-agent CLIs (≤3 canned
+//                     one-shot prompts each), recording per-host
 //                     pass / fail / not-run with the observed sentinel evidence.
 //   • renderHostMatrix — pure renderer → docs/dogfood/matrix.md.
 //   • parseHostOutput  — PURE sentinel matcher, split out so committed transcript
@@ -17,9 +16,8 @@
 //   - Absence of evidence renders as `not-run`, NEVER `pass`. A binary that is
 //     not on PATH, or a run without consent, is not-run — not a silent green.
 //   - Live prompts run ONLY with explicit consent (CLAD_HOST_SMOKE=1 or --yes).
-//   - Cursor has no headless verification surface, so it is graded `wiring-only`:
-//     we assert only that the MCP wire is written AND `clad serve` answers a
-//     tools list over stdio — end-to-end behaviour is not headlessly checkable.
+//   - Cursor's headless Agent CLI is prompt-probed like every other supported
+//     host; its MCP wiring is additionally checked without spending model tokens.
 
 import {spawnSync} from 'node:child_process';
 import {existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync} from 'node:fs';
@@ -27,7 +25,7 @@ import {homedir, platform} from 'node:os';
 import {join} from 'node:path';
 import process from 'node:process';
 
-import {getCurrentCladdingVersion} from '../init/host-setup.js';
+import {GEMINI_DOCTOR_POLICY_RELATIVE, getCurrentCladdingVersion} from '../init/host-setup.js';
 import {loadSpec} from '../spec/load.js';
 import {pulse} from '../ui/pulse.js';
 
@@ -45,7 +43,7 @@ export type SurfaceResultKind = 'pass' | 'fail' | 'not-run';
 export type HostGrade = 'verified' | 'fail' | 'not-run' | 'wiring-ok' | 'wiring-fail';
 
 /** The prompt-probed CLI hosts (each has a headless one-shot surface). */
-export const PROMPT_HOSTS = ['claude', 'gemini', 'codex'] as const;
+export const PROMPT_HOSTS = ['claude', 'gemini', 'antigravity', 'codex', 'cursor'] as const;
 export type PromptHost = (typeof PROMPT_HOSTS)[number];
 
 /** Result of matching one surface's output against its sentinel. */
@@ -80,6 +78,7 @@ export interface HostSmokeArtifact {
   readonly hosts: {
     readonly claude: HostRecord;
     readonly gemini: HostRecord;
+    readonly antigravity: HostRecord;
     readonly codex: HostRecord;
     readonly cursor: HostRecord;
   };
@@ -127,6 +126,15 @@ export function tail(text: string, max = 200): string {
  *                   generic feature-id pattern.
  */
 export function parseHostOutput(surface: SurfaceName, text: string, expectedId?: string): SurfaceParse {
+  const refusal =
+    /\b(?:MCP|tool|clad_[a-z0-9_]+)(?:\s+tool)?(?:\s+calls?)?[^.\n]{0,80}\b(?:rejected|denied|refused|cancelled|canceled|not approved)\b|\buser cancelle?d MCP tool call\b|\bno tool payload\b|\bdon't have a findings count\b|\bre-approve the cladding MCP tool\b/i;
+  if (refusal.test(text)) {
+    return {
+      result: 'fail',
+      sentinel: SURFACE_SENTINELS[surface].label,
+      evidence: tail(text),
+    };
+  }
   let pattern = SURFACE_SENTINELS[surface].pattern;
   let label = SURFACE_SENTINELS[surface].label;
   if (surface === 'get-feature' && expectedId) {
@@ -147,8 +155,8 @@ export function parseHostOutput(surface: SurfaceName, text: string, expectedId?:
 // ────────────────────────────────────────────────────────────────────────────
 
 /**
- * The canned prompts, derived from the Gemini dogfood recipes
- * (docs/dogfood/gemini-cli-2026-05-20.md), then hardened after the first live
+ * The canned prompts, derived from the original host dogfood recipes, then
+ * hardened after the first live
  * run: an open-ended "list the first 3 features" invited the host to explore
  * project context instead of calling the tool, grading a healthy host `fail`.
  * Maximally directive + context-proof: name the exact MCP tool, demand the
@@ -163,20 +171,51 @@ export const SURFACE_PROMPTS: Readonly<Record<SurfaceName, (id: string) => strin
 };
 
 /**
- * How each host CLI runs a single non-interactive prompt:
- *   - claude → `claude -p "<prompt>" --output-format text`
- *   - gemini → `gemini --approval-mode yolo -o text -p "<prompt>"`  (dogfood recipe)
- *   - codex  → `codex exec "<prompt>"`  (Codex's non-interactive one-shot analog)
+ * How each host CLI runs a single non-interactive prompt. The smoke only ever
+ * fires behind explicit consent (CLAD_HOST_SMOKE=1 / --yes), which is why the
+ * non-interactive approval bypasses below are acceptable here and nowhere else:
+ * a headless probe cannot answer a host's approval prompt, and each probed
+ * cladding tool is one of the three read-only doctor surfaces.
+ *   - claude → `claude -p "<prompt>" --output-format text --settings <auto-approve project .mcp.json>`
+ *   - gemini → `gemini --skip-trust --approval-mode plan --policy <project-policy> -o text -p "<prompt>"`
+ *   - antigravity → `agy --dangerously-skip-permissions -p "<prompt>"` (in the project cwd — agy's
+ *     machine-wide wire resolves the project from the session directory)
+ *   - codex  → `codex exec --dangerously-bypass-approvals-and-sandbox "<prompt>"`
+ *   - cursor → `cursor-agent -p --mode ask --trust --approve-mcps "<prompt>"`
  */
 export function buildPromptCommand(host: PromptHost, prompt: string): {command: string; args: string[]} {
   switch (host) {
     case 'claude':
-      return {command: 'claude', args: ['-p', prompt, '--output-format', 'text']};
+      return {command: 'claude', args: ['-p', prompt, '--output-format', 'text', '--settings', '{"enableAllProjectMcpServers":true}']};
     case 'gemini':
-      return {command: 'gemini', args: ['--approval-mode', 'yolo', '-o', 'text', '-p', prompt]};
+      return {
+        command: 'gemini',
+        args: [
+          '--skip-trust',
+          '--approval-mode',
+          'plan',
+          '--policy',
+          GEMINI_DOCTOR_POLICY_RELATIVE,
+          '--allowed-mcp-server-names',
+          'cladding',
+          '-o',
+          'text',
+          '-p',
+          prompt,
+        ],
+      };
+    case 'antigravity':
+      return {command: 'agy', args: ['--dangerously-skip-permissions', '-p', prompt]};
     case 'codex':
-      return {command: 'codex', args: ['exec', prompt]};
+      return {command: 'codex', args: ['exec', '--dangerously-bypass-approvals-and-sandbox', prompt]};
+    case 'cursor':
+      return {command: 'cursor-agent', args: ['-p', '--mode', 'ask', '--trust', '--approve-mcps', prompt]};
   }
+}
+
+/** Executable name corresponding to a public host key. */
+function hostBinary(host: PromptHost): string {
+  return host === 'antigravity' ? 'agy' : host === 'cursor' ? 'cursor-agent' : host;
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -212,7 +251,7 @@ export type ServeProber = (command: string, args: readonly string[], cwd: string
 export interface HostSmokeOptions {
   /** Live prompts run only when true (CLAD_HOST_SMOKE=1 or --yes). */
   readonly consent?: boolean;
-  /** Home directory holding ~/.cursor/mcp.json (default os.homedir()). */
+  /** Home directory used only for host binary discovery and legacy diagnostics. */
   readonly home?: string;
   /** Clock injection for deterministic artifact timestamps in tests. */
   readonly now?: Date;
@@ -226,7 +265,13 @@ export interface HostSmokeOptions {
   readonly probeServe?: ServeProber;
 }
 
-const PROMPT_TIMEOUT_MS = 60_000;
+/** run-check executes the project's full gate inside the host turn — give it
+ * the room a real repository needs instead of grading slowness as failure. */
+const PROMPT_TIMEOUT_MS: Readonly<Record<SurfaceName, number>> = {
+  'list-features': 120_000,
+  'get-feature': 120_000,
+  'run-check': 300_000,
+};
 const SERVE_TIMEOUT_MS = 10_000;
 
 function defaultHasBinary(name: string): boolean {
@@ -356,20 +401,20 @@ function probePromptHost(
     }
     const prompt = SURFACE_PROMPTS[name](featureId ?? '');
     const {command, args} = buildPromptCommand(host, prompt);
-    const r = runPrompt(command, args, {cwd, timeoutMs: PROMPT_TIMEOUT_MS});
+    const r = runPrompt(command, args, {cwd, timeoutMs: PROMPT_TIMEOUT_MS[name]});
     if (r.timedOut) {
       surfaces.push({
         name,
         result: 'fail',
         sentinel: SURFACE_SENTINELS[name].label,
-        evidence: tail(`timed out after ${PROMPT_TIMEOUT_MS / 1000}s: ${r.stderr || r.stdout}`),
+        evidence: tail(`timed out after ${PROMPT_TIMEOUT_MS[name] / 1000}s: ${r.stderr || r.stdout}`),
       });
       continue;
     }
     if (r.code !== 0) {
       // Exit-code gate — a crashed/refused CLI can never pass, no matter what
-      // its output text accidentally matches (first live run: gemini 0.42.0
-      // crashed with exit 1 and the trace still matched a loose sentinel).
+      // its output text accidentally matches (a live host crash once emitted a
+      // trace that still matched a loose sentinel).
       surfaces.push({
         name,
         result: 'fail',
@@ -389,31 +434,30 @@ function probePromptHost(
 }
 
 /**
- * Cursor wiring-only probe (AC-6cbe51fc). No consent needed — it is free and
- * local. Grades:
- *   - not-run    — ~/.cursor absent (Cursor not installed here) OR no cladding
- *                  MCP entry (not wired). Absence of evidence, never a pass.
+ * Cursor wiring probe (AC-6cbe51fc). No consent needed — it is free and local.
+ * The prompt probe supplies the overall host grade; this adds structural MCP
+ * evidence and catches a dead configured server before spending model tokens.
+ * Wiring grades:
+ *   - not-run    — no project-local Cladding MCP entry. Absence of evidence,
+ *                  never a pass.
  *   - wiring-fail — cladding IS wired but `clad serve` does not answer tools/list.
  *   - wiring-ok  — wired AND `clad serve` answers a tools list over stdio.
  */
-function probeCursor(home: string, cwd: string, probeServe: ServeProber): HostRecord {
-  const cursorDir = join(home, '.cursor');
+function probeCursorWiring(_home: string, cwd: string, probeServe: ServeProber): HostRecord {
+  const cursorDir = join(cwd, '.cursor');
   const mcpPath = join(cursorDir, 'mcp.json');
-  if (!existsSync(cursorDir)) {
-    return {grade: 'not-run', surfaces: [], reason: 'Cursor not detected (~/.cursor absent) — run `clad setup` to wire'};
-  }
   if (!existsSync(mcpPath)) {
-    return {grade: 'not-run', surfaces: [], reason: 'no ~/.cursor/mcp.json — run `clad setup` to wire cladding'};
+    return {grade: 'not-run', surfaces: [], reason: 'no project .cursor/mcp.json — run `clad setup` in this project'};
   }
   let entry: {command?: string; args?: unknown} | undefined;
   try {
     const parsed = JSON.parse(readFileSync(mcpPath, 'utf8')) as {mcpServers?: Record<string, unknown>};
     entry = parsed.mcpServers?.cladding as {command?: string; args?: unknown} | undefined;
   } catch {
-    return {grade: 'not-run', surfaces: [], reason: '~/.cursor/mcp.json is not valid JSON'};
+    return {grade: 'not-run', surfaces: [], reason: 'project .cursor/mcp.json is not valid JSON'};
   }
   if (!entry || typeof entry.command !== 'string') {
-    return {grade: 'not-run', surfaces: [], reason: 'no cladding MCP entry in ~/.cursor/mcp.json — run `clad setup`'};
+    return {grade: 'not-run', surfaces: [], reason: 'no Cladding entry in project .cursor/mcp.json — run `clad setup`'};
   }
   const args = Array.isArray(entry.args) ? (entry.args as string[]) : [];
   const probe = probeServe(entry.command, args, cwd);
@@ -425,13 +469,13 @@ function probeCursor(home: string, cwd: string, probeServe: ServeProber): HostRe
   };
   return probe.ok
     ? {grade: 'wiring-ok', surfaces: [surface]}
-    : {grade: 'wiring-fail', surfaces: [surface], reason: 'cladding is wired in ~/.cursor/mcp.json but `clad serve` did not answer tools/list'};
+    : {grade: 'wiring-fail', surfaces: [surface], reason: 'Cladding is wired in project .cursor/mcp.json but its launcher did not answer tools/list'};
 }
 
 /**
  * Runs the host smoke matrix. Live host-CLI prompts run only with consent;
- * absent-binary and no-consent both render `not-run` (never pass). The Cursor
- * wiring check is free/local and always runs.
+ * absent-binary and no-consent both render `not-run` (never pass). Cursor's
+ * wiring check is free/local and always runs in addition to its headless probe.
  */
 export function runHostSmoke(cwd: string, opts: HostSmokeOptions = {}): HostSmokeArtifact {
   const consent = opts.consent ?? false;
@@ -445,7 +489,7 @@ export function runHostSmoke(cwd: string, opts: HostSmokeOptions = {}): HostSmok
 
   const promptRecords = {} as Record<PromptHost, HostRecord>;
   for (const host of PROMPT_HOSTS) {
-    if (!hasBinary(host)) {
+    if (!hasBinary(hostBinary(host))) {
       promptRecords[host] = notRunPromptHost('binary not on PATH');
     } else if (!consent) {
       promptRecords[host] = notRunPromptHost('consent not given (set CLAD_HOST_SMOKE=1)');
@@ -454,14 +498,28 @@ export function runHostSmoke(cwd: string, opts: HostSmokeOptions = {}): HostSmok
     }
   }
 
+  const cursorPrompt = promptRecords.cursor;
+  const cursorWiring = probeCursorWiring(home, cwd, probeServe);
+  const cursor: HostRecord = {
+    grade:
+      cursorWiring.grade === 'wiring-fail'
+        ? 'fail'
+        : cursorPrompt.grade,
+    surfaces: [...cursorPrompt.surfaces, ...cursorWiring.surfaces],
+    ...((cursorPrompt.reason || cursorWiring.reason)
+      ? {reason: [cursorPrompt.reason, cursorWiring.reason].filter(Boolean).join('; ')}
+      : {}),
+  };
+
   return {
     version,
     generatedAt: now.toISOString(),
     hosts: {
       claude: promptRecords.claude,
       gemini: promptRecords.gemini,
+      antigravity: promptRecords.antigravity,
       codex: promptRecords.codex,
-      cursor: probeCursor(home, cwd, probeServe),
+      cursor,
     },
   };
 }
@@ -475,6 +533,7 @@ export function matrixGradesFence(artifact: HostSmokeArtifact): string {
   const grades = {
     claude: artifact.hosts.claude.grade,
     gemini: artifact.hosts.gemini.grade,
+    antigravity: artifact.hosts.antigravity.grade,
     codex: artifact.hosts.codex.grade,
     cursor: artifact.hosts.cursor.grade,
   };
@@ -488,7 +547,7 @@ function surfaceCell(record: HostRecord, name: string): string {
 
 /**
  * Renders docs/dogfood/matrix.md from an artifact — host × surface × result ×
- * date × cladding version, plus the wiring-only legend and a machine-readable
+ * date × cladding version, plus the evidence legend and a machine-readable
  * grades fence for the drift detector.
  */
 export function renderHostMatrix(artifact: HostSmokeArtifact): string {
@@ -508,8 +567,12 @@ export function renderHostMatrix(artifact: HostSmokeArtifact): string {
     `| ${name} | ${surfaceCell(r, 'list-features')} | ${surfaceCell(r, 'get-feature')} | ${surfaceCell(r, 'run-check')} | — | ${r.grade} |`;
   lines.push(promptRow('claude', hosts.claude));
   lines.push(promptRow('gemini', hosts.gemini));
+  lines.push(promptRow('antigravity', hosts.antigravity));
   lines.push(promptRow('codex', hosts.codex));
-  lines.push(`| cursor | — | — | — | ${surfaceCell(hosts.cursor, 'wiring')} | ${hosts.cursor.grade} |`);
+  lines.push(
+    `| cursor | ${surfaceCell(hosts.cursor, 'list-features')} | ${surfaceCell(hosts.cursor, 'get-feature')} | ` +
+      `${surfaceCell(hosts.cursor, 'run-check')} | ${surfaceCell(hosts.cursor, 'wiring')} | ${hosts.cursor.grade} |`,
+  );
   lines.push('');
   lines.push('**Legend**');
   lines.push('');
@@ -517,8 +580,7 @@ export function renderHostMatrix(artifact: HostSmokeArtifact): string {
     '- `verified` — every probed surface passed its sentinel end-to-end.',
   );
   lines.push(
-    '- `wiring-only` (Cursor) — no headless verification surface exists, so the host is graded only on ' +
-      'whether the MCP wire is written **and** `clad serve` answers a tools list over stdio (`wiring-ok` / `wiring-fail`).',
+    '- `wiring` — Cursor additionally verifies that its configured `clad serve` answers a tools list over stdio.',
   );
   lines.push(
     '- `not-run` — absence of evidence (binary absent from PATH, no live-run consent, or host not wired here). ' +
@@ -535,7 +597,7 @@ export function renderHostMatrix(artifact: HostSmokeArtifact): string {
   lines.push(
     '> Live grades land when a human runs `clad doctor --hosts` with consent ' +
       '(`CLAD_HOST_SMOKE=1` or `--yes`). Without consent this baseline records only what is checkable ' +
-      'for free — Cursor wiring — and leaves the LLM-driven surfaces `not-run`.',
+      'for free — Cursor wiring — and leaves all LLM-driven surfaces `not-run`.',
   );
   lines.push('');
   return lines.join('\n');
@@ -596,7 +658,28 @@ export function readNewestArtifact(cwd: string): HostSmokeArtifact | null {
     .reverse();
   for (const f of files) {
     try {
-      return JSON.parse(readFileSync(join(dir, f), 'utf8')) as HostSmokeArtifact;
+      const parsed = JSON.parse(readFileSync(join(dir, f), 'utf8')) as {
+        version?: unknown;
+        generatedAt?: unknown;
+        hosts?: Record<string, HostRecord>;
+      };
+      if (typeof parsed.version !== 'string' || typeof parsed.generatedAt !== 'string' || !parsed.hosts) continue;
+      const fallback = notRunPromptHost('legacy artifact predates this host probe; run `clad doctor --hosts --yes`');
+      const claude = parsed.hosts.claude;
+      const codex = parsed.hosts.codex;
+      const cursor = parsed.hosts.cursor;
+      if (!claude || !codex || !cursor) continue;
+      return {
+        version: parsed.version,
+        generatedAt: parsed.generatedAt,
+        hosts: {
+          claude,
+          gemini: parsed.hosts.gemini ?? fallback,
+          antigravity: parsed.hosts.antigravity ?? fallback,
+          codex,
+          cursor,
+        },
+      };
     } catch {
       continue;
     }
@@ -652,7 +735,10 @@ export function runDoctorHosts(opts: DoctorHostsOptions = {}): void {
       ? `host smoke complete → ${artifactFile}`
       : 'no live-run consent — LLM surfaces recorded not-run (set CLAD_HOST_SMOKE=1 to probe)',
   );
-  process.stdout.write(`  claude: ${g.claude.grade}   gemini: ${g.gemini.grade}   codex: ${g.codex.grade}   cursor: ${g.cursor.grade}\n`);
+  process.stdout.write(
+    `  claude: ${g.claude.grade}   gemini: ${g.gemini.grade}   antigravity: ${g.antigravity.grade}   ` +
+      `codex: ${g.codex.grade}   cursor: ${g.cursor.grade}\n`,
+  );
   process.stdout.write(`  artifact: ${artifactFile}\n`);
   process.stdout.write(`  matrix:   ${matrixFile}\n`);
   process.exit(0);

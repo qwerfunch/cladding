@@ -24,7 +24,8 @@ import {runHookCommand} from './hook.js';
 import {runVerdictCommand} from './verdict.js';
 import {runUpdate} from './update.js';
 import {runInit} from './init.js';
-import {runClarifyCommand} from './clarify.js';
+import {refineOnboarding, resolveOnboardingReview, runClarifyCommand} from './clarify.js';
+import {prepareHostClarify, prepareHostInit, renderHostDraft} from './host-onboarding.js';
 import {getCurrentCladdingVersion, runHostSetup} from '../init/host-setup.js';
 import {recordEvent} from '../events/log.js';
 import {buildContextSlice} from '../optimizer/context-slice.js';
@@ -80,7 +81,17 @@ export async function runServeCommand(opts: {cwd?: string}): Promise<void> {
     import('@modelcontextprotocol/sdk/server/stdio.js'),
     import('../adapters/host/sampling-context.js'),
   ]);
-  const server = buildServer({cwd: opts.cwd});
+  const server = buildServer({
+    cwd: opts.cwd,
+    onboarding: {
+      renderDraft: (draft) => renderHostDraft(draft as Parameters<typeof renderHostDraft>[0]),
+      prepareInit: ({cwd, mode, intent}) => prepareHostInit(cwd, mode, intent),
+      initialize: runInit,
+      prepareClarify: (answer, {cwd}) => prepareHostClarify(cwd, answer),
+      clarify: refineOnboarding,
+      resolveReview: (targets, {cwd}) => resolveOnboardingReview(targets, {cwd}),
+    },
+  });
   // v0.2.26 (F-075): register the server in the sampling context so
   // the host adapters (`generic-mcp`, `claude-code`) automatically
   // route LLM dispatch through McpSamplingTransport instead of the
@@ -122,6 +133,7 @@ export async function runInitCommand(
     roots?: string;
     withHook?: boolean;
     withCi?: boolean;
+    json?: boolean;
   },
 ): Promise<void> {
   const intent = intentTokens && intentTokens.length > 0 ? intentTokens.join(' ').trim() : undefined;
@@ -135,6 +147,11 @@ export async function runInitCommand(
     withHook: opts.withHook,
     withCi: opts.withCi,
   });
+  if (opts.json) {
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    process.exit(0);
+    return;
+  }
   for (const c of result.created) pulse('pass', `created ${c}`);
   for (const s of result.skipped) pulse('skip', s);
   for (const p of result.proposals ?? []) pulse('note', 'proposal', p);
@@ -371,16 +388,27 @@ export function runRollbackCommand(featureId: string, opts: {reason?: string} = 
   process.exit(0);
 }
 
-/** Handler for `clad setup`. Wires cladding into installed AI tool host channels. */
-export async function runSetupCommand(opts: {force?: boolean; quiet?: boolean}): Promise<void> {
-  const result = await runHostSetup({force: opts.force, quiet: opts.quiet});
+/** Handler for `clad setup`. Activates Cladding only for one project. */
+export async function runSetupCommand(opts: {force?: boolean; quiet?: boolean; project?: string; host?: string}): Promise<void> {
+  // No --host → detected hosts only (spec AC-001); --host all → every channel.
+  const hosts = !opts.host
+    ? undefined
+    : opts.host === 'all'
+      ? (['claude', 'codex', 'gemini', 'antigravity', 'cursor'] as const).slice()
+      : [opts.host as 'claude' | 'codex' | 'gemini' | 'antigravity' | 'cursor'];
+  const result = await runHostSetup({
+    force: opts.force,
+    quiet: opts.quiet,
+    projectRoot: opts.project,
+    hosts,
+  });
   process.exit(result.errors.length > 0 ? 1 : 0);
 }
 
 /**
  * Handler for `clad update`. The one-command "after you upgraded the engine"
- * step, run from INSIDE the project you want to reconcile: re-wire hosts +
- * reconcile the spec inventory + refresh the managed CLAUDE.md/AGENTS.md section
+ * step, run from INSIDE the project you want to reconcile: refresh its host
+ * wiring + reconcile the spec inventory + refresh the managed CLAUDE.md/AGENTS.md section
  * (all safe + idempotent — see cli/update.ts), THEN run the now-stricter
  * detectors in REPORT mode. The drift report never blocks and never edits the
  * user's spec — it only surfaces the bar the upgrade raised, so `clad update`
@@ -393,14 +421,14 @@ export async function runSetupCommand(opts: {force?: boolean; quiet?: boolean}):
 export async function runUpdateCommand(): Promise<void> {
   pulse('note', 'update', 'reconciling the current project after the engine upgrade');
   const r = await runUpdate('.', {
-    wireHosts: async () => (await runHostSetup({quiet: true})).errors.length,
+    wireHosts: async () => (await runHostSetup({quiet: true, projectRoot: '.'})).errors.length,
   });
-  pulse(r.wiringErrors > 0 ? 'fail' : 'pass', 'hosts', r.wiringErrors > 0 ? `${r.wiringErrors} wiring error(s)` : 're-wired');
   if (!r.isProject) {
-    pulse('skip', 'spec', 'no spec.yaml here — run `clad init` to put this project under cladding');
+    pulse('skip', 'update', 'no spec.yaml here — nothing re-wired. Run `clad update` inside a cladding project, or `clad init` to start one.');
     process.exit(r.code);
     return;
   }
+  pulse(r.wiringErrors > 0 ? 'fail' : 'pass', 'hosts', r.wiringErrors > 0 ? `${r.wiringErrors} wiring error(s)` : 're-wired');
   if (r.inventoryDeferred) {
     pulse('note', 'spec', `inventory + index writes deferred — git operation in progress; re-run \`clad update\` after it completes (${r.features} features seen).`);
   } else {
@@ -1010,7 +1038,7 @@ export function runRouteCommand(prompt: string): void {
  */
 export function createProgram(): Command {
   const program = new Command();
-  program.name('clad').description('Reference Ironclad CLI').version('0.8.3');
+  program.name('clad').description('Reference Ironclad CLI').version('0.9.0');
 
   program
     .command('init [intent...]')
@@ -1027,6 +1055,7 @@ export function createProgram(): Command {
     .option('--roots <list>', 'Override scanner source roots, comma-separated (e.g. packages/a/src,packages/b/src). Otherwise inferred from manifests + directory heuristics.')
     .option('--with-hook', 'Install git pre-commit (cheap tier) AND pre-push (strict tier) hooks. Opt-in; cladding never touches .git without it.')
     .option('--with-ci', 'Scaffold .github/workflows/cladding.yml running the strict pre-push gate — the authoritative enforcement layer.')
+    .option('--json', 'emit the raw InitResult for tooling; default is the human-readable surface')
     .action(runInitCommand);
 
   program
@@ -1050,14 +1079,16 @@ export function createProgram(): Command {
 
   program
     .command('setup')
-    .description('Wire cladding into installed AI tool host channels (Claude Code / Codex / Gemini)')
-    .option('--force', 'overwrite directory-copy wires (Windows fallback) even when changes detected')
+    .description('Activate Cladding only for the current project (Claude Code / Codex / Gemini / Antigravity / Cursor)')
+    .option('--project <path>', 'activate a project other than the current directory')
+    .option('--host <host>', 'activate detected hosts (default), all, or one of: claude, codex, gemini, antigravity, cursor')
+    .option('--force', 'replace an existing conflicting cladding-owned project entry')
     .option('--quiet', 'suppress stdout output')
     .action(runSetupCommand);
 
   program
     .command('update')
-    .description('Run from a project dir AFTER `npm update -g cladding`: re-wire hosts + sync inventory + refresh the managed CLAUDE.md/AGENTS.md section, then report (without blocking) what the now-stricter detectors flag')
+    .description('Run from a project dir AFTER `npm update -g cladding`: refresh project host wiring + sync inventory + refresh managed CLAUDE.md/AGENTS.md, then report stricter detector findings')
     .action(runUpdateCommand);
 
   program
@@ -1234,7 +1265,7 @@ export function createProgram(): Command {
     .description('Summarise .cladding/events.log.jsonl — sentinel-miss frequency by phase/cause/fallback plus the top missed sentinels (LLM dispatcher health check)')
     .option('--cwd <path>', 'project directory to read events from (default cwd)')
     .option('--json', 'emit the raw DoctorReport for tooling; default is the human-readable surface')
-    .option('--hosts', 'smoke-test host CLIs (claude/gemini/codex) + Cursor wiring → dated artifact + docs/dogfood/matrix.md. Live LLM prompts run only with consent (CLAD_HOST_SMOKE=1 or --yes); otherwise not-run')
+    .option('--hosts', 'smoke-test host CLIs (Claude Code / Gemini / Antigravity / Codex / Cursor) and project wiring → dated artifact + docs/dogfood/matrix.md. Live LLM prompts run only with consent (CLAD_HOST_SMOKE=1 or --yes); otherwise not-run')
     .option('--yes', 'grant live-run consent for --hosts (equivalent to CLAD_HOST_SMOKE=1)')
     .option('--matrix-only', 'regenerate docs/dogfood/matrix.md from the newest host-smoke artifact without any probing')
     .action((opts) => {

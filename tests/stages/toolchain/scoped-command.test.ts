@@ -53,7 +53,7 @@ describe('resolveStageCommand — repo fallback', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}');
     const r = resolveStageCommand('test', {cwd: dir, focusModules: ['a']});
     expect(r.cmd).toBe('npx');
-    expect(r.args).toEqual(['--no-install', 'vitest', 'run']);
+    expect(r.args).toEqual(['--offline', '--no-install', 'vitest', 'run']);
   });
 });
 

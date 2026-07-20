@@ -20,7 +20,7 @@
 // @see spec/features/F-084.yaml — this feature.
 
 import {createHash} from 'node:crypto';
-import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync} from 'node:fs';
 
 import {recordEvent} from '../events/log.js';
 import {hostname, userInfo} from 'node:os';
@@ -76,6 +76,12 @@ export interface CreateFeatureOptions {
   readonly modules?: readonly string[];
   /** Acceptance criteria authored at creation. Omitted → `acceptance_criteria: []`. */
   readonly acceptance_criteria?: readonly AcceptanceCriterionInput[];
+  /** Optional durable Tier-B impact decision for hosts that support the richer authoring path. */
+  readonly design_impact?: {
+    readonly classification: 'none' | 'additive' | 'structural';
+    readonly rationale: string;
+    readonly artifacts?: readonly string[];
+  };
   /** Project root. Defaults to `.`. */
   readonly cwd?: string;
 }
@@ -89,6 +95,80 @@ export interface CreateFeatureResult {
   readonly slug: string;
   /** Present when a requested status was downgraded (done is earned, not declared). */
   readonly note?: string;
+}
+
+export interface ResolveDesignImpactResult {
+  readonly feature: string;
+  readonly changed: boolean;
+  readonly path: string;
+}
+
+/** Adds a feature to an existing scenario without changing its authored prose. */
+export function linkScenario(opts: {readonly scenario: string; readonly feature: string; readonly cwd?: string}): string {
+  const cwd = opts.cwd ?? '.';
+  const directory = join(cwd, 'spec', 'scenarios');
+  if (!existsSync(directory)) throw new Error(`cladding: unknown scenario '${opts.scenario}'`);
+  for (const name of readdirSync(directory)) {
+    if (!name.endsWith('.yaml') && !name.endsWith('.yml')) continue;
+    const path = join(directory, name);
+    const body = readFileSync(path, 'utf8');
+    const parsed = yaml.parse(body) as {id?: string; slug?: string; features?: string[]};
+    if (parsed?.id !== opts.scenario && parsed?.slug !== opts.scenario) continue;
+    if (parsed.features?.includes(opts.feature)) return path;
+    let next: string;
+    if (/^features:\s*\[\]\s*$/m.test(body)) {
+      next = body.replace(/^features:\s*\[\]\s*$/m, `features:\n  - ${opts.feature}`);
+    } else if (/^features:\s*$/m.test(body)) {
+      next = body.replace(/^(features:\s*\n(?:\s+-[^\n]*\n)*)/m, `$1  - ${opts.feature}\n`);
+    } else {
+      next = `${body.replace(/\n?$/, '\n')}features:\n  - ${opts.feature}\n`;
+    }
+    writeFileSync(path, next, 'utf8');
+    return path;
+  }
+  throw new Error(`cladding: unknown scenario '${opts.scenario}'`);
+}
+
+/** Marks a reviewed structural design impact resolved without rewriting the shard. */
+export function resolveDesignImpact(opts: {readonly feature: string; readonly cwd?: string}): ResolveDesignImpactResult {
+  const cwd = opts.cwd ?? '.';
+  const directory = join(cwd, 'spec', 'features');
+  if (!existsSync(directory)) throw new Error(`cladding: unknown feature '${opts.feature}'`);
+  for (const name of readdirSync(directory)) {
+    if (!name.endsWith('.yaml') && !name.endsWith('.yml')) continue;
+    const path = join(directory, name);
+    const body = readFileSync(path, 'utf8');
+    const parsed = yaml.parse(body) as {id?: string; design_impact?: {
+      classification?: string;
+      status?: string;
+      artifacts?: string[];
+      baseline_digests?: Record<string, string>;
+    }};
+    if (parsed?.id !== opts.feature) continue;
+    if (parsed.design_impact?.classification !== 'structural') {
+      throw new Error('cladding: only a structural design impact requires explicit resolution');
+    }
+    if (parsed.design_impact.status === 'resolved') return {feature: opts.feature, changed: false, path};
+    const unchanged = (parsed.design_impact.artifacts ?? []).filter((relativePath) => {
+      const artifact = join(cwd, relativePath);
+      const current = existsSync(artifact)
+        ? createHash('sha256').update(readFileSync(artifact)).digest('hex')
+        : 'absent';
+      return current === parsed.design_impact?.baseline_digests?.[relativePath];
+    });
+    if (unchanged.length > 0) {
+      throw new Error(`cladding: design impact is not resolved — unchanged artifact(s): ${unchanged.join(', ')}`);
+    }
+    const next = body.replace(
+      /(design_impact:\n(?:(?:  .*\n)*?)  status:\s*)review_required\b/,
+      '$1resolved',
+    );
+    if (next === body) throw new Error('cladding: malformed structural design_impact block');
+    writeFileSync(path, next, 'utf8');
+    recordEvent(cwd, 'design_impact_resolved', {feature: opts.feature});
+    return {feature: opts.feature, changed: true, path};
+  }
+  throw new Error(`cladding: unknown feature '${opts.feature}'`);
 }
 
 /**
@@ -156,6 +236,18 @@ export function createFeature(opts: CreateFeatureOptions): CreateFeatureResult {
   // and the PreToolUse hand-flip hook entirely. Downgrade with a visible note.
   const requestedDone = opts.status === 'done';
   const status = requestedDone ? 'in_progress' : (opts.status ?? 'planned');
+  const designImpact = opts.design_impact?.classification === 'structural'
+    ? {
+        ...opts.design_impact,
+        baseline_digests: Object.fromEntries((opts.design_impact.artifacts ?? []).map((relativePath) => {
+          const artifact = join(cwd, relativePath);
+          const digest = existsSync(artifact)
+            ? createHash('sha256').update(readFileSync(artifact)).digest('hex')
+            : 'absent';
+          return [relativePath, digest];
+        })),
+      }
+    : opts.design_impact;
   const yaml = renderYaml({
     id,
     slug,
@@ -163,6 +255,7 @@ export function createFeature(opts: CreateFeatureOptions): CreateFeatureResult {
     status,
     modules: opts.modules,
     acceptance_criteria: opts.acceptance_criteria,
+    design_impact: designImpact,
   });
   writeFileSync(filePath, yaml, 'utf8');
   // F-b84c38 — spec authorship lands in the ledger (best-effort).
@@ -201,6 +294,9 @@ function renderYaml(args: {
   status: string;
   modules?: readonly string[];
   acceptance_criteria?: readonly AcceptanceCriterionInput[];
+  design_impact?: CreateFeatureOptions['design_impact'] & {
+    readonly baseline_digests?: Readonly<Record<string, string>>;
+  };
 }): string {
   const lines = [
     `id: ${args.id}`,
@@ -237,6 +333,22 @@ function renderYaml(args: {
       }
       if (ac.notes) lines.push(`    notes: ${JSON.stringify(ac.notes)}`);
     });
+  }
+
+  if (args.design_impact) {
+    lines.push('design_impact:');
+    lines.push(`  classification: ${args.design_impact.classification}`);
+    lines.push(`  rationale: ${JSON.stringify(args.design_impact.rationale)}`);
+    lines.push(`  status: ${args.design_impact.classification === 'structural' ? 'review_required' : 'resolved'}`);
+    const artifacts = args.design_impact.artifacts ?? [];
+    if (artifacts.length === 0) lines.push('  artifacts: []');
+    else lines.push(`  artifacts: [${artifacts.map((path) => JSON.stringify(path)).join(', ')}]`);
+    if (args.design_impact.baseline_digests && Object.keys(args.design_impact.baseline_digests).length > 0) {
+      lines.push('  baseline_digests:');
+      for (const [path, digest] of Object.entries(args.design_impact.baseline_digests)) {
+        lines.push(`    ${JSON.stringify(path)}: ${JSON.stringify(digest)}`);
+      }
+    }
   }
 
   lines.push('');

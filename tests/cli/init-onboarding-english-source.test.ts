@@ -60,14 +60,11 @@ describe('init-onboarding-english-source (F-5cac007a)', () => {
 
   describe('AC-002 — renderSetupReport is English single-source', () => {
     const result = {
-      wiring: {
-        claude_plugin: 'created',
-        gemini_extension: 'skipped-not-installed',
-        codex_skills: [],
-        codex_mcp: 'skipped-not-installed',
-        cursor_mcp: 'skipped-not-installed',
-      },
+      projectRoot: '/tmp/project',
+      wiring: {runtime: 'created', shared_init_skill: 'created', claude: 'created', codex: 'created', gemini: 'created', antigravity: 'created', cursor: 'created'},
+      legacyCleanup: {claude_plugin: 'unchanged', gemini_extension: 'unchanged', antigravity_plugin: 'unchanged', codex_skills: 'unchanged', codex_mcp: 'unchanged', cursor_mcp: 'unchanged'},
       errors: [],
+      warnings: [],
       statusFile: '/tmp/status.json',
       cladding_root: '/tmp/pkg',
       cladding_version: '0.8.1',
@@ -75,18 +72,17 @@ describe('init-onboarding-english-source (F-5cac007a)', () => {
     } as const;
 
     test('the wiring report ends with an English "Next steps:" block, no Hangul', () => {
-      const detection = {claude: true, gemini: false, codex: false, agents: false, cursor: false};
-      const report = renderSetupReport(result, detection, {claude: {attempted: true, success: true}});
+      const detection = {claude: true, gemini: false, antigravity: false, codex: false, agents: false, cursor: false};
+      const report = renderSetupReport(result, detection);
       expect(report).toContain('Next steps:');
-      expect(report).toContain('1. Restart your AI tool');
-      expect(report).toContain('Activate: ✓'); // English activation hint, not 활성화
+      expect(report).toContain('1. Start a new AI session in this project directory');
       expect(HANGUL.test(report)).toBe(false);
     });
 
     test('the "no AI tools detected" branch is English, no Hangul', () => {
-      const detection = {claude: false, gemini: false, codex: false, agents: false, cursor: false};
-      const report = renderSetupReport(result, detection, {});
-      expect(report).toContain('No AI tools detected');
+      const detection = {claude: false, gemini: false, antigravity: false, codex: false, agents: false, cursor: false};
+      const report = renderSetupReport(result, detection);
+      expect(report).toContain('project activation');
       expect(HANGUL.test(report)).toBe(false);
     });
   });

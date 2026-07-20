@@ -15,6 +15,7 @@
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 import {fileURLToPath} from 'node:url';
 import {dirname, join} from 'node:path';
+import {existsSync} from 'node:fs';
 
 vi.mock('../../src/ui/pulse.js', () => ({pulse: vi.fn()}));
 const dispatchMock = vi.fn<(p: string) => Promise<string>>();
@@ -104,7 +105,7 @@ describe('greenfield lifecycle — 결제 SaaS for B2B intent', () => {
     expect(projectContext).toContain('결제');
   });
 
-  test('S1 → S2 refine: state advances, proposal divert fires, capabilities grow', async () => {
+  test('S1 → S2 refine: state advances and untouched generated design grows in place', async () => {
     dispatchMock.mockResolvedValueOnce(GREENFIELD_S1_RESPONSE);
     await runInit({cwd: scenario.path, intent: '결제 SaaS for B2B'});
 
@@ -118,14 +119,14 @@ describe('greenfield lifecycle — 결제 SaaS for B2B intent', () => {
     );
     expect(stateBody).toContain('법인 사업자만');
 
-    // Existing artifacts diverted to proposal (refine touches all four).
-    assertProposalDivert(scenario.path, 'docs/project-context.md');
-    assertProposalDivert(scenario.path, 'spec/capabilities.yaml');
-    assertProposalDivert(scenario.path, 'spec/architecture.yaml');
+    // Byte-identical generated artifacts update in place; no detached design.
+    expect(existsSync(join(scenario.path, '.cladding/scan/project-context.md.proposal'))).toBe(false);
+    expect(existsSync(join(scenario.path, '.cladding/scan/capabilities.yaml.proposal'))).toBe(false);
+    expect(existsSync(join(scenario.path, '.cladding/scan/architecture.yaml.proposal'))).toBe(false);
 
     // Capabilities count grew (4 in S2 response vs 3 in S1).
     const proposalCapsBody = (await import('node:fs')).readFileSync(
-      join(scenario.path, '.cladding/scan/capabilities.yaml.proposal'),
+      join(scenario.path, 'spec/capabilities.yaml'),
       'utf8',
     );
     expect(proposalCapsBody).toContain('compliance');

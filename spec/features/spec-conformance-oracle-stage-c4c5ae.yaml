@@ -6,6 +6,9 @@ status: done
 modules:
   - src/stages/spec-conformance.ts
   - tests/stages/spec-conformance.test.ts
+  - src/stages/toolchain/gate-config.ts
+  - tests/stages/toolchain/gate-config.test.ts
+  - src/stages/detectors/unverified-ac.ts
   - src/stages/detectors/spec-conformance.ts
   - tests/stages/detectors/spec-conformance.test.ts
   - src/oracle/payload.ts
@@ -64,3 +67,17 @@ acceptance_criteria:
     response: the recorded provenance is what the SPEC_CONFORMANCE gate audits (author≠implementer, manifest∩modules=∅); the shard edit goes through the yaml Document API so comments and layout survive
     text: When clad_author_oracle is called, the system shall write the oracle, record its impl-blind provenance, and stamp oracle_refs without malforming the shard.
     test_refs: [tests/oracle-record.test.ts]
+  - id: AC-008
+    ears: event
+    condition: when the spec-conformance stage runs only the impl-blind oracle suite and the project reporter shares a result path with the full unit suite
+    action: preserve every configured or conventional full-suite test report across the scoped oracle invocation
+    response: a later strict gate cannot mistake the oracle-only selection for the project's complete test evidence
+    text: When spec conformance runs only the impl-blind oracle suite, the system shall preserve shared full-suite test reports across that scoped invocation, so a later strict gate cannot misread partial oracle results as complete test evidence.
+    notes: |
+      ## Decision
+      Snapshot configured and conventional test-report candidates before the oracle-only command, then restore existing files and remove candidates created only by that partial run.
+      ## Why
+      The oracle stage appends `tests/oracle` to the project runner, while reporters may still overwrite the shared full-suite result path. Without restoration, the next strict gate can report false unverified-acceptance findings.
+      ## Trade-off
+      Report preservation holds existing report bytes for the scoped run; restoration failures block instead of leaving misleading evidence.
+    test_refs: [tests/stages/spec-conformance.test.ts, tests/stages/toolchain/gate-config.test.ts]

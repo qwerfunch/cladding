@@ -127,6 +127,17 @@ describe('renderAgentsMdManagedBlock — AC-9d3f2e88 (cross-host persona map)', 
   });
 });
 
+describe('renderAgentsMdManagedBlock — post-init command integrity', () => {
+  test('pins shell commands to the project engine and requires non-vacuous portable tests', () => {
+    const block = renderAgentsMdManagedBlock(null, '.');
+
+    expect(block).toContain('node .cladding/host/serve.cjs <arguments>');
+    expect(block).toContain('same engine as MCP');
+    expect(block).toContain('confirm it collected relevant tests');
+    expect(block).toContain('must not depend on shell-expanded glob patterns');
+  });
+});
+
 describe('renderAgentsMdManagedBlock — AC-4b6c1a97 (graceful degrade, never throws)', () => {
   test('null spec renders the generic block without throwing', () => {
     expect(() => renderAgentsMdManagedBlock(null, '.')).not.toThrow();

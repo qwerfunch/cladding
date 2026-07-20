@@ -11,7 +11,7 @@ acceptance_criteria:
     ears: state
     condition: "while an adopting project's spec declares project.ai_hints"
     text: "While an adopting project's spec declares project.ai_hints, clad init and clad sync shall render the AGENTS.md managed block from that spec — the project's test framework, primary branch, forbidden and preferred patterns, and preferred persona — instead of a static template."
-    notes: "Today src/init/host-instructions.ts writes a static AGENTS_MD_TEMPLATE with zero spec interpolation. Source fields: spec.yaml::project.ai_hints (F-5b9f9f/F-32b1e0) + project name/intent."
+    notes: "Historical: pre-0.9.0 host-instructions.ts wrote a static template with zero spec interpolation; it was removed once this managed block became the sole AGENTS.md writer. Source fields: spec.yaml::project.ai_hints (F-5b9f9f/F-32b1e0) + project name/intent."
   - id: AC-2c8b5f61
     test_refs:
       - tests/init/agents-md.test.ts

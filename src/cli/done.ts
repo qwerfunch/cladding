@@ -66,6 +66,7 @@ interface ShardHit {
   readonly status: string;
   /** The feature's declared `modules[]` — forwarded to scope the gate. */
   readonly modules: readonly string[];
+  readonly designImpactStatus?: string;
 }
 
 /**
@@ -85,12 +86,17 @@ export function findShardFile(cwd: string, featureId: string): ShardHit | null {
     } catch {
       continue;
     }
-    const rec = doc as {id?: unknown; status?: unknown; modules?: unknown};
+    const rec = doc as {id?: unknown; status?: unknown; modules?: unknown; design_impact?: {status?: unknown}};
     if (rec && rec.id === featureId) {
       const modules = Array.isArray(rec.modules)
         ? rec.modules.filter((m): m is string => typeof m === 'string')
         : [];
-      return {path, status: typeof rec.status === 'string' ? rec.status : '', modules};
+      return {
+        path,
+        status: typeof rec.status === 'string' ? rec.status : '',
+        modules,
+        designImpactStatus: typeof rec.design_impact?.status === 'string' ? rec.design_impact.status : undefined,
+      };
     }
   }
   return null;
@@ -141,6 +147,16 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
       reason:
         `no feature shard under spec/features/ declares id '${featureId}'` +
         ' (inline features: edit spec.yaml then run `clad check --tier=pre-push --strict` manually)',
+    };
+  }
+  if (hit.designImpactStatus === 'review_required') {
+    return {
+      ok: false,
+      code: 1,
+      featureId,
+      reason:
+        'structural design impact still needs review — apply the listed architecture, capability, or project-context changes, ' +
+        'then resolve the design impact before marking this feature done.',
     };
   }
   const original = readFileSync(hit.path, 'utf8');

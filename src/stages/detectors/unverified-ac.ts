@@ -18,38 +18,25 @@
 //   - a test_ref ABSENT from a present report → `warn` (a partial/scoped run is
 //     legitimate; --strict promotes it). Status policy: done features only.
 
-import {existsSync, readFileSync} from 'node:fs';
-import {join} from 'node:path';
+import {readFileSync} from 'node:fs';
 
 import type {Spec} from '../../spec/types.js';
 import {parseJUnitReport, lookupTestRef, isPathLike, type JUnitReport} from '../junit-report.js';
-import {readGateConfig} from '../toolchain/gate-config.js';
+import {resolveTestReportPath} from '../toolchain/gate-config.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
 import {withSpec} from './with-spec.js';
 
 const NAME = 'UNVERIFIED_AC';
 // Same non-file pseudo-refs UNTESTED_AC skips — they carry no observable test.
 const SKIPPABLE_PREFIXES = ['self-dogfood:', 'fixture:', 'derived:'];
-// Tried in order when `gate.test_report` is unset; first existing one wins.
-const DEFAULT_REPORT_CANDIDATES = ['test-report.junit.xml', join('coverage', 'junit.xml'), join('.cladding', 'test-report.junit.xml')];
 
 function isSkippable(ref: string): boolean {
   return SKIPPABLE_PREFIXES.some((p) => ref.startsWith(p));
 }
 
-/** Resolve the JUnit report path: explicit config first, then conventions. Null = none present. */
-function resolveReportPath(cwd: string): string | null {
-  const configured = readGateConfig(cwd).testReport;
-  if (configured) return existsSync(join(cwd, configured)) ? join(cwd, configured) : null;
-  for (const candidate of DEFAULT_REPORT_CANDIDATES) {
-    if (existsSync(join(cwd, candidate))) return join(cwd, candidate);
-  }
-  return null;
-}
-
 function runUnverifiedAc(opts: CommandStageOptions): readonly DriftFinding[] {
   const {cwd = '.'} = opts;
-  const reportPath = resolveReportPath(cwd);
+  const reportPath = resolveTestReportPath(cwd);
   if (!reportPath) return []; // graceful skip — no report to verify against
   let report: JUnitReport;
   try {

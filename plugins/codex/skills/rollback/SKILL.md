@@ -1,5 +1,5 @@
 ---
-description: Record a rollback event and print the maintainer-runnable git command for the most recent checkpoint of a feature. Use when an implementation attempt failed, an autonomous drive loop hit RETRY_THRESHOLD, or the user wants to abandon the current attempt and restore the pre-checkpoint state.
+description: Record a rollback event and print the maintainer-runnable git command for the most recent checkpoint of a feature. Use when an implementation attempt failed, an autonomous drive loop hit RETRY_THRESHOLD, or the user wants to abandon the current attempt and restore the pre-checkpoint state. Activate only when the connected project contains spec.yaml or the user explicitly names Cladding; ignore ordinary requests in uninitialized projects.
 ---
 
 # Cladding rollback
