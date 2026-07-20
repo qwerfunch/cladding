@@ -1,0 +1,31 @@
+id: F-f4e184f7
+slug: enforcement-advisory
+title: "clad check advisory when the feature cycle has no hook or CI enforcement"
+status: done
+modules:
+  - src/cli/enforcement-advisory.ts
+  - src/init/git-hook.ts
+  - src/cli/clad.ts
+acceptance_criteria:
+  - id: AC-4566fd98
+    test_refs:
+      - tests/cli/enforcement-advisory.test.ts
+    ears: event
+    condition: "when clad check runs in a project that has features not yet done and neither a cladding pre-commit/pre-push hook nor a .github/workflows directory is present"
+    response: "return one non-blocking advisory that the checks are unenforced"
+    text: "When clad check runs in a project that has features not yet done and no cladding git hook and no CI workflow is wired, the system shall surface one non-blocking advisory naming how many features are undone and how to wire enforcement."
+    notes: "The gap: a project can run for months with authored-but-undone features while every commit stays green because pre-commit is not --strict and no hook/CI is installed. Reuses the existsSync('.github/workflows') idiom from clad update; the hook reader matches the `cladding <kind> hook` marker."
+  - id: AC-2fd01eaa
+    test_refs:
+      - tests/cli/enforcement-advisory.test.ts
+    ears: unwanted
+    condition: "if an enforcing cladding hook is installed, or a CI workflow directory exists, or no feature is undone"
+    response: "return no advisory"
+    text: "If an enforcing cladding hook is installed, or a CI workflow directory exists, or no feature is not-yet-done, the system shall return no advisory, so a project that already wired enforcement is never nagged."
+    notes: "Any ONE of the three suppressors is enough. A missing/invalid spec also yields no advisory — it is not this check's place to speak."
+  - id: AC-be0cbdaa
+    test_refs:
+      - tests/cli/enforcement-advisory.test.ts
+    ears: ubiquitous
+    text: "The advisory shall be informational only: it is derived without the gate outcome and shall not change clad check's exit status."
+    notes: "enforcementAdvisory takes only cwd (never a stage result), so it cannot depend on or alter pass/fail; runCheckCommand prints it but still sets process.exitCode from the gate's worst status."

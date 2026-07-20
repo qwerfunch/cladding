@@ -4,6 +4,7 @@ title: "gate-scoped test-run dedup — run the suite once, without disabling the
 status: done
 modules:
   - src/stages/test-run-cache.ts
+  - src/stages/unit.ts
 acceptance_criteria:
   - id: AC-9a1c4e21
     test_refs:
@@ -41,3 +42,18 @@ acceptance_criteria:
     ears: ubiquitous
     text: "When no gate run is primed (a standalone stage call or the MCP read path), the shared-run cache shall be a pass-through, leaving unit and coverage behavior byte-for-byte unchanged."
     notes: "Same pass-through discipline as detector-result-cache: a fresh map per gate run, cleared in finally, so the long-lived MCP server never serves a stale test result across requests."
+  - id: AC-d769e24f
+    test_refs:
+      - tests/stages/test-run-dedup.test.ts
+    ears: state
+    condition: "while a gate is primed and the coverage runner is pytest"
+    text: "While a gate run is primed and the coverage runner is pytest, the system shall execute the suite exactly once by having the unit stage run the coverage-instrumented `coverage run -m pytest` and publishing it so the coverage stage folds the same process."
+    notes: "The Python analogue of #215's vitest dedup: coverage.py's exit code IS pytest's, so one instrumented run yields both the unit pass/fail and the coverage data. cov.ts's peekSharedRun fold is already language-agnostic; the producer gate lives in unit.ts (tryReuseSharedPytestRun)."
+  - id: AC-f8e85a99
+    test_refs:
+      - tests/stages/test-run-dedup.test.ts
+    ears: unwanted
+    condition: "if the unit stage reuses the shared pytest run under --strict"
+    response: "still evaluate the zero-executed-tests guard against the shared run output before returning a passing unit result"
+    text: "If the unit stage reuses the shared pytest run under --strict, the system shall evaluate the zero-executed-tests guard against the shared run's own summary and shall never return a passing unit result for a run that collected zero tests."
+    notes: "Mirrors AC-6b2d81f7 for pytest: the reuse-pass path is not a guard bypass. reportsZeroExecutedTests recognizes pytest's `collected 0 items`, so a coverage-instrumented pytest run that exits 0 yet collected nothing blocks instead of reading as verified."

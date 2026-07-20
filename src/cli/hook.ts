@@ -572,6 +572,78 @@ function recordImpactSkip(cwd: string, reason: ImpactSkipReason): void {
   recordEvent(cwd, 'impact_card_skipped', {reason});
 }
 
+// --- unbound-edit nudge (F-f9891175) -----------------------------------
+//
+// When watched source edits keep resolving to no owning feature, the feature
+// cycle is never TRIGGERED — cladding otherwise stays silent (owner_miss skips).
+// This counts owner_miss edits in a rolling window and, once past a small
+// threshold, returns ONE advisory nudge line for the PostToolUse card, fired
+// once per window (AC-5d379d4e). Same sidecar discipline as SkipAgg; every path
+// is wrapped so a failure returns '' and stdout stays byte-identical (AC-228fdc15).
+
+const UNBOUND_AGG_FILE = 'hook-unbound-agg.json';
+const UNBOUND_NUDGE_THRESHOLD = 3;
+const UNBOUND_WINDOW_MS = 10 * 60_000; // rolling 10-minute accumulation window
+
+interface UnboundAgg {
+  windowStart: number;
+  count: number;
+  nudged: boolean;
+}
+
+function unboundAggPath(cwd: string): string {
+  return join(cwd, '.cladding', UNBOUND_AGG_FILE);
+}
+
+/** Read the sidecar; corrupt/missing → a fresh window (never throws). */
+function readUnboundAgg(cwd: string, now: number): UnboundAgg {
+  try {
+    const o = JSON.parse(readFileSync(unboundAggPath(cwd), 'utf8')) as Partial<UnboundAgg>;
+    return {
+      windowStart: Number.isFinite(o.windowStart) ? Number(o.windowStart) : now,
+      count: Number.isFinite(o.count) ? Number(o.count) : 0,
+      nudged: o.nudged === true,
+    };
+  } catch {
+    return {windowStart: now, count: 0, nudged: false};
+  }
+}
+
+function writeUnboundAgg(cwd: string, agg: UnboundAgg): void {
+  try {
+    mkdirSync(dirname(unboundAggPath(cwd)), {recursive: true});
+    writeFileSync(unboundAggPath(cwd), JSON.stringify(agg), 'utf8');
+  } catch {
+    /* unwritable sidecar → nudge just won't persist; never a throw */
+  }
+}
+
+/**
+ * Counts one owner_miss (unbound) source edit and, when the rolling-window count
+ * first crosses the threshold, returns ONE advisory nudge line — otherwise ''.
+ * Observer-only: any failure returns '' so the caller's stdout is byte-identical
+ * to the output produced without this feature (AC-228fdc15).
+ */
+function unboundEditNudge(cwd: string): string {
+  try {
+    const now = Date.now();
+    let agg = readUnboundAgg(cwd, now);
+    if (now - agg.windowStart >= UNBOUND_WINDOW_MS) agg = {windowStart: now, count: 0, nudged: false};
+    agg.count += 1;
+    let line = '';
+    if (agg.count >= UNBOUND_NUDGE_THRESHOLD && !agg.nudged) {
+      agg.nudged = true;
+      line =
+        `cladding: ${agg.count} recent source edits aren't tracked by any feature — ` +
+        "start a feature for this work (or add these files to one you've already started) so the spec-first cycle covers them.";
+    }
+    writeUnboundAgg(cwd, agg);
+    return line;
+  } catch {
+    return '';
+  }
+}
+
 /** Records one impact_card_fired + closes the aggregate window. `tier` is optional so the
  * shipped fallback path (AC-38141a9e) emits the byte-identical pre-tier payload. */
 function recordFiredEvent(cwd: string, payload: Record<string, unknown>): void {
@@ -738,12 +810,15 @@ function emitCardForPath(cwd: string, sessionId: string, rel: string, lane?: 'ba
     const slice = buildImpactSlice(spec, rel);
     if ('not_found' in slice) {
       recordImpactSkip(cwd, 'owner_miss');
-      return '';
+      return lane ? '' : unboundEditNudge(cwd);
     }
     const card = formatImpactCard(slice, rel);
-    if (card) recordImpactFired(cwd, rel, slice, lane);
-    else recordImpactSkip(cwd, 'owner_miss'); // found slice but no primary owner → no output
-    return card;
+    if (card) {
+      recordImpactFired(cwd, rel, slice, lane);
+      return card;
+    }
+    recordImpactSkip(cwd, 'owner_miss'); // found slice but no primary owner → no output
+    return lane ? '' : unboundEditNudge(cwd);
   } catch {
     recordImpactSkip(cwd, 'spec_unreadable'); // spec unreadable → no card
     return '';

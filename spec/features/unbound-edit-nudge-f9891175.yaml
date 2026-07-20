@@ -1,0 +1,37 @@
+id: F-f9891175
+slug: unbound-edit-nudge
+title: "PostToolUse nudge when sustained source edits are bound to no feature"
+status: done
+modules:
+  - src/cli/hook.ts
+acceptance_criteria:
+  - id: AC-8542cc63
+    test_refs:
+      - tests/cli/hook-unbound-nudge.test.ts
+    ears: event
+    condition: "when watched source edits that resolve to no owning feature reach the nudge threshold within one window"
+    response: "include exactly one non-blocking nudge line in the PostToolUse card"
+    text: "When watched source edits that resolve to no owning feature reach the nudge threshold within one window, the PostToolUse card shall include exactly one non-blocking nudge line naming how many recent source edits are unbound and how to start a feature."
+    notes: "The feature cycle is never TRIGGERED for a stream of edits that touch no feature's modules — cladding stays silent (impact_card_skipped{owner_miss}). This nudge closes that gap without blocking, reusing the owner_miss site in emitCardForPath."
+  - id: AC-388518f4
+    test_refs:
+      - tests/cli/hook-unbound-nudge.test.ts
+    ears: unwanted
+    condition: "if the event is a Read, a non-source path, still below the threshold, or an edit to a file already bound to a feature's modules"
+    response: "emit no nudge"
+    text: "If a PostToolUse event is a Read, a non-source path, still below the threshold, or an edit to a file already bound to a feature's modules, the system shall emit no nudge."
+    notes: "Bound files resolve to an owner (a real card fires) and never reach the owner_miss counter, so binding a file suppresses the nudge for that file with no extra logic."
+  - id: AC-5d379d4e
+    test_refs:
+      - tests/cli/hook-unbound-nudge.test.ts
+    ears: state
+    condition: "while a nudge has already fired within the current window"
+    response: "suppress further nudges until the window rolls over"
+    text: "While a nudge has already fired within the current window, the system shall suppress further nudges until the window rolls over, so unbound editing cannot spam the card."
+    notes: "Mirrors the SkipAgg once-per-window discipline: a dedicated .cladding/hook-unbound-agg.json sidecar keyed to a rolling window, flushed/reset the same way."
+  - id: AC-228fdc15
+    test_refs:
+      - tests/cli/hook-unbound-nudge.test.ts
+    ears: ubiquitous
+    text: "The nudge shall never block the tool call, and a sidecar or telemetry failure shall leave the hook's stdout byte-identical to the output produced without the nudge feature."
+    notes: "Preserves F-6ba22c5c AC-e9d041de (observer-only, byte-identical on failure) and the PostToolUse never-block invariant: the nudge is advisory text appended to the card, wrapped so any sidecar throw returns ''."

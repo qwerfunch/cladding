@@ -41,6 +41,11 @@ function isVitestRunner(cmd: string, args: readonly string[]): boolean {
   return cmd === 'vitest' || cmd.endsWith('/vitest') || args.includes('vitest');
 }
 
+/** True when a command directly or indirectly invokes pytest. */
+function isPytestRunner(cmd: string, args: readonly string[]): boolean {
+  return [cmd, ...args].some((part) => part === 'pytest' || part.endsWith('/pytest'));
+}
+
 /**
  * Returns true only when a successful runner output definitively reports that
  * every aggregate test count was zero. Multiple summaries can occur in npm
@@ -53,6 +58,9 @@ function reportsZeroExecutedTests(proc: {readonly stdout?: unknown; readonly std
     /^\s*#\s*tests\s+(\d+)\s*$/gim,
     /^\s*ℹ\s+tests\s+(\d+)\s*$/gim,
     /^\s*Tests:\s+.*?\b(\d+)\s+total\b.*$/gim,
+    // pytest / coverage.py: "collected 0 items" is the zero-executed signal a
+    // green exit can still carry (e.g. an over-narrow -k / testpaths selection).
+    /^\s*collected\s+(\d+)\s+items?\b.*$/gim,
   ];
   for (const pattern of patterns) {
     for (const match of output.matchAll(pattern)) counts.push(Number(match[1]));
@@ -121,6 +129,47 @@ function tryReuseSharedRun(opts: UnitStageOptions, cwd: string, guardOn: boolean
 }
 
 /**
+ * Shares one coverage-instrumented pytest run across Unit and Coverage.
+ *
+ * Pytest has no Cladding per-test json reporter equivalent, so the reuse path is
+ * limited to a green coverage command that itself invokes pytest. A non-green run
+ * falls back to the tests-only command for sound failure attribution, while
+ * Coverage later reuses the cached failing result. Under --strict the shared run's
+ * own summary still feeds the zero-executed-tests guard (AC-f8e85a99), so the
+ * dedup can never turn a vacuous pytest run into a passing unit result — the same
+ * discipline AC-6b2d81f7 pins for the vitest reuse path.
+ */
+function tryReuseSharedPytestRun(opts: UnitStageOptions, cwd: string): StageResult | null {
+  const {strict = false} = opts;
+  let covCmd: string | undefined;
+  let covArgs: readonly string[] | undefined;
+  try {
+    ({cmd: covCmd, args: covArgs} = resolveStageCommand('coverage', opts));
+  } catch {
+    return null;
+  }
+  if (!covCmd || !covArgs || !isPytestRunner(covCmd, covArgs)) return null;
+  const runCmd = covCmd;
+  const runArgs = covArgs;
+  const shared = getOrRunSharedCoverage(cwd, () =>
+    execaSync(runCmd, [...runArgs], {cwd, reject: false}),
+  );
+  if (!shared) return null;
+  if (missingToolSkip(STAGE, runCmd, shared.proc, runArgs)) return null;
+  const covResult = ranToolResult(STAGE, shared.proc);
+  if (unitActionFromCoverage(covResult) === 'fallback') return null;
+  if (strict && reportsZeroExecutedTests(shared.proc)) {
+    const finding = {
+      detector: 'VACUOUS_TESTS',
+      severity: 'error' as const,
+      message: 'The unit test command exited successfully but reported zero executed tests.',
+    };
+    return {stage: STAGE, pass: false, exitCode: 1, findings: [finding], stderr: finding.message};
+  }
+  return {stage: STAGE, pass: true, exitCode: 0};
+}
+
+/**
  * Runs the project's unit-test suite and returns an Ironclad-shaped result.
  *
  * Under --strict on a vitest project (F-b81d203e), the runner is invoked with a
@@ -156,6 +205,7 @@ export function runUnit(opts: UnitStageOptions = {}): StageResult {
   // Guard applies only under --strict on a vitest runner (the only path we can
   // capture per-file json for). Otherwise the invocation is unchanged.
   const testIsVitest = isVitestRunner(cmd, args);
+  const testIsPytest = isPytestRunner(cmd, args);
   const guardOn = strict && testIsVitest;
   // Dedup fast path (F-49f6f2d2): on a primed vitest gate, reuse the ONE shared
   // coverage+dual-json run stage_2.2 also folds, so the suite runs once (#215).
@@ -163,6 +213,10 @@ export function runUnit(opts: UnitStageOptions = {}): StageResult {
   // served by a vitest coverage run. Returns null → own-run path below (unchanged).
   if (isTestRunPrimed() && testIsVitest) {
     const reused = tryReuseSharedRun(opts, cwd, guardOn);
+    if (reused) return reused;
+  }
+  if (isTestRunPrimed() && testIsPytest) {
+    const reused = tryReuseSharedPytestRun(opts, cwd);
     if (reused) return reused;
   }
   let jsonFile: string | undefined;

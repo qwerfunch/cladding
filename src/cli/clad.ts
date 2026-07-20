@@ -20,6 +20,7 @@ import {runReportCommand} from './report.js';
 import {runDoctorCommand} from './doctor.js';
 import {runDoctorHosts} from './doctor-hosts.js';
 import {runDone} from './done.js';
+import {enforcementAdvisory} from './enforcement-advisory.js';
 import {runHookCommand} from './hook.js';
 import {runVerdictCommand} from './verdict.js';
 import {runUpdate} from './update.js';
@@ -822,12 +823,19 @@ export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tie
       process.exit(1);
     }
   }
+  const result = runCheckStages({...opts, focusModules});
+  // F-f4e184f7: a non-blocking advisory when the feature cycle has undone features
+  // but neither a hook nor CI enforces the checks. Suppressed under --json.
+  if (!opts.json) {
+    const advisory = enforcementAdvisory('.');
+    if (advisory) process.stdout.write(`ℹ ${advisory}\n`);
+  }
   // Set process.exitCode rather than process.exit(): the machine-output mode
   // (--json) can write >64KB to stdout, and process.exit() terminates before a
   // buffered stdout PIPE flushes — truncating the document for any consumer
   // that pipes (vs. redirects to a file). Letting the event loop drain
   // guarantees the full payload is emitted, then Node exits with this code.
-  process.exitCode = runCheckStages({...opts, focusModules}).worst;
+  process.exitCode = result.worst;
 }
 
 /**
@@ -902,6 +910,7 @@ export function runOracleCommand(featureId: string | undefined, opts: {ac?: stri
 function printStageDetails(
   r: {
     stderr?: string;
+    hint?: string;
     findings?: readonly {detector: string; severity: string; message: string; path?: string}[];
   },
 ): void {
@@ -920,6 +929,8 @@ function printStageDetails(
     if (surface.length > 3) {
       process.stdout.write(`    … and ${surface.length - 3} more finding(s)\n`);
     }
+    // F-4643d99d: a one-line remediation hint under a failing tool stage.
+    if (r.hint) process.stdout.write(`    fix: run \`${r.hint}\`\n`);
     return;
   }
   if (r.stderr && r.stderr.trim().length > 0) {

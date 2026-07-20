@@ -2,8 +2,8 @@
 //
 // Detector under test enforces the "Documentation: Why > What" guardrail
 // from ironclad-design/13-philosophical-guardrails.md. For every
-// features[].modules[] file ending in `.ts`, the first non-empty line
-// must begin a comment (line `//` or block `/*`). Missing header → warn.
+// features[].modules[] source file for the configured language, the first non-empty line
+// must begin a language-appropriate comment or Python docstring. Missing header → warn.
 //
 // The detector intentionally:
 //   - skips non-`.ts` modules (yaml, json, md are out of scope)
@@ -60,6 +60,40 @@ describe('CONVENTION_DRIFT detector', () => {
       'id: F-001\ntitle: t\nstatus: done\nmodules: [stages/good.ts]\n',
     );
     expect(conventionDrift.run({cwd: dir})).toEqual([]);
+  });
+
+  test.each([
+    ['hash comment', '# Why this exists: intent stated up front.\nVALUE = 1\n'],
+    ['double-quoted module docstring', '"""Why this module exists."""\nVALUE = 1\n'],
+    ['single-quoted module docstring', "'''Why this module exists.'''\nVALUE = 1\n"],
+  ])('Python module with a leading %s → no finding', (_label, source) => {
+    writeFileSync(
+      join(dir, 'spec.yaml'),
+      'schema: "0.1"\nproject: {name: x, language: python}\nfeatures: []\n',
+    );
+    mkdirSync(join(dir, 'backend'), {recursive: true});
+    writeFileSync(join(dir, 'backend', 'good.py'), source);
+    writeFileSync(
+      join(dir, 'spec', 'features', 'F-001.yaml'),
+      'id: F-001\ntitle: t\nstatus: done\nmodules: [backend/good.py]\n',
+    );
+    expect(conventionDrift.run({cwd: dir})).toEqual([]);
+  });
+
+  test('Python module without a header comment or docstring → warn finding', () => {
+    writeFileSync(
+      join(dir, 'spec.yaml'),
+      'schema: "0.1"\nproject: {name: x, language: python}\nfeatures: []\n',
+    );
+    mkdirSync(join(dir, 'backend'), {recursive: true});
+    writeFileSync(join(dir, 'backend', 'bare.py'), 'VALUE = 1\n');
+    writeFileSync(
+      join(dir, 'spec', 'features', 'F-001.yaml'),
+      'id: F-001\ntitle: t\nstatus: done\nmodules: [backend/bare.py]\n',
+    );
+    const findings = conventionDrift.run({cwd: dir});
+    expect(findings).toHaveLength(1);
+    expect(findings[0].path).toBe('backend/bare.py');
   });
 
   test('TS module without any header comment → warn finding', () => {

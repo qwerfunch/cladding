@@ -51,6 +51,13 @@ function vitestProject(prefix: string): string {
   return dir;
 }
 
+/** A temp dir that resolves to the Python pytest + coverage.py toolchain. */
+function pytestProject(prefix: string): string {
+  const dir = mkdtempSync(join(tmpdir(), prefix));
+  writeFileSync(join(dir, 'pyproject.toml'), '[project]\nname = "x"\nversion = "0.0.0"\n');
+  return dir;
+}
+
 const CLEAN = {exitCode: 0, stdout: '', stderr: ''};
 
 /** vitest `--reporter=json` document shape (mirrors vacuous-tests.test.ts). */
@@ -286,6 +293,43 @@ describe('AC-9a1c4e21 / AC-3f7e0c94 — primed vitest gate: the suite runs ONCE 
     const covResult = runCov({cwd: dir});
     expect(execaSyncMock).toHaveBeenCalledTimes(1);
     expect(covResult.pass).toBe(true);
+  });
+});
+
+describe('primed pytest gate: Unit and Coverage share one coverage-instrumented run', () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = pytestProject('clad-trd-pytest-');
+    primeTestRunCache(dir);
+  });
+  afterEach(() => rmSync(dir, {recursive: true, force: true}));
+
+  test('runUnit then runCov spawn pytest exactly once through coverage.py', () => {
+    execaSyncMock.mockReturnValueOnce(CLEAN);
+    const unitResult = runUnit({cwd: dir, strict: true});
+    const covResult = runCov({cwd: dir});
+
+    expect(unitResult.pass).toBe(true);
+    expect(covResult.pass).toBe(true);
+    expect(execaSyncMock).toHaveBeenCalledTimes(1);
+    const [cmd, args] = execaSyncMock.mock.calls[0] as [string, string[]];
+    expect(cmd).toBe('coverage');
+    expect(args).toEqual(['run', '-m', 'pytest']);
+  });
+
+  test('AC-f8e85a99 — a green shared run that collected ZERO tests blocks under --strict (guard not bypassed)', () => {
+    // coverage.py exits 0 but pytest collected nothing (e.g. an over-narrow selection).
+    execaSyncMock.mockReturnValueOnce({
+      exitCode: 0,
+      stdout: 'collected 0 items\n\nno tests ran in 0.01s\n',
+      stderr: '',
+    });
+    const unitResult = runUnit({cwd: dir, strict: true});
+
+    expect(unitResult.pass).toBe(false);
+    expect(unitResult.findings?.[0]?.detector).toBe('VACUOUS_TESTS');
+    // still one spawn — the guard reads the shared run's own summary, no re-run.
+    expect(execaSyncMock).toHaveBeenCalledTimes(1);
   });
 });
 
