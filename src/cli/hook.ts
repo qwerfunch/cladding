@@ -200,7 +200,9 @@ function renderSessionStartCard(cwd: string): string {
   if (existsSync(blockPath)) {
     try {
       const sb = JSON.parse(readFileSync(blockPath, 'utf8')) as {count?: unknown; first?: unknown};
-      lines.push(`unresolved stop-block: ${Number(sb.count ?? 0)} finding(s) — ${asString(sb.first) || 'unknown'}`);
+      // Plain-first (AC-78c153fa): sb.first is a raw detector name; render its
+      // plain lead so the card never surfaces the internal id as its lead.
+      lines.push(`unresolved stop-block: ${Number(sb.count ?? 0)} finding(s) — ${plainLead(asString(sb.first), 'a prior check')}`);
     } catch {
       /* unreadable block file → omit the resurface line */
     }

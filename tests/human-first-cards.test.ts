@@ -185,6 +185,9 @@ describe('AC-2c63b999 — zero MCP tool names, zero the retired term, on every u
     // vacuous-render guard: this must actually be the RICH multi-line card, not a degenerate one.
     expect(card.split('\n').length).toBeGreaterThanOrEqual(6);
     for (const line of card.split('\n')) expectHumanFirst(line, `SessionStart line "${line}"`);
+    // F-ebbb20af AC-78c153fa — the stop-block line is seeded with the raw detector
+    // name AC_DRIFT; it must be rendered as its plain lead, never surfaced raw.
+    expect(card, 'stop-block line must not surface the raw detector name').not.toContain('AC_DRIFT');
   });
 
   const PROMPT_SAMPLES: Readonly<Record<string, string>> = {

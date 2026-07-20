@@ -20,12 +20,12 @@ attested_modules:
   CHANGELOG.md: 9580bab8d2c2d6f3
   CLAUDE.md: 16212c1749e6005d
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: 65afa8fb2869af33
-  README.ja.md: 76c65fbe8ce375ca
-  README.ko.html: b2c64abdef027cfe
-  README.ko.md: ec85f7c80d28aa7f
-  README.md: f224c6b0c048758e
-  README.zh.md: cd06282ef042ad3a
+  README.html: 3197384b3b9b62fb
+  README.ja.md: 764f0146b5e91a4d
+  README.ko.html: 529cb8fa2ef27a4e
+  README.ko.md: a97a9dc37e486bff
+  README.md: 303d3546af18e97d
+  README.zh.md: 6566893a50fc81ef
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -38,10 +38,10 @@ attested_modules:
   docs/ab-evaluation/README.md: 2467808b9871dcf0
   docs/ab-evaluation/case-doverunner-scale.md: 2a435b6855823d41
   docs/ab-evaluation/case-efficiency-measurement.md: 348aca146a7b2faa
-  docs/ab-evaluation/case-existing-adoption.md: d9d0d649861024ce
+  docs/ab-evaluation/case-existing-adoption.md: 65fabb08cec129e0
   docs/ab-evaluation/case-graph-efficiency.md: 83d3956d14a1517d
   docs/ab-evaluation/case-iterative-vs-fixed-vapt.md: 1d242b8b6071f343
-  docs/ab-evaluation/case-payment-saas.md: ca1a9a22b933c5cf
+  docs/ab-evaluation/case-payment-saas.md: a316271b319816f6
   docs/ab-evaluation/case-working-set-landmine.md: b4f44dc463e99722
   docs/ab-evaluation/summary.md: 59e527a531f13209
   docs/b1-adoption-protocol.md: a041d8ad5ba1447f
@@ -113,7 +113,7 @@ attested_modules:
   skills/serve/SKILL.md: f08bbdbbfeb05041
   skills/status/SKILL.md: 09faadc50b3449da
   skills/sync/SKILL.md: 775c0f990a52a3d9
-  spec.yaml: 877c1ca13475b185
+  spec.yaml: 587a14fca8bdcd03
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -146,17 +146,17 @@ attested_modules:
   src/cli: a4d0f0eb87fed960
   src/cli/benchmark.ts: 77f84d2a898d724f
   src/cli/changelog.ts: 2de1adb009b89ab4
-  src/cli/clad.ts: 8c5e056a4eea223a
+  src/cli/clad.ts: 2f11ce5f158a44da
   src/cli/clarify.ts: 393cc93a6feb698a
   src/cli/doctor-hosts.ts: 1f0c2cec5a310b81
   src/cli/doctor.ts: b98b955fe75e7f7e
-  src/cli/done.ts: 02bd4397eaf34fa1
+  src/cli/done.ts: 7eba807b6ec5a1aa
   src/cli/enforcement-advisory.ts: 554a7b56475981c3
   src/cli/graph-serve.ts: 23e6e389225d0f98
   src/cli/graph.ts: bab410061b8c746a
-  src/cli/hook.ts: 21f22f6e565466d1
+  src/cli/hook.ts: 19a40c6254d139a0
   src/cli/host-onboarding.ts: b046571d4be7280c
-  src/cli/init.ts: 04135bc767e58e02
+  src/cli/init.ts: fbd96fa32906313c
   src/cli/intent-from-path.ts: e69862821d979f22
   src/cli/measure.ts: 3a562f16589e26c2
   src/cli/report.ts: 911f859b2446834b
@@ -327,7 +327,7 @@ attested_modules:
   src/ui: a4d0f0eb87fed960
   src/ui/panel.ts: 8b78cb14dafb28fb
   src/ui/pulse.ts: ee4255f5c6e49f51
-  src/ui/softShell.ts: 6db9d46de2d2e1b0
+  src/ui/softShell.ts: 57a9b5d02fc94339
   src/verdict/gate-progress.ts: ac75e3082cc97a40
   src/verdict/verdict.ts: 493251b3a2c494d3
   tests/adapters/anthropic.test.ts: fa2fc7faf032a782
@@ -673,6 +673,7 @@ attested_features:
   F-e8912be3: ok
   F-e940fffe: ok
   F-eb732f: ok
+  F-ebbb20af: ok
   F-ede6fa75: ok
   F-ee47fc2b: ok
   F-ee5f643e: ok

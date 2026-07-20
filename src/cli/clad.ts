@@ -301,7 +301,7 @@ export function runSyncCommand(opts: {proposeArchive?: boolean} = {}): void {
         pulse(
           'note',
           'deliverable',
-          `auto-detected entry '${autoDeliverable.path}' — the gate now smoke-tests it (stage_2.4). Opt out with is_safe_to_smoke: false.`,
+          `auto-detected entry '${autoDeliverable.path}' — the gate now smoke-tests it. Opt out with is_safe_to_smoke: false.`,
         );
       }
     }
@@ -675,7 +675,7 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
     // agent fixes in one pass instead of re-running to discover where + what.
     process.stdout.write(`${JSON.stringify({tier, worst, anyFailed, stages: collected}, null, 2)}\n`);
   } else if (anyFailed && !silent) {
-    process.stdout.write('\nℹ Run `clad doctor` for the event log, or `clad sync` to validate spec shards. Drift findings above name the offending detector.\n');
+    process.stdout.write('\nℹ Run `clad doctor` for the event log, or `clad sync` to check the spec. The findings above say what drifted and why.\n');
   }
   // F-b84c38 — verification freshness needs a data source: every tier run
   // lands in the ledger (best-effort, deduped per identical HEAD/tier/strict/

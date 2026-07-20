@@ -165,7 +165,7 @@ export const DETECTOR_PLAIN: Readonly<Record<string, PlainEntry>> = {
   FIXTURE_REFERENCE_INVALID: {lead: 'A criterion refers to a test fixture that is not registered', action: 'register the fixture or fix the reference name'},
   SLUG_CONFLICT: {lead: 'Two features or two scenarios share the same short name', action: 'rename one so each short name is unique'},
   ID_COLLISION: {lead: 'Two features or two scenarios share the same id', action: 'give one of them a new id'},
-  INVENTORY_DRIFT: {lead: 'The spec summary counts do not match the shard files on disk', action: 'run `clad sync` to refresh the counts'},
+  INVENTORY_DRIFT: {lead: 'The spec summary counts do not match the spec files on disk', action: 'run `clad sync` to refresh the counts'},
   AC_DUPLICATE_WITHIN_FEATURE: {lead: 'The same criterion id appears twice inside one feature', action: 'renumber or remove the duplicate criterion'},
   ARCHITECTURE_FROM_SPEC: {lead: 'The code imports across layers in a way the architecture rules forbid', action: 'remove the cross-layer import or update the architecture rules'},
   CAPABILITIES_FEATURE_MAPPING: {lead: 'A capability lists a feature id that does not exist', action: 'fix the capability feature list'},
