@@ -102,6 +102,7 @@ features:
   F-16746b: {slug: enforcement-triggers, status: done, modules: 3}
   F-17df0a: {slug: scan-artifacts-llm-refinement, status: done, modules: 3}
   F-18e951: {slug: drift-baseline-cleanup, status: done, modules: 7}
+  F-195cb59e: {slug: onboarding-handoff-steer, status: done, modules: 2}
   F-1c9166: {slug: readme-capability-sync, status: done, modules: 2}
   F-1d23a6: {slug: host-hooks, status: done, modules: 5}
   F-1e7a10c3: {slug: adoption-report-surface, status: done, modules: 2}
@@ -216,6 +217,7 @@ features:
   F-bc8ad013: {slug: mcp-description-diet, status: done, modules: 2}
   F-bd07d7: {slug: greenfield-seeds, status: done, modules: 5}
   F-bdcd90: {slug: oracle-policy-risk-weighted, status: done, modules: 8}
+  F-be5306eb: {slug: cold-start-cycle-signal, status: done, modules: 3}
   F-c037ae: {slug: test-refs-repair, status: done, modules: 4}
   F-c2c996: {slug: checkpoint-events, status: done, modules: 3}
   F-c3747d7d: {slug: spec-first-window-complete, status: done, modules: 5}

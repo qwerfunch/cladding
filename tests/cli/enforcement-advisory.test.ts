@@ -11,7 +11,7 @@ import {join} from 'node:path';
 
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {enforcementAdvisory} from '../../src/cli/enforcement-advisory.js';
+import {coldStartAdvisory, enforcementAdvisory, featureCycleAdvisory} from '../../src/cli/enforcement-advisory.js';
 
 const spec = (status: string): string =>
   [
@@ -98,5 +98,48 @@ describe('F-f4e184f7 — enforcement advisory', () => {
     mkdirSync(join(cwd, '.git', 'hooks'), {recursive: true});
     writeFileSync(join(cwd, '.git', 'hooks', 'pre-push'), '#!/bin/sh\n# someone elses hook\nexit 0\n');
     expect(enforcementAdvisory(cwd)).toContain('not yet done');
+  });
+});
+
+describe('F-be5306eb — cold-start / graduated feature-cycle advisory', () => {
+  const emptySpec = (): void =>
+    writeFileSync(join(cwd, 'spec.yaml'), 'schema: "0.1"\nproject: {name: t, language: typescript}\nfeatures: []\n', 'utf8');
+  const writeSource = (): void => {
+    mkdirSync(join(cwd, 'src'), {recursive: true});
+    writeFileSync(join(cwd, 'src', 'foo.ts'), 'export const x = 1;\n');
+  };
+
+  test('AC-a0e5840a — source code but zero feature specs → cold-start advisory', () => {
+    emptySpec();
+    writeSource();
+    const out = coldStartAdvisory(cwd);
+    expect(out).toBeTypeOf('string');
+    expect(out).toContain("feature cycle hasn't started");
+    expect(out).toContain('first feature');
+  });
+
+  test('AC-4e780c47 — no source code yet (fresh onboarding) → no cold-start advisory', () => {
+    emptySpec(); // no source written
+    expect(coldStartAdvisory(cwd)).toBeUndefined();
+  });
+
+  test('AC-4e780c47 — a feature already exists → no cold-start advisory even with code', () => {
+    writeSpec('in_progress'); // one feature
+    writeSource();
+    expect(coldStartAdvisory(cwd)).toBeUndefined();
+  });
+
+  test('AC-7cf9593d — graduated: cold-start wins when the cycle is un-started', () => {
+    emptySpec();
+    writeSource();
+    expect(featureCycleAdvisory(cwd)).toBe(coldStartAdvisory(cwd));
+    expect(featureCycleAdvisory(cwd)).toContain("hasn't started");
+  });
+
+  test('AC-7cf9593d — graduated: falls through to enforcement when features exist + no hook/CI', () => {
+    writeSpec('in_progress'); // undone feature, no hook, no CI
+    const out = featureCycleAdvisory(cwd);
+    expect(out).toContain('not yet done'); // enforcement message, not cold-start
+    expect(out).not.toContain("hasn't started");
   });
 });

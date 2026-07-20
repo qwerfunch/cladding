@@ -47,6 +47,7 @@ import {dependSegment, formatWorkingSetCard, formatPushOneLiner, guardSegment, U
 import {estTokens} from '../optimizer/code-excerpt.js';
 import {loadSpec} from '../spec/load.js';
 import {WATCHED_EXTENSIONS} from '../stages/toolchain/language-config.js';
+import {coldStartAdvisory} from './enforcement-advisory.js';
 import {driftNudge, plainFinding, plainLead, stopBlockMessage} from '../ui/softShell.js';
 
 // --- shared helpers ----------------------------------------------------
@@ -187,6 +188,10 @@ function renderSessionStartCard(cwd: string): string {
       ? 'cladding: spec.yaml present but unparseable — counts unavailable (run clad check)'
       : `cladding: ${total} features (${done} done, ${inProgress.length} in progress) · ${scenarios} scenarios`,
   ];
+  // F-be5306eb: code exists but no feature specs → the cycle never started. Only
+  // fires at zero features, so it never pushes the card past the line cap.
+  const coldStart = coldStartAdvisory(cwd);
+  if (coldStart) lines.push(`cladding: ${coldStart}`);
   if (inProgress.length > 0) {
     lines.push(`in progress: ${inProgress.slice(0, 3).map((f) => `${f.id} ${f.slug}`).join(', ')}`);
   }

@@ -351,7 +351,10 @@ export async function runClarifyCommand(
       process.stdout.write(`\n${outcome.report!.remainingQuestions} question(s) left · continue with \`clad clarify <answer>\`.\n\n`);
     }
   } else if (outcome.report?.status === 'done') {
-    process.stdout.write('\n✓ All questions answered — onboarding complete. state.yaml status: done.\n\n');
+    process.stdout.write(
+      '\n✓ All questions answered — onboarding complete.\n' +
+        "  Next: author your first feature's spec — its acceptance criteria (the testable promises) and the files it will cover — before writing code. The feature cycle starts there.\n\n",
+    );
   } else if ((outcome.report?.remainingQuestions ?? 0) > 0) {
     process.stdout.write(`\n${outcome.report!.remainingQuestions} question(s) left. continue with \`clad clarify <answer>\`.\n\n`);
   }

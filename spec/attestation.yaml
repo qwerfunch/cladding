@@ -20,12 +20,12 @@ attested_modules:
   CHANGELOG.md: 9580bab8d2c2d6f3
   CLAUDE.md: 16212c1749e6005d
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: 3197384b3b9b62fb
-  README.ja.md: 764f0146b5e91a4d
-  README.ko.html: 529cb8fa2ef27a4e
-  README.ko.md: a97a9dc37e486bff
-  README.md: 303d3546af18e97d
-  README.zh.md: 6566893a50fc81ef
+  README.html: f9378f61e0073367
+  README.ja.md: 1b94669e076dd9c9
+  README.ko.html: 9209820dc1e7a57a
+  README.ko.md: 160a0845e8775bf6
+  README.md: 81c9c6691e1ce51b
+  README.zh.md: 1572f023debba60d
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -75,13 +75,13 @@ attested_modules:
   plugins/claude-code/agents/orchestrator.md: 443c6e13ade590cf
   plugins/claude-code/agents/planner.md: 5750002ebdfb43f1
   plugins/claude-code/agents/reviewer.md: 9c4e095e60040473
-  plugins/claude-code/commands/init.md: bf567f3b4e22069a
+  plugins/claude-code/commands/init.md: 5529b13d0f1ab4bf
   plugins/claude-code/hooks/hooks.json: 42321ead26fb1da8
   plugins/codex/.codex-plugin/plugin.json: 26d1bc595d1b996a
   plugins/codex/.mcp.json: 43e3f4b2af24aa18
   plugins/codex/skills/check/SKILL.md: 6a665422af510e72
   plugins/codex/skills/developer/SKILL.md: 40af2943253f6c72
-  plugins/codex/skills/init/SKILL.md: bf567f3b4e22069a
+  plugins/codex/skills/init/SKILL.md: 5529b13d0f1ab4bf
   plugins/codex/skills/observability/SKILL.md: 5ea8f14b1c9b4a61
   plugins/codex/skills/orchestrator/SKILL.md: 443c6e13ade590cf
   plugins/codex/skills/planner/SKILL.md: 5750002ebdfb43f1
@@ -92,7 +92,7 @@ attested_modules:
   plugins/codex/skills/sync/SKILL.md: 775c0f990a52a3d9
   plugins/gemini-cli/GEMINI.md: ba08eaf2cd557a65
   plugins/gemini-cli/commands/README.md: 3527d771578431bd
-  plugins/gemini-cli/commands/init.toml: e44c7ead9bd927b2
+  plugins/gemini-cli/commands/init.toml: e7f310fd7af23f95
   plugins/gemini-cli/gemini-extension.json: 9d2f839716b55869
   scripts/build-plugin.mjs: 7fabe2b6301b142a
   scripts/build.mjs: 3a4b204063024ef1
@@ -105,7 +105,7 @@ attested_modules:
   skills/checkpoint/SKILL.md: f723e8cfb8286a64
   skills/clarify/SKILL.md: 5d08bbb821258d03
   skills/doctor/SKILL.md: 6581c6c900c72d68
-  skills/init/SKILL.md: bf567f3b4e22069a
+  skills/init/SKILL.md: 5529b13d0f1ab4bf
   skills/oracle/SKILL.md: 11e111ac0a4963c1
   skills/rollback/SKILL.md: d472dc3a562b347b
   skills/route/SKILL.md: 5958830fef280c67
@@ -113,7 +113,7 @@ attested_modules:
   skills/serve/SKILL.md: f08bbdbbfeb05041
   skills/status/SKILL.md: 09faadc50b3449da
   skills/sync/SKILL.md: 775c0f990a52a3d9
-  spec.yaml: 587a14fca8bdcd03
+  spec.yaml: b5dd1d4db56a1938
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -146,15 +146,15 @@ attested_modules:
   src/cli: a4d0f0eb87fed960
   src/cli/benchmark.ts: 77f84d2a898d724f
   src/cli/changelog.ts: 2de1adb009b89ab4
-  src/cli/clad.ts: 2f11ce5f158a44da
-  src/cli/clarify.ts: 393cc93a6feb698a
+  src/cli/clad.ts: 6a45fa2924292697
+  src/cli/clarify.ts: f17177969d5b75ff
   src/cli/doctor-hosts.ts: 1f0c2cec5a310b81
   src/cli/doctor.ts: b98b955fe75e7f7e
   src/cli/done.ts: 7eba807b6ec5a1aa
-  src/cli/enforcement-advisory.ts: 554a7b56475981c3
+  src/cli/enforcement-advisory.ts: 395c5be696e88b5c
   src/cli/graph-serve.ts: 23e6e389225d0f98
   src/cli/graph.ts: bab410061b8c746a
-  src/cli/hook.ts: 19a40c6254d139a0
+  src/cli/hook.ts: 59d5fddd52d330ac
   src/cli/host-onboarding.ts: b046571d4be7280c
   src/cli/init.ts: fbd96fa32906313c
   src/cli/intent-from-path.ts: e69862821d979f22
@@ -530,6 +530,7 @@ attested_features:
   F-16746b: ok
   F-17df0a: ok
   F-18e951: ok
+  F-195cb59e: ok
   F-1c9166: ok
   F-1d23a6: ok
   F-1e7a10c3: ok
@@ -642,6 +643,7 @@ attested_features:
   F-bc8ad013: ok
   F-bd07d7: ok
   F-bdcd90: ok
+  F-be5306eb: ok
   F-c037ae: ok
   F-c2c996: ok
   F-c3747d7d: ok

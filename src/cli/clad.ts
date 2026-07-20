@@ -20,7 +20,7 @@ import {runReportCommand} from './report.js';
 import {runDoctorCommand} from './doctor.js';
 import {runDoctorHosts} from './doctor-hosts.js';
 import {runDone} from './done.js';
-import {enforcementAdvisory} from './enforcement-advisory.js';
+import {featureCycleAdvisory} from './enforcement-advisory.js';
 import {runHookCommand} from './hook.js';
 import {runVerdictCommand} from './verdict.js';
 import {runUpdate} from './update.js';
@@ -824,10 +824,11 @@ export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tie
     }
   }
   const result = runCheckStages({...opts, focusModules});
-  // F-f4e184f7: a non-blocking advisory when the feature cycle has undone features
-  // but neither a hook nor CI enforces the checks. Suppressed under --json.
+  // F-f4e184f7 + F-be5306eb: a non-blocking advisory when the feature cycle isn't
+  // being driven — code with no feature specs (cold-start), or undone features with
+  // no hook/CI. Suppressed under --json.
   if (!opts.json) {
-    const advisory = enforcementAdvisory('.');
+    const advisory = featureCycleAdvisory('.');
     if (advisory) process.stdout.write(`ℹ ${advisory}\n`);
   }
   // Set process.exitCode rather than process.exit(): the machine-output mode
