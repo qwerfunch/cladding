@@ -5,9 +5,13 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — Polyglot gate fidelity + feature-cycle signals
+## [0.9.1] — Adoption keeps approved capabilities + polyglot gate fidelity (2026-07-21)
 
-**In one line:** the gate reads and reports non-JavaScript projects honestly, and it now nudges when the feature cycle isn't being driven.
+**In one line:** adopting an existing project now keeps the capabilities you approved, and the gate reads and reports non-JavaScript projects more faithfully while nudging when the feature cycle isn't being driven.
+
+### Fixed
+
+- **Existing-project adoption keeps the capabilities you approved.** When you adopt a project that already has code, the capabilities produced and confirmed during onboarding are now written to `spec/capabilities.yaml`. Previously the observed-scan path re-derived them from README headings — or left `capabilities: []` when the repo had none — silently discarding the approved set. The greenfield path already honored them; the scan path now matches it. Conventions and architecture stay scanner-sourced.
 
 ### Gate and toolchain fidelity
 
@@ -19,6 +23,12 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 - **A non-blocking nudge when sustained source edits are bound to no feature.** When edits to files that no feature tracks accumulate past a small threshold, the post-edit card surfaces one advisory to start a feature — so the spec-first cycle gets triggered instead of silently skipped. Debounced and once-per-window; it never blocks.
 - **`clad check` flags unenforced projects.** When a project has features not yet done but neither a git hook nor CI wires the gate, `clad check` prints one advisory that the checks run only when asked — with how to wire enforcement. Informational only; it never changes the exit status.
+- **A cold-start signal when a project has code but no feature specs.** `clad check` and session start now say the spec-first cycle hasn't begun, instead of the project looking clean. Advisory only.
+- **Onboarding hands off to authoring the first feature spec, not straight to code**, and writing code ahead of its spec is caught both at that handoff and at the resting state.
+
+### Plain-language output
+
+- **Soft-shell jargon leaks closed and enforcement tightened.** More user-facing output stays in plain words rather than internal cladding terms; the plain-language guard now also checks the finding lead line and forbids raw internal identifiers.
 
 ## [0.9.0] — Project-scoped natural-language onboarding (2026-07-16)
 

@@ -1,6 +1,6 @@
 {
   "name": "cladding",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Spec-driven verification layer for AI coding agents — Claude Code · Codex · Gemini · Antigravity · Cursor. Intent in before it writes, result verified against your spec after. Reference implementation of the Ironclad standard.",
   "type": "module",
   "license": "MIT",
