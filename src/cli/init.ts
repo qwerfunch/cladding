@@ -511,7 +511,20 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
     // directly instead of re-parsing docs/project-context.md. LLM
     // refinement (when a dispatcher is available) adds `summary` +
     // `surface` per entry; deterministic mode ships id + title only.
-    writeArtifact(cwd, 'spec/capabilities.yaml', interp.capabilitiesYaml, created, proposals);
+    //
+    // v0.9.1 — an existing-project adoption still carries the host/LLM's
+    // approved, domain-aware capabilities via the onboarding pass. The scan
+    // interpreter can't see them: its total-fallback fires on the absent
+    // CONVENTIONS_MD sentinel (a host draft never emits it) and re-derives
+    // capabilities from README headings — or `[]` when there are none —
+    // silently discarding the draft's schema-validated 3–8 entries. Prefer
+    // the onboarding capabilities when the dispatcher genuinely fired
+    // (`source === 'llm'`), mirroring the greenfield branch below; the
+    // scanner still owns conventions.md + architecture.yaml, which are
+    // code-grounded and correct for a real codebase.
+    const capabilitiesYaml =
+      onboarding?.source === 'llm' ? onboarding.capabilitiesYaml : interp.capabilitiesYaml;
+    writeArtifact(cwd, 'spec/capabilities.yaml', capabilitiesYaml, created, proposals);
 
     // v0.3.30 — scenarios are not auto-extracted from observed code.
     // A user journey is *intent*, not architecture, so cladding leaves

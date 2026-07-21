@@ -7,6 +7,7 @@ import {dirname, join} from 'node:path';
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
+import {parse as parseYaml} from 'yaml';
 import {refineOnboarding, resolveOnboardingReview} from '../../src/cli/clarify.js';
 import {prepareHostClarify, prepareHostInit, renderHostDraft} from '../../src/cli/host-onboarding.js';
 import {runInit} from '../../src/cli/init.js';
@@ -427,6 +428,16 @@ describe('serve/server — natural-language init tools', () => {
       const conventions = readFileSync(join(dir, 'docs', 'conventions.md'), 'utf8');
       expect(conventions).toContain('derived from observed code');
       expect(conventions).toContain('## Observed style');
+      // Regression: an existing-project adoption with no README `##` headings must still
+      // persist the host draft's approved capabilities — not land `capabilities: []`.
+      const capabilitiesBody = readFileSync(join(dir, 'spec', 'capabilities.yaml'), 'utf8');
+      expect(capabilitiesBody).not.toContain('capabilities: []');
+      const capabilities = (parseYaml(capabilitiesBody) as {capabilities?: Array<{id?: string}>}).capabilities ?? [];
+      expect(capabilities.length).toBeGreaterThanOrEqual(3);
+      const capabilityIds = capabilities.map((capability) => capability.id);
+      for (const id of ['payments', 'audit', 'webhooks']) {
+        expect(capabilityIds).toContain(id);
+      }
     } finally {
       await cleanup();
     }
