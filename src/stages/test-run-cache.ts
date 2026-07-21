@@ -1,11 +1,11 @@
 // Cladding · stages · shared test-run cache — run-scoped, gate-seam-lifetimed
 //
-// WHY (issue #215). One `clad check --tier=pre-push` runs the SAME vitest suite
-// TWICE: stage_2.1 (unit) spawns `vitest run` and stage_2.2 (coverage) spawns
-// `vitest run --coverage`. On cladding's own ~1600-test suite that is the single
+// WHY (issue #215). One `clad check --tier=pre-push` can run the SAME suite
+// TWICE: stage_2.1 (unit) spawns the test runner and stage_2.2 (coverage) spawns
+// it again under coverage. On large Vitest and pytest suites that is the single
 // biggest chunk of gate wall-clock. This module lets the unit stage spawn the
 // COVERAGE command ONCE — augmented with the vacuous-test guard's dual json
-// reporter — and publish that one process so the coverage stage folds the cached
+// reporter when applicable — and publish that one process so the coverage stage folds the cached
 // exit signal instead of re-spawning vitest.
 //
 // GUARD-COMPATIBLE (the reason PR #216 was rejected). #216 deduped by having the

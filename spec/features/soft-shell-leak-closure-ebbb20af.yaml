@@ -1,0 +1,50 @@
+id: F-ebbb20af
+slug: soft-shell-leak-closure
+title: "close Soft Shell jargon leaks and tighten the plain-language enforcement"
+status: done
+modules:
+  - src/ui/softShell.ts
+  - src/cli/clad.ts
+  - src/cli/done.ts
+  - src/cli/hook.ts
+  - src/cli/init.ts
+acceptance_criteria:
+  - id: AC-77f0ec75
+    test_refs:
+      - tests/soft-shell-leak-closure.test.ts
+    ears: state
+    condition: "while rendering user-facing output (the drift plain table, clad check/done messages)"
+    response: "use plain domain words (spec, spec entry, feature) and never the internal word 'shard'"
+    text: "While rendering user-facing output, the system shall never use the internal word 'shard' — it shall say spec, spec entry, or feature — so a reader who never saw the source is never shown a term only maintainers know."
+    notes: "Leaks the audit found: INVENTORY_DRIFT.lead (softShell.ts), the clad check footer (clad.ts), and the clad done git-op / no-feature refusals (done.ts). Iron Core surfaces (code comments, field names, persona prompts) keep 'shard' by design."
+  - id: AC-78c153fa
+    test_refs:
+      - tests/soft-shell-leak-closure.test.ts
+    ears: unwanted
+    condition: "if a user-facing card would surface a raw detector name or a raw stage id as its lead"
+    response: "render the plain-English lead instead, with any machine id demoted to a trailing tail"
+    text: "If a user-facing card would surface a raw detector name or a raw stage id as its lead, the system shall render the plain-English lead instead — the machine id may appear only as a demoted tail."
+    notes: "The SessionStart stop-block line led with failures[0].detector (a raw detector name); the clad sync deliverable note leaked a raw stage id (stage_2.4). Reuse plainLead (already imported in hook.ts)."
+  - id: AC-c7c1c6e1
+    test_refs:
+      - tests/soft-shell-leak-closure.test.ts
+    ears: state
+    condition: "while writing the scenarios README (spec/scenarios/README.md) prose the user reads"
+    response: "name no MCP tool and no 'shard'"
+    text: "While generating the scenarios README prose, the system shall name no MCP tool (no clad_-shaped identifier) and shall not use the word 'shard', describing what happens in plain language instead."
+    notes: "init.ts wrote `clad_create_feature` into the scenarios README prose. The spec.yaml first line is a structured, documented, tier-tagged provenance banner (Tier A · Refreshed by: <verb>), verified by verb-residue + tier-banner tests — that is Iron Core metadata, out of scope here, and keeps its verb clause."
+  - id: AC-0cece94c
+    test_refs:
+      - tests/plain-render.test.ts
+      - tests/human-first-cards.test.ts
+    ears: unwanted
+    condition: "if a future edit reintroduces 'shard' into a plain-table lead or a raw detector-name lead into a card"
+    response: "the plain-language enforcement tests shall fail"
+    text: "If a future edit reintroduces the word 'shard' into a DETECTOR_PLAIN lead, or a raw detector-name lead into a driven card, the tightened enforcement tests shall fail, so these leaks cannot recur."
+    notes: "plain-render.test.ts scanned only `action` for MCP names; extend it to scan each `lead` for 'shard'. human-first-cards.test.ts banned MCP names + 'shard' per line; extend the stop-block case so a raw detector-name lead fails."
+  - id: AC-408e6838
+    test_refs:
+      - tests/soft-shell-leak-closure.test.ts
+    ears: ubiquitous
+    text: "The behavior-triggered signals (the unbound-edit nudge and the enforcement advisory) shall fire from the same single English source regardless of the user's language — an all-non-ASCII spec (titles, paths) still triggers them — so the host can relay one message into any language."
+    notes: "cladding emits one English string; the host AI relays it into the user's language (instruction-led-language: English-only catalog, no locale keys). Firing is behavior-driven (edits, spec status), so it is language-agnostic by construction; this AC pins that."

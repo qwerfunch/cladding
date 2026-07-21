@@ -1,0 +1,32 @@
+id: F-195cb59e
+slug: onboarding-handoff-steer
+title: "onboarding hands off to authoring the first feature spec, not straight to code"
+status: done
+modules:
+  - skills/init/SKILL.md
+  - src/cli/clarify.ts
+acceptance_criteria:
+  - id: AC-f75cc3de
+    test_refs:
+      - tests/cli/onboarding-handoff-steer.test.ts
+    ears: state
+    condition: "while reporting that onboarding has no questions remaining"
+    response: "instruct the host that the next step is to author the first feature's spec before writing code, not that ordinary development can begin"
+    text: "While reporting onboarding completion, the init host instruction shall state that the next step is to author the first feature's spec before writing code — it shall not tell the host that ordinary development can simply begin."
+    notes: "Root cause of the ungoverned-code case: skills/init/SKILL.md said 'report that ordinary development can begin', so the host read it as 'write code now' and scaffolded a whole project with features: []. The handoff is where the feature cycle must be pointed at."
+  - id: AC-3b2026e1
+    test_refs:
+      - tests/cli/clarify.test.ts
+    ears: state
+    condition: "while the CLI reports onboarding complete"
+    response: "tell the user to author the first feature's spec before writing code"
+    text: "While the CLI reports onboarding complete, its message shall tell the user that the next step is to author the first feature's spec before writing code, so the spec-first cycle is triggered at the handoff."
+    notes: "src/cli/clarify.ts final message previously ended at 'onboarding complete' with no next-step steer."
+  - id: AC-d21ead41
+    test_refs:
+      - tests/cli/onboarding-handoff-steer.test.ts
+    ears: state
+    condition: "while steering to the first feature spec"
+    response: "name what the spec contains — its acceptance criteria and the files it will cover"
+    text: "While steering to the first feature spec, the message shall name what that spec contains — its acceptance criteria (the testable promises) and the files it will cover — so 'author a spec' is never vague about what to write."
+    notes: "Closes the audit gap that no user-facing string bundled 'what it must do (acceptance criteria) + which files it covers'. Plain language: no 'shard', no MCP tool name."

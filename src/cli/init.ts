@@ -101,11 +101,9 @@ const SCENARIOS_README = [
   'Scenarios in cladding capture **user journeys** — the business flows your',
   'system enables, not the architecture layers your code is organised into.',
   '',
-  'You do not author scenario YAML by hand. They are auto-registered when you',
-  'request a feature through natural-language conversation with your AI host —',
-  'the host invokes the `clad` CLI (or the `clad_create_feature` MCP tool when',
-  'cladding is wired as an MCP server). The scenario your request belongs to is',
-  'inferred together with the feature itself.',
+  'You do not author scenario YAML by hand. They are registered for you when you',
+  'ask your AI assistant to add a feature in ordinary conversation. The scenario',
+  'your request belongs to is inferred together with the feature itself.',
   '',
   'This directory is intentionally empty at scan time. The first scenario lands',
   'when you ship the first feature.',
@@ -123,7 +121,7 @@ const SCENARIOS_README = [
   '',
   '- `docs/conventions.md` — observed conventions (auto-generated)',
   '- `spec/architecture.yaml` — observed layers + forbidden_imports candidates',
-  '- `spec.yaml` — feature registry (grown by clad_create_feature)',
+  '- `spec.yaml` — feature registry (grown as you add features in conversation)',
   '',
 ].join('\n');
 

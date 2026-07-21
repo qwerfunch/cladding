@@ -17,15 +17,15 @@ attested_modules:
   .claude/settings.json: d0bba3583aef0960
   .github/workflows/ci.yml: 8ea99219cb80df60
   .gitignore: 1294975ba3b47043
-  CHANGELOG.md: 1524903097b4f9b0
+  CHANGELOG.md: 9580bab8d2c2d6f3
   CLAUDE.md: 16212c1749e6005d
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: dd6c44fc6c151ad4
-  README.ja.md: d4de131ac59941f8
-  README.ko.html: a494606ab7bfce8e
-  README.ko.md: 45c1a27b3f25c983
-  README.md: 5831410ed5c38337
-  README.zh.md: a6aef09c240f2b62
+  README.html: f9378f61e0073367
+  README.ja.md: 1b94669e076dd9c9
+  README.ko.html: 9209820dc1e7a57a
+  README.ko.md: 160a0845e8775bf6
+  README.md: 81c9c6691e1ce51b
+  README.zh.md: 1572f023debba60d
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -38,10 +38,10 @@ attested_modules:
   docs/ab-evaluation/README.md: 2467808b9871dcf0
   docs/ab-evaluation/case-doverunner-scale.md: 2a435b6855823d41
   docs/ab-evaluation/case-efficiency-measurement.md: 348aca146a7b2faa
-  docs/ab-evaluation/case-existing-adoption.md: d9d0d649861024ce
+  docs/ab-evaluation/case-existing-adoption.md: 240a7c641da50a42
   docs/ab-evaluation/case-graph-efficiency.md: 83d3956d14a1517d
   docs/ab-evaluation/case-iterative-vs-fixed-vapt.md: 1d242b8b6071f343
-  docs/ab-evaluation/case-payment-saas.md: ca1a9a22b933c5cf
+  docs/ab-evaluation/case-payment-saas.md: a316271b319816f6
   docs/ab-evaluation/case-working-set-landmine.md: b4f44dc463e99722
   docs/ab-evaluation/summary.md: 59e527a531f13209
   docs/b1-adoption-protocol.md: a041d8ad5ba1447f
@@ -75,13 +75,13 @@ attested_modules:
   plugins/claude-code/agents/orchestrator.md: 443c6e13ade590cf
   plugins/claude-code/agents/planner.md: 5750002ebdfb43f1
   plugins/claude-code/agents/reviewer.md: 9c4e095e60040473
-  plugins/claude-code/commands/init.md: bf567f3b4e22069a
+  plugins/claude-code/commands/init.md: 5529b13d0f1ab4bf
   plugins/claude-code/hooks/hooks.json: 42321ead26fb1da8
   plugins/codex/.codex-plugin/plugin.json: 26d1bc595d1b996a
   plugins/codex/.mcp.json: 43e3f4b2af24aa18
   plugins/codex/skills/check/SKILL.md: 6a665422af510e72
   plugins/codex/skills/developer/SKILL.md: 40af2943253f6c72
-  plugins/codex/skills/init/SKILL.md: bf567f3b4e22069a
+  plugins/codex/skills/init/SKILL.md: 5529b13d0f1ab4bf
   plugins/codex/skills/observability/SKILL.md: 5ea8f14b1c9b4a61
   plugins/codex/skills/orchestrator/SKILL.md: 443c6e13ade590cf
   plugins/codex/skills/planner/SKILL.md: 5750002ebdfb43f1
@@ -92,7 +92,7 @@ attested_modules:
   plugins/codex/skills/sync/SKILL.md: 775c0f990a52a3d9
   plugins/gemini-cli/GEMINI.md: ba08eaf2cd557a65
   plugins/gemini-cli/commands/README.md: 3527d771578431bd
-  plugins/gemini-cli/commands/init.toml: e44c7ead9bd927b2
+  plugins/gemini-cli/commands/init.toml: e7f310fd7af23f95
   plugins/gemini-cli/gemini-extension.json: 9d2f839716b55869
   scripts/build-plugin.mjs: 7fabe2b6301b142a
   scripts/build.mjs: 3a4b204063024ef1
@@ -105,7 +105,7 @@ attested_modules:
   skills/checkpoint/SKILL.md: f723e8cfb8286a64
   skills/clarify/SKILL.md: 5d08bbb821258d03
   skills/doctor/SKILL.md: 6581c6c900c72d68
-  skills/init/SKILL.md: bf567f3b4e22069a
+  skills/init/SKILL.md: 5529b13d0f1ab4bf
   skills/oracle/SKILL.md: 11e111ac0a4963c1
   skills/rollback/SKILL.md: d472dc3a562b347b
   skills/route/SKILL.md: 5958830fef280c67
@@ -113,7 +113,7 @@ attested_modules:
   skills/serve/SKILL.md: f08bbdbbfeb05041
   skills/status/SKILL.md: 09faadc50b3449da
   skills/sync/SKILL.md: 775c0f990a52a3d9
-  spec.yaml: 82491ca5dc73636f
+  spec.yaml: 33dc47a833bc0bb7
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -146,16 +146,17 @@ attested_modules:
   src/cli: a4d0f0eb87fed960
   src/cli/benchmark.ts: 77f84d2a898d724f
   src/cli/changelog.ts: 2de1adb009b89ab4
-  src/cli/clad.ts: 00d049c7acb5f761
-  src/cli/clarify.ts: 393cc93a6feb698a
+  src/cli/clad.ts: 6a45fa2924292697
+  src/cli/clarify.ts: f17177969d5b75ff
   src/cli/doctor-hosts.ts: 1f0c2cec5a310b81
   src/cli/doctor.ts: b98b955fe75e7f7e
-  src/cli/done.ts: 02bd4397eaf34fa1
+  src/cli/done.ts: 7eba807b6ec5a1aa
+  src/cli/enforcement-advisory.ts: 395c5be696e88b5c
   src/cli/graph-serve.ts: 23e6e389225d0f98
   src/cli/graph.ts: bab410061b8c746a
-  src/cli/hook.ts: 201f82f4c89e173f
+  src/cli/hook.ts: 59d5fddd52d330ac
   src/cli/host-onboarding.ts: b046571d4be7280c
-  src/cli/init.ts: 04135bc767e58e02
+  src/cli/init.ts: 91cf7be2b7427fbf
   src/cli/intent-from-path.ts: e69862821d979f22
   src/cli/measure.ts: 3a562f16589e26c2
   src/cli/report.ts: 911f859b2446834b
@@ -202,7 +203,7 @@ attested_modules:
   src/hitl/audit.ts: 79b06e904815469a
   src/hitl/identity.ts: 52ff84aa666f1dab
   src/init/agents-md.ts: 7dc05f6d82e5c3ce
-  src/init/git-hook.ts: 4e02f177b3764ae8
+  src/init/git-hook.ts: b77910b0df392cbf
   src/init/host-instructions.ts: 7a066c646f0b6133
   src/init/host-setup.ts: 158cc9306a746da1
   src/optimizer: a4d0f0eb87fed960
@@ -260,7 +261,7 @@ attested_modules:
   src/stages/detectors/architecture-from-spec.ts: ee36fa5f94a5be2a
   src/stages/detectors/architecture-violation.ts: b5035317a61e5ebe
   src/stages/detectors/capabilities-feature-mapping.ts: fa245f053f98a78a
-  src/stages/detectors/convention-drift.ts: 450cb86924dfcf82
+  src/stages/detectors/convention-drift.ts: 571500224c124e53
   src/stages/detectors/coverage-drop.ts: 809d13599596793e
   src/stages/detectors/deliverable-integrity.ts: d0fbc1dd05bd245a
   src/stages/detectors/dependency-cycle.ts: 873c8fdde00aa48b
@@ -299,16 +300,16 @@ attested_modules:
   src/stages/detectors/with-spec.ts: dcf3205e8d563574
   src/stages/disposition.ts: b7fd2e591235a326
   src/stages/drift.ts: d3993f3b168ceb34
-  src/stages/finding-parser.ts: 19a10c5fe216059c
+  src/stages/finding-parser.ts: d9cd56dbe3c3b9a7
   src/stages/graph-health.ts: a294f06796b0e293
   src/stages/junit-report.ts: f8466dc1e00140f1
-  src/stages/lint.ts: c1513a7c710fb13b
+  src/stages/lint.ts: e9c4505e587e6088
   src/stages/perf.ts: 2b27c12427f65b2e
   src/stages/secret.ts: b90abc0e00c86219
   src/stages/skip-policy.ts: 1a6412d708561cf0
   src/stages/smoke.ts: cbe55596f6b0a49e
   src/stages/spec-conformance.ts: 1e9b052a2a268d7a
-  src/stages/test-run-cache.ts: 46df49ab73a1a72e
+  src/stages/test-run-cache.ts: 462a5ef1d30eb766
   src/stages/toolchain/coverage-tool.ts: 310883060ed6d92e
   src/stages/toolchain/detect.ts: 36d4947e5567bd5f
   src/stages/toolchain/gate-config.ts: 818a0a549d875581
@@ -317,16 +318,16 @@ attested_modules:
   src/stages/toolchain/scoped-command.ts: f2dd6410c063279f
   src/stages/toolchain/types.ts: 05f018fb3dddc321
   src/stages/type.ts: 0ac37e45b407446d
-  src/stages/types.ts: 24b4dc30ec7d7f33
+  src/stages/types.ts: 95e8c9e13187d85b
   src/stages/uat.ts: 62ec3e37a124f8c5
-  src/stages/unit.ts: fe5bf9e4bec1de77
+  src/stages/unit.ts: b503350b0e5c7e5a
   src/stages/util.ts: a024afe34884d653
   src/stages/vacuous-tests.ts: 8e71b81e151325af
   src/stages/visual.ts: 2b60dd991fa8124e
   src/ui: a4d0f0eb87fed960
   src/ui/panel.ts: 8b78cb14dafb28fb
   src/ui/pulse.ts: ee4255f5c6e49f51
-  src/ui/softShell.ts: 6db9d46de2d2e1b0
+  src/ui/softShell.ts: 57a9b5d02fc94339
   src/verdict/gate-progress.ts: ac75e3082cc97a40
   src/verdict/verdict.ts: 493251b3a2c494d3
   tests/adapters/anthropic.test.ts: fa2fc7faf032a782
@@ -391,7 +392,7 @@ attested_modules:
   tests/stages/architecture-violation.test.ts: f713ac001d4a797f
   tests/stages/audit.test.ts: 8785d8fb21008d49
   tests/stages/commit.test.ts: e387291e76ffc5d2
-  tests/stages/convention-drift.test.ts: f16176d8c9e97753
+  tests/stages/convention-drift.test.ts: f5638d887e5533f3
   tests/stages/cov.test.ts: c50dda16447f94ab
   tests/stages/coverage-drop.test.ts: 272d118239cda6be
   tests/stages/detector-purity.test.ts: cc8d4a60e6956198
@@ -529,6 +530,7 @@ attested_features:
   F-16746b: ok
   F-17df0a: ok
   F-18e951: ok
+  F-195cb59e: ok
   F-1c9166: ok
   F-1d23a6: ok
   F-1e7a10c3: ok
@@ -556,6 +558,7 @@ attested_features:
   F-417ff0: ok
   F-42af48: ok
   F-43d8e3: ok
+  F-4643d99d: ok
   F-4747ef: ok
   F-47b8bee5: ok
   F-49f6f2d2: ok
@@ -640,6 +643,7 @@ attested_features:
   F-bc8ad013: ok
   F-bd07d7: ok
   F-bdcd90: ok
+  F-be5306eb: ok
   F-c037ae: ok
   F-c2c996: ok
   F-c3747d7d: ok
@@ -671,6 +675,7 @@ attested_features:
   F-e8912be3: ok
   F-e940fffe: ok
   F-eb732f: ok
+  F-ebbb20af: ok
   F-ede6fa75: ok
   F-ee47fc2b: ok
   F-ee5f643e: ok
@@ -678,8 +683,10 @@ attested_features:
   F-f334fa: ok
   F-f44d1b: ok
   F-f46d5c61: ok
+  F-f4e184f7: ok
   F-f6cc5e5a: ok
   F-f6d13e: ok
+  F-f9891175: ok
   F-fb9b48a5: ok
   F-fcece7: ok
   F-fe0f7a96: ok

@@ -85,6 +85,12 @@ function clearStamp(): void {
 function clearPushLedger(): void {
   rmSync(join(cwd, '.cladding', 'hook-push-ledger.json'), {force: true});
 }
+// F-f9891175: owner_miss edits also feed the unbound-edit nudge accumulator. This
+// corpus isolates the skip-event accounting, so reset that sidecar per iteration
+// (the nudge's own once-per-window behavior is covered in hook-unbound-nudge.test.ts).
+function clearUnboundAgg(): void {
+  rmSync(join(cwd, '.cladding', 'hook-unbound-agg.json'), {force: true});
+}
 function freshStamp(): void {
   mkdirSync(join(cwd, '.cladding'), {recursive: true});
   writeFileSync(stamp(), String(Date.now()), 'utf8');
@@ -145,6 +151,7 @@ describe('PostToolUse telemetry — accounting completeness', () => {
     // 4) owner_miss — a watched source path owned by no feature
     for (let i = 0; i < N.owner_miss; i++) {
       clearStamp();
+      clearUnboundAgg(); // isolate skip accounting from the unbound-edit nudge (F-f9891175)
       expect(post(sourceEdit('src/orphan.ts', 60))).toBe('');
     }
     // 5) fired — an owned module, substantive edit; the FIRST fired flushes the

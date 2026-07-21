@@ -192,6 +192,12 @@ describe('runClarifyCommand', () => {
     expect(exitCalls).toEqual([0]);
     const after = loadState(dir)!;
     expect(after.status).toBe('done');
+    // F-195cb59e AC-3b2026e1 — the completion message steers to authoring the
+    // first feature's spec (with its acceptance criteria + files) before code.
+    const out = stdoutChunks.join('');
+    expect(out).toContain('first feature');
+    expect(out).toContain('acceptance criteria');
+    expect(out).toContain('before writing code');
   });
 
   test('--json emits a RefineReport', async () => {

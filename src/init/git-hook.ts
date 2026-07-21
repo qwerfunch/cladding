@@ -23,6 +23,23 @@ import {join} from 'node:path';
 /** Marker prefix identifying a hook as cladding-authored (for idempotency). */
 const HOOK_MARKER_PREFIX = 'cladding ';
 
+/**
+ * True when a cladding-owned pre-commit or pre-push hook is installed (its marker
+ * line present). Used by the enforcement advisory (F-f4e184f7) to tell whether
+ * local git enforcement is wired, without installing or modifying anything.
+ */
+export function enforcingHookInstalled(cwd: string): boolean {
+  for (const kind of ['pre-commit', 'pre-push'] as const) {
+    try {
+      const body = readFileSync(join(cwd, '.git', 'hooks', kind), 'utf8');
+      if (body.includes(`${HOOK_MARKER_PREFIX}${kind} hook`)) return true;
+    } catch {
+      /* hook file missing/unreadable → not installed for this kind */
+    }
+  }
+  return false;
+}
+
 export type HookKind = 'pre-commit' | 'pre-push';
 
 /** Per-kind gate invocation. pre-push carries --strict: it is the local

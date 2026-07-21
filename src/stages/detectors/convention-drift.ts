@@ -5,8 +5,8 @@
 // behind the `reviewer` agent in v0.2. This brick ships the
 // deterministic v0.1 floor:
 //
-//   For every features[].modules[] file ending in `.ts`, verify the
-//   first non-empty line begins a comment (line or block). The intent
+//   For every feature module in the project's configured language, verify the
+//   first non-empty line begins a language-appropriate comment or docstring. The intent
 //   is the "Documentation: Why > What" guardrail from
 //   ironclad-design/13-philosophical-guardrails.md — code without a
 //   header comment is the cheapest, highest-signal style violation
@@ -24,7 +24,13 @@ const NAME = 'CONVENTION_DRIFT';
 
 function startsWithComment(content: string): boolean {
   const trimmed = content.trimStart();
-  return trimmed.startsWith('//') || trimmed.startsWith('/*');
+  return (
+    trimmed.startsWith('//') ||
+    trimmed.startsWith('/*') ||
+    trimmed.startsWith('#') ||
+    trimmed.startsWith('"""') ||
+    trimmed.startsWith("'''")
+  );
 }
 
 function runConventionDrift(opts: CommandStageOptions): readonly DriftFinding[] {

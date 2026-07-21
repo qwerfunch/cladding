@@ -1,0 +1,33 @@
+id: F-4643d99d
+slug: lint-multi-finding
+title: "check-only formatter lint findings — list every dirty file, with a fix hint"
+status: done
+modules:
+  - src/stages/finding-parser.ts
+  - src/stages/lint.ts
+  - src/cli/clad.ts
+acceptance_criteria:
+  - id: AC-7b620bf4
+    test_refs:
+      - tests/stages/lint-multi-finding.test.ts
+    ears: event
+    condition: "when a check-only formatter fails and its output lists changed files (e.g. `dart format`'s `Changed <path>` lines)"
+    response: "produce one structured LINT finding per listed file, each carrying that file's path"
+    text: "When a check-only formatter fails and its output lists changed files, the lint parser shall produce one structured LINT finding per listed file, each carrying the file path, so every dirty file surfaces at once instead of only the first line."
+    notes: "The bug: dart format prints `Changed <path>` per dirty file plus a summary; none match the ESLint stylish regex, so parseToolFindings collapsed 11 files to one pathless synthetic finding (whack-a-mole). The renderer already lists up to 3 + '… and N more' and shows `— <path>` when a finding has a path."
+  - id: AC-6c16b63e
+    test_refs:
+      - tests/stages/lint-multi-finding.test.ts
+    ears: state
+    condition: "while a check-only formatter (dart/dotnet format) fails the lint stage"
+    response: "attach a one-line remediation hint naming the fix command"
+    text: "While a recognised check-only formatter fails the lint stage, the stage result shall carry a one-line remediation hint naming the command that fixes the formatting (e.g. `dart format .`), which the check renderer prints under the findings."
+    notes: "No stage prints a fix hint today; the house style is a backticked command in a short imperative. Derived from the resolved lint command, not hard-coded per project."
+  - id: AC-83a47b38
+    test_refs:
+      - tests/stages/lint-multi-finding.test.ts
+    ears: unwanted
+    condition: "if a failing formatter's output matches no known per-file pattern"
+    response: "keep the existing single raw-tail synthetic finding"
+    text: "If a failing formatter's output matches no known per-file pattern, the system shall keep the existing single raw-tail synthetic finding, so an unstructured failure still reads as a problem rather than as silence."
+    notes: "Preserves F-b7873005 AC-20b69848: 'no structure' never becomes 'no problem'. The per-file parser runs only after the ESLint parser and before the synthetic fallback."

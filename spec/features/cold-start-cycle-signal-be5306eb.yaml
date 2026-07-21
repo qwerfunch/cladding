@@ -1,0 +1,41 @@
+id: F-be5306eb
+slug: cold-start-cycle-signal
+title: "signal when a project has code but no feature specs — the cycle hasn't started"
+status: done
+modules:
+  - src/cli/enforcement-advisory.ts
+  - src/cli/hook.ts
+  - src/cli/clad.ts
+acceptance_criteria:
+  - id: AC-a0e5840a
+    test_refs:
+      - tests/cli/enforcement-advisory.test.ts
+    ears: event
+    condition: "when a project has source code on disk but zero feature specs"
+    response: "return a non-blocking advisory that the feature cycle has not started, pointing to authoring the first feature's spec"
+    text: "When a project has source code on disk but zero feature specs, the system shall return a non-blocking advisory that the feature cycle has not started and that the next step is to author the first feature's spec so the code is governed rather than running ahead of the spec."
+    notes: "The ungoverned-code resting state: onboarding done, features: [], code scaffolded. Neither the unbound-edit nudge (reactive, source-edit-triggered) nor the enforcement advisory (needs undone>0) caught it. Source presence is detected with the scan walker (vendor dirs ignored, early exit)."
+  - id: AC-4e780c47
+    test_refs:
+      - tests/cli/enforcement-advisory.test.ts
+    ears: unwanted
+    condition: "if the project has no source code yet, or already has one or more feature specs"
+    response: "return no cold-start advisory"
+    text: "If the project has no source code yet (fresh onboarding), or already has at least one feature spec, the system shall return no cold-start advisory, so a clean greenfield is never nagged and an active project is not mislabeled as un-started."
+    notes: "features.length === 0 AND source exists is the precise trigger; either suppressor silences it."
+  - id: AC-babf927c
+    test_refs:
+      - tests/cli/cold-start-signal.test.ts
+    ears: state
+    condition: "while a session starts in a project that has code but no feature specs"
+    response: "surface the cold-start signal in the SessionStart card"
+    text: "While a session starts in a project that has source code but no feature specs, the SessionStart card shall surface the cold-start signal, so the resting state is caught every session regardless of how it was reached."
+    notes: "SessionStart is the always-on net: it does not depend on catching the edit stream and survives across sessions."
+  - id: AC-7cf9593d
+    test_refs:
+      - tests/cli/enforcement-advisory.test.ts
+    ears: state
+    condition: "while clad check evaluates feature-cycle health"
+    response: "return the cold-start advisory when un-started, else the enforcement advisory, from one graduated evaluator, informational only"
+    text: "While clad check evaluates feature-cycle health, a single graduated evaluator shall return the cold-start advisory when the cycle is un-started, otherwise the enforcement advisory, and it shall be informational only — never changing the exit status."
+    notes: "featureCycleAdvisory = coldStartAdvisory ?? enforcementAdvisory. The existing F-f4e184f7 enforcementAdvisory stays unchanged; clad check calls the graduated wrapper."

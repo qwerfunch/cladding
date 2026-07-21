@@ -248,6 +248,30 @@ const KIND_DETECTOR: Record<'type' | 'lint' | 'unit', string> = {
   unit: 'UNIT',
 };
 
+// Check-only formatters (dart format --set-exit-if-changed, and peers) print one
+// `Changed <path>` line per dirty file plus a summary. None match the ESLint
+// stylish regex, so the raw-tail fallback used to collapse the whole set to a
+// single pathless finding (whack-a-mole: fix one, re-run, the next appears). This
+// lifts each listed file to its own LINT finding so every dirty file surfaces at
+// once (F-4643d99d AC-7b620bf4).
+const CHANGED_FILE = /^Changed\s+(.+)$/; // dart format --output=none
+
+function parseFormatterFindings(text: string): DriftFinding[] {
+  const out: DriftFinding[] = [];
+  for (const line of text.split(/\r?\n/)) {
+    const m = CHANGED_FILE.exec(stripAnsi(line).trim());
+    if (m && m[1]) {
+      out.push({
+        detector: 'LINT',
+        severity: 'error',
+        path: m[1],
+        message: 'not formatting-clean — differs from the formatter output',
+      });
+    }
+  }
+  return out;
+}
+
 /**
  * Routes a tool stage's captured output to its parser and applies the AC-20b69848
  * synthetic raw-tail fallback: when the stage FAILED (exitCode ≠ 0) but no
@@ -280,6 +304,9 @@ export function parseToolFindings(
         break;
       case 'lint':
         findings = parseEslintFindings(combined);
+        // Check-only formatters (dart/dotnet) list dirty files, not ESLint rows —
+        // parse them per-file before the single raw-tail fallback (AC-7b620bf4).
+        if (findings.length === 0) findings = parseFormatterFindings(combined);
         break;
       case 'unit':
         findings = parseVitestFindings(combined);

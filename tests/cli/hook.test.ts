@@ -93,7 +93,7 @@ describe('SessionStart — context card', () => {
     expect(lines[0]).toBe('cladding: 3 features (1 done, 1 in progress) · 2 scenarios');
     expect(lines[1]).toBe('in progress: F-bbb222 beta');
     expect(lines[2]).toBe('last gate: pre-push strict=true → GREEN @ abcdef12');
-    expect(lines[3]).toBe('unresolved stop-block: 2 finding(s) — AC_DRIFT');
+    expect(lines[3]).toBe('unresolved stop-block: 2 finding(s) — An acceptance criterion is incomplete or out of sync with the spec');
     // context capability line precedes policy; no ai_hints → no prefer lines. Both lines are
     // plain English with NO MCP tool names / no "shard" / no "SSoT" (F-f46d5c61, AC-2c63b999).
     expect(lines[4]).toBe(
