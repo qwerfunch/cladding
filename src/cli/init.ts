@@ -101,11 +101,9 @@ const SCENARIOS_README = [
   'Scenarios in cladding capture **user journeys** — the business flows your',
   'system enables, not the architecture layers your code is organised into.',
   '',
-  'You do not author scenario YAML by hand. They are auto-registered when you',
-  'request a feature through natural-language conversation with your AI host —',
-  'the host invokes the `clad` CLI (or the `clad_create_feature` MCP tool when',
-  'cladding is wired as an MCP server). The scenario your request belongs to is',
-  'inferred together with the feature itself.',
+  'You do not author scenario YAML by hand. They are registered for you when you',
+  'ask your AI assistant to add a feature in ordinary conversation. The scenario',
+  'your request belongs to is inferred together with the feature itself.',
   '',
   'This directory is intentionally empty at scan time. The first scenario lands',
   'when you ship the first feature.',
@@ -123,7 +121,7 @@ const SCENARIOS_README = [
   '',
   '- `docs/conventions.md` — observed conventions (auto-generated)',
   '- `spec/architecture.yaml` — observed layers + forbidden_imports candidates',
-  '- `spec.yaml` — feature registry (grown by clad_create_feature)',
+  '- `spec.yaml` — feature registry (grown as you add features in conversation)',
   '',
 ].join('\n');
 
@@ -511,7 +509,20 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
     // directly instead of re-parsing docs/project-context.md. LLM
     // refinement (when a dispatcher is available) adds `summary` +
     // `surface` per entry; deterministic mode ships id + title only.
-    writeArtifact(cwd, 'spec/capabilities.yaml', interp.capabilitiesYaml, created, proposals);
+    //
+    // v0.9.1 — an existing-project adoption still carries the host/LLM's
+    // approved, domain-aware capabilities via the onboarding pass. The scan
+    // interpreter can't see them: its total-fallback fires on the absent
+    // CONVENTIONS_MD sentinel (a host draft never emits it) and re-derives
+    // capabilities from README headings — or `[]` when there are none —
+    // silently discarding the draft's schema-validated 3–8 entries. Prefer
+    // the onboarding capabilities when the dispatcher genuinely fired
+    // (`source === 'llm'`), mirroring the greenfield branch below; the
+    // scanner still owns conventions.md + architecture.yaml, which are
+    // code-grounded and correct for a real codebase.
+    const capabilitiesYaml =
+      onboarding?.source === 'llm' ? onboarding.capabilitiesYaml : interp.capabilitiesYaml;
+    writeArtifact(cwd, 'spec/capabilities.yaml', capabilitiesYaml, created, proposals);
 
     // v0.3.30 — scenarios are not auto-extracted from observed code.
     // A user journey is *intent*, not architecture, so cladding leaves

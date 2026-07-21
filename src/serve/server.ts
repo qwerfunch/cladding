@@ -174,7 +174,7 @@ export function buildServer(opts: ServerOptions = {}): McpServer {
   const server = new McpServer(
     {
       name: opts.name ?? 'cladding',
-      version: opts.version ?? '0.9.0',
+      version: opts.version ?? '0.9.1',
     },
     {
       instructions:

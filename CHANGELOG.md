@@ -5,6 +5,31 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.1] — Adoption keeps approved capabilities + polyglot gate fidelity (2026-07-21)
+
+**In one line:** adopting an existing project now keeps the capabilities you approved, and the gate reads and reports non-JavaScript projects more faithfully while nudging when the feature cycle isn't being driven.
+
+### Fixed
+
+- **Existing-project adoption keeps the capabilities you approved.** When you adopt a project that already has code, the capabilities produced and confirmed during onboarding are now written to `spec/capabilities.yaml`. Previously the observed-scan path re-derived them from README headings — or left `capabilities: []` when the repo had none — silently discarding the approved set. The greenfield path already honored them; the scan path now matches it. Conventions and architecture stay scanner-sourced.
+
+### Gate and toolchain fidelity
+
+- **The check-only formatters list every dirty file, not just the first.** `dart format` (and peers like `dotnet format`) print one changed-file line each; those aren't ESLint-shaped, so the lint stage used to collapse them to a single pathless finding — fix one, re-run, the next appears. Each dirty file now surfaces as its own finding with its path, plus a one-line `fix: run \`dart format .\`` hint.
+- **Python projects run the test suite once per gate, not twice.** On pytest projects the unit stage and the coverage stage each spawned the whole suite (`pytest`, then `coverage run -m pytest`) — roughly doubling gate time. The unit stage now runs the coverage-instrumented suite once and shares it with the coverage stage, the same dedup vitest already had. The zero-executed-tests guard still applies on the shared pytest run, so the dedup can't turn a vacuous run green.
+- **The header-comment convention check understands more languages.** It now recognises `#` comments and Python docstrings (`"""`, `'''`), not only `//` / `/*`.
+
+### Feature-cycle signals
+
+- **A non-blocking nudge when sustained source edits are bound to no feature.** When edits to files that no feature tracks accumulate past a small threshold, the post-edit card surfaces one advisory to start a feature — so the spec-first cycle gets triggered instead of silently skipped. Debounced and once-per-window; it never blocks.
+- **`clad check` flags unenforced projects.** When a project has features not yet done but neither a git hook nor CI wires the gate, `clad check` prints one advisory that the checks run only when asked — with how to wire enforcement. Informational only; it never changes the exit status.
+- **A cold-start signal when a project has code but no feature specs.** `clad check` and session start now say the spec-first cycle hasn't begun, instead of the project looking clean. Advisory only.
+- **Onboarding hands off to authoring the first feature spec, not straight to code**, and writing code ahead of its spec is caught both at that handoff and at the resting state.
+
+### Plain-language output
+
+- **Soft-shell jargon leaks closed and enforcement tightened.** More user-facing output stays in plain words rather than internal cladding terms; the plain-language guard now also checks the finding lead line and forbids raw internal identifiers.
+
 ## [0.9.0] — Project-scoped natural-language onboarding (2026-07-16)
 
 **In one line:** apply Cladding from ordinary conversation without a shell command, while project-local discovery, a read-only preview, an exact approval phrase, and atomic recovery keep onboarding bounded.

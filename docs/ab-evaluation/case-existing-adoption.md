@@ -51,8 +51,8 @@ No spec, no architecture invariants — just code on the existing tree.
 | Test files | 1 | 1 | +0 |
 | Test LoC | 14 | 14 | +0 |
 | Test cases | 1 | 1 | +0 |
-| Total chars (artifacts + code) | 11268 | 3864 | +7404 |
-| Estimated tokens | 2819 | 967 | +1852 |
+| Total chars (artifacts + code) | 11104 | 3864 | +7240 |
+| Estimated tokens | 2778 | 967 | +1811 |
 
 **Detector outcomes** (META_INTEGRITY + HARDCODED_SECRET excluded — toolchain-only checks):
 
@@ -90,8 +90,8 @@ B (Vanilla)  — errors: 1  warns: 3  infos: 28
 | Test files | 2 | 2 | +0 |
 | Test LoC | 27 | 27 | +0 |
 | Test cases | 3 | 3 | +0 |
-| Total chars (artifacts + code) | 12811 | 5115 | +7696 |
-| Estimated tokens | 3205 | 1280 | +1925 |
+| Total chars (artifacts + code) | 12624 | 5115 | +7509 |
+| Estimated tokens | 3158 | 1280 | +1878 |
 
 **Detector outcomes** (META_INTEGRITY + HARDCODED_SECRET excluded — toolchain-only checks):
 
@@ -111,7 +111,7 @@ B (Vanilla)  — errors: 1  warns: 3  infos: 28
 - **Spec ↔ code traceability**: cladding emits 1 feature(s), 2 AC(s), 1 scenario(s), 3 capability(s); vanilla has 0 of each.
 - **Architecture enforcement**: cladding declares 3 layer(s) with 0 forbidden-import rule(s); vanilla has 0.
 - **Detector behavior**: cladding-managed tree → 1 error(s) / 1 warn(s) / 11 info(s). Vanilla tree → 1 / 3 / 28. The detectors that gate against spec (REFERENCE_INTEGRITY, MISSING_IMPLEMENTATION, ARCHITECTURE_FROM_SPEC, CAPABILITIES_FEATURE_MAPPING) need cladding's artifacts to evaluate — without them they silently pass. The "0 errors on vanilla" therefore is **absence of signal**, not absence of drift.
-- **Token cost**: cladding's cumulative artifact + code consumes ~3205 tokens vs vanilla's ~1280 (heuristic chars/4) — Δ ≈ 1925 tokens, the price of structure.
+- **Token cost**: cladding's cumulative artifact + code consumes ~3158 tokens vs vanilla's ~1280 (heuristic chars/4) — Δ ≈ 1878 tokens, the price of structure.
 - **Code surface**: vanilla writes 9 source file(s) / 144 LoC + 2 test file(s) / 3 test case(s); cladding writes 9 / 128 + 2 / 3. (Vanilla front-loads code, cladding front-loads spec — both converge by M2.)
 
 ## Outcome Quality (F-ba2e05)

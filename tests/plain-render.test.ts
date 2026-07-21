@@ -123,6 +123,20 @@ describe('DETECTOR_PLAIN catalog completeness (AC-746969b3)', () => {
     const actions = names.map((n) => DETECTOR_PLAIN[n].action).filter((a): a is string => Boolean(a));
     expect(actions.some((a) => a.includes('clad '))).toBe(true);
   });
+
+  // F-ebbb20af AC-0cece94c — the leak that slipped past the action-only scan:
+  // INVENTORY_DRIFT.lead said "shard files". Scan LEADS too, for the internal
+  // word "shard" and for any MCP tool name.
+  test('no lead uses the internal word "shard" or names an MCP tool (and no action says "shard")', () => {
+    const shardWord = /\bshards?\b/i;
+    const mcpShapePattern = /\bclad_[a-z_]+/;
+    for (const name of names) {
+      const {lead, action} = DETECTOR_PLAIN[name];
+      expect(lead, `${name}.lead must not say "shard"`).not.toMatch(shardWord);
+      expect(lead, `${name}.lead must not name an MCP tool`).not.toMatch(mcpShapePattern);
+      if (action) expect(action, `${name}.action must not say "shard"`).not.toMatch(shardWord);
+    }
+  });
 });
 
 // ─── AC-263adf79 — plain lead first, machine detail demoted to a tail ──────

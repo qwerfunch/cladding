@@ -135,7 +135,7 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
       featureId,
       reason:
         `${op} in progress — refusing done until the tree settles.` +
-        ` Complete or abort the ${op}, then re-run \`clad done\`. No shard, attestation, or index was written.`,
+        ` Complete or abort the ${op}, then re-run \`clad done\`. Nothing in the spec or its records was changed.`,
     };
   }
   const hit = findShardFile(cwd, featureId);
@@ -145,7 +145,7 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
       code: 1,
       featureId,
       reason:
-        `no feature shard under spec/features/ declares id '${featureId}'` +
+        `no feature in the spec declares id '${featureId}'` +
         ' (inline features: edit spec.yaml then run `clad check --tier=pre-push --strict` manually)',
     };
   }

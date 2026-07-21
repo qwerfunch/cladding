@@ -20,6 +20,7 @@ import {runReportCommand} from './report.js';
 import {runDoctorCommand} from './doctor.js';
 import {runDoctorHosts} from './doctor-hosts.js';
 import {runDone} from './done.js';
+import {featureCycleAdvisory} from './enforcement-advisory.js';
 import {runHookCommand} from './hook.js';
 import {runVerdictCommand} from './verdict.js';
 import {runUpdate} from './update.js';
@@ -300,7 +301,7 @@ export function runSyncCommand(opts: {proposeArchive?: boolean} = {}): void {
         pulse(
           'note',
           'deliverable',
-          `auto-detected entry '${autoDeliverable.path}' — the gate now smoke-tests it (stage_2.4). Opt out with is_safe_to_smoke: false.`,
+          `auto-detected entry '${autoDeliverable.path}' — the gate now smoke-tests it. Opt out with is_safe_to_smoke: false.`,
         );
       }
     }
@@ -674,7 +675,7 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
     // agent fixes in one pass instead of re-running to discover where + what.
     process.stdout.write(`${JSON.stringify({tier, worst, anyFailed, stages: collected}, null, 2)}\n`);
   } else if (anyFailed && !silent) {
-    process.stdout.write('\nℹ Run `clad doctor` for the event log, or `clad sync` to validate spec shards. Drift findings above name the offending detector.\n');
+    process.stdout.write('\nℹ Run `clad doctor` for the event log, or `clad sync` to check the spec. The findings above say what drifted and why.\n');
   }
   // F-b84c38 — verification freshness needs a data source: every tier run
   // lands in the ledger (best-effort, deduped per identical HEAD/tier/strict/
@@ -822,12 +823,20 @@ export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tie
       process.exit(1);
     }
   }
+  const result = runCheckStages({...opts, focusModules});
+  // F-f4e184f7 + F-be5306eb: a non-blocking advisory when the feature cycle isn't
+  // being driven — code with no feature specs (cold-start), or undone features with
+  // no hook/CI. Suppressed under --json.
+  if (!opts.json) {
+    const advisory = featureCycleAdvisory('.');
+    if (advisory) process.stdout.write(`ℹ ${advisory}\n`);
+  }
   // Set process.exitCode rather than process.exit(): the machine-output mode
   // (--json) can write >64KB to stdout, and process.exit() terminates before a
   // buffered stdout PIPE flushes — truncating the document for any consumer
   // that pipes (vs. redirects to a file). Letting the event loop drain
   // guarantees the full payload is emitted, then Node exits with this code.
-  process.exitCode = runCheckStages({...opts, focusModules}).worst;
+  process.exitCode = result.worst;
 }
 
 /**
@@ -902,6 +911,7 @@ export function runOracleCommand(featureId: string | undefined, opts: {ac?: stri
 function printStageDetails(
   r: {
     stderr?: string;
+    hint?: string;
     findings?: readonly {detector: string; severity: string; message: string; path?: string}[];
   },
 ): void {
@@ -920,6 +930,8 @@ function printStageDetails(
     if (surface.length > 3) {
       process.stdout.write(`    … and ${surface.length - 3} more finding(s)\n`);
     }
+    // F-4643d99d: a one-line remediation hint under a failing tool stage.
+    if (r.hint) process.stdout.write(`    fix: run \`${r.hint}\`\n`);
     return;
   }
   if (r.stderr && r.stderr.trim().length > 0) {
@@ -1038,7 +1050,7 @@ export function runRouteCommand(prompt: string): void {
  */
 export function createProgram(): Command {
   const program = new Command();
-  program.name('clad').description('Reference Ironclad CLI').version('0.9.0');
+  program.name('clad').description('Reference Ironclad CLI').version('0.9.1');
 
   program
     .command('init [intent...]')

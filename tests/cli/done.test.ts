@@ -219,14 +219,14 @@ describe('runDone', () => {
     expect(res.reason).toContain('feature id required');
   });
 
-  test('no matching shard → code 1 with "no feature shard"', () => {
+  test('no matching feature → code 1 with "no feature in the spec"', () => {
     // spec/features/ does not exist at all.
     const res = runDone(dir, FEATURE_ID, {
       checkStages: () => ({worst: 0}),
     });
     expect(res.ok).toBe(false);
     expect(res.code).toBe(1);
-    expect(res.reason).toContain('no feature shard');
+    expect(res.reason).toContain('no feature in the spec');
   });
 
   test('flip precedes the gate — the gate sees status: done already on disk', () => {
@@ -321,7 +321,7 @@ describe('runDone git-operation guard (F-10cc42d1 · AC-611089cf)', () => {
     const res = runDone(dir, 'F-nomatch', {checkStages: () => ({worst: 0}), gitOpInProgress: () => 'merge'});
     expect(res.ok).toBe(false);
     expect(res.reason).toContain('merge');
-    expect(res.reason).not.toContain('no feature shard');
+    expect(res.reason).not.toContain('no feature in the spec');
   });
 
   test('a null probe leaves the transition unguarded — the GREEN path still flips to done', () => {

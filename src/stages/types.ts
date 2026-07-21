@@ -55,6 +55,12 @@ export interface StageResult {
    * verdict reducer prefers the first path-bearing finding for `next_action`.
    */
   readonly findings?: readonly DriftFinding[];
+  /**
+   * NEW (F-4643d99d) — a one-line remediation hint the check renderer prints
+   * under a failing tool stage's findings (e.g. `dart format .`). Additive;
+   * absent on green stages and on stages with no known fix command.
+   */
+  readonly hint?: string;
 }
 
 /** Shared options for any stage that wraps an external command. */

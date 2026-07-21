@@ -20,6 +20,17 @@ import {missingToolSkip, ranToolResult} from './util.js';
 const STAGE = 'stage_1.2';
 
 /**
+ * Fix command for a recognised check-only formatter, else undefined. These tools
+ * verify formatting and exit non-zero on any diff but do not fix in place; the
+ * hint tells the user which one command makes the stage green (F-4643d99d).
+ */
+function formatterFixHint(cmd: string, args: readonly string[]): string | undefined {
+  if (cmd === 'dart' && args[0] === 'format') return 'dart format .';
+  if (cmd === 'dotnet' && args.includes('format')) return 'dotnet format';
+  return undefined;
+}
+
+/**
  * Runs the project's linter and returns an Ironclad-shaped stage result.
  *
  * The tool is resolved in this priority:
@@ -60,7 +71,14 @@ export function runLint(opts: CommandStageOptions = {}): StageResult {
   // any non-zero exit → blocking fail (1), never the tool's raw 2 (= skip).
   // ADDITIVE (F-b7873005): on failure, attach structured findings parsed from
   // the linter's own output — the raw stderr is preserved unchanged.
-  return withFindings('lint', ranToolResult(STAGE, proc), proc);
+  const result = withFindings('lint', ranToolResult(STAGE, proc), proc);
+  // ADDITIVE (F-4643d99d): on a failing check-only formatter, carry a one-line
+  // fix hint the renderer prints under the per-file findings.
+  if (!result.pass) {
+    const hint = formatterFixHint(cmd, args);
+    if (hint) return {...result, hint};
+  }
+  return result;
 }
 
 // CLI entry — `tsx stages/lint.ts` or `npm run stage:lint`.
