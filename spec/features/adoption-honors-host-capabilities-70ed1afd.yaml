@@ -1,0 +1,34 @@
+id: F-70ed1afd
+slug: adoption-honors-host-capabilities
+title: "Existing-project adoption honors the host draft's approved capabilities"
+status: done
+modules:
+  - src/cli/init.ts
+acceptance_criteria:
+  - id: AC-d20df076
+    ears: event
+    condition: "when an existing project is adopted through the onboarding flow and the host/LLM draft dispatch fires fully (onboarding source is 'llm')"
+    action: "select onboarding.capabilitiesYaml over interp.capabilitiesYaml in the scan branch"
+    response: "spec/capabilities.yaml carries the draft's id/title/summary/surface entries"
+    text: "The system shall write the draft's approved capabilities to spec/capabilities.yaml instead of the scanner's README-derived capabilities."
+    test_refs: ["tests/serve/init-tools.test.ts"]
+  - id: AC-039f62b6
+    ears: unwanted
+    condition: "if the adopted repository has no README ## headings"
+    response: "spec/capabilities.yaml is the draft's capabilities, never 'capabilities: []' when a fired draft provided them"
+    text: "The system shall not write an empty capabilities list when a fired draft supplied capabilities, and shall persist the draft's capabilities instead."
+    test_refs: ["tests/serve/init-tools.test.ts"]
+  - id: AC-6421da1f
+    ears: state
+    condition: "while the onboarding dispatch did not fire (source is 'deterministic') or no intent was provided so there is no onboarding pass"
+    text: "The system shall fall back to the scanner-derived capabilities, preserving prior behavior for --no-llm and no-intent scans."
+    test_refs: ["tests/cli/init.test.ts"]
+  - id: AC-aa2d0e2c
+    ears: ubiquitous
+    text: "The system shall keep docs/conventions.md and spec/architecture.yaml sourced from the scanner (code-grounded), unaffected by the capability-source preference."
+    test_refs: ["tests/scenarios/existing-adoption-lifecycle.test.ts"]
+design_impact:
+  classification: none
+  rationale: "Behavioral fix to how the init scan-branch sources spec/capabilities.yaml; it does not alter cladding's own capabilities, architecture, or project-context artifacts."
+  status: resolved
+  artifacts: []

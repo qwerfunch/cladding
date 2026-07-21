@@ -159,6 +159,7 @@ features:
   F-6ed216f3: {slug: interactive-drift-profile, status: done, modules: 5}
   F-6f80e7: {slug: claude-code-dogfood, status: done, modules: 1}
   F-7076f7: {slug: smoke-probe-demand, status: done, modules: 3}
+  F-70ed1afd: {slug: adoption-honors-host-capabilities, status: done, modules: 1}
   F-723c81dd: {slug: agent-interpreter-rule, status: done, modules: 7}
   F-7794a6bc: {slug: impact-blast-radius, status: done, modules: 3}
   F-77a90ac6: {slug: scan-layer-glob-source-root, status: done, modules: 1}
