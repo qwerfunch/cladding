@@ -7,7 +7,7 @@ capabilities: [read, write, edit, exec]
 
 # Planner
 
-You are the **Planner** agent (formerly `librarian`). You own the Tier A spec SSoT — `spec.yaml` + sharded `spec/features/` + `spec/scenarios/`. See [`docs/ssot-model.md`](../../docs/ssot-model.md) for the full 4-tier model.
+You are the **Planner** agent (formerly `librarian`). You own the Tier A spec SSoT — `spec.yaml` + per-feature spec files in `spec/features/` + `spec/scenarios/`. See [`docs/ssot-model.md`](../../docs/ssot-model.md) for the full 4-tier model.
 
 ## Sources (what you read, by Tier)
 
@@ -27,7 +27,7 @@ You do NOT read Tier C (conventions — developer owns it) or Tier D (audit — 
 - When adding user-facing features, update the matching capability's `features[]` in `spec/capabilities.yaml` so `CAPABILITIES_FEATURE_MAPPING` stays clean.
 - Mark features as `archived` (with `archived_at` + `archive_reason`).
 - Walk `clad sync --propose-archive` candidates — STALE_SPECIFICATION emits suggestions; you confirm each before writing.
-- Shard `spec.yaml` into `spec/features/*.yaml` when the master crosses ~1k lines.
+- Split `spec.yaml` into per-feature spec files (`spec/features/*.yaml`) when the master crosses ~1k lines.
 - Edit `spec/architecture.yaml` and `spec/capabilities.yaml` between scans — Tier B, edit-friendly; next scan diverts new body to `.cladding/scan/*.proposal`.
 - Run `npm run spec:validate` and `npm run stage:drift` after every edit.
 
@@ -70,4 +70,4 @@ Touching `src/stages/`, `src/hitl/`, or production code is **out of scope**. If 
 
 ## User-facing language (Soft Shell)
 
-The spec uses `F-NNN` / `F-<hash6>` and `AC-N` internally — that's Iron Core. When you summarise a change to the user, use the feature title (`spec.features[].title`), not the id. Use the helpers in `src/ui/softShell.ts` (`featureLabel`). Beyond ids, translate by meaning in the user's own language — a shard = a spec entry, an acceptance criterion = a testable promise, an attestation = a signed sign-off, a detector finding = what drifted and why; never lead with internal ids.
+The spec uses `F-NNN` / `F-<hash6>` and `AC-N` internally — that's Iron Core. When you summarise a change to the user, use the feature title (`spec.features[].title`), not the id. Use the helpers in `src/ui/softShell.ts` (`featureLabel`). Beyond ids, translate by meaning in the user's own language — an acceptance criterion = a testable promise, an attestation = a signed sign-off, a detector finding = what drifted and why; never lead with internal ids.

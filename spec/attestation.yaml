@@ -18,14 +18,14 @@ attested_modules:
   .github/workflows/ci.yml: 8ea99219cb80df60
   .gitignore: 1294975ba3b47043
   CHANGELOG.md: c3353cc4baf17ec7
-  CLAUDE.md: 16212c1749e6005d
+  CLAUDE.md: 9f2fa4edd5c6df80
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: f9378f61e0073367
-  README.ja.md: 1b94669e076dd9c9
-  README.ko.html: 9209820dc1e7a57a
-  README.ko.md: 160a0845e8775bf6
-  README.md: 81c9c6691e1ce51b
-  README.zh.md: 1572f023debba60d
+  README.html: 5279f49be32246a1
+  README.ja.md: 7500babce103dd55
+  README.ko.html: 68cb46e739415abc
+  README.ko.md: fe0f25795546c550
+  README.md: bd81ec36d52b7118
+  README.zh.md: d139855a357f0818
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -70,22 +70,22 @@ attested_modules:
   package-lock.json: dc094f923ab99ab8
   package.json: 5fc7fe2a9f18a959
   plugins/claude-code/.claude-plugin/plugin.json: 4daaab360fbbea9e
-  plugins/claude-code/agents/developer.md: 40af2943253f6c72
-  plugins/claude-code/agents/observability.md: 5ea8f14b1c9b4a61
-  plugins/claude-code/agents/orchestrator.md: 443c6e13ade590cf
-  plugins/claude-code/agents/planner.md: 5750002ebdfb43f1
-  plugins/claude-code/agents/reviewer.md: 9c4e095e60040473
+  plugins/claude-code/agents/developer.md: 2c4547977f46913e
+  plugins/claude-code/agents/observability.md: 150da78e2ba51885
+  plugins/claude-code/agents/orchestrator.md: acd60ec32857fbe3
+  plugins/claude-code/agents/planner.md: 8fbc7ea526889c5f
+  plugins/claude-code/agents/reviewer.md: 9928347c71265757
   plugins/claude-code/commands/init.md: 5529b13d0f1ab4bf
   plugins/claude-code/hooks/hooks.json: 42321ead26fb1da8
   plugins/codex/.codex-plugin/plugin.json: 835ff6366182f1ea
   plugins/codex/.mcp.json: 43e3f4b2af24aa18
   plugins/codex/skills/check/SKILL.md: 6a665422af510e72
-  plugins/codex/skills/developer/SKILL.md: 40af2943253f6c72
+  plugins/codex/skills/developer/SKILL.md: 2c4547977f46913e
   plugins/codex/skills/init/SKILL.md: 5529b13d0f1ab4bf
-  plugins/codex/skills/observability/SKILL.md: 5ea8f14b1c9b4a61
-  plugins/codex/skills/orchestrator/SKILL.md: 443c6e13ade590cf
-  plugins/codex/skills/planner/SKILL.md: 5750002ebdfb43f1
-  plugins/codex/skills/reviewer/SKILL.md: 9c4e095e60040473
+  plugins/codex/skills/observability/SKILL.md: 150da78e2ba51885
+  plugins/codex/skills/orchestrator/SKILL.md: acd60ec32857fbe3
+  plugins/codex/skills/planner/SKILL.md: 8fbc7ea526889c5f
+  plugins/codex/skills/reviewer/SKILL.md: 9928347c71265757
   plugins/codex/skills/run/SKILL.md: 9f95ff17d70c8dd1
   plugins/codex/skills/serve/SKILL.md: f08bbdbbfeb05041
   plugins/codex/skills/status/SKILL.md: 09faadc50b3449da
@@ -113,7 +113,7 @@ attested_modules:
   skills/serve/SKILL.md: f08bbdbbfeb05041
   skills/status/SKILL.md: 09faadc50b3449da
   skills/sync/SKILL.md: 775c0f990a52a3d9
-  spec.yaml: f3b85cd5c92644ce
+  spec.yaml: f03bdc6a66336832
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -135,12 +135,12 @@ attested_modules:
   src/agents: a4d0f0eb87fed960
   src/agents/README.md: b9fe459af1d36e8d
   src/agents/blind-author.md: e9d2977f9879d3f9
-  src/agents/developer.md: 40af2943253f6c72
+  src/agents/developer.md: 2c4547977f46913e
   src/agents/loader.ts: 6d35560c47f9ae85
-  src/agents/observability.md: 5ea8f14b1c9b4a61
-  src/agents/orchestrator.md: 443c6e13ade590cf
-  src/agents/planner.md: 5750002ebdfb43f1
-  src/agents/reviewer.md: 9c4e095e60040473
+  src/agents/observability.md: 150da78e2ba51885
+  src/agents/orchestrator.md: acd60ec32857fbe3
+  src/agents/planner.md: 8fbc7ea526889c5f
+  src/agents/reviewer.md: 9928347c71265757
   src/changelog/collect.ts: a6c936a7b8c34e2a
   src/changelog/render.ts: 83dd2d95f24ca68c
   src/cli: a4d0f0eb87fed960
@@ -202,9 +202,9 @@ attested_modules:
   src/hitl/anti-self-cert.ts: 53a714d8e489d00a
   src/hitl/audit.ts: 79b06e904815469a
   src/hitl/identity.ts: 52ff84aa666f1dab
-  src/init/agents-md.ts: 7dc05f6d82e5c3ce
+  src/init/agents-md.ts: 3eb5ed2c7b6edc8c
   src/init/git-hook.ts: b77910b0df392cbf
-  src/init/host-instructions.ts: 7a066c646f0b6133
+  src/init/host-instructions.ts: c598f8598d8d1cd4
   src/init/host-setup.ts: 158cc9306a746da1
   src/optimizer: a4d0f0eb87fed960
   src/optimizer/code-excerpt.ts: e2c4598efcd28d2a
@@ -601,6 +601,7 @@ attested_features:
   F-803386ab: ok
   F-80d19d: ok
   F-836a90: ok
+  F-876b6f48: ok
   F-898783ee: ok
   F-8f419e: ok
   F-904495a5: ok

@@ -25,9 +25,9 @@ export const CLAUDE_MD_SECTION = `## cladding
 implements; whoever authors a unit must not sign off on it (anti-self-cert).
 
 **Feature cycle — one at a time** — One feature end-to-end before the next:
-author its shard (\`acceptance_criteria\` + \`modules\`) → implement → author tests
+author its spec entry (\`acceptance_criteria\` + \`modules\`) → implement → author tests
 in a separate context → \`clad done <featureId>\` (sets \`status: done\` only when
-\`clad check --tier=pre-push --strict\` is GREEN). Never author shards ahead of
+\`clad check --tier=pre-push --strict\` is GREEN). Never author spec entries ahead of
 their code, or hand-write \`status: done\`. See \`docs/feature-cycle.md\`.
 
 **Hash-based IDs** — Never hand-author \`F-NNN\` filenames; use the \`clad\` CLI
@@ -37,8 +37,8 @@ their code, or hand-write \`status: done\`. See \`docs/feature-cycle.md\`.
 findings — fix them or update spec.
 
 **Speak the user's language** — when reporting to the user, translate
-cladding terms into plain words in the user's own language (a shard = a spec
-entry) — including cladding's own gate and hook messages: relay them by
+cladding terms into plain words in the user's own language — including
+cladding's own gate and hook messages: relay them by
 meaning. Never lead with internal ids.
 `;
 

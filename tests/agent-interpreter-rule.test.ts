@@ -44,17 +44,16 @@ const read = (rel: string): string => readFileSync(join(ROOT, rel), 'utf8');
 const norm = (s: string): string => s.replace(/\s+/g, ' ');
 
 // Tolerant patterns — phrasing legitimately varies per template/persona.
-// Orchestrator's is the most compressed variant ("shard = spec entry",
+// Orchestrator's is the most compressed variant ("attestation = sign-off",
 // "never lead with ids" — no article, no "internal"); every persona and
-// both templates must still satisfy all three semantic elements.
+// both templates must still satisfy the semantic elements.
 const TRANSLATE_BY_MEANING = /translate by meaning/i;
-const SHARD_SPEC_ENTRY_EQUIV = /shard\s*=\s*a?\s*spec entry/i;
 const USERS_OWN_LANGUAGE = /user's own language/i;
 const NEVER_LEAD_WITH_IDS = /never lead with(?: an)?(?: internal)? ids?/i;
-// AC-6bf501f8's own text names three nouns explicitly (shard, attestation,
-// detector findings) reported "by meaning" — these two catch the other pair
-// alongside SHARD_SPEC_ENTRY_EQUIV, so the persona check does not silently
-// narrow the AC's three-noun claim down to just the shard example.
+// The translate-by-meaning clause names example equivalences reported "by
+// meaning". "shard" was dropped from those examples (cladding no longer
+// exposes "shard" to users — it says "spec entry" directly), so attestation +
+// finding prove the clause is a real mapping list, not a bare phrase.
 const ATTESTATION_EQUIV = /attestation\s*=\s*(a\s+)?(signed\s+)?sign-off/i;
 const FINDING_EQUIV = /finding\s*=\s*what drifted/i;
 
@@ -116,13 +115,12 @@ describe('AC-6bf501f8 · all five personas extend Soft Shell with the three sema
   });
 
   for (const relPath of PERSONA_FILES) {
-    test(`${relPath}: Soft Shell section translates by meaning (shard = spec entry), in the user's own language, never leading with ids`, () => {
+    test(`${relPath}: Soft Shell section translates by meaning, in the user's own language, never leading with ids`, () => {
       const body = read(relPath);
       const sectionStart = body.indexOf('## User-facing language');
       expect(sectionStart, `${relPath}: must have a "User-facing language" section`).toBeGreaterThanOrEqual(0);
       const section = body.slice(sectionStart);
       expect(section, `${relPath}: translate-by-meaning clause`).toMatch(TRANSLATE_BY_MEANING);
-      expect(section, `${relPath}: shard = spec entry equivalence`).toMatch(SHARD_SPEC_ENTRY_EQUIV);
       expect(section, `${relPath}: attestation = sign-off equivalence`).toMatch(ATTESTATION_EQUIV);
       expect(section, `${relPath}: detector finding = what drifted equivalence`).toMatch(FINDING_EQUIV);
       expect(section, `${relPath}: user's-own-language clause`).toMatch(USERS_OWN_LANGUAGE);
@@ -140,23 +138,21 @@ describe('AC-6bf501f8 · all five personas extend Soft Shell with the three sema
     const stub =
       'Use src/ui/softShell.ts (featureLabel, gateLabel) to keep F-NNN / stage_X.Y codes out of user-facing prose.';
     expect(TRANSLATE_BY_MEANING.test(stub)).toBe(false);
-    expect(SHARD_SPEC_ENTRY_EQUIV.test(stub)).toBe(false);
     expect(ATTESTATION_EQUIV.test(stub)).toBe(false);
     expect(FINDING_EQUIV.test(stub)).toBe(false);
     expect(USERS_OWN_LANGUAGE.test(stub)).toBe(false);
     expect(NEVER_LEAD_WITH_IDS.test(stub)).toBe(false);
 
     const real =
-      "translate by meaning in the user's own language — a shard = a spec entry, an attestation = a signed sign-off, a detector finding = what drifted and why; never lead with internal ids.";
+      "translate by meaning in the user's own language — an attestation = a signed sign-off, a detector finding = what drifted and why; never lead with internal ids.";
     expect(TRANSLATE_BY_MEANING.test(real)).toBe(true);
-    expect(SHARD_SPEC_ENTRY_EQUIV.test(real)).toBe(true);
     expect(ATTESTATION_EQUIV.test(real)).toBe(true);
     expect(FINDING_EQUIV.test(real)).toBe(true);
     expect(USERS_OWN_LANGUAGE.test(real)).toBe(true);
     expect(NEVER_LEAD_WITH_IDS.test(real)).toBe(true);
 
-    const orchestratorVariant = 'translate by meaning in the user\'s own language — shard = spec entry; never lead with ids.';
-    expect(SHARD_SPEC_ENTRY_EQUIV.test(orchestratorVariant)).toBe(true);
+    const orchestratorVariant = 'translate by meaning in the user\'s own language — attestation = sign-off, finding = what drifted; never lead with ids.';
+    expect(ATTESTATION_EQUIV.test(orchestratorVariant)).toBe(true);
     expect(NEVER_LEAD_WITH_IDS.test(orchestratorVariant)).toBe(true);
   });
 });

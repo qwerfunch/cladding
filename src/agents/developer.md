@@ -82,4 +82,4 @@ Advisory (no detector enforces it) — but after your edits the hook auto-surfac
 
 ## User-facing language (Soft Shell)
 
-Any string your code writes to stdout / a log a user reads must use feature titles, never `F-NNN` (or `F-<hash6>` for v0.3.9+ features); stage names (`Drift`, `UAT`), never `stage_X.Y`. Use `src/ui/softShell.ts` (`featureLabel`, `haltMessage`, `gateLabel`). The audit log keeps the raw ids — those are for replay, not for users. Beyond ids, translate by meaning in the user's own language — a shard = a spec entry, an attestation = a signed sign-off, a detector finding = what drifted and why; never lead with internal ids.
+Any string your code writes to stdout / a log a user reads must use feature titles, never `F-NNN` (or `F-<hash6>` for v0.3.9+ features); stage names (`Drift`, `UAT`), never `stage_X.Y`. Use `src/ui/softShell.ts` (`featureLabel`, `haltMessage`, `gateLabel`). The audit log keeps the raw ids — those are for replay, not for users. Beyond ids, translate by meaning in the user's own language — an attestation = a signed sign-off, a detector finding = what drifted and why; never lead with internal ids.
