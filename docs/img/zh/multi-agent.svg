@@ -29,12 +29,12 @@
   <rect x="320" y="48" width="84" height="3" rx="1.5" fill="#3b82f6"/>
   <text x="362" y="71" text-anchor="middle" class="sub0">契合 EU AI Act · SOX 背后的职责分离原则</text>
 
-  <!-- orchestrator : deep-blue focal -->
-  <rect x="282" y="86" width="160" height="58" rx="14" class="focalbox"/>
-  <text x="362" y="114" text-anchor="middle" class="focal" font-size="18">orchestrator</text>
-  <text x="362" y="133" text-anchor="middle" font-size="11.5" font-weight="600" fill="#dbeafe">循环契约</text>
+  <!-- host : deep-blue focal -->
+  <rect x="242" y="86" width="240" height="58" rx="14" class="focalbox"/>
+  <text x="362" y="114" text-anchor="middle" class="focal" font-size="18">host</text>
+  <text x="362" y="133" text-anchor="middle" font-size="11.5" font-weight="600" fill="#dbeafe">运行 agent — 数量 · 模型 · 并行</text>
 
-  <!-- dispatch arrows : orchestrator -> workers -->
+  <!-- host runs the role briefs -->
   <g fill="none" stroke="#3b82f6" stroke-width="1.6">
     <line x1="302" y1="144" x2="98"  y2="185" marker-end="url(#ab)"/>
     <line x1="340" y1="144" x2="274" y2="185" marker-end="url(#ab)"/>
@@ -71,7 +71,7 @@
   <text x="562" y="268" class="item">▸ 看不到实现</text>
   <text x="562" y="287" class="muted">未授予 Read/Grep</text>
 
-  <!-- converging arrows : workers -> observability -->
+  <!-- converging arrows : workers -> the judged record -->
   <g fill="none" stroke="#3b82f6" stroke-width="1.6">
     <line x1="98"  y1="292" x2="200" y2="336" marker-end="url(#ab)"/>
     <line x1="274" y1="292" x2="250" y2="336" marker-end="url(#ab)"/>
@@ -79,12 +79,12 @@
     <line x1="626" y1="292" x2="360" y2="336" marker-end="url(#ab)"/>
   </g>
 
-  <!-- observability -->
+  <!-- cladding : judgment card -->
   <rect x="130" y="340" width="300" height="84" rx="14" class="card"/>
   <path d="M130 372 L130 354 Q130 340 144 340 L416 340 Q430 340 430 354 L430 372 Z" class="band"/>
-  <text x="280" y="361" text-anchor="middle" class="hdr">observability</text>
-  <text x="146" y="398" class="item">▸ 观察指标</text>
-  <text x="146" y="416" class="muted">汇报模式供人查看</text>
+  <text x="280" y="361" text-anchor="middle" class="hdr">cladding</text>
+  <text x="146" y="398" class="item">▸ 关卡 — 完成靠赢得</text>
+  <text x="146" y="416" class="item">▸ 标签 — independent | self-certified</text>
 
   <!-- anti-self-cert principle : red block band -->
   <rect x="448" y="340" width="258" height="84" rx="14" class="card"/>

@@ -232,34 +232,49 @@ describe('README Multi-Agent section speaks the role contract, not choreography 
   });
 });
 
-// AC-8d63da98 extension — the localized multi-agent.svg diagrams must not
-// render the dispatch story either. Each file carries one non-rendered
-// authoring comment (`<!-- dispatch arrows : orchestrator -> workers -->`)
-// that still literally says "dispatch" — it describes unchanged arrow
-// geometry (a deliberately out-of-scope geometry rework, per the impl
-// report), is never rendered, and its removal is NOT demanded here. Comments
-// are stripped before matching so only rendered <title>/<text> content (the
-// a11y title and on-canvas labels) is checked.
-describe('localized multi-agent.svg diagrams render no dispatch story (AC-8d63da98)', () => {
+// F-4498eb3d — the localized multi-agent.svg diagrams draw the role
+// contract, not an orchestrator dispatching workers. The diagram's hub used
+// to be an "orchestrator" box with a "<!-- dispatch arrows : orchestrator ->
+// workers -->" authoring comment; both the rendered word and the comment are
+// now GONE by design (the hub is "host", which runs the role briefs — see
+// the impl report). Since the choreography vocabulary must be absent
+// EVERYWHERE (rendered text and authoring comments alike), these checks run
+// against the whole raw file — no comment-stripping.
+describe('localized multi-agent.svg diagrams draw the role contract (F-4498eb3d)', () => {
   const SVGS: readonly string[] = [
     'docs/img/en/multi-agent.svg',
     'docs/img/ko/multi-agent.svg',
     'docs/img/ja/multi-agent.svg',
     'docs/img/zh/multi-agent.svg',
   ];
-  const stripXmlComments = (svg: string): string => svg.replace(/<!--[\s\S]*?-->/g, '');
 
-  for (const f of SVGS) {
-    test(`${f}: rendered text/title content matches no /dispatch/i`, () => {
-      const raw = repoRead(f);
-      // Sanity check — the known non-rendered authoring comment is still
-      // present, so the assertion below proves the comment-strip is doing
-      // real work rather than vacuously passing on a file with no needle at all.
-      expect(raw, `${f}: expected the known authoring comment to still mention "dispatch" (non-rendered, not required to be removed)`).toMatch(
-        /dispatch/i,
-      );
-      const rendered = stripXmlComments(raw);
-      expect(rendered, `${f}: rendered SVG text/title must not match /dispatch/i`).not.toMatch(/dispatch/i);
+  describe('AC-4a195d3a — no dispatch/orchestrator story anywhere, comments included', () => {
+    for (const f of SVGS) {
+      test(`${f}: whole file matches no /dispatch/i`, () => {
+        const raw = repoRead(f);
+        expect(raw, `${f}: must not match /dispatch/i anywhere, comments included`).not.toMatch(/dispatch/i);
+      });
+
+      test(`${f}: whole file matches no /orchestrat/i`, () => {
+        const raw = repoRead(f);
+        expect(raw, `${f}: must not match /orchestrat/i anywhere, comments included`).not.toMatch(/orchestrat/i);
+      });
+    }
+  });
+
+  describe('AC-4c5b1cc6 — the convergence point carries the independence label', () => {
+    for (const f of SVGS) {
+      test(`${f}: contains both "independent" and "self-certified"`, () => {
+        const raw = repoRead(f);
+        expect(raw, `${f}: must contain "independent"`).toContain('independent');
+        expect(raw, `${f}: must contain "self-certified"`).toContain('self-certified');
+      });
+    }
+
+    test('docs/img/en/multi-agent.svg: contains "host" and "cladding"', () => {
+      const raw = repoRead('docs/img/en/multi-agent.svg');
+      expect(raw, 'en file must contain "host"').toContain('host');
+      expect(raw, 'en file must contain "cladding"').toContain('cladding');
     });
-  }
+  });
 });
