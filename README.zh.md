@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-2715%2F2715-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-2710%2F2710-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -204,17 +204,17 @@ acceptance_criteria:
 
 <!-- ─────────────── Multi-Agent ─────────────── -->
 
-## Multi-Agent —— 把建造者与验证者分开
+## Multi-Agent —— 怎么跑由你，怎么判由 cladding
 
-把负责**建造**的智能体和负责**验证**的智能体隔开、让没有哪个智能体能给自己的活儿盖章放行 —— 这不是 cladding 替你运行的一条流水线，而是一个**声明出来的结果条件**。cladding 依据记录来**判定**它：每一次经 `clad done` / `clad verdict` 完成的收尾，都会被打上 `independent` 或 `self-certified` 标签，它表示的不是代码是否正确，而是**记录在案的证据所显示的情况** —— 是否有过独立评审或人工签署。标签只是把这一点显现出来，本身并不拦截。想要强制的团队，可在 `spec.yaml` 里设 `independence_policy: require`，于是 self-certified 的收尾会被拒绝。
+cladding 不是一个多智能体框架：它从不 spawn、路由或协调智能体，也不规定、更看不到到底有几个。它掌管的东西更小也更锋利 —— 建造者和验证者是否真的分开了，并把这一点记录在案。
 
-用几个智能体、哪种模型、并行到什么程度，都由**宿主**决定。cladding 只提供角色简介（planner · developer · reviewer · observability · blind-author），无论你用什么形态的智能体去承载它，都不会指定该如何 spawn。其中最锋利的是 **blind-author** —— 撰写测试的那个智能体*根本读不到代码*（不授予它 Read/Grep 工具），于是「没读代码就写出了测试」不是一句承诺，而是它接线方式带来的结构性事实。这正是审计规范（EU AI Act · SOX）所要求的那种**职责分离** —— 说的是精神上相符，而不是一纸认证。
+同一个项目，可以用三种不同的方式交付三个 feature：
 
-<div align="center">
+- 一个智能体又建造、又测试、又评审 —— 标为 `self-certified`
+- 第二个智能体只凭规格写测试（它没有读代码的工具） —— 标为 `independent`
+- 由人来签署评审 —— 标为 `independent`
 
-<img src="docs/img/zh/multi-agent.svg" alt="职责分离 —— 把角色分开，任何智能体都无法给自己的工作盖章放行；每一次收尾都依据记录在案的证据被标为 independent 或 self-certified；智能体如何运行由宿主决定" width="700">
-
-</div>
+`clad done` / `clad verdict` 上的标签，只报告每一次收尾记录在案的证据所显示的情况 —— 从不涉及是哪些智能体、用了几个、出自谁手。它本身并不拦截；想要强制的团队，可在 `spec.yaml` 里设 `independence_policy: require`，于是 self-certified 的收尾会被拒绝。角色简介（planner · developer · reviewer · observability · blind-author）只是 cladding 各接触点的可选手册，而非一份固定的班底。这正是 EU AI Act、SOX 这类审计规范所要求的那种职责分离 —— 说的是精神相符，而不是一纸认证。
 
 <!-- ─────────────── Ecosystem ─────────────── -->
 
@@ -337,7 +337,7 @@ clad update              # 3. 刷新项目连接和派生状态
 
 | 版本 | 一致性 | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.9.0（2026-07） | L4 · [自我声明](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2715 / 2715 | 15 阶段 · 41 检测器 | 261（258 done） |
+| v0.9.0（2026-07） | L4 · [自我声明](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2710 / 2710 | 15 阶段 · 41 检测器 | 261（258 done） |
 
 <sub>236 个测试文件 · 6 项 capability · 覆盖率下降由 COVERAGE_DROP 检测器拦下</sub>
 

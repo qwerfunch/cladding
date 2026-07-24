@@ -1,12 +1,11 @@
 id: F-4498eb3d
 slug: multi-agent-diagram-role-contract
 title: "Multi-agent diagram draws the role contract, not an orchestrator hub"
-status: done
-modules:
-  - docs/img/en/multi-agent.svg
-  - docs/img/ko/multi-agent.svg
-  - docs/img/ja/multi-agent.svg
-  - docs/img/zh/multi-agent.svg
+status: archived
+archived_at: "2026-07-25T00:00:00Z"
+archive_reason: "Superseded by readme-multiagent-inversion (F-8476ccb1): after four diagram drafts (org-chart relabel, contract-boundary, host-frame roster, three-shapes contrast) the user chose a prose-only Multi-Agent section — the three-shapes contrast moved into the README text and the four locale multi-agent.svg files were removed."
+superseded_by: F-8476ccb1
+modules: []
 acceptance_criteria:
   - id: AC-4a195d3a
     ears: ubiquitous

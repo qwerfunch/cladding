@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-2715%2F2715-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-2710%2F2710-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -208,17 +208,17 @@ acceptance_criteria:
 
 <!-- ─────────────── Multi-Agent ─────────────── -->
 
-## Multi-Agent — 作る側と検証する側を分ける
+## Multi-Agent — 走らせるのはあなた、判定するのは cladding
 
-**作る** エージェントと **検証する** エージェントを分け、どのエージェントも自分の仕事に自分で承認を与えられないようにする — これは cladding が代わりに回すパイプラインではなく、**宣言された結果条件**だ。cladding はそれを記録から **判定する**: `clad done` / `clad verdict` を通したすべての完了に `independent` か `self-certified` のラベルが付き、コードが正しいかどうかではなく、**記録された証拠が示すこと** — 独立レビューや人間の承認があったかどうか — を表す。ラベルはそれを見えるようにするだけで、それ自体がブロックするわけではない。強制したいチームは `spec.yaml` に `independence_policy: require` を置き、self-certified の完了を拒否する。
+cladding はマルチエージェント・フレームワークではない。エージェントをスポーンも、ルーティングも、調整もしないし、何個走るかを指示することも見ることもない。cladding が握っているのはもっと小さく鋭いもの — 作る側と検証する側が実際に分かれていたか、を記録に残すことだ。
 
-エージェントを何個、どのモデルで、どれだけ並列で走らせるかは **ホスト** が決める。cladding は役割ブリーフ（planner · developer · reviewer · observability · blind-author）を提供するだけで、どんなエージェント構成で体現しようと、スポーンを指示しない。なかでも最も鋭いのが **blind-author** だ — テストを書くエージェントには、そもそも *実装を読む手段が与えられていない*（Read/Grep を付与しない）。「実装を見ずに書いた」が約束ではなく構造的な事実になる。この分離は、規制 · 監査の枠組み（EU AI Act · SOX）が求める職務分掌の原則と重なる — それらの精神に合致するという意味であって、認証ではない。
+同じプロジェクトが、三つの feature を三通りのやり方で出荷できる：
 
-<div align="center">
+- 一つのエージェントが作り、テストし、レビューする — `self-certified` と表示
+- 二つ目のエージェントが仕様だけを見てテストを書く（コードを読む手段がない） — `independent` と表示
+- 人間がレビューを承認する — `independent` と表示
 
-<img src="docs/img/ja/multi-agent.svg" alt="職務分離 — 役割を分けてどのエージェントも自分の仕事を自分で承認できず、すべての完了は記録された証拠に基づき independent か self-certified のラベルが付く。エージェントの走らせ方はホストが決める" width="700">
-
-</div>
+`clad done` / `clad verdict` のラベルは、各完了の記録された証拠が示すものを表すだけで、どのエージェントが、何個で、誰の手で作業したかは決して含まない。ラベル自体はブロックしない。強制したいチームは `spec.yaml` に `independence_policy: require` を置き、self-certified の完了は拒否される。役割ブリーフ（planner · developer · reviewer · observability · blind-author）は cladding の接点のための任意のマニュアルとして残るだけで、固定の配役ではない。これは EU AI Act や SOX のような監査規則が求めるのと同じ職務分掌だ — その精神においてであって、認証ではない。
 
 <!-- ─────────────── Ecosystem ─────────────── -->
 
@@ -341,7 +341,7 @@ clad update              # 3. プロジェクト接続と派生状態を更新�
 
 | Version | 準拠レベル | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.9.0（2026-07） | L4 · [自己申告](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2715 / 2715 | 15 段階 · 41 detectors | 261（258 done） |
+| v0.9.0（2026-07） | L4 · [自己申告](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2710 / 2710 | 15 段階 · 41 detectors | 261（258 done） |
 
 <sub>236 test files · capability 6 個 · カバレッジ低下は COVERAGE_DROP detector がブロック</sub>
 

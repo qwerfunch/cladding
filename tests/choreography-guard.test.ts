@@ -259,49 +259,38 @@ describe('README Multi-Agent section speaks the role contract, not choreography 
   });
 });
 
-// F-4498eb3d — the localized multi-agent.svg diagrams draw the role
-// contract, not an orchestrator dispatching workers. The diagram's hub used
-// to be an "orchestrator" box with a "<!-- dispatch arrows : orchestrator ->
-// workers -->" authoring comment; both the rendered word and the comment are
-// now GONE by design (the hub is "host", which runs the role briefs — see
-// the impl report). Since the choreography vocabulary must be absent
-// EVERYWHERE (rendered text and authoring comments alike), these checks run
-// against the whole raw file — no comment-stripping.
-describe('localized multi-agent.svg diagrams draw the role contract (F-4498eb3d)', () => {
-  const SVGS: readonly string[] = [
-    'docs/img/en/multi-agent.svg',
-    'docs/img/ko/multi-agent.svg',
-    'docs/img/ja/multi-agent.svg',
-    'docs/img/zh/multi-agent.svg',
-  ];
-
-  describe('AC-4a195d3a — no dispatch/orchestrator story anywhere, comments included', () => {
-    for (const f of SVGS) {
-      test(`${f}: whole file matches no /dispatch/i`, () => {
-        const raw = repoRead(f);
-        expect(raw, `${f}: must not match /dispatch/i anywhere, comments included`).not.toMatch(/dispatch/i);
-      });
-
-      test(`${f}: whole file matches no /orchestrat/i`, () => {
-        const raw = repoRead(f);
-        expect(raw, `${f}: must not match /orchestrat/i anywhere, comments included`).not.toMatch(/orchestrat/i);
-      });
-    }
+// F-8476ccb1 — README Multi-Agent section inverts the frame in prose alone:
+// yours to run, cladding's to judge. Supersedes F-4498eb3d (now archived):
+// the four docs/img/<lang>/multi-agent.svg diagrams are deleted, and the
+// three-shape contrast that used to live in the diagram now lives as a
+// compact prose list. This block replaces the former SVG-guard describe
+// ('localized multi-agent.svg diagrams draw the role contract (F-4498eb3d)')
+// which asserted against files that no longer exist.
+describe('README Multi-Agent section carries the inversion in prose alone (F-8476ccb1)', () => {
+  describe('AC-111fb976 — opens by denying the old identity', () => {
+    test('README.md: Multi-Agent slice contains "not a multi-agent framework"', () => {
+      const slice = multiAgentSliceOf('README.md');
+      expect(slice, 'README.md: Multi-Agent slice must contain "not a multi-agent framework"').toContain(
+        'not a multi-agent framework',
+      );
+    });
   });
 
-  describe('AC-4c5b1cc6 — the convergence point carries the independence label', () => {
-    for (const f of SVGS) {
-      test(`${f}: contains both "independent" and "self-certified"`, () => {
-        const raw = repoRead(f);
-        expect(raw, `${f}: must contain "independent"`).toContain('independent');
-        expect(raw, `${f}: must contain "self-certified"`).toContain('self-certified');
+  describe('AC-7d433517 — the story carries in prose alone, no embedded diagram', () => {
+    for (const f of README_VARIANTS) {
+      test(`${f}: does not match /multi-agent\\.svg/`, () => {
+        const body = repoRead(f);
+        expect(body, `${f}: must not match /multi-agent\\.svg/`).not.toMatch(/multi-agent\.svg/);
       });
     }
 
-    test('docs/img/en/multi-agent.svg: contains "host" and "cladding"', () => {
-      const raw = repoRead('docs/img/en/multi-agent.svg');
-      expect(raw, 'en file must contain "host"').toContain('host');
-      expect(raw, 'en file must contain "cladding"').toContain('cladding');
+    test('README.md: Multi-Agent slice presents the three-shape contrast as a list (>= 3 lines starting with "- ")', () => {
+      const slice = multiAgentSliceOf('README.md');
+      const listLines = slice.split('\n').filter((line) => line.startsWith('- '));
+      expect(
+        listLines.length,
+        'README.md: Multi-Agent slice must contain at least 3 lines starting with "- "',
+      ).toBeGreaterThanOrEqual(3);
     });
   });
 });

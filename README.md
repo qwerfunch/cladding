@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-2715%2F2715-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-2710%2F2710-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -204,17 +204,17 @@ One feature's lifecycle runs **Define → Sync → Implement → Earn** — you 
 
 <!-- ─────────────── Multi-Agent ─────────────── -->
 
-## Multi-Agent — separating the builder from the verifier
+## Multi-Agent — yours to run, cladding's to judge
 
-Keeping the agents that **build** apart from the agents that **verify** — so no agent signs off on its own work — is a **declared outcome condition here, not a pipeline cladding runs for you.** cladding *judges* it from the record: every completion you take through `clad done` / `clad verdict` is labeled `independent` or `self-certified`, reporting what the recorded evidence shows — whether an independent or human review signed off, not whether the code is right. The label makes that visible; it doesn't block on its own. A team that wants teeth sets `independence_policy: require` in `spec.yaml`, and self-certified completions are refused.
+cladding is not a multi-agent framework: it never spawns, routes, or coordinates agents, and it neither prescribes nor sees how many there are. What it owns is smaller and sharper — whether the builder and the verifier were actually separate, on the record.
 
-How the agents run — how many, which models, how much in parallel — is the **host's** decision. cladding ships role briefs (planner, developer, reviewer, observability, blind-author) the host can embody with any agent shape; it never prescribes spawning. **blind-author** is the sharpest of them: the agent that writes the tests literally *can't read the code* (it's given no Read/Grep tool), so "wrote the tests without looking at the code" is a fact about how it's wired, not a promise. It's the same **separation of duties** that audit rules like the EU AI Act and SOX ask for — in spirit, not a certification.
+The same project can ship three features three different ways:
 
-<div align="center">
+- one agent builds, tests, and reviews — labeled `self-certified`
+- a second agent writes the tests from the spec alone (it has no tool to read the code) — labeled `independent`
+- a person signs off the review — labeled `independent`
 
-<img src="docs/img/en/multi-agent.svg" alt="Separation of duties — the roles are kept separate so no agent signs off on its own work, and every completion is labeled independent or self-certified from the recorded evidence; the host decides how the agents run" width="700">
-
-</div>
+The label on `clad done` / `clad verdict` reports what each completion's recorded evidence shows — never which agents did the work, how many, or whose. It doesn't block on its own; teams that want teeth set `independence_policy: require` in `spec.yaml`, and self-certified completions are refused. The role briefs (planner · developer · reviewer · observability · blind-author) stay optional manuals for cladding's touchpoints, not a fixed cast. It's the same separation of duties audit rules like the EU AI Act and SOX ask for — in spirit, not a certification.
 
 <!-- ─────────────── Ecosystem ─────────────── -->
 
@@ -354,7 +354,7 @@ Reconcile the drift the update flagged.
 
 | Version | Conformance | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.9.0 (2026-07) | L4 · [self-declared](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2715 / 2715 | 15 stages · 41 detectors | 261 (258 done) |
+| v0.9.0 (2026-07) | L4 · [self-declared](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2710 / 2710 | 15 stages · 41 detectors | 261 (258 done) |
 
 <sub>236 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector</sub>
 

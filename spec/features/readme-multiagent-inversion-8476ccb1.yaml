@@ -1,0 +1,32 @@
+id: F-8476ccb1
+slug: readme-multiagent-inversion
+title: "README multi-agent section inverts the frame in prose alone: yours to run, cladding's to judge"
+status: done
+modules:
+  - README.md
+  - README.ko.md
+  - README.ja.md
+  - README.zh.md
+  - README.html
+  - README.ko.html
+acceptance_criteria:
+  - id: AC-111fb976
+    ears: ubiquitous
+    text: "The Multi-Agent section shall open by denying the old identity — cladding is not a multi-agent framework and neither prescribes nor sees the host's agent topology — and ground the separation claim in the evidence-judged independence label."
+    response: "README.md Multi-Agent slice contains the literal 'not a multi-agent framework'; EN/KO slices keep 'independent' and 'self-certified'; no variant slice matches /dispatch/i"
+    test_refs: ["tests/choreography-guard.test.ts"]
+  - id: AC-7d433517
+    ears: ubiquitous
+    text: "The section shall carry the story in prose alone — no embedded diagram; the three-shapes contrast (one agent does everything; a blind test author; a human reviewer — each completion labeled for its own record) lives as a compact list in the text."
+    response: "no README variant matches /multi-agent\\.svg/; the EN slice presents the three-shape contrast as a list"
+    test_refs: ["tests/choreography-guard.test.ts"]
+  - id: AC-a1692ed7
+    ears: ubiquitous
+    text: "Every prior README pin shall survive the inversion — the Multi-Agent heading token and its position after the loop section, the hedged EU AI Act sentence in the four EN/KO variants, and the detector/stage count literals."
+    response: "readme-loop-section, readme-record-honesty and self-consistency suites stay green"
+    test_refs: ["tests/readme-loop-section.test.ts", "tests/readme-record-honesty.test.ts", "tests/self-consistency.test.ts"]
+design_impact:
+  classification: none
+  rationale: "Documentation-layer inversion, prose-only by user decision after four diagram drafts: the section stops resembling a multi-agent team cladding ships; the superseded diagram feature (F-4498eb3d) is archived and its locale SVGs removed. No engine changes."
+  status: resolved
+  artifacts: []

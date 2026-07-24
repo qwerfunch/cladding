@@ -233,7 +233,7 @@
   <p class="badges">
     <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"></a>
     <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"></a>
-    <img src="https://img.shields.io/badge/tests-2715%2F2715-brightgreen" alt="tests">
+    <img src="https://img.shields.io/badge/tests-2710%2F2710-brightgreen" alt="tests">
     <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors">
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"></a>
   </p>
@@ -453,21 +453,19 @@ acceptance_criteria:
   <p>One feature's lifecycle runs <strong>Define → Sync → Implement → Earn</strong> — you earn <code>done</code> only by passing every check.</p>
 
   <!-- ─────────────── Multi-Agent ─────────────── -->
-  <h2>Multi-Agent — separating the builder from the verifier</h2>
+  <h2>Multi-Agent — yours to run, cladding's to judge</h2>
   <p>
-    Keeping the agents that <strong>build</strong> apart from the agents that <strong>verify</strong> — so no agent signs off on its own work — is a <strong>declared outcome condition here, not a pipeline cladding runs for you.</strong>
-    cladding <em>judges</em> it from the record: every completion you take through <code>clad done</code> / <code>clad verdict</code> is labeled <code>independent</code> or <code>self-certified</code>, reporting what the recorded evidence shows — whether an independent or human review signed off, not whether the code is right.
-    The label makes that visible; it doesn't block on its own. A team that wants teeth sets <code>independence_policy: require</code> in <code>spec.yaml</code>, and self-certified completions are refused.
+    cladding is not a multi-agent framework: it never spawns, routes, or coordinates agents, and it neither prescribes nor sees how many there are. What it owns is smaller and sharper — whether the builder and the verifier were actually separate, on the record.
   </p>
+  <p>The same project can ship three features three different ways:</p>
+  <ul>
+    <li>one agent builds, tests, and reviews — labeled <code>self-certified</code></li>
+    <li>a second agent writes the tests from the spec alone (it has no tool to read the code) — labeled <code>independent</code></li>
+    <li>a person signs off the review — labeled <code>independent</code></li>
+  </ul>
   <p>
-    How the agents run — how many, which models, how much in parallel — is the <strong>host's</strong> decision.
-    cladding ships role briefs (planner, developer, reviewer, observability, blind-author) the host can embody with any agent shape; it never prescribes spawning.
-    <strong>blind-author</strong> is the sharpest of them: the agent that writes the tests literally <em>can't read the code</em> (it's given no Read/Grep tool), so "wrote the tests without looking at the code" is a fact about how it's wired, not a promise.
-    It's the same <strong>separation of duties</strong> that audit rules like the EU AI Act and SOX ask for — in spirit, not a certification.
+    The label on <code>clad done</code> / <code>clad verdict</code> reports what each completion's recorded evidence shows — never which agents did the work, how many, or whose. It doesn't block on its own; teams that want teeth set <code>independence_policy: require</code> in <code>spec.yaml</code>, and self-certified completions are refused. The role briefs (planner · developer · reviewer · observability · blind-author) stay optional manuals for cladding's touchpoints, not a fixed cast. It's the same separation of duties audit rules like the EU AI Act and SOX ask for — in spirit, not a certification.
   </p>
-  <div class="diagram">
-    <img class="diagram-img" src="docs/img/en/multi-agent.svg" alt="Separation of duties — the roles are kept separate so no agent signs off on its own work, and every completion is labeled independent or self-certified from the recorded evidence; the host decides how the agents run" width="700">
-  </div>
 
   <!-- ─────────────── Ecosystem ─────────────── -->
   <h2>Ecosystem</h2>
@@ -553,7 +551,7 @@ clad update               # 3. refresh its host wiring and derived state</code><
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">tests</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">2715<span style="font-size:16px;color:#94a3b8">/2715</span></div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">2710<span style="font-size:16px;color:#94a3b8">/2710</span></div>
         <div style="font-size:11px;color:#64748b">all pass</div>
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">

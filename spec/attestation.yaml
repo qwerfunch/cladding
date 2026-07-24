@@ -20,12 +20,12 @@ attested_modules:
   CHANGELOG.md: c3353cc4baf17ec7
   CLAUDE.md: 9f2fa4edd5c6df80
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: a5dcb1c7f06cffaf
-  README.ja.md: eb269dbdc4799287
-  README.ko.html: 5799c10feebfbef9
-  README.ko.md: 6804e651e435a932
-  README.md: f4ca5b9e77bca21d
-  README.zh.md: 3ff55eccf72ddb86
+  README.html: a67f690654f58b76
+  README.ja.md: ead9e640228c48b5
+  README.ko.html: d1f44fbb0570dcbc
+  README.ko.md: 01f559a5544cc0f2
+  README.md: 86e82b671a4b00c4
+  README.zh.md: 7468d02ccc3c638b
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -58,13 +58,9 @@ attested_modules:
   docs/feature-cycle.md: e1847cc9fe9b6eb6
   docs/glossary.md: 9e897b963c3aa88f
   docs/img/en/ecosystem.svg: ed14d1d17f088b00
-  docs/img/en/multi-agent.svg: 24179b55e3d58bb0
   docs/img/en/relationship.svg: c7a24203925b4664
-  docs/img/ja/multi-agent.svg: d7118d0c7e9ad0ef
   docs/img/ko/ecosystem.svg: 2b7341576c2af0a8
-  docs/img/ko/multi-agent.svg: b56c9e44e069c042
   docs/img/ko/relationship.svg: 9ec8fb2254978f37
-  docs/img/zh/multi-agent.svg: 9b381f616a10f1f8
   docs/multi-provider-roadmap.md: 1e5cf27ea1b18d06
   docs/refinement-backlog.md: 3e38d60bf987eef1
   docs/setup.md: a5c062651d267983
@@ -117,7 +113,7 @@ attested_modules:
   skills/serve/SKILL.md: f08bbdbbfeb05041
   skills/status/SKILL.md: 09faadc50b3449da
   skills/sync/SKILL.md: 775c0f990a52a3d9
-  spec.yaml: 019625b441b6478b
+  spec.yaml: 14bbfc4556854fbb
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -563,7 +559,6 @@ attested_features:
   F-417ff0: ok
   F-42af48: ok
   F-43d8e3: ok
-  F-4498eb3d: ok
   F-4643d99d: ok
   F-4747ef: ok
   F-47b8bee5: ok
@@ -608,6 +603,7 @@ attested_features:
   F-803386ab: ok
   F-80d19d: ok
   F-836a90: ok
+  F-8476ccb1: ok
   F-876b6f48: ok
   F-898783ee: ok
   F-8f419e: ok
