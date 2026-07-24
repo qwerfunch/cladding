@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 724 456" width="724" height="456" role="img" aria-labelledby="multi-agent-title" font-family="-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif">
-  <title id="multi-agent-title">エージェントの役割分離 — orchestrator が振り分け、planner/developer/reviewer/blind-author が作業し、observability がメトリクスを観察する。作るエージェントと検証するエージェントを分離する (anti-self-cert)。</title>
+  <title id="multi-agent-title">エージェントの役割分離 — 役割を分けてどのエージェントも自分の仕事を自分で承認できず、すべての完了は記録された証拠に基づき independent か self-certified のラベルが付く。エージェントの走らせ方はホストが決める (anti-self-cert)。</title>
   <defs>
     <style>
       :root{
@@ -32,7 +32,7 @@
   <!-- orchestrator : deep-blue focal -->
   <rect x="282" y="86" width="160" height="58" rx="14" class="focalbox"/>
   <text x="362" y="114" text-anchor="middle" class="focal" font-size="18">orchestrator</text>
-  <text x="362" y="133" text-anchor="middle" font-size="11.5" font-weight="600" fill="#dbeafe">振り分け · ルーティング</text>
+  <text x="362" y="133" text-anchor="middle" font-size="11.5" font-weight="600" fill="#dbeafe">サイクル契約</text>
 
   <!-- dispatch arrows : orchestrator -> workers -->
   <g fill="none" stroke="#3b82f6" stroke-width="1.6">

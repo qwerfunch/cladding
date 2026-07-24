@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-2689%2F2689-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-2703%2F2703-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -206,11 +206,13 @@ acceptance_criteria:
 
 ## Multi-Agent —— 把建造者与验证者分开
 
-负责**建造**的智能体，和负责**验证**的智能体被隔开，因此没有哪个智能体能给自己的活儿盖章放行。**blind-author** 更进一步 —— 撰写测试的那个智能体*根本读不到代码*（不授予它 Read/Grep 工具）。于是「没读代码就写出了测试」不是一句承诺，而是它接线方式带来的结构性事实。这正是审计规范（EU AI Act · SOX）所要求的那种**职责分离** —— 说的是精神上相符，而不是一纸认证。
+把负责**建造**的智能体和负责**验证**的智能体隔开、让没有哪个智能体能给自己的活儿盖章放行 —— 这不是 cladding 替你运行的一条流水线，而是一个**声明出来的结果条件**。cladding 依据记录来**判定**它：每一次经 `clad done` / `clad verdict` 完成的收尾，都会被打上 `independent` 或 `self-certified` 标签，它表示的不是代码是否正确，而是**记录在案的证据所显示的情况** —— 是否有过独立评审或人工签署。标签只是把这一点显现出来，本身并不拦截。想要强制的团队，可在 `spec.yaml` 里设 `independence_policy: require`，于是 self-certified 的收尾会被拒绝。
+
+用几个智能体、哪种模型、并行到什么程度，都由**宿主**决定。cladding 只提供角色简介（planner · developer · reviewer · observability · blind-author），无论你用什么形态的智能体去承载它，都不会指定该如何 spawn。其中最锋利的是 **blind-author** —— 撰写测试的那个智能体*根本读不到代码*（不授予它 Read/Grep 工具），于是「没读代码就写出了测试」不是一句承诺，而是它接线方式带来的结构性事实。这正是审计规范（EU AI Act · SOX）所要求的那种**职责分离** —— 说的是精神上相符，而不是一纸认证。
 
 <div align="center">
 
-<img src="docs/img/zh/multi-agent.svg" alt="智能体职责分离 —— orchestrator 负责分派，planner/developer/reviewer 负责干活，blind-author 是看不到实现的测试撰写者，observability 负责观察" width="700">
+<img src="docs/img/zh/multi-agent.svg" alt="职责分离 —— 把角色分开，任何智能体都无法给自己的工作盖章放行；每一次收尾都依据记录在案的证据被标为 independent 或 self-certified；智能体如何运行由宿主决定" width="700">
 
 </div>
 
@@ -227,7 +229,7 @@ cladding 坐落在三个既有品类的交汇处。
 </div>
 
 - **Spec Kit · OpenSpec · Tessl · Kiro** —— 帮你*写好一份 spec* 的工具。在此之上，cladding 还*在开发循环内部持续交叉核对，确保 spec 与真实代码不发生漂移*。
-- **BMAD · ChatDev · Claude Code Agent Teams** —— *在多个 AI 智能体之间拆分角色*的系统。cladding 的智能体分工，是在这之上再叠合了 *spec · 门禁 · 审计记录* 来运转。
+- **BMAD · ChatDev · Claude Code Agent Teams** —— *在多个 AI 智能体之间拆分角色*的系统。cladding 不替你运行这种拆分，而是把宿主实际跑出来的东西，对照 *spec · 门禁 · 审计记录* 来判定。
 - **tdd-guard** —— *强制 AI 先写测试*的工具。cladding 15 个阶段里的 Unit · Coverage · oracle 阶段，把同一件事做得更成体系。
 - **OpenHands · Cline · Aider · Goose** —— *让 AI 写代码的运行器*（纯执行者）。cladding 是*验证并治理*这些运行器所产代码的*上层*。
 
@@ -335,7 +337,7 @@ clad update              # 3. 刷新项目连接和派生状态
 
 | 版本 | 一致性 | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.9.0（2026-07） | L4 · [自我声明](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2689 / 2689 | 15 阶段 · 41 检测器 | 261（258 done） |
+| v0.9.0（2026-07） | L4 · [自我声明](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2703 / 2703 | 15 阶段 · 41 检测器 | 261（258 done） |
 
 <sub>236 个测试文件 · 6 项 capability · 覆盖率下降由 COVERAGE_DROP 检测器拦下</sub>
 

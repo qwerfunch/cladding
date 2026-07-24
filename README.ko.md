@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-2689%2F2689-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-2703%2F2703-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -209,11 +209,13 @@ acceptance_criteria:
 
 ## Multi-Agent — 만드는 자와 검증하는 자의 분리
 
-**만드는** 에이전트와 **검증하는** 에이전트를 떼어 놓아, 어떤 에이전트도 자기 작업을 스스로 승인하지 못한다. **blind-author**는 한 발 더 나간다: 테스트를 쓰는 에이전트는 말 그대로 *코드를 읽을 수 없다*(Read/Grep 도구가 주어지지 않는다). 그래서 "코드를 안 보고 테스트를 썼다"는 건 약속이 아니라 배선 방식에서 나오는 사실이다. 이것은 감사 규정(EU AI Act · SOX)이 요구하는 것과 같은 **직무 분리**다 — 그 정신에서 그렇다는 것이지, 인증이 아니다.
+**만드는** 에이전트와 **검증하는** 에이전트를 떼어 놓아 어떤 에이전트도 자기 작업을 스스로 승인하지 못하게 하는 것 — 이건 cladding이 대신 굴려 주는 파이프라인이 아니라 **선언된 결과 조건**이다. cladding은 그것을 기록으로 **판정**한다: `clad done` / `clad verdict`를 거치는 모든 완료에 `independent` 또는 `self-certified` 라벨이 붙는데, 이는 코드가 맞는지가 아니라 **기록된 근거가 보여 주는 것** — 독립 리뷰나 사람 승인이 있었는지 — 를 나타낸다. 라벨은 그것을 드러낼 뿐, 그 자체로 막지는 않는다. 강제하고 싶은 팀은 `spec.yaml`에 `independence_policy: require`를 두어 self-certified 완료를 거부한다.
+
+에이전트를 몇 개, 어떤 모델로, 얼마나 병렬로 돌릴지는 **호스트**가 정한다. cladding은 역할 브리프(planner · developer · reviewer · observability · blind-author)를 제공할 뿐, 어떤 에이전트 형태로 구현하든 스폰을 지시하지 않는다. 그중 가장 날카로운 것이 **blind-author**다: 테스트를 쓰는 에이전트에게는 말 그대로 *코드를 읽을 도구가 없어서*(Read/Grep 미부여), "코드를 안 보고 테스트를 썼다"는 약속이 아니라 배선상의 사실이 된다. 이것은 감사 규정(EU AI Act · SOX)이 요구하는 것과 같은 **직무 분리**다 — 그 정신에서 그렇다는 것이지, 인증이 아니다.
 
 <div align="center">
 
-<img src="docs/img/ko/multi-agent.svg" alt="에이전트 역할 분리 — orchestrator가 분배, planner/developer/reviewer가 작업, blind-author는 구현을 못 보는 테스트 작성자, observability가 관찰" width="700">
+<img src="docs/img/ko/multi-agent.svg" alt="직무 분리 — 역할을 분리해 어떤 에이전트도 자기 작업을 스스로 승인하지 못하고, 모든 완료는 기록된 근거에 따라 independent 또는 self-certified 라벨이 붙는다; 에이전트를 어떻게 돌릴지는 호스트가 정한다" width="700">
 
 </div>
 
@@ -230,7 +232,7 @@ acceptance_criteria:
 </div>
 
 - **Spec Kit · OpenSpec · Tessl · Kiro** — *spec을 잘 쓰게* 도와주는 도구. cladding은 거기에 더해 *그 spec과 실제 코드가 어긋나지 않는지 개발 루프 안에서 계속 자동 대조*한다.
-- **BMAD · ChatDev · Claude Code Agent Teams** — *여러 AI 에이전트의 역할 분담* 시스템. cladding의 에이전트 분업은 그 위에 *spec · 게이트 · 감사 기록*까지 결합해 동작한다.
+- **BMAD · ChatDev · Claude Code Agent Teams** — *여러 AI 에이전트의 역할 분담* 시스템. cladding은 그 분담을 대신 굴리지 않고, 호스트가 무엇을 돌렸든 *spec · 게이트 · 감사 기록*에 비추어 판정한다.
 - **tdd-guard** — *AI가 테스트를 먼저 쓰도록 강제*하는 도구. cladding의 15단계 중 Unit · Coverage · oracle 단계가 같은 일을 더 구조적으로 한다.
 - **OpenHands · Cline · Aider · Goose** — *AI에게 코드를 짜게 시키는 실행기*. cladding은 그 실행기가 짠 코드를 *검증 · 통제하는 상위 레이어*다.
 
@@ -338,7 +340,7 @@ clad update              # 3. 프로젝트 연결과 파생 데이터를 함께 
 
 | version | 준수 등급 | tests | gate | features |
 |---|---|---|---|---|
-| v0.9.0 · 2026-07 | L4 · [L0–L4 중 최고 · 자가 선언](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2689 / 2689 · all pass | 15 단계 · 41 detectors | 261 · 258 done · 자기 스펙 |
+| v0.9.0 · 2026-07 | L4 · [L0–L4 중 최고 · 자가 선언](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2703 / 2703 · all pass | 15 단계 · 41 detectors | 261 · 258 done · 자기 스펙 |
 
 <sub>236 test files · capability 6개 · coverage는 COVERAGE_DROP detector가 하락 차단</sub>
 

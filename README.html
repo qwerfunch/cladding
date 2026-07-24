@@ -233,7 +233,7 @@
   <p class="badges">
     <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"></a>
     <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"></a>
-    <img src="https://img.shields.io/badge/tests-2689%2F2689-brightgreen" alt="tests">
+    <img src="https://img.shields.io/badge/tests-2703%2F2703-brightgreen" alt="tests">
     <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors">
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"></a>
   </p>
@@ -455,13 +455,18 @@ acceptance_criteria:
   <!-- ─────────────── Multi-Agent ─────────────── -->
   <h2>Multi-Agent — separating the builder from the verifier</h2>
   <p>
-    The agents that <strong>build</strong> are kept apart from the agents that <strong>verify</strong>, so no agent signs off on its own work.
-    <strong>blind-author</strong> goes one step further: the agent that writes the tests literally <em>can't read the code</em> (it's given no Read/Grep tool).
-    So "wrote the tests without looking at the code" is a fact about how it's wired, not a promise.
+    Keeping the agents that <strong>build</strong> apart from the agents that <strong>verify</strong> — so no agent signs off on its own work — is a <strong>declared outcome condition here, not a pipeline cladding runs for you.</strong>
+    cladding <em>judges</em> it from the record: every completion you take through <code>clad done</code> / <code>clad verdict</code> is labeled <code>independent</code> or <code>self-certified</code>, reporting what the recorded evidence shows — whether an independent or human review signed off, not whether the code is right.
+    The label makes that visible; it doesn't block on its own. A team that wants teeth sets <code>independence_policy: require</code> in <code>spec.yaml</code>, and self-certified completions are refused.
+  </p>
+  <p>
+    How the agents run — how many, which models, how much in parallel — is the <strong>host's</strong> decision.
+    cladding ships role briefs (planner, developer, reviewer, observability, blind-author) the host can embody with any agent shape; it never prescribes spawning.
+    <strong>blind-author</strong> is the sharpest of them: the agent that writes the tests literally <em>can't read the code</em> (it's given no Read/Grep tool), so "wrote the tests without looking at the code" is a fact about how it's wired, not a promise.
     It's the same <strong>separation of duties</strong> that audit rules like the EU AI Act and SOX ask for — in spirit, not a certification.
   </p>
   <div class="diagram">
-    <img class="diagram-img" src="docs/img/en/multi-agent.svg" alt="Agent separation of duties — orchestrator dispatches, planner/developer/reviewer act, blind-author is the test writer who can't see the implementation, observability watches" width="700">
+    <img class="diagram-img" src="docs/img/en/multi-agent.svg" alt="Separation of duties — the roles are kept separate so no agent signs off on its own work, and every completion is labeled independent or self-certified from the recorded evidence; the host decides how the agents run" width="700">
   </div>
 
   <!-- ─────────────── Ecosystem ─────────────── -->
@@ -473,7 +478,7 @@ acceptance_criteria:
 
   <ul>
     <li><strong>Spec Kit · OpenSpec · Tessl · Kiro</strong> help you <em>write a good spec</em>. cladding adds the part that <em>keeps cross-checking, inside the dev loop, that the spec and the code haven't drifted</em>.</li>
-    <li><strong>BMAD · ChatDev · Claude Code Agent Teams</strong> <em>split roles across AI agents</em>. cladding's division of labor runs with <em>spec · gate · audit record</em> on top.</li>
+    <li><strong>BMAD · ChatDev · Claude Code Agent Teams</strong> <em>split roles across AI agents</em>. cladding leaves that split to the host and judges whatever it ran against <em>spec · gate · audit record</em>.</li>
     <li><strong>tdd-guard</strong> <em>forces the AI to write tests first</em>. cladding's Unit · Coverage · oracle stages do the same job, more structurally.</li>
     <li><strong>OpenHands · Cline · Aider · Goose</strong> are <em>runners that make the AI write code</em>. cladding is the <em>upper layer that verifies and governs</em> what they produce.</li>
   </ul>
@@ -548,7 +553,7 @@ clad update               # 3. refresh its host wiring and derived state</code><
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">tests</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">2689<span style="font-size:16px;color:#94a3b8">/2689</span></div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">2703<span style="font-size:16px;color:#94a3b8">/2703</span></div>
         <div style="font-size:11px;color:#64748b">all pass</div>
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">

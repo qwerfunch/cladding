@@ -275,7 +275,7 @@
   <p class="badges">
     <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"></a>
     <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"></a>
-    <img src="https://img.shields.io/badge/tests-2689%2F2689-brightgreen" alt="tests">
+    <img src="https://img.shields.io/badge/tests-2703%2F2703-brightgreen" alt="tests">
     <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors">
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"></a>
   </p>
@@ -490,13 +490,20 @@ acceptance_criteria:
   <!-- ─────────────── Multi-Agent ─────────────── -->
   <h2>Multi-Agent — 만드는 자와 검증하는 자의 분리</h2>
   <p>
-    <strong>빌드</strong>하는 에이전트와 <strong>검증</strong>하는 에이전트를 떼어 놓아, 어떤 에이전트도 자기 작업을
-    스스로 승인하지 못한다. <strong>blind-author</strong>는 한 걸음 더 간다: 테스트를 쓰는 에이전트에게
-    <em>코드를 읽을 도구가 아예 없다</em>(Read/Grep 미부여). 그래서 "코드를 안 보고 테스트를 썼다"는 약속이 아니라 배선상의 사실이다.
-    감사 규정(EU AI Act · SOX)이 요구하는 것과 같은 <strong>직무 분리</strong>이며 — 정신에서 그렇다는 것이지 인증이 아니다.
+    <strong>빌드</strong>하는 에이전트와 <strong>검증</strong>하는 에이전트를 떼어 놓아 어떤 에이전트도 자기 작업을
+    스스로 승인하지 못하게 하는 것 — 이건 cladding이 대신 굴려 주는 파이프라인이 아니라 <strong>선언된 결과 조건</strong>이다.
+    cladding은 그것을 기록으로 <em>판정</em>한다: <code>clad done</code> / <code>clad verdict</code>를 거치는 모든 완료에
+    <code>independent</code> 또는 <code>self-certified</code> 라벨이 붙는데, 이는 코드가 맞는지가 아니라 <strong>기록된 근거가 보여 주는 것</strong> — 독립 리뷰나 사람 승인이 있었는지 — 를 나타낸다.
+    라벨은 그것을 드러낼 뿐, 그 자체로 막지는 않는다. 강제하고 싶은 팀은 <code>spec.yaml</code>에 <code>independence_policy: require</code>를 두어 self-certified 완료를 거부한다.
+  </p>
+  <p>
+    에이전트를 몇 개, 어떤 모델로, 얼마나 병렬로 돌릴지는 <strong>호스트</strong>가 정한다.
+    cladding은 역할 브리프(planner · developer · reviewer · observability · blind-author)를 제공할 뿐, 어떤 에이전트 형태로 구현하든 스폰을 지시하지 않는다.
+    그중 가장 날카로운 것이 <strong>blind-author</strong>다: 테스트를 쓰는 에이전트에게는 <em>코드를 읽을 도구가 아예 없어서</em>(Read/Grep 미부여), "코드를 안 보고 테스트를 썼다"는 약속이 아니라 배선상의 사실이 된다.
+    이것은 감사 규정(EU AI Act · SOX)이 요구하는 것과 같은 <strong>직무 분리</strong>이며 — 정신에서 그렇다는 것이지 인증이 아니다.
   </p>
   <div class="diagram">
-    <img class="diagram-img" src="docs/img/ko/multi-agent.svg" alt="에이전트 역할 분리 — orchestrator가 분배, planner/developer/reviewer가 작업, blind-author는 구현을 못 보는 테스트 작성자, observability가 관찰" width="700">
+    <img class="diagram-img" src="docs/img/ko/multi-agent.svg" alt="직무 분리 — 역할을 분리해 어떤 에이전트도 자기 작업을 스스로 승인하지 못하고, 모든 완료는 기록된 근거에 따라 independent 또는 self-certified 라벨이 붙는다; 에이전트를 어떻게 돌릴지는 호스트가 정한다" width="700">
   </div>
 
   <!-- ─────────────── Ecosystem ─────────────── -->
@@ -509,7 +516,7 @@ acceptance_criteria:
   <h3>인접 도구와의 차이</h3>
   <ul>
     <li><strong>Spec Kit · OpenSpec · Tessl · Kiro</strong> — <em>spec을 잘 쓰게</em> 도와주는 도구. cladding은 거기에 더해 <em>그 spec과 실제 코드가 어긋나지 않는지 개발 루프 안에서 계속 자동 대조</em>한다.</li>
-    <li><strong>BMAD · ChatDev · Claude Code Agent Teams</strong> — <em>여러 AI 에이전트의 역할 분담</em> 시스템. cladding의 에이전트 분업은 그 위에 <em>spec · 게이트 · 감사 기록</em>까지 결합해 동작한다.</li>
+    <li><strong>BMAD · ChatDev · Claude Code Agent Teams</strong> — <em>여러 AI 에이전트의 역할 분담</em> 시스템. cladding은 그 분담을 대신 굴리지 않고, 호스트가 무엇을 돌렸든 <em>spec · 게이트 · 감사 기록</em>에 비추어 판정한다.</li>
     <li><strong>tdd-guard</strong> — <em>AI가 테스트를 먼저 쓰도록 강제</em>하는 도구. cladding의 15단계 중 Unit · Coverage · oracle 단계가 같은 일을 더 구조적으로 한다.</li>
     <li><strong>OpenHands · Cline · Aider · Goose</strong> — <em>AI에게 코드를 짜게 시키는 실행기</em>. cladding은 그 실행기가 짠 코드를 <em>검증·통제하는 상위 레이어</em>다.</li>
   </ul>
@@ -584,7 +591,7 @@ clad update              # 3. 프로젝트 연결과 파생 데이터를 함께 
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">tests</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">2689<span style="font-size:16px;color:#94a3b8">/2689</span></div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">2703<span style="font-size:16px;color:#94a3b8">/2703</span></div>
         <div style="font-size:11px;color:#64748b">all pass</div>
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">

@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-2689%2F2689-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-2703%2F2703-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -206,11 +206,13 @@ One feature's lifecycle runs **Define → Sync → Implement → Earn** — you 
 
 ## Multi-Agent — separating the builder from the verifier
 
-The agents that **build** are kept apart from the agents that **verify**, so no agent signs off on its own work. **blind-author** goes one step further: the agent that writes the tests literally *can't read the code* (it's given no Read/Grep tool). So "wrote the tests without looking at the code" is a fact about how it's wired, not a promise. It's the same **separation of duties** that audit rules like the EU AI Act and SOX ask for — in spirit, not a certification.
+Keeping the agents that **build** apart from the agents that **verify** — so no agent signs off on its own work — is a **declared outcome condition here, not a pipeline cladding runs for you.** cladding *judges* it from the record: every completion you take through `clad done` / `clad verdict` is labeled `independent` or `self-certified`, reporting what the recorded evidence shows — whether an independent or human review signed off, not whether the code is right. The label makes that visible; it doesn't block on its own. A team that wants teeth sets `independence_policy: require` in `spec.yaml`, and self-certified completions are refused.
+
+How the agents run — how many, which models, how much in parallel — is the **host's** decision. cladding ships role briefs (planner, developer, reviewer, observability, blind-author) the host can embody with any agent shape; it never prescribes spawning. **blind-author** is the sharpest of them: the agent that writes the tests literally *can't read the code* (it's given no Read/Grep tool), so "wrote the tests without looking at the code" is a fact about how it's wired, not a promise. It's the same **separation of duties** that audit rules like the EU AI Act and SOX ask for — in spirit, not a certification.
 
 <div align="center">
 
-<img src="docs/img/en/multi-agent.svg" alt="Agent separation of duties — orchestrator dispatches, planner/developer/reviewer act, blind-author is the test writer who can't see the implementation, observability watches" width="700">
+<img src="docs/img/en/multi-agent.svg" alt="Separation of duties — the roles are kept separate so no agent signs off on its own work, and every completion is labeled independent or self-certified from the recorded evidence; the host decides how the agents run" width="700">
 
 </div>
 
@@ -227,7 +229,7 @@ cladding sits at the junction of three existing categories.
 </div>
 
 - **Spec Kit · OpenSpec · Tessl · Kiro** help you *write a good spec*. cladding adds the part that *keeps cross-checking, inside the dev loop, that the spec and the code haven't drifted*.
-- **BMAD · ChatDev · Claude Code Agent Teams** *split roles across AI agents*. cladding's division of labor runs with *spec · gate · audit record* on top.
+- **BMAD · ChatDev · Claude Code Agent Teams** *split roles across AI agents*. cladding leaves that split to the host and judges whatever it ran against *spec · gate · audit record*.
 - **tdd-guard** *forces the AI to write tests first*. cladding's Unit · Coverage · oracle stages do the same job, more structurally.
 - **OpenHands · Cline · Aider · Goose** are *runners that make the AI write code*. cladding is the *upper layer that verifies and governs* what they produce.
 
@@ -352,7 +354,7 @@ Reconcile the drift the update flagged.
 
 | Version | Conformance | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.9.0 (2026-07) | L4 · [self-declared](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2689 / 2689 | 15 stages · 41 detectors | 261 (258 done) |
+| v0.9.0 (2026-07) | L4 · [self-declared](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2703 / 2703 | 15 stages · 41 detectors | 261 (258 done) |
 
 <sub>236 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector</sub>
 

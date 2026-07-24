@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 724 456" width="724" height="456" role="img" aria-labelledby="multi-agent-title" font-family="-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif">
-  <title id="multi-agent-title">에이전트 역할 분리 — orchestrator가 분배, planner/developer/reviewer/blind-author가 작업, observability가 메트릭을 관찰. 만드는 에이전트와 검증하는 에이전트를 분리한다 (anti-self-cert).</title>
+  <title id="multi-agent-title">에이전트 역할 분리 — 역할을 분리해 어떤 에이전트도 자기 작업을 스스로 승인하지 못하고, 모든 완료는 기록된 근거에 따라 independent 또는 self-certified 라벨이 붙는다. 에이전트를 어떻게 돌릴지는 호스트가 정한다 (anti-self-cert).</title>
   <defs>
     <style>
       :root{
@@ -32,7 +32,7 @@
   <!-- orchestrator : deep-blue focal -->
   <rect x="282" y="86" width="160" height="58" rx="14" class="focalbox"/>
   <text x="362" y="114" text-anchor="middle" class="focal" font-size="18">orchestrator</text>
-  <text x="362" y="133" text-anchor="middle" font-size="11.5" font-weight="600" fill="#dbeafe">작업 분배 · 라우팅</text>
+  <text x="362" y="133" text-anchor="middle" font-size="11.5" font-weight="600" fill="#dbeafe">사이클 계약</text>
 
   <!-- dispatch arrows : orchestrator -> workers -->
   <g fill="none" stroke="#3b82f6" stroke-width="1.6">

@@ -173,3 +173,93 @@ describe('specialist personas are selectable role briefs, not mandated agents', 
     }
   });
 });
+
+// F-96d1f69d — README Multi-Agent section speaks the role contract, not
+// choreography. Opus's rewrite (all 6 README variants + the 4 localized
+// docs/img/<lang>/multi-agent.svg diagrams) replaced the "orchestrator
+// dispatches agents" story with the role-contract framing: separation of
+// duties is a declared outcome condition cladding judges from the record
+// (every `clad done` / `clad verdict` completion is labeled `independent` or
+// `self-certified`), and how agents run is the host's decision. This guard
+// pins the same needle-genre check the rewrite must hold to, same genre as
+// the orchestrator/specialist guards above.
+//
+// The section-slice locator is adapted from tests/readme-loop-section.test.ts
+// rather than invented fresh: that file's placement test already anchors on
+// the literal '## Multi-Agent' / '<h2>Multi-Agent' token (its per-variant
+// translated subtitle after the mdash differs, but "Multi-Agent" itself is a
+// cross-variant invariant), and its md/html next-heading markers ('\n## ' /
+// '<h2') are reused verbatim as the slice's end boundary.
+const README_VARIANTS: readonly string[] = ['README.md', 'README.ko.md', 'README.ja.md', 'README.zh.md', 'README.html', 'README.ko.html'];
+const README_EN_KO_VARIANTS: readonly string[] = ['README.md', 'README.ko.md', 'README.html', 'README.ko.html'];
+
+const repoRead = (rel: string): string => readFileSync(fileURLToPath(new URL(`../${rel}`, import.meta.url)), 'utf8');
+const isHtmlReadme = (f: string): boolean => f.endsWith('.html');
+const multiAgentStartOf = (f: string): string => (isHtmlReadme(f) ? '<h2>Multi-Agent' : '## Multi-Agent');
+const nextHeadingMarkerOf = (f: string): string => (isHtmlReadme(f) ? '<h2' : '\n## ');
+
+// Slice each variant's Multi-Agent section: from the Multi-Agent heading
+// token to the next same-level heading (Ecosystem, in every variant today).
+const multiAgentSliceOf = (f: string): string => {
+  const body = repoRead(f);
+  const start = multiAgentStartOf(f);
+  const at = body.indexOf(start);
+  if (at === -1) return '';
+  const after = body.slice(at + start.length);
+  const end = after.indexOf(nextHeadingMarkerOf(f));
+  return end === -1 ? after : after.slice(0, end);
+};
+
+describe('README Multi-Agent section speaks the role contract, not choreography (F-96d1f69d)', () => {
+  describe('AC-8d63da98 — no README variant describes the story as cladding dispatching/sequencing agents', () => {
+    for (const f of README_VARIANTS) {
+      test(`${f}: Multi-Agent slice matches no /dispatch/i`, () => {
+        const slice = multiAgentSliceOf(f);
+        expect(slice.length, `${f}: Multi-Agent section heading must be found (non-empty slice)`).toBeGreaterThan(0);
+        expect(slice, `${f}: Multi-Agent slice must not match /dispatch/i`).not.toMatch(/dispatch/i);
+      });
+    }
+  });
+
+  describe('AC-0a8ea4d7 — EN/KO variants ground separation-of-duties in the evidence-based independence label', () => {
+    for (const f of README_EN_KO_VARIANTS) {
+      test(`${f}: Multi-Agent slice contains both "independent" and "self-certified"`, () => {
+        const slice = multiAgentSliceOf(f);
+        expect(slice, `${f}: Multi-Agent slice must contain "independent"`).toContain('independent');
+        expect(slice, `${f}: Multi-Agent slice must contain "self-certified"`).toContain('self-certified');
+      });
+    }
+  });
+});
+
+// AC-8d63da98 extension — the localized multi-agent.svg diagrams must not
+// render the dispatch story either. Each file carries one non-rendered
+// authoring comment (`<!-- dispatch arrows : orchestrator -> workers -->`)
+// that still literally says "dispatch" — it describes unchanged arrow
+// geometry (a deliberately out-of-scope geometry rework, per the impl
+// report), is never rendered, and its removal is NOT demanded here. Comments
+// are stripped before matching so only rendered <title>/<text> content (the
+// a11y title and on-canvas labels) is checked.
+describe('localized multi-agent.svg diagrams render no dispatch story (AC-8d63da98)', () => {
+  const SVGS: readonly string[] = [
+    'docs/img/en/multi-agent.svg',
+    'docs/img/ko/multi-agent.svg',
+    'docs/img/ja/multi-agent.svg',
+    'docs/img/zh/multi-agent.svg',
+  ];
+  const stripXmlComments = (svg: string): string => svg.replace(/<!--[\s\S]*?-->/g, '');
+
+  for (const f of SVGS) {
+    test(`${f}: rendered text/title content matches no /dispatch/i`, () => {
+      const raw = repoRead(f);
+      // Sanity check — the known non-rendered authoring comment is still
+      // present, so the assertion below proves the comment-strip is doing
+      // real work rather than vacuously passing on a file with no needle at all.
+      expect(raw, `${f}: expected the known authoring comment to still mention "dispatch" (non-rendered, not required to be removed)`).toMatch(
+        /dispatch/i,
+      );
+      const rendered = stripXmlComments(raw);
+      expect(rendered, `${f}: rendered SVG text/title must not match /dispatch/i`).not.toMatch(/dispatch/i);
+    });
+  }
+});

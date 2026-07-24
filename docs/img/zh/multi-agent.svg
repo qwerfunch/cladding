@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 724 456" width="724" height="456" role="img" aria-labelledby="multi-agent-title" font-family="-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif">
-  <title id="multi-agent-title">Agent 职责分离 — orchestrator 分派，planner/developer/reviewer/blind-author 执行，observability 观察指标。构建的 agent 与验证的 agent 相互分离（anti-self-cert）。</title>
+  <title id="multi-agent-title">Agent 职责分离 — 把角色分开，任何 agent 都无法给自己的工作盖章放行；每一次收尾都依据记录在案的证据被标为 independent 或 self-certified；agent 如何运行由宿主决定（anti-self-cert）。</title>
   <defs>
     <style>
       :root{
@@ -32,7 +32,7 @@
   <!-- orchestrator : deep-blue focal -->
   <rect x="282" y="86" width="160" height="58" rx="14" class="focalbox"/>
   <text x="362" y="114" text-anchor="middle" class="focal" font-size="18">orchestrator</text>
-  <text x="362" y="133" text-anchor="middle" font-size="11.5" font-weight="600" fill="#dbeafe">任务分派 · 路由</text>
+  <text x="362" y="133" text-anchor="middle" font-size="11.5" font-weight="600" fill="#dbeafe">循环契约</text>
 
   <!-- dispatch arrows : orchestrator -> workers -->
   <g fill="none" stroke="#3b82f6" stroke-width="1.6">

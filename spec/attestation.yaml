@@ -20,12 +20,12 @@ attested_modules:
   CHANGELOG.md: c3353cc4baf17ec7
   CLAUDE.md: 9f2fa4edd5c6df80
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: 18916bf571edfabd
-  README.ja.md: 5def3203d5e8730c
-  README.ko.html: e4e2049759fcf37b
-  README.ko.md: c269dc1909b2883b
-  README.md: 5943376e232c2d8b
-  README.zh.md: da4beecff031a3cf
+  README.html: 2197c6326b6463d6
+  README.ja.md: 2979795ad1b0df84
+  README.ko.html: 5dd6b3aa6b569ecf
+  README.ko.md: 48340a7f964e4a7d
+  README.md: 9898024bcab85216
+  README.zh.md: c183954c27f719c2
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -113,7 +113,7 @@ attested_modules:
   skills/serve/SKILL.md: f08bbdbbfeb05041
   skills/status/SKILL.md: 09faadc50b3449da
   skills/sync/SKILL.md: 775c0f990a52a3d9
-  spec.yaml: c87ff16ac093f188
+  spec.yaml: e3673755dd57d367
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -612,6 +612,7 @@ attested_features:
   F-95a096: ok
   F-96250595: ok
   F-96700032: ok
+  F-96d1f69d: ok
   F-987be195: ok
   F-99c6e5: ok
   F-9a3b61: ok

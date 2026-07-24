@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 724 456" width="724" height="456" role="img" aria-labelledby="multi-agent-title" font-family="-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif">
-  <title id="multi-agent-title">Agent separation of duties — orchestrator dispatches; planner/developer/reviewer/blind-author do the work; observability watches metrics. The agent that builds is kept separate from the agent that verifies (anti-self-cert).</title>
+  <title id="multi-agent-title">Agent separation of duties — the builder and the verifier are kept separate so no agent signs off on its own work; every completion is labeled independent or self-certified from the recorded evidence, and the host decides how the agents run (anti-self-cert).</title>
   <defs>
     <style>
       :root{
@@ -32,7 +32,7 @@
   <!-- orchestrator : deep-blue focal -->
   <rect x="282" y="86" width="160" height="58" rx="14" class="focalbox"/>
   <text x="362" y="114" text-anchor="middle" class="focal" font-size="18">orchestrator</text>
-  <text x="362" y="133" text-anchor="middle" font-size="11.5" font-weight="600" fill="#dbeafe">Dispatch · routing</text>
+  <text x="362" y="133" text-anchor="middle" font-size="11.5" font-weight="600" fill="#dbeafe">Cycle contract</text>
 
   <!-- dispatch arrows : orchestrator -> workers -->
   <g fill="none" stroke="#3b82f6" stroke-width="1.6">
