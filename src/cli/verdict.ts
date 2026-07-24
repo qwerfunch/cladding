@@ -17,6 +17,8 @@ import {dirname, join} from 'node:path';
 import process from 'node:process';
 
 import {loadSpec} from '../spec/load.js';
+import {readEvidence} from '../hitl/audit.js';
+import {independenceSummary} from '../hitl/independence.js';
 import {fingerprintFindings, nextProgress, type ProgressState} from '../verdict/gate-progress.js';
 import {computeVerdict, type Verdict, type VerdictOutcome} from '../verdict/verdict.js';
 
@@ -91,7 +93,13 @@ export function runVerdictCommand(opts: {json?: boolean; tier?: string}, deps: V
   const prog = nextProgress(currentFp, prior);
   writeProgress({fingerprint: prog.fingerprint, repeat: prog.repeat});
 
-  const v = computeVerdict({outcome, spec, stuck: prog.stuck});
+  // F-c566f590 — annotate each DONE feature with its evidence-based independence
+  // label, computed HERE (CLI wrapper) from the read-only ledger so the pure
+  // reducer stays IO-free (AC-6f228987). Reading evidence touches no tracked file
+  // → the poll-not-mutate lock (module header) holds.
+  const doneIds = spec.features.filter((f) => f.status === 'done').map((f) => f.id);
+  const summary = independenceSummary(doneIds, readEvidence(process.cwd()));
+  const v: Verdict = {...computeVerdict({outcome, spec, stuck: prog.stuck}), independence: summary.labels};
   emit(v, opts.json === true);
   process.exit(0);
 }
@@ -103,5 +111,14 @@ function emit(v: Verdict, json: boolean): void {
     return;
   }
   const tail = v.next_action ? ` — ${v.next_action}` : '';
-  process.stdout.write(`verdict: ${v.verdict}${tail}\n`);
+  // Append the independence split ONLY when at least one done feature is
+  // self-certified — the signal worth surfacing (an all-independent run stays
+  // quiet). The counts come straight off the labels the JSON already carries.
+  const labels = v.independence ?? [];
+  const selfCertified = labels.filter((l) => l.label === 'self-certified').length;
+  const indep =
+    selfCertified > 0
+      ? ` — independence: ${labels.length - selfCertified} independent / ${selfCertified} self-certified`
+      : '';
+  process.stdout.write(`verdict: ${v.verdict}${tail}${indep}\n`);
 }

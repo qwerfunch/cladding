@@ -20,12 +20,12 @@ attested_modules:
   CHANGELOG.md: c3353cc4baf17ec7
   CLAUDE.md: 9f2fa4edd5c6df80
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: 5279f49be32246a1
-  README.ja.md: 7500babce103dd55
-  README.ko.html: 68cb46e739415abc
-  README.ko.md: fe0f25795546c550
-  README.md: bd81ec36d52b7118
-  README.zh.md: d139855a357f0818
+  README.html: 9331b224418db417
+  README.ja.md: 0a881dcd6c85e9cb
+  README.ko.html: ba1c4320790711ee
+  README.ko.md: cb0e7eeed7a99c2d
+  README.md: 15b51a731f00c15a
+  README.zh.md: 82773227bebb9549
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -113,7 +113,7 @@ attested_modules:
   skills/serve/SKILL.md: f08bbdbbfeb05041
   skills/status/SKILL.md: 09faadc50b3449da
   skills/sync/SKILL.md: 775c0f990a52a3d9
-  spec.yaml: f03bdc6a66336832
+  spec.yaml: 28d9036872b760bf
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -146,11 +146,11 @@ attested_modules:
   src/cli: a4d0f0eb87fed960
   src/cli/benchmark.ts: 77f84d2a898d724f
   src/cli/changelog.ts: 2de1adb009b89ab4
-  src/cli/clad.ts: e882d44ef304fce0
+  src/cli/clad.ts: ec45cced5dc7e3ac
   src/cli/clarify.ts: f17177969d5b75ff
   src/cli/doctor-hosts.ts: 1f0c2cec5a310b81
   src/cli/doctor.ts: b98b955fe75e7f7e
-  src/cli/done.ts: 7eba807b6ec5a1aa
+  src/cli/done.ts: b4c8ed409f001487
   src/cli/enforcement-advisory.ts: 395c5be696e88b5c
   src/cli/graph-serve.ts: 23e6e389225d0f98
   src/cli/graph.ts: bab410061b8c746a
@@ -178,7 +178,7 @@ attested_modules:
   src/cli/scan/types.ts: ea0170aa88c1c14a
   src/cli/scan/walker.ts: 33e4448e365e47c6
   src/cli/update.ts: b0151396c9a0f6ca
-  src/cli/verdict.ts: 7aa16b8739ab8e5f
+  src/cli/verdict.ts: 85a4ef27292b9169
   src/core/checkpoint.ts: 63300c2764533b6c
   src/core/git-ops.ts: 4544bde493a0628f
   src/core/postmortem.ts: 73be29d5e8a16fd4
@@ -202,6 +202,7 @@ attested_modules:
   src/hitl/anti-self-cert.ts: 53a714d8e489d00a
   src/hitl/audit.ts: 79b06e904815469a
   src/hitl/identity.ts: 52ff84aa666f1dab
+  src/hitl/independence.ts: 202f4e5ef8bc69e3
   src/init/agents-md.ts: 3eb5ed2c7b6edc8c
   src/init/git-hook.ts: b77910b0df392cbf
   src/init/host-instructions.ts: c598f8598d8d1cd4
@@ -241,9 +242,9 @@ attested_modules:
   src/spec/new.ts: 4c91f6d41acaab69
   src/spec/parse.ts: 1eab9a28c9359a45
   src/spec/reverse-index.ts: d8b003eb8f1918c8
-  src/spec/schema.json: 030d3741f2b38159
+  src/spec/schema.json: 848951cd01d7f82f
   src/spec/test-ref-repair.ts: 5ce823b479aaaca3
-  src/spec/types.ts: bd5833feabcdb787
+  src/spec/types.ts: 5799bc9fc1e00553
   src/spec/validate.ts: db88ca6512ab363a
   src/stages: a4d0f0eb87fed960
   src/stages/README.md: c79d2bced8c8b8d8
@@ -327,9 +328,9 @@ attested_modules:
   src/ui: a4d0f0eb87fed960
   src/ui/panel.ts: 8b78cb14dafb28fb
   src/ui/pulse.ts: ee4255f5c6e49f51
-  src/ui/softShell.ts: 57a9b5d02fc94339
+  src/ui/softShell.ts: f21a30930c164afd
   src/verdict/gate-progress.ts: ac75e3082cc97a40
-  src/verdict/verdict.ts: 493251b3a2c494d3
+  src/verdict/verdict.ts: 2dcfb0e7408bd28d
   tests/adapters/anthropic.test.ts: fa2fc7faf032a782
   tests/adapters/index.test.ts: 4454e6b4ea05a74f
   tests/adapters/transport.test.ts: 68f22e9e8df7b813
@@ -650,6 +651,7 @@ attested_features:
   F-c3747d7d: ok
   F-c48eb2: ok
   F-c4c5ae: ok
+  F-c566f590: ok
   F-c58263b8: ok
   F-c6a32fff: ok
   F-c6c3daaf: ok

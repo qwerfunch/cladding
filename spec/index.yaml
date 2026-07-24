@@ -224,6 +224,7 @@ features:
   F-c3747d7d: {slug: spec-first-window-complete, status: done, modules: 5}
   F-c48eb2: {slug: scan-source-roots, status: done, modules: 5}
   F-c4c5ae: {slug: spec-conformance-oracle-stage, status: done, modules: 11}
+  F-c566f590: {slug: independence-label, status: done, modules: 6}
   F-c58263b8: {slug: code-compact, status: done, modules: 12}
   F-c6a32fff: {slug: graph-honest-fallback, status: done, modules: 7}
   F-c6c3daaf: {slug: kotlin-module-scoped-gate, status: done, modules: 13}

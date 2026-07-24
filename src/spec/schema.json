@@ -60,6 +60,11 @@
             }
           }
         },
+        "independence_policy": {
+          "type": "string",
+          "enum": ["label", "require"],
+          "description": "Independence policy (F-c566f590). 'label' (default when absent) annotates each done feature independent | self-certified. 'require' additionally refuses to keep a self-certified feature done — a GREEN gate no longer suffices; the feature needs human or blind (independent) evidence first."
+        },
         "deliverable": {
           "type": "object",
           "additionalProperties": false,
