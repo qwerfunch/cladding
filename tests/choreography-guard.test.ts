@@ -101,3 +101,75 @@ describe('orchestrator persona is a cycle contract card, not choreography', () =
     }
   });
 });
+
+// F-ef93141b — specialist personas are selectable role briefs, not agents
+// cladding mandates spawning. The orchestrator's contract-card shift (above)
+// covered the ORCHESTRATOR persona only; this block extends the same
+// guard-genre needle checks to the five SPECIALIST personas (planner,
+// developer, reviewer, observability, blind-author) — both the source and
+// the claude-code mirror, so a stale mirror fails too.
+const ROLE_BRIEF = /role brief/i;
+
+// Needle set pinned by AC-46fef26f verbatim — distinct from BANNED_NEEDLES
+// above (that set is scoped to the orchestrator's AC-ee97a22e and includes
+// "dispatch (them) concurrently", which AC-46fef26f does not ban).
+const SPECIALIST_BANNED_NEEDLES: ReadonlyArray<{name: string; pattern: RegExp}> = [
+  {name: 'invocation principle(s)', pattern: /invocation principles?/i},
+  {name: 'principle N', pattern: /principle \d/i},
+  {name: 'routing table', pattern: /routing table/i},
+];
+
+const SPECIALIST_PERSONAS: ReadonlyArray<{id: string; srcPath: string; mirrorPath: string}> = [
+  'planner',
+  'developer',
+  'reviewer',
+  'observability',
+  'blind-author',
+].map((id) => ({
+  id,
+  srcPath: fileURLToPath(new URL(`../src/agents/${id}.md`, import.meta.url)),
+  mirrorPath: fileURLToPath(new URL(`../plugins/claude-code/agents/${id}.md`, import.meta.url)),
+}));
+
+describe('specialist personas are selectable role briefs, not mandated agents', () => {
+  describe('AC-163773ad — each specialist persona presents itself as a role brief', () => {
+    for (const {id, srcPath} of SPECIALIST_PERSONAS) {
+      test(`src/agents/${id}.md contains "role brief"`, () => {
+        const body = readFileSync(srcPath, 'utf8');
+        expect(body, `src/agents/${id}.md must contain "role brief"`).toMatch(ROLE_BRIEF);
+      });
+    }
+  });
+
+  describe('AC-46fef26f — no specialist persona references the removed choreography layer', () => {
+    for (const {id, srcPath} of SPECIALIST_PERSONAS) {
+      describe(`src/agents/${id}.md`, () => {
+        const body = readFileSync(srcPath, 'utf8');
+
+        for (const {name, pattern} of SPECIALIST_BANNED_NEEDLES) {
+          test(`does not match /${name}/`, () => {
+            expect(body, `src/agents/${id}.md must not contain "${name}"`).not.toMatch(pattern);
+          });
+        }
+      });
+    }
+  });
+
+  describe('mirror drift guard — plugins/claude-code/agents/<id>.md stays in lockstep', () => {
+    for (const {id, mirrorPath} of SPECIALIST_PERSONAS) {
+      describe(`plugins/claude-code/agents/${id}.md`, () => {
+        const body = readFileSync(mirrorPath, 'utf8');
+
+        test('contains "role brief"', () => {
+          expect(body, `plugins/claude-code/agents/${id}.md must contain "role brief"`).toMatch(ROLE_BRIEF);
+        });
+
+        for (const {name, pattern} of SPECIALIST_BANNED_NEEDLES) {
+          test(`does not match /${name}/`, () => {
+            expect(body, `plugins/claude-code/agents/${id}.md must not contain "${name}"`).not.toMatch(pattern);
+          });
+        }
+      });
+    }
+  });
+});

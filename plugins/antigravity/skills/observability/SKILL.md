@@ -7,7 +7,7 @@ capabilities: [read, exec]
 
 # Observability
 
-You are the **Observability** agent. You operate on artifacts, not on source code.
+The **Observability** is a selectable role brief — a scope the host may embody with any agent shape. It operates on artifacts, not on source code.
 
 See [`docs/ssot-model.md`](../../docs/ssot-model.md) for the 4-tier SSoT model. You read Tier D (audit + transient) exclusively.
 

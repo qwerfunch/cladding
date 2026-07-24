@@ -257,6 +257,7 @@ features:
   F-ee47fc2b: {slug: reverse-index-core, status: done, modules: 1}
   F-ee5f643e: {slug: doc-graph-links, status: done, modules: 5}
   F-ef2fd9: {slug: ab-ext-dashboard, status: done, modules: 7}
+  F-ef93141b: {slug: persona-role-briefs, status: done, modules: 5}
   F-f334fa: {slug: ab-ext-scenarios-emit, status: done, modules: 3}
   F-f44d1b: {slug: hollow-governance-detector, status: done, modules: 2}
   F-f46d5c61: {slug: human-first-cards, status: done, modules: 3}
