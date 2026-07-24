@@ -150,6 +150,7 @@ features:
   F-5cac007a: {slug: init-onboarding-english-source, status: done, modules: 3}
   F-5d3ed2: {slug: postmortem-on-rollback, status: done, modules: 2}
   F-5f6b45: {slug: init-path-intent, status: done, modules: 2}
+  F-600272d7: {slug: orchestrator-contract-card, status: done, modules: 2}
   F-63b989e5: {slug: impact-card-language-parity, status: done, modules: 2}
   F-64a5c159: {slug: graph-serve-live, status: done, modules: 3}
   F-65814a: {slug: sentinel-miss-telemetry, status: done, modules: 3}

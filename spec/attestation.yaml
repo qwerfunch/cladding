@@ -20,12 +20,12 @@ attested_modules:
   CHANGELOG.md: c3353cc4baf17ec7
   CLAUDE.md: 9f2fa4edd5c6df80
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: 9331b224418db417
-  README.ja.md: 0a881dcd6c85e9cb
-  README.ko.html: ba1c4320790711ee
-  README.ko.md: cb0e7eeed7a99c2d
-  README.md: 15b51a731f00c15a
-  README.zh.md: 82773227bebb9549
+  README.html: 5faab86857f952fd
+  README.ja.md: a483f18c85e0b474
+  README.ko.html: 89cf0e04f458e4c0
+  README.ko.md: 5716211ac855d098
+  README.md: 3866a69b87d96ca3
+  README.zh.md: 5a50c67f3896ac35
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -55,7 +55,7 @@ attested_modules:
   docs/dogfood/codex-cli-2026-07-15.md: 4ed02eed031aeda8
   docs/dogfood/cursor-agent-2026-07-15.md: a2f621fd0c3b57af
   docs/dogfood/gemini-cli-2026-05-20.md: 2da1ba66c4f108f0
-  docs/feature-cycle.md: b8c48c86d1f1e093
+  docs/feature-cycle.md: e1847cc9fe9b6eb6
   docs/glossary.md: 9e897b963c3aa88f
   docs/img/en/ecosystem.svg: ed14d1d17f088b00
   docs/img/en/relationship.svg: c7a24203925b4664
@@ -72,7 +72,7 @@ attested_modules:
   plugins/claude-code/.claude-plugin/plugin.json: 4daaab360fbbea9e
   plugins/claude-code/agents/developer.md: 2c4547977f46913e
   plugins/claude-code/agents/observability.md: 150da78e2ba51885
-  plugins/claude-code/agents/orchestrator.md: acd60ec32857fbe3
+  plugins/claude-code/agents/orchestrator.md: 1b758de0bdab8eb0
   plugins/claude-code/agents/planner.md: 8fbc7ea526889c5f
   plugins/claude-code/agents/reviewer.md: 9928347c71265757
   plugins/claude-code/commands/init.md: 5529b13d0f1ab4bf
@@ -83,7 +83,7 @@ attested_modules:
   plugins/codex/skills/developer/SKILL.md: 2c4547977f46913e
   plugins/codex/skills/init/SKILL.md: 5529b13d0f1ab4bf
   plugins/codex/skills/observability/SKILL.md: 150da78e2ba51885
-  plugins/codex/skills/orchestrator/SKILL.md: acd60ec32857fbe3
+  plugins/codex/skills/orchestrator/SKILL.md: 1b758de0bdab8eb0
   plugins/codex/skills/planner/SKILL.md: 8fbc7ea526889c5f
   plugins/codex/skills/reviewer/SKILL.md: 9928347c71265757
   plugins/codex/skills/run/SKILL.md: 9f95ff17d70c8dd1
@@ -113,7 +113,7 @@ attested_modules:
   skills/serve/SKILL.md: f08bbdbbfeb05041
   skills/status/SKILL.md: 09faadc50b3449da
   skills/sync/SKILL.md: 775c0f990a52a3d9
-  spec.yaml: 28d9036872b760bf
+  spec.yaml: 84685f74afa3839b
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -138,7 +138,7 @@ attested_modules:
   src/agents/developer.md: 2c4547977f46913e
   src/agents/loader.ts: 6d35560c47f9ae85
   src/agents/observability.md: 150da78e2ba51885
-  src/agents/orchestrator.md: acd60ec32857fbe3
+  src/agents/orchestrator.md: 1b758de0bdab8eb0
   src/agents/planner.md: 8fbc7ea526889c5f
   src/agents/reviewer.md: 9928347c71265757
   src/changelog/collect.ts: a6c936a7b8c34e2a
@@ -579,6 +579,7 @@ attested_features:
   F-5cac007a: ok
   F-5d3ed2: ok
   F-5f6b45: ok
+  F-600272d7: ok
   F-63b989e5: ok
   F-64a5c159: ok
   F-65814a: ok
