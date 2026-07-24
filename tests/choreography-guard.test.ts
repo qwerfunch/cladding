@@ -174,6 +174,33 @@ describe('specialist personas are selectable role briefs, not mandated agents', 
   });
 });
 
+// F-9d8ece66 — planner brief loses dogfood-only npm script commands (E2E gap
+// G3): `npm run spec:validate` / `npm run stage:drift` are cladding's own
+// package.json scripts, not something an external adopter running clad as a
+// dependency has. The planner brief must instead point at the `clad` CLI.
+const DOGFOOD_NPM_SCRIPTS = /npm run (spec:validate|stage:drift)/;
+
+describe('planner brief points external users at the clad CLI, not dogfood-only npm scripts (F-9d8ece66)', () => {
+  const plannerPersona = SPECIALIST_PERSONAS.find((p) => p.id === 'planner')!;
+
+  describe('AC-65e247dc — no npm run spec:validate / stage:drift guidance remains', () => {
+    test('src/agents/planner.md matches no /npm run (spec:validate|stage:drift)/', () => {
+      const body = readFileSync(plannerPersona.srcPath, 'utf8');
+      expect(body, 'src/agents/planner.md must not match /npm run (spec:validate|stage:drift)/').not.toMatch(
+        DOGFOOD_NPM_SCRIPTS,
+      );
+    });
+
+    test('mirror parity: plugins/claude-code/agents/planner.md matches no /npm run (spec:validate|stage:drift)/', () => {
+      const body = readFileSync(plannerPersona.mirrorPath, 'utf8');
+      expect(
+        body,
+        'plugins/claude-code/agents/planner.md must not match /npm run (spec:validate|stage:drift)/',
+      ).not.toMatch(DOGFOOD_NPM_SCRIPTS);
+    });
+  });
+});
+
 // F-96d1f69d — README Multi-Agent section speaks the role contract, not
 // choreography. Opus's rewrite (all 6 README variants + the 4 localized
 // docs/img/<lang>/multi-agent.svg diagrams) replaced the "orchestrator

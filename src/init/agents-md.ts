@@ -170,6 +170,8 @@ export function renderAgentsMdManagedBlock(spec: Spec | null, cwd: string = '.')
     '',
     personaLines,
     '',
+    "These briefs are manuals for cladding's touchpoints, not a roster of permitted agents: any host agent may take up any of them, and an agent that never touches a cladding surface needs none. The gates judge a result the same way whoever produced it — the one thing tied to identity is the independence label, which records whether the verifier was independent of the author, never which brief (if any) an agent wore.",
+    '',
     "## Speak the user's language",
     '',
     "Translate cladding's vocabulary into plain words in the user's own language when you",

@@ -127,6 +127,25 @@ describe('renderAgentsMdManagedBlock — AC-9d3f2e88 (cross-host persona map)', 
   });
 });
 
+describe('renderAgentsMdManagedBlock — AC-9255e821 (personas are not an exclusivity roster)', () => {
+  test('states the briefs are touchpoint manuals, not a roster of permitted agents, and ties identity only to the independence label', () => {
+    const withSpecBlock = renderAgentsMdManagedBlock(
+      {
+        schema: '0.1',
+        project: {name: 'x', language: 'typescript'},
+        features: [],
+      } as never,
+      '.',
+    );
+    const withoutSpecBlock = renderAgentsMdManagedBlock(null, '.');
+
+    for (const block of [withSpecBlock, withoutSpecBlock]) {
+      expect(block).toContain('not a roster of permitted agents');
+      expect(block).toContain('independence label');
+    }
+  });
+});
+
 describe('renderAgentsMdManagedBlock — post-init command integrity', () => {
   test('pins shell commands to the project engine and requires non-vacuous portable tests', () => {
     const block = renderAgentsMdManagedBlock(null, '.');

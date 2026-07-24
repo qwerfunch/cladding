@@ -20,12 +20,12 @@ attested_modules:
   CHANGELOG.md: c3353cc4baf17ec7
   CLAUDE.md: 9f2fa4edd5c6df80
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: 93ecad5c2451d7b5
-  README.ja.md: df6e1c8fe6632469
-  README.ko.html: cc4ebde7a1838485
-  README.ko.md: a572b620d742296a
-  README.md: 8959f852facd1d08
-  README.zh.md: 6bb316e6027c3d16
+  README.html: a5dcb1c7f06cffaf
+  README.ja.md: eb269dbdc4799287
+  README.ko.html: 5799c10feebfbef9
+  README.ko.md: 6804e651e435a932
+  README.md: f4ca5b9e77bca21d
+  README.zh.md: 3ff55eccf72ddb86
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -77,7 +77,7 @@ attested_modules:
   plugins/claude-code/agents/developer.md: 3002b4ef69ddab43
   plugins/claude-code/agents/observability.md: 637fde18c012e2a7
   plugins/claude-code/agents/orchestrator.md: 1b758de0bdab8eb0
-  plugins/claude-code/agents/planner.md: 5e50090f16678fd7
+  plugins/claude-code/agents/planner.md: d1f895a20fb3a3ed
   plugins/claude-code/agents/reviewer.md: cdf7469a3e58b438
   plugins/claude-code/commands/init.md: 5529b13d0f1ab4bf
   plugins/claude-code/hooks/hooks.json: 42321ead26fb1da8
@@ -88,7 +88,7 @@ attested_modules:
   plugins/codex/skills/init/SKILL.md: 5529b13d0f1ab4bf
   plugins/codex/skills/observability/SKILL.md: 637fde18c012e2a7
   plugins/codex/skills/orchestrator/SKILL.md: 1b758de0bdab8eb0
-  plugins/codex/skills/planner/SKILL.md: 5e50090f16678fd7
+  plugins/codex/skills/planner/SKILL.md: d1f895a20fb3a3ed
   plugins/codex/skills/reviewer/SKILL.md: cdf7469a3e58b438
   plugins/codex/skills/run/SKILL.md: 9f95ff17d70c8dd1
   plugins/codex/skills/serve/SKILL.md: f08bbdbbfeb05041
@@ -117,7 +117,7 @@ attested_modules:
   skills/serve/SKILL.md: f08bbdbbfeb05041
   skills/status/SKILL.md: 09faadc50b3449da
   skills/sync/SKILL.md: 775c0f990a52a3d9
-  spec.yaml: a40e9736d8324cf3
+  spec.yaml: 019625b441b6478b
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -143,7 +143,7 @@ attested_modules:
   src/agents/loader.ts: 6d35560c47f9ae85
   src/agents/observability.md: 637fde18c012e2a7
   src/agents/orchestrator.md: 1b758de0bdab8eb0
-  src/agents/planner.md: 5e50090f16678fd7
+  src/agents/planner.md: d1f895a20fb3a3ed
   src/agents/reviewer.md: cdf7469a3e58b438
   src/changelog/collect.ts: a6c936a7b8c34e2a
   src/changelog/render.ts: 83dd2d95f24ca68c
@@ -207,7 +207,7 @@ attested_modules:
   src/hitl/audit.ts: 79b06e904815469a
   src/hitl/identity.ts: 52ff84aa666f1dab
   src/hitl/independence.ts: 202f4e5ef8bc69e3
-  src/init/agents-md.ts: 3eb5ed2c7b6edc8c
+  src/init/agents-md.ts: 698b2a38ddd5d1a6
   src/init/git-hook.ts: b77910b0df392cbf
   src/init/host-instructions.ts: c598f8598d8d1cd4
   src/init/host-setup.ts: 158cc9306a746da1
@@ -624,6 +624,7 @@ attested_features:
   F-9af291fa: ok
   F-9b643e: ok
   F-9d168287: ok
+  F-9d8ece66: ok
   F-a04cd9: ok
   F-a4085adf: ok
   F-a4b512: ok

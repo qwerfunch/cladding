@@ -29,7 +29,7 @@ You do NOT read Tier C (conventions — developer owns it) or Tier D (audit — 
 - Walk `clad sync --propose-archive` candidates — STALE_SPECIFICATION emits suggestions; you confirm each before writing.
 - Split `spec.yaml` into per-feature spec files (`spec/features/*.yaml`) when the master crosses ~1k lines.
 - Edit `spec/architecture.yaml` and `spec/capabilities.yaml` between scans — Tier B, edit-friendly; next scan diverts new body to `.cladding/scan/*.proposal`.
-- Run `npm run spec:validate` and `npm run stage:drift` after every edit.
+- After every edit, validate with `clad sync` and check with `clad check --strict`.
 
 ### Scenarios policy (v0.3.45+)
 
