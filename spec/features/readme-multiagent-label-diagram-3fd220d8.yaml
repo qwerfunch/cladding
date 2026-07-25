@@ -1,0 +1,62 @@
+id: F-3fd220d8
+slug: readme-multiagent-label-diagram
+title: "README multi-agent section reads plainly and draws the label decision, not a cast"
+status: done
+modules:
+  - README.md
+  - README.ko.md
+  - README.ja.md
+  - README.zh.md
+  - README.html
+  - README.ko.html
+  - docs/img/en/independence.svg
+  - docs/img/ko/independence.svg
+  - docs/img/ja/independence.svg
+  - docs/img/zh/independence.svg
+acceptance_criteria:
+  - id: AC-6b0a1f74
+    ears: ubiquitous
+    text: "The section shall open with the stake a reader can feel — one AI writing both the code and its tests produces a green run that proves nothing — before it names any label, so the reader learns why the question is worth asking before learning what it is called. The two self-certified examples shall sit next to each other, the second of them saying it lands on the same label, and the list shall close on the independent case so the way out is the last thing read."
+    response: "in every EN/KO variant the Multi-Agent slice states the shaped-around-the-code problem before its first list item; the two adjacent self-certified items are followed by the sameness marker ('as well' / '마찬가지로'), and the final list item ends in independent"
+    test_refs: ["tests/choreography-guard.test.ts"]
+  - id: AC-c1e7a3b5
+    ears: ubiquitous
+    text: "The section shall explain that the independent label follows from what the test-writing agent was able to open rather than from an assurance anyone gives, and shall say plainly that self-certified is the absence of a separate check rather than a mark against the work."
+    response: "each EN/KO slice states that the test-writing agent had no way to open the code, and contains the non-accusation clause (\"isn't a mark against the work\" / '잘못했다는 뜻이 아니다')"
+    test_refs: ["tests/choreography-guard.test.ts"]
+  - id: AC-4d92c806
+    ears: ubiquitous
+    text: "A locale diagram shall accompany the section in all four languages, drawing the completion's label decision — the host band, the single question, the two labels, and the refusal that only a require policy produces — and never a roster of agents or roles."
+    response: "docs/img/{en,ko,ja,zh}/independence.svg each exist, contain the literals 'independent' and 'self-certified', and match neither /dispatch/i nor /orchestrat/i anywhere including comments"
+    test_refs: ["tests/choreography-guard.test.ts"]
+  - id: AC-83f1ba27
+    ears: ubiquitous
+    text: "Each README variant shall embed the diagram for its own language, and no variant shall resurrect the retired cast diagram."
+    response: "README.md/README.html reference docs/img/en/independence.svg, README.ko.md/README.ko.html reference docs/img/ko/independence.svg, README.ja.md and README.zh.md reference their own locale; no variant matches /multi-agent\\.svg/"
+    test_refs: ["tests/choreography-guard.test.ts"]
+  - id: AC-0e5cb419
+    ears: ubiquitous
+    text: "Every prior README pin shall survive the rewrite — the Multi-Agent heading token and its position after the loop section, the three-item list in the English slice, the hedged EU AI Act sentence in the four EN/KO variants, and the detector and stage count literals."
+    response: "choreography-guard, readme-loop-section, readme-record-honesty, terminology-canon and self-consistency suites stay green"
+    test_refs:
+      - "tests/choreography-guard.test.ts"
+      - "tests/readme-loop-section.test.ts"
+      - "tests/readme-record-honesty.test.ts"
+      - "tests/terminology-canon.test.ts"
+      - "tests/self-consistency.test.ts"
+design_impact:
+  classification: none
+  rationale: >-
+    Documentation-layer clarity pass. The prior inversion (F-8476ccb1) fixed the framing but left a
+    reader-facing defect: a yes/no question answered with three examples carrying two labels, with no
+    statement that two of them share one. This entry restructures the section around the two label
+    values, lowers the vocabulary (the cast metaphor is dropped; the label values are glossed on first
+    use in the localized variants), and reinstates a diagram at a new path. The prose-only decision of
+    F-8476ccb1 was taken after four drafts that all drew roles and all read as a fixed cast; the user
+    has since asked for a diagram, and this one draws the label decision instead — a host band with no
+    agent detail, one question, two outcomes, and the refusal a require policy adds. Because it depicts
+    the judgment rather than a roster, the invariant that mattered (never restore multi-agent.svg) is
+    untouched, and AC-7d433517 of F-8476ccb1 is reworded to state that invariant rather than a blanket
+    no-diagram rule. No engine changes.
+  status: resolved
+  artifacts: []

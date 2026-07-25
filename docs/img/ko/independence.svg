@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 470" width="640" height="470" role="img" aria-labelledby="independence-title" font-family="-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif">
+  <title id="independence-title">끝난 기능에 어떤 표시가 붙나 — 에이전트는 호스트가 돌리고, cladding은 만든 쪽과 확인한 쪽이 달랐는지를 물어 완료에 independent 또는 self-certified를 남긴다. require 정책을 켰을 때만 그 표시가 거부로 바뀐다.</title>
+  <defs>
+    <style>
+      :root{
+        --brand:#3b82f6; --brand-deep:#1d4ed8;
+        --ink:#6b7280; --text:#737a84; --muted:#6f757f; --faint:#8b919b;
+        --border:#8b93a1; --surface:rgba(148,163,184,0.18); --ok:#16a34a; --block:#e11d48; --brand-text:#3f76d6;
+      }
+      .title{font-size:19px;font-weight:800;fill:var(--ink);letter-spacing:-.3px}
+      .sub0{font-size:12.5px;fill:var(--muted)}
+      .ask{font-size:14.5px;font-weight:700;fill:#ffffff}
+      .askmuted{font-size:11px;fill:#bfdbfe}
+      .label{font-size:15px;font-weight:800;letter-spacing:-.2px}
+      .item{font-size:12px;fill:var(--text)}
+      .muted{font-size:10.5px;fill:var(--faint)}
+      .flow{font-size:10.5px;font-weight:600;fill:var(--brand-text)}
+      .yes{font-size:11px;font-weight:700;fill:var(--ok)}
+      .no{font-size:11px;font-weight:700;fill:var(--muted)}
+      .card{fill:var(--surface);stroke:var(--border);stroke-width:1.25}
+      .askbox{fill:var(--brand-deep)}
+      .hostband{fill:var(--surface);stroke:var(--border);stroke-width:1.25;stroke-dasharray:5 4}
+    </style>
+    <marker id="ib" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#3b82f6"/></marker>
+    <marker id="ig" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#16a34a"/></marker>
+    <marker id="in" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#8b93a1"/></marker>
+    <marker id="ir" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#e11d48"/></marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="320" y="30" text-anchor="middle" class="title">끝난 기능에 어떤 표시가 붙나</text>
+  <rect x="278" y="40" width="84" height="3" rx="1.5" fill="#3b82f6"/>
+
+  <!-- Host band : deliberately without detail — cladding has no opinion here -->
+  <rect x="60" y="60" width="520" height="46" rx="12" class="hostband"/>
+  <text x="320" y="82" text-anchor="middle" font-size="13" font-weight="700" fill="#6f757f">에이전트는 호스트가 돌린다</text>
+  <text x="320" y="99" text-anchor="middle" class="muted">몇 개 · 어떤 모델 · 어떤 도구 — cladding은 여기 관여하지 않는다</text>
+
+  <line x1="320" y1="106" x2="320" y2="132" stroke="#3b82f6" stroke-width="2" marker-end="url(#ib)"/>
+  <text x="330" y="124" class="flow">기능이 끝났다</text>
+
+  <!-- The single question -->
+  <rect x="88" y="132" width="464" height="66" rx="14" class="askbox"/>
+  <text x="320" y="163" text-anchor="middle" class="ask">만든 쪽과 확인한 쪽이 달랐는가?</text>
+  <text x="320" y="184" text-anchor="middle" class="askmuted">cladding은 남은 기록만 본다 — 누가 했는지, 몇 개가 붙었는지는 묻지 않는다</text>
+
+  <!-- Branch arrows -->
+  <path d="M232 198 L232 216 L176 216 L176 238" fill="none" stroke="#16a34a" stroke-width="2" marker-end="url(#ig)"/>
+  <text x="190" y="212" class="yes">예</text>
+  <path d="M408 198 L408 216 L464 216 L464 238" fill="none" stroke="#8b93a1" stroke-width="2" marker-end="url(#in)"/>
+  <text x="428" y="212" class="no">아니오</text>
+
+  <!-- Outcome : independent -->
+  <rect x="40" y="238" width="272" height="104" rx="14" class="card"/>
+  <rect x="40" y="238" width="4" height="104" rx="2" fill="#16a34a"/>
+  <text x="62" y="266" class="label" fill="#16a34a">independent</text>
+  <text x="62" y="291" class="item">▸ 스펙만 보고 테스트를 썼다</text>
+  <text x="62" y="310" class="item">▸ 코드는 열어 볼 수 없었다</text>
+  <text x="62" y="329" class="muted">버그를 못 봤으니, 버그에 맞춘 테스트도 못 쓴다</text>
+
+  <!-- Outcome : self-certified — neutral on purpose, this is the default, not a fault -->
+  <rect x="328" y="238" width="272" height="104" rx="14" class="card"/>
+  <rect x="328" y="238" width="4" height="104" rx="2" fill="#8b93a1"/>
+  <text x="350" y="266" class="label" fill="#6f757f">self-certified</text>
+  <text x="350" y="291" class="item">▸ 만든 쪽이 자기 것을 확인했다</text>
+  <text x="350" y="310" class="item">▸ 또는 아무도 확인하지 않았다</text>
+  <text x="350" y="329" class="muted">잘못이 아니라, 따로 확인한 기록이 없다는 뜻</text>
+
+  <!-- Only under require does the mark refuse -->
+  <path d="M464 342 L464 384" fill="none" stroke="#e11d48" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ir)"/>
+  <text x="474" y="360" font-size="10.5" font-weight="600" fill="#e11d48">이 설정을 켰을 때만:</text>
+  <text x="474" y="375" font-size="10.5" fill="#6f757f">independence_policy: require</text>
+
+  <rect x="328" y="384" width="272" height="46" rx="12" class="card"/>
+  <rect x="328" y="384" width="4" height="46" rx="2" fill="#e11d48"/>
+  <text x="350" y="404" font-size="13" font-weight="700" fill="#e11d48">완료가 거부된다</text>
+  <text x="350" y="421" class="muted">미완료로 되돌아간다 — 검사 실패와 똑같이</text>
+
+  <!-- Default lane annotation on the left -->
+  <text x="62" y="399" font-size="11" font-weight="700" fill="#3f76d6">기본값에서는 아무것도 막지 않는다</text>
+  <text x="62" y="417" class="muted">표시만 기록에 남는다</text>
+
+  <!-- Caption -->
+  <text x="320" y="456" text-anchor="middle" class="sub0">누가 일할지는 호스트가 정한다 · cladding은 그 결과만 본다</text>
+</svg>

@@ -174,6 +174,8 @@
     gap: 16px;
     margin: 24px 0;
   }
+  /* 전 · 후 두 장만 놓는 자리 */
+  .flow-cards.two { grid-template-columns: repeat(2, 1fr); }
   .flow-card {
     border-radius: 12px;
     padding: 20px 22px;
@@ -254,7 +256,7 @@
     .container { padding: 32px 16px 64px; }
     h1 { font-size: 40px; }
     h2 { font-size: 24px; margin-top: 48px; }
-    .flow-cards { grid-template-columns: 1fr; }
+    .flow-cards, .flow-cards.two { grid-template-columns: 1fr; }
     table { font-size: 13px; }
     th, td { padding: 10px 12px; }
   }
@@ -275,7 +277,7 @@
   <p class="badges">
     <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"></a>
     <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"></a>
-    <img src="https://img.shields.io/badge/tests-2710%2F2710-brightgreen" alt="tests">
+    <img src="https://img.shields.io/badge/tests-2736%2F2736-brightgreen" alt="tests">
     <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors">
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"></a>
   </p>
@@ -302,7 +304,7 @@
   </div>
 
   <p class="dogfood-line">
-    cladding은 <strong>자기 자신도 cladding으로 만든다</strong> — 기능 255개 중 252개가 같은 게이트를 통과했고, Ironclad 표준을 L4로 구현한 첫 사례다.
+    cladding은 <strong>자기 자신도 cladding으로 만든다</strong> — 기능 270개 중 266개가 같은 게이트를 통과했고, Ironclad 표준을 L4로 구현한 첫 사례다.
   </p>
 
   <!-- ─────────────── 무엇이 달라지나 ─────────────── -->
@@ -332,7 +334,7 @@
 
   <!-- ─────────────── cladding이 호스트 LLM을 감싸는 방식 ─────────────── -->
   <h2>cladding이 호스트 LLM을 감싸는 방식</h2>
-  <div class="flow-cards">
+  <div class="flow-cards two">
     <div class="flow-card before">
       <span class="badge">전 — 의도를 넣는다</span>
       <div class="title">LLM이 올바른 컨텍스트로 시작하도록</div>
@@ -342,11 +344,15 @@
         <li><strong>팀 규칙 적용</strong> — 팀이 합의한 금지·선호 패턴을 매번 표준 지시로</li>
       </ul>
     </div>
+    <div class="flow-card after">
+      <span class="badge">후 — 결과를 검증한다</span>
+      <div class="title">나온 결과를 스펙과 대조하도록</div>
+      <ul>
+        <li><strong>15단계 게이트 · 41개 어긋남 검출기</strong> — 통과해야만 완료로 인정된다</li>
+        <li><strong>구현을 못 보는 채점자</strong> — 구현을 읽을 도구 없이 산출물을 스펙과 대조하는 에이전트라, 자기가 쓴 것에 도장을 찍어 줄 수 없다</li>
+      </ul>
+    </div>
   </div>
-
-  <p style="font-size:14px;color:#475569">
-    <strong>후 — 결과를 검증한다:</strong> 15단계 게이트 · 41개 어긋남 검출기 · 그리고 <strong>구현을 못 보는 채점자</strong> — 구현을 읽을 도구 없이 산출물을 스펙과 대조하는 에이전트라, 자기가 쓴 것에 도장을 찍어 줄 수 없다.
-  </p>
   <p style="font-size:13px;color:#64748b;text-align:center;margin-top:4px">
     실시간 개입(지도 주입 · 즉시 차단 · 종료 차단)은 Claude Code에서 전부 동작한다.
     Codex · Gemini · Antigravity · Cursor에서는 같은 검증을 대화 속 도구 호출과 git·CI 관문으로 수행한다.
@@ -488,18 +494,25 @@ acceptance_criteria:
   <p>한 기능의 생애주기는 <strong>Define → Sync → Implement → Earn</strong>으로 흐른다 — 모든 검사를 통과해야만 <code>done</code>을 얻는다.</p>
 
   <!-- ─────────────── Multi-Agent ─────────────── -->
-  <h2>Multi-Agent — 돌리는 건 당신, 판정하는 건 cladding</h2>
+  <h2>Multi-Agent</h2>
   <p>
-    여기서 cladding의 일은 하나다: 모든 <code>done</code>을 믿을 수 있게 만드는 것 — 기록된 근거로부터 검증하는 자가 만드는 자와 독립적이었는지를 판정하고, 각 완료에 그에 맞는 라벨을 붙인다. 에이전트를 어떻게 돌릴지는 전적으로 당신 몫이다: 하나든 여럿이든, 어떤 모델이든, 어떤 호스트든 — cladding은 멀티에이전트 프레임워크가 아니며 에이전트를 스폰하거나 라우팅하거나 조율하지 않는다.
+    AI에게 코드를 맡기면 보통 테스트도 같이 맡긴다. 그런데 같은 AI가 둘 다 쓰면, 테스트는 자기가 쓴 코드에 맞춰진다. 버그가 있어도 테스트는 통과한다. <strong>초록불이 아무것도 증명하지 못하는 상태</strong>다.
   </p>
-  <p>같은 프로젝트가 세 기능을 세 가지 다른 방식으로 출하할 수 있다:</p>
+  <p>
+    그래서 cladding은 기능이 끝날 때마다 한 가지를 묻는다: <strong>만든 쪽과 확인한 쪽이 서로 달랐는가?</strong> 그 답을 완료에 적어 둔다. (에이전트를 몇 개로 어떻게 돌릴지는 호스트가 정한다 — cladding은 멀티에이전트 프레임워크가 아니고, 에이전트를 배치하지 않는다.)
+  </p>
+
+  <div class="diagram">
+    <img class="diagram-img" src="docs/img/ko/independence.svg" alt="완료된 기능에 표시가 붙는 방식 — 에이전트는 호스트가 돌리고(몇 개, 어떤 모델, 어떤 도구), cladding은 코드를 보지 않은 무언가가 확인했는지를 물어 완료에 independent 또는 self-certified를 남긴다. 기본값에서는 아무것도 막지 않고, independence_policy를 require로 두었을 때만 self-certified가 거부로 바뀐다." width="640">
+  </div>
+
   <ul>
-    <li>한 에이전트가 만들고, 테스트하고, 리뷰한다 — <code>self-certified</code>로 표시</li>
-    <li>두 번째 에이전트가 스펙만 보고 테스트를 쓴다(코드를 읽을 도구가 없다) — <code>independent</code>로 표시</li>
-    <li>사람이 리뷰를 승인한다 — <code>independent</code>로 표시</li>
+    <li>한 에이전트가 만들고, 테스트하고, 스스로 통과시켰다 — <code>self-certified</code>. 자기가 방금 쓴 코드에 테스트를 맞출 수 있으니, 통과가 곧 확인은 아니다.</li>
+    <li>아무도 따로 확인하지 않았다 — 마찬가지로 <code>self-certified</code>. 잘못했다는 뜻이 아니다. 확인한 기록이 없다는 뜻이다.</li>
+    <li>다른 에이전트가 코드는 못 본 채 스펙만 보고 테스트를 썼다 — <code>independent</code>. 버그를 못 봤으니 버그에 맞출 수도 없다 — 라벨을 정하는 건 말이 아니라 그 에이전트가 열어 볼 수 있었던 것이다.</li>
   </ul>
   <p>
-    <code>clad done</code> / <code>clad verdict</code>의 라벨은 각 완료의 기록된 근거가 보여 주는 것을 나타낼 뿐, 어떤 에이전트가 몇 개로 누구의 손으로 그 일을 했는지는 담지 않는다. 라벨 자체로는 막지 않는다; 강제하고 싶은 팀은 <code>spec.yaml</code>에 <code>independence_policy: require</code>를 두고, 그러면 self-certified 완료가 거부된다. 역할 브리프(planner · developer · reviewer · observability · blind-author)는 cladding의 접점을 위한 선택적 매뉴얼로 남을 뿐, 고정된 배역이 아니다. 이건 EU AI Act·SOX 같은 감사 규정이 요구하는 것과 같은 직무 분리다 — 그 정신에서 그렇다는 것이지, 인증이 아니다.
+    만드는 쪽과 확인하는 쪽을 나눠 두면 된다. EU AI Act·SOX 같은 감사 규정이 요구하는 직무 분리와 같은 방식이지, 정식 인증이 아니다.
   </p>
 
   <!-- ─────────────── Ecosystem ─────────────── -->
@@ -577,7 +590,7 @@ clad update              # 3. 프로젝트 연결과 파생 데이터를 함께 
     <tr style="border:none">
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">version</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">v0.9.0</div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">v0.9.2</div>
         <div style="font-size:11px;color:#64748b">2026-07</div>
       </td>
       <td style="text-align:center;width:140px;background:#dcfce7;padding:18px 10px;border-radius:8px;border:none">
@@ -587,7 +600,7 @@ clad update              # 3. 프로젝트 연결과 파생 데이터를 함께 
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">tests</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">2710<span style="font-size:16px;color:#94a3b8">/2710</span></div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">2736<span style="font-size:16px;color:#94a3b8">/2736</span></div>
         <div style="font-size:11px;color:#64748b">all pass</div>
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
@@ -597,13 +610,13 @@ clad update              # 3. 프로젝트 연결과 파생 데이터를 함께 
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">features</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">261</div>
-        <div style="font-size:11px;color:#64748b">258 done · 자기 스펙</div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">270</div>
+        <div style="font-size:11px;color:#64748b">266 done · 자기 스펙</div>
       </td>
     </tr>
   </table>
 
-  <p style="text-align:center;font-size:13px;color:#64748b;margin-top:12px">236 test files · capability 6개 · coverage는 COVERAGE_DROP detector가 하락 차단</p>
+  <p style="text-align:center;font-size:13px;color:#64748b;margin-top:12px">248 test files · capability 6개 · coverage는 COVERAGE_DROP detector가 하락 차단</p>
 
   <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:24px 0;background:#f8fafc;color:#475569;font-size:14px"><strong>Ironclad 1.0까지의 길</strong> — 1.0은 <em>독립적인 두 개의 구현이 L4 검증 셋을 통과해야</em> 잠긴다 (<a href="https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md">GOVERNANCE § 1</a>). cladding이 첫 번째.</blockquote>
 

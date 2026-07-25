@@ -17,8 +17,8 @@ acceptance_criteria:
     test_refs: ["tests/choreography-guard.test.ts"]
   - id: AC-7d433517
     ears: ubiquitous
-    text: "The section shall carry the story in prose alone — no embedded diagram; the three-shapes contrast (one agent does everything; a blind test author; a human reviewer — each completion labeled for its own record) lives as a compact list in the text."
-    response: "no README variant matches /multi-agent\\.svg/; the EN slice presents the three-shape contrast as a list"
+    text: "The retired cast diagram shall not return — four drafts of it each read as a fixed roster of agents cladding ships — and the contrast between completions shall stand on its own as a compact list in the text, legible with no picture at all. (Narrowed by F-3fd220d8, which adds a diagram of the label decision at a different path; the blanket no-diagram wording it replaced was a consequence of those four drafts, not the invariant.)"
+    response: "no README variant matches /multi-agent\\.svg/; the EN slice presents the contrast as a list"
     test_refs: ["tests/choreography-guard.test.ts"]
   - id: AC-a1692ed7
     ears: ubiquitous

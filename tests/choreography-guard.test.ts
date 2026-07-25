@@ -276,7 +276,12 @@ describe('README Multi-Agent section carries the inversion in prose alone (F-847
     });
   });
 
-  describe('AC-7d433517 — the story carries in prose alone, no embedded diagram', () => {
+  // Narrowed by F-3fd220d8: the invariant is that the RETIRED CAST diagram
+  // (multi-agent.svg, four drafts of it, each reading as a fixed roster) never
+  // returns, and that the contrast still stands as a list with no picture at
+  // all. A diagram of the LABEL DECISION now ships at docs/img/<lang>/
+  // independence.svg — a different drawing at a different path, guarded below.
+  describe('AC-7d433517 — the retired cast diagram stays gone; the contrast stands as a list', () => {
     for (const f of README_VARIANTS) {
       test(`${f}: does not match /multi-agent\\.svg/`, () => {
         const body = repoRead(f);
@@ -292,5 +297,144 @@ describe('README Multi-Agent section carries the inversion in prose alone (F-847
         'README.md: Multi-Agent slice must contain at least 3 lines starting with "- "',
       ).toBeGreaterThanOrEqual(3);
     });
+  });
+});
+
+// F-3fd220d8 — the section reads plainly and draws the label decision.
+//
+// The prior inversion (F-8476ccb1) fixed the framing but left a comprehension
+// defect: a yes/no question ("was it checked by someone else?") answered with
+// three examples carrying only two labels, with nothing saying that two of the
+// three land on the SAME label. A reader counts three, counts two, and stalls.
+// These guards pin the repair — labels named before the examples, the two
+// self-certified cases adjacent with the last one marked as sharing the label,
+// the mechanism stated as tool reach rather than assurance, and the
+// non-accusation clause — plus the new locale diagram of the label decision.
+const MULTIAGENT_NEEDLES: Readonly<
+  Record<string, {stakes: string; sameness: string; noCodeAccess: string; notAnAccusation: string}>
+> = {
+  'README.md': {
+    stakes: 'proves nothing',
+    sameness: 'as well',
+    noCodeAccess: 'no way to open the code',
+    notAnAccusation: "isn't a mark against the work",
+  },
+  'README.html': {
+    stakes: 'proves nothing',
+    sameness: 'as well',
+    noCodeAccess: 'no way to open the code',
+    notAnAccusation: "isn't a mark against the work",
+  },
+  'README.ko.md': {
+    stakes: '아무것도 증명하지 못하는',
+    sameness: '마찬가지로',
+    noCodeAccess: '코드는 못 본 채',
+    notAnAccusation: '잘못했다는 뜻이 아니다',
+  },
+  'README.ko.html': {
+    stakes: '아무것도 증명하지 못하는',
+    sameness: '마찬가지로',
+    noCodeAccess: '코드는 못 본 채',
+    notAnAccusation: '잘못했다는 뜻이 아니다',
+  },
+};
+
+const INDEPENDENCE_SVG_LOCALES: readonly string[] = ['en', 'ko', 'ja', 'zh'];
+const README_TO_LOCALE: Readonly<Record<string, string>> = {
+  'README.md': 'en',
+  'README.html': 'en',
+  'README.ko.md': 'ko',
+  'README.ko.html': 'ko',
+  'README.ja.md': 'ja',
+  'README.zh.md': 'zh',
+};
+
+// First list item of a Multi-Agent slice, md ('- ' line) or html ('<li>').
+const firstListItemIndexOf = (f: string, slice: string): number =>
+  isHtmlReadme(f) ? slice.indexOf('<li>') : slice.indexOf('\n- ');
+
+// The slice's example items in document order, md ('- ' lines) or html (<li> bodies).
+const listItemsOf = (f: string, slice: string): readonly string[] =>
+  isHtmlReadme(f)
+    ? [...slice.matchAll(/<li>([\s\S]*?)<\/li>/g)].map((m) => m[1]!)
+    : slice.split('\n').filter((line) => line.startsWith('- '));
+
+describe('README Multi-Agent section reads plainly and draws the label decision (F-3fd220d8)', () => {
+  describe('AC-6b0a1f74 — the stake lands before any label, and the list ends on the way out', () => {
+    for (const f of README_EN_KO_VARIANTS) {
+      test(`${f}: the green-run-proves-nothing problem is stated before the first list item`, () => {
+        const slice = multiAgentSliceOf(f);
+        const firstItem = firstListItemIndexOf(f, slice);
+        const {stakes} = MULTIAGENT_NEEDLES[f]!;
+        expect(firstItem, `${f}: Multi-Agent slice must contain a list`).toBeGreaterThan(0);
+        const stakesAt = slice.indexOf(stakes);
+        expect(
+          stakesAt,
+          `${f}: the section must open with why the question matters — one AI writing both code and tests makes a green run prove nothing ("${stakes}")`,
+        ).toBeGreaterThan(-1);
+        expect(stakesAt, `${f}: the stake must land before the examples, not after them`).toBeLessThan(firstItem);
+      });
+
+      test(`${f}: two adjacent self-certified cases, marked as sharing a label, then independent last`, () => {
+        const items = listItemsOf(f, multiAgentSliceOf(f));
+        const {sameness} = MULTIAGENT_NEEDLES[f]!;
+        expect(items.length, `${f}: expected at least 3 example items`).toBeGreaterThanOrEqual(3);
+        const [first, second] = items;
+        const last = items[items.length - 1]!;
+        expect(first, `${f}: the first example must land on self-certified`).toContain('self-certified');
+        expect(second, `${f}: the second example must also land on self-certified`).toContain('self-certified');
+        expect(
+          second,
+          `${f}: the second self-certified case must say it shares the label ("${sameness}"), so two examples mapping to one label never reads as a contradiction`,
+        ).toContain(sameness);
+        expect(
+          last,
+          `${f}: the list must close on the independent case, so the way out is the last thing read`,
+        ).toContain('independent');
+      });
+    }
+  });
+
+  describe('AC-c1e7a3b5 — independence is explained as tool reach, and self-certified is explained as absence, not fault', () => {
+    for (const f of README_EN_KO_VARIANTS) {
+      test(`${f}: states the test writer has no means of opening the code`, () => {
+        const slice = multiAgentSliceOf(f);
+        const {noCodeAccess} = MULTIAGENT_NEEDLES[f]!;
+        expect(slice, `${f}: must explain independence as what the test writer can reach ("${noCodeAccess}")`).toContain(
+          noCodeAccess,
+        );
+      });
+
+      test(`${f}: says self-certified is not an accusation`, () => {
+        const slice = multiAgentSliceOf(f);
+        const {notAnAccusation} = MULTIAGENT_NEEDLES[f]!;
+        expect(slice, `${f}: must contain the non-accusation clause ("${notAnAccusation}")`).toContain(notAnAccusation);
+      });
+    }
+  });
+
+  describe('AC-4d92c806 — the locale diagram draws the label decision, never a roster', () => {
+    for (const locale of INDEPENDENCE_SVG_LOCALES) {
+      const rel = `docs/img/${locale}/independence.svg`;
+      test(`${rel}: exists, carries both labels, and names no roster`, () => {
+        const body = repoRead(rel);
+        expect(body.length, `${rel}: must exist and be non-empty`).toBeGreaterThan(0);
+        expect(body, `${rel}: must contain "independent"`).toContain('independent');
+        expect(body, `${rel}: must contain "self-certified"`).toContain('self-certified');
+        expect(body, `${rel}: must not match /dispatch/i anywhere, comments included`).not.toMatch(/dispatch/i);
+        expect(body, `${rel}: must not match /orchestrat/i anywhere, comments included`).not.toMatch(/orchestrat/i);
+      });
+    }
+  });
+
+  describe('AC-83f1ba27 — each variant embeds its own locale diagram', () => {
+    for (const [f, locale] of Object.entries(README_TO_LOCALE)) {
+      test(`${f}: references docs/img/${locale}/independence.svg`, () => {
+        const slice = multiAgentSliceOf(f);
+        expect(slice, `${f}: Multi-Agent slice must embed docs/img/${locale}/independence.svg`).toContain(
+          `docs/img/${locale}/independence.svg`,
+        );
+      });
+    }
   });
 });
