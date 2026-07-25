@@ -206,7 +206,7 @@ One feature's lifecycle runs **Define → Sync → Implement → Earn** — you 
 
 ## Multi-Agent — yours to run, cladding's to judge
 
-cladding is not a multi-agent framework: it never spawns, routes, or coordinates agents, and it neither prescribes nor sees how many there are. What it owns is smaller and sharper — whether the builder and the verifier were actually separate, on the record.
+Here cladding has one job: make every `done` trustworthy — it judges, from recorded evidence, whether the verifier was independent of the author, and labels each completion accordingly. How the agents run is entirely yours: one or many, any models, any host — cladding is not a multi-agent framework and never spawns, routes, or coordinates them.
 
 The same project can ship three features three different ways:
 
