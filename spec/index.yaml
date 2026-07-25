@@ -126,6 +126,7 @@ features:
   F-3a5339: {slug: spec-yaml-metadata, status: done, modules: 5}
   F-3b3690: {slug: multi-agent-orchestration, status: done, modules: 4}
   F-3c2bf8b9: {slug: readme-record-honesty, status: done, modules: 5}
+  F-3fd220d8: {slug: readme-multiagent-label-diagram, status: done, modules: 10}
   F-40327b: {slug: persona-skill-md-cleanup, status: done, modules: 14}
   F-417ff0: {slug: scan-llm-dispatcher-chain, status: done, modules: 5}
   F-42af48: {slug: architecture-from-spec, status: done, modules: 2}

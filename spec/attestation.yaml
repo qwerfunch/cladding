@@ -20,12 +20,12 @@ attested_modules:
   CHANGELOG.md: c3353cc4baf17ec7
   CLAUDE.md: 9f2fa4edd5c6df80
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: e40e74799ed43198
-  README.ja.md: b1e12755ee78a7db
-  README.ko.html: d2e2d8475781823e
-  README.ko.md: 0351e20595f77867
-  README.md: 887dcdc61e4496e2
-  README.zh.md: 3c8c204ecefe1775
+  README.html: 490eab86b9c0d208
+  README.ja.md: 3c4f3453ba97a3a6
+  README.ko.html: dd48adf81a1d382c
+  README.ko.md: 383011eabecf55a2
+  README.md: c84d37f3d8726f5c
+  README.zh.md: 014fe3859fdbb8dc
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -58,18 +58,22 @@ attested_modules:
   docs/feature-cycle.md: e1847cc9fe9b6eb6
   docs/glossary.md: 9e897b963c3aa88f
   docs/img/en/ecosystem.svg: ed14d1d17f088b00
+  docs/img/en/independence.svg: 1b3048b3b5206483
   docs/img/en/relationship.svg: c7a24203925b4664
+  docs/img/ja/independence.svg: 833069d091d4606c
   docs/img/ko/ecosystem.svg: 2b7341576c2af0a8
+  docs/img/ko/independence.svg: 7921a18eb9478462
   docs/img/ko/relationship.svg: 9ec8fb2254978f37
+  docs/img/zh/independence.svg: 073303a42e601f7c
   docs/multi-provider-roadmap.md: 1e5cf27ea1b18d06
-  docs/refinement-backlog.md: 3e38d60bf987eef1
+  docs/refinement-backlog.md: 918426e582bf2739
   docs/setup.md: a5c062651d267983
   docs/spec-ids-multi-dev.md: 28d58e84879f58b1
   docs/ssot-model.md: 66b9439e2f71ac4b
   docs/ssot-testing.md: abf3b2bd5acb29a1
-  package-lock.json: dc094f923ab99ab8
-  package.json: 5fc7fe2a9f18a959
-  plugins/claude-code/.claude-plugin/plugin.json: 4daaab360fbbea9e
+  package-lock.json: efa9090e0ef4bf1f
+  package.json: 00272205b48b15df
+  plugins/claude-code/.claude-plugin/plugin.json: fcfe09c82ca6492b
   plugins/claude-code/agents/developer.md: 3002b4ef69ddab43
   plugins/claude-code/agents/observability.md: 637fde18c012e2a7
   plugins/claude-code/agents/orchestrator.md: 1b758de0bdab8eb0
@@ -77,7 +81,7 @@ attested_modules:
   plugins/claude-code/agents/reviewer.md: cdf7469a3e58b438
   plugins/claude-code/commands/init.md: 5529b13d0f1ab4bf
   plugins/claude-code/hooks/hooks.json: 42321ead26fb1da8
-  plugins/codex/.codex-plugin/plugin.json: 835ff6366182f1ea
+  plugins/codex/.codex-plugin/plugin.json: da272fa283026dc2
   plugins/codex/.mcp.json: 43e3f4b2af24aa18
   plugins/codex/skills/check/SKILL.md: 6a665422af510e72
   plugins/codex/skills/developer/SKILL.md: 3002b4ef69ddab43
@@ -93,7 +97,7 @@ attested_modules:
   plugins/gemini-cli/GEMINI.md: ba08eaf2cd557a65
   plugins/gemini-cli/commands/README.md: 3527d771578431bd
   plugins/gemini-cli/commands/init.toml: e7f310fd7af23f95
-  plugins/gemini-cli/gemini-extension.json: 85ff27830d2db32e
+  plugins/gemini-cli/gemini-extension.json: 729b2c69fdc0b650
   scripts/build-plugin.mjs: 7fabe2b6301b142a
   scripts/build.mjs: 3a4b204063024ef1
   scripts/migrate-dogfood-v0.3.16.mjs: 1e265fb370019996
@@ -113,7 +117,7 @@ attested_modules:
   skills/serve/SKILL.md: f08bbdbbfeb05041
   skills/status/SKILL.md: 09faadc50b3449da
   skills/sync/SKILL.md: 775c0f990a52a3d9
-  spec.yaml: 14bbfc4556854fbb
+  spec.yaml: ea944be3d843f018
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -146,7 +150,7 @@ attested_modules:
   src/cli: a4d0f0eb87fed960
   src/cli/benchmark.ts: 77f84d2a898d724f
   src/cli/changelog.ts: 2de1adb009b89ab4
-  src/cli/clad.ts: ec45cced5dc7e3ac
+  src/cli/clad.ts: 0501f16f74b2a8dc
   src/cli/clarify.ts: f17177969d5b75ff
   src/cli/doctor-hosts.ts: 1f0c2cec5a310b81
   src/cli/doctor.ts: b98b955fe75e7f7e
@@ -229,7 +233,7 @@ attested_modules:
   src/report/sarif.ts: 71e97aceeb0a4473
   src/router: a4d0f0eb87fed960
   src/router/intent.ts: 430590f761b891a6
-  src/serve/server.ts: db452db2b4366605
+  src/serve/server.ts: a63dde88609a6abe
   src/spec: a4d0f0eb87fed960
   src/spec/attestation.ts: 294a1e99c42d4aef
   src/spec/cli.ts: 7a9bcd0f66677810
@@ -336,7 +340,7 @@ attested_modules:
   tests/adapters/transport.test.ts: 68f22e9e8df7b813
   tests/agents/loader.test.ts: a7df7b1c9a95d37d
   tests/cli/benchmark.test.ts: b4a87289605ee75f
-  tests/cli/clad.test.ts: 7c61f7d2e759f792
+  tests/cli/clad.test.ts: d559fff3bd530bad
   tests/cli/gate-golden-matrix.test.ts: 39cf615407a55abe
   tests/cli/init.test.ts: 3428a89708fc9330
   tests/cli/intent-onboarding.test.ts: 0681b98ce2e74c22
@@ -555,6 +559,7 @@ attested_features:
   F-3a5339: ok
   F-3b3690: ok
   F-3c2bf8b9: ok
+  F-3fd220d8: ok
   F-40327b: ok
   F-417ff0: ok
   F-42af48: ok
