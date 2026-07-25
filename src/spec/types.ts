@@ -338,6 +338,17 @@ export interface Project {
    */
   readonly oracle_policy?: OraclePolicy;
   /**
+   * Independence policy (F-c566f590). Governs the evidence-based independence
+   * label (`independent` | `self-certified`) that `clad done` / `clad verdict`
+   * compute per feature:
+   *   - `'label'`   — the default when absent: annotate only, never block.
+   *   - `'require'` — additionally REFUSE to keep a self-certified feature done;
+   *     a GREEN gate no longer suffices, the feature needs human or blind
+   *     (independent) evidence first.
+   * Additive: absent = today's label-only behavior. See hitl/independence.ts.
+   */
+  readonly independence_policy?: 'label' | 'require';
+  /**
    * AI behavior hints — preferred persona, token budget, forbidden patterns.
    * Added v0.3.56 (F-5b9f9f).
    */

@@ -18,6 +18,7 @@
 import {isBlocking, type GateStatus} from '../stages/disposition.js';
 import type {DriftFinding} from '../stages/types.js';
 import type {Feature, Spec} from '../spec/types.js';
+import type {IndependenceLabel} from '../hitl/independence.js';
 
 /**
  * Per-stage record read by the reducer. A structural mirror of the CLI's
@@ -58,6 +59,13 @@ export interface Verdict {
   readonly remaining: {id: string; slug: string; status: string}[];
   /** Present only for ESCALATE — why a human/environment is required. */
   readonly halt_class?: string;
+  /**
+   * Per-done-feature independence labels (F-c566f590). Populated by the CLI
+   * wrapper (runVerdictCommand) from the evidence ledger; the pure reducer NEVER
+   * sets it — reading the ledger is IO the reducer must not do. Absent when the
+   * verdict is computed without the CLI seam (e.g. the unit tests).
+   */
+  readonly independence?: readonly {readonly id: string; readonly label: IndependenceLabel}[];
 }
 
 /** The behavioral-proof stages. A green among THESE (status === 'pass', not

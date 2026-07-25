@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-2602%2F2602-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-2736%2F2736-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -31,7 +31,7 @@
 - **추적** — **나간 것은 기록에 남는다**: 무엇을 검증했는지는 커밋된 내용에 새겨지고, 누가·언제는 로컬 세션 로그에, 왜는 스펙에 남아, 인수인계와 리뷰가 파헤치지 않아도 된다.
 - **확장** — 사람과 AI를 늘리면 보통 충돌과 어긋남도 함께 불어난다. 하지만 모두가 스펙 하나를 기준으로 일하니 그게 자동으로 걸린다 — 그래서 규모를 키워도 무너지지 않는다.
 
-cladding은 **자기 자신도 cladding으로 만든다** — 기능 255개 중 252개가 같은 게이트를 통과했고, [Ironclad](https://github.com/qwerfunch/ironclad) 표준을 L4로 구현한 첫 사례다.
+cladding은 **자기 자신도 cladding으로 만든다** — 기능 270개 중 266개가 같은 게이트를 통과했고, [Ironclad](https://github.com/qwerfunch/ironclad) 표준을 L4로 구현한 첫 사례다.
 
 <!-- ─────────────── 무엇이 달라지나 ─────────────── -->
 
@@ -207,15 +207,23 @@ acceptance_criteria:
 
 <!-- ─────────────── Multi-Agent ─────────────── -->
 
-## Multi-Agent — 만드는 자와 검증하는 자의 분리
+## Multi-Agent
 
-**만드는** 에이전트와 **검증하는** 에이전트를 떼어 놓아, 어떤 에이전트도 자기 작업을 스스로 승인하지 못한다. **blind-author**는 한 발 더 나간다: 테스트를 쓰는 에이전트는 말 그대로 *코드를 읽을 수 없다*(Read/Grep 도구가 주어지지 않는다). 그래서 "코드를 안 보고 테스트를 썼다"는 건 약속이 아니라 배선 방식에서 나오는 사실이다. 이것은 감사 규정(EU AI Act · SOX)이 요구하는 것과 같은 **직무 분리**다 — 그 정신에서 그렇다는 것이지, 인증이 아니다.
+AI에게 코드를 맡기면 보통 테스트도 같이 맡긴다. 그런데 같은 AI가 둘 다 쓰면, 테스트는 자기가 쓴 코드에 맞춰진다. 버그가 있어도 테스트는 통과한다. **초록불이 아무것도 증명하지 못하는 상태**다.
+
+그래서 cladding은 기능이 끝날 때마다 한 가지를 묻는다: **만든 쪽과 확인한 쪽이 서로 달랐는가?** 그 답을 완료에 적어 둔다. (에이전트를 몇 개로 어떻게 돌릴지는 호스트가 정한다 — cladding은 멀티에이전트 프레임워크가 아니고, 에이전트를 배치하지 않는다.)
 
 <div align="center">
 
-<img src="docs/img/ko/multi-agent.svg" alt="에이전트 역할 분리 — orchestrator가 분배, planner/developer/reviewer가 작업, blind-author는 구현을 못 보는 테스트 작성자, observability가 관찰" width="700">
+<img src="docs/img/ko/independence.svg" alt="완료된 기능에 표시가 붙는 방식 — 에이전트는 호스트가 돌리고(몇 개, 어떤 모델, 어떤 도구), cladding은 코드를 보지 않은 무언가가 확인했는지를 물어 완료에 independent 또는 self-certified를 남긴다. 기본값에서는 아무것도 막지 않고, independence_policy를 require로 두었을 때만 self-certified가 거부로 바뀐다." width="640">
 
 </div>
+
+- 한 에이전트가 만들고, 테스트하고, 스스로 통과시켰다 — `self-certified`. 자기가 방금 쓴 코드에 테스트를 맞출 수 있으니, 통과가 곧 확인은 아니다.
+- 아무도 따로 확인하지 않았다 — 마찬가지로 `self-certified`. 잘못했다는 뜻이 아니다. 확인한 기록이 없다는 뜻이다.
+- 다른 에이전트가 코드는 못 본 채 스펙만 보고 테스트를 썼다 — `independent`. 버그를 못 봤으니 버그에 맞출 수도 없다 — 라벨을 정하는 건 말이 아니라 그 에이전트가 열어 볼 수 있었던 것이다.
+
+만드는 쪽과 확인하는 쪽을 나눠 두면 된다. EU AI Act·SOX 같은 감사 규정이 요구하는 직무 분리와 같은 방식이지, 정식 인증이 아니다.
 
 <!-- ─────────────── Ecosystem ─────────────── -->
 
@@ -230,7 +238,7 @@ acceptance_criteria:
 </div>
 
 - **Spec Kit · OpenSpec · Tessl · Kiro** — *spec을 잘 쓰게* 도와주는 도구. cladding은 거기에 더해 *그 spec과 실제 코드가 어긋나지 않는지 개발 루프 안에서 계속 자동 대조*한다.
-- **BMAD · ChatDev · Claude Code Agent Teams** — *여러 AI 에이전트의 역할 분담* 시스템. cladding의 에이전트 분업은 그 위에 *spec · 게이트 · 감사 기록*까지 결합해 동작한다.
+- **BMAD · ChatDev · Claude Code Agent Teams** — *여러 AI 에이전트의 역할 분담* 시스템. cladding은 그 분담을 대신 굴리지 않고, 호스트가 무엇을 돌렸든 *spec · 게이트 · 감사 기록*에 비추어 판정한다.
 - **tdd-guard** — *AI가 테스트를 먼저 쓰도록 강제*하는 도구. cladding의 15단계 중 Unit · Coverage · oracle 단계가 같은 일을 더 구조적으로 한다.
 - **OpenHands · Cline · Aider · Goose** — *AI에게 코드를 짜게 시키는 실행기*. cladding은 그 실행기가 짠 코드를 *검증 · 통제하는 상위 레이어*다.
 
@@ -325,7 +333,7 @@ cd <project>             # 2. Cladding 프로젝트로 이동
 clad update              # 3. 프로젝트 연결과 파생 데이터를 함께 갱신
 ```
 
-`clad update`는 업데이트하려는 각 Cladding 프로젝트에서 실행한다. 사용자가 작성한 코드 · 기능/스펙 본문 · 문서는 보존되며, 프로젝트 전용 호스트 연결과 파생 데이터, `AGENTS.md`의 Cladding 관리 블록만 갱신될 수 있다. 새 버전이 어긋남을 발견하면 그 결과를 AI 도구에 넘기면 된다:
+`clad update`는 업데이트하려는 각 Cladding 프로젝트에서 실행한다. 사용자가 작성한 코드 · 기능/스펙 본문 · 문서는 보존되며, 프로젝트 전용 호스트 연결과 파생 데이터, Cladding이 관리하는 지시 블록만 갱신될 수 있다. 새 버전이 어긋남을 발견하면 그 결과를 AI 도구에 넘기면 된다:
 
 ```
 업데이트가 짚은 어긋남을 정리해줘.
@@ -338,9 +346,9 @@ clad update              # 3. 프로젝트 연결과 파생 데이터를 함께 
 
 | version | 준수 등급 | tests | gate | features |
 |---|---|---|---|---|
-| v0.9.0 · 2026-07 | L4 · [L0–L4 중 최고 · 자가 선언](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2602 / 2602 · all pass | 15 단계 · 41 detectors | 261 · 258 done · 자기 스펙 |
+| v0.9.2 · 2026-07 | L4 · [L0–L4 중 최고 · 자가 선언](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2736 / 2736 · all pass | 15 단계 · 41 detectors | 270 · 266 done · 자기 스펙 |
 
-<sub>236 test files · capability 6개 · coverage는 COVERAGE_DROP detector가 하락 차단</sub>
+<sub>248 test files · capability 6개 · coverage는 COVERAGE_DROP detector가 하락 차단</sub>
 
 > **Ironclad 1.0까지의 길** — 1.0은 *독립적인 두 개의 구현이 L4 검증 셋을 통과해야* 잠긴다 ([GOVERNANCE § 1](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md)). cladding이 첫 번째.
 

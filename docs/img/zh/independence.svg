@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 470" width="640" height="470" role="img" aria-labelledby="independence-title" font-family="-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif">
+  <title id="independence-title">完成的 feature 会得到哪个标记 —— 智能体由宿主来跑，cladding 只问建造的一方和查验的一方是不是不同的，并在收尾上留下 independent 或 self-certified。只有设了 require 策略，这个标记才会变成拒绝。</title>
+  <defs>
+    <style>
+      :root{
+        --brand:#3b82f6; --brand-deep:#1d4ed8;
+        --ink:#6b7280; --text:#737a84; --muted:#6f757f; --faint:#8b919b;
+        --border:#8b93a1; --surface:rgba(148,163,184,0.18); --ok:#16a34a; --block:#e11d48; --brand-text:#3f76d6;
+      }
+      .title{font-size:19px;font-weight:800;fill:var(--ink);letter-spacing:-.3px}
+      .sub0{font-size:12.5px;fill:var(--muted)}
+      .ask{font-size:14.5px;font-weight:700;fill:#ffffff}
+      .askmuted{font-size:11px;fill:#bfdbfe}
+      .label{font-size:15px;font-weight:800;letter-spacing:-.2px}
+      .item{font-size:12px;fill:var(--text)}
+      .muted{font-size:10.5px;fill:var(--faint)}
+      .flow{font-size:10.5px;font-weight:600;fill:var(--brand-text)}
+      .yes{font-size:11px;font-weight:700;fill:var(--ok)}
+      .no{font-size:11px;font-weight:700;fill:var(--muted)}
+      .card{fill:var(--surface);stroke:var(--border);stroke-width:1.25}
+      .askbox{fill:var(--brand-deep)}
+      .hostband{fill:var(--surface);stroke:var(--border);stroke-width:1.25;stroke-dasharray:5 4}
+    </style>
+    <marker id="ib" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#3b82f6"/></marker>
+    <marker id="ig" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#16a34a"/></marker>
+    <marker id="in" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#8b93a1"/></marker>
+    <marker id="ir" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#e11d48"/></marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="320" y="30" text-anchor="middle" class="title">完成的 feature 会得到哪个标记</text>
+  <rect x="278" y="40" width="84" height="3" rx="1.5" fill="#3b82f6"/>
+
+  <!-- Host band : deliberately without detail — cladding has no opinion here -->
+  <rect x="60" y="60" width="520" height="46" rx="12" class="hostband"/>
+  <text x="320" y="82" text-anchor="middle" font-size="13" font-weight="700" fill="#6f757f">智能体由宿主来跑</text>
+  <text x="320" y="99" text-anchor="middle" class="muted">用几个 · 哪种模型 · 哪个工具 —— cladding 不参与这些</text>
+
+  <line x1="320" y1="106" x2="320" y2="132" stroke="#3b82f6" stroke-width="2" marker-end="url(#ib)"/>
+  <text x="330" y="124" class="flow">一个 feature 完成了</text>
+
+  <!-- The single question -->
+  <rect x="88" y="132" width="464" height="66" rx="14" class="askbox"/>
+  <text x="320" y="163" text-anchor="middle" class="ask">建造的一方和查验的一方，是不是不同的？</text>
+  <text x="320" y="184" text-anchor="middle" class="askmuted">cladding 只看留下的记录 —— 不问是谁做的，也不问用了几个</text>
+
+  <!-- Branch arrows -->
+  <path d="M232 198 L232 216 L176 216 L176 238" fill="none" stroke="#16a34a" stroke-width="2" marker-end="url(#ig)"/>
+  <text x="190" y="212" class="yes">有</text>
+  <path d="M408 198 L408 216 L464 216 L464 238" fill="none" stroke="#8b93a1" stroke-width="2" marker-end="url(#in)"/>
+  <text x="430" y="212" class="no">没有</text>
+
+  <!-- Outcome : independent -->
+  <rect x="40" y="238" width="272" height="104" rx="14" class="card"/>
+  <rect x="40" y="238" width="4" height="104" rx="2" fill="#16a34a"/>
+  <text x="62" y="266" class="label" fill="#16a34a">independent</text>
+  <text x="62" y="291" class="item">▸ 只凭规格写了测试</text>
+  <text x="62" y="310" class="item">▸ 打不开代码</text>
+  <text x="62" y="329" class="muted">没见过这个 bug，也就写不出迎合它的测试</text>
+
+  <!-- Outcome : self-certified — neutral on purpose, this is the default, not a fault -->
+  <rect x="328" y="238" width="272" height="104" rx="14" class="card"/>
+  <rect x="328" y="238" width="4" height="104" rx="2" fill="#8b93a1"/>
+  <text x="350" y="266" class="label" fill="#6f757f">self-certified</text>
+  <text x="350" y="291" class="item">▸ 建造的一方查了自己的活儿</text>
+  <text x="350" y="310" class="item">▸ 或者根本没人查过</text>
+  <text x="350" y="329" class="muted">不是过错，只是没有单独查验的记录</text>
+
+  <!-- Only under require does the mark refuse -->
+  <path d="M464 342 L464 384" fill="none" stroke="#e11d48" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ir)"/>
+  <text x="474" y="360" font-size="10.5" font-weight="600" fill="#e11d48">只有打开这项设置时:</text>
+  <text x="474" y="375" font-size="10.5" fill="#6f757f">independence_policy: require</text>
+
+  <rect x="328" y="384" width="272" height="46" rx="12" class="card"/>
+  <rect x="328" y="384" width="4" height="46" rx="2" fill="#e11d48"/>
+  <text x="350" y="404" font-size="13" font-weight="700" fill="#e11d48">收尾被拒绝</text>
+  <text x="350" y="421" class="muted">退回未完成 —— 和检查失败时一样</text>
+
+  <!-- Default lane annotation on the left -->
+  <text x="62" y="399" font-size="11" font-weight="700" fill="#3f76d6">默认不拦截任何东西</text>
+  <text x="62" y="417" class="muted">标记只是留在记录上</text>
+
+  <!-- Caption -->
+  <text x="320" y="456" text-anchor="middle" class="sub0">谁来做由宿主决定 · cladding 只看它留下的结果</text>
+</svg>

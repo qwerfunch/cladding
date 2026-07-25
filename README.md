@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-2602%2F2602-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-2736%2F2736-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -31,7 +31,7 @@ So you can ship AI-written code held to **the same standard as human-written cod
 - **Traced** — **What shipped is on the record**: what was verified is stamped into committed content, who and when land in the local session ledger, and the why lives in the spec — so handoff and review skip the archaeology.
 - **Scales** — adding people and AIs would normally multiply conflicts and drift; because everyone works from one shared spec, those get caught automatically — so you can grow without it breaking down.
 
-cladding builds **itself** with cladding too — 252 of its 255 features cleared this same gate, the first L4 implementation of the [Ironclad](https://github.com/qwerfunch/ironclad) standard.
+cladding builds **itself** with cladding too — 266 of its 270 features cleared this same gate, the first L4 implementation of the [Ironclad](https://github.com/qwerfunch/ironclad) standard.
 
 <!-- ─────────────── What changes ─────────────── -->
 
@@ -204,15 +204,23 @@ One feature's lifecycle runs **Define → Sync → Implement → Earn** — you 
 
 <!-- ─────────────── Multi-Agent ─────────────── -->
 
-## Multi-Agent — separating the builder from the verifier
+## Multi-Agent
 
-The agents that **build** are kept apart from the agents that **verify**, so no agent signs off on its own work. **blind-author** goes one step further: the agent that writes the tests literally *can't read the code* (it's given no Read/Grep tool). So "wrote the tests without looking at the code" is a fact about how it's wired, not a promise. It's the same **separation of duties** that audit rules like the EU AI Act and SOX ask for — in spirit, not a certification.
+Hand the code to an AI and you usually hand it the tests too. But when the same AI writes both, the tests get shaped around the code it just wrote. The bug is there and the tests still pass. **A green run that proves nothing.**
+
+So cladding asks one thing of every finished feature: **were the building and the checking done by different hands?** The answer goes on the record with the completion. (How many agents run, and how, is the host's call — cladding is not a multi-agent framework and doesn't arrange them.)
 
 <div align="center">
 
-<img src="docs/img/en/multi-agent.svg" alt="Agent separation of duties — orchestrator dispatches, planner/developer/reviewer act, blind-author is the test writer who can't see the implementation, observability watches" width="700">
+<img src="docs/img/en/independence.svg" alt="How a finished feature gets its mark — the host runs the agents (how many, which models, which tool); cladding asks whether anything checked the work without seeing the code, and marks the completion independent or self-certified. By default nothing is blocked; only an independence_policy of require turns a self-certified mark into a refusal." width="640">
 
 </div>
+
+- one agent built it, tested it, and passed its own work — `self-certified`. It can shape the tests around the code it just wrote, so passing isn't checking.
+- nobody checked it separately — `self-certified` as well. It isn't a mark against the work; it means no separate check is on record.
+- another agent wrote the tests from the spec, with no way to open the code — `independent`. It never saw the bug, so it can't shape a test around one — what decides the label is what that agent could open, not what anyone promised.
+
+Keep the building and the checking in different hands. It's the same approach as the separation of duties that audit rules like the EU AI Act and SOX ask for — close in spirit, not a certification.
 
 <!-- ─────────────── Ecosystem ─────────────── -->
 
@@ -227,7 +235,7 @@ cladding sits at the junction of three existing categories.
 </div>
 
 - **Spec Kit · OpenSpec · Tessl · Kiro** help you *write a good spec*. cladding adds the part that *keeps cross-checking, inside the dev loop, that the spec and the code haven't drifted*.
-- **BMAD · ChatDev · Claude Code Agent Teams** *split roles across AI agents*. cladding's division of labor runs with *spec · gate · audit record* on top.
+- **BMAD · ChatDev · Claude Code Agent Teams** *split roles across AI agents*. cladding leaves that split to the host and judges whatever it ran against *spec · gate · audit record*.
 - **tdd-guard** *forces the AI to write tests first*. cladding's Unit · Coverage · oracle stages do the same job, more structurally.
 - **OpenHands · Cline · Aider · Goose** are *runners that make the AI write code*. cladding is the *upper layer that verifies and governs* what they produce.
 
@@ -352,9 +360,9 @@ Reconcile the drift the update flagged.
 
 | Version | Conformance | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.9.0 (2026-07) | L4 · [self-declared](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2602 / 2602 | 15 stages · 41 detectors | 261 (258 done) |
+| v0.9.2 (2026-07) | L4 · [self-declared](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2736 / 2736 | 15 stages · 41 detectors | 270 (266 done) |
 
-<sub>236 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector</sub>
+<sub>248 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector</sub>
 
 > **Road to Ironclad 1.0** — 1.0 locks only when *two independent implementations pass the L4 conformance fixtures* ([GOVERNANCE § 1](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md)). cladding is the first.
 

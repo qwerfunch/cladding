@@ -126,10 +126,12 @@ features:
   F-3a5339: {slug: spec-yaml-metadata, status: done, modules: 5}
   F-3b3690: {slug: multi-agent-orchestration, status: done, modules: 4}
   F-3c2bf8b9: {slug: readme-record-honesty, status: done, modules: 5}
+  F-3fd220d8: {slug: readme-multiagent-label-diagram, status: done, modules: 10}
   F-40327b: {slug: persona-skill-md-cleanup, status: done, modules: 14}
   F-417ff0: {slug: scan-llm-dispatcher-chain, status: done, modules: 5}
   F-42af48: {slug: architecture-from-spec, status: done, modules: 2}
   F-43d8e3: {slug: smoke-probe-token-pass, status: done, modules: 3}
+  F-4498eb3d: {slug: multi-agent-diagram-role-contract, status: archived, modules: 0}
   F-4643d99d: {slug: lint-multi-finding, status: done, modules: 3}
   F-4747ef: {slug: ssot-lifecycle-tests, status: done, modules: 9}
   F-47b8bee5: {slug: ts-toolchain-jest-and-multiext-arch, status: done, modules: 1}
@@ -150,6 +152,7 @@ features:
   F-5cac007a: {slug: init-onboarding-english-source, status: done, modules: 3}
   F-5d3ed2: {slug: postmortem-on-rollback, status: done, modules: 2}
   F-5f6b45: {slug: init-path-intent, status: done, modules: 2}
+  F-600272d7: {slug: orchestrator-contract-card, status: done, modules: 2}
   F-63b989e5: {slug: impact-card-language-parity, status: done, modules: 2}
   F-64a5c159: {slug: graph-serve-live, status: done, modules: 3}
   F-65814a: {slug: sentinel-miss-telemetry, status: done, modules: 3}
@@ -174,6 +177,8 @@ features:
   F-80d19d: {slug: setup-command, status: done, modules: 5}
   F-8234ec3c: {slug: graph-viewer-galaxy, status: archived, modules: 0}
   F-836a90: {slug: link-capability-tool, status: done, modules: 2}
+  F-8476ccb1: {slug: readme-multiagent-inversion, status: done, modules: 6}
+  F-876b6f48: {slug: shard-term-to-spec-entry, status: done, modules: 7}
   F-898783ee: {slug: self-count-guard, status: done, modules: 17}
   F-8f419e: {slug: smoke-legacy-liveness, status: done, modules: 1}
   F-904495a5: {slug: changelog-render, status: done, modules: 5}
@@ -183,12 +188,14 @@ features:
   F-95a096: {slug: ops-visibility-polish, status: done, modules: 3}
   F-96250595: {slug: iterative-impact-slice, status: done, modules: 2}
   F-96700032: {slug: unverified-ac-junit, status: done, modules: 4}
+  F-96d1f69d: {slug: readme-role-contract-alignment, status: done, modules: 6}
   F-987be195: {slug: docs-prune, status: done, modules: 4}
   F-99c6e5: {slug: cladding-self-fixes, status: done, modules: 13}
   F-9a3b61: {slug: ab-ext-uncommit-demos, status: done, modules: 3}
   F-9af291fa: {slug: instruction-led-language, status: done, modules: 3}
   F-9b643e: {slug: scan-conventions, status: done, modules: 5}
   F-9d168287: {slug: ears-complex-pattern, status: done, modules: 6}
+  F-9d8ece66: {slug: persona-map-non-exclusivity, status: done, modules: 2}
   F-a04cd9: {slug: ac-hash-ids, status: done, modules: 3}
   F-a4085adf: {slug: spec-driven-agents-md, status: done, modules: 1}
   F-a4b512: {slug: dependency-cycle-detector, status: done, modules: 2}
@@ -223,6 +230,7 @@ features:
   F-c3747d7d: {slug: spec-first-window-complete, status: done, modules: 5}
   F-c48eb2: {slug: scan-source-roots, status: done, modules: 5}
   F-c4c5ae: {slug: spec-conformance-oracle-stage, status: done, modules: 11}
+  F-c566f590: {slug: independence-label, status: done, modules: 6}
   F-c58263b8: {slug: code-compact, status: done, modules: 12}
   F-c6a32fff: {slug: graph-honest-fallback, status: done, modules: 7}
   F-c6c3daaf: {slug: kotlin-module-scoped-gate, status: done, modules: 13}
@@ -254,6 +262,7 @@ features:
   F-ee47fc2b: {slug: reverse-index-core, status: done, modules: 1}
   F-ee5f643e: {slug: doc-graph-links, status: done, modules: 5}
   F-ef2fd9: {slug: ab-ext-dashboard, status: done, modules: 7}
+  F-ef93141b: {slug: persona-role-briefs, status: done, modules: 5}
   F-f334fa: {slug: ab-ext-scenarios-emit, status: done, modules: 3}
   F-f44d1b: {slug: hollow-governance-detector, status: done, modules: 2}
   F-f46d5c61: {slug: human-first-cards, status: done, modules: 3}
