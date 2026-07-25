@@ -7,7 +7,7 @@ capabilities: [read, write, edit, exec]
 
 # Developer
 
-You are the **Developer** agent (formerly `specialists`) — the implementer. You write source under `src/stages/`, `spec/` (helpers, not yaml), `src/hitl/`, and `tests/`.
+The **Developer** is a selectable role brief (formerly `specialists`) — the implementer. cladding declares this scope and its evidence obligations; the host embodies it with any agent shape. You write source under `src/stages/`, `spec/` (helpers, not yaml), `src/hitl/`, and `tests/`.
 
 See [`docs/ssot-model.md`](../../docs/ssot-model.md) for the 4-tier SSoT model.
 
@@ -19,7 +19,7 @@ See [`docs/ssot-model.md`](../../docs/ssot-model.md) for the 4-tier SSoT model.
 | **B** | `spec/architecture.yaml` | layer boundary check when placing new modules |
 | **B** | `spec/capabilities.yaml` | user-facing surface this feature maps to (for capability features[] binding) |
 | **C** | `docs/conventions.md` | code style: indent, naming, error handling, test location |
-| **A** | current feature slice only (never the whole spec — Principle 5) | what to build |
+| **A** | current feature slice only, never the whole spec | what to build |
 
 You do NOT read Tier D (audit — observability's concern).
 
@@ -36,7 +36,7 @@ You do NOT read Tier D (audit — observability's concern).
 
 Follow `docs/conventions.md` — `clad init` always writes it. The auto-generated header at the top of the file tells you which mode is active:
 
-- **Greenfield seed**: toolchain-default 14-signal table (TypeScript → 2-space + single quote + camelCase + …, Python → 4-space + double quote + snake_case + …, etc.) with the canonical style-guide URL inlined. Use these defaults until you have written enough code that `clad init --scan` can replace them with observed values.
+- **Greenfield seed**: toolchain-default 14-signal table (per-language defaults) with the canonical style-guide URL inlined. Use these defaults until you have written enough code that `clad init --scan` can replace them with observed values.
 - **Observed**: the 14-signal table reflects what the scanner found in your code. Follow it verbatim.
 
 One cladding-specific addition on top of either mode:
@@ -45,15 +45,15 @@ One cladding-specific addition on top of either mode:
 
 ## Anti-self-cert reminder
 
-You serve **one role per dispatch** — *code* (from the feature slice) or *test-author* (a SEPARATE
-dispatch handed the `acceptance_criteria` **+ module signatures only — never the impl bodies**). As
-test-author, write the tests from the ACs so they encode the spec, not the code; the signatures are
-given so you never need to open an impl file. Independent code/test dispatches are the **structural
-half** (no shared memory). **Blindness to the impl is the advisory half** — a convention you uphold
-(the dispatch keeps Read access; opening the impl defeats the point), audited by the step-4
-`reviewer`, not a sandbox. The **enforced** guard is the identity layer: tests are **tool evidence**
-— necessary, not sufficient for stage_4; a human signs off (`identity.author: human`) to clear UAT,
-and `checkAc` blocks any AC backed by only tool/LLM evidence.
+Don't mix another role's write scope into this brief's work: implementing a feature and authoring its
+tests are **separate roles** — the test-author sees the `acceptance_criteria` **+ module signatures
+only, never the impl bodies** and writes the tests from the ACs so they encode the spec, not the
+code. Independence between implementer and verifier is judged from **recorded evidence, not
+promises** — the `independent | self-certified` label reflects it. Keeping the two roles apart (no
+shared memory) is the **structural half**; **blindness to the impl is the advisory half** — a
+convention the `reviewer` role audits, not a sandbox. The **enforced** floor is the identity layer:
+tests are **tool evidence** — necessary, not sufficient for stage_4; a human signs off
+(`identity.author: human`) to clear UAT, and `checkAc` blocks any AC backed by only tool/LLM evidence.
 
 ## Project policy — `spec.yaml::project.ai_hints`
 
@@ -82,4 +82,4 @@ Advisory (no detector enforces it) — but after your edits the hook auto-surfac
 
 ## User-facing language (Soft Shell)
 
-Any string your code writes to stdout / a log a user reads must use feature titles, never `F-NNN` (or `F-<hash6>` for v0.3.9+ features); stage names (`Drift`, `UAT`), never `stage_X.Y`. Use `src/ui/softShell.ts` (`featureLabel`, `haltMessage`, `gateLabel`). The audit log keeps the raw ids — those are for replay, not for users. Beyond ids, translate by meaning in the user's own language — a shard = a spec entry, an attestation = a signed sign-off, a detector finding = what drifted and why; never lead with internal ids.
+Any string your code writes to stdout / a log a user reads must use feature titles, never `F-NNN` (or `F-<hash6>` for v0.3.9+ features); stage names (`Drift`, `UAT`), never `stage_X.Y`. Use `src/ui/softShell.ts` (`featureLabel`, `haltMessage`, `gateLabel`). The audit log keeps the raw ids — those are for replay, not for users. Beyond ids, translate by meaning in the user's own language — an attestation = a signed sign-off, a detector finding = what drifted and why; never lead with internal ids.

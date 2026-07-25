@@ -1,0 +1,31 @@
+id: F-ef93141b
+slug: persona-role-briefs
+title: "Specialist personas are selectable role briefs, not mandated agents"
+status: done
+modules:
+  - src/agents/planner.md
+  - src/agents/developer.md
+  - src/agents/reviewer.md
+  - src/agents/observability.md
+  - src/agents/blind-author.md
+acceptance_criteria:
+  - id: AC-163773ad
+    ears: ubiquitous
+    response: "each of the 5 specialist personas contains the literal 'role brief'"
+    text: "Each specialist persona (planner, developer, reviewer, observability, blind-author) shall present itself as a selectable role brief — scope, outcome conditions, and evidence obligations the host may embody with any agent shape — rather than an agent cladding mandates spawning."
+    test_refs: ["tests/choreography-guard.test.ts"]
+  - id: AC-46fef26f
+    ears: ubiquitous
+    response: "no src/agents/*.md matches /invocation principles?/i, /principle \\d/i, or /routing table/i"
+    text: "No persona shall reference the removed choreography layer — numbered invocation principles or the intent-routing table — so no brief dangles against the orchestrator contract card."
+    test_refs: ["tests/choreography-guard.test.ts"]
+  - id: AC-4f568698
+    ears: ubiquitous
+    response: "tests/agent-interpreter-rule.test.ts stays green: Soft Shell pins, persona budgets, glossary rows unchanged"
+    text: "The diet shall preserve every pinned persona invariant — file names, Soft Shell sections, size budgets, and glossary coverage — so downstream hosts and mirrors keep loading the same roles."
+    test_refs: ["tests/agent-interpreter-rule.test.ts"]
+design_impact:
+  classification: none
+  rationale: "Prose-layer reframing of the specialist personas to match the role-contract architecture (host owns execution form; cladding declares conditions and judges evidence). No engine code, file renames, or capability changes; mirrors regenerate from the same sources."
+  status: resolved
+  artifacts: []

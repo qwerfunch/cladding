@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-2602%2F2602-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-2736%2F2736-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -31,7 +31,7 @@
 - **可追溯** —— **交付出去的一切都留有记录**：验证了什么，写进已提交的内容；谁、何时，记在本地会话账本；为什么，留在 spec —— 于是交接与评审无需考古，就能追溯每一个决定。
 - **可扩展** —— 人和 AI 越多，通常冲突和漂移也越多。但所有人都以同一份 spec 为基准，这些会被自动挡下 —— 所以不断扩张也不会崩。
 
-cladding 连**自己**也是用 cladding 造的 —— 255 个 feature 里有 252 个通过了同一道门禁，成为 [Ironclad](https://github.com/qwerfunch/ironclad) 标准的首个 L4 实现。
+cladding 连**自己**也是用 cladding 造的 —— 270 个 feature 里有 266 个通过了同一道门禁，成为 [Ironclad](https://github.com/qwerfunch/ironclad) 标准的首个 L4 实现。
 
 <!-- ─────────────── What changes ─────────────── -->
 
@@ -204,15 +204,23 @@ acceptance_criteria:
 
 <!-- ─────────────── Multi-Agent ─────────────── -->
 
-## Multi-Agent —— 把建造者与验证者分开
+## Multi-Agent
 
-负责**建造**的智能体，和负责**验证**的智能体被隔开，因此没有哪个智能体能给自己的活儿盖章放行。**blind-author** 更进一步 —— 撰写测试的那个智能体*根本读不到代码*（不授予它 Read/Grep 工具）。于是「没读代码就写出了测试」不是一句承诺，而是它接线方式带来的结构性事实。这正是审计规范（EU AI Act · SOX）所要求的那种**职责分离** —— 说的是精神上相符，而不是一纸认证。
+把代码交给 AI，通常也就把测试一起交了出去。可一旦同一个 AI 两样都写，测试就会照着它刚写的代码来长。bug 还在，测试照样通过。**这时候的绿灯什么也证明不了。**
+
+所以每有一个 feature 完成，cladding 只问一件事：**建造的一方和查验的一方，是不是不同的？** 答案随这次收尾一起记录下来。（用几个智能体、怎么跑，由宿主决定 —— cladding 不是一个多智能体框架，也不负责编排它们。）
 
 <div align="center">
 
-<img src="docs/img/zh/multi-agent.svg" alt="智能体职责分离 —— orchestrator 负责分派，planner/developer/reviewer 负责干活，blind-author 是看不到实现的测试撰写者，observability 负责观察" width="700">
+<img src="docs/img/zh/independence.svg" alt="完成的 feature 如何得到标记 —— 智能体由宿主来跑（用几个、哪种模型、哪个工具），cladding 只问有没有一方没看代码就查过它，并在收尾上留下 independent 或 self-certified。默认不拦截任何东西，只有把 independence_policy 设为 require，self-certified 才会变成拒绝。" width="640">
 
 </div>
+
+- 一个智能体又建造、又测试，又自己放行了自己的活儿 —— `self-certified`。它可以照着自己刚写的代码来写测试，所以通过并不等于查过。
+- 没有人单独查过 —— 同样是 `self-certified`。这不是给活儿记的一笔过，只是说没有单独查验的记录。
+- 另一个智能体打不开代码，只凭规格写了测试 —— `independent`。它没见过那个 bug，也就无从迎合它 —— 决定这个标记的不是谁的承诺，而是那个智能体当时能打开什么。
+
+把建造和查验分开就行。这和 EU AI Act、SOX 这类审计规范要求的职责分离是同一个思路 —— 只是相似，并不是一纸认证。
 
 <!-- ─────────────── Ecosystem ─────────────── -->
 
@@ -227,7 +235,7 @@ cladding 坐落在三个既有品类的交汇处。
 </div>
 
 - **Spec Kit · OpenSpec · Tessl · Kiro** —— 帮你*写好一份 spec* 的工具。在此之上，cladding 还*在开发循环内部持续交叉核对，确保 spec 与真实代码不发生漂移*。
-- **BMAD · ChatDev · Claude Code Agent Teams** —— *在多个 AI 智能体之间拆分角色*的系统。cladding 的智能体分工，是在这之上再叠合了 *spec · 门禁 · 审计记录* 来运转。
+- **BMAD · ChatDev · Claude Code Agent Teams** —— *在多个 AI 智能体之间拆分角色*的系统。cladding 不替你运行这种拆分，而是把宿主实际跑出来的东西，对照 *spec · 门禁 · 审计记录* 来判定。
 - **tdd-guard** —— *强制 AI 先写测试*的工具。cladding 15 个阶段里的 Unit · Coverage · oracle 阶段，把同一件事做得更成体系。
 - **OpenHands · Cline · Aider · Goose** —— *让 AI 写代码的运行器*（纯执行者）。cladding 是*验证并治理*这些运行器所产代码的*上层*。
 
@@ -335,9 +343,9 @@ clad update              # 3. 刷新项目连接和派生状态
 
 | 版本 | 一致性 | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.9.0（2026-07） | L4 · [自我声明](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2602 / 2602 | 15 阶段 · 41 检测器 | 261（258 done） |
+| v0.9.2（2026-07） | L4 · [自我声明](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2736 / 2736 | 15 阶段 · 41 检测器 | 270（266 done） |
 
-<sub>236 个测试文件 · 6 项 capability · 覆盖率下降由 COVERAGE_DROP 检测器拦下</sub>
+<sub>248 个测试文件 · 6 项 capability · 覆盖率下降由 COVERAGE_DROP 检测器拦下</sub>
 
 > **通往 Ironclad 1.0 之路** —— 只有当*两个独立实现都通过 L4 一致性测试夹具*时，1.0 才会锁定（[GOVERNANCE § 1](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md)）。cladding 是第一个。
 

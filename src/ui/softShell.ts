@@ -245,3 +245,13 @@ export function driftNudge(count: number, lead: string, detector: string, deferr
 export function doneRefusalLead(): string {
   return 'the completion check found problems above — fix them and re-run';
 }
+
+/**
+ * The plain lead a `clad done` refusal opens with when the gate was GREEN but the
+ * project's independence policy is `require` and the feature is self-certified
+ * (F-c566f590). Soft-shell: it asks, in plain words, for the independent or human
+ * review the feature lacks — the machine tail (`status left at …`) follows.
+ */
+export function doneSelfCertRefusalLead(): string {
+  return 'the checks passed, but this feature has no independent or human review yet — this project asks for one before completion';
+}

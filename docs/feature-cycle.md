@@ -107,10 +107,12 @@ gate still blocks a too-wide batch (fails safe).
 
 ## Execution surface
 
-- **Host-engine (in-session, the supported path):** the host (Claude Code) authors files with its
-  own Write/Edit when it embodies `cladding:developer`; cladding owns the cycle + the gates, the
-  host owns the parallel execution engine.
-- **Headless `clad run` (formerly `drive`):** a sequential reference loop — `nextReady` already drives ONE feature at
+- **Host-engine (in-session) — the default path.** Interactive host-engine execution is the
+  supported default: the host (Claude Code) authors files with its own Write/Edit when it embodies
+  `cladding:developer`; cladding owns the cycle + the gates, the host owns the parallel execution
+  engine.
+- **Headless `clad run` (formerly `drive`) — the CI/SDK lane.** A sequential reference loop for
+  unattended runs (CI pipelines, SDK-driven automation) — `nextReady` already drives ONE feature at
   a time. Its transports do **not** yet author code (the tool-use/mutation protocol is unbuilt), so
   a no-real-dispatch run is honestly degraded, never reported as success.
 

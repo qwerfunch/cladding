@@ -69,6 +69,7 @@ import {writeAttestation} from '../spec/attestation.js';
 import {buildBlindPayload, renderBlindBrief} from '../oracle/payload.js';
 import {requiredOracleWorklist} from '../oracle/policy.js';
 import {loadSpec} from '../spec/load.js';
+import {readEvidence} from '../hitl/audit.js';
 import {pulse, type PulseKind} from '../ui/pulse.js';
 import {buildPanelModel, renderPanel} from '../ui/panel.js';
 import {featureLabel, gateLabel, haltMessage, plainLead} from '../ui/softShell.js';
@@ -845,8 +846,33 @@ export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tie
  * so `done` cannot claim more than the gate verifies. @see cli/done.ts
  */
 export function runDoneCommand(featureId: string): void {
-  const r = runDone('.', featureId, {checkStages: runCheckStages, onIndex: writeFeatureIndex, gitOpInProgress: gitOperationInProgressName});
+  // F-c566f590 — load the project's independence policy + the evidence ledger and
+  // hand them to runDone as its optional independence seam. A spec that will not
+  // load simply omits the seam (runDone finds the shard directly and stays on its
+  // pre-independence path). readEvidence is read-only.
+  let independence: {policy: 'label' | 'require'; evidence: ReturnType<typeof readEvidence>} | undefined;
+  try {
+    const spec = loadSpec('.');
+    independence = {policy: spec.project.independence_policy ?? 'label', evidence: readEvidence('.')};
+  } catch {
+    independence = undefined;
+  }
+  const r = runDone('.', featureId, {
+    checkStages: runCheckStages,
+    onIndex: writeFeatureIndex,
+    gitOpInProgress: gitOperationInProgressName,
+    independence,
+  });
   pulse(r.ok ? 'pass' : 'fail', `done · ${featureId}`, r.reason);
+  // Surface the independence label as a concise plain note (only once the gate
+  // actually ran — the early refusals carry no label). Soft-shell wording.
+  if (r.independence) {
+    const line =
+      r.independence === 'independent'
+        ? 'independence: independent — backed by human or independent review'
+        : 'independence: self-certified — no independent or human review yet';
+    pulse('note', `done · ${featureId}`, line);
+  }
   process.exit(r.code);
 }
 
@@ -1050,7 +1076,7 @@ export function runRouteCommand(prompt: string): void {
  */
 export function createProgram(): Command {
   const program = new Command();
-  program.name('clad').description('Reference Ironclad CLI').version('0.9.1');
+  program.name('clad').description('Reference Ironclad CLI').version('0.9.2');
 
   program
     .command('init [intent...]')

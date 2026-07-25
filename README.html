@@ -132,6 +132,8 @@
     gap: 16px;
     margin: 24px 0;
   }
+  /* the before · after pair */
+  .flow-cards.two { grid-template-columns: repeat(2, 1fr); }
   .flow-card {
     border-radius: 12px;
     padding: 20px 22px;
@@ -212,7 +214,7 @@
     .container { padding: 32px 16px 64px; }
     h1 { font-size: 40px; }
     h2 { font-size: 24px; margin-top: 48px; }
-    .flow-cards { grid-template-columns: 1fr; }
+    .flow-cards, .flow-cards.two { grid-template-columns: 1fr; }
     table { font-size: 13px; }
     th, td { padding: 10px 12px; }
   }
@@ -233,7 +235,7 @@
   <p class="badges">
     <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"></a>
     <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"></a>
-    <img src="https://img.shields.io/badge/tests-2602%2F2602-brightgreen" alt="tests">
+    <img src="https://img.shields.io/badge/tests-2736%2F2736-brightgreen" alt="tests">
     <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors">
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"></a>
   </p>
@@ -269,7 +271,7 @@
   </div>
 
   <p style="text-align:center;font-size:15px;color:#475569;max-width:760px;margin:14px auto 0">
-    cladding builds <strong>itself with cladding too</strong> — 252 of its 255 features cleared this same gate, the first L4 implementation of the Ironclad standard.
+    cladding builds <strong>itself with cladding too</strong> — 266 of its 270 features cleared this same gate, the first L4 implementation of the Ironclad standard.
   </p>
 
   <!-- ─────────────── What changes ─────────────── -->
@@ -300,7 +302,7 @@
   <!-- ─────────────── How cladding wraps your host LLM ─────────────── -->
   <h2>How cladding wraps your host LLM</h2>
 
-  <div class="flow-cards">
+  <div class="flow-cards two">
     <div class="flow-card before">
       <span class="badge">BEFORE — INJECT INTENT</span>
       <div class="title">So the LLM starts with the right context</div>
@@ -310,9 +312,15 @@
         <li><strong>Team rules applied</strong> — the forbidden and preferred patterns you agreed on, as standing instructions every time</li>
       </ul>
     </div>
+    <div class="flow-card after">
+      <span class="badge">AFTER — VERIFY THE RESULT</span>
+      <div class="title">So the work is checked against the spec</div>
+      <ul>
+        <li><strong>The 15-stage gate and 41 drift detectors</strong> — nothing counts as done until they pass</li>
+        <li><strong>An implementation-blind grader</strong> — an agent that checks the work against the spec <em>with no tool to read the implementation</em>, so it can't rubber-stamp what it wrote</li>
+      </ul>
+    </div>
   </div>
-
-  <p style="text-align:center;font-size:14px;color:#475569"><strong>After — verify the result:</strong> the 15-stage gate, 41 drift detectors, and an <strong>implementation-blind grader</strong> — an agent that checks the work against the spec <em>with no tool to read the implementation</em>, so it can't rubber-stamp what it wrote.</p>
   <p style="font-size:13px;color:#64748b;text-align:center;margin-top:4px">
     Real-time intervention (map injection · instant block · stop block) runs fully on Claude Code.
     On Codex · Gemini · Antigravity · Cursor the same verification runs through in-conversation tool calls plus the git · CI gate.
@@ -453,16 +461,26 @@ acceptance_criteria:
   <p>One feature's lifecycle runs <strong>Define → Sync → Implement → Earn</strong> — you earn <code>done</code> only by passing every check.</p>
 
   <!-- ─────────────── Multi-Agent ─────────────── -->
-  <h2>Multi-Agent — separating the builder from the verifier</h2>
+  <h2>Multi-Agent</h2>
   <p>
-    The agents that <strong>build</strong> are kept apart from the agents that <strong>verify</strong>, so no agent signs off on its own work.
-    <strong>blind-author</strong> goes one step further: the agent that writes the tests literally <em>can't read the code</em> (it's given no Read/Grep tool).
-    So "wrote the tests without looking at the code" is a fact about how it's wired, not a promise.
-    It's the same <strong>separation of duties</strong> that audit rules like the EU AI Act and SOX ask for — in spirit, not a certification.
+    Hand the code to an AI and you usually hand it the tests too. But when the same AI writes both, the tests get shaped around the code it just wrote. The bug is there and the tests still pass. <strong>A green run that proves nothing.</strong>
   </p>
+  <p>
+    So cladding asks one thing of every finished feature: <strong>were the building and the checking done by different hands?</strong> The answer goes on the record with the completion. (How many agents run, and how, is the host's call — cladding is not a multi-agent framework and doesn't arrange them.)
+  </p>
+
   <div class="diagram">
-    <img class="diagram-img" src="docs/img/en/multi-agent.svg" alt="Agent separation of duties — orchestrator dispatches, planner/developer/reviewer act, blind-author is the test writer who can't see the implementation, observability watches" width="700">
+    <img class="diagram-img" src="docs/img/en/independence.svg" alt="How a finished feature gets its mark — the host runs the agents (how many, which models, which tool); cladding asks whether anything checked the work without seeing the code, and marks the completion independent or self-certified. By default nothing is blocked; only an independence_policy of require turns a self-certified mark into a refusal." width="640">
   </div>
+
+  <ul>
+    <li>one agent built it, tested it, and passed its own work — <code>self-certified</code>. It can shape the tests around the code it just wrote, so passing isn't checking.</li>
+    <li>nobody checked it separately — <code>self-certified</code> as well. It isn't a mark against the work; it means no separate check is on record.</li>
+    <li>another agent wrote the tests from the spec, with no way to open the code — <code>independent</code>. It never saw the bug, so it can't shape a test around one — what decides the label is what that agent could open, not what anyone promised.</li>
+  </ul>
+  <p>
+    Keep the building and the checking in different hands. It's the same approach as the separation of duties that audit rules like the EU AI Act and SOX ask for — close in spirit, not a certification.
+  </p>
 
   <!-- ─────────────── Ecosystem ─────────────── -->
   <h2>Ecosystem</h2>
@@ -473,7 +491,7 @@ acceptance_criteria:
 
   <ul>
     <li><strong>Spec Kit · OpenSpec · Tessl · Kiro</strong> help you <em>write a good spec</em>. cladding adds the part that <em>keeps cross-checking, inside the dev loop, that the spec and the code haven't drifted</em>.</li>
-    <li><strong>BMAD · ChatDev · Claude Code Agent Teams</strong> <em>split roles across AI agents</em>. cladding's division of labor runs with <em>spec · gate · audit record</em> on top.</li>
+    <li><strong>BMAD · ChatDev · Claude Code Agent Teams</strong> <em>split roles across AI agents</em>. cladding leaves that split to the host and judges whatever it ran against <em>spec · gate · audit record</em>.</li>
     <li><strong>tdd-guard</strong> <em>forces the AI to write tests first</em>. cladding's Unit · Coverage · oracle stages do the same job, more structurally.</li>
     <li><strong>OpenHands · Cline · Aider · Goose</strong> are <em>runners that make the AI write code</em>. cladding is the <em>upper layer that verifies and governs</em> what they produce.</li>
   </ul>
@@ -538,7 +556,7 @@ clad update               # 3. refresh its host wiring and derived state</code><
     <tr style="border:none">
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">version</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">v0.9.0</div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">v0.9.2</div>
         <div style="font-size:11px;color:#64748b">2026-07</div>
       </td>
       <td style="text-align:center;width:140px;background:#dcfce7;padding:18px 10px;border-radius:8px;border:none">
@@ -548,7 +566,7 @@ clad update               # 3. refresh its host wiring and derived state</code><
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">tests</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">2602<span style="font-size:16px;color:#94a3b8">/2602</span></div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">2736<span style="font-size:16px;color:#94a3b8">/2736</span></div>
         <div style="font-size:11px;color:#64748b">all pass</div>
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
@@ -558,13 +576,13 @@ clad update               # 3. refresh its host wiring and derived state</code><
       </td>
       <td style="text-align:center;width:140px;background:#f8fafc;padding:18px 10px;border-radius:8px;border:none">
         <div style="font-size:11px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">features</div>
-        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">261</div>
-        <div style="font-size:11px;color:#64748b">258 done · self-spec</div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin:8px 0;letter-spacing:-0.5px">270</div>
+        <div style="font-size:11px;color:#64748b">266 done · self-spec</div>
       </td>
     </tr>
   </table>
 
-  <p style="text-align:center;font-size:13px;color:#64748b;margin-top:12px">236 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector</p>
+  <p style="text-align:center;font-size:13px;color:#64748b;margin-top:12px">248 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector</p>
 
   <blockquote style="border-left:4px solid #cbd5e1;padding:8px 16px;margin:24px 0;background:#f8fafc;color:#475569;font-size:14px"><strong>Road to Ironclad 1.0</strong> — 1.0 locks only when <em>two independent implementations pass the L4 conformance fixtures</em> (<a href="https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md">GOVERNANCE § 1</a>). cladding is the first.</blockquote>
 
