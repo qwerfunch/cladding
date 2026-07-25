@@ -5,6 +5,40 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.2] — Completions record whether anything checked them independently (2026-07-26)
+
+**In one line:** every finished feature is now marked `independent` or `self-certified` from the evidence it actually recorded, and cladding stops prescribing how you arrange your agents.
+
+### Added
+
+- **An independence mark on every completion.** `clad done` and `clad verdict` label each finished feature `independent` or `self-certified`, computed from the recorded evidence — human-authored or blind-authored evidence earns `independent`; tool/LLM evidence alone is `self-certified`. It is a visible label, not an accusation, and it never records which agents did the work or how many.
+- **An optional stricter policy.** `spec.yaml::project.independence_policy` accepts `label` (default — annotate only) or `require`, which refuses to keep a `self-certified` feature done and reverts it exactly like a red gate.
+- **A locale diagram for the Multi-Agent section** in all four languages, drawing the label decision — the host band, the single question, the two outcomes, and the refusal only `require` produces.
+
+### Changed
+
+- **cladding no longer prescribes agent topology.** The coordinator prompt dropped its routing table, numbered invocation principles, named agent chain and host-mode work-in-progress table, and now declares only the outcome conditions a feature must satisfy. Agent count, models, ordering and parallelism are the host's decision.
+- **The specialist prompts are selectable role briefs, not a mandated cast.** Any host agent may take up any of them, and an agent that never touches a cladding surface needs none. The gates judge a result the same way whoever produced it.
+- **The README's Multi-Agent section leads with the stake** — one AI writing both the code and its tests produces a green run that proves nothing — before naming any label.
+- **"spec entry", not "shard", in AI-facing surfaces** (carried from the terminology fix that had not yet reached `develop`).
+
+### Fixed
+
+- **A false claim about human sign-off.** The README stated that a person approving a review earns `independent`. No code path records human-authored evidence, so the claim was removed rather than softened; the real limitation is now disclosed in the section itself.
+- **Stale counts on the front page and status table** — feature and test-file totals were months out of date.
+- **A broken layout in the HTML READMEs**, where the before/after pair rendered as one narrow card in a three-column grid with two-thirds of the row empty.
+
+### Verified against a control
+
+The choreography removal was tested as a single-variable ablation (`docs/ab-evaluation/case-role-contract-ablation.md`): six agents, three per arm, differing only in the coordinator prompt, scored blind against each arm's final code. The planted defect was caught 3/3 in **both** arms — no regression. Per the decision rule fixed before the run, **no benefit is claimed**: effort favoured the new prompt but the ranges overlapped at that sample size, so the change is recorded as safe and neutral.
+
+### Known limitations (recorded, not fixed)
+
+- `independent` is reachable only through the AI-tool oracle path; a terminal-only project cannot earn it, and under `independence_policy: require` has no first-party way out.
+- Human-authored evidence has no first-party writer anywhere, so a person's own sign-off cannot currently be recorded.
+
+Both are written up in `docs/refinement-backlog.md` with a reopen trigger.
+
 ## [0.9.1] — Adoption keeps approved capabilities + polyglot gate fidelity (2026-07-21)
 
 **In one line:** adopting an existing project now keeps the capabilities you approved, and the gate reads and reports non-JavaScript projects more faithfully while nudging when the feature cycle isn't being driven.
