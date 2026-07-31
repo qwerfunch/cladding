@@ -20,8 +20,13 @@
 import {execFileSync} from 'node:child_process';
 import process from 'node:process';
 
-import {collectChangelog, defaultSinceRef, type ChangelogManifest} from '../changelog/collect.js';
-import {refExists} from '../core/git-ops.js';
+import {
+  collectChangelog,
+  collectSpecEntryRevisions,
+  defaultSinceRef,
+  type ChangelogManifest,
+} from '../changelog/collect.js';
+import {mergeBaseWithHead, refExists} from '../core/git-ops.js';
 import {latestEventOfType} from '../events/log.js';
 import {buildImpactSlice, ledgerOf} from '../optimizer/reverse-slice.js';
 import {
@@ -87,11 +92,11 @@ function assertRefResolves(cwd: string, ref: string): void {
   }
 }
 
-/** Changed source files in `<since>..HEAD`, deduped + sorted. Empty on git failure. */
-function changedSourceFiles(cwd: string, sinceRef: string): readonly string[] {
+/** Every path that changed in `<base>..HEAD`, deduped + sorted. Empty on git failure. */
+function changedPaths(cwd: string, baseRef: string): readonly string[] {
   let raw: string;
   try {
-    raw = execFileSync('git', ['diff', '--name-only', `${sinceRef}..HEAD`], {
+    raw = execFileSync('git', ['diff', '--name-only', `${baseRef}..HEAD`], {
       cwd,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -104,8 +109,7 @@ function changedSourceFiles(cwd: string, sinceRef: string): readonly string[] {
       raw
         .split('\n')
         .map((l) => l.trim())
-        .filter((l) => l.length > 0)
-        .filter(isReviewableSourcePath),
+        .filter((l) => l.length > 0),
     ),
   ].sort((a, b) => a.localeCompare(b));
 }
@@ -136,21 +140,31 @@ function gatherGateState(cwd: string): GateStateInput {
 function gatherInputs(
   cwd: string,
   spec: Spec,
-  sinceRef: string,
+  baseRef: string,
   manifest: ChangelogManifest,
 ): ReportInputs {
   const ri = reverseIndexOf(spec);
   const ledgerEmpty = ledgerOf(ri).depends_on_edges === 0;
   const byId = new Map((spec.features ?? []).map((f) => [f.id, f]));
 
-  const codeChanges: CodeChangeInput[] = changedSourceFiles(cwd, sinceRef).map((path) => {
-    const slice = buildImpactSlice(spec, path);
-    if ('not_found' in slice) return {path, owners: [], testRefs: []};
-    const owners = (slice.focus.owners ?? []).map((id) => ownerOf(id, byId));
-    return {path, owners, testRefs: slice.test_refs};
-  });
+  const allChanged = changedPaths(cwd, baseRef);
+  const codeChanges: CodeChangeInput[] = allChanged
+    .filter(isReviewableSourcePath)
+    .map((path) => {
+      const slice = buildImpactSlice(spec, path);
+      if ('not_found' in slice) return {path, owners: [], testRefs: []};
+      const owners = (slice.focus.owners ?? []).map((id) => ownerOf(id, byId));
+      return {path, owners, testRefs: slice.test_refs};
+    });
 
-  return {specChanges: manifest, codeChanges, ledgerEmpty, gate: gatherGateState(cwd)};
+  return {
+    specChanges: manifest,
+    codeChanges,
+    ledgerEmpty,
+    gate: gatherGateState(cwd),
+    specEntries: collectSpecEntryRevisions(cwd, baseRef),
+    changedPaths: allChanged,
+  };
 }
 
 /** Handler for `clad report --since <ref> [--format md|sarif|json]`. */
@@ -184,9 +198,16 @@ export function runReportCommand(opts: ReportCommandOptions): void {
       const {findings} = runDrift({cwd});
       out = `${JSON.stringify(toSarif(findings), null, 2)}\n`;
     } else {
-      const manifest = collectChangelog(cwd, sinceRef);
+      // Anchor on the FORK POINT, not the ref's tip (AC-1a6cb22f). Diffing two
+      // tips charges the base branch's own commits to the range under review;
+      // on a live repository that misattributed four untouched features. A
+      // shallow clone (CI checks out at depth 1) has no merge base, so the
+      // helper falls back to the ref itself and the packet still renders
+      // (AC-4b6fe145).
+      const baseRef = mergeBaseWithHead(cwd, sinceRef);
+      const manifest = collectChangelog(cwd, baseRef);
       const spec = loadSpec(cwd);
-      const model = buildReportModel(gatherInputs(cwd, spec, sinceRef, manifest));
+      const model = buildReportModel(gatherInputs(cwd, spec, baseRef, manifest));
       out =
         format === 'json'
           ? `${JSON.stringify({since: sinceRef, head: manifest.head, ...model}, null, 2)}\n`

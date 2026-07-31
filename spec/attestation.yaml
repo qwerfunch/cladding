@@ -20,12 +20,12 @@ attested_modules:
   CHANGELOG.md: 033d721cd4fe05a4
   CLAUDE.md: 9f2fa4edd5c6df80
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: 490eab86b9c0d208
-  README.ja.md: 3c4f3453ba97a3a6
-  README.ko.html: dd48adf81a1d382c
-  README.ko.md: 383011eabecf55a2
-  README.md: c84d37f3d8726f5c
-  README.zh.md: 014fe3859fdbb8dc
+  README.html: 56adb19dd6f4f7b0
+  README.ja.md: 28eddff1f60c71c1
+  README.ko.html: 23a412d68e7affbd
+  README.ko.md: 5dacfa067b26329a
+  README.md: f6c11815b54592e6
+  README.zh.md: 61771611b221bf71
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -117,7 +117,7 @@ attested_modules:
   skills/serve/SKILL.md: f08bbdbbfeb05041
   skills/status/SKILL.md: 09faadc50b3449da
   skills/sync/SKILL.md: 775c0f990a52a3d9
-  spec.yaml: ea944be3d843f018
+  spec.yaml: 7a38d9f04c46dd69
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -145,7 +145,7 @@ attested_modules:
   src/agents/orchestrator.md: 1b758de0bdab8eb0
   src/agents/planner.md: d1f895a20fb3a3ed
   src/agents/reviewer.md: cdf7469a3e58b438
-  src/changelog/collect.ts: a6c936a7b8c34e2a
+  src/changelog/collect.ts: bb0830526334da9f
   src/changelog/render.ts: 83dd2d95f24ca68c
   src/cli: a4d0f0eb87fed960
   src/cli/benchmark.ts: 77f84d2a898d724f
@@ -163,7 +163,7 @@ attested_modules:
   src/cli/init.ts: 91cf7be2b7427fbf
   src/cli/intent-from-path.ts: e69862821d979f22
   src/cli/measure.ts: 3a562f16589e26c2
-  src/cli/report.ts: 911f859b2446834b
+  src/cli/report.ts: bf44afa516ade7f3
   src/cli/scan/architecture.ts: c9cfd5445ea77e45
   src/cli/scan/conventions.ts: 577468c0fc3fdf6a
   src/cli/scan/dispatcher.ts: 97bd3f12cece4fc4
@@ -184,7 +184,7 @@ attested_modules:
   src/cli/update.ts: b0151396c9a0f6ca
   src/cli/verdict.ts: 85a4ef27292b9169
   src/core/checkpoint.ts: 63300c2764533b6c
-  src/core/git-ops.ts: 4544bde493a0628f
+  src/core/git-ops.ts: c144e5cc253822b3
   src/core/postmortem.ts: 73be29d5e8a16fd4
   src/core/telemetry-summary.ts: 6782bfaa6c3ecfa6
   src/drive: a4d0f0eb87fed960
@@ -228,8 +228,9 @@ attested_modules:
   src/oracle/payload.ts: 0171633d758ceed8
   src/oracle/policy.ts: 8919ad927bd59b08
   src/oracle/record.ts: 0b9c124225abe1ac
+  src/report/ac-delta.ts: d5f219cee7691d01
   src/report/bundle.ts: f8a2fb6c2d02326f
-  src/report/report.ts: 234d0e0637153478
+  src/report/report.ts: 983dae356d42af0b
   src/report/sarif.ts: 71e97aceeb0a4473
   src/router: a4d0f0eb87fed960
   src/router/intent.ts: 430590f761b891a6
@@ -245,7 +246,7 @@ attested_modules:
   src/spec/load.ts: 9fe2fe74053bf7e3
   src/spec/new.ts: 4c91f6d41acaab69
   src/spec/parse.ts: 1eab9a28c9359a45
-  src/spec/reverse-index.ts: d8b003eb8f1918c8
+  src/spec/reverse-index.ts: fa54d7203a02799a
   src/spec/schema.json: 848951cd01d7f82f
   src/spec/test-ref-repair.ts: 5ce823b479aaaca3
   src/spec/types.ts: 5799bc9fc1e00553
@@ -583,6 +584,7 @@ attested_features:
   F-5b9f9f: ok
   F-5cac007a: ok
   F-5d3ed2: ok
+  F-5dfbac9c: ok
   F-5f6b45: ok
   F-600272d7: ok
   F-63b989e5: ok

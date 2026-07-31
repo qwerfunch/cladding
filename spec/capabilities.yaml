@@ -17,7 +17,7 @@ capabilities:
     title: "Harness CLI (clad)"
     summary: "14 verbs covering init, scan, refine, sync, check, drive, serve, doctor, …"
     surface: tool
-    features: [F-09d68b, F-bb15e6, F-7afbd4, F-6ba22c5c]
+    features: [F-09d68b, F-bb15e6, F-7afbd4, F-6ba22c5c, F-5dfbac9c]
   - id: spec-governance
     title: "Spec governance (4-tier SSoT)"
     summary: "Tier A/B/C/D model with explicit refresh authority + banner convention"

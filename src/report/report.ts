@@ -27,7 +27,10 @@
 // no stage runners. The CLI verb (src/cli/report.ts) is the thin impure wrapper
 // that gathers git/spec/detector state and feeds this renderer.
 
-import type {ChangelogManifest} from '../changelog/collect.js';
+import type {ChangelogManifest, SpecEntryRevision} from '../changelog/collect.js';
+import {testRefPath} from '../spec/reverse-index.js';
+
+import {buildSpecEntryDeltas, type SpecEntryDelta} from './ac-delta.js';
 
 /** A feature that owns a changed file — id + title, plus slug for shard lookup. */
 export interface OwningFeature {
@@ -58,6 +61,18 @@ export interface GateStateInput {
   } | null;
 }
 
+/** Whether an acceptance criterion's declared test moved with the code. */
+export type TestRefState = 'co-changed' | 'unchanged' | 'placeholder';
+
+/** One declared test reference of one criterion, and how it fared in the range. */
+export interface TestRefRow {
+  readonly featureId: string;
+  readonly acId: string;
+  /** The reference as authored (anchor included) — what the reviewer must find. */
+  readonly ref: string;
+  readonly state: TestRefState;
+}
+
 /** Everything the pure model needs — the CLI composes it impurely. */
 export interface ReportInputs {
   readonly specChanges: ChangelogManifest;
@@ -65,6 +80,10 @@ export interface ReportInputs {
   /** True when the project declares zero depends_on edges (blank ledger). */
   readonly ledgerEmpty: boolean;
   readonly gate: GateStateInput;
+  /** Every feature spec entry the range touched, at both revisions. */
+  readonly specEntries?: readonly SpecEntryRevision[];
+  /** Every path that changed in the range — the co-change oracle. */
+  readonly changedPaths?: readonly string[];
 }
 
 /** The deterministic, fully-sorted review-packet model. */
@@ -78,6 +97,10 @@ export interface ReportModel {
   readonly regressionSet: readonly string[];
   readonly ledgerEmpty: boolean;
   readonly gate: GateStateInput;
+  /** Per-entry acceptance-criterion movement, sorted by feature id. */
+  readonly specEntryDeltas: readonly SpecEntryDelta[];
+  /** Declared tests of the touched entries, with their co-change state. */
+  readonly testRefRows: readonly TestRefRow[];
 }
 
 /** Stable identifiers stamped into the header — the range + HEAD for a fixed state. */
@@ -113,6 +136,39 @@ function normalizeOwners(owners: readonly OwningFeature[]): readonly OwningFeatu
  * changed files into owned / unowned, sorts everything, and computes the
  * deduped regression set. Pure — no I/O, no clock.
  */
+/**
+ * Resolves each declared test reference of the touched entries to one of three
+ * states.
+ *
+ * The third state is load-bearing. `clad sync` writes `derived:<path>` refs into
+ * spec entries as unconfirmed suggestions; rendering one as "declared but did
+ * not change" would present a harness guess as a reviewed fact. The shared
+ * normalizer (src/spec/reverse-index.ts) is what tells the two apart — the same
+ * rule the citation index uses, so the packet and the index can never disagree.
+ */
+function buildTestRefRows(
+  entries: readonly SpecEntryRevision[],
+  changed: ReadonlySet<string>,
+): readonly TestRefRow[] {
+  const rows: TestRefRow[] = [];
+  for (const entry of entries) {
+    for (const ac of entry.headAcs) {
+      for (const ref of ac.test_refs ?? []) {
+        const path = testRefPath(ref);
+        const state: TestRefState =
+          path === null ? 'placeholder' : changed.has(path) ? 'co-changed' : 'unchanged';
+        rows.push({featureId: entry.id, acId: ac.id, ref, state});
+      }
+    }
+  }
+  return rows.sort(
+    (a, b) =>
+      a.featureId.localeCompare(b.featureId) ||
+      a.acId.localeCompare(b.acId) ||
+      a.ref.localeCompare(b.ref),
+  );
+}
+
 export function buildReportModel(inputs: ReportInputs): ReportModel {
   const withOwners = inputs.codeChanges.map((c) => ({...c, owners: normalizeOwners(c.owners)}));
 
@@ -129,6 +185,9 @@ export function buildReportModel(inputs: ReportInputs): ReportModel {
     ...new Set(inputs.codeChanges.flatMap((c) => c.testRefs)),
   ].sort((a, b) => a.localeCompare(b));
 
+  const specEntries = inputs.specEntries ?? [];
+  const changed = new Set(inputs.changedPaths ?? []);
+
   return {
     specChanges: inputs.specChanges,
     codeChanges,
@@ -136,6 +195,8 @@ export function buildReportModel(inputs: ReportInputs): ReportModel {
     regressionSet,
     ledgerEmpty: inputs.ledgerEmpty,
     gate: inputs.gate,
+    specEntryDeltas: buildSpecEntryDeltas(specEntries),
+    testRefRows: buildTestRefRows(specEntries, changed),
   };
 }
 
@@ -204,6 +265,78 @@ function renderRegressionSet(model: ReportModel): string {
   return lines.join('\n');
 }
 
+/** `planned → done`, or a bare status when the entry only existed at one end. */
+function statusTransition(d: SpecEntryDelta): string {
+  if (d.statusBefore === null) return `added as ${d.statusAfter ?? 'unknown'}`;
+  if (d.statusAfter === null) return `was ${d.statusBefore}, now deleted`;
+  return d.statusBefore === d.statusAfter
+    ? d.statusAfter
+    : `${d.statusBefore} → ${d.statusAfter}`;
+}
+
+/**
+ * Renders the "## How the acceptance criteria moved" section — the answer to
+ * "did the requirement change, or did the code?" that no drift detector can
+ * give, because detectors only ever see the spec as it stands now.
+ */
+function renderSpecEntryDeltas(model: ReportModel): string {
+  const lines: string[] = ['## How the acceptance criteria moved'];
+  if (model.specEntryDeltas.length === 0) {
+    lines.push('', '_No feature spec entry changed in this range._');
+    return lines.join('\n');
+  }
+  lines.push(
+    '',
+    '_Each criterion compared against its own earlier revision, matched by id. A rewrite here is invisible to every drift check, because the code was changed to match it._',
+  );
+  for (const d of model.specEntryDeltas) {
+    const c = d.counts;
+    lines.push('', `### "${d.title}" (${d.id}) — ${statusTransition(d)}`, '');
+    lines.push(
+      `- new ${c.new} · rewritten ${c.rewritten} · removed ${c.removed} · unchanged ${c.unchanged}`,
+    );
+    for (const r of d.rows) {
+      if (r.kind === 'unchanged') continue;
+      const shift = r.earsShift ? ` — pattern ${r.earsShift}` : '';
+      lines.push(`- ${r.kind.toUpperCase()} ${r.id}${shift}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+/**
+ * Renders the "## Declared tests" section: for every criterion of a touched
+ * entry, whether the test it names also moved in this range.
+ *
+ * It grades nothing. Whether a test genuinely verifies its criterion is not
+ * mechanically decidable — three separate rules were measured against real
+ * corpora and each misfired on legitimate code — so the packet shows what was
+ * declared and leaves the judgement with the reviewer.
+ */
+function renderTestRefs(model: ReportModel): string {
+  const lines: string[] = ['## Declared tests'];
+  if (model.testRefRows.length === 0) {
+    lines.push('', '_No touched entry declares a test._');
+    return lines.join('\n');
+  }
+  lines.push(
+    '',
+    '_`changed` = the named file also moved in this range. `unchanged` = declared, untouched. `no file` = a placeholder the harness suggested, not a test that exists._',
+    '',
+  );
+  let current = '';
+  for (const row of model.testRefRows) {
+    if (row.featureId !== current) {
+      current = row.featureId;
+      lines.push(`- ${row.featureId}`);
+    }
+    const label =
+      row.state === 'co-changed' ? 'changed' : row.state === 'unchanged' ? 'unchanged' : 'no file';
+    lines.push(`  - ${row.acId} · ${row.ref} — ${label}`);
+  }
+  return lines.join('\n');
+}
+
 /** Renders the "## Gate & attestation" section. */
 function renderGate(gate: GateStateInput): string {
   const lines: string[] = ['## Gate & attestation', ''];
@@ -242,7 +375,11 @@ export function renderReportMarkdown(model: ReportModel, meta: ReportMeta): stri
     '',
     renderSpecChanges(model.specChanges),
     '',
+    renderSpecEntryDeltas(model),
+    '',
     renderCodeChanges(model),
+    '',
+    renderTestRefs(model),
     '',
     renderRegressionSet(model),
     '',

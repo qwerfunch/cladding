@@ -180,3 +180,115 @@ describe('clad report — pipe safety (structural pin)', () => {
     expect(src).not.toContain('process.exit(0)');
   });
 });
+
+describe('AC-1a6cb22f / AC-4b6fe145 / AC-8e748acb · anchoring the range on the fork point', () => {
+  let dir: string;
+
+  function mkShard(id: string, slug: string, status: string, text: string): string {
+    return [
+      `id: ${id}`,
+      `slug: ${slug}`,
+      `title: "${slug}"`,
+      `status: ${status}`,
+      'acceptance_criteria:',
+      '  - id: AC-000001',
+      '    ears: ubiquitous',
+      `    text: "${text}"`,
+      '',
+    ].join('\n');
+  }
+
+  beforeAll(() => {
+    dir = mkdtempSync(join(tmpdir(), 'clad-report-fork-'));
+    git(dir, ['init', '-q']);
+    git(dir, ['config', 'user.email', 'test@example.com']);
+    git(dir, ['config', 'user.name', 'test']);
+    git(dir, ['config', 'commit.gpgsign', 'false']);
+    git(dir, ['config', 'init.defaultBranch', 'main']);
+    git(dir, ['checkout', '-q', '-b', 'main']);
+    mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
+
+    writeFileSync(join(dir, 'spec.yaml'), SPEC_YAML);
+    writeFileSync(
+      join(dir, 'spec', 'features', 'mine-aaaa1111.yaml'),
+      mkShard('F-aaaa1111', 'mine', 'planned', 'The system shall do my thing.'),
+    );
+    writeFileSync(
+      join(dir, 'spec', 'features', 'theirs-bbbb2222.yaml'),
+      mkShard('F-bbbb2222', 'theirs', 'planned', 'The system shall do their thing.'),
+    );
+    git(dir, ['add', '-A']);
+    git(dir, ['commit', '-q', '-m', 'baseline']);
+    git(dir, ['tag', 'v0']);
+
+    // The BASE branch moves on after the fork — someone else rewrites their
+    // own entry's criterion. This must never be charged to our branch.
+    writeFileSync(
+      join(dir, 'spec', 'features', 'theirs-bbbb2222.yaml'),
+      mkShard('F-bbbb2222', 'theirs', 'done', 'The system shall do their thing DIFFERENTLY.'),
+    );
+    git(dir, ['add', '-A']);
+    git(dir, ['commit', '-q', '-m', 'their work on main']);
+
+    // Our branch forks from v0 and rewrites only our own entry.
+    git(dir, ['checkout', '-q', '-b', 'feature/mine', 'v0']);
+    writeFileSync(
+      join(dir, 'spec', 'features', 'mine-aaaa1111.yaml'),
+      mkShard('F-aaaa1111', 'mine', 'done', 'The system shall do my thing REVISED.'),
+    );
+    git(dir, ['add', '-A']);
+    git(dir, ['commit', '-q', '-m', 'my work']);
+  });
+
+  afterAll(() => {
+    rmSync(dir, {recursive: true, force: true});
+  });
+
+  test("AC-1a6cb22f · the base branch's own rewrite is not attributed to this range", () => {
+    const ran = runClad(dir, ['report', '--since', 'main', '--format', 'json']);
+    expect(ran.status).toBe(0);
+    const model = JSON.parse(ran.stdout) as {
+      specEntryDeltas: {id: string; counts: {rewritten: number}}[];
+    };
+    const ids = model.specEntryDeltas.map((d) => d.id);
+    expect(ids).toContain('F-aaaa1111');
+    // Diffing tip-to-tip would report F-bbbb2222 as REMOVED-and-rewritten here;
+    // anchoring on the merge base leaves their work out of our packet.
+    expect(ids).not.toContain('F-bbbb2222');
+  });
+
+  test('AC-1a6cb22f · our own rewrite is still reported', () => {
+    const ran = runClad(dir, ['report', '--since', 'main', '--format', 'json']);
+    const model = JSON.parse(ran.stdout) as {
+      specEntryDeltas: {id: string; counts: {rewritten: number}}[];
+    };
+    expect(model.specEntryDeltas.find((d) => d.id === 'F-aaaa1111')?.counts.rewritten).toBe(1);
+  });
+
+  test('AC-4b6fe145 · a shallow clone with no merge base still renders a packet', () => {
+    const shallow = mkdtempSync(join(tmpdir(), 'clad-report-shallow-'));
+    try {
+      execFileSync('git', ['clone', '-q', '--depth', '1', `file://${dir}`, shallow, '--branch', 'feature/mine'], {
+        encoding: 'utf8',
+      });
+      const head = execFileSync('git', ['rev-parse', 'HEAD'], {cwd: shallow, encoding: 'utf8'}).trim();
+      // No history to walk: `git merge-base <head> HEAD` cannot resolve a fork
+      // point here, so the helper must fall back to the ref rather than fail.
+      const ran = runClad(shallow, ['report', '--since', head, '--format', 'md']);
+      expect(ran.status).toBe(0);
+      expect(ran.stdout).toContain('## How the acceptance criteria moved');
+    } finally {
+      rmSync(shallow, {recursive: true, force: true});
+    }
+  });
+
+  test('AC-8e748acb · a rewritten criterion does not change the exit code', () => {
+    const withRewrite = runClad(dir, ['report', '--since', 'v0']);
+    expect(withRewrite.status).toBe(0);
+    expect(withRewrite.stdout).toContain('REWRITTEN AC-000001');
+
+    // Same command from a state with no spec movement at all — same exit code.
+    const noMovement = runClad(dir, ['report', '--since', 'HEAD']);
+    expect(noMovement.status).toBe(0);
+  });
+});

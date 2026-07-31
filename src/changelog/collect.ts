@@ -222,6 +222,70 @@ function isFeatureShard(path: string): boolean {
   return path.startsWith('spec/features/') && (path.endsWith('.yaml') || path.endsWith('.yml'));
 }
 
+/** One feature spec entry as it stood at both ends of a range (AC-a2278f11). */
+export interface SpecEntryRevision {
+  /** Repo-relative path of the entry at HEAD (or at the ref, when deleted). */
+  readonly path: string;
+  readonly id: string;
+  readonly slug?: string;
+  readonly title: string;
+  /** Status at the ref; null when the entry was added within the range. */
+  readonly statusBefore: string | null;
+  /** Status at HEAD; null when the entry was deleted within the range. */
+  readonly statusAfter: string | null;
+  readonly baseAcs: readonly AcceptanceCriterion[];
+  readonly headAcs: readonly AcceptanceCriterion[];
+}
+
+/**
+ * Every feature spec entry the range touched, at BOTH revisions, regardless of
+ * status — the review packet's input.
+ *
+ * WHY this exists alongside classifyShards: that one is a *shipped* filter. It
+ * keeps only done/archived lifecycle transitions and drops `planned` /
+ * `in_progress` entries outright, which is right for a changelog and wrong for
+ * a reviewer. Measured on a live corpus, 74% of a range's touched entries sat
+ * in those two states — a review packet built on the changelog's population
+ * would silently omit most of what the range actually did to the spec.
+ *
+ * Same cost discipline as its sibling: ONE `git diff --name-status` classifies
+ * the candidate set, and `git show` runs only for entries that existed at the
+ * ref. Sorted by id, so callers serialize deterministically.
+ */
+export function collectSpecEntryRevisions(cwd: string, sinceRef: string): readonly SpecEntryRevision[] {
+  assertValidRef(cwd, sinceRef);
+  const raw = git(cwd, ['diff', '--name-status', `${sinceRef}..HEAD`, '--', 'spec/']);
+  const out: SpecEntryRevision[] = [];
+  for (const line of raw.split('\n')) {
+    if (line.trim().length === 0) continue;
+    const fields = line.split('\t');
+    const status = fields[0] ?? '';
+    const oldPath = fields[1] ?? '';
+    const newPath = fields.length > 2 ? (fields[2] ?? '') : oldPath;
+    if (!isFeatureShard(newPath) && !isFeatureShard(oldPath)) continue;
+
+    const added = status.startsWith('A');
+    const deleted = status.startsWith('D');
+    const head = added || !deleted ? parseShard(readWorktreeOrNull(cwd, newPath)) : null;
+    const base = added ? null : parseShard(gitShowOrNull(cwd, sinceRef, oldPath));
+    const anchor = head ?? base;
+    if (!anchor) continue;
+
+    out.push({
+      path: deleted ? oldPath : newPath,
+      id: anchor.id,
+      ...(anchor.slug ? {slug: anchor.slug} : {}),
+      title: anchor.title,
+      statusBefore: base ? base.status : null,
+      statusAfter: head ? head.status : null,
+      baseAcs: base?.acceptance_criteria ?? [],
+      headAcs: head?.acceptance_criteria ?? [],
+    });
+  }
+  out.sort((a, b) => a.id.localeCompare(b.id));
+  return out;
+}
+
 function toEntry(doc: ShardDoc, change: FeatureChangeKind): ChangelogFeature {
   const acceptance = (doc.acceptance_criteria ?? [])
     .map((ac) => acSentence(ac))

@@ -10,7 +10,7 @@
 
 import {describe, expect, test} from 'vitest';
 
-import type {ChangelogManifest} from '../../src/changelog/collect.js';
+import type {ChangelogManifest, SpecEntryRevision} from '../../src/changelog/collect.js';
 import {
   buildReportModel,
   renderReportMarkdown,
@@ -215,5 +215,135 @@ describe('report/report — blank-ledger disclosure (AC-41572299)', () => {
     const md = renderReportMarkdown(buildReportModel(mkInputs({ledgerEmpty: false})), META);
     expect(md).not.toContain('UNKNOWN, not safe');
     expect(md).not.toContain('dependency ledger is empty');
+  });
+});
+
+describe('AC-e68c868a · declared tests and whether they moved with the code', () => {
+  /** One touched entry whose single criterion declares `refs`. */
+  function entryDeclaring(refs: readonly string[]): SpecEntryRevision {
+    return {
+      path: 'spec/features/thing-abcd1234.yaml',
+      id: 'F-abcd1234',
+      title: 'A thing',
+      statusBefore: 'planned',
+      statusAfter: 'done',
+      baseAcs: [],
+      headAcs: [{id: 'AC-0001', text: 'shall do the thing', test_refs: refs}],
+    };
+  }
+
+  function statesFor(refs: readonly string[], changed: readonly string[]) {
+    const model = buildReportModel(
+      mkInputs({specEntries: [entryDeclaring(refs)], changedPaths: changed}),
+    );
+    return model.testRefRows.map((r) => r.state);
+  }
+
+  test('a declared test that also changed in the range reads as co-changed', () => {
+    expect(statesFor(['tests/thing.test.ts'], ['tests/thing.test.ts'])).toEqual(['co-changed']);
+  });
+
+  test('a declared test that did not change reads as unchanged', () => {
+    expect(statesFor(['tests/thing.test.ts'], ['src/thing.ts'])).toEqual(['unchanged']);
+  });
+
+  test('an anchored reference resolves on its file path, not the whole string', () => {
+    expect(statesFor(['tests/thing.test.ts#some case'], ['tests/thing.test.ts'])).toEqual([
+      'co-changed',
+    ]);
+  });
+
+  test('a harness-written placeholder is never reported as an untouched test', () => {
+    // `clad sync` writes `derived:` refs as unconfirmed suggestions. Rendering
+    // one as "declared but did not change" would pass a harness guess off as a
+    // reviewed fact.
+    for (const pseudo of ['derived:tests/thing.test.ts', 'fixture:NAME', 'script:build', 'self-dogfood:x']) {
+      expect(statesFor([pseudo], [])).toEqual(['placeholder']);
+    }
+  });
+
+  test('the row keeps the reference exactly as authored, anchor included', () => {
+    const model = buildReportModel(
+      mkInputs({specEntries: [entryDeclaring(['tests/thing.test.ts#some case'])], changedPaths: []}),
+    );
+    expect(model.testRefRows[0]?.ref).toBe('tests/thing.test.ts#some case');
+    expect(model.testRefRows[0]?.acId).toBe('AC-0001');
+    expect(model.testRefRows[0]?.featureId).toBe('F-abcd1234');
+  });
+
+  test('rows sort by feature, then criterion, then reference', () => {
+    const model = buildReportModel(
+      mkInputs({specEntries: [entryDeclaring(['tests/z.test.ts', 'tests/a.test.ts'])], changedPaths: []}),
+    );
+    expect(model.testRefRows.map((r) => r.ref)).toEqual(['tests/a.test.ts', 'tests/z.test.ts']);
+  });
+
+  test('the section renders and states which files moved', () => {
+    const md = renderReportMarkdown(
+      buildReportModel(
+        mkInputs({specEntries: [entryDeclaring(['tests/thing.test.ts'])], changedPaths: ['tests/thing.test.ts']}),
+      ),
+      META,
+    );
+    expect(md).toContain('## Declared tests');
+    expect(md).toContain('tests/thing.test.ts');
+  });
+
+  test('a range with no touched entry says so rather than rendering an empty list', () => {
+    const md = renderReportMarkdown(buildReportModel(mkInputs()), META);
+    expect(md).toContain('No touched entry declares a test.');
+  });
+
+  test('the packet grades nothing — a production path declared as a test gets the same states as any other', () => {
+    // Whether a declared test genuinely verifies its criterion is not
+    // mechanically decidable, so the packet reports movement and withholds
+    // judgement. A criterion pointing at production source must therefore be
+    // described exactly like one pointing at a test file.
+    const model = buildReportModel(
+      mkInputs({specEntries: [entryDeclaring(['src/thing.ts'])], changedPaths: []}),
+    );
+    expect(model.testRefRows.map((r) => r.state)).toEqual(['unchanged']);
+
+    const md = renderReportMarkdown(model, META);
+    const section = md.slice(md.indexOf('## Declared tests'));
+    for (const verdict of ['circular', 'vacuous', 'invalid', 'FAIL', 'suspect']) {
+      expect(section).not.toContain(verdict);
+    }
+  });
+});
+
+describe('AC-c32cbab2 · the criterion-movement section in the rendered packet', () => {
+  test('the section names the status transition and every non-unchanged criterion', () => {
+    const md = renderReportMarkdown(
+      buildReportModel(
+        mkInputs({
+          specEntries: [
+            {
+              path: 'spec/features/thing-abcd1234.yaml',
+              id: 'F-abcd1234',
+              title: 'A thing',
+              statusBefore: 'planned',
+              statusAfter: 'done',
+              baseAcs: [{id: 'AC-0001', text: 'shall always', ears: 'state'}],
+              headAcs: [
+                {id: 'AC-0001', text: 'shall never', ears: 'unwanted'},
+                {id: 'AC-0002', text: 'a fresh one'},
+              ],
+            },
+          ],
+        }),
+      ),
+      META,
+    );
+    expect(md).toContain('## How the acceptance criteria moved');
+    expect(md).toContain('planned → done');
+    expect(md).toContain('REWRITTEN AC-0001');
+    expect(md).toContain('state → unwanted');
+    expect(md).toContain('NEW AC-0002');
+  });
+
+  test('a range that moved no spec entry says so', () => {
+    const md = renderReportMarkdown(buildReportModel(mkInputs()), META);
+    expect(md).toContain('No feature spec entry changed in this range.');
   });
 });
