@@ -282,7 +282,7 @@ describe('detectToolchain', () => {
       args: [
         '--offline', '--no-install', 'madge', '--circular',
         '--extensions', 'ts,tsx,js,jsx',
-        '--exclude', '^(dist|build|out|coverage|target|\\.next|\\.nuxt|\\.output|\\.svelte-kit|\\.vite)/',
+        '--exclude', '(^|/)(dist|coverage|\\.next|\\.nuxt|\\.output|\\.svelte-kit|\\.vite)/|^(build|out|target)/',
         '.',
       ],
     });
@@ -308,6 +308,11 @@ describe('detectToolchain', () => {
       'dist/index.js', 'build/main.js', 'out/app.js', 'coverage/lcov-report/x.js',
       'target/classes/a.js', '.next/server/page.js', '.nuxt/dist/client.js',
       '.output/server/index.mjs', '.svelte-kit/output/x.js', '.vite/deps/chunk.js',
+      // A monorepo or a front-end subdirectory puts its bundle one level down.
+      // Anchoring only at depth 0 left those blocking the gate — the exact
+      // shape the motivating adopter has (`frontend/dist`).
+      'frontend/dist/index.js', 'packages/ui/dist/bundle.js', 'apps/web/.next/x.js',
+      'packages/core/coverage/lcov-report/y.js', 'plugins/host/dist/bundle.js',
     ]) {
       expect(re.test(generated), `${generated} should be excluded`).toBe(true);
     }
@@ -319,9 +324,11 @@ describe('detectToolchain', () => {
     for (const source of [
       'src/index.ts', 'tests/unit.test.ts', 'lib/util.ts', 'app/page.tsx',
       'packages/core/src/a.ts', 'backend/api/main.ts',
-      // Anchored at the repository root: a SOURCE directory that merely happens
-      // to be named build/ or dist/ deeper in the tree must keep being scanned.
-      'src/build/compile.ts', 'app/dist/renderer.ts', 'packages/out/index.ts',
+      // `build`, `out` and `target` are ambiguous — they name real source
+      // directories often enough that they stay anchored at the repository
+      // root. (`dist`, `coverage` and the framework caches are not ambiguous:
+      // no repository on hand commits hand-written source under any of them.)
+      'src/build/compile.ts', 'packages/out/index.ts', 'app/target/gen.ts',
     ]) {
       expect(re.test(source), `${source} must NOT be excluded`).toBe(false);
     }
@@ -330,21 +337,91 @@ describe('detectToolchain', () => {
   test('AC-554d9436 · a project that configures the scanner itself keeps its own rules', () => {
     // madge REPLACES its configured excludeRegExp with the command-line flag
     // rather than merging, so passing ours would silently delete theirs.
-    for (const config of ['.madgerc', '.madgerc.json', '.madgerc.js', '.madgerc.yaml', '.madgerc.yml']) {
-      const own = mkdtempSync(join(tmpdir(), 'clad-madge-'));
-      try {
-        writeFileSync(join(own, 'package.json'), '{}');
-        writeFileSync(join(own, config), '{"excludeRegExp": ["^vendor/"]}');
-        expect(detectToolchain(own).gates.arch?.args, config).not.toContain('--exclude');
-      } finally {
-        rmSync(own, {recursive: true, force: true});
-      }
+    const own = mkdtempSync(join(tmpdir(), 'clad-madge-'));
+    try {
+      writeFileSync(join(own, 'package.json'), '{}');
+      writeFileSync(join(own, '.madgerc'), '{"excludeRegExp": ["^vendor/"]}');
+      expect(detectToolchain(own).gates.arch?.args).not.toContain('--exclude');
+    } finally {
+      rmSync(own, {recursive: true, force: true});
     }
   });
 
   test('AC-554d9436 · an inline package.json madge block also wins', () => {
     writeFileSync(join(dir, 'package.json'), JSON.stringify({madge: {excludeRegExp: ['^vendor/']}}));
     expect(detectToolchain(dir).gates.arch?.args).not.toContain('--exclude');
+  });
+
+  test('AC-554d9436 · a .madgerc in a PARENT directory is honoured — madge walks up, so must we', () => {
+    // The config loader recurses from cwd to the filesystem root. A guard that
+    // looks only in cwd sends --exclude anyway, madge REPLACES the parent's
+    // rules with ours, and cycles the user had suppressed come back RED.
+    const parent = mkdtempSync(join(tmpdir(), 'clad-madge-parent-'));
+    try {
+      writeFileSync(join(parent, '.madgerc'), '{"excludeRegExp": ["^vendor/"]}');
+      const child = join(parent, 'workspace', 'app');
+      mkdirSync(child, {recursive: true});
+      writeFileSync(join(child, 'package.json'), '{}');
+      expect(detectToolchain(child).gates.arch?.args).not.toContain('--exclude');
+    } finally {
+      rmSync(parent, {recursive: true, force: true});
+    }
+  });
+
+  test('AC-554d9436 · a .madgerc under $HOME is honoured too', () => {
+    const fakeHome = mkdtempSync(join(tmpdir(), 'clad-madge-home-'));
+    const realHome = process.env.HOME;
+    const realProfile = process.env.USERPROFILE;
+    try {
+      writeFileSync(join(fakeHome, '.madgerc'), '{"excludeRegExp": ["^vendor/"]}');
+      process.env.HOME = fakeHome;
+      process.env.USERPROFILE = fakeHome;
+      const own = mkdtempSync(join(tmpdir(), 'clad-madge-'));
+      try {
+        writeFileSync(join(own, 'package.json'), '{}');
+        expect(detectToolchain(own).gates.arch?.args).not.toContain('--exclude');
+      } finally {
+        rmSync(own, {recursive: true, force: true});
+      }
+    } finally {
+      if (realHome === undefined) delete process.env.HOME; else process.env.HOME = realHome;
+      if (realProfile === undefined) delete process.env.USERPROFILE; else process.env.USERPROFILE = realProfile;
+      rmSync(fakeHome, {recursive: true, force: true});
+    }
+  });
+
+  test('AC-caa9471d · a config that sets no exclusion does NOT switch the fix off', () => {
+    // These all EXIST but put no excludeRegExp in force, so build output would
+    // keep blocking the gate while cladding believed the project had it covered.
+    for (const [label, write] of [
+      ['empty .madgerc', (d: string) => writeFileSync(join(d, '.madgerc'), '{}')],
+      ['detectiveOptions-only .madgerc', (d: string) => writeFileSync(join(d, '.madgerc'), '{"detectiveOptions": {"ts": {"skipTypeImports": true}}}')],
+      // Not config files at all — the loader reads only the exact name `.madgerc`.
+      ['.madgerc.json', (d: string) => writeFileSync(join(d, '.madgerc.json'), '{"excludeRegExp": ["^vendor/"]}')],
+      ['.madgerc.yaml', (d: string) => writeFileSync(join(d, '.madgerc.yaml'), 'excludeRegExp: ["^vendor/"]')],
+      ['package.json madge block without excludeRegExp', (d: string) => writeFileSync(join(d, 'package.json'), JSON.stringify({madge: {detectiveOptions: {}}}))],
+    ] as [string, (d: string) => void][]) {
+      const own = mkdtempSync(join(tmpdir(), 'clad-madge-inert-'));
+      try {
+        writeFileSync(join(own, 'package.json'), '{}');
+        write(own);
+        expect(detectToolchain(own).gates.arch?.args, label).toContain('--exclude');
+      } finally {
+        rmSync(own, {recursive: true, force: true});
+      }
+    }
+  });
+
+  test('AC-554d9436 · an unparseable .madgerc makes cladding stand down, not guess', () => {
+    const own = mkdtempSync(join(tmpdir(), 'clad-madge-ini-'));
+    try {
+      writeFileSync(join(own, 'package.json'), '{}');
+      // rc also accepts ini; we cannot read it reliably, so we must not override.
+      writeFileSync(join(own, '.madgerc'), 'excludeRegExp[] = ^vendor/\n');
+      expect(detectToolchain(own).gates.arch?.args).not.toContain('--exclude');
+    } finally {
+      rmSync(own, {recursive: true, force: true});
+    }
   });
 
   test('AC-c04171bd · the scan root stays the repository root, never a named directory', () => {

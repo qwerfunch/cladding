@@ -17,15 +17,15 @@ attested_modules:
   .claude/settings.json: d0bba3583aef0960
   .github/workflows/ci.yml: 8ea99219cb80df60
   .gitignore: 1294975ba3b47043
-  CHANGELOG.md: af69d16f2b298b79
+  CHANGELOG.md: a67e4c092a7223c1
   CLAUDE.md: 9f2fa4edd5c6df80
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: b54da47187e0d23a
-  README.ja.md: f69f828a85166942
-  README.ko.html: c234b7f20cfd0941
-  README.ko.md: 10e6fd0dded8af59
-  README.md: 92ebf6ffccbb27e6
-  README.zh.md: 56bf8c47e2a979a4
+  README.html: cd57c4adbf63c21f
+  README.ja.md: 0b9ae54836f7c7c5
+  README.ko.html: c90c121ff05543e2
+  README.ko.md: 201d815f50b9a5c8
+  README.md: 0f3ff03524db0951
+  README.zh.md: 07f985aed7eb3304
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -56,7 +56,7 @@ attested_modules:
   docs/dogfood/cursor-agent-2026-07-15.md: a2f621fd0c3b57af
   docs/dogfood/gemini-cli-2026-05-20.md: 2da1ba66c4f108f0
   docs/feature-cycle.md: e1847cc9fe9b6eb6
-  docs/glossary.md: 9e897b963c3aa88f
+  docs/glossary.md: fc7258d4d3dcb9a2
   docs/img/en/ecosystem.svg: ed14d1d17f088b00
   docs/img/en/independence.svg: 1b3048b3b5206483
   docs/img/en/relationship.svg: c7a24203925b4664
@@ -163,7 +163,7 @@ attested_modules:
   src/cli/init.ts: 91cf7be2b7427fbf
   src/cli/intent-from-path.ts: e69862821d979f22
   src/cli/measure.ts: 3a562f16589e26c2
-  src/cli/report.ts: dc5233ffb3398cdc
+  src/cli/report.ts: ee7d35b6c36dfa76
   src/cli/scan/architecture.ts: c9cfd5445ea77e45
   src/cli/scan/conventions.ts: 577468c0fc3fdf6a
   src/cli/scan/dispatcher.ts: 97bd3f12cece4fc4
@@ -228,9 +228,9 @@ attested_modules:
   src/oracle/payload.ts: 0171633d758ceed8
   src/oracle/policy.ts: 8919ad927bd59b08
   src/oracle/record.ts: 0b9c124225abe1ac
-  src/report/ac-delta.ts: d5f219cee7691d01
+  src/report/ac-delta.ts: 18ba218cebf5b6f1
   src/report/bundle.ts: f8a2fb6c2d02326f
-  src/report/report.ts: 01bcc88dc44e77f6
+  src/report/report.ts: f6f6f8bdb679b702
   src/report/sarif.ts: 71e97aceeb0a4473
   src/router: a4d0f0eb87fed960
   src/router/intent.ts: 430590f761b891a6
@@ -317,7 +317,7 @@ attested_modules:
   src/stages/spec-conformance.ts: 1e9b052a2a268d7a
   src/stages/test-run-cache.ts: 462a5ef1d30eb766
   src/stages/toolchain/coverage-tool.ts: 310883060ed6d92e
-  src/stages/toolchain/detect.ts: 630d123781c6d49c
+  src/stages/toolchain/detect.ts: 1fa0f54b90c9494d
   src/stages/toolchain/gate-config.ts: 818a0a549d875581
   src/stages/toolchain/language-config.ts: 65175718559b0710
   src/stages/toolchain/module-scope.ts: 88358ec3b84eedd3
@@ -425,7 +425,7 @@ attested_modules:
   tests/stages/stale-tests.test.ts: 1467ceedb8019e86
   tests/stages/status-drift.test.ts: cff1092eeb23c268
   tests/stages/tech-stack-mismatch.test.ts: 878436ffd2f94c97
-  tests/stages/toolchain.test.ts: e5b26494c00782f5
+  tests/stages/toolchain.test.ts: 958add1f40d1f06d
   tests/stages/toolchain/gate-config.test.ts: aef5813a6591b153
   tests/stages/type.test.ts: b57cf7455cae3b32
   tests/stages/uat.test.ts: 29c5bf3e7f3abc35

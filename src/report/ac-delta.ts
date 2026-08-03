@@ -64,14 +64,29 @@ function norm(value: string | undefined): string {
 const FIELD_SEPARATOR = '\u0000';
 
 /**
- * The comparison key for a criterion: its statement, its EARS pattern, and its
- * trigger condition. Those three are the contract. `notes` is deliberately
- * EXCLUDED — it is the free-prose field authors actually use, and treating an
- * expanded rationale as a contract rewrite would make the signal fire on the
- * one habit worth encouraging.
+ * The comparison key for a criterion: every field that states the obligation —
+ * the pre-rendered statement, the EARS pattern, and the structured trigger /
+ * action / outcome.
+ *
+ * `action` and `response` are not decoration. The impl-blind oracle renders
+ * `action` as "system shall:" (src/oracle/payload.ts), and AC_DRIFT accepts a
+ * criterion carrying only these fields as fully specified — so a criterion may
+ * have no `text` at all and still state a complete requirement. Comparing only
+ * text/ears/condition made this section blind to a rewrite of the obligation
+ * itself, which is precisely the change it exists to surface.
+ *
+ * `notes` stays EXCLUDED — it is the free-prose field authors actually use, and
+ * treating an expanded rationale as a contract rewrite would make the signal
+ * fire on the one habit worth encouraging.
  */
 function contractKey(ac: AcceptanceCriterion): string {
-  return [norm(ac.text), norm(ac.ears), norm(ac.condition)].join(FIELD_SEPARATOR);
+  return [
+    norm(ac.text),
+    norm(ac.ears),
+    norm(ac.condition),
+    norm(ac.action),
+    norm(ac.response),
+  ].join(FIELD_SEPARATOR);
 }
 
 function byId(acs: readonly AcceptanceCriterion[]): Map<string, AcceptanceCriterion> {

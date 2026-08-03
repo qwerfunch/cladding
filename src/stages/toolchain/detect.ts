@@ -13,7 +13,8 @@
 
 import {existsSync, readFileSync, readdirSync} from 'node:fs';
 import type {Dirent} from 'node:fs';
-import {join} from 'node:path';
+import {dirname, join, resolve} from 'node:path';
+import process from 'node:process';
 
 import {kotlinCoverageTask} from './coverage-tool.js';
 import type {Language, Toolchain, ToolchainGates, ToolSpec} from './types.js';
@@ -373,18 +374,88 @@ const ESLINT_CONFIGS: readonly string[] = [
  * adopter this blocked the gate five times, every one of them inside a version-ignored
  * bundle; the recorded root cause was wrong and the issue stayed open for sixteen days.
  *
- * Anchored at the repository root (`^`) so a source directory that merely happens to be
- * named `build/` deeper in the tree is still scanned.
+ * Two anchorings, because the names differ in how ambiguous they are:
+ *
+ *   - `dist`, `coverage` and the framework caches are excluded at ANY depth. A
+ *     monorepo package or a front-end subdirectory keeps its bundle one level down
+ *     (`frontend/dist`), and a root-only anchor left exactly those still blocking
+ *     the gate. No repository on hand commits hand-written source under these names.
+ *   - `build`, `out` and `target` stay anchored at the repository root: they DO name
+ *     real source directories often enough (`src/build/…`) that excluding them at
+ *     depth would silently drop hand-written code from the scan — a false negative,
+ *     which is the one outcome worse than a false RED.
  */
 const BUILD_OUTPUT_EXCLUDE =
-  '^(dist|build|out|coverage|target|\\.next|\\.nuxt|\\.output|\\.svelte-kit|\\.vite)/';
+  '(^|/)(dist|coverage|\\.next|\\.nuxt|\\.output|\\.svelte-kit|\\.vite)/|^(build|out|target)/';
 
 /**
- * Files that mean "this project configures the dependency scanner itself".
- * `rc` resolves `.madgerc` and its typed variants; `package.json#madge` is the
- * inline form.
+ * Every path madge's config loader consults, in its own order.
+ *
+ * Read off `rc` (madge/bin/cli.js:7) rather than assumed: `/etc/madge/config`
+ * and `/etc/madgerc` on POSIX, four `$HOME` locations, then the EXACT name
+ * `.madgerc` walked upward from cwd to the filesystem root. Only that one
+ * filename is ever read — `.madgerc.json` / `.js` / `.yaml` are not madge
+ * config at all, and treating them as such silently disabled the exclusion.
  */
-const MADGE_CONFIGS: readonly string[] = ['.madgerc', '.madgerc.json', '.madgerc.js', '.madgerc.yaml', '.madgerc.yml'];
+function madgeConfigPaths(cwd: string): readonly string[] {
+  const paths: string[] = [];
+  const win = process.platform === 'win32';
+  if (!win) paths.push(join('/etc', 'madge', 'config'), join('/etc', 'madgerc'));
+  const home = win ? process.env.USERPROFILE : process.env.HOME;
+  if (home) {
+    paths.push(
+      join(home, '.config', 'madge', 'config'),
+      join(home, '.config', 'madge'),
+      join(home, '.madge', 'config'),
+      join(home, '.madgerc'),
+    );
+  }
+  // The upward walk is the half a cwd-only check misses — and missing it is the
+  // damaging direction: we would send `--exclude`, madge would REPLACE the
+  // user's rules with ours, and cycles they had suppressed would block the gate.
+  for (let dir = resolve(cwd); ; ) {
+    paths.push(join(dir, '.madgerc'));
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  const envConfig = process.env.MADGE_config ?? process.env.madge_config;
+  if (envConfig) paths.push(envConfig);
+  return paths;
+}
+
+/**
+ * True when this config file actually puts an exclusion in force.
+ *
+ * Presence is not enough: an empty `.madgerc`, or one carrying only
+ * `detectiveOptions` (madge's own README recipe), configures no exclusion — so
+ * standing down for it would leave build output blocking the gate while
+ * cladding believed the project had it handled.
+ *
+ * A file we cannot parse (rc also accepts ini) returns true: we do not guess
+ * against a user's config, and standing down only restores the prior behavior.
+ */
+function declaresMadgeExclude(file: string): boolean {
+  let body: string;
+  try {
+    body = readFileSync(file, 'utf8');
+  } catch {
+    return true;
+  }
+  try {
+    return (JSON.parse(body) as {excludeRegExp?: unknown}).excludeRegExp !== undefined;
+  } catch {
+    return true;
+  }
+}
+
+/** True when the project itself has a madge exclusion in force. */
+function madgeExclusionInForce(cwd: string, pkg: PackageManifest): boolean {
+  // `package.json#madge` is read from cwd only (madge/bin/cli.js:63) — no walk.
+  const inline = pkg.madge as {excludeRegExp?: unknown} | undefined;
+  if (inline && typeof inline === 'object' && inline.excludeRegExp !== undefined) return true;
+  return madgeConfigPaths(cwd).some((p) => existsSync(p) && declaresMadgeExclude(p));
+}
 
 /** Reads package.json once for gate refinement; malformed input declares nothing. */
 function readPackageManifest(cwd: string): PackageManifest {
@@ -412,10 +483,15 @@ function hasPackageDependency(pkg: PackageManifest, name: string): boolean {
  * configures the scanner itself (AC-caa9471d, AC-554d9436).
  *
  * The guard is not politeness — madge REPLACES its configured `excludeRegExp`
- * with the command-line flag rather than merging the two. Passing ours
- * unconditionally would silently delete an adopter's own rules, including the
- * workaround one adopter is currently relying on. When they have declared
- * nothing we supply the default; when they have, we stay out of the way.
+ * with the command-line flag rather than merging the two (madge/bin/cli.js:97).
+ * Passing ours unconditionally would silently delete an adopter's own rules,
+ * including the workaround one adopter is currently relying on. When they have
+ * an exclusion in force we stay out of the way; otherwise we supply the default.
+ *
+ * "In force" is decided by CONTENT and over madge's WHOLE search path, not by a
+ * filename in cwd: the loader walks `.madgerc` up to the filesystem root and
+ * reads `$HOME` and `/etc` too, so a cwd-only check would send `--exclude` to a
+ * user whose rules live one directory up and turn their green gate red.
  *
  * The scan ROOT is deliberately left at `.` (AC-c04171bd): narrowing it to a
  * named source directory was measured to be worse than the defect it fixes —
@@ -424,9 +500,7 @@ function hasPackageDependency(pkg: PackageManifest, name: string): boolean {
  * checked nothing.
  */
 function resolveTsArch(cwd: string, base: ToolSpec, pkg: PackageManifest): ToolSpec {
-  const projectConfigures =
-    pkg.madge !== undefined || MADGE_CONFIGS.some((c) => existsSync(join(cwd, c)));
-  if (projectConfigures) return base;
+  if (madgeExclusionInForce(cwd, pkg)) return base;
   const args = [...base.args];
   // Before the trailing scan root, so the root stays last as madge expects.
   args.splice(args.length - 1, 0, '--exclude', BUILD_OUTPUT_EXCLUDE);

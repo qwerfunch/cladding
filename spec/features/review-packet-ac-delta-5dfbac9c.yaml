@@ -16,7 +16,7 @@ acceptance_criteria:
     notes: "WHY: the changelog collector is a SHIPPED filter — it keeps only done/archived transitions and drops planned/in_progress outright. Measured on a live corpus, 74% of the range's spec entries fell into that hole, which would make two of the three new sections structurally unbuildable."
   - id: AC-c32cbab2
     ears: ubiquitous
-    text: "The system shall classify each acceptance criterion in the range as new, rewritten, removed, or unchanged by joining the base and head revisions on the criterion id, counting a difference in text, EARS pattern, or condition as a rewrite and ignoring differences that are only whitespace."
+    text: "The system shall classify each acceptance criterion in the range as new, rewritten, removed, or unchanged by joining the base and head revisions on the criterion id, counting a difference in any field that states the obligation — the statement, the EARS pattern, the trigger condition, the action, or the response — as a rewrite, and ignoring differences that are only whitespace."
     test_refs: ["tests/report/ac-delta.test.ts"]
     notes: "WHY: a criterion keeps its id across a rewrite — verified on a live reversal where the text flipped polarity while the id held — so the id is a sound join key and the rewrite is invisible to any check that only compares code against the current spec."
   - id: AC-1a6cb22f

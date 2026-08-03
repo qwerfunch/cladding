@@ -337,3 +337,59 @@ describe('the packet names the revision it audited against', () => {
     }
   });
 });
+
+describe('the base disclosure appears only when the base is a different commit', () => {
+  test('a linear range says nothing — the named ref IS the merge base', () => {
+    const lin = mkdtempSync(join(tmpdir(), 'clad-report-linear-'));
+    try {
+      git(lin, ['init', '-q']);
+      git(lin, ['config', 'user.email', 'test@example.com']);
+      git(lin, ['config', 'user.name', 'test']);
+      git(lin, ['config', 'commit.gpgsign', 'false']);
+      mkdirSync(join(lin, 'spec', 'features'), {recursive: true});
+      writeFileSync(join(lin, 'spec.yaml'), SPEC_YAML);
+      writeFileSync(join(lin, 'spec', 'features', 'owned-feature-aaaa1111.yaml'), shard('in_progress'));
+      writeFileSync(join(lin, 'src.ts'), 'export const a = 1;\n');
+      git(lin, ['add', '-A']);
+      git(lin, ['commit', '-q', '-m', 'baseline']);
+      git(lin, ['tag', 'v0']);
+      writeFileSync(join(lin, 'src.ts'), 'export const a = 2;\n');
+      git(lin, ['add', '-A']);
+      git(lin, ['commit', '-q', '-m', 'work']);
+
+      const ran = runClad(lin, ['report', '--since', 'v0']);
+      expect(ran.status).toBe(0);
+      // Before this was decided by comparing a ref name to a sha, it fired here.
+      expect(ran.stdout).not.toContain('Compared against');
+    } finally {
+      rmSync(lin, {recursive: true, force: true});
+    }
+  });
+
+  test('an ANNOTATED tag on the merge base is also silent — the ref is peeled, not string-compared', () => {
+    const ann = mkdtempSync(join(tmpdir(), 'clad-report-annotated-'));
+    try {
+      git(ann, ['init', '-q']);
+      git(ann, ['config', 'user.email', 'test@example.com']);
+      git(ann, ['config', 'user.name', 'test']);
+      git(ann, ['config', 'commit.gpgsign', 'false']);
+      mkdirSync(join(ann, 'spec', 'features'), {recursive: true});
+      writeFileSync(join(ann, 'spec.yaml'), SPEC_YAML);
+      writeFileSync(join(ann, 'spec', 'features', 'owned-feature-aaaa1111.yaml'), shard('in_progress'));
+      writeFileSync(join(ann, 'src.ts'), 'export const a = 1;\n');
+      git(ann, ['add', '-A']);
+      git(ann, ['commit', '-q', '-m', 'baseline']);
+      // An annotated tag object is NOT the commit it points at.
+      git(ann, ['tag', '-a', 'v1', '-m', 'release one']);
+      writeFileSync(join(ann, 'src.ts'), 'export const a = 2;\n');
+      git(ann, ['add', '-A']);
+      git(ann, ['commit', '-q', '-m', 'work']);
+
+      const ran = runClad(ann, ['report', '--since', 'v1']);
+      expect(ran.status).toBe(0);
+      expect(ran.stdout).not.toContain('Compared against');
+    } finally {
+      rmSync(ann, {recursive: true, force: true});
+    }
+  });
+});

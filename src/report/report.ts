@@ -3,7 +3,7 @@
 // A reviewer, team-lead, or auditor opening a pull request wants ONE artifact
 // that answers "what moved, who owns it, what must I re-run, and was it
 // verified?" — without walking the spec tree. This module renders that packet
-// from data the CLI composes: the changelog collector's spec-shard movement,
+// from data the CLI composes: the changelog collector's spec entry movement,
 // each changed source file resolved to its owning feature(s) via the reverse
 // index, the deduped regression set (union of test_refs across the impact
 // slices), and the gate + attestation state.
@@ -11,9 +11,9 @@
 // It RENDERS; it gates nothing. The gate stays in `clad check`.
 //
 // DETERMINISM (AC-cbf1c202): every collection is sorted, and the body carries
-// NO wall-clock — the meta range + HEAD sha are the only variable inputs and
-// they are stable for a fixed repository state, so two runs serialize
-// byte-identically. That is the property that makes the packet auditable.
+// NO wall-clock — the meta range, the resolved base and the HEAD sha are the
+// only variable inputs, and all three are stable for a fixed repository state,
+// so two runs serialize byte-identically. That is what makes the packet auditable.
 //
 // HONEST UNDER-REPORTING (AC-7672ce5d): a changed source file that maps to no
 // feature's `modules` is listed under Unowned changes, never silently dropped —
@@ -61,8 +61,15 @@ export interface GateStateInput {
   } | null;
 }
 
-/** Whether an acceptance criterion's declared test moved with the code. */
-export type TestRefState = 'co-changed' | 'unchanged' | 'placeholder';
+/**
+ * Whether an acceptance criterion's declared test moved with the code.
+ *
+ * `missing` is separate from `unchanged` on purpose: a path with no file behind
+ * it did not "stay put", it was never there. Every sibling existence check in
+ * the harness is done-only, so this status-blind section is the only surface
+ * that speaks for planned and in-progress entries.
+ */
+export type TestRefState = 'co-changed' | 'unchanged' | 'missing' | 'placeholder';
 
 /** One declared test reference of one criterion, and how it fared in the range. */
 export interface TestRefRow {
@@ -84,6 +91,8 @@ export interface ReportInputs {
   readonly specEntries?: readonly SpecEntryRevision[];
   /** Every path that changed in the range — the co-change oracle. */
   readonly changedPaths?: readonly string[];
+  /** Declared test paths with no file on disk; the CLI resolves existence. */
+  readonly missingTestRefs?: readonly string[];
 }
 
 /** The deterministic, fully-sorted review-packet model. */
@@ -109,13 +118,13 @@ export interface ReportMeta {
   /** Full HEAD sha (from `git rev-parse HEAD`); deterministic for a fixed state. */
   readonly head: string;
   /**
-   * The commit the packet actually compared against — the merge base of
-   * `sinceRef` and HEAD, or `sinceRef` itself when no merge base resolves.
+   * The commit the packet compared against, set ONLY when it differs from the
+   * commit `sinceRef` names — the CLI resolves both and decides, because only
+   * it can peel a ref to a sha (an annotated tag is not its own commit).
    *
-   * It is stamped because it can DIFFER from what the reader asked for: on a
-   * branch that forked earlier, the named tag can sit several commits off the
-   * fork point. An audit artifact that does not name the revision it audited
-   * against cannot be reproduced by hand.
+   * When present it is rendered: an audit artifact that silently audited a
+   * different revision than the reader asked for cannot be reproduced by hand.
+   * When absent the two are the same commit and there is nothing to disclose.
    */
   readonly baseSha?: string;
 }
@@ -147,7 +156,7 @@ function normalizeOwners(owners: readonly OwningFeature[]): readonly OwningFeatu
  * deduped regression set. Pure — no I/O, no clock.
  */
 /**
- * Resolves each declared test reference of the touched entries to one of three
+ * Resolves each declared test reference of the touched entries to one of four
  * states.
  *
  * The third state is load-bearing. `clad sync` writes `derived:<path>` refs into
@@ -159,14 +168,23 @@ function normalizeOwners(owners: readonly OwningFeature[]): readonly OwningFeatu
 function buildTestRefRows(
   entries: readonly SpecEntryRevision[],
   changed: ReadonlySet<string>,
+  missing: ReadonlySet<string>,
 ): readonly TestRefRow[] {
   const rows: TestRefRow[] = [];
   for (const entry of entries) {
     for (const ac of entry.headAcs) {
       for (const ref of ac.test_refs ?? []) {
         const path = testRefPath(ref);
+        // Existence first: a path that resolves to nothing cannot have moved,
+        // and calling it co-changed or unchanged both overstate what is known.
         const state: TestRefState =
-          path === null ? 'placeholder' : changed.has(path) ? 'co-changed' : 'unchanged';
+          path === null
+            ? 'placeholder'
+            : missing.has(path)
+              ? 'missing'
+              : changed.has(path)
+                ? 'co-changed'
+                : 'unchanged';
         rows.push({featureId: entry.id, acId: ac.id, ref, state});
       }
     }
@@ -206,7 +224,7 @@ export function buildReportModel(inputs: ReportInputs): ReportModel {
     ledgerEmpty: inputs.ledgerEmpty,
     gate: inputs.gate,
     specEntryDeltas: buildSpecEntryDeltas(specEntries),
-    testRefRows: buildTestRefRows(specEntries, changed),
+    testRefRows: buildTestRefRows(specEntries, changed, new Set(inputs.missingTestRefs ?? [])),
   };
 }
 
@@ -331,7 +349,7 @@ function renderTestRefs(model: ReportModel): string {
   }
   lines.push(
     '',
-    '_`changed` = the named file also moved in this range. `unchanged` = declared, untouched. `no file` = a placeholder the harness suggested, not a test that exists._',
+    '_`changed` = the named file also moved in this range. `unchanged` = declared, untouched. `absent` = a concrete path with no file behind it. `no file` = a placeholder the harness suggested, not a test that exists._',
     '',
   );
   let current = '';
@@ -341,7 +359,13 @@ function renderTestRefs(model: ReportModel): string {
       lines.push(`- ${row.featureId}`);
     }
     const label =
-      row.state === 'co-changed' ? 'changed' : row.state === 'unchanged' ? 'unchanged' : 'no file';
+      row.state === 'co-changed'
+        ? 'changed'
+        : row.state === 'unchanged'
+          ? 'unchanged'
+          : row.state === 'missing'
+            ? 'absent'
+            : 'no file';
     lines.push(`  - ${row.acId} · ${row.ref} — ${label}`);
   }
   return lines.join('\n');
@@ -380,13 +404,12 @@ function renderGate(gate: GateStateInput): string {
  */
 export function renderReportMarkdown(model: ReportModel, meta: ReportMeta): string {
   const shortHead = meta.head.slice(0, 12);
-  // Name the revision actually compared against when it is not the ref the
-  // reader named — otherwise reproducing the packet by hand silently uses a
-  // different base.
-  const base =
-    meta.baseSha && !meta.baseSha.startsWith(meta.sinceRef) && meta.sinceRef !== meta.baseSha
-      ? [`_Compared against ${meta.baseSha.slice(0, 12)} — the merge base of ${meta.sinceRef} and HEAD._`, '']
-      : [];
+  // Present iff the CLI resolved a base that is NOT the commit `sinceRef`
+  // names. Comparing here is impossible: a ref name and a sha are different
+  // kinds of thing, and only git can tell whether they denote the same commit.
+  const base = meta.baseSha
+    ? [`_Compared against ${meta.baseSha.slice(0, 12)} — the merge base of ${meta.sinceRef} and HEAD._`, '']
+    : [];
   return [
     `# Review packet — ${meta.sinceRef}..${shortHead}`,
     '',

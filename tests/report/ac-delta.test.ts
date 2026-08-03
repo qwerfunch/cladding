@@ -34,6 +34,14 @@ function entry(
   };
 }
 
+/** One entry's delta from a base/head criterion pair — the common shape below. */
+function buildSpecDeltasFor(
+  baseAcs: readonly AcceptanceCriterion[],
+  headAcs: readonly AcceptanceCriterion[],
+) {
+  return buildSpecEntryDeltas([entry(baseAcs, headAcs)]);
+}
+
 /** The single row for `id`, asserted to exist. */
 function row(deltas: ReturnType<typeof buildSpecEntryDeltas>, id: string) {
   const found = deltas[0]?.rows.find((r) => r.id === id);
@@ -99,6 +107,32 @@ describe('AC-c32cbab2 · classifying how each criterion moved', () => {
         [ac('AC-0001', {text: 'the system shall do the thing'})],
       ),
     ]);
+    expect(row(d, 'AC-0001').kind).toBe('unchanged');
+  });
+
+  test('a changed EARS action is a rewrite — it IS the obligation', () => {
+    // `action` renders to the impl-blind oracle as "system shall:", so rewriting
+    // it rewrites the requirement. 79% of this project's own criteria carry it,
+    // and a sibling corpus has criteria with NO `text` at all — there the whole
+    // obligation lives in these fields.
+    const d = buildSpecDeltasFor(
+      [ac('AC-0001', {text: undefined, ears: 'event', condition: 'when a file is uploaded', action: 'route it by filename extension'})],
+      [ac('AC-0001', {text: undefined, ears: 'event', condition: 'when a file is uploaded', action: 'route it by validated content'})],
+    );
+    expect(row(d, 'AC-0001').kind).toBe('rewritten');
+  });
+
+  test('a changed EARS response is a rewrite', () => {
+    const d = buildSpecDeltasFor(
+      [ac('AC-0001', {response: 'the upload is accepted'})],
+      [ac('AC-0001', {response: 'the upload is rejected'})],
+    );
+    expect(row(d, 'AC-0001').kind).toBe('rewritten');
+  });
+
+  test('an identical EARS-only criterion is still unchanged', () => {
+    const same = {text: undefined, ears: 'state' as const, condition: 'while idle', action: 'hold the latch', response: 'nothing spawns'};
+    const d = buildSpecDeltasFor([ac('AC-0001', same)], [ac('AC-0001', same)]);
     expect(row(d, 'AC-0001').kind).toBe('unchanged');
   });
 

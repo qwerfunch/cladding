@@ -177,9 +177,13 @@ describe('report/report — renderReportMarkdown six sections + determinism (AC-
     expect(md).toContain('the merge base of v0 and HEAD');
   });
 
-  test('stays silent when the base IS the named ref — no noise on a linear range', () => {
-    const md = renderReportMarkdown(buildReportModel(mkInputs()), {...META, baseSha: 'v0'});
-    expect(md).not.toContain('Compared against');
+  test('renders whenever a base is supplied — the CLI, not the renderer, decides', () => {
+    // A ref NAME and a sha are different kinds of thing; only git can say
+    // whether they denote the same commit (an annotated tag is not its own
+    // commit). Comparing them here announced a difference on every linear
+    // range, so the decision moved to the layer that can resolve refs.
+    const md = renderReportMarkdown(buildReportModel(mkInputs()), {...META, baseSha: 'abc123def4560000000000000000000000000000'});
+    expect(md).toContain('Compared against abc123def456');
   });
 
   test('an absent base sha renders as before — the field is additive', () => {
@@ -275,6 +279,31 @@ describe('AC-e68c868a · declared tests and whether they moved with the code', (
     expect(statesFor(['tests/thing.test.ts#some case'], ['tests/thing.test.ts'])).toEqual([
       'co-changed',
     ]);
+  });
+
+  test('a declared test with no file on disk is not passed off as an untouched test', () => {
+    // Every sibling existence check is done-only, so this status-blind section
+    // is the only surface that speaks for planned/in_progress entries — and
+    // "unchanged" there reads as "a real test that simply did not move".
+    const model = buildReportModel(
+      mkInputs({
+        specEntries: [entryDeclaring(['tests/gone.test.ts'])],
+        changedPaths: [],
+        missingTestRefs: ['tests/gone.test.ts'],
+      }),
+    );
+    expect(model.testRefRows.map((r) => r.state)).toEqual(['missing']);
+  });
+
+  test('a missing file wins over co-change — a path that cannot exist did not move', () => {
+    const model = buildReportModel(
+      mkInputs({
+        specEntries: [entryDeclaring(['tests/gone.test.ts'])],
+        changedPaths: ['tests/gone.test.ts'],
+        missingTestRefs: ['tests/gone.test.ts'],
+      }),
+    );
+    expect(model.testRefRows[0]?.state).toBe('missing');
   });
 
   test('a harness-written placeholder is never reported as an untouched test', () => {
