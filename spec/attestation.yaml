@@ -20,12 +20,12 @@ attested_modules:
   CHANGELOG.md: a67e4c092a7223c1
   CLAUDE.md: 9f2fa4edd5c6df80
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: cd57c4adbf63c21f
-  README.ja.md: 0b9ae54836f7c7c5
-  README.ko.html: c90c121ff05543e2
-  README.ko.md: 201d815f50b9a5c8
-  README.md: 0f3ff03524db0951
-  README.zh.md: 07f985aed7eb3304
+  README.html: 4b53ba35d39fde31
+  README.ja.md: f30039ac322e6de1
+  README.ko.html: 7b0a16975efaaeef
+  README.ko.md: f3eafbdb44038429
+  README.md: 8aea451e838a6330
+  README.zh.md: caa962e802af7681
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -145,7 +145,7 @@ attested_modules:
   src/agents/orchestrator.md: 1b758de0bdab8eb0
   src/agents/planner.md: 2ca87ed1fe99c913
   src/agents/reviewer.md: cdf7469a3e58b438
-  src/changelog/collect.ts: bb0830526334da9f
+  src/changelog/collect.ts: c9ae573dba826a75
   src/changelog/render.ts: 83dd2d95f24ca68c
   src/cli: a4d0f0eb87fed960
   src/cli/benchmark.ts: 77f84d2a898d724f
@@ -228,7 +228,7 @@ attested_modules:
   src/oracle/payload.ts: 0171633d758ceed8
   src/oracle/policy.ts: 8919ad927bd59b08
   src/oracle/record.ts: 0b9c124225abe1ac
-  src/report/ac-delta.ts: 18ba218cebf5b6f1
+  src/report/ac-delta.ts: f75250d617c710dc
   src/report/bundle.ts: f8a2fb6c2d02326f
   src/report/report.ts: f6f6f8bdb679b702
   src/report/sarif.ts: 71e97aceeb0a4473
@@ -317,7 +317,7 @@ attested_modules:
   src/stages/spec-conformance.ts: 1e9b052a2a268d7a
   src/stages/test-run-cache.ts: 462a5ef1d30eb766
   src/stages/toolchain/coverage-tool.ts: 310883060ed6d92e
-  src/stages/toolchain/detect.ts: 1fa0f54b90c9494d
+  src/stages/toolchain/detect.ts: e50845a8aa69c765
   src/stages/toolchain/gate-config.ts: 818a0a549d875581
   src/stages/toolchain/language-config.ts: 65175718559b0710
   src/stages/toolchain/module-scope.ts: 88358ec3b84eedd3
@@ -425,7 +425,7 @@ attested_modules:
   tests/stages/stale-tests.test.ts: 1467ceedb8019e86
   tests/stages/status-drift.test.ts: cff1092eeb23c268
   tests/stages/tech-stack-mismatch.test.ts: 878436ffd2f94c97
-  tests/stages/toolchain.test.ts: 958add1f40d1f06d
+  tests/stages/toolchain.test.ts: 200184f572abcf88
   tests/stages/toolchain/gate-config.test.ts: aef5813a6591b153
   tests/stages/type.test.ts: b57cf7455cae3b32
   tests/stages/uat.test.ts: 29c5bf3e7f3abc35

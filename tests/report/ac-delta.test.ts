@@ -155,6 +155,26 @@ describe('AC-c32cbab2 · classifying how each criterion moved', () => {
     expect(d[0]?.counts).toEqual({new: 0, rewritten: 1, removed: 0, unchanged: 0});
   });
 
+  test('a duplicated criterion id does not let the later occurrence hide a rewrite', () => {
+    // A duplicate is invalid and the strict gate says so — but `clad report`
+    // gates nothing, so it renders exactly in the window before green, where a
+    // first-wins join reported "unchanged" while the packet's own spec-changes
+    // section printed the new text. The packet must not contradict itself.
+    const d = buildSpecDeltasFor(
+      [ac('AC-0001', {text: 'first'}), ac('AC-0001', {text: 'second'})],
+      [ac('AC-0001', {text: 'first'}), ac('AC-0001', {text: 'second REWRITTEN'})],
+    );
+    expect(d[0]?.counts.rewritten).toBe(1);
+    expect(d[0]?.counts.unchanged).toBe(1);
+  });
+
+  test('a surplus duplicate at head is new; a surplus at base is removed', () => {
+    const added = buildSpecDeltasFor([ac('AC-0001')], [ac('AC-0001'), ac('AC-0001')]);
+    expect(added[0]?.counts).toMatchObject({new: 1, unchanged: 1});
+    const dropped = buildSpecDeltasFor([ac('AC-0001'), ac('AC-0001')], [ac('AC-0001')]);
+    expect(dropped[0]?.counts).toMatchObject({removed: 1, unchanged: 1});
+  });
+
   test('the status transition rides along with the delta', () => {
     const d = buildSpecEntryDeltas([entry([], [], {statusBefore: 'planned', statusAfter: 'done'})]);
     expect(d[0]?.statusBefore).toBe('planned');

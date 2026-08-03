@@ -266,7 +266,13 @@ export function collectSpecEntryRevisions(cwd: string, sinceRef: string): readon
 
     const added = status.startsWith('A');
     const deleted = status.startsWith('D');
-    const head = added || !deleted ? parseShard(readWorktreeOrNull(cwd, newPath)) : null;
+    // BOTH sides are revisions. Reading the head from the working tree let an
+    // uncommitted edit hide a rewrite that IS in the range, or charge the range
+    // with one it never made — and the same leak reached the status, which
+    // manufactures the rewrite-plus-done pairing this data exists to surface.
+    // The candidate set and the co-change column already come from the
+    // committed diff; this was the odd one out.
+    const head = added || !deleted ? parseShard(gitShowOrNull(cwd, 'HEAD', newPath)) : null;
     const base = added ? null : parseShard(gitShowOrNull(cwd, sinceRef, oldPath));
     const anchor = head ?? base;
     if (!anchor) continue;

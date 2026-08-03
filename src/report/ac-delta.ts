@@ -89,9 +89,22 @@ function contractKey(ac: AcceptanceCriterion): string {
   ].join(FIELD_SEPARATOR);
 }
 
-function byId(acs: readonly AcceptanceCriterion[]): Map<string, AcceptanceCriterion> {
-  const map = new Map<string, AcceptanceCriterion>();
-  for (const ac of acs) if (ac.id && !map.has(ac.id)) map.set(ac.id, ac);
+/**
+ * Groups criteria by id in DOCUMENT order, keeping every occurrence.
+ *
+ * A duplicate id is invalid and the strict gate says so — but this renderer
+ * gates nothing, so it runs precisely in the window before green. Keeping only
+ * the first occurrence let a rewrite of a later duplicate report "unchanged"
+ * while the same packet's spec-changes section printed the new text.
+ */
+function byId(acs: readonly AcceptanceCriterion[]): Map<string, AcceptanceCriterion[]> {
+  const map = new Map<string, AcceptanceCriterion[]>();
+  for (const ac of acs) {
+    if (!ac.id) continue;
+    const group = map.get(ac.id);
+    if (group) group.push(ac);
+    else map.set(ac.id, [ac]);
+  }
   return map;
 }
 
@@ -109,27 +122,35 @@ function deltaOf(entry: SpecEntryRevision): SpecEntryDelta {
   const head = byId(entry.headAcs);
   const rows: AcDeltaRow[] = [];
 
-  for (const [id, ac] of head) {
-    const was = base.get(id);
-    if (!was) {
-      rows.push({id, kind: 'new', ...(ac.ears ? {ears: ac.ears} : {})});
-      continue;
+  // Occurrences pair positionally: the k-th at head against the k-th at base.
+  // Surplus on either side is a genuine addition or removal.
+  for (const [id, group] of head) {
+    const wasGroup = base.get(id) ?? [];
+    for (const [k, ac] of group.entries()) {
+      const was = wasGroup[k];
+      if (!was) {
+        rows.push({id, kind: 'new', ...(ac.ears ? {ears: ac.ears} : {})});
+        continue;
+      }
+      if (contractKey(ac) === contractKey(was)) {
+        rows.push({id, kind: 'unchanged', ...(ac.ears ? {ears: ac.ears} : {})});
+        continue;
+      }
+      const shifted = norm(ac.ears) !== norm(was.ears);
+      rows.push({
+        id,
+        kind: 'rewritten',
+        ...(ac.ears ? {ears: ac.ears} : {}),
+        ...(shifted ? {earsShift: `${was.ears ?? '(none)'} → ${ac.ears ?? '(none)'}`} : {}),
+      });
     }
-    if (contractKey(ac) === contractKey(was)) {
-      rows.push({id, kind: 'unchanged', ...(ac.ears ? {ears: ac.ears} : {})});
-      continue;
-    }
-    const shifted = norm(ac.ears) !== norm(was.ears);
-    rows.push({
-      id,
-      kind: 'rewritten',
-      ...(ac.ears ? {ears: ac.ears} : {}),
-      ...(shifted ? {earsShift: `${was.ears ?? '(none)'} → ${ac.ears ?? '(none)'}`} : {}),
-    });
   }
 
-  for (const [id, ac] of base) {
-    if (!head.has(id)) rows.push({id, kind: 'removed', ...(ac.ears ? {ears: ac.ears} : {})});
+  for (const [id, group] of base) {
+    const headCount = head.get(id)?.length ?? 0;
+    for (const ac of group.slice(headCount)) {
+      rows.push({id, kind: 'removed', ...(ac.ears ? {ears: ac.ears} : {})});
+    }
   }
 
   rows.sort((a, b) => a.id.localeCompare(b.id));

@@ -390,7 +390,92 @@ describe('detectToolchain', () => {
     }
   });
 
-  test('AC-caa9471d · a config that sets no exclusion does NOT switch the fix off', () => {
+  test('AC-caa9471d · a config file that puts NO exclusion in force does not switch the fix off', () => {
+    // The question is not "does a file exist" but "would madge apply an
+    // exclusion". Every row below exists and sets nothing, so cladding must
+    // still supply its own — otherwise build-output cycles keep the gate RED
+    // while cladding believes the project has it covered.
+    for (const [label, body] of [
+      ['empty file', ''],
+      ['whitespace only', '  \n\t\n'],
+      ['comment-bearing jsonc', '// no exclusions here\n{}\n'],
+      ['unparseable garbage', 'not json and not ini {{{'],
+      ['INI without excludeRegExp', 'detectiveOptions[ts][skipTypeImports] = true\n'],
+      ['excludeRegExp: []', '{"excludeRegExp": []}'],
+      ['excludeRegExp: null', '{"excludeRegExp": null}'],
+      ['excludeRegExp empty string', '{"excludeRegExp": ""}'],
+      ['excludeRegExp: false', '{"excludeRegExp": false}'],
+    ] as [string, string][]) {
+      const own = mkdtempSync(join(tmpdir(), 'clad-madge-vacuous-'));
+      try {
+        writeFileSync(join(own, 'package.json'), '{}');
+        writeFileSync(join(own, '.madgerc'), body);
+        expect(detectToolchain(own).gates.arch?.args, label).toContain('--exclude');
+      } finally {
+        rmSync(own, {recursive: true, force: true});
+      }
+    }
+  });
+
+  test('AC-554d9436 · a config that DOES set an exclusion still makes cladding stand down', () => {
+    for (const [label, body] of [
+      ['JSON array', '{"excludeRegExp": ["^vendor/"]}'],
+      ['JSON string', '{"excludeRegExp": "^vendor/"}'],
+      ['INI array form', 'excludeRegExp[] = ^vendor/\n'],
+      ['INI scalar form', 'excludeRegExp = ^vendor/\n'],
+    ] as [string, string][]) {
+      const own = mkdtempSync(join(tmpdir(), 'clad-madge-inforce-'));
+      try {
+        writeFileSync(join(own, 'package.json'), '{}');
+        writeFileSync(join(own, '.madgerc'), body);
+        expect(detectToolchain(own).gates.arch?.args, label).not.toContain('--exclude');
+      } finally {
+        rmSync(own, {recursive: true, force: true});
+      }
+    }
+  });
+
+  test('AC-554d9436 · an environment-set exclusion is honoured — it has no file behind it', () => {
+    // rc folds any madge_* variable into the config, so this is a live rule.
+    // Missing it is the damaging direction: cladding would send --exclude,
+    // which REPLACES rather than merges, and the rule would vanish.
+    const own = mkdtempSync(join(tmpdir(), 'clad-madge-env-'));
+    const saved = process.env.madge_excludeRegExp;
+    try {
+      writeFileSync(join(own, 'package.json'), '{}');
+      process.env.madge_excludeRegExp = '^vendor/';
+      expect(detectToolchain(own).gates.arch?.args).not.toContain('--exclude');
+    } finally {
+      if (saved === undefined) delete process.env.madge_excludeRegExp;
+      else process.env.madge_excludeRegExp = saved;
+      rmSync(own, {recursive: true, force: true});
+    }
+  });
+
+  test('AC-554d9436 · a BOM in package.json does not hide its madge block', () => {
+    // madge reads it with require(), which tolerates a BOM; JSON.parse does not.
+    const own = mkdtempSync(join(tmpdir(), 'clad-madge-bom-'));
+    try {
+      writeFileSync(join(own, 'package.json'), '\uFEFF' + JSON.stringify({madge: {excludeRegExp: ['^vendor/']}}));
+      expect(detectToolchain(own).gates.arch?.args).not.toContain('--exclude');
+    } finally {
+      rmSync(own, {recursive: true, force: true});
+    }
+  });
+
+  test('AC-caa9471d · a .madgerc that is a DIRECTORY carries no config', () => {
+    // rc's walk stops at it and reads nothing, so our default must still apply.
+    const own = mkdtempSync(join(tmpdir(), 'clad-madge-dir-'));
+    try {
+      writeFileSync(join(own, 'package.json'), '{}');
+      mkdirSync(join(own, '.madgerc'));
+      expect(detectToolchain(own).gates.arch?.args).toContain('--exclude');
+    } finally {
+      rmSync(own, {recursive: true, force: true});
+    }
+  });
+
+  test('AC-caa9471d · legacy: non-madge filenames and empty package blocks still do not switch it off', () => {
     // These all EXIST but put no excludeRegExp in force, so build output would
     // keep blocking the gate while cladding believed the project had it covered.
     for (const [label, write] of [
@@ -412,17 +497,6 @@ describe('detectToolchain', () => {
     }
   });
 
-  test('AC-554d9436 · an unparseable .madgerc makes cladding stand down, not guess', () => {
-    const own = mkdtempSync(join(tmpdir(), 'clad-madge-ini-'));
-    try {
-      writeFileSync(join(own, 'package.json'), '{}');
-      // rc also accepts ini; we cannot read it reliably, so we must not override.
-      writeFileSync(join(own, '.madgerc'), 'excludeRegExp[] = ^vendor/\n');
-      expect(detectToolchain(own).gates.arch?.args).not.toContain('--exclude');
-    } finally {
-      rmSync(own, {recursive: true, force: true});
-    }
-  });
 
   test('AC-c04171bd · the scan root stays the repository root, never a named directory', () => {
     // Narrowing the root is worse than the defect: a missing directory makes

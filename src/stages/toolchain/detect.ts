@@ -11,7 +11,7 @@
 // This is the polyglot adapter: cladding itself stays language-agnostic;
 // the *user project* decides which language tools run.
 
-import {existsSync, readFileSync, readdirSync} from 'node:fs';
+import {existsSync, readFileSync, readdirSync, statSync} from 'node:fs';
 import type {Dirent} from 'node:fs';
 import {dirname, join, resolve} from 'node:path';
 import process from 'node:process';
@@ -425,27 +425,70 @@ function madgeConfigPaths(cwd: string): readonly string[] {
 }
 
 /**
+ * True when the environment itself sets madge's exclusion.
+ *
+ * `rc` folds any `madge_*` variable into the config (case-insensitively), so
+ * `madge_excludeRegExp=^vendor/` is a live rule with no file behind it. Missing
+ * it is the damaging direction: cladding would send its own `--exclude`, which
+ * REPLACES rather than merges, and the user's rule would vanish.
+ */
+function envDeclaresMadgeExclude(): boolean {
+  for (const [key, value] of Object.entries(process.env)) {
+    if (!/^madge_excluderegexp/i.test(key)) continue;
+    if (typeof value === 'string' && value.trim().length > 0) return true;
+  }
+  return false;
+}
+
+/**
  * True when this config file actually puts an exclusion in force.
  *
- * Presence is not enough: an empty `.madgerc`, or one carrying only
- * `detectiveOptions` (madge's own README recipe), configures no exclusion — so
- * standing down for it would leave build output blocking the gate while
- * cladding believed the project had it handled.
+ * Presence is not enough, and neither is the key: an empty `.madgerc`, one
+ * carrying only `detectiveOptions` (madge's own README recipe), and one whose
+ * `excludeRegExp` is `[]`, `null`, `""` or `false` all configure no exclusion —
+ * standing down for any of them leaves build output blocking the gate while
+ * cladding believes the project has it handled.
  *
- * A file we cannot parse (rc also accepts ini) returns true: we do not guess
- * against a user's config, and standing down only restores the prior behavior.
+ * So the test is the EFFECTIVE value, read the way rc reads the file: JSON
+ * first, ini second. Only an unreadable file returns true unconditionally.
  */
+function hasEffectiveExclude(value: unknown): boolean {
+  if (Array.isArray(value)) return value.length > 0;
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+/**
+ * A light `excludeRegExp` probe for the ini form rc also accepts. Deliberately
+ * narrow — one key, `name = value` or `name[] = value` — because the only
+ * question is whether a non-empty value is set, and pulling in a full ini
+ * parser to answer it would be more surface than the answer is worth.
+ */
+const INI_EXCLUDE = /^[ \t]*excludeRegExp[ \t]*(?:\[[^\]]*\])?[ \t]*=[ \t]*(\S.*?)[ \t]*$/m;
+
+/** True only for an existing regular file — a directory carries no config. */
+function isFile(p: string): boolean {
+  try {
+    return statSync(p).isFile();
+  } catch {
+    return false;
+  }
+}
+
 function declaresMadgeExclude(file: string): boolean {
   let body: string;
   try {
     body = readFileSync(file, 'utf8');
   } catch {
+    // Present but unreadable: we cannot tell, so leave the project alone.
     return true;
   }
   try {
-    return (JSON.parse(body) as {excludeRegExp?: unknown}).excludeRegExp !== undefined;
+    return hasEffectiveExclude((JSON.parse(body) as {excludeRegExp?: unknown}).excludeRegExp);
   } catch {
-    return true;
+    // Not JSON. rc also reads ini, so look for the key there before concluding
+    // anything — a file we cannot read as either sets no exclusion, exactly as
+    // it sets none for madge.
+    return INI_EXCLUDE.test(body);
   }
 }
 
@@ -453,14 +496,25 @@ function declaresMadgeExclude(file: string): boolean {
 function madgeExclusionInForce(cwd: string, pkg: PackageManifest): boolean {
   // `package.json#madge` is read from cwd only (madge/bin/cli.js:63) — no walk.
   const inline = pkg.madge as {excludeRegExp?: unknown} | undefined;
-  if (inline && typeof inline === 'object' && inline.excludeRegExp !== undefined) return true;
-  return madgeConfigPaths(cwd).some((p) => existsSync(p) && declaresMadgeExclude(p));
+  if (inline && typeof inline === 'object' && hasEffectiveExclude(inline.excludeRegExp)) return true;
+  if (envDeclaresMadgeExclude()) return true;
+  // A path that is a DIRECTORY is not a config: rc's walk stops there and reads
+  // nothing, so no exclusion is in force and our default should still apply.
+  return madgeConfigPaths(cwd).some((p) => isFile(p) && declaresMadgeExclude(p));
 }
 
-/** Reads package.json once for gate refinement; malformed input declares nothing. */
+/**
+ * Reads package.json once for gate refinement; malformed input declares nothing.
+ *
+ * The BOM strip is not cosmetic: madge reads this file with `require()`, which
+ * tolerates a byte-order mark, while `JSON.parse` throws on it. Without this,
+ * a BOM'd manifest made cladding blind to a `madge` block madge itself honours
+ * — and since madge REPLACES exclusions rather than merging them, cladding
+ * would then delete the user's rule.
+ */
 function readPackageManifest(cwd: string): PackageManifest {
   try {
-    return JSON.parse(readFileSync(join(cwd, 'package.json'), 'utf8')) as PackageManifest;
+    return JSON.parse(readFileSync(join(cwd, 'package.json'), 'utf8').replace(/^\uFEFF/, '')) as PackageManifest;
   } catch {
     return {};
   }

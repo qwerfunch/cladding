@@ -333,3 +333,63 @@ describe('AC-a2278f11 · every touched spec entry, regardless of status', () => 
     expect(() => collectSpecEntryRevisions(dir, 'no-such-ref')).toThrow(/does not resolve/);
   });
 });
+
+describe('AC-a2278f11 · both sides are REVISIONS, not the working tree', () => {
+  let dir: string;
+
+  function entry(file: string, id: string, status: string, text: string): void {
+    writeFileSync(
+      join(dir, 'spec', 'features', file),
+      [
+        `id: ${id}`,
+        'slug: thing',
+        `title: "Entry ${id}"`,
+        `status: ${status}`,
+        'acceptance_criteria:',
+        '  - id: AC-000001',
+        '    ears: ubiquitous',
+        `    text: "${text}"`,
+        '',
+      ].join('\n'),
+    );
+  }
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'clad-rev-'));
+    initRepo(dir);
+    mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
+    specYaml(dir, 1);
+    entry('thing-aaa001.yaml', 'F-aaa001', 'planned', 'The system shall do the original thing.');
+    commitAll(dir, 'baseline');
+    git(dir, ['tag', 'v0']);
+    entry('thing-aaa001.yaml', 'F-aaa001', 'done', 'The system shall do the REVISED thing.');
+    commitAll(dir, 'revise and finish');
+  });
+
+  afterEach(() => {
+    rmSync(dir, {recursive: true, force: true});
+  });
+
+  test('an uncommitted edit cannot hide a rewrite that IS in the range', () => {
+    const committed = collectSpecEntryRevisions(dir, 'v0');
+    expect(committed[0]?.headAcs[0]?.text).toContain('REVISED');
+
+    // Revert the text in the working tree WITHOUT committing. The range still
+    // contains the rewrite, so the answer must not move.
+    entry('thing-aaa001.yaml', 'F-aaa001', 'done', 'The system shall do the original thing.');
+    const dirty = collectSpecEntryRevisions(dir, 'v0');
+    expect(dirty[0]?.headAcs[0]?.text, 'a dirty tree changed what the range says').toContain('REVISED');
+    expect(JSON.stringify(dirty)).toBe(JSON.stringify(committed));
+  });
+
+  test('an uncommitted edit cannot invent a rewrite the range never made', () => {
+    const committed = collectSpecEntryRevisions(dir, 'v0');
+    entry('thing-aaa001.yaml', 'F-aaa001', 'done', 'The system shall do something ELSE entirely.');
+    expect(JSON.stringify(collectSpecEntryRevisions(dir, 'v0'))).toBe(JSON.stringify(committed));
+  });
+
+  test('an uncommitted status flip cannot manufacture a done transition', () => {
+    entry('thing-aaa001.yaml', 'F-aaa001', 'archived', 'The system shall do the REVISED thing.');
+    expect(collectSpecEntryRevisions(dir, 'v0')[0]?.statusAfter).toBe('done');
+  });
+});
