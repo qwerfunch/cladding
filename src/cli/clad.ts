@@ -952,6 +952,20 @@ function printStageDetails(
       const lead = truncate(plainLead(f.detector, f.message), 140);
       const where = f.path ? ` — ${f.path}` : '';
       process.stdout.write(`    ${lead}${where} [${f.detector}]\n`);
+      // The plain lead names the KIND of problem; when it replaced a message
+      // that carried the specifics, print those too. Without this a developer
+      // is told "there is an import loop" and never which files form it — the
+      // gap that cost a real adopter sixteen days and a wrong root cause.
+      const spoken = plainLead(f.detector, f.message);
+      if (spoken !== f.message) {
+        const detail = f.message.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+        for (const line of detail.slice(0, 4)) {
+          process.stdout.write(`        ${truncate(line, 160)}\n`);
+        }
+        if (detail.length > 4) {
+          process.stdout.write(`        … and ${detail.length - 4} more line(s) — see \`clad check --json\`\n`);
+        }
+      }
     }
     if (surface.length > 3) {
       process.stdout.write(`    … and ${surface.length - 3} more finding(s)\n`);
@@ -961,9 +975,15 @@ function printStageDetails(
     return;
   }
   if (r.stderr && r.stderr.trim().length > 0) {
-    const first = r.stderr.split('\n').find((l) => l.trim().length > 0);
-    if (first) {
-      process.stdout.write(`    ${truncate(first.trim(), 160)}\n`);
+    // A tool's diagnostic is a LIST — cycles, type errors, lint hits — and one
+    // line of it is not actionable. Show the head of the list, not its first
+    // line, and point at --json for the rest.
+    const lines = r.stderr.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+    for (const line of lines.slice(0, 5)) {
+      process.stdout.write(`    ${truncate(line, 160)}\n`);
+    }
+    if (lines.length > 5) {
+      process.stdout.write(`    … and ${lines.length - 5} more line(s) — see \`clad check --json\`\n`);
     }
   }
 }

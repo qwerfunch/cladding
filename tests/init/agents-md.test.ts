@@ -27,6 +27,8 @@ import {
   writeSpecDrivenAgentsMd,
 } from '../../src/init/agents-md.js';
 import {loadSpec} from '../../src/spec/load.js';
+import {checkEarsShape} from '../../src/spec/ears.js';
+import type {EarsPattern} from '../../src/spec/types.js';
 
 /** A spec.yaml with a fully-populated project.ai_hints, matching the shard's
  * own notes fixture (acme-payments) so assertions read naturally. */
@@ -316,5 +318,34 @@ describe('writeSpecDrivenAgentsMd — AC-1f8d7b02 (markerless / hand-authored fi
     // Malformed: end marker present but begin absent (or reversed order).
     const malformed = `some text ${AGENTS_MD_END} more text ${AGENTS_MD_BEGIN} tail`;
     expect(upsertAgentsMdBlock(malformed, 'fresh block')).toBe(malformed);
+  });
+});
+
+describe('the managed block teaches EARS, and cannot drift from the validator', () => {
+  test('every example in the EARS table actually passes checkEarsShape', () => {
+    // The adopter receives no docs/ — package.json#files ships none — so this
+    // table is the only place an authoring agent can learn the rules. Two of
+    // three agents in an A/B run reverse-engineered them from the minified
+    // bundle instead. A table that drifts from the validator is worse than
+    // none, so it is checked against the validator rather than eyeballed.
+    const block = renderAgentsMdManagedBlock(null, '.');
+    const rows = block
+      .split('\n')
+      .filter((l) => /^\| `(ubiquitous|event|state|optional|unwanted|complex)` \|/.test(l));
+    expect(rows.length, 'the EARS table is missing from the managed block').toBe(6);
+
+    for (const row of rows) {
+      const cells = row.split('|').map((c) => c.trim());
+      const pattern = cells[1].replace(/`/g, '') as EarsPattern;
+      const example = cells[3].replace(/`/g, '').replace(/\*\(none\)\*/, '').trim();
+      expect(checkEarsShape(pattern, example), `${pattern}: "${example}"`).toBeNull();
+    }
+  });
+
+  test('the table covers every pattern the schema accepts', () => {
+    const block = renderAgentsMdManagedBlock(null, '.');
+    for (const pattern of ['ubiquitous', 'event', 'state', 'optional', 'unwanted', 'complex']) {
+      expect(block, `${pattern} is missing from the EARS table`).toContain(`| \`${pattern}\` |`);
+    }
   });
 });

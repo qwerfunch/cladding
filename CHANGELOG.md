@@ -25,6 +25,19 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 - **A section lead asserted that the code had been changed to match a rewritten criterion.** The population is deliberately status-blind, so the line also sat above entries with no code yet; it is now conditional.
 - **A rewritten obligation could pass as unchanged.** The criterion comparison read only the statement, the pattern and the trigger — not `action` and `response`, which state the obligation itself and which four out of five criteria in this project carry. Rewriting one of them classified as no change at all; in this repository's own history that hid 31 rewrites.
 - **An instruction the schema rejects.** The `planner` brief asked for an `archive_reason` on a removed acceptance criterion, but that field exists only at feature level and the criterion schema refuses unknown keys — following the instruction failed the sync barrier.
+- **A failing scanner said what KIND of problem it found, never which one.** The architecture
+  stage reported "the code has an import loop" and stopped there, because the code that builds
+  the message preferred the tool's progress output over its report — madge writes its progress
+  to one stream and the numbered cycle list to the other — and then cut what survived to two
+  hundred characters. The gate now shows the list, and the terminal prints the specifics under
+  the plain sentence instead of replacing them with it. An adopter spent sixteen days on this
+  and recorded the wrong cause; in a controlled run, three of three agents given the old build
+  "fixed" it by deleting or rewriting their own build output.
+- **Nothing shipped to an adopter said how to write an acceptance criterion.** The managed
+  AGENTS.md block now carries the EARS table — which trigger word each pattern requires, with a
+  working example per row — and a test asserts every example in it against the real validator,
+  so the table cannot drift from the rule it teaches. `docs/` is not in the published package,
+  so agents were reverse-engineering the rules from the minified bundle.
 - **Stale and self-contradicting counts across the six READMEs**, where feature and test-file totals disagreed with the spec and, in places, with each other inside the same file.
 
 ## [0.9.2] — Completions record whether anything checked them independently (2026-07-26)

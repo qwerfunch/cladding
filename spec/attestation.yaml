@@ -20,12 +20,12 @@ attested_modules:
   CHANGELOG.md: a67e4c092a7223c1
   CLAUDE.md: 9f2fa4edd5c6df80
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: 4b53ba35d39fde31
-  README.ja.md: f30039ac322e6de1
-  README.ko.html: 7b0a16975efaaeef
-  README.ko.md: f3eafbdb44038429
-  README.md: 8aea451e838a6330
-  README.zh.md: caa962e802af7681
+  README.html: 0f4f9d52bca2e782
+  README.ja.md: e0714533e64683d0
+  README.ko.html: fe80f8363ff2c820
+  README.ko.md: 079fc16a7a5b125f
+  README.md: 8fb8a73f601fe8a9
+  README.zh.md: fc8d390a0d0a1aee
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -150,7 +150,7 @@ attested_modules:
   src/cli: a4d0f0eb87fed960
   src/cli/benchmark.ts: 77f84d2a898d724f
   src/cli/changelog.ts: 2de1adb009b89ab4
-  src/cli/clad.ts: 3906f5320f1e6d13
+  src/cli/clad.ts: cc75609f5b7633a4
   src/cli/clarify.ts: f17177969d5b75ff
   src/cli/doctor-hosts.ts: 1f0c2cec5a310b81
   src/cli/doctor.ts: b98b955fe75e7f7e
@@ -207,7 +207,7 @@ attested_modules:
   src/hitl/audit.ts: 79b06e904815469a
   src/hitl/identity.ts: 52ff84aa666f1dab
   src/hitl/independence.ts: 202f4e5ef8bc69e3
-  src/init/agents-md.ts: 698b2a38ddd5d1a6
+  src/init/agents-md.ts: c0f853ca09b75670
   src/init/git-hook.ts: b77910b0df392cbf
   src/init/host-instructions.ts: c598f8598d8d1cd4
   src/init/host-setup.ts: 158cc9306a746da1
@@ -327,7 +327,7 @@ attested_modules:
   src/stages/types.ts: 95e8c9e13187d85b
   src/stages/uat.ts: 62ec3e37a124f8c5
   src/stages/unit.ts: b503350b0e5c7e5a
-  src/stages/util.ts: a024afe34884d653
+  src/stages/util.ts: 7c49de3250816de8
   src/stages/vacuous-tests.ts: 8e71b81e151325af
   src/stages/visual.ts: 2b60dd991fa8124e
   src/ui: a4d0f0eb87fed960
@@ -431,7 +431,7 @@ attested_modules:
   tests/stages/uat.test.ts: 29c5bf3e7f3abc35
   tests/stages/unit.test.ts: 97781210eb81bb25
   tests/stages/unmapped-artifact.test.ts: 6bfdae66990fd63a
-  tests/stages/util.test.ts: dd95144b36bfd2b1
+  tests/stages/util.test.ts: a162cbe069c85f41
   tests/stages/visual.test.ts: dd819e7d25586b92
   tests/ui/panel.test.ts: ad9ea207f34b1c51
   tests/ui/pulse.test.ts: 30f1d091de9093ad

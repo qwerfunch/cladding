@@ -52,9 +52,22 @@ describe('ranToolResult — ran-tool exit code → stage contract', () => {
     expect(r.stderr).toContain('TS2322'); // tsc writes to stdout; gate must still show WHY
   });
 
-  test('stderr wins over stdout when both present', () => {
+  test('BOTH streams survive, report first — neither displaces the other', () => {
+    // Previously stderr won outright, which discarded madge's cycle list
+    // (stdout) in favour of its progress line (stderr) and left the developer
+    // unable to see WHICH files formed the loop.
     const r = ranToolResult('stage_x', {exitCode: 1, stdout: 'out', stderr: 'err'});
-    expect(r.stderr).toBe('err');
+    expect(r.stderr).toBe('out\nerr');
+  });
+
+  test("a scanner's report is not lost behind its progress line", () => {
+    const r = ranToolResult('stage_1.5', {
+      exitCode: 1,
+      stderr: '- Finding files\n✖ Found 2 circular dependencies!',
+      stdout: 'Processed 9 files (203ms)\n\n1) src/a.ts > src/b.ts\n2) src/c.ts > src/d.ts',
+    });
+    expect(r.stderr).toContain('src/a.ts > src/b.ts');
+    expect(r.stderr).toContain('src/c.ts > src/d.ts');
   });
 
   test('fail with no output → no stderr field', () => {
@@ -150,6 +163,41 @@ describe('classifyScannerExit — finding vs config/setup gap', () => {
   test('ENOENT/cannot-find-module in output → INFO (setup gap)', () => {
     const out = classifyScannerExit({exitCode: 1, stderr: "Cannot find module '@secretlint/preset'"}, 'D', found, skipped);
     expect(out[0].severity).toBe('info');
+  });
+
+  test('the scanner REPORT survives — a progress line on stderr must not displace it', () => {
+    // madge writes its progress to stderr and its cycle list to stdout. Taking
+    // stderr first left the developer with "- Finding files" and no idea WHICH
+    // files form the loop — the whole reason a real adopter spent sixteen days
+    // on it and recorded the wrong cause.
+    const out = classifyScannerExit(
+      {
+        exitCode: 1,
+        stderr: '- Finding files\nProcessed 209 files (970ms)',
+        stdout: '✖ Found 2 circular dependencies!\n1) src/a.ts > src/b.ts\n2) src/c.ts > src/d.ts',
+      },
+      'ARCHITECTURE_VIOLATION', found, skipped,
+    );
+    expect(out[0].severity).toBe('error');
+    expect(out[0].message).toContain('src/a.ts > src/b.ts');
+    expect(out[0].message).toContain('src/c.ts > src/d.ts');
+  });
+
+  test('a long report is not cut off after the first cycle or two', () => {
+    const cycles = Array.from({length: 12}, (_, i) => `${i + 1}) src/very/deeply/nested/module-${i}.ts > src/other/deeply/nested/partner-${i}.ts`);
+    const out = classifyScannerExit(
+      {exitCode: 1, stdout: `✖ Found 12 circular dependencies!\n${cycles.join('\n')}`},
+      'ARCHITECTURE_VIOLATION', found, skipped,
+    );
+    expect(out[0].message).toContain('module-11.ts');
+  });
+
+  test('stderr still carries the detail when the scanner says nothing on stdout', () => {
+    const out = classifyScannerExit(
+      {exitCode: 1, stderr: 'eslint: Unexpected token in src/x.ts'},
+      'LINT', found, skipped,
+    );
+    expect(out[0].message).toContain('Unexpected token in src/x.ts');
   });
 
   test('a REAL finding (no setup-error pattern) → ERROR (blocks the gate)', () => {
