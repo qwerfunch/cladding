@@ -114,6 +114,7 @@ features:
   F-284be4f6: {slug: init-empty-layers-valid-yaml, status: done, modules: 1}
   F-288864ae: {slug: claude-md-diet, status: done, modules: 2}
   F-2be3e3bb: {slug: infer-depends-on, status: done, modules: 2}
+  F-2c02991f: {slug: arch-gate-skips-build-output, status: done, modules: 1}
   F-2de65d: {slug: drive-auto-rollback, status: done, modules: 1}
   F-2e28cc72: {slug: clad-verdict, status: done, modules: 2}
   F-315fd7: {slug: scenario-coverage-detector, status: done, modules: 2}

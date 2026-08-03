@@ -1,0 +1,35 @@
+id: F-2c02991f
+slug: arch-gate-skips-build-output
+title: "The architecture gate scans source, not build output"
+status: done
+modules:
+  - src/stages/toolchain/detect.ts
+acceptance_criteria:
+  - id: AC-caa9471d
+    ears: event
+    condition: "when the TypeScript or JavaScript architecture gate is composed for a project"
+    text: "When the TypeScript or JavaScript architecture gate is composed for a project, then the system shall exclude generated build-output directories from the circular-dependency scan."
+    test_refs: ["tests/stages/toolchain.test.ts"]
+    notes: "WHY: a bundler's output legitimately contains mutual imports, so scanning it reports cycles that exist in no hand-written file. Measured on a live adopter: five recorded hard-blocking gate failures, all five inside a version-ignored bundle — 100% false with respect to source. The adopter's recorded root cause was wrong and the issue stayed open for sixteen days. A second adopter reproduces the same shape today, four for four."
+  - id: AC-554d9436
+    ears: unwanted
+    condition: "if the project declares its own dependency-scanner configuration"
+    text: "If the project declares its own dependency-scanner configuration, then the system shall not pass its own exclusion, leaving the project's rules in force."
+    test_refs: ["tests/stages/toolchain.test.ts"]
+    notes: "WHY: the scanner REPLACES its configured exclusions with the command-line flag rather than merging them. Passing ours unconditionally would silently delete an adopter's own rules — including the workaround one adopter is currently relying on, which they discovered alone and buried in an unrelated commit."
+  - id: AC-c04171bd
+    ears: ubiquitous
+    text: "The system shall keep the repository root as the scan root, so a project whose layout has no conventional source directory is scanned rather than silently skipped."
+    test_refs: ["tests/stages/toolchain.test.ts"]
+    notes: "WHY: narrowing the root to a named directory was measured to be worse than the defect it fixes. A missing root makes the scanner exit with a file-not-found error, which the harness classifies as a setup gap and reports as advisory — so the whole stage skips and the gate goes green having checked nothing. One adopter's front-end has exactly that layout. Trading a loud false failure for a silent pass is a mistake this project has already made once."
+  - id: AC-dd5c3abf
+    ears: event
+    condition: "when a circular dependency exists among hand-written source files"
+    text: "When a circular dependency exists among hand-written source files, then the system shall still report it after the exclusion is applied."
+    test_refs: ["tests/stages/toolchain.test.ts"]
+    notes: "WHY: this change may only remove findings, never hide a real one. Measured before implementing: the excluded files pull ninety-four further files transitively and contain zero source-level cycles, so the measured false-negative count is zero — but that is a property of three repositories, not a proof, so it is pinned as a requirement."
+design_impact:
+  classification: none
+  rationale: "Corrects which files an existing gate scans. No new capability, no architecture change, no project-context change, no schema field — the gate, its severity, and its exit contract are untouched."
+  status: resolved
+  artifacts: []

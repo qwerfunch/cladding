@@ -277,7 +277,85 @@ describe('detectToolchain', () => {
 
   test('typescript arch gate scans ts,tsx,js,jsx extensions', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
-    expect(detectToolchain(dir).gates.arch).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'madge', '--circular', '--extensions', 'ts,tsx,js,jsx', '.']});
+    expect(detectToolchain(dir).gates.arch).toEqual({
+      cmd: 'npx',
+      args: [
+        '--offline', '--no-install', 'madge', '--circular',
+        '--extensions', 'ts,tsx,js,jsx',
+        '--exclude', '^(dist|build|out|coverage|target|\\.next|\\.nuxt|\\.output|\\.svelte-kit|\\.vite)/',
+        '.',
+      ],
+    });
+  });
+
+  // ─── Architecture gate scans source, not build output (F-2c02991f) ───
+
+  /** The exclusion the arch gate carries, read back off the composed gate. */
+  function archExclude(cwd: string): string | undefined {
+    const args = detectToolchain(cwd).gates.arch?.args ?? [];
+    const i = args.indexOf('--exclude');
+    return i >= 0 ? args[i + 1] : undefined;
+  }
+
+  test('AC-caa9471d · build output is excluded from the circular-dependency scan', () => {
+    writeFileSync(join(dir, 'package.json'), '{}');
+    const pattern = archExclude(dir);
+    expect(pattern).toBeDefined();
+    const re = new RegExp(pattern!);
+    // A bundler's output legitimately contains mutual imports; scanning it
+    // reported cycles that exist in no hand-written file.
+    for (const generated of [
+      'dist/index.js', 'build/main.js', 'out/app.js', 'coverage/lcov-report/x.js',
+      'target/classes/a.js', '.next/server/page.js', '.nuxt/dist/client.js',
+      '.output/server/index.mjs', '.svelte-kit/output/x.js', '.vite/deps/chunk.js',
+    ]) {
+      expect(re.test(generated), `${generated} should be excluded`).toBe(true);
+    }
+  });
+
+  test('AC-dd5c3abf · hand-written source stays in scan, so a real cycle is still reported', () => {
+    writeFileSync(join(dir, 'package.json'), '{}');
+    const re = new RegExp(archExclude(dir)!);
+    for (const source of [
+      'src/index.ts', 'tests/unit.test.ts', 'lib/util.ts', 'app/page.tsx',
+      'packages/core/src/a.ts', 'backend/api/main.ts',
+      // Anchored at the repository root: a SOURCE directory that merely happens
+      // to be named build/ or dist/ deeper in the tree must keep being scanned.
+      'src/build/compile.ts', 'app/dist/renderer.ts', 'packages/out/index.ts',
+    ]) {
+      expect(re.test(source), `${source} must NOT be excluded`).toBe(false);
+    }
+  });
+
+  test('AC-554d9436 · a project that configures the scanner itself keeps its own rules', () => {
+    // madge REPLACES its configured excludeRegExp with the command-line flag
+    // rather than merging, so passing ours would silently delete theirs.
+    for (const config of ['.madgerc', '.madgerc.json', '.madgerc.js', '.madgerc.yaml', '.madgerc.yml']) {
+      const own = mkdtempSync(join(tmpdir(), 'clad-madge-'));
+      try {
+        writeFileSync(join(own, 'package.json'), '{}');
+        writeFileSync(join(own, config), '{"excludeRegExp": ["^vendor/"]}');
+        expect(detectToolchain(own).gates.arch?.args, config).not.toContain('--exclude');
+      } finally {
+        rmSync(own, {recursive: true, force: true});
+      }
+    }
+  });
+
+  test('AC-554d9436 · an inline package.json madge block also wins', () => {
+    writeFileSync(join(dir, 'package.json'), JSON.stringify({madge: {excludeRegExp: ['^vendor/']}}));
+    expect(detectToolchain(dir).gates.arch?.args).not.toContain('--exclude');
+  });
+
+  test('AC-c04171bd · the scan root stays the repository root, never a named directory', () => {
+    // Narrowing the root is worse than the defect: a missing directory makes
+    // madge exit ENOENT, which classifies as a scanner setup gap and skips the
+    // whole stage — a green gate that checked nothing.
+    writeFileSync(join(dir, 'package.json'), '{}');
+    const args = detectToolchain(dir).gates.arch?.args ?? [];
+    expect(args.at(-1)).toBe('.');
+    expect(args).not.toContain('src');
+    expect(args.filter((a) => a === '.')).toHaveLength(1);
   });
 
   // ─── Swift (SPM) + Flutter/Dart toolchain (F-e4159959) ───

@@ -20,12 +20,12 @@ attested_modules:
   CHANGELOG.md: 033d721cd4fe05a4
   CLAUDE.md: 9f2fa4edd5c6df80
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: 56adb19dd6f4f7b0
-  README.ja.md: 28eddff1f60c71c1
-  README.ko.html: 23a412d68e7affbd
-  README.ko.md: 5dacfa067b26329a
-  README.md: f6c11815b54592e6
-  README.zh.md: 61771611b221bf71
+  README.html: 5aaa96fa216831d0
+  README.ja.md: 3036dfcef2fced96
+  README.ko.html: 8b0f541247c0c493
+  README.ko.md: a3bb75415567217d
+  README.md: 40ed53a88b561247
+  README.zh.md: f86fadac147c0613
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -117,7 +117,7 @@ attested_modules:
   skills/serve/SKILL.md: f08bbdbbfeb05041
   skills/status/SKILL.md: 09faadc50b3449da
   skills/sync/SKILL.md: 775c0f990a52a3d9
-  spec.yaml: 7a38d9f04c46dd69
+  spec.yaml: a4b96c80076cda52
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -317,7 +317,7 @@ attested_modules:
   src/stages/spec-conformance.ts: 1e9b052a2a268d7a
   src/stages/test-run-cache.ts: 462a5ef1d30eb766
   src/stages/toolchain/coverage-tool.ts: 310883060ed6d92e
-  src/stages/toolchain/detect.ts: 36d4947e5567bd5f
+  src/stages/toolchain/detect.ts: 630d123781c6d49c
   src/stages/toolchain/gate-config.ts: 818a0a549d875581
   src/stages/toolchain/language-config.ts: 65175718559b0710
   src/stages/toolchain/module-scope.ts: 88358ec3b84eedd3
@@ -425,7 +425,7 @@ attested_modules:
   tests/stages/stale-tests.test.ts: 1467ceedb8019e86
   tests/stages/status-drift.test.ts: cff1092eeb23c268
   tests/stages/tech-stack-mismatch.test.ts: 878436ffd2f94c97
-  tests/stages/toolchain.test.ts: 04e12be4ac1dee5c
+  tests/stages/toolchain.test.ts: e5b26494c00782f5
   tests/stages/toolchain/gate-config.test.ts: aef5813a6591b153
   tests/stages/type.test.ts: b57cf7455cae3b32
   tests/stages/uat.test.ts: 29c5bf3e7f3abc35
@@ -548,6 +548,7 @@ attested_features:
   F-284be4f6: ok
   F-288864ae: ok
   F-2be3e3bb: ok
+  F-2c02991f: ok
   F-2de65d: ok
   F-2e28cc72: ok
   F-315fd7: ok

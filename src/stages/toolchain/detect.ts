@@ -46,6 +46,7 @@ interface PackageManifest {
   readonly peerDependencies?: Readonly<Record<string, string>>;
   readonly eslintConfig?: unknown;
   readonly jest?: unknown;
+  readonly madge?: unknown;
 }
 
 /** npx must resolve only already-installed/cacheable tools and never touch the network. */
@@ -364,6 +365,27 @@ const ESLINT_CONFIGS: readonly string[] = [
   '.eslintrc.yml',
 ];
 
+/**
+ * Generated build output, excluded from the circular-dependency scan (AC-caa9471d).
+ *
+ * A bundler's output legitimately contains mutual imports — that is what bundling
+ * produces — so scanning it reports cycles that exist in no hand-written file. On one
+ * adopter this blocked the gate five times, every one of them inside a version-ignored
+ * bundle; the recorded root cause was wrong and the issue stayed open for sixteen days.
+ *
+ * Anchored at the repository root (`^`) so a source directory that merely happens to be
+ * named `build/` deeper in the tree is still scanned.
+ */
+const BUILD_OUTPUT_EXCLUDE =
+  '^(dist|build|out|coverage|target|\\.next|\\.nuxt|\\.output|\\.svelte-kit|\\.vite)/';
+
+/**
+ * Files that mean "this project configures the dependency scanner itself".
+ * `rc` resolves `.madgerc` and its typed variants; `package.json#madge` is the
+ * inline form.
+ */
+const MADGE_CONFIGS: readonly string[] = ['.madgerc', '.madgerc.json', '.madgerc.js', '.madgerc.yaml', '.madgerc.yml'];
+
 /** Reads package.json once for gate refinement; malformed input declares nothing. */
 function readPackageManifest(cwd: string): PackageManifest {
   try {
@@ -383,6 +405,32 @@ function packageScript(pkg: PackageManifest, name: string): string | undefined {
 function hasPackageDependency(pkg: PackageManifest, name: string): boolean {
   return [pkg.dependencies, pkg.devDependencies, pkg.optionalDependencies, pkg.peerDependencies]
     .some((group) => group?.[name] !== undefined);
+}
+
+/**
+ * The TS/JS architecture gate, with build output excluded unless the project
+ * configures the scanner itself (AC-caa9471d, AC-554d9436).
+ *
+ * The guard is not politeness — madge REPLACES its configured `excludeRegExp`
+ * with the command-line flag rather than merging the two. Passing ours
+ * unconditionally would silently delete an adopter's own rules, including the
+ * workaround one adopter is currently relying on. When they have declared
+ * nothing we supply the default; when they have, we stay out of the way.
+ *
+ * The scan ROOT is deliberately left at `.` (AC-c04171bd): narrowing it to a
+ * named source directory was measured to be worse than the defect it fixes —
+ * a missing root makes madge exit with ENOENT, which classifies as a scanner
+ * setup gap (advisory), so the whole stage skips and the gate goes green having
+ * checked nothing.
+ */
+function resolveTsArch(cwd: string, base: ToolSpec, pkg: PackageManifest): ToolSpec {
+  const projectConfigures =
+    pkg.madge !== undefined || MADGE_CONFIGS.some((c) => existsSync(join(cwd, c)));
+  if (projectConfigures) return base;
+  const args = [...base.args];
+  // Before the trailing scan root, so the root stays last as madge expects.
+  args.splice(args.length - 1, 0, '--exclude', BUILD_OUTPUT_EXCLUDE);
+  return {...base, args};
 }
 
 /** The project's declared TS/JS lint gate, or undefined when lint is unconfigured. */
@@ -455,7 +503,10 @@ function withoutGate(base: ToolchainGates, gate: 'lint' | 'coverage'): Toolchain
 function resolveTsGates(cwd: string, base: ToolchainGates): ToolchainGates {
   const pkg = readPackageManifest(cwd);
   const lint = base.lint ? resolveTsLint(cwd, base.lint, pkg) : undefined;
-  let out: ToolchainGates = lint ? {...base, lint} : withoutGate(base, 'lint');
+  const withArch: ToolchainGates = base.arch
+    ? {...base, arch: resolveTsArch(cwd, base.arch, pkg)}
+    : base;
+  let out: ToolchainGates = lint ? {...withArch, lint} : withoutGate(withArch, 'lint');
   const testScript = packageScript(pkg, 'test');
   const runner = testScript ? simpleTestRunner(testScript) : undefined;
 
