@@ -108,6 +108,16 @@ export interface ReportMeta {
   readonly sinceRef: string;
   /** Full HEAD sha (from `git rev-parse HEAD`); deterministic for a fixed state. */
   readonly head: string;
+  /**
+   * The commit the packet actually compared against — the merge base of
+   * `sinceRef` and HEAD, or `sinceRef` itself when no merge base resolves.
+   *
+   * It is stamped because it can DIFFER from what the reader asked for: on a
+   * branch that forked earlier, the named tag can sit several commits off the
+   * fork point. An audit artifact that does not name the revision it audited
+   * against cannot be reproduced by hand.
+   */
+  readonly baseSha?: string;
 }
 
 /** Human-readable label for a changelog change kind. */
@@ -287,7 +297,7 @@ function renderSpecEntryDeltas(model: ReportModel): string {
   }
   lines.push(
     '',
-    '_Each criterion compared against its own earlier revision, matched by id. A rewrite here is invisible to every drift check, because the code was changed to match it._',
+    '_Each criterion compared against its own earlier revision, matched by id. A rewrite is invisible to every drift check if the code was changed to match it._',
   );
   for (const d of model.specEntryDeltas) {
     const c = d.counts;
@@ -364,15 +374,23 @@ function renderGate(gate: GateStateInput): string {
 }
 
 /**
- * Renders the full four-section markdown packet. Deterministic: the only
+ * Renders the full six-section markdown packet. Deterministic: the only
  * variable inputs are `meta.sinceRef` + `meta.head`, both stable for a fixed
  * repository state — so two runs produce byte-identical output.
  */
 export function renderReportMarkdown(model: ReportModel, meta: ReportMeta): string {
   const shortHead = meta.head.slice(0, 12);
+  // Name the revision actually compared against when it is not the ref the
+  // reader named — otherwise reproducing the packet by hand silently uses a
+  // different base.
+  const base =
+    meta.baseSha && !meta.baseSha.startsWith(meta.sinceRef) && meta.sinceRef !== meta.baseSha
+      ? [`_Compared against ${meta.baseSha.slice(0, 12)} — the merge base of ${meta.sinceRef} and HEAD._`, '']
+      : [];
   return [
     `# Review packet — ${meta.sinceRef}..${shortHead}`,
     '',
+    ...base,
     renderSpecChanges(model.specChanges),
     '',
     renderSpecEntryDeltas(model),

@@ -210,8 +210,8 @@ export function runReportCommand(opts: ReportCommandOptions): void {
       const model = buildReportModel(gatherInputs(cwd, spec, baseRef, manifest));
       out =
         format === 'json'
-          ? `${JSON.stringify({since: sinceRef, head: manifest.head, ...model}, null, 2)}\n`
-          : `${renderReportMarkdown(model, {sinceRef, head: manifest.head})}\n`;
+          ? `${JSON.stringify({since: sinceRef, base: baseRef, head: manifest.head, ...model}, null, 2)}\n`
+          : `${renderReportMarkdown(model, {sinceRef, baseSha: baseRef, head: manifest.head})}\n`;
     }
     // Set exitCode and let the event loop DRAIN stdout instead of process.exit():
     // the packet can exceed the 64KB pipe buffer, and a forced exit truncates a

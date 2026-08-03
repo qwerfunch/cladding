@@ -17,15 +17,15 @@ attested_modules:
   .claude/settings.json: d0bba3583aef0960
   .github/workflows/ci.yml: 8ea99219cb80df60
   .gitignore: 1294975ba3b47043
-  CHANGELOG.md: 033d721cd4fe05a4
+  CHANGELOG.md: af69d16f2b298b79
   CLAUDE.md: 9f2fa4edd5c6df80
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: 5aaa96fa216831d0
-  README.ja.md: 3036dfcef2fced96
-  README.ko.html: 8b0f541247c0c493
-  README.ko.md: a3bb75415567217d
-  README.md: 40ed53a88b561247
-  README.zh.md: f86fadac147c0613
+  README.html: b54da47187e0d23a
+  README.ja.md: f69f828a85166942
+  README.ko.html: c234b7f20cfd0941
+  README.ko.md: 10e6fd0dded8af59
+  README.md: 92ebf6ffccbb27e6
+  README.zh.md: 56bf8c47e2a979a4
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -77,7 +77,7 @@ attested_modules:
   plugins/claude-code/agents/developer.md: 3002b4ef69ddab43
   plugins/claude-code/agents/observability.md: 637fde18c012e2a7
   plugins/claude-code/agents/orchestrator.md: 1b758de0bdab8eb0
-  plugins/claude-code/agents/planner.md: d1f895a20fb3a3ed
+  plugins/claude-code/agents/planner.md: 2ca87ed1fe99c913
   plugins/claude-code/agents/reviewer.md: cdf7469a3e58b438
   plugins/claude-code/commands/init.md: 5529b13d0f1ab4bf
   plugins/claude-code/hooks/hooks.json: 42321ead26fb1da8
@@ -88,7 +88,7 @@ attested_modules:
   plugins/codex/skills/init/SKILL.md: 5529b13d0f1ab4bf
   plugins/codex/skills/observability/SKILL.md: 637fde18c012e2a7
   plugins/codex/skills/orchestrator/SKILL.md: 1b758de0bdab8eb0
-  plugins/codex/skills/planner/SKILL.md: d1f895a20fb3a3ed
+  plugins/codex/skills/planner/SKILL.md: 2ca87ed1fe99c913
   plugins/codex/skills/reviewer/SKILL.md: cdf7469a3e58b438
   plugins/codex/skills/run/SKILL.md: 9f95ff17d70c8dd1
   plugins/codex/skills/serve/SKILL.md: f08bbdbbfeb05041
@@ -143,14 +143,14 @@ attested_modules:
   src/agents/loader.ts: 6d35560c47f9ae85
   src/agents/observability.md: 637fde18c012e2a7
   src/agents/orchestrator.md: 1b758de0bdab8eb0
-  src/agents/planner.md: d1f895a20fb3a3ed
+  src/agents/planner.md: 2ca87ed1fe99c913
   src/agents/reviewer.md: cdf7469a3e58b438
   src/changelog/collect.ts: bb0830526334da9f
   src/changelog/render.ts: 83dd2d95f24ca68c
   src/cli: a4d0f0eb87fed960
   src/cli/benchmark.ts: 77f84d2a898d724f
   src/cli/changelog.ts: 2de1adb009b89ab4
-  src/cli/clad.ts: 0501f16f74b2a8dc
+  src/cli/clad.ts: 3906f5320f1e6d13
   src/cli/clarify.ts: f17177969d5b75ff
   src/cli/doctor-hosts.ts: 1f0c2cec5a310b81
   src/cli/doctor.ts: b98b955fe75e7f7e
@@ -163,7 +163,7 @@ attested_modules:
   src/cli/init.ts: 91cf7be2b7427fbf
   src/cli/intent-from-path.ts: e69862821d979f22
   src/cli/measure.ts: 3a562f16589e26c2
-  src/cli/report.ts: bf44afa516ade7f3
+  src/cli/report.ts: dc5233ffb3398cdc
   src/cli/scan/architecture.ts: c9cfd5445ea77e45
   src/cli/scan/conventions.ts: 577468c0fc3fdf6a
   src/cli/scan/dispatcher.ts: 97bd3f12cece4fc4
@@ -230,7 +230,7 @@ attested_modules:
   src/oracle/record.ts: 0b9c124225abe1ac
   src/report/ac-delta.ts: d5f219cee7691d01
   src/report/bundle.ts: f8a2fb6c2d02326f
-  src/report/report.ts: 983dae356d42af0b
+  src/report/report.ts: 01bcc88dc44e77f6
   src/report/sarif.ts: 71e97aceeb0a4473
   src/router: a4d0f0eb87fed960
   src/router/intent.ts: 430590f761b891a6

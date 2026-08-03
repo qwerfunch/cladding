@@ -5,6 +5,25 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.3] — The review packet shows how the contract itself moved (unreleased)
+
+**In one line:** a pull request now shows which acceptance criteria were rewritten while the code changed, and the architecture gate stops failing on generated build output.
+
+### Added
+
+- **"How the acceptance criteria moved" in `clad report`.** For every feature spec entry the range touched, each criterion is classified new / rewritten / removed / unchanged by matching on its id, alongside the entry's status transition and any EARS pattern shift. Rewriting a requirement to match what you built leaves code and spec agreeing, so no drift check can see it; this is the surface that does.
+- **"Declared tests" in `clad report`** — for each criterion, whether the test it names also changed in the range, distinguishing a real path that did not change from a placeholder the harness suggested. It grades nothing: whether a test genuinely verifies its criterion is not mechanically decidable, so the packet shows what was declared and leaves the judgement to the reviewer.
+- **The packet names the revision it compared against.** The range anchors on the merge base of your ref and HEAD, which on a branch that forked earlier is not the tag you named — so both are now stamped in the header and the JSON.
+
+### Fixed
+
+- **The architecture gate no longer scans generated build output.** A bundler's output legitimately contains mutual imports, so scanning it reported circular dependencies that exist in no hand-written file — and blocked the gate on them. `dist`, `build`, `out`, `coverage`, `target`, `.next`, `.nuxt`, `.output`, `.svelte-kit` and `.vite` are now excluded, matched at the repository root only, so a source directory that merely happens to be named `build/` deeper in the tree is still scanned. **If your project declares its own `.madgerc` or a `madge` block in `package.json`, cladding passes no exclusion at all and your rules are the only ones in force** — madge replaces its configured exclusions with a command-line flag rather than merging them, so the two cannot coexist.
+- **A review range that forked earlier no longer charges the base branch's commits to the range under review.**
+- **The packet described itself as four sections when it renders six** — in `clad report --help`, in the module that assembles it, and in the acceptance criterion that enumerates them. The criterion appears as `REWRITTEN` in this release's own packet, which is the correct outcome.
+- **A section lead asserted that the code had been changed to match a rewritten criterion.** The population is deliberately status-blind, so the line also sat above entries with no code yet; it is now conditional.
+- **An instruction the schema rejects.** The `planner` brief asked for an `archive_reason` on a removed acceptance criterion, but that field exists only at feature level and the criterion schema refuses unknown keys — following the instruction failed the sync barrier.
+- **Stale and self-contradicting counts across the six READMEs**, where feature and test-file totals disagreed with the spec and, in places, with each other inside the same file.
+
 ## [0.9.2] — Completions record whether anything checked them independently (2026-07-26)
 
 **In one line:** every finished feature is now marked `independent` or `self-certified` from the evidence it actually recorded, and cladding stops prescribing how you arrange your agents.

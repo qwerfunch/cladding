@@ -2,7 +2,7 @@
 //
 // Pure-level contract of the review-packet renderer. Written from the ACs, not
 // the implementation body — a synthetic model in, deterministic markdown out.
-//   - AC-cbf1c202 · four ## sections in order, byte-identical across two renders
+//   - AC-cbf1c202 · six ## sections in order, byte-identical across two renders
 //   - AC-cbf1c202 · buildReportModel folds inputs → sorted/deduped model
 //   - AC-7672ce5d · unowned files surface under a section, owned never do,
 //                   empty unowned → no section (pinned current behaviour)
@@ -46,10 +46,12 @@ const NO_GATE: GateStateInput = {attestedCount: null, lastGateRun: null};
 
 const META: ReportMeta = {sinceRef: 'v0', head: 'deadbeefcafe0000000000000000000000000000'};
 
-/** The four mandated section headers, in the order the packet must present them. */
+/** The six mandated section headers, in the order the packet must present them. */
 const SECTIONS = [
   '## Spec changes',
+  '## How the acceptance criteria moved',
   '## Code changes → owning features',
+  '## Declared tests',
   '## Regression set',
   '## Gate & attestation',
 ] as const;
@@ -122,8 +124,8 @@ describe('report/report — buildReportModel (AC-cbf1c202)', () => {
   });
 });
 
-describe('report/report — renderReportMarkdown four sections + determinism (AC-cbf1c202)', () => {
-  test('emits the four mandated sections in order', () => {
+describe('report/report — renderReportMarkdown six sections + determinism (AC-cbf1c202)', () => {
+  test('emits the six mandated sections in order', () => {
     const model = buildReportModel(
       mkInputs({
         codeChanges: [
@@ -161,6 +163,28 @@ describe('report/report — renderReportMarkdown four sections + determinism (AC
   test('the header stamps the since ref and a short HEAD, both stable for a fixed state', () => {
     const md = renderReportMarkdown(buildReportModel(mkInputs()), META);
     expect(md).toContain('# Review packet — v0..deadbeefcafe');
+  });
+
+  test('names the revision actually compared against when it differs from the named ref', () => {
+    // The packet anchors on the merge base, which on a branch that forked
+    // earlier is NOT the tag the reader named. An audit artifact that does not
+    // say what it audited against cannot be reproduced by hand.
+    const md = renderReportMarkdown(buildReportModel(mkInputs()), {
+      ...META,
+      baseSha: 'abc123def4560000000000000000000000000000',
+    });
+    expect(md).toContain('Compared against abc123def456');
+    expect(md).toContain('the merge base of v0 and HEAD');
+  });
+
+  test('stays silent when the base IS the named ref — no noise on a linear range', () => {
+    const md = renderReportMarkdown(buildReportModel(mkInputs()), {...META, baseSha: 'v0'});
+    expect(md).not.toContain('Compared against');
+  });
+
+  test('an absent base sha renders as before — the field is additive', () => {
+    const without = renderReportMarkdown(buildReportModel(mkInputs()), META);
+    expect(without).not.toContain('Compared against');
   });
 });
 

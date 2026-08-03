@@ -5,7 +5,7 @@
 // unowned file), because the CLI's contract is about what git + spec say. The
 // CLI is spawned as a subprocess so its real exit codes are observable
 // (runReportCommand calls process.exit on the error paths).
-//   - AC-cbf1c202 · four sections present; two runs byte-identical; exit 0
+//   - AC-cbf1c202 · six sections present; two runs byte-identical; exit 0
 //   - AC-7672ce5d · the unowned file surfaces; the owned file never does
 //   - AC-67fa1d25 · unresolvable --since → exit 2 naming the ref; valid → exit 0
 //   - unknown --format → exit 1 (pinned current behaviour)
@@ -78,7 +78,9 @@ const SPEC_YAML = [
 
 const SECTIONS = [
   '## Spec changes',
+  '## How the acceptance criteria moved',
   '## Code changes → owning features',
+  '## Declared tests',
   '## Regression set',
   '## Gate & attestation',
 ] as const;
@@ -116,7 +118,7 @@ describe('clad report — integration (F-f6cc5e5a)', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('AC-cbf1c202 · renders all four sections in order and exits 0', () => {
+  test('AC-cbf1c202 · renders all six sections in order and exits 0', () => {
     const run = runClad(dir, ['report', '--since', 'v0']);
     expect(run.status, run.stderr).toBe(0);
     const positions = SECTIONS.map((h) => run.stdout.indexOf(h));
@@ -290,5 +292,48 @@ describe('AC-1a6cb22f / AC-4b6fe145 / AC-8e748acb · anchoring the range on the 
     // Same command from a state with no spec movement at all — same exit code.
     const noMovement = runClad(dir, ['report', '--since', 'HEAD']);
     expect(noMovement.status).toBe(0);
+  });
+});
+
+describe('the packet names the revision it audited against', () => {
+  test('the json model carries the resolved base alongside the ref the user named', () => {
+    // Recorded on the fork-point fixture built above: `main` and the merge base
+    // are different commits there, so `since` alone does not identify the
+    // comparison. Both must be present for an auditor to reproduce it.
+    const forked = mkdtempSync(join(tmpdir(), 'clad-report-basestamp-'));
+    try {
+      git(forked, ['init', '-q']);
+      git(forked, ['config', 'user.email', 'test@example.com']);
+      git(forked, ['config', 'user.name', 'test']);
+      git(forked, ['config', 'commit.gpgsign', 'false']);
+      mkdirSync(join(forked, 'spec', 'features'), {recursive: true});
+      writeFileSync(join(forked, 'spec.yaml'), SPEC_YAML);
+      writeFileSync(join(forked, 'spec', 'features', 'owned-feature-aaaa1111.yaml'), shard('in_progress'));
+      writeFileSync(join(forked, 'src.ts'), 'export const a = 1;\n');
+      git(forked, ['add', '-A']);
+      git(forked, ['commit', '-q', '-m', 'baseline']);
+      git(forked, ['tag', 'v0']);
+      git(forked, ['branch', '-M', 'main']);
+      // main moves on; our branch forks from v0, so v0 !== the merge base of main and HEAD.
+      writeFileSync(join(forked, 'src.ts'), 'export const a = 2;\n');
+      git(forked, ['add', '-A']);
+      git(forked, ['commit', '-q', '-m', 'their work']);
+      git(forked, ['checkout', '-q', '-b', 'mine', 'v0']);
+      writeFileSync(join(forked, 'src.ts'), 'export const a = 3;\n');
+      git(forked, ['add', '-A']);
+      git(forked, ['commit', '-q', '-m', 'my work']);
+
+      const ran = runClad(forked, ['report', '--since', 'main', '--format', 'json']);
+      expect(ran.status).toBe(0);
+      const model = JSON.parse(ran.stdout) as {since: string; base: string; head: string};
+      expect(model.since).toBe('main');
+      expect(model.base).toBeTruthy();
+      expect(model.base).not.toBe(model.head);
+      // The stamped base is the fork point, not the tip of the ref that was named.
+      const mainTip = execFileSync('git', ['rev-parse', 'main'], {cwd: forked, encoding: 'utf8'}).trim();
+      expect(model.base).not.toBe(mainTip);
+    } finally {
+      rmSync(forked, {recursive: true, force: true});
+    }
   });
 });
