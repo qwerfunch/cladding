@@ -17,15 +17,15 @@ attested_modules:
   .claude/settings.json: d0bba3583aef0960
   .github/workflows/ci.yml: 8ea99219cb80df60
   .gitignore: 1294975ba3b47043
-  CHANGELOG.md: a67e4c092a7223c1
+  CHANGELOG.md: 5b2341399d2f1352
   CLAUDE.md: 9f2fa4edd5c6df80
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: 0f4f9d52bca2e782
-  README.ja.md: e0714533e64683d0
-  README.ko.html: fe80f8363ff2c820
-  README.ko.md: 079fc16a7a5b125f
-  README.md: 8fb8a73f601fe8a9
-  README.zh.md: fc8d390a0d0a1aee
+  README.html: a2df07e5e20a4f73
+  README.ja.md: ce56f385afe06d96
+  README.ko.html: dd2f20cab0d9419f
+  README.ko.md: 91428537bd396ab7
+  README.md: c01043c6b6877d4e
+  README.zh.md: 4e37e686c9923c50
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -207,7 +207,7 @@ attested_modules:
   src/hitl/audit.ts: 79b06e904815469a
   src/hitl/identity.ts: 52ff84aa666f1dab
   src/hitl/independence.ts: 202f4e5ef8bc69e3
-  src/init/agents-md.ts: c0f853ca09b75670
+  src/init/agents-md.ts: 5369a15847ce1ae7
   src/init/git-hook.ts: b77910b0df392cbf
   src/init/host-instructions.ts: c598f8598d8d1cd4
   src/init/host-setup.ts: 158cc9306a746da1

@@ -349,3 +349,47 @@ describe('the managed block teaches EARS, and cannot drift from the validator', 
     }
   });
 });
+
+describe('the managed block says what language a spec entry is written in', () => {
+  // No rule existed, so adopters diverged: two repositories reached ~100%
+  // Korean titles while two others stayed fully English. The rule lives here
+  // rather than in the CLAUDE.md block (21 characters of headroom against a
+  // pinned ceiling) or a persona prompt (3 characters, and it only reaches
+  // hosts that install the plugin).
+  const block = () => renderAgentsMdManagedBlock(null, '.');
+
+  test('it states the default, and that existing entries decide instead', () => {
+    expect(block()).toContain('Default to English');
+    expect(block()).toMatch(/match the language THEY use/);
+    expect(block()).toMatch(/Where they disagree, write English/);
+  });
+
+  test('a language request covers the prose fields and carries forward on its own', () => {
+    const b = block();
+    expect(b).toMatch(/asks for another language/);
+    for (const field of ['`title`', '`notes`', '`text`']) expect(b).toContain(field);
+    expect(b).toMatch(/carries forward/);
+  });
+
+  test('it forbids rewriting existing entries into another language', () => {
+    expect(block()).toMatch(/never rewrite existing ones/);
+  });
+
+  test('the four trigger words are named as fixed, and only the first word is constrained', () => {
+    const b = block();
+    for (const w of ['when', 'while', 'if', 'where']) expect(b).toContain(`**${w}**`);
+    expect(b).toMatch(/Only the FIRST word/);
+  });
+
+  test('it shows a mixed condition, so "English trigger" is not read as "English sentence"', () => {
+    // The whole point of naming only four words: everything after them is free.
+    // A reader who cannot see that will over-translate or under-translate.
+    const example = block().split('\n').find((l) => l.includes('condition:') && /[가-힣]/.test(l));
+    expect(example, 'no mixed-language condition example in the block').toBeDefined();
+    expect(example).toMatch(/^\s*condition: "when /m);
+  });
+
+  test('identifiers are excluded from translation', () => {
+    expect(block()).toMatch(/Identifiers are not prose/);
+  });
+});

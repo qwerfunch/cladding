@@ -33,6 +33,15 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
   the plain sentence instead of replacing them with it. An adopter spent sixteen days on this
   and recorded the wrong cause; in a controlled run, three of three agents given the old build
   "fixed" it by deleting or rewriting their own build output.
+- **Nothing said what language to write a spec entry in.** Four adopter projects diverged on
+  their own — two reached nearly all Korean titles, two stayed fully English — because the
+  question was never answered anywhere. The managed AGENTS.md block now answers it: English by
+  default, but match the entries already in the spec, because those are the project's own voice
+  and they cannot go stale the way a setting can. Asking for another language covers the title,
+  the notes and the statement, and carries forward on its own; existing entries are never
+  rewritten into another language. Only four words are fixed — `when`, `while`, `if`, `where` —
+  because the gate matches them literally, and only as the FIRST word of a condition, so
+  `when 앱이 종료될 때` is valid.
 - **Nothing shipped to an adopter said how to write an acceptance criterion.** The managed
   AGENTS.md block now carries the EARS table — which trigger word each pattern requires, with a
   working example per row — and a test asserts every example in it against the real validator,
