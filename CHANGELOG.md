@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [0.9.3] — The review packet shows how the contract itself moved (unreleased)
+## [0.9.3] — The review packet shows how the contract itself moved (2026-08-04)
 
 **In one line:** a pull request now shows which acceptance criteria were rewritten while the code changed, and the architecture gate stops failing on generated build output.
 

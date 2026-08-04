@@ -343,7 +343,7 @@ clad update              # 3. 刷新项目连接和派生状态
 
 | 版本 | 一致性 | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.9.2（2026-07） | L4 · [自我声明](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2815 / 2815 | 15 阶段 · 41 检测器 | 273（269 done） |
+| v0.9.3（2026-08） | L4 · [自我声明](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2815 / 2815 | 15 阶段 · 41 检测器 | 273（269 done） |
 
 <sub>249 个测试文件 · 6 项 capability · 覆盖率下降由 COVERAGE_DROP 检测器拦下</sub>
 
