@@ -5,6 +5,50 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.3] — The review packet shows how the contract itself moved (2026-08-04)
+
+**In one line:** a pull request now shows which acceptance criteria were rewritten while the code changed, and the architecture gate stops failing on generated build output.
+
+### Added
+
+- **"How the acceptance criteria moved" in `clad report`.** For every feature spec entry the range touched, each criterion is classified new / rewritten / removed / unchanged by matching on its id, alongside the entry's status transition and any EARS pattern shift. Rewriting a requirement to match what you built leaves code and spec agreeing, so no drift check can see it; this is the surface that does.
+- **"Declared tests" in `clad report`** — for each criterion, whether the test it names also changed in the range, telling apart a real path that did not change, a concrete path with no file behind it, and a placeholder the harness suggested. It grades nothing: whether a test genuinely verifies its criterion is not mechanically decidable, so the packet shows what was declared and leaves the judgement to the reviewer. The dangling-path case matters because every other existence check in the harness only looks at finished features.
+- **The packet names the revision it compared against**, when that is not the commit you named. The range anchors on the merge base of your ref and HEAD, which on a branch that forked earlier is a different commit — an audit artifact that silently compared against something else cannot be reproduced by hand.
+
+### Fixed
+
+- **The architecture gate no longer scans generated build output.** A bundler's output legitimately contains mutual imports, so scanning it reported circular dependencies that exist in no hand-written file — and blocked the gate on them. `dist`, `build`, `out`, `coverage`, `target`, `.next`, `.nuxt`, `.output`, `.svelte-kit` and `.vite` are now excluded, matched at the repository root only, so a source directory that merely happens to be named `build/` deeper in the tree is still scanned. `dist`, `coverage` and the framework caches are excluded at any depth, because a monorepo package or a front-end subdirectory keeps its bundle one level down; `build`, `out` and `target` stay anchored at the root, because they name real source directories often enough that excluding them deeper would drop hand-written code from the scan.
+
+  **If your project has its own madge exclusion in force, cladding passes none of its own and your rules are the only ones that apply** — madge replaces its configured exclusions with a command-line flag rather than merging them, so the two cannot coexist. That is decided the way madge decides it: by reading `.madgerc` up the directory tree, plus `$HOME` and `/etc`, and by checking that an exclusion is actually set rather than that a file merely exists.
+- **A review range that forked earlier no longer charges the base branch's commits to the range under review.**
+- **The packet described itself as four sections when it renders six** — in `clad report --help`, in the module that assembles it, and in the acceptance criterion that enumerates them. The criterion appears as `REWRITTEN` in this release's own packet, which is the correct outcome.
+- **A section lead asserted that the code had been changed to match a rewritten criterion.** The population is deliberately status-blind, so the line also sat above entries with no code yet; it is now conditional.
+- **A rewritten obligation could pass as unchanged.** The criterion comparison read only the statement, the pattern and the trigger — not `action` and `response`, which state the obligation itself and which four out of five criteria in this project carry. Rewriting one of them classified as no change at all; in this repository's own history that hid 31 rewrites.
+- **An instruction the schema rejects.** The `planner` brief asked for an `archive_reason` on a removed acceptance criterion, but that field exists only at feature level and the criterion schema refuses unknown keys — following the instruction failed the sync barrier.
+- **A failing scanner said what KIND of problem it found, never which one.** The architecture
+  stage reported "the code has an import loop" and stopped there, because the code that builds
+  the message preferred the tool's progress output over its report — madge writes its progress
+  to one stream and the numbered cycle list to the other — and then cut what survived to two
+  hundred characters. The gate now shows the list, and the terminal prints the specifics under
+  the plain sentence instead of replacing them with it. An adopter spent sixteen days on this
+  and recorded the wrong cause; in a controlled run, three of three agents given the old build
+  "fixed" it by deleting or rewriting their own build output.
+- **Nothing said what language to write a spec entry in.** Four adopter projects diverged on
+  their own — two reached nearly all Korean titles, two stayed fully English — because the
+  question was never answered anywhere. The managed AGENTS.md block now answers it: English by
+  default, but match the entries already in the spec, because those are the project's own voice
+  and they cannot go stale the way a setting can. Asking for another language covers the title,
+  the notes and the statement, and carries forward on its own; existing entries are never
+  rewritten into another language. Only four words are fixed — `when`, `while`, `if`, `where` —
+  because the gate matches them literally, and only as the FIRST word of a condition, so
+  `when 앱이 종료될 때` is valid.
+- **Nothing shipped to an adopter said how to write an acceptance criterion.** The managed
+  AGENTS.md block now carries the EARS table — which trigger word each pattern requires, with a
+  working example per row — and a test asserts every example in it against the real validator,
+  so the table cannot drift from the rule it teaches. `docs/` is not in the published package,
+  so agents were reverse-engineering the rules from the minified bundle.
+- **Stale and self-contradicting counts across the six READMEs**, where feature and test-file totals disagreed with the spec and, in places, with each other inside the same file.
+
 ## [0.9.2] — Completions record whether anything checked them independently (2026-07-26)
 
 **In one line:** every finished feature is now marked `independent` or `self-certified` from the evidence it actually recorded, and cladding stops prescribing how you arrange your agents.

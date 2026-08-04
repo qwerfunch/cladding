@@ -114,6 +114,7 @@ features:
   F-284be4f6: {slug: init-empty-layers-valid-yaml, status: done, modules: 1}
   F-288864ae: {slug: claude-md-diet, status: done, modules: 2}
   F-2be3e3bb: {slug: infer-depends-on, status: done, modules: 2}
+  F-2c02991f: {slug: arch-gate-skips-build-output, status: done, modules: 1}
   F-2de65d: {slug: drive-auto-rollback, status: done, modules: 1}
   F-2e28cc72: {slug: clad-verdict, status: done, modules: 2}
   F-315fd7: {slug: scenario-coverage-detector, status: done, modules: 2}
@@ -151,6 +152,7 @@ features:
   F-5b9f9f: {slug: spec-yaml-inventory-and-hints, status: done, modules: 6}
   F-5cac007a: {slug: init-onboarding-english-source, status: done, modules: 3}
   F-5d3ed2: {slug: postmortem-on-rollback, status: done, modules: 2}
+  F-5dfbac9c: {slug: review-packet-ac-delta, status: done, modules: 4}
   F-5f6b45: {slug: init-path-intent, status: done, modules: 2}
   F-600272d7: {slug: orchestrator-contract-card, status: done, modules: 2}
   F-63b989e5: {slug: impact-card-language-parity, status: done, modules: 2}

@@ -27,6 +27,8 @@ import {
   writeSpecDrivenAgentsMd,
 } from '../../src/init/agents-md.js';
 import {loadSpec} from '../../src/spec/load.js';
+import {checkEarsShape} from '../../src/spec/ears.js';
+import type {EarsPattern} from '../../src/spec/types.js';
 
 /** A spec.yaml with a fully-populated project.ai_hints, matching the shard's
  * own notes fixture (acme-payments) so assertions read naturally. */
@@ -316,5 +318,78 @@ describe('writeSpecDrivenAgentsMd — AC-1f8d7b02 (markerless / hand-authored fi
     // Malformed: end marker present but begin absent (or reversed order).
     const malformed = `some text ${AGENTS_MD_END} more text ${AGENTS_MD_BEGIN} tail`;
     expect(upsertAgentsMdBlock(malformed, 'fresh block')).toBe(malformed);
+  });
+});
+
+describe('the managed block teaches EARS, and cannot drift from the validator', () => {
+  test('every example in the EARS table actually passes checkEarsShape', () => {
+    // The adopter receives no docs/ — package.json#files ships none — so this
+    // table is the only place an authoring agent can learn the rules. Two of
+    // three agents in an A/B run reverse-engineered them from the minified
+    // bundle instead. A table that drifts from the validator is worse than
+    // none, so it is checked against the validator rather than eyeballed.
+    const block = renderAgentsMdManagedBlock(null, '.');
+    const rows = block
+      .split('\n')
+      .filter((l) => /^\| `(ubiquitous|event|state|optional|unwanted|complex)` \|/.test(l));
+    expect(rows.length, 'the EARS table is missing from the managed block').toBe(6);
+
+    for (const row of rows) {
+      const cells = row.split('|').map((c) => c.trim());
+      const pattern = cells[1].replace(/`/g, '') as EarsPattern;
+      const example = cells[3].replace(/`/g, '').replace(/\*\(none\)\*/, '').trim();
+      expect(checkEarsShape(pattern, example), `${pattern}: "${example}"`).toBeNull();
+    }
+  });
+
+  test('the table covers every pattern the schema accepts', () => {
+    const block = renderAgentsMdManagedBlock(null, '.');
+    for (const pattern of ['ubiquitous', 'event', 'state', 'optional', 'unwanted', 'complex']) {
+      expect(block, `${pattern} is missing from the EARS table`).toContain(`| \`${pattern}\` |`);
+    }
+  });
+});
+
+describe('the managed block says what language a spec entry is written in', () => {
+  // No rule existed, so adopters diverged: two repositories reached ~100%
+  // Korean titles while two others stayed fully English. The rule lives here
+  // rather than in the CLAUDE.md block (21 characters of headroom against a
+  // pinned ceiling) or a persona prompt (3 characters, and it only reaches
+  // hosts that install the plugin).
+  const block = () => renderAgentsMdManagedBlock(null, '.');
+
+  test('it states the default, and that existing entries decide instead', () => {
+    expect(block()).toContain('Default to English');
+    expect(block()).toMatch(/match the language THEY use/);
+    expect(block()).toMatch(/Where they disagree, write English/);
+  });
+
+  test('a language request covers the prose fields and carries forward on its own', () => {
+    const b = block();
+    expect(b).toMatch(/asks for another language/);
+    for (const field of ['`title`', '`notes`', '`text`']) expect(b).toContain(field);
+    expect(b).toMatch(/carries forward/);
+  });
+
+  test('it forbids rewriting existing entries into another language', () => {
+    expect(block()).toMatch(/never rewrite existing ones/);
+  });
+
+  test('the four trigger words are named as fixed, and only the first word is constrained', () => {
+    const b = block();
+    for (const w of ['when', 'while', 'if', 'where']) expect(b).toContain(`**${w}**`);
+    expect(b).toMatch(/Only the FIRST word/);
+  });
+
+  test('it shows a mixed condition, so "English trigger" is not read as "English sentence"', () => {
+    // The whole point of naming only four words: everything after them is free.
+    // A reader who cannot see that will over-translate or under-translate.
+    const example = block().split('\n').find((l) => l.includes('condition:') && /[가-힣]/.test(l));
+    expect(example, 'no mixed-language condition example in the block').toBeDefined();
+    expect(example).toMatch(/^\s*condition: "when /m);
+  });
+
+  test('identifiers are excluded from translation', () => {
+    expect(block()).toMatch(/Identifiers are not prose/);
   });
 });

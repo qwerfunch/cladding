@@ -17,15 +17,15 @@ attested_modules:
   .claude/settings.json: d0bba3583aef0960
   .github/workflows/ci.yml: 8ea99219cb80df60
   .gitignore: 1294975ba3b47043
-  CHANGELOG.md: 033d721cd4fe05a4
+  CHANGELOG.md: f2d8bae463e3279e
   CLAUDE.md: 9f2fa4edd5c6df80
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: 490eab86b9c0d208
-  README.ja.md: 3c4f3453ba97a3a6
-  README.ko.html: dd48adf81a1d382c
-  README.ko.md: 383011eabecf55a2
-  README.md: c84d37f3d8726f5c
-  README.zh.md: 014fe3859fdbb8dc
+  README.html: 042398234df7c6db
+  README.ja.md: c0e21f65682fdddf
+  README.ko.html: c6c9c457101a7faa
+  README.ko.md: d5c8665fb5126908
+  README.md: 988329327e2b04dd
+  README.zh.md: ac6e59d1dfb425da
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -56,7 +56,7 @@ attested_modules:
   docs/dogfood/cursor-agent-2026-07-15.md: a2f621fd0c3b57af
   docs/dogfood/gemini-cli-2026-05-20.md: 2da1ba66c4f108f0
   docs/feature-cycle.md: e1847cc9fe9b6eb6
-  docs/glossary.md: 9e897b963c3aa88f
+  docs/glossary.md: fc7258d4d3dcb9a2
   docs/img/en/ecosystem.svg: ed14d1d17f088b00
   docs/img/en/independence.svg: 1b3048b3b5206483
   docs/img/en/relationship.svg: c7a24203925b4664
@@ -71,24 +71,24 @@ attested_modules:
   docs/spec-ids-multi-dev.md: 28d58e84879f58b1
   docs/ssot-model.md: 66b9439e2f71ac4b
   docs/ssot-testing.md: abf3b2bd5acb29a1
-  package-lock.json: efa9090e0ef4bf1f
-  package.json: 00272205b48b15df
-  plugins/claude-code/.claude-plugin/plugin.json: fcfe09c82ca6492b
+  package-lock.json: 505b6ea10c37fcf6
+  package.json: bc72ea4dbf16fc7d
+  plugins/claude-code/.claude-plugin/plugin.json: e46cfdf3bf480696
   plugins/claude-code/agents/developer.md: 3002b4ef69ddab43
   plugins/claude-code/agents/observability.md: 637fde18c012e2a7
   plugins/claude-code/agents/orchestrator.md: 1b758de0bdab8eb0
-  plugins/claude-code/agents/planner.md: d1f895a20fb3a3ed
+  plugins/claude-code/agents/planner.md: 2ca87ed1fe99c913
   plugins/claude-code/agents/reviewer.md: cdf7469a3e58b438
   plugins/claude-code/commands/init.md: 5529b13d0f1ab4bf
   plugins/claude-code/hooks/hooks.json: 42321ead26fb1da8
-  plugins/codex/.codex-plugin/plugin.json: da272fa283026dc2
+  plugins/codex/.codex-plugin/plugin.json: b662ba85804e6abb
   plugins/codex/.mcp.json: 43e3f4b2af24aa18
   plugins/codex/skills/check/SKILL.md: 6a665422af510e72
   plugins/codex/skills/developer/SKILL.md: 3002b4ef69ddab43
   plugins/codex/skills/init/SKILL.md: 5529b13d0f1ab4bf
   plugins/codex/skills/observability/SKILL.md: 637fde18c012e2a7
   plugins/codex/skills/orchestrator/SKILL.md: 1b758de0bdab8eb0
-  plugins/codex/skills/planner/SKILL.md: d1f895a20fb3a3ed
+  plugins/codex/skills/planner/SKILL.md: 2ca87ed1fe99c913
   plugins/codex/skills/reviewer/SKILL.md: cdf7469a3e58b438
   plugins/codex/skills/run/SKILL.md: 9f95ff17d70c8dd1
   plugins/codex/skills/serve/SKILL.md: f08bbdbbfeb05041
@@ -97,7 +97,7 @@ attested_modules:
   plugins/gemini-cli/GEMINI.md: ba08eaf2cd557a65
   plugins/gemini-cli/commands/README.md: 3527d771578431bd
   plugins/gemini-cli/commands/init.toml: e7f310fd7af23f95
-  plugins/gemini-cli/gemini-extension.json: 729b2c69fdc0b650
+  plugins/gemini-cli/gemini-extension.json: 082af8a03ae1601d
   scripts/build-plugin.mjs: 7fabe2b6301b142a
   scripts/build.mjs: 3a4b204063024ef1
   scripts/migrate-dogfood-v0.3.16.mjs: 1e265fb370019996
@@ -117,7 +117,7 @@ attested_modules:
   skills/serve/SKILL.md: f08bbdbbfeb05041
   skills/status/SKILL.md: 09faadc50b3449da
   skills/sync/SKILL.md: 775c0f990a52a3d9
-  spec.yaml: ea944be3d843f018
+  spec.yaml: 35b159a6c3949112
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -143,14 +143,14 @@ attested_modules:
   src/agents/loader.ts: 6d35560c47f9ae85
   src/agents/observability.md: 637fde18c012e2a7
   src/agents/orchestrator.md: 1b758de0bdab8eb0
-  src/agents/planner.md: d1f895a20fb3a3ed
+  src/agents/planner.md: 2ca87ed1fe99c913
   src/agents/reviewer.md: cdf7469a3e58b438
-  src/changelog/collect.ts: a6c936a7b8c34e2a
+  src/changelog/collect.ts: c9ae573dba826a75
   src/changelog/render.ts: 83dd2d95f24ca68c
   src/cli: a4d0f0eb87fed960
   src/cli/benchmark.ts: 77f84d2a898d724f
   src/cli/changelog.ts: 2de1adb009b89ab4
-  src/cli/clad.ts: 0501f16f74b2a8dc
+  src/cli/clad.ts: a02fe02bcb5e942d
   src/cli/clarify.ts: f17177969d5b75ff
   src/cli/doctor-hosts.ts: 1f0c2cec5a310b81
   src/cli/doctor.ts: b98b955fe75e7f7e
@@ -163,7 +163,7 @@ attested_modules:
   src/cli/init.ts: 91cf7be2b7427fbf
   src/cli/intent-from-path.ts: e69862821d979f22
   src/cli/measure.ts: 3a562f16589e26c2
-  src/cli/report.ts: 911f859b2446834b
+  src/cli/report.ts: ee7d35b6c36dfa76
   src/cli/scan/architecture.ts: c9cfd5445ea77e45
   src/cli/scan/conventions.ts: 577468c0fc3fdf6a
   src/cli/scan/dispatcher.ts: 97bd3f12cece4fc4
@@ -184,7 +184,7 @@ attested_modules:
   src/cli/update.ts: b0151396c9a0f6ca
   src/cli/verdict.ts: 85a4ef27292b9169
   src/core/checkpoint.ts: 63300c2764533b6c
-  src/core/git-ops.ts: 4544bde493a0628f
+  src/core/git-ops.ts: c144e5cc253822b3
   src/core/postmortem.ts: 73be29d5e8a16fd4
   src/core/telemetry-summary.ts: 6782bfaa6c3ecfa6
   src/drive: a4d0f0eb87fed960
@@ -207,7 +207,7 @@ attested_modules:
   src/hitl/audit.ts: 79b06e904815469a
   src/hitl/identity.ts: 52ff84aa666f1dab
   src/hitl/independence.ts: 202f4e5ef8bc69e3
-  src/init/agents-md.ts: 698b2a38ddd5d1a6
+  src/init/agents-md.ts: 5369a15847ce1ae7
   src/init/git-hook.ts: b77910b0df392cbf
   src/init/host-instructions.ts: c598f8598d8d1cd4
   src/init/host-setup.ts: 158cc9306a746da1
@@ -228,12 +228,13 @@ attested_modules:
   src/oracle/payload.ts: 0171633d758ceed8
   src/oracle/policy.ts: 8919ad927bd59b08
   src/oracle/record.ts: 0b9c124225abe1ac
+  src/report/ac-delta.ts: f75250d617c710dc
   src/report/bundle.ts: f8a2fb6c2d02326f
-  src/report/report.ts: 234d0e0637153478
+  src/report/report.ts: f6f6f8bdb679b702
   src/report/sarif.ts: 71e97aceeb0a4473
   src/router: a4d0f0eb87fed960
   src/router/intent.ts: 430590f761b891a6
-  src/serve/server.ts: a63dde88609a6abe
+  src/serve/server.ts: 0a76fefb0aca1434
   src/spec: a4d0f0eb87fed960
   src/spec/attestation.ts: 294a1e99c42d4aef
   src/spec/cli.ts: 7a9bcd0f66677810
@@ -245,7 +246,7 @@ attested_modules:
   src/spec/load.ts: 9fe2fe74053bf7e3
   src/spec/new.ts: 4c91f6d41acaab69
   src/spec/parse.ts: 1eab9a28c9359a45
-  src/spec/reverse-index.ts: d8b003eb8f1918c8
+  src/spec/reverse-index.ts: fa54d7203a02799a
   src/spec/schema.json: 848951cd01d7f82f
   src/spec/test-ref-repair.ts: 5ce823b479aaaca3
   src/spec/types.ts: 5799bc9fc1e00553
@@ -316,7 +317,7 @@ attested_modules:
   src/stages/spec-conformance.ts: 1e9b052a2a268d7a
   src/stages/test-run-cache.ts: 462a5ef1d30eb766
   src/stages/toolchain/coverage-tool.ts: 310883060ed6d92e
-  src/stages/toolchain/detect.ts: 36d4947e5567bd5f
+  src/stages/toolchain/detect.ts: e50845a8aa69c765
   src/stages/toolchain/gate-config.ts: 818a0a549d875581
   src/stages/toolchain/language-config.ts: 65175718559b0710
   src/stages/toolchain/module-scope.ts: 88358ec3b84eedd3
@@ -326,7 +327,7 @@ attested_modules:
   src/stages/types.ts: 95e8c9e13187d85b
   src/stages/uat.ts: 62ec3e37a124f8c5
   src/stages/unit.ts: b503350b0e5c7e5a
-  src/stages/util.ts: a024afe34884d653
+  src/stages/util.ts: 7c49de3250816de8
   src/stages/vacuous-tests.ts: 8e71b81e151325af
   src/stages/visual.ts: 2b60dd991fa8124e
   src/ui: a4d0f0eb87fed960
@@ -340,7 +341,7 @@ attested_modules:
   tests/adapters/transport.test.ts: 68f22e9e8df7b813
   tests/agents/loader.test.ts: a7df7b1c9a95d37d
   tests/cli/benchmark.test.ts: b4a87289605ee75f
-  tests/cli/clad.test.ts: d559fff3bd530bad
+  tests/cli/clad.test.ts: 95a6303c6d9437e2
   tests/cli/gate-golden-matrix.test.ts: 39cf615407a55abe
   tests/cli/init.test.ts: 3428a89708fc9330
   tests/cli/intent-onboarding.test.ts: 0681b98ce2e74c22
@@ -424,13 +425,13 @@ attested_modules:
   tests/stages/stale-tests.test.ts: 1467ceedb8019e86
   tests/stages/status-drift.test.ts: cff1092eeb23c268
   tests/stages/tech-stack-mismatch.test.ts: 878436ffd2f94c97
-  tests/stages/toolchain.test.ts: 04e12be4ac1dee5c
+  tests/stages/toolchain.test.ts: 200184f572abcf88
   tests/stages/toolchain/gate-config.test.ts: aef5813a6591b153
   tests/stages/type.test.ts: b57cf7455cae3b32
   tests/stages/uat.test.ts: 29c5bf3e7f3abc35
   tests/stages/unit.test.ts: 97781210eb81bb25
   tests/stages/unmapped-artifact.test.ts: 6bfdae66990fd63a
-  tests/stages/util.test.ts: dd95144b36bfd2b1
+  tests/stages/util.test.ts: a162cbe069c85f41
   tests/stages/visual.test.ts: dd819e7d25586b92
   tests/ui/panel.test.ts: ad9ea207f34b1c51
   tests/ui/pulse.test.ts: 30f1d091de9093ad
@@ -547,6 +548,7 @@ attested_features:
   F-284be4f6: ok
   F-288864ae: ok
   F-2be3e3bb: ok
+  F-2c02991f: ok
   F-2de65d: ok
   F-2e28cc72: ok
   F-315fd7: ok
@@ -583,6 +585,7 @@ attested_features:
   F-5b9f9f: ok
   F-5cac007a: ok
   F-5d3ed2: ok
+  F-5dfbac9c: ok
   F-5f6b45: ok
   F-600272d7: ok
   F-63b989e5: ok

@@ -11,12 +11,12 @@ acceptance_criteria:
   - id: AC-cbf1c202
     ears: event
     condition: "when clad report --since <ref> runs in a repo with spec.yaml"
-    text: "When clad report runs, the system shall print a markdown report with four sections — spec changes (from the changelog collector), code changes resolved to owning features via the reverse index, the deduped regression set (union of test_refs across impact slices), and gate plus attestation state — byte-identical across two runs on the same repository state."
+    text: "When clad report runs, the system shall print a markdown report with six sections — spec entry changes (from the changelog collector), how each acceptance criterion moved, code changes resolved to owning features via the reverse index, the tests those features declare, the deduped regression set (union of test_refs across impact slices), and gate plus attestation state — byte-identical across two runs on the same repository state."
     test_refs:
-      - "tests/report/report.test.ts#emits the four mandated sections in order"
+      - "tests/report/report.test.ts#emits the six mandated sections in order"
       - "tests/report/report.test.ts#two renders on the same model are byte-identical"
       - "tests/report/report.test.ts#partitions changed files into owned vs unowned by owner count"
-      - "tests/report/report-cli.test.ts#AC-cbf1c202 · renders all four sections in order and exits 0"
+      - "tests/report/report-cli.test.ts#AC-cbf1c202 · renders all six sections in order and exits 0"
       - "tests/report/report-cli.test.ts#AC-cbf1c202 · two runs on the same repo state are byte-identical"
     notes: "WHY: the doc-value A/B proved traceability value to reviewers and auditors; a PR is where they consume it without reading the spec tree."
   - id: AC-7672ce5d

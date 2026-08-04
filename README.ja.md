@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-2736%2F2736-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-2815%2F2815-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -31,7 +31,7 @@
 - **たどれる** — **出荷されたものは記録に残る**: 何を検証したかはコミットされた内容に刻まれ、誰がいつやったかはローカルのセッション台帳に、なぜかは spec に残る — だから引き継ぎもレビューも、掘り起こさずに済む。
 - **拡張しても揺るがない** — 人と AI が増えれば、普通は衝突と乖離も増える。だが全員が一つの spec を基準に働くので、それらは自動でせき止められる — だから規模を広げても崩れない。
 
-cladding は **自分自身も cladding で作っている** — 270 個の feature のうち 266 個が同じゲートを通過した、[Ironclad](https://github.com/qwerfunch/ironclad) 標準を L4 で実装した最初の事例だ。
+cladding は **自分自身も cladding で作っている** — 273 個の feature のうち 269 個が同じゲートを通過した、[Ironclad](https://github.com/qwerfunch/ironclad) 標準を L4 で実装した最初の事例だ。
 
 <!-- ─────────────── What changes ─────────────── -->
 
@@ -347,9 +347,9 @@ clad update              # 3. プロジェクト接続と派生状態を更新�
 
 | Version | 準拠レベル | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.9.2（2026-07） | L4 · [自己申告](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2736 / 2736 | 15 段階 · 41 detectors | 270（266 done） |
+| v0.9.3（2026-08） | L4 · [自己申告](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2815 / 2815 | 15 段階 · 41 detectors | 273（269 done） |
 
-<sub>248 test files · capability 6 個 · カバレッジ低下は COVERAGE_DROP detector がブロック</sub>
+<sub>249 test files · capability 6 個 · カバレッジ低下は COVERAGE_DROP detector がブロック</sub>
 
 > **Ironclad 1.0 への道** — 1.0 は *独立した二つの実装が L4 準拠フィクスチャを通過してはじめて* 確定する（[GOVERNANCE § 1](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md)）。cladding はその一つ目だ。
 

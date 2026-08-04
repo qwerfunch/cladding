@@ -110,6 +110,21 @@ gate:
 Precedence, highest first: explicit per-call `cmd` override → `gate.commands` →
 auto module-scope → repo gate.
 
+## Architecture stage — what it scans in a TS/JS project
+
+The circular-dependency scan runs from the repository root and **skips generated
+build output** — `dist/`, `build/`, `out/`, `coverage/`, `target/`, `.next/`,
+`.nuxt/`, `.output/`, `.svelte-kit/`, `.vite/` — matched at the root only, so a
+source directory that merely happens to be named `build/` deeper in the tree is
+still scanned. A bundler's output legitimately contains mutual imports, and
+scanning it reports cycles that exist in no hand-written file.
+
+**To control this yourself**, declare a `.madgerc` (or a `madge` block in
+`package.json`) with your own `excludeRegExp`. When you do, cladding passes no
+exclusion of its own and your rules are the only ones in force — madge *replaces*
+its configured exclusions with a command-line flag rather than merging them, so
+the two cannot coexist.
+
 ## Backward compatibility
 
 Non-Gradle languages, modules-less features, and `gate.scope: repo` all run

@@ -4,7 +4,8 @@
 // rendering lives in the pure foundation layer src/report/. It composes, for a
 // `<since>..HEAD` range:
 //
-//   • spec-shard movement          — from the changelog collector
+//   • spec entry movement          — from the changelog collector
+//   • acceptance-criterion deltas   — each criterion at both revisions
 //   • changed source → owning feats — each changed file resolved via the
 //                                     reverse index's blast-radius slice
 //   • the regression set           — deduped union of test_refs across slices
@@ -18,10 +19,18 @@
 // 1 any other failure.
 
 import {execFileSync} from 'node:child_process';
+import {existsSync} from 'node:fs';
+import {join} from 'node:path';
 import process from 'node:process';
 
-import {collectChangelog, defaultSinceRef, type ChangelogManifest} from '../changelog/collect.js';
-import {refExists} from '../core/git-ops.js';
+import {
+  collectChangelog,
+  collectSpecEntryRevisions,
+  defaultSinceRef,
+  type ChangelogManifest,
+  type SpecEntryRevision,
+} from '../changelog/collect.js';
+import {mergeBaseWithHead, refExists, resolveRefToCommit} from '../core/git-ops.js';
 import {latestEventOfType} from '../events/log.js';
 import {buildImpactSlice, ledgerOf} from '../optimizer/reverse-slice.js';
 import {
@@ -35,7 +44,7 @@ import {
 import {toSarif} from '../report/sarif.js';
 import {attestedFeatureCount, readAttestation} from '../spec/attestation.js';
 import {loadSpec} from '../spec/load.js';
-import {reverseIndexOf} from '../spec/reverse-index.js';
+import {reverseIndexOf, testRefPath} from '../spec/reverse-index.js';
 import type {Feature, Spec} from '../spec/types.js';
 import {runDrift} from '../stages/drift.js';
 import {pulse} from '../ui/pulse.js';
@@ -87,11 +96,11 @@ function assertRefResolves(cwd: string, ref: string): void {
   }
 }
 
-/** Changed source files in `<since>..HEAD`, deduped + sorted. Empty on git failure. */
-function changedSourceFiles(cwd: string, sinceRef: string): readonly string[] {
+/** Every path that changed in `<base>..HEAD`, deduped + sorted. Empty on git failure. */
+function changedPaths(cwd: string, baseRef: string): readonly string[] {
   let raw: string;
   try {
-    raw = execFileSync('git', ['diff', '--name-only', `${sinceRef}..HEAD`], {
+    raw = execFileSync('git', ['diff', '--name-only', `${baseRef}..HEAD`], {
       cwd,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -104,10 +113,31 @@ function changedSourceFiles(cwd: string, sinceRef: string): readonly string[] {
       raw
         .split('\n')
         .map((l) => l.trim())
-        .filter((l) => l.length > 0)
-        .filter(isReviewableSourcePath),
+        .filter((l) => l.length > 0),
     ),
   ].sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Declared test paths of the touched entries that have no file behind them.
+ *
+ * Existence is impure, so it is resolved here and handed to the pure model as
+ * data. It matters because every sibling existence check in the harness is
+ * done-only: for a planned or in-progress entry this section is the only place
+ * a dangling reference is visible at all, and calling it "unchanged" would read
+ * as a real test that merely did not move.
+ */
+function absentTestRefs(cwd: string, entries: readonly SpecEntryRevision[]): readonly string[] {
+  const missing = new Set<string>();
+  for (const entry of entries) {
+    for (const ac of entry.headAcs) {
+      for (const ref of ac.test_refs ?? []) {
+        const p = testRefPath(ref);
+        if (p !== null && !existsSync(join(cwd, p))) missing.add(p);
+      }
+    }
+  }
+  return [...missing].sort((a, b) => a.localeCompare(b));
 }
 
 /** Resolves an owning-feature id to its title + slug from the spec. */
@@ -136,21 +166,33 @@ function gatherGateState(cwd: string): GateStateInput {
 function gatherInputs(
   cwd: string,
   spec: Spec,
-  sinceRef: string,
+  baseRef: string,
   manifest: ChangelogManifest,
 ): ReportInputs {
   const ri = reverseIndexOf(spec);
   const ledgerEmpty = ledgerOf(ri).depends_on_edges === 0;
   const byId = new Map((spec.features ?? []).map((f) => [f.id, f]));
 
-  const codeChanges: CodeChangeInput[] = changedSourceFiles(cwd, sinceRef).map((path) => {
-    const slice = buildImpactSlice(spec, path);
-    if ('not_found' in slice) return {path, owners: [], testRefs: []};
-    const owners = (slice.focus.owners ?? []).map((id) => ownerOf(id, byId));
-    return {path, owners, testRefs: slice.test_refs};
-  });
+  const allChanged = changedPaths(cwd, baseRef);
+  const codeChanges: CodeChangeInput[] = allChanged
+    .filter(isReviewableSourcePath)
+    .map((path) => {
+      const slice = buildImpactSlice(spec, path);
+      if ('not_found' in slice) return {path, owners: [], testRefs: []};
+      const owners = (slice.focus.owners ?? []).map((id) => ownerOf(id, byId));
+      return {path, owners, testRefs: slice.test_refs};
+    });
 
-  return {specChanges: manifest, codeChanges, ledgerEmpty, gate: gatherGateState(cwd)};
+  const specEntries = collectSpecEntryRevisions(cwd, baseRef);
+  return {
+    specChanges: manifest,
+    codeChanges,
+    ledgerEmpty,
+    gate: gatherGateState(cwd),
+    specEntries,
+    changedPaths: allChanged,
+    missingTestRefs: absentTestRefs(cwd, specEntries),
+  };
 }
 
 /** Handler for `clad report --since <ref> [--format md|sarif|json]`. */
@@ -184,13 +226,26 @@ export function runReportCommand(opts: ReportCommandOptions): void {
       const {findings} = runDrift({cwd});
       out = `${JSON.stringify(toSarif(findings), null, 2)}\n`;
     } else {
-      const manifest = collectChangelog(cwd, sinceRef);
+      // Anchor on the FORK POINT, not the ref's tip (AC-1a6cb22f). Diffing two
+      // tips charges the base branch's own commits to the range under review;
+      // on a live repository that misattributed four untouched features. A
+      // shallow clone (CI checks out at depth 1) has no merge base, so the
+      // helper falls back to the ref itself and the packet still renders
+      // (AC-4b6fe145).
+      const baseRef = mergeBaseWithHead(cwd, sinceRef);
+      // Disclose the base only when it is a DIFFERENT commit from the one the
+      // reader named. `resolveRefToCommit` peels annotated tags, so this is a
+      // commit-to-commit comparison — comparing the ref NAME to a sha would
+      // announce a difference on every linear range.
+      const sinceSha = resolveRefToCommit(cwd, sinceRef);
+      const disclosedBase = sinceSha !== null && sinceSha !== baseRef ? baseRef : undefined;
+      const manifest = collectChangelog(cwd, baseRef);
       const spec = loadSpec(cwd);
-      const model = buildReportModel(gatherInputs(cwd, spec, sinceRef, manifest));
+      const model = buildReportModel(gatherInputs(cwd, spec, baseRef, manifest));
       out =
         format === 'json'
-          ? `${JSON.stringify({since: sinceRef, head: manifest.head, ...model}, null, 2)}\n`
-          : `${renderReportMarkdown(model, {sinceRef, head: manifest.head})}\n`;
+          ? `${JSON.stringify({since: sinceRef, base: baseRef, head: manifest.head, ...model}, null, 2)}\n`
+          : `${renderReportMarkdown(model, {sinceRef, ...(disclosedBase ? {baseSha: disclosedBase} : {}), head: manifest.head})}\n`;
     }
     // Set exitCode and let the event loop DRAIN stdout instead of process.exit():
     // the packet can exceed the 64KB pipe buffer, and a forced exit truncates a

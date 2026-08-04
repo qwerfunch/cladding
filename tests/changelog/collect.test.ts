@@ -16,7 +16,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {collectChangelog, defaultSinceRef} from '../../src/changelog/collect.js';
+import {collectChangelog, collectSpecEntryRevisions, defaultSinceRef} from '../../src/changelog/collect.js';
 
 function git(dir: string, args: readonly string[]): string {
   return execFileSync('git', [...args], {cwd: dir, encoding: 'utf8'});
@@ -206,5 +206,190 @@ describe('changelog/collect', () => {
       const ids = group.features.map((f) => f.id);
       expect(ids).toEqual([...ids].sort());
     }
+  });
+});
+
+describe('AC-a2278f11 · every touched spec entry, regardless of status', () => {
+  let dir: string;
+
+  /** A spec entry with an arbitrary criterion list — the shard() helper pins one AC. */
+  function entryWith(
+    file: string,
+    id: string,
+    status: string,
+    acs: readonly {id: string; text: string; ears?: string}[],
+  ): void {
+    writeFileSync(
+      join(dir, 'spec', 'features', file),
+      [
+        `id: ${id}`,
+        `slug: ${file.replace(/-[a-f0-9]+\.yaml$/, '')}`,
+        `title: "Entry ${id}"`,
+        `status: ${status}`,
+        'acceptance_criteria:',
+        ...acs.flatMap((a) => [
+          `  - id: ${a.id}`,
+          `    ears: ${a.ears ?? 'ubiquitous'}`,
+          `    text: "${a.text}"`,
+        ]),
+        '',
+      ].join('\n'),
+    );
+  }
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'clad-entryrev-'));
+    initRepo(dir);
+    mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
+    specYaml(dir, 2);
+    entryWith('still-planned-aaa001.yaml', 'F-aaa001', 'planned', [
+      {id: 'AC-000001', text: 'The system shall hold the original promise.'},
+    ]);
+    entryWith('goes-done-bbb002.yaml', 'F-bbb002', 'planned', [
+      {id: 'AC-000002', text: 'The system shall always run the cleanup.', ears: 'state'},
+    ]);
+    commitAll(dir, 'baseline');
+    git(dir, ['tag', 'v0']);
+  });
+
+  afterEach(() => {
+    rmSync(dir, {recursive: true, force: true});
+  });
+
+  test('an entry that stays planned is carried, though the changelog drops it', () => {
+    entryWith('still-planned-aaa001.yaml', 'F-aaa001', 'planned', [
+      {id: 'AC-000001', text: 'The system shall hold a REVISED promise.'},
+    ]);
+    commitAll(dir, 'refine while planned');
+
+    // The changelog is a shipped-changes filter: no lifecycle transition, no entry.
+    const shipped = collectChangelog(dir, 'v0').groups.flatMap((g) => g.features).map((f) => f.id);
+    expect(shipped).not.toContain('F-aaa001');
+
+    // The review packet's population must still see it.
+    const revs = collectSpecEntryRevisions(dir, 'v0');
+    expect(revs.map((r) => r.id)).toContain('F-aaa001');
+  });
+
+  test('both revisions of the criteria come back, so a rewrite is computable', () => {
+    entryWith('goes-done-bbb002.yaml', 'F-bbb002', 'done', [
+      {id: 'AC-000002', text: 'The system shall never run the cleanup.', ears: 'unwanted'},
+    ]);
+    commitAll(dir, 'flip the contract and mark done');
+
+    const rev = collectSpecEntryRevisions(dir, 'v0').find((r) => r.id === 'F-bbb002');
+    expect(rev?.statusBefore).toBe('planned');
+    expect(rev?.statusAfter).toBe('done');
+    expect(rev?.baseAcs[0]?.text).toContain('always run the cleanup');
+    expect(rev?.headAcs[0]?.text).toContain('never run the cleanup');
+    expect(rev?.baseAcs[0]?.ears).toBe('state');
+    expect(rev?.headAcs[0]?.ears).toBe('unwanted');
+  });
+
+  test('an entry added within the range has no base revision', () => {
+    entryWith('fresh-ccc003.yaml', 'F-ccc003', 'in_progress', [
+      {id: 'AC-000003', text: 'The system shall be new here.'},
+    ]);
+    commitAll(dir, 'add an entry');
+
+    const rev = collectSpecEntryRevisions(dir, 'v0').find((r) => r.id === 'F-ccc003');
+    expect(rev?.statusBefore).toBeNull();
+    expect(rev?.baseAcs).toEqual([]);
+    expect(rev?.headAcs).toHaveLength(1);
+  });
+
+  test('a deleted entry keeps its base revision and reports no head status', () => {
+    rmSync(join(dir, 'spec', 'features', 'still-planned-aaa001.yaml'));
+    commitAll(dir, 'remove an entry');
+
+    const rev = collectSpecEntryRevisions(dir, 'v0').find((r) => r.id === 'F-aaa001');
+    expect(rev?.statusAfter).toBeNull();
+    expect(rev?.baseAcs).toHaveLength(1);
+    expect(rev?.headAcs).toEqual([]);
+  });
+
+  test('an untouched entry is absent — the range, not the whole spec', () => {
+    entryWith('goes-done-bbb002.yaml', 'F-bbb002', 'done', [
+      {id: 'AC-000002', text: 'The system shall always run the cleanup.', ears: 'state'},
+    ]);
+    commitAll(dir, 'touch only one entry');
+
+    expect(collectSpecEntryRevisions(dir, 'v0').map((r) => r.id)).toEqual(['F-bbb002']);
+  });
+
+  test('results sort by feature id and repeat byte-identically', () => {
+    entryWith('zeta-zzz009.yaml', 'F-zzz009', 'planned', [{id: 'AC-000009', text: 'Z.'}]);
+    entryWith('still-planned-aaa001.yaml', 'F-aaa001', 'in_progress', [
+      {id: 'AC-000001', text: 'The system shall hold the original promise.'},
+    ]);
+    commitAll(dir, 'two entries');
+
+    const once = collectSpecEntryRevisions(dir, 'v0');
+    expect(once.map((r) => r.id)).toEqual(['F-aaa001', 'F-zzz009']);
+    expect(JSON.stringify(once)).toBe(JSON.stringify(collectSpecEntryRevisions(dir, 'v0')));
+  });
+
+  test('an unresolvable ref is an error, never a silently empty population', () => {
+    expect(() => collectSpecEntryRevisions(dir, 'no-such-ref')).toThrow(/does not resolve/);
+  });
+});
+
+describe('AC-a2278f11 · both sides are REVISIONS, not the working tree', () => {
+  let dir: string;
+
+  function entry(file: string, id: string, status: string, text: string): void {
+    writeFileSync(
+      join(dir, 'spec', 'features', file),
+      [
+        `id: ${id}`,
+        'slug: thing',
+        `title: "Entry ${id}"`,
+        `status: ${status}`,
+        'acceptance_criteria:',
+        '  - id: AC-000001',
+        '    ears: ubiquitous',
+        `    text: "${text}"`,
+        '',
+      ].join('\n'),
+    );
+  }
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'clad-rev-'));
+    initRepo(dir);
+    mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
+    specYaml(dir, 1);
+    entry('thing-aaa001.yaml', 'F-aaa001', 'planned', 'The system shall do the original thing.');
+    commitAll(dir, 'baseline');
+    git(dir, ['tag', 'v0']);
+    entry('thing-aaa001.yaml', 'F-aaa001', 'done', 'The system shall do the REVISED thing.');
+    commitAll(dir, 'revise and finish');
+  });
+
+  afterEach(() => {
+    rmSync(dir, {recursive: true, force: true});
+  });
+
+  test('an uncommitted edit cannot hide a rewrite that IS in the range', () => {
+    const committed = collectSpecEntryRevisions(dir, 'v0');
+    expect(committed[0]?.headAcs[0]?.text).toContain('REVISED');
+
+    // Revert the text in the working tree WITHOUT committing. The range still
+    // contains the rewrite, so the answer must not move.
+    entry('thing-aaa001.yaml', 'F-aaa001', 'done', 'The system shall do the original thing.');
+    const dirty = collectSpecEntryRevisions(dir, 'v0');
+    expect(dirty[0]?.headAcs[0]?.text, 'a dirty tree changed what the range says').toContain('REVISED');
+    expect(JSON.stringify(dirty)).toBe(JSON.stringify(committed));
+  });
+
+  test('an uncommitted edit cannot invent a rewrite the range never made', () => {
+    const committed = collectSpecEntryRevisions(dir, 'v0');
+    entry('thing-aaa001.yaml', 'F-aaa001', 'done', 'The system shall do something ELSE entirely.');
+    expect(JSON.stringify(collectSpecEntryRevisions(dir, 'v0'))).toBe(JSON.stringify(committed));
+  });
+
+  test('an uncommitted status flip cannot manufacture a done transition', () => {
+    entry('thing-aaa001.yaml', 'F-aaa001', 'archived', 'The system shall do the REVISED thing.');
+    expect(collectSpecEntryRevisions(dir, 'v0')[0]?.statusAfter).toBe('done');
   });
 });
