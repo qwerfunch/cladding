@@ -91,3 +91,31 @@ export function resolveRefToCommit(cwd: string, ref: string): string | null {
 export function refExists(cwd: string, ref: string): boolean {
   return resolveRefToCommit(cwd, ref) !== null;
 }
+
+/**
+ * Resolves the merge base of `ref` and HEAD — the commit where the branch under
+ * review actually diverged — falling back to `ref` itself when git cannot
+ * compute one.
+ *
+ * WHY this matters for a review packet: comparing two tips instead of the fork
+ * point charges the BASE branch's own commits to the range under review. On a
+ * live repository that misattributed four untouched features as "code changed
+ * with no spec movement" — the loudest verdict the packet can print.
+ *
+ * WHY it must degrade rather than fail: `git merge-base` exits non-zero on a
+ * shallow clone (CI checks out at depth 1) and on unrelated histories. A packet
+ * that refuses to render there would be worse than one anchored slightly wide,
+ * so the raw ref is the fallback and rendering always proceeds. Never throws.
+ */
+export function mergeBaseWithHead(cwd: string, ref: string): string {
+  try {
+    const sha = execFileSync('git', ['merge-base', ref, 'HEAD'], {
+      cwd,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    return sha.length > 0 ? sha : ref;
+  } catch {
+    return ref;
+  }
+}

@@ -46,8 +46,13 @@ const PSEUDO_REF_PREFIXES = ['derived:', 'fixture:', 'script:', 'self-dogfood:']
  * Normalises a test_ref to its file path, or null when it is a pseudo-ref.
  * Real refs look like `tests/foo.test.ts#a test name` — the `#anchor` (the
  * vitest test title) is dropped so all refs to the same file collapse to one key.
+ *
+ * Exported as the single normalizer every consumer shares: the review packet
+ * needs the same pseudo-ref/anchor handling to tell "a declared test that did
+ * not change" apart from "no real test declared at all", and a second private
+ * copy of this rule would drift from the citation index it must agree with.
  */
-function testRefPath(ref: string): string | null {
+export function testRefPath(ref: string): string | null {
   for (const prefix of PSEUDO_REF_PREFIXES) {
     if (ref.startsWith(prefix)) return null;
   }

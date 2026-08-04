@@ -11,9 +11,10 @@
 // This is the polyglot adapter: cladding itself stays language-agnostic;
 // the *user project* decides which language tools run.
 
-import {existsSync, readFileSync, readdirSync} from 'node:fs';
+import {existsSync, readFileSync, readdirSync, statSync} from 'node:fs';
 import type {Dirent} from 'node:fs';
-import {join} from 'node:path';
+import {dirname, join, resolve} from 'node:path';
+import process from 'node:process';
 
 import {kotlinCoverageTask} from './coverage-tool.js';
 import type {Language, Toolchain, ToolchainGates, ToolSpec} from './types.js';
@@ -46,6 +47,7 @@ interface PackageManifest {
   readonly peerDependencies?: Readonly<Record<string, string>>;
   readonly eslintConfig?: unknown;
   readonly jest?: unknown;
+  readonly madge?: unknown;
 }
 
 /** npx must resolve only already-installed/cacheable tools and never touch the network. */
@@ -364,10 +366,155 @@ const ESLINT_CONFIGS: readonly string[] = [
   '.eslintrc.yml',
 ];
 
-/** Reads package.json once for gate refinement; malformed input declares nothing. */
+/**
+ * Generated build output, excluded from the circular-dependency scan (AC-caa9471d).
+ *
+ * A bundler's output legitimately contains mutual imports — that is what bundling
+ * produces — so scanning it reports cycles that exist in no hand-written file. On one
+ * adopter this blocked the gate five times, every one of them inside a version-ignored
+ * bundle; the recorded root cause was wrong and the issue stayed open for sixteen days.
+ *
+ * Two anchorings, because the names differ in how ambiguous they are:
+ *
+ *   - `dist`, `coverage` and the framework caches are excluded at ANY depth. A
+ *     monorepo package or a front-end subdirectory keeps its bundle one level down
+ *     (`frontend/dist`), and a root-only anchor left exactly those still blocking
+ *     the gate. No repository on hand commits hand-written source under these names.
+ *   - `build`, `out` and `target` stay anchored at the repository root: they DO name
+ *     real source directories often enough (`src/build/…`) that excluding them at
+ *     depth would silently drop hand-written code from the scan — a false negative,
+ *     which is the one outcome worse than a false RED.
+ */
+const BUILD_OUTPUT_EXCLUDE =
+  '(^|/)(dist|coverage|\\.next|\\.nuxt|\\.output|\\.svelte-kit|\\.vite)/|^(build|out|target)/';
+
+/**
+ * Every path madge's config loader consults, in its own order.
+ *
+ * Read off `rc` (madge/bin/cli.js:7) rather than assumed: `/etc/madge/config`
+ * and `/etc/madgerc` on POSIX, four `$HOME` locations, then the EXACT name
+ * `.madgerc` walked upward from cwd to the filesystem root. Only that one
+ * filename is ever read — `.madgerc.json` / `.js` / `.yaml` are not madge
+ * config at all, and treating them as such silently disabled the exclusion.
+ */
+function madgeConfigPaths(cwd: string): readonly string[] {
+  const paths: string[] = [];
+  const win = process.platform === 'win32';
+  if (!win) paths.push(join('/etc', 'madge', 'config'), join('/etc', 'madgerc'));
+  const home = win ? process.env.USERPROFILE : process.env.HOME;
+  if (home) {
+    paths.push(
+      join(home, '.config', 'madge', 'config'),
+      join(home, '.config', 'madge'),
+      join(home, '.madge', 'config'),
+      join(home, '.madgerc'),
+    );
+  }
+  // The upward walk is the half a cwd-only check misses — and missing it is the
+  // damaging direction: we would send `--exclude`, madge would REPLACE the
+  // user's rules with ours, and cycles they had suppressed would block the gate.
+  for (let dir = resolve(cwd); ; ) {
+    paths.push(join(dir, '.madgerc'));
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  const envConfig = process.env.MADGE_config ?? process.env.madge_config;
+  if (envConfig) paths.push(envConfig);
+  return paths;
+}
+
+/**
+ * True when the environment itself sets madge's exclusion.
+ *
+ * `rc` folds any `madge_*` variable into the config (case-insensitively), so
+ * `madge_excludeRegExp=^vendor/` is a live rule with no file behind it. Missing
+ * it is the damaging direction: cladding would send its own `--exclude`, which
+ * REPLACES rather than merges, and the user's rule would vanish.
+ */
+function envDeclaresMadgeExclude(): boolean {
+  for (const [key, value] of Object.entries(process.env)) {
+    if (!/^madge_excluderegexp/i.test(key)) continue;
+    if (typeof value === 'string' && value.trim().length > 0) return true;
+  }
+  return false;
+}
+
+/**
+ * True when this config file actually puts an exclusion in force.
+ *
+ * Presence is not enough, and neither is the key: an empty `.madgerc`, one
+ * carrying only `detectiveOptions` (madge's own README recipe), and one whose
+ * `excludeRegExp` is `[]`, `null`, `""` or `false` all configure no exclusion —
+ * standing down for any of them leaves build output blocking the gate while
+ * cladding believes the project has it handled.
+ *
+ * So the test is the EFFECTIVE value, read the way rc reads the file: JSON
+ * first, ini second. Only an unreadable file returns true unconditionally.
+ */
+function hasEffectiveExclude(value: unknown): boolean {
+  if (Array.isArray(value)) return value.length > 0;
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+/**
+ * A light `excludeRegExp` probe for the ini form rc also accepts. Deliberately
+ * narrow — one key, `name = value` or `name[] = value` — because the only
+ * question is whether a non-empty value is set, and pulling in a full ini
+ * parser to answer it would be more surface than the answer is worth.
+ */
+const INI_EXCLUDE = /^[ \t]*excludeRegExp[ \t]*(?:\[[^\]]*\])?[ \t]*=[ \t]*(\S.*?)[ \t]*$/m;
+
+/** True only for an existing regular file — a directory carries no config. */
+function isFile(p: string): boolean {
+  try {
+    return statSync(p).isFile();
+  } catch {
+    return false;
+  }
+}
+
+function declaresMadgeExclude(file: string): boolean {
+  let body: string;
+  try {
+    body = readFileSync(file, 'utf8');
+  } catch {
+    // Present but unreadable: we cannot tell, so leave the project alone.
+    return true;
+  }
+  try {
+    return hasEffectiveExclude((JSON.parse(body) as {excludeRegExp?: unknown}).excludeRegExp);
+  } catch {
+    // Not JSON. rc also reads ini, so look for the key there before concluding
+    // anything — a file we cannot read as either sets no exclusion, exactly as
+    // it sets none for madge.
+    return INI_EXCLUDE.test(body);
+  }
+}
+
+/** True when the project itself has a madge exclusion in force. */
+function madgeExclusionInForce(cwd: string, pkg: PackageManifest): boolean {
+  // `package.json#madge` is read from cwd only (madge/bin/cli.js:63) — no walk.
+  const inline = pkg.madge as {excludeRegExp?: unknown} | undefined;
+  if (inline && typeof inline === 'object' && hasEffectiveExclude(inline.excludeRegExp)) return true;
+  if (envDeclaresMadgeExclude()) return true;
+  // A path that is a DIRECTORY is not a config: rc's walk stops there and reads
+  // nothing, so no exclusion is in force and our default should still apply.
+  return madgeConfigPaths(cwd).some((p) => isFile(p) && declaresMadgeExclude(p));
+}
+
+/**
+ * Reads package.json once for gate refinement; malformed input declares nothing.
+ *
+ * The BOM strip is not cosmetic: madge reads this file with `require()`, which
+ * tolerates a byte-order mark, while `JSON.parse` throws on it. Without this,
+ * a BOM'd manifest made cladding blind to a `madge` block madge itself honours
+ * — and since madge REPLACES exclusions rather than merging them, cladding
+ * would then delete the user's rule.
+ */
 function readPackageManifest(cwd: string): PackageManifest {
   try {
-    return JSON.parse(readFileSync(join(cwd, 'package.json'), 'utf8')) as PackageManifest;
+    return JSON.parse(readFileSync(join(cwd, 'package.json'), 'utf8').replace(/^\uFEFF/, '')) as PackageManifest;
   } catch {
     return {};
   }
@@ -383,6 +530,35 @@ function packageScript(pkg: PackageManifest, name: string): string | undefined {
 function hasPackageDependency(pkg: PackageManifest, name: string): boolean {
   return [pkg.dependencies, pkg.devDependencies, pkg.optionalDependencies, pkg.peerDependencies]
     .some((group) => group?.[name] !== undefined);
+}
+
+/**
+ * The TS/JS architecture gate, with build output excluded unless the project
+ * configures the scanner itself (AC-caa9471d, AC-554d9436).
+ *
+ * The guard is not politeness — madge REPLACES its configured `excludeRegExp`
+ * with the command-line flag rather than merging the two (madge/bin/cli.js:97).
+ * Passing ours unconditionally would silently delete an adopter's own rules,
+ * including the workaround one adopter is currently relying on. When they have
+ * an exclusion in force we stay out of the way; otherwise we supply the default.
+ *
+ * "In force" is decided by CONTENT and over madge's WHOLE search path, not by a
+ * filename in cwd: the loader walks `.madgerc` up to the filesystem root and
+ * reads `$HOME` and `/etc` too, so a cwd-only check would send `--exclude` to a
+ * user whose rules live one directory up and turn their green gate red.
+ *
+ * The scan ROOT is deliberately left at `.` (AC-c04171bd): narrowing it to a
+ * named source directory was measured to be worse than the defect it fixes —
+ * a missing root makes madge exit with ENOENT, which classifies as a scanner
+ * setup gap (advisory), so the whole stage skips and the gate goes green having
+ * checked nothing.
+ */
+function resolveTsArch(cwd: string, base: ToolSpec, pkg: PackageManifest): ToolSpec {
+  if (madgeExclusionInForce(cwd, pkg)) return base;
+  const args = [...base.args];
+  // Before the trailing scan root, so the root stays last as madge expects.
+  args.splice(args.length - 1, 0, '--exclude', BUILD_OUTPUT_EXCLUDE);
+  return {...base, args};
 }
 
 /** The project's declared TS/JS lint gate, or undefined when lint is unconfigured. */
@@ -455,7 +631,10 @@ function withoutGate(base: ToolchainGates, gate: 'lint' | 'coverage'): Toolchain
 function resolveTsGates(cwd: string, base: ToolchainGates): ToolchainGates {
   const pkg = readPackageManifest(cwd);
   const lint = base.lint ? resolveTsLint(cwd, base.lint, pkg) : undefined;
-  let out: ToolchainGates = lint ? {...base, lint} : withoutGate(base, 'lint');
+  const withArch: ToolchainGates = base.arch
+    ? {...base, arch: resolveTsArch(cwd, base.arch, pkg)}
+    : base;
+  let out: ToolchainGates = lint ? {...withArch, lint} : withoutGate(withArch, 'lint');
   const testScript = packageScript(pkg, 'test');
   const runner = testScript ? simpleTestRunner(testScript) : undefined;
 

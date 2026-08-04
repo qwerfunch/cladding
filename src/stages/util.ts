@@ -65,7 +65,14 @@ export function classifyScannerExit(
   if (exitCode === 0) return [];
   const stderr = (proc.stderr ?? '').toString().trim();
   const stdout = (proc.stdout ?? '').toString().trim();
-  const detail = (stderr || stdout || `exit ${exitCode}`).slice(0, 200);
+  // BOTH streams, report first. Scanners print their findings to stdout and
+  // their progress to stderr — madge writes "- Finding files" to stderr and the
+  // numbered cycle list to stdout — so taking stderr first handed the developer
+  // a progress line and threw the answer away. A real adopter spent sixteen
+  // days on that and recorded the wrong cause. The budget is generous because
+  // the whole point is the list: one cycle per line, and a truncated list is a
+  // half-answer that still cannot be acted on.
+  const detail = [stdout, stderr].filter((s) => s.length > 0).join('\n').slice(0, 2000) || `exit ${exitCode}`;
   if (SCANNER_SETUP_FAILURE.test(stderr) || SCANNER_SETUP_FAILURE.test(stdout)) {
     return [{detector, severity: 'info', message: skippedMsg(detail)}];
   }
@@ -136,8 +143,11 @@ export function missingToolSkip(
  * only ever mean "skipped". Routing every command stage through here makes that
  * invariant structural rather than per-stage discipline.
  *
- * Diagnostics: surfaces stderr, falling back to stdout — `tsc` writes its
- * diagnostics to stdout, not stderr, so a failing gate still shows WHY.
+ * Diagnostics: BOTH streams, report first. `tsc` writes its diagnostics to
+ * stdout; madge writes its cycle list to stdout and only its progress to
+ * stderr. Preferring stderr therefore surfaced "Processed 9 files (259ms)" and
+ * discarded the answer — the gap that left a real adopter unable to tell WHICH
+ * files formed the loop.
  *
  * @param stage - Ironclad stage id for the result.
  * @param proc - The value returned by `execaSync(…, {reject: false})`.
@@ -148,7 +158,9 @@ export function ranToolResult(
 ): StageResult {
   const ran = proc.exitCode ?? 1;
   if (ran === 0) return {stage, pass: true, exitCode: 0};
-  const detail = String(proc.stderr ?? '').trim() || String(proc.stdout ?? '').trim();
+  const detail = [String(proc.stdout ?? '').trim(), String(proc.stderr ?? '').trim()]
+    .filter((s) => s.length > 0)
+    .join('\n');
   return detail
     ? {stage, pass: false, exitCode: 1, stderr: detail}
     : {stage, pass: false, exitCode: 1};
