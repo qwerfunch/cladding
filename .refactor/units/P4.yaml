@@ -1,0 +1,39 @@
+id: P4
+started: 2026-08-10
+inherits:
+  head: 632b0da
+  tree_clean: true
+touch_allowed:
+  - .refactor/PLAN.md
+  - .refactor/ledger.md
+  - .refactor/units/P4.yaml
+  - .refactor/sim/P4.md
+  - spec.yaml
+  - spec/index.yaml
+  - spec/attestation.yaml
+  - spec/_doc-links.yaml
+  - spec/features/ci-version-pinning-*.yaml
+  - src/cli/ci-version.ts
+  - src/cli/init.ts
+  - src/cli/doctor.ts
+  - tests/cli/ci-version.test.ts
+  - tests/cli/doctor.test.ts
+  - tests/init/git-hook.test.ts
+  - skills/doctor/SKILL.md
+  - plugins/codex/skills/doctor/SKILL.md
+  - plugins/antigravity/skills/doctor/SKILL.md
+  - plugins/claude-code/dist/clad.js
+done_conditions:
+  - {cmd: "npm test -- --run tests/cli/ci-version.test.ts tests/init/git-hook.test.ts tests/cli/doctor.test.ts", expect: "exit 0"}
+  - {cmd: "npm run build:plugin", expect: "exit 0 and source-fresh plugin engine"}
+  - {cmd: "npm test", expect: "exit 0"}
+  - {cmd: "npm run typecheck", expect: "exit 0"}
+  - {cmd: "npm run lint", expect: "exit 0"}
+  - {cmd: "node bin/clad verdict --json", expect: "DONE/green after the P4 feature is earned"}
+  - {cmd: "node bin/clad done <P4 feature id>", expect: "exit 0; status earned as done"}
+  - {cmd: "node bin/clad check --tier=pre-commit", expect: "exit 0"}
+  - {cmd: "node bin/clad check --tier=pre-push --strict", expect: "exit 0"}
+exit:
+  commit: pending
+  verdict: pending
+  residue: pending
