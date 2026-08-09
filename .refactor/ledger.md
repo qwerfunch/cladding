@@ -7,3 +7,4 @@
 | id | status | commit | 날짜 | 결과 |
 |---|---|---|---|---|
 | S1 | DONE | 3c61dfc | 2026-08-10 | 이벤트 로그의 고유 head 251개를 `refs/replay/*`로 고정, 소실 0. 자동 `git gc`로부터 리플레이 코퍼스 보호됨 |
+| S2 | IN_PROGRESS | — | 2026-08-10 | M5 `clad sign-off` 출처 검증 탐침 진행 중 |
