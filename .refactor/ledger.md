@@ -19,3 +19,4 @@
 | P3 | DONE | (이 커밋) | 2026-08-10 | Stop·done·gate blocker와 알려진 실패 종료를 additive telemetry로 기록하고 후속 gate 관측을 doctor에서 집계; 실제 bundle 순차 검증·2834/2834 통과 |
 | P4 | DONE | (이 커밋) | 2026-08-10 | 생성 CI를 runtime major.minor에 고정하고 미고정·floating GitHub Actions를 doctor text/JSON에서 경로별 진단; 실제 bundle·2839/2839 통과 |
 | P5 | DONE | (이 커밋) | 2026-08-10 | strict attestation에 runtime version·blocking mode·detector SHA를 기록하고 init의 index union rule 보존·멱등성을 실제 bundle로 검증; 2845/2845 통과 |
+| P6 | IN_PROGRESS | — | 2026-08-10 | 0.9.4 버전·릴리즈 기록·패키지·PR·배포 의례를 실증하며 진행 중 |
