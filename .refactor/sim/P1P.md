@@ -33,4 +33,10 @@ AGENTS.md가 요구하는 `npm run build:plugin`을 실행하자 manifest 외에
 failed to load\\b.{0,40}\\b(module|rule|plugin|preset|config)|
 ```
 
-근원은 `src/stages/util.ts:56`이고 hook manifest 핀과 무관하다. P1P의 `touch_allowed` 밖이므로 생성된 mirror 변경은 HEAD로 복원했다. P1P는 FAIL로 닫고, P1B에서 bundle 한 파일만 독립 동기화한다.
+P1P의 `touch_allowed` 밖이므로 생성된 mirror 변경은 HEAD로 복원했다. P1P는 FAIL로 닫았다.
+
+## P1B 입장검사에서 정정된 provenance
+
+위 60 bytes가 `src/stages/util.ts:56`에 있다는 최초 해석은 틀렸다. 그 줄의 현재 정규식에는 해당 분기가 없고 repo 전체 canonical source 검색도 0건이었다. 또한 root `/dist/`는 `.gitignore:17`로 제외되어 현재 checkout이나 commit의 정답이 아니다. 반면 `plugins/claude-code/dist/clad.js`는 추적되는 출하 artifact다.
+
+즉 standalone `build:plugin`이 출처 없는 로컬 root bundle을 출하 mirror에 복사한 것이며, plugin mirror를 root에 맞추는 P1B는 잘못된 방향이다. P1B는 제품 파일을 건드리기 전에 KILL한다. P1G가 `build:plugin` 자체를 source-first로 만든 뒤 생성 결과를 다시 측정한다.

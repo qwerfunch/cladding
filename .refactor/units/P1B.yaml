@@ -1,0 +1,19 @@
+id: P1B
+started: null
+inherits:
+  head: 40b323f4069e7228aaab0a9ffdc65d3b55d0deed
+  tree_clean: true
+preconditions:
+  - {cmd: "test \"$(shasum -a 256 dist/clad.js | cut -d' ' -f1)\" = \"664a2fc876b987bea96747a42071d6a959d039aa19cde8d7e188ba1db1bd7c04\"", observed: "exit 0"}
+  - {cmd: "test \"$(shasum -a 256 plugins/claude-code/dist/clad.js | cut -d' ' -f1)\" = \"2e87133715a75f1aa6db43fc84fd3c6f01dd912a4b2a809c24e1bf1e9943596e\"", observed: "exit 0"}
+  - {cmd: "grep -Fq 'failed to load\\b.{0,40}\\b(module|rule|plugin|preset|config)' src/stages/util.ts", observed: "exit 1 — precondition failed"}
+touch_allowed:
+  - .refactor/PLAN.md
+  - .refactor/ledger.md
+  - .refactor/units/P1B.yaml
+  - .refactor/sim/P1P.md
+done_conditions: []
+exit:
+  commit: "(this commit)"
+  verdict: KILLED
+  residue: "No product or generated file changed. P1G must make the standalone build:plugin command rebuild dist/clad.js from source before copying it; an ignored local bundle is not an oracle."

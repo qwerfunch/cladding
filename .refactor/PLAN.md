@@ -101,8 +101,9 @@ exit:
 | S4 | 5b 백테스트 · `repairModules` 정확도 | — | ☠ |
 | P1 | 훅 배선 복구 (캐시가 0.4.0에 멈춘 원인) | S1 | |
 | P1P | Claude 2.1.224 표준 hook 자동발견과 충돌하는 manifest 핀 재협상 | S1 | |
-| P1B | stale Claude plugin engine mirror를 독립 커밋으로 동기화 | S1 | |
-| P1R | 훅 배선 복구 재개 · current checkout cache + 실제 hook 발화 | P1B | |
+| P1B | **KILLED:** root bundle을 정답으로 둔 Claude engine mirror 동기화 | S1 | |
+| P1G | standalone `build:plugin`이 source에서 engine을 먼저 재생성하도록 provenance 복구 | S1 | |
+| P1R | 훅 배선 복구 재개 · current checkout cache + 실제 hook 발화 | P1G | |
 | P2 | `clad doctor` 훅 상태 + `HOST_CLAIM_DRIFT` 신선도 ◆ | P1R | |
 | P3 | 계수기: `stop_blocked` 확장 · `stop_exit_recorded` · `done_attempted.blockers` ◆ | P1R | |
 | P4 | CI 버전 고정 + `doctor` 미고정 경고 ◆ | — | |
@@ -131,7 +132,7 @@ exit:
 
 **P1 핀 발화:** 끊긴 훅의 1차 원인은 `.claude/settings.json`이 plugin만 enable하고 marketplace source를 선언하지 않아, 삭제된 pre-0.9.0 directory source와 0.4.0 cache가 남은 것이다. source를 복구하자 Claude Code 2.1.224가 표준 `hooks/hooks.json`과 manifest의 동일 파일 선언을 중복 로드해 실패했다. `tests/scripts/hooks-config.test.ts`가 그 manifest 필드를 고정하므로 P1 안에서 바꾸지 않는다. P1P가 핀을 독립적으로 재협상한 뒤 P1R에서 실제 cache와 hook 발화를 검증한다. 근거: `.refactor/sim/P1.md`.
 
-**P1P 범위 발화:** manifest 중복 선언 제거 후 actual inline loader는 0.9.3을 정상 load했다. 그러나 필수 `build:plugin`이 별도 source 수정의 60-byte bundle delta를 뒤늦게 발견해 `plugins/claude-code/dist/clad.js`를 변경했다. 핀 변경에 stale engine mirror를 섞지 않고 생성 diff를 되돌렸다. P1B가 bundle mirror 한 파일만 동기화하고 같은 loader 검증을 이어받는다. 근거: `.refactor/sim/P1P.md`.
+**P1P 범위 발화와 P1B 기각:** manifest 중복 선언 제거 후 actual inline loader는 0.9.3을 정상 load했다. 필수 `build:plugin`이 60-byte bundle delta를 만들었지만, 추가 조사에서 root `dist/`는 gitignored이고 그 60 bytes는 현재 source에 존재하지 않았다. 따라서 root bundle을 정답으로 plugin mirror에 복사하는 P1B는 provenance가 반대라 KILL했다. P1G가 standalone `build:plugin` 앞에서 source bundle을 재생성하도록 고친 뒤 P1R에서 실제 cache와 hook 발화를 검증한다. 근거: `.refactor/sim/P1P.md`.
 
 ### S1 — 리플레이 코퍼스 고정 (첫 항목, 마감이 지났다)
 
