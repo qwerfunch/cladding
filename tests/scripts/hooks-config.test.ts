@@ -27,6 +27,13 @@ interface HookEntry {
 const doc = JSON.parse(readFileSync(join(ROOT, 'plugins/claude-code/hooks/hooks.json'), 'utf8')) as {
   hooks: Record<string, readonly HookEntry[]>;
 };
+const projectSettings = JSON.parse(readFileSync(join(ROOT, '.claude/settings.json'), 'utf8')) as {
+  enabledPlugins?: Record<string, boolean>;
+  extraKnownMarketplaces?: Record<string, {
+    source?: {source?: string; path?: string};
+    autoUpdate?: boolean;
+  }>;
+};
 
 describe('claude-code plugin hooks.json — five events wired to the bundled engine', () => {
   test('every key is one of the five events, and all five are present', () => {
@@ -63,5 +70,13 @@ describe('claude-code plugin hooks.json — five events wired to the bundled eng
       readFileSync(join(ROOT, 'plugins/claude-code/.claude-plugin/plugin.json'), 'utf8'),
     ) as {hooks?: string};
     expect(plugin.hooks).toBe('./hooks/hooks.json');
+  });
+
+  test('the dogfood project declares where Claude Code can install the enabled plugin', () => {
+    expect(projectSettings.enabledPlugins?.['claude-code@cladding']).toBe(true);
+    expect(projectSettings.extraKnownMarketplaces?.cladding).toEqual({
+      source: {source: 'directory', path: '.'},
+      autoUpdate: true,
+    });
   });
 });

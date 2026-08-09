@@ -16,8 +16,9 @@ touch_allowed:
   - .refactor/ledger.md
   - .refactor/units/P1.yaml
   - .refactor/sim/P1.md
+  - spec/attestation.yaml
 done_conditions:
-  - {cmd: "node -e \"const s=require('./.claude/settings.json'); const m=s.extraKnownMarketplaces?.cladding; if(s.enabledPlugins?.['claude-code@cladding']!==true||m?.source?.source!=='github'||m.source.repo!=='qwerfunch/cladding')process.exit(1)\"", expect: "exit 0"}
+  - {cmd: "node -e \"const s=require('./.claude/settings.json'); const m=s.extraKnownMarketplaces?.cladding; if(s.enabledPlugins?.['claude-code@cladding']!==true||m?.source?.source!=='directory'||m.source.path!=='.'||m.autoUpdate!==true)process.exit(1)\"", expect: "exit 0"}
   - {cmd: "npx vitest run tests/scripts/hooks-config.test.ts", expect: "exit 0"}
   - {cmd: "claude plugin validate .", expect: "exit 0 with warnings only"}
   - {cmd: "claude plugin list | grep -q 'Version: 0.9.3'", expect: "exit 0"}
@@ -25,6 +26,6 @@ done_conditions:
   - {cmd: "test -f /Users/qwerfunch/.claude/plugins/cache/cladding/claude-code/0.9.3/dist/clad.js", expect: "exit 0"}
   - {cmd: "test -f .refactor/sim/P1.md", expect: "exit 0"}
 exit:
-  commit: pending
-  verdict: pending
-  residue: pending
+  commit: "(this commit)"
+  verdict: FAIL
+  residue: "P1 did not change the manifest or its pin. P1P must remove the duplicate explicit hooks declaration and renegotiate the pin; P1R then re-registers the current checkout and proves a live hook invocation."

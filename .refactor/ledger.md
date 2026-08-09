@@ -10,4 +10,4 @@
 | S2 | KILLED | (이 커밋) | 2026-08-10 | M5 KILL — 로컬 CLI의 TTY·확인 문구·git/OS identity로 사람 출처를 검증할 수 없어 A10·A11을 큐에서 제거함 |
 | S3 | DONE | (이 커밋) | 2026-08-10 | M7 PASS — Jest 30.2.0 all-skipped가 strict Unit을 통과하는 실제 갭 확인; 기존 JSON 파서는 호환되어 A6 Jest 범위 유지 |
 | S4 | DONE | (이 커밋) | 2026-08-10 | 5b PASS — Git rename 기반 module claim 수리 14/14·오탐 0; 실증 없는 basename fallback은 제안-only로 축소 |
-| P1 | IN_PROGRESS | — | 2026-08-10 | Claude Code dogfood marketplace source·0.4.0 cache-miss 원인 수정 및 실제 훅 재가동 검증 중 |
+| P1 | FAIL | (이 커밋) | 2026-08-10 | marketplace source 누락은 확인·수정; Claude 2.1.224의 표준 hook 자동발견과 manifest 중복 선언이 기존 핀 테스트와 충돌해 P1P로 분리 |
