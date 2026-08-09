@@ -1,0 +1,30 @@
+id: P1
+started: 2026-08-10
+inherits:
+  head: e57bd8cef91f20be3e40bcbae40b6489ba0b1747
+  tree_clean: true
+preconditions:
+  - {cmd: "test \"$(node bin/clad --version)\" = \"0.9.3\"", expect: "exit 0"}
+  - {cmd: "node -e \"const s=require('./.claude/settings.json'); if(s.enabledPlugins?.['claude-code@cladding']!==true||s.extraKnownMarketplaces)process.exit(1)\"", expect: "exit 0"}
+  - {cmd: "test ! -e /Users/qwerfunch/.claude/plugins/cladding", expect: "exit 0"}
+  - {cmd: "claude plugin list | grep -q 'Version: 0.4.0'", expect: "exit 0"}
+  - {cmd: "claude plugin list | grep -q 'cache-miss'", expect: "exit 0"}
+touch_allowed:
+  - .claude/settings.json
+  - tests/scripts/hooks-config.test.ts
+  - .refactor/PLAN.md
+  - .refactor/ledger.md
+  - .refactor/units/P1.yaml
+  - .refactor/sim/P1.md
+done_conditions:
+  - {cmd: "node -e \"const s=require('./.claude/settings.json'); const m=s.extraKnownMarketplaces?.cladding; if(s.enabledPlugins?.['claude-code@cladding']!==true||m?.source?.source!=='github'||m.source.repo!=='qwerfunch/cladding')process.exit(1)\"", expect: "exit 0"}
+  - {cmd: "npx vitest run tests/scripts/hooks-config.test.ts", expect: "exit 0"}
+  - {cmd: "claude plugin validate .", expect: "exit 0 with warnings only"}
+  - {cmd: "claude plugin list | grep -q 'Version: 0.9.3'", expect: "exit 0"}
+  - {cmd: "test -f /Users/qwerfunch/.claude/plugins/cache/cladding/claude-code/0.9.3/hooks/hooks.json", expect: "exit 0"}
+  - {cmd: "test -f /Users/qwerfunch/.claude/plugins/cache/cladding/claude-code/0.9.3/dist/clad.js", expect: "exit 0"}
+  - {cmd: "test -f .refactor/sim/P1.md", expect: "exit 0"}
+exit:
+  commit: pending
+  verdict: pending
+  residue: pending
