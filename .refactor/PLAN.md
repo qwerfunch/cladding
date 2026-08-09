@@ -300,7 +300,7 @@ Part A의 32개 변경 중 **21개는 코드 한 줄 쓰기 전에 go/no-go가 �
 | **M3** | `gateFooter` 프로파일 전환이 가능한가 | `tests/stages/interactive-profile-partition.test.ts`가 **출하된 피처의 AC**로 "`profile:'interactive'`를 쓰는 `src/` 파일 집합 == `['src/cli/hook.ts']`"와 "`server.ts`는 매치되면 안 된다"를 단언한다. 헤더는 gateFooter를 **의도적** full-suite 소비자로 명시 | 2b는 튜닝 노브가 아니라 **스펙 개정**이다. 개정을 구현 앞에 두거나 드롭 |
 | **M4** | 증거 생산자가 라벨을 뒤집는가 | `computeIndependence`는 `author==='human'` **또는** `blind===true`일 때만 `independent`. **`'tool'`은 어느 쪽에도 없다.** `human` 생산자는 트리에 0개, `blind` 생산자는 호스트가 넘긴 값을 그대로 전달하는 한 곳뿐 | **6a는 감사 흔적일 뿐 `require`를 만족시키지 못한다.** M5가 검증 가능한 6b 출처를 기각했으므로 6b와 단독으로 낼 수 없는 7d를 함께 큐에서 제거한다 |
 | **M6** | 죽은 코드 3종의 스펙 결합 | `preamble.ts`는 F-041의 선언 모듈이자 F-063의 `test_ref` 대상이고 attestation에 해시돼 있다. `PERSONA_PROMPT_ALIASES`는 `server.ts:2019`에서 살아 있고 테스트가 고정한다. `token_budget_per_session`은 types·schema·`update.ts`와 자기 spec.yaml에 살아 있다 | **삭제가 아니라 스펙 아카이브**(`modules: []` + `superseded_by`) + 와이어 노출 1건은 별도 폐기 절차 |
-| **M7** | jest 공허 가드가 실제 갭인가 | 미실행 — 출하 코드에 대한 순수 함수 검사, 1시간 | 4b가 4시간짜리 플래그 확장인지 며칠짜리 파서인지, 그리고 **갭이 존재하기는 하는지**를 결정 |
+| **M7** | jest 공허 가드가 실제 갭인가 | **PASS** — Jest 30.2.0의 all-skipped suite는 exit 0 / `1 skipped, 1 total`이고 현재 strict Unit stage도 `{pass:true, exitCode:0}`으로 놓친다. native Jest JSON은 기존 pass-count 파서가 0으로 해석했다. 근거: `.refactor/sim/M7.md` | A6의 Jest 범위를 유지한다. 새 파서가 아니라 Jest JSON reporter 배선이 본체이며, macOS `/tmp` canonical path 정규화 E2E를 포함한다 |
 | **M5** | `clad sign-off`의 비대화형 거부 | **KILL** — 호스트 에이전트가 PTY를 할당하고 대화형 확인에 직접 답할 수 있으며, git/OS identity도 같은 프로세스가 상속한다. 근거: `.refactor/sim/M5.md` | 로컬 CLI 안의 TTY·확인 문구·git author로는 사람 출처를 검증할 수 없다. A10·A11 제거; CLI-only `independence_policy: require`는 만족 불가로 유지 |
 
 ### 출하 후에만 알 수 있는 것 (대리 지표를 만들지 않는다)

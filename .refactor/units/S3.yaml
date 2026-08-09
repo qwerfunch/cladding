@@ -19,6 +19,6 @@ done_conditions:
   - {cmd: "grep -c '^VERDICT: ' .refactor/sim/M7.md", expect: "1"}
   - {cmd: "grep -qE '`[^`]+:[0-9]+`' .refactor/sim/M7.md", expect: "exit 0"}
 exit:
-  commit: pending
-  verdict: pending
-  residue: pending
+  commit: "(this commit)"
+  verdict: PASS
+  residue: "A6 must wire Jest JSON output into the existing parser and cover macOS /tmp -> /private/tmp canonical-path normalization; implementation intentionally deferred to A6."
