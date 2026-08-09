@@ -116,15 +116,15 @@ exit:
 | A7 | CI `--tier=all --strict` + `blind-author`에서 `Bash` 제거 ◆ | A5 | |
 | A8 | `depends_on` writer ◆ | RF1 | |
 | A9 | `repairModules` ◆ | A8, S4 | |
-| A10 | 증거 생산자 + 커밋 원장 ◆ | RF1, S2 | |
-| A11 | `claimed_blind` — **A10과 같은 릴리즈** ◆ | A10 | |
 | A12 | 활성화 문장 18개 삭제 ◆ | RF1 | |
 | A13 | `POLICY_LINE` 삭제 · `feature-cycle.md` 재작성 ◆ | A12 | |
 | A14 | `CONTEXT_LINE` → 밀어주는 슬라이스 (Tier-A 스펙 편집) ◆ | A13, P3 | |
 | RF2 | 리팩토링 2~7단계 (U-20~U-81) | RF1 | |
-| A15 | **0.10.0 릴리즈** [사람] | A1~A14, RF2 | |
+| A15 | **0.10.0 릴리즈** [사람] | A1~A9, A12~A14, RF2 | |
 
 **항목별 상세**(preconditions / actions / done_conditions / rollback)는 `RF*`는 **부록 B**, 나머지는 **부록 A**의 해당 Phase 절에 있다. 항목을 집을 때 그 절만 연다.
+
+**S2 KILL 반영:** 로컬 CLI는 같은 OS 사용자·git 설정·PTY를 쓰는 호스트 에이전트와 사람을 구분할 신뢰 경계가 없다. 따라서 A10·A11은 큐에서 빠졌다. `independence_policy: require`는 CLI-only 환경에서 만족 불가하며, 기존 실증은 `docs/dogfood/e2e-role-contract-2026-07-24.md:82-94`와 `docs/refinement-backlog.md:29-30`에 남아 있다. 재개 조건은 호스트가 서명한 실제 사용자 응답이나 사용자 현존을 강제하는 하드웨어 서명처럼 CLI 프로세스 밖의 검증 가능한 출처가 생기는 것이다.
 
 ### S1 — 리플레이 코퍼스 고정 (첫 항목, 마감이 지났다)
 
@@ -298,10 +298,10 @@ Part A의 32개 변경 중 **21개는 코드 한 줄 쓰기 전에 go/no-go가 �
 | **M1** | 같은 커밋에서 GREEN이 났는가 | 블록 헤드 **40/48(블록 77/89)** 이 같은 커밋에서 strict GREEN `gate_run`을 갖는다. 즉 커밋된 트리를 리플레이하면 차단이 아니라 통과가 재현된다 — **차단을 만든 발견은 작업 트리에 있었고 git에는 없다.** EXACT 상한 56.2% | **48-헤드 리플레이 드라이버를 짓지 않는다**(1일 + 아암당 20~40분 절약). 1b·1c·1e는 Phase 0의 계수기 뒤로 |
 | **M2** | LRU 지문 집합의 실측 이득 | 설계가 명시한 *"실패 0이면 비움"* 을 모델에 넣으면 **상한 5부터 89까지 결과가 동일**하고 현재 대비 개선은 **11일간 +2회**. 게다가 16회 중 14회가 **커밋을 넘나드는 해제**(간격 최대 3.9일) | **LRU를 짓지 않는다.** `stop_exit_recorded`만 먼저 내보내고 실제 해제 데이터로 재결정 |
 | **M3** | `gateFooter` 프로파일 전환이 가능한가 | `tests/stages/interactive-profile-partition.test.ts`가 **출하된 피처의 AC**로 "`profile:'interactive'`를 쓰는 `src/` 파일 집합 == `['src/cli/hook.ts']`"와 "`server.ts`는 매치되면 안 된다"를 단언한다. 헤더는 gateFooter를 **의도적** full-suite 소비자로 명시 | 2b는 튜닝 노브가 아니라 **스펙 개정**이다. 개정을 구현 앞에 두거나 드롭 |
-| **M4** | 증거 생산자가 라벨을 뒤집는가 | `computeIndependence`는 `author==='human'` **또는** `blind===true`일 때만 `independent`. **`'tool'`은 어느 쪽에도 없다.** `human` 생산자는 트리에 0개, `blind` 생산자는 호스트가 넘긴 값을 그대로 전달하는 한 곳뿐 | **6a는 감사 흔적일 뿐 `require`를 만족시키지 못한다.** 그리고 7d가 `blind`를 강등하면 6b가 나오기 전까지 `independent` 생산자가 **0이 된다** → **7d와 6b는 같은 릴리즈** |
+| **M4** | 증거 생산자가 라벨을 뒤집는가 | `computeIndependence`는 `author==='human'` **또는** `blind===true`일 때만 `independent`. **`'tool'`은 어느 쪽에도 없다.** `human` 생산자는 트리에 0개, `blind` 생산자는 호스트가 넘긴 값을 그대로 전달하는 한 곳뿐 | **6a는 감사 흔적일 뿐 `require`를 만족시키지 못한다.** M5가 검증 가능한 6b 출처를 기각했으므로 6b와 단독으로 낼 수 없는 7d를 함께 큐에서 제거한다 |
 | **M6** | 죽은 코드 3종의 스펙 결합 | `preamble.ts`는 F-041의 선언 모듈이자 F-063의 `test_ref` 대상이고 attestation에 해시돼 있다. `PERSONA_PROMPT_ALIASES`는 `server.ts:2019`에서 살아 있고 테스트가 고정한다. `token_budget_per_session`은 types·schema·`update.ts`와 자기 spec.yaml에 살아 있다 | **삭제가 아니라 스펙 아카이브**(`modules: []` + `superseded_by`) + 와이어 노출 1건은 별도 폐기 절차 |
 | **M7** | jest 공허 가드가 실제 갭인가 | 미실행 — 출하 코드에 대한 순수 함수 검사, 1시간 | 4b가 4시간짜리 플래그 확장인지 며칠짜리 파서인지, 그리고 **갭이 존재하기는 하는지**를 결정 |
-| **M5** | `clad sign-off`의 비대화형 거부 | 미실행, 1시간 | 프로그램에서 **배관이 아니라 출처를 검사하는 유일한 항목.** 없으면 7d+6b는 검증 불가능한 자기 신고를 다른 자기 신고로 바꾼 것에 불과하다 |
+| **M5** | `clad sign-off`의 비대화형 거부 | **KILL** — 호스트 에이전트가 PTY를 할당하고 대화형 확인에 직접 답할 수 있으며, git/OS identity도 같은 프로세스가 상속한다. 근거: `.refactor/sim/M5.md` | 로컬 CLI 안의 TTY·확인 문구·git author로는 사람 출처를 검증할 수 없다. A10·A11 제거; CLI-only `independence_policy: require`는 만족 불가로 유지 |
 
 ### 출하 후에만 알 수 있는 것 (대리 지표를 만들지 않는다)
 
@@ -373,18 +373,17 @@ cladding 규약 준수: 한 번에 한 기능 엔드투엔드, 해시 id, 코드
 - **`repairModules`** 를 `repairTestRefs` 옆에 — 리네임 레코드(`git diff -M`) 우선, 유일 basename 폴백, 모호하면 추측 금지. (리팩토링 프로그램의 선행 조건이기도 함.)
 - `ac.notes` 근거 탐지기는 **연기**. 대신 README:31 문구를 강제되는 절반으로 좁힌다.
 
-### Phase 6 — 증거에 생산자를, 그다음 자리를
-**순서가 중요하다. 생산자 없이 파일만 옮기면 커밋되는 빈 디렉터리가 생긴다.**
-- `clad done`이 GREEN일 때 `tool` 증거 1건 자동 기록 — **단 이건 감사 흔적일 뿐 독립성 라벨을 바꾸지 못한다.** `computeIndependence`는 `human` 또는 `blind`만 보고 `'tool'`은 어느 쪽에도 없다(M4). `require`를 만족시키는 건 아래 `sign-off`다.
-- 신규 `clad sign-off <F-id>` — **`human` 증거의 유일한 생산자**, identity는 git author. 이게 있어야 `independence_policy: require`가 통과 가능한 정책이 된다. **비대화형 실행에서는 거부해야 한다**(M5) — 그렇지 않으면 검증 불가능한 자기 신고를 다른 자기 신고로 바꾼 것에 불과하다.\n- **Phase 7의 `claimed_blind`(7d)와 반드시 같은 릴리즈로.** 7d가 `blind` 자기 신고를 강등하면 `sign-off`가 나오기 전까지 `independent` 생산자가 0이 된다.
-- 원장을 **`spec/evidence/<feature-id>.jsonl`** 피처별 샤드로(+`.gitattributes` union 백스톱). `Evidence.featureId`가 필수라 샤딩이 전면적이고, 해시 샤드를 채택한 이유가 그대로 적용된다. `readEvidence`는 시그니처 유지, 구 경로는 `clad sync`가 한 번 접어 넣는다.
+### Phase 6 — KILLED: 검증 가능한 사람 출처가 없다
+M5는 로컬 CLI가 사람과 같은 OS 사용자·git 설정·PTY를 쓰는 호스트 에이전트를 구분하지 못함을 확인했다. TTY 검사, 대화형 확인 문구, git author 어느 것도 `identity.author: human`의 출처를 증명하지 않는다. 따라서 `clad sign-off`, 그것을 전제로 한 증거 생산자/커밋 원장(A10), 그리고 함께 출하해야 했던 `claimed_blind`(A11)는 0.10.0 큐에서 제거한다. `independence_policy: require`는 CLI-only 환경에서 만족 불가로 유지한다.
+
+재개하려면 CLI 프로세스가 스스로 만들 수 없는 증명이 필요하다. 허용 후보는 인증된 호스트가 서명한 실제 사용자 응답 또는 사용자 현존을 요구하는 하드웨어 서명이며, 단순 환경 변수·TTY·일회용 문구·git/OS 계정은 포함하지 않는다.
 
 ### Phase 7 — 규칙은 한 번만, 도달하는 곳에서만
 - **활성화 문장 18개 전부 삭제.** 호스트 조건부 파이프라인은 짓지 않는다. 선행 조건: 기존 호스트별 활성화 픽스처를 스펙 없는 프로젝트에 한 번 돌려 자가 활성화가 없는지 확인.
 - **`POLICY_LINE` 삭제.** **`CONTEXT_LINE`은 삭제하지 않고 밀어주는 슬라이스로 교체** — README는 주입을 팔지 당김을 종용하지 않는다. Tier-A 스펙 편집이라 planner를 거치고 Phase 0 이후에.
 - **MCP 검색 지시 4곳은 유지** — 값싸고 헤지돼 있으며 결함은 데이터 쪽(Phase 5)이었다.
 - `docs/feature-cycle.md`를 5조건 **결과 계약**으로 재작성해 관리 블록에 넣는다(`docs/`는 npm으로 셔츠되지 않는다).
-- `recordOracle`/`independence.ts`가 LLM 자기 신고 `blind`를 **`claimed_blind`** 로 기록 — 절대 `independent`를 얻지 못한다.
+- `recordOracle`의 LLM 자기 신고 `blind` 강등은 M5 KILL로 큐에서 제거됐다. 검증 가능한 대체 출처 없이 단독 출하하면 `independent` 생산자가 0이 되므로 시행하지 않는다.
 - **`PreCompact` 훅 추가**로 ~400B 상태 카드 재방출.
 
 ### Phase 8 — 보류, 계수기로 개폐
