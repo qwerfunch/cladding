@@ -1,0 +1,45 @@
+id: P5
+started: 2026-08-10
+inherits:
+  head: a72bebb
+  tree_clean: true
+touch_allowed:
+  - .refactor/PLAN.md
+  - .refactor/ledger.md
+  - .refactor/units/P5.yaml
+  - .refactor/sim/P5.md
+  - docs/spec-ids-multi-dev.md
+  - spec.yaml
+  - spec/index.yaml
+  - spec/attestation.yaml
+  - spec/_doc-links.yaml
+  - spec/features/attestation-policy-stamp-*.yaml
+  - src/spec/attestation.ts
+  - src/cli/clad.ts
+  - src/cli/init.ts
+  - tests/spec/attestation-policy.test.ts
+  - tests/cli/gate-golden-matrix.test.ts
+  - tests/cli/init.test.ts
+  - skills/check/SKILL.md
+  - skills/init/SKILL.md
+  - plugins/codex/skills/check/SKILL.md
+  - plugins/codex/skills/init/SKILL.md
+  - plugins/antigravity/skills/check/SKILL.md
+  - plugins/antigravity/skills/init/SKILL.md
+  - plugins/claude-code/commands/init.md
+  - plugins/claude-code/dist/clad.js
+  - plugins/gemini-cli/commands/init.toml
+done_conditions:
+  - {cmd: "npm test -- --run tests/spec/attestation-policy.test.ts tests/cli/gate-golden-matrix.test.ts tests/cli/init.test.ts", expect: "exit 0"}
+  - {cmd: "npm run build:plugin", expect: "exit 0 and source-fresh plugin artifacts"}
+  - {cmd: "npm test", expect: "exit 0"}
+  - {cmd: "npm run typecheck", expect: "exit 0"}
+  - {cmd: "npm run lint", expect: "exit 0"}
+  - {cmd: "node bin/clad verdict --json", expect: "DONE/green after the P5 feature is earned"}
+  - {cmd: "node bin/clad done <P5 feature id>", expect: "exit 0; status earned as done"}
+  - {cmd: "node bin/clad check --tier=pre-commit", expect: "exit 0"}
+  - {cmd: "node bin/clad check --tier=pre-push --strict", expect: "exit 0"}
+exit:
+  commit: pending
+  verdict: pending
+  residue: pending

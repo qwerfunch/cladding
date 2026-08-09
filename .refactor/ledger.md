@@ -18,3 +18,4 @@
 | P2 | DONE | (이 커밋) | 2026-08-10 | 실제 bundle 5종 hook pulse·package-less cache·doctor text/JSON 검증; matrix 신선도 info; 2828/2828·verdict DONE·strict gate GREEN |
 | P3 | DONE | (이 커밋) | 2026-08-10 | Stop·done·gate blocker와 알려진 실패 종료를 additive telemetry로 기록하고 후속 gate 관측을 doctor에서 집계; 실제 bundle 순차 검증·2834/2834 통과 |
 | P4 | DONE | (이 커밋) | 2026-08-10 | 생성 CI를 runtime major.minor에 고정하고 미고정·floating GitHub Actions를 doctor text/JSON에서 경로별 진단; 실제 bundle·2839/2839 통과 |
+| P5 | IN_PROGRESS | — | 2026-08-10 | attestation에 검증 정책 identity를 도장하고 init이 index용 merge attribute를 안전하게 쓰도록 구현 중 |
