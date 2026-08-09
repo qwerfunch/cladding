@@ -14,4 +14,4 @@
 | P1P | FAIL | (이 커밋) | 2026-08-10 | inline loader는 정상화됐으나 build:plugin이 허용 밖 stale engine mirror 60-byte delta를 발견해 P1B로 분리 |
 | P1B | KILLED | (이 커밋) | 2026-08-10 | precondition 반증 — root dist는 gitignored이고 60-byte delta가 source에 없어 plugin mirror의 정답으로 사용할 수 없음 |
 | P1G | DONE | (이 커밋) | 2026-08-10 | build:plugin을 source-first로 복구; root 결손 양성 대조·2회 결정성·plugin byte parity·actual loader 모두 통과 |
-| P1R | IN_PROGRESS | — | 2026-08-10 | current checkout marketplace 재등록·0.9.3 cache 설치·실제 SessionStart hook 발화 검증 중 |
+| P1R | DONE | (이 커밋) | 2026-08-10 | project 0.9.3 cache·hooks·engine parity 복구; cached SessionStart exit 0/context card/session_card_rendered 실증 |

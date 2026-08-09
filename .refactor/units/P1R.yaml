@@ -25,6 +25,6 @@ done_conditions:
   - {cmd: "grep -q 'cladding' /tmp/cladding-p1r-session-card.txt", expect: "exit 0"}
   - {cmd: "test -f .refactor/sim/P1R.md", expect: "exit 0"}
 exit:
-  commit: pending
-  verdict: pending
-  residue: pending
+  commit: "(this commit)"
+  verdict: PASS
+  residue: "The separate logcat-on project still intentionally retains its out-of-scope 0.4.0 project install. Claude Code must start a new session to pick up the recovered cladding project plugin automatically."
