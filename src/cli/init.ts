@@ -34,6 +34,7 @@ import {
 } from './scan/intent-onboarding.js';
 import type {ScanLlmDispatcher} from './scan/llm.js';
 import {captureArtifactDigests, loadState, saveState, type OnboardingState} from './scan/onboarding-state.js';
+import {claddingMajorMinor} from './ci-version.js';
 import {detectToolchain} from '../stages/toolchain/detect.js';
 import {writeSpecDrivenAgentsMd} from '../init/agents-md.js';
 import {getCurrentCladdingVersion, getLastSetupVersion} from '../init/host-setup.js';
@@ -267,13 +268,32 @@ function appendIfMissing(gitignorePath: string, marker: string, line: string): b
 }
 
 
-/** F-16746b — the authoritative gate: client hooks are per-dev bypassable
- * (--no-verify is printed in the hook body itself); CI + branch protection is
- * where enforcement is real. Scaffolds a starting-point workflow the user
- * owns afterwards; never overwrites an existing file. */
-export function scaffoldCiWorkflow(cwd: string): 'created' | 'exists' {
+/**
+ * Scaffolds the authoritative, release-line-pinned GitHub Actions gate.
+ *
+ * Client hooks are per-developer and bypassable; CI plus branch protection is
+ * where enforcement is real. The generated workflow becomes user-owned and is
+ * never overwritten.
+ *
+ * @param cwd - Project root in which `.github/workflows` will be inspected.
+ * @param version - Running Cladding SemVer; defaults to the discovered runtime.
+ * @returns Whether the workflow was created, already existed, or lacked a safe pin.
+ * @throws Only for filesystem write failures.
+ * @example
+ * ```ts
+ * scaffoldCiWorkflow('/workspace', '0.9.3');
+ * ```
+ * @see spec/features/ci-version-pinning-abd10f3c.yaml AC-84011597
+ * @since 0.9.4
+ */
+export function scaffoldCiWorkflow(
+  cwd: string,
+  version: string | null = getCurrentCladdingVersion(),
+): 'created' | 'exists' | 'version-unavailable' {
   const path = join(cwd, '.github', 'workflows', 'cladding.yml');
   if (existsSync(path)) return 'exists';
+  const selector = claddingMajorMinor(version);
+  if (selector === null) return 'version-unavailable';
   mkdirSync(join(cwd, '.github', 'workflows'), {recursive: true});
   writeFileSync(
     path,
@@ -295,7 +315,7 @@ export function scaffoldCiWorkflow(cwd: string): 'created' | 'exists' {
       '      - uses: actions/setup-node@v4',
       '        with: {node-version: 22}',
       '      - run: npm ci || npm install',
-      '      - run: npx --yes cladding check --tier=pre-push --strict --json',
+      `      - run: npx --yes cladding@${selector} check --tier=pre-push --strict --json`,
       '',
     ].join('\n'),
     'utf8',
@@ -660,11 +680,13 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
   }
 
   if (opts.withCi) {
-    const ci = scaffoldCiWorkflow(cwd);
+    const ci = scaffoldCiWorkflow(cwd, pkgVersion);
     if (ci === 'created') {
       created.push('.github/workflows/cladding.yml (clad check --tier=pre-push --strict — the authoritative gate)');
     } else if (ci === 'exists') {
       skipped.push('.github/workflows/cladding.yml already exists — cladding never overwrites a CI workflow');
+    } else {
+      skipped.push('--with-ci: current Cladding version unavailable — no unpinned CI workflow was written');
     }
   }
 

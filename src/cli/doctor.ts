@@ -30,6 +30,7 @@ import {
   type EventCounts,
 } from '../core/telemetry-summary.js';
 import {HOOK_EVENTS, readHookHealth, type HookEventName, type HookHealthReport} from './hook-health.js';
+import {readCiVersionHealth, type CiVersionHealth} from './ci-version.js';
 
 export interface DoctorCommandOptions {
   readonly cwd?: string;
@@ -46,6 +47,8 @@ export interface DoctorReport {
   readonly governance: GovernanceSummary;
   /** Runtime evidence from the bounded Claude Code hook-health snapshot. */
   readonly hooks: HookHealthReport;
+  /** Read-only diagnosis of floating Cladding package selectors in CI. */
+  readonly ciVersion: CiVersionHealth;
 }
 
 export interface GovernanceSummary {
@@ -100,7 +103,8 @@ export function runDoctorCommand(opts: DoctorCommandOptions = {}): void {
   const sentinelMiss = summarizeSentinelMisses(events);
   const governance = summarizeGovernance(cwd, events);
   const hooks = readHookHealth(cwd);
-  const report: DoctorReport = {cwd, events: eventCounts, sentinelMiss, governance, hooks};
+  const ciVersion = readCiVersionHealth(cwd);
+  const report: DoctorReport = {cwd, events: eventCounts, sentinelMiss, governance, hooks, ciVersion};
 
   if (opts.json) {
     process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
@@ -115,6 +119,7 @@ export function runDoctorCommand(opts: DoctorCommandOptions = {}): void {
       'no events recorded yet — run `clad init --scan` or a stage to populate .cladding/events.log.jsonl',
     );
     renderHookHealth(report.hooks);
+    renderCiVersionHealth(report.ciVersion);
     process.exit(0);
     return;
   }
@@ -142,6 +147,7 @@ function renderTextReport(report: DoctorReport): void {
   }
 
   renderHookHealth(report.hooks);
+  renderCiVersionHealth(report.ciVersion);
 
   // F-95a096 — the governance ledger, readable without parsing JSONL by hand.
   // Rendered before the sentinel-miss early return: gate/done/stop state is
@@ -190,6 +196,15 @@ function renderTextReport(report: DoctorReport): void {
 
   process.stdout.write('\n');
   process.stdout.write('Tune your host: raise max_tokens, switch model, or check MCP transport health.\n');
+}
+
+function renderCiVersionHealth(health: CiVersionHealth): void {
+  if (health.unpinnedWorkflows.length === 0) return;
+  process.stdout.write('\nCI version pinning\n');
+  for (const path of health.unpinnedWorkflows) {
+    process.stdout.write(`  ⚠ ${path}: npx Cladding package is unpinned or floating\n`);
+  }
+  process.stdout.write('  Pin it to the running major.minor release, for example `cladding@0.9`.\n');
 }
 
 const HOOK_LABELS: Readonly<Record<HookEventName, string>> = {

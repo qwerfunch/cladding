@@ -34,6 +34,10 @@ done_conditions:
   - {cmd: "node bin/clad check --tier=pre-commit", expect: "exit 0"}
   - {cmd: "node bin/clad check --tier=pre-push --strict", expect: "exit 0"}
 exit:
-  commit: pending
-  verdict: pending
-  residue: pending
+  commit: (this commit)
+  verdict: PASS
+  residue:
+    - Existing workflows remain user-owned and are never rewritten; doctor reports the paths only.
+    - The major.minor selector intentionally accepts patch updates within the release line.
+    - Diagnosis covers GitHub Actions npx Cladding package calls; indirect actions and other CI/package managers are outside P4.
+    - P6 still owns the actual 0.9.4 version bump and the README test-count refresh from 2815 to 2839.

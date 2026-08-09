@@ -108,7 +108,7 @@ attested_modules:
   skills/check/SKILL.md: 6a665422af510e72
   skills/checkpoint/SKILL.md: f723e8cfb8286a64
   skills/clarify/SKILL.md: 5d08bbb821258d03
-  skills/doctor/SKILL.md: 4131ef5598780bc8
+  skills/doctor/SKILL.md: e530159f5d3a7864
   skills/init/SKILL.md: 5529b13d0f1ab4bf
   skills/oracle/SKILL.md: 11e111ac0a4963c1
   skills/rollback/SKILL.md: d472dc3a562b347b
@@ -117,7 +117,7 @@ attested_modules:
   skills/serve/SKILL.md: f08bbdbbfeb05041
   skills/status/SKILL.md: 09faadc50b3449da
   skills/sync/SKILL.md: 775c0f990a52a3d9
-  spec.yaml: 57bc49eff90c029c
+  spec.yaml: b710a0111312a6d3
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -150,10 +150,11 @@ attested_modules:
   src/cli: a4d0f0eb87fed960
   src/cli/benchmark.ts: 77f84d2a898d724f
   src/cli/changelog.ts: 2de1adb009b89ab4
+  src/cli/ci-version.ts: 9fce2c2d7415b4ca
   src/cli/clad.ts: a0fc8b23feb0dd21
   src/cli/clarify.ts: f17177969d5b75ff
   src/cli/doctor-hosts.ts: 1f0c2cec5a310b81
-  src/cli/doctor.ts: b6635c15846ed790
+  src/cli/doctor.ts: ae209b607848a8a2
   src/cli/done.ts: 4a5dd13769252f51
   src/cli/enforcement-advisory.ts: 395c5be696e88b5c
   src/cli/graph-serve.ts: 23e6e389225d0f98
@@ -161,7 +162,7 @@ attested_modules:
   src/cli/hook-health.ts: e103afb67ecde8bb
   src/cli/hook.ts: 59a2f8dbcfbd2c60
   src/cli/host-onboarding.ts: b046571d4be7280c
-  src/cli/init.ts: 91cf7be2b7427fbf
+  src/cli/init.ts: 2ee09e50d3bb7f13
   src/cli/intent-from-path.ts: e69862821d979f22
   src/cli/measure.ts: 3a562f16589e26c2
   src/cli/report.ts: ee7d35b6c36dfa76
@@ -350,7 +351,7 @@ attested_modules:
   tests/conformance/registry.test.ts: 018b1e5c0d8d4baf
   tests/drive/loop.test.ts: ae49bcfa745a8cdb
   tests/events/log.test.ts: 221f74acfdb7f7c0
-  tests/init/git-hook.test.ts: cef479cfb759bbe8
+  tests/init/git-hook.test.ts: 6e43b2a970e5c39b
   tests/integration/loop-real-transport.test.ts: 7bd5bfa97eca28c6
   tests/integration/multi-dev-merge.test.ts: 1ba5aef6c649b6c7
   tests/optimizer/preamble.test.ts: 806d479c41473d22
@@ -638,6 +639,7 @@ attested_features:
   F-a4b512: ok
   F-a5228c: ok
   F-aa7197: ok
+  F-abd10f3c: ok
   F-ae61c1: ok
   F-aee1da: ok
   F-aee61f: ok

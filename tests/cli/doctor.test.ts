@@ -43,6 +43,11 @@ function seedHookHealth(cwd: string): void {
   );
 }
 
+function seedWorkflow(cwd: string, name: string, body: string): void {
+  mkdirSync(join(cwd, '.github', 'workflows'), {recursive: true});
+  writeFileSync(join(cwd, '.github', 'workflows', name), body, 'utf8');
+}
+
 describe('clad doctor handler', () => {
   let dir: string;
   let exitCalls: number[];
@@ -154,6 +159,7 @@ describe('clad doctor handler', () => {
       PostToolUse: '2026-08-10T00:05:00.000Z',
       Stop: null,
     });
+    expect(parsed.ciVersion).toEqual({unpinnedWorkflows: []});
     // The formatted-text surface (pulse line, "Sentinel-miss breakdown")
     // is suppressed under --json so callers parse the JSON cleanly.
     expect(out).not.toContain('Sentinel-miss breakdown');
@@ -168,6 +174,31 @@ describe('clad doctor handler', () => {
     expect(parsed.sentinelMiss.byPhase).toEqual({});
     expect(parsed.hooks.installation).toBe('not-observed');
     expect(Object.values(parsed.hooks.lastFiredAt)).toEqual([null, null, null, null, null]);
+    expect(parsed.ciVersion).toEqual({unpinnedWorkflows: []});
+  });
+
+  test('reports unpinned CI in text and JSON without failing', () => {
+    seedWorkflow(dir, 'release.yml', 'steps:\n  - run: npx --yes cladding check --strict\n');
+    runDoctorCommand({cwd: dir});
+    expect(exitCalls).toEqual([0]);
+    expect(stdoutChunks.join('')).toContain('CI version pinning');
+    expect(stdoutChunks.join('')).toContain('.github/workflows/release.yml');
+    expect(stdoutChunks.join('')).toContain('unpinned or floating');
+
+    exitCalls = [];
+    stdoutChunks = [];
+    runDoctorCommand({cwd: dir, json: true});
+    expect(exitCalls).toEqual([0]);
+    expect(JSON.parse(stdoutChunks.join('')).ciVersion).toEqual({
+      unpinnedWorkflows: ['.github/workflows/release.yml'],
+    });
+  });
+
+  test('keeps pinned CI quiet', () => {
+    seedWorkflow(dir, 'cladding.yaml', 'steps:\n  - run: npx --yes cladding@0.9 check --strict\n');
+    runDoctorCommand({cwd: dir});
+    expect(exitCalls).toEqual([0]);
+    expect(stdoutChunks.join('')).not.toContain('CI version pinning');
   });
 
   test('text mode names observed hook times and stale runtime version without guessing missing events', () => {
