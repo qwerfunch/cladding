@@ -1,0 +1,33 @@
+id: P1G
+started: 2026-08-10
+inherits:
+  head: 2184bee4162298ab904a753b3bbf7999b78df957
+  tree_clean: true
+preconditions:
+  - {cmd: "node -e \"const p=require('./package.json'); if(p.scripts['build:plugin']!=='node scripts/build-plugin.mjs')process.exit(1)\"", expect: "exit 0"}
+  - {cmd: "git check-ignore -q dist/clad.js", expect: "exit 0"}
+  - {cmd: "test \"$(shasum -a 256 dist/clad.js | cut -d' ' -f1)\" = \"664a2fc876b987bea96747a42071d6a959d039aa19cde8d7e188ba1db1bd7c04\"", expect: "exit 0"}
+  - {cmd: "test \"$(shasum -a 256 plugins/claude-code/dist/clad.js | cut -d' ' -f1)\" = \"2e87133715a75f1aa6db43fc84fd3c6f01dd912a4b2a809c24e1bf1e9943596e\"", expect: "exit 0"}
+  - {cmd: "node -e \"const p=require('./plugins/claude-code/.claude-plugin/plugin.json'); if(Object.hasOwn(p,'hooks'))process.exit(1)\"", expect: "exit 0"}
+touch_allowed:
+  - package.json
+  - scripts/build-plugin.mjs
+  - tests/scripts/hooks-config.test.ts
+  - plugins/claude-code/dist/clad.js
+  - .refactor/ledger.md
+  - .refactor/units/P1G.yaml
+  - .refactor/sim/P1G.md
+  - spec/attestation.yaml
+done_conditions:
+  - {cmd: "node -e \"const p=require('./package.json'); if(p.scripts['build:plugin']!=='node scripts/build.mjs && node scripts/build-plugin.mjs')process.exit(1)\"", expect: "exit 0"}
+  - {cmd: "npx vitest run tests/scripts/hooks-config.test.ts", expect: "6 tests passed"}
+  - {cmd: "npm run build:plugin", expect: "exit 0 from a missing dist/clad.js pre-state"}
+  - {cmd: "cmp -s dist/clad.js plugins/claude-code/dist/clad.js", expect: "exit 0"}
+  - {cmd: "npm run build:plugin", expect: "second build has identical root/plugin SHA-256"}
+  - {cmd: "node -e \"const {spawnSync}=require('child_process'); const r=spawnSync('claude',['--plugin-dir','plugins/claude-code','plugin','list'],{encoding:'utf8'}); const b=r.stdout.split('cladding@inline')[1]??''; if(r.status!==0||!/Status: .* loaded/.test(b)||/Duplicate hooks/.test(b))process.exit(1)\"", expect: "exit 0"}
+  - {cmd: "npm test", expect: "249 files and 2817 tests passed"}
+  - {cmd: "test -f .refactor/sim/P1G.md", expect: "exit 0"}
+exit:
+  commit: pending
+  verdict: pending
+  residue: pending

@@ -13,3 +13,4 @@
 | P1 | FAIL | (이 커밋) | 2026-08-10 | marketplace source 누락은 확인·수정; Claude 2.1.224의 표준 hook 자동발견과 manifest 중복 선언이 기존 핀 테스트와 충돌해 P1P로 분리 |
 | P1P | FAIL | (이 커밋) | 2026-08-10 | inline loader는 정상화됐으나 build:plugin이 허용 밖 stale engine mirror 60-byte delta를 발견해 P1B로 분리 |
 | P1B | KILLED | (이 커밋) | 2026-08-10 | precondition 반증 — root dist는 gitignored이고 60-byte delta가 source에 없어 plugin mirror의 정답으로 사용할 수 없음 |
+| P1G | IN_PROGRESS | — | 2026-08-10 | standalone build:plugin의 source-first engine provenance 복구 및 결정성 검증 중 |
