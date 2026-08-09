@@ -20,6 +20,7 @@ import {join} from 'node:path';
 import process from 'node:process';
 
 import {readEvents, type Event} from '../events/log.js';
+import {summarizeStopOutcomes, type StopOutcomeSummary} from '../events/stop-telemetry.js';
 import {attestedFeatureCount, readAttestation} from '../spec/attestation.js';
 import {pulse} from '../ui/pulse.js';
 import {
@@ -53,6 +54,8 @@ export interface GovernanceSummary {
   readonly doneAttempts: number;
   readonly doneRejected: number;
   readonly stopBlocked: number;
+  /** Stop demotions and read-time correlation with later gate fingerprints. */
+  readonly stopOutcomes: StopOutcomeSummary;
   readonly unresolvedStopBlock: boolean;
   readonly attestation: {readonly present: boolean; readonly entries: number};
 }
@@ -68,6 +71,7 @@ function summarizeGovernance(cwd: string, events: readonly Event[]): GovernanceS
     doneAttempts: dones.length,
     doneRejected: dones.filter((e) => e.payload.kept !== true).length,
     stopBlocked: events.filter((e) => e.type === 'stop_blocked').length,
+    stopOutcomes: summarizeStopOutcomes(events),
     unresolvedStopBlock: existsSync(join(cwd, '.cladding', 'stop-block.json')),
     attestation: {present: attested !== null, entries: attested === null ? 0 : attestedFeatureCount(attested)},
   };
@@ -150,6 +154,10 @@ function renderTextReport(report: DoctorReport): void {
   process.stdout.write(`  gate runs: ${g.gateRuns}  (last: ${lastGate})\n`);
   process.stdout.write(`  done attempts: ${g.doneAttempts}  rejected by the gate: ${g.doneRejected}\n`);
   process.stdout.write(`  stop blocks: ${g.stopBlocked}${g.unresolvedStopBlock ? '  ⚠ UNRESOLVED stop-block pending' : ''}\n`);
+  process.stdout.write(
+    `  stop exits recorded: ${g.stopOutcomes.exitsRecorded}  blocked fingerprints later seen by a gate: ` +
+      `${g.stopOutcomes.observedByLaterGate}/${g.stopOutcomes.blocked}\n`,
+  );
   process.stdout.write(
     g.attestation.present
       ? `  attestation: ${g.attestation.entries} feature(s) stamped (spec/attestation.yaml)\n`

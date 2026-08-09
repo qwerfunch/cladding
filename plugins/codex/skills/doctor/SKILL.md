@@ -14,7 +14,7 @@ The text surface prints:
 1. One pulse line with total events and total sentinel-miss count (`pass` when zero misses, `note` otherwise).
 2. An event-type breakdown line (one `<type>=<count>` token per non-zero `EventType`).
 3. Claude Code hook health: whether the runtime has actually been observed, whether the observed engine version matches the current CLI, and the last firing time (or `never observed`) for session start, prompt submit, before edit, after edit, and session stop.
-4. Governance counts for gate runs, done attempts and rejections, stop blocks, and attestation state.
+4. Governance counts for gate runs, done attempts and rejections, stop blocks, known-failing Stop exits, blocked fingerprints reproduced by a later gate, and attestation state.
 5. When sentinel-miss events exist:
    - `by phase` / `by cause` / `by fallback` aggregates from the v0.3.39 telemetry payload.
    - Top-5 missed sentinels (`CONVENTIONS_MD` / `ARCHITECTURE_YAML` / `SCENARIO_FLOWS` / `CAPABILITIES_YAML` / `WHY` / `WHAT` / `PURPOSE`) sorted by count desc, name asc.

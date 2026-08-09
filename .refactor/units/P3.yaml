@@ -12,9 +12,12 @@ touch_allowed:
   - spec.yaml
   - spec/index.yaml
   - spec/attestation.yaml
+  - spec/_doc-links.yaml
   - spec/features/stop-outcome-telemetry-*.yaml
+  - spec/features/lifecycle-events-identity-b84c38.yaml
   - src/events/log.ts
   - src/events/stop-telemetry.ts
+  - src/verdict/gate-progress.ts
   - src/cli/hook.ts
   - src/cli/clad.ts
   - src/cli/done.ts
@@ -40,6 +43,10 @@ done_conditions:
   - {cmd: "node bin/clad check --tier=pre-commit", expect: "exit 0"}
   - {cmd: "node bin/clad check --tier=pre-push --strict", expect: "exit 0"}
 exit:
-  commit: pending
-  verdict: pending
-  residue: pending
+  commit: (this commit)
+  verdict: PASS
+  residue:
+    - README test-count claim 2815 predates the current 2834 tests; release-wide refresh belongs to P6.
+    - Events written before schema 0.9.4 have no blocker evidence and therefore remain conservatively unobserved.
+    - introduced/preexisting compares with the latest observed gate; it is attribution evidence, not session causality.
+    - The 4–6 week or 50-event policy decision remains with A1; P3 only supplies the measurement.

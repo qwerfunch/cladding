@@ -5,6 +5,7 @@
 // gate-golden-matrix pattern so Stop/PostToolUse cases never spawn a
 // toolchain; everything else runs against a throwaway fixture dir.
 
+import {execFileSync} from 'node:child_process';
 import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -277,7 +278,7 @@ describe('Stop — deterministic trio with fingerprint-keyed demotion', () => {
     expect(driftStub).not.toHaveBeenCalled();
   });
 
-  test('fresh failure → block JSON + stop-block.json written + stop_blocked event', () => {
+  test('fresh failure records complete attribution without changing block output', () => {
     driftStub.mockImplementation(() => TWO_FINDINGS);
     const out = runHookEvent('Stop', {stop_hook_active: false}, cwd);
     const doc = JSON.parse(out) as {decision: string; reason: string};
@@ -294,18 +295,50 @@ describe('Stop — deterministic trio with fingerprint-keyed demotion', () => {
     };
     expect(sb.count).toBe(2);
     expect(sb.first).toBe('AC_DRIFT');
-    expect(sb.fingerprint).toMatch(/^[0-9a-f]{64}$/);
+    expect(sb.fingerprint).toBe('d4f74023335b4472084e992a445620d4815574af9ea09a384dcba816910011f1');
     const blocked = readEvents(cwd).filter((e) => e.type === 'stop_blocked');
     expect(blocked).toHaveLength(1);
-    expect(blocked[0].payload.count).toBe(2);
-    expect(blocked[0].payload.fingerprint).toBe(sb.fingerprint);
+    expect(blocked[0].payload).toMatchObject({
+      count: 2,
+      fingerprint: sb.fingerprint,
+      detectors: ['AC_DRIFT', 'MISSING_TESTS'],
+      introduced: 2,
+      preexisting: 0,
+      dirty_hit: false,
+      identity: {author: 'human'},
+    });
   });
 
-  test('identical second run → empty (demoted; no second stop_blocked event)', () => {
+  test('identical second run stays empty and records the known-failing exit', () => {
     driftStub.mockImplementation(() => TWO_FINDINGS);
     expect(runHookEvent('Stop', {stop_hook_active: false}, cwd)).not.toBe('');
     expect(runHookEvent('Stop', {stop_hook_active: false}, cwd)).toBe('');
     expect(readEvents(cwd).filter((e) => e.type === 'stop_blocked')).toHaveLength(1);
+    const exits = readEvents(cwd).filter((e) => e.type === 'stop_exit_recorded');
+    expect(exits).toHaveLength(1);
+    expect(exits[0].payload).toMatchObject({
+      count: 2,
+      detectors: ['AC_DRIFT', 'MISSING_TESTS'],
+      introduced: 2,
+      preexisting: 0,
+      dirty_hit: false,
+    });
+  });
+
+  test('fresh attribution separates latest-gate blockers and marks a dirty finding path', () => {
+    mkdirSync(join(cwd, 'spec', 'features'), {recursive: true});
+    writeFileSync(join(cwd, 'spec', 'features', 'x.yaml'), 'baseline\n', 'utf8');
+    writeFileSync(join(cwd, 'spec', 'features', 'y.yaml'), 'baseline\n', 'utf8');
+    execFileSync('git', ['init', '-q'], {cwd});
+    execFileSync('git', ['add', 'spec.yaml', 'spec/features/x.yaml', 'spec/features/y.yaml'], {cwd});
+    execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-qm', 'baseline'], {cwd});
+    appendEvent(cwd, newEvent('gate_run', {blockers: ['MISSING_TESTS']}));
+    writeFileSync(join(cwd, 'spec', 'features', 'x.yaml'), 'changed\n', 'utf8');
+    driftStub.mockImplementation(() => TWO_FINDINGS);
+
+    expect(runHookEvent('Stop', {stop_hook_active: false}, cwd)).not.toBe('');
+    const blocked = readEvents(cwd).find((event) => event.type === 'stop_blocked');
+    expect(blocked?.payload).toMatchObject({introduced: 1, preexisting: 1, dirty_hit: true});
   });
 
   test('a DIFFERENT failure set re-blocks (fingerprint changed)', () => {

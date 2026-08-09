@@ -35,6 +35,7 @@ import process from 'node:process';
 import {parse as parseYaml} from 'yaml';
 
 import {latestEventOfType, recordEvent, type ImpactSkipReason} from '../events/log.js';
+import {attributeStopFailures} from '../events/stop-telemetry.js';
 import type {Intent} from '../router/intent.js';
 import {suggestIntent} from '../router/intent.js';
 import {runArch} from '../stages/arch.js';
@@ -413,9 +414,20 @@ function runStopGate(input: unknown, cwd: string): string {
   const fingerprint = createHash('sha256')
     .update(failures.map((f) => `${f.detector}|${f.path}`).sort().join('\n'))
     .digest('hex');
+  const priorGate = latestEventOfType(cwd, 'gate_run');
+  const priorBlockers = Array.isArray(priorGate?.payload.blockers)
+    ? priorGate.payload.blockers.filter((value): value is string => typeof value === 'string')
+    : [];
+  const attribution = attributeStopFailures(failures, priorBlockers, gitChangedPaths(cwd) ?? []);
+  const eventPayload = {count: failures.length, fingerprint, ...attribution};
   try {
     const prev = JSON.parse(readFileSync(blockFile, 'utf8')) as {fingerprint?: unknown};
-    if (prev.fingerprint === fingerprint) return ''; // identical → demote; the SessionStart card resurfaces it
+    if (prev.fingerprint === fingerprint) {
+      // F-1aab1bba — the existing demotion remains protocol-silent, but the
+      // known-failing exit now contributes the denominator Stop lacked.
+      recordEvent(cwd, 'stop_exit_recorded', eventPayload);
+      return '';
+    }
   } catch {
     /* no prior block recorded */
   }
@@ -429,7 +441,7 @@ function runStopGate(input: unknown, cwd: string): string {
   } catch {
     /* unwritable state dir → still block; demotion just won't persist */
   }
-  recordEvent(cwd, 'stop_blocked', {count: failures.length, fingerprint});
+  recordEvent(cwd, 'stop_blocked', eventPayload);
   // Plain-first render (F-dd8dc994): a plain English lead per top finding, the
   // machine detail (detector · path) demoted to a parenthetical tail. The host
   // agent renders the user's own language (F-9af291fa). The fingerprint above

@@ -200,9 +200,12 @@ describe('clad doctor handler', () => {
       seedEvents(dir, [
         {id: '1', timestamp: 't1', type: 'gate_run', payload: {tier: 'pre-commit', strict: false, worst: 1, anyFailed: true}},
         {id: '2', timestamp: 't2', type: 'done_attempted', payload: {feature: 'F-aaa111', worst: 1, anyFailed: true, kept: false}},
-        {id: '3', timestamp: 't3', type: 'gate_run', payload: {tier: 'pre-push', strict: true, worst: 0, anyFailed: false}},
-        {id: '4', timestamp: 't4', type: 'done_attempted', payload: {feature: 'F-aaa111', worst: 0, anyFailed: false, kept: true}},
-        {id: '5', timestamp: 't5', type: 'stop_blocked', payload: {count: 2, fingerprint: 'abc'}},
+        // Legacy stop_blocked shape deliberately lacks every additive P3 field.
+        {id: '3', timestamp: 't3', type: 'stop_blocked', payload: {count: 2, fingerprint: 'abc'}},
+        {id: '4', timestamp: 't4', type: 'stop_exit_recorded', payload: {fingerprint: 'abc'}},
+        {id: '5', timestamp: 't5', type: 'gate_run', payload: {tier: 'pre-push', strict: true, worst: 1, anyFailed: true, stopFingerprint: 'abc'}},
+        {id: '6', timestamp: 't6', type: 'gate_run', payload: {tier: 'pre-push', strict: true, worst: 0, anyFailed: false, stopFingerprint: ''}},
+        {id: '7', timestamp: 't7', type: 'done_attempted', payload: {feature: 'F-aaa111', worst: 0, anyFailed: false, kept: true}},
       ]);
     }
 
@@ -218,9 +221,10 @@ describe('clad doctor handler', () => {
       expect(exitCalls).toEqual([0]);
       const out = stdoutChunks.join('');
       expect(out).toContain('Governance (lifecycle ledger)');
-      expect(out).toContain('gate runs: 2  (last: pre-push strict=true → GREEN)');
+      expect(out).toContain('gate runs: 3  (last: pre-push strict=true → GREEN)');
       expect(out).toContain('done attempts: 2  rejected by the gate: 1');
       expect(out).toContain('stop blocks: 1');
+      expect(out).toContain('stop exits recorded: 1  blocked fingerprints later seen by a gate: 1/1');
       expect(out).not.toContain('UNRESOLVED'); // no stop-block.json on disk
       expect(out).toContain('attestation: 2 feature(s) stamped');
     });
@@ -240,16 +244,17 @@ describe('clad doctor handler', () => {
       expect(exitCalls).toEqual([0]);
     });
 
-    test('--json carries the same summary machine-readably', () => {
+    test('governance summary exposes stop outcomes and tolerates legacy events', () => {
       seedGovernance();
       runDoctorCommand({cwd: dir, json: true});
       const parsed = JSON.parse(stdoutChunks.join(''));
       expect(parsed.governance).toEqual({
-        gateRuns: 2,
+        gateRuns: 3,
         lastGate: {tier: 'pre-push', strict: true, worst: 0},
         doneAttempts: 2,
         doneRejected: 1,
         stopBlocked: 1,
+        stopOutcomes: {blocked: 1, exitsRecorded: 1, observedByLaterGate: 1, notObservedByLaterGate: 0},
         unresolvedStopBlock: false,
         attestation: {present: false, entries: 0},
       });
@@ -263,6 +268,12 @@ describe('clad doctor handler', () => {
       expect(parsed.governance.lastGate).toBeNull();
       expect(parsed.governance.doneAttempts).toBe(0);
       expect(parsed.governance.stopBlocked).toBe(0);
+      expect(parsed.governance.stopOutcomes).toEqual({
+        blocked: 0,
+        exitsRecorded: 0,
+        observedByLaterGate: 0,
+        notObservedByLaterGate: 0,
+      });
     });
   });
 });

@@ -29,6 +29,7 @@ import {refineOnboarding, resolveOnboardingReview, runClarifyCommand} from './cl
 import {prepareHostClarify, prepareHostInit, renderHostDraft} from './host-onboarding.js';
 import {getCurrentCladdingVersion, runHostSetup} from '../init/host-setup.js';
 import {recordEvent} from '../events/log.js';
+import {blockingDetectorNames, gateStopFingerprint} from '../events/stop-telemetry.js';
 import {buildContextSlice} from '../optimizer/context-slice.js';
 import {buildImpactSlice} from '../optimizer/reverse-slice.js';
 import {inferDependsOn} from '../optimizer/infer-depends-on.js';
@@ -678,10 +679,18 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
   } else if (anyFailed && !silent) {
     process.stdout.write('\nℹ Run `clad doctor` for the event log, or `clad sync` to check the spec. The findings above say what drifted and why.\n');
   }
-  // F-b84c38 — verification freshness needs a data source: every tier run
-  // lands in the ledger (best-effort, deduped per identical HEAD/tier/strict/
-  // worst tuple so repeated identical runs add no growth). The poll counts too.
-  recordEvent('.', 'gate_run', {tier, strict: opts.strict === true, worst, anyFailed});
+  // F-b84c38 + F-1aab1bba — verification freshness and Stop follow-through
+  // need one gate record. Compact blocker names explain rejected done attempts;
+  // the Stop-compatible trio fingerprint lets read-time analysis determine
+  // whether a prior Stop block was later reproduced by a normal gate.
+  recordEvent('.', 'gate_run', {
+    tier,
+    strict: opts.strict === true,
+    worst,
+    anyFailed,
+    blockers: blockingDetectorNames(collected),
+    stopFingerprint: gateStopFingerprint(collected),
+  });
   return {worst, anyFailed, stages: collected};
 }
 

@@ -16,4 +16,4 @@
 | P1G | DONE | (이 커밋) | 2026-08-10 | build:plugin을 source-first로 복구; root 결손 양성 대조·2회 결정성·plugin byte parity·actual loader 모두 통과 |
 | P1R | DONE | (이 커밋) | 2026-08-10 | project 0.9.3 cache·hooks·engine parity 복구; cached SessionStart exit 0/context card/session_card_rendered 실증 |
 | P2 | DONE | (이 커밋) | 2026-08-10 | 실제 bundle 5종 hook pulse·package-less cache·doctor text/JSON 검증; matrix 신선도 info; 2828/2828·verdict DONE·strict gate GREEN |
-| P3 | IN_PROGRESS | — | 2026-08-10 | Stop·done·gate 차단 계수와 후속 게이트 관측 여부를 additive lifecycle telemetry로 구현 중 |
+| P3 | DONE | (이 커밋) | 2026-08-10 | Stop·done·gate blocker와 알려진 실패 종료를 additive telemetry로 기록하고 후속 gate 관측을 doctor에서 집계; 실제 bundle 순차 검증·2834/2834 통과 |

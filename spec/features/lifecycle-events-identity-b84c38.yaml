@@ -25,17 +25,17 @@ acceptance_criteria:
     response: "every done transition — kept or reverted — is forensic data"
     text: "When runDone attempts a status flip, the system shall append a done_attempted event recording feature id, gate outcome, kept-or-reverted, git HEAD, and identity, so every done transition is forensic data."
     test_refs:
-      - "tests/cli/done.test.ts#records done_attempted with kept:true on a GREEN gate"
-      - "tests/cli/done.test.ts#records done_attempted with kept:false when the gate is RED and the flip reverts"
+      - "tests/cli/done.test.ts#records done_attempted blockers on GREEN and RED gates"
   - id: AC-49da41
     ears: event
     condition: "when runCheckStages completes a tier run"
-    action: "append a gate_run event with tier, strict flag, worst code, anyFailed, git HEAD, and identity — deduplicated when an identical (HEAD, tier, strict, worst) tuple is already the ledger's latest gate_run"
+    action: "append a gate_run event with tier, strict flag, worst code, anyFailed, git HEAD, identity, and compact blocker evidence — deduplicated when the outcome and blocker evidence are identical to the ledger's latest gate_run"
     response: "verification freshness has a data source without unbounded log growth from repeated identical runs"
-    text: "When runCheckStages completes a tier run, the system shall append a gate_run event with tier, strict, worst, anyFailed, git HEAD, and identity, deduplicating when an identical (HEAD, tier, strict, worst) tuple is already the latest gate_run, so verification freshness gains a data source without unbounded growth."
+    text: "When runCheckStages completes a tier run, the system shall append a gate_run event with tier, strict, worst, anyFailed, git HEAD, identity, and compact blocker evidence, deduplicating when the outcome and blocker evidence are identical to the latest gate_run, so verification freshness gains a data source without hiding changed blockers or growing on exact repeats."
     test_refs:
-      - "tests/cli/gate-golden-matrix.test.ts#PINNED (0.6.0): every invocation records exactly one gate_run with tier/strict/worst/anyFailed"
+      - "tests/cli/gate-golden-matrix.test.ts#records compact blocker telemetry without changing the gate matrix"
       - "tests/events/log.test.ts#gate_run dedupes the identical (head, tier, strict, worst) tuple but appends on any change"
+      - "tests/events/log.test.ts#changed blocker evidence is not deduped behind the same red outcome tuple"
   - id: AC-346653
     ears: unwanted
     condition: "if .cladding/events.log.jsonl exceeds the rotation threshold at append time"

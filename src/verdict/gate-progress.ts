@@ -15,8 +15,9 @@
 // state in; the reducer (src/verdict/verdict.ts) takes `stuck` as an input. So
 // the whole thing stays unit-testable in isolation and, critically, the GATE is
 // never touched — verdict computes the fingerprint from the result it already
-// receives (the `gate_run` event is deduped by (head,tier,strict,worst), so two
-// identical stuck runs collapse to ONE event; "stuck" cannot be read from there).
+// receives (the `gate_run` event dedupes identical outcomes plus blocker
+// evidence, so two identical stuck runs collapse to ONE event; "stuck" cannot
+// be read from there).
 //
 // SOUNDNESS (AC-a2320103): the fingerprint hashes ONLY `detector|path`, sorted +
 // deduped — message-free, line-free, temp-path-free. A fingerprint too NARROW

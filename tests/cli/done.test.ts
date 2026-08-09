@@ -355,20 +355,47 @@ describe('runDone ledger emission (F-b84c38)', () => {
   });
   afterEach(() => rmSync(dir, {recursive: true, force: true}));
 
-  test('records done_attempted with kept:true on a GREEN gate', () => {
-    runDone(dir, FEATURE_ID, {checkStages: () => ({worst: 0, anyFailed: false})});
-    const kept = readEvents(dir).filter((e) => e.type === 'done_attempted');
-    expect(kept.length).toBe(1);
-    expect(kept[0].payload).toMatchObject({feature: FEATURE_ID, worst: 0, kept: true});
-    expect((kept[0].payload as {identity?: {author?: string}}).identity?.author).toBe('human');
-  });
+  test('records done_attempted blockers on GREEN and RED gates', () => {
+    runDone(dir, FEATURE_ID, {
+      checkStages: () => ({
+        worst: 0,
+        anyFailed: false,
+        stages: [{stage: 'stage_1.3', status: 'pass'}],
+      }),
+    });
+    writeFileSync(
+      join(dir, 'spec', 'features', 'x-aaaaaa.yaml'),
+      `id: ${FEATURE_ID}\nslug: x\ntitle: t\nstatus: in_progress\n`,
+    );
+    runDone(dir, FEATURE_ID, {
+      checkStages: () => ({
+        worst: 1,
+        anyFailed: true,
+        stages: [
+          {
+            stage: 'stage_1.3',
+            status: 'fail',
+            findings: [
+              {detector: 'MISSING_TESTS', severity: 'error'},
+              {detector: 'FYI', severity: 'info'},
+            ],
+          },
+          {stage: 'stage_2.1', status: 'fail'},
+        ],
+      }),
+    });
 
-  test('records done_attempted with kept:false when the gate is RED and the flip reverts', () => {
-    runDone(dir, FEATURE_ID, {checkStages: () => ({worst: 1, anyFailed: true})});
-    const ev = readEvents(dir).filter((e) => e.type === 'done_attempted');
-    expect(ev.length).toBe(1);
-    expect(ev[0].payload).toMatchObject({feature: FEATURE_ID, worst: 1, kept: false});
-    // and the shard really reverted
+    const events = readEvents(dir).filter((event) => event.type === 'done_attempted');
+    expect(events).toHaveLength(2);
+    expect(events[0].payload).toMatchObject({feature: FEATURE_ID, worst: 0, kept: true, blockers: []});
+    expect(events[1].payload).toMatchObject({
+      feature: FEATURE_ID,
+      worst: 1,
+      kept: false,
+      blockers: ['MISSING_TESTS', 'stage_2.1'],
+    });
+    expect((events[0].payload as {identity?: {author?: string}}).identity?.author).toBe('human');
+    // The red attempt still reverts the shard; telemetry cannot alter policy.
     expect(readFileSync(join(dir, 'spec', 'features', 'x-aaaaaa.yaml'), 'utf8')).toContain('status: in_progress');
   });
 });
