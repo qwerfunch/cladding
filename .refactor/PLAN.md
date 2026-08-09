@@ -101,7 +101,8 @@ exit:
 | S4 | 5b 백테스트 · `repairModules` 정확도 | — | ☠ |
 | P1 | 훅 배선 복구 (캐시가 0.4.0에 멈춘 원인) | S1 | |
 | P1P | Claude 2.1.224 표준 hook 자동발견과 충돌하는 manifest 핀 재협상 | S1 | |
-| P1R | 훅 배선 복구 재개 · current checkout cache + 실제 hook 발화 | P1P | |
+| P1B | stale Claude plugin engine mirror를 독립 커밋으로 동기화 | S1 | |
+| P1R | 훅 배선 복구 재개 · current checkout cache + 실제 hook 발화 | P1B | |
 | P2 | `clad doctor` 훅 상태 + `HOST_CLAIM_DRIFT` 신선도 ◆ | P1R | |
 | P3 | 계수기: `stop_blocked` 확장 · `stop_exit_recorded` · `done_attempted.blockers` ◆ | P1R | |
 | P4 | CI 버전 고정 + `doctor` 미고정 경고 ◆ | — | |
@@ -129,6 +130,8 @@ exit:
 **S2 KILL 반영:** 로컬 CLI는 같은 OS 사용자·git 설정·PTY를 쓰는 호스트 에이전트와 사람을 구분할 신뢰 경계가 없다. 따라서 A10·A11은 큐에서 빠졌다. `independence_policy: require`는 CLI-only 환경에서 만족 불가하며, 기존 실증은 `docs/dogfood/e2e-role-contract-2026-07-24.md:82-94`와 `docs/refinement-backlog.md:29-30`에 남아 있다. 재개 조건은 호스트가 서명한 실제 사용자 응답이나 사용자 현존을 강제하는 하드웨어 서명처럼 CLI 프로세스 밖의 검증 가능한 출처가 생기는 것이다.
 
 **P1 핀 발화:** 끊긴 훅의 1차 원인은 `.claude/settings.json`이 plugin만 enable하고 marketplace source를 선언하지 않아, 삭제된 pre-0.9.0 directory source와 0.4.0 cache가 남은 것이다. source를 복구하자 Claude Code 2.1.224가 표준 `hooks/hooks.json`과 manifest의 동일 파일 선언을 중복 로드해 실패했다. `tests/scripts/hooks-config.test.ts`가 그 manifest 필드를 고정하므로 P1 안에서 바꾸지 않는다. P1P가 핀을 독립적으로 재협상한 뒤 P1R에서 실제 cache와 hook 발화를 검증한다. 근거: `.refactor/sim/P1.md`.
+
+**P1P 범위 발화:** manifest 중복 선언 제거 후 actual inline loader는 0.9.3을 정상 load했다. 그러나 필수 `build:plugin`이 별도 source 수정의 60-byte bundle delta를 뒤늦게 발견해 `plugins/claude-code/dist/clad.js`를 변경했다. 핀 변경에 stale engine mirror를 섞지 않고 생성 diff를 되돌렸다. P1B가 bundle mirror 한 파일만 동기화하고 같은 loader 검증을 이어받는다. 근거: `.refactor/sim/P1P.md`.
 
 ### S1 — 리플레이 코퍼스 고정 (첫 항목, 마감이 지났다)
 

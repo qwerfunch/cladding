@@ -73,7 +73,7 @@ attested_modules:
   docs/ssot-testing.md: abf3b2bd5acb29a1
   package-lock.json: 505b6ea10c37fcf6
   package.json: bc72ea4dbf16fc7d
-  plugins/claude-code/.claude-plugin/plugin.json: e46cfdf3bf480696
+  plugins/claude-code/.claude-plugin/plugin.json: 7b0acca60eed7e1d
   plugins/claude-code/agents/developer.md: 3002b4ef69ddab43
   plugins/claude-code/agents/observability.md: 637fde18c012e2a7
   plugins/claude-code/agents/orchestrator.md: 1b758de0bdab8eb0
