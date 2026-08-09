@@ -72,7 +72,7 @@ attested_modules:
   docs/ssot-model.md: 66b9439e2f71ac4b
   docs/ssot-testing.md: abf3b2bd5acb29a1
   package-lock.json: 505b6ea10c37fcf6
-  package.json: bc72ea4dbf16fc7d
+  package.json: 474809b1150e2171
   plugins/claude-code/.claude-plugin/plugin.json: 7b0acca60eed7e1d
   plugins/claude-code/agents/developer.md: 3002b4ef69ddab43
   plugins/claude-code/agents/observability.md: 637fde18c012e2a7
@@ -98,7 +98,7 @@ attested_modules:
   plugins/gemini-cli/commands/README.md: 3527d771578431bd
   plugins/gemini-cli/commands/init.toml: e7f310fd7af23f95
   plugins/gemini-cli/gemini-extension.json: 082af8a03ae1601d
-  scripts/build-plugin.mjs: 7fabe2b6301b142a
+  scripts/build-plugin.mjs: d171b326ed61f40b
   scripts/build.mjs: 3a4b204063024ef1
   scripts/migrate-dogfood-v0.3.16.mjs: 1e265fb370019996
   scripts/shard-spec.ts: 0c728bbc1e869421

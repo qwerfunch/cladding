@@ -34,6 +34,9 @@ const projectSettings = JSON.parse(readFileSync(join(ROOT, '.claude/settings.jso
     autoUpdate?: boolean;
   }>;
 };
+const packageDoc = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as {
+  scripts?: Record<string, string>;
+};
 
 describe('claude-code plugin hooks.json — five events wired to the bundled engine', () => {
   test('every key is one of the five events, and all five are present', () => {
@@ -78,5 +81,11 @@ describe('claude-code plugin hooks.json — five events wired to the bundled eng
       source: {source: 'directory', path: '.'},
       autoUpdate: true,
     });
+  });
+
+  test('the standalone plugin build regenerates the ignored engine before copying it', () => {
+    expect(packageDoc.scripts?.['build:plugin']).toBe(
+      'node scripts/build.mjs && node scripts/build-plugin.mjs',
+    );
   });
 });

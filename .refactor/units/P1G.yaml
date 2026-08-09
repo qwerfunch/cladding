@@ -28,6 +28,6 @@ done_conditions:
   - {cmd: "npm test", expect: "249 files and 2817 tests passed"}
   - {cmd: "test -f .refactor/sim/P1G.md", expect: "exit 0"}
 exit:
-  commit: pending
-  verdict: pending
-  residue: pending
+  commit: "(this commit)"
+  verdict: PASS
+  residue: "The old untracked root bundle was preserved in ~/.Trash for recovery. P1R still must register the current-checkout marketplace cache and prove a real hook command emits from that installed cache."

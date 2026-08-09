@@ -61,7 +61,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "build": "node scripts/test-count.mjs --check && node scripts/build.mjs && node scripts/build-plugin.mjs",
-    "build:plugin": "node scripts/build-plugin.mjs",
+    "build:plugin": "node scripts/build.mjs && node scripts/build-plugin.mjs",
     "watch": "node --watch-path=./src scripts/build.mjs",
     "version-bump": "node scripts/version-bump.mjs",
     "test-count": "node scripts/test-count.mjs",
