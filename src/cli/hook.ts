@@ -48,6 +48,7 @@ import {estTokens} from '../optimizer/code-excerpt.js';
 import {loadSpec} from '../spec/load.js';
 import {WATCHED_EXTENSIONS} from '../stages/toolchain/language-config.js';
 import {coldStartAdvisory} from './enforcement-advisory.js';
+import {recordHookFiring} from './hook-health.js';
 import {driftNudge, plainFinding, plainLead, stopBlockMessage} from '../ui/softShell.js';
 
 // --- shared helpers ----------------------------------------------------
@@ -1137,6 +1138,10 @@ function runPostToolUseDrift(input: unknown, cwd: string): string {
  */
 export function runHookEvent(event: string, input: unknown, cwd: string): string {
   try {
+    // Record before dispatch so even an internal hook failure remains observable.
+    // Keeping it inside the protocol boundary preserves error-as-silence if the
+    // observer itself ever regresses beyond its best-effort contract.
+    recordHookFiring(cwd, event);
     switch (event) {
       case 'SessionStart': {
         const out = renderSessionStartCard(cwd);

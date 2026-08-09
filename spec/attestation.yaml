@@ -108,7 +108,7 @@ attested_modules:
   skills/check/SKILL.md: 6a665422af510e72
   skills/checkpoint/SKILL.md: f723e8cfb8286a64
   skills/clarify/SKILL.md: 5d08bbb821258d03
-  skills/doctor/SKILL.md: 6581c6c900c72d68
+  skills/doctor/SKILL.md: cb5ad6dee1bc5ca7
   skills/init/SKILL.md: 5529b13d0f1ab4bf
   skills/oracle/SKILL.md: 11e111ac0a4963c1
   skills/rollback/SKILL.md: d472dc3a562b347b
@@ -117,7 +117,7 @@ attested_modules:
   skills/serve/SKILL.md: f08bbdbbfeb05041
   skills/status/SKILL.md: 09faadc50b3449da
   skills/sync/SKILL.md: 775c0f990a52a3d9
-  spec.yaml: 35b159a6c3949112
+  spec.yaml: 48b1b80f4c01ab5a
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -150,15 +150,16 @@ attested_modules:
   src/cli: a4d0f0eb87fed960
   src/cli/benchmark.ts: 77f84d2a898d724f
   src/cli/changelog.ts: 2de1adb009b89ab4
-  src/cli/clad.ts: a02fe02bcb5e942d
+  src/cli/clad.ts: 4e0cb4dbd9d53f39
   src/cli/clarify.ts: f17177969d5b75ff
   src/cli/doctor-hosts.ts: 1f0c2cec5a310b81
-  src/cli/doctor.ts: b98b955fe75e7f7e
+  src/cli/doctor.ts: 33e27b2cec6ccf78
   src/cli/done.ts: b4c8ed409f001487
   src/cli/enforcement-advisory.ts: 395c5be696e88b5c
   src/cli/graph-serve.ts: 23e6e389225d0f98
   src/cli/graph.ts: bab410061b8c746a
-  src/cli/hook.ts: 59d5fddd52d330ac
+  src/cli/hook-health.ts: e103afb67ecde8bb
+  src/cli/hook.ts: c1ae41f6df19d8f6
   src/cli/host-onboarding.ts: b046571d4be7280c
   src/cli/init.ts: 91cf7be2b7427fbf
   src/cli/intent-from-path.ts: e69862821d979f22
@@ -210,7 +211,7 @@ attested_modules:
   src/init/agents-md.ts: 5369a15847ce1ae7
   src/init/git-hook.ts: b77910b0df392cbf
   src/init/host-instructions.ts: c598f8598d8d1cd4
-  src/init/host-setup.ts: 158cc9306a746da1
+  src/init/host-setup.ts: d4d7c55f16e43dc3
   src/optimizer: a4d0f0eb87fed960
   src/optimizer/code-excerpt.ts: e2c4598efcd28d2a
   src/optimizer/context-slice.ts: b5864aaed1e7ae48
@@ -277,7 +278,7 @@ attested_modules:
   src/stages/detectors/hardcoded-secret.ts: d9fb55e3d2e429b6
   src/stages/detectors/harness-integrity.ts: c9717bc296d6c11d
   src/stages/detectors/hollow-governance.ts: 57d3f25c421f993b
-  src/stages/detectors/host-claim-drift.ts: aad755cec4ce24d0
+  src/stages/detectors/host-claim-drift.ts: a03b67342b854bd5
   src/stages/detectors/id-collision.ts: 9292f2dac0578276
   src/stages/detectors/index.ts: bb8d9398ea726cf5
   src/stages/detectors/inferable-depends-on.ts: 29dbc744efe3df00
@@ -622,6 +623,7 @@ attested_features:
   F-96250595: ok
   F-96700032: ok
   F-96d1f69d: ok
+  F-96fa5622: ok
   F-987be195: ok
   F-99c6e5: ok
   F-9a3b61: ok

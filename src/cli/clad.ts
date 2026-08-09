@@ -1321,7 +1321,7 @@ export function createProgram(): Command {
 
   program
     .command('doctor')
-    .description('Summarise .cladding/events.log.jsonl — sentinel-miss frequency by phase/cause/fallback plus the top missed sentinels (LLM dispatcher health check)')
+    .description('Diagnose Claude Code hook liveness/version, lifecycle governance, and LLM dispatcher sentinel misses')
     .option('--cwd <path>', 'project directory to read events from (default cwd)')
     .option('--json', 'emit the raw DoctorReport for tooling; default is the human-readable surface')
     .option('--hosts', 'smoke-test host CLIs (Claude Code / Gemini / Antigravity / Codex / Cursor) and project wiring → dated artifact + docs/dogfood/matrix.md. Live LLM prompts run only with consent (CLAD_HOST_SMOKE=1 or --yes); otherwise not-run')

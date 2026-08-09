@@ -27,6 +27,22 @@ function seedEvents(cwd: string, events: readonly EventLine[]): void {
   }
 }
 
+function seedHookHealth(cwd: string): void {
+  mkdirSync(join(cwd, '.cladding'), {recursive: true});
+  writeFileSync(
+    join(cwd, '.cladding', 'hook-health.json'),
+    `${JSON.stringify({
+      schemaVersion: 1,
+      engineVersion: '0.0.1',
+      lastFiredAt: {
+        SessionStart: '2026-08-10T00:00:00.000Z',
+        PostToolUse: '2026-08-10T00:05:00.000Z',
+      },
+    })}\n`,
+    'utf8',
+  );
+}
+
 describe('clad doctor handler', () => {
   let dir: string;
   let exitCalls: number[];
@@ -60,6 +76,9 @@ describe('clad doctor handler', () => {
     const out = stdoutChunks.join('');
     expect(out).toContain('doctor');
     expect(out).toContain('no events recorded');
+    expect(out).toContain('Claude Code hooks');
+    expect(out).toContain('runtime: not observed');
+    expect(out.match(/never observed/g)).toHaveLength(5);
   });
 
   test('healthy: events but zero sentinel_miss → pass pulse + event-type line + exit 0', () => {
@@ -109,6 +128,7 @@ describe('clad doctor handler', () => {
   });
 
   test('--json: emits the raw DoctorReport and skips the formatted surface', () => {
+    seedHookHealth(dir);
     seedEvents(dir, [
       {id: '1', timestamp: 't', type: 'sentinel_miss', payload: {
         phase: 'scan_artifacts', cause: 'blank_section', fallback: 'per_artifact', missed_sections: ['CAPABILITIES_YAML'],
@@ -124,6 +144,16 @@ describe('clad doctor handler', () => {
     expect(parsed.sentinelMiss.topMissedSections[0]).toEqual({name: 'CAPABILITIES_YAML', count: 1});
     expect(parsed.events.total).toBe(1);
     expect(parsed.events.byType.sentinel_miss).toBe(1);
+    expect(parsed.hooks.installation).toBe('observed');
+    expect(parsed.hooks.recordedVersion).toBe('0.0.1');
+    expect(parsed.hooks.versionCurrent).toBe(false);
+    expect(parsed.hooks.lastFiredAt).toEqual({
+      SessionStart: '2026-08-10T00:00:00.000Z',
+      UserPromptSubmit: null,
+      PreToolUse: null,
+      PostToolUse: '2026-08-10T00:05:00.000Z',
+      Stop: null,
+    });
     // The formatted-text surface (pulse line, "Sentinel-miss breakdown")
     // is suppressed under --json so callers parse the JSON cleanly.
     expect(out).not.toContain('Sentinel-miss breakdown');
@@ -136,6 +166,23 @@ describe('clad doctor handler', () => {
     expect(parsed.events.total).toBe(0);
     expect(parsed.sentinelMiss.total).toBe(0);
     expect(parsed.sentinelMiss.byPhase).toEqual({});
+    expect(parsed.hooks.installation).toBe('not-observed');
+    expect(Object.values(parsed.hooks.lastFiredAt)).toEqual([null, null, null, null, null]);
+  });
+
+  test('text mode names observed hook times and stale runtime version without guessing missing events', () => {
+    seedHookHealth(dir);
+    seedEvents(dir, [
+      {id: '1', timestamp: 't', type: 'feature_checkpoint', payload: {featureId: 'F-001'}},
+    ]);
+    runDoctorCommand({cwd: dir});
+    const out = stdoutChunks.join('');
+    expect(out).toContain('runtime: observed (engine v0.0.1; current engine is v');
+    expect(out).toContain('refresh the plugin');
+    expect(out).toContain('session start: 2026-08-10T00:00:00.000Z');
+    expect(out).toContain('after edit: 2026-08-10T00:05:00.000Z');
+    expect(out).toContain('before edit: never observed');
+    expect(exitCalls).toEqual([0]);
   });
 
   test('corrupt events.log: fail pulse + exit 1 (json flag does NOT swallow the parse error)', () => {

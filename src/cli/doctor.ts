@@ -28,6 +28,7 @@ import {
   type SentinelMissSummary,
   type EventCounts,
 } from '../core/telemetry-summary.js';
+import {HOOK_EVENTS, readHookHealth, type HookEventName, type HookHealthReport} from './hook-health.js';
 
 export interface DoctorCommandOptions {
   readonly cwd?: string;
@@ -42,6 +43,8 @@ export interface DoctorReport {
   readonly sentinelMiss: SentinelMissSummary;
   /** F-95a096 — the governance ledger 0.6.0 writes, summarized for operators. */
   readonly governance: GovernanceSummary;
+  /** Runtime evidence from the bounded Claude Code hook-health snapshot. */
+  readonly hooks: HookHealthReport;
 }
 
 export interface GovernanceSummary {
@@ -92,7 +95,8 @@ export function runDoctorCommand(opts: DoctorCommandOptions = {}): void {
   const eventCounts = summarizeEvents(events);
   const sentinelMiss = summarizeSentinelMisses(events);
   const governance = summarizeGovernance(cwd, events);
-  const report: DoctorReport = {cwd, events: eventCounts, sentinelMiss, governance};
+  const hooks = readHookHealth(cwd);
+  const report: DoctorReport = {cwd, events: eventCounts, sentinelMiss, governance, hooks};
 
   if (opts.json) {
     process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
@@ -106,6 +110,7 @@ export function runDoctorCommand(opts: DoctorCommandOptions = {}): void {
       'doctor',
       'no events recorded yet — run `clad init --scan` or a stage to populate .cladding/events.log.jsonl',
     );
+    renderHookHealth(report.hooks);
     process.exit(0);
     return;
   }
@@ -131,6 +136,8 @@ function renderTextReport(report: DoctorReport): void {
   if (typeLine.length > 0) {
     process.stdout.write(`Events:  ${typeLine}\n`);
   }
+
+  renderHookHealth(report.hooks);
 
   // F-95a096 — the governance ledger, readable without parsing JSONL by hand.
   // Rendered before the sentinel-miss early return: gate/done/stop state is
@@ -175,6 +182,34 @@ function renderTextReport(report: DoctorReport): void {
 
   process.stdout.write('\n');
   process.stdout.write('Tune your host: raise max_tokens, switch model, or check MCP transport health.\n');
+}
+
+const HOOK_LABELS: Readonly<Record<HookEventName, string>> = {
+  SessionStart: 'session start',
+  UserPromptSubmit: 'prompt submit',
+  PreToolUse: 'before edit',
+  PostToolUse: 'after edit',
+  Stop: 'session stop',
+};
+
+function renderHookHealth(hooks: HookHealthReport): void {
+  process.stdout.write('\nClaude Code hooks\n');
+  if (hooks.installation === 'not-observed') {
+    process.stdout.write(
+      '  runtime: not observed — install or enable the Cladding plugin, then start a new Claude Code session\n',
+    );
+  } else {
+    const recorded = hooks.recordedVersion === null ? 'unknown version' : `engine v${hooks.recordedVersion}`;
+    const versionState = hooks.versionCurrent === true
+      ? 'current'
+      : hooks.versionCurrent === false
+        ? `current engine is v${hooks.currentVersion}; refresh the plugin`
+        : 'current version unavailable';
+    process.stdout.write(`  runtime: observed (${recorded}; ${versionState})\n`);
+  }
+  for (const event of HOOK_EVENTS) {
+    process.stdout.write(`  ${HOOK_LABELS[event]}: ${hooks.lastFiredAt[event] ?? 'never observed'}\n`);
+  }
 }
 
 function formatCounts(counts: Readonly<Record<string, number>>): string {

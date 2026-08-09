@@ -335,7 +335,7 @@ cladding 규약 준수: 한 번에 한 기능 엔드투엔드, 해시 id, 코드
 판정을 바꾸지 않고, 이것 없이는 아래 어느 것도 판정할 수 없다.
 
 - **훅 배선 복구 — P1R PASS.** dogfood project가 current-checkout marketplace source를 선언하지 않아 삭제된 pre-0.9.0 directory와 0.4.0 cache를 계속 참조했고, Claude Code 2.1.224에서는 표준 hook 자동발견과 manifest 중복 선언도 충돌했다. source-first plugin build, 중복 선언 제거, project 0.9.3 cache 재설치 후 실제 cached `SessionStart`가 context card와 telemetry를 냈다. 근거: `.refactor/sim/P1.md`, `.refactor/sim/P1P.md`, `.refactor/sim/P1G.md`, `.refactor/sim/P1R.md`.
-- **가시화.** `clad doctor`가 훅 설치 상태와 **훅 이벤트별 마지막 발화 시각**을 보고. `HOST_CLAIM_DRIFT`에 신선도 축 추가.
+- **가시화 — P2 PASS.** bounded sidecar로 실제 훅 설치 상태와 다섯 이벤트별 마지막 발화를 `clad doctor` text/JSON에 노출했고, package-less Claude cache의 plugin manifest에서도 현재 버전을 판독한다. `HOST_CLAIM_DRIFT`는 30일 초과·구버전 matrix를 비차단 `info`로 보고한다. 실제 출하 bundle 다섯 이벤트와 cache 형태를 재현했고 기본 병렬 스위트 2828/2828 및 strict pre-push가 통과했다. 근거: `.refactor/sim/P2.md`.
 - **계수기.** `stop_blocked` → `{count, fingerprint, head, detectors[], introduced, preexisting, dirty_hit}`; demote 분기에 **`stop_exit_recorded`**; `done_attempted`에 `blockers[]`. 읽기 시점 파생 질문 하나: **차단된 지문이 이후 어느 게이트에서든 관측된 적이 있는가.**
 - **CI 버전 고정** (`init.ts:296` → `cladding@<major.minor>`) + `clad doctor` 미고정 경고.
 - **파생 파일 정책 도장** (attestation에 `{cladding, blocking, detectors sha}`) + `clad init`이 `.gitattributes`(`spec/index.yaml merge=union`)를 쓰도록.

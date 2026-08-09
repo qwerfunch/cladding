@@ -15,4 +15,4 @@
 | P1B | KILLED | (이 커밋) | 2026-08-10 | precondition 반증 — root dist는 gitignored이고 60-byte delta가 source에 없어 plugin mirror의 정답으로 사용할 수 없음 |
 | P1G | DONE | (이 커밋) | 2026-08-10 | build:plugin을 source-first로 복구; root 결손 양성 대조·2회 결정성·plugin byte parity·actual loader 모두 통과 |
 | P1R | DONE | (이 커밋) | 2026-08-10 | project 0.9.3 cache·hooks·engine parity 복구; cached SessionStart exit 0/context card/session_card_rendered 실증 |
-| P2 | IN_PROGRESS | — | 2026-08-10 | bounded hook pulse·doctor 실제 설치 증거/이벤트별 최근 발화·host matrix 비차단 신선도 구현 중 |
+| P2 | DONE | (이 커밋) | 2026-08-10 | 실제 bundle 5종 hook pulse·package-less cache·doctor text/JSON 검증; matrix 신선도 info; 2828/2828·verdict DONE·strict gate GREEN |
