@@ -19,6 +19,6 @@ done_conditions:
   - {cmd: "grep -c '^VERDICT: ' .refactor/sim/5b.md", expect: "1"}
   - {cmd: "grep -qE '`[^`]+:[0-9]+`' .refactor/sim/5b.md", expect: "exit 0"}
 exit:
-  commit: pending
-  verdict: pending
-  residue: pending
+  commit: "(this commit)"
+  verdict: PASS
+  residue: "A9 may auto-repair only an exact same-diff Git rename; unique-basename candidates remain dry-run suggestions requiring explicit selection because history supplied zero independent fallback move cases."

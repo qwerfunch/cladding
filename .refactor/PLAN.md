@@ -315,9 +315,9 @@ Part A의 32개 변경 중 **21개는 코드 한 줄 쓰기 전에 go/no-go가 �
 
 **1b·1c·1e의 리플레이 드라이버** — M1이 계측기를 반증했다. 커밋된 트리는 차단을 만든 트리가 아니고, `UNVERIFIED_AC`는 `.cladding/`이 gitignore라 모든 과거 시점에서 구조적으로 침묵하는데 그 편향은 **보수적이 아니라 관대한** 방향으로 작동한다.
 
-### 오늘 하나 더 돌린다면
+### 추가 사전 검증 결과
 
-**5b(`repairModules`) 백테스트.** 완전 읽기 전용이고, git에 진짜 독립적 정답(실제로 이루어진 수리)이 있으며, 제안 알고리즘이 **틀릴 것으로 예측되는 사례를 포함**한다 — 프로그램에서 가장 강한 양성 판정 가능 시뮬레이션이다.
+**5b(`repairModules`) — PASS, 자동수리 범위 축소.** 과거의 실제 module claim 수리 14건을 독립 정답으로 삼았을 때 같은 diff의 Git rename 기록은 **14/14 정답, 오탐 0**이었다. 반면 unique-basename은 현재 corpus leave-one-out에서 587/587을 맞혔지만, 과거 실제 이동 정답은 0건이라 자동 적용을 뒷받침하지 못했다. 따라서 Git rename 일치만 자동수리하고 basename은 명시적 선택이 필요한 제안으로 낮춘다. 근거: `.refactor/sim/5b.md`.
 
 ## A4. 단계별 작업
 
@@ -370,7 +370,7 @@ cladding 규약 준수: 한 번에 한 기능 엔드투엔드, 해시 id, 코드
 
 ### Phase 5 — 그래프에 생산자를 붙인다
 - **`depends_on` 1급 writer**: `clad_create_feature` 스키마에 선택 필드 + 별도 `depends_on_inferred:` 키를 쓰는 writer(`test-ref-repair.ts` 방식 텍스트 스플라이스) + `reverse-index.ts`에서만 합집합. **어떤 탐지기도 추론 엣지를 읽지 않는다.** 스키마가 `additionalProperties: false`이므로 **키와 `schema:` 범프가 writer보다 먼저**.
-- **`repairModules`** 를 `repairTestRefs` 옆에 — 리네임 레코드(`git diff -M`) 우선, 유일 basename 폴백, 모호하면 추측 금지. (리팩토링 프로그램의 선행 조건이기도 함.)
+- **`repairModules`** 를 `repairTestRefs` 옆에 — 같은 diff의 리네임 레코드(`git diff -M`)와 정확히 대응할 때만 자동수리. 유일 basename은 dry-run 제안으로만 노출하고 명시적 선택 전에는 쓰지 않으며, 모호하거나 rename 증거와 충돌하면 추측 금지. (5b에서 rename-backed 수리 14/14, 오탐 0; basename 실제 이동 정답 0건. 리팩토링 프로그램의 선행 조건이기도 함.)
 - `ac.notes` 근거 탐지기는 **연기**. 대신 README:31 문구를 강제되는 절반으로 좁힌다.
 
 ### Phase 6 — KILLED: 검증 가능한 사람 출처가 없다
