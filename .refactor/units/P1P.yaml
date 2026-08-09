@@ -1,0 +1,29 @@
+id: P1P
+started: 2026-08-10
+inherits:
+  head: 0470e879a0dc36dc4fd815a60db0b3fee5772e49
+  tree_clean: true
+preconditions:
+  - {cmd: "test \"$(node bin/clad --version)\" = \"0.9.3\"", expect: "exit 0"}
+  - {cmd: "node -e \"const p=require('./plugins/claude-code/.claude-plugin/plugin.json'); if(p.hooks!=='./hooks/hooks.json')process.exit(1)\"", expect: "exit 0"}
+  - {cmd: "claude --plugin-dir plugins/claude-code plugin list | grep -q 'Duplicate hooks file detected'", expect: "exit 0"}
+  - {cmd: "grep -q \"expect(plugin.hooks).toBe('./hooks/hooks.json')\" tests/scripts/hooks-config.test.ts", expect: "exit 0"}
+touch_allowed:
+  - plugins/claude-code/.claude-plugin/plugin.json
+  - tests/scripts/hooks-config.test.ts
+  - .refactor/ledger.md
+  - .refactor/units/P1P.yaml
+  - .refactor/sim/P1P.md
+  - spec/attestation.yaml
+done_conditions:
+  - {cmd: "node -e \"const p=require('./plugins/claude-code/.claude-plugin/plugin.json'); if(Object.hasOwn(p,'hooks'))process.exit(1)\"", expect: "exit 0"}
+  - {cmd: "node -e \"const h=require('./plugins/claude-code/hooks/hooks.json').hooks; if(Object.keys(h).length!==5)process.exit(1)\"", expect: "exit 0"}
+  - {cmd: "npx vitest run tests/scripts/hooks-config.test.ts", expect: "exit 0"}
+  - {cmd: "npm run build:plugin", expect: "exit 0 and no files outside touch_allowed changed"}
+  - {cmd: "claude plugin validate .", expect: "exit 0 with warnings only"}
+  - {cmd: "node -e \"const {spawnSync}=require('child_process'); const r=spawnSync('claude',['--plugin-dir','plugins/claude-code','plugin','list'],{encoding:'utf8'}); const b=r.stdout.split('cladding@inline')[1]?.split('Installed plugins:')[0]??''; if(r.status!==0||!/Status: .* enabled/.test(b)||/Duplicate hooks/.test(b))process.exit(1)\"", expect: "exit 0"}
+  - {cmd: "test -f .refactor/sim/P1P.md", expect: "exit 0"}
+exit:
+  commit: pending
+  verdict: pending
+  residue: pending
