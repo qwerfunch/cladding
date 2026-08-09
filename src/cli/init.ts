@@ -3,7 +3,7 @@
 // One command, three side-effects on a fresh directory:
 //   1. spec.yaml seed with one placeholder feature (F-001)
 //   2. .cladding/ runtime dir (audit + events log live here)
-//   3. .gitignore append (.cladding/ entry; appended only if missing)
+//   3. .gitignore + .gitattributes managed-line append (only when missing)
 //
 // Idempotent by default — re-running on an initialised workspace is a
 // no-op except for reporting. `--force` overwrites the seed spec.yaml
@@ -259,11 +259,12 @@ function specSeed(
   ].join('\n');
 }
 
-function appendIfMissing(gitignorePath: string, marker: string, line: string): boolean {
-  const existing = existsSync(gitignorePath) ? readFileSync(gitignorePath, 'utf8') : '';
-  if (existing.includes(marker)) return false;
+function appendIfMissing(path: string, marker: string, line: string, heading: string): boolean {
+  const existing = existsSync(path) ? readFileSync(path, 'utf8') : '';
+  if (existing.split(/\r?\n/).some((existingLine) => existingLine.trim() === marker)) return false;
   const ensureNewline = existing.length > 0 && !existing.endsWith('\n') ? '\n' : '';
-  writeFileSync(gitignorePath, `${existing}${ensureNewline}\n# Cladding runtime state\n${line}\n`);
+  const sectionGap = existing.length > 0 ? '\n' : '';
+  writeFileSync(path, `${existing}${ensureNewline}${sectionGap}${heading}\n${line}\n`);
   return true;
 }
 
@@ -492,11 +493,29 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
 
   // 3. .gitignore append
   const gitignorePath = join(cwd, '.gitignore');
-  const appended = appendIfMissing(gitignorePath, '.cladding/', '.cladding/');
+  const appended = appendIfMissing(gitignorePath, '.cladding/', '.cladding/', '# Cladding runtime state');
   if (appended) {
     created.push('.gitignore (.cladding/ entry appended)');
   } else {
     skipped.push('.gitignore (.cladding/ entry already present)');
+  }
+
+  // F-caff8598 — the append-mostly feature index is safe under union merge;
+  // attestation deliberately remains on plain merge because union can silently
+  // resurrect stale hashes. Preserve every user-authored attribute and append
+  // only the exact managed index rule when absent.
+  const attributesPath = join(cwd, '.gitattributes');
+  const indexMergeAttribute = 'spec/index.yaml merge=union';
+  const attributesAppended = appendIfMissing(
+    attributesPath,
+    indexMergeAttribute,
+    indexMergeAttribute,
+    '# Cladding derived feature index',
+  );
+  if (attributesAppended) {
+    created.push('.gitattributes (spec/index.yaml merge=union appended)');
+  } else {
+    skipped.push('.gitattributes (spec/index.yaml merge=union already present)');
   }
 
   const proposals: string[] = [];

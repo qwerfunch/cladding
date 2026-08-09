@@ -240,6 +240,7 @@ features:
   F-c6a32fff: {slug: graph-honest-fallback, status: done, modules: 7}
   F-c6c3daaf: {slug: kotlin-module-scoped-gate, status: done, modules: 13}
   F-c8aef8: {slug: project-context, status: done, modules: 5}
+  F-caff8598: {slug: attestation-policy-stamp, status: done, modules: 4}
   F-cd0415: {slug: spec-load-once, status: done, modules: 2}
   F-cfba0c: {slug: scenarios-deprecate, status: done, modules: 3}
   F-d12edf: {slug: ssot-governance, status: done, modules: 19}

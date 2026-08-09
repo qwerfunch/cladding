@@ -2,6 +2,8 @@
 # `clad check --tier=pre-push --strict` gate — the file's one honest author.
 # Do not edit by hand.
 #
+#   policy:             verifier identity: Cladding version, strict blocking,
+#                       and SHA-256 of the ordered detector catalog.
 #   attested_modules:  one line per module file across all done features,
 #                      value = sha256 of that file's bytes (16 hex). Editing a
 #                      file moves exactly its own line — not every co-owning
@@ -13,6 +15,10 @@
 # Merge conflict here? NEVER hand-resolve the hashes — keep either side and run
 # `clad check --tier=pre-push --strict`; the GREEN gate rewrites the truth.
 # Content-anchored: survives fresh clones and squash/rebase.
+policy:
+  cladding: "0.9.3"
+  blocking: strict
+  detectors_sha256: 133c1ab691da7642223bcfe93ecdf4dc253f1aba08ee4e1bad865e427a2c37db
 attested_modules:
   .claude/settings.json: 08a64351770badf4
   .github/workflows/ci.yml: 8ea99219cb80df60
@@ -68,7 +74,7 @@ attested_modules:
   docs/multi-provider-roadmap.md: 1e5cf27ea1b18d06
   docs/refinement-backlog.md: 918426e582bf2739
   docs/setup.md: a5c062651d267983
-  docs/spec-ids-multi-dev.md: 28d58e84879f58b1
+  docs/spec-ids-multi-dev.md: ee52e431278e1c1a
   docs/ssot-model.md: 66b9439e2f71ac4b
   docs/ssot-testing.md: abf3b2bd5acb29a1
   package-lock.json: 505b6ea10c37fcf6
@@ -79,13 +85,13 @@ attested_modules:
   plugins/claude-code/agents/orchestrator.md: 1b758de0bdab8eb0
   plugins/claude-code/agents/planner.md: 2ca87ed1fe99c913
   plugins/claude-code/agents/reviewer.md: cdf7469a3e58b438
-  plugins/claude-code/commands/init.md: 5529b13d0f1ab4bf
+  plugins/claude-code/commands/init.md: cc23bc61906cd39d
   plugins/claude-code/hooks/hooks.json: 42321ead26fb1da8
   plugins/codex/.codex-plugin/plugin.json: b662ba85804e6abb
   plugins/codex/.mcp.json: 43e3f4b2af24aa18
-  plugins/codex/skills/check/SKILL.md: 6a665422af510e72
+  plugins/codex/skills/check/SKILL.md: 8e9cf445c4263393
   plugins/codex/skills/developer/SKILL.md: 3002b4ef69ddab43
-  plugins/codex/skills/init/SKILL.md: 5529b13d0f1ab4bf
+  plugins/codex/skills/init/SKILL.md: cc23bc61906cd39d
   plugins/codex/skills/observability/SKILL.md: 637fde18c012e2a7
   plugins/codex/skills/orchestrator/SKILL.md: 1b758de0bdab8eb0
   plugins/codex/skills/planner/SKILL.md: 2ca87ed1fe99c913
@@ -96,7 +102,7 @@ attested_modules:
   plugins/codex/skills/sync/SKILL.md: 775c0f990a52a3d9
   plugins/gemini-cli/GEMINI.md: ba08eaf2cd557a65
   plugins/gemini-cli/commands/README.md: 3527d771578431bd
-  plugins/gemini-cli/commands/init.toml: e7f310fd7af23f95
+  plugins/gemini-cli/commands/init.toml: ab31dfdb28b474d2
   plugins/gemini-cli/gemini-extension.json: 082af8a03ae1601d
   scripts/build-plugin.mjs: d171b326ed61f40b
   scripts/build.mjs: 3a4b204063024ef1
@@ -105,11 +111,11 @@ attested_modules:
   scripts/test-count.d.mts: a392f5dea372a40e
   scripts/test-count.mjs: aea2620221c8d5ff
   scripts/version-bump.mjs: 770b066b8279db39
-  skills/check/SKILL.md: 6a665422af510e72
+  skills/check/SKILL.md: 8e9cf445c4263393
   skills/checkpoint/SKILL.md: f723e8cfb8286a64
   skills/clarify/SKILL.md: 5d08bbb821258d03
   skills/doctor/SKILL.md: e530159f5d3a7864
-  skills/init/SKILL.md: 5529b13d0f1ab4bf
+  skills/init/SKILL.md: cc23bc61906cd39d
   skills/oracle/SKILL.md: 11e111ac0a4963c1
   skills/rollback/SKILL.md: d472dc3a562b347b
   skills/route/SKILL.md: 5958830fef280c67
@@ -117,7 +123,7 @@ attested_modules:
   skills/serve/SKILL.md: f08bbdbbfeb05041
   skills/status/SKILL.md: 09faadc50b3449da
   skills/sync/SKILL.md: 775c0f990a52a3d9
-  spec.yaml: b710a0111312a6d3
+  spec.yaml: 4a992839b173f55b
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -151,7 +157,7 @@ attested_modules:
   src/cli/benchmark.ts: 77f84d2a898d724f
   src/cli/changelog.ts: 2de1adb009b89ab4
   src/cli/ci-version.ts: 9fce2c2d7415b4ca
-  src/cli/clad.ts: a0fc8b23feb0dd21
+  src/cli/clad.ts: 92de6bfc9d60492f
   src/cli/clarify.ts: f17177969d5b75ff
   src/cli/doctor-hosts.ts: 1f0c2cec5a310b81
   src/cli/doctor.ts: ae209b607848a8a2
@@ -162,7 +168,7 @@ attested_modules:
   src/cli/hook-health.ts: e103afb67ecde8bb
   src/cli/hook.ts: 59a2f8dbcfbd2c60
   src/cli/host-onboarding.ts: b046571d4be7280c
-  src/cli/init.ts: 2ee09e50d3bb7f13
+  src/cli/init.ts: 2a7e26ae4ea44239
   src/cli/intent-from-path.ts: e69862821d979f22
   src/cli/measure.ts: 3a562f16589e26c2
   src/cli/report.ts: ee7d35b6c36dfa76
@@ -239,7 +245,7 @@ attested_modules:
   src/router/intent.ts: 430590f761b891a6
   src/serve/server.ts: 0a76fefb0aca1434
   src/spec: a4d0f0eb87fed960
-  src/spec/attestation.ts: 294a1e99c42d4aef
+  src/spec/attestation.ts: bacd18efacb55615
   src/spec/cli.ts: 7a9bcd0f66677810
   src/spec/deliverable-detect.ts: 9206a91bf5e84723
   src/spec/doc-references.ts: 40e844b5b73467aa
@@ -345,8 +351,8 @@ attested_modules:
   tests/agents/loader.test.ts: a7df7b1c9a95d37d
   tests/cli/benchmark.test.ts: b4a87289605ee75f
   tests/cli/clad.test.ts: 95a6303c6d9437e2
-  tests/cli/gate-golden-matrix.test.ts: f1a543895f6295f1
-  tests/cli/init.test.ts: 3428a89708fc9330
+  tests/cli/gate-golden-matrix.test.ts: 81d88e1cd40723fa
+  tests/cli/init.test.ts: cc0bdbcb826ed2bd
   tests/cli/intent-onboarding.test.ts: 0681b98ce2e74c22
   tests/conformance/registry.test.ts: 018b1e5c0d8d4baf
   tests/drive/loop.test.ts: ae49bcfa745a8cdb
@@ -674,6 +680,7 @@ attested_features:
   F-c6a32fff: ok
   F-c6c3daaf: ok
   F-c8aef8: ok
+  F-caff8598: ok
   F-cd0415: ok
   F-cfba0c: ok
   F-d12edf: ok

@@ -46,6 +46,7 @@ import {clearTestRunCache, primeTestRunCache} from '../stages/test-run-cache.js'
 import {runCommit} from '../stages/commit.js';
 import {runCov} from '../stages/cov.js';
 import {runDrift} from '../stages/drift.js';
+import {allDetectors} from '../stages/detectors/index.js';
 import {runLint} from '../stages/lint.js';
 import {runPerf} from '../stages/perf.js';
 import {runSecret} from '../stages/secret.js';
@@ -66,7 +67,7 @@ import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../
 import {writeDocLinksYaml} from '../spec/doc-references.js';
 import {writeSpecDrivenAgentsMd} from '../init/agents-md.js';
 import {repairTestRefs} from '../spec/test-ref-repair.js';
-import {writeAttestation} from '../spec/attestation.js';
+import {detectorCatalogSha256, writeAttestation} from '../spec/attestation.js';
 import {buildBlindPayload, renderBlindBrief} from '../oracle/payload.js';
 import {requiredOracleWorklist} from '../oracle/policy.js';
 import {loadSpec} from '../spec/load.js';
@@ -663,7 +664,11 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
         if (!opts.json) pulse('note', 'attestation', 'deferred — git operation in progress; run the gate again after the merge/rebase completes.');
       } else {
         try {
-          if (writeAttestation('.', loadSpec())) {
+          if (writeAttestation('.', loadSpec(), {
+            cladding: getCurrentCladdingVersion() ?? 'unknown',
+            blocking: 'strict',
+            detectorsSha256: detectorCatalogSha256(allDetectors),
+          })) {
             if (!opts.json) pulse('note', 'attestation', 'spec/attestation.yaml refreshed (verified tree stamped)');
           }
         } catch {

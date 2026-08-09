@@ -75,8 +75,12 @@ vi.mock('../../src/stages/uat.js', () => ({runUat: (...a: unknown[]) => stubs['s
 // the guard variant swaps in one done feature declaring test_refs.
 // gate_run emission (F-b84c38) is part of the pinned contract — mocked so the
 // matrix never writes to the real repo ledger, asserted explicitly below.
-const writeAttestationMock = vi.fn(() => true);
-vi.mock('../../src/spec/attestation.js', () => ({writeAttestation: (...a: unknown[]) => writeAttestationMock(...(a as []))}));
+const writeAttestationMock = vi.fn((..._args: unknown[]) => true);
+const detectorCatalogSha256Mock = vi.fn((..._args: unknown[]) => 'a'.repeat(64));
+vi.mock('../../src/spec/attestation.js', () => ({
+  writeAttestation: (...a: unknown[]) => writeAttestationMock(...a),
+  detectorCatalogSha256: (...a: unknown[]) => detectorCatalogSha256Mock(...a),
+}));
 
 const recordEventMock = vi.fn();
 vi.mock('../../src/events/log.js', () => ({recordEvent: (...a: unknown[]) => recordEventMock(...(a as []))}));
@@ -318,11 +322,16 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
     expect(runMatrixCase('pre-commit', true).worst).toBe(1);
   });
 
-  test('a plain GREEN strict pre-push run stamps the attestation; non-strict does not', () => {
+  test('a plain GREEN strict pre-push run stamps policy identity; non-strict does not', () => {
     setAll(PASS);
     writeAttestationMock.mockClear();
     runMatrixCase('pre-push', true);
     expect(writeAttestationMock).toHaveBeenCalledTimes(1);
+    expect(writeAttestationMock.mock.calls[0]?.[2]).toEqual({
+      cladding: expect.stringMatching(/^\d+\.\d+\.\d+$/),
+      blocking: 'strict',
+      detectorsSha256: 'a'.repeat(64),
+    });
     writeAttestationMock.mockClear();
     runMatrixCase('pre-push', false);
     expect(writeAttestationMock).not.toHaveBeenCalled();

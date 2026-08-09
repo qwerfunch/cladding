@@ -40,6 +40,11 @@ done_conditions:
   - {cmd: "node bin/clad check --tier=pre-commit", expect: "exit 0"}
   - {cmd: "node bin/clad check --tier=pre-push --strict", expect: "exit 0"}
 exit:
-  commit: pending
-  verdict: pending
-  residue: pending
+  commit: (this commit)
+  verdict: PASS
+  residue:
+    - Legacy policy-less attestations remain readable as policy unknown until the next green strict gate.
+    - Detector SHA identifies registry order, name, and subprocess classification; Cladding version identifies implementation bytes.
+    - Existing adopter .gitattributes content is preserved; init appends only the exact index rule.
+    - Attestation deliberately gets no merge driver.
+    - P6 owns the actual 0.9.4 version bump and README test count update from 2815 to 2845.

@@ -338,7 +338,7 @@ cladding 규약 준수: 한 번에 한 기능 엔드투엔드, 해시 id, 코드
 - **가시화 — P2 PASS.** bounded sidecar로 실제 훅 설치 상태와 다섯 이벤트별 마지막 발화를 `clad doctor` text/JSON에 노출했고, package-less Claude cache의 plugin manifest에서도 현재 버전을 판독한다. `HOST_CLAIM_DRIFT`는 30일 초과·구버전 matrix를 비차단 `info`로 보고한다. 실제 출하 bundle 다섯 이벤트와 cache 형태를 재현했고 기본 병렬 스위트 2828/2828 및 strict pre-push가 통과했다. 근거: `.refactor/sim/P2.md`.
 - **계수기 — P3 PASS.** `stop_blocked` → `{count, fingerprint, head, detectors[], introduced, preexisting, dirty_hit}`; demote 분기에 **`stop_exit_recorded`**; `done_attempted`에 `blockers[]`. 읽기 시점 파생 질문 하나: **차단된 지문이 이후 어느 게이트에서든 관측된 적이 있는가.** 실제 출하 bundle에서 차단→동일 지문 종료→후속 gate 관측→doctor 집계와 정상 done 경로를 순차 검증했다. 근거: `.refactor/sim/P3.md`.
 - **CI 버전 고정 — P4 PASS.** 생성 workflow는 실행 binary의 `cladding@<major.minor>`를 쓰고 version을 판독할 수 없으면 미고정 형태를 만들지 않는다. `clad doctor` text/JSON은 기존 GitHub Actions의 unversioned·floating `npx cladding` 호출을 정확한 상대 경로로 비차단 경고한다. 실제 출하 bundle의 pinned 생성→quiet doctor→unpinned 경고를 순차 검증했다. 근거: `.refactor/sim/P4.md`.
-- **파생 파일 정책 도장** (attestation에 `{cladding, blocking, detectors sha}`) + `clad init`이 `.gitattributes`(`spec/index.yaml merge=union`)를 쓰도록.
+- **파생 파일 정책 도장 — P5 PASS.** attestation에 `{cladding, blocking, detectors sha}`를 기록하고 `clad init`이 기존 내용을 보존하며 `.gitattributes`에 `spec/index.yaml merge=union`을 정확히 한 번 쓴다. legacy policy-less 파일은 그대로 읽고 attestation에는 merge driver를 주지 않는다. 실제 출하 bundle init·strict gate와 2845/2845 테스트로 검증했다. 근거: `.refactor/sim/P5.md`.
 - **git 훅 fail-open은 유지** — exit 1로 바꾸면서 기본 on으로 뒤집으면 바이너리 없는 머신에서 모든 커밋이 막힌다.
 
 **검증:** 스위트 GREEN · 정책 섹션 왕복/구버전 리더 관용 테스트 · `clad doctor`가 훅 침묵을 실제로 보고하는 픽스처.
