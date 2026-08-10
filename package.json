@@ -1,6 +1,6 @@
 {
   "name": "cladding",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "description": "Spec-driven verification layer for AI coding agents — Claude Code · Codex · Gemini · Antigravity · Cursor. Intent in before it writes, result verified against your spec after. Reference implementation of the Ironclad standard.",
   "type": "module",
   "license": "MIT",
@@ -91,7 +91,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "smol-toml": "^1.6.1"
   }
 }

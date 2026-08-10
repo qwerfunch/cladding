@@ -5,6 +5,30 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.4] — Live host health and reproducible verification (2026-08-10)
+
+**In one line:** cladding now proves that its host hooks actually fired, records what stopped or completed a run, pins generated CI to the current release line, and stamps every verified tree with the policy that earned it.
+
+### Added
+
+- **Live hook health in `clad doctor`.** A bounded sidecar records the last observed `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, and `Stop` pulse plus the engine version. Text and JSON doctor output distinguish a working installation from one that has never been observed, including package-less Claude cache installations.
+- **Outcome evidence for Stop and completion.** `stop_blocked`, `stop_exit_recorded`, `done_attempted`, and `gate_run` events now carry stable blocker identities, introduced/pre-existing counts, dirty-path intersection, and a compatible fingerprint. Doctor reports whether a blocked fingerprint was later seen by a gate.
+- **Verification-policy identity in `spec/attestation.yaml`.** A GREEN strict gate records the running Cladding version, strict blocking mode, and a full SHA-256 of detector order, name, and subprocess classification. Older policy-less attestations remain readable.
+- **Safe merge attributes for new projects.** `clad init` preserves existing `.gitattributes`, adds `spec/index.yaml merge=union` exactly once, and deliberately leaves `spec/attestation.yaml` on ordinary conflict handling.
+
+### Changed
+
+- **Generated CI stays on the current release line.** New workflows run `cladding@<major.minor>` instead of an unbounded package selector. `clad doctor` names existing GitHub Actions workflows that use an unversioned or floating `npx cladding` command without modifying them.
+- **Plugin mirrors are built from source before distribution.** Standalone `npm run build:plugin` no longer treats a stale or missing root bundle as authoritative, and Claude hook metadata relies on the host's standard hook discovery without duplicate declarations.
+
+### Fixed
+
+- **The dogfood host wiring now points at the current checkout and 0.9.x cache.** The recovery was verified through the installed Claude cache and a real `SessionStart` card rather than inferred from configuration text.
+
+### Security
+
+- **The MCP transport dependency graph now resolves to patched runtime packages.** The SDK and its Hono, URI, address, and body-parser dependencies were refreshed; both the production-only and complete npm audits report zero known vulnerabilities.
+
 ## [0.9.3] — The review packet shows how the contract itself moved (2026-08-04)
 
 **In one line:** a pull request now shows which acceptance criteria were rewritten while the code changed, and the architecture gate stops failing on generated build output.
