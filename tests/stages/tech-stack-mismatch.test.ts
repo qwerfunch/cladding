@@ -85,4 +85,38 @@ describe('TECH_STACK_MISMATCH detector', () => {
     expect(findings[0].severity).toBe('info');
     expect(findings[0].message).toContain('spec.yaml not loaded');
   });
+
+  function declareLanguage(language: string): void {
+    mkdirSync(join(dir, '.cladding'), {recursive: true});
+    writeFileSync(join(dir, '.cladding', 'config.yaml'), `gate:\n  language: ${language}\n`);
+  }
+
+  test('a matching gate.language declaration silences the manifest mismatch', () => {
+    // The manifest chain would say typescript (package.json), but the product
+    // language is declared — the exact repo shape the escape hatch exists for.
+    writeSpec(dir, 'cpp');
+    writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
+    declareLanguage('cpp');
+    expect(techStackMismatch.run({cwd: dir})).toEqual([]);
+  });
+
+  test('a gate.language declaration differing from the spec still warns', () => {
+    // Declaration does not silence the check — spec vs declaration must agree.
+    writeSpec(dir, 'cpp');
+    writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
+    declareLanguage('java');
+    const findings = techStackMismatch.run({cwd: dir});
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe('warn');
+    expect(findings[0].message).toContain("'cpp'");
+    expect(findings[0].message).toContain("declares 'java'");
+  });
+
+  test('a matching declaration also covers the no-manifest case (no info fallback)', () => {
+    // With a declaration the cross-check has an anchor even when no manifest
+    // matches, so the "cannot be cross-checked" info is not emitted.
+    writeSpec(dir, 'cpp');
+    declareLanguage('cpp');
+    expect(techStackMismatch.run({cwd: dir})).toEqual([]);
+  });
 });

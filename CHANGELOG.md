@@ -5,6 +5,12 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`gate.language` in `.cladding/config.yaml` — a declared language label for the spec cross-check.** The manifest chain reads build orchestration, so a repository whose product language differs from its build host — a C++ SDK driven by Gradle, a Rust core shipped through npm — is mislabelled by construction, and the only way to green `TECH_STACK_MISMATCH` used to be rewriting `spec.yaml` to adopt the mislabel. Declaring the language keeps the spec truthful: the detector cross-checks `spec.project.language` against the declaration instead of the heuristic, and still warns when the two disagree, so the check keeps its teeth.
+
 ## [0.9.4] — Live host health and reproducible verification (2026-08-10)
 
 **In one line:** cladding now proves that its host hooks actually fired, records what stopped or completed a run, pins generated CI to the current release line, and stamps every verified tree with the policy that earned it.

@@ -44,6 +44,18 @@ describe('readGateConfig', () => {
     expect(readGateConfig(dir)).toEqual({scope: 'feature'});
   });
 
+  test('parses gate.language as a trimmed string', () => {
+    writeConfig('gate:\n  language: " cpp "\n');
+    expect(readGateConfig(dir).language).toBe('cpp');
+  });
+
+  test('ignores a non-string or empty gate.language', () => {
+    writeConfig('gate:\n  language: 3\n');
+    expect(readGateConfig(dir).language).toBeUndefined();
+    writeConfig('gate:\n  language: ""\n');
+    expect(readGateConfig(dir).language).toBeUndefined();
+  });
+
   test('parses scope: repo', () => {
     writeConfig('gate:\n  scope: repo\n');
     expect(readGateConfig(dir).scope).toBe('repo');

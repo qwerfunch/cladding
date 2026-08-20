@@ -8,6 +8,7 @@
 //     scope: feature            # feature (default) | repo (force whole-repo)
 //     commands:                 # optional — replaces toolchain auto-detection
 //       test: ["./gradlew", "{modules:test}"]
+//     language: cpp             # optional — declared label for the spec cross-check
 //
 // The `{modules:TASK}` token expands to one `:<project>:TASK` argument per
 // focus-feature project. No config file, or no `gate:` block, means the
@@ -48,6 +49,16 @@ export interface GateConfig {
    * Absent (or file missing) → the check degrades to existence-only UNTESTED_AC.
    */
   readonly testReport?: string;
+  /**
+   * Declared toolchain-language label for the spec cross-check. The manifest
+   * chain reads build orchestration, so a repository whose product language
+   * differs from its build host (e.g. a C++ SDK built through Gradle) is
+   * mislabelled by construction. When set, TECH_STACK_MISMATCH compares
+   * `spec.project.language` against this declaration instead of the manifest
+   * heuristic — keeping the spec truthful without silencing the check. The
+   * value must match `spec.project.language` exactly (no normalisation).
+   */
+  readonly language?: string;
 }
 
 const DEFAULT: GateConfig = {scope: 'feature'};
@@ -72,7 +83,13 @@ export function readGateConfig(cwd: string = '.'): GateConfig {
   if (!existsSync(path)) return DEFAULT;
   try {
     const parsed = parseYaml(readFileSync(path, 'utf8')) as {
-      gate?: {scope?: unknown; commands?: Record<string, unknown>; coverage?: unknown; test_report?: unknown};
+      gate?: {
+        scope?: unknown;
+        commands?: Record<string, unknown>;
+        coverage?: unknown;
+        test_report?: unknown;
+        language?: unknown;
+      };
     } | null;
     const gate = parsed?.gate;
     if (!gate) return DEFAULT;
@@ -80,6 +97,8 @@ export function readGateConfig(cwd: string = '.'): GateConfig {
     const coverage: CoverageTool | undefined =
       gate.coverage === 'kover' || gate.coverage === 'jacoco' ? gate.coverage : undefined;
     const testReport = typeof gate.test_report === 'string' ? gate.test_report : undefined;
+    const language =
+      typeof gate.language === 'string' && gate.language.trim() !== '' ? gate.language.trim() : undefined;
     const commands: Partial<Record<ScopedStageKey, readonly string[]>> = {};
     if (gate.commands && typeof gate.commands === 'object') {
       for (const key of STAGE_KEYS) {
@@ -93,6 +112,7 @@ export function readGateConfig(cwd: string = '.'): GateConfig {
     if (Object.keys(commands).length > 0) (out as {commands?: unknown}).commands = commands;
     if (coverage) (out as {coverage?: unknown}).coverage = coverage;
     if (testReport) (out as {testReport?: unknown}).testReport = testReport;
+    if (language) (out as {language?: unknown}).language = language;
     return out;
   } catch {
     return DEFAULT;
