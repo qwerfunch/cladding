@@ -100,17 +100,29 @@ describe('installGitHook pre-push (F-16746b)', () => {
 });
 
 describe('scaffoldCiWorkflow (F-16746b)', () => {
-  test('creates the authoritative-gate workflow once and never overwrites it', () => {
+  test('creates a major.minor-pinned authoritative-gate workflow once and never overwrites it', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-ci-'));
     try {
-      expect(scaffoldCiWorkflow(dir)).toBe('created');
+      expect(scaffoldCiWorkflow(dir, '0.9.3')).toBe('created');
       const p = join(dir, '.github', 'workflows', 'cladding.yml');
       const body = readFileSync(p, 'utf8');
+      expect(body).toContain('npx --yes cladding@0.9 check');
       expect(body).toContain('check --tier=pre-push --strict --json');
       expect(body).toContain('fetch-depth: 0');
       writeFileSync(p, '# user-owned\n');
-      expect(scaffoldCiWorkflow(dir)).toBe('exists');
+      expect(scaffoldCiWorkflow(dir, null)).toBe('exists');
       expect(readFileSync(p, 'utf8')).toBe('# user-owned\n');
+    } finally {
+      rmSync(dir, {recursive: true, force: true});
+    }
+  });
+
+  test('does not scaffold an unpinned workflow when the runtime version is unavailable', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-ci-no-version-'));
+    try {
+      expect(scaffoldCiWorkflow(dir, null)).toBe('version-unavailable');
+      expect(existsSync(join(dir, '.github', 'workflows', 'cladding.yml'))).toBe(false);
+      expect(scaffoldCiWorkflow(dir, 'not-semver')).toBe('version-unavailable');
     } finally {
       rmSync(dir, {recursive: true, force: true});
     }

@@ -1,0 +1,42 @@
+id: P2
+started: 2026-08-10
+inherits:
+  head: fa228c3
+  tree_clean: true
+touch_allowed:
+  - .refactor/PLAN.md
+  - .refactor/ledger.md
+  - .refactor/units/P2.yaml
+  - .refactor/sim/P2.md
+  - spec.yaml
+  - spec/index.yaml
+  - spec/attestation.yaml
+  - spec/features/hook-health-observability-*.yaml
+  - src/cli/hook-health.ts
+  - src/cli/hook.ts
+  - src/cli/doctor.ts
+  - src/cli/clad.ts
+  - src/init/host-setup.ts
+  - src/stages/detectors/host-claim-drift.ts
+  - tests/cli/hook-health.test.ts
+  - tests/cli/doctor.test.ts
+  - tests/cli/setup.test.ts
+  - tests/stages/detectors/host-claim-drift.test.ts
+  - skills/doctor/SKILL.md
+  - plugins/codex/skills/doctor/SKILL.md
+  - plugins/antigravity/skills/doctor/SKILL.md
+  - plugins/claude-code/dist/clad.js
+done_conditions:
+  - {cmd: "npm test -- --run tests/cli/hook-health.test.ts tests/cli/doctor.test.ts tests/stages/detectors/host-claim-drift.test.ts", expect: "exit 0"}
+  - {cmd: "npm run build:plugin", expect: "exit 0 and source-fresh plugin engine"}
+  - {cmd: "npm test", expect: "exit 0"}
+  - {cmd: "npm run typecheck", expect: "exit 0"}
+  - {cmd: "npm run lint", expect: "exit 0"}
+  - {cmd: "node bin/clad verdict --json", expect: "DONE/green for the P2 feature"}
+  - {cmd: "node bin/clad done <P2 feature id>", expect: "exit 0; status earned as done"}
+  - {cmd: "node bin/clad check --tier=pre-commit", expect: "exit 0"}
+  - {cmd: "node bin/clad check --tier=pre-push --strict", expect: "exit 0"}
+exit:
+  commit: (this commit)
+  verdict: PASS
+  residue: "0.9.4 이전 cache는 새 pulse가 생길 때까지 not-observed가 정직한 상태다. README 테스트 수 2815 표시는 P6 릴리즈에서 2828로 갱신한다. committed host matrix의 v0.9.0 신선도 info는 실제 호스트 재검증 동의 전에는 자동으로 지우지 않는다."

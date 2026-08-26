@@ -22,6 +22,7 @@ describe('runInit', () => {
     expect(r.created.some((c) => c.startsWith('.cladding/'))).toBe(true);
     expect(existsSync(join(dir, 'spec.yaml'))).toBe(true);
     expect(existsSync(join(dir, '.cladding'))).toBe(true);
+    expect(readFileSync(join(dir, '.gitattributes'), 'utf8')).toContain('spec/index.yaml merge=union');
   });
 
   test('seed spec.yaml has empty features[] — no legacy F-001 placeholder shard written (v0.4.0)', async () => {
@@ -76,6 +77,30 @@ describe('runInit', () => {
     await runInit({cwd: dir});
     const after = readFileSync(join(dir, '.gitignore'), 'utf8');
     expect(after).toBe(before);
+  });
+
+  test('creates the index merge attribute while leaving attestation unassigned', async () => {
+    const r = await runInit({cwd: dir});
+    const attributes = readFileSync(join(dir, '.gitattributes'), 'utf8');
+    expect(r.created).toContain('.gitattributes (spec/index.yaml merge=union appended)');
+    expect(attributes.split('\n').filter((line) => line === 'spec/index.yaml merge=union')).toHaveLength(1);
+    expect(attributes).not.toMatch(/spec\/attestation\.yaml\b[^\n]*\bmerge/);
+  });
+
+  test('preserves existing gitattributes and appends the managed index line', async () => {
+    writeFileSync(join(dir, '.gitattributes'), '*.md linguist-detectable\n');
+    await runInit({cwd: dir});
+    const attributes = readFileSync(join(dir, '.gitattributes'), 'utf8');
+    expect(attributes).toContain('*.md linguist-detectable');
+    expect(attributes).toContain('spec/index.yaml merge=union');
+  });
+
+  test('does not duplicate an existing index merge attribute', async () => {
+    const original = '# user attributes\nspec/index.yaml merge=union\n';
+    writeFileSync(join(dir, '.gitattributes'), original);
+    const r = await runInit({cwd: dir});
+    expect(readFileSync(join(dir, '.gitattributes'), 'utf8')).toBe(original);
+    expect(r.skipped).toContain('.gitattributes (spec/index.yaml merge=union already present)');
   });
 
   test('force=true overwrites an existing spec.yaml', async () => {

@@ -26,7 +26,9 @@
 // The src side stays canonical — every loadPersona() call in the
 // runtime reads from src/agents. The drift detector enforces lockstep.
 //
-// Run: `npm run build:plugin` or as part of `npm run build`.
+// Run through `npm run build:plugin`, which rebuilds the ignored root dist
+// from source before this script copies it. `npm run build` already invokes
+// build.mjs immediately before this file.
 
 import {
   chmodSync,
@@ -118,11 +120,11 @@ try {
 // serve]` (inline mcpServers — the reliable spot for ${CLAUDE_PLUGIN_ROOT}
 // expansion, side-stepping the .mcp.json expansion bug, claude-code#9427).
 //
-// build.mjs runs before this script under `npm run build`, so dist/clad.js +
-// dist/schema.json + dist/agents/ already exist. The bundle is committed
-// (same model as the agent mirrors above) because the git source IS what users
-// install. Only the Claude Code lane is bundled — Codex/Gemini do not expand
-// ${CLAUDE_PLUGIN_ROOT}, so they keep the global `clad` command.
+// build.mjs runs before this script under both public npm build commands, so
+// dist/clad.js + dist/schema.json + dist/agents/ are source-fresh. The bundle
+// is committed (same model as the agent mirrors above) because the git source
+// IS what users install. Only the Claude Code lane is bundled — Codex/Gemini
+// do not expand ${CLAUDE_PLUGIN_ROOT}, so they keep the global `clad` command.
 const CLAUDE_DIST = `${CLAUDE_PLUGIN_DIR}/dist`;
 if (existsSync('dist/clad.js')) {
   mkdirSync(`${CLAUDE_DIST}/agents`, {recursive: true});

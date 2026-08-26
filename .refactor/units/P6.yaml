@@ -1,0 +1,46 @@
+id: P6
+started: 2026-08-10
+inherits:
+  head: e82374b
+  tree_clean: true
+touch_allowed:
+  - .refactor/PLAN.md
+  - .refactor/ledger.md
+  - .refactor/units/P6.yaml
+  - .refactor/sim/P6.md
+  - .claude-plugin/marketplace.json
+  - CHANGELOG.md
+  - README.md
+  - README.ko.md
+  - README.ja.md
+  - README.zh.md
+  - README.html
+  - README.ko.html
+  - package.json
+  - package-lock.json
+  - plugins/claude-code/.claude-plugin/plugin.json
+  - plugins/claude-code/dist/clad.js
+  - plugins/codex/.codex-plugin/plugin.json
+  - plugins/gemini-cli/gemini-extension.json
+  - spec.yaml
+  - spec/attestation.yaml
+  - src/cli/clad.ts
+  - src/serve/server.ts
+  - tests/cli/clad.test.ts
+done_conditions:
+  - {cmd: "node bin/clad --version", expect: "0.9.4"}
+  - {cmd: "node scripts/test-count.mjs --check", expect: "2845 tests and exit 0"}
+  - {cmd: "npm run build", expect: "exit 0 and source-fresh package/plugin artifacts"}
+  - {cmd: "npm test", expect: "253/253 files and 2845/2845 tests"}
+  - {cmd: "npm run typecheck", expect: "exit 0"}
+  - {cmd: "npm run lint", expect: "exit 0"}
+  - {cmd: "npm run conformance", expect: "declared L4 corpus green"}
+  - {cmd: "node bin/clad check --tier=pre-push --strict", expect: "exit 0 and 0.9.4 policy attestation"}
+  - {cmd: "npm pack --json", expect: "exit 0; packed tarball installs and reports 0.9.4"}
+  - {cmd: "git tag --list v0.9.4", expect: "v0.9.4 after reviewed main merge"}
+  - {cmd: "npm view cladding@0.9.4 version", expect: "0.9.4 after publish"}
+  - {cmd: "gh release view v0.9.4 --json tagName,isDraft,isPrerelease", expect: "published non-draft, non-prerelease v0.9.4"}
+exit:
+  commit: pending
+  verdict: pending
+  residue: pending

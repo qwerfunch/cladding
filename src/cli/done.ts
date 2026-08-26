@@ -19,6 +19,7 @@
 
 import {existsSync, readFileSync, readdirSync, writeFileSync} from 'node:fs';
 import {recordEvent} from '../events/log.js';
+import {blockingDetectorNames, type TelemetryStage} from '../events/stop-telemetry.js';
 import {join} from 'node:path';
 
 import {parseSpec} from '../spec/parse.js';
@@ -34,7 +35,7 @@ export interface DoneDeps {
     strict?: boolean;
     tier?: string;
     focusModules?: readonly string[];
-  }) => {worst: number; anyFailed?: boolean};
+  }) => {worst: number; anyFailed?: boolean; stages?: readonly TelemetryStage[]};
   /**
    * Regenerate the committed feature index after a status flip (on BOTH the
    * kept and the reverted branch) so spec/index.yaml's per-row status never lags
@@ -195,11 +196,12 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
   deps.onIndex?.(cwd);
   // Scope the gate to THIS feature's modules (Gradle monorepos). Empty → the
   // gate runs whole-repo, exactly as before. @see toolchain/scoped-command.ts
-  const {worst, anyFailed} = deps.checkStages({
+  const {worst, anyFailed, stages} = deps.checkStages({
     tier: 'pre-push',
     strict: true,
     focusModules: hit.modules,
   });
+  const blockers = blockingDetectorNames(stages ?? []);
   // F-c566f590 — the evidence-based independence label. Computed once from the
   // injected evidence slice (an omitted dep ⇒ undefined ⇒ pre-independence
   // behavior). It does NOT depend on the gate: a feature can be GREEN yet still
@@ -221,6 +223,7 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
     worst,
     anyFailed: anyFailed ?? worst > 0,
     kept,
+    blockers,
     ...(independence ? {independence} : {}),
   });
   if (kept) {

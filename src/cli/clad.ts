@@ -29,6 +29,7 @@ import {refineOnboarding, resolveOnboardingReview, runClarifyCommand} from './cl
 import {prepareHostClarify, prepareHostInit, renderHostDraft} from './host-onboarding.js';
 import {getCurrentCladdingVersion, runHostSetup} from '../init/host-setup.js';
 import {recordEvent} from '../events/log.js';
+import {blockingDetectorNames, gateStopFingerprint} from '../events/stop-telemetry.js';
 import {buildContextSlice} from '../optimizer/context-slice.js';
 import {buildImpactSlice} from '../optimizer/reverse-slice.js';
 import {inferDependsOn} from '../optimizer/infer-depends-on.js';
@@ -45,6 +46,7 @@ import {clearTestRunCache, primeTestRunCache} from '../stages/test-run-cache.js'
 import {runCommit} from '../stages/commit.js';
 import {runCov} from '../stages/cov.js';
 import {runDrift} from '../stages/drift.js';
+import {allDetectors} from '../stages/detectors/index.js';
 import {runLint} from '../stages/lint.js';
 import {runPerf} from '../stages/perf.js';
 import {runSecret} from '../stages/secret.js';
@@ -65,7 +67,7 @@ import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../
 import {writeDocLinksYaml} from '../spec/doc-references.js';
 import {writeSpecDrivenAgentsMd} from '../init/agents-md.js';
 import {repairTestRefs} from '../spec/test-ref-repair.js';
-import {writeAttestation} from '../spec/attestation.js';
+import {detectorCatalogSha256, writeAttestation} from '../spec/attestation.js';
 import {buildBlindPayload, renderBlindBrief} from '../oracle/payload.js';
 import {requiredOracleWorklist} from '../oracle/policy.js';
 import {loadSpec} from '../spec/load.js';
@@ -662,7 +664,11 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
         if (!opts.json) pulse('note', 'attestation', 'deferred — git operation in progress; run the gate again after the merge/rebase completes.');
       } else {
         try {
-          if (writeAttestation('.', loadSpec())) {
+          if (writeAttestation('.', loadSpec(), {
+            cladding: getCurrentCladdingVersion() ?? 'unknown',
+            blocking: 'strict',
+            detectorsSha256: detectorCatalogSha256(allDetectors),
+          })) {
             if (!opts.json) pulse('note', 'attestation', 'spec/attestation.yaml refreshed (verified tree stamped)');
           }
         } catch {
@@ -678,10 +684,18 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
   } else if (anyFailed && !silent) {
     process.stdout.write('\nℹ Run `clad doctor` for the event log, or `clad sync` to check the spec. The findings above say what drifted and why.\n');
   }
-  // F-b84c38 — verification freshness needs a data source: every tier run
-  // lands in the ledger (best-effort, deduped per identical HEAD/tier/strict/
-  // worst tuple so repeated identical runs add no growth). The poll counts too.
-  recordEvent('.', 'gate_run', {tier, strict: opts.strict === true, worst, anyFailed});
+  // F-b84c38 + F-1aab1bba — verification freshness and Stop follow-through
+  // need one gate record. Compact blocker names explain rejected done attempts;
+  // the Stop-compatible trio fingerprint lets read-time analysis determine
+  // whether a prior Stop block was later reproduced by a normal gate.
+  recordEvent('.', 'gate_run', {
+    tier,
+    strict: opts.strict === true,
+    worst,
+    anyFailed,
+    blockers: blockingDetectorNames(collected),
+    stopFingerprint: gateStopFingerprint(collected),
+  });
   return {worst, anyFailed, stages: collected};
 }
 
@@ -1096,7 +1110,7 @@ export function runRouteCommand(prompt: string): void {
  */
 export function createProgram(): Command {
   const program = new Command();
-  program.name('clad').description('Reference Ironclad CLI').version('0.9.3');
+  program.name('clad').description('Reference Ironclad CLI').version('0.9.4');
 
   program
     .command('init [intent...]')
@@ -1321,7 +1335,7 @@ export function createProgram(): Command {
 
   program
     .command('doctor')
-    .description('Summarise .cladding/events.log.jsonl — sentinel-miss frequency by phase/cause/fallback plus the top missed sentinels (LLM dispatcher health check)')
+    .description('Diagnose Claude Code hook liveness/version, lifecycle governance, and LLM dispatcher sentinel misses')
     .option('--cwd <path>', 'project directory to read events from (default cwd)')
     .option('--json', 'emit the raw DoctorReport for tooling; default is the human-readable surface')
     .option('--hosts', 'smoke-test host CLIs (Claude Code / Gemini / Antigravity / Codex / Cursor) and project wiring → dated artifact + docs/dogfood/matrix.md. Live LLM prompts run only with consent (CLAD_HOST_SMOKE=1 or --yes); otherwise not-run')

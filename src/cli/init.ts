@@ -3,7 +3,7 @@
 // One command, three side-effects on a fresh directory:
 //   1. spec.yaml seed with one placeholder feature (F-001)
 //   2. .cladding/ runtime dir (audit + events log live here)
-//   3. .gitignore append (.cladding/ entry; appended only if missing)
+//   3. .gitignore + .gitattributes managed-line append (only when missing)
 //
 // Idempotent by default — re-running on an initialised workspace is a
 // no-op except for reporting. `--force` overwrites the seed spec.yaml
@@ -34,6 +34,7 @@ import {
 } from './scan/intent-onboarding.js';
 import type {ScanLlmDispatcher} from './scan/llm.js';
 import {captureArtifactDigests, loadState, saveState, type OnboardingState} from './scan/onboarding-state.js';
+import {claddingMajorMinor} from './ci-version.js';
 import {detectToolchain} from '../stages/toolchain/detect.js';
 import {writeSpecDrivenAgentsMd} from '../init/agents-md.js';
 import {getCurrentCladdingVersion, getLastSetupVersion} from '../init/host-setup.js';
@@ -258,22 +259,42 @@ function specSeed(
   ].join('\n');
 }
 
-function appendIfMissing(gitignorePath: string, marker: string, line: string): boolean {
-  const existing = existsSync(gitignorePath) ? readFileSync(gitignorePath, 'utf8') : '';
-  if (existing.includes(marker)) return false;
+function appendIfMissing(path: string, marker: string, line: string, heading: string): boolean {
+  const existing = existsSync(path) ? readFileSync(path, 'utf8') : '';
+  if (existing.split(/\r?\n/).some((existingLine) => existingLine.trim() === marker)) return false;
   const ensureNewline = existing.length > 0 && !existing.endsWith('\n') ? '\n' : '';
-  writeFileSync(gitignorePath, `${existing}${ensureNewline}\n# Cladding runtime state\n${line}\n`);
+  const sectionGap = existing.length > 0 ? '\n' : '';
+  writeFileSync(path, `${existing}${ensureNewline}${sectionGap}${heading}\n${line}\n`);
   return true;
 }
 
 
-/** F-16746b — the authoritative gate: client hooks are per-dev bypassable
- * (--no-verify is printed in the hook body itself); CI + branch protection is
- * where enforcement is real. Scaffolds a starting-point workflow the user
- * owns afterwards; never overwrites an existing file. */
-export function scaffoldCiWorkflow(cwd: string): 'created' | 'exists' {
+/**
+ * Scaffolds the authoritative, release-line-pinned GitHub Actions gate.
+ *
+ * Client hooks are per-developer and bypassable; CI plus branch protection is
+ * where enforcement is real. The generated workflow becomes user-owned and is
+ * never overwritten.
+ *
+ * @param cwd - Project root in which `.github/workflows` will be inspected.
+ * @param version - Running Cladding SemVer; defaults to the discovered runtime.
+ * @returns Whether the workflow was created, already existed, or lacked a safe pin.
+ * @throws Only for filesystem write failures.
+ * @example
+ * ```ts
+ * scaffoldCiWorkflow('/workspace', '0.9.3');
+ * ```
+ * @see spec/features/ci-version-pinning-abd10f3c.yaml AC-84011597
+ * @since 0.9.4
+ */
+export function scaffoldCiWorkflow(
+  cwd: string,
+  version: string | null = getCurrentCladdingVersion(),
+): 'created' | 'exists' | 'version-unavailable' {
   const path = join(cwd, '.github', 'workflows', 'cladding.yml');
   if (existsSync(path)) return 'exists';
+  const selector = claddingMajorMinor(version);
+  if (selector === null) return 'version-unavailable';
   mkdirSync(join(cwd, '.github', 'workflows'), {recursive: true});
   writeFileSync(
     path,
@@ -295,7 +316,7 @@ export function scaffoldCiWorkflow(cwd: string): 'created' | 'exists' {
       '      - uses: actions/setup-node@v4',
       '        with: {node-version: 22}',
       '      - run: npm ci || npm install',
-      '      - run: npx --yes cladding check --tier=pre-push --strict --json',
+      `      - run: npx --yes cladding@${selector} check --tier=pre-push --strict --json`,
       '',
     ].join('\n'),
     'utf8',
@@ -472,11 +493,29 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
 
   // 3. .gitignore append
   const gitignorePath = join(cwd, '.gitignore');
-  const appended = appendIfMissing(gitignorePath, '.cladding/', '.cladding/');
+  const appended = appendIfMissing(gitignorePath, '.cladding/', '.cladding/', '# Cladding runtime state');
   if (appended) {
     created.push('.gitignore (.cladding/ entry appended)');
   } else {
     skipped.push('.gitignore (.cladding/ entry already present)');
+  }
+
+  // F-caff8598 — the append-mostly feature index is safe under union merge;
+  // attestation deliberately remains on plain merge because union can silently
+  // resurrect stale hashes. Preserve every user-authored attribute and append
+  // only the exact managed index rule when absent.
+  const attributesPath = join(cwd, '.gitattributes');
+  const indexMergeAttribute = 'spec/index.yaml merge=union';
+  const attributesAppended = appendIfMissing(
+    attributesPath,
+    indexMergeAttribute,
+    indexMergeAttribute,
+    '# Cladding derived feature index',
+  );
+  if (attributesAppended) {
+    created.push('.gitattributes (spec/index.yaml merge=union appended)');
+  } else {
+    skipped.push('.gitattributes (spec/index.yaml merge=union already present)');
   }
 
   const proposals: string[] = [];
@@ -660,11 +699,13 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
   }
 
   if (opts.withCi) {
-    const ci = scaffoldCiWorkflow(cwd);
+    const ci = scaffoldCiWorkflow(cwd, pkgVersion);
     if (ci === 'created') {
       created.push('.github/workflows/cladding.yml (clad check --tier=pre-push --strict — the authoritative gate)');
     } else if (ci === 'exists') {
       skipped.push('.github/workflows/cladding.yml already exists — cladding never overwrites a CI workflow');
+    } else {
+      skipped.push('--with-ci: current Cladding version unavailable — no unpinned CI workflow was written');
     }
   }
 

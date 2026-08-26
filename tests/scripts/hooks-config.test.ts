@@ -27,6 +27,16 @@ interface HookEntry {
 const doc = JSON.parse(readFileSync(join(ROOT, 'plugins/claude-code/hooks/hooks.json'), 'utf8')) as {
   hooks: Record<string, readonly HookEntry[]>;
 };
+const projectSettings = JSON.parse(readFileSync(join(ROOT, '.claude/settings.json'), 'utf8')) as {
+  enabledPlugins?: Record<string, boolean>;
+  extraKnownMarketplaces?: Record<string, {
+    source?: {source?: string; path?: string};
+    autoUpdate?: boolean;
+  }>;
+};
+const packageDoc = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as {
+  scripts?: Record<string, string>;
+};
 
 describe('claude-code plugin hooks.json — five events wired to the bundled engine', () => {
   test('every key is one of the five events, and all five are present', () => {
@@ -58,10 +68,24 @@ describe('claude-code plugin hooks.json — five events wired to the bundled eng
     expect(doc.hooks.PostToolUse[0].matcher, 'PostToolUse matcher').toBe('Edit|Write|MultiEdit|Bash');
   });
 
-  test('plugin.json declares the hooks field pointing at hooks/hooks.json', () => {
+  test('the standard hooks file is auto-discovered and not declared twice', () => {
     const plugin = JSON.parse(
       readFileSync(join(ROOT, 'plugins/claude-code/.claude-plugin/plugin.json'), 'utf8'),
-    ) as {hooks?: string};
-    expect(plugin.hooks).toBe('./hooks/hooks.json');
+    ) as {hooks?: unknown};
+    expect(Object.hasOwn(plugin, 'hooks')).toBe(false);
+  });
+
+  test('the dogfood project declares where Claude Code can install the enabled plugin', () => {
+    expect(projectSettings.enabledPlugins?.['claude-code@cladding']).toBe(true);
+    expect(projectSettings.extraKnownMarketplaces?.cladding).toEqual({
+      source: {source: 'directory', path: '.'},
+      autoUpdate: true,
+    });
+  });
+
+  test('the standalone plugin build regenerates the ignored engine before copying it', () => {
+    expect(packageDoc.scripts?.['build:plugin']).toBe(
+      'node scripts/build.mjs && node scripts/build-plugin.mjs',
+    );
   });
 });

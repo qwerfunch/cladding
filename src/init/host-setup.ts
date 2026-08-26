@@ -718,15 +718,36 @@ function resolveDefaultPkgRoot(): string {
 }
 
 function readCladdingVersion(pkgRoot: string): string {
-  try {
-    return (JSON.parse(readFileSync(join(pkgRoot, 'package.json'), 'utf8')) as {version?: string}).version ?? 'unknown';
-  } catch {
-    return 'unknown';
+  for (const relativePath of ['package.json', join('.claude-plugin', 'plugin.json')]) {
+    try {
+      const version = (JSON.parse(readFileSync(join(pkgRoot, relativePath), 'utf8')) as {version?: unknown}).version;
+      if (typeof version === 'string' && version.length > 0) return version;
+    } catch {
+      // npm installs carry package.json; the self-contained Claude cache carries
+      // only its plugin manifest. Absence of either source is expected.
+    }
   }
+  return 'unknown';
 }
 
-export function getCurrentCladdingVersion(): string | null {
-  const version = readCladdingVersion(resolveDefaultPkgRoot());
+/**
+ * Resolves the running engine version across npm and Claude plugin installs.
+ *
+ * Claude copies only the plugin subtree into its cache, so `package.json` is
+ * absent there and `.claude-plugin/plugin.json` is the authoritative fallback.
+ *
+ * @param pkgRoot - Optional engine/plugin root; defaults to the discovered runtime root.
+ * @returns The recorded Cladding version, or null when neither manifest is readable.
+ * @throws Never; malformed or absent manifests return null.
+ * @example
+ * ```ts
+ * const version = getCurrentCladdingVersion();
+ * ```
+ * @see spec/features/hook-health-observability-96fa5622.yaml AC-8b386416
+ * @since 0.9.4
+ */
+export function getCurrentCladdingVersion(pkgRoot: string = resolveDefaultPkgRoot()): string | null {
+  const version = readCladdingVersion(pkgRoot);
   return version === 'unknown' ? null : version;
 }
 

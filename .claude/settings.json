@@ -1,5 +1,14 @@
 {
   "enabledPlugins": {
     "claude-code@cladding": true
+  },
+  "extraKnownMarketplaces": {
+    "cladding": {
+      "source": {
+        "source": "directory",
+        "path": "."
+      },
+      "autoUpdate": true
+    }
   }
 }

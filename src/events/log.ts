@@ -50,14 +50,19 @@ export type EventType =
   | 'feature_created' // payload: feature, slug
   | 'design_impact_resolved' // payload: feature
   | 'scenario_created' // payload: scenario, slug
-  | 'done_attempted' // payload: feature, worst, anyFailed, kept
-  | 'gate_run' // payload: tier, strict, worst, anyFailed (deduped per HEAD)
+  | 'done_attempted' // payload: feature, worst, anyFailed, kept, blockers[]
+  | 'gate_run' // payload: tier, strict, worst, anyFailed, blockers[], stopFingerprint
   // v0.6.0 (F-1d23a6) — the Stop host hook blocked a session end on a FRESH
   // deterministic-trio failure (drift strict / arch / secret). Fingerprint-
   // keyed: an identical failure set demotes to allow without an event, so
   // this fires only on new breakage — the demotion itself persists as
   // .cladding/stop-block.json and resurfaces on the SessionStart card.
-  | 'stop_blocked' // payload: count, fingerprint
+  | 'stop_blocked' // payload: count, fingerprint, detectors[], introduced, preexisting, dirty_hit
+  // v0.9.4 (F-1aab1bba) — an identical Stop fingerprint took the existing
+  // demotion path, allowing the known-failing session to exit. The payload
+  // mirrors stop_blocked attribution so later analysis has both denominator
+  // arms; observer-only, never consulted by the hook decision.
+  | 'stop_exit_recorded'
   // v0.8.0 (F-6ba22c5c) — value-delivery telemetry. cladding's value surfaces
   // (PostToolUse impact card, SessionStart card, UserPromptSubmit suggestion, MCP
   // read serves) left ZERO trace, so the 0.7.1 "impact card fired 0%" bug was
@@ -222,8 +227,10 @@ export function latestEventOfType(cwd: string, type: EventType): Event | null {
  * failure path degrades to a silent no-op.
  *
  * `gate_run` dedupe: when the latest gate_run already carries the identical
- * (head, tier, strict, worst) tuple, the append is skipped — repeated
- * identical runs on the same tree add no information, only log growth.
+ * head/tier/strict/worst plus blocker evidence, the append is skipped — except
+ * when a stop_blocked event occurred after that gate. The first later gate must
+ * remain observable so Stop's fingerprint can be correlated without a second
+ * state file; subsequent identical gates dedupe normally.
  */
 export function recordEvent(cwd: string, type: EventType, payload: Record<string, unknown>): void {
   try {
@@ -231,13 +238,25 @@ export function recordEvent(cwd: string, type: EventType, payload: Record<string
     const identity = resolveActorIdentity(cwd);
     const full = {...payload, head, identity};
     if (type === 'gate_run') {
-      const prev = latestEventOfType(cwd, 'gate_run');
+      const events = readEvents(cwd);
+      let prevIndex = -1;
+      for (let index = events.length - 1; index >= 0; index--) {
+        if (events[index].type === 'gate_run') {
+          prevIndex = index;
+          break;
+        }
+      }
+      const prev = prevIndex >= 0 ? events[prevIndex] : undefined;
+      const stopBlockedSince = prevIndex >= 0 && events.slice(prevIndex + 1).some((event) => event.type === 'stop_blocked');
       if (
         prev &&
+        !stopBlockedSince &&
         prev.payload.head === head &&
         prev.payload.tier === payload.tier &&
         prev.payload.strict === payload.strict &&
-        prev.payload.worst === payload.worst
+        prev.payload.worst === payload.worst &&
+        prev.payload.stopFingerprint === payload.stopFingerprint &&
+        JSON.stringify(prev.payload.blockers ?? []) === JSON.stringify(payload.blockers ?? [])
       ) {
         return;
       }

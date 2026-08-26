@@ -1,0 +1,51 @@
+id: F-1aab1bba
+slug: stop-outcome-telemetry
+title: "Stop and completion outcome telemetry"
+status: done
+modules:
+  - src/events/log.ts
+  - src/events/stop-telemetry.ts
+  - src/cli/hook.ts
+  - src/cli/clad.ts
+  - src/cli/done.ts
+  - src/cli/doctor.ts
+acceptance_criteria:
+  - id: AC-28df4cc4
+    ears: event
+    condition: "when Stop finds a fresh blocking fingerprint"
+    action: "record additive attribution fields on stop_blocked"
+    response: "the event carries count, fingerprint, detectors, introduced, preexisting, dirty_hit, head, and identity while preserving the Stop decision and output"
+    text: "When Stop finds a fresh blocking fingerprint, the system shall record count, fingerprint, sorted detector names, counts introduced since versus present in the latest observed gate, dirty-path intersection, head, and identity without changing the block decision."
+    test_refs: ["tests/cli/hook.test.ts#fresh failure records complete attribution without changing block output"]
+  - id: AC-5c94711a
+    ears: event
+    condition: "when Stop sees the identical persisted fingerprint again"
+    action: "demote the repeat and record stop_exit_recorded"
+    response: "the hook remains protocol-silent and the observer-only event links the known-failing exit to the same fingerprint"
+    text: "When Stop sees the identical persisted fingerprint again, the system shall preserve the existing empty allow response and append a stop_exit_recorded event for that known-failing exit."
+    test_refs: ["tests/cli/hook.test.ts#identical second run stays empty and records the known-failing exit"]
+  - id: AC-8894d11f
+    ears: ubiquitous
+    action: "enrich gate_run and derive Stop follow-through at read time"
+    response: "gate events carry compact blocker names and a Stop-compatible fingerprint, consecutive identical gates remain deduplicated except that a gate after a stop block is retained, and the pure summary reports whether each blocked fingerprint appeared in a later gate"
+    text: "The system shall retain enough compact gate evidence to determine at read time whether a blocked Stop fingerprint was observed by any later gate, without persisting a second correlation state file."
+    test_refs: ["tests/events/log.test.ts#a stop block makes the next identical gate observable", "tests/events/stop-telemetry.test.ts#matches a blocked fingerprint only against later gate runs"]
+  - id: AC-3cb0ca39
+    ears: event
+    condition: "when clad done completes its strict gate attempt"
+    action: "record the gate blocker names on done_attempted"
+    response: "both kept and reverted attempts carry a sorted blockers array and all prior gate and status behavior is unchanged"
+    text: "When a completion attempt finishes its strict gate, the system shall add a sorted blockers array to done_attempted, empty on green and populated on red, without changing flip-gate-revert behavior."
+    test_refs: ["tests/cli/done.test.ts#records done_attempted blockers on GREEN and RED gates", "tests/cli/gate-golden-matrix.test.ts#records compact blocker telemetry without changing the gate matrix"]
+  - id: AC-a2a3beb3
+    ears: event
+    condition: "when clad doctor reads current or legacy lifecycle events"
+    action: "summarize recorded Stop exits and later-gate observations in text and JSON"
+    response: "operators can read the counters without parsing JSONL and missing or malformed additive fields degrade to zero rather than throwing"
+    text: "When doctor reads the lifecycle ledger, the system shall expose Stop exit and later-gate observation counters in text and JSON while tolerating legacy events that lack the new fields."
+    test_refs: ["tests/cli/doctor.test.ts#governance summary exposes stop outcomes and tolerates legacy events"]
+design_impact:
+  classification: none
+  rationale: "This additively enriches the existing lifecycle event stream and doctor summary without adding a service, boundary, capability, or committed policy surface."
+  status: resolved
+  artifacts: []

@@ -29,4 +29,6 @@ the project:
   fast inner-loop feedback while implementing.
 - `clad check --tier=pre-push --strict` — the full gate (type / lint / unit / cov + drift). This is what
   `clad done <featureId>` already runs, so do NOT run it separately right before `clad done` — one
-  authoritative full gate per feature, not two. See `docs/feature-cycle.md` § Gate economy.
+  authoritative full gate per feature, not two. A GREEN run refreshes `spec/attestation.yaml` with the
+  running Cladding version, strict blocking mode, detector-catalog SHA-256, module hashes, and feature
+  markers. See `docs/feature-cycle.md` § Gate economy.

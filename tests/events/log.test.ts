@@ -112,6 +112,40 @@ describe('recordEvent (F-b84c38)', () => {
     expect(runs.length).toBe(3);
   });
 
+  test('a stop block makes the next identical gate observable', () => {
+    const gate = {tier: 'pre-push', strict: true, worst: 1, anyFailed: true, stopFingerprint: 'blocked'};
+    recordEvent(dir, 'gate_run', gate);
+    recordEvent(dir, 'gate_run', gate);
+    expect(readEvents(dir).filter((event) => event.type === 'gate_run')).toHaveLength(1);
+
+    recordEvent(dir, 'stop_blocked', {count: 1, fingerprint: 'blocked'});
+    recordEvent(dir, 'gate_run', gate);
+    recordEvent(dir, 'gate_run', gate);
+
+    const events = readEvents(dir);
+    expect(events.map((event) => event.type)).toEqual(['gate_run', 'stop_blocked', 'gate_run']);
+  });
+
+  test('changed blocker evidence is not deduped behind the same red outcome tuple', () => {
+    recordEvent(dir, 'gate_run', {
+      tier: 'pre-push',
+      strict: true,
+      worst: 1,
+      anyFailed: true,
+      blockers: ['FIRST'],
+      stopFingerprint: 'first',
+    });
+    recordEvent(dir, 'gate_run', {
+      tier: 'pre-push',
+      strict: true,
+      worst: 1,
+      anyFailed: true,
+      blockers: ['SECOND'],
+      stopFingerprint: 'second',
+    });
+    expect(readEvents(dir).filter((event) => event.type === 'gate_run')).toHaveLength(2);
+  });
+
   test('non-gate_run types are never deduped', () => {
     recordEvent(dir, 'done_attempted', {feature: 'F-x', worst: 0, kept: true});
     recordEvent(dir, 'done_attempted', {feature: 'F-x', worst: 0, kept: true});
