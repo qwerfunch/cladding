@@ -61,6 +61,19 @@ export interface StageResult {
    * absent on green stages and on stages with no known fix command.
    */
   readonly hint?: string;
+  /**
+   * NEW (F-c17e1edc) — WHY this skip (exitCode 2) happened, structured so the
+   * renderer and machine consumers stop parsing stderr prose:
+   *   no-runner    — cladding knows no command for this stage in this project
+   *                  (`no <X> registered for language '…'`). Curable by ONE
+   *                  declaration: `gate.commands` in `.cladding/config.yaml`.
+   *   tool-missing — the resolved tool is absent (ENOENT) or `npx` cannot fetch
+   *                  it offline. The command IS known; the environment lacks it.
+   * By-design skips stay UNTAGGED — a missing spec-conformance oracle or an
+   * undeclared deliverable is "this stage does not apply", and prescribing
+   * `gate.commands` there would be a false cure. Absent on pass/fail results.
+   */
+  readonly skipReason?: 'no-runner' | 'tool-missing';
 }
 
 /** Shared options for any stage that wraps an external command. */

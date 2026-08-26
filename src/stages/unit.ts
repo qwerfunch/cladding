@@ -200,6 +200,8 @@ export function runUnit(opts: UnitStageOptions = {}): StageResult {
       pass: false,
       exitCode: 2,
       stderr: `no unit test runner registered for language '${language}'`,
+      // F-c17e1edc — curable skip: declaring gate.commands.test turns this on.
+      skipReason: 'no-runner',
     };
   }
   // Guard applies only under --strict on a vitest runner (the only path we can

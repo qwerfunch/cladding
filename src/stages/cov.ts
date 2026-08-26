@@ -36,6 +36,8 @@ export function runCov(opts: CommandStageOptions = {}): StageResult {
       pass: false,
       exitCode: 2,
       stderr: `no coverage runner registered for language '${language}'`,
+      // F-c17e1edc — curable skip: declaring gate.commands.coverage turns this on.
+      skipReason: 'no-runner',
     };
   }
   // F-49f6f2d2 (#215): on a primed vitest gate the unit stage (stage_2.1) already

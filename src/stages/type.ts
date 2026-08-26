@@ -53,6 +53,8 @@ export function runType(opts: CommandStageOptions = {}): StageResult {
       pass: false,
       exitCode: 2,
       stderr: `no type checker registered for language '${language}'`,
+      // F-c17e1edc — curable skip: declaring gate.commands.type turns this on.
+      skipReason: 'no-runner',
     };
   }
   const proc = execaSync(cmd, [...args], {cwd, reject: false});
