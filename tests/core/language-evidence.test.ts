@@ -16,7 +16,11 @@
 //     yields classified 0 / dominant null / share 0 rather than a throw;
 //   - the walk is capped, so a detector invoking it on every gate run
 //     stays bounded (asserted through the exported cap + the injectable
-//     `maxFiles` override — 20 000 real files are never created).
+//     `maxFiles` override — 20 000 real files are never created);
+//   - `observedKnownExtensions` reports the extensions actually present
+//     rather than every extension the matching label could have — the
+//     glob-building contract UNMAPPED_ARTIFACT depends on (AC-4d21c8a7
+//     of F-87bb7ed3).
 
 import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -28,6 +32,7 @@ import {
   EXT_TO_LANGUAGE,
   LANGUAGE_VOCABULARY,
   MAX_FILES,
+  observedKnownExtensions,
 } from '../../src/core/language-evidence.js';
 import {EXT_TO_LANGUAGE as SCAN_EXT_TO_LANGUAGE} from '../../src/cli/scan/thresholds.js';
 
@@ -138,5 +143,46 @@ describe('core/language-evidence — classifySources', () => {
     const capped = classifySources(dir, {maxFiles: 4});
     expect(capped.classified).toBe(4);
     expect(classifySources(dir).classified).toBe(12);
+  });
+});
+
+describe('core/language-evidence — observedKnownExtensions', () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'clad-langext-'));
+  });
+  afterEach(() => {
+    rmSync(dir, {recursive: true, force: true});
+  });
+
+  test('AC-4d21c8a7 — reports the extensions present, not every extension the label covers', () => {
+    seed(dir, join('src', 'engine'), '.cpp', 3);
+    seed(dir, join('src', 'engine'), '.h', 1);
+    seed(dir, 'scripts', '.py', 2);
+
+    // `.cc`, `.cxx` and `.hpp` share the cpp label but are absent from the
+    // tree — globbing for them would scan directories that cannot match.
+    expect(observedKnownExtensions(dir)).toEqual(['.cpp', '.h', '.py']);
+  });
+
+  test('AC-4d21c8a7 — unknown extensions, vendored trees and dot directories are left out', () => {
+    seed(dir, 'src', '.ts', 2);
+    seed(dir, 'docs', '.md', 4);
+    seed(dir, join('node_modules', 'pkg'), '.js', 5);
+    seed(dir, join('.venv', 'lib'), '.py', 5);
+
+    expect(observedKnownExtensions(dir)).toEqual(['.ts']);
+  });
+
+  test('AC-4d21c8a7 — an empty or missing tree yields no extensions, and the walk is capped', () => {
+    expect(observedKnownExtensions(dir)).toEqual([]);
+    expect(observedKnownExtensions(join(dir, 'nope'))).toEqual([]);
+
+    seed(dir, 'a', '.ts', 6);
+    seed(dir, 'b', '.py', 6);
+    // Injected cap: the walk stops early, so it can miss a language — the
+    // same bounded contract classifySources runs under.
+    expect(observedKnownExtensions(dir, {maxFiles: 1}).length).toBe(1);
+    expect(observedKnownExtensions(dir)).toEqual(['.py', '.ts']);
   });
 });

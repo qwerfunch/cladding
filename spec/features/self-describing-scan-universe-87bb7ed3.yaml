@@ -1,0 +1,72 @@
+id: F-87bb7ed3
+slug: self-describing-scan-universe
+title: "Self-describing scan universe for UNMAPPED_ARTIFACT"
+status: done
+modules:
+  - src/stages/detectors/unmapped-artifact.ts
+  - src/core/language-evidence.ts
+acceptance_criteria:
+  - id: AC-4d21c8a7
+    ears: event
+    condition: "when the project has at least 8 features and declared architecture layers"
+    action: "derive the scan universe from evidence — extensions are the union of (observed source extensions that the vocabulary knows) and (extensions of modules claimed under layer roots), expanded to one glob per root, layer, and extension"
+    response: "a C++, Java, or C# project is actually scanned instead of falling through to a *.ts glob that matches nothing, which was measured to pass vacuously on exactly the projects the module-to-feature honesty check exists for"
+    text: "When the full scan is active, the system shall build the UNMAPPED_ARTIFACT universe from observed known extensions united with the extensions of layer-claimed modules, replacing the fixed per-language extension table."
+    notes: |
+      ## Why
+      EXT_BY_LANGUAGE knew 6 languages; declaring cpp, java, or csharp fell back
+      to 'ts', producing zero scanned files and a silent pass — verified by
+      direct scanPatterns calls. Two evidence sources compose: observation
+      covers lazy specs (unclaimed .cpp stays visible even when only .java is
+      claimed), and claimed modules teach unknown languages (.zig enters the
+      universe the moment a feature claims a .zig file) with no table growth.
+    test_refs: ["tests/stages/unmapped-artifact.test.ts", "tests/stages/unmapped-universe-evidence.test.ts"]
+  - id: AC-9a6f02d3
+    ears: event
+    condition: "when claimed module paths place layer directories under a nested root such as src/main/kotlin"
+    action: "infer each scan root from the path segments before the layer segment, falling back to src when no module teaches a root"
+    response: "the Kotlin source-set layout keeps working without its dedicated ROOT_BY_LANGUAGE entry, and any other nested layout works the same way for free"
+    text: "The system shall infer scan roots from the claimed module paths' segments preceding a declared layer name, keep only roots carrying at least 25% of layer-claimed modules, and default to src when no module teaches a root."
+    notes: |
+      ## Why the dominance filter
+      Layer names are common words, so segment matching alone teaches collision
+      roots — measured on this repository: tests/ (9.6% of layer-claimed
+      modules), skills/, plugins/claude-code, and the empty root via
+      spec/features, together producing 430 false unclaimed findings and a red
+      strict gate. A root must carry >=25% of layer-claimed modules; src
+      carries 86% here and a Gradle src/main/kotlin + src/main/java split at
+      50/50 keeps both roots (pinned by test). Accepted trade, recorded
+      honestly: a genuine minority source root under 25% is silently not
+      scanned — a false negative matching the old world's blindness to every
+      non-src root, so coverage is still a superset of the table it replaces.
+      The share is ratio-noisy at small claim counts: with only two
+      layer-claimed modules, one test-file claim makes its root a 50% peer and
+      its unclaimed siblings error findings. Measured and accepted — claiming a
+      test file under modules declares that root governed, and the cure is
+      claiming or unclaiming deliberately, not a special-casing table.
+    test_refs: ["tests/stages/unmapped-artifact.test.ts", "tests/stages/unmapped-universe-evidence.test.ts"]
+  - id: AC-c5e83b19
+    ears: unwanted
+    condition: "if the project has fewer than 8 features or no declared architecture layers"
+    action: "keep the existing legacy narrow fallback patterns byte-identical"
+    response: "day-1 adoptions keep their protective narrow scan; the evidence model only governs grown projects"
+    text: "If the full-scan scale gate is not met, the system shall return the unchanged legacy fallback patterns."
+    test_refs: ["tests/stages/unmapped-artifact.test.ts"]
+  - id: AC-7f14d6e0
+    ears: ubiquitous
+    action: "build the scan universe without reading spec.project.language"
+    response: "the detector is language-independent: no label lookup can misdirect the universe, and an unknown declared language cannot produce a vacuous scan"
+    text: "The system shall derive the UNMAPPED_ARTIFACT universe without consulting spec.project.language."
+    notes: |
+      ## Why
+      The language scalar was the single point through which every mislabel
+      became a wrong or empty universe. Evidence (what is on disk, what the
+      spec claims) cannot be mislabeled the way a string can. Measured on the
+      dogfood repo (277 features): the evidence universe produces zero new
+      unclaimed findings — the discipline is in the spec, not the label.
+    test_refs: ["tests/stages/unmapped-universe-evidence.test.ts"]
+design_impact:
+  classification: none
+  rationale: "Rewires one detector's universe derivation from a language table to spec-and-tree evidence; scale gate, severity, and finding shape unchanged."
+  status: resolved
+  artifacts: []

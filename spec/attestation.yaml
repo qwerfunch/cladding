@@ -26,20 +26,20 @@ attested_modules:
   CHANGELOG.md: 78288e943090a029
   CLAUDE.md: 9f2fa4edd5c6df80
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: 63e3e36ab7fcc2bd
-  README.ja.md: 9b92d8e95638d2aa
-  README.ko.html: 49e211ff1332a0fd
-  README.ko.md: 8866dfcceffc6c7b
-  README.md: 8bb065e43d439752
-  README.zh.md: 2d7b5f006f7ff930
+  README.html: bcfa2b3d93de7f56
+  README.ja.md: 072d19e94604f165
+  README.ko.html: d54456b6aa795341
+  README.ko.md: 53875c680af622d3
+  README.md: 87a865c94c73ebf8
+  README.zh.md: 09ee2df6c5c36872
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
   conformance/runner.ts: b9c9e71df85d382e
   docs/README.md: 5672e5726104d845
   docs/ab-evaluation-extended/README.md: f690562df2e5ec06
-  docs/ab-evaluation-extended/scenarios/dashboard/report.md: 9ad86472f76c2c29
-  docs/ab-evaluation-extended/scenarios/task-manager/report.md: fe3c789cc9b88eb1
+  docs/ab-evaluation-extended/scenarios/dashboard/report.md: a656cad8c8ac2772
+  docs/ab-evaluation-extended/scenarios/task-manager/report.md: 91df11ca4e9bed26
   docs/ab-evaluation-extended/summary.md: d16f16836f94bd80
   docs/ab-evaluation/README.md: 2467808b9871dcf0
   docs/ab-evaluation/case-doverunner-scale.md: 2a435b6855823d41
@@ -123,7 +123,7 @@ attested_modules:
   skills/serve/SKILL.md: f08bbdbbfeb05041
   skills/status/SKILL.md: 09faadc50b3449da
   skills/sync/SKILL.md: 775c0f990a52a3d9
-  spec.yaml: 7e4f358630fa44f2
+  spec.yaml: 9937e09b6401f878
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -193,7 +193,7 @@ attested_modules:
   src/cli/verdict.ts: 85a4ef27292b9169
   src/core/checkpoint.ts: 63300c2764533b6c
   src/core/git-ops.ts: c144e5cc253822b3
-  src/core/language-evidence.ts: 0e1a959a10f7bb1c
+  src/core/language-evidence.ts: eaccacbbf14020e8
   src/core/postmortem.ts: 73be29d5e8a16fd4
   src/core/telemetry-summary.ts: 6782bfaa6c3ecfa6
   src/drive: a4d0f0eb87fed960
@@ -269,7 +269,7 @@ attested_modules:
   src/stages/cov.ts: 3dbe8381e374e8c0
   src/stages/deliverable-smoke.ts: 9ecfd4210e6ec5c0
   src/stages/detector-result-cache.ts: 93ea6af02ef361c5
-  src/stages/detectors/README.md: 12e8d24351eef05c
+  src/stages/detectors/README.md: 3fe2c865aa2adcba
   src/stages/detectors/absence-of-governance.ts: 954d8ce5c45b3b32
   src/stages/detectors/ac-drift.ts: 1bceeae9ee99080b
   src/stages/detectors/ac-duplicate-within-feature.ts: 652ad48c8cd1ab2e
@@ -310,7 +310,7 @@ attested_modules:
   src/stages/detectors/stale-tests.ts: caf59404d1282201
   src/stages/detectors/status-drift.ts: 9cc5cf3f9b62ea00
   src/stages/detectors/tech-stack-mismatch.ts: 4da504acb67aaa86
-  src/stages/detectors/unmapped-artifact.ts: b29f7e277d8187ae
+  src/stages/detectors/unmapped-artifact.ts: 6696179e5958f37c
   src/stages/detectors/untested-ac.ts: 90725ef1fc9245d8
   src/stages/detectors/unverified-ac.ts: 6887c4d699afaad5
   src/stages/detectors/with-spec.ts: dcf3205e8d563574
@@ -440,7 +440,7 @@ attested_modules:
   tests/stages/type.test.ts: b57cf7455cae3b32
   tests/stages/uat.test.ts: 29c5bf3e7f3abc35
   tests/stages/unit.test.ts: 97781210eb81bb25
-  tests/stages/unmapped-artifact.test.ts: 6bfdae66990fd63a
+  tests/stages/unmapped-artifact.test.ts: c16219779f6164bb
   tests/stages/util.test.ts: a162cbe069c85f41
   tests/stages/visual.test.ts: dd819e7d25586b92
   tests/ui/panel.test.ts: ad9ea207f34b1c51
@@ -624,6 +624,7 @@ attested_features:
   F-836a90: ok
   F-8476ccb1: ok
   F-876b6f48: ok
+  F-87bb7ed3: ok
   F-898783ee: ok
   F-8f419e: ok
   F-904495a5: ok

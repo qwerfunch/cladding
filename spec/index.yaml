@@ -182,6 +182,7 @@ features:
   F-836a90: {slug: link-capability-tool, status: done, modules: 2}
   F-8476ccb1: {slug: readme-multiagent-inversion, status: done, modules: 6}
   F-876b6f48: {slug: shard-term-to-spec-entry, status: done, modules: 7}
+  F-87bb7ed3: {slug: self-describing-scan-universe, status: done, modules: 2}
   F-898783ee: {slug: self-count-guard, status: done, modules: 17}
   F-8f419e: {slug: smoke-legacy-liveness, status: done, modules: 1}
   F-904495a5: {slug: changelog-render, status: done, modules: 5}

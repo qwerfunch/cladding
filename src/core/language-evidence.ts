@@ -15,6 +15,12 @@
 // says java), which is the right answer for "what command do we run"
 // and the wrong answer for project identity.
 //
+// The third export answers the neighbouring question — "which source
+// extensions does this tree actually contain?" — because a caller that
+// builds file globs needs the extensions themselves, not the labels:
+// inverting a label back through the map would glob for `.hpp`, `.cc`
+// and `.cxx` on a project that only ever writes `.cpp`.
+//
 // Deterministic + synchronous by contract (Iron Law): filesystem reads
 // only, no LLM, never throws. An unreadable directory is skipped, not
 // raised, so a permission-denied subtree can never break a gate run.
@@ -105,25 +111,28 @@ export interface ClassifyOptions {
   readonly maxFiles?: number;
 }
 
+/** Resolves the walk cap from {@link ClassifyOptions}; values below 1 are ignored. */
+function resolveCap(opts: ClassifyOptions): number {
+  return opts.maxFiles !== undefined && opts.maxFiles >= 1 ? opts.maxFiles : MAX_FILES;
+}
+
 /**
- * Walks `cwd` and counts source files per language.
+ * The one bounded tree walk both public readers share, so a caller that
+ * asks for labels and a caller that asks for extensions can never see
+ * different files.
  *
- * The walk is synchronous, iterative (no recursion depth limit), and
- * bounded by {@link MAX_FILES}. Symlinked directories are not followed —
+ * Synchronous, iterative (no recursion depth limit), and stopped at
+ * `cap` files. Symlinked directories are not followed —
  * `Dirent.isDirectory()` is false for a symlink — so a cyclic link
  * cannot hang the walk. Unreadable directories are skipped silently.
  *
- * @param cwd - Project root to classify.
- * @param opts - Optional {@link ClassifyOptions}.
- * @returns The observed {@link SourceEvidence}; an empty tree yields
- *          `classified: 0`, `dominant: null`, and `share() === 0`.
+ * @param cwd - Project root to walk.
+ * @param cap - Hard file budget for this walk.
+ * @param onFile - Receives each visited file's lower-cased extension
+ *                 (`''` when the name carries none).
  */
-export function classifySources(cwd: string, opts: ClassifyOptions = {}): SourceEvidence {
-  const cap = opts.maxFiles !== undefined && opts.maxFiles >= 1 ? opts.maxFiles : MAX_FILES;
-  const counts: Record<string, number> = {};
-  let classified = 0;
+function walkExtensions(cwd: string, cap: number, onFile: (ext: string) => void): void {
   let visited = 0;
-
   const stack: string[] = [cwd];
   while (stack.length > 0 && visited < cap) {
     const dir = stack.pop()!;
@@ -142,12 +151,34 @@ export function classifySources(cwd: string, opts: ClassifyOptions = {}): Source
       if (!entry.isFile()) continue;
       if (visited >= cap) break;
       visited += 1;
-      const language = EXT_TO_LANGUAGE[extname(entry.name).toLowerCase()];
-      if (language === undefined) continue;
-      counts[language] = (counts[language] ?? 0) + 1;
-      classified += 1;
+      onFile(extname(entry.name).toLowerCase());
     }
   }
+}
+
+/**
+ * Walks `cwd` and counts source files per language.
+ *
+ * The walk is synchronous, iterative (no recursion depth limit), and
+ * bounded by {@link MAX_FILES}. Symlinked directories are not followed —
+ * `Dirent.isDirectory()` is false for a symlink — so a cyclic link
+ * cannot hang the walk. Unreadable directories are skipped silently.
+ *
+ * @param cwd - Project root to classify.
+ * @param opts - Optional {@link ClassifyOptions}.
+ * @returns The observed {@link SourceEvidence}; an empty tree yields
+ *          `classified: 0`, `dominant: null`, and `share() === 0`.
+ */
+export function classifySources(cwd: string, opts: ClassifyOptions = {}): SourceEvidence {
+  const counts: Record<string, number> = {};
+  let classified = 0;
+
+  walkExtensions(cwd, resolveCap(opts), (ext) => {
+    const language = EXT_TO_LANGUAGE[ext];
+    if (language === undefined) return;
+    counts[language] = (counts[language] ?? 0) + 1;
+    classified += 1;
+  });
 
   const set = Object.keys(counts).sort();
   let dominant: string | null = null;
@@ -165,4 +196,26 @@ export function classifySources(cwd: string, opts: ClassifyOptions = {}): Source
       return (counts[language] ?? 0) / classified;
     },
   };
+}
+
+/**
+ * Walks `cwd` and reports which vocabulary-known extensions occur in it.
+ *
+ * Same bounded walk as {@link classifySources} — same cap, same skipped
+ * directories — but it answers with extensions rather than labels, for
+ * callers that build file globs. Extensions the vocabulary does not know
+ * are omitted: an unknown extension names no language, and a caller that
+ * wants one anyway has to learn it from somewhere other than a guess.
+ *
+ * @param cwd - Project root to inspect.
+ * @param opts - Optional {@link ClassifyOptions}.
+ * @returns The observed extensions, lower-cased with their leading dot
+ *          (`.ts`), sorted; an empty or unreadable tree yields `[]`.
+ */
+export function observedKnownExtensions(cwd: string, opts: ClassifyOptions = {}): readonly string[] {
+  const found = new Set<string>();
+  walkExtensions(cwd, resolveCap(opts), (ext) => {
+    if (EXT_TO_LANGUAGE[ext] !== undefined) found.add(ext);
+  });
+  return [...found].sort();
 }

@@ -93,7 +93,7 @@ Each of the remaining 38 is real, but carries a condition — or stays dormant u
 | **config-dependent** (needs external config / binary) | `HARDCODED_SECRET` (needs `.secretlintrc` + secretlint), `COVERAGE_DROP` (needs coverage report), `PERFORMANCE_DRIFT` (needs perf baseline) |
 | **code-anchor-dependent** (needs a `// AC-NNN: <hash>` comment in source — no anchor → no catch) | `AC_DRIFT` |
 | **warn-severity** (does not fail the gate alone) | `MISSING_TESTS`, `STALE_TESTS`, `COVERAGE_DROP`, `STALE_EVIDENCE`, `STALE_SPECIFICATION`, `TECH_STACK_MISMATCH`, `CONVENTION_DRIFT`, `PERFORMANCE_DRIFT`, `UNMAPPED_ARTIFACT` *(default; promoted to error by `--strict`)* |
-| **scoped-scan** (narrow glob — drift outside the scan paths is invisible) | `UNMAPPED_ARTIFACT` scans `stages/**` and `spec/**` only |
+| **scoped-scan** (bounded universe — drift outside it is invisible) | `UNMAPPED_ARTIFACT` scans declared-layer roots for evidenced extensions (observed known + layer-claimed); legacy narrow globs below the 8-feature scale gate |
 | **environment** (needs project structure cladding expects) | `HARNESS_INTEGRITY`, `REFERENCE_INTEGRITY`, `META_INTEGRITY` |
 
 ### Opt-in strict mode
