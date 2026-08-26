@@ -34,14 +34,16 @@ acceptance_criteria:
     ears: event
     condition: "when a declaration in force overrides a differing manifest verdict"
     action: "emit one info finding naming the declaration, the manifest verdict, and that the declaration is in force"
-    response: "the waiver is legible in every gate log and never fails the gate, including under --strict"
+    response: "the override is recoverable from the machine-readable surfaces (`clad check --json`, clad_run_check verbose) and never fails the gate, including under --strict"
     text: "When a declaration overrides a differing manifest verdict, the system shall disclose the override at info severity rather than returning no finding."
     notes: |
       ## Why
       Nothing mechanical separates a legitimate build-host mismatch from a
       declaration that went stale after a real port, so the override is a
-      waiver. A silent waiver and a forgotten one are indistinguishable in a
-      gate log; info keeps it readable without giving it blocking power.
+      waiver. Without a finding it leaves no trace at all. Info is the
+      machine-readable channel only — the gate's terminal output renders
+      error and warn, and SARIF excludes info by contract — so this buys an
+      auditor a record, not a prompt to the developer at the terminal.
     test_refs:
       - "tests/stages/tech-stack-mismatch.test.ts#a matching gate.language declaration overrides the manifest, and says so at info"
       - "tests/stages/tech-stack-mismatch.test.ts#the override disclosure never fails a strict gate"

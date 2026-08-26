@@ -23,7 +23,7 @@ attested_modules:
   .claude/settings.json: 08a64351770badf4
   .github/workflows/ci.yml: 8ea99219cb80df60
   .gitignore: 1294975ba3b47043
-  CHANGELOG.md: 5fa4601f2c98f803
+  CHANGELOG.md: ea89859acf7a5c8e
   CLAUDE.md: 9f2fa4edd5c6df80
   GOVERNANCE.md: 21cc28eaaf637a20
   README.html: a546de3f4e35e8d9
@@ -308,7 +308,7 @@ attested_modules:
   src/stages/detectors/stale-specification.ts: 0fe84db592fd406d
   src/stages/detectors/stale-tests.ts: caf59404d1282201
   src/stages/detectors/status-drift.ts: 9cc5cf3f9b62ea00
-  src/stages/detectors/tech-stack-mismatch.ts: 2963e9c52507f3c5
+  src/stages/detectors/tech-stack-mismatch.ts: 4d30536083bc0b23
   src/stages/detectors/unmapped-artifact.ts: b29f7e277d8187ae
   src/stages/detectors/untested-ac.ts: 90725ef1fc9245d8
   src/stages/detectors/unverified-ac.ts: 6887c4d699afaad5
@@ -433,7 +433,7 @@ attested_modules:
   tests/stages/stale-specification.test.ts: 09bd06db377d890c
   tests/stages/stale-tests.test.ts: 1467ceedb8019e86
   tests/stages/status-drift.test.ts: cff1092eeb23c268
-  tests/stages/tech-stack-mismatch.test.ts: 54fab0c842daafb5
+  tests/stages/tech-stack-mismatch.test.ts: 5d74729c79fc9a40
   tests/stages/toolchain.test.ts: 200184f572abcf88
   tests/stages/toolchain/gate-config.test.ts: 97b2b75488b327af
   tests/stages/type.test.ts: b57cf7455cae3b32

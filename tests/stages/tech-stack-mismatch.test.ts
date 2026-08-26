@@ -146,8 +146,10 @@ describe('TECH_STACK_MISMATCH detector', () => {
   });
 
   test('the override disclosure never fails a strict gate', () => {
-    // info is the whole point: a waiver that blocks is not a waiver, and a
-    // waiver nobody can see is indistinguishable from a forgotten one.
+    // info is the whole point: a waiver that blocks is not a waiver. Info is
+    // also the reach limit — the gate's terminal output renders only error
+    // and warn, so this record is for --json / verbose consumers, not the
+    // developer's screen. Asserting through runDrift keeps that honest.
     writeSpec(dir, 'cpp');
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
     declareLanguage('cpp');

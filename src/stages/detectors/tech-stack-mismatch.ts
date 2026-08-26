@@ -18,10 +18,13 @@
 // A declaration overrides the manifest for the pass/fail decision, which is
 // exactly what makes it a waiver — nothing mechanical can tell a legitimate
 // build-host mismatch from a declaration that went stale after a real port.
-// So the override is never silent: when the declaration and the manifest
-// disagree, the detector says so at info severity (never gate-failing, even
-// under --strict) rather than returning nothing. An invisible waiver and a
-// forgotten one look identical in a gate log; this one is readable.
+// So the override leaves a record: when the declaration and the manifest
+// disagree, the detector says so at info severity rather than returning
+// nothing. Info is the machine-readable channel — `clad check --json` and
+// clad_run_check(verbose) carry it; the gate's terminal output renders only
+// error and warn, and SARIF drops info by contract. That is the intended
+// reach: a waiver should cost an auditor one flag to find, not block the
+// gate and not add a line every developer reads past.
 
 import {detectToolchain} from '../toolchain/detect.js';
 import {readGateConfig} from '../toolchain/gate-config.js';
