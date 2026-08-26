@@ -200,6 +200,7 @@ features:
   F-9b643e: {slug: scan-conventions, status: done, modules: 5}
   F-9d168287: {slug: ears-complex-pattern, status: done, modules: 6}
   F-9d8ece66: {slug: persona-map-non-exclusivity, status: done, modules: 2}
+  F-9e1279d4: {slug: language-evidence-core, status: done, modules: 4}
   F-a04cd9: {slug: ac-hash-ids, status: done, modules: 3}
   F-a4085adf: {slug: spec-driven-agents-md, status: done, modules: 1}
   F-a4b512: {slug: dependency-cycle-detector, status: done, modules: 2}

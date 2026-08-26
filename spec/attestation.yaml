@@ -26,12 +26,12 @@ attested_modules:
   CHANGELOG.md: 78288e943090a029
   CLAUDE.md: 9f2fa4edd5c6df80
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: 5bb751c77de5ac88
-  README.ja.md: ecf7d1ebd578e4e5
-  README.ko.html: 42dc2fcf72f94544
-  README.ko.md: 8a62482670d51611
-  README.md: e5787c39863c55a5
-  README.zh.md: acd6f2f6a8d22e36
+  README.html: 63e3e36ab7fcc2bd
+  README.ja.md: 9b92d8e95638d2aa
+  README.ko.html: 49e211ff1332a0fd
+  README.ko.md: 8866dfcceffc6c7b
+  README.md: 8bb065e43d439752
+  README.zh.md: 2d7b5f006f7ff930
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -47,7 +47,7 @@ attested_modules:
   docs/ab-evaluation/case-existing-adoption.md: 240a7c641da50a42
   docs/ab-evaluation/case-graph-efficiency.md: 83d3956d14a1517d
   docs/ab-evaluation/case-iterative-vs-fixed-vapt.md: 1d242b8b6071f343
-  docs/ab-evaluation/case-payment-saas.md: a316271b319816f6
+  docs/ab-evaluation/case-payment-saas.md: e29406c4f5d179b2
   docs/ab-evaluation/case-working-set-landmine.md: b4f44dc463e99722
   docs/ab-evaluation/summary.md: 59e527a531f13209
   docs/b1-adoption-protocol.md: a041d8ad5ba1447f
@@ -123,7 +123,7 @@ attested_modules:
   skills/serve/SKILL.md: f08bbdbbfeb05041
   skills/status/SKILL.md: 09faadc50b3449da
   skills/sync/SKILL.md: 775c0f990a52a3d9
-  spec.yaml: 8300d2bb766876b2
+  spec.yaml: 7e4f358630fa44f2
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -186,13 +186,14 @@ attested_modules:
   src/cli/scan/roots.ts: 7475eed8c9836531
   src/cli/scan/scenarios.ts: 6c2a4ce3b469a668
   src/cli/scan/stats.ts: 00c737b7b7acad97
-  src/cli/scan/thresholds.ts: ec0047b894a6aa6a
+  src/cli/scan/thresholds.ts: 1b4ef8c865ca1ae1
   src/cli/scan/types.ts: ea0170aa88c1c14a
   src/cli/scan/walker.ts: 33e4448e365e47c6
   src/cli/update.ts: b0151396c9a0f6ca
   src/cli/verdict.ts: 85a4ef27292b9169
   src/core/checkpoint.ts: 63300c2764533b6c
   src/core/git-ops.ts: c144e5cc253822b3
+  src/core/language-evidence.ts: 0e1a959a10f7bb1c
   src/core/postmortem.ts: 73be29d5e8a16fd4
   src/core/telemetry-summary.ts: 6782bfaa6c3ecfa6
   src/drive: a4d0f0eb87fed960
@@ -308,7 +309,7 @@ attested_modules:
   src/stages/detectors/stale-specification.ts: 0fe84db592fd406d
   src/stages/detectors/stale-tests.ts: caf59404d1282201
   src/stages/detectors/status-drift.ts: 9cc5cf3f9b62ea00
-  src/stages/detectors/tech-stack-mismatch.ts: 099162aff2c2966b
+  src/stages/detectors/tech-stack-mismatch.ts: 4da504acb67aaa86
   src/stages/detectors/unmapped-artifact.ts: b29f7e277d8187ae
   src/stages/detectors/untested-ac.ts: 90725ef1fc9245d8
   src/stages/detectors/unverified-ac.ts: 6887c4d699afaad5
@@ -342,7 +343,7 @@ attested_modules:
   src/ui: a4d0f0eb87fed960
   src/ui/panel.ts: 8b78cb14dafb28fb
   src/ui/pulse.ts: ee4255f5c6e49f51
-  src/ui/softShell.ts: f21a30930c164afd
+  src/ui/softShell.ts: a733d024692689a2
   src/verdict/gate-progress.ts: 41b677e10596ea42
   src/verdict/verdict.ts: 2dcfb0e7408bd28d
   tests/adapters/anthropic.test.ts: fa2fc7faf032a782
@@ -433,7 +434,7 @@ attested_modules:
   tests/stages/stale-specification.test.ts: 09bd06db377d890c
   tests/stages/stale-tests.test.ts: 1467ceedb8019e86
   tests/stages/status-drift.test.ts: cff1092eeb23c268
-  tests/stages/tech-stack-mismatch.test.ts: 878436ffd2f94c97
+  tests/stages/tech-stack-mismatch.test.ts: 57c435b76972c055
   tests/stages/toolchain.test.ts: 200184f572abcf88
   tests/stages/toolchain/gate-config.test.ts: aef5813a6591b153
   tests/stages/type.test.ts: b57cf7455cae3b32
@@ -640,6 +641,7 @@ attested_features:
   F-9b643e: ok
   F-9d168287: ok
   F-9d8ece66: ok
+  F-9e1279d4: ok
   F-a04cd9: ok
   F-a4085adf: ok
   F-a4b512: ok
