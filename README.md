@@ -360,7 +360,7 @@ Reconcile the drift the update flagged.
 
 | Version | Conformance | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.9.4 (2026-08) | L4 · [self-declared](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2981 / 2981 | 15 stages · 41 detectors | 277 (273 done) |
+| v0.9.4 (2026-08) | L4 · [self-declared](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2981 / 2981 | 15 stages · 41 detectors | 281 (277 done) |
 
 <sub>253 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector</sub>
 
