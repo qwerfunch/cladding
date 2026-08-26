@@ -23,15 +23,15 @@ attested_modules:
   .claude/settings.json: 08a64351770badf4
   .github/workflows/ci.yml: 8ea99219cb80df60
   .gitignore: 1294975ba3b47043
-  CHANGELOG.md: 78288e943090a029
+  CHANGELOG.md: 5fa4601f2c98f803
   CLAUDE.md: 9f2fa4edd5c6df80
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: 5bb751c77de5ac88
-  README.ja.md: ecf7d1ebd578e4e5
-  README.ko.html: 42dc2fcf72f94544
-  README.ko.md: 8a62482670d51611
-  README.md: e5787c39863c55a5
-  README.zh.md: acd6f2f6a8d22e36
+  README.html: a546de3f4e35e8d9
+  README.ja.md: 95995c411c5398d7
+  README.ko.html: 911b09d7ebf78c50
+  README.ko.md: 5aa07b8586a93f7f
+  README.md: 2f370e18113f49f4
+  README.zh.md: af1a12b1cd1a88ba
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -123,7 +123,7 @@ attested_modules:
   skills/serve/SKILL.md: f08bbdbbfeb05041
   skills/status/SKILL.md: 09faadc50b3449da
   skills/sync/SKILL.md: 775c0f990a52a3d9
-  spec.yaml: 8300d2bb766876b2
+  spec.yaml: 9cde342c979d6bc7
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -308,7 +308,7 @@ attested_modules:
   src/stages/detectors/stale-specification.ts: 0fe84db592fd406d
   src/stages/detectors/stale-tests.ts: caf59404d1282201
   src/stages/detectors/status-drift.ts: 9cc5cf3f9b62ea00
-  src/stages/detectors/tech-stack-mismatch.ts: 099162aff2c2966b
+  src/stages/detectors/tech-stack-mismatch.ts: 2963e9c52507f3c5
   src/stages/detectors/unmapped-artifact.ts: b29f7e277d8187ae
   src/stages/detectors/untested-ac.ts: 90725ef1fc9245d8
   src/stages/detectors/unverified-ac.ts: 6887c4d699afaad5
@@ -327,7 +327,7 @@ attested_modules:
   src/stages/test-run-cache.ts: 462a5ef1d30eb766
   src/stages/toolchain/coverage-tool.ts: 310883060ed6d92e
   src/stages/toolchain/detect.ts: e50845a8aa69c765
-  src/stages/toolchain/gate-config.ts: 818a0a549d875581
+  src/stages/toolchain/gate-config.ts: feb40547df921fba
   src/stages/toolchain/language-config.ts: 65175718559b0710
   src/stages/toolchain/module-scope.ts: 88358ec3b84eedd3
   src/stages/toolchain/scoped-command.ts: f2dd6410c063279f
@@ -433,9 +433,9 @@ attested_modules:
   tests/stages/stale-specification.test.ts: 09bd06db377d890c
   tests/stages/stale-tests.test.ts: 1467ceedb8019e86
   tests/stages/status-drift.test.ts: cff1092eeb23c268
-  tests/stages/tech-stack-mismatch.test.ts: 878436ffd2f94c97
+  tests/stages/tech-stack-mismatch.test.ts: 54fab0c842daafb5
   tests/stages/toolchain.test.ts: 200184f572abcf88
-  tests/stages/toolchain/gate-config.test.ts: aef5813a6591b153
+  tests/stages/toolchain/gate-config.test.ts: 97b2b75488b327af
   tests/stages/type.test.ts: b57cf7455cae3b32
   tests/stages/uat.test.ts: 29c5bf3e7f3abc35
   tests/stages/unit.test.ts: 97781210eb81bb25
@@ -684,6 +684,7 @@ attested_features:
   F-cd0415: ok
   F-cfba0c: ok
   F-d12edf: ok
+  F-d14f3cb0: ok
   F-d25041ac: ok
   F-d2c806: ok
   F-d3bde4: ok

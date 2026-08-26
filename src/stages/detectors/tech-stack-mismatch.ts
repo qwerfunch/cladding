@@ -14,6 +14,14 @@
 // With a declaration the spec stays truthful: the detector cross-checks the
 // spec against the declaration instead of the heuristic, and still warns when
 // the two disagree, so the check keeps its teeth.
+//
+// A declaration overrides the manifest for the pass/fail decision, which is
+// exactly what makes it a waiver — nothing mechanical can tell a legitimate
+// build-host mismatch from a declaration that went stale after a real port.
+// So the override is never silent: when the declaration and the manifest
+// disagree, the detector says so at info severity (never gate-failing, even
+// under --strict) rather than returning nothing. An invisible waiver and a
+// forgotten one look identical in a gate log; this one is readable.
 
 import {detectToolchain} from '../toolchain/detect.js';
 import {readGateConfig} from '../toolchain/gate-config.js';
@@ -30,21 +38,37 @@ function runTechStackMismatch(opts: CommandStageOptions): readonly DriftFinding[
 
 function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
   const declared = readGateConfig(cwd).language;
-  if (declared !== undefined) {
-    // A declaration replaces the manifest heuristic entirely — including the
-    // no-manifest case, where the declaration IS the cross-check anchor.
-    if (spec.project.language === declared) return [];
-    return [
-      {
-        detector: NAME,
-        severity: 'warn',
-        message:
-          `spec.project.language='${spec.project.language}' but` +
-          ` .cladding/config.yaml::gate.language declares '${declared}'`,
-      },
-    ];
-  }
   const detected = detectToolchain(cwd).language;
+  if (declared !== undefined) {
+    // Spec vs declaration is the cross-check that keeps its teeth: two
+    // hand-authored strings that must agree, including the no-manifest case
+    // where the declaration IS the anchor.
+    if (spec.project.language !== declared) {
+      return [
+        {
+          detector: NAME,
+          severity: 'warn',
+          message:
+            `spec.project.language='${spec.project.language}' but` +
+            ` .cladding/config.yaml::gate.language declares '${declared}'`,
+        },
+      ];
+    }
+    // Declaration in force. Report the override it performed, so a stale
+    // declaration stays legible instead of silently absorbing a real port.
+    if (detected !== 'unknown' && detected !== declared) {
+      return [
+        {
+          detector: NAME,
+          severity: 'info',
+          message:
+            `.cladding/config.yaml::gate.language declares '${declared}' and the` +
+            ` manifest chain detects '${detected}' — the declaration is in force`,
+        },
+      ];
+    }
+    return [];
+  }
   if (detected === 'unknown') {
     return [
       {

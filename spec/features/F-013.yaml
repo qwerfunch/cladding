@@ -10,9 +10,11 @@ depends_on:
 acceptance_criteria:
   - id: AC-021
     ears: event
-    condition: when spec.project.language differs from the toolchain-detected language
+    condition: when spec.project.language differs from the toolchain-detected
+      language and no gate.language declaration is in force
     action: emit a warn finding
     response: stage_1.3 surfaces but does not fail on this finding alone
     text: When spec.project.language differs from the language resolved by the
-      toolchain manifest chain, the detector shall emit a warn-severity finding.
+      toolchain manifest chain, and no `.cladding/config.yaml::gate.language`
+      declaration is in force, the detector shall emit a warn-severity finding.
     evidence_refs: [fixture:F-013_AC-021]

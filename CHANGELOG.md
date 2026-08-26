@@ -9,7 +9,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- **`gate.language` in `.cladding/config.yaml` — a declared language label for the spec cross-check.** The manifest chain reads build orchestration, so a repository whose product language differs from its build host — a C++ SDK driven by Gradle, a Rust core shipped through npm — is mislabelled by construction, and the only way to green `TECH_STACK_MISMATCH` used to be rewriting `spec.yaml` to adopt the mislabel. Declaring the language keeps the spec truthful: the detector cross-checks `spec.project.language` against the declaration instead of the heuristic, and still warns when the two disagree, so the check keeps its teeth.
+- **`gate.language` in `.cladding/config.yaml` — a declared language label for the spec cross-check.** The manifest chain reads build orchestration, so a repository whose product language differs from its build host — a C++ SDK driven by Gradle, a Rust core shipped through npm — is mislabelled by construction, and the only way to green `TECH_STACK_MISMATCH` used to be rewriting `spec.yaml` to adopt the mislabel. Declaring the language keeps the spec truthful: the detector cross-checks `spec.project.language` against the declaration instead of the heuristic, and still warns when those two disagree, so the check keeps its teeth. Because nothing mechanical separates a legitimate build-host mismatch from a declaration left behind by a real port, the override is never silent — when the declaration and the manifest disagree, the gate log says which label is in force and what the manifest saw, at a severity that never blocks.
 
 ## [0.9.4] — Live host health and reproducible verification (2026-08-10)
 

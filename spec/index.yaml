@@ -244,6 +244,7 @@ features:
   F-cd0415: {slug: spec-load-once, status: done, modules: 2}
   F-cfba0c: {slug: scenarios-deprecate, status: done, modules: 3}
   F-d12edf: {slug: ssot-governance, status: done, modules: 19}
+  F-d14f3cb0: {slug: toolchain-language-declaration, status: done, modules: 2}
   F-d25041ac: {slug: overdue-alias-removal, status: done, modules: 2}
   F-d2c806: {slug: get-context-slice, status: done, modules: 3}
   F-d3bde4: {slug: capabilities-yaml-llm-extract, status: done, modules: 3}

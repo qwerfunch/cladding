@@ -1,0 +1,61 @@
+id: F-d14f3cb0
+slug: toolchain-language-declaration
+title: "Declared toolchain language for the spec cross-check"
+status: done
+modules:
+  - src/stages/toolchain/gate-config.ts
+  - src/stages/detectors/tech-stack-mismatch.ts
+acceptance_criteria:
+  - id: AC-14be8bf4
+    ears: event
+    condition: "when .cladding/config.yaml declares a non-empty string gate.language"
+    action: "cross-check spec.project.language against that declaration instead of the manifest chain verdict"
+    response: "a repository whose product language differs from its build host keeps a truthful spec.project.language without rewriting it to adopt the manifest's label"
+    text: "When .cladding/config.yaml declares gate.language, the system shall anchor the TECH_STACK_MISMATCH cross-check on the declaration rather than the manifest chain."
+    notes: |
+      ## Why
+      The manifest chain reads build orchestration, not product language. An
+      Android RASP SDK whose products are C++ resolves to java because the root
+      manifest is build.gradle, so the only way to green the check was rewriting
+      spec.yaml to adopt the mislabel — the "rewrite the claim to match the
+      check" anti-pattern the harness warns about elsewhere.
+    test_refs:
+      - "tests/stages/tech-stack-mismatch.test.ts#a matching gate.language declaration overrides the manifest, and says so at info"
+      - "tests/stages/toolchain/gate-config.test.ts#parses gate.language as a trimmed string"
+  - id: AC-0a6c8766
+    ears: unwanted
+    condition: "if the declaration and spec.project.language disagree"
+    action: "emit a warn finding naming both values"
+    response: "the declaration cannot silence the check by itself — the two hand-authored strings must agree"
+    text: "If gate.language disagrees with spec.project.language, the system shall emit a warn-severity finding naming both values."
+    test_refs:
+      - "tests/stages/tech-stack-mismatch.test.ts#a gate.language declaration differing from the spec still warns"
+  - id: AC-87986d21
+    ears: event
+    condition: "when a declaration in force overrides a differing manifest verdict"
+    action: "emit one info finding naming the declaration, the manifest verdict, and that the declaration is in force"
+    response: "the waiver is legible in every gate log and never fails the gate, including under --strict"
+    text: "When a declaration overrides a differing manifest verdict, the system shall disclose the override at info severity rather than returning no finding."
+    notes: |
+      ## Why
+      Nothing mechanical separates a legitimate build-host mismatch from a
+      declaration that went stale after a real port, so the override is a
+      waiver. A silent waiver and a forgotten one are indistinguishable in a
+      gate log; info keeps it readable without giving it blocking power.
+    test_refs:
+      - "tests/stages/tech-stack-mismatch.test.ts#a matching gate.language declaration overrides the manifest, and says so at info"
+      - "tests/stages/tech-stack-mismatch.test.ts#the override disclosure never fails a strict gate"
+  - id: AC-af254938
+    ears: unwanted
+    condition: "if gate.language is absent, not a string, or empty after trimming"
+    action: "ignore the key and keep the manifest-chain behaviour unchanged"
+    response: "existing projects are unaffected and a malformed declaration cannot anchor the cross-check"
+    text: "If gate.language is absent, non-string, or empty, the system shall ignore it and preserve the existing manifest-chain cross-check."
+    test_refs:
+      - "tests/stages/toolchain/gate-config.test.ts#ignores a non-string or empty gate.language"
+      - "tests/stages/tech-stack-mismatch.test.ts#flags a spec/toolchain language mismatch"
+design_impact:
+  classification: none
+  rationale: "Adds an optional gate-config key and one disclosure finding; it does not change architecture, capability taxonomy, or which severities block a gate."
+  status: resolved
+  artifacts: []
