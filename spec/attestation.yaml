@@ -34,8 +34,8 @@ attested_modules:
   README.zh.md: c7ac2cfce5153064
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
-  conformance/fixtures.yaml: 4b1b94dae1cd20b0
-  conformance/runner.ts: b9c9e71df85d382e
+  conformance/fixtures.yaml: 5b461bb43a79a983
+  conformance/runner.ts: 5e638e070dbb10c2
   docs/README.md: 5672e5726104d845
   docs/ab-evaluation-extended/README.md: f690562df2e5ec06
   docs/ab-evaluation-extended/scenarios/dashboard/report.md: a656cad8c8ac2772

@@ -10,9 +10,13 @@ depends_on:
 acceptance_criteria:
   - id: AC-021
     ears: event
-    condition: when spec.project.language differs from the toolchain-detected language
-    action: emit a warn finding
-    response: stage_1.3 surfaces but does not fail on this finding alone
-    text: When spec.project.language differs from the language resolved by the
-      toolchain manifest chain, the detector shall emit a warn-severity finding.
+    condition: when the declared spec.project.language is absent from the observed
+      sources with at least five classified files
+    action: emit a warn finding naming the observed distribution
+    response: stage_1.3 surfaces but does not fail on this finding alone; the
+      evidence model (vocabulary, floor, minority band) is owned by F-9e1279d4
+    text: When the declared language is absent from the observed source set with
+      at least five classified files, the detector shall emit a warn-severity
+      finding naming the observed distribution (amended 2026-08-26 — the manifest
+      chain is no longer consulted for identity).
     evidence_refs: [fixture:F-013_AC-021]
