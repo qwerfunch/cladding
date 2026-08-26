@@ -5,6 +5,17 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **The language check now judges the sources on disk, not the build manifest.** The manifest chain reads build orchestration, so a C++ SDK driven by Gradle or a Rust core shipped through npm was mislabelled by construction — measured across realistic repo shapes, the old comparison blocked 12 of 19 normal projects under `--strict`, including labels cladding's own onboarding had just written. `TECH_STACK_MISMATCH` now reads the observed source distribution from one shared vocabulary: a language it does not know, or a tree with under five classified files, produces silence instead of a false alarm; a declared language absent from the sources still warns with the evidence in the message; a declared language present but under 10% is disclosed at info and never blocks. Gate-command selection still uses the manifest chain — "what do we run" and "what is this project" are different questions, and only the second one moved.
+- **The module-honesty scan now derives its universe from evidence.** `UNMAPPED_ARTIFACT` picked one file extension from a six-language table; declaring cpp, java, or csharp fell through to `*.ts`, scanned nothing, and passed vacuously on exactly the projects the check exists for. The scan now unites the extensions observed in the tree with the extensions of modules the spec claims under its layer roots — so an unknown language enters the universe the moment a feature claims a file in it — and infers scan roots from the claimed paths themselves (the Kotlin `src/main/kotlin` layout now comes out of inference, not a table). A root must carry at least a quarter of the layer-claimed modules, which keeps directories that merely reuse a layer name from flooding the scan.
+
+### Fixed
+
+- **The gate config can finally be committed.** `clad init` ignored `.cladding/` with the directory form, and git never re-includes under an excluded directory — so `.cladding/config.yaml`, the file that carries every documented gate override, was impossible to commit: fresh clones and CI silently ran a different gate than the author tuned. New projects now get `.cladding/*` plus `!.cladding/config.yaml`. Existing projects are never rewritten; `clad doctor` reports a blocked gate config in text and JSON instead, the same read-only posture as the unpinned-CI report.
+
 ## [0.9.4] — Live host health and reproducible verification (2026-08-10)
 
 **In one line:** cladding now proves that its host hooks actually fired, records what stopped or completed a run, pins generated CI to the current release line, and stamps every verified tree with the policy that earned it.
