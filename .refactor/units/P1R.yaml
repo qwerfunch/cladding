@@ -1,0 +1,30 @@
+id: P1R
+started: 2026-08-10
+inherits:
+  head: 042b28bd7611ef9ae1ca2a4e4c2ce0bd5ebb742c
+  tree_clean: true
+preconditions:
+  - {cmd: "node -e \"const s=require('./.claude/settings.json'); const m=s.extraKnownMarketplaces?.cladding; if(m?.source?.source!=='directory'||m.source.path!=='.'||m.autoUpdate!==true)process.exit(1)\"", expect: "exit 0"}
+  - {cmd: "claude plugin marketplace list --json | grep -q '\"source\": \"github\"'", expect: "exit 0"}
+  - {cmd: "claude plugin marketplace list --json | grep -q '\"repo\": \"qwerfunch/cladding\"'", expect: "exit 0"}
+  - {cmd: "node -e \"const p=require('./plugins/claude-code/.claude-plugin/plugin.json'); if(Object.hasOwn(p,'hooks'))process.exit(1)\"", expect: "exit 0"}
+  - {cmd: "node -e \"const p=require('/Users/qwerfunch/.claude/plugins/cache/cladding/claude-code/0.9.3/.claude-plugin/plugin.json'); if(p.hooks!=='./hooks/hooks.json')process.exit(1)\"", expect: "exit 0"}
+touch_allowed:
+  - .refactor/PLAN.md
+  - .refactor/ledger.md
+  - .refactor/units/P1R.yaml
+  - .refactor/sim/P1R.md
+done_conditions:
+  - {cmd: "node -e \"const {spawnSync}=require('child_process'); const r=spawnSync('claude',['plugin','marketplace','list','--json'],{encoding:'utf8'}); const m=JSON.parse(r.stdout).find(x=>x.name==='cladding'); if(r.status!==0||m?.source!=='directory'||m.path!==process.cwd())process.exit(1)\"", expect: "exit 0"}
+  - {cmd: "node -e \"const fs=require('fs'); const p=JSON.parse(fs.readFileSync('/Users/qwerfunch/.claude/plugins/installed_plugins.json','utf8')).plugins['claude-code@cladding'].find(x=>x.projectPath===process.cwd()); if(p?.version!=='0.9.3'||!p.installPath.endsWith('/cache/cladding/claude-code/0.9.3'))process.exit(1)\"", expect: "exit 0"}
+  - {cmd: "node -e \"const p=require('/Users/qwerfunch/.claude/plugins/cache/cladding/claude-code/0.9.3/.claude-plugin/plugin.json'); if(Object.hasOwn(p,'hooks'))process.exit(1)\"", expect: "exit 0"}
+  - {cmd: "test -f /Users/qwerfunch/.claude/plugins/cache/cladding/claude-code/0.9.3/hooks/hooks.json", expect: "exit 0"}
+  - {cmd: "cmp -s plugins/claude-code/dist/clad.js /Users/qwerfunch/.claude/plugins/cache/cladding/claude-code/0.9.3/dist/clad.js", expect: "exit 0"}
+  - {cmd: "claude plugin list | grep -q 'Status: ✔ enabled'", expect: "exit 0"}
+  - {cmd: "test -s /tmp/cladding-p1r-session-card.txt", expect: "exit 0"}
+  - {cmd: "grep -q 'cladding' /tmp/cladding-p1r-session-card.txt", expect: "exit 0"}
+  - {cmd: "test -f .refactor/sim/P1R.md", expect: "exit 0"}
+exit:
+  commit: "(this commit)"
+  verdict: PASS
+  residue: "The separate logcat-on project still intentionally retains its out-of-scope 0.4.0 project install. Claude Code must start a new session to pick up the recovered cladding project plugin automatically."

@@ -22,6 +22,7 @@ describe('runInit', () => {
     expect(r.created.some((c) => c.startsWith('.cladding/'))).toBe(true);
     expect(existsSync(join(dir, 'spec.yaml'))).toBe(true);
     expect(existsSync(join(dir, '.cladding'))).toBe(true);
+    expect(readFileSync(join(dir, '.gitattributes'), 'utf8')).toContain('spec/index.yaml merge=union');
   });
 
   test('seed spec.yaml has empty features[] — no legacy F-001 placeholder shard written (v0.4.0)', async () => {
@@ -61,21 +62,61 @@ describe('runInit', () => {
     expect(r.language).toBe('typescript');
   });
 
-  test('appends .cladding/ to existing .gitignore without losing prior lines', async () => {
+  test('appends the ignore entry to an existing .gitignore without losing prior lines', async () => {
     writeFileSync(join(dir, '.gitignore'), 'node_modules/\nbuild/\n');
     await runInit({cwd: dir});
     const gi = readFileSync(join(dir, '.gitignore'), 'utf8');
     expect(gi).toContain('node_modules/');
     expect(gi).toContain('build/');
-    expect(gi).toContain('.cladding/');
+    // The contents form, never the directory form: git cannot re-include a
+    // file under an excluded directory, so `.cladding/` would make the gate
+    // config uncommittable and CI would never see the tuned gate.
+    expect(gi).toContain('.cladding/*');
+    expect(gi).toContain('!.cladding/config.yaml');
+    expect(gi.split(/\r?\n/)).not.toContain('.cladding/');
+    // The re-include must come after the exclusion — a later pattern wins in git.
+    expect(gi.indexOf('!.cladding/config.yaml')).toBeGreaterThan(gi.indexOf('.cladding/*'));
   });
 
-  test('does not re-append .cladding/ when already present', async () => {
+  test('leaves a .gitignore carrying the legacy .cladding/ entry byte-identical', async () => {
     writeFileSync(join(dir, '.gitignore'), 'node_modules/\n.cladding/\n');
     const before = readFileSync(join(dir, '.gitignore'), 'utf8');
+    const r = await runInit({cwd: dir});
+    expect(readFileSync(join(dir, '.gitignore'), 'utf8')).toBe(before);
+    expect(r.skipped).toContain('.gitignore (cladding entry already present)');
+    expect(r.created.some((c) => c.includes('.gitignore'))).toBe(false);
+  });
+
+  test('leaves a .gitignore already carrying the new entry byte-identical', async () => {
+    const before = '# Cladding runtime state\n.cladding/*\n!.cladding/config.yaml\n';
+    writeFileSync(join(dir, '.gitignore'), before);
+    const r = await runInit({cwd: dir});
+    expect(readFileSync(join(dir, '.gitignore'), 'utf8')).toBe(before);
+    expect(r.skipped).toContain('.gitignore (cladding entry already present)');
+  });
+
+  test('creates the index merge attribute while leaving attestation unassigned', async () => {
+    const r = await runInit({cwd: dir});
+    const attributes = readFileSync(join(dir, '.gitattributes'), 'utf8');
+    expect(r.created).toContain('.gitattributes (spec/index.yaml merge=union appended)');
+    expect(attributes.split('\n').filter((line) => line === 'spec/index.yaml merge=union')).toHaveLength(1);
+    expect(attributes).not.toMatch(/spec\/attestation\.yaml\b[^\n]*\bmerge/);
+  });
+
+  test('preserves existing gitattributes and appends the managed index line', async () => {
+    writeFileSync(join(dir, '.gitattributes'), '*.md linguist-detectable\n');
     await runInit({cwd: dir});
-    const after = readFileSync(join(dir, '.gitignore'), 'utf8');
-    expect(after).toBe(before);
+    const attributes = readFileSync(join(dir, '.gitattributes'), 'utf8');
+    expect(attributes).toContain('*.md linguist-detectable');
+    expect(attributes).toContain('spec/index.yaml merge=union');
+  });
+
+  test('does not duplicate an existing index merge attribute', async () => {
+    const original = '# user attributes\nspec/index.yaml merge=union\n';
+    writeFileSync(join(dir, '.gitattributes'), original);
+    const r = await runInit({cwd: dir});
+    expect(readFileSync(join(dir, '.gitattributes'), 'utf8')).toBe(original);
+    expect(r.skipped).toContain('.gitattributes (spec/index.yaml merge=union already present)');
   });
 
   test('force=true overwrites an existing spec.yaml', async () => {
@@ -100,24 +141,24 @@ describe('runInit', () => {
     expect(yaml).toContain('my-custom-name — Cladding spec');
   });
 
-  test('appends .cladding/ to a gitignore that lacks a trailing newline', async () => {
+  test('appends the ignore entry to a gitignore that lacks a trailing newline', async () => {
     // Branch: existing.length > 0 && !existing.endsWith('\n') → prepend \n
     writeFileSync(join(dir, '.gitignore'), 'node_modules/');
     await runInit({cwd: dir});
     const gi = readFileSync(join(dir, '.gitignore'), 'utf8');
     // The original line stays intact and the new entry lands on its own line
     expect(gi.startsWith('node_modules/')).toBe(true);
-    expect(gi).toContain('.cladding/');
-    // No "node_modules/.cladding/" concatenation
-    expect(gi).not.toContain('node_modules/.cladding/');
+    expect(gi.split(/\r?\n/)).toContain('.cladding/*');
+    // No "node_modules/.cladding/*" concatenation
+    expect(gi).not.toContain('node_modules/.cladding');
   });
 
-  test('creates .gitignore from scratch when none exists', async () => {
+  test('creates .gitignore from scratch with runtime state ignored and gate config committable', async () => {
     // Branch: existing.length === 0 → ensureNewline stays ''
     const r = await runInit({cwd: dir});
     expect(r.created.some((c) => c.includes('.gitignore'))).toBe(true);
     const gi = readFileSync(join(dir, '.gitignore'), 'utf8');
-    expect(gi).toContain('.cladding/');
+    expect(gi).toBe('# Cladding runtime state\n.cladding/*\n!.cladding/config.yaml\n');
   });
 
   // v0.3.42 (F-bd07d7) — greenfield seeds. When the auto-scan threshold

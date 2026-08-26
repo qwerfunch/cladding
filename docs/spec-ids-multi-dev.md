@@ -117,6 +117,7 @@ The two derived files are configured differently in `.gitattributes` on purpose:
 | `spec/attestation.yaml` | *(no attribute — deliberate)* | `merge=union` here silently reverts uncontested edits that get swept into an adjacent conflict zone (experimentally confirmed). A plain, loud conflict is safe — it heals via the ritual above. |
 
 This table is pinned to the real repository state: if `.gitattributes` ever changes for either file, update it here.
+`clad init` creates or appends the exact `spec/index.yaml merge=union` line while preserving every existing attribute; it never assigns a merge driver to `spec/attestation.yaml`.
 
 ## Legacy F-NNN ↔ new F-`hash`
 

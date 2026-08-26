@@ -1,0 +1,24 @@
+id: S4
+started: 2026-08-10
+inherits:
+  head: 27ed45263320fe5707061f6b6b39445ed1fc07f4
+  tree_clean: true
+preconditions:
+  - {cmd: "test \"$(node bin/clad --version)\" = \"0.9.3\"", expect: "exit 0"}
+  - {cmd: "test ! -e .refactor/sim/5b.md", expect: "exit 0"}
+  - {cmd: "git cat-file -e 28fc6d828812df87ade923912320a3c30fe469f6^{commit}", expect: "exit 0"}
+  - {cmd: "node -e \"require('yaml')\"", expect: "exit 0"}
+touch_allowed:
+  - .refactor/PLAN.md
+  - .refactor/ledger.md
+  - .refactor/units/S4.yaml
+  - .refactor/sim/5b.md
+done_conditions:
+  - {cmd: "test -f .refactor/sim/5b.md", expect: "exit 0"}
+  - {cmd: "head -1 .refactor/sim/5b.md | grep -qE '^VERDICT: (PASS|KILL|INCONCLUSIVE)$'", expect: "exit 0"}
+  - {cmd: "grep -c '^VERDICT: ' .refactor/sim/5b.md", expect: "1"}
+  - {cmd: "grep -qE '`[^`]+:[0-9]+`' .refactor/sim/5b.md", expect: "exit 0"}
+exit:
+  commit: "(this commit)"
+  verdict: PASS
+  residue: "A9 may auto-repair only an exact same-diff Git rename; unique-basename candidates remain dry-run suggestions requiring explicit selection because history supplied zero independent fallback move cases."

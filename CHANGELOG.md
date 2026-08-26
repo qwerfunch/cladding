@@ -5,6 +5,35 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.4] — The gate judges the sources on disk (2026-08-26)
+
+**In one line:** the language check reads your sources instead of your build manifest — projects it wrongly blocked now pass honestly — the module-honesty scan works for any language your spec teaches it, the gate config survives a fresh clone, and cladding now proves its own host hooks fired, records stop and completion outcomes, pins generated CI, and stamps every verified tree with the policy that earned it.
+
+### Added
+
+- **Runner-less skips name their exit.** A project whose language cladding cannot drive used to pass the gate with most stages silently skipped and no mention of the way out. Command-stage skips now carry a machine-readable reason, and when checks skipped for lack of a runner, the result ends with one line naming those stages and the `gate.commands` declaration that turns them on — committable, so CI runs the same gate you do. By-design skips (no oracles, no declared deliverable) stay untouched: prescribing commands there would be a false cure.
+- **Live hook health in `clad doctor`.** A bounded sidecar records the last observed `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, and `Stop` pulse plus the engine version. Text and JSON doctor output distinguish a working installation from one that has never been observed, including package-less Claude cache installations.
+- **Outcome evidence for Stop and completion.** `stop_blocked`, `stop_exit_recorded`, `done_attempted`, and `gate_run` events now carry stable blocker identities, introduced/pre-existing counts, dirty-path intersection, and a compatible fingerprint. Doctor reports whether a blocked fingerprint was later seen by a gate.
+- **Verification-policy identity in `spec/attestation.yaml`.** A GREEN strict gate records the running Cladding version, strict blocking mode, and a full SHA-256 of detector order, name, and subprocess classification. Older policy-less attestations remain readable.
+- **Safe merge attributes for new projects.** `clad init` preserves existing `.gitattributes`, adds `spec/index.yaml merge=union` exactly once, and deliberately leaves `spec/attestation.yaml` on ordinary conflict handling.
+
+### Changed
+
+- **The language check now judges the sources on disk, not the build manifest.** The manifest chain reads build orchestration, so a C++ SDK driven by Gradle or a Rust core shipped through npm was mislabelled by construction — measured across realistic repo shapes, the old comparison blocked 12 of 19 normal projects under `--strict`, including labels cladding's own onboarding had just written. `TECH_STACK_MISMATCH` now reads the observed source distribution from one shared vocabulary: a language it does not know, or a tree with under five classified files, produces silence instead of a false alarm; a declared language absent from the sources still warns with the evidence in the message; a declared language present but under 10% is disclosed at info and never blocks. Gate-command selection still uses the manifest chain — "what do we run" and "what is this project" are different questions, and only the second one moved.
+- **The module-honesty scan now derives its universe from evidence.** `UNMAPPED_ARTIFACT` picked one file extension from a six-language table; declaring cpp, java, or csharp fell through to `*.ts`, scanned nothing, and passed vacuously on exactly the projects the check exists for. The scan now unites the extensions observed in the tree with the extensions of modules the spec claims under its layer roots — so an unknown language enters the universe the moment a feature claims a file in it — and infers scan roots from the claimed paths themselves (the Kotlin `src/main/kotlin` layout now comes out of inference, not a table). A root must carry at least a quarter of the layer-claimed modules, which keeps directories that merely reuse a layer name from flooding the scan.
+- **Generated CI stays on the current release line.** New workflows run `cladding@<major.minor>` instead of an unbounded package selector. `clad doctor` names existing GitHub Actions workflows that use an unversioned or floating `npx cladding` command without modifying them.
+- **Plugin mirrors are built from source before distribution.** Standalone `npm run build:plugin` no longer treats a stale or missing root bundle as authoritative, and Claude hook metadata relies on the host's standard hook discovery without duplicate declarations.
+
+### Fixed
+
+- **The gate config can finally be committed.** `clad init` ignored `.cladding/` with the directory form, and git never re-includes under an excluded directory — so `.cladding/config.yaml`, the file that carries every documented gate override, was impossible to commit: fresh clones and CI silently ran a different gate than the author tuned. New projects now get `.cladding/*` plus `!.cladding/config.yaml`. Existing projects are never rewritten; `clad doctor` reports a blocked gate config in text and JSON instead, the same read-only posture as the unpinned-CI report.
+- **Measured before release** (docs/ab-evaluation/case-version-ab-093-vs-next.md): across 32 realistic repo shapes the old language check wrongly blocked 12 normal projects and the new one blocks none, with no drift catch lost on either side. In a blinded live comparison on the motivating shape, an honest green was impossible on 0.9.3 (agents either misdeclared the language or kept the truth and a red gate) and completed honestly 3 of 3 times on this release, at a ~21% lower median token cost (n=3); a plain-TypeScript control showed no difference, so the saving is specific to what was broken.
+- **The dogfood host wiring now points at the current checkout and 0.9.x cache.** The recovery was verified through the installed Claude cache and a real `SessionStart` card rather than inferred from configuration text.
+
+### Security
+
+- **The MCP transport dependency graph now resolves to patched runtime packages.** The SDK and its Hono, URI, address, and body-parser dependencies were refreshed; both the production-only and complete npm audits report zero known vulnerabilities.
+
 ## [0.9.3] — The review packet shows how the contract itself moved (2026-08-04)
 
 **In one line:** a pull request now shows which acceptance criteria were rewritten while the code changed, and the architecture gate stops failing on generated build output.

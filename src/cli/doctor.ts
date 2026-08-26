@@ -15,11 +15,12 @@
 // so it stays a peer surface that adopters reach for diagnostics, not
 // a gate.
 
-import {existsSync} from 'node:fs';
+import {existsSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import process from 'node:process';
 
 import {readEvents, type Event} from '../events/log.js';
+import {summarizeStopOutcomes, type StopOutcomeSummary} from '../events/stop-telemetry.js';
 import {attestedFeatureCount, readAttestation} from '../spec/attestation.js';
 import {pulse} from '../ui/pulse.js';
 import {
@@ -28,6 +29,9 @@ import {
   type SentinelMissSummary,
   type EventCounts,
 } from '../core/telemetry-summary.js';
+import {HOOK_EVENTS, readHookHealth, type HookEventName, type HookHealthReport} from './hook-health.js';
+import {readCiVersionHealth, type CiVersionHealth} from './ci-version.js';
+import {gateConfigIgnoreStatus, type GateConfigIgnoreStatus} from '../init/gitignore-policy.js';
 
 export interface DoctorCommandOptions {
   readonly cwd?: string;
@@ -42,6 +46,12 @@ export interface DoctorReport {
   readonly sentinelMiss: SentinelMissSummary;
   /** F-95a096 — the governance ledger 0.6.0 writes, summarized for operators. */
   readonly governance: GovernanceSummary;
+  /** Runtime evidence from the bounded Claude Code hook-health snapshot. */
+  readonly hooks: HookHealthReport;
+  /** Read-only diagnosis of floating Cladding package selectors in CI. */
+  readonly ciVersion: CiVersionHealth;
+  /** Whether the root .gitignore lets `.cladding/config.yaml` reach CI and fresh clones. */
+  readonly gateConfigIgnore: GateConfigIgnoreStatus;
 }
 
 export interface GovernanceSummary {
@@ -50,6 +60,8 @@ export interface GovernanceSummary {
   readonly doneAttempts: number;
   readonly doneRejected: number;
   readonly stopBlocked: number;
+  /** Stop demotions and read-time correlation with later gate fingerprints. */
+  readonly stopOutcomes: StopOutcomeSummary;
   readonly unresolvedStopBlock: boolean;
   readonly attestation: {readonly present: boolean; readonly entries: number};
 }
@@ -65,6 +77,7 @@ function summarizeGovernance(cwd: string, events: readonly Event[]): GovernanceS
     doneAttempts: dones.length,
     doneRejected: dones.filter((e) => e.payload.kept !== true).length,
     stopBlocked: events.filter((e) => e.type === 'stop_blocked').length,
+    stopOutcomes: summarizeStopOutcomes(events),
     unresolvedStopBlock: existsSync(join(cwd, '.cladding', 'stop-block.json')),
     attestation: {present: attested !== null, entries: attested === null ? 0 : attestedFeatureCount(attested)},
   };
@@ -92,7 +105,10 @@ export function runDoctorCommand(opts: DoctorCommandOptions = {}): void {
   const eventCounts = summarizeEvents(events);
   const sentinelMiss = summarizeSentinelMisses(events);
   const governance = summarizeGovernance(cwd, events);
-  const report: DoctorReport = {cwd, events: eventCounts, sentinelMiss, governance};
+  const hooks = readHookHealth(cwd);
+  const ciVersion = readCiVersionHealth(cwd);
+  const gateConfigIgnore = readGateConfigIgnoreStatus(cwd);
+  const report: DoctorReport = {cwd, events: eventCounts, sentinelMiss, governance, hooks, ciVersion, gateConfigIgnore};
 
   if (opts.json) {
     process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
@@ -106,6 +122,9 @@ export function runDoctorCommand(opts: DoctorCommandOptions = {}): void {
       'doctor',
       'no events recorded yet — run `clad init --scan` or a stage to populate .cladding/events.log.jsonl',
     );
+    renderHookHealth(report.hooks);
+    renderCiVersionHealth(report.ciVersion);
+    renderGateConfigIgnore(report.gateConfigIgnore);
     process.exit(0);
     return;
   }
@@ -132,6 +151,10 @@ function renderTextReport(report: DoctorReport): void {
     process.stdout.write(`Events:  ${typeLine}\n`);
   }
 
+  renderHookHealth(report.hooks);
+  renderCiVersionHealth(report.ciVersion);
+  renderGateConfigIgnore(report.gateConfigIgnore);
+
   // F-95a096 — the governance ledger, readable without parsing JSONL by hand.
   // Rendered before the sentinel-miss early return: gate/done/stop state is
   // worth a glance even when the dispatcher is perfectly healthy.
@@ -143,6 +166,10 @@ function renderTextReport(report: DoctorReport): void {
   process.stdout.write(`  gate runs: ${g.gateRuns}  (last: ${lastGate})\n`);
   process.stdout.write(`  done attempts: ${g.doneAttempts}  rejected by the gate: ${g.doneRejected}\n`);
   process.stdout.write(`  stop blocks: ${g.stopBlocked}${g.unresolvedStopBlock ? '  ⚠ UNRESOLVED stop-block pending' : ''}\n`);
+  process.stdout.write(
+    `  stop exits recorded: ${g.stopOutcomes.exitsRecorded}  blocked fingerprints later seen by a gate: ` +
+      `${g.stopOutcomes.observedByLaterGate}/${g.stopOutcomes.blocked}\n`,
+  );
   process.stdout.write(
     g.attestation.present
       ? `  attestation: ${g.attestation.entries} feature(s) stamped (spec/attestation.yaml)\n`
@@ -175,6 +202,63 @@ function renderTextReport(report: DoctorReport): void {
 
   process.stdout.write('\n');
   process.stdout.write('Tune your host: raise max_tokens, switch model, or check MCP transport health.\n');
+}
+
+/**
+ * Reads the root `.gitignore` (absent file included) and classifies whether the
+ * gate config can be committed. Read-only, like every doctor diagnosis: the
+ * adopter's ignore file is never rewritten from here.
+ */
+function readGateConfigIgnoreStatus(cwd: string): GateConfigIgnoreStatus {
+  const path = join(cwd, '.gitignore');
+  return gateConfigIgnoreStatus(existsSync(path) ? readFileSync(path, 'utf8') : null);
+}
+
+// Quiet unless the gate config is unreachable — a working ignore file needs no
+// commentary, and a blocked one costs the adopter their whole gate tuning in CI.
+function renderGateConfigIgnore(status: GateConfigIgnoreStatus): void {
+  if (status !== 'blocked') return;
+  process.stdout.write(
+    '\ngate config: .gitignore blocks .cladding/config.yaml — CI and fresh clones cannot see your gate ' +
+      "overrides. Change '.cladding/' to '.cladding/*' + '!.cladding/config.yaml'.\n",
+  );
+}
+
+function renderCiVersionHealth(health: CiVersionHealth): void {
+  if (health.unpinnedWorkflows.length === 0) return;
+  process.stdout.write('\nCI version pinning\n');
+  for (const path of health.unpinnedWorkflows) {
+    process.stdout.write(`  ⚠ ${path}: npx Cladding package is unpinned or floating\n`);
+  }
+  process.stdout.write('  Pin it to the running major.minor release, for example `cladding@0.9`.\n');
+}
+
+const HOOK_LABELS: Readonly<Record<HookEventName, string>> = {
+  SessionStart: 'session start',
+  UserPromptSubmit: 'prompt submit',
+  PreToolUse: 'before edit',
+  PostToolUse: 'after edit',
+  Stop: 'session stop',
+};
+
+function renderHookHealth(hooks: HookHealthReport): void {
+  process.stdout.write('\nClaude Code hooks\n');
+  if (hooks.installation === 'not-observed') {
+    process.stdout.write(
+      '  runtime: not observed — install or enable the Cladding plugin, then start a new Claude Code session\n',
+    );
+  } else {
+    const recorded = hooks.recordedVersion === null ? 'unknown version' : `engine v${hooks.recordedVersion}`;
+    const versionState = hooks.versionCurrent === true
+      ? 'current'
+      : hooks.versionCurrent === false
+        ? `current engine is v${hooks.currentVersion}; refresh the plugin`
+        : 'current version unavailable';
+    process.stdout.write(`  runtime: observed (${recorded}; ${versionState})\n`);
+  }
+  for (const event of HOOK_EVENTS) {
+    process.stdout.write(`  ${HOOK_LABELS[event]}: ${hooks.lastFiredAt[event] ?? 'never observed'}\n`);
+  }
 }
 
 function formatCounts(counts: Readonly<Record<string, number>>): string {

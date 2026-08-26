@@ -22,6 +22,47 @@ import type {Feature, Spec} from './types.js';
 
 const ATTESTATION_PATH = ['spec', 'attestation.yaml'] as const;
 
+/**
+ * Identity of the verification policy that earned an attestation.
+ *
+ * @see spec/features/attestation-policy-stamp-caff8598.yaml AC-a4d41de9
+ * @since 0.9.4
+ */
+export interface AttestationPolicy {
+  /** Running Cladding engine version, or `unknown` if its manifest was unavailable. */
+  readonly cladding: string;
+  /** Gate policy that promoted warnings and required the full verification ladder. */
+  readonly blocking: 'strict';
+  /** Full SHA-256 over the ordered detector catalog identity. */
+  readonly detectorsSha256: string;
+}
+
+/**
+ * Fingerprints the ordered detector catalog without serializing functions.
+ *
+ * The Cladding version identifies implementation bytes; this digest identifies
+ * which stable names, order, and subprocess classes were registered.
+ *
+ * @param detectors - Ordered detector identities from the live registry.
+ * @returns A deterministic lowercase, 64-character SHA-256 digest.
+ * @throws Never for string names and boolean subprocess flags.
+ * @example
+ * ```ts
+ * detectorCatalogSha256([{name: 'STATUS_DRIFT'}]);
+ * ```
+ * @see spec/features/attestation-policy-stamp-caff8598.yaml AC-1f6b157b
+ * @since 0.9.4
+ */
+export function detectorCatalogSha256(
+  detectors: readonly {readonly name: string; readonly subprocess?: true}[],
+): string {
+  const hash = createHash('sha256');
+  detectors.forEach((detector, index) => {
+    hash.update(`${index}\u0000${detector.name}\u0000${detector.subprocess === true ? 'subprocess' : 'pure'}\n`);
+  });
+  return hash.digest('hex');
+}
+
 /** sha256 over a done feature's modules: sorted path + file bytes per entry.
  * A missing module file hashes as absent (the MISSING_IMPLEMENTATION
  * detector owns that error; the hash just has to be deterministic). The v1
@@ -61,6 +102,8 @@ export function moduleFileHash(cwd: string, path: string): string {
  * absent FILE is signalled by {@link readAttestation} returning `null`.
  */
 export interface AttestationFile {
+  /** v2.1+ verification-policy identity; null for legacy attestations. */
+  readonly policy: AttestationPolicy | null;
   /** v1 `attested:` section — feature id → module tree-hash. */
   readonly v1: Map<string, string> | null;
   /** v2 `attested_modules:` section — module path → file hash. */
@@ -85,8 +128,13 @@ export function readAttestation(cwd: string): AttestationFile | null {
   let v1: Map<string, string> | null = null;
   let modules: Map<string, string> | null = null;
   let features: Set<string> | null = null;
-  let section: 'v1' | 'modules' | 'features' | 'other' = 'other';
+  const policyFields: {cladding?: string; blocking?: 'strict'; detectorsSha256?: string} = {};
+  let section: 'policy' | 'v1' | 'modules' | 'features' | 'other' = 'other';
   for (const line of text.split('\n')) {
+    if (line === 'policy:') {
+      section = 'policy';
+      continue;
+    }
     if (line === 'attested:') {
       section = 'v1';
       v1 ??= new Map();
@@ -103,7 +151,14 @@ export function readAttestation(cwd: string): AttestationFile | null {
       continue;
     }
     if (line.startsWith('#') || line.trim() === '') continue;
-    if (section === 'v1') {
+    if (section === 'policy') {
+      const cladding = line.match(/^ {2}cladding: "([^"]+)"$/);
+      const blocking = line.match(/^ {2}blocking: (strict)$/);
+      const detectors = line.match(/^ {2}detectors_sha256: ([0-9a-f]{64})$/);
+      if (cladding) policyFields.cladding = cladding[1];
+      if (blocking) policyFields.blocking = blocking[1] as 'strict';
+      if (detectors) policyFields.detectorsSha256 = detectors[1];
+    } else if (section === 'v1') {
       const m = line.match(/^ {2}(F-[\w-]+): ([0-9a-f]{16})$/);
       if (m) v1!.set(m[1], m[2]);
     } else if (section === 'modules') {
@@ -114,7 +169,17 @@ export function readAttestation(cwd: string): AttestationFile | null {
       if (m) features!.add(m[1]);
     }
   }
-  return {v1, modules, features};
+  const policy =
+    policyFields.cladding !== undefined &&
+    policyFields.blocking === 'strict' &&
+    policyFields.detectorsSha256 !== undefined
+      ? {
+          cladding: policyFields.cladding,
+          blocking: policyFields.blocking,
+          detectorsSha256: policyFields.detectorsSha256,
+        }
+      : null;
+  return {policy, v1, modules, features};
 }
 
 /** How many features an attestation vouches for — v2 markers when present,
@@ -162,6 +227,8 @@ const HEADER =
   '# `clad check --tier=pre-push --strict` gate — the file\'s one honest author.\n' +
   '# Do not edit by hand.\n' +
   '#\n' +
+  '#   policy:             verifier identity: Cladding version, strict blocking,\n' +
+  '#                       and SHA-256 of the ordered detector catalog.\n' +
   '#   attested_modules:  one line per module file across all done features,\n' +
   '#                      value = sha256 of that file\'s bytes (16 hex). Editing a\n' +
   '#                      file moves exactly its own line — not every co-owning\n' +
@@ -174,12 +241,25 @@ const HEADER =
   '# `clad check --tier=pre-push --strict`; the GREEN gate rewrites the truth.\n' +
   '# Content-anchored: survives fresh clones and squash/rebase.\n';
 
-/** Writes the v2 attestation for every done feature with modules. Only a GREEN
- * strict verification run calls this — the file's one honest author. Output is
- * whole-file, sorted, LF, deterministic: an unchanged tree rewrites
- * byte-identically. Returns false (writing nothing) when there is nothing to
- * attest. */
-export function writeAttestation(cwd: string, spec: Spec): boolean {
+/**
+ * Writes the v2 attestation for every done feature with modules.
+ *
+ * Only a GREEN strict verification run supplies a policy and calls this in
+ * production. Output is whole-file, sorted, LF, and deterministic.
+ *
+ * @param cwd - Project root containing the attested modules and `spec/`.
+ * @param spec - Loaded project spec whose done features will be stamped.
+ * @param policy - Optional verifier identity; omitted only for legacy-compatible callers.
+ * @returns False without writing when no done feature has modules; otherwise true.
+ * @throws When the canonical attestation file cannot be written.
+ * @example
+ * ```ts
+ * writeAttestation('/workspace', spec, policy);
+ * ```
+ * @see spec/features/attestation-policy-stamp-caff8598.yaml AC-a4d41de9
+ * @since 0.9.4
+ */
+export function writeAttestation(cwd: string, spec: Spec, policy?: AttestationPolicy): boolean {
   const done = (spec.features ?? []).filter((f) => f.status === 'done' && (f.modules ?? []).length > 0);
   if (done.length === 0) return false;
 
@@ -192,6 +272,12 @@ export function writeAttestation(cwd: string, spec: Spec): boolean {
 
   const body =
     HEADER +
+    (policy
+      ? 'policy:\n' +
+        `  cladding: ${JSON.stringify(policy.cladding)}\n` +
+        `  blocking: ${policy.blocking}\n` +
+        `  detectors_sha256: ${policy.detectorsSha256}\n`
+      : '') +
     'attested_modules:\n' +
     moduleRows.join('\n') +
     '\n' +

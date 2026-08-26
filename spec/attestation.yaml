@@ -2,6 +2,8 @@
 # `clad check --tier=pre-push --strict` gate — the file's one honest author.
 # Do not edit by hand.
 #
+#   policy:             verifier identity: Cladding version, strict blocking,
+#                       and SHA-256 of the ordered detector catalog.
 #   attested_modules:  one line per module file across all done features,
 #                      value = sha256 of that file's bytes (16 hex). Editing a
 #                      file moves exactly its own line — not every co-owning
@@ -13,27 +15,31 @@
 # Merge conflict here? NEVER hand-resolve the hashes — keep either side and run
 # `clad check --tier=pre-push --strict`; the GREEN gate rewrites the truth.
 # Content-anchored: survives fresh clones and squash/rebase.
+policy:
+  cladding: "0.9.4"
+  blocking: strict
+  detectors_sha256: 133c1ab691da7642223bcfe93ecdf4dc253f1aba08ee4e1bad865e427a2c37db
 attested_modules:
-  .claude/settings.json: d0bba3583aef0960
+  .claude/settings.json: 08a64351770badf4
   .github/workflows/ci.yml: 8ea99219cb80df60
-  .gitignore: 1294975ba3b47043
-  CHANGELOG.md: f2d8bae463e3279e
+  .gitignore: d311656aff3813ca
+  CHANGELOG.md: 5f869dbb27431e60
   CLAUDE.md: 9f2fa4edd5c6df80
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: 042398234df7c6db
-  README.ja.md: c0e21f65682fdddf
-  README.ko.html: c6c9c457101a7faa
-  README.ko.md: d5c8665fb5126908
-  README.md: 988329327e2b04dd
-  README.zh.md: ac6e59d1dfb425da
+  README.html: e648da173a27d318
+  README.ja.md: bda546d9642b960d
+  README.ko.html: 105a0068180d3892
+  README.ko.md: 3e1293e9f5d5bcc7
+  README.md: 9cba3b899b969660
+  README.zh.md: 624317af25d6ab0e
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
-  conformance/fixtures.yaml: 4b1b94dae1cd20b0
-  conformance/runner.ts: b9c9e71df85d382e
+  conformance/fixtures.yaml: 5b461bb43a79a983
+  conformance/runner.ts: 5e638e070dbb10c2
   docs/README.md: 5672e5726104d845
   docs/ab-evaluation-extended/README.md: f690562df2e5ec06
-  docs/ab-evaluation-extended/scenarios/dashboard/report.md: 9ad86472f76c2c29
-  docs/ab-evaluation-extended/scenarios/task-manager/report.md: fe3c789cc9b88eb1
+  docs/ab-evaluation-extended/scenarios/dashboard/report.md: a656cad8c8ac2772
+  docs/ab-evaluation-extended/scenarios/task-manager/report.md: 91df11ca4e9bed26
   docs/ab-evaluation-extended/summary.md: d16f16836f94bd80
   docs/ab-evaluation/README.md: 2467808b9871dcf0
   docs/ab-evaluation/case-doverunner-scale.md: 2a435b6855823d41
@@ -41,7 +47,7 @@ attested_modules:
   docs/ab-evaluation/case-existing-adoption.md: 240a7c641da50a42
   docs/ab-evaluation/case-graph-efficiency.md: 83d3956d14a1517d
   docs/ab-evaluation/case-iterative-vs-fixed-vapt.md: 1d242b8b6071f343
-  docs/ab-evaluation/case-payment-saas.md: a316271b319816f6
+  docs/ab-evaluation/case-payment-saas.md: e29406c4f5d179b2
   docs/ab-evaluation/case-working-set-landmine.md: b4f44dc463e99722
   docs/ab-evaluation/summary.md: 59e527a531f13209
   docs/b1-adoption-protocol.md: a041d8ad5ba1447f
@@ -56,7 +62,7 @@ attested_modules:
   docs/dogfood/cursor-agent-2026-07-15.md: a2f621fd0c3b57af
   docs/dogfood/gemini-cli-2026-05-20.md: 2da1ba66c4f108f0
   docs/feature-cycle.md: e1847cc9fe9b6eb6
-  docs/glossary.md: fc7258d4d3dcb9a2
+  docs/glossary.md: 62175865fa2bf721
   docs/img/en/ecosystem.svg: ed14d1d17f088b00
   docs/img/en/independence.svg: 1b3048b3b5206483
   docs/img/en/relationship.svg: c7a24203925b4664
@@ -66,26 +72,26 @@ attested_modules:
   docs/img/ko/relationship.svg: 9ec8fb2254978f37
   docs/img/zh/independence.svg: 073303a42e601f7c
   docs/multi-provider-roadmap.md: 1e5cf27ea1b18d06
-  docs/refinement-backlog.md: 918426e582bf2739
+  docs/refinement-backlog.md: 51469bde4d9dddfd
   docs/setup.md: a5c062651d267983
-  docs/spec-ids-multi-dev.md: 28d58e84879f58b1
+  docs/spec-ids-multi-dev.md: ee52e431278e1c1a
   docs/ssot-model.md: 66b9439e2f71ac4b
   docs/ssot-testing.md: abf3b2bd5acb29a1
-  package-lock.json: 505b6ea10c37fcf6
-  package.json: bc72ea4dbf16fc7d
-  plugins/claude-code/.claude-plugin/plugin.json: e46cfdf3bf480696
+  package-lock.json: 446ffb2632fbb457
+  package.json: 6e246e66421c0d84
+  plugins/claude-code/.claude-plugin/plugin.json: 0b3e617b8d8ea59a
   plugins/claude-code/agents/developer.md: 3002b4ef69ddab43
   plugins/claude-code/agents/observability.md: 637fde18c012e2a7
   plugins/claude-code/agents/orchestrator.md: 1b758de0bdab8eb0
   plugins/claude-code/agents/planner.md: 2ca87ed1fe99c913
   plugins/claude-code/agents/reviewer.md: cdf7469a3e58b438
-  plugins/claude-code/commands/init.md: 5529b13d0f1ab4bf
+  plugins/claude-code/commands/init.md: cc23bc61906cd39d
   plugins/claude-code/hooks/hooks.json: 42321ead26fb1da8
-  plugins/codex/.codex-plugin/plugin.json: b662ba85804e6abb
+  plugins/codex/.codex-plugin/plugin.json: 0d183985e538e27c
   plugins/codex/.mcp.json: 43e3f4b2af24aa18
-  plugins/codex/skills/check/SKILL.md: 6a665422af510e72
+  plugins/codex/skills/check/SKILL.md: 8e9cf445c4263393
   plugins/codex/skills/developer/SKILL.md: 3002b4ef69ddab43
-  plugins/codex/skills/init/SKILL.md: 5529b13d0f1ab4bf
+  plugins/codex/skills/init/SKILL.md: cc23bc61906cd39d
   plugins/codex/skills/observability/SKILL.md: 637fde18c012e2a7
   plugins/codex/skills/orchestrator/SKILL.md: 1b758de0bdab8eb0
   plugins/codex/skills/planner/SKILL.md: 2ca87ed1fe99c913
@@ -96,20 +102,20 @@ attested_modules:
   plugins/codex/skills/sync/SKILL.md: 775c0f990a52a3d9
   plugins/gemini-cli/GEMINI.md: ba08eaf2cd557a65
   plugins/gemini-cli/commands/README.md: 3527d771578431bd
-  plugins/gemini-cli/commands/init.toml: e7f310fd7af23f95
-  plugins/gemini-cli/gemini-extension.json: 082af8a03ae1601d
-  scripts/build-plugin.mjs: 7fabe2b6301b142a
+  plugins/gemini-cli/commands/init.toml: ab31dfdb28b474d2
+  plugins/gemini-cli/gemini-extension.json: 8851b0ac89a34f74
+  scripts/build-plugin.mjs: d171b326ed61f40b
   scripts/build.mjs: 3a4b204063024ef1
   scripts/migrate-dogfood-v0.3.16.mjs: 1e265fb370019996
   scripts/shard-spec.ts: 0c728bbc1e869421
   scripts/test-count.d.mts: a392f5dea372a40e
   scripts/test-count.mjs: aea2620221c8d5ff
   scripts/version-bump.mjs: 770b066b8279db39
-  skills/check/SKILL.md: 6a665422af510e72
+  skills/check/SKILL.md: 8e9cf445c4263393
   skills/checkpoint/SKILL.md: f723e8cfb8286a64
   skills/clarify/SKILL.md: 5d08bbb821258d03
-  skills/doctor/SKILL.md: 6581c6c900c72d68
-  skills/init/SKILL.md: 5529b13d0f1ab4bf
+  skills/doctor/SKILL.md: e530159f5d3a7864
+  skills/init/SKILL.md: cc23bc61906cd39d
   skills/oracle/SKILL.md: 11e111ac0a4963c1
   skills/rollback/SKILL.md: d472dc3a562b347b
   skills/route/SKILL.md: 5958830fef280c67
@@ -117,7 +123,7 @@ attested_modules:
   skills/serve/SKILL.md: f08bbdbbfeb05041
   skills/status/SKILL.md: 09faadc50b3449da
   skills/sync/SKILL.md: 775c0f990a52a3d9
-  spec.yaml: 35b159a6c3949112
+  spec.yaml: 9b979cd4e7d137d2
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -150,17 +156,19 @@ attested_modules:
   src/cli: a4d0f0eb87fed960
   src/cli/benchmark.ts: 77f84d2a898d724f
   src/cli/changelog.ts: 2de1adb009b89ab4
-  src/cli/clad.ts: a02fe02bcb5e942d
+  src/cli/ci-version.ts: 9fce2c2d7415b4ca
+  src/cli/clad.ts: 8705b384a37f38e1
   src/cli/clarify.ts: f17177969d5b75ff
   src/cli/doctor-hosts.ts: 1f0c2cec5a310b81
-  src/cli/doctor.ts: b98b955fe75e7f7e
-  src/cli/done.ts: b4c8ed409f001487
+  src/cli/doctor.ts: 50d904fdbfe7e942
+  src/cli/done.ts: 4a5dd13769252f51
   src/cli/enforcement-advisory.ts: 395c5be696e88b5c
   src/cli/graph-serve.ts: 23e6e389225d0f98
   src/cli/graph.ts: bab410061b8c746a
-  src/cli/hook.ts: 59d5fddd52d330ac
+  src/cli/hook-health.ts: e103afb67ecde8bb
+  src/cli/hook.ts: 59a2f8dbcfbd2c60
   src/cli/host-onboarding.ts: b046571d4be7280c
-  src/cli/init.ts: 91cf7be2b7427fbf
+  src/cli/init.ts: b074f84900f3e10c
   src/cli/intent-from-path.ts: e69862821d979f22
   src/cli/measure.ts: 3a562f16589e26c2
   src/cli/report.ts: ee7d35b6c36dfa76
@@ -178,13 +186,14 @@ attested_modules:
   src/cli/scan/roots.ts: 7475eed8c9836531
   src/cli/scan/scenarios.ts: 6c2a4ce3b469a668
   src/cli/scan/stats.ts: 00c737b7b7acad97
-  src/cli/scan/thresholds.ts: ec0047b894a6aa6a
+  src/cli/scan/thresholds.ts: 1b4ef8c865ca1ae1
   src/cli/scan/types.ts: ea0170aa88c1c14a
   src/cli/scan/walker.ts: 33e4448e365e47c6
   src/cli/update.ts: b0151396c9a0f6ca
   src/cli/verdict.ts: 85a4ef27292b9169
   src/core/checkpoint.ts: 63300c2764533b6c
   src/core/git-ops.ts: c144e5cc253822b3
+  src/core/language-evidence.ts: eaccacbbf14020e8
   src/core/postmortem.ts: 73be29d5e8a16fd4
   src/core/telemetry-summary.ts: 6782bfaa6c3ecfa6
   src/drive: a4d0f0eb87fed960
@@ -192,8 +201,9 @@ attested_modules:
   src/drive/halt.ts: 386dd57f84f8e297
   src/drive/loop.ts: c37e15ece8e2ae41
   src/events: a4d0f0eb87fed960
-  src/events/log.ts: ed70cf9bfeb2eaf0
+  src/events/log.ts: b70905904b07c7ea
   src/events/session-report.ts: d0b34f848c360334
+  src/events/stop-telemetry.ts: 6b8bbc1b17379aa6
   src/graph/layout3d.ts: fdbf08bacad2c049
   src/graph/model.ts: 9dfae1cb48bfe3d5
   src/graph/render.ts: fd228d5929fd0b47
@@ -209,8 +219,9 @@ attested_modules:
   src/hitl/independence.ts: 202f4e5ef8bc69e3
   src/init/agents-md.ts: 5369a15847ce1ae7
   src/init/git-hook.ts: b77910b0df392cbf
+  src/init/gitignore-policy.ts: 2c3f278e8779e0c6
   src/init/host-instructions.ts: c598f8598d8d1cd4
-  src/init/host-setup.ts: 158cc9306a746da1
+  src/init/host-setup.ts: d4d7c55f16e43dc3
   src/optimizer: a4d0f0eb87fed960
   src/optimizer/code-excerpt.ts: e2c4598efcd28d2a
   src/optimizer/context-slice.ts: b5864aaed1e7ae48
@@ -234,9 +245,9 @@ attested_modules:
   src/report/sarif.ts: 71e97aceeb0a4473
   src/router: a4d0f0eb87fed960
   src/router/intent.ts: 430590f761b891a6
-  src/serve/server.ts: 0a76fefb0aca1434
+  src/serve/server.ts: 6a46b2ee32229b7c
   src/spec: a4d0f0eb87fed960
-  src/spec/attestation.ts: 294a1e99c42d4aef
+  src/spec/attestation.ts: bacd18efacb55615
   src/spec/cli.ts: 7a9bcd0f66677810
   src/spec/deliverable-detect.ts: 9206a91bf5e84723
   src/spec/doc-references.ts: 40e844b5b73467aa
@@ -249,17 +260,17 @@ attested_modules:
   src/spec/reverse-index.ts: fa54d7203a02799a
   src/spec/schema.json: 848951cd01d7f82f
   src/spec/test-ref-repair.ts: 5ce823b479aaaca3
-  src/spec/types.ts: 5799bc9fc1e00553
+  src/spec/types.ts: e8a195929f114491
   src/spec/validate.ts: db88ca6512ab363a
   src/stages: a4d0f0eb87fed960
   src/stages/README.md: c79d2bced8c8b8d8
   src/stages/arch.ts: 268422e53c6d20bb
   src/stages/audit.ts: 3ba117606f8a81a1
   src/stages/commit.ts: f6b6836af0a4d96c
-  src/stages/cov.ts: 3dbe8381e374e8c0
+  src/stages/cov.ts: 4529f5e80bda08fd
   src/stages/deliverable-smoke.ts: 9ecfd4210e6ec5c0
   src/stages/detector-result-cache.ts: 93ea6af02ef361c5
-  src/stages/detectors/README.md: 12e8d24351eef05c
+  src/stages/detectors/README.md: 3fe2c865aa2adcba
   src/stages/detectors/absence-of-governance.ts: 954d8ce5c45b3b32
   src/stages/detectors/ac-drift.ts: 1bceeae9ee99080b
   src/stages/detectors/ac-duplicate-within-feature.ts: 652ad48c8cd1ab2e
@@ -277,7 +288,7 @@ attested_modules:
   src/stages/detectors/hardcoded-secret.ts: d9fb55e3d2e429b6
   src/stages/detectors/harness-integrity.ts: c9717bc296d6c11d
   src/stages/detectors/hollow-governance.ts: 57d3f25c421f993b
-  src/stages/detectors/host-claim-drift.ts: aad755cec4ce24d0
+  src/stages/detectors/host-claim-drift.ts: a03b67342b854bd5
   src/stages/detectors/id-collision.ts: 9292f2dac0578276
   src/stages/detectors/index.ts: bb8d9398ea726cf5
   src/stages/detectors/inferable-depends-on.ts: 29dbc744efe3df00
@@ -299,8 +310,8 @@ attested_modules:
   src/stages/detectors/stale-specification.ts: 0fe84db592fd406d
   src/stages/detectors/stale-tests.ts: caf59404d1282201
   src/stages/detectors/status-drift.ts: 9cc5cf3f9b62ea00
-  src/stages/detectors/tech-stack-mismatch.ts: 099162aff2c2966b
-  src/stages/detectors/unmapped-artifact.ts: b29f7e277d8187ae
+  src/stages/detectors/tech-stack-mismatch.ts: 4da504acb67aaa86
+  src/stages/detectors/unmapped-artifact.ts: b46ec1bd013dcce5
   src/stages/detectors/untested-ac.ts: 90725ef1fc9245d8
   src/stages/detectors/unverified-ac.ts: 6887c4d699afaad5
   src/stages/detectors/with-spec.ts: dcf3205e8d563574
@@ -309,7 +320,7 @@ attested_modules:
   src/stages/finding-parser.ts: d9cd56dbe3c3b9a7
   src/stages/graph-health.ts: a294f06796b0e293
   src/stages/junit-report.ts: f8466dc1e00140f1
-  src/stages/lint.ts: e9c4505e587e6088
+  src/stages/lint.ts: e2bd76900a583983
   src/stages/perf.ts: 2b27c12427f65b2e
   src/stages/secret.ts: b90abc0e00c86219
   src/stages/skip-policy.ts: 1a6412d708561cf0
@@ -323,32 +334,32 @@ attested_modules:
   src/stages/toolchain/module-scope.ts: 88358ec3b84eedd3
   src/stages/toolchain/scoped-command.ts: f2dd6410c063279f
   src/stages/toolchain/types.ts: 05f018fb3dddc321
-  src/stages/type.ts: 0ac37e45b407446d
-  src/stages/types.ts: 95e8c9e13187d85b
+  src/stages/type.ts: 56c43d7954c25db3
+  src/stages/types.ts: ccc885299871e57f
   src/stages/uat.ts: 62ec3e37a124f8c5
-  src/stages/unit.ts: b503350b0e5c7e5a
-  src/stages/util.ts: 7c49de3250816de8
+  src/stages/unit.ts: 7471a2cca0c969d6
+  src/stages/util.ts: c9e18d2c9cd90dba
   src/stages/vacuous-tests.ts: 8e71b81e151325af
   src/stages/visual.ts: 2b60dd991fa8124e
   src/ui: a4d0f0eb87fed960
   src/ui/panel.ts: 8b78cb14dafb28fb
   src/ui/pulse.ts: ee4255f5c6e49f51
-  src/ui/softShell.ts: f21a30930c164afd
-  src/verdict/gate-progress.ts: ac75e3082cc97a40
+  src/ui/softShell.ts: a733d024692689a2
+  src/verdict/gate-progress.ts: 41b677e10596ea42
   src/verdict/verdict.ts: 2dcfb0e7408bd28d
   tests/adapters/anthropic.test.ts: fa2fc7faf032a782
   tests/adapters/index.test.ts: 4454e6b4ea05a74f
   tests/adapters/transport.test.ts: 68f22e9e8df7b813
   tests/agents/loader.test.ts: a7df7b1c9a95d37d
   tests/cli/benchmark.test.ts: b4a87289605ee75f
-  tests/cli/clad.test.ts: 95a6303c6d9437e2
-  tests/cli/gate-golden-matrix.test.ts: 39cf615407a55abe
-  tests/cli/init.test.ts: 3428a89708fc9330
+  tests/cli/clad.test.ts: 4413920b79b15ee0
+  tests/cli/gate-golden-matrix.test.ts: 81d88e1cd40723fa
+  tests/cli/init.test.ts: e88394472a0b95b3
   tests/cli/intent-onboarding.test.ts: 0681b98ce2e74c22
   tests/conformance/registry.test.ts: 018b1e5c0d8d4baf
   tests/drive/loop.test.ts: ae49bcfa745a8cdb
-  tests/events/log.test.ts: 15e6d04c72431bfb
-  tests/init/git-hook.test.ts: cef479cfb759bbe8
+  tests/events/log.test.ts: 221f74acfdb7f7c0
+  tests/init/git-hook.test.ts: 6e43b2a970e5c39b
   tests/integration/loop-real-transport.test.ts: 7bd5bfa97eca28c6
   tests/integration/multi-dev-merge.test.ts: 1ba5aef6c649b6c7
   tests/optimizer/preamble.test.ts: 806d479c41473d22
@@ -424,13 +435,13 @@ attested_modules:
   tests/stages/stale-specification.test.ts: 09bd06db377d890c
   tests/stages/stale-tests.test.ts: 1467ceedb8019e86
   tests/stages/status-drift.test.ts: cff1092eeb23c268
-  tests/stages/tech-stack-mismatch.test.ts: 878436ffd2f94c97
+  tests/stages/tech-stack-mismatch.test.ts: 57c435b76972c055
   tests/stages/toolchain.test.ts: 200184f572abcf88
   tests/stages/toolchain/gate-config.test.ts: aef5813a6591b153
   tests/stages/type.test.ts: b57cf7455cae3b32
   tests/stages/uat.test.ts: 29c5bf3e7f3abc35
   tests/stages/unit.test.ts: 97781210eb81bb25
-  tests/stages/unmapped-artifact.test.ts: 6bfdae66990fd63a
+  tests/stages/unmapped-artifact.test.ts: d29ba5a32abadcc9
   tests/stages/util.test.ts: a162cbe069c85f41
   tests/stages/visual.test.ts: dd819e7d25586b92
   tests/ui/panel.test.ts: ad9ea207f34b1c51
@@ -537,6 +548,7 @@ attested_features:
   F-17df0a: ok
   F-18e951: ok
   F-195cb59e: ok
+  F-1aab1bba: ok
   F-1c9166: ok
   F-1d23a6: ok
   F-1e7a10c3: ok
@@ -613,6 +625,7 @@ attested_features:
   F-836a90: ok
   F-8476ccb1: ok
   F-876b6f48: ok
+  F-87bb7ed3: ok
   F-898783ee: ok
   F-8f419e: ok
   F-904495a5: ok
@@ -622,6 +635,7 @@ attested_features:
   F-96250595: ok
   F-96700032: ok
   F-96d1f69d: ok
+  F-96fa5622: ok
   F-987be195: ok
   F-99c6e5: ok
   F-9a3b61: ok
@@ -629,17 +643,20 @@ attested_features:
   F-9b643e: ok
   F-9d168287: ok
   F-9d8ece66: ok
+  F-9e1279d4: ok
   F-a04cd9: ok
   F-a4085adf: ok
   F-a4b512: ok
   F-a5228c: ok
   F-aa7197: ok
+  F-abd10f3c: ok
   F-ae61c1: ok
   F-aee1da: ok
   F-aee61f: ok
   F-af45042a: ok
   F-af96b1: ok
   F-b010427b: ok
+  F-b0c2e724: ok
   F-b0c8ba2c: ok
   F-b0f898a6: ok
   F-b2094740: ok
@@ -659,6 +676,7 @@ attested_features:
   F-bdcd90: ok
   F-be5306eb: ok
   F-c037ae: ok
+  F-c17e1edc: ok
   F-c2c996: ok
   F-c3747d7d: ok
   F-c48eb2: ok
@@ -668,6 +686,7 @@ attested_features:
   F-c6a32fff: ok
   F-c6c3daaf: ok
   F-c8aef8: ok
+  F-caff8598: ok
   F-cd0415: ok
   F-cfba0c: ok
   F-d12edf: ok

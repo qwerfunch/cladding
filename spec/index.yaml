@@ -103,6 +103,7 @@ features:
   F-17df0a: {slug: scan-artifacts-llm-refinement, status: done, modules: 3}
   F-18e951: {slug: drift-baseline-cleanup, status: done, modules: 7}
   F-195cb59e: {slug: onboarding-handoff-steer, status: done, modules: 2}
+  F-1aab1bba: {slug: stop-outcome-telemetry, status: done, modules: 6}
   F-1c9166: {slug: readme-capability-sync, status: done, modules: 2}
   F-1d23a6: {slug: host-hooks, status: done, modules: 5}
   F-1e7a10c3: {slug: adoption-report-surface, status: done, modules: 2}
@@ -181,6 +182,7 @@ features:
   F-836a90: {slug: link-capability-tool, status: done, modules: 2}
   F-8476ccb1: {slug: readme-multiagent-inversion, status: done, modules: 6}
   F-876b6f48: {slug: shard-term-to-spec-entry, status: done, modules: 7}
+  F-87bb7ed3: {slug: self-describing-scan-universe, status: done, modules: 2}
   F-898783ee: {slug: self-count-guard, status: done, modules: 17}
   F-8f419e: {slug: smoke-legacy-liveness, status: done, modules: 1}
   F-904495a5: {slug: changelog-render, status: done, modules: 5}
@@ -191,6 +193,7 @@ features:
   F-96250595: {slug: iterative-impact-slice, status: done, modules: 2}
   F-96700032: {slug: unverified-ac-junit, status: done, modules: 4}
   F-96d1f69d: {slug: readme-role-contract-alignment, status: done, modules: 6}
+  F-96fa5622: {slug: hook-health-observability, status: done, modules: 7}
   F-987be195: {slug: docs-prune, status: done, modules: 4}
   F-99c6e5: {slug: cladding-self-fixes, status: done, modules: 13}
   F-9a3b61: {slug: ab-ext-uncommit-demos, status: done, modules: 3}
@@ -198,17 +201,20 @@ features:
   F-9b643e: {slug: scan-conventions, status: done, modules: 5}
   F-9d168287: {slug: ears-complex-pattern, status: done, modules: 6}
   F-9d8ece66: {slug: persona-map-non-exclusivity, status: done, modules: 2}
+  F-9e1279d4: {slug: language-evidence-core, status: done, modules: 4}
   F-a04cd9: {slug: ac-hash-ids, status: done, modules: 3}
   F-a4085adf: {slug: spec-driven-agents-md, status: done, modules: 1}
   F-a4b512: {slug: dependency-cycle-detector, status: done, modules: 2}
   F-a5228c: {slug: attestation-marker, status: done, modules: 4}
   F-aa7197: {slug: scan-audit-residuals, status: done, modules: 2}
+  F-abd10f3c: {slug: ci-version-pinning, status: done, modules: 3}
   F-ae61c1: {slug: ab-tm-query-domain-fix, status: done, modules: 3}
   F-aee1da: {slug: scan-residuals, status: done, modules: 3}
   F-aee61f: {slug: scan-roots-from-architecture, status: done, modules: 1}
   F-af45042a: {slug: graph-live-health, status: done, modules: 5}
   F-af96b1: {slug: no-vacuous-green-gate-contract, status: done, modules: 14}
   F-b010427b: {slug: detector-layer-purity, status: done, modules: 2}
+  F-b0c2e724: {slug: gate-config-committable, status: done, modules: 3}
   F-b0c8ba2c: {slug: gate-no-progress, status: done, modules: 1}
   F-b0f898a6: {slug: attestation-v2-per-module, status: done, modules: 3}
   F-b2094740: {slug: lint-config-detection, status: done, modules: 1}
@@ -228,6 +234,7 @@ features:
   F-bdcd90: {slug: oracle-policy-risk-weighted, status: done, modules: 8}
   F-be5306eb: {slug: cold-start-cycle-signal, status: done, modules: 3}
   F-c037ae: {slug: test-refs-repair, status: done, modules: 4}
+  F-c17e1edc: {slug: skip-exit-guidance, status: done, modules: 7}
   F-c2c996: {slug: checkpoint-events, status: done, modules: 3}
   F-c3747d7d: {slug: spec-first-window-complete, status: done, modules: 5}
   F-c48eb2: {slug: scan-source-roots, status: done, modules: 5}
@@ -237,6 +244,7 @@ features:
   F-c6a32fff: {slug: graph-honest-fallback, status: done, modules: 7}
   F-c6c3daaf: {slug: kotlin-module-scoped-gate, status: done, modules: 13}
   F-c8aef8: {slug: project-context, status: done, modules: 5}
+  F-caff8598: {slug: attestation-policy-stamp, status: done, modules: 4}
   F-cd0415: {slug: spec-load-once, status: done, modules: 2}
   F-cfba0c: {slug: scenarios-deprecate, status: done, modules: 3}
   F-d12edf: {slug: ssot-governance, status: done, modules: 19}

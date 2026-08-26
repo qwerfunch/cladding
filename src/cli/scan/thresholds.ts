@@ -105,21 +105,14 @@ export const ENTRYPOINT_NAMES: ReadonlySet<string> = new Set([
   'Program', 'Main', 'App',
 ]);
 
-/** Maps a file extension to a normalised language label. */
-export const EXT_TO_LANGUAGE: Readonly<Record<string, string>> = {
-  '.ts': 'typescript', '.tsx': 'typescript',
-  '.js': 'javascript', '.jsx': 'javascript', '.mjs': 'javascript', '.cjs': 'javascript',
-  '.py': 'python', '.pyi': 'python',
-  '.go': 'go',
-  '.rs': 'rust',
-  '.java': 'java',
-  '.kt': 'kotlin', '.kts': 'kotlin',
-  '.cs': 'csharp',
-  '.rb': 'ruby',
-  '.php': 'php',
-  '.swift': 'swift',
-  '.ex': 'elixir', '.exs': 'elixir',
-  '.scala': 'scala',
-  '.dart': 'dart',
-  '.cpp': 'cpp', '.cc': 'cpp', '.cxx': 'cpp', '.hpp': 'cpp', '.h': 'cpp',
-};
+/**
+ * Maps a file extension to a normalised language label.
+ *
+ * Owned by `core/language-evidence.ts` since F-9e1279d4 and re-exported
+ * here so the scan layer's import surface is unchanged. The map moved to
+ * the foundation tier because the drift detectors need the same
+ * vocabulary and the architecture forbids `stages → cli`; when scan and
+ * the detectors read different tables, `clad init` seeds labels the gate
+ * then rejects.
+ */
+export {EXT_TO_LANGUAGE} from '../../core/language-evidence.js';

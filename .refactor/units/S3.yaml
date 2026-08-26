@@ -1,0 +1,24 @@
+id: S3
+started: 2026-08-10
+inherits:
+  head: 7e5f0391ce1f797e7879af497db34d5a7383543b
+  tree_clean: true
+preconditions:
+  - {cmd: "test \"$(node bin/clad --version)\" = \"0.9.3\"", expect: "exit 0"}
+  - {cmd: "test ! -e .refactor/sim/M7.md", expect: "exit 0"}
+  - {cmd: "test -f src/stages/vacuous-tests.ts", expect: "exit 0"}
+  - {cmd: "test -f src/stages/unit.ts", expect: "exit 0"}
+touch_allowed:
+  - .refactor/PLAN.md
+  - .refactor/ledger.md
+  - .refactor/units/S3.yaml
+  - .refactor/sim/M7.md
+done_conditions:
+  - {cmd: "test -f .refactor/sim/M7.md", expect: "exit 0"}
+  - {cmd: "head -1 .refactor/sim/M7.md | grep -qE '^VERDICT: (PASS|KILL|INCONCLUSIVE)$'", expect: "exit 0"}
+  - {cmd: "grep -c '^VERDICT: ' .refactor/sim/M7.md", expect: "1"}
+  - {cmd: "grep -qE '`[^`]+:[0-9]+`' .refactor/sim/M7.md", expect: "exit 0"}
+exit:
+  commit: "(this commit)"
+  verdict: PASS
+  residue: "A6 must wire Jest JSON output into the existing parser and cover macOS /tmp -> /private/tmp canonical-path normalization; implementation intentionally deferred to A6."

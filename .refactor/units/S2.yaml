@@ -1,0 +1,23 @@
+id: S2
+started: 2026-08-10
+inherits:
+  head: d730526d856ce5c3b7e077f1af8583d4ba37bd73
+  tree_clean: true
+preconditions:
+  - {cmd: "test \"$(node bin/clad --version)\" = \"0.9.3\"", expect: "exit 0"}
+  - {cmd: "test ! -e .refactor/sim/M5.md", expect: "exit 0"}
+  - {cmd: "test -d src/agents", expect: "exit 0"}
+touch_allowed:
+  - .refactor/PLAN.md
+  - .refactor/ledger.md
+  - .refactor/units/S2.yaml
+  - .refactor/sim/M5.md
+done_conditions:
+  - {cmd: "test -f .refactor/sim/M5.md", expect: "exit 0"}
+  - {cmd: "head -1 .refactor/sim/M5.md | grep -qE '^VERDICT: (PASS|KILL|INCONCLUSIVE)$'", expect: "exit 0"}
+  - {cmd: "grep -c '^VERDICT: ' .refactor/sim/M5.md", expect: "1"}
+  - {cmd: "grep -qE '`[^`]+:[0-9]+`' .refactor/sim/M5.md", expect: "exit 0"}
+exit:
+  commit: "(this commit)"
+  verdict: KILLED
+  residue: "A10/A11 removed; CLI-only independence_policy: require remains unsatisfiable until an authenticated host assertion or hardware-backed user-presence proof exists."

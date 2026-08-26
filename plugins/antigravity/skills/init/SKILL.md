@@ -25,4 +25,6 @@ Do not run `clad init` in a shell from an AI-host onboarding session. Do not use
 
 `clad_prepare_init` does not modify the workspace, and `clad_stage_init` writes only ignored runtime state. Never call stage and apply in the same assistant turn. Only `clad_init` writes authored artifacts, after explicit user confirmation plus schema and freshness validation. A stale, malformed, or replayed apply request must be prepared again.
 
+Initialization also creates or appends `spec/index.yaml merge=union` in `.gitattributes`. It preserves every existing attribute and never assigns a merge driver to `spec/attestation.yaml`; the strict gate rewrites that verification record canonically after an ordinary merge.
+
 The raw CLI remains available for terminal, CI, offline, and explicitly configured SDK automation; it is not the primary host onboarding path.

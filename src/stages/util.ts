@@ -104,7 +104,9 @@ export function missingToolSkip(
   args: readonly string[] = [],
 ): StageResult | null {
   if (isMissingBinary(proc)) {
-    return {stage, pass: false, exitCode: 2, stderr: `'${cmd}' not installed`};
+    // F-c17e1edc — the command IS known; the environment lacks it. Tagged
+    // `tool-missing` so the renderer never prescribes `gate.commands` here.
+    return {stage, pass: false, exitCode: 2, stderr: `'${cmd}' not installed`, skipReason: 'tool-missing'};
   }
   const output = `${String(proc.stderr ?? '')}\n${String(proc.stdout ?? '')}`;
   const npxResolutionFailure =
@@ -121,6 +123,9 @@ export function missingToolSkip(
       stderr:
         "setup gap: 'npx' could not resolve the configured tool without installing it; " +
         'the inferred tool is not installed or unavailable offline',
+      // F-c17e1edc — same lane as ENOENT: a resolution/installation gap, not an
+      // absent runner declaration.
+      skipReason: 'tool-missing',
     };
   }
   return null;

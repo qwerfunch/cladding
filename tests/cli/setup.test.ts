@@ -6,7 +6,12 @@ import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {getLastSetupVersion, renderSetupReport, runHostSetup} from '../../src/init/host-setup.js';
+import {
+  getCurrentCladdingVersion,
+  getLastSetupVersion,
+  renderSetupReport,
+  runHostSetup,
+} from '../../src/init/host-setup.js';
 import {hostWireNotice} from '../../src/cli/init.js';
 
 describe('project-scoped runHostSetup', () => {
@@ -65,6 +70,17 @@ describe('project-scoped runHostSetup', () => {
     expect(existsSync(join(agyWire, 'plugin.json'))).toBe(true);
     const agyMcp = JSON.parse(readFileSync(join(agyWire, 'mcp_config.json'), 'utf8'));
     expect(agyMcp.mcpServers.cladding.args).toEqual([join(pkgRoot, 'dist', 'clad.js'), 'serve']);
+  });
+
+  test('resolves the engine version from a Claude cache that has no package.json', () => {
+    rmSync(join(pkgRoot, 'package.json'));
+    mkdirSync(join(pkgRoot, '.claude-plugin'), {recursive: true});
+    writeFileSync(
+      join(pkgRoot, '.claude-plugin', 'plugin.json'),
+      `${JSON.stringify({name: 'claude-code', version: '0.9.4'})}\n`,
+      'utf8',
+    );
+    expect(getCurrentCladdingVersion(pkgRoot)).toBe('0.9.4');
   });
 
   test('default detection wires nothing on a machine with no supported host', async () => {

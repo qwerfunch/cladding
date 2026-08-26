@@ -1,0 +1,52 @@
+id: P3
+started: 2026-08-10
+inherits:
+  head: 9c16973
+  tree_clean: true
+touch_allowed:
+  - .refactor/PLAN.md
+  - .refactor/ledger.md
+  - .refactor/units/P3.yaml
+  - .refactor/sim/P3.md
+  - docs/glossary.md
+  - spec.yaml
+  - spec/index.yaml
+  - spec/attestation.yaml
+  - spec/_doc-links.yaml
+  - spec/features/stop-outcome-telemetry-*.yaml
+  - spec/features/lifecycle-events-identity-b84c38.yaml
+  - src/events/log.ts
+  - src/events/stop-telemetry.ts
+  - src/verdict/gate-progress.ts
+  - src/cli/hook.ts
+  - src/cli/clad.ts
+  - src/cli/done.ts
+  - src/cli/doctor.ts
+  - tests/events/log.test.ts
+  - tests/events/stop-telemetry.test.ts
+  - tests/cli/hook.test.ts
+  - tests/cli/gate-golden-matrix.test.ts
+  - tests/cli/done.test.ts
+  - tests/cli/doctor.test.ts
+  - skills/doctor/SKILL.md
+  - plugins/codex/skills/doctor/SKILL.md
+  - plugins/antigravity/skills/doctor/SKILL.md
+  - plugins/claude-code/dist/clad.js
+done_conditions:
+  - {cmd: "npm test -- --run tests/events/log.test.ts tests/events/stop-telemetry.test.ts tests/cli/hook.test.ts tests/cli/gate-golden-matrix.test.ts tests/cli/done.test.ts tests/cli/doctor.test.ts", expect: "exit 0"}
+  - {cmd: "npm run build:plugin", expect: "exit 0 and source-fresh plugin engine"}
+  - {cmd: "npm test", expect: "exit 0"}
+  - {cmd: "npm run typecheck", expect: "exit 0"}
+  - {cmd: "npm run lint", expect: "exit 0"}
+  - {cmd: "node bin/clad verdict --json", expect: "DONE/green after the P3 feature is earned"}
+  - {cmd: "node bin/clad done <P3 feature id>", expect: "exit 0; status earned as done"}
+  - {cmd: "node bin/clad check --tier=pre-commit", expect: "exit 0"}
+  - {cmd: "node bin/clad check --tier=pre-push --strict", expect: "exit 0"}
+exit:
+  commit: (this commit)
+  verdict: PASS
+  residue:
+    - README test-count claim 2815 predates the current 2834 tests; release-wide refresh belongs to P6.
+    - Events written before schema 0.9.4 have no blocker evidence and therefore remain conservatively unobserved.
+    - introduced/preexisting compares with the latest observed gate; it is attribution evidence, not session causality.
+    - The 4–6 week or 50-event policy decision remains with A1; P3 only supplies the measurement.

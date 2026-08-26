@@ -145,7 +145,7 @@ export const DETECTOR_PLAIN: Readonly<Record<string, PlainEntry>> = {
   ARCHITECTURE_VIOLATION: {lead: 'The code has an import loop or crosses a layer boundary the design forbids', action: 'break the import cycle or remove the disallowed import'},
   MISSING_IMPLEMENTATION: {lead: 'The spec lists a file that is not on disk yet', action: 'create the file, or remove it from the feature module list'},
   UNMAPPED_ARTIFACT: {lead: 'A source file exists that no feature in the spec claims', action: 'add it to a feature module list, or delete the file'},
-  TECH_STACK_MISMATCH: {lead: 'The spec names one programming language but the code looks like another', action: 'update project.language in the spec to match the code'},
+  TECH_STACK_MISMATCH: {lead: 'The spec names one programming language but the source files on disk are another', action: 'update project.language to a language the source tree actually contains'},
   STATUS_DRIFT: {lead: 'A feature is marked done but its files or checks do not back that up', action: 'add the missing modules, or set the status back'},
   STALE_SPECIFICATION: {lead: "A feature's lifecycle labels don't match its actual state", action: 'reconcile the feature status and archive fields'},
   REFERENCE_INTEGRITY: {lead: 'The spec points to a feature id that does not exist', action: 'fix the reference or add the missing feature'},

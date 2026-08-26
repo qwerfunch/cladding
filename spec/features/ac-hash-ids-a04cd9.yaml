@@ -25,7 +25,12 @@ acceptance_criteria:
     test_refs: [tests/spec/new.test.ts]
   - id: AC-003
     ears: ubiquitous
-    action: 'mark architecture layer.modules as advisory and stop the LLM onboarding prompts from emitting it, since ARCHITECTURE_FROM_SPEC does not consume it'
-    response: 'the dead glob field is removed from the two onboarding prompts and the type documents it as advisory-not-enforced; full consumption is a tracked follow-up rather than a hidden dead link'
-    text: The system shall not generate the unconsumed architecture layer.modules field and shall document it as advisory, so the schema does not invite a link the detector cannot follow.
+    action: 'stop the LLM onboarding prompts from emitting architecture layer.modules, and document exactly who consumes it'
+    response: 'the glob field is removed from the two onboarding prompts; the tracked follow-up landed in F-87bb7ed3, which made UNMAPPED_ARTIFACT consume the declared globs as that layer''s scan universe, while ARCHITECTURE_FROM_SPEC still does not read it — the type comment names both facts'
+    text: The system shall not generate the architecture layer.modules field from onboarding prompts and shall document its consumers precisely, so the schema neither invites a dead link nor hides a live one.
+    notes: |
+      ## Why (amended 2026-08-26)
+      Originally the field was advisory because no detector consumed it.
+      F-87bb7ed3 (AC-96ff696f) made UNMAPPED_ARTIFACT consume declared layer
+      globs; this criterion's prose is updated so the two entries agree.
     test_refs: [tests/spec/new.test.ts]
