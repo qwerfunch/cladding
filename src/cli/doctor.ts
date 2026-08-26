@@ -15,7 +15,7 @@
 // so it stays a peer surface that adopters reach for diagnostics, not
 // a gate.
 
-import {existsSync} from 'node:fs';
+import {existsSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import process from 'node:process';
 
@@ -31,6 +31,7 @@ import {
 } from '../core/telemetry-summary.js';
 import {HOOK_EVENTS, readHookHealth, type HookEventName, type HookHealthReport} from './hook-health.js';
 import {readCiVersionHealth, type CiVersionHealth} from './ci-version.js';
+import {gateConfigIgnoreStatus, type GateConfigIgnoreStatus} from '../init/gitignore-policy.js';
 
 export interface DoctorCommandOptions {
   readonly cwd?: string;
@@ -49,6 +50,8 @@ export interface DoctorReport {
   readonly hooks: HookHealthReport;
   /** Read-only diagnosis of floating Cladding package selectors in CI. */
   readonly ciVersion: CiVersionHealth;
+  /** Whether the root .gitignore lets `.cladding/config.yaml` reach CI and fresh clones. */
+  readonly gateConfigIgnore: GateConfigIgnoreStatus;
 }
 
 export interface GovernanceSummary {
@@ -104,7 +107,8 @@ export function runDoctorCommand(opts: DoctorCommandOptions = {}): void {
   const governance = summarizeGovernance(cwd, events);
   const hooks = readHookHealth(cwd);
   const ciVersion = readCiVersionHealth(cwd);
-  const report: DoctorReport = {cwd, events: eventCounts, sentinelMiss, governance, hooks, ciVersion};
+  const gateConfigIgnore = readGateConfigIgnoreStatus(cwd);
+  const report: DoctorReport = {cwd, events: eventCounts, sentinelMiss, governance, hooks, ciVersion, gateConfigIgnore};
 
   if (opts.json) {
     process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
@@ -120,6 +124,7 @@ export function runDoctorCommand(opts: DoctorCommandOptions = {}): void {
     );
     renderHookHealth(report.hooks);
     renderCiVersionHealth(report.ciVersion);
+    renderGateConfigIgnore(report.gateConfigIgnore);
     process.exit(0);
     return;
   }
@@ -148,6 +153,7 @@ function renderTextReport(report: DoctorReport): void {
 
   renderHookHealth(report.hooks);
   renderCiVersionHealth(report.ciVersion);
+  renderGateConfigIgnore(report.gateConfigIgnore);
 
   // F-95a096 — the governance ledger, readable without parsing JSONL by hand.
   // Rendered before the sentinel-miss early return: gate/done/stop state is
@@ -196,6 +202,26 @@ function renderTextReport(report: DoctorReport): void {
 
   process.stdout.write('\n');
   process.stdout.write('Tune your host: raise max_tokens, switch model, or check MCP transport health.\n');
+}
+
+/**
+ * Reads the root `.gitignore` (absent file included) and classifies whether the
+ * gate config can be committed. Read-only, like every doctor diagnosis: the
+ * adopter's ignore file is never rewritten from here.
+ */
+function readGateConfigIgnoreStatus(cwd: string): GateConfigIgnoreStatus {
+  const path = join(cwd, '.gitignore');
+  return gateConfigIgnoreStatus(existsSync(path) ? readFileSync(path, 'utf8') : null);
+}
+
+// Quiet unless the gate config is unreachable — a working ignore file needs no
+// commentary, and a blocked one costs the adopter their whole gate tuning in CI.
+function renderGateConfigIgnore(status: GateConfigIgnoreStatus): void {
+  if (status !== 'blocked') return;
+  process.stdout.write(
+    '\ngate config: .gitignore blocks .cladding/config.yaml — CI and fresh clones cannot see your gate ' +
+      "overrides. Change '.cladding/' to '.cladding/*' + '!.cladding/config.yaml'.\n",
+  );
 }
 
 function renderCiVersionHealth(health: CiVersionHealth): void {

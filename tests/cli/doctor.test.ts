@@ -7,7 +7,7 @@
 // readEvents would test less than the file-based path.
 
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
-import {appendFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
+import {appendFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 
@@ -41,6 +41,10 @@ function seedHookHealth(cwd: string): void {
     })}\n`,
     'utf8',
   );
+}
+
+function seedGitignore(cwd: string, body: string): void {
+  writeFileSync(join(cwd, '.gitignore'), body, 'utf8');
 }
 
 function seedWorkflow(cwd: string, name: string, body: string): void {
@@ -192,6 +196,52 @@ describe('clad doctor handler', () => {
     expect(JSON.parse(stdoutChunks.join('')).ciVersion).toEqual({
       unpinnedWorkflows: ['.github/workflows/release.yml'],
     });
+  });
+
+  // F-b0c2e724 — the legacy directory exclusion makes .cladding/config.yaml
+  // uncommittable, so the gate an author tuned never reaches CI or a fresh
+  // clone. Doctor diagnoses it read-only; it never rewrites the ignore file.
+  test('reports a blocked gate config in text and JSON without failing', () => {
+    seedGitignore(dir, 'node_modules/\n.cladding/\n');
+    seedEvents(dir, [
+      {id: '1', timestamp: 't', type: 'feature_checkpoint', payload: {featureId: 'F-a0000001'}},
+    ]);
+    runDoctorCommand({cwd: dir});
+    expect(exitCalls).toEqual([0]);
+    const out = stdoutChunks.join('');
+    expect(out).toContain('gate config');
+    expect(out).toContain('blocks .cladding/config.yaml');
+    expect(out).toContain('.cladding/*');
+    expect(out).toContain('!.cladding/config.yaml');
+    // Read-only diagnosis: the adopter's file is untouched.
+    expect(readFileSync(join(dir, '.gitignore'), 'utf8')).toBe('node_modules/\n.cladding/\n');
+
+    exitCalls = [];
+    stdoutChunks = [];
+    runDoctorCommand({cwd: dir, json: true});
+    expect(exitCalls).toEqual([0]);
+    expect(JSON.parse(stdoutChunks.join('')).gateConfigIgnore).toBe('blocked');
+  });
+
+  test('keeps a committable gate config quiet while still reporting it in JSON', () => {
+    seedGitignore(dir, '# Cladding runtime state\n.cladding/*\n!.cladding/config.yaml\n');
+    seedEvents(dir, [
+      {id: '1', timestamp: 't', type: 'feature_checkpoint', payload: {featureId: 'F-a0000001'}},
+    ]);
+    runDoctorCommand({cwd: dir});
+    expect(exitCalls).toEqual([0]);
+    expect(stdoutChunks.join('')).not.toContain('gate config');
+
+    exitCalls = [];
+    stdoutChunks = [];
+    runDoctorCommand({cwd: dir, json: true});
+    expect(JSON.parse(stdoutChunks.join('')).gateConfigIgnore).toBe('commitable');
+  });
+
+  test('a project with no .gitignore reports an absent status and stays quiet', () => {
+    runDoctorCommand({cwd: dir, json: true});
+    expect(exitCalls).toEqual([0]);
+    expect(JSON.parse(stdoutChunks.join('')).gateConfigIgnore).toBe('absent');
   });
 
   test('keeps pinned CI quiet', () => {

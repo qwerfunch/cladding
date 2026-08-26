@@ -22,16 +22,16 @@ policy:
 attested_modules:
   .claude/settings.json: 08a64351770badf4
   .github/workflows/ci.yml: 8ea99219cb80df60
-  .gitignore: 1294975ba3b47043
+  .gitignore: d311656aff3813ca
   CHANGELOG.md: 78288e943090a029
   CLAUDE.md: 9f2fa4edd5c6df80
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: bcfa2b3d93de7f56
-  README.ja.md: 072d19e94604f165
-  README.ko.html: d54456b6aa795341
-  README.ko.md: 53875c680af622d3
-  README.md: 87a865c94c73ebf8
-  README.zh.md: 09ee2df6c5c36872
+  README.html: f6403bfe696dad0a
+  README.ja.md: c356a1bb47f09704
+  README.ko.html: c8ab0b905cf72c6e
+  README.ko.md: 166b7013ec751549
+  README.md: 4b2a0103093f338b
+  README.zh.md: 4de9ba6f9fb14de1
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -123,7 +123,7 @@ attested_modules:
   skills/serve/SKILL.md: f08bbdbbfeb05041
   skills/status/SKILL.md: 09faadc50b3449da
   skills/sync/SKILL.md: 775c0f990a52a3d9
-  spec.yaml: 9937e09b6401f878
+  spec.yaml: 92fb4b9e3ef75577
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -160,7 +160,7 @@ attested_modules:
   src/cli/clad.ts: dc3a50b14786e23b
   src/cli/clarify.ts: f17177969d5b75ff
   src/cli/doctor-hosts.ts: 1f0c2cec5a310b81
-  src/cli/doctor.ts: ae209b607848a8a2
+  src/cli/doctor.ts: 50d904fdbfe7e942
   src/cli/done.ts: 4a5dd13769252f51
   src/cli/enforcement-advisory.ts: 395c5be696e88b5c
   src/cli/graph-serve.ts: 23e6e389225d0f98
@@ -168,7 +168,7 @@ attested_modules:
   src/cli/hook-health.ts: e103afb67ecde8bb
   src/cli/hook.ts: 59a2f8dbcfbd2c60
   src/cli/host-onboarding.ts: b046571d4be7280c
-  src/cli/init.ts: 2a7e26ae4ea44239
+  src/cli/init.ts: b074f84900f3e10c
   src/cli/intent-from-path.ts: e69862821d979f22
   src/cli/measure.ts: 3a562f16589e26c2
   src/cli/report.ts: ee7d35b6c36dfa76
@@ -219,6 +219,7 @@ attested_modules:
   src/hitl/independence.ts: 202f4e5ef8bc69e3
   src/init/agents-md.ts: 5369a15847ce1ae7
   src/init/git-hook.ts: b77910b0df392cbf
+  src/init/gitignore-policy.ts: 2c3f278e8779e0c6
   src/init/host-instructions.ts: c598f8598d8d1cd4
   src/init/host-setup.ts: d4d7c55f16e43dc3
   src/optimizer: a4d0f0eb87fed960
@@ -244,7 +245,7 @@ attested_modules:
   src/report/sarif.ts: 71e97aceeb0a4473
   src/router: a4d0f0eb87fed960
   src/router/intent.ts: 430590f761b891a6
-  src/serve/server.ts: ac4f9c542ff0bb32
+  src/serve/server.ts: 6a46b2ee32229b7c
   src/spec: a4d0f0eb87fed960
   src/spec/attestation.ts: bacd18efacb55615
   src/spec/cli.ts: 7a9bcd0f66677810
@@ -353,7 +354,7 @@ attested_modules:
   tests/cli/benchmark.test.ts: b4a87289605ee75f
   tests/cli/clad.test.ts: 4413920b79b15ee0
   tests/cli/gate-golden-matrix.test.ts: 81d88e1cd40723fa
-  tests/cli/init.test.ts: cc0bdbcb826ed2bd
+  tests/cli/init.test.ts: e88394472a0b95b3
   tests/cli/intent-onboarding.test.ts: 0681b98ce2e74c22
   tests/conformance/registry.test.ts: 018b1e5c0d8d4baf
   tests/drive/loop.test.ts: ae49bcfa745a8cdb
@@ -655,6 +656,7 @@ attested_features:
   F-af45042a: ok
   F-af96b1: ok
   F-b010427b: ok
+  F-b0c2e724: ok
   F-b0c8ba2c: ok
   F-b0f898a6: ok
   F-b2094740: ok
