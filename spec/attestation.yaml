@@ -26,12 +26,12 @@ attested_modules:
   CHANGELOG.md: b15c6185d8326b9b
   CLAUDE.md: 9f2fa4edd5c6df80
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: 736f4c0126990f5b
-  README.ja.md: 82b53a627e2d1b1f
-  README.ko.html: efbfce7cab897fb6
-  README.ko.md: 3f31659ae168dcb1
-  README.md: 4b06c324d8168a7c
-  README.zh.md: c7ac2cfce5153064
+  README.html: 238c9d2f0b277e22
+  README.ja.md: 22f0dc832db0fa5e
+  README.ko.html: ee75bfe5b5a1bc76
+  README.ko.md: 3ca7d8b31a5e3ce6
+  README.md: 562ae2d94af38500
+  README.zh.md: 695a60c73fd01383
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 5b461bb43a79a983
@@ -123,7 +123,7 @@ attested_modules:
   skills/serve/SKILL.md: f08bbdbbfeb05041
   skills/status/SKILL.md: 09faadc50b3449da
   skills/sync/SKILL.md: 775c0f990a52a3d9
-  spec.yaml: 92fb4b9e3ef75577
+  spec.yaml: 9b979cd4e7d137d2
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -157,7 +157,7 @@ attested_modules:
   src/cli/benchmark.ts: 77f84d2a898d724f
   src/cli/changelog.ts: 2de1adb009b89ab4
   src/cli/ci-version.ts: 9fce2c2d7415b4ca
-  src/cli/clad.ts: dc3a50b14786e23b
+  src/cli/clad.ts: 8705b384a37f38e1
   src/cli/clarify.ts: f17177969d5b75ff
   src/cli/doctor-hosts.ts: 1f0c2cec5a310b81
   src/cli/doctor.ts: 50d904fdbfe7e942
@@ -267,7 +267,7 @@ attested_modules:
   src/stages/arch.ts: 268422e53c6d20bb
   src/stages/audit.ts: 3ba117606f8a81a1
   src/stages/commit.ts: f6b6836af0a4d96c
-  src/stages/cov.ts: 3dbe8381e374e8c0
+  src/stages/cov.ts: 4529f5e80bda08fd
   src/stages/deliverable-smoke.ts: 9ecfd4210e6ec5c0
   src/stages/detector-result-cache.ts: 93ea6af02ef361c5
   src/stages/detectors/README.md: 3fe2c865aa2adcba
@@ -320,7 +320,7 @@ attested_modules:
   src/stages/finding-parser.ts: d9cd56dbe3c3b9a7
   src/stages/graph-health.ts: a294f06796b0e293
   src/stages/junit-report.ts: f8466dc1e00140f1
-  src/stages/lint.ts: e9c4505e587e6088
+  src/stages/lint.ts: e2bd76900a583983
   src/stages/perf.ts: 2b27c12427f65b2e
   src/stages/secret.ts: b90abc0e00c86219
   src/stages/skip-policy.ts: 1a6412d708561cf0
@@ -334,11 +334,11 @@ attested_modules:
   src/stages/toolchain/module-scope.ts: 88358ec3b84eedd3
   src/stages/toolchain/scoped-command.ts: f2dd6410c063279f
   src/stages/toolchain/types.ts: 05f018fb3dddc321
-  src/stages/type.ts: 0ac37e45b407446d
-  src/stages/types.ts: 95e8c9e13187d85b
+  src/stages/type.ts: 56c43d7954c25db3
+  src/stages/types.ts: ccc885299871e57f
   src/stages/uat.ts: 62ec3e37a124f8c5
-  src/stages/unit.ts: b503350b0e5c7e5a
-  src/stages/util.ts: 7c49de3250816de8
+  src/stages/unit.ts: 7471a2cca0c969d6
+  src/stages/util.ts: c9e18d2c9cd90dba
   src/stages/vacuous-tests.ts: 8e71b81e151325af
   src/stages/visual.ts: 2b60dd991fa8124e
   src/ui: a4d0f0eb87fed960
@@ -676,6 +676,7 @@ attested_features:
   F-bdcd90: ok
   F-be5306eb: ok
   F-c037ae: ok
+  F-c17e1edc: ok
   F-c2c996: ok
   F-c3747d7d: ok
   F-c48eb2: ok

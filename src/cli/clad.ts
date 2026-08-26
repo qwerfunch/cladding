@@ -491,6 +491,13 @@ export interface StageOutcome {
   readonly stderr?: string;
   /** Structured drift findings (only the drift stage carries these). */
   readonly findings?: readonly DriftFinding[];
+  /**
+   * WHY a skipped stage skipped (F-c17e1edc), carried through from the stage
+   * result: `no-runner` = cladding knows no command for this project (curable
+   * by declaring `gate.commands`), `tool-missing` = the command is known but
+   * absent here. By-design skips (no oracle, no deliverable) carry nothing.
+   */
+  readonly skipReason?: 'no-runner' | 'tool-missing';
 }
 
 /** Outcome of running a tier's stages — exported so `clad done` can gate on
@@ -506,6 +513,28 @@ export interface CheckOutcome {
    * `clad done`) ignore it. Absent on the early unknown-tier bail-out.
    */
   readonly stages?: readonly StageOutcome[];
+}
+
+/**
+ * Renders the one trailing line a runner-less project needs (F-c17e1edc).
+ *
+ * WHY: on a project whose language cladding cannot drive, the command stages
+ * skip silently and the exit is invisible — `gate.commands` appears nowhere an
+ * adopter reaches (gate output, doctor, READMEs), so a fully-capable agent
+ * still could not find it. The remedy is inline (key path + example) because
+ * `docs/` does not ship in the npm package. The language name is deliberately
+ * absent: it reads `'unknown'` in exactly the case this fires.
+ *
+ * @param labels - Labels of the stages that skipped for lack of a runner, in run order.
+ * @returns The guidance line, or `''` when nothing skipped that way (print nothing).
+ */
+export function renderNoRunnerGuidance(labels: readonly string[]): string {
+  if (labels.length === 0) return '';
+  return (
+    `${labels.join(', ')} skipped — no runner is known for this project. ` +
+    'Declare commands in .cladding/config.yaml (gate: → commands: → e.g. test: ["zig","test"]) ' +
+    'to run them; the file is committable, so CI runs the same gate you do.'
+  );
 }
 
 /**
@@ -562,7 +591,7 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
   // Mutable during the run (the EXEMPT half below rewrites the drift row); the
   // element shape matches StageOutcome exactly, so `collected` returns cleanly
   // as `readonly StageOutcome[]`.
-  const collected: {stage: string; label: string; status: GateStatus; exitCode: number; stderr?: string; findings?: readonly DriftFinding[]}[] = [];
+  const collected: {stage: string; label: string; status: GateStatus; exitCode: number; stderr?: string; findings?: readonly DriftFinding[]; skipReason?: 'no-runner' | 'tool-missing'}[] = [];
   // F-e53596dd — prime the run-scoped detector cache so the drift stage's
   // ARCHITECTURE_VIOLATION + HARDCODED_SECRET runs are reused by stage_1.5/1.6
   // instead of re-spawning madge + secretlint (~5s of duplicate work per run).
@@ -582,6 +611,7 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
         stderr?: string;
         findings?: readonly DriftFinding[];
         disposition?: Disposition;
+        skipReason?: 'no-runner' | 'tool-missing';
       };
       const label = opts.internal ? name : gateLabel(name);
       // INVARIANT: exitCode 2 means "skipped" (cladding chose not to run — tool
@@ -595,7 +625,9 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
         anyFailed = true;
         worst = Math.max(worst, worstContribution(r, status));
       }
-      collected.push({stage: name, label, status, exitCode: r.exitCode, stderr: r.stderr, findings: r.findings});
+      // `skipReason` rides along additively (F-c17e1edc) — the --json writer
+      // serializes `collected` wholesale, so no field whitelist to update.
+      collected.push({stage: name, label, status, exitCode: r.exitCode, stderr: r.stderr, findings: r.findings, skipReason: r.skipReason});
       if (!opts.json && !silent) {
         pulse(pulseKindOf(status), label);
         if (isBlocking(status)) printStageDetails(r);
@@ -683,6 +715,16 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
     process.stdout.write(`${JSON.stringify({tier, worst, anyFailed, stages: collected}, null, 2)}\n`);
   } else if (anyFailed && !silent) {
     process.stdout.write('\nℹ Run `clad doctor` for the event log, or `clad sync` to check the spec. The findings above say what drifted and why.\n');
+  }
+  // F-c17e1edc — name the exit for the curable skips only. A no-runner skip is
+  // one declaration away from running; a tool-missing skip already HAS its
+  // command, and a by-design skip (no oracle / no deliverable) would be given a
+  // false prescription — so both stay out of the line, and out of its list.
+  if (!opts.json && !silent) {
+    const guidance = renderNoRunnerGuidance(
+      collected.filter((c) => c.skipReason === 'no-runner').map((c) => c.label),
+    );
+    if (guidance) process.stdout.write(`\nℹ ${guidance}\n`);
   }
   // F-b84c38 + F-1aab1bba — verification freshness and Stop follow-through
   // need one gate record. Compact blocker names explain rejected done attempts;
