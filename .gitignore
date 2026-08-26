@@ -60,8 +60,9 @@ test-results/
 playwright-report/
 *.snap.png
 
-# Cladding runtime state — audit log, events log, etc.
-.cladding/
+# Cladding runtime state — audit log, events log, etc. (config.yaml stays committable)
+.cladding/*
+!.cladding/config.yaml
 
 # A/B-extended generated React demo projects.
 # These are regeneratable on demand via `UPDATE_AB_REPORTS=1 npx vitest run`

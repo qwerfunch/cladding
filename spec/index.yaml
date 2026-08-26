@@ -182,6 +182,7 @@ features:
   F-836a90: {slug: link-capability-tool, status: done, modules: 2}
   F-8476ccb1: {slug: readme-multiagent-inversion, status: done, modules: 6}
   F-876b6f48: {slug: shard-term-to-spec-entry, status: done, modules: 7}
+  F-87bb7ed3: {slug: self-describing-scan-universe, status: done, modules: 2}
   F-898783ee: {slug: self-count-guard, status: done, modules: 17}
   F-8f419e: {slug: smoke-legacy-liveness, status: done, modules: 1}
   F-904495a5: {slug: changelog-render, status: done, modules: 5}
@@ -200,6 +201,7 @@ features:
   F-9b643e: {slug: scan-conventions, status: done, modules: 5}
   F-9d168287: {slug: ears-complex-pattern, status: done, modules: 6}
   F-9d8ece66: {slug: persona-map-non-exclusivity, status: done, modules: 2}
+  F-9e1279d4: {slug: language-evidence-core, status: done, modules: 4}
   F-a04cd9: {slug: ac-hash-ids, status: done, modules: 3}
   F-a4085adf: {slug: spec-driven-agents-md, status: done, modules: 1}
   F-a4b512: {slug: dependency-cycle-detector, status: done, modules: 2}
@@ -212,6 +214,7 @@ features:
   F-af45042a: {slug: graph-live-health, status: done, modules: 5}
   F-af96b1: {slug: no-vacuous-green-gate-contract, status: done, modules: 14}
   F-b010427b: {slug: detector-layer-purity, status: done, modules: 2}
+  F-b0c2e724: {slug: gate-config-committable, status: done, modules: 3}
   F-b0c8ba2c: {slug: gate-no-progress, status: done, modules: 1}
   F-b0f898a6: {slug: attestation-v2-per-module, status: done, modules: 3}
   F-b2094740: {slug: lint-config-detection, status: done, modules: 1}

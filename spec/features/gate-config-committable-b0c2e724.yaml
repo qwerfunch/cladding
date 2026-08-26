@@ -1,0 +1,49 @@
+id: F-b0c2e724
+slug: gate-config-committable
+title: "Gate config survives a fresh clone: committable .cladding/config.yaml"
+status: done
+modules:
+  - src/init/gitignore-policy.ts
+  - src/cli/init.ts
+  - src/cli/doctor.ts
+acceptance_criteria:
+  - id: AC-2e9c61f8
+    ears: event
+    condition: "when clad init manages the .gitignore entry for cladding runtime state and no cladding entry exists yet"
+    action: "write the contents-exclusion pair `.cladding/*` plus `!.cladding/config.yaml` instead of the directory exclusion"
+    response: "the gate configuration (scope, commands, coverage, test_report) can be committed, so a fresh clone and CI see the same gate the author tuned — a directory exclusion makes re-inclusion impossible by git semantics, which silently discarded every declared gate override"
+    text: "When clad init writes the cladding ignore entry, the system shall write `.cladding/*` and `!.cladding/config.yaml` so the gate config file is committable while runtime state stays ignored."
+    notes: |
+      ## Why
+      Measured live: the strict gate is CI's reason to exist, yet the one file
+      that tunes it was unignorable-in-reverse — `.cladding/` (directory form)
+      blocks `!.cladding/config.yaml` re-inclusion entirely, so every documented
+      gate.commands recommendation produced local-only configuration. Found by a
+      live host run during the gate.language E2E and verified with
+      git check-ignore.
+    test_refs: ["tests/cli/gitignore-gate-config.test.ts", "tests/cli/init.test.ts"]
+  - id: AC-6a58f0d1
+    ears: unwanted
+    condition: "if the project's .gitignore already carries a cladding entry — the legacy `.cladding/` directory form or the new pair"
+    action: "leave the file byte-identical"
+    response: "repeated init stays idempotent and no adopter's hand-tuned ignore file is rewritten behind their back"
+    text: "If a cladding ignore entry already exists in any recognized form, the system shall not modify .gitignore."
+    test_refs: ["tests/cli/gitignore-gate-config.test.ts", "tests/cli/init.test.ts"]
+  - id: AC-d47b93c5
+    ears: event
+    condition: "when clad doctor inspects a project whose root .gitignore blocks .cladding/config.yaml from being committed"
+    action: "report the blocked gate config in both text and JSON while continuing to exit successfully"
+    response: "existing adopters with the legacy directory exclusion learn their gate config is local-only and how to fix it, through a read-only diagnosis that never rewrites their file — the same posture as the unpinned-CI report"
+    text: "When the root .gitignore blocks the gate config from being committed, clad doctor shall report it in text and JSON and still exit zero."
+    test_refs: ["tests/cli/gitignore-gate-config.test.ts", "tests/cli/doctor.test.ts"]
+  - id: AC-f30a7c62
+    ears: ubiquitous
+    action: "expose the ignore-entry rendering and the blocked-status classification as pure exported functions"
+    response: "the contract is testable without a git repository or a built binary, and git check-ignore agreement is proven once against the rendered content"
+    text: "The system shall expose pure functions that render the managed ignore entry and classify a .gitignore text as commitable, blocked, or absent for the gate config."
+    test_refs: ["tests/cli/gitignore-gate-config.test.ts"]
+design_impact:
+  classification: none
+  rationale: "Changes one scaffold line, adds a read-only doctor diagnosis; no gate policy, architecture, or capability change."
+  status: resolved
+  artifacts: []

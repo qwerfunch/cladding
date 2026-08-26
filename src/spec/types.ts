@@ -127,16 +127,19 @@ export interface Scenario {
 export interface ArchitectureLayerObject {
   readonly name?: string;
   /**
-   * ADVISORY (not yet enforced). Glob(s) naming the files in this layer.
-   * `ARCHITECTURE_FROM_SPEC` currently derives a layer's directory from
-   * `name` (`src/<name>/`) and does NOT consume these globs — so a declared
-   * `modules` is documentation for humans/reviewers, not a live binding. The
-   * deterministic scan renderer (`renderArchitectureYaml`, src/cli/scan/llm.ts)
-   * still emits it on `clad init --scan`, so it is live-but-advisory in real
-   * specs. Marking it advisory (rather than wiring the detector to consume the
-   * globs) is the deliberate J5b decision recorded in
-   * spec/features/ac-hash-ids-a04cd9.yaml (AC-003); full consumption stays a
-   * tracked follow-up there, not a hidden dead link.
+   * Glob(s) naming the files in this layer, as the deterministic scan
+   * renderer emits them (`renderArchitectureYaml`, src/cli/scan/llm.ts) on
+   * `clad init --scan`.
+   *
+   * PARTIALLY CONSUMED, by exactly one detector:
+   *   · `UNMAPPED_ARTIFACT` (F-87bb7ed3, AC-96ff696f) takes these globs as
+   *     the layer's scan universe, so a layer whose `name` is not a literal
+   *     path segment is still scanned where its declaration points.
+   *   · `ARCHITECTURE_FROM_SPEC` still derives a layer's directory from
+   *     `name` (`<mainRoot>/<name>/`) and does NOT read these globs — the
+   *     deliberate J5b decision recorded in
+   *     spec/features/ac-hash-ids-a04cd9.yaml (AC-003). Its forbidden-import
+   *     and empty-layer checks therefore remain name-based.
    */
   readonly modules?: readonly string[];
   readonly forbidden_imports?: readonly string[];

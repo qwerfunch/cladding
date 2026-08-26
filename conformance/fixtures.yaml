@@ -175,7 +175,7 @@ fixtures:
   - name: F-013_AC-021
     stage: documentary
     kind: runnable
-    description: "F-013/AC-021 — When spec.project.language differs from the language resolved by the toolchain manifest chain, the detector shall emit a warn-severity finding."
+    description: "F-013/AC-021 — When the declared language is absent from the observed sources with at least five classified files, the detector shall emit a warn-severity finding naming the observed distribution (evidence-based since F-9e1279d4; the manifest chain is no longer consulted for identity)."
   - name: F-014_AC-022
     stage: documentary
     kind: runnable

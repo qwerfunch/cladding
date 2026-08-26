@@ -3,7 +3,9 @@
 // One command, three side-effects on a fresh directory:
 //   1. spec.yaml seed with one placeholder feature (F-001)
 //   2. .cladding/ runtime dir (audit + events log live here)
-//   3. .gitignore + .gitattributes managed-line append (only when missing)
+//   3. .gitignore + .gitattributes managed-entry append (only when missing) —
+//      the ignore entry keeps runtime state untracked while leaving
+//      .cladding/config.yaml committable, so CI sees the tuned gate
 //
 // Idempotent by default — re-running on an initialised workspace is a
 // no-op except for reporting. `--force` overwrites the seed spec.yaml
@@ -37,6 +39,7 @@ import {captureArtifactDigests, loadState, saveState, type OnboardingState} from
 import {claddingMajorMinor} from './ci-version.js';
 import {detectToolchain} from '../stages/toolchain/detect.js';
 import {writeSpecDrivenAgentsMd} from '../init/agents-md.js';
+import {CLADDING_IGNORE_BLOCK, hasCladdingIgnoreEntry} from '../init/gitignore-policy.js';
 import {getCurrentCladdingVersion, getLastSetupVersion} from '../init/host-setup.js';
 import {installGitHook} from '../init/git-hook.js';
 import {loadIntentFromPathIfApplicable} from './intent-from-path.js';
@@ -259,12 +262,18 @@ function specSeed(
   ].join('\n');
 }
 
+/** Appends a managed block to a user-owned file, never disturbing what is already there. */
+function appendManagedBlock(path: string, block: string): void {
+  const existing = existsSync(path) ? readFileSync(path, 'utf8') : '';
+  const ensureNewline = existing.length > 0 && !existing.endsWith('\n') ? '\n' : '';
+  const sectionGap = existing.length > 0 ? '\n' : '';
+  writeFileSync(path, `${existing}${ensureNewline}${sectionGap}${block}`);
+}
+
 function appendIfMissing(path: string, marker: string, line: string, heading: string): boolean {
   const existing = existsSync(path) ? readFileSync(path, 'utf8') : '';
   if (existing.split(/\r?\n/).some((existingLine) => existingLine.trim() === marker)) return false;
-  const ensureNewline = existing.length > 0 && !existing.endsWith('\n') ? '\n' : '';
-  const sectionGap = existing.length > 0 ? '\n' : '';
-  writeFileSync(path, `${existing}${ensureNewline}${sectionGap}${heading}\n${line}\n`);
+  appendManagedBlock(path, `${heading}\n${line}\n`);
   return true;
 }
 
@@ -491,13 +500,22 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
     created.push('.cladding/');
   }
 
-  // 3. .gitignore append
+  // 3. .gitignore append — runtime state ignored, gate config committable.
+  //
+  // The entry is the contents-exclusion pair `.cladding/*` + `!.cladding/config.yaml`,
+  // never the directory exclusion `.cladding/`: git cannot re-include a file whose
+  // parent directory is excluded, which silently made every declared gate override
+  // (scope, commands, coverage, test_report) local-only. Any recognized entry that
+  // already exists — including the legacy directory form — leaves the file
+  // byte-identical; adopters are told about it by `clad doctor`, not migrated behind
+  // their back.
   const gitignorePath = join(cwd, '.gitignore');
-  const appended = appendIfMissing(gitignorePath, '.cladding/', '.cladding/', '# Cladding runtime state');
-  if (appended) {
-    created.push('.gitignore (.cladding/ entry appended)');
+  const existingGitignore = existsSync(gitignorePath) ? readFileSync(gitignorePath, 'utf8') : '';
+  if (hasCladdingIgnoreEntry(existingGitignore)) {
+    skipped.push('.gitignore (cladding entry already present)');
   } else {
-    skipped.push('.gitignore (.cladding/ entry already present)');
+    appendManagedBlock(gitignorePath, CLADDING_IGNORE_BLOCK);
+    created.push('.gitignore (.cladding/* ignored, .cladding/config.yaml committable)');
   }
 
   // F-caff8598 — the append-mostly feature index is safe under union merge;

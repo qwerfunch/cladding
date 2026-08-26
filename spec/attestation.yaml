@@ -22,24 +22,24 @@ policy:
 attested_modules:
   .claude/settings.json: 08a64351770badf4
   .github/workflows/ci.yml: 8ea99219cb80df60
-  .gitignore: 1294975ba3b47043
-  CHANGELOG.md: 78288e943090a029
+  .gitignore: d311656aff3813ca
+  CHANGELOG.md: b15c6185d8326b9b
   CLAUDE.md: 9f2fa4edd5c6df80
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: 5bb751c77de5ac88
-  README.ja.md: ecf7d1ebd578e4e5
-  README.ko.html: 42dc2fcf72f94544
-  README.ko.md: 8a62482670d51611
-  README.md: e5787c39863c55a5
-  README.zh.md: acd6f2f6a8d22e36
+  README.html: 736f4c0126990f5b
+  README.ja.md: 82b53a627e2d1b1f
+  README.ko.html: efbfce7cab897fb6
+  README.ko.md: 3f31659ae168dcb1
+  README.md: 4b06c324d8168a7c
+  README.zh.md: c7ac2cfce5153064
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
-  conformance/fixtures.yaml: 4b1b94dae1cd20b0
-  conformance/runner.ts: b9c9e71df85d382e
+  conformance/fixtures.yaml: 5b461bb43a79a983
+  conformance/runner.ts: 5e638e070dbb10c2
   docs/README.md: 5672e5726104d845
   docs/ab-evaluation-extended/README.md: f690562df2e5ec06
-  docs/ab-evaluation-extended/scenarios/dashboard/report.md: 9ad86472f76c2c29
-  docs/ab-evaluation-extended/scenarios/task-manager/report.md: fe3c789cc9b88eb1
+  docs/ab-evaluation-extended/scenarios/dashboard/report.md: a656cad8c8ac2772
+  docs/ab-evaluation-extended/scenarios/task-manager/report.md: 91df11ca4e9bed26
   docs/ab-evaluation-extended/summary.md: d16f16836f94bd80
   docs/ab-evaluation/README.md: 2467808b9871dcf0
   docs/ab-evaluation/case-doverunner-scale.md: 2a435b6855823d41
@@ -47,7 +47,7 @@ attested_modules:
   docs/ab-evaluation/case-existing-adoption.md: 240a7c641da50a42
   docs/ab-evaluation/case-graph-efficiency.md: 83d3956d14a1517d
   docs/ab-evaluation/case-iterative-vs-fixed-vapt.md: 1d242b8b6071f343
-  docs/ab-evaluation/case-payment-saas.md: a316271b319816f6
+  docs/ab-evaluation/case-payment-saas.md: e29406c4f5d179b2
   docs/ab-evaluation/case-working-set-landmine.md: b4f44dc463e99722
   docs/ab-evaluation/summary.md: 59e527a531f13209
   docs/b1-adoption-protocol.md: a041d8ad5ba1447f
@@ -72,7 +72,7 @@ attested_modules:
   docs/img/ko/relationship.svg: 9ec8fb2254978f37
   docs/img/zh/independence.svg: 073303a42e601f7c
   docs/multi-provider-roadmap.md: 1e5cf27ea1b18d06
-  docs/refinement-backlog.md: 918426e582bf2739
+  docs/refinement-backlog.md: 51469bde4d9dddfd
   docs/setup.md: a5c062651d267983
   docs/spec-ids-multi-dev.md: ee52e431278e1c1a
   docs/ssot-model.md: 66b9439e2f71ac4b
@@ -123,7 +123,7 @@ attested_modules:
   skills/serve/SKILL.md: f08bbdbbfeb05041
   skills/status/SKILL.md: 09faadc50b3449da
   skills/sync/SKILL.md: 775c0f990a52a3d9
-  spec.yaml: 8300d2bb766876b2
+  spec.yaml: 92fb4b9e3ef75577
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -160,7 +160,7 @@ attested_modules:
   src/cli/clad.ts: dc3a50b14786e23b
   src/cli/clarify.ts: f17177969d5b75ff
   src/cli/doctor-hosts.ts: 1f0c2cec5a310b81
-  src/cli/doctor.ts: ae209b607848a8a2
+  src/cli/doctor.ts: 50d904fdbfe7e942
   src/cli/done.ts: 4a5dd13769252f51
   src/cli/enforcement-advisory.ts: 395c5be696e88b5c
   src/cli/graph-serve.ts: 23e6e389225d0f98
@@ -168,7 +168,7 @@ attested_modules:
   src/cli/hook-health.ts: e103afb67ecde8bb
   src/cli/hook.ts: 59a2f8dbcfbd2c60
   src/cli/host-onboarding.ts: b046571d4be7280c
-  src/cli/init.ts: 2a7e26ae4ea44239
+  src/cli/init.ts: b074f84900f3e10c
   src/cli/intent-from-path.ts: e69862821d979f22
   src/cli/measure.ts: 3a562f16589e26c2
   src/cli/report.ts: ee7d35b6c36dfa76
@@ -186,13 +186,14 @@ attested_modules:
   src/cli/scan/roots.ts: 7475eed8c9836531
   src/cli/scan/scenarios.ts: 6c2a4ce3b469a668
   src/cli/scan/stats.ts: 00c737b7b7acad97
-  src/cli/scan/thresholds.ts: ec0047b894a6aa6a
+  src/cli/scan/thresholds.ts: 1b4ef8c865ca1ae1
   src/cli/scan/types.ts: ea0170aa88c1c14a
   src/cli/scan/walker.ts: 33e4448e365e47c6
   src/cli/update.ts: b0151396c9a0f6ca
   src/cli/verdict.ts: 85a4ef27292b9169
   src/core/checkpoint.ts: 63300c2764533b6c
   src/core/git-ops.ts: c144e5cc253822b3
+  src/core/language-evidence.ts: eaccacbbf14020e8
   src/core/postmortem.ts: 73be29d5e8a16fd4
   src/core/telemetry-summary.ts: 6782bfaa6c3ecfa6
   src/drive: a4d0f0eb87fed960
@@ -218,6 +219,7 @@ attested_modules:
   src/hitl/independence.ts: 202f4e5ef8bc69e3
   src/init/agents-md.ts: 5369a15847ce1ae7
   src/init/git-hook.ts: b77910b0df392cbf
+  src/init/gitignore-policy.ts: 2c3f278e8779e0c6
   src/init/host-instructions.ts: c598f8598d8d1cd4
   src/init/host-setup.ts: d4d7c55f16e43dc3
   src/optimizer: a4d0f0eb87fed960
@@ -243,7 +245,7 @@ attested_modules:
   src/report/sarif.ts: 71e97aceeb0a4473
   src/router: a4d0f0eb87fed960
   src/router/intent.ts: 430590f761b891a6
-  src/serve/server.ts: ac4f9c542ff0bb32
+  src/serve/server.ts: 6a46b2ee32229b7c
   src/spec: a4d0f0eb87fed960
   src/spec/attestation.ts: bacd18efacb55615
   src/spec/cli.ts: 7a9bcd0f66677810
@@ -258,7 +260,7 @@ attested_modules:
   src/spec/reverse-index.ts: fa54d7203a02799a
   src/spec/schema.json: 848951cd01d7f82f
   src/spec/test-ref-repair.ts: 5ce823b479aaaca3
-  src/spec/types.ts: 5799bc9fc1e00553
+  src/spec/types.ts: e8a195929f114491
   src/spec/validate.ts: db88ca6512ab363a
   src/stages: a4d0f0eb87fed960
   src/stages/README.md: c79d2bced8c8b8d8
@@ -268,7 +270,7 @@ attested_modules:
   src/stages/cov.ts: 3dbe8381e374e8c0
   src/stages/deliverable-smoke.ts: 9ecfd4210e6ec5c0
   src/stages/detector-result-cache.ts: 93ea6af02ef361c5
-  src/stages/detectors/README.md: 12e8d24351eef05c
+  src/stages/detectors/README.md: 3fe2c865aa2adcba
   src/stages/detectors/absence-of-governance.ts: 954d8ce5c45b3b32
   src/stages/detectors/ac-drift.ts: 1bceeae9ee99080b
   src/stages/detectors/ac-duplicate-within-feature.ts: 652ad48c8cd1ab2e
@@ -308,8 +310,8 @@ attested_modules:
   src/stages/detectors/stale-specification.ts: 0fe84db592fd406d
   src/stages/detectors/stale-tests.ts: caf59404d1282201
   src/stages/detectors/status-drift.ts: 9cc5cf3f9b62ea00
-  src/stages/detectors/tech-stack-mismatch.ts: 099162aff2c2966b
-  src/stages/detectors/unmapped-artifact.ts: b29f7e277d8187ae
+  src/stages/detectors/tech-stack-mismatch.ts: 4da504acb67aaa86
+  src/stages/detectors/unmapped-artifact.ts: b46ec1bd013dcce5
   src/stages/detectors/untested-ac.ts: 90725ef1fc9245d8
   src/stages/detectors/unverified-ac.ts: 6887c4d699afaad5
   src/stages/detectors/with-spec.ts: dcf3205e8d563574
@@ -342,7 +344,7 @@ attested_modules:
   src/ui: a4d0f0eb87fed960
   src/ui/panel.ts: 8b78cb14dafb28fb
   src/ui/pulse.ts: ee4255f5c6e49f51
-  src/ui/softShell.ts: f21a30930c164afd
+  src/ui/softShell.ts: a733d024692689a2
   src/verdict/gate-progress.ts: 41b677e10596ea42
   src/verdict/verdict.ts: 2dcfb0e7408bd28d
   tests/adapters/anthropic.test.ts: fa2fc7faf032a782
@@ -352,7 +354,7 @@ attested_modules:
   tests/cli/benchmark.test.ts: b4a87289605ee75f
   tests/cli/clad.test.ts: 4413920b79b15ee0
   tests/cli/gate-golden-matrix.test.ts: 81d88e1cd40723fa
-  tests/cli/init.test.ts: cc0bdbcb826ed2bd
+  tests/cli/init.test.ts: e88394472a0b95b3
   tests/cli/intent-onboarding.test.ts: 0681b98ce2e74c22
   tests/conformance/registry.test.ts: 018b1e5c0d8d4baf
   tests/drive/loop.test.ts: ae49bcfa745a8cdb
@@ -433,13 +435,13 @@ attested_modules:
   tests/stages/stale-specification.test.ts: 09bd06db377d890c
   tests/stages/stale-tests.test.ts: 1467ceedb8019e86
   tests/stages/status-drift.test.ts: cff1092eeb23c268
-  tests/stages/tech-stack-mismatch.test.ts: 878436ffd2f94c97
+  tests/stages/tech-stack-mismatch.test.ts: 57c435b76972c055
   tests/stages/toolchain.test.ts: 200184f572abcf88
   tests/stages/toolchain/gate-config.test.ts: aef5813a6591b153
   tests/stages/type.test.ts: b57cf7455cae3b32
   tests/stages/uat.test.ts: 29c5bf3e7f3abc35
   tests/stages/unit.test.ts: 97781210eb81bb25
-  tests/stages/unmapped-artifact.test.ts: 6bfdae66990fd63a
+  tests/stages/unmapped-artifact.test.ts: d29ba5a32abadcc9
   tests/stages/util.test.ts: a162cbe069c85f41
   tests/stages/visual.test.ts: dd819e7d25586b92
   tests/ui/panel.test.ts: ad9ea207f34b1c51
@@ -623,6 +625,7 @@ attested_features:
   F-836a90: ok
   F-8476ccb1: ok
   F-876b6f48: ok
+  F-87bb7ed3: ok
   F-898783ee: ok
   F-8f419e: ok
   F-904495a5: ok
@@ -640,6 +643,7 @@ attested_features:
   F-9b643e: ok
   F-9d168287: ok
   F-9d8ece66: ok
+  F-9e1279d4: ok
   F-a04cd9: ok
   F-a4085adf: ok
   F-a4b512: ok
@@ -652,6 +656,7 @@ attested_features:
   F-af45042a: ok
   F-af96b1: ok
   F-b010427b: ok
+  F-b0c2e724: ok
   F-b0c8ba2c: ok
   F-b0f898a6: ok
   F-b2094740: ok

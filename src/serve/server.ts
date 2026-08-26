@@ -703,7 +703,7 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
               'Create spec.yaml, spec/architecture.yaml, and spec/capabilities.yaml.',
               'Create 1-3 spec/scenarios/*.yaml journey files.',
               'Create docs/project-context.md and docs/conventions.md.',
-              'Create .cladding/onboarding/state.yaml and append .cladding/ to .gitignore.',
+              'Create .cladding/onboarding/state.yaml and append the .cladding/* ignore pair (config.yaml stays committable).',
               'Create a managed AGENTS.md block; preserve an existing unmanaged AGENTS.md.',
               'Preserve any existing CLAUDE.md unchanged; AGENTS.md is the shared host instruction surface.',
             ],

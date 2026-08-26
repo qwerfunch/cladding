@@ -647,22 +647,27 @@ const fixtures: readonly Fixture[] = [
   },
   {
     // F-013/AC-021 — TECH_STACK_MISMATCH warn when spec.project.language
-    // differs from what the toolchain detection chain returns. The warn
+    // is absent from the OBSERVED SOURCES (evidence-based since
+    // F-9e1279d4 — the manifest chain is no longer consulted for
+    // identity). Five .ts files clear the evidence floor (5), python is
+    // absent from the observed set, so exactly one warn fires. The warn
     // does not fail drift (default severity is warn, not error), so
     // pass remains true; the assertion is on the finding shape.
     //
-    // The fixture writes `.secretlintrc.json` because adding package.json
-    // makes the toolchain pick TypeScript, which makes HARDCODED_SECRET
-    // try to invoke secretlint via npx — without a config file the
-    // scanner exits non-zero and emits an error finding that would mask
-    // the warn we are actually probing for.
+    // The fixture writes `.secretlintrc.json` because package.json makes
+    // the toolchain pick TypeScript for GATE COMMANDS, which makes
+    // HARDCODED_SECRET try to invoke secretlint via npx — without a
+    // config file the scanner exits non-zero and emits an error finding
+    // that would mask the warn we are actually probing for.
     id: 'F-013_AC-021',
     stage: 'stage_1.3',
     expectedPass: true,
     setup(d) {
       mkdirSync(join(d, 'stages'), {recursive: true});
       mkdirSync(join(d, 'spec'), {recursive: true});
-      writeTs(d, 'stages/dummy.ts', '// fixture stub\nexport const ok = true;\n');
+      for (let i = 1; i <= 5; i++) {
+        writeTs(d, `stages/dummy${i}.ts`, '// fixture stub\nexport const ok = true;\n');
+      }
       writeFileSync(join(d, 'package.json'), PKG_JSON);
       writeFileSync(join(d, '.secretlintrc.json'), SECRETLINTRC);
       writeFileSync(
@@ -672,8 +677,8 @@ const fixtures: readonly Fixture[] = [
           properties: {schema: {}, project: {}, features: {}},
         }),
       );
-      // spec.project.language = python, but package.json + .ts source
-      // make the toolchain resolve to typescript → mismatch.
+      // spec.project.language = python, but five observed .ts sources
+      // put python absent from the evidence → warn (F-9e1279d4 contract).
       writeFileSync(
         join(d, 'spec.yaml'),
         'schema: "0.1"\n' +
@@ -682,7 +687,7 @@ const fixtures: readonly Fixture[] = [
           '  - id: F-001\n' +
           '    title: t\n' +
           '    status: done\n' +
-          '    modules: [stages/dummy.ts, spec/schema.json]\n' +
+          '    modules: [stages/dummy1.ts, stages/dummy2.ts, stages/dummy3.ts, stages/dummy4.ts, stages/dummy5.ts, spec/schema.json]\n' +
           '    acceptance_criteria:\n' +
           '      - id: AC-001\n' +
           '        ears: ubiquitous\n' +
