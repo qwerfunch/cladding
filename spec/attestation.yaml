@@ -26,12 +26,12 @@ attested_modules:
   CHANGELOG.md: b15c6185d8326b9b
   CLAUDE.md: 9f2fa4edd5c6df80
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: f6403bfe696dad0a
-  README.ja.md: c356a1bb47f09704
-  README.ko.html: c8ab0b905cf72c6e
-  README.ko.md: 166b7013ec751549
-  README.md: 4b2a0103093f338b
-  README.zh.md: 4de9ba6f9fb14de1
+  README.html: 736f4c0126990f5b
+  README.ja.md: 82b53a627e2d1b1f
+  README.ko.html: efbfce7cab897fb6
+  README.ko.md: 3f31659ae168dcb1
+  README.md: 4b06c324d8168a7c
+  README.zh.md: c7ac2cfce5153064
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 4b1b94dae1cd20b0
@@ -72,7 +72,7 @@ attested_modules:
   docs/img/ko/relationship.svg: 9ec8fb2254978f37
   docs/img/zh/independence.svg: 073303a42e601f7c
   docs/multi-provider-roadmap.md: 1e5cf27ea1b18d06
-  docs/refinement-backlog.md: 918426e582bf2739
+  docs/refinement-backlog.md: 51469bde4d9dddfd
   docs/setup.md: a5c062651d267983
   docs/spec-ids-multi-dev.md: ee52e431278e1c1a
   docs/ssot-model.md: 66b9439e2f71ac4b
@@ -260,7 +260,7 @@ attested_modules:
   src/spec/reverse-index.ts: fa54d7203a02799a
   src/spec/schema.json: 848951cd01d7f82f
   src/spec/test-ref-repair.ts: 5ce823b479aaaca3
-  src/spec/types.ts: 5799bc9fc1e00553
+  src/spec/types.ts: e8a195929f114491
   src/spec/validate.ts: db88ca6512ab363a
   src/stages: a4d0f0eb87fed960
   src/stages/README.md: c79d2bced8c8b8d8
@@ -311,7 +311,7 @@ attested_modules:
   src/stages/detectors/stale-tests.ts: caf59404d1282201
   src/stages/detectors/status-drift.ts: 9cc5cf3f9b62ea00
   src/stages/detectors/tech-stack-mismatch.ts: 4da504acb67aaa86
-  src/stages/detectors/unmapped-artifact.ts: 6696179e5958f37c
+  src/stages/detectors/unmapped-artifact.ts: b46ec1bd013dcce5
   src/stages/detectors/untested-ac.ts: 90725ef1fc9245d8
   src/stages/detectors/unverified-ac.ts: 6887c4d699afaad5
   src/stages/detectors/with-spec.ts: dcf3205e8d563574
@@ -441,7 +441,7 @@ attested_modules:
   tests/stages/type.test.ts: b57cf7455cae3b32
   tests/stages/uat.test.ts: 29c5bf3e7f3abc35
   tests/stages/unit.test.ts: 97781210eb81bb25
-  tests/stages/unmapped-artifact.test.ts: c16219779f6164bb
+  tests/stages/unmapped-artifact.test.ts: d29ba5a32abadcc9
   tests/stages/util.test.ts: a162cbe069c85f41
   tests/stages/visual.test.ts: dd819e7d25586b92
   tests/ui/panel.test.ts: ad9ea207f34b1c51

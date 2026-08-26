@@ -65,6 +65,27 @@ acceptance_criteria:
       dogfood repo (277 features): the evidence universe produces zero new
       unclaimed findings — the discipline is in the spec, not the label.
     test_refs: ["tests/stages/unmapped-universe-evidence.test.ts"]
+  - id: AC-96ff696f
+    ears: event
+    condition: "when a declared architecture layer carries its own modules globs"
+    action: "use those globs, expanded by the evidenced extensions, as that layer's universe patterns instead of name-segment inference"
+    response: "a layer whose name is not a literal directory segment still gets scanned exactly where its declaration points — the declared architecture is the SSoT the detector was ignoring"
+    text: "When a layer declares modules globs, the system shall derive that layer's scan patterns from the declared globs and the evidenced extensions, bypassing name-based root inference for it."
+    notes: |
+      ## Why
+      External E2E (D1): two specs identical except the layer name — 'core'
+      (matches a path segment) found 21 unclaimed files, 'native' (no matching
+      segment) found 0, silently, despite both declaring
+      modules: ["core/src/main/cpp/**"]. The schema already supports per-layer
+      globs; the detector ignored a declared surface.
+    test_refs: ["tests/stages/unmapped-artifact.test.ts", "tests/stages/unmapped-universe-evidence.test.ts"]
+  - id: AC-e20dbafe
+    ears: unwanted
+    condition: "if the active full scan resolves to an empty universe or matches zero files"
+    action: "emit one info finding naming the layers and roots it looked for"
+    response: "an empty module-honesty scan is visible instead of reading as a clean pass — the no-silent-caps rule applied to this detector"
+    text: "If the full scan matches nothing, the system shall emit one info finding instead of silence."
+    test_refs: ["tests/stages/unmapped-artifact.test.ts", "tests/stages/unmapped-universe-evidence.test.ts"]
 design_impact:
   classification: none
   rationale: "Rewires one detector's universe derivation from a language table to spec-and-tree evidence; scale gate, severity, and finding shape unchanged."

@@ -14,6 +14,13 @@
 //     spec honest, claimed modules teach roots and unknown languages.
 //     Only modules under a declared layer teach, so a root-level docs
 //     claim cannot widen the source universe.
+//   - A layer that declares its own `modules` globs is scanned **there**,
+//     not under `<root>/<layer name>/` — the layer name is then free to be
+//     a label ('native') rather than a directory. Measured defect: two
+//     specs identical but for the layer name found 21 files vs 0.
+//   - An active full scan that matches **zero files** says so with one
+//     `info` finding, because an empty universe and a fully-claimed tree
+//     otherwise look identical from the outside.
 //   - It is status-blind: an archived feature still claims its modules,
 //     because deleting the archived feature's source is a separate
 //     workflow that STATUS_DRIFT / STALE_SPECIFICATION owns.
@@ -313,21 +320,106 @@ describe('scanPatterns', () => {
     expect(universe('brainfuck')).toEqual(expected); // nor an unknown one
     expect(universe(undefined)).toEqual(expected); // nor a missing one
   });
+
+  test('AC-96ff696f — a declared layer glob replaces name inference for that layer', () => {
+    write(dir, 'core/src/main/cpp/rasp.cpp');
+    const spec = {
+      project: {name: 'x', language: 'cpp'},
+      features: EIGHT_FEATURES,
+      architecture: {layers: [{name: 'native', modules: ['core/src/main/cpp/**']}]},
+    } as never;
+    // `native` names no directory anywhere: name inference would glob
+    // `src/native/**` and match nothing, which is defect D1 exactly.
+    expect(scanPatterns(spec, dir)).toEqual(['core/src/main/cpp/**/*.cpp']);
+  });
+
+  test('AC-96ff696f — a declared glob without a trailing wildcard still recurses', () => {
+    write(dir, 'core/src/main/cpp/rasp.cpp');
+    const spec = {
+      project: {name: 'x', language: 'cpp'},
+      features: EIGHT_FEATURES,
+      architecture: {layers: [{name: 'native', modules: ['core/src/main/cpp']}]},
+    } as never;
+    expect(scanPatterns(spec, dir)).toEqual(['core/src/main/cpp/**/*.cpp']);
+  });
+
+  test('AC-96ff696f — a glob layer and a bare layer each derive their own patterns', () => {
+    write(dir, 'core/src/main/cpp/rasp.cpp');
+    write(dir, 'src/router/route.ts');
+    const spec = {
+      project: {name: 'x', language: 'cpp'},
+      features: EIGHT_FEATURES,
+      architecture: {layers: [['router'], {name: 'native', modules: ['core/src/main/cpp/**']}]},
+    } as never;
+    // One evidenced extension set, two derivations: the glob for `native`,
+    // the inferred root + name for `router`.
+    expect(scanPatterns(spec, dir)).toEqual([
+      'core/src/main/cpp/**/*.cpp',
+      'core/src/main/cpp/**/*.ts',
+      'src/router/**/*.cpp',
+      'src/router/**/*.ts',
+    ]);
+  });
+
+  test('AC-96ff696f — a claim under a declared glob teaches its extension', () => {
+    write(dir, 'core/src/main/zig/a.zig'); // unknown to the vocabulary → observation ignores it
+    const spec = {
+      project: {name: 'x', language: 'zig'},
+      features: claiming('core/src/main/zig/a.zig'),
+      architecture: {layers: [{name: 'native', modules: ['core/src/main/zig/**']}]},
+    } as never;
+    // The claim sits under no layer-named segment, so only the glob prefix
+    // can make it count as layer-claimed.
+    expect(scanPatterns(spec, dir)).toEqual(['core/src/main/zig/**/*.zig']);
+  });
+
+  test('AC-96ff696f — an object layer without globs keeps name-based inference', () => {
+    write(dir, 'src/api/handler.py');
+    const spec = {
+      project: {name: 'x', language: 'python'},
+      features: EIGHT_FEATURES,
+      architecture: {layers: [{name: 'api', modules: []}, {name: 'domain'}]},
+    } as never;
+    expect(scanPatterns(spec, dir)).toEqual(['src/api/**/*.py', 'src/domain/**/*.py']);
+  });
 });
 
 // ─── end-to-end: the universe reaches real findings ───
 
-/** An inline spec with `count` features, the given layers, and an optional claim. */
-function inlineSpec(language: string, layers: string[], modules: string[] = []): string {
+/**
+ * One declared layer: a bare name (canonical tier form) or the object form
+ * carrying its own `modules` globs.
+ */
+type LayerDecl = string | {readonly name: string; readonly modules: readonly string[]};
+
+/** Renders `architecture.layers`: bare names share one tier, object layers stand alone. */
+function layerLines(layers: readonly LayerDecl[]): string[] {
+  const bare = layers.filter((l): l is string => typeof l === 'string');
+  const lines = bare.length > 0 ? [`    - [${bare.join(', ')}]`] : [];
+  for (const layer of layers) {
+    if (typeof layer === 'string') continue;
+    lines.push(`    - name: ${layer.name}`);
+    lines.push(`      modules: [${layer.modules.map((g) => `"${g}"`).join(', ')}]`);
+  }
+  return lines;
+}
+
+/** An inline spec with `featureCount` features, the given layers, and an optional claim. */
+function inlineSpec(
+  language: string,
+  layers: readonly LayerDecl[],
+  modules: string[] = [],
+  featureCount = 8,
+): string {
   return (
     [
       'schema: "0.1"',
       `project: {name: f, language: ${language}}`,
       'architecture:',
       '  layers:',
-      `    - [${layers.join(', ')}]`,
+      ...layerLines(layers),
       'features:',
-      ...Array.from({length: 8}, (_, i) =>
+      ...Array.from({length: featureCount}, (_, i) =>
         [
           `  - id: F-10000${i}`,
           '    title: t',
@@ -379,5 +471,122 @@ describe('UNMAPPED_ARTIFACT — declared layers reach real files', () => {
     );
     const findings = unmappedArtifact.run({cwd: dir});
     expect(findings.map((f) => f.path)).toEqual(['src/main/kotlin/core/Orphan.kt']);
+  });
+
+  test('AC-96ff696f — a layer named for a concept, not a directory, is scanned where its glob points', () => {
+    // Defect D1, measured through the shipped binary: two specs identical
+    // but for the layer name — `core` (a real segment) reported 21 unclaimed
+    // files, `native` reported 0, though the declared glob never moved.
+    write(dir, 'core/src/main/cpp/claimed.cpp', 'int claimed() { return 1; }\n');
+    write(dir, 'core/src/main/cpp/orphan.cpp', 'int orphan() { return 0; }\n');
+    write(dir, 'core/src/main/cpp/util/helper.h', '#pragma once\n');
+    writeFileSync(
+      join(dir, 'spec.yaml'),
+      inlineSpec(
+        'cpp',
+        [{name: 'native', modules: ['core/src/main/cpp/**']}],
+        ['core/src/main/cpp/claimed.cpp'],
+      ),
+    );
+    const findings = unmappedArtifact.run({cwd: dir});
+    expect(findings.map((f) => f.path).sort()).toEqual([
+      'core/src/main/cpp/orphan.cpp',
+      'core/src/main/cpp/util/helper.h',
+    ]);
+    for (const f of findings) expect(f.severity).toBe('error');
+  });
+
+  test('AC-96ff696f — a declared glob without a trailing wildcard reaches the same files', () => {
+    write(dir, 'core/src/main/cpp/claimed.cpp', 'int claimed() { return 1; }\n');
+    write(dir, 'core/src/main/cpp/orphan.cpp', 'int orphan() { return 0; }\n');
+    writeFileSync(
+      join(dir, 'spec.yaml'),
+      inlineSpec(
+        'cpp',
+        [{name: 'native', modules: ['core/src/main/cpp']}],
+        ['core/src/main/cpp/claimed.cpp'],
+      ),
+    );
+    const findings = unmappedArtifact.run({cwd: dir});
+    expect(findings.map((f) => f.path)).toEqual(['core/src/main/cpp/orphan.cpp']);
+    expect(findings[0].severity).toBe('error');
+  });
+
+  test('AC-96ff696f — a glob layer and a bare layer both contribute findings', () => {
+    write(dir, 'core/src/main/cpp/orphan.cpp', 'int orphan() { return 0; }\n');
+    write(dir, 'src/router/orphan.ts', 'export const x = 1;\n');
+    write(dir, 'src/router/claimed.ts', 'export const y = 1;\n');
+    writeFileSync(
+      join(dir, 'spec.yaml'),
+      inlineSpec(
+        'cpp',
+        ['router', {name: 'native', modules: ['core/src/main/cpp/**']}],
+        ['src/router/claimed.ts'],
+      ),
+    );
+    const findings = unmappedArtifact.run({cwd: dir});
+    expect(findings.map((f) => f.path).sort()).toEqual([
+      'core/src/main/cpp/orphan.cpp',
+      'src/router/orphan.ts',
+    ]);
+    for (const f of findings) expect(f.severity).toBe('error');
+  });
+
+  test('AC-e20dbafe — the same tree WITHOUT the glob reports an empty universe instead of silence', () => {
+    // Name-only `native`: nothing on disk is called that, so the universe
+    // resolves to `src/native/**` and scans zero files. Pre-fix that was a
+    // clean bill of health; now it says where it looked.
+    write(dir, 'core/src/main/cpp/claimed.cpp', 'int claimed() { return 1; }\n');
+    write(dir, 'core/src/main/cpp/orphan.cpp', 'int orphan() { return 0; }\n');
+    writeFileSync(
+      join(dir, 'spec.yaml'),
+      inlineSpec('cpp', ['native'], ['core/src/main/cpp/claimed.cpp']),
+    );
+    const findings = unmappedArtifact.run({cwd: dir});
+    expect(findings.filter((f) => f.severity === 'error')).toEqual([]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe('info');
+    expect(findings[0].message).toContain('matched no files');
+    expect(findings[0].message).toContain('layers {native}');
+    expect(findings[0].message).toContain('roots {src}');
+    expect(findings[0].message).toContain('declare layer modules globs');
+  });
+
+  test('AC-e20dbafe — a declared glob pointing at a moved tree is reported by its glob', () => {
+    write(dir, 'core/src/main/cpp/orphan.cpp', 'int orphan() { return 0; }\n');
+    writeFileSync(
+      join(dir, 'spec.yaml'),
+      inlineSpec('cpp', [{name: 'native', modules: ['native/src/**']}]),
+    );
+    const findings = unmappedArtifact.run({cwd: dir});
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe('info');
+    expect(findings[0].message).toContain('roots {native/src/**}');
+    // Every layer declared its location, so "declare globs" is not the cure.
+    expect(findings[0].message).toContain('check the declared layer modules globs');
+  });
+
+  test('AC-e20dbafe — a scan that did match files stays silent when every one is claimed', () => {
+    write(dir, 'core/src/main/cpp/claimed.cpp', 'int claimed() { return 1; }\n');
+    writeFileSync(
+      join(dir, 'spec.yaml'),
+      inlineSpec(
+        'cpp',
+        [{name: 'native', modules: ['core/src/main/cpp/**']}],
+        ['core/src/main/cpp/claimed.cpp'],
+      ),
+    );
+    expect(unmappedArtifact.run({cwd: dir})).toEqual([]);
+  });
+
+  test('AC-e20dbafe — below the scale gate an empty scan stays silent', () => {
+    // Day-1 adoption: the legacy narrow pair matches nothing here, and that
+    // protective silence is the design, not a finding to report.
+    write(dir, 'core/src/main/cpp/orphan.cpp', 'int orphan() { return 0; }\n');
+    writeFileSync(
+      join(dir, 'spec.yaml'),
+      inlineSpec('cpp', [{name: 'native', modules: ['core/src/main/cpp/**']}], [], 3),
+    );
+    expect(unmappedArtifact.run({cwd: dir})).toEqual([]);
   });
 });
