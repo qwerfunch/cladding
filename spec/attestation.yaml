@@ -23,15 +23,15 @@ attested_modules:
   .claude/settings.json: 08a64351770badf4
   .github/workflows/ci.yml: 8ea99219cb80df60
   .gitignore: d311656aff3813ca
-  CHANGELOG.md: b15c6185d8326b9b
+  CHANGELOG.md: 5f869dbb27431e60
   CLAUDE.md: 9f2fa4edd5c6df80
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: 238c9d2f0b277e22
-  README.ja.md: 22f0dc832db0fa5e
-  README.ko.html: ee75bfe5b5a1bc76
-  README.ko.md: 3ca7d8b31a5e3ce6
-  README.md: 562ae2d94af38500
-  README.zh.md: 695a60c73fd01383
+  README.html: e648da173a27d318
+  README.ja.md: bda546d9642b960d
+  README.ko.html: 105a0068180d3892
+  README.ko.md: 3e1293e9f5d5bcc7
+  README.md: 9cba3b899b969660
+  README.zh.md: 624317af25d6ab0e
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 5b461bb43a79a983

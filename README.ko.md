@@ -346,7 +346,7 @@ clad update              # 3. 프로젝트 연결과 파생 데이터를 함께 
 
 | version | 준수 등급 | tests | gate | features |
 |---|---|---|---|---|
-| v0.9.4 · 2026-08 | L4 · [L0–L4 중 최고 · 자가 선언](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2981 / 2981 · all pass | 15 단계 · 41 detectors | 277 · 273 done · 자기 스펙 |
+| v0.9.4 · 2026-08 | L4 · [L0–L4 중 최고 · 자가 선언](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 2981 / 2981 · all pass | 15 단계 · 41 detectors | 281 · 277 done · 자기 스펙 |
 
 <sub>253 test files · capability 6개 · coverage는 COVERAGE_DROP detector가 하락 차단</sub>
 
