@@ -54,6 +54,7 @@
     "stage:audit": "tsx src/stages/audit.ts",
     "stage:uat": "tsx src/stages/uat.ts",
     "spec:validate": "tsx src/spec/cli.ts",
+    "validate:spec-0.2": "tsx scripts/spec-0.2-validate.ts",
     "conformance": "tsx conformance/runner.ts",
     "benchmark": "tsx src/cli/benchmark.ts",
     "clad": "node bin/clad",

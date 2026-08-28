@@ -1,7 +1,13 @@
-# Cladding Knowledge Graph — design & cost model
+<!-- Cladding · Tier B · historical shipped-v1 design — target superseded by docs/design/spec-0.2/graph.md D17 · Refreshed by: manual -->
 
-> Status: design (v0.7.0 track), with a **post-ship addendum (§8)** recording where
-> the shipped capability deliberately departed from this document. Honest framing:
+# Cladding Knowledge Graph v1 — historical design & cost model
+
+> **Historical status.** This document records the v0.7.0 design and its post-ship
+> addendum (§8). It is evidence for why the shipped v1 looks as it does, not the
+> target graph contract. The accepted 0.10.0 replacement is
+> [`Spec 0.2` D17](../design/spec-0.2/graph.md#d17--knowledge-graph-v2-as-compiler-ir).
+> Do not carry this document's seven node kinds, kind twins, or undirected
+> neighborhood semantics into new implementation. Honest v1 framing:
 > this layer improves **traceability completeness** and **context-selection
 > efficiency (retrieval)**. It does **not** improve LLM correctness or "reasoning
 > depth" — cladding's own A/B record shows conformance is orthogonal to the spec

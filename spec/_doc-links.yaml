@@ -3,7 +3,7 @@
 schema: "0.1"
 docs:
   "docs/README.md":
-    doc_links: ["docs/ssot-model.md", "spec/README.md", "src/agents/README.md"]
+    doc_links: ["docs/design/ironclad-obligation-rfc.md", "docs/design/spec-0.2.md", "docs/ssot-model.md", "spec/README.md", "src/agents/README.md"]
   "docs/ab-evaluation/case-081-cycle-conformance.md":
     features: [F-0023ba22, F-10cc42d1, F-1e7a10c3, F-6ed216f3, F-b0f898a6]
   "docs/ab-evaluation/case-doverunner-scale.md":
@@ -20,12 +20,45 @@ docs:
     features: [F-06dfdad6]
   "docs/conventions.md":
     doc_links: ["docs/code-style.md"]
+  "docs/design/ironclad-obligation-rfc.md":
+    doc_links: ["docs/design/spec-0.2/assurance.md"]
+  "docs/design/spec-0.2.md":
+    doc_links: ["AGENTS.md", "docs/design/spec-0.2/assurance-evidence.md", "docs/design/spec-0.2/assurance.md", "docs/design/spec-0.2/context-and-orchestration.md", "docs/design/spec-0.2/decision-log.md", "docs/design/spec-0.2/delivery.md", "docs/design/spec-0.2/evidence.md", "docs/design/spec-0.2/graph.md", "docs/design/spec-0.2/hygiene.md", "docs/design/spec-0.2/mcp.md", "docs/design/spec-0.2/model-and-migration.md", "docs/design/spec-0.2/proof-and-editing.md", "docs/design/spec-0.2/validation.md", "docs/ssot-model.md", "spec/README.md"]
+  "docs/design/spec-0.2/assurance-evidence.md":
+    doc_links: ["docs/design/spec-0.2.md", "docs/design/spec-0.2/assurance.md"]
+  "docs/design/spec-0.2/assurance.md":
+    doc_links: ["docs/design/ironclad-obligation-rfc.md", "docs/design/spec-0.2.md", "docs/design/spec-0.2/assurance-evidence.md", "docs/design/spec-0.2/context-and-orchestration.md", "docs/design/spec-0.2/graph.md", "docs/design/spec-0.2/model-and-migration.md", "docs/design/spec-0.2/proof-and-editing.md"]
+  "docs/design/spec-0.2/context-and-orchestration.md":
+    doc_links: ["docs/design/spec-0.2.md", "docs/design/spec-0.2/assurance.md"]
+  "docs/design/spec-0.2/decision-log.md":
+    features: [F-06dfdad6]
+    doc_links: ["docs/ab-evaluation/case-working-set-landmine.md", "docs/design/spec-0.2.md", "docs/design/spec-0.2/evidence.md"]
+  "docs/design/spec-0.2/delivery.md":
+    features: [F-041, F-063]
+    doc_links: ["docs/design/spec-0.2.md", "docs/design/spec-0.2/assurance.md", "docs/design/spec-0.2/evidence.md", "docs/design/spec-0.2/hygiene.md", "docs/design/spec-0.2/mcp.md"]
+  "docs/design/spec-0.2/evidence.md":
+    features: [F-041, F-063]
+    doc_links: ["docs/design/spec-0.2.md", "docs/design/spec-0.2/assurance-evidence.md"]
+  "docs/design/spec-0.2/graph.md":
+    features: [F-06dfdad6]
+    doc_links: ["docs/design/spec-0.2.md"]
+  "docs/design/spec-0.2/hygiene.md":
+    doc_links: ["docs/design/spec-0.2.md"]
+  "docs/design/spec-0.2/mcp.md":
+    doc_links: ["docs/design/spec-0.2.md", "docs/design/spec-0.2/validation.md"]
+  "docs/design/spec-0.2/model-and-migration.md":
+    doc_links: ["docs/design/spec-0.2.md", "docs/design/spec-0.2/assurance.md"]
+  "docs/design/spec-0.2/proof-and-editing.md":
+    doc_links: ["docs/design/spec-0.2.md", "docs/design/spec-0.2/assurance.md"]
+  "docs/design/spec-0.2/validation.md":
+    doc_links: ["docs/design/spec-0.2.md"]
   "docs/gate-stages.md":
     doc_links: ["src/stages/detectors/README.md"]
   "docs/glossary.md":
     features: [F-1aab1bba, F-1d23a6, F-6ba22c5c, F-7ce18e, F-b84c38]
   "docs/knowledge-graph/design.md":
     features: [F-02343cd1, F-64a5c159, F-77f7ead0]
+    doc_links: ["docs/design/spec-0.2/graph.md"]
   "docs/multi-provider-roadmap.md":
     features: [F-049, F-073, F-074, F-075]
   "docs/project-context.md":
