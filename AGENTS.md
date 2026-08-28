@@ -71,6 +71,7 @@ Convert every internal id at the user surface boundary via `src/ui/softShell.ts`
 - `GOVERNANCE.md` — sync policy, versioning, contributor policy, PR contract, v1.0 graduation criteria.
 - `CONTRIBUTING.md` — first-PR walkthrough.
 - `CODE_OF_CONDUCT.md`, `SECURITY.md` — community standards + private security reports.
+- `docs/design/spec-0.2.md` — accepted 0.10.0 continuation router; read it, then load only the task-routed canonical file under `docs/design/spec-0.2/` (implementation is still pending).
 - `docs/code-style.md` — per-language Google Style Guides table + comment policy in full.
 - `docs/ux-routing-coverage.md` — applied-status of `ironclad-design/03-ux-routing.md` prescriptions.
 - `docs/multi-provider-roadmap.md` — host vs sdk adapter model + adapter matrix + how to add one.

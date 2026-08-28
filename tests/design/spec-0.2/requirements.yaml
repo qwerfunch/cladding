@@ -1,0 +1,109 @@
+# Cladding · Spec 0.2 validation ledger — proof projection, never design authority.
+schema: 1
+decisions:
+  - {id: D01, owner: docs/design/spec-0.2/model-and-migration.md, scenario: authority-boundary, implementation: pending}
+  - {id: D02, owner: docs/design/spec-0.2/model-and-migration.md, scenario: why-what-how, implementation: pending}
+  - {id: D03, owner: docs/design/spec-0.2/model-and-migration.md, scenario: artifact-layout, implementation: pending}
+  - {id: D04, owner: docs/design/spec-0.2/model-and-migration.md, scenario: identity-sharding, implementation: pending}
+  - {id: D05, owner: docs/design/spec-0.2/model-and-migration.md, scenario: project-contract, implementation: pending}
+  - {id: D06, owner: docs/design/spec-0.2/model-and-migration.md, scenario: criterion-contract, implementation: pending}
+  - {id: D07, owner: docs/design/spec-0.2/model-and-migration.md, scenario: capability-ownership, implementation: pending}
+  - {id: D08, owner: docs/design/spec-0.2/model-and-migration.md, scenario: architecture-contract, implementation: pending}
+  - {id: D09, owner: docs/design/spec-0.2/model-and-migration.md, scenario: scenario-contract, implementation: pending}
+  - {id: D10, owner: docs/design/spec-0.2/model-and-migration.md, scenario: compiler-registry, implementation: pending}
+  - {id: D11, owner: docs/design/spec-0.2/proof-and-editing.md, scenario: test-binding, implementation: pending}
+  - {id: D12, owner: docs/design/spec-0.2/proof-and-editing.md, scenario: transactional-editing, implementation: pending}
+  - {id: D13, owner: docs/design/spec-0.2/proof-and-editing.md, scenario: attestation-freshness, implementation: pending}
+  - {id: D14, owner: docs/design/spec-0.2/model-and-migration.md, scenario: schema-migration, implementation: pending}
+  - {id: D15, owner: docs/design/spec-0.2/delivery.md, scenario: delivery-order, implementation: pending}
+  - {id: D16, owner: docs/design/spec-0.2/delivery.md, scenario: acceptance-gates, implementation: pending}
+  - {id: D17, owner: docs/design/spec-0.2/graph.md, scenario: graph-fidelity, implementation: pending}
+  - {id: D18, owner: docs/design/spec-0.2/hygiene.md, scenario: authority-retirement, implementation: pending}
+  - {id: D19, owner: docs/design/spec-0.2/context-and-orchestration.md, scenario: context-accounting, implementation: pending}
+  - {id: D20, owner: docs/design/spec-0.2/context-and-orchestration.md, scenario: evidence-orchestration, implementation: pending}
+  - {id: D21, owner: docs/design/spec-0.2/assurance.md, scenario: assurance-kernel, implementation: pending}
+  - {id: D22, owner: docs/design/spec-0.2/assurance.md, scenario: assurance-scheduler, implementation: pending}
+  - {id: D23, owner: docs/design/spec-0.2/assurance.md, scenario: assurance-verdict, implementation: pending}
+  - {id: D24, owner: docs/design/spec-0.2/mcp.md, scenario: mcp-role, implementation: validation-active}
+
+preregistered_cases:
+  - {id: P01, decision: D06}
+  - {id: P02, decision: D06}
+  - {id: P03, decision: D06}
+  - {id: P04, decision: D06}
+  - {id: P05, decision: D06}
+  - {id: P06, decision: D06}
+  - {id: P07, decision: D06}
+  - {id: P08, decision: D06}
+  - {id: P09, decision: D06}
+  - {id: P10, decision: D06}
+  - {id: L01, decision: D14}
+  - {id: L02, decision: D14}
+  - {id: L03, decision: D14}
+  - {id: L04, decision: D14}
+  - {id: B01, decision: D14}
+  - {id: B02, decision: D14}
+  - {id: B03, decision: D14}
+  - {id: B04, decision: D14}
+  - {id: B05, decision: D14}
+  - {id: B06, decision: D14}
+  - {id: C01, decision: D11}
+  - {id: C02, decision: D11}
+  - {id: C03, decision: D11}
+  - {id: C04, decision: D11}
+  - {id: C05, decision: D11}
+  - {id: C06, decision: D11}
+  - {id: T01, decision: D12}
+  - {id: T02, decision: D12}
+  - {id: T03, decision: D12}
+  - {id: T04, decision: D12}
+  - {id: U01, decision: D14}
+  - {id: U02, decision: D14}
+  - {id: U03, decision: D14}
+  - {id: U04, decision: D14}
+  - {id: A01, decision: D13}
+  - {id: A02, decision: D13}
+  - {id: A03, decision: D13}
+
+integration_journeys:
+  - {id: J01, decisions: [D02, D05, D06, D09], status: simulated, scenario: why-ladder}
+  - {id: J02, decisions: [D04, D06, D11], status: simulated, scenario: composite-identity-and-binding}
+  - {id: J03, decisions: [D07, D12], status: simulated, scenario: feature-local-capability-ownership}
+  - {id: J04, decisions: [D08, D13], status: implementation_pending, scenario: architecture-constraint-freshness}
+  - {id: J05, decisions: [D09, D21], status: implementation_pending, scenario: scenario-policy-obligation}
+  - {id: J06, decisions: [D03, D10, D14], status: implementation_pending, scenario: atomic-schema-upgrade}
+  - {id: J07, decisions: [D12, D15], status: implementation_pending, scenario: transaction-crash-recovery}
+  - {id: J08, decisions: [D11, D20, D21], status: simulated, scenario: proof-observation-and-provenance}
+  - {id: J09, decisions: [D13, D23], status: implementation_pending, scenario: selective-attestation-staleness}
+  - {id: J10, decisions: [D17, D19], status: simulated, scenario: bounded-graph-projection}
+  - {id: J11, decisions: [D19, D20], status: simulated, scenario: topology-invariant-context}
+  - {id: J12, decisions: [D21, D22, D23], status: simulated, scenario: cadence-verdict-equivalence}
+  - {id: J13, decisions: [D15, D16, D24], status: not_run, scenario: reference-host-spec-02-cycle}
+
+mcp_scenarios:
+  - MCP01-handshake-and-capabilities
+  - MCP02-bootstrap-and-list-changed
+  - MCP03-text-and-structured-content-parity
+  - MCP04-cli-and-kernel-semantic-parity
+  - MCP05-prepare-apply-replay-and-rollback
+  - MCP06-concurrent-write-and-stale-revision
+  - MCP07-malformed-oversized-and-path-inputs
+  - MCP08-graph-context-and-catalog-budgets
+  - MCP09-receipt-and-blindness-boundary
+  - MCP10-tools-only-host-degradation
+  - MCP11-reference-host-spec-02-cycle
+  - MCP12-adoption-versus-delivery-telemetry
+
+host_ab_tasks:
+  - {id: AB01, profile: implement, objective: locate-feature-contract, fault_control: wrong-feature}
+  - {id: AB02, profile: implement, objective: locate-composite-criterion, fault_control: bare-id-collision}
+  - {id: AB03, profile: implement, objective: predict-shared-module-impact, fault_control: sibling-overexpansion}
+  - {id: AB04, profile: implement, objective: retrieve-prerequisite-closure, fault_control: reverse-direction}
+  - {id: AB05, profile: spec-edit, objective: set-feature-purpose, fault_control: stale-revision}
+  - {id: AB06, profile: spec-edit, objective: upsert-atomic-criterion, fault_control: multiple-modal}
+  - {id: AB07, profile: spec-edit, objective: link-capability, fault_control: shared-catalog-write}
+  - {id: AB08, profile: spec-edit, objective: edit-disjoint-shards, fault_control: same-shard-race}
+  - {id: AB09, profile: verify, objective: run-scoped-proof, fault_control: unrelated-pass}
+  - {id: AB10, profile: verify, objective: explain-current-failure, fault_control: stale-observation}
+  - {id: AB11, profile: verify, objective: obtain-independent-proof, fault_control: asserted-blindness}
+  - {id: AB12, profile: observe, objective: inspect-cycle-and-adoption, fault_control: push-as-pull}

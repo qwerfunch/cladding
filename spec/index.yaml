@@ -91,6 +91,7 @@ features:
   F-098d3b: {slug: detector-count-auto-recompute, status: done, modules: 1}
   F-09a98261: {slug: terminology-canon, status: done, modules: 8}
   F-09d68b: {slug: clad-refine, status: done, modules: 7}
+  F-0a29d024: {slug: spec-02-design-validation, status: done, modules: 11}
   F-0e84628e: {slug: merge-ritual-docs, status: done, modules: 2}
   F-0ed2db: {slug: ai-hints-consumer-instructions, status: done, modules: 11}
   F-0f2984d0: {slug: infer-deps-dynamic-flag, status: done, modules: 2}
@@ -118,6 +119,7 @@ features:
   F-2c02991f: {slug: arch-gate-skips-build-output, status: done, modules: 1}
   F-2de65d: {slug: drive-auto-rollback, status: done, modules: 1}
   F-2e28cc72: {slug: clad-verdict, status: done, modules: 2}
+  F-2f840a6c: {slug: spec-02-validation-findings-refinement, status: done, modules: 9}
   F-315fd7: {slug: scenario-coverage-detector, status: done, modules: 2}
   F-31eeb8: {slug: scan-bfs-walk, status: done, modules: 2}
   F-32b1e0: {slug: ai-hints-preferred-patterns, status: done, modules: 6}
@@ -224,6 +226,7 @@ features:
   F-b81d203e: {slug: vacuous-test-guard, status: done, modules: 2}
   F-b84c38: {slug: lifecycle-events-identity, status: done, modules: 4}
   F-b8d74801: {slug: verb-rename-residue-sweep, status: done, modules: 6}
+  F-b8d77abf: {slug: spec-02-final-audit-closure, status: done, modules: 19}
   F-b99577: {slug: stale-archive-suggestion, status: done, modules: 4}
   F-ba2e05: {slug: ab-outcome-quality, status: done, modules: 8}
   F-ba4b7a: {slug: pulse-progressive, status: done, modules: 2}

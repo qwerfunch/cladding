@@ -26,17 +26,17 @@ attested_modules:
   CHANGELOG.md: 62efa82238103bd2
   CLAUDE.md: 9f2fa4edd5c6df80
   GOVERNANCE.md: 21cc28eaaf637a20
-  README.html: e648da173a27d318
-  README.ja.md: bda546d9642b960d
-  README.ko.html: 105a0068180d3892
-  README.ko.md: 3e1293e9f5d5bcc7
-  README.md: 9cba3b899b969660
-  README.zh.md: 624317af25d6ab0e
+  README.html: a5de2dd3bf9aa61d
+  README.ja.md: 299b210e1ce026fa
+  README.ko.html: 5a679e58b96c0feb
+  README.ko.md: c1db33962075bb94
+  README.md: 20cd9c1fc650c1b8
+  README.zh.md: 5b82a51345b6480d
   SECURITY.md: df1d0c80304b2f28
   bin/clad: 77b80666665dd1b0
   conformance/fixtures.yaml: 5b461bb43a79a983
   conformance/runner.ts: 5e638e070dbb10c2
-  docs/README.md: 5672e5726104d845
+  docs/README.md: d6813adc8bfeb342
   docs/ab-evaluation-extended/README.md: f690562df2e5ec06
   docs/ab-evaluation-extended/scenarios/dashboard/report.md: a656cad8c8ac2772
   docs/ab-evaluation-extended/scenarios/task-manager/report.md: 91df11ca4e9bed26
@@ -56,6 +56,18 @@ attested_modules:
   docs/benchmarks/v0.4.0-consistency-bench.md: e49a0dc671ff6672
   docs/benchmarks/v0.6.0-real-user-verification.md: 9af806f48f681d1a
   docs/code-style.md: f1fd100fa0d11c5e
+  docs/design/ironclad-obligation-rfc.md: 73612d73272aa976
+  docs/design/spec-0.2.md: 21fc8033026458fc
+  docs/design/spec-0.2/assurance-evidence.md: 3f1c5a070f0a4c10
+  docs/design/spec-0.2/assurance.md: f0e4b4fa51d65ed0
+  docs/design/spec-0.2/context-and-orchestration.md: b75932cebb1696da
+  docs/design/spec-0.2/decision-log.md: 6299219e6626b508
+  docs/design/spec-0.2/delivery.md: b7731dca72723616
+  docs/design/spec-0.2/evidence.md: 7635990032b8d527
+  docs/design/spec-0.2/graph.md: ad2cf28a217aae66
+  docs/design/spec-0.2/mcp.md: 18ac5d95e9b57d23
+  docs/design/spec-0.2/model-and-migration.md: 287933402e5b5162
+  docs/design/spec-0.2/validation.md: e38ed5caa2843f59
   docs/dogfood/antigravity-cli-2026-07-15.md: c7191d8548535998
   docs/dogfood/claude-code-2026-05-20.md: 04870d41e75576d6
   docs/dogfood/codex-cli-2026-07-15.md: 4ed02eed031aeda8
@@ -78,7 +90,7 @@ attested_modules:
   docs/ssot-model.md: 66b9439e2f71ac4b
   docs/ssot-testing.md: abf3b2bd5acb29a1
   package-lock.json: 446ffb2632fbb457
-  package.json: 6e246e66421c0d84
+  package.json: 6c28f36f067656e6
   plugins/claude-code/.claude-plugin/plugin.json: 0b3e617b8d8ea59a
   plugins/claude-code/agents/developer.md: 3002b4ef69ddab43
   plugins/claude-code/agents/observability.md: 637fde18c012e2a7
@@ -108,6 +120,7 @@ attested_modules:
   scripts/build.mjs: 3a4b204063024ef1
   scripts/migrate-dogfood-v0.3.16.mjs: 1e265fb370019996
   scripts/shard-spec.ts: 0c728bbc1e869421
+  scripts/spec-0.2-validate.ts: 37ed4756d6e68803
   scripts/test-count.d.mts: a392f5dea372a40e
   scripts/test-count.mjs: aea2620221c8d5ff
   scripts/version-bump.mjs: 770b066b8279db39
@@ -123,7 +136,7 @@ attested_modules:
   skills/serve/SKILL.md: f08bbdbbfeb05041
   skills/status/SKILL.md: 09faadc50b3449da
   skills/sync/SKILL.md: 775c0f990a52a3d9
-  spec.yaml: 9b979cd4e7d137d2
+  spec.yaml: 2c432e93afdc9583
   spec/README.md: 7c257426396d435c
   spec/architecture.yaml: f0888480405a13a8
   spec/features/: a4d0f0eb87fed960
@@ -357,6 +370,9 @@ attested_modules:
   tests/cli/init.test.ts: e88394472a0b95b3
   tests/cli/intent-onboarding.test.ts: 0681b98ce2e74c22
   tests/conformance/registry.test.ts: 018b1e5c0d8d4baf
+  tests/design/spec-0.2/design-validation.test.ts: 55d5a65deac3da53
+  tests/design/spec-0.2/mcp-validation.test.ts: 9c14f76982a757d3
+  tests/design/spec-0.2/requirements.yaml: 0a46cc965db9add8
   tests/drive/loop.test.ts: ae49bcfa745a8cdb
   tests/events/log.test.ts: 221f74acfdb7f7c0
   tests/init/git-hook.test.ts: 6e43b2a970e5c39b
@@ -367,6 +383,7 @@ attested_modules:
   tests/oracle-payload.test.ts: 3251c3a6c5ede131
   tests/oracle-policy.test.ts: f6716e0cbb00d282
   tests/oracle-record.test.ts: 0d1e89f51977a45a
+  tests/readme-record-honesty.test.ts: 2c7ac44fc1848142
   tests/router/intent.test.ts: 0f2a158364f6bdf3
   tests/scenarios/_assertions.ts: 75ef37ef006aa3fe
   tests/scenarios/_fixtures/sample-existing-ts/: a4d0f0eb87fed960
@@ -536,6 +553,7 @@ attested_features:
   F-098d3b: ok
   F-09a98261: ok
   F-09d68b: ok
+  F-0a29d024: ok
   F-0e84628e: ok
   F-0ed2db: ok
   F-0f2984d0: ok
@@ -563,6 +581,7 @@ attested_features:
   F-2c02991f: ok
   F-2de65d: ok
   F-2e28cc72: ok
+  F-2f840a6c: ok
   F-315fd7: ok
   F-31eeb8: ok
   F-32b1e0: ok
@@ -666,6 +685,7 @@ attested_features:
   F-b81d203e: ok
   F-b84c38: ok
   F-b8d74801: ok
+  F-b8d77abf: ok
   F-b99577: ok
   F-ba2e05: ok
   F-ba4b7a: ok

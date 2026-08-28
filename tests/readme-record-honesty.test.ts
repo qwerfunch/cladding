@@ -12,7 +12,7 @@
 // These are cladding-SELF pins (they read this repo's own files), NOT shipped
 // detectors — an adopting project may word its own README however it likes.
 
-import {readFileSync} from 'node:fs';
+import {readFileSync, readdirSync} from 'node:fs';
 import {join} from 'node:path';
 import {describe, expect, test} from 'vitest';
 
@@ -23,6 +23,27 @@ const read = (rel: string): string => readFileSync(join(ROOT, rel), 'utf8');
 const EN_VARIANTS = ['README.md', 'README.html'];
 const KO_VARIANTS = ['README.ko.md', 'README.ko.html'];
 const ALL_VARIANTS = [...EN_VARIANTS, ...KO_VARIANTS];
+
+test('current worktree feature counts match the canonical inventory', () => {
+  const featureFiles = readdirSync(join(ROOT, 'spec', 'features'))
+    .filter((name) => name.endsWith('.yaml') || name.endsWith('.yml'));
+  const total = featureFiles.length;
+  const done = featureFiles.filter((name) =>
+    /^status:\s*done\s*$/m.test(read(`spec/features/${name}`)),
+  ).length;
+  const claims: Readonly<Record<string, readonly string[]>> = {
+    'README.md': [`${done} of its ${total} features`, 'v0.9.4 worktree', `${total} (${done} done)`],
+    'README.ko.md': [`기능 ${total}개 중 ${done}개`, 'v0.9.4 worktree', `${total} · ${done} done`],
+    'README.ja.md': [`${total} 個の feature のうち ${done} 個`, 'v0.9.4 worktree', `${total}（${done} done）`],
+    'README.zh.md': [`${total} 个 feature 里有 ${done} 个`, 'v0.9.4 worktree', `${total}（${done} done）`],
+    'README.html': [`${done} of its ${total} features`, '2026-08 · worktree', `>${total}</div>`, `>${done} done · self-spec</div>`],
+    'README.ko.html': [`기능 ${total}개 중 ${done}개`, '2026-08 · worktree', `>${total}</div>`, `>${done} done · 자기 스펙</div>`],
+  };
+  for (const [file, expected] of Object.entries(claims)) {
+    const body = read(file);
+    for (const claim of expected) expect(body, `${file}: ${claim}`).toContain(claim);
+  }
+});
 
 describe('AC-ce8fe171 · record claim states the verified level in every variant', () => {
   test('EN variants pin what -> committed content, who/when -> local session ledger', () => {
