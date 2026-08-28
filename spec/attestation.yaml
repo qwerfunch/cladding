@@ -120,7 +120,7 @@ attested_modules:
   scripts/build.mjs: 3a4b204063024ef1
   scripts/migrate-dogfood-v0.3.16.mjs: 1e265fb370019996
   scripts/shard-spec.ts: 0c728bbc1e869421
-  scripts/spec-0.2-validate.ts: c0206f5a21919385
+  scripts/spec-0.2-validate.ts: 37ed4756d6e68803
   scripts/test-count.d.mts: a392f5dea372a40e
   scripts/test-count.mjs: aea2620221c8d5ff
   scripts/version-bump.mjs: 770b066b8279db39
@@ -371,7 +371,7 @@ attested_modules:
   tests/cli/intent-onboarding.test.ts: 0681b98ce2e74c22
   tests/conformance/registry.test.ts: 018b1e5c0d8d4baf
   tests/design/spec-0.2/design-validation.test.ts: 55d5a65deac3da53
-  tests/design/spec-0.2/mcp-validation.test.ts: ca20015a268ce3bb
+  tests/design/spec-0.2/mcp-validation.test.ts: 9c14f76982a757d3
   tests/design/spec-0.2/requirements.yaml: 0a46cc965db9add8
   tests/drive/loop.test.ts: ae49bcfa745a8cdb
   tests/events/log.test.ts: 221f74acfdb7f7c0

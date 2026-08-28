@@ -589,7 +589,13 @@ async function inspectMcp(cwd: string): Promise<CatalogSnapshot> {
   }
 }
 
-function summarizeHostSmoke(cwd: string): HostSmokeSummary | null {
+/**
+ * Summarizes optional local host evidence without manufacturing a missing run.
+ *
+ * @param cwd Workspace whose local audit directory may contain host smoke data.
+ * @returns The latest local host summary, or null when no run was recorded.
+ */
+export function summarizeHostSmoke(cwd: string): HostSmokeSummary | null {
   const auditDir = join(cwd, '.cladding', 'audit');
   let names: string[];
   try {

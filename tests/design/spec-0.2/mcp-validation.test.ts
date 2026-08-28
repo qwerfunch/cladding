@@ -1,6 +1,6 @@
 // Cladding · MCP efficacy boundary for Spec 0.2 (F-0a29d024).
 
-import {existsSync, mkdtempSync, rmSync} from 'node:fs';
+import {existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 
@@ -16,6 +16,7 @@ import {clearAuditObserversForTesting} from '../../../src/hitl/audit.js';
 import {buildServer, TOOL_NAMES} from '../../../src/serve/server.js';
 import {
   loadValidationManifest,
+  summarizeHostSmoke,
   TASK_PROFILE_TOOLS,
   validateSpec02,
 } from '../../../scripts/spec-0.2-validate.js';
@@ -60,8 +61,34 @@ describe('Spec 0.2 MCP validation', () => {
     expect(checks['mcp-reference-host-spec-02-e2e']).toBe('not_run');
     expect(checks['mcp-adoption']).not.toBe('pass');
     expect(checks['live-host-token-ab']).toBe('not_run');
-    expect(report.mcp.host_smoke?.scope).toBe('legacy-read-surface');
+    if (report.mcp.host_smoke !== null) {
+      expect(report.mcp.host_smoke.scope).toBe('legacy-read-surface');
+    }
     expect(loadValidationManifest(process.cwd()).mcp_scenarios).toHaveLength(12);
+
+    const dir = mkdtempSync(join(tmpdir(), 'clad-spec-02-host-smoke-'));
+    temporary.push(dir);
+    expect(summarizeHostSmoke(dir)).toBeNull();
+    const auditDir = join(dir, '.cladding', 'audit');
+    mkdirSync(auditDir, {recursive: true});
+    writeFileSync(
+      join(auditDir, 'host-smoke-fixture.json'),
+      JSON.stringify({
+        hosts: {
+          codex: {
+            grade: 'verified',
+            surfaces: [{evidence: 'tokens used 1,234'}],
+          },
+        },
+      }),
+    );
+    expect(summarizeHostSmoke(dir)).toEqual({
+      file: join('.cladding', 'audit', 'host-smoke-fixture.json'),
+      hosts_verified: ['codex'],
+      hosts_failed: [],
+      provider_reported_tokens: {codex: [1234]},
+      scope: 'legacy-read-surface',
+    });
   });
 
   test('negotiates dynamic tool discovery and emits list-changed after bootstrap', async () => {
