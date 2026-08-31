@@ -184,6 +184,15 @@ describe('TECH_STACK_MISMATCH detector', () => {
     expect(techStackMismatch.run({cwd: dir})).toEqual([]);
   });
 
+  test('[covers:F-055/AC-127] build manifests do not alter source-derived language evidence', () => {
+    writeSpec(dir, 'python');
+    writeSources(dir, '.py', 6);
+    writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
+    writeFileSync(join(dir, 'build.gradle'), 'plugins {}\n');
+
+    expect(techStackMismatch.run({cwd: dir})).toEqual([]);
+  });
+
   test('AC-e07c3241 — adding or removing manifests leaves the outcome identical', () => {
     writeSpec(dir, 'python');
     writeSources(dir, '.ts', 6);

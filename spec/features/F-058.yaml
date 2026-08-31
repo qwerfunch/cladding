@@ -1,17 +1,28 @@
 id: F-058
-title: Detector unit tests batch 4 (final 2 + every detector at 100% line coverage)
+title: "Detector behavior evidence: secret scanning"
 status: done
 modules:
+  - src/stages/detectors/hardcoded-secret.ts
   - tests/stages/hardcoded-secret.test.ts
   - tests/stages/architecture-violation.test.ts
 depends_on: [F-057]
 acceptance_criteria:
   - id: AC-137
-    ears: ubiquitous
-    action: cover HARDCODED_SECRET with focused unit tests
-    response: tests/stages/hardcoded-secret.test.ts mocks execaSync via vi.mock('execa') to exercise every branch (no-gate / exit 0 / non-zero / ENOENT / non-ENOENT throw / stdout-only / no-output fallback); line coverage on the detector source reaches 100%
-    text: The system shall ship tests/stages/hardcoded-secret.test.ts bringing the HARDCODED_SECRET detector to 100% line coverage by mocking execaSync.
-    test_refs: [tests/stages/hardcoded-secret.test.ts]
+    ears: event
+    condition: when HARDCODED_SECRET invokes its declared scanner adapter
+    action: derive findings from the current adapter output and error partition
+    response: classify its exact selector-matched same-run observation as verified, failed, or unobserved
+    text: When HARDCODED_SECRET invokes its declared scanner adapter, the system shall derive findings from the current adapter output and error partition and classify its exact selector-matched same-run observation as verified, failed, or unobserved.
+    test_refs:
+      - "tests/stages/hardcoded-secret.test.ts#[covers:F-058/AC-137] scanner exit 0 produces no finding"
+      - "tests/stages/hardcoded-secret.test.ts#[covers:F-058/AC-137] scanner non-zero output produces an error finding"
+      - "tests/stages/hardcoded-secret.test.ts#[covers:F-058/AC-137] scanner ENOENT is observed as unavailable"
+    notes: |
+      ## Historical schema-0.1 note
+      2026-05-19 · v0.2.9 · 1bcd501. HARDCODED_SECRET execa fixtures: no-gate,
+      exit, ENOENT, thrown, stream, and empty output; 100% detector line coverage;
+      non-current.
+      Released title: "Detector unit tests batch 4 (final 2 + every detector at 100% line coverage)".
   - id: AC-138
     ears: ubiquitous
     action: cover ARCHITECTURE_VIOLATION with focused unit tests

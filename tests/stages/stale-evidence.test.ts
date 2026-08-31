@@ -58,7 +58,7 @@ describe('STALE_EVIDENCE detector', () => {
     expect(staleEvidence.run({cwd: dir})).toEqual([]);
   });
 
-  test('entry older than 90 days → warn finding with age', () => {
+  test('[covers:F-057/AC-134] evidence older than 90 days reports a warning', () => {
     writeAuditLine(dir, {
       id: 'e-old',
       featureId: 'F-001',

@@ -1956,9 +1956,9 @@
           "path": "spec/features/F-055.yaml",
           "yamlPath": "$.acceptance_criteria[0].id",
           "range": {
-            "start": 370,
-            "end": 376,
-            "line": 12,
+            "start": 536,
+            "end": 542,
+            "line": 16,
             "column": 9
           }
         }
@@ -1970,9 +1970,9 @@
           "path": "spec/features/F-055.yaml",
           "yamlPath": "$.acceptance_criteria[1].id",
           "range": {
-            "start": 859,
-            "end": 865,
-            "line": 18,
+            "start": 1025,
+            "end": 1031,
+            "line": 22,
             "column": 9
           }
         }
@@ -1984,9 +1984,9 @@
           "path": "spec/features/F-055.yaml",
           "yamlPath": "$.acceptance_criteria[2].id",
           "range": {
-            "start": 1388,
-            "end": 1394,
-            "line": 26,
+            "start": 2239,
+            "end": 2245,
+            "line": 36,
             "column": 9
           }
         }
@@ -1998,9 +1998,9 @@
           "path": "spec/features/F-055.yaml",
           "yamlPath": "$.acceptance_criteria[3].id",
           "range": {
-            "start": 1921,
-            "end": 1927,
-            "line": 34,
+            "start": 3377,
+            "end": 3383,
+            "line": 49,
             "column": 9
           }
         }
@@ -2012,9 +2012,9 @@
           "path": "spec/features/F-056.yaml",
           "yamlPath": "$.acceptance_criteria[0].id",
           "range": {
-            "start": 362,
-            "end": 368,
-            "line": 12,
+            "start": 437,
+            "end": 443,
+            "line": 14,
             "column": 9
           }
         }
@@ -2026,9 +2026,9 @@
           "path": "spec/features/F-056.yaml",
           "yamlPath": "$.acceptance_criteria[1].id",
           "range": {
-            "start": 851,
-            "end": 857,
-            "line": 18,
+            "start": 926,
+            "end": 932,
+            "line": 20,
             "column": 9
           }
         }
@@ -2040,9 +2040,9 @@
           "path": "spec/features/F-056.yaml",
           "yamlPath": "$.acceptance_criteria[2].id",
           "range": {
-            "start": 1434,
-            "end": 1440,
-            "line": 26,
+            "start": 2135,
+            "end": 2141,
+            "line": 34,
             "column": 9
           }
         }
@@ -2054,9 +2054,9 @@
           "path": "spec/features/F-056.yaml",
           "yamlPath": "$.acceptance_criteria[3].id",
           "range": {
-            "start": 1994,
-            "end": 2000,
-            "line": 34,
+            "start": 2695,
+            "end": 2701,
+            "line": 42,
             "column": 9
           }
         }
@@ -2068,9 +2068,9 @@
           "path": "spec/features/F-057.yaml",
           "yamlPath": "$.acceptance_criteria[0].id",
           "range": {
-            "start": 365,
-            "end": 371,
-            "line": 12,
+            "start": 491,
+            "end": 497,
+            "line": 15,
             "column": 9
           }
         }
@@ -2082,9 +2082,9 @@
           "path": "spec/features/F-057.yaml",
           "yamlPath": "$.acceptance_criteria[1].id",
           "range": {
-            "start": 916,
-            "end": 922,
-            "line": 20,
+            "start": 1042,
+            "end": 1048,
+            "line": 23,
             "column": 9
           }
         }
@@ -2096,9 +2096,9 @@
           "path": "spec/features/F-057.yaml",
           "yamlPath": "$.acceptance_criteria[2].id",
           "range": {
-            "start": 1488,
-            "end": 1494,
-            "line": 28,
+            "start": 2223,
+            "end": 2229,
+            "line": 38,
             "column": 9
           }
         }
@@ -2110,9 +2110,9 @@
           "path": "spec/features/F-057.yaml",
           "yamlPath": "$.acceptance_criteria[3].id",
           "range": {
-            "start": 1989,
-            "end": 1995,
-            "line": 34,
+            "start": 3427,
+            "end": 3433,
+            "line": 52,
             "column": 9
           }
         }
@@ -2124,9 +2124,9 @@
           "path": "spec/features/F-058.yaml",
           "yamlPath": "$.acceptance_criteria[0].id",
           "range": {
-            "start": 255,
-            "end": 261,
-            "line": 9,
+            "start": 269,
+            "end": 275,
+            "line": 10,
             "column": 9
           }
         }
@@ -2138,9 +2138,9 @@
           "path": "spec/features/F-058.yaml",
           "yamlPath": "$.acceptance_criteria[1].id",
           "range": {
-            "start": 816,
-            "end": 822,
-            "line": 15,
+            "start": 1496,
+            "end": 1502,
+            "line": 26,
             "column": 9
           }
         }
@@ -2152,9 +2152,9 @@
           "path": "spec/features/F-058.yaml",
           "yamlPath": "$.acceptance_criteria[2].id",
           "range": {
-            "start": 1332,
-            "end": 1338,
-            "line": 21,
+            "start": 2012,
+            "end": 2018,
+            "line": 32,
             "column": 9
           }
         }
@@ -2166,9 +2166,9 @@
           "path": "spec/features/F-058.yaml",
           "yamlPath": "$.acceptance_criteria[3].id",
           "range": {
-            "start": 2047,
-            "end": 2053,
-            "line": 32,
+            "start": 2727,
+            "end": 2733,
+            "line": 43,
             "column": 9
           }
         }
@@ -2180,9 +2180,9 @@
           "path": "spec/features/F-059.yaml",
           "yamlPath": "$.acceptance_criteria[0].id",
           "range": {
-            "start": 267,
-            "end": 273,
-            "line": 11,
+            "start": 359,
+            "end": 365,
+            "line": 14,
             "column": 9
           }
         }
@@ -2194,9 +2194,9 @@
           "path": "spec/features/F-059.yaml",
           "yamlPath": "$.acceptance_criteria[1].id",
           "range": {
-            "start": 900,
-            "end": 906,
-            "line": 19,
+            "start": 992,
+            "end": 998,
+            "line": 22,
             "column": 9
           }
         }
@@ -2208,9 +2208,9 @@
           "path": "spec/features/F-059.yaml",
           "yamlPath": "$.acceptance_criteria[2].id",
           "range": {
-            "start": 1350,
-            "end": 1356,
-            "line": 25,
+            "start": 2075,
+            "end": 2081,
+            "line": 38,
             "column": 9
           }
         }
@@ -2222,9 +2222,9 @@
           "path": "spec/features/F-059.yaml",
           "yamlPath": "$.acceptance_criteria[3].id",
           "range": {
-            "start": 1893,
-            "end": 1899,
-            "line": 31,
+            "start": 3576,
+            "end": 3582,
+            "line": 53,
             "column": 9
           }
         }
@@ -2236,9 +2236,9 @@
           "path": "spec/features/F-060.yaml",
           "yamlPath": "$.acceptance_criteria[0].id",
           "range": {
-            "start": 278,
-            "end": 284,
-            "line": 12,
+            "start": 364,
+            "end": 370,
+            "line": 16,
             "column": 9
           }
         }
@@ -2250,9 +2250,9 @@
           "path": "spec/features/F-060.yaml",
           "yamlPath": "$.acceptance_criteria[1].id",
           "range": {
-            "start": 949,
-            "end": 955,
-            "line": 20,
+            "start": 1640,
+            "end": 1646,
+            "line": 31,
             "column": 9
           }
         }
@@ -2264,9 +2264,9 @@
           "path": "spec/features/F-060.yaml",
           "yamlPath": "$.acceptance_criteria[2].id",
           "range": {
-            "start": 1544,
-            "end": 1550,
-            "line": 28,
+            "start": 2824,
+            "end": 2830,
+            "line": 45,
             "column": 9
           }
         }
@@ -2278,9 +2278,9 @@
           "path": "spec/features/F-060.yaml",
           "yamlPath": "$.acceptance_criteria[3].id",
           "range": {
-            "start": 2026,
-            "end": 2032,
-            "line": 34,
+            "start": 3306,
+            "end": 3312,
+            "line": 51,
             "column": 9
           }
         }
@@ -2292,9 +2292,9 @@
           "path": "spec/features/F-061.yaml",
           "yamlPath": "$.acceptance_criteria[0].id",
           "range": {
-            "start": 228,
-            "end": 234,
-            "line": 10,
+            "start": 360,
+            "end": 366,
+            "line": 14,
             "column": 9
           }
         }
@@ -2306,9 +2306,9 @@
           "path": "spec/features/F-061.yaml",
           "yamlPath": "$.acceptance_criteria[1].id",
           "range": {
-            "start": 837,
-            "end": 843,
-            "line": 18,
+            "start": 1980,
+            "end": 1986,
+            "line": 32,
             "column": 9
           }
         }
@@ -2320,9 +2320,9 @@
           "path": "spec/features/F-061.yaml",
           "yamlPath": "$.acceptance_criteria[2].id",
           "range": {
-            "start": 1387,
-            "end": 1393,
-            "line": 24,
+            "start": 3644,
+            "end": 3650,
+            "line": 47,
             "column": 9
           }
         }
@@ -2334,9 +2334,9 @@
           "path": "spec/features/F-061.yaml",
           "yamlPath": "$.acceptance_criteria[3].id",
           "range": {
-            "start": 2088,
-            "end": 2094,
-            "line": 35,
+            "start": 4345,
+            "end": 4351,
+            "line": 58,
             "column": 9
           }
         }
@@ -2350,7 +2350,7 @@
           "range": {
             "start": 235,
             "end": 241,
-            "line": 11,
+            "line": 12,
             "column": 9
           }
         }
@@ -2364,7 +2364,7 @@
           "range": {
             "start": 832,
             "end": 838,
-            "line": 17,
+            "line": 18,
             "column": 9
           }
         }
@@ -2378,7 +2378,7 @@
           "range": {
             "start": 1307,
             "end": 1313,
-            "line": 23,
+            "line": 24,
             "column": 9
           }
         }
@@ -2390,9 +2390,9 @@
           "path": "spec/features/F-062.yaml",
           "yamlPath": "$.acceptance_criteria[3].id",
           "range": {
-            "start": 1743,
-            "end": 1749,
-            "line": 29,
+            "start": 2625,
+            "end": 2631,
+            "line": 39,
             "column": 9
           }
         }
@@ -2404,9 +2404,9 @@
           "path": "spec/features/F-062.yaml",
           "yamlPath": "$.acceptance_criteria[4].id",
           "range": {
-            "start": 2174,
-            "end": 2180,
-            "line": 35,
+            "start": 3553,
+            "end": 3559,
+            "line": 51,
             "column": 9
           }
         }
@@ -2418,9 +2418,9 @@
           "path": "spec/features/F-063.yaml",
           "yamlPath": "$.acceptance_criteria[0].id",
           "range": {
-            "start": 372,
-            "end": 378,
-            "line": 14,
+            "start": 380,
+            "end": 386,
+            "line": 16,
             "column": 9
           }
         }
@@ -2432,9 +2432,9 @@
           "path": "spec/features/F-063.yaml",
           "yamlPath": "$.acceptance_criteria[1].id",
           "range": {
-            "start": 957,
-            "end": 963,
-            "line": 20,
+            "start": 1624,
+            "end": 1630,
+            "line": 30,
             "column": 9
           }
         }
@@ -2446,9 +2446,9 @@
           "path": "spec/features/F-063.yaml",
           "yamlPath": "$.acceptance_criteria[2].id",
           "range": {
-            "start": 1448,
-            "end": 1454,
-            "line": 26,
+            "start": 2115,
+            "end": 2121,
+            "line": 36,
             "column": 9
           }
         }
@@ -2460,9 +2460,9 @@
           "path": "spec/features/F-063.yaml",
           "yamlPath": "$.acceptance_criteria[3].id",
           "range": {
-            "start": 1892,
-            "end": 1898,
-            "line": 32,
+            "start": 3245,
+            "end": 3251,
+            "line": 51,
             "column": 9
           }
         }
@@ -2474,9 +2474,9 @@
           "path": "spec/features/F-063.yaml",
           "yamlPath": "$.acceptance_criteria[4].id",
           "range": {
-            "start": 2502,
-            "end": 2508,
-            "line": 40,
+            "start": 3855,
+            "end": 3861,
+            "line": 59,
             "column": 9
           }
         }
@@ -2488,9 +2488,9 @@
           "path": "spec/features/F-063.yaml",
           "yamlPath": "$.acceptance_criteria[5].id",
           "range": {
-            "start": 3141,
-            "end": 3147,
-            "line": 48,
+            "start": 4494,
+            "end": 4500,
+            "line": 67,
             "column": 9
           }
         }
@@ -2502,9 +2502,9 @@
           "path": "spec/features/F-064.yaml",
           "yamlPath": "$.acceptance_criteria[0].id",
           "range": {
-            "start": 222,
-            "end": 228,
-            "line": 10,
+            "start": 228,
+            "end": 234,
+            "line": 11,
             "column": 9
           }
         }
@@ -2516,9 +2516,9 @@
           "path": "spec/features/F-064.yaml",
           "yamlPath": "$.acceptance_criteria[1].id",
           "range": {
-            "start": 860,
-            "end": 866,
-            "line": 16,
+            "start": 866,
+            "end": 872,
+            "line": 17,
             "column": 9
           }
         }
@@ -2530,9 +2530,9 @@
           "path": "spec/features/F-064.yaml",
           "yamlPath": "$.acceptance_criteria[2].id",
           "range": {
-            "start": 1406,
-            "end": 1412,
-            "line": 22,
+            "start": 1875,
+            "end": 1881,
+            "line": 30,
             "column": 9
           }
         }
@@ -2544,9 +2544,9 @@
           "path": "spec/features/F-064.yaml",
           "yamlPath": "$.acceptance_criteria[3].id",
           "range": {
-            "start": 1930,
-            "end": 1936,
-            "line": 28,
+            "start": 3200,
+            "end": 3206,
+            "line": 44,
             "column": 9
           }
         }
@@ -5358,9 +5358,9 @@
           "path": "spec/features/scan-refactor-1edb38.yaml",
           "yamlPath": "$.acceptance_criteria[3].id",
           "range": {
-            "start": 2763,
-            "end": 2769,
-            "line": 44,
+            "start": 3220,
+            "end": 3226,
+            "line": 52,
             "column": 9
           }
         }
@@ -5372,9 +5372,9 @@
           "path": "spec/features/scan-refactor-1edb38.yaml",
           "yamlPath": "$.acceptance_criteria[4].id",
           "range": {
-            "start": 3468,
-            "end": 3474,
-            "line": 50,
+            "start": 3925,
+            "end": 3931,
+            "line": 58,
             "column": 9
           }
         }
@@ -14164,9 +14164,9 @@
           "path": "spec/features/scan-source-roots-c48eb2.yaml",
           "yamlPath": "$.acceptance_criteria[4].id",
           "range": {
-            "start": 3519,
-            "end": 3525,
-            "line": 39,
+            "start": 3781,
+            "end": 3787,
+            "line": 45,
             "column": 9
           }
         }
@@ -22258,9 +22258,9 @@
           "path": "spec/features/F-055.yaml",
           "yamlPath": "$.depends_on[0]",
           "range": {
-            "start": 327,
-            "end": 332,
-            "line": 10,
+            "start": 493,
+            "end": 498,
+            "line": 14,
             "column": 14
           }
         }
@@ -22272,9 +22272,9 @@
           "path": "spec/features/F-055.yaml",
           "yamlPath": "$.depends_on[1]",
           "range": {
-            "start": 334,
-            "end": 339,
-            "line": 10,
+            "start": 500,
+            "end": 505,
+            "line": 14,
             "column": 21
           }
         }
@@ -22286,9 +22286,9 @@
           "path": "spec/features/F-056.yaml",
           "yamlPath": "$.depends_on[0]",
           "range": {
-            "start": 326,
-            "end": 331,
-            "line": 10,
+            "start": 401,
+            "end": 406,
+            "line": 12,
             "column": 14
           }
         }
@@ -22300,9 +22300,9 @@
           "path": "spec/features/F-057.yaml",
           "yamlPath": "$.depends_on[0]",
           "range": {
-            "start": 329,
-            "end": 334,
-            "line": 10,
+            "start": 455,
+            "end": 460,
+            "line": 13,
             "column": 14
           }
         }
@@ -22314,9 +22314,9 @@
           "path": "spec/features/F-058.yaml",
           "yamlPath": "$.depends_on[0]",
           "range": {
-            "start": 219,
-            "end": 224,
-            "line": 7,
+            "start": 233,
+            "end": 238,
+            "line": 8,
             "column": 14
           }
         }
@@ -22328,9 +22328,9 @@
           "path": "spec/features/F-059.yaml",
           "yamlPath": "$.depends_on[0]",
           "range": {
-            "start": 231,
-            "end": 236,
-            "line": 9,
+            "start": 323,
+            "end": 328,
+            "line": 12,
             "column": 14
           }
         }
@@ -22342,9 +22342,9 @@
           "path": "spec/features/F-060.yaml",
           "yamlPath": "$.depends_on[0]",
           "range": {
-            "start": 242,
-            "end": 247,
-            "line": 10,
+            "start": 328,
+            "end": 333,
+            "line": 14,
             "column": 14
           }
         }
@@ -22356,9 +22356,9 @@
           "path": "spec/features/F-061.yaml",
           "yamlPath": "$.depends_on[0]",
           "range": {
-            "start": 192,
-            "end": 197,
-            "line": 8,
+            "start": 324,
+            "end": 329,
+            "line": 12,
             "column": 14
           }
         }
@@ -22372,7 +22372,7 @@
           "range": {
             "start": 199,
             "end": 204,
-            "line": 9,
+            "line": 10,
             "column": 14
           }
         }
@@ -22384,9 +22384,9 @@
           "path": "spec/features/F-063.yaml",
           "yamlPath": "$.depends_on[0]",
           "range": {
-            "start": 336,
-            "end": 341,
-            "line": 12,
+            "start": 344,
+            "end": 349,
+            "line": 14,
             "column": 14
           }
         }
@@ -22398,9 +22398,9 @@
           "path": "spec/features/F-064.yaml",
           "yamlPath": "$.depends_on[0]",
           "range": {
-            "start": 186,
-            "end": 191,
-            "line": 8,
+            "start": 192,
+            "end": 197,
+            "line": 9,
             "column": 14
           }
         }
@@ -25494,9 +25494,9 @@
           "path": "spec/features/F-055.yaml",
           "yamlPath": "$.depends_on[0]",
           "range": {
-            "start": 327,
-            "end": 332,
-            "line": 10,
+            "start": 493,
+            "end": 498,
+            "line": 14,
             "column": 14
           }
         }
@@ -25984,9 +25984,9 @@
           "path": "spec/features/F-055.yaml",
           "yamlPath": "$.depends_on[1]",
           "range": {
-            "start": 334,
-            "end": 339,
-            "line": 10,
+            "start": 500,
+            "end": 505,
+            "line": 14,
             "column": 21
           }
         }
@@ -26026,9 +26026,9 @@
           "path": "spec/features/F-056.yaml",
           "yamlPath": "$.depends_on[0]",
           "range": {
-            "start": 326,
-            "end": 331,
-            "line": 10,
+            "start": 401,
+            "end": 406,
+            "line": 12,
             "column": 14
           }
         }
@@ -26040,9 +26040,9 @@
           "path": "spec/features/F-057.yaml",
           "yamlPath": "$.depends_on[0]",
           "range": {
-            "start": 329,
-            "end": 334,
-            "line": 10,
+            "start": 455,
+            "end": 460,
+            "line": 13,
             "column": 14
           }
         }
@@ -26054,9 +26054,9 @@
           "path": "spec/features/F-058.yaml",
           "yamlPath": "$.depends_on[0]",
           "range": {
-            "start": 219,
-            "end": 224,
-            "line": 7,
+            "start": 233,
+            "end": 238,
+            "line": 8,
             "column": 14
           }
         }
@@ -26068,9 +26068,9 @@
           "path": "spec/features/F-059.yaml",
           "yamlPath": "$.depends_on[0]",
           "range": {
-            "start": 231,
-            "end": 236,
-            "line": 9,
+            "start": 323,
+            "end": 328,
+            "line": 12,
             "column": 14
           }
         }
@@ -26082,9 +26082,9 @@
           "path": "spec/features/F-060.yaml",
           "yamlPath": "$.depends_on[0]",
           "range": {
-            "start": 242,
-            "end": 247,
-            "line": 10,
+            "start": 328,
+            "end": 333,
+            "line": 14,
             "column": 14
           }
         }
@@ -26096,9 +26096,9 @@
           "path": "spec/features/F-061.yaml",
           "yamlPath": "$.depends_on[0]",
           "range": {
-            "start": 192,
-            "end": 197,
-            "line": 8,
+            "start": 324,
+            "end": 329,
+            "line": 12,
             "column": 14
           }
         }
@@ -26112,7 +26112,7 @@
           "range": {
             "start": 199,
             "end": 204,
-            "line": 9,
+            "line": 10,
             "column": 14
           }
         }
@@ -26124,9 +26124,9 @@
           "path": "spec/features/F-063.yaml",
           "yamlPath": "$.depends_on[0]",
           "range": {
-            "start": 336,
-            "end": 341,
-            "line": 12,
+            "start": 344,
+            "end": 349,
+            "line": 14,
             "column": 14
           }
         }
@@ -26138,9 +26138,9 @@
           "path": "spec/features/F-064.yaml",
           "yamlPath": "$.depends_on[0]",
           "range": {
-            "start": 186,
-            "end": 191,
-            "line": 8,
+            "start": 192,
+            "end": 197,
+            "line": 9,
             "column": 14
           }
         }
@@ -30886,6 +30886,7 @@
         "artifact": "artifact:src/adapters/index.ts",
         "owners": [
           "feature:F-049",
+          "feature:F-064",
           "feature:F-069"
         ]
       },
@@ -31294,6 +31295,7 @@
         "owners": [
           "feature:F-00eb1a",
           "feature:F-046",
+          "feature:F-062",
           "feature:F-09d68b",
           "feature:F-0f4dd6",
           "feature:F-16746b",
@@ -31584,6 +31586,7 @@
         "owners": [
           "feature:F-048",
           "feature:F-049",
+          "feature:F-063",
           "feature:F-071",
           "feature:F-072",
           "feature:F-2de65d",
@@ -31602,6 +31605,7 @@
         "owners": [
           "feature:F-0023ba22",
           "feature:F-042",
+          "feature:F-063",
           "feature:F-0f4dd6",
           "feature:F-1aab1bba",
           "feature:F-4f4a12c3",
@@ -32300,25 +32304,29 @@
         "artifact": "artifact:src/stages/arch.ts",
         "owners": [
           "feature:F-008",
+          "feature:F-060",
           "feature:F-e53596dd"
         ]
       },
       {
         "artifact": "artifact:src/stages/audit.ts",
         "owners": [
-          "feature:F-033"
+          "feature:F-033",
+          "feature:F-059"
         ]
       },
       {
         "artifact": "artifact:src/stages/commit.ts",
         "owners": [
-          "feature:F-007"
+          "feature:F-007",
+          "feature:F-059"
         ]
       },
       {
         "artifact": "artifact:src/stages/cov.ts",
         "owners": [
           "feature:F-024",
+          "feature:F-060",
           "feature:F-af96b1",
           "feature:F-c17e1edc",
           "feature:F-c6c3daaf"
@@ -32349,6 +32357,7 @@
         "artifact": "artifact:src/stages/detectors/ac-drift.ts",
         "owners": [
           "feature:F-019",
+          "feature:F-055",
           "feature:F-0b8f23c5"
         ]
       },
@@ -32429,6 +32438,7 @@
         "artifact": "artifact:src/stages/detectors/evidence-mismatch.ts",
         "owners": [
           "feature:F-034",
+          "feature:F-057",
           "feature:F-0b8f23c5"
         ]
       },
@@ -32443,6 +32453,7 @@
         "artifact": "artifact:src/stages/detectors/hardcoded-secret.ts",
         "owners": [
           "feature:F-006",
+          "feature:F-058",
           "feature:F-6ed216f3"
         ]
       },
@@ -32522,6 +32533,7 @@
         "artifact": "artifact:src/stages/detectors/missing-implementation.ts",
         "owners": [
           "feature:F-011",
+          "feature:F-055",
           "feature:F-c3747d7d",
           "feature:F-e8912be3"
         ]
@@ -32575,6 +32587,7 @@
         "artifact": "artifact:src/stages/detectors/reference-integrity.ts",
         "owners": [
           "feature:F-016",
+          "feature:F-057",
           "feature:F-0b8f23c5"
         ]
       },
@@ -32629,13 +32642,15 @@
       {
         "artifact": "artifact:src/stages/detectors/stale-evidence.ts",
         "owners": [
-          "feature:F-035"
+          "feature:F-035",
+          "feature:F-057"
         ]
       },
       {
         "artifact": "artifact:src/stages/detectors/stale-specification.ts",
         "owners": [
           "feature:F-015",
+          "feature:F-056",
           "feature:F-b99577",
           "feature:F-c3747d7d"
         ]
@@ -32644,6 +32659,7 @@
         "artifact": "artifact:src/stages/detectors/stale-tests.ts",
         "owners": [
           "feature:F-025",
+          "feature:F-056",
           "feature:F-dd51b42c"
         ]
       },
@@ -32651,6 +32667,7 @@
         "artifact": "artifact:src/stages/detectors/status-drift.ts",
         "owners": [
           "feature:F-014",
+          "feature:F-055",
           "feature:F-c3747d7d"
         ]
       },
@@ -32658,6 +32675,7 @@
         "artifact": "artifact:src/stages/detectors/tech-stack-mismatch.ts",
         "owners": [
           "feature:F-013",
+          "feature:F-055",
           "feature:F-9e1279d4"
         ]
       },
@@ -32744,6 +32762,7 @@
         "artifact": "artifact:src/stages/perf.ts",
         "owners": [
           "feature:F-028",
+          "feature:F-061",
           "feature:F-af96b1"
         ]
       },
@@ -32757,6 +32776,7 @@
         "artifact": "artifact:src/stages/secret.ts",
         "owners": [
           "feature:F-005",
+          "feature:F-060",
           "feature:F-e53596dd"
         ]
       },
@@ -32866,13 +32886,15 @@
       {
         "artifact": "artifact:src/stages/uat.ts",
         "owners": [
-          "feature:F-033"
+          "feature:F-033",
+          "feature:F-061"
         ]
       },
       {
         "artifact": "artifact:src/stages/unit.ts",
         "owners": [
           "feature:F-021",
+          "feature:F-060",
           "feature:F-49f6f2d2",
           "feature:F-6f0a2106",
           "feature:F-af96b1",
@@ -32900,6 +32922,7 @@
         "artifact": "artifact:src/stages/visual.ts",
         "owners": [
           "feature:F-029",
+          "feature:F-061",
           "feature:F-af96b1"
         ]
       },
@@ -33220,6 +33243,13 @@
         "artifact": "artifact:tests/proof/signoff.test.ts",
         "owners": [
           "feature:F-2883ff4d"
+        ]
+      },
+      {
+        "artifact": "artifact:tests/proof/stage-receipt-reduction.test.ts",
+        "owners": [
+          "feature:F-059",
+          "feature:F-061"
         ]
       },
       {
@@ -37189,9 +37219,9 @@
           "path": "spec/features/F-055.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[0]",
           "range": {
-            "start": 811,
-            "end": 849,
-            "line": 17,
+            "start": 977,
+            "end": 1015,
+            "line": 21,
             "column": 17
           }
         }
@@ -37199,19 +37229,20 @@
       {
         "owner": "criterion:F-055/AC-126",
         "channel": "test",
-        "raw": "tests/stages/missing-implementation.test.ts",
-        "normalizedTarget": "artifact:tests/stages/missing-implementation.test.ts",
+        "raw": "tests/stages/missing-implementation.test.ts#[covers:F-055/AC-126] reports a present and a single missing declared module",
+        "normalizedTarget": "anchor:tests/stages/missing-implementation.test.ts#[covers:F-055/AC-126] reports a present and a single missing declared module",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-055/AC-126] reports a present and a single missing declared module"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-055.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 1294,
-            "end": 1337,
-            "line": 24,
+            "start": 1709,
+            "end": 1831,
+            "line": 29,
             "column": 9
           }
         }
@@ -37219,19 +37250,20 @@
       {
         "owner": "criterion:F-055/AC-126",
         "channel": "test",
-        "raw": "tests/stages/status-drift.test.ts",
-        "normalizedTarget": "artifact:tests/stages/status-drift.test.ts",
+        "raw": "tests/stages/status-drift.test.ts#[covers:F-055/AC-126] status=done + one missing module → one error finding",
+        "normalizedTarget": "anchor:tests/stages/status-drift.test.ts#[covers:F-055/AC-126] status=done + one missing module → one error finding",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-055/AC-126] status=done + one missing module → one error finding"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-055.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[1]",
           "range": {
-            "start": 1346,
-            "end": 1379,
-            "line": 25,
+            "start": 1840,
+            "end": 1950,
+            "line": 30,
             "column": 9
           }
         }
@@ -37239,19 +37271,20 @@
       {
         "owner": "criterion:F-055/AC-127",
         "channel": "test",
-        "raw": "tests/stages/ac-drift.test.ts",
-        "normalizedTarget": "artifact:tests/stages/ac-drift.test.ts",
+        "raw": "tests/stages/ac-drift.test.ts#[covers:F-055/AC-127] AC missing text and EARS fields reports structural drift",
+        "normalizedTarget": "anchor:tests/stages/ac-drift.test.ts#[covers:F-055/AC-127] AC missing text and EARS fields reports structural drift",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-055/AC-127] AC missing text and EARS fields reports structural drift"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-055.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 1834,
-            "end": 1863,
-            "line": 32,
+            "start": 2911,
+            "end": 3021,
+            "line": 43,
             "column": 9
           }
         }
@@ -37259,19 +37292,20 @@
       {
         "owner": "criterion:F-055/AC-127",
         "channel": "test",
-        "raw": "tests/stages/tech-stack-mismatch.test.ts",
-        "normalizedTarget": "artifact:tests/stages/tech-stack-mismatch.test.ts",
+        "raw": "tests/stages/tech-stack-mismatch.test.ts#[covers:F-055/AC-127] build manifests do not alter source-derived language evidence",
+        "normalizedTarget": "anchor:tests/stages/tech-stack-mismatch.test.ts#[covers:F-055/AC-127] build manifests do not alter source-derived language evidence",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-055/AC-127] build manifests do not alter source-derived language evidence"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-055.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[1]",
           "range": {
-            "start": 1872,
-            "end": 1912,
-            "line": 33,
+            "start": 3030,
+            "end": 3156,
+            "line": 44,
             "column": 9
           }
         }
@@ -37290,9 +37324,9 @@
           "path": "spec/features/F-055.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 2312,
-            "end": 2626,
-            "line": 41,
+            "start": 3768,
+            "end": 4082,
+            "line": 56,
             "column": 9
           }
         }
@@ -37310,9 +37344,9 @@
           "path": "spec/features/F-056.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[0]",
           "range": {
-            "start": 804,
-            "end": 841,
-            "line": 17,
+            "start": 879,
+            "end": 916,
+            "line": 19,
             "column": 17
           }
         }
@@ -37320,19 +37354,20 @@
       {
         "owner": "criterion:F-056/AC-130",
         "channel": "test",
-        "raw": "tests/stages/stale-specification.test.ts",
-        "normalizedTarget": "artifact:tests/stages/stale-specification.test.ts",
+        "raw": "tests/stages/stale-specification.test.ts#[covers:F-056/AC-130] archived_at on an active lifecycle reports a warning",
+        "normalizedTarget": "anchor:tests/stages/stale-specification.test.ts#[covers:F-056/AC-130] archived_at on an active lifecycle reports a warning",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-056/AC-130] archived_at on an active lifecycle reports a warning"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-056.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[1]",
           "range": {
-            "start": 1385,
-            "end": 1425,
-            "line": 25,
+            "start": 1713,
+            "end": 1830,
+            "line": 28,
             "column": 9
           }
         }
@@ -37340,19 +37375,20 @@
       {
         "owner": "criterion:F-056/AC-130",
         "channel": "test",
-        "raw": "tests/stages/stale-tests.test.ts",
-        "normalizedTarget": "artifact:tests/stages/stale-tests.test.ts",
+        "raw": "tests/stages/stale-tests.test.ts#[covers:F-056/AC-130] a controlled stale test mtime reports a warning",
+        "normalizedTarget": "anchor:tests/stages/stale-tests.test.ts#[covers:F-056/AC-130] a controlled stale test mtime reports a warning",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-056/AC-130] a controlled stale test mtime reports a warning"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-056.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 1344,
-            "end": 1376,
-            "line": 24,
+            "start": 1600,
+            "end": 1704,
+            "line": 27,
             "column": 9
           }
         }
@@ -37370,9 +37406,9 @@
           "path": "spec/features/F-056.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 1903,
-            "end": 1941,
-            "line": 32,
+            "start": 2604,
+            "end": 2642,
+            "line": 40,
             "column": 9
           }
         }
@@ -37390,9 +37426,9 @@
           "path": "spec/features/F-056.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[1]",
           "range": {
-            "start": 1950,
-            "end": 1985,
-            "line": 33,
+            "start": 2651,
+            "end": 2686,
+            "line": 41,
             "column": 9
           }
         }
@@ -37411,9 +37447,9 @@
           "path": "spec/features/F-056.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 2385,
-            "end": 2699,
-            "line": 41,
+            "start": 3086,
+            "end": 3400,
+            "line": 49,
             "column": 9
           }
         }
@@ -37431,9 +37467,9 @@
           "path": "spec/features/F-057.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[0]",
           "range": {
-            "start": 826,
-            "end": 860,
-            "line": 18,
+            "start": 952,
+            "end": 986,
+            "line": 21,
             "column": 9
           }
         }
@@ -37451,9 +37487,9 @@
           "path": "spec/features/F-057.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[1]",
           "range": {
-            "start": 869,
-            "end": 907,
-            "line": 19,
+            "start": 995,
+            "end": 1033,
+            "line": 22,
             "column": 9
           }
         }
@@ -37461,19 +37497,20 @@
       {
         "owner": "criterion:F-057/AC-134",
         "channel": "test",
-        "raw": "tests/stages/evidence-mismatch.test.ts",
-        "normalizedTarget": "artifact:tests/stages/evidence-mismatch.test.ts",
+        "raw": "tests/stages/evidence-mismatch.test.ts#[covers:F-057/AC-134] evidence with a missing artifact reports an error",
+        "normalizedTarget": "anchor:tests/stages/evidence-mismatch.test.ts#[covers:F-057/AC-134] evidence with a missing artifact reports an error",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-057/AC-134] evidence with a missing artifact reports an error"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-057.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 1397,
-            "end": 1435,
-            "line": 26,
+            "start": 1636,
+            "end": 1748,
+            "line": 30,
             "column": 9
           }
         }
@@ -37481,19 +37518,20 @@
       {
         "owner": "criterion:F-057/AC-134",
         "channel": "test",
-        "raw": "tests/stages/stale-evidence.test.ts",
-        "normalizedTarget": "artifact:tests/stages/stale-evidence.test.ts",
+        "raw": "tests/stages/stale-evidence.test.ts#[covers:F-057/AC-134] evidence older than 90 days reports a warning",
+        "normalizedTarget": "anchor:tests/stages/stale-evidence.test.ts#[covers:F-057/AC-134] evidence older than 90 days reports a warning",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-057/AC-134] evidence older than 90 days reports a warning"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-057.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[1]",
           "range": {
-            "start": 1444,
-            "end": 1479,
-            "line": 27,
+            "start": 1757,
+            "end": 1862,
+            "line": 31,
             "column": 9
           }
         }
@@ -37501,20 +37539,63 @@
       {
         "owner": "criterion:F-057/AC-135",
         "channel": "test",
-        "raw": "tests/stages/reference-integrity.test.ts",
-        "normalizedTarget": "artifact:tests/stages/reference-integrity.test.ts",
+        "raw": "tests/stages/reference-integrity.test.ts#[covers:F-057/AC-135] unknown depends_on reference reports an error",
+        "normalizedTarget": "anchor:tests/stages/reference-integrity.test.ts#[covers:F-057/AC-135] unknown depends_on reference reports an error",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-057/AC-135] unknown depends_on reference reports an error"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-057.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 1939,
-            "end": 1979,
-            "line": 33,
-            "column": 17
+            "start": 2847,
+            "end": 2957,
+            "line": 45,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-057/AC-135",
+        "channel": "test",
+        "raw": "tests/stages/reference-integrity.test.ts#[covers:F-057/AC-135] unknown scenario feature reference reports an error",
+        "normalizedTarget": "anchor:tests/stages/reference-integrity.test.ts#[covers:F-057/AC-135] unknown scenario feature reference reports an error",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-057/AC-135] unknown scenario feature reference reports an error"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-057.yaml",
+          "yamlPath": "$.acceptance_criteria[2].test_refs[2]",
+          "range": {
+            "start": 3088,
+            "end": 3204,
+            "line": 47,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-057/AC-135",
+        "channel": "test",
+        "raw": "tests/stages/reference-integrity.test.ts#[covers:F-057/AC-135] unknown superseded_by reference reports an error",
+        "normalizedTarget": "anchor:tests/stages/reference-integrity.test.ts#[covers:F-057/AC-135] unknown superseded_by reference reports an error",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-057/AC-135] unknown superseded_by reference reports an error"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-057.yaml",
+          "yamlPath": "$.acceptance_criteria[2].test_refs[1]",
+          "range": {
+            "start": 2966,
+            "end": 3079,
+            "line": 46,
+            "column": 9
           }
         }
       },
@@ -37532,9 +37613,9 @@
           "path": "spec/features/F-057.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 2380,
-            "end": 2694,
-            "line": 41,
+            "start": 3818,
+            "end": 4132,
+            "line": 59,
             "column": 9
           }
         }
@@ -37542,20 +37623,63 @@
       {
         "owner": "criterion:F-058/AC-137",
         "channel": "test",
-        "raw": "tests/stages/hardcoded-secret.test.ts",
-        "normalizedTarget": "artifact:tests/stages/hardcoded-secret.test.ts",
+        "raw": "tests/stages/hardcoded-secret.test.ts#[covers:F-058/AC-137] scanner ENOENT is observed as unavailable",
+        "normalizedTarget": "anchor:tests/stages/hardcoded-secret.test.ts#[covers:F-058/AC-137] scanner ENOENT is observed as unavailable",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-058/AC-137] scanner ENOENT is observed as unavailable"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-058.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[2]",
+          "range": {
+            "start": 1052,
+            "end": 1155,
+            "line": 19,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-058/AC-137",
+        "channel": "test",
+        "raw": "tests/stages/hardcoded-secret.test.ts#[covers:F-058/AC-137] scanner exit 0 produces no finding",
+        "normalizedTarget": "anchor:tests/stages/hardcoded-secret.test.ts#[covers:F-058/AC-137] scanner exit 0 produces no finding",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-058/AC-137] scanner exit 0 produces no finding"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-058.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[0]",
           "range": {
-            "start": 769,
-            "end": 806,
-            "line": 14,
-            "column": 17
+            "start": 827,
+            "end": 923,
+            "line": 17,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-058/AC-137",
+        "channel": "test",
+        "raw": "tests/stages/hardcoded-secret.test.ts#[covers:F-058/AC-137] scanner non-zero output produces an error finding",
+        "normalizedTarget": "anchor:tests/stages/hardcoded-secret.test.ts#[covers:F-058/AC-137] scanner non-zero output produces an error finding",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-058/AC-137] scanner non-zero output produces an error finding"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-058.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[1]",
+          "range": {
+            "start": 932,
+            "end": 1043,
+            "line": 18,
+            "column": 9
           }
         }
       },
@@ -37572,9 +37696,9 @@
           "path": "spec/features/F-058.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 1279,
-            "end": 1322,
-            "line": 20,
+            "start": 1959,
+            "end": 2002,
+            "line": 31,
             "column": 17
           }
         }
@@ -37593,9 +37717,9 @@
           "path": "spec/features/F-058.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 1786,
-            "end": 1901,
-            "line": 28,
+            "start": 2466,
+            "end": 2581,
+            "line": 39,
             "column": 9
           }
         }
@@ -37614,9 +37738,9 @@
           "path": "spec/features/F-058.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 2438,
-            "end": 2752,
-            "line": 39,
+            "start": 3118,
+            "end": 3432,
+            "line": 50,
             "column": 9
           }
         }
@@ -37634,9 +37758,9 @@
           "path": "spec/features/F-059.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[1]",
           "range": {
-            "start": 866,
-            "end": 891,
-            "line": 18,
+            "start": 958,
+            "end": 983,
+            "line": 21,
             "column": 9
           }
         }
@@ -37654,9 +37778,9 @@
           "path": "spec/features/F-059.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[0]",
           "range": {
-            "start": 832,
-            "end": 857,
-            "line": 17,
+            "start": 924,
+            "end": 949,
+            "line": 20,
             "column": 9
           }
         }
@@ -37664,40 +37788,126 @@
       {
         "owner": "criterion:F-059/AC-142",
         "channel": "test",
-        "raw": "tests/stages/commit.test.ts",
-        "normalizedTarget": "artifact:tests/stages/commit.test.ts",
+        "raw": "tests/stages/commit.test.ts#[covers:F-059/AC-142] clean working tree is a pass observation",
+        "normalizedTarget": "anchor:tests/stages/commit.test.ts#[covers:F-059/AC-142] clean working tree is a pass observation",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-059/AC-142] clean working tree is a pass observation"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-059.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 1313,
-            "end": 1340,
-            "line": 24,
-            "column": 17
+            "start": 1472,
+            "end": 1564,
+            "line": 29,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-059/AC-142",
+        "channel": "test",
+        "raw": "tests/stages/commit.test.ts#[covers:F-059/AC-142] dirty working tree is a fail observation",
+        "normalizedTarget": "anchor:tests/stages/commit.test.ts#[covers:F-059/AC-142] dirty working tree is a fail observation",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-059/AC-142] dirty working tree is a fail observation"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-059.yaml",
+          "yamlPath": "$.acceptance_criteria[1].test_refs[1]",
+          "range": {
+            "start": 1573,
+            "end": 1665,
+            "line": 30,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-059/AC-142",
+        "channel": "test",
+        "raw": "tests/stages/commit.test.ts#[covers:F-059/AC-142] git ENOENT is an unobserved observation",
+        "normalizedTarget": "anchor:tests/stages/commit.test.ts#[covers:F-059/AC-142] git ENOENT is an unobserved observation",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-059/AC-142] git ENOENT is an unobserved observation"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-059.yaml",
+          "yamlPath": "$.acceptance_criteria[1].test_refs[2]",
+          "range": {
+            "start": 1674,
+            "end": 1765,
+            "line": 31,
+            "column": 9
           }
         }
       },
       {
         "owner": "criterion:F-059/AC-143",
         "channel": "test",
-        "raw": "tests/stages/audit.test.ts",
-        "normalizedTarget": "artifact:tests/stages/audit.test.ts",
+        "raw": "tests/proof/stage-receipt-reduction.test.ts#[covers:F-059/AC-143] mechanism proof: explicit negative Audit check reduces to fail",
+        "normalizedTarget": "anchor:tests/proof/stage-receipt-reduction.test.ts#[covers:F-059/AC-143] mechanism proof: explicit negative Audit check reduces to fail",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-059/AC-143] mechanism proof: explicit negative Audit check reduces to fail"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-059.yaml",
+          "yamlPath": "$.acceptance_criteria[2].test_refs[2]",
+          "range": {
+            "start": 3195,
+            "end": 3325,
+            "line": 47,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-059/AC-143",
+        "channel": "test",
+        "raw": "tests/proof/stage-receipt-reduction.test.ts#[covers:F-059/AC-143] mechanism proof: missing, untrusted, or stale Audit receipt remains unobserved",
+        "normalizedTarget": "anchor:tests/proof/stage-receipt-reduction.test.ts#[covers:F-059/AC-143] mechanism proof: missing, untrusted, or stale Audit receipt remains unobserved",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-059/AC-143] mechanism proof: missing, untrusted, or stale Audit receipt remains unobserved"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-059.yaml",
+          "yamlPath": "$.acceptance_criteria[2].test_refs[1]",
+          "range": {
+            "start": 3040,
+            "end": 3186,
+            "line": 46,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-059/AC-143",
+        "channel": "test",
+        "raw": "tests/proof/stage-receipt-reduction.test.ts#[covers:F-059/AC-143] mechanism proof: trusted current Audit receipt with sealed dependency and author digests reduces to pass",
+        "normalizedTarget": "anchor:tests/proof/stage-receipt-reduction.test.ts#[covers:F-059/AC-143] mechanism proof: trusted current Audit receipt with sealed dependency and author digests reduces to pass",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-059/AC-143] mechanism proof: trusted current Audit receipt with sealed dependency and author digests reduces to pass"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-059.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 1857,
-            "end": 1883,
-            "line": 30,
-            "column": 17
+            "start": 2859,
+            "end": 3031,
+            "line": 45,
+            "column": 9
           }
         }
       },
@@ -37715,9 +37925,9 @@
           "path": "spec/features/F-059.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 2286,
-            "end": 2600,
-            "line": 38,
+            "start": 3969,
+            "end": 4283,
+            "line": 60,
             "column": 9
           }
         }
@@ -37725,19 +37935,20 @@
       {
         "owner": "criterion:F-060/AC-145",
         "channel": "test",
-        "raw": "tests/stages/arch.test.ts",
-        "normalizedTarget": "artifact:tests/stages/arch.test.ts",
+        "raw": "tests/stages/arch.test.ts#[covers:F-060/AC-145] cached architecture findings preserve error severity and diagnostic order",
+        "normalizedTarget": "anchor:tests/stages/arch.test.ts#[covers:F-060/AC-145] cached architecture findings preserve error severity and diagnostic order",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-060/AC-145] cached architecture findings preserve error severity and diagnostic order"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-060.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[0]",
           "range": {
-            "start": 879,
-            "end": 904,
-            "line": 18,
+            "start": 832,
+            "end": 955,
+            "line": 22,
             "column": 9
           }
         }
@@ -37745,19 +37956,62 @@
       {
         "owner": "criterion:F-060/AC-145",
         "channel": "test",
-        "raw": "tests/stages/secret.test.ts",
-        "normalizedTarget": "artifact:tests/stages/secret.test.ts",
+        "raw": "tests/stages/arch.test.ts#[covers:F-060/AC-145] uncached architecture checks forward supplied options to the detector",
+        "normalizedTarget": "anchor:tests/stages/arch.test.ts#[covers:F-060/AC-145] uncached architecture checks forward supplied options to the detector",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-060/AC-145] uncached architecture checks forward supplied options to the detector"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-060.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[1]",
           "range": {
-            "start": 913,
-            "end": 940,
-            "line": 19,
+            "start": 964,
+            "end": 1083,
+            "line": 23,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-060/AC-145",
+        "channel": "test",
+        "raw": "tests/stages/secret.test.ts#[covers:F-060/AC-145] cached secret findings preserve error severity and diagnostic order",
+        "normalizedTarget": "anchor:tests/stages/secret.test.ts#[covers:F-060/AC-145] cached secret findings preserve error severity and diagnostic order",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-060/AC-145] cached secret findings preserve error severity and diagnostic order"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-060.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[2]",
+          "range": {
+            "start": 1092,
+            "end": 1211,
+            "line": 24,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-060/AC-145",
+        "channel": "test",
+        "raw": "tests/stages/secret.test.ts#[covers:F-060/AC-145] uncached secret checks forward supplied options to the detector",
+        "normalizedTarget": "anchor:tests/stages/secret.test.ts#[covers:F-060/AC-145] uncached secret checks forward supplied options to the detector",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-060/AC-145] uncached secret checks forward supplied options to the detector"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-060.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[3]",
+          "range": {
+            "start": 1220,
+            "end": 1335,
+            "line": 25,
             "column": 9
           }
         }
@@ -37765,19 +38019,41 @@
       {
         "owner": "criterion:F-060/AC-146",
         "channel": "test",
-        "raw": "tests/stages/cov.test.ts",
-        "normalizedTarget": "artifact:tests/stages/cov.test.ts",
+        "raw": "tests/stages/cov.test.ts#[covers:F-060/AC-146] coverage folds the current shared invocation instead of starting another runner",
+        "normalizedTarget": "anchor:tests/stages/cov.test.ts#[covers:F-060/AC-146] coverage folds the current shared invocation instead of starting another runner",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-060/AC-146] coverage folds the current shared invocation instead of starting another runner"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-060.yaml",
+          "yamlPath": "$.acceptance_criteria[1].test_refs[2]",
+          "range": {
+            "start": 2446,
+            "end": 2574,
+            "line": 39,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-060/AC-146",
+        "channel": "test",
+        "raw": "tests/stages/cov.test.ts#[covers:F-060/AC-146] coverage runner preserves successful, failed, unavailable, and overridden execution outcomes",
+        "normalizedTarget": "anchor:tests/stages/cov.test.ts#[covers:F-060/AC-146] coverage runner preserves successful, failed, unavailable, and overridden execution outcomes",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-060/AC-146] coverage runner preserves successful, failed, unavailable, and overridden execution outcomes"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-060.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[1]",
           "range": {
-            "start": 1511,
-            "end": 1535,
-            "line": 27,
+            "start": 2296,
+            "end": 2437,
+            "line": 38,
             "column": 9
           }
         }
@@ -37785,19 +38061,20 @@
       {
         "owner": "criterion:F-060/AC-146",
         "channel": "test",
-        "raw": "tests/stages/unit.test.ts",
-        "normalizedTarget": "artifact:tests/stages/unit.test.ts",
+        "raw": "tests/stages/unit.test.ts#[covers:F-060/AC-146] unit runner preserves successful, failed, unavailable, and overridden execution outcomes",
+        "normalizedTarget": "anchor:tests/stages/unit.test.ts#[covers:F-060/AC-146] unit runner preserves successful, failed, unavailable, and overridden execution outcomes",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-060/AC-146] unit runner preserves successful, failed, unavailable, and overridden execution outcomes"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-060.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 1477,
-            "end": 1502,
-            "line": 26,
+            "start": 2149,
+            "end": 2287,
+            "line": 37,
             "column": 9
           }
         }
@@ -37815,9 +38092,9 @@
           "path": "spec/features/F-060.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 1990,
-            "end": 2016,
-            "line": 33,
+            "start": 3270,
+            "end": 3296,
+            "line": 50,
             "column": 17
           }
         }
@@ -37836,9 +38113,9 @@
           "path": "spec/features/F-060.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 2419,
-            "end": 2733,
-            "line": 41,
+            "start": 3699,
+            "end": 4013,
+            "line": 58,
             "column": 9
           }
         }
@@ -37846,19 +38123,20 @@
       {
         "owner": "criterion:F-061/AC-149",
         "channel": "test",
-        "raw": "tests/stages/perf.test.ts",
-        "normalizedTarget": "artifact:tests/stages/perf.test.ts",
+        "raw": "tests/stages/perf.test.ts#[covers:F-061/AC-149] performance descriptor fallback reports an unavailable runner",
+        "normalizedTarget": "anchor:tests/stages/perf.test.ts#[covers:F-061/AC-149] performance descriptor fallback reports an unavailable runner",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-061/AC-149] performance descriptor fallback reports an unavailable runner"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-061.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[0]",
           "range": {
-            "start": 767,
-            "end": 792,
-            "line": 16,
+            "start": 962,
+            "end": 1073,
+            "line": 21,
             "column": 9
           }
         }
@@ -37866,19 +38144,104 @@
       {
         "owner": "criterion:F-061/AC-149",
         "channel": "test",
-        "raw": "tests/stages/visual.test.ts",
-        "normalizedTarget": "artifact:tests/stages/visual.test.ts",
+        "raw": "tests/stages/perf.test.ts#[covers:F-061/AC-149] performance descriptor override bypasses fallback selection",
+        "normalizedTarget": "anchor:tests/stages/perf.test.ts#[covers:F-061/AC-149] performance descriptor override bypasses fallback selection",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-061/AC-149] performance descriptor override bypasses fallback selection"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-061.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[2]",
+          "range": {
+            "start": 1199,
+            "end": 1308,
+            "line": 23,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-061/AC-149",
+        "channel": "test",
+        "raw": "tests/stages/perf.test.ts#[covers:F-061/AC-149] performance descriptor reports a successful runner outcome",
+        "normalizedTarget": "anchor:tests/stages/perf.test.ts#[covers:F-061/AC-149] performance descriptor reports a successful runner outcome",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-061/AC-149] performance descriptor reports a successful runner outcome"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-061.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[1]",
           "range": {
-            "start": 801,
-            "end": 828,
-            "line": 17,
+            "start": 1082,
+            "end": 1190,
+            "line": 22,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-061/AC-149",
+        "channel": "test",
+        "raw": "tests/stages/visual.test.ts#[covers:F-061/AC-149] visual descriptor fallback reports an unavailable runner",
+        "normalizedTarget": "anchor:tests/stages/visual.test.ts#[covers:F-061/AC-149] visual descriptor fallback reports an unavailable runner",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-061/AC-149] visual descriptor fallback reports an unavailable runner"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-061.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[3]",
+          "range": {
+            "start": 1317,
+            "end": 1425,
+            "line": 24,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-061/AC-149",
+        "channel": "test",
+        "raw": "tests/stages/visual.test.ts#[covers:F-061/AC-149] visual descriptor override bypasses fallback selection",
+        "normalizedTarget": "anchor:tests/stages/visual.test.ts#[covers:F-061/AC-149] visual descriptor override bypasses fallback selection",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-061/AC-149] visual descriptor override bypasses fallback selection"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-061.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[5]",
+          "range": {
+            "start": 1548,
+            "end": 1654,
+            "line": 26,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-061/AC-149",
+        "channel": "test",
+        "raw": "tests/stages/visual.test.ts#[covers:F-061/AC-149] visual descriptor reports a successful runner outcome",
+        "normalizedTarget": "anchor:tests/stages/visual.test.ts#[covers:F-061/AC-149] visual descriptor reports a successful runner outcome",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-061/AC-149] visual descriptor reports a successful runner outcome"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-061.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[4]",
+          "range": {
+            "start": 1434,
+            "end": 1539,
+            "line": 25,
             "column": 9
           }
         }
@@ -37886,20 +38249,63 @@
       {
         "owner": "criterion:F-061/AC-150",
         "channel": "test",
-        "raw": "tests/stages/uat.test.ts",
-        "normalizedTarget": "artifact:tests/stages/uat.test.ts",
+        "raw": "tests/proof/stage-receipt-reduction.test.ts#[covers:F-061/AC-150] mechanism proof: explicit negative UAT verdict reduces to fail",
+        "normalizedTarget": "anchor:tests/proof/stage-receipt-reduction.test.ts#[covers:F-061/AC-150] mechanism proof: explicit negative UAT verdict reduces to fail",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-061/AC-150] mechanism proof: explicit negative UAT verdict reduces to fail"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-061.yaml",
+          "yamlPath": "$.acceptance_criteria[1].test_refs[2]",
+          "range": {
+            "start": 3248,
+            "end": 3378,
+            "line": 41,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-061/AC-150",
+        "channel": "test",
+        "raw": "tests/proof/stage-receipt-reduction.test.ts#[covers:F-061/AC-150] mechanism proof: missing, untrusted, stale, or incomplete-matrix UAT receipt remains unobserved",
+        "normalizedTarget": "anchor:tests/proof/stage-receipt-reduction.test.ts#[covers:F-061/AC-150] mechanism proof: missing, untrusted, stale, or incomplete-matrix UAT receipt remains unobserved",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-061/AC-150] mechanism proof: missing, untrusted, stale, or incomplete-matrix UAT receipt remains unobserved"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-061.yaml",
+          "yamlPath": "$.acceptance_criteria[1].test_refs[1]",
+          "range": {
+            "start": 3076,
+            "end": 3239,
+            "line": 40,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-061/AC-150",
+        "channel": "test",
+        "raw": "tests/proof/stage-receipt-reduction.test.ts#[covers:F-061/AC-150] mechanism proof: trusted current UAT receipt with an exact criterion matrix reduces to pass",
+        "normalizedTarget": "anchor:tests/proof/stage-receipt-reduction.test.ts#[covers:F-061/AC-150] mechanism proof: trusted current UAT receipt with an exact criterion matrix reduces to pass",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-061/AC-150] mechanism proof: trusted current UAT receipt with an exact criterion matrix reduces to pass"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-061.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 1353,
-            "end": 1377,
-            "line": 23,
-            "column": 17
+            "start": 2908,
+            "end": 3067,
+            "line": 39,
+            "column": 9
           }
         }
       },
@@ -37917,9 +38323,9 @@
           "path": "spec/features/F-061.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 1829,
-            "end": 1956,
-            "line": 31,
+            "start": 4086,
+            "end": 4213,
+            "line": 54,
             "column": 9
           }
         }
@@ -37938,9 +38344,9 @@
           "path": "spec/features/F-061.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 2481,
-            "end": 2795,
-            "line": 42,
+            "start": 4738,
+            "end": 5052,
+            "line": 65,
             "column": 9
           }
         }
@@ -37960,7 +38366,7 @@
           "range": {
             "start": 806,
             "end": 822,
-            "line": 16,
+            "line": 17,
             "column": 21
           }
         }
@@ -37980,7 +38386,7 @@
           "range": {
             "start": 1277,
             "end": 1297,
-            "line": 22,
+            "line": 23,
             "column": 21
           }
         }
@@ -37988,40 +38394,126 @@
       {
         "owner": "criterion:F-062/AC-155",
         "channel": "test",
-        "raw": "tests/cli/init.test.ts",
-        "normalizedTarget": "artifact:tests/cli/init.test.ts",
+        "raw": "tests/cli/init.test.ts#[covers:F-062/AC-155] initialization creates the managed ignore entry from an absent file and remains idempotent",
+        "normalizedTarget": "anchor:tests/cli/init.test.ts#[covers:F-062/AC-155] initialization creates the managed ignore entry from an absent file and remains idempotent",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-062/AC-155] initialization creates the managed ignore entry from an absent file and remains idempotent"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-062.yaml",
+          "yamlPath": "$.acceptance_criteria[2].test_refs[3]",
+          "range": {
+            "start": 2158,
+            "end": 2295,
+            "line": 33,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-062/AC-155",
+        "channel": "test",
+        "raw": "tests/cli/init.test.ts#[covers:F-062/AC-155] initialization derives the default project name from its workspace",
+        "normalizedTarget": "anchor:tests/cli/init.test.ts#[covers:F-062/AC-155] initialization derives the default project name from its workspace",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-062/AC-155] initialization derives the default project name from its workspace"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-062.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 1711,
-            "end": 1733,
-            "line": 28,
-            "column": 17
+            "start": 1774,
+            "end": 1887,
+            "line": 30,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-062/AC-155",
+        "channel": "test",
+        "raw": "tests/cli/init.test.ts#[covers:F-062/AC-155] initialization preserves an explicit project name in the seed",
+        "normalizedTarget": "anchor:tests/cli/init.test.ts#[covers:F-062/AC-155] initialization preserves an explicit project name in the seed",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-062/AC-155] initialization preserves an explicit project name in the seed"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-062.yaml",
+          "yamlPath": "$.acceptance_criteria[2].test_refs[1]",
+          "range": {
+            "start": 1896,
+            "end": 2004,
+            "line": 31,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-062/AC-155",
+        "channel": "test",
+        "raw": "tests/cli/init.test.ts#[covers:F-062/AC-155] initialization preserves the existing ignore bytes and separator before its managed entry",
+        "normalizedTarget": "anchor:tests/cli/init.test.ts#[covers:F-062/AC-155] initialization preserves the existing ignore bytes and separator before its managed entry",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-062/AC-155] initialization preserves the existing ignore bytes and separator before its managed entry"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-062.yaml",
+          "yamlPath": "$.acceptance_criteria[2].test_refs[2]",
+          "range": {
+            "start": 2013,
+            "end": 2149,
+            "line": 32,
+            "column": 9
           }
         }
       },
       {
         "owner": "criterion:F-062/AC-156",
         "channel": "test",
-        "raw": "tests/cli/benchmark.test.ts",
-        "normalizedTarget": "artifact:tests/cli/benchmark.test.ts",
+        "raw": "tests/cli/benchmark.test.ts#[covers:F-062/AC-156] approxTokens rounds every text length up by the documented divisor",
+        "normalizedTarget": "anchor:tests/cli/benchmark.test.ts#[covers:F-062/AC-156] approxTokens rounds every text length up by the documented divisor",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-062/AC-156] approxTokens rounds every text length up by the documented divisor"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-062.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 2137,
-            "end": 2164,
-            "line": 34,
-            "column": 17
+            "start": 3074,
+            "end": 3192,
+            "line": 45,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-062/AC-156",
+        "channel": "test",
+        "raw": "tests/cli/benchmark.test.ts#[covers:F-062/AC-156] benchmark preserves the selected feature and its semantic pruning relationship",
+        "normalizedTarget": "anchor:tests/cli/benchmark.test.ts#[covers:F-062/AC-156] benchmark preserves the selected feature and its semantic pruning relationship",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-062/AC-156] benchmark preserves the selected feature and its semantic pruning relationship"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-062.yaml",
+          "yamlPath": "$.acceptance_criteria[3].test_refs[1]",
+          "range": {
+            "start": 3201,
+            "end": 3331,
+            "line": 46,
+            "column": 9
           }
         }
       },
@@ -38039,9 +38531,9 @@
           "path": "spec/features/F-062.yaml",
           "yamlPath": "$.acceptance_criteria[4].test_refs[0]",
           "range": {
-            "start": 2579,
-            "end": 2893,
-            "line": 42,
+            "start": 3958,
+            "end": 4272,
+            "line": 58,
             "column": 9
           }
         }
@@ -38049,20 +38541,63 @@
       {
         "owner": "criterion:F-063/AC-158",
         "channel": "test",
-        "raw": "tests/drive/loop.test.ts",
-        "normalizedTarget": "artifact:tests/drive/loop.test.ts",
+        "raw": "tests/drive/loop.test.ts#[covers:F-063/AC-158] a failed L1 execution retries despite a non-authoritative observer summary",
+        "normalizedTarget": "anchor:tests/drive/loop.test.ts#[covers:F-063/AC-158] a failed L1 execution retries despite a non-authoritative observer summary",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-063/AC-158] a failed L1 execution retries despite a non-authoritative observer summary"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-063.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[0]",
           "range": {
-            "start": 923,
-            "end": 947,
-            "line": 19,
-            "column": 17
+            "start": 845,
+            "end": 968,
+            "line": 22,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-063/AC-158",
+        "channel": "test",
+        "raw": "tests/drive/loop.test.ts#[covers:F-063/AC-158] a skipped L1 runner remains distinct from a failed execution",
+        "normalizedTarget": "anchor:tests/drive/loop.test.ts#[covers:F-063/AC-158] a skipped L1 runner remains distinct from a failed execution",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-063/AC-158] a skipped L1 runner remains distinct from a failed execution"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-063.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[1]",
+          "range": {
+            "start": 977,
+            "end": 1086,
+            "line": 23,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-063/AC-158",
+        "channel": "test",
+        "raw": "tests/drive/loop.test.ts#[covers:F-063/AC-158][covers:F-071/AC-198][covers:F-071/AC-200][covers:F-049/AC-088] dispatch failures preserve the live transport taxonomy, detail, and retry invariant",
+        "normalizedTarget": "anchor:tests/drive/loop.test.ts#[covers:F-063/AC-158][covers:F-071/AC-198][covers:F-071/AC-200][covers:F-049/AC-088] dispatch failures preserve the live transport taxonomy, detail, and retry invariant",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-063/AC-158][covers:F-071/AC-198][covers:F-071/AC-200][covers:F-049/AC-088] dispatch failures preserve the live transport taxonomy, detail, and retry invariant"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-063.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[2]",
+          "range": {
+            "start": 1095,
+            "end": 1290,
+            "line": 24,
+            "column": 9
           }
         }
       },
@@ -38079,9 +38614,9 @@
           "path": "spec/features/F-063.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 1411,
-            "end": 1438,
-            "line": 25,
+            "start": 2078,
+            "end": 2105,
+            "line": 35,
             "column": 17
           }
         }
@@ -38089,20 +38624,84 @@
       {
         "owner": "criterion:F-063/AC-160",
         "channel": "test",
-        "raw": "tests/events/log.test.ts",
-        "normalizedTarget": "artifact:tests/events/log.test.ts",
+        "raw": "tests/events/log.test.ts#[covers:F-063/AC-160] absent and empty event logs read as no observations",
+        "normalizedTarget": "anchor:tests/events/log.test.ts#[covers:F-063/AC-160] absent and empty event logs read as no observations",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-063/AC-160] absent and empty event logs read as no observations"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-063.yaml",
+          "yamlPath": "$.acceptance_criteria[2].test_refs[1]",
+          "range": {
+            "start": 2678,
+            "end": 2778,
+            "line": 43,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-063/AC-160",
+        "channel": "test",
+        "raw": "tests/events/log.test.ts#[covers:F-063/AC-160] append and read preserve a valid JSONL event round trip",
+        "normalizedTarget": "anchor:tests/events/log.test.ts#[covers:F-063/AC-160] append and read preserve a valid JSONL event round trip",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-063/AC-160] append and read preserve a valid JSONL event round trip"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-063.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 1858,
-            "end": 1882,
-            "line": 31,
-            "column": 17
+            "start": 2565,
+            "end": 2669,
+            "line": 42,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-063/AC-160",
+        "channel": "test",
+        "raw": "tests/events/log.test.ts#[covers:F-063/AC-160] managed symbolic paths remain observer-only no-ops",
+        "normalizedTarget": "anchor:tests/events/log.test.ts#[covers:F-063/AC-160] managed symbolic paths remain observer-only no-ops",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-063/AC-160] managed symbolic paths remain observer-only no-ops"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-063.yaml",
+          "yamlPath": "$.acceptance_criteria[2].test_refs[3]",
+          "range": {
+            "start": 2891,
+            "end": 2990,
+            "line": 45,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-063/AC-160",
+        "channel": "test",
+        "raw": "tests/events/log.test.ts#[covers:F-063/AC-160] multiple JSONL appends preserve observed order",
+        "normalizedTarget": "anchor:tests/events/log.test.ts#[covers:F-063/AC-160] multiple JSONL appends preserve observed order",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-063/AC-160] multiple JSONL appends preserve observed order"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-063.yaml",
+          "yamlPath": "$.acceptance_criteria[2].test_refs[2]",
+          "range": {
+            "start": 2787,
+            "end": 2882,
+            "line": 44,
+            "column": 9
           }
         }
       },
@@ -38119,9 +38718,9 @@
           "path": "spec/features/F-063.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 2424,
-            "end": 2456,
-            "line": 38,
+            "start": 3777,
+            "end": 3809,
+            "line": 57,
             "column": 9
           }
         }
@@ -38139,9 +38738,9 @@
           "path": "spec/features/F-063.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[1]",
           "range": {
-            "start": 2465,
-            "end": 2493,
-            "line": 39,
+            "start": 3818,
+            "end": 3846,
+            "line": 58,
             "column": 9
           }
         }
@@ -38159,9 +38758,9 @@
           "path": "spec/features/F-063.yaml",
           "yamlPath": "$.acceptance_criteria[4].test_refs[1]",
           "range": {
-            "start": 3110,
-            "end": 3132,
-            "line": 47,
+            "start": 4463,
+            "end": 4485,
+            "line": 66,
             "column": 9
           }
         }
@@ -38179,9 +38778,9 @@
           "path": "spec/features/F-063.yaml",
           "yamlPath": "$.acceptance_criteria[4].test_refs[0]",
           "range": {
-            "start": 3079,
-            "end": 3101,
-            "line": 46,
+            "start": 4432,
+            "end": 4454,
+            "line": 65,
             "column": 9
           }
         }
@@ -38200,9 +38799,9 @@
           "path": "spec/features/F-063.yaml",
           "yamlPath": "$.acceptance_criteria[5].test_refs[0]",
           "range": {
-            "start": 3534,
-            "end": 3848,
-            "line": 55,
+            "start": 4887,
+            "end": 5201,
+            "line": 74,
             "column": 9
           }
         }
@@ -38220,9 +38819,9 @@
           "path": "spec/features/F-064.yaml",
           "yamlPath": "$.acceptance_criteria[0].evidence_refs[0]",
           "range": {
-            "start": 835,
-            "end": 850,
-            "line": 15,
+            "start": 841,
+            "end": 856,
+            "line": 16,
             "column": 21
           }
         }
@@ -38230,40 +38829,105 @@
       {
         "owner": "criterion:F-064/AC-165",
         "channel": "test",
-        "raw": "tests/cli/clad.test.ts",
-        "normalizedTarget": "artifact:tests/cli/clad.test.ts",
+        "raw": "tests/cli/clad.test.ts#[covers:F-064/AC-165] the live command registry exposes callable actions and declared option boundaries",
+        "normalizedTarget": "anchor:tests/cli/clad.test.ts#[covers:F-064/AC-165] the live command registry exposes callable actions and declared option boundaries",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-064/AC-165] the live command registry exposes callable actions and declared option boundaries"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-064.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 1374,
-            "end": 1396,
-            "line": 21,
-            "column": 17
+            "start": 1283,
+            "end": 1411,
+            "line": 23,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-064/AC-165",
+        "channel": "test",
+        "raw": "tests/cli/clad.test.ts#[covers:F-064/AC-165][covers:F-d25041ac/AC-33f9324c] removed aliases fail closed at the command boundary",
+        "normalizedTarget": "anchor:tests/cli/clad.test.ts#[covers:F-064/AC-165][covers:F-d25041ac/AC-33f9324c] removed aliases fail closed at the command boundary",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-064/AC-165][covers:F-d25041ac/AC-33f9324c] removed aliases fail closed at the command boundary"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-064.yaml",
+          "yamlPath": "$.acceptance_criteria[1].test_refs[1]",
+          "range": {
+            "start": 1420,
+            "end": 1549,
+            "line": 24,
+            "column": 9
           }
         }
       },
       {
         "owner": "criterion:F-064/AC-166",
         "channel": "test",
-        "raw": "tests/adapters/index.test.ts",
-        "normalizedTarget": "artifact:tests/adapters/index.test.ts",
+        "raw": "tests/adapters/index.test.ts#[covers:F-064/AC-166] every registered adapter resolves exactly through its declared mode and name",
+        "normalizedTarget": "anchor:tests/adapters/index.test.ts#[covers:F-064/AC-166] every registered adapter resolves exactly through its declared mode and name",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-064/AC-166] every registered adapter resolves exactly through its declared mode and name"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-064.yaml",
+          "yamlPath": "$.acceptance_criteria[2].test_refs[1]",
+          "range": {
+            "start": 2645,
+            "end": 2774,
+            "line": 37,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-064/AC-166",
+        "channel": "test",
+        "raw": "tests/adapters/index.test.ts#[covers:F-064/AC-166] incomplete malformed or unknown selections fall back to generic without provider credentials",
+        "normalizedTarget": "anchor:tests/adapters/index.test.ts#[covers:F-064/AC-166] incomplete malformed or unknown selections fall back to generic without provider credentials",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-064/AC-166] incomplete malformed or unknown selections fall back to generic without provider credentials"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-064.yaml",
+          "yamlPath": "$.acceptance_criteria[2].test_refs[2]",
+          "range": {
+            "start": 2783,
+            "end": 2928,
+            "line": 38,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-064/AC-166",
+        "channel": "test",
+        "raw": "tests/adapters/index.test.ts#[covers:F-064/AC-166][covers:F-049/AC-089] environment selection precedes configuration and automatic selection",
+        "normalizedTarget": "anchor:tests/adapters/index.test.ts#[covers:F-064/AC-166][covers:F-049/AC-089] environment selection precedes configuration and automatic selection",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-064/AC-166][covers:F-049/AC-089] environment selection precedes configuration and automatic selection"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-064.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 1892,
-            "end": 1920,
-            "line": 27,
-            "column": 17
+            "start": 2494,
+            "end": 2636,
+            "line": 36,
+            "column": 9
           }
         }
       },
@@ -38281,9 +38945,9 @@
           "path": "spec/features/F-064.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 2357,
-            "end": 2671,
-            "line": 35,
+            "start": 3627,
+            "end": 3941,
+            "line": 51,
             "column": 9
           }
         }
@@ -43948,80 +44612,21 @@
       {
         "owner": "criterion:F-1edb38/AC-003",
         "channel": "test",
-        "raw": "tests/cli/clad.test.ts",
-        "normalizedTarget": "artifact:tests/cli/clad.test.ts",
+        "raw": "tests/cli/scan.test.ts#[covers:F-1edb38/AC-003] scanRoot composes typed analyzer records and architecture candidates",
+        "normalizedTarget": "anchor:tests/cli/scan.test.ts#[covers:F-1edb38/AC-003] scanRoot composes typed analyzer records and architecture candidates",
         "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/scan-refactor-1edb38.yaml",
-          "yamlPath": "$.acceptance_criteria[2].test_refs[3]",
-          "range": {
-            "start": 2731,
-            "end": 2753,
-            "line": 43,
-            "column": 99
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-1edb38/AC-003",
-        "channel": "test",
-        "raw": "tests/cli/scan-llm.test.ts",
-        "normalizedTarget": "artifact:tests/cli/scan-llm.test.ts",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/scan-refactor-1edb38.yaml",
-          "yamlPath": "$.acceptance_criteria[2].test_refs[2]",
-          "range": {
-            "start": 2703,
-            "end": 2729,
-            "line": 43,
-            "column": 71
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-1edb38/AC-003",
-        "channel": "test",
-        "raw": "tests/cli/scan-roots.test.ts",
-        "normalizedTarget": "artifact:tests/cli/scan-roots.test.ts",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/scan-refactor-1edb38.yaml",
-          "yamlPath": "$.acceptance_criteria[2].test_refs[1]",
-          "range": {
-            "start": 2673,
-            "end": 2701,
-            "line": 43,
-            "column": 41
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-1edb38/AC-003",
-        "channel": "test",
-        "raw": "tests/cli/scan.test.ts",
-        "normalizedTarget": "artifact:tests/cli/scan.test.ts",
-        "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-1edb38/AC-003] scanRoot composes typed analyzer records and architecture candidates"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/scan-refactor-1edb38.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 2649,
-            "end": 2671,
-            "line": 43,
-            "column": 17
+            "start": 2602,
+            "end": 2720,
+            "line": 44,
+            "column": 9
           }
         }
       },
@@ -44038,9 +44643,9 @@
           "path": "spec/features/scan-refactor-1edb38.yaml",
           "yamlPath": "$.acceptance_criteria[3].evidence_refs[0]",
           "range": {
-            "start": 3437,
-            "end": 3458,
-            "line": 49,
+            "start": 3894,
+            "end": 3915,
+            "line": 57,
             "column": 21
           }
         }
@@ -44058,9 +44663,9 @@
           "path": "spec/features/scan-refactor-1edb38.yaml",
           "yamlPath": "$.acceptance_criteria[4].evidence_refs[1]",
           "range": {
-            "start": 4301,
-            "end": 4329,
-            "line": 55,
+            "start": 4758,
+            "end": 4786,
+            "line": 63,
             "column": 45
           }
         }
@@ -44078,9 +44683,9 @@
           "path": "spec/features/scan-refactor-1edb38.yaml",
           "yamlPath": "$.acceptance_criteria[4].evidence_refs[2]",
           "range": {
-            "start": 4331,
-            "end": 4352,
-            "line": 55,
+            "start": 4788,
+            "end": 4809,
+            "line": 63,
             "column": 75
           }
         }
@@ -44098,9 +44703,9 @@
           "path": "spec/features/scan-refactor-1edb38.yaml",
           "yamlPath": "$.acceptance_criteria[4].evidence_refs[0]",
           "range": {
-            "start": 4277,
-            "end": 4299,
-            "line": 55,
+            "start": 4734,
+            "end": 4756,
+            "line": 63,
             "column": 21
           }
         }
@@ -55992,20 +56597,21 @@
       {
         "owner": "criterion:F-94dda4/AC-005",
         "channel": "test",
-        "raw": "tests/cli/scan.test.ts",
-        "normalizedTarget": "artifact:tests/cli/scan.test.ts",
+        "raw": "tests/cli/scan.test.ts#[covers:F-94dda4/AC-005] default polyglot files preserve flat layer records and add a language layer",
+        "normalizedTarget": "anchor:tests/cli/scan.test.ts#[covers:F-94dda4/AC-005] default polyglot files preserve flat layer records and add a language layer",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-94dda4/AC-005] default polyglot files preserve flat layer records and add a language layer"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/scan-polyglot-94dda4.yaml",
           "yamlPath": "$.acceptance_criteria[4].test_refs[0]",
           "range": {
-            "start": 4493,
-            "end": 4515,
-            "line": 40,
-            "column": 17
+            "start": 4365,
+            "end": 4490,
+            "line": 41,
+            "column": 9
           }
         }
       },
@@ -58334,20 +58940,21 @@
       {
         "owner": "criterion:F-aee1da/AC-005",
         "channel": "test",
-        "raw": "tests/cli/scan.test.ts",
-        "normalizedTarget": "artifact:tests/cli/scan.test.ts",
+        "raw": "tests/cli/scan.test.ts#[covers:F-aee1da/AC-005] residual root handling retains flat layer records and language statistics",
+        "normalizedTarget": "anchor:tests/cli/scan.test.ts#[covers:F-aee1da/AC-005] residual root handling retains flat layer records and language statistics",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-aee1da/AC-005] residual root handling retains flat layer records and language statistics"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/scan-residuals-aee1da.yaml",
           "yamlPath": "$.acceptance_criteria[4].test_refs[0]",
           "range": {
-            "start": 4676,
-            "end": 4698,
-            "line": 48,
-            "column": 17
+            "start": 4488,
+            "end": 4611,
+            "line": 49,
+            "column": 9
           }
         }
       },
@@ -62077,20 +62684,21 @@
       {
         "owner": "criterion:F-c48eb2/AC-004",
         "channel": "test",
-        "raw": "tests/cli/scan.test.ts",
-        "normalizedTarget": "artifact:tests/cli/scan.test.ts",
+        "raw": "tests/cli/scan.test.ts#[covers:F-c48eb2/AC-004] inferred and explicit roots preserve flat layer records",
+        "normalizedTarget": "anchor:tests/cli/scan.test.ts#[covers:F-c48eb2/AC-004] inferred and explicit roots preserve flat layer records",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-c48eb2/AC-004] inferred and explicit roots preserve flat layer records"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/scan-source-roots-c48eb2.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 3487,
-            "end": 3509,
-            "line": 38,
-            "column": 17
+            "start": 3367,
+            "end": 3472,
+            "line": 39,
+            "column": 9
           }
         }
       },
@@ -62107,9 +62715,9 @@
           "path": "spec/features/scan-source-roots-c48eb2.yaml",
           "yamlPath": "$.acceptance_criteria[4].evidence_refs[0]",
           "range": {
-            "start": 4104,
-            "end": 4119,
-            "line": 44,
+            "start": 4366,
+            "end": 4381,
+            "line": 50,
             "column": 21
           }
         }
@@ -62127,9 +62735,9 @@
           "path": "spec/features/scan-source-roots-c48eb2.yaml",
           "yamlPath": "$.acceptance_criteria[4].evidence_refs[1]",
           "range": {
-            "start": 4121,
-            "end": 4136,
-            "line": 44,
+            "start": 4383,
+            "end": 4398,
+            "line": 50,
             "column": 38
           }
         }
@@ -63953,20 +64561,42 @@
       {
         "owner": "criterion:F-cfba0c/AC-005",
         "channel": "test",
-        "raw": "tests/cli/scan.test.ts",
-        "normalizedTarget": "artifact:tests/cli/scan.test.ts",
+        "raw": "tests/cli/init.test.ts#[covers:F-cfba0c/AC-005] intent-free adoption writes only the scenario README",
+        "normalizedTarget": "anchor:tests/cli/init.test.ts#[covers:F-cfba0c/AC-005] intent-free adoption writes only the scenario README",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-cfba0c/AC-005] intent-free adoption writes only the scenario README"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/scenarios-deprecate-cfba0c.yaml",
+          "yamlPath": "$.acceptance_criteria[4].test_refs[1]",
+          "range": {
+            "start": 4114,
+            "end": 4216,
+            "line": 44,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-cfba0c/AC-005",
+        "channel": "test",
+        "raw": "tests/cli/scan.test.ts#[covers:F-cfba0c/AC-005] intent-free scan retains architecture and empty scenarios",
+        "normalizedTarget": "anchor:tests/cli/scan.test.ts#[covers:F-cfba0c/AC-005] intent-free scan retains architecture and empty scenarios",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-cfba0c/AC-005] intent-free scan retains architecture and empty scenarios"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/scenarios-deprecate-cfba0c.yaml",
           "yamlPath": "$.acceptance_criteria[4].test_refs[0]",
           "range": {
-            "start": 4047,
-            "end": 4069,
-            "line": 42,
-            "column": 17
+            "start": 3998,
+            "end": 4105,
+            "line": 43,
+            "column": 9
           }
         }
       },
@@ -70209,9 +70839,9 @@
           "path": "spec/features/F-055.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[0]",
           "range": {
-            "start": 811,
-            "end": 849,
-            "line": 17,
+            "start": 977,
+            "end": 1015,
+            "line": 21,
             "column": 17
           }
         }
@@ -70219,19 +70849,20 @@
       {
         "owner": "criterion:F-055/AC-126",
         "channel": "test",
-        "raw": "tests/stages/missing-implementation.test.ts",
-        "normalizedTarget": "artifact:tests/stages/missing-implementation.test.ts",
+        "raw": "tests/stages/missing-implementation.test.ts#[covers:F-055/AC-126] reports a present and a single missing declared module",
+        "normalizedTarget": "anchor:tests/stages/missing-implementation.test.ts#[covers:F-055/AC-126] reports a present and a single missing declared module",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-055/AC-126] reports a present and a single missing declared module"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-055.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 1294,
-            "end": 1337,
-            "line": 24,
+            "start": 1709,
+            "end": 1831,
+            "line": 29,
             "column": 9
           }
         }
@@ -70239,19 +70870,20 @@
       {
         "owner": "criterion:F-055/AC-126",
         "channel": "test",
-        "raw": "tests/stages/status-drift.test.ts",
-        "normalizedTarget": "artifact:tests/stages/status-drift.test.ts",
+        "raw": "tests/stages/status-drift.test.ts#[covers:F-055/AC-126] status=done + one missing module → one error finding",
+        "normalizedTarget": "anchor:tests/stages/status-drift.test.ts#[covers:F-055/AC-126] status=done + one missing module → one error finding",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-055/AC-126] status=done + one missing module → one error finding"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-055.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[1]",
           "range": {
-            "start": 1346,
-            "end": 1379,
-            "line": 25,
+            "start": 1840,
+            "end": 1950,
+            "line": 30,
             "column": 9
           }
         }
@@ -70259,19 +70891,20 @@
       {
         "owner": "criterion:F-055/AC-127",
         "channel": "test",
-        "raw": "tests/stages/ac-drift.test.ts",
-        "normalizedTarget": "artifact:tests/stages/ac-drift.test.ts",
+        "raw": "tests/stages/ac-drift.test.ts#[covers:F-055/AC-127] AC missing text and EARS fields reports structural drift",
+        "normalizedTarget": "anchor:tests/stages/ac-drift.test.ts#[covers:F-055/AC-127] AC missing text and EARS fields reports structural drift",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-055/AC-127] AC missing text and EARS fields reports structural drift"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-055.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 1834,
-            "end": 1863,
-            "line": 32,
+            "start": 2911,
+            "end": 3021,
+            "line": 43,
             "column": 9
           }
         }
@@ -70279,19 +70912,20 @@
       {
         "owner": "criterion:F-055/AC-127",
         "channel": "test",
-        "raw": "tests/stages/tech-stack-mismatch.test.ts",
-        "normalizedTarget": "artifact:tests/stages/tech-stack-mismatch.test.ts",
+        "raw": "tests/stages/tech-stack-mismatch.test.ts#[covers:F-055/AC-127] build manifests do not alter source-derived language evidence",
+        "normalizedTarget": "anchor:tests/stages/tech-stack-mismatch.test.ts#[covers:F-055/AC-127] build manifests do not alter source-derived language evidence",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-055/AC-127] build manifests do not alter source-derived language evidence"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-055.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[1]",
           "range": {
-            "start": 1872,
-            "end": 1912,
-            "line": 33,
+            "start": 3030,
+            "end": 3156,
+            "line": 44,
             "column": 9
           }
         }
@@ -70310,9 +70944,9 @@
           "path": "spec/features/F-055.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 2312,
-            "end": 2626,
-            "line": 41,
+            "start": 3768,
+            "end": 4082,
+            "line": 56,
             "column": 9
           }
         }
@@ -70330,9 +70964,9 @@
           "path": "spec/features/F-056.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[0]",
           "range": {
-            "start": 804,
-            "end": 841,
-            "line": 17,
+            "start": 879,
+            "end": 916,
+            "line": 19,
             "column": 17
           }
         }
@@ -70340,19 +70974,20 @@
       {
         "owner": "criterion:F-056/AC-130",
         "channel": "test",
-        "raw": "tests/stages/stale-specification.test.ts",
-        "normalizedTarget": "artifact:tests/stages/stale-specification.test.ts",
+        "raw": "tests/stages/stale-specification.test.ts#[covers:F-056/AC-130] archived_at on an active lifecycle reports a warning",
+        "normalizedTarget": "anchor:tests/stages/stale-specification.test.ts#[covers:F-056/AC-130] archived_at on an active lifecycle reports a warning",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-056/AC-130] archived_at on an active lifecycle reports a warning"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-056.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[1]",
           "range": {
-            "start": 1385,
-            "end": 1425,
-            "line": 25,
+            "start": 1713,
+            "end": 1830,
+            "line": 28,
             "column": 9
           }
         }
@@ -70360,19 +70995,20 @@
       {
         "owner": "criterion:F-056/AC-130",
         "channel": "test",
-        "raw": "tests/stages/stale-tests.test.ts",
-        "normalizedTarget": "artifact:tests/stages/stale-tests.test.ts",
+        "raw": "tests/stages/stale-tests.test.ts#[covers:F-056/AC-130] a controlled stale test mtime reports a warning",
+        "normalizedTarget": "anchor:tests/stages/stale-tests.test.ts#[covers:F-056/AC-130] a controlled stale test mtime reports a warning",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-056/AC-130] a controlled stale test mtime reports a warning"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-056.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 1344,
-            "end": 1376,
-            "line": 24,
+            "start": 1600,
+            "end": 1704,
+            "line": 27,
             "column": 9
           }
         }
@@ -70390,9 +71026,9 @@
           "path": "spec/features/F-056.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 1903,
-            "end": 1941,
-            "line": 32,
+            "start": 2604,
+            "end": 2642,
+            "line": 40,
             "column": 9
           }
         }
@@ -70410,9 +71046,9 @@
           "path": "spec/features/F-056.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[1]",
           "range": {
-            "start": 1950,
-            "end": 1985,
-            "line": 33,
+            "start": 2651,
+            "end": 2686,
+            "line": 41,
             "column": 9
           }
         }
@@ -70431,9 +71067,9 @@
           "path": "spec/features/F-056.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 2385,
-            "end": 2699,
-            "line": 41,
+            "start": 3086,
+            "end": 3400,
+            "line": 49,
             "column": 9
           }
         }
@@ -70451,9 +71087,9 @@
           "path": "spec/features/F-057.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[0]",
           "range": {
-            "start": 826,
-            "end": 860,
-            "line": 18,
+            "start": 952,
+            "end": 986,
+            "line": 21,
             "column": 9
           }
         }
@@ -70471,9 +71107,9 @@
           "path": "spec/features/F-057.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[1]",
           "range": {
-            "start": 869,
-            "end": 907,
-            "line": 19,
+            "start": 995,
+            "end": 1033,
+            "line": 22,
             "column": 9
           }
         }
@@ -70481,19 +71117,20 @@
       {
         "owner": "criterion:F-057/AC-134",
         "channel": "test",
-        "raw": "tests/stages/evidence-mismatch.test.ts",
-        "normalizedTarget": "artifact:tests/stages/evidence-mismatch.test.ts",
+        "raw": "tests/stages/evidence-mismatch.test.ts#[covers:F-057/AC-134] evidence with a missing artifact reports an error",
+        "normalizedTarget": "anchor:tests/stages/evidence-mismatch.test.ts#[covers:F-057/AC-134] evidence with a missing artifact reports an error",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-057/AC-134] evidence with a missing artifact reports an error"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-057.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 1397,
-            "end": 1435,
-            "line": 26,
+            "start": 1636,
+            "end": 1748,
+            "line": 30,
             "column": 9
           }
         }
@@ -70501,19 +71138,20 @@
       {
         "owner": "criterion:F-057/AC-134",
         "channel": "test",
-        "raw": "tests/stages/stale-evidence.test.ts",
-        "normalizedTarget": "artifact:tests/stages/stale-evidence.test.ts",
+        "raw": "tests/stages/stale-evidence.test.ts#[covers:F-057/AC-134] evidence older than 90 days reports a warning",
+        "normalizedTarget": "anchor:tests/stages/stale-evidence.test.ts#[covers:F-057/AC-134] evidence older than 90 days reports a warning",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-057/AC-134] evidence older than 90 days reports a warning"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-057.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[1]",
           "range": {
-            "start": 1444,
-            "end": 1479,
-            "line": 27,
+            "start": 1757,
+            "end": 1862,
+            "line": 31,
             "column": 9
           }
         }
@@ -70521,20 +71159,63 @@
       {
         "owner": "criterion:F-057/AC-135",
         "channel": "test",
-        "raw": "tests/stages/reference-integrity.test.ts",
-        "normalizedTarget": "artifact:tests/stages/reference-integrity.test.ts",
+        "raw": "tests/stages/reference-integrity.test.ts#[covers:F-057/AC-135] unknown depends_on reference reports an error",
+        "normalizedTarget": "anchor:tests/stages/reference-integrity.test.ts#[covers:F-057/AC-135] unknown depends_on reference reports an error",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-057/AC-135] unknown depends_on reference reports an error"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-057.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 1939,
-            "end": 1979,
-            "line": 33,
-            "column": 17
+            "start": 2847,
+            "end": 2957,
+            "line": 45,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-057/AC-135",
+        "channel": "test",
+        "raw": "tests/stages/reference-integrity.test.ts#[covers:F-057/AC-135] unknown scenario feature reference reports an error",
+        "normalizedTarget": "anchor:tests/stages/reference-integrity.test.ts#[covers:F-057/AC-135] unknown scenario feature reference reports an error",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-057/AC-135] unknown scenario feature reference reports an error"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-057.yaml",
+          "yamlPath": "$.acceptance_criteria[2].test_refs[2]",
+          "range": {
+            "start": 3088,
+            "end": 3204,
+            "line": 47,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-057/AC-135",
+        "channel": "test",
+        "raw": "tests/stages/reference-integrity.test.ts#[covers:F-057/AC-135] unknown superseded_by reference reports an error",
+        "normalizedTarget": "anchor:tests/stages/reference-integrity.test.ts#[covers:F-057/AC-135] unknown superseded_by reference reports an error",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-057/AC-135] unknown superseded_by reference reports an error"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-057.yaml",
+          "yamlPath": "$.acceptance_criteria[2].test_refs[1]",
+          "range": {
+            "start": 2966,
+            "end": 3079,
+            "line": 46,
+            "column": 9
           }
         }
       },
@@ -70552,9 +71233,9 @@
           "path": "spec/features/F-057.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 2380,
-            "end": 2694,
-            "line": 41,
+            "start": 3818,
+            "end": 4132,
+            "line": 59,
             "column": 9
           }
         }
@@ -70562,20 +71243,63 @@
       {
         "owner": "criterion:F-058/AC-137",
         "channel": "test",
-        "raw": "tests/stages/hardcoded-secret.test.ts",
-        "normalizedTarget": "artifact:tests/stages/hardcoded-secret.test.ts",
+        "raw": "tests/stages/hardcoded-secret.test.ts#[covers:F-058/AC-137] scanner ENOENT is observed as unavailable",
+        "normalizedTarget": "anchor:tests/stages/hardcoded-secret.test.ts#[covers:F-058/AC-137] scanner ENOENT is observed as unavailable",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-058/AC-137] scanner ENOENT is observed as unavailable"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-058.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[2]",
+          "range": {
+            "start": 1052,
+            "end": 1155,
+            "line": 19,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-058/AC-137",
+        "channel": "test",
+        "raw": "tests/stages/hardcoded-secret.test.ts#[covers:F-058/AC-137] scanner exit 0 produces no finding",
+        "normalizedTarget": "anchor:tests/stages/hardcoded-secret.test.ts#[covers:F-058/AC-137] scanner exit 0 produces no finding",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-058/AC-137] scanner exit 0 produces no finding"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-058.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[0]",
           "range": {
-            "start": 769,
-            "end": 806,
-            "line": 14,
-            "column": 17
+            "start": 827,
+            "end": 923,
+            "line": 17,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-058/AC-137",
+        "channel": "test",
+        "raw": "tests/stages/hardcoded-secret.test.ts#[covers:F-058/AC-137] scanner non-zero output produces an error finding",
+        "normalizedTarget": "anchor:tests/stages/hardcoded-secret.test.ts#[covers:F-058/AC-137] scanner non-zero output produces an error finding",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-058/AC-137] scanner non-zero output produces an error finding"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-058.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[1]",
+          "range": {
+            "start": 932,
+            "end": 1043,
+            "line": 18,
+            "column": 9
           }
         }
       },
@@ -70592,9 +71316,9 @@
           "path": "spec/features/F-058.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 1279,
-            "end": 1322,
-            "line": 20,
+            "start": 1959,
+            "end": 2002,
+            "line": 31,
             "column": 17
           }
         }
@@ -70613,9 +71337,9 @@
           "path": "spec/features/F-058.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 1786,
-            "end": 1901,
-            "line": 28,
+            "start": 2466,
+            "end": 2581,
+            "line": 39,
             "column": 9
           }
         }
@@ -70634,9 +71358,9 @@
           "path": "spec/features/F-058.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 2438,
-            "end": 2752,
-            "line": 39,
+            "start": 3118,
+            "end": 3432,
+            "line": 50,
             "column": 9
           }
         }
@@ -70654,9 +71378,9 @@
           "path": "spec/features/F-059.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[1]",
           "range": {
-            "start": 866,
-            "end": 891,
-            "line": 18,
+            "start": 958,
+            "end": 983,
+            "line": 21,
             "column": 9
           }
         }
@@ -70674,9 +71398,9 @@
           "path": "spec/features/F-059.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[0]",
           "range": {
-            "start": 832,
-            "end": 857,
-            "line": 17,
+            "start": 924,
+            "end": 949,
+            "line": 20,
             "column": 9
           }
         }
@@ -70684,40 +71408,126 @@
       {
         "owner": "criterion:F-059/AC-142",
         "channel": "test",
-        "raw": "tests/stages/commit.test.ts",
-        "normalizedTarget": "artifact:tests/stages/commit.test.ts",
+        "raw": "tests/stages/commit.test.ts#[covers:F-059/AC-142] clean working tree is a pass observation",
+        "normalizedTarget": "anchor:tests/stages/commit.test.ts#[covers:F-059/AC-142] clean working tree is a pass observation",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-059/AC-142] clean working tree is a pass observation"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-059.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 1313,
-            "end": 1340,
-            "line": 24,
-            "column": 17
+            "start": 1472,
+            "end": 1564,
+            "line": 29,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-059/AC-142",
+        "channel": "test",
+        "raw": "tests/stages/commit.test.ts#[covers:F-059/AC-142] dirty working tree is a fail observation",
+        "normalizedTarget": "anchor:tests/stages/commit.test.ts#[covers:F-059/AC-142] dirty working tree is a fail observation",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-059/AC-142] dirty working tree is a fail observation"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-059.yaml",
+          "yamlPath": "$.acceptance_criteria[1].test_refs[1]",
+          "range": {
+            "start": 1573,
+            "end": 1665,
+            "line": 30,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-059/AC-142",
+        "channel": "test",
+        "raw": "tests/stages/commit.test.ts#[covers:F-059/AC-142] git ENOENT is an unobserved observation",
+        "normalizedTarget": "anchor:tests/stages/commit.test.ts#[covers:F-059/AC-142] git ENOENT is an unobserved observation",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-059/AC-142] git ENOENT is an unobserved observation"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-059.yaml",
+          "yamlPath": "$.acceptance_criteria[1].test_refs[2]",
+          "range": {
+            "start": 1674,
+            "end": 1765,
+            "line": 31,
+            "column": 9
           }
         }
       },
       {
         "owner": "criterion:F-059/AC-143",
         "channel": "test",
-        "raw": "tests/stages/audit.test.ts",
-        "normalizedTarget": "artifact:tests/stages/audit.test.ts",
+        "raw": "tests/proof/stage-receipt-reduction.test.ts#[covers:F-059/AC-143] mechanism proof: explicit negative Audit check reduces to fail",
+        "normalizedTarget": "anchor:tests/proof/stage-receipt-reduction.test.ts#[covers:F-059/AC-143] mechanism proof: explicit negative Audit check reduces to fail",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-059/AC-143] mechanism proof: explicit negative Audit check reduces to fail"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-059.yaml",
+          "yamlPath": "$.acceptance_criteria[2].test_refs[2]",
+          "range": {
+            "start": 3195,
+            "end": 3325,
+            "line": 47,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-059/AC-143",
+        "channel": "test",
+        "raw": "tests/proof/stage-receipt-reduction.test.ts#[covers:F-059/AC-143] mechanism proof: missing, untrusted, or stale Audit receipt remains unobserved",
+        "normalizedTarget": "anchor:tests/proof/stage-receipt-reduction.test.ts#[covers:F-059/AC-143] mechanism proof: missing, untrusted, or stale Audit receipt remains unobserved",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-059/AC-143] mechanism proof: missing, untrusted, or stale Audit receipt remains unobserved"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-059.yaml",
+          "yamlPath": "$.acceptance_criteria[2].test_refs[1]",
+          "range": {
+            "start": 3040,
+            "end": 3186,
+            "line": 46,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-059/AC-143",
+        "channel": "test",
+        "raw": "tests/proof/stage-receipt-reduction.test.ts#[covers:F-059/AC-143] mechanism proof: trusted current Audit receipt with sealed dependency and author digests reduces to pass",
+        "normalizedTarget": "anchor:tests/proof/stage-receipt-reduction.test.ts#[covers:F-059/AC-143] mechanism proof: trusted current Audit receipt with sealed dependency and author digests reduces to pass",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-059/AC-143] mechanism proof: trusted current Audit receipt with sealed dependency and author digests reduces to pass"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-059.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 1857,
-            "end": 1883,
-            "line": 30,
-            "column": 17
+            "start": 2859,
+            "end": 3031,
+            "line": 45,
+            "column": 9
           }
         }
       },
@@ -70735,9 +71545,9 @@
           "path": "spec/features/F-059.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 2286,
-            "end": 2600,
-            "line": 38,
+            "start": 3969,
+            "end": 4283,
+            "line": 60,
             "column": 9
           }
         }
@@ -70745,19 +71555,20 @@
       {
         "owner": "criterion:F-060/AC-145",
         "channel": "test",
-        "raw": "tests/stages/arch.test.ts",
-        "normalizedTarget": "artifact:tests/stages/arch.test.ts",
+        "raw": "tests/stages/arch.test.ts#[covers:F-060/AC-145] cached architecture findings preserve error severity and diagnostic order",
+        "normalizedTarget": "anchor:tests/stages/arch.test.ts#[covers:F-060/AC-145] cached architecture findings preserve error severity and diagnostic order",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-060/AC-145] cached architecture findings preserve error severity and diagnostic order"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-060.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[0]",
           "range": {
-            "start": 879,
-            "end": 904,
-            "line": 18,
+            "start": 832,
+            "end": 955,
+            "line": 22,
             "column": 9
           }
         }
@@ -70765,19 +71576,62 @@
       {
         "owner": "criterion:F-060/AC-145",
         "channel": "test",
-        "raw": "tests/stages/secret.test.ts",
-        "normalizedTarget": "artifact:tests/stages/secret.test.ts",
+        "raw": "tests/stages/arch.test.ts#[covers:F-060/AC-145] uncached architecture checks forward supplied options to the detector",
+        "normalizedTarget": "anchor:tests/stages/arch.test.ts#[covers:F-060/AC-145] uncached architecture checks forward supplied options to the detector",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-060/AC-145] uncached architecture checks forward supplied options to the detector"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-060.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[1]",
           "range": {
-            "start": 913,
-            "end": 940,
-            "line": 19,
+            "start": 964,
+            "end": 1083,
+            "line": 23,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-060/AC-145",
+        "channel": "test",
+        "raw": "tests/stages/secret.test.ts#[covers:F-060/AC-145] cached secret findings preserve error severity and diagnostic order",
+        "normalizedTarget": "anchor:tests/stages/secret.test.ts#[covers:F-060/AC-145] cached secret findings preserve error severity and diagnostic order",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-060/AC-145] cached secret findings preserve error severity and diagnostic order"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-060.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[2]",
+          "range": {
+            "start": 1092,
+            "end": 1211,
+            "line": 24,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-060/AC-145",
+        "channel": "test",
+        "raw": "tests/stages/secret.test.ts#[covers:F-060/AC-145] uncached secret checks forward supplied options to the detector",
+        "normalizedTarget": "anchor:tests/stages/secret.test.ts#[covers:F-060/AC-145] uncached secret checks forward supplied options to the detector",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-060/AC-145] uncached secret checks forward supplied options to the detector"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-060.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[3]",
+          "range": {
+            "start": 1220,
+            "end": 1335,
+            "line": 25,
             "column": 9
           }
         }
@@ -70785,19 +71639,41 @@
       {
         "owner": "criterion:F-060/AC-146",
         "channel": "test",
-        "raw": "tests/stages/cov.test.ts",
-        "normalizedTarget": "artifact:tests/stages/cov.test.ts",
+        "raw": "tests/stages/cov.test.ts#[covers:F-060/AC-146] coverage folds the current shared invocation instead of starting another runner",
+        "normalizedTarget": "anchor:tests/stages/cov.test.ts#[covers:F-060/AC-146] coverage folds the current shared invocation instead of starting another runner",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-060/AC-146] coverage folds the current shared invocation instead of starting another runner"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-060.yaml",
+          "yamlPath": "$.acceptance_criteria[1].test_refs[2]",
+          "range": {
+            "start": 2446,
+            "end": 2574,
+            "line": 39,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-060/AC-146",
+        "channel": "test",
+        "raw": "tests/stages/cov.test.ts#[covers:F-060/AC-146] coverage runner preserves successful, failed, unavailable, and overridden execution outcomes",
+        "normalizedTarget": "anchor:tests/stages/cov.test.ts#[covers:F-060/AC-146] coverage runner preserves successful, failed, unavailable, and overridden execution outcomes",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-060/AC-146] coverage runner preserves successful, failed, unavailable, and overridden execution outcomes"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-060.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[1]",
           "range": {
-            "start": 1511,
-            "end": 1535,
-            "line": 27,
+            "start": 2296,
+            "end": 2437,
+            "line": 38,
             "column": 9
           }
         }
@@ -70805,19 +71681,20 @@
       {
         "owner": "criterion:F-060/AC-146",
         "channel": "test",
-        "raw": "tests/stages/unit.test.ts",
-        "normalizedTarget": "artifact:tests/stages/unit.test.ts",
+        "raw": "tests/stages/unit.test.ts#[covers:F-060/AC-146] unit runner preserves successful, failed, unavailable, and overridden execution outcomes",
+        "normalizedTarget": "anchor:tests/stages/unit.test.ts#[covers:F-060/AC-146] unit runner preserves successful, failed, unavailable, and overridden execution outcomes",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-060/AC-146] unit runner preserves successful, failed, unavailable, and overridden execution outcomes"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-060.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 1477,
-            "end": 1502,
-            "line": 26,
+            "start": 2149,
+            "end": 2287,
+            "line": 37,
             "column": 9
           }
         }
@@ -70835,9 +71712,9 @@
           "path": "spec/features/F-060.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 1990,
-            "end": 2016,
-            "line": 33,
+            "start": 3270,
+            "end": 3296,
+            "line": 50,
             "column": 17
           }
         }
@@ -70856,9 +71733,9 @@
           "path": "spec/features/F-060.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 2419,
-            "end": 2733,
-            "line": 41,
+            "start": 3699,
+            "end": 4013,
+            "line": 58,
             "column": 9
           }
         }
@@ -70866,19 +71743,20 @@
       {
         "owner": "criterion:F-061/AC-149",
         "channel": "test",
-        "raw": "tests/stages/perf.test.ts",
-        "normalizedTarget": "artifact:tests/stages/perf.test.ts",
+        "raw": "tests/stages/perf.test.ts#[covers:F-061/AC-149] performance descriptor fallback reports an unavailable runner",
+        "normalizedTarget": "anchor:tests/stages/perf.test.ts#[covers:F-061/AC-149] performance descriptor fallback reports an unavailable runner",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-061/AC-149] performance descriptor fallback reports an unavailable runner"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-061.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[0]",
           "range": {
-            "start": 767,
-            "end": 792,
-            "line": 16,
+            "start": 962,
+            "end": 1073,
+            "line": 21,
             "column": 9
           }
         }
@@ -70886,19 +71764,104 @@
       {
         "owner": "criterion:F-061/AC-149",
         "channel": "test",
-        "raw": "tests/stages/visual.test.ts",
-        "normalizedTarget": "artifact:tests/stages/visual.test.ts",
+        "raw": "tests/stages/perf.test.ts#[covers:F-061/AC-149] performance descriptor override bypasses fallback selection",
+        "normalizedTarget": "anchor:tests/stages/perf.test.ts#[covers:F-061/AC-149] performance descriptor override bypasses fallback selection",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-061/AC-149] performance descriptor override bypasses fallback selection"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-061.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[2]",
+          "range": {
+            "start": 1199,
+            "end": 1308,
+            "line": 23,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-061/AC-149",
+        "channel": "test",
+        "raw": "tests/stages/perf.test.ts#[covers:F-061/AC-149] performance descriptor reports a successful runner outcome",
+        "normalizedTarget": "anchor:tests/stages/perf.test.ts#[covers:F-061/AC-149] performance descriptor reports a successful runner outcome",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-061/AC-149] performance descriptor reports a successful runner outcome"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-061.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[1]",
           "range": {
-            "start": 801,
-            "end": 828,
-            "line": 17,
+            "start": 1082,
+            "end": 1190,
+            "line": 22,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-061/AC-149",
+        "channel": "test",
+        "raw": "tests/stages/visual.test.ts#[covers:F-061/AC-149] visual descriptor fallback reports an unavailable runner",
+        "normalizedTarget": "anchor:tests/stages/visual.test.ts#[covers:F-061/AC-149] visual descriptor fallback reports an unavailable runner",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-061/AC-149] visual descriptor fallback reports an unavailable runner"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-061.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[3]",
+          "range": {
+            "start": 1317,
+            "end": 1425,
+            "line": 24,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-061/AC-149",
+        "channel": "test",
+        "raw": "tests/stages/visual.test.ts#[covers:F-061/AC-149] visual descriptor override bypasses fallback selection",
+        "normalizedTarget": "anchor:tests/stages/visual.test.ts#[covers:F-061/AC-149] visual descriptor override bypasses fallback selection",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-061/AC-149] visual descriptor override bypasses fallback selection"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-061.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[5]",
+          "range": {
+            "start": 1548,
+            "end": 1654,
+            "line": 26,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-061/AC-149",
+        "channel": "test",
+        "raw": "tests/stages/visual.test.ts#[covers:F-061/AC-149] visual descriptor reports a successful runner outcome",
+        "normalizedTarget": "anchor:tests/stages/visual.test.ts#[covers:F-061/AC-149] visual descriptor reports a successful runner outcome",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-061/AC-149] visual descriptor reports a successful runner outcome"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-061.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[4]",
+          "range": {
+            "start": 1434,
+            "end": 1539,
+            "line": 25,
             "column": 9
           }
         }
@@ -70906,20 +71869,63 @@
       {
         "owner": "criterion:F-061/AC-150",
         "channel": "test",
-        "raw": "tests/stages/uat.test.ts",
-        "normalizedTarget": "artifact:tests/stages/uat.test.ts",
+        "raw": "tests/proof/stage-receipt-reduction.test.ts#[covers:F-061/AC-150] mechanism proof: explicit negative UAT verdict reduces to fail",
+        "normalizedTarget": "anchor:tests/proof/stage-receipt-reduction.test.ts#[covers:F-061/AC-150] mechanism proof: explicit negative UAT verdict reduces to fail",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-061/AC-150] mechanism proof: explicit negative UAT verdict reduces to fail"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-061.yaml",
+          "yamlPath": "$.acceptance_criteria[1].test_refs[2]",
+          "range": {
+            "start": 3248,
+            "end": 3378,
+            "line": 41,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-061/AC-150",
+        "channel": "test",
+        "raw": "tests/proof/stage-receipt-reduction.test.ts#[covers:F-061/AC-150] mechanism proof: missing, untrusted, stale, or incomplete-matrix UAT receipt remains unobserved",
+        "normalizedTarget": "anchor:tests/proof/stage-receipt-reduction.test.ts#[covers:F-061/AC-150] mechanism proof: missing, untrusted, stale, or incomplete-matrix UAT receipt remains unobserved",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-061/AC-150] mechanism proof: missing, untrusted, stale, or incomplete-matrix UAT receipt remains unobserved"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-061.yaml",
+          "yamlPath": "$.acceptance_criteria[1].test_refs[1]",
+          "range": {
+            "start": 3076,
+            "end": 3239,
+            "line": 40,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-061/AC-150",
+        "channel": "test",
+        "raw": "tests/proof/stage-receipt-reduction.test.ts#[covers:F-061/AC-150] mechanism proof: trusted current UAT receipt with an exact criterion matrix reduces to pass",
+        "normalizedTarget": "anchor:tests/proof/stage-receipt-reduction.test.ts#[covers:F-061/AC-150] mechanism proof: trusted current UAT receipt with an exact criterion matrix reduces to pass",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-061/AC-150] mechanism proof: trusted current UAT receipt with an exact criterion matrix reduces to pass"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-061.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 1353,
-            "end": 1377,
-            "line": 23,
-            "column": 17
+            "start": 2908,
+            "end": 3067,
+            "line": 39,
+            "column": 9
           }
         }
       },
@@ -70937,9 +71943,9 @@
           "path": "spec/features/F-061.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 1829,
-            "end": 1956,
-            "line": 31,
+            "start": 4086,
+            "end": 4213,
+            "line": 54,
             "column": 9
           }
         }
@@ -70958,9 +71964,9 @@
           "path": "spec/features/F-061.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 2481,
-            "end": 2795,
-            "line": 42,
+            "start": 4738,
+            "end": 5052,
+            "line": 65,
             "column": 9
           }
         }
@@ -70968,40 +71974,126 @@
       {
         "owner": "criterion:F-062/AC-155",
         "channel": "test",
-        "raw": "tests/cli/init.test.ts",
-        "normalizedTarget": "artifact:tests/cli/init.test.ts",
+        "raw": "tests/cli/init.test.ts#[covers:F-062/AC-155] initialization creates the managed ignore entry from an absent file and remains idempotent",
+        "normalizedTarget": "anchor:tests/cli/init.test.ts#[covers:F-062/AC-155] initialization creates the managed ignore entry from an absent file and remains idempotent",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-062/AC-155] initialization creates the managed ignore entry from an absent file and remains idempotent"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-062.yaml",
+          "yamlPath": "$.acceptance_criteria[2].test_refs[3]",
+          "range": {
+            "start": 2158,
+            "end": 2295,
+            "line": 33,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-062/AC-155",
+        "channel": "test",
+        "raw": "tests/cli/init.test.ts#[covers:F-062/AC-155] initialization derives the default project name from its workspace",
+        "normalizedTarget": "anchor:tests/cli/init.test.ts#[covers:F-062/AC-155] initialization derives the default project name from its workspace",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-062/AC-155] initialization derives the default project name from its workspace"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-062.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 1711,
-            "end": 1733,
-            "line": 28,
-            "column": 17
+            "start": 1774,
+            "end": 1887,
+            "line": 30,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-062/AC-155",
+        "channel": "test",
+        "raw": "tests/cli/init.test.ts#[covers:F-062/AC-155] initialization preserves an explicit project name in the seed",
+        "normalizedTarget": "anchor:tests/cli/init.test.ts#[covers:F-062/AC-155] initialization preserves an explicit project name in the seed",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-062/AC-155] initialization preserves an explicit project name in the seed"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-062.yaml",
+          "yamlPath": "$.acceptance_criteria[2].test_refs[1]",
+          "range": {
+            "start": 1896,
+            "end": 2004,
+            "line": 31,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-062/AC-155",
+        "channel": "test",
+        "raw": "tests/cli/init.test.ts#[covers:F-062/AC-155] initialization preserves the existing ignore bytes and separator before its managed entry",
+        "normalizedTarget": "anchor:tests/cli/init.test.ts#[covers:F-062/AC-155] initialization preserves the existing ignore bytes and separator before its managed entry",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-062/AC-155] initialization preserves the existing ignore bytes and separator before its managed entry"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-062.yaml",
+          "yamlPath": "$.acceptance_criteria[2].test_refs[2]",
+          "range": {
+            "start": 2013,
+            "end": 2149,
+            "line": 32,
+            "column": 9
           }
         }
       },
       {
         "owner": "criterion:F-062/AC-156",
         "channel": "test",
-        "raw": "tests/cli/benchmark.test.ts",
-        "normalizedTarget": "artifact:tests/cli/benchmark.test.ts",
+        "raw": "tests/cli/benchmark.test.ts#[covers:F-062/AC-156] approxTokens rounds every text length up by the documented divisor",
+        "normalizedTarget": "anchor:tests/cli/benchmark.test.ts#[covers:F-062/AC-156] approxTokens rounds every text length up by the documented divisor",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-062/AC-156] approxTokens rounds every text length up by the documented divisor"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-062.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 2137,
-            "end": 2164,
-            "line": 34,
-            "column": 17
+            "start": 3074,
+            "end": 3192,
+            "line": 45,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-062/AC-156",
+        "channel": "test",
+        "raw": "tests/cli/benchmark.test.ts#[covers:F-062/AC-156] benchmark preserves the selected feature and its semantic pruning relationship",
+        "normalizedTarget": "anchor:tests/cli/benchmark.test.ts#[covers:F-062/AC-156] benchmark preserves the selected feature and its semantic pruning relationship",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-062/AC-156] benchmark preserves the selected feature and its semantic pruning relationship"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-062.yaml",
+          "yamlPath": "$.acceptance_criteria[3].test_refs[1]",
+          "range": {
+            "start": 3201,
+            "end": 3331,
+            "line": 46,
+            "column": 9
           }
         }
       },
@@ -71019,9 +72111,9 @@
           "path": "spec/features/F-062.yaml",
           "yamlPath": "$.acceptance_criteria[4].test_refs[0]",
           "range": {
-            "start": 2579,
-            "end": 2893,
-            "line": 42,
+            "start": 3958,
+            "end": 4272,
+            "line": 58,
             "column": 9
           }
         }
@@ -71029,20 +72121,63 @@
       {
         "owner": "criterion:F-063/AC-158",
         "channel": "test",
-        "raw": "tests/drive/loop.test.ts",
-        "normalizedTarget": "artifact:tests/drive/loop.test.ts",
+        "raw": "tests/drive/loop.test.ts#[covers:F-063/AC-158] a failed L1 execution retries despite a non-authoritative observer summary",
+        "normalizedTarget": "anchor:tests/drive/loop.test.ts#[covers:F-063/AC-158] a failed L1 execution retries despite a non-authoritative observer summary",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-063/AC-158] a failed L1 execution retries despite a non-authoritative observer summary"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-063.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[0]",
           "range": {
-            "start": 923,
-            "end": 947,
-            "line": 19,
-            "column": 17
+            "start": 845,
+            "end": 968,
+            "line": 22,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-063/AC-158",
+        "channel": "test",
+        "raw": "tests/drive/loop.test.ts#[covers:F-063/AC-158] a skipped L1 runner remains distinct from a failed execution",
+        "normalizedTarget": "anchor:tests/drive/loop.test.ts#[covers:F-063/AC-158] a skipped L1 runner remains distinct from a failed execution",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-063/AC-158] a skipped L1 runner remains distinct from a failed execution"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-063.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[1]",
+          "range": {
+            "start": 977,
+            "end": 1086,
+            "line": 23,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-063/AC-158",
+        "channel": "test",
+        "raw": "tests/drive/loop.test.ts#[covers:F-063/AC-158][covers:F-071/AC-198][covers:F-071/AC-200][covers:F-049/AC-088] dispatch failures preserve the live transport taxonomy, detail, and retry invariant",
+        "normalizedTarget": "anchor:tests/drive/loop.test.ts#[covers:F-063/AC-158][covers:F-071/AC-198][covers:F-071/AC-200][covers:F-049/AC-088] dispatch failures preserve the live transport taxonomy, detail, and retry invariant",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-063/AC-158][covers:F-071/AC-198][covers:F-071/AC-200][covers:F-049/AC-088] dispatch failures preserve the live transport taxonomy, detail, and retry invariant"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-063.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[2]",
+          "range": {
+            "start": 1095,
+            "end": 1290,
+            "line": 24,
+            "column": 9
           }
         }
       },
@@ -71059,9 +72194,9 @@
           "path": "spec/features/F-063.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 1411,
-            "end": 1438,
-            "line": 25,
+            "start": 2078,
+            "end": 2105,
+            "line": 35,
             "column": 17
           }
         }
@@ -71069,20 +72204,84 @@
       {
         "owner": "criterion:F-063/AC-160",
         "channel": "test",
-        "raw": "tests/events/log.test.ts",
-        "normalizedTarget": "artifact:tests/events/log.test.ts",
+        "raw": "tests/events/log.test.ts#[covers:F-063/AC-160] absent and empty event logs read as no observations",
+        "normalizedTarget": "anchor:tests/events/log.test.ts#[covers:F-063/AC-160] absent and empty event logs read as no observations",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-063/AC-160] absent and empty event logs read as no observations"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-063.yaml",
+          "yamlPath": "$.acceptance_criteria[2].test_refs[1]",
+          "range": {
+            "start": 2678,
+            "end": 2778,
+            "line": 43,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-063/AC-160",
+        "channel": "test",
+        "raw": "tests/events/log.test.ts#[covers:F-063/AC-160] append and read preserve a valid JSONL event round trip",
+        "normalizedTarget": "anchor:tests/events/log.test.ts#[covers:F-063/AC-160] append and read preserve a valid JSONL event round trip",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-063/AC-160] append and read preserve a valid JSONL event round trip"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-063.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 1858,
-            "end": 1882,
-            "line": 31,
-            "column": 17
+            "start": 2565,
+            "end": 2669,
+            "line": 42,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-063/AC-160",
+        "channel": "test",
+        "raw": "tests/events/log.test.ts#[covers:F-063/AC-160] managed symbolic paths remain observer-only no-ops",
+        "normalizedTarget": "anchor:tests/events/log.test.ts#[covers:F-063/AC-160] managed symbolic paths remain observer-only no-ops",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-063/AC-160] managed symbolic paths remain observer-only no-ops"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-063.yaml",
+          "yamlPath": "$.acceptance_criteria[2].test_refs[3]",
+          "range": {
+            "start": 2891,
+            "end": 2990,
+            "line": 45,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-063/AC-160",
+        "channel": "test",
+        "raw": "tests/events/log.test.ts#[covers:F-063/AC-160] multiple JSONL appends preserve observed order",
+        "normalizedTarget": "anchor:tests/events/log.test.ts#[covers:F-063/AC-160] multiple JSONL appends preserve observed order",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-063/AC-160] multiple JSONL appends preserve observed order"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-063.yaml",
+          "yamlPath": "$.acceptance_criteria[2].test_refs[2]",
+          "range": {
+            "start": 2787,
+            "end": 2882,
+            "line": 44,
+            "column": 9
           }
         }
       },
@@ -71099,9 +72298,9 @@
           "path": "spec/features/F-063.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 2424,
-            "end": 2456,
-            "line": 38,
+            "start": 3777,
+            "end": 3809,
+            "line": 57,
             "column": 9
           }
         }
@@ -71119,9 +72318,9 @@
           "path": "spec/features/F-063.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[1]",
           "range": {
-            "start": 2465,
-            "end": 2493,
-            "line": 39,
+            "start": 3818,
+            "end": 3846,
+            "line": 58,
             "column": 9
           }
         }
@@ -71139,9 +72338,9 @@
           "path": "spec/features/F-063.yaml",
           "yamlPath": "$.acceptance_criteria[4].test_refs[1]",
           "range": {
-            "start": 3110,
-            "end": 3132,
-            "line": 47,
+            "start": 4463,
+            "end": 4485,
+            "line": 66,
             "column": 9
           }
         }
@@ -71159,9 +72358,9 @@
           "path": "spec/features/F-063.yaml",
           "yamlPath": "$.acceptance_criteria[4].test_refs[0]",
           "range": {
-            "start": 3079,
-            "end": 3101,
-            "line": 46,
+            "start": 4432,
+            "end": 4454,
+            "line": 65,
             "column": 9
           }
         }
@@ -71180,9 +72379,9 @@
           "path": "spec/features/F-063.yaml",
           "yamlPath": "$.acceptance_criteria[5].test_refs[0]",
           "range": {
-            "start": 3534,
-            "end": 3848,
-            "line": 55,
+            "start": 4887,
+            "end": 5201,
+            "line": 74,
             "column": 9
           }
         }
@@ -71190,40 +72389,105 @@
       {
         "owner": "criterion:F-064/AC-165",
         "channel": "test",
-        "raw": "tests/cli/clad.test.ts",
-        "normalizedTarget": "artifact:tests/cli/clad.test.ts",
+        "raw": "tests/cli/clad.test.ts#[covers:F-064/AC-165] the live command registry exposes callable actions and declared option boundaries",
+        "normalizedTarget": "anchor:tests/cli/clad.test.ts#[covers:F-064/AC-165] the live command registry exposes callable actions and declared option boundaries",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-064/AC-165] the live command registry exposes callable actions and declared option boundaries"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-064.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 1374,
-            "end": 1396,
-            "line": 21,
-            "column": 17
+            "start": 1283,
+            "end": 1411,
+            "line": 23,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-064/AC-165",
+        "channel": "test",
+        "raw": "tests/cli/clad.test.ts#[covers:F-064/AC-165][covers:F-d25041ac/AC-33f9324c] removed aliases fail closed at the command boundary",
+        "normalizedTarget": "anchor:tests/cli/clad.test.ts#[covers:F-064/AC-165][covers:F-d25041ac/AC-33f9324c] removed aliases fail closed at the command boundary",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-064/AC-165][covers:F-d25041ac/AC-33f9324c] removed aliases fail closed at the command boundary"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-064.yaml",
+          "yamlPath": "$.acceptance_criteria[1].test_refs[1]",
+          "range": {
+            "start": 1420,
+            "end": 1549,
+            "line": 24,
+            "column": 9
           }
         }
       },
       {
         "owner": "criterion:F-064/AC-166",
         "channel": "test",
-        "raw": "tests/adapters/index.test.ts",
-        "normalizedTarget": "artifact:tests/adapters/index.test.ts",
+        "raw": "tests/adapters/index.test.ts#[covers:F-064/AC-166] every registered adapter resolves exactly through its declared mode and name",
+        "normalizedTarget": "anchor:tests/adapters/index.test.ts#[covers:F-064/AC-166] every registered adapter resolves exactly through its declared mode and name",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-064/AC-166] every registered adapter resolves exactly through its declared mode and name"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-064.yaml",
+          "yamlPath": "$.acceptance_criteria[2].test_refs[1]",
+          "range": {
+            "start": 2645,
+            "end": 2774,
+            "line": 37,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-064/AC-166",
+        "channel": "test",
+        "raw": "tests/adapters/index.test.ts#[covers:F-064/AC-166] incomplete malformed or unknown selections fall back to generic without provider credentials",
+        "normalizedTarget": "anchor:tests/adapters/index.test.ts#[covers:F-064/AC-166] incomplete malformed or unknown selections fall back to generic without provider credentials",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-064/AC-166] incomplete malformed or unknown selections fall back to generic without provider credentials"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/F-064.yaml",
+          "yamlPath": "$.acceptance_criteria[2].test_refs[2]",
+          "range": {
+            "start": 2783,
+            "end": 2928,
+            "line": 38,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-064/AC-166",
+        "channel": "test",
+        "raw": "tests/adapters/index.test.ts#[covers:F-064/AC-166][covers:F-049/AC-089] environment selection precedes configuration and automatic selection",
+        "normalizedTarget": "anchor:tests/adapters/index.test.ts#[covers:F-064/AC-166][covers:F-049/AC-089] environment selection precedes configuration and automatic selection",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-064/AC-166][covers:F-049/AC-089] environment selection precedes configuration and automatic selection"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/F-064.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 1892,
-            "end": 1920,
-            "line": 27,
-            "column": 17
+            "start": 2494,
+            "end": 2636,
+            "line": 36,
+            "column": 9
           }
         }
       },
@@ -71241,9 +72505,9 @@
           "path": "spec/features/F-064.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 2357,
-            "end": 2671,
-            "line": 35,
+            "start": 3627,
+            "end": 3941,
+            "line": 51,
             "column": 9
           }
         }
@@ -75168,80 +76432,21 @@
       {
         "owner": "criterion:F-1edb38/AC-003",
         "channel": "test",
-        "raw": "tests/cli/clad.test.ts",
-        "normalizedTarget": "artifact:tests/cli/clad.test.ts",
+        "raw": "tests/cli/scan.test.ts#[covers:F-1edb38/AC-003] scanRoot composes typed analyzer records and architecture candidates",
+        "normalizedTarget": "anchor:tests/cli/scan.test.ts#[covers:F-1edb38/AC-003] scanRoot composes typed analyzer records and architecture candidates",
         "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/scan-refactor-1edb38.yaml",
-          "yamlPath": "$.acceptance_criteria[2].test_refs[3]",
-          "range": {
-            "start": 2731,
-            "end": 2753,
-            "line": 43,
-            "column": 99
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-1edb38/AC-003",
-        "channel": "test",
-        "raw": "tests/cli/scan-llm.test.ts",
-        "normalizedTarget": "artifact:tests/cli/scan-llm.test.ts",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/scan-refactor-1edb38.yaml",
-          "yamlPath": "$.acceptance_criteria[2].test_refs[2]",
-          "range": {
-            "start": 2703,
-            "end": 2729,
-            "line": 43,
-            "column": 71
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-1edb38/AC-003",
-        "channel": "test",
-        "raw": "tests/cli/scan-roots.test.ts",
-        "normalizedTarget": "artifact:tests/cli/scan-roots.test.ts",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/scan-refactor-1edb38.yaml",
-          "yamlPath": "$.acceptance_criteria[2].test_refs[1]",
-          "range": {
-            "start": 2673,
-            "end": 2701,
-            "line": 43,
-            "column": 41
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-1edb38/AC-003",
-        "channel": "test",
-        "raw": "tests/cli/scan.test.ts",
-        "normalizedTarget": "artifact:tests/cli/scan.test.ts",
-        "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-1edb38/AC-003] scanRoot composes typed analyzer records and architecture candidates"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/scan-refactor-1edb38.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 2649,
-            "end": 2671,
-            "line": 43,
-            "column": 17
+            "start": 2602,
+            "end": 2720,
+            "line": 44,
+            "column": 9
           }
         }
       },
@@ -85772,20 +86977,21 @@
       {
         "owner": "criterion:F-94dda4/AC-005",
         "channel": "test",
-        "raw": "tests/cli/scan.test.ts",
-        "normalizedTarget": "artifact:tests/cli/scan.test.ts",
+        "raw": "tests/cli/scan.test.ts#[covers:F-94dda4/AC-005] default polyglot files preserve flat layer records and add a language layer",
+        "normalizedTarget": "anchor:tests/cli/scan.test.ts#[covers:F-94dda4/AC-005] default polyglot files preserve flat layer records and add a language layer",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-94dda4/AC-005] default polyglot files preserve flat layer records and add a language layer"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/scan-polyglot-94dda4.yaml",
           "yamlPath": "$.acceptance_criteria[4].test_refs[0]",
           "range": {
-            "start": 4493,
-            "end": 4515,
-            "line": 40,
-            "column": 17
+            "start": 4365,
+            "end": 4490,
+            "line": 41,
+            "column": 9
           }
         }
       },
@@ -87934,20 +89140,21 @@
       {
         "owner": "criterion:F-aee1da/AC-005",
         "channel": "test",
-        "raw": "tests/cli/scan.test.ts",
-        "normalizedTarget": "artifact:tests/cli/scan.test.ts",
+        "raw": "tests/cli/scan.test.ts#[covers:F-aee1da/AC-005] residual root handling retains flat layer records and language statistics",
+        "normalizedTarget": "anchor:tests/cli/scan.test.ts#[covers:F-aee1da/AC-005] residual root handling retains flat layer records and language statistics",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-aee1da/AC-005] residual root handling retains flat layer records and language statistics"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/scan-residuals-aee1da.yaml",
           "yamlPath": "$.acceptance_criteria[4].test_refs[0]",
           "range": {
-            "start": 4676,
-            "end": 4698,
-            "line": 48,
-            "column": 17
+            "start": 4488,
+            "end": 4611,
+            "line": 49,
+            "column": 9
           }
         }
       },
@@ -91457,20 +92664,21 @@
       {
         "owner": "criterion:F-c48eb2/AC-004",
         "channel": "test",
-        "raw": "tests/cli/scan.test.ts",
-        "normalizedTarget": "artifact:tests/cli/scan.test.ts",
+        "raw": "tests/cli/scan.test.ts#[covers:F-c48eb2/AC-004] inferred and explicit roots preserve flat layer records",
+        "normalizedTarget": "anchor:tests/cli/scan.test.ts#[covers:F-c48eb2/AC-004] inferred and explicit roots preserve flat layer records",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-c48eb2/AC-004] inferred and explicit roots preserve flat layer records"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/scan-source-roots-c48eb2.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 3487,
-            "end": 3509,
-            "line": 38,
-            "column": 17
+            "start": 3367,
+            "end": 3472,
+            "line": 39,
+            "column": 9
           }
         }
       },
@@ -93173,20 +94381,42 @@
       {
         "owner": "criterion:F-cfba0c/AC-005",
         "channel": "test",
-        "raw": "tests/cli/scan.test.ts",
-        "normalizedTarget": "artifact:tests/cli/scan.test.ts",
+        "raw": "tests/cli/init.test.ts#[covers:F-cfba0c/AC-005] intent-free adoption writes only the scenario README",
+        "normalizedTarget": "anchor:tests/cli/init.test.ts#[covers:F-cfba0c/AC-005] intent-free adoption writes only the scenario README",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-cfba0c/AC-005] intent-free adoption writes only the scenario README"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/scenarios-deprecate-cfba0c.yaml",
+          "yamlPath": "$.acceptance_criteria[4].test_refs[1]",
+          "range": {
+            "start": 4114,
+            "end": 4216,
+            "line": 44,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-cfba0c/AC-005",
+        "channel": "test",
+        "raw": "tests/cli/scan.test.ts#[covers:F-cfba0c/AC-005] intent-free scan retains architecture and empty scenarios",
+        "normalizedTarget": "anchor:tests/cli/scan.test.ts#[covers:F-cfba0c/AC-005] intent-free scan retains architecture and empty scenarios",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-cfba0c/AC-005] intent-free scan retains architecture and empty scenarios"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/scenarios-deprecate-cfba0c.yaml",
           "yamlPath": "$.acceptance_criteria[4].test_refs[0]",
           "range": {
-            "start": 4047,
-            "end": 4069,
-            "line": 42,
-            "column": 17
+            "start": 3998,
+            "end": 4105,
+            "line": 43,
+            "column": 9
           }
         }
       },
@@ -97190,9 +98420,9 @@
     ]
   },
   "derived": {
-    "proofOccurrences": 1709,
-    "uniqueCriterionProofAddresses": 1709,
-    "resolvedProofs": 1700,
+    "proofOccurrences": 1736,
+    "uniqueCriterionProofAddresses": 1736,
+    "resolvedProofs": 1727,
     "unresolvedProofs": 9
   }
 }

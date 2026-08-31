@@ -27,6 +27,23 @@ describe('runUnit (stage_2.1)', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
+  test('[covers:F-060/AC-146] unit runner preserves successful, failed, unavailable, and overridden execution outcomes', () => {
+    const opts = {cwd: dir, cmd: 'unit-runner', args: ['--focused']};
+    execaSyncMock
+      .mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''})
+      .mockReturnValueOnce({exitCode: 9, stdout: '', stderr: 'failing assertion'})
+      .mockReturnValueOnce({exitCode: null, stdout: '', stderr: ''})
+      .mockReturnValueOnce({code: 'ENOENT', exitCode: undefined, stdout: '', stderr: ''});
+
+    expect(runUnit(opts)).toMatchObject({pass: true, exitCode: 0});
+    expect(runUnit(opts)).toMatchObject({pass: false, exitCode: 1, stderr: 'failing assertion'});
+    expect(runUnit(opts)).toMatchObject({pass: false, exitCode: 1});
+    const unavailable = runUnit(opts);
+    expect(unavailable).toMatchObject({pass: false, exitCode: 2, skipReason: 'tool-missing'});
+    expect(unavailable).not.toHaveProperty('disposition');
+    expect(execaSyncMock).toHaveBeenCalledWith('unit-runner', ['--focused'], expect.any(Object));
+  });
+
   test('unknown language + no override → skipped (exitCode=2)', () => {
     const r = runUnit({cwd: dir});
     expect(r.pass).toBe(false);

@@ -42,7 +42,14 @@ acceptance_criteria:
     evidence_refs: [src/cli/init.ts]
   - id: AC-005
     ears: ubiquitous
-    action: keep flat src/ project regression byte-identical
-    response: 'cladding itself uses a flat src/ layout, every source file is TypeScript, and tests/ is now LAYER_BLACKLIST-hidden from v0.3.26; this patch only adds _root promotion (cwd-direct ≥5 files — cladding has 0 cwd-direct .ts files so the branch never fires) and workspace-direct branch (cladding is single-root, no workspaces); the existing flat-src regression test keeps passing; sync continues to validate 100 features with no language change to spec.yaml'
-    text: The system shall keep flat src/ project regression byte-identical so the v0.3.26 dogfood smoke output and cladding self-scan stay stable when v0.3.27 lands.
-    test_refs: [tests/cli/scan.test.ts]
+    action: retain normal flat source-layer records after residual root and workspace handling
+    response: normal src/<layer> paths resolve to bare layer names with root-qualified directories and observed module counts; language statistics remain derived from recognized file extensions
+    text: Residual root and workspace handling shall leave normal flat src/<layer> paths as bare layer records with root-qualified directories, observed module counts, and extension-majority language statistics.
+    test_refs:
+      - "tests/cli/scan.test.ts#[covers:F-aee1da/AC-005] residual root handling retains flat layer records and language statistics"
+    notes: |
+      ## Historical note (2026-05-20, v0.3.27, source commit f1da6b5)
+      The former dogfood claim required byte-identical v0.3.26 output,
+      described cladding's TypeScript-only flat layout, and recorded a
+      100-feature sync result. Those environmental observations are historical
+      evidence rather than a permanent regression baseline.

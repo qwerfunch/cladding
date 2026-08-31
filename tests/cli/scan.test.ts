@@ -11,7 +11,7 @@ import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
 import {scanRoot, walk} from '../../src/cli/scan/index.js';
 import {groupByLayer} from '../../src/cli/scan/architecture.js';
-import type {Conventions} from '../../src/cli/scan/types.js';
+import type {Conventions, ScanResult} from '../../src/cli/scan/types.js';
 
 function seed(dir: string, layout: Record<string, string>): void {
   for (const [path, content] of Object.entries(layout)) {
@@ -49,6 +49,42 @@ describe('scanRoot', () => {
     expect(result.architecture.importGraph).toContainEqual({from: 'cli', to: 'core', count: 1});
     expect(result.examples.map((example) => example.layer).sort()).toEqual(['cli', 'core']);
     expect(existsSync(join(process.cwd(), 'src/cli/scan.ts'))).toBe(false);
+  });
+
+  test('[covers:F-1edb38/AC-003] scanRoot composes typed analyzer records and architecture candidates', () => {
+    seed(dir, {
+      'README.md': '# Scan fixture\n\nTyped analyzer composition.\n',
+      'src/cli/a.ts': "import {core} from '../core/a.js';\nexport const cli = core;\n",
+      'src/cli/b.ts': 'export const cliHelper = true;\n',
+      'src/cli/c.ts': 'export const cliValue = 3;\n',
+      'src/core/a.ts': 'export const core = 1;\n',
+      'src/core/b.ts': 'export const coreHelper = true;\n',
+      'src/core/c.ts': 'export const coreValue = 3;\n',
+      'src/ui/a.ts': 'export const view = 1;\n',
+      'src/ui/b.ts': 'export const viewHelper = true;\n',
+      'src/ui/c.ts': 'export const viewValue = 3;\n',
+    });
+
+    const result: ScanResult = scanRoot({cwd: dir});
+    expect(Object.keys(result).sort()).toEqual([
+      'architecture',
+      'conventions',
+      'examples',
+      'projectContext',
+      'scenarios',
+      'stats',
+    ]);
+    expect(result.conventions.namingExports).toBe('camelCase');
+    expect(result.architecture.importGraph).toContainEqual({from: 'cli', to: 'core', count: 1});
+    expect(result.architecture.forbiddenImportCandidates.cli).toEqual(['ui']);
+    expect(result.scenarios).toEqual([]);
+    expect(result.examples.map((example) => example.layer).sort()).toEqual(['cli', 'core', 'ui']);
+    expect(result.stats).toMatchObject({
+      filesScanned: 9,
+      dominantLanguage: 'typescript',
+      languageCounts: {typescript: 9},
+    });
+    expect(result.projectContext?.readmeFirstParagraph).toContain('Typed analyzer composition');
   });
 
   test('[covers:F-9b643e/AC-001] extracts indentation from observed source files', () => {
@@ -219,6 +255,20 @@ describe('scanRoot', () => {
     expect(r.scenarios).toEqual([]);
   });
 
+  test('[covers:F-cfba0c/AC-005] intent-free scan retains architecture and empty scenarios', () => {
+    seed(dir, {
+      'src/cli/command.ts': 'export const command = true;\n',
+      'src/core/service.ts': 'export const service = true;\n',
+    });
+
+    const result = scanRoot({cwd: dir});
+    expect(result.architecture.layers).toEqual([
+      {name: 'cli', dir: 'src/cli', moduleCount: 1},
+      {name: 'core', dir: 'src/core', moduleCount: 1},
+    ]);
+    expect(result.scenarios).toEqual([]);
+  });
+
   test('[covers:F-9b643e/AC-003] examples pick the longest non-test module per layer', () => {
     seed(dir, {
       'src/core/short.ts': 'export const s = 1;\n',
@@ -279,6 +329,28 @@ describe('scanRoot', () => {
     expect(names).toEqual(['csharp', 'dart', 'go', 'java', 'kotlin', 'php', 'ruby', 'rust', 'swift']);
   });
 
+  test('[covers:F-94dda4/AC-005] default polyglot files preserve flat layer records and add a language layer', () => {
+    seed(dir, {
+      'src/cli/command.ts': 'export const command = true;\n',
+      'src/core/service.ts': 'export const service = true;\n',
+    });
+    const flatLayerProjection = (result: ScanResult) =>
+      result.architecture.layers
+        .filter((layer) => layer.name === 'cli' || layer.name === 'core')
+        .map(({name, dir: layerDir, moduleCount}) => ({name, dir: layerDir, moduleCount}));
+    const before = flatLayerProjection(scanRoot({cwd: dir}));
+
+    seed(dir, {
+      'src/worker/handler.go': 'package worker\n\nfunc Handle() {}\n',
+      'tests/worker_test.go': 'package tests\n\nfunc TestHandle() {}\n',
+    });
+    const after = scanRoot({cwd: dir});
+
+    expect(flatLayerProjection(after)).toEqual(before);
+    expect(after.architecture.layers).toContainEqual({name: 'worker', dir: 'src/worker', moduleCount: 1});
+    expect(after.architecture.layers.map((layer) => layer.name)).not.toContain('tests');
+  });
+
   // v0.3.25 (F-x) — source root inference: layerOf must collapse
   // src/<layer>/ across flat projects, monorepo workspaces, and CLI
   // overrides without losing the workspace prefix on monorepo layers.
@@ -305,13 +377,26 @@ describe('scanRoot', () => {
       expect(names).toContain('widget');
     });
 
-    test('flat src/ project still maps src/<layer> to <layer> (no regression)', () => {
+    test('[covers:F-c48eb2/AC-004] inferred and explicit roots preserve flat layer records', () => {
       seed(dir, {
         'src/core/a.ts': 'export const a = 1;\n',
         'src/cli/b.ts': 'export const b = 2;\n',
       });
-      const names = scanRoot({cwd: dir}).architecture.layers.map((l) => l.name).sort();
-      expect(names).toEqual(['cli', 'core']);
+      const projection = (roots?: readonly string[]) => {
+        const result = roots === undefined ? scanRoot({cwd: dir}) : scanRoot({cwd: dir, roots});
+        return result.architecture.layers.map(({name, dir: layerDir, moduleCount}) => ({
+          name,
+          dir: layerDir,
+          moduleCount,
+        }));
+      };
+      const inferred = projection();
+
+      expect(inferred).toEqual([
+        {name: 'cli', dir: 'src/cli', moduleCount: 1},
+        {name: 'core', dir: 'src/core', moduleCount: 1},
+      ]);
+      expect(projection(['src'])).toEqual(inferred);
     });
   });
 
@@ -466,6 +551,24 @@ describe('scanRoot', () => {
         'src/d.ts': 'export const x = 1;\n',
       });
       expect(scanRoot({cwd: dir}).stats.dominantLanguage).toBe('ruby');
+    });
+
+    test('[covers:F-aee1da/AC-005] residual root handling retains flat layer records and language statistics', () => {
+      seed(dir, {
+        'src/cli/command.ts': 'export const command = true;\n',
+        'src/core/model.rb': 'class Model; end\n',
+        'src/core/store.rb': 'class Store; end\n',
+      });
+
+      const result = scanRoot({cwd: dir});
+      expect(result.architecture.layers).toEqual([
+        {name: 'cli', dir: 'src/cli', moduleCount: 1},
+        {name: 'core', dir: 'src/core', moduleCount: 2},
+      ]);
+      expect(result.stats).toMatchObject({
+        dominantLanguage: 'ruby',
+        languageCounts: {ruby: 2, typescript: 1},
+      });
     });
 
     test('dominantLanguage falls back to "unknown" on empty walk', () => {

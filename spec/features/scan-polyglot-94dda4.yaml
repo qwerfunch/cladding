@@ -34,7 +34,14 @@ acceptance_criteria:
     test_refs: [tests/cli/scan.test.ts]
   - id: AC-005
     ears: ubiquitous
-    action: keep the v0.3.25 dogfood smoke output byte-identical for flat src/ projects
-    response: 'cladding itself (flat src/ layout) still produces the same layer set after v0.3.26 because the JS/TS branch of detectDocBlockRatio plus the LAYER_BLACKLIST defaults do not change behaviour on the projects v0.3.25 already handled correctly; the existing regression test (flat src/ layer set = [cli, core]) keeps passing and v0.3.26 adds tests for the new language extensions without touching the legacy fixtures'
-    text: The system shall keep the v0.3.25 dogfood smoke output byte-identical for flat src/ projects so the polyglot expansion is a strictly additive change with no regression for the projects v0.3.25 already handled correctly.
-    test_refs: [tests/cli/scan.test.ts]
+    action: preserve existing flat-source layer records when default polyglot support discovers an additional layer
+    response: default extensions and the default layer blacklist retain the name, root-qualified directory, and module count of existing flat source layers while a supported-language file contributes its own non-blacklisted layer record
+    text: With default extensions and the default layer blacklist, adding supported polyglot source files shall preserve the semantic projection of existing flat src/cli and src/core layer records while emitting an additive record for a new language layer.
+    test_refs:
+      - "tests/cli/scan.test.ts#[covers:F-94dda4/AC-005] default polyglot files preserve flat layer records and add a language layer"
+    notes: |
+      ## Historical note (2026-05-20, v0.3.26, source commit 696fbb6)
+      The v0.3.25 dogfood smoke report said the flat src/ output was
+      byte-identical after the polyglot expansion and named the [cli, core]
+      layer set. That fixed baseline is historical evidence, not a current
+      output-byte invariant.

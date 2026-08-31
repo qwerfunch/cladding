@@ -1,11 +1,13 @@
 // Cladding · unit tests for cli/init.ts
 
-import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {basename, join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
 import {runInit} from '../../src/cli/init.js';
+
+const EXPECTED_CLADDING_IGNORE_BLOCK = '# Cladding runtime state\n.cladding/*\n!.cladding/config.yaml\n';
 
 describe('runInit', () => {
   let dir: string;
@@ -23,6 +25,14 @@ describe('runInit', () => {
     expect(existsSync(join(dir, 'spec.yaml'))).toBe(true);
     expect(existsSync(join(dir, '.cladding'))).toBe(true);
     expect(readFileSync(join(dir, '.gitattributes'), 'utf8')).toContain('spec/index.yaml merge=union');
+  });
+
+  test('[covers:F-062/AC-155] initialization derives the default project name from its workspace', async () => {
+    await runInit({cwd: dir});
+
+    const seed = readFileSync(join(dir, 'spec.yaml'), 'utf8');
+    expect(seed).toContain(`name: ${basename(dir)}`);
+    expect(seed).toContain(`# ${basename(dir)} — Cladding spec`);
   });
 
   test('[covers:F-046/AC-078] scaffolds the seed, runtime, ignore rule, result lists, and detected language together', async () => {
@@ -179,7 +189,7 @@ describe('runInit', () => {
     expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).toContain('existing: true');
   });
 
-  test('explicit projectName overrides cwd basename in seed', async () => {
+  test('[covers:F-062/AC-155] initialization preserves an explicit project name in the seed', async () => {
     const r = await runInit({cwd: dir, projectName: 'my-custom-name'});
     expect(r.language).toBeDefined();
     const yaml = readFileSync(join(dir, 'spec.yaml'), 'utf8');
@@ -187,24 +197,23 @@ describe('runInit', () => {
     expect(yaml).toContain('my-custom-name — Cladding spec');
   });
 
-  test('appends the ignore entry to a gitignore that lacks a trailing newline', async () => {
-    // Branch: existing.length > 0 && !existing.endsWith('\n') → prepend \n
-    writeFileSync(join(dir, '.gitignore'), 'node_modules/');
+  test('[covers:F-062/AC-155] initialization preserves the existing ignore bytes and separator before its managed entry', async () => {
+    const existing = 'node_modules/';
+    writeFileSync(join(dir, '.gitignore'), existing);
     await runInit({cwd: dir});
     const gi = readFileSync(join(dir, '.gitignore'), 'utf8');
-    // The original line stays intact and the new entry lands on its own line
-    expect(gi.startsWith('node_modules/')).toBe(true);
-    expect(gi.split(/\r?\n/)).toContain('.cladding/*');
-    // No "node_modules/.cladding/*" concatenation
-    expect(gi).not.toContain('node_modules/.cladding');
+    expect(gi).toBe(`${existing}\n\n${EXPECTED_CLADDING_IGNORE_BLOCK}`);
   });
 
-  test('creates .gitignore from scratch with runtime state ignored and gate config committable', async () => {
-    // Branch: existing.length === 0 → ensureNewline stays ''
-    const r = await runInit({cwd: dir});
-    expect(r.created.some((c) => c.includes('.gitignore'))).toBe(true);
-    const gi = readFileSync(join(dir, '.gitignore'), 'utf8');
-    expect(gi).toBe('# Cladding runtime state\n.cladding/*\n!.cladding/config.yaml\n');
+  test('[covers:F-062/AC-155] initialization creates the managed ignore entry from an absent file and remains idempotent', async () => {
+    const initial = await runInit({cwd: dir});
+    const first = readFileSync(join(dir, '.gitignore'), 'utf8');
+    const repeated = await runInit({cwd: dir});
+
+    expect(initial.created.some((entry) => entry.includes('.gitignore'))).toBe(true);
+    expect(first).toBe(EXPECTED_CLADDING_IGNORE_BLOCK);
+    expect(readFileSync(join(dir, '.gitignore'), 'utf8')).toBe(first);
+    expect(repeated.created).not.toContain('.gitignore (.cladding/* ignored, .cladding/config.yaml committable)');
   });
 
   // v0.3.42 (F-bd07d7) — greenfield seeds. When the auto-scan threshold
@@ -248,6 +257,23 @@ describe('runInit', () => {
     expect(readFileSync(join(dir, 'docs', 'conventions.md'), 'utf8')).toBe(authored);
     expect(existsSync(join(dir, '.cladding/scan/conventions.md.proposal'))).toBe(true);
     expect(existsSync(join(dir, 'spec', 'scenarios', 'generated.yaml'))).toBe(false);
+  });
+
+  test('[covers:F-cfba0c/AC-005] intent-free adoption writes only the scenario README', async () => {
+    mkdirSync(join(dir, 'src', 'cli'), {recursive: true});
+    mkdirSync(join(dir, 'src', 'core'), {recursive: true});
+    writeFileSync(join(dir, 'src', 'cli', 'command.ts'), 'export const command = true;\n');
+    writeFileSync(join(dir, 'src', 'core', 'service.ts'), 'export const service = true;\n');
+
+    const result = await runInit({cwd: dir, scan: true, noLlm: true});
+    const architecture = readFileSync(join(dir, 'spec', 'architecture.yaml'), 'utf8');
+    const scenariosDir = join(dir, 'spec', 'scenarios');
+
+    expect(result.created).toContain('spec/architecture.yaml');
+    expect(architecture).toContain('  - name: cli');
+    expect(architecture).toContain('  - name: core');
+    expect(readFileSync(join(scenariosDir, 'README.md'), 'utf8')).toContain('user journeys');
+    expect(readdirSync(scenariosDir).sort()).toEqual(['README.md']);
   });
 
   test('[covers:F-c8aef8/AC-001] creates project-context on initial init and diverts repeat without overwriting authored content', async () => {

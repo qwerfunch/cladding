@@ -196,7 +196,7 @@ describe('runDriveLoop', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('spec load failure → UNCAUGHT_ERROR halt', async () => {
+  test('[covers:F-063/AC-158] spec load failure returns an uncaught-error halt with its deciding detail', async () => {
     loadSpecMock.mockImplementationOnce(() => {
       throw new Error('spec.yaml malformed');
     });
@@ -206,7 +206,7 @@ describe('runDriveLoop', () => {
     expect(r.iterations).toBe(0);
   });
 
-  test('[covers:F-048/AC-084] returns a declared halt class with a deciding detail', async () => {
+  test('[covers:F-063/AC-158][covers:F-048/AC-084] returns a declared halt class with a deciding detail', async () => {
     loadSpecMock.mockReturnValueOnce(specOf([]));
     const r = await runDriveLoop({cwd: dir});
     expect(r.halt.class).toBe('ALL_FEATURES_DONE');
@@ -225,7 +225,7 @@ describe('runDriveLoop', () => {
     expect(runAgentMock).not.toHaveBeenCalled();
   });
 
-  test('feature with unresolved depends_on → BLOCKED_FEATURE', async () => {
+  test('[covers:F-063/AC-158] unresolved dependencies return the blocked-feature halt', async () => {
     loadSpecMock.mockReturnValueOnce(
       specOf([{id: 'F-002', status: 'planned', depends_on: ['F-999']}]),
     );
@@ -262,7 +262,7 @@ describe('runDriveLoop', () => {
     expect(r.halt.detail).toContain('specialist dispatch failed');
   });
 
-  test('L1 gate fails → retry (loop continues until budget halt)', async () => {
+  test('[covers:F-063/AC-158] a failed L1 execution retries despite a non-authoritative observer summary', async () => {
     loadSpecMock.mockReturnValue(specOf([{id: 'F-001', status: 'planned'}]));
     runLintMock.mockReturnValue({pass: false, exitCode: 1, stage: 'stage_1.2', stderr: 'lint err'});
     const r = await runDriveLoop({
@@ -270,6 +270,10 @@ describe('runDriveLoop', () => {
       budget: {maxIterations: 3, maxWallClockMs: 60000, maxRetriesPerFeature: 10},
     });
     expect(r.halt.class).toBe('MAX_ITERATIONS');
+    const observerEvent = appendEventMock.mock.calls
+      .map((call) => call[1] as {type: string; payload: {assurance?: {state?: string}}})
+      .find((event) => event.type === 'stage_completed');
+    expect(observerEvent?.payload.assurance?.state).toBe('green');
     // The budget check fires on iteration N+1 (before gates run), so
     // with maxIterations=3 the gates run on iterations 1 and 2 only:
     // 2 iterations × 3 gates = 6.
@@ -294,7 +298,7 @@ describe('runDriveLoop', () => {
     }
   });
 
-  test('[covers:F-049/AC-086] reviewer identity collision → HUMAN_REQUIRED', async () => {
+  test('[covers:F-063/AC-158][covers:F-049/AC-086] reviewer identity collision → HUMAN_REQUIRED', async () => {
     loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-001', status: 'planned'}]));
     runAgentMock.mockReset();
     runAgentMock
@@ -334,7 +338,7 @@ describe('runDriveLoop', () => {
     expect(haltEvent?.payload.detail).toContain(join(dir, '.cladding', 'audit.log.jsonl'));
   });
 
-  test('[covers:F-071/AC-198][covers:F-071/AC-200][covers:F-049/AC-088] dispatch failures preserve the live transport taxonomy, detail, and retry invariant', async () => {
+  test('[covers:F-063/AC-158][covers:F-071/AC-198][covers:F-071/AC-200][covers:F-049/AC-088] dispatch failures preserve the live transport taxonomy, detail, and retry invariant', async () => {
     const failures = [
       {
         dispatch: 'specialist',
@@ -396,6 +400,21 @@ describe('runDriveLoop', () => {
     const r = await runDriveLoop({cwd: dir});
     expect(r.halt.class).toBe('ALL_FEATURES_DONE');
     expect(r.featuresTouched).toContain('F-001');
+  });
+
+  test('[covers:F-063/AC-158] a skipped L1 runner remains distinct from a failed execution', async () => {
+    loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-001', status: 'planned'}]));
+    runTypeMock.mockReturnValue({pass: false, exitCode: 2, stage: 'stage_1.1', skipReason: 'tool-missing'});
+
+    const result = await runDriveLoop({cwd: dir});
+
+    expect(result.halt.class).toBe('ALL_FEATURES_DONE');
+    expect(result.featuresTouched).toEqual(['F-001']);
+    expect(
+      appendEventMock.mock.calls
+        .map((call) => call[1] as {type: string})
+        .some((event) => event.type === 'drift_detected'),
+    ).toBe(false);
   });
 
   // Iron Law backbone Phase 3.2 (v0.3.21, F-x) — drive loop pins a

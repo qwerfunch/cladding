@@ -50,7 +50,7 @@ const SDK_REGISTRY: Readonly<Record<string, AgentAdapter>> = {
 /**
  * Returns every adapter currently shipped in the host and SDK registries.
  *
- * This keeps parity checks coupled to the actual selectable surface: adding
+ * Selection and parity checks both use this as the selectable surface: adding
  * an adapter to either registry automatically brings it into the shared
  * contract tests without treating roadmap placeholders as live transports.
  */
@@ -75,13 +75,10 @@ interface ResolvedSelection {
  */
 export function selectAdapter(cwd: string = '.'): AgentAdapter {
   const choice = resolveSelection(cwd);
-  if (choice.mode === 'host') {
-    const adapter = HOST_REGISTRY[choice.name];
-    if (adapter) return adapter;
-  } else if (choice.mode === 'sdk') {
-    const adapter = SDK_REGISTRY[choice.name];
-    if (adapter) return adapter;
-  }
+  const adapter = registeredAdapters().find(
+    (candidate) => candidate.mode === choice.mode && candidate.name === choice.name,
+  );
+  if (adapter) return adapter;
   // Unknown mode / name combination — fall through to generic-mcp so
   // dispatch never crashes; drive loop's healthCheck() reports the
   // mismatch via `LLM_UNAVAILABLE` (F-049 AC-088).

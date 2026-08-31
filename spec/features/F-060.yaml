@@ -1,7 +1,11 @@
 id: F-060
-title: Stage runner tests batch 2 (5 stages)
+title: Stage runner behavior evidence
 status: done
 modules:
+  - src/stages/arch.ts
+  - src/stages/secret.ts
+  - src/stages/unit.ts
+  - src/stages/cov.ts
   - tests/stages/arch.test.ts
   - tests/stages/secret.test.ts
   - tests/stages/unit.test.ts
@@ -11,20 +15,33 @@ depends_on: [F-059]
 acceptance_criteria:
   - id: AC-145
     ears: ubiquitous
-    action: cover the two detector-adapter stages
-    response: tests/stages/arch.test.ts and tests/stages/secret.test.ts each mock the underlying detector (architectureViolation / hardcodedSecret) and exercise no-findings / info-only / single-error / multi-error / mixed-severity / opts-forwarding paths; line coverage on both stage sources reaches at least 75%
-    text: The system shall ship dedicated unit-test files for src/stages/arch.ts and src/stages/secret.ts, bringing each to at least 75% line coverage by mocking the underlying detector.
+    action: report a detector-adapter observation
+    response: preserves supplied options, an applicable shared detector result, error severity, and finding order through current selector-bound observations
+    text: When an architecture or secret detector-adapter stage reports an observation, it shall preserve its supplied options, applicable shared result, error severity, and finding order in the stage result.
     test_refs:
-      - tests/stages/arch.test.ts
-      - tests/stages/secret.test.ts
+      - "tests/stages/arch.test.ts#[covers:F-060/AC-145] cached architecture findings preserve error severity and diagnostic order"
+      - "tests/stages/arch.test.ts#[covers:F-060/AC-145] uncached architecture checks forward supplied options to the detector"
+      - "tests/stages/secret.test.ts#[covers:F-060/AC-145] cached secret findings preserve error severity and diagnostic order"
+      - "tests/stages/secret.test.ts#[covers:F-060/AC-145] uncached secret checks forward supplied options to the detector"
+    notes: |
+      ## Historical schema-0.1 note
+      2026-05-19 · v0.2.11 · e0dec700. Architecture/Secret detector fixtures: no
+      findings, severity mixes, and options; at least 75% line coverage for both
+      sources; non-current. Released title: "Stage runner tests batch 2 (5 stages)".
   - id: AC-146
     ears: ubiquitous
-    action: cover the unit and coverage stage runners
-    response: tests/stages/unit.test.ts and tests/stages/cov.test.ts each exercise unknown-language / explicit override / exit 0 / non-zero / stderr-present / stderr-absent / null-exit branches with vi.mock('execa'); line coverage on both stage sources reaches at least 85%
-    text: The system shall ship dedicated unit-test files for src/stages/unit.ts and src/stages/cov.ts, bringing each to at least 85% line coverage.
+    action: observe a unit or coverage runner
+    response: preserves the overridden or shared invocation outcome and keeps unavailable execution unobserved and distinct from an executed failure for assurance reduction
+    text: When a unit or coverage runner is observed, it shall distinguish successful execution, executed failure, and unavailable execution as unobserved; only compiler-derived applicability may classify the obligation as not applicable.
     test_refs:
-      - tests/stages/unit.test.ts
-      - tests/stages/cov.test.ts
+      - "tests/stages/unit.test.ts#[covers:F-060/AC-146] unit runner preserves successful, failed, unavailable, and overridden execution outcomes"
+      - "tests/stages/cov.test.ts#[covers:F-060/AC-146] coverage runner preserves successful, failed, unavailable, and overridden execution outcomes"
+      - "tests/stages/cov.test.ts#[covers:F-060/AC-146] coverage folds the current shared invocation instead of starting another runner"
+    notes: |
+      ## Historical schema-0.1 note
+      2026-05-19 · v0.2.11 · e0dec700. Unit/Coverage execa fixtures: language,
+      override, exit, stderr, and null outcomes; at least 85% line coverage for
+      both sources; non-current.
   - id: AC-147
     ears: ubiquitous
     action: cover the smoke stage (richer branch tree)

@@ -42,7 +42,7 @@ describe('STALE_SPECIFICATION detector', () => {
     expect(staleSpecification.run({cwd: dir})).toEqual([]);
   });
 
-  test('archived_at present but status=done → warn finding', () => {
+  test('[covers:F-056/AC-130] archived_at on an active lifecycle reports a warning', () => {
     writeFileSync(
       join(dir, 'spec', 'features', 'F-001.yaml'),
       'id: F-001\ntitle: t\nstatus: done\narchived_at: "2024-01-01T00:00:00Z"\n',

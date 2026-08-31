@@ -60,16 +60,16 @@ features:
   F-052: {slug: F-052, status: done, modules: 5}
   F-053: {slug: F-053, status: done, modules: 6}
   F-054: {slug: F-054, status: done, modules: 3}
-  F-055: {slug: F-055, status: done, modules: 5}
-  F-056: {slug: F-056, status: done, modules: 5}
-  F-057: {slug: F-057, status: done, modules: 5}
-  F-058: {slug: F-058, status: done, modules: 2}
-  F-059: {slug: F-059, status: done, modules: 4}
-  F-060: {slug: F-060, status: done, modules: 5}
-  F-061: {slug: F-061, status: done, modules: 3}
-  F-062: {slug: F-062, status: done, modules: 4}
-  F-063: {slug: F-063, status: done, modules: 7}
-  F-064: {slug: F-064, status: done, modules: 3}
+  F-055: {slug: F-055, status: done, modules: 9}
+  F-056: {slug: F-056, status: done, modules: 7}
+  F-057: {slug: F-057, status: done, modules: 8}
+  F-058: {slug: F-058, status: done, modules: 3}
+  F-059: {slug: F-059, status: done, modules: 7}
+  F-060: {slug: F-060, status: done, modules: 9}
+  F-061: {slug: F-061, status: done, modules: 7}
+  F-062: {slug: F-062, status: done, modules: 5}
+  F-063: {slug: F-063, status: done, modules: 9}
+  F-064: {slug: F-064, status: done, modules: 4}
   F-065: {slug: F-065, status: done, modules: 11}
   F-066: {slug: F-066, status: done, modules: 5}
   F-067: {slug: F-067, status: done, modules: 3}

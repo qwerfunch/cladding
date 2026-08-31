@@ -9,6 +9,8 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
+import {clearTestRunCache, getOrRunSharedCoverage, primeTestRunCache} from '../../src/stages/test-run-cache.js';
+
 vi.mock('execa', () => ({
   execaSync: vi.fn(),
 }));
@@ -21,10 +23,40 @@ describe('runCov (stage_2.2)', () => {
   let dir: string;
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'clad-cov-stage-'));
+    clearTestRunCache();
     execaSyncMock.mockReset();
   });
   afterEach(() => {
+    clearTestRunCache();
     rmSync(dir, {recursive: true, force: true});
+  });
+
+  test('[covers:F-060/AC-146] coverage runner preserves successful, failed, unavailable, and overridden execution outcomes', () => {
+    const opts = {cwd: dir, cmd: 'coverage-runner', args: ['--focused']};
+    execaSyncMock
+      .mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''})
+      .mockReturnValueOnce({exitCode: 9, stdout: '', stderr: 'coverage failure'})
+      .mockReturnValueOnce({exitCode: null, stdout: '', stderr: ''})
+      .mockReturnValueOnce({code: 'ENOENT', exitCode: undefined, stdout: '', stderr: ''});
+
+    expect(runCov(opts)).toMatchObject({pass: true, exitCode: 0});
+    expect(runCov(opts)).toMatchObject({pass: false, exitCode: 1, stderr: 'coverage failure'});
+    expect(runCov(opts)).toMatchObject({pass: false, exitCode: 1});
+    const unavailable = runCov(opts);
+    expect(unavailable).toMatchObject({pass: false, exitCode: 2, skipReason: 'tool-missing'});
+    expect(unavailable).not.toHaveProperty('disposition');
+    expect(execaSyncMock).toHaveBeenCalledWith('coverage-runner', ['--focused'], expect.any(Object));
+  });
+
+  test('[covers:F-060/AC-146] coverage folds the current shared invocation instead of starting another runner', () => {
+    primeTestRunCache(dir);
+    const shared = getOrRunSharedCoverage(dir, () => ({exitCode: 0, stdout: '', stderr: ''}));
+
+    const result = runCov({cwd: dir, cmd: 'coverage-runner', args: ['--focused']});
+
+    expect(shared).not.toBeNull();
+    expect(result).toMatchObject({pass: true, exitCode: 0});
+    expect(execaSyncMock).not.toHaveBeenCalled();
   });
 
   test('unknown language + no override → skipped (exitCode=2)', () => {

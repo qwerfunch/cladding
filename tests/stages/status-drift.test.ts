@@ -53,7 +53,7 @@ describe('STATUS_DRIFT detector', () => {
     expect(statusDrift.run({cwd: dir})).toEqual([]);
   });
 
-  test('status=done + one missing module → one error finding', () => {
+  test('[covers:F-055/AC-126] status=done + one missing module → one error finding', () => {
     writeFileSync(join(dir, 'stages', 'present.ts'), 'export const p = 1;\n');
     writeFileSync(
       join(dir, 'spec', 'features', 'F-001.yaml'),

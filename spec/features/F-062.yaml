@@ -1,7 +1,8 @@
 id: F-062
-title: cli test batch 1 + widened coverage scope
+title: CLI behavior evidence
 status: done
 modules:
+  - src/cli/init.ts
   - src/cli/benchmark.ts
   - tests/cli/init.test.ts
   - tests/cli/benchmark.test.ts
@@ -22,16 +23,31 @@ acceptance_criteria:
     evidence_refs: [src/cli/benchmark.ts]
   - id: AC-155
     ears: ubiquitous
-    action: bring src/cli/init.ts to 100% line coverage
-    response: tests/cli/init.test.ts adds three branch tests (explicit projectName / gitignore without trailing newline / gitignore created from scratch); line coverage on src/cli/init.ts reaches 100%
-    text: The system shall bring src/cli/init.ts to 100% line coverage via the three new branch tests.
-    test_refs: [tests/cli/init.test.ts]
+    action: initialize a project seed and managed ignore entry
+    response: preserves the supplied or derived project name and user-owned ignore content while adding the managed entry only when it is absent
+    text: When initialization manages a project seed and ignore file, it shall preserve the supplied or derived project name and existing ignore content while adding the managed entry only when it is absent.
+    test_refs:
+      - "tests/cli/init.test.ts#[covers:F-062/AC-155] initialization derives the default project name from its workspace"
+      - "tests/cli/init.test.ts#[covers:F-062/AC-155] initialization preserves an explicit project name in the seed"
+      - "tests/cli/init.test.ts#[covers:F-062/AC-155] initialization preserves the existing ignore bytes and separator before its managed entry"
+      - "tests/cli/init.test.ts#[covers:F-062/AC-155] initialization creates the managed ignore entry from an absent file and remains idempotent"
+    notes: |
+      ## Historical schema-0.1 note
+      2026-05-19 · v0.2.13 · d8dbd81. Init fixtures: explicit names, an ignore
+      file without a trailing newline, and a missing ignore file; 100% line coverage
+      through three branch tests; non-current. Released title: "cli test batch 1 + widened coverage scope".
   - id: AC-156
     ears: ubiquitous
-    action: ship the first dedicated benchmark unit-test file
-    response: tests/cli/benchmark.test.ts covers approxTokens (4 cases) plus benchmark (single-feature / multi-feature / sharded / formula) for src/cli/benchmark.ts core helpers
-    text: The system shall ship tests/cli/benchmark.test.ts covering the benchmark module's exported helpers.
-    test_refs: [tests/cli/benchmark.test.ts]
+    action: estimate a selected benchmark context
+    response: derives token estimates from text length and reports the selected pruning relationship from current source-to-selector observations
+    text: When benchmark helpers report a selected context, they shall estimate tokens by rounding text length up by the documented divisor and preserve the selected pruning relationship in the result.
+    test_refs:
+      - "tests/cli/benchmark.test.ts#[covers:F-062/AC-156] approxTokens rounds every text length up by the documented divisor"
+      - "tests/cli/benchmark.test.ts#[covers:F-062/AC-156] benchmark preserves the selected feature and its semantic pruning relationship"
+    notes: |
+      ## Historical schema-0.1 note
+      2026-05-19 · v0.2.13 · d8dbd81. First benchmark-test fixtures: approxTokens
+      in 4 cases plus single, multi, sharded, and formula selection; non-current.
   - id: AC-157
     ears: state
     condition: while current coverage assurance is evaluated

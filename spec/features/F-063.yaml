@@ -1,7 +1,9 @@
 id: F-063
-title: Coverage sweep — drive · agents · events · optimizer · ui all covered
+title: Drive and event behavior evidence
 status: done
 modules:
+  - src/drive/loop.ts
+  - src/events/log.ts
   - tests/drive/loop.test.ts
   - tests/agents/loader.test.ts
   - tests/events/log.test.ts
@@ -13,10 +15,18 @@ depends_on: [F-062]
 acceptance_criteria:
   - id: AC-158
     ears: ubiquitous
-    action: cover the autonomous-loop driver
-    response: tests/drive/loop.test.ts mocks loadSpec / loadPersona / runAgent / stage runners / events / audit and exercises every halt branch (UNCAUGHT_ERROR / ALL_FEATURES_DONE / BLOCKED_FEATURE / LLM_UNAVAILABLE / HUMAN_REQUIRED / MAX_ITERATIONS) plus happy path; src/drive/loop.ts reaches ≥ 85% line coverage
-    text: The system shall ship tests/drive/loop.test.ts bringing src/drive/loop.ts to at least 85% line coverage, with every halt class exercised.
-    test_refs: [tests/drive/loop.test.ts]
+    action: finish an autonomous-loop iteration
+    response: records the deciding halt detail, retry and skip behavior, and transport outcome while retaining the observer as non-authoritative
+    text: When the autonomous loop finishes an iteration, it shall return the current deciding halt detail while preserving retry, skipped-runner, and transport behavior without granting authority to its observer record.
+    test_refs:
+      - "tests/drive/loop.test.ts#[covers:F-063/AC-158] a failed L1 execution retries despite a non-authoritative observer summary"
+      - "tests/drive/loop.test.ts#[covers:F-063/AC-158] a skipped L1 runner remains distinct from a failed execution"
+      - "tests/drive/loop.test.ts#[covers:F-063/AC-158][covers:F-071/AC-198][covers:F-071/AC-200][covers:F-049/AC-088] dispatch failures preserve the live transport taxonomy, detail, and retry invariant"
+    notes: |
+      ## Historical schema-0.1 note
+      2026-05-19 · v0.2.14 · 3324b23. Loop fixtures: spec, persona, agent, stage,
+      event, audit, halt, and happy paths; at least 85% line coverage; non-current.
+      Release headline: "Coverage sweep — drive · agents · events · optimizer · ui all covered" (5 chapters).
   - id: AC-159
     ears: ubiquitous
     action: cover the persona loader
@@ -25,10 +35,19 @@ acceptance_criteria:
     test_refs: [tests/agents/loader.test.ts]
   - id: AC-160
     ears: ubiquitous
-    action: cover events.log append / read round-trip
-    response: tests/events/log.test.ts exercises newEvent shape, directory auto-creation, round-trip, absent / empty / whitespace-only log, multi-append order; src/events/log.ts reaches 100% line coverage
-    text: The system shall ship tests/events/log.test.ts bringing src/events/log.ts to 100% line coverage.
-    test_refs: [tests/events/log.test.ts]
+    action: append or read a lifecycle event
+    response: preserves valid JSONL append order and safe absent or empty reads while refusing unsafe managed paths without changing the caller's outcome
+    text: When a lifecycle event is appended or read, the event log shall preserve valid JSONL append order and safe absent or empty reads while treating unsafe managed paths as observer-only no-ops.
+    test_refs:
+      - "tests/events/log.test.ts#[covers:F-063/AC-160] append and read preserve a valid JSONL event round trip"
+      - "tests/events/log.test.ts#[covers:F-063/AC-160] absent and empty event logs read as no observations"
+      - "tests/events/log.test.ts#[covers:F-063/AC-160] multiple JSONL appends preserve observed order"
+      - "tests/events/log.test.ts#[covers:F-063/AC-160] managed symbolic paths remain observer-only no-ops"
+    notes: |
+      ## Historical schema-0.1 note
+      2026-05-19 · v0.2.14 · 3324b23. Event-log fixtures: event shape, directory
+      creation, round trips, absent, empty, whitespace, and ordered appends; 100%
+      line coverage; non-current.
   - id: AC-161
     ears: ubiquitous
     action: cover the optimizer remainder (preamble + tail)

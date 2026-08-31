@@ -37,10 +37,18 @@ acceptance_criteria:
     evidence_refs: [src/cli/scan/thresholds.ts, src/cli/scan/types.ts]
   - id: AC-003
     ears: ubiquitous
-    action: keep behaviour byte-identical across the refactor
-    response: '713/713 tests pass unchanged; clad sync reports 102 features valid; clad check --strict drift-green; cladding self-scan + cobra/react/Signal-Android/django/rails rescan produce identical layer/scenario counts to the v0.3.28 baseline; the refactor is a pure structure change with no logic touch'
-    text: The system shall keep behaviour byte-identical across the refactor so the v0.3.28 audit baseline holds and downstream consumers (init.ts, tests, scan-llm) read the same data shapes through new paths.
-    test_refs: [tests/cli/scan.test.ts, tests/cli/scan-roots.test.ts, tests/cli/scan-llm.test.ts, tests/cli/clad.test.ts]
+    action: compose typed ScanResult fields from the documented scan analyzers
+    response: scanRoot derives conventions, architecture, scenarios, examples, stats, and project context through their respective analyzers; the architecture record includes derived forbidden-import candidates
+    text: The scan public entry shall compose typed conventions, architecture, scenarios, examples, stats, and project context fields from the corresponding scan analyzers, with architecture retaining derived forbidden-import candidates.
+    test_refs:
+      - "tests/cli/scan.test.ts#[covers:F-1edb38/AC-003] scanRoot composes typed analyzer records and architecture candidates"
+    notes: |
+      ## Historical note (2026-05-20, v0.3.29, source commit 5826349)
+      The completed refactor report recorded 713/713 passing tests, 102 valid features,
+      strict green status, and five-project count parity for cobra, react,
+      Signal-Android, django, and rails against the v0.3.28 baseline. It also
+      recorded cladding self-scan and a byte-identical/pure-no-logic-touch claim.
+      Those observations are historical evidence, not continuing product invariants.
   - id: AC-004
     ears: ubiquitous
     action: centralise types in src/cli/scan/types.ts so every analyzer module reads the same shape

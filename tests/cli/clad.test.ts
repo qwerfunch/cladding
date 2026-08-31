@@ -705,6 +705,36 @@ describe('cli/clad — handler exports', () => {
 });
 
 describe('cli/clad — createProgram', () => {
+  test('[covers:F-064/AC-165] the live command registry exposes callable actions and declared option boundaries', () => {
+    const program = clad.createProgram();
+    const visit = (commands: readonly import('commander').Command[]): import('commander').Command[] =>
+      commands.flatMap((command) => [command, ...visit(command.commands)]);
+    const commands = visit(program.commands);
+    const executable = commands.filter(
+      (command) => typeof Reflect.get(command, '_actionHandler') === 'function',
+    );
+
+    expect(executable).not.toHaveLength(0);
+    for (const command of executable) {
+      expect(Reflect.get(command, '_actionHandler')).toEqual(expect.any(Function));
+      const optionLongNames = command.options.map((option) => option.long).filter(Boolean);
+      expect(new Set(optionLongNames).size).toBe(optionLongNames.length);
+    }
+
+    const jsonCommands = executable.filter((command) =>
+      command.options.some((option) => option.long === '--json'),
+    );
+    const scopedCommands = executable.filter((command) =>
+      command.options.some(
+        (option) => typeof option.long === 'string' && ['--cwd', '--feature', '--tier', '--profile'].includes(option.long),
+      ),
+    );
+    expect(jsonCommands).not.toHaveLength(0);
+    expect(scopedCommands).not.toHaveLength(0);
+    expect(jsonCommands.every((command) => typeof Reflect.get(command, '_actionHandler') === 'function')).toBe(true);
+    expect(scopedCommands.every((command) => typeof Reflect.get(command, '_actionHandler') === 'function')).toBe(true);
+  });
+
   test('[covers:F-040/AC-061] exposes only supported commands through declared handlers', () => {
     const program = clad.createProgram();
     const names = program.commands.map((c) => c.name());
@@ -768,7 +798,7 @@ describe('cli/clad — createProgram', () => {
 
   // The removed spellings must fail closed: commander treats each as an unknown
   // command and exits non-zero (no silent no-op, no deprecation-and-continue).
-  test('[covers:F-d25041ac/AC-33f9324c] invoking a removed alias is a commander unknown-command error (non-zero exit)', () => {
+  test('[covers:F-064/AC-165][covers:F-d25041ac/AC-33f9324c] removed aliases fail closed at the command boundary', () => {
     for (const gone of ['drive', 'panel', 'refine']) {
       const program = clad.createProgram();
       program.exitOverride();

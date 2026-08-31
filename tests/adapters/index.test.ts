@@ -22,7 +22,7 @@ vi.mock('../../src/adapters/host/generic-mcp.js', () => ({
   genericMcpAdapter: {name: 'generic-mcp', mode: 'host'},
 }));
 
-const {resolveSelection, selectAdapter} = await import('../../src/adapters/index.js');
+const {registeredAdapters, resolveSelection, selectAdapter} = await import('../../src/adapters/index.js');
 const claudeMod = await import('../../src/adapters/host/claude-code.js');
 const isClaudeCodeRuntimeMock = claudeMod.isClaudeCodeRuntime as unknown as ReturnType<
   typeof vi.fn
@@ -51,7 +51,12 @@ describe('adapters/index — resolveSelection', () => {
     }
   });
 
-  test('[covers:F-049/AC-089] env vars take precedence over everything', () => {
+  test('[covers:F-064/AC-166][covers:F-049/AC-089] environment selection precedes configuration and automatic selection', () => {
+    mkdirSync(join(dir, '.cladding'), {recursive: true});
+    writeFileSync(
+      join(dir, '.cladding', 'config.yaml'),
+      'agent:\n  mode: host\n  name: generic-mcp\n',
+    );
     process.env.CLADDING_AGENT_MODE = 'sdk';
     process.env.CLADDING_AGENT_NAME = 'forced-by-env';
     isClaudeCodeRuntimeMock.mockReturnValue(true); // would normally win
@@ -131,6 +136,20 @@ describe('adapters/index — selectAdapter', () => {
     expect(a.name).toBe('claude-code');
   });
 
+  test('[covers:F-064/AC-166] every registered adapter resolves exactly through its declared mode and name', () => {
+    const adapters = registeredAdapters();
+    const names = new Set<string>();
+
+    for (const adapter of adapters) {
+      process.env.CLADDING_AGENT_MODE = adapter.mode;
+      process.env.CLADDING_AGENT_NAME = adapter.name;
+      expect(selectAdapter(dir)).toBe(adapter);
+      names.add(`${adapter.mode}:${adapter.name}`);
+    }
+
+    expect(names.size).toBe(adapters.length);
+  });
+
   test('host mode + unknown name → falls back to generic-mcp', () => {
     process.env.CLADDING_AGENT_MODE = 'host';
     process.env.CLADDING_AGENT_NAME = 'no-such-host';
@@ -151,6 +170,29 @@ describe('adapters/index — selectAdapter', () => {
     process.env.CLADDING_AGENT_NAME = 'openai-gpt-4';
     const a = selectAdapter(dir);
     expect(a.name).toBe('generic-mcp');
+  });
+
+  test('[covers:F-064/AC-166] incomplete malformed or unknown selections fall back to generic without provider credentials', () => {
+    const previousProviderKey = process.env.ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_API_KEY;
+    try {
+      process.env.CLADDING_AGENT_MODE = 'sdk';
+      delete process.env.CLADDING_AGENT_NAME;
+      expect(() => selectAdapter(dir)).not.toThrow();
+      expect(selectAdapter(dir).name).toBe('generic-mcp');
+
+      mkdirSync(join(dir, '.cladding'), {recursive: true});
+      writeFileSync(join(dir, '.cladding', 'config.yaml'), 'agent: {broken');
+      expect(() => selectAdapter(dir)).not.toThrow();
+      expect(selectAdapter(dir).name).toBe('generic-mcp');
+
+      process.env.CLADDING_AGENT_NAME = 'unknown-provider';
+      expect(() => selectAdapter(dir)).not.toThrow();
+      expect(selectAdapter(dir).name).toBe('generic-mcp');
+    } finally {
+      if (previousProviderKey === undefined) delete process.env.ANTHROPIC_API_KEY;
+      else process.env.ANTHROPIC_API_KEY = previousProviderKey;
+    }
   });
 
   test('no env + no config → auto-detect path returns generic-mcp default', () => {

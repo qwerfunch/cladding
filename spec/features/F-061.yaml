@@ -1,26 +1,49 @@
 id: F-061
-title: Stage runner tests batch 3 — every stage covered
+title: "Stage runner behavior evidence: Performance, Visual, and UAT"
 status: done
 modules:
+  - src/stages/perf.ts
+  - src/stages/visual.ts
+  - src/stages/uat.ts
   - tests/stages/perf.test.ts
   - tests/stages/visual.test.ts
   - tests/stages/uat.test.ts
+  - tests/proof/stage-receipt-reduction.test.ts
 depends_on: [F-060]
 acceptance_criteria:
   - id: AC-149
-    ears: ubiquitous
-    action: cover the two npm-script delegating stages
-    response: tests/stages/perf.test.ts and tests/stages/visual.test.ts each exercise unknown / npm-script-missing / exit 0 / non-zero / ENOENT / non-ENOENT throw / null-exit / explicit-override paths with vi.mock('execa'); line coverage on both stage sources reaches at least 85%
-    text: The system shall ship dedicated unit-test files for src/stages/perf.ts and src/stages/visual.ts, bringing each to at least 85% line coverage.
+    ears: event
+    condition: when the Performance or Visual obligation applies
+    action: derive runner availability, configuration, and outcome from its sealed descriptor inputs
+    response: record a same-run observation as pass, fail, or unobserved, unless the compiler proves not-applicable
+    text: When the Performance or Visual obligation applies, the system shall derive runner availability, configuration, and outcome from its sealed descriptor inputs and record a same-run observation as pass, fail, or unobserved, unless the compiler proves not-applicable.
     test_refs:
-      - tests/stages/perf.test.ts
-      - tests/stages/visual.test.ts
+      - "tests/stages/perf.test.ts#[covers:F-061/AC-149] performance descriptor fallback reports an unavailable runner"
+      - "tests/stages/perf.test.ts#[covers:F-061/AC-149] performance descriptor reports a successful runner outcome"
+      - "tests/stages/perf.test.ts#[covers:F-061/AC-149] performance descriptor override bypasses fallback selection"
+      - "tests/stages/visual.test.ts#[covers:F-061/AC-149] visual descriptor fallback reports an unavailable runner"
+      - "tests/stages/visual.test.ts#[covers:F-061/AC-149] visual descriptor reports a successful runner outcome"
+      - "tests/stages/visual.test.ts#[covers:F-061/AC-149] visual descriptor override bypasses fallback selection"
+    notes: |
+      ## Historical schema-0.1 note
+      2026-05-19 · v0.2.12 · 5328e63. Performance/Visual execa fixtures: language,
+      script, exit, error, null, and override cases; at least 85% line coverage for
+      both sources; non-current. Released title: "Stage runner tests batch 3 — every stage covered".
   - id: AC-150
-    ears: ubiquitous
-    action: cover the UAT stage runner (read-only)
-    response: tests/stages/uat.test.ts exercises spec-absent / audit-log-empty / human-pass-satisfies / tool-only-fails / human-note-does-not-satisfy / status-filter / multi-feature paths via real appendEvidence writes; line coverage reaches at least 85%
-    text: The system shall ship tests/stages/uat.test.ts bringing the stage_4.2 UAT runner to at least 85% line coverage using real audit-log writes (no subprocess).
-    test_refs: [tests/stages/uat.test.ts]
+    ears: event
+    condition: when UAT applies to a feature
+    action: reduce only a verified current human feature receipt whose signed criterion matrix exactly enumerates the compiled criterion addresses and whose reviewed-input, runtime-dependency, and implementation-author digests match the closure
+    response: classify all-pass evidence as pass, an explicit negative as fail, and missing, untrusted, stale, or incomplete-matrix evidence as unobserved
+    text: When UAT applies to a feature, the system shall reduce only a verified current human feature receipt whose signed criterion matrix exactly enumerates the compiled criterion addresses and whose reviewed-input, runtime-dependency, and implementation-author digests match the closure and classify all-pass evidence as pass, an explicit negative as fail, and missing, untrusted, stale, or incomplete-matrix evidence as unobserved.
+    test_refs:
+      - "tests/proof/stage-receipt-reduction.test.ts#[covers:F-061/AC-150] mechanism proof: trusted current UAT receipt with an exact criterion matrix reduces to pass"
+      - "tests/proof/stage-receipt-reduction.test.ts#[covers:F-061/AC-150] mechanism proof: missing, untrusted, stale, or incomplete-matrix UAT receipt remains unobserved"
+      - "tests/proof/stage-receipt-reduction.test.ts#[covers:F-061/AC-150] mechanism proof: explicit negative UAT verdict reduces to fail"
+    notes: |
+      ## Historical schema-0.1 note
+      2026-05-19 · v0.2.12 · 5328e63. UAT appendEvidence fixtures: absent specs,
+      audit states, human/tool failures, status filters, and multiple features;
+      at least 85% line coverage; non-current.
   - id: AC-151
     ears: state
     condition: while current runner proof is evaluated

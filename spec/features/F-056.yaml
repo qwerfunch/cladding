@@ -1,7 +1,9 @@
 id: F-056
-title: Detector unit tests batch 2 (5 detectors, 100% line coverage each)
+title: "Detector behavior evidence: freshness and lifecycle"
 status: done
 modules:
+  - src/stages/detectors/stale-tests.ts
+  - src/stages/detectors/stale-specification.ts
   - tests/stages/convention-drift.test.ts
   - tests/stages/stale-tests.test.ts
   - tests/stages/stale-specification.test.ts
@@ -16,13 +18,19 @@ acceptance_criteria:
     text: The system shall ship tests/stages/convention-drift.test.ts bringing the CONVENTION_DRIFT detector to 100% line coverage.
     test_refs: [tests/stages/convention-drift.test.ts]
   - id: AC-130
-    ears: ubiquitous
-    action: cover the two time-and-state detectors
-    response: tests/stages/stale-tests.test.ts and tests/stages/stale-specification.test.ts each exercise the detector's full branch set with controlled mtime stamps and lifecycle-metadata combinations; line coverage on both detector sources reaches 100%
-    text: The system shall ship dedicated unit-test files for STALE_TESTS and STALE_SPECIFICATION, bringing each to 100% line coverage.
+    ears: event
+    condition: when the test adapter evaluates a STALE_TESTS or STALE_SPECIFICATION detector artifact
+    action: derive its controlled filesystem or lifecycle fixture closure and exact leading [covers:] selector
+    response: classify its same-run selector-matched case observation as verified, failed, or unobserved
+    text: When the test adapter evaluates a STALE_TESTS or STALE_SPECIFICATION detector artifact, the system shall derive its controlled filesystem or lifecycle fixture closure and exact leading [covers:] selector and classify its same-run selector-matched case observation as verified, failed, or unobserved.
     test_refs:
-      - tests/stages/stale-tests.test.ts
-      - tests/stages/stale-specification.test.ts
+      - "tests/stages/stale-tests.test.ts#[covers:F-056/AC-130] a controlled stale test mtime reports a warning"
+      - "tests/stages/stale-specification.test.ts#[covers:F-056/AC-130] archived_at on an active lifecycle reports a warning"
+    notes: |
+      ## Historical schema-0.1 note
+      2026-05-19 · v0.2.7 · 779448d. STALE_TESTS/STALE_SPECIFICATION mtime and
+      lifecycle fixtures: 100% line coverage for both sources; non-current.
+      Released title: "Detector unit tests batch 2 (5 detectors, 100% line coverage each)".
   - id: AC-131
     ears: ubiquitous
     action: cover the two self-metadata detectors

@@ -36,7 +36,18 @@ acceptance_criteria:
     evidence_refs: [src/cli/init.ts, src/cli/scan/scenarios.ts]
   - id: AC-005
     ears: ubiquitous
-    action: keep the 713-test baseline unchanged
-    response: 'tests/cli/scan.test.ts the "scenarios mirror layers" assertion (v0.3.25) is replaced with "scenarios are not auto-extracted (v0.3.30 paradigm)" which asserts architecture.layers is detected normally while scenarios = []; all 713 tests still pass; lint clean; typecheck clean; cladding self-scan and the 16-OSS audit corpus stay drift-green'
-    text: The system shall keep the 713-test baseline unchanged so the deprecation lands as a single localised swap with no test-coverage regression.
-    test_refs: [tests/cli/scan.test.ts]
+    action: retain observed architecture and no automatic scenarios during intent-free adoption
+    response: the intent-free scan result contains observed architecture and an empty scenarios collection; initialization writes the scenarios README without emitting per-layer scenario YAML
+    text: During an intent-free adoption scan, the system shall retain derived architecture, return an empty ScanResult.scenarios collection, write spec/scenarios/README.md, and emit no per-layer scenario YAML.
+    test_refs:
+      - "tests/cli/scan.test.ts#[covers:F-cfba0c/AC-005] intent-free scan retains architecture and empty scenarios"
+      - "tests/cli/init.test.ts#[covers:F-cfba0c/AC-005] intent-free adoption writes only the scenario README"
+    notes: |
+      ## Scope
+      Intent-based onboarding is outside this criterion and can generate scenario shards.
+
+      ## Historical note (2026-05-20, v0.3.30, source commit 25ab4b9)
+      The completed deprecation report recorded an unchanged 713-test baseline,
+      clean lint and typecheck, and drift-green self-scan plus the 16-OSS audit
+      corpus. Those results are dated historical evidence, not continuing release
+      gates.

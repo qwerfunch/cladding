@@ -12,7 +12,7 @@
 // Branches covered: small spec with no deps (low reduction), spec with
 // many unrelated features (high reduction), token-count rounding.
 
-import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
@@ -24,6 +24,12 @@ function writeSpec(dir: string, body: string): void {
 }
 
 describe('approxTokens', () => {
+  test('[covers:F-062/AC-156] approxTokens rounds every text length up by the documented divisor', () => {
+    for (const text of ['', 'a', 'abcd', 'abcde', 'remainder']) {
+      expect(approxTokens(text)).toBe(Math.ceil(text.length / 4));
+    }
+  });
+
   test('empty string → 0', () => {
     expect(approxTokens('')).toBe(0);
   });
@@ -123,5 +129,38 @@ describe('benchmark', () => {
     const r = benchmark(dir, 'F-001');
     const expected = ((r.naiveBytes - r.optimizedBytes) / r.naiveBytes) * 100;
     expect(r.reductionPercent).toBeCloseTo(expected, 6);
+  });
+
+  test('[covers:F-062/AC-156] benchmark preserves the selected feature and its semantic pruning relationship', () => {
+    const richTitle = 'selected detail '.repeat(40);
+    const unrelatedTitle = 'unrelated context '.repeat(400);
+    writeSpec(
+      dir,
+      [
+        'schema: "0.1"',
+        'project: {name: x, language: typescript}',
+        'features:',
+        '  - id: F-001',
+        '    title: brief',
+        '    status: done',
+        '  - id: F-002',
+        `    title: "${richTitle}"`,
+        '    status: done',
+        '  - id: F-003',
+        `    title: "${unrelatedTitle}"`,
+        '    status: done',
+        '',
+      ].join('\n'),
+    );
+
+    const brief = benchmark(dir, 'F-001');
+    const rich = benchmark(dir, 'F-002');
+
+    expect(brief.featureId).toBe('F-001');
+    expect(rich.featureId).toBe('F-002');
+    expect(brief.naiveBytes).toBe(rich.naiveBytes);
+    expect(brief.optimizedBytes).toBeLessThan(rich.optimizedBytes);
+    expect(brief.reductionPercent).toBeGreaterThan(rich.reductionPercent);
+    expect(brief.naiveTokens).toBe(approxTokens(readFileSync(join(dir, 'spec.yaml'), 'utf8')));
   });
 });

@@ -18,14 +18,35 @@ vi.mock('../../src/stages/detectors/architecture-violation.js', () => ({
     run: vi.fn(),
   },
 }));
+vi.mock('../../src/stages/detector-result-cache.js', () => ({
+  readDetectorResult: vi.fn(),
+}));
 
 const {runArch} = await import('../../src/stages/arch.js');
 const detectorMod = await import('../../src/stages/detectors/architecture-violation.js');
 const detectorRun = detectorMod.architectureViolation.run as unknown as ReturnType<typeof vi.fn>;
+const cacheMod = await import('../../src/stages/detector-result-cache.js');
+const readDetectorResultMock = cacheMod.readDetectorResult as unknown as ReturnType<typeof vi.fn>;
 
 describe('runArch (stage_1.5)', () => {
   beforeEach(() => {
     detectorRun.mockReset();
+    readDetectorResultMock.mockReset();
+  });
+
+  test('[covers:F-060/AC-145] cached architecture findings preserve error severity and diagnostic order', () => {
+    readDetectorResultMock.mockReturnValueOnce([
+      {detector: 'ARCHITECTURE_VIOLATION', severity: 'info', message: 'informational context'},
+      {detector: 'ARCHITECTURE_VIOLATION', severity: 'error', message: 'first violation'},
+      {detector: 'ARCHITECTURE_VIOLATION', severity: 'error', message: 'second violation'},
+    ]);
+
+    const result = runArch({cwd: '/cached-project'});
+
+    expect(readDetectorResultMock).toHaveBeenCalledWith('ARCHITECTURE_VIOLATION', '/cached-project');
+    expect(detectorRun).not.toHaveBeenCalled();
+    expect(result).toMatchObject({stage: 'stage_1.5', pass: false, exitCode: 1});
+    expect(result.stderr).toBe('first violation\nsecond violation');
   });
 
   test('detector returns no findings → pass=true', () => {
@@ -80,7 +101,7 @@ describe('runArch (stage_1.5)', () => {
     expect(r.stderr).toBe('real problem');
   });
 
-  test('opts forwarded to detector', () => {
+  test('[covers:F-060/AC-145] uncached architecture checks forward supplied options to the detector', () => {
     detectorRun.mockReturnValueOnce([]);
     runArch({cwd: '/some/path'});
     expect(detectorRun).toHaveBeenCalledWith({cwd: '/some/path'});

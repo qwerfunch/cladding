@@ -63,7 +63,7 @@ describe('MISSING_IMPLEMENTATION detector', () => {
     }
   });
 
-  test('mixed feature: present + absent modules report only the absent ones', () => {
+  test('[covers:F-055/AC-126] reports a present and a single missing declared module', () => {
     mkdirSync(join(dir, 'stages'), {recursive: true});
     writeFileSync(join(dir, 'stages', 'present.ts'), 'export const p = 1;\n');
     writeFileSync(

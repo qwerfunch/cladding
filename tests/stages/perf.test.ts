@@ -27,7 +27,7 @@ describe('runPerf (stage_3.2)', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('unknown language + no override → skipped (exitCode=2)', () => {
+  test('[covers:F-061/AC-149] performance descriptor fallback reports an unavailable runner', () => {
     const r = runPerf({cwd: dir});
     expect(r.exitCode).toBe(2);
     expect(r.stage).toBe('stage_3.2');
@@ -43,7 +43,7 @@ describe('runPerf (stage_3.2)', () => {
     expect(execaSyncMock).not.toHaveBeenCalled();
   });
 
-  test('npm script defined + exit 0 → pass=true', () => {
+  test('[covers:F-061/AC-149] performance descriptor reports a successful runner outcome', () => {
     writeFileSync(
       join(dir, 'package.json'),
       JSON.stringify({name: 'x', scripts: {perf: 'echo ok'}}),
@@ -102,7 +102,7 @@ describe('runPerf (stage_3.2)', () => {
     expect(runPerf({cwd: dir}).exitCode).toBe(1);
   });
 
-  test('explicit non-npm override bypasses script lookup', () => {
+  test('[covers:F-061/AC-149] performance descriptor override bypasses fallback selection', () => {
     execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
     runPerf({cwd: dir, cmd: 'myperf', args: ['run']});
     expect(execaSyncMock).toHaveBeenCalledWith('myperf', ['run'], expect.any(Object));

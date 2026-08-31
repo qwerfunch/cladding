@@ -27,7 +27,7 @@ describe('runVisual (stage_3.3)', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('unknown language + no override → skipped (exitCode=2)', () => {
+  test('[covers:F-061/AC-149] visual descriptor fallback reports an unavailable runner', () => {
     const r = runVisual({cwd: dir});
     expect(r.exitCode).toBe(2);
     expect(r.stage).toBe('stage_3.3');
@@ -42,7 +42,7 @@ describe('runVisual (stage_3.3)', () => {
     expect(execaSyncMock).not.toHaveBeenCalled();
   });
 
-  test('npm script defined + exit 0 → pass=true', () => {
+  test('[covers:F-061/AC-149] visual descriptor reports a successful runner outcome', () => {
     writeFileSync(
       join(dir, 'package.json'),
       JSON.stringify({name: 'x', scripts: {visual: 'echo ok'}}),
@@ -101,7 +101,7 @@ describe('runVisual (stage_3.3)', () => {
     expect(runVisual({cwd: dir}).exitCode).toBe(1);
   });
 
-  test('explicit non-npm override bypasses script lookup', () => {
+  test('[covers:F-061/AC-149] visual descriptor override bypasses fallback selection', () => {
     execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
     runVisual({cwd: dir, cmd: 'myvisual', args: ['compare']});
     expect(execaSyncMock).toHaveBeenCalledWith('myvisual', ['compare'], expect.any(Object));

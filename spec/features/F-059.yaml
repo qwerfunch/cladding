@@ -1,11 +1,14 @@
 id: F-059
-title: Stage runner tests batch 1 — 70% coverage floor cleared
+title: "Stage runner behavior evidence: Commit and Audit"
 status: done
 modules:
+  - src/stages/commit.ts
+  - src/stages/audit.ts
   - tests/stages/type.test.ts
   - tests/stages/lint.test.ts
   - tests/stages/commit.test.ts
   - tests/stages/audit.test.ts
+  - tests/proof/stage-receipt-reduction.test.ts
 depends_on: [F-058]
 acceptance_criteria:
   - id: AC-141
@@ -17,17 +20,36 @@ acceptance_criteria:
       - tests/stages/type.test.ts
       - tests/stages/lint.test.ts
   - id: AC-142
-    ears: ubiquitous
-    action: cover the commit stage runner
-    response: tests/stages/commit.test.ts exercises clean / dirty / non-git / git-non-zero-empty-stderr / ENOENT / non-ENOENT throw branches with vi.mock('execa'); line coverage reaches at least 80%
-    text: The system shall ship tests/stages/commit.test.ts bringing the stage_1.4 commit runner to at least 80% line coverage.
-    test_refs: [tests/stages/commit.test.ts]
+    ears: event
+    condition: when the Commit obligation runs
+    action: derive repository and tool inputs from its descriptor and runner configuration
+    response: record the sealed-workspace observation as pass, fail, or unobserved
+    text: When the Commit obligation runs, the system shall derive repository and tool inputs from its descriptor and runner configuration and record the sealed-workspace observation as pass, fail, or unobserved.
+    test_refs:
+      - "tests/stages/commit.test.ts#[covers:F-059/AC-142] clean working tree is a pass observation"
+      - "tests/stages/commit.test.ts#[covers:F-059/AC-142] dirty working tree is a fail observation"
+      - "tests/stages/commit.test.ts#[covers:F-059/AC-142] git ENOENT is an unobserved observation"
+    notes: |
+      ## Historical schema-0.1 note
+      2026-05-19 · v0.2.10 · b6e4488. Commit execa fixtures: clean, dirty, non-git,
+      output, ENOENT, and thrown cases; at least 80% line coverage; non-current.
+      Released title: "Stage
+      runner tests batch 1 — 70% coverage floor cleared".
   - id: AC-143
-    ears: ubiquitous
-    action: cover the audit stage runner (no subprocess)
-    response: tests/stages/audit.test.ts exercises empty audit / clean human evidence / tool-only guard-fail / multiple failing ACs / mixed human-and-tool paths via real appendEvidence writes; line coverage reaches at least 80%
-    text: The system shall ship tests/stages/audit.test.ts bringing the stage_4.1 audit runner to at least 80% line coverage using real audit-log writes (no subprocess mocking).
-    test_refs: [tests/stages/audit.test.ts]
+    ears: event
+    condition: when Audit applies to a criterion
+    action: reduce only a verified current human receipt whose exact criterion subject and reviewed-input, runtime-dependency, and implementation-author digests match the compiled closure
+    response: classify all-pass evidence as pass, an explicit negative as fail, and missing, untrusted, or stale evidence as unobserved
+    text: When Audit applies to a criterion, the system shall reduce only a verified current human receipt whose exact criterion subject and reviewed-input, runtime-dependency, and implementation-author digests match the compiled closure and classify all-pass evidence as pass, an explicit negative as fail, and missing, untrusted, or stale evidence as unobserved.
+    test_refs:
+      - "tests/proof/stage-receipt-reduction.test.ts#[covers:F-059/AC-143] mechanism proof: trusted current Audit receipt with sealed dependency and author digests reduces to pass"
+      - "tests/proof/stage-receipt-reduction.test.ts#[covers:F-059/AC-143] mechanism proof: missing, untrusted, or stale Audit receipt remains unobserved"
+      - "tests/proof/stage-receipt-reduction.test.ts#[covers:F-059/AC-143] mechanism proof: explicit negative Audit check reduces to fail"
+    notes: |
+      ## Historical schema-0.1 note
+      2026-05-19 · v0.2.10 · b6e4488. Audit appendEvidence fixtures: empty and
+      human evidence, tool-only guards, failures, and mixed paths; at least 80%
+      line coverage; non-current.
   - id: AC-144
     ears: state
     condition: while current coverage assurance is evaluated

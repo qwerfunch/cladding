@@ -1,7 +1,11 @@
 id: F-055
-title: Detector unit tests batch 1 (5 detectors, 100% line coverage each)
+title: "Detector behavior evidence: implementation and status"
 status: done
 modules:
+  - src/stages/detectors/missing-implementation.ts
+  - src/stages/detectors/status-drift.ts
+  - src/stages/detectors/ac-drift.ts
+  - src/stages/detectors/tech-stack-mismatch.ts
   - tests/stages/unmapped-artifact.test.ts
   - tests/stages/missing-implementation.test.ts
   - tests/stages/status-drift.test.ts
@@ -16,21 +20,32 @@ acceptance_criteria:
     text: The system shall ship a tests/stages/unmapped-artifact.test.ts file that brings the UNMAPPED_ARTIFACT detector to 100% line coverage.
     test_refs: [tests/stages/unmapped-artifact.test.ts]
   - id: AC-126
-    ears: ubiquitous
-    action: cover the always-error trio remainder
-    response: tests/stages/missing-implementation.test.ts and tests/stages/status-drift.test.ts each exercise the detector's full branch set; line coverage on both detector sources reaches 100%
-    text: The system shall ship dedicated unit-test files for MISSING_IMPLEMENTATION and STATUS_DRIFT, bringing each to 100% line coverage.
+    ears: event
+    condition: when the test adapter evaluates a MISSING_IMPLEMENTATION or STATUS_DRIFT detector artifact
+    action: derive its feature-owned source, runner configuration, and exact leading [covers:] selector closure
+    response: classify its same-run selector-matched case observation as verified, failed, or unobserved
+    text: When the test adapter evaluates a MISSING_IMPLEMENTATION or STATUS_DRIFT detector artifact, the system shall derive its feature-owned source, runner configuration, and exact leading [covers:] selector closure and classify its same-run selector-matched case observation as verified, failed, or unobserved.
     test_refs:
-      - tests/stages/missing-implementation.test.ts
-      - tests/stages/status-drift.test.ts
+      - "tests/stages/missing-implementation.test.ts#[covers:F-055/AC-126] reports a present and a single missing declared module"
+      - "tests/stages/status-drift.test.ts#[covers:F-055/AC-126] status=done + one missing module → one error finding"
+    notes: |
+      ## Historical schema-0.1 note
+      2026-05-19 · v0.2.6 · 9d6bfe4. MISSING_IMPLEMENTATION/STATUS_DRIFT fixtures:
+      100% line coverage for both sources; non-current. Released title: "Detector
+      unit tests batch 1 (5 detectors, 100% line coverage each)".
   - id: AC-127
-    ears: ubiquitous
-    action: cover two high-traffic conditional detectors
-    response: tests/stages/ac-drift.test.ts and tests/stages/tech-stack-mismatch.test.ts exercise the structural floor / EARS / manifest-chain branches; line coverage on both detector sources reaches 100%
-    text: The system shall ship dedicated unit-test files for AC_DRIFT and TECH_STACK_MISMATCH, bringing each to 100% line coverage.
+    ears: event
+    condition: when the test adapter evaluates an AC_DRIFT or TECH_STACK_MISMATCH detector artifact
+    action: derive its feature-owned source, runner configuration, and exact leading [covers:] selector closure
+    response: classify its same-run selector-matched case observation as verified, failed, or unobserved
+    text: When the test adapter evaluates an AC_DRIFT or TECH_STACK_MISMATCH detector artifact, the system shall derive its feature-owned source, runner configuration, and exact leading [covers:] selector closure and classify its same-run selector-matched case observation as verified, failed, or unobserved.
     test_refs:
-      - tests/stages/ac-drift.test.ts
-      - tests/stages/tech-stack-mismatch.test.ts
+      - "tests/stages/ac-drift.test.ts#[covers:F-055/AC-127] AC missing text and EARS fields reports structural drift"
+      - "tests/stages/tech-stack-mismatch.test.ts#[covers:F-055/AC-127] build manifests do not alter source-derived language evidence"
+    notes: |
+      ## Historical schema-0.1 note
+      2026-05-19 · v0.2.6 · 9d6bfe4. AC_DRIFT/TECH_STACK_MISMATCH structural,
+      EARS, and manifest fixtures: 100% line coverage for both sources; non-current.
   - id: AC-128
     ears: state
     condition: while current coverage assurance is evaluated

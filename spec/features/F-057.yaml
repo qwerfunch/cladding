@@ -1,7 +1,10 @@
 id: F-057
-title: Detector unit tests batch 3 (5 detectors, 100% line coverage each)
+title: "Detector behavior evidence: audit logs and references"
 status: done
 modules:
+  - src/stages/detectors/evidence-mismatch.ts
+  - src/stages/detectors/stale-evidence.ts
+  - src/stages/detectors/reference-integrity.ts
   - tests/stages/coverage-drop.test.ts
   - tests/stages/performance-drift.test.ts
   - tests/stages/evidence-mismatch.test.ts
@@ -18,19 +21,34 @@ acceptance_criteria:
       - tests/stages/coverage-drop.test.ts
       - tests/stages/performance-drift.test.ts
   - id: AC-134
-    ears: ubiquitous
-    action: cover the two audit-log detectors
-    response: tests/stages/evidence-mismatch.test.ts and tests/stages/stale-evidence.test.ts each exercise the empty / present / artifact-missing / timestamp-old paths via real audit log writes; line coverage on both detector sources reaches 100%
-    text: The system shall ship dedicated unit-test files for EVIDENCE_MISMATCH and STALE_EVIDENCE, bringing each to 100% line coverage.
+    ears: event
+    condition: when the audit-log detector adapters run
+    action: derive their declared audit-log and artifact inputs with their exact leading [covers:] selector closure
+    response: classify each same-run selector-matched case observation as verified, failed, or unobserved
+    text: When the audit-log detector adapters run, the system shall derive their declared audit-log and artifact inputs with their exact leading [covers:] selector closure and classify each same-run selector-matched case observation as verified, failed, or unobserved.
     test_refs:
-      - tests/stages/evidence-mismatch.test.ts
-      - tests/stages/stale-evidence.test.ts
+      - "tests/stages/evidence-mismatch.test.ts#[covers:F-057/AC-134] evidence with a missing artifact reports an error"
+      - "tests/stages/stale-evidence.test.ts#[covers:F-057/AC-134] evidence older than 90 days reports a warning"
+    notes: |
+      ## Historical schema-0.1 note
+      2026-05-19 · v0.2.8 · 286567d. EVIDENCE_MISMATCH/STALE_EVIDENCE audit-log
+      fixtures: empty, present, missing-artifact, and old-timestamp cases; 100%
+      line coverage for both sources; non-current. Released title: "Detector unit tests batch 3
+      (5 detectors, 100% line coverage each)".
   - id: AC-135
-    ears: ubiquitous
-    action: cover REFERENCE_INTEGRITY with focused tests
-    response: tests/stages/reference-integrity.test.ts exercises depends_on / superseded_by / scenarios.features cross-reference validation with hits and misses; line coverage on the detector source reaches 100%
-    text: The system shall ship tests/stages/reference-integrity.test.ts bringing the REFERENCE_INTEGRITY detector to 100% line coverage.
-    test_refs: [tests/stages/reference-integrity.test.ts]
+    ears: event
+    condition: when REFERENCE_INTEGRITY evaluates the compiled reference graph
+    action: resolve declared dependency, supersession, and scenario edges against the current feature graph
+    response: classify each exact selector-matched current observation as verified, failed, or unobserved
+    text: When REFERENCE_INTEGRITY evaluates the compiled reference graph, the system shall resolve declared dependency, supersession, and scenario edges against the current feature graph and classify each exact selector-matched current observation as verified, failed, or unobserved.
+    test_refs:
+      - "tests/stages/reference-integrity.test.ts#[covers:F-057/AC-135] unknown depends_on reference reports an error"
+      - "tests/stages/reference-integrity.test.ts#[covers:F-057/AC-135] unknown superseded_by reference reports an error"
+      - "tests/stages/reference-integrity.test.ts#[covers:F-057/AC-135] unknown scenario feature reference reports an error"
+    notes: |
+      ## Historical schema-0.1 note
+      2026-05-19 · v0.2.8 · 286567d. REFERENCE_INTEGRITY depends_on, superseded_by,
+      and scenarios.features fixtures: 100% detector line coverage; non-current.
   - id: AC-136
     ears: state
     condition: while current coverage assurance is evaluated

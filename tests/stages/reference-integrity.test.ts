@@ -44,7 +44,7 @@ describe('REFERENCE_INTEGRITY detector', () => {
     expect(referenceIntegrity.run({cwd: dir})).toEqual([]);
   });
 
-  test('depends_on cites unknown F-ID → error finding', () => {
+  test('[covers:F-057/AC-135] unknown depends_on reference reports an error', () => {
     writeFileSync(
       join(dir, 'spec', 'features', 'F-001.yaml'),
       'id: F-001\ntitle: t\nstatus: done\ndepends_on: [F-999]\n',
@@ -56,7 +56,7 @@ describe('REFERENCE_INTEGRITY detector', () => {
     expect(findings[0].message).toContain("'F-999'");
   });
 
-  test('superseded_by cites unknown F-ID → error finding', () => {
+  test('[covers:F-057/AC-135] unknown superseded_by reference reports an error', () => {
     writeFileSync(
       join(dir, 'spec', 'features', 'F-001.yaml'),
       'id: F-001\ntitle: t\nstatus: archived\nsuperseded_by: F-888\n',
@@ -68,7 +68,7 @@ describe('REFERENCE_INTEGRITY detector', () => {
     expect(findings[0].message).toContain("'F-888'");
   });
 
-  test('scenario.features cites unknown F-ID → error finding', () => {
+  test('[covers:F-057/AC-135] unknown scenario feature reference reports an error', () => {
     writeFileSync(
       join(dir, 'spec', 'features', 'F-001.yaml'),
       'id: F-001\ntitle: t\nstatus: done\n',

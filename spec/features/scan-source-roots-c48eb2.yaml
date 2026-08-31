@@ -30,12 +30,18 @@ acceptance_criteria:
     text: The system shall emit forbidden_import candidates for layer pairs the import graph never exercised so spec/architecture.yaml no longer ships an empty forbidden_imports array — the maintainer prunes the list instead of authoring it from scratch.
     test_refs: [tests/cli/scan.test.ts]
   - id: AC-004
-    ears: state
-    condition: while running on cladding itself (a flat src/ project)
-    action: produce byte-identical layer names and scenarios as v0.3.24
-    response: 'src/cli/scan.ts layerOf flat-project branch (single src/ root, no workspaceName) returns the bare layer name; the regression test seeds src/core/ + src/cli/ and asserts the layer names are still [cli, core] so the v0.3.24 dogfood smoke output stays stable'
-    text: While running on cladding itself (a flat src/ project), the system shall produce byte-identical layer names and scenarios as v0.3.24 so the existing self-scan smoke pipeline does not regress when the multi-root inference lands.
-    test_refs: [tests/cli/scan.test.ts]
+    ears: event
+    condition: when a flat source tree is scanned with inferred or explicit source roots
+    action: resolve bare layer names with matching root-qualified layer records
+    response: inferred and explicit root selection return bare names for src/<layer> paths and preserve each record's root-qualified directory and observed module count
+    text: When a flat source tree is scanned with inferred or explicit source roots, the scanner shall resolve bare layer names and matching root-qualified directories and module counts.
+    test_refs:
+      - "tests/cli/scan.test.ts#[covers:F-c48eb2/AC-004] inferred and explicit roots preserve flat layer records"
+    notes: |
+      ## Historical note (2026-05-20, v0.3.25, source commit bd257a6)
+      The retired self-scan smoke gate compared layer names and scenarios with
+      v0.3.24 by byte identity. It is retained only as historical evidence;
+      current verification uses an isolated semantic fixture.
   - id: AC-005
     ears: ubiquitous
     action: thread the --roots CLI option through to scanRoot via runInit

@@ -89,7 +89,7 @@ describe('events/log.ts', () => {
     expect(existsSync(join(dir, '.cladding', 'events.log.jsonl'))).toBe(true);
   });
 
-  test('append + read round-trip preserves type and payload', () => {
+  test('[covers:F-063/AC-160] append and read preserve a valid JSONL event round trip', () => {
     const ev = newEvent('drift_detected', {detector: 'AC_DRIFT', count: 3});
     appendEvent(dir, ev);
     const back = readEvents(dir);
@@ -115,7 +115,15 @@ describe('events/log.ts', () => {
     expect(readEvents(dir)).toEqual([]);
   });
 
-  test('multiple appends preserve order', () => {
+  test('[covers:F-063/AC-160] absent and empty event logs read as no observations', () => {
+    expect(readEvents(dir)).toEqual([]);
+
+    mkdirSync(join(dir, '.cladding'), {recursive: true});
+    writeFileSync(join(dir, '.cladding', 'events.log.jsonl'), '  \n\n');
+    expect(readEvents(dir)).toEqual([]);
+  });
+
+  test('[covers:F-063/AC-160] multiple JSONL appends preserve observed order', () => {
     appendEvent(dir, newEvent('feature_activated', {n: 1}));
     appendEvent(dir, newEvent('stage_started', {n: 2}));
     appendEvent(dir, newEvent('stage_completed', {n: 3}));
@@ -130,7 +138,7 @@ describe('events/log.ts', () => {
     expect(readEvents(dir)).toHaveLength(1);
   });
 
-  test('a symlinked event workspace is an observer no-op and leaves outside bytes untouched', () => {
+  test('[covers:F-063/AC-160] managed symbolic paths remain observer-only no-ops', () => {
     const outside = mkdtempSync(join(tmpdir(), 'clad-events-outside-'));
     try {
       writeFileSync(join(outside, 'events.log.jsonl'), 'outside sentinel\n');
