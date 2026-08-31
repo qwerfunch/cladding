@@ -76,18 +76,14 @@ describe('loadIntentFromPathIfApplicable', () => {
   });
 
   // AC-004 — free-text intent (no recognized extension) passes through.
-  test.each([
-    ['결제 SaaS 만들거야'],
-    ['build a payment SaaS'],
-    ['AI 코드 리뷰 봇'],
-    ['simple'],
-    [''],
-  ])('passes free-text intent %p through unchanged with no warning', (input) => {
-    const result = loadIntentFromPathIfApplicable(input, dir);
+  test('[covers:F-5f6b45/AC-004] passes free-text intent through unchanged with no warning', () => {
+    for (const input of ['결제 SaaS 만들거야', 'build a payment SaaS', 'AI 코드 리뷰 봇', 'simple', '']) {
+      const result = loadIntentFromPathIfApplicable(input, dir);
 
-    expect(result.intent).toBe(input);
-    expect(result.loadedFrom).toBeUndefined();
-    expect(result.warning).toBeUndefined();
+      expect(result.intent).toBe(input);
+      expect(result.loadedFrom).toBeUndefined();
+      expect(result.warning).toBeUndefined();
+    }
   });
 
   // AC-005a — directory with recognized extension → warning + fallback.

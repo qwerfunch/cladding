@@ -8858,8 +8858,8 @@
           "path": "spec/features/strict-skip-policy-67d2e9.yaml",
           "yamlPath": "$.acceptance_criteria[0].id",
           "range": {
-            "start": 249,
-            "end": 258,
+            "start": 242,
+            "end": 251,
             "line": 9,
             "column": 9
           }
@@ -8872,8 +8872,8 @@
           "path": "spec/features/strict-skip-policy-67d2e9.yaml",
           "yamlPath": "$.acceptance_criteria[1].id",
           "range": {
-            "start": 1806,
-            "end": 1815,
+            "start": 1966,
+            "end": 1975,
             "line": 19,
             "column": 9
           }
@@ -8886,8 +8886,8 @@
           "path": "spec/features/strict-skip-policy-67d2e9.yaml",
           "yamlPath": "$.acceptance_criteria[2].id",
           "range": {
-            "start": 2789,
-            "end": 2798,
+            "start": 3408,
+            "end": 3417,
             "line": 29,
             "column": 9
           }
@@ -9992,9 +9992,9 @@
           "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
           "yamlPath": "$.acceptance_criteria[1].id",
           "range": {
-            "start": 1134,
-            "end": 1143,
-            "line": 20,
+            "start": 1802,
+            "end": 1811,
+            "line": 25,
             "column": 9
           }
         }
@@ -10006,9 +10006,9 @@
           "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
           "yamlPath": "$.acceptance_criteria[3].id",
           "range": {
-            "start": 2642,
-            "end": 2651,
-            "line": 37,
+            "start": 3527,
+            "end": 3536,
+            "line": 43,
             "column": 9
           }
         }
@@ -10020,9 +10020,9 @@
           "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
           "yamlPath": "$.acceptance_criteria[2].id",
           "range": {
-            "start": 1867,
-            "end": 1876,
-            "line": 29,
+            "start": 2752,
+            "end": 2761,
+            "line": 35,
             "column": 9
           }
         }
@@ -10034,9 +10034,9 @@
           "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
           "yamlPath": "$.acceptance_criteria[4].id",
           "range": {
-            "start": 3217,
-            "end": 3226,
-            "line": 43,
+            "start": 4102,
+            "end": 4111,
+            "line": 49,
             "column": 9
           }
         }
@@ -15074,9 +15074,9 @@
           "path": "spec/features/gate-golden-matrix-d49585.yaml",
           "yamlPath": "$.acceptance_criteria[2].id",
           "range": {
-            "start": 2656,
-            "end": 2665,
-            "line": 27,
+            "start": 2937,
+            "end": 2946,
+            "line": 26,
             "column": 9
           }
         }
@@ -51702,19 +51702,19 @@
       {
         "owner": "criterion:F-67d2e9/AC-11101f",
         "channel": "test",
-        "raw": "tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c] strict demand table promotes skips only for declared stage 1.1/2.1/2.3/2.4 demands and keeps non-strict or undemanded skips non-blocking",
-        "normalizedTarget": "anchor:tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c] strict demand table promotes skips only for declared stage 1.1/2.1/2.3/2.4 demands and keeps non-strict or undemanded skips non-blocking",
+        "raw": "tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking",
+        "normalizedTarget": "anchor:tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking",
         "selector": {
           "precision": "fragment",
-          "value": "[covers:F-d49585/AC-40db4c] strict demand table promotes skips only for declared stage 1.1/2.1/2.3/2.4 demands and keeps non-strict or undemanded skips non-blocking"
+          "value": "[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/strict-skip-policy-67d2e9.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[0]",
           "range": {
-            "start": 1497,
-            "end": 1700,
+            "start": 1590,
+            "end": 1860,
             "line": 17,
             "column": 9
           }
@@ -51734,8 +51734,8 @@
           "path": "spec/features/strict-skip-policy-67d2e9.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[1]",
           "range": {
-            "start": 1709,
-            "end": 1797,
+            "start": 1869,
+            "end": 1957,
             "line": 18,
             "column": 9
           }
@@ -51744,19 +51744,19 @@
       {
         "owner": "criterion:F-67d2e9/AC-6c0c35",
         "channel": "test",
-        "raw": "tests/cli/gate-golden-matrix.test.ts#demands do NOT fire: non-strict, or no demand in the spec, or the stage outside the tier",
-        "normalizedTarget": "anchor:tests/cli/gate-golden-matrix.test.ts#demands do NOT fire: non-strict, or no demand in the spec, or the stage outside the tier",
+        "raw": "tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking",
+        "normalizedTarget": "anchor:tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking",
         "selector": {
           "precision": "fragment",
-          "value": "demands do NOT fire: non-strict, or no demand in the spec, or the stage outside the tier"
+          "value": "[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/strict-skip-policy-67d2e9.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 2404,
-            "end": 2531,
+            "start": 2884,
+            "end": 3154,
             "line": 26,
             "column": 9
           }
@@ -51765,19 +51765,19 @@
       {
         "owner": "criterion:F-67d2e9/AC-6c0c35",
         "channel": "test",
-        "raw": "tests/stages/skip-policy.test.ts#2.4: safe declared deliverable + done feature → violation; opt-out or undeclared deliverable → none",
-        "normalizedTarget": "anchor:tests/stages/skip-policy.test.ts#2.4: safe declared deliverable + done feature → violation; opt-out or undeclared deliverable → none",
+        "raw": "tests/stages/skip-policy.test.ts#[covers:F-7076f7/AC-7f8630] strict skip policy does not emit a stage_2.4 smoke-demand duplicate",
+        "normalizedTarget": "anchor:tests/stages/skip-policy.test.ts#[covers:F-7076f7/AC-7f8630] strict skip policy does not emit a stage_2.4 smoke-demand duplicate",
         "selector": {
           "precision": "fragment",
-          "value": "2.4: safe declared deliverable + done feature → violation; opt-out or undeclared deliverable → none"
+          "value": "[covers:F-7076f7/AC-7f8630] strict skip policy does not emit a stage_2.4 smoke-demand duplicate"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/strict-skip-policy-67d2e9.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[1]",
           "range": {
-            "start": 2540,
-            "end": 2674,
+            "start": 3163,
+            "end": 3293,
             "line": 27,
             "column": 9
           }
@@ -51797,8 +51797,8 @@
           "path": "spec/features/strict-skip-policy-67d2e9.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[2]",
           "range": {
-            "start": 2683,
-            "end": 2780,
+            "start": 3302,
+            "end": 3399,
             "line": 28,
             "column": 9
           }
@@ -51807,19 +51807,19 @@
       {
         "owner": "criterion:F-67d2e9/AC-b265bf",
         "channel": "test",
-        "raw": "tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c] strict demand table promotes skips only for declared stage 1.1/2.1/2.3/2.4 demands and keeps non-strict or undemanded skips non-blocking",
-        "normalizedTarget": "anchor:tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c] strict demand table promotes skips only for declared stage 1.1/2.1/2.3/2.4 demands and keeps non-strict or undemanded skips non-blocking",
+        "raw": "tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking",
+        "normalizedTarget": "anchor:tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking",
         "selector": {
           "precision": "fragment",
-          "value": "[covers:F-d49585/AC-40db4c] strict demand table promotes skips only for declared stage 1.1/2.1/2.3/2.4 demands and keeps non-strict or undemanded skips non-blocking"
+          "value": "[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/strict-skip-policy-67d2e9.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 3341,
-            "end": 3544,
+            "start": 3960,
+            "end": 4230,
             "line": 35,
             "column": 9
           }
@@ -54430,20 +54430,20 @@
       {
         "owner": "criterion:F-7ce18e/AC-2087c9",
         "channel": "test",
-        "raw": "tests/self-consistency.test.ts#every CLI verb registered in clad.ts has a glossary row",
-        "normalizedTarget": "anchor:tests/self-consistency.test.ts#every CLI verb registered in clad.ts has a glossary row",
+        "raw": "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every MCP tool registered in server.ts has exact glossary metadata",
+        "normalizedTarget": "anchor:tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every MCP tool registered in server.ts has exact glossary metadata",
         "selector": {
           "precision": "fragment",
-          "value": "every CLI verb registered in clad.ts has a glossary row"
+          "value": "[covers:F-7ce18e/AC-f708a4] every MCP tool registered in server.ts has exact glossary metadata"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
-          "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
+          "yamlPath": "$.acceptance_criteria[1].test_refs[2]",
           "range": {
-            "start": 1673,
-            "end": 1761,
-            "line": 27,
+            "start": 2616,
+            "end": 2743,
+            "line": 34,
             "column": 9
           }
         }
@@ -54451,20 +54451,41 @@
       {
         "owner": "criterion:F-7ce18e/AC-2087c9",
         "channel": "test",
-        "raw": "tests/self-consistency.test.ts#every persona file under src/agents/ has a glossary row",
-        "normalizedTarget": "anchor:tests/self-consistency.test.ts#every persona file under src/agents/ has a glossary row",
+        "raw": "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every persona file under src/agents/ has exact glossary metadata",
+        "normalizedTarget": "anchor:tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every persona file under src/agents/ has exact glossary metadata",
         "selector": {
           "precision": "fragment",
-          "value": "every persona file under src/agents/ has a glossary row"
+          "value": "[covers:F-7ce18e/AC-f708a4] every persona file under src/agents/ has exact glossary metadata"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[1]",
           "range": {
-            "start": 1770,
-            "end": 1858,
-            "line": 28,
+            "start": 2482,
+            "end": 2607,
+            "line": 33,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-7ce18e/AC-2087c9",
+        "channel": "test",
+        "raw": "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every public CLI verb registered in clad.ts has exact glossary metadata",
+        "normalizedTarget": "anchor:tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every public CLI verb registered in clad.ts has exact glossary metadata",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-7ce18e/AC-f708a4] every public CLI verb registered in clad.ts has exact glossary metadata"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
+          "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
+          "range": {
+            "start": 2341,
+            "end": 2473,
+            "line": 32,
             "column": 9
           }
         }
@@ -54483,9 +54504,9 @@
           "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 3117,
-            "end": 3208,
-            "line": 42,
+            "start": 4002,
+            "end": 4093,
+            "line": 48,
             "column": 9
           }
         }
@@ -54504,9 +54525,9 @@
           "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 2546,
-            "end": 2633,
-            "line": 36,
+            "start": 3431,
+            "end": 3518,
+            "line": 42,
             "column": 9
           }
         }
@@ -54514,20 +54535,20 @@
       {
         "owner": "criterion:F-7ce18e/AC-c034ed",
         "channel": "test",
-        "raw": "tests/self-consistency.test.ts#every event type has a glossary row (frozen wire ids)",
-        "normalizedTarget": "anchor:tests/self-consistency.test.ts#every event type has a glossary row (frozen wire ids)",
+        "raw": "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every event type has exact glossary metadata",
+        "normalizedTarget": "anchor:tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every event type has exact glossary metadata",
         "selector": {
           "precision": "fragment",
-          "value": "every event type has a glossary row (frozen wire ids)"
+          "value": "[covers:F-7ce18e/AC-f708a4] every event type has exact glossary metadata"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
           "yamlPath": "$.acceptance_criteria[4].test_refs[1]",
           "range": {
-            "start": 3634,
-            "end": 3720,
-            "line": 49,
+            "start": 4538,
+            "end": 4643,
+            "line": 55,
             "column": 9
           }
         }
@@ -54535,20 +54556,41 @@
       {
         "owner": "criterion:F-7ce18e/AC-c034ed",
         "channel": "test",
-        "raw": "tests/self-consistency.test.ts#every MCP tool registered in server.ts has a glossary row (frozen wire ids)",
-        "normalizedTarget": "anchor:tests/self-consistency.test.ts#every MCP tool registered in server.ts has a glossary row (frozen wire ids)",
+        "raw": "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every MCP tool registered in server.ts has exact glossary metadata",
+        "normalizedTarget": "anchor:tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every MCP tool registered in server.ts has exact glossary metadata",
         "selector": {
           "precision": "fragment",
-          "value": "every MCP tool registered in server.ts has a glossary row (frozen wire ids)"
+          "value": "[covers:F-7ce18e/AC-f708a4] every MCP tool registered in server.ts has exact glossary metadata"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
           "yamlPath": "$.acceptance_criteria[4].test_refs[0]",
           "range": {
-            "start": 3517,
-            "end": 3625,
-            "line": 48,
+            "start": 4402,
+            "end": 4529,
+            "line": 54,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-7ce18e/AC-c034ed",
+        "channel": "test",
+        "raw": "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every registered detector id has exact glossary metadata",
+        "normalizedTarget": "anchor:tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every registered detector id has exact glossary metadata",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-7ce18e/AC-f708a4] every registered detector id has exact glossary metadata"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
+          "yamlPath": "$.acceptance_criteria[4].test_refs[2]",
+          "range": {
+            "start": 4652,
+            "end": 4769,
+            "line": 56,
             "column": 9
           }
         }
@@ -54556,20 +54598,125 @@
       {
         "owner": "criterion:F-7ce18e/AC-f708a4",
         "channel": "test",
-        "raw": "tests/self-consistency.test.ts#deprecated aliases are documented as aliases pointing at their replacement",
-        "normalizedTarget": "anchor:tests/self-consistency.test.ts#deprecated aliases are documented as aliases pointing at their replacement",
+        "raw": "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every brand term has exact glossary metadata",
+        "normalizedTarget": "anchor:tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every brand term has exact glossary metadata",
         "selector": {
           "precision": "fragment",
-          "value": "deprecated aliases are documented as aliases pointing at their replacement"
+          "value": "[covers:F-7ce18e/AC-f708a4] every brand term has exact glossary metadata"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[5]",
+          "range": {
+            "start": 1688,
+            "end": 1793,
+            "line": 24,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-7ce18e/AC-f708a4",
+        "channel": "test",
+        "raw": "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every event type has exact glossary metadata",
+        "normalizedTarget": "anchor:tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every event type has exact glossary metadata",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-7ce18e/AC-f708a4] every event type has exact glossary metadata"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[3]",
+          "range": {
+            "start": 1448,
+            "end": 1553,
+            "line": 22,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-7ce18e/AC-f708a4",
+        "channel": "test",
+        "raw": "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every MCP tool registered in server.ts has exact glossary metadata",
+        "normalizedTarget": "anchor:tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every MCP tool registered in server.ts has exact glossary metadata",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-7ce18e/AC-f708a4] every MCP tool registered in server.ts has exact glossary metadata"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[2]",
+          "range": {
+            "start": 1312,
+            "end": 1439,
+            "line": 21,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-7ce18e/AC-f708a4",
+        "channel": "test",
+        "raw": "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every persona file under src/agents/ has exact glossary metadata",
+        "normalizedTarget": "anchor:tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every persona file under src/agents/ has exact glossary metadata",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-7ce18e/AC-f708a4] every persona file under src/agents/ has exact glossary metadata"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[1]",
+          "range": {
+            "start": 1178,
+            "end": 1303,
+            "line": 20,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-7ce18e/AC-f708a4",
+        "channel": "test",
+        "raw": "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every public CLI verb registered in clad.ts has exact glossary metadata",
+        "normalizedTarget": "anchor:tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every public CLI verb registered in clad.ts has exact glossary metadata",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-7ce18e/AC-f708a4] every public CLI verb registered in clad.ts has exact glossary metadata"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[0]",
           "range": {
-            "start": 1018,
-            "end": 1125,
+            "start": 1037,
+            "end": 1169,
             "line": 19,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-7ce18e/AC-f708a4",
+        "channel": "test",
+        "raw": "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every registered detector id has exact glossary metadata",
+        "normalizedTarget": "anchor:tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every registered detector id has exact glossary metadata",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-7ce18e/AC-f708a4] every registered detector id has exact glossary metadata"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[4]",
+          "range": {
+            "start": 1562,
+            "end": 1679,
+            "line": 23,
             "column": 9
           }
         }
@@ -65070,9 +65217,9 @@
           "path": "spec/features/gate-golden-matrix-d49585.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 2932,
-            "end": 3024,
-            "line": 32,
+            "start": 3213,
+            "end": 3305,
+            "line": 31,
             "column": 9
           }
         }
@@ -65080,41 +65227,20 @@
       {
         "owner": "criterion:F-d49585/AC-40db4c",
         "channel": "test",
-        "raw": "tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c] strict demand table promotes skips only for declared stage 1.1/2.1/2.3/2.4 demands and keeps non-strict or undemanded skips non-blocking",
-        "normalizedTarget": "anchor:tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c] strict demand table promotes skips only for declared stage 1.1/2.1/2.3/2.4 demands and keeps non-strict or undemanded skips non-blocking",
+        "raw": "tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking",
+        "normalizedTarget": "anchor:tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking",
         "selector": {
           "precision": "fragment",
-          "value": "[covers:F-d49585/AC-40db4c] strict demand table promotes skips only for declared stage 1.1/2.1/2.3/2.4 demands and keeps non-strict or undemanded skips non-blocking"
+          "value": "[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/gate-golden-matrix-d49585.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 2308,
-            "end": 2511,
+            "start": 2658,
+            "end": 2928,
             "line": 25,
-            "column": 9
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-d49585/AC-40db4c",
-        "channel": "test",
-        "raw": "tests/cli/gate-golden-matrix.test.ts#demands do NOT fire: non-strict, or no demand in the spec, or the stage outside the tier",
-        "normalizedTarget": "anchor:tests/cli/gate-golden-matrix.test.ts#demands do NOT fire: non-strict, or no demand in the spec, or the stage outside the tier",
-        "selector": {
-          "precision": "fragment",
-          "value": "demands do NOT fire: non-strict, or no demand in the spec, or the stage outside the tier"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/gate-golden-matrix-d49585.yaml",
-          "yamlPath": "$.acceptance_criteria[1].test_refs[1]",
-          "range": {
-            "start": 2520,
-            "end": 2647,
-            "line": 26,
             "column": 9
           }
         }
@@ -82146,19 +82272,19 @@
       {
         "owner": "criterion:F-67d2e9/AC-11101f",
         "channel": "test",
-        "raw": "tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c] strict demand table promotes skips only for declared stage 1.1/2.1/2.3/2.4 demands and keeps non-strict or undemanded skips non-blocking",
-        "normalizedTarget": "anchor:tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c] strict demand table promotes skips only for declared stage 1.1/2.1/2.3/2.4 demands and keeps non-strict or undemanded skips non-blocking",
+        "raw": "tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking",
+        "normalizedTarget": "anchor:tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking",
         "selector": {
           "precision": "fragment",
-          "value": "[covers:F-d49585/AC-40db4c] strict demand table promotes skips only for declared stage 1.1/2.1/2.3/2.4 demands and keeps non-strict or undemanded skips non-blocking"
+          "value": "[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/strict-skip-policy-67d2e9.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[0]",
           "range": {
-            "start": 1497,
-            "end": 1700,
+            "start": 1590,
+            "end": 1860,
             "line": 17,
             "column": 9
           }
@@ -82178,8 +82304,8 @@
           "path": "spec/features/strict-skip-policy-67d2e9.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[1]",
           "range": {
-            "start": 1709,
-            "end": 1797,
+            "start": 1869,
+            "end": 1957,
             "line": 18,
             "column": 9
           }
@@ -82188,19 +82314,19 @@
       {
         "owner": "criterion:F-67d2e9/AC-6c0c35",
         "channel": "test",
-        "raw": "tests/cli/gate-golden-matrix.test.ts#demands do NOT fire: non-strict, or no demand in the spec, or the stage outside the tier",
-        "normalizedTarget": "anchor:tests/cli/gate-golden-matrix.test.ts#demands do NOT fire: non-strict, or no demand in the spec, or the stage outside the tier",
+        "raw": "tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking",
+        "normalizedTarget": "anchor:tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking",
         "selector": {
           "precision": "fragment",
-          "value": "demands do NOT fire: non-strict, or no demand in the spec, or the stage outside the tier"
+          "value": "[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/strict-skip-policy-67d2e9.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 2404,
-            "end": 2531,
+            "start": 2884,
+            "end": 3154,
             "line": 26,
             "column": 9
           }
@@ -82209,19 +82335,19 @@
       {
         "owner": "criterion:F-67d2e9/AC-6c0c35",
         "channel": "test",
-        "raw": "tests/stages/skip-policy.test.ts#2.4: safe declared deliverable + done feature → violation; opt-out or undeclared deliverable → none",
-        "normalizedTarget": "anchor:tests/stages/skip-policy.test.ts#2.4: safe declared deliverable + done feature → violation; opt-out or undeclared deliverable → none",
+        "raw": "tests/stages/skip-policy.test.ts#[covers:F-7076f7/AC-7f8630] strict skip policy does not emit a stage_2.4 smoke-demand duplicate",
+        "normalizedTarget": "anchor:tests/stages/skip-policy.test.ts#[covers:F-7076f7/AC-7f8630] strict skip policy does not emit a stage_2.4 smoke-demand duplicate",
         "selector": {
           "precision": "fragment",
-          "value": "2.4: safe declared deliverable + done feature → violation; opt-out or undeclared deliverable → none"
+          "value": "[covers:F-7076f7/AC-7f8630] strict skip policy does not emit a stage_2.4 smoke-demand duplicate"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/strict-skip-policy-67d2e9.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[1]",
           "range": {
-            "start": 2540,
-            "end": 2674,
+            "start": 3163,
+            "end": 3293,
             "line": 27,
             "column": 9
           }
@@ -82241,8 +82367,8 @@
           "path": "spec/features/strict-skip-policy-67d2e9.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[2]",
           "range": {
-            "start": 2683,
-            "end": 2780,
+            "start": 3302,
+            "end": 3399,
             "line": 28,
             "column": 9
           }
@@ -82251,19 +82377,19 @@
       {
         "owner": "criterion:F-67d2e9/AC-b265bf",
         "channel": "test",
-        "raw": "tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c] strict demand table promotes skips only for declared stage 1.1/2.1/2.3/2.4 demands and keeps non-strict or undemanded skips non-blocking",
-        "normalizedTarget": "anchor:tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c] strict demand table promotes skips only for declared stage 1.1/2.1/2.3/2.4 demands and keeps non-strict or undemanded skips non-blocking",
+        "raw": "tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking",
+        "normalizedTarget": "anchor:tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking",
         "selector": {
           "precision": "fragment",
-          "value": "[covers:F-d49585/AC-40db4c] strict demand table promotes skips only for declared stage 1.1/2.1/2.3/2.4 demands and keeps non-strict or undemanded skips non-blocking"
+          "value": "[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/strict-skip-policy-67d2e9.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 3341,
-            "end": 3544,
+            "start": 3960,
+            "end": 4230,
             "line": 35,
             "column": 9
           }
@@ -84754,20 +84880,20 @@
       {
         "owner": "criterion:F-7ce18e/AC-2087c9",
         "channel": "test",
-        "raw": "tests/self-consistency.test.ts#every CLI verb registered in clad.ts has a glossary row",
-        "normalizedTarget": "anchor:tests/self-consistency.test.ts#every CLI verb registered in clad.ts has a glossary row",
+        "raw": "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every MCP tool registered in server.ts has exact glossary metadata",
+        "normalizedTarget": "anchor:tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every MCP tool registered in server.ts has exact glossary metadata",
         "selector": {
           "precision": "fragment",
-          "value": "every CLI verb registered in clad.ts has a glossary row"
+          "value": "[covers:F-7ce18e/AC-f708a4] every MCP tool registered in server.ts has exact glossary metadata"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
-          "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
+          "yamlPath": "$.acceptance_criteria[1].test_refs[2]",
           "range": {
-            "start": 1673,
-            "end": 1761,
-            "line": 27,
+            "start": 2616,
+            "end": 2743,
+            "line": 34,
             "column": 9
           }
         }
@@ -84775,20 +84901,41 @@
       {
         "owner": "criterion:F-7ce18e/AC-2087c9",
         "channel": "test",
-        "raw": "tests/self-consistency.test.ts#every persona file under src/agents/ has a glossary row",
-        "normalizedTarget": "anchor:tests/self-consistency.test.ts#every persona file under src/agents/ has a glossary row",
+        "raw": "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every persona file under src/agents/ has exact glossary metadata",
+        "normalizedTarget": "anchor:tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every persona file under src/agents/ has exact glossary metadata",
         "selector": {
           "precision": "fragment",
-          "value": "every persona file under src/agents/ has a glossary row"
+          "value": "[covers:F-7ce18e/AC-f708a4] every persona file under src/agents/ has exact glossary metadata"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[1]",
           "range": {
-            "start": 1770,
-            "end": 1858,
-            "line": 28,
+            "start": 2482,
+            "end": 2607,
+            "line": 33,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-7ce18e/AC-2087c9",
+        "channel": "test",
+        "raw": "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every public CLI verb registered in clad.ts has exact glossary metadata",
+        "normalizedTarget": "anchor:tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every public CLI verb registered in clad.ts has exact glossary metadata",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-7ce18e/AC-f708a4] every public CLI verb registered in clad.ts has exact glossary metadata"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
+          "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
+          "range": {
+            "start": 2341,
+            "end": 2473,
+            "line": 32,
             "column": 9
           }
         }
@@ -84807,9 +84954,9 @@
           "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 3117,
-            "end": 3208,
-            "line": 42,
+            "start": 4002,
+            "end": 4093,
+            "line": 48,
             "column": 9
           }
         }
@@ -84828,9 +84975,9 @@
           "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 2546,
-            "end": 2633,
-            "line": 36,
+            "start": 3431,
+            "end": 3518,
+            "line": 42,
             "column": 9
           }
         }
@@ -84838,20 +84985,20 @@
       {
         "owner": "criterion:F-7ce18e/AC-c034ed",
         "channel": "test",
-        "raw": "tests/self-consistency.test.ts#every event type has a glossary row (frozen wire ids)",
-        "normalizedTarget": "anchor:tests/self-consistency.test.ts#every event type has a glossary row (frozen wire ids)",
+        "raw": "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every event type has exact glossary metadata",
+        "normalizedTarget": "anchor:tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every event type has exact glossary metadata",
         "selector": {
           "precision": "fragment",
-          "value": "every event type has a glossary row (frozen wire ids)"
+          "value": "[covers:F-7ce18e/AC-f708a4] every event type has exact glossary metadata"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
           "yamlPath": "$.acceptance_criteria[4].test_refs[1]",
           "range": {
-            "start": 3634,
-            "end": 3720,
-            "line": 49,
+            "start": 4538,
+            "end": 4643,
+            "line": 55,
             "column": 9
           }
         }
@@ -84859,20 +85006,41 @@
       {
         "owner": "criterion:F-7ce18e/AC-c034ed",
         "channel": "test",
-        "raw": "tests/self-consistency.test.ts#every MCP tool registered in server.ts has a glossary row (frozen wire ids)",
-        "normalizedTarget": "anchor:tests/self-consistency.test.ts#every MCP tool registered in server.ts has a glossary row (frozen wire ids)",
+        "raw": "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every MCP tool registered in server.ts has exact glossary metadata",
+        "normalizedTarget": "anchor:tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every MCP tool registered in server.ts has exact glossary metadata",
         "selector": {
           "precision": "fragment",
-          "value": "every MCP tool registered in server.ts has a glossary row (frozen wire ids)"
+          "value": "[covers:F-7ce18e/AC-f708a4] every MCP tool registered in server.ts has exact glossary metadata"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
           "yamlPath": "$.acceptance_criteria[4].test_refs[0]",
           "range": {
-            "start": 3517,
-            "end": 3625,
-            "line": 48,
+            "start": 4402,
+            "end": 4529,
+            "line": 54,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-7ce18e/AC-c034ed",
+        "channel": "test",
+        "raw": "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every registered detector id has exact glossary metadata",
+        "normalizedTarget": "anchor:tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every registered detector id has exact glossary metadata",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-7ce18e/AC-f708a4] every registered detector id has exact glossary metadata"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
+          "yamlPath": "$.acceptance_criteria[4].test_refs[2]",
+          "range": {
+            "start": 4652,
+            "end": 4769,
+            "line": 56,
             "column": 9
           }
         }
@@ -84880,20 +85048,125 @@
       {
         "owner": "criterion:F-7ce18e/AC-f708a4",
         "channel": "test",
-        "raw": "tests/self-consistency.test.ts#deprecated aliases are documented as aliases pointing at their replacement",
-        "normalizedTarget": "anchor:tests/self-consistency.test.ts#deprecated aliases are documented as aliases pointing at their replacement",
+        "raw": "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every brand term has exact glossary metadata",
+        "normalizedTarget": "anchor:tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every brand term has exact glossary metadata",
         "selector": {
           "precision": "fragment",
-          "value": "deprecated aliases are documented as aliases pointing at their replacement"
+          "value": "[covers:F-7ce18e/AC-f708a4] every brand term has exact glossary metadata"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[5]",
+          "range": {
+            "start": 1688,
+            "end": 1793,
+            "line": 24,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-7ce18e/AC-f708a4",
+        "channel": "test",
+        "raw": "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every event type has exact glossary metadata",
+        "normalizedTarget": "anchor:tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every event type has exact glossary metadata",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-7ce18e/AC-f708a4] every event type has exact glossary metadata"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[3]",
+          "range": {
+            "start": 1448,
+            "end": 1553,
+            "line": 22,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-7ce18e/AC-f708a4",
+        "channel": "test",
+        "raw": "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every MCP tool registered in server.ts has exact glossary metadata",
+        "normalizedTarget": "anchor:tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every MCP tool registered in server.ts has exact glossary metadata",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-7ce18e/AC-f708a4] every MCP tool registered in server.ts has exact glossary metadata"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[2]",
+          "range": {
+            "start": 1312,
+            "end": 1439,
+            "line": 21,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-7ce18e/AC-f708a4",
+        "channel": "test",
+        "raw": "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every persona file under src/agents/ has exact glossary metadata",
+        "normalizedTarget": "anchor:tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every persona file under src/agents/ has exact glossary metadata",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-7ce18e/AC-f708a4] every persona file under src/agents/ has exact glossary metadata"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[1]",
+          "range": {
+            "start": 1178,
+            "end": 1303,
+            "line": 20,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-7ce18e/AC-f708a4",
+        "channel": "test",
+        "raw": "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every public CLI verb registered in clad.ts has exact glossary metadata",
+        "normalizedTarget": "anchor:tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every public CLI verb registered in clad.ts has exact glossary metadata",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-7ce18e/AC-f708a4] every public CLI verb registered in clad.ts has exact glossary metadata"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[0]",
           "range": {
-            "start": 1018,
-            "end": 1125,
+            "start": 1037,
+            "end": 1169,
             "line": 19,
+            "column": 9
+          }
+        }
+      },
+      {
+        "owner": "criterion:F-7ce18e/AC-f708a4",
+        "channel": "test",
+        "raw": "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every registered detector id has exact glossary metadata",
+        "normalizedTarget": "anchor:tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every registered detector id has exact glossary metadata",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-7ce18e/AC-f708a4] every registered detector id has exact glossary metadata"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/glossary-naming-convention-7ce18e.yaml",
+          "yamlPath": "$.acceptance_criteria[0].test_refs[4]",
+          "range": {
+            "start": 1562,
+            "end": 1679,
+            "line": 23,
             "column": 9
           }
         }
@@ -94254,9 +94527,9 @@
           "path": "spec/features/gate-golden-matrix-d49585.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 2932,
-            "end": 3024,
-            "line": 32,
+            "start": 3213,
+            "end": 3305,
+            "line": 31,
             "column": 9
           }
         }
@@ -94264,41 +94537,20 @@
       {
         "owner": "criterion:F-d49585/AC-40db4c",
         "channel": "test",
-        "raw": "tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c] strict demand table promotes skips only for declared stage 1.1/2.1/2.3/2.4 demands and keeps non-strict or undemanded skips non-blocking",
-        "normalizedTarget": "anchor:tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c] strict demand table promotes skips only for declared stage 1.1/2.1/2.3/2.4 demands and keeps non-strict or undemanded skips non-blocking",
+        "raw": "tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking",
+        "normalizedTarget": "anchor:tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking",
         "selector": {
           "precision": "fragment",
-          "value": "[covers:F-d49585/AC-40db4c] strict demand table promotes skips only for declared stage 1.1/2.1/2.3/2.4 demands and keeps non-strict or undemanded skips non-blocking"
+          "value": "[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/gate-golden-matrix-d49585.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 2308,
-            "end": 2511,
+            "start": 2658,
+            "end": 2928,
             "line": 25,
-            "column": 9
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-d49585/AC-40db4c",
-        "channel": "test",
-        "raw": "tests/cli/gate-golden-matrix.test.ts#demands do NOT fire: non-strict, or no demand in the spec, or the stage outside the tier",
-        "normalizedTarget": "anchor:tests/cli/gate-golden-matrix.test.ts#demands do NOT fire: non-strict, or no demand in the spec, or the stage outside the tier",
-        "selector": {
-          "precision": "fragment",
-          "value": "demands do NOT fire: non-strict, or no demand in the spec, or the stage outside the tier"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/gate-golden-matrix-d49585.yaml",
-          "yamlPath": "$.acceptance_criteria[1].test_refs[1]",
-          "range": {
-            "start": 2520,
-            "end": 2647,
-            "line": 26,
             "column": 9
           }
         }
@@ -97915,9 +98167,9 @@
     ]
   },
   "derived": {
-    "proofOccurrences": 1720,
-    "uniqueCriterionProofAddresses": 1720,
-    "resolvedProofs": 1712,
+    "proofOccurrences": 1726,
+    "uniqueCriterionProofAddresses": 1726,
+    "resolvedProofs": 1718,
     "unresolvedProofs": 8
   }
 }

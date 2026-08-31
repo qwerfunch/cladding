@@ -294,7 +294,7 @@ describe('inventory churn diet (F-6e49fd24)', () => {
   // AC-de828ae2 — the schema keeps last_synced optional, so spec.yaml files
   // written by older cladding versions still parse AND validate. Exercised via
   // the real validation path (validateSpec + loadSpec), not just the TS type.
-  test('[covers:F-5b9f9f/AC-005] AC-de828ae2 · a spec.yaml carrying legacy last_synced still parses and validates', () => {
+  test('[covers:F-5b9f9f/AC-005][covers:F-6e49fd24/AC-de828ae2] AC-de828ae2 · a spec.yaml carrying legacy last_synced still parses and validates', () => {
     // Direct schema path — an inventory object carrying last_synced is valid.
     const result = validateSpec({
       schema: '0.1',

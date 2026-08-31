@@ -3,7 +3,7 @@
 import {existsSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
-import {join, resolve} from 'node:path';
+import {isAbsolute, join, resolve} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
 import {
@@ -44,7 +44,7 @@ describe('project-scoped runHostSetup', () => {
     rmSync(pkgRoot, {recursive: true, force: true});
   });
 
-  test('[covers:F-0f4dd6/AC-007] writes project-local host configuration with the documented Antigravity bridge exception', async () => {
+  test('[covers:F-0f4dd6/AC-007][covers:F-80d19d/AC-015] writes project-local host configuration with the documented Antigravity bridge exception', async () => {
     const result = await runHostSetup({home, projectRoot: project, pkgRoot, quiet: true, activate: false});
 
     expect(result.errors).toEqual([]);
@@ -66,10 +66,14 @@ describe('project-scoped runHostSetup', () => {
     expect(existsSync(join(home, '.agents', 'skills'))).toBe(false);
     expect(existsSync(join(home, '.codex', 'config.toml'))).toBe(false);
     expect(existsSync(join(home, '.gemini', 'settings.json'))).toBe(false);
+    const projectAgyMcp = JSON.parse(readFileSync(join(project, '.agents', 'mcp_config.json'), 'utf8'));
+    expect(projectAgyMcp.mcpServers.cladding.args).toEqual(['.cladding/host/serve.cjs']);
     const agyWire = join(home, '.gemini', 'config', 'plugins', 'cladding');
     expect(existsSync(join(agyWire, 'plugin.json'))).toBe(true);
     const agyMcp = JSON.parse(readFileSync(join(agyWire, 'mcp_config.json'), 'utf8'));
+    expect(isAbsolute(agyMcp.mcpServers.cladding.args[0])).toBe(true);
     expect(agyMcp.mcpServers.cladding.args).toEqual([join(pkgRoot, 'dist', 'clad.js'), 'serve']);
+    expect(renderSetupReport(result)).toContain('Antigravity reads MCP config machine-wide only');
   });
 
   test('resolves the engine version from a Claude cache that has no package.json', () => {
@@ -394,7 +398,7 @@ describe('project-scoped runHostSetup', () => {
     expect(after.mcpServers).toBeUndefined();
   });
 
-  test('a foreign real directory at the Antigravity bridge path is preserved and reported', async () => {
+  test('[covers:F-80d19d/AC-015] a foreign real directory at the Antigravity bridge path is preserved and reported', async () => {
     const dir = join(home, '.gemini', 'config', 'plugins', 'cladding');
     mkdirSync(dir, {recursive: true});
     writeFileSync(join(dir, 'mcp_config.json'), `${JSON.stringify({
@@ -408,20 +412,29 @@ describe('project-scoped runHostSetup', () => {
     const kept = JSON.parse(readFileSync(join(dir, 'mcp_config.json'), 'utf8'));
     expect(kept.mcpServers.cladding.args[0]).toBe('/somewhere/else/engine.js');
     expect(existsSync(join(project, '.agents', 'mcp_config.json'))).toBe(true);
+    expect(renderSetupReport(result)).toContain('Antigravity  → preserved conflict');
   });
 
-  test('preserves unowned global files with Cladding-like names', async () => {
+  test('[covers:F-80d19d/AC-015] preserves unowned global files with Cladding-like names and never writes through an Antigravity bridge symlink', async () => {
     const custom = mkdtempSync(join(tmpdir(), 'custom-plugin-'));
     try {
       mkdirSync(join(home, '.agents', 'skills'), {recursive: true});
+      mkdirSync(join(home, '.gemini', 'config', 'plugins'), {recursive: true});
       mkdirSync(join(home, '.gemini', 'extensions'), {recursive: true});
       symlinkSync(custom, join(home, '.agents', 'skills', 'cladding-custom'));
+      symlinkSync(custom, join(home, '.gemini', 'config', 'plugins', 'cladding'));
       symlinkSync(custom, join(home, '.gemini', 'extensions', 'cladding'));
       const result = await runHostSetup({home, projectRoot: project, pkgRoot, quiet: true, activate: false});
       expect(result.legacyCleanup.codex_skills).toBe('skipped-different');
+      expect(result.legacyCleanup.antigravity_plugin).toBe('skipped-different');
       expect(result.legacyCleanup.gemini_extension).toBe('skipped-different');
+      expect(result.wiring.antigravity).toBe('skipped-different');
       expect(resolve(readlinkSync(join(home, '.agents', 'skills', 'cladding-custom')))).toBe(resolve(custom));
+      expect(resolve(readlinkSync(join(home, '.gemini', 'config', 'plugins', 'cladding')))).toBe(resolve(custom));
       expect(resolve(readlinkSync(join(home, '.gemini', 'extensions', 'cladding')))).toBe(resolve(custom));
+      expect(existsSync(join(custom, 'mcp_config.json'))).toBe(false);
+      expect(existsSync(join(custom, 'plugin.json'))).toBe(false);
+      expect(renderSetupReport(result)).toContain('Antigravity  → preserved conflict');
     } finally {
       rmSync(custom, {recursive: true, force: true});
     }

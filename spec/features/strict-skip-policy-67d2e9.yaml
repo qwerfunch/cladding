@@ -1,6 +1,6 @@
 id: F-67d2e9
 slug: strict-skip-policy
-title: "Strict mode REDs any skipped stage the spec demands — generalizing the unit-only vacuous-green guard"
+title: "Strict mode REDs skipped code-verification demands without duplicating the smoke-demand owner"
 status: done
 modules:
   - src/stages/skip-policy.ts
@@ -9,22 +9,22 @@ acceptance_criteria:
   - id: AC-11101f
     ears: unwanted
     condition: "if a stage skips (exit 2) under --strict while the spec DEMANDS that stage"
-    action: "append a fail entry naming the unmet demand and force the gate RED, where demand means: stage_1.1 — project.language declared AND >=1 done feature; stage_2.1 — >=1 done feature declaring test_refs (the pre-0.6 guard); stage_2.3 — >=1 done AC declaring oracle_refs; stage_2.4 — project.deliverable declared is_safe_to_smoke:true AND >=1 done feature"
-    response: "a missing toolchain can no longer convert 'done = verified' into a silent pass for ANY verification stage the spec relies on"
-    text: "If a stage skips under --strict while the spec demands it (1.1: language+done; 2.1: tested-done; 2.3: oracle-refs-done; 2.4: safe-deliverable+done), the gate shall append a fail entry naming the unmet demand and go RED, so missing toolchains cannot silently waive demanded verification."
+    action: "append a fail entry naming the unmet demand and force the gate RED, where demand means: stage_1.1 — project.language declared AND >=1 done feature; stage_2.1 — >=1 done feature declaring test_refs (the pre-0.6 guard); stage_2.3 — >=1 done AC declaring oracle_refs. stage_2.4 is deliberately retired from this policy: SMOKE_PROBE_DEMAND is the sole owner of its safe-deliverable precondition."
+    response: "a missing code-verification toolchain can no longer convert 'done = verified' into a silent pass, while smoke demand remains single-owned"
+    text: "If stage 1.1, 2.1, or 2.3 skips under --strict while the spec demands it (language+done, tested-done, or oracle-refs-done), the gate shall append a fail entry naming the unmet demand and go RED. Stage 2.4 is not promoted here: SMOKE_PROBE_DEMAND solely owns its safe-deliverable demand, preventing a duplicate strict-skip failure."
     notes: "## Why\nOnly Unit had this guard — a project with tsc missing went GREEN at done with type checking never run (review blocker class). ## Decision\nDemand-gated, not blanket: no demand means skip stays green — this is the false-RED defense that must ship BEFORE the 0.6 enforcement hooks."
     test_refs:
-      - "tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c] strict demand table promotes skips only for declared stage 1.1/2.1/2.3/2.4 demands and keeps non-strict or undemanded skips non-blocking"
+      - "tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking"
       - "tests/stages/skip-policy.test.ts#multiple demands violated in one run are all reported"
   - id: AC-6c0c35
     ears: state
-    condition: "while the spec makes no demand on a skipped stage (no done features, undeclared language, no oracle_refs, no safe deliverable) or strict is off"
-    action: "keep the skip non-blocking exactly as the pre-0.6 contract"
-    response: "fresh projects and partial toolchains keep their lenient skip-as-pass behavior — zero new false REDs"
-    text: "While the spec makes no demand on a skipped stage or strict is off, the skip shall stay non-blocking exactly as before, so fresh projects and partial toolchains see zero new false REDs."
+    condition: "while the spec makes no demand on a skipped policy stage (no done features, undeclared language, or no oracle_refs), strict is off, or stage_2.4 skips"
+    action: "keep the skip non-blocking exactly as the pre-0.6 contract; a stage_2.4 skip must remain its original skip entry rather than receive a duplicate strict-skip failure because SMOKE_PROBE_DEMAND owns its safe-deliverable demand"
+    response: "fresh projects and partial toolchains keep their lenient skip-as-pass behavior — zero new false REDs — and smoke demand has one owner"
+    text: "While the spec makes no demand on a skipped policy stage or strict is off, the skip shall stay non-blocking exactly as before, so fresh projects and partial toolchains see zero new false REDs. A stage_2.4 skip also receives no strict-skip duplicate: SMOKE_PROBE_DEMAND remains its sole demand owner."
     test_refs:
-      - "tests/cli/gate-golden-matrix.test.ts#demands do NOT fire: non-strict, or no demand in the spec, or the stage outside the tier"
-      - "tests/stages/skip-policy.test.ts#2.4: safe declared deliverable + done feature → violation; opt-out or undeclared deliverable → none"
+      - "tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking"
+      - "tests/stages/skip-policy.test.ts#[covers:F-7076f7/AC-7f8630] strict skip policy does not emit a stage_2.4 smoke-demand duplicate"
       - "tests/stages/skip-policy.test.ts#a demanded stage that PASSED (not skipped) yields no violation"
   - id: AC-b265bf
     ears: ubiquitous
@@ -32,4 +32,4 @@ acceptance_criteria:
     notes: "## Decision\nThe skip-policy lives in runCheckStages (gate core), not a stage — the conformance runner wraps stages, so the golden matrix + dedicated unit tests are the executable contract here (honest deviation from the blanket fixture-pair rule)."
 
     test_refs:
-      - "tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c] strict demand table promotes skips only for declared stage 1.1/2.1/2.3/2.4 demands and keeps non-strict or undemanded skips non-blocking"
+      - "tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking"

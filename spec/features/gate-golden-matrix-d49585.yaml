@@ -17,13 +17,12 @@ acceptance_criteria:
   - id: AC-40db4c
     ears: unwanted
     condition: "if a stage skips under strict mode"
-    action: "promote the skip to RED only when the current demand table declares its precondition for stage 1.1, 2.1, 2.3, or 2.4"
-    response: "keep non-strict, undemanded, and out-of-tier skips non-blocking"
-    text: "If a stage skips under strict mode, the gate shall promote it to RED only when the current demand table declares its precondition for stage 1.1, 2.1, 2.3, or 2.4, while keeping non-strict, undemanded, and out-of-tier skips non-blocking."
-    notes: "## Decision\nThis golden matrix characterizes the current gate boundary. F-67d2e9 owns the demand-policy semantics; the matrix pins their stage and strictness effects without restoring the stale unit-only or retired-arm contract."
+    action: "promote the skip to RED only when the current strict-skip demand table declares its precondition for stage 1.1, 2.1, or 2.3; stage_2.4 is retired from that table because SMOKE_PROBE_DEMAND solely owns its safe-deliverable demand"
+    response: "keep non-strict, undemanded, and out-of-tier skips non-blocking, and retain a stage_2.4 skip without a duplicate strict-skip entry"
+    text: "If stage 1.1, 2.1, or 2.3 skips under strict mode, the gate shall promote it to RED only when the current strict-skip demand table declares its precondition, while keeping non-strict, undemanded, and out-of-tier skips non-blocking. Stage_2.4 is not promoted by this policy: SMOKE_PROBE_DEMAND solely owns its safe-deliverable demand, so no duplicate failure is appended."
+    notes: "## Decision\nThis golden matrix characterizes the current gate boundary. F-67d2e9 owns the 1.1/2.1/2.3 strict-skip semantics and preserves the false-RED defense; SMOKE_PROBE_DEMAND owns stage_2.4, so the matrix pins non-duplication without restoring the retired arm."
     test_refs:
-      - "tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c] strict demand table promotes skips only for declared stage 1.1/2.1/2.3/2.4 demands and keeps non-strict or undemanded skips non-blocking"
-      - "tests/cli/gate-golden-matrix.test.ts#demands do NOT fire: non-strict, or no demand in the spec, or the stage outside the tier"
+      - "tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking"
   - id: AC-3f7ea4
     ears: ubiquitous
     text: "The golden matrix shall run with injected stage stubs only — no toolchain spawn, no spec fixture I/O beyond a minimal temp spec — so the full matrix executes in under a second and runs in every CI invocation."

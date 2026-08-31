@@ -216,7 +216,7 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
     },
   };
 
-  test('[covers:F-d49585/AC-40db4c] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands and keeps non-strict or undemanded skips non-blocking', () => {
+  test('[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking', () => {
     for (const [name, {spec, stage}] of Object.entries(DEMAND_SPECS)) {
       loadSpecMock.mockImplementation(() => spec);
       setAll(PASS);
@@ -227,9 +227,7 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
       const entries = doc.stages.filter((s2) => s2.stage === stage);
       expect(entries.map((s2) => s2.status), name).toEqual(['skip', 'fail']); // original skip + appended demand entry
     }
-  });
 
-  test('demands do NOT fire: non-strict, or no demand in the spec, or the stage outside the tier', () => {
     // non-strict with every demand present
     loadSpecMock.mockImplementation(() => DEMAND_SPECS['stage_2.1 — done feature declaring test_refs'].spec);
     setAll(PASS);
@@ -254,7 +252,9 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
     }));
     setAll(PASS);
     stubs['stage_2.4'].mockImplementation(() => SKIP);
-    expect(runMatrixCase('pre-push', true).worst).toBe(0);
+    const smoke = runMatrixCase('pre-push', true);
+    expect(smoke.worst).toBe(0);
+    expect(smoke.stages.filter((s) => s.stage === 'stage_2.4').map((s) => s.status)).toEqual(['skip']);
   });
 
   test('fail outranks skip when both occur: worst is the failure, skip stays visible in stage statuses', () => {

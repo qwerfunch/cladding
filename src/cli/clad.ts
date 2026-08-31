@@ -901,10 +901,12 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
   // STRICT SKIP-POLICY (F-67d2e9, generalizes the 0.5.x unit-only guard).
   // Under --strict, a skipped stage the spec DEMANDS is a fail: 1.1 when a
   // declared language ships done features, 2.1 when done features declare
-  // test_refs, 2.3 when done ACs declare oracle_refs, 2.4 when a declared-
-  // safe deliverable ships. Demand-gated — no demand keeps the lenient
-  // skip-as-pass contract; spec load failure yields no violations (ABSENCE_OF_
-  // GOVERNANCE owns that blocking signal). Table pinned in the gate golden matrix.
+  // test_refs, and 2.3 when done ACs declare oracle_refs. stage_2.4 is
+  // deliberately excluded: SMOKE_PROBE_DEMAND solely owns its safe-deliverable
+  // demand, avoiding a duplicate failure. Demand-gated — no demand keeps the
+  // lenient skip-as-pass contract; spec load failure yields no violations
+  // (ABSENCE_OF_GOVERNANCE owns that blocking signal). Table pinned in the gate
+  // golden matrix.
   if (opts.strict) {
     try {
       const spec = loadSpec();

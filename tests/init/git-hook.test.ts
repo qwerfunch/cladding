@@ -127,7 +127,7 @@ describe('installGitHook pre-push (F-16746b)', () => {
 });
 
 describe('scaffoldCiWorkflow (F-16746b)', () => {
-  test('[covers:F-16746b/AC-a3152c] CI stays authoritative when a generated hook documents its one-time local bypass', () => {
+  test('[covers:F-16746b/AC-a3152c][covers:F-abd10f3c/AC-84011597] CI stays authoritative when a generated hook documents its one-time local bypass', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-ci-'));
     try {
       expect(scaffoldCiWorkflow(dir, '0.9.3')).toBe('created');

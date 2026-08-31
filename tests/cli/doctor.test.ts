@@ -283,6 +283,11 @@ describe('clad doctor handler', () => {
         {id: '2', timestamp: 't2', type: 'done_attempted', payload: {feature: 'F-aaa111', worst: 1, anyFailed: true, kept: false}},
         // Legacy stop_blocked shape deliberately lacks every additive P3 field.
         {id: '3', timestamp: 't3', type: 'stop_blocked', payload: {count: 2, fingerprint: 'abc'}},
+        // Additive fields are advisory telemetry. Malformed historical values
+        // must not make doctor fail or manufacture a later-gate match.
+        {id: '3-malformed', timestamp: 't3.5', type: 'stop_blocked', payload: {
+          count: 'two', fingerprint: 7, detectors: 'not-an-array', introduced: 'one', preexisting: null, dirty_hit: 'no',
+        }},
         {id: '4', timestamp: 't4', type: 'stop_exit_recorded', payload: {fingerprint: 'abc'}},
         {id: '5', timestamp: 't5', type: 'gate_run', payload: {tier: 'pre-push', strict: true, worst: 1, anyFailed: true, stopFingerprint: 'abc'}},
         {id: '6', timestamp: 't6', type: 'gate_run', payload: {tier: 'pre-push', strict: true, worst: 0, anyFailed: false, stopFingerprint: ''}},
@@ -290,7 +295,7 @@ describe('clad doctor handler', () => {
       ]);
     }
 
-    test('[covers:F-95a096/AC-846ce0] text mode renders gate runs, rejected dones, stop blocks, attestation', () => {
+    test('[covers:F-95a096/AC-846ce0][covers:F-1aab1bba/AC-a2a3beb3] text mode renders gate runs, rejected dones, Stop counters, attestation', () => {
       seedGovernance();
       mkdirSync(join(dir, 'spec'), {recursive: true});
       writeFileSync(
@@ -304,8 +309,8 @@ describe('clad doctor handler', () => {
       expect(out).toContain('Governance (lifecycle ledger)');
       expect(out).toContain('gate runs: 3  (last: pre-push strict=true → GREEN)');
       expect(out).toContain('done attempts: 2  rejected by the gate: 1');
-      expect(out).toContain('stop blocks: 1');
-      expect(out).toContain('stop exits recorded: 1  blocked fingerprints later seen by a gate: 1/1');
+      expect(out).toContain('stop blocks: 2');
+      expect(out).toContain('stop exits recorded: 1  blocked fingerprints later seen by a gate: 1/2');
       expect(out).not.toContain('UNRESOLVED'); // no stop-block.json on disk
       expect(out).toContain('attestation: 2 feature(s) stamped');
     });
@@ -325,7 +330,7 @@ describe('clad doctor handler', () => {
       expect(exitCalls).toEqual([0]);
     });
 
-    test('[covers:F-95a096/AC-846ce0] governance summary exposes stop outcomes and tolerates legacy events in JSON', () => {
+    test('[covers:F-95a096/AC-846ce0][covers:F-1aab1bba/AC-a2a3beb3] governance summary exposes Stop counters and tolerates legacy or malformed additive events in JSON', () => {
       seedGovernance();
       runDoctorCommand({cwd: dir, json: true});
       const parsed = JSON.parse(stdoutChunks.join(''));
@@ -334,8 +339,8 @@ describe('clad doctor handler', () => {
         lastGate: {tier: 'pre-push', strict: true, worst: 0},
         doneAttempts: 2,
         doneRejected: 1,
-        stopBlocked: 1,
-        stopOutcomes: {blocked: 1, exitsRecorded: 1, observedByLaterGate: 1, notObservedByLaterGate: 0},
+        stopBlocked: 2,
+        stopOutcomes: {blocked: 2, exitsRecorded: 1, observedByLaterGate: 1, notObservedByLaterGate: 1},
         unresolvedStopBlock: false,
         attestation: {present: false, entries: 0},
       });

@@ -166,14 +166,71 @@ describe('cladding self-consistency (no Vacuous Green against itself)', () => {
 });
 
 describe('glossary is the terminology SSoT (F-7ce18e)', () => {
-  // Every public name must carry a glossary row — a name the glossary does
-  // not know is an unregistered term and fails here (AC-002). The glossary
-  // documents names as `name` (backticked); presence of the backticked token
-  // anywhere in the file counts as registered.
   const glossary = read('docs/glossary.md');
-  const registered = (name: string): boolean => glossary.includes('`' + name + '`');
+  const lifecycleStates = new Set(['stable', 'alias', 'deprecated', 'removed', 'frozen']);
 
-  test('every CLI verb registered in clad.ts has a glossary row', () => {
+  interface GlossaryRow {
+    readonly term: string;
+    readonly state: string;
+    readonly definition: string;
+    readonly korean: string;
+  }
+
+  const markdownCells = (line: string): readonly string[] => {
+    const cells: string[] = [];
+    let cell = '';
+    const content = line.trim().slice(1, -1);
+    for (let i = 0; i < content.length; i += 1) {
+      if (content[i] === '\\' && content[i + 1] === '|') {
+        cell += '|';
+        i += 1;
+      } else if (content[i] === '|') {
+        cells.push(cell.trim());
+        cell = '';
+      } else {
+        cell += content[i];
+      }
+    }
+    cells.push(cell.trim());
+    return cells;
+  };
+
+  const glossaryRows = (section: string): readonly GlossaryRow[] => {
+    const heading = `## ${section}`;
+    const start = glossary.indexOf(heading);
+    expect(start, `docs/glossary.md must contain '${heading}'`).toBeGreaterThanOrEqual(0);
+    const afterHeading = glossary.slice(start + heading.length);
+    const nextHeading = afterHeading.search(/\n## /);
+    const body = nextHeading < 0 ? afterHeading : afterHeading.slice(0, nextHeading);
+    const table = body.split('\n').filter((line) => line.startsWith('|') && line.endsWith('|'));
+    expect(table.length, `'${section}' must have a metadata table`).toBeGreaterThanOrEqual(3);
+    const headers = markdownCells(table[0]);
+    const state = headers.indexOf('State');
+    const definition = headers.indexOf('English definition');
+    const korean = headers.indexOf('KO');
+    expect(state, `'${section}' metadata table needs State`).toBeGreaterThanOrEqual(0);
+    expect(definition, `'${section}' metadata table needs English definition`).toBeGreaterThanOrEqual(0);
+    expect(korean, `'${section}' metadata table needs KO`).toBeGreaterThanOrEqual(0);
+    return table.slice(2).map((line) => {
+      const cells = markdownCells(line);
+      expect(cells.length, `'${section}' row must match its header`).toBe(headers.length);
+      return {term: cells[0], state: cells[state], definition: cells[definition], korean: cells[korean]};
+    });
+  };
+
+  const glossaryRow = (section: string, name: string): GlossaryRow | undefined =>
+    glossaryRows(section).find((row) => row.term === `\`${name}\``);
+
+  const expectMetadata = (row: GlossaryRow | undefined, label: string): void => {
+    expect(row, `${label} is missing from docs/glossary.md`).toBeDefined();
+    if (!row) return;
+    const lifecycle = row.state.trim().split(/[ (]/, 1)[0];
+    expect(lifecycleStates.has(lifecycle), `${label} has an unrecognized lifecycle state '${row.state}'`).toBe(true);
+    expect(row.definition.trim(), `${label} needs an English definition`).not.toBe('');
+    expect(row.korean.trim(), `${label} needs a Korean correspondence`).not.toBe('');
+  };
+
+  test('[covers:F-7ce18e/AC-f708a4] every public CLI verb registered in clad.ts has exact glossary metadata', () => {
     const cli = read('src/cli/clad.ts');
     // Commander registrations: capture the first command token, retaining
     // internal hyphens while stopping before argument syntax or the closing quote.
@@ -182,30 +239,30 @@ describe('glossary is the terminology SSoT (F-7ce18e)', () => {
     expect(verbs).toContain('ingest-receipt');
     expect(verbs).toContain('infer-deps');
     for (const v of new Set(verbs)) {
-      expect(registered(v), `CLI verb '${v}' is missing from docs/glossary.md`).toBe(true);
+      expectMetadata(glossaryRow('CLI verbs (alias-and-deprecate bucket)', v), `CLI verb '${v}'`);
     }
   });
 
-  test('every persona file under src/agents/ has a glossary row', () => {
+  test('[covers:F-7ce18e/AC-f708a4] every persona file under src/agents/ has exact glossary metadata', () => {
     const ids = readdirSync(join(ROOT, 'src/agents'))
       .filter((f) => f.endsWith('.md') && f !== 'README.md')
       .map((f) => f.replace(/\.md$/, ''));
     expect(ids.length).toBeGreaterThanOrEqual(5);
     for (const id of ids) {
-      expect(registered(id), `persona '${id}' is missing from docs/glossary.md`).toBe(true);
+      expectMetadata(glossaryRow('Personas (alias-and-deprecate bucket)', id), `persona '${id}'`);
     }
   });
 
-  test('every MCP tool registered in server.ts has a glossary row (frozen wire ids)', () => {
+  test('[covers:F-7ce18e/AC-f708a4] every MCP tool registered in server.ts has exact glossary metadata', () => {
     const server = read('src/serve/server.ts');
-    const tools = [...server.matchAll(/'(clad_[a-z_]+)'/g)].map((m) => m[1]);
+    const tools = [...server.matchAll(/server\.registerTool\(\s*'(clad_[a-z_]+)'/g)].map((m) => m[1]);
     expect(new Set(tools).size).toBeGreaterThanOrEqual(8);
     for (const t of new Set(tools)) {
-      expect(registered(t), `MCP tool '${t}' is missing from docs/glossary.md`).toBe(true);
+      expectMetadata(glossaryRow('MCP tools (frozen wire identifiers)', t), `MCP tool '${t}'`);
     }
   });
 
-  test('every event type has a glossary row (frozen wire ids)', () => {
+  test('[covers:F-7ce18e/AC-f708a4] every event type has exact glossary metadata', () => {
     // Strip // comments BEFORE matching — the union's doc comments quote
     // payload values ('scan_artifacts' etc.) and contain semicolons that
     // would truncate a naive capture.
@@ -218,7 +275,29 @@ describe('glossary is the terminology SSoT (F-7ce18e)', () => {
     const types = [...m![1].matchAll(/'([a-z_]+)'/g)].map((x) => x[1]);
     expect(types.length).toBeGreaterThanOrEqual(9);
     for (const t of types) {
-      expect(registered(t), `event type '${t}' is missing from docs/glossary.md`).toBe(true);
+      expectMetadata(glossaryRow('Event types (frozen)', t), `event type '${t}'`);
+    }
+  });
+
+  test('[covers:F-7ce18e/AC-f708a4] every registered detector id has exact glossary metadata', () => {
+    const ids = allDetectors.map((detector) => detector.name);
+    expect(new Set(ids).size, 'allDetectors must not contain duplicate ids').toBe(ids.length);
+    expect(ids.length).toBeGreaterThanOrEqual(41);
+    for (const id of ids) {
+      expectMetadata(glossaryRow('Detector IDs (frozen — display labels may improve)', id), `detector '${id}'`);
+    }
+  });
+
+  test('[covers:F-7ce18e/AC-f708a4] every brand term has exact glossary metadata', () => {
+    const brands = glossaryRows('Brand / model terms (frozen — definitions locked)');
+    expect(brands.map((row) => row.term)).toEqual(expect.arrayContaining([
+      '`cladding`', '`Ironclad`', '`Iron Law`', '`Iron Core`', '`Soft Shell`', '`Vacuous Green`',
+      '`drift`', '`shard`', '`EARS`', '`Tier A/B/C/D`', '`AC`', '`oracle`', '`deliverable`',
+      '`attestation`', '`assurance profile`', '`adoption verdict`',
+    ]));
+    for (const row of brands) {
+      expect(row.term, 'brand rows must use an exact backticked term').toMatch(/^`[^`]+`$/);
+      expectMetadata(row, `brand term '${row.term}'`);
     }
   });
 
@@ -230,9 +309,12 @@ describe('glossary is the terminology SSoT (F-7ce18e)', () => {
       ['panel', 'status'],
       ['drive', 'run'],
     ]) {
-      const row = glossary.split('\n').find((l) => l.includes('`' + oldName + '`') && l.includes('alias'));
-      expect(row, `'${oldName}' must have an alias row`).toBeDefined();
-      expect(row, `'${oldName}' alias row must name '${newName}'`).toContain('`' + newName + '`');
+      const section = ['librarian', 'specialists'].includes(oldName)
+        ? 'Personas (alias-and-deprecate bucket)'
+        : 'CLI verbs (alias-and-deprecate bucket)';
+      const row = glossaryRow(section, oldName);
+      expect(row, `'${oldName}' must have an exact glossary row`).toBeDefined();
+      expect(row?.definition, `'${oldName}' alias row must name '${newName}'`).toContain('`' + newName + '`');
     }
   });
 

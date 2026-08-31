@@ -33,7 +33,7 @@ describe('createFeature (F-084, v0.3.9)', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('[covers:F-67e33f/AC-001][covers:F-67e33f/AC-003] happy path — writes spec/features/<slug>-<hash8>.yaml with hash id', () => {
+  test('[covers:F-67e33f/AC-001][covers:F-67e33f/AC-003][covers:F-7ce18e/AC-35f800] happy path — writes spec/features/<slug>-<hash8>.yaml with hash id', () => {
     const r = createFeature({slug: 'login-flow', cwd: dir});
     expect(r.slug).toBe('login-flow');
     expect(r.id).toMatch(/^F-[a-f0-9]{8}$/);
