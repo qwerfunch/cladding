@@ -22,6 +22,7 @@ import {
 } from './closures.js';
 import type {AssuranceProfile, AssuranceVerdict} from './kernel.js';
 import {canonicalClosureJson} from './closures.js';
+import {staticCriterionReportsFromWorkspace, staticCriterionScopeFromWorkspace, type CriterionObservationReport, type StaticCriterionScope} from './criterion-observations.js';
 import {OBLIGATION_DESCRIPTORS, type AssuranceControl} from './registry.js';
 import {artifactAddress, compilerCorpusView} from '../spec/compiler/compile.js';
 import type {SpecCompilation} from '../spec/compiler/types.js';
@@ -245,6 +246,10 @@ export interface WorkspaceProfileSnapshot {
   readonly inputSha256: string;
   readonly complete: boolean;
   readonly closureInput: AssuranceClosureInput;
+  /** Read-only static reports sealed alongside the profile closure, never GraphIR. */
+  readonly criterionObservations: readonly CriterionObservationReport[];
+  /** Exact compiler-minted static subjects, usable only by Unit/Coverage. */
+  readonly staticCriterionScope: StaticCriterionScope;
   readonly incompleteAddresses: readonly string[];
   /** Unknown runner controls expand a claimed subset to the whole repository. */
   readonly effectiveScopeAddresses: readonly string[];
@@ -468,12 +473,25 @@ export function workspaceProfileSnapshot(
     oracle_required_subjects: [...(request.oracleRequiredSubjects ?? [])].sort(comparePath),
     requires_human: request.requiresHuman,
   };
+  // Compiler scope creates static obligations independently of reports. A
+  // missing report must remain a required/unobserved criterion row instead of
+  // removing the subject and manufacturing a project-wide NA.
+  const staticCriterionScope = staticCriterionScopeFromWorkspace(compilation, effectiveScopeAddresses);
+  const criterionObservations = staticCriterionReportsFromWorkspace(cwd, compilation, effectiveScopeAddresses);
+  records.push({criterion_observations: criterionObservations.map((report) => ({
+    criterion: report.criterion, adapter: report.adapter, state: report.state,
+    current: report.current, complete: report.complete, applicable: report.applicable,
+    input_addresses: [...report.input_addresses].sort(comparePath), input_sha256: report.input_sha256,
+    manifest_sha256: report.manifest_sha256,
+  }))});
   if (request.scopeComplete === false) incompleteAddresses.push('scope-closure');
   if (controls.complete !== true) incompleteAddresses.push('runner-controls');
   return Object.freeze({
     inputSha256: createHash('sha256').update(canonicalClosureJson({policy, records, controls}), 'utf8').digest('hex'),
     complete: incompleteAddresses.length === 0,
     closureInput,
+    criterionObservations: Object.freeze(criterionObservations),
+    staticCriterionScope,
     incompleteAddresses: Object.freeze(incompleteAddresses.sort(comparePath)),
     effectiveScopeAddresses: Object.freeze(effectiveScopeAddresses),
   });

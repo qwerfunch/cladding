@@ -1,6 +1,6 @@
 id: F-dd8dc994
 slug: plain-first-finding-render
-title: "Plain-first finding rendering — locale-aware human leads, machine detail demoted to the tail"
+title: "Plain-first finding rendering — plain leads, normalized machine tails"
 status: done
 modules:
   - src/ui/softShell.ts
@@ -8,6 +8,10 @@ modules:
   - src/cli/clad.ts
   - src/cli/done.ts
   - src/spec/schema.json
+  - src/assurance/criterion-observations.ts
+  - src/assurance/kernel.ts
+  - src/assurance/adapters.ts
+  - src/assurance/workspace.ts
 acceptance_criteria:
   - id: AC-746969b3
     ears: ubiquitous
@@ -18,17 +22,17 @@ acceptance_criteria:
   - id: AC-263adf79
     ears: event
     condition: "when the Stop hook blocks, the after-edit drift line prints, the check block renders a finding, or done refuses"
-    action: "lead with the locale-resolved plain sentence and demote detector id and path to a parenthetical tail"
+    action: "lead with the plain sentence and demote detector id and normalized path to a parenthetical tail"
     response: "a first-time user understands what happened and what to do without knowing any internal vocabulary"
     text: "When the four human render sites emit a finding, the plain lead shall come first and the machine detail shall follow as a tail."
     test_refs:
       - tests/plain-render.test.ts
   - id: AC-25f77cec
     ears: ubiquitous
-    text: "Machine tails (detector id + path) shall stay language-neutral, and no locale detection or storage shall exist — no locale resolution, no locale type, no user-locale sidecar, no project.locale field."
-    notes: "## Why\nThe 2026-07-06 pivot (F-9af291fa) removed the multi-locale catalog and the locale-resolution chain. cladding ships one clear English source; the host agent, directed by the interpreter instruction, renders the user's own language by meaning. This AC now guards the ABSENCE of locale machinery and the language-neutrality of machine tails, in place of the former resolution priority chain."
+    text: "The machine finding-tail renderer shall render machine finding tails from detector and normalized-path values only, with no locale resolver, locale type, user-locale sidecar, or project.locale field in the compiled product closure."
+    notes: "## Why\nThe 2026-07-06 pivot (F-9af291fa) removed the multi-locale catalog and the locale-resolution chain. cladding ships one clear English source; the host agent, directed by the interpreter instruction, renders the user's own language by meaning.\n\n## Non-normative history (2026-08-31)\n\nReplaced absence-only prose with a deterministic source-universe adapter. `String.localeCompare` remains an allowed unrelated API."
     test_refs:
-      - tests/plain-render.test.ts
+      - "tests/plain-render.test.ts#[covers:F-dd8dc994/AC-25f77cec] renders tails only from detector and normalized path while static locale policy rejects forbidden concepts and permits String.localeCompare"
   - id: AC-ad2a34e1
     ears: event
     condition: "when human-first rendering is available"

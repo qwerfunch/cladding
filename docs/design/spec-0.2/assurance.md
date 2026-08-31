@@ -73,6 +73,12 @@ resource policy, background eligibility, standard strictness, effective
 blocking, and legacy aliases. It complements the artifact registry; neither
 copies the other's facts.
 
+`CriterionObservationRule[]` owns exact criterion applicability: mode, adapter,
+sorted byte inputs, manifest, predicate—not prose, kind, test absence, or
+caller `na`. It precedes stages: behavior stays required; static
+Unit/Coverage is `na` only for a current passing seal and true predicate;
+otherwise unobserved or RED, never GraphIR state.
+
 ```ts
 type AssuranceLevel = 'L1' | 'L2' | 'L3' | 'L4';
 type StandardStrictness = 'hard' | 'report';

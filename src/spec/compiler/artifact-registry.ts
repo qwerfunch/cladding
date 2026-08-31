@@ -159,6 +159,26 @@ export const ARTIFACT_DESCRIPTORS: readonly ArtifactDescriptor[] = [
     producer: 'artifact registry projection', consumers: ['repository readers'], inputs: ['ARTIFACT_DESCRIPTORS'], refresh: 'on artifact registry change', ownership: {kind: 'file'},
   },
   {
+    id: 'plugin-persona-skill-mirrors', currentPath: 'plugins/<host>/managed-persona-skill-mirror', compatibilityAliases: [], matcher: pattern(/^plugins\/(?:claude-code\/(?:agents|commands|dist\/agents)|codex\/skills|antigravity\/skills|gemini-cli\/commands)(?:\/.*)?$/),
+    supportedSchemaVersions: ['0.1', '0.2'], domain: 'plugin-mirror', authority: 'generated', mutability: 'mutable', persistence: 'committed',
+    producer: 'scripts/build-plugin.mjs mirror policy', consumers: ['plugin hosts', 'criterion static adapter'], inputs: ['src/agents persona briefs', 'skills SKILL.md inputs', 'plugin mirror policy'], refresh: 'on canonical persona or skill change', ownership: {kind: 'file'},
+  },
+  {
+    id: 'claude-bundled-engine', currentPath: 'plugins/claude-code/dist/<engine>', compatibilityAliases: [], matcher: pattern(/^plugins\/claude-code\/dist\/(?:clad\.js|schema\.json)$/),
+    supportedSchemaVersions: ['0.1', '0.2'], domain: 'plugin-engine', authority: 'generated', mutability: 'mutable', persistence: 'committed',
+    producer: 'scripts/build-plugin.mjs', consumers: ['Claude Code plugin host'], inputs: ['dist/clad.js', 'dist/schema.json'], refresh: 'after engine build', ownership: {kind: 'file'},
+  },
+  {
+    id: 'claude-plugin-detector-region', currentPath: 'plugins/claude-code/.claude-plugin/plugin.json', compatibilityAliases: [], matcher: exact('plugins/claude-code/.claude-plugin/plugin.json'),
+    supportedSchemaVersions: ['0.1', '0.2'], domain: 'plugin-manifest', authority: 'generated', mutability: 'mutable', persistence: 'committed',
+    producer: 'scripts/build-plugin.mjs', consumers: ['Claude Code plugin host', 'harness integrity detector'], inputs: ['src/stages/detectors filesystem'], refresh: 'on plugin build', ownership: {kind: 'region', region: 'ironclad.detectors'},
+  },
+  {
+    id: 'claude-plugin-stages-region', currentPath: 'plugins/claude-code/.claude-plugin/plugin.json', compatibilityAliases: [], matcher: exact('plugins/claude-code/.claude-plugin/plugin.json'),
+    supportedSchemaVersions: ['0.1', '0.2'], domain: 'plugin-manifest', authority: 'generated', mutability: 'mutable', persistence: 'committed',
+    producer: 'scripts/build-plugin.mjs', consumers: ['Claude Code plugin host', 'harness integrity detector'], inputs: ['src/cli/clad.ts TIER_STAGES.all'], refresh: 'on plugin build', ownership: {kind: 'region', region: 'stages-implemented'},
+  },
+  {
     id: 'compiler-cache', currentPath: '.cladding/cache/spec-compiler', compatibilityAliases: [], matcher: pattern(/^\.cladding\/cache\/spec-compiler(?:\/[^/]+)*$/),
     supportedSchemaVersions: ['0.1', '0.2'], domain: 'compiler', authority: 'transient', mutability: 'mutable', persistence: 'workspace-cache',
     producer: 'spec compiler', consumers: ['spec compiler'], inputs: ['disposable input digests'], refresh: 'disposable cache refresh', ownership: {kind: 'file'},

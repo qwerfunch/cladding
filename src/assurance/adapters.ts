@@ -3,6 +3,7 @@
 import {createHash} from 'node:crypto';
 
 import {canonicalClosureJson} from './closures.js';
+import {criterionObservationRule, isStaticCriterionScope, type CriterionObservationReport, type StaticCriterionScope} from './criterion-observations.js';
 import {assuranceProfile, compileAssuranceReductionPlan, reduceAssurancePlan, type AssuranceProfile, type AssuranceVerdict, type Observation, type ProofObligation} from './kernel.js';
 import {deriveApplicability, levelNumber, obligationDescriptor, type AssuranceLevel} from './registry.js';
 import type {CriterionProofView} from '../proof/view.js';
@@ -35,6 +36,10 @@ export interface AssuranceAdapterInput {
    * composite criterion addresses, never event or ledger identifiers.
    */
   readonly proofViews?: readonly CriterionProofView[];
+  /** Registry-emitted static/behavior reports; caller applicability is ignored. */
+  readonly criterionObservations?: readonly CriterionObservationReport[];
+  /** Compiler-minted exact static subjects; no stage may infer these from labels. */
+  readonly staticCriterionScope?: StaticCriterionScope;
   /** Schema 0.2 may never fan a repository stage outcome into sibling proof subjects. */
   readonly exactProofRequired?: boolean;
   /** Opaque current Unit invocation identity, retained only as a compact observation locator. */
@@ -76,13 +81,21 @@ export function reduceLegacyStageAdapter(input: AssuranceAdapterInput): Assuranc
     const stage = stageById.get(descriptor.id);
     // A current F5 view is the sole address source for Audit/UAT.  Falling back
     // to a feature scope is retained only for schema 0.1's legacy stage path.
-    const subjects = proofViews
+    const proofSubjects = proofViews
       ? proofViews
         .filter((view) => descriptor.id !== 'stage_2.3' || input.oracleRequiredSubjects === undefined || input.oracleRequiredSubjects.has(`criterion:${view.criterion}`))
         .map((view) => `criterion:${view.criterion}`)
       : input.exactProofRequired && isExactProofDescriptor(descriptor.id)
         ? []
         : input.scopeAddresses;
+    // Static rules name their exact criterion subject themselves. This creates
+    // a reducer-visible failure/NA row without treating artifact ownership or
+    // a missing test binding as an applicability fact.
+    const staticSubjects = (descriptor.id === 'stage_2.1' || descriptor.id === 'stage_2.2')
+      && isStaticCriterionScope(input.staticCriterionScope)
+      ? input.staticCriterionScope.subjects
+      : [];
+    const subjects = [...new Set([...proofSubjects, ...staticSubjects])];
     // A compiler-proven NA still needs one reducer-visible record.  Omitting
     // it would look identical to a missing descriptor and manufacture an
     // unresolved synthetic result.
@@ -114,9 +127,17 @@ export function reduceLegacyStageAdapter(input: AssuranceAdapterInput): Assuranc
       obligations.push(obligation);
       if (applicability !== 'required') continue;
       const proofView = proofViews?.find((view) => `criterion:${view.criterion}` === subject);
-      observations.push(proofView
-        ? proofViewObservation(obligation, descriptor.id, proofView, stage, descriptor.adapter, input.environmentClass, input.currentProofObservationIdentity)
-        : stageObservation(obligation, stage, descriptor.adapter, input.environmentClass));
+      const rule = proofView === undefined ? undefined : criterionObservationRule(proofView.criterion);
+      // B4 behavior rules own their carrier and sealed inputs. A generic F5
+      // proof-view projection cannot stand in for either the parser adapter or
+      // the 13-suite current-run closure; the kernel joins only their trusted
+      // criterion report below. Unregistered criteria retain legacy F5 flow.
+      if (proofView && rule === undefined) {
+        observations.push(proofViewObservation(obligation, descriptor.id, proofView, stage,
+          descriptor.adapter, input.environmentClass, input.currentProofObservationIdentity));
+      } else if (!proofView) {
+        observations.push(stageObservation(obligation, stage, descriptor.adapter, input.environmentClass));
+      }
     }
     // A runner-wide failure has no safe criterion attribution.  Preserve it as
     // one scope summary instead of copying a global result into every sibling;
@@ -147,6 +168,8 @@ export function reduceLegacyStageAdapter(input: AssuranceAdapterInput): Assuranc
     scopeAddresses: input.scopeAddresses,
     obligations,
     observations,
+    ...(input.criterionObservations === undefined ? {} : {criterionObservations: input.criterionObservations}),
+    environmentClass: input.environmentClass,
     applicabilityFacts: {
       complete: input.completeScope,
       hasExecutableTests: input.hasExecutableTests,

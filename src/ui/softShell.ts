@@ -221,6 +221,26 @@ export function plainLead(detector: string, fallback = ''): string {
 }
 
 /**
+ * Normalizes a machine path for a finding tail without touching the filesystem
+ * or interpreting a user locale. It removes presentation-only segments while
+ * retaining an unresolved leading traversal for the caller to diagnose.
+ *
+ * @param path - Optional raw machine path from a finding projection.
+ * @returns A normalized presentation path, or `undefined` when no segment remains.
+ * @see spec/features/plain-first-finding-render-dd8dc994.yaml AC-263adf79
+ */
+export function normalizedFindingPath(path: string | undefined): string | undefined {
+  if (!path) return undefined;
+  const parts: string[] = [];
+  for (const part of path.replaceAll('\\', '/').split('/')) {
+    if (!part || part === '.') continue;
+    if (part === '..' && parts.length > 0 && parts[parts.length - 1] !== '..') parts.pop();
+    else parts.push(part);
+  }
+  return parts.join('/') || undefined;
+}
+
+/**
  * Renders one finding plain-first as `<lead> (<detector> · <path>)`: the plain
  * sentence leads, and the machine detail (detector id + path) is demoted to the
  * parenthetical tail (AC-263adf79). The parameter is structural so it accepts a
@@ -230,7 +250,8 @@ export function plainLead(detector: string, fallback = ''): string {
  */
 export function plainFinding(f: {readonly detector: string; readonly path?: string; readonly message: string}): string {
   const lead = plainLead(f.detector, f.message);
-  const where = f.path ? ` · ${f.path}` : '';
+  const path = normalizedFindingPath(f.path);
+  const where = path ? ` · ${path}` : '';
   return `${lead} (${f.detector}${where})`;
 }
 

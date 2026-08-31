@@ -3,6 +3,7 @@
 import {createHash} from 'node:crypto';
 
 import {canonicalClosureJson} from './closures.js';
+import {criterionObservationRule, isTrustedCriterionObservationReport, type CriterionAdapterIdentity, type CriterionObservationReport, type CriterionObservationRule} from './criterion-observations.js';
 import {
   compareCodeUnits,
   descriptorsForLevel,
@@ -39,6 +40,8 @@ export interface ProofObligation {
   readonly descriptor: string;
   readonly input_addresses: readonly string[];
   readonly input_sha256: string;
+  /** Criterion rules own a distinct adapter identity from legacy stage rows. */
+  readonly adapter?: CriterionAdapterIdentity;
   readonly applicability: ObligationApplicability;
   readonly source_strictness?: StandardStrictness;
   readonly blocking: BlockingPolicy;
@@ -50,6 +53,10 @@ export interface Observation {
   readonly subject: string;
   readonly state: 'pass' | 'fail' | 'unobserved' | 'na';
   readonly input_sha256: string;
+  /** Exact sealed input addresses; required for a static criterion match. */
+  readonly input_addresses?: readonly string[];
+  /** Static adapter manifest identity, never inferred from an artifact owner. */
+  readonly manifest_sha256?: string;
   readonly adapter: {readonly id: string; readonly version: string};
   readonly provenance: 'authored' | 'derived' | 'observed';
   readonly assurance: 'asserted' | 'verified';
@@ -99,6 +106,10 @@ export interface AssuranceReductionPlanInput {
   readonly scopeAddresses: readonly string[];
   readonly obligations: readonly ProofObligation[];
   readonly observations: readonly Observation[];
+  /** Current reports from the code-owned criterion adapter registry. */
+  readonly criterionObservations?: readonly CriterionObservationReport[];
+  /** Runtime class carried into registry-owned observations; direct callers use `neutral`. */
+  readonly environmentClass?: string;
   readonly applicabilityFacts: ApplicabilityFacts;
   readonly independence?: AssuranceVerdict['independence'];
 }
@@ -215,14 +226,40 @@ export function compileAssuranceReductionPlan(input: AssuranceReductionPlanInput
   const obligations = input.obligations.flatMap((candidate) => {
     const descriptor = obligationDescriptor(candidate.descriptor);
     if (!descriptor || !members.has(descriptor.id)) return [];
+    const criterion = criterionAddress(candidate.subject);
+    const rule = criterion === undefined ? undefined : criterionObservationRule(criterion);
+    const ruleReport = rule !== undefined && executableDescriptor(descriptor.id)
+      ? currentCriterionReport(rule, input.criterionObservations ?? [])
+      : undefined;
+    // Static proof inputs are their own complete artifact closure. A missing,
+    // stale, malformed, or false-condition report deliberately falls back to
+    // required/unobserved rather than using the caller's applicability field.
+    const candidateDeclaresRuleInputs = rule !== undefined && sameAddresses(candidate.input_addresses, rule.inputAddresses);
+    const reportSuppliesInputs = ruleReport !== undefined && !candidateDeclaresRuleInputs;
+    const resolvedAddresses = reportSuppliesInputs && ruleReport !== undefined
+      ? ruleReport.input_addresses
+      : candidate.input_addresses;
+    const resolvedDigest = reportSuppliesInputs && ruleReport !== undefined
+      ? ruleReport.input_sha256
+      : candidate.input_sha256;
+    const staticEligible = rule?.mode === 'static' && ruleReport !== undefined
+      && ruleReport.input_sha256 === resolvedDigest
+      && ruleReport.state === 'pass' && rule.applicability(ruleReport);
     return [Object.freeze({
       id: candidate.id,
       subject: candidate.subject,
       assurance_level: descriptor.assuranceLevel,
       descriptor: descriptor.id,
-      input_addresses: Object.freeze([...candidate.input_addresses].sort(compareCodeUnits)),
-      input_sha256: candidate.input_sha256,
-      applicability: deriveApplicability(descriptor, input.applicabilityFacts),
+      input_addresses: Object.freeze([...resolvedAddresses].sort(compareCodeUnits)),
+      input_sha256: resolvedDigest,
+      ...(rule !== undefined && executableDescriptor(descriptor.id) ? {adapter: rule.adapter} : {}),
+      // A criterion subject is decided here, before the legacy project-wide
+      // stage fact. Only this exact static rule can produce NA; an unknown or
+      // unresolved rule is required so missing proof cannot disappear when a
+      // caller says there are no executable tests.
+      applicability: staticEligible ? 'na' as const
+        : criterion !== undefined && executableDescriptor(descriptor.id) ? 'required' as const
+          : deriveApplicability(descriptor, input.applicabilityFacts),
       source_strictness: descriptor.sourceStrictness,
       blocking: descriptor.blocking,
     })];
@@ -244,6 +281,22 @@ export function compileAssuranceReductionPlan(input: AssuranceReductionPlanInput
       blocking: descriptor.blocking,
     }));
   }
+  const criterionObservations = obligations.flatMap((obligation) => {
+    const criterion = criterionAddress(obligation.subject);
+    const rule = criterion === undefined ? undefined : criterionObservationRule(criterion);
+    if (!rule || !executableDescriptor(obligation.descriptor)) return [];
+    const report = (input.criterionObservations ?? []).find((entry) => entry.criterion === criterion
+      && isTrustedCriterionObservationReport(entry)
+      && entry.carrier === rule.carrier
+      && entry.adapter.id === rule.adapter.id && entry.adapter.version === rule.adapter.version);
+    if (!report || !sameAddresses(report.input_addresses, obligation.input_addresses)
+      || report.input_sha256 !== obligation.input_sha256 || report.manifest_sha256 !== manifestSha256(rule)) return [];
+    // A qualifying static pass has already become NA. A false static predicate
+    // remains required and unobserved; accepting its pass here would launder
+    // an inapplicable report into behavior preservation.
+    if (rule.mode === 'static' && report.state === 'pass' && !rule.applicability(report)) return [];
+    return [criterionReportObservation(obligation, report, input.environmentClass ?? 'neutral')];
+  });
   const plan = Object.freeze({
     profile,
     configuredAssuranceLevel: input.configuredAssuranceLevel,
@@ -251,11 +304,81 @@ export function compileAssuranceReductionPlan(input: AssuranceReductionPlanInput
     inputSha256: input.inputSha256,
     scopeAddresses: Object.freeze([...new Set(input.scopeAddresses)].sort(compareCodeUnits)),
     obligations: Object.freeze(obligations),
-    observations: Object.freeze([...input.observations]),
+    observations: Object.freeze([...input.observations, ...criterionObservations]),
     ...(input.independence === undefined ? {} : {independence: input.independence}),
   });
   REDUCTION_PLANS.add(plan);
   return plan;
+}
+
+/** Criterion rules alter only executable Unit/Coverage rows. */
+function executableDescriptor(descriptor: string): boolean {
+  return descriptor === 'stage_2.1' || descriptor === 'stage_2.2';
+}
+
+/** Converts a reducer subject to the registry's composite criterion address. */
+function criterionAddress(subject: string): string | undefined {
+  return subject.startsWith('criterion:') ? subject.slice('criterion:'.length) : undefined;
+}
+
+function criterionManifestFor(subject: string): string | undefined {
+  const criterion = criterionAddress(subject);
+  const rule = criterion === undefined ? undefined : criterionObservationRule(criterion);
+  return rule === undefined ? undefined : manifestSha256(rule);
+}
+
+/** Avoid locale-sensitive ordering and path-only matching for signed inputs. */
+function sameAddresses(left: readonly string[], right: readonly string[]): boolean {
+  const a = [...left].sort(compareCodeUnits);
+  const b = [...right].sort(compareCodeUnits);
+  return a.length === b.length && a.every((entry, index) => entry === b[index]);
+}
+
+function manifestSha256(rule: CriterionObservationRule): string {
+  return createHash('sha256').update(canonicalClosureJson(rule.manifest), 'utf8').digest('hex');
+}
+
+/**
+ * Accepts only a report with the rule's exact adapter, manifest, sorted input
+ * addresses, current bit, and complete byte closure. Missing or stale reports
+ * are intentionally not reinterpreted as NA by a coarse project stage.
+ */
+function currentCriterionReport(
+  rule: CriterionObservationRule,
+  reports: readonly CriterionObservationReport[],
+): CriterionObservationReport | undefined {
+  return reports.find((report) => report.criterion === rule.criterion
+    && isTrustedCriterionObservationReport(report)
+    && report.carrier === rule.carrier
+    && report.adapter.id === rule.adapter.id
+    && report.adapter.version === rule.adapter.version
+    && report.manifest_sha256 === manifestSha256(rule)
+    && sameAddresses(report.input_addresses, rule.inputAddresses)
+    && report.current === true && report.complete === true);
+}
+
+/** Projects one sealed criterion adapter report into the existing reducer wire. */
+function criterionReportObservation(
+  obligation: ProofObligation,
+  report: CriterionObservationReport,
+  environmentClass: string,
+): Observation {
+  return Object.freeze({
+    obligation: obligation.descriptor,
+    subject: obligation.subject,
+    state: report.state,
+    input_sha256: report.input_sha256,
+    input_addresses: Object.freeze([...report.input_addresses].sort(compareCodeUnits)),
+    manifest_sha256: report.manifest_sha256,
+    adapter: report.adapter,
+    provenance: 'observed' as const,
+    assurance: report.state === 'unobserved' ? 'asserted' as const : 'verified' as const,
+    ...(report.reason === undefined ? {} : {reason: report.reason === 'missing' || report.reason === 'invalid' ? 'stale' as const : report.reason}),
+    ...(report.locator === undefined ? {} : {locator: report.locator}),
+    observed_at: '1970-01-01T00:00:00.000Z',
+    environment_class: environmentClass,
+    current: report.current,
+  });
 }
 
 /** Rejects a downgrade and admits a stronger one-run override only on bounded compiler scope. */
@@ -375,14 +498,18 @@ function reduceObligation(obligation: ProofObligation, observations: readonly Ob
     return {obligation: obligation.descriptor, subject: obligation.subject, state: 'unobserved', source_strictness: obligation.source_strictness, blocking: obligation.blocking, reason: 'stale', observation_identities: []};
   }
   const descriptor = obligationDescriptor(obligation.descriptor);
+  const expectedAdapter = obligation.adapter ?? descriptor?.adapter;
   const matches = observations.filter((entry) => entry.obligation === obligation.descriptor
     && entry.subject === obligation.subject
     && entry.input_sha256 === obligation.input_sha256
     && entry.current !== false
     && entry.provenance === 'observed'
     && (entry.state === 'unobserved' || entry.assurance === 'verified')
-    && entry.adapter.id === descriptor?.adapter.id
-    && entry.adapter.version === descriptor?.adapter.version);
+    && entry.adapter.id === expectedAdapter?.id
+    && entry.adapter.version === expectedAdapter?.version
+    && (obligation.adapter === undefined || (entry.input_addresses !== undefined
+      && sameAddresses(entry.input_addresses, obligation.input_addresses)
+      && entry.manifest_sha256 === criterionManifestFor(obligation.subject))));
   const identities = matches.map(observationIdentity).sort(compareCodeUnits);
   const failed = matches.find((entry) => entry.state === 'fail');
   if (failed) return result('fail', failed.reason, identities);

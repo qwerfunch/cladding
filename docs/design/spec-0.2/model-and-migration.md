@@ -87,6 +87,10 @@ spec/
 - Name the receipt `migration-baseline-0.1-to-0.2.yaml`, not `schema-upgrade-0.2.yaml`: project baseline, not algorithm.
 - Generate `generated/README.md` from the artifact registry; it is never a hand-maintained policy source.
 - Final 0.2 paths: `spec/generated/index.yaml`, `spec/generated/_doc-links.yaml`, and `spec/generated/attestation.yaml`. Schema migration and physical relocation are separate.
+- Every managed plugin-build write, including a named manifest region, has one
+  `ArtifactDescriptor`; generated persona/skill mirrors are derived from their
+  canonical briefs by a pure byte-map policy. The read-only mirror census is an
+  observation consumer, never a second artifact authority.
 
 ### Why each artifact remains
 

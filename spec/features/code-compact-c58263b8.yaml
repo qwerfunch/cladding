@@ -15,6 +15,9 @@ modules:
   - src/optimizer/measurement.ts
   - src/optimizer/code-excerpt.ts
   - src/events/log.ts
+  - src/assurance/criterion-observations.ts
+  - src/assurance/kernel.ts
+  - src/assurance/adapters.ts
 acceptance_criteria:
   - id: AC-de1bc6c5
     ears: ubiquitous
@@ -50,22 +53,10 @@ acceptance_criteria:
       - "tests/optimizer/code-excerpt.test.ts#rejects path traversal and non-whitelisted/binary/missing files safely"
       - "tests/events/log.test.ts"
   - id: AC-01797b10
-    ears: unwanted
-    condition: "if any of these compactions changes observable behavior"
-    action: "fail the existing suites"
-    response: "compaction is behavior-preserving by construction"
-    text: "If behavior changes, existing tests shall catch it — the full detector, changelog, report, core, optimizer, and events suites stay green with zero test edits."
+    ears: event
+    condition: "when a changed compacted module has a compiled proof closure"
+    response: "evaluate current bound observations for every declared suite input"
+    text: "When a changed compacted module has a compiled proof closure, the assurance engine shall evaluate the current bound observations in that closure without inferring behavior preservation from an unchanged test-file set."
     test_refs:
-      - "tests/stages/planned-backlog.test.ts"
-      - "tests/stages/hollow-governance.test.ts"
-      - "tests/stages/scenario-coverage.test.ts"
-      - "tests/stages/project-context-drift.test.ts"
-      - "tests/core/git-ops.test.ts"
-      - "tests/changelog/collect.test.ts"
-      - "tests/report/report.test.ts"
-      - "tests/report/report-cli.test.ts"
-      - "tests/cli/changelog-measure.test.ts"
-      - "tests/optimizer/measurement.test.ts"
-      - "tests/optimizer/infer-depends-on.test.ts"
-      - "tests/optimizer/code-excerpt.test.ts"
-      - "tests/events/log.test.ts"
+      - "tests/assurance/criterion-observations.test.ts#[covers:F-c58263b8/AC-01797b10] compaction accepts every named suite only when every current observation binds the exact manifest digest"
+    notes: "The exact 13-suite manifest is code-owned by the criterion observation registry; filesystem presence, a clean git tree, and historical green results are not observations.\n\n## Non-normative history (2026-08-31)\n\nReplaced the obsolete zero-test-edit/suite-green claim with a current bound proof-closure contract."

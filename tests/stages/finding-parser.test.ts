@@ -22,6 +22,9 @@
 // NUL byte (house rule: tests/self-consistency.test.ts). The bytes fed to the
 // parsers are unchanged: a NUL (0x00) followed by the replacement char U+FFFD.
 
+import {readFileSync} from 'node:fs';
+import {join} from 'node:path';
+
 import {describe, it, expect} from 'vitest';
 import type {DriftFinding, StageResult} from '../../src/stages/types.js';
 import {
@@ -41,6 +44,30 @@ const REPLACEMENT = String.fromCharCode(0xfffd);
 const ARROW = String.fromCharCode(0x276f);
 
 describe('finding-parser (F-b7873005)', () => {
+  it('[covers:F-b7873005/AC-0fa3265d] derives every reported location from captured tool output despite contradictory, missing, or mutated source', () => {
+    const captured = 'src/declared-by-tool.ts(41,3): error TS2322: tool-owned location';
+    const first = parseTscFindings(captured);
+    // These source states are intentionally not passed to the API: the parser
+    // has no source-analysis parameter and the same captured output must keep
+    // the tool's location even if the file never existed or later changed.
+    const sourceStates = [
+      'src/declared-by-tool.ts(1,1): contradictory source location',
+      'src/not-on-disk.ts',
+      'export const replacement = true;',
+    ];
+    for (const sourceState of sourceStates) {
+      expect(parseTscFindings(captured), sourceState).toEqual(first);
+    }
+    expect(first).toEqual([{detector: 'TS2322', severity: 'error', path: 'src/declared-by-tool.ts', line: 41, message: 'tool-owned location'}]);
+  });
+
+  it('has no source, AST, compiler, or filesystem dependency that could perform a second analysis', () => {
+    const source = readFileSync(join(process.cwd(), 'src/stages/finding-parser.ts'), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+    expect(source).not.toMatch(/from\s+['"]node:(?:fs|path)['"]/);
+    expect(source).not.toMatch(/\b(?:createProgram|readFileSync|readFile|parseFile|typescript|@babel\/parser)\b/);
+  });
+
   // AC1 — TypeScript machine output.
   it('AC1-tsc: parses tsc diagnostics into path/line/rule/message/severity', () => {
     const findings = parseTscFindings(

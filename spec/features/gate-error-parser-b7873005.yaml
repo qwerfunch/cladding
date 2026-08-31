@@ -4,6 +4,9 @@ title: "gate-error finding-parser — structured file:line from tool-stage outpu
 status: done
 modules:
   - src/stages/finding-parser.ts
+  - src/assurance/criterion-observations.ts
+  - src/assurance/kernel.ts
+  - src/assurance/adapters.ts
 acceptance_criteria:
   - id: AC-6931d251
     test_refs:
@@ -29,10 +32,10 @@ acceptance_criteria:
     notes: "Integration with F-2e28cc72: no verdict change needed — the reducer already prefers path-bearing findings; this AC verifies the end-to-end wiring."
   - id: AC-0fa3265d
     test_refs:
-      - tests/stages/finding-parser.test.ts
+      - "tests/stages/finding-parser.test.ts#[covers:F-b7873005/AC-0fa3265d] derives every reported location from captured tool output despite contradictory, missing, or mutated source"
     ears: ubiquitous
-    text: "The system shall derive findings only from each tool's own structured output and shall not re-analyze the source (no independent AST or compiler pass), so a parsed finding never contradicts what the tool reported."
-    notes: "SOUNDNESS LOCK: parse the tool's own output (tsc --pretty false, eslint --format json, vitest --reporter=json); never re-derive via a second AST pass — that would be TS-only, break polyglot, and let the summary disagree with the tool (a new vacuous-green vector)."
+    text: "When the finding parser emits a location-bearing finding, it shall derive every reported location only from the structured output supplied by the declared tool adapter without performing a second source analysis."
+    notes: "SOUNDNESS LOCK: parser API accepts captured adapter output only; raw stage output remains untouched.\n\n## Non-normative history (2026-08-31)\n\nReplaced the broad no-reanalysis wording with an adapter-bound, location-level behavior proof and a deterministic source-dependency guard."
   - id: AC-bd425422
     test_refs:
       - tests/stages/finding-parser.test.ts

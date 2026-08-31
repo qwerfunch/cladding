@@ -6744,9 +6744,9 @@
           "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
           "yamlPath": "$.acceptance_criteria[0].id",
           "range": {
-            "start": 554,
-            "end": 560,
-            "line": 23,
+            "start": 786,
+            "end": 792,
+            "line": 30,
             "column": 9
           }
         }
@@ -6758,9 +6758,9 @@
           "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
           "yamlPath": "$.acceptance_criteria[1].id",
           "range": {
-            "start": 2393,
-            "end": 2399,
-            "line": 29,
+            "start": 2588,
+            "end": 2594,
+            "line": 36,
             "column": 9
           }
         }
@@ -6772,9 +6772,9 @@
           "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
           "yamlPath": "$.acceptance_criteria[2].id",
           "range": {
-            "start": 3540,
-            "end": 3546,
-            "line": 35,
+            "start": 3736,
+            "end": 3742,
+            "line": 42,
             "column": 9
           }
         }
@@ -6786,9 +6786,9 @@
           "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
           "yamlPath": "$.acceptance_criteria[3].id",
           "range": {
-            "start": 4956,
-            "end": 4962,
-            "line": 41,
+            "start": 4316,
+            "end": 4322,
+            "line": 48,
             "column": 9
           }
         }
@@ -6800,9 +6800,9 @@
           "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
           "yamlPath": "$.acceptance_criteria[4].id",
           "range": {
-            "start": 5876,
-            "end": 5882,
-            "line": 47,
+            "start": 5184,
+            "end": 5190,
+            "line": 56,
             "column": 9
           }
         }
@@ -6814,9 +6814,9 @@
           "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
           "yamlPath": "$.acceptance_criteria[5].id",
           "range": {
-            "start": 6928,
-            "end": 6934,
-            "line": 54,
+            "start": 6258,
+            "end": 6264,
+            "line": 63,
             "column": 9
           }
         }
@@ -12806,9 +12806,9 @@
           "path": "spec/features/gate-error-parser-b7873005.yaml",
           "yamlPath": "$.acceptance_criteria[3].id",
           "range": {
-            "start": 1964,
-            "end": 1975,
-            "line": 30,
+            "start": 2066,
+            "end": 2077,
+            "line": 33,
             "column": 9
           }
         }
@@ -12820,9 +12820,9 @@
           "path": "spec/features/gate-error-parser-b7873005.yaml",
           "yamlPath": "$.acceptance_criteria[1].id",
           "range": {
-            "start": 820,
-            "end": 831,
-            "line": 14,
+            "start": 922,
+            "end": 933,
+            "line": 17,
             "column": 9
           }
         }
@@ -12834,9 +12834,9 @@
           "path": "spec/features/gate-error-parser-b7873005.yaml",
           "yamlPath": "$.acceptance_criteria[0].id",
           "range": {
-            "start": 204,
-            "end": 215,
-            "line": 8,
+            "start": 306,
+            "end": 317,
+            "line": 11,
             "column": 9
           }
         }
@@ -12848,9 +12848,9 @@
           "path": "spec/features/gate-error-parser-b7873005.yaml",
           "yamlPath": "$.acceptance_criteria[2].id",
           "range": {
-            "start": 1410,
-            "end": 1421,
-            "line": 22,
+            "start": 1512,
+            "end": 1523,
+            "line": 25,
             "column": 9
           }
         }
@@ -12862,9 +12862,9 @@
           "path": "spec/features/gate-error-parser-b7873005.yaml",
           "yamlPath": "$.acceptance_criteria[4].id",
           "range": {
-            "start": 2567,
-            "end": 2578,
-            "line": 36,
+            "start": 2830,
+            "end": 2841,
+            "line": 39,
             "column": 9
           }
         }
@@ -14346,9 +14346,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[3].id",
           "range": {
-            "start": 4377,
-            "end": 4388,
-            "line": 52,
+            "start": 4479,
+            "end": 4490,
+            "line": 55,
             "column": 9
           }
         }
@@ -14360,9 +14360,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[2].id",
           "range": {
-            "start": 2955,
-            "end": 2966,
-            "line": 39,
+            "start": 3057,
+            "end": 3068,
+            "line": 42,
             "column": 9
           }
         }
@@ -14374,9 +14374,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[1].id",
           "range": {
-            "start": 1559,
-            "end": 1570,
-            "line": 27,
+            "start": 1661,
+            "end": 1672,
+            "line": 30,
             "column": 9
           }
         }
@@ -14388,9 +14388,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[0].id",
           "range": {
-            "start": 586,
-            "end": 597,
-            "line": 19,
+            "start": 688,
+            "end": 699,
+            "line": 22,
             "column": 9
           }
         }
@@ -15452,9 +15452,9 @@
           "path": "spec/features/plain-first-finding-render-dd8dc994.yaml",
           "yamlPath": "$.acceptance_criteria[6].id",
           "range": {
-            "start": 4011,
-            "end": 4022,
-            "line": 51,
+            "start": 4350,
+            "end": 4361,
+            "line": 55,
             "column": 9
           }
         }
@@ -15466,9 +15466,9 @@
           "path": "spec/features/plain-first-finding-render-dd8dc994.yaml",
           "yamlPath": "$.acceptance_criteria[4].id",
           "range": {
-            "start": 3266,
-            "end": 3277,
-            "line": 39,
+            "start": 3605,
+            "end": 3616,
+            "line": 43,
             "column": 9
           }
         }
@@ -15480,9 +15480,9 @@
           "path": "spec/features/plain-first-finding-render-dd8dc994.yaml",
           "yamlPath": "$.acceptance_criteria[2].id",
           "range": {
-            "start": 1817,
-            "end": 1828,
-            "line": 26,
+            "start": 1922,
+            "end": 1933,
+            "line": 30,
             "column": 9
           }
         }
@@ -15494,9 +15494,9 @@
           "path": "spec/features/plain-first-finding-render-dd8dc994.yaml",
           "yamlPath": "$.acceptance_criteria[1].id",
           "range": {
-            "start": 1232,
-            "end": 1243,
-            "line": 18,
+            "start": 1342,
+            "end": 1353,
+            "line": 22,
             "column": 9
           }
         }
@@ -15508,9 +15508,9 @@
           "path": "spec/features/plain-first-finding-render-dd8dc994.yaml",
           "yamlPath": "$.acceptance_criteria[5].id",
           "range": {
-            "start": 3637,
-            "end": 3648,
-            "line": 45,
+            "start": 3976,
+            "end": 3987,
+            "line": 49,
             "column": 9
           }
         }
@@ -15522,9 +15522,9 @@
           "path": "spec/features/plain-first-finding-render-dd8dc994.yaml",
           "yamlPath": "$.acceptance_criteria[0].id",
           "range": {
-            "start": 310,
-            "end": 321,
-            "line": 12,
+            "start": 420,
+            "end": 431,
+            "line": 16,
             "column": 9
           }
         }
@@ -15536,9 +15536,9 @@
           "path": "spec/features/plain-first-finding-render-dd8dc994.yaml",
           "yamlPath": "$.acceptance_criteria[3].id",
           "range": {
-            "start": 2530,
-            "end": 2541,
-            "line": 32,
+            "start": 2869,
+            "end": 2880,
+            "line": 36,
             "column": 9
           }
         }
@@ -23574,9 +23574,9 @@
           "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
           "yamlPath": "$.depends_on[0]",
           "range": {
-            "start": 516,
-            "end": 524,
-            "line": 21,
+            "start": 748,
+            "end": 756,
+            "line": 28,
             "column": 5
           }
         }
@@ -27818,9 +27818,9 @@
           "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
           "yamlPath": "$.depends_on[0]",
           "range": {
-            "start": 516,
-            "end": 524,
-            "line": 21,
+            "start": 748,
+            "end": 756,
+            "line": 28,
             "column": 5
           }
         }
@@ -28879,7 +28879,8 @@
           "feature:F-077",
           "feature:F-081",
           "feature:F-098d3b",
-          "feature:F-1d23a6"
+          "feature:F-1d23a6",
+          "feature:F-40327b"
         ]
       },
       {
@@ -28892,6 +28893,12 @@
         "artifact": "artifact:scripts/migrate-dogfood-v0.3.16.mjs",
         "owners": [
           "feature:F-245bd5"
+        ]
+      },
+      {
+        "artifact": "artifact:scripts/plugin-mirror-policy.mjs",
+        "owners": [
+          "feature:F-40327b"
         ]
       },
       {
@@ -31013,7 +31020,11 @@
       {
         "artifact": "artifact:src/assurance/adapters.ts",
         "owners": [
-          "feature:F-6f0a2106"
+          "feature:F-40327b",
+          "feature:F-6f0a2106",
+          "feature:F-b7873005",
+          "feature:F-c58263b8",
+          "feature:F-dd8dc994"
         ]
       },
       {
@@ -31030,9 +31041,22 @@
         ]
       },
       {
+        "artifact": "artifact:src/assurance/criterion-observations.ts",
+        "owners": [
+          "feature:F-40327b",
+          "feature:F-b7873005",
+          "feature:F-c58263b8",
+          "feature:F-dd8dc994"
+        ]
+      },
+      {
         "artifact": "artifact:src/assurance/kernel.ts",
         "owners": [
-          "feature:F-6f0a2106"
+          "feature:F-40327b",
+          "feature:F-6f0a2106",
+          "feature:F-b7873005",
+          "feature:F-c58263b8",
+          "feature:F-dd8dc994"
         ]
       },
       {
@@ -31057,7 +31081,9 @@
         "artifact": "artifact:src/assurance/workspace.ts",
         "owners": [
           "feature:F-0b8f23c5",
-          "feature:F-6f0a2106"
+          "feature:F-40327b",
+          "feature:F-6f0a2106",
+          "feature:F-dd8dc994"
         ]
       },
       {
@@ -32044,6 +32070,7 @@
         "owners": [
           "feature:F-182eaa53",
           "feature:F-2883ff4d",
+          "feature:F-40327b",
           "feature:F-4f4a12c3"
         ]
       },
@@ -47325,9 +47352,9 @@
           "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
           "yamlPath": "$.acceptance_criteria[0].evidence_refs[0]",
           "range": {
-            "start": 2234,
-            "end": 2257,
-            "line": 28,
+            "start": 2429,
+            "end": 2452,
+            "line": 35,
             "column": 21
           }
         }
@@ -47345,9 +47372,9 @@
           "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
           "yamlPath": "$.acceptance_criteria[0].evidence_refs[4]",
           "range": {
-            "start": 2334,
-            "end": 2361,
-            "line": 28,
+            "start": 2529,
+            "end": 2556,
+            "line": 35,
             "column": 121
           }
         }
@@ -47365,9 +47392,9 @@
           "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
           "yamlPath": "$.acceptance_criteria[0].evidence_refs[2]",
           "range": {
-            "start": 2282,
-            "end": 2308,
-            "line": 28,
+            "start": 2477,
+            "end": 2503,
+            "line": 35,
             "column": 69
           }
         }
@@ -47385,9 +47412,9 @@
           "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
           "yamlPath": "$.acceptance_criteria[0].evidence_refs[1]",
           "range": {
-            "start": 2259,
-            "end": 2280,
-            "line": 28,
+            "start": 2454,
+            "end": 2475,
+            "line": 35,
             "column": 46
           }
         }
@@ -47405,9 +47432,9 @@
           "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
           "yamlPath": "$.acceptance_criteria[0].evidence_refs[5]",
           "range": {
-            "start": 2363,
-            "end": 2383,
-            "line": 28,
+            "start": 2558,
+            "end": 2578,
+            "line": 35,
             "column": 150
           }
         }
@@ -47425,9 +47452,9 @@
           "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
           "yamlPath": "$.acceptance_criteria[0].evidence_refs[3]",
           "range": {
-            "start": 2310,
-            "end": 2332,
-            "line": 28,
+            "start": 2505,
+            "end": 2527,
+            "line": 35,
             "column": 97
           }
         }
@@ -47445,9 +47472,9 @@
           "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
           "yamlPath": "$.acceptance_criteria[1].evidence_refs[3]",
           "range": {
-            "start": 3509,
-            "end": 3530,
-            "line": 34,
+            "start": 3705,
+            "end": 3726,
+            "line": 41,
             "column": 88
           }
         }
@@ -47465,9 +47492,9 @@
           "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
           "yamlPath": "$.acceptance_criteria[1].evidence_refs[0]",
           "range": {
-            "start": 3442,
-            "end": 3462,
-            "line": 34,
+            "start": 3638,
+            "end": 3658,
+            "line": 41,
             "column": 21
           }
         }
@@ -47485,9 +47512,9 @@
           "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
           "yamlPath": "$.acceptance_criteria[1].evidence_refs[1]",
           "range": {
-            "start": 3464,
-            "end": 3483,
-            "line": 34,
+            "start": 3660,
+            "end": 3679,
+            "line": 41,
             "column": 43
           }
         }
@@ -47505,9 +47532,9 @@
           "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
           "yamlPath": "$.acceptance_criteria[1].evidence_refs[2]",
           "range": {
-            "start": 3485,
-            "end": 3507,
-            "line": 34,
+            "start": 3681,
+            "end": 3703,
+            "line": 41,
             "column": 64
           }
         }
@@ -47515,8 +47542,8 @@
       {
         "owner": "criterion:F-40327b/AC-003",
         "channel": "evidence",
-        "raw": "skills/checkpoint/SKILL.md",
-        "normalizedTarget": "artifact:skills/checkpoint/SKILL.md",
+        "raw": "scripts/plugin-mirror-policy.mjs",
+        "normalizedTarget": "artifact:scripts/plugin-mirror-policy.mjs",
         "selector": {
           "precision": "none"
         },
@@ -47525,18 +47552,18 @@
           "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
           "yamlPath": "$.acceptance_criteria[2].evidence_refs[1]",
           "range": {
-            "start": 4871,
-            "end": 4897,
-            "line": 40,
-            "column": 45
+            "start": 4274,
+            "end": 4306,
+            "line": 47,
+            "column": 30
           }
         }
       },
       {
         "owner": "criterion:F-40327b/AC-003",
         "channel": "evidence",
-        "raw": "skills/doctor/SKILL.md",
-        "normalizedTarget": "artifact:skills/doctor/SKILL.md",
+        "raw": "skills/",
+        "normalizedTarget": "artifact:skills/",
         "selector": {
           "precision": "none"
         },
@@ -47545,110 +47572,31 @@
           "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
           "yamlPath": "$.acceptance_criteria[2].evidence_refs[0]",
           "range": {
-            "start": 4847,
-            "end": 4869,
-            "line": 40,
-            "column": 21
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-40327b/AC-003",
-        "channel": "evidence",
-        "raw": "skills/rollback/SKILL.md",
-        "normalizedTarget": "artifact:skills/rollback/SKILL.md",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
-          "yamlPath": "$.acceptance_criteria[2].evidence_refs[2]",
-          "range": {
-            "start": 4899,
-            "end": 4923,
-            "line": 40,
-            "column": 73
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-40327b/AC-003",
-        "channel": "evidence",
-        "raw": "skills/route/SKILL.md",
-        "normalizedTarget": "artifact:skills/route/SKILL.md",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
-          "yamlPath": "$.acceptance_criteria[2].evidence_refs[3]",
-          "range": {
-            "start": 4925,
-            "end": 4946,
-            "line": 40,
-            "column": 99
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-40327b/AC-004",
-        "channel": "evidence",
-        "raw": "agents/",
-        "normalizedTarget": "artifact:agents/",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "unresolved",
-        "source": {
-          "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
-          "yamlPath": "$.acceptance_criteria[3].evidence_refs[0]",
-          "range": {
-            "start": 5806,
-            "end": 5813,
-            "line": 46,
+            "start": 4265,
+            "end": 4272,
+            "line": 47,
             "column": 21
           }
         }
       },
       {
         "owner": "criterion:F-40327b/AC-004",
-        "channel": "evidence",
-        "raw": "plugins/codex/skills/",
-        "normalizedTarget": "artifact:plugins/codex/skills/",
+        "channel": "test",
+        "raw": "tests/scripts/plugin-mirror-policy.test.ts#[covers:F-40327b/AC-004] derives every persona/skill lane, rejects missing/extra/stale bytes, and has an idempotent byte map",
+        "normalizedTarget": "anchor:tests/scripts/plugin-mirror-policy.test.ts#[covers:F-40327b/AC-004] derives every persona/skill lane, rejects missing/extra/stale bytes, and has an idempotent byte map",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-40327b/AC-004] derives every persona/skill lane, rejects missing/extra/stale bytes, and has an idempotent byte map"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
-          "yamlPath": "$.acceptance_criteria[3].evidence_refs[1]",
+          "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 5815,
-            "end": 5836,
-            "line": 46,
-            "column": 30
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-40327b/AC-004",
-        "channel": "evidence",
-        "raw": "plugins/gemini-cli/commands/",
-        "normalizedTarget": "artifact:plugins/gemini-cli/commands/",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
-          "yamlPath": "$.acceptance_criteria[3].evidence_refs[2]",
-          "range": {
-            "start": 5838,
-            "end": 5866,
-            "line": 46,
-            "column": 53
+            "start": 4738,
+            "end": 4907,
+            "line": 54,
+            "column": 9
           }
         }
       },
@@ -47665,9 +47613,9 @@
           "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
           "yamlPath": "$.acceptance_criteria[4].evidence_refs[0]",
           "range": {
-            "start": 6907,
-            "end": 6918,
-            "line": 53,
+            "start": 6237,
+            "end": 6248,
+            "line": 62,
             "column": 21
           }
         }
@@ -47685,9 +47633,9 @@
           "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
           "yamlPath": "$.acceptance_criteria[5].evidence_refs[1]",
           "range": {
-            "start": 7852,
-            "end": 7876,
-            "line": 59,
+            "start": 6979,
+            "end": 7003,
+            "line": 68,
             "column": 45
           }
         }
@@ -47705,9 +47653,9 @@
           "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
           "yamlPath": "$.acceptance_criteria[5].evidence_refs[0]",
           "range": {
-            "start": 7828,
-            "end": 7850,
-            "line": 59,
+            "start": 6955,
+            "end": 6977,
+            "line": 68,
             "column": 21
           }
         }
@@ -60217,19 +60165,20 @@
       {
         "owner": "criterion:F-b7873005/AC-0fa3265d",
         "channel": "test",
-        "raw": "tests/stages/finding-parser.test.ts",
-        "normalizedTarget": "artifact:tests/stages/finding-parser.test.ts",
+        "raw": "tests/stages/finding-parser.test.ts#[covers:F-b7873005/AC-0fa3265d] derives every reported location from captured tool output despite contradictory, missing, or mutated source",
+        "normalizedTarget": "anchor:tests/stages/finding-parser.test.ts#[covers:F-b7873005/AC-0fa3265d] derives every reported location from captured tool output despite contradictory, missing, or mutated source",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-b7873005/AC-0fa3265d] derives every reported location from captured tool output despite contradictory, missing, or mutated source"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/gate-error-parser-b7873005.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 1999,
-            "end": 2034,
-            "line": 32,
+            "start": 2101,
+            "end": 2278,
+            "line": 35,
             "column": 9
           }
         }
@@ -60247,9 +60196,9 @@
           "path": "spec/features/gate-error-parser-b7873005.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 855,
-            "end": 890,
-            "line": 16,
+            "start": 957,
+            "end": 992,
+            "line": 19,
             "column": 9
           }
         }
@@ -60267,9 +60216,9 @@
           "path": "spec/features/gate-error-parser-b7873005.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[0]",
           "range": {
-            "start": 239,
-            "end": 274,
-            "line": 10,
+            "start": 341,
+            "end": 376,
+            "line": 13,
             "column": 9
           }
         }
@@ -60287,9 +60236,9 @@
           "path": "spec/features/gate-error-parser-b7873005.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 1445,
-            "end": 1480,
-            "line": 24,
+            "start": 1547,
+            "end": 1582,
+            "line": 27,
             "column": 9
           }
         }
@@ -60307,9 +60256,9 @@
           "path": "spec/features/gate-error-parser-b7873005.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[1]",
           "range": {
-            "start": 1489,
-            "end": 1518,
-            "line": 25,
+            "start": 1591,
+            "end": 1620,
+            "line": 28,
             "column": 9
           }
         }
@@ -60327,9 +60276,9 @@
           "path": "spec/features/gate-error-parser-b7873005.yaml",
           "yamlPath": "$.acceptance_criteria[4].test_refs[0]",
           "range": {
-            "start": 2602,
-            "end": 2637,
-            "line": 38,
+            "start": 2865,
+            "end": 2900,
+            "line": 41,
             "column": 9
           }
         }
@@ -63005,258 +62954,19 @@
       {
         "owner": "criterion:F-c58263b8/AC-01797b10",
         "channel": "test",
-        "raw": "tests/changelog/collect.test.ts",
-        "normalizedTarget": "artifact:tests/changelog/collect.test.ts",
+        "raw": "tests/assurance/criterion-observations.test.ts#[covers:F-c58263b8/AC-01797b10] compaction accepts every named suite only when every current observation binds the exact manifest digest",
+        "normalizedTarget": "anchor:tests/assurance/criterion-observations.test.ts#[covers:F-c58263b8/AC-01797b10] compaction accepts every named suite only when every current observation binds the exact manifest digest",
         "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/code-compact-c58263b8.yaml",
-          "yamlPath": "$.acceptance_criteria[3].test_refs[5]",
-          "range": {
-            "start": 5015,
-            "end": 5048,
-            "line": 64,
-            "column": 9
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-c58263b8/AC-01797b10",
-        "channel": "test",
-        "raw": "tests/cli/changelog-measure.test.ts",
-        "normalizedTarget": "artifact:tests/cli/changelog-measure.test.ts",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/code-compact-c58263b8.yaml",
-          "yamlPath": "$.acceptance_criteria[3].test_refs[8]",
-          "range": {
-            "start": 5137,
-            "end": 5174,
-            "line": 67,
-            "column": 9
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-c58263b8/AC-01797b10",
-        "channel": "test",
-        "raw": "tests/core/git-ops.test.ts",
-        "normalizedTarget": "artifact:tests/core/git-ops.test.ts",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/code-compact-c58263b8.yaml",
-          "yamlPath": "$.acceptance_criteria[3].test_refs[4]",
-          "range": {
-            "start": 4978,
-            "end": 5006,
-            "line": 63,
-            "column": 9
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-c58263b8/AC-01797b10",
-        "channel": "test",
-        "raw": "tests/events/log.test.ts",
-        "normalizedTarget": "artifact:tests/events/log.test.ts",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/code-compact-c58263b8.yaml",
-          "yamlPath": "$.acceptance_criteria[3].test_refs[12]",
-          "range": {
-            "start": 5327,
-            "end": 5353,
-            "line": 71,
-            "column": 9
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-c58263b8/AC-01797b10",
-        "channel": "test",
-        "raw": "tests/optimizer/code-excerpt.test.ts",
-        "normalizedTarget": "artifact:tests/optimizer/code-excerpt.test.ts",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/code-compact-c58263b8.yaml",
-          "yamlPath": "$.acceptance_criteria[3].test_refs[11]",
-          "range": {
-            "start": 5280,
-            "end": 5318,
-            "line": 70,
-            "column": 9
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-c58263b8/AC-01797b10",
-        "channel": "test",
-        "raw": "tests/optimizer/infer-depends-on.test.ts",
-        "normalizedTarget": "artifact:tests/optimizer/infer-depends-on.test.ts",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/code-compact-c58263b8.yaml",
-          "yamlPath": "$.acceptance_criteria[3].test_refs[10]",
-          "range": {
-            "start": 5229,
-            "end": 5271,
-            "line": 69,
-            "column": 9
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-c58263b8/AC-01797b10",
-        "channel": "test",
-        "raw": "tests/optimizer/measurement.test.ts",
-        "normalizedTarget": "artifact:tests/optimizer/measurement.test.ts",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/code-compact-c58263b8.yaml",
-          "yamlPath": "$.acceptance_criteria[3].test_refs[9]",
-          "range": {
-            "start": 5183,
-            "end": 5220,
-            "line": 68,
-            "column": 9
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-c58263b8/AC-01797b10",
-        "channel": "test",
-        "raw": "tests/report/report-cli.test.ts",
-        "normalizedTarget": "artifact:tests/report/report-cli.test.ts",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/code-compact-c58263b8.yaml",
-          "yamlPath": "$.acceptance_criteria[3].test_refs[7]",
-          "range": {
-            "start": 5095,
-            "end": 5128,
-            "line": 66,
-            "column": 9
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-c58263b8/AC-01797b10",
-        "channel": "test",
-        "raw": "tests/report/report.test.ts",
-        "normalizedTarget": "artifact:tests/report/report.test.ts",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/code-compact-c58263b8.yaml",
-          "yamlPath": "$.acceptance_criteria[3].test_refs[6]",
-          "range": {
-            "start": 5057,
-            "end": 5086,
-            "line": 65,
-            "column": 9
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-c58263b8/AC-01797b10",
-        "channel": "test",
-        "raw": "tests/stages/hollow-governance.test.ts",
-        "normalizedTarget": "artifact:tests/stages/hollow-governance.test.ts",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/code-compact-c58263b8.yaml",
-          "yamlPath": "$.acceptance_criteria[3].test_refs[1]",
-          "range": {
-            "start": 4827,
-            "end": 4867,
-            "line": 60,
-            "column": 9
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-c58263b8/AC-01797b10",
-        "channel": "test",
-        "raw": "tests/stages/planned-backlog.test.ts",
-        "normalizedTarget": "artifact:tests/stages/planned-backlog.test.ts",
-        "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-c58263b8/AC-01797b10] compaction accepts every named suite only when every current observation binds the exact manifest digest"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 4780,
-            "end": 4818,
-            "line": 59,
-            "column": 9
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-c58263b8/AC-01797b10",
-        "channel": "test",
-        "raw": "tests/stages/project-context-drift.test.ts",
-        "normalizedTarget": "artifact:tests/stages/project-context-drift.test.ts",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/code-compact-c58263b8.yaml",
-          "yamlPath": "$.acceptance_criteria[3].test_refs[3]",
-          "range": {
-            "start": 4925,
-            "end": 4969,
-            "line": 62,
-            "column": 9
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-c58263b8/AC-01797b10",
-        "channel": "test",
-        "raw": "tests/stages/scenario-coverage.test.ts",
-        "normalizedTarget": "artifact:tests/stages/scenario-coverage.test.ts",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/code-compact-c58263b8.yaml",
-          "yamlPath": "$.acceptance_criteria[3].test_refs[2]",
-          "range": {
-            "start": 4876,
-            "end": 4916,
+            "start": 4921,
+            "end": 5106,
             "line": 61,
             "column": 9
           }
@@ -63276,9 +62986,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[3]",
           "range": {
-            "start": 3922,
-            "end": 4046,
-            "line": 47,
+            "start": 4024,
+            "end": 4148,
+            "line": 50,
             "column": 9
           }
         }
@@ -63297,9 +63007,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 3569,
-            "end": 3692,
-            "line": 44,
+            "start": 3671,
+            "end": 3794,
+            "line": 47,
             "column": 9
           }
         }
@@ -63318,9 +63028,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[2]",
           "range": {
-            "start": 3800,
-            "end": 3913,
-            "line": 46,
+            "start": 3902,
+            "end": 4015,
+            "line": 49,
             "column": 9
           }
         }
@@ -63339,9 +63049,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[1]",
           "range": {
-            "start": 3701,
-            "end": 3791,
-            "line": 45,
+            "start": 3803,
+            "end": 3893,
+            "line": 48,
             "column": 9
           }
         }
@@ -63360,9 +63070,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[4]",
           "range": {
-            "start": 4055,
-            "end": 4169,
-            "line": 48,
+            "start": 4157,
+            "end": 4271,
+            "line": 51,
             "column": 9
           }
         }
@@ -63380,9 +63090,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[7]",
           "range": {
-            "start": 4342,
-            "end": 4368,
-            "line": 51,
+            "start": 4444,
+            "end": 4470,
+            "line": 54,
             "column": 9
           }
         }
@@ -63401,9 +63111,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[6]",
           "range": {
-            "start": 4224,
-            "end": 4333,
-            "line": 50,
+            "start": 4326,
+            "end": 4435,
+            "line": 53,
             "column": 9
           }
         }
@@ -63421,9 +63131,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[5]",
           "range": {
-            "start": 4178,
-            "end": 4215,
-            "line": 49,
+            "start": 4280,
+            "end": 4317,
+            "line": 52,
             "column": 9
           }
         }
@@ -63442,9 +63152,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[3]",
           "range": {
-            "start": 2590,
-            "end": 2699,
-            "line": 35,
+            "start": 2692,
+            "end": 2801,
+            "line": 38,
             "column": 9
           }
         }
@@ -63462,9 +63172,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[6]",
           "range": {
-            "start": 2909,
-            "end": 2946,
-            "line": 38,
+            "start": 3011,
+            "end": 3048,
+            "line": 41,
             "column": 9
           }
         }
@@ -63483,9 +63193,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 2208,
-            "end": 2332,
-            "line": 32,
+            "start": 2310,
+            "end": 2434,
+            "line": 35,
             "column": 9
           }
         }
@@ -63504,9 +63214,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[1]",
           "range": {
-            "start": 2341,
-            "end": 2450,
-            "line": 33,
+            "start": 2443,
+            "end": 2552,
+            "line": 36,
             "column": 9
           }
         }
@@ -63525,9 +63235,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[2]",
           "range": {
-            "start": 2459,
-            "end": 2581,
-            "line": 34,
+            "start": 2561,
+            "end": 2683,
+            "line": 37,
             "column": 9
           }
         }
@@ -63546,9 +63256,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[5]",
           "range": {
-            "start": 2825,
-            "end": 2900,
-            "line": 37,
+            "start": 2927,
+            "end": 3002,
+            "line": 40,
             "column": 9
           }
         }
@@ -63567,9 +63277,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[4]",
           "range": {
-            "start": 2708,
-            "end": 2816,
-            "line": 36,
+            "start": 2810,
+            "end": 2918,
+            "line": 39,
             "column": 9
           }
         }
@@ -63588,9 +63298,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[2]",
           "range": {
-            "start": 1415,
-            "end": 1550,
-            "line": 26,
+            "start": 1517,
+            "end": 1652,
+            "line": 29,
             "column": 9
           }
         }
@@ -63609,9 +63319,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[1]",
           "range": {
-            "start": 1249,
-            "end": 1406,
-            "line": 25,
+            "start": 1351,
+            "end": 1508,
+            "line": 28,
             "column": 9
           }
         }
@@ -63630,9 +63340,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[0]",
           "range": {
-            "start": 1110,
-            "end": 1240,
-            "line": 24,
+            "start": 1212,
+            "end": 1342,
+            "line": 27,
             "column": 9
           }
         }
@@ -66113,9 +65823,9 @@
           "path": "spec/features/plain-first-finding-render-dd8dc994.yaml",
           "yamlPath": "$.acceptance_criteria[6].test_refs[0]",
           "range": {
-            "start": 4256,
-            "end": 4390,
-            "line": 56,
+            "start": 4595,
+            "end": 4729,
+            "line": 60,
             "column": 9
           }
         }
@@ -66134,9 +65844,9 @@
           "path": "spec/features/plain-first-finding-render-dd8dc994.yaml",
           "yamlPath": "$.acceptance_criteria[4].test_refs[0]",
           "range": {
-            "start": 3513,
-            "end": 3628,
-            "line": 44,
+            "start": 3852,
+            "end": 3967,
+            "line": 48,
             "column": 9
           }
         }
@@ -66144,19 +65854,20 @@
       {
         "owner": "criterion:F-dd8dc994/AC-25f77cec",
         "channel": "test",
-        "raw": "tests/plain-render.test.ts",
-        "normalizedTarget": "artifact:tests/plain-render.test.ts",
+        "raw": "tests/plain-render.test.ts#[covers:F-dd8dc994/AC-25f77cec] renders tails only from detector and normalized path while static locale policy rejects forbidden concepts and permits String.localeCompare",
+        "normalizedTarget": "anchor:tests/plain-render.test.ts#[covers:F-dd8dc994/AC-25f77cec] renders tails only from detector and normalized path while static locale policy rejects forbidden concepts and permits String.localeCompare",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-dd8dc994/AC-25f77cec] renders tails only from detector and normalized path while static locale policy rejects forbidden concepts and permits String.localeCompare"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/plain-first-finding-render-dd8dc994.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 2495,
-            "end": 2521,
-            "line": 31,
+            "start": 2660,
+            "end": 2860,
+            "line": 35,
             "column": 9
           }
         }
@@ -66174,9 +65885,9 @@
           "path": "spec/features/plain-first-finding-render-dd8dc994.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 1782,
-            "end": 1808,
-            "line": 25,
+            "start": 1887,
+            "end": 1913,
+            "line": 29,
             "column": 9
           }
         }
@@ -66195,9 +65906,9 @@
           "path": "spec/features/plain-first-finding-render-dd8dc994.yaml",
           "yamlPath": "$.acceptance_criteria[5].test_refs[0]",
           "range": {
-            "start": 3886,
-            "end": 4002,
-            "line": 50,
+            "start": 4225,
+            "end": 4341,
+            "line": 54,
             "column": 9
           }
         }
@@ -66215,9 +65926,9 @@
           "path": "spec/features/plain-first-finding-render-dd8dc994.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[0]",
           "range": {
-            "start": 1197,
-            "end": 1223,
-            "line": 17,
+            "start": 1307,
+            "end": 1333,
+            "line": 21,
             "column": 9
           }
         }
@@ -66236,9 +65947,9 @@
           "path": "spec/features/plain-first-finding-render-dd8dc994.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 3152,
-            "end": 3257,
-            "line": 38,
+            "start": 3491,
+            "end": 3596,
+            "line": 42,
             "column": 9
           }
         }
@@ -78773,6 +78484,27 @@
         }
       },
       {
+        "owner": "criterion:F-40327b/AC-004",
+        "channel": "test",
+        "raw": "tests/scripts/plugin-mirror-policy.test.ts#[covers:F-40327b/AC-004] derives every persona/skill lane, rejects missing/extra/stale bytes, and has an idempotent byte map",
+        "normalizedTarget": "anchor:tests/scripts/plugin-mirror-policy.test.ts#[covers:F-40327b/AC-004] derives every persona/skill lane, rejects missing/extra/stale bytes, and has an idempotent byte map",
+        "selector": {
+          "precision": "fragment",
+          "value": "[covers:F-40327b/AC-004] derives every persona/skill lane, rejects missing/extra/stale bytes, and has an idempotent byte map"
+        },
+        "resolution": "resolved",
+        "source": {
+          "path": "spec/features/persona-skill-md-cleanup-40327b.yaml",
+          "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
+          "range": {
+            "start": 4738,
+            "end": 4907,
+            "line": 54,
+            "column": 9
+          }
+        }
+      },
+      {
         "owner": "criterion:F-417ff0/AC-001",
         "channel": "test",
         "raw": "tests/cli/scan-dispatcher.test.ts",
@@ -90317,19 +90049,20 @@
       {
         "owner": "criterion:F-b7873005/AC-0fa3265d",
         "channel": "test",
-        "raw": "tests/stages/finding-parser.test.ts",
-        "normalizedTarget": "artifact:tests/stages/finding-parser.test.ts",
+        "raw": "tests/stages/finding-parser.test.ts#[covers:F-b7873005/AC-0fa3265d] derives every reported location from captured tool output despite contradictory, missing, or mutated source",
+        "normalizedTarget": "anchor:tests/stages/finding-parser.test.ts#[covers:F-b7873005/AC-0fa3265d] derives every reported location from captured tool output despite contradictory, missing, or mutated source",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-b7873005/AC-0fa3265d] derives every reported location from captured tool output despite contradictory, missing, or mutated source"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/gate-error-parser-b7873005.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 1999,
-            "end": 2034,
-            "line": 32,
+            "start": 2101,
+            "end": 2278,
+            "line": 35,
             "column": 9
           }
         }
@@ -90347,9 +90080,9 @@
           "path": "spec/features/gate-error-parser-b7873005.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 855,
-            "end": 890,
-            "line": 16,
+            "start": 957,
+            "end": 992,
+            "line": 19,
             "column": 9
           }
         }
@@ -90367,9 +90100,9 @@
           "path": "spec/features/gate-error-parser-b7873005.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[0]",
           "range": {
-            "start": 239,
-            "end": 274,
-            "line": 10,
+            "start": 341,
+            "end": 376,
+            "line": 13,
             "column": 9
           }
         }
@@ -90387,9 +90120,9 @@
           "path": "spec/features/gate-error-parser-b7873005.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 1445,
-            "end": 1480,
-            "line": 24,
+            "start": 1547,
+            "end": 1582,
+            "line": 27,
             "column": 9
           }
         }
@@ -90407,9 +90140,9 @@
           "path": "spec/features/gate-error-parser-b7873005.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[1]",
           "range": {
-            "start": 1489,
-            "end": 1518,
-            "line": 25,
+            "start": 1591,
+            "end": 1620,
+            "line": 28,
             "column": 9
           }
         }
@@ -90427,9 +90160,9 @@
           "path": "spec/features/gate-error-parser-b7873005.yaml",
           "yamlPath": "$.acceptance_criteria[4].test_refs[0]",
           "range": {
-            "start": 2602,
-            "end": 2637,
-            "line": 38,
+            "start": 2865,
+            "end": 2900,
+            "line": 41,
             "column": 9
           }
         }
@@ -92945,258 +92678,19 @@
       {
         "owner": "criterion:F-c58263b8/AC-01797b10",
         "channel": "test",
-        "raw": "tests/changelog/collect.test.ts",
-        "normalizedTarget": "artifact:tests/changelog/collect.test.ts",
+        "raw": "tests/assurance/criterion-observations.test.ts#[covers:F-c58263b8/AC-01797b10] compaction accepts every named suite only when every current observation binds the exact manifest digest",
+        "normalizedTarget": "anchor:tests/assurance/criterion-observations.test.ts#[covers:F-c58263b8/AC-01797b10] compaction accepts every named suite only when every current observation binds the exact manifest digest",
         "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/code-compact-c58263b8.yaml",
-          "yamlPath": "$.acceptance_criteria[3].test_refs[5]",
-          "range": {
-            "start": 5015,
-            "end": 5048,
-            "line": 64,
-            "column": 9
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-c58263b8/AC-01797b10",
-        "channel": "test",
-        "raw": "tests/cli/changelog-measure.test.ts",
-        "normalizedTarget": "artifact:tests/cli/changelog-measure.test.ts",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/code-compact-c58263b8.yaml",
-          "yamlPath": "$.acceptance_criteria[3].test_refs[8]",
-          "range": {
-            "start": 5137,
-            "end": 5174,
-            "line": 67,
-            "column": 9
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-c58263b8/AC-01797b10",
-        "channel": "test",
-        "raw": "tests/core/git-ops.test.ts",
-        "normalizedTarget": "artifact:tests/core/git-ops.test.ts",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/code-compact-c58263b8.yaml",
-          "yamlPath": "$.acceptance_criteria[3].test_refs[4]",
-          "range": {
-            "start": 4978,
-            "end": 5006,
-            "line": 63,
-            "column": 9
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-c58263b8/AC-01797b10",
-        "channel": "test",
-        "raw": "tests/events/log.test.ts",
-        "normalizedTarget": "artifact:tests/events/log.test.ts",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/code-compact-c58263b8.yaml",
-          "yamlPath": "$.acceptance_criteria[3].test_refs[12]",
-          "range": {
-            "start": 5327,
-            "end": 5353,
-            "line": 71,
-            "column": 9
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-c58263b8/AC-01797b10",
-        "channel": "test",
-        "raw": "tests/optimizer/code-excerpt.test.ts",
-        "normalizedTarget": "artifact:tests/optimizer/code-excerpt.test.ts",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/code-compact-c58263b8.yaml",
-          "yamlPath": "$.acceptance_criteria[3].test_refs[11]",
-          "range": {
-            "start": 5280,
-            "end": 5318,
-            "line": 70,
-            "column": 9
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-c58263b8/AC-01797b10",
-        "channel": "test",
-        "raw": "tests/optimizer/infer-depends-on.test.ts",
-        "normalizedTarget": "artifact:tests/optimizer/infer-depends-on.test.ts",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/code-compact-c58263b8.yaml",
-          "yamlPath": "$.acceptance_criteria[3].test_refs[10]",
-          "range": {
-            "start": 5229,
-            "end": 5271,
-            "line": 69,
-            "column": 9
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-c58263b8/AC-01797b10",
-        "channel": "test",
-        "raw": "tests/optimizer/measurement.test.ts",
-        "normalizedTarget": "artifact:tests/optimizer/measurement.test.ts",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/code-compact-c58263b8.yaml",
-          "yamlPath": "$.acceptance_criteria[3].test_refs[9]",
-          "range": {
-            "start": 5183,
-            "end": 5220,
-            "line": 68,
-            "column": 9
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-c58263b8/AC-01797b10",
-        "channel": "test",
-        "raw": "tests/report/report-cli.test.ts",
-        "normalizedTarget": "artifact:tests/report/report-cli.test.ts",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/code-compact-c58263b8.yaml",
-          "yamlPath": "$.acceptance_criteria[3].test_refs[7]",
-          "range": {
-            "start": 5095,
-            "end": 5128,
-            "line": 66,
-            "column": 9
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-c58263b8/AC-01797b10",
-        "channel": "test",
-        "raw": "tests/report/report.test.ts",
-        "normalizedTarget": "artifact:tests/report/report.test.ts",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/code-compact-c58263b8.yaml",
-          "yamlPath": "$.acceptance_criteria[3].test_refs[6]",
-          "range": {
-            "start": 5057,
-            "end": 5086,
-            "line": 65,
-            "column": 9
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-c58263b8/AC-01797b10",
-        "channel": "test",
-        "raw": "tests/stages/hollow-governance.test.ts",
-        "normalizedTarget": "artifact:tests/stages/hollow-governance.test.ts",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/code-compact-c58263b8.yaml",
-          "yamlPath": "$.acceptance_criteria[3].test_refs[1]",
-          "range": {
-            "start": 4827,
-            "end": 4867,
-            "line": 60,
-            "column": 9
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-c58263b8/AC-01797b10",
-        "channel": "test",
-        "raw": "tests/stages/planned-backlog.test.ts",
-        "normalizedTarget": "artifact:tests/stages/planned-backlog.test.ts",
-        "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-c58263b8/AC-01797b10] compaction accepts every named suite only when every current observation binds the exact manifest digest"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 4780,
-            "end": 4818,
-            "line": 59,
-            "column": 9
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-c58263b8/AC-01797b10",
-        "channel": "test",
-        "raw": "tests/stages/project-context-drift.test.ts",
-        "normalizedTarget": "artifact:tests/stages/project-context-drift.test.ts",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/code-compact-c58263b8.yaml",
-          "yamlPath": "$.acceptance_criteria[3].test_refs[3]",
-          "range": {
-            "start": 4925,
-            "end": 4969,
-            "line": 62,
-            "column": 9
-          }
-        }
-      },
-      {
-        "owner": "criterion:F-c58263b8/AC-01797b10",
-        "channel": "test",
-        "raw": "tests/stages/scenario-coverage.test.ts",
-        "normalizedTarget": "artifact:tests/stages/scenario-coverage.test.ts",
-        "selector": {
-          "precision": "none"
-        },
-        "resolution": "resolved",
-        "source": {
-          "path": "spec/features/code-compact-c58263b8.yaml",
-          "yamlPath": "$.acceptance_criteria[3].test_refs[2]",
-          "range": {
-            "start": 4876,
-            "end": 4916,
+            "start": 4921,
+            "end": 5106,
             "line": 61,
             "column": 9
           }
@@ -93216,9 +92710,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[3]",
           "range": {
-            "start": 3922,
-            "end": 4046,
-            "line": 47,
+            "start": 4024,
+            "end": 4148,
+            "line": 50,
             "column": 9
           }
         }
@@ -93237,9 +92731,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 3569,
-            "end": 3692,
-            "line": 44,
+            "start": 3671,
+            "end": 3794,
+            "line": 47,
             "column": 9
           }
         }
@@ -93258,9 +92752,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[2]",
           "range": {
-            "start": 3800,
-            "end": 3913,
-            "line": 46,
+            "start": 3902,
+            "end": 4015,
+            "line": 49,
             "column": 9
           }
         }
@@ -93279,9 +92773,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[1]",
           "range": {
-            "start": 3701,
-            "end": 3791,
-            "line": 45,
+            "start": 3803,
+            "end": 3893,
+            "line": 48,
             "column": 9
           }
         }
@@ -93300,9 +92794,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[4]",
           "range": {
-            "start": 4055,
-            "end": 4169,
-            "line": 48,
+            "start": 4157,
+            "end": 4271,
+            "line": 51,
             "column": 9
           }
         }
@@ -93320,9 +92814,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[7]",
           "range": {
-            "start": 4342,
-            "end": 4368,
-            "line": 51,
+            "start": 4444,
+            "end": 4470,
+            "line": 54,
             "column": 9
           }
         }
@@ -93341,9 +92835,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[6]",
           "range": {
-            "start": 4224,
-            "end": 4333,
-            "line": 50,
+            "start": 4326,
+            "end": 4435,
+            "line": 53,
             "column": 9
           }
         }
@@ -93361,9 +92855,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[5]",
           "range": {
-            "start": 4178,
-            "end": 4215,
-            "line": 49,
+            "start": 4280,
+            "end": 4317,
+            "line": 52,
             "column": 9
           }
         }
@@ -93382,9 +92876,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[3]",
           "range": {
-            "start": 2590,
-            "end": 2699,
-            "line": 35,
+            "start": 2692,
+            "end": 2801,
+            "line": 38,
             "column": 9
           }
         }
@@ -93402,9 +92896,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[6]",
           "range": {
-            "start": 2909,
-            "end": 2946,
-            "line": 38,
+            "start": 3011,
+            "end": 3048,
+            "line": 41,
             "column": 9
           }
         }
@@ -93423,9 +92917,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 2208,
-            "end": 2332,
-            "line": 32,
+            "start": 2310,
+            "end": 2434,
+            "line": 35,
             "column": 9
           }
         }
@@ -93444,9 +92938,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[1]",
           "range": {
-            "start": 2341,
-            "end": 2450,
-            "line": 33,
+            "start": 2443,
+            "end": 2552,
+            "line": 36,
             "column": 9
           }
         }
@@ -93465,9 +92959,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[2]",
           "range": {
-            "start": 2459,
-            "end": 2581,
-            "line": 34,
+            "start": 2561,
+            "end": 2683,
+            "line": 37,
             "column": 9
           }
         }
@@ -93486,9 +92980,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[5]",
           "range": {
-            "start": 2825,
-            "end": 2900,
-            "line": 37,
+            "start": 2927,
+            "end": 3002,
+            "line": 40,
             "column": 9
           }
         }
@@ -93507,9 +93001,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[4]",
           "range": {
-            "start": 2708,
-            "end": 2816,
-            "line": 36,
+            "start": 2810,
+            "end": 2918,
+            "line": 39,
             "column": 9
           }
         }
@@ -93528,9 +93022,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[2]",
           "range": {
-            "start": 1415,
-            "end": 1550,
-            "line": 26,
+            "start": 1517,
+            "end": 1652,
+            "line": 29,
             "column": 9
           }
         }
@@ -93549,9 +93043,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[1]",
           "range": {
-            "start": 1249,
-            "end": 1406,
-            "line": 25,
+            "start": 1351,
+            "end": 1508,
+            "line": 28,
             "column": 9
           }
         }
@@ -93570,9 +93064,9 @@
           "path": "spec/features/code-compact-c58263b8.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[0]",
           "range": {
-            "start": 1110,
-            "end": 1240,
-            "line": 24,
+            "start": 1212,
+            "end": 1342,
+            "line": 27,
             "column": 9
           }
         }
@@ -95433,9 +94927,9 @@
           "path": "spec/features/plain-first-finding-render-dd8dc994.yaml",
           "yamlPath": "$.acceptance_criteria[6].test_refs[0]",
           "range": {
-            "start": 4256,
-            "end": 4390,
-            "line": 56,
+            "start": 4595,
+            "end": 4729,
+            "line": 60,
             "column": 9
           }
         }
@@ -95454,9 +94948,9 @@
           "path": "spec/features/plain-first-finding-render-dd8dc994.yaml",
           "yamlPath": "$.acceptance_criteria[4].test_refs[0]",
           "range": {
-            "start": 3513,
-            "end": 3628,
-            "line": 44,
+            "start": 3852,
+            "end": 3967,
+            "line": 48,
             "column": 9
           }
         }
@@ -95464,19 +94958,20 @@
       {
         "owner": "criterion:F-dd8dc994/AC-25f77cec",
         "channel": "test",
-        "raw": "tests/plain-render.test.ts",
-        "normalizedTarget": "artifact:tests/plain-render.test.ts",
+        "raw": "tests/plain-render.test.ts#[covers:F-dd8dc994/AC-25f77cec] renders tails only from detector and normalized path while static locale policy rejects forbidden concepts and permits String.localeCompare",
+        "normalizedTarget": "anchor:tests/plain-render.test.ts#[covers:F-dd8dc994/AC-25f77cec] renders tails only from detector and normalized path while static locale policy rejects forbidden concepts and permits String.localeCompare",
         "selector": {
-          "precision": "none"
+          "precision": "fragment",
+          "value": "[covers:F-dd8dc994/AC-25f77cec] renders tails only from detector and normalized path while static locale policy rejects forbidden concepts and permits String.localeCompare"
         },
         "resolution": "resolved",
         "source": {
           "path": "spec/features/plain-first-finding-render-dd8dc994.yaml",
           "yamlPath": "$.acceptance_criteria[2].test_refs[0]",
           "range": {
-            "start": 2495,
-            "end": 2521,
-            "line": 31,
+            "start": 2660,
+            "end": 2860,
+            "line": 35,
             "column": 9
           }
         }
@@ -95494,9 +94989,9 @@
           "path": "spec/features/plain-first-finding-render-dd8dc994.yaml",
           "yamlPath": "$.acceptance_criteria[1].test_refs[0]",
           "range": {
-            "start": 1782,
-            "end": 1808,
-            "line": 25,
+            "start": 1887,
+            "end": 1913,
+            "line": 29,
             "column": 9
           }
         }
@@ -95515,9 +95010,9 @@
           "path": "spec/features/plain-first-finding-render-dd8dc994.yaml",
           "yamlPath": "$.acceptance_criteria[5].test_refs[0]",
           "range": {
-            "start": 3886,
-            "end": 4002,
-            "line": 50,
+            "start": 4225,
+            "end": 4341,
+            "line": 54,
             "column": 9
           }
         }
@@ -95535,9 +95030,9 @@
           "path": "spec/features/plain-first-finding-render-dd8dc994.yaml",
           "yamlPath": "$.acceptance_criteria[0].test_refs[0]",
           "range": {
-            "start": 1197,
-            "end": 1223,
-            "line": 17,
+            "start": 1307,
+            "end": 1333,
+            "line": 21,
             "column": 9
           }
         }
@@ -95556,9 +95051,9 @@
           "path": "spec/features/plain-first-finding-render-dd8dc994.yaml",
           "yamlPath": "$.acceptance_criteria[3].test_refs[0]",
           "range": {
-            "start": 3152,
-            "end": 3257,
-            "line": 38,
+            "start": 3491,
+            "end": 3596,
+            "line": 42,
             "column": 9
           }
         }
@@ -98420,9 +97915,9 @@
     ]
   },
   "derived": {
-    "proofOccurrences": 1736,
-    "uniqueCriterionProofAddresses": 1736,
-    "resolvedProofs": 1727,
-    "unresolvedProofs": 9
+    "proofOccurrences": 1720,
+    "uniqueCriterionProofAddresses": 1720,
+    "resolvedProofs": 1712,
+    "unresolvedProofs": 8
   }
 }

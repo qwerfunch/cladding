@@ -96,6 +96,7 @@ import {createAttestationV3RetentionContext} from '../assurance/attestation.js';
 import {canonicalClosureJson} from '../assurance/closures.js';
 import {mintRunCheckStagesAuthority} from '../assurance/run-authority.js';
 import {assuranceClosureInputFromWorkspace, createWorkspaceAttestations, currentProofViewsFromWorkspace, effectiveFeatureScope, featureClosureSeals, hasApplicableSchema02TestCriteria, workspaceClosureSeals, workspaceProfileSnapshot, type WorkspaceProfileSnapshot} from '../assurance/workspace.js';
+import {liveCriterionReportsFromCurrentRun, staticCriterionReportsFromWorkspace, staticCriterionScopeFromWorkspace} from '../assurance/criterion-observations.js';
 import {emptyTrustSnapshot} from '../proof/receipt.js';
 import {assuranceProfile, invalidateAssuranceVerdict, resolveRequestedAssuranceLevel, type AssuranceProfile, type AssuranceVerdict} from '../assurance/kernel.js';
 import {descriptorsForLevel, normalizeProfile, OBLIGATION_DESCRIPTORS, type AssuranceLevel, type AssuranceProfileId} from '../assurance/registry.js';
@@ -990,8 +991,22 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
           }
         }
         const profile = plan?.profile ?? fallbackProfile;
+        // Schema 0.1 keeps its historic stage subjects. B4 static subjects are
+        // introduced only through the schema-0.2 compiler-minted scope below.
         const scopeAddresses = plan?.scopeAddresses ?? fallbackScope;
         const oracleRequiredSubjects = plan?.oracleRequiredSubjects;
+        const staticReports = compilation.schemaVersion === '0.2'
+          ? plan?.snapshot.criterionObservations ?? staticCriterionReportsFromWorkspace('.', compilation, scopeAddresses)
+          : [];
+        const staticCriterionScope = compilation.schemaVersion === '0.2'
+          ? plan?.snapshot.staticCriterionScope ?? staticCriterionScopeFromWorkspace(compilation, scopeAddresses)
+          : undefined;
+        const liveReports = compilation.schemaVersion === '0.2'
+          ? liveCriterionReportsFromCurrentRun({
+            cwd: '.', compilation, scopeAddresses, currentRun: currentRunProof,
+            expectedGateInputSha256: plan?.snapshot.inputSha256,
+          })
+          : [];
         assurance = reduceLegacyStageAdapter({
           profile,
           configuredAssuranceLevel: plan?.configured ?? configured,
@@ -1009,6 +1024,8 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
           hasDeliverable: plan?.hasDeliverable ?? compilation.nodes.some((node) => node.address === 'artifact:package.json'),
           requiresQuality: plan?.requiresQuality ?? (level.level === 'L3' || level.level === 'L4'),
           requiresHuman: plan?.requiresHuman ?? level.level === 'L4',
+          criterionObservations: [...staticReports, ...liveReports],
+          ...(staticCriterionScope ? {staticCriterionScope} : {}),
           ...(compilation.schemaVersion === '0.2' ? {
             proofViews: currentProofViewsFromWorkspace('.', compilation, scopeAddresses, currentRunProof, plan?.snapshot.inputSha256),
             currentProofObservationIdentity: currentRunProofIdentity(currentRunProof),

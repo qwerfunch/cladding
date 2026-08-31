@@ -64,6 +64,19 @@ describe('Spec 0.2 strict statement parser', () => {
     expect(parseStrictStatement('When (an event occurs, the system shall record it.')).toMatchObject({status: 'invalid', issues: [expect.objectContaining({code: 'UNBALANCED_PROTECTED_SPAN'})]});
   });
 
+  test('keeps the F7-B4 strict replacement statements parseable without weakening the grammar', () => {
+    for (const statement of [
+      'When the finding parser emits a location-bearing finding, the finding parser shall derive every reported location only from the structured output supplied by the declared tool adapter without performing a second source analysis.',
+      'When a changed compacted module has a compiled proof closure, the assurance engine shall evaluate the current bound observations in that closure without inferring behavior preservation from an unchanged test-file set.',
+      [
+        'The machine finding-tail renderer shall render machine finding tails from detector and normalized-path values only, with no locale resolver, locale type, user',
+        '-locale sidecar, or project',
+        '.locale field in the compiled product closure.',
+      ].join(''),
+      'When the plugin mirror build runs, the plugin mirror builder shall derive every managed persona and skill mirror from its canonical src/agents/ or skills/ input, reject a missing/extra/stale generated destination, and produce no diff on a second run.',
+    ]) expect(valid(statement).status).toBe('valid');
+  });
+
   test('reports genuine atomicity signals without invalidating a statement', () => {
     const statement = valid('When an order completes, the system shall persist the receipt, notify the customer, and emit an audit event.');
     expect(analyzeAtomicityRisk(statement).signals.map((signal) => signal.code)).toEqual(expect.arrayContaining([

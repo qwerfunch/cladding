@@ -51,6 +51,7 @@ import {
   plainLead,
   stopBlockMessage,
 } from '../src/ui/softShell.js';
+import {inspectLocaleTailSources, inspectLocaleTailWorkspace, localeTailSourceUniverse} from '../src/assurance/criterion-observations.js';
 
 const ROOT = process.cwd();
 
@@ -157,6 +158,16 @@ describe('DETECTOR_PLAIN catalog completeness (AC-746969b3)', () => {
 // ─── AC-263adf79 — plain lead first, machine detail demoted to a tail ──────
 
 describe('plainFinding render shape (AC-263adf79)', () => {
+  test('[covers:F-dd8dc994/AC-25f77cec] renders tails only from detector and normalized path while static locale policy rejects forbidden concepts and permits String.localeCompare', () => {
+    expect(plainFinding({detector: 'AC_DRIFT', path: 'src/../src/a.ts', message: 'raw'}))
+      .toBe(`${DETECTOR_PLAIN.AC_DRIFT.lead} (AC_DRIFT · src/a.ts)`);
+    const sources = Object.fromEntries(localeTailSourceUniverse().map((path) => [path, 'const ordered = String.localeCompare;']));
+    expect(inspectLocaleTailSources(sources)).toMatchObject({state: 'pass', complete: true});
+    const field = ['project', '.locale'].join('');
+    expect(inspectLocaleTailSources({...sources, 'src/ui/softShell.ts': `const value = ${field};`})).toMatchObject({state: 'fail'});
+    expect(inspectLocaleTailWorkspace(ROOT)).toMatchObject({state: 'pass', complete: true});
+  });
+
   const finding = {
     detector: 'MISSING_IMPLEMENTATION',
     path: 'src/auth/login.ts',

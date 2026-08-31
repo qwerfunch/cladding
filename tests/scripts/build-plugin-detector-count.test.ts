@@ -19,14 +19,30 @@ import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
 const SCRIPT_PATH = join(process.cwd(), 'scripts', 'build-plugin.mjs');
+const MIRROR_PERSONAS = ['blind-author', 'developer', 'observability', 'orchestrator', 'planner', 'reviewer'];
+const MIRROR_SKILLS = ['changelog', 'check', 'checkpoint', 'clarify', 'doctor', 'init', 'oracle', 'rollback', 'route', 'run', 'serve', 'status', 'sync'];
 
 function seedTree(dir: string, detectorCount: number, declaredCurrent: string, declaredTarget: string): void {
-  // Minimum stubs for Phases A-C — empty directories so readdirSync
-  // returns [] and the build phases exit cleanly.
+  // The mirror policy fails closed on canonical inputs, so this fixture seeds
+  // its exact persona/skill manifest rather than relying on old permissive
+  // empty directories.
   mkdirSync(join(dir, 'src', 'agents'), {recursive: true});
   mkdirSync(join(dir, 'skills'), {recursive: true});
+  mkdirSync(join(dir, 'scripts'), {recursive: true});
   mkdirSync(join(dir, 'src', 'stages', 'detectors'), {recursive: true});
   mkdirSync(join(dir, 'plugins', 'claude-code', '.claude-plugin'), {recursive: true});
+  writeFileSync(join(dir, 'src', 'agents', 'README.md'), '# agents\n');
+  writeFileSync(join(dir, 'package.json'), '{"name":"build-plugin-fixture"}\n');
+  writeFileSync(join(dir, 'scripts', 'plugin-mirror-policy.mjs'), '// policy fixture\n');
+  writeFileSync(join(dir, 'scripts', 'build-plugin.mjs'), '// build fixture\n');
+  for (const persona of MIRROR_PERSONAS) {
+    writeFileSync(join(dir, 'src', 'agents', `${persona}.md`), `---\ndescription: ${persona}\n---\n${persona}\n`);
+  }
+  for (const skill of MIRROR_SKILLS) {
+    const skillDir = join(dir, 'skills', skill);
+    mkdirSync(skillDir, {recursive: true});
+    writeFileSync(join(skillDir, 'SKILL.md'), `---\ndescription: ${skill}\n---\n${skill}\n`);
+  }
 
   for (let i = 0; i < detectorCount; i++) {
     writeFileSync(join(dir, 'src', 'stages', 'detectors', `det-${i}.ts`), '// stub\n');
