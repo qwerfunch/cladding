@@ -16,10 +16,22 @@ import {
   currentProofBindingsFromWorkspace,
   currentProofViewsFromWorkspace,
   featureClosureSeals,
+  migrationBaselineCandidatesFromWorkspace,
   runnerConfigurationResolver,
   workspaceProfileSnapshot,
 } from '../../src/assurance/workspace.js';
 import {compileSpecWorkspace} from '../../src/spec/compiler/compile.js';
+import {
+  LEGACY_L2_OBLIGATIONS,
+  LEGACY_UNCLASSIFIED,
+  criterionFinalIntentFromRecord,
+  criterionFinalIntentSha256,
+  legacyL2CandidateCensusSha256,
+  legacyL2CandidateSha256,
+  legacyL2ResolutionSha256,
+  type MigrationBaseline,
+} from '../../src/spec/compiler/migration-baseline.js';
+import type {SpecCompilation} from '../../src/spec/compiler/types.js';
 import {prospectiveDoneCompilation} from '../../src/spec/prospective.js';
 import {captureCurrentJUnitProof, captureCurrentVitestProof, clearTestRunCache, currentGateProofEvidence, primeTestRunCache} from '../../src/stages/test-run-cache.js';
 import {authoritativeFixtureVerdict} from './authoritative-fixture.js';
@@ -44,6 +56,87 @@ function fixture(): string {
   writeFileSync(join(cwd, 'spec', 'capabilities.yaml'), 'capabilities: []\n');
   writeFileSync(join(cwd, 'spec', 'architecture.yaml'), 'layers:\n  - [core]\nrules: []\n');
   return cwd;
+}
+
+const baselineFeature = 'F-aaaaaaaa';
+const baselineCriterion = 'AC-bbbbbbbb';
+const baselineSubject = `criterion:${baselineFeature}/${baselineCriterion}`;
+
+function baselineReceipt(
+  record: Record<string, unknown>,
+  bindings: readonly {readonly raw: string; readonly selector?: string}[] = [],
+  decision: 'accept' | 'reject' = 'accept',
+  featureId = baselineFeature,
+  criterionId = baselineCriterion,
+): MigrationBaseline {
+  const subject = `criterion:${featureId}/${criterionId}`;
+  const previewSha256 = 'a'.repeat(64);
+  const candidateCensusSha256 = legacyL2CandidateCensusSha256([subject]);
+  const resolutionSha256 = legacyL2ResolutionSha256({
+    previewSha256, decision, candidateCount: 1, candidateCensusSha256,
+  });
+  const finalIntent = criterionFinalIntentFromRecord(record);
+  if (finalIntent === undefined) throw new Error('baseline fixture requires final intent');
+  const authorization = {
+    criterion: subject,
+    sourceStatus: 'done' as const,
+    finalIntentSha256: criterionFinalIntentSha256(finalIntent),
+    obligations: LEGACY_L2_OBLIGATIONS,
+    candidateSha256: '',
+    resolutionSha256,
+  };
+  return {
+    schema: 1,
+    sourceSchema: '0.1',
+    project: {address: 'project', legacyIntent: 'Keep migration receipt candidates explicit.'},
+    features: [],
+    criteria: [{
+      address: subject,
+      legacyIntent: {text: typeof record.statement === 'string' ? record.statement : 'missing'},
+      classification: LEGACY_UNCLASSIFIED,
+      bindings: bindings.map((binding) => ({channel: 'test' as const, ...binding})),
+      exemption: {id: `legacy:${subject}`, subject, reason: 'legacy_criterion_intent'},
+    }],
+    scenarios: [],
+    legacyL2Baseline: {
+      decision, previewSha256, candidateCount: 1, candidateCensusSha256, resolutionSha256,
+      authorizations: decision === 'accept'
+        ? [{...authorization, candidateSha256: legacyL2CandidateSha256(authorization)}]
+        : [],
+    },
+  };
+}
+
+function baselineCompilation(
+  cwd: string,
+  record: Record<string, unknown>,
+  baseline: MigrationBaseline,
+  featureId = baselineFeature,
+  criterionId = baselineCriterion,
+): SpecCompilation {
+  writeFileSync(join(cwd, 'feature.yaml'), JSON.stringify({id: featureId, acceptance_criteria: [record]}));
+  return {
+    schemaVersion: '0.2',
+    contract: {
+      features: [{
+        id: featureId,
+        status: 'done',
+        acceptanceCriteria: [{
+          id: criterionId,
+          statement: record.statement as string,
+          constraintRefs: [],
+          ...(typeof record.kind === 'string' ? {kind: record.kind} : {}),
+        }],
+      }],
+    },
+    migrationBaseline: baseline,
+    nodes: [{
+      address: `feature:${featureId}`,
+      nodeType: 'semantic',
+      kind: 'feature',
+      source: {path: 'feature.yaml'},
+    }],
+  } as unknown as SpecCompilation;
 }
 
 function addDoneSiblingFeature(cwd: string): void {
@@ -87,6 +180,91 @@ afterEach(() => {
 });
 
 describe('F6 workspace profile closure', () => {
+  test('classifies only accepted unchanged, mechanism-free migration baseline candidates', () => {
+    const cwd = fixture();
+    const record = {id: baselineCriterion, statement: 'The system shall preserve the migrated baseline.'};
+    const baseline = baselineReceipt(record, [{raw: 'tests/historic.test.ts'}]);
+    const compilation = baselineCompilation(cwd, record, baseline);
+    expect(migrationBaselineCandidatesFromWorkspace(cwd, compilation, [`feature:${baselineFeature}`]))
+      .toEqual([expect.objectContaining({subject: baselineSubject, obligations: ['stage_2.1', 'stage_2.2']})]);
+
+    writeFileSync(join(cwd, 'feature.yaml'), JSON.stringify({
+      id: baselineFeature,
+      acceptance_criteria: [{...record, statement: 'The system shall revoke the old final intent.'}],
+    }));
+    expect(migrationBaselineCandidatesFromWorkspace(cwd, compilation, [`feature:${baselineFeature}`])).toEqual([]);
+
+    writeFileSync(join(cwd, 'feature.yaml'), JSON.stringify({id: baselineFeature, acceptance_criteria: [record]}));
+    mkdirSync(join(cwd, 'tests'), {recursive: true});
+    writeFileSync(join(cwd, 'tests', 'live.test.ts'), `it('[covers:${baselineFeature}/${baselineCriterion}] current', () => {});\n`);
+    expect(migrationBaselineCandidatesFromWorkspace(cwd, compilation, [`feature:${baselineFeature}`])).toEqual([]);
+  });
+
+  test('revokes authorization when authored constraint refs change between omission and an explicit empty list', () => {
+    const omitted = {
+      id: baselineCriterion,
+      kind: 'behavior',
+      statement: 'The system shall preserve authored final-intent shape.',
+    };
+    const explicitEmpty = {...omitted, constraint_refs: []};
+
+    const omissionToEmpty = fixture();
+    expect(migrationBaselineCandidatesFromWorkspace(
+      omissionToEmpty,
+      baselineCompilation(omissionToEmpty, explicitEmpty, baselineReceipt(omitted)),
+      [`feature:${baselineFeature}`],
+    )).toEqual([]);
+
+    const emptyToOmission = fixture();
+    expect(migrationBaselineCandidatesFromWorkspace(
+      emptyToOmission,
+      baselineCompilation(emptyToOmission, omitted, baselineReceipt(explicitEmpty)),
+      [`feature:${baselineFeature}`],
+    )).toEqual([]);
+  });
+
+  test('fails closed for rejected, malformed, exact historic, and registered-static receipt selections', () => {
+    const record = {id: baselineCriterion, statement: 'The system shall preserve the migrated baseline.'};
+    const rejectedCwd = fixture();
+    expect(migrationBaselineCandidatesFromWorkspace(rejectedCwd, baselineCompilation(rejectedCwd, record, baselineReceipt(record, [], 'reject')), [`feature:${baselineFeature}`])).toEqual([]);
+
+    const oldCwd = fixture();
+    const oldReceipt = {...baselineReceipt(record)};
+    delete (oldReceipt as {legacyL2Baseline?: unknown}).legacyL2Baseline;
+    expect(migrationBaselineCandidatesFromWorkspace(oldCwd, baselineCompilation(oldCwd, record, oldReceipt), [`feature:${baselineFeature}`])).toEqual([]);
+
+    const malformedCwd = fixture();
+    const malformed = baselineReceipt(record);
+    const broken = JSON.parse(JSON.stringify(malformed)) as MigrationBaseline;
+    (broken.legacyL2Baseline!.authorizations[0] as {finalIntentSha256: string}).finalIntentSha256 = 'invalid';
+    expect(migrationBaselineCandidatesFromWorkspace(malformedCwd, baselineCompilation(malformedCwd, record, broken), [`feature:${baselineFeature}`])).toEqual([]);
+
+    const exactCwd = fixture();
+    expect(migrationBaselineCandidatesFromWorkspace(exactCwd, baselineCompilation(exactCwd, record,
+      baselineReceipt(record, [{raw: 'tests/historic.test.ts#named case', selector: 'named case'}])), [`feature:${baselineFeature}`])).toEqual([]);
+
+    const reviewedCwd = fixture();
+    const reviewedRecord = {...record, kind: 'behavior'};
+    const reviewedBaseline = baselineReceipt(reviewedRecord, [{raw: 'tests/reviewed.test.ts#named case', selector: 'named case'}]);
+    const reviewed: MigrationBaseline = {
+      ...reviewedBaseline,
+      reviewedCarryForwards: [{
+        criterion: baselineSubject,
+        intent: {statement: reviewedRecord.statement, kind: 'behavior'},
+        bindings: [{
+          raw: 'tests/reviewed.test.ts#named case', file: 'tests/reviewed.test.ts', selector: 'named case', sha256: 'b'.repeat(64),
+        }],
+      }],
+    };
+    expect(migrationBaselineCandidatesFromWorkspace(reviewedCwd, baselineCompilation(reviewedCwd, reviewedRecord, reviewed), [`feature:${baselineFeature}`])).toEqual([]);
+
+    const staticCwd = fixture();
+    const staticRecord = {id: 'AC-25f77cec', statement: 'The system shall use registered static evidence.'};
+    const staticBaseline = baselineReceipt(staticRecord, [], 'accept', 'F-dd8dc994', 'AC-25f77cec');
+    const staticCompilation = baselineCompilation(staticCwd, staticRecord, staticBaseline, 'F-dd8dc994', 'AC-25f77cec');
+    expect(migrationBaselineCandidatesFromWorkspace(staticCwd, staticCompilation, ['feature:F-dd8dc994'])).toEqual([]);
+  });
+
   test('keeps a required missing binding sealed but locally unobserved', () => {
     const cwd = fixture();
     const compilation = compileSpecWorkspace(cwd);
@@ -670,13 +848,12 @@ describe('F6 workspace profile closure', () => {
     });
     expect(verdict).toMatchObject({state: 'unresolved', profile_complete: false});
     for (const obligation of ['stage_2.1', 'stage_2.2']) {
-      expect(Object.fromEntries(verdict.results
-        .filter((result) => result.obligation === obligation)
-        .map((result) => [result.subject, result.state])))
-        .toEqual({
-          'criterion:F-aaaaaaaa/AC-aaaaaaaa': 'pass',
-          'criterion:F-aaaaaaaa/AC-bbbbbbbb': 'unobserved',
-        });
+      expect(verdict.results.find((result) => result.obligation === obligation
+        && result.subject === 'criterion:F-aaaaaaaa/AC-aaaaaaaa')?.state).toBe('pass');
+      expect(verdict.results.find((result) => result.obligation === obligation
+        && result.subject === 'criterion:F-aaaaaaaa/AC-bbbbbbbb')?.state).toBe('unobserved');
+      expect(verdict.results.filter((result) => result.obligation === obligation && result.subject.startsWith('scope:')))
+        .toEqual([expect.objectContaining({state: 'pass'})]);
     }
   });
 

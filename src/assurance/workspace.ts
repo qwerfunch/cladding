@@ -20,17 +20,27 @@ import {
   type AssuranceFeatureInput,
   type ClosureProofInput,
 } from './closures.js';
-import type {AssuranceProfile, AssuranceVerdict} from './kernel.js';
+import type {AssuranceProfile, AssuranceVerdict, MigrationBaselineCandidate} from './kernel.js';
 import {canonicalClosureJson} from './closures.js';
-import {staticCriterionReportsFromWorkspace, staticCriterionScopeFromWorkspace, type CriterionObservationReport, type StaticCriterionScope} from './criterion-observations.js';
+import {criterionObservationRule, staticCriterionReportsFromWorkspace, staticCriterionScopeFromWorkspace, type CriterionObservationReport, type StaticCriterionScope} from './criterion-observations.js';
 import {OBLIGATION_DESCRIPTORS, type AssuranceControl} from './registry.js';
 import {artifactAddress, compilerCorpusView} from '../spec/compiler/compile.js';
 import type {SpecCompilation} from '../spec/compiler/types.js';
-import {LEGACY_UNCLASSIFIED} from '../spec/compiler/migration-baseline.js';
+import {
+  LEGACY_L2_OBLIGATIONS,
+  LEGACY_UNCLASSIFIED,
+  criterionAuthorizationSha256,
+  criterionFinalIntentFromRecord,
+  criterionFinalIntentSha256,
+  migrationBaselineReceiptSha256,
+  validateMigrationBaseline,
+  type CriterionIntentBaseline,
+  type ReviewedCriterionCarryForward,
+} from '../spec/compiler/migration-baseline.js';
 import {scanLegacyStatement} from '../spec/legacy-statement-scanner.js';
 import {loadSpec} from '../spec/load.js';
 import type {Spec} from '../spec/types.js';
-import {currentSafeBindings} from '../proof/current-bindings.js';
+import {currentSafeBindingCensus, currentSafeBindings} from '../proof/current-bindings.js';
 import {selectCriterionTestBindings} from '../proof/legacy-bindings.js';
 import type {TestBinding} from '../proof/types.js';
 import {buildProofView, type CriterionProofView} from '../proof/view.js';
@@ -250,6 +260,8 @@ export interface WorkspaceProfileSnapshot {
   readonly criterionObservations: readonly CriterionObservationReport[];
   /** Exact compiler-minted static subjects, usable only by Unit/Coverage. */
   readonly staticCriterionScope: StaticCriterionScope;
+  /** Accepted, current, mechanism-free L2 receipt candidates for this scope. */
+  readonly migrationBaselineCandidates: readonly MigrationBaselineCandidate[];
   readonly incompleteAddresses: readonly string[];
   /** Unknown runner controls expand a claimed subset to the whole repository. */
   readonly effectiveScopeAddresses: readonly string[];
@@ -282,6 +294,190 @@ export function hasApplicableSchema02TestCriteria(
   return compilation.contract.features.some((feature) => feature.status === 'done'
     && feature.acceptanceCriteria.length > 0
     && (scopedFeatures.size === 0 || scopedFeatures.has(feature.id)));
+}
+
+/**
+ * Builds the narrow receipt candidates that the generic reducer may consider.
+ * This is the sole assurance seam that imports the migration receipt contract:
+ * kernel and run authority receive only generic subjects and content identities.
+ */
+export function migrationBaselineCandidatesFromWorkspace(
+  cwd: string,
+  compilation: SpecCompilation,
+  scopeAddresses: readonly string[],
+): readonly MigrationBaselineCandidate[] {
+  if (compilation.schemaVersion !== '0.2' || !compilation.contract) return Object.freeze([]);
+  const baseline = compilation.migrationBaseline;
+  // Compilation normally has already validated this file. Recheck it once at
+  // this policy boundary so an injected or prospective snapshot cannot turn a
+  // malformed receipt into a per-criterion fallback.
+  if (!baseline || validateMigrationBaseline(baseline).length > 0) return Object.freeze([]);
+  const decision = baseline.legacyL2Baseline;
+  if (decision?.decision !== 'accept') return Object.freeze([]);
+  const knownCriteria = new Set(compilation.contract.features
+    .flatMap((feature) => feature.acceptanceCriteria.map((criterion) => `${feature.id}/${criterion.id}`)));
+  const live = currentSafeBindingCensus(cwd, knownCriteria);
+  // Missing tests is a safe empty census. An unsafe, unreadable, or partially
+  // parsed walk is not proof that live mechanisms are absent.
+  if (!live.safe) return Object.freeze([]);
+  const liveCriteria = new Set(live.bindings.map((binding) => binding.criterion));
+  const authorizations = new Map(decision.authorizations.map((authorization) => [authorization.criterion, authorization]));
+  const legacyCriteria = new Map(baseline.criteria.map((criterion) => [criterion.address, criterion]));
+  const reviewed = new Map((baseline.reviewedCarryForwards ?? []).map((entry) => [entry.criterion, entry]));
+  const scoped = migrationBaselineScope(scopeAddresses);
+  const currentRecords = currentCriterionRecordsByAddress(cwd, compilation);
+  const receiptSha256 = migrationBaselineReceiptSha256(baseline);
+  const candidates: MigrationBaselineCandidate[] = [];
+  for (const feature of compilation.contract.features) {
+    if (feature.status !== 'done' || (scoped.featureIds.size > 0 && !scoped.featureIds.has(feature.id))) continue;
+    for (const criterion of feature.acceptanceCriteria) {
+      const address = `${feature.id}/${criterion.id}`;
+      const subject = `criterion:${address}`;
+      if (!scoped.includes(feature.id, subject)) continue;
+      const authorization = authorizations.get(subject);
+      const legacy = legacyCriteria.get(subject);
+      if (!authorization || !legacy || !exactL2Obligations(authorization.obligations)) continue;
+      // Preserve F5 selection precedence: an observed live binding is always
+      // a mechanism before historic carry-forward or receipt fallback.
+      if (liveCriteria.has(address)) continue;
+      const current = currentRecords.get(subject);
+      if (current === undefined) continue;
+      const intent = criterionFinalIntentFromRecord(current);
+      if (!intent || authorization.finalIntentSha256 !== criterionFinalIntentSha256(intent)) continue;
+      const selectedReview = reviewed.get(subject);
+      if (selectedReview !== undefined && reviewedIntentMatches(selectedReview, criterion)
+        && selectedReview.bindings.some((binding) =>
+          hasExactSelector(binding.selector)
+            || hasExactSelector(binding.raw.includes('#')
+              ? binding.raw.slice(binding.raw.indexOf('#') + 1)
+              : undefined))) continue;
+      if (legacyIntentMatches(legacy, criterion)
+        && legacy.bindings.some((binding) => binding.channel === 'test' && (
+          hasExactSelector(binding.selector)
+            || hasExactSelector(binding.raw.includes('#')
+              ? binding.raw.slice(binding.raw.indexOf('#') + 1)
+              : undefined)))) continue;
+      // A code-owned current rule is also a mechanism, even when its current
+      // report has not yet run or is not applicable.
+      if (criterionObservationRule(address) !== undefined) continue;
+      candidates.push(Object.freeze({
+        subject,
+        obligations: Object.freeze([...LEGACY_L2_OBLIGATIONS]),
+        basis: Object.freeze({
+          baseline_receipt_sha256: receiptSha256,
+          resolution_sha256: authorization.resolutionSha256,
+          criterion_authorization_sha256: criterionAuthorizationSha256(authorization),
+        }),
+      }));
+    }
+  }
+  return Object.freeze(candidates.sort((left, right) => comparePath(left.subject, right.subject)));
+}
+
+/**
+ * Reads current authored criterion records once per feature source.
+ *
+ * The compiler projection correctly owns semantic meaning but normalizes an
+ * empty `constraint_refs` list.  Migration authorization additionally binds
+ * the authored final-intent shape, for which omission and an explicit empty
+ * list differ.  A file which cannot be read or decoded simply supplies no
+ * candidates from that source.
+ *
+ * @param cwd Workspace root.
+ * @param compilation Current compiler result.
+ * @returns Current authored criteria keyed by canonical criterion subject.
+ */
+function currentCriterionRecordsByAddress(
+  cwd: string,
+  compilation: SpecCompilation,
+): ReadonlyMap<string, Record<string, unknown>> {
+  const records = new Map<string, Record<string, unknown>>();
+  for (const node of compilation.nodes) {
+    if (node.nodeType !== 'semantic' || node.kind !== 'feature') continue;
+    try {
+      const raw = parseYaml(readFileSync(join(cwd, node.source.path), 'utf8'));
+      if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) continue;
+      const source = raw as Record<string, unknown>;
+      const expectedId = node.address.slice('feature:'.length);
+      const feature = source.id === expectedId
+        ? source
+        : Array.isArray(source.features)
+          ? source.features.find((entry): entry is Record<string, unknown> => entry !== null
+            && typeof entry === 'object' && !Array.isArray(entry)
+            && (entry as Record<string, unknown>).id === expectedId)
+          : undefined;
+      if (feature === undefined) continue;
+      if (typeof feature.id !== 'string' || !Array.isArray(feature.acceptance_criteria)) continue;
+      for (const entry of feature.acceptance_criteria) {
+        if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) continue;
+        const criterion = entry as Record<string, unknown>;
+        if (typeof criterion.id === 'string') {
+          records.set(`criterion:${feature.id}/${criterion.id}`, criterion);
+        }
+      }
+    } catch {
+      // Exact authored intent is mandatory: an unreadable source is ineligible.
+    }
+  }
+  return records;
+}
+
+/** Preserves a criterion-narrowed profile request instead of widening it to its feature. */
+function migrationBaselineScope(scopeAddresses: readonly string[]): {
+  readonly featureIds: ReadonlySet<string>;
+  readonly includes: (featureId: string, criterionSubject: string) => boolean;
+} {
+  const featureIds = new Set<string>();
+  const criterionSubjects = new Set<string>();
+  for (const address of scopeAddresses) {
+    if (address.startsWith('feature:')) {
+      featureIds.add(address.slice('feature:'.length));
+    } else if (/^criterion:F-[^/]+\/AC-[^/]+$/.test(address)) {
+      criterionSubjects.add(address);
+      featureIds.add(address.slice('criterion:'.length).split('/')[0]!);
+    }
+  }
+  const featureWide = new Set(scopeAddresses
+    .filter((address) => address.startsWith('feature:'))
+    .map((address) => address.slice('feature:'.length)));
+  return Object.freeze({
+    featureIds,
+    includes: (featureId, criterionSubject): boolean => scopeAddresses.length === 0
+      || featureWide.has(featureId) || criterionSubjects.has(criterionSubject),
+  });
+}
+
+/** Keeps the receipt’s fixed pair from becoming a generic descriptor waiver. */
+function exactL2Obligations(obligations: readonly string[]): boolean {
+  return obligations.length === LEGACY_L2_OBLIGATIONS.length
+    && obligations.every((obligation, index) => obligation === LEGACY_L2_OBLIGATIONS[index]);
+}
+
+/** Returns whether the current strict target still selects one reviewed carry-forward. */
+function reviewedIntentMatches(
+  review: ReviewedCriterionCarryForward,
+  criterion: {readonly statement: string; readonly kind?: string; readonly rationale?: string; readonly constraintRefs: readonly string[]},
+): boolean {
+  if (criterion.statement !== review.intent.statement || criterion.kind !== review.intent.kind
+    || criterion.rationale !== review.intent.rationale) return false;
+  const refs = review.intent.constraintRefs;
+  return refs === undefined
+    ? criterion.constraintRefs.length === 0
+    : refs.length === criterion.constraintRefs.length
+      && refs.every((ref, index) => ref === criterion.constraintRefs[index]);
+}
+
+/** Returns whether the unchanged legacy selection, if any, still wins for this criterion. */
+function legacyIntentMatches(
+  legacy: CriterionIntentBaseline,
+  criterion: {readonly statement: string; readonly kind?: string; readonly rationale?: string; readonly constraintRefs: readonly string[]},
+): boolean {
+  if (!legacy.exemption || criterion.statement !== legacy.legacyIntent.text
+    || (criterion.kind !== undefined && criterion.kind !== LEGACY_UNCLASSIFIED)) return false;
+  const rationale = legacy.legacyIntent.rationale;
+  const refs = legacy.legacyIntent.constraint_refs;
+  return (rationale === undefined ? criterion.rationale === undefined : criterion.rationale === rationale)
+    && (refs === undefined ? criterion.constraintRefs.length === 0 : criterion.constraintRefs.join(',') === refs);
 }
 
 /**
@@ -478,11 +674,17 @@ export function workspaceProfileSnapshot(
   // removing the subject and manufacturing a project-wide NA.
   const staticCriterionScope = staticCriterionScopeFromWorkspace(compilation, effectiveScopeAddresses);
   const criterionObservations = staticCriterionReportsFromWorkspace(cwd, compilation, effectiveScopeAddresses);
+  const migrationBaselineCandidates = migrationBaselineCandidatesFromWorkspace(cwd, compilation, effectiveScopeAddresses);
   records.push({criterion_observations: criterionObservations.map((report) => ({
     criterion: report.criterion, adapter: report.adapter, state: report.state,
     current: report.current, complete: report.complete, applicable: report.applicable,
     input_addresses: [...report.input_addresses].sort(comparePath), input_sha256: report.input_sha256,
     manifest_sha256: report.manifest_sha256,
+  }))});
+  records.push({migration_baseline_candidates: migrationBaselineCandidates.map((candidate) => ({
+    subject: candidate.subject,
+    obligations: [...candidate.obligations],
+    basis: candidate.basis,
   }))});
   if (request.scopeComplete === false) incompleteAddresses.push('scope-closure');
   if (controls.complete !== true) incompleteAddresses.push('runner-controls');
@@ -492,6 +694,7 @@ export function workspaceProfileSnapshot(
     closureInput,
     criterionObservations: Object.freeze(criterionObservations),
     staticCriterionScope,
+    migrationBaselineCandidates,
     incompleteAddresses: Object.freeze(incompleteAddresses.sort(comparePath)),
     effectiveScopeAddresses: Object.freeze(effectiveScopeAddresses),
   });

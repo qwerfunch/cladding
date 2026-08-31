@@ -97,6 +97,42 @@ function compilerGreenVerdict() {
 }
 
 describe('F6 attestation v3 payload', () => {
+  test('admits receipt-backed L2 rows only when this run observed matching current scope passes', () => {
+    const basis = {
+      baseline_receipt_sha256: 'b'.repeat(64),
+      resolution_sha256: 'c'.repeat(64),
+      criterion_authorization_sha256: 'd'.repeat(64),
+    };
+    const baselineRows: ObligationResult[] = ['stage_2.1', 'stage_2.2'].flatMap((obligation) => [{
+      obligation,
+      subject: `scope:${authorityScopeSha256}`,
+      state: 'pass' as const,
+      source_strictness: 'hard' as const,
+      blocking: 'hard' as const,
+      observation_identities: [`scope:${obligation}`],
+    }, {
+      obligation,
+      subject: 'criterion:F-a/AC-b',
+      state: 'migration_baseline' as const,
+      source_strictness: 'hard' as const,
+      blocking: 'hard' as const,
+      migration_baseline: basis,
+      observation_identities: [],
+    }]);
+    expect(hasSealedAuthority(sealedVerdict(baselineRows))).toBe(true);
+
+    const missingScope = baselineRows.filter((row) => !row.subject.startsWith('scope:'));
+    expect(hasSealedAuthority(sealedVerdict(missingScope))).toBe(false);
+    const foreignScope = baselineRows.map((row) => row.subject.startsWith('scope:')
+      ? {...row, subject: `scope:${'e'.repeat(64)}`}
+      : row);
+    expect(hasSealedAuthority(sealedVerdict(foreignScope))).toBe(false);
+    const forged = baselineRows.map((row) => row.state === 'migration_baseline'
+      ? {...row, migration_baseline: {...basis, resolution_sha256: 'not-a-sha'}}
+      : row);
+    expect(hasSealedAuthority(sealedVerdict(forged))).toBe(false);
+  });
+
   test('[covers:F-065/AC-175] mints a current profile-complete authoritative attestation only from the authoritative verdict', () => {
     const input = {verdict: greenVerdict(), feature: 'F-a', contractSha256: digest, subjectSha256: digest, verificationSha256: digest, runtimeDependencySha256: digest, registrySha256: digest, detectorCatalogSha256: digest, toolIdentity: 'cladding', environmentClass: 'test', trustSnapshotSha256: digest};
     // A public adapter GREEN is a compatibility projection, not proof that the

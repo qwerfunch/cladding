@@ -79,7 +79,8 @@ export function mintRunCheckStagesAuthority(
     || verdict.state !== 'green' || !verdict.profile_complete
     || hasDuplicateResultKeys(verdict)
     || observationIdentities.length === 0
-    || verdict.results.some((result) => result.state === 'pass' && !observedStages.has(result.obligation))) return;
+    || verdict.results.some((result) => result.state === 'pass' && !observedStages.has(result.obligation))
+    || !validMigrationBaselineRows(verdict, observedStages)) return;
   RUN_CHECK_STAGES_AUTHORITIES.set(verdict, Object.freeze({
     inputSha256: input.inputSha256,
     scopeSha256,
@@ -144,6 +145,38 @@ function verdictObservationSeal(verdict: AssuranceVerdict): string {
     source_strictness: result.source_strictness ?? null,
     blocking: result.blocking,
     reason: result.reason ?? null,
+    migration_baseline: result.migration_baseline ?? null,
     observation_identities: [...result.observation_identities].sort(),
   }))), 'utf8').digest('hex');
+}
+
+/** Validates that every receipt-backed row is anchored by this run's current scope pass. */
+function validMigrationBaselineRows(verdict: AssuranceVerdict, observedStages: ReadonlySet<string>): boolean {
+  return verdict.results
+    .filter((result) => result.state === 'migration_baseline')
+    .every((result) => {
+      if ((result.obligation !== 'stage_2.1' && result.obligation !== 'stage_2.2')
+        || !result.subject.startsWith('criterion:')
+        || result.observation_identities.length !== 0
+        || !validBasis(result.migration_baseline)
+        || !observedStages.has(result.obligation)) return false;
+      return verdict.results.some((scope) => scope.obligation === result.obligation
+        && scope.subject === `scope:${verdict.scope_sha256}`
+        && scope.state === 'pass'
+        && scope.observation_identities.length > 0
+        && observedStages.has(scope.obligation));
+    });
+}
+
+/** Keeps private authority from sealing a copied or structurally incomplete receipt basis. */
+function validBasis(value: AssuranceVerdict['results'][number]['migration_baseline']): boolean {
+  return value !== undefined
+    && isSha256(value.baseline_receipt_sha256)
+    && isSha256(value.resolution_sha256)
+    && isSha256(value.criterion_authorization_sha256);
+}
+
+/** The migration receipt protocol uses lower-case full SHA-256 identities. */
+function isSha256(value: string): boolean {
+  return /^[a-f0-9]{64}$/.test(value);
 }

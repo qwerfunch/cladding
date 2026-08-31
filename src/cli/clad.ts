@@ -1028,6 +1028,9 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
           requiresHuman: plan?.requiresHuman ?? level.level === 'L4',
           criterionObservations: [...staticReports, ...liveReports],
           ...(staticCriterionScope ? {staticCriterionScope} : {}),
+          ...(plan?.snapshot.migrationBaselineCandidates !== undefined
+            ? {migrationBaselineCandidates: plan.snapshot.migrationBaselineCandidates}
+            : {}),
           ...(compilation.schemaVersion === '0.2' ? {
             proofViews: currentProofViewsFromWorkspace('.', compilation, scopeAddresses, currentRunProof, plan?.snapshot.inputSha256),
             currentProofObservationIdentity: currentRunProofIdentity(currentRunProof),

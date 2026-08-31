@@ -3,7 +3,7 @@
 import {describe, expect, test} from 'vitest';
 
 import {reduceLegacyStageAdapter} from '../../src/assurance/adapters.js';
-import {assuranceProfile, compileAssuranceReductionPlan, legacyStageProjection, reduceAssurancePlan, type AssuranceReductionPlanInput} from '../../src/assurance/kernel.js';
+import {assuranceProfile, compileAssuranceReductionPlan, legacyStageProjection, reduceAssurancePlan, type AssuranceReductionPlanInput, type MigrationBaselineCandidate} from '../../src/assurance/kernel.js';
 
 const reportProfile = {...assuranceProfile('push', 'L2'), obligations: ['stage_2.2']};
 const reportObligation = {
@@ -35,6 +35,35 @@ function observation(state: 'pass' | 'fail' | 'unobserved') {
     adapter: {id: 'legacy-stage:stage_2.2', version: '1'}, provenance: 'observed' as const,
     assurance: 'verified' as const, observed_at: '1970-01-01T00:00:00.000Z', environment_class: 'test', current: true,
   };
+}
+
+const migrationCandidate: MigrationBaselineCandidate = {
+  subject: 'criterion:F-aaaaaaaa/AC-bbbbbbbb',
+  obligations: ['stage_2.1', 'stage_2.2'],
+  basis: {
+    baseline_receipt_sha256: 'b'.repeat(64),
+    resolution_sha256: 'c'.repeat(64),
+    criterion_authorization_sha256: 'd'.repeat(64),
+  },
+};
+
+function migrationVerdict(
+  test: 'verified' | 'failed' | 'unverified' = 'unverified',
+  candidate: MigrationBaselineCandidate = migrationCandidate,
+) {
+  return reduceLegacyStageAdapter({
+    profile: assuranceProfile('completion', 'L2'), configuredAssuranceLevel: 'L2', completeScope: true,
+    scopeAddresses: ['feature:F-aaaaaaaa'], inputAddresses: ['feature:F-aaaaaaaa'], inputSha256: 'a'.repeat(64),
+    hasExecutableTests: true, hasOracleProof: false, hasDeliverable: false, requiresQuality: false, requiresHuman: false,
+    proofViews: [{
+      criterion: 'F-aaaaaaaa/AC-bbbbbbbb',
+      test: {criterion: 'F-aaaaaaaa/AC-bbbbbbbb', state: test, matched: 0, pass: 0, fail: 0, skip: 0, error: 0},
+      audit: 'unverified', uat: 'unverified', blind: 'unverified', assertedEvidence: 0,
+    }],
+    exactProofRequired: true, migrationBaselineCandidates: [candidate], environmentClass: 'test',
+    stages: ['stage_1.1', 'stage_1.2', 'stage_1.3', 'stage_1.4', 'stage_1.5', 'stage_1.6', 'stage_2.1', 'stage_2.2']
+      .map((stage) => ({stage, status: 'pass' as const})),
+  });
 }
 
 describe('F6 assurance reducer', () => {
@@ -244,10 +273,12 @@ describe('F6 assurance reducer', () => {
       stages: ['stage_1.1', 'stage_1.2', 'stage_1.3', 'stage_1.4', 'stage_1.5', 'stage_1.6', 'stage_2.1', 'stage_2.2']
         .map((stage) => ({stage, status: 'pass' as const})),
     });
-    expect(Object.fromEntries(verdict.results.filter((result) => result.obligation === 'stage_2.1').map((result) => [result.subject, result.state])))
-      .toEqual({'criterion:F-target/AC-a': 'pass', 'criterion:F-sibling/AC-b': 'unobserved'});
-    expect(Object.fromEntries(verdict.results.filter((result) => result.obligation === 'stage_2.2').map((result) => [result.subject, result.state])))
-      .toEqual({'criterion:F-target/AC-a': 'pass', 'criterion:F-sibling/AC-b': 'unobserved'});
+    for (const obligation of ['stage_2.1', 'stage_2.2']) {
+      expect(verdict.results.find((result) => result.obligation === obligation && result.subject === 'criterion:F-target/AC-a')?.state).toBe('pass');
+      expect(verdict.results.find((result) => result.obligation === obligation && result.subject === 'criterion:F-sibling/AC-b')?.state).toBe('unobserved');
+      expect(verdict.results.filter((result) => result.obligation === obligation && result.subject.startsWith('scope:')))
+        .toEqual([expect.objectContaining({state: 'pass'})]);
+    }
   });
 
   test('keeps an un-attributable Coverage failure as a scope summary while exact rows remain current-test bound', () => {
@@ -300,5 +331,93 @@ describe('F6 assurance reducer', () => {
     for (const descriptor of ['stage_2.1', 'stage_2.2', 'stage_2.3']) {
       expect(verdict.results.find((result) => result.obligation === descriptor)).toMatchObject({subject: `criterion:${criterion}`, state: 'pass'});
     }
+  });
+
+  test('reduces an accepted baseline only for unobserved L2 criterion rows after both current scope passes', () => {
+    const verdict = migrationVerdict();
+    expect(verdict).toMatchObject({state: 'green', profile_complete: true, achieved_assurance_level: 'L2'});
+    for (const obligation of ['stage_2.1', 'stage_2.2']) {
+      expect(verdict.results.find((result) => result.obligation === obligation && result.subject.startsWith('scope:')))
+        .toMatchObject({state: 'pass'});
+      expect(verdict.results.find((result) => result.obligation === obligation && result.subject === migrationCandidate.subject))
+        .toMatchObject({state: 'migration_baseline', migration_baseline: migrationCandidate.basis, observation_identities: []});
+    }
+    expect(legacyStageProjection(verdict)).toEqual(expect.arrayContaining([
+      {stage: 'stage_2.1', status: 'unobserved'},
+      {stage: 'stage_2.2', status: 'unobserved'},
+    ]));
+
+    const ordinaryPass = migrationVerdict('verified');
+    const ordinaryFail = migrationVerdict('failed');
+    for (const obligation of ['stage_2.1', 'stage_2.2']) {
+      expect(ordinaryPass.results.find((result) => result.obligation === obligation && result.subject === migrationCandidate.subject)?.state).toBe('pass');
+      expect(ordinaryFail.results.find((result) => result.obligation === obligation && result.subject === migrationCandidate.subject)?.state).toBe('fail');
+    }
+    for (const field of [
+      'baseline_receipt_sha256', 'resolution_sha256', 'criterion_authorization_sha256',
+    ] as const) {
+      const changedBasis = {...migrationCandidate, basis: {...migrationCandidate.basis, [field]: 'e'.repeat(64)}};
+      expect(migrationVerdict('unverified', changedBasis).obligation_sha256).not.toBe(verdict.obligation_sha256);
+    }
+  });
+
+  test('does not use a baseline for Oracle or when the matching current scope result is not pass', () => {
+    const criterion = 'F-aaaaaaaa/AC-bbbbbbbb';
+    const verdict = reduceLegacyStageAdapter({
+      profile: assuranceProfile('push', 'L2'), configuredAssuranceLevel: 'L2', completeScope: true,
+      scopeAddresses: ['feature:F-aaaaaaaa'], inputAddresses: ['feature:F-aaaaaaaa'], inputSha256: 'a'.repeat(64),
+      hasExecutableTests: true, hasOracleProof: true, oracleRequiredSubjects: new Set([`criterion:${criterion}`]),
+      hasDeliverable: false, requiresQuality: false, requiresHuman: false, exactProofRequired: true,
+      proofViews: [{
+        criterion,
+        test: {criterion, state: 'unverified' as const, matched: 0, pass: 0, fail: 0, skip: 0, error: 0},
+        audit: 'unverified' as const, uat: 'unverified' as const, blind: 'unverified' as const, assertedEvidence: 0,
+      }],
+      migrationBaselineCandidates: [migrationCandidate], environmentClass: 'test',
+      stages: [...['stage_1.1', 'stage_1.2', 'stage_1.3', 'stage_1.4', 'stage_1.5', 'stage_1.6', 'stage_2.1', 'stage_2.3']
+        .map((stage) => ({stage, status: 'pass' as const})), {stage: 'stage_2.2', status: 'fail' as const}],
+    });
+    expect(verdict.results.find((result) => result.obligation === 'stage_2.1' && result.subject === migrationCandidate.subject)?.state).toBe('migration_baseline');
+    expect(verdict.results.find((result) => result.obligation === 'stage_2.2' && result.subject === migrationCandidate.subject)?.state).toBe('unobserved');
+    expect(verdict.results.find((result) => result.obligation === 'stage_2.3' && result.subject === migrationCandidate.subject)?.state).toBe('unobserved');
+  });
+
+  test('does not activate a baseline from a pass on a different scope subject', () => {
+    const inputSha256 = 'a'.repeat(64);
+    const scopeSha256 = 'b'.repeat(64);
+    const foreignScope = `scope:${'c'.repeat(64)}`;
+    const obligations = ['stage_2.1', 'stage_2.2'].flatMap((descriptor) => [{
+      id: `${descriptor}:${migrationCandidate.subject}`,
+      subject: migrationCandidate.subject,
+      assurance_level: 'L2' as const,
+      descriptor,
+      input_addresses: ['feature:F-aaaaaaaa'],
+      input_sha256: inputSha256,
+      applicability: 'required' as const,
+      source_strictness: 'hard' as const,
+      blocking: 'hard' as const,
+    }, {
+      id: `${descriptor}:${foreignScope}`,
+      subject: foreignScope,
+      assurance_level: 'L2' as const,
+      descriptor,
+      input_addresses: ['feature:F-aaaaaaaa'],
+      input_sha256: inputSha256,
+      applicability: 'required' as const,
+      source_strictness: 'hard' as const,
+      blocking: 'hard' as const,
+    }]);
+    const verdict = authorityReduce({
+      profile: assuranceProfile('completion', 'L2'), configuredAssuranceLevel: 'L2', scopeSha256, inputSha256,
+      scopeAddresses: ['feature:F-aaaaaaaa'], obligations,
+      observations: ['stage_2.1', 'stage_2.2'].map((obligation) => ({
+        obligation, subject: foreignScope, state: 'pass' as const, input_sha256: inputSha256,
+        adapter: {id: `legacy-stage:${obligation}`, version: '1'}, provenance: 'observed' as const,
+        assurance: 'verified' as const, observed_at: '1970-01-01T00:00:00.000Z', environment_class: 'test',
+      })),
+      migrationBaselineCandidates: [migrationCandidate],
+    });
+    expect(verdict.results.filter((result) => result.subject === migrationCandidate.subject)
+      .map((result) => result.state)).toEqual(['unobserved', 'unobserved']);
   });
 });

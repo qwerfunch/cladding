@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 
 import {canonicalClosureJson} from './closures.js';
 import {criterionObservationRule, isStaticCriterionScope, type CriterionObservationReport, type StaticCriterionScope} from './criterion-observations.js';
-import {assuranceProfile, compileAssuranceReductionPlan, reduceAssurancePlan, type AssuranceProfile, type AssuranceVerdict, type Observation, type ProofObligation} from './kernel.js';
+import {assuranceProfile, compileAssuranceReductionPlan, reduceAssurancePlan, type AssuranceProfile, type AssuranceVerdict, type MigrationBaselineCandidate, type Observation, type ProofObligation} from './kernel.js';
 import {deriveApplicability, levelNumber, obligationDescriptor, type AssuranceLevel} from './registry.js';
 import type {CriterionProofView} from '../proof/view.js';
 
@@ -44,6 +44,8 @@ export interface AssuranceAdapterInput {
   readonly exactProofRequired?: boolean;
   /** Opaque current Unit invocation identity, retained only as a compact observation locator. */
   readonly currentProofObservationIdentity?: string;
+  /** Compiler-classified accepted migration receipt candidates, never stage input. */
+  readonly migrationBaselineCandidates?: readonly MigrationBaselineCandidate[];
   readonly stages: readonly LegacyStageObservation[];
   readonly environmentClass: string;
 }
@@ -143,8 +145,12 @@ export function reduceLegacyStageAdapter(input: AssuranceAdapterInput): Assuranc
     // one scope summary instead of copying a global result into every sibling;
     // a failure still dominates the profile, while skip/pending stays honestly
     // unobserved.
-    if (input.exactProofRequired && requiresLegacyStageOutcome(descriptor.id) && applicability === 'required'
-      && stage !== undefined && stage.status !== 'pass') {
+    const requiresCurrentL2Scope = input.exactProofRequired
+      && (descriptor.id === 'stage_2.1' || descriptor.id === 'stage_2.2');
+    const requiresLegacyScope = applicability === 'required'
+      && requiresLegacyStageOutcome(descriptor.id) && stage !== undefined && stage.status !== 'pass';
+    const requiresScopeRow = requiresCurrentL2Scope || requiresLegacyScope;
+    if (requiresScopeRow) {
       const summary: ProofObligation = {
         id: `${descriptor.id}:scope:${scopeSha256}`,
         subject: `scope:${scopeSha256}`,
@@ -168,6 +174,7 @@ export function reduceLegacyStageAdapter(input: AssuranceAdapterInput): Assuranc
     scopeAddresses: input.scopeAddresses,
     obligations,
     observations,
+    ...(input.migrationBaselineCandidates === undefined ? {} : {migrationBaselineCandidates: input.migrationBaselineCandidates}),
     ...(input.criterionObservations === undefined ? {} : {criterionObservations: input.criterionObservations}),
     environmentClass: input.environmentClass,
     applicabilityFacts: {

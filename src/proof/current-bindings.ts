@@ -1,7 +1,7 @@
 // Cladding · Spec 0.2 F7 · shared safe live-test binding census.
 
 import {createHash} from 'node:crypto';
-import {existsSync, lstatSync, readFileSync, readdirSync} from 'node:fs';
+import {lstatSync, readFileSync, readdirSync} from 'node:fs';
 import {join, relative, resolve} from 'node:path';
 
 import type {SpecCompilation} from '../spec/compiler/types.js';
@@ -18,6 +18,11 @@ export interface CurrentSafeBindingCensus {
   readonly bindings: readonly TestBinding[];
   /** Digest of the exact supported source bytes inspected for those bindings. */
   readonly digest: string;
+  /**
+   * Whether every discovered test source was safely traversed, read, and
+   * parsed. A missing `tests/` directory is a proved-safe empty census.
+   */
+  readonly safe: boolean;
 }
 
 /**
@@ -46,7 +51,16 @@ export function currentSafeBindings(cwd: string, compilation: SpecCompilation): 
  */
 export function currentSafeBindingCensus(cwd: string, knownCriteria: ReadonlySet<string>): CurrentSafeBindingCensus {
   const rootRelative = 'tests';
-  if (!existsSync(join(cwd, rootRelative))) return emptyCensus('absent');
+  try {
+    const rootStat = lstatSync(join(cwd, rootRelative));
+    if (rootStat.isSymbolicLink() || !rootStat.isDirectory()) return emptyCensus('unsafe');
+  } catch (error) {
+    // Only a truly absent root proves a safe empty test surface. A dangling
+    // link, permission error, or any other failed inspection remains unsafe.
+    return (error as {code?: unknown}).code === 'ENOENT'
+      ? emptyCensus('absent')
+      : emptyCensus('unsafe');
+  }
   try {
     const root = safeProofDirectory(cwd, rootRelative);
     const files: string[] = [];
@@ -63,6 +77,7 @@ export function currentSafeBindingCensus(cwd: string, knownCriteria: ReadonlySet
     };
     visit(root);
     const manifest: {file: string; sha256: string}[] = [];
+    let safe = true;
     const bindings = files.sort(comparePath).flatMap((file) => {
       try {
         const bytes = readFileSync(safeProofWorkspacePath(cwd, file));
@@ -70,11 +85,15 @@ export function currentSafeBindingCensus(cwd: string, knownCriteria: ReadonlySet
         manifest.push({file, sha256: digest(bytes)});
         return harvestVitestJestBindings({file, source, knownCriteria}).bindings;
       } catch (error) {
+        safe = false;
         manifest.push({file, sha256: `<unavailable:${(error as Error).name}>`});
         return [];
       }
     });
-    return {bindings, digest: digest(JSON.stringify(manifest))};
+    // A partial source walk is not evidence that every live binding is absent.
+    // Do not let a surviving sibling declaration demote the failed file into a
+    // safe empty scan for migration-baseline eligibility.
+    return {bindings: safe ? bindings : [], digest: digest(JSON.stringify(manifest)), safe};
   } catch {
     return emptyCensus('unsafe');
   }
@@ -85,7 +104,7 @@ function comparePath(left: string, right: string): number {
 }
 
 function emptyCensus(state: 'absent' | 'unsafe'): CurrentSafeBindingCensus {
-  return {bindings: [], digest: digest(state)};
+  return {bindings: [], digest: digest(state), safe: state === 'absent'};
 }
 
 function digest(value: string | Uint8Array): string {

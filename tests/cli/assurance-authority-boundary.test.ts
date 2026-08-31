@@ -99,9 +99,11 @@ describe('F6 P1-1 authoritative verdict boundary', () => {
       expect(outcome).toMatchObject({worst: 1, anyFailed: true});
       expect(outcome.assurance).toMatchObject({state: 'unresolved', profile_complete: false});
       for (const obligation of ['stage_2.1', 'stage_2.2']) {
-        expect(outcome.assurance?.results.filter((result) => result.obligation === obligation)
-          .map((result) => ({subject: result.subject, state: result.state})))
-          .toEqual([{subject: `criterion:${FEATURE_A}/AC-a0a0a0a0`, state: 'unobserved'}]);
+        expect(outcome.assurance?.results.find((result) => result.obligation === obligation
+          && result.subject === `criterion:${FEATURE_A}/AC-a0a0a0a0`)?.state).toBe('unobserved');
+        expect(outcome.assurance?.results.filter((result) => result.obligation === obligation
+          && result.subject.startsWith('scope:')))
+          .toEqual([expect.objectContaining({state: 'pass'})]);
       }
       expect(existsSync(join(cwd, 'spec', 'attestation.yaml'))).toBe(false);
     } finally {

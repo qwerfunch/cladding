@@ -68,6 +68,26 @@ export interface Observation {
   readonly current?: boolean;
 }
 
+/** Immutable migration receipt basis carried by a non-observation L2 result. */
+export interface MigrationBaselineBasis {
+  /** Content address of the validated immutable migration receipt. */
+  readonly baseline_receipt_sha256: string;
+  /** Shared accepted project decision identity. */
+  readonly resolution_sha256: string;
+  /** Content address of the exact criterion-local authorization. */
+  readonly criterion_authorization_sha256: string;
+}
+
+/** Compiler-resolved candidate eligible only for the two legacy L2 rows. */
+export interface MigrationBaselineCandidate {
+  /** Exact reducer subject, always a composite `criterion:` address. */
+  readonly subject: string;
+  /** Exact descriptor rows authorized by the migration receipt. */
+  readonly obligations: readonly string[];
+  /** Receipt identities that must travel with every resolved baseline row. */
+  readonly basis: MigrationBaselineBasis;
+}
+
 /** Profile data stays serializable and runner-independent. */
 export interface AssuranceProfile {
   readonly id: AssuranceProfileId;
@@ -93,6 +113,8 @@ export interface AssuranceReductionPlan {
   readonly scopeAddresses: readonly string[];
   readonly obligations: readonly ProofObligation[];
   readonly observations: readonly Observation[];
+  /** Compiler-classified migration rows; never observations or caller stage facts. */
+  readonly migrationBaselineCandidates: readonly MigrationBaselineCandidate[];
   readonly independence?: AssuranceVerdict['independence'];
 }
 
@@ -106,6 +128,8 @@ export interface AssuranceReductionPlanInput {
   readonly scopeAddresses: readonly string[];
   readonly obligations: readonly ProofObligation[];
   readonly observations: readonly Observation[];
+  /** Compiler-classified receipt candidates for unchanged L2 criterion rows. */
+  readonly migrationBaselineCandidates?: readonly MigrationBaselineCandidate[];
   /** Current reports from the code-owned criterion adapter registry. */
   readonly criterionObservations?: readonly CriterionObservationReport[];
   /** Runtime class carried into registry-owned observations; direct callers use `neutral`. */
@@ -118,7 +142,9 @@ export interface AssuranceReductionPlanInput {
 export interface ObligationResult {
   readonly obligation: string;
   readonly subject: string;
-  readonly state: 'pass' | 'fail' | 'unobserved' | 'na';
+  readonly state: 'pass' | 'fail' | 'unobserved' | 'na' | 'migration_baseline';
+  /** Present only for an exact migration-baseline reduction. */
+  readonly migration_baseline?: MigrationBaselineBasis;
   readonly source_strictness?: StandardStrictness;
   readonly blocking: BlockingPolicy;
   readonly reason?: Observation['reason'];
@@ -187,6 +213,7 @@ export function invalidateAssuranceVerdict(
     obligation_sha256: createHash('sha256').update(canonicalClosureJson(results.map((result) => ({
       obligation: result.obligation, subject: result.subject, state: result.state,
       source_strictness: result.source_strictness ?? null, blocking: result.blocking,
+      migration_baseline: result.migration_baseline ?? null,
     }))), 'utf8').digest('hex'),
   });
   REDUCER_VERDICTS.add(invalidated);
@@ -305,6 +332,9 @@ export function compileAssuranceReductionPlan(input: AssuranceReductionPlanInput
     scopeAddresses: Object.freeze([...new Set(input.scopeAddresses)].sort(compareCodeUnits)),
     obligations: Object.freeze(obligations),
     observations: Object.freeze([...input.observations, ...criterionObservations]),
+    migrationBaselineCandidates: Object.freeze((input.migrationBaselineCandidates ?? [])
+      .filter(isMigrationBaselineCandidate)
+      .sort((left, right) => compareCodeUnits(left.subject, right.subject))),
     ...(input.independence === undefined ? {} : {independence: input.independence}),
   });
   REDUCTION_PLANS.add(plan);
@@ -332,6 +362,22 @@ function sameAddresses(left: readonly string[], right: readonly string[]): boole
   const a = [...left].sort(compareCodeUnits);
   const b = [...right].sort(compareCodeUnits);
   return a.length === b.length && a.every((entry, index) => entry === b[index]);
+}
+
+/** Admits only the generic shape the reducer can safely consider after normal reduction. */
+function isMigrationBaselineCandidate(value: MigrationBaselineCandidate): boolean {
+  return /^criterion:F-[^/]+\/AC-[^/]+$/.test(value.subject)
+    && value.obligations.length === 2
+    && value.obligations[0] === 'stage_2.1'
+    && value.obligations[1] === 'stage_2.2'
+    && isSha256(value.basis.baseline_receipt_sha256)
+    && isSha256(value.basis.resolution_sha256)
+    && isSha256(value.basis.criterion_authorization_sha256);
+}
+
+/** The receipt protocol uses lower-case full SHA-256 content identities. */
+function isSha256(value: string): boolean {
+  return /^[a-f0-9]{64}$/.test(value);
 }
 
 function manifestSha256(rule: CriterionObservationRule): string {
@@ -404,9 +450,16 @@ export function reduceAssurancePlan(plan: AssuranceReductionPlan): AssuranceVerd
 /** The raw reducer is deliberately private; only a registry-compiled plan may mint a verdict. */
 function reduceCanonicalAssuranceProfile(input: AssuranceReductionPlan): AssuranceVerdict {
   const wanted = new Set(input.profile.obligations);
-  const results = input.obligations
+  const reduced = input.obligations
     .filter((obligation) => wanted.has(obligation.descriptor) && levelNumber(obligation.assurance_level) <= levelNumber(input.profile.assurance_level))
-    .map((obligation) => reduceObligation(obligation, input.observations))
+    .map((obligation) => ({obligation, result: reduceObligation(obligation, input.observations)}));
+  const scopePasses = new Set(reduced
+    .filter(({result}) => result.subject === `scope:${input.scopeSha256}`
+      && result.state === 'pass' && result.observation_identities.length > 0)
+    .map(({result}) => result.obligation));
+  const candidates = new Map(input.migrationBaselineCandidates.map((candidate) => [candidate.subject, candidate]));
+  const results = reduced
+    .map(({obligation, result}) => migrationBaselineResult(obligation, result, candidates.get(result.subject), scopePasses))
     .sort((left, right) => compareCodeUnits(`${left.obligation}\u0000${left.subject}`, `${right.obligation}\u0000${right.subject}`));
   const presentDescriptors = new Set(results.map((result) => result.obligation));
   for (const descriptor of input.profile.obligations) {
@@ -437,6 +490,7 @@ function reduceCanonicalAssuranceProfile(input: AssuranceReductionPlan): Assuran
   const obligation_sha256 = createHash('sha256').update(canonicalClosureJson(results.map((result) => ({
     obligation: result.obligation, subject: result.subject, state: result.state,
     source_strictness: result.source_strictness ?? null, blocking: result.blocking,
+    migration_baseline: result.migration_baseline ?? null,
   }))), 'utf8').digest('hex');
   const verdict = Object.freeze({
     profile: input.profile.id,
@@ -463,6 +517,31 @@ function reduceCanonicalAssuranceProfile(input: AssuranceReductionPlan): Assuran
   return verdict;
 }
 
+/** Replaces only an otherwise-required unresolved L2 criterion with its sealed receipt basis. */
+function migrationBaselineResult(
+  obligation: ProofObligation,
+  result: ObligationResult,
+  candidate: MigrationBaselineCandidate | undefined,
+  scopePasses: ReadonlySet<string>,
+): ObligationResult {
+  if (result.state !== 'unobserved'
+    || obligation.applicability !== 'required'
+    || (obligation.descriptor !== 'stage_2.1' && obligation.descriptor !== 'stage_2.2')
+    || obligation.assurance_level !== 'L2'
+    || candidate === undefined
+    || !candidate.obligations.includes(obligation.descriptor)
+    || !scopePasses.has(obligation.descriptor)) return result;
+  return Object.freeze({
+    obligation: result.obligation,
+    subject: result.subject,
+    state: 'migration_baseline' as const,
+    source_strictness: result.source_strictness,
+    blocking: result.blocking,
+    migration_baseline: Object.freeze({...candidate.basis}),
+    observation_identities: Object.freeze([]),
+  });
+}
+
 /** A forged plan remains machine-readable but can never carry reducer provenance. */
 function untrustedVerdict(plan: AssuranceReductionPlan): AssuranceVerdict {
   return Object.freeze({
@@ -481,11 +560,17 @@ function untrustedVerdict(plan: AssuranceReductionPlan): AssuranceVerdict {
 }
 
 /** Project legacy stage rows from already-reduced obligations; no runner is invoked. */
-export function legacyStageProjection(verdict: AssuranceVerdict): readonly {readonly stage: string; readonly status: ObligationResult['state']}[] {
-  const byStage = new Map<string, ObligationResult['state']>();
+export function legacyStageProjection(verdict: AssuranceVerdict): readonly {readonly stage: string; readonly status: Observation['state']}[] {
+  const byStage = new Map<string, Observation['state']>();
   for (const result of verdict.results) {
+    // F7b scope passes anchor a receipt-backed criterion but are not a legacy
+    // proof claim. Retain fail/unobserved summaries while preventing this
+    // synthetic anchor from projecting migration_baseline as a stage pass.
+    if (result.subject.startsWith('scope:') && result.state === 'pass') continue;
     const prior = byStage.get(result.obligation);
-    byStage.set(result.obligation, dominate(prior, result.state));
+    // Migration baseline is resolved only in the canonical profile. The legacy
+    // fifteen-stage projection must never present it as current proof or NA.
+    byStage.set(result.obligation, dominate(prior, result.state === 'migration_baseline' ? 'unobserved' : result.state));
   }
   return [...byStage.entries()].sort(([left], [right]) => compareCodeUnits(left, right)).map(([stage, status]) => ({stage, status}));
 }
@@ -531,8 +616,8 @@ function observationIdentity(observation: Observation): string {
   }), 'utf8').digest('hex');
 }
 
-function dominate(left: ObligationResult['state'] | undefined, right: ObligationResult['state']): ObligationResult['state'] {
-  const rank: Readonly<Record<ObligationResult['state'], number>> = {fail: 4, unobserved: 3, pass: 2, na: 1};
+function dominate(left: Observation['state'] | undefined, right: Observation['state']): Observation['state'] {
+  const rank: Readonly<Record<Observation['state'], number>> = {fail: 4, unobserved: 3, pass: 2, na: 1};
   return left === undefined || rank[right] > rank[left] ? right : left;
 }
 

@@ -149,7 +149,7 @@ function humanObligationState(
   views: readonly CriterionProofView[],
   stage: 'stage_4.1' | 'stage_4.2',
   criterion: string,
-): 'pass' | 'fail' | 'unobserved' | 'na' | undefined {
+): 'pass' | 'fail' | 'unobserved' | 'na' | 'migration_baseline' | undefined {
   const verdict = reduceLegacyStageAdapter({
     profile: assuranceProfile('completion', 'L4'),
     configuredAssuranceLevel: 'L4',
