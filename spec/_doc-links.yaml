@@ -27,7 +27,7 @@ docs:
   "docs/design/spec-0.2/assurance-evidence.md":
     doc_links: ["docs/design/spec-0.2.md", "docs/design/spec-0.2/assurance.md"]
   "docs/design/spec-0.2/assurance.md":
-    doc_links: ["docs/design/ironclad-obligation-rfc.md", "docs/design/spec-0.2.md", "docs/design/spec-0.2/assurance-evidence.md", "docs/design/spec-0.2/context-and-orchestration.md", "docs/design/spec-0.2/graph.md", "docs/design/spec-0.2/model-and-migration.md", "docs/design/spec-0.2/proof-and-editing.md"]
+    doc_links: ["docs/design/ironclad-obligation-rfc.md", "docs/design/spec-0.2.md", "docs/design/spec-0.2/assurance-evidence.md"]
   "docs/design/spec-0.2/context-and-orchestration.md":
     doc_links: ["docs/design/spec-0.2.md", "docs/design/spec-0.2/assurance.md"]
   "docs/design/spec-0.2/decision-log.md":
@@ -55,7 +55,7 @@ docs:
   "docs/gate-stages.md":
     doc_links: ["src/stages/detectors/README.md"]
   "docs/glossary.md":
-    features: [F-1aab1bba, F-1d23a6, F-6ba22c5c, F-7ce18e, F-b84c38]
+    features: [F-7ce18e]
   "docs/knowledge-graph/design.md":
     features: [F-02343cd1, F-64a5c159, F-77f7ead0]
     doc_links: ["docs/design/spec-0.2/graph.md"]

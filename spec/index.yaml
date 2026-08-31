@@ -135,7 +135,7 @@ features:
   F-3b3690: {slug: multi-agent-orchestration, status: done, modules: 4}
   F-3c2bf8b9: {slug: readme-record-honesty, status: done, modules: 5}
   F-3fd220d8: {slug: readme-multiagent-label-diagram, status: done, modules: 10}
-  F-40327b: {slug: persona-skill-md-cleanup, status: done, modules: 14}
+  F-40327b: {slug: persona-skill-md-cleanup, status: done, modules: 21}
   F-417ff0: {slug: scan-llm-dispatcher-chain, status: done, modules: 5}
   F-42af48: {slug: architecture-from-spec, status: done, modules: 2}
   F-43d8e3: {slug: smoke-probe-token-pass, status: done, modules: 3}
@@ -229,7 +229,7 @@ features:
   F-b2094740: {slug: lint-config-detection, status: done, modules: 1}
   F-b43066: {slug: model-defaults-refresh, status: done, modules: 6}
   F-b61449: {slug: gemini-cli-dogfood, status: done, modules: 1}
-  F-b7873005: {slug: gate-error-parser, status: done, modules: 1}
+  F-b7873005: {slug: gate-error-parser, status: done, modules: 4}
   F-b81d203e: {slug: vacuous-test-guard, status: done, modules: 2}
   F-b84c38: {slug: lifecycle-events-identity, status: done, modules: 4}
   F-b8d74801: {slug: verb-rename-residue-sweep, status: done, modules: 6}
@@ -250,7 +250,7 @@ features:
   F-c48eb2: {slug: scan-source-roots, status: done, modules: 5}
   F-c4c5ae: {slug: spec-conformance-oracle-stage, status: done, modules: 11}
   F-c566f590: {slug: independence-label, status: done, modules: 6}
-  F-c58263b8: {slug: code-compact, status: done, modules: 12}
+  F-c58263b8: {slug: code-compact, status: done, modules: 15}
   F-c6a32fff: {slug: graph-honest-fallback, status: done, modules: 7}
   F-c6c3daaf: {slug: kotlin-module-scoped-gate, status: done, modules: 13}
   F-c8aef8: {slug: project-context, status: done, modules: 5}
@@ -267,7 +267,7 @@ features:
   F-d8223c: {slug: blind-author-agent, status: done, modules: 1}
   F-d980359c: {slug: junit-multiframework-matching, status: done, modules: 2}
   F-dd51b42c: {slug: kotlin-first-class-toolchain, status: done, modules: 11}
-  F-dd8dc994: {slug: plain-first-finding-render, status: done, modules: 5}
+  F-dd8dc994: {slug: plain-first-finding-render, status: done, modules: 9}
   F-dddb89: {slug: ears-validation-at-creation, status: done, modules: 4}
   F-e0f6c7: {slug: smoke-disposition-spine, status: done, modules: 3}
   F-e4159959: {slug: swift-flutter-dart-toolchain, status: done, modules: 2}
