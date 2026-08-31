@@ -396,24 +396,55 @@ export async function runClarifyCommand(
   for (const c of outcome.created) pulse('pass', `created ${c}`);
   for (const p of outcome.proposals) pulse('note', 'proposal', p);
 
-  const newQuestions = outcome.report?.newQuestions ?? [];
-  if (newQuestions.length > 0) {
-    process.stdout.write('\n💡 Next questions:\n');
-    for (const [i, q] of newQuestions.entries()) {
-      process.stdout.write(`   ${i + 1}. ${q}\n`);
-    }
-    if ((outcome.report?.remainingQuestions ?? 0) > 0) {
-      process.stdout.write(`\n${outcome.report!.remainingQuestions} question(s) left · continue with \`clad clarify <answer>\`.\n\n`);
-    }
-  } else if (outcome.report?.status === 'done') {
-    process.stdout.write(
-      '\n✓ All questions answered — onboarding complete.\n' +
-        "  Next: author your first feature's spec — its acceptance criteria (the testable promises) and the files it will cover — before writing code. The feature cycle starts there.\n\n",
-    );
-  } else if ((outcome.report?.remainingQuestions ?? 0) > 0) {
-    process.stdout.write(`\n${outcome.report!.remainingQuestions} question(s) left. continue with \`clad clarify <answer>\`.\n\n`);
-  }
+  const prompts = renderClarifyPrompts(outcome.report);
+  if (prompts) process.stdout.write(prompts);
   process.exit(0);
+}
+
+/**
+ * Renders the system-authored completion guidance for `clad clarify`.
+ * Follow-up questions are model-authored data and remain verbatim, including
+ * in the user's language; the CLI framing stays English single-source.
+ *
+ * @param report Structured clarification outcome, if one was produced.
+ * @returns A complete stdout fragment, or an empty string when no prompt applies.
+ * @see spec/features/init-onboarding-english-source-5cac007a.yaml AC-f12ce851
+ */
+export function renderClarifyPrompts(
+  report: Pick<RefineReport, 'newQuestions' | 'remainingQuestions' | 'status'> | undefined,
+): string {
+  if (!report) return '';
+  if (report.newQuestions.length > 0) {
+    const lines = [
+      '',
+      '💡 Next questions:',
+      ...report.newQuestions.map((question, index) => `   ${index + 1}. ${question}`),
+    ];
+    if (report.remainingQuestions > 0) {
+      lines.push('', `${report.remainingQuestions} question(s) left · Continue with \`clad clarify <answer>\`.`, '', '');
+    } else {
+      lines.push('');
+    }
+    return lines.join('\n');
+  }
+  if (report.status === 'done') {
+    return [
+      '',
+      '✓ All questions answered — onboarding complete.',
+      "  Next: author your first feature's spec — its acceptance criteria (the testable promises) and the files it will cover — before writing code. The feature cycle starts there.",
+      '',
+      '',
+    ].join('\n');
+  }
+  if (report.remainingQuestions > 0) {
+    return [
+      '',
+      `${report.remainingQuestions} question(s) left. Continue with \`clad clarify <answer>\`.`,
+      '',
+      '',
+    ].join('\n');
+  }
+  return '';
 }
 
 function buildReport(

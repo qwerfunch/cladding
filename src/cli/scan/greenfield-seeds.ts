@@ -303,6 +303,16 @@ export function renderGreenfieldConventionsMd(language: string, projectName: str
     `| test location | ${c.testLocation} |`,
     `| file header | ${c.fileHeaderPattern ?? '(none)'} |`,
     '',
+    '## Doc tag frequency',
+    '',
+    ...Object.entries(c.docTagCounts).map(([tag, count]) => `- \`${tag}\`: ${count}`),
+    '',
+    '## Module boilerplate (smallest exported module observed)',
+    '',
+    ...(c.moduleBoilerplate
+      ? ['```', c.moduleBoilerplate, '```']
+      : ['(none observed yet)']),
+    '',
     '## Comments & documentation — Why > What',
     '',
     'Comment the **decision and the non-obvious why**, not a restatement of the code. Every exported',

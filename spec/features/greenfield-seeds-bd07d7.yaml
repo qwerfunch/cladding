@@ -20,9 +20,9 @@ acceptance_criteria:
   - id: AC-002
     ears: ubiquitous
     action: ensure the conventions seed renders the full 14-signal table for every supported language plus the canonical style-guide URL inline
-    response: 'renderGreenfieldConventionsMd populates indent / quote / semicolon / namingExports / namingConstants / docBlockRatio / docTagCounts / importOrder / exportPattern / errorHandling / typeDefLocation / fileHeaderPattern / testLocation / moduleBoilerplate per language; the body shape matches the observed table from src/cli/scan/llm.ts::renderConventionsTable so reading downstream stays consistent across seed vs observed mode; the Recommended baseline section names the style guide URL (Google TypeScript Style / PEP 8 / Effective Go / Google Java Style / Rust Style / Ruby Style); 12 visible table rows render unconditionally, with file header showing (none) for the seed body'
-    text: The system shall ensure the conventions seed renders the full 14-signal table for every supported language plus the canonical style-guide URL inline so the seed body is consistent with the observed table downstream.
-    test_refs: [tests/cli/scan-greenfield-seeds.test.ts]
+    response: 'renderGreenfieldConventionsMd populates indent / quote / semicolon / namingExports / namingConstants / docBlockRatio / docTagCounts / importOrder / exportPattern / errorHandling / typeDefLocation / fileHeaderPattern / testLocation / moduleBoilerplate per language; the body matches src/cli/scan/llm.ts::renderConventionsTable with 12 visible table rows, the explicit Doc tag frequency section (all six zero-count tags), and the Module boilerplate representation ((none observed yet) for the null greenfield value); the Recommended baseline section keeps the canonical style guide URL inline; file header shows (none) for the seed body'
+    text: The system shall ensure the conventions seed renders all 14 convention signals for every supported language as 12 table rows plus explicit doc-tag and module-boilerplate sections, with the canonical style-guide URL inline, so the seed body is consistent with the observed renderer downstream.
+    test_refs: ["tests/cli/scan-greenfield-seeds.test.ts#[covers:F-bd07d7/AC-002] every supported language renders the 12 table rows plus doc tag and module boilerplate representations with an inline style guide"]
   - id: AC-003
     ears: ubiquitous
     action: render an architecture seed that names the typical directory baseline for the detected toolchain inside header comments while keeping the layers array empty

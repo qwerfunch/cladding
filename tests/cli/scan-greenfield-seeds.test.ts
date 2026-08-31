@@ -88,12 +88,21 @@ describe('renderGreenfieldConventionsMd', () => {
     expect(out).toContain('https://google.github.io/styleguide/tsguide.html');
   });
 
-  test('14-signal table is complete with an inline style guide for every supported language', () => {
-    for (const lang of ['typescript', 'javascript', 'python', 'go', 'rust', 'ruby', 'java', 'kotlin']) {
+  test('[covers:F-bd07d7/AC-002] every supported language renders the 12 table rows plus doc tag and module boilerplate representations with an inline style guide', () => {
+    for (const [lang, styleGuide] of [
+      ['typescript', '## Recommended baseline (per TypeScript style guide — https://google.github.io/styleguide/tsguide.html)'],
+      ['javascript', '## Recommended baseline (per JavaScript style guide — https://google.github.io/styleguide/jsguide.html)'],
+      ['python', '## Recommended baseline (per Python style guide — https://peps.python.org/pep-0008/)'],
+      ['go', '## Recommended baseline (per Go style guide — https://go.dev/doc/effective_go)'],
+      ['rust', '## Recommended baseline (per Rust style guide — https://doc.rust-lang.org/1.0.0/style/)'],
+      ['ruby', '## Recommended baseline (per Ruby style guide — https://rubystyle.guide/)'],
+      ['java', '## Recommended baseline (per Java style guide — https://google.github.io/styleguide/javaguide.html)'],
+      ['kotlin', '## Recommended baseline (per Kotlin style guide — https://kotlinlang.org/docs/coding-conventions.html)'],
+    ] as const) {
       const out = renderGreenfieldConventionsMd(lang, 'demo');
-      expect(out).toMatch(/Recommended baseline \(per .+ style guide — https:\/\//);
-      // All 12 visible rows (the 13th — file header — renders as "(none)"
-      // when null, so it always appears even for greenfield seeds).
+      expect(out).toContain(styleGuide);
+      // The observed renderer's 12 table rows remain table-shaped; its two
+      // non-tabular signals use their explicit headings below the table.
       for (const key of [
         'indent',
         'quote',
@@ -109,6 +118,19 @@ describe('renderGreenfieldConventionsMd', () => {
         'file header',
       ]) {
         expect(out).toContain(`| ${key} |`);
+      }
+      for (const line of [
+        '## Doc tag frequency',
+        '- `@param`: 0',
+        '- `@returns`: 0',
+        '- `@throws`: 0',
+        '- `@example`: 0',
+        '- `@see`: 0',
+        '- `@deprecated`: 0',
+        '## Module boilerplate (smallest exported module observed)',
+        '(none observed yet)',
+      ]) {
+        expect(out).toContain(line);
       }
     }
   });

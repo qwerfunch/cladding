@@ -13,14 +13,16 @@
 //   AC-002 — behavioral: renderSetupReport returns an English report that
 //     leads its tail with a "Next steps:" block and contains no Hangul.
 //
-// (The clad init hint stdout and clad clarify prompts are pinned behaviorally
-// by tests/cli/clad.test.ts and via clarify's own suite; this file owns the
-// cross-surface English-source invariant + the regression guard.)
+// (The direct renderer proof below pins the init and clarify framing alongside
+// the setup report; this file owns the cross-surface English-source invariant
+// plus its regression guard.)
 
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {describe, expect, test} from 'vitest';
 
+import {renderInitCompletionHints} from '../../src/cli/clad.js';
+import {renderClarifyPrompts} from '../../src/cli/clarify.js';
 import {renderSetupReport} from '../../src/init/host-setup.js';
 
 const ROOT = join(__dirname, '..', '..');
@@ -34,6 +36,18 @@ const HANGUL = /[가-힣]/;
 const OUTPUT_FILES = ['src/cli/clad.ts', 'src/init/host-setup.ts', 'src/cli/clarify.ts'];
 
 describe('init-onboarding-english-source (F-5cac007a)', () => {
+  const setupResult = {
+    projectRoot: '/tmp/project',
+    wiring: {runtime: 'created', shared_init_skill: 'created', claude: 'created', codex: 'created', gemini: 'created', antigravity: 'created', cursor: 'created'},
+    legacyCleanup: {claude_plugin: 'unchanged', gemini_extension: 'unchanged', antigravity_plugin: 'unchanged', codex_skills: 'unchanged', codex_mcp: 'unchanged', cursor_mcp: 'unchanged'},
+    errors: [],
+    warnings: [],
+    statusFile: '/tmp/status.json',
+    cladding_root: '/tmp/pkg',
+    cladding_version: '0.8.1',
+    last_setup_version: null,
+  } as const;
+
   describe('AC-001/AC-003 — the init/onboarding output files carry no Hangul', () => {
     for (const rel of OUTPUT_FILES) {
       test(`${rel} has no Hangul characters`, () => {
@@ -66,21 +80,9 @@ describe('init-onboarding-english-source (F-5cac007a)', () => {
   });
 
   describe('AC-002 — renderSetupReport is English single-source', () => {
-    const result = {
-      projectRoot: '/tmp/project',
-      wiring: {runtime: 'created', shared_init_skill: 'created', claude: 'created', codex: 'created', gemini: 'created', antigravity: 'created', cursor: 'created'},
-      legacyCleanup: {claude_plugin: 'unchanged', gemini_extension: 'unchanged', antigravity_plugin: 'unchanged', codex_skills: 'unchanged', codex_mcp: 'unchanged', cursor_mcp: 'unchanged'},
-      errors: [],
-      warnings: [],
-      statusFile: '/tmp/status.json',
-      cladding_root: '/tmp/pkg',
-      cladding_version: '0.8.1',
-      last_setup_version: null,
-    } as const;
-
     test('[covers:F-5cac007a/AC-b32265b7] the wiring report ends with an English "Next steps:" block, no Hangul', () => {
       const detection = {claude: true, gemini: false, antigravity: false, codex: false, agents: false, cursor: false};
-      const report = renderSetupReport(result, detection);
+      const report = renderSetupReport(setupResult, detection);
       expect(report).toContain('Next steps:');
       expect(report).toContain('1. Start a new AI session in this project directory');
       expect(HANGUL.test(report)).toBe(false);
@@ -88,9 +90,101 @@ describe('init-onboarding-english-source (F-5cac007a)', () => {
 
     test('the "no AI tools detected" branch is English, no Hangul', () => {
       const detection = {claude: false, gemini: false, antigravity: false, codex: false, agents: false, cursor: false};
-      const report = renderSetupReport(result, detection);
+      const report = renderSetupReport(setupResult, detection);
       expect(report).toContain('project activation');
       expect(HANGUL.test(report)).toBe(false);
     });
+  });
+
+  test('[covers:F-5cac007a/AC-f12ce851] init hints, setup activation, and clarify prompts render exact English framing while preserving question data', () => {
+    const initHints = renderInitCompletionHints({
+      created: ['spec.yaml'],
+      clarifyingQuestions: ['Who will use the product?'],
+    }, 'payment SaaS');
+    expect(initHints).toBe([
+      '',
+      '💡 A few more details would sharpen the spec:',
+      '   1. Who will use the product?',
+      '',
+      '',
+    ].join('\n'));
+    const initTip = renderInitCompletionHints({
+      created: ['docs/conventions.md'],
+      clarifyingQuestions: [],
+    }, undefined);
+    expect(initTip).toBe([
+      '',
+      '💡 Tip: for a more precise scaffold, describe the project:',
+      '   clad init <project description>',
+      '   e.g. clad init payment SaaS for B2B',
+      '   The existing seeds divert to .cladding/scan/*.proposal.',
+      '',
+      '',
+    ].join('\n'));
+
+    const setupReport = renderSetupReport(setupResult);
+    expect(setupReport).toBe([
+      'cladding setup — project activation: /tmp/project',
+      '',
+      '  Claude Code  → wired',
+      '  Codex        → wired',
+      '  Gemini CLI   → wired',
+      '  Antigravity  → wired',
+      '  Cursor       → wired',
+      '',
+      '  Note: Antigravity reads MCP config machine-wide only, so its wire lives in ~/.gemini/config/plugins/cladding (each session still resolves the project from its working directory).',
+      '',
+      'Next steps:',
+      '  1. Start a new AI session in this project directory',
+      '  2. Ask: "Apply Cladding to this project"',
+      '  3. Review the preview and reply with its exact approval phrase',
+      '  4. After initialization, develop normally in natural language',
+    ].join('\n'));
+
+    const clarifyPrompts = renderClarifyPrompts({
+      newQuestions: ['Which market should launch first?'],
+      remainingQuestions: 1,
+      status: 'active',
+    });
+    expect(clarifyPrompts).toBe([
+      '',
+      '💡 Next questions:',
+      '   1. Which market should launch first?',
+      '',
+      '1 question(s) left · Continue with `clad clarify <answer>`.',
+      '',
+      '',
+    ].join('\n'));
+    const clarifyDone = renderClarifyPrompts({
+      newQuestions: [],
+      remainingQuestions: 0,
+      status: 'done',
+    });
+    expect(clarifyDone).toBe([
+      '',
+      '✓ All questions answered — onboarding complete.',
+      "  Next: author your first feature's spec — its acceptance criteria (the testable promises) and the files it will cover — before writing code. The feature cycle starts there.",
+      '',
+      '',
+    ].join('\n'));
+    const clarifyContinue = renderClarifyPrompts({
+      newQuestions: [],
+      remainingQuestions: 2,
+      status: 'active',
+    });
+    expect(clarifyContinue).toBe([
+      '',
+      '2 question(s) left. Continue with `clad clarify <answer>`.',
+      '',
+      '',
+    ].join('\n'));
+
+    for (const output of [initHints, initTip, setupReport, clarifyPrompts, clarifyDone, clarifyContinue]) {
+      expect(HANGUL.test(output)).toBe(false);
+    }
+
+    const koreanQuestion = '주 사용자는 누구인가요?';
+    expect(renderInitCompletionHints({created: [], clarifyingQuestions: [koreanQuestion]}, '결제 SaaS')).toContain(koreanQuestion);
+    expect(renderClarifyPrompts({newQuestions: [koreanQuestion], remainingQuestions: 1, status: 'active'})).toContain(koreanQuestion);
   });
 });

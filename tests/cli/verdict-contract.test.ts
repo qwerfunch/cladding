@@ -5,6 +5,7 @@ import {fileURLToPath} from 'node:url';
 import * as path from 'node:path';
 import {describe, it, expect, vi} from 'vitest';
 
+import type {Spec} from '../../src/spec/types.js';
 import {computeVerdict, type VerdictOutcome, type VerdictStage} from '../../src/verdict/verdict.js';
 
 vi.mock('../../src/spec/load.js', () => ({loadSpec: vi.fn()}));
@@ -53,7 +54,11 @@ describe('F-2e28cc72 clad verdict — CLI contract (AC4/AC5)', () => {
       chunks.push(String(chunk));
       return true;
     });
-    const spec = {features: [{id: 'F-done', slug: 'done', status: 'done'}]};
+    const spec: Spec = {
+      schema: '0.1',
+      project: {name: 'verdict-contract', language: 'typescript'},
+      features: [{id: 'F-done', slug: 'done', title: 'done', status: 'done'}],
+    };
     const outcome: VerdictOutcome = {
       worst: 0,
       anyFailed: false,
@@ -67,7 +72,7 @@ describe('F-2e28cc72 clad verdict — CLI contract (AC4/AC5)', () => {
       loadSpecMock.mockReturnValue(spec);
       runVerdictCommand({json: true}, {checkStages});
 
-      const pureInput = {outcome, spec: spec as Parameters<typeof computeVerdict>[0]['spec']};
+      const pureInput = {outcome, spec};
       const first = computeVerdict(pureInput);
       const second = computeVerdict(pureInput);
       const emitted = JSON.parse(chunks.join('')) as Record<string, unknown>;

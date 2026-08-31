@@ -362,8 +362,11 @@ function renderConventionsTable(c: Conventions, examples: ScanResult['examples']
   for (const [tag, count] of Object.entries(c.docTagCounts)) {
     lines.push(`- \`${tag}\`: ${count}`);
   }
+  lines.push('', '## Module boilerplate (smallest exported module observed)', '');
   if (c.moduleBoilerplate) {
-    lines.push('', '## Module boilerplate (smallest exported module observed)', '', '```', c.moduleBoilerplate, '```');
+    lines.push('```', c.moduleBoilerplate, '```');
+  } else {
+    lines.push('(none observed yet)');
   }
   if (examples.length > 0) {
     lines.push('', '## Representative modules');

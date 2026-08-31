@@ -25,7 +25,7 @@ import {featureCycleAdvisory} from './enforcement-advisory.js';
 import {runHookCommand} from './hook.js';
 import {runVerdictCommand} from './verdict.js';
 import {runUpdate} from './update.js';
-import {runInit} from './init.js';
+import {runInit, type InitResult} from './init.js';
 import {refineOnboarding, resolveOnboardingReview, runClarifyCommand} from './clarify.js';
 import {prepareHostClarify, prepareHostInit, renderHostDraft} from './host-onboarding.js';
 import {getCurrentCladdingVersion, runHostSetup} from '../init/host-setup.js';
@@ -192,32 +192,53 @@ export async function runInitCommand(
   const modeDetail = result.onboardingMode ? `language: ${result.language} · mode: ${result.onboardingMode}` : `language: ${result.language}`;
   pulse('note', 'init done', modeDetail);
 
-  // v0.3.43 — surface LLM-generated clarifying questions so the AI
-  // host (or a direct CLI user) sees the next-step prompts that
-  // refine the spec. The questions are calibrated to product-owner
-  // vocabulary — no implementation jargon.
-  if (result.clarifyingQuestions && result.clarifyingQuestions.length > 0) {
-    process.stdout.write('\n💡 A few more details would sharpen the spec:\n');
-    for (const [i, q] of result.clarifyingQuestions.entries()) {
-      process.stdout.write(`   ${i + 1}. ${q}\n`);
-    }
-    process.stdout.write('\n');
-  } else if (!intent) {
-    // Greenfield + no intent + direct CLI user — emit a gentle hint
-    // suggesting the intent-driven path so they can re-run with more
-    // context. The orchestrator persona normally asks for intent
-    // BEFORE invoking `clad init`, so this hint fires mostly for
-    // power users who skip the chat flow.
-    const greenfield = result.created.some((c) => c === 'docs/conventions.md');
-    if (greenfield) {
-      process.stdout.write('\n💡 Tip: for a more precise scaffold, describe the project:\n');
-      process.stdout.write('   clad init <project description>\n');
-      process.stdout.write('   e.g. clad init payment SaaS for B2B\n');
-      process.stdout.write('   The existing seeds divert to .cladding/scan/*.proposal.\n\n');
-    }
-  }
+  const completionHints = renderInitCompletionHints(result, intent);
+  if (completionHints) process.stdout.write(completionHints);
 
   process.exit(0);
+}
+
+/**
+ * Renders the system-authored completion guidance for `clad init`.
+ * User/model-authored questions pass through verbatim so the host can keep
+ * the user's language; only Cladding's framing is English single-source.
+ *
+ * @param result Completed init result that may carry follow-up questions.
+ * @param intent Original user intent, if supplied to `clad init`.
+ * @returns A complete stdout fragment, or an empty string when no hint applies.
+ * @see spec/features/init-onboarding-english-source-5cac007a.yaml AC-f12ce851
+ */
+export function renderInitCompletionHints(
+  result: Pick<InitResult, 'created' | 'clarifyingQuestions'>,
+  intent: string | undefined,
+): string {
+  const questions = result.clarifyingQuestions ?? [];
+  if (questions.length > 0) {
+    return [
+      '',
+      '💡 A few more details would sharpen the spec:',
+      ...questions.map((question, index) => `   ${index + 1}. ${question}`),
+      '',
+      '',
+    ].join('\n');
+  }
+
+  // Greenfield + no intent + direct CLI user — emit a gentle hint suggesting
+  // the intent-driven path. The orchestrator normally asks for intent before
+  // invoking `clad init`, so this primarily supports direct CLI users.
+  const greenfield = result.created.some((created) => created === 'docs/conventions.md');
+  if (!intent && greenfield) {
+    return [
+      '',
+      '💡 Tip: for a more precise scaffold, describe the project:',
+      '   clad init <project description>',
+      '   e.g. clad init payment SaaS for B2B',
+      '   The existing seeds divert to .cladding/scan/*.proposal.',
+      '',
+      '',
+    ].join('\n');
+  }
+  return '';
 }
 
 interface RunCommandOptions {
