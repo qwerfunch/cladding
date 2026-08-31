@@ -45,7 +45,7 @@ describe('saveState / loadState round-trip', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test("[covers:F-09d68b/AC-001] writes the file under .cladding/onboarding/state.yaml", () => {
+  test('[covers:F-09d68b/AC-001] writes the file under .cladding/onboarding/state.yaml', () => {
     saveState(dir, fakeState());
     expect(existsSync(join(dir, '.cladding', 'onboarding', 'state.yaml'))).toBe(true);
   });

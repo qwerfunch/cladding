@@ -33,8 +33,13 @@ acceptance_criteria:
     text: The system shall ship the ABSENCE_OF_GOVERNANCE detector with graduated severity that exposes vanilla trees missing the cladding scaffold.
     test_refs: [tests/stages/absence-of-governance.test.ts]
   - id: AC-003
-    ears: ubiquitous
-    action: 'change runInit seed so spec.yaml emits empty features array and the F-001 placeholder lives in spec/features/F-001-first.yaml — activating the sharded loader from day one so every user-authored shard is visible to spec-gated detectors (MISSING_IMPLEMENTATION, UNTESTED_AC, AC_DRIFT, REFERENCE_INTEGRITY, etc.)'
-    response: 'src/cli/init.ts replaces inline-features specSeed with empty-features version + new f001SeedShard(seedTitle) function; runInit writes both spec.yaml and spec/features/F-001-first.yaml (created list reports both); idempotent on re-run; updated tests/cli/init.test.ts assertion to check sharded F-001 location; tests/scenarios/greenfield-lifecycle.test.ts S1 assertion updated to verify F-001 title in sharded file; A/B reports regenerated and committed (catch rate 3/4 preserved)'
-    text: The system shall seed runInit with sharded F-001 layout so every spec-gated detector evaluates user-authored shards from day one.
-    test_refs: [tests/cli/init.test.ts, tests/scenarios/greenfield-lifecycle.test.ts]
+    ears: event
+    condition: when greenfield initialization writes its seed inventory
+    action: keep features empty and create no F-001 placeholder shard
+    response: real feature shards are authored only on demand
+    text: When greenfield initialization writes its seed inventory, it shall keep features empty and create no F-001 placeholder shard; real feature shards are authored only on demand.
+    test_refs:
+      - "tests/cli/init.test.ts#[covers:F-99c6e5/AC-003] greenfield seed keeps an empty inventory and writes no F-001 placeholder"
+    notes: |
+      ## Historical note
+      The named F-001 shard and specific detector list were a retired seed-layout fact; current initialization starts with an empty inventory.

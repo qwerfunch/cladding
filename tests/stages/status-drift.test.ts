@@ -67,7 +67,7 @@ describe('STATUS_DRIFT detector', () => {
     expect(findings[0].message).toContain('stages/missing.ts');
   });
 
-  test('status=in_progress + every module missing → info finding (spec-first window)', () => {
+  test('[covers:F-014/AC-023] in-progress feature with every declared module absent emits an info spec-first finding', () => {
     writeFileSync(
       join(dir, 'spec', 'features', 'F-001.yaml'),
       'id: F-001\ntitle: t\nstatus: in_progress\nmodules:\n  - stages/a.ts\n  - stages/b.ts\n',

@@ -59,7 +59,7 @@ describe('ARCHITECTURE_VIOLATION detector', () => {
     expect(execaSyncMock).toHaveBeenCalledOnce();
   });
 
-  test("[covers:F-058/AC-138] validator non-zero exit → error finding (with tool output)", () => {
+  test('[covers:F-058/AC-138] validator non-zero exit → error finding (with tool output)', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
     execaSyncMock.mockReturnValueOnce({
       exitCode: 1,

@@ -19,15 +19,24 @@ acceptance_criteria:
     text: The system shall ship tests/stages/architecture-violation.test.ts bringing the ARCHITECTURE_VIOLATION detector to 100% line coverage by the same mocking pattern.
     test_refs: [tests/stages/architecture-violation.test.ts]
   - id: AC-139
-    ears: ubiquitous
-    action: declare the detector-catalog milestone
-    response: every one of the 20 registered detectors (19 Ironclad + 1 cladding extension) carries a dedicated tests/stages/*.test.ts file at 100% line coverage; subprocess paths covered by conformance fixtures (stage_1.5 / stage_1.6 / stage_1.3 etc.) are explicitly noted in test file headers
-    text: The system shall declare the milestone — every one of the 20 registered drift detectors has a dedicated unit-test file at 100% line coverage.
-    evidence_refs: [CHANGELOG.md]
+    ears: state
+    condition: while current detector proof is evaluated
+    action: derive it per criterion from live bindings and observations
+    response: does not treat the former detector-test-file milestone as current proof
+    text: While current detector proof is evaluated, it shall be derived per criterion from live bindings and observations; the former detector-test-file milestone is historical evidence only.
+    test_refs:
+      - "tests/proof/bindings.test.ts#[covers:F-058/AC-139] exact live bindings and observations determine criterion proof"
+    notes: |
+      ## Historical schema-0.1 note
+      The 20-detector, dedicated-test, 100% milestone is historical, not current proof.
   - id: AC-140
     ears: state
-    condition: while the v0.2.9 batch lands
-    action: raise overall line coverage above the 60% threshold
-    response: vitest --coverage reports overall line coverage rises from 58.66% (v0.2.8 baseline) to ≥ 62% after this batch, crossing the 60% mark for the first time
-    text: While the v0.2.9 batch lands, overall line coverage shall rise from the v0.2.8 baseline (58.66%) to at least 62%, crossing the 60% mark on the path to the 70% floor.
-    evidence_refs: [CHANGELOG.md]
+    condition: while current coverage assurance is evaluated
+    action: derive it from the coverage obligation
+    response: does not treat the v0.2.9 measurement as current proof
+    text: While current coverage assurance is evaluated, it shall be derived from the coverage obligation; the v0.2.9 measurement remains historical evidence only.
+    test_refs:
+      - "tests/assurance/registry.test.ts#[covers:F-055/AC-128][covers:F-056/AC-132][covers:F-057/AC-136][covers:F-058/AC-140][covers:F-059/AC-144][covers:F-060/AC-148][covers:F-061/AC-152][covers:F-062/AC-157][covers:F-063/AC-163][covers:F-064/AC-167] derives current coverage assurance only from the coverage obligation"
+    notes: |
+      ## Historical schema-0.1 note
+      v0.2.9’s 58.66% to ≥62% measurement is historical, not current assurance.

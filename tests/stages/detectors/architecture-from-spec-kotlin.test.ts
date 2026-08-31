@@ -45,7 +45,7 @@ function run(): readonly {detector: string; severity: string; message: string; p
 }
 
 describe('ARCHITECTURE_FROM_SPEC detector (Kotlin)', () => {
-  test("[covers:F-dd51b42c/AC-2ce66a38][covers:F-dd51b42c/AC-2d888ee2] ERROR when a Kotlin cli file imports a forbidden core layer (dotted package match)", () => {
+  test('[covers:F-dd51b42c/AC-2ce66a38][covers:F-dd51b42c/AC-2d888ee2] ERROR when a Kotlin cli file imports a forbidden core layer (dotted package match)', () => {
     writeKotlinSpec();
     writeKtLayerFile('cli', 'App.kt', 'package cli\n\nimport core.add\n\nfun main() {}\n');
     writeKtLayerFile('core', 'Math.kt', 'package core\n\nfun add(a: Int, b: Int) = a + b\n');

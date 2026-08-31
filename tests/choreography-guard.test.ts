@@ -43,6 +43,26 @@ const orchestratorMd = readFileSync(orchestratorPath, 'utf8');
 
 const featureCyclePath = fileURLToPath(new URL('../docs/feature-cycle.md', import.meta.url));
 const featureCycleMd = readFileSync(featureCyclePath, 'utf8');
+const plannerPath = fileURLToPath(new URL('../src/agents/planner.md', import.meta.url));
+const plannerMd = readFileSync(plannerPath, 'utf8');
+const PLANNER_MIRRORS: ReadonlyArray<{name: string; path: string}> = [
+  {
+    name: 'plugins/claude-code/agents/planner.md',
+    path: fileURLToPath(new URL('../plugins/claude-code/agents/planner.md', import.meta.url)),
+  },
+  {
+    name: 'plugins/codex/skills/planner/SKILL.md',
+    path: fileURLToPath(new URL('../plugins/codex/skills/planner/SKILL.md', import.meta.url)),
+  },
+  {
+    name: 'plugins/antigravity/skills/planner/SKILL.md',
+    path: fileURLToPath(new URL('../plugins/antigravity/skills/planner/SKILL.md', import.meta.url)),
+  },
+  {
+    name: 'plugins/claude-code/dist/agents/planner.md',
+    path: fileURLToPath(new URL('../plugins/claude-code/dist/agents/planner.md', import.meta.url)),
+  },
+];
 
 // Built mirrors — the build copies src/agents/orchestrator.md verbatim (or
 // wraps it) into each surface; a stale mirror must fail this guard too.
@@ -67,22 +87,22 @@ describe('orchestrator persona is a cycle contract card, not choreography', () =
   });
 
   describe('AC-805ee617 — the persona declares the cycle contract', () => {
-    test("[covers:F-600272d7/AC-805ee617] contains the literal \"the host owns execution\"", () => {
+    test('[covers:F-600272d7/AC-805ee617] contains the literal "the host owns execution"', () => {
       expect(orchestratorMd.includes(HOST_OWNS_EXECUTION)).toBe(true);
     });
 
-    test("[covers:F-600272d7/AC-805ee617] contains both evidence-based independence labels", () => {
+    test('[covers:F-600272d7/AC-805ee617] contains both evidence-based independence labels', () => {
       expect(orchestratorMd.includes('independent')).toBe(true);
       expect(orchestratorMd.includes('self-certified')).toBe(true);
     });
 
-    test("[covers:F-600272d7/AC-805ee617][covers:F-600272d7/AC-ee97a22e] contains the literal \"Agents propose; the gates dispose.\"", () => {
+    test('[covers:F-600272d7/AC-805ee617][covers:F-600272d7/AC-ee97a22e] contains the literal "Agents propose; the gates dispose."', () => {
       expect(orchestratorMd.includes(AGENTS_PROPOSE_GATES_DISPOSE)).toBe(true);
     });
   });
 
   describe('AC-bc42f601 — feature-cycle guide positions the CI/SDK lane', () => {
-    test("[covers:F-600272d7/AC-bc42f601] docs/feature-cycle.md contains the literal \"CI/SDK lane\"", () => {
+    test('[covers:F-600272d7/AC-bc42f601] docs/feature-cycle.md contains the literal "CI/SDK lane"', () => {
       expect(featureCycleMd.includes('CI/SDK lane')).toBe(true);
     });
   });
@@ -98,6 +118,24 @@ describe('orchestrator persona is a cycle contract card, not choreography', () =
           });
         }
       });
+    }
+  });
+});
+
+describe('planner guidance keeps clarification and design-impact authority distinct', () => {
+  test('[covers:F-09d68b/AC-006] planner guidance states the clarify and design-impact boundary and mirrors reproduce its source', () => {
+    expect(plannerMd).toContain('Treat `clad clarify` as answer collection, not design-impact resolution.');
+    expect(plannerMd).toContain('Design-impact resolution remains human-owned.');
+    for (const {name, path} of PLANNER_MIRRORS) {
+      expect(readFileSync(path, 'utf8'), `${name} must reproduce planner.md`).toBe(plannerMd);
+    }
+  });
+
+  test('[covers:F-b99577/AC-005] planner guidance states the design-impact responsibility and human-resolution boundary', () => {
+    expect(plannerMd).toContain('record the design impact and ask a human to resolve it');
+    expect(plannerMd).toContain('it must not clear a pending\n' + 'design-impact review or infer approval from a clarification answer.');
+    for (const {name, path} of PLANNER_MIRRORS) {
+      expect(readFileSync(path, 'utf8'), `${name} must reproduce the design-impact boundary`).toBe(plannerMd);
     }
   });
 });
@@ -184,7 +222,7 @@ describe('planner brief points external users at the clad CLI, not dogfood-only 
   const plannerPersona = SPECIALIST_PERSONAS.find((p) => p.id === 'planner')!;
 
   describe('AC-65e247dc — no npm run spec:validate / stage:drift guidance remains', () => {
-    test("[covers:F-9d8ece66/AC-65e247dc] src/agents/planner.md matches no /npm run (spec:validate|stage:drift)/", () => {
+    test('[covers:F-9d8ece66/AC-65e247dc] src/agents/planner.md matches no /npm run (spec:validate|stage:drift)/', () => {
       const body = readFileSync(plannerPersona.srcPath, 'utf8');
       expect(body, 'src/agents/planner.md must not match /npm run (spec:validate|stage:drift)/').not.toMatch(
         DOGFOOD_NPM_SCRIPTS,
@@ -284,7 +322,7 @@ describe('README Multi-Agent section speaks the role contract, not choreography 
 // which asserted against files that no longer exist.
 describe('README Multi-Agent section carries the inversion in prose alone (F-8476ccb1)', () => {
   describe('AC-111fb976 — opens by denying the old identity', () => {
-    test("[covers:F-8476ccb1/AC-111fb976] README.md: Multi-Agent slice contains \"not a multi-agent framework\"", () => {
+    test('[covers:F-8476ccb1/AC-111fb976] README.md: Multi-Agent slice contains "not a multi-agent framework"', () => {
       const slice = multiAgentSliceOf('README.md');
       expect(slice, 'README.md: Multi-Agent slice must contain "not a multi-agent framework"').toContain(
         'not a multi-agent framework',
@@ -305,7 +343,7 @@ describe('README Multi-Agent section carries the inversion in prose alone (F-847
       });
     }
 
-    test("[covers:F-3fd220d8/AC-6b0a1f74][covers:F-8476ccb1/AC-7d433517] README.md: Multi-Agent slice presents the three-shape contrast as a list (>= 3 lines starting with \"- \")", () => {
+    test('[covers:F-3fd220d8/AC-6b0a1f74][covers:F-8476ccb1/AC-7d433517] README.md: Multi-Agent slice presents the three-shape contrast as a list (>= 3 lines starting with "- ")', () => {
       const slice = multiAgentSliceOf('README.md');
       const listLines = slice.split('\n').filter((line) => line.startsWith('- '));
       expect(

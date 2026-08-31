@@ -33,20 +33,34 @@ acceptance_criteria:
     text: While the LLM dispatcher is unavailable or returns an unusable response during refinement, the system shall preserve the current artifact bodies and append the latest Q-A pair as a footnote under a Q&A log heading in docs/project-context.md so the user answer is captured visibly.
     test_refs: [tests/cli/clarify.test.ts]
   - id: AC-004
-    ears: ubiquitous
-    action: register a clad refine verb that joins variadic positional tokens into the user answer and drives the Q&A loop from state.yaml load through artifact write through state.yaml save in one invocation
-    response: 'src/cli/clarify.ts exports runRefineCommand(answerTokens, opts) which loads .cladding/onboarding/state.yaml; exit 2 when no state file exists or no answer was provided while a pending question remains; exit 0 with a no-op when status is already done; otherwise mark the first pending question answered, load the current artifact bodies via readFileSync, call interpretRefinementWithFallback, write refined bodies via an inlined writeArtifact that diverts existing files to .cladding/scan/<basename>.proposal, append new clarifying questions to state.yaml via appendNewQuestions, mark status done when isComplete and no new questions emerged; src/cli/clad.ts registers refine [answer...] with --cwd, --no-llm, --json options'
-    text: The system shall register a clad refine verb that joins variadic positional tokens into the user answer and drives the Q&A loop from state.yaml load through artifact write through state.yaml save in one invocation.
-    test_refs: [tests/cli/clarify.test.ts]
+    ears: event
+    condition: when onboarding has a pending clarification
+    action: clad clarify joins the supplied answer tokens
+    response: commits the resulting onboarding artifact and state transition through its declared proposal-safe path
+    text: When onboarding has a pending clarification, `clad clarify` shall join the supplied answer tokens and commit the resulting onboarding artifact/state transition through its declared proposal-safe path.
+    test_refs:
+      - "tests/cli/clarify.test.ts#[covers:F-09d68b/AC-004][covers:F-09d68b/AC-003] joins answer tokens and commits the proposal-safe onboarding transition"
+    notes: |
+      ## Historical note
+      The public verb was renamed from refine and its old monolithic state-file narrative is obsolete.
   - id: AC-005
-    ears: ubiquitous
-    action: wire src/cli/init.ts to write the initial state.yaml when the intent-aware onboarding path runs so the refine verb has a starting point
-    response: 'runInit calls saveState(cwd, {intent, language, projectName, mode: onboarding.mode, startedAt: new Date().toISOString(), status: clarifyingQuestions.length === 0 ? "done" : "active", qa: clarifyingQuestions.map(question => ({question, answer: null}))}) immediately after the onboarding result is computed; the write is a no-op when intent is absent because the onboarding path itself is skipped; existing init flows (bare clad init, --scan, --no-llm) remain unchanged because they do not enter the intent branch'
-    text: The system shall wire src/cli/init.ts to write the initial state.yaml when the intent-aware onboarding path runs so the refine verb has a starting point.
-    evidence_refs: [src/cli/init.ts]
+    ears: event
+    condition: when a current onboarding refinement path needs persistent state
+    action: use the artifact and transaction ownership declared by the current schema
+    response: does not rely on an asserted state.yaml history
+    text: When a current onboarding refinement path needs persistent state, it shall use the artifact and transaction ownership declared by the current schema rather than an asserted state.yaml history.
+    test_refs:
+      - "tests/cli/clarify.test.ts#[covers:F-09d68b/AC-005] active refinement commits artifacts through the compatibility transaction"
+    notes: |
+      ## Historical schema-0.1 note
+      The asserted state.yaml refinement history is historical, not ownership proof.
   - id: AC-006
     ears: ubiquitous
-    action: extend the orchestrator persona principle 6 to drive the full ask-init-refine loop and document the refine verb skill so AI hosts know to use it
-    response: 'src/agents/orchestrator.md expands principle 6 from a single Init policy into two steps: step 6a captures intent and writes state.yaml via clad init; step 6b drives the refine loop by reading state.yaml asking the first pending question verbatim running clad refine with the user reply repeating until status: done; skills/clarify/SKILL.md (new) documents the flow plus the variadic positional CLI shape plus the state.yaml schema plus exit codes plus when NOT to invoke (no state file present invented answers unrelated topics); the new skill mirror lands in plugins/codex/skills/clarify/SKILL.md and plugins/gemini-cli/commands/refine.toml via build:plugin'
-    text: The system shall extend the orchestrator persona principle 6 to drive the full ask-init-refine loop and document the refine verb skill so AI hosts know to use it.
-    evidence_refs: [src/agents/orchestrator.md, skills/clarify/SKILL.md]
+    action: describe the current clarify and design-impact boundary from the canonical planner persona source
+    response: generated mirrors reproduce that source
+    text: Planner guidance shall describe the current clarify/design-impact boundary from the canonical persona source and generated mirrors; the retired Librarian/refine skill story is historical.
+    test_refs:
+      - "tests/choreography-guard.test.ts#[covers:F-09d68b/AC-006] planner guidance states the clarify and design-impact boundary and mirrors reproduce its source"
+    notes: |
+      ## Historical schema-0.1 note
+      The Librarian/refine skill loop is historical, not current planner authority.

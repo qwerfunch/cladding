@@ -170,7 +170,7 @@ describe('STALE_SPECIFICATION detector', () => {
       expect(staleSpecification.run({cwd: dir})).toEqual([]);
     });
 
-    test('archived feature with surviving modules → NO suggestion (removal cadence is project-owned)', () => {
+    test('[covers:F-b99577/AC-001] a finding without a remediation suggestion preserves severity and message', () => {
       writeFileSync(join(dir, 'stages', 'survivor.ts'), '// still here\nexport const s = 1;\n');
       writeFileSync(
         join(dir, 'spec', 'features', 'F-500.yaml'),
@@ -178,6 +178,8 @@ describe('STALE_SPECIFICATION detector', () => {
       );
       const findings = staleSpecification.run({cwd: dir});
       expect(findings).toHaveLength(1);
+      expect(findings[0].severity).toBe('warn');
+      expect(findings[0].message).toContain('F-500');
       expect(findings[0].suggestion).toBeUndefined();
     });
   });

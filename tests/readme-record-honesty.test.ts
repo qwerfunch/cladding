@@ -46,7 +46,7 @@ test('current worktree feature counts match the canonical inventory', () => {
 });
 
 describe('AC-ce8fe171 · record claim states the verified level in every variant', () => {
-  test("[covers:F-3c2bf8b9/AC-ce8fe171] EN variants pin what -> committed content, who/when -> local session ledger", () => {
+  test('[covers:F-3c2bf8b9/AC-ce8fe171] EN variants pin what -> committed content, who/when -> local session ledger', () => {
     for (const f of EN_VARIANTS) {
       const body = read(f);
       expect(body, `${f}: "on the record" headline`).toContain('What shipped is on the record');
@@ -88,7 +88,7 @@ describe('AC-374f723c · every EU AI Act mention carries the not-a-certification
     expect(total, 'four variants -> at least four EU AI Act mentions').toBeGreaterThanOrEqual(4);
   });
 
-  test("[covers:F-3c2bf8b9/AC-374f723c] each mention is followed in-sentence by the language-appropriate hedge", () => {
+  test('[covers:F-3c2bf8b9/AC-374f723c] each mention is followed in-sentence by the language-appropriate hedge', () => {
     let checked = 0;
     for (const f of ALL_VARIANTS) {
       const body = read(f);
@@ -125,7 +125,7 @@ describe('AC-23cfa17d · needle sweep — zero unhedged overclaims across four v
   ];
   const scan = (corpus: string): string[] => NEEDLES.filter((n) => corpus.includes(n));
 
-  test("[covers:F-3c2bf8b9/AC-23cfa17d] all four variants are free of every forbidden needle (files-visited === 4)", () => {
+  test('[covers:F-3c2bf8b9/AC-23cfa17d] all four variants are free of every forbidden needle (files-visited === 4)', () => {
     let visited = 0;
     const hits: string[] = [];
     for (const f of ALL_VARIANTS) {
@@ -144,7 +144,7 @@ describe('AC-23cfa17d · needle sweep — zero unhedged overclaims across four v
 });
 
 describe('AC-bf20e7cc · who-ledger deferral + reopen trigger survive in the backlog', () => {
-  test("[covers:F-3c2bf8b9/AC-bf20e7cc] refinement-backlog.md carries the deferral entry and its reopen trigger", () => {
+  test('[covers:F-3c2bf8b9/AC-bf20e7cc] refinement-backlog.md carries the deferral entry and its reopen trigger', () => {
     const backlog = read('docs/refinement-backlog.md');
     expect(backlog, 'names the deferred who-ledger idea').toContain('who-ledger');
     expect(backlog, 'marks it deferred, not shipped').toMatch(/[Dd]eferred/);

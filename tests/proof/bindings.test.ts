@@ -22,7 +22,7 @@ function observation(input: Omit<TestCaseObservation, 'files'>): TestCaseObserva
 }
 
 describe('current exact binding observations', () => {
-  test('uses a unique explicit Vitest title when the full name is nested', () => {
+  test('[covers:F-058/AC-139] exact live bindings and observations determine criterion proof', () => {
     const view = reduceTestBindings([binding()], vitestReport([
       observation({name: `outer suite ${selector}`, sourceTitle: selector, status: 'pass'}),
     ]));

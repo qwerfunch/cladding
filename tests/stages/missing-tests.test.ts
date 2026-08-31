@@ -34,7 +34,7 @@ describe('MISSING_TESTS detector', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('[covers:F-067/AC-180][covers:F-067/AC-181] errors when status=done AC has neither test_refs nor evidence_refs', () => {
+  test('[covers:F-052/AC-109][covers:F-067/AC-180][covers:F-067/AC-181] errors when status=done AC has neither test_refs nor evidence_refs', () => {
     writeFileSync(
       join(dir, 'spec', 'features', 'F-001.yaml'),
       'id: F-001\n' +

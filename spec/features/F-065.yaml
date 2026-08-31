@@ -28,12 +28,16 @@ acceptance_criteria:
     text: The system shall preserve runtime behavior after the move — every code path that previously worked still works, with no semantic change.
     evidence_refs: [bin/clad, scripts/build.mjs, vitest.config.ts]
   - id: AC-175
-    ears: state
-    condition: while the v0.2.16 batch lands
-    action: keep every test, every check, every coverage metric green
-    response: npm test reports 404/404 passing; node bin/clad check --strict reports drift green; coverage stays ≥ 93%
-    text: While the v0.2.16 batch lands, every test shall pass, drift shall stay green under --strict, and line coverage shall stay at ≥ 93% under the widened scope.
-    evidence_refs: [CHANGELOG.md]
+    ears: event
+    condition: when current release assurance is evaluated
+    action: mint a current profile-complete authoritative attestation only from the authoritative verdict
+    response: does not treat the v0.2.16 all-gates/coverage result as current proof
+    text: When current release assurance is evaluated, it shall mint a current profile-complete authoritative attestation only from the authoritative verdict; the v0.2.16 all-gates/coverage result is historical evidence only.
+    test_refs:
+      - "tests/assurance/attestation.test.ts#[covers:F-065/AC-175] mints a current profile-complete authoritative attestation only from the authoritative verdict"
+    notes: |
+      ## Historical schema-0.1 note
+      v0.2.16’s 404/404, strict-green, ≥93% result is historical, not current release assurance.
   - id: AC-176
     ears: ubiquitous
     action: update detector hardcoded scan paths

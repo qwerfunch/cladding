@@ -28,7 +28,7 @@ const ROOT = process.cwd();
 const read = (rel: string): string => readFileSync(join(ROOT, rel), 'utf8');
 
 describe('AC-b07dce5d · both freshness literals survive verbatim in the emitted template', () => {
-  test("[covers:F-288864ae/AC-b07dce5d] CLAUDE_MD_SECTION contains the anti-self-cert signature literal", () => {
+  test('[covers:F-288864ae/AC-b07dce5d] CLAUDE_MD_SECTION contains the anti-self-cert signature literal', () => {
     expect(CLAUDE_MD_SECTION).toContain('anti-self-cert');
   });
 
@@ -70,7 +70,7 @@ describe('AC-9bea7d88 · the five policy anchors survive the diet, load-bearing 
     expect(CLAUDE_MD_SECTION).toContain('**Drift detectors**');
   });
 
-  test("[covers:F-288864ae/AC-9bea7d88] size regression guard — cannot silently regrow past the diet ceiling", () => {
+  test('[covers:F-288864ae/AC-9bea7d88] size regression guard — cannot silently regrow past the diet ceiling', () => {
     // Measured in BYTES (not .length/UTF-16 code units) because the AC's own
     // "~430 bytes / ~30%" claim is a byte count, and this template's em
     // dashes/arrows cost more bytes than code units. Diet result: 972 bytes.
@@ -88,7 +88,7 @@ describe('AC-9bea7d88 · the five policy anchors survive the diet, load-bearing 
 });
 
 describe('AC-a684ae50 · round trip holds in both directions', () => {
-  test("[covers:F-288864ae/AC-a684ae50] a freshly emitted section is NOT stale (no churn)", () => {
+  test('[covers:F-288864ae/AC-a684ae50] a freshly emitted section is NOT stale (no churn)', () => {
     expect(isStaleInstructions(CLAUDE_MD_SECTION)).toBe(false);
   });
 

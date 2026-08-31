@@ -39,7 +39,7 @@ describe('runInit', () => {
     expect(readFileSync(join(dir, '.gitignore'), 'utf8')).toContain('.cladding/*');
   });
 
-  test('seed spec.yaml has empty features[] — no legacy F-001 placeholder shard written (v0.4.0)', async () => {
+  test('[covers:F-99c6e5/AC-003] greenfield seed keeps an empty inventory and writes no F-001 placeholder', async () => {
     await runInit({cwd: dir});
     // v0.3.49 (F-99c6e5): spec.yaml carries `features: []`.
     // v0.4.0: no `spec/features/F-001-first.yaml` placeholder is written.
@@ -59,7 +59,7 @@ describe('runInit', () => {
     expect(r2.skipped.length).toBeGreaterThanOrEqual(2);
   });
 
-  test('[covers:F-046/AC-079] preserves and reports an existing spec without force, then replaces it only with force', async () => {
+  test('[covers:F-046/AC-080][covers:F-046/AC-079] preserves and reports an existing spec without force, then replaces it only with force', async () => {
     const safe = join(dir, 'safe');
     const forced = join(dir, 'forced');
     mkdirSync(safe, {recursive: true});
@@ -232,6 +232,22 @@ describe('runInit', () => {
     expect(caps).toContain('schema: "0.1"');
     expect(caps).toContain('capabilities: []');
     expect(readFileSync(join(dir, 'spec/scenarios/README.md'), 'utf8')).toContain('Scenario');
+  });
+
+  test('[covers:F-9b643e/AC-006] scan output preserves authored artifacts through a proposal and does not generate scenarios', async () => {
+    await runInit({cwd: dir});
+    mkdirSync(join(dir, 'src'), {recursive: true});
+    writeFileSync(join(dir, 'src', 'a.ts'), 'export const a = 1;\n');
+    writeFileSync(join(dir, 'src', 'b.ts'), 'export const b = 2;\n');
+    writeFileSync(join(dir, 'src', 'c.ts'), 'export const c = 3;\n');
+    const authored = '# Keep this authored convention\n';
+    writeFileSync(join(dir, 'docs', 'conventions.md'), authored);
+
+    const result = await runInit({cwd: dir, scan: true, noLlm: true});
+    expect(result.proposals).toContain('docs/conventions.md → .cladding/scan/conventions.md.proposal');
+    expect(readFileSync(join(dir, 'docs', 'conventions.md'), 'utf8')).toBe(authored);
+    expect(existsSync(join(dir, '.cladding/scan/conventions.md.proposal'))).toBe(true);
+    expect(existsSync(join(dir, 'spec', 'scenarios', 'generated.yaml'))).toBe(false);
   });
 
   test('[covers:F-c8aef8/AC-001] creates project-context on initial init and diverts repeat without overwriting authored content', async () => {

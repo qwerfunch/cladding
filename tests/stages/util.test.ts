@@ -20,7 +20,7 @@ describe('ranToolResult — ran-tool exit code → stage contract', () => {
     expect(r).toEqual({stage: 'stage_x', pass: true, exitCode: 0});
   });
 
-  test("[covers:F-af96b1/AC-001] exit 2 (tsc-style) → FAIL exitCode 1, NOT the skip code 2", () => {
+  test('[covers:F-af96b1/AC-001] exit 2 (tsc-style) → FAIL exitCode 1, NOT the skip code 2', () => {
     const r = ranToolResult('stage_1.1', {exitCode: 2, stdout: '', stderr: 'boom'});
     expect(r.pass).toBe(false);
     expect(r.exitCode).toBe(1); // the whole point: 2 must never survive as a "skip"
@@ -109,7 +109,7 @@ describe('missingToolSkip — ENOENT is the ONLY exit-2 (skip) path', () => {
     expect(r?.exitCode).toBe(2);
   });
 
-  test("[covers:F-af96b1/AC-005] offline npx shell-level command miss → visible setup gap", () => {
+  test('[covers:F-af96b1/AC-005] offline npx shell-level command miss → visible setup gap', () => {
     const r = missingToolSkip('stage_x', 'npx', {
       exitCode: 127,
       stderr: '/bin/sh: vitest: command not found',

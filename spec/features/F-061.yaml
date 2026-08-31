@@ -22,15 +22,24 @@ acceptance_criteria:
     text: The system shall ship tests/stages/uat.test.ts bringing the stage_4.2 UAT runner to at least 85% line coverage using real audit-log writes (no subprocess).
     test_refs: [tests/stages/uat.test.ts]
   - id: AC-151
-    ears: ubiquitous
-    action: close the stage-runner chapter
-    response: every one of the 12 Iron Law stage runners (stage_1.1 through stage_4.2) now carries a dedicated unit-test file at ≥ 75% line coverage; the chapter that opened with v0.2.10 is closed
-    text: The system shall close the stage-runner chapter — every one of the 12 Iron Law stage runners has a dedicated unit-test file at ≥ 75% line coverage.
-    evidence_refs: [CHANGELOG.md]
+    ears: state
+    condition: while current runner proof is evaluated
+    action: derive it per obligation from current observations
+    response: does not treat the former twelve-runner test-file milestone as current proof
+    text: While current runner proof is evaluated, it shall be derived per obligation from current observations; the former twelve-runner test-file milestone is historical evidence only.
+    test_refs:
+      - "tests/assurance/kernel.test.ts#[covers:F-061/AC-151] current runner proof is derived per obligation from current observations"
+    notes: |
+      ## Historical schema-0.1 note
+      The twelve-runner, ≥75% milestone is historical, not current proof.
   - id: AC-152
     ears: state
-    condition: while the v0.2.12 batch lands
-    action: raise overall line coverage past 90%
-    response: vitest --coverage reports overall line coverage rises from 84.23% (v0.2.11 baseline) to ≥ 90%
-    text: While the v0.2.12 batch lands, overall line coverage shall rise from the v0.2.11 baseline (84.23%) to at least 90%, crossing the 90% milestone.
-    evidence_refs: [CHANGELOG.md]
+    condition: while current coverage assurance is evaluated
+    action: derive it from the coverage obligation
+    response: does not treat the v0.2.12 measurement as current proof
+    text: While current coverage assurance is evaluated, it shall be derived from the coverage obligation; the v0.2.12 measurement remains historical evidence only.
+    test_refs:
+      - "tests/assurance/registry.test.ts#[covers:F-055/AC-128][covers:F-056/AC-132][covers:F-057/AC-136][covers:F-058/AC-140][covers:F-059/AC-144][covers:F-060/AC-148][covers:F-061/AC-152][covers:F-062/AC-157][covers:F-063/AC-163][covers:F-064/AC-167] derives current coverage assurance only from the coverage obligation"
+    notes: |
+      ## Historical schema-0.1 note
+      v0.2.12’s 84.23% to ≥90% measurement is historical, not current assurance.

@@ -33,7 +33,7 @@ describe('createFeature (F-084, v0.3.9)', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test("[covers:F-67e33f/AC-001][covers:F-67e33f/AC-003] happy path — writes spec/features/<slug>-<hash8>.yaml with hash id", () => {
+  test('[covers:F-67e33f/AC-001][covers:F-67e33f/AC-003] happy path — writes spec/features/<slug>-<hash8>.yaml with hash id', () => {
     const r = createFeature({slug: 'login-flow', cwd: dir});
     expect(r.slug).toBe('login-flow');
     expect(r.id).toMatch(/^F-[a-f0-9]{8}$/);
@@ -88,7 +88,7 @@ describe('createFeature (F-084, v0.3.9)', () => {
     );
   });
 
-  test("[covers:F-24062d/AC-001][covers:F-24062d/AC-002] two consecutive calls with the same slug produce two distinct files (different hashes)", () => {
+  test('[covers:F-24062d/AC-001][covers:F-24062d/AC-002] two consecutive calls with the same slug produce two distinct files (different hashes)', () => {
     const r1 = createFeature({slug: 'login-flow', cwd: dir});
     const r2 = createFeature({slug: 'login-flow', cwd: dir});
     // Same slug field inside yaml; different filenames because the
@@ -317,7 +317,7 @@ describe('createFeature — rich authoring (modules + acceptance_criteria)', () 
   });
   afterEach(() => rmSync(dir, {recursive: true, force: true}));
 
-  test("[covers:F-a04cd9/AC-001][covers:F-a04cd9/AC-002][covers:F-eb732f/AC-001] persists modules and acceptance_criteria with auto-assigned AC ids; yaml parses", () => {
+  test('[covers:F-a04cd9/AC-001][covers:F-a04cd9/AC-002][covers:F-eb732f/AC-001] persists modules and acceptance_criteria with auto-assigned AC ids; yaml parses', () => {
     const r = createFeature({
       cwd: dir,
       slug: 'login-flow',
@@ -383,7 +383,7 @@ describe('createFeature — EARS-shape validation at creation (Lever ①)', () =
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test("[covers:F-dddb89/AC-001] REJECTS a ubiquitous AC that carries a condition — precise message, no file written", () => {
+  test('[covers:F-dddb89/AC-001] REJECTS a ubiquitous AC that carries a condition — precise message, no file written', () => {
     expect(() =>
       createFeature({
         slug: 'bad-ubiq',
@@ -426,7 +426,7 @@ describe('createFeature — EARS-shape validation at creation (Lever ①)', () =
     expect(parsed.acceptance_criteria).toHaveLength(3);
   });
 
-  test("[covers:F-dddb89/AC-003] aggregates MULTIPLE issues in one throw (one create call surfaces all fixes at once)", () => {
+  test('[covers:F-dddb89/AC-003] aggregates MULTIPLE issues in one throw (one create call surfaces all fixes at once)', () => {
     let msg = '';
     try {
       createFeature({

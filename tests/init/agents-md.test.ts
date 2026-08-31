@@ -67,7 +67,7 @@ describe('renderAgentsMdManagedBlock — AC-7e1a9c04 (spec-driven conventions)',
   });
   afterEach(() => rmSync(dir, {recursive: true, force: true}));
 
-  test("[covers:F-a4085adf/AC-7e1a9c04] renders test_framework, primary_branch, forbidden_patterns, preferred_patterns, preferred_persona", () => {
+  test('[covers:F-a4085adf/AC-7e1a9c04] renders test_framework, primary_branch, forbidden_patterns, preferred_patterns, preferred_persona', () => {
     writeFileSync(join(dir, 'spec.yaml'), FULL_HINTS_SPEC);
     const spec = loadSpec(dir);
     const block = renderAgentsMdManagedBlock(spec, dir);
@@ -103,7 +103,7 @@ describe('renderAgentsMdManagedBlock — AC-7e1a9c04 (spec-driven conventions)',
 });
 
 describe('renderAgentsMdManagedBlock — AC-9d3f2e88 (cross-host persona map)', () => {
-  test("[covers:F-a4085adf/AC-9d3f2e88] always includes the persona → capabilities map, regardless of spec", () => {
+  test('[covers:F-a4085adf/AC-9d3f2e88] always includes the persona → capabilities map, regardless of spec', () => {
     const withSpecBlock = renderAgentsMdManagedBlock(
       {
         schema: '0.1',
@@ -130,7 +130,7 @@ describe('renderAgentsMdManagedBlock — AC-9d3f2e88 (cross-host persona map)', 
 });
 
 describe('renderAgentsMdManagedBlock — AC-9255e821 (personas are not an exclusivity roster)', () => {
-  test("[covers:F-9d8ece66/AC-9255e821] states the briefs are touchpoint manuals, not a roster of permitted agents, and ties identity only to the independence label", () => {
+  test('[covers:F-9d8ece66/AC-9255e821] states the briefs are touchpoint manuals, not a roster of permitted agents, and ties identity only to the independence label', () => {
     const withSpecBlock = renderAgentsMdManagedBlock(
       {
         schema: '0.1',
@@ -149,7 +149,7 @@ describe('renderAgentsMdManagedBlock — AC-9255e821 (personas are not an exclus
 });
 
 describe('renderAgentsMdManagedBlock — post-init command integrity', () => {
-  test("[covers:F-0f4dd6/AC-022] pins shell commands to the project engine and requires non-vacuous portable tests", () => {
+  test('[covers:F-0f4dd6/AC-022] pins shell commands to the project engine and requires non-vacuous portable tests', () => {
     const block = renderAgentsMdManagedBlock(null, '.');
 
     expect(block).toContain('node .cladding/host/serve.cjs <arguments>');
@@ -160,7 +160,7 @@ describe('renderAgentsMdManagedBlock — post-init command integrity', () => {
 });
 
 describe('renderAgentsMdManagedBlock — AC-4b6c1a97 (graceful degrade, never throws)', () => {
-  test("[covers:F-a4085adf/AC-4b6c1a97] null spec renders the generic block without throwing", () => {
+  test('[covers:F-a4085adf/AC-4b6c1a97] null spec renders the generic block without throwing', () => {
     expect(() => renderAgentsMdManagedBlock(null, '.')).not.toThrow();
     const block = renderAgentsMdManagedBlock(null, '.');
     expect(block).toContain('## What this project is');
@@ -231,7 +231,7 @@ describe('writeSpecDrivenAgentsMd — AC-2c8b5f61 (marker upsert: prose-preservi
     expect(after).toBe(before); // byte-stable
   });
 
-  test("[covers:F-a4085adf/AC-2c8b5f61] preserves user prose added outside the markers across re-emission", () => {
+  test('[covers:F-a4085adf/AC-2c8b5f61] preserves user prose added outside the markers across re-emission', () => {
     writeFileSync(join(dir, 'spec.yaml'), FULL_HINTS_SPEC);
     writeSpecDrivenAgentsMd(dir);
     const original = readFileSync(join(dir, 'AGENTS.md'), 'utf8');
@@ -291,7 +291,7 @@ describe('writeSpecDrivenAgentsMd — AC-1f8d7b02 (markerless / hand-authored fi
   });
   afterEach(() => rmSync(dir, {recursive: true, force: true}));
 
-  test("[covers:F-a4085adf/AC-1f8d7b02] an existing AGENTS.md with no clad markers is left byte-for-byte untouched", () => {
+  test('[covers:F-a4085adf/AC-1f8d7b02] an existing AGENTS.md with no clad markers is left byte-for-byte untouched', () => {
     writeFileSync(join(dir, 'spec.yaml'), FULL_HINTS_SPEC);
     const handAuthored = [
       '# AGENTS.md',

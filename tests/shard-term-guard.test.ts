@@ -23,7 +23,7 @@ const SHARD = /\bshards?\b/i;
 const agentsDir = fileURLToPath(new URL('../src/agents/', import.meta.url));
 
 describe('AI-facing surfaces stay shard-free — say "spec entry"', () => {
-  test("[covers:F-876b6f48/AC-c5593b9e][covers:F-9d8ece66/AC-bb56efe2] the generated AGENTS.md managed block has no \"shard\"", () => {
+  test('[covers:F-876b6f48/AC-c5593b9e][covers:F-9d8ece66/AC-bb56efe2] the generated AGENTS.md managed block has no "shard"', () => {
     const block = renderAgentsMdManagedBlock(null);
     expect(block, 'AGENTS.md managed block must say "spec entry", never "shard"').not.toMatch(SHARD);
   });
@@ -32,7 +32,7 @@ describe('AI-facing surfaces stay shard-free — say "spec entry"', () => {
     expect(CLAUDE_MD_SECTION, 'CLAUDE.md section must say "spec entry", never "shard"').not.toMatch(SHARD);
   });
 
-  test("[covers:F-876b6f48/AC-918035ef] every persona prompt has no \"shard\"", () => {
+  test('[covers:F-876b6f48/AC-918035ef] every persona prompt has no "shard"', () => {
     const personas = readdirSync(agentsDir).filter((f) => f.endsWith('.md'));
     expect(personas.length).toBeGreaterThan(0);
     for (const file of personas) {

@@ -103,7 +103,7 @@ describe('AC-5a249349 · glossary defines the previously missing concept rows', 
     return end === -1 ? after : after.slice(0, end);
   };
 
-  test("[covers:F-09a98261/AC-5a249349] impact-card row: Tier-1 one-liner + Tier-2 rich card", () => {
+  test('[covers:F-09a98261/AC-5a249349] impact-card row: Tier-1 one-liner + Tier-2 rich card', () => {
     const section = sectionFrom('## Context surfaces');
     const row = rowStartingWith(section, '| `impact card`');
     expect(row, 'Tier-1 one-liner').toContain('**Tier-1** = a one-liner');
@@ -208,7 +208,7 @@ describe('AC-c73c675e · attestation gloss is one canonical pair everywhere', ()
   const EN_FILES = [GLOSSARY, 'README.md', 'README.html'];
   const KO_FILES = [GLOSSARY, 'README.ko.md', 'README.ko.html'];
 
-  test("[covers:F-09a98261/AC-c73c675e] zero occurrences of the old EN/KO attestation gloss pair across glossary + all 4 READMEs", () => {
+  test('[covers:F-09a98261/AC-c73c675e] zero occurrences of the old EN/KO attestation gloss pair across glossary + all 4 READMEs', () => {
     const hits: string[] = [];
     for (const f of ALL_FILES) {
       const body = read(f);
@@ -253,7 +253,7 @@ describe('AC-c73c675e · attestation gloss is one canonical pair everywhere', ()
 // AC-1c0c639e — the two user-visible string repairs.
 // ═══════════════════════════════════════════════════════════════════════
 describe('AC-1c0c639e · two user-visible string repairs', () => {
-  test("[covers:F-09a98261/AC-1c0c639e] clad status --json help: \"integrity matrix\" present, the removed ANSI-panel phrase absent", () => {
+  test('[covers:F-09a98261/AC-1c0c639e] clad status --json help: "integrity matrix" present, the removed ANSI-panel phrase absent', () => {
     const src = read('src/cli/clad.ts');
     const cmdIdx = src.indexOf(".command('status')");
     expect(cmdIdx, "the .command('status') registration").toBeGreaterThanOrEqual(0);
@@ -275,7 +275,7 @@ describe('AC-1c0c639e · two user-visible string repairs', () => {
     expect(poisoned.includes(removedPhrase)).toBe(true);
   });
 
-  test("[covers:F-09a98261/AC-1c0c639e] oracle brief header names itself impl-blind, not the old spec-conformance header", () => {
+  test('[covers:F-09a98261/AC-1c0c639e] oracle brief header names itself impl-blind, not the old spec-conformance header', () => {
     const src = read('src/oracle/payload.ts');
     expect(src, 'Impl-blind oracle brief header').toContain('Impl-blind oracle brief');
     const oldHeader = asm(['Spec-conformance', ' oracle brief']);
@@ -300,12 +300,12 @@ describe('AC-4772bf42 · self-consistency.test.ts guards README.ko.md counts', (
     return end === -1 ? after : after.slice(0, end);
   };
 
-  test("[covers:F-09a98261/AC-4772bf42] the detector-count guard section references README.ko.md", () => {
+  test('[covers:F-09a98261/AC-4772bf42] the detector-count guard section references README.ko.md', () => {
     const body = testBodyNamed('README prose detector-count claims match the actual detector count');
     expect(body, 'detector-count guard must reference README.ko.md').toContain('README.ko.md');
   });
 
-  test("[covers:F-09a98261/AC-4772bf42] the stage-count guard section references README.ko.md", () => {
+  test('[covers:F-09a98261/AC-4772bf42] the stage-count guard section references README.ko.md', () => {
     const body = testBodyNamed('README/AGENTS stage-count claims match TIER_STAGES.all.length');
     expect(body, 'stage-count guard must reference README.ko.md').toContain('README.ko.md');
   });
@@ -333,7 +333,7 @@ describe('AC-50704241 · seven done shards present current verb/persona names', 
   const scanFor = (corpus: string): string[] =>
     OLD_NEEDLES.filter((n) => new RegExp(`\\b${n}\\b`, 'i').test(corpus));
 
-  test("[covers:F-09a98261/AC-50704241] none of the seven shards name an old persona or removed-verb token (files-visited === 7)", () => {
+  test('[covers:F-09a98261/AC-50704241] none of the seven shards name an old persona or removed-verb token (files-visited === 7)', () => {
     let visited = 0;
     const hits: string[] = [];
     for (const f of SHARDS) {

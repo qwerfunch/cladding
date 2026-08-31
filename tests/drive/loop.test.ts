@@ -199,10 +199,11 @@ describe('runDriveLoop', () => {
     expect(r.iterations).toBe(0);
   });
 
-  test('empty spec → ALL_FEATURES_DONE on first iteration', async () => {
+  test('[covers:F-048/AC-084] returns a declared halt class with a deciding detail', async () => {
     loadSpecMock.mockReturnValueOnce(specOf([]));
     const r = await runDriveLoop({cwd: dir});
     expect(r.halt.class).toBe('ALL_FEATURES_DONE');
+    expect(r.halt.detail).toContain('features cleared');
   });
 
   test('all features already done → ALL_FEATURES_DONE without dispatching', async () => {
@@ -246,6 +247,24 @@ describe('runDriveLoop', () => {
     // with maxIterations=3 the gates run on iterations 1 and 2 only:
     // 2 iterations × 3 gates = 6.
     expect(r.gateRuns).toBe(6);
+  });
+
+  test('[covers:F-049/AC-085] dispatches shipped personas with only feature context and guardrails', async () => {
+    loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-049', status: 'planned'}]));
+    const result = await runDriveLoop({cwd: dir});
+
+    expect(result.halt.class).toBe('ALL_FEATURES_DONE');
+    expect(loadPersonaMock.mock.calls.map(([id]) => id)).toEqual(['developer', 'reviewer']);
+    expect(runAgentMock).toHaveBeenCalledTimes(2);
+    for (const [, context] of runAgentMock.mock.calls) {
+      expect(context).toMatchObject({
+        featureId: 'F-049',
+        featureShard: expect.stringContaining('"id":"F-049"'),
+        guardrails: [],
+        cwd: dir,
+      });
+      expect(Object.keys(context).sort()).toEqual(['cwd', 'featureId', 'featureShard', 'guardrails']);
+    }
   });
 
   test('[covers:F-049/AC-086] reviewer identity collision → HUMAN_REQUIRED', async () => {

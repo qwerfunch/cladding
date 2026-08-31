@@ -12,10 +12,14 @@ depends_on:
 acceptance_criteria:
   - id: AC-001
     ears: ubiquitous
-    action: extend DriftFinding with an optional machine-actionable suggestion field
-    response: 'src/stages/types.ts exposes a new DriftSuggestion interface (action string, optional args record) and adds a readonly optional suggestion?: DriftSuggestion field on DriftFinding; existing detectors that do not populate it are unaffected because the field is optional'
-    text: The system shall extend DriftFinding with an optional machine-actionable suggestion field so detectors can emit remediation hints without breaking the existing severity/message contract that all 24 detectors rely on.
-    test_refs: [tests/stages/stale-specification.test.ts]
+    action: permit a DriftFinding to carry an optional typed remediation suggestion
+    response: preserves severity and message semantics when a detector omits the suggestion
+    text: A DriftFinding may carry an optional typed remediation suggestion, and a detector that omits it shall preserve the finding's severity and message semantics.
+    test_refs:
+      - "tests/stages/stale-specification.test.ts#[covers:F-b99577/AC-001] a finding without a remediation suggestion preserves severity and message"
+    notes: |
+      ## Historical note
+      The fixed detector count is historical; optional suggestion compatibility is the current contract.
   - id: AC-002
     ears: ubiquitous
     action: emit propose-archive suggestions from STALE_SPECIFICATION for three branches
@@ -36,7 +40,11 @@ acceptance_criteria:
     test_refs: [tests/cli/clad.test.ts]
   - id: AC-005
     ears: ubiquitous
-    action: document Tier 2 responsibility in the Librarian agent persona
-    response: 'src/agents/planner.md What-you-do section gains a Tier 2 bullet that names clad sync --propose-archive and clarifies that the agent confirms each candidate before writing archived_at + archive_reason; the never-archive-silently invariant from earlier versions stays intact'
-    text: The system shall document the Tier 2 responsibility in the Librarian agent persona so a future Librarian invocation knows the new entry point and the human-in-the-loop boundary remains explicit.
-    evidence_refs: [src/agents/planner.md]
+    action: state the canonical planner persona's design-impact responsibility and human-resolution boundary
+    response: generated mirrors reproduce the canonical source
+    text: The canonical planner persona shall state the current design-impact responsibility and human-resolution boundary, with generated mirrors reproducing that source.
+    test_refs:
+      - "tests/choreography-guard.test.ts#[covers:F-b99577/AC-005] planner guidance states the design-impact responsibility and human-resolution boundary"
+    notes: |
+      ## Historical schema-0.1 note
+      The Librarian Tier 2 wording is historical, not current planner authority.

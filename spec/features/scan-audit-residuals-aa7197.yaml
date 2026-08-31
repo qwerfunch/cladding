@@ -9,11 +9,16 @@ depends_on:
   - F-cfba0c
 acceptance_criteria:
   - id: AC-001
-    ears: ubiquitous
-    action: resolve cwd before promoting the _root bucket so flat single-package projects scanned with cwd dot do not produce a layer literally named dot
-    response: 'src/cli/scan/architecture.ts groupByLayer calls basename(resolve(opts.cwd)) instead of basename(opts.cwd); cobra scanned with the typical cwd dot relative path now produces the layer name cobra; cladding self-scan and the 16-OSS corpus stay byte-identical because their cwd values resolve to non-dot basenames already'
-    text: The system shall resolve cwd before promoting the _root bucket so flat single-package projects scanned with cwd dot do not produce a layer literally named dot (audit I15).
-    test_refs: [tests/cli/scan.test.ts]
+    ears: event
+    condition: when root-bucket promotion names a layer
+    action: use the resolved workspace basename
+    response: does not emit `.` as a layer name
+    text: When root-bucket promotion names a layer, it shall use the resolved workspace basename without emitting `.` as a layer name.
+    test_refs:
+      - "tests/cli/scan.test.ts#[covers:F-aa7197/AC-001] root promotion uses the resolved workspace basename instead of dot"
+    notes: |
+      ## Historical note
+      The cobra/I15 and corpus byte-stability language is a dated audit observation, not the invariant.
   - id: AC-002
     ears: ubiquitous
     action: prune forbidden_imports candidate matrix to a manageable size by excluding trivial layers and capping per-entry width

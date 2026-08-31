@@ -30,11 +30,16 @@ acceptance_criteria:
     text: The system shall pick the longest non-test module per layer as the representative example with its sibling test so docs/conventions.md can quote a concrete boilerplate that AI maintainers follow when adding new code.
     test_refs: [tests/cli/scan.test.ts]
   - id: AC-004
-    ears: ubiquitous
-    action: build a labelled prompt and split the response into three sections for LLM interpretation
-    response: 'src/cli/scan-llm.ts buildPrompt assembles the deterministic ScanResult into a prompt containing three sentinels (CONVENTIONS_MD, ARCHITECTURE_YAML, SCENARIO_FLOWS); parseLlmResponse extracts each labelled section; interpretWithLlm composes them into InterpretedScan with mode=llm and a fixed auto-generated header prepended to the conventions markdown'
-    text: The system shall build a labelled prompt and split the response into three sections for LLM interpretation so the dispatcher contract stays stable across v0.3.24 (deterministic default) and v0.3.25 (MCP sampling wiring) without prompt-shape churn.
-    test_refs: [tests/cli/scan-llm.test.ts]
+    ears: event
+    condition: when optional scan interpretation accepts a model response
+    action: parse only the current labelled sentinel sections
+    response: deterministically falls back for every missing or malformed section
+    text: When optional scan interpretation accepts a model response, it shall parse only the current labelled sentinel sections and deterministically fall back for every missing or malformed section.
+    test_refs:
+      - "tests/cli/scan-llm.test.ts#[covers:F-9b643e/AC-004] parses only labelled sentinel sections and falls back for missing or malformed sections"
+    notes: |
+      ## Historical note
+      The three-section/v0.3.24-v0.3.25 compatibility story is historical; current sentinels and fallback policy are authoritative.
   - id: AC-005
     ears: ubiquitous
     action: produce a deterministic fallback when --no-llm is set or no dispatcher is available
@@ -43,11 +48,15 @@ acceptance_criteria:
     test_refs: [tests/cli/scan-llm.test.ts]
   - id: AC-006
     ears: event
-    condition: when clad init runs with --scan
-    action: write docs/conventions.md, spec/architecture.yaml, and one spec/scenarios/<slug>.yaml per layer
-    response: 'src/cli/init.ts branches on opts.scan; calls scanRoot then deterministicInterpret (v0.3.24 default) and writes the three artifact families through a shared writeArtifact helper; the helper diverts to .cladding/scan/<basename>.proposal when the authored copy already exists, so docs/conventions.md or spec/architecture.yaml authored by hand never get overwritten; the CLI handler reports created plus proposals via Pulse notes'
-    text: When clad init runs with --scan, the system shall write docs/conventions.md, spec/architecture.yaml, and one spec/scenarios/<slug>.yaml per layer so the external project inherits a maintenance brief without manual authoring; existing files divert to .cladding/scan/*.proposal so authored content stays untouched.
-    test_refs: [tests/cli/clad.test.ts]
+    condition: when scan initialization writes a generated conventions or architecture artifact
+    action: preserve an existing authored artifact
+    response: emits the declared proposal disposition without claiming executable scenario generation
+    text: When scan initialization writes a generated conventions or architecture artifact, it shall preserve an existing authored artifact by emitting the declared proposal disposition without claiming executable scenario generation.
+    test_refs:
+      - "tests/cli/init.test.ts#[covers:F-9b643e/AC-006] scan output preserves authored artifacts through a proposal and does not generate scenarios"
+    notes: |
+      ## Historical note
+      Per-layer scenario generation was deprecated; its old maintenance-brief claim remains historical.
   - id: AC-007
     ears: ubiquitous
     action: thread --scan and --no-llm options from CLI through runInit

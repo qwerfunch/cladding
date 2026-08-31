@@ -30,14 +30,16 @@ acceptance_criteria:
     test_refs:
       - tests/cli/init.test.ts
   - id: AC-080
-    ears: ubiquitous
-    action: be idempotent — re-running on an initialised workspace creates nothing
-    response: skipped list explains every artifact already in place
-    text: The system shall be idempotent — re-running clad init on an
-      already-initialised workspace creates nothing and reports every artifact
-      via the skipped list.
+    ears: event
+    condition: when initialization encounters an existing managed artifact without explicit replacement authority
+    action: preserve that artifact
+    response: reports the resulting skip or proposal disposition
+    text: When initialization encounters an existing managed artifact without explicit replacement authority, it shall preserve that artifact and report the resulting skip or proposal disposition.
     test_refs:
-      - tests/cli/init.test.ts
+      - "tests/cli/init.test.ts#[covers:F-046/AC-080][covers:F-046/AC-079] preserves and reports an existing spec without force, then replaces it only with force"
+    notes: |
+      ## Historical note
+      The absolute “creates nothing/every artifact skipped” wording predates onboarding and proposal paths.
   - id: AC-081
     ears: ubiquitous
     action: detect the project language from the manifest chain; fall back to

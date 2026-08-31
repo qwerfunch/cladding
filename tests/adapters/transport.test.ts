@@ -31,7 +31,7 @@ describe('MockTransport', () => {
     expect(t.id).toBe('mock:claude-code');
   });
 
-  test("[covers:F-068/AC-183][covers:F-068/AC-186] invoke returns AgentResult with llm identity + tagged name", async () => {
+  test('[covers:F-068/AC-183][covers:F-068/AC-186] invoke returns AgentResult with llm identity + tagged name', async () => {
     const t = new MockTransport({
       hostName: 'claude-code',
       readyWhen: () => true,
@@ -126,7 +126,7 @@ describe('McpSamplingTransport (F-074, v0.2.25)', () => {
     expect(t.id).toBe('mcp-sampling:claude-code');
   });
 
-  test("[covers:F-074/AC-211] invoke calls createMessage with persona body as system prompt", async () => {
+  test('[covers:F-074/AC-211] invoke calls createMessage with persona body as system prompt', async () => {
     const {server, createMessage} = makeServer({text: 'reply text'});
     const t = new McpSamplingTransport(server);
     const persona: PersonaSpec = {id: 'reviewer', body: 'You are the reviewer.', capabilities: new Set()};
@@ -140,7 +140,7 @@ describe('McpSamplingTransport (F-074, v0.2.25)', () => {
     expect(call.messages[0].content.text).toContain('F-001');
   });
 
-  test("[covers:F-074/AC-212] invoke maps the sampling reply to AgentResult shape", async () => {
+  test('[covers:F-074/AC-212] invoke maps the sampling reply to AgentResult shape', async () => {
     const {server} = makeServer({text: 'persona output', model: 'claude-x', stopReason: 'endTurn'});
     const t = new McpSamplingTransport(server);
     const result = await t.invoke(PERSONA, CTX);

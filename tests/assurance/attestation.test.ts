@@ -97,7 +97,7 @@ function compilerGreenVerdict() {
 }
 
 describe('F6 attestation v3 payload', () => {
-  test('rejects public reducer output and accepts only the run authority facade', () => {
+  test('[covers:F-065/AC-175] mints a current profile-complete authoritative attestation only from the authoritative verdict', () => {
     const input = {verdict: greenVerdict(), feature: 'F-a', contractSha256: digest, subjectSha256: digest, verificationSha256: digest, runtimeDependencySha256: digest, registrySha256: digest, detectorCatalogSha256: digest, toolIdentity: 'cladding', environmentClass: 'test', trustSnapshotSha256: digest};
     // A public adapter GREEN is a compatibility projection, not proof that the
     // compiler snapshot and current stage execution came from runCheckStages.

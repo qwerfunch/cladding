@@ -28,7 +28,7 @@ describe('suppressPreamble', () => {
     expect(out).toContain('Fire the loop');
   });
 
-  test("[covers:F-063/AC-161] strips \"Your job is to\" line", () => {
+  test('[covers:F-063/AC-161] strips "Your job is to" line', () => {
     const prompt = 'Your job is to review the diff carefully.\n\nDiff: ...';
     const out = suppressPreamble(prompt);
     expect(out).not.toContain('Your job is to');

@@ -14,7 +14,7 @@ describe('headTail', () => {
     expect(headTail(input, 5, 30)).toBe(input);
   });
 
-  test("[covers:F-063/AC-161] cuts the middle when total > head + tail", () => {
+  test('[covers:F-063/AC-161] cuts the middle when total > head + tail', () => {
     const lines = Array.from({length: 100}, (_, i) => `line-${i}`);
     const input = lines.join('\n');
     const out = headTail(input, 2, 3);

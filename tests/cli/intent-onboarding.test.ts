@@ -35,7 +35,7 @@ function fakeObserved(over: Partial<OnboardingObserved> = {}): OnboardingObserve
 }
 
 describe('buildOnboardingPrompt', () => {
-  test("[covers:F-00eb1a/AC-004] includes all seven sentinel sections, including PROJECT_METADATA", () => {
+  test('[covers:F-00eb1a/AC-004] includes all seven sentinel sections, including PROJECT_METADATA', () => {
     const p = buildOnboardingPrompt('결제 SaaS for B2B', fakeObserved());
     expect(p).toContain('=== ONBOARDING_MODE ===');
     expect(p).toContain('=== PROJECT_CONTEXT_MD ===');
@@ -66,7 +66,7 @@ describe('buildOnboardingPrompt', () => {
     expect(p).toContain('"A neat little tool."');
   });
 
-  test("[covers:F-56abaa/AC-006] lists product-level question examples and bans expert jargon", () => {
+  test('[covers:F-56abaa/AC-006] lists product-level question examples and bans expert jargon', () => {
     const p = buildOnboardingPrompt('결제 SaaS', fakeObserved());
     // Product-level GOOD examples are present
     expect(p).toContain('주 사용자가 개인? 사업자?');
@@ -111,7 +111,7 @@ describe('buildOnboardingPrompt', () => {
 });
 
 describe('parseOnboardingResponse', () => {
-  test("[covers:F-56abaa/AC-001][covers:F-d12edf/AC-004] extracts each of the six sentinels independently", () => {
+  test('[covers:F-56abaa/AC-001][covers:F-d12edf/AC-004] extracts each of the six sentinels independently', () => {
     const raw = [
       '=== ONBOARDING_MODE ===',
       'greenfield',
@@ -195,7 +195,7 @@ describe('extractProjectMetadata (F-00eb1a)', () => {
     expect(extractProjectMetadata('   ')).toBeUndefined();
   });
 
-  test("[covers:F-00eb1a/AC-005] full ai_hints block → all 5 fields", () => {
+  test('[covers:F-00eb1a/AC-005] full ai_hints block → all 5 fields', () => {
     const raw = [
       'preferred_persona: software-engineer',
       'token_budget_per_session: 4000',
@@ -243,7 +243,7 @@ describe('extractProjectMetadata (F-00eb1a)', () => {
     expect(out).toEqual({preferred_persona: 'x'});
   });
 
-  test("[covers:F-32b1e0/AC-001][covers:F-32b1e0/AC-002][covers:F-32b1e0/AC-003] preferred_patterns parsed as triples with required keys (F-32b1e0)", () => {
+  test('[covers:F-32b1e0/AC-001][covers:F-32b1e0/AC-002][covers:F-32b1e0/AC-003] preferred_patterns parsed as triples with required keys (F-32b1e0)', () => {
     const raw = [
       'preferred_patterns:',
       '  - when: "React state"',
@@ -340,7 +340,7 @@ describe('interpretOnboardingWithFallback', () => {
     expect(events).toHaveLength(0);
   });
 
-  test("[covers:F-56abaa/AC-003] dispatcher throws → deterministic + onboarding sentinel_miss event", async () => {
+  test('[covers:F-56abaa/AC-003] dispatcher throws → deterministic + onboarding sentinel_miss event', async () => {
     const dispatch = vi.fn<(p: string) => Promise<string>>(async () => {
       throw new Error('transport down');
     });
@@ -389,7 +389,7 @@ describe('interpretOnboardingWithFallback', () => {
     expect(r.architectureYaml).toContain('layers: []');
   });
 
-  test("[covers:F-56abaa/AC-004] per-artifact fallback: empty CAPABILITIES_YAML alone keeps mode llm-hybrid", async () => {
+  test('[covers:F-56abaa/AC-004] per-artifact fallback: empty CAPABILITIES_YAML alone keeps mode llm-hybrid', async () => {
     const dispatch = vi.fn(async () =>
       [
         '=== ONBOARDING_MODE ===',

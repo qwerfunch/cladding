@@ -55,10 +55,11 @@ describe('F6 closure authority', () => {
     expect(stale.complete).toBe(true);
   });
 
-  test('seals known-negative proof facts without upgrading them into observations', () => {
+  test('[covers:F-022/AC-034] missing live proof remains unobserved in verificationClosure', () => {
     const missing = verificationClosure({...input, proofInputs: []}, 'F-a/AC-a');
     expect(missing.complete).toBe(true);
     expect(missing.records).toContainEqual({address: 'missing:proof:F-a/AC-a', value: '<missing>'});
+    expect(missing.records).not.toContainEqual(expect.objectContaining({value: 'green'}));
 
     const stale = verificationClosure({...input, proofInputs: [{
       ...input.proofInputs[0], bindingState: 'stale' as const, sourceBytes: undefined,

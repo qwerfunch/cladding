@@ -109,7 +109,7 @@ describe('runVerdictCommand --json includes independence[] for done features (AC
     return JSON.parse(joined.slice(first, last + 1)) as Record<string, unknown>;
   }
 
-  test("[covers:F-c566f590/AC-6f228987] a done feature with human-authored evidence is labeled independent in the emitted independence[]", () => {
+  test('[covers:F-c566f590/AC-6f228987] a done feature with human-authored evidence is labeled independent in the emitted independence[]', () => {
     appendEvidence(
       dir,
       newEvidence({featureId: 'F-done1', stage: 'stage_4.1', kind: 'pass', identity: {author: 'human'}, content: 'reviewed'}),

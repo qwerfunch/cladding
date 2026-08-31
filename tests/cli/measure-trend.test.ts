@@ -74,7 +74,7 @@ afterEach(() => {
 });
 
 describe('clad measure --trend — absence renders as absence (AC-220944e2)', () => {
-  test("[covers:F-39609db4/AC-220944e2] no ledger (0 snapshots) → \"no trend yet — 0 snapshot(s)\", exit 0, no fabricated delta", () => {
+  test('[covers:F-39609db4/AC-220944e2] no ledger (0 snapshots) → "no trend yet — 0 snapshot(s)", exit 0, no fabricated delta', () => {
     runMeasureCommand({trend: true});
     const out = stdout();
     expect(out).toContain('no trend yet');

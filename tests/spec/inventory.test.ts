@@ -84,7 +84,7 @@ describe('upsertInventoryBlock', () => {
     last_synced: '2026-05-21',
   };
 
-  test("[covers:F-5b9f9f/AC-001] appends block when none exists", () => {
+  test('[covers:F-5b9f9f/AC-001] appends block when none exists', () => {
     const body = 'schema: "0.1"\nproject:\n  name: x\n  language: typescript\nfeatures: []\n';
     const out = upsertInventoryBlock(body, inv);
     expect(out).toContain('inventory:');
@@ -93,7 +93,7 @@ describe('upsertInventoryBlock', () => {
     expect(out).toContain('name: x');
   });
 
-  test("[covers:F-5b9f9f/AC-003] replaces existing block in place", () => {
+  test('[covers:F-5b9f9f/AC-003] replaces existing block in place', () => {
     const body = [
       'schema: "0.1"',
       'project:',
@@ -148,7 +148,7 @@ describe('upsertInventoryBlock', () => {
     expect(isAllCrlf(out)).toBe(true); // no mixed endings — the git-autocrlf Windows bug
   });
 
-  test("[covers:F-5b9f9f/AC-002] inventory renderer round-trip", () => {
+  test('[covers:F-5b9f9f/AC-002] inventory renderer round-trip', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-inv-write-'));
     try {
       writeFileSync(
@@ -294,7 +294,7 @@ describe('inventory churn diet (F-6e49fd24)', () => {
   // AC-de828ae2 — the schema keeps last_synced optional, so spec.yaml files
   // written by older cladding versions still parse AND validate. Exercised via
   // the real validation path (validateSpec + loadSpec), not just the TS type.
-  test("[covers:F-5b9f9f/AC-005] AC-de828ae2 · a spec.yaml carrying legacy last_synced still parses and validates", () => {
+  test('[covers:F-5b9f9f/AC-005] AC-de828ae2 · a spec.yaml carrying legacy last_synced still parses and validates', () => {
     // Direct schema path — an inventory object carrying last_synced is valid.
     const result = validateSpec({
       schema: '0.1',

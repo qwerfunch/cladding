@@ -44,7 +44,7 @@ describe('ARCHITECTURE_FROM_SPEC (F-088, v0.3.13)', () => {
   });
 
   describe('happy path', () => {
-    test("[covers:F-42af48/AC-001] all layers present, no forbidden imports, no findings", () => {
+    test('[covers:F-42af48/AC-001] all layers present, no forbidden imports, no findings', () => {
       writeArchitecture(
         dir,
         'layers: [[spec, stages]]\nforbidden_imports: []\n',
@@ -56,7 +56,7 @@ describe('ARCHITECTURE_FROM_SPEC (F-088, v0.3.13)', () => {
   });
 
   describe('forbidden_imports (error)', () => {
-    test("[covers:F-42af48/AC-002] spec/*.ts importing from stages/ → error", () => {
+    test('[covers:F-42af48/AC-002] spec/*.ts importing from stages/ → error', () => {
       writeArchitecture(
         dir,
         'layers: [[spec, stages]]\nforbidden_imports:\n  - from: spec\n    to: stages\n',
@@ -127,7 +127,7 @@ describe('ARCHITECTURE_FROM_SPEC (F-088, v0.3.13)', () => {
   });
 
   describe('undeclared directory (warn)', () => {
-    test("[covers:F-42af48/AC-003] src/ contains a directory not in any layer → warn", () => {
+    test('[covers:F-42af48/AC-003] src/ contains a directory not in any layer → warn', () => {
       writeArchitecture(dir, 'layers: [[spec, stages]]\nforbidden_imports: []\n');
       writeSrcFile(dir, 'spec/x.ts', 'export const x = 1;\n');
       writeSrcFile(dir, 'stages/y.ts', 'export const y = 1;\n');
@@ -142,7 +142,7 @@ describe('ARCHITECTURE_FROM_SPEC (F-088, v0.3.13)', () => {
   });
 
   describe('empty layer (warn)', () => {
-    test("[covers:F-42af48/AC-004] layer declared but src/<layer>/ does not exist → warn", () => {
+    test('[covers:F-42af48/AC-004] layer declared but src/<layer>/ does not exist → warn', () => {
       writeArchitecture(
         dir,
         'layers: [[spec, phantom-layer]]\nforbidden_imports: []\n',
@@ -158,7 +158,7 @@ describe('ARCHITECTURE_FROM_SPEC (F-088, v0.3.13)', () => {
   });
 
   describe('soft validator', () => {
-    test("[covers:F-42af48/AC-005] spec/architecture.yaml absent → silent (no findings)", () => {
+    test('[covers:F-42af48/AC-005] spec/architecture.yaml absent → silent (no findings)', () => {
       writeSrcFile(dir, 'spec/x.ts', 'export const x = 1;\n');
       expect(architectureFromSpec.run({cwd: dir})).toEqual([]);
     });
@@ -230,7 +230,7 @@ describe('ARCHITECTURE_FROM_SPEC (F-088, v0.3.13)', () => {
       expect(errors[0].message).toContain('ledger');
     });
 
-    test("[covers:F-99c6e5/AC-001] object-form + canonical top-level forbidden_imports compose", () => {
+    test('[covers:F-99c6e5/AC-001] object-form + canonical top-level forbidden_imports compose', () => {
       writeArchitecture(
         dir,
         [

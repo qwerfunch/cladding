@@ -93,6 +93,15 @@ describe('classifyIntent — ambiguous or out-of-vocab → unknown', () => {
 });
 
 describe('classifyIntent — rule order invariant', () => {
+  test('[covers:F-039/AC-059] returns the first matching current rule or unknown', () => {
+    expect(classifyIntent('initialize and build')).toBe('init');
+    expect(classifyIntent('what is the weather today')).toBe('unknown');
+  });
+
+  test('[covers:F-039/AC-060] prioritizes a specific rule over the broad run rule', () => {
+    expect(classifyIntent('initialize and build')).toBe('init');
+  });
+
   test('"initialize and build" → init (init rule evaluated before the broad build rule)', () => {
     expect(classifyIntent('initialize and build')).toBe('init');
   });

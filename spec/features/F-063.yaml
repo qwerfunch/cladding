@@ -47,8 +47,12 @@ acceptance_criteria:
       - tests/ui/panel.test.ts
   - id: AC-163
     ears: state
-    condition: while the v0.2.14 sweep lands
-    action: raise overall line coverage materially under the widened scope
-    response: vitest --coverage reports overall line coverage rises from 74.42% (v0.2.13 baseline) to ≥ 85% — five additional dirs (agents · drive · events · optimizer · ui) now closed
-    text: While the v0.2.14 sweep lands, overall line coverage shall rise from 74.42% to at least 85%, closing the agents · drive · events · optimizer · ui chapters in a single batch.
-    evidence_refs: [CHANGELOG.md]
+    condition: while current coverage assurance is evaluated
+    action: derive it from the coverage obligation
+    response: does not treat the v0.2.14 measurement as current proof
+    text: While current coverage assurance is evaluated, it shall be derived from the coverage obligation; the v0.2.14 measurement remains historical evidence only.
+    test_refs:
+      - "tests/assurance/registry.test.ts#[covers:F-055/AC-128][covers:F-056/AC-132][covers:F-057/AC-136][covers:F-058/AC-140][covers:F-059/AC-144][covers:F-060/AC-148][covers:F-061/AC-152][covers:F-062/AC-157][covers:F-063/AC-163][covers:F-064/AC-167] derives current coverage assurance only from the coverage obligation"
+    notes: |
+      ## Historical schema-0.1 note
+      v0.2.14’s 74.42% to ≥85% measurement is historical, not current assurance.

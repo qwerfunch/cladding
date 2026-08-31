@@ -82,7 +82,7 @@ describe('parseJUnitReport (F-<hash>)', () => {
 
 describe('lookupTestRef (F-<hash>)', () => {
   const r: JUnitReport = new Map([['tests/a.test.ts', {pass: 1, fail: 0, skip: 0}]]);
-  test("[covers:F-96700032/AC-14bdc224] matches exact, ./-prefixed, and suffix paths", () => {
+  test('[covers:F-96700032/AC-14bdc224] matches exact, ./-prefixed, and suffix paths', () => {
     expect(lookupTestRef(r, 'tests/a.test.ts')?.pass).toBe(1);
     expect(lookupTestRef(r, './tests/a.test.ts')?.pass).toBe(1);
     expect(lookupTestRef(r, 'a.test.ts')?.pass).toBe(1); // ref is a suffix of the report key
@@ -93,24 +93,24 @@ describe('lookupTestRef (F-<hash>)', () => {
 describe('evaluateAcVerification (F-<hash>)', () => {
   const report = parseJUnitReport(XML);
 
-  test("[covers:F-96700032/AC-ab798b7c] a passing test_ref yields no finding", () => {
+  test('[covers:F-96700032/AC-ab798b7c] a passing test_ref yields no finding', () => {
     expect(evaluateAcVerification(specWith(['tests/pass.test.ts']), report)).toHaveLength(0);
   });
 
-  test("[covers:F-96700032/AC-75ab1c26] a failing test_ref is an error finding", () => {
+  test('[covers:F-96700032/AC-75ab1c26] a failing test_ref is an error finding', () => {
     const f = evaluateAcVerification(specWith(['tests/fail.test.ts']), report);
     expect(f).toHaveLength(1);
     expect(f[0]).toMatchObject({detector: 'UNVERIFIED_AC', severity: 'error'});
     expect(f[0].message).toMatch(/FAILING/);
   });
 
-  test("[covers:F-96700032/AC-0ac3333c] an only-skipped test_ref is an error finding", () => {
+  test('[covers:F-96700032/AC-0ac3333c] an only-skipped test_ref is an error finding', () => {
     const f = evaluateAcVerification(specWith(['tests/skip.test.ts']), report);
     expect(f[0]).toMatchObject({severity: 'error'});
     expect(f[0].message).toMatch(/SKIPPED/);
   });
 
-  test("[covers:F-96700032/AC-f1cb906a] a test_ref absent from the report is a warn finding (partial run is legitimate)", () => {
+  test('[covers:F-96700032/AC-f1cb906a] a test_ref absent from the report is a warn finding (partial run is legitimate)', () => {
     const f = evaluateAcVerification(specWith(['tests/missing.test.ts']), report);
     expect(f[0]).toMatchObject({severity: 'warn'});
     expect(f[0].message).toMatch(/no observed result/);
@@ -139,7 +139,7 @@ describe('unverifiedAc.run — graceful skip (F-<hash>)', () => {
     rmSync(tmp, {recursive: true, force: true});
   });
 
-  test("[covers:F-96700032/AC-44e7172f] no JUnit report present → returns nothing (existence check stays the baseline)", () => {
+  test('[covers:F-96700032/AC-44e7172f] no JUnit report present → returns nothing (existence check stays the baseline)', () => {
     // No report and no schema-0.2 source leaves neither legacy observation nor
     // static binding integrity for the detector to evaluate.
     expect(unverifiedAc.run({cwd: tmp})).toEqual([]);

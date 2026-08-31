@@ -62,7 +62,7 @@ describe('AC-ad928912 · CLAUDE_MD_SECTION + the AGENTS.md managed block carry t
     expect(CLAUDE_MD_SECTION).toContain("**Speak the user's language**");
   });
 
-  test("[covers:F-723c81dd/AC-ad928912] CLAUDE_MD_SECTION states translate-to-plain-words + never-lead-with-ids", () => {
+  test('[covers:F-723c81dd/AC-ad928912] CLAUDE_MD_SECTION states translate-to-plain-words + never-lead-with-ids', () => {
     const flat = norm(CLAUDE_MD_SECTION);
     expect(flat).toMatch(USERS_OWN_LANGUAGE);
     expect(flat).toMatch(NEVER_LEAD_WITH_IDS);
@@ -103,7 +103,7 @@ describe('AC-6bf501f8 · all five personas extend Soft Shell with the three sema
     'src/agents/observability.md',
   ] as const;
 
-  test("[covers:F-ef93141b/AC-4f568698] exactly the five named personas are in scope, each a recognized PERSONA_BUDGETS key", () => {
+  test('[covers:F-ef93141b/AC-4f568698] exactly the five named personas are in scope, each a recognized PERSONA_BUDGETS key', () => {
     expect(PERSONA_FILES).toHaveLength(5);
     for (const f of PERSONA_FILES) {
       expect(Object.prototype.hasOwnProperty.call(PERSONA_BUDGETS, f), f).toBe(true);
@@ -134,7 +134,7 @@ describe('AC-6bf501f8 · all five personas extend Soft Shell with the three sema
     });
   }
 
-  test("[covers:F-723c81dd/AC-6bf501f8] planted-needle control — the tolerant patterns have teeth (miss a stub, catch the real sentence)", () => {
+  test('[covers:F-723c81dd/AC-6bf501f8] planted-needle control — the tolerant patterns have teeth (miss a stub, catch the real sentence)', () => {
     const stub =
       'Use src/ui/softShell.ts (featureLabel, gateLabel) to keep F-NNN / stage_X.Y codes out of user-facing prose.';
     expect(TRANSLATE_BY_MEANING.test(stub)).toBe(false);

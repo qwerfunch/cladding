@@ -117,7 +117,7 @@ afterEach(() => {
 // ─── byte-identical fallback on the two trigger modes ───
 
 describe('fallback to the legacy card (AC-38141a9e)', () => {
-  test("[covers:F-35954d19/AC-38141a9e] buildWorkingSet THROWS → output byte-identical to formatImpactCard; fired has no tier field", () => {
+  test('[covers:F-35954d19/AC-38141a9e] buildWorkingSet THROWS → output byte-identical to formatImpactCard; fired has no tier field', () => {
     seed();
     clearStamp();
     const out = post(edit('src/foo.ts'));

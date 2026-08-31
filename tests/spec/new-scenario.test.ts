@@ -22,7 +22,7 @@ describe('createScenario (F-087, v0.3.12)', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test("[covers:F-d7312b/AC-001] writes spec/scenarios/<slug>-<hash8>.yaml with hash id", () => {
+  test('[covers:F-d7312b/AC-001] writes spec/scenarios/<slug>-<hash8>.yaml with hash id', () => {
     const r = createScenario({slug: 'checkout-happy-path', cwd: dir});
     expect(r.slug).toBe('checkout-happy-path');
     expect(r.id).toMatch(/^S-[a-f0-9]{8}$/);

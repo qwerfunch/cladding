@@ -434,12 +434,33 @@ describe('interpretScanWithFallback', () => {
     expect(dispatch).toHaveBeenCalledOnce();
   });
 
-  test('[covers:F-17df0a/AC-002] collapses to deterministic when dispatcher returns an empty architecture section', async () => {
+  test('[covers:F-9b643e/AC-004] parses only labelled sentinel sections and falls back for missing or malformed sections', async () => {
     const dispatch = vi.fn(async () => '=== CONVENTIONS_MD ===\n# only conv\n');
     const r = await interpretScanWithFallback(fakeScan(), dispatch);
     expect(r.mode).toBe('deterministic');
     // Layer name from deterministic, not from the empty LLM reply.
     expect(r.architectureYaml).toContain('name: core');
+
+    const malformed = vi.fn(async () =>
+      '=== CONVENTIONS_MD ===\n# present\n' +
+        '=== ARCHITECTURE_YAML ===\nlayers: [\n' +
+        '=== SCENARIO_FLOWS ===\ncore-flow: present\n',
+    );
+    const malformedResult = await interpretScanWithFallback(fakeScan(), malformed);
+    expect(malformedResult.mode).toBe('deterministic');
+    expect(malformedResult.architectureYaml).toContain('name: core');
+
+    const malformedAuxiliary = vi.fn(async () =>
+      '=== CONVENTIONS_MD ===\n# present\n' +
+        '=== ARCHITECTURE_YAML ===\nlayers: []\n' +
+        '=== SCENARIO_FLOWS ===\nnot a labelled flow\n' +
+        '=== CAPABILITIES_YAML ===\ncapabilities: not-a-list\n',
+    );
+    const auxiliaryResult = await interpretScanWithFallback(fakeScanWithReadme(), malformedAuxiliary);
+    expect(auxiliaryResult.mode).toBe('llm');
+    expect(auxiliaryResult.scenarioFlows.get('core-flow')).toContain('Flow through core/');
+    expect(auxiliaryResult.capabilitiesYaml).toContain('capabilities:');
+    expect(auxiliaryResult.capabilitiesYaml).toContain('- id: install');
   });
 
   test('[covers:F-17df0a/AC-002] collapses to deterministic when dispatcher returns header-only conventions', async () => {

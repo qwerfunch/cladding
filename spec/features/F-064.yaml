@@ -27,8 +27,12 @@ acceptance_criteria:
     test_refs: [tests/adapters/index.test.ts]
   - id: AC-167
     ears: state
-    condition: while the v0.2.15 batch lands
-    action: bring every first-party source dir to ≥ 90% line coverage
-    response: every one of the 11 first-party source dirs (adapters · agents · cli · drive · events · hitl · optimizer · router · spec · stages · ui) reports ≥ 90% line coverage under the widened scope; total project line coverage reaches at least 93%
-    text: While the v0.2.15 batch lands, every first-party source dir shall reach ≥ 90% line coverage, with total project coverage at ≥ 93%.
-    evidence_refs: [CHANGELOG.md]
+    condition: while current coverage assurance is evaluated
+    action: derive it from the coverage obligation
+    response: does not treat the v0.2.15 source-directory measurement as current proof
+    text: While current coverage assurance is evaluated, it shall be derived from the coverage obligation; the v0.2.15 source-directory measurement remains historical evidence only.
+    test_refs:
+      - "tests/assurance/registry.test.ts#[covers:F-055/AC-128][covers:F-056/AC-132][covers:F-057/AC-136][covers:F-058/AC-140][covers:F-059/AC-144][covers:F-060/AC-148][covers:F-061/AC-152][covers:F-062/AC-157][covers:F-063/AC-163][covers:F-064/AC-167] derives current coverage assurance only from the coverage obligation"
+    notes: |
+      ## Historical schema-0.1 note
+      v0.2.15’s source-dir ≥90% and total ≥93% measurement is historical, not current assurance.

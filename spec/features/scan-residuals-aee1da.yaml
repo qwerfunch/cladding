@@ -10,12 +10,17 @@ depends_on:
   - F-94dda4
 acceptance_criteria:
   - id: AC-001
-    ears: state
-    condition: while the cwd holds at least five recognised source files directly (Go-style flat single-package)
-    action: promote the _root bucket to a named layer using cwd basename
-    response: 'src/cli/scan.ts groupByLayer collects files into _root when layerOf returns _root; after the loop, when rootBucket.length >= ROOT_PROMOTION_THRESHOLD (5), the bucket moves to a layer named after basename(cwd); cobra-style repos no longer report zero layers; the small-flat test asserts that 2 cwd-direct files stay below the threshold and produce no layer'
-    text: While the cwd holds at least five recognised source files directly (Go-style flat single-package), the system shall promote the _root bucket to a named layer using cwd basename so cobra and similar Go single-package projects produce a meaningful architecture.yaml.
-    test_refs: [tests/cli/scan.test.ts]
+    ears: unwanted
+    condition: if a flat workspace has at least ROOT_PROMOTION_THRESHOLD recognized direct source files and no layer subdirectory
+    action: omit the promoted root bucket from emitted architecture layers
+    response: 'renders layers: [] rather than a bogus cwd-named layer with an unmatched glob'
+    text: 'If a flat workspace has at least ROOT_PROMOTION_THRESHOLD recognized direct source files and no layer subdirectory, scan architecture inference shall omit the promoted root bucket and render layers: [] rather than a bogus cwd-named layer.'
+    test_refs:
+      - "tests/cli/scan.test.ts#[covers:F-aee1da/AC-001] omits a qualifying flat root rather than emitting a bogus cwd-named layer"
+    notes: |
+      ## Historical note
+      The former root-promotion rule was superseded by F-77a90ac6/AC-974ef7b2:
+      a cwd-named layer cannot resolve to a real sub-layer or matching glob.
   - id: AC-002
     ears: event
     condition: when a file lives directly inside a workspace src root with no intervening subdirectory

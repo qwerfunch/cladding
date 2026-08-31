@@ -6,20 +6,24 @@ modules:
   - tests/router/intent.test.ts
 acceptance_criteria:
   - id: AC-059
-    ears: ubiquitous
-    action: classify a free-form Korean or English prompt to one of 5 verbs (init ·
-      work · drive · sync · check)
-    response: returns 'unknown' when no rule fires
-    text: The system shall classify a free-form Korean or English prompt into one of
-      five verbs — init, work, drive, sync, check — and return 'unknown' when no
-      rule fires.
+    ears: event
+    condition: when the intent router evaluates a prompt
+    action: return the first matching verb from the current ordered rule registry
+    response: returns unknown when no rule matches
+    text: When the intent router evaluates a prompt, it shall return the first matching verb from the current ordered rule registry or `unknown` when no rule matches.
     test_refs:
-      - tests/router/intent.test.ts
+      - "tests/router/intent.test.ts#[covers:F-039/AC-059] returns the first matching current rule or unknown"
+    notes: |
+      ## Historical note
+      The old five-verb list is retired: `work` and `drive` now map to `run`.
   - id: AC-060
-    ears: ubiquitous
-    action: evaluate more-specific rules before the broadest work rule
-    response: the work rule never shadows init / drive / sync / check
-    text: The router shall evaluate more-specific rules (init, drive, sync, check)
-      before the broadest 'work' rule so that 'work' never shadows a
-      more-specific intent.
-    evidence_refs: [fixture:F-039_AC-060]
+    ears: event
+    condition: when the router evaluates a prompt matching both a specific rule and the broad run rule
+    action: return the first specific rule's verb
+    response: the broad run rule does not shadow the specific rule
+    text: When the router evaluates a prompt matching both a specific rule and the broad run rule, it shall return the first specific rule's verb.
+    test_refs:
+      - "tests/router/intent.test.ts#[covers:F-039/AC-060] prioritizes a specific rule over the broad run rule"
+    notes: |
+      ## Historical schema-0.1 note
+      The retired work/drive/sync/check ordering is historical, not current proof.

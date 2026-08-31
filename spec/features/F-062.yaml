@@ -34,8 +34,12 @@ acceptance_criteria:
     test_refs: [tests/cli/benchmark.test.ts]
   - id: AC-157
     ears: state
-    condition: while the v0.2.13 batch lands
-    action: keep overall line coverage above the 70% floor under the widened scope
-    response: vitest --coverage reports overall line coverage at ≥ 70% under the widened include list, so `clad check --strict` still passes the COVERAGE_DROP gate
-    text: While the v0.2.13 batch lands under the widened coverage scope, overall line coverage shall stay at ≥ 70% so `clad check --strict` continues to pass the drift stage.
-    evidence_refs: [CHANGELOG.md]
+    condition: while current coverage assurance is evaluated
+    action: derive it from the coverage obligation
+    response: does not treat the widened-scope measurement as current proof
+    text: While current coverage assurance is evaluated, it shall be derived from the coverage obligation; the widened-scope measurement remains historical evidence only.
+    test_refs:
+      - "tests/assurance/registry.test.ts#[covers:F-055/AC-128][covers:F-056/AC-132][covers:F-057/AC-136][covers:F-058/AC-140][covers:F-059/AC-144][covers:F-060/AC-148][covers:F-061/AC-152][covers:F-062/AC-157][covers:F-063/AC-163][covers:F-064/AC-167] derives current coverage assurance only from the coverage obligation"
+    notes: |
+      ## Historical schema-0.1 note
+      The v0.2.13 widened-scope ≥70% measurement is historical, not current assurance.

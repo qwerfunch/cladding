@@ -43,7 +43,7 @@ function loadRunnerIds(): readonly string[] {
 }
 
 describe('conformance/fixtures.yaml SSoT', () => {
-  test("[covers:F-053/AC-118][covers:F-054/AC-124] every runnable entry exists in conformance/runner.ts", () => {
+  test('[covers:F-053/AC-118][covers:F-054/AC-124] every runnable entry exists in conformance/runner.ts', () => {
     const registry = loadRegistry();
     const runnableNames = registry.filter((f) => f.kind === 'runnable').map((f) => f.name);
     const runnerIds = new Set(loadRunnerIds());
@@ -51,7 +51,7 @@ describe('conformance/fixtures.yaml SSoT', () => {
     expect(orphans).toEqual([]);
   });
 
-  test("[covers:F-053/AC-115][covers:F-054/AC-124] every fixture id in conformance/runner.ts is in the registry", () => {
+  test('[covers:F-053/AC-115][covers:F-054/AC-124] every fixture id in conformance/runner.ts is in the registry', () => {
     const registry = loadRegistry();
     const registeredNames = new Set(registry.map((f) => f.name));
     const runnerIds = loadRunnerIds();
@@ -59,7 +59,7 @@ describe('conformance/fixtures.yaml SSoT', () => {
     expect(unregistered).toEqual([]);
   });
 
-  test("[covers:F-053/AC-118] every registry entry declares a kind", () => {
+  test('[covers:F-053/AC-118] every registry entry declares a kind', () => {
     const registry = loadRegistry();
     const malformed = registry.filter((f) => f.kind !== 'runnable' && f.kind !== 'documentary');
     expect(malformed).toEqual([]);

@@ -73,7 +73,7 @@ describe('F6 assurance reducer', () => {
     expect(na.results.find((result) => result.obligation === 'stage_2.2')?.state).toBe('unobserved');
   });
 
-  test('projects one stage observation into Unit and Coverage attribution without re-execution', () => {
+  test('[covers:F-061/AC-151] current runner proof is derived per obligation from current observations', () => {
     const verdict = reduceLegacyStageAdapter({
       profile: assuranceProfile('push', 'L2'), configuredAssuranceLevel: 'L2', completeScope: true,
       scopeAddresses: ['project'], inputAddresses: ['project'], inputSha256: 'a'.repeat(64), hasExecutableTests: true, hasOracleProof: false, hasDeliverable: false,
@@ -190,7 +190,7 @@ describe('F6 assurance reducer', () => {
     expect(authorityReduce({profile: reportProfile, configuredAssuranceLevel: 'L2', scopeSha256: 's', inputSha256: 'i', scopeAddresses: ['project'], obligations: [], observations: []}).state).toBe('unresolved');
   });
 
-  test('enumerates exact F5 composite criteria for Audit and UAT while blind proof only labels independence', () => {
+  test('[covers:F-033/AC-051][covers:F-033/AC-052] enumerates exact F5 composite criteria for Audit and UAT while blind proof only labels independence', () => {
     const views = [
       {criterion: 'F-a/AC-one', test: {criterion: 'F-a/AC-one', state: 'verified' as const, matched: 1, pass: 1, fail: 0, skip: 0, error: 0}, audit: 'verified' as const, uat: 'verified' as const, blind: 'verified' as const, assertedEvidence: 0},
       {criterion: 'F-a/AC-two', test: {criterion: 'F-a/AC-two', state: 'verified' as const, matched: 1, pass: 1, fail: 0, skip: 0, error: 0}, audit: 'verified' as const, uat: 'unverified' as const, blind: 'verified' as const, assertedEvidence: 0},
@@ -206,6 +206,28 @@ describe('F6 assurance reducer', () => {
     expect(verdict.results.filter((result) => result.obligation === 'stage_4.1').map((result) => result.subject)).toEqual(['criterion:F-a/AC-one', 'criterion:F-a/AC-two']);
     expect(verdict.results.filter((result) => result.obligation === 'stage_4.2').map((result) => result.state)).toEqual(['pass', 'unobserved']);
     expect(verdict.independence).toBe('independent');
+  });
+
+  test('[covers:F-027/AC-040][covers:F-028/AC-041][covers:F-029/AC-042] applicable missing quality runners remain unobserved, not skipped, NA, or green', () => {
+    const verdict = reduceLegacyStageAdapter({
+      profile: assuranceProfile('completion', 'L3'), configuredAssuranceLevel: 'L3', completeScope: true,
+      scopeAddresses: ['feature:F-quality'], inputAddresses: ['feature:F-quality'], inputSha256: 'a'.repeat(64),
+      hasExecutableTests: true, hasOracleProof: false, hasDeliverable: false, requiresQuality: true, requiresHuman: false,
+      environmentClass: 'test',
+      stages: ['stage_1.1', 'stage_1.2', 'stage_1.3', 'stage_1.4', 'stage_1.5', 'stage_1.6', 'stage_2.1', 'stage_2.2', 'stage_2.3', 'stage_2.4']
+        .map((stage) => ({stage, status: 'pass' as const})),
+    });
+    const qualityStates = Object.fromEntries(
+      verdict.results
+        .filter((result) => ['stage_3.1', 'stage_3.2', 'stage_3.3'].includes(result.obligation))
+        .map((result) => [result.obligation, result.state]),
+    );
+    expect(qualityStates).toEqual({
+      'stage_3.1': 'unobserved',
+      'stage_3.2': 'unobserved',
+      'stage_3.3': 'unobserved',
+    });
+    expect(verdict.state).toBe('unresolved');
   });
 
   test('does not fan one global Unit or Coverage pass into a sibling without a current F5 testcase observation', () => {

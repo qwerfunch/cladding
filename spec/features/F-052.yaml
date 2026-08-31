@@ -30,9 +30,13 @@ acceptance_criteria:
     text: The cladding self-spec shall carry only code-test paths in test_refs; all other verification artifacts shall live under evidence_refs.
     evidence_refs: [spec/features/F-001.yaml, spec/features/F-051.yaml]
   - id: AC-109
-    ears: state
-    condition: while both test_refs and evidence_refs are empty for a status=done AC
-    action: MISSING_TESTS emits a warn finding
-    response: message names both fields to communicate the satisfying set
-    text: While a status=done AC declares no verification of any kind, the system shall emit a MISSING_TESTS warn finding whose message references both test_refs and evidence_refs.
-    test_refs: [tests/stages/missing-tests.test.ts]
+    ears: event
+    condition: when a done legacy criterion has neither a confirmed non-derived test reference nor an evidence reference
+    action: MISSING_TESTS emits an error
+    response: identifies the absent verification fields
+    text: When a done legacy criterion has neither a confirmed non-derived test reference nor an evidence reference, MISSING_TESTS shall emit an error identifying the absent verification fields.
+    test_refs:
+      - "tests/stages/missing-tests.test.ts#[covers:F-052/AC-109][covers:F-067/AC-180][covers:F-067/AC-181] errors when status=done AC has neither test_refs nor evidence_refs"
+    notes: |
+      ## Historical note
+      The former warn-level promise was intentionally promoted to an error.

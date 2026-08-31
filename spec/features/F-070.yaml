@@ -27,9 +27,13 @@ acceptance_criteria:
     text: While specialist and reviewer dispatches return the same identity.name from a real-shape transport, the system shall halt the loop with HUMAN_REQUIRED — proving the F-049 AC-086 barrier works against real-LLM data, not only mock data.
     test_refs: [tests/integration/loop-real-transport.test.ts]
   - id: AC-195
-    ears: state
-    condition: while the Transport throws during specialist dispatch (e.g. auth fail)
-    action: surface as LLM_UNAVAILABLE halt
-    response: runDriveLoop catches the Transport throw and returns halt.class=LLM_UNAVAILABLE with detail containing the original error message
-    text: While the AnthropicTransport throws during dispatch (auth failure, rate limit, network error), the system shall map the throw to a LLM_UNAVAILABLE halt with the original error message included in the detail.
-    test_refs: [tests/integration/loop-real-transport.test.ts]
+    ears: event
+    condition: when an adapter dispatch throws
+    action: classify the error through classifyTransportError
+    response: retains the error detail in the returned HaltReason
+    text: When an adapter dispatch throws, the run loop shall classify the error through classifyTransportError and retain the error detail in the returned HaltReason.
+    test_refs:
+      - "tests/integration/loop-real-transport.test.ts#[covers:F-070/AC-195][covers:F-070/AC-192] transport throw (401 auth) maps to TRANSPORT_AUTH_FAILED halt"
+    notes: |
+      ## Historical note
+      The one-size LLM_UNAVAILABLE mapping was replaced by actionable transport classifications.

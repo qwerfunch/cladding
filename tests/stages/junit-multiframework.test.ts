@@ -60,7 +60,7 @@ const vitestFailXml = `<?xml version="1.0" encoding="utf-8"?>
 // ---------------------------------------------------------------------------
 
 describe('file= attribute is the anchor (F-d980359c)', () => {
-  it("[covers:F-d980359c/AC-23f0da78] finds a pytest testcase by its file= path with pass===1", () => {
+  it('[covers:F-d980359c/AC-23f0da78] finds a pytest testcase by its file= path with pass===1', () => {
     const report = parseJUnitReport(pytestXml);
     const status = lookupTestRef(report, 'tests/test_foo.py');
     expect(status).toBeDefined();
@@ -69,7 +69,7 @@ describe('file= attribute is the anchor (F-d980359c)', () => {
 });
 
 describe('dotted classname → slash-converted FQCN indexing (F-d980359c)', () => {
-  it("[covers:F-d980359c/AC-07b10521] indexes a dotted FQCN under its slash-converted key", () => {
+  it('[covers:F-d980359c/AC-07b10521] indexes a dotted FQCN under its slash-converted key', () => {
     const report = parseJUnitReport(javaXml);
     expect(report.has('com/example/FooTest')).toBe(true);
   });
@@ -86,7 +86,7 @@ describe('dotted classname → slash-converted FQCN indexing (F-d980359c)', () =
 });
 
 describe('extension-agnostic matching (F-d980359c)', () => {
-  it("[covers:F-d980359c/AC-5daf7fc6] matches a ref WITH an extension against a key WITHOUT one (pytest)", () => {
+  it('[covers:F-d980359c/AC-5daf7fc6] matches a ref WITH an extension against a key WITHOUT one (pytest)', () => {
     // key derived from classname `tests.test_foo` (no extension)
     const report = parseJUnitReport(pytestXml);
     const status = lookupTestRef(report, 'tests/test_foo.py');
@@ -109,7 +109,7 @@ describe('confident-or-degrade on unmappable report (F-d980359c)', () => {
     expect(isPathLike('com.example.FooTest')).toBe(true);
   });
 
-  it("[covers:F-d980359c/AC-d47d2a88] degrades to an empty finding array on a jest describe-title report", () => {
+  it('[covers:F-d980359c/AC-d47d2a88] degrades to an empty finding array on a jest describe-title report', () => {
     const report = parseJUnitReport(jestXml);
     const findings = evaluateAcVerification(
       specWith(['src/MyComponent.test.tsx']),
@@ -120,7 +120,7 @@ describe('confident-or-degrade on unmappable report (F-d980359c)', () => {
 });
 
 describe('vitest regression guard (F-d980359c)', () => {
-  it("[covers:F-d980359c/AC-dce7cb54] keeps a path-like classname pass working as before", () => {
+  it('[covers:F-d980359c/AC-dce7cb54] keeps a path-like classname pass working as before', () => {
     const report = parseJUnitReport(vitestPassXml);
     const status = lookupTestRef(report, 'tests/foo.test.ts');
     expect(status).toBeDefined();

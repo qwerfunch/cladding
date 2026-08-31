@@ -16,6 +16,8 @@
 // @see scan.ts — deterministic data source
 // @see src/adapters/host/sampling-context.ts — dispatcher candidate
 
+import {parse as parseYaml} from 'yaml';
+
 import {appendEvent, newEvent} from '../../events/log.js';
 import type {ProjectContext, ScanResult, Conventions, Layer} from './types.js';
 
@@ -262,37 +264,66 @@ export async function interpretScanWithFallback(
     });
     return deterministicInterpret(scan);
   }
-  // Defensive: a dispatcher reply that does not contain the
-  // sentinels parses into empty strings; an empty
-  // architectureYaml is not a valid spec/architecture.yaml. Fall
-  // back to deterministic so reviewers see real layer names
-  // instead of a one-line stub.
+  // A blank or syntactically invalid architecture section cannot become a
+  // usable architecture artifact. Fall back to deterministic so reviewers
+  // see the observed layer names instead of an unusable LLM reply.
   const totalMissed = interp.missedSections.filter(
     (s) => s === 'CONVENTIONS_MD' || s === 'ARCHITECTURE_YAML',
   );
-  if (totalMissed.length > 0) {
+  if (totalMissed.length > 0 || !hasArchitectureLayers(interp.architectureYaml)) {
     emitSentinelMiss(cwd, {
       phase: 'scan_artifacts',
-      cause: 'blank_section',
+      cause: totalMissed.length > 0 ? 'blank_section' : 'malformed_section',
       fallback: 'total',
       missed_sections: [...interp.missedSections],
     });
     return deterministicInterpret(scan);
   }
-  if (interp.missedSections.length > 0) {
-    // Conventions + architecture passed, but a non-critical sentinel
-    // (scenarios or capabilities) returned blank — the artifact was
-    // substituted in-place by interpretWithLlm or remains empty for
-    // scenarios. Emit a per_artifact miss so adopters see the gap
-    // without losing the LLM-refined critical sections.
+  const malformedScenarioFlows =
+    scan.scenarios.length > 0 && interp.scenarioFlows.size === 0;
+  const malformedCapabilities = !hasCapabilities(interp.capabilitiesYaml);
+  if (interp.missedSections.length > 0 || malformedScenarioFlows || malformedCapabilities) {
+    // Conventions + architecture passed, but an auxiliary artifact is blank or
+    // malformed. Keep the valid LLM refinements while restoring only that
+    // artifact from the deterministic interpretation.
+    const deterministic = deterministicInterpret(scan);
+    const malformedSections = [
+      ...(malformedScenarioFlows ? ['SCENARIO_FLOWS'] : []),
+      ...(malformedCapabilities ? ['CAPABILITIES_YAML'] : []),
+    ];
     emitSentinelMiss(cwd, {
       phase: 'scan_artifacts',
-      cause: 'blank_section',
+      cause: malformedSections.length > 0 ? 'malformed_section' : 'blank_section',
       fallback: 'per_artifact',
-      missed_sections: [...interp.missedSections],
+      missed_sections: [...new Set([...interp.missedSections, ...malformedSections])],
     });
+    return {
+      ...interp,
+      scenarioFlows: malformedScenarioFlows ? deterministic.scenarioFlows : interp.scenarioFlows,
+      capabilitiesYaml: malformedCapabilities ? deterministic.capabilitiesYaml : interp.capabilitiesYaml,
+    };
   }
   return interp;
+}
+
+/** Returns whether an LLM architecture section is a loadable layer document. */
+function hasArchitectureLayers(text: string): boolean {
+  try {
+    const parsed: unknown = parseYaml(text);
+    return typeof parsed === 'object' && parsed !== null && Array.isArray((parsed as {layers?: unknown}).layers);
+  } catch {
+    return false;
+  }
+}
+
+/** Returns whether an LLM capabilities section has the required list shape. */
+function hasCapabilities(text: string): boolean {
+  try {
+    const parsed: unknown = parseYaml(text);
+    return typeof parsed === 'object' && parsed !== null && Array.isArray((parsed as {capabilities?: unknown}).capabilities);
+  } catch {
+    return false;
+  }
 }
 
 function truncateError(e: unknown): string {

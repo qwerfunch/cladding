@@ -2,7 +2,7 @@
 //
 // Each exported handler is tested in isolation with process.exit and
 // every stage runner mocked. The createProgram() factory is verified
-// to register all 7 verbs. The top-level `isCliEntry` parse-trigger
+// to register the declared command tree. The top-level `isCliEntry` parse-trigger
 // is not exercised by these tests — importing the module is safe
 // because the guard suppresses it in non-bundled mode.
 
@@ -614,7 +614,7 @@ describe('cli/clad — handler exports', () => {
 });
 
 describe('cli/clad — createProgram', () => {
-  test('[covers:F-67e33f/AC-002] returns a Command with all 29 verbs registered and no feature-creation verb', () => {
+  test('[covers:F-040/AC-061] exposes only supported commands through declared handlers', () => {
     const program = clad.createProgram();
     const names = program.commands.map((c) => c.name());
     expect(names).toEqual([
@@ -648,7 +648,15 @@ describe('cli/clad — createProgram', () => {
       'doctor',
       'clarify',
     ]);
-    expect(names).not.toContain('create');
+    expect(new Set(names).size).toBe(names.length);
+    const executableCommands = program.commands.flatMap((command) =>
+      command.commands.length > 0 ? command.commands : [command]);
+    for (const command of executableCommands) {
+      expect(Reflect.get(command, '_actionHandler')).toEqual(expect.any(Function));
+    }
+    for (const retired of ['create', 'drive', 'panel', 'refine', 'work']) {
+      expect(names).not.toContain(retired);
+    }
   });
 
   // 0.8.0 removed the 0.6.0 compat aliases (`drive`→`run`, `panel`→`status`,

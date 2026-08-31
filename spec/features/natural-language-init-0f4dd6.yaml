@@ -101,23 +101,18 @@ acceptance_criteria:
       complete.
     test_refs: [ tests/serve/init-tools.test.ts ]
   - id: AC-007
-    ears: state
-    condition: while clad setup activates host integrations
-    action: write discovery configuration only inside the selected project and keep
-      every other project free of Cladding skills and MCP tools
-    response: installing Cladding globally cannot influence unrelated host sessions
-    text: While clad setup activates host integrations, the system shall write
-      discovery configuration only inside the selected project and keep every
-      other project free of Cladding skills and MCP tools, so installing
-      Cladding globally cannot influence unrelated host sessions.
-    test_refs: [ tests/cli/setup.test.ts ]
+    ears: event
+    condition: when host integration configuration is created
+    action: write normal host configuration under the selected project root
+    response: Antigravity additionally receives its documented managed machine-wide bridge because agy 1.1.2 reads no project-local MCP configuration
+    text: When host integration configuration is created, it shall write normal host configuration under the selected project root; Antigravity additionally receives its documented managed machine-wide bridge because agy 1.1.2 reads no project-local MCP configuration.
+    test_refs:
+      - "tests/cli/setup.test.ts#[covers:F-0f4dd6/AC-007] writes project-local host configuration with the documented Antigravity bridge exception"
     notes: |
-      ## Decision
-      The npm package remains global, but host discovery is project-scoped.
-      ## Why
-      Host models receive every globally discovered skill description and MCP tool even when they never invoke it; prompt wording cannot provide a context-level isolation guarantee.
-      ## Trade-off
-      Each developer runs `clad setup` once per project and machine, gaining structural isolation at the cost of one explicit activation step.
+      ## Historical note
+      The former universal project-local discovery claim was superseded by the
+      verified agy 1.1.2 bridge requirement. Other selected hosts remain
+      project-local; a foreign Antigravity bridge is preserved.
   - id: AC-008
     ears: ubiquitous
     action: document natural-language init as the primary path and describe each

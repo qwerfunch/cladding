@@ -78,7 +78,7 @@ describe('A/B-extended · dashboard — 30-feature analytics dashboard at scale'
     bCwd.cleanup();
   });
 
-  test("30-feature dashboard — progression + drift + AI queries", async () => {
+  test('30-feature dashboard — progression + drift + AI queries', async () => {
     const snapshots: PerfSnapshot[] = [];
 
     for (const milestone of MILESTONES) {

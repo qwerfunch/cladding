@@ -60,7 +60,7 @@ describe('AC-a101072b · all four README variants carry the loop-engineering sec
     expect(visited, 'the sweep visits exactly the four README variants').toBe(4);
   });
 
-  test("[covers:F-49facde9/AC-a101072b] every variant carries the three loop anchors: feedback signal, honest stop, loop memory", () => {
+  test('[covers:F-49facde9/AC-a101072b] every variant carries the three loop anchors: feedback signal, honest stop, loop memory', () => {
     for (const f of ALL_VARIANTS) {
       const section = sectionOf(f);
       // Feedback signal — the machine-readable check command (all variants).
@@ -90,7 +90,7 @@ describe('AC-1660fbaa · the loop-memory claim makes no falsifiable universal ab
   ];
   const scan = (corpus: string): string[] => NEEDLES.filter((n) => corpus.includes(n));
 
-  test("[covers:F-49facde9/AC-1660fbaa] no README variant makes the every-run / audit-trail overclaim (files-visited === 4)", () => {
+  test('[covers:F-49facde9/AC-1660fbaa] no README variant makes the every-run / audit-trail overclaim (files-visited === 4)', () => {
     let visited = 0;
     const hits: string[] = [];
     for (const f of ALL_VARIANTS) {
@@ -123,7 +123,7 @@ describe('AC-f3e3d35d · EN/KO parity and consistent placement across markdown a
     }
   });
 
-  test("[covers:F-3fd220d8/AC-0e5cb419][covers:F-49facde9/AC-f3e3d35d][covers:F-8476ccb1/AC-a1692ed7][covers:F-96d1f69d/AC-9d763fed] the loop section precedes the Multi-Agent section in every variant (consistent placement)", () => {
+  test('[covers:F-3fd220d8/AC-0e5cb419][covers:F-49facde9/AC-f3e3d35d][covers:F-8476ccb1/AC-a1692ed7][covers:F-96d1f69d/AC-9d763fed] the loop section precedes the Multi-Agent section in every variant (consistent placement)', () => {
     for (const f of ALL_VARIANTS) {
       const body = read(f);
       const here = body.indexOf(HEADING[f]);

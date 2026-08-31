@@ -56,7 +56,7 @@ describe('runLint (stage_1.2)', () => {
     expect(r.exitCode).toBe(0);
   });
 
-  test("[covers:F-059/AC-141] tool non-zero exit + stderr → pass=false with stderr", () => {
+  test('[covers:F-059/AC-141] tool non-zero exit + stderr → pass=false with stderr', () => {
     seedLintProject();
     execaSyncMock.mockReturnValueOnce({
       exitCode: 1,

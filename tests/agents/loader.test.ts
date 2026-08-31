@@ -33,7 +33,7 @@ describe('loadPersona', () => {
     clearPersonaCache();
   });
 
-  test("[covers:F-063/AC-159] parses frontmatter + body into PersonaSpec", () => {
+  test('[covers:F-063/AC-159] parses frontmatter + body into PersonaSpec', () => {
     writeFileSync(
       join(agentsDir, 'reviewer.md'),
       '---\nname: reviewer-v1\ndescription: reviews code\ncapabilities:\n  - read\n  - exec\n---\nBody prose here.\n',

@@ -83,7 +83,7 @@ describe('core/checkpoint', () => {
   });
 
   describe('recordCheckpoint', () => {
-    test("[covers:F-c2c996/AC-002] writes one feature_checkpoint event with the captured fields", () => {
+    test('[covers:F-c2c996/AC-002] writes one feature_checkpoint event with the captured fields', () => {
       writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nfeatures: []\n');
       const cp = recordCheckpoint(dir, 'F-001');
       expect(cp.featureId).toBe('F-001');
@@ -96,7 +96,7 @@ describe('core/checkpoint', () => {
       expect(checkpointEvents[0].payload.spec_digest).toBe(cp.specDigest);
     });
 
-    test("[covers:F-c2c996/AC-003] two checkpoints for the same feature both persist (latest wins on lookup)", () => {
+    test('[covers:F-c2c996/AC-003] two checkpoints for the same feature both persist (latest wins on lookup)', () => {
       writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nfeatures: []\n');
       const cp1 = recordCheckpoint(dir, 'F-001');
       // Tweak the spec so the second checkpoint has a different digest.
@@ -133,7 +133,7 @@ describe('core/checkpoint', () => {
   });
 
   describe('recordRollback', () => {
-    test("[covers:F-c2c996/AC-001][covers:F-c2c996/AC-004] writes one feature_rolled_back event referencing the checkpoint", () => {
+    test('[covers:F-c2c996/AC-001][covers:F-c2c996/AC-004] writes one feature_rolled_back event referencing the checkpoint', () => {
       writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nfeatures: []\n');
       const cp = recordCheckpoint(dir, 'F-001');
       recordRollback(dir, 'F-001', cp, 'retry-threshold exhausted');

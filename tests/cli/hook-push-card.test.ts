@@ -184,7 +184,7 @@ afterEach(() => {
 // ─── AC-816f10c3 — Tier-2 render + fired tier:2 + accurate counts ───
 
 describe('Tier-2 card on an owned edit with consequences (AC-816f10c3)', () => {
-  test("[covers:F-35954d19/AC-816f10c3] renders a bounded Tier-2 card naming impacted/tests/risk; fired carries tier:2 + counts", () => {
+  test('[covers:F-35954d19/AC-816f10c3] renders a bounded Tier-2 card naming impacted/tests/risk; fired carries tier:2 + counts', () => {
     seed(SPEC_A);
     clearStamp();
     const out = post(edit('src/foo.ts', 60, 'sess-1'));
@@ -266,7 +266,7 @@ describe('zero-consequence edit degrades to the one-liner (AC-f912fd40)', () => 
 // ─── AC-61ae9211 — the dedup ladder ───
 
 describe('dedup ladder within a session (AC-61ae9211)', () => {
-  test("[covers:F-35954d19/AC-61ae9211] same (focus,file) 3×: Tier-2 → Tier-1 → silence, recording dedup on repeats 2 and 3", () => {
+  test('[covers:F-35954d19/AC-61ae9211] same (focus,file) 3×: Tier-2 → Tier-1 → silence, recording dedup on repeats 2 and 3', () => {
     seed(SPEC_MULTI);
     const sid = 'sess-dedup';
 

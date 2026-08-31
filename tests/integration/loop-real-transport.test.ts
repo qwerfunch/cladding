@@ -177,7 +177,7 @@ describe('drive loop · real AnthropicTransport integration', () => {
     expect(r.halt.detail).toContain('reviewer identity matched implementer');
   });
 
-  test('[covers:F-070/AC-192] transport throw (401 auth) maps to TRANSPORT_AUTH_FAILED halt (v0.2.22)', async () => {
+  test('[covers:F-070/AC-195][covers:F-070/AC-192] transport throw (401 auth) maps to TRANSPORT_AUTH_FAILED halt', async () => {
     const throwingTransport = {
       id: 'sdk:claude-anthropic',
       async invoke() {

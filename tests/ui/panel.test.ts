@@ -33,7 +33,7 @@ describe('renderPanel', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test("[covers:F-063/AC-162] renders one row per feature with a header", () => {
+  test('[covers:F-063/AC-162] renders one row per feature with a header', () => {
     const spec = specWith([
       {id: 'F-001', title: 'alpha', status: 'done'},
       {id: 'F-002', title: 'beta', status: 'done'},
@@ -166,7 +166,7 @@ describe('attestation column (F-95a096)', () => {
     expect(renderPanel(spec, dir).split('\n')[0]).toContain('att');
   });
 
-  test("[covers:F-95a096/AC-df6871] ✓ when the stamped tree-hash matches the modules on disk", () => {
+  test('[covers:F-95a096/AC-df6871] ✓ when the stamped tree-hash matches the modules on disk', () => {
     writeFileSync(join(dir, 'src', 'm.ts'), 'export const a = 1;\n');
     const spec = specWith([
       {id: 'F-aaa11111', title: 't', status: 'done', modules: ['src/m.ts']},

@@ -68,7 +68,7 @@ describe('UNMAPPED_ARTIFACT detector', () => {
     expect(unmappedArtifact.run({cwd: dir})).toEqual([]);
   });
 
-  test("[covers:F-055/AC-125][covers:F-065/AC-176] emits error for each unclaimed source file in scope", () => {
+  test('[covers:F-055/AC-125][covers:F-065/AC-176] emits error for each unclaimed source file in scope', () => {
     writeFileSync(join(dir, 'src', 'stages', 'orphan-1.ts'), 'export const a = 1;\n');
     writeFileSync(join(dir, 'src', 'stages', 'orphan-2.ts'), 'export const b = 2;\n');
     writeFileSync(
@@ -171,7 +171,7 @@ describe('scanPatterns', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test("[covers:F-87bb7ed3/AC-c5e83b19] scale gate: under 8 features the legacy narrow patterns apply even with layers declared", () => {
+  test('[covers:F-87bb7ed3/AC-c5e83b19] scale gate: under 8 features the legacy narrow patterns apply even with layers declared', () => {
     write(dir, 'src/cli/a.ts');
     const spec = {
       project: {name: 'x', language: 'typescript'},
@@ -210,7 +210,7 @@ describe('scanPatterns', () => {
     expect(scanPatterns(spec, dir)).toEqual(['src/api/**/*.py', 'src/domain/**/*.py']);
   });
 
-  test("[covers:F-87bb7ed3/AC-4d21c8a7] AC-4d21c8a7 — every observed extension enters the universe, not just one per language", () => {
+  test('[covers:F-87bb7ed3/AC-4d21c8a7] AC-4d21c8a7 — every observed extension enters the universe, not just one per language', () => {
     // The measured defect: `cpp` had no table entry, so the universe was
     // `*.ts` and matched nothing. Both C++ extensions must now be scanned.
     write(dir, 'src/engine/vm.cpp');
@@ -338,7 +338,7 @@ describe('scanPatterns', () => {
     expect(universe(undefined)).toEqual(expected); // nor a missing one
   });
 
-  test("[covers:F-87bb7ed3/AC-96ff696f] AC-96ff696f — a declared layer glob replaces name inference for that layer", () => {
+  test('[covers:F-87bb7ed3/AC-96ff696f] AC-96ff696f — a declared layer glob replaces name inference for that layer', () => {
     write(dir, 'core/src/main/cpp/rasp.cpp');
     const spec = {
       project: {name: 'x', language: 'cpp'},
@@ -479,7 +479,7 @@ describe('UNMAPPED_ARTIFACT — declared layers reach real files', () => {
     expect(findings[0].message).toContain('not claimed by any feature');
   });
 
-  test("[covers:F-87bb7ed3/AC-9a6f02d3] AC-9a6f02d3 — a nested source root inferred from a claim reaches its unclaimed neighbour", () => {
+  test('[covers:F-87bb7ed3/AC-9a6f02d3] AC-9a6f02d3 — a nested source root inferred from a claim reaches its unclaimed neighbour', () => {
     write(dir, 'src/main/kotlin/core/Claimed.kt', 'fun claimed() {}\n');
     write(dir, 'src/main/kotlin/core/Orphan.kt', 'fun orphan() {}\n');
     writeFileSync(
@@ -549,7 +549,7 @@ describe('UNMAPPED_ARTIFACT — declared layers reach real files', () => {
     for (const f of findings) expect(f.severity).toBe('error');
   });
 
-  test("[covers:F-87bb7ed3/AC-e20dbafe] AC-e20dbafe — the same tree WITHOUT the glob reports an empty universe instead of silence", () => {
+  test('[covers:F-87bb7ed3/AC-e20dbafe] AC-e20dbafe — the same tree WITHOUT the glob reports an empty universe instead of silence', () => {
     // Name-only `native`: nothing on disk is called that, so the universe
     // resolves to `src/native/**` and scans zero files. Pre-fix that was a
     // clean bill of health; now it says where it looked.

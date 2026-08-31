@@ -11,13 +11,14 @@ depends_on:
 acceptance_criteria:
   - id: AC-061
     ears: ubiquitous
-    action: expose 5 Iron Core verbs (init / work / drive / sync / check) plus
-      panel and route as clad subcommands
-    response: each verb dispatches to existing stage runners or helpers
-    text: The system shall expose 5 Iron Core verbs — init, work, drive, sync, check
-      — plus panel and route as `clad` subcommands, each dispatching to the
-      existing stage runners or helpers.
-    evidence_refs: [fixture:F-040_AC-061]
+    action: expose only current supported public commands and route each registered command through its declared handler
+    response: retired verb names remain compatibility history, not required commands
+    text: The command registry shall expose only the current supported public commands and route each registered command through its declared handler; retired verb names remain compatibility history, not required commands.
+    test_refs:
+      - "tests/cli/clad.test.ts#[covers:F-040/AC-061] exposes only supported commands through declared handlers"
+    notes: |
+      ## Historical schema-0.1 note
+      The five Iron Core verbs plus panel/route list is historical, not current proof.
 
   - id: AC-062
     ears: ubiquitous

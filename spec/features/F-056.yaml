@@ -33,8 +33,12 @@ acceptance_criteria:
       - tests/stages/meta-integrity.test.ts
   - id: AC-132
     ears: state
-    condition: while the v0.2.7 batch lands
-    action: raise overall line coverage materially
-    response: vitest --coverage reports overall line coverage rises from 36.36% (v0.2.6 baseline) to ≥ 45% after this batch
-    text: While the v0.2.7 batch lands, overall line coverage shall rise from the v0.2.6 baseline (36.36%) to at least 45%, marking the second material step toward the 70% floor.
-    evidence_refs: [CHANGELOG.md]
+    condition: while current coverage assurance is evaluated
+    action: derive it from the coverage obligation
+    response: does not treat the v0.2.7 measurement as current proof
+    text: While current coverage assurance is evaluated, it shall be derived from the coverage obligation; the v0.2.7 measurement remains historical evidence only.
+    test_refs:
+      - "tests/assurance/registry.test.ts#[covers:F-055/AC-128][covers:F-056/AC-132][covers:F-057/AC-136][covers:F-058/AC-140][covers:F-059/AC-144][covers:F-060/AC-148][covers:F-061/AC-152][covers:F-062/AC-157][covers:F-063/AC-163][covers:F-064/AC-167] derives current coverage assurance only from the coverage obligation"
+    notes: |
+      ## Historical schema-0.1 note
+      v0.2.7’s 36.36% to ≥45% measurement is historical, not current assurance.

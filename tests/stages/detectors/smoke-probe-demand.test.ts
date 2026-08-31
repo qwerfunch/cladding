@@ -29,7 +29,7 @@ function writeSpec(opts: {deliverable?: boolean; smoke?: boolean; done?: boolean
 }
 
 describe('SMOKE_PROBE_DEMAND (F-c′)', () => {
-  test("[covers:F-7076f7/AC-111865] WARN: a done feature ships a runnable deliverable but no smoke probe", () => {
+  test('[covers:F-7076f7/AC-111865] WARN: a done feature ships a runnable deliverable but no smoke probe', () => {
     writeSpec({deliverable: true, smoke: false, done: true});
     const f = smokeProbeDemand.run({cwd: dir});
     expect(f.length).toBe(1);
@@ -37,7 +37,7 @@ describe('SMOKE_PROBE_DEMAND (F-c′)', () => {
     expect(f[0].severity).toBe('warn');
   });
 
-  test("[covers:F-7076f7/AC-5abfc0] SATISFIED: no demand once a functional smoke probe is declared", () => {
+  test('[covers:F-7076f7/AC-5abfc0] SATISFIED: no demand once a functional smoke probe is declared', () => {
     writeSpec({deliverable: true, smoke: true, done: true});
     expect(smokeProbeDemand.run({cwd: dir}).length).toBe(0);
   });
@@ -68,7 +68,7 @@ describe('SMOKE_PROBE_DEMAND · dangling feature binding (F-4ef09f38 AC-4)', () 
   }
   const isDangling = (m: string): boolean => m.includes('dangling');
 
-  test("[covers:F-4ef09f38/AC-5e95db0b] WARN naming the probe argv and the dangling id when the binding resolves to no feature", () => {
+  test('[covers:F-4ef09f38/AC-5e95db0b] WARN naming the probe argv and the dangling id when the binding resolves to no feature', () => {
     writeBoundSpec('F-dddddd'); // not present in features
     const findings = smokeProbeDemand.run({cwd: dir});
     const dangling = findings.filter((f) => isDangling(f.message));

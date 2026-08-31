@@ -22,16 +22,13 @@ acceptance_criteria:
     test_refs:
       - tests/drive/halt.test.ts
   - id: AC-084
-    ears: state
-    condition: while the autonomous loop is running
-    action: terminate with a single class from a closed 10-class halt enum
-    response: "src/drive/halt.ts exports HaltClass with exactly ten members; runDriveLoop always returns a HaltReason"
-    text: >-
-      While the loop runs, the system shall enforce the budget invariants
-      (max iterations · wall clock · retries per feature) and terminate
-      with a single class from the closed 10-class halt enum
-      (ALL_FEATURES_DONE · MAX_ITERATIONS · WALL_CLOCK · BUDGET_EXCEEDED
-      · BLOCKED_FEATURE · RETRY_THRESHOLD · GATE_NO_PROGRESS ·
-      HUMAN_REQUIRED · LLM_UNAVAILABLE · UNCAUGHT_ERROR).
+    ears: event
+    condition: when the run loop terminates
+    action: return a HaltReason with a class declared by the current HaltClass registry
+    response: the detail identifies the deciding condition
+    text: When the run loop terminates, it shall return a HaltReason whose class is declared by the current HaltClass registry and whose detail identifies the deciding condition.
     test_refs:
-      - tests/drive/halt.test.ts
+      - "tests/drive/loop.test.ts#[covers:F-048/AC-084] returns a declared halt class with a deciding detail"
+    notes: |
+      ## Historical note
+      The historical closed ten-class enumeration is obsolete because transport classes expanded.

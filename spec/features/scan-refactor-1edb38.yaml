@@ -21,10 +21,14 @@ depends_on:
 acceptance_criteria:
   - id: AC-001
     ears: ubiquitous
-    action: split the monolithic scan.ts plus scan-roots.ts plus scan-llm.ts into src/cli/scan/ submodules with a single public entry
-    response: 'src/cli/scan/index.ts owns scanRoot orchestrator and re-exports every public type and helper; cli/scan/ now holds types.ts (12 type definitions), thresholds.ts (8 tunable constants), walker.ts (BFS walk + entrypoint priority + per-dir soft cap), roots.ts (manifest plus heuristic source-root inference), conventions.ts (14 deterministic detectors), architecture.ts (layerOf + groupByLayer + extractArchitecture + forbidden-import candidates), examples.ts (representative module picker), stats.ts (language counts plus dominant language), scenarios.ts (legacy stub proposer), llm.ts (buildPrompt plus parseLlmResponse plus deterministicInterpret plus interpretWithLlm), and helpers.ts (isJsLike shared predicate); the three legacy files at src/cli/scan.ts / scan-roots.ts / scan-llm.ts are deleted'
-    text: The system shall split the monolithic scan.ts plus scan-roots.ts plus scan-llm.ts into src/cli/scan/ submodules with a single public entry so each responsibility lives in its own file and a future analyzer drop-in is a one-file change instead of a 600+ line patch.
-    test_refs: [tests/cli/scan.test.ts]
+    action: compose documented scan submodules through the scan public entry
+    response: retains no second legacy scan implementation authority
+    text: The scan public entry shall compose its documented scan submodules without retaining a second legacy scan implementation authority.
+    test_refs:
+      - "tests/cli/scan.test.ts#[covers:F-1edb38/AC-001] scanRoot composes the public scan result without a legacy entrypoint"
+    notes: |
+      ## Historical note
+      The monolith/file-length/future-patch prediction was a completed refactor record, not a permanent product promise.
   - id: AC-002
     ears: ubiquitous
     action: expose every magic number plus name set through src/cli/scan/thresholds.ts so external adopters tune through ScanOptions

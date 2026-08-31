@@ -44,7 +44,7 @@ describe('project-scoped runHostSetup', () => {
     rmSync(pkgRoot, {recursive: true, force: true});
   });
 
-  test('writes only project-local host discovery files', async () => {
+  test('[covers:F-0f4dd6/AC-007] writes project-local host configuration with the documented Antigravity bridge exception', async () => {
     const result = await runHostSetup({home, projectRoot: project, pkgRoot, quiet: true, activate: false});
 
     expect(result.errors).toEqual([]);
@@ -61,8 +61,8 @@ describe('project-scoped runHostSetup', () => {
     expect(readFileSync(join(project, '.agents', 'skills', 'cladding-init', 'SKILL.md'), 'utf8'))
       .toContain('name: cladding-init');
     expect(existsSync(join(project, '.cursor', 'skills', 'cladding-init', 'SKILL.md'))).toBe(true);
-    // Home gains ONLY the Antigravity machine-wide wire (agy reads no project
-    // MCP config — verified live); every other host stays project-local.
+    // Every normal host stays project-local. Antigravity is the documented
+    // exception: agy 1.1.x discovers only its machine-wide bridge.
     expect(existsSync(join(home, '.agents', 'skills'))).toBe(false);
     expect(existsSync(join(home, '.codex', 'config.toml'))).toBe(false);
     expect(existsSync(join(home, '.gemini', 'settings.json'))).toBe(false);
@@ -394,7 +394,7 @@ describe('project-scoped runHostSetup', () => {
     expect(after.mcpServers).toBeUndefined();
   });
 
-  test('a foreign real directory at the antigravity plugin path is preserved and reported', async () => {
+  test('a foreign real directory at the Antigravity bridge path is preserved and reported', async () => {
     const dir = join(home, '.gemini', 'config', 'plugins', 'cladding');
     mkdirSync(dir, {recursive: true});
     writeFileSync(join(dir, 'mcp_config.json'), `${JSON.stringify({
@@ -407,6 +407,7 @@ describe('project-scoped runHostSetup', () => {
     expect(result.wiring.antigravity).toBe('skipped-different');
     const kept = JSON.parse(readFileSync(join(dir, 'mcp_config.json'), 'utf8'));
     expect(kept.mcpServers.cladding.args[0]).toBe('/somewhere/else/engine.js');
+    expect(existsSync(join(project, '.agents', 'mcp_config.json'))).toBe(true);
   });
 
   test('preserves unowned global files with Cladding-like names', async () => {

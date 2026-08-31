@@ -41,7 +41,7 @@ describe('resolveOraclePolicy — precedence', () => {
     expect(r.sample).toBe(0);
   });
 
-  test("[covers:F-bdcd90/AC-002] oracle_policy WINS over require_oracles when both present", () => {
+  test('[covers:F-bdcd90/AC-002] oracle_policy WINS over require_oracles when both present', () => {
     const r = resolveOraclePolicy(project({require_oracles: true, oracle_policy: {sample: 0}}));
     expect(r.exhaustive).toBe(false); // not the legacy exhaustive
     expect(r.sample).toBe(0);
@@ -56,7 +56,7 @@ describe('resolveOraclePolicy — precedence', () => {
 });
 
 describe('sampleHit — deterministic', () => {
-  test("[covers:F-bdcd90/AC-003] stable: same key ⇒ same verdict across calls", () => {
+  test('[covers:F-bdcd90/AC-003] stable: same key ⇒ same verdict across calls', () => {
     const a = sampleHit('F-001.AC-001', 0.5);
     const b = sampleHit('F-001.AC-001', 0.5);
     expect(a).toBe(b);
@@ -84,7 +84,7 @@ describe('oracleRequired', () => {
   const exhaustive = resolveOraclePolicy(project({require_oracles: true}));
   const riskW = resolveOraclePolicy(project({oracle_policy: {always_ears: ['unwanted'], sample: 0}}));
 
-  test("[covers:F-bdcd90/AC-005] no mandate ⇒ never required", () => {
+  test('[covers:F-bdcd90/AC-005] no mandate ⇒ never required', () => {
     expect(oracleRequired(none, 'F-001', ac('AC-001', 'unwanted'))).toBe(false);
   });
 
@@ -92,7 +92,7 @@ describe('oracleRequired', () => {
     expect(oracleRequired(exhaustive, 'F-001', ac('AC-001', 'ubiquitous'))).toBe(true);
   });
 
-  test("[covers:F-bdcd90/AC-001] risk-weighted: always_ears member (unwanted) required; non-member with sample 0 not", () => {
+  test('[covers:F-bdcd90/AC-001] risk-weighted: always_ears member (unwanted) required; non-member with sample 0 not', () => {
     expect(oracleRequired(riskW, 'F-001', ac('AC-001', 'unwanted'))).toBe(true);
     expect(oracleRequired(riskW, 'F-001', ac('AC-002', 'ubiquitous'))).toBe(false);
   });

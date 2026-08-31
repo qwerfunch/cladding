@@ -35,6 +35,13 @@ function count(haystack: string, needle: string): number {
   return haystack.split(needle).length - 1;
 }
 
+function executableCssContexts(html: string): string[] {
+  const styleBodies = [...html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style\s*>/gi)].map((match) => match[1]);
+  const inlineStyles = [...html.matchAll(/\bstyle\s*=\s*(?:"([^"]*)"|'([^']*)')/gi)]
+    .map((match) => match[1] ?? match[2]);
+  return [...styleBodies, ...inlineStyles];
+}
+
 interface Ran {
   readonly status: number;
   readonly stdout: string;
@@ -176,11 +183,12 @@ describe('report/bundle — buildBundleHtml (F-e940fffe)', () => {
 
   test('AC-9f191790 · zero network surface — no script/src/link/@import/url(, anchors only', () => {
     const html = buildBundleHtml(mkInputs());
+    const css = executableCssContexts(html).join('\n');
     expect(html).not.toMatch(/<script/i);
     expect(html).not.toMatch(/\bsrc\s*=/i);
     expect(html).not.toMatch(/<link/i);
-    expect(html).not.toMatch(/@import/);
-    expect(html).not.toMatch(/url\s*\(/i);
+    expect(css).not.toMatch(/@import/);
+    expect(css).not.toMatch(/url\s*\(/i);
     const hrefs = [...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1]);
     expect(hrefs.length).toBeGreaterThan(0); // the nav exists
     for (const h of hrefs) {
@@ -189,6 +197,17 @@ describe('report/bundle — buildBundleHtml (F-e940fffe)', () => {
     // The repository URL appears as display TEXT (overview metadata), never as a link.
     expect(html).toContain('https://example.com/probe.git');
     expect(html).not.toMatch(/href="https?:/i);
+  });
+
+  test('AC-9f191790 · CSS network tokens are forbidden only in executable CSS', () => {
+    const displayText = '<p>Proof reference: @import url(https://example.test/proof.css)</p>';
+    expect(executableCssContexts(displayText)).toEqual([]);
+
+    const styleBlock = '<style>@import url("https://example.test/style.css");</style>';
+    expect(executableCssContexts(styleBlock).join('\n')).toMatch(/@import/);
+
+    const inlineStyle = '<p style=\'background-image: url("https://example.test/image.png")\'>proof</p>';
+    expect(executableCssContexts(inlineStyle).join('\n')).toMatch(/url\s*\(/i);
   });
 
   test('AC-f511c519 · provenance banner carries head sha, version, and date before the first content section', () => {
@@ -454,11 +473,12 @@ describe('clad bundle — cladding-self smoke (F-e940fffe)', () => {
       expect(rows).toBeGreaterThanOrEqual(200);
       expect(rows).toBe(shardCount);
       // Zero network surface on the REAL artifact too.
+      const css = executableCssContexts(html).join('\n');
       expect(html).not.toMatch(/<script/i);
       expect(html).not.toMatch(/<link/i);
       expect(html).not.toMatch(/\ssrc=["']/i);
-      expect(html).not.toMatch(/@import/);
-      expect(html).not.toMatch(/url\s*\(/i);
+      expect(css).not.toMatch(/@import/);
+      expect(css).not.toMatch(/url\s*\(/i);
       const hrefs = [...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1]);
       for (const h of hrefs) {
         expect(h.startsWith('#'), `external href leaked: ${h}`).toBe(true);

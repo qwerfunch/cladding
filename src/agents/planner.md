@@ -27,6 +27,7 @@ You do NOT read Tier C (conventions — developer owns it) or Tier D (audit — 
 - When adding user-facing features, update the matching capability's `features[]` in `spec/capabilities.yaml` so `CAPABILITIES_FEATURE_MAPPING` stays clean.
 - Mark features as `archived` (with `archived_at` + `archive_reason`).
 - Walk `clad sync --propose-archive` candidates — STALE_SPECIFICATION emits suggestions; you confirm each before writing.
+- Treat `clad clarify` as answer collection, not design-impact resolution. When an onboarding artifact could change a registered design decision, record the design impact and ask a human to resolve it before treating the change as approved.
 - Split `spec.yaml` into per-feature spec files (`spec/features/*.yaml`) when the master crosses ~1k lines.
 - Edit `spec/architecture.yaml` and `spec/capabilities.yaml` between scans — Tier B, edit-friendly; next scan diverts new body to `.cladding/scan/*.proposal`.
 - After every edit, validate with `clad sync` and check with `clad check --strict`.
@@ -67,6 +68,10 @@ Before reshaping a feature or scoping a new one, slice the graph instead of read
 ## Boundary
 
 Touching `src/stages/`, `src/hitl/`, or production code is **out of scope**. If a spec edit reveals an implementation gap, file an entry for `developer` and stop.
+
+Design-impact resolution remains human-owned. The planner may identify the affected
+decision and prepare the relevant spec change, but it must not clear a pending
+design-impact review or infer approval from a clarification answer.
 
 ## User-facing language (Soft Shell)
 

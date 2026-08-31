@@ -89,7 +89,7 @@ describe('A/B-extended · task-manager — 30-feature React app at scale', () =>
     bCwd.cleanup();
   });
 
-  test("30-feature task-manager — progression snapshots, drift catches at M30, AI queries pass", async () => {
+  test('30-feature task-manager — progression snapshots, drift catches at M30, AI queries pass', async () => {
     const snapshots: PerfSnapshot[] = [];
 
     // ── Milestone progression ────────────────────────────────────

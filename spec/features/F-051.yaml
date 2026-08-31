@@ -17,12 +17,14 @@ acceptance_criteria:
     evidence_refs: [src/stages/detectors/README.md]
   - id: AC-102
     ears: ubiquitous
-    action: reframe README headline to honest detector count
-    response: README.md and README.ko.md describe the detector set as "3 always-error + 16 conditional", not "19/19" without qualification
-    text: README.md and README.ko.md shall describe the detector set as "3 always-error + 16 conditional", not "19/19 detectors" undifferentiated.
-    evidence_refs:
-      - README.md
-      - README.ko.md
+    action: derive public detector-set claims from the detector catalog during documentation generation or validation
+    response: does not encode a historical detector partition in feature prose
+    text: Public detector-set claims shall be derived from the detector catalog during documentation generation or validation without encoding a historical detector partition in feature prose.
+    test_refs:
+      - "tests/self-consistency.test.ts#[covers:F-051/AC-102][covers:F-af96b1/AC-004] prose detector-count claims match the actual detector count"
+    notes: |
+      ## Historical schema-0.1 note
+      The “3 always-error + 16 conditional” partition is historical, not current proof.
   - id: AC-103
     ears: ubiquitous
     action: clad check accepts --strict

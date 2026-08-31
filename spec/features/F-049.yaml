@@ -13,23 +13,16 @@ depends_on:
   - F-048
 acceptance_criteria:
   - id: AC-085
-    ears: ubiquitous
-    action: dispatch the five agent personas at runtime when the drive loop authors a feature
-    response: src/drive/agent.ts loads each persona from agents/*.md and invokes the active agent adapter (host or sdk) via the invokeAgent(persona, ctx) → AgentResult interface with a least-context payload (current feature shard + tagged guardrails)
-    text: >-
-      The system shall dispatch the five agent personas (orchestrator ·
-      librarian · reviewer · observability · specialists) at runtime when
-      drive authors a feature. src/drive/agent.ts loads each persona from
-      agents/*.md and invokes the active agent adapter — host (Claude
-      Code subagent · Cursor · Continue · Cline · generic MCP) or sdk
-      (Anthropic · OpenAI · Gemini) — via the
-      invokeAgent(persona, ctx) → AgentResult interface with a
-      least-context payload (current feature shard plus tagged
-      guardrails only). The adapter type does not affect what the loop
-      records.
+    ears: event
+    condition: when clad run dispatches a named persona
+    action: load that persona from the shipped catalog
+    response: passes the selected adapter only the compiled feature context and declared guardrails
+    text: When `clad run` dispatches a named persona, it shall load that persona from the shipped catalog and pass the selected adapter only the compiled feature context and declared guardrails.
     test_refs:
-      - tests/drive/agent.test.ts
-      - tests/drive/loop.test.ts
+      - "tests/drive/loop.test.ts#[covers:F-049/AC-085] dispatches shipped personas with only feature context and guardrails"
+    notes: |
+      ## Historical note
+      The retired five-persona/librarian-specialists list and fixed adapter roster are not current product identity.
   - id: AC-086
     ears: state
     condition: while drive dispatches a reviewer hand-off

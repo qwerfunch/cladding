@@ -101,7 +101,7 @@ describe('HARNESS_INTEGRITY · detector count (v0.2.4)', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test("[covers:F-056/AC-131] declared count matches actual file count → no finding", () => {
+  test('[covers:F-056/AC-131] declared count matches actual file count → no finding', () => {
     writeManifest(dir, '3/3');
     writeDetectorFile(dir, 'a.ts');
     writeDetectorFile(dir, 'b.ts');
@@ -110,7 +110,7 @@ describe('HARNESS_INTEGRITY · detector count (v0.2.4)', () => {
     expect(harnessIntegrity.run({cwd: dir})).toEqual([]);
   });
 
-  test("[covers:F-080/AC-241][covers:F-67e33f/AC-007] declared count diverges from actual count → error finding", () => {
+  test('[covers:F-080/AC-241][covers:F-67e33f/AC-007] declared count diverges from actual count → error finding', () => {
     writeManifest(dir, '2/2');
     writeDetectorFile(dir, 'a.ts');
     writeDetectorFile(dir, 'b.ts');
@@ -160,7 +160,7 @@ describe('HARNESS_INTEGRITY · per-host schema (F-080)', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test("[covers:F-080/AC-242] Codex manifest missing description → error finding", () => {
+  test('[covers:F-080/AC-242] Codex manifest missing description → error finding', () => {
     writeManifest(dir, null);
     writeCodexManifest(dir, {name: 'cladding', version: '0.3.5'}); // description omitted
     const findings = harnessIntegrity.run({cwd: dir});
@@ -170,7 +170,7 @@ describe('HARNESS_INTEGRITY · per-host schema (F-080)', () => {
     expect(codexErrors).toHaveLength(1);
   });
 
-  test("[covers:F-080/AC-242] Gemini manifest missing version → error finding", () => {
+  test('[covers:F-080/AC-242] Gemini manifest missing version → error finding', () => {
     writeManifest(dir, null);
     writeGeminiManifest(dir, {name: 'cladding'}); // version omitted
     const findings = harnessIntegrity.run({cwd: dir});
@@ -180,7 +180,7 @@ describe('HARNESS_INTEGRITY · per-host schema (F-080)', () => {
     expect(geminiErrors).toHaveLength(1);
   });
 
-  test("[covers:F-080/AC-242] Claude Code manifest missing name → error finding", () => {
+  test('[covers:F-080/AC-242] Claude Code manifest missing name → error finding', () => {
     mkdirSync(join(dir, 'plugins', 'claude-code', '.claude-plugin'), {recursive: true});
     writeFileSync(
       join(dir, 'plugins', 'claude-code', '.claude-plugin', 'plugin.json'),
@@ -203,7 +203,7 @@ describe('HARNESS_INTEGRITY · per-host schema (F-080)', () => {
     expect(hostFindings).toEqual([]);
   });
 
-  test("[covers:F-080/AC-243] codex manifest malformed JSON → warn finding (not error)", () => {
+  test('[covers:F-080/AC-243] codex manifest malformed JSON → warn finding (not error)', () => {
     writeManifest(dir, null);
     mkdirSync(join(dir, 'plugins', 'codex', '.codex-plugin'), {recursive: true});
     writeFileSync(
@@ -246,7 +246,7 @@ describe('HARNESS_INTEGRITY · cross-manifest version drift (F-080)', () => {
     expect(versionFindings).toEqual([]);
   });
 
-  test("[covers:F-080/AC-244] Codex version drifts from package.json → error", () => {
+  test('[covers:F-080/AC-244] Codex version drifts from package.json → error', () => {
     writePackageJson(dir, '0.3.5');
     writeManifest(dir, null, '0.3.5');
     writeCodexManifest(dir, {name: 'cladding', version: '0.3.4', description: 'x'});
@@ -270,7 +270,7 @@ describe('HARNESS_INTEGRITY · cross-manifest version drift (F-080)', () => {
     expect(drifts).toHaveLength(2);
   });
 
-  test("[covers:F-080/AC-245] package.json missing → version check skipped silently", () => {
+  test('[covers:F-080/AC-245] package.json missing → version check skipped silently', () => {
     writeManifest(dir, null, '0.3.5');
     writeCodexManifest(dir, {name: 'cladding', version: '0.3.4', description: 'x'});
     const findings = harnessIntegrity.run({cwd: dir});

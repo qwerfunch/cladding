@@ -19,9 +19,12 @@ acceptance_criteria:
 
   - id: AC-023
     ears: event
-    condition: when status='in_progress' but every declared module is missing
-    action: emit a warn finding noting a likely stale start
-    response: surfaced but not failed
-    text: When status='in_progress' but every declared module is absent, the
-      detector shall emit a warn finding suggesting a stale start.
-    evidence_refs: [fixture:F-014_AC-023]
+    condition: when an in-progress feature has every declared module absent
+    action: emit an info STATUS_DRIFT finding
+    response: describes the normal spec-first implementation window instead of the former warning
+    text: When an in-progress feature has every declared module absent, STATUS_DRIFT shall emit an info finding describing the normal spec-first implementation window rather than the former warning.
+    test_refs:
+      - "tests/stages/status-drift.test.ts#[covers:F-014/AC-023] in-progress feature with every declared module absent emits an info spec-first finding"
+    notes: |
+      ## Historical schema-0.1 note
+      The prior stale-start warning is historical; it is not current proof.

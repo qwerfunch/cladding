@@ -47,7 +47,7 @@ describe('anti-self-cert', () => {
     expect(r.humanEvidence).toBe(1);
   });
 
-  test("[covers:F-032/AC-050] blocks when only tool/LLM evidence exists", () => {
+  test('[covers:F-032/AC-050] blocks when only tool/LLM evidence exists', () => {
     const r = checkAc('AC-001', [ev('AC-001', 'tool'), ev('AC-001', 'llm')]);
     expect(r.pass).toBe(false);
     expect(r.reason).toContain('anti-self-cert guard blocks');

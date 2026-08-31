@@ -41,7 +41,7 @@ describe('AC-19f796fe · the canonical merge ritual lives in docs/spec-ids-multi
     expect(mergeSection(), 'the section has a body').not.toBe('');
   });
 
-  test("[covers:F-0e84628e/AC-19f796fe] the four ritual steps appear in order: accept-either -> complete the merge -> strict gate -> commit the rewrite", () => {
+  test('[covers:F-0e84628e/AC-19f796fe] the four ritual steps appear in order: accept-either -> complete the merge -> strict gate -> commit the rewrite', () => {
     const ritual = sliceSection(mergeSection(), '### The ritual', '\n### ');
     expect(ritual, 'the ritual subsection exists').not.toBe('');
     const STEPS: [string, string][] = [
@@ -80,7 +80,7 @@ describe('AC-19f796fe · the canonical merge ritual lives in docs/spec-ids-multi
 });
 
 describe('AC-74fcf893 · CLAUDE.md points at the canonical section, never duplicates it', () => {
-  test("[covers:F-0e84628e/AC-74fcf893] CLAUDE.md carries the pointer: the doc path plus the exact section title", () => {
+  test('[covers:F-0e84628e/AC-74fcf893] CLAUDE.md carries the pointer: the doc path plus the exact section title', () => {
     const claude = read('CLAUDE.md');
     expect(claude, 'points at the canonical doc').toContain('docs/spec-ids-multi-dev.md');
     expect(claude, 'quotes the exact section title').toContain(SECTION_TITLE);
@@ -111,7 +111,7 @@ describe('AC-80b79dac · the documented attribute state matches the real .gitatt
   const carriesMerge = (attrs: string[]): boolean =>
     attrs.some((a) => a === 'merge' || a === '-merge' || a === '!merge' || a.startsWith('merge='));
 
-  test("[covers:F-0e84628e/AC-80b79dac] repository state: spec/index.yaml has merge=union; spec/attestation.yaml carries no merge attribute", () => {
+  test('[covers:F-0e84628e/AC-80b79dac] repository state: spec/index.yaml has merge=union; spec/attestation.yaml carries no merge attribute', () => {
     const entries = parseGitattributes(read('.gitattributes'));
     const index = entries.find((e) => e.pattern === 'spec/index.yaml');
     expect(index, 'spec/index.yaml has an attributes line').toBeDefined();

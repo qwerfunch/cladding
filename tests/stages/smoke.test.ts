@@ -64,7 +64,7 @@ describe('runSmoke (stage_3.1)', () => {
     expect(runSmoke({cwd: dir}).pass).toBe(true);
   });
 
-  test("[covers:F-060/AC-147] npm script defined + non-zero exit → pass=false with stderr", () => {
+  test('[covers:F-060/AC-147] npm script defined + non-zero exit → pass=false with stderr', () => {
     writeFileSync(
       join(dir, 'package.json'),
       JSON.stringify({name: 'x', scripts: {smoke: 'false'}}),

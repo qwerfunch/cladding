@@ -104,7 +104,7 @@ describe('summarizeAdoption — AC-3362d108 pull vs push', () => {
     expect(summarizeAdoption(withPush).verdict).toBe('confirmed');
   });
 
-  test("[covers:F-0023ba22/AC-3362d108] only resolved working_set_served count as pulls (grouped by tool); resolved:false serves do not", () => {
+  test('[covers:F-0023ba22/AC-3362d108] only resolved working_set_served count as pulls (grouped by tool); resolved:false serves do not', () => {
     const events = [
       at(BASE, 'working_set_served', {tool: 'clad_get_working_set', query: 'q', resolved: true, head: 'h1'}),
       at(BASE + 10, 'working_set_served', {tool: 'clad_get_working_set', query: 'q', resolved: false, head: 'h2'}),
@@ -203,7 +203,7 @@ describe('summarizeAdoption — AC-b200151f thresholds / anti-vacuous', () => {
     expect(s.verdict).toBe('not_confirmed');
   });
 
-  test("[covers:F-0023ba22/AC-b200151f] a single accidental pull with cycles otherwise complete → not_confirmed", () => {
+  test('[covers:F-0023ba22/AC-b200151f] a single accidental pull with cycles otherwise complete → not_confirmed', () => {
     const events = [
       ...cycle({slot: 0, feature: 'F-1', doneHead: 'head-1', pulls: p1}),
       ...cycle({slot: 1, feature: 'F-2', doneHead: 'head-2'}),
@@ -239,7 +239,7 @@ describe('summarizeAdoption — AC-b200151f thresholds / anti-vacuous', () => {
 // --- AC-0d7273dd — cycles-only ledger (value lane silent) ------------------
 
 describe('summarizeAdoption — AC-0d7273dd cycles-only ledger', () => {
-  test("[covers:F-0023ba22/AC-0d7273dd] completed cycles with zero value-delivery events → hasSignal true, not_confirmed (never insufficient_data at ≥3 cycles), reasons include the pull gates", () => {
+  test('[covers:F-0023ba22/AC-0d7273dd] completed cycles with zero value-delivery events → hasSignal true, not_confirmed (never insufficient_data at ≥3 cycles), reasons include the pull gates', () => {
     // feature_created + kept done only — no working_set_served / cards / suggestions.
     const events = [
       ...cycle({slot: 0, feature: 'F-1', doneHead: 'head-1'}),
@@ -277,7 +277,7 @@ describe('summarizeAdoption — AC-345af0b5 generations / determinism / empty', 
   });
   afterEach(() => rmSync(dir, {recursive: true, force: true}));
 
-  test("[covers:F-0023ba22/AC-345af0b5] readEventsIncludingRolled concatenates the rolled generation then the live log, in append order", () => {
+  test('[covers:F-0023ba22/AC-345af0b5] readEventsIncludingRolled concatenates the rolled generation then the live log, in append order', () => {
     mkdirSync(join(dir, '.cladding'), {recursive: true});
     const rolled = [
       at(BASE, 'feature_created', {feature: 'F-rolled', slug: 'r'}),

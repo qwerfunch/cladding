@@ -7,10 +7,13 @@ depends_on:
   - F-004
 acceptance_criteria:
   - id: AC-042
-    ears: ubiquitous
-    action: delegate visual regression testing to the project's own toolchain
-    response: returns a stage_3.3 StageResult
-    text: The system shall delegate visual regression testing to the project's own
-      toolchain (default `npm run visual`), returning a stage_3.3 result with
-      the runner's exit code.
-    evidence_refs: [self-dogfood:stage:visual]
+    ears: event
+    condition: when the Visual obligation applies and no qualified adapter observation exists
+    action: record the obligation as unobserved
+    response: a missing runner is not skipped, NA, or green
+    text: When the Visual obligation applies and no qualified adapter observation exists, it shall be unobserved; a missing runner is not skipped, NA, or green.
+    test_refs:
+      - "tests/assurance/kernel.test.ts#[covers:F-027/AC-040][covers:F-028/AC-041][covers:F-029/AC-042] applicable missing quality runners remain unobserved, not skipped, NA, or green"
+    notes: |
+      ## Historical schema-0.1 note
+      The default npm visual runner result is historical, not proof.

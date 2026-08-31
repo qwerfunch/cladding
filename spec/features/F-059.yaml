@@ -30,8 +30,12 @@ acceptance_criteria:
     test_refs: [tests/stages/audit.test.ts]
   - id: AC-144
     ears: state
-    condition: while the v0.2.10 batch lands
-    action: clear the 70% line coverage floor
-    response: vitest --coverage reports overall line coverage rises from 63.49% (v0.2.9 baseline) to ≥ 70%, allowing `clad check --strict` to pass the drift stage without COVERAGE_DROP warning
-    text: While the v0.2.10 batch lands, overall line coverage shall cross the 70% floor — the threshold at which `clad check --strict` ceases to fail on COVERAGE_DROP.
-    evidence_refs: [CHANGELOG.md]
+    condition: while current coverage assurance is evaluated
+    action: derive it from the coverage obligation
+    response: does not treat the v0.2.10 measurement as current proof
+    text: While current coverage assurance is evaluated, it shall be derived from the coverage obligation; the v0.2.10 measurement remains historical evidence only.
+    test_refs:
+      - "tests/assurance/registry.test.ts#[covers:F-055/AC-128][covers:F-056/AC-132][covers:F-057/AC-136][covers:F-058/AC-140][covers:F-059/AC-144][covers:F-060/AC-148][covers:F-061/AC-152][covers:F-062/AC-157][covers:F-063/AC-163][covers:F-064/AC-167] derives current coverage assurance only from the coverage obligation"
+    notes: |
+      ## Historical schema-0.1 note
+      v0.2.10’s 63.49% to ≥70% measurement is historical, not current assurance.

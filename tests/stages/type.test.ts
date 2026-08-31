@@ -57,7 +57,7 @@ describe('runType (stage_1.1)', () => {
     expect(r.stderr).toBeUndefined();
   });
 
-  test("[covers:F-059/AC-141] tool non-zero exit + stderr → pass=false with stderr attached", () => {
+  test('[covers:F-059/AC-141] tool non-zero exit + stderr → pass=false with stderr attached', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
     execaSyncMock.mockReturnValueOnce({
       exitCode: 1,

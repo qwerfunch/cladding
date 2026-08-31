@@ -181,7 +181,7 @@ describe('formatPushOneLiner — Tier-1 shape (AC-f912fd40)', () => {
     expect(formatPushOneLiner(ws, 'src/focus.ts')).toContain('(+2 co-owners)');
   });
 
-  test("[covers:F-35954d19/AC-f912fd40] a consequence-free working set degrades formatWorkingSetCard → exactly the one-liner", () => {
+  test('[covers:F-35954d19/AC-f912fd40] a consequence-free working set degrades formatWorkingSetCard → exactly the one-liner', () => {
     const ws = makeWs({dependsOnEdges: 0});
     expect(formatWorkingSetCard(ws, 'src/focus.ts')).toBe(formatPushOneLiner(ws, 'src/focus.ts'));
   });

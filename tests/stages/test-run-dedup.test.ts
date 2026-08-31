@@ -279,7 +279,7 @@ describe('AC-9a1c4e21 / AC-3f7e0c94 — primed vitest gate: the suite runs ONCE 
   });
   afterEach(() => rmSync(dir, {recursive: true, force: true}));
 
-  test("[covers:F-49f6f2d2/AC-9a1c4e21] runUnit then runCov spawn exactly ONE vitest process total (the #215 fix)", () => {
+  test('[covers:F-49f6f2d2/AC-9a1c4e21] runUnit then runCov spawn exactly ONE vitest process total (the #215 fix)', () => {
     execaSyncMock.mockReturnValueOnce(CLEAN);
     const unitResult = runUnit({cwd: dir});
     const covResult = runCov({cwd: dir});
@@ -290,7 +290,7 @@ describe('AC-9a1c4e21 / AC-3f7e0c94 — primed vitest gate: the suite runs ONCE 
     expect(covResult.exitCode).toBe(0);
   });
 
-  test("[covers:F-49f6f2d2/AC-3f7e0c94] the one shared command is the COVERAGE command augmented with the dual json reporter", () => {
+  test('[covers:F-49f6f2d2/AC-3f7e0c94] the one shared command is the COVERAGE command augmented with the dual json reporter', () => {
     execaSyncMock.mockReturnValueOnce(CLEAN);
     runUnit({cwd: dir});
     expect(execaSyncMock).toHaveBeenCalledTimes(1);
@@ -376,7 +376,7 @@ describe('primed pytest gate: Unit and Coverage share one coverage-instrumented 
   });
   afterEach(() => rmSync(dir, {recursive: true, force: true}));
 
-  test("[covers:F-49f6f2d2/AC-d769e24f] runUnit then runCov spawn pytest exactly once through coverage.py", () => {
+  test('[covers:F-49f6f2d2/AC-d769e24f] runUnit then runCov spawn pytest exactly once through coverage.py', () => {
     execaSyncMock.mockReturnValueOnce(CLEAN);
     const unitResult = runUnit({cwd: dir, strict: true});
     const covResult = runCov({cwd: dir});
@@ -389,7 +389,7 @@ describe('primed pytest gate: Unit and Coverage share one coverage-instrumented 
     expect(args).toEqual(['run', '-m', 'pytest']);
   });
 
-  test("[covers:F-49f6f2d2/AC-f8e85a99] AC-f8e85a99 — a green shared run that collected ZERO tests blocks under --strict (guard not bypassed)", () => {
+  test('[covers:F-49f6f2d2/AC-f8e85a99] AC-f8e85a99 — a green shared run that collected ZERO tests blocks under --strict (guard not bypassed)', () => {
     // coverage.py exits 0 but pytest collected nothing (e.g. an over-narrow selection).
     execaSyncMock.mockReturnValueOnce({
       exitCode: 0,

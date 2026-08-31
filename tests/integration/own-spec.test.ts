@@ -18,7 +18,7 @@ import {loadSpec} from '../../src/spec/load.js';
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 describe('cladding own spec', () => {
-  test("[covers:F-245bd5/AC-001][covers:F-245bd5/AC-005] loadSpec(repoRoot) parses + validates without throwing", () => {
+  test('[covers:F-245bd5/AC-001][covers:F-245bd5/AC-005] loadSpec(repoRoot) parses + validates without throwing', () => {
     expect(() => loadSpec(repoRoot)).not.toThrow();
   });
 

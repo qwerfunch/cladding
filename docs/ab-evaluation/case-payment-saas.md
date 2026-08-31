@@ -43,15 +43,15 @@ no spec, no scenarios, no architecture invariants.
 | Detector warnings | 1 | 3 | -2 |
 | Detector infos | 12 | 28 | -16 |
 | Tiered doc files | 2 | 0 | +2 |
-| Tiered docs (lines) | 61 | 0 | +61 |
+| Tiered docs (lines) | 74 | 0 | +74 |
 | Other doc files | 0 | 1 | -1 |
 | Source TS files | 0 | 3 | -3 |
 | Source LoC | 0 | 70 | -70 |
 | Test files | 0 | 1 | -1 |
 | Test LoC | 0 | 20 | -20 |
 | Test cases | 0 | 2 | -2 |
-| Total chars (artifacts + code) | 6609 | 3463 | +3146 |
-| Estimated tokens | 1653 | 867 | +786 |
+| Total chars (artifacts + code) | 6804 | 3463 | +3341 |
+| Estimated tokens | 1702 | 867 | +835 |
 
 **Detector outcomes** (META_INTEGRITY + HARDCODED_SECRET excluded — toolchain-only checks):
 
@@ -82,15 +82,15 @@ B (Vanilla)  — errors: 1  warns: 3  infos: 28
 | Detector warnings | 3 | 3 | +0 |
 | Detector infos | 14 | 28 | -14 |
 | Tiered doc files | 2 | 0 | +2 |
-| Tiered docs (lines) | 61 | 0 | +61 |
+| Tiered docs (lines) | 74 | 0 | +74 |
 | Other doc files | 0 | 1 | -1 |
 | Source TS files | 1 | 5 | -4 |
 | Source LoC | 11 | 126 | -115 |
 | Test files | 1 | 2 | -1 |
 | Test LoC | 8 | 33 | -25 |
 | Test cases | 1 | 4 | -3 |
-| Total chars (artifacts + code) | 7773 | 5592 | +2181 |
-| Estimated tokens | 1944 | 1399 | +545 |
+| Total chars (artifacts + code) | 7968 | 5592 | +2376 |
+| Estimated tokens | 1993 | 1399 | +594 |
 
 **Detector outcomes** (META_INTEGRITY + HARDCODED_SECRET excluded — toolchain-only checks):
 
@@ -110,7 +110,7 @@ B (Vanilla)  — errors: 1  warns: 3  infos: 28
 - **Spec ↔ code traceability**: cladding emits 1 feature(s), 2 AC(s), 2 scenario(s), 3 capability(s); vanilla has 0 of each.
 - **Architecture enforcement**: cladding declares 3 layer(s) with 2 forbidden-import rule(s); vanilla has 0.
 - **Detector behavior**: cladding-managed tree → 1 error(s) / 3 warn(s) / 14 info(s). Vanilla tree → 1 / 3 / 28. The detectors that gate against spec (REFERENCE_INTEGRITY, MISSING_IMPLEMENTATION, ARCHITECTURE_FROM_SPEC, CAPABILITIES_FEATURE_MAPPING) need cladding's artifacts to evaluate — without them they silently pass. The "0 errors on vanilla" therefore is **absence of signal**, not absence of drift.
-- **Token cost**: cladding's cumulative artifact + code consumes ~1944 tokens vs vanilla's ~1399 (heuristic chars/4) — Δ ≈ 545 tokens, the price of structure.
+- **Token cost**: cladding's cumulative artifact + code consumes ~1993 tokens vs vanilla's ~1399 (heuristic chars/4) — Δ ≈ 594 tokens, the price of structure.
 - **Code surface**: vanilla writes 5 source file(s) / 126 LoC + 2 test file(s) / 4 test case(s); cladding writes 1 / 11 + 1 / 1. (Vanilla front-loads code, cladding front-loads spec — both converge by M2.)
 
 ## Outcome Quality (F-ba2e05)

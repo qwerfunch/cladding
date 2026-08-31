@@ -155,7 +155,7 @@ describe('runClarifyCommand', () => {
     expect(loadState(dir)!.qa[0].answer).toBeNull();
   });
 
-  test('active refinement captures an existing scenario target before the commit boundary', async () => {
+  test('[covers:F-09d68b/AC-005] active refinement commits artifacts through the compatibility transaction', async () => {
     seedState(dir, [{question: 'Q1?', answer: null}]);
     seedArtifacts(dir);
     const scenariosRaw = '- slug: checkout\n  title: Checkout\n  flow: complete payment\n';
@@ -253,7 +253,7 @@ describe('runClarifyCommand', () => {
     expect(exitCalls).toEqual([0]);
   });
 
-  test('[covers:F-09d68b/AC-003] deterministic (--no-llm) marks the answer + preserves current artifacts + appends footnote', async () => {
+  test('[covers:F-09d68b/AC-004][covers:F-09d68b/AC-003] joins answer tokens and commits the proposal-safe onboarding transition', async () => {
     seedState(dir, [
       {question: '주 사용자가 개인? 사업자?', answer: null},
       {question: '어떤 결제수단 우선?', answer: null},

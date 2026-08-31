@@ -57,7 +57,7 @@ describe('FIXTURE_REFERENCE_INVALID detector', () => {
     expect(fixtureReference.run({cwd: dir})).toEqual([]);
   });
 
-  test("[covers:F-053/AC-116] warns when fixture name is not in the registry", () => {
+  test('[covers:F-053/AC-116] warns when fixture name is not in the registry', () => {
     writeFeature(
       dir,
       'id: F-001\n' +
@@ -126,7 +126,7 @@ describe('FIXTURE_REFERENCE_INVALID detector', () => {
     expect(findings[0].message).toContain('test_refs');
   });
 
-  test("[covers:F-053/AC-117] returns no findings when the registry file is absent", () => {
+  test('[covers:F-053/AC-117] returns no findings when the registry file is absent', () => {
     rmSync(join(dir, 'conformance', 'fixtures.yaml'));
     writeFeature(
       dir,

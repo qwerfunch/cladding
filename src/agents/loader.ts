@@ -1,9 +1,8 @@
 // Cladding · agents · persona loader
 //
 // Parses an `agents/<id>.md` file into a {@link PersonaSpec} so the
-// drive loop can hand it to an adapter. The five personas
-// (orchestrator · planner · reviewer · observability · developer)
-// each declare a YAML frontmatter that names them, their description,
+// drive loop can hand it to an adapter. Each shipped persona declares
+// YAML frontmatter that names it, describes it, and declares the
 // the Claude Code `tools:` enum, and the provider-agnostic
 // `capabilities:` set; the body is the prose prompt every adapter
 // passes to its LLM.
@@ -62,8 +61,7 @@ export const PERSONA_ALIASES: Readonly<Record<string, string>> = {
  * `developer`) still resolve through {@link PERSONA_ALIASES} for the
  * 0.6.x line, with a one-line stderr notice naming the replacement.
  *
- * @param id - Persona id (`orchestrator` · `planner` · `reviewer`
- *     · `observability` · `developer`), or a deprecated alias.
+ * @param id - Shipped persona id or a deprecated compatibility alias.
  * @param rootDir - Optional root directory containing the `agents/`
  *     folder. Defaults to the cladding package's own `agents/`.
  * @returns Parsed persona spec ready to hand to `runAgent`.

@@ -4,12 +4,13 @@
 // a synthetic source tree under tmpdir, then asserted against the
 // recorded heuristic (majority rule for most signals).
 
-import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {basename, join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
 import {scanRoot, walk} from '../../src/cli/scan/index.js';
+import {groupByLayer} from '../../src/cli/scan/architecture.js';
 
 function seed(dir: string, layout: Record<string, string>): void {
   for (const [path, content] of Object.entries(layout)) {
@@ -33,6 +34,20 @@ describe('scanRoot', () => {
     expect(r.stats.filesScanned).toBe(0);
     expect(r.architecture.layers).toEqual([]);
     expect(r.scenarios).toEqual([]);
+  });
+
+  test('[covers:F-1edb38/AC-001] scanRoot composes the public scan result without a legacy entrypoint', () => {
+    seed(dir, {
+      'src/core/a.ts': 'export const a = 1;\n',
+      'src/cli/b.ts': "import {a} from '../core/a.js';\nexport const b = a;\n",
+    });
+
+    const result = scanRoot({cwd: dir});
+    expect(result.conventions.namingExports).toBe('camelCase');
+    expect(result.architecture.layers.map((layer) => layer.name).sort()).toEqual(['cli', 'core']);
+    expect(result.architecture.importGraph).toContainEqual({from: 'cli', to: 'core', count: 1});
+    expect(result.examples.map((example) => example.layer).sort()).toEqual(['cli', 'core']);
+    expect(existsSync(join(process.cwd(), 'src/cli/scan.ts'))).toBe(false);
   });
 
   test('detects two-space indent majority', () => {
@@ -293,15 +308,8 @@ describe('scanRoot', () => {
     });
   });
 
-  // v0.3.27 — flat single-package (Go cobra-style) handling.
-  // Reworked by F-<init-scan-layer-glob>: a flat project's cwd-direct files
-  // form NO architecture sub-layer. The old `_root`→basename(cwd) promotion
-  // produced a layer named after the project directory with a `<basename>/**`
-  // glob that matched nothing (the object-form architecture the detector
-  // consumes resolves each layer as `<mainRoot>/<name>`, and no name resolves
-  // back to the root itself). A flat project honestly has zero layers.
-  describe('flat single-package _root handling (v0.3.27, reworked)', () => {
-    test('cwd-direct files (≥5) do NOT promote to a bogus cwd-named layer', () => {
+  describe('flat single-package root handling', () => {
+    test('[covers:F-aee1da/AC-001] omits a qualifying flat root rather than emitting a bogus cwd-named layer', () => {
       seed(dir, {
         'a.go': 'package cobra\n\nfunc A() {}\n',
         'b.go': 'package cobra\n\nfunc B() {}\n',
@@ -311,10 +319,20 @@ describe('scanRoot', () => {
         'f.go': 'package cobra\n\nfunc F() {}\n',
       });
       const r = scanRoot({cwd: dir});
-      // No sub-layer to name → `layers: []` (renders as valid empty array).
-      // Previously this promoted to a layer named basename(cwd) with a
-      // `<basename>/**` glob matching zero files.
       expect(r.architecture.layers).toEqual([]);
+    });
+
+    test('[covers:F-aa7197/AC-001] root promotion uses the resolved workspace basename instead of dot', () => {
+      seed(dir, {
+        'a.go': 'package cobra\n',
+        'b.go': 'package cobra\n',
+        'c.go': 'package cobra\n',
+        'd.go': 'package cobra\n',
+        'e.go': 'package cobra\n',
+      });
+      const groups = groupByLayer(walk({root: dir}), [], {cwd: '.'});
+      expect([...groups.keys()]).not.toContain('.');
+      expect([...groups.keys()]).toContain(basename(process.cwd()));
     });
 
     test('cwd-direct files below threshold stay in _root and produce no layer', () => {

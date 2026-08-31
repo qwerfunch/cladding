@@ -1,7 +1,7 @@
 // Cladding · `clad init` — workspace scaffolder
 //
 // One command, three side-effects on a fresh directory:
-//   1. spec.yaml seed with one placeholder feature (F-001)
+//   1. spec.yaml seed with an empty feature inventory
 //   2. .cladding/ runtime dir (audit + events log live here)
 //   3. .gitignore + .gitattributes managed-entry append (only when missing) —
 //      the ignore entry keeps runtime state untracked while leaving
@@ -58,7 +58,7 @@ export interface InitOptions {
    * Free-text user intent (v0.3.43+). When provided, init routes through
    * the LLM-driven onboarding path (`intent-onboarding.ts`) which produces
    * domain-aware seeds for project-context / capabilities / architecture
-   * plus a real F-001 title and 2-3 follow-up questions. When omitted,
+   * plus 2-3 follow-up questions. When omitted,
    * init falls back to the v0.3.42 behaviour (toolchain-default seeds in
    * greenfield, observed scan otherwise).
    */
@@ -402,7 +402,7 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
   // v0.3.43 — intent-aware onboarding. When the user passes a free-text
   // intent (`clad init <description>`), run the LLM-driven onboarding
   // path that returns a domain-aware project-context body + refined
-  // capabilities + architecture + a real F-001 title + product/business
+  // capabilities + architecture + product/business
   // clarifying questions. The result feeds the spec.yaml seed below and
   // the scan-artifact writes further down so the spec/docs surface is
   // intent-shaped from the first init. `--no-llm` and a missing
@@ -465,13 +465,8 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
     }
   }
 
-  // 1. spec.yaml + F-001 sharded placeholder
-  //
-  // v0.3.49 (F-99c6e5): spec.yaml seed now carries `features: []` and
-  // the F-001 placeholder lives at `spec/features/F-001-first.yaml`.
-  // v0.4.0 (F-80d19d): removed F-90d054's `_meta.enrichment_status` marker —
-  // project-scope plugin auto-activation in clad init guarantees an AI
-  // session, so the lazy-enrichment scaffold is no longer needed.
+  // 1. spec.yaml seed. Feature shards are created only by the feature
+  // authoring transaction, whose target is resolved by the artifact registry.
   const specPath = join(cwd, 'spec.yaml');
   if (existsSync(specPath) && !force) {
     skipped.push('spec.yaml (exists)');
