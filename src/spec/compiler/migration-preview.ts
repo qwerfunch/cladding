@@ -8,6 +8,8 @@ import {compileSpecWorkspace, compileSpecWorkspaceWithLockHeld, readSchema01Migr
 import {deterministicArchitectureRuleId} from './schema-02-contract.js';
 import {
   LEGACY_UNCLASSIFIED,
+  compareCodeUnits,
+  legacyL2CandidateCensusSha256,
   MIGRATION_BASELINE_SCHEMA,
   type LegacyBindingBaseline,
   type LegacyExemption,
@@ -28,6 +30,7 @@ export interface MigrationResolutionItem {
     | 'PROJECT_PURPOSE_CONFIRMATION'
     | 'PROJECT_ASSURANCE_LEVEL_CONFIRMATION'
     | 'PROJECT_SCENARIO_POLICY_CONFIRMATION'
+    | 'PROJECT_LEGACY_L2_BASELINE'
     | 'CRITERION_STATEMENT_CONFLICT'
     | 'CRITERION_TEXT_UNKNOWN'
     | 'CAPABILITY_OUTCOME_CONFIRMATION'
@@ -42,6 +45,14 @@ export interface MigrationResolutionItem {
   readonly subject: string;
   /** Plain explanation of what remains unselected. */
   readonly detail: string;
+}
+
+/** Completed-legacy criterion census requiring a separate project decision. */
+export interface MigrationLegacyL2BaselinePreview {
+  /** Count of criteria belonging to source features whose status is exactly `done`. */
+  readonly candidateCount: number;
+  /** SHA-256 of the code-unit-sorted candidate criterion-address census. */
+  readonly candidateCensusSha256: string;
 }
 
 /** Criterion migration candidate preserving authored text separately from strict classification. */
@@ -210,6 +221,8 @@ export interface MigrationPreview {
     readonly assuranceLevel: 'L2';
     readonly scenarioPolicy: 'advisory';
   };
+  /** Narrow L2 migration candidate census; accepting it is a distinct decision. */
+  readonly legacyL2Baseline: MigrationLegacyL2BaselinePreview;
   /** Feature structural projections. */
   readonly features: readonly PreviewFeature[];
   /** Criterion projections in composite-address order. */
@@ -306,6 +319,19 @@ function buildMigrationPreview(cwd: string, options: {readonly lockHeld?: boolea
   const featureRecordsForPreview = featureRecords(source.features);
   assertAddressableMigrationSource(featureRecordsForPreview, source.scenarios);
   assertLosslessFeatureRetention(featureRecordsForPreview);
+  const legacyL2Criteria = featureRecordsForPreview
+    .filter((feature) => feature.value.status === 'done')
+    .flatMap((feature) => criterionRecords(feature.value)
+      .map((criterion) => `criterion:${stringValue(feature.value.id)!}/${stringValue(criterion.id)!}`))
+    .sort(compareCodeUnits);
+  const legacyL2Baseline: MigrationLegacyL2BaselinePreview = {
+    candidateCount: legacyL2Criteria.length,
+    candidateCensusSha256: legacyL2CandidateCensusSha256(legacyL2Criteria),
+  };
+  resolutions.push({
+    code: 'PROJECT_LEGACY_L2_BASELINE', subject: 'project',
+    detail: 'Accept or reject the separate completed-legacy-criterion L2 baseline; it is not implied by assurance policy confirmation.',
+  });
   const featureIdCounts = new Map<string, number>();
   for (const record of featureRecordsForPreview) {
     const id = stringValue(record.value.id);
@@ -473,6 +499,7 @@ function buildMigrationPreview(cwd: string, options: {readonly lockHeld?: boolea
     testFileSetDigest: testCensus.digest,
     testFileCount: testCensus.count,
     project: previewProject,
+    legacyL2Baseline,
     features,
     criteria: sortedCriteria,
     capabilities: capabilities.flatMap((capability) => capability.id ? [{

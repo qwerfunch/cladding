@@ -121,7 +121,7 @@ function runMigrateAfterRecovery(options: MigrateCommandOptions, cwd: string, re
       process.stdout.write(output);
     } else {
       process.stdout.write(
-        `Migration preview is ready. ${preview.requiredResolution.length} decisions still need review. Review digest: ${digest}. ${recovered ? 'Recovery restored prior bytes; this action made no additional changes.' : 'No files were changed.'}\n` +
+        `Migration preview is ready. ${preview.requiredResolution.length} decisions still need review. It identifies ${preview.legacyL2Baseline.candidateCount} completed legacy criteria for a separate accept-or-reject baseline decision (census digest: ${preview.legacyL2Baseline.candidateCensusSha256}). Review digest: ${digest}. ${recovered ? 'Recovery restored prior bytes; this action made no additional changes.' : 'No files were changed.'}\n` +
         'Next: review and export the decisions, then rerun with `clad migrate --to 0.2 --apply --resolutions <file>`.\n',
       );
     }

@@ -111,11 +111,17 @@ function initializeGit(root: string): void {
   execFileSync('git', ['commit', '--quiet', '-m', 'baseline'], {cwd: root});
 }
 
-function migrationOperation(root: string): {readonly kind: 'project.upgrade_schema'; readonly resolutions: {readonly previewDigest: string; readonly confirmed: readonly {readonly code: string; readonly subject: string}[]}} {
+function migrationConfirmations(preview: ReturnType<typeof previewSchema02Migration>): readonly {readonly code: string; readonly subject: string; readonly value?: unknown}[] {
+  return preview.requiredResolution.map((item) => item.code === 'PROJECT_LEGACY_L2_BASELINE'
+    ? {code: item.code, subject: item.subject, value: 'reject'}
+    : {code: item.code, subject: item.subject});
+}
+
+function migrationOperation(root: string) {
   const preview = previewSchema02Migration(root);
   return {
-    kind: 'project.upgrade_schema',
-    resolutions: {previewDigest: migrationPreviewDigest(preview), confirmed: preview.requiredResolution.map((item) => ({code: item.code, subject: item.subject}))},
+    kind: 'project.upgrade_schema' as const,
+    resolutions: {previewDigest: migrationPreviewDigest(preview), confirmed: migrationConfirmations(preview)},
   };
 }
 
@@ -417,13 +423,34 @@ describe('typed F4 specification transaction', () => {
     expect(manifest(root)).toEqual(before);
   });
 
+  test('requires a separate literal accept-or-reject L2 baseline decision without writing', () => {
+    for (const value of ['missing', 'undefined', 'invalid'] as const) {
+      const root = migrationSource();
+      const preview = previewSchema02Migration(root);
+      const confirmed = migrationConfirmations(preview).flatMap((item) => {
+        if (item.code !== 'PROJECT_LEGACY_L2_BASELINE') return [item];
+        if (value === 'missing') return [];
+        return [value === 'undefined'
+          ? {code: item.code, subject: item.subject}
+          : {code: item.code, subject: item.subject, value: 'approve'}];
+      });
+      const operation = {kind: 'project.upgrade_schema' as const, resolutions: {previewDigest: migrationPreviewDigest(preview), confirmed}};
+      const before = manifest(root);
+      expect(() => editSpec({cwd: root, operations: [operation], inputRevisions: readSpecEditRevisions(root, [operation])}))
+        .toThrow(expect.objectContaining({code: 'MIGRATION_UNRESOLVED'}));
+      expect(manifest(root)).toEqual(before);
+    }
+  });
+
   test('rejects every non-literal historic test-binding disposition without a write', () => {
     for (const testBindingDisposition of ['keep', null, {selection: 'retain'}] as const) {
       const root = migrationSource();
       const featurePath = join(root, 'spec', 'features', 'legacy-aaaaaaaa.yaml');
       writeFileSync(featurePath, readFileSync(featurePath, 'utf8').replace('    text: The system shall retain legacy intent.\n', ''));
       const preview = previewSchema02Migration(root);
-      const confirmed = preview.requiredResolution.map((item) => item.code === 'CRITERION_TEXT_UNKNOWN'
+      const confirmed = preview.requiredResolution.map((item) => item.code === 'PROJECT_LEGACY_L2_BASELINE'
+        ? {code: item.code, subject: item.subject, value: 'reject'}
+        : item.code === 'CRITERION_TEXT_UNKNOWN'
         ? {
             code: item.code,
             subject: item.subject,
@@ -456,7 +483,7 @@ describe('typed F4 specification transaction', () => {
   test('U03 atomically applies an explicitly confirmed clean-room migration and is zero-diff on replay', () => {
     const root = migrationSource();
     const preview = previewSchema02Migration(root);
-    const confirmed = preview.requiredResolution.map((item) => ({code: item.code, subject: item.subject}));
+    const confirmed = migrationConfirmations(preview);
     const beforeForged = manifest(root);
     const forged = {kind: 'project.upgrade_schema' as const, resolutions: {previewDigest: 'f'.repeat(64), confirmed}};
     expect(() => editSpec({cwd: root, operations: [forged], inputRevisions: readSpecEditRevisions(root, [forged])})).toThrow(expect.objectContaining({code: 'STALE_INPUT'}));
@@ -467,6 +494,7 @@ describe('typed F4 specification transaction', () => {
     expect(existsSync(join(root, 'spec/attestation.yaml'))).toBe(false);
     const compilation = compileSpecWorkspace(root);
     expect(compilation.diagnostics.filter((diagnostic) => diagnostic.severity === 'blocking')).toEqual([]);
+    expect(compilation.migrationBaseline?.legacyL2Baseline).toMatchObject({decision: 'reject', authorizations: []});
     expect(compilation.edges).toEqual(expect.arrayContaining([expect.objectContaining({relation: 'contributes_to', from: 'feature:F-aaaaaaaa', to: 'capability:governance'})]));
     const after = manifest(root);
     const replay = {kind: 'project.upgrade_schema' as const, resolutions: {previewDigest: '0'.repeat(64), confirmed: []}};
@@ -474,10 +502,39 @@ describe('typed F4 specification transaction', () => {
     expect(manifest(root)).toEqual(after);
   });
 
+  test('persists the accepted exact-done L2 authorization census from final migrated targets', () => {
+    const root = migrationSource();
+    const featurePath = join(root, 'spec', 'features', 'legacy-aaaaaaaa.yaml');
+    writeFileSync(featurePath, readFileSync(featurePath, 'utf8').replace('status: planned', 'status: done'));
+    writeFileSync(join(root, 'spec', 'features', 'in-progress-bbbbbbbb.yaml'), [
+      'id: F-bbbbbbbb', 'title: In-progress source', 'status: in_progress', 'modules: []', 'acceptance_criteria:',
+      '  - id: AC-cccccccc', '    text: The system shall remain outside the completed baseline census.', '',
+    ].join('\n'));
+    const preview = previewSchema02Migration(root);
+    const confirmed = migrationConfirmations(preview).map((item) => item.code === 'PROJECT_LEGACY_L2_BASELINE'
+      ? {...item, value: 'accept'}
+      : item);
+    const operation = {kind: 'project.upgrade_schema' as const, resolutions: {previewDigest: migrationPreviewDigest(preview), confirmed}};
+    expect(editSpec({cwd: root, operations: [operation], inputRevisions: readSpecEditRevisions(root, [operation])}).changed).toBe(true);
+    const receipt = yaml.parse(readFileSync(join(root, 'spec/generated/migration-baseline-0.1-to-0.2.yaml'), 'utf8')) as {
+      legacyL2Baseline: {decision: string; candidateCount: number; candidateCensusSha256: string; previewSha256: string; resolutionSha256: string; authorizations: readonly {criterion: string; sourceStatus: string; finalIntentSha256: string; candidateSha256: string; resolutionSha256: string; obligations: readonly string[]}[]};
+    };
+    expect(receipt.legacyL2Baseline).toMatchObject({
+      decision: 'accept', candidateCount: 1,
+      candidateCensusSha256: preview.legacyL2Baseline.candidateCensusSha256,
+      previewSha256: migrationPreviewDigest(preview),
+    });
+    expect(receipt.legacyL2Baseline.authorizations).toEqual([expect.objectContaining({
+      criterion: 'criterion:F-aaaaaaaa/AC-bbbbbbbb', sourceStatus: 'done', obligations: ['stage_2.1', 'stage_2.2'],
+      finalIntentSha256: expect.stringMatching(/^[a-f0-9]{64}$/), candidateSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+      resolutionSha256: receipt.legacyL2Baseline.resolutionSha256,
+    })]);
+  });
+
   test('fails closed for a broken Git context but permits the same clean-room migration outside Git', () => {
     const root = migrationSource();
     const preview = previewSchema02Migration(root);
-    const confirmed = preview.requiredResolution.map((item) => ({code: item.code, subject: item.subject}));
+    const confirmed = migrationConfirmations(preview);
     const operation = {kind: 'project.upgrade_schema' as const, resolutions: {previewDigest: migrationPreviewDigest(preview), confirmed}};
     const before = manifest(root);
     const savedGitDir = process.env.GIT_DIR;
@@ -524,7 +581,7 @@ describe('typed F4 specification transaction', () => {
   test('U04 interrupted schema migration restores source bytes before a later recovery can proceed', () => {
     const root = migrationSource();
     const preview = previewSchema02Migration(root);
-    const confirmed = preview.requiredResolution.map((item) => ({code: item.code, subject: item.subject}));
+    const confirmed = migrationConfirmations(preview);
     const operation = {kind: 'project.upgrade_schema' as const, resolutions: {previewDigest: migrationPreviewDigest(preview), confirmed}};
     const before = manifest(root);
     expect(() => editSpec({cwd: root, operations: [operation], inputRevisions: readSpecEditRevisions(root, [operation]), testFaultAfterReplacements: 1})).toThrow('InjectedTransactionFault');
@@ -545,7 +602,7 @@ describe('typed F4 specification transaction', () => {
     ].join('\n'));
     const preview = previewSchema02Migration(root);
     expect(preview.features[0]?.targetPath).toBe('spec/features/F-001.yaml');
-    const confirmed = preview.requiredResolution.map((item) => ({code: item.code, subject: item.subject}));
+    const confirmed = migrationConfirmations(preview);
     const operation = {kind: 'project.upgrade_schema' as const, resolutions: {previewDigest: migrationPreviewDigest(preview), confirmed}};
     expect(editSpec({cwd: root, operations: [operation], inputRevisions: readSpecEditRevisions(root, [operation])}).changed).toBe(true);
     expect(existsSync(join(root, 'spec', 'features', 'F-001.yaml'))).toBe(true);
@@ -836,7 +893,9 @@ describe('typed F4 specification transaction', () => {
     const preview = previewSchema02Migration(root);
     expect(preview.features[0]?.targetPath).toBe('spec/features/F-aaaaaaaa.yaml');
     expect(preview.scenarios[0]?.targetPath).toBe('spec/scenarios/S-aaaaaaaa.yaml');
-    const confirmed = preview.requiredResolution.map((item) => item.code === 'SCENARIO_MEANING_REQUIRED'
+    const confirmed = preview.requiredResolution.map((item) => item.code === 'PROJECT_LEGACY_L2_BASELINE'
+      ? {code: item.code, subject: item.subject, value: 'reject'}
+      : item.code === 'SCENARIO_MEANING_REQUIRED'
       ? {code: item.code, subject: item.subject, value: {actor: 'Operator', goal: 'Finish', success: 'Finished', steps: ['Start'], feature_refs: ['F-aaaaaaaa']}}
       : {code: item.code, subject: item.subject});
     const operation = {kind: 'project.upgrade_schema' as const, resolutions: {previewDigest: migrationPreviewDigest(preview), confirmed}};

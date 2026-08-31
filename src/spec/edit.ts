@@ -32,9 +32,18 @@ import {
   validateSchema02Project,
 } from './compiler/schema-02-contract.js';
 import {
+  compareCodeUnits,
+  criterionFinalIntentFromRecord,
+  criterionFinalIntentSha256,
+  LEGACY_L2_OBLIGATIONS,
+  legacyL2CandidateCensusSha256,
+  legacyL2CandidateSha256,
+  legacyL2ResolutionSha256,
   legacyExemptionMatches,
   legacyStructuralReviewMatches,
   validateMigrationBaseline,
+  type LegacyL2Authorization,
+  type LegacyL2BaselineDecision,
   type MigrationBaseline,
   type ReviewedCriterionCarryForward,
 } from './compiler/migration-baseline.js';
@@ -1837,6 +1846,7 @@ function applyMigration(cwd: string, payload: MigrationResolutionPayload, values
   const confirmed = new Set(payload.confirmed.map((item) => `${item.code}|${item.subject}`));
   const unresolved = preview.requiredResolution.filter((item) => !confirmed.has(`${item.code}|${item.subject}`));
   if (unresolved.length > 0) throw new SpecEditError('MIGRATION_UNRESOLVED', 'Migration still has unresolved human decisions.');
+  const legacyL2Decision = confirmedLegacyL2BaselineDecision(payload);
   const sourceRoot = clone(existingRoot) as JsonRecord;
   const liveProofCensus = requireLiveProofForCompletedMigrationDrops(cwd, preview, payload, sourceRoot);
   const root = existingRoot;
@@ -1856,6 +1866,8 @@ function applyMigration(cwd: string, payload: MigrationResolutionPayload, values
   if (existsSync(join(cwd, baselinePath))) throw invalid('A migration baseline already exists.');
   const baseline = clone(preview.baseline) as unknown as MigrationBaseline;
   const reviewedCarryForwards: ReviewedCriterionCarryForward[] = [];
+  const finalCriteria = new Map<string, JsonRecord>();
+  const legacyL2Candidates: string[] = [];
   for (const resolution of preview.requiredResolution.filter((item) => item.code === 'ADR_REFERENCE_REVIEW')) {
     const review = confirmedAdrReview(payload, resolution.subject);
     const criterion = baseline.criteria.find((entry) => entry.address === resolution.subject);
@@ -1901,6 +1913,8 @@ function applyMigration(cwd: string, payload: MigrationResolutionPayload, values
       copyField(criterion, convertedCriterion, 'oracle_refs');
       copyField(criterion, convertedCriterion, 'evidence_refs');
       copyField(criterion, convertedCriterion, 'notes');
+      finalCriteria.set(subject, convertedCriterion);
+      if (source.status === 'done') legacyL2Candidates.push(subject);
       return convertedCriterion;
     });
     const converted: JsonRecord = {
@@ -1922,6 +1936,9 @@ function applyMigration(cwd: string, payload: MigrationResolutionPayload, values
     (baseline as {reviewedCarryForwards?: readonly ReviewedCriterionCarryForward[]}).reviewedCarryForwards = reviewedCarryForwards
       .sort((left, right) => left.criterion.localeCompare(right.criterion));
   }
+  (baseline as {legacyL2Baseline?: LegacyL2BaselineDecision}).legacyL2Baseline = materializeLegacyL2Baseline(
+    preview, legacyL2Decision, finalCriteria, legacyL2Candidates,
+  );
   values.set(baselinePath, baseline as unknown as JsonRecord); original.set(baselinePath, null);
   const catalogPath = 'spec/capabilities.yaml';
   const catalog: JsonRecord = {capabilities: materializeMigrationCapabilities(preview, payload)};
@@ -2044,6 +2061,62 @@ function migrationSourceRecord(cwd: string, root: JsonRecord, path: string, doma
 /** Returns the compact request binding for a deterministic migration preview. */
 export function migrationPreviewDigest(preview: MigrationPreview): string {
   return hash(serializeMigrationPreview(preview));
+}
+
+/** Requires the separate project decision that governs the narrow L2 baseline. */
+function confirmedLegacyL2BaselineDecision(payload: MigrationResolutionPayload): 'accept' | 'reject' {
+  const entries = payload.confirmed.filter((entry) => entry.code === 'PROJECT_LEGACY_L2_BASELINE' && entry.subject === 'project');
+  const decision = entries[0]?.value;
+  if (entries.length !== 1 || (decision !== 'accept' && decision !== 'reject')) {
+    throw new SpecEditError('MIGRATION_UNRESOLVED', 'The completed-legacy-criterion L2 baseline needs one explicit accept or reject decision.');
+  }
+  return decision;
+}
+
+/** Materializes the immutable L2 authorization receipt only from final converted criterion targets. */
+function materializeLegacyL2Baseline(
+  preview: MigrationPreview,
+  decision: 'accept' | 'reject',
+  finalCriteria: ReadonlyMap<string, JsonRecord>,
+  candidates: readonly string[],
+): LegacyL2BaselineDecision {
+  const candidateCriteria = [...candidates].sort(compareCodeUnits);
+  const candidateCensusSha256 = legacyL2CandidateCensusSha256(candidateCriteria);
+  if (candidateCriteria.length !== preview.legacyL2Baseline.candidateCount
+    || candidateCensusSha256 !== preview.legacyL2Baseline.candidateCensusSha256) {
+    throw new SpecEditError('MIGRATION_UNRESOLVED', 'The converted completed-legacy criterion census no longer matches the reviewed preview.');
+  }
+  const previewSha256 = migrationPreviewDigest(preview);
+  const resolutionSha256 = legacyL2ResolutionSha256({
+    previewSha256,
+    decision,
+    candidateCount: preview.legacyL2Baseline.candidateCount,
+    candidateCensusSha256: preview.legacyL2Baseline.candidateCensusSha256,
+  });
+  const authorizations: LegacyL2Authorization[] = decision === 'accept'
+    ? candidateCriteria.map((criterion) => {
+      const intent = criterionFinalIntentFromRecord(finalCriteria.get(criterion));
+      if (!intent) throw new SpecEditError('MIGRATION_UNRESOLVED', `Completed criterion ${criterion.slice('criterion:'.length)} has no final intent to authorize.`);
+      const finalIntentSha256 = criterionFinalIntentSha256(intent);
+      const authorization: LegacyL2Authorization = {
+        criterion,
+        sourceStatus: 'done',
+        finalIntentSha256,
+        obligations: LEGACY_L2_OBLIGATIONS,
+        candidateSha256: '',
+        resolutionSha256,
+      };
+      return {...authorization, candidateSha256: legacyL2CandidateSha256(authorization)};
+    })
+    : [];
+  return {
+    decision,
+    previewSha256,
+    candidateCount: preview.legacyL2Baseline.candidateCount,
+    candidateCensusSha256: preview.legacyL2Baseline.candidateCensusSha256,
+    resolutionSha256,
+    authorizations,
+  };
 }
 
 function confirmedText(payload: MigrationResolutionPayload, code: string, subject: string, fallback?: string): string {
@@ -2178,6 +2251,12 @@ function validateMigrationConfirmations(preview: MigrationPreview, confirmed: re
 }
 
 function validateMigrationResolutionValue(item: {readonly code: string; readonly subject: string; readonly value?: unknown}): void {
+  if (item.code === 'PROJECT_LEGACY_L2_BASELINE') {
+    if (item.subject !== 'project' || (item.value !== undefined && item.value !== 'accept' && item.value !== 'reject')) {
+      throw new SpecEditError('MIGRATION_UNRESOLVED', 'Completed-legacy-criterion L2 baseline needs an explicit accept or reject decision.');
+    }
+    return;
+  }
   if (item.value === undefined) return;
   const textCodes = new Set(['PROJECT_PURPOSE_CONFIRMATION', 'PROJECT_ASSURANCE_LEVEL_CONFIRMATION', 'PROJECT_SCENARIO_POLICY_CONFIRMATION', 'CAPABILITY_OUTCOME_CONFIRMATION', 'ARCHITECTURE_RULE_RATIONALE']);
   const recordCodes = new Set(['CRITERION_STATEMENT_CONFLICT', 'CRITERION_TEXT_UNKNOWN', 'CAPABILITY_RECORD_RESOLUTION', 'CAPABILITY_EDGE_RESOLUTION', 'SCENARIO_MEANING_REQUIRED', 'ARCHITECTURE_LAYER_RESOLUTION', 'ARCHITECTURE_RULE_RESOLUTION', 'ADR_REFERENCE_REVIEW']);

@@ -1,5 +1,6 @@
 // Cladding · Spec 0.2 F2 · canonical read-only migration-preview tests.
 
+import {createHash} from 'node:crypto';
 import {mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -137,6 +138,29 @@ describe('Spec compiler migration preview', () => {
     const second = previewSchema02Migration(root);
     expect(second.testFileCount).toBe(2);
     expect(second.testFileSetDigest).not.toBe(first.testFileSetDigest);
+  });
+
+  test('censuses only criteria from source features whose status is exactly done', () => {
+    const root = workspace();
+    const first = join(root, 'spec', 'features', 'migration-aaaaaaaa.yaml');
+    writeFileSync(first, readFileSync(first, 'utf8').replace('status: planned', 'status: done'));
+    for (const [id, status] of [
+      ['F-bbbbbbbb', 'planned'], ['F-cccccccc', 'in_progress'], ['F-dddddddd', 'blocked'], ['F-eeeeeeee', 'archived'],
+    ] as const) {
+      writeFileSync(join(root, 'spec', 'features', `legacy-${id.slice(2)}.yaml`), [
+        `id: ${id}`, `title: ${status}`, `status: ${status}`, 'modules: []', 'acceptance_criteria:', `  - id: AC-${id.slice(2)}`, '    text: The system shall preserve the source census.', '',
+      ].join('\n'));
+    }
+    const preview = previewSchema02Migration(root);
+    const criteria = ['criterion:F-aaaaaaaa/AC-bbbbbbbb'];
+    const expectedDigest = createHash('sha256').update(JSON.stringify({
+      criteria,
+      domain: 'cladding.migration-l2-candidate-census/1',
+    })).digest('hex');
+    expect(preview.legacyL2Baseline).toEqual({candidateCount: 1, candidateCensusSha256: expectedDigest});
+    expect(preview.requiredResolution).toEqual(expect.arrayContaining([
+      expect.objectContaining({code: 'PROJECT_LEGACY_L2_BASELINE', subject: 'project'}),
+    ]));
   });
 
   test('fails closed when a legacy shard filename cannot prove its body identity', () => {

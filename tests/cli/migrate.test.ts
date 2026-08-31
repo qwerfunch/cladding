@@ -53,9 +53,11 @@ function migrationOperation(root: string) {
     kind: 'project.upgrade_schema' as const,
     resolutions: {
       previewDigest: migrationPreviewDigest(preview),
-      confirmed: preview.requiredResolution.map((item) => item.code === 'ARCHITECTURE_LAYER_RESOLUTION'
-        ? {code: item.code, subject: item.subject, value: {layers: [['core']]}}
-        : {code: item.code, subject: item.subject}),
+      confirmed: preview.requiredResolution.map((item) => item.code === 'PROJECT_LEGACY_L2_BASELINE'
+        ? {code: item.code, subject: item.subject, value: 'reject'}
+        : item.code === 'ARCHITECTURE_LAYER_RESOLUTION'
+          ? {code: item.code, subject: item.subject, value: {layers: [['core']]}}
+          : defaultMigrationConfirmation(item)),
     },
   };
 }
@@ -88,13 +90,20 @@ function expectNoTransactionResidue(root: string): void {
   expect(existsSync(join(root, '.cladding', 'spec-transaction.lock'))).toBe(false);
 }
 
-function strictReviewOperation(root: string, disposition?: 'retain' | 'drop') {
+function defaultMigrationConfirmation(item: {readonly code: string; readonly subject: string}): {readonly code: string; readonly subject: string; readonly value?: unknown} {
+  return item.code === 'PROJECT_LEGACY_L2_BASELINE'
+    ? {code: item.code, subject: item.subject, value: 'reject'}
+    : {code: item.code, subject: item.subject};
+}
+
+function strictReviewOperation(root: string, disposition?: 'retain' | 'drop', baselineDecision: 'accept' | 'reject' = 'reject') {
   const preview = previewSchema02Migration(root);
   return {
     kind: 'project.upgrade_schema' as const,
     resolutions: {
       previewDigest: migrationPreviewDigest(preview),
       confirmed: preview.requiredResolution.map((item) => {
+        if (item.code === 'PROJECT_LEGACY_L2_BASELINE') return {code: item.code, subject: item.subject, value: baselineDecision};
         if (item.code === 'ARCHITECTURE_LAYER_RESOLUTION') return {code: item.code, subject: item.subject, value: {layers: [['core']]}};
         if (item.code === 'CRITERION_TEXT_UNKNOWN' || item.code === 'CRITERION_STATEMENT_CONFLICT') return {
           code: item.code,
@@ -106,7 +115,7 @@ function strictReviewOperation(root: string, disposition?: 'retain' | 'drop') {
             ...(disposition === 'retain' ? {retainedTestRefs: ['tests/reviewed.test.ts#historic reviewed case']} : {}),
           },
         };
-        return {code: item.code, subject: item.subject};
+        return defaultMigrationConfirmation(item);
       }),
     },
   };
@@ -118,13 +127,14 @@ function oversizedMigrationResolutions(root: string) {
   return {
     previewDigest: migrationPreviewDigest(preview),
     confirmed: preview.requiredResolution.map((item) => {
+      if (item.code === 'PROJECT_LEGACY_L2_BASELINE') return {code: item.code, subject: item.subject, value: 'reject'};
       if (item.code === 'PROJECT_PURPOSE_CONFIRMATION') {
         return {code: item.code, subject: item.subject, value: `Reviewed local purpose: ${'p'.repeat(17 * 1024)}`};
       }
       if (item.code === 'ARCHITECTURE_LAYER_RESOLUTION') {
         return {code: item.code, subject: item.subject, value: {layers: [['core']]}};
       }
-      return {code: item.code, subject: item.subject};
+      return defaultMigrationConfirmation(item);
     }),
   };
 }
@@ -138,6 +148,8 @@ describe('clad migrate', () => {
     expect(result.ok).toBe(true);
     expect(workspaceManifest(root)).toEqual(before);
     expect(stdout).toHaveBeenCalledWith(expect.stringContaining('No files were changed.'));
+    expect(stdout).toHaveBeenCalledWith(expect.stringContaining('completed legacy criteria for a separate accept-or-reject baseline decision'));
+    expect(stdout).toHaveBeenCalledWith(expect.stringContaining('census digest:'));
     expect(stdout).toHaveBeenCalledWith(expect.stringContaining('--apply --resolutions <file>'));
     expect(stdout).not.toHaveBeenCalledWith(expect.stringContaining('criterion:F-aaaaaaaa/AC-bbbbbbbb'));
   });
@@ -277,6 +289,17 @@ describe('clad migrate', () => {
 
     expect(editSpec({cwd: root, operations: [operation], inputRevisions: readSpecEditRevisions(root, [operation])}).changed).toBe(true);
     expectNoTransactionResidue(root);
+  });
+
+  test('authorizes a strict reviewed done criterion from its selected final intent', () => {
+    const root = strictReviewWorkspace('done');
+    const operation = strictReviewOperation(root, 'retain', 'accept');
+    expect(editSpec({cwd: root, operations: [operation], inputRevisions: readSpecEditRevisions(root, [operation])}).changed).toBe(true);
+    const baseline = compileSpecWorkspace(root).migrationBaseline?.legacyL2Baseline;
+    expect(baseline).toMatchObject({decision: 'accept', candidateCount: 1});
+    expect(baseline?.authorizations).toEqual([expect.objectContaining({
+      criterion: 'criterion:F-aaaaaaaa/AC-bbbbbbbb', sourceStatus: 'done', obligations: ['stage_2.1', 'stage_2.2'],
+    })]);
   });
 
   test('stales a reviewed migration preview when a selected historic test file changes without writing', () => {

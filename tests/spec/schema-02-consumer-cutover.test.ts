@@ -153,6 +153,9 @@ function migratedWorkspace(): string {
     resolutions: {
       previewDigest: migrationPreviewDigest(preview),
       confirmed: preview.requiredResolution.map((item) => {
+        if (item.code === 'PROJECT_LEGACY_L2_BASELINE') {
+          return {code: item.code, subject: item.subject, value: 'reject'};
+        }
         if (item.code === 'SCENARIO_MEANING_REQUIRED') {
           return {
             code: item.code,
