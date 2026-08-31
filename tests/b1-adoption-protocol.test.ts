@@ -23,6 +23,23 @@ const PROTOCOL = 'docs/b1-adoption-protocol.md';
 const VERDICTS = ['confirmed', 'not_confirmed', 'insufficient_data'];
 
 describe('AC-538802ac · protocol doc fixes the B1 decision rule before the data is read', () => {
+  test('[covers:F-e803c149/AC-538802ac] the protocol records every threshold, observation, measurement, retention, and 0.9 decision-fork rule', () => {
+    const doc = read(PROTOCOL);
+    for (const [name, value] of Object.entries(B1_ADOPTION_THRESHOLDS)) {
+      expect(doc).toContain(`\`${name}\` | \`${value}\``);
+    }
+    for (const required of [
+      '10 cladding-self completed cycles', '5 external-project completed cycles',
+      'maintainer', 'weekly', 'release prep', 'clad measure --sessions', 'clad measure --sessions --json',
+      'Append-only', '2026-07-05', 'not_confirmed', 'Per-machine locality',
+      '5 MB single-generation rotation', 'Silent vs unwired', 'proceed with the B1 deprecation',
+      'wiring / push improvement',
+    ]) {
+      expect(doc, required).toContain(required);
+    }
+    expect(doc).toMatch(/not\W+adding\s+more\s+capability/);
+  });
+
   test('the doc exists and heads with the protocol title', () => {
     expect(read(PROTOCOL), 'protocol title heading').toContain('# B1 adoption observation protocol');
   });

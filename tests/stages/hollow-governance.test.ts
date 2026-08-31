@@ -115,6 +115,19 @@ describe('HOLLOW_GOVERNANCE detector', () => {
     expect(arch!.message).toContain('layers: []');
   });
 
+  test('[covers:F-f44d1b/AC-003] lifecycle status never removes a feature from the grown-design threshold', () => {
+    const statuses = ['planned', 'in_progress', 'done', 'blocked', 'archived', 'done', 'archived', 'blocked'];
+    const features = statuses
+      .map((status, index) => `  - {id: F-${String(index + 1).padStart(3, '0')}, title: t, status: ${status}}`)
+      .join('\n');
+    writeFileSync(join(dir, 'spec.yaml'), SPEC_HEADER + `features:\n${features}\n`);
+    writeCapabilities(dir, 0);
+    writeArchitecture(dir, 0);
+    const findings = hollowGovernance.run({cwd: dir});
+    expect(findings).toHaveLength(2);
+    expect(findings.every((finding) => finding.severity === 'warn')).toBe(true);
+  });
+
   test('only capabilities empty: 8 features + capabilities: [] + populated architecture → exactly 1 warn (capabilities)', () => {
     writeSpec(dir, 8);
     writeCapabilities(dir, 0); // capabilities: []

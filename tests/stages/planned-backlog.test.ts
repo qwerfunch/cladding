@@ -188,4 +188,18 @@ describe('PLANNED_BACKLOG strict promotion (integration)', () => {
     expect(report.pass).toBe(true);
     expect(report.findings.some((f) => f.detector === 'PLANNED_BACKLOG')).toBe(true);
   });
+
+  test('[covers:F-3788c2/AC-002] backlog is advisory by default and blocking only under strict mode', () => {
+    const direct = plannedBacklog.run({cwd: dir});
+    expect(direct).toHaveLength(1);
+    expect(direct[0]?.severity).toBe('warn');
+
+    const defaultReport = runDrift({cwd: dir});
+    expect(defaultReport.pass).toBe(true);
+    expect(defaultReport.findings.some((f) => f.detector === 'PLANNED_BACKLOG')).toBe(true);
+
+    const strictReport = runDrift({cwd: dir, strict: true});
+    expect(strictReport.pass).toBe(false);
+    expect(strictReport.exitCode).toBe(1);
+  });
 });

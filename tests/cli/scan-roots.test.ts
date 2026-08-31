@@ -53,7 +53,7 @@ describe('inferSourceRoots', () => {
 
   // --- Manifest hints ----------------------------------------------
 
-  test('package.json workspaces (array) discovers packages/<name>/src/', () => {
+  test('[covers:F-c48eb2/AC-001] package.json workspaces (array) discovers packages/<name>/src/', () => {
     seed(dir, {
       'package.json': JSON.stringify({workspaces: ['packages/*']}),
       'packages/a/src/x.ts': '',
@@ -77,7 +77,7 @@ describe('inferSourceRoots', () => {
     expect(roots[0].workspaceName).toBe('web');
   });
 
-  test('pyproject.toml packages list maps to source roots', () => {
+  test('[covers:F-c48eb2/AC-001] pyproject.toml packages list maps to source roots', () => {
     seed(dir, {
       'pyproject.toml': '[tool.poetry]\nname = "x"\npackages = [{include = "mylib"}]\n',
       'mylib/__init__.py': '',
@@ -86,7 +86,7 @@ describe('inferSourceRoots', () => {
     expect(roots.some((r) => r.relPath === 'mylib')).toBe(true);
   });
 
-  test('Cargo.toml [workspace] members map crate src dirs', () => {
+  test('[covers:F-c48eb2/AC-001] Cargo.toml [workspace] members map crate src dirs', () => {
     seed(dir, {
       'Cargo.toml': '[workspace]\nmembers = ["crates/parser", "crates/runtime"]\n',
       'crates/parser/src/lib.rs': '',
@@ -108,7 +108,7 @@ describe('inferSourceRoots', () => {
     expect(roots[0].relPath).toBe('src');
   });
 
-  test('go.mod surfaces cmd/ internal/ pkg/ when present', () => {
+  test('[covers:F-c48eb2/AC-001] go.mod surfaces cmd/ internal/ pkg/ when present', () => {
     seed(dir, {
       'go.mod': 'module example.com/x\n',
       'cmd/main.go': '',

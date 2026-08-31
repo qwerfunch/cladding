@@ -55,7 +55,7 @@ function run(focusModules: string[]) {
 }
 
 describe('COVERAGE_DROP — module scope', () => {
-  test('merges Kover (a) + JaCoCo (b) counters; ≥ floor → clean', () => {
+  test('[covers:F-c6c3daaf/AC-0c7ee62f] merges Kover (a) + JaCoCo (b) counters; ≥ floor → clean', () => {
     makeKotlinRepo();
     makeModule('a');
     makeModule('b');

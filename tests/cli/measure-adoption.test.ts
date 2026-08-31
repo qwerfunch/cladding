@@ -288,7 +288,7 @@ describe('clad measure --sessions — SILENT/UNWIRED note co-renders with the ad
 // --- AC-32fe3220 — no signal, no change -----------------------------------
 
 describe('clad measure --sessions — no adoption signal renders zero output change (F-1e7a10c3 AC-32fe3220)', () => {
-  test('[covers:F-1e7a10c3/AC-b281f9ec] [covers:F-1e7a10c3/AC-32fe3220] empty ledger → exactly the pre-feature honest message, no adoption section', () => {
+  test('[covers:F-1e7a10c3/AC-b281f9ec][covers:F-1e7a10c3/AC-32fe3220] empty ledger → exactly the pre-feature honest message, no adoption section', () => {
     // nothing recorded at all (no .cladding ledger in the fresh temp cwd)
     runMeasureCommand({sessions: true});
     const out = stdout();

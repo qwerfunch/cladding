@@ -317,6 +317,28 @@ describe('AC-a2278f11 · every touched spec entry, regardless of status', () => 
     expect(collectSpecEntryRevisions(dir, 'v0').map((r) => r.id)).toEqual(['F-bbb002']);
   });
 
+  test('[covers:F-5dfbac9c/AC-a2278f11] every touched feature shard is collected regardless of lifecycle status', () => {
+    const entries = [
+      ['planned', 'F-ddd004'],
+      ['in_progress', 'F-eee005'],
+      ['done', 'F-fff006'],
+      ['blocked', 'F-111007'],
+      ['archived', 'F-222008'],
+    ] as const;
+    for (const [status, id] of entries) {
+      entryWith(`${status}-${id.slice(2)}.yaml`, id, status, [
+        {id: 'AC-000001', text: `The system shall keep ${status}.`},
+      ]);
+    }
+    commitAll(dir, 'touch every lifecycle state');
+
+    const revisions = collectSpecEntryRevisions(dir, 'v0');
+    expect(revisions.map((revision) => revision.id)).toEqual(expect.arrayContaining(entries.map(([, id]) => id)));
+    for (const [, id] of entries) {
+      expect(revisions.find((revision) => revision.id === id)?.statusAfter).toBeDefined();
+    }
+  });
+
   test('results sort by feature id and repeat byte-identically', () => {
     entryWith('zeta-zzz009.yaml', 'F-zzz009', 'planned', [{id: 'AC-000009', text: 'Z.'}]);
     entryWith('still-planned-aaa001.yaml', 'F-aaa001', 'in_progress', [

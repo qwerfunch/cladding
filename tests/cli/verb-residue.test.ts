@@ -139,7 +139,7 @@ const firstLine = (s: string): string => s.split('\n')[0];
 //               or docs/ssot-model.md.
 // ══════════════════════════════════════════════════════════════════════════
 describe('AC-7026c2e7 — removed-verb tripwire', () => {
-  test('[covers:F-b8d74801/AC-7026c2e7] src/**/*.ts, tests/**/*.ts and docs/ssot-model.md name zero removed verbs', () => {
+  test('[covers:F-b8d74801/AC-2f20bc65][covers:F-b8d74801/AC-7026c2e7] src/**/*.ts, tests/**/*.ts and docs/ssot-model.md name zero removed verbs', () => {
     const files = [
       ...walk(join(ROOT, 'src'), ['.ts']),
       ...walk(join(ROOT, 'tests'), ['.ts']),
@@ -306,7 +306,7 @@ describe('AC-fd3a02a3 — pre-0.6.0 banner recognition is prefix-based', () => {
   const yamlPrefix = claddingPrefix(firstLine(renderGreenfieldArchitectureYaml('typescript'))); // "# Cladding · "
   const mdPrefix = claddingPrefix(firstLine(renderGreenfieldConventionsMd('typescript', 'demo'))); // "<!-- Cladding · "
 
-  test('TIER_BANNER_RE (extractTierFromDoc) classifies old & new banners identically', () => {
+  test('[covers:F-b8d74801/AC-fd3a02a3] TIER_BANNER_RE (extractTierFromDoc) classifies old & new banners identically', () => {
     const dir = tmp('tier');
     try {
       const oldYaml = `${yamlPrefix}Tier B — editable, cross-validated · Refreshed by: ${OLD_REFINE_CLAUSE}`;
@@ -403,7 +403,7 @@ describe('AC-a527f028 — docs banner table matches emitters', () => {
     return out;
   }
 
-  test('[covers:F-b8d74801/AC-a527f028] every documented banner matches its emitter (verb clause + tier), no removed verbs', async () => {
+  test('[covers:F-d12edf/AC-002][covers:F-b8d74801/AC-2f20bc65][covers:F-b8d74801/AC-a527f028] every documented banner matches its emitter (verb clause + tier), no removed verbs', async () => {
     const table = parseBannerTable();
 
     // Live banners from the real emitters, keyed by the documented path.

@@ -315,6 +315,27 @@ describe('AC-e68c868a · declared tests and whether they moved with the code', (
     }
   });
 
+  test('[covers:F-5dfbac9c/AC-e68c868a] every declared ref reports co-change, unchanged, missing, or placeholder from its concrete path', () => {
+    const model = buildReportModel(
+      mkInputs({
+        specEntries: [entryDeclaring([
+          'tests/moved.test.ts#proof',
+          'tests/still.test.ts',
+          'tests/gone.test.ts',
+          'derived:tests/suggested.test.ts',
+        ])],
+        changedPaths: ['tests/moved.test.ts'],
+        missingTestRefs: ['tests/gone.test.ts'],
+      }),
+    );
+    expect(model.testRefRows.map((item) => [item.ref, item.state])).toEqual([
+      ['derived:tests/suggested.test.ts', 'placeholder'],
+      ['tests/gone.test.ts', 'missing'],
+      ['tests/moved.test.ts#proof', 'co-changed'],
+      ['tests/still.test.ts', 'unchanged'],
+    ]);
+  });
+
   test('the row keeps the reference exactly as authored, anchor included', () => {
     const model = buildReportModel(
       mkInputs({specEntries: [entryDeclaring(['tests/thing.test.ts#some case'])], changedPaths: []}),

@@ -84,7 +84,7 @@ describe('CAPABILITIES_FEATURE_MAPPING detector', () => {
     expect(findings).toEqual([]);
   });
 
-  test('dangling feature id → error finding', () => {
+  test('[covers:F-d12edf/AC-003] a capability artifact is actively consumed and rejects a feature id absent from the feature spec', () => {
     writeSpec(dir, ['F-001']);
     writeCapabilities(
       dir,

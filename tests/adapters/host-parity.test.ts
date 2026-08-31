@@ -140,7 +140,7 @@ describe('host adapter MCP routing (F-075)', () => {
     expect(result.summary).toBe('mcp reply');
   });
 
-  test('[covers:F-075/AC-217] [covers:F-075/AC-218] one process registration routes both host adapters and their health checks through sampling', async () => {
+  test('[covers:F-075/AC-217][covers:F-075/AC-218] one process registration routes both host adapters and their health checks through sampling', async () => {
     const {server, createMessage} = stubSamplingServer('shared reply');
     setHostMcpServer(server);
     expect(getHostMcpServer()).toBe(server);

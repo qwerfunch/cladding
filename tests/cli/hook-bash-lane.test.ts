@@ -178,6 +178,28 @@ describe('AC-d6c8d5ed · Bash-lane git-delta impact card', () => {
 // ─── AC-ab85ee3e · debounce + read-only allowlist before any git spawn ───
 
 describe('AC-ab85ee3e · fast-path ordering, allowlist, one status/window', () => {
+  test('[covers:F-e7d59c88/AC-ab85ee3e] every documented read-only command avoids git, while repeated mutations make at most one delta check per debounce window', () => {
+    put('spec.yaml', makeSpec(['src/app.ts', 'src/util.ts']));
+    const readOnly = [
+      'git status', 'git log -1', 'git diff', 'ls -la', 'cat README.md',
+      'grep needle README.md', 'rg needle', 'find src', 'node --version', 'npm test',
+    ];
+    for (const command of readOnly) expect(bash(command), command).toBe('');
+    expect(sidecar().not_write_tool).toBe(readOnly.length);
+    expect(existsSync(bashStamp())).toBe(false);
+
+    put('src/app.ts', V1);
+    put('src/util.ts', V1);
+    gitInit();
+    gitCommitAll();
+    put('src/app.ts', V2);
+    expect(bash("sed -i '' 's/1/2/' src/app.ts")).toContain('cladding impact: src/app.ts');
+    const firstStamp = readFileSync(bashStamp(), 'utf8');
+    put('src/util.ts', V2);
+    expect(bash("sed -i '' 's/1/2/' src/util.ts")).toBe('');
+    expect(readFileSync(bashStamp(), 'utf8')).toBe(firstStamp);
+  });
+
   test('read-only allowlisted commands → silence + not_write_tool sidecar increment + NO stamp (no spawn)', () => {
     put('spec.yaml', makeSpec(['src/app.ts']));
     const cmds = ['git status', 'ls -la', 'cat x', 'npx vitest run', 'npm test'];
@@ -234,6 +256,18 @@ describe('AC-ab85ee3e · fast-path ordering, allowlist, one status/window', () =
 // ─── AC-14c2e2ea · degrade to silence without snapshot or error ───
 
 describe('AC-14c2e2ea · silence when git state is unavailable or the delta is empty', () => {
+  test('[covers:F-e7d59c88/AC-14c2e2ea] unavailable git and a clean watched tree both stay silent without writing a snapshot', () => {
+    put('spec.yaml', makeSpec(['src/app.ts']));
+    put('src/app.ts', V1);
+    expect(bash("sed -i '' 's/1/2/' src/app.ts")).toBe('');
+    expect(existsSync(treeState())).toBe(false);
+
+    gitInit();
+    gitCommitAll();
+    expect(bash("sed -i '' 's/1/2/' src/app.ts")).toBe('');
+    expect(existsSync(treeState())).toBe(false);
+  });
+
   test('a non-git cwd (spec present) → silence, no throw, NO tree snapshot written', () => {
     put('spec.yaml', makeSpec(['src/app.ts']));
     put('src/app.ts', V2); // no git init → git status fails

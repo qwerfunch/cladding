@@ -239,23 +239,39 @@ const multiAgentSliceOf = (f: string): string => {
 
 describe('README Multi-Agent section speaks the role contract, not choreography (F-96d1f69d)', () => {
   describe('AC-8d63da98 — no README variant describes the story as cladding dispatching/sequencing agents', () => {
-    for (const f of README_VARIANTS) {
-      test(`[covers:F-96d1f69d/AC-8d63da98] ${f}: Multi-Agent slice matches no /dispatch/i`, () => {
-        const slice = multiAgentSliceOf(f);
-        expect(slice.length, `${f}: Multi-Agent section heading must be found (non-empty slice)`).toBeGreaterThan(0);
-        expect(slice, `${f}: Multi-Agent slice must not match /dispatch/i`).not.toMatch(/dispatch/i);
-      });
-    }
+    test('[covers:F-96d1f69d/AC-8d63da98] README.md: Multi-Agent slice matches no /dispatch/i', () => {
+      expectNoDispatchInMultiAgentSlice('README.md');
+    });
+    test('[covers:F-96d1f69d/AC-8d63da98] README.ko.md: Multi-Agent slice matches no /dispatch/i', () => {
+      expectNoDispatchInMultiAgentSlice('README.ko.md');
+    });
+    test('[covers:F-96d1f69d/AC-8d63da98] README.ja.md: Multi-Agent slice matches no /dispatch/i', () => {
+      expectNoDispatchInMultiAgentSlice('README.ja.md');
+    });
+    test('[covers:F-96d1f69d/AC-8d63da98] README.zh.md: Multi-Agent slice matches no /dispatch/i', () => {
+      expectNoDispatchInMultiAgentSlice('README.zh.md');
+    });
+    test('[covers:F-96d1f69d/AC-8d63da98] README.html: Multi-Agent slice matches no /dispatch/i', () => {
+      expectNoDispatchInMultiAgentSlice('README.html');
+    });
+    test('[covers:F-96d1f69d/AC-8d63da98] README.ko.html: Multi-Agent slice matches no /dispatch/i', () => {
+      expectNoDispatchInMultiAgentSlice('README.ko.html');
+    });
   });
 
   describe('AC-0a8ea4d7 — EN/KO variants ground separation-of-duties in the evidence-based independence label', () => {
-    for (const f of README_EN_KO_VARIANTS) {
-      test(`[covers:F-96d1f69d/AC-0a8ea4d7] ${f}: Multi-Agent slice contains both "independent" and "self-certified"`, () => {
-        const slice = multiAgentSliceOf(f);
-        expect(slice, `${f}: Multi-Agent slice must contain "independent"`).toContain('independent');
-        expect(slice, `${f}: Multi-Agent slice must contain "self-certified"`).toContain('self-certified');
-      });
-    }
+    test('[covers:F-96d1f69d/AC-0a8ea4d7] README.md: Multi-Agent slice contains both "independent" and "self-certified"', () => {
+      expectSeparationLabelsInMultiAgentSlice('README.md');
+    });
+    test('[covers:F-96d1f69d/AC-0a8ea4d7] README.ko.md: Multi-Agent slice contains both "independent" and "self-certified"', () => {
+      expectSeparationLabelsInMultiAgentSlice('README.ko.md');
+    });
+    test('[covers:F-96d1f69d/AC-0a8ea4d7] README.html: Multi-Agent slice contains both "independent" and "self-certified"', () => {
+      expectSeparationLabelsInMultiAgentSlice('README.html');
+    });
+    test('[covers:F-96d1f69d/AC-0a8ea4d7] README.ko.html: Multi-Agent slice contains both "independent" and "self-certified"', () => {
+      expectSeparationLabelsInMultiAgentSlice('README.ko.html');
+    });
   });
 });
 
@@ -340,15 +356,6 @@ const MULTIAGENT_NEEDLES: Readonly<
 };
 
 const INDEPENDENCE_SVG_LOCALES: readonly string[] = ['en', 'ko', 'ja', 'zh'];
-const README_TO_LOCALE: Readonly<Record<string, string>> = {
-  'README.md': 'en',
-  'README.html': 'en',
-  'README.ko.md': 'ko',
-  'README.ko.html': 'ko',
-  'README.ja.md': 'ja',
-  'README.zh.md': 'zh',
-};
-
 // First list item of a Multi-Agent slice, md ('- ' line) or html ('<li>').
 const firstListItemIndexOf = (f: string, slice: string): number =>
   isHtmlReadme(f) ? slice.indexOf('<li>') : slice.indexOf('\n- ');
@@ -358,6 +365,39 @@ const listItemsOf = (f: string, slice: string): readonly string[] =>
   isHtmlReadme(f)
     ? [...slice.matchAll(/<li>([\s\S]*?)<\/li>/g)].map((m) => m[1]!)
     : slice.split('\n').filter((line) => line.startsWith('- '));
+
+const expectNoDispatchInMultiAgentSlice = (f: string): void => {
+  const slice = multiAgentSliceOf(f);
+  expect(slice.length, `${f}: Multi-Agent section heading must be found (non-empty slice)`).toBeGreaterThan(0);
+  expect(slice, `${f}: Multi-Agent slice must not match /dispatch/i`).not.toMatch(/dispatch/i);
+};
+
+const expectSeparationLabelsInMultiAgentSlice = (f: string): void => {
+  const slice = multiAgentSliceOf(f);
+  expect(slice, `${f}: Multi-Agent slice must contain "independent"`).toContain('independent');
+  expect(slice, `${f}: Multi-Agent slice must contain "self-certified"`).toContain('self-certified');
+};
+
+const expectNoCodeAccessInMultiAgentSlice = (f: string): void => {
+  const slice = multiAgentSliceOf(f);
+  const {noCodeAccess} = MULTIAGENT_NEEDLES[f]!;
+  expect(slice, `${f}: must explain independence as what the test writer can reach ("${noCodeAccess}")`).toContain(
+    noCodeAccess,
+  );
+};
+
+const expectNonAccusationInMultiAgentSlice = (f: string): void => {
+  const slice = multiAgentSliceOf(f);
+  const {notAnAccusation} = MULTIAGENT_NEEDLES[f]!;
+  expect(slice, `${f}: must contain the non-accusation clause ("${notAnAccusation}")`).toContain(notAnAccusation);
+};
+
+const expectLocaleDiagramInMultiAgentSlice = (f: string, locale: string): void => {
+  const slice = multiAgentSliceOf(f);
+  expect(slice, `${f}: Multi-Agent slice must embed docs/img/${locale}/independence.svg`).toContain(
+    `docs/img/${locale}/independence.svg`,
+  );
+};
 
 describe('README Multi-Agent section reads plainly and draws the label decision (F-3fd220d8)', () => {
   describe('AC-6b0a1f74 — the stake lands before any label, and the list ends on the way out', () => {
@@ -396,21 +436,30 @@ describe('README Multi-Agent section reads plainly and draws the label decision 
   });
 
   describe('AC-c1e7a3b5 — independence is explained as tool reach, and self-certified is explained as absence, not fault', () => {
-    for (const f of README_EN_KO_VARIANTS) {
-      test(`[covers:F-3fd220d8/AC-c1e7a3b5] ${f}: states the test writer has no means of opening the code`, () => {
-        const slice = multiAgentSliceOf(f);
-        const {noCodeAccess} = MULTIAGENT_NEEDLES[f]!;
-        expect(slice, `${f}: must explain independence as what the test writer can reach ("${noCodeAccess}")`).toContain(
-          noCodeAccess,
-        );
-      });
-
-      test(`[covers:F-3fd220d8/AC-c1e7a3b5] ${f}: says self-certified is not an accusation`, () => {
-        const slice = multiAgentSliceOf(f);
-        const {notAnAccusation} = MULTIAGENT_NEEDLES[f]!;
-        expect(slice, `${f}: must contain the non-accusation clause ("${notAnAccusation}")`).toContain(notAnAccusation);
-      });
-    }
+    test('[covers:F-3fd220d8/AC-c1e7a3b5] README.md: states the test writer has no means of opening the code', () => {
+      expectNoCodeAccessInMultiAgentSlice('README.md');
+    });
+    test('[covers:F-3fd220d8/AC-c1e7a3b5] README.ko.md: states the test writer has no means of opening the code', () => {
+      expectNoCodeAccessInMultiAgentSlice('README.ko.md');
+    });
+    test('[covers:F-3fd220d8/AC-c1e7a3b5] README.html: states the test writer has no means of opening the code', () => {
+      expectNoCodeAccessInMultiAgentSlice('README.html');
+    });
+    test('[covers:F-3fd220d8/AC-c1e7a3b5] README.ko.html: states the test writer has no means of opening the code', () => {
+      expectNoCodeAccessInMultiAgentSlice('README.ko.html');
+    });
+    test('[covers:F-3fd220d8/AC-c1e7a3b5] README.md: says self-certified is not an accusation', () => {
+      expectNonAccusationInMultiAgentSlice('README.md');
+    });
+    test('[covers:F-3fd220d8/AC-c1e7a3b5] README.ko.md: says self-certified is not an accusation', () => {
+      expectNonAccusationInMultiAgentSlice('README.ko.md');
+    });
+    test('[covers:F-3fd220d8/AC-c1e7a3b5] README.html: says self-certified is not an accusation', () => {
+      expectNonAccusationInMultiAgentSlice('README.html');
+    });
+    test('[covers:F-3fd220d8/AC-c1e7a3b5] README.ko.html: says self-certified is not an accusation', () => {
+      expectNonAccusationInMultiAgentSlice('README.ko.html');
+    });
   });
 
   describe('AC-4d92c806 — the locale diagram draws the label decision, never a roster', () => {
@@ -428,14 +477,24 @@ describe('README Multi-Agent section reads plainly and draws the label decision 
   });
 
   describe('AC-83f1ba27 — each variant embeds its own locale diagram', () => {
-    for (const [f, locale] of Object.entries(README_TO_LOCALE)) {
-      test(`[covers:F-3fd220d8/AC-83f1ba27] ${f}: references docs/img/${locale}/independence.svg`, () => {
-        const slice = multiAgentSliceOf(f);
-        expect(slice, `${f}: Multi-Agent slice must embed docs/img/${locale}/independence.svg`).toContain(
-          `docs/img/${locale}/independence.svg`,
-        );
-      });
-    }
+    test('[covers:F-3fd220d8/AC-83f1ba27] README.md: references docs/img/en/independence.svg', () => {
+      expectLocaleDiagramInMultiAgentSlice('README.md', 'en');
+    });
+    test('[covers:F-3fd220d8/AC-83f1ba27] README.html: references docs/img/en/independence.svg', () => {
+      expectLocaleDiagramInMultiAgentSlice('README.html', 'en');
+    });
+    test('[covers:F-3fd220d8/AC-83f1ba27] README.ko.md: references docs/img/ko/independence.svg', () => {
+      expectLocaleDiagramInMultiAgentSlice('README.ko.md', 'ko');
+    });
+    test('[covers:F-3fd220d8/AC-83f1ba27] README.ko.html: references docs/img/ko/independence.svg', () => {
+      expectLocaleDiagramInMultiAgentSlice('README.ko.html', 'ko');
+    });
+    test('[covers:F-3fd220d8/AC-83f1ba27] README.ja.md: references docs/img/ja/independence.svg', () => {
+      expectLocaleDiagramInMultiAgentSlice('README.ja.md', 'ja');
+    });
+    test('[covers:F-3fd220d8/AC-83f1ba27] README.zh.md: references docs/img/zh/independence.svg', () => {
+      expectLocaleDiagramInMultiAgentSlice('README.zh.md', 'zh');
+    });
   });
 });
 

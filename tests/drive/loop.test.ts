@@ -15,7 +15,7 @@
 // stage runners, hitl/audit, events/log all stubbed via vi.mock so the
 // loop's control flow can be exercised deterministically.
 
-import {mkdtempSync, rmSync} from 'node:fs';
+import {existsSync, mkdtempSync, readFileSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
@@ -435,7 +435,7 @@ describe('runDriveLoop', () => {
     // Librarian writes a post-mortem markdown summarising the
     // failure context. The drive loop hands featureId, retry
     // count, last failed gate, checkpoint, and rolledBackAt.
-    test('[covers:F-5d3ed2/AC-005] rollback triggers writePostMortem with failure context', async () => {
+    test('[covers:F-5d3ed2/AC-001][covers:F-5d3ed2/AC-005] every auto-rollback supplies a maintainer-readable post-mortem context', async () => {
       loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-777', status: 'planned'}]));
       runTypeMock.mockReturnValue({pass: false, exitCode: 1, stage: 'stage_1.1'});
       writePostMortemMock.mockClear();
@@ -451,6 +451,21 @@ describe('runDriveLoop', () => {
       expect(callCtx.lastFailedGate).toBe('stage_1.1');
       expect(callCtx.checkpoint.gitHead).toContain('mockhead');
       expect(typeof callCtx.rolledBackAt).toBe('string');
+
+      // The loop boundary is mocked above; invoke the real writer with the
+      // exact captured call so this test also proves the rollback context
+      // becomes an on-disk maintainer brief rather than a dead callback.
+      const {writePostMortem} = await vi.importActual<typeof import('../../src/core/postmortem.js')>(
+        '../../src/core/postmortem.js',
+      );
+      const path = writePostMortem(dir, callCtx);
+      expect(existsSync(path)).toBe(true);
+      expect(path).toContain(join('.cladding', 'post-mortems'));
+      const body = readFileSync(path, 'utf8');
+      expect(body).toContain('F-777');
+      expect(body).toContain('stage_1.1');
+      expect(body).toContain('Retry attempts: 3 (budget exhausted)');
+      expect(body).toContain('clad run');
     });
 
     test('rollback with no prior checkpoint also skips writePostMortem', async () => {

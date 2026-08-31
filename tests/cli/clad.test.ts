@@ -349,7 +349,7 @@ describe('cli/clad — handler exports', () => {
     expect(exitCalls).toEqual([0]);
   });
 
-  test('runSyncCommand --propose-archive surfaces propose-archive findings only', async () => {
+  test('[covers:F-b99577/AC-003][covers:F-b99577/AC-004] runSyncCommand --propose-archive surfaces propose-archive findings only', async () => {
     const stale = await import('../../src/stages/detectors/stale-specification.js');
     (stale.staleSpecification.run as unknown as ReturnType<typeof vi.fn>).mockReturnValueOnce([
       {
@@ -512,7 +512,7 @@ describe('cli/clad — handler exports', () => {
 
   // Lever 1 — `clad oracle --required` prints the policy worklist (which done
   // ACs need an oracle) instead of a single feature's brief.
-  test('runOracleCommand --required lists policy-required ACs and exits 1 when one is missing', () => {
+  test('[covers:F-bdcd90/AC-004] runOracleCommand --required lists policy-required ACs and exits 1 when one is missing', () => {
     loadSpecMock.mockReturnValueOnce({
       project: {name: 'p', language: 'typescript', oracle_policy: {always_ears: ['unwanted'], sample: 0}},
       features: [
@@ -630,7 +630,7 @@ describe('cli/clad — createProgram', () => {
 
   // The removed spellings must fail closed: commander treats each as an unknown
   // command and exits non-zero (no silent no-op, no deprecation-and-continue).
-  test('invoking a removed alias is a commander unknown-command error (non-zero exit)', () => {
+  test('[covers:F-d25041ac/AC-33f9324c] invoking a removed alias is a commander unknown-command error (non-zero exit)', () => {
     for (const gone of ['drive', 'panel', 'refine']) {
       const program = clad.createProgram();
       program.exitOverride();

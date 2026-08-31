@@ -69,7 +69,7 @@ describe('oracle/record — addOracleRef (the comment-preserving shard editor)',
 });
 
 describe('oracle/record — recordOracle (end to end)', () => {
-  test('writes the oracle file, records kind:oracle provenance (manifest+blind), stamps the ref', () => {
+  test('[covers:F-c4c5ae/AC-007] writes the oracle file, records kind:oracle provenance (manifest+blind), stamps the ref', () => {
     const r = recordOracle({
       featureId: 'F-x',
       acId: 'AC-001',

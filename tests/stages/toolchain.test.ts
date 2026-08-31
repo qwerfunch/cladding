@@ -69,7 +69,7 @@ describe('detectToolchain', () => {
 
   // ─── Kotlin first-class support (F-dd51b42c) ───
 
-  test('build.gradle.kts + a nested .kt source → kotlin, ./gradlew gates when wrapper present', () => {
+  test('[covers:F-dd51b42c/AC-2dc3e787] build.gradle.kts + a nested .kt source → kotlin, ./gradlew gates when wrapper present', () => {
     writeFileSync(join(dir, 'build.gradle.kts'), '');
     writeFileSync(join(dir, 'gradlew'), '#!/bin/sh\n');
     writeKotlinSource(dir);
@@ -100,7 +100,7 @@ describe('detectToolchain', () => {
     expect(detectToolchain(dir).gates.coverage?.args).toEqual(['jacocoTestReport']);
   });
 
-  test('build.gradle.kts + a .kt source but NO gradlew → bare gradle command', () => {
+  test('[covers:F-dd51b42c/AC-df69edf9] build.gradle.kts + a .kt source but NO gradlew → bare gradle command', () => {
     writeFileSync(join(dir, 'build.gradle.kts'), '');
     writeKotlinSource(dir);
     const tc = detectToolchain(dir);
@@ -108,20 +108,20 @@ describe('detectToolchain', () => {
     expect(tc.gates.type?.cmd).toBe('gradle');
   });
 
-  test('pom.xml + a .kt source → kotlin (Kotlin probed before Java)', () => {
+  test('[covers:F-dd51b42c/AC-2dc3e787] pom.xml + a .kt source → kotlin (Kotlin probed before Java)', () => {
     writeFileSync(join(dir, 'pom.xml'), '<project/>');
     writeKotlinSource(dir);
     expect(detectToolchain(dir).language).toBe('kotlin');
   });
 
-  test('pom.xml with NO .kt source → java fallback (no regression)', () => {
+  test('[covers:F-dd51b42c/AC-ae2d4113] pom.xml with NO .kt source → java fallback (no regression)', () => {
     writeFileSync(join(dir, 'pom.xml'), '<project/>');
     const tc = detectToolchain(dir);
     expect(tc.language).toBe('java');
     expect(tc.gates.type?.cmd).toBe('mvn');
   });
 
-  test('build.gradle with NO .kt source → java fallback (no regression)', () => {
+  test('[covers:F-dd51b42c/AC-ae2d4113] build.gradle with NO .kt source → java fallback (no regression)', () => {
     writeFileSync(join(dir, 'build.gradle'), '');
     const tc = detectToolchain(dir);
     expect(tc.language).toBe('java');
@@ -523,7 +523,7 @@ describe('detectToolchain', () => {
 
   // ─── Swift (SPM) + Flutter/Dart toolchain (F-e4159959) ───
 
-  test('[covers:F-e4159959/AC-aa3d5503] Package.swift → swift, SPM build/test gates + swiftlint, no arch gate', () => {
+  test('[covers:F-e4159959/AC-dca37b0a][covers:F-e4159959/AC-aa3d5503] Package.swift → swift, SPM build/test gates + swiftlint, no arch gate', () => {
     writeFileSync(join(dir, 'Package.swift'), '// swift-tools-version:5.9\n');
     const tc = detectToolchain(dir);
     expect(tc.language).toBe('swift');
@@ -544,7 +544,7 @@ describe('detectToolchain', () => {
     expect(tc.gates.coverage).toEqual({cmd: 'flutter', args: ['test', '--coverage']});
   });
 
-  test('[covers:F-e4159959/AC-4cb02211] pubspec.yaml without flutter → dart with plain dart gates', () => {
+  test('[covers:F-e4159959/AC-dca37b0a][covers:F-e4159959/AC-4cb02211] pubspec.yaml without flutter → dart with plain dart gates', () => {
     writeFileSync(join(dir, 'pubspec.yaml'), 'name: cli\ndependencies:\n  args: ^2.0.0\n');
     const tc = detectToolchain(dir);
     expect(tc.language).toBe('dart');
@@ -552,6 +552,7 @@ describe('detectToolchain', () => {
     expect(tc.gates.test).toEqual({cmd: 'dart', args: ['test']});
     expect(tc.gates.coverage).toEqual({cmd: 'dart', args: ['test', '--coverage=coverage']});
     expect(tc.gates.lint).toEqual({cmd: 'dart', args: ['format', '--output=none', '--set-exit-if-changed', '.']});
+    expect(tc.gates.secret).toEqual({cmd: 'gitleaks', args: ['detect', '--no-banner']});
     expect(tc.gates.arch).toBeUndefined();
   });
 
@@ -572,12 +573,12 @@ describe('gradleCmd', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('returns ./gradlew when a gradlew wrapper exists at the root', () => {
+  test('[covers:F-dd51b42c/AC-df69edf9] returns ./gradlew when a gradlew wrapper exists at the root', () => {
     writeFileSync(join(dir, 'gradlew'), '#!/bin/sh\n');
     expect(gradleCmd(dir)).toBe('./gradlew');
   });
 
-  test('returns bare gradle when no wrapper is present', () => {
+  test('[covers:F-dd51b42c/AC-df69edf9] returns bare gradle when no wrapper is present', () => {
     expect(gradleCmd(dir)).toBe('gradle');
   });
 });

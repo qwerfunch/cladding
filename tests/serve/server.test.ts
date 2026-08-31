@@ -945,7 +945,7 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
-  test('clad_create_scenario creates a new sharded scenario file (F-087, v0.3.12)', async () => {
+  test('[covers:F-d7312b/AC-002] clad_create_scenario creates a new sharded scenario file (F-087, v0.3.12)', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const result = await client.callTool({

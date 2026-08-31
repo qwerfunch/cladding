@@ -455,6 +455,27 @@ describe('newest-artifact selection + --matrix-only (AC-57ab708c)', () => {
       stdoutSpy.mockRestore();
     }
   });
+
+  test('[covers:F-5283985e/AC-57ab708c] matrix-only renders the newest recorded artifact with deterministic host/surface evidence and fixture-backed sentinels', () => {
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
+    const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    try {
+      runDoctorHosts({cwd: dir, matrixOnly: true});
+      const matrix = readFileSync(join(dir, 'docs', 'dogfood', 'matrix.md'), 'utf8');
+      expect(matrix).toContain('Cladding version: `0.8.0-new`');
+      expect(matrix).toContain('Generated: 2026-07-01T00:00:00.000Z');
+      expect(matrix).toContain('| Host | list-features | get-feature | run-check | wiring | Grade |');
+      expect(matrix.indexOf('| claude ')).toBeLessThan(matrix.indexOf('| gemini '));
+      expect(matrix.indexOf('| gemini ')).toBeLessThan(matrix.indexOf('| cursor '));
+      // The sentinel is a pure committed-transcript parse: matrix-only does
+      // not invoke a host or an LLM to manufacture this evidence.
+      expect(parseHostOutput('list-features', fixture('gemini-list-features.txt')).result).toBe('pass');
+      expect(exitSpy).toHaveBeenCalledWith(0);
+    } finally {
+      exitSpy.mockRestore();
+      stdoutSpy.mockRestore();
+    }
+  });
 });
 
 // ─── AC-6cbe51fc · Cursor headless prompt + wiring evidence ─────────────────────
@@ -525,6 +546,28 @@ describe('Cursor is headlessly verified and carries separate wiring evidence (AC
     const wiring = artifact.hosts.cursor.surfaces.find((s) => s.name === 'wiring');
     expect(wiring?.result).toBe('pass');
     expect(artifact.hosts.cursor.surfaces.filter((s) => s.name !== 'wiring').every((s) => s.result === 'pass')).toBe(true);
+  });
+
+  test('[covers:F-5283985e/AC-6cbe51fc] Cursor is prompt-probed with every supported host and records its configured tools/list wiring result', () => {
+    wireCursor();
+    const artifact = runHostSmoke(dir, {
+      consent: true,
+      hasBinary: () => true,
+      runPrompt: passingRunner,
+      home,
+      probeServe: () => ({ok: true, toolCount: 4, evidence: 'tools/list → 4 tools'}),
+    });
+    for (const host of ['claude', 'gemini', 'antigravity', 'codex', 'cursor'] as const) {
+      const surfaces = artifact.hosts[host].surfaces;
+      expect(surfaces.filter((surface) => surface.name !== 'wiring').map((surface) => surface.result)).toEqual([
+        'pass',
+        'pass',
+        'pass',
+      ]);
+    }
+    const cursorWiring = artifact.hosts.cursor.surfaces.find((surface) => surface.name === 'wiring');
+    expect(cursorWiring).toMatchObject({result: 'pass', evidence: expect.stringContaining('tools/list')});
+    expect(artifact.hosts.cursor.grade).toBe('verified');
   });
 
   test('headless prompts pass but configured serve does not answer → fail', () => {

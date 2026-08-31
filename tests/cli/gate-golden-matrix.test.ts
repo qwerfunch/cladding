@@ -271,6 +271,17 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
     expect(doc.stages.find((s) => s.stage === 'stage_1.3')?.status).toBe('fail');
   });
 
+  test('[covers:F-e0f6c7/AC-e1effa] pending_env and advisory dispositions block with exit 1 instead of entering the exit-2 skip lane', () => {
+    for (const disposition of ['pending_env', 'advisory'] as const) {
+      setAll(PASS);
+      stubs['stage_1.5'].mockImplementation(() => ({pass: false, exitCode: 2, disposition}) as StageResult);
+      const doc = runMatrixCase('pre-push', false);
+      expect(doc.worst, disposition).toBe(1);
+      expect(doc.anyFailed, disposition).toBe(true);
+      expect(doc.stages.find((stage) => stage.stage === 'stage_1.5')?.status, disposition).toBe(disposition);
+    }
+  });
+
   test('unknown tier → worst 2, anyFailed true, no stages run', () => {
     const doc = runMatrixCase('nightly', false);
     expect(doc.worst).toBe(2);
@@ -364,5 +375,17 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
     writeAttestationMock.mockClear();
     runMatrixCase('pre-push', false);
     expect(writeAttestationMock).not.toHaveBeenCalled();
+  });
+
+  test('[covers:F-e0f6c7/AC-f7dd12] a blocking strict pre-push or all gate never writes an attestation stamp', () => {
+    for (const tier of ['pre-push', 'all']) {
+      setAll(PASS);
+      writeAttestationMock.mockClear();
+      stubs['stage_1.3'].mockImplementation(() => FAIL);
+      const doc = runMatrixCase(tier, true);
+      expect(doc.anyFailed, tier).toBe(true);
+      expect(doc.worst, tier).toBe(1);
+      expect(writeAttestationMock, tier).not.toHaveBeenCalled();
+    }
   });
 });

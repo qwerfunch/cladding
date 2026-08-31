@@ -124,6 +124,19 @@ describe('DETECTOR_PLAIN catalog completeness (AC-746969b3)', () => {
     expect(actions.some((a) => a.includes('clad '))).toBe(true);
   });
 
+  test('[covers:F-dd8dc994/AC-746969b3] every live detector has a plain-English lead and any action avoids MCP tool names', () => {
+    const registryNeedles = TOOL_NAMES.flatMap((tool) => [tool, tool.replace(/^clad_/, '')]);
+    for (const name of names) {
+      const entry = DETECTOR_PLAIN[name];
+      expect(entry?.lead.trim().length, `${name}.lead`).toBeGreaterThan(0);
+      if (!entry?.action) continue;
+      expect(entry.action, `${name}.action`).not.toMatch(/\bclad_[a-z_]+/);
+      for (const needle of registryNeedles) {
+        expect(entry.action, `${name}.action`).not.toContain(needle);
+      }
+    }
+  });
+
   // F-ebbb20af AC-0cece94c — the leak that slipped past the action-only scan:
   // INVENTORY_DRIFT.lead said "shard files". Scan LEADS too, for the internal
   // word "shard" and for any MCP tool name.

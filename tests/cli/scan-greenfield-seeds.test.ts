@@ -15,7 +15,7 @@ import {
 } from '../../src/cli/scan/greenfield-seeds.js';
 
 describe('renderGreenfieldConventionsMd', () => {
-  test('TypeScript default — 2-space + single quote + camelCase + SEED header + style guide URL', () => {
+  test('[covers:F-bd07d7/AC-001] TypeScript default — 2-space + single quote + camelCase + SEED header + style guide URL', () => {
     const out = renderGreenfieldConventionsMd('typescript', 'demo');
     expect(out).toMatch(/^<!-- Cladding · Tier C · derived from observed code \(greenfield seed for TypeScript\)/);
     expect(out).toContain('# demo — project conventions');
@@ -70,7 +70,7 @@ describe('renderGreenfieldConventionsMd', () => {
     expect(out).toContain('https://google.github.io/styleguide/javaguide.html');
   });
 
-  test('Kotlin default — 4-space + double quote + absent semicolon + kotlinlang style URL (F-dd51b42c)', () => {
+  test('[covers:F-dd51b42c/AC-562a6cc3] Kotlin default — 4-space + double quote + absent semicolon + kotlinlang style URL (F-dd51b42c)', () => {
     const out = renderGreenfieldConventionsMd('kotlin', 'demo');
     expect(out).toContain('greenfield seed for Kotlin');
     expect(out).toContain('greenfield seed (language: Kotlin)');
@@ -88,9 +88,10 @@ describe('renderGreenfieldConventionsMd', () => {
     expect(out).toContain('https://google.github.io/styleguide/tsguide.html');
   });
 
-  test('14-signal table is complete for every supported language', () => {
-    for (const lang of ['typescript', 'javascript', 'python', 'go', 'rust', 'ruby', 'java']) {
+  test('14-signal table is complete with an inline style guide for every supported language', () => {
+    for (const lang of ['typescript', 'javascript', 'python', 'go', 'rust', 'ruby', 'java', 'kotlin']) {
       const out = renderGreenfieldConventionsMd(lang, 'demo');
+      expect(out).toMatch(/Recommended baseline \(per .+ style guide — https:\/\//);
       // All 12 visible rows (the 13th — file header — renders as "(none)"
       // when null, so it always appears even for greenfield seeds).
       for (const key of [
@@ -119,7 +120,7 @@ describe('renderGreenfieldConventionsMd', () => {
 });
 
 describe('renderGreenfieldArchitectureYaml', () => {
-  test('TypeScript default — empty layers + TS layer baseline in comment (no schema-rejected version key, v0.4.0)', () => {
+  test('[covers:F-bd07d7/AC-001][covers:F-bd07d7/AC-003] TypeScript default — empty layers + TS layer baseline in comment (no schema-rejected version key, v0.4.0)', () => {
     const out = renderGreenfieldArchitectureYaml('typescript');
     expect(out).toMatch(/^# Cladding · Tier B · SSoT/);
     expect(out).not.toContain('version:');
@@ -149,7 +150,7 @@ describe('renderGreenfieldArchitectureYaml', () => {
     expect(out).toContain('#  internal/');
   });
 
-  test('Kotlin default — src/main/kotlin/ + src/test/kotlin/ baseline (F-dd51b42c)', () => {
+  test('[covers:F-dd51b42c/AC-562a6cc3] Kotlin default — src/main/kotlin/ + src/test/kotlin/ baseline (F-dd51b42c)', () => {
     const out = renderGreenfieldArchitectureYaml('kotlin');
     expect(out).toContain('Typical Kotlin baseline:');
     expect(out).toContain('#  src/main/kotlin/<package>/');
@@ -171,13 +172,21 @@ describe('renderGreenfieldArchitectureYaml', () => {
 });
 
 describe('renderGreenfieldCapabilitiesYaml', () => {
-  test('projectName is interpolated and the schema header is intact', () => {
+  test('[covers:F-bd07d7/AC-001] projectName is interpolated and the schema header is intact', () => {
     const out = renderGreenfieldCapabilitiesYaml('demo');
     expect(out).toContain("list demo's user-facing capabilities");
     expect(out).toContain('schema: "0.1"');
     expect(out).toContain('source: README.md');
     expect(out).toContain('capabilities: []');
     expect(out.endsWith('\n')).toBe(true);
+  });
+
+  test('[covers:F-bd07d7/AC-004] keeps the language-neutral capabilities guidance while interpolating each project name', () => {
+    const alpha = renderGreenfieldCapabilitiesYaml('alpha');
+    const beta = renderGreenfieldCapabilitiesYaml('beta');
+    expect(alpha).toContain("list alpha's user-facing capabilities");
+    expect(beta).toContain("list beta's user-facing capabilities");
+    expect(alpha.replaceAll('alpha', '<project>')).toBe(beta.replaceAll('beta', '<project>'));
   });
 
   test('Capability entry shape is documented in the comment', () => {

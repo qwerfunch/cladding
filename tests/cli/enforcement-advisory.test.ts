@@ -9,7 +9,7 @@ import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 
-import {afterEach, beforeEach, describe, expect, test} from 'vitest';
+import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
 import {coldStartAdvisory, enforcementAdvisory, featureCycleAdvisory} from '../../src/cli/enforcement-advisory.js';
 
@@ -63,6 +63,27 @@ describe('F-f4e184f7 — enforcement advisory', () => {
   });
 
   describe('AC-2fd01eaa — any one suppressor silences it', () => {
+    test('[covers:F-f4e184f7/AC-2fd01eaa] a Cladding hook, CI workflow, or no unfinished feature each suppresses the advisory', () => {
+      const cases: Array<(root: string) => void> = [
+        (root) => {
+          mkdirSync(join(root, '.git', 'hooks'), {recursive: true});
+          writeFileSync(join(root, '.git', 'hooks', 'pre-push'), '# cladding pre-push hook\n');
+        },
+        (root) => {
+          mkdirSync(join(root, '.github', 'workflows'), {recursive: true});
+          writeFileSync(join(root, '.github', 'workflows', 'ci.yml'), 'name: ci\n');
+        },
+        (root) => writeFileSync(join(root, 'spec.yaml'), spec('done'), 'utf8'),
+      ];
+      for (const setUp of cases) {
+        rmSync(cwd, {recursive: true, force: true});
+        mkdirSync(cwd, {recursive: true});
+        writeSpec('in_progress');
+        setUp(cwd);
+        expect(enforcementAdvisory(cwd)).toBeUndefined();
+      }
+    });
+
     test('an installed pre-push hook suppresses it', () => {
       writeSpec('in_progress');
       installHook('pre-push');
@@ -129,17 +150,22 @@ describe('F-be5306eb — cold-start / graduated feature-cycle advisory', () => {
     expect(coldStartAdvisory(cwd)).toBeUndefined();
   });
 
-  test('AC-7cf9593d — graduated: cold-start wins when the cycle is un-started', () => {
+  test('[covers:F-be5306eb/AC-7cf9593d] feature-cycle health chooses cold-start first or enforcement next without changing process exit', () => {
+    const exit = vi.spyOn(process, 'exit').mockImplementation((() => undefined as never) as never);
     emptySpec();
     writeSource();
-    expect(featureCycleAdvisory(cwd)).toBe(coldStartAdvisory(cwd));
-    expect(featureCycleAdvisory(cwd)).toContain("hasn't started");
-  });
-
-  test('AC-7cf9593d — graduated: falls through to enforcement when features exist + no hook/CI', () => {
-    writeSpec('in_progress'); // undone feature, no hook, no CI
-    const out = featureCycleAdvisory(cwd);
-    expect(out).toContain('not yet done'); // enforcement message, not cold-start
-    expect(out).not.toContain("hasn't started");
+    try {
+      expect(featureCycleAdvisory(cwd)).toBe(coldStartAdvisory(cwd));
+      expect(featureCycleAdvisory(cwd)).toContain("hasn't started");
+      rmSync(cwd, {recursive: true, force: true});
+      mkdirSync(cwd, {recursive: true});
+      writeSpec('in_progress'); // undone feature, no hook, no CI
+      const out = featureCycleAdvisory(cwd);
+      expect(out).toContain('not yet done'); // enforcement message, not cold-start
+      expect(out).not.toContain("hasn't started");
+      expect(exit).not.toHaveBeenCalled();
+    } finally {
+      exit.mockRestore();
+    }
   });
 });

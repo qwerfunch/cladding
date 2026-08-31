@@ -12,7 +12,7 @@
 // Sample fixture is `tests/scenarios/_fixtures/sample-existing-ts/` —
 // 8-source-file TypeScript service shared with the lifecycle suite.
 
-import {afterEach, beforeEach, describe, test, vi} from 'vitest';
+import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 import {fileURLToPath} from 'node:url';
 import {dirname, join} from 'node:path';
 import {mkdirSync, readFileSync, writeFileSync} from 'node:fs';
@@ -81,6 +81,21 @@ describe('A/B · existing-adoption — cladding vs vanilla on a populated TS pro
     bCwd.cleanup();
     exitSpy.mockRestore();
     stdoutSpy.mockRestore();
+  });
+
+  test('[covers:F-ae61c1/AC-002][covers:F-ba2e05/AC-002] default refund queries remain backwards-compatible and expose five deterministic benchmark questions', () => {
+    writeUnderCwd(
+      aCwd.path,
+      'spec/features/refund-flow.yaml',
+      'id: F-refund\ntitle: Refund\nstatus: done\nacceptance_criteria:\n  - id: AC-001\n    text: refund\n',
+    );
+    const first = answerAllQueries(aCwd.path);
+    const second = answerAllQueries(aCwd.path);
+    expect(first).toEqual(second);
+    expect(first.map((answer) => answer.questionId)).toEqual(['Q1', 'Q2', 'Q3', 'Q4', 'Q5']);
+    expect(first[0]?.question).toContain('refund flow');
+    expect(first[1]?.question).toContain('refund flow');
+    expect(first.slice(0, 2).every((answer) => answer.answered)).toBe(true);
   });
 
   test('[covers:F-4db939/AC-005] M1+M2: both groups deliver — committed report stays deterministic', async () => {

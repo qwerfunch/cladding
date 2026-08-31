@@ -29,6 +29,18 @@ function ev(
 }
 
 describe('computeIndependence (AC-e216b03f)', () => {
+  test('[covers:F-c566f590/AC-e216b03f] human or blind evidence makes a feature independent while none or self-only evidence remains self-certified', () => {
+    const cases = [
+      {evidence: [] as Evidence[], label: 'self-certified'},
+      {evidence: [ev('F-001', 'tool')], label: 'self-certified'},
+      {evidence: [ev('F-001', 'human')], label: 'independent'},
+      {evidence: [ev('F-001', 'llm', {blind: true})], label: 'independent'},
+    ] as const;
+    for (const item of cases) {
+      expect(computeIndependence('F-001', item.evidence).label).toBe(item.label);
+    }
+  });
+
   test('self-certified when the feature has ZERO evidence at all', () => {
     const r = computeIndependence('F-001', []);
     expect(r.featureId).toBe('F-001');

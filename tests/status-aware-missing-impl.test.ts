@@ -95,6 +95,15 @@ describe('status-aware MISSING_IMPLEMENTATION (F-e8912be3)', () => {
   });
 
   describe('AC-9f1a7ad1 · done/archived (shipped-or-final) declares-but-missing -> error, legacy message unchanged', () => {
+    test('[covers:F-e8912be3/AC-9f1a7ad1] done and archived features both surface a missing declared module as an error', () => {
+      for (const status of ['done', 'archived']) {
+        writeFixture(dir, status);
+        const findings = miFindings(runDrift({cwd: dir}));
+        expect(findings).toHaveLength(1);
+        expect(findings[0]).toMatchObject({severity: 'error', path: MODULE_PATH});
+      }
+    });
+
     // `blocked` is conservatively kept at error too (unenumerated by the ACs,
     // but neither `planned` nor `in_progress` — the source's isSpecFirstWindow
     // fallthrough), so it is pinned here alongside the two named statuses.

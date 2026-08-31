@@ -42,14 +42,14 @@ function writeGateConfig(body: string): void {
 }
 
 describe('resolveStageCommand — repo fallback', () => {
-  test('no focus modules → the root aggregate gate (unchanged)', () => {
+  test('[covers:F-c6c3daaf/AC-9fe3c8c3] no focus modules → the root aggregate gate (unchanged)', () => {
     makeKotlinRepo();
     const r = resolveStageCommand('test', {cwd: dir});
     expect(r.cmd).toBe('gradle');
     expect(r.args).toEqual(['test']);
   });
 
-  test('non-Gradle repo ignores focusModules entirely', () => {
+  test('[covers:F-c6c3daaf/AC-9fe3c8c3] non-Gradle repo ignores focusModules entirely', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}');
     const r = resolveStageCommand('test', {cwd: dir, focusModules: ['a']});
     expect(r.cmd).toBe('npx');
@@ -58,7 +58,7 @@ describe('resolveStageCommand — repo fallback', () => {
 });
 
 describe('resolveStageCommand — module scope', () => {
-  test('type stage batches compileKotlin + compileTestKotlin per project', () => {
+  test('[covers:F-c6c3daaf/AC-e44c29b6] type stage batches compileKotlin + compileTestKotlin per project', () => {
     makeKotlinRepo();
     const r = resolveStageCommand('type', {cwd: dir, focusModules: ['a', 'b']});
     expect(r.cmd).toBe('gradle');
@@ -70,19 +70,19 @@ describe('resolveStageCommand — module scope', () => {
     ]);
   });
 
-  test('test stage scopes to :project:test in one invocation', () => {
+  test('[covers:F-c6c3daaf/AC-e44c29b6] test stage scopes to :project:test in one invocation', () => {
     makeKotlinRepo();
     const r = resolveStageCommand('test', {cwd: dir, focusModules: ['a', 'b']});
     expect(r.args).toEqual([':a:test', ':b:test']);
   });
 
-  test('coverage is Kover-first: a→koverXmlReport (has kover), b→jacocoTestReport', () => {
+  test('[covers:F-c6c3daaf/AC-0c7ee62f] [covers:F-c6c3daaf/AC-e44c29b6] coverage is Kover-first: a→koverXmlReport (has kover), b→jacocoTestReport', () => {
     makeKotlinRepo();
     const r = resolveStageCommand('coverage', {cwd: dir, focusModules: ['a', 'b']});
     expect(r.args).toEqual([':a:koverXmlReport', ':b:jacocoTestReport']);
   });
 
-  test('lint scopes to :project:ktlintCheck', () => {
+  test('[covers:F-c6c3daaf/AC-e44c29b6] lint scopes to :project:ktlintCheck', () => {
     makeKotlinRepo();
     const r = resolveStageCommand('lint', {cwd: dir, focusModules: ['a']});
     expect(r.args).toEqual([':a:ktlintCheck']);
@@ -101,7 +101,7 @@ describe('resolveStageCommand — overrides', () => {
     expect(r).toMatchObject({cmd: 'echo', args: ['hi']});
   });
 
-  test('gate.commands template token-expands against the focus projects', () => {
+  test('[covers:F-c6c3daaf/AC-40882a42] gate.commands template token-expands against the focus projects', () => {
     makeKotlinRepo();
     writeGateConfig('gate:\n  commands:\n    test: ["./gradlew", "{modules:test}", "--info"]\n');
     const r = resolveStageCommand('test', {cwd: dir, focusModules: ['a', 'b']});
@@ -109,11 +109,18 @@ describe('resolveStageCommand — overrides', () => {
     expect(r.args).toEqual([':a:test', ':b:test', '--info']);
   });
 
-  test('scope: repo forces the root aggregate even with focus modules', () => {
+  test('[covers:F-c6c3daaf/AC-9fe3c8c3] [covers:F-c6c3daaf/AC-40882a42] scope: repo forces the root aggregate even with focus modules', () => {
     makeKotlinRepo();
     writeGateConfig('gate:\n  scope: repo\n');
     const r = resolveStageCommand('test', {cwd: dir, focusModules: ['a']});
     expect(r.args).toEqual(['test']);
+  });
+
+  test('[covers:F-c6c3daaf/AC-9fe3c8c3] scope: repo keeps coverage on the root aggregate with focus modules', () => {
+    makeKotlinRepo();
+    writeGateConfig('gate:\n  scope: repo\n');
+    const r = resolveStageCommand('coverage', {cwd: dir, focusModules: ['a']});
+    expect(r.args).toEqual(['jacocoTestReport']);
   });
 
   test('a {modules:…} template with no focus modules falls back to the repo gate', () => {

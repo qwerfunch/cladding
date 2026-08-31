@@ -98,7 +98,7 @@ function fakeScan(): ScanResult {
 }
 
 describe('buildPrompt', () => {
-  test('includes the four sentinel sections', () => {
+  test('[covers:F-d3bde4/AC-001] includes the four sentinel sections', () => {
     const p = buildPrompt(fakeScan());
     expect(p).toContain('=== CONVENTIONS_MD ===');
     expect(p).toContain('=== ARCHITECTURE_YAML ===');
@@ -114,7 +114,7 @@ describe('buildPrompt', () => {
     expect(p).toContain('cli → core');
   });
 
-  test('packs README headings into the capabilities block when projectContext is populated', () => {
+  test('[covers:F-d3bde4/AC-001] packs README headings into the capabilities block when projectContext is populated', () => {
     const p = buildPrompt(fakeScanWithReadme());
     expect(p).toContain('--- README headings (capability candidates) ---');
     expect(p).toContain('- Install');
@@ -263,7 +263,7 @@ describe('renderCapabilitiesYaml', () => {
     expect(out.endsWith('\n')).toBe(true);
   });
 
-  test('slugifies headings into kebab-case ids and preserves titles verbatim', () => {
+  test('[covers:F-d3bde4/AC-002] slugifies headings into kebab-case ids and preserves titles verbatim', () => {
     const out = renderCapabilitiesYaml(['Install', 'Status & Roadmap', 'CLI']);
     expect(out).toContain('- id: install');
     expect(out).toContain('title: "Install"');
@@ -410,7 +410,7 @@ describe('interpretScanWithFallback', () => {
     expect(r.capabilitiesYaml).toContain('summary: "How to install."');
   });
 
-  test('per-artifact capabilities fallback: missing CAPABILITIES_YAML still keeps mode=llm and ships deterministic capabilities', async () => {
+  test('[covers:F-d3bde4/AC-003] per-artifact capabilities fallback: missing CAPABILITIES_YAML still keeps mode=llm and ships deterministic capabilities', async () => {
     const dispatch = vi.fn(async () =>
       '=== CONVENTIONS_MD ===\n# Refined conventions\nProse here.\n' +
         '=== ARCHITECTURE_YAML ===\nversion: "0.1"\nlayers:\n  - name: core\n    modules: ["core/**"]\n    forbidden_imports: []\n' +
@@ -494,7 +494,7 @@ describe('sentinel_miss telemetry', () => {
     expect(events[0].payload.missed_sections).toContain('ARCHITECTURE_YAML');
   });
 
-  test('[covers:F-65814a/AC-002] [covers:F-65814a/AC-004] emits one per_artifact miss when only capabilities is blank but conventions+architecture pass', async () => {
+  test('[covers:F-65814a/AC-002][covers:F-65814a/AC-004] emits one per_artifact miss when only capabilities is blank but conventions+architecture pass', async () => {
     const dispatch = vi.fn(async () =>
       '=== CONVENTIONS_MD ===\n# Refined\n' +
         '=== ARCHITECTURE_YAML ===\nversion: "0.1"\nlayers:\n  - name: core\n    modules: ["core/**"]\n    forbidden_imports: []\n' +

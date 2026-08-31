@@ -249,3 +249,36 @@ describe('loadSpec — capabilities (Tier B)', () => {
     expect(() => loadSpec(dir)).toThrow();
   });
 });
+
+describe('loadSpec — project metadata (F-3a5339)', () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'clad-load-project-metadata-'));
+  });
+  afterEach(() => {
+    rmSync(dir, {recursive: true, force: true});
+  });
+
+  test('[covers:F-3a5339/AC-001] accepts and preserves all four optional project metadata fields', () => {
+    writeFileSync(
+      join(dir, 'spec.yaml'),
+      'schema: "0.1"\n' +
+        'project:\n' +
+        '  name: metadata fixture\n' +
+        '  language: typescript\n' +
+        '  description: A focused metadata fixture.\n' +
+        '  version: 1.2.3\n' +
+        '  repository: https://example.test/repo\n' +
+        '  intent_summary: Preserve project context.\n' +
+        'features: []\n',
+    );
+
+    const project = loadSpec(dir).project;
+    expect(project).toMatchObject({
+      description: 'A focused metadata fixture.',
+      version: '1.2.3',
+      repository: 'https://example.test/repo',
+      intent_summary: 'Preserve project context.',
+    });
+  });
+});

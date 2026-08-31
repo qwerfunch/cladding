@@ -72,7 +72,7 @@ describe('runDone × independence label (F-c566f590 · AC-d5210389)', () => {
     expect((kept[0].payload as {independence?: unknown}).independence).toBeUndefined();
   });
 
-  test('policy "label" + self-certified (zero evidence) + GREEN gate => kept done, labeled self-certified', () => {
+  test('[covers:F-c566f590/AC-ad5ea48b][covers:F-c566f590/AC-d5210389] policy "label" + self-certified (zero evidence) + GREEN gate => kept done, labeled self-certified', () => {
     const path = writeShard(dir);
     const res = runDone(dir, FEATURE_ID, {
       checkStages: () => ({worst: 0}),
@@ -121,7 +121,7 @@ describe('runDone × independence_policy: require (F-c566f590 · AC-ad5ea48b)', 
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('require + self-certified (zero evidence) + GREEN gate => refused, shard reverted BYTE-FOR-BYTE', () => {
+  test('[covers:F-c566f590/AC-ad5ea48b] require + self-certified (zero evidence) + GREEN gate => refused, shard reverted BYTE-FOR-BYTE', () => {
     const path = writeShard(dir);
     const original = readFileSync(path, 'utf8');
     const res = runDone(dir, FEATURE_ID, {

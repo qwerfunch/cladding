@@ -120,6 +120,20 @@ describe('SCENARIO_COVERAGE detector', () => {
     expect(findings[0].message).not.toContain('future onboarding intent');
   });
 
+  test('[covers:F-315fd7/AC-002] hollow scenarios are warn by default but onboarding seeds below the threshold are informational', () => {
+    writeSpec(dir, 2);
+    writeScenario(dir, 1, []);
+    expect(scenarioCoverage.run({cwd: dir})[0]?.severity).toBe('warn');
+
+    writeSpec(dir, 2, true);
+    writeScenario(dir, 1, []);
+    expect(scenarioCoverage.run({cwd: dir})[0]?.severity).toBe('info');
+
+    writeSpec(dir, DEFAULT_MIN_FEATURES_FOR_SCENARIOS, true);
+    writeScenario(dir, 1, []);
+    expect(scenarioCoverage.run({cwd: dir})[0]?.severity).toBe('warn');
+  });
+
   test('two hollow scenarios at threshold: 8 features + 2 hollow scenarios → exactly 2 warns (no "no scenarios" finding)', () => {
     writeSpec(dir, 8);
     writeScenario(dir, 1, []); // hollow
@@ -171,6 +185,21 @@ describe('SCENARIO_COVERAGE strict promotion (integration)', () => {
     const report = runDrift({cwd: dir});
     expect(report.pass).toBe(true);
     expect(report.findings.some((f) => f.detector === 'SCENARIO_COVERAGE')).toBe(true);
+  });
+
+  test('[covers:F-315fd7/AC-003] strict blocks grown gaps while seeded early gaps stay info and unmarked hollow scenarios stay advisory', () => {
+    const strict = runDrift({cwd: dir, strict: true});
+    expect(strict.pass).toBe(false);
+    expect(strict.exitCode).toBe(1);
+
+    clearDetectors();
+    writeSpec(dir, 2, true);
+    writeScenario(dir, 1, []);
+    expect(scenarioCoverage.run({cwd: dir})[0]?.severity).toBe('info');
+
+    writeSpec(dir, 2, false);
+    writeScenario(dir, 1, []);
+    expect(scenarioCoverage.run({cwd: dir})[0]?.severity).toBe('warn');
   });
 });
 

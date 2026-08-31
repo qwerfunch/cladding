@@ -6,6 +6,7 @@ import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
 import {slugConflict} from '../../src/stages/detectors/slug-conflict.js';
+import {idCollision} from '../../src/stages/detectors/id-collision.js';
 
 function writeMaster(dir: string): void {
   writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: x\n  language: typescript\n');
@@ -90,7 +91,7 @@ describe('SLUG_CONFLICT detector', () => {
     expect(findings[0].message).toContain('S-b7e102');
   });
 
-  test('[covers:F-d7312b/AC-005] feature and scenario sharing a slug → NOT a conflict (separate namespaces, F-087)', () => {
+  test('[covers:F-d7312b/AC-004][covers:F-d7312b/AC-005] feature and scenario namespaces allow matching slugs and their distinct F/S id prefixes', () => {
     writeFeature(dir, 'shared-name-a3f9c2.yaml', {id: 'F-a3f9c2', slug: 'shared-name'});
     mkdirSync(join(dir, 'spec', 'scenarios'), {recursive: true});
     writeFileSync(
@@ -99,5 +100,6 @@ describe('SLUG_CONFLICT detector', () => {
     );
     // Different namespaces (features/ vs scenarios/) — no conflict.
     expect(slugConflict.run({cwd: dir})).toEqual([]);
+    expect(idCollision.run({cwd: dir})).toEqual([]);
   });
 });

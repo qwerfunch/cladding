@@ -84,7 +84,7 @@ describe('F-2e28cc72 clad verdict — reducer conformance', () => {
     expect(v.verdict).toBe('BOOTSTRAP');
   });
 
-  it('AC1 ITERATE-red: red gate with a fixable finding => ITERATE with a non-empty next_action naming the file/message', () => {
+  it('[covers:F-b7873005/AC-8e636e0b] a parsed failing finding makes verdict next_action prefer its structured path:line over raw stderr', () => {
     const finding = {
       path: 'x.ts',
       line: 3,
@@ -95,7 +95,7 @@ describe('F-2e28cc72 clad verdict — reducer conformance', () => {
     const outcome: VerdictOutcome = {
       worst: 1,
       anyFailed: true,
-      stages: [mkStage('stage_1.1', 'fail', {exitCode: 1, findings: [finding]})],
+      stages: [mkStage('stage_1.1', 'fail', {exitCode: 1, stderr: 'unstructured tail must lose', findings: [finding]})],
     };
     const spec = specWith([feat('F-a', 'planned')]);
     const v: Verdict = computeVerdict({outcome, spec});
@@ -103,7 +103,9 @@ describe('F-2e28cc72 clad verdict — reducer conformance', () => {
     expect(v.next_action).not.toBeNull();
     expect(typeof v.next_action).toBe('string');
     expect(String(v.next_action).length).toBeGreaterThan(0);
-    expect(String(v.next_action)).toMatch(/x\.ts|boom/);
+    expect(v.next_action).toContain('x.ts:3');
+    expect(v.next_action).toContain('TS: boom');
+    expect(v.next_action).not.toContain('unstructured tail must lose');
   });
 
   it('AC1 ESCALATE: red gate with a human-required halt (pending_env) => ESCALATE, halt_class HUMAN_REQUIRED', () => {
@@ -145,5 +147,67 @@ describe('F-2e28cc72 clad verdict — reducer conformance', () => {
     const a = computeVerdict({outcome, spec});
     const b = computeVerdict({outcome, spec});
     expect(a).toEqual(b);
+  });
+
+  it('[covers:F-2e28cc72/AC-1b403763] reduces representative gate and feature states to only the five verdict shapes with action and remaining pointers', () => {
+    const green: VerdictOutcome = {
+      worst: 0,
+      anyFailed: false,
+      stages: [mkStage('stage_2.1', 'pass')],
+    };
+    const red: VerdictOutcome = {
+      worst: 1,
+      anyFailed: true,
+      stages: [mkStage('stage_1.1', 'fail', {exitCode: 1, stderr: 'fix the type error'})],
+    };
+    const human: VerdictOutcome = {
+      worst: 1,
+      anyFailed: true,
+      stages: [mkStage('stage_1.5', 'pending_env', {exitCode: 1, stderr: 'need device'})],
+    };
+    const cases: Array<{outcome: VerdictOutcome; spec: Spec; expected: Verdict['verdict']}> = [
+      {outcome: green, spec: specWith([feat('F-done', 'done')]), expected: 'DONE'},
+      {outcome: red, spec: specWith([feat('F-plan', 'planned')]), expected: 'ITERATE'},
+      {outcome: human, spec: specWith([feat('F-plan', 'planned')]), expected: 'ESCALATE'},
+      {
+        outcome: green,
+        spec: specWith([
+          feat('F-one', 'planned', {depends_on: ['F-two']}),
+          feat('F-two', 'planned', {depends_on: ['F-one']}),
+        ]),
+        expected: 'BLOCKED',
+      },
+      {outcome: green, spec: specWith([]), expected: 'BOOTSTRAP'},
+    ];
+
+    for (const item of cases) {
+      const verdict = computeVerdict({outcome: item.outcome, spec: item.spec});
+      expect(verdict.verdict).toBe(item.expected);
+      expect(['DONE', 'ITERATE', 'ESCALATE', 'BLOCKED', 'BOOTSTRAP']).toContain(verdict.verdict);
+      expect(Array.isArray(verdict.remaining)).toBe(true);
+      expect('next_action' in verdict).toBe(true);
+      if (item.expected === 'DONE') {
+        expect(verdict.next_action).toBeNull();
+      } else {
+        expect(typeof verdict.next_action).toBe('string');
+        expect(String(verdict.next_action).length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('[covers:F-2e28cc72/AC-a29d9485] every live unfinished status prevents DONE and remains visible to the reducer', () => {
+    const green: VerdictOutcome = {
+      worst: 0,
+      anyFailed: false,
+      stages: [mkStage('stage_2.1', 'pass')],
+    };
+    for (const status of ['planned', 'in_progress', 'blocked'] as const) {
+      const verdict = computeVerdict({
+        outcome: green,
+        spec: specWith([feat('F-done', 'done'), feat(`F-${status}`, status)]),
+      });
+      expect(verdict.verdict).not.toBe('DONE');
+      expect(verdict.remaining).toContainEqual(expect.objectContaining({id: `F-${status}`, status}));
+    }
   });
 });

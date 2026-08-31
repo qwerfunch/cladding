@@ -360,7 +360,7 @@ describe('serve/server — natural-language init tools', () => {
     }
   });
 
-  test('[covers:F-0f4dd6/AC-003] [covers:F-0f4dd6/AC-012] document mode loads the full project-local planning document and combines it with observed source', async () => {
+  test('[covers:F-0f4dd6/AC-003][covers:F-0f4dd6/AC-012] document mode loads the full project-local planning document and combines it with observed source', async () => {
     mkdirSync(join(dir, 'docs'));
     mkdirSync(join(dir, 'src'));
     writeFileSync(join(dir, 'src', 'index.ts'), 'export const existing = true;\n');
@@ -417,7 +417,7 @@ describe('serve/server — natural-language init tools', () => {
     }
   });
 
-  test('[covers:F-0f4dd6/AC-004] [covers:F-70ed1afd/AC-039f62b6] [covers:F-70ed1afd/AC-d20df076] [covers:F-70ed1afd/AC-aa2d0e2c] existing mode preserves fired draft capabilities while forcing observed scanning for a sparse codebase', async () => {
+  test('[covers:F-0f4dd6/AC-004][covers:F-70ed1afd/AC-039f62b6][covers:F-70ed1afd/AC-d20df076][covers:F-70ed1afd/AC-aa2d0e2c] existing mode preserves fired draft capabilities while forcing observed scanning for a sparse codebase', async () => {
     mkdirSync(join(dir, 'src'));
     writeFileSync(join(dir, 'src', 'index.ts'), 'export const value = 1;\n');
     const {client, cleanup} = await makePair(dir);

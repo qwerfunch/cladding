@@ -118,7 +118,7 @@ describe('scanRoot', () => {
   // code. They register through `clad_create_feature` (user intent)
   // so adoption-time output is intentionally empty even when layers
   // were detected.
-  test('scenarios are not auto-extracted (v0.3.30 paradigm)', () => {
+  test('[covers:F-cfba0c/AC-001] scenarios are not auto-extracted (v0.3.30 paradigm)', () => {
     seed(dir, {
       'src/core/a.ts': 'export const a = 1;\n',
       'src/cli/b.ts': 'export const b = 2;\n',
@@ -192,7 +192,7 @@ describe('scanRoot', () => {
   // src/<layer>/ across flat projects, monorepo workspaces, and CLI
   // overrides without losing the workspace prefix on monorepo layers.
   describe('source root inference (v0.3.25)', () => {
-    test('monorepo packages/<ws>/src/<layer> produces <ws>:<layer> labels', () => {
+    test('[covers:F-c48eb2/AC-002] monorepo packages/<ws>/src/<layer> produces <ws>:<layer> labels', () => {
       seed(dir, {
         'package.json': JSON.stringify({workspaces: ['packages/*']}),
         'packages/a/src/core/x.ts': 'export const x = 1;\n',
@@ -328,7 +328,7 @@ describe('scanRoot', () => {
 
   // v0.3.27 — workspace-direct files surface under the workspace name
   describe('workspace direct files (v0.3.27)', () => {
-    test('packages/<ws>/src/x.ts (no inner layer) maps to <ws>', () => {
+    test('[covers:F-aee1da/AC-002] packages/<ws>/src/x.ts (no inner layer) maps to <ws>', () => {
       seed(dir, {
         'package.json': JSON.stringify({workspaces: ['packages/*']}),
         'packages/react/src/ReactAct.ts': 'export const x = 1;\n',
@@ -353,7 +353,7 @@ describe('scanRoot', () => {
 
   // v0.3.27 — language counts + dominant language
   describe('language detection (v0.3.27)', () => {
-    test('languageCounts records per-language file count', () => {
+    test('[covers:F-aee1da/AC-003] languageCounts records per-language file count', () => {
       seed(dir, {
         'src/a.py': 'def hello(): pass\n',
         'src/b.py': 'def world(): pass\n',
@@ -364,7 +364,7 @@ describe('scanRoot', () => {
       expect(r.stats.languageCounts['typescript']).toBe(1);
     });
 
-    test('dominantLanguage picks the majority by file count', () => {
+    test('[covers:F-aee1da/AC-003] dominantLanguage picks the majority by file count', () => {
       seed(dir, {
         'src/a.rb': '# a\n',
         'src/b.rb': '# b\n',
@@ -535,7 +535,7 @@ describe('scanRoot', () => {
   // exercised; the candidate set surfaces in architecture.yaml as a
   // reviewer-pruned suggestion list.
   describe('forbidden_imports candidates (v0.3.25 + v0.3.31 prune)', () => {
-    test('[covers:F-aa7197/AC-002] layer pairs without observed edges become forbidden candidates with bounded non-trivial layers', () => {
+    test('[covers:F-c48eb2/AC-003] [covers:F-aa7197/AC-002] layer pairs without observed edges become forbidden candidates with bounded non-trivial layers', () => {
       // v0.3.31 prune: FORBIDDEN_TRIVIAL_THRESHOLD = 2. Each layer
       // needs 3+ modules to participate as importer or target.
       seed(dir, {
@@ -606,7 +606,7 @@ describe('scanRoot', () => {
   // representative interface signatures so AI maintainers always
   // see the project's Why before diving into code-level conventions.
   describe('project context extraction (v0.3.32)', () => {
-    test('README first paragraph is captured raw', () => {
+    test('[covers:F-c8aef8/AC-002] README first paragraph is captured raw', () => {
       seed(dir, {
         'README.md':
           '# Project\n\nThe one-line description sits here.\nMore on the second line.\n\n## Features\n- one\n',
@@ -617,7 +617,7 @@ describe('scanRoot', () => {
       expect(ctx!.readmeFirstParagraph).toContain('one-line description');
     });
 
-    test('README headings list (## level) is captured in order', () => {
+    test('[covers:F-c8aef8/AC-002] README headings list (## level) is captured in order', () => {
       seed(dir, {
         'README.md': '# X\n\nintro\n\n## Install\n## Usage\n## Contributing\n',
         'src/lib/a.ts': 'export const a = 1;\n',
@@ -626,7 +626,7 @@ describe('scanRoot', () => {
       expect(ctx!.readmeHeadings).toEqual(['Install', 'Usage', 'Contributing']);
     });
 
-    test('sibling docs (ARCHITECTURE / CONTRIBUTING) surface with first line', () => {
+    test('[covers:F-c8aef8/AC-002] sibling docs (ARCHITECTURE / CONTRIBUTING) surface with first line', () => {
       seed(dir, {
         'README.md': '# X\n\nintro\n',
         'ARCHITECTURE.md': '# Architecture\n\nLayered diagram below.\n',
@@ -639,7 +639,7 @@ describe('scanRoot', () => {
       expect(paths).toContain('CONTRIBUTING.md');
     });
 
-    test('interface signatures from the largest layer are quoted', () => {
+    test('[covers:F-c8aef8/AC-002] interface signatures from the largest layer are quoted', () => {
       seed(dir, {
         'README.md': '# X\n\nintro\n',
         'src/core/a.ts': 'export interface Foo { bar: string }\nexport const x = 1;\n',
@@ -652,7 +652,7 @@ describe('scanRoot', () => {
       expect(all).toContain('class Baz');
     });
 
-    test('absent README + absent docs + empty source produces null', () => {
+    test('[covers:F-c8aef8/AC-003] absent README + absent docs + empty source produces null', () => {
       // Empty cwd (just the scratch dir).
       const ctx = scanRoot({cwd: dir}).projectContext;
       expect(ctx).toBeNull();
@@ -668,10 +668,21 @@ describe('scanRoot', () => {
     });
   });
 
+  test('[covers:F-c8aef8/AC-004] README extraction skips decorative wrappers and badges before prose', () => {
+    seed(dir, {
+      'README.md': '# Project\n\n<div align="center">\n<img src="logo.svg" />\n</div>\n[![build](https://img.example/badge.svg)](https://example.test)\n\nUseful project prose survives.\n',
+      'src/lib/a.ts': 'export const a = 1;\n',
+    });
+    const paragraph = scanRoot({cwd: dir}).projectContext!.readmeFirstParagraph;
+    expect(paragraph).toBe('Useful project prose survives.');
+    expect(paragraph).not.toContain('<');
+    expect(paragraph).not.toContain('[![');
+  });
+
   // v0.3.31 — I18 LAYER_BLACKLIST expansion. HomebrewFormula,
   // docs_src, formulas, packaging directories used to surface as
   // layers, polluting the architecture view.
-  test('I18 expansion — HomebrewFormula / docs_src / formulas / packaging are not layers', () => {
+  test('[covers:F-aa7197/AC-003] I18 expansion — HomebrewFormula / docs_src / formulas / packaging are not layers', () => {
     seed(dir, {
       'src/core/a.ts': 'export const a = 1;\n',
       'HomebrewFormula/recipe.rb': '# brew formula\n',

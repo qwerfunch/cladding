@@ -65,7 +65,7 @@ describe('finding-parser (F-b7873005)', () => {
   });
 
   // AC1 — ESLint JSON formatter.
-  it('AC1-eslint-json: maps eslint JSON rows to path/line/rule/severity', () => {
+  it('[covers:F-b7873005/AC-6931d251] TypeScript, ESLint, and Vitest machine output retains structured locations and raw stage output', () => {
     const json = JSON.stringify([
       {filePath: 'a.ts', messages: [{line: 3, ruleId: 'no-console', message: 'no console', severity: 2}]},
     ]);
@@ -84,6 +84,15 @@ describe('finding-parser (F-b7873005)', () => {
     const warnFindings = parseEslintFindings(warnJson);
     expect(warnFindings.length).toBeGreaterThanOrEqual(1);
     expect(warnFindings[0]!.severity).toBe('warn');
+
+    const tsc = parseTscFindings('src/types.ts(7,2): error TS2322: incompatible');
+    expect(tsc[0]).toMatchObject({path: 'src/types.ts', line: 7, detector: 'TS2322', severity: 'error'});
+    const vitest = parseVitestFindings(` FAIL  tests/x.test.ts > x\n   ${ARROW} tests/x.test.ts:9:3`);
+    expect(vitest[0]).toMatchObject({path: 'tests/x.test.ts', line: 9});
+    const raw = 'src/types.ts(7,2): error TS2322: incompatible';
+    const stage = withFindings('type', {pass: false, exitCode: 1, stderr: raw} as StageResult, {stdout: '', stderr: raw});
+    expect(stage.findings?.[0]).toMatchObject({path: 'src/types.ts', line: 7, detector: 'TS2322'});
+    expect(stage.stderr).toBe(raw);
   });
 
   // AC1 — ESLint stylish (best-effort text).
@@ -147,6 +156,18 @@ describe('finding-parser (F-b7873005)', () => {
     expect(out.findings).toBeDefined();
     expect(out.findings!.length).toBeGreaterThan(0);
     expect(out.stderr).toBe(rawErr); // raw output preserved, not rewritten
+  });
+
+  it('[covers:F-b7873005/AC-bd425422] unrecognized failing output preserves the raw gate result and degrades without throwing', () => {
+    const raw = 'non-machine compiler prose';
+    const result = {pass: false, exitCode: 1, stderr: raw} as StageResult;
+    let enriched: StageResult | undefined;
+    expect(() => {
+      enriched = withFindings('type', result, {stdout: '', stderr: raw});
+    }).not.toThrow();
+    expect(enriched).toMatchObject({pass: false, exitCode: 1, stderr: raw});
+    expect(enriched?.findings).toHaveLength(1);
+    expect(enriched?.findings?.[0]?.path).toBeUndefined();
   });
 
   // AC4 — soundness / total-safe: never throws on adversarial input.

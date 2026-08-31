@@ -90,7 +90,7 @@ describe('clad doctor handler', () => {
     expect(out.match(/never observed/g)).toHaveLength(5);
   });
 
-  test('healthy: events but zero sentinel_miss → pass pulse + event-type line + exit 0', () => {
+  test('[covers:F-bb15e6/AC-002] healthy: events but zero sentinel_miss → pass pulse + event-type line + exit 0', () => {
     seedEvents(dir, [
       {id: '1', timestamp: 't', type: 'feature_checkpoint', payload: {featureId: 'F-001'}},
       {id: '2', timestamp: 't', type: 'feature_checkpoint', payload: {featureId: 'F-002'}},
@@ -266,7 +266,7 @@ describe('clad doctor handler', () => {
     expect(exitCalls).toEqual([0]);
   });
 
-  test('corrupt events.log: fail pulse + exit 1 (json flag does NOT swallow the parse error)', () => {
+  test('[covers:F-bb15e6/AC-005] corrupt events.log: fail pulse + exit 1 (json flag does NOT swallow the parse error)', () => {
     mkdirSync(join(dir, '.cladding'), {recursive: true});
     appendFileSync(join(dir, '.cladding', 'events.log.jsonl'), '{not-json\n', 'utf8');
     runDoctorCommand({cwd: dir});

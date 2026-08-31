@@ -278,6 +278,26 @@ describe('PostToolUse telemetry — high-frequency skip aggregation', () => {
     expect(sidecar()).toMatchObject({not_write_tool: 0, unwatched_path: 1});
   });
 
+  test('[covers:F-6ba22c5c/AC-8fc6bea0] high-frequency not-write and unwatched skips flush as at most one aggregate event per window', () => {
+    post(readmeEdit());
+    post(readmeEdit());
+    post(bash());
+    expect(skips()).toHaveLength(0);
+    expect(sidecar()).toMatchObject({not_write_tool: 1, unwatched_path: 2});
+
+    const pending = sidecar();
+    writeFileSync(join(cwd, '.cladding', 'hook-skip-agg.json'), JSON.stringify({...pending, windowStart: 0}), 'utf8');
+    post(readmeEdit());
+
+    const emitted = skips();
+    expect(emitted).toHaveLength(1);
+    expect(emitted[0]?.payload).toMatchObject({
+      aggregate: true,
+      counts: {not_write_tool: 1, unwatched_path: 2},
+    });
+    expect(sidecar()).toMatchObject({not_write_tool: 0, unwatched_path: 1});
+  });
+
   test('a fired card flushes the pending aggregate window (≤1 event per window)', () => {
     post(readmeEdit());
     post(bash()); // sidecar: {not_write_tool:1, unwatched_path:1}
@@ -297,6 +317,27 @@ describe('PostToolUse telemetry — high-frequency skip aggregation', () => {
     expect(() => post(readmeEdit())).not.toThrow();
     expect(sidecar()).toMatchObject({not_write_tool: 0, unwatched_path: 1});
     expect(skips()).toHaveLength(0); // fresh window, nothing to flush
+  });
+});
+
+describe('PostToolUse telemetry — observer-only event writes', () => {
+  test('[covers:F-6ba22c5c/AC-e9d041de] a failed event append leaves the host impact-card output byte-for-byte unchanged', () => {
+    writeFileSync(join(cwd, 'spec.yaml'), VALID_SPEC, 'utf8');
+    const input = {tool_name: 'Edit', tool_input: {file_path: 'src/foo.ts', new_string: 'x'.repeat(60)}};
+
+    clearStamp();
+    clearPushLedger();
+    const healthy = post(input);
+    expect(healthy).toContain('cladding impact: src/foo.ts → F-aaa111');
+
+    // A directory at the ledger file path makes append fail. recordEvent must
+    // absorb that observer failure rather than changing the hook response.
+    clearStamp();
+    clearPushLedger();
+    const eventPath = join(cwd, '.cladding', 'events.log.jsonl');
+    rmSync(eventPath, {force: true});
+    mkdirSync(eventPath, {recursive: true});
+    expect(post(input)).toBe(healthy);
   });
 });
 

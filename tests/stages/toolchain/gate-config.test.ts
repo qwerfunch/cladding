@@ -35,7 +35,7 @@ const A: GradleProject = {path: ':a', dir: join('/tmp', 'a')};
 const B: GradleProject = {path: ':b', dir: join('/tmp', 'b')};
 
 describe('readGateConfig', () => {
-  test('defaults to {scope: feature} when no config file', () => {
+  test('[covers:F-c6c3daaf/AC-40882a42] defaults to {scope: feature} when no config file', () => {
     expect(readGateConfig(dir)).toEqual({scope: 'feature'});
   });
 
@@ -44,7 +44,7 @@ describe('readGateConfig', () => {
     expect(readGateConfig(dir)).toEqual({scope: 'feature'});
   });
 
-  test('parses scope: repo', () => {
+  test('[covers:F-c6c3daaf/AC-40882a42] parses scope: repo', () => {
     writeConfig('gate:\n  scope: repo\n');
     expect(readGateConfig(dir).scope).toBe('repo');
   });

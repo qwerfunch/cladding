@@ -37,12 +37,12 @@ afterEach(() => {
 });
 
 describe('F-ebbb20af — Soft Shell leak closure', () => {
-  test('AC-77f0ec75 — the INVENTORY_DRIFT lead says "spec", not "shard"', () => {
+  test('[covers:F-ebbb20af/AC-77f0ec75] AC-77f0ec75 — the INVENTORY_DRIFT lead says "spec", not "shard"', () => {
     expect(DETECTOR_PLAIN.INVENTORY_DRIFT.lead).not.toMatch(SHARD);
     expect(DETECTOR_PLAIN.INVENTORY_DRIFT.lead).toContain('spec');
   });
 
-  test('AC-77f0ec75 — the clad done no-feature refusal says "spec", not "shard"', () => {
+  test('[covers:F-ebbb20af/AC-77f0ec75] AC-77f0ec75 — the clad done no-feature refusal says "spec", not "shard"', () => {
     writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nproject: {name: t, language: typescript}\nfeatures: []\n');
     const res = runDone(dir, 'F-nope', {checkStages: () => ({worst: 0})});
     expect(res.ok).toBe(false);
@@ -71,7 +71,7 @@ describe('F-ebbb20af — Soft Shell leak closure', () => {
   // NOTE: by design a slug is a machine id (ASCII kebab-case, schema-pinned);
   // the human-facing title, project name, and AC text are any language. So the
   // realistic Korean project keeps ASCII slugs and Korean everywhere a human reads.
-  test('AC-408e6838 — the enforcement advisory fires on a spec with Korean title/name/text', () => {
+  test('[covers:F-ebbb20af/AC-408e6838] AC-408e6838 — the enforcement advisory fires on a spec with Korean title/name/text', () => {
     writeFileSync(
       join(dir, 'spec.yaml'),
       'schema: "0.1"\nproject: {name: 한글프로젝트, language: typescript}\nfeatures:\n' +
@@ -84,7 +84,7 @@ describe('F-ebbb20af — Soft Shell leak closure', () => {
     expect(out).toContain('not yet done');
   });
 
-  test('AC-408e6838 — the unbound-edit nudge fires on a Korean-named path under a Korean-titled spec', () => {
+  test('[covers:F-ebbb20af/AC-408e6838] AC-408e6838 — the unbound-edit nudge fires on a Korean-named path under a Korean-titled spec', () => {
     writeFileSync(
       join(dir, 'spec.yaml'),
       'schema: "0.1"\nproject: {name: 프로젝트, language: typescript}\nfeatures:\n' +

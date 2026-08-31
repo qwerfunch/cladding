@@ -186,6 +186,43 @@ describe('AC-c32cbab2 · classifying how each criterion moved', () => {
     expect(d[0]?.statusBefore).toBeNull();
     expect(row(d, 'AC-0001').kind).toBe('new');
   });
+
+  test('[covers:F-5dfbac9c/AC-c32cbab2] joins by id and discriminates every obligation-bearing field while ignoring whitespace-only changes', () => {
+    const kinds = buildSpecDeltasFor(
+      [
+        ac('AC-removed'),
+        ac('AC-rewrite-text', {text: 'old text'}),
+        ac('AC-rewrite-ears', {ears: 'state'}),
+        ac('AC-rewrite-condition', {ears: 'event', condition: 'when old'}),
+        ac('AC-rewrite-action', {text: undefined, ears: 'event', action: 'old action'}),
+        ac('AC-rewrite-response', {response: 'old response'}),
+        ac('AC-whitespace', {text: 'the system shall  keep\n  spacing'}),
+        ac('AC-unchanged'),
+      ],
+      [
+        ac('AC-new'),
+        ac('AC-rewrite-text', {text: 'new text'}),
+        ac('AC-rewrite-ears', {ears: 'unwanted'}),
+        ac('AC-rewrite-condition', {ears: 'event', condition: 'when new'}),
+        ac('AC-rewrite-action', {text: undefined, ears: 'event', action: 'new action'}),
+        ac('AC-rewrite-response', {response: 'new response'}),
+        ac('AC-whitespace', {text: 'the system shall keep spacing'}),
+        ac('AC-unchanged'),
+      ],
+    );
+    const rows = Object.fromEntries(kinds[0]!.rows.map((item) => [item.id, item.kind]));
+    expect(rows).toMatchObject({
+      'AC-new': 'new',
+      'AC-removed': 'removed',
+      'AC-rewrite-text': 'rewritten',
+      'AC-rewrite-ears': 'rewritten',
+      'AC-rewrite-condition': 'rewritten',
+      'AC-rewrite-action': 'rewritten',
+      'AC-rewrite-response': 'rewritten',
+      'AC-whitespace': 'unchanged',
+      'AC-unchanged': 'unchanged',
+    });
+  });
 });
 
 describe('AC-4faef94d · deterministic ordering', () => {
@@ -209,6 +246,15 @@ describe('AC-4faef94d · deterministic ordering', () => {
     expect(JSON.stringify(buildSpecEntryDeltas(input))).toBe(
       JSON.stringify(buildSpecEntryDeltas(input)),
     );
+  });
+
+  test('[covers:F-5dfbac9c/AC-4faef94d] delta rows are criterion-id ordered, byte-stable, and carry no wall-clock field', () => {
+    const input = [entry([], [ac('AC-z'), ac('AC-a'), ac('AC-m')])];
+    const first = buildSpecEntryDeltas(input);
+    const serialized = JSON.stringify(first);
+    expect(first[0]?.rows.map((item) => item.id)).toEqual(['AC-a', 'AC-m', 'AC-z']);
+    expect(JSON.stringify(buildSpecEntryDeltas(input))).toBe(serialized);
+    expect(serialized).not.toMatch(/"(?:timestamp|generatedAt|date|time)"\s*:/i);
   });
 
   test('an empty range yields an empty delta, not a throw', () => {

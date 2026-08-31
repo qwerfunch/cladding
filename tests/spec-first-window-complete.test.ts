@@ -28,7 +28,7 @@ import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 import {missingImplementation} from '../src/stages/detectors/missing-implementation.js';
 import {staleSpecification} from '../src/stages/detectors/stale-specification.js';
 import {statusDrift} from '../src/stages/detectors/status-drift.js';
-import {DETECTOR_PLAIN} from '../src/ui/softShell.js';
+import {DETECTOR_PLAIN, plainFinding} from '../src/ui/softShell.js';
 
 const SPEC_HEADER = 'schema: "0.1"\nproject: {name: x, language: typescript}\nfeatures: []\n';
 
@@ -163,7 +163,7 @@ describe('F-c3747d7d — spec-first window complete across all drift detectors',
       expect(findings[0].severity).toBe('error');
     });
 
-    test('aggregate re-assertion: none of these five anti-regression branches is EVER demoted to info', () => {
+    test('[covers:F-c3747d7d/AC-d8be9f4d] outside the spec-first window STATUS_DRIFT stays error and STALE_SPECIFICATION stays warn', () => {
       writeFeature(dir, 'F-020.yaml', 'id: F-020\ntitle: t\nstatus: done\nmodules: [src/missing-020.ts]\n');
       writeFeature(dir, 'F-021.yaml', 'id: F-021\ntitle: t\nstatus: done\n');
       writeFeature(dir, 'F-022.yaml', 'id: F-022\ntitle: t\nstatus: done\narchived_at: "2024-01-01T00:00:00Z"\n');
@@ -176,10 +176,11 @@ describe('F-c3747d7d — spec-first window complete across all drift detectors',
         'id: F-024\ntitle: t\nstatus: archived\narchived_at: "2024-01-01T00:00:00Z"\nmodules: [src/survivor-024.ts]\n',
       );
 
-      const all = [...statusDrift.run({cwd: dir}), ...staleSpecification.run({cwd: dir})];
-      expect(all.length).toBeGreaterThanOrEqual(5);
-      expect(all.every((f) => f.severity === 'error' || f.severity === 'warn')).toBe(true);
-      expect(all.some((f) => f.severity === 'info')).toBe(false);
+      const status = statusDrift.run({cwd: dir});
+      const stale = staleSpecification.run({cwd: dir});
+      expect(status.some((f) => f.severity === 'error')).toBe(true);
+      expect(stale.filter((f) => f.detector === 'STALE_SPECIFICATION')).toHaveLength(3);
+      expect(stale.every((f) => f.severity === 'warn')).toBe(true);
     });
   });
 
@@ -324,7 +325,7 @@ describe('F-c3747d7d — spec-first window complete across all drift detectors',
       expect(lead).not.toMatch(/still marked active/i);
     });
 
-    test('STATUS_DRIFT lead is UNCHANGED and still accurate for its sole surviving shown case (done + missing = error)', () => {
+    test('[covers:F-c3747d7d/AC-d574a481] STATUS_DRIFT and every STALE_SPECIFICATION sub-case retain accurate human-facing leads', () => {
       expect(DETECTOR_PLAIN.STATUS_DRIFT.lead).toBe(
         'A feature is marked done but its files or checks do not back that up',
       );
@@ -333,6 +334,25 @@ describe('F-c3747d7d — spec-first window complete across all drift detectors',
       const findings = statusDrift.run({cwd: dir});
       expect(findings).toHaveLength(1);
       expect(findings[0].severity).toBe('error');
+      expect(DETECTOR_PLAIN.STALE_SPECIFICATION.lead).toBe("A feature's lifecycle labels don't match its actual state");
+      expect(DETECTOR_PLAIN.STALE_SPECIFICATION.lead).not.toMatch(/archived|active/i);
+      expect(plainFinding(findings[0]!)).toContain(DETECTOR_PLAIN.STATUS_DRIFT.lead);
+
+      writeFeature(dir, 'F-041.yaml', 'id: F-041\ntitle: t\nstatus: done\narchived_at: "2024-01-01T00:00:00Z"\n');
+      writeFeature(dir, 'F-042.yaml', 'id: F-042\ntitle: t\nstatus: done\nsuperseded_by: F-041\n');
+      mkdirSync(join(dir, 'src'), {recursive: true});
+      writeFileSync(join(dir, 'src', 'survivor-043.ts'), 'export const s = 1;\n');
+      writeFeature(
+        dir,
+        'F-043.yaml',
+        'id: F-043\ntitle: t\nstatus: archived\narchived_at: "2024-01-01T00:00:00Z"\nmodules: [src/survivor-043.ts]\n',
+      );
+      const stale = staleSpecification.run({cwd: dir});
+      expect(stale).toHaveLength(3);
+      for (const finding of stale) {
+        expect(finding.severity).toBe('warn');
+        expect(plainFinding(finding)).toContain(DETECTOR_PLAIN.STALE_SPECIFICATION.lead);
+      }
       // The lead's claim (done, but files/checks don't back it up) is exactly
       // what this fixture constructs — no other STATUS_DRIFT branch is shown on
       // a human surface post-U7 (the in_progress stale-start branch is info now).

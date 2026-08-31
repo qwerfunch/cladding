@@ -2,7 +2,7 @@
 
 import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {basename, join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
 import {runInit} from '../../src/cli/init.js';
@@ -108,7 +108,7 @@ describe('runInit', () => {
     expect(readFileSync(join(fallback, 'spec.yaml'), 'utf8')).toContain('language: typescript');
   });
 
-  test('appends the ignore entry to an existing .gitignore without losing prior lines', async () => {
+  test('[covers:F-b0c2e724/AC-2e9c61f8] appends the committable ignore entry to an existing .gitignore without losing prior lines', async () => {
     writeFileSync(join(dir, '.gitignore'), 'node_modules/\nbuild/\n');
     await runInit({cwd: dir});
     const gi = readFileSync(join(dir, '.gitignore'), 'utf8');
@@ -124,7 +124,7 @@ describe('runInit', () => {
     expect(gi.indexOf('!.cladding/config.yaml')).toBeGreaterThan(gi.indexOf('.cladding/*'));
   });
 
-  test('leaves a .gitignore carrying the legacy .cladding/ entry byte-identical', async () => {
+  test('[covers:F-b0c2e724/AC-6a58f0d1] leaves a .gitignore carrying the legacy .cladding/ entry byte-identical', async () => {
     writeFileSync(join(dir, '.gitignore'), 'node_modules/\n.cladding/\n');
     const before = readFileSync(join(dir, '.gitignore'), 'utf8');
     const r = await runInit({cwd: dir});
@@ -133,7 +133,7 @@ describe('runInit', () => {
     expect(r.created.some((c) => c.includes('.gitignore'))).toBe(false);
   });
 
-  test('leaves a .gitignore already carrying the new entry byte-identical', async () => {
+  test('[covers:F-b0c2e724/AC-6a58f0d1] leaves a .gitignore already carrying the new entry byte-identical', async () => {
     const before = '# Cladding runtime state\n.cladding/*\n!.cladding/config.yaml\n';
     writeFileSync(join(dir, '.gitignore'), before);
     const r = await runInit({cwd: dir});
@@ -211,11 +211,12 @@ describe('runInit', () => {
   // (≥3 source files) is not met, init still writes the three
   // scan-derived artifacts as toolchain-default templates so the
   // spec/docs surface is always complete.
-  test('greenfield: writes the three scan-artifact seeds with SEED headers (TypeScript default)', async () => {
+  test('[covers:F-bd07d7/AC-001][covers:F-bd07d7/AC-005] greenfield: writes the three scan-artifact seeds with SEED headers (TypeScript default)', async () => {
     const r = await runInit({cwd: dir});
     expect(r.created).toContain('docs/conventions.md');
     expect(r.created).toContain('spec/architecture.yaml');
     expect(r.created).toContain('spec/capabilities.yaml');
+    expect(r.created).toContain('spec/scenarios/README.md');
     const conv = readFileSync(join(dir, 'docs/conventions.md'), 'utf8');
     const arch = readFileSync(join(dir, 'spec/architecture.yaml'), 'utf8');
     const caps = readFileSync(join(dir, 'spec/capabilities.yaml'), 'utf8');
@@ -230,6 +231,25 @@ describe('runInit', () => {
     expect(arch).toContain('layers: []');
     expect(caps).toContain('schema: "0.1"');
     expect(caps).toContain('capabilities: []');
+    expect(readFileSync(join(dir, 'spec/scenarios/README.md'), 'utf8')).toContain('Scenario');
+  });
+
+  test('[covers:F-c8aef8/AC-001] creates project-context on initial init and diverts repeat without overwriting authored content', async () => {
+    const initial = await runInit({cwd: dir});
+    const path = join(dir, 'docs/project-context.md');
+    expect(initial.created).toContain('docs/project-context.md');
+    expect(existsSync(path)).toBe(true);
+    const generated = readFileSync(path, 'utf8');
+    expect(generated).toContain(`# ${basename(dir)} — Project Context`);
+
+    const authored = `${generated}\n<!-- keep this authored context -->\n`;
+    writeFileSync(path, authored);
+
+    const repeated = await runInit({cwd: dir});
+    expect(repeated.proposals).toContain('docs/project-context.md → .cladding/scan/project-context.md.proposal');
+    expect(readFileSync(path, 'utf8')).toBe(authored);
+    expect(readFileSync(join(dir, '.cladding/scan/project-context.md.proposal'), 'utf8'))
+      .toContain(`# ${basename(dir)} — Project Context`);
   });
 
   test('greenfield: detected python toolchain switches the conventions seed to PEP-8 defaults', async () => {
@@ -244,7 +264,7 @@ describe('runInit', () => {
     expect(arch).toContain('Typical Python baseline:');
   });
 
-  test('[covers:F-00eb1a/AC-006] [covers:F-32b1e0/AC-004] writes onboarding AI hints and preferred-pattern triples into the project seed block', async () => {
+  test('[covers:F-00eb1a/AC-006][covers:F-32b1e0/AC-004] writes onboarding AI hints and preferred-pattern triples into the project seed block', async () => {
     const response = [
       '=== ONBOARDING_MODE ===',
       'greenfield',

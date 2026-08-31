@@ -12,6 +12,7 @@ import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
 import {runDeliverableSmoke} from '../../src/stages/deliverable-smoke.js';
+import {loadSpec} from '../../src/spec/load.js';
 
 let dir: string;
 beforeEach(() => {
@@ -146,6 +147,38 @@ describe('stage_2.4 DELIVERABLE_SMOKE', () => {
 });
 
 describe("stage_2.4 functional smoke probes (F-g')", () => {
+  test('[covers:F-43d8e3/AC-0e2aa7] schema accepts cli and none probes with run, expectation, binds, and why fields', () => {
+    writeSmokeSpec(
+      '  smoke:\n' +
+        '    - kind: cli\n' +
+        '      run: ["./run"]\n' +
+        '      expect: {ac: AC-001, exit: 0, token: HELLO}\n' +
+        '      binds: {feature: F-001, modules: [src/x.ts]}\n' +
+        '      why: proves the deliverable responds\n' +
+        '    - kind: none\n' +
+        '      binds: {feature: F-001}\n' +
+        '      why: static companion proof\n',
+    );
+    writeEntryEcho('HELLO', 0);
+
+    const probes = loadSpec(dir).project.smoke;
+    expect(probes).toEqual([
+      {
+        kind: 'cli',
+        run: ['./run'],
+        expect: {ac: 'AC-001', exit: 0, token: 'HELLO'},
+        binds: {feature: 'F-001', modules: ['src/x.ts']},
+        why: 'proves the deliverable responds',
+      },
+      {
+        kind: 'none',
+        binds: {feature: 'F-001'},
+        why: 'static companion proof',
+      },
+    ]);
+    expect(runDeliverableSmoke({cwd: dir}).disposition).toBe('pass');
+  });
+
   test('[covers:F-43d8e3/AC-46afdd] PASS (green) when a cli probe runs clean AND stdout contains the AC token', () => {
     writeSmokeSpec(CLI_PROBE('HELLO'));
     writeEntryEcho('say HELLO world', 0);

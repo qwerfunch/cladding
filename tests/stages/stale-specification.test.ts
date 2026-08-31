@@ -101,6 +101,27 @@ describe('STALE_SPECIFICATION detector', () => {
   // emits machine-actionable `propose-archive` suggestions on findings
   // that the maintainer can resolve by archiving the feature.
   describe('propose-archive suggestion (Tier 2)', () => {
+    test('[covers:F-b99577/AC-002] all unambiguous stale lifecycle branches propose archive while surviving archived code stays unsuggested', () => {
+      writeFileSync(join(dir, 'stages', 'still-here.ts'), 'export const live = true;\n');
+      writeFileSync(
+        join(dir, 'spec', 'features', 'F-100.yaml'),
+        'id: F-100\ntitle: mismatched archive\nstatus: done\narchived_at: "2024-01-01T00:00:00Z"\n',
+      );
+      writeFileSync(
+        join(dir, 'spec', 'features', 'F-200.yaml'),
+        'id: F-200\ntitle: superseded\nstatus: done\nsuperseded_by: F-100\n',
+      );
+      writeFileSync(
+        join(dir, 'spec', 'features', 'F-300.yaml'),
+        'id: F-300\ntitle: surviving archive\nstatus: archived\narchived_at: "2024-01-01T00:00:00Z"\nmodules: [stages/still-here.ts]\n',
+      );
+      const findings = staleSpecification.run({cwd: dir});
+      const byId = Object.fromEntries(findings.map((finding) => [finding.message.match(/F-\d+/)?.[0], finding]));
+      expect(byId['F-100']?.suggestion).toMatchObject({action: 'propose-archive', args: {featureId: 'F-100'}});
+      expect(byId['F-200']?.suggestion).toMatchObject({action: 'propose-archive', args: {featureId: 'F-200'}});
+      expect(byId['F-300']?.suggestion).toBeUndefined();
+    });
+
     test('archived_at + non-archived status → suggestion carries featureId + reason', () => {
       writeFileSync(
         join(dir, 'spec', 'features', 'F-100.yaml'),
