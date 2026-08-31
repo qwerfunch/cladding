@@ -31,7 +31,7 @@ docs:
   "docs/design/spec-0.2/context-and-orchestration.md":
     doc_links: ["docs/design/spec-0.2.md", "docs/design/spec-0.2/assurance.md"]
   "docs/design/spec-0.2/decision-log.md":
-    features: [F-06dfdad6]
+    features: [F-048, F-06dfdad6, F-12d740]
     doc_links: ["docs/ab-evaluation/case-working-set-landmine.md", "docs/design/spec-0.2.md", "docs/design/spec-0.2/evidence.md"]
   "docs/design/spec-0.2/delivery.md":
     features: [F-041, F-063]

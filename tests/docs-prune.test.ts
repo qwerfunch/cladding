@@ -212,14 +212,20 @@ describe('AC-28a53560 · four A/B docs carry the dated snapshot footnote near th
     'docs/ab-evaluation/case-payment-saas.md',
     'docs/ab-evaluation/case-existing-adoption.md',
   ];
-  const FOOTNOTE_COUNT_NEEDLE = 'detector count was 25 at this run';
-  const FOOTNOTE_GROWTH_NEEDLE = 'grown to 41';
+  const HISTORICAL_SNAPSHOT_NEEDLE = 'this historical M2 report reflects the detector registry available at that run. Body preserved as an append-only snapshot.';
+  const RETIRED_NUMERIC_SNAPSHOT_NEEDLES = [
+    'detector count was 25 at this run',
+    'grown to 41',
+  ];
 
   test('all four A/B docs carry the dated snapshot footnote near the top', () => {
     for (const file of AB_FOOTNOTE_FILES) {
       const lines = read(file).split('\n').slice(0, 15).join('\n');
-      expect(lines, `${file}: footnote (25-detector count) within the first 15 lines`).toContain(FOOTNOTE_COUNT_NEEDLE);
-      expect(lines, `${file}: footnote (growth to 41) within the first 15 lines`).toContain(FOOTNOTE_GROWTH_NEEDLE);
+      expect(lines, `${file}: non-numeric historical snapshot footnote within the first 15 lines`)
+        .toContain(HISTORICAL_SNAPSHOT_NEEDLE);
+      for (const retiredNeedle of RETIRED_NUMERIC_SNAPSHOT_NEEDLES) {
+        expect(lines, `${file}: retired numeric snapshot wording is absent`).not.toContain(retiredNeedle);
+      }
     }
   });
 
@@ -236,6 +242,10 @@ describe('AC-28a53560 · four A/B docs carry the dated snapshot footnote near th
     expect(fnStart, 'renderCaseReport found').toBeGreaterThan(-1);
     expect(fnEnd, 'renderMilestoneTable found (end of renderCaseReport body)').toBeGreaterThan(fnStart);
     const body = generatorSource.slice(fnStart, fnEnd);
-    expect(body, 'the footnote line lives inside renderCaseReport, not elsewhere in the file').toContain(FOOTNOTE_COUNT_NEEDLE);
+    expect(body, 'the footnote line lives inside renderCaseReport, not elsewhere in the file')
+      .toContain(HISTORICAL_SNAPSHOT_NEEDLE);
+    for (const retiredNeedle of RETIRED_NUMERIC_SNAPSHOT_NEEDLES) {
+      expect(body, 'renderCaseReport does not revive retired numeric snapshot wording').not.toContain(retiredNeedle);
+    }
   });
 });

@@ -54,7 +54,7 @@ const {
   makeStaleReferenceDrift,
   makeArchitectureViolationDrift,
   makeHardcodedSecretDrift,
-  makeUntestedAcDrift,
+  makeUnverifiedCriterionDrift,
 } = await import('./_drift-injection.js');
 const {answerAllQueries} = await import('./_query-bench.js');
 
@@ -83,7 +83,7 @@ describe('A/B · payment-saas — cladding vs vanilla on greenfield intent', () 
     stdoutSpy.mockRestore();
   });
 
-  test('M1+M2: both groups deliver — committed report stays deterministic', async () => {
+  test('[covers:F-ba2e05/AC-88fcaf05] payment-SaaS measures its applicable A/B M1 and M2 outcome matrix', async () => {
     // ── M1 ──────────────────────────────────────────────────────
     // A: cladding init with intent — produces 4-tier seed.
     dispatchMock.mockResolvedValueOnce(GREENFIELD_S1_RESPONSE);
@@ -218,7 +218,7 @@ describe('A/B · payment-saas — cladding vs vanilla on greenfield intent', () 
       captureDriftCatch(
         aCwd.path,
         'A',
-        makeUntestedAcDrift('spec/features/refund-flow-4db939.yaml', 'AC-003', 'Refunds shall support partial refund amounts.'),
+        makeUnverifiedCriterionDrift('spec/features/refund-flow-4db939.yaml', 'AC-003', 'Refunds shall support partial refund amounts.'),
       ),
     ];
 
@@ -231,6 +231,7 @@ describe('A/B · payment-saas — cladding vs vanilla on greenfield intent', () 
     // ── Render report ───────────────────────────────────────────
     const report = renderCaseReport({
       caseTitle: 'payment-saas',
+      fixture: 'empty tmpdir',
       intent: VANILLA_PAYMENT_SAAS_SESSION.intent,
       description: [
         'Greenfield case: an empty tmpdir + a one-line intent.',

@@ -15,7 +15,8 @@
 //               stage_1.1 — project.language declared AND ≥1 done feature
 //               stage_2.1 — ≥1 done feature declaring test_refs
 //               stage_2.3 — ≥1 done AC declaring oracle_refs
-//               stage_2.4 — deliverable is_safe_to_smoke:true AND ≥1 done feature
+//               stage_2.4 — SMOKE_PROBE_DEMAND owns any applicable demand;
+//                           skip policy must not append a duplicate failure
 //             No demand ⇒ skip stays non-blocking (the false-RED defense).
 //   unknown : unknown tier → {worst: 2, anyFailed: true}
 //
@@ -213,16 +214,9 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
       stage: 'stage_2.3',
       spec: {features: [{id: 'F-a', status: 'done', acceptance_criteria: [{id: 'AC-1', oracle_refs: ['tests/oracle/x.test.ts']}]}]},
     },
-    'stage_2.4 — safe declared deliverable + done feature': {
-      stage: 'stage_2.4',
-      spec: {
-        project: {name: 'x', deliverable: {path: 'bin/app.js', is_safe_to_smoke: true}},
-        features: [{id: 'F-a', status: 'done', acceptance_criteria: []}],
-      },
-    },
   };
 
-  test('[covers:F-d49585/AC-40db4c] strict demand table promotes skips only for declared stage 1.1/2.1/2.3/2.4 demands and keeps non-strict or undemanded skips non-blocking', () => {
+  test('[covers:F-d49585/AC-40db4c] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands and keeps non-strict or undemanded skips non-blocking', () => {
     for (const [name, {spec, stage}] of Object.entries(DEMAND_SPECS)) {
       loadSpecMock.mockImplementation(() => spec);
       setAll(PASS);
@@ -253,11 +247,14 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
     stubs['stage_2.1'].mockImplementation(() => SKIP);
     expect(runMatrixCase('pre-commit', true).worst).toBe(0);
 
-    // A safe deliverable demand is similarly non-blocking outside strict mode.
-    loadSpecMock.mockImplementation(() => DEMAND_SPECS['stage_2.4 — safe declared deliverable + done feature'].spec);
+    // SMOKE_PROBE_DEMAND, not skip policy, owns a safe deliverable demand.
+    loadSpecMock.mockImplementation(() => ({
+      project: {name: 'x', deliverable: {path: 'bin/app.js', is_safe_to_smoke: true}},
+      features: [{id: 'F-a', status: 'done', acceptance_criteria: []}],
+    }));
     setAll(PASS);
     stubs['stage_2.4'].mockImplementation(() => SKIP);
-    expect(runMatrixCase('pre-push', false).worst).toBe(0);
+    expect(runMatrixCase('pre-push', true).worst).toBe(0);
   });
 
   test('fail outranks skip when both occur: worst is the failure, skip stays visible in stage statuses', () => {

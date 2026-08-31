@@ -1,9 +1,11 @@
 id: F-12d740
 slug: atomic-ac-evidence-fanout
 title: Atomic AC evidence fan-out in drive loop (v0.3.18)
-status: done
-modules:
-  - src/drive/loop.ts
+status: archived
+modules: []
+archived_at: "2026-08-31T00:00:00Z"
+archive_reason: "The retired drive-loop per-criterion audit fanout fabricated authoritative-looking evidence from an internal observer; F-048 supersedes it with a compact, non-authoritative gate observation."
+superseded_by: F-048
 depends_on:
   - F-098d3b
 acceptance_criteria:

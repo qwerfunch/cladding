@@ -34,8 +34,27 @@ acceptance_criteria:
     text: The system shall record a feature_rolled_back event referencing the target checkpoint so the rollback transition is auditable and the lineage from checkpoint to rollback survives across sessions.
     test_refs: [tests/core/checkpoint.test.ts]
   - id: AC-005
+    ears: event
+    condition: when checkpoint records a lifecycle boundary
+    text: When checkpoint records a lifecycle boundary, the system shall append exactly one feature_checkpoint event without modifying tracked source or specification content.
+    notes: "## 2026-08-31 criterion decomposition\n\nOriginal compound text (verbatim): The system shall expose clad checkpoint and clad rollback CLI subcommands so a maintainer (or a later auto-rollback driver) has an entry point to the event surface without touching the working tree — cladding records the transition and prints the git command, but the actual checkout stays with the maintainer because branch policy varies.\n\nReason: split checkpoint, successful rollback, failed rollback, and no-working-tree-mutation observables while retaining this legacy address."
+    test_refs:
+      - "tests/core/checkpoint.test.ts#[covers:F-c2c996/AC-005] checkpoint appends one event without changing tracked source or specification bytes"
+  - id: AC-e4bf75ed
+    ears: event
+    condition: when rollback has a prior checkpoint and a reason
+    text: When rollback has a prior checkpoint and a reason, the system shall append exactly one feature_rolled_back event and print a maintainer-owned Git or manual restore instruction.
+    test_refs:
+      - "tests/core/checkpoint.test.ts#[covers:F-c2c996/AC-e4bf75ed] rollback appends one reasoned event against its prior checkpoint"
+      - "tests/cli/clad.test.ts#[covers:F-c2c996/AC-e4bf75ed] rollback prints the maintainer-owned restore instruction"
+  - id: AC-804e61b1
+    ears: unwanted
+    condition: if rollback has no prior checkpoint
+    text: If rollback has no prior checkpoint, then the system shall fail without appending a feature_rolled_back event.
+    test_refs:
+      - "tests/cli/clad.test.ts#[covers:F-c2c996/AC-804e61b1] rollback without a checkpoint fails without recording rollback telemetry"
+  - id: AC-a06e5151
     ears: ubiquitous
-    action: expose clad checkpoint and clad rollback CLI subcommands
-    response: 'src/cli/clad.ts adds two commander subcommands — `clad checkpoint <featureId>` calls runCheckpointCommand and exits 2 on missing arg, otherwise records and exits 0; `clad rollback <featureId> --reason <reason>` calls runRollbackCommand which fails with exit 1 when no prior checkpoint exists, otherwise records and prints `Run: git checkout <head>` (or a manual-restore note when no git head was pinned); the createProgram verb list expands from 8 to 10 in stable insertion order'
-    text: The system shall expose clad checkpoint and clad rollback CLI subcommands so a maintainer (or a later auto-rollback driver) has an entry point to the event surface without touching the working tree — cladding records the transition and prints the git command, but the actual checkout stays with the maintainer because branch policy varies.
-    test_refs: [tests/cli/clad.test.ts]
+    text: The checkpoint and rollback commands shall never invoke checkout.
+    test_refs:
+      - "tests/cli/clad.test.ts#[covers:F-c2c996/AC-a06e5151] checkpoint and rollback never invoke checkout"

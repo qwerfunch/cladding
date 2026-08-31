@@ -30,11 +30,15 @@ acceptance_criteria:
       - tests/stages/detectors/architecture-from-spec-python.test.ts
   - id: AC-c6dae481
     ears: unwanted
-    condition: "if neither coverage.xml nor a configured coverage report exists in a python repo"
-    text: "If no coverage report exists, then COVERAGE_DROP shall degrade to no findings exactly as today — no new failure mode for report-less repos."
-    notes: "WHY: cladding never installs or runs the user's toolchain; absent evidence degrades, never fabricates."
+    condition: "if a Python workspace has no supported Cobertura coverage report"
+    action: evaluate COVERAGE_DROP
+    response: return no findings
+    text: "If a Python workspace has no supported Cobertura coverage report, then COVERAGE_DROP shall return no findings."
+    notes: "2026-08-31 — Restored scoped wording. Displaced active wording: If no coverage report exists, then COVERAGE_DROP shall degrade to no findings exactly as today — no new failure mode for report-less repos. WHY: cladding never installs or runs the user's toolchain; absent evidence degrades, never fabricates."
     test_refs:
-      - tests/stages/detectors/coverage-drop-cobertura.test.ts
+      - "tests/stages/detectors/coverage-drop-cobertura.test.ts#[covers:F-803386ab/AC-c6dae481] Python workspace without a supported Cobertura report returns no findings"
+      - "tests/stages/detectors/coverage-drop-cobertura.test.ts#[covers:F-803386ab/AC-c6dae481] present-but-malformed Cobertura remains silent"
+      - "tests/stages/detectors/coverage-drop-cobertura.test.ts#[covers:F-803386ab/AC-c6dae481] missing Istanbul and Kotlin reports retain their info findings"
   - id: AC-b5358945
     ears: ubiquitous
     text: "The system shall keep clad check --strict output on cladding's own repository byte-identical before and after this change, enforced by the existing no-regression conventions."

@@ -45,6 +45,7 @@ import {
   type RefinementQa,
 } from './scan/intent-onboarding.js';
 import {pulse} from '../ui/pulse.js';
+import {onboardingCompletionMessage} from '../ui/softShell.js';
 import {isReadableShardFilename} from '../spec/compiler/id-policy.js';
 import {commitSchema01CompatibilityMutation, type Schema01CompatibilityReplacement} from '../spec/edit.js';
 import type {ScanLlmDispatcher} from './scan/llm.js';
@@ -122,7 +123,7 @@ export async function refineOnboarding(
     return {
       ok: true,
       code: 0,
-      message: 'onboarding already complete (state.yaml status: done)',
+      message: onboardingCompletionMessage(),
       report: buildReport(cwd, null, [], null, state),
       created: [],
       proposals: [],
@@ -136,7 +137,7 @@ export async function refineOnboarding(
     return {
       ok: true,
       code: 0,
-      message: 'onboarding complete · state.yaml marked done',
+      message: onboardingCompletionMessage(),
       report: buildReport(cwd, null, [], null, done),
       created: [],
       proposals: [],
@@ -430,8 +431,7 @@ export function renderClarifyPrompts(
   if (report.status === 'done') {
     return [
       '',
-      '✓ All questions answered — onboarding complete.',
-      "  Next: author your first feature's spec — its acceptance criteria (the testable promises) and the files it will cover — before writing code. The feature cycle starts there.",
+      `✓ ${onboardingCompletionMessage()}`,
       '',
       '',
     ].join('\n');

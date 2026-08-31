@@ -32,8 +32,6 @@ import {selectAdapter} from '../adapters/index.js';
 import {findLatestCheckpoint, recordCheckpoint, recordRollback} from '../core/checkpoint.js';
 import {writePostMortem} from '../core/postmortem.js';
 import {appendEvent, newEvent} from '../events/log.js';
-import {newEvidence} from '../hitl/identity.js';
-import {appendEvidence} from '../hitl/audit.js';
 import {loadSpec} from '../spec/load.js';
 import {pulseProgress, pulseProgressEnd} from '../ui/pulse.js';
 import type {Feature, Spec} from '../spec/types.js';
@@ -42,6 +40,7 @@ import {runLint} from '../stages/lint.js';
 import {runType} from '../stages/type.js';
 import {runUat} from '../stages/uat.js';
 import type {AgentContext, AgentMutation} from '../adapters/types.js';
+import {reduceDriveGateObservation} from './assurance.js';
 import {
   DEFAULT_BUDGET,
   type HaltReason,
@@ -259,9 +258,11 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
     // Step 1 — specialist authors the implementation.
     pulseProgress('run', ready.id, 'specialist');
     let specialistIdentity: string | undefined;
+    let specialistMutationCount = 0;
     try {
       const specialistOut = await runAgent(developer, ctx);
       specialistIdentity = specialistOut.result.identity.name;
+      specialistMutationCount = specialistOut.result.mutations.length;
       applyMutations(cwd, specialistOut.result.mutations);
     } catch (err) {
       pulseProgressEnd('fail', ready.id, 'specialist dispatch failed');
@@ -274,8 +275,10 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
 
     // Step 2 — fall back to module stubs only when the adapter
     // produced no concrete file mutations (mock stage).
-    for (const modulePath of ready.modules ?? []) {
-      if (ensureStub(cwd, modulePath)) stubsCreated.push(modulePath);
+    if (specialistMutationCount === 0) {
+      for (const modulePath of ready.modules ?? []) {
+        if (ensureStub(cwd, modulePath)) stubsCreated.push(modulePath);
+      }
     }
 
     // Step 3 — L1 gates verify the produced state. Drift (stage_1.3)
@@ -290,6 +293,17 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
       ['stage_1.5', runArch({cwd})],
     ] as const;
     gateRuns += gates.length;
+    // F6 observes the exact post-mutation compiler closure and the three
+    // runner results. This record is deliberately non-authoritative: retries
+    // remain governed by the legacy three-floor result immediately below.
+    const observerGates = reduceDriveGateObservation(cwd, ready, gates);
+    appendEvent(cwd, newEvent('stage_completed', {
+      feature: ready.id,
+      observer: 'drive-f6',
+      inputSha256: observerGates.inputSha256,
+      gates: observerGates.gates,
+      assurance: observerGates.assurance,
+    }));
     // `exitCode !== 2` excludes genuine skips (missing tool / unknown language).
     // Safe because stages map a ran-tool failure to exitCode 1, never 2 (see
     // stages/util.ts::ranToolResult) — so a real type/lint/arch failure here is
@@ -346,44 +360,6 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
       });
     }
 
-    // Evidence is recorded per-AC when the feature declares
-    // `acceptance_criteria`, otherwise a single feature-scoped entry
-    // is logged as a fallback. The per-AC fan-out is what unlocks
-    // anti-self-cert.checkAc() to operate at the AC granularity it
-    // was designed for — without an `acId`, the guard sees only
-    // unattributed tool/LLM evidence and can never tell which AC
-    // is missing its human-author sign-off.
-    //
-    // @see hitl/identity.ts — Evidence.acId field has been part of
-    //   the schema since v0.2.x but was previously unfilled here.
-    // @see hitl/anti-self-cert.ts — checkAc filters by `e.acId`.
-    const acIds = (ready.acceptance_criteria ?? []).map((ac) => ac.id);
-    if (acIds.length === 0) {
-      appendEvidence(
-        cwd,
-        newEvidence({
-          featureId: ready.id,
-          stage: 'stage_1.3',
-          kind: 'pass',
-          content: 'clad run — L1 gates pass after specialist + reviewer dispatch',
-          identity: {author: 'tool', name: 'clad-drive'},
-        }),
-      );
-    } else {
-      for (const acId of acIds) {
-        appendEvidence(
-          cwd,
-          newEvidence({
-            featureId: ready.id,
-            acId,
-            stage: 'stage_1.3',
-            kind: 'pass',
-            content: `clad run — L1 gates pass for ${acId}`,
-            identity: {author: 'tool', name: 'clad-drive'},
-          }),
-        );
-      }
-    }
     appendEvent(cwd, newEvent('feature_completed', {feature: ready.id, by: 'clad-drive'}));
     pulseProgressEnd('pass', ready.id, 'done');
     done.add(ready.id);

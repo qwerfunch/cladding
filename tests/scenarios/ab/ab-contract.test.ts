@@ -11,7 +11,8 @@ import {describe, expect, test} from 'vitest';
 
 import {copyFixture, mkScenarioCwd, readUnderCwd, writeUnderCwd} from '../_helpers.js';
 import {captureSnapshot, diffToRows, type AbSnapshot} from './_ab-metrics.js';
-import {renderCaseReport} from './_report.js';
+import {renderCaseReport, type OutcomeReportInput} from './_report.js';
+import type {QueryAnswer} from './_query-bench.js';
 import {
   applyFileSet,
   VANILLA_EXISTING_ADOPTION_SESSION,
@@ -61,6 +62,30 @@ function contractSnapshot(group: 'A' | 'B', milestone: 'M1' | 'M2', n: number): 
     },
     tokenConsumption: {lines: n + 22, chars: n + 23, estTokens: n + 24},
     testCoverage: {testFiles: n + 25, testCases: n + 26},
+  };
+}
+
+function contractOutcome(): OutcomeReportInput {
+  const result = (group: 'A' | 'B', scenarioId: 'DI-1' | 'DI-4', scenarioName: string) => ({
+    scenarioId,
+    scenarioName,
+    group,
+    beforeCounts: {errors: 0, warns: 0, infos: 0},
+    afterCounts: {errors: 0, warns: group === 'A' ? 1 : 0, infos: 0},
+    newFindings: group === 'A' ? [{detector: 'MISSING_IMPLEMENTATION', severity: 'warn' as const, message: 'stale'}] : [],
+    caught: group === 'A',
+    newDetectors: group === 'A' ? ['MISSING_IMPLEMENTATION'] : [],
+  });
+  return {
+    driftResults: [
+      result('A', 'DI-1', 'Stale module reference'),
+      result('B', 'DI-1', 'Stale module reference'),
+      result('A', 'DI-4', 'Unverified criterion'),
+    ],
+    queryResults: new Map<'A' | 'B', readonly QueryAnswer[]>([
+      ['A', [{questionId: 'Q1', question: 'Where is the feature?', answered: true, filesOpened: 1, answer: 'F-contract'}]],
+      ['B', [{questionId: 'Q1', question: 'Where is the feature?', answered: false, filesOpened: 0, answer: 'not found'}]],
+    ]),
   };
 }
 
@@ -246,6 +271,7 @@ describe('A/B evaluation contract proofs', () => {
   test('[covers:F-4db939/AC-004] report rendering is byte-deterministic with M1/M2 tables, detector blocks, and six findings', () => {
     const input = {
       caseTitle: 'contract-proof',
+      fixture: 'contract fixture',
       intent: 'prove renderer structure',
       description: 'A fixed set of snapshots makes byte determinism observable.',
       hypothesisFocus: ['H1', 'H2'],
@@ -270,5 +296,50 @@ describe('A/B evaluation contract proofs', () => {
     expect(first).toContain('B (Vanilla)  — errors: 9  warns: 10  infos: 11');
     const findings = first.slice(first.indexOf('## Findings'), first.indexOf('## How to reproduce'));
     expect(findings.split('\n').filter((line) => line.startsWith('- **'))).toHaveLength(6);
+  });
+
+  test('[covers:F-ba2e05/AC-8f1f105a] outcome report renders case, fixture, group, milestone, scenario, query, and applicable-count identities', () => {
+    const report = renderCaseReport({
+      caseTitle: 'contract-outcome',
+      fixture: 'fixture-contract',
+      intent: 'render outcome identities',
+      description: 'Deterministic outcome fixture.',
+      hypothesisFocus: ['H6'],
+      m1A: contractSnapshot('A', 'M1', 1),
+      m1B: contractSnapshot('B', 'M1', 2),
+      m2A: contractSnapshot('A', 'M2', 3),
+      m2B: contractSnapshot('B', 'M2', 4),
+      outcome: contractOutcome(),
+    });
+
+    expect(report).toContain('# A/B Evaluation: contract-outcome');
+    expect(report).toContain('**Fixture:** `fixture-contract`');
+    expect(report).toContain('## M1 — Initial setup');
+    expect(report).toContain('## M2 — First feature complete');
+    expect(report).toContain('A (Cladding)');
+    expect(report).toContain('B (Vanilla)');
+    expect(report).toContain('DI-1 Stale module reference');
+    expect(report).toContain('DI-4 Unverified criterion');
+    expect(report).toContain('| N/A | N/A |');
+    expect(report).toContain('Q1 Where is the feature?');
+    expect(report).toContain('Catch rate (applicable scenarios)');
+    expect(report).toContain('Answerability (applicable queries)');
+  });
+
+  test('[covers:F-ba2e05/AC-6c42dfa6] historical M2 outcome is non-release when no later B5 signed receipt is supplied', () => {
+    const report = renderCaseReport({
+      caseTitle: 'contract-outcome',
+      fixture: 'fixture-contract',
+      intent: 'prove non-release status',
+      description: 'No later receipt is supplied.',
+      hypothesisFocus: ['H6'],
+      m1A: contractSnapshot('A', 'M1', 1),
+      m1B: contractSnapshot('B', 'M1', 2),
+      m2A: contractSnapshot('A', 'M2', 3),
+      m2B: contractSnapshot('B', 'M2', 4),
+      outcome: contractOutcome(),
+    });
+
+    expect(report).toContain('historical M2 measurement, not a release claim; no later B5 signed receipt is recorded');
   });
 });

@@ -44,7 +44,7 @@ const SEED_HEADER = (language: string): string =>
 interface LanguageDefaults {
   /** Display name shown in the seed body. */
   readonly displayName: string;
-  /** 14-signal `Conventions` shape filled with the language's idiomatic defaults. */
+  /** `Conventions` shape filled with the language's idiomatic defaults. */
   readonly conventions: Conventions;
   /** Inline one-line URL to the canonical style guide for the language. */
   readonly styleGuideUrl: string;
@@ -323,7 +323,7 @@ export function renderGreenfieldConventionsMd(language: string, projectName: str
     '',
     '## Adding a new module',
     '',
-    `Match the baseline above unless the team has agreed otherwise. After writing initial code, re-run \`clad init --scan\` — the observed 14-signal table will divert this seed to \`.cladding/scan/conventions.md.proposal\` so you can diff seed vs reality.`,
+    `Match the baseline above unless the team has agreed otherwise. After writing initial code, re-run \`clad init --scan\` — the observed conventions table will divert this seed to \`.cladding/scan/conventions.md.proposal\` so you can diff seed vs reality.`,
     '',
   ];
   return lines.join('\n');

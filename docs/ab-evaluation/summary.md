@@ -7,7 +7,7 @@ quality** measured (4 drift injections × 2 groups + 5 AI queries × 2 groups pe
 Both case reports are auto-generated and committed. Numbers below are pulled
 verbatim from the per-case markdowns.
 
-_Snapshot note (2026-07-05): detector count was 25 at this run; the suite has since grown to 41 (0.8.x). Body preserved as an append-only snapshot._
+_Snapshot note (2026-07-05): this historical M2 report reflects the detector registry available at that run. Body preserved as an append-only snapshot._
 
 ## Cases at a glance
 
@@ -75,7 +75,9 @@ spec at every subsequent feature increment.
 
 ### H6 — Cladding catches drift vanilla misses
 
-✅ **Strongly supported — 3/4 drift scenarios are cladding-exclusive catches.**
+**Historical M2 observation only — non-release.** The comparison records
+cladding-exclusive catches at M2, but no later B5 signed receipt is recorded
+for a release claim.
 
 Both cases produced identical 3/4 catch rates against deterministic drift injection:
 
@@ -114,9 +116,9 @@ For an AI agent loading context to answer a domain question:
 
 ✅ **Supported, with explanation.**
 
-`clad check --strict` against cladding's 25 detectors:
-- On A: 18 spec-gated detectors actively run; ARCHITECTURE_FROM_SPEC + MISSING_IMPLEMENTATION + UNTESTED_AC + MISSING_TESTS all gate the PR.
-- On B: same 18 detectors silently report 0 findings because they have nothing to evaluate. Only 7 spec-independent detectors meaningfully run.
+`clad check --strict` against cladding's current registered detector set:
+- On A: spec-gated detectors actively run; ARCHITECTURE_FROM_SPEC + MISSING_IMPLEMENTATION + UNTESTED_AC + MISSING_TESTS all gate the PR.
+- On B: those detectors silently report 0 findings because they have nothing to evaluate; only spec-independent checks meaningfully run.
 
 Same gate label, very different evaluation surface. The follow-up `ABSENCE_OF_GOVERNANCE` detector would expose this directly by treating "no spec" as a finding instead of silent pass.
 
@@ -141,7 +143,7 @@ Same gate label, very different evaluation surface. The follow-up `ABSENCE_OF_GO
 - We did not run the code — both groups ship executable TypeScript with vitest tests, but the suites themselves aren't actually executed in tmpdirs. "Outcome quality" here means structural correctness + drift detection, not runtime behavior.
 - We did not measure **developer effort** (time-to-M2). Cladding's upfront Q&A loop is more wall-clock; the simulator collapses it to a function call.
 - DI-3 (hardcoded secret) doesn't fire in tmpdir because secretlint/gitleaks aren't installed. In a real cladding-adopting project both groups would catch it.
-- We did not measure cumulative drift over many feature increments (M3+) — the 3-catch result is the M2 snapshot only.
+- We did not measure cumulative drift over many feature increments (M3+) — the 3-catch result is the M2 snapshot only and is not release evidence without a later B5 signed receipt.
 
 ## Future work
 

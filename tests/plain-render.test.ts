@@ -31,6 +31,7 @@
 // exported template of its own (unlike the other three) — its literal format
 // is pinned here via a source-text assertion.
 
+import {createHash} from 'node:crypto';
 import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -40,6 +41,7 @@ import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 import {allDetectors} from '../src/stages/detectors/index.js';
 import {missingImplementation} from '../src/stages/detectors/missing-implementation.js';
 import {runDone} from '../src/cli/done.js';
+import {readEvents} from '../src/events/log.js';
 import {TOOL_NAMES} from '../src/serve/server.js';
 import {
   DETECTOR_PLAIN,
@@ -286,13 +288,16 @@ describe('hook integration — Stop + PostToolUse render sites', () => {
       expect(doc.reason.indexOf('(MISSING_IMPLEMENTATION · src/auth/login.ts)')).toBeGreaterThan(doc.reason.indexOf(lead));
     });
 
-    test('the stop-block fingerprint hashes detector|path only — changing ONLY the message still demotes the repeat run', () => {
+    test('[covers:F-dd8dc994/AC-0eee6e0a] lifecycle events retain raw fields and fingerprint only detector and path', () => {
       driftStub.mockImplementation(() => ({
         pass: false,
         exitCode: 1,
         findings: [{detector: 'MISSING_IMPLEMENTATION', severity: 'error', path: 'src/auth/login.ts', message: 'message A'}],
       }));
       expect(runHookEvent('Stop', {stop_hook_active: false}, cwd)).not.toBe('');
+      const fingerprint = createHash('sha256').update('MISSING_IMPLEMENTATION|src/auth/login.ts').digest('hex');
+      const blocked = readEvents(cwd).find((event) => event.type === 'stop_blocked');
+      expect(blocked?.payload).toMatchObject({count: 1, fingerprint});
       driftStub.mockImplementation(() => ({
         pass: false,
         exitCode: 1,
@@ -304,6 +309,9 @@ describe('hook integration — Stop + PostToolUse render sites', () => {
       // message this would re-block. It must demote to '' — hook.ts::runStopGate
       // hashes `${f.detector}|${f.path}` only (AC-ad2a34e1).
       expect(runHookEvent('Stop', {stop_hook_active: false}, cwd)).toBe('');
+      const exits = readEvents(cwd).filter((event) => event.type === 'stop_exit_recorded');
+      expect(exits).toHaveLength(1);
+      expect(exits[0].payload).toMatchObject({count: 1, fingerprint});
     });
   });
 

@@ -31,7 +31,7 @@
 - **可追溯** —— **交付出去的一切都留有记录**：验证了什么，写进已提交的内容；谁、何时，记在本地会话账本；为什么，留在 spec —— 于是交接与评审无需考古，就能追溯每一个决定。
 - **可扩展** —— 人和 AI 越多，通常冲突和漂移也越多。但所有人都以同一份 spec 为基准，这些会被自动挡下 —— 所以不断扩张也不会崩。
 
-cladding 连**自己**也是用 cladding 造的 —— 291 个 feature 里有 280 个通过了同一道门禁，成为 [Ironclad](https://github.com/qwerfunch/ironclad) 标准的首个 L4 实现。
+cladding 连**自己**也是用 cladding 造的 —— 291 个 feature 里有 279 个通过了同一道门禁，成为 [Ironclad](https://github.com/qwerfunch/ironclad) 标准的首个 L4 实现。
 
 <!-- ─────────────── What changes ─────────────── -->
 
@@ -343,7 +343,7 @@ clad update              # 3. 刷新项目连接和派生状态
 
 | 版本 | 一致性 | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.9.4 worktree（2026-08） | L4 · [自我声明](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 3243 / 3243 | 15 阶段 · 41 检测器 | 291（280 done） |
+| v0.9.4 worktree（2026-08） | L4 · [自我声明](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 3243 / 3243 | 15 阶段 · 41 检测器 | 291（279 done） |
 
 <sub>272 个测试文件 · 6 项 capability · 覆盖率下降由 COVERAGE_DROP 检测器拦下</sub>
 

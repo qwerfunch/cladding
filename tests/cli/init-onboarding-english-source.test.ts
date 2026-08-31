@@ -162,8 +162,10 @@ describe('init-onboarding-english-source (F-5cac007a)', () => {
     });
     expect(clarifyDone).toBe([
       '',
-      '✓ All questions answered — onboarding complete.',
-      "  Next: author your first feature's spec — its acceptance criteria (the testable promises) and the files it will cover — before writing code. The feature cycle starts there.",
+      '✓ Onboarding complete. Ordinary natural-language development may continue.',
+      "Next: author your first feature's spec — its acceptance criteria (the testable promises) and the files it will cover — before writing code.",
+      'Run `clad check` on demand when you want to verify work.',
+      'Git hooks and CI enforcement are opt-in and not enabled automatically.',
       '',
       '',
     ].join('\n'));

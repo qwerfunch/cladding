@@ -8,7 +8,7 @@
 //     literal errors if a member is missing OR extra, pinning the literal below
 //     to the type. The `readonly EventType[]` assignment errors if any of the 5
 //     new names is not a real EventType member.
-//   - RUNTIME (this file, vitest): the literal names match the AC's 7-value set,
+//   - RUNTIME (this file, vitest): the literal names match the AC's 9-value set,
 //     and recordEvent accepts + round-trips each of the 5 new types.
 
 import {mkdtempSync, rmSync} from 'node:fs';
@@ -46,7 +46,7 @@ const _newTypesAreEventTypes: readonly EventType[] = NEW_EVENT_TYPES;
 void _newTypesAreEventTypes;
 
 describe('F-6ba22c5c AC-238a3658 — closed reason enum + event types', () => {
-  test('[covers:F-35954d19/AC-f4715e87] ImpactSkipReason is EXACTLY the closed 9-value set from the AC', () => {
+  test('[covers:F-6ba22c5c/AC-2712ade0] emitted impact-card skip reasons stay in the closed ImpactSkipReason vocabulary', () => {
     expect(Object.keys(REASONS).sort()).toEqual(
       [
         'debounced',
@@ -68,11 +68,33 @@ describe('F-6ba22c5c AC-238a3658 — closed reason enum + event types', () => {
   });
   afterEach(() => rmSync(dir, {recursive: true, force: true}));
 
-  test('recordEvent accepts + round-trips all 5 new value-delivery EventTypes', () => {
-    for (const t of NEW_EVENT_TYPES) recordEvent(dir, t, {probe: t});
-    const seen = readEvents(dir).map((e) => e.type);
-    for (const t of NEW_EVENT_TYPES) expect(seen).toContain(t);
-    // exactly the 5 we wrote — no phantom types leaked in
-    expect(seen.filter((t) => (NEW_EVENT_TYPES as readonly string[]).includes(t))).toHaveLength(5);
+  test('[covers:F-6ba22c5c/AC-238a3658] EventType declares impact_card_fired', () => {
+    const event: EventType = 'impact_card_fired';
+    recordEvent(dir, event, {probe: event});
+    expect(readEvents(dir).map((e) => e.type)).toContain(event);
+  });
+
+  test('[covers:F-6ba22c5c/AC-93b89336] EventType declares impact_card_skipped', () => {
+    const event: EventType = 'impact_card_skipped';
+    recordEvent(dir, event, {probe: event});
+    expect(readEvents(dir).map((e) => e.type)).toContain(event);
+  });
+
+  test('[covers:F-6ba22c5c/AC-f0c4df75] EventType declares session_card_rendered', () => {
+    const event: EventType = 'session_card_rendered';
+    recordEvent(dir, event, {probe: event});
+    expect(readEvents(dir).map((e) => e.type)).toContain(event);
+  });
+
+  test('[covers:F-6ba22c5c/AC-298fb2b3] EventType declares prompt_suggestion_served', () => {
+    const event: EventType = 'prompt_suggestion_served';
+    recordEvent(dir, event, {probe: event});
+    expect(readEvents(dir).map((e) => e.type)).toContain(event);
+  });
+
+  test('[covers:F-6ba22c5c/AC-74b24595] EventType declares working_set_served', () => {
+    const event: EventType = 'working_set_served';
+    recordEvent(dir, event, {probe: event});
+    expect(readEvents(dir).map((e) => e.type)).toContain(event);
   });
 });

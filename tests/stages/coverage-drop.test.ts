@@ -33,7 +33,7 @@ describe('COVERAGE_DROP detector', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('coverage-summary.json absent → info finding', () => {
+  test('[covers:F-026/AC-039] coverage-summary.json absent emits an info finding', () => {
     const findings = coverageDrop.run({cwd: dir});
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe('info');

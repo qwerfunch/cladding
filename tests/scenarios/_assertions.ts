@@ -15,6 +15,7 @@ import {join} from 'node:path';
 import yaml from 'yaml';
 
 import {allDetectors} from '../../src/stages/detectors/index.js';
+import {loadSpec} from '../../src/spec/load.js';
 import {
   checkBudget,
   PERSONA_BUDGETS,
@@ -146,6 +147,28 @@ export function assertCrossTierClean(cwd: string, allowedDetectors: readonly str
   const blocking = results.errors.filter((msg) => !allowedDetectors.some((d) => msg.includes(`[${d}]`)));
   if (blocking.length > 0) {
     throw new Error(`assertCrossTierClean: ${blocking.length} error finding(s):\n${blocking.join('\n')}`);
+  }
+}
+
+/**
+ * Verifies that every current schema-0.1 scenario feature binding resolves.
+ * Empty feature lists are a valid onboarding state before implementation work
+ * creates the first feature.
+ *
+ * @param cwd - Lifecycle workspace whose current scenario shards are checked.
+ * @throws Error when a scenario names a feature absent from the current spec.
+ */
+export function assertScenarioFeatureReferences(cwd: string): void {
+  const spec = loadSpec(cwd);
+  const featureIds = new Set(spec.features.map((feature) => feature.id));
+  for (const scenario of spec.scenarios ?? []) {
+    for (const featureId of scenario.features ?? []) {
+      if (!featureIds.has(featureId)) {
+        throw new Error(
+          `assertScenarioFeatureReferences: scenario ${scenario.id} references unknown feature ${featureId}`,
+        );
+      }
+    }
   }
 }
 

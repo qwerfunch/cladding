@@ -46,6 +46,16 @@ acceptance_criteria:
   - id: AC-8ded2bb9
     ears: event
     condition: "when Vitest's collected test total differs from a public README badge or release-status total"
-    text: "The release build shall fail with the file and collected total, while the explicit write mode shall update all six Markdown and HTML README variants only after every claim surface validates."
-    test_refs: ["tests/scripts/test-count.test.ts"]
-    notes: "WHY: the public 2522/2522 claim lagged the live 2551-test suite; deriving the number at build time prevents the reference implementation from publishing another stale all-pass total."
+    text: "When a Vitest-collected total differs from a registered public claim, the release check shall fail with the mismatching file and collected total."
+    test_refs: ["tests/scripts/test-count.test.ts#[covers:F-898783ee/AC-8ded2bb9] check identifies the mismatching README surface and collected total"]
+    notes: "2026-08-31 — Atomic split: retained prior compound text verbatim for non-normative history: The release build shall fail with the file and collected total, while the explicit write mode shall update all six Markdown and HTML README variants only after every claim surface validates. WHY: the public 2522/2522 claim lagged the live 2551-test suite; deriving the number at build time prevents the reference implementation from publishing another stale all-pass total."
+  - id: AC-533f2108
+    ears: event
+    condition: "when every registered public claim surface validates"
+    text: "When every registered public claim surface validates, explicit write mode shall update all six registered README surfaces."
+    test_refs: ["tests/scripts/test-count.test.ts#[covers:F-898783ee/AC-533f2108] write mode updates every registered README surface after complete preflight"]
+  - id: AC-5bf471be
+    ears: unwanted
+    condition: "if any registered public claim surface is malformed or partial"
+    text: "When any registered public claim surface is malformed or partial, explicit write mode shall leave every registered surface byte-identical."
+    test_refs: ["tests/scripts/test-count.test.ts#[covers:F-898783ee/AC-5bf471be] malformed preflight leaves every registered README surface byte-identical"]

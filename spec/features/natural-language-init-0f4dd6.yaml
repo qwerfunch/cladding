@@ -224,18 +224,31 @@ acceptance_criteria:
   - id: AC-015
     ears: event
     condition: when onboarding completes
-    action: report that ordinary natural-language development may continue,
-      distinguish on-demand checks from opt-in hook or CI enforcement, and
-      require each material feature to resolve its design impact before done
-    response: the handoff is truthful and Tier-B design grows selectively with the
-      project
-    text: When onboarding completes, the system shall report that ordinary
-      natural-language development may continue, distinguish on-demand checks
-      from opt-in hook or CI enforcement, and require each material feature to
-      resolve its design impact before done, so the handoff is truthful and
-      Tier-B design grows selectively with the project.
-    test_refs: [ tests/serve/server.test.ts, tests/cli/done.test.ts ]
-    evidence_refs: [ README.md, src/init/agents-md.ts, src/serve/server.ts ]
+    action: report that ordinary natural-language development may continue
+    response: the host receives a truthful completion handoff
+    text: When onboarding completes, the system shall report that ordinary natural-language development may continue.
+    test_refs:
+      - "tests/serve/init-tools.test.ts#[covers:F-0f4dd6/AC-015][covers:F-0f4dd6/AC-001] MCP completion hands ordinary natural-language development back to the host"
+    notes: |
+      ## Historical atomicity note — 2026-08-31
+      Reason: the former criterion combined continuation guidance, enforcement policy, and design-impact completion governance.
+      Previous compound criterion text (non-normative): When onboarding completes, the system shall report that ordinary natural-language development may continue, distinguish on-demand checks from opt-in hook or CI enforcement, and require each material feature to resolve its design impact before done, so the handoff is truthful and Tier-B design grows selectively with the project.
+  - id: AC-36fea3e9
+    ears: event
+    condition: when onboarding completes
+    action: distinguish on-demand checks from explicitly opt-in hook or CI enforcement
+    response: the completion handoff does not claim hooks or CI are enabled automatically
+    text: When onboarding completes, the system shall distinguish on-demand checks from explicitly opt-in hook or CI enforcement.
+    test_refs:
+      - "tests/cli/clarify.test.ts#[covers:F-0f4dd6/AC-36fea3e9][covers:F-195cb59e/AC-3b2026e1] LLM completion distinguishes on-demand checks from opt-in enforcement"
+  - id: AC-514670ea
+    ears: event
+    condition: when a material feature's structural design impact is review_required
+    action: refuse its completion until the impact is resolved
+    response: resolved structural impact permits the normal completion gate flow
+    text: When a material feature's structural design impact is review_required, the system shall refuse its completion until the impact is resolved.
+    test_refs:
+      - "tests/cli/done.test.ts#[covers:F-0f4dd6/AC-514670ea] review_required structural impact refuses completion while resolved impact permits the normal gate"
   - id: AC-016
     ears: event
     condition: when a host restarts its MCP server between the read-only preview and

@@ -17,7 +17,7 @@
 //   AC-ab85ee3e  debounce + read-only allowlist BEFORE any git spawn; ≤1 status/window
 //   AC-14c2e2ea  non-git / git-fail / empty-delta → silence, no snapshot, no error
 //   AC-4f2df3ee  a native edit refreshes the snapshot → no Bash re-attribution
-//   AC-977e6445  never a block decision; F-35954d19 ledger rules apply unchanged
+//   AC-977e6445  advisory-only context
 
 import {execFileSync} from 'node:child_process';
 import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync} from 'node:fs';
@@ -115,6 +115,13 @@ function bash(command: string, sessionId = 'sid-1'): string {
 }
 function edit(file: string, chars = 60): string {
   return runHookEvent('PostToolUse', {tool_name: 'Edit', tool_input: {file_path: file, new_string: 'x'.repeat(chars)}}, cwd);
+}
+function pushLedgerPath(): string {
+  return join(cwd, '.cladding', 'hook-push-ledger.json');
+}
+function writePushLedger(ledger: Record<string, unknown>): void {
+  mkdirSync(join(cwd, '.cladding'), {recursive: true});
+  writeFileSync(pushLedgerPath(), JSON.stringify(ledger), 'utf8');
 }
 function fired() {
   return readEvents(cwd).filter((e) => e.type === 'impact_card_fired');
@@ -333,10 +340,10 @@ describe('AC-4f2df3ee · native-edit snapshot refresh blocks Bash re-attribution
   });
 });
 
-// ─── AC-977e6445 · advisory only; ledger rules apply unchanged ───
+// ─── AC-977e6445 · advisory-only context ───
 
-describe('AC-977e6445 · never a block decision + F-35954d19 ledger rules', () => {
-  test('a Bash mutation renders stdout text, never a {"decision":"block"} JSON', () => {
+describe('AC-977e6445 · advisory-only context', () => {
+  test('[covers:F-e7d59c88/AC-977e6445] Bash mutation output is advisory-only context', () => {
     put('spec.yaml', makeSpec(['src/app.ts']));
     put('src/app.ts', V1);
     gitInit();
@@ -367,5 +374,72 @@ describe('AC-977e6445 · never a block decision + F-35954d19 ledger rules', () =
     expect(t1).not.toContain('\nbreaks:'); // degraded to the one-liner (one Tier-2 per (focus,file) is the dose)
     expect(t1.split('\n')).toHaveLength(1);
     expect(skips('dedup').length).toBeGreaterThanOrEqual(1);
+  });
+
+  test('[covers:F-e7d59c88/AC-278b34cd] native and Bash cards share one dedup fingerprint', () => {
+    put('spec.yaml', makeSpec(['src/app.ts']));
+    put('src/app.ts', V1);
+    gitInit();
+    gitCommitAll();
+    put('src/app.ts', V2);
+
+    const sessionId = 'cross-lane';
+    const native = runHookEvent('PostToolUse', {
+      tool_name: 'Edit', session_id: sessionId, tool_input: {file_path: 'src/app.ts', new_string: 'x'.repeat(60)},
+    }, cwd);
+    expect(native).toContain('\nbreaks: F-bbb222');
+
+    put('src/app.ts', V3);
+    rmSync(bashStamp(), {force: true});
+    const shell = bash("sed -i '' 's/2/3/' src/app.ts", sessionId);
+    expect(shell).toContain('cladding impact: src/app.ts → F-aaa111');
+    expect(shell).not.toContain('\nbreaks:');
+    expect(fired()).toHaveLength(1);
+    expect(skips('dedup')).toHaveLength(1);
+  });
+
+  test('[covers:F-e7d59c88/AC-3021d7dc] normal Bash cards honor the shared push budget', () => {
+    put('spec.yaml', makeSpec(['src/app.ts']));
+    put('src/app.ts', V1);
+    gitInit();
+    gitCommitAll();
+    put('src/app.ts', V2);
+
+    const sessionId = 'normal-bash-budget';
+    writePushLedger({
+      sessionKey: `sid:${sessionId}`,
+      windowStart: Date.now(),
+      est_tokens_pushed: 2600,
+      fingerprints: {},
+      notice_printed: false,
+    });
+    expect(bash("sed -i '' 's/1/2/' src/app.ts", sessionId)).toBe('cladding: push budget exhausted this session');
+    expect(fired()).toHaveLength(0);
+    expect(skips('ledger_exhausted')).toHaveLength(1);
+  });
+
+  test('[covers:F-e7d59c88/AC-fc9532da] Bash telemetry emits only shared skip reasons', () => {
+    put('spec.yaml', makeSpec(['src/app.ts']));
+    expect(bash('ls')).toBe('');
+    const aggregatePath = join(cwd, '.cladding', 'hook-skip-agg.json');
+    const aggregate = JSON.parse(readFileSync(aggregatePath, 'utf8')) as Record<string, unknown>;
+    writeFileSync(aggregatePath, JSON.stringify({...aggregate, windowStart: 0}), 'utf8');
+    expect(bash('ls')).toBe('');
+
+    const shared = new Set([
+      'not_write_tool', 'unwatched_path', 'no_spec', 'debounced', 'trivial_edit',
+      'owner_miss', 'spec_unreadable', 'dedup', 'ledger_exhausted',
+    ]);
+    expect(skips()).toHaveLength(1);
+    expect(skips().every((event) => shared.has(String(event.payload.reason)))).toBe(true);
+  });
+
+  test('[covers:F-6ba22c5c/AC-76331365] Bash delta discovery failure is error-as-silence without a fabricated skip', () => {
+    put('spec.yaml', makeSpec(['src/app.ts']));
+    put('src/app.ts', V2);
+
+    expect(bash("sed -i '' 's/1/2/' src/app.ts")).toBe('');
+    expect(skips()).toHaveLength(0);
+    expect(fired()).toHaveLength(0);
   });
 });

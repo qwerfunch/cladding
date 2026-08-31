@@ -357,7 +357,7 @@ describe('runClarifyCommand', () => {
     expect(loadState(dir)!.status).toBe('needs_review');
   });
 
-  test('[covers:F-195cb59e/AC-3b2026e1] LLM returns no new questions AND every existing question is answered → marks done with first-feature guidance', async () => {
+  test('[covers:F-0f4dd6/AC-36fea3e9][covers:F-195cb59e/AC-3b2026e1] LLM completion distinguishes on-demand checks from opt-in enforcement', async () => {
     seedState(dir, [{question: 'Q1?', answer: null}]);
     seedArtifacts(dir);
     dispatchMock.mockResolvedValueOnce(
@@ -385,6 +385,9 @@ describe('runClarifyCommand', () => {
     expect(out).toContain('first feature');
     expect(out).toContain('acceptance criteria');
     expect(out).toContain('before writing code');
+    expect(out).toContain('clad check');
+    expect(out).toContain('opt-in');
+    expect(out).toContain('not enabled automatically');
   });
 
   test('--json emits a RefineReport', async () => {

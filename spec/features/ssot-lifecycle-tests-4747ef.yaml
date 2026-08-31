@@ -18,16 +18,57 @@ depends_on:
 acceptance_criteria:
   - id: AC-001
     ears: ubiquitous
-    action: ship a 6-stage greenfield lifecycle test that exercises the full intent-aware onboarding + refine + re-scan path while asserting tier integrity at every step
-    response: 'tests/scenarios/greenfield-lifecycle.test.ts walks 6 stages: S1 clad init with intent (LLM-mocked) verifies all 4 tiers present with tier banners, S2 clad refine verifies state progression + proposal divert, S3 simulates code writing, S4 cross-tier detectors emit zero errors, S5 re-scan diverts conventions/architecture to proposal, S6 final digest + assertNoBudgetOverages confirms no regression; greenfield uses GREENFIELD_S1_RESPONSE + GREENFIELD_S2_RESPONSE + GREENFIELD_S5_RESPONSE realistic mock bodies'
-    text: The system shall ship a 6-stage greenfield lifecycle test that exercises the full intent-aware onboarding + refine + re-scan path while asserting tier integrity at every step.
-    test_refs: [tests/scenarios/greenfield-lifecycle.test.ts]
+    action: complete the declared greenfield lifecycle in one valid initialized workspace through current public command or core surfaces
+    response: the lifecycle uses onboarding, clarification, re-scan, feature, scenario, and capability transitions without private mutation shortcuts
+    text: The system shall complete the declared greenfield lifecycle in one valid initialized workspace through current public command or core surfaces.
+    test_refs:
+      - "tests/scenarios/greenfield-lifecycle.test.ts#[covers:F-4747ef/AC-001] completes the declared greenfield lifecycle in one valid initialized workspace through public surfaces"
+    notes: |
+      ## Historical atomicity note — 2026-08-31
+      Reason: the former criterion combined lifecycle completion, transition coverage, and scenario-reference integrity.
+      Previous compound criterion text (non-normative): The system shall ship a 6-stage greenfield lifecycle test that exercises the full intent-aware onboarding + refine + re-scan path while asserting tier integrity at every step.
+  - id: AC-7e3e3f37
+    ears: ubiquitous
+    action: exercise every declared greenfield onboarding and refinement transition in the same continuing workspace through its current command surface
+    response: initialization, clarification, and re-scan stay in one workspace lifecycle
+    text: The system shall exercise every declared greenfield onboarding and refinement transition in the same continuing workspace through its current command surface.
+    test_refs:
+      - "tests/scenarios/greenfield-lifecycle.test.ts#[covers:F-4747ef/AC-7e3e3f37] exercises every declared greenfield onboarding and refinement transition in the same continuing workspace"
+  - id: AC-e5aababf
+    ears: event
+    condition: when each greenfield lifecycle transition completes
+    action: retain structurally valid scenario-to-feature references
+    response: empty references remain valid before a feature exists and every nonempty reference resolves afterward
+    text: After each greenfield lifecycle transition, the system shall retain structurally valid scenario-to-feature references.
+    test_refs:
+      - "tests/scenarios/greenfield-lifecycle.test.ts#[covers:F-4747ef/AC-e5aababf] retains structurally valid scenario-to-feature references after every greenfield lifecycle transition"
   - id: AC-002
     ears: ubiquitous
-    action: ship a 6-stage existing-adoption lifecycle test using a populated TypeScript fixture so the existing-project code path is exercised end-to-end
-    response: 'tests/scenarios/existing-adoption-lifecycle.test.ts walks 6 stages over the sample-existing-ts fixture (8 source files + package.json + README): S1 seed fixture, S2 clad init with adoption intent (LLM-mocked existing-adoption response) verifies observed layers (api/lib/util) + README-derived capabilities, S3 clad refine preserves Tier A spec while diverting Tier B to proposal, S4 hand-author new feature shard with tier banner, S5 bind feature to capability + CAPABILITIES_FEATURE_MAPPING clean, S6 digest + size budget assertion'
-    text: The system shall ship a 6-stage existing-adoption lifecycle test using a populated TypeScript fixture so the existing-project code path is exercised end-to-end.
-    test_refs: [tests/scenarios/existing-adoption-lifecycle.test.ts]
+    action: complete the declared adoption lifecycle from the committed populated TypeScript fixture in one continuing workspace
+    response: the existing-project path proceeds through onboarding, refinement review, feature creation, and bindings without resetting the workspace
+    text: The system shall complete the declared adoption lifecycle from the committed populated TypeScript fixture in one continuing workspace.
+    test_refs:
+      - "tests/scenarios/existing-adoption-lifecycle.test.ts#[covers:F-4747ef/AC-002] completes one continuous adoption lifecycle from the committed populated TypeScript fixture"
+    notes: |
+      ## Historical atomicity note — 2026-08-31
+      Reason: the former criterion combined adoption lifecycle completion, collision preservation, and scenario-reference integrity.
+      Previous compound criterion text (non-normative): The system shall ship a 6-stage existing-adoption lifecycle test using a populated TypeScript fixture so the existing-project code path is exercised end-to-end.
+  - id: AC-4e9c049b
+    ears: event
+    condition: when adoption refinement encounters authored collision inputs
+    action: preserve the inputs byte-identically and expose the proposal escape end-to-end
+    response: reviewed proposals are observable before resolution and are consumed only through the review flow
+    text: The system shall preserve authored collision inputs byte-identically and expose the proposal escape end-to-end during adoption.
+    test_refs:
+      - "tests/scenarios/existing-adoption-lifecycle.test.ts#[covers:F-4747ef/AC-4e9c049b] preserves authored collision inputs byte-identically and exposes the proposal escape end-to-end during adoption"
+  - id: AC-e9094179
+    ears: event
+    condition: when each adoption, refinement, or binding transition completes
+    action: retain structurally valid scenario-to-feature references
+    response: empty references remain valid before a feature exists and every nonempty reference resolves afterward
+    text: After each adoption, refinement, and binding transition, the system shall retain structurally valid scenario-to-feature references.
+    test_refs:
+      - "tests/scenarios/existing-adoption-lifecycle.test.ts#[covers:F-4747ef/AC-e9094179] retains structurally valid scenario-to-feature references after adoption, refinement, and binding transitions"
   - id: AC-003
     ears: ubiquitous
     action: introduce a portable token-measurement library so persona prompts, meta docs, LLM dispatcher prompts, and generated artifacts can all be measured uniformly

@@ -2,9 +2,11 @@
 
 # A/B Evaluation: existing-adoption
 
-_Snapshot note (2026-07-05): detector count was 25 at this run; the suite has since grown to 41 (0.8.x). Body preserved as an append-only snapshot._
+_Snapshot note (2026-07-05): this historical M2 report reflects the detector registry available at that run. Body preserved as an append-only snapshot._
 
 **Intent:** `이 프로젝트 분석해서 환불 기능 추가`
+
+**Fixture:** `sample-existing-ts`
 
 Existing-adoption case: a populated 8-source-file TypeScript service
 (`sample-existing-ts`) + an intent to add a refund feature.
@@ -51,8 +53,8 @@ No spec, no architecture invariants — just code on the existing tree.
 | Test files | 1 | 1 | +0 |
 | Test LoC | 14 | 14 | +0 |
 | Test cases | 1 | 1 | +0 |
-| Total chars (artifacts + code) | 11109 | 3864 | +7245 |
-| Estimated tokens | 2780 | 967 | +1813 |
+| Total chars (artifacts + code) | 11108 | 3864 | +7244 |
+| Estimated tokens | 2779 | 967 | +1812 |
 
 **Detector outcomes** (META_INTEGRITY + HARDCODED_SECRET excluded — toolchain-only checks):
 
@@ -90,8 +92,8 @@ B (Vanilla)  — errors: 1  warns: 3  infos: 28
 | Test files | 2 | 2 | +0 |
 | Test LoC | 27 | 27 | +0 |
 | Test cases | 3 | 3 | +0 |
-| Total chars (artifacts + code) | 12629 | 5115 | +7514 |
-| Estimated tokens | 3160 | 1280 | +1880 |
+| Total chars (artifacts + code) | 12628 | 5115 | +7513 |
+| Estimated tokens | 3159 | 1280 | +1879 |
 
 **Detector outcomes** (META_INTEGRITY + HARDCODED_SECRET excluded — toolchain-only checks):
 
@@ -111,7 +113,7 @@ B (Vanilla)  — errors: 1  warns: 3  infos: 28
 - **Spec ↔ code traceability**: cladding emits 1 feature(s), 2 AC(s), 1 scenario(s), 3 capability(s); vanilla has 0 of each.
 - **Architecture enforcement**: cladding declares 3 layer(s) with 0 forbidden-import rule(s); vanilla has 0.
 - **Detector behavior**: cladding-managed tree → 1 error(s) / 1 warn(s) / 11 info(s). Vanilla tree → 1 / 3 / 28. The detectors that gate against spec (REFERENCE_INTEGRITY, MISSING_IMPLEMENTATION, ARCHITECTURE_FROM_SPEC, CAPABILITIES_FEATURE_MAPPING) need cladding's artifacts to evaluate — without them they silently pass. The "0 errors on vanilla" therefore is **absence of signal**, not absence of drift.
-- **Token cost**: cladding's cumulative artifact + code consumes ~3160 tokens vs vanilla's ~1280 (heuristic chars/4) — Δ ≈ 1880 tokens, the price of structure.
+- **Token cost**: cladding's cumulative artifact + code consumes ~3159 tokens vs vanilla's ~1280 (heuristic chars/4) — Δ ≈ 1879 tokens, the price of structure.
 - **Code surface**: vanilla writes 9 source file(s) / 144 LoC + 2 test file(s) / 3 test case(s); cladding writes 9 / 128 + 2 / 3. (Vanilla front-loads code, cladding front-loads spec — both converge by M2.)
 
 ## Outcome Quality (F-ba2e05)
@@ -125,9 +127,9 @@ Each row = one realistic drift event injected into both groups at M2+. "Caught" 
 | DI-1 Stale module reference (rename src/api/refund.ts → src/api/refund_renamed.ts without spec update) | ✅ | MISSING_IMPLEMENTATION, STATUS_DRIFT | · | — |
 | DI-2 Architecture violation (src/util/log.ts imports ../lib/refund.js) | ✅ | ARCHITECTURE_FROM_SPEC | · | — |
 | DI-3 Hardcoded secret (add API key constant to src/lib/refund.ts) | · | — | · | — |
-| DI-4 Untested AC (add AC-003 to spec/features/refund-flow-4db939.yaml without test) | ✅ | MISSING_TESTS | N/A | N/A |
+| DI-4 Unverified criterion (add AC-003 to spec/features/refund-flow-4db939.yaml without test) | ✅ | MISSING_TESTS | N/A | N/A |
 
-**Catch rate**: A = 3/4 · B = 0/3 · **cladding-exclusive catches = 3**
+**Catch rate (applicable scenarios)**: A = 3/4 · B = 0/3 · **cladding-exclusive catches = 3**
 
 ### AI-Query Productivity
 
@@ -141,14 +143,15 @@ Each row = one domain question. "Files opened" = deterministic file-IO an answer
 | Q4 Which capabilities are bound to which features? | 1 | api=[F-4db939] | N | no spec/capabilities.yaml — vanilla has no capability conce… |
 | Q5 How many test scenarios are declared? | 1 | 1 scenario shard(s) | 2 | 2 test file(s) (weak proxy — no canonical scenario declarat… |
 
-**Answerability**: A = 5/5 answered · B = 2/5 answered
+**Answerability (applicable queries)**: A = 5/5 answered · B = 2/5 answered
 **Low-cost answers (≤1 file)**: A = 5/5 · B = 0/5
 
 ### What this means
 
 - **H6 — Cladding catches drift vanilla misses**: 3/4 cladding-exclusive catches. The non-exclusive catches (where both groups catch) are toolchain-only detectors like HARDCODED_SECRET that fire regardless of spec presence — useful baseline but not where cladding's design pays off.
 - **H7 — Cladding makes AI agents productive**: A answers 5/5 queries from ≤1 file; B answers 0/5. For the unanswerable B queries, the tree has no canonical source — an AI agent would either give up or hallucinate from inferred context.
-- **H8 — Iron Law gates measure detector activity, not codebase health**: when `clad check --strict` runs against vanilla, spec-required detectors silently report 0 findings. The same gate on cladding-managed code uses all 25 detectors. Same gate label, very different evaluation surface.
+- **H8 — Iron Law gates measure detector activity, not codebase health**: when `clad check --strict` runs against vanilla, spec-required detectors silently report 0 findings. The same gate on cladding-managed code uses the current registered detector set. Same gate label, very different evaluation surface.
+- **Release evidence**: this is a historical M2 measurement, not a release claim; no later B5 signed receipt is recorded.
 
 ## How to reproduce
 

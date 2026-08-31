@@ -21,13 +21,9 @@ describe('strictSkipViolations (F-67d2e9)', () => {
     expect(strictSkipViolations(planned, skip('stage_2.3')).length).toBe(0);
   });
 
-  test('2.4: safe declared deliverable + done feature → violation; opt-out or undeclared deliverable → none', () => {
+  test('[covers:F-7076f7/AC-7f8630] strict skip policy does not emit a stage_2.4 smoke-demand duplicate', () => {
     const safe = {project: {name: 'x', deliverable: {path: './run', is_safe_to_smoke: true}}, features: [{id: 'F-a', status: 'done'}]} as never;
-    expect(strictSkipViolations(safe, skip('stage_2.4')).map((v) => v.stage)).toEqual(['stage_2.4']);
-    const optOut = {project: {name: 'x', deliverable: {path: './run', is_safe_to_smoke: false}}, features: [{id: 'F-a', status: 'done'}]} as never;
-    expect(strictSkipViolations(optOut, skip('stage_2.4'))).toEqual([]);
-    const undeclared = {project: {name: 'x'}, features: [{id: 'F-a', status: 'done'}]} as never;
-    expect(strictSkipViolations(undeclared, skip('stage_2.4'))).toEqual([]);
+    expect(strictSkipViolations(safe, skip('stage_2.4'))).toEqual([]);
   });
 
   test('a demanded stage that PASSED (not skipped) yields no violation', () => {
@@ -46,6 +42,6 @@ describe('strictSkipViolations (F-67d2e9)', () => {
       {stage: 'stage_2.3', status: 'skip' as const},
       {stage: 'stage_2.4', status: 'skip' as const},
     ];
-    expect(strictSkipViolations(spec, outcomes).map((v) => v.stage)).toEqual(['stage_1.1', 'stage_2.1', 'stage_2.3', 'stage_2.4']);
+    expect(strictSkipViolations(spec, outcomes).map((v) => v.stage)).toEqual(['stage_1.1', 'stage_2.1', 'stage_2.3']);
   });
 });

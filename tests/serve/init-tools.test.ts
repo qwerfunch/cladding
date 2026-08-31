@@ -307,7 +307,7 @@ describe('serve/server — natural-language init tools', () => {
     }
   });
 
-  test('[covers:F-0f4dd6/AC-001] tools-only MCP client drives init and clarify without sampling', async () => {
+  test('[covers:F-0f4dd6/AC-015][covers:F-0f4dd6/AC-001] MCP completion hands ordinary natural-language development back to the host', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const {token, confirmation} = await prepare(client, {mode: 'idea', intent: 'B2B payment SaaS'});
@@ -327,6 +327,7 @@ describe('serve/server — natural-language init tools', () => {
         status: 'done',
         remainingQuestions: 0,
         refinementSource: 'host',
+        completionMessage: expect.stringContaining('Ordinary natural-language development may continue'),
       });
     } finally {
       await cleanup();

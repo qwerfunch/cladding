@@ -12,7 +12,8 @@ import process from 'node:process';
 import {fileURLToPath} from 'node:url';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
-const SITES = [
+/** Registered public README surfaces carrying the collected test claim. */
+export const CLAIM_SITES = [
   {file: 'README.md', kind: 'markdown'},
   {file: 'README.ko.md', kind: 'markdown'},
   {file: 'README.ja.md', kind: 'markdown'},
@@ -108,25 +109,53 @@ export function collectTestCount() {
   return collected.length;
 }
 
-function main() {
-  const mode = process.argv[2] ?? '--check';
-  if (!['--check', '--write'].includes(mode) || process.argv.length > 3) {
+/**
+ * Runs the public-count command against one repository root.
+ *
+ * Every surface is read and rewritten before the first write, preserving the
+ * command's all-surface preflight invariant without claiming mid-write rollback.
+ *
+ * @param {'--check'|'--write'} mode Read-only check or explicit rewrite mode.
+ * @param {{root?: string, collected?: number}} options Test-only root/count seams.
+ * @returns {number} The collected test total checked or written.
+ * @throws {Error} When a claim is stale, malformed, or partial.
+ * @see spec/features/self-count-guard-898783ee.yaml AC-8ded2bb9
+ */
+export function runTestCount(mode, options = {}) {
+  if (!['--check', '--write'].includes(mode)) {
     throw new Error('usage: node scripts/test-count.mjs [--check|--write]');
   }
-  const expected = collectTestCount();
-  const bodies = new Map();
-  for (const site of SITES) {
-    const body = readFileSync(join(ROOT, site.file), 'utf8');
-    bodies.set(site.file, body);
-    if (mode === '--check') checkClaimText(body, site.kind, expected, site.file);
-    else rewriteClaimText(body, site.kind, expected, site.file);
-  }
-  if (mode === '--write') {
-    for (const site of SITES) {
-      const next = rewriteClaimText(bodies.get(site.file), site.kind, expected, site.file);
-      writeFileSync(join(ROOT, site.file), next, 'utf8');
+  const root = options.root ?? ROOT;
+  const expected = options.collected ?? collectTestCount();
+  const bodies = new Map(
+    CLAIM_SITES.map((site) => [site.file, readFileSync(join(root, site.file), 'utf8')]),
+  );
+  if (mode === '--check') {
+    for (const site of CLAIM_SITES) {
+      checkClaimText(bodies.get(site.file), site.kind, expected, site.file);
     }
+    return expected;
   }
+
+  // Finish every parse/rewrite before mutating any README surface.
+  const rewritten = new Map(
+    CLAIM_SITES.map((site) => [
+      site.file,
+      rewriteClaimText(bodies.get(site.file), site.kind, expected, site.file),
+    ]),
+  );
+  for (const site of CLAIM_SITES) {
+    writeFileSync(join(root, site.file), rewritten.get(site.file), 'utf8');
+  }
+  return expected;
+}
+
+function main() {
+  const mode = process.argv[2] ?? '--check';
+  if (process.argv.length > 3) {
+    throw new Error('usage: node scripts/test-count.mjs [--check|--write]');
+  }
+  const expected = runTestCount(mode);
   process.stdout.write(`cladding test-count: ${expected} tests · ${mode.slice(2)} passed\n`);
 }
 

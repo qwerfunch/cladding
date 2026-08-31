@@ -1,6 +1,6 @@
-// Cladding · unit tests for cli/scan.ts (v0.3.24, F-x)
+// Cladding · unit tests for cli/scan/ (v0.3.24, F-x)
 //
-// Deterministic 14-convention extractor. Each branch is exercised on
+// Deterministic convention extractor. Each branch is exercised on
 // a synthetic source tree under tmpdir, then asserted against the
 // recorded heuristic (majority rule for most signals).
 
@@ -11,6 +11,7 @@ import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
 import {scanRoot, walk} from '../../src/cli/scan/index.js';
 import {groupByLayer} from '../../src/cli/scan/architecture.js';
+import type {Conventions} from '../../src/cli/scan/types.js';
 
 function seed(dir: string, layout: Record<string, string>): void {
   for (const [path, content] of Object.entries(layout)) {
@@ -50,7 +51,7 @@ describe('scanRoot', () => {
     expect(existsSync(join(process.cwd(), 'src/cli/scan.ts'))).toBe(false);
   });
 
-  test('detects two-space indent majority', () => {
+  test('[covers:F-9b643e/AC-001] extracts indentation from observed source files', () => {
     seed(dir, {
       'src/a/x.ts': 'export const x = 1;\nfunction y() {\n  return 2;\n}\n',
       'src/a/y.ts': 'function z() {\n  return 3;\n}\n',
@@ -114,6 +115,81 @@ describe('scanRoot', () => {
       'tests/x.test.ts': "import {a} from '../src/a/x.js';\n",
     });
     expect(scanRoot({cwd: dir}).conventions.testLocation).toBe('tests-dir');
+  });
+
+  test('[covers:F-9b643e/AC-0c18509d] extracts quote, semicolon, export, and constant naming conventions from observed source files', () => {
+    seed(dir, {
+      'src/a/x.ts': [
+        "export const FIRST_VALUE = 'one';",
+        "export const SECOND_VALUE = 'two';",
+        "export const thirdValue = 'three';",
+        "export const fourthValue = 'four';",
+        "export const fifthValue = 'five';",
+        "export const sixthValue = 'six';",
+        "export const seventhValue = 'seven';",
+      ].join('\n'),
+    });
+
+    const conventions = scanRoot({cwd: dir}).conventions;
+    expect(conventions.quote).toBe('single');
+    expect(conventions.semicolon).toBe('present');
+    expect(conventions.namingExports).toBe('camelCase');
+    expect(conventions.namingConstants).toBe('UPPER_SNAKE');
+  });
+
+  test('[covers:F-9b643e/AC-499af50d] extracts documentation, imports, exports, errors, types, headers, test location, and boilerplate conventions from observed source files', () => {
+    seed(dir, {
+      'src/a/module.ts': [
+        '// Cladding · fixture module',
+        "import {readFileSync} from 'node:fs';",
+        "import {z} from 'zod';",
+        '/**',
+        ' * Uses a dependency.',
+        ' * @param input source input.',
+        ' * @returns processed output.',
+        ' */',
+        'export function processInput(input: string): string {',
+        "  if (!input) throw new Error('input required');",
+        '  return z.string().parse(readFileSync(input, \'utf8\'));',
+        '}',
+      ].join('\n'),
+      'src/a/types.ts': 'export interface Input { readonly value: string; }\n',
+      'src/b/types.ts': 'export interface Output { readonly value: string; }\n',
+      'tests/process.test.ts': "import {processInput} from '../src/a/module.js';\nprocessInput;\n",
+    });
+
+    const conventions = scanRoot({cwd: dir}).conventions;
+    expect(conventions.docBlockRatio).toBeGreaterThan(0);
+    expect(conventions.docTagCounts).toMatchObject({'@param': 1, '@returns': 1});
+    expect(conventions.importOrder).toBe('node-first');
+    expect(conventions.exportPattern).toBe('named-only');
+    expect(conventions.errorHandling).toBe('throw-primary');
+    expect(conventions.typeDefLocation).toBe('types-file');
+    expect(conventions.fileHeaderPattern).toContain('// Cladding · fixture module');
+    expect(conventions.testLocation).toBe('tests-dir');
+    expect(conventions.moduleBoilerplate).toContain('export function processInput');
+  });
+
+  test('[covers:F-9b643e/AC-d268d58a] the Conventions type and extractor expose one exact emitted field set', () => {
+    seed(dir, {'src/a/module.ts': 'export const moduleValue = 1;\n'});
+
+    const conventions: Conventions = scanRoot({cwd: dir}).conventions;
+    expect(Object.keys(conventions).sort()).toEqual([
+      'docBlockRatio',
+      'docTagCounts',
+      'errorHandling',
+      'exportPattern',
+      'fileHeaderPattern',
+      'importOrder',
+      'indent',
+      'moduleBoilerplate',
+      'namingConstants',
+      'namingExports',
+      'quote',
+      'semicolon',
+      'testLocation',
+      'typeDefLocation',
+    ]);
   });
 
   test('[covers:F-9b643e/AC-002] layers reflect top-level src/ directories', () => {

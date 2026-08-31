@@ -12,12 +12,12 @@
 //   - budget halt (MAX_ITERATIONS) → exits loop
 //
 // Heavy-mock approach: spec/load, agents/loader, drive/agent (runAgent),
-// stage runners, hitl/audit, events/log all stubbed via vi.mock so the
+// stage runners, the compact F6 observer, and events/log are stubbed via vi.mock so the
 // loop's control flow can be exercised deterministically.
 
-import {existsSync, mkdtempSync, readFileSync, rmSync} from 'node:fs';
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {dirname, join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
 vi.mock('../../src/spec/load.js', () => ({loadSpec: vi.fn()}));
@@ -35,6 +35,23 @@ vi.mock('../../src/stages/type.js', () => ({runType: vi.fn()}));
 vi.mock('../../src/stages/lint.js', () => ({runLint: vi.fn()}));
 vi.mock('../../src/stages/arch.js', () => ({runArch: vi.fn()}));
 vi.mock('../../src/stages/uat.js', () => ({runUat: vi.fn()}));
+vi.mock('../../src/drive/assurance.js', () => ({
+  reduceDriveGateObservation: vi.fn(() => ({
+    inputSha256: 'drive-observer-digest'.padEnd(64, '0'),
+    gates: [
+      {stage: 'stage_1.1', status: 'pass', adapter: {id: 'legacy-stage:stage_1.1', version: '1'}},
+      {stage: 'stage_1.2', status: 'pass', adapter: {id: 'legacy-stage:stage_1.2', version: '1'}},
+      {stage: 'stage_1.5', status: 'pass', adapter: {id: 'legacy-stage:stage_1.5', version: '1'}},
+    ],
+    assurance: {
+      profile: 'feedback',
+      assurance_level: 'L1',
+      state: 'green',
+      profile_complete: true,
+      obligation_sha256: 'drive-obligation-digest'.padEnd(64, '0'),
+    },
+  })),
+}));
 vi.mock('../../src/events/log.js', () => ({
   appendEvent: vi.fn(),
   newEvent: (type: string, payload: Record<string, unknown>) => ({
@@ -44,7 +61,6 @@ vi.mock('../../src/events/log.js', () => ({
     payload,
   }),
 }));
-vi.mock('../../src/hitl/audit.js', () => ({appendEvidence: vi.fn()}));
 vi.mock('../../src/core/checkpoint.js', () => ({
   recordCheckpoint: vi.fn(() => ({
     featureId: 'F-mock',
@@ -68,13 +84,6 @@ vi.mock('../../src/ui/pulse.js', () => ({
   pulseProgress: vi.fn(),
   pulseProgressEnd: vi.fn(),
 }));
-vi.mock('../../src/hitl/identity.js', async () => {
-  const actual = await vi.importActual<typeof import('../../src/hitl/identity.js')>(
-    '../../src/hitl/identity.js',
-  );
-  // Spy on `newEvidence` so the per-AC fan-out can be inspected.
-  return {...actual, newEvidence: vi.fn(actual.newEvidence)};
-});
 // Pre-flight health check (v0.2.23) — stub a healthy adapter so the
 // existing control-flow tests are unaffected. Tests that exercise the
 // pre-flight failure path override `healthCheck` per test.
@@ -97,8 +106,6 @@ const {runType} = await import('../../src/stages/type.js');
 const {runLint} = await import('../../src/stages/lint.js');
 const {runArch} = await import('../../src/stages/arch.js');
 const {runUat} = await import('../../src/stages/uat.js');
-const identity = await import('../../src/hitl/identity.js');
-const newEvidenceMock = identity.newEvidence as unknown as ReturnType<typeof vi.fn>;
 const checkpointMod = await import('../../src/core/checkpoint.js');
 const recordCheckpointMock = checkpointMod.recordCheckpoint as unknown as ReturnType<typeof vi.fn>;
 const findLatestCheckpointMock = checkpointMod.findLatestCheckpoint as unknown as ReturnType<typeof vi.fn>;
@@ -224,6 +231,26 @@ describe('runDriveLoop', () => {
     );
     const r = await runDriveLoop({cwd: dir});
     expect(r.halt.class).toBe('BLOCKED_FEATURE');
+  });
+
+  test('[covers:F-048/AC-083] selects the first ready non-archived feature in authored dependency order', async () => {
+    loadSpecMock.mockReturnValueOnce(
+      specOf([
+        {id: 'F-done', status: 'done'},
+        {id: 'F-archived', status: 'archived'},
+        {id: 'F-blocked', status: 'planned', depends_on: ['F-later']},
+        {id: 'F-first', status: 'planned'},
+        {id: 'F-second', status: 'planned'},
+        {id: 'F-later', status: 'planned'},
+      ]),
+    );
+
+    const result = await runDriveLoop({cwd: dir});
+
+    expect(result.halt.class).toBe('ALL_FEATURES_DONE');
+    expect(result.featuresTouched).toEqual(['F-first', 'F-second', 'F-later', 'F-blocked']);
+    expect(result.featuresTouched).not.toContain('F-done');
+    expect(result.featuresTouched).not.toContain('F-archived');
   });
 
   test('specialist throws → LLM_UNAVAILABLE halt', async () => {
@@ -532,63 +559,40 @@ describe('runDriveLoop', () => {
     });
   });
 
-  // Atomic AC ↔ Evidence (v0.3.18, F-12d740) — when a feature
-  // declares acceptance_criteria, the drive loop fans evidence out
-  // one entry per AC so anti-self-cert.checkAc() can attribute
-  // gates at AC granularity. Without an `acId` the guard cannot
-  // tell which AC is missing its human-author sign-off.
-  describe('atomic AC ↔ evidence fan-out (F-12d740)', () => {
-    test('[covers:F-12d740/AC-001][covers:F-12d740/AC-003] feature with acceptance_criteria → evidence recorded per AC', async () => {
-      loadSpecMock.mockReturnValueOnce(
-        specOf([
-          {
-            id: 'F-001',
-            status: 'planned',
-            acceptance_criteria: [{id: 'AC-001'}, {id: 'AC-002'}, {id: 'AC-003'}],
-          },
-        ]),
-      );
-      newEvidenceMock.mockClear();
-      const r = await runDriveLoop({cwd: dir});
-      expect(r.halt.class).toBe('ALL_FEATURES_DONE');
-      const evidenceCalls = newEvidenceMock.mock.calls.map((c) => c[0]);
-      const featureEvidence = evidenceCalls.filter((e) => e.featureId === 'F-001');
-      // One evidence per AC — three entries, each carrying its acId.
-      expect(featureEvidence).toHaveLength(3);
-      expect(featureEvidence.map((e) => e.acId)).toEqual(['AC-001', 'AC-002', 'AC-003']);
-      // Every entry stays a tool-author L1 pass — anti-self-cert
-      // still requires a human evidence on top of these.
-      for (const e of featureEvidence) {
-        expect(e.stage).toBe('stage_1.3');
-        expect(e.kind).toBe('pass');
-        expect(e.identity.author).toBe('tool');
-        expect(e.identity.name).toBe('clad-drive');
-      }
-    });
+  test('[covers:F-048/AC-dff8f340] creates fallback stubs only for absent declared modules after zero mutations', async () => {
+    const existing = join(dir, 'src', 'already-there.ts');
+    mkdirSync(dirname(existing), {recursive: true});
+    writeFileSync(existing, 'export const preserved = true;\n');
+    loadSpecMock.mockReturnValueOnce(specOf([{
+      id: 'F-001',
+      status: 'planned',
+      modules: ['src/already-there.ts', 'src/missing.ts'],
+    }]));
 
-    test('feature without acceptance_criteria → single feature-scoped evidence (fallback)', async () => {
-      loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-002', status: 'planned'}]));
-      newEvidenceMock.mockClear();
-      const r = await runDriveLoop({cwd: dir});
-      expect(r.halt.class).toBe('ALL_FEATURES_DONE');
-      const evidenceCalls = newEvidenceMock.mock.calls.map((c) => c[0]);
-      const featureEvidence = evidenceCalls.filter((e) => e.featureId === 'F-002');
-      expect(featureEvidence).toHaveLength(1);
-      expect(featureEvidence[0].acId).toBeUndefined();
-    });
+    const result = await runDriveLoop({cwd: dir});
 
-    test('[covers:F-12d740/AC-002] feature with empty acceptance_criteria array → fallback to feature-scoped evidence', async () => {
-      loadSpecMock.mockReturnValueOnce(
-        specOf([{id: 'F-003', status: 'planned', acceptance_criteria: []}]),
-      );
-      newEvidenceMock.mockClear();
-      const r = await runDriveLoop({cwd: dir});
-      expect(r.halt.class).toBe('ALL_FEATURES_DONE');
-      const evidenceCalls = newEvidenceMock.mock.calls.map((c) => c[0]);
-      const featureEvidence = evidenceCalls.filter((e) => e.featureId === 'F-003');
-      expect(featureEvidence).toHaveLength(1);
-      expect(featureEvidence[0].acId).toBeUndefined();
-    });
+    expect(result.halt.class).toBe('ALL_FEATURES_DONE');
+    expect(result.stubsCreated).toEqual(['src/missing.ts']);
+    expect(readFileSync(existing, 'utf8')).toBe('export const preserved = true;\n');
+    expect(existsSync(join(dir, 'src', 'missing.ts'))).toBe(true);
+    expect(existsSync(join(dir, 'src', 'undeclared.ts'))).toBe(false);
+
+    loadSpecMock.mockReturnValueOnce(specOf([{
+      id: 'F-002',
+      status: 'planned',
+      modules: ['src/declared-but-unwritten.ts'],
+    }]));
+    runAgentMock.mockReset();
+    runAgentMock
+      .mockResolvedValueOnce({result: {identity: {name: 'specialist'}, mutations: [
+        {kind: 'create', path: 'src/adapter-authored.ts', contents: 'export const authored = true;\n'},
+      ]}})
+      .mockResolvedValueOnce({result: {identity: {name: 'reviewer'}, mutations: []}});
+
+    const authored = await runDriveLoop({cwd: dir});
+    expect(authored.stubsCreated).toEqual([]);
+    expect(existsSync(join(dir, 'src', 'adapter-authored.ts'))).toBe(true);
+    expect(existsSync(join(dir, 'src', 'declared-but-unwritten.ts'))).toBe(false);
   });
 
   test('happy path: single feature → ALL_FEATURES_DONE', async () => {

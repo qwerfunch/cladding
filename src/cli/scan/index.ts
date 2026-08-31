@@ -26,7 +26,7 @@ import {walk} from './walker.js';
 import type {ScanOptions, ScanResult} from './types.js';
 
 /**
- * Walks the project, collects 14 convention signals, infers
+ * Walks the project, collects observed convention fields, infers
  * architecture layers + forbidden_imports candidates, and selects
  * the representative module per layer. Returns a structured
  * {@link ScanResult} ready for {@link deterministicInterpret} (in

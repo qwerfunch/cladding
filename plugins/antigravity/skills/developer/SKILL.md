@@ -36,8 +36,8 @@ You do NOT read Tier D (audit — observability's concern).
 
 Follow `docs/conventions.md` — `clad init` always writes it. The auto-generated header at the top of the file tells you which mode is active:
 
-- **Greenfield seed**: toolchain-default 14-signal table (per-language defaults) with the canonical style-guide URL inlined. Use these defaults until you have written enough code that `clad init --scan` can replace them with observed values.
-- **Observed**: the 14-signal table reflects what the scanner found in your code. Follow it verbatim.
+- **Greenfield seed**: toolchain-default conventions table (per-language defaults) with the canonical style-guide URL inlined. Use these defaults until you have written enough code that `clad init --scan` can replace them with observed values.
+- **Observed**: the conventions table reflects what the scanner found in your code. Follow it verbatim.
 
 One cladding-specific addition on top of either mode:
 

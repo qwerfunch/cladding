@@ -2,7 +2,7 @@
 
 # A/B evaluation — Cladding vs Vanilla Claude Code
 
-_Snapshot note (2026-07-05): detector count was 25 at this run; the suite has since grown to 41 (0.8.x). Body preserved as an append-only snapshot._
+_Snapshot note (2026-07-05): this historical M2 report reflects the detector registry available at that run. Body preserved as an append-only snapshot._
 
 This directory holds **comparative case studies** between two development
 modes for the same intent:

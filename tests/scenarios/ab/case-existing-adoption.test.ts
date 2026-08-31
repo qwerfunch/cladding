@@ -54,7 +54,7 @@ const {
   makeStaleReferenceDrift,
   makeArchitectureViolationDrift,
   makeHardcodedSecretDrift,
-  makeUntestedAcDrift,
+  makeUnverifiedCriterionDrift,
 } = await import('./_drift-injection.js');
 const {answerAllQueries} = await import('./_query-bench.js');
 
@@ -98,10 +98,10 @@ describe('A/B · existing-adoption — cladding vs vanilla on a populated TS pro
     expect(first.slice(0, 2).every((answer) => answer.answered)).toBe(true);
   });
 
-  test('[covers:F-4db939/AC-005] M1+M2: both groups deliver — committed report stays deterministic', async () => {
+  test('[covers:F-ba2e05/AC-004] [covers:F-4db939/AC-005] existing-adoption measures its applicable A/B M1 and M2 outcome matrix', async () => {
     // Heavier than greenfield: copies the 8-source-file fixture into TWO
     // tmpdirs, runs A's init (LLM mock + observed-path onboarding), runs
-    // B's vanilla session, then takes 4 snapshots that each loop the 25
+    // B's vanilla session, then takes four snapshots that each loop the
     // detectors over the tree. ~6s in the full suite; bump beyond default.
     // Both groups start from the same fixture.
     copyFixture('sample-existing-ts', aCwd.path);
@@ -257,7 +257,7 @@ describe('A/B · existing-adoption — cladding vs vanilla on a populated TS pro
       captureDriftCatch(
         aCwd.path,
         'A',
-        makeUntestedAcDrift('spec/features/refund-flow-4db939.yaml', 'AC-003', 'Refunds shall support partial refund amounts.'),
+        makeUnverifiedCriterionDrift('spec/features/refund-flow-4db939.yaml', 'AC-003', 'Refunds shall support partial refund amounts.'),
       ),
     ];
 
@@ -269,6 +269,7 @@ describe('A/B · existing-adoption — cladding vs vanilla on a populated TS pro
 
     const report = renderCaseReport({
       caseTitle: 'existing-adoption',
+      fixture: 'sample-existing-ts',
       intent: VANILLA_EXISTING_ADOPTION_SESSION.intent,
       description: [
         'Existing-adoption case: a populated 8-source-file TypeScript service',

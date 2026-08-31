@@ -7,6 +7,8 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
+import {TIER_STAGES} from '../../../src/cli/clad.js';
+import {strictSkipViolations} from '../../../src/stages/skip-policy.js';
 import {smokeProbeDemand} from '../../../src/stages/detectors/smoke-probe-demand.js';
 
 let dir: string;
@@ -35,6 +37,18 @@ describe('SMOKE_PROBE_DEMAND (F-c′)', () => {
     expect(f.length).toBe(1);
     expect(f[0].detector).toBe('SMOKE_PROBE_DEMAND');
     expect(f[0].severity).toBe('warn');
+  });
+
+  test('[covers:F-7076f7/AC-7f8630] smoke demand emits once for every drift-running tier without a strict skip-policy duplicate', () => {
+    writeSpec({deliverable: true, smoke: false, done: true});
+    const driftTiers = Object.entries(TIER_STAGES).filter(([, stages]) => stages.includes('stage_1.3'));
+    expect(driftTiers.map(([tier]) => tier)).toEqual(['pre-commit', 'pre-push', 'all']);
+    for (const [tier] of driftTiers) {
+      const findings = smokeProbeDemand.run({cwd: dir});
+      expect(findings.filter((finding) => finding.detector === 'SMOKE_PROBE_DEMAND'), tier).toHaveLength(1);
+    }
+    const spec = {project: {name: 'x', deliverable: {path: './run', is_safe_to_smoke: true}}, features: [{id: 'F-a', status: 'done'}]} as never;
+    expect(strictSkipViolations(spec, [{stage: 'stage_2.4', status: 'skip'}])).toEqual([]);
   });
 
   test('[covers:F-7076f7/AC-5abfc0] SATISFIED: no demand once a functional smoke probe is declared', () => {

@@ -10,9 +10,10 @@
 // This mock forces working-set.js for the WHOLE file, which is why the fallback lives
 // apart from the real-working-set hook tests (Tier-2/dedup/budget).
 
+import {execFileSync} from 'node:child_process';
 import {existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {dirname, join} from 'node:path';
 
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
@@ -85,6 +86,9 @@ function edit(file: string, n = 60): Record<string, unknown> {
 function post(input: unknown): string {
   return runHookEvent('PostToolUse', input, cwd);
 }
+function bash(command: string, sessionId: string): string {
+  return post({tool_name: 'Bash', session_id: sessionId, tool_input: {command}});
+}
 function skips(reason?: string) {
   return readEvents(cwd).filter(
     (e) => e.type === 'impact_card_skipped' && (reason === undefined || e.payload.reason === reason),
@@ -97,6 +101,24 @@ function legacyExpectation(rel: string): string {
   const slice = buildImpactSlice(loadSpec(cwd), rel);
   if ('not_found' in slice) throw new Error('fixture should resolve the owner');
   return formatImpactCard(slice, rel);
+}
+function ledgerPath(): string {
+  return join(cwd, '.cladding', 'hook-push-ledger.json');
+}
+function writeLedger(ledger: Record<string, unknown>): void {
+  mkdirSync(dirname(ledgerPath()), {recursive: true});
+  writeFileSync(ledgerPath(), JSON.stringify(ledger), 'utf8');
+}
+function seedBashFallback(): void {
+  seed();
+  mkdirSync(join(cwd, 'src'), {recursive: true});
+  writeFileSync(join(cwd, 'src', 'foo.ts'), 'export const value = 1;\n', 'utf8');
+  execFileSync('git', ['init', '-q'], {cwd, stdio: 'ignore'});
+  execFileSync('git', ['config', 'user.email', 'test@example.com'], {cwd, stdio: 'ignore'});
+  execFileSync('git', ['config', 'user.name', 'test'], {cwd, stdio: 'ignore'});
+  execFileSync('git', ['add', '-A'], {cwd, stdio: 'ignore'});
+  execFileSync('git', ['commit', '-q', '-m', 'initial'], {cwd, stdio: 'ignore'});
+  writeFileSync(join(cwd, 'src', 'foo.ts'), 'export const value = 2;\n', 'utf8');
 }
 
 beforeEach(() => {
@@ -137,6 +159,33 @@ describe('fallback to the legacy card (AC-38141a9e)', () => {
     expect(out).toBe(legacyExpectation('src/foo.ts'));
     expect(fired()).toHaveLength(1);
     expect(fired()[0].payload.tier).toBeUndefined();
+  });
+
+  test('[covers:F-6ba22c5c/AC-76331365] fallback cards use the shared declared dedup disposition', () => {
+    seed();
+    clearStamp();
+    expect(post(edit('src/foo.ts'))).toBe(legacyExpectation('src/foo.ts'));
+    clearStamp();
+    expect(post(edit('src/foo.ts'))).toBe(legacyExpectation('src/foo.ts'));
+    clearStamp();
+    expect(post(edit('src/foo.ts'))).toBe('');
+    expect(skips('dedup')).toHaveLength(2);
+  });
+
+  test('[covers:F-e7d59c88/AC-3021d7dc] fallback Bash cards honor the shared push budget', () => {
+    seedBashFallback();
+    const sessionId = 'fallback-bash-budget';
+    writeLedger({
+      sessionKey: `sid:${sessionId}`,
+      windowStart: Date.now(),
+      est_tokens_pushed: 2600,
+      fingerprints: {},
+      notice_printed: false,
+    });
+
+    expect(bash("sed -i '' 's/1/2/' src/foo.ts", sessionId)).toBe('cladding: push budget exhausted this session');
+    expect(fired()).toHaveLength(0);
+    expect(skips('ledger_exhausted')).toHaveLength(1);
   });
 });
 

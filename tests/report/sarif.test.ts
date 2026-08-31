@@ -38,6 +38,24 @@ function sarif(findings: readonly SarifFinding[]): SarifLog {
 }
 
 describe('report/sarif — toSarif (AC-46e8c26f)', () => {
+  test('[covers:F-dd8dc994/AC-59a9d9ee] SARIF retains raw detector message path and line fields', () => {
+    const raw = {
+      detector: 'MISSING_IMPLEMENTATION',
+      severity: 'error' as const,
+      path: 'src/auth/login.ts',
+      line: 42,
+      message: "feature F-aaa111 declares module 'src/auth/login.ts' but the file does not exist",
+    };
+    const result = sarif([raw]).runs[0].results[0];
+
+    expect(result).toMatchObject({
+      ruleId: raw.detector,
+      level: 'error',
+      message: {text: raw.message},
+      locations: [{physicalLocation: {artifactLocation: {uri: raw.path}, region: {startLine: raw.line}}}],
+    });
+  });
+
   test('emits exactly one result per error|warn finding and excludes info', () => {
     const log = sarif([
       {detector: 'D_ERR', severity: 'error', message: 'boom', path: 'src/a.ts', line: 3},

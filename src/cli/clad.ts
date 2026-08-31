@@ -27,6 +27,7 @@ import {runVerdictCommand} from './verdict.js';
 import {runUpdate} from './update.js';
 import {runInit, type InitResult} from './init.js';
 import {refineOnboarding, resolveOnboardingReview, runClarifyCommand} from './clarify.js';
+import {onboardingCompletionMessage} from '../ui/softShell.js';
 import {prepareHostClarify, prepareHostInit, renderHostDraft} from './host-onboarding.js';
 import {getCurrentCladdingVersion, runHostSetup} from '../init/host-setup.js';
 import {recordEvent} from '../events/log.js';
@@ -234,6 +235,14 @@ export function renderInitCompletionHints(
       '   clad init <project description>',
       '   e.g. clad init payment SaaS for B2B',
       '   The existing seeds divert to .cladding/scan/*.proposal.',
+      '',
+      '',
+    ].join('\n');
+  }
+  if (intent) {
+    return [
+      '',
+      onboardingCompletionMessage(),
       '',
       '',
     ].join('\n');

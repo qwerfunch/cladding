@@ -3,6 +3,7 @@ title: Cladding drive — deterministic L1 floor for autonomous loops
 status: done
 modules:
   - src/drive/halt.ts
+  - src/drive/assurance.ts
   - src/drive/loop.ts
   - src/cli/clad.ts
 depends_on:
@@ -11,16 +12,31 @@ depends_on:
 acceptance_criteria:
   - id: AC-083
     ears: ubiquitous
-    action: ship a deterministic autonomous loop that scaffolds features without invoking an LLM
-    response: src/drive/loop.ts iterates ready features in dependency order, creates module stubs on disk, runs L1 gates (type · lint · arch), and records evidence per pass
-    text: >-
-      The system shall ship a deterministic drive floor — an autonomous
-      loop that scaffolds in_progress and planned features without
-      invoking an LLM. The loop iterates ready features in dependency
-      order, materialises module stubs, and runs L1 gates (type · lint
-      · arch), recording an evidence entry per successful pass.
+    action: select the first ready non-archived feature in authored dependency order
+    response: done and archived features are skipped, satisfied dependencies become eligible, and authored ties stay stable
+    text: The drive loop shall select the first ready non-archived feature in authored dependency order.
     test_refs:
-      - tests/drive/halt.test.ts
+      - "tests/drive/loop.test.ts#[covers:F-048/AC-083] selects the first ready non-archived feature in authored dependency order"
+    notes: |
+      ## Historical atomicity note — 2026-08-31
+      Reason: the former criterion combined scheduling, stub fallback, and gate evidence.
+      Previous compound criterion text (non-normative): The system shall ship a deterministic drive floor — an autonomous loop that scaffolds in_progress and planned features without invoking an LLM. The loop iterates ready features in dependency order, materialises module stubs, and runs L1 gates (type · lint · arch), recording an evidence entry per successful pass.
+  - id: AC-dff8f340
+    ears: event
+    condition: when the specialist adapter returns zero concrete mutations
+    action: create stubs only for absent declared modules
+    response: existing declared files are preserved and undeclared files are not created
+    text: When the specialist adapter returns zero concrete mutations, the drive loop shall create stubs only for absent declared modules.
+    test_refs:
+      - "tests/drive/loop.test.ts#[covers:F-048/AC-dff8f340] creates fallback stubs only for absent declared modules after zero mutations"
+  - id: AC-f7e0aea5
+    ears: ubiquitous
+    action: reduce each iteration's type, lint, and architecture gate observations through the F6 adapter with the current closure digest and registered adapter identities
+    response: observer event data preserves the three gate pass, fail, or skip states and adapter identities with a compact assurance summary, without per-criterion manual pass evidence
+    text: For each iteration, the drive loop shall record the type, lint, and architecture gate observations reduced through the F6 adapter with the current closure digest and registered adapter identities.
+    test_refs:
+      - "tests/drive/assurance.test.ts#[covers:F-048/AC-f7e0aea5] records compact gate observations with the current closure digest and registered adapter identities"
+      - "tests/drive/assurance.test.ts#[covers:F-048/AC-f7e0aea5] active drive loop records the F6 observer instead of retired evidence fanout"
   - id: AC-084
     ears: event
     condition: when the run loop terminates

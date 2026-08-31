@@ -11,19 +11,68 @@ modules:
 acceptance_criteria:
   - id: AC-238a3658
     ears: ubiquitous
-    text: "The system shall define EventType members impact_card_fired, impact_card_skipped, session_card_rendered, prompt_suggestion_served, and working_set_served in src/events/log.ts, with impact_card_skipped.reason restricted to a closed enum (not_write_tool | unwatched_path | no_spec | debounced | trivial_edit | owner_miss | spec_unreadable | dedup | ledger_exhausted) mapping one-to-one onto the degrade branches of runPostToolUseDrift and its mini working-set push card (F-35954d19)."
-    notes: "WHY: the 0.7.1 impact-card 0%-firing bug was invisible to the harness itself — the closed reason enum makes silent-vs-broken distinguishable from the ledger alone."
+    text: "The system shall declare the EventType member impact_card_fired."
+    notes: "## 2026-08-31 criterion decomposition\n\nOriginal compound text (verbatim): The system shall define EventType members impact_card_fired, impact_card_skipped, session_card_rendered, prompt_suggestion_served, and working_set_served in src/events/log.ts, with impact_card_skipped.reason restricted to a closed enum (not_write_tool | unwatched_path | no_spec | debounced | trivial_edit | owner_miss | spec_unreadable | dedup | ledger_exhausted) mapping one-to-one onto the degrade branches of runPostToolUseDrift and its mini working-set push card (F-35954d19).\n\nReason: split independent event declarations and skip-disposition observables while retaining this legacy address.\n\nWHY: the 0.7.1 impact-card 0%-firing bug was invisible to the harness itself — the closed reason enum makes silent-vs-broken distinguishable from the ledger alone."
     test_refs:
-      - tests/events/value-telemetry-contract.test.ts
-      - tests/cli/hook-telemetry.test.ts
+      - "tests/events/value-telemetry-contract.test.ts#[covers:F-6ba22c5c/AC-238a3658] EventType declares impact_card_fired"
+  - id: AC-93b89336
+    ears: ubiquitous
+    text: "The system shall declare the EventType member impact_card_skipped."
+    test_refs:
+      - "tests/events/value-telemetry-contract.test.ts#[covers:F-6ba22c5c/AC-93b89336] EventType declares impact_card_skipped"
+  - id: AC-f0c4df75
+    ears: ubiquitous
+    text: "The system shall declare the EventType member session_card_rendered."
+    test_refs:
+      - "tests/events/value-telemetry-contract.test.ts#[covers:F-6ba22c5c/AC-f0c4df75] EventType declares session_card_rendered"
+  - id: AC-298fb2b3
+    ears: ubiquitous
+    text: "The system shall declare the EventType member prompt_suggestion_served."
+    test_refs:
+      - "tests/events/value-telemetry-contract.test.ts#[covers:F-6ba22c5c/AC-298fb2b3] EventType declares prompt_suggestion_served"
+  - id: AC-74b24595
+    ears: ubiquitous
+    text: "The system shall declare the EventType member working_set_served."
+    test_refs:
+      - "tests/events/value-telemetry-contract.test.ts#[covers:F-6ba22c5c/AC-74b24595] EventType declares working_set_served"
+  - id: AC-2712ade0
+    ears: ubiquitous
+    text: "The system shall restrict every emitted impact-card skip reason to the closed ImpactSkipReason vocabulary."
+    test_refs:
+      - "tests/events/value-telemetry-contract.test.ts#[covers:F-6ba22c5c/AC-2712ade0] emitted impact-card skip reasons stay in the closed ImpactSkipReason vocabulary"
+  - id: AC-76331365
+    ears: ubiquitous
+    text: "The system shall map every applicable runPostToolUseDrift or mini push-card degradation branch to one declared ImpactSkipReason disposition."
+    test_refs:
+      - "tests/cli/hook-telemetry.test.ts#[covers:F-6ba22c5c/AC-76331365] PostToolUse disposition branches report declared reasons and retain no_spec as write-free silence"
+      - "tests/cli/hook-push-card.test.ts#[covers:F-6ba22c5c/AC-76331365] push-governor dedup and budget suppressions record declared reasons"
+      - "tests/cli/hook-push-fallback.test.ts#[covers:F-6ba22c5c/AC-76331365] fallback cards use the shared declared dedup disposition"
+      - "tests/cli/hook-bash-lane.test.ts#[covers:F-6ba22c5c/AC-76331365] Bash delta discovery failure is error-as-silence without a fabricated skip"
   - id: AC-373257b2
     ears: event
-    condition: "when a value surface produces output — the PostToolUse impact card, the SessionStart card, the UserPromptSubmit suggestion, or an MCP serve of clad_get_working_set / clad_get_context / clad_get_impact"
-    text: "When a value surface produces output, the system shall record exactly one corresponding event (fired/rendered/served) with accurate payload fields (impact card: file, feature, impacted, tests, unledgered; working set: query, resolved, truncated, sliceTokens; cards: bytes)."
-    notes: "WHY: event-to-output bijection is what makes fire-rate a trustworthy number."
+    condition: "when an impact card is emitted"
+    text: "When an impact card is emitted, the system shall record exactly one impact_card_fired event containing its rendered file, feature, impacted, tests, and unledgered fields."
+    notes: "## 2026-08-31 criterion decomposition\n\nOriginal compound text (verbatim): When a value surface produces output, the system shall record exactly one corresponding event (fired/rendered/served) with accurate payload fields (impact card: file, feature, impacted, tests, unledgered; working set: query, resolved, truncated, sliceTokens; cards: bytes).\n\nReason: split the four output surfaces into independently observable event-to-output contracts while retaining this legacy address.\n\nWHY: event-to-output bijection is what makes fire-rate a trustworthy number."
     test_refs:
-      - tests/cli/hook-telemetry.test.ts
-      - tests/serve/serve-telemetry.test.ts
+      - "tests/cli/hook-telemetry.test.ts#[covers:F-6ba22c5c/AC-373257b2] an emitted impact card has one matching fired event and field tuple"
+  - id: AC-a313dc92
+    ears: event
+    condition: "when a nonempty SessionStart card is rendered"
+    text: "When a nonempty SessionStart card is rendered, the system shall record exactly one session_card_rendered event containing its UTF-8 byte count."
+    test_refs:
+      - "tests/cli/hook-telemetry.test.ts#[covers:F-6ba22c5c/AC-a313dc92] a nonempty SessionStart card has one UTF-8-sized rendered event"
+  - id: AC-eeed2259
+    ears: event
+    condition: "when a prompt suggestion is served"
+    text: "When a prompt suggestion is served, the system shall record exactly one prompt_suggestion_served event containing its kind."
+    test_refs:
+      - "tests/cli/hook-telemetry.test.ts#[covers:F-6ba22c5c/AC-eeed2259] a served prompt suggestion has one event with its kind"
+  - id: AC-26c4f8b6
+    ears: event
+    condition: "when a working-set request reaches a serve result"
+    text: "When a working-set request reaches a serve result, the system shall record exactly one working_set_served event with resolved=true plus truncation and slice fields for a hit or resolved=false for a miss."
+    test_refs:
+      - "tests/serve/serve-telemetry.test.ts#[covers:F-6ba22c5c/AC-26c4f8b6] working-set hit, miss, and pre-serve error use exact served-event rules"
   - id: AC-8fc6bea0
     ears: state
     condition: "while a DRIFT_DEBOUNCE_MS window is open"

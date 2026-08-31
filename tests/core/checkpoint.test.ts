@@ -16,7 +16,7 @@
 // that need a no-git path run inside a tmpdir.
 
 import {execFileSync} from 'node:child_process';
-import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
@@ -83,6 +83,21 @@ describe('core/checkpoint', () => {
   });
 
   describe('recordCheckpoint', () => {
+    test('[covers:F-c2c996/AC-005] checkpoint appends one event without changing tracked source or specification bytes', () => {
+      const specPath = join(dir, 'spec.yaml');
+      const sourcePath = join(dir, 'src', 'app.ts');
+      mkdirSync(join(dir, 'src'), {recursive: true});
+      writeFileSync(specPath, 'schema: "0.1"\nfeatures: []\n', 'utf8');
+      writeFileSync(sourcePath, 'export const immutable = true;\n', 'utf8');
+      const before = {spec: readFileSync(specPath, 'utf8'), source: readFileSync(sourcePath, 'utf8')};
+
+      recordCheckpoint(dir, 'F-001');
+
+      expect(readFileSync(specPath, 'utf8')).toBe(before.spec);
+      expect(readFileSync(sourcePath, 'utf8')).toBe(before.source);
+      expect(readEvents(dir).filter((event) => event.type === 'feature_checkpoint')).toHaveLength(1);
+    });
+
     test('[covers:F-c2c996/AC-002] writes one feature_checkpoint event with the captured fields', () => {
       writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nfeatures: []\n');
       const cp = recordCheckpoint(dir, 'F-001');
@@ -133,6 +148,22 @@ describe('core/checkpoint', () => {
   });
 
   describe('recordRollback', () => {
+    test('[covers:F-c2c996/AC-e4bf75ed] rollback appends one reasoned event against its prior checkpoint', () => {
+      writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nfeatures: []\n');
+      const checkpoint = recordCheckpoint(dir, 'F-001');
+      recordRollback(dir, 'F-001', checkpoint, 'maintainer requested restore');
+
+      const rollbacks = readEvents(dir).filter((event) => event.type === 'feature_rolled_back');
+      expect(rollbacks).toHaveLength(1);
+      expect(rollbacks[0].payload).toMatchObject({
+        feature: 'F-001',
+        to_git_head: checkpoint.gitHead,
+        to_spec_digest: checkpoint.specDigest,
+        to_checkpoint_at: checkpoint.timestamp,
+        reason: 'maintainer requested restore',
+      });
+    });
+
     test('[covers:F-c2c996/AC-001][covers:F-c2c996/AC-004] writes one feature_rolled_back event referencing the checkpoint', () => {
       writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nfeatures: []\n');
       const cp = recordCheckpoint(dir, 'F-001');

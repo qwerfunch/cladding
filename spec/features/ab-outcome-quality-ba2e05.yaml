@@ -17,10 +17,35 @@ depends_on:
 acceptance_criteria:
   - id: AC-001
     ears: ubiquitous
-    action: ship a drift-injection module with 4 deterministic scenarios — file rename without spec update, architecture forbidden-import violation, hardcoded secret baseline, untested AC — plus before/after detector diff that captures which detectors fired
-    response: 'tests/scenarios/ab/_drift-injection.ts exports makeStaleReferenceDrift, makeArchitectureViolationDrift, makeHardcodedSecretDrift, makeUntestedAcDrift + captureDriftCatch(cwd, group, scenario) which snapshots all 25 detectors before and after, returning DriftCatchResult with newDetectors array and caught boolean'
-    text: The system shall ship a drift-injection module with 4 scenarios and before/after detector capture.
-    test_refs: [tests/scenarios/ab/case-payment-saas.test.ts, tests/scenarios/ab/case-existing-adoption.test.ts]
+    action: construct a stale-reference drift
+    response: tests/scenarios/ab/_drift-injection.ts exposes makeStaleReferenceDrift
+    text: "The drift-injection module shall construct a stale-reference drift."
+    test_refs: ["tests/scenarios/ab/drift-injection.test.ts#[covers:F-ba2e05/AC-001] constructs a stale-reference drift"]
+    notes: "2026-08-31 — Atomic split: retained prior compound text verbatim for non-normative history: The system shall ship a drift-injection module with 4 scenarios and before/after detector capture. Prior action: ship a drift-injection module with 4 deterministic scenarios — file rename without spec update, architecture forbidden-import violation, hardcoded secret baseline, untested AC — plus before/after detector diff that captures which detectors fired. Prior response: tests/scenarios/ab/_drift-injection.ts exports makeStaleReferenceDrift, makeArchitectureViolationDrift, makeHardcodedSecretDrift, makeUntestedAcDrift + captureDriftCatch(cwd, group, scenario) which snapshots the registered detector set before and after, returning DriftCatchResult with newDetectors array and caught boolean."
+  - id: AC-e25d101e
+    ears: ubiquitous
+    action: construct an architecture-violation drift
+    response: tests/scenarios/ab/_drift-injection.ts exposes makeArchitectureViolationDrift
+    text: "The drift-injection module shall construct an architecture-violation drift."
+    test_refs: ["tests/scenarios/ab/drift-injection.test.ts#[covers:F-ba2e05/AC-e25d101e] constructs an architecture-violation drift"]
+  - id: AC-32ce46c4
+    ears: ubiquitous
+    action: construct a hardcoded-secret drift
+    response: tests/scenarios/ab/_drift-injection.ts exposes makeHardcodedSecretDrift
+    text: "The drift-injection module shall construct a hardcoded-secret drift."
+    test_refs: ["tests/scenarios/ab/drift-injection.test.ts#[covers:F-ba2e05/AC-32ce46c4] constructs a hardcoded-secret drift"]
+  - id: AC-f121d0b9
+    ears: ubiquitous
+    action: construct an unverified-criterion drift
+    response: tests/scenarios/ab/_drift-injection.ts exposes makeUnverifiedCriterionDrift
+    text: "The drift-injection module shall construct an unverified-criterion drift."
+    test_refs: ["tests/scenarios/ab/drift-injection.test.ts#[covers:F-ba2e05/AC-f121d0b9] constructs an unverified-criterion drift"]
+  - id: AC-a0e59911
+    ears: ubiquitous
+    action: apply one named drift mutation between detector snapshots
+    response: captureDriftCatch records deterministic new findings and detector identities from the current registry after allowlist filtering
+    text: "The drift-injection module shall capture a deterministic before-and-after detector diff around exactly one named mutation."
+    test_refs: ["tests/scenarios/ab/drift-injection.test.ts#[covers:F-ba2e05/AC-a0e59911] captures a deterministic before-and-after diff around one named mutation"]
   - id: AC-002
     ears: ubiquitous
     action: ship an AI-query benchmark module with 5 deterministic domain questions, each measuring file-lookup cost to answer
@@ -35,10 +60,30 @@ acceptance_criteria:
     test_refs: [tests/scenarios/ab/case-payment-saas.test.ts, tests/scenarios/ab/case-existing-adoption.test.ts]
   - id: AC-004
     ears: ubiquitous
-    action: extend both case tests to apply the 4 drift scenarios + 5 query benchmarks at M2 and feed results into renderCaseReport via the optional outcome field
-    response: 'case-payment-saas.test.ts and case-existing-adoption.test.ts now call claddingifyForDriftCatch (canonicalize spec/architecture) → 4 drift scenarios → answerAllQueries on both groups → renderCaseReport({outcome: {driftResults, queryResults}}); both reports regenerated with §Outcome Quality section showing 3/4 cladding-exclusive catches'
-    text: The system shall extend both case tests to measure outcome quality at M2.
-    test_refs: [tests/scenarios/ab/case-payment-saas.test.ts, tests/scenarios/ab/case-existing-adoption.test.ts]
+    action: measure applicable A/B M1 and M2 outcomes for the existing-adoption case
+    response: tests/scenarios/ab/case-existing-adoption.test.ts records the four group-and-milestone snapshots and supplies its outcome matrix to renderCaseReport
+    text: "The existing-adoption case shall measure its applicable A/B M1 and M2 outcome matrix."
+    test_refs: ["tests/scenarios/ab/case-existing-adoption.test.ts#[covers:F-ba2e05/AC-004] [covers:F-4db939/AC-005] existing-adoption measures its applicable A/B M1 and M2 outcome matrix"]
+    notes: "2026-08-31 — Atomic split: retained prior compound text verbatim for non-normative history: The system shall extend both case tests to measure outcome quality at M2. Prior action: extend both case tests to apply the 4 drift scenarios + 5 query benchmarks at M2 and feed results into renderCaseReport via the optional outcome field. Prior response: case-payment-saas.test.ts and case-existing-adoption.test.ts now call claddingifyForDriftCatch (canonicalize spec/architecture) → 4 drift scenarios → answerAllQueries on both groups → renderCaseReport({outcome: {driftResults, queryResults}}); both reports regenerated with §Outcome Quality section showing 3/4 cladding-exclusive catches."
+  - id: AC-88fcaf05
+    ears: ubiquitous
+    action: measure applicable A/B M1 and M2 outcomes for the payment-SaaS case
+    response: tests/scenarios/ab/case-payment-saas.test.ts records the four group-and-milestone snapshots and supplies its outcome matrix to renderCaseReport
+    text: "The payment-SaaS case shall measure its applicable A/B M1 and M2 outcome matrix."
+    test_refs: ["tests/scenarios/ab/case-payment-saas.test.ts#[covers:F-ba2e05/AC-88fcaf05] payment-SaaS measures its applicable A/B M1 and M2 outcome matrix"]
+  - id: AC-8f1f105a
+    ears: ubiquitous
+    action: render an outcome matrix
+    response: tests/scenarios/ab/_report.ts renders case, fixture, group, milestone, scenario, query, and applicability labels and marks DI-4 unavailable for B
+    text: "The outcome report shall render case, fixture, group, milestone, scenario or query identities, and applicable counts."
+    test_refs: ["tests/scenarios/ab/ab-contract.test.ts#[covers:F-ba2e05/AC-8f1f105a] outcome report renders case, fixture, group, milestone, scenario, query, and applicable-count identities"]
+  - id: AC-6c42dfa6
+    ears: unwanted
+    condition: "if no later B5 signed receipt is supplied"
+    action: render a historical M2 outcome
+    response: the outcome report labels the measurement non-release
+    text: "The historical M2 outcome shall remain non-release without a later B5 signed receipt."
+    test_refs: ["tests/scenarios/ab/ab-contract.test.ts#[covers:F-ba2e05/AC-6c42dfa6] historical M2 outcome is non-release when no later B5 signed receipt is supplied"]
   - id: AC-005
     ears: ubiquitous
     action: surface real cladding bugs that the test had to work around — LLM seed architecture format incompatible with ARCHITECTURE_FROM_SPEC detector schema, and inline F-001 placeholder in init-seeded spec.yaml blocks sharded feature loading

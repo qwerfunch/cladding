@@ -1,59 +1,156 @@
-// Cladding · scenarios · existing-adoption-lifecycle (v0.3.46, F-4747ef)
-//
-// 6-stage end-to-end lifecycle test for the existing-adoption case
-// (populated TypeScript project + adoption intent). Mirrors the
-// greenfield test's structure: each stage verifies artifact presence,
-// tier banners, cross-tier consistency, and size budgets.
-//
-// Stage seeding uses `tests/scenarios/_fixtures/sample-existing-ts/` —
-// a 8-source-file TS project with package.json + README that crosses
-// the SCAN_AUTO_THRESHOLD so cladding takes the observed path.
+// Cladding · scenarios · continuous existing-adoption lifecycle (F-4747ef).
 
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
-import {fileURLToPath} from 'node:url';
+import {existsSync, readFileSync, writeFileSync} from 'node:fs';
 import {dirname, join} from 'node:path';
-import {readFileSync, writeFileSync, existsSync, mkdirSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
 
 vi.mock('../../src/ui/pulse.js', () => ({pulse: vi.fn()}));
 
-// Host-tool determinism (CI break, 2026-06-11): the deterministic battery must
-// not depend on which external scanners (madge, secretlint) the HOST happens to
-// resolve — stale ~/.npm/_npx caches made detector counts machine-dependent.
-// Strip the external-scanner gates; their detectors then emit the stable
-// "no validator registered" info on every machine.
-vi.mock('../../src/stages/toolchain/detect.js', async (importOriginal) => {
-  const real = await importOriginal<typeof import('../../src/stages/toolchain/detect.js')>();
-  return {
-    ...real,
-    detectToolchain: (cwd: string = '.') => {
-      const t = real.detectToolchain(cwd);
-      const gates = {...t.gates} as Record<string, unknown>;
-      delete gates.arch;
-      delete gates.secret;
-      return {...t, gates} as ReturnType<typeof real.detectToolchain>;
-    },
-  };
-});
-const dispatchMock = vi.fn<(p: string) => Promise<string>>();
+const dispatchMock = vi.fn<(prompt: string) => Promise<string>>();
 vi.mock('../../src/cli/scan/dispatcher.js', () => ({
   selectDispatcher: vi.fn((opts?: {noLlm?: boolean}) => (opts?.noLlm ? null : dispatchMock)),
 }));
 
 const {runInit} = await import('../../src/cli/init.js');
-const {runClarifyCommand} = await import('../../src/cli/clarify.js');
-const {mkScenarioCwd, copyFixture, writeUnderCwd, EXISTING_S2_RESPONSE} = await import('./_helpers.js');
+const {resolveOnboardingReview, runClarifyCommand} = await import('../../src/cli/clarify.js');
+const {loadState} = await import('../../src/cli/scan/onboarding-state.js');
+const {createFeature, linkCapability, linkScenario} = await import('../../src/spec/new.js');
+const {loadSpec} = await import('../../src/spec/load.js');
+const {EXISTING_S2_RESPONSE, copyFixture, mkScenarioCwd, writeUnderCwd} = await import('./_helpers.js');
 const {
   assertArtifactsPresent,
   assertCrossTierClean,
+  assertNoBudgetOverages,
+  assertProposalDivert,
+  assertScenarioFeatureReferences,
   assertSpecCompleteness,
   assertTierBanner,
-  assertNoBudgetOverages,
-  countCapabilities,
 } = await import('./_assertions.js');
 
 const REPO_ROOT = dirname(fileURLToPath(import.meta.url)).replace(/\/tests\/scenarios$/, '');
 
-describe('existing-adoption lifecycle — "이 프로젝트 분석해서 클래딩 적용"', () => {
+interface AdoptionLifecycle {
+  readonly transitions: readonly string[];
+  readonly authoredBefore: Readonly<Record<string, string>>;
+  readonly authoredAfterReview: Readonly<Record<string, string>>;
+  readonly featureId: string;
+}
+
+function assertFeatureIsScenarioBound(cwd: string, featureId: string): void {
+  const scenarios = loadSpec(cwd).scenarios ?? [];
+  expect(scenarios.some((scenario) => scenario.features?.includes(featureId))).toBe(true);
+}
+
+async function runContinuousAdoptionLifecycle(cwd: string): Promise<AdoptionLifecycle> {
+  const transitions: string[] = [];
+  copyFixture('sample-existing-ts', cwd);
+  transitions.push('fixture');
+  expect(existsSync(join(cwd, 'src/api/index.ts'))).toBe(true);
+  expect(existsSync(join(cwd, 'src/lib/payment.ts'))).toBe(true);
+  expect(existsSync(join(cwd, 'src/util/log.ts'))).toBe(true);
+
+  dispatchMock.mockResolvedValueOnce(EXISTING_S2_RESPONSE);
+  const initialized = await runInit({cwd, intent: '이 프로젝트 분석해서 클래딩 적용'});
+  transitions.push('init');
+  expect(initialized.onboardingMode).toBe('existing-adoption');
+  assertArtifactsPresent(cwd, {
+    specYaml: true,
+    architectureYaml: true,
+    capabilitiesYaml: true,
+    projectContextMd: true,
+    conventionsMd: true,
+    scenariosReadme: true,
+    onboardingStateYaml: true,
+    scenarioShards: 1,
+  });
+  assertTierBanner(cwd, 'spec.yaml', 'A');
+  assertTierBanner(cwd, 'spec/architecture.yaml', 'B');
+  assertTierBanner(cwd, 'spec/capabilities.yaml', 'B');
+  assertTierBanner(cwd, 'docs/project-context.md', 'B');
+  assertTierBanner(cwd, 'docs/conventions.md', 'C');
+  assertTierBanner(cwd, '.cladding/onboarding/state.yaml', 'D');
+  const architecture = readFileSync(join(cwd, 'spec/architecture.yaml'), 'utf8');
+  expect(architecture).toContain('name: api');
+  expect(architecture).toContain('name: lib');
+  expect(architecture).toContain('name: util');
+  assertScenarioFeatureReferences(cwd);
+
+  const authoredPaths = [
+    'docs/project-context.md',
+    'spec/capabilities.yaml',
+    'spec/architecture.yaml',
+  ] as const;
+  for (const path of authoredPaths) {
+    writeFileSync(`${cwd}/${path}`, `${readFileSync(`${cwd}/${path}`, 'utf8')}\n# Maintainer-owned adoption note\n`);
+  }
+  const authoredBefore = Object.fromEntries(authoredPaths.map((path) => [path, readFileSync(`${cwd}/${path}`, 'utf8')]));
+
+  // The current clarify core detects the authored collision and routes its
+  // refinement to proposal files instead of overwriting those exact bytes.
+  dispatchMock.mockResolvedValueOnce(EXISTING_S2_RESPONSE);
+  await runClarifyCommand(['멀티', '테넌트가', '필요합니다'], {cwd});
+  transitions.push('clarify');
+  const pendingReview = loadState(cwd)?.pendingReview ?? [];
+  expect(pendingReview).toHaveLength(4);
+  for (const path of authoredPaths) expect(readFileSync(`${cwd}/${path}`, 'utf8')).toBe(authoredBefore[path]);
+  for (const path of pendingReview) {
+    expect(existsSync(`${cwd}/.cladding/scan/${path.split('/').pop()}.proposal`)).toBe(true);
+  }
+  for (const path of authoredPaths) assertProposalDivert(cwd, path);
+  assertScenarioFeatureReferences(cwd);
+
+  const review = resolveOnboardingReview(pendingReview, {cwd});
+  transitions.push('resolve-review');
+  expect(review.ok).toBe(true);
+  for (const path of pendingReview) {
+    expect(existsSync(`${cwd}/.cladding/scan/${path.split('/').pop()}.proposal`)).toBe(false);
+  }
+  const authoredAfterReview = Object.fromEntries(
+    authoredPaths.map((path) => [path, readFileSync(`${cwd}/${path}`, 'utf8')]),
+  );
+  for (const path of authoredPaths) {
+    expect(authoredAfterReview[path]).not.toBe(authoredBefore[path]);
+    expect(readFileSync(`${cwd}/${path}`, 'utf8')).toBe(authoredAfterReview[path]);
+  }
+  assertScenarioFeatureReferences(cwd);
+
+  // Manual authoring remains limited to the implementation step.
+  writeUnderCwd(cwd, 'src/api/refund.ts', 'export const refund = () => undefined;\n');
+  const feature = createFeature({
+    cwd,
+    slug: 'refund-flow',
+    title: 'Refund flow',
+    modules: ['src/api/refund.ts'],
+    acceptance_criteria: [{
+      ears: 'event',
+      condition: 'when a refund request arrives',
+      action: 'verify the original payment',
+      response: 'the payment gateway receives a refund request',
+      text: 'When a refund request arrives, the system shall verify the original payment.',
+    }],
+  });
+  transitions.push('create-feature');
+  assertScenarioFeatureReferences(cwd);
+  linkScenario({cwd, scenario: 'payment-flow', feature: feature.id});
+  transitions.push('bind-scenario');
+  assertScenarioFeatureReferences(cwd);
+  assertFeatureIsScenarioBound(cwd, feature.id);
+  const capabilitiesBeforeBinding = readFileSync(`${cwd}/spec/capabilities.yaml`, 'utf8');
+  linkCapability({cwd, capability: 'api', feature: feature.id});
+  transitions.push('bind-capability');
+  const capabilitiesAfterBinding = readFileSync(`${cwd}/spec/capabilities.yaml`, 'utf8');
+  expect(capabilitiesAfterBinding).not.toBe(capabilitiesBeforeBinding);
+  expect(capabilitiesAfterBinding).toContain(feature.id);
+  assertScenarioFeatureReferences(cwd);
+  assertSpecCompleteness(cwd, {minCapabilities: 3, minScenarioShards: 1});
+  assertCrossTierClean(cwd, ['META_INTEGRITY', 'HARDCODED_SECRET']);
+  assertNoBudgetOverages(REPO_ROOT, cwd, 'Existing-adoption lifecycle final');
+
+  return {transitions, authoredBefore, authoredAfterReview, featureId: feature.id};
+}
+
+describe('continuous existing-adoption lifecycle — populated TypeScript fixture', () => {
   let scenario: ReturnType<typeof mkScenarioCwd>;
   let exitSpy: ReturnType<typeof vi.spyOn>;
   let stdoutSpy: ReturnType<typeof vi.spyOn>;
@@ -71,161 +168,34 @@ describe('existing-adoption lifecycle — "이 프로젝트 분석해서 클래�
     stdoutSpy.mockRestore();
   });
 
-  test('S1 seed fixture: populated project crosses SCAN_AUTO_THRESHOLD', () => {
-    copyFixture('sample-existing-ts', scenario.path);
+  test('[covers:F-4747ef/AC-002] completes one continuous adoption lifecycle from the committed populated TypeScript fixture', async () => {
+    const lifecycle = await runContinuousAdoptionLifecycle(scenario.path);
 
-    expect(existsSync(join(scenario.path, 'package.json'))).toBe(true);
-    expect(existsSync(join(scenario.path, 'README.md'))).toBe(true);
-    expect(existsSync(join(scenario.path, 'src/api/index.ts'))).toBe(true);
-    expect(existsSync(join(scenario.path, 'src/lib/payment.ts'))).toBe(true);
-    expect(existsSync(join(scenario.path, 'src/util/log.ts'))).toBe(true);
+    expect(lifecycle.featureId).toMatch(/^F-/);
+    expect(lifecycle.transitions).toEqual([
+      'fixture', 'init', 'clarify', 'resolve-review', 'create-feature', 'bind-scenario', 'bind-capability',
+    ]);
   });
 
-  test('S2 init with adoption intent → existing-adoption mode + observed artifacts', async () => {
-    copyFixture('sample-existing-ts', scenario.path);
-    dispatchMock.mockResolvedValueOnce(EXISTING_S2_RESPONSE);
+  test('[covers:F-4747ef/AC-4e9c049b] preserves authored collision inputs byte-identically and exposes the proposal escape end-to-end during adoption', async () => {
+    const lifecycle = await runContinuousAdoptionLifecycle(scenario.path);
 
-    const result = await runInit({
-      cwd: scenario.path,
-      intent: '이 프로젝트 분석해서 클래딩 적용',
-    });
-
-    // Mode classification surfaces in the result.
-    expect(result.onboardingMode).toBe('existing-adoption');
-
-    // All Tier A/B artifacts present + scenarios extracted from intent.
-    assertArtifactsPresent(scenario.path, {
-      specYaml: true,
-      architectureYaml: true,
-      capabilitiesYaml: true,
-      projectContextMd: true,
-      conventionsMd: true,
-      scenariosReadme: true,
-      scenarioShards: 1, // EXISTING_S2_RESPONSE emits "payment-flow"
-      onboardingStateYaml: true,
-    });
-
-    // Tier banners on every artifact's first line.
-    assertTierBanner(scenario.path, 'spec.yaml', 'A');
-    assertTierBanner(scenario.path, 'spec/architecture.yaml', 'B');
-    assertTierBanner(scenario.path, 'spec/capabilities.yaml', 'B');
-    assertTierBanner(scenario.path, 'docs/project-context.md', 'B');
-    assertTierBanner(scenario.path, 'docs/conventions.md', 'C');
-    assertTierBanner(scenario.path, '.cladding/onboarding/state.yaml', 'D');
-
-    // capabilities populated from README headings (Install/Usage/API).
-    expect(countCapabilities(scenario.path)).toBeGreaterThanOrEqual(3);
-
-    // architecture.yaml carries the observed layers (api / lib / util).
-    const archBody = readFileSync(join(scenario.path, 'spec/architecture.yaml'), 'utf8');
-    expect(archBody).toContain('name: api');
-    expect(archBody).toContain('name: lib');
-    expect(archBody).toContain('name: util');
+    for (const [path, before] of Object.entries(lifecycle.authoredBefore)) {
+      expect(before).toContain('Maintainer-owned adoption note');
+      expect(lifecycle.authoredAfterReview[path]).not.toBe(before);
+      const current = readFileSync(`${scenario.path}/${path}`, 'utf8');
+      if (path === 'spec/capabilities.yaml') {
+        expect(current).not.toBe(lifecycle.authoredAfterReview[path]);
+        expect(current).toContain(lifecycle.featureId);
+      } else {
+        expect(current).toBe(lifecycle.authoredAfterReview[path]);
+      }
+    }
   });
 
-  test('S3 refine: refinement preserves Tier A spec, updates Tier B', async () => {
-    copyFixture('sample-existing-ts', scenario.path);
-    dispatchMock.mockResolvedValueOnce(EXISTING_S2_RESPONSE);
-    await runInit({cwd: scenario.path, intent: '이 프로젝트 분석해서 클래딩 적용'});
+  test('[covers:F-4747ef/AC-e9094179] retains structurally valid scenario-to-feature references after adoption, refinement, and binding transitions', async () => {
+    await runContinuousAdoptionLifecycle(scenario.path);
 
-    // Reuse the same mock body for refine to simulate "no big change"
-    // — the test focus is on the divert mechanism + spec preservation,
-    // not the LLM's actual refinement logic.
-    dispatchMock.mockResolvedValueOnce(EXISTING_S2_RESPONSE);
-    await runClarifyCommand(['멀티', '테넌트', '필요'], {cwd: scenario.path});
-
-    // spec.yaml (Tier A, sealed) untouched by refine.
-    const specBody = readFileSync(join(scenario.path, 'spec.yaml'), 'utf8');
-    expect(specBody).toContain('schema: "0.1"');
-    // No proposal for spec.yaml — refine doesn't write to Tier A directly.
-    expect(existsSync(join(scenario.path, '.cladding/scan/spec.yaml.proposal'))).toBe(false);
-
-    // Untouched generated Tier B artifacts are the active refined design.
-    expect(existsSync(join(scenario.path, '.cladding/scan/project-context.md.proposal'))).toBe(false);
-    expect(existsSync(join(scenario.path, '.cladding/scan/capabilities.yaml.proposal'))).toBe(false);
-    expect(existsSync(join(scenario.path, '.cladding/scan/architecture.yaml.proposal'))).toBe(false);
-  });
-
-  test('S4 simulate new feature: hand-authored shard registers cleanly', async () => {
-    copyFixture('sample-existing-ts', scenario.path);
-    dispatchMock.mockResolvedValueOnce(EXISTING_S2_RESPONSE);
-    await runInit({cwd: scenario.path, intent: '이 프로젝트 분석해서 클래딩 적용'});
-
-    // S4: hand-author a new feature shard for refund-flow + its module.
-    mkdirSync(join(scenario.path, 'spec/features'), {recursive: true});
-    writeUnderCwd(
-      scenario.path,
-      'spec/features/refund-flow-abc123.yaml',
-      [
-        '# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual',
-        'id: F-abc123',
-        'slug: refund-flow',
-        'title: "환불 흐름"',
-        'status: planned',
-        'modules: ["src/api/refund.ts"]',
-        'acceptance_criteria:',
-        '  - id: AC-001',
-        '    ears: ubiquitous',
-        '    text: "When a refund request lands, the system shall verify the original payment and call PG refund."',
-        '',
-      ].join('\n'),
-    );
-    writeUnderCwd(scenario.path, 'src/api/refund.ts', '// refund\nexport const refund = () => {};\n');
-
-    // Tier A loadable, banner present, module-on-disk consistent.
-    assertTierBanner(scenario.path, 'spec/features/refund-flow-abc123.yaml', 'A');
-  });
-
-  test('S5 bind feature to capability: CAPABILITIES_FEATURE_MAPPING accepts the link', async () => {
-    copyFixture('sample-existing-ts', scenario.path);
-    dispatchMock.mockResolvedValueOnce(EXISTING_S2_RESPONSE);
-    await runInit({cwd: scenario.path, intent: '이 프로젝트 분석해서 클래딩 적용'});
-
-    // Author the new feature shard.
-    mkdirSync(join(scenario.path, 'spec/features'), {recursive: true});
-    writeUnderCwd(
-      scenario.path,
-      'spec/features/refund-flow-abc123.yaml',
-      [
-        '# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual',
-        'id: F-abc123',
-        'slug: refund-flow',
-        'title: "환불 흐름"',
-        'status: planned',
-        'modules: ["src/api/refund.ts"]',
-        'acceptance_criteria:',
-        '  - id: AC-001',
-        '    ears: ubiquitous',
-        '    text: "Refund flow shall verify and process."',
-        '',
-      ].join('\n'),
-    );
-    writeUnderCwd(scenario.path, 'src/api/refund.ts', '// refund\nexport const refund = () => {};\n');
-
-    // Bind F-abc123 to the 'api' capability via features[].
-    const capsPath = join(scenario.path, 'spec/capabilities.yaml');
-    const updated = readFileSync(capsPath, 'utf8').replace(
-      '  - id: api\n    title: "API"\n    summary: "공개 API 레퍼런스"\n    surface: feature\n    features: []',
-      '  - id: api\n    title: "API"\n    summary: "공개 API 레퍼런스"\n    surface: feature\n    features: [F-abc123]',
-    );
-    writeFileSync(capsPath, updated);
-
-    // CAPABILITIES_FEATURE_MAPPING now sees one bound feature; clean (no errors).
-    // Allow META_INTEGRITY + HARDCODED_SECRET through — both are
-    // cladding-self toolchain checks (secretlint config, schema.json)
-    // that don't apply to a tmpdir fixture.
-    assertCrossTierClean(scenario.path, ['META_INTEGRITY', 'HARDCODED_SECRET']);
-  });
-
-  test('S6 final digest: lifecycle complete, all sizes within budget', async () => {
-    copyFixture('sample-existing-ts', scenario.path);
-    dispatchMock.mockResolvedValueOnce(EXISTING_S2_RESPONSE);
-    await runInit({cwd: scenario.path, intent: '이 프로젝트 분석해서 클래딩 적용'});
-
-    assertSpecCompleteness(scenario.path, {
-      minCapabilities: 3,
-      minScenarioShards: 1,
-    });
-    assertNoBudgetOverages(REPO_ROOT, scenario.path, 'Existing-adoption S6 final');
+    assertScenarioFeatureReferences(scenario.path);
   });
 });

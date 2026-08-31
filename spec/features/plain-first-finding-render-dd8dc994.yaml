@@ -30,10 +30,27 @@ acceptance_criteria:
     test_refs:
       - tests/plain-render.test.ts
   - id: AC-ad2a34e1
-    ears: unwanted
-    condition: "if any machine contract changed — check --json, MCP outputs, SARIF, event payloads, detector name constants, or the stop-block fingerprint"
-    action: "fail the existing contract suites"
-    response: "the overhaul is render-only by construction"
-    text: "If a machine contract drifts, existing tests shall catch it — JSON, MCP, SARIF, events, and the dedup fingerprint stay byte-compatible."
+    ears: event
+    condition: "when human-first rendering is available"
+    text: "When human-first rendering is available, the system shall preserve the declared raw machine schema of CLI JSON findings."
+    notes: "## 2026-08-31 criterion decomposition\n\nOriginal compound text (verbatim): If a machine contract drifts, existing tests shall catch it — JSON, MCP, SARIF, events, and the dedup fingerprint stay byte-compatible.\n\nReason: split CLI JSON, MCP, SARIF, and lifecycle/fingerprint compatibility into independently observable contracts while retaining this legacy address."
     test_refs:
-      - tests/plain-render.test.ts
+      - "tests/cli/clad.test.ts#[covers:F-dd8dc994/AC-ad2a34e1] CLI JSON findings retain the detector raw schema"
+  - id: AC-1b03c358
+    ears: event
+    condition: "when human-first rendering is available"
+    text: "When human-first rendering is available, the system shall preserve the declared raw machine schema of MCP finding projections."
+    test_refs:
+      - "tests/serve/server.test.ts#[covers:F-dd8dc994/AC-1b03c358] MCP finding projections retain the detector raw schema"
+  - id: AC-59a9d9ee
+    ears: event
+    condition: "when human-first rendering is available"
+    text: "When human-first rendering is available, the system shall preserve the standard raw machine schema of SARIF finding projections."
+    test_refs:
+      - "tests/report/sarif.test.ts#[covers:F-dd8dc994/AC-59a9d9ee] SARIF retains raw detector message path and line fields"
+  - id: AC-0eee6e0a
+    ears: event
+    condition: "when human-first rendering is available"
+    text: "When human-first rendering is available, the system shall preserve lifecycle-event fields and stop-block fingerprint inputs."
+    test_refs:
+      - "tests/plain-render.test.ts#[covers:F-dd8dc994/AC-0eee6e0a] lifecycle events retain raw fields and fingerprint only detector and path"

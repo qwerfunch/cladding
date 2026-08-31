@@ -311,6 +311,27 @@ describe('dedup ladder within a session (AC-61ae9211)', () => {
 // ─── AC-f4715e87 — the session push budget ───
 
 describe('session push budget exhaustion (AC-f4715e87)', () => {
+  test('[covers:F-6ba22c5c/AC-76331365] push-governor dedup and budget suppressions record declared reasons', () => {
+    seed(SPEC_A);
+    const sid = 'declared-dispositions';
+    clearStamp();
+    post(edit('src/foo.ts', 60, sid));
+    clearStamp();
+    post(edit('src/foo.ts', 60, sid));
+    writeLedger({
+      sessionKey: `sid:${sid}`,
+      windowStart: Date.now(),
+      est_tokens_pushed: 2600,
+      fingerprints: {},
+      notice_printed: false,
+    });
+    clearStamp();
+    post(edit('src/foo.ts', 60, sid));
+
+    expect(skips('dedup')).toHaveLength(1);
+    expect(skips('ledger_exhausted')).toHaveLength(1);
+  });
+
   test('[covers:F-35954d19/AC-f4715e87] over budget → no card, notice exactly once, ledger_exhausted each time, budget not spent by the notice', () => {
     seed(SPEC_A);
     const sid = 'sess-budget';

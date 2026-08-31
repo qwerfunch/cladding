@@ -13,7 +13,14 @@ import {join} from 'node:path';
 
 import {beforeEach, afterEach, describe, expect, test, vi} from 'vitest';
 
-vi.mock('../../src/events/log.js', () => ({recordEvent: vi.fn()}));
+import {readEvents} from '../../src/events/log.js';
+
+const checkpointIntegration = vi.hoisted(() => ({enabled: false}));
+
+vi.mock('../../src/events/log.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../src/events/log.js')>()),
+  recordEvent: vi.fn(),
+}));
 
 // Handler-export tests run from this repository.  Sync's write collaborators
 // are isolated there, while the later git-operation fixture suite deliberately
@@ -94,22 +101,35 @@ vi.mock('../../src/stages/uat.js', () => ({runUat: vi.fn(() => ({pass: true, exi
 vi.mock('../../src/stages/detectors/stale-specification.js', () => ({
   staleSpecification: {name: 'STALE_SPECIFICATION', run: vi.fn(() => [])},
 }));
-vi.mock('../../src/core/checkpoint.js', () => ({
-  readGitHead: vi.fn(() => null),
-  recordCheckpoint: vi.fn(() => ({
-    featureId: 'F-001',
-    gitHead: '0123456789abcdef0123456789abcdef01234567',
-    specDigest: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
-    timestamp: '2026-05-20T12:34:56Z',
-  })),
-  findLatestCheckpoint: vi.fn(() => null),
-  recordRollback: vi.fn(() => ({
-    id: 'ev-mock',
-    timestamp: '2026-05-20T12:34:56Z',
-    type: 'feature_rolled_back',
-    payload: {},
-  })),
-}));
+vi.mock('../../src/core/checkpoint.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../src/core/checkpoint.js')>();
+  return {
+    ...original,
+    readGitHead: vi.fn(() => null),
+    recordCheckpoint: vi.fn((cwd: string, featureId: string) => checkpointIntegration.enabled
+      ? original.recordCheckpoint(cwd, featureId)
+      : {
+        featureId: 'F-001',
+        gitHead: '0123456789abcdef0123456789abcdef01234567',
+        specDigest: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
+        timestamp: '2026-05-20T12:34:56Z',
+      }),
+    findLatestCheckpoint: vi.fn((cwd: string, featureId: string) => checkpointIntegration.enabled
+      ? original.findLatestCheckpoint(cwd, featureId)
+      : null),
+    recordRollback: vi.fn(
+      (cwd: string, featureId: string, checkpoint: Parameters<typeof original.recordRollback>[2], reason?: string) =>
+        checkpointIntegration.enabled
+          ? original.recordRollback(cwd, featureId, checkpoint, reason)
+          : {
+            id: 'ev-mock',
+            timestamp: '2026-05-20T12:34:56Z',
+            type: 'feature_rolled_back' as const,
+            payload: {},
+          },
+    ),
+  };
+});
 vi.mock('../../src/drive/loop.js', () => ({runDriveLoop: vi.fn()}));
 // MCP server build is mocked — the runServeCommand test only verifies
 // the CLI plumbing (server constructed, transport connected). The
@@ -203,6 +223,7 @@ describe('cli/clad — handler exports', () => {
   });
   afterEach(() => {
     syncWriteIsolation.enabled = false;
+    checkpointIntegration.enabled = false;
     exitSpy.mockRestore();
     stdoutSpy.mockRestore();
     process.exitCode = 0;
@@ -227,6 +248,29 @@ describe('cli/clad — handler exports', () => {
     expect(doc.worst).toBe(0);
     expect(doc.stages.map((s) => s.stage)).toEqual(['stage_1.3', 'stage_1.5', 'stage_1.6']);
     expect(doc.stages.every((s) => s.status === 'pass')).toBe(true);
+  });
+
+  test('[covers:F-dd8dc994/AC-ad2a34e1] CLI JSON findings retain the detector raw schema', async () => {
+    const drift = await import('../../src/stages/drift.js');
+    const rawFinding = {
+      detector: 'MISSING_IMPLEMENTATION',
+      severity: 'error' as const,
+      path: 'src/auth/login.ts',
+      line: 12,
+      message: "feature F-aaa111 declares module 'src/auth/login.ts' but the file does not exist",
+    };
+    (drift.runDrift as unknown as ReturnType<typeof vi.fn>).mockReturnValueOnce({
+      pass: false,
+      exitCode: 1,
+      findings: [rawFinding],
+    });
+
+    clad.runCheckStages({tier: 'pre-commit', json: true});
+
+    const doc = JSON.parse(stdoutSpy.mock.calls.map((call: unknown[]) => String(call[0])).join('')) as {
+      stages: Array<{stage: string; findings?: unknown}>;
+    };
+    expect(doc.stages.find((stage) => stage.stage === 'stage_1.3')?.findings).toEqual([rawFinding]);
   });
 
   test('runCheckStages --json on an unknown tier emits a structured error, not a pulse', () => {
@@ -419,15 +463,23 @@ describe('cli/clad — handler exports', () => {
       expect(exitCalls).toEqual([2]);
     });
 
-    test('runRollbackCommand with no prior checkpoint exits 1', async () => {
-      const checkpoint = await import('../../src/core/checkpoint.js');
-      const findSpy = checkpoint.findLatestCheckpoint as unknown as ReturnType<typeof vi.fn>;
-      findSpy.mockReturnValueOnce(null);
-      clad.runRollbackCommand('F-001');
-      expect(exitCalls).toEqual([1]);
+    test('[covers:F-c2c996/AC-804e61b1] rollback without a checkpoint fails without recording rollback telemetry', () => {
+      const originalCwd = process.cwd();
+      const fixture = mkdtempSync(join(tmpdir(), 'clad-rollback-miss-'));
+      try {
+        checkpointIntegration.enabled = true;
+        process.chdir(fixture);
+        clad.runRollbackCommand('F-001');
+        expect(exitCalls).toEqual([1]);
+        expect(readEvents(fixture).filter((event) => event.type === 'feature_rolled_back')).toHaveLength(0);
+      } finally {
+        process.chdir(originalCwd);
+        checkpointIntegration.enabled = false;
+        rmSync(fixture, {recursive: true, force: true});
+      }
     });
 
-    test('runRollbackCommand with prior checkpoint records rollback + exits 0', async () => {
+    test('[covers:F-c2c996/AC-e4bf75ed] rollback prints the maintainer-owned restore instruction', async () => {
       const checkpoint = await import('../../src/core/checkpoint.js');
       const findSpy = checkpoint.findLatestCheckpoint as unknown as ReturnType<typeof vi.fn>;
       const rollbackSpy = checkpoint.recordRollback as unknown as ReturnType<typeof vi.fn>;
@@ -443,6 +495,45 @@ describe('cli/clad — handler exports', () => {
       expect(rollbackSpy.mock.calls[0][1]).toBe('F-001');
       expect(rollbackSpy.mock.calls[0][3]).toBe('manual test');
       expect(exitCalls).toEqual([0]);
+      const output = stdoutSpy.mock.calls.map((call: unknown[]) => String(call[0])).join('');
+      expect(output).toContain('Run: git checkout abc123def456abc123def456abc123def456abc1');
+    });
+
+    test('[covers:F-c2c996/AC-a06e5151] checkpoint and rollback never invoke checkout', () => {
+      const originalCwd = process.cwd();
+      const fixture = mkdtempSync(join(tmpdir(), 'clad-checkpoint-cli-'));
+      try {
+        mkdirSync(join(fixture, 'src'), {recursive: true});
+        const specPath = join(fixture, 'spec.yaml');
+        const sourcePath = join(fixture, 'src', 'app.ts');
+        writeFileSync(specPath, 'schema: "0.1"\nfeatures: []\n', 'utf8');
+        writeFileSync(sourcePath, 'export const before = true;\n', 'utf8');
+        execFileSync('git', ['init', '-q'], {cwd: fixture, stdio: 'ignore'});
+        execFileSync('git', ['config', 'user.email', 'test@example.com'], {cwd: fixture, stdio: 'ignore'});
+        execFileSync('git', ['config', 'user.name', 'test'], {cwd: fixture, stdio: 'ignore'});
+        execFileSync('git', ['add', '-A'], {cwd: fixture, stdio: 'ignore'});
+        execFileSync('git', ['commit', '-q', '-m', 'initial'], {cwd: fixture, stdio: 'ignore'});
+        writeFileSync(specPath, 'schema: "0.1"\nfeatures: []\n# dirty spec remains maintainer-owned\n', 'utf8');
+        writeFileSync(sourcePath, 'export const dirty = true;\n', 'utf8');
+        const before = {spec: readFileSync(specPath, 'utf8'), source: readFileSync(sourcePath, 'utf8')};
+
+        checkpointIntegration.enabled = true;
+        process.chdir(fixture);
+        clad.runCheckpointCommand('F-001');
+        clad.runRollbackCommand('F-001', {reason: 'verify no checkout'});
+
+        expect(readFileSync(specPath, 'utf8')).toBe(before.spec);
+        expect(readFileSync(sourcePath, 'utf8')).toBe(before.source);
+        expect(readEvents(fixture).filter((event) => event.type === 'feature_checkpoint')).toHaveLength(1);
+        expect(readEvents(fixture).filter((event) => event.type === 'feature_rolled_back')).toHaveLength(1);
+        const output = stdoutSpy.mock.calls.map((call: unknown[]) => String(call[0])).join('');
+        expect(output).toContain('Run: git checkout ');
+        expect(exitCalls).toEqual([0, 0]);
+      } finally {
+        process.chdir(originalCwd);
+        checkpointIntegration.enabled = false;
+        rmSync(fixture, {recursive: true, force: true});
+      }
     });
   });
 

@@ -36,6 +36,7 @@ import {z} from 'zod';
 
 import {loadPersona} from '../agents/loader.js';
 import {readEventLogLines, recordEvent} from '../events/log.js';
+import {onboardingCompletionMessage} from '../ui/softShell.js';
 import {collectChangelog, defaultSinceRef} from '../changelog/collect.js';
 import {renderAuditTable, renderCatalog, renderChangelogMarkdown} from '../changelog/render.js';
 import {subscribeAudit} from '../hitl/audit.js';
@@ -938,7 +939,7 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
         language: z.string().optional(), proposals: z.array(z.string()).optional(), clarifyingQuestions: z.array(z.string()).optional(),
         onboardingMode: z.enum(['greenfield', 'existing-adoption', 'mixed']).optional(), onboardingSource: z.string().optional(),
         nextQuestion: z.string().nullable().optional(), remainingQuestions: z.number().optional(), error: z.string().optional(),
-        confirmation: z.string().optional(),
+        confirmation: z.string().optional(), completionMessage: z.string().optional(),
       },
       annotations: {readOnlyHint: false, destructiveHint: true, idempotentHint: false},
     },
@@ -988,6 +989,7 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
         confirmation: args.confirmation,
         nextQuestion: questions[0] ?? null,
         remainingQuestions: questions.length,
+        ...(questions.length === 0 ? {completionMessage: onboardingCompletionMessage()} : {}),
       };
       registerInitialized();
       return mcpPayload(payload);
@@ -1054,7 +1056,7 @@ function registerInitializedTools(
         status: z.string(), changed: z.boolean(), cwd: z.string().optional(), answered: z.unknown().optional(),
         newQuestions: z.array(z.string()).optional(), mode: z.enum(['greenfield', 'existing-adoption', 'mixed']).nullable().optional(),
         nextQuestion: z.string().nullable().optional(), remainingQuestions: z.number().optional(), refinementSource: z.string().optional(),
-        pendingReview: z.array(z.string()).optional(),
+        pendingReview: z.array(z.string()).optional(), completionMessage: z.string().optional(),
         error: z.string().optional(),
       },
       annotations: {readOnlyHint: false, destructiveHint: true, idempotentHint: false},
@@ -1072,7 +1074,18 @@ function registerInitializedTools(
       const response = onboarding.renderDraft(args.draft);
       const outcome = await onboarding.clarify(args.answer, {cwd, hostDispatcher: async () => response});
       if (!outcome.ok) return mcpPayload({status: 'failed', changed: false, error: outcome.error ?? 'onboarding clarification failed'}, true);
-      return mcpPayload({...((outcome.report ?? {}) as object), changed: true, refinementSource: 'host'});
+      const report = outcome.report;
+      const reportPayload: Record<string, unknown> = report !== null
+        && typeof report === 'object'
+        && !Array.isArray(report)
+        ? report as Record<string, unknown>
+        : {};
+      return mcpPayload({
+        ...reportPayload,
+        changed: true,
+        refinementSource: 'host',
+        ...(reportPayload.status === 'done' ? {completionMessage: onboardingCompletionMessage()} : {}),
+      });
     },
   );
 
@@ -1095,6 +1108,7 @@ function registerInitializedTools(
         status: result.status ?? (result.ok ? 'resolved' : 'failed'),
         changed: result.changed,
         remaining: result.remaining,
+        ...(result.status === 'done' ? {completionMessage: onboardingCompletionMessage()} : {}),
         error: result.error,
       }, !result.ok);
     },

@@ -96,6 +96,21 @@ export function gateLabel(stageId: string): string {
 }
 
 /**
+ * Returns the canonical human-facing handoff after onboarding has completed.
+ *
+ * @returns Plain completion guidance shared by CLI and MCP onboarding surfaces.
+ * @see spec/features/natural-language-init-0f4dd6.yaml AC-015 / AC-36fea3e9
+ */
+export function onboardingCompletionMessage(): string {
+  return [
+    'Onboarding complete. Ordinary natural-language development may continue.',
+    "Next: author your first feature's spec — its acceptance criteria (the testable promises) and the files it will cover — before writing code.",
+    'Run `clad check` on demand when you want to verify work.',
+    'Git hooks and CI enforcement are opt-in and not enabled automatically.',
+  ].join('\n');
+}
+
+/**
  * Rewrites any `F-NNN` token in a detail string to its feature title.
  *
  * Halt detail strings are produced by the drive loop in internal form

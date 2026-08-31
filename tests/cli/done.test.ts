@@ -184,7 +184,7 @@ describe('runDone', () => {
     expect(readFileSync(path, 'utf8')).toContain('status: done');
   });
 
-  test('an unresolved structural design impact blocks done before the gate runs', () => {
+  test('[covers:F-0f4dd6/AC-514670ea] review_required structural impact refuses completion while resolved impact permits the normal gate', () => {
     const body = SHARD_BODY +
       'design_impact:\n' +
       '  classification: structural\n' +
@@ -200,6 +200,11 @@ describe('runDone', () => {
     expect(result.reason).toContain('design impact still needs review');
     expect(checkStages).not.toHaveBeenCalled();
     expect(readFileSync(path, 'utf8')).toBe(body);
+
+    writeFileSync(path, body.replace('status: review_required', 'status: resolved'));
+    const resolved = runDone(dir, FEATURE_ID, {checkStages});
+    expect(resolved.ok).toBe(true);
+    expect(checkStages).toHaveBeenCalledOnce();
   });
 
   test('the locked provisional mark refuses review_required design impact without changing the feature', () => {

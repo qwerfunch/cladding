@@ -712,6 +712,29 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
+  test('[covers:F-dd8dc994/AC-1b03c358] MCP finding projections retain the detector raw schema', async () => {
+    const specWithMissingCompletedModule = MINIMAL_SPEC
+      .replace('status: planned', 'status: done')
+      .replace('modules: []', 'modules: [src/nonexistent.ts]');
+    writeFileSync(join(dir, 'spec.yaml'), specWithMissingCompletedModule, 'utf8');
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const result = await client.callTool({name: 'clad_run_check', arguments: {verbose: true}});
+      const report = JSON.parse((result.content as Array<{type: string; text: string}>)[0].text) as {
+        findings: Array<{detector: string; severity: string; path?: string; message: string}>;
+      };
+      const raw = report.findings.find((finding) => finding.detector === 'MISSING_IMPLEMENTATION');
+      expect(raw).toEqual({
+        detector: 'MISSING_IMPLEMENTATION',
+        severity: 'error',
+        path: 'src/nonexistent.ts',
+        message: "feature F-001 declares module 'src/nonexistent.ts' but the file does not exist",
+      });
+    } finally {
+      await cleanup();
+    }
+  });
+
   // B2 (No-Vacuous-Green efficiency) — terse by default keeps the gate result
   // cheap as it re-enters the agent loop each turn; verbose opt-in keeps full debuggability.
   test('clad_run_check is terse by default (counts + top-3); verbose returns the full report', async () => {

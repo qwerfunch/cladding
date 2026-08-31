@@ -1,6 +1,27 @@
 /** A public all-pass claim represented as `[passed, total]`. */
 export type TestCountPair = readonly [number, number];
 
+/** One public README surface carrying the collected test-count claim. */
+export interface ClaimSite {
+  readonly file:
+    | 'README.md'
+    | 'README.ko.md'
+    | 'README.ja.md'
+    | 'README.zh.md'
+    | 'README.html'
+    | 'README.ko.html';
+  readonly kind: 'markdown' | 'html';
+}
+
+/** Test-only seams for the public test-count command. */
+export interface RunTestCountOptions {
+  readonly root?: string;
+  readonly collected?: number;
+}
+
+/** Registered public README surfaces carrying the collected test claim. */
+export const CLAIM_SITES: readonly ClaimSite[];
+
 /**
  * Extracts the badge and release-status claim pairs from a README variant.
  *
@@ -50,3 +71,9 @@ export function rewriteClaimText(
  * @throws When collection fails or returns an empty suite.
  */
 export function collectTestCount(): number;
+
+/** Checks or rewrites every registered public test-count claim. */
+export function runTestCount(
+  mode: '--check' | '--write',
+  options?: RunTestCountOptions,
+): number;

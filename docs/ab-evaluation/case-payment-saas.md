@@ -2,9 +2,11 @@
 
 # A/B Evaluation: payment-saas
 
-_Snapshot note (2026-07-05): detector count was 25 at this run; the suite has since grown to 41 (0.8.x). Body preserved as an append-only snapshot._
+_Snapshot note (2026-07-05): this historical M2 report reflects the detector registry available at that run. Body preserved as an append-only snapshot._
 
 **Intent:** `결제 SaaS for B2B Stripe Toss 지원`
+
+**Fixture:** `empty tmpdir`
 
 Greenfield case: an empty tmpdir + a one-line intent.
 
@@ -50,7 +52,7 @@ no spec, no scenarios, no architecture invariants.
 | Test files | 0 | 1 | -1 |
 | Test LoC | 0 | 20 | -20 |
 | Test cases | 0 | 2 | -2 |
-| Total chars (artifacts + code) | 6804 | 3463 | +3341 |
+| Total chars (artifacts + code) | 6806 | 3463 | +3343 |
 | Estimated tokens | 1702 | 867 | +835 |
 
 **Detector outcomes** (META_INTEGRITY + HARDCODED_SECRET excluded — toolchain-only checks):
@@ -89,7 +91,7 @@ B (Vanilla)  — errors: 1  warns: 3  infos: 28
 | Test files | 1 | 2 | -1 |
 | Test LoC | 8 | 33 | -25 |
 | Test cases | 1 | 4 | -3 |
-| Total chars (artifacts + code) | 7968 | 5592 | +2376 |
+| Total chars (artifacts + code) | 7970 | 5592 | +2378 |
 | Estimated tokens | 1993 | 1399 | +594 |
 
 **Detector outcomes** (META_INTEGRITY + HARDCODED_SECRET excluded — toolchain-only checks):
@@ -124,9 +126,9 @@ Each row = one realistic drift event injected into both groups at M2+. "Caught" 
 | DI-1 Stale module reference (rename src/api/refund.ts → src/api/refund_renamed.ts without spec update) | ✅ | MISSING_IMPLEMENTATION, STATUS_DRIFT | · | — |
 | DI-2 Architecture violation (src/api/refund_renamed.ts imports ../ledger/store.js) | ✅ | ARCHITECTURE_FROM_SPEC | · | — |
 | DI-3 Hardcoded secret (add API key constant to src/api/refund_renamed.ts) | · | — | · | — |
-| DI-4 Untested AC (add AC-003 to spec/features/refund-flow-4db939.yaml without test) | ✅ | MISSING_TESTS | N/A | N/A |
+| DI-4 Unverified criterion (add AC-003 to spec/features/refund-flow-4db939.yaml without test) | ✅ | MISSING_TESTS | N/A | N/A |
 
-**Catch rate**: A = 3/4 · B = 0/3 · **cladding-exclusive catches = 3**
+**Catch rate (applicable scenarios)**: A = 3/4 · B = 0/3 · **cladding-exclusive catches = 3**
 
 ### AI-Query Productivity
 
@@ -140,14 +142,15 @@ Each row = one domain question. "Files opened" = deterministic file-IO an answer
 | Q4 Which capabilities are bound to which features? | 1 | all capabilities orphan (no bindings) | N | no spec/capabilities.yaml — vanilla has no capability conce… |
 | Q5 How many test scenarios are declared? | 1 | 2 scenario shard(s) | 2 | 2 test file(s) (weak proxy — no canonical scenario declarat… |
 
-**Answerability**: A = 5/5 answered · B = 2/5 answered
+**Answerability (applicable queries)**: A = 5/5 answered · B = 2/5 answered
 **Low-cost answers (≤1 file)**: A = 5/5 · B = 0/5
 
 ### What this means
 
 - **H6 — Cladding catches drift vanilla misses**: 3/4 cladding-exclusive catches. The non-exclusive catches (where both groups catch) are toolchain-only detectors like HARDCODED_SECRET that fire regardless of spec presence — useful baseline but not where cladding's design pays off.
 - **H7 — Cladding makes AI agents productive**: A answers 5/5 queries from ≤1 file; B answers 0/5. For the unanswerable B queries, the tree has no canonical source — an AI agent would either give up or hallucinate from inferred context.
-- **H8 — Iron Law gates measure detector activity, not codebase health**: when `clad check --strict` runs against vanilla, spec-required detectors silently report 0 findings. The same gate on cladding-managed code uses all 25 detectors. Same gate label, very different evaluation surface.
+- **H8 — Iron Law gates measure detector activity, not codebase health**: when `clad check --strict` runs against vanilla, spec-required detectors silently report 0 findings. The same gate on cladding-managed code uses the current registered detector set. Same gate label, very different evaluation surface.
+- **Release evidence**: this is a historical M2 measurement, not a release claim; no later B5 signed receipt is recorded.
 
 ## How to reproduce
 

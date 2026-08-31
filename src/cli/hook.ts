@@ -680,21 +680,6 @@ function recordFiredEvent(cwd: string, payload: Record<string, unknown>): void {
   flushPendingSkipAgg(cwd); // a fired card closes the window → flush accumulated skips
 }
 
-/** Fired-card event for the SHIPPED slice path; payload mirrors formatImpactCard's inputs
- * (AC-373257b2 bijection). Used only by the byte-identical fallback (working set unavailable).
- * `lane` is the additive F-e7d59c88 tag ('bash' on the git-delta lane; absent on native edits). */
-function recordImpactFired(cwd: string, file: string, slice: ImpactSlice, lane?: 'bash'): void {
-  const owners = slice.focus.owners ?? [];
-  recordFiredEvent(cwd, {
-    file,
-    feature: slice.focus.id ?? owners[0] ?? '',
-    impacted: slice.impacted.length,
-    tests: slice.test_refs.length,
-    unledgered: slice.ledger?.depends_on_edges === 0,
-    ...(lane ? {lane} : {}),
-  });
-}
-
 // --- session push ledger (F-35954d19) ----------------------------------
 //
 // The Tier-2 impact card is the push half of clad_get_working_set — richer, so it
@@ -758,25 +743,28 @@ function loadPushLedger(cwd: string, sessionId: string, now: number): PushLedger
   return led;
 }
 
+/** Rendering and telemetry inputs for one card routed through the shared governor. */
+interface GovernedPushCard {
+  readonly focusId: string;
+  readonly freshCard: string;
+  readonly repeatCard: string;
+  readonly firedPayload: Record<string, unknown>;
+}
+
 /**
- * The tiered push-card decision for an OWNED edit whose working set is built. Returns the
- * card text to print ('' = silence) and applies the session governor as a side effect:
- *   - budget exhausted (AC-f4715e87): suppress, one-time notice, record ledger_exhausted;
- *   - fresh (focus,file): Tier-2 when consequences exist else the Tier-1 one-liner, fired;
- *   - first repeat: degrade to the one-liner, record dedup;
- *   - later repeats: silence, record dedup (AC-61ae9211).
- *
- * `lane` tags impact_card_fired with the additive payload field lane:'bash'
- * (F-e7d59c88); the ledger rules themselves are lane-agnostic (AC-977e6445) —
- * a native Tier-2 for (focus,file) dedups a later Bash card for the same pair.
+ * Applies the single session governor shared by Tier-2 cards and the legacy
+ * fallback. The fallback intentionally supplies its byte-identical legacy card
+ * for both render slots; it must share ledger state without pretending it has
+ * working-set detail that the fallback path could not build.
  */
-function emitPushCard(cwd: string, sessionId: string, rel: string, ws: WorkingSet, lane?: 'bash'): string {
-  const impacted = ws.breaks_if_changed.impacted;
-  const tests = ws.breaks_if_changed.regression_tests;
-  const highRisk = ws.verify.high_risk_acs;
-  const hasConsequences = impacted.length > 0 || tests.length > 0 || highRisk.length > 0;
-  const focusId = ws.must_edit.id;
-  const fp = `post_tool_use|${focusId}|${rel}`;
+function emitGovernedPushCard(
+  cwd: string,
+  sessionId: string,
+  rel: string,
+  candidate: GovernedPushCard,
+  lane?: 'bash',
+): string {
+  const fp = `post_tool_use|${candidate.focusId}|${rel}`;
   const now = Date.now();
   const led = loadPushLedger(cwd, sessionId, now);
 
@@ -791,19 +779,14 @@ function emitPushCard(cwd: string, sessionId: string, rel: string, ws: WorkingSe
   } else {
     const seen = led.fingerprints[fp] ?? 0;
     if (seen === 0) {
-      card = hasConsequences ? formatWorkingSetCard(ws, rel) : formatPushOneLiner(ws, rel);
+      card = candidate.freshCard;
       led.est_tokens_pushed += estTokens(card);
       recordFiredEvent(cwd, {
-        file: rel,
-        feature: focusId,
-        impacted: impacted.length,
-        tests: tests.length,
-        unledgered: ws.breaks_if_changed.ledger?.depends_on_edges === 0,
-        tier: hasConsequences ? 2 : 1,
+        ...candidate.firedPayload,
         ...(lane ? {lane} : {}),
       });
     } else if (seen === 1) {
-      card = formatPushOneLiner(ws, rel); // one Tier-2 per (focus,file) is the dose — degrade
+      card = candidate.repeatCard;
       led.est_tokens_pushed += estTokens(card);
       recordImpactSkip(cwd, 'dedup');
     } else {
@@ -813,6 +796,56 @@ function emitPushCard(cwd: string, sessionId: string, rel: string, ws: WorkingSe
   }
   writePushLedger(cwd, led);
   return card;
+}
+
+/**
+ * The tiered push-card decision for an OWNED edit whose working set is built.
+ * A native or Bash card reaches the same governor, so its dedup fingerprint and
+ * token budget are lane-agnostic (AC-977e6445).
+ */
+function emitPushCard(cwd: string, sessionId: string, rel: string, ws: WorkingSet, lane?: 'bash'): string {
+  const impacted = ws.breaks_if_changed.impacted;
+  const tests = ws.breaks_if_changed.regression_tests;
+  const highRisk = ws.verify.high_risk_acs;
+  const hasConsequences = impacted.length > 0 || tests.length > 0 || highRisk.length > 0;
+  return emitGovernedPushCard(cwd, sessionId, rel, {
+    focusId: ws.must_edit.id,
+    freshCard: hasConsequences ? formatWorkingSetCard(ws, rel) : formatPushOneLiner(ws, rel),
+    repeatCard: formatPushOneLiner(ws, rel),
+    firedPayload: {
+      file: rel,
+      feature: ws.must_edit.id,
+      impacted: impacted.length,
+      tests: tests.length,
+      unledgered: ws.breaks_if_changed.ledger?.depends_on_edges === 0,
+      tier: hasConsequences ? 2 : 1,
+    },
+  }, lane);
+}
+
+/** Sends the byte-identical legacy card through the same governor as Tier-2 cards. */
+function emitFallbackPushCard(
+  cwd: string,
+  sessionId: string,
+  rel: string,
+  slice: ImpactSlice,
+  card: string,
+  lane?: 'bash',
+): string {
+  const owners = slice.focus.owners ?? [];
+  const feature = slice.focus.id ?? owners[0] ?? '';
+  return emitGovernedPushCard(cwd, sessionId, rel, {
+    focusId: feature,
+    freshCard: card,
+    repeatCard: card,
+    firedPayload: {
+      file: rel,
+      feature,
+      impacted: slice.impacted.length,
+      tests: slice.test_refs.length,
+      unledgered: slice.ledger?.depends_on_edges === 0,
+    },
+  }, lane);
 }
 
 /**
@@ -843,8 +876,7 @@ function emitCardForPath(cwd: string, sessionId: string, rel: string, lane?: 'ba
     }
     const card = formatImpactCard(slice, rel);
     if (card) {
-      recordImpactFired(cwd, rel, slice, lane);
-      return card;
+      return emitFallbackPushCard(cwd, sessionId, rel, slice, card, lane);
     }
     recordImpactSkip(cwd, 'owner_miss'); // found slice but no primary owner → no output
     return lane ? '' : unboundEditNudge(cwd);

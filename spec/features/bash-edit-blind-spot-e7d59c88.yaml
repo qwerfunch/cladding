@@ -30,7 +30,25 @@ acceptance_criteria:
     notes: "WHY: attribution honesty — hand-tool edits must never double-fire through the Bash lane."
     test_refs: [tests/cli/hook-bash-lane.test.ts]
   - id: AC-977e6445
+    ears: event
+    condition: when the Bash mutation lane produces a result
+    text: When the Bash mutation lane produces a result, the system shall emit advisory-only context.
+    notes: "## 2026-08-31 criterion decomposition\n\nOriginal compound text (verbatim): The system shall never emit a block decision from the Bash lane; its output is advisory context only, and all F-35954d19 ledger rules (dedup, budget, telemetry reasons) apply unchanged.\n\nReason: split advisory rendering, cross-lane deduplication, ledger/budget governance, and shared telemetry vocabulary while retaining this legacy address.\n\nWHY: a false-positive block on shell parsing is the fastest route to users disabling hooks; Stop-gate remains the enforcement lane."
+    test_refs:
+      - "tests/cli/hook-bash-lane.test.ts#[covers:F-e7d59c88/AC-977e6445] Bash mutation output is advisory-only context"
+  - id: AC-278b34cd
     ears: ubiquitous
-    text: "The system shall never emit a block decision from the Bash lane; its output is advisory context only, and all F-35954d19 ledger rules (dedup, budget, telemetry reasons) apply unchanged."
-    notes: "WHY: a false-positive block on shell parsing is the fastest route to users disabling hooks; Stop-gate remains the enforcement lane."
-    test_refs: [tests/cli/hook-bash-lane.test.ts]
+    text: The Bash mutation lane shall apply shared cross-lane push-card deduplication.
+    test_refs:
+      - "tests/cli/hook-bash-lane.test.ts#[covers:F-e7d59c88/AC-278b34cd] native and Bash cards share one dedup fingerprint"
+  - id: AC-3021d7dc
+    ears: ubiquitous
+    text: The Bash mutation lane shall apply the shared push-card budget rule.
+    test_refs:
+      - "tests/cli/hook-bash-lane.test.ts#[covers:F-e7d59c88/AC-3021d7dc] normal Bash cards honor the shared push budget"
+      - "tests/cli/hook-push-fallback.test.ts#[covers:F-e7d59c88/AC-3021d7dc] fallback Bash cards honor the shared push budget"
+  - id: AC-fc9532da
+    ears: ubiquitous
+    text: The Bash mutation lane shall use the shared ImpactSkipReason vocabulary for its telemetry.
+    test_refs:
+      - "tests/cli/hook-bash-lane.test.ts#[covers:F-e7d59c88/AC-fc9532da] Bash telemetry emits only shared skip reasons"
