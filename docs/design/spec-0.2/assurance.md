@@ -2,34 +2,15 @@
 
 # Spec 0.2 — assurance kernel and scheduling
 
-> Canonical owner of D21–D23. This document extends the [Spec 0.2 continuation
-> router](../spec-0.2.md). Artifact and compiler ownership remain in
-> [D10](model-and-migration.md#d10--artifact-registry-and-compiler-boundary),
-> proof and attestation inputs in [D11–D13](proof-and-editing.md), GraphIR
-> closures in [D17](graph.md), and task projection and host ownership in
-> [D19–D20](context-and-orchestration.md). Dated cadence and invalidation
-> measurements live in [Assurance evidence](assurance-evidence.md); the
-> [upstream obligation RFC](../ironclad-obligation-rfc.md) is a non-authoritative
-> proposal derived from this accepted Cladding design.
+> D21–D23 owner. [Router](../spec-0.2.md); D10 artifacts/compiler, D11–D13 proof/attestation, D17 closures, D19–D20 task/host. [Assurance evidence](assurance-evidence.md) is dated; [upstream RFC](../ironclad-obligation-rfc.md) non-authoritative.
 
 ## D21 — Iron Law assurance kernel
 
 ### Guarantee boundary
 
-The Iron Law is a cumulative set of proof obligations, not a script that runs
-every available command after every edit. An obligation names a governed fact,
-the inputs that can change it, the observation that can decide it, and the
-assurance level and profiles that require it. A stage is a compatibility view
-over one or more obligations. Stage numbering never determines execution order,
-freshness, scope, or authority.
+The Iron Law is cumulative proof obligations, not every command after every edit. Each names a fact, mutable inputs, deciding observation, and required level/profile; stages are compatibility views. Numbering determines neither execution, freshness, scope, nor authority.
 
-The kernel is synchronous, deterministic over a sealed input snapshot, and
-LLM-free. It may execute project-owned tools and record their observations, but
-an agent statement, tool exit alone, or previously present report is not proof
-unless a registered adapter resolves it against the current inputs. The kernel
-proves that declared obligations received current qualifying observations. It
-does not prove unstated intent, universal correctness, or the identity of a
-person beyond a verified receipt issuer's signed assertion.
+The sealed synchronous LLM-free kernel may execute project tools, but agent statements, exit alone, and old reports are proof only through a registered adapter against current inputs. It proves current qualifying declared obligations, not unstated intent, universal correctness, or identity beyond a verified issuer assertion.
 
 ### Assurance levels and stage compatibility
 
@@ -44,26 +25,14 @@ and requires explicit operator resolution before apply. Levels are cumulative:
 | `L3` | L2 plus system-quality observations | Smoke `stage_3.1`, Performance `stage_3.2`, Visual `stage_3.3` |
 | `L4` | L3 plus verified independent human evidence | Audit `stage_4.1`, UAT `stage_4.2` |
 
-Ironclad owns 13 stages; Spec Conformance and Deliverable Smoke are Cladding
-extensions. All 15 IDs remain readable in machine output, history, plugins, and
-compatibility tests, with labels and aliases derived from the registry. A
-profile may require an applicable extension, but its pass never raises the
-derived Ironclad level.
+Ironclad owns 13 stages; Spec Conformance and Deliverable Smoke are extensions.
+All 15 IDs remain readable in output, history, plugins, and compatibility tests;
+registry-derived labels/aliases apply. An applicable extension may be required,
+but its pass never raises the Ironclad level.
 
-Ironclad strictness and Cladding enforcement are separate axes. The standard
-marks Coverage and Performance `report` and every other core stage `hard`: a
-reporting stage must produce `pass | fail | na`, but its failure does not lower
-the derived standard level. Cladding's authoritative profiles deliberately
-harden both reporting stages, preserving the shipped rule that a failed check
-blocks completion. This tool policy does not redefine Ironclad, and `report` is
-never an alias for the shipped blocking `GateStatus.advisory` disposition.
+Ironclad strictness and Cladding enforcement are separate. The standard marks Coverage and Performance `report`, all other core stages `hard`; report must produce `pass | fail | na` but a failure does not lower the standard level. Cladding hardens both reporting stages for its authoritative profiles, so failure blocks completion; `report` is never `GateStatus.advisory`.
 
-An assurance level requires applicable obligations; it does not invent a
-command. Only a compiler proof from current contract and artifact kinds permits
-`na`. A missing runner, required adapter, trust key, or observation is
-`unobserved`, never `na`, `skip`, or GREEN. Oracle and deliverable policies own
-the two extension applicability rules; project-kind rules own Coverage, Smoke,
-Performance, and Visual applicability.
+An assurance level requires applicable obligations, never a command. Only current compiler proof permits `na`; a missing runner, adapter, trust key, or observation is `unobserved`, never `na`, `skip`, or GREEN. Oracle/deliverable policy own extension applicability; project-kind rules own Coverage, Smoke, Performance, and Visual.
 
 ### Kernel records
 
@@ -79,6 +48,8 @@ caller `na`. It precedes stages: behavior stays required; static
 Unit/Coverage is `na` only for a current passing seal and true predicate;
 otherwise unobserved or RED, never GraphIR state.
 
+Compile one scope row for each Unit/Coverage family in addition to criterion rows. Each applicable required row needs a current pass; compiler-proven non-applicability is `na`. A baseline-backed family is never GREEN on fail, skip, missing, or stale. A scope pass permits baseline resolution but never becomes `pass`.
+
 ```ts
 type AssuranceLevel = 'L1' | 'L2' | 'L3' | 'L4';
 type StandardStrictness = 'hard' | 'report';
@@ -88,6 +59,7 @@ type ObservationState =
   | 'fail'
   | 'unobserved'
   | 'na';
+type ResultState = ObservationState | 'migration_baseline';
 type UnobservedReason =
   | 'skipped'
   | 'timeout'
@@ -121,6 +93,13 @@ interface Observation {
   environment_class: string;
 }
 
+interface MigrationBaselineResult {
+  state: 'migration_baseline';
+  baseline_receipt_sha256: string;
+  resolution_sha256: string;
+  criterion_authorization_sha256: string;
+}
+
 interface AssuranceProfile {
   id: 'feedback' | 'checkpoint' | 'completion' | 'push' | 'release';
   assurance_level: AssuranceLevel;
@@ -139,7 +118,8 @@ interface AssuranceVerdict {
   results: readonly {
     obligation: string;
     subject: string;
-    state: ObservationState;
+    state: ResultState;
+    migration_baseline?: MigrationBaselineResult;
     source_strictness?: StandardStrictness;
     blocking: BlockingPolicy;
   }[];
@@ -151,6 +131,8 @@ Public JSON may add versioned fields around these records, but no consumer may
 reconstruct obligation joins, applicability, or freshness from stage labels.
 `contractClosure`, `subjectClosure`, and `verificationClosure` remain the single
 implementations that supply their respective addresses and digests.
+
+`migration_baseline` is a compiler/migration resolution, never an `Observation`, `pass`, `na`, verified provenance, or historic evidence. It has no observation identity, carries the content-addressed baseline receipt, resolution, and criterion-authorization identities above, and resolves only L2 Unit/Coverage criterion rows.
 
 ### Failure, freshness, and provenance
 
@@ -166,6 +148,7 @@ implementations that supply their respective addresses and digests.
 - `na` requires a current compiler-owned applicability proof. Empty ledgers,
   missing config, absent binaries, and unknown scope are never evidence of
   non-applicability.
+- A current explicit failure always dominates. Baseline eligibility is the exact unchanged authorization plus no current exact proof mechanism; a live binding, reviewed/legacy exact selector (including skipped, absent, stale, or unsafe), or current static criterion rule is final for that snapshot. Path-only historic refs are not executable proof; unrelated same-file passes and global stage fan-out remain forbidden.
 - Authored bindings, derived joins, and observed results retain distinct
   provenance. `asserted` history cannot become `verified` through copying,
   migration, a Boolean flag, or an agent identity string.
@@ -191,47 +174,17 @@ compile canonical inputs and GraphIR once
                               └─ attestation, when profile-complete
 ```
 
-Independent nodes may run concurrently. The registry declares resource locks
-such as `cpu-exclusive`, `network`, `display`, `port`, and `workspace-write`.
-Performance runs alone. Mutating, network-dependent, GUI/device, or otherwise
-non-repeatable adapters need an explicit environment contract and never become
-background-safe merely because their process exits zero.
+Independent nodes may run concurrently under registry locks (`cpu-exclusive`, `network`, `display`, `port`, `workspace-write`). Performance runs alone; mutating, network/GUI/device, or non-repeatable adapters need an explicit environment contract and do not become background-safe from exit zero.
 
-Architecture and Secret detectors run once; their legacy standalone stages are
-aliases over the same observations. A compatible test adapter runs the suite
-once while producing case-level results and coverage, then classifies Unit,
-Coverage, ordinary test, and oracle channels without re-executing the cases.
-When a runner cannot distinguish test failure from coverage-threshold failure,
-the adapter may use a second diagnostic execution, but the profile stays
-unresolved until attribution is sound. Oracle authoring may require isolation;
-oracle execution does not require a second test run.
+Architecture/Secret run once and their legacy stages alias that result. A compatible adapter runs the suite once for cases and coverage, then classifies Unit, Coverage, test, and oracle channels. It may diagnostically rerun unsound failure attribution, but the profile stays unresolved; oracle authoring, not execution, may need isolation.
 
 ### Audit, UAT, and blind evidence
 
-Audit ranges over every applicable composite criterion address, never only IDs
-already present in an evidence ledger. It is cleared only by a current verified
-human Audit receipt for that exact criterion and its required checks. The
-receipt must record an applicable pass; a human-authored failure or note remains
-evidence history but does not clear Audit.
+Audit ranges over every applicable composite address, cleared only by a current verified human receipt with an applicable pass and its exact required checks; a human failure/note remains history.
 
-UAT requires one current verified human feature receipt whose subject, full
-runtime-dependency digest, and implementation-author-set digest match the
-current feature. Its signed criterion matrix must enumerate every current
-composite criterion address. Each passing row clears that criterion's upstream
-UAT obligation; a missing row remains unobserved, any explicit failure
-dominates, and the receipt's feature checks separately cover no surprise and
-trade-off acceptance. This preserves one approval interaction without replacing
-the Iron Law's per-criterion UAT meaning with a coarser claim. Criterion-only
-receipts, asserted human strings, TTY presence, usernames, hand-written YAML,
-and blind receipts never substitute for UAT.
+UAT needs one current verified feature receipt matching subject, runtime-dependency, and implementation-author-set digests. Its signed matrix enumerates every current composite address: each pass clears that criterion's UAT, a missing row is unobserved, a failure dominates, and feature checks cover no-surprise/trade-off acceptance. Criterion-only receipts, asserted strings, TTY/usernames, hand-written YAML, and blind receipts never substitute.
 
-A verified blind receipt contributes independent provenance only when its exact
-evidence bytes, capability manifest, subject digest, and a current matching
-testcase pass all resolve. It never clears a human-only obligation. Same-author
-verification may satisfy behavioral proof but remains `self-certified` unless a
-verified independent channel qualifies under project policy. These rules refine
-the receipt contract in D20 without making agent count or persona name a gate
-input.
+A blind receipt supplies independence only when its exact bytes, manifest, subject digest, and current matching testcase pass resolve; it never clears a human-only obligation. Same-author proof remains `self-certified` unless a qualifying independent channel exists. D20 does not make agent count/persona a gate input.
 
 ## D22 — Profiles, cadence, and background scheduling
 
@@ -250,26 +203,13 @@ changes persisted policy nor waives unobserved evidence.
 | `push` | Git pre-push, PR integration, or authoritative CI: compile the integrated change closure and run all applicable obligations through the configured level. Unknown or cross-cutting scope expands to the repository. | Authoritative for integration. Local observations may be reused only by exact trusted digest; CI independently re-executes rather than trusting workspace cache. |
 | `release` | Clean committed tree: reproducible build and generated mirrors, repository-wide obligations through the configured level, conformance fixtures, and every release-required adapter. | Strongest authoritative profile. Nothing required may remain unobserved. Performance is isolated; explicit non-applicability remains visible. |
 
-Cheap failure prerequisites run before expensive dependents. The normal order is
-compiler/reference failures, required receipt eligibility, static tools,
-functional tests, proof reconciliation, smoke/visual, then isolated performance.
-This is fail-fast scheduling, not a rule that a positive earlier result can mask
-a later failure.
+Run cheap failures before expensive dependents: compiler/reference, receipt eligibility, static, functional, reconciliation, smoke/visual, isolated performance. Fail-fast never masks a later failure.
 
-Changed-path scope is sound only when GraphIR can prove the complete owner,
-co-owner, prerequisite, dependent, test, oracle, evidence, and configuration
-closure. An unknown write scope, unresolved edge, shared compiler/runner config,
-lockfile or toolchain change, generated output that mutates after the snapshot,
-or adapter whose inputs cannot be enumerated escalates to whole-repository
-scope. Unknown never means empty impact.
+Changed scope is sound only with a complete GraphIR owner/co-owner/prerequisite/dependent/test/oracle/evidence/configuration closure. Unknown write scope or edge, shared compiler/runner config, lockfile/toolchain change, post-snapshot generated mutation, or unenumerable adapter input escalates to repository scope; unknown is never empty impact.
 
 ### Content-addressed invalidation and reuse
 
-Each descriptor declares every byte and policy input that can affect its result.
-The cache key includes the normalized obligation and subject addresses, relevant
-closure digest, source/test/oracle/config bytes, adapter and tool versions,
-detector catalog, trust snapshot, environment class, and explicit missing-file
-sentinels. Changing any input invalidates only the dependent observations.
+Each descriptor declares every affecting byte/policy input. Its cache key includes normalized obligation/subject, closure, source/test/oracle/config bytes, adapter/tool versions, catalog, trust, environment, and missing-file sentinels; any change invalidates dependents.
 
 Cache policy is descriptor-owned:
 
@@ -279,20 +219,11 @@ Cache policy is descriptor-owned:
 - `never` for performance, release reproducibility, unsealed external state, and
   any adapter unable to enumerate its inputs.
 
-Caches live under `.cladding/cache/` and are disposable. They never become proof
-authority, migrate into the spec, or cross a trust boundary. A cached failure
-remains a failure; a cached pass is usable only in a profile that permits its
-reuse class. CLI processes may consume a valid cache, but absence or corruption
-falls back to execution, never pass.
+Caches under `.cladding/cache/` are disposable and never proof authority, spec bytes, or cross-trust data. A cached failure remains failure; a pass is usable only in an allowed reuse class. Absent/corrupt cache executes, never passes.
 
 ### Persistent background scheduler
 
-Cladding 0.10 includes a scheduler inside the persistent `clad serve` process.
-It has `auto | off` policy under local `.cladding/config.yaml`, defaulting to
-`auto`; this operational preference is not a spec fact. `off` disables only
-anticipatory work: every explicit checkpoint, completion, push, and release
-profile executes the same authoritative kernel. Without a persistent server,
-background work is absent and correctness is unchanged.
+Cladding 0.10 schedules in persistent `clad serve`, with local `auto | off` (default `auto`) policy, not a spec fact. `off` disables only anticipation: explicit checkpoint/completion/push/release run the same kernel. Without a server, correctness is unchanged.
 
 In `auto` mode the scheduler:
 
@@ -307,25 +238,9 @@ In `auto` mode the scheduler:
 6. emits no canonical spec, receipt, lifecycle, attestation, or generated-mirror
    write.
 
-Only adapters marked `background_safe` may run. Such an adapter is offline,
-read-only, bounded, killable, isolated from user terminals and shared mutable
-services, and explicit about resource locks and outputs. Pure compiler and
-in-process detector work is eligible by default. Arbitrary project scripts,
-package installation, network access, device/GUI work, performance measurement,
-and workspace mutation are not. A project command becomes eligible only through
-a reviewed adapter that supplies this isolation contract; it never inherits the
-flag from its stage family.
+Only `background_safe` adapters run: offline, read-only, bounded, killable, terminal/shared-service-isolated, and explicit about locks/outputs. Pure compiler/in-process detectors qualify by default; arbitrary scripts, install, network, device/GUI, performance, and workspace mutation do not. A project command needs this reviewed adapter contract; stage family never confers it.
 
-Single-flight applies per workspace, not per client connection. Scheduler
-results are content-addressed, so an explicit profile may reuse them without
-waiting when its exact snapshot and cache policy match. Explicit authoritative
-profiles take priority, cancel or supersede obsolete background work, and never
-race it for an attestation write.
-
-The worktree-local cache has a 256 MiB LRU ceiling. Eviction affects latency
-only. A same-key foreground request joins the running result and revalidates its
-root before use; a different-key request cancels the background adapter. An
-adapter without isolated output and cooperative cancellation is foreground-only.
+Single-flight is per workspace. Exact snapshot/cache-policy foreground work may reuse content-addressed results; authoritative work cancels or supersedes stale background work and never races attestation. The local cache is 256 MiB LRU; same-key foreground joins/revalidates, different-key cancels, and adapters without isolated output/cooperative cancellation are foreground-only.
 
 ### Latency targets
 
@@ -357,8 +272,8 @@ and no background result proves that a fresh agent retained prior context.
 An authoritative verdict is GREEN only when:
 
 1. the compiler sealed one input snapshot and complete requested scope;
-2. every effective `hard` obligation has current `pass` or permitted proven
-   `na` and no reduced `fail`;
+2. every effective `hard` obligation has current `pass`, permitted proven `na`,
+   or the narrow permitted `migration_baseline`, and no reduced `fail`;
 3. every effective `report` obligation has current `pass`, `fail`, or permitted
    proven `na`;
 4. no required obligation is `unobserved`;
@@ -370,6 +285,8 @@ An authoritative verdict is GREEN only when:
 synonym for GREEN. A complete profile may be RED because a hard obligation
 failed. Channel failure dominance determines the obligation state before
 effective blocking determines the profile state.
+
+`migration_baseline` is explicitly resolved for `profile_complete`, but GREEN permits it only for an unchanged authorized L2 Unit/Coverage criterion with no current exact proof mechanism and passing current scope Unit/Coverage rows. Achieved L2 may count it transparently. It never resolves Oracle, Smoke, Performance, Visual, Audit, UAT, or any L3/L4 obligation.
 
 Warnings and diagnostics may coexist with GREEN only when no obligation maps
 them to a required negative state. A stage-count total, process exit aggregate,
@@ -392,8 +309,10 @@ authority.
 The attestation records profile ID, configured and achieved assurance level,
 scope and input digests, contract/subject/verification closure digests, current
 obligation and adapter registry identities, detector catalog, tool/environment
-class, trust snapshot, and the sorted observation identities that earned GREEN.
-It embeds no receipt body and copies no stale observation forward. Feedback,
+class, trust snapshot, and sorted identities that earned GREEN. Private run
+authority seals baseline identities and requires executed passing scope Unit and
+Coverage rows before minting; only current observed required results have
+observation identities. It embeds no receipt body and copies no stale observation forward. Feedback,
 checkpoint, silent verdict polling, background work, and incomplete profiles
 never stamp.
 
@@ -417,6 +336,7 @@ never stamp.
 - Schema 0.1 keeps its shipped policy and readable reports. Schema 0.2 writers
   persist `assurance_level`; no inference from old stage history silently grants
   L3 or L4.
+- Canonical legacy projection maps `migration_baseline` to `unobserved` (fail closed), never pass or `na`; canonical JSON retains it. Soft-Shell may add a nonblocking explanatory note and discloses its count. Release claims say “profile-complete at persisted L2, with current verified, migration-baseline, and NA counts,” never that every criterion has current exact proof.
 - Existing report, event, plugin, and audit consumers receive legacy aliases
   from the registry. New consumers use obligations and profiles. The 15 IDs may
   be retired from a future public default only through a separate compatibility
@@ -452,4 +372,5 @@ Committed fixtures must additionally prove:
   identical authoritative verdicts and attestation inputs; F9 also proves
   single-flight, resource-lock exclusion, cooperative cancellation, exact-key
   reuse, and rejection of every stale background result; and
-- only a profile-complete completion, push, or release verdict can write v3.
+- only a profile-complete completion, push, or release verdict can write v3; and
+- migration-baseline cases cover accept/reject, in-progress F7 exclusion, new/intent-edited criteria, forged/swapped/digest-mismatched authorization, no historic-stage inference, exact live/reviewed/legacy/static-rule precedence (pass/fail/skip/absent/stale/unsafe), path-only eligibility, scope Unit/Coverage failure or skip, L3/L4 non-effect, v3 counts/identities/authority, and compatibility that never pass-launders.

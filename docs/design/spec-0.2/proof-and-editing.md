@@ -47,13 +47,14 @@ Source harvesting establishes a declared binding. A case-level JUnit record esta
 
 ### Legacy binding fallback
 
-The accepted migration policy is node-level baseline fallback because most current refs cannot be mapped honestly to a testcase.
+Migration baseline is a narrow compiler/migration resolution, not a waiver or verified historic proof. D14 records an immutable, criterion-local authorization only after an accepted project decision.
 
-- Store legacy `test_refs` only in `migration-baseline-0.1-to-0.2.yaml` for unchanged criteria.
-- If a criterion has any live `[covers:]` binding, ignore all of its baseline refs. Never union the two sources.
-- If the criterion's intent projection changes, end its baseline exemption and require a live supported binding or another qualifying proof channel.
-- If a baseline ref becomes stale, do not rewrite the baseline; add an explicit live binding.
-- Hash the whole referenced test file for a legacy path-only binding because no honest source span is known.
+- A criterion may resolve only its L2 Unit/Coverage rows to `migration_baseline` when that authorization exactly matches its current address and final intent and no current exact proof mechanism exists.
+- A live binding, a reviewed/legacy exact selector (pass, fail, skipped, absent, stale, or unsafe), or a registered current static criterion rule takes precedence. Its `pass`/`fail`/`unobserved`/`na` is final for that snapshot; baseline never falls back behind it.
+- Baseline never masks a source→selector→runner defect: restore the exact binding round trip first, then reduce its current result.
+- Path-only historic refs have no executable selector and may use the baseline when otherwise eligible. A same-file pass is never evidence.
+- Strict intent selected during reviewed migration becomes the immutable final target and remains eligible. Only a criterion newly authored after migration or whose recorded final target intent later changes is ineligible/revoked; a feature edit does not revoke an unchanged authorization. Source features not exactly `done` at preview are ineligible.
+- Store legacy `test_refs` only in `migration-baseline-0.1-to-0.2.yaml`; hash a retained path-only file because no honest source span is known.
 - A blind receipt locator is canonical `path` or `path#exact selector`; its
   issuer pass reduces only when that exact live binding has an observed pass.
 
@@ -151,9 +152,9 @@ This digest must cover tests and evidence outside `feature.modules`; module hash
 
 - `runtime_dependency_sha256` seals the sorted implementation roots of every authored or observed prerequisite needed by the feature. Unknown dependency completeness cannot produce a scoped seal; D23 escalates that verification layer to the whole repository.
 - `profile_sha256` seals the assurance profile, required level, policy, adapter/catalog, environment, and trust-snapshot identities.
-- `obligation_sha256` is a Merkle root over the sorted normalized obligation results. Persist compact required/pass/NA counts rather than duplicating the live GraphIR ledger.
+- `obligation_sha256` is a Merkle root over sorted normalized obligation results, including baseline basis. Persist `required`/`pass`/`na`/`migration_baseline` counts; when the last is nonzero, also persist baseline-receipt and resolution digests plus criterion and obligation counts.
 
-Only an authoritative, profile-complete GREEN run writes v3. A feature-completion entry may seal its proven impact closure; push/release entries seal their integration scope. The attestation policy continues to record engine and detector-catalog identity. A shared rule, capability outcome, required scenario, or prerequisite implementation change stales only features whose compiled closure references it; incomplete closure escalates instead of claiming selective freshness.
+Only an authoritative, profile-complete GREEN run writes v3. Current observed required results retain observation identities; `migration_baseline` rows have none and instead seal `baseline_receipt_sha256`, `resolution_sha256`, and `criterion_authorization_sha256`. Reader, retention, and freshness comparisons cover those fields. A feature-completion entry may seal its proven impact closure; push/release entries seal their integration scope. The attestation policy continues to record engine and detector-catalog identity. A shared rule, capability outcome, required scenario, or prerequisite implementation change stales only features whose compiled closure references it; incomplete closure escalates instead of claiming selective freshness.
 
 While Cladding itself remains schema 0.1 during F6, serialize a schema-tagged legacy contract node containing exact legacy `text`, supported `ears`/`condition`/`action`/`response` values, scanner state (`parsed | opaque | conflict`), `legacy_unclassified`, and the applicable baseline/exemption identity. Do not invent 0.2 purpose or kind. The deliberate F7 self-migration invalidates those transitional hashes and the first post-migration GREEN gate writes a pure-0.2 v3.
 

@@ -317,7 +317,7 @@ project.upgrade_schema         # MCP operation
 
 `old` means root `spec/index.yaml`, `spec/_doc-links.yaml`, and `spec/attestation.yaml`; `new` means the three `spec/generated/` destinations.
 
-Before F11, the F4/F7 engine treats old paths as the then-canonical transitional layout, so F7–F10 complete normally. F11 adds aliases and relocation; its final engine applies this state machine:
+Before F11, the F4/F7 engine treats old paths as the then-canonical transitional layout: F7–F10 complete normally. F11 aliases/relocates; its final engine applies this state machine:
 
 | Detected state | Permitted operation | Result |
 |---|---|---|
@@ -329,42 +329,39 @@ Before F11, the F4/F7 engine treats old paths as the then-canonical transitional
 
 ### Preview
 
-Compile 0.1, scan every legacy string as `parsed | opaque | conflict`, and build the complete candidate in memory. Copy `text → statement` exactly; do not reconstruct it from structural EARS fields. Propose exact `intent_summary → purpose` and `summary → outcome`, validate filename/body identity, remove redundant child markers, invert capability edges with an exact equality proof, and classify legacy human/blind evidence as asserted unless a supported channel issued a receipt. A `require` project reports every completed feature that loses independent status.
+Compile 0.1, scan legacy strings as `parsed | opaque | conflict`, and build the candidate in memory. Copy `text → statement` exactly, never reconstruct from structural EARS; propose `intent_summary → purpose` and `summary → outcome`, validate identity, remove redundant child markers, prove inverted capability equality, and classify human/blind evidence as asserted unless receipt-backed. A `require` project reports completed features that lose independence.
 
-Preview retains raw legacy refs without inventing selectors. For every safe historic test candidate it binds the normalized path, state, and SHA-256 of the whole file. A `CRITERION_STATEMENT_CONFLICT` or `CRITERION_TEXT_UNKNOWN` resolution with historic test refs must select exact candidates to `retain` or explicitly `drop` them while supplying final strict intent. `condition/action/response` differences alone are not conflicts. Other human items are capability outcomes, architecture rationale/lossy layers, scenario intent, actual `adr_refs`, and replacement evidence or staying on 0.1 for asserted-only `require` evidence.
+Preview retains raw refs without selectors; safe historic candidates record normalized path, state, and whole-file SHA-256. `CRITERION_STATEMENT_CONFLICT`/`CRITERION_TEXT_UNKNOWN` selects exact refs to `retain`/`drop` with final strict intent; `condition`/`action`/`response` differences alone are not conflicts. Other items cover capability outcomes, architecture rationale/lossy layers, scenario intent, `adr_refs`, and replacement evidence or 0.1 for asserted-only `require`.
+
+Preview requires `PROJECT_LEGACY_L2_BASELINE: accept | reject`, separate from `PROJECT_ASSURANCE_LEVEL_CONFIRMATION`, with deterministic count+digest of exact-`done` source-feature 0.1 criteria. It infers neither decision nor eligibility from legacy stages, refs, agent claims, or L2 selection.
 
 ### Baseline and enforcement
 
-The immutable baseline is node-granular: project and feature intent, criterion intent and historic refs, scenario/architecture records, and every valid capability `surface` as deterministic `removed_by_schema_0.2` (never live). Do not assume `kind: behavior`: unchanged ACs are `legacy_unclassified`; their first intent edit needs strict statement and explicit kind. Intent changes are feature title/purpose and criterion add/remove, statement/kind/rationale/constraint refs; links and other non-intent fields do not revoke unrelated exemptions. An exempt feature's first intent edit persists `capability_refs`, including confirmed empty.
+The immutable node baseline covers project/feature intent, criterion intent/historic refs, scenario/architecture, and valid `surface` as deterministic `removed_by_schema_0.2` (never live). Unchanged ACs stay `legacy_unclassified`; their first intent edit needs strict statement/kind. Criterion add/remove or statement/kind/rationale/constraint-ref edit revokes only that criterion; feature/non-intent edits do not revoke unchanged siblings. An exempt feature's first intent edit persists `capability_refs`, including confirmed empty.
 
-Reviewed strict carry-forward is a separate immutable record, never a relaxed legacy exemption. It binds exact final statement/kind/rationale/constraint refs and selected raw test refs with whole-file hashes. Selection is `live > reviewed carry-forward > unchanged exempt legacy > none`, never a union. Any bound intent change invalidates review; a selected-file byte/hash mismatch is stale and RED in authoritative strict verification. Live bindings replace reviewed or exempt history. Neither historic refs nor `identity.author: human`/`blind: true` are verified receipts; supported current-contract channels must issue new evidence.
+On `accept` only, atomic apply resolves every criterion, then writes immutable criterion-local L2 authorizations to `migration-baseline-0.1-to-0.2.yaml`. Each binds composite address, source `done`, exact final 0.2 intent digest (statement, kind, rationale, constraint refs, including explicit absence), exactly Unit `stage_2.1` and Coverage `stage_2.2`, plus deterministic `candidate_sha256` and `resolution_sha256`. `reject` writes none. Strict intent selected during reviewed migration becomes that immutable final target; only a criterion newly authored after migration or whose recorded final target later changes is ineligible/revoked. A source feature not exactly `done` (including F7 before completion) is ineligible. D11/D23 define runtime use.
+
+Reviewed strict carry-forward is immutable history, not relaxed exemption: it binds final intent and selected raw refs with whole-file hashes. Selection is `live > reviewed carry-forward > unchanged exempt legacy > none`, never a union; changed selected bytes are stale/RED. Historic refs and `identity.author: human`/`blind: true` are not verified receipts.
 
 ### Apply and rollout
 
-- Abort with no writes while any resolution item remains; recheck the reviewed preview immediately before journaling, so a selected test-byte change is `STALE_INPUT`.
-- Prove feature/criterion identity and count preservation, exact statement transfer, and `L = N` capability edges.
-- Treat `spec.yaml#schema` as the sole workspace schema selector. Child spec documents and shards carry no workspace schema field; receipt-local `receipt_schema` versions the receipt protocol independently.
-- Before F11, schema apply writes the baseline, converted artifacts, old-path projections, and root switch in one journaled transaction. In the final F11 engine its Soft-Shell completion names `clad relocate-generated --apply`.
-- Before either apply, compute the exact planned write paths and reject dirt on any of them; unrelated dirt is allowed. The journal receipt records preflight `HEAD` and the sorted exact paths.
-- Relocation apply moves only the three generated projections in one journaled transaction; it neither changes schema nor reopens F7–F10 acceptance.
-- A second successful run produces zero diff.
-- A failed normal run writes nothing. Recovery either finishes or restores byte-identical originals; if it cannot, the receipt's `HEAD` and exact paths support `git restore --source=<HEAD> -- <paths...>`, never a broad reset.
-- Continue reading schema 0.1 indefinitely. Reject old spellings inside a 0.2 document and reject unknown versions.
-- Treat upgrade as a coordinated team event: install 0.10+, close or rebase open spec branches, preview, resolve, then apply once on the integration branch.
+- Abort for unresolved items; recheck preview before journaling, so a selected-byte change is `STALE_INPUT`. Prove feature/criterion identity/count, statement transfer, and `L = N`.
+- `spec.yaml#schema` is the sole selector; child/shard markers are forbidden and receipt-local `receipt_schema` only versions its protocol.
+- Before F11, one journal writes baseline, conversion, old-path projections, and root switch; final F11 names `clad relocate-generated --apply`. Relocation moves three projections only and changes neither schema nor F7–F10 acceptance.
+- Apply plans exact paths, rejects dirt there, records `HEAD`/sorted paths, and is zero-diff on second success. Failure writes nothing; recovery finishes/restores byte-identical originals or supports exact-path `git restore --source=<HEAD> -- <paths...>`.
+- Continue reading 0.1; reject old 0.2 spellings/unknown versions. Upgrade: install 0.10+, close/rebase branches, preview, resolve, apply once on integration.
 
 ### Cladding self-migration sequence
 
-F3 implements and proves the candidate capability/architecture edge set entirely in memory; it does not cut over repository bytes. F4 supplies the journaled apply boundary. At the end of F7, Cladding then:
+F3 proves candidate capability/architecture edges in memory without byte cutover; F4 supplies the journaled apply boundary. At F7 end, Cladding:
 
-1. implements and tests the complete 0.2 reader/writer surface while its own repository remains 0.1;
-2. runs preview and resolves every human item on that 0.1 tree;
+1. implements/tests the 0.2 reader/writer while self remains 0.1;
+2. previews and resolves every human item on that tree;
 3. performs the one atomic F4-backed apply;
-4. completes F7 with `clad done` against the resulting 0.2 workspace; and
-5. writes the first pure-0.2 attestation v3.
+4. completes F7 with `clad done` on the resulting 0.2 workspace; and
+5. writes its first pure-0.2 v3.
 
-The F7 preview selects and persists `L2`; the self release attestation remains
-L2 and legacy L3/L4 is no waiver. F9–F11 deterministic signed fixtures are
-mechanism/protocol evidence. Only real human-signed Codex and Claude Code MCP11
-cycles prove the product L4 path. A stronger one-run self feature completion is
-optional only when the compiler proves its closure bounded. F11 relocates self
-before final enforcement and never invalidates F7–F10 evidence.
+The F7 preview separately resolves `PROJECT_ASSURANCE_LEVEL_CONFIRMATION` and
+`PROJECT_LEGACY_L2_BASELINE`; F7 is ineligible for the latter while incomplete.
+For self, the self release attestation remains L2; legacy L3/L4 is no waiver.
+F9–F11 signed fixtures are mechanism/protocol evidence. Only real human-signed Codex and Claude Code MCP11 cycles prove L4. A stronger bounded-closure self completion is optional. F11 relocates self before final enforcement without invalidating F7–F10.

@@ -6,31 +6,31 @@
 
 ## D15 — Implementation sequence
 
-**V0 and F1–F11 ship in 0.10.0:** V0 lands the additive validation ledger, deterministic simulator, token accounting, and D24 wire/efficacy boundary. It leaves target decisions `implementation_pending` and proves neither preregistered cases nor a host E2E run. Challengers remain proposals until a maintainer updates the owner and decision log.
+**V0 and F1–F11 ship in 0.10.0:** V0 adds validation ledger, simulator, token accounting, and D24 wire/efficacy. Targets remain `implementation_pending`; it proves neither preregistered cases nor host E2E, and challengers await owner/log update.
 
 Follow one feature cycle at a time; author each shard immediately before implementation.
 
-F1 bootstraps under schema 0.1 because F2 introduces the 0.2 reader. Its shard uses current EARS/`text`, stores WHY under `notes: "## Why\n..."`, and links D10/D17; it must not pre-author 0.2-only `purpose`, `statement`, or `kind`. It later enters self-migration as a normal node, not an exception.
+F1 bootstraps under 0.1 because F2 adds the 0.2 reader. Its shard uses EARS/`text`, WHY in `notes: "## Why\n..."`, and D10/D17 links; it must not pre-author 0.2 `purpose`, `statement`, or `kind`, then migrates normally.
 
-F1 begins with an independent, sorted corpus-record snapshot. Its oracle scans source YAML without importing the production loader, reverse index, GraphIR builder, or query closures. The additive compiler proves parity while existing consumers remain unchanged, keeping a failed F1 local and discardable.
+F1 uses an independent sorted source-YAML snapshot oracle, without production loader/index/GraphIR/query imports. The additive compiler proves parity while consumers stay unchanged and failure local.
 
-1. **F1:** commit this design, executable artifact/ID registries, the GraphIR v2 address/role/provenance skeleton, and the node-baseline schema. Preserve the stale `hash6` wording as a parity negative control until the ID registry owns the policy, then repair that comment before F1 completion.
-2. **F2:** version dispatch, strict 0.2 parser, non-blocking atomicity advisory, total legacy scanner, and migration preview.
-3. **F3:** project, explicit feature-capability links, capability catalog, and architecture 0.2 contracts; prove the candidate `L = N` edge set in memory without changing repository schema or bytes.
-4. **F4:** `clad_edit_spec`, `feature.begin`/`clad begin`, context/input revision separation, commit lock, journal recovery, journaled migration apply, and existing-tool adapters.
-5. **F5:** doc/source/test/oracle/evidence adapters, covers and case-level observations, legacy binding fallback, receipt framing/offline verification/ingestion/storage/revocation, introduced asserted `clad signoff`, and verification detector rewiring. Test issuers prove the protocol; no verified product issuer ships here.
-6. **F6:** shared contract/subject/runtime-dependency/verification closures, the [D21–D23](assurance.md#d21--iron-law-assurance-kernel) obligation DAG and profile reducer, legacy 15-stage compatibility projection, profile-aware `clad done`, and attestation v3.
-7. **F7:** scenario v2 and `off | advisory | required` policy, including its GraphIR edges; then preview, resolve, and atomically self-migrate Cladding from 0.1 to 0.2, complete F7 on 0.2, and write the first pure-0.2 v3 attestation.
-8. **F8:** atomically cut `clad_get_graph`, CLI graph queries/JSON, and the existing exporters/viewer to GraphIR v2; do not retain a v1 graph adapter.
-9. **F9:** ship `CycleContextEnvelope`, task projections, the scheduler, registered human/blind issuer paths, and the A–E invariance suite; keep the experimental headless loop compatible.
-10. **F10:** after F9 is green, replace its hard-coded developer→reviewer choreography with task-state dispatch. Viewer polish and broader GraphIR retrieval remain independent tail work.
-11. **F11:** add aliases/`clad relocate-generated [--apply]`, transition self before final enforcement, and prove the D14 state machine/recovery boundary.
+1. **F1:** commit design, artifact/ID registries, GraphIR v2 skeleton, and node baseline. Preserve stale `hash6` as a parity negative until registry policy, then repair before completion.
+2. **F2:** version dispatch, strict parser, atomicity advisory, total legacy scanner, and preview.
+3. **F3:** project, feature-capability links, catalog, and architecture 0.2; prove `L = N` in memory without cutover.
+4. **F4:** `clad_edit_spec`, `feature.begin`/`clad begin`, context/input revisions, lock/recovery, journaled apply, and adapters.
+5. **F5:** proof adapters, covers/case observations, legacy fallback, receipt protocol/ingestion/revocation, asserted `clad signoff`, and detector rewiring. Test issuers prove protocol; no verified product issuer ships here.
+6. **F6:** shared closures, the [D21–D23](assurance.md#d21--iron-law-assurance-kernel) DAG/reducer, legacy 15-stage projection, profile-aware `clad done`, and v3.
+7. **F7:** scenario v2 and `off | advisory | required`, then accept/reject the narrow L2 baseline before atomic self-migration; complete F7 on 0.2 and write pure-0.2 v3.
+8. **F8:** atomically cut graph CLI/JSON, exporters/viewer, and `clad_get_graph` to GraphIR v2; retain no v1 adapter.
+9. **F9:** ship `CycleContextEnvelope`, task projections, scheduler, registered human/blind issuers, and A–E; retain headless-loop compatibility.
+10. **F10:** after F9 green, replace developer→reviewer choreography with task-state dispatch. Viewer polish/broader retrieval remain tail work.
+11. **F11:** add aliases/`clad relocate-generated [--apply]`, transition self before final enforcement, and prove D14 state/recovery.
 
-There is no F7.5 context-wire migration. F8 remains the graph-v2 public cutover. F11 does not retroactively block F7–F10 completion, but all applicable F1–F11 evidence is required for the 0.10.0 release. Standards, canonical documentation, glossary entries, and generated plugin mirrors update inside their owning feature.
+There is no F7.5 context-wire migration; F8 is the graph-v2 cutover. F11 does not retroactively block F7–F10 completion, but 0.10.0 needs applicable F1–F11 evidence. Standards, docs, glossary, and generated mirrors update in their owner feature.
 
 ### Cutover and retirement map
 
-F1 is the deliberate exception to same-cycle retirement: it establishes an additive parity boundary and deletes no shipped compiler, loader, graph, detector, or optimizer path. From F2 onward, every cycle inventories the authority it supersedes before implementation and retires that authority after all consumers cross the proven boundary.
+F1 is the same-cycle-retirement exception: additive parity deletes no shipped compiler, loader, graph, detector, or optimizer path. From F2, each cycle inventories superseded authority and retires it after proven cutover.
 
 | Boundary | Required retirement after cutover |
 |---|---|
@@ -40,13 +40,13 @@ F1 is the deliberate exception to same-cycle retirement: it establishes an addit
 | F9 context-envelope implementation | Revise the F-041/F-063 contracts that currently protect `src/optimizer/preamble.ts` and `src/optimizer/tail.ts`, then retire those production orphans after equivalent omission, tail, budget, and fixed-point behavior is covered by the envelope packer. |
 | F10 task-state loop | Retire hard-coded developer/reviewer identity choreography and loop-only mock/stub dispatch after topology invariance and real evidence ingress are green. Product transport fallbacks remain until their separately owned compatibility contracts are intentionally revised. |
 
-A path may survive only when it still owns a distinct public contract or compatibility obligation; that owner and exit condition are recorded in the feature rationale or test. There is no permanent retirement manifest and no separate cleanup-only release phase.
+A path survives only with a distinct public/compatibility contract and recorded feature-rationale/test exit condition. There is no permanent retirement manifest or cleanup-only release phase.
 
-Each cycle follows simulation → implementation → verification → `clad done`. Edit feedback compiles without subprocess work; checkpoint checks changed inputs; `clad done` authoritatively checks the proven impact closure and escalates unknown scope to the whole repository. Push and release remain integration boundaries. Exact-digest results may be reused; background work never writes lifecycle or attestation state. Rebuild plugin mirrors before completion and still run contributor push checks.
+Each cycle is simulation → implementation → verification → `clad done`. Feedback compiles without subprocesses; checkpoint checks changed inputs; `clad done` checks proven closure and escalates unknown scope to repository. Push/release are integration boundaries. Exact-digest reuse is allowed; background never writes lifecycle/attestation. Rebuild mirrors before completion and run contributor push checks.
 
 ## D16 — Acceptance gates
 
-Corpus gates compare sorted semantic records, not hand-maintained totals. The independent scanner snapshot stores owner, composite criterion address, channel, raw reference, normalized target, selector, resolution state, source path, YAML path, and source range. Occurrence count, unique-address count, and resolved/unresolved count are separate derived views. An intentional corpus edit updates the reviewed record diff; it must not require editing a second literal total in the assertion. Dated totals remain below in [Evidence snapshot](evidence.md#evidence-snapshot) as design evidence rather than permanent acceptance constants.
+Corpus gates compare sorted semantic records, not hand-maintained totals. The independent snapshot records owner, composite address, channel, raw/normalized ref, selector, resolution, path, YAML path, and range; counts are derived. Edits update the reviewed diff, never a second literal total. [Evidence snapshot](evidence.md#evidence-snapshot) totals are dated evidence, not acceptance constants.
 
 ### Compatibility and grammar
 
@@ -59,9 +59,9 @@ Corpus gates compare sorted semantic records, not hand-maintained totals. The in
 
 ### Migration
 
-- One changed node loses only its own exemption; unrelated criteria in the same feature remain grandfathered.
-- Every legacy test-reference record in the canonical snapshot survives in the baseline without changing its raw address or fabricating a selector.
-- Live binding and baseline fallback never union for one criterion.
+- Preview requires `PROJECT_LEGACY_L2_BASELINE: accept | reject`, separately from assurance confirmation, and reports the deterministic done-source criterion count and digest without historic-stage, ref, agent-claim, or L2 inference. Reject writes no authorization.
+- Accepted atomic apply writes immutable criterion-local, done-source L2 Unit/Coverage authorizations with final-intent and candidate/resolution SHA-256 identities. Reviewed-migration strict intent is eligible and becomes its immutable target; only post-migration new/later-target-edited criteria are ineligible/revoked, while unchanged siblings survive feature edits.
+- Exact live/reviewed/legacy selectors and registered static rules take precedence (pass/fail/skip/absent/stale/unsafe); path-only historic refs alone may qualify, but unrelated same-file passes and global fan-out never do.
 - Capability edge cutover proves `L = N` before schema switch.
 - F3 performs that proof without disk cutover; only F4's journaled apply may remove legacy child `schema`/`source`, write new edges, and switch the root schema.
 - A feature with no legacy capability edge receives an explicit empty `capability_refs`; suggested candidates never enter the applied candidate without human confirmation.
@@ -74,7 +74,7 @@ Corpus gates compare sorted semantic records, not hand-maintained totals. The in
 
 ### Binding and proof
 
-- Adapter fixtures prove source carrier → normalized selector → JUnit testcase → composite criterion round trips.
+- Adapter fixtures restore and prove source carrier → normalized selector → runner/JUnit testcase → composite criterion round trips; a parser defect (including dropped Vitest `ancestorTitles`) cannot be baseline-laundered.
 - Bare IDs produce no bindings; unknown addresses block.
 - Unrelated same-file passes, skipped-only cases, mixed pass/fail, and multiple valid bindings follow D11 exactly.
 - A fresh preregistered benchmark contains nine valid bindings plus unbound, unknown, unrelated, skipped, and failing injections. Do not call it a reproduction of the old 34-feature run without its raw fixture.
@@ -97,6 +97,7 @@ Corpus gates compare sorted semantic records, not hand-maintained totals. The in
 - Attestation matrix covers contract, implementation module, out-of-module test, runner configuration, oracle, evidence, capability outcome, architecture constraint, notes, and required/advisory scenario changes.
 - Only the intended feature set becomes stale for a shared rule/outcome/scenario change.
 - F6's pre-migration v3 fixture serializes exact schema-0.1 contract nodes without invented purpose/kind; F7 migration intentionally stales them and rewrites pure-0.2 hashes.
+- v3 fixtures prove baseline-basis hashing, required/pass/na/migration-baseline counts, receipt/resolution/authorization identity sealing, current-observation-only identities, passing scope Unit/Coverage authority, freshness/retention, and public count disclosure.
 - Lifecycle operations cover block reasons, terminal archive/no-unarchive policy, proof-ref edits, exact receipt revocation, and `set_links` omitted-versus-empty semantics. Both bulk link replacement and dependency promotion reject self, duplicate, unresolved, and cyclic dependency states.
 
 ### Assurance profiles and cadence
@@ -108,6 +109,7 @@ Corpus gates compare sorted semantic records, not hand-maintained totals. The in
 - A/B/C replay compares every-edit full execution, tiered foreground execution, and tiered plus background execution. Authoritative verdicts must match, stale background PASS promotion is zero, injected required defects are caught before completion, and active wait falls by at least 50% without increasing foreground p95 by more than 10%.
 - Background adapters require isolated outputs and cooperative cancellation, run single-flight per worktree, yield to foreground, and publish only exact-digest cache entries. CI/release ignores local background cache.
 - Cladding persists L2 after migration and its self release attestation remains L2. Legacy history grants no L3/L4 waiver; a stronger one-run feature completion requires a compiler-proven bounded closure.
+- Each applicable required scope Unit/Coverage family needs current pass; compiler-proven non-applicability is NA. A baseline-backed family is RED on fail and unresolved on skip/missing/stale. Baseline resolves only unchanged authorized L2 Unit/Coverage criterion rows, never Oracle, L3/L4, or human/system-quality obligations; legacy projection maps it to unobserved, never pass/NA.
 
 ### Graph validity and bounded retrieval
 
