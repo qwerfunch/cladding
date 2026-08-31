@@ -11,7 +11,7 @@ import yaml from 'yaml';
 import {compileSpecWorkspace} from '../../src/spec/compiler/compile.js';
 import {assuranceClosureInputFromWorkspace} from '../../src/assurance/workspace.js';
 import {previewSchema02Migration} from '../../src/spec/compiler/migration-preview.js';
-import {editSpec, migrationPreviewDigest, prepareSpecEdit, readSpecEditRevisions, readSpecTransactionRecoveryReceipt, reclaimSpecTransactionLockForTesting, recoverSpecTransaction, refreshDerivedSpecProjections} from '../../src/spec/edit.js';
+import {applyLocalSchemaMigration, editSpec, migrationPreviewDigest, prepareSpecEdit, readSpecEditRevisions, readSpecTransactionRecoveryReceipt, reclaimSpecTransactionLockForTesting, recoverSpecTransaction, refreshDerivedSpecProjections} from '../../src/spec/edit.js';
 import {loadSpec} from '../../src/spec/load.js';
 import {resolveDesignImpact} from '../../src/spec/new.js';
 
@@ -127,6 +127,45 @@ function migrationOperation(root: string) {
 
 afterEach(() => {
   for (const root of temporary.splice(0)) rmSync(root, {recursive: true, force: true});
+});
+
+describe('schema migration receipt serialization', () => {
+  test('[covers:F-0b8f23c5/AC-0b8f2305] migration emits independent L2 obligation arrays without YAML anchors', () => {
+    const root = migrationSource();
+    const featurePath = join(root, 'spec', 'features', 'legacy-aaaaaaaa.yaml');
+    writeFileSync(featurePath, readFileSync(featurePath, 'utf8').replace('status: planned', 'status: done'));
+
+    const initialPreview = previewSchema02Migration(root);
+    const additions = 128 - initialPreview.legacyL2Baseline.candidateCount;
+    expect(additions).toBeGreaterThan(0);
+    const additionsYaml = Array.from({length: additions}, (_, index) => {
+      const id = `AC-b${index.toString(16).padStart(7, '0')}`;
+      return `  - id: ${id}\n    text: The system shall retain independent migration baseline authorization ${index}.\n`;
+    }).join('');
+    writeFileSync(featurePath, `${readFileSync(featurePath, 'utf8')}${additionsYaml}`);
+
+    const preview = previewSchema02Migration(root);
+    expect(preview.legacyL2Baseline.candidateCount).toBe(128);
+    const confirmed = migrationConfirmations(preview).map((entry) => entry.code === 'PROJECT_LEGACY_L2_BASELINE'
+      ? {...entry, value: 'accept'}
+      : entry);
+    expect(applyLocalSchemaMigration(root, {
+      previewDigest: migrationPreviewDigest(preview),
+      confirmed,
+    })).toMatchObject({changed: true});
+
+    const compilation = compileSpecWorkspace(root);
+    expect(compilation.diagnostics.filter((diagnostic) => diagnostic.severity === 'blocking')).toEqual([]);
+    const authorizations = compilation.migrationBaseline?.legacyL2Baseline?.authorizations;
+    expect(authorizations).toHaveLength(128);
+    for (const authorization of authorizations ?? []) {
+      expect(authorization.obligations).toEqual(['stage_2.1', 'stage_2.2']);
+    }
+
+    const baseline = readFileSync(join(root, 'spec', 'generated', 'migration-baseline-0.1-to-0.2.yaml'), 'utf8');
+    const anchorOrAliasLines = baseline.split(/\r?\n/).filter((line) => /^(?:\s*[^#\s][^:]*:\s*|\s*-\s*)[&*][A-Za-z0-9_-]+\b/.test(line));
+    expect(anchorOrAliasLines).toEqual([]);
+  });
 });
 
 describe('typed F4 specification transaction', () => {

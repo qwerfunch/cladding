@@ -2102,7 +2102,9 @@ function materializeLegacyL2Baseline(
         criterion,
         sourceStatus: 'done',
         finalIntentSha256,
-        obligations: LEGACY_L2_OBLIGATIONS,
+        // YAML serializers preserve shared references as anchors. Each receipt
+        // authorization owns an equal but independent obligation tuple.
+        obligations: [...LEGACY_L2_OBLIGATIONS] as const,
         candidateSha256: '',
         resolutionSha256,
       };
