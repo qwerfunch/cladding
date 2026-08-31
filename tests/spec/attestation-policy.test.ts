@@ -18,8 +18,16 @@ import {loadSpec} from '../../src/spec/load.js';
 import {createAttestationV3RetentionContext, serializeAttestationV3} from '../../src/assurance/attestation.js';
 import {reduceLegacyStageAdapter} from '../../src/assurance/adapters.js';
 import {assuranceProfile} from '../../src/assurance/kernel.js';
-import {createWorkspaceAttestations, workspaceProfileSnapshot} from '../../src/assurance/workspace.js';
+import {createWorkspaceAttestations, currentProofViewsFromWorkspace, workspaceProfileSnapshot} from '../../src/assurance/workspace.js';
 import {compileSpecWorkspace} from '../../src/spec/compiler/compile.js';
+import {
+  LEGACY_L2_OBLIGATIONS,
+  criterionFinalIntentFromRecord,
+  criterionFinalIntentSha256,
+  legacyL2CandidateCensusSha256,
+  legacyL2CandidateSha256,
+  legacyL2ResolutionSha256,
+} from '../../src/spec/compiler/migration-baseline.js';
 import {emptyTrustSnapshot, receiptDigest, serializePortableReceipt, type BlindReceipt} from '../../src/proof/receipt.js';
 import type {Spec} from '../../src/spec/types.js';
 import {authoritativeFixtureVerdict as authoritativeFixtureVerdictForTest, mintAuthoritativeFixtureV3} from '../assurance/authoritative-fixture.js';
@@ -56,6 +64,47 @@ function writeSchema02Siblings(root: string): void {
   writeFileSync(join(root, 'spec', 'architecture.yaml'), 'layers:\n  - [core]\nrules: []\n');
 }
 
+/** Writes one accepted baseline authorization that is current for B's strict raw intent. */
+function writeEligibleBaselineForSibling(root: string): void {
+  const feature = 'F-b11ce002';
+  const criterion = 'AC-b11ce002';
+  const subject = `criterion:${feature}/${criterion}`;
+  const statement = 'The system shall retain only current attestation evidence.';
+  const finalIntent = criterionFinalIntentFromRecord({statement, kind: 'behavior'});
+  if (!finalIntent) throw new Error('fixture did not construct a strict final intent');
+  const previewSha256 = 'a'.repeat(64);
+  const candidateCensusSha256 = legacyL2CandidateCensusSha256([subject]);
+  const resolutionSha256 = legacyL2ResolutionSha256({
+    previewSha256, decision: 'accept', candidateCount: 1, candidateCensusSha256,
+  });
+  const authorization = {
+    criterion: subject, sourceStatus: 'done' as const,
+    finalIntentSha256: criterionFinalIntentSha256(finalIntent),
+    obligations: LEGACY_L2_OBLIGATIONS,
+    candidateSha256: '',
+    resolutionSha256,
+  };
+  const baseline = {
+    schema: 1, sourceSchema: '0.1' as const,
+    project: {address: 'project', legacyIntent: 'Preserve the migrated review context.'},
+    features: [],
+    criteria: [{
+      address: subject,
+      legacyIntent: {text: statement},
+      classification: 'legacy_unclassified' as const,
+      bindings: [],
+      exemption: {id: 'legacy-sibling-criterion', subject, reason: 'legacy_criterion_intent' as const},
+    }],
+    scenarios: [],
+    legacyL2Baseline: {
+      decision: 'accept' as const, previewSha256, candidateCount: 1, candidateCensusSha256, resolutionSha256,
+      authorizations: [{...authorization, candidateSha256: legacyL2CandidateSha256(authorization)}],
+    },
+  };
+  mkdirSync(join(root, 'spec', 'generated'), {recursive: true});
+  writeFileSync(join(root, 'spec', 'generated', 'migration-baseline-0.1-to-0.2.yaml'), JSON.stringify(baseline));
+}
+
 function currentEntries(root: string, profile: 'completion' | 'push' | 'release', featureIds: readonly string[], identity: {
   readonly detectors?: string;
   readonly tool?: string;
@@ -88,6 +137,40 @@ function currentEntries(root: string, profile: 'completion' | 'push' | 'release'
     toolIdentity: identity.tool ?? 'cladding-test', environmentClass: identity.environment ?? 'test',
     trustSnapshotSha256: identity.trust ?? emptyTrustSnapshot().digest,
   });
+}
+
+/** Mints B from the real compiler candidate and exact current Unit/Coverage scope passes. */
+function currentBaselineSiblingEntry(root: string) {
+  const compilation = compileSpecWorkspace(root);
+  const configured = compilation.contract?.project.assuranceLevel ?? 'L2';
+  const profile = assuranceProfile('completion', configured);
+  const scopeAddresses = ['feature:F-b11ce002'];
+  const snapshot = workspaceProfileSnapshot(root, compilation, {
+    profile,
+    scopeAddresses,
+    hasExecutableTests: true,
+    oracleRequiredSubjects: new Set<string>(),
+    requiresHuman: false,
+  });
+  const proofViews = currentProofViewsFromWorkspace(root, compilation, snapshot.effectiveScopeAddresses);
+  const verdict = authoritativeFixtureVerdictForTest(reduceLegacyStageAdapter({
+    profile, configuredAssuranceLevel: configured, completeScope: snapshot.complete,
+    scopeAddresses: snapshot.effectiveScopeAddresses, inputAddresses: compilation.nodes.map((node) => node.address),
+    inputSha256: snapshot.inputSha256, hasExecutableTests: true, hasOracleProof: false,
+    hasDeliverable: false, requiresQuality: false, requiresHuman: false, environmentClass: 'test',
+    staticCriterionScope: snapshot.staticCriterionScope,
+    criterionObservations: snapshot.criterionObservations,
+    migrationBaselineCandidates: snapshot.migrationBaselineCandidates,
+    proofViews,
+    exactProofRequired: true,
+    stages: profile.obligations.map((stage) => ({stage, status: 'pass' as const})),
+  }));
+  const [entry] = createWorkspaceAttestations({
+    cwd: root, compilation, verdict, featureIds: ['F-b11ce002'],
+    detectorCatalogSha256: CURRENT_DETECTORS, toolIdentity: 'cladding-test', environmentClass: 'test',
+    trustSnapshotSha256: emptyTrustSnapshot().digest,
+  });
+  return {entry, snapshot};
 }
 
 function retention(entries: Parameters<typeof createAttestationV3RetentionContext>[0]) {
@@ -475,6 +558,66 @@ describe('attestation policy stamp', () => {
     expect(readFileSync(join(dir, 'spec', 'attestation.yaml'), 'utf8')).not.toContain('  F-b11ce002: ok');
   });
 
+  test('drops a sibling whose compact migration-baseline summary differs from the current zero-baseline scope', () => {
+    writeSchema02Siblings(dir);
+    const [a] = currentEntries(dir, 'completion', ['F-a11ce001']);
+    const [b] = currentEntries(dir, 'completion', ['F-b11ce002']);
+    if (!a || !b) throw new Error('fixture did not mint sibling rows');
+    writeAttestation(dir, loadSpec(dir), policy, [a, b], undefined, {writeLegacy: false});
+    const summary = {
+      baseline_receipt_sha256: 'a'.repeat(64), resolution_sha256: 'b'.repeat(64),
+      criterion_authorization_sha256: ['c'.repeat(64)], criterion_count: 1, obligation_count: 2,
+    };
+    const forged = {
+      ...b,
+      observation_counts: {
+        ...b.observation_counts,
+        required: b.observation_counts.required + 2,
+        migration_baseline: 2,
+      },
+      migration_baseline: summary,
+    };
+    const path = join(dir, 'spec', 'attestation.yaml');
+    const text = readFileSync(path, 'utf8');
+    writeFileSync(path, text.replace(
+      `  ${b.feature}: ${JSON.stringify(b)}`,
+      `  ${b.feature}: ${JSON.stringify(forged)}`,
+    ));
+    const currentRetention = retention([a]);
+    if (!currentRetention) throw new Error('fixture did not mint retention authority');
+    writeAttestation(dir, loadSpec(dir), policy, [a], undefined, {writeLegacy: false, retention: currentRetention});
+    expect(readAttestation(dir)?.v3?.has('F-b11ce002')).toBe(false);
+  });
+
+  test('retains a current sibling with a nonzero migration-baseline summary', () => {
+    writeSchema02Siblings(dir);
+    writeEligibleBaselineForSibling(dir);
+    const [a] = currentEntries(dir, 'completion', ['F-a11ce001']);
+    const {entry: b, snapshot} = currentBaselineSiblingEntry(dir);
+    if (!a || !b) throw new Error('fixture did not mint current replacement and baseline sibling rows');
+    expect(snapshot.migrationBaselineCandidates).toHaveLength(1);
+    expect(b.observation_counts.migration_baseline).toBe(2);
+    expect(b.migration_baseline).toMatchObject({criterion_count: 1, obligation_count: 2});
+    writeAttestation(dir, loadSpec(dir), policy, [a, b], undefined, {writeLegacy: false});
+    const prior = readAttestation(dir)?.v3?.get('F-b11ce002');
+    if (!prior) throw new Error('fixture did not persist the baseline sibling row');
+    expect(prior.observation_counts.migration_baseline).toBe(2);
+    expect(prior.migration_baseline).toMatchObject({criterion_count: 1, obligation_count: 2});
+    const priorSerialized = serializeAttestationV3(prior);
+
+    const [replacement] = currentEntries(dir, 'completion', ['F-a11ce001']);
+    if (!replacement) throw new Error('fixture did not mint the current replacement row');
+    const currentRetention = retention([replacement]);
+    if (!currentRetention) throw new Error('fixture did not mint retention authority');
+    writeAttestation(dir, loadSpec(dir), policy, [replacement], undefined, {
+      writeLegacy: false,
+      retention: currentRetention,
+    });
+    const retained = readAttestation(dir)?.v3?.get('F-b11ce002');
+    expect(retained).toBeDefined();
+    expect(retained && serializeAttestationV3(retained)).toBe(priorSerialized);
+  });
+
   test('treats malformed and contradictory last-wins v3 duplicates as rejected', () => {
     writeSchema02Siblings(dir);
     const [a] = currentEntries(dir, 'completion', ['F-a11ce001']);
@@ -651,6 +794,22 @@ describe('attestation policy stamp', () => {
         .toThrow(expect.objectContaining({code: 'STALE_INPUT'}));
       writeFileSync(join(dir, path), original);
     }
+  });
+
+  test('treats migration baseline receipt create, edit, and delete as attestation snapshot drift', () => {
+    const baseline = join(dir, 'spec', 'generated', 'migration-baseline-0.1-to-0.2.yaml');
+    mkdirSync(join(dir, 'spec', 'generated'), {recursive: true});
+    const assertStale = (change: () => void): void => {
+      const snapshot = captureAttestationInputSnapshot(dir, spec);
+      change();
+      expect(() => writeAttestation(dir, snapshot.spec, policy, undefined, snapshot))
+        .toThrow(expect.objectContaining({code: 'STALE_INPUT'}));
+    };
+    assertStale(() => writeFileSync(baseline, '[]\n'));
+    writeFileSync(baseline, '[]\n');
+    assertStale(() => writeFileSync(baseline, '{schema: 1}\n'));
+    writeFileSync(baseline, '[]\n');
+    assertStale(() => rmSync(baseline));
   });
 
   test('detector catalog fingerprint is deterministic and configuration-sensitive', () => {

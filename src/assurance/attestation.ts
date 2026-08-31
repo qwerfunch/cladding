@@ -47,7 +47,18 @@ export interface AttestationV3 {
   readonly environment_class: string;
   readonly trust_snapshot_sha256: string;
   readonly observation_identities: readonly string[];
-  readonly observation_counts: Readonly<{required: number; pass: number; na: number}>;
+  readonly observation_counts: Readonly<{required: number; pass: number; na: number; migration_baseline: number}>;
+  /** Present only when this attested profile scope compacted current L2 baseline rows. */
+  readonly migration_baseline?: MigrationBaselineAttestationSummary;
+}
+
+/** Compact, scope-wide receipt evidence for non-observation L2 rows. */
+export interface MigrationBaselineAttestationSummary {
+  readonly baseline_receipt_sha256: string;
+  readonly resolution_sha256: string;
+  readonly criterion_authorization_sha256: readonly string[];
+  readonly criterion_count: number;
+  readonly obligation_count: number;
 }
 
 /** A v3 payload minted solely after the authoritative gate coordinator check. */
@@ -125,7 +136,7 @@ export function mintWorkspaceAttestationV3(input: AttestationV3Input): Authorita
   if (verdict.results.length === 0
     || (verdict.profile !== 'completion' && verdict.profile !== 'push' && verdict.profile !== 'release')
     || !verdict.profile_complete || verdict.state !== 'green'
-    // D13 persists only compact required/pass/NA counts.  A complete GREEN may
+    // D13 persists compact result-state counts. A complete GREEN may
     // retain an upstream report failure, but no hard failure, missing result,
     // or ambiguous duplicate result can enter that compact projection.
     || hasDuplicateResultKeys(verdict)
@@ -147,13 +158,16 @@ export function mintWorkspaceAttestationV3(input: AttestationV3Input): Authorita
       environmentClass: input.environmentClass,
       trustSnapshotSha256: input.trustSnapshotSha256,
     })) return undefined;
+  const migrationBaseline = compactMigrationBaselineRows(verdict.results);
+  if (migrationBaseline === undefined) return undefined;
   const observationIdentities = [...new Set(verdict.results.flatMap((result) => result.observation_identities))].sort(compareCodeUnits);
   const counts = {
     required: verdict.results.filter((result) => result.state !== 'na').length,
     pass: verdict.results.filter((result) => result.state === 'pass').length,
     na: verdict.results.filter((result) => result.state === 'na').length,
+    migration_baseline: verdict.results.filter((result) => result.state === 'migration_baseline').length,
   };
-  if (counts.required === 0 || observationIdentities.length < counts.required) return undefined;
+  if (counts.required === 0 || observationIdentities.length < counts.required - counts.migration_baseline) return undefined;
   const profile_sha256 = attestationProfileSha256({
     profile: verdict.profile, assuranceLevel: verdict.assurance_level,
     configuredAssuranceLevel: verdict.configured_assurance_level, registrySha256: input.registrySha256,
@@ -169,10 +183,68 @@ export function mintWorkspaceAttestationV3(input: AttestationV3Input): Authorita
     detector_catalog_sha256: input.detectorCatalogSha256, tool_identity: input.toolIdentity,
     environment_class: input.environmentClass, trust_snapshot_sha256: input.trustSnapshotSha256,
     observation_identities: Object.freeze(observationIdentities), observation_counts: Object.freeze(counts),
+    ...(migrationBaseline === null ? {} : {migration_baseline: migrationBaseline}),
     [AUTHORITATIVE_V3]: true as const,
   });
   AUTHORITATIVE_V3_ROWS.add(entry);
   return entry;
+}
+
+/**
+ * Validates the non-observation receipt rows before compacting them for one
+ * profile scope. A malformed group must refuse the complete writer operation: it
+ * must never be reinterpreted as an ordinary passing observation.
+ */
+function compactMigrationBaselineRows(
+  results: readonly AssuranceVerdict['results'][number][],
+): MigrationBaselineAttestationSummary | null | undefined {
+  const rows = results.filter((result) => result.state === 'migration_baseline');
+  if (rows.length === 0) return null;
+  const bySubject = new Map<string, typeof rows>();
+  for (const row of rows) {
+    if (!/^criterion:[^/]+\/[^/]+$/.test(row.subject)
+      || (row.obligation !== 'stage_2.1' && row.obligation !== 'stage_2.2')
+      || row.observation_identities.length !== 0
+      || !isMigrationBaselineBasis(row.migration_baseline)) return undefined;
+    const subjectRows = bySubject.get(row.subject) ?? [];
+    subjectRows.push(row);
+    bySubject.set(row.subject, subjectRows);
+  }
+  const summaries: Array<{readonly subject: string; readonly basis: NonNullable<AssuranceVerdict['results'][number]['migration_baseline']>}> = [];
+  for (const [subject, subjectRows] of bySubject) {
+    if (subjectRows.length !== 2
+      || new Set(subjectRows.map((row) => row.obligation)).size !== 2
+      || subjectRows.some((row) => row.obligation !== 'stage_2.1' && row.obligation !== 'stage_2.2')) return undefined;
+    const basis = subjectRows[0]!.migration_baseline!;
+    if (subjectRows.some((row) => row.migration_baseline?.baseline_receipt_sha256 !== basis.baseline_receipt_sha256
+      || row.migration_baseline?.resolution_sha256 !== basis.resolution_sha256
+      || row.migration_baseline?.criterion_authorization_sha256 !== basis.criterion_authorization_sha256)) return undefined;
+    summaries.push({subject, basis});
+  }
+  const first = summaries[0]!.basis;
+  if (summaries.some((summary) => summary.basis.baseline_receipt_sha256 !== first.baseline_receipt_sha256
+    || summary.basis.resolution_sha256 !== first.resolution_sha256)) return undefined;
+  const authorizations = summaries.map((summary) => summary.basis.criterion_authorization_sha256)
+    .sort(compareCodeUnits);
+  if (new Set(authorizations).size !== authorizations.length) return undefined;
+  const obligationCount = summaries.length * 2;
+  return Object.freeze({
+    baseline_receipt_sha256: first.baseline_receipt_sha256,
+    resolution_sha256: first.resolution_sha256,
+    criterion_authorization_sha256: Object.freeze(authorizations),
+    criterion_count: summaries.length,
+    obligation_count: obligationCount,
+  });
+}
+
+/** Returns whether one generic kernel basis is safe to persist. */
+function isMigrationBaselineBasis(
+  value: AssuranceVerdict['results'][number]['migration_baseline'],
+): value is NonNullable<AssuranceVerdict['results'][number]['migration_baseline']> {
+  return value !== undefined
+    && /^[a-f0-9]{64}$/.test(value.baseline_receipt_sha256)
+    && /^[a-f0-9]{64}$/.test(value.resolution_sha256)
+    && /^[a-f0-9]{64}$/.test(value.criterion_authorization_sha256);
 }
 
 /** One compact result may exist for each obligation/subject identity. */

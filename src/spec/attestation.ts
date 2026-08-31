@@ -26,6 +26,7 @@ import {
   type AttestationV3,
   type AttestationV3RetentionContext,
   type AuthoritativeAttestationV3,
+  type MigrationBaselineAttestationSummary,
 } from '../assurance/attestation.js';
 import {
   assuranceClosureInputFromWorkspace,
@@ -38,7 +39,7 @@ import {
 } from '../assurance/workspace.js';
 import {canonicalClosureJson} from '../assurance/closures.js';
 import {assuranceProfile} from '../assurance/kernel.js';
-import {OBLIGATION_DESCRIPTORS} from '../assurance/registry.js';
+import {compareCodeUnits, OBLIGATION_DESCRIPTORS} from '../assurance/registry.js';
 import {requiredOracleWorklist} from '../oracle/policy.js';
 import {safeProofWorkspacePath} from '../proof/fs-safety.js';
 import {
@@ -279,8 +280,8 @@ export function readAttestation(cwd: string): AttestationFile | null {
       const m = line.match(/^ {2}(F-[\w-]+): (.+)$/);
       if (!m) continue;
       try {
-        const candidate = JSON.parse(m[2]) as AttestationV3;
-        if (isAttestationV3(candidate, m[1])) v3!.set(m[1], candidate);
+        const candidate = normalizeAttestationV3(JSON.parse(m[2]), m[1]);
+        if (candidate) v3!.set(m[1], candidate);
       } catch {
         // An invalid v3 entry cannot become a partial fresh attestation.
       }
@@ -369,6 +370,7 @@ export function featureAttestationV3(
     | 'tool_identity'
     | 'environment_class'
     | 'trust_snapshot_sha256'
+    | 'migration_baseline'
   >,
 ): {state: 'fresh'} | {state: 'stale'; field: string} | {state: 'unattested'} {
   const entry = att.v3?.get(featureId);
@@ -377,9 +379,11 @@ export function featureAttestationV3(
     'profile', 'configured_assurance_level', 'achieved_assurance_level', 'scope_sha256', 'input_sha256',
     'contract_sha256', 'subject_sha256', 'verification_sha256', 'runtime_dependency_sha256', 'profile_sha256',
     'obligation_sha256', 'registry_sha256', 'detector_catalog_sha256', 'tool_identity', 'environment_class',
-    'trust_snapshot_sha256',
+    'trust_snapshot_sha256', 'migration_baseline',
   ] as const) {
-    if (entry[field] !== expected[field]) return {state: 'stale', field};
+    if (field === 'migration_baseline'
+      ? !sameMigrationBaselineSummary(entry.migration_baseline, expected.migration_baseline)
+      : entry[field] !== expected[field]) return {state: 'stale', field};
   }
   return {state: 'fresh'};
 }
@@ -594,6 +598,7 @@ interface CurrentSiblingV3Evaluator {
   readonly registrySha256: string;
   readonly controlResolver: RunnerConfigurationResolver;
   readonly profiles: Map<string, {
+    readonly profile: ReturnType<typeof assuranceProfile>;
     readonly scope: ReturnType<typeof effectiveFeatureScope>;
     readonly snapshot: ReturnType<typeof workspaceProfileSnapshot>;
   } | undefined>;
@@ -656,6 +661,10 @@ function isCurrentSiblingV3(entry: AttestationV3, evaluator: CurrentSiblingV3Eva
     || entry.subject_sha256 !== seals.subjectSha256
     || entry.verification_sha256 !== seals.verificationSha256
     || entry.runtime_dependency_sha256 !== seals.runtimeDependencySha256) return false;
+  if (!sameMigrationBaselineSummary(
+    entry.migration_baseline,
+    currentMigrationBaselineSummary(profile.profile, profile.snapshot.migrationBaselineCandidates),
+  )) return false;
   return entry.profile_sha256 === attestationProfileSha256({
     profile: entry.profile,
     assuranceLevel: configured,
@@ -693,7 +702,7 @@ function currentRetentionProfile(entry: AttestationV3, evaluator: CurrentSibling
     closureInput: evaluator.closureInput,
     controlResolver: evaluator.controlResolver,
   });
-  const result = {scope, snapshot};
+  const result = {profile, scope, snapshot};
   evaluator.profiles.set(key, result);
   return result;
 }
@@ -897,7 +906,11 @@ function validateCompletionAttestationPayload(
 }
 
 function attestationSourcePaths(cwd: string): readonly string[] {
-  const direct = ['spec/capabilities.yaml', 'spec/architecture.yaml'];
+  const direct = [
+    'spec/capabilities.yaml',
+    'spec/architecture.yaml',
+    'spec/generated/migration-baseline-0.1-to-0.2.yaml',
+  ];
   const shardPaths = ['spec/features', 'spec/scenarios'].flatMap((directory) => {
     const absolute = join(cwd, directory);
     return existsSync(absolute)
@@ -955,8 +968,8 @@ function renderAttestation(
     (v3Rows.length > 0 ? `attested_v3:\n${v3Rows.join('\n')}\n` : '');
 }
 
-function isAttestationV3(value: unknown, feature: string): value is AttestationV3 {
-  if (!value || typeof value !== 'object') return false;
+function normalizeAttestationV3(value: unknown, feature: string): AttestationV3 | undefined {
+  if (!value || typeof value !== 'object') return undefined;
   const entry = value as Partial<AttestationV3>;
   const digestFields = [
     entry.scope_sha256, entry.input_sha256, entry.contract_sha256, entry.subject_sha256,
@@ -965,8 +978,8 @@ function isAttestationV3(value: unknown, feature: string): value is AttestationV
     entry.trust_snapshot_sha256,
   ];
   const levels = new Set(['L1', 'L2', 'L3', 'L4']);
-  const counts: unknown = entry.observation_counts;
-  return entry.attestation_schema === '3'
+  const counts = normalizeCompactObservationCounts(entry.observation_counts);
+  const valid = entry.attestation_schema === '3'
     && entry.feature === feature
     && (entry.profile === 'completion' || entry.profile === 'push' || entry.profile === 'release')
     && levels.has(entry.configured_assurance_level ?? '')
@@ -978,22 +991,120 @@ function isAttestationV3(value: unknown, feature: string): value is AttestationV
     && entry.observation_identities.every((identity) => /^[a-f0-9]{64}$/.test(identity))
     && entry.observation_identities.every((identity, index, values) => index === 0 || values[index - 1]! <= identity)
     && entry.observation_identities.every((identity, index, values) => index === 0 || values[index - 1]! !== identity)
-    && isCompactObservationCounts(counts)
-    // D13's three compact fields preserve literal PASS independently from an
-    // upstream report failure: `required - pass` is the implicit report-fail
-    // count. Every resolved required result still needs a distinct current
-    // observation identity after sorted/unique validation above.
-    && entry.observation_identities.length >= counts.required;
+    && counts !== undefined
+    // D13 preserves literal PASS independently from an upstream report
+    // failure. Every resolved required non-baseline result still needs a
+    // distinct current observation identity after sorted/unique validation.
+    && entry.observation_identities.length >= counts.required - counts.migration_baseline;
+  if (!valid || counts === undefined) return undefined;
+  const migrationBaseline = normalizeMigrationBaselineSummary(entry.migration_baseline, counts.migration_baseline);
+  if (migrationBaseline === undefined && counts.migration_baseline !== 0) return undefined;
+  if (migrationBaseline === undefined && entry.migration_baseline !== undefined) return undefined;
+  return {
+    ...entry,
+    observation_counts: counts,
+    ...(migrationBaseline === undefined ? {} : {migration_baseline: migrationBaseline}),
+  } as AttestationV3;
 }
 
-/** Validates D13's compact required/pass/NA wire representation before use. */
-function isCompactObservationCounts(value: unknown): value is Readonly<{required: number; pass: number; na: number}> {
-  if (!value || typeof value !== 'object') return false;
-  const counts = value as {required?: unknown; pass?: unknown; na?: unknown};
+/** Normalizes pre-F7c v3 counts while rejecting every other compact-count shape. */
+function normalizeCompactObservationCounts(value: unknown): Readonly<{required: number; pass: number; na: number; migration_baseline: number}> | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const counts = value as {required?: unknown; pass?: unknown; na?: unknown; migration_baseline?: unknown};
+  const keys = Object.keys(counts).sort();
+  const oldShape = keys.join(',') === 'na,pass,required';
+  const currentShape = keys.join(',') === 'migration_baseline,na,pass,required';
+  if (!oldShape && !currentShape) return undefined;
   const {required, pass, na} = counts;
-  return typeof required === 'number' && Number.isSafeInteger(required) && required > 0
+  const migrationBaseline = oldShape ? 0 : counts.migration_baseline;
+  if (!(typeof required === 'number' && Number.isSafeInteger(required) && required > 0
     && typeof pass === 'number' && Number.isSafeInteger(pass) && pass >= 0 && pass <= required
-    && typeof na === 'number' && Number.isSafeInteger(na) && na >= 0;
+    && typeof na === 'number' && Number.isSafeInteger(na) && na >= 0
+    && typeof migrationBaseline === 'number' && Number.isSafeInteger(migrationBaseline)
+    && migrationBaseline >= 0 && migrationBaseline <= required
+    && pass <= required - migrationBaseline)) return undefined;
+  return Object.freeze({required, pass, na, migration_baseline: migrationBaseline});
+}
+
+/** Validates the receipt-only compact summary required by a nonzero baseline count. */
+function normalizeMigrationBaselineSummary(
+  value: unknown,
+  baselineCount: number,
+): MigrationBaselineAttestationSummary | undefined {
+  if (baselineCount === 0 || !value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const summary = value as Record<string, unknown>;
+  const keys = Object.keys(summary).sort(compareCodeUnits);
+  const baselineReceiptSha256 = summary.baseline_receipt_sha256;
+  const resolutionSha256 = summary.resolution_sha256;
+  const authorizations = summary.criterion_authorization_sha256;
+  const criterionCount = summary.criterion_count;
+  const obligationCount = summary.obligation_count;
+  if (keys.join(',') !== 'baseline_receipt_sha256,criterion_authorization_sha256,criterion_count,obligation_count,resolution_sha256'
+    || !isSha256(baselineReceiptSha256)
+    || !isSha256(resolutionSha256)
+    || !Array.isArray(authorizations)
+    || !authorizations.every(isSha256)
+    || !authorizations.every((authorization, index, values) => index === 0
+      || compareCodeUnits(values[index - 1]!, authorization) < 0)
+    || !isPositiveSafeInteger(criterionCount)
+    || !isPositiveSafeInteger(obligationCount)
+    || authorizations.length !== criterionCount
+    || obligationCount !== baselineCount
+    || obligationCount !== 2 * criterionCount) return undefined;
+  return Object.freeze({
+    baseline_receipt_sha256: baselineReceiptSha256,
+    resolution_sha256: resolutionSha256,
+    criterion_authorization_sha256: Object.freeze([...authorizations]),
+    criterion_count: criterionCount,
+    obligation_count: obligationCount,
+  });
+}
+
+/** Rebuilds the expected compact migration summary from one current profile scope. */
+function currentMigrationBaselineSummary(
+  profile: ReturnType<typeof assuranceProfile>,
+  candidates: readonly {
+    readonly subject: string;
+    readonly obligations: readonly string[];
+    readonly basis: {
+      readonly baseline_receipt_sha256: string;
+      readonly resolution_sha256: string;
+      readonly criterion_authorization_sha256: string;
+    };
+  }[],
+): MigrationBaselineAttestationSummary | undefined {
+  if (!profile.obligations.includes('stage_2.1') || !profile.obligations.includes('stage_2.2')) return undefined;
+  if (candidates.length === 0
+    || candidates.some((candidate) => candidate.obligations.length !== 2
+      || candidate.obligations[0] !== 'stage_2.1' || candidate.obligations[1] !== 'stage_2.2')) return undefined;
+  const first = candidates[0]!.basis;
+  if (candidates.some((candidate) => candidate.basis.baseline_receipt_sha256 !== first.baseline_receipt_sha256
+    || candidate.basis.resolution_sha256 !== first.resolution_sha256)) return undefined;
+  const authorizations = candidates.map((candidate) => candidate.basis.criterion_authorization_sha256).sort(compareCodeUnits);
+  if (new Set(authorizations).size !== authorizations.length) return undefined;
+  return Object.freeze({
+    baseline_receipt_sha256: first.baseline_receipt_sha256,
+    resolution_sha256: first.resolution_sha256,
+    criterion_authorization_sha256: Object.freeze(authorizations),
+    criterion_count: authorizations.length,
+    obligation_count: authorizations.length * 2,
+  });
+}
+
+/** Compares serialized receipt summaries by content rather than object identity. */
+function sameMigrationBaselineSummary(
+  left: MigrationBaselineAttestationSummary | undefined,
+  right: MigrationBaselineAttestationSummary | undefined,
+): boolean {
+  return canonicalClosureJson(left ?? null) === canonicalClosureJson(right ?? null);
+}
+
+function isPositiveSafeInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0;
+}
+
+function isSha256(value: unknown): value is string {
+  return typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
 }
 
 /** Compares the semantic verification input without depending on YAML byte formatting. */

@@ -88,6 +88,12 @@ export interface AssuranceClosureInput {
   readonly executableProofFeatureIds?: readonly string[];
   /** Receipt identity is subject-bound so a sibling receipt cannot stale this proof closure. */
   readonly receiptIdentities?: readonly {readonly address: string; readonly identity: string}[];
+  /**
+   * Validated migration receipt content identity supplied by the compiler
+   * adapter. `null` is the canonical absence value; generic closures never
+   * read or interpret the migration artifact themselves.
+   */
+  readonly migrationBaselineReceiptSha256?: string | null;
   readonly runtimeDependencies?: readonly RuntimeDependencyInput[];
   /** Compiler evidence that a dependency graph is complete. */
   readonly dependencyComplete?: boolean;
@@ -188,6 +194,9 @@ export function contractClosure(input: AssuranceClosureInput, featureId: string)
     ...criteria,
     ...capabilities,
     ...(input.schemaVersion === '0.2' ? (input.architectureRules ?? []).map((rule, index) => ({address: `architecture_rule:${index}`, value: rule})) : []),
+    ...(input.schemaVersion === '0.2'
+      ? [{address: 'migration_baseline:receipt', value: input.migrationBaselineReceiptSha256 ?? null}]
+      : []),
     ...scenarioRecords,
   ];
   return closed(records, true);

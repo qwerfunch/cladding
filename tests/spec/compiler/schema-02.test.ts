@@ -41,6 +41,22 @@ describe('Spec compiler schema 0.2 structural boundary', () => {
     expect(compilation.diagnostics.filter((diagnostic) => diagnostic.severity === 'blocking')).toEqual([]);
   });
 
+  test('materializes an existing migration receipt artifact even when its body is invalid', () => {
+    const root = workspace();
+    mkdirSync(join(root, 'spec', 'generated'), {recursive: true});
+    writeFileSync(join(root, 'spec', 'generated', 'migration-baseline-0.1-to-0.2.yaml'), '[]\n');
+    const compilation = compileSpecWorkspace(root);
+    expect(compilation.nodes).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        address: 'artifact:spec/generated/migration-baseline-0.1-to-0.2.yaml',
+        nodeType: 'artifact', roles: ['generated'],
+      }),
+    ]));
+    expect(compilation.diagnostics).toEqual(expect.arrayContaining([
+      expect.objectContaining({code: 'INVALID_SCHEMA_02', message: expect.stringContaining('Invalid migration baseline')}),
+    ]));
+  });
+
   test('fails an unknown root schema before reading child shards', () => {
     const root = workspace('9.9');
     feature(root, ['id: F-aaaaaaaa', 'title: child must stay unread', 'status: planned', 'purpose: no merge']);

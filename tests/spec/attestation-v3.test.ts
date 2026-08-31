@@ -16,7 +16,8 @@ function seal(feature: string, overrides: Partial<AttestationV3> = {}): Attestat
     scope_sha256: digest('a'), input_sha256: digest('b'), contract_sha256: digest('c'), subject_sha256: digest('d'),
     verification_sha256: digest('e'), runtime_dependency_sha256: digest('f'), profile_sha256: digest('1'), obligation_sha256: digest('2'),
     registry_sha256: digest('3'), detector_catalog_sha256: digest('4'), tool_identity: 'cladding', environment_class: 'test',
-    trust_snapshot_sha256: digest('5'), observation_identities: [digest('6')], observation_counts: {required: 1, pass: 1, na: 0}, ...overrides,
+    trust_snapshot_sha256: digest('5'), observation_identities: [digest('6')],
+    observation_counts: {required: 1, pass: 1, na: 0, migration_baseline: 0}, ...overrides,
   };
 }
 function expected(entry: AttestationV3) {
@@ -27,6 +28,7 @@ function expected(entry: AttestationV3) {
     profile_sha256: entry.profile_sha256, obligation_sha256: entry.obligation_sha256, registry_sha256: entry.registry_sha256,
     detector_catalog_sha256: entry.detector_catalog_sha256, tool_identity: entry.tool_identity,
     environment_class: entry.environment_class, trust_snapshot_sha256: entry.trust_snapshot_sha256,
+    migration_baseline: entry.migration_baseline,
   };
 }
 function file(entries: readonly AttestationV3[]): AttestationFile {
@@ -86,33 +88,106 @@ describe('F6 v3 attestation freshness', () => {
     expect(featureAttestation(mixed, cwd, sibling)).toEqual({state: 'fresh'});
   });
 
-  test('round-trips compact report-fail counts without adding a fourth wire field', () => {
+  test('normalizes an old compact report-fail count and writes the fourth count for new rows', () => {
     const cwd = mkdtempSync(join(tmpdir(), 'clad-attestation-v3-report-'));
     mkdirSync(join(cwd, 'spec'));
-    const report = seal('F-report', {
+    const report = {
+      ...seal('F-report', {
       observation_identities: [digest('6'), digest('7')],
+      observation_counts: {required: 2, pass: 1, na: 0, migration_baseline: 0},
+      }),
+      // Pre-F7c schema-3 rows have no baseline count or summary.
       observation_counts: {required: 2, pass: 1, na: 0},
-    });
+    } as unknown as AttestationV3;
     writeFileSync(join(cwd, 'spec', 'attestation.yaml'), `attested_v3:\n  F-report: ${JSON.stringify(report)}\n`);
 
     // `required - pass` is the implicit upstream report-fail count. D13 keeps
     // the persisted proof summary compact, so no report_fail field is allowed.
-    expect(readAttestation(cwd)?.v3?.get('F-report')?.observation_counts).toEqual({required: 2, pass: 1, na: 0});
+    expect(readAttestation(cwd)?.v3?.get('F-report')?.observation_counts)
+      .toEqual({required: 2, pass: 1, na: 0, migration_baseline: 0});
+  });
+
+  test('round-trips a receipt-only migration baseline summary and rejects malformed summary equations', () => {
+    const cwd = mkdtempSync(join(tmpdir(), 'clad-attestation-v3-baseline-'));
+    mkdirSync(join(cwd, 'spec'));
+    const summary = {
+      baseline_receipt_sha256: digest('a'), resolution_sha256: digest('b'),
+      criterion_authorization_sha256: [digest('c'), digest('d')], criterion_count: 2, obligation_count: 4,
+    } as const;
+    const valid = seal('F-valid', {
+      observation_identities: [digest('6')],
+      observation_counts: {required: 5, pass: 1, na: 0, migration_baseline: 4},
+      migration_baseline: summary,
+    });
+    const malformed = seal('F-malformed', {
+      observation_identities: [digest('6')],
+      observation_counts: {required: 5, pass: 1, na: 0, migration_baseline: 4},
+      migration_baseline: {...summary, criterion_authorization_sha256: [digest('d'), digest('c')]},
+    });
+    const absent = seal('F-absent', {
+      observation_identities: [digest('6')],
+      observation_counts: {required: 5, pass: 1, na: 0, migration_baseline: 4},
+    });
+    const zeroWithSummary = seal('F-zero', {migration_baseline: summary});
+    writeFileSync(join(cwd, 'spec', 'attestation.yaml'), `attested_v3:\n  F-valid: ${JSON.stringify(valid)}\n  F-malformed: ${JSON.stringify(malformed)}\n  F-absent: ${JSON.stringify(absent)}\n  F-zero: ${JSON.stringify(zeroWithSummary)}\n`);
+    const parsed = readAttestation(cwd)?.v3;
+    const parsedValid = parsed?.get('F-valid');
+    expect(parsedValid?.migration_baseline).toEqual(summary);
+    expect(featureAttestationV3({
+      policy: null, v1: null, modules: null, features: null, v3: parsed ?? null,
+    }, 'F-valid', {
+      ...expected(valid),
+      migration_baseline: {...summary, resolution_sha256: digest('e')},
+    })).toEqual({state: 'stale', field: 'migration_baseline'});
+    expect(parsed?.has('F-malformed')).toBe(false);
+    expect(parsed?.has('F-absent')).toBe(false);
+    expect(parsed?.has('F-zero')).toBe(false);
+  });
+
+  test('reports a changed migration summary as its own stale freshness field', () => {
+    const summary = {
+      baseline_receipt_sha256: digest('a'), resolution_sha256: digest('b'),
+      criterion_authorization_sha256: [digest('c')], criterion_count: 1, obligation_count: 2,
+    } as const;
+    const entry = seal('F-target', {
+      observation_identities: [digest('6')],
+      observation_counts: {required: 3, pass: 1, na: 0, migration_baseline: 2},
+      migration_baseline: summary,
+    });
+    expect(featureAttestationV3(file([entry]), 'F-target', {
+      ...expected(entry),
+      migration_baseline: {...summary, resolution_sha256: digest('d')},
+    })).toEqual({state: 'stale', field: 'migration_baseline'});
+  });
+
+  test('rejects compact counts that overlap literal passes with migration-baseline rows', () => {
+    const cwd = mkdtempSync(join(tmpdir(), 'clad-attestation-v3-overlap-'));
+    mkdirSync(join(cwd, 'spec'));
+    const summary = {
+      baseline_receipt_sha256: digest('a'), resolution_sha256: digest('b'),
+      criterion_authorization_sha256: [digest('c')], criterion_count: 1, obligation_count: 2,
+    } as const;
+    const overlap = seal('F-overlap', {
+      observation_counts: {required: 2, pass: 1, na: 0, migration_baseline: 2},
+      migration_baseline: summary,
+    });
+    writeFileSync(join(cwd, 'spec', 'attestation.yaml'), `attested_v3:\n  F-overlap: ${JSON.stringify(overlap)}\n`);
+    expect(readAttestation(cwd)?.v3?.has('F-overlap')).toBe(false);
   });
 
   test('rejects malformed, overflow, contradictory, and all-NA compact counts', () => {
     const cwd = mkdtempSync(join(tmpdir(), 'clad-attestation-v3-invalid-'));
     mkdirSync(join(cwd, 'spec'));
-    const invalidCounts = seal('F-target', {observation_counts: {required: 2, pass: 3, na: 1}});
+    const invalidCounts = seal('F-target', {observation_counts: {required: 2, pass: 3, na: 1, migration_baseline: 0}});
     const invalidIdentity = seal('F-other', {registry_sha256: 'not-a-digest'});
-    const emptyGreen = seal('F-empty', {observation_identities: [], observation_counts: {required: 0, pass: 0, na: 6}});
-    const overflow = seal('F-overflow', {observation_counts: {required: Number.MAX_SAFE_INTEGER + 1, pass: 1, na: 0}});
-    const fractional = seal('F-fractional', {observation_counts: {required: 1.5, pass: 1, na: 0}});
-    const negativePass = seal('F-negative-pass', {observation_counts: {required: 1, pass: -1, na: 0}});
-    const negativeNa = seal('F-negative-na', {observation_counts: {required: 1, pass: 1, na: -1}});
+    const emptyGreen = seal('F-empty', {observation_identities: [], observation_counts: {required: 0, pass: 0, na: 6, migration_baseline: 0}});
+    const overflow = seal('F-overflow', {observation_counts: {required: Number.MAX_SAFE_INTEGER + 1, pass: 1, na: 0, migration_baseline: 0}});
+    const fractional = seal('F-fractional', {observation_counts: {required: 1.5, pass: 1, na: 0, migration_baseline: 0}});
+    const negativePass = seal('F-negative-pass', {observation_counts: {required: 1, pass: -1, na: 0, migration_baseline: 0}});
+    const negativeNa = seal('F-negative-na', {observation_counts: {required: 1, pass: 1, na: -1, migration_baseline: 0}});
     const malformed = {...seal('F-malformed'), observation_counts: null} as unknown as AttestationV3;
-    const insufficient = seal('F-insufficient', {observation_counts: {required: 2, pass: 1, na: 0}});
-    const duplicateIdentity = seal('F-duplicate', {observation_identities: [digest('6'), digest('6')], observation_counts: {required: 2, pass: 1, na: 0}});
+    const insufficient = seal('F-insufficient', {observation_counts: {required: 2, pass: 1, na: 0, migration_baseline: 0}});
+    const duplicateIdentity = seal('F-duplicate', {observation_identities: [digest('6'), digest('6')], observation_counts: {required: 2, pass: 1, na: 0, migration_baseline: 0}});
     writeFileSync(join(cwd, 'spec', 'attestation.yaml'), `attested_v3:\n  F-target: ${JSON.stringify(invalidCounts)}\n  F-other: ${JSON.stringify(invalidIdentity)}\n  F-empty: ${JSON.stringify(emptyGreen)}\n  F-overflow: ${JSON.stringify(overflow)}\n  F-fractional: ${JSON.stringify(fractional)}\n  F-negative-pass: ${JSON.stringify(negativePass)}\n  F-negative-na: ${JSON.stringify(negativeNa)}\n  F-malformed: ${JSON.stringify(malformed)}\n  F-insufficient: ${JSON.stringify(insufficient)}\n  F-duplicate: ${JSON.stringify(duplicateIdentity)}\n`);
     const parsed = readAttestation(cwd);
     expect(parsed?.v3?.size ?? 0).toBe(0);

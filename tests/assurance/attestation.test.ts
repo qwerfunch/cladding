@@ -120,6 +120,16 @@ describe('F6 attestation v3 payload', () => {
       observation_identities: [],
     }]);
     expect(hasSealedAuthority(sealedVerdict(baselineRows))).toBe(true);
+    const minted = mintWorkspaceAttestationV3(sealedInput(sealedVerdict(baselineRows)));
+    expect(minted?.observation_counts).toEqual({required: 4, pass: 2, na: 0, migration_baseline: 2});
+    expect(minted?.observation_identities).toEqual(['scope:stage_2.1', 'scope:stage_2.2']);
+    expect(minted?.migration_baseline).toEqual({
+      baseline_receipt_sha256: basis.baseline_receipt_sha256,
+      resolution_sha256: basis.resolution_sha256,
+      criterion_authorization_sha256: [basis.criterion_authorization_sha256],
+      criterion_count: 1,
+      obligation_count: 2,
+    });
 
     const missingScope = baselineRows.filter((row) => !row.subject.startsWith('scope:'));
     expect(hasSealedAuthority(sealedVerdict(missingScope))).toBe(false);
@@ -131,6 +141,52 @@ describe('F6 attestation v3 payload', () => {
       ? {...row, migration_baseline: {...basis, resolution_sha256: 'not-a-sha'}}
       : row);
     expect(hasSealedAuthority(sealedVerdict(forged))).toBe(false);
+    const mismatchedPair = baselineRows.map((row, index) => row.state === 'migration_baseline' && index === 3
+      ? {...row, migration_baseline: {...basis, criterion_authorization_sha256: 'e'.repeat(64)}}
+      : row);
+    expect(mintWorkspaceAttestationV3(sealedInput(sealedVerdict(mismatchedPair)))).toBeUndefined();
+  });
+
+  test('aggregates every baseline subject in one scope summary and excludes baseline rows from pass and observation identity counts', () => {
+    const basis = {
+      baseline_receipt_sha256: 'b'.repeat(64),
+      resolution_sha256: 'c'.repeat(64),
+    };
+    const rows: ObligationResult[] = ['stage_2.1', 'stage_2.2'].flatMap((obligation) => [{
+      obligation,
+      subject: `scope:${authorityScopeSha256}`,
+      state: 'pass' as const,
+      source_strictness: 'hard' as const,
+      blocking: 'hard' as const,
+      observation_identities: [`scope:${obligation}`],
+    }, ...['criterion:F-a/AC-b', 'criterion:F-a/AC-c'].map((subject, index) => ({
+      obligation,
+      subject,
+      state: 'migration_baseline' as const,
+      source_strictness: 'hard' as const,
+      blocking: 'hard' as const,
+      migration_baseline: {...basis, criterion_authorization_sha256: index === 0 ? 'd'.repeat(64) : 'e'.repeat(64)},
+      observation_identities: [],
+    }))]);
+    const entry = mintWorkspaceAttestationV3(sealedInput(sealedVerdict(rows)));
+    expect(entry?.observation_counts).toEqual({required: 6, pass: 2, na: 0, migration_baseline: 4});
+    expect(entry?.observation_identities).toEqual(['scope:stage_2.1', 'scope:stage_2.2']);
+    expect(entry?.migration_baseline).toEqual({
+      baseline_receipt_sha256: basis.baseline_receipt_sha256,
+      resolution_sha256: basis.resolution_sha256,
+      criterion_authorization_sha256: ['d'.repeat(64), 'e'.repeat(64)],
+      criterion_count: 2,
+      obligation_count: 4,
+    });
+
+    const na = {
+      obligation: 'stage_2.3', subject: 'feature:F-a', state: 'na' as const,
+      source_strictness: 'hard' as const, blocking: 'hard' as const, observation_identities: [],
+    } satisfies ObligationResult;
+    const oneSubject = rows.filter((row) => row.subject === `scope:${authorityScopeSha256}` || row.subject === 'criterion:F-a/AC-b');
+    const withNa = mintWorkspaceAttestationV3(sealedInput(sealedVerdict([...oneSubject, na])));
+    expect(withNa?.observation_counts).toEqual({required: 4, pass: 2, na: 1, migration_baseline: 2});
+    expect(withNa?.observation_identities).toEqual(['scope:stage_2.1', 'scope:stage_2.2']);
   });
 
   test('[covers:F-065/AC-175] mints a current profile-complete authoritative attestation only from the authoritative verdict', () => {
@@ -190,7 +246,8 @@ describe('F6 attestation v3 payload', () => {
       authorityResult('fail', 'stage_2.2', '2'.repeat(64), 'report'),
     ]);
     expect(hasSealedAuthority(report)).toBe(true);
-    expect(mintWorkspaceAttestationV3(sealedInput(report))?.observation_counts).toEqual({required: 2, pass: 1, na: 0});
+    expect(mintWorkspaceAttestationV3(sealedInput(report))?.observation_counts)
+      .toEqual({required: 2, pass: 1, na: 0, migration_baseline: 0});
 
     const hardFailure = sealedVerdict([
       authorityResult('pass', 'stage_1.1', '3'.repeat(64)),

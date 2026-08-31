@@ -73,6 +73,7 @@ export function assuranceClosureInputFromWorkspace(
   // second authority beside the contract compiled under the workspace lock.
   const legacy = compilation.schemaVersion === '0.1' ? (currentSpec ?? loadSpec(cwd)) : undefined;
   const schema02 = compilation.contract;
+  const migrationBaselineReceipt = validatedMigrationBaselineReceiptSha256(compilation);
   const features: AssuranceFeatureInput[] = schema02
     ? schema02.features.map((feature) => ({
       id: feature.id, title: feature.title,
@@ -200,10 +201,23 @@ export function assuranceClosureInputFromWorkspace(
         .map((selection) => selection.criterion.split('/')[0]!),
     ])].sort(comparePath)),
     ...(receiptContext ? {receiptIdentities: currentReceiptIdentities(receiptContext.candidates, receiptContext.trustSnapshot)} : {}),
+    migrationBaselineReceiptSha256: migrationBaselineReceipt,
     runtimeDependencies,
     dependencyComplete: compilation.edges.filter((edge) => edge.relation === 'depends_on' && edge.provenance === 'authored')
       .every((edge) => features.some((feature) => `feature:${feature.id}` === edge.to)),
   };
+}
+
+/**
+ * Carries only a validated receipt content identity across the compiler/F5
+ * boundary.  A generic assurance closure may seal this scalar but must not
+ * import, parse, or otherwise interpret the compiler migration contract.
+ */
+function validatedMigrationBaselineReceiptSha256(compilation: SpecCompilation): string | null {
+  const baseline = compilation.migrationBaseline;
+  return baseline !== undefined && validateMigrationBaseline(baseline).length === 0
+    ? migrationBaselineReceiptSha256(baseline)
+    : null;
 }
 
 /** Seals the exact four closure families for a profile snapshot without a second hash model. */
@@ -828,6 +842,13 @@ export function createWorkspaceAttestations(input: {
   /** Current F5-verified receipt/trust inputs; F6 supplies an empty snapshot. */
   readonly receiptContext?: WorkspaceReceiptContext;
 }): readonly AuthoritativeAttestationV3[] {
+  // The compiler records an existing managed baseline artifact even when its
+  // contents are invalid. Such a receipt is a closure input, never an absent
+  // optional value that an authoritative writer may silently ignore.
+  if (input.compilation.schemaVersion === '0.2'
+    && input.compilation.nodes.some((node) => node.nodeType === 'artifact'
+      && node.address === artifactAddress('spec/generated/migration-baseline-0.1-to-0.2.yaml'))
+    && validatedMigrationBaselineReceiptSha256(input.compilation) === null) return Object.freeze([]);
   const closures = assuranceClosureInputFromWorkspace(input.cwd, input.compilation, input.receiptContext);
   const registrySha256 = createHash('sha256').update(canonicalClosureJson(OBLIGATION_DESCRIPTORS), 'utf8').digest('hex');
   const entries: AuthoritativeAttestationV3[] = [];

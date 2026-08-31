@@ -200,6 +200,38 @@ describe('F6 workspace profile closure', () => {
     expect(migrationBaselineCandidatesFromWorkspace(cwd, compilation, [`feature:${baselineFeature}`])).toEqual([]);
   });
 
+  test('seals a validated migration receipt into closure input and refuses an invalid managed receipt', () => {
+    const cwd = fixture();
+    const generated = join(cwd, 'spec', 'generated');
+    mkdirSync(generated, {recursive: true});
+    const record = {id: 'AC-aaaaaaaa', statement: 'The system shall keep closure requirements explicit.'};
+    const baseline = baselineReceipt(record, [], 'accept', 'F-aaaaaaaa', 'AC-aaaaaaaa');
+    const path = join(generated, 'migration-baseline-0.1-to-0.2.yaml');
+    writeFileSync(path, JSON.stringify(baseline));
+    const valid = compileSpecWorkspace(cwd);
+    const validInput = assuranceClosureInputFromWorkspace(cwd, valid);
+    expect(validInput.migrationBaselineReceiptSha256).toMatch(/^[a-f0-9]{64}$/);
+    const validSnapshot = workspaceProfileSnapshot(cwd, valid, {
+      profile: assuranceProfile('completion', 'L1'), scopeAddresses: ['feature:F-aaaaaaaa'],
+      hasExecutableTests: false, oracleRequiredSubjects: new Set<string>(), requiresHuman: false,
+    });
+
+    writeFileSync(path, '[]\n');
+    const invalid = compileSpecWorkspace(cwd);
+    const invalidInput = assuranceClosureInputFromWorkspace(cwd, invalid);
+    const invalidSnapshot = workspaceProfileSnapshot(cwd, invalid, {
+      profile: assuranceProfile('completion', 'L1'), scopeAddresses: ['feature:F-aaaaaaaa'],
+      hasExecutableTests: false, oracleRequiredSubjects: new Set<string>(), requiresHuman: false,
+    });
+    expect(invalid.nodes.map((node) => node.address)).toContain('artifact:spec/generated/migration-baseline-0.1-to-0.2.yaml');
+    expect(invalidInput.migrationBaselineReceiptSha256).toBeNull();
+    expect(invalidSnapshot.inputSha256).not.toBe(validSnapshot.inputSha256);
+    expect(createWorkspaceAttestations({
+      cwd, compilation: invalid, verdict: greenVerdict(['feature:F-aaaaaaaa'], invalidSnapshot.inputSha256), featureIds: ['F-aaaaaaaa'],
+      detectorCatalogSha256: 'a'.repeat(64), toolIdentity: 'cladding-test', environmentClass: 'test', trustSnapshotSha256: 'b'.repeat(64),
+    })).toEqual([]);
+  });
+
   test('revokes authorization when authored constraint refs change between omission and an explicit empty list', () => {
     const omitted = {
       id: baselineCriterion,

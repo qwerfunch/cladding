@@ -35,6 +35,20 @@ describe('F6 closure authority', () => {
     expect(subjectClosure(changed, 'F-a/AC-a').sha256).toBe(before);
   });
 
+  test('seals the compiler-adapted migration receipt scalar into every schema-0.2 contract closure', () => {
+    const schema02 = {
+      schemaVersion: '0.2' as const,
+      features: [{id: 'F-a', title: 'Feature', purpose: 'Seal receipt authority.', criteria: []}],
+      migrationBaselineReceiptSha256: 'a'.repeat(64),
+    };
+    const before = contractClosure(schema02, 'F-a');
+    const changed = contractClosure({...schema02, migrationBaselineReceiptSha256: 'b'.repeat(64)}, 'F-a');
+    const absent = contractClosure({...schema02, migrationBaselineReceiptSha256: null}, 'F-a');
+    expect(before.records).toContainEqual({address: 'migration_baseline:receipt', value: 'a'.repeat(64)});
+    expect(before.sha256).not.toBe(changed.sha256);
+    expect(absent.records).toContainEqual({address: 'migration_baseline:receipt', value: null});
+  });
+
   test('seals reviewed whole-file test inputs and makes a byte-mismatched carry-forward incomplete', () => {
     const reviewed = {
       ...input,

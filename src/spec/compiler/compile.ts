@@ -333,6 +333,19 @@ function compileSchema02(root: string, master: ParsedYaml, rootValue: Record<str
   }
   const baselineState = readMigrationBaseline(root);
   const baseline = baselineState.baseline;
+  // The immutable migration receipt participates in the authoritative source
+  // census whenever it exists, including when validation rejects its body.
+  // This gives F4/F6 one compiler-owned input address rather than a second
+  // filesystem reader that could silently omit an invalid receipt.
+  if (baselineState.document) {
+    ensureArtifact(
+      graph,
+      artifactAddress(baselineState.document.path),
+      ['generated'],
+      [],
+      locator(baselineState.document, []),
+    );
+  }
   for (const message of baselineState.issues) {
     graph.diagnostics.push({code: 'INVALID_SCHEMA_02', severity: 'blocking', message: `Invalid migration baseline: ${message}`, source: locator(master, [])});
   }
@@ -543,13 +556,13 @@ function readMigrationBaseline(root: string): {
   if (!existsSync(path)) return {issues: []};
   const document = readYaml(root, 'spec/generated/migration-baseline-0.1-to-0.2.yaml');
   const value = document.value;
-  if (!objectValueOrNull(value)) return {issues: ['baseline must be an object']};
+  if (!objectValueOrNull(value)) return {document, issues: ['baseline must be an object']};
   try {
     const baseline = value as MigrationBaseline;
     const issues = validateMigrationBaseline(baseline);
-    return issues.length === 0 ? {baseline, document, issues} : {issues};
+    return issues.length === 0 ? {baseline, document, issues} : {document, issues};
   } catch {
-    return {issues: ['baseline has an invalid structural shape']};
+    return {document, issues: ['baseline has an invalid structural shape']};
   }
 }
 
