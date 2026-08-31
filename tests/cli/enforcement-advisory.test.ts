@@ -49,7 +49,7 @@ function addCiWorkflow(): void {
 }
 
 describe('F-f4e184f7 — enforcement advisory', () => {
-  test('AC-4566fd98 — undone features + no hook + no CI → an advisory naming the count', () => {
+  test('[covers:F-f4e184f7/AC-4566fd98] AC-4566fd98 — undone features + no hook + no CI → an advisory naming the count', () => {
     writeSpec('in_progress');
     const out = enforcementAdvisory(cwd);
     expect(out).toBeTypeOf('string');
@@ -109,7 +109,7 @@ describe('F-be5306eb — cold-start / graduated feature-cycle advisory', () => {
     writeFileSync(join(cwd, 'src', 'foo.ts'), 'export const x = 1;\n');
   };
 
-  test('AC-a0e5840a — source code but zero feature specs → cold-start advisory', () => {
+  test('[covers:F-be5306eb/AC-a0e5840a] AC-a0e5840a — source code but zero feature specs → cold-start advisory', () => {
     emptySpec();
     writeSource();
     const out = coldStartAdvisory(cwd);
@@ -123,7 +123,7 @@ describe('F-be5306eb — cold-start / graduated feature-cycle advisory', () => {
     expect(coldStartAdvisory(cwd)).toBeUndefined();
   });
 
-  test('AC-4e780c47 — a feature already exists → no cold-start advisory even with code', () => {
+  test('[covers:F-be5306eb/AC-4e780c47] AC-4e780c47 — a feature already exists → no cold-start advisory even with code', () => {
     writeSpec('in_progress'); // one feature
     writeSource();
     expect(coldStartAdvisory(cwd)).toBeUndefined();

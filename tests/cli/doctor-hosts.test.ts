@@ -198,7 +198,7 @@ describe('runHostSmoke with consent — canned probing (AC-87ebd442)', () => {
     };
   };
 
-  test('exactly 3 one-shot prompts per host on PATH; all-pass → grade verified', () => {
+  test('[covers:F-5283985e/AC-87ebd442] exactly 3 one-shot prompts per host on PATH; all-pass → grade verified', () => {
     const calls: Array<{command: string; args: string[]}> = [];
     const artifact = runHostSmoke(dir, {
       consent: true,
@@ -239,7 +239,7 @@ describe('runHostSmoke with consent — canned probing (AC-87ebd442)', () => {
     expect(artifact.hosts.claude.grade).toBe('fail');
   });
 
-  test('a refused list-features surface is recorded fail (never pass) → grade fail', () => {
+  test('[covers:F-5283985e/AC-8bf019] a refused list-features surface is recorded fail (never pass) → grade fail', () => {
     const calls: Array<{command: string; args: string[]}> = [];
     const artifact = runHostSmoke(dir, {
       consent: true,
@@ -270,7 +270,7 @@ describe('not-run honesty — absence never renders as a pass (AC-8dfa9cc4)', ()
     rmSync(home, {recursive: true, force: true});
   });
 
-  test('no consent (binary present) → every prompt host not-run with the consent reason', () => {
+  test('[covers:F-5283985e/AC-8dfa9cc4] no consent (binary present) → every prompt host not-run with the consent reason', () => {
     const artifact = runHostSmoke(dir, {consent: false, hasBinary: () => true, home, version: 'x'});
     for (const host of ['claude', 'gemini', 'antigravity', 'codex', 'cursor'] as const) {
       const rec = artifact.hosts[host];
@@ -408,7 +408,7 @@ describe('newest-artifact selection + --matrix-only (AC-57ab708c)', () => {
     expect(newest?.generatedAt).toBe('2026-07-01T00:00:00.000Z');
   });
 
-  test('legacy Gemini artifacts load without relabeling old evidence as Antigravity', () => {
+  test('[covers:F-5283985e/AC-0d93bc] legacy Gemini artifacts load without relabeling old evidence as Antigravity', () => {
     const auditDir = join(dir, '.cladding', 'audit');
     const legacy = mkArtifact() as unknown as {version: string; generatedAt: string; hosts: Record<string, unknown>};
     legacy.hosts.gemini = legacy.hosts.antigravity;

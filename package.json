@@ -70,6 +70,7 @@
     "prepublishOnly": "npm run build"
   },
   "devDependencies": {
+    "@babel/parser": "^7.29.3",
     "@secretlint/secretlint-rule-preset-recommend": "^13.0.2",
     "@types/node": "^22.0.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",

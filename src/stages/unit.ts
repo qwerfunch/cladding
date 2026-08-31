@@ -17,7 +17,7 @@ import process from 'node:process';
 import {execaSync} from 'execa';
 
 import {withFindings} from './finding-parser.js';
-import {getOrRunSharedCoverage, isTestRunPrimed, unitActionFromCoverage} from './test-run-cache.js';
+import {captureCurrentJUnitProof, captureCurrentVitestProof, getOrRunSharedCoverage, isTestRunPrimed, shouldCaptureCurrentProof, unitActionFromCoverage} from './test-run-cache.js';
 import {resolveStageCommand} from './toolchain/scoped-command.js';
 import type {CommandStageOptions, StageResult} from './types.js';
 import {missingToolSkip, ranToolResult} from './util.js';
@@ -104,12 +104,15 @@ function tryReuseSharedRun(opts: UnitStageOptions, cwd: string, guardOn: boolean
   const baseArgs = covArgs;
   // Spawn (or fold) the one shared run. vitest reporters are orthogonal to
   // --coverage, so one invocation yields the coverage report AND per-test json.
-  const shared = getOrRunSharedCoverage(cwd, (jsonFile) =>
-    execaSync(runCmd, [...baseArgs, '--reporter=default', '--reporter=json', `--outputFile=${jsonFile}`], {
-      cwd,
-      reject: false,
-    }),
-  );
+  const shared = getOrRunSharedCoverage(cwd, (jsonFile) => {
+    // The proof record is evidence for this exact process, including both
+    // reporters and its unique output file. Keep one argv object so capture
+    // cannot accidentally describe the unaugmented coverage command.
+    const executedArgs = Object.freeze([...baseArgs, '--reporter=default', '--reporter=json', `--outputFile=${jsonFile}`]);
+    const proc = execaSync(runCmd, [...executedArgs], {cwd, reject: false});
+    captureCurrentVitestProof(cwd, jsonFile, [runCmd, ...executedArgs]);
+    return proc;
+  });
   if (!shared) return null; // cwd mismatch / unprimed → own run
   const {proc, jsonFile} = shared;
   // Missing binary → let the own-run path surface the honest skip (exit 2).
@@ -209,6 +212,7 @@ export function runUnit(opts: UnitStageOptions = {}): StageResult {
   const testIsVitest = isVitestRunner(cmd, args);
   const testIsPytest = isPytestRunner(cmd, args);
   const guardOn = strict && testIsVitest;
+  const captureProof = testIsVitest && shouldCaptureCurrentProof(cwd);
   // Dedup fast path (F-49f6f2d2): on a primed vitest gate, reuse the ONE shared
   // coverage+dual-json run stage_2.2 also folds, so the suite runs once (#215).
   // Only when the TEST runner is vitest too — a jest/pytest unit gate must not be
@@ -223,7 +227,7 @@ export function runUnit(opts: UnitStageOptions = {}): StageResult {
   }
   let jsonFile: string | undefined;
   let runArgs: readonly string[] = args;
-  if (guardOn) {
+  if (guardOn || captureProof) {
     jsonFile = join(tmpdir(), `clad-vitest-${process.pid}-${randomBytes(6).toString('hex')}.json`);
     // Dual reporter: default → stdout (human view preserved), json → temp file
     // (per-test results for the vacuity check). Verified on vitest 4.x.
@@ -231,6 +235,8 @@ export function runUnit(opts: UnitStageOptions = {}): StageResult {
   }
   try {
     const proc = execaSync(cmd, [...runArgs], {cwd, reject: false});
+    if (captureProof && jsonFile) captureCurrentVitestProof(cwd, jsonFile, [cmd, ...runArgs]);
+    if (!testIsVitest && shouldCaptureCurrentProof(cwd)) captureCurrentJUnitProof(cwd, [cmd, ...runArgs]);
     // execaSync(reject:false) RETURNS (does not throw) on a missing binary;
     // detect ENOENT on the result so a missing tool skips, not false-fails.
     const skip = missingToolSkip(STAGE, cmd, proc, runArgs);

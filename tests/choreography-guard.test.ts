@@ -67,22 +67,22 @@ describe('orchestrator persona is a cycle contract card, not choreography', () =
   });
 
   describe('AC-805ee617 — the persona declares the cycle contract', () => {
-    test('contains the literal "the host owns execution"', () => {
+    test("[covers:F-600272d7/AC-805ee617] contains the literal \"the host owns execution\"", () => {
       expect(orchestratorMd.includes(HOST_OWNS_EXECUTION)).toBe(true);
     });
 
-    test('contains both evidence-based independence labels', () => {
+    test("[covers:F-600272d7/AC-805ee617] contains both evidence-based independence labels", () => {
       expect(orchestratorMd.includes('independent')).toBe(true);
       expect(orchestratorMd.includes('self-certified')).toBe(true);
     });
 
-    test('contains the literal "Agents propose; the gates dispose."', () => {
+    test("[covers:F-600272d7/AC-805ee617][covers:F-600272d7/AC-ee97a22e] contains the literal \"Agents propose; the gates dispose.\"", () => {
       expect(orchestratorMd.includes(AGENTS_PROPOSE_GATES_DISPOSE)).toBe(true);
     });
   });
 
   describe('AC-bc42f601 — feature-cycle guide positions the CI/SDK lane', () => {
-    test('docs/feature-cycle.md contains the literal "CI/SDK lane"', () => {
+    test("[covers:F-600272d7/AC-bc42f601] docs/feature-cycle.md contains the literal \"CI/SDK lane\"", () => {
       expect(featureCycleMd.includes('CI/SDK lane')).toBe(true);
     });
   });
@@ -184,7 +184,7 @@ describe('planner brief points external users at the clad CLI, not dogfood-only 
   const plannerPersona = SPECIALIST_PERSONAS.find((p) => p.id === 'planner')!;
 
   describe('AC-65e247dc — no npm run spec:validate / stage:drift guidance remains', () => {
-    test('src/agents/planner.md matches no /npm run (spec:validate|stage:drift)/', () => {
+    test("[covers:F-9d8ece66/AC-65e247dc] src/agents/planner.md matches no /npm run (spec:validate|stage:drift)/", () => {
       const body = readFileSync(plannerPersona.srcPath, 'utf8');
       expect(body, 'src/agents/planner.md must not match /npm run (spec:validate|stage:drift)/').not.toMatch(
         DOGFOOD_NPM_SCRIPTS,
@@ -240,7 +240,7 @@ const multiAgentSliceOf = (f: string): string => {
 describe('README Multi-Agent section speaks the role contract, not choreography (F-96d1f69d)', () => {
   describe('AC-8d63da98 — no README variant describes the story as cladding dispatching/sequencing agents', () => {
     for (const f of README_VARIANTS) {
-      test(`${f}: Multi-Agent slice matches no /dispatch/i`, () => {
+      test(`[covers:F-96d1f69d/AC-8d63da98] ${f}: Multi-Agent slice matches no /dispatch/i`, () => {
         const slice = multiAgentSliceOf(f);
         expect(slice.length, `${f}: Multi-Agent section heading must be found (non-empty slice)`).toBeGreaterThan(0);
         expect(slice, `${f}: Multi-Agent slice must not match /dispatch/i`).not.toMatch(/dispatch/i);
@@ -250,7 +250,7 @@ describe('README Multi-Agent section speaks the role contract, not choreography 
 
   describe('AC-0a8ea4d7 — EN/KO variants ground separation-of-duties in the evidence-based independence label', () => {
     for (const f of README_EN_KO_VARIANTS) {
-      test(`${f}: Multi-Agent slice contains both "independent" and "self-certified"`, () => {
+      test(`[covers:F-96d1f69d/AC-0a8ea4d7] ${f}: Multi-Agent slice contains both "independent" and "self-certified"`, () => {
         const slice = multiAgentSliceOf(f);
         expect(slice, `${f}: Multi-Agent slice must contain "independent"`).toContain('independent');
         expect(slice, `${f}: Multi-Agent slice must contain "self-certified"`).toContain('self-certified');
@@ -268,7 +268,7 @@ describe('README Multi-Agent section speaks the role contract, not choreography 
 // which asserted against files that no longer exist.
 describe('README Multi-Agent section carries the inversion in prose alone (F-8476ccb1)', () => {
   describe('AC-111fb976 — opens by denying the old identity', () => {
-    test('README.md: Multi-Agent slice contains "not a multi-agent framework"', () => {
+    test("[covers:F-8476ccb1/AC-111fb976] README.md: Multi-Agent slice contains \"not a multi-agent framework\"", () => {
       const slice = multiAgentSliceOf('README.md');
       expect(slice, 'README.md: Multi-Agent slice must contain "not a multi-agent framework"').toContain(
         'not a multi-agent framework',
@@ -289,7 +289,7 @@ describe('README Multi-Agent section carries the inversion in prose alone (F-847
       });
     }
 
-    test('README.md: Multi-Agent slice presents the three-shape contrast as a list (>= 3 lines starting with "- ")', () => {
+    test("[covers:F-3fd220d8/AC-6b0a1f74][covers:F-8476ccb1/AC-7d433517] README.md: Multi-Agent slice presents the three-shape contrast as a list (>= 3 lines starting with \"- \")", () => {
       const slice = multiAgentSliceOf('README.md');
       const listLines = slice.split('\n').filter((line) => line.startsWith('- '));
       expect(
@@ -397,7 +397,7 @@ describe('README Multi-Agent section reads plainly and draws the label decision 
 
   describe('AC-c1e7a3b5 — independence is explained as tool reach, and self-certified is explained as absence, not fault', () => {
     for (const f of README_EN_KO_VARIANTS) {
-      test(`${f}: states the test writer has no means of opening the code`, () => {
+      test(`[covers:F-3fd220d8/AC-c1e7a3b5] ${f}: states the test writer has no means of opening the code`, () => {
         const slice = multiAgentSliceOf(f);
         const {noCodeAccess} = MULTIAGENT_NEEDLES[f]!;
         expect(slice, `${f}: must explain independence as what the test writer can reach ("${noCodeAccess}")`).toContain(
@@ -405,7 +405,7 @@ describe('README Multi-Agent section reads plainly and draws the label decision 
         );
       });
 
-      test(`${f}: says self-certified is not an accusation`, () => {
+      test(`[covers:F-3fd220d8/AC-c1e7a3b5] ${f}: says self-certified is not an accusation`, () => {
         const slice = multiAgentSliceOf(f);
         const {notAnAccusation} = MULTIAGENT_NEEDLES[f]!;
         expect(slice, `${f}: must contain the non-accusation clause ("${notAnAccusation}")`).toContain(notAnAccusation);
@@ -429,12 +429,42 @@ describe('README Multi-Agent section reads plainly and draws the label decision 
 
   describe('AC-83f1ba27 — each variant embeds its own locale diagram', () => {
     for (const [f, locale] of Object.entries(README_TO_LOCALE)) {
-      test(`${f}: references docs/img/${locale}/independence.svg`, () => {
+      test(`[covers:F-3fd220d8/AC-83f1ba27] ${f}: references docs/img/${locale}/independence.svg`, () => {
         const slice = multiAgentSliceOf(f);
         expect(slice, `${f}: Multi-Agent slice must embed docs/img/${locale}/independence.svg`).toContain(
           `docs/img/${locale}/independence.svg`,
         );
       });
+    }
+  });
+});
+
+describe('static proof carriers for role-contract surfaces', () => {
+  test('[covers:F-3fd220d8/AC-4d92c806] every localized independence diagram carries the decision, not a roster', () => {
+    for (const locale of INDEPENDENCE_SVG_LOCALES) {
+      const body = repoRead(`docs/img/${locale}/independence.svg`);
+      expect(body.length).toBeGreaterThan(0);
+      expect(body).toContain('hostband');
+      expect(body).toContain('The single question');
+      expect(body).toContain('independent');
+      expect(body).toContain('self-certified');
+      expect(body).toContain('independence_policy: require');
+      expect(body).not.toMatch(/dispatch|orchestrat/i);
+    }
+  });
+
+  test('[covers:F-ef93141b/AC-163773ad] every specialist source is a selectable role brief', () => {
+    for (const {srcPath} of SPECIALIST_PERSONAS) {
+      const body = readFileSync(srcPath, 'utf8');
+      expect(body).toMatch(ROLE_BRIEF);
+      expect(body).toMatch(/not an agent cladding mandates spawning|host[\s\S]*?agent shape/i);
+    }
+  });
+
+  test('[covers:F-ef93141b/AC-46fef26f] specialist role briefs exclude every removed choreography needle', () => {
+    for (const {srcPath} of SPECIALIST_PERSONAS) {
+      const body = readFileSync(srcPath, 'utf8');
+      for (const {pattern} of SPECIALIST_BANNED_NEEDLES) expect(body).not.toMatch(pattern);
     }
   });
 });

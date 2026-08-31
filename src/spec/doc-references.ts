@@ -26,7 +26,7 @@
 //     starts with `ignore` is the opt-out sentinel above, never a declaration —
 //     so an ignore comment may safely spell out illustrative example ids.
 
-import {existsSync, readdirSync, readFileSync, statSync, writeFileSync} from 'node:fs';
+import {existsSync, readdirSync, readFileSync, statSync} from 'node:fs';
 import {dirname, join, normalize, relative} from 'node:path';
 
 import {featureIdRe} from './feature-id.js';
@@ -185,13 +185,10 @@ export function extractDocReferences(cwd: string = '.'): DocRefScan {
   return {docs};
 }
 
-/**
- * Writes spec/_doc-links.yaml — the Tier-C, deterministic, git-merge-friendly
- * doc→spec/doc index `clad sync` maintains. Returns false when there are no docs.
- */
-export function writeDocLinksYaml(cwd: string = '.'): boolean {
+/** Renders the deterministic doc-link projection without performing a write. */
+export function renderDocLinksYaml(cwd: string = '.'): string | null {
   const scan = extractDocReferences(cwd);
-  if (scan.docs.length === 0) return false;
+  if (scan.docs.length === 0) return null;
   const lines: string[] = [
     '# Cladding · Tier C — generated doc→spec / doc→doc link index (`clad sync`). Do not edit by hand.',
     '# Source of truth is the docs themselves; DOC_LINK_INTEGRITY validates resolution.',
@@ -206,6 +203,5 @@ export function writeDocLinksYaml(cwd: string = '.'): boolean {
       lines.push(`    doc_links: [${d.doc_links.map((l) => JSON.stringify(l)).join(', ')}]`);
     }
   }
-  writeFileSync(join(cwd, 'spec', '_doc-links.yaml'), `${lines.join('\n')}\n`, 'utf8');
-  return true;
+  return `${lines.join('\n')}\n`;
 }

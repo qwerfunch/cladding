@@ -2,7 +2,7 @@
 //
 // Catches the case where two features OR two scenarios in the loaded
 // spec carry the same `slug`. The slug is the multi-developer-safe
-// filename anchor (`spec/{features,scenarios}/<slug>-<hash>.yaml`);
+// filename anchor (`spec/{features,scenarios}/<slug>-<hash8>.yaml`);
 // two distinct items with the same slug means two branches
 // independently chose the same name and the merge silently produced
 // a semantic duplicate.

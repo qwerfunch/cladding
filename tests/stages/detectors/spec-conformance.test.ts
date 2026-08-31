@@ -61,7 +61,7 @@ describe('SPEC_CONFORMANCE detector', () => {
     expect(run()).toHaveLength(0);
   });
 
-  test('MANDATORY: require_oracles ON + done AC with no oracle_refs ⇒ error', () => {
+  test("[covers:F-c4c5ae/AC-004] MANDATORY: require_oracles ON + done AC with no oracle_refs ⇒ error", () => {
     writeSpec(SPEC('name: f, language: typescript, require_oracles: true', '        evidence_refs: [fixture:x]'));
     const f = run();
     expect(f).toHaveLength(1);
@@ -85,7 +85,7 @@ describe('SPEC_CONFORMANCE detector', () => {
     expect(run()).toHaveLength(0);
   });
 
-  test('PROVENANCE: oracle author == implementer ⇒ error (not impl-blind)', () => {
+  test("[covers:F-c4c5ae/AC-005] PROVENANCE: oracle author == implementer ⇒ error (not impl-blind)", () => {
     oracleFile();
     writeEvidence([implEv('same-model'), oracleEv('same-model', {manifest: []})]);
     writeSpec(SPEC('name: f, language: typescript, require_oracles: true', '        oracle_refs: [tests/oracle/foo.test.ts]'));
@@ -101,7 +101,7 @@ describe('SPEC_CONFORMANCE detector', () => {
     expect(f.some((x) => x.severity === 'error' && /NOT impl-blind: authored by the implementer/.test(x.message))).toBe(true);
   });
 
-  test('PROVENANCE: read-manifest ∩ modules ≠ ∅ ⇒ error (author read the impl)', () => {
+  test("[covers:F-c4c5ae/AC-005] PROVENANCE: read-manifest ∩ modules ≠ ∅ ⇒ error (author read the impl)", () => {
     oracleFile();
     writeEvidence([implEv('impl-model'), oracleEv('oracle-model', {manifest: ['src/sheet.ts']})]);
     writeSpec(
@@ -122,7 +122,7 @@ describe('SPEC_CONFORMANCE detector', () => {
     expect(f.some((x) => x.severity === 'info' && /self-reported/.test(x.message))).toBe(true);
   });
 
-  test('INTEGRITY (always-on): declared oracle_ref to a missing file ⇒ error, even with require_oracles OFF', () => {
+  test("[covers:F-c4c5ae/AC-004] INTEGRITY (always-on): declared oracle_ref to a missing file ⇒ error, even with require_oracles OFF", () => {
     writeSpec(SPEC('name: f, language: typescript', '        oracle_refs: [tests/oracle/missing.test.ts]'));
     const f = run();
     expect(f).toHaveLength(1);

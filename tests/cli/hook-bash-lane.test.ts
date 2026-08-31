@@ -155,7 +155,7 @@ describe('AC-d6c8d5ed · Bash-lane git-delta impact card', () => {
     expect(f[0].payload).toMatchObject({file: 'src/app.ts', feature: 'F-aaa111', lane: 'bash', tier: 2});
   });
 
-  test('two owned files mutated → the card names the MOST-RECENTLY-modified one', () => {
+  test('[covers:F-e7d59c88/AC-d6c8d5ed] two owned files mutated → the card names the MOST-RECENTLY-modified one', () => {
     put('spec.yaml', makeSpec(['src/app.ts', 'src/util.ts']));
     put('src/app.ts', V1);
     put('src/util.ts', V1);
@@ -276,7 +276,7 @@ describe('AC-14c2e2ea · silence when git state is unavailable or the delta is e
 // ─── AC-4f2df3ee · a native edit refreshes the snapshot → no re-attribution ───
 
 describe('AC-4f2df3ee · native-edit snapshot refresh blocks Bash re-attribution', () => {
-  test('an Edit on src/app.ts records the snapshot; a following Bash does NOT re-fire it', () => {
+  test('[covers:F-e7d59c88/AC-4f2df3ee] an Edit on src/app.ts records the snapshot; a following Bash does NOT re-fire it', () => {
     put('spec.yaml', makeSpec(['src/app.ts']));
     put('src/app.ts', V1);
     gitInit();

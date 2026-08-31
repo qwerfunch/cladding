@@ -231,10 +231,10 @@ input.
 
 ### Profile contract
 
-Profiles select obligations and scope; they do not weaken an obligation's pass
-meaning. The configured `project.assurance_level` is the minimum level for
-completion, push, and release. A caller may request a stronger profile for one
-run but cannot silently downgrade the persisted policy.
+Profiles select obligations and scope, never weaken pass meaning. The configured
+`project.assurance_level` is the minimum for completion, push, and release. A
+one-run stronger level requires a compiler-proven bounded closure; it neither
+changes persisted policy nor waives unobserved evidence.
 
 | Profile | Trigger and minimum safe work | Authority and deferral |
 |---|---|---|
@@ -377,6 +377,11 @@ declared profile and its complete obligation set, not the `strict` flag or a
 numeric stage count. `completion` may attest its exact feature and impact scope;
 `push` may attest its integration scope; `release` may attest the repository.
 No narrower attestation is rendered as a broader one.
+
+The writer retains private reducer provenance and may mint a row only for a
+feature in the compiler's exact effective impact scope at that verdict's exact
+input digest; serialized or caller-constructed verdicts carry no such
+authority.
 
 The attestation records profile ID, configured and achieved assurance level,
 scope and input digests, contract/subject/verification closure digests, current

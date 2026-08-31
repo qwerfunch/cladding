@@ -135,7 +135,7 @@ function ledgerLines(): string[] {
 // ── AC-259fba59 · append one summary line ────────────────────────────────────
 
 describe('appendMeasureSnapshot — one summary line, no per-feature rows (AC-259fba59)', () => {
-  test('writes exactly one JSON line with the summary shape and no features[]', () => {
+  test("[covers:F-39609db4/AC-259fba59] writes exactly one JSON line with the summary shape and no features[]", () => {
     const report = mkReport();
     const res = appendMeasureSnapshot(dir, report);
     expect(res).toEqual({appended: true, reason: 'appended'});
@@ -188,7 +188,7 @@ describe('appendMeasureSnapshot — one summary line, no per-feature rows (AC-25
 // ── AC-cf43f71c · dedupe on (head, spec_digest) ──────────────────────────────
 
 describe('appendMeasureSnapshot — dedupe on unchanged (head, spec_digest) (AC-cf43f71c)', () => {
-  test('identical commit+spec state → second append skipped, ledger stays 1 line', () => {
+  test("[covers:F-39609db4/AC-cf43f71c] identical commit+spec state → second append skipped, ledger stays 1 line", () => {
     writeFileSync(join(dir, 'spec.yaml'), 'project:\n  name: t\n');
     mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
     writeFileSync(join(dir, 'spec', 'features', 'foo-aaaa1111.yaml'), 'id: F-aaaa1111\n');
@@ -278,7 +278,7 @@ function sixSnapshots(): MeasureSnapshot[] {
 }
 
 describe('renderTrend — last-N signed deltas, featureCount, disclaimer (AC-cbd294d4)', () => {
-  test('default window renders the last 5 with hand-computed signed deltas', () => {
+  test("[covers:F-39609db4/AC-cbd294d4] default window renders the last 5 with hand-computed signed deltas", () => {
     const out = renderTrend(sixSnapshots());
 
     expect(out).toContain(`measure trend ${DOT} last 5 of 6 snapshot(s)`);

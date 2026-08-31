@@ -28,19 +28,18 @@ acceptance_criteria:
       - "tests/self-consistency.test.ts#every persona file under src/agents/ has a glossary row"
   - id: AC-614993
     ears: event
-    condition: "when a user invokes a renamed verb by its old name (refine, panel, drive) or loads a renamed persona by its old id (librarian, specialists)"
-    action: "execute the new implementation and print a one-line deprecation notice naming the replacement"
-    text: "When a user invokes a renamed verb by its old name (refine→clarify, panel→status, drive→run) or resolves a renamed persona by its old id (librarian→planner, specialists→developer), the system shall execute the new implementation and emit a one-line deprecation notice naming the replacement, so existing muscle memory and host wiring survive one release."
-    notes: "## Decision\nalias-and-deprecate bucket: aliases live for exactly one minor release (0.6.x), removal in 0.7.\n## Trade-off\nKeeping `work` (a permanently not-implemented stub verb) would be dishonest surface — it is removed outright rather than aliased; `clad run` absorbs the autonomous-loop slot."
+    condition: "when a user invokes a post-lifecycle legacy CLI alias"
+    action: "reject the old alias and register only its successor verb"
+    text: "When a user invokes a post-lifecycle legacy CLI alias, the system shall reject the old spelling and expose only its successor verb."
+    notes: "## Decision\nAliases were intentionally limited to the 0.6.x lifecycle and removed in 0.7; this historical transition remains recorded, but no shipped alias executes.\n## Trade-off\nKeeping `work` (a permanently not-implemented stub verb) would be dishonest surface — it remains removed; `clad run` owns the autonomous-loop slot."
     test_refs:
-      - "tests/agents/loader.test.ts#resolves deprecated id 'librarian' to the planner persona with a deprecation notice"
-      - "tests/cli/clad.test.ts#renamed verbs keep their old names as aliases; work is removed"
+      - "tests/cli/clad.test.ts#removed aliases stay removed; successors are the only spelling"
   - id: AC-35f800
     ears: ubiquitous
     text: "The system shall generate new feature ids with 8 hex characters (F-<hash8>), keeping the existing >=6-hex validator unchanged, so the birthday-collision probability at thousands-of-shards scale stays negligible while every existing id remains valid."
     notes: "## Why\n6 hex = 16.7M space reaches ~50% pairwise collision near 4.8k features; 8 hex pushes that past 1M features. Validator already accepts 6+."
     test_refs:
-      - "tests/spec/new.test.ts#happy path — writes spec/features/<slug>-<hash>.yaml with hash id"
+      - "tests/spec/new.test.ts#happy path — writes spec/features/<slug>-<hash8>.yaml with hash id"
   - id: AC-c034ed
     ears: ubiquitous
     text: "The system shall keep frozen wire identifiers unchanged (MCP tool names, detector IDs, event types, spec schema fields) and improve only their human-facing display labels, so audit logs and host integrations never break on a rename."

@@ -14,7 +14,7 @@ acceptance_criteria:
     notes: "WHY: every audit surface is CLI-locked today; the proven audience (non-coders, auditors) cannot run a CLI. The offline-single-file pattern is already proven by the graph viewer shell."
     test_refs:
       - "tests/report/bundle.test.ts#AC-9f191790 · renders all seven sections (provenance + six content) in order"
-      - "tests/report/bundle.test.ts#AC-9f191790 · zero network surface — no script/src/link/css-import/css-url, anchors only"
+      - "tests/report/bundle.test.ts#AC-9f191790 · zero network surface — no script/src/link/@import/url(, anchors only"
       - "tests/report/bundle.test.ts#XSS pin · a <script> in a feature title / project name renders escaped on every surface"
   - id: AC-f511c519
     ears: ubiquitous

@@ -1,11 +1,13 @@
 // Cladding · unit tests for spec/load.ts — sharded vs unsharded
 
-import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {loadSpec} from '../../src/spec/load.js';
+import {compileSpecWorkspace} from '../../src/spec/compiler/compile.js';
+import {loadSpec, loadSpecFromDiskUnlocked} from '../../src/spec/load.js';
+import {managedSpecWorkspaceDigest, withStableSpecWorkspaceSnapshot} from '../../src/spec/transaction.js';
 
 describe('loadSpec', () => {
   let dir: string;
@@ -31,7 +33,7 @@ describe('loadSpec', () => {
     expect(spec.features[0].id).toBe('F-001');
   });
 
-  test('merges sharded features from spec/features/*.yaml', () => {
+  test('[covers:F-031/AC-045] merges sharded features from spec/features/*.yaml', () => {
     writeFileSync(
       join(dir, 'spec.yaml'),
       'schema: "0.1"\n' + 'project: {name: x, language: typescript}\n' + 'features: []\n',
@@ -68,7 +70,7 @@ describe('loadSpec', () => {
     expect(spec.scenarios?.[0].id).toBe('S-001');
   });
 
-  test('scenario.features[] accepts hash F-<hash> references (F-086, v0.3.11)', () => {
+  test('[covers:F-59f093/AC-003][covers:F-59f093/AC-004] scenario.features[] accepts hash F-<hash> references (F-086, v0.3.11)', () => {
     // Regression guard: v0.3.9 widened the feature id regex to accept
     // F-<hash6> alongside legacy F-NNN, but the scenario.features[]
     // items pattern was missed. v0.3.11 widens it too. This test
@@ -88,7 +90,7 @@ describe('loadSpec', () => {
     expect(spec.scenarios?.[0].features).toEqual(['F-001', 'F-a3f9c2']);
   });
 
-  test('inline features beat sharded directory (unsharded wins)', () => {
+  test('[covers:F-031/AC-046] inline features beat sharded directory (unsharded wins)', () => {
     writeFileSync(
       join(dir, 'spec.yaml'),
       'schema: "0.1"\n' +
@@ -103,6 +105,97 @@ describe('loadSpec', () => {
     const spec = loadSpec(dir);
     expect(spec.features).toHaveLength(1);
     expect(spec.features[0].id).toBe('F-001');
+  });
+
+  test('nested pure readers share stable snapshots without taking the writer lock', () => {
+    mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
+    writeFileSync(
+      join(dir, 'spec.yaml'),
+      'schema: "0.2"\nproject:\n  name: x\n  language: typescript\n  purpose: Keep readers stable.\n  assurance_level: L2\n  scenario_policy: advisory\n',
+    );
+    writeFileSync(join(dir, 'spec', 'capabilities.yaml'), 'capabilities: []\n');
+    writeFileSync(join(dir, 'spec', 'architecture.yaml'), 'layers: []\nrules: []\n');
+    writeFileSync(join(dir, 'spec', 'features', 'stable-aaaaaaaa.yaml'), [
+      'id: F-aaaaaaaa', 'title: Stable', 'status: planned', 'purpose: Keep readers stable.',
+      'modules: []', 'depends_on: []', 'capability_refs: []', 'acceptance_criteria:',
+      '  - id: AC-bbbbbbbb', '    kind: behavior', '    statement: The system shall keep readers stable.', '',
+    ].join('\n'));
+
+    const [loaded, compiled] = withStableSpecWorkspaceSnapshot(dir, () => [
+      loadSpec(dir),
+      compileSpecWorkspace(dir),
+    ] as const);
+
+    expect(loaded.features.map((feature) => feature.id)).toEqual(['F-aaaaaaaa']);
+    expect(compiled.schemaVersion).toBe('0.2');
+    expect(existsSync(join(dir, '.cladding', 'spec-transaction.lock'))).toBe(false);
+  });
+
+  test('retries a moving epoch instead of publishing a partial pure-reader snapshot', () => {
+    writeFileSync(
+      join(dir, 'spec.yaml'),
+      'schema: "0.1"\nproject: {name: x, language: typescript}\nfeatures:\n  - {id: F-001, title: before, status: done}\n',
+    );
+    let attempts = 0;
+
+    const loaded = withStableSpecWorkspaceSnapshot(dir, () => {
+      attempts++;
+      if (attempts === 1) {
+        rmSync(join(dir, 'spec.yaml'));
+        let removedPathError: unknown;
+        try {
+          loadSpecFromDiskUnlocked(dir);
+        } catch (error) {
+          removedPathError = error;
+        }
+        writeFileSync(
+          join(dir, 'spec.yaml'),
+          'schema: "0.1"\nproject: {name: x, language: typescript}\nfeatures:\n  - {id: F-001, title: after, status: done}\n',
+        );
+        if (removedPathError === undefined) throw new Error('Expected the removed source path to reject the transient read.');
+        throw removedPathError;
+      }
+      return loadSpecFromDiskUnlocked(dir);
+    });
+
+    expect(attempts).toBe(2);
+    expect(loaded.features[0]?.title).toBe('after');
+    expect(existsSync(join(dir, '.cladding', 'spec-transaction.lock'))).toBe(false);
+  });
+
+  test('waits for an active writer rather than publishing a partial reader result', () => {
+    const bytes = 'schema: "0.1"\nproject: {name: x, language: typescript}\nfeatures:\n  - {id: F-001, title: guarded, status: done}\n';
+    writeFileSync(join(dir, 'spec.yaml'), bytes);
+    mkdirSync(join(dir, '.cladding'), {recursive: true});
+    writeFileSync(join(dir, '.cladding', 'spec-transaction.lock'), `${JSON.stringify({pid: process.pid, nonce: 'active-writer'})}\n`);
+
+    expect(() => loadSpec(dir)).toThrow(expect.objectContaining({code: 'BUSY'}));
+    expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).toBe(bytes);
+
+    rmSync(join(dir, '.cladding'), {recursive: true, force: true});
+  }, 7000);
+
+  test('keeps an evidence-ancestor symlink opaque to the schema snapshot', () => {
+    const external = mkdtempSync(join(tmpdir(), 'clad-load-evidence-target-'));
+    try {
+      const target = join(external, 'receipt.yaml');
+      writeFileSync(target, 'outside receipt one\n');
+      writeFileSync(
+        join(dir, 'spec.yaml'),
+        'schema: "0.1"\nproject: {name: x, language: typescript}\nfeatures:\n  - {id: F-001, title: opaque, status: done}\n',
+      );
+      mkdirSync(join(dir, 'spec'), {recursive: true});
+      symlinkSync(target, join(dir, 'spec', 'evidence'));
+
+      const digest = managedSpecWorkspaceDigest(dir);
+      const loaded = loadSpec(dir);
+      writeFileSync(target, 'outside receipt two\n');
+
+      expect(managedSpecWorkspaceDigest(dir)).toBe(digest);
+      expect(loadSpec(dir)).toEqual(loaded);
+    } finally {
+      rmSync(external, {recursive: true, force: true});
+    }
   });
 });
 
@@ -123,7 +216,7 @@ describe('loadSpec — capabilities (Tier B)', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('merges the capabilities[] array into spec.capabilities', () => {
+  test('[covers:F-f6d13e/AC-001] merges the capabilities[] array into spec.capabilities', () => {
     writeFileSync(
       join(dir, 'spec', 'capabilities.yaml'),
       'schema: "0.1"\nsource: spec.yaml\ncapabilities:\n' +
@@ -148,7 +241,7 @@ describe('loadSpec — capabilities (Tier B)', () => {
     expect(spec.capabilities ?? []).toHaveLength(0);
   });
 
-  test('a malformed capability is now a parse-time validation error (J2 win)', () => {
+  test('[covers:F-f6d13e/AC-002] a malformed capability is now a parse-time validation error (J2 win)', () => {
     writeFileSync(
       join(dir, 'spec', 'capabilities.yaml'),
       'schema: "0.1"\ncapabilities:\n  - id: bad\n    surface: not-a-valid-surface\n',

@@ -3,8 +3,8 @@
 # (suggested .gitattributes: `spec/index.yaml merge=union`).
 features:
   F-001: {slug: F-001, status: done, modules: 4}
-  F-0023ba22: {slug: adoption-reducer, status: done, modules: 2}
   F-002: {slug: F-002, status: done, modules: 1}
+  F-0023ba22: {slug: adoption-reducer, status: done, modules: 2}
   F-003: {slug: F-003, status: done, modules: 2}
   F-004: {slug: F-004, status: done, modules: 2}
   F-005: {slug: F-005, status: done, modules: 1}
@@ -17,8 +17,8 @@ features:
   F-011: {slug: F-011, status: done, modules: 1}
   F-012: {slug: F-012, status: done, modules: 1}
   F-013: {slug: F-013, status: done, modules: 1}
-  F-0144b9: {slug: ab-extended-task-manager, status: done, modules: 8}
   F-014: {slug: F-014, status: done, modules: 1}
+  F-0144b9: {slug: ab-extended-task-manager, status: done, modules: 8}
   F-015: {slug: F-015, status: done, modules: 1}
   F-016: {slug: F-016, status: done, modules: 1}
   F-017: {slug: F-017, status: done, modules: 1}
@@ -27,8 +27,8 @@ features:
   F-020: {slug: F-020, status: done, modules: 1}
   F-021: {slug: F-021, status: done, modules: 1}
   F-022: {slug: F-022, status: done, modules: 1}
-  F-02343cd1: {slug: graph-html-viewer, status: done, modules: 5}
   F-023: {slug: F-023, status: done, modules: 6}
+  F-02343cd1: {slug: graph-html-viewer, status: done, modules: 5}
   F-024: {slug: F-024, status: done, modules: 1}
   F-025: {slug: F-025, status: done, modules: 1}
   F-026: {slug: F-026, status: done, modules: 1}
@@ -92,16 +92,19 @@ features:
   F-09a98261: {slug: terminology-canon, status: done, modules: 8}
   F-09d68b: {slug: clad-refine, status: done, modules: 7}
   F-0a29d024: {slug: spec-02-design-validation, status: done, modules: 11}
+  F-0b8f23c5: {slug: spec-02-scenario-policy-self-migration, status: in_progress, modules: 39}
   F-0e84628e: {slug: merge-ritual-docs, status: done, modules: 2}
   F-0ed2db: {slug: ai-hints-consumer-instructions, status: done, modules: 11}
   F-0f2984d0: {slug: infer-deps-dynamic-flag, status: done, modules: 2}
   F-0f4dd6: {slug: natural-language-init, status: done, modules: 29}
   F-10cc42d1: {slug: git-op-write-guard, status: done, modules: 5}
   F-12d740: {slug: atomic-ac-evidence-fanout, status: done, modules: 1}
+  F-14c9d647: {slug: spec-02-parser-migration-preview, status: in_progress, modules: 21}
   F-15999130: {slug: inferable-depends-on-detector, status: done, modules: 2}
   F-16138071: {slug: graph-efficiency-measure, status: done, modules: 2}
   F-16746b: {slug: enforcement-triggers, status: done, modules: 3}
   F-17df0a: {slug: scan-artifacts-llm-refinement, status: done, modules: 3}
+  F-182eaa53: {slug: spec-compiler-registry-bootstrap, status: in_progress, modules: 92}
   F-18e951: {slug: drift-baseline-cleanup, status: done, modules: 7}
   F-195cb59e: {slug: onboarding-handoff-steer, status: done, modules: 2}
   F-1aab1bba: {slug: stop-outcome-telemetry, status: done, modules: 6}
@@ -114,6 +117,7 @@ features:
   F-245bd5: {slug: dogfood-recovery-v0-3-16, status: done, modules: 2}
   F-27e56a00: {slug: benchmarks-prune, status: done, modules: 4}
   F-284be4f6: {slug: init-empty-layers-valid-yaml, status: done, modules: 1}
+  F-2883ff4d: {slug: spec-02-proof-evidence-kernel, status: in_progress, modules: 32}
   F-288864ae: {slug: claude-md-diet, status: done, modules: 2}
   F-2be3e3bb: {slug: infer-depends-on, status: done, modules: 2}
   F-2c02991f: {slug: arch-gate-skips-build-output, status: done, modules: 1}
@@ -143,6 +147,7 @@ features:
   F-49facde9: {slug: loop-engineering-readme, status: done, modules: 4}
   F-4db939: {slug: ab-evaluation, status: done, modules: 9}
   F-4ef09f38: {slug: multi-probe-smoke, status: done, modules: 3}
+  F-4f4a12c3: {slug: spec-02-transactional-editing, status: in_progress, modules: 32}
   F-50ff43: {slug: meta-integrity-skip-when-absent, status: done, modules: 2}
   F-5283985e: {slug: host-smoke-matrix, status: done, modules: 5}
   F-551a1c: {slug: oracle-cost-lever, status: done, modules: 4}
@@ -167,6 +172,7 @@ features:
   F-6d943d: {slug: version-bump-script, status: done, modules: 4}
   F-6e49fd24: {slug: inventory-churn-diet, status: done, modules: 1}
   F-6ed216f3: {slug: interactive-drift-profile, status: done, modules: 5}
+  F-6f0a2106: {slug: spec-02-assurance-attestation, status: in_progress, modules: 32}
   F-6f80e7: {slug: claude-code-dogfood, status: done, modules: 1}
   F-7076f7: {slug: smoke-probe-demand, status: done, modules: 3}
   F-70ed1afd: {slug: adoption-honors-host-capabilities, status: done, modules: 1}
@@ -190,6 +196,7 @@ features:
   F-904495a5: {slug: changelog-render, status: done, modules: 5}
   F-9064ff: {slug: deliverable-smoke, status: done, modules: 8}
   F-90d054: {slug: init-host-autowire, status: archived, modules: 0}
+  F-94285dd8: {slug: spec-02-project-capability-architecture-contracts, status: in_progress, modules: 14}
   F-94dda4: {slug: scan-polyglot, status: done, modules: 2}
   F-95a096: {slug: ops-visibility-polish, status: done, modules: 3}
   F-96250595: {slug: iterative-impact-slice, status: done, modules: 2}

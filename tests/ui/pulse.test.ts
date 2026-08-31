@@ -108,7 +108,7 @@ describe('pulseProgress + pulseProgressEnd', () => {
     Object.defineProperty(process.stdout, 'isTTY', {value, configurable: true});
   }
 
-  test('non-TTY: pulseProgress is silent (no write)', () => {
+  test("[covers:F-063/AC-162][covers:F-ba4b7a/AC-001] non-TTY: pulseProgress is silent (no write)", () => {
     setTty(false);
     pulseProgress('run', 'F-001', 'specialist');
     pulseProgress('run', 'F-001', 'L1 gates');
@@ -116,7 +116,7 @@ describe('pulseProgress + pulseProgressEnd', () => {
     expect(writeSpy).not.toHaveBeenCalled();
   });
 
-  test('non-TTY: pulseProgressEnd emits one line equivalent to pulse', () => {
+  test("[covers:F-ba4b7a/AC-003] non-TTY: pulseProgressEnd emits one line equivalent to pulse", () => {
     setTty(false);
     pulseProgress('run', 'F-001', 'specialist');
     pulseProgressEnd('pass', 'F-001', 'done');
@@ -125,7 +125,7 @@ describe('pulseProgress + pulseProgressEnd', () => {
     expect(writeSpy.mock.calls[0]?.[0]).toBe('✓ F-001  done\n');
   });
 
-  test('TTY: pulseProgress writes a clear-line escape and stays open (no newline)', () => {
+  test("[covers:F-ba4b7a/AC-002] TTY: pulseProgress writes a clear-line escape and stays open (no newline)", () => {
     setTty(true);
     pulseProgress('run', 'F-001', 'specialist');
     const out = writeSpy.mock.calls[0]?.[0] as string;

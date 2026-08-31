@@ -97,7 +97,7 @@ describe('reverse-slice / impact (F-7794a6bc)', () => {
     expect(r.impacted.map((i) => i.id)).toEqual(['G']);
   });
 
-  test('a miss returns not_found naming the accepted forms', () => {
+  test('[covers:F-7794a6bc/AC-6a73f6b1] a miss returns not_found naming feature id, slug, and module path lookup forms', () => {
     const r = buildImpactSlice(mkSpec([{id: 'A', title: 'A', status: 'done'}]), 'nope');
     expect('not_found' in r).toBe(true);
     const miss = r as {not_found: string; accepted_forms: readonly string[]};
@@ -106,8 +106,9 @@ describe('reverse-slice / impact (F-7794a6bc)', () => {
     expect(Array.isArray(forms)).toBe(true);
     expect(forms.length).toBeGreaterThan(0);
     const joined = forms.join(' ');
+    expect(joined).toContain('feature id');
     expect(joined).toContain('slug');
-    expect(joined).toContain('module');
+    expect(joined).toContain('module path');
   });
 
   test('depth bounds the dependent walk and output is deterministic', () => {

@@ -51,7 +51,7 @@ describe('COVERAGE_DROP detector', () => {
     expect(coverageDrop.run({cwd: dir})).toEqual([]);
   });
 
-  test('line coverage below floor → warn finding with actual + floor', () => {
+  test("[covers:F-057/AC-133] line coverage below floor → warn finding with actual + floor", () => {
     writeSummary(dir, JSON.stringify({total: {lines: {pct: 45.2}}}));
     const findings = coverageDrop.run({cwd: dir});
     expect(findings).toHaveLength(1);

@@ -101,7 +101,7 @@ describe('serve/server — MCP description budget (F-bc8ad013)', () => {
 
   // (a) — the whole resident surface fits the budget: ≤800 everywhere, with the
   // single earned ≤1,900 exemption for the oracle.
-  test('every clad_* tool description is within budget (≤800, oracle ≤1,900)', async () => {
+  test('[covers:F-bc8ad013/AC-56434559] every clad_* tool description is within budget (≤800, oracle ≤1,900)', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const {tools} = await client.listTools();
@@ -141,7 +141,7 @@ describe('serve/server — MCP description budget (F-bc8ad013)', () => {
 
   // (c) — the oracle exemption is earned: its ≤1,900 allowance must still carry
   // the impl-blind protocol, since for skills-less hosts this is its only copy.
-  test('clad_author_oracle still carries its impl-blind protocol markers', async () => {
+  test('[covers:F-bc8ad013/AC-7f832957] clad_author_oracle still carries its impl-blind protocol markers', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const {tools} = await client.listTools();

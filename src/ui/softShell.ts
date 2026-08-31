@@ -11,6 +11,7 @@
 // Anywhere the audit log records evidence, keep the internal id raw.
 
 import type {HaltReason} from '../drive/halt.js';
+import {featureIdRe} from '../spec/feature-id.js';
 import type {Spec} from '../spec/types.js';
 
 const HALT_MESSAGES: Readonly<Record<HaltReason['class'], string>> = {
@@ -104,9 +105,9 @@ export function gateLabel(stageId: string): string {
  */
 function translateFeatureIdsInDetail(detail: string, spec: Spec): string {
   if (!detail) return '';
-  // Match legacy sequential ids (F-NNN) AND the v0.3.9+ hash model (F-<6-8 hex>),
-  // so a hash-id feature title translates in halt detail strings too.
-  return detail.replace(/\bF-(?:[0-9a-f]{6,8}|\d{3,})\b/g, (id) => {
+  // Match legacy sequential ids (F-NNN) and every compatible hash id from the
+  // central policy, so a feature title translates in halt detail strings too.
+  return detail.replace(featureIdRe('g'), (id) => {
     const title = featureLabel(id, spec);
     return title === id ? id : `"${title}"`;
   });

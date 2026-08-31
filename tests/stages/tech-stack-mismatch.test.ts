@@ -69,7 +69,7 @@ describe('TECH_STACK_MISMATCH detector', () => {
     expect(techStackMismatch.run({cwd: dir})).toEqual([]);
   });
 
-  test('AC-5b2d47c9 — warns when the declared language is absent from the tree', () => {
+  test('[covers:F-9e1279d4/AC-5b2d47c9] AC-5b2d47c9 — warns when the declared language is absent from the tree', () => {
     writeSpec(dir, 'python');
     writeSources(dir, '.ts', 6);
 
@@ -95,7 +95,7 @@ describe('TECH_STACK_MISMATCH detector', () => {
     expect(findings[0].message).toContain('{typescript ×6, go ×2}');
   });
 
-  test('AC-8d94a1e6 — a declared language under 10% of sources is info, never blocking', () => {
+  test('[covers:F-9e1279d4/AC-8d94a1e6] AC-8d94a1e6 — a declared language under 10% of sources is info, never blocking', () => {
     // Thin native SDK: 1 C++ file under 19 TypeScript files = 5%.
     writeSpec(dir, 'cpp');
     writeSources(dir, '.ts', 19);
@@ -147,6 +147,17 @@ describe('TECH_STACK_MISMATCH detector', () => {
     expect(techStackMismatch.run({cwd: dir})).toEqual([]);
   });
 
+  test('[covers:F-9e1279d4/AC-3f8e6d15] unknown languages and sub-five source sets both stay silent', () => {
+    writeSpec(dir, 'zig');
+    writeSources(dir, '.ts', 8);
+    expect(techStackMismatch.run({cwd: dir})).toEqual([]);
+
+    rmSync(join(dir, 'src'), {recursive: true, force: true});
+    writeSpec(dir, 'python');
+    writeSources(dir, '.ts', 4);
+    expect(techStackMismatch.run({cwd: dir})).toEqual([]);
+  });
+
   test('AC-3f8e6d15 — the fifth file is the first that can carry an assertion', () => {
     writeSpec(dir, 'python');
     writeSources(dir, '.ts', 5);
@@ -162,7 +173,7 @@ describe('TECH_STACK_MISMATCH detector', () => {
     expect(techStackMismatch.run({cwd: dir})).toEqual([]);
   });
 
-  test('AC-e07c3241 — a build manifest cannot contradict the sources', () => {
+  test('[covers:F-9e1279d4/AC-e07c3241] AC-e07c3241 — a build manifest cannot contradict the sources', () => {
     // Old contract: package.json resolved "typescript" and warned against a
     // python spec even with zero source files. New contract: the manifest is
     // not consulted at all, so a truthful python tree stays silent.

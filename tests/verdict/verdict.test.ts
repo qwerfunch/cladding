@@ -46,7 +46,7 @@ describe('F-2e28cc72 clad verdict — reducer conformance', () => {
     expect(v.verdict).toBe('DONE');
   });
 
-  it('AC2 guard (money test): green but NO non-liveness behavioral proof (2.1 liveness, 2.3 na, 2.4 skip) => ITERATE not DONE', () => {
+  it('[covers:F-2e28cc72/AC-acc5ae0a] green but NO non-liveness behavioral proof (2.1 liveness, 2.3 na, 2.4 skip) => ITERATE with a behavioral-proof next action', () => {
     const outcome: VerdictOutcome = {
       worst: 0,
       anyFailed: false,
@@ -60,6 +60,8 @@ describe('F-2e28cc72 clad verdict — reducer conformance', () => {
     const v: Verdict = computeVerdict({outcome, spec});
     expect(v.verdict).toBe('ITERATE');
     expect(v.verdict).not.toBe('DONE');
+    expect(v.next_action).toContain('behavioral proof');
+    expect(v.next_action).toContain('test/oracle/smoke');
   });
 
   it('AC3 state: green outcome but one feature planned (others done) => not DONE and remaining lists it', () => {

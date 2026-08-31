@@ -10,14 +10,15 @@
 //   3. Reads the current artifact bodies on disk.
 //   4. Calls the LLM with the full Q-A history + current bodies and
 //      receives refined artifact bodies + any new questions.
-//   5. Writes the refined bodies via `writeArtifact` (existing files
-//      divert to `.cladding/scan/*.proposal` per the standard policy).
+//   5. Publishes active SSoT bodies through the shared compatibility journal;
+//      user-authored designs divert to `.cladding/scan/*.proposal`.
 //   6. Appends new questions to the state file (`appendNewQuestions`
 //      de-duplicates) and marks `status: done` when nothing remains.
 //
 // The handler never throws — telemetry under `phase: 'onboarding'`
 // captures every fallback path so `clad doctor` surfaces the gap.
 
+import {createHash} from 'node:crypto';
 import {existsSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {basename, dirname, join, resolve} from 'node:path';
 import process from 'node:process';
@@ -34,6 +35,7 @@ import {
   markFirstPendingAnswered,
   saveState,
   type OnboardingState,
+  type OnboardingReviewBase,
 } from './scan/onboarding-state.js';
 import {
   interpretRefinementWithFallback,
@@ -43,6 +45,8 @@ import {
   type RefinementQa,
 } from './scan/intent-onboarding.js';
 import {pulse} from '../ui/pulse.js';
+import {isReadableShardFilename} from '../spec/compiler/id-policy.js';
+import {commitSchema01CompatibilityMutation, type Schema01CompatibilityReplacement} from '../spec/edit.js';
 import type {ScanLlmDispatcher} from './scan/llm.js';
 
 export interface RefineCommandOptions {
@@ -53,6 +57,10 @@ export interface RefineCommandOptions {
   readonly noLlm?: boolean;
   /** Host-produced refinement response; used by the MCP prepare/apply flow. */
   readonly hostDispatcher?: ScanLlmDispatcher;
+  /** Deterministic state-persistence fault hook used only by the transaction regression tests. */
+  readonly testFailStateSave?: boolean;
+  /** Deterministic concurrent-writer seam after active refinement planning. */
+  readonly testBeforeCanonicalCommit?: () => void;
 }
 
 /** Wire format for `clad clarify --json`. */
@@ -74,6 +82,8 @@ export interface RefineOutcome {
   readonly report?: RefineReport;
   readonly error?: string;
   readonly message?: string;
+  /** Canonical artifacts committed but onboarding state could not be advanced. */
+  readonly partial?: boolean;
   readonly source?: OnboardingResult['source'];
   readonly created: readonly string[];
   readonly proposals: readonly string[];
@@ -153,7 +163,8 @@ export async function refineOnboarding(
     readmeFirstParagraph: null,
     projectName,
   };
-  const current = loadCurrentArtifacts(cwd);
+  const prepared = loadCurrentArtifacts(cwd);
+  const current = prepared.current;
   const qaHistory: RefinementQa[] = stateAfterAnswer.qa.flatMap((qa) =>
     qa.answer === null ? [] : [{question: qa.question, answer: qa.answer}],
   );
@@ -172,43 +183,60 @@ export async function refineOnboarding(
   const applyToActiveDesign = artifactsAreUntouched(cwd, state);
   const scenarioPaths = refined.scenarios.map((scenario) =>
     `spec/scenarios/${scenario.slug}-${scenario.id.replace(/^S-/, '')}.yaml`);
-  const writePaths = [
-    'docs/project-context.md', 'spec/architecture.yaml', 'spec/capabilities.yaml',
-    ...scenarioPaths,
-    '.cladding/onboarding/state.yaml',
-    ...(!applyToActiveDesign
-      ? ['project-context.md', 'architecture.yaml', 'capabilities.yaml', ...scenarioPaths.map((path) => basename(path))]
-          .map((name) => `.cladding/scan/${name}.proposal`)
-      : []),
-  ];
-  const rollback = captureFiles(cwd, writePaths);
-  let updated: OnboardingState;
+  // Scenario bodies are outputs rather than LLM prompt inputs, but they are
+  // still canonical targets. Capture their absent-vs-empty preimages once at
+  // plan preparation, never by rereading just before the transaction.
+  const planBefore = {
+    ...prepared.before,
+    ...Object.fromEntries(scenarioPaths.map((path) => [path, readArtifactOrNull(cwd, path)])),
+  };
+  let updated: OnboardingState = appendNewQuestions(stateAfterAnswer, refined.clarifyingQuestions);
+  let canonicalCommitted = false;
   try {
-    writeArtifact(cwd, 'docs/project-context.md', refined.projectContextMd, created, proposals, applyToActiveDesign);
-    writeArtifact(cwd, 'spec/architecture.yaml', refined.architectureYaml, created, proposals, applyToActiveDesign);
-    writeArtifact(cwd, 'spec/capabilities.yaml', refined.capabilitiesYaml, created, proposals, applyToActiveDesign);
-    refined.scenarios.forEach((scenario, index) => {
-      writeArtifact(cwd, scenarioPaths[index], renderScenarioYaml(scenario), created, proposals, applyToActiveDesign);
-    });
-
-    updated = appendNewQuestions(stateAfterAnswer, refined.clarifyingQuestions);
+    const artifacts = [
+      {path: 'docs/project-context.md', body: refined.projectContextMd},
+      {path: 'spec/architecture.yaml', body: refined.architectureYaml},
+      {path: 'spec/capabilities.yaml', body: refined.capabilitiesYaml},
+      ...refined.scenarios.map((scenario, index) => ({path: scenarioPaths[index], body: renderScenarioYaml(scenario)})),
+    ];
+    if (new Set(artifacts.map((artifact) => artifact.path)).size !== artifacts.length) {
+      throw new Error('onboarding refinement proposed duplicate managed artifact paths');
+    }
     if (applyToActiveDesign) {
-      updated = {...updated, artifactDigests: captureArtifactDigests(cwd)};
-      if (refined.clarifyingQuestions.length === 0 && isComplete(updated)) updated = markDone(updated);
+      // Active design artifacts are canonical SSoT. They share the same
+      // version check, byte-before precondition, journal, and replacement
+      // boundary as every other remaining schema-0.1 writer.
+      const replacements = artifactReplacements(artifacts, planBefore);
+      opts.testBeforeCanonicalCommit?.();
+      commitSchema01CompatibilityMutation(cwd, replacements);
+      canonicalCommitted = true;
+      created.push(...replacements.map((replacement) => replacement.before === null ? replacement.path : `${replacement.path} (refined)`));
     } else {
+      for (const artifact of artifacts) writeOnboardingProposal(cwd, artifact.path, artifact.body, proposals);
+      const reviewBases = captureReviewBases(cwd, artifacts.map((artifact) => artifact.path), planBefore);
+      // A proposal belongs to the exact canonical generation it was derived
+      // from. A later review may never treat its then-current target as the
+      // proposal base merely because that target was reread at apply time.
       updated = {
         ...updated,
         status: 'needs_review',
         pendingReview: ['docs/project-context.md', 'spec/architecture.yaml', 'spec/capabilities.yaml', ...scenarioPaths],
+        pendingReviewBases: reviewBases,
       };
     }
-    saveState(cwd, updated);
+
+    if (applyToActiveDesign) {
+      updated = {...updated, artifactDigests: captureArtifactDigests(cwd)};
+      if (refined.clarifyingQuestions.length === 0 && isComplete(updated)) updated = markDone(updated);
+    }
+    saveOnboardingState(cwd, updated, opts.testFailStateSave);
   } catch (error) {
-    restoreFiles(cwd, writePaths, rollback);
     return {
       ok: false, code: 1,
-      error: `onboarding refinement failed; active design was restored: ${(error as Error).message}`,
-      created: [], proposals: [],
+      error: canonicalCommitted
+        ? `onboarding refinement committed the active design but could not advance onboarding state; retry the state update: ${(error as Error).message}`
+        : `onboarding refinement failed before its specification transaction could commit: ${(error as Error).message}`,
+      ...(canonicalCommitted ? {partial: true, created, proposals} : {created: [], proposals: []}),
     };
   }
   const answeredQa = stateAfterAnswer.qa[pendingIdx];
@@ -231,7 +259,7 @@ export async function refineOnboarding(
 /** Applies explicitly reviewed proposal bodies and re-enters or completes onboarding. */
 export function resolveOnboardingReview(
   targets: readonly string[],
-  opts: {readonly cwd?: string} = {},
+  opts: {readonly cwd?: string; readonly testFailStateSave?: boolean; readonly testBeforeCanonicalCommit?: () => void} = {},
 ): ResolveOnboardingReviewOutcome {
   const cwd = opts.cwd ?? '.';
   const state = loadState(cwd);
@@ -253,27 +281,53 @@ export function resolveOnboardingReview(
   if (missing.length > 0) {
     return {ok: false, changed: false, error: `proposal missing for: ${missing.join(', ')}`};
   }
-  const statePath = '.cladding/onboarding/state.yaml';
-  const paths = [statePath, ...pairs.flatMap(({target, proposal}) => [target, proposal])];
-  const rollback = captureFiles(cwd, paths);
+  const bases = state.pendingReviewBases;
+  if (!bases || requested.some((target) => bases[target] === undefined)) {
+    return {ok: false, changed: false, error: 'review proposal lacks its generation base; regenerate the proposal before applying it'};
+  }
+  const checked = requested.map((target) => ({target, before: readArtifactOrNull(cwd, target)}));
+  const stale = checked.find(({target, before}) => !matchesReviewBase(before, bases[target]!));
+  if (stale) {
+    return {ok: false, changed: false, error: `review target changed after proposal generation: ${stale.target}`};
+  }
+  let canonicalCommitted = false;
   try {
-    for (const {target, proposal} of pairs) {
-      mkdirSync(dirname(join(cwd, target)), {recursive: true});
-      writeFileSync(join(cwd, target), readFileSync(join(cwd, proposal)));
-      rmSync(join(cwd, proposal), {force: true});
-    }
+    // Review confirmation changes canonical artifacts. Treat the selected
+    // proposal bodies as an optimistic source and atomically publish every
+    // selected SSoT artifact, rejecting a schema-0.2 migration race.
+    opts.testBeforeCanonicalCommit?.();
+    commitSchema01CompatibilityMutation(cwd, pairs.map(({target, proposal}) => ({
+      path: target,
+      before: checked.find((candidate) => candidate.target === target)!.before,
+      after: readFileSync(join(cwd, proposal), 'utf8'),
+    })));
+    canonicalCommitted = true;
     const remaining = state.pendingReview.filter((target) => !requested.includes(target));
     let updated: OnboardingState = {
       ...state,
       status: remaining.length > 0 ? 'needs_review' : firstPendingIndex(state) >= 0 ? 'active' : 'done',
       pendingReview: remaining.length > 0 ? remaining : undefined,
+      pendingReviewBases: remaining.length > 0
+        ? Object.fromEntries(remaining.map((target) => [target, bases[target]!]))
+        : undefined,
     };
     updated = {...updated, artifactDigests: captureArtifactDigests(cwd)};
-    saveState(cwd, updated);
+    // Keep proposals until the non-SSoT state advances. A retry after this
+    // point can safely reapply the same byte-bound candidate; deleting first
+    // would lose the review body while reporting a failed review.
+    saveOnboardingState(cwd, updated, opts.testFailStateSave);
+    for (const {proposal} of pairs) {
+      try { rmSync(join(cwd, proposal), {force: true}); } catch { /* State is authoritative; leftover proposal is harmless cleanup. */ }
+    }
     return {ok: true, changed: true, status: updated.status, remaining};
   } catch (error) {
-    restoreFiles(cwd, paths, rollback);
-    return {ok: false, changed: false, error: `review apply failed; files were restored: ${(error as Error).message}`};
+    return {
+      ok: false,
+      changed: canonicalCommitted,
+      error: canonicalCommitted
+        ? `review specification transaction committed but onboarding state remains pending; retry the review: ${(error as Error).message}`
+        : `review apply failed before its specification transaction could commit: ${(error as Error).message}`,
+    };
   }
 }
 
@@ -281,30 +335,31 @@ function isOnboardingReviewTarget(target: string): boolean {
   return target === 'docs/project-context.md' ||
     target === 'spec/architecture.yaml' ||
     target === 'spec/capabilities.yaml' ||
-    /^spec\/scenarios\/[a-z0-9][a-z0-9-]*-[a-f0-9]{6}\.yaml$/.test(target);
+    isReadableShardFilename('scenario', target);
 }
 
-function captureFiles(cwd: string, relativePaths: readonly string[]): ReadonlyMap<string, Buffer | null> {
-  return new Map(relativePaths.map((relativePath) => {
-    const path = join(cwd, relativePath);
-    return [relativePath, existsSync(path) ? readFileSync(path) : null] as const;
+/** Builds byte-bound canonical writes for the schema-0.1 compatibility journal. */
+function artifactReplacements(
+  artifacts: readonly {readonly path: string; readonly body: string}[],
+  before: Readonly<Record<string, string | null>>,
+): readonly Schema01CompatibilityReplacement[] {
+  return artifacts.map((artifact) => ({
+    path: artifact.path,
+    before: before[artifact.path] ?? null,
+    after: artifact.body,
   }));
 }
 
-function restoreFiles(
-  cwd: string,
-  relativePaths: readonly string[],
-  snapshot: ReadonlyMap<string, Buffer | null>,
-): void {
-  for (const relativePath of relativePaths) {
-    const path = join(cwd, relativePath);
-    const body = snapshot.get(relativePath);
-    if (body === null || body === undefined) rmSync(path, {force: true});
-    else {
-      mkdirSync(dirname(path), {recursive: true});
-      writeFileSync(path, body);
-    }
-  }
+/** Reads exact previous artifact bytes for an optimistic compatibility write. */
+function readArtifactOrNull(cwd: string, relativePath: string): string | null {
+  const path = join(cwd, relativePath);
+  return existsSync(path) ? readFileSync(path, 'utf8') : null;
+}
+
+/** Persists non-SSoT onboarding state with a deterministic fault seam for recovery tests. */
+function saveOnboardingState(cwd: string, state: OnboardingState, fail: boolean | undefined): void {
+  if (fail) throw new Error('InjectedOnboardingStateWriteFailure');
+  saveState(cwd, state);
 }
 
 /**
@@ -380,44 +435,50 @@ function buildReport(
   };
 }
 
-function loadCurrentArtifacts(cwd: string): RefinementCurrent {
+function loadCurrentArtifacts(cwd: string): {readonly current: RefinementCurrent; readonly before: Readonly<Record<string, string | null>>} {
+  const before = Object.fromEntries([
+    'docs/project-context.md',
+    'spec/capabilities.yaml',
+    'spec/architecture.yaml',
+  ].map((path) => [path, readArtifactOrNull(cwd, path)]));
   return {
-    projectContextMd: readArtifact(cwd, 'docs/project-context.md'),
-    capabilitiesYaml: readArtifact(cwd, 'spec/capabilities.yaml'),
-    architectureYaml: readArtifact(cwd, 'spec/architecture.yaml'),
+    current: {
+      projectContextMd: before['docs/project-context.md'] ?? '',
+      capabilitiesYaml: before['spec/capabilities.yaml'] ?? '',
+      architectureYaml: before['spec/architecture.yaml'] ?? '',
+    },
+    before,
   };
 }
 
-function readArtifact(cwd: string, relPath: string): string {
-  const target = join(cwd, relPath);
-  if (!existsSync(target)) return '';
-  return readFileSync(target, 'utf8');
+function captureReviewBases(
+  cwd: string,
+  targets: readonly string[],
+  prepared: Readonly<Record<string, string | null>>,
+): Readonly<Record<string, OnboardingReviewBase>> {
+  return Object.fromEntries(targets.map((target) => {
+    const before = target in prepared ? prepared[target]! : readArtifactOrNull(cwd, target);
+    return [target, reviewBase(before)];
+  }));
 }
 
-function writeArtifact(
-  cwd: string,
-  relPath: string,
-  body: string,
-  created: string[],
-  proposals: string[],
-  overwriteGenerated = false,
-): void {
-  const target = join(cwd, relPath);
-  if (existsSync(target)) {
-    if (overwriteGenerated) {
-      writeFileSync(target, body);
-      created.push(`${relPath} (refined)`);
-      return;
-    }
-    const proposal = join(cwd, '.cladding', 'scan', `${basename(relPath)}.proposal`);
-    mkdirSync(dirname(proposal), {recursive: true});
-    writeFileSync(proposal, body);
-    proposals.push(`${relPath} → .cladding/scan/${basename(relPath)}.proposal`);
-    return;
-  }
-  mkdirSync(dirname(target), {recursive: true});
-  writeFileSync(target, body);
-  created.push(relPath);
+function reviewBase(before: string | null): OnboardingReviewBase {
+  return before === null
+    ? {absent: true}
+    : {sha256: createHash('sha256').update(before).digest('hex')};
+}
+
+function matchesReviewBase(before: string | null, base: OnboardingReviewBase): boolean {
+  if (base.absent === true) return before === null;
+  return before !== null && base.sha256 === createHash('sha256').update(before).digest('hex');
+}
+
+/** Writes a non-SSoT review proposal; canonical artifacts are never written here. */
+function writeOnboardingProposal(cwd: string, relPath: string, body: string, proposals: string[]): void {
+  const proposal = join(cwd, '.cladding', 'scan', `${basename(relPath)}.proposal`);
+  mkdirSync(dirname(proposal), {recursive: true});
+  writeFileSync(proposal, body);
+  proposals.push(`${relPath} → .cladding/scan/${basename(relPath)}.proposal`);
 }
 
 /**

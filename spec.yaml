@@ -40,7 +40,7 @@ project:
         prefer: "synchronous + deterministic (Iron Law); no LLM at detector layer"
         over: "LLM-assisted detection (belongs in stages/, not detectors/)"
       - when: "spec authoring for new features"
-        prefer: "F-<hash6> sharded files under spec/features/"
+        prefer: "F-<hash8> sharded files under spec/features/"
         over: "F-NNN sequential or inline features in spec.yaml"
       - when: "AI agent file lookup for project info"
         prefer: "1-file grep against spec.yaml (inventory + ai_hints)"
@@ -54,7 +54,7 @@ project:
 
 # Auto-maintained by `clad sync` (F-5b9f9f). Do not edit by hand.
 inventory:
-  features: 284
+  features: 291
   scenarios: 2
   capabilities: 6
-  test_files: 261
+  test_files: 302

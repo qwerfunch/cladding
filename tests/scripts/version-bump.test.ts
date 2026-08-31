@@ -96,7 +96,7 @@ describe('version-bump.mjs (F-090, v0.3.15)', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('happy path — bumps all eleven version sites atomically', () => {
+  test('[covers:F-6d943d/AC-001] happy path — bumps all eleven version sites atomically', () => {
     seedProject(dir, '0.3.14');
     const result = runScript(dir, ['0.3.15']);
     expect(result.status).toBe(0);
@@ -114,21 +114,21 @@ describe('version-bump.mjs (F-090, v0.3.15)', () => {
     expect(readFileSync(join(dir, '.claude-plugin', 'marketplace.json'), 'utf8')).toContain('"version": "0.3.15"');
   });
 
-  test('idempotent — running with same version is a no-op', () => {
+  test('[covers:F-6d943d/AC-003] idempotent — running with same version is a no-op', () => {
     seedProject(dir, '0.3.15');
     const result = runScript(dir, ['0.3.15']);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('already');
   });
 
-  test('rejects invalid SemVer', () => {
+  test('[covers:F-6d943d/AC-004] rejects invalid SemVer', () => {
     seedProject(dir, '0.3.14');
     const result = runScript(dir, ['not-a-version']);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('SemVer');
   });
 
-  test('rejects pre-release / build-metadata SemVer (only major.minor.patch)', () => {
+  test('[covers:F-6d943d/AC-004] rejects pre-release / build-metadata SemVer (only major.minor.patch)', () => {
     seedProject(dir, '0.3.14');
     const result = runScript(dir, ['0.3.15-rc1']);
     expect(result.status).not.toBe(0);
@@ -142,7 +142,7 @@ describe('version-bump.mjs (F-090, v0.3.15)', () => {
     expect(result.stderr).toContain('usage');
   });
 
-  test('missing anchor in a file → error with file path', () => {
+  test('[covers:F-6d943d/AC-005] missing anchor in a file → error with file path', () => {
     seedProject(dir, '0.3.14');
     // Corrupt one file's anchor.
     writeFileSync(join(dir, 'package.json'), '{"name": "probe"}\n');

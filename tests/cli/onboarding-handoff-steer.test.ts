@@ -13,13 +13,13 @@ import {describe, expect, test} from 'vitest';
 const SKILL = readFileSync(join(process.cwd(), 'skills', 'init', 'SKILL.md'), 'utf8');
 
 describe('F-195cb59e — onboarding handoff steer (init SKILL.md)', () => {
-  test('AC-f75cc3de — the completion instruction steers to authoring the first feature spec, not bare "ordinary development can begin"', () => {
+  test('[covers:F-195cb59e/AC-f75cc3de] AC-f75cc3de — the completion instruction steers to authoring the first feature spec, not bare "ordinary development can begin"', () => {
     expect(SKILL).not.toContain('ordinary development can begin');
     expect(SKILL).toMatch(/author the first feature'?s spec/i);
     expect(SKILL).toMatch(/before writing (any )?code/i);
   });
 
-  test('AC-d21ead41 — the steer names what the spec contains (acceptance criteria + the files it covers) and stays plain', () => {
+  test('[covers:F-195cb59e/AC-d21ead41] AC-d21ead41 — the steer names what the spec contains (acceptance criteria + the files it covers) and stays plain', () => {
     // isolate the steer SENTENCE (the init skill legitimately names clad_* tools
     // elsewhere — that is agent-facing protocol, not the user-facing steer).
     const start = SKILL.indexOf('author the first feature');

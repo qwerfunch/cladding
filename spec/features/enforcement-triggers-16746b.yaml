@@ -24,7 +24,7 @@ acceptance_criteria:
     text: "When clad init --with-ci runs, the system shall scaffold a CI workflow running the strict pre-push gate on push/PR; clad update shall suggest it when missing. Docs name CI the authoritative gate and hooks the latency reducers."
     notes: "## Decision\nThe template is GitHub Actions (the dominant host); it is a starting point the user owns after scaffolding — cladding never edits an existing workflow."
     test_refs:
-      - "tests/init/git-hook.test.ts#creates the authoritative-gate workflow once and never overwrites it"
+      - "tests/init/git-hook.test.ts#CI stays authoritative when a generated hook documents its one-time local bypass"
       - "tests/cli/update.test.ts#reports the missing authoritative gate with the --with-ci remediation"
   - id: AC-bf640e
     ears: unwanted
@@ -35,4 +35,4 @@ acceptance_criteria:
 
     test_refs:
       - "tests/init/git-hook.test.ts#a foreign pre-push hook is never overwritten without force"
-      - "tests/init/git-hook.test.ts#creates the authoritative-gate workflow once and never overwrites it"
+      - "tests/init/git-hook.test.ts#CI stays authoritative when a generated hook documents its one-time local bypass"

@@ -25,13 +25,15 @@
 // in-process, so the finally-clear discipline is mandatory — a leaked session
 // would hand one test's run (and its already-unlinked temp json) to the next.
 
-import {randomBytes} from 'node:crypto';
-import {unlinkSync} from 'node:fs';
+import {createHash, randomBytes} from 'node:crypto';
+import {readFileSync, unlinkSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join, resolve} from 'node:path';
+import {join, relative, resolve} from 'node:path';
 import process from 'node:process';
 
+import {safeProofWorkspacePath} from '../proof/fs-safety.js';
 import type {StageResult} from './types.js';
+import {testReportCandidatePaths} from './toolchain/gate-config.js';
 
 /** The subset of an `execaSync(…, {reject: false})` result the two stages read —
  *  exit signal for both, plus stdout/stderr for the coverage stage's diagnostics.
@@ -51,12 +53,34 @@ export interface SharedRun {
   readonly jsonFile: string;
 }
 
+/** Opaque, gate-scoped Vitest evidence produced only by the Unit invocation. */
+export interface CurrentRunProofEvidence {
+  readonly inputSha256: string;
+  readonly adapter: {readonly id: 'legacy-stage:stage_2.1'; readonly version: '1'};
+  readonly command: readonly string[];
+  /** Exact command identity paired with this Unit invocation's output bytes. */
+  readonly commandSha256: string;
+  /** SHA-256 over the exact current-run report bytes; the body is never projected. */
+  readonly reportSha256: string;
+  readonly format: 'vitest-json' | 'junit-xml';
+  readonly reportBytes: string;
+}
+
+const currentRunProofEvidence = new WeakSet<object>();
+
 /** The active gate-run session, or null between runs. `cwd` is resolved so a
  *  relative-vs-absolute mismatch never yields a false hit. `run` memoizes the one
  *  shared vitest process; `jsonFile` is tracked separately from `run` so
  *  {@link clearTestRunCache} can unlink it even if the build closure throws after
  *  the path was chosen. */
-let session: {readonly cwd: string; run: SharedRun | null; jsonFile: string | null} | null = null;
+let session: {
+  readonly cwd: string;
+  readonly inputSha256?: string;
+  run: SharedRun | null;
+  jsonFile: string | null;
+  proof?: CurrentRunProofEvidence;
+  readonly reportsBefore: ReadonlyMap<string, string | undefined>;
+} | null = null;
 
 /**
  * Opens a fresh shared-test-run session for a gate run. Callers MUST pair this
@@ -65,13 +89,116 @@ let session: {readonly cwd: string; run: SharedRun | null; jsonFile: string | nu
  *
  * @param cwd - The gate run's working directory; resolved for hit comparison.
  */
-export function primeTestRunCache(cwd: string): void {
-  session = {cwd: resolve(cwd), run: null, jsonFile: null};
+export function primeTestRunCache(cwd: string, inputSha256?: string): void {
+  const root = resolve(cwd);
+  const reportsBefore = new Map<string, string | undefined>();
+  for (const path of testReportCandidatePaths(root)) {
+    try {
+      reportsBefore.set(path, readFileSync(safeCandidatePath(root, path), 'utf8'));
+    } catch {
+      reportsBefore.set(path, undefined);
+    }
+  }
+  session = {cwd: root, ...(inputSha256 === undefined ? {} : {inputSha256}), run: null, jsonFile: null, reportsBefore};
 }
 
 /** True when a gate has primed a shared-run session (the dedup path is live). */
 export function isTestRunPrimed(): boolean {
   return session !== null;
+}
+
+/** True only when this gate must capture a current per-test runner report. */
+export function shouldCaptureCurrentProof(cwd: string): boolean {
+  return session?.cwd === resolve(cwd) && session.inputSha256 !== undefined;
+}
+
+/**
+ * Captures exact bytes from the temporary JSON reporter emitted by this Unit
+ * invocation.  A pre-existing workspace JUnit file never enters this path.
+ */
+export function captureCurrentVitestProof(cwd: string, jsonFile: string, command: readonly string[]): void {
+  if (!session || session.cwd !== resolve(cwd) || session.inputSha256 === undefined) return;
+  try {
+    const reportBytes = readFileSync(jsonFile, 'utf8');
+    const evidence = Object.freeze({
+      inputSha256: session.inputSha256,
+      adapter: Object.freeze({id: 'legacy-stage:stage_2.1' as const, version: '1' as const}),
+      command: Object.freeze([...command]),
+      commandSha256: commandDigest(command),
+      reportSha256: sha256(reportBytes),
+      format: 'vitest-json' as const,
+      reportBytes,
+    });
+    currentRunProofEvidence.add(evidence);
+    session.proof = evidence;
+  } catch {
+    // A missing/partial reporter is no proof.  F6 will reduce the subject as
+    // unobserved instead of borrowing an older report.
+  }
+}
+
+/** Captures only a JUnit report whose exact bytes changed during this Unit run. */
+export function captureCurrentJUnitProof(cwd: string, command: readonly string[]): void {
+  if (!session || session.cwd !== resolve(cwd) || session.inputSha256 === undefined) return;
+  for (const path of testReportCandidatePaths(session.cwd)) {
+    try {
+      const after = readFileSync(safeCandidatePath(session.cwd, path), 'utf8');
+      if (after === session.reportsBefore.get(path)) continue;
+      const evidence = Object.freeze({
+        inputSha256: session.inputSha256,
+        adapter: Object.freeze({id: 'legacy-stage:stage_2.1' as const, version: '1' as const}),
+        command: Object.freeze([...command]),
+        commandSha256: commandDigest(command),
+        reportSha256: sha256(after),
+        format: 'junit-xml' as const,
+        reportBytes: after,
+      });
+      currentRunProofEvidence.add(evidence);
+      session.proof = evidence;
+      return;
+    } catch {
+      // Continue to a conventional fallback report path.
+    }
+  }
+}
+
+/** Applies F5's out-of-root and symlink refusal before consuming a report. */
+function safeCandidatePath(cwd: string, path: string): string {
+  const absolute = resolve(path);
+  const relativePath = relative(resolve(cwd), absolute).replaceAll('\\', '/');
+  if (relativePath === '..' || relativePath.startsWith('../')) throw new Error('unsafe test report path');
+  return safeProofWorkspacePath(cwd, relativePath);
+}
+
+/** Hashes argv without leaking runner output into the machine gate projection. */
+function commandDigest(command: readonly string[]): string {
+  return createHash('sha256').update(JSON.stringify([...command]), 'utf8').digest('hex');
+}
+
+/** Produces a compact observation locator from opaque, current-run evidence. */
+export function currentRunProofIdentity(value: CurrentRunProofEvidence | undefined): string | undefined {
+  if (value === undefined || !currentRunProofEvidence.has(value)) return undefined;
+  return createHash('sha256').update(JSON.stringify({
+    input: value.inputSha256,
+    adapter: value.adapter,
+    command: value.commandSha256,
+    report: value.reportSha256,
+  }), 'utf8').digest('hex');
+}
+
+function sha256(value: string): string {
+  return createHash('sha256').update(value, 'utf8').digest('hex');
+}
+
+/** Returns only the opaque report produced for this input seal in this gate. */
+export function currentGateProofEvidence(cwd: string, inputSha256: string): CurrentRunProofEvidence | undefined {
+  const evidence = session?.cwd === resolve(cwd) && session.inputSha256 === inputSha256 ? session.proof : undefined;
+  return evidence !== undefined && currentRunProofEvidence.has(evidence) ? evidence : undefined;
+}
+
+/** Verifies that a report object was captured by this module's Unit seam. */
+export function isCurrentRunProofEvidence(value: unknown): value is CurrentRunProofEvidence {
+  return value !== null && typeof value === 'object' && currentRunProofEvidence.has(value);
 }
 
 /**

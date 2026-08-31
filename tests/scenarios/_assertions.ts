@@ -61,7 +61,7 @@ export interface ExpectedArtifacts {
   readonly projectContextMd?: boolean;
   readonly conventionsMd?: boolean;
   readonly scenariosReadme?: boolean;
-  /** Minimum number of `spec/scenarios/<slug>-<hash>.yaml` files (excludes README). */
+  /** Minimum number of `spec/scenarios/<slug>-<hash8>.yaml` files (excludes README). */
   readonly scenarioShards?: number;
   readonly onboardingStateYaml?: boolean;
 }

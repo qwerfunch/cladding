@@ -109,7 +109,7 @@ describe('runVerdictCommand --json includes independence[] for done features (AC
     return JSON.parse(joined.slice(first, last + 1)) as Record<string, unknown>;
   }
 
-  test('a done feature with human-authored evidence is labeled independent in the emitted independence[]', () => {
+  test("[covers:F-c566f590/AC-6f228987] a done feature with human-authored evidence is labeled independent in the emitted independence[]", () => {
     appendEvidence(
       dir,
       newEvidence({featureId: 'F-done1', stage: 'stage_4.1', kind: 'pass', identity: {author: 'human'}, content: 'reviewed'}),
@@ -157,5 +157,15 @@ describe('runVerdictCommand --json includes independence[] for done features (AC
     const emitted = parseEmitted();
     const independence = emitted.independence as Array<{id: string; label: string}>;
     expect(independence.find((e) => e.id === 'F-planned')).toBeUndefined();
+  });
+
+  test('[covers:F-2e28cc72/AC-5d88c6b9] one verdict poll invokes its injected stage runner exactly once', () => {
+    const checkStages = vi.fn(() => ({worst: 0, anyFailed: false, stages: [mkStage('stage_2.1', 'pass')]}));
+
+    clad.runVerdictCommand({json: true}, {checkStages});
+
+    expect(checkStages).toHaveBeenCalledTimes(1);
+    expect(checkStages).toHaveBeenCalledWith({tier: 'pre-push', strict: true, silent: true});
+    expect(exitSpy).toHaveBeenCalledWith(0);
   });
 });

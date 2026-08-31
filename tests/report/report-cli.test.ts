@@ -267,7 +267,7 @@ describe('AC-1a6cb22f / AC-4b6fe145 / AC-8e748acb · anchoring the range on the 
     expect(model.specEntryDeltas.find((d) => d.id === 'F-aaaa1111')?.counts.rewritten).toBe(1);
   });
 
-  test('AC-4b6fe145 · a shallow clone with no merge base still renders a packet', () => {
+  test('[covers:F-5dfbac9c/AC-4b6fe145] AC-4b6fe145 · a shallow clone with no merge base still renders a packet', () => {
     const shallow = mkdtempSync(join(tmpdir(), 'clad-report-shallow-'));
     try {
       execFileSync('git', ['clone', '-q', '--depth', '1', `file://${dir}`, shallow, '--branch', 'feature/mine'], {
@@ -284,7 +284,7 @@ describe('AC-1a6cb22f / AC-4b6fe145 / AC-8e748acb · anchoring the range on the 
     }
   });
 
-  test('AC-8e748acb · a rewritten criterion does not change the exit code', () => {
+  test('[covers:F-5dfbac9c/AC-8e748acb] AC-8e748acb · a rewritten criterion does not change the exit code', () => {
     const withRewrite = runClad(dir, ['report', '--since', 'v0']);
     expect(withRewrite.status).toBe(0);
     expect(withRewrite.stdout).toContain('REWRITTEN AC-000001');

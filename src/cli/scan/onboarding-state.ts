@@ -30,6 +30,14 @@ export interface OnboardingQa {
   readonly answer: string | null;
 }
 
+/** Immutable generation base for one review proposal target. */
+export interface OnboardingReviewBase {
+  /** SHA-256 of the canonical target when it existed during proposal generation. */
+  readonly sha256?: string;
+  /** Distinguishes an absent target from a present but empty target. */
+  readonly absent?: true;
+}
+
 /** Full state of an onboarding session. */
 export interface OnboardingState {
   /** Original intent passed to `clad init`. */
@@ -54,6 +62,8 @@ export interface OnboardingState {
   readonly artifactDigests?: Readonly<Record<string, string>>;
   /** Authored targets whose generated refinements await explicit review. */
   readonly pendingReview?: readonly string[];
+  /** Generation bases for pending review targets; absent in pre-concurrency state files. */
+  readonly pendingReviewBases?: Readonly<Record<string, OnboardingReviewBase>>;
 }
 
 function statePath(cwd: string): string {
@@ -94,6 +104,16 @@ export function loadState(cwd: string): OnboardingState | null {
         ? Object.fromEntries(Object.entries(parsed.artifactDigests).map(([path, digest]) => [path, String(digest)]))
         : undefined,
     pendingReview: Array.isArray(parsed.pendingReview) ? parsed.pendingReview.map(String) : undefined,
+    pendingReviewBases:
+      parsed.pendingReviewBases && typeof parsed.pendingReviewBases === 'object'
+        ? Object.entries(parsed.pendingReviewBases).reduce<Record<string, OnboardingReviewBase>>((bases, [path, value]) => {
+          if (!value || typeof value !== 'object' || Array.isArray(value)) return bases;
+          const candidate = value as {sha256?: unknown; absent?: unknown};
+          if (candidate.absent === true) bases[path] = {absent: true};
+          else if (typeof candidate.sha256 === 'string') bases[path] = {sha256: candidate.sha256};
+          return bases;
+        }, {})
+        : undefined,
   };
 }
 

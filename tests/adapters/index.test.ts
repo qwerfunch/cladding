@@ -51,7 +51,7 @@ describe('adapters/index — resolveSelection', () => {
     }
   });
 
-  test('env vars take precedence over everything', () => {
+  test('[covers:F-049/AC-089] env vars take precedence over everything', () => {
     process.env.CLADDING_AGENT_MODE = 'sdk';
     process.env.CLADDING_AGENT_NAME = 'forced-by-env';
     isClaudeCodeRuntimeMock.mockReturnValue(true); // would normally win
@@ -59,7 +59,7 @@ describe('adapters/index — resolveSelection', () => {
     expect(r).toEqual({mode: 'sdk', name: 'forced-by-env'});
   });
 
-  test('config.yaml wins when env is absent', () => {
+  test('[covers:F-049/AC-089] config.yaml wins when env is absent', () => {
     mkdirSync(join(dir, '.cladding'), {recursive: true});
     writeFileSync(
       join(dir, '.cladding', 'config.yaml'),
@@ -69,13 +69,13 @@ describe('adapters/index — resolveSelection', () => {
     expect(r).toEqual({mode: 'host', name: 'claude-code'});
   });
 
-  test('config.yaml missing → auto-detect path (no claude-code runtime → generic-mcp)', () => {
+  test('[covers:F-049/AC-089] config.yaml missing → auto-detect path (no claude-code runtime → generic-mcp)', () => {
     isClaudeCodeRuntimeMock.mockReturnValue(false);
     const r = resolveSelection(dir);
     expect(r).toEqual({mode: 'host', name: 'generic-mcp'});
   });
 
-  test('auto-detect: claude-code runtime → claude-code host', () => {
+  test('[covers:F-049/AC-089] auto-detect: claude-code runtime → claude-code host', () => {
     isClaudeCodeRuntimeMock.mockReturnValue(true);
     const r = resolveSelection(dir);
     expect(r).toEqual({mode: 'host', name: 'claude-code'});
@@ -138,7 +138,7 @@ describe('adapters/index — selectAdapter', () => {
     expect(a.name).toBe('generic-mcp');
   });
 
-  test('sdk mode + claude-anthropic → returns the SDK adapter (v0.2.20)', () => {
+  test('[covers:F-069/AC-188] sdk mode + claude-anthropic → returns the SDK adapter (v0.2.20)', () => {
     process.env.CLADDING_AGENT_MODE = 'sdk';
     process.env.CLADDING_AGENT_NAME = 'claude-anthropic';
     const a = selectAdapter(dir);

@@ -1,6 +1,6 @@
 // Cladding · spec · createFeature — internal feature creator (F-084).
 //
-// Issues a new sharded feature file at `spec/features/<slug>.yaml`
+// Issues a new sharded feature file at `spec/features/<slug>-<hash8>.yaml`
 // with an automatically-generated content-hash id. Designed for
 // multi-developer concurrency: two contributors can create features
 // simultaneously on separate branches without git merge conflicts as
@@ -20,21 +20,24 @@
 // @see spec/features/F-084.yaml — this feature.
 
 import {createHash} from 'node:crypto';
-import {existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync} from 'node:fs';
-
-import {recordEvent} from '../events/log.js';
+import {existsSync, readFileSync, readdirSync} from 'node:fs';
 import {hostname, userInfo} from 'node:os';
-import {join} from 'node:path';
+import {join, relative} from 'node:path';
 
 import yaml from 'yaml';
 
 import {checkEarsShape} from './ears.js';
+import {readSchema02AuthoringSnapshot} from './compiler/authoring-view.js';
+import {newIdFromDigest, readableIdPattern} from './compiler/id-policy.js';
+import {legacyStructuralReviewMatches} from './compiler/migration-baseline.js';
+import {commitSchema01CompatibilityMutation, designArtifactDigest, editSpec, readSpecEditRevisions, type Schema01CompatibilityReplacement, type SpecEditOperation} from './edit.js';
+import {requiredRootSchema} from './transaction.js';
 
 const SLUG_PATTERN = /^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/;
 
 /**
  * One acceptance criterion supplied at feature-creation time. `id` is
- * auto-assigned as a hash (`AC-<hash6>`) for multi-dev merge safety — the
+ * auto-assigned as an eight-hex hash (`AC-<hash8>`) for multi-dev merge safety — the
  * AC-tier analogue of the feature/scenario hash model; every other field is
  * optional but constrained to the schema's `acceptance_criterion` properties
  * (additionalProperties:false). Supplying these at creation is what stops a
@@ -42,6 +45,16 @@ const SLUG_PATTERN = /^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/;
  * with real, gate-checkable acceptance criteria, not an empty `[]`.
  */
 export interface AcceptanceCriterionInput {
+  /** Required schema 0.2 classification when this adapter targets a migrated workspace. */
+  readonly kind?: 'behavior' | 'quality' | 'constraint';
+  /** Required schema 0.2 strict statement when this adapter targets a migrated workspace. */
+  readonly statement?: string;
+  /** Why the criterion is needed (required for a schema 0.2 constraint unless resolving rule is supplied). */
+  readonly rationale?: string;
+  /** Explicit resolving rules for a schema 0.2 constraint. */
+  readonly constraint_refs?: readonly string[];
+  /** Declared proof-oracle references for schema 0.2. */
+  readonly oracle_refs?: readonly string[];
   /** EARS pattern. */
   readonly ears?: 'ubiquitous' | 'event' | 'state' | 'optional' | 'unwanted' | 'complex';
   /** The "The system shall …" statement. */
@@ -62,7 +75,8 @@ export interface AcceptanceCriterionInput {
 
 export interface CreateFeatureOptions {
   /**
-   * Kebab-case slug. Becomes the filename (`<slug>.yaml`) and the
+   * Kebab-case slug. Becomes the human-readable filename prefix
+   * (`<slug>-<hash8>.yaml`) and the
    * `slug` field inside the spec. Must match
    * `[a-z0-9][a-z0-9-]{0,62}[a-z0-9]` so it round-trips through git
    * paths on every supported platform.
@@ -70,10 +84,14 @@ export interface CreateFeatureOptions {
   readonly slug: string;
   /** Optional human-readable title. Defaults to the slug. */
   readonly title?: string;
+  /** Required feature WHY statement for schema 0.2 workspaces. */
+  readonly purpose?: string;
   /** Feature status at creation time. Defaults to `planned`. */
   readonly status?: 'planned' | 'in_progress' | 'done' | 'blocked' | 'archived';
   /** Module paths the feature binds to. Omitted → `modules: []`. */
   readonly modules?: readonly string[];
+  /** Explicit schema 0.2 capability links; an empty list is a deliberate direct-to-project declaration. */
+  readonly capability_refs?: readonly string[];
   /** Acceptance criteria authored at creation. Omitted → `acceptance_criteria: []`. */
   readonly acceptance_criteria?: readonly AcceptanceCriterionInput[];
   /** Optional durable Tier-B impact decision for hosts that support the richer authoring path. */
@@ -87,7 +105,7 @@ export interface CreateFeatureOptions {
 }
 
 export interface CreateFeatureResult {
-  /** The newly-assigned feature id (e.g. `F-a3f9c2`). */
+  /** The newly-assigned feature id (e.g. `F-a3f9c2e1`). */
   readonly id: string;
   /** Absolute path to the newly-written yaml file. */
   readonly path: string;
@@ -95,6 +113,18 @@ export interface CreateFeatureResult {
   readonly slug: string;
   /** Present when a requested status was downgraded (done is earned, not declared). */
   readonly note?: string;
+}
+
+/** Additive legacy records that a single schema-0.1 feature creation may attach. */
+export interface Schema01FeatureCompositeAdditive {
+  /** Capability to create or extend with the new feature. */
+  readonly capability: string;
+  /** Title used only if the legacy capability does not yet exist. */
+  readonly capabilityTitle?: string;
+  /** Summary used only if the legacy capability does not yet exist. */
+  readonly capabilitySummary?: string;
+  /** Existing legacy scenario selector to extend with the new feature. */
+  readonly scenario?: string;
 }
 
 export interface ResolveDesignImpactResult {
@@ -106,13 +136,38 @@ export interface ResolveDesignImpactResult {
 /** Adds a feature to an existing scenario without changing its authored prose. */
 export function linkScenario(opts: {readonly scenario: string; readonly feature: string; readonly cwd?: string}): string {
   const cwd = opts.cwd ?? '.';
+  if (requiredRootSchema(cwd) === '0.2') {
+    const snapshot = readSchema02AuthoringSnapshot(cwd);
+    const scenario = snapshot.scenarios.find((entry) => entry.id === opts.scenario || entry.slug === opts.scenario);
+    if (!scenario) throw new Error(`cladding: unknown scenario '${opts.scenario}'`);
+    const operation = {
+      kind: 'scenario.upsert' as const,
+      scenario: {
+        id: scenario.id,
+        slug: scenario.slug,
+        title: scenario.title,
+        actor: scenario.actor,
+        goal: scenario.goal,
+        success: scenario.success,
+        steps: scenario.steps,
+        featureRefs: [...new Set([...scenario.featureRefs, opts.feature])],
+      },
+    };
+    const inputRevisions = readSpecEditRevisions(cwd, [operation]);
+    if (inputRevisions[`scenario:${scenario.id}`] !== sourceRevision(scenario.sourceBytes)) {
+      throw new Error('cladding: scenario changed while the link was being prepared; retry the link');
+    }
+    editSpec({cwd, operations: [operation], inputRevisions});
+    return join(cwd, scenario.path);
+  }
+
   const directory = join(cwd, 'spec', 'scenarios');
   if (!existsSync(directory)) throw new Error(`cladding: unknown scenario '${opts.scenario}'`);
   for (const name of readdirSync(directory)) {
     if (!name.endsWith('.yaml') && !name.endsWith('.yml')) continue;
     const path = join(directory, name);
     const body = readFileSync(path, 'utf8');
-    const parsed = yaml.parse(body) as {id?: string; slug?: string; features?: string[]};
+    const parsed = yaml.parse(body) as {id?: string; slug?: string; features?: string[]; title?: string; actor?: string; goal?: string; success?: string; steps?: string[]; feature_refs?: string[]};
     if (parsed?.id !== opts.scenario && parsed?.slug !== opts.scenario) continue;
     if (parsed.features?.includes(opts.feature)) return path;
     let next: string;
@@ -123,7 +178,7 @@ export function linkScenario(opts: {readonly scenario: string; readonly feature:
     } else {
       next = `${body.replace(/\n?$/, '\n')}features:\n  - ${opts.feature}\n`;
     }
-    writeFileSync(path, next, 'utf8');
+    commitSchema01CompatibilityMutation(cwd, [{path: relative(cwd, path), before: body, after: next}]);
     return path;
   }
   throw new Error(`cladding: unknown scenario '${opts.scenario}'`);
@@ -132,6 +187,49 @@ export function linkScenario(opts: {readonly scenario: string; readonly feature:
 /** Marks a reviewed structural design impact resolved without rewriting the shard. */
 export function resolveDesignImpact(opts: {readonly feature: string; readonly cwd?: string}): ResolveDesignImpactResult {
   const cwd = opts.cwd ?? '.';
+  if (requiredRootSchema(cwd) === '0.2') {
+    const snapshot = readSchema02AuthoringSnapshot(cwd);
+    const feature = snapshot.features.find((entry) => entry.id === opts.feature);
+    if (!feature) throw new Error(`cladding: unknown feature '${opts.feature}'`);
+    const impact = feature.designImpact;
+    if (!impact || impact.classification !== 'structural') {
+      throw new Error('cladding: only a structural design impact requires explicit resolution');
+    }
+    if (impact.status === 'resolved') return {feature: opts.feature, changed: false, path: join(cwd, feature.path)};
+    if (typeof impact.rationale !== 'string' || !isStringArray(impact.artifacts)) {
+      throw new Error('cladding: structural design impact is incomplete and cannot be resolved');
+    }
+    const inheritedStructuralReview = impact.baseline_digests === undefined
+      && legacyStructuralReviewMatches(snapshot.compilation.migrationBaseline, opts.feature, impact);
+    const baselineDigests = designImpactBaselines(impact.artifacts, impact.baseline_digests);
+    if (baselineDigests === undefined && !inheritedStructuralReview) {
+      throw new Error('cladding: schema 0.2 structural design impact requires complete baseline digests or an exact immutable migration baseline review');
+    }
+    const currentDigests = new Map(impact.artifacts.map((path) => [path, designArtifactDigest(cwd, path)]));
+    const unchanged = baselineDigests === undefined
+      ? []
+      : impact.artifacts.filter((path) => currentDigests.get(path) === baselineDigests.get(path));
+    if (unchanged.length > 0) {
+      throw new Error(`cladding: design impact is not resolved — unchanged artifact(s): ${unchanged.join(', ')}`);
+    }
+    const operation = {
+      kind: 'feature.set_design_impact' as const,
+      featureId: opts.feature,
+      designImpact: {
+        classification: 'structural' as const,
+        rationale: impact.rationale,
+        artifacts: impact.artifacts,
+        status: 'resolved' as const,
+      },
+    };
+    const inputRevisions = readSpecEditRevisions(cwd, [operation]);
+    if (inputRevisions[`feature:${opts.feature}`] !== sourceRevision(feature.sourceBytes)) {
+      throw new Error('cladding: feature changed while design-impact resolution was being prepared; retry the resolution');
+    }
+    const result = editSpec({cwd, operations: [operation], inputRevisions});
+    return {feature: opts.feature, changed: result.changed, path: join(cwd, feature.path)};
+  }
+
   const directory = join(cwd, 'spec', 'features');
   if (!existsSync(directory)) throw new Error(`cladding: unknown feature '${opts.feature}'`);
   for (const name of readdirSync(directory)) {
@@ -140,6 +238,7 @@ export function resolveDesignImpact(opts: {readonly feature: string; readonly cw
     const body = readFileSync(path, 'utf8');
     const parsed = yaml.parse(body) as {id?: string; design_impact?: {
       classification?: string;
+      rationale?: string;
       status?: string;
       artifacts?: string[];
       baseline_digests?: Record<string, string>;
@@ -149,13 +248,16 @@ export function resolveDesignImpact(opts: {readonly feature: string; readonly cw
       throw new Error('cladding: only a structural design impact requires explicit resolution');
     }
     if (parsed.design_impact.status === 'resolved') return {feature: opts.feature, changed: false, path};
-    const unchanged = (parsed.design_impact.artifacts ?? []).filter((relativePath) => {
-      const artifact = join(cwd, relativePath);
-      const current = existsSync(artifact)
-        ? createHash('sha256').update(readFileSync(artifact)).digest('hex')
-        : 'absent';
-      return current === parsed.design_impact?.baseline_digests?.[relativePath];
-    });
+    if (parsed.design_impact.status !== 'review_required'
+      || typeof parsed.design_impact.rationale !== 'string'
+      || !isStringArray(parsed.design_impact.artifacts)) {
+      throw new Error('cladding: structural design impact is incomplete and cannot be resolved');
+    }
+    const baselineDigests = designImpactBaselines(parsed.design_impact.artifacts, parsed.design_impact.baseline_digests);
+    const currentDigests = new Map(parsed.design_impact.artifacts.map((artifact) => [artifact, designArtifactDigest(cwd, artifact)]));
+    const unchanged = baselineDigests === undefined
+      ? []
+      : parsed.design_impact.artifacts.filter((artifact) => currentDigests.get(artifact) === baselineDigests.get(artifact));
     if (unchanged.length > 0) {
       throw new Error(`cladding: design impact is not resolved — unchanged artifact(s): ${unchanged.join(', ')}`);
     }
@@ -164,21 +266,24 @@ export function resolveDesignImpact(opts: {readonly feature: string; readonly cw
       '$1resolved',
     );
     if (next === body) throw new Error('cladding: malformed structural design_impact block');
-    writeFileSync(path, next, 'utf8');
-    recordEvent(cwd, 'design_impact_resolved', {feature: opts.feature});
+    commitSchema01CompatibilityMutation(
+      cwd,
+      [{path: relative(cwd, path), before: body, after: next}],
+      [{type: 'design_impact_resolved', payload: {feature: opts.feature}}],
+    );
     return {feature: opts.feature, changed: true, path};
   }
   throw new Error(`cladding: unknown feature '${opts.feature}'`);
 }
 
 /**
- * Creates a new sharded feature file at `spec/features/<slug>-<hash>.yaml`
- * where `<hash>` is the 6-char hex tail of the auto-generated id.
+ * Creates a new sharded feature file at `spec/features/<slug>-<hash8>.yaml`
+ * where `<hash8>` is the eight-character hexadecimal tail of the auto-generated id.
  *
  * Why the hash goes into the filename, not just the id: two
  * developers on separate branches calling `createFeature` with the
  * same slug must produce different file paths so a `git merge` does
- * not collide on a single `<slug>.yaml`. The hash is the entropy
+ * not collide on a single filename. The hash is the entropy
  * that guarantees this — its input bundles slug + user + hostname +
  * ms timestamp + hrtime, so simultaneous invocations produce
  * different hashes by construction.
@@ -194,86 +299,198 @@ export function resolveDesignImpact(opts: {readonly feature: string; readonly cw
  *         (1/4.3B per-pair probability; the caller may retry).
  */
 export function createFeature(opts: CreateFeatureOptions): CreateFeatureResult {
+  assertFeatureCreateShape(opts);
   const slug = opts.slug;
-  if (!SLUG_PATTERN.test(slug)) {
-    throw new Error(
-      `cladding: slug '${slug}' is invalid — must match ${SLUG_PATTERN.source}`,
-    );
-  }
-  // Shift-left EARS validation: reject a malformed AC shape AT CREATION with a
-  // precise fix, instead of letting the agent discover it turns later via the
-  // AC_DRIFT gate (create→sync→error→fix→sync). Same rule as the gate
-  // (spec/ears.ts checkAc), applied here on the proposed inputs.
-  const earsIssues: string[] = [];
-  (opts.acceptance_criteria ?? []).forEach((ac, i) => {
-    const message = checkEarsShape(ac.ears, ac.condition);
-    if (message) earsIssues.push(`acceptance_criteria[${i}] (ears=${ac.ears ?? 'unspecified'}): ${message}`);
-  });
-  if (earsIssues.length > 0) {
-    throw new Error(
-      `cladding: feature '${slug}' has EARS-shape issue(s) — fix the AC(s) and retry create:\n  - ${earsIssues.join('\n  - ')}`,
-    );
-  }
 
   const cwd = opts.cwd ?? '.';
-  const featuresDir = join(cwd, 'spec', 'features');
-  mkdirSync(featuresDir, {recursive: true});
-
-  const id = generateFeatureId(slug);
-  const hash = id.slice(2); // strip 'F-' prefix
-  const filePath = join(featuresDir, `${slug}-${hash}.yaml`);
-  if (existsSync(filePath)) {
-    // 1/4.3B coincidence — the caller can retry with a fresh timestamp.
-    throw new Error(
-      `cladding: ${slug}-${hash}.yaml already exists (hash collision) — retry`,
-    );
+  if (requiredRootSchema(cwd) === '0.2') {
+    if (!opts.purpose?.trim()) throw new Error('cladding: schema 0.2 feature creation requires a non-empty purpose');
+    if (opts.capability_refs === undefined) throw new Error('cladding: schema 0.2 feature creation requires an explicit capability_refs list (use [] for direct project contribution)');
+    if (opts.status !== undefined && opts.status !== 'planned') throw new Error('cladding: schema 0.2 feature creation starts planned; use a typed lifecycle operation afterwards');
+    for (const [index, criterion] of (opts.acceptance_criteria ?? []).entries()) {
+      if (!criterion.kind) throw new Error(`cladding: schema 0.2 criterion ${index + 1} requires an explicit kind`);
+      if (!criterion.statement?.trim()) throw new Error(`cladding: schema 0.2 criterion ${index + 1} requires a strict statement`);
+      if (criterion.text !== undefined || criterion.ears !== undefined || criterion.condition !== undefined || criterion.action !== undefined || criterion.response !== undefined || criterion.test_refs !== undefined) {
+        throw new Error(`cladding: schema 0.2 criterion ${index + 1} does not accept legacy EARS or test-reference fields`);
+      }
+    }
+    const id = generateFeatureId(slug);
+    const operation: SpecEditOperation = {
+      kind: 'feature.create' as const,
+      id,
+      slug,
+      title: opts.title ?? slug,
+      purpose: opts.purpose ?? '',
+      modules: opts.modules,
+      capabilityRefs: opts.capability_refs,
+      criteria: (opts.acceptance_criteria ?? []).map((criterion, index) => ({
+        id: newIdFromDigest('criterion', createHash('sha256').update(`${id}|${index}|${criterion.statement}|${process.hrtime.bigint()}`).digest('hex')),
+        kind: criterion.kind!,
+        statement: criterion.statement!,
+        ...(criterion.rationale ? {rationale: criterion.rationale} : {}),
+        ...(criterion.constraint_refs ? {constraintRefs: criterion.constraint_refs} : {}),
+        ...(criterion.oracle_refs ? {oracleRefs: criterion.oracle_refs} : {}),
+        ...(criterion.evidence_refs ? {evidenceRefs: criterion.evidence_refs} : {}),
+        ...(criterion.notes ? {notes: criterion.notes} : {}),
+      })),
+    };
+    const operations: SpecEditOperation[] = [operation, ...(opts.design_impact ? [{
+      kind: 'feature.set_design_impact' as const,
+      featureId: id,
+      designImpact: {
+        classification: opts.design_impact.classification,
+        rationale: opts.design_impact.rationale,
+        ...(opts.design_impact.classification === 'structural' ? {artifacts: opts.design_impact.artifacts ?? []} : {}),
+      },
+    }] : [])];
+    const result = editSpec({cwd, operations, inputRevisions: readSpecEditRevisions(cwd, operations)});
+    return {
+      id,
+      path: join(cwd, 'spec', 'features', `${slug}-${id.slice(2)}.yaml`),
+      slug,
+      ...(result.changed ? {} : {note: 'Feature already matched the requested specification.'}),
+    };
   }
+  const prepared = prepareSchema01FeatureCreate(opts);
+  commitSchema01CompatibilityMutation(
+    cwd,
+    [prepared.replacement],
+    [{type: 'feature_created', payload: {feature: prepared.result.id, slug: prepared.result.slug}}],
+    {refreshDerived: true},
+  );
+  return prepared.result;
+}
 
-  const title = opts.title ?? slug;
-  // F-?: 'done' is EARNED through the gate (flip→gate→revert in clad done),
-  // never declared at birth — the mid-scale A/B caught an agent creating
-  // shards as status:'done' through this MCP path, skipping the earn ritual
-  // and the PreToolUse hand-flip hook entirely. Downgrade with a visible note.
+/**
+ * Creates a legacy feature plus its optional additive design links in one byte-bound journal.
+ *
+ * This is intentionally a schema-0.1 compatibility adapter, not a second writer: every
+ * source byte is included as a before-image and inventory/index/event projections join the
+ * same transaction.  It prevents the old create → link → sync rollback from deleting a
+ * concurrent writer's successor state.
+ */
+export function createSchema01FeatureComposite(
+  opts: CreateFeatureOptions & {readonly additive?: Schema01FeatureCompositeAdditive},
+): CreateFeatureResult {
+  const cwd = opts.cwd ?? '.';
+  assertFeatureCreateShape(opts);
+  if (requiredRootSchema(cwd) === '0.2') {
+    throw new Error('cladding: the workspace migrated to schema 0.2; use the typed feature edit boundary');
+  }
+  const prepared = prepareSchema01FeatureCreate(opts);
+  const replacements: Schema01CompatibilityReplacement[] = [prepared.replacement];
+  if (opts.additive) {
+    replacements.push(prepareSchema01CapabilityLink(cwd, opts.additive, prepared.result.id));
+    if (opts.additive.scenario) replacements.push(prepareSchema01ScenarioLink(cwd, opts.additive.scenario, prepared.result.id));
+  }
+  commitSchema01CompatibilityMutation(
+    cwd,
+    replacements,
+    [{type: 'feature_created', payload: {feature: prepared.result.id, slug: prepared.result.slug}}],
+    {refreshDerived: true},
+  );
+  return prepared.result;
+}
+
+/** Validates the common, schema-independent create request before any planned file is built. */
+function assertFeatureCreateShape(opts: CreateFeatureOptions): void {
+  if (!SLUG_PATTERN.test(opts.slug)) throw new Error(`cladding: slug '${opts.slug}' is invalid — must match ${SLUG_PATTERN.source}`);
+  const earsIssues: string[] = [];
+  (opts.acceptance_criteria ?? []).forEach((criterion, index) => {
+    const message = checkEarsShape(criterion.ears, criterion.condition);
+    if (message) earsIssues.push(`acceptance_criteria[${index}] (ears=${criterion.ears ?? 'unspecified'}): ${message}`);
+  });
+  if (earsIssues.length > 0) {
+    throw new Error(`cladding: feature '${opts.slug}' has EARS-shape issue(s) — fix the AC(s) and retry create:\n  - ${earsIssues.join('\n  - ')}`);
+  }
+}
+
+function prepareSchema01FeatureCreate(opts: CreateFeatureOptions): {
+  readonly replacement: {readonly path: string; readonly before: null; readonly after: string};
+  readonly result: CreateFeatureResult;
+} {
+  const cwd = opts.cwd ?? '.';
+  const slug = opts.slug;
+  const featuresDir = join(cwd, 'spec', 'features');
+  const id = generateFeatureId(slug);
+  const hash = id.slice(2);
+  const filePath = join(featuresDir, `${slug}-${hash}.yaml`);
+  if (existsSync(filePath)) throw new Error(`cladding: ${slug}-${hash}.yaml already exists (hash collision) — retry`);
   const requestedDone = opts.status === 'done';
-  const status = requestedDone ? 'in_progress' : (opts.status ?? 'planned');
+  const structuralArtifacts = opts.design_impact?.classification === 'structural'
+    ? opts.design_impact.artifacts ?? []
+    : undefined;
+  if (structuralArtifacts && new Set(structuralArtifacts).size !== structuralArtifacts.length) {
+    throw new Error('cladding: structural design impact artifacts must be an exact unique set');
+  }
   const designImpact = opts.design_impact?.classification === 'structural'
     ? {
         ...opts.design_impact,
-        baseline_digests: Object.fromEntries((opts.design_impact.artifacts ?? []).map((relativePath) => {
-          const artifact = join(cwd, relativePath);
-          const digest = existsSync(artifact)
-            ? createHash('sha256').update(readFileSync(artifact)).digest('hex')
-            : 'absent';
-          return [relativePath, digest];
-        })),
+        artifacts: structuralArtifacts,
+        baseline_digests: Object.fromEntries(structuralArtifacts!
+          .map((artifactPath) => [artifactPath, designArtifactDigest(cwd, artifactPath)])),
       }
     : opts.design_impact;
-  const yaml = renderYaml({
-    id,
-    slug,
-    title,
-    status,
-    modules: opts.modules,
-    acceptance_criteria: opts.acceptance_criteria,
-    design_impact: designImpact,
+  const after = renderYaml({
+    id, slug, title: opts.title ?? slug, status: requestedDone ? 'in_progress' : (opts.status ?? 'planned'),
+    modules: opts.modules, acceptance_criteria: opts.acceptance_criteria, design_impact: designImpact,
   });
-  writeFileSync(filePath, yaml, 'utf8');
-  // F-b84c38 — spec authorship lands in the ledger (best-effort).
-  recordEvent(cwd, 'feature_created', {feature: id, slug});
-
   return {
-    id,
-    path: filePath,
-    slug,
-    ...(requestedDone
-      ? {
-          note:
-            "status 'done' is earned, not declared — created as in_progress; run `clad done " +
-            id +
-            '` once the strict gate is GREEN.',
-        }
-      : {}),
+    replacement: {path: relative(cwd, filePath), before: null, after},
+    result: {
+      id, path: filePath, slug,
+      ...(requestedDone ? {note: `status 'done' is earned, not declared — created as in_progress; run \`clad done ${id}\` once the strict gate is GREEN.`} : {}),
+    },
   };
+}
+
+function prepareSchema01CapabilityLink(
+  cwd: string,
+  additive: Schema01FeatureCompositeAdditive,
+  feature: string,
+): {readonly path: string; readonly before: string | null; readonly after: string} {
+  if (!SLUG_PATTERN.test(additive.capability)) throw new Error(`cladding: capability id '${additive.capability}' is invalid — must match ${SLUG_PATTERN.source}`);
+  const path = join(cwd, 'spec', 'capabilities.yaml');
+  const before = existsSync(path) ? readFileSync(path, 'utf8') : null;
+  const parsed = before === null ? null : yaml.parse(before) as {capabilities?: unknown} | null;
+  const capabilities = Array.isArray(parsed?.capabilities)
+    ? parsed.capabilities.filter((entry): entry is CapabilityRecord => typeof entry === 'object' && entry !== null).map((entry) => ({...entry, features: [...(entry.features ?? [])]}))
+    : [];
+  const existing = capabilities.find((entry) => entry.id === additive.capability);
+  if (existing) {
+    if (!existing.features?.includes(feature)) existing.features = [...(existing.features ?? []), feature];
+  } else {
+    capabilities.push({id: additive.capability, ...(additive.capabilityTitle ? {title: additive.capabilityTitle} : {}), ...(additive.capabilitySummary ? {summary: additive.capabilitySummary} : {}), features: [feature]});
+  }
+  const prefix = before === null ? DEFAULT_CAPABILITIES_HEADER : (() => {
+    const offset = before.search(/^capabilities:/m);
+    return offset >= 0 ? before.slice(0, offset) : (before.endsWith('\n') ? before : `${before}\n`);
+  })();
+  return {path: relative(cwd, path), before, after: `${prefix}${renderCapabilitiesBlock(capabilities)}`};
+}
+
+function prepareSchema01ScenarioLink(
+  cwd: string,
+  selector: string,
+  feature: string,
+): {readonly path: string; readonly before: string; readonly after: string} {
+  const directory = join(cwd, 'spec', 'scenarios');
+  if (!existsSync(directory)) throw new Error(`cladding: unknown scenario '${selector}'`);
+  for (const name of readdirSync(directory)) {
+    if (!/\.ya?ml$/.test(name)) continue;
+    const absolute = join(directory, name);
+    const before = readFileSync(absolute, 'utf8');
+    const scenario = yaml.parse(before) as {id?: string; slug?: string; features?: unknown};
+    if (scenario?.id !== selector && scenario?.slug !== selector) continue;
+    if (Array.isArray(scenario.features) && scenario.features.includes(feature)) return {path: relative(cwd, absolute), before, after: before};
+    const after = /^features:\s*\[\]\s*$/m.test(before)
+      ? before.replace(/^features:\s*\[\]\s*$/m, `features:\n  - ${feature}`)
+      : /^features:\s*$/m.test(before)
+        ? before.replace(/^(features:\s*\n(?:\s+-[^\n]*\n)*)/m, `$1  - ${feature}\n`)
+        : `${before.replace(/\n?$/, '\n')}features:\n  - ${feature}\n`;
+    return {path: relative(cwd, absolute), before, after};
+  }
+  throw new Error(`cladding: unknown scenario '${selector}'`);
 }
 
 /**
@@ -356,12 +573,13 @@ function renderYaml(args: {
 }
 
 /**
- * Generates a 6-character hex hash id. Inputs that distinguish two
+ * Generates an eight-character hexadecimal hash id. Inputs that distinguish two
  * concurrent invocations: slug, OS user, hostname, ms timestamp,
  * high-resolution nanosecond counter. Same hash twice = 1/4.3B
  * coincidence; collision detection in the caller handles that.
  */
-function generateFeatureId(slug: string): string {
+/** Generates a collision-resistant schema-0.2 feature identifier without writing a shard. */
+export function generateFeatureId(slug: string): string {
   const input = [
     slug,
     safeUserInfo(),
@@ -369,8 +587,7 @@ function generateFeatureId(slug: string): string {
     String(Date.now()),
     process.hrtime.bigint().toString(),
   ].join('|');
-  const hex = createHash('sha256').update(input).digest('hex').slice(0, 8);
-  return `F-${hex}`;
+  return newIdFromDigest('feature', createHash('sha256').update(input).digest('hex'));
 }
 
 /**
@@ -379,7 +596,7 @@ function generateFeatureId(slug: string): string {
  * same shard on separate branches (both pick the next ordinal); a per-AC hash —
  * seeded with the slug, the AC index, its prose, and the same machine/clock
  * entropy as `generateFeatureId` — makes independent additions merge-safe. The
- * schema accepts both `AC-<hash6>` and the legacy `AC-NNN` (dual pattern).
+ * schema accepts both `AC-<six-or-more-hex>` and the legacy `AC-NNN` (dual pattern).
  */
 function generateAcId(slug: string, index: number, ac: AcceptanceCriterionInput): string {
   const input = [
@@ -392,8 +609,7 @@ function generateAcId(slug: string, index: number, ac: AcceptanceCriterionInput)
     String(Date.now()),
     process.hrtime.bigint().toString(),
   ].join('|');
-  const hex = createHash('sha256').update(input).digest('hex').slice(0, 8);
-  return `AC-${hex}`;
+  return newIdFromDigest('criterion', createHash('sha256').update(input).digest('hex'));
 }
 
 function safeUserInfo(): string {
@@ -419,6 +635,14 @@ export interface CreateScenarioOptions {
   readonly title?: string;
   /** Optional prose flow (the user-journey narrative). Omitted → no `flow` line. */
   readonly flow?: string;
+  /** Required actor for schema 0.2 scenario creation. */
+  readonly actor?: string;
+  /** Required goal for schema 0.2 scenario creation. */
+  readonly goal?: string;
+  /** Required observable success state for schema 0.2 scenario creation. */
+  readonly success?: string;
+  /** Required ordered steps for schema 0.2 scenario creation. */
+  readonly steps?: readonly string[];
   /** Optional list of feature ids the scenario touches. */
   readonly features?: readonly string[];
   /** Project root. Defaults to `.`. */
@@ -426,7 +650,7 @@ export interface CreateScenarioOptions {
 }
 
 export interface CreateScenarioResult {
-  /** The newly-assigned scenario id (e.g. `S-a3f9c2`). */
+  /** The newly-assigned scenario id (e.g. `S-a3f9c2e1`). */
   readonly id: string;
   /** Absolute path to the newly-written yaml file. */
   readonly path: string;
@@ -436,7 +660,7 @@ export interface CreateScenarioResult {
 
 /**
  * Creates a new sharded scenario file at
- * `spec/scenarios/<slug>-<hash6>.yaml` with `id: S-<hash6>`.
+ * `spec/scenarios/<slug>-<hash8>.yaml` with `id: S-<hash8>`.
  * Same multi-developer safety property as createFeature — two
  * simultaneous calls with the same slug across branches produce
  * different hashes and therefore different file paths.
@@ -452,9 +676,19 @@ export function createScenario(opts: CreateScenarioOptions): CreateScenarioResul
     );
   }
   const cwd = opts.cwd ?? '.';
+  if (requiredRootSchema(cwd) === '0.2') {
+    if (!opts.actor?.trim() || !opts.goal?.trim() || !opts.success?.trim() || !opts.steps?.length || !opts.features?.length) {
+      throw new Error('cladding: schema 0.2 scenario creation requires actor, goal, success, steps, and at least one feature');
+    }
+    const id = generateScenarioId(slug);
+    const operation = {
+      kind: 'scenario.upsert' as const,
+      scenario: {id, slug, title: opts.title ?? slug, actor: opts.actor, goal: opts.goal, success: opts.success, steps: opts.steps, featureRefs: opts.features ?? []},
+    };
+    editSpec({cwd, operations: [operation], inputRevisions: readSpecEditRevisions(cwd, [operation])});
+    return {id, path: join(cwd, 'spec', 'scenarios', `${slug}-${id.slice(2)}.yaml`), slug};
+  }
   const scenariosDir = join(cwd, 'spec', 'scenarios');
-  mkdirSync(scenariosDir, {recursive: true});
-
   const id = generateScenarioId(slug);
   const hash = id.slice(2);
   const filePath = join(scenariosDir, `${slug}-${hash}.yaml`);
@@ -466,8 +700,12 @@ export function createScenario(opts: CreateScenarioOptions): CreateScenarioResul
 
   const title = opts.title ?? slug;
   const yaml = renderScenarioYaml({id, slug, title, flow: opts.flow, features: opts.features ?? []});
-  writeFileSync(filePath, yaml, 'utf8');
-  recordEvent(cwd, 'scenario_created', {scenario: id, slug});
+  commitSchema01CompatibilityMutation(
+    cwd,
+    [{path: relative(cwd, filePath), before: null, after: yaml}],
+    [{type: 'scenario_created', payload: {scenario: id, slug}}],
+    {refreshDerived: true},
+  );
 
   return {id, path: filePath, slug};
 }
@@ -505,8 +743,7 @@ function generateScenarioId(slug: string): string {
     String(Date.now()),
     process.hrtime.bigint().toString(),
   ].join('|');
-  const hex = createHash('sha256').update(input).digest('hex').slice(0, 8);
-  return `S-${hex}`;
+  return newIdFromDigest('scenario', createHash('sha256').update(input).digest('hex'));
 }
 
 // === Capability linking (v0.4.x) ===
@@ -525,12 +762,13 @@ function generateScenarioId(slug: string): string {
 // capabilities block is re-emitted deterministically — so the output stays
 // schema-valid (J2) and human-authored header prose survives.
 
-const FEATURE_ID_PATTERN = /^F-(\d{3,}|[a-f0-9]{6,})$/;
+const FEATURE_ID_PATTERN = readableIdPattern('feature');
 type CapabilitySurfaceValue = 'feature' | 'platform' | 'tool' | 'infrastructure';
 
 interface CapabilityRecord {
   id: string;
   title?: string;
+  outcome?: string;
   summary?: string;
   surface?: CapabilitySurfaceValue;
   features?: string[];
@@ -590,12 +828,39 @@ export function linkCapability(opts: LinkCapabilityOptions): LinkCapabilityResul
     throw new Error(`cladding: feature id '${feature}' is invalid — must match ${FEATURE_ID_PATTERN.source}`);
   }
 
+  if (requiredRootSchema(cwd) === '0.2') {
+    const snapshot = readSchema02AuthoringSnapshot(cwd);
+    const existingFeature = snapshot.features.find((entry) => entry.id === feature);
+    if (!existingFeature) throw new Error(`cladding: unknown feature '${feature}'`);
+    const existingRefs = existingFeature.capabilityRefs;
+    const existing = snapshot.capabilities.find((entry) => entry.id === capId);
+    if (!existing && (!opts.title?.trim() || !opts.summary?.trim())) {
+      throw new Error('cladding: schema 0.2 capability creation requires a non-empty outcome');
+    }
+    if (existing && ((opts.title !== undefined && opts.title !== existing.title) || (opts.summary !== undefined && opts.summary !== existing.outcome))) {
+      throw new Error(`cladding: existing schema 0.2 capability '${capId}' must not be redefined while linking it`);
+    }
+    const operations: SpecEditOperation[] = [
+      {kind: 'capability.upsert' as const, capability: {id: capId, title: existing?.title ?? opts.title!, outcome: existing?.outcome ?? opts.summary!}},
+      {kind: 'feature.set_links' as const, featureId: feature, capabilityRefs: [...new Set([...existingRefs, capId])]},
+    ];
+    const inputRevisions = readSpecEditRevisions(cwd, operations);
+    if (inputRevisions.capabilities !== sourceRevision(snapshot.capabilityCatalog.sourceBytes)
+      || inputRevisions[`feature:${feature}`] !== sourceRevision(existingFeature.sourceBytes)) {
+      throw new Error('cladding: capability or feature changed while the link was being prepared; retry the link');
+    }
+    editSpec({cwd, operations, inputRevisions});
+    return {capability: capId, feature, created: !existing, alreadyLinked: existingRefs.includes(capId), path: join(cwd, snapshot.capabilityCatalog.path)};
+  }
+
   const path = join(cwd, 'spec', 'capabilities.yaml');
   let capabilities: CapabilityRecord[] = [];
   let prefix = DEFAULT_CAPABILITIES_HEADER;
+  let sourceBytes: string | null = null;
 
   if (existsSync(path)) {
     const raw = readFileSync(path, 'utf8');
+    sourceBytes = raw;
     const parsed = yaml.parse(raw) as {capabilities?: unknown} | null;
     if (parsed && Array.isArray(parsed.capabilities)) {
       capabilities = parsed.capabilities.filter(
@@ -605,8 +870,6 @@ export function linkCapability(opts: LinkCapabilityOptions): LinkCapabilityResul
     // Preserve everything before the top-level `capabilities:` key; re-emit the rest.
     const match = raw.search(/^capabilities:/m);
     prefix = match >= 0 ? raw.slice(0, match) : raw.endsWith('\n') ? raw : `${raw}\n`;
-  } else {
-    mkdirSync(join(cwd, 'spec'), {recursive: true});
   }
 
   let created = false;
@@ -630,8 +893,41 @@ export function linkCapability(opts: LinkCapabilityOptions): LinkCapabilityResul
     }
   }
 
-  writeFileSync(path, prefix + renderCapabilitiesBlock(capabilities), 'utf8');
+  commitSchema01CompatibilityMutation(
+    cwd,
+    [{path: relative(cwd, path), before: sourceBytes, after: prefix + renderCapabilitiesBlock(capabilities)}],
+    [],
+    {refreshDerived: true},
+  );
   return {capability: capId, feature, created, alreadyLinked, path};
+}
+
+function sourceRevision(sourceBytes: string): string {
+  return createHash('sha256').update(sourceBytes).digest('hex');
+}
+
+function isStringArray(value: unknown): value is readonly string[] {
+  return Array.isArray(value) && value.every((entry) => typeof entry === 'string');
+}
+
+/** Validates the immutable artifact set a structural review is allowed to resolve. */
+function designImpactBaselines(
+  artifacts: readonly string[],
+  raw: unknown,
+): ReadonlyMap<string, string> | undefined {
+  if (new Set(artifacts).size !== artifacts.length) {
+    throw new Error('cladding: structural design impact artifacts must be an exact unique set');
+  }
+  if (raw === undefined) return undefined;
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new Error('cladding: structural design impact baseline digests are invalid');
+  }
+  const entries = Object.entries(raw);
+  if (entries.length !== artifacts.length
+    || entries.some(([path, digest]) => !artifacts.includes(path) || typeof digest !== 'string' || !/^[a-f0-9]{64}$/.test(digest))) {
+    throw new Error('cladding: structural design impact baseline digests must exactly match its design artifacts');
+  }
+  return new Map(entries as [string, string][]);
 }
 
 /** Deterministically emits the `capabilities:` block (schema-valid order). */

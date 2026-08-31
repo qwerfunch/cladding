@@ -87,14 +87,14 @@ describe('HOLLOW_GOVERNANCE detector', () => {
     expect(DEFAULT_MIN_FEATURES_FOR_DESIGN).toBe(8);
   });
 
-  test('below threshold: 7 features + both design tiers empty → no finding (size guard dominates)', () => {
+  test('[covers:F-f44d1b/AC-002] below threshold: 7 features + both design tiers empty → no finding (size guard dominates)', () => {
     writeSpec(dir, 7);
     writeCapabilities(dir, 0); // capabilities: []
     writeArchitecture(dir, 0); // layers: []
     expect(hollowGovernance.run({cwd: dir})).toEqual([]);
   });
 
-  test('threshold boundary: 8 features + both tiers empty → exactly 2 warn findings (one per file)', () => {
+  test('[covers:F-f44d1b/AC-001] threshold boundary: 8 features + both tiers empty → exactly 2 warn findings (one per file)', () => {
     writeSpec(dir, 8);
     writeCapabilities(dir, 0); // capabilities: []
     writeArchitecture(dir, 0); // layers: []
@@ -144,7 +144,7 @@ describe('HOLLOW_GOVERNANCE detector', () => {
     expect(hollowGovernance.run({cwd: dir})).toEqual([]);
   });
 
-  test('capabilities file MISSING: 8 features, no capabilities.yaml + layers: [] → 1 warn (architecture only), NO capabilities finding', () => {
+  test('[covers:F-f44d1b/AC-004] capabilities file MISSING: 8 features, no capabilities.yaml + layers: [] → 1 warn (architecture only), NO capabilities finding', () => {
     writeSpec(dir, 8);
     // deliberately do NOT write spec/capabilities.yaml — absence is
     // ABSENCE_OF_GOVERNANCE's concern, not this detector's.

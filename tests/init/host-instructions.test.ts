@@ -64,7 +64,7 @@ describe('writeClaudeMdSection (F-90d054 AC-009 + AC-010)', () => {
     expect(body).toContain(CLAUDE_MD_SECTION_MARKER);
   });
 
-  test('refreshes only the ## cladding section when v0.3.x markers are present', () => {
+  test('[covers:F-0f4dd6/AC-019] refreshes only the ## cladding section when v0.3.x markers are present', () => {
     const stale = [
       '# Project memory',
       '',

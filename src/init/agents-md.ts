@@ -134,7 +134,7 @@ export function renderAgentsMdManagedBlock(spec: Spec | null, cwd: string = '.')
     '## Single source of truth',
     '',
     '- `spec.yaml` is authoritative (Tier A); code must conform to its `features[]` and',
-    '  `acceptance_criteria`. Feature detail lives in `spec/features/<slug>-<hash>.yaml` —',
+    '  `acceptance_criteria`. Feature detail lives in `spec/features/<slug>-<hash8>.yaml` —',
     '  never hand-author `F-NNN` filenames; ask cladding via the `clad` CLI (or',
     '  `clad_create_feature` when your host has cladding wired as an MCP server).',
     '- For shell commands, use `node .cladding/host/serve.cjs <arguments>` when that',

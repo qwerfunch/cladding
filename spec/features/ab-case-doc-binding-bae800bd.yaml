@@ -21,7 +21,7 @@ acceptance_criteria:
       - "tests/spec/doc-references-declarations.test.ts#declarations across multiple comment lines union their ids"
       - "tests/spec/doc-references-declarations.test.ts#a clad-doc-links declaration inside a code fence is inert"
       - "tests/spec/doc-references-declarations.test.ts#ids on a clad-doc-links: ignore line bind nothing"
-      - "tests/spec/doc-references-declarations.test.ts#writeDocLinksYaml materializes declared ids into spec/_doc-links.yaml"
+      - "tests/spec/doc-references-declarations.test.ts#renderDocLinksYaml materializes declared ids into spec/_doc-links.yaml"
     notes: "## Why\nBacklog B9: five A/B case studies are knowledge-graph orphans — their prose reports findings without naming feature ids, so the extractor sees nothing. Deleting the NULL-result files was REJECTED (publication bias); binding keeps the evidence reachable from the features it substantiates. README.md's efficiency claim is receipted only by case-efficiency-measurement.md."
   - id: AC-91d9d1a5
     ears: ubiquitous

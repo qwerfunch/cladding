@@ -1,6 +1,6 @@
 // Cladding · unit tests for cli/init.ts
 
-import {existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
@@ -25,6 +25,20 @@ describe('runInit', () => {
     expect(readFileSync(join(dir, '.gitattributes'), 'utf8')).toContain('spec/index.yaml merge=union');
   });
 
+  test('[covers:F-046/AC-078] scaffolds the seed, runtime, ignore rule, result lists, and detected language together', async () => {
+    writeFileSync(join(dir, 'pyproject.toml'), '[project]\nname = "probe"\n');
+    const result = await runInit({cwd: dir});
+
+    expect(result.language).toBe('python');
+    expect(result.created).toContain('spec.yaml');
+    expect(result.created).toContain('.cladding/');
+    expect(result.created.some((entry) => entry.startsWith('.gitignore'))).toBe(true);
+    expect(result.skipped).toEqual(expect.any(Array));
+    expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).toContain('language: python');
+    expect(existsSync(join(dir, '.cladding'))).toBe(true);
+    expect(readFileSync(join(dir, '.gitignore'), 'utf8')).toContain('.cladding/*');
+  });
+
   test('seed spec.yaml has empty features[] — no legacy F-001 placeholder shard written (v0.4.0)', async () => {
     await runInit({cwd: dir});
     // v0.3.49 (F-99c6e5): spec.yaml carries `features: []`.
@@ -45,6 +59,25 @@ describe('runInit', () => {
     expect(r2.skipped.length).toBeGreaterThanOrEqual(2);
   });
 
+  test('[covers:F-046/AC-079] preserves and reports an existing spec without force, then replaces it only with force', async () => {
+    const safe = join(dir, 'safe');
+    const forced = join(dir, 'forced');
+    mkdirSync(safe, {recursive: true});
+    mkdirSync(forced, {recursive: true});
+    writeFileSync(join(safe, 'spec.yaml'), 'user: content\n');
+    writeFileSync(join(forced, 'spec.yaml'), 'user: content\n');
+
+    const skipped = await runInit({cwd: safe});
+    expect(skipped.created).not.toContain('spec.yaml');
+    expect(skipped.skipped).toContain('spec.yaml (exists)');
+    expect(readFileSync(join(safe, 'spec.yaml'), 'utf8')).toBe('user: content\n');
+
+    const overwritten = await runInit({cwd: forced, force: true});
+    expect(overwritten.created).toContain('spec.yaml');
+    expect(readFileSync(join(forced, 'spec.yaml'), 'utf8')).toContain('schema: "0.1"');
+    expect(readFileSync(join(forced, 'spec.yaml'), 'utf8')).not.toContain('user: content');
+  });
+
   test('detects typescript when package.json is present', async () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     const r = await runInit({cwd: dir});
@@ -60,6 +93,19 @@ describe('runInit', () => {
   test('falls back to typescript when no manifest matches', async () => {
     const r = await runInit({cwd: dir});
     expect(r.language).toBe('typescript');
+  });
+
+  test('[covers:F-046/AC-081] records manifest-chain detection and the no-manifest TypeScript fallback in each seed', async () => {
+    const python = join(dir, 'python');
+    const fallback = join(dir, 'fallback');
+    mkdirSync(python, {recursive: true});
+    mkdirSync(fallback, {recursive: true});
+    writeFileSync(join(python, 'pyproject.toml'), '[project]\nname = "probe"\n');
+
+    expect((await runInit({cwd: python})).language).toBe('python');
+    expect(readFileSync(join(python, 'spec.yaml'), 'utf8')).toContain('language: python');
+    expect((await runInit({cwd: fallback})).language).toBe('typescript');
+    expect(readFileSync(join(fallback, 'spec.yaml'), 'utf8')).toContain('language: typescript');
   });
 
   test('appends the ignore entry to an existing .gitignore without losing prior lines', async () => {
@@ -198,6 +244,79 @@ describe('runInit', () => {
     expect(arch).toContain('Typical Python baseline:');
   });
 
+  test('[covers:F-00eb1a/AC-006] [covers:F-32b1e0/AC-004] writes onboarding AI hints and preferred-pattern triples into the project seed block', async () => {
+    const response = [
+      '=== ONBOARDING_MODE ===',
+      'greenfield',
+      '=== PROJECT_CONTEXT_MD ===',
+      '# Payment context',
+      '=== CAPABILITIES_YAML ===',
+      'schema: "0.1"',
+      'capabilities: []',
+      '=== ARCHITECTURE_YAML ===',
+      'layers: []',
+      '=== SPEC_SEED_TITLE ===',
+      'Payment flow',
+      '=== PROJECT_METADATA ===',
+      'preferred_persona: reviewer',
+      'test_framework: vitest',
+      'forbidden_patterns: ["eval("]',
+      'preferred_patterns:',
+      '  - when: "React state"',
+      '    prefer: "useState"',
+      '    over: "classes"',
+      '=== CLARIFYING_QUESTIONS ===',
+    ].join('\n');
+
+    await runInit({cwd: dir, intent: 'Review payment changes.', hostDispatcher: async () => response});
+
+    const spec = readFileSync(join(dir, 'spec.yaml'), 'utf8');
+    expect(spec).toContain('  ai_hints:');
+    expect(spec).toContain('    preferred_persona: reviewer');
+    expect(spec).toContain('    test_framework: vitest');
+    expect(spec).toContain('    forbidden_patterns: ["eval("]');
+    expect(spec).toContain('    preferred_patterns:');
+    expect(spec).toContain('      - when: "React state"');
+    expect(spec).toContain('        prefer: "useState"');
+    expect(spec).toContain('        over: "classes"');
+  });
+
+  test('[covers:F-3a5339/AC-002] intent-aware initialization writes the intent into both project metadata fields', async () => {
+    const intent = 'Coordinate payment reconciliation for merchants.';
+    await runInit({cwd: dir, intent, noLlm: true});
+
+    const spec = readFileSync(join(dir, 'spec.yaml'), 'utf8');
+    expect(spec).toContain(`  description: "${intent}"`);
+    expect(spec).toContain(`  intent_summary: "${intent}"`);
+    expect(spec).toContain('  version: "0.0.1"');
+  });
+
+  test('[covers:F-70ed1afd/AC-6421da1f] no-dispatch intent onboarding and no-intent adoption both record scanner-derived README capabilities', async () => {
+    const adopt = (name: string): string => {
+      const cwd = join(dir, name);
+      mkdirSync(cwd, {recursive: true});
+      writeFileSync(join(cwd, 'README.md'), '# Demo\n\n## Checkout\n\n## Refunds\n');
+      writeFileSync(join(cwd, 'a.ts'), 'export const a = 1;\n');
+      writeFileSync(join(cwd, 'b.ts'), 'export const b = 1;\n');
+      writeFileSync(join(cwd, 'c.ts'), 'export const c = 1;\n');
+      return cwd;
+    };
+    const noDispatch = adopt('no-dispatch');
+    const noIntent = adopt('no-intent');
+
+    await runInit({cwd: noDispatch, scan: true, noLlm: true, intent: 'a checkout product'});
+    await runInit({cwd: noIntent, scan: true, noLlm: true});
+
+    for (const cwd of [noDispatch, noIntent]) {
+      const capabilities = readFileSync(join(cwd, 'spec', 'capabilities.yaml'), 'utf8');
+      expect(capabilities).toContain('source: README.md');
+      expect(capabilities).toContain('id: checkout');
+      expect(capabilities).toContain('title: "Checkout"');
+      expect(capabilities).toContain('id: refunds');
+      expect(capabilities).toContain('title: "Refunds"');
+    }
+  });
+
   // v0.4.1 (no-vacuous-green) — a non-firing LLM dispatch must announce itself.
   // A silent deterministic fallback produces stub spec/scenarios that look real.
   describe('non-firing dispatch notice', () => {
@@ -212,7 +331,7 @@ describe('runInit', () => {
       return {restore: () => spy.mockRestore(), text: () => chunks.join('')};
     }
 
-    test('intent with no available dispatcher warns loudly that the LLM did not fire', async () => {
+    test('[covers:F-3b3690/AC-001] intent with no available dispatcher warns loudly that the LLM did not fire', async () => {
       // Force the no-dispatcher case independent of the host env: clear every
       // provider key so selectDispatcher() returns null (no MCP host in tests).
       vi.stubEnv('ANTHROPIC_API_KEY', '');
@@ -253,6 +372,39 @@ describe('runInit', () => {
       const out = cap.text();
       expect(out).not.toContain('LLM dispatcher');
       expect(out).not.toContain('deterministic mode (--no-llm)');
+    });
+
+    test('[covers:F-fe0f7a96/AC-4abc4282] deterministic, unavailable-dispatch, and hybrid notices recommend clad clarify without the removed refinement command', async () => {
+      const collect = async (cwd: string, opts: NonNullable<Parameters<typeof runInit>[0]>): Promise<string> => {
+        mkdirSync(cwd, {recursive: true});
+        const cap = captureStderr();
+        try {
+          await runInit({cwd, intent: 'a payment product', ...opts});
+        } finally {
+          cap.restore();
+        }
+        return cap.text();
+      };
+      const deterministic = await collect(join(dir, 'deterministic'), {noLlm: true});
+      vi.stubEnv('ANTHROPIC_API_KEY', '');
+      vi.stubEnv('OPENAI_API_KEY', '');
+      vi.stubEnv('GEMINI_API_KEY', '');
+      vi.stubEnv('GOOGLE_API_KEY', '');
+      let unavailable = '';
+      try {
+        unavailable = await collect(join(dir, 'unavailable'), {});
+      } finally {
+        vi.unstubAllEnvs();
+      }
+      const hybrid = await collect(join(dir, 'hybrid'), {
+        hostDispatcher: async () => '=== ONBOARDING_MODE ===\ngreenfield\n=== PROJECT_CONTEXT_MD ===\n# draft\n',
+      });
+
+      const removedVerb = ['clad', 'refine'].join(' ');
+      for (const notice of [deterministic, unavailable, hybrid]) {
+        expect(notice).toContain('clad clarify');
+        expect(notice).not.toContain(removedVerb);
+      }
     });
   });
 });

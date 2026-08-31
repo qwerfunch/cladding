@@ -43,7 +43,7 @@ describe('featureLabel', () => {
 });
 
 describe('haltMessage', () => {
-  test('maps each halt class to a plain sentence', () => {
+  test('[covers:F-071/AC-199] maps each halt class to a plain sentence', () => {
     const classes: HaltReason['class'][] = [
       'ALL_FEATURES_DONE',
       'MAX_ITERATIONS',

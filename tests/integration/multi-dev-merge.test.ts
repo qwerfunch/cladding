@@ -87,7 +87,7 @@ describe('multi-dev concurrent createFeature merge simulation (F-086)', () => {
     expect(idCollision.run({cwd: mergedCwd})).toEqual([]);
   });
 
-  test('same slug on two cwds → distinct file paths (hash entropy), merge clean at file level, SLUG_CONFLICT raises on the merged result', () => {
+  test("[covers:F-59f093/AC-001][covers:F-59f093/AC-002] same slug on two cwds → distinct file paths (hash entropy), merge clean at file level, SLUG_CONFLICT raises on the merged result", () => {
     const aliceResult = createFeature({slug: 'auth-bypass', cwd: aliceCwd});
     const bobResult = createFeature({slug: 'auth-bypass', cwd: bobCwd});
 

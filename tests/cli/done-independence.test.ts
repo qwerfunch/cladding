@@ -38,6 +38,7 @@ const SHARD_BODY =
 function writeShard(dir: string, body = SHARD_BODY): string {
   const featuresDir = join(dir, 'spec', 'features');
   mkdirSync(featuresDir, {recursive: true});
+  writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\n');
   const path = join(featuresDir, SHARD_NAME);
   writeFileSync(path, body);
   return path;

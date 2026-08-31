@@ -79,7 +79,7 @@ describe('clad doctor handler', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('greenfield (no events.log): friendly note + exit 0', () => {
+  test('[covers:F-bb15e6/AC-004] greenfield (no events.log): friendly note + exit 0', () => {
     runDoctorCommand({cwd: dir});
     expect(exitCalls).toEqual([0]);
     const out = stdoutChunks.join('');
@@ -136,7 +136,7 @@ describe('clad doctor handler', () => {
     expect(out).toContain('Tune your host');
   });
 
-  test('--json: emits the raw DoctorReport and skips the formatted surface', () => {
+  test('[covers:F-bb15e6/AC-003] [covers:F-96fa5622/AC-8b386416] --json: emits the raw DoctorReport with every hook observation and skips the formatted surface', () => {
     seedHookHealth(dir);
     seedEvents(dir, [
       {id: '1', timestamp: 't', type: 'sentinel_miss', payload: {
@@ -201,7 +201,7 @@ describe('clad doctor handler', () => {
   // F-b0c2e724 — the legacy directory exclusion makes .cladding/config.yaml
   // uncommittable, so the gate an author tuned never reaches CI or a fresh
   // clone. Doctor diagnoses it read-only; it never rewrites the ignore file.
-  test('reports a blocked gate config in text and JSON without failing', () => {
+  test('[covers:F-b0c2e724/AC-d47b93c5] reports a blocked gate config in text and JSON without failing', () => {
     seedGitignore(dir, 'node_modules/\n.cladding/\n');
     seedEvents(dir, [
       {id: '1', timestamp: 't', type: 'feature_checkpoint', payload: {featureId: 'F-a0000001'}},
@@ -251,7 +251,7 @@ describe('clad doctor handler', () => {
     expect(stdoutChunks.join('')).not.toContain('CI version pinning');
   });
 
-  test('text mode names observed hook times and stale runtime version without guessing missing events', () => {
+  test('[covers:F-96fa5622/AC-8b386416] text mode names observed hook times and stale runtime version without guessing missing events', () => {
     seedHookHealth(dir);
     seedEvents(dir, [
       {id: '1', timestamp: 't', type: 'feature_checkpoint', payload: {featureId: 'F-001'}},
@@ -290,7 +290,7 @@ describe('clad doctor handler', () => {
       ]);
     }
 
-    test('text mode renders gate runs, rejected dones, stop blocks, attestation', () => {
+    test('[covers:F-95a096/AC-846ce0] text mode renders gate runs, rejected dones, stop blocks, attestation', () => {
       seedGovernance();
       mkdirSync(join(dir, 'spec'), {recursive: true});
       writeFileSync(
@@ -325,7 +325,7 @@ describe('clad doctor handler', () => {
       expect(exitCalls).toEqual([0]);
     });
 
-    test('governance summary exposes stop outcomes and tolerates legacy events', () => {
+    test('[covers:F-95a096/AC-846ce0] governance summary exposes stop outcomes and tolerates legacy events in JSON', () => {
       seedGovernance();
       runDoctorCommand({cwd: dir, json: true});
       const parsed = JSON.parse(stdoutChunks.join(''));

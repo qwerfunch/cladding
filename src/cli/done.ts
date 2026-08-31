@@ -6,23 +6,34 @@
 // features done while `clad check --tier=pre-push --strict` was RED (Type / Lint
 // / Coverage failing). `done` claimed more than it had earned.
 //
-// `clad done` makes the transition EARN itself: flip the shard to done, run the
-// pre-push strict gate, and KEEP done only if that gate is GREEN — otherwise
-// revert. It is the floor that keeps `done` honest even outside the per-feature
-// driver loop (a host that hand-writes `status: done` bypasses this verb, but
-// the same gate at push/CI then fails on that feature's red stages).
+// `clad done` makes the transition EARN itself. Schema 0.1 retains its shipped
+// flip → strict gate → rollback compatibility path. Schema 0.2 evaluates a
+// prospective done view and only journals the claim with its GREEN v3 receipt.
+// It is the floor that keeps `done` honest even outside the per-feature driver
+// loop (a host that hand-writes `status: done` bypasses this verb, but the same
+// gate at push/CI then fails on that feature's red stages).
 //
-// FLIP-THEN-GATE ORDER is deliberate: the done-aware detectors UNTESTED_AC and
-// MISSING_TESTS skip features that are not yet `done`, so gating BEFORE the flip
-// would green-light a feature that has no tests. We flip first so the gate
-// evaluates the feature as done, then revert if it does not hold.
+// The legacy flip-then-gate order is deliberate: done-aware detectors skip
+// features that are not yet `done`. Schema 0.2 supplies that same detector and
+// compiler view in memory, so a process death cannot strand a done shard with
+// no receipt.
 
-import {existsSync, readFileSync, readdirSync, writeFileSync} from 'node:fs';
+import {existsSync, readdirSync} from 'node:fs';
 import {recordEvent} from '../events/log.js';
 import {blockingDetectorNames, type TelemetryStage} from '../events/stop-telemetry.js';
 import {join} from 'node:path';
 
 import {parseSpec} from '../spec/parse.js';
+import {
+  finalizeFeatureDoneForGate,
+  markFeatureDoneForGate,
+  prepareSchema02DoneEvent,
+  restoreFailedDoneForGate,
+  type DoneGateFinalization,
+  type GeneratedAttestationCompletion,
+  type DoneGateMark,
+  type PreparedSchema02DoneEvent,
+} from '../spec/edit.js';
 import {doneRefusalLead, doneSelfCertRefusalLead} from '../ui/softShell.js';
 import {computeIndependence, type IndependenceLabel} from '../hitl/independence.js';
 import type {Evidence} from '../hitl/identity.js';
@@ -34,8 +45,19 @@ export interface DoneDeps {
   readonly checkStages: (opts: {
     strict?: boolean;
     tier?: string;
+    profile?: string;
     focusModules?: readonly string[];
-  }) => {worst: number; anyFailed?: boolean; stages?: readonly TelemetryStage[]};
+    scopeSubjects?: readonly string[];
+    deferAttestation?: boolean;
+    prospectiveFeatureId?: string;
+    completionGate?: DoneGateMark;
+    completionEvent?: PreparedSchema02DoneEvent;
+  }) => {
+    worst: number;
+    anyFailed?: boolean;
+    stages?: readonly TelemetryStage[];
+    commitAttestation?: (completion: GeneratedAttestationCompletion) => void;
+  };
   /**
    * Regenerate the committed feature index after a status flip (on BOTH the
    * kept and the reverted branch) so spec/index.yaml's per-row status never lags
@@ -144,10 +166,9 @@ export function setStatus(body: string, status: string): string {
 }
 
 /**
- * Flips `featureId` to `done` iff the pre-push strict gate is GREEN with the
- * feature evaluated as done; reverts the shard byte-for-byte on a red gate.
- * All IO is the shard file under `cwd` plus the injected gate runner, so this
- * is unit-testable without the real toolchain.
+ * Schema 0.1 flips `featureId` before the strict gate and restores it on RED.
+ * Schema 0.2 evaluates an immutable in-memory done view and publishes that
+ * view only with a GREEN v3 receipt in one final F4 transaction.
  */
 export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneResult {
   if (!featureId) {
@@ -185,80 +206,258 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
         'then resolve the design impact before marking this feature done.',
     };
   }
-  const original = readFileSync(hit.path, 'utf8');
-  // Flip to done BEFORE gating so the done-aware detectors evaluate this
-  // feature's test evidence (see module header).
-  writeFileSync(hit.path, setStatus(original, 'done'));
-  // Keep the committed index honest BEFORE gating: pre-push runs the
-  // status-aware INVENTORY_DRIFT detector, so the index must already reflect
-  // this flip — otherwise the new detector would RED this very write and the
-  // gate would revert every legitimate `clad done`. (F-37b4a8)
-  deps.onIndex?.(cwd);
-  // Scope the gate to THIS feature's modules (Gradle monorepos). Empty → the
-  // gate runs whole-repo, exactly as before. @see toolchain/scoped-command.ts
-  const {worst, anyFailed, stages} = deps.checkStages({
-    tier: 'pre-push',
-    strict: true,
-    focusModules: hit.modules,
-  });
-  const blockers = blockingDetectorNames(stages ?? []);
-  // F-c566f590 — the evidence-based independence label. Computed once from the
-  // injected evidence slice (an omitted dep ⇒ undefined ⇒ pre-independence
-  // behavior). It does NOT depend on the gate: a feature can be GREEN yet still
-  // be self-certified (no human/blind evidence backs it).
+  // This evidence decision is immutable for the whole completion attempt. Its
+  // exact label is sealed into the private success-event binding before any
+  // stage can issue a writer callback.
   const independence = deps.independence
     ? computeIndependence(featureId, deps.independence.evidence).label
     : undefined;
-  // Under the opt-in `require` policy a GREEN gate is necessary but NOT
-  // sufficient: a self-certified feature must earn independent or human review
-  // before it keeps done. This refusal reverts exactly like a red gate — but a
-  // genuinely red gate takes precedence (its message stays unchanged).
-  const selfCertBlocked =
-    worst === 0 && deps.independence?.policy === 'require' && independence === 'self-certified';
-  const kept = worst === 0 && !selfCertBlocked;
-  // F-b84c38 — every done transition (kept or reverted) is forensic data; the
-  // independence label rides along on both paths (F-c566f590).
-  recordEvent(cwd, 'done_attempted', {
-    feature: featureId,
-    worst,
-    anyFailed: anyFailed ?? worst > 0,
-    kept,
-    blockers,
-    ...(independence ? {independence} : {}),
-  });
-  if (kept) {
-    return {
-      ok: true,
-      code: 0,
-      featureId,
-      prevStatus: hit.status,
-      shardPath: hit.path,
-      independence,
-      reason: `strict gate GREEN — status: ${hit.status || 'unset'} → done`,
-    };
-  }
-  // Not kept — revert to exactly what was there and re-sync the index
-  // symmetrically, else it would keep the pre-gate `done` row against a reverted
-  // shard (inverse staleness). (F-37b4a8) BOTH the red-gate and the
-  // require-policy refusal share this revert.
-  writeFileSync(hit.path, original);
-  deps.onIndex?.(cwd);
-  // Plain-first (F-dd8dc994): a plain English lead first; the machine sentence
-  // (kept byte-for-byte) follows as a language-neutral tail so contract pins
-  // survive. The host agent renders the user's own language (F-9af291fa).
-  if (selfCertBlocked) {
-    // GREEN gate, but the project requires the independent review this feature
-    // lacks (AC-ad5ea48b). Same revert as a red gate; a different plain lead.
+  let marked: DoneGateMark;
+  // Schema 0.1 flips before gating for compatibility. Schema 0.2 only
+  // prepares a byte-bound prospective target here. `runCheckStages` consumes
+  // that capability before it creates the sole done-aware overlay, without a
+  // durable claim.
+  try {
+    marked = markFeatureDoneForGate(cwd, featureId);
+  } catch (error) {
     return {
       ok: false,
       code: 1,
       featureId,
       prevStatus: hit.status,
       shardPath: hit.path,
+      reason: (error as Error).message,
+    };
+  }
+  let completionEvent: PreparedSchema02DoneEvent | undefined;
+  if (marked.schemaVersion === '0.2') {
+    try {
+      completionEvent = prepareSchema02DoneEvent(cwd, marked, independence);
+    } catch (error) {
+      return {
+        ok: false,
+        code: 1,
+        featureId,
+        prevStatus: marked.previousStatus,
+        shardPath: marked.path,
+        independence,
+        reason: (error as Error).message,
+      };
+    }
+  }
+  // Scope the gate to THIS feature's modules (Gradle monorepos). Empty → the
+  // gate runs whole-repo, exactly as before. @see toolchain/scoped-command.ts
+  let gate: {worst: number; anyFailed?: boolean; stages?: readonly TelemetryStage[]; commitAttestation?: (completion: GeneratedAttestationCompletion) => void};
+  const schemaVersion = marked.schemaVersion;
+  try {
+    const runGate = () => deps.checkStages({
+      tier: 'pre-push',
+      // Schema 0.2 completion authority is the canonical profile reducer:
+      // adding the legacy strict flag would make a transport switch decide an
+      // otherwise identical authoritative verdict.  Schema 0.1 keeps its
+      // historical strict pre-push compatibility unchanged.
+      ...(schemaVersion === '0.2'
+        ? {
+          profile: 'completion', scopeSubjects: [`feature:${featureId}`], deferAttestation: true,
+          prospectiveFeatureId: featureId, completionGate: marked, completionEvent,
+        }
+        : {strict: true}),
+      focusModules: marked.gateScope.modules,
+    });
+    gate = runGate();
+  } catch (error) {
+    if (schemaVersion === '0.1') {
+      try {
+        restoreFailedDoneForGate(cwd, marked.rollback);
+      } catch (compensationError) {
+        return {
+          ok: false,
+          code: 1,
+          featureId,
+          prevStatus: marked.previousStatus,
+          shardPath: marked.path,
+          reason: `strict gate threw and automatic compensation also failed: ${(error as Error).message}; ${(compensationError as Error).message}`,
+        };
+      }
+    }
+    return {
+      ok: false,
+      code: 1,
+      featureId,
+      prevStatus: marked.previousStatus,
+      shardPath: marked.path,
+      reason: `strict gate threw; status left at '${marked.previousStatus || 'unset'}': ${(error as Error).message}`,
+    };
+  }
+  const {worst, anyFailed, stages} = gate;
+  const blockers = blockingDetectorNames(stages ?? []);
+  // Under the opt-in `require` policy a GREEN gate is necessary but NOT
+  // sufficient: a self-certified feature must earn independent or human review
+  // before it keeps done. This refusal reverts exactly like a red gate — but a
+  // genuinely red gate takes precedence (its message stays unchanged).
+  const selfCertBlocked =
+    worst === 0 && deps.independence?.policy === 'require' && independence === 'self-certified';
+  // A schema 0.2 completion is one combined status-and-receipt authority
+  // action.  A green compatibility gate without the prepared F6 commit seam
+  // cannot leave a new `done` status behind.
+  const missingSchema02Receipt = schemaVersion === '0.2' && worst === 0
+    && !selfCertBlocked && gate.commitAttestation === undefined;
+  if (missingSchema02Receipt) {
+    return {
+      ok: false,
+      code: 1,
+      featureId,
+      prevStatus: marked.previousStatus,
+      shardPath: marked.path,
+      independence,
+      reason: 'completion receipt was not prepared, so no completion claim was written.',
+    };
+  }
+  if (worst === 0 && !selfCertBlocked) {
+    if (schemaVersion === '0.2' && gate.commitAttestation) {
+      try {
+        // The F4 writer receives all preimages plus the sole success event.
+        // Its one recovery journal publishes status, generated projections,
+        // v3 attestation, and `done_attempted` together, or none of them.
+        gate.commitAttestation({
+          rollback: marked.rollback,
+          targetGeneration: marked.targetGeneration,
+          targetBytes: marked.targetBytes,
+          rootBefore: marked.rootBefore,
+          attestationBefore: marked.attestationBefore,
+          event: {
+            type: 'done_attempted',
+            payload: {
+              feature: featureId,
+              worst: 0,
+              anyFailed: false,
+              kept: true,
+              blockers: [],
+              ...(independence ? {independence} : {}),
+            },
+          },
+        });
+      } catch (error) {
+        return {
+          ok: false,
+          code: 1,
+          featureId,
+          prevStatus: marked.previousStatus,
+          shardPath: marked.path,
+          independence,
+          reason: `completion receipt could not be recorded; no completion claim was written: ${(error as Error).message}`,
+        };
+      }
+    }
+  }
+  if (worst === 0 && !selfCertBlocked && schemaVersion === '0.1') {
+    let finalization: DoneGateFinalization;
+    try {
+      finalization = finalizeFeatureDoneForGate(cwd, marked.rollback, marked.targetGeneration);
+    } catch (error) {
+      return {
+        ok: false,
+        code: 1,
+        featureId,
+        prevStatus: marked.previousStatus,
+        shardPath: marked.path,
+        independence,
+        reason: `strict gate GREEN but final status verification failed: ${(error as Error).message}`,
+      };
+    }
+    if (!finalization.kept) {
+      recordEvent(cwd, 'done_attempted', {
+        feature: featureId,
+        worst,
+        anyFailed: anyFailed ?? false,
+        kept: false,
+        blockers,
+        ...(independence ? {independence} : {}),
+      });
+      return {
+        ok: false,
+        code: 1,
+        featureId,
+        prevStatus: marked.previousStatus,
+        shardPath: marked.path,
+        independence,
+        reason:
+          'The feature changed while its verification ran, so the GREEN gate result is stale and status was not kept as done. ' +
+          'Review the latest feature state, then re-run `clad done`.',
+      };
+    }
+  }
+  const kept = worst === 0 && !selfCertBlocked;
+  // Schema 0.1 preserves F-b84c38's forensic events on both outcomes. Schema
+  // 0.2 journals only the successful completion event with its F4 transaction.
+  if (kept) {
+    // Schema 0.2 placed this exact success record in the same F4 journal as
+    // the status and attestation. Schema 0.1 preserves its historical
+    // observer append after the kept flip.
+    if (schemaVersion === '0.1') {
+      recordEvent(cwd, 'done_attempted', {
+        feature: featureId,
+        worst,
+        anyFailed: anyFailed ?? worst > 0,
+        kept,
+        blockers,
+        ...(independence ? {independence} : {}),
+      });
+    }
+    return {
+      ok: true,
+      code: 0,
+      featureId,
+      prevStatus: marked.previousStatus,
+      shardPath: marked.path,
+      independence,
+      reason: `strict gate GREEN — status: ${marked.previousStatus || 'unset'} → done`,
+    };
+  }
+  // Schema 0.1 reverts and re-syncs its legacy pre-gate flip. Schema 0.2 has
+  // no durable target yet, so its RED and policy refusals leave canonical
+  // completion artifacts untouched.
+  if (schemaVersion === '0.1') {
+    try {
+      restoreFailedDoneForGate(cwd, marked.rollback);
+    } catch (error) {
+      return {
+        ok: false,
+        code: 1,
+        featureId,
+        prevStatus: marked.previousStatus,
+        shardPath: marked.path,
+        independence,
+        reason: `strict gate not GREEN and automatic compensation failed: ${(error as Error).message}`,
+      };
+    }
+  }
+  if (schemaVersion === '0.1') {
+    recordEvent(cwd, 'done_attempted', {
+      feature: featureId,
+      worst,
+      anyFailed: anyFailed ?? worst > 0,
+      kept,
+      blockers,
+      ...(independence ? {independence} : {}),
+    });
+  }
+  // Plain-first (F-dd8dc994): a plain English lead first; the machine sentence
+  // (kept byte-for-byte) follows as a language-neutral tail so contract pins
+  // survive. The host agent renders the user's own language (F-9af291fa).
+  if (selfCertBlocked) {
+    // GREEN gate, but the project requires the independent review this feature
+    // lacks (AC-ad5ea48b). Schema 0.1 reverts; schema 0.2 has not written.
+    return {
+      ok: false,
+      code: 1,
+      featureId,
+      prevStatus: marked.previousStatus,
+      shardPath: marked.path,
       independence,
       reason:
         `${doneSelfCertRefusalLead()}. ` +
-        `no independent or human review backs this feature — status left at '${hit.status || 'unset'}'.` +
+        `no independent or human review backs this feature — status left at '${marked.previousStatus || 'unset'}'.` +
         ' Add a human sign-off or an independent (blind) review, then re-run `clad done`.',
     };
   }
@@ -268,12 +467,12 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
     ok: false,
     code: 1,
     featureId,
-    prevStatus: hit.status,
-    shardPath: hit.path,
+    prevStatus: marked.previousStatus,
+    shardPath: marked.path,
     independence,
     reason:
       `${doneRefusalLead()}. ` +
-      `strict gate not GREEN — status left at '${hit.status || 'unset'}'.` +
+      `strict gate not GREEN — status left at '${marked.previousStatus || 'unset'}'.` +
       ' Fix the failing stage(s) above, then re-run `clad done`.',
   };
 }

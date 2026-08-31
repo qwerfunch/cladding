@@ -71,7 +71,7 @@ describe('renderMeasuredBlock — matched snapshot renders the honest block (AC-
     expect(out).toContain('- regression tests surfaced: 4');
   });
 
-  test('carries the SHORT head + spec_digest and the FULL-sha reproduce command', () => {
+  test('[covers:F-ede6fa75/AC-713458d9] carries the SHORT head + spec_digest and the FULL-sha reproduce command', () => {
     // short head (7 chars) on the anchor line
     expect(out).toContain('head abcdef0 · spec_digest digest-deadbeef');
     // the exact reproduce command uses the FULL 40-char sha, not the short one
@@ -84,7 +84,7 @@ describe('renderMeasuredBlock — matched snapshot renders the honest block (AC-
 });
 
 describe('renderMeasuredBlock — a numbers block NEVER renders without the disclaimer (AC-38b63d18)', () => {
-  test('invariant across many inputs: headline numbers ⟹ disclaimer verbatim', () => {
+  test('[covers:F-ede6fa75/AC-38b63d18] invariant across many inputs: headline numbers ⟹ disclaimer verbatim', () => {
     const inputs: MeasuredRenderInput[] = [
       {snapshot: mkSnap()},
       {snapshot: mkSnap({slice: 0, naive: 0, struct: 0, cov: 0, reg: 0, measured: 0, featureCount: 0})},
@@ -120,7 +120,7 @@ describe('renderMeasuredBlock — release-over-release delta line (AC-a7e810b1)'
   const current = mkSnap({slice: 1400, struct: 0.88, cov: 0.65});
   const since = mkSnap({slice: 1000, struct: 0.9, cov: 0.5, head: '1234567abcdef0123456789abcdef0123456789a'});
 
-  test('a since endpoint appends exactly one delta line with the hand-computed signs', () => {
+  test('[covers:F-ede6fa75/AC-a7e810b1] a since endpoint appends exactly one delta line with the hand-computed signs', () => {
     const out = renderMeasuredBlock({snapshot: current, sinceSnapshot: since, sinceRef: 'v0.7.1'});
     const deltaLines = out.split('\n').filter((l) => l.startsWith('- since '));
     expect(deltaLines).toHaveLength(1);

@@ -29,6 +29,7 @@
 import yaml from 'yaml';
 
 import {appendEvent, newEvent} from '../../events/log.js';
+import {newIdFromDigest} from '../../spec/compiler/id-policy.js';
 import {
   renderGreenfieldArchitectureYaml,
   renderGreenfieldCapabilitiesYaml,
@@ -60,7 +61,7 @@ export interface OnboardingObserved {
  * relevant scenario.
  */
 export interface OnboardingScenario {
-  /** `S-<hash6>` id; the renderer generates the hash from the slug. */
+  /** `S-<hash8>` id; the renderer generates the hash from the slug. */
   readonly id: string;
   /** kebab-case slug derived from the journey name. */
   readonly slug: string;
@@ -228,7 +229,7 @@ export function buildOnboardingPrompt(
     '       Derive from the project context above; this is NOT',
     '       implementation, just the user\'s story.>',
     '    features: []  # always empty at onboarding; clad_create_feature binds later',
-    '(The `id` field is omitted — the renderer assigns `S-<hash6>` from',
+    '(The `id` field is omitted — the renderer assigns `S-<hash8>` from',
     'the slug.)',
     '',
     'GUIDELINES:',
@@ -325,7 +326,7 @@ function extractSection(text: string, name: string): string {
 /**
  * Parses the raw `CLARIFYING_QUESTIONS` block into a list of questions.
  * Accepts bullets ("- ", "* ", "1. ") or plain lines. Filters empty
- * lines. Caps at 5 to keep the CLI hint compact.
+ * lines. Caps at 3 to keep the next turn focused on material decisions.
  */
 export function extractClarifyingQuestions(raw: string): readonly string[] {
   if (!raw.trim()) return [];
@@ -333,7 +334,7 @@ export function extractClarifyingQuestions(raw: string): readonly string[] {
     .split('\n')
     .map((line) => line.replace(/^\s*(?:[-*]|\d+[.)])\s*/, '').trim())
     .filter((line) => line.length > 0)
-    .slice(0, 5);
+    .slice(0, 3);
 }
 
 /**
@@ -353,7 +354,7 @@ export function normaliseMode(raw: string): OnboardingResult['mode'] {
  * Parses the raw SCENARIOS_YAML block (a YAML list) into a list of
  * OnboardingScenario entries. The LLM emits scenarios without an `id`
  * (it doesn't know the hash to use); this helper assigns
- * `S-<hash6>` deterministically from the slug so two scenarios with
+ * `S-<hash8>` deterministically from the slug so two scenarios with
  * the same slug always get the same id.
  *
  * Robust to YAML hand-roll quirks: caps at 5 entries, drops malformed
@@ -378,7 +379,7 @@ export function extractScenarios(raw: string): readonly OnboardingScenario[] {
     const flow = String(e.flow ?? '').trim();
     if (!slug || !title) continue;
     out.push({
-      id: `S-${hashFromSlug(slug)}`,
+      id: newIdFromDigest('scenario', hashFromSlug(slug)),
       slug,
       title,
       flow,
@@ -461,7 +462,7 @@ function slugifyScenario(input: string): string {
 }
 
 /**
- * Deterministic 6-char hex hash from the scenario slug. Same slug →
+ * Deterministic eight-character hexadecimal hash from the scenario slug. Same slug →
  * same hash so re-running onboarding on the same intent produces
  * stable scenario ids. Not cryptographically strong; this is a name
  * derivation, not a security boundary.
@@ -472,7 +473,7 @@ function hashFromSlug(slug: string): string {
     h ^= slug.charCodeAt(i);
     h = Math.imul(h, 0x01000193);
   }
-  return (h >>> 0).toString(16).padStart(8, '0').slice(0, 6);
+  return (h >>> 0).toString(16).padStart(8, '0');
 }
 
 /**
@@ -788,7 +789,7 @@ export function buildRefinementPrompt(
     'REVISE the flow when the new answer changes the journey; ADD a new',
     'scenario only if the answer reveals a journey not previously',
     'captured. Same shape as the original onboarding (slug, title, flow,',
-    'features: [], no id — renderer assigns S-<hash6>).',
+    'features: [], no id — renderer assigns S-<hash8>).',
     '',
     '=== CLARIFYING_QUESTIONS ===',
     'NEW questions that the answer makes worth asking. Empty when the',

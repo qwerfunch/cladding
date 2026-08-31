@@ -78,6 +78,15 @@ describe('AnthropicTransport', () => {
     await expect(t.invoke(PERSONA, CTX)).rejects.toThrow(/ANTHROPIC_API_KEY/);
   });
 
+  test('[covers:F-069/AC-189] missing credentials make ready and invoke report the same API-key failure', async () => {
+    const t = new AnthropicTransport();
+    const readiness = await t.ready();
+
+    expect(readiness.ready).toBe(false);
+    expect(readiness.reason).toContain('ANTHROPIC_API_KEY');
+    await expect(t.invoke(PERSONA, CTX)).rejects.toThrow(/ANTHROPIC_API_KEY/);
+  });
+
   test('invoke returns AgentResult with llm identity + tagged name', async () => {
     const {factory} = makeFakeClient('Looks good. Approved.');
     const t = new AnthropicTransport({apiKey: 'sk-test', clientFactory: factory as never});
@@ -103,7 +112,20 @@ describe('AnthropicTransport', () => {
     expect(args.messages[0].content).toContain('No edits outside src/');
   });
 
-  test('client is cached across invocations (factory called once)', async () => {
+  test('[covers:F-069/AC-190] invoke preserves the request shape while truncating summary and recording stop reason', async () => {
+    const {client, factory} = makeFakeClient('x'.repeat(250), 'max_tokens');
+    const t = new AnthropicTransport({apiKey: 'sk-test', clientFactory: factory as never});
+    const result = await t.invoke(PERSONA, CTX);
+    const args = client.messages.create.mock.calls[0]?.[0];
+
+    expect(args.system[0].text).toBe(PERSONA.body);
+    expect(args.messages[0].content).toContain(CTX.featureShard);
+    expect(args.messages[0].content).toContain(CTX.guardrails[0]);
+    expect(result.summary).toHaveLength(200);
+    expect(result.notes).toContain('stop=max_tokens');
+  });
+
+  test('[covers:F-069/AC-191] client is cached across invocations (factory called once)', async () => {
     const factory = vi.fn().mockReturnValue({
       messages: {create: vi.fn().mockResolvedValue({content: [{type: 'text', text: 'ok'}]})},
     });

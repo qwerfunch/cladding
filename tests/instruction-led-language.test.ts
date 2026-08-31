@@ -149,7 +149,7 @@ describe('AC-71ce42e5 — English-only catalog + templates, no locale machinery,
   });
 
   describe('plain-lead-first render order is unchanged', () => {
-    test('plainFinding: the lead occupies position 0; the (detector · path) tail follows', () => {
+    test("[covers:F-9af291fa/AC-71ce42e5] plainFinding: the lead occupies position 0; the (detector · path) tail follows", () => {
       const out = plainFinding({detector: 'MISSING_IMPLEMENTATION', path: 'src/x.ts', message: 'raw'});
       const lead = DETECTOR_PLAIN.MISSING_IMPLEMENTATION.lead;
       expect(out.indexOf(lead)).toBe(0);
@@ -176,7 +176,7 @@ describe('AC-ddb938fb — interpreter relay clause, freshness literals, size gua
   const GATE_AND_HOOK = /gate(?:\/| and )hook messages/i;
   const RELAY_BY_MEANING = /relay (?:them|gate\/hook messages)(?: in the user's language,)? by meaning/i;
 
-  test('CLAUDE_MD_SECTION explicitly directs relaying cladding\'s own gate/hook messages, by meaning', () => {
+  test("[covers:F-9af291fa/AC-ddb938fb] CLAUDE_MD_SECTION explicitly directs relaying cladding's own gate/hook messages, by meaning", () => {
     expect(CLAUDE_MD_SECTION).toMatch(GATE_AND_HOOK);
     expect(norm(CLAUDE_MD_SECTION)).toMatch(RELAY_BY_MEANING);
   });
@@ -255,7 +255,7 @@ describe('AC-3f34759a — structural sweep: no locale machinery under src/', () 
     return hits;
   }
 
-  test('src/**/*.ts carries zero occurrences of any locale-machinery symbol', () => {
+  test("[covers:F-9af291fa/AC-3f34759a] src/**/*.ts carries zero occurrences of any locale-machinery symbol", () => {
     const files = walk(join(ROOT, 'src'), ['.ts']);
     expect(files.length).toBeGreaterThan(100); // vacuous-walk guard (173 today)
     const hits = scanForNeedles(files, NEEDLES);

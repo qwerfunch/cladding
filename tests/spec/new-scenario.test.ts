@@ -1,10 +1,10 @@
 // Cladding · unit tests for createScenario in src/spec/new.ts (F-087)
 //
 // Mirror of tests/spec/new.test.ts but for the scenario surface.
-// createScenario writes spec/scenarios/<slug>-<hash6>.yaml with
-// `id: S-<hash6>` and the same multi-dev safety property.
+// createScenario writes spec/scenarios/<slug>-<hash8>.yaml with
+// `id: S-<hash8>` and the same multi-dev safety property.
 
-import {mkdtempSync, readFileSync, rmSync, existsSync} from 'node:fs';
+import {mkdtempSync, readFileSync, rmSync, existsSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
@@ -16,12 +16,13 @@ describe('createScenario (F-087, v0.3.12)', () => {
   let dir: string;
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'clad-new-scenario-'));
+    writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: scenarios\n  language: typescript\n');
   });
   afterEach(() => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('writes spec/scenarios/<slug>-<hash>.yaml with hash id', () => {
+  test("[covers:F-d7312b/AC-001] writes spec/scenarios/<slug>-<hash8>.yaml with hash id", () => {
     const r = createScenario({slug: 'checkout-happy-path', cwd: dir});
     expect(r.slug).toBe('checkout-happy-path');
     expect(r.id).toMatch(/^S-[a-f0-9]{8}$/);

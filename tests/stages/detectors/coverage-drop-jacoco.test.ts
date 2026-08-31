@@ -55,7 +55,7 @@ function run(): readonly {detector: string; severity: string; message: string}[]
 }
 
 describe('COVERAGE_DROP detector (JaCoCo / Kotlin)', () => {
-  test('WARN when JaCoCo line coverage (55%) is below the 70% floor', () => {
+  test("[covers:F-dd51b42c/AC-2d888ee2] WARN when JaCoCo line coverage (55%) is below the 70% floor", () => {
     makeKotlinProject();
     writeJacoco(55, 45); // 55 / (55 + 45) = 55.0%
     const findings = run();

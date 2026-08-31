@@ -157,6 +157,35 @@ describe('inferDependsOn', () => {
     expect(result.suggestions['F-a']).toContain('F-c');
   });
 
+  test('[covers:F-2be3e3bb/AC-4e0fd0] uses only the injected reader and deterministically emits only undeclared edges', () => {
+    const spec = makeSpec([
+      feature('F-a', ['virtual/pkg/a.py'], ['F-b']),
+      feature('F-b', ['virtual/pkg/b.py']),
+      feature('F-c', ['virtual/pkg/c.py']),
+    ]);
+    const reads: string[] = [];
+    const read: Reader = (path) => {
+      reads.push(path);
+      return path === 'virtual/pkg/a.py'
+        ? 'from pkg.b import b\nfrom pkg.c import c\n'
+        : null;
+    };
+
+    const first = inferDependsOn(spec, read);
+    const second = inferDependsOn(spec, read);
+
+    // Virtual paths have no backing files: reaching this result proves the
+    // injected reader is the only file boundary for the inference pass.
+    expect(reads).toEqual([
+      'virtual/pkg/a.py', 'virtual/pkg/b.py', 'virtual/pkg/c.py',
+      'virtual/pkg/a.py', 'virtual/pkg/b.py', 'virtual/pkg/c.py',
+    ]);
+    expect(JSON.stringify(second)).toBe(JSON.stringify(first));
+    expect(first.alreadyDeclared).toEqual([{from: 'F-a', to: 'F-b', via: 'virtual/pkg/a.py'}]);
+    expect(first.edges).toEqual([{from: 'F-a', to: 'F-c', via: 'virtual/pkg/a.py'}]);
+    expect(first.suggestions).toEqual({'F-a': ['F-c']});
+  });
+
   // v0.7.0 shipped the whole JS/TS extraction branch with zero fixtures (all
   // Python) — on a TypeScript project (cladding itself!) nothing pinned it.
   describe('JS/TS extraction', () => {

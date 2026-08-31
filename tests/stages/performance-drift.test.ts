@@ -44,7 +44,7 @@ describe('PERFORMANCE_DRIFT detector', () => {
     expect(findings[0].severity).toBe('info');
   });
 
-  test('metric regresses >10% → warn finding with delta and values', () => {
+  test("[covers:F-057/AC-133] metric regresses >10% → warn finding with delta and values", () => {
     writePerf(dir, 'baseline', {metrics: {p95: {value: 100, unit: 'ms'}}});
     writePerf(dir, 'current', {metrics: {p95: {value: 130, unit: 'ms'}}});
     const findings = performanceDrift.run({cwd: dir});

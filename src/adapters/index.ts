@@ -47,6 +47,17 @@ const SDK_REGISTRY: Readonly<Record<string, AgentAdapter>> = {
   'claude-anthropic': claudeAnthropicAdapter,
 };
 
+/**
+ * Returns every adapter currently shipped in the host and SDK registries.
+ *
+ * This keeps parity checks coupled to the actual selectable surface: adding
+ * an adapter to either registry automatically brings it into the shared
+ * contract tests without treating roadmap placeholders as live transports.
+ */
+export function registeredAdapters(): readonly AgentAdapter[] {
+  return [...Object.values(HOST_REGISTRY), ...Object.values(SDK_REGISTRY)];
+}
+
 interface ResolvedSelection {
   readonly mode: AdapterMode;
   readonly name: string;

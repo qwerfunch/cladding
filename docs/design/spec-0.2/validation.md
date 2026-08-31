@@ -45,9 +45,9 @@ The initial harness validates:
 
 The model simulations currently compare composite versus bare criterion identity, shared versus feature-local capability writes, proof provenance versus persona topology, directed versus undirected graph projection, required versus advisory scenario freshness, upstream report strictness versus Cladding blocking, and every-edit versus tiered/background assurance cadence. These establish design mechanics and expose token/merge trade-offs; they are not substitutes for the pending production adapters.
 
-AB01–AB12 is the bounded first comparison for the task-scoped MCP challenger and may support claims only on those tasks. D17 retains a separately preregistered larger retrieval study—40 tasks is the current optional candidate—only for later generalization; it is not a 0.10.0 gate and cannot prove adoption.
+AB01–AB12 is a Codex-only, at-most-24-call, non-blocking comparison for the task-scoped MCP challenger and may support claims only on those tasks. D17 retains a separately preregistered larger retrieval study—40 tasks is the current optional candidate—only for later generalization; it is not a 0.10.0 gate and cannot prove adoption.
 
-It does not validate the unimplemented 0.2 compiler, migration, transaction, GraphIR v2, receipt, assurance, scheduler, or attestation behavior. Those checks become executable beside F1–F9 and replace `implementation_pending` one decision/scenario at a time.
+The additive compiler and F6 assurance boundary now validate the F3 project policies, feature-owned capability catalog links, architecture candidates, in-memory `L = N` migration proof, D17 assurance contract/subject/verification/runtime closure slice, D21 registry-owned reducer membership, D22 foreground profile cadence and runner-control seals, and D23 v3 payload, per-feature compatibility, and completion-transaction boundaries. This is not schema apply, disk cutover, F7 scenario delivery, F8 GraphIR v2 public cutover, F9 scheduler/cache runtime or registered issuer paths, or host-runtime evidence; those checks remain pending until their owning features add discriminating fixtures.
 
 ## Independent-oracle rule
 

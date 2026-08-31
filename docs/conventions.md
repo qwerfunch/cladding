@@ -23,10 +23,11 @@ See [`docs/code-style.md`](./code-style.md) for the canonical style rules. Key p
 These conventions are unique to cladding (not in `code-style.md`):
 
 - **Tier banner on line 1**: Every Tier A/B/C/D artifact opens with `# Cladding · Tier <X> · ...` (YAML) or `<!-- Cladding · Tier <X> · ... -->` (markdown). Personas + tools identify tier via `head -1`.
-- **Hash-based feature ids**: New features use `F-<hash6>` (six hex). Generate via `node -e "console.log('F-' + require('node:crypto').randomBytes(3).toString('hex'))"`.
-- **Sharded spec**: `spec.yaml` carries `features: []`; per-feature shards live at `spec/features/<slug>-<hash6>.yaml`.
+- **Hash-based feature ids**: New features use `F-<hash8>` (eight lowercase hex). Generate via `node -e "console.log('F-' + require('node:crypto').randomBytes(4).toString('hex'))"`.
+- **Sharded spec**: `spec.yaml` carries `features: []`; per-feature shards live at `spec/features/<slug>-<hash8>.yaml`.
+- **Schema migration preview**: `clad migrate --to 0.2` is deterministic and read-only. It copies authored criterion text for review and never applies a migration, infers new semantic fields, or changes files.
 - **No emoji in code or docs unless explicitly requested**.
-- **PR commit message**: `feat(F-<hash>): <one-line summary>` for new features; `release(vX.Y.Z): ...` for releases.
+- **PR commit message**: `feat(F-<hash8>): <one-line summary>` for new features; `release(vX.Y.Z): ...` for releases.
 
 ## When in doubt
 

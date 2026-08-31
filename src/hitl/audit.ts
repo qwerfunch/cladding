@@ -13,10 +13,11 @@
 // audit chain. The file write happens before observer dispatch, so
 // even a throwing observer leaves the audit log intact.
 
-import {appendFileSync, existsSync, mkdirSync, readFileSync} from 'node:fs';
-import {dirname, join} from 'node:path';
+import {existsSync} from 'node:fs';
+import {join} from 'node:path';
 
 import type {Evidence} from './identity.js';
+import {commitSpecTransactionFiles, readSpecTransactionBytes, withSpecWorkspaceLock} from '../spec/transaction.js';
 
 const AUDIT_DIR = '.cladding';
 const AUDIT_FILE = 'audit.log.jsonl';
@@ -57,12 +58,21 @@ export function clearAuditObserversForTesting(): void {
   observers.clear();
 }
 
-/** Append one evidence entry to the audit log. Creates the directory if needed. */
-export function appendEvidence(cwd: string, evidence: Evidence): void {
-  const path = auditPath(cwd);
-  const dir = dirname(path);
-  if (!existsSync(dir)) mkdirSync(dir, {recursive: true});
-  appendFileSync(path, `${JSON.stringify(evidence)}\n`, 'utf8');
+/** Append one evidence entry through the sole F4 workspace lock and journal. */
+export function appendEvidence(cwd: string, evidence: Evidence, faultAfterReplacementForTesting?: number): void {
+  withSpecWorkspaceLock(cwd, () => appendEvidenceWithLockHeld(cwd, evidence, faultAfterReplacementForTesting));
+  notifyEvidenceAppended(cwd, evidence);
+}
+
+/** Appends while a caller already owns the F4 lock; observers remain outside it. */
+export function appendEvidenceWithLockHeld(cwd: string, evidence: Evidence, faultAfterReplacementForTesting?: number): void {
+  const path = `${AUDIT_DIR}/${AUDIT_FILE}`;
+  const before = readSpecTransactionBytes(cwd, path);
+  commitSpecTransactionFiles(cwd, [{path, before, after: `${before ?? ''}${JSON.stringify(evidence)}\n`}], faultAfterReplacementForTesting);
+}
+
+/** Dispatches post-commit observers after callers have released the F4 lock. */
+export function notifyEvidenceAppended(cwd: string, evidence: Evidence): void {
   for (const observer of observers) {
     try {
       observer(cwd, evidence);
@@ -76,7 +86,7 @@ export function appendEvidence(cwd: string, evidence: Evidence): void {
 export function readEvidence(cwd: string): readonly Evidence[] {
   const path = auditPath(cwd);
   if (!existsSync(path)) return [];
-  const raw = readFileSync(path, 'utf8').trim();
+  const raw = readSpecTransactionBytes(cwd, `${AUDIT_DIR}/${AUDIT_FILE}`)?.trim() ?? '';
   if (raw.length === 0) return [];
   return raw
     .split('\n')

@@ -53,7 +53,7 @@ describe('selectDispatcher', () => {
     vi.restoreAllMocks();
   });
 
-  test('returns null when noLlm is true even with API key present', () => {
+  test('[covers:F-7fa4a7/AC-003] returns null when noLlm is true even with API key present', () => {
     process.env.ANTHROPIC_API_KEY = 'sk-test-noop';
     expect(selectDispatcher({noLlm: true})).toBeNull();
   });
@@ -62,7 +62,7 @@ describe('selectDispatcher', () => {
     expect(selectDispatcher()).toBeNull();
   });
 
-  test('returns null when noLlm is true via option override', () => {
+  test('[covers:F-417ff0/AC-002] returns null when noLlm is true via option override', () => {
     expect(selectDispatcher({noLlm: true, apiKey: 'sk-explicit'})).toBeNull();
   });
 
@@ -80,7 +80,7 @@ describe('selectDispatcher', () => {
   // v0.3.34 — MCP sampling wins over the Anthropic SDK fallback so
   // hosted environments (clad serve + Claude Code/Cursor/Continue)
   // don't need cladding to hold its own API credentials.
-  test('MCP server registration takes priority over ANTHROPIC_API_KEY', async () => {
+  test('[covers:F-7fa4a7/AC-002] MCP server registration takes priority over ANTHROPIC_API_KEY', async () => {
     process.env.ANTHROPIC_API_KEY = 'sk-should-not-be-used';
     setHostMcpServer(fakeSamplingServer('mcp-reply'));
     const dispatcher = selectDispatcher();
@@ -89,7 +89,7 @@ describe('selectDispatcher', () => {
     expect(text).toBe('mcp-reply');
   });
 
-  test('MCP dispatcher passes the prompt verbatim through createMessage', async () => {
+  test('[covers:F-7fa4a7/AC-001] MCP dispatcher passes the prompt verbatim through createMessage', async () => {
     let received = '';
     setHostMcpServer({
       async createMessage(params) {
@@ -106,7 +106,7 @@ describe('selectDispatcher', () => {
     expect(received).toBe('the exact prompt');
   });
 
-  test('MCP dispatcher returns empty string when the reply has no text block', async () => {
+  test('[covers:F-7fa4a7/AC-004] MCP dispatcher returns empty string when the reply has no text block', async () => {
     setHostMcpServer({
       async createMessage() {
         return {

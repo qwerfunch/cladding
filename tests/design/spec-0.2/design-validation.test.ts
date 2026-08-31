@@ -21,7 +21,7 @@ describe('Spec 0.2 validation ledger', () => {
     report = await validateSpec02(process.cwd());
   });
 
-  test('maps every D01-D24 decision exactly once and rejects fabricated pass evidence', () => {
+  test('marks the F7 scenario boundary validation-active without promoting F8-F11 work', () => {
     const manifest = loadValidationManifest(process.cwd());
     expect(manifest.decisions.map((decision) => decision.id)).toEqual(
       Array.from({length: 24}, (_, index) => `D${String(index + 1).padStart(2, '0')}`),
@@ -29,8 +29,26 @@ describe('Spec 0.2 validation ledger', () => {
     expect(report.checks.find((check) => check.id === 'design-ownership')?.status).toBe('pass');
     expect(report.checks.find((check) => check.id === 'target-runtime-implementation')?.status)
       .toBe('implementation_pending');
+    expect(manifest.decisions.filter((decision) => decision.implementation === 'validation-active').map((decision) => decision.id))
+      .toEqual(['D05', 'D06', 'D07', 'D08', 'D09', 'D10', 'D11', 'D12', 'D13', 'D14', 'D17', 'D20', 'D21', 'D22', 'D23', 'D24']);
+    expect(manifest.decisions.filter((decision) => !['D05', 'D06', 'D07', 'D08', 'D09', 'D10', 'D11', 'D12', 'D13', 'D14', 'D17', 'D20', 'D21', 'D22', 'D23', 'D24'].includes(decision.id) && decision.implementation !== 'pending'))
+      .toEqual([]);
+    expect(report.checks.find((check) => check.id === 'compiler-registry-boundary')).toMatchObject({
+      status: 'pass',
+      evidence: expect.stringContaining('D09 scenario policy'),
+    });
+    expect(report.checks.find((check) => check.id === 'compiler-registry-boundary')?.evidence)
+      .toContain('F8 public GraphIR cutover');
     expect(report.checks.find((check) => check.id === 'preregistered-case-ledger')?.evidence)
-      .toContain('not 37 passing implementations');
+      .toContain('not complete runtime evidence');
+    expect(manifest.integration_journeys.find((journey) => journey.id === 'J05')).toMatchObject({
+      decisions: ['D09', 'D21'], status: 'simulated', scenario: 'scenario-policy-obligation',
+    });
+    expect(manifest.integration_journeys.filter((journey) => ['J04', 'J09'].includes(journey.id)).map((journey) => journey.status))
+      .toEqual(['implementation_pending', 'implementation_pending']);
+    expect(manifest.decisions.find((decision) => decision.id === 'D17')).toMatchObject({
+      scenario: 'assurance-closure-slice-only', implementation: 'validation-active',
+    });
 
     const designRoot = join(process.cwd(), 'docs/design/spec-0.2');
     const documents = new Map<string, string>([
@@ -59,10 +77,36 @@ describe('Spec 0.2 validation ledger', () => {
     expect(decisionOwnershipIssues(manifest, fenced)).toEqual([]);
   });
 
+  test('keeps the D01-D24 ledger canonical and rejects fabricated preregistered pass evidence', () => {
+    const manifest = loadValidationManifest(process.cwd());
+    const decisionIds = Array.from({length: 24}, (_, index) => `D${String(index + 1).padStart(2, '0')}`);
+    expect(manifest.decisions.map((decision) => decision.id)).toEqual(decisionIds);
+    expect(new Set(manifest.decisions.map((decision) => decision.id))).toHaveProperty('size', 24);
+    expect(manifest.decisions.every((decision) =>
+      decision.owner.length > 0 && decision.scenario.length > 0 &&
+      ['pending', 'validation-active'].includes(decision.implementation),
+    )).toBe(true);
+
+    const ledger = report.checks.find((check) => check.id === 'preregistered-case-ledger');
+    expect(ledger).toMatchObject({status: 'pass'});
+    expect(ledger?.evidence).toContain('not complete runtime evidence');
+    expect(report.checks.filter((check) => [
+      'target-runtime-implementation',
+      'integration-journey-runtime',
+      'integration-journey-reference-host',
+    ].includes(check.id))).toEqual([
+      expect.objectContaining({id: 'integration-journey-runtime', status: 'implementation_pending'}),
+      expect.objectContaining({id: 'integration-journey-reference-host', status: 'not_run'}),
+      expect.objectContaining({id: 'target-runtime-implementation', status: 'implementation_pending'}),
+    ]);
+  });
+
   test('runs deterministic design scenarios without converting pending implementation into evidence', () => {
     const manifest = loadValidationManifest(process.cwd());
     expect(manifest.preregistered_cases).toHaveLength(37);
     expect(new Set(manifest.preregistered_cases.map((entry) => entry.id))).toHaveProperty('size', 37);
+    expect(manifest.preregistered_cases.filter((entry) => entry.implementation === 'validation-active').map((entry) => entry.id))
+      .toEqual(['P01', 'P02', 'P03', 'P04', 'P05', 'P06', 'P07', 'P08', 'P09', 'P10', 'L01', 'L02', 'L03', 'L04', 'B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'C01', 'C02', 'C03', 'C04', 'C05', 'C06', 'T01', 'T02', 'T03', 'T04', 'U01', 'U02', 'U03', 'U04', 'A01', 'A02', 'A03']);
     expect(report.checks.find((check) => check.id === 'preregistered-case-ledger')).toMatchObject({
       status: 'pass',
     });
@@ -138,6 +182,39 @@ describe('Spec 0.2 validation ledger', () => {
     expect(context).toContain('AB01–AB12 live A/B may support only a task-scoped efficiency claim');
     expect(delivery).not.toContain('40-task host A/B remain independent tail work');
     expect(decisions).toContain('Broader LLM GraphIR retrieval study');
+  });
+
+  test('locks the 0.10 rebaseline without upgrading pending runtime evidence', () => {
+    const model = readFileSync(join(process.cwd(), 'docs/design/spec-0.2/model-and-migration.md'), 'utf8');
+    const delivery = readFileSync(join(process.cwd(), 'docs/design/spec-0.2/delivery.md'), 'utf8');
+    const context = readFileSync(join(process.cwd(), 'docs/design/spec-0.2/context-and-orchestration.md'), 'utf8');
+    const mcp = readFileSync(join(process.cwd(), 'docs/design/spec-0.2/mcp.md'), 'utf8');
+    const governance = readFileSync(join(process.cwd(), 'GOVERNANCE.md'), 'utf8');
+    const manifest = loadValidationManifest(process.cwd());
+    expect(model).toContain('spec/generated/index.yaml');
+    expect(model).toContain('clad relocate-generated --apply');
+    expect(model).toContain('Before F11, the F4/F7 engine treats old paths as the then-canonical transitional layout');
+    expect(model).toContain('its final engine applies this state machine');
+    expect(model).toContain('`relocation_required`');
+    expect(model).toContain('recovery-only');
+    expect(model).toContain('the self release attestation remains');
+    expect(model).toContain('Only real human-signed Codex and Claude Code MCP11');
+    expect(model).not.toContain('final release proves L4');
+    expect(delivery).toContain('V0 and F1–F11 ship in 0.10.0');
+    expect(delivery).toContain('Before F11, migration keeps old paths canonical so F7–F10 complete');
+    expect(delivery).toContain('In the final F11 engine, 0.2+old is `relocation_required`');
+    expect(delivery).toContain('does not retroactively block F7–F10 completion');
+    expect(delivery).toContain('a stronger one-run feature completion');
+    expect(delivery).toContain('node bin/clad check --profile release --strict');
+    expect(delivery).toContain('Cladding persists L2 after migration');
+    expect(context).toContain('It introduces `clad signoff`');
+    expect(context).toContain('macOS Keychain, Windows Credential');
+    expect(mcp).toContain('Codex and Claude Code each complete');
+    expect(governance).toContain('Pre-F6/current shipped releases retain their existing gate command');
+    expect(manifest.mcp_reference_hosts).toEqual(['codex', 'claude-code']);
+    expect(manifest.host_ab).toEqual({host: 'codex', max_calls: 24, blocking: false});
+    expect(report.checks.find((check) => check.id === 'mcp-reference-host-spec-02-e2e')?.status)
+      .toBe('not_run');
   });
 
   test('keeps validation evidence measurements scoped and reproducible', () => {

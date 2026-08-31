@@ -82,6 +82,16 @@ describe('status-aware MISSING_IMPLEMENTATION (F-e8912be3)', () => {
         );
       });
     }
+
+    test('[covers:F-e8912be3/AC-daff1078] planned and in-progress missing modules are informational rather than blocking', () => {
+      for (const status of ['planned', 'in_progress']) {
+        writeFixture(dir, status);
+        const findings = miFindings(runDrift({cwd: dir}));
+        expect(findings).toHaveLength(1);
+        expect(findings[0]?.severity).toBe('info');
+        expect(findings[0]?.message).toContain('is not built yet');
+      }
+    });
   });
 
   describe('AC-9f1a7ad1 · done/archived (shipped-or-final) declares-but-missing -> error, legacy message unchanged', () => {
@@ -119,7 +129,7 @@ describe('status-aware MISSING_IMPLEMENTATION (F-e8912be3)', () => {
   });
 
   describe('AC-e8e0bf03 · in_progress all-missing runs non-strict -> pass (unit equivalent of the F-014_AC-023 fixture)', () => {
-    test('the same fixture is non-strict PASS overall (no error-severity finding from any detector)', () => {
+    test('[covers:F-e8912be3/AC-e8e0bf03] the same fixture is non-strict PASS overall (no error-severity finding from any detector)', () => {
       // Unit-level equivalent of conformance/runner.ts's F-014_AC-023 fixture
       // (in_progress, all declared modules missing, non-strict -> pass). The
       // fixture itself + its narrative are pinned authoritatively by
@@ -180,7 +190,7 @@ describe('AC-5b108de2 · docs/feature-cycle.md no longer claims UNTESTED_AC is s
     expect(poisoned.includes(OLD_WRONG_CLAIM)).toBe(true);
   });
 
-  test('the new window-tolerance sentence is present: UNTESTED_AC/MISSING_TESTS done-scoped + MISSING_IMPLEMENTATION info while planned/in_progress', () => {
+  test('[covers:F-e8912be3/AC-5b108de2] the new window-tolerance sentence is present: UNTESTED_AC/MISSING_TESTS done-scoped + MISSING_IMPLEMENTATION info while planned/in_progress', () => {
     expect(doc).toContain('spec-vs-code detectors are status-aware');
     expect(doc).toContain('UNTESTED_AC and');
     expect(doc).toContain('MISSING_TESTS are done-scoped');

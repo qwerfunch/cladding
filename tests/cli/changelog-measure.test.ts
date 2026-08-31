@@ -121,7 +121,7 @@ afterEach(() => {
 });
 
 describe('clad changelog --measure — no snapshot at HEAD never substitutes older numbers (AC-36b1df91)', () => {
-  test('a stale snapshot (head ≠ HEAD) → not-measured notice, stale numbers absent, exit 0', () => {
+  test('[covers:F-ede6fa75/AC-36b1df91] a stale snapshot (head ≠ HEAD) → not-measured notice, stale numbers absent, exit 0', () => {
     setupRepo();
     // ledger holds a snapshot for a DIFFERENT commit, with a distinctive slice.
     seedLedger([mkSnap('0'.repeat(40), 424242)]);
@@ -161,7 +161,7 @@ describe('clad changelog --json --measure — explicit presence/absence (AC-8969
     expect(exitCalls).toEqual([0]);
   });
 
-  test('an unreadable ledger → json measured null with reason "ledger unreadable", exit 0', () => {
+  test('[covers:F-ede6fa75/AC-8969e2af] an unreadable ledger → json measured null with reason "ledger unreadable", exit 0', () => {
     setupRepo();
     // present, non-blank, but no line parses into a snapshot.
     mkdirSync(join(dir, '.cladding'), {recursive: true});

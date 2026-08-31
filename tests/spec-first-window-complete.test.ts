@@ -52,7 +52,7 @@ describe('F-c3747d7d — spec-first window complete across all drift detectors',
   // ─── AC-2f8fb0b6 — the window collapses all three detectors to info ───────
 
   describe('AC-2f8fb0b6 — spec-first window: all three detectors emit info', () => {
-    test('in_progress + every declared module absent → STATUS_DRIFT info, STALE_SPECIFICATION info, MISSING_IMPLEMENTATION info ×N; zero error|warn', () => {
+    test('[covers:F-c3747d7d/AC-2f8fb0b6] in_progress + every declared module absent → STATUS_DRIFT info, STALE_SPECIFICATION info, MISSING_IMPLEMENTATION info ×N; zero error|warn', () => {
       writeFeature(dir, 'F-001.yaml', 'id: F-001\ntitle: t\nstatus: in_progress\nmodules:\n  - src/a.ts\n  - src/b.ts\n');
 
       const sd = statusDrift.run({cwd: dir});
@@ -199,7 +199,7 @@ describe('F-c3747d7d — spec-first window complete across all drift detectors',
       return out;
     }
 
-    test('isSpecFirstWindow is DEFINED in exactly one file (spec-first-window.ts) and IMPORTED by exactly the three window detectors', () => {
+    test('[covers:F-c3747d7d/AC-c6b06ec4] isSpecFirstWindow is DEFINED in exactly one file (spec-first-window.ts) and IMPORTED by exactly the three window detectors', () => {
       const files = walkTsFiles(SRC_ROOT);
       const definitionSites = files.filter((f) => /function isSpecFirstWindow\s*\(/.test(readFileSync(f, 'utf8')));
       expect(definitionSites).toEqual([join(SRC_ROOT, 'stages', 'detectors', 'spec-first-window.ts')]);

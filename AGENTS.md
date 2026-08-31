@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This file is the cross-tool entry point for any AI coding agent working on cladding (OpenAI Codex, Cursor, Cline, Aider, Continue, GitHub Copilot, Gemini CLI, JetBrains Junie, Windsurf, and the other tools that read the [agents.md](https://agents.md/) standard). Claude Code reads this too — there is no separate CLAUDE.md.
+This file is the shared cross-tool entry point for AI coding agents working on cladding (OpenAI Codex, Cursor, Cline, Aider, Continue, GitHub Copilot, Gemini CLI, JetBrains Junie, Windsurf, and other [agents.md](https://agents.md/) hosts). [`CLAUDE.md`](CLAUDE.md) is the Claude Code maintainer addendum; it does not replace this shared contract or `GOVERNANCE.md`.
 
 ## 1. Project
 
@@ -41,7 +41,7 @@ Comment policy in one paragraph: *why* over *what*, full doc-tag set on every ex
 
 ## 5. PR policy
 
-Branch off `develop`, never `main`. Open the PR against `develop`. The maintainer fast-forwards `main` only at explicit release time. Full contract: `GOVERNANCE.md` §4.3.
+Branch off `develop`, never `main`, and open ordinary PRs against `develop`. A release uses a `develop → main` PR merged with a merge commit, followed by the mandatory `main → develop` back-merge. Full contract: `GOVERNANCE.md` §3–4.3 and `CLAUDE.md`.
 
 ## 6. Agent personas
 

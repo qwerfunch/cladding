@@ -11,21 +11,22 @@ acceptance_criteria:
     text: "The test suite shall pin the gate's exit contract as a golden matrix: with stage runners stubbed, every combination of tier (pre-commit, pre-push, all) x strict (on, off) x per-stage outcome (pass=0, fail=1, skip=2) asserts the gate's worst exit code, whether the gate blocks, and each stage's reported status."
     notes: "## Why\nFeatures #1 (gate_run events), #5 (skip-policy), #10 (attestation) all rewire runCheckStages — the single function defining the 0/1/2 contract for clad check AND clad done. Its direct tests today cover 4 cases; the comment at the skip-relay site records a real prior bug (tsc's raw exit 2 relayed as skip let a type failure pass). Freeze the contract first, refactor against it."
     test_refs:
-      - "tests/cli/gate-golden-matrix.test.ts#baseline: all stages pass — worst 0, nothing failed, every tier runs exactly its TIER_STAGES"
+      - "tests/cli/gate-golden-matrix.test.ts#baseline: all stages pass → worst 0, nothing failed, every tier runs exactly its TIER_STAGES"
       - "tests/cli/gate-golden-matrix.test.ts#single-stage FAIL: exactly that stage reports fail; worst 1; gate blocks — every stage × every tier × strict on/off"
       - "tests/cli/gate-golden-matrix.test.ts#single-stage SKIP is non-blocking: worst stays 0 — every stage × tier × strict EXCEPT the pinned unit-guard promotion"
   - id: AC-40db4c
     ears: unwanted
-    condition: "if a stage skips under strict with verifiable done features present"
-    action: "pin the current unit-only promotion in the matrix"
-    response: "the 0.6 skip-policy change must edit the golden matrix explicitly"
-    text: "If a stage runner exits 2 (skip) while strict mode is on and the spec declares done features with test_refs, the unit-stage guard shall force the gate RED, and the golden matrix shall pin this as the only skip-to-RED promotion in the pre-0.6 contract, so the #5 skip-policy generalization lands as an intentional, visible contract change rather than a silent one."
+    condition: "if a stage skips under strict mode"
+    action: "promote the skip to RED only when the current demand table declares its precondition for stage 1.1, 2.1, 2.3, or 2.4"
+    response: "keep non-strict, undemanded, and out-of-tier skips non-blocking"
+    text: "If a stage skips under strict mode, the gate shall promote it to RED only when the current demand table declares its precondition for stage 1.1, 2.1, 2.3, or 2.4, while keeping non-strict, undemanded, and out-of-tier skips non-blocking."
+    notes: "## Decision\nThis golden matrix characterizes the current gate boundary. F-67d2e9 owns the demand-policy semantics; the matrix pins their stage and strictness effects without restoring the stale unit-only or retired-arm contract."
     test_refs:
-      - "tests/cli/gate-golden-matrix.test.ts#PINNED PROMOTION (the only one pre-0.6): Unit skip + strict + tested-done features — extra Verification fail entry, worst 1"
-      - "tests/cli/gate-golden-matrix.test.ts#the promotion does NOT fire: non-strict, or no tested-done features, or tier without stage_2.1"
+      - "tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c] strict demand table promotes skips only for declared stage 1.1/2.1/2.3/2.4 demands and keeps non-strict or undemanded skips non-blocking"
+      - "tests/cli/gate-golden-matrix.test.ts#demands do NOT fire: non-strict, or no demand in the spec, or the stage outside the tier"
   - id: AC-3f7ea4
     ears: ubiquitous
     text: "The golden matrix shall run with injected stage stubs only — no toolchain spawn, no spec fixture I/O beyond a minimal temp spec — so the full matrix executes in under a second and runs in every CI invocation."
 
     test_refs:
-      - "tests/cli/gate-golden-matrix.test.ts#unknown tier — worst 2, anyFailed true, no stages run"
+      - "tests/cli/gate-golden-matrix.test.ts#unknown tier → worst 2, anyFailed true, no stages run"

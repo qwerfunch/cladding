@@ -19,8 +19,8 @@ This directory holds artifacts from two tiers of the [4-tier SSoT model](../docs
 | Path | Tier | Authority | Refresh trigger |
 |---|---|---|---|
 | `spec.yaml` (this file + sharded pointer) | **A** Spec SSoT | sealed by Iron Law gates | `clad_create_feature` MCP tool or hand-edit + `clad sync` |
-| `spec/features/<slug>-<hash6>.yaml` | **A** | sealed | `clad_create_feature` |
-| `spec/scenarios/<slug>-<hash6>.yaml` | **A** | sealed (onboarding output, edit-friendly) | `clad init <intent>` onboarding (v0.3.45+) + `clad_create_feature` binding |
+| `spec/features/<slug>-<hash8>.yaml` | **A** | sealed | `clad_create_feature` |
+| `spec/scenarios/<slug>-<hash8>.yaml` | **A** | sealed (onboarding output, edit-friendly) | `clad init <intent>` onboarding (v0.3.45+) + `clad_create_feature` binding |
 | `spec/architecture.yaml` | **B** Design SSoT | user-decided, cross-validated with A | `clad init` / `clad refine` (LLM-refined or seeded) |
 | `spec/capabilities.yaml` | **B** | user-decided, cross-validated with A | `clad init` / `clad refine` (LLM-refined or seeded) |
 
@@ -44,13 +44,13 @@ project:
   name: <string>
   language: <string>
 features:
-  - id: F-NNN
+  - id: F-a11ce001                # new IDs use exactly 8 lowercase hex; legacy F-NNN / six-or-more-hex remain readable
     title: <string>
     status: planned | in_progress | done | blocked | archived
     modules: [<path>, ...]
     acceptance_criteria:
-      - id: AC-NNN
-        ears: ubiquitous | event | state | optional | unwanted
+      - id: AC-acce5510           # new IDs use exactly 8 lowercase hex; address is criterion:F-a11ce001/AC-acce5510
+        ears: ubiquitous | event | state | optional | unwanted | complex
         condition: <EARS Trigger>
         action: <EARS Action>
         response: <EARS Result>
@@ -58,15 +58,15 @@ features:
         test_refs: [<test-id>, ...]
         notes: <free-form>
         adr_refs: [ADR-NNN, ...]
-    depends_on: [F-NNN, ...]
+    depends_on: [F-deadbeef, ...] # valid feature IDs; legacy readable IDs are also accepted
     archived_at: <date-time>
     archive_reason: <string>
-    superseded_by: F-NNN
+    superseded_by: F-c0ffee12     # valid feature ID; legacy readable IDs are also accepted
 scenarios:           # optional (T2c sharding)
-  - id: S-NNN
+  - id: S-c0ff1e01                # new IDs use exactly 8 lowercase hex; legacy S-NNN / six-or-more-hex remain readable
     title: <string>
     flow: <string>
-    features: [F-NNN, ...]
+    features: [F-a11ce001, ...]   # valid feature IDs; legacy readable IDs are also accepted
 architecture:        # optional
   layers: [[<layer>, <layer>, ...], ...]
   forbidden_imports:
@@ -91,7 +91,7 @@ Exit codes: 0 = valid · 1 = invalid (errors[] populated) · 2 = read/parse fail
 
 ## [WHY EARS IN SCHEMA]
 
-EARS (Easy Approach to Requirements Syntax — 5 patterns: ubiquitous, event, state, optional, unwanted) is the way Ironclad keeps Iron Core (`AC-001` ids) and Soft Shell (rendered natural-language sentences) coexisting. The schema accepts both `condition`/`action`/`response` triples (for system synthesis) and `text` (pre-rendered for user display). Either fills the AC; both is best.
+EARS (Easy Approach to Requirements Syntax — five basic patterns: ubiquitous, event, state, optional, unwanted; plus compound/complex) is the way Ironclad keeps feature-scoped acceptance-criterion identifiers (new hash8 or legacy-readable) and Soft Shell (rendered natural-language sentences) coexisting. The schema accepts both `condition`/`action`/`response` triples (for system synthesis) and `text` (pre-rendered for user display). Either fills the AC; both is best.
 
 See: `ironclad-design/11-ssot-refinement-ears.md` · `ironclad/ears.md`.
 
@@ -100,4 +100,4 @@ See: `ironclad-design/11-ssot-refinement-ears.md` · `ironclad/ears.md`.
 - **T2b** — author the cladding's own complete `spec.yaml` (every shipped feature, every AC)
 - **T2c** — multi-file sharding: `spec.yaml` (master) + `scenarios/*.yaml` + `features/*.yaml` + `architecture/*.yaml`
 - **T4** — the 12 Ironclad-native detectors that read this module (`AC_DRIFT`, `UNTESTED_AC`, `STATUS_DRIFT`, `MISSING_IMPLEMENTATION`, …)
-- **T5** — full EARS validator (5-pattern syntactic check on `condition`/`action`/`response` strings)
+- **T5** — full EARS validator (five basic patterns plus compound/complex syntactic checks on `condition`/`action`/`response` strings)

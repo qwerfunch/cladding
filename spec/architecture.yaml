@@ -15,6 +15,7 @@
 layers:
   - - spec
     - agents
+    - assurance
     - changelog
     - core
     - events
@@ -23,6 +24,7 @@ layers:
     - optimizer
     - oracle
     - report
+    - proof
     - router
     - ui
     - graph

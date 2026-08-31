@@ -93,7 +93,7 @@ describe('AC-538802ac · protocol doc fixes the B1 decision rule before the data
 });
 
 describe('AC-8753c264 · the backlog B1 row is gated on the protocol doc', () => {
-  test('refinement-backlog.md B1 row points at docs/b1-adoption-protocol.md', () => {
+  test('[covers:F-e803c149/AC-8753c264] refinement-backlog.md B1 row points at docs/b1-adoption-protocol.md', () => {
     const backlog = read('docs/refinement-backlog.md');
     const b1Row = backlog.split('\n').find((l) => l.startsWith('| B1 |'));
     expect(b1Row, 'the B1 row is present in the backlog table').toBeDefined();
@@ -103,7 +103,7 @@ describe('AC-8753c264 · the backlog B1 row is gated on the protocol doc', () =>
 });
 
 describe('AC-d2182432 · the glossary defines the adoption verdict and links the protocol', () => {
-  test('glossary.md defines pull-vs-push, the three verdict values, and points at the protocol doc', () => {
+  test('[covers:F-e803c149/AC-d2182432] glossary.md defines pull-vs-push, the three verdict values, and points at the protocol doc', () => {
     const glossary = read('docs/glossary.md');
     const row = glossary.split('\n').find((l) => l.startsWith('| `adoption verdict`'));
     expect(row, 'the adoption verdict glossary row is present').toBeDefined();

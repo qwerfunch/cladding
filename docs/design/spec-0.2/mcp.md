@@ -43,11 +43,11 @@ The validation suite separates claims that are often conflated:
 1. **Wire conformance:** initialize negotiation, declared capabilities, schemas, list/get/call behavior, error framing, and text/structured parity.
 2. **Semantic parity:** MCP, CLI, and in-process callers reach the same compiler/edit/assurance operation and normalized result.
 3. **Mutation safety:** consent, path bounds, size bounds, optimistic concurrency, journal recovery, idempotent replay, and rollback.
-4. **Reference-host efficacy:** one supported host completes a real Spec 0.2 spec-edit → implementation → verification → attestation cycle using MCP where routed.
+4. **Reference-host efficacy:** Codex and Claude Code each complete a real Spec 0.2 spec-edit → implementation → verification → L4 attestation cycle using MCP where routed.
 5. **Efficiency when used:** an equivalent successful task uses fewer measured input/output tokens or less active time without worse correctness, retries, or omissions.
 6. **Observed adoption:** agents voluntarily pull the surface across completed cycles under the existing B1 telemetry thresholds.
 
-Each rung requires its own evidence. Wire success does not prove end-to-end efficacy; efficacy does not prove efficiency; efficiency when forced does not prove adoption. The 0.10.0 MCP release gate is deterministic conformance, semantic/mutation parity for shipped Spec 0.2 operations, and one reference-host end-to-end cycle. Multi-host adoption and token advantage remain reported but non-blocking.
+Each rung requires its own evidence. Wire success does not prove efficacy; efficacy does not prove efficiency; forced efficiency does not prove adoption. The 0.10.0 gate is deterministic conformance, semantic/mutation parity, and both MCP11 reference-host cycles. Adoption and token advantage remain reported but non-blocking.
 
 ### Preregistered MCP scenarios
 
@@ -65,7 +65,7 @@ The executable ledger owns the exact IDs; these groups define their intent:
 | MCP08 | graph/context/catalog byte budgets and omission metadata | blocking for hard ceilings; efficiency claim non-blocking |
 | MCP09 | F5 receipt ingestion/offline verification and asserted fallback; F9 registered human/blind production paths | blocking at each owning feature boundary |
 | MCP10 | tools-only host with resources/prompts/subscriptions absent | blocking |
-| MCP11 | reference-host full Spec 0.2 cycle | blocking before 0.10.0 release, not before F1 starts |
+| MCP11 | Codex and Claude Code full Spec 0.2 L4 cycles | blocking before 0.10.0 release, not before F1 starts |
 | MCP12 | delivery-versus-pull adoption telemetry | measurement; adoption result non-blocking |
 
 An unimplemented operation is `implementation_pending`; an available but unexecuted host scenario is `not_run`; missing discriminating evidence is `inconclusive`. None is serialized as pass.
@@ -82,7 +82,7 @@ Every deterministic measurement reports:
 
 “Waste” is only the positive byte/token difference between two executions that produced the same required semantic output and passed the same fault checks. Large context, an unused field, or a smaller challenger is not waste by inspection. Counterfactual equivalence must be stated in the result.
 
-The committed deterministic comparison measures the full initialized catalog and task-profile challenger using canonical JSON bytes. It is a lower-level cost input, not provider token use. The executable ledger fixes AB01–AB12 across contract lookup, composite identity, impact/closure retrieval, purpose/criterion/capability edits, disjoint/same-shard concurrency, scoped proof, stale failure explanation, independence, and delivery-versus-adoption. A live host A/B runs those twelve tasks in two arms (current full catalog and the candidate projection), at most twenty-four host task calls. It records success, retries, missing-tool recovery, active time, provider usage, cache knowledge, fault-control detection, and resulting contract/verdict parity. If provider usage is unavailable, exact controlled bytes and wall time remain labelled estimates; no token-superiority claim is allowed.
+The committed deterministic comparison measures the full initialized catalog and task-profile challenger using canonical JSON bytes. It is a lower-level cost input, not provider token use. The executable ledger fixes AB01–AB12 across contract lookup, identity, impact/closure, edits, concurrency, proof, stale failure explanation, independence, and delivery/adoption. A Codex-only live A/B runs the twelve tasks in two arms (full catalog and candidate projection), at most twenty-four host task calls. It records success, retries, recovery, active time, provider usage, cache knowledge, fault-control detection, and contract/verdict parity. It is non-blocking; unavailable provider usage leaves controlled bytes and wall time labelled estimates, never token superiority.
 
 ### Change discipline
 

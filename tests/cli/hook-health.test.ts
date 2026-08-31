@@ -20,7 +20,7 @@ describe('bounded hook-health snapshot', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('five event pulses overwrite fixed keys instead of growing the event log', () => {
+  test('[covers:F-96fa5622/AC-4c90cd04] five event pulses overwrite fixed keys instead of growing the event log', () => {
     writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\n', 'utf8');
     HOOK_EVENTS.forEach((event, index) => {
       expect(recordHookFiring(dir, event, {
@@ -54,7 +54,7 @@ describe('bounded hook-health snapshot', () => {
     expect(existsSync(path())).toBe(false);
   });
 
-  test('missing or corrupt evidence reports not-observed with all five null keys', () => {
+  test('[covers:F-96fa5622/AC-8b37ba53] missing or corrupt evidence reports not-observed with all five null keys', () => {
     expect(readHookHealth(dir, '0.9.4')).toEqual({
       installation: 'not-observed',
       recordedVersion: null,
@@ -80,7 +80,7 @@ describe('bounded hook-health snapshot', () => {
     expect(readHookHealth(dir, '0.9.4').installation).toBe('not-observed');
   });
 
-  test('recording precedes hook dispatch and preserves the protocol result', () => {
+  test('[covers:F-96fa5622/AC-4c90cd04] recording precedes hook dispatch and preserves the protocol result', () => {
     writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\n', 'utf8');
     expect(runHookEvent('PreToolUse', {}, dir)).toBe('');
     const report = readHookHealth(dir);

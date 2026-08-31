@@ -83,7 +83,7 @@ export function renderGitHook(kind: HookKind, version: string): string {
     '#!/bin/sh',
     `# ${HOOK_MARKER_PREFIX}${kind} hook — installed by \`clad init --with-hook\` (cladding v${version})`,
     `# ${HOOK_PURPOSE[kind]}`,
-    `# Bypass once: git ${kind === 'pre-commit' ? 'commit' : 'push'} --no-verify   |   Remove: delete this file.`,
+    `# Bypass once: git ${kind === 'pre-commit' ? 'commit' : 'push'} --no-verify (the authoritative CI gate still runs)   |   Remove: delete this file.`,
     'if command -v clad >/dev/null 2>&1; then',
     `  exec clad ${args}`,
     'fi',

@@ -36,6 +36,22 @@ describe('drift registry', () => {
     expect(registeredDetectors().filter((n) => n === 'TEST_NOOP')).toHaveLength(1);
   });
 
+  test('[covers:F-003/AC-005] replacing a duplicate keeps its original slot and changes the registered detector', () => {
+    const replacement: DriftDetector = {
+      name: 'TEST_NOOP',
+      run: () => [{detector: 'TEST_NOOP', severity: 'error', message: 'replacement ran'}],
+    };
+    registerDetector(noop);
+    registerDetector(failer);
+    registerDetector(replacement);
+
+    expect(registeredDetectors()).toEqual(['TEST_NOOP', 'TEST_FAILER']);
+    expect(runDrift({cwd: '.'}).findings.map((finding) => finding.detector)).toEqual([
+      'TEST_NOOP',
+      'TEST_FAILER',
+    ]);
+  });
+
   test('error-severity finding fails the stage', () => {
     registerDetector(failer);
     const report = runDrift({cwd: '.'});
@@ -62,7 +78,7 @@ describe('drift --strict mode (F-051)', () => {
     expect(report.findings).toHaveLength(1);
   });
 
-  test('strict: warn finding DOES fail the stage', () => {
+  test('[covers:F-051/AC-104] strict: warn finding DOES fail the stage', () => {
     registerDetector(warner);
     const report = runDrift({cwd: '.', strict: true});
     expect(report.pass).toBe(false);

@@ -92,6 +92,18 @@ describe('stage_2.4 DELIVERABLE_SMOKE', () => {
     expect(r.exitCode).toBe(2);
   });
 
+  test('[covers:F-9064ff/AC-7ec24b] executes only a safe deliverable with a done feature and otherwise skips', () => {
+    writeSpec({deliverable: SAFE});
+    writeEntry(0);
+    expect(runDeliverableSmoke({cwd: dir}).exitCode).toBe(0);
+
+    writeSpec({deliverable: '  deliverable:\n    path: ./run\n'});
+    expect(runDeliverableSmoke({cwd: dir}).exitCode).toBe(2);
+
+    writeSpec({deliverable: SAFE, done: false});
+    expect(runDeliverableSmoke({cwd: dir}).exitCode).toBe(2);
+  });
+
   test('LIVENESS when the declared entry runs and exits 0 (exit-only ⇒ not a green PASS)', () => {
     writeSpec({deliverable: SAFE});
     writeEntry(0);
@@ -101,7 +113,7 @@ describe('stage_2.4 DELIVERABLE_SMOKE', () => {
     expect(r.disposition).toBe('liveness'); // F-8f419e — non-green, non-blocking
   });
 
-  test('FAIL (exit 1) when the declared entry CRASHES — the S5 reproduction', () => {
+  test('[covers:F-9064ff/AC-bab4d0] FAIL (exit 1) when the declared entry CRASHES — the S5 reproduction', () => {
     writeSpec({deliverable: SAFE});
     writeEntry(1); // broken/crashing entry
     const r = runDeliverableSmoke({cwd: dir});
@@ -134,7 +146,7 @@ describe('stage_2.4 DELIVERABLE_SMOKE', () => {
 });
 
 describe("stage_2.4 functional smoke probes (F-g')", () => {
-  test('PASS (green) when a cli probe runs clean AND stdout contains the AC token', () => {
+  test('[covers:F-43d8e3/AC-46afdd] PASS (green) when a cli probe runs clean AND stdout contains the AC token', () => {
     writeSmokeSpec(CLI_PROBE('HELLO'));
     writeEntryEcho('say HELLO world', 0);
     const r = runDeliverableSmoke({cwd: dir});
@@ -142,7 +154,7 @@ describe("stage_2.4 functional smoke probes (F-g')", () => {
     expect(r.exitCode).toBe(0);
   });
 
-  test('LIVENESS when a cli probe runs clean but declares NO token (exit-only)', () => {
+  test('[covers:F-8f419e/AC-332ace] LIVENESS when a cli probe runs clean but declares NO token (exit-only)', () => {
     writeSmokeSpec(CLI_PROBE());
     writeEntryEcho('whatever', 0);
     const r = runDeliverableSmoke({cwd: dir});
@@ -176,5 +188,20 @@ describe("stage_2.4 functional smoke probes (F-g')", () => {
     writeEntryEcho('HELLO', 0);
     const r = runDeliverableSmoke({cwd: dir});
     expect(r.disposition).toBe('pass');
+  });
+
+  test('[covers:F-43d8e3/AC-dc287f] probe dispositions distinguish exit-only liveness, missing-token failure, and kind:none', () => {
+    writeSmokeSpec(CLI_PROBE());
+    writeEntryEcho('ordinary output', 0);
+    expect(runDeliverableSmoke({cwd: dir}).disposition).toBe('liveness');
+
+    writeSmokeSpec(CLI_PROBE('HELLO'));
+    writeEntryEcho('ordinary output', 0);
+    const missingToken = runDeliverableSmoke({cwd: dir});
+    expect(missingToken.disposition).toBe('fail');
+    expect(missingToken.exitCode).toBe(1);
+
+    writeSmokeSpec('  smoke:\n    - kind: none\n');
+    expect(runDeliverableSmoke({cwd: dir}).disposition).toBe('na');
   });
 });

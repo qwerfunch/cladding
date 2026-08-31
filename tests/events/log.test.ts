@@ -8,12 +8,62 @@
 //   - newEvent fills id + timestamp
 //   - multiple events preserve order
 
-import {mkdtempSync, rmSync, writeFileSync, mkdirSync, existsSync} from 'node:fs';
+import {spawn} from 'node:child_process';
+import {mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync, mkdirSync, existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
 import {appendEvent, newEvent, readEvents, recordEvent} from '../../src/events/log.js';
+
+interface GateChild {
+  readonly ready: Promise<void>;
+  readonly done: Promise<void>;
+  release(): void;
+}
+
+/** Starts a gate caller that waits for an explicit parent barrier before writing. */
+function startGateChild(cwd: string, payload: Record<string, unknown>): GateChild {
+  const childSource = [
+    'const {recordEvent} = await import(process.env.CLADDING_EVENTS_MODULE);',
+    'const payload = JSON.parse(process.env.CLADDING_GATE_PAYLOAD);',
+    'process.stdout.write(\'READY\\n\');',
+    'process.stdin.once(\'data\', () => { recordEvent(process.env.CLADDING_EVENT_CWD, \'gate_run\', payload); process.exit(0); });',
+  ].join('\n');
+  const child = spawn(process.execPath, ['--import', 'tsx', '--input-type=module', '--eval', childSource], {
+    cwd: process.cwd(),
+    env: {
+      ...process.env,
+      CLADDING_EVENTS_MODULE: new URL('../../src/events/log.ts', import.meta.url).href,
+      CLADDING_EVENT_CWD: cwd,
+      CLADDING_GATE_PAYLOAD: JSON.stringify(payload),
+    },
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+  let ready = false;
+  let readyResolve: (() => void) | undefined;
+  let readyReject: ((error: Error) => void) | undefined;
+  const readyPromise = new Promise<void>((resolve, reject) => { readyResolve = resolve; readyReject = reject; });
+  let stderr = '';
+  child.stdout.setEncoding('utf8');
+  child.stderr.setEncoding('utf8');
+  child.stdout.on('data', (chunk: string) => {
+    if (!ready && chunk.includes('READY')) {
+      ready = true;
+      readyResolve?.();
+    }
+  });
+  child.stderr.on('data', (chunk: string) => { stderr += chunk; });
+  const done = new Promise<void>((resolve, reject) => {
+    child.once('error', reject);
+    child.once('exit', (code) => {
+      if (!ready) readyReject?.(new Error(`gate child exited before the barrier: ${stderr}`));
+      if (code === 0) resolve();
+      else reject(new Error(`gate child exited ${code}: ${stderr}`));
+    });
+  });
+  return {ready: readyPromise, done, release: () => { child.stdin.write('go\n'); }};
+}
 
 describe('events/log.ts', () => {
   let dir: string;
@@ -79,6 +129,48 @@ describe('events/log.ts', () => {
     appendEvent(dir, newEvent('evidence_recorded', {}));
     expect(readEvents(dir)).toHaveLength(1);
   });
+
+  test('a symlinked event workspace is an observer no-op and leaves outside bytes untouched', () => {
+    const outside = mkdtempSync(join(tmpdir(), 'clad-events-outside-'));
+    try {
+      writeFileSync(join(outside, 'events.log.jsonl'), 'outside sentinel\n');
+      symlinkSync(outside, join(dir, '.cladding'), 'dir');
+      const before = readFileSync(join(outside, 'events.log.jsonl'), 'utf8');
+      const entries = readdirSync(outside).sort();
+
+      expect(() => appendEvent(dir, newEvent('stage_started', {stage: 'stage_1.1'}))).not.toThrow();
+      expect(() => recordEvent(dir, 'gate_run', {tier: 'all', strict: true, worst: 0})).not.toThrow();
+
+      expect(readFileSync(join(outside, 'events.log.jsonl'), 'utf8')).toBe(before);
+      expect(readdirSync(outside).sort()).toEqual(entries);
+      expect(readEvents(dir)).toEqual([]);
+    } finally {
+      rmSync(outside, {recursive: true, force: true});
+    }
+  });
+
+  test('event-file and lock symbolic links are observer no-ops', () => {
+    const outside = mkdtempSync(join(tmpdir(), 'clad-events-outside-'));
+    try {
+      mkdirSync(join(dir, '.cladding'));
+      const eventTarget = join(outside, 'event-target');
+      const lockTarget = join(outside, 'lock-target');
+      writeFileSync(eventTarget, 'event sentinel\n');
+      writeFileSync(lockTarget, 'lock sentinel\n');
+      symlinkSync(eventTarget, join(dir, '.cladding', 'events.log.jsonl'));
+      const eventBefore = readFileSync(eventTarget, 'utf8');
+      expect(() => appendEvent(dir, newEvent('stage_started', {}))).not.toThrow();
+      expect(readFileSync(eventTarget, 'utf8')).toBe(eventBefore);
+
+      rmSync(join(dir, '.cladding', 'events.log.jsonl'));
+      symlinkSync(lockTarget, join(dir, '.cladding', 'spec-transaction.lock'));
+      const lockBefore = readFileSync(lockTarget, 'utf8');
+      expect(() => recordEvent(dir, 'gate_run', {tier: 'all', strict: true, worst: 0})).not.toThrow();
+      expect(readFileSync(lockTarget, 'utf8')).toBe(lockBefore);
+    } finally {
+      rmSync(outside, {recursive: true, force: true});
+    }
+  });
 });
 
 // ─── F-b84c38 — lifecycle events with identity ───
@@ -143,6 +235,20 @@ describe('recordEvent (F-b84c38)', () => {
       blockers: ['SECOND'],
       stopFingerprint: 'second',
     });
+    expect(readEvents(dir).filter((event) => event.type === 'gate_run')).toHaveLength(2);
+  });
+
+  test('concurrent gate callers dedupe under one lock and retain changed blockers', async () => {
+    const first = {tier: 'pre-push', strict: true, worst: 1, anyFailed: true, blockers: ['FIRST'], stopFingerprint: 'first'};
+    const left = startGateChild(dir, first);
+    const right = startGateChild(dir, first);
+    await Promise.all([left.ready, right.ready]);
+    left.release();
+    right.release();
+    await Promise.all([left.done, right.done]);
+    expect(readEvents(dir).filter((event) => event.type === 'gate_run')).toHaveLength(1);
+
+    recordEvent(dir, 'gate_run', {...first, blockers: ['SECOND'], stopFingerprint: 'second'});
     expect(readEvents(dir).filter((event) => event.type === 'gate_run')).toHaveLength(2);
   });
 

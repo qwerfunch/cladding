@@ -6,8 +6,23 @@ import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
 import {moduleFileHash, readAttestation, writeAttestation} from '../../src/spec/attestation.js';
+import {reduceLegacyStageAdapter} from '../../src/assurance/adapters.js';
+import {assuranceProfile} from '../../src/assurance/kernel.js';
+import {authoritativeFixtureVerdict as fixtureAuthority, mintAuthoritativeFixtureV3} from '../assurance/authoritative-fixture.js';
+import {assuranceClosureInputFromWorkspace, featureClosureSeals} from '../../src/assurance/workspace.js';
+import {compileSpecWorkspace} from '../../src/spec/compiler/compile.js';
 import {loadSpec} from '../../src/spec/load.js';
 import {staleAttestation} from '../../src/stages/detectors/stale-attestation.js';
+
+function authoritativeFixtureVerdict(digest: string, feature: string) {
+  return fixtureAuthority(reduceLegacyStageAdapter({
+    profile: assuranceProfile('completion', 'L2'), configuredAssuranceLevel: 'L2', completeScope: true,
+    scopeAddresses: [`feature:${feature}`], inputAddresses: [`feature:${feature}`], inputSha256: digest,
+    hasExecutableTests: false, hasOracleProof: false, hasDeliverable: false, requiresQuality: false, requiresHuman: false,
+    environmentClass: 'test',
+    stages: ['stage_1.1', 'stage_1.2', 'stage_1.3', 'stage_1.4', 'stage_1.5', 'stage_1.6'].map((stage) => ({stage, status: 'pass' as const})),
+  }));
+}
 
 describe('attestation (F-a5228c)', () => {
   let dir: string;
@@ -83,5 +98,38 @@ describe('attestation (F-a5228c)', () => {
     expect(writeAttestation(dir, loadSpec(dir))).toBe(false);
     expect(existsSync(join(dir, 'spec', 'attestation.yaml'))).toBe(false);
     expect(staleAttestation.run({cwd: dir}).length).toBe(0);
+  });
+
+  test('a current schema 0.2 v3 closure seal takes precedence over legacy module rows', () => {
+    rmSync(join(dir, 'spec', 'features', 'x-aaaa11.yaml'));
+    mkdirSync(join(dir, 'tests'));
+    writeFileSync(join(dir, 'tests', 'x.test.ts'), 'test(\"[covers:F-aaaaaaaa/AC-aaaaaaaa] bound\", () => {});\n');
+    writeFileSync(join(dir, 'spec.yaml'), [
+      'schema: "0.2"', 'project:', '  name: x', '  language: typescript', '  purpose: Keep verification seals current.',
+      '  assurance_level: L2', '  scenario_policy: advisory', '',
+    ].join('\n'));
+    writeFileSync(join(dir, 'spec', 'features', 'x-aaaaaaaa.yaml'), [
+      'id: F-aaaaaaaa', 'title: X', 'status: done', 'purpose: Preserve current closure seals.', 'modules: [src/m.ts]',
+      'depends_on: []', 'capability_refs: []', 'acceptance_criteria:',
+      '  - id: AC-aaaaaaaa', '    kind: behavior', '    statement: The system shall preserve current closure seals.', '',
+    ].join('\n'));
+    writeFileSync(join(dir, 'spec', 'capabilities.yaml'), 'capabilities: []\n');
+    writeFileSync(join(dir, 'spec', 'architecture.yaml'), 'layers:\n  - [core]\nrules: []\n');
+    const compilation = compileSpecWorkspace(dir);
+    const seals = featureClosureSeals(assuranceClosureInputFromWorkspace(dir, compilation), 'F-aaaaaaaa');
+    expect(seals.complete).toBe(true);
+    const digest = 'a'.repeat(64);
+    const v3 = mintAuthoritativeFixtureV3({
+      verdict: authoritativeFixtureVerdict(digest, 'F-aaaaaaaa'),
+      feature: 'F-aaaaaaaa', ...seals, detectorCatalogSha256: digest, registrySha256: digest,
+      toolIdentity: 'cladding-test', environmentClass: 'test', trustSnapshotSha256: digest,
+    });
+    if (!v3) throw new Error('v3 fixture seal was not created');
+    expect(writeAttestation(dir, loadSpec(dir), undefined, [v3], undefined, {writeLegacy: false})).toBe(true);
+    expect(staleAttestation.run({cwd: dir})).toEqual([]);
+    // The v3 reader must observe proof bytes outside feature.modules, not
+    // merely fall back to the legacy module map.
+    writeFileSync(join(dir, 'tests', 'x.test.ts'), 'test("[covers:F-aaaaaaaa/AC-aaaaaaaa] changed", () => {});\n');
+    expect(staleAttestation.run({cwd: dir})[0]?.message).toContain('F-aaaaaaaa');
   });
 });

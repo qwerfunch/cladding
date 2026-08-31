@@ -16,7 +16,7 @@ The graph claim ladder in D17 is cumulative but not substitutable: structural va
 - It can detect stale contract and proof inputs that attestation v2 cannot see.
 - Verified repository scale makes feature-local mutation and proof closure materially relevant.
 - The shipped role contract assigns execution form to the host and computes independence labels from recorded evidence rather than persona membership.
-- D21–D23 define an obligation-based target in which the existing runners are adapters, the default completion profile derives at most Ironclad L2, and stronger profile labels require their complete current closure.
+- D21–D23 define an obligation target in which existing runners are adapters, self policy persists L2, and a stronger one-run level requires a complete bounded current closure.
 - Bounded background checking may provide speculative observations in 0.10, but only a foreground profile-complete reduction may change lifecycle state or write attestation.
 - The current MCP server's declared catalog, in-memory negotiation, and bootstrap list-change path are executable wire facts; D24 makes MCP an optional adapter over shared kernels, not a second authority.
 
@@ -32,13 +32,14 @@ The graph claim ladder in D17 is cumulative but not substitutable: structural va
 - **“Feature count below eight has no value”** — existing eight-feature constants are detector grace thresholds, not an economic break-even result.
 - **“Every `blind: true` record is structurally blind”** — the packaged role restricts tools, but generic MCP currently accepts a caller assertion without a runtime isolation receipt.
 - **“General persona prompts are unnecessary”** — deterministic gates must be prompt-independent, but the briefs have affected agent interpretation. Claim only topology-invariant gate behavior after D19's committed ablation; do not claim equal authoring quality without a live benchmark.
-- **“A smaller task payload proves lower total input cost”** — the current full MCP list bundle is 53,585 bytes before server instructions and host framing; the historical 29,866-byte subset used a narrower serializer. Cache reuse is host-dependent. Compare payload, resident, total, retries, and provider-reported cache tokens separately in a live A/B.
+- **“A smaller task payload proves lower total input cost”** — the current full MCP list bundle is 53,960 bytes before server instructions and host framing; the historical 29,866-byte subset used a narrower serializer. Cache reuse is host-dependent. Compare payload, resident, total, retries, and provider-reported cache tokens separately in a live A/B.
 - **“Background checking makes completion faster”** — availability is not a latency result. Measure foreground active wait, total CPU, cancellation/stale-result rate, cache-hit promotion, and authoritative completion wall time against the same edit trace.
 - **“A latency budget is a performance guarantee”** — D22 budgets are product targets and downgrade rules. Claim an achieved percentile only from a dated, environment-labelled benchmark.
 - **“A speculative pass is proof”** — a background result has no lifecycle or attestation authority until a foreground reducer revalidates its exact input, tool, policy, and environment closure.
 - **“A fired hook or background result proves adoption”** — pushed delivery proves that Cladding spoke, not that an agent used the result. Preserve the existing pull/completed-cycle adoption protocol and report background reuse separately.
 - **“The new cadence improves correctness”** — cadence may reduce time-to-finding without changing the authoritative obligation set. Correctness or defect-prevention claims require a preregistered fault corpus or live controlled comparison.
 - **“MCP availability proves efficacy, efficiency, or adoption”** — wire conformance is only the first rung. Require a reference-host Spec 0.2 cycle for efficacy, an equivalent-task A/B for efficiency when used, and voluntary pull telemetry for adoption.
+- **“A fixture signature, legacy L3/L4 history, or host smoke is live human L4 evidence”** — fixtures prove protocol/mechanism only. Require real human-signed receipts in both blocking MCP11 cycles.
 
 ## Rejected decisions
 
@@ -55,7 +56,7 @@ Do not reopen these without new evidence that invalidates the stated reason.
 | Runtime `L ∪ N` capability edges | Creates two simultaneous authorities. Comparison is upgrade-preview-only. |
 | Allow multiple `shall` modals | Violates atomic AC and case-level binding granularity. Split the AC. |
 | Automatically write inferred dependencies | Current candidate graph can introduce large cyclic components. `dependency.promote` remains explicit and cycle-checked. |
-| Move existing generated files in 0.10 | Registry and aliases must land before path migration. |
+| ~~Move existing generated files in 0.10~~ — superseded 2026-08-29 | Original rationale: registry and aliases must land before movement. F11 now satisfies that condition, then relocates only the three projections separately from schema migration with D14 state/recovery fixtures. |
 | Generic filesystem/JSON-Patch MCP editor | Cannot provide domain invariants or honest write-set calculation. |
 | Automatically classify legacy ACs as behavior | Converts meaning without evidence. Use `legacy_unclassified` until the node changes. |
 | Guess test selectors for path-only refs | Manufactures proof. Use the accepted node-level baseline fallback. |
@@ -95,7 +96,7 @@ These are intentionally outside the 0.10.0 core and may evolve independently.
 
 | Item | Entry condition |
 |---|---|
-| Move `index`, `_doc-links`, and `attestation` into `spec/generated/` | Registry aliases, old/new reader fixtures, and measured compatibility are green. Target: 0.11. |
+| ~~Move `index`, `_doc-links`, and `attestation` into `spec/generated/` (0.11)~~ — superseded 2026-08-29 | Original entry condition: registry aliases, old/new reader fixtures, and measured compatibility green. F11 satisfies it in 0.10.0, then owns relocation/recovery. |
 | Additional test-framework adapters | Each adapter has source→selector→JUnit round-trip fixtures and a real adopter. |
 | Executable scenario verification | A scenario runner or binding carrier exists; only then may `scenario_policy: required` imply runtime proof. |
 | Authoring-provider bridge, including Spec Kit input | The canonical IR is stable and a provider can map without weakening identity, proof, or transaction contracts. |
@@ -103,8 +104,8 @@ These are intentionally outside the 0.10.0 core and may evolve independently.
 | Cost and false-block benchmark | F1–F6 land and the preregistered new benchmark can compare 0.1 and 0.2 maintenance. |
 | Broader LLM GraphIR retrieval study (40 tasks is the current scale candidate) | AB01–AB12 has first established task-scoped efficiency-when-used; a separately preregistered expansion may test generalization without altering adoption telemetry. Target: optional 0.10.x. |
 | Viewer proof-detail polish and public graph cursor/`not_modified` support | The minimum v2 viewer/export cutover is stable; add only against a measured payload or navigation need. F9's session-bound diagnostic continuation is not this public surface. Target: 0.10.x. |
-| F10 task-state headless loop | F1–F9 are green; verified human/blind evidence ingress exists; D19 A–E preserves contracts, gates, verdicts, stale scope, and `require` strength. Target: 0.10.x. |
-| Generated-file physical migration | See first item; do not combine with schema migration. |
+| ~~F10 task-state headless loop (0.10.x)~~ — superseded 2026-08-29 | F10 ships in 0.10.0 after its stated F9 prerequisites. |
+| ~~Generated-file physical migration~~ — superseded 2026-08-29 | Original condition: do not combine it with schema migration. F11 satisfies this as the separate 0.10.0 relocation feature. |
 
 ## Change log
 
@@ -122,3 +123,4 @@ These are intentionally outside the 0.10.0 core and may evolve independently.
 | 2026-08-29 | D15–D16, D24 | Added an additive V0 validation ledger and made MCP an optional, bounded adapter with separate conformance, efficacy, efficiency-when-used, and adoption gates; preregistered twelve MCP scenarios and preserved unrun/pending states. | Executable owner/case ledger, in-memory MCP negotiation and bootstrap transition, canonical catalog-byte census, and legacy host-smoke/adoption evidence audit. |
 | 2026-08-29 | D16–D17, D19, D24 evidence refinement | Scoped AB01–AB12 to the first task-scoped MCP decision, retained a 40-task GraphIR study only as optional later generalization, refreshed physical-context and catalog evidence, and restored router editing headroom without changing the accepted architecture. | `npm run validate:spec-0.2`, exact UTF-8 census, graph/cadence model controls, and owner/anchor integrity tests. |
 | 2026-08-29 | D09, D14–D16, D20–D24 final audit closure | Separated upstream hard/report strictness from Cladding's strict blocking policy, assigned receipt protocol consumption to F5 and real issuer paths to F9, defined required-scenario criterion freshness, fixed L2→L4 self-migration staging, and widened normative-owner validation. | Upstream Iron Law comparison, policy/scenario truth-table simulations, duplicate-heading fault injection, and the full contributor test suite. |
+| 2026-08-29 | V0 rebaseline | Set V0 and F1–F11 as 0.10.0 scope; separated schema migration from F11 relocation; kept self policy at L2; required bounded one-run L4 plus Codex and Claude Code MCP11 evidence; and aligned release/governance wording. | Maintainer decision; implementation, fixtures, and live-host evidence remain pending. |

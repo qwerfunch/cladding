@@ -75,18 +75,18 @@ spec/
 ├─ evidence/<F-id>/<sha256>.yaml
 ├─ generated/
 │  ├─ README.md
-│  └─ migration-baseline-0.1-to-0.2.yaml
-├─ index.yaml
-├─ _doc-links.yaml
-└─ attestation.yaml
+│  ├─ migration-baseline-0.1-to-0.2.yaml
+│  ├─ index.yaml
+│  ├─ _doc-links.yaml
+│  └─ attestation.yaml
 ```
 
-- Do not add tier-named directories. Tier is mutable governance metadata; feature, scenario, and architecture are stable semantic domains.
-- `generated/` names an operational property: every byte is machine-written. It is not a synonym for governance Tier C.
-- `evidence/` stores externally issued, content-addressed proof receipts. They are machine-issued but cannot be regenerated from workspace state, so they do not belong under `generated/`.
-- Name the migration receipt `migration-baseline-0.1-to-0.2.yaml`, not `schema-upgrade-0.2.yaml`; the file stores a project-specific baseline, not the upgrade algorithm.
-- Generate `generated/README.md` from the artifact registry. It must never become another hand-maintained policy source.
-- Keep `index.yaml`, `_doc-links.yaml`, and `attestation.yaml` at their current paths in 0.10.0. Introduce registry aliases before moving them in 0.11.
+- No tier directories: tier is mutable; feature, scenario, and architecture are semantic domains.
+- `generated/` denotes machine-written bytes, not governance Tier C.
+- `evidence/` holds externally issued content-addressed receipts: machine-issued but not regenerable, so not generated.
+- Name the receipt `migration-baseline-0.1-to-0.2.yaml`, not `schema-upgrade-0.2.yaml`: project baseline, not algorithm.
+- Generate `generated/README.md` from the artifact registry; it is never a hand-maintained policy source.
+- Final 0.2 paths: `spec/generated/index.yaml`, `spec/generated/_doc-links.yaml`, and `spec/generated/attestation.yaml`. Schema migration and physical relocation are separate.
 
 ### Why each artifact remains
 
@@ -99,11 +99,11 @@ spec/
 | `scenarios/` | Cross-feature user journeys. | Governed by `scenario_policy`. |
 | `evidence/` | Immutable, signed proof receipts keyed by feature and receipt digest. | Created only by a registered evidence channel. |
 | `generated/migration-baseline-0.1-to-0.2.yaml` | Immutable-by-tool legacy exemption and binding receipt. | Only for upgraded 0.1 projects. |
-| `index.yaml` | Committed lookup projection for sharded specs. | Generated when sharded. |
-| `_doc-links.yaml` | Committed document-link projection. | Generated when document declarations exist. |
-| `attestation.yaml` | Last-GREEN verification signature. | Generated only by a qualifying GREEN gate. |
+| `generated/index.yaml` | Committed lookup projection for sharded specs. | Generated when sharded. |
+| `generated/_doc-links.yaml` | Committed document-link projection. | Generated when document declarations exist. |
+| `generated/attestation.yaml` | Last-GREEN verification signature. | Generated only by a qualifying GREEN gate. |
 
-`docs/project-context.md` remains outside `spec/`. It expands audience, problem context, scope, constraints, and trade-offs, but does not independently redefine the normative project purpose.
+`docs/project-context.md` remains outside `spec/`: it explains, never redefines, the normative project purpose.
 
 ## D04 — Identity and sharding
 
@@ -270,7 +270,7 @@ Create one code-owned `ArtifactDescriptor[]` registry. Each descriptor declares:
 - current path and compatibility aliases;
 - file or region ownership.
 
-The registry owns `spec/evidence/<F-id>/<sha256>.yaml` as create-only canonical evidence. It validates that the directory equals the receipt subject's feature and that the filename equals the full digest of the canonical signed receipt. This authority is distinct from regenerable artifacts.
+The registry owns create-only `spec/evidence/<F-id>/<sha256>.yaml`: directory equals receipt feature, filename equals canonical signed-receipt digest, distinct from regenerable artifacts.
 
 Model `spec.yaml#project` and `spec.yaml#inventory` as separate logical regions. An inventory refresh must not invalidate a project-purpose revision.
 
@@ -302,61 +302,49 @@ CLI and MCP use one engine:
 ```text
 clad migrate --to 0.2          # read-only preview
 clad migrate --to 0.2 --apply  # explicit transaction
+clad relocate-generated         # read-only relocation preview
+clad relocate-generated --apply # explicit relocation transaction
 project.upgrade_schema         # MCP operation
 ```
 
-Do not overload `clad update`; that command reconciles installed Cladding wiring and intentionally does not rewrite authored spec meaning.
+`clad migrate` changes schema only; `clad relocate-generated` moves only the three D03 projections. `clad update` reconciles installed wiring, never authored meaning.
+
+### Workspace states
+
+`old` means root `spec/index.yaml`, `spec/_doc-links.yaml`, and `spec/attestation.yaml`; `new` means the three `spec/generated/` destinations.
+
+Before F11, the F4/F7 engine treats old paths as the then-canonical transitional layout, so F7–F10 complete normally. F11 adds aliases and relocation; its final engine applies this state machine:
+
+| Detected state | Permitted operation | Result |
+|---|---|---|
+| 0.1 + old | normal | Ordinary 0.1 operation. |
+| 0.2 + old | `relocation_required` | Read, diagnose, and relocate only. Other mutations and authoritative profiles are unresolved. |
+| 0.2 + new | normal | Ordinary 0.2 operation. |
+| both paths | conflict | Refuse mutation until the conflict is resolved. |
+| active migration/relocation journal | recovery-only | Finish or restore the recorded transaction before every other operation. |
 
 ### Preview
 
-1. Compile 0.1 through its existing compatibility path.
-2. Run a separate total legacy scanner that returns `parsed | opaque | conflict` for every string and never throws.
-3. Build the entire 0.2 candidate in memory.
-4. Copy legacy `text` exactly into `statement`; do not derive it from structured fields.
-5. Propose exact `intent_summary → purpose` and `summary → outcome` values.
-6. Validate filename/body identity, remove redundant body slugs, and remove child `schema`/legacy `source` markers from capability and architecture candidates.
-7. Move legacy test refs into node-level baseline entries without inventing selectors.
-8. Invert capability edges and prove exact edge-set equality.
-9. Classify legacy human/blind evidence as asserted unless it carries a receipt from a supported verification channel. For a project with `independence_policy: require`, report every done feature that would lose independent status under the 0.2 rule.
+Compile 0.1, scan every legacy string as `parsed | opaque | conflict`, and build the complete candidate in memory. Copy `text → statement` exactly; do not reconstruct it from structural EARS fields. Propose exact `intent_summary → purpose` and `summary → outcome`, validate filename/body identity, remove redundant child markers, invert capability edges with an exact equality proof, and classify legacy human/blind evidence as asserted unless a supported channel issued a receipt. A `require` project reports every completed feature that loses independent status.
 
-Human-resolution items are:
-
-- legacy EARS pattern/leading-keyword structural conflicts;
-- capability outcome confirmation;
-- architecture rule rationales and any lossy legacy layer conversion;
-- scenario actor/goal/success/steps meaning;
-- any actual `adr_refs` in an adopter corpus.
-- a `require` project's choice to obtain verified replacement evidence or remain on 0.1 when legacy asserted evidence is its only independence basis.
-
-Text disagreement with legacy `condition/action/response` is not itself a conflict: those fields cover only part of the corpus and encode materially different prose. The universally present authored `text` is the migration source.
+Preview retains raw legacy refs without inventing selectors. For every safe historic test candidate it binds the normalized path, state, and SHA-256 of the whole file. A `CRITERION_STATEMENT_CONFLICT` or `CRITERION_TEXT_UNKNOWN` resolution with historic test refs must select exact candidates to `retain` or explicitly `drop` them while supplying final strict intent. `condition/action/response` differences alone are not conflicts. Other human items are capability outcomes, architecture rationale/lossy layers, scenario intent, actual `adr_refs`, and replacement evidence or staying on 0.1 for asserted-only `require` evidence.
 
 ### Baseline and enforcement
 
-Make the baseline node-granular:
+The immutable baseline is node-granular: project and feature intent, criterion intent and historic refs, scenario/architecture records, and every valid capability `surface` as deterministic `removed_by_schema_0.2` (never live). Do not assume `kind: behavior`: unchanged ACs are `legacy_unclassified`; their first intent edit needs strict statement and explicit kind. Intent changes are feature title/purpose and criterion add/remove, statement/kind/rationale/constraint refs; links and other non-intent fields do not revoke unrelated exemptions. An exempt feature's first intent edit persists `capability_refs`, including confirmed empty.
 
-- project-intent projection;
-- feature title/purpose projection;
-- each criterion's intent projection and legacy binding list;
-- scenario and architecture migration records.
-
-Do not write `kind: behavior` onto a legacy criterion by assumption. An unchanged migrated AC remains internally `legacy_unclassified`. On its first intent-bearing edit, require an explicit kind and strict statement. A new node has no baseline and is strict immediately.
-
-Intent-bearing changes are feature title/purpose changes and criterion add/remove or statement/kind/rationale/constraint-ref changes. Status, modules, dependencies, capability links, proof bindings, notes, ordering, and dependency promotion do not revoke unrelated intent exemptions.
-
-Before committing the first intent-bearing edit of an exempt feature, require the author to persist `capability_refs`, including an explicitly confirmed empty list. Changing only capability links remains non-intent-bearing and does not revoke criterion exemptions.
-
-The baseline is immutable through public tools and has no refresh command. Live bindings can supersede a criterion's baseline binding, but the historical receipt stays byte-stable.
-
-Do not transform a legacy `identity.author: human` or `blind: true` flag into a verified 0.2 evidence receipt. A supported human-confirmation or capability-isolation channel must issue the new receipt against the current contract. This is a proof refresh, not a schema spelling migration.
+Reviewed strict carry-forward is a separate immutable record, never a relaxed legacy exemption. It binds exact final statement/kind/rationale/constraint refs and selected raw test refs with whole-file hashes. Selection is `live > reviewed carry-forward > unchanged exempt legacy > none`, never a union. Any bound intent change invalidates review; a selected-file byte/hash mismatch is stale and RED in authoritative strict verification. Live bindings replace reviewed or exempt history. Neither historic refs nor `identity.author: human`/`blind: true` are verified receipts; supported current-contract channels must issue new evidence.
 
 ### Apply and rollout
 
-- Abort with no writes while any resolution item remains.
+- Abort with no writes while any resolution item remains; recheck the reviewed preview immediately before journaling, so a selected test-byte change is `STALE_INPUT`.
 - Prove feature/criterion identity and count preservation, exact statement transfer, and `L = N` capability edges.
 - Treat `spec.yaml#schema` as the sole workspace schema selector. Child spec documents and shards carry no workspace schema field; receipt-local `receipt_schema` versions the receipt protocol independently.
-- Write the baseline, converted artifacts, derived projections, and root schema switch in one journaled transaction.
+- Before F11, schema apply writes the baseline, converted artifacts, old-path projections, and root switch in one journaled transaction. In the final F11 engine its Soft-Shell completion names `clad relocate-generated --apply`.
+- Before either apply, compute the exact planned write paths and reject dirt on any of them; unrelated dirt is allowed. The journal receipt records preflight `HEAD` and the sorted exact paths.
+- Relocation apply moves only the three generated projections in one journaled transaction; it neither changes schema nor reopens F7–F10 acceptance.
 - A second successful run produces zero diff.
-- A failed normal run writes nothing; crash recovery returns byte-identical originals or finishes an already committed transaction.
+- A failed normal run writes nothing. Recovery either finishes or restores byte-identical originals; if it cannot, the receipt's `HEAD` and exact paths support `git restore --source=<HEAD> -- <paths...>`, never a broad reset.
 - Continue reading schema 0.1 indefinitely. Reject old spellings inside a 0.2 document and reject unknown versions.
 - Treat upgrade as a coordinated team event: install 0.10+, close or rebase open spec branches, preview, resolve, then apply once on the integration branch.
 
@@ -370,9 +358,9 @@ F3 implements and proves the candidate capability/architecture edge set entirely
 4. completes F7 with `clad done` against the resulting 0.2 workspace; and
 5. writes the first pure-0.2 attestation v3.
 
-The F7 preview explicitly selects `L2`; the existing self-declared L4 history is
-not converted into verified 0.2 evidence. F8 therefore dogfoods a real 0.2
-GraphIR rather than a hybrid transition state. After F9 ships and exercises the
-registered human and blind issuer paths, Cladding uses `project.set_policy` to
-raise its own workspace to L4 and earns the 0.10 release attestation under that
-policy.
+The F7 preview selects and persists `L2`; the self release attestation remains
+L2 and legacy L3/L4 is no waiver. F9–F11 deterministic signed fixtures are
+mechanism/protocol evidence. Only real human-signed Codex and Claude Code MCP11
+cycles prove the product L4 path. A stronger one-run self feature completion is
+optional only when the compiler proves its closure bounded. F11 relocates self
+before final enforcement and never invalidates F7–F10 evidence.

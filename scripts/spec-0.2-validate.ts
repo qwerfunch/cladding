@@ -1,6 +1,6 @@
 // Cladding · Spec 0.2 design-validation harness (F-0a29d024).
 
-import {readFileSync, readdirSync} from 'node:fs';
+import {existsSync, readFileSync, readdirSync} from 'node:fs';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
@@ -11,6 +11,11 @@ import {parse as parseYaml} from 'yaml';
 import {readEventsIncludingRolled} from '../src/events/log.js';
 import {summarizeAdoption} from '../src/events/session-report.js';
 import {clearAuditObserversForTesting} from '../src/hitl/audit.js';
+import {resolveManagedWrite} from '../src/spec/compiler/artifact-registry.js';
+import {compileSpecWorkspace, compilerCorpusView} from '../src/spec/compiler/compile.js';
+import {scanIndependentCorpus} from '../src/spec/compiler/corpus-snapshot.js';
+import {previewSchema02Migration} from '../src/spec/compiler/migration-preview.js';
+import {parseStrictStatement} from '../src/spec/statement-parser.js';
 import {
   buildServer,
   PERSONA_IDS,
@@ -37,6 +42,9 @@ interface DecisionRequirement {
 interface CaseRequirement {
   readonly id: string;
   readonly decision: string;
+  readonly implementation: 'pending' | 'validation-active';
+  /** Exact executable test title for F4-promoted cases. */
+  readonly test_ref?: string;
 }
 
 interface IntegrationJourney {
@@ -53,12 +61,26 @@ interface HostAbTask {
   readonly fault_control: string;
 }
 
+interface HostAbPolicy {
+  readonly host: string;
+  readonly max_calls: number;
+  readonly blocking: boolean;
+}
+
+interface McpScenarioRequirement {
+  readonly id: string;
+  readonly implementation: 'pending' | 'validation-active';
+  readonly slice?: 'f5-receipt-operation' | 'f5-receipt-ingestion-and-asserted-fallback';
+}
+
 export interface ValidationManifest {
   readonly schema: number;
   readonly decisions: readonly DecisionRequirement[];
   readonly preregistered_cases: readonly CaseRequirement[];
   readonly integration_journeys: readonly IntegrationJourney[];
-  readonly mcp_scenarios: readonly string[];
+  readonly mcp_scenarios: readonly McpScenarioRequirement[];
+  readonly mcp_reference_hosts: readonly string[];
+  readonly host_ab: HostAbPolicy;
   readonly host_ab_tasks: readonly HostAbTask[];
 }
 
@@ -126,6 +148,9 @@ export const TASK_PROFILE_TOOLS = {
   'spec-edit': [
     'clad_list_features',
     'clad_get_feature',
+    'clad_prepare_spec_edit',
+    'clad_edit_spec',
+    'clad_begin',
     'clad_create_feature',
     'clad_resolve_design_impact',
     'clad_create_scenario',
@@ -147,6 +172,8 @@ export const TASK_PROFILE_TOOLS = {
     'clad_run_gate',
     'clad_verdict',
     'clad_author_oracle',
+    'clad_ingest_receipt',
+    'clad_signoff',
     'clad_get_events',
     'clad_get_graph',
   ],
@@ -308,16 +335,37 @@ function checkPreregisteredCases(cwd: string, manifest: ValidationManifest): Val
     .map(([prefix, count]) => `${prefix}01–${prefix}${String(count).padStart(2, '0')}`)
     .filter((range) => !delivery.includes(range));
   const unmapped = manifest.preregistered_cases.filter((entry) => !owners.has(entry.decision));
+  const active = manifest.preregistered_cases
+    .filter((entry) => entry.implementation === 'validation-active')
+    .map((entry) => entry.id)
+    .sort();
+  const expectedActive = [
+    ...Array.from({length: 10}, (_, index) => `P${String(index + 1).padStart(2, '0')}`),
+    ...Array.from({length: 4}, (_, index) => `L${String(index + 1).padStart(2, '0')}`),
+    ...Array.from({length: 6}, (_, index) => `B${String(index + 1).padStart(2, '0')}`),
+    ...Array.from({length: 6}, (_, index) => `C${String(index + 1).padStart(2, '0')}`),
+    ...Array.from({length: 4}, (_, index) => `T${String(index + 1).padStart(2, '0')}`),
+    ...Array.from({length: 4}, (_, index) => `U${String(index + 1).padStart(2, '0')}`),
+    ...Array.from({length: 3}, (_, index) => `A${String(index + 1).padStart(2, '0')}`),
+  ].sort();
+  const promotedCases = manifest.preregistered_cases.filter((entry) => /^(?:B|C|T|U|A)\d\d$/.test(entry.id));
+  const missingTestRefs = promotedCases.filter((entry) => entry.implementation === 'validation-active' && !entry.test_ref).map((entry) => entry.id);
+  const testRefs = promotedCases.map((entry) => entry.test_ref).filter((entry): entry is string => entry !== undefined);
+  const duplicateTestRefs = testRefs.length - new Set(testRefs).size;
   const valid = stableJson([...ids].sort()) === stableJson([...expected].sort())
     && unique(ids)
     && undocumentedGroups.length === 0
-    && unmapped.length === 0;
+    && unmapped.length === 0
+    && stableJson(active) === stableJson(expectedActive)
+    && missingTestRefs.length === 0
+    && duplicateTestRefs === 0
+    && manifest.preregistered_cases.filter((entry) => !expectedActive.includes(entry.id)).every((entry) => entry.implementation === 'pending');
   return {
     id: 'preregistered-case-ledger',
     status: valid ? 'pass' : 'fail',
     evidence: valid
-      ? '37 unique preregistered case IDs are mapped and documented; this is a ledger check, not 37 passing implementations.'
-      : `count=${ids.length}; duplicates=${ids.length - new Set(ids).size}; undocumented_groups=${undocumentedGroups.join(',') || 'none'}; unmapped=${unmapped.map((entry) => entry.id).join(',') || 'none'}`,
+      ? 'Validation-active fixture IDs: P01-P10, L01-L04, B01-B06, C01-C06, T01-T04, U01-U04, A01-A03. The 37 declared ledger rows are not complete runtime evidence: runtime pass count is not asserted here; F7 scenario contract fixtures are active, while F8 graph cutover, F9 scheduler/cache/issuers, and host cycles remain pending.'
+      : `count=${ids.length}; duplicates=${ids.length - new Set(ids).size}; active=${active.join(',')}; undocumented_groups=${undocumentedGroups.join(',') || 'none'}; unmapped=${unmapped.map((entry) => entry.id).join(',') || 'none'}; missing_test_refs=${missingTestRefs.join(',') || 'none'}; duplicate_test_refs=${duplicateTestRefs}`,
   };
 }
 
@@ -328,6 +376,76 @@ function implementationCheck(manifest: ValidationManifest): ValidationCheck {
     status: pending.length === 0 ? 'pass' : 'implementation_pending',
     evidence: pending.length === 0 ? 'Every target decision has implementation evidence.' : `${pending.length} decisions remain target design only: ${pending.join(', ')}.`,
   };
+}
+
+/**
+ * Compares every source-bearing historic-proof field while preserving the
+ * scanner as an independent YAML reader rather than a compiler consumer.
+ */
+function migrationBindingParity(
+  compilation: ReturnType<typeof compileSpecWorkspace>,
+  migrationProofs: ReturnType<typeof scanIndependentCorpus>['migrationProofs'],
+): boolean {
+  const compilerBindings = [...(compilation.migrationProofs ?? [])];
+  const scannerBindings = [...(migrationProofs ?? [])];
+  return stableJson(compilerBindings.sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right))))
+    === stableJson(scannerBindings.sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right))));
+}
+
+/** Validates the F7 scenario boundary without promoting F8-F9 mechanisms. */
+function checkCompilerRegistry(root: string, manifest: ValidationManifest): ValidationCheck {
+  const active = manifest.decisions.filter((decision) => decision.implementation === 'validation-active').map((decision) => decision.id).sort();
+  const expectedActive = ['D05', 'D06', 'D07', 'D08', 'D09', 'D10', 'D11', 'D12', 'D13', 'D14', 'D17', 'D20', 'D21', 'D22', 'D23', 'D24'];
+  if (stableJson(active) !== stableJson(expectedActive)) {
+    return {id: 'compiler-registry-boundary', status: 'fail', evidence: `F7 requires validation-active decisions ${expectedActive.join(', ')}; found ${active.join(', ')}.`};
+  }
+  const otherTransitions = manifest.decisions
+    .filter((decision) => !expectedActive.includes(decision.id) && decision.implementation !== 'pending')
+    .map((decision) => decision.id);
+  if (otherTransitions.length > 0) {
+    return {id: 'compiler-registry-boundary', status: 'fail', evidence: `Only ${expectedActive.join(', ')} may be validation-active at the F7 boundary; found ${otherTransitions.join(', ')}.`};
+  }
+  try {
+    const compilation = compileSpecWorkspace(root);
+    const snapshot = scanIndependentCorpus(root);
+    const parity = stableJson(compilerCorpusView(compilation)) === stableJson(snapshot.records);
+    const project = resolveManagedWrite({path: 'spec.yaml', region: 'project', operation: 'update'}).id === 'spec-project-region';
+    const inventory = resolveManagedWrite({path: 'spec.yaml', region: 'inventory', operation: 'update'}).id === 'spec-inventory-region';
+    const receipt = resolveManagedWrite({
+      path: 'spec/evidence/F-182eaa53/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.yaml',
+      operation: 'create',
+    }).id === 'evidence-receipt';
+    const migrationProofs = snapshot.migrationProofs ?? [];
+    const unresolved = compilation.schemaVersion === '0.1'
+      ? compilation.edges.some((edge) => edge.raw === 'self-dogfood:stage:commit-postcommit' && edge.state === 'unresolved')
+      : migrationProofs.some((proof) => proof.raw === 'self-dogfood:stage:commit-postcommit' && proof.resolution === 'unresolved');
+    const parser = parseStrictStatement('The system shall preserve a strict statement.').status === 'valid';
+    const schemaBoundaryValid = compilation.schemaVersion === '0.1'
+      ? (() => {
+        const preview = previewSchema02Migration(root);
+        return preview.mode === 'preview'
+          && preview.project.assuranceLevel === 'L2'
+          && preview.project.scenarioPolicy === 'advisory'
+          && preview.capabilityEdgeProof.equal;
+      })()
+      : compilation.schemaVersion === '0.2'
+        && compilation.migrationBaseline !== undefined
+        && migrationProofs.length > 0
+        && migrationBindingParity(compilation, snapshot.migrationProofs)
+        && migrationProofs.every((proof) => proof.source.path === 'spec/generated/migration-baseline-0.1-to-0.2.yaml'
+          && proof.source.yamlPath.endsWith('.raw'));
+    const valid = parity && project && inventory && receipt && unresolved && parser && schemaBoundaryValid
+      && compilation.edges.every((edge) => edge.provenance !== 'observed');
+    return {
+      id: 'compiler-registry-boundary',
+      status: valid ? 'pass' : 'fail',
+      evidence: valid
+        ? `D05-D14 compiler/proof/attestation inputs, the D09 scenario policy and closure slice, the D17 assurance closure slice only, D20 portable receipt mechanics, and the D21-D23 assurance kernel/profile/verdict slice cover ${snapshot.records.semanticOwners.length} semantic owners, ${snapshot.derived.proofOccurrences} live authored proof records, and ${migrationProofs.length} source-located migration bindings. F8 public GraphIR cutover, F9 scheduler/cache/issuer paths, and host cycles remain pending or not run.`
+        : 'D05-D14 compiler/proof/attestation inputs, the D09 scenario policy, the D17 closure slice, D20 portable receipt mechanics, D21-D23 profiles, region ownership, or authored-only provenance failed.',
+    };
+  } catch (error) {
+    return {id: 'compiler-registry-boundary', status: 'fail', evidence: error instanceof Error ? error.message : String(error)};
+  }
 }
 
 function checkJourneyLedger(manifest: ValidationManifest): ValidationCheck {
@@ -347,24 +465,42 @@ function checkJourneyLedger(manifest: ValidationManifest): ValidationCheck {
   };
 }
 
-function checkMcpScenarioLedger(manifest: ValidationManifest): ValidationCheck {
-  const scenarioIds = manifest.mcp_scenarios.map((scenario) => scenario.split('-', 1)[0]);
+function checkMcpScenarioLedger(root: string, manifest: ValidationManifest): ValidationCheck {
+  const scenarioIds = manifest.mcp_scenarios.map((scenario) => scenario.id.split('-', 1)[0]);
   const expectedScenarios = Array.from({length: 12}, (_, index) => `MCP${String(index + 1).padStart(2, '0')}`);
   const taskIds = manifest.host_ab_tasks.map((task) => task.id);
   const expectedTasks = Array.from({length: 12}, (_, index) => `AB${String(index + 1).padStart(2, '0')}`);
   const taskProfiles = new Set(Object.keys(TASK_PROFILE_TOOLS));
   const invalidProfiles = manifest.host_ab_tasks.filter((task) => !taskProfiles.has(task.profile));
+  const referenceHosts = stableJson(manifest.mcp_reference_hosts) === stableJson(['codex', 'claude-code']);
+  const codexOnlyAb = manifest.host_ab.host === 'codex'
+    && manifest.host_ab.max_calls === 24
+    && manifest.host_ab.blocking === false;
+  const mcp04Artifacts = [
+    'src/proof/ingest.ts', 'src/cli/ingest-receipt.ts', 'src/serve/server.ts',
+    'tests/cli/ingest-receipt.test.ts', 'tests/serve/proof-evidence.test.ts',
+  ];
+  const mcp04Evidence = mcp04Artifacts.every((path) => existsSync(join(root, path)))
+    && readFileSync(join(root, 'tests/serve/proof-evidence.test.ts'), 'utf8').includes('MCP04/MCP09')
+    && readFileSync(join(root, 'tests/cli/ingest-receipt.test.ts'), 'utf8').includes('same kernel');
   const valid = stableJson(scenarioIds) === stableJson(expectedScenarios)
-    && unique(manifest.mcp_scenarios)
+    && unique(manifest.mcp_scenarios.map((scenario) => scenario.id))
     && stableJson(taskIds) === stableJson(expectedTasks)
     && unique(taskIds)
-    && invalidProfiles.length === 0;
+    && invalidProfiles.length === 0
+    && referenceHosts
+    && codexOnlyAb
+    && stableJson(manifest.mcp_scenarios.filter((scenario) => scenario.implementation === 'validation-active').map((scenario) => scenario.id))
+      === stableJson(['MCP04-cli-and-kernel-semantic-parity', 'MCP09-receipt-and-blindness-boundary'])
+    && manifest.mcp_scenarios.find((scenario) => scenario.id.startsWith('MCP04-'))?.slice === 'f5-receipt-operation'
+    && manifest.mcp_scenarios.find((scenario) => scenario.id.startsWith('MCP09-'))?.slice === 'f5-receipt-ingestion-and-asserted-fallback'
+    && mcp04Evidence;
   return {
     id: 'mcp-scenario-ledger',
     status: valid ? 'pass' : 'fail',
     evidence: valid
-      ? 'MCP01-MCP12 and AB01-AB12 are uniquely preregistered; the A/B ledger caps the live comparison at 24 host task calls.'
-      : `mcp=${scenarioIds.join(',')}; ab=${taskIds.join(',')}; invalid_profiles=${invalidProfiles.map((task) => task.id).join(',') || 'none'}`,
+      ? 'MCP04 receipt-operation parity and MCP09 receipt ingestion/asserted fallback are F5 validation-active; F9 issuer paths and MCP11 stay pending while the non-blocking Codex A/B caps at 24 calls.'
+      : `mcp=${scenarioIds.join(',')}; mcp04_artifacts=${mcp04Evidence}; ab=${taskIds.join(',')}; hosts=${manifest.mcp_reference_hosts.join(',')}; ab_policy=${JSON.stringify(manifest.host_ab)}; invalid_profiles=${invalidProfiles.map((task) => task.id).join(',') || 'none'}`,
   };
 }
 
@@ -402,7 +538,7 @@ function simulateMergeAndTransaction(): ValidationCheck {
   return {
     id: 'model-merge-transaction',
     status: valid ? 'pass' : 'fail',
-    evidence: 'J03 model: feature-owned edges permit disjoint-shard writes while the same write set still conflicts; crash recovery remains J07 implementation work.',
+    evidence: 'J03 model: feature-owned edges permit disjoint-shard writes while the same write set still conflicts; T01-T04 and J07 cover journal recovery at the F4 boundary.',
   };
 }
 
@@ -683,7 +819,8 @@ export async function validateSpec02(cwd = process.cwd()): Promise<ValidationRep
     checkDocumentationRatchets(root),
     checkPreregisteredCases(root, manifest),
     checkJourneyLedger(manifest),
-    checkMcpScenarioLedger(manifest),
+    checkMcpScenarioLedger(root, manifest),
+    checkCompilerRegistry(root, manifest),
     simulateWhyAndIdentity(),
     simulateMergeAndTransaction(),
     simulateProofAndTopology(),
@@ -698,7 +835,7 @@ export async function validateSpec02(cwd = process.cwd()): Promise<ValidationRep
     {
       id: 'integration-journey-reference-host',
       status: 'not_run',
-      evidence: 'J13 requires the implemented Spec 0.2 runtime and one real reference host; legacy read-surface smoke is not substituted.',
+      evidence: 'J13 requires the implemented Spec 0.2 runtime plus real Codex and Claude Code reference-host cycles; legacy read-surface smoke is not substituted.',
     },
     implementationCheck(manifest),
     catalogCheck(snapshot),
@@ -718,7 +855,7 @@ export async function validateSpec02(cwd = process.cwd()): Promise<ValidationRep
     {
       id: 'mcp-reference-host-spec-02-e2e',
       status: 'not_run',
-      evidence: 'Existing host smoke covers the legacy read surface, not a full Spec 0.2 edit→verify→attest cycle.',
+      evidence: 'Existing host smoke covers the legacy read surface, not the required Codex and Claude Code full Spec 0.2 edit→verify→L4 cycles.',
     },
     {
       id: 'mcp-adoption',
@@ -728,7 +865,7 @@ export async function validateSpec02(cwd = process.cwd()): Promise<ValidationRep
     {
       id: 'live-host-token-ab',
       status: 'not_run',
-      evidence: 'No provider-controlled 12-task × 2-arm run was supplied; deterministic catalog bytes remain a cost input, not an LLM-efficiency result.',
+      evidence: 'No Codex-controlled 12-task × 2-arm run was supplied; deterministic catalog bytes remain a cost input, not an LLM-efficiency result.',
     },
   ];
   return stableValue({

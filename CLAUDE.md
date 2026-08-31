@@ -10,8 +10,8 @@ When adding a new spec entry to `spec/features/` or `spec/scenarios/`:
 
 - **DO NOT** create `spec/features/F-NNN.yaml` (the legacy sequential format) by hand.
 - **DO** use the hash-based model:
-  - Filename: `<slug>-<hash>.yaml` (e.g. `auth-bypass-c4d108e9.yaml`)
-  - Inside the yaml: `id: F-<hash>` plus `slug: <slug>`
+  - Filename: `<slug>-<hash8>.yaml` (e.g. `auth-bypass-c4d108e9.yaml`)
+  - Inside the yaml: `id: F-<hash8>` plus `slug: <slug>`
   - The hash is an 8-character hex string since 0.6.0 (legacy 6-char ids stay valid). Generate with:
     ```bash
     node -e "console.log('F-' + require('node:crypto').randomBytes(4).toString('hex'))"

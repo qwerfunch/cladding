@@ -36,7 +36,7 @@ acceptance_criteria:
   - id: AC-6e5f6558
     ears: ubiquitous
     text: "The design validator shall reject normative decision headings outside each declared owner while permitting the router navigation copy."
-    test_refs: ["tests/design/spec-0.2/design-validation.test.ts#maps every D01-D24 decision exactly once and rejects fabricated pass evidence"]
+    test_refs: ["tests/design/spec-0.2/design-validation.test.ts#marks the F7 scenario boundary validation-active without promoting F8-F11 work"]
   - id: AC-e2c6b5f8
     ears: ubiquitous
     text: "Every public README status surface shall label worktree counts and match the canonical feature inventory without changing the release-history claim."

@@ -123,7 +123,7 @@ describe('finding-parser (F-b7873005)', () => {
   });
 
   // AC2 — synthetic finding when a failing stage parses nothing.
-  it('AC2-synthetic: non-zero exit + unparseable output => ONE path-less finding', () => {
+  it('[covers:F-b7873005/AC-20b69848] AC2-synthetic: non-zero exit + unparseable output => ONE path-less finding', () => {
     const raw = 'gibberish that no parser recognizes';
     const synthetic = parseToolFindings('type', '', raw, 1);
     expect(synthetic).toHaveLength(1);

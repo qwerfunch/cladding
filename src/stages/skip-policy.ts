@@ -21,10 +21,7 @@ export interface SkipViolation {
 }
 
 /** Stages this policy can demand, in pipeline order. */
-// stage_2.4 retired here (F-c') — the smoke demand moved to the pure
-// SMOKE_PROBE_DEMAND detector (stage_1.3), the SOLE owner, so it fires on every
-// drift tier rather than only under --strict skip-policy.
-const DEMANDABLE = ['stage_1.1', 'stage_2.1', 'stage_2.3'] as const;
+const DEMANDABLE = ['stage_1.1', 'stage_2.1', 'stage_2.3', 'stage_2.4'] as const;
 type Demandable = (typeof DEMANDABLE)[number];
 
 function doneFeatures(spec: Spec): readonly Spec['features'][number][] {
@@ -66,6 +63,14 @@ function demand(spec: Spec, stage: Demandable): string | null {
       return (
         `${oracleAcs} done AC(s) declare oracle_refs but the conformance runner did not run (skipped) — ` +
         "the declared oracles never executed. Under --strict, declared-but-unrun verification is not GREEN."
+      );
+    }
+    case 'stage_2.4': {
+      const deliverable = spec.project?.deliverable;
+      if (!deliverable?.is_safe_to_smoke || done.length === 0) return null;
+      return (
+        `project.deliverable '${deliverable.path}' is marked is_safe_to_smoke and ${done.length} feature(s) are done, ` +
+        "but the deliverable smoke did not run (skipped) — the declared runnable entry was never verified. Under --strict, an unverifiable 'done' is not GREEN."
       );
     }
   }

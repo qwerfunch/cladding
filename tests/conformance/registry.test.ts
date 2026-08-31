@@ -43,7 +43,7 @@ function loadRunnerIds(): readonly string[] {
 }
 
 describe('conformance/fixtures.yaml SSoT', () => {
-  test('every runnable entry exists in conformance/runner.ts', () => {
+  test("[covers:F-053/AC-118][covers:F-054/AC-124] every runnable entry exists in conformance/runner.ts", () => {
     const registry = loadRegistry();
     const runnableNames = registry.filter((f) => f.kind === 'runnable').map((f) => f.name);
     const runnerIds = new Set(loadRunnerIds());
@@ -51,7 +51,7 @@ describe('conformance/fixtures.yaml SSoT', () => {
     expect(orphans).toEqual([]);
   });
 
-  test('every fixture id in conformance/runner.ts is in the registry', () => {
+  test("[covers:F-053/AC-115][covers:F-054/AC-124] every fixture id in conformance/runner.ts is in the registry", () => {
     const registry = loadRegistry();
     const registeredNames = new Set(registry.map((f) => f.name));
     const runnerIds = loadRunnerIds();
@@ -59,10 +59,33 @@ describe('conformance/fixtures.yaml SSoT', () => {
     expect(unregistered).toEqual([]);
   });
 
-  test('every registry entry declares a kind', () => {
+  test("[covers:F-053/AC-118] every registry entry declares a kind", () => {
     const registry = loadRegistry();
     const malformed = registry.filter((f) => f.kind !== 'runnable' && f.kind !== 'documentary');
     expect(malformed).toEqual([]);
+  });
+
+  test('[covers:F-054/AC-121] Fixture declares an optional detector-finding expectation list', () => {
+    const runner = readFileSync(resolve(repoRoot, 'conformance/runner.ts'), 'utf8');
+    expect(runner).toMatch(
+      /interface Fixture\s*\{[\s\S]*?readonly expectFindings\?: readonly ExpectedFinding\[\];/,
+    );
+  });
+
+  test('[covers:F-054/AC-122] the seven promoted fixture ids are runnable and implemented', () => {
+    const promoted = [
+      'F-007_AC-011',
+      'F-011_AC-018',
+      'F-012_AC-020',
+      'F-013_AC-021',
+      'F-014_AC-022',
+      'F-014_AC-023',
+      'F-019_AC-029',
+    ];
+    const byName = new Map(loadRegistry().map((fixture) => [fixture.name, fixture]));
+    expect(promoted.map((id) => byName.get(id)?.kind)).toEqual(Array(promoted.length).fill('runnable'));
+    const runnerIds = new Set(loadRunnerIds());
+    expect(promoted.filter((id) => !runnerIds.has(id))).toEqual([]);
   });
 
   test('every registry entry has a unique name', () => {

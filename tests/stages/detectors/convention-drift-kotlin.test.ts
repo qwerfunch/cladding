@@ -44,7 +44,7 @@ function run(): readonly {detector: string; severity: string; message: string; p
 describe('CONVENTION_DRIFT detector (Kotlin)', () => {
   const MODULE = 'src/main/kotlin/App.kt';
 
-  test('WARN when a declared .kt module has no file-header comment', () => {
+  test("[covers:F-dd51b42c/AC-2d888ee2] WARN when a declared .kt module has no file-header comment", () => {
     writeKotlinSpec(MODULE);
     writeModule(MODULE, 'package x\n\nfun main() {}\n');
     const findings = run();

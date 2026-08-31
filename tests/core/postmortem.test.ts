@@ -36,7 +36,7 @@ describe('core/postmortem', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('creates .cladding/post-mortems/ when missing and returns the path', () => {
+  test('[covers:F-5d3ed2/AC-002] creates .cladding/post-mortems/ when missing and returns the path', () => {
     expect(existsSync(join(dir, '.cladding', 'post-mortems'))).toBe(false);
     const path = writePostMortem(dir, {
       featureId: 'F-001',
@@ -71,7 +71,7 @@ describe('core/postmortem', () => {
     expect(body).toContain('planner');
   });
 
-  test('no-git-head checkpoint falls back to manual-restore guidance', () => {
+  test('[covers:F-5d3ed2/AC-004] no-git-head checkpoint falls back to manual-restore guidance', () => {
     const path = writePostMortem(dir, {
       featureId: 'F-300',
       retryCount: 3,
@@ -85,7 +85,7 @@ describe('core/postmortem', () => {
     expect(body).not.toMatch(/git checkout [a-f0-9]/);
   });
 
-  test('two rollbacks of the same feature produce two distinct files', () => {
+  test('[covers:F-5d3ed2/AC-003] two rollbacks of the same feature produce two distinct files', () => {
     writePostMortem(dir, {
       featureId: 'F-400',
       retryCount: 3,

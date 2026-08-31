@@ -2,6 +2,7 @@ import {describe, test, expect, afterEach} from 'vitest';
 import {mkdtempSync, writeFileSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {estTokens} from '../../src/optimizer/code-excerpt.js';
 import {buildWorkingSet} from '../../src/optimizer/working-set.js';
 import type {Spec} from '../../src/spec/types.js';
 
@@ -383,5 +384,93 @@ describe('working-set', () => {
     if (isMiss(roomy)) throw new Error('expected a working set');
     expect(roomy.breaks_if_changed.impacted).toHaveLength(13);
     expect(roomy.budget.truncated.some((t) => t.startsWith('breaks:'))).toBe(false);
+  });
+
+  test('[covers:F-06dfdad6/AC-05ea70] clips needs, code, then breaks while retaining the full focus and depth-1 floor within its marked budget', () => {
+    const ancestorIds = Array.from({length: 10}, (_, index) => `F-need${String(index).padStart(2, '0')}`);
+    const focusAcs = [
+      ac({id: 'AC-focus-1', ears: 'unwanted', text: 'Keep the entire focus contract.', test_refs: ['tests/focus.test.ts#focus']}),
+      ac({id: 'AC-focus-2', ears: 'state', text: 'Keep all focus acceptance criteria.', test_refs: ['tests/focus.test.ts#state']}),
+    ];
+    const focus = feature({
+      id: 'F-focus', slug: 'focus', title: 'Focus', depends_on: ancestorIds,
+      modules: ['src/focus-a.ts', 'src/focus-b.ts'], acceptance_criteria: focusAcs,
+    });
+    const ancestors = ancestorIds.map((id, index) => feature({
+      id, slug: `need-${index}`, title: `Need ${index}: ${'N'.repeat(240)}`,
+    }));
+    const directIds = ['F-direct-a', 'F-direct-b'];
+    const directs = directIds.map((id, index) => feature({
+      id, slug: `direct-${index}`, title: `Direct ${index}`, depends_on: ['F-focus'],
+    }));
+    const deepers = Array.from({length: 12}, (_, index) => feature({
+      id: `F-deep${String(index).padStart(2, '0')}`,
+      slug: `deep-${index}`,
+      title: `Deep ${index}: ${'D'.repeat(260)}`,
+      depends_on: ['F-direct-a'],
+      acceptance_criteria: [ac({id: `AC-deep-${index}`, test_refs: [`tests/deep-${index}.test.ts#regression`]})],
+    }));
+    const spec = makeSpec([focus, ...ancestors, ...directs, ...deepers]);
+    const read = (path: string): string | null => path.startsWith('src/focus-') ? `export const source = '${'S'.repeat(12_000)}';\n` : null;
+    const maxTokens = 1400;
+    const clipped = buildWorkingSet(spec, 'F-focus', {maxTokens, read}) as WorkingSetShape | MissShape;
+    const roomy = buildWorkingSet(spec, 'F-focus', {maxTokens: 100_000, read}) as WorkingSetShape | MissShape;
+    expect(isMiss(clipped)).toBe(false);
+    expect(isMiss(roomy)).toBe(false);
+    if (isMiss(clipped) || isMiss(roomy)) throw new Error('expected working sets');
+
+    const needsMarker = clipped.budget.truncated.findIndex(marker => marker.startsWith('needs: dropped'));
+    const codeMarker = clipped.budget.truncated.findIndex(marker => marker.startsWith('code:'));
+    const breaksMarker = clipped.budget.truncated.findIndex(marker => marker.startsWith('breaks: omitted'));
+    expect(needsMarker).toBeGreaterThanOrEqual(0);
+    expect(codeMarker).toBeGreaterThan(needsMarker);
+    expect(breaksMarker).toBeGreaterThan(codeMarker);
+
+    expect(clipped.must_edit.id).toBe(focus.id);
+    expect(clipped.must_edit.acceptance_criteria).toEqual(focusAcs);
+    for (const directId of directIds) expect(clipped.breaks_if_changed.impacted.map(feature => feature.id)).toContain(directId);
+    expect(clipped.needs.length).toBeGreaterThanOrEqual(3);
+    expect(clipped.needs.length).toBeLessThan(ancestorIds.length);
+
+    for (const module of focus.modules ?? []) {
+      const excerpt = clipped.must_edit.code.find(entry => entry.path === module);
+      if (excerpt === undefined) {
+        expect(clipped.budget.truncated).toContain(`code: omitted ${module} (budget)`);
+      } else {
+        expect(excerpt.truncated).toBe(true);
+        expect(clipped.budget.truncated).toContain(`code: clipped ${module}`);
+      }
+    }
+    const breakCounts = /breaks: omitted (\d+) feature\(s\) \/ (\d+) test\(s\)/.exec(clipped.budget.truncated[breaksMarker] ?? '');
+    expect(breakCounts).not.toBeNull();
+    expect(Number(breakCounts?.[1])).toBe(roomy.breaks_if_changed.impacted.length - clipped.breaks_if_changed.impacted.length);
+    expect(Number(breakCounts?.[2])).toBe(roomy.breaks_if_changed.regression_tests.length - clipped.breaks_if_changed.regression_tests.length);
+
+    expect(clipped.budget.used_tokens).toBeLessThanOrEqual(maxTokens);
+    expect(clipped.budget.used_tokens).toBe(estTokens(JSON.stringify({
+      ...clipped,
+      budget: {...clipped.budget, used_tokens: 0},
+    })));
+
+    const overflowAcs = [ac({
+      id: 'AC-overflow',
+      text: `Immutable focus contract: ${'I'.repeat(8_000)}`,
+      test_refs: ['tests/overflow.test.ts#focus'],
+    })];
+    const overflowFocus = feature({
+      id: 'F-overflow',
+      slug: 'overflow',
+      title: `Immutable focus title: ${'T'.repeat(2_000)}`,
+      acceptance_criteria: overflowAcs,
+    });
+    const overflow = buildWorkingSet(makeSpec([overflowFocus]), 'F-overflow', {maxTokens: 100}) as WorkingSetShape | MissShape;
+    expect(isMiss(overflow)).toBe(false);
+    if (isMiss(overflow)) throw new Error('expected an overflowing working set');
+    expect(overflow.must_edit.id).toBe(overflowFocus.id);
+    expect(overflow.must_edit.title).toBe(overflowFocus.title);
+    expect(overflow.must_edit.acceptance_criteria).toEqual(overflowAcs);
+    expect(JSON.stringify(overflow.must_edit.acceptance_criteria)).toBe(JSON.stringify(overflowAcs));
+    expect(overflow.budget.truncated).toContain('must-edit exceeds budget — retained in full (focus is never dropped)');
+    expect(overflow.budget.used_tokens).toBeGreaterThan(overflow.budget.max_tokens);
   });
 });

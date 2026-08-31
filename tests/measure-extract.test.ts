@@ -4,18 +4,17 @@
 // out of clad.ts into src/cli/measure.ts, keeping runMeasureCommand in clad.ts as
 // the thin command wrapper (the done.ts/update.ts house pattern) — the LIGHT
 // variant needs zero spec-shard module edits because ~40 shards still bind
-// src/cli/clad.ts as the measure feature's module. BEHAVIOR (byte-identical
-// output across all four `clad measure` invocations) is already pinned by the
-// untouched tests/cli/measure-sessions.test.ts and
-// tests/cli/measure-adoption.test.ts suites (AC-815591d4) — this file only
-// pins the STRUCTURE (AC-30b84594): the symbols live in the right file and are
-// wired the right way.
+// src/cli/clad.ts as the measure feature's module. The three extracted paths
+// below remain byte-identical to their command-wrapper routes; the default
+// report is pinned separately with its fixed mocked report bytes.
 
-import {existsSync, readFileSync} from 'node:fs';
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {describe, expect, test} from 'vitest';
+import {describe, expect, test, vi} from 'vitest';
 
 import {runMeasureCommand} from '../src/cli/clad.js';
+import {appendEvent, newEvent} from '../src/events/log.js';
 import * as measureModule from '../src/cli/measure.js';
 
 const ROOT = process.cwd();
@@ -47,5 +46,71 @@ describe('AC-30b84594 · measure internals live in src/cli/measure.ts, runMeasur
     expect(typeof runMeasureCommand).toBe('function');
     expect(read('src/cli/clad.ts')).toContain('export function runMeasureCommand');
     expect(Object.keys(measureModule)).not.toContain('runMeasureCommand');
+  });
+
+  test('[covers:F-1e9ef827/AC-30b84594] keeps measure renderers in measure.ts and clad.ts as the dispatch-only wrapper', () => {
+    const measureSource = read('src/cli/measure.ts');
+    const cladSource = read('src/cli/clad.ts');
+
+    expect(measureSource).toContain('export function runSessionsMeasure');
+    expect(measureSource).toContain('function renderAdoptionSection');
+    expect(measureSource).toContain('export function runTrendMeasure');
+    expect(measureSource).not.toMatch(/(?:export\s+)?function\s+runMeasureCommand/);
+    expect(cladSource).toContain("import {runSessionsMeasure, runTrendMeasure} from './measure.js';");
+    expect(cladSource).toContain('export function runMeasureCommand');
+    expect(cladSource).not.toContain('function renderAdoptionSection');
+  });
+
+  test('[covers:F-1e9ef827/AC-815591d4] sessions, sessions JSON, and trend remain byte-identical to their command-wrapper paths', () => {
+    const originalCwd = process.cwd();
+    const cwd = mkdtempSync(join(tmpdir(), 'clad-measure-extract-'));
+    const capture = (invoke: () => void): {bytes: string; exits: readonly unknown[][]} => {
+      const chunks: string[] = [];
+      const stdout = vi.spyOn(process.stdout, 'write').mockImplementation((chunk: unknown) => {
+        chunks.push(String(chunk));
+        return true;
+      });
+      const exit = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
+      try {
+        invoke();
+        return {bytes: chunks.join(''), exits: exit.mock.calls};
+      } finally {
+        stdout.mockRestore();
+        exit.mockRestore();
+      }
+    };
+    try {
+      process.chdir(cwd);
+      appendEvent('.', newEvent('impact_card_fired', {file: 'src/a.ts', feature: 'F-a'}));
+      mkdirSync('.cladding', {recursive: true});
+      const snapshot = (timestamp: string, head: string, slice: number) => ({
+        timestamp,
+        head,
+        spec_digest: 'a'.repeat(64),
+        featureCount: 1,
+        measured: 1,
+        context: {medianSliceTokens: slice, medianStructuralRatio: 1, truncatedCount: 0},
+        search: {p95Depth: 1},
+        stability: {medianCoverage: 1},
+      });
+      writeFileSync(
+        join(cwd, '.cladding', 'measure.jsonl'),
+        `${JSON.stringify(snapshot('2026-01-01T00:00:00.000Z', 'a'.repeat(40), 10))}\n` +
+          `${JSON.stringify(snapshot('2026-01-02T00:00:00.000Z', 'b'.repeat(40), 12))}\n`,
+      );
+
+      expect(capture(() => runMeasureCommand({sessions: true}))).toEqual(
+        capture(() => measureModule.runSessionsMeasure({})),
+      );
+      expect(capture(() => runMeasureCommand({sessions: true, json: true}))).toEqual(
+        capture(() => measureModule.runSessionsMeasure({json: true})),
+      );
+      expect(capture(() => runMeasureCommand({trend: true}))).toEqual(
+        capture(() => measureModule.runTrendMeasure({trend: true})),
+      );
+    } finally {
+      process.chdir(originalCwd);
+      rmSync(cwd, {recursive: true, force: true});
+    }
   });
 });

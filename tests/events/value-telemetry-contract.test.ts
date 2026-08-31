@@ -46,7 +46,7 @@ const _newTypesAreEventTypes: readonly EventType[] = NEW_EVENT_TYPES;
 void _newTypesAreEventTypes;
 
 describe('F-6ba22c5c AC-238a3658 — closed reason enum + event types', () => {
-  test('ImpactSkipReason is EXACTLY the closed 9-value set from the AC', () => {
+  test('[covers:F-35954d19/AC-f4715e87] ImpactSkipReason is EXACTLY the closed 9-value set from the AC', () => {
     expect(Object.keys(REASONS).sort()).toEqual(
       [
         'debounced',

@@ -10,13 +10,13 @@ Run `clad rollback <featureId>` from the project root. The verb is the partner o
 
 ```
 clad rollback F-001
-clad rollback F-a3f9c2 --reason "specialist dispatched a regression on the L1 lint gate"
+clad rollback F-a3f9c2e1 --reason "specialist dispatched a regression on the L1 lint gate"
 ```
 
 The output is a single Pulse line plus the restoration command:
 
 ```
-✓ rollback · F-a3f9c2  target head=<sha12> ts=<iso>
+✓ rollback · F-a3f9c2e1  target head=<sha12> ts=<iso>
 Run: git checkout <sha40>
 ```
 

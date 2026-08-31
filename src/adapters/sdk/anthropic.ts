@@ -197,6 +197,7 @@ export function setDefaultTransportForTesting(t: Transport | null): void {
 export const claudeAnthropicAdapter: AgentAdapter = {
   mode: 'sdk',
   name: 'claude-anthropic',
+  apiKeyEnv: 'ANTHROPIC_API_KEY',
   capabilities: CAPABILITIES,
   invokeAgent: (persona, ctx) => getDefaultTransport().invoke(persona, ctx),
   healthCheck: () => getDefaultTransport().ready(),

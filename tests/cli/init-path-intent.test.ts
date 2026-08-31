@@ -6,7 +6,7 @@
 // non-regular / unreadable file) falls back to free-text behavior so
 // existing invocations stay regression-free.
 
-import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, sep} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
@@ -103,6 +103,23 @@ describe('loadIntentFromPathIfApplicable', () => {
     expect(result.loadedFrom).toBeUndefined();
     expect(result.warning).toBeDefined();
     expect(result.warning).toContain('non-regular');
+  });
+
+  test('[covers:F-5f6b45/AC-005] directory, symlink loop, and invalid UTF-8 warn without throwing or mutating the original intent', () => {
+    const directoryArg = 'planning.md';
+    mkdirSync(join(dir, directoryArg));
+    const loopArg = 'loop.md';
+    symlinkSync(loopArg, join(dir, loopArg));
+    const invalidArg = 'invalid.md';
+    writeFileSync(join(dir, invalidArg), Buffer.from([0xc3, 0x28]));
+
+    for (const arg of [directoryArg, loopArg, invalidArg]) {
+      expect(() => loadIntentFromPathIfApplicable(arg, dir)).not.toThrow();
+      const result = loadIntentFromPathIfApplicable(arg, dir);
+      expect(result.intent).toBe(arg);
+      expect(result.loadedFrom).toBeUndefined();
+      expect(result.warning).toContain('falling back');
+    }
   });
 
   // AC-005b — windows-style separator is normalized by node:path.resolve.

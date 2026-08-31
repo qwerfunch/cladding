@@ -31,10 +31,21 @@ const DRIFT_CLEAN: DriftReport = {pass: true, exitCode: 0, findings: []};
 const driftStub = vi.fn((): DriftReport => DRIFT_CLEAN);
 const archStub = vi.fn((): StageResult => STAGE_PASS);
 const secretStub = vi.fn((): StageResult => STAGE_PASS);
+const buildWorkingSetSpy = vi.fn();
 
 vi.mock('../../src/stages/drift.js', () => ({runDrift: (...a: unknown[]) => driftStub(...(a as []))}));
 vi.mock('../../src/stages/arch.js', () => ({runArch: (...a: unknown[]) => archStub(...(a as []))}));
 vi.mock('../../src/stages/secret.js', () => ({runSecret: (...a: unknown[]) => secretStub(...(a as []))}));
+vi.mock('../../src/optimizer/working-set.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/optimizer/working-set.js')>();
+  return {
+    ...actual,
+    buildWorkingSet: (...args: Parameters<typeof actual.buildWorkingSet>) => {
+      buildWorkingSetSpy(...args);
+      return actual.buildWorkingSet(...args);
+    },
+  };
+});
 
 const {runHookEvent, formatImpactCard} = await import('../../src/cli/hook.js');
 const {readEvents} = await import('../../src/events/log.js');
@@ -173,7 +184,7 @@ afterEach(() => {
 // ─── AC-816f10c3 — Tier-2 render + fired tier:2 + accurate counts ───
 
 describe('Tier-2 card on an owned edit with consequences (AC-816f10c3)', () => {
-  test('renders a bounded Tier-2 card naming impacted/tests/risk; fired carries tier:2 + counts', () => {
+  test("[covers:F-35954d19/AC-816f10c3] renders a bounded Tier-2 card naming impacted/tests/risk; fired carries tier:2 + counts", () => {
     seed(SPEC_A);
     clearStamp();
     const out = post(edit('src/foo.ts', 60, 'sess-1'));
@@ -209,6 +220,21 @@ describe('hook stdout never carries a code excerpt (AC-1bfccb6b)', () => {
     expect(out).not.toContain('clipped');
     expect(out).not.toContain('```');
   });
+
+  test('[covers:F-35954d19/AC-1bfccb6b] PostToolUse requests the code-free 350-token working set before rendering the card', () => {
+    seed(SPEC_A);
+    clearStamp();
+
+    const out = post(edit('src/foo.ts', 60, 'sess-working-set-options'));
+
+    expect(out).toContain('cladding impact: src/foo.ts → F-aaa111');
+    expect(buildWorkingSetSpy).toHaveBeenCalledTimes(1);
+    expect(buildWorkingSetSpy).toHaveBeenCalledWith(
+      expect.any(Object),
+      'src/foo.ts',
+      {includeCode: false, maxTokens: 350, cwd},
+    );
+  });
 });
 
 // ─── AC-f912fd40 — zero consequences → the Tier-1 one-liner ───
@@ -240,7 +266,7 @@ describe('zero-consequence edit degrades to the one-liner (AC-f912fd40)', () => 
 // ─── AC-61ae9211 — the dedup ladder ───
 
 describe('dedup ladder within a session (AC-61ae9211)', () => {
-  test('same (focus,file) 3×: Tier-2 → Tier-1 → silence, recording dedup on repeats 2 and 3', () => {
+  test("[covers:F-35954d19/AC-61ae9211] same (focus,file) 3×: Tier-2 → Tier-1 → silence, recording dedup on repeats 2 and 3", () => {
     seed(SPEC_MULTI);
     const sid = 'sess-dedup';
 
@@ -285,7 +311,7 @@ describe('dedup ladder within a session (AC-61ae9211)', () => {
 // ─── AC-f4715e87 — the session push budget ───
 
 describe('session push budget exhaustion (AC-f4715e87)', () => {
-  test('over budget → no card, notice exactly once, ledger_exhausted each time, budget not spent by the notice', () => {
+  test('[covers:F-35954d19/AC-f4715e87] over budget → no card, notice exactly once, ledger_exhausted each time, budget not spent by the notice', () => {
     seed(SPEC_A);
     const sid = 'sess-budget';
     writeLedger({sessionKey: `sid:${sid}`, windowStart: Date.now(), est_tokens_pushed: 2600, fingerprints: {}, notice_printed: false});

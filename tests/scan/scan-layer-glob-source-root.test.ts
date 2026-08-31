@@ -61,7 +61,7 @@ describe('scan-layer-glob-source-root (F-77a90ac6)', () => {
   });
 
   describe('AC-001 — subdir layer globs carry the source-root prefix', () => {
-    test('src/api + src/db layers get dir src/api, src/db (not api, db)', () => {
+    test('[covers:F-77a90ac6/AC-619a6a7b] src/api + src/db layers get dir src/api, src/db (not api, db)', () => {
       seed(dir, {
         'package.json': '{"name":"x","version":"1.0.0","private":true}',
         'src/api/handler.ts': 'export const h = () => 1;\n',
@@ -106,7 +106,7 @@ describe('scan-layer-glob-source-root (F-77a90ac6)', () => {
   });
 
   describe('AC-002 — flat roots emit no bogus cwd-named layer', () => {
-    test('flat cwd-direct files (>=5) produce no layer (layers: [])', () => {
+    test('[covers:F-77a90ac6/AC-974ef7b2] flat cwd-direct files (>=5) produce no layer (layers: [])', () => {
       seed(dir, {
         'a.go': 'package cobra\n',
         'b.go': 'package cobra\n',
@@ -150,7 +150,7 @@ describe('scan-layer-glob-source-root (F-77a90ac6)', () => {
   });
 
   describe('AC-003 — workspace/monorepo names unchanged, globs corrected', () => {
-    test('workspace-direct layers keep names but get full-path globs', () => {
+    test('[covers:F-77a90ac6/AC-5b0d19e1] workspace-direct layers keep names but get full-path globs', () => {
       seed(dir, {
         'package.json': JSON.stringify({workspaces: ['packages/*']}),
         'packages/react/src/ReactAct.ts': 'export const x = 1;\n',

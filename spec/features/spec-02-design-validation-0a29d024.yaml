@@ -19,7 +19,7 @@ acceptance_criteria:
   - id: AC-21dfe21a
     ears: ubiquitous
     text: "The validation ledger shall map every D01-D24 decision to a canonical owner, an executable or explicitly deferred scenario, and a unique evidence classification without presenting preregistered work as a passing result."
-    test_refs: ["tests/design/spec-0.2/design-validation.test.ts#maps every D01-D24 decision exactly once and rejects fabricated pass evidence"]
+    test_refs: ["tests/design/spec-0.2/design-validation.test.ts#keeps the D01-D24 ledger canonical and rejects fabricated preregistered pass evidence"]
     notes: "## Why\nThe accepted design is larger than the 37 parser/migration seeds, so section-level prose confidence is not enough to begin a long implementation safely."
   - id: AC-e0f0c4b1
     ears: ubiquitous

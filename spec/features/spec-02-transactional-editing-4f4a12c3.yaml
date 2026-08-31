@@ -1,0 +1,62 @@
+id: F-4f4a12c3
+slug: spec-02-transactional-editing
+title: "Spec 0.2 typed transactional editing and recovery"
+status: in_progress
+modules:
+  - src/spec/edit.ts
+  - src/spec/transaction.ts
+  - src/spec/compiler/compile.ts
+  - src/spec/compiler/migration-baseline.ts
+  - src/spec/compiler/migration-preview.ts
+  - src/spec/compiler/artifact-registry.ts
+  - src/spec/load.ts
+  - src/spec/new.ts
+  - src/spec/test-ref-repair.ts
+  - src/spec/deliverable-detect.ts
+  - src/spec/doc-references.ts
+  - src/spec/inventory.ts
+  - src/spec/attestation.ts
+  - src/events/log.ts
+  - src/oracle/record.ts
+  - src/cli/done.ts
+  - src/cli/begin.ts
+  - src/cli/migrate.ts
+  - src/cli/clarify.ts
+  - src/cli/clad.ts
+  - src/cli/update.ts
+  - src/serve/server.ts
+  - tests/spec/edit.test.ts
+  - tests/spec/writer-census.test.ts
+  - tests/spec/attestation-policy.test.ts
+  - tests/spec/compiler/migration-preview.test.ts
+  - tests/spec/compiler/artifact-registry.test.ts
+  - tests/oracle-record.test.ts
+  - tests/cli/clarify.test.ts
+  - tests/cli/migrate.test.ts
+  - tests/serve/server.test.ts
+  - tests/design/spec-0.2/requirements.yaml
+acceptance_criteria:
+  - id: AC-4f4a1201
+    ears: event
+    condition: "when independently prepared edits touch different feature shards"
+    text: "When independently prepared edits touch different feature shards, the transaction authority shall apply both edits against the latest candidate while rejecting a stale edit of the same canonical shard."
+    test_refs: ["tests/spec/edit.test.ts#T01 allows independently prepared different-shard edits to commit against the latest workspace", "tests/spec/edit.test.ts#T02 rejects a second stale edit of the same canonical shard without writes"]
+  - id: AC-4f4a1202
+    ears: event
+    condition: "when a specification mutation is busy or interrupted"
+    text: "When a specification mutation is busy or interrupted, the transaction authority shall leave no partial candidate visible and shall recover byte-exact pre-state before the next compiler snapshot."
+    test_refs: ["tests/spec/edit.test.ts#T03 times out as BUSY without writes when a live owner holds the one workspace lock", "tests/spec/edit.test.ts#T04 lets the pure compiler recover byte-exact pre-state after an interrupted replacement", "tests/spec/edit.test.ts#fails closed and retains the journal when a third-party byte change appears after journal publication", "tests/spec/edit.test.ts#U04 interrupted schema migration restores source bytes before a later recovery can proceed", "tests/spec/edit.test.ts#retires aged malformed owner and abandoned reclaimer guard without retaining BUSY", "tests/spec/attestation-policy.test.ts#writes and reads the policy stamp deterministically", "tests/events/log.test.ts#a symlinked event workspace is an observer no-op and leaves outside bytes untouched", "tests/events/log.test.ts#event-file and lock symbolic links are observer no-ops", "tests/events/log.test.ts#concurrent gate callers dedupe under one lock and retain changed blockers", "tests/cli/done.test.ts#the locked provisional mark refuses review_required design impact without changing the feature", "tests/cli/done.test.ts#a GREEN gate is stale when the target modules change, preserving the latest modules", "tests/cli/done.test.ts#a GREEN gate compensates a concurrent review_required target update", "tests/cli/done.test.ts#a GREEN gate remains valid when an unrelated feature changes"]
+  - id: AC-4f4a1203
+    ears: ubiquitous
+    text: "The specification edit boundary shall accept only closed typed operations, derive canonical input revisions from their registry-owned regions, and keep context revisions outside write authorization."
+    test_refs: ["tests/spec/edit.test.ts#rejects caller-underdeclared revisions and cyclic typed link replacement without writes", "tests/spec/edit.test.ts#rejects unknown transport operations and never treats a context revision as write authority", "tests/spec/new.test.ts#missing or malformed root selector rejects legacy creation without a workspace write", "tests/serve/server.test.ts#typed edit discovery is the closed per-operation registry", "tests/serve/server.test.ts#clad_get_events returns the declared error payload with text and structured parity", "tests/spec/writer-census.test.ts#schema 0.2 adapters retain no raw feature, status, proof, or derived-projection writer", "tests/serve/server.test.ts#schema 0.1 additive create rejects a schema 0.2 scenario definition without writing a partial feature", "tests/serve/server.test.ts#F4 mutating adapters advertise their executable result fields and mutation annotations", "tests/serve/server.test.ts#F4/F5 mutation families reject unknown 17 KiB transport padding before any workspace write", "tests/serve/server.test.ts#F4 core edits enforce exact parsed-wire bytes before snake-case normalization", "tests/serve/server.test.ts#F4 mutation adapters return declared success/error envelopes and reject oversized ingress before writes", "tests/serve/server.test.ts#event tool and resource fail closed on an outside symlink without returning its content"]
+  - id: AC-4f4a1204
+    ears: event
+    condition: "when a schema migration is explicitly confirmed"
+    text: "When a schema migration is explicitly confirmed, the transaction authority shall bind the request to the current preview digest and apply or replay the candidate without a partial schema switch."
+    test_refs: ["tests/spec/edit.test.ts#U01 unresolved schema migration leaves every source byte unchanged", "tests/spec/edit.test.ts#U03 atomically applies an explicitly confirmed clean-room migration and is zero-diff on replay", "tests/spec/edit.test.ts#U04 interrupted schema migration restores source bytes before a later recovery can proceed", "tests/spec/edit.test.ts#rejects a reviewed migration when the inventory test-file census changes", "tests/spec/edit.test.ts#fails closed for a broken Git context but permits the same clean-room migration outside Git", "tests/spec/edit.test.ts#B01 title and purpose edits revoke their own legacy exemptions", "tests/spec/edit.test.ts#B02 criterion add and removal change only the addressed legacy intent node", "tests/spec/edit.test.ts#B03 criterion statement and kind edits require a strict replacement", "tests/spec/edit.test.ts#B04 criterion rationale and constraint references revoke only that criterion exemption", "tests/spec/edit.test.ts#B05 proof and note edits leave a matching legacy intent exemption effective", "tests/spec/edit.test.ts#B06 a strict sibling edit does not revoke the other matching baseline exemption", "tests/spec/compiler/schema-02-catalog-architecture.test.ts#U02 L = N", "tests/spec/compiler/migration-preview.test.ts#retains direct sequential/direct six-hex and slugged eight-hex legacy shard identities", "tests/cli/clarify.test.ts#review resolution leaves a proposal untouched when a concurrent schema 0.2 migration wins"]
+design_impact:
+  classification: structural
+  rationale: "The F4 boundary centralizes schema 0.2 writes, durable recovery, and migration application across CLI and MCP adapters."
+  status: review_required
+  artifacts: ["docs/design/spec-0.2/proof-and-editing.md", "docs/design/spec-0.2/model-and-migration.md", "docs/design/spec-0.2/delivery.md"]

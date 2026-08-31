@@ -7,6 +7,7 @@ import {claudeCodeAdapter} from '../../src/adapters/host/claude-code.js';
 import {genericMcpAdapter} from '../../src/adapters/host/generic-mcp.js';
 import {
   clearHostMcpServerForTesting,
+  getHostMcpServer,
   setHostMcpServer,
 } from '../../src/adapters/host/sampling-context.js';
 import type {SamplingCapableServer} from '../../src/adapters/host/transport.js';
@@ -139,6 +140,25 @@ describe('host adapter MCP routing (F-075)', () => {
     expect(result.summary).toBe('mcp reply');
   });
 
+  test('[covers:F-075/AC-217] [covers:F-075/AC-218] one process registration routes both host adapters and their health checks through sampling', async () => {
+    const {server, createMessage} = stubSamplingServer('shared reply');
+    setHostMcpServer(server);
+    expect(getHostMcpServer()).toBe(server);
+
+    const [claude, generic, claudeHealth, genericHealth] = await Promise.all([
+      claudeCodeAdapter.invokeAgent(persona, ctx),
+      genericMcpAdapter.invokeAgent(persona, ctx),
+      claudeCodeAdapter.healthCheck(),
+      genericMcpAdapter.healthCheck(),
+    ]);
+
+    expect(createMessage).toHaveBeenCalledTimes(2);
+    expect(claude.identity.name).toContain('mcp-sampling:claude-code');
+    expect(generic.identity.name).toContain('mcp-sampling:generic-mcp');
+    expect(claudeHealth.ready).toBe(true);
+    expect(genericHealth.ready).toBe(true);
+  });
+
   test('clearing the registration falls back to Mock on the NEXT dispatch', async () => {
     const {server, createMessage} = stubSamplingServer('first');
     setHostMcpServer(server);
@@ -150,6 +170,25 @@ describe('host adapter MCP routing (F-075)', () => {
     expect(second.identity.name).toContain('mock:claude-code');
     // The fallback did NOT call createMessage a second time.
     expect(createMessage).toHaveBeenCalledOnce();
+  });
+
+  test('[covers:F-075/AC-219] both host adapters use Mock only after the process registration is absent', async () => {
+    const {server, createMessage} = stubSamplingServer('registered');
+    setHostMcpServer(server);
+    await Promise.all([
+      claudeCodeAdapter.invokeAgent(persona, ctx),
+      genericMcpAdapter.invokeAgent(persona, ctx),
+    ]);
+    expect(createMessage).toHaveBeenCalledTimes(2);
+
+    clearHostMcpServerForTesting();
+    const [claude, generic] = await Promise.all([
+      claudeCodeAdapter.invokeAgent(persona, ctx),
+      genericMcpAdapter.invokeAgent(persona, ctx),
+    ]);
+    expect(claude.identity.name).toContain('mock:claude-code');
+    expect(generic.identity.name).toContain('mock:generic-mcp');
+    expect(createMessage).toHaveBeenCalledTimes(2);
   });
 
   test('replacing the registered server with a new one re-allocates the cached transport', async () => {

@@ -133,7 +133,7 @@ describe('detector-result cache primitives (session-scoped, cwd-guarded)', () =>
     }
   });
 
-  test('clear closes the session — later reads miss (no cross-run leakage)', () => {
+  test("[covers:F-e53596dd/AC-f48f9b90] clear closes the session — later reads miss (no cross-run leakage)", () => {
     primeDetectorResultCache(dir);
     storeDetectorResult('ARCHITECTURE_VIOLATION', dir, [ARCH_ERR]);
     clearDetectorResultCache();
@@ -150,7 +150,7 @@ describe('runArch / runSecret consume a cache hit without spawning', () => {
   });
   afterEach(() => rmSync(dir, {recursive: true, force: true}));
 
-  test('(1) no session → runArch spawns (unchanged default path)', () => {
+  test("[covers:F-e53596dd/AC-9bb78051] (1) no session → runArch spawns (unchanged default path)", () => {
     execaSyncMock.mockReturnValue(CLEAN);
     const r = runArch({cwd: dir});
     expect(execaSyncMock).toHaveBeenCalled();
@@ -241,7 +241,7 @@ describe('real seam: runDrift stores arch+secret findings; stages fold them with
   });
   afterEach(() => rmSync(dir, {recursive: true, force: true}));
 
-  test('drift publishes arch+secret findings; runArch/runSecret consume them, no new spawn', () => {
+  test("[covers:F-e53596dd/AC-f4163677] drift publishes arch+secret findings; runArch/runSecret consume them, no new spawn", () => {
     // Non-zero exit → both the arch and secret detectors emit a deterministic
     // error finding during the drift pass.
     execaSyncMock.mockReturnValue({

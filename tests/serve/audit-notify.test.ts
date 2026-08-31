@@ -54,7 +54,7 @@ describe('serve · audit live notification (F-074)', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('client subscribed to cladding://audit receives notification when evidence lands', async () => {
+  test('[covers:F-074/AC-214][covers:F-074/AC-216] client subscribed to cladding://audit receives notification when evidence lands', async () => {
     const server = buildServer({cwd: dir, name: 'cladding-test', version: '0.0.0-test'});
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
     const client = new Client(
@@ -93,13 +93,15 @@ describe('serve · audit live notification (F-074)', () => {
       await new Promise<void>((resolve) => setImmediate(resolve));
 
       expect(notifications).toContain(RESOURCE_URIS.audit);
+      const reread = await client.readResource({uri: RESOURCE_URIS.audit});
+      expect((reread.contents[0] as {text: string}).text).toContain('reviewer signed off');
     } finally {
       await client.close();
       await server.close();
     }
   });
 
-  test('appendEvidence for a DIFFERENT cwd does NOT notify the server', async () => {
+  test('[covers:F-074/AC-215] appendEvidence for a DIFFERENT cwd does NOT notify the server', async () => {
     const server = buildServer({cwd: dir, name: 'cladding-test', version: '0.0.0-test'});
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
     const client = new Client(

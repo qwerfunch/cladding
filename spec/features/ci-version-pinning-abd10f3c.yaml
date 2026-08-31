@@ -13,7 +13,7 @@ acceptance_criteria:
     action: "derive the numeric major.minor selector from that runtime version and render npx --yes cladding@<major.minor> check --tier=pre-push --strict --json"
     response: "generated CI stays within the installed release line instead of silently adopting a future breaking version"
     text: "When clad init --with-ci scaffolds CI, the system shall pin Cladding to the running binary's numeric major.minor release line while preserving the strict pre-push gate."
-    test_refs: ["tests/init/git-hook.test.ts#creates a major.minor-pinned authoritative-gate workflow once and never overwrites it"]
+    test_refs: ["tests/init/git-hook.test.ts#CI stays authoritative when a generated hook documents its one-time local bypass"]
   - id: AC-8604b579
     ears: unwanted
     condition: "if the running Cladding version is absent or malformed"

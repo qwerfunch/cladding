@@ -5,74 +5,74 @@ decisions:
   - {id: D02, owner: docs/design/spec-0.2/model-and-migration.md, scenario: why-what-how, implementation: pending}
   - {id: D03, owner: docs/design/spec-0.2/model-and-migration.md, scenario: artifact-layout, implementation: pending}
   - {id: D04, owner: docs/design/spec-0.2/model-and-migration.md, scenario: identity-sharding, implementation: pending}
-  - {id: D05, owner: docs/design/spec-0.2/model-and-migration.md, scenario: project-contract, implementation: pending}
-  - {id: D06, owner: docs/design/spec-0.2/model-and-migration.md, scenario: criterion-contract, implementation: pending}
-  - {id: D07, owner: docs/design/spec-0.2/model-and-migration.md, scenario: capability-ownership, implementation: pending}
-  - {id: D08, owner: docs/design/spec-0.2/model-and-migration.md, scenario: architecture-contract, implementation: pending}
-  - {id: D09, owner: docs/design/spec-0.2/model-and-migration.md, scenario: scenario-contract, implementation: pending}
-  - {id: D10, owner: docs/design/spec-0.2/model-and-migration.md, scenario: compiler-registry, implementation: pending}
-  - {id: D11, owner: docs/design/spec-0.2/proof-and-editing.md, scenario: test-binding, implementation: pending}
-  - {id: D12, owner: docs/design/spec-0.2/proof-and-editing.md, scenario: transactional-editing, implementation: pending}
-  - {id: D13, owner: docs/design/spec-0.2/proof-and-editing.md, scenario: attestation-freshness, implementation: pending}
-  - {id: D14, owner: docs/design/spec-0.2/model-and-migration.md, scenario: schema-migration, implementation: pending}
+  - {id: D05, owner: docs/design/spec-0.2/model-and-migration.md, scenario: project-contract, implementation: validation-active}
+  - {id: D06, owner: docs/design/spec-0.2/model-and-migration.md, scenario: criterion-contract, implementation: validation-active}
+  - {id: D07, owner: docs/design/spec-0.2/model-and-migration.md, scenario: capability-ownership, implementation: validation-active}
+  - {id: D08, owner: docs/design/spec-0.2/model-and-migration.md, scenario: architecture-contract, implementation: validation-active}
+  - {id: D09, owner: docs/design/spec-0.2/model-and-migration.md, scenario: scenario-contract, implementation: validation-active}
+  - {id: D10, owner: docs/design/spec-0.2/model-and-migration.md, scenario: compiler-registry, implementation: validation-active}
+  - {id: D11, owner: docs/design/spec-0.2/proof-and-editing.md, scenario: test-binding, implementation: validation-active}
+  - {id: D12, owner: docs/design/spec-0.2/proof-and-editing.md, scenario: transactional-editing, implementation: validation-active}
+  - {id: D13, owner: docs/design/spec-0.2/proof-and-editing.md, scenario: attestation-freshness, implementation: validation-active}
+  - {id: D14, owner: docs/design/spec-0.2/model-and-migration.md, scenario: schema-migration, implementation: validation-active}
   - {id: D15, owner: docs/design/spec-0.2/delivery.md, scenario: delivery-order, implementation: pending}
   - {id: D16, owner: docs/design/spec-0.2/delivery.md, scenario: acceptance-gates, implementation: pending}
-  - {id: D17, owner: docs/design/spec-0.2/graph.md, scenario: graph-fidelity, implementation: pending}
+  - {id: D17, owner: docs/design/spec-0.2/graph.md, scenario: assurance-closure-slice-only, implementation: validation-active}
   - {id: D18, owner: docs/design/spec-0.2/hygiene.md, scenario: authority-retirement, implementation: pending}
   - {id: D19, owner: docs/design/spec-0.2/context-and-orchestration.md, scenario: context-accounting, implementation: pending}
-  - {id: D20, owner: docs/design/spec-0.2/context-and-orchestration.md, scenario: evidence-orchestration, implementation: pending}
-  - {id: D21, owner: docs/design/spec-0.2/assurance.md, scenario: assurance-kernel, implementation: pending}
-  - {id: D22, owner: docs/design/spec-0.2/assurance.md, scenario: assurance-scheduler, implementation: pending}
-  - {id: D23, owner: docs/design/spec-0.2/assurance.md, scenario: assurance-verdict, implementation: pending}
+  - {id: D20, owner: docs/design/spec-0.2/context-and-orchestration.md, scenario: evidence-orchestration, implementation: validation-active}
+  - {id: D21, owner: docs/design/spec-0.2/assurance.md, scenario: assurance-kernel, implementation: validation-active}
+  - {id: D22, owner: docs/design/spec-0.2/assurance.md, scenario: assurance-profile-cadence-kernel-no-f9-scheduler-cache, implementation: validation-active}
+  - {id: D23, owner: docs/design/spec-0.2/assurance.md, scenario: assurance-verdict, implementation: validation-active}
   - {id: D24, owner: docs/design/spec-0.2/mcp.md, scenario: mcp-role, implementation: validation-active}
 
 preregistered_cases:
-  - {id: P01, decision: D06}
-  - {id: P02, decision: D06}
-  - {id: P03, decision: D06}
-  - {id: P04, decision: D06}
-  - {id: P05, decision: D06}
-  - {id: P06, decision: D06}
-  - {id: P07, decision: D06}
-  - {id: P08, decision: D06}
-  - {id: P09, decision: D06}
-  - {id: P10, decision: D06}
-  - {id: L01, decision: D14}
-  - {id: L02, decision: D14}
-  - {id: L03, decision: D14}
-  - {id: L04, decision: D14}
-  - {id: B01, decision: D14}
-  - {id: B02, decision: D14}
-  - {id: B03, decision: D14}
-  - {id: B04, decision: D14}
-  - {id: B05, decision: D14}
-  - {id: B06, decision: D14}
-  - {id: C01, decision: D11}
-  - {id: C02, decision: D11}
-  - {id: C03, decision: D11}
-  - {id: C04, decision: D11}
-  - {id: C05, decision: D11}
-  - {id: C06, decision: D11}
-  - {id: T01, decision: D12}
-  - {id: T02, decision: D12}
-  - {id: T03, decision: D12}
-  - {id: T04, decision: D12}
-  - {id: U01, decision: D14}
-  - {id: U02, decision: D14}
-  - {id: U03, decision: D14}
-  - {id: U04, decision: D14}
-  - {id: A01, decision: D13}
-  - {id: A02, decision: D13}
-  - {id: A03, decision: D13}
+  - {id: P01, decision: D06, implementation: validation-active}
+  - {id: P02, decision: D06, implementation: validation-active}
+  - {id: P03, decision: D06, implementation: validation-active}
+  - {id: P04, decision: D06, implementation: validation-active}
+  - {id: P05, decision: D06, implementation: validation-active}
+  - {id: P06, decision: D06, implementation: validation-active}
+  - {id: P07, decision: D06, implementation: validation-active}
+  - {id: P08, decision: D06, implementation: validation-active}
+  - {id: P09, decision: D06, implementation: validation-active}
+  - {id: P10, decision: D06, implementation: validation-active}
+  - {id: L01, decision: D14, implementation: validation-active}
+  - {id: L02, decision: D14, implementation: validation-active}
+  - {id: L03, decision: D14, implementation: validation-active}
+  - {id: L04, decision: D14, implementation: validation-active}
+  - {id: B01, decision: D14, implementation: validation-active, test_ref: "tests/spec/edit.test.ts#B01 title and purpose edits revoke their own legacy exemptions"}
+  - {id: B02, decision: D14, implementation: validation-active, test_ref: "tests/spec/edit.test.ts#B02 criterion add and removal change only the addressed legacy intent node"}
+  - {id: B03, decision: D14, implementation: validation-active, test_ref: "tests/spec/edit.test.ts#B03 criterion statement and kind edits require a strict replacement"}
+  - {id: B04, decision: D14, implementation: validation-active, test_ref: "tests/spec/edit.test.ts#B04 criterion rationale and constraint references revoke only that criterion exemption"}
+  - {id: B05, decision: D14, implementation: validation-active, test_ref: "tests/spec/edit.test.ts#B05 proof and note edits leave a matching legacy intent exemption effective"}
+  - {id: B06, decision: D14, implementation: validation-active, test_ref: "tests/spec/edit.test.ts#B06 a strict sibling edit does not revoke the other matching baseline exemption"}
+  - {id: C01, decision: D11, implementation: validation-active, test_ref: "tests/proof/vitest-jest.test.ts#C01 harvests consecutive leading title carriers for multiple criteria"}
+  - {id: C02, decision: D11, implementation: validation-active, test_ref: "tests/proof/vitest-jest.test.ts#C02 ignores bare IDs, organic mentions, comments, and non-leading title text"}
+  - {id: C03, decision: D11, implementation: validation-active, test_ref: "tests/proof/vitest-jest.test.ts#C03 rejects a leading carrier for an unknown composite criterion"}
+  - {id: C04, decision: D11, implementation: validation-active, test_ref: "tests/proof/vitest-jest.test.ts#C04 never counts an unrelated same-file pass as a bound observation"}
+  - {id: C05, decision: D11, implementation: validation-active, test_ref: "tests/proof/vitest-jest.test.ts#C05 reduces a skipped-only bound case as unverified"}
+  - {id: C06, decision: D11, implementation: validation-active, test_ref: "tests/proof/vitest-jest.test.ts#C06 gives an exact bound failure precedence over positive observations"}
+  - {id: T01, decision: D12, implementation: validation-active, test_ref: "tests/spec/edit.test.ts#T01 allows independently prepared different-shard edits to commit against the latest workspace"}
+  - {id: T02, decision: D12, implementation: validation-active, test_ref: "tests/spec/edit.test.ts#T02 rejects a second stale edit of the same canonical shard without writes"}
+  - {id: T03, decision: D12, implementation: validation-active, test_ref: "tests/spec/edit.test.ts#T03 times out as BUSY without writes when a live owner holds the one workspace lock"}
+  - {id: T04, decision: D12, implementation: validation-active, test_ref: "tests/spec/edit.test.ts#T04 restores byte-exact pre-state before the next compiler snapshot after an interrupted replacement"}
+  - {id: U01, decision: D14, implementation: validation-active, test_ref: "tests/spec/edit.test.ts#U01 unresolved schema migration leaves every source byte unchanged"}
+  - {id: U02, decision: D14, implementation: validation-active, test_ref: "tests/spec/compiler/schema-02-catalog-architecture.test.ts#U02 L = N"}
+  - {id: U03, decision: D14, implementation: validation-active, test_ref: "tests/spec/edit.test.ts#U03 atomically applies an explicitly confirmed clean-room migration and is zero-diff on replay"}
+  - {id: U04, decision: D14, implementation: validation-active, test_ref: "tests/spec/edit.test.ts#U04 interrupted schema migration restores source bytes before a later recovery can proceed"}
+  - {id: A01, decision: D13, implementation: validation-active, test_ref: "tests/spec/attestation-v3.test.ts#A01 selectively stales a changed contract seal"}
+  - {id: A02, decision: D13, implementation: validation-active, test_ref: "tests/spec/attestation-v3.test.ts#A02 selectively stales a changed proof input seal"}
+  - {id: A03, decision: D13, implementation: validation-active, test_ref: "tests/spec/attestation-v3.test.ts#A03 keeps a target receipt fresh when only a sibling receipt is stale"}
 
 integration_journeys:
   - {id: J01, decisions: [D02, D05, D06, D09], status: simulated, scenario: why-ladder}
   - {id: J02, decisions: [D04, D06, D11], status: simulated, scenario: composite-identity-and-binding}
   - {id: J03, decisions: [D07, D12], status: simulated, scenario: feature-local-capability-ownership}
   - {id: J04, decisions: [D08, D13], status: implementation_pending, scenario: architecture-constraint-freshness}
-  - {id: J05, decisions: [D09, D21], status: implementation_pending, scenario: scenario-policy-obligation}
-  - {id: J06, decisions: [D03, D10, D14], status: implementation_pending, scenario: atomic-schema-upgrade}
-  - {id: J07, decisions: [D12, D15], status: implementation_pending, scenario: transaction-crash-recovery}
+  - {id: J05, decisions: [D09, D21], status: simulated, scenario: scenario-policy-obligation}
+  - {id: J06, decisions: [D03, D10, D14], status: simulated, scenario: atomic-schema-upgrade}
+  - {id: J07, decisions: [D12, D15], status: simulated, scenario: transaction-crash-recovery}
   - {id: J08, decisions: [D11, D20, D21], status: simulated, scenario: proof-observation-and-provenance}
   - {id: J09, decisions: [D13, D23], status: implementation_pending, scenario: selective-attestation-staleness}
   - {id: J10, decisions: [D17, D19], status: simulated, scenario: bounded-graph-projection}
@@ -81,18 +81,21 @@ integration_journeys:
   - {id: J13, decisions: [D15, D16, D24], status: not_run, scenario: reference-host-spec-02-cycle}
 
 mcp_scenarios:
-  - MCP01-handshake-and-capabilities
-  - MCP02-bootstrap-and-list-changed
-  - MCP03-text-and-structured-content-parity
-  - MCP04-cli-and-kernel-semantic-parity
-  - MCP05-prepare-apply-replay-and-rollback
-  - MCP06-concurrent-write-and-stale-revision
-  - MCP07-malformed-oversized-and-path-inputs
-  - MCP08-graph-context-and-catalog-budgets
-  - MCP09-receipt-and-blindness-boundary
-  - MCP10-tools-only-host-degradation
-  - MCP11-reference-host-spec-02-cycle
-  - MCP12-adoption-versus-delivery-telemetry
+  - {id: MCP01-handshake-and-capabilities, implementation: pending}
+  - {id: MCP02-bootstrap-and-list-changed, implementation: pending}
+  - {id: MCP03-text-and-structured-content-parity, implementation: pending}
+  - {id: MCP04-cli-and-kernel-semantic-parity, implementation: validation-active, slice: f5-receipt-operation}
+  - {id: MCP05-prepare-apply-replay-and-rollback, implementation: pending}
+  - {id: MCP06-concurrent-write-and-stale-revision, implementation: pending}
+  - {id: MCP07-malformed-oversized-and-path-inputs, implementation: pending}
+  - {id: MCP08-graph-context-and-catalog-budgets, implementation: pending}
+  - {id: MCP09-receipt-and-blindness-boundary, implementation: validation-active, slice: f5-receipt-ingestion-and-asserted-fallback}
+  - {id: MCP10-tools-only-host-degradation, implementation: pending}
+  - {id: MCP11-reference-host-spec-02-cycle, implementation: pending}
+  - {id: MCP12-adoption-versus-delivery-telemetry, implementation: pending}
+
+mcp_reference_hosts: [codex, claude-code]
+host_ab: {host: codex, max_calls: 24, blocking: false}
 
 host_ab_tasks:
   - {id: AB01, profile: implement, objective: locate-feature-contract, fault_control: wrong-feature}

@@ -23,7 +23,8 @@
 | `AC` | Acceptance criterion — one verifiable behavior inside a feature. | 인수 기준 |
 | `oracle` | An impl-blind conformance test authored from the spec brief alone (`tests/oracle/`). | 구현-맹검 검증 테스트 |
 | `deliverable` | The shipped entry point the gate smoke-runs (stage_2.4). | 출하 진입점 |
-| `attestation` | The verification signature (`spec/attestation.yaml`) a GREEN strict pre-push gate writes: module tree-hashes per done feature — the clone-portable answer to "when was this last verified?" (0.6.0). | 검증 서명 |
+| `attestation` | The verification signature (`spec/attestation.yaml`). v1/v2 retain module-hash compatibility; v3 seals current contract, subject, verification, runtime-dependency, profile, and obligation inputs only after a profile-complete authoritative GREEN result. | 검증 서명 |
+| `assurance profile` | A named verification cadence: `feedback`, `checkpoint`, `completion`, `push`, or `release`. Legacy `pre-commit`, `pre-push`, and `all` are aliases for checkpoint, push, and release. | 보증 프로필 |
 | `adoption verdict` | Whether an agent CHOSE to **pull** context (a resolved `clad_get_working_set` / `clad_get_context` / `clad_get_impact` read-serve — the only adoption signal) vs what cladding merely **pushed** (impact / session / prompt cards — delivery, never adoption). Three values: `confirmed` \| `not_confirmed` \| `insufficient_data`. Gates the B1 cleanup — see docs/b1-adoption-protocol.md. | 채택 판정 (풀 대 푸시) |
 
 ## Personas (alias-and-deprecate bucket)
@@ -45,8 +46,10 @@
 |---|---|---|---|
 | `init` | stable | Scaffold a cladding workspace (intent-aware onboarding). | 작업공간 생성 |
 | `sync` | stable | Validate spec + refresh generated state (inventory, deliverable, index). | 스펙 동기화 |
-| `check` | stable | Run the Iron Law stages; `--tier`, `--strict`, `--json`. | 게이트 검사 |
-| `done` | stable | Gated completion flip: status→done only if the strict pre-push gate is GREEN. | 검증된 완료 처리 |
+| `migrate` | stable (0.10.0) | Preview a schema 0.1 → 0.2 migration, or apply explicit human-confirmed choices as one recoverable transaction. | 스키마 마이그레이션 미리보기 |
+| `begin` | stable (0.10.0) | Start a schema 0.2 implementation cycle, saving its pre-cycle checkpoint with the status update. | 구현 사이클 시작 |
+| `check` | stable | Run the Iron Law stages; `--tier` aliases or `--profile`, optional bounded `--assurance-level`, `--strict`, `--json`. | 게이트 검사 |
+| `done` | stable | Gated completion flip: schema 0.2 invokes the completion profile; schema 0.1 retains strict pre-push compatibility. | 검증된 완료 처리 |
 | `clarify` | stable (0.6.0) | Continue the onboarding Q&A (spec-kit `/clarify` precedent). | 온보딩 질의 진행 |
 | `refine` | removed (0.8.0) | Old alias → `clarify` (no CLI precedent); removed — `clarify` is the only spelling now. | (제거됨) |
 | `status` | stable (0.6.0) | Render the feature × stage integrity matrix (`git status` convention). | 상태 매트릭스 |
@@ -55,6 +58,8 @@
 | `drive` | removed (0.8.0) | Old alias → `run` (no CLI precedent); removed — `run` is the only spelling now. | (제거됨) |
 | `work` | removed (0.6.0) | Was a permanently not-implemented reserved stub (always exit 2) — dishonest surface; `run` owns the slot. | (제거됨) |
 | `serve` | stable | Start the MCP server over stdio. | MCP 서버 |
+| `signoff` | stable (0.10.0) | Record asserted-only local audit or UAT history. It never marks evidence verified; schema 0.2 verification still requires a registered signed receipt and complete expected context. | 주장됨 전용 로컬 감사·UAT 기록 (검증됨으로 승격하지 않음) |
+| `ingest-receipt` | stable (0.10.0) | Create-only storage for one portable receipt under its subject feature. The CLI accepts no trust, public-key, private-key, or destination authority. | 주체 기능 아래 이식 가능한 영수증을 생성 전용으로 저장 (CLI 신뢰·키·대상 경로 권한 없음) |
 | `oracle` | stable | Print the impl-blind authoring brief for a feature/AC. | 오라클 브리프 |
 | `setup` | stable | Wire cladding into detected AI hosts (Claude/Codex/Gemini/Antigravity/Cursor). | 호스트 연결 |
 | `update` | stable | Post-upgrade reconciliation (re-wire, sync, report-only drift). | 업그레이드 정리 |
@@ -66,7 +71,7 @@
 | `impact` | stable (0.7.0) | Print the blast radius for a change — the transitive dependents of a feature/file plus the scenarios and the regression test set to re-run. The backward complement of `context` (what depends on this, vs what this needs). | 영향 반경(blast radius) |
 | `verdict` | stable (0.8.x) | One-poll loop decision: reduces the pre-push strict gate + feature statuses to ONE of `DONE` \| `ITERATE` \| `ESCALATE` \| `BLOCKED` \| `BOOTSTRAP` with a `next_action` pointer + `remaining` list. Runs the SAME gate once per poll (never a re-implementation); `DONE` requires a green gate AND every feature done AND ≥1 non-liveness behavioral proof. A read-only poll — never stamps attestation. | 루프 판정(1회 폴) |
 | `measure` | stable (0.7.0) | Report the search + context efficiency the graph provides per feature — working-set tokens vs the naive (shard + all module files) baseline, dependency depth/edges resolved, regression-set coverage. Deterministic; measures what the graph CAN provide, not agent adoption. | 효율 측정 |
-| `infer`-deps | stable (0.7.0) | Suggest feature `depends_on` edges from the code import graph — the dependency edges cladding never auto-produced. Resolves each module's imports to the owning feature; prints reviewable suggestions (a human merges them — anti-self-cert). | 의존 추론 |
+| `infer-deps` | stable (0.7.0) | Suggest feature `depends_on` edges from the code import graph — the dependency edges cladding never auto-produced. Resolves each module's imports to the owning feature; prints reviewable suggestions (a human merges them — anti-self-cert). | 의존 추론 |
 | `graph` | stable (0.7.0) | Render the spec↔code↔doc knowledge graph: `export` → mermaid/dot/json/Obsidian-vault or a self-contained offline `html` viewer (WebGL, three.js bundled); `serve` → the same viewer live on localhost, auto-reloading as spec/docs change; `stats` → counts + hubs. | 지식 그래프 |
 | `hook` | stable (0.6.0) | Host hook protocol adapter — consumes one host lifecycle event (SessionStart / UserPromptSubmit / PreToolUse / PostToolUse / Stop) as stdin JSON; always exits 0. Honest limit: PreToolUse blocking only sees Edit/Write tool calls — a YAML edit made through Bash bypasses lane one; the Stop hook's post-hoc detectors are lane two. Neither lane alone is the guarantee. | 호스트 훅 프로토콜 어댑터 |
 | `changelog` | stable (0.6.0) | Render shipped changes since a git ref into human-facing documents — capability-grouped markdown / `--json` manifest / `--audit` verification table / `--catalog` spec listing. Named `changelog` deliberately, NOT `digest` (which means cryptographic hash in this domain — see Naming conventions). | 변경 이력 렌더링 |
@@ -96,18 +101,23 @@
 | `clad_get_feature` | Fetch one feature + ACs by id or slug. |
 | `clad_run_check` | Run drift detection in-process (terse by default). |
 | `clad_get_events` | Tail the lifecycle event log. |
+| `clad_prepare_spec_edit` | Return projection and canonical input revisions for one typed edit batch without writing. |
+| `clad_edit_spec` | Apply a typed schema edit batch with registry-derived regions and optimistic input revisions. |
+| `clad_begin` | Start a feature cycle through the recoverable typed edit boundary. |
 | `clad_create_feature` | Author a feature shard with hash id + ACs + a durable design-impact decision. |
 | `clad_resolve_design_impact` | Mark structural design impact resolved after every listed Tier-B artifact actually changed. |
 | `clad_create_scenario` | Author a scenario shard with hash id. |
 | `clad_link_capability` | Upsert a capability ↔ feature binding (Tier B). |
 | `clad_author_oracle` | Record a host-authored impl-blind oracle + provenance. |
-| `clad_run_gate` | Run the real Iron Law gate for a tier in-session (0.6.0; strict by default). Payloads carry `schema_version`. |
+| `clad_run_gate` | Run the real Iron Law gate in-session with tier/profile and assurance-level parity (strict by default). Payloads carry `schema_version`. |
 | `clad_verdict` | One-poll loop decision (0.8.x) — runs the real pre-push strict gate ONCE and reduces it to `{verdict, next_action, remaining}` (`DONE` \| `ITERATE` \| `ESCALATE` \| `BLOCKED` \| `BOOTSTRAP`). Call INSTEAD OF `clad_run_gate` per loop turn (it subsumes the gate touch); a poll that answers ITERATE/ESCALATE is a success, not an error. |
 | `clad_get_context` | The context slice for one feature by id/slug/module path (0.6.0) — dispatch the slice, never the whole spec. |
 | `clad_get_working_set` | The token-budgeted working set for one feature/module (0.7.0) — focus + module CODE excerpts + forward needs + backward breaks + verify + budget, fused in one call; the code-bearing superset of `clad_get_context` (which stays frozen). |
 | `clad_get_impact` | The blast-radius slice for a change by feature id/slug/module path (0.7.0) — transitive dependents + scenarios at risk + the regression test set; the backward complement of `clad_get_context`. |
 | `clad_get_graph` | The live spec↔code↔doc knowledge graph (0.7.0) — tier-classified nodes (A/B/C/D) + typed edges, optionally a focused neighborhood; recomputed from the current spec so it is never stale. |
 | `clad_changelog` | The deterministic shipped-changes manifest since a git ref (0.6.0) — the host renders human release notes FROM it, sourcing every claim from a feature title/AC sentence; `format: markdown \| audit \| catalog` for the deterministic renders. |
+| `clad_ingest_receipt` | Create-only portable-receipt storage. Trust is host-injected; arguments cannot supply trust material, public/private keys, or a destination path. |
+| `clad_signoff` | Record asserted-only local audit or UAT history; it cannot create verified evidence. |
 
 ## Context surfaces (push vs pull)
 
@@ -165,6 +175,20 @@ Added 0.8.0 (F-6ba22c5c — value-delivery telemetry, so a silent surface is dis
 `id` · `slug` · `title` · `status` · `modules` · `depends_on` · `acceptance_criteria` · `ears` · `text` · `condition` · `action` · `response` · `notes` · `test_refs` · `evidence_refs` · `oracle_refs` · `capabilities` · `scenarios` · `inventory` · `ai_hints` · `deliverable` · `oracle_policy`
 
 Ref prefixes: `self-dogfood:` (verified by cladding running on itself) · `fixture:` (conformance registry anchor) · `derived:` (machine-suggested, not author-confirmed — never satisfies a verification mandate; planned 0.6.0).
+
+### Additive Spec 0.2 compiler terms
+
+These fields are validated and projected by the additive compiler and migration preview. They do not switch this repository's current schema or enable migration apply.
+
+- `project.purpose` — required project WHY; `intent_summary` remains schema 0.1 source data, never a 0.2 alias.
+- `project.assurance_level` — explicitly persisted `L1` | `L2` | `L3` | `L4`; preview proposes `L2` for human confirmation and never infers it from stage layout.
+- `project.scenario_policy` — explicitly persisted `off` | `advisory` | `required`; preview proposes `advisory` for human confirmation rather than applying a default.
+- `capability.outcome` — required user-visible result for a catalog capability. Capability `summary`, `surface`, and `features` are legacy source fields.
+- `feature.capability_refs` — the sole authored feature-to-capability edge set. `[]` deliberately means direct contribution to project purpose.
+- `architecture.layers` — ordered foundation-to-entry `string[][]`; object-form layers require migration review.
+- `architecture.rules` — `AR-<8 lowercase hex>` `forbidden_import` records. `from` is the importing layer and `to` is the imported dependency layer; every rule has a non-empty rationale.
+- `criterion.constraint_refs` — architecture-rule addresses that may supply a constraint rationale. Unknown rules block the contract.
+- `L = N` — the sorted migration proof that legacy capability-owned pairs (`L`) exactly equal the feature-owned candidate pairs (`N`) before any future cutover.
 
 ## Detector IDs (frozen — display labels may improve)
 

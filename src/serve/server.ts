@@ -35,24 +35,28 @@ import {
 import {z} from 'zod';
 
 import {loadPersona} from '../agents/loader.js';
-import {recordEvent} from '../events/log.js';
+import {readEventLogLines, recordEvent} from '../events/log.js';
 import {collectChangelog, defaultSinceRef} from '../changelog/collect.js';
 import {renderAuditTable, renderCatalog, renderChangelogMarkdown} from '../changelog/render.js';
 import {subscribeAudit} from '../hitl/audit.js';
 import {loadSpec} from '../spec/load.js';
 import type {Spec} from '../spec/types.js';
-import {createFeature, createScenario, linkCapability, linkScenario, resolveDesignImpact} from '../spec/new.js';
+import {createScenario, createSchema01FeatureComposite, generateFeatureId, linkCapability, resolveDesignImpact} from '../spec/new.js';
+import {editSpec, prepareSpecEdit, readSpecEditRevisions, specEditOperationsSchema, type SpecEditOperation, SpecEditError, withSpecWorkspaceLock} from '../spec/edit.js';
+import {requiredRootSchema} from '../spec/transaction.js';
+import {readSchema02AuthoringSnapshot} from '../spec/compiler/authoring-view.js';
+import {idPolicyDescription, readableIdPattern} from '../spec/compiler/id-policy.js';
 import {recordOracle} from '../oracle/record.js';
 import {doneFeatureCount, oracleRequired, resolveOraclePolicy} from '../oracle/policy.js';
-import {maintainDeliverable} from '../spec/deliverable-detect.js';
-import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../spec/inventory.js';
-import {gitOperationInProgress} from '../core/git-ops.js';
 import {buildContextSlice} from '../optimizer/context-slice.js';
 import {buildImpactSlice} from '../optimizer/reverse-slice.js';
 import {buildWorkingSet} from '../optimizer/working-set.js';
 import {buildGraph, resolveNodeIds, subgraph} from '../graph/model.js';
 import {graphStats} from '../graph/stats.js';
 import {runDrift} from '../stages/drift.js';
+import {ingestPortableReceipt} from '../proof/ingest.js';
+import {recordAssertedSignoff} from '../proof/signoff.js';
+import {emptyTrustSnapshot, parsePortableReceiptYaml, type PortableReceipt, type ReceiptExpectedDigestContext, type TrustSnapshot} from '../proof/receipt.js';
 
 /** Persona ids registered as MCP prompts (mirrors src/agents/). */
 export const PERSONA_IDS = [
@@ -85,10 +89,15 @@ export const TOOL_NAMES = [
   'clad_get_feature',
   'clad_run_check',
   'clad_get_events',
+  'clad_edit_spec',
+  'clad_prepare_spec_edit',
+  'clad_begin',
   'clad_create_feature',
   'clad_resolve_design_impact',
   'clad_create_scenario',
   'clad_link_capability',
+  'clad_ingest_receipt',
+  'clad_signoff',
   'clad_author_oracle',
   'clad_run_gate',
   'clad_verdict',
@@ -115,6 +124,43 @@ export interface ServerOptions {
   readonly version?: string;
   /** In-process onboarding operations supplied by the CLI composition root. */
   readonly onboarding?: OnboardingOperations;
+  /** Immutable host/install-provided evidence dependencies; never MCP arguments. */
+  readonly evidence?: EvidenceOperations;
+}
+
+/**
+ * Projects the MCP assurance request onto the sole CLI gate transport.
+ *
+ * A canonical profile intentionally omits the legacy default tier so the CLI
+ * can choose profile-owned execution rather than receive a fabricated alias
+ * conflict.  Keeping this vector pure makes positive CLI/MCP parity
+ * independently fixtureable without invoking either runner twice.
+ */
+export function cladRunGateCliArgs(input: {
+  readonly tier?: 'pre-commit' | 'pre-push' | 'all';
+  readonly profile?: 'feedback' | 'checkpoint' | 'completion' | 'push' | 'release';
+  readonly assuranceLevel?: 'L1' | 'L2' | 'L3' | 'L4';
+  readonly strict: boolean;
+}): readonly string[] {
+  return [
+    'check',
+    ...(input.tier ? [`--tier=${input.tier}`] : input.profile ? [] : ['--tier=pre-commit']),
+    ...(input.profile ? [`--profile=${input.profile}`] : []),
+    ...(input.assuranceLevel ? [`--assurance-level=${input.assuranceLevel}`] : []),
+    ...(input.strict ? ['--strict'] : []),
+    '--json',
+  ];
+}
+
+/** Wraps the unmodified CLI assurance projection in the MCP wire envelope. */
+export function cladRunGatePayload<T extends Readonly<Record<string, unknown>>>(document: T): T & {readonly schema_version: number} {
+  return {...document, schema_version: PAYLOAD_SCHEMA_VERSION};
+}
+
+/** F5 trust and expected-digest dependencies injected by a registered host. */
+export interface EvidenceOperations {
+  readonly trustSnapshot?: TrustSnapshot;
+  readonly expectedDigestContext?: (receipt: PortableReceipt) => ReceiptExpectedDigestContext | undefined;
 }
 
 /** Process-independent onboarding contract injected at the serve boundary. */
@@ -194,7 +240,7 @@ export function buildServer(opts: ServerOptions = {}): McpServer {
     },
   );
 
-  registerTools(server, cwd, opts.onboarding);
+  registerTools(server, cwd, opts.onboarding, opts.evidence);
   registerResources(server, cwd);
   registerPrompts(server, cwd);
   registerSubscribeHandlers(server);
@@ -266,19 +312,43 @@ function loadSpecOrError(cwd: string): {readonly spec: Spec} | {readonly error: 
 
 /** Deterministic mutation boundary for a setup-only workspace. */
 function requireInitialized(cwd: string): string | null {
+  const rootPath = join(cwd, 'spec.yaml');
+  if (!existsSync(rootPath)) {
+    return 'cladding: not_initialized — this project has host wiring but no valid spec.yaml; ' +
+      'ordinary work must remain ordinary until the user explicitly requests Cladding initialization.';
+  }
+  try {
+    if (requiredRootSchema(cwd) === '0.2') {
+      readSchema02AuthoringSnapshot(cwd);
+      return null;
+    }
+  } catch (error) {
+    return `cladding: specification is not ready — ${(error as Error).message}`;
+  }
   const loaded = loadSpecOrError(cwd);
   if (!('error' in loaded)) return null;
   return 'cladding: not_initialized — this project has host wiring but no valid spec.yaml; ' +
     'ordinary work must remain ordinary until the user explicitly requests Cladding initialization.';
 }
 
-function initializedMutationBoundary(cwd: string): {isError: true; content: Array<{type: 'text'; text: string}>} | null {
+function initializedMutationBoundary(cwd: string): ReturnType<typeof mcpPayload> | null {
   const error = requireInitialized(cwd);
-  return error ? {isError: true, content: [{type: 'text', text: error}]} : null;
+  return error ? mcpPayload({ok: false, code: 'NOT_INITIALIZED', message: error}, true) : null;
 }
 
 /** Frozen wire field (F-570a3f): bump when a tool's payload shape changes. */
 const PAYLOAD_SCHEMA_VERSION = 1;
+// Observe responses share the D24 task-profile ceiling. This is separate from
+// the edit packet limit by purpose, but intentionally equal in byte budget.
+const EVENT_RESPONSE_BYTE_LIMIT = 16 * 1024;
+const EVENT_PROJECTION_BYTE_LIMIT = 6 * 1024;
+const MUTATION_REQUEST_BYTE_LIMIT = 16 * 1024;
+const SHA256_DIGEST = /^[a-f0-9]{64}$/;
+
+// This is the edit engine's executable discriminated union, not a parallel
+// transport approximation. Discovery therefore exposes each operation's
+// required and forbidden fields before a host reaches the mutation handler.
+const typedSpecEditOperationsSchema = specEditOperationsSchema;
 
 /**
  * F-570a3f — the gate state rides every mutating tool result as a JSON field
@@ -383,18 +453,18 @@ function projectIntentPath(cwd: string, requested: string): {path?: string; text
 
 const hostDraftSchema = z.object({
   mode: z.enum(['greenfield', 'existing-adoption', 'mixed']),
-  project_context: z.object({why: z.string().min(1), problem: z.string().min(1), purpose: z.string().min(1)}),
+  project_context: z.object({why: z.string().min(1), problem: z.string().min(1), purpose: z.string().min(1)}).strict(),
   capabilities: z.array(z.object({
     id: z.string().min(1),
     title: z.string().min(1),
     summary: z.string().min(1),
     surface: z.enum(['feature', 'platform', 'tool', 'infrastructure']),
-  })).min(3).max(8),
-  architecture: z.object({layers: z.array(z.object({name: z.string().min(1), forbidden_imports: z.array(z.string())}))}),
-  scenarios: z.array(z.object({slug: z.string().min(1), title: z.string().min(1), flow: z.string().min(1)})).min(1).max(3),
+  }).strict()).min(3).max(8),
+  architecture: z.object({layers: z.array(z.object({name: z.string().min(1), forbidden_imports: z.array(z.string())}).strict())}).strict(),
+  scenarios: z.array(z.object({slug: z.string().min(1), title: z.string().min(1), flow: z.string().min(1)}).strict()).min(1).max(3),
   questions: z.array(z.string().min(1)).max(3),
   ai_hints: z.record(z.string(), z.unknown()).optional(),
-});
+}).strict();
 type HostDraft = z.infer<typeof hostDraftSchema>;
 
 interface PreparedOnboarding {
@@ -575,11 +645,6 @@ interface OnboardingRollback {
   readonly directories: ReadonlySet<string>;
 }
 
-const FEATURE_TRANSACTION_ROOTS = [
-  'spec/features', 'spec/capabilities.yaml', 'spec/scenarios',
-  'spec.yaml', 'spec/index.yaml', '.cladding/events.log.jsonl',
-] as const;
-
 function capturePathRollback(cwd: string, roots: readonly string[]): OnboardingRollback {
   const files = new Map<string, Buffer>();
   const directories = new Set<string>();
@@ -632,13 +697,116 @@ function mcpPayload(payload: Record<string, unknown>, isError = false): {
   };
 }
 
-function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOperations): void {
+/** Builds one bounded event projection shared by the tool and resource transports. */
+function recentEventProjection(cwd: string, limit: number): Record<string, unknown> {
+  const lines = readEventLogLines(cwd);
+  if (!lines) {
+    return {ok: true, code: 'OK', message: 'No event history has been recorded yet.', events: [], byte_limit: EVENT_RESPONSE_BYTE_LIMIT};
+  }
+  const parse = (line: string): unknown => {
+    try { return JSON.parse(line) as unknown; } catch { return {unparseable: line.slice(0, 200)}; }
+  };
+  const render = (events: readonly unknown[], oversized: number): Record<string, unknown> => ({
+    ok: true,
+    code: 'OK',
+    message: 'Recent event history.',
+    events,
+    ...(lines.length > events.length ? {omitted_events: lines.length - events.length} : {}),
+    ...(oversized > 0 ? {oversized_events: oversized} : {}),
+    byte_limit: EVENT_RESPONSE_BYTE_LIMIT,
+  });
+  const selected: unknown[] = [];
+  let oversized = 0;
+  for (const line of lines.slice(-limit).reverse()) {
+    const event = parse(line);
+    const candidate = [event, ...selected];
+    if (Buffer.byteLength(JSON.stringify(render(candidate, oversized))) > EVENT_PROJECTION_BYTE_LIMIT) {
+      if (Buffer.byteLength(JSON.stringify(render([event], oversized))) > EVENT_PROJECTION_BYTE_LIMIT) oversized++;
+      break;
+    }
+    selected.unshift(event);
+  }
+  let projection = render(selected, oversized);
+  while (selected.length > 0 && Buffer.byteLength(JSON.stringify(projection)) > EVENT_PROJECTION_BYTE_LIMIT) {
+    selected.shift();
+    projection = render(selected, oversized);
+  }
+  return projection;
+}
+
+/** Keeps the final duplicated MCP tool envelope under its 16 KiB wire ceiling. */
+function boundedEventMcpPayload(payload: Record<string, unknown>, isError = false): ReturnType<typeof mcpPayload> {
+  const bounded: Record<string, unknown> = {...payload};
+  while (true) {
+    const result = mcpPayload(bounded, isError);
+    if (Buffer.byteLength(JSON.stringify(result)) <= EVENT_RESPONSE_BYTE_LIMIT) return result;
+    const events = bounded.events;
+    if (Array.isArray(events) && events.length > 0) {
+      bounded.events = events.slice(1);
+      bounded.omitted_events = Number(bounded.omitted_events ?? 0) + 1;
+      continue;
+    }
+    return mcpPayload({ok: false, code: 'EVENT_RESPONSE_TOO_LARGE', message: 'Event history could not fit in the response limit.', byte_limit: EVENT_RESPONSE_BYTE_LIMIT}, true);
+  }
+}
+
+/** Applies the shared F4 ingress ceiling before any adapter reaches a writer. */
+function oversizedMutationRequest(value: unknown): ReturnType<typeof mcpPayload> | null {
+  return Buffer.byteLength(JSON.stringify(value)) > MUTATION_REQUEST_BYTE_LIMIT
+    ? mcpPayload({ok: false, code: 'INVALID_OPERATION', message: 'This request exceeds the 16 KiB mutation limit.'}, true)
+    : null;
+}
+
+/** Preserves one stable, duplicated domain envelope for legacy convenience tools. */
+function mutationPayload(payload: Record<string, unknown>, isError = false): ReturnType<typeof mcpPayload> {
+  const suppliedCode = payload.code;
+  const suppliedMessage = payload.message;
+  const data = Object.fromEntries(Object.entries(payload)
+    .filter(([key]) => key !== 'ok' && key !== 'code' && key !== 'message'));
+  return mcpPayload({
+    ok: !isError,
+    code: isError ? String(suppliedCode ?? 'INVALID_OPERATION') : 'OK',
+    message: String(suppliedMessage ?? (isError ? 'The requested change could not be applied.' : 'The requested change was applied.')),
+    ...data,
+  }, isError);
+}
+
+/** One executable gate wire schema shared by every mutating F4 adapter. */
+const gateOutputSchema = z.object({
+  pass: z.boolean(),
+  unavailable: z.boolean().optional(),
+  findings: z.array(z.object({detector: z.string().optional(), severity: z.string(), message: z.string()})),
+  next: z.string().optional(),
+});
+
+/** Fields carried by every stable mutation response, success and domain error alike. */
+const mutationOutputSchema = {
+  ok: z.boolean(), code: z.string(), message: z.string(), schema_version: z.literal(PAYLOAD_SCHEMA_VERSION).optional(),
+  changed: z.boolean().optional(),
+};
+const designImpactValueSchema = z.union([
+  z.object({status: z.literal('review_required'), artifacts: z.array(z.string()), next: z.string()}),
+  z.object({status: z.literal('resolved'), classification: z.enum(['none', 'additive'])}),
+]);
+const createFeatureOutputSchema = {
+  ...mutationOutputSchema,
+  id: z.string().optional(), slug: z.string().optional(), path: z.string().optional(), note: z.string().optional(),
+  hint: z.string().optional(), designImpact: designImpactValueSchema.optional(),
+  inputRevisions: z.record(z.string(), z.string()).optional(), contextRevision: z.string().optional(), checkpointedFeatures: z.array(z.string()).optional(),
+  gate: gateOutputSchema.optional(),
+};
+const designImpactOutputSchema = {...mutationOutputSchema, feature: z.string().optional(), path: z.string().optional(), gate: gateOutputSchema.optional()};
+const oracleOutputSchema = {...mutationOutputSchema, oraclePath: z.string().optional(), evidenceId: z.string().optional(), reason: z.string().optional(), voluntary: z.literal(true).optional(), cost_note: z.string().optional(), gate: gateOutputSchema.optional()};
+const scenarioOutputSchema = {...mutationOutputSchema, id: z.string().optional(), slug: z.string().optional(), path: z.string().optional(), gate: gateOutputSchema.optional()};
+const capabilityLinkOutputSchema = {...mutationOutputSchema, capability: z.string().optional(), feature: z.string().optional(), created: z.boolean().optional(), alreadyLinked: z.boolean().optional(), path: z.string().optional(), gate: gateOutputSchema.optional()};
+
+function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOperations, evidence?: EvidenceOperations): void {
   const prepared = new Map<string, PreparedOnboarding>();
   let initializedToolsRegistered = false;
   const registerInitialized = (): void => {
     if (initializedToolsRegistered) return;
     initializedToolsRegistered = true;
-    registerInitializedTools(server, cwd, prepared, onboarding);
+    registerInitializedTools(server, cwd, prepared, onboarding, evidence);
   };
 
   server.registerTool(
@@ -649,12 +817,12 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
         'Non-destructive first step for every explicit Cladding initialization request: writes no authored project ' +
         'files (only a TTL\'d consent cache). Inspect the connected project, ' +
         'then use this tool result to draft the structured input for clad_init. Never run clad init in a shell.',
-      inputSchema: {
+      inputSchema: z.object({
         mode: z.enum(['idea', 'document', 'existing']),
         intent: z.string().optional(),
         document_path: z.string().optional(),
         refresh: z.boolean().optional(),
-      },
+      }).strict(),
       outputSchema: {
         status: z.string(), changed: z.boolean(), schemaVersion: z.number().optional(), token: z.string().optional(),
         prompt: z.string().optional(), request: z.object({mode: z.string(), intent: z.string()}).optional(),
@@ -721,10 +889,10 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
       description:
         'Validate and temporarily cache the host-model draft from clad_prepare_init before showing the approval phrase. ' +
         'This does not modify project files and lets a later host process apply the exact staged draft.',
-      inputSchema: {
+      inputSchema: z.object({
         token: z.string().min(1).max(MAX_APPROVAL_ENVELOPE_BYTES),
         draft: hostDraftSchema,
-      },
+      }).strict(),
       outputSchema: {
         status: z.string(), changed: z.boolean(), approvalChallenge: z.string().optional(),
         confirmationQuestion: z.string().optional(), error: z.string().optional(),
@@ -758,13 +926,13 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
         'Use the one-time token when the host retained it; process-per-turn hosts may use the exact approval phrase ' +
         'through the short-lived project runtime cache. Copy the complete user message, including the APPLY CLADDING ' +
         'prefix, into confirmation. Malformed, stale, or replayed requests do not write files.',
-      inputSchema: {
+      inputSchema: z.object({
         token: z.string().min(1).max(MAX_APPROVAL_ENVELOPE_BYTES).optional(),
         confirmation: z.string().regex(/^APPLY CLADDING [A-F0-9]{6}$/).describe(
           'The complete separate user reply, verbatim, including the APPLY CLADDING prefix',
         ),
         draft: hostDraftSchema.optional(),
-      },
+      }).strict(),
       outputSchema: {
         status: z.string(), changed: z.boolean(), created: z.array(z.string()).optional(), skipped: z.array(z.string()).optional(),
         language: z.string().optional(), proposals: z.array(z.string()).optional(), clarifyingQuestions: z.array(z.string()).optional(),
@@ -839,6 +1007,7 @@ function registerInitializedTools(
   cwd: string,
   prepared: Map<string, PreparedOnboarding>,
   onboarding?: OnboardingOperations,
+  evidence?: EvidenceOperations,
 ): void {
   server.registerTool(
     'clad_prepare_clarify',
@@ -847,7 +1016,7 @@ function registerInitializedTools(
       description:
         'Use only after a new user message answers the displayed pending question. Pass that answer verbatim. ' +
         'Never call during the initialization approval turn and never invent an answer.',
-      inputSchema: {answer: z.string().min(1)},
+      inputSchema: z.object({answer: z.string().min(1)}).strict(),
       outputSchema: {
         status: z.string(), changed: z.boolean(), schemaVersion: z.number().optional(), token: z.string().optional(),
         prompt: z.string().optional(), request: z.object({mode: z.string(), intent: z.string()}).optional(),
@@ -876,11 +1045,11 @@ function registerInitializedTools(
       description:
         'Apply a host-model refinement only for an answer supplied in a new user message after the pending question. ' +
         'Never call during the initialization approval turn; do not invent or alter the user answer.',
-      inputSchema: {
+      inputSchema: z.object({
         answer: z.string().min(1).describe('The user\'s answer, verbatim'),
         token: z.string().min(1).max(MAX_APPROVAL_ENVELOPE_BYTES).optional(),
         draft: hostDraftSchema,
-      },
+      }).strict(),
       outputSchema: {
         status: z.string(), changed: z.boolean(), cwd: z.string().optional(), answered: z.unknown().optional(),
         newQuestions: z.array(z.string()).optional(), mode: z.enum(['greenfield', 'existing-adoption', 'mixed']).nullable().optional(),
@@ -914,9 +1083,9 @@ function registerInitializedTools(
       description:
         'After showing proposal diffs and receiving explicit user approval, applies only the selected pending proposal targets. ' +
         'Never call this automatically; authored design is preserved until the user reviews it.',
-      inputSchema: {
+      inputSchema: z.object({
         targets: z.array(z.string()).min(1).describe('Exact active artifact paths returned in pendingReview.'),
-      },
+      }).strict(),
       annotations: {readOnlyHint: false, destructiveHint: true, idempotentHint: false},
     },
     async (args) => {
@@ -993,10 +1162,10 @@ function registerInitializedTools(
     {
       title: 'Get a cladding feature',
       description:
-        'Returns one feature record by id (e.g. "F-049" or "F-a3f9c2") or by slug ' +
+        'Returns one feature record by id (e.g. "F-049" or "F-a3f9c2e1") or by slug ' +
         '(e.g. "login-flow"). When a slug matches multiple features, all matches are returned.',
       inputSchema: {
-        id: z.string().optional().describe('Feature id such as "F-049" or "F-a3f9c2"'),
+        id: z.string().optional().describe('Feature id such as "F-049" or "F-a3f9c2e1"'),
         slug: z.string().optional().describe("Feature slug such as 'login-flow'"),
       },
       annotations: {readOnlyHint: true, destructiveHint: false, idempotentHint: true},
@@ -1092,6 +1261,8 @@ function registerInitializedTools(
         'this is the verification surface; use clad_run_check for the cheap drift-only view.',
       inputSchema: {
         tier: z.enum(['pre-commit', 'pre-push', 'all']).optional().describe('Stage tier (default pre-commit)'),
+        profile: z.enum(['feedback', 'checkpoint', 'completion', 'push', 'release']).optional().describe('Canonical assurance profile; must match a supplied legacy tier alias'),
+        assurance_level: z.enum(['L1', 'L2', 'L3', 'L4']).optional().describe('One-run assurance level; cannot lower persisted policy'),
         strict: z.boolean().optional().describe('Promote warn findings to blocking (default true)'),
       },
     },
@@ -1103,9 +1274,20 @@ function registerInitializedTools(
           content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, error: 'cladding engine shim (bin/clad) not found relative to the running server'})}],
         };
       }
-      const tier = args.tier ?? 'pre-commit';
       const strict = args.strict !== false;
-      const res = spawnSync(shim, ['check', `--tier=${tier}`, ...(strict ? ['--strict'] : []), '--json'], {
+      const tierProfiles: Readonly<Record<string, string>> = {'pre-commit': 'checkpoint', 'pre-push': 'push', all: 'release'};
+      if (args.profile && args.tier && tierProfiles[args.tier] !== args.profile) {
+        return {
+          isError: true,
+          content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, error: 'The requested profile conflicts with the legacy tier alias.'})}],
+        };
+      }
+      const res = spawnSync(shim, cladRunGateCliArgs({
+        tier: args.tier,
+        profile: args.profile,
+        assuranceLevel: args.assurance_level,
+        strict,
+      }), {
         cwd,
         encoding: 'utf8',
         timeout: 300_000,
@@ -1114,7 +1296,7 @@ function registerInitializedTools(
         const doc = JSON.parse(res.stdout || '') as {worst?: number};
         return {
           isError: (doc.worst ?? 1) !== 0,
-          content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...doc}, null, 2)}],
+          content: [{type: 'text', text: JSON.stringify(cladRunGatePayload(doc), null, 2)}],
         };
       } catch {
         return {
@@ -1325,7 +1507,7 @@ function registerInitializedTools(
         'With query: the focus node’s N-hop neighborhood (typed nodes + edges; a path query unions its ' +
         'kind-twins). WITHOUT query: a compact stats summary (counts by kind + top hubs) — the full graph is ' +
         'tens of thousands of tokens, so use `clad graph export --format json` for a complete dump. ' +
-        'Recomputed live, never stale. Node kinds + edge types: docs/knowledge-graph/design.md.',
+        'Recomputed live, never stale. Node kinds (including skill nodes) + edge types: docs/knowledge-graph/design.md.',
       inputSchema: {
         query: z
           .string()
@@ -1471,36 +1653,112 @@ function registerInitializedTools(
           .optional()
           .describe('Maximum entries to return (default 50)'),
       },
+      outputSchema: {
+        ok: z.boolean(), code: z.string(), message: z.string(), events: z.array(z.unknown()).optional(),
+        omitted_events: z.number().int().nonnegative().optional(), oversized_events: z.number().int().nonnegative().optional(),
+        byte_limit: z.literal(EVENT_RESPONSE_BYTE_LIMIT).optional(),
+      },
+      annotations: {readOnlyHint: true, destructiveHint: false, idempotentHint: true},
     },
     async (args) => {
       const limit = args.limit ?? 50;
-      const eventsPath = join(cwd, '.cladding', 'events.log.jsonl');
-      if (!existsSync(eventsPath)) {
-        return {
-          content: [{type: 'text', text: JSON.stringify({events: [], note: 'no events log yet'})}],
-        };
+      try {
+        return withSpecWorkspaceLock(cwd, () => boundedEventMcpPayload(recentEventProjection(cwd, limit)));
+      } catch (error) {
+        const typed = error as SpecEditError;
+        const message = `Event history is temporarily unavailable: ${typed.message}`.slice(0, 2048);
+        return boundedEventMcpPayload({ok: false, code: typed.code ?? 'EVENT_UNAVAILABLE', message, byte_limit: EVENT_RESPONSE_BYTE_LIMIT}, true);
       }
-      const lines = readFileSync(eventsPath, 'utf8')
-        .split('\n')
-        .filter((l) => l.trim().length > 0);
-      const tail = lines.slice(-limit);
-      // A single corrupt/partial JSONL line (a mid-write tail read) must not
-      // crash the whole tool call — surface it as data instead.
-      const events = tail.map((l) => {
-        try {
-          return JSON.parse(l) as unknown;
-        } catch {
-          return {unparseable: l.slice(0, 200)};
-        }
-      });
-      return {
-        content: [{type: 'text', text: JSON.stringify({events}, null, 2)}],
-      };
+    },
+  );
+
+  server.registerTool(
+    'clad_prepare_spec_edit',
+    {
+      title: 'Prepare a typed specification edit',
+      description: 'Returns a projection revision and the canonical input revisions required for one typed operation batch; it never writes.',
+      inputSchema: z.object({operations: typedSpecEditOperationsSchema}).strict(),
+      outputSchema: {ok: z.boolean(), code: z.string(), message: z.string(), context_revision: z.string().regex(SHA256_DIGEST).optional(), input_revisions: z.record(z.string().max(256), z.string().regex(SHA256_DIGEST)).optional()},
+      annotations: {readOnlyHint: true, destructiveHint: false, idempotentHint: true},
+    },
+    async (args) => {
+      const oversized = oversizedMutationRequest(args);
+      if (oversized) return oversized;
+      const boundary = initializedMutationBoundary(cwd);
+      if (boundary) return boundary;
+      try {
+        const result = prepareSpecEdit(cwd, args.operations);
+        return mcpPayload({ok: true, code: 'OK', message: 'The typed edit is ready to apply.', context_revision: result.contextRevision, input_revisions: result.inputRevisions});
+      } catch (error) {
+        const typed = error as SpecEditError;
+        return mcpPayload({ok: false, code: typed.code ?? 'INVALID_OPERATION', message: typed.message}, true);
+      }
+    },
+  );
+
+  server.registerTool(
+    'clad_edit_spec',
+    {
+      title: 'Edit the specification through typed operations',
+      description:
+        'Applies a typed specification-operation batch with the supplied canonical input revisions. ' +
+        'This is not a file editor and does not accept JSON Patch paths; the operation registry owns every write set.',
+      inputSchema: z.object({
+        operations: typedSpecEditOperationsSchema,
+        input_revisions: z.record(z.string().max(256), z.string().regex(SHA256_DIGEST)),
+        context_revision: z.string().regex(SHA256_DIGEST).optional(),
+      }).strict(),
+      outputSchema: {ok: z.boolean(), code: z.string(), message: z.string(), changed: z.boolean().optional(), inputRevisions: z.record(z.string().max(256), z.string().regex(SHA256_DIGEST)).optional(), contextRevision: z.string().regex(SHA256_DIGEST).optional(), checkpointedFeatures: z.array(z.string()).optional()},
+      annotations: {readOnlyHint: false, destructiveHint: false, idempotentHint: true},
+    },
+    async (args) => {
+      const oversized = oversizedMutationRequest(args);
+      if (oversized) return oversized;
+      const boundary = initializedMutationBoundary(cwd);
+      if (boundary) return boundary;
+      try {
+        const result = editSpec({
+          cwd,
+          operations: args.operations as unknown as readonly SpecEditOperation[],
+          inputRevisions: args.input_revisions,
+          contextRevision: args.context_revision,
+        });
+        return mcpPayload({ok: true, code: 'OK', message: result.changed ? 'The specification was updated.' : 'The specification already matched the requested edit.', ...result});
+      } catch (error) {
+        const typed = error as SpecEditError;
+        const message = typed.code === 'BUSY' ? 'The specification is being updated by another task. Try again shortly.' : typed.message;
+        return mcpPayload({ok: false, code: typed.code ?? 'INVALID_OPERATION', message}, true);
+      }
+    },
+  );
+
+  server.registerTool(
+    'clad_begin',
+    {
+      title: 'Start an implementation cycle',
+      description: 'Starts a feature cycle through feature.begin, saving its one pre-cycle checkpoint and derived inventory together.',
+      inputSchema: z.object({feature: z.string()}).strict(),
+      outputSchema: {ok: z.boolean(), code: z.string(), message: z.string(), changed: z.boolean().optional(), checkpointedFeatures: z.array(z.string()).optional(), inputRevisions: z.record(z.string().max(256), z.string().regex(SHA256_DIGEST)).optional(), contextRevision: z.string().regex(SHA256_DIGEST).optional()},
+      annotations: {readOnlyHint: false, destructiveHint: false, idempotentHint: true},
+    },
+    async (args) => {
+      const oversized = oversizedMutationRequest(args);
+      if (oversized) return oversized;
+      const boundary = initializedMutationBoundary(cwd);
+      if (boundary) return boundary;
+      const operation = {kind: 'feature.begin' as const, featureId: args.feature};
+      try {
+        const result = editSpec({cwd, operations: [operation], inputRevisions: readSpecEditRevisions(cwd, [operation])});
+        return mcpPayload({ok: true, code: 'OK', message: result.changed ? 'The implementation cycle has started.' : 'The implementation cycle was already active.', ...result});
+      } catch (error) {
+        const typed = error as SpecEditError;
+        return mcpPayload({ok: false, code: typed.code ?? 'INVALID_OPERATION', message: typed.message}, true);
+      }
     },
   );
 
   // clad_create_feature — issue a new sharded feature file under
-  // spec/features/<slug>.yaml with a content-hash id (v0.3.9, F-084).
+  // spec/features/<slug>-<hash8>.yaml with a content-hash id (v0.3.9, F-084).
   // Host LLM invokes this when the user asks for a new feature in
   // natural language; cladding has no `clad spec new` CLI verb by design.
   server.registerTool(
@@ -1508,11 +1766,11 @@ function registerInitializedTools(
     {
       title: 'Create a new cladding feature',
       description:
-        'Creates spec/features/<slug>.yaml with an auto-generated F-<hash> id. ' +
+        'Creates one separately named feature shard with an automatically assigned collision-safe identifier. ' +
         'Author the feature WITH its acceptance_criteria (and modules) in this one call — an AC-less ' +
         'feature is a hollow stub that governs nothing. Hash ids are collision-safe across concurrent ' +
         'branches; see docs/spec-ids-multi-dev.md.',
-      inputSchema: {
+      inputSchema: z.object({
         slug: z
           .string()
           .regex(/^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/)
@@ -1520,6 +1778,7 @@ function registerInitializedTools(
             "Kebab-case slug — filename + spec.slug field (e.g. 'login-flow')",
           ),
         title: z.string().optional().describe('Optional human-readable title; defaults to slug'),
+        purpose: z.string().optional().describe('Required WHY statement when the workspace uses schema 0.2.'),
         status: z
           .enum(['planned', 'in_progress', 'done', 'blocked', 'archived'])
           .optional()
@@ -1528,59 +1787,164 @@ function registerInitializedTools(
           .array(z.string())
           .optional()
           .describe('Module paths the feature binds to (e.g. ["src/auth/login.ts"]).'),
+        capability_refs: z.array(z.string()).optional().describe('Explicit schema 0.2 capability links; use [] for direct project contribution.'),
         acceptance_criteria: z
           .array(
             z.object({
+              kind: z.enum(['behavior', 'quality', 'constraint']).optional(),
+              statement: z.string().optional().describe('Strict schema 0.2 EARS statement.'),
               ears: z.enum(['ubiquitous', 'event', 'state', 'optional', 'unwanted', 'complex']).optional(),
               text: z.string().optional().describe('The "The system shall …" statement.'),
               action: z.string().optional(),
               response: z.string().optional(),
               condition: z.string().optional().describe('Trigger/precondition for event/state EARS.'),
               test_refs: z.array(z.string()).optional().describe('Paths to verifying tests.'),
+              rationale: z.string().optional(),
+              constraint_refs: z.array(z.string()).optional(),
+              oracle_refs: z.array(z.string()).optional(),
               evidence_refs: z.array(z.string()).optional(),
               notes: z.string().optional(),
-            }),
+            }).strict(),
           )
           .optional()
           .describe(
-            'Acceptance criteria authored now (ids auto-assigned AC-001…). Strongly ' +
+            'Acceptance criteria authored now receive automatic identifiers. Strongly ' +
               'preferred over an empty feature — this is what makes the feature governable.',
           ),
         design_impact: z.discriminatedUnion('classification', [
           z.object({
             classification: z.literal('none'),
             rationale: z.string().min(1),
-          }),
+          }).strict(),
           z.object({
             classification: z.literal('additive'),
             rationale: z.string().min(1),
             capability: z.string().regex(/^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/),
+            // Required only when the selector names a capability that does
+            // not already exist. Existing records are linked, never rebuilt
+            // from a duplicated caller payload.
             capability_title: z.string().min(1).optional(),
+            capability_outcome: z.string().min(1).optional(),
             scenario: z.string().min(1).optional(),
-          }),
+            scenario_definition: z.object({
+              id: z.string(), slug: z.string(), title: z.string(), actor: z.string(), goal: z.string(), success: z.string(), steps: z.array(z.string()), feature_refs: z.array(z.string()).optional(),
+            }).strict().optional().describe('Schema 0.2 only: full record required when the additive scenario selector is new.'),
+          }).strict(),
           z.object({
             classification: z.literal('structural'),
             rationale: z.string().min(1),
-            artifacts: z.array(z.enum([
-              'spec/architecture.yaml', 'spec/capabilities.yaml', 'docs/project-context.md',
-            ])).min(1),
-          }),
+            artifacts: z.array(z.string().regex(
+              /^docs\/design\/(?:(?!\.{1,2}\/)[^/]+\/)*[^/]+\.md$/,
+              'Structural design artifacts must be registered docs/design/**/*.md documents.',
+            )).min(1),
+          }).strict(),
         ]).optional().describe(
           'Optional design-impact decision. Omit for the legacy-compatible create-only path; ' +
             'structural changes remain review_required until resolved.',
         ),
-      },
+      }).strict(),
+      outputSchema: createFeatureOutputSchema,
+      annotations: {readOnlyHint: false, destructiveHint: false, idempotentHint: false},
     },
     async (args) => {
+      const oversized = oversizedMutationRequest(args);
+      if (oversized) return oversized;
       const boundary = initializedMutationBoundary(cwd);
       if (boundary) return boundary;
-      const rollback = capturePathRollback(cwd, FEATURE_TRANSACTION_ROOTS);
+      // Schema 0.2 has one write authority. Keep this legacy convenience
+      // adapter deliberately narrow rather than composing create/link/sync
+      // transactions around it; richer cross-domain authoring uses clad_edit_spec.
+      if (requiredRootSchema(cwd) === '0.2') {
+        if (args.status !== undefined && args.status !== 'planned') {
+          return mutationPayload({code: 'INVALID_OPERATION', message: 'New schema 0.2 features start planned; begin or archive them with a typed lifecycle operation.'}, true);
+        }
+        if (!args.purpose?.trim() || args.capability_refs === undefined) {
+          return mutationPayload({code: 'INVALID_OPERATION', message: 'A schema 0.2 feature needs a purpose and an explicit capability link list.'}, true);
+        }
+        if ((args.acceptance_criteria ?? []).some((criterion) => criterion.text !== undefined || criterion.ears !== undefined || criterion.condition !== undefined || criterion.action !== undefined || criterion.response !== undefined || criterion.test_refs !== undefined)) {
+          return mutationPayload({code: 'INVALID_OPERATION', message: 'Schema 0.2 criteria use kind and strict statement; legacy EARS and test-reference fields are not accepted.'}, true);
+        }
+        try {
+          const snapshot = readSchema02AuthoringSnapshot(cwd);
+          const id = generateFeatureId(args.slug);
+          const criteria = (args.acceptance_criteria ?? []).map((criterion, index) => {
+            if (!criterion.kind || !criterion.statement?.trim()) throw new Error(`Criterion ${index + 1} needs kind and a strict statement.`);
+            return {
+              id: `AC-${createHash('sha256').update(`${id}|${index}|${criterion.statement}|${process.hrtime.bigint()}`).digest('hex').slice(0, 8)}`,
+              kind: criterion.kind, statement: criterion.statement, rationale: criterion.rationale, constraintRefs: criterion.constraint_refs,
+              oracleRefs: criterion.oracle_refs, evidenceRefs: criterion.evidence_refs, notes: criterion.notes,
+            };
+          });
+          const additive = args.design_impact?.classification === 'additive' ? args.design_impact : undefined;
+          const capabilityRefs = additive ? [...new Set([...args.capability_refs, additive.capability])] : args.capability_refs;
+          const operations: SpecEditOperation[] = [{kind: 'feature.create', id, slug: args.slug, title: args.title ?? args.slug, purpose: args.purpose, modules: args.modules, capabilityRefs, criteria}];
+          let catalogBytes: string | undefined;
+          let scenarioBinding: {readonly id: string; readonly bytes: string} | undefined;
+          if (additive) {
+            // The convenience adapter may read authored records, but turns
+            // those reads into no-op upserts so their canonical regions are
+            // part of the same optimistic transaction precondition.
+            catalogBytes = snapshot.capabilityCatalog.sourceBytes;
+            const existingCapability = snapshot.capabilities.find((capability) => capability.id === additive.capability);
+            if (existingCapability) {
+              if ((additive.capability_title !== undefined && additive.capability_title !== existingCapability.title)
+                || (additive.capability_outcome !== undefined && additive.capability_outcome !== existingCapability.outcome)) {
+                throw new Error(`Existing capability '${additive.capability}' must not be redefined by an additive feature request.`);
+              }
+              operations.push({kind: 'capability.upsert', capability: {id: additive.capability, title: existingCapability.title, outcome: existingCapability.outcome}});
+            } else {
+              if (!additive.capability_title || !additive.capability_outcome) throw new Error(`New capability '${additive.capability}' needs a title and outcome.`);
+              operations.push({kind: 'capability.upsert', capability: {id: additive.capability, title: additive.capability_title, outcome: additive.capability_outcome}});
+            }
+            if (additive.scenario) {
+              const existing = snapshot.scenarios.find((scenario) =>
+                scenario.id === additive.scenario || scenario.slug === additive.scenario);
+              if (existing) {
+                if (additive.scenario_definition !== undefined) throw new Error(`Existing scenario '${additive.scenario}' must not be redefined by an additive feature request.`);
+                scenarioBinding = {id: existing.id, bytes: existing.sourceBytes};
+                operations.push({kind: 'scenario.upsert', scenario: {
+                  id: existing.id, slug: existing.slug, title: existing.title, actor: existing.actor, goal: existing.goal, success: existing.success,
+                  steps: existing.steps, featureRefs: [...new Set([...existing.featureRefs, id])],
+                }});
+              } else {
+                if (!additive.scenario_definition) throw new Error(`New additive scenario '${additive.scenario}' needs a full typed scenario definition.`);
+                const definition = additive.scenario_definition;
+                if (additive.scenario !== definition.id && additive.scenario !== definition.slug) throw new Error('The additive scenario selector must match the supplied scenario id or slug.');
+                scenarioBinding = {id: definition.id, bytes: '<cladding:absent>'};
+                operations.push({kind: 'scenario.upsert', scenario: {
+                  id: definition.id, slug: definition.slug, title: definition.title, actor: definition.actor, goal: definition.goal, success: definition.success, steps: definition.steps,
+                  featureRefs: [...new Set([...(definition.feature_refs ?? []), id])],
+                }});
+              }
+            }
+          }
+          if (args.design_impact) operations.push({kind: 'feature.set_design_impact', featureId: id, designImpact: {classification: args.design_impact.classification, rationale: args.design_impact.rationale, ...(args.design_impact.classification === 'structural' ? {artifacts: args.design_impact.artifacts, status: 'review_required' as const} : {})}});
+          const inputRevisions = readSpecEditRevisions(cwd, operations);
+          const digest = (bytes: string): string => createHash('sha256').update(bytes).digest('hex');
+          if (catalogBytes !== undefined && inputRevisions.capabilities !== digest(catalogBytes)) {
+            throw new SpecEditError('STALE_INPUT', 'The capability catalog changed while the additive feature request was being prepared.');
+          }
+          if (scenarioBinding && inputRevisions[`scenario:${scenarioBinding.id}`] !== digest(scenarioBinding.bytes)) {
+            throw new SpecEditError('STALE_INPUT', 'The scenario changed while the additive feature request was being prepared.');
+          }
+          const result = editSpec({cwd, operations, inputRevisions});
+          return mutationPayload({schema_version: PAYLOAD_SCHEMA_VERSION, id, slug: args.slug, path: join(cwd, 'spec', 'features', `${args.slug}-${id.slice(2)}.yaml`), ...result, gate: gateFooter(cwd), message: 'The feature was created.'});
+        } catch (error) {
+          const typed = error as SpecEditError;
+          return mutationPayload({code: typed.code ?? 'INVALID_OPERATION', message: typed.message}, true);
+        }
+      }
       try {
-        const result = createFeature({
+        if (args.design_impact?.classification === 'additive' && args.design_impact.scenario_definition !== undefined) {
+          throw new Error('A full additive scenario_definition is supported only by schema 0.2; schema 0.1 may link an existing scenario selector.');
+        }
+        const result = createSchema01FeatureComposite({
           slug: args.slug,
           title: args.title,
+          purpose: args.purpose,
           status: args.status,
           modules: args.modules,
+          capability_refs: args.capability_refs,
           acceptance_criteria: args.acceptance_criteria,
           design_impact: args.design_impact
             ? {
@@ -1592,19 +1956,15 @@ function registerInitializedTools(
               }
             : undefined,
           cwd,
+          ...(args.design_impact?.classification === 'additive' ? {
+            additive: {
+              capability: args.design_impact.capability,
+              ...(args.design_impact.capability_title ? {capabilityTitle: args.design_impact.capability_title} : {}),
+              ...(args.design_impact.capability_outcome ? {capabilitySummary: args.design_impact.capability_outcome} : {}),
+              ...(args.design_impact.scenario ? {scenario: args.design_impact.scenario} : {}),
+            },
+          } : {}),
         });
-        if (args.design_impact?.classification === 'additive') {
-          linkCapability({
-            capability: args.design_impact.capability,
-            feature: result.id,
-            title: args.design_impact.capability_title,
-            cwd,
-          });
-          if (args.design_impact.scenario) {
-            linkScenario({scenario: args.design_impact.scenario, feature: result.id, cwd});
-          }
-        }
-        syncInventory(cwd);
         // Non-mutating firing-path nudge: travels as a `hint` FIELD (keeps the
         // payload valid JSON), never a silent write to capabilities.yaml.
         const designImpact = args.design_impact;
@@ -1629,15 +1989,10 @@ function registerInitializedTools(
                   'development instead of being left an empty seed.',
               }),
         };
-        return {
-          content: [{type: 'text', text: JSON.stringify(withHint, null, 2)}],
-        };
+        return mutationPayload({...withHint, message: 'The feature was created.'});
       } catch (err) {
-        restorePathRollback(cwd, FEATURE_TRANSACTION_ROOTS, rollback);
-        return {
-          isError: true,
-          content: [{type: 'text', text: (err as Error).message}],
-        };
+        const typed = err as SpecEditError;
+        return mutationPayload({code: typed.code ?? 'INVALID_OPERATION', message: typed.message}, true);
       }
     },
   );
@@ -1649,23 +2004,23 @@ function registerInitializedTools(
       description:
         'Marks a feature structural design impact resolved only after the user-approved Tier-B changes have been applied. ' +
         'Do not call this merely to clear the gate; verify every artifact listed in the feature first.',
-      inputSchema: {
+      inputSchema: z.object({
         feature: z.string().describe('Feature id whose listed Tier-B design changes are now applied.'),
-      },
+      }).strict(),
+      outputSchema: designImpactOutputSchema,
+      annotations: {readOnlyHint: false, destructiveHint: false, idempotentHint: true},
     },
     async (args) => {
+      const oversized = oversizedMutationRequest(args);
+      if (oversized) return oversized;
       const boundary = initializedMutationBoundary(cwd);
       if (boundary) return boundary;
       try {
         const result = resolveDesignImpact({feature: args.feature, cwd});
-        syncInventory(cwd);
-        return {content: [{type: 'text', text: JSON.stringify({
-          schema_version: PAYLOAD_SCHEMA_VERSION,
-          ...result,
-          gate: gateFooter(cwd),
-        }, null, 2)}]};
+        return mutationPayload({schema_version: PAYLOAD_SCHEMA_VERSION, ...result, gate: gateFooter(cwd), message: 'The design impact was resolved.'});
       } catch (error) {
-        return {isError: true, content: [{type: 'text', text: (error as Error).message}]};
+        const typed = error as SpecEditError;
+        return mutationPayload({code: typed.code ?? 'INVALID_OPERATION', message: typed.message}, true);
       }
     },
   );
@@ -1686,8 +2041,8 @@ function registerInitializedTools(
         'body + the manifest of exactly what the sub-agent saw. Blindness is your discipline — the gate audits the ' +
         'manifest (manifest∩modules must be empty) and the author≠implementer identity, and records whether you ' +
         'attested a clean (blind) context.',
-      inputSchema: {
-        featureId: z.string().describe('The F-<hash> feature id.'),
+      inputSchema: z.object({
+        featureId: z.string().describe(`The feature identifier. ${idPolicyDescription('feature')}`),
         acId: z.string().describe('The AC-<id> the oracle verifies.'),
         body: z.string().describe('The authored vitest oracle source (imports the module under test).'),
         readManifest: z
@@ -1695,9 +2050,13 @@ function registerInitializedTools(
           .describe('EXACTLY what the blind sub-agent was shown (the clad oracle brief: spec/AC + signatures). MUST NOT include an implementation file the feature owns.'),
         blind: z.boolean().optional().describe('True only if the sub-agent saw the spec-only brief and nothing else.'),
         authorName: z.string().optional().describe('Oracle author identity (sub-agent / model id) — must differ from the implementer for the gate to pass.'),
-      },
+      }).strict(),
+      outputSchema: oracleOutputSchema,
+      annotations: {readOnlyHint: false, destructiveHint: false, idempotentHint: false},
     },
     async (args) => {
+      const oversized = oversizedMutationRequest(args);
+      if (oversized) return oversized;
       const boundary = initializedMutationBoundary(cwd);
       if (boundary) return boundary;
       try {
@@ -1710,7 +2069,9 @@ function registerInitializedTools(
           authorName: args.authorName,
           cwd,
         });
-        syncInventory(cwd);
+        // A proof-reference stamp does not affect inventory. In schema 0.2 it
+        // is already journaled by criterion.set_proof_refs; do not follow it
+        // with an independent derived writer.
         // F-551a1c — the policy must bind BEHAVIOR, not just the gate: the
         // 0.6.0 A/B measured 42-52% of output tokens going to VOLUNTARY
         // exhaustive authoring under a no-mandate policy. Out-of-policy
@@ -1732,25 +2093,26 @@ function registerInitializedTools(
         } catch {
           /* unreadable spec → skip the label, never the recording */
         }
-        return {content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...result, ...voluntary, gate: gateFooter(cwd)}, null, 2)}], isError: !result.ok};
+        return mutationPayload({schema_version: PAYLOAD_SCHEMA_VERSION, ...result, ...voluntary, gate: gateFooter(cwd), message: result.ok ? 'The oracle was recorded.' : 'The oracle could not be recorded.'}, !result.ok);
       } catch (err) {
-        return {isError: true, content: [{type: 'text', text: (err as Error).message}]};
+        const typed = err as SpecEditError;
+        return mutationPayload({code: typed.code ?? 'INVALID_OPERATION', message: typed.message}, true);
       }
     },
   );
 
   // clad_create_scenario — issue a new sharded scenario file under
-  // spec/scenarios/<slug>-<hash6>.yaml (v0.3.12, F-087). Same
+  // spec/scenarios/<slug>-<hash8>.yaml (v0.3.12, F-087). Same
   // multi-developer safety story as clad_create_feature.
   server.registerTool(
     'clad_create_scenario',
     {
       title: 'Create a new cladding scenario',
       description:
-        'Creates spec/scenarios/<slug>-<hash6>.yaml with an auto-generated S-<hash> id. ' +
+        'Creates one separately named scenario shard with an automatically assigned collision-safe identifier. ' +
         'Same multi-dev safety property as clad_create_feature: two concurrent invocations on ' +
         'separate branches produce distinct hash ids by construction.',
-      inputSchema: {
+      inputSchema: z.object({
         slug: z
           .string()
           .regex(/^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/)
@@ -1760,13 +2122,21 @@ function registerInitializedTools(
           .string()
           .optional()
           .describe('Prose user-journey flow (what the user does, step by step).'),
+        actor: z.string().optional().describe('Required scenario actor in schema 0.2.'),
+        goal: z.string().optional().describe('Required scenario goal in schema 0.2.'),
+        success: z.string().optional().describe('Required scenario success state in schema 0.2.'),
+        steps: z.array(z.string()).optional().describe('Required ordered scenario steps in schema 0.2.'),
         features: z
-          .array(z.string().regex(/^F-(\d{3,}|[a-f0-9]{6,})$/))
+          .array(z.string().regex(readableIdPattern('feature')))
           .optional()
-          .describe('Optional list of feature ids the scenario touches'),
-      },
+          .describe(`Optional list of feature identifiers the scenario touches. ${idPolicyDescription('feature')}`),
+      }).strict(),
+      outputSchema: scenarioOutputSchema,
+      annotations: {readOnlyHint: false, destructiveHint: false, idempotentHint: false},
     },
     async (args) => {
+      const oversized = oversizedMutationRequest(args);
+      if (oversized) return oversized;
       const boundary = initializedMutationBoundary(cwd);
       if (boundary) return boundary;
       try {
@@ -1774,18 +2144,17 @@ function registerInitializedTools(
           slug: args.slug,
           title: args.title,
           flow: args.flow,
+          actor: args.actor,
+          goal: args.goal,
+          success: args.success,
+          steps: args.steps,
           features: args.features,
           cwd,
         });
-        syncInventory(cwd);
-        return {
-          content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...result, gate: gateFooter(cwd)}, null, 2)}],
-        };
+        return mutationPayload({schema_version: PAYLOAD_SCHEMA_VERSION, ...result, gate: gateFooter(cwd), message: 'The scenario was created.'});
       } catch (err) {
-        return {
-          isError: true,
-          content: [{type: 'text', text: (err as Error).message}],
-        };
+        const typed = err as SpecEditError;
+        return mutationPayload({code: typed.code ?? 'INVALID_OPERATION', message: typed.message}, true);
       }
     },
   );
@@ -1804,24 +2173,28 @@ function registerInitializedTools(
         'appends the feature to its features[] (deduped). A capability is ACCUMULATIVE, so the verb ' +
         'is link, not create. Use this when a user-facing feature lands so the design tier grows ' +
         'with development instead of being left an empty seed.',
-      inputSchema: {
+      inputSchema: z.object({
         capability: z
           .string()
           .regex(/^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/)
           .describe("Capability id (kebab-slug, e.g. 'auth'). Created if it does not exist yet."),
         feature: z
           .string()
-          .regex(/^F-(\d{3,}|[a-f0-9]{6,})$/)
-          .describe('Feature id to add to the capability'),
+          .regex(readableIdPattern('feature'))
+          .describe(`Feature identifier to add to the capability. ${idPolicyDescription('feature')}`),
         title: z.string().optional().describe('Title, used only when the capability is newly created'),
         summary: z.string().optional().describe('Summary, used only when newly created'),
         surface: z
           .enum(['feature', 'platform', 'tool', 'infrastructure'])
           .optional()
           .describe('Surface, used only when newly created'),
-      },
+      }).strict(),
+      outputSchema: capabilityLinkOutputSchema,
+      annotations: {readOnlyHint: false, destructiveHint: false, idempotentHint: true},
     },
     async (args) => {
+      const oversized = oversizedMutationRequest(args);
+      if (oversized) return oversized;
       const boundary = initializedMutationBoundary(cwd);
       if (boundary) return boundary;
       try {
@@ -1833,41 +2206,72 @@ function registerInitializedTools(
           surface: args.surface,
           cwd,
         });
-        syncInventory(cwd);
-        return {
-          content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...result, gate: gateFooter(cwd)}, null, 2)}],
-        };
+        return mutationPayload({schema_version: PAYLOAD_SCHEMA_VERSION, ...result, gate: gateFooter(cwd), message: 'The capability link was saved.'});
       } catch (err) {
-        return {
-          isError: true,
-          content: [{type: 'text', text: (err as Error).message}],
-        };
+        const typed = err as SpecEditError;
+        return mutationPayload({code: typed.code ?? 'INVALID_OPERATION', message: typed.message}, true);
       }
     },
   );
-}
 
-/**
- * Recomputes and writes `spec.yaml`'s `inventory:` block after a create tool
- * adds a shard, so the project's stats never desync from the real shard count
- * (an INVENTORY_DRIFT the new detector would otherwise flag). Best-effort: a
- * create must not fail because an inventory write hiccupped, and a project
- * without a `spec.yaml` (nothing to update) is silently skipped.
- */
-function syncInventory(cwd: string): void {
-  try {
-    if (existsSync(join(cwd, 'spec.yaml'))) {
-      if (gitOperationInProgress(cwd)) return;
-      writeInventoryToSpecYaml(cwd, computeInventory(cwd));
-      writeFeatureIndex(cwd); // F-37b4a8
-      // v0.5.x — when a CLI entry now exists but no deliverable is declared, auto-populate it
-      // (calibrated to pass now) so DELIVERABLE_SMOKE engages BEFORE the agent reacts to the
-      // INTEGRITY warn and declares it disabled. One-time (skips once present).
-      maintainDeliverable(cwd);
-    }
-  } catch {
-    // intentional no-op — inventory sync is a convenience, not a gate.
-  }
+  server.registerTool(
+    'clad_ingest_receipt',
+    {
+      title: 'Ingest a portable evidence receipt',
+      description: 'Validates and create-only stores one signed portable receipt. Trust and expected digest context come from the registered host, never tool input.',
+      inputSchema: z.object({receipt_yaml: z.string().min(1)}).strict(),
+      outputSchema: {
+        ...mutationOutputSchema,
+        path: z.string().optional(), digest: z.string().optional(), idempotent: z.boolean().optional(),
+        verification: z.object({assurance: z.enum(['verified', 'asserted', 'invalid']), currentness: z.enum(['current', 'stale', 'unresolved']), reason: z.string(), trustSnapshotDigest: z.string()}).optional(),
+      },
+      annotations: {readOnlyHint: false, destructiveHint: false, idempotentHint: true},
+    },
+    async (args) => {
+      const oversized = oversizedMutationRequest(args);
+      if (oversized) return oversized;
+      const boundary = initializedMutationBoundary(cwd);
+      if (boundary) return boundary;
+      let receipt: PortableReceipt;
+      try { receipt = parsePortableReceiptYaml(args.receipt_yaml); } catch (error) {
+        return mutationPayload({code: 'INVALID_RECEIPT', message: (error as Error).message}, true);
+      }
+      const result = ingestPortableReceipt({
+        cwd,
+        receiptYaml: args.receipt_yaml,
+        trustSnapshot: evidence?.trustSnapshot ?? emptyTrustSnapshot(),
+        expected: evidence?.expectedDigestContext?.(receipt),
+      });
+      return mutationPayload({...result, message: result.message}, !result.ok);
+    },
+  );
+
+  server.registerTool(
+    'clad_signoff',
+    {
+      title: 'Record an asserted local signoff',
+      description: 'Records asserted audit or UAT history only. It cannot select or bypass verified evidence.',
+      inputSchema: z.object({
+        feature: z.string(), claim: z.enum(['audit', 'uat']), criterion: z.string().optional(),
+        result: z.enum(['pass', 'fail']).optional(), note: z.string().max(4096).optional(),
+      }).strict(),
+      outputSchema: {...mutationOutputSchema, evidence: z.record(z.string(), z.unknown()).optional()},
+      annotations: {readOnlyHint: false, destructiveHint: false, idempotentHint: false},
+    },
+    async (args) => {
+      const oversized = oversizedMutationRequest(args);
+      if (oversized) return oversized;
+      const boundary = initializedMutationBoundary(cwd);
+      if (boundary) return boundary;
+      const result = recordAssertedSignoff({
+        cwd, featureId: args.feature, claim: args.claim,
+        ...(args.criterion ? {criterion: args.criterion} : {}),
+        ...(args.result ? {result: args.result} : {}),
+        ...(args.note ? {note: args.note} : {}),
+      });
+      return mutationPayload({...result, ...(result.evidence ? {evidence: result.evidence as unknown as Record<string, unknown>} : {})}, !result.ok);
+    },
+  );
 }
 
 /**
@@ -1878,7 +2282,7 @@ function syncInventory(cwd: string): void {
  * (e.g. unsharded inline definition) sink to the end with mtime 0.
  *
  * Filename resolution checks both layouts:
- * - new model: `<slug>-<hash>.yaml`
+ * - new model: `<slug>-<hash8>.yaml`
  * - legacy: `<id>.yaml`
  */
 function sortByRecentMtime<T extends {id: string}>(features: readonly T[], cwd: string): T[] {
@@ -1939,23 +2343,28 @@ function registerResources(server: McpServer, cwd: string): void {
     },
   );
 
-  // cladding://events — events.log raw lines (JSONL).
+  // cladding://events — the same bounded, recovered projection as clad_get_events.
   server.registerResource(
     'events',
     RESOURCE_URIS.events,
     {
       title: 'Cladding events log',
-      description: 'Raw JSONL stream of feature_activated, evidence_appended, gate_run, …',
-      mimeType: 'application/x-ndjson',
+      description: 'Bounded recent event projection with the same recovery boundary as clad_get_events.',
+      mimeType: 'application/json',
     },
     async () => {
-      const eventsPath = join(cwd, '.cladding', 'events.log.jsonl');
-      const text = existsSync(eventsPath) ? readFileSync(eventsPath, 'utf8') : '';
-      return {
-        contents: [
-          {uri: RESOURCE_URIS.events, mimeType: 'application/x-ndjson', text},
-        ],
-      };
+      try {
+        const payload = withSpecWorkspaceLock(cwd, () => recentEventProjection(cwd, 50));
+        let text = JSON.stringify(payload, null, 2);
+        if (Buffer.byteLength(JSON.stringify({contents: [{uri: RESOURCE_URIS.events, mimeType: 'application/json', text}]})) > EVENT_RESPONSE_BYTE_LIMIT) {
+          text = JSON.stringify({ok: false, code: 'EVENT_RESPONSE_TOO_LARGE', message: 'Event history could not fit in the response limit.', byte_limit: EVENT_RESPONSE_BYTE_LIMIT});
+        }
+        return {contents: [{uri: RESOURCE_URIS.events, mimeType: 'application/json', text}]};
+      } catch (error) {
+        const typed = error as SpecEditError;
+        const payload = {ok: false, code: typed.code ?? 'EVENT_UNAVAILABLE', message: 'Event history is temporarily unavailable.', byte_limit: EVENT_RESPONSE_BYTE_LIMIT};
+        return {contents: [{uri: RESOURCE_URIS.events, mimeType: 'application/json', text: JSON.stringify(payload)}]};
+      }
     },
   );
 

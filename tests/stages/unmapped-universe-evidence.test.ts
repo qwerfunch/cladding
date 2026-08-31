@@ -216,7 +216,7 @@ describe('UNMAPPED_ARTIFACT · evidence-derived scan universe (F-87bb7ed3)', () 
 		expectExactly(findings, ['src/main/kotlin/core/B.kt']);
 	});
 
-	it('derives the universe from evidence, not from the declared language label', () => {
+	it("[covers:F-87bb7ed3/AC-7f14d6e0] derives the universe from evidence, not from the declared language label", () => {
 		const asCpp = scan(caseOneFixture('cpp'));
 		const asJava = scan(caseOneFixture('java'));
 

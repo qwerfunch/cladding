@@ -24,6 +24,7 @@
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {describe, expect, test} from 'vitest';
+import {parse as parseYaml} from 'yaml';
 
 import {allDetectors} from '../src/stages/detectors/index.js';
 // TIER_STAGES is the SSoT for the Iron Law stage list AND (via its own key
@@ -35,6 +36,45 @@ import {TIER_STAGES} from '../src/cli/clad.js';
 const ROOT = process.cwd();
 const read = (rel: string): string => readFileSync(join(ROOT, rel), 'utf8');
 const asm = (parts: string[]): string => parts.join('');
+
+type SchemaVersion = '0.1' | '0.2';
+type YamlRecord = Readonly<Record<string, unknown>>;
+
+function workspaceSchema(): SchemaVersion {
+  const schema = (parseYaml(read('spec.yaml')) as {readonly schema?: unknown}).schema;
+  expect(schema, 'spec.yaml must declare a supported schema').toMatch(/^(?:0\.1|0\.2)$/);
+  return schema as SchemaVersion;
+}
+
+function strings(value: unknown): readonly string[] {
+  if (typeof value === 'string') return [value];
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is string => typeof entry === 'string');
+}
+
+/**
+ * Returns only the authored feature semantics for the active schema.
+ *
+ * Schema 0.1 gives EARS action/response/text equal semantic weight. Schema
+ * 0.2 deliberately retires those fields, so this dogfood sweep follows its
+ * statement, purpose, and declared dependency/module addresses instead of
+ * treating historical implementation narration as live requirement prose.
+ */
+function semanticShardText(path: string): string {
+  const source = read(path);
+  if (workspaceSchema() === '0.1') return source;
+  const feature = parseYaml(source) as YamlRecord;
+  const topLevel = ['title', 'purpose', 'modules', 'depends_on', 'capability_refs']
+    .flatMap((field) => strings(feature[field]));
+  const criteria = Array.isArray(feature.acceptance_criteria) ? feature.acceptance_criteria : [];
+  const criteriaText = criteria.flatMap((entry) => {
+    if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) return [];
+    const criterion = entry as YamlRecord;
+    return ['kind', 'statement', 'rationale', 'constraint_refs', 'oracle_refs', 'evidence_refs']
+      .flatMap((field) => strings(criterion[field]));
+  });
+  return [...topLevel, ...criteriaText].join('\n');
+}
 
 const GLOSSARY = 'docs/glossary.md';
 const README_VARIANTS = ['README.md', 'README.ko.md', 'README.html', 'README.ko.html'];
@@ -63,7 +103,7 @@ describe('AC-5a249349 · glossary defines the previously missing concept rows', 
     return end === -1 ? after : after.slice(0, end);
   };
 
-  test('impact-card row: Tier-1 one-liner + Tier-2 rich card', () => {
+  test("[covers:F-09a98261/AC-5a249349] impact-card row: Tier-1 one-liner + Tier-2 rich card", () => {
     const section = sectionFrom('## Context surfaces');
     const row = rowStartingWith(section, '| `impact card`');
     expect(row, 'Tier-1 one-liner').toContain('**Tier-1** = a one-liner');
@@ -168,7 +208,7 @@ describe('AC-c73c675e · attestation gloss is one canonical pair everywhere', ()
   const EN_FILES = [GLOSSARY, 'README.md', 'README.html'];
   const KO_FILES = [GLOSSARY, 'README.ko.md', 'README.ko.html'];
 
-  test('zero occurrences of the old EN/KO attestation gloss pair across glossary + all 4 READMEs', () => {
+  test("[covers:F-09a98261/AC-c73c675e] zero occurrences of the old EN/KO attestation gloss pair across glossary + all 4 READMEs", () => {
     const hits: string[] = [];
     for (const f of ALL_FILES) {
       const body = read(f);
@@ -213,7 +253,7 @@ describe('AC-c73c675e · attestation gloss is one canonical pair everywhere', ()
 // AC-1c0c639e — the two user-visible string repairs.
 // ═══════════════════════════════════════════════════════════════════════
 describe('AC-1c0c639e · two user-visible string repairs', () => {
-  test('clad status --json help: "integrity matrix" present, the removed ANSI-panel phrase absent', () => {
+  test("[covers:F-09a98261/AC-1c0c639e] clad status --json help: \"integrity matrix\" present, the removed ANSI-panel phrase absent", () => {
     const src = read('src/cli/clad.ts');
     const cmdIdx = src.indexOf(".command('status')");
     expect(cmdIdx, "the .command('status') registration").toBeGreaterThanOrEqual(0);
@@ -235,7 +275,7 @@ describe('AC-1c0c639e · two user-visible string repairs', () => {
     expect(poisoned.includes(removedPhrase)).toBe(true);
   });
 
-  test('oracle brief header names itself impl-blind, not the old spec-conformance header', () => {
+  test("[covers:F-09a98261/AC-1c0c639e] oracle brief header names itself impl-blind, not the old spec-conformance header", () => {
     const src = read('src/oracle/payload.ts');
     expect(src, 'Impl-blind oracle brief header').toContain('Impl-blind oracle brief');
     const oldHeader = asm(['Spec-conformance', ' oracle brief']);
@@ -260,12 +300,12 @@ describe('AC-4772bf42 · self-consistency.test.ts guards README.ko.md counts', (
     return end === -1 ? after : after.slice(0, end);
   };
 
-  test('the detector-count guard section references README.ko.md', () => {
+  test("[covers:F-09a98261/AC-4772bf42] the detector-count guard section references README.ko.md", () => {
     const body = testBodyNamed('README prose detector-count claims match the actual detector count');
     expect(body, 'detector-count guard must reference README.ko.md').toContain('README.ko.md');
   });
 
-  test('the stage-count guard section references README.ko.md', () => {
+  test("[covers:F-09a98261/AC-4772bf42] the stage-count guard section references README.ko.md", () => {
     const body = testBodyNamed('README/AGENTS stage-count claims match TIER_STAGES.all.length');
     expect(body, 'stage-count guard must reference README.ko.md').toContain('README.ko.md');
   });
@@ -293,12 +333,12 @@ describe('AC-50704241 · seven done shards present current verb/persona names', 
   const scanFor = (corpus: string): string[] =>
     OLD_NEEDLES.filter((n) => new RegExp(`\\b${n}\\b`, 'i').test(corpus));
 
-  test('none of the seven shards name an old persona or removed-verb token (files-visited === 7)', () => {
+  test("[covers:F-09a98261/AC-50704241] none of the seven shards name an old persona or removed-verb token (files-visited === 7)", () => {
     let visited = 0;
     const hits: string[] = [];
     for (const f of SHARDS) {
       visited += 1;
-      for (const n of scanFor(read(f))) hits.push(`${f} :: ${n}`);
+      for (const n of scanFor(semanticShardText(f))) hits.push(`${f} :: ${n}`);
     }
     expect(visited, 'the sweep must visit exactly the seven target shards').toBe(7);
     expect(hits, `stale name(s) found: ${hits.join(' | ')}`).toEqual([]);
@@ -310,8 +350,28 @@ describe('AC-50704241 · seven done shards present current verb/persona names', 
   });
 
   test('every shard instead names the current planner/developer persona pair', () => {
+    if (workspaceSchema() === '0.2') {
+      // F-078 formerly named the pair only in legacy action/response
+      // narration. Its schema-0.2 statement does not make that enumeration a
+      // requirement, so require the six shards that still declare the pair in
+      // active statements or module ownership rather than falsely reading a
+      // retired field as an authoritative vocabulary.
+      const explicitPair = SHARDS.filter((f) => {
+        const body = semanticShardText(f);
+        return /\bplanner\b/.test(body) && /\bdeveloper\b/.test(body);
+      });
+      expect(explicitPair).toEqual([
+        'spec/features/F-077.yaml',
+        'spec/features/F-036.yaml',
+        'spec/features/F-073.yaml',
+        'spec/features/F-076.yaml',
+        'spec/features/ai-hints-consumer-instructions-0ed2db.yaml',
+        'spec/features/persona-skill-md-cleanup-40327b.yaml',
+      ]);
+      return;
+    }
     for (const f of SHARDS) {
-      const body = read(f);
+      const body = semanticShardText(f);
       expect(body, `${f}: should name 'planner'`).toMatch(/\bplanner\b/);
       expect(body, `${f}: should name 'developer'`).toMatch(/\bdeveloper\b/);
     }

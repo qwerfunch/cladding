@@ -16,7 +16,8 @@
 // on disk (the guard-preservation cases) the mock implementation writes it
 // itself, standing in for what the real dual-json reporter would have written.
 
-import {existsSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
@@ -32,6 +33,7 @@ const {
   clearTestRunCache,
   isTestRunPrimed,
   getOrRunSharedCoverage,
+  currentGateProofEvidence,
   peekSharedRun,
   unitActionFromCoverage,
 } = await import('../../src/stages/test-run-cache.js');
@@ -241,6 +243,30 @@ describe('AC-2d4b9e63 — unprimed: unit and cov are a pass-through, each spawn 
     const covArgs = execaSyncMock.mock.calls[1]![1] as string[];
     expect(covArgs).toContain('--coverage');
   });
+
+  test('[covers:F-49f6f2d2/AC-2d4b9e63] unprimed standalone and long-lived MCP requests preserve unit and coverage results byte-for-byte', () => {
+    clearTestRunCache();
+    expect(isTestRunPrimed()).toBe(false);
+    execaSyncMock.mockReturnValue(CLEAN);
+    const standalone = {unit: runUnit({cwd: dir}), coverage: runCov({cwd: dir})};
+    const standaloneCommands = execaSyncMock.mock.calls.map(([command, args]) => [command, [...(args as string[])]]);
+    expect(isTestRunPrimed()).toBe(false);
+
+    // A long-lived MCP server receives a later request without an explicit
+    // reset. An unprimed pass-through must leave no residue to alter it.
+    execaSyncMock.mockClear();
+    expect(isTestRunPrimed()).toBe(false);
+    execaSyncMock.mockReturnValue(CLEAN);
+    const longLived = {unit: runUnit({cwd: dir}), coverage: runCov({cwd: dir})};
+    const longLivedCommands = execaSyncMock.mock.calls.map(([command, args]) => [command, [...(args as string[])]]);
+    expect(isTestRunPrimed()).toBe(false);
+
+    expect(JSON.stringify(longLived.unit)).toBe(JSON.stringify(standalone.unit));
+    expect(JSON.stringify(longLived.coverage)).toBe(JSON.stringify(standalone.coverage));
+    expect(longLivedCommands).toEqual(standaloneCommands);
+    expect(longLived.coverage.pass).toBe(true);
+    expect((longLivedCommands[1]?.[1] as string[]) ?? []).toContain('--coverage');
+  });
 });
 
 // ─── AC-9a1c4e21 + AC-3f7e0c94 — primed: run once, dual-json reporter present ───
@@ -253,7 +279,7 @@ describe('AC-9a1c4e21 / AC-3f7e0c94 — primed vitest gate: the suite runs ONCE 
   });
   afterEach(() => rmSync(dir, {recursive: true, force: true}));
 
-  test('runUnit then runCov spawn exactly ONE vitest process total (the #215 fix)', () => {
+  test("[covers:F-49f6f2d2/AC-9a1c4e21] runUnit then runCov spawn exactly ONE vitest process total (the #215 fix)", () => {
     execaSyncMock.mockReturnValueOnce(CLEAN);
     const unitResult = runUnit({cwd: dir});
     const covResult = runCov({cwd: dir});
@@ -264,7 +290,7 @@ describe('AC-9a1c4e21 / AC-3f7e0c94 — primed vitest gate: the suite runs ONCE 
     expect(covResult.exitCode).toBe(0);
   });
 
-  test('the one shared command is the COVERAGE command augmented with the dual json reporter', () => {
+  test("[covers:F-49f6f2d2/AC-3f7e0c94] the one shared command is the COVERAGE command augmented with the dual json reporter", () => {
     execaSyncMock.mockReturnValueOnce(CLEAN);
     runUnit({cwd: dir});
     expect(execaSyncMock).toHaveBeenCalledTimes(1);
@@ -275,6 +301,52 @@ describe('AC-9a1c4e21 / AC-3f7e0c94 — primed vitest gate: the suite runs ONCE 
     expect(args).toContain('--reporter=default');
     expect(args).toContain('--reporter=json');
     expect(args.some((a) => a.startsWith('--outputFile='))).toBe(true);
+  });
+
+  test('F6 records the exact shared Vitest argv and digest, including both reporters and its output path', () => {
+    // Re-prime with an input seal so capture is active; the hand-authored
+    // expectation is the process mock's argv, never the production builder.
+    clearTestRunCache();
+    primeTestRunCache(dir, 'a'.repeat(64));
+    mockRunWritingJson(vitestJson([]), CLEAN);
+
+    runUnit({cwd: dir});
+
+    const [command, args] = execaSyncMock.mock.calls[0] as [string, string[]];
+    const actual = [command, ...args];
+    const proof = currentGateProofEvidence(dir, 'a'.repeat(64));
+    const digest = (argv: readonly string[]): string => createHash('sha256').update(JSON.stringify(argv), 'utf8').digest('hex');
+    expect(proof?.command).toEqual(actual);
+    expect(proof?.commandSha256).toBe(digest(actual));
+    expect(actual).toContain('--reporter=default');
+    expect(actual).toContain('--reporter=json');
+    expect(actual.some((entry) => entry.startsWith('--outputFile='))).toBe(true);
+
+    const changedReporter = actual.map((entry) => entry === '--reporter=json' ? '--reporter=dot' : entry);
+    const changedOutput = actual.map((entry) => entry.startsWith('--outputFile=') ? '--outputFile=/tmp/other.json' : entry);
+    expect(digest(changedReporter)).not.toBe(proof?.commandSha256);
+    expect(digest(changedOutput)).not.toBe(proof?.commandSha256);
+  });
+
+  test('F6 records the exact direct Vitest argv when coverage cannot share the runner', () => {
+    clearTestRunCache();
+    primeTestRunCache(dir, 'b'.repeat(64));
+    mkdirSync(join(dir, '.cladding'), {recursive: true});
+    writeFileSync(join(dir, '.cladding', 'config.yaml'), [
+      'gate:', '  commands:', '    test: ["npx", "vitest", "run"]', '    coverage: ["echo", "coverage"]', '',
+    ].join('\n'));
+    mockRunWritingJson(vitestJson([]), CLEAN);
+
+    runUnit({cwd: dir});
+
+    const [command, args] = execaSyncMock.mock.calls[0] as [string, string[]];
+    const actual = [command, ...args];
+    const proof = currentGateProofEvidence(dir, 'b'.repeat(64));
+    const digest = createHash('sha256').update(JSON.stringify(actual), 'utf8').digest('hex');
+    expect(proof?.command).toEqual(actual);
+    expect(proof?.commandSha256).toBe(digest);
+    expect(actual).toEqual(expect.arrayContaining(['--reporter=default', '--reporter=json']));
+    expect(actual.some((entry) => entry.startsWith('--outputFile='))).toBe(true);
   });
 
   test('cov folds the SAME shared proc unit triggered — no independent cov spawn', () => {
@@ -304,7 +376,7 @@ describe('primed pytest gate: Unit and Coverage share one coverage-instrumented 
   });
   afterEach(() => rmSync(dir, {recursive: true, force: true}));
 
-  test('runUnit then runCov spawn pytest exactly once through coverage.py', () => {
+  test("[covers:F-49f6f2d2/AC-d769e24f] runUnit then runCov spawn pytest exactly once through coverage.py", () => {
     execaSyncMock.mockReturnValueOnce(CLEAN);
     const unitResult = runUnit({cwd: dir, strict: true});
     const covResult = runCov({cwd: dir});
@@ -317,7 +389,7 @@ describe('primed pytest gate: Unit and Coverage share one coverage-instrumented 
     expect(args).toEqual(['run', '-m', 'pytest']);
   });
 
-  test('AC-f8e85a99 — a green shared run that collected ZERO tests blocks under --strict (guard not bypassed)', () => {
+  test("[covers:F-49f6f2d2/AC-f8e85a99] AC-f8e85a99 — a green shared run that collected ZERO tests blocks under --strict (guard not bypassed)", () => {
     // coverage.py exits 0 but pytest collected nothing (e.g. an over-narrow selection).
     execaSyncMock.mockReturnValueOnce({
       exitCode: 0,
@@ -343,7 +415,7 @@ describe('AC-8c5a2fb0 — non-green shared run: unit falls back to its own tests
   });
   afterEach(() => rmSync(dir, {recursive: true, force: true}));
 
-  test('shared (coverage) run fails on threshold, but unit\'s OWN tests-only run is green → unit PASSES (not mis-attributed)', () => {
+  test("[covers:F-49f6f2d2/AC-8c5a2fb0] shared (coverage) run fails on threshold, but unit's OWN tests-only run is green → unit PASSES (not mis-attributed)", () => {
     // 1st call: the shared coverage+json run — non-green (e.g. coverage threshold miss).
     execaSyncMock.mockImplementationOnce(() => ({exitCode: 1, stdout: '', stderr: 'coverage threshold not met'}));
     // 2nd call: unit's OWN tests-only fallback run — the actual tests are fine.
@@ -374,7 +446,7 @@ describe('AC-6b2d81f7 — the vacuous-test guard MUST still fire on the reuse pa
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('shared run is GREEN but the done feature\'s declared test file is ALL-SKIPPED → unit is RED with VACUOUS_TESTS, not a passing reuse', () => {
+  test("[covers:F-49f6f2d2/AC-6b2d81f7] shared run is GREEN but the done feature's declared test file is ALL-SKIPPED → unit is RED with VACUOUS_TESTS, not a passing reuse", () => {
     const testFile = join(dir, 'tests', 'dedup-guard.test.ts');
     const spec = specOf([
       feature({

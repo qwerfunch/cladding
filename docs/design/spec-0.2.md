@@ -19,10 +19,10 @@ The current runtime remains governed by [`docs/ssot-model.md`](../ssot-model.md)
 
 For a fresh planning or implementation session:
 
-1. Read [`AGENTS.md`](../../AGENTS.md), this router, and only the canonical document(s) routed for the current task.
-2. Load [Evidence snapshot](spec-0.2/evidence.md#evidence-snapshot), or the narrower [Assurance evidence](spec-0.2/assurance-evidence.md), only to reproduce measurements or evaluate a claim; do not preload either for ordinary implementation.
-3. Treat accepted target decisions separately from shipped runtime behavior.
-4. Change a decision only in its canonical owner, then append one row to [Change log](spec-0.2/decision-log.md#change-log). Move displaced alternatives to [Rejected decisions](spec-0.2/decision-log.md#rejected-decisions).
+1. Read [`AGENTS.md`](../../AGENTS.md), this router, and only the task-routed owner documents.
+2. Load [Evidence snapshot](spec-0.2/evidence.md#evidence-snapshot) or [Assurance evidence](spec-0.2/assurance-evidence.md) only to reproduce a measurement or evaluate a claim.
+3. Keep accepted target decisions separate from shipped runtime behavior.
+4. Change only the canonical owner, append its [Change log](spec-0.2/decision-log.md#change-log) row, and preserve displaced alternatives as rejected history.
 5. Label numbers as **verified measurement**, **acceptance target**, or **projection**. Never promote a projection without a reproducible artifact.
 
 Old chat transcripts are not authority. This router intentionally contains no duplicate normative contract.
@@ -33,14 +33,14 @@ Old chat transcripts are not authority. This router intentionally contains no du
 |---|---|
 | F1 compiler/registry bootstrap | D10 in [Model and migration](spec-0.2/model-and-migration.md), D17 in [GraphIR](spec-0.2/graph.md), and D15/D16 in [Delivery](spec-0.2/delivery.md) |
 | F2 parsing or F3 catalog/rules | [Model and migration](spec-0.2/model-and-migration.md), the relevant D17 subsection, and D15/D16 |
-| Schema-upgrade preview or apply | D14 in [Model and migration](spec-0.2/model-and-migration.md), D12 in [Proof and editing](spec-0.2/proof-and-editing.md), and D15/D16 |
+| Schema migration or generated relocation | D03/D14 in [Model and migration](spec-0.2/model-and-migration.md), D12 in [Proof and editing](spec-0.2/proof-and-editing.md), and D15/D16 |
 | F4 transactional editing and cycle begin | [Proof and editing](spec-0.2/proof-and-editing.md) and D15/D16 in [Delivery](spec-0.2/delivery.md) |
 | F5 bindings/evidence or F6 assurance/attestation | [Proof and editing](spec-0.2/proof-and-editing.md), [Assurance](spec-0.2/assurance.md), D17 closures, and D15/D16 |
 | F7 scenarios | D09 in [Model and migration](spec-0.2/model-and-migration.md#d09--scenario-contract), D15/D16, and D17 |
 | F8 GraphIR cutover, graph query/export/viewer | [GraphIR and bounded retrieval](spec-0.2/graph.md) and D15/D16 |
 | F9 task projection, context measurement, background scheduler, or orchestration A/B | [Context and orchestration](spec-0.2/context-and-orchestration.md), [Assurance](spec-0.2/assurance.md), and D15/D16 |
 | Iron Law theory, stage/profile policy, incremental verification, or upstream RFC | [Assurance](spec-0.2/assurance.md), then D15/D16 and [Assurance evidence](spec-0.2/assurance-evidence.md) only when reproducing cadence measurements |
-| F10 headless task-state loop (0.10.x) | [Context and orchestration](spec-0.2/context-and-orchestration.md) and D15/D16 |
+| F10 headless task-state loop or F11 generated relocation | [Context and orchestration](spec-0.2/context-and-orchestration.md) or D03/D14 in [Model and migration](spec-0.2/model-and-migration.md), plus D15/D16 |
 | MCP adapter, host compatibility, or catalog/token validation | [MCP boundary](spec-0.2/mcp.md), D15/D16, and the [Validation protocol](spec-0.2/validation.md) |
 | Implementation hygiene, code/doc/test retirement | D18 in [Implementation hygiene](spec-0.2/hygiene.md#d18--implementation-hygiene-and-documentation-surface) |
 | Claims, alternatives, later work, history | [Decision log](spec-0.2/decision-log.md) |

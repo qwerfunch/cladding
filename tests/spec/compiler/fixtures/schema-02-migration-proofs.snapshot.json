@@ -1,0 +1,43 @@
+[
+  {
+    "owner": "criterion:F-aaaaaaaa/AC-11111111",
+    "channel": "oracle",
+    "raw": "script:missing",
+    "normalizedTarget": "artifact:script:missing",
+    "selector": {
+      "precision": "none"
+    },
+    "resolution": "unresolved",
+    "source": {
+      "path": "spec/generated/migration-baseline-0.1-to-0.2.yaml",
+      "yamlPath": "$.criteria[0].bindings[1].raw",
+      "range": {
+        "start": 418,
+        "end": 432,
+        "line": 16,
+        "column": 14
+      }
+    }
+  },
+  {
+    "owner": "criterion:F-aaaaaaaa/AC-11111111",
+    "channel": "test",
+    "raw": "tests/one.test.ts#one case",
+    "normalizedTarget": "anchor:tests/one.test.ts#one case",
+    "selector": {
+      "precision": "fragment",
+      "value": "one case"
+    },
+    "resolution": "resolved",
+    "source": {
+      "path": "spec/generated/migration-baseline-0.1-to-0.2.yaml",
+      "yamlPath": "$.criteria[0].bindings[0].raw",
+      "range": {
+        "start": 354,
+        "end": 380,
+        "line": 14,
+        "column": 14
+      }
+    }
+  }
+]

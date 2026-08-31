@@ -113,7 +113,7 @@ describe('project-scoped runHostSetup', () => {
     expect(exclude).toContain('/.cladding/setup-status.json');
   });
 
-  test('host configs use the portable project runtime rather than an npm absolute path', async () => {
+  test('[covers:F-5283985e/AC-4a71e2] host configs keep write tools approval-gated while allowing only the three read-only doctor surfaces', async () => {
     await runHostSetup({home, projectRoot: project, pkgRoot, quiet: true, activate: false});
 
     const codex = readFileSync(join(project, '.codex', 'config.toml'), 'utf8');
@@ -143,7 +143,7 @@ describe('project-scoped runHostSetup', () => {
     expect(geminiPolicy).not.toContain('yolo');
   });
 
-  test('project runtime pins MCP and shell commands to the same engine', async () => {
+  test('[covers:F-0f4dd6/AC-021] project runtime pins MCP and shell commands to the same engine', async () => {
     await runHostSetup({home, projectRoot: project, pkgRoot, quiet: true, activate: false});
 
     const runtime = join(project, '.cladding', 'host', 'serve.cjs');
@@ -279,7 +279,7 @@ describe('project-scoped runHostSetup', () => {
     ]);
   });
 
-  test('removes only provably-owned legacy global wires', async () => {
+  test('[covers:F-0f4dd6/AC-018] removes only provably-owned legacy global wires', async () => {
     mkdirSync(join(home, '.agents', 'skills'), {recursive: true});
     mkdirSync(join(home, '.gemini', 'config', 'plugins'), {recursive: true});
     mkdirSync(join(home, '.gemini', 'extensions'), {recursive: true});

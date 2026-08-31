@@ -15,9 +15,49 @@ import {beforeEach, afterEach, describe, expect, test, vi} from 'vitest';
 
 vi.mock('../../src/events/log.js', () => ({recordEvent: vi.fn()}));
 
+// Handler-export tests run from this repository.  Sync's write collaborators
+// are isolated there, while the later git-operation fixture suite deliberately
+// re-enables their real implementations to exercise the production writer path.
+const syncWriteIsolation = vi.hoisted(() => ({enabled: false}));
+
+vi.mock('../../src/spec/edit.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../src/spec/edit.js')>();
+  return {
+    ...original,
+    refreshDerivedSpecProjections: vi.fn((cwd = '.') =>
+      syncWriteIsolation.enabled ? false : original.refreshDerivedSpecProjections(cwd)),
+  };
+});
+vi.mock('../../src/init/agents-md.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../src/init/agents-md.js')>();
+  return {
+    ...original,
+    writeSpecDrivenAgentsMd: vi.fn((cwd = '.') =>
+      syncWriteIsolation.enabled ? 'unchanged' : original.writeSpecDrivenAgentsMd(cwd)),
+  };
+});
+vi.mock('../../src/spec/test-ref-repair.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../src/spec/test-ref-repair.js')>();
+  return {
+    ...original,
+    repairTestRefs: vi.fn((cwd = '.') =>
+      syncWriteIsolation.enabled ? {repaired: [], suggested: []} : original.repairTestRefs(cwd)),
+  };
+});
+vi.mock('../../src/spec/deliverable-detect.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../src/spec/deliverable-detect.js')>();
+  return {
+    ...original,
+    maintainDeliverable: vi.fn((cwd = '.') =>
+      syncWriteIsolation.enabled ? null : original.maintainDeliverable(cwd)),
+  };
+});
 
 vi.mock('../../src/cli/init.js', () => ({runInit: vi.fn()}));
-vi.mock('../../src/spec/load.js', () => ({loadSpec: vi.fn()}));
+vi.mock('../../src/spec/load.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../src/spec/load.js')>()),
+  loadSpec: vi.fn(),
+}));
 vi.mock('../../src/router/intent.js', () => ({classifyIntent: vi.fn()}));
 vi.mock('../../src/ui/pulse.js', () => ({pulse: vi.fn()}));
 vi.mock('../../src/ui/panel.js', () => ({renderPanel: vi.fn(() => 'panel-output')}));
@@ -46,6 +86,7 @@ vi.mock('../../src/stages/detectors/stale-specification.js', () => ({
   staleSpecification: {name: 'STALE_SPECIFICATION', run: vi.fn(() => [])},
 }));
 vi.mock('../../src/core/checkpoint.js', () => ({
+  readGitHead: vi.fn(() => null),
   recordCheckpoint: vi.fn(() => ({
     featureId: 'F-001',
     gitHead: '0123456789abcdef0123456789abcdef01234567',
@@ -84,11 +125,32 @@ vi.mock('../../src/adapters/host/sampling-context.js', () => ({
   clearHostMcpServerForTesting: vi.fn(),
 }));
 
+// Handler tests already replace every stage runner and loadSpec.  Freeze the
+// later F6 boundary too, so their rendering and process-exit assertions do
+// not inherit this checkout's schema or assurance closure state.
+vi.mock('../../src/spec/compiler/compile.js', () => ({
+  compileSpecWorkspace: () => ({schemaVersion: '0.1', nodes: [], edges: [], diagnostics: []}),
+  compileSpecWorkspaceWithLockHeld: () => ({schemaVersion: '0.1', nodes: [], edges: [], diagnostics: []}),
+}));
+vi.mock('../../src/assurance/workspace.js', () => ({
+  workspaceClosureSeals: () => ({inputSha256: 'a'.repeat(64), closures: {schemaVersion: '0.1', features: []}}),
+  currentProofBindingsFromWorkspace: () => [],
+  currentExecutableProofFeatureIdsFromWorkspace: () => [],
+  hasApplicableSchema02TestCriteria: () => false,
+  currentProofViewsFromWorkspace: () => [],
+  workspaceProfileSnapshot: () => ({inputSha256: 'a'.repeat(64), complete: true, closureInput: {schemaVersion: '0.1', features: []}, incompleteAddresses: []}),
+  createWorkspaceAttestations: () => [],
+}));
+
 const clad = await import('../../src/cli/clad.js');
 const initMod = await import('../../src/cli/init.js');
 const specMod = await import('../../src/spec/load.js');
 const intentMod = await import('../../src/router/intent.js');
 const driveMod = await import('../../src/drive/loop.js');
+const editMod = await import('../../src/spec/edit.js');
+const agentsMdMod = await import('../../src/init/agents-md.js');
+const testRefMod = await import('../../src/spec/test-ref-repair.js');
+const deliverableMod = await import('../../src/spec/deliverable-detect.js');
 
 const runInitMock = initMod.runInit as unknown as ReturnType<typeof vi.fn>;
 const loadSpecMock = specMod.loadSpec as unknown as ReturnType<typeof vi.fn>;
@@ -96,12 +158,17 @@ const classifyMock = intentMod.classifyIntent as unknown as ReturnType<typeof vi
 const runDriveLoopMock = driveMod.runDriveLoop as unknown as ReturnType<typeof vi.fn>;
 const pulseMod = await import('../../src/ui/pulse.js');
 const pulseMock = pulseMod.pulse as unknown as ReturnType<typeof vi.fn>;
+const refreshDerivedSpecProjectionsMock = editMod.refreshDerivedSpecProjections as unknown as ReturnType<typeof vi.fn>;
+const writeSpecDrivenAgentsMdMock = agentsMdMod.writeSpecDrivenAgentsMd as unknown as ReturnType<typeof vi.fn>;
+const repairTestRefsMock = testRefMod.repairTestRefs as unknown as ReturnType<typeof vi.fn>;
+const maintainDeliverableMock = deliverableMod.maintainDeliverable as unknown as ReturnType<typeof vi.fn>;
 
 describe('cli/clad — handler exports', () => {
   let exitSpy: ReturnType<typeof vi.spyOn>;
   let stdoutSpy: ReturnType<typeof vi.spyOn>;
   let exitCalls: number[];
   beforeEach(() => {
+    syncWriteIsolation.enabled = true;
     exitCalls = [];
     // Record-only exit mock: try/catch inside handlers would catch a
     // thrown exit, which would mask the original exit code. Record the
@@ -120,8 +187,13 @@ describe('cli/clad — handler exports', () => {
     classifyMock.mockReset();
     runDriveLoopMock.mockReset();
     pulseMock.mockClear();
+    refreshDerivedSpecProjectionsMock.mockClear();
+    writeSpecDrivenAgentsMdMock.mockClear();
+    repairTestRefsMock.mockClear();
+    maintainDeliverableMock.mockClear();
   });
   afterEach(() => {
+    syncWriteIsolation.enabled = false;
     exitSpy.mockRestore();
     stdoutSpy.mockRestore();
     process.exitCode = 0;
@@ -182,7 +254,7 @@ describe('cli/clad — handler exports', () => {
 
   // v0.3.24 (F-x) — `--scan` and `--no-llm` flow through to runInit so
   // init.ts can branch on them without inspecting argv directly.
-  test('runInitCommand forwards --scan + --no-llm options', async () => {
+  test('[covers:F-9b643e/AC-007] runInitCommand forwards --scan + --no-llm options', async () => {
     runInitMock.mockResolvedValueOnce({
       created: ['docs/conventions.md'],
       skipped: [],
@@ -204,7 +276,7 @@ describe('cli/clad — handler exports', () => {
   // v0.3.43 (F-56abaa) — variadic positional captures the user's intent
   // and forwards it as the joined string to runInit; the clarifying
   // questions returned by intent-onboarding render as stdout hints.
-  test('runInitCommand joins variadic positional tokens into intent', async () => {
+  test('[covers:F-56abaa/AC-002] runInitCommand joins variadic positional tokens into intent', async () => {
     runInitMock.mockResolvedValueOnce({
       created: ['spec.yaml'],
       skipped: [],
@@ -240,10 +312,22 @@ describe('cli/clad — handler exports', () => {
     expect(process.exitCode).toBe(0);
   });
 
-  test('runSyncCommand on valid spec exits 0', () => {
+  test('runSyncCommand isolates real workspace writes while invoking every derived collaborator', () => {
+    const workspaceBefore = [
+      readFileSync(join(process.cwd(), 'spec.yaml'), 'utf8'),
+      readFileSync(join(process.cwd(), 'spec', 'index.yaml'), 'utf8'),
+    ];
     loadSpecMock.mockReturnValueOnce({features: [{id: 'F-001'}, {id: 'F-002'}]});
     clad.runSyncCommand();
     expect(exitCalls).toEqual([0]);
+    expect(refreshDerivedSpecProjectionsMock).toHaveBeenCalledExactlyOnceWith('.');
+    expect(writeSpecDrivenAgentsMdMock).toHaveBeenCalledExactlyOnceWith('.');
+    expect(repairTestRefsMock).toHaveBeenCalledExactlyOnceWith('.');
+    expect(maintainDeliverableMock).toHaveBeenCalledExactlyOnceWith('.');
+    expect([
+      readFileSync(join(process.cwd(), 'spec.yaml'), 'utf8'),
+      readFileSync(join(process.cwd(), 'spec', 'index.yaml'), 'utf8'),
+    ]).toEqual(workspaceBefore);
   });
 
   test('runSyncCommand on spec load error exits 1', () => {
@@ -491,13 +575,17 @@ describe('cli/clad — handler exports', () => {
 });
 
 describe('cli/clad — createProgram', () => {
-  test('returns a Command with all 25 verbs registered (work removed in 0.6.0; hook F-1d23a6, context F-d2c806, impact F-7794a6bc, verdict F-2e28cc72, infer-deps F-2be3e3bb, measure F-16138071, graph F-569f4b37, changelog F-904495a5, report F-f6cc5e5a, bundle F-e940fffe)', () => {
+  test('[covers:F-67e33f/AC-002] returns a Command with all 29 verbs registered and no feature-creation verb', () => {
     const program = clad.createProgram();
     const names = program.commands.map((c) => c.name());
     expect(names).toEqual([
       'init',
       'run',
       'sync',
+      'migrate',
+      'begin',
+      'signoff',
+      'ingest-receipt',
       'setup',
       'update',
       'check',
@@ -521,6 +609,7 @@ describe('cli/clad — createProgram', () => {
       'doctor',
       'clarify',
     ]);
+    expect(names).not.toContain('create');
   });
 
   // 0.8.0 removed the 0.6.0 compat aliases (`drive`→`run`, `panel`→`status`,
@@ -721,13 +810,18 @@ describe('cli/clad — runCheckStages attestation write guard (F-10cc42d1 · AC-
   // A done feature with modules is what makes writeAttestation actually emit a
   // file (its only honest author) — so the negative case can't pass vacuously.
   const DONE_SPEC = {
+    schema: '0.1',
     project: {name: 'probe', language: 'typescript'},
-    features: [{id: 'F-001', slug: 'x', status: 'done', modules: ['README.md'], acceptance_criteria: []}],
+    features: [{id: 'F-001', slug: 'x', title: 'x', status: 'done', modules: ['README.md'], acceptance_criteria: []}],
   };
 
   function fixture(): void {
     execFileSync('git', ['init', '-q'], {cwd: dir});
     mkdirSync(join(dir, 'spec'), {recursive: true}); // writeAttestation targets spec/attestation.yaml
+    writeFileSync(join(dir, 'spec.yaml'), [
+      'schema: "0.1"', 'project:', '  name: probe', '  language: typescript', 'features:',
+      '  - id: F-001', '    slug: x', '    title: x', '    status: done', '    modules:', '      - README.md', '    acceptance_criteria: []', '',
+    ].join('\n'));
     writeFileSync(join(dir, 'README.md'), 'x\n');
   }
 
@@ -745,7 +839,7 @@ describe('cli/clad — runCheckStages attestation write guard (F-10cc42d1 · AC-
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('a GREEN strict pre-push gate DEFERS spec/attestation.yaml while a git op is in progress + notes it', () => {
+  test('[covers:F-10cc42d1/AC-578c6226] a GREEN strict pre-push gate DEFERS spec/attestation.yaml while a git op is in progress + notes it', () => {
     fixture();
     writeFileSync(join(dir, '.git', 'MERGE_HEAD'), 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeef\n');
     process.chdir(dir);

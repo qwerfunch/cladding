@@ -16,7 +16,7 @@
 // `docs/ab-evaluation-extended/scenarios/task-manager/{cladding,vanilla}/`
 // so reviewers can `cd` in and run them.
 
-import {afterEach, beforeEach, describe, test, vi} from 'vitest';
+import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
 // Host-tool determinism (CI break, 2026-06-11): the deterministic battery must
 // not depend on which external scanners (madge, secretlint) the HOST happens to
@@ -38,7 +38,8 @@ vi.mock('../../../src/stages/toolchain/detect.js', async (importOriginal) => {
 });
 import {fileURLToPath} from 'node:url';
 import {dirname, join} from 'node:path';
-import {existsSync, mkdirSync, rmSync} from 'node:fs';
+import {existsSync, mkdirSync, readFileSync, readdirSync, rmSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 
 import {
   TASK_MANAGER_FEATURES,
@@ -88,7 +89,7 @@ describe('A/B-extended · task-manager — 30-feature React app at scale', () =>
     bCwd.cleanup();
   });
 
-  test('30-feature task-manager — progression snapshots, drift catches at M30, AI queries pass', async () => {
+  test("30-feature task-manager — progression snapshots, drift catches at M30, AI queries pass", async () => {
     const snapshots: PerfSnapshot[] = [];
 
     // ── Milestone progression ────────────────────────────────────
@@ -200,4 +201,105 @@ describe('A/B-extended · task-manager — 30-feature React app at scale', () =>
       curate('vanilla', COMMITTED_VANILLA_DIR);
     }
   }, 120_000);
+
+  test('[covers:F-0144b9/AC-001] task-manager feature records have 30 deterministic ids and non-empty ACs', () => {
+    expect(TASK_MANAGER_FEATURES).toHaveLength(30);
+    expect(new Set(TASK_MANAGER_FEATURES.map((feature) => feature.id)).size).toBe(30);
+    for (const feature of TASK_MANAGER_FEATURES) {
+      const expectedId = `F-${createHash('sha256').update(`task-manager:${feature.slug}`).digest('hex').slice(0, 6)}`;
+      expect(feature.id).toBe(expectedId);
+      expect(feature.ac.length).toBeGreaterThan(0);
+    }
+  });
+
+  test('[covers:F-0144b9/AC-002] curator writes the React 19, Vite 6, TypeScript, and Tailwind scaffold for both groups', () => {
+    curate('cladding', aCwd.path);
+    curate('vanilla', bCwd.path);
+    for (const cwd of [aCwd.path, bCwd.path]) {
+      const pkg = JSON.parse(readFileSync(join(cwd, 'package.json'), 'utf8')) as {
+        dependencies: Record<string, string>;
+        devDependencies: Record<string, string>;
+      };
+      expect(pkg.dependencies.react).toMatch(/^\^19\./);
+      expect(pkg.devDependencies.vite).toMatch(/^\^6\./);
+      expect(pkg.devDependencies.typescript).toMatch(/^\^5\./);
+      expect(pkg.devDependencies.tailwindcss).toBeDefined();
+      expect(existsSync(join(cwd, 'src', 'App.tsx'))).toBe(true);
+      expect(existsSync(join(cwd, 'tailwind.config.ts'))).toBe(true);
+    }
+  });
+
+  test('[covers:F-0144b9/AC-003] captures structural and performance snapshots for both groups at all seven milestones', () => {
+    expect(MILESTONES).toEqual([1, 5, 10, 15, 20, 25, 30]);
+    const snapshots = MILESTONES.flatMap((milestone) => {
+      const features = featuresAtMilestone(milestone);
+      curate('cladding', aCwd.path, features);
+      curate('vanilla', bCwd.path, features);
+      return [capturePerfSnapshot('A', milestone, aCwd.path), capturePerfSnapshot('B', milestone, bCwd.path)];
+    });
+    expect(snapshots).toHaveLength(14);
+    expect(snapshots.filter((snapshot) => snapshot.group === 'A').map((snapshot) => snapshot.milestone)).toEqual(MILESTONES);
+    expect(snapshots.filter((snapshot) => snapshot.group === 'B').map((snapshot) => snapshot.milestone)).toEqual(MILESTONES);
+    for (const snapshot of snapshots) {
+      expect(snapshot.perf.srcFiles).toBeGreaterThan(0);
+      expect(snapshot.perf.testFiles).toBeGreaterThan(0);
+    }
+    expect(snapshots.filter((snapshot) => snapshot.group === 'A').every((snapshot) => snapshot.perf.specFiles > 0)).toBe(true);
+  });
+
+  test('[covers:F-ae61c1/AC-001][covers:F-ae61c1/AC-003] task-manager queries use the add-task keyword and matching label', () => {
+    curate('cladding', aCwd.path);
+    const answers = answerAllQueries(aCwd.path, {featureKeyword: 'add-task', featureLabel: 'add-task flow'});
+    expect(answers.slice(0, 2).map((answer) => answer.question)).toEqual([
+      'Which feature implements the add-task flow?',
+      'How many acceptance criteria does the add-task flow have?',
+    ]);
+    expect(answers.slice(0, 2).every((answer) => answer.answered)).toBe(true);
+  });
+
+  test('[covers:F-0144b9/AC-004] M30 drift injection and domain queries render a deterministic task-manager report', () => {
+    curate('cladding', aCwd.path);
+    curate('vanilla', bCwd.path);
+    const driftResults = [
+      captureDriftCatch(aCwd.path, 'A', makeStaleReferenceDrift('src/components/Header.tsx', 'src/components/Header.RENAMED.tsx')),
+      captureDriftCatch(bCwd.path, 'B', makeStaleReferenceDrift('src/components/Header.tsx', 'src/components/Header.RENAMED.tsx')),
+    ];
+    expect(driftResults.map((result) => result.scenarioId)).toEqual(['DI-1', 'DI-1']);
+    expect(driftResults.some((result) => result.newFindings.length > 0)).toBe(true);
+    const queryResults = new Map<'A' | 'B', readonly ReturnType<typeof answerAllQueries>[number][]>([
+      ['A', answerAllQueries(aCwd.path, {featureKeyword: 'add-task', featureLabel: 'add-task flow'})],
+      ['B', answerAllQueries(bCwd.path, {featureKeyword: 'add-task', featureLabel: 'add-task flow'})],
+    ]);
+    const input = {
+      scenarioTitle: 'task-manager',
+      scenarioSlug: 'task-manager',
+      intent: 'Build a 30-feature task manager',
+      description: 'Both groups are curated at M30.',
+      hypotheses: ['drift and query evidence is deterministic'],
+      snapshots: [capturePerfSnapshot('A', 30, aCwd.path), capturePerfSnapshot('B', 30, bCwd.path)],
+      driftResults,
+      queryResults,
+    };
+    const report = renderExtendedReport(input);
+    expect(report).toBe(renderExtendedReport(input));
+    expect(report).toContain('task-manager');
+    expect(report).toContain('add-task flow');
+  });
+
+  test('[covers:F-0144b9/AC-005] M30 curation emits complete React projects for both comparison groups', () => {
+    curate('cladding', aCwd.path);
+    curate('vanilla', bCwd.path);
+    for (const cwd of [aCwd.path, bCwd.path]) {
+      expect(existsSync(join(cwd, 'package.json'))).toBe(true);
+      expect(existsSync(join(cwd, 'src', 'App.tsx'))).toBe(true);
+      expect(existsSync(join(cwd, 'tests', 'app-shell.test.tsx'))).toBe(true);
+    }
+  });
+
+  test('[covers:F-f334fa/AC-001] task-manager curation emits exactly three user-journey scenario shards', () => {
+    curate('cladding', aCwd.path);
+    const scenarios = readdirSync(join(aCwd.path, 'spec', 'scenarios')).filter((name) => name.endsWith('.yaml'));
+    expect(scenarios).toHaveLength(3);
+    for (const scenario of scenarios) expect(readFileSync(join(aCwd.path, 'spec', 'scenarios', scenario), 'utf8')).toContain('features: [F-');
+  });
 });

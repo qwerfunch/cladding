@@ -21,3 +21,9 @@ acceptance_criteria:
       replace the prior entry while preserving the registration order of the
       first occurrence.
     test_refs: [tests/stages/drift.test.ts]
+  - id: AC-006
+    ears: ubiquitous
+    text: The system shall emit complete newline-terminated DriftReport JSON to
+      stdout when the serialized report exceeds 64 KiB and preserve the report
+      exitCode as the process exit code.
+    test_refs: [tests/stages/drift-scale.test.ts#flushes complete strict JSON beyond 64 KiB before preserving the report exit code]

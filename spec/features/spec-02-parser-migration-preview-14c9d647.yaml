@@ -1,0 +1,48 @@
+id: F-14c9d647
+slug: spec-02-parser-migration-preview
+title: "Spec 0.2 parser and migration preview"
+status: in_progress
+modules:
+  - src/spec/statement-parser.ts
+  - src/spec/legacy-statement-scanner.ts
+  - src/spec/compiler/compile.ts
+  - src/spec/compiler/types.ts
+  - src/spec/compiler/migration-baseline.ts
+  - src/spec/compiler/migration-preview.ts
+  - src/cli/migrate.ts
+  - src/cli/clad.ts
+  - scripts/spec-0.2-validate.ts
+  - tests/spec/statement-parser.test.ts
+  - tests/spec/legacy-statement-scanner.test.ts
+  - tests/spec/compiler/schema-02.test.ts
+  - tests/spec/compiler/migration-preview.test.ts
+  - tests/cli/migrate.test.ts
+  - tests/design/spec-0.2/requirements.yaml
+  - tests/design/spec-0.2/design-validation.test.ts
+  - docs/conventions.md
+  - docs/glossary.md
+  - spec/index.yaml
+  - spec/_doc-links.yaml
+  - tests/spec/compiler/fixtures/self-corpus.snapshot.json
+acceptance_criteria:
+  - id: AC-b431ecb1
+    ears: ubiquitous
+    text: "The specification compiler shall parse one strict schema 0.2 EARS statement with exactly one unprotected `shall` modal and report atomicity signals without blocking valid authoring."
+    test_refs: ["tests/spec/statement-parser.test.ts#P01 ubiquitous", "tests/spec/statement-parser.test.ts#P10 fragment/unbalanced rejection"]
+    notes: "## Why\nSchema 0.2 needs an unambiguous criterion boundary before it can replace legacy structured EARS fields."
+  - id: AC-fba49136
+    ears: ubiquitous
+    text: "The migration preview shall preserve each authored schema 0.1 text and proof spelling while reporting unresolved migration meaning without writing workspace bytes."
+    test_refs: ["tests/spec/legacy-statement-scanner.test.ts#L04 deterministic seeded arbitrary-input no-throw", "tests/spec/compiler/migration-preview.test.ts#copies authored text and raw selectors without inferring schema 0.2 meaning"]
+    notes: "## Why\nD14 retains source text and human confirmation rather than fabricating meaning from partial legacy fields."
+  - id: AC-6413ee0c
+    ears: event
+    condition: "when an operator requests a schema 0.2 migration preview"
+    text: "When an operator requests a schema 0.2 migration preview, clad shall return a deterministic read-only proposal and explain that apply awaits the transactional migration feature."
+    test_refs: ["tests/cli/migrate.test.ts#previews schema 0.2 migration without writing", "tests/cli/migrate.test.ts#refuses apply without writing"]
+    notes: "## Why\nThe preview is useful now, while F4 remains the sole authority for journaled writes."
+design_impact:
+  classification: additive
+  rationale: "F2 extends the additive compiler boundary with strict 0.2 read validation and a read-only migration proposal; shipped schema 0.1 consumers remain unchanged."
+  status: resolved
+  artifacts: []

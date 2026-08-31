@@ -46,7 +46,7 @@ function seed(dir: string, sub: string, ext: string, count: number): void {
 }
 
 describe('core/language-evidence — shared vocabulary', () => {
-  test('AC-1c7a90b2 — the scan layer re-exports the core map itself, not a copy', () => {
+  test("[covers:F-9e1279d4/AC-1c7a90b2] AC-1c7a90b2 — the scan layer re-exports the core map itself, not a copy", () => {
     expect(SCAN_EXT_TO_LANGUAGE).toBe(EXT_TO_LANGUAGE);
   });
 

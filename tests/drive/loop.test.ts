@@ -108,6 +108,8 @@ const writePostMortemMock = postmortemMod.writePostMortem as unknown as ReturnTy
 const pulseMod = await import('../../src/ui/pulse.js');
 const pulseProgressMock = pulseMod.pulseProgress as unknown as ReturnType<typeof vi.fn>;
 const pulseProgressEndMock = pulseMod.pulseProgressEnd as unknown as ReturnType<typeof vi.fn>;
+const eventsLog = await import('../../src/events/log.js');
+const appendEventMock = eventsLog.appendEvent as unknown as ReturnType<typeof vi.fn>;
 
 const selectAdapterMock = adaptersIndex.selectAdapter as unknown as ReturnType<typeof vi.fn>;
 
@@ -170,6 +172,7 @@ describe('runDriveLoop', () => {
     runArchMock.mockReturnValue(PASS);
     runUatMock.mockReset();
     runUatMock.mockReturnValue({pass: true, exitCode: 0, stage: 'stage_4.2'});
+    appendEventMock.mockClear();
     // Pre-flight health check (v0.2.23, F-072) — re-establish the
     // healthy-stub default so `mockReturnValueOnce` queues from prior
     // tests don't leak into the next one.
@@ -245,7 +248,7 @@ describe('runDriveLoop', () => {
     expect(r.gateRuns).toBe(6);
   });
 
-  test('reviewer identity collision → HUMAN_REQUIRED', async () => {
+  test('[covers:F-049/AC-086] reviewer identity collision → HUMAN_REQUIRED', async () => {
     loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-001', status: 'planned'}]));
     runAgentMock.mockReset();
     runAgentMock
@@ -267,12 +270,78 @@ describe('runDriveLoop', () => {
     expect(r.halt.detail).toContain('reviewer dispatch failed');
   });
 
-  test('UAT pass=false + exitCode=1 → HUMAN_REQUIRED', async () => {
-    loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-001', status: 'planned'}]));
+  test('[covers:F-049/AC-087] missing UAT human evidence halts with the feature and audit-log path', async () => {
+    loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-049', status: 'planned'}]));
     runUatMock.mockReturnValue({pass: false, exitCode: 1, stage: 'stage_4.2', stderr: 'no human evidence'});
     const r = await runDriveLoop({cwd: dir});
     expect(r.halt.class).toBe('HUMAN_REQUIRED');
+    expect(r.gateRuns).toBe(3);
+    expect(runAgentMock).toHaveBeenCalledTimes(2);
+    expect(r.halt.detail).toContain('F-049');
     expect(r.halt.detail).toContain('UAT lacks human-pass evidence');
+    expect(r.halt.detail).toContain(join(dir, '.cladding', 'audit.log.jsonl'));
+    const haltEvent = appendEventMock.mock.calls
+      .map((call) => call[1] as {type: string; payload: Record<string, unknown>})
+      .find((event) => event.payload.halt === 'HUMAN_REQUIRED');
+    expect(haltEvent?.payload.detail).toBe(r.halt.detail);
+    expect(haltEvent?.payload.detail).toContain('F-049');
+    expect(haltEvent?.payload.detail).toContain(join(dir, '.cladding', 'audit.log.jsonl'));
+  });
+
+  test('[covers:F-071/AC-198][covers:F-071/AC-200][covers:F-049/AC-088] dispatch failures preserve the live transport taxonomy, detail, and retry invariant', async () => {
+    const failures = [
+      {
+        dispatch: 'specialist',
+        error: new Error('401: invalid x-api-key'),
+        expected: 'TRANSPORT_AUTH_FAILED',
+      },
+      {
+        dispatch: 'reviewer',
+        error: new Error('429: rate limit exceeded'),
+        expected: 'TRANSPORT_RATE_LIMITED',
+      },
+      {
+        dispatch: 'specialist',
+        error: Object.assign(new Error('connect ECONNREFUSED'), {code: 'ECONNREFUSED'}),
+        expected: 'TRANSPORT_NETWORK',
+      },
+      {
+        dispatch: 'reviewer',
+        error: new Error('safety filter rejected the request'),
+        expected: 'LLM_UNAVAILABLE',
+      },
+    ] as const;
+
+    for (const failure of failures) {
+      loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-049', status: 'planned'}]));
+      runAgentMock.mockReset();
+      if (failure.dispatch === 'specialist') {
+        runAgentMock.mockRejectedValueOnce(failure.error);
+      } else {
+        runAgentMock
+          .mockResolvedValueOnce({result: {identity: {name: 'specialist'}, mutations: []}})
+          .mockRejectedValueOnce(failure.error);
+      }
+      appendEventMock.mockClear();
+
+      const r = await runDriveLoop({
+        cwd: dir,
+        budget: {maxIterations: 5, maxWallClockMs: 60_000, maxRetriesPerFeature: 1},
+      });
+
+      expect(r.halt.class).toBe(failure.expected);
+      expect(r.halt.detail).toContain(failure.error.message);
+      expect(r.halt.class).not.toBe('RETRY_THRESHOLD');
+      expect(r.iterations).toBe(1);
+      expect(r.featuresTouched).toEqual(['F-049']);
+      expect(r.gateRuns).toBe(failure.dispatch === 'reviewer' ? 3 : 0);
+      expect(runAgentMock).toHaveBeenCalledTimes(failure.dispatch === 'reviewer' ? 2 : 1);
+      expect(
+        appendEventMock.mock.calls
+          .map((call) => call[1] as {type: string})
+          .some((event) => event.type === 'drift_detected'),
+      ).toBe(false);
+    }
   });
 
   test('UAT exitCode=2 (skip) is tolerated → feature completes', async () => {
@@ -302,6 +371,27 @@ describe('runDriveLoop', () => {
       expect(checkpointedFeatures).toEqual(['F-001', 'F-002']);
     });
 
+    test('[covers:F-2de65d/AC-001][covers:F-2de65d/AC-002] a retry rollback uses the checkpoint pinned before the first specialist dispatch', async () => {
+      loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-777', status: 'planned'}]));
+      runTypeMock.mockReturnValue({pass: false, exitCode: 1, stage: 'stage_1.1'});
+      recordCheckpointMock.mockClear();
+      findLatestCheckpointMock.mockClear();
+      recordRollbackMock.mockClear();
+
+      const r = await runDriveLoop({
+        cwd: dir,
+        budget: {maxIterations: 50, maxWallClockMs: 600_000, maxRetriesPerFeature: 3},
+      });
+
+      expect(r.halt.class).toBe('RETRY_THRESHOLD');
+      expect(recordCheckpointMock).toHaveBeenCalledWith(dir, 'F-777');
+      expect(recordCheckpointMock.mock.invocationCallOrder[0]).toBeLessThan(
+        runAgentMock.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY,
+      );
+      expect(findLatestCheckpointMock).toHaveBeenCalledWith(dir, 'F-777');
+      expect(recordRollbackMock.mock.calls[0]?.[2]).toBe(findLatestCheckpointMock.mock.results[0]?.value);
+    });
+
     test('RETRY_THRESHOLD halt triggers a recordRollback for the exhausted feature', async () => {
       loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-999', status: 'planned'}]));
       // Force every L1 gate run to fail so the loop retries until the
@@ -319,7 +409,7 @@ describe('runDriveLoop', () => {
       expect(String(recordRollbackMock.mock.calls[0][3])).toContain('retry budget exhausted');
     });
 
-    test('RETRY_THRESHOLD with no prior checkpoint records no rollback (defensive)', async () => {
+    test('[covers:F-2de65d/AC-003] RETRY_THRESHOLD with no prior checkpoint records no rollback (defensive)', async () => {
       loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-888', status: 'planned'}]));
       runTypeMock.mockReturnValue({pass: false, exitCode: 1, stage: 'stage_1.1'});
       findLatestCheckpointMock.mockReturnValueOnce(null);
@@ -333,7 +423,7 @@ describe('runDriveLoop', () => {
       expect(recordRollbackMock).not.toHaveBeenCalled();
     });
 
-    test('non-RETRY_THRESHOLD halt does not invoke rollback', async () => {
+    test('[covers:F-2de65d/AC-004] non-RETRY_THRESHOLD halt does not invoke rollback', async () => {
       loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-200', status: 'planned'}]));
       recordRollbackMock.mockClear();
       const r = await runDriveLoop({cwd: dir});
@@ -345,7 +435,7 @@ describe('runDriveLoop', () => {
     // Librarian writes a post-mortem markdown summarising the
     // failure context. The drive loop hands featureId, retry
     // count, last failed gate, checkpoint, and rolledBackAt.
-    test('rollback triggers writePostMortem with failure context', async () => {
+    test('[covers:F-5d3ed2/AC-005] rollback triggers writePostMortem with failure context', async () => {
       loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-777', status: 'planned'}]));
       runTypeMock.mockReturnValue({pass: false, exitCode: 1, stage: 'stage_1.1'});
       writePostMortemMock.mockClear();
@@ -381,7 +471,7 @@ describe('runDriveLoop', () => {
   // in-place status updates so a user staring at clad run sees
   // what's happening instead of a frozen screen.
   describe('pulse progressive (Tier 2 #1)', () => {
-    test('happy path emits pulseProgress for specialist · L1 · reviewer · UAT, then pass End', async () => {
+    test('[covers:F-ba4b7a/AC-004] happy path emits pulseProgress for specialist · L1 · reviewer · UAT, then pass End', async () => {
       loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-001', status: 'planned'}]));
       pulseProgressMock.mockClear();
       pulseProgressEndMock.mockClear();
@@ -394,7 +484,7 @@ describe('runDriveLoop', () => {
       expect(endCall?.[2]).toBe('done');
     });
 
-    test('L1 gate fail emits pulseProgressEnd("fail") with retry counter', async () => {
+    test('[covers:F-ba4b7a/AC-005] L1 gate fail emits pulseProgressEnd("fail") with retry counter', async () => {
       loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-777', status: 'planned'}]));
       runTypeMock.mockReturnValue({pass: false, exitCode: 1, stage: 'stage_1.1'});
       pulseProgressEndMock.mockClear();
@@ -414,7 +504,7 @@ describe('runDriveLoop', () => {
   // gates at AC granularity. Without an `acId` the guard cannot
   // tell which AC is missing its human-author sign-off.
   describe('atomic AC ↔ evidence fan-out (F-12d740)', () => {
-    test('feature with acceptance_criteria → evidence recorded per AC', async () => {
+    test('[covers:F-12d740/AC-001][covers:F-12d740/AC-003] feature with acceptance_criteria → evidence recorded per AC', async () => {
       loadSpecMock.mockReturnValueOnce(
         specOf([
           {
@@ -453,7 +543,7 @@ describe('runDriveLoop', () => {
       expect(featureEvidence[0].acId).toBeUndefined();
     });
 
-    test('feature with empty acceptance_criteria array → fallback to feature-scoped evidence', async () => {
+    test('[covers:F-12d740/AC-002] feature with empty acceptance_criteria array → fallback to feature-scoped evidence', async () => {
       loadSpecMock.mockReturnValueOnce(
         specOf([{id: 'F-003', status: 'planned', acceptance_criteria: []}]),
       );
@@ -503,7 +593,7 @@ describe('runDriveLoop', () => {
       };
     }
 
-    test('missing API key reason → TRANSPORT_AUTH_FAILED', async () => {
+    test('[covers:F-072/AC-201] missing API key reason → TRANSPORT_AUTH_FAILED', async () => {
       loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-001', status: 'planned'}]));
       selectAdapterMock.mockReturnValueOnce(adapterWithHealth('ANTHROPIC_API_KEY env var is not set'));
       const r = await runDriveLoop({cwd: dir});
@@ -512,6 +602,39 @@ describe('runDriveLoop', () => {
       expect(r.iterations).toBe(0);
       // No agent dispatch should have happened
       expect(runAgentMock).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      'ANTHROPIC_API_KEY env var is not set',
+      'invalid API key supplied',
+      'request unauthorized',
+      'forbidden — credentials rejected',
+    ])('credential pre-flight reason %s halts as TRANSPORT_AUTH_FAILED', async (reason) => {
+      loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-001', status: 'planned'}]));
+      selectAdapterMock.mockReturnValueOnce(adapterWithHealth(reason));
+
+      const r = await runDriveLoop({cwd: dir});
+
+      expect(r.halt.class).toBe('TRANSPORT_AUTH_FAILED');
+      expect(r.iterations).toBe(0);
+      expect(runAgentMock).not.toHaveBeenCalled();
+    });
+
+    test('[covers:F-072/AC-202] every named credential pre-flight reason halts as TRANSPORT_AUTH_FAILED', async () => {
+      for (const reason of [
+        'ANTHROPIC_API_KEY env var is not set',
+        'invalid API key supplied',
+        'request unauthorized',
+        'forbidden — credentials rejected',
+      ]) {
+        loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-001', status: 'planned'}]));
+        selectAdapterMock.mockReturnValueOnce(adapterWithHealth(reason));
+
+        const r = await runDriveLoop({cwd: dir});
+        expect(r.halt.class).toBe('TRANSPORT_AUTH_FAILED');
+        expect(r.iterations).toBe(0);
+        expect(runAgentMock).not.toHaveBeenCalled();
+      }
     });
 
     test('rate-limit reason → TRANSPORT_RATE_LIMITED', async () => {
@@ -533,7 +656,7 @@ describe('runDriveLoop', () => {
       expect(r.halt.detail).toContain('pre-flight health check failed');
     });
 
-    test('skipHealthCheck=true bypasses pre-flight even when adapter is unhealthy', async () => {
+    test('[covers:F-072/AC-204] skipHealthCheck=true bypasses pre-flight even when adapter is unhealthy', async () => {
       loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-001', status: 'planned'}]));
       selectAdapterMock.mockReturnValueOnce(adapterWithHealth('would-be-fatal'));
       const r = await runDriveLoop({cwd: dir, skipHealthCheck: true});
@@ -543,7 +666,7 @@ describe('runDriveLoop', () => {
       expect(r.halt.class).toBe('ALL_FEATURES_DONE');
     });
 
-    test('pre-flight passes (ready=true) → loop proceeds normally', async () => {
+    test('[covers:F-072/AC-205] pre-flight passes (ready=true) → loop proceeds normally', async () => {
       loadSpecMock.mockReturnValueOnce(specOf([{id: 'F-001', status: 'planned'}]));
       // Default mock returns ready:true, so no override needed.
       const r = await runDriveLoop({cwd: dir});

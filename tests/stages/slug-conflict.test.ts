@@ -49,7 +49,7 @@ describe('SLUG_CONFLICT detector', () => {
     expect(slugConflict.run({cwd: dir})).toEqual([]);
   });
 
-  test('two features sharing a slug → error finding', () => {
+  test('[covers:F-67e33f/AC-004] two features sharing a slug → error finding', () => {
     writeFeature(dir, 'F-a3f9c2.yaml', {id: 'F-a3f9c2', slug: 'login-flow'});
     writeFeature(dir, 'F-b7e102.yaml', {id: 'F-b7e102', slug: 'login-flow'});
     const findings = slugConflict.run({cwd: dir});
@@ -90,7 +90,7 @@ describe('SLUG_CONFLICT detector', () => {
     expect(findings[0].message).toContain('S-b7e102');
   });
 
-  test('feature and scenario sharing a slug → NOT a conflict (separate namespaces, F-087)', () => {
+  test('[covers:F-d7312b/AC-005] feature and scenario sharing a slug → NOT a conflict (separate namespaces, F-087)', () => {
     writeFeature(dir, 'shared-name-a3f9c2.yaml', {id: 'F-a3f9c2', slug: 'shared-name'});
     mkdirSync(join(dir, 'spec', 'scenarios'), {recursive: true});
     writeFileSync(

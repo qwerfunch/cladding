@@ -76,7 +76,7 @@ function confirmedFixture(): Event[] {
 // --- AC-3362d108 — pull vs push -------------------------------------------
 
 describe('summarizeAdoption — AC-3362d108 pull vs push', () => {
-  test('push-only ledger (heavy impact_card_fired, distinct heads, zero pulls) → pullsTotal 0, empty pullsByTool, never confirmed', () => {
+  test('[covers:F-0023ba22/AC-b200151f] push-only ledger (heavy impact_card_fired, distinct heads, zero pulls) → pullsTotal 0, empty pullsByTool, never confirmed', () => {
     const events: Event[] = [];
     for (let i = 0; i < 12; i++) {
       events.push(at(BASE + i * 100, 'impact_card_fired', {file: 'src/x.ts', feature: 'F-x', impacted: 1, tests: 0, head: `push-head-${i}`}));
@@ -90,7 +90,7 @@ describe('summarizeAdoption — AC-3362d108 pull vs push', () => {
     expect(s.verdict).toBe('insufficient_data'); // no completed cycles to judge
   });
 
-  test('push events never raise any adoption number or the verdict — adding push traffic leaves the summary identical', () => {
+  test('[covers:F-0023ba22/AC-3362d108] push events never raise any adoption number or the verdict — adding push traffic leaves the summary identical', () => {
     const base = confirmedFixture();
     const withPush: Event[] = [
       ...base,
@@ -104,7 +104,7 @@ describe('summarizeAdoption — AC-3362d108 pull vs push', () => {
     expect(summarizeAdoption(withPush).verdict).toBe('confirmed');
   });
 
-  test('only resolved working_set_served count as pulls (grouped by tool); resolved:false serves do not', () => {
+  test("[covers:F-0023ba22/AC-3362d108] only resolved working_set_served count as pulls (grouped by tool); resolved:false serves do not", () => {
     const events = [
       at(BASE, 'working_set_served', {tool: 'clad_get_working_set', query: 'q', resolved: true, head: 'h1'}),
       at(BASE + 10, 'working_set_served', {tool: 'clad_get_working_set', query: 'q', resolved: false, head: 'h2'}),
@@ -121,7 +121,7 @@ describe('summarizeAdoption — AC-3362d108 pull vs push', () => {
 // --- AC-b200151f — thresholds / anti-vacuous confirmation -------------------
 
 describe('summarizeAdoption — AC-b200151f thresholds / anti-vacuous', () => {
-  test('B1_ADOPTION_THRESHOLDS exports the documented B1 values', () => {
+  test('[covers:F-0023ba22/AC-b200151f] B1_ADOPTION_THRESHOLDS exports the documented B1 values', () => {
     expect(B1_ADOPTION_THRESHOLDS).toEqual({
       minCompletedCycles: 3,
       minPulls: 10,
@@ -203,7 +203,7 @@ describe('summarizeAdoption — AC-b200151f thresholds / anti-vacuous', () => {
     expect(s.verdict).toBe('not_confirmed');
   });
 
-  test('a single accidental pull with cycles otherwise complete → not_confirmed', () => {
+  test("[covers:F-0023ba22/AC-b200151f] a single accidental pull with cycles otherwise complete → not_confirmed", () => {
     const events = [
       ...cycle({slot: 0, feature: 'F-1', doneHead: 'head-1', pulls: p1}),
       ...cycle({slot: 1, feature: 'F-2', doneHead: 'head-2'}),
@@ -239,7 +239,7 @@ describe('summarizeAdoption — AC-b200151f thresholds / anti-vacuous', () => {
 // --- AC-0d7273dd — cycles-only ledger (value lane silent) ------------------
 
 describe('summarizeAdoption — AC-0d7273dd cycles-only ledger', () => {
-  test('completed cycles with zero value-delivery events → hasSignal true, not_confirmed (never insufficient_data at ≥3 cycles), reasons include the pull gates', () => {
+  test("[covers:F-0023ba22/AC-0d7273dd] completed cycles with zero value-delivery events → hasSignal true, not_confirmed (never insufficient_data at ≥3 cycles), reasons include the pull gates", () => {
     // feature_created + kept done only — no working_set_served / cards / suggestions.
     const events = [
       ...cycle({slot: 0, feature: 'F-1', doneHead: 'head-1'}),
@@ -277,7 +277,7 @@ describe('summarizeAdoption — AC-345af0b5 generations / determinism / empty', 
   });
   afterEach(() => rmSync(dir, {recursive: true, force: true}));
 
-  test('readEventsIncludingRolled concatenates the rolled generation then the live log, in append order', () => {
+  test("[covers:F-0023ba22/AC-345af0b5] readEventsIncludingRolled concatenates the rolled generation then the live log, in append order", () => {
     mkdirSync(join(dir, '.cladding'), {recursive: true});
     const rolled = [
       at(BASE, 'feature_created', {feature: 'F-rolled', slug: 'r'}),
@@ -295,12 +295,12 @@ describe('summarizeAdoption — AC-345af0b5 generations / determinism / empty', 
     expect(summarizeAdoption(back).completedCycles).toBe(2);
   });
 
-  test('summarizeAdoption is deterministic — identical input yields deeply-equal output', () => {
+  test('[covers:F-0023ba22/AC-345af0b5] summarizeAdoption is deterministic — identical input yields deeply-equal output', () => {
     const events = confirmedFixture();
     expect(summarizeAdoption(events)).toEqual(summarizeAdoption(events));
   });
 
-  test('empty ledger → insufficient_data with hasSignal false', () => {
+  test('[covers:F-0023ba22/AC-345af0b5] empty ledger → insufficient_data with hasSignal false', () => {
     const s = summarizeAdoption([]);
     expect(s.hasSignal).toBe(false);
     expect(s.verdict).toBe('insufficient_data');
@@ -308,7 +308,7 @@ describe('summarizeAdoption — AC-345af0b5 generations / determinism / empty', 
     expect(s.pullsTotal).toBe(0);
   });
 
-  test('pre-0.8 ledger (none of the 7 signal event types) → insufficient_data with hasSignal false', () => {
+  test('[covers:F-0023ba22/AC-345af0b5] pre-0.8 ledger (none of the 7 signal event types) → insufficient_data with hasSignal false', () => {
     const events = [
       at(BASE, 'stage_started', {stage: 'stage_1.1'}),
       at(BASE + 1, 'gate_run', {tier: 'all', strict: true, worst: 0}),

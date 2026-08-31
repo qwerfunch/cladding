@@ -17,7 +17,7 @@ acceptance_criteria:
     notes: "## Why\nThe first design keyed staleness off the gitignored local events ledger — undefined on fresh clones/CI and squash-broken (review blockers E1+T3). Content anchoring (committed hashes of the modules themselves) is clone-portable and history-rewrite-immune.\n## Decision\nThe solely-stale exemption kills the deadlock: a stale warning blocking the very gate that re-verifies would make re-attestation impossible; in the cheap pre-commit tier (no tests run) staleness keeps blocking under strict — exactly 'you changed verified code, run the full gate'."
     test_refs:
       - "tests/cli/gate-golden-matrix.test.ts#PINNED (F-a5228c): solely-stale drift under strict pre-push is exempted, run counts GREEN, attestation stamps"
-      - "tests/cli/gate-golden-matrix.test.ts#a plain GREEN strict pre-push run stamps the attestation; non-strict does not"
+      - "tests/cli/gate-golden-matrix.test.ts#a plain GREEN strict pre-push run stamps policy identity; non-strict does not"
       - "tests/cli/gate-golden-matrix.test.ts#no exemption when drift carries any OTHER failing finding, or in the pre-commit tier"
   - id: AC-4d16d1
     ears: unwanted
@@ -26,7 +26,7 @@ acceptance_criteria:
     response: "unverified change to shipped code is visible everywhere the spec goes, and blocks under --strict in tiers that cannot re-attest"
     text: "If a done feature's module tree-hash disagrees with its attestation entry (or its entry is missing while the file exists), the detector shall warn naming the feature, blocking under strict in tiers that cannot re-attest."
     test_refs:
-      - "tests/stages/stale-attestation.test.ts#a GREEN-stamped attestation matches — silent; editing a module — warn naming the feature"
+      - "tests/stages/stale-attestation.test.ts#a GREEN-stamped attestation matches → silent; editing a module → warn naming the feature"
       - "tests/stages/stale-attestation.test.ts#a done feature missing from an existing attestation warns (never-attested shipped code)"
   - id: AC-b3fe0c
     ears: state
@@ -36,4 +36,4 @@ acceptance_criteria:
     text: "While spec/attestation.yaml is absent, the detector shall emit one info finding naming the attestation path and never a blanket RED, so upgrades and adoptions are not retro-failed."
 
     test_refs:
-      - "tests/stages/stale-attestation.test.ts#absent attestation — ONE info finding naming the path to attested state (never blanket RED)"
+      - "tests/stages/stale-attestation.test.ts#absent attestation → ONE info finding naming the path to attested state (never blanket RED)"

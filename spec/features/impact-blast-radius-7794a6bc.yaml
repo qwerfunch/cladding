@@ -28,7 +28,7 @@ acceptance_criteria:
     action: "return a not_found result naming the three accepted lookup forms"
     response: "a miss teaches the caller the contract instead of returning an empty blast radius"
     text: "If the query resolves to nothing, the system shall return a not_found result naming the accepted forms (feature id, slug, module path)."
-    test_refs: ["tests/optimizer/reverse-slice.test.ts#a miss returns not_found naming the accepted forms"]
+    test_refs: ["tests/optimizer/reverse-slice.test.ts#[covers:F-7794a6bc/AC-6a73f6b1] a miss returns not_found naming feature id, slug, and module path lookup forms"]
   - id: AC-7596b1b6
     ears: event
     condition: "when an optional depth is supplied"

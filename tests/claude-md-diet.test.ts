@@ -28,7 +28,7 @@ const ROOT = process.cwd();
 const read = (rel: string): string => readFileSync(join(ROOT, rel), 'utf8');
 
 describe('AC-b07dce5d · both freshness literals survive verbatim in the emitted template', () => {
-  test('CLAUDE_MD_SECTION contains the anti-self-cert signature literal', () => {
+  test("[covers:F-288864ae/AC-b07dce5d] CLAUDE_MD_SECTION contains the anti-self-cert signature literal", () => {
     expect(CLAUDE_MD_SECTION).toContain('anti-self-cert');
   });
 
@@ -46,31 +46,31 @@ describe('AC-b07dce5d · both freshness literals survive verbatim in the emitted
 });
 
 describe('AC-9bea7d88 · the five policy anchors survive the diet, load-bearing substrings pinned', () => {
-  test('anchor 1 — spec is SSoT + the gate-verify sentence', () => {
+  test('[covers:F-288864ae/AC-9bea7d88] anchor 1 — spec is SSoT + the gate-verify sentence', () => {
     expect(CLAUDE_MD_SECTION).toContain('**Spec is SSoT**');
     expect(CLAUDE_MD_SECTION).toContain('Run `clad check --strict` before commit.');
   });
 
-  test('anchor 2 — anti-self-cert (persona separation)', () => {
+  test('[covers:F-288864ae/AC-9bea7d88] anchor 2 — anti-self-cert (persona separation)', () => {
     expect(CLAUDE_MD_SECTION).toContain('(anti-self-cert)');
   });
 
-  test('anchor 3 — one-feature-at-a-time with done-via-gate', () => {
+  test('[covers:F-288864ae/AC-9bea7d88] anchor 3 — one-feature-at-a-time with done-via-gate', () => {
     expect(CLAUDE_MD_SECTION).toContain('**Feature cycle — one at a time**');
     expect(CLAUDE_MD_SECTION).toContain('clad done <featureId>');
     expect(CLAUDE_MD_SECTION).toContain('is GREEN');
   });
 
-  test('anchor 4 — hash-based IDs rule + pointer', () => {
+  test('[covers:F-288864ae/AC-9bea7d88] anchor 4 — hash-based IDs rule + pointer', () => {
     expect(CLAUDE_MD_SECTION).toContain('**Hash-based IDs**');
     expect(CLAUDE_MD_SECTION).toContain('docs/spec-ids-multi-dev.md');
   });
 
-  test('anchor 5 — drift detectors', () => {
+  test('[covers:F-288864ae/AC-9bea7d88] anchor 5 — drift detectors', () => {
     expect(CLAUDE_MD_SECTION).toContain('**Drift detectors**');
   });
 
-  test('size regression guard — cannot silently regrow past the diet ceiling', () => {
+  test("[covers:F-288864ae/AC-9bea7d88] size regression guard — cannot silently regrow past the diet ceiling", () => {
     // Measured in BYTES (not .length/UTF-16 code units) because the AC's own
     // "~430 bytes / ~30%" claim is a byte count, and this template's em
     // dashes/arrows cost more bytes than code units. Diet result: 972 bytes.
@@ -88,11 +88,11 @@ describe('AC-9bea7d88 · the five policy anchors survive the diet, load-bearing 
 });
 
 describe('AC-a684ae50 · round trip holds in both directions', () => {
-  test('a freshly emitted section is NOT stale (no churn)', () => {
+  test("[covers:F-288864ae/AC-a684ae50] a freshly emitted section is NOT stale (no churn)", () => {
     expect(isStaleInstructions(CLAUDE_MD_SECTION)).toBe(false);
   });
 
-  test('a genuinely-legacy section (pre-feature-cycle-cadence) still reads stale', () => {
+  test('[covers:F-288864ae/AC-a684ae50] a genuinely-legacy section (pre-feature-cycle-cadence) still reads stale', () => {
     // Mirrors tests/init/host-instructions.test.ts's pre-cadence fixture:
     // carries the anti-self-cert signature (recognizably cladding-authored)
     // but predates the feature-cycle cadence rule -> must still upgrade.
@@ -108,7 +108,7 @@ describe('AC-a684ae50 · round trip holds in both directions', () => {
 });
 
 describe('AC-26e087d1 · the repo dogfoods its own emission', () => {
-  test("this repo's own CLAUDE.md contains CLAUDE_MD_SECTION verbatim", () => {
+  test("[covers:F-288864ae/AC-26e087d1] this repo's own CLAUDE.md contains CLAUDE_MD_SECTION verbatim", () => {
     expect(read('CLAUDE.md')).toContain(CLAUDE_MD_SECTION);
   });
 });

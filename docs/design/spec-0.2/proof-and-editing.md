@@ -38,6 +38,11 @@ Source harvesting establishes a declared binding. A case-level JUnit record esta
 - Skipped-only or absent results are unverified.
 - A passing unrelated test in the same file is never evidence.
 - An unknown composite address is a blocking reference error.
+- JUnit attribute entities decode before exact selector comparison, and every
+  emitted `file`/`classname` path carrier is retained for that comparison.
+- Schema 0.2 proof sources and legacy test refs reject symlinked roots,
+  ancestors, files, and realpaths outside the workspace rather than following
+  outside bytes.
 - Test, oracle, and evidence channels retain their distinct provenance. A positive channel cannot hide an explicit failure in another declared channel.
 
 ### Legacy binding fallback
@@ -49,6 +54,8 @@ The accepted migration policy is node-level baseline fallback because most curre
 - If the criterion's intent projection changes, end its baseline exemption and require a live supported binding or another qualifying proof channel.
 - If a baseline ref becomes stale, do not rewrite the baseline; add an explicit live binding.
 - Hash the whole referenced test file for a legacy path-only binding because no honest source span is known.
+- A blind receipt locator is canonical `path` or `path#exact selector`; its
+  issuer pass reduces only when that exact live binding has an observed pass.
 
 ## D12 — Transactional spec editing
 
@@ -73,6 +80,8 @@ Operation semantics are deliberately narrow:
 - `feature.block(reason)` requires a non-empty reason. It transitions `planned | in_progress → blocked`; an already-blocked feature with the same reason is an idempotent no-change, while a different reason replaces the current reason and records the transition. `done` must pass through `feature.begin` before blocking; archived and unknown features are no-write errors. `feature.begin` clears the reason.
 - `feature.archive(reason, superseded_by?)` accepts every non-archived feature, records immutable archive metadata, and clears a blocked reason. Repeating the exact archive metadata is an idempotent no-change; different metadata, an unknown feature, or any attempted unarchive is a no-write error. An erroneous integrated archive must be reverted in version control.
 - `feature.set_links` is a typed partial replacement of exactly `modules`, `depends_on`, and `capability_refs`. Omission preserves a field and `[]` clears it. Every replacement validates references, duplicates, self-edges, and the complete dependency graph for cycles.
+- `modules` owns implementation and test paths. Structural `design_impact.artifacts` instead names only registered Tier-B `docs/design/**/*.md` documents; it must not double as source ownership or accept project-context, capability, or architecture contracts.
+- A new schema 0.2 structural record snapshots every listed design document digest and resolves only after every retained document changes. A migrated schema 0.1 review record with no digest baseline has no automatic approval path: it cannot be overwritten, reclassified, or re-baselined into `review_required`. Only an explicit typed transition to `resolved` may change it, when the current record exactly matches its feature-local immutable `FeatureIntentBaseline.legacyStructuralReview`, after retaining the exact safe regular-file registered design-document set.
 - `dependency.promote` accepts only a current unambiguous inferable candidate; an already-authored edge is an idempotent no-change.
 - `criterion.set_proof_refs` owns oracle/evidence declarations without making them verified observations.
 - `evidence.revoke` removes exactly one content-addressed receipt. Receipts are otherwise create-only and immutable.
@@ -86,6 +95,7 @@ Expose `clad begin <featureId>` as the CLI adapter over `feature.begin` so every
 - Capture the pre-batch state as one `feature_checkpoint`, change the status, refresh derived inventory, and apply any companion spec operations under the same journal. Recovery must expose either the complete begin or the byte-exact pre-begin state, never a status flip without its checkpoint.
 - A batch may combine `feature.begin` with feature-local intent edits. One checkpoint covers the whole pre-batch state, and the result returns the post-commit context and input revisions.
 - For schema 0.2, `clad done` accepts only `in_progress → done`; any other source status returns a no-write lifecycle error. The 0.1 compatibility path retains its shipped behavior.
+- A schema 0.2 completion prepares an in-memory `done` view under the F4 lock and writes no pending marker. Done-aware drift, compiler, and assurance work consume that view. Only a GREEN, independent completion with a v3 receipt may publish one F4 journal containing the exact feature replacement, required derived projections, receipt, and successful completion event after rechecking the original root, feature, attestation, and verification-input revisions. RED, refusal, error, stale input, or interruption before that journal leaves canonical completion artifacts byte-exact unchanged.
 
 ### Revision and commit contract
 
@@ -103,6 +113,8 @@ Expose `clad begin <featureId>` as the CLI adapter over `feature.begin` so every
 - A lock timeout returns BUSY with no write; it is not reported as stale.
 - Write a journal and before-images before same-directory temp-file replacement. On ordinary errors, write nothing. On process interruption, the next compiler or mutation run completes cleanup or restores byte-exact originals.
 - Regenerate derived inventory/index state under the commit lock from the latest IR, but do not include derived regions in caller input revisions.
+- The supported filesystem threat boundary is cooperative: every initialized specification or managed-artifact writer takes this lock and journals its replacement; observed/pre-existing symbolic links, out-of-root paths, and preimage mismatches fail closed. Pre-init onboarding and host wiring are outside this boundary. Node's portable APIs cannot provide `openat`/directory-FD compare-and-swap on macOS, Linux, and Windows, so a same-account process that deliberately ignores the lock and races pathname replacement is outside this boundary.
+- Journaled domain lifecycle events are canonical; best-effort observer telemetry uses that same lock and is non-authoritative.
 
 ## D13 — Attestation v3
 

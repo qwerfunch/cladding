@@ -8,7 +8,7 @@
 //   - registry parse error → detector opts out (no findings)
 //   - test_refs citations honoured for backward compatibility
 
-import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
@@ -57,7 +57,7 @@ describe('FIXTURE_REFERENCE_INVALID detector', () => {
     expect(fixtureReference.run({cwd: dir})).toEqual([]);
   });
 
-  test('warns when fixture name is not in the registry', () => {
+  test("[covers:F-053/AC-116] warns when fixture name is not in the registry", () => {
     writeFeature(
       dir,
       'id: F-001\n' +
@@ -73,6 +73,15 @@ describe('FIXTURE_REFERENCE_INVALID detector', () => {
     expect(findings[0].message).toContain('F-001.AC-001');
     expect(findings[0].message).toContain('typo-zed');
     expect(findings[0].message).toContain('evidence_refs');
+  });
+
+  test('[covers:F-053/AC-120] is registered in the detector index and documented as catalog row 20', () => {
+    const root = process.cwd();
+    const index = readFileSync(join(root, 'src', 'stages', 'detectors', 'index.ts'), 'utf8');
+    const catalog = readFileSync(join(root, 'src', 'stages', 'detectors', 'README.md'), 'utf8');
+    expect(index).toMatch(/import \{fixtureReference\} from '\.\/fixture-reference\.js';/);
+    expect(index).toMatch(/allDetectors[\s\S]*?fixtureReference,/);
+    expect(catalog).toContain('| 20 | `FIXTURE_REFERENCE_INVALID`');
   });
 
   test('accepts documentary kind the same as runnable', () => {
@@ -117,7 +126,7 @@ describe('FIXTURE_REFERENCE_INVALID detector', () => {
     expect(findings[0].message).toContain('test_refs');
   });
 
-  test('returns no findings when the registry file is absent', () => {
+  test("[covers:F-053/AC-117] returns no findings when the registry file is absent", () => {
     rmSync(join(dir, 'conformance', 'fixtures.yaml'));
     writeFeature(
       dir,

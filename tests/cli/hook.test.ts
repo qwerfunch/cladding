@@ -133,7 +133,7 @@ describe('UserPromptSubmit — one-line routing suggestion', () => {
     'cladding: completion is EARNED, not declared — run `clad done <F-id>`; ' +
     'the strict gate flips it to done only when the checks pass';
 
-  test("'looks done, wrap it up' → earn-path card naming clad done", () => {
+  test("[covers:F-95a096/AC-8c0e12] 'looks done, wrap it up' → earn-path card naming clad done", () => {
     expect(runHookEvent('UserPromptSubmit', {prompt: 'looks done, wrap it up'}, cwd)).toBe(EARN_CARD);
   });
 
@@ -252,6 +252,40 @@ describe('PreToolUse — structural guard on spec edits', () => {
       cwd,
     );
     expect(out).toBe('');
+  });
+
+  test('[covers:F-1d23a6/AC-2c2d29] blocks only done flips and sequential names while allowing unrelated spec-root, shard, and source edits', () => {
+    const doneFlip = runHookEvent(
+      'PreToolUse',
+      {tool_name: 'Edit', tool_input: {file_path: SHARD, old_string: 'status: in_progress', new_string: 'status: done'}},
+      cwd,
+    );
+    expect((JSON.parse(doneFlip) as {decision: string}).decision).toBe('block');
+    const sequential = runHookEvent(
+      'PreToolUse',
+      {tool_name: 'Write', tool_input: {file_path: 'spec/features/F-001.yaml', content: 'id: F-001\nstatus: planned\n'}},
+      cwd,
+    );
+    expect((JSON.parse(sequential) as {decision: string}).decision).toBe('block');
+
+    const rootEdit = runHookEvent(
+      'PreToolUse',
+      {tool_name: 'Edit', tool_input: {file_path: 'spec.yaml', old_string: 'name: fixture', new_string: 'name: renamed'}},
+      cwd,
+    );
+    const shardEdit = runHookEvent(
+      'PreToolUse',
+      {tool_name: 'Edit', tool_input: {file_path: SHARD, old_string: 'title: old', new_string: 'title: new'}},
+      cwd,
+    );
+    const sourceEdit = runHookEvent(
+      'PreToolUse',
+      {tool_name: 'Edit', tool_input: {file_path: 'src/app.ts', old_string: 'status: draft', new_string: 'status: done'}},
+      cwd,
+    );
+    expect(rootEdit).toBe('');
+    expect(shardEdit).toBe('');
+    expect(sourceEdit).toBe('');
   });
 });
 

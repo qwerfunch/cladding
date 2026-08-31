@@ -105,7 +105,7 @@ describe('CAPABILITIES_FEATURE_MAPPING detector', () => {
     expect(errors[0].message).toContain('does not exist');
   });
 
-  test('orphan capability below the maturity threshold → informational future intent', () => {
+  test('[covers:F-0f4dd6/AC-023] orphan capability below the maturity threshold → informational future intent', () => {
     writeSpec(dir, ['F-001'], true);
     writeCapabilities(
       dir,

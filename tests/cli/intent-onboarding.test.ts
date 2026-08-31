@@ -6,7 +6,7 @@
 // events.log so the sentinel_miss emit branch is verified end-to-end.
 
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
-import {mkdtempSync, rmSync} from 'node:fs';
+import {mkdtempSync, readFileSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 
@@ -35,7 +35,7 @@ function fakeObserved(over: Partial<OnboardingObserved> = {}): OnboardingObserve
 }
 
 describe('buildOnboardingPrompt', () => {
-  test('includes all six sentinel sections', () => {
+  test("[covers:F-00eb1a/AC-004] includes all seven sentinel sections, including PROJECT_METADATA", () => {
     const p = buildOnboardingPrompt('결제 SaaS for B2B', fakeObserved());
     expect(p).toContain('=== ONBOARDING_MODE ===');
     expect(p).toContain('=== PROJECT_CONTEXT_MD ===');
@@ -43,6 +43,7 @@ describe('buildOnboardingPrompt', () => {
     expect(p).toContain('=== ARCHITECTURE_YAML ===');
     expect(p).toContain('=== SPEC_SEED_TITLE ===');
     expect(p).toContain('=== CLARIFYING_QUESTIONS ===');
+    expect(p).toContain('=== PROJECT_METADATA ===');
   });
 
   test('embeds the verbatim user intent', () => {
@@ -65,7 +66,7 @@ describe('buildOnboardingPrompt', () => {
     expect(p).toContain('"A neat little tool."');
   });
 
-  test('lists product-level question examples and bans expert jargon', () => {
+  test("[covers:F-56abaa/AC-006] lists product-level question examples and bans expert jargon", () => {
     const p = buildOnboardingPrompt('결제 SaaS', fakeObserved());
     // Product-level GOOD examples are present
     expect(p).toContain('주 사용자가 개인? 사업자?');
@@ -74,10 +75,43 @@ describe('buildOnboardingPrompt', () => {
     // Explicit anti-jargon rule
     expect(p).toContain('NEVER ask about technical jargon');
   });
+
+  test('[covers:F-a04cd9/AC-003] architecture prompt declares only layer names and forbidden imports, and its response consumer preserves that exact shape', () => {
+    const prompt = buildOnboardingPrompt('payment service', fakeObserved());
+    const architectureSection = prompt.slice(
+      prompt.indexOf('=== ARCHITECTURE_YAML ==='),
+      prompt.indexOf('=== SPEC_SEED_TITLE ==='),
+    );
+    expect(architectureSection).toContain('layers: [{name, forbidden_imports:[<layer>]}, ...]');
+    expect(architectureSection).not.toContain('modules');
+
+    const parsed = parseOnboardingResponse([
+      '=== ARCHITECTURE_YAML ===',
+      'layers:',
+      '  - name: domain',
+      '    forbidden_imports: [infrastructure]',
+      '=== SPEC_SEED_TITLE ===',
+      'Charge payment',
+    ].join('\n'));
+    expect(parsed.architecture).toContain('name: domain');
+    expect(parsed.architecture).toContain('forbidden_imports: [infrastructure]');
+    expect(parsed.architecture).not.toContain('modules');
+
+    const types = readFileSync(join(process.cwd(), 'src', 'spec', 'types.ts'), 'utf8');
+    const objectStart = types.indexOf('export interface ArchitectureLayerObject');
+    const architectureStart = types.indexOf('/** Architecture constitution.', objectStart);
+    expect(objectStart).toBeGreaterThanOrEqual(0);
+    expect(architectureStart).toBeGreaterThan(objectStart);
+    const modulesDocs = types.slice(objectStart, architectureStart);
+    expect(modulesDocs).toContain('readonly modules?: readonly string[];');
+    expect(modulesDocs).toContain('`UNMAPPED_ARTIFACT` (F-87bb7ed3, AC-96ff696f) takes these globs as');
+    expect(modulesDocs).toContain('`ARCHITECTURE_FROM_SPEC` still derives a layer\'s directory from');
+    expect(modulesDocs).toContain('and does NOT read these globs');
+  });
 });
 
 describe('parseOnboardingResponse', () => {
-  test('extracts each of the six sentinels independently', () => {
+  test("[covers:F-56abaa/AC-001][covers:F-d12edf/AC-004] extracts each of the six sentinels independently", () => {
     const raw = [
       '=== ONBOARDING_MODE ===',
       'greenfield',
@@ -144,9 +178,9 @@ describe('extractClarifyingQuestions', () => {
     expect(out).toEqual(['one?', 'two?', 'three?']);
   });
 
-  test('caps at 5 questions to keep the CLI hint compact', () => {
+  test('caps incomplete material questions at three', () => {
     const raw = ['- a', '- b', '- c', '- d', '- e', '- f', '- g'].join('\n');
-    expect(extractClarifyingQuestions(raw)).toHaveLength(5);
+    expect(extractClarifyingQuestions(raw)).toEqual(['a', 'b', 'c']);
   });
 
   test('empty input returns empty array', () => {
@@ -161,7 +195,7 @@ describe('extractProjectMetadata (F-00eb1a)', () => {
     expect(extractProjectMetadata('   ')).toBeUndefined();
   });
 
-  test('full ai_hints block → all 5 fields', () => {
+  test("[covers:F-00eb1a/AC-005] full ai_hints block → all 5 fields", () => {
     const raw = [
       'preferred_persona: software-engineer',
       'token_budget_per_session: 4000',
@@ -209,7 +243,7 @@ describe('extractProjectMetadata (F-00eb1a)', () => {
     expect(out).toEqual({preferred_persona: 'x'});
   });
 
-  test('preferred_patterns parsed as triples with required keys (F-32b1e0)', () => {
+  test("[covers:F-32b1e0/AC-001][covers:F-32b1e0/AC-002][covers:F-32b1e0/AC-003] preferred_patterns parsed as triples with required keys (F-32b1e0)", () => {
     const raw = [
       'preferred_patterns:',
       '  - when: "React state"',
@@ -278,9 +312,15 @@ describe('deterministicOnboarding', () => {
     expect(r.specSeedTitle.endsWith('…')).toBe(true);
   });
 
-  test('no clarifying questions in deterministic mode', () => {
+  test('[covers:F-0f4dd6/AC-011] complete deterministic inputs ask zero questions while incomplete material questions cap at three', () => {
     const r = deterministicOnboarding('demo', fakeObserved());
     expect(r.clarifyingQuestions).toEqual([]);
+    expect(r.projectContextMd).not.toBe('');
+    expect(r.capabilitiesYaml).toContain('capabilities: []');
+    expect(r.architectureYaml).toContain('layers: []');
+    expect(extractClarifyingQuestions('- audience?\n- scope?\n- goal?\n- market?')).toEqual([
+      'audience?', 'scope?', 'goal?',
+    ]);
   });
 });
 
@@ -300,7 +340,7 @@ describe('interpretOnboardingWithFallback', () => {
     expect(events).toHaveLength(0);
   });
 
-  test('dispatcher throws → deterministic + onboarding sentinel_miss event', async () => {
+  test("[covers:F-56abaa/AC-003] dispatcher throws → deterministic + onboarding sentinel_miss event", async () => {
     const dispatch = vi.fn<(p: string) => Promise<string>>(async () => {
       throw new Error('transport down');
     });
@@ -349,7 +389,7 @@ describe('interpretOnboardingWithFallback', () => {
     expect(r.architectureYaml).toContain('layers: []');
   });
 
-  test('per-artifact fallback: empty CAPABILITIES_YAML alone keeps mode llm-hybrid', async () => {
+  test("[covers:F-56abaa/AC-004] per-artifact fallback: empty CAPABILITIES_YAML alone keeps mode llm-hybrid", async () => {
     const dispatch = vi.fn(async () =>
       [
         '=== ONBOARDING_MODE ===',

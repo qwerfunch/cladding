@@ -35,7 +35,7 @@ docs:
     doc_links: ["docs/ab-evaluation/case-working-set-landmine.md", "docs/design/spec-0.2.md", "docs/design/spec-0.2/evidence.md"]
   "docs/design/spec-0.2/delivery.md":
     features: [F-041, F-063]
-    doc_links: ["docs/design/spec-0.2.md", "docs/design/spec-0.2/assurance.md", "docs/design/spec-0.2/evidence.md", "docs/design/spec-0.2/hygiene.md", "docs/design/spec-0.2/mcp.md"]
+    doc_links: ["docs/design/spec-0.2.md", "docs/design/spec-0.2/assurance.md", "docs/design/spec-0.2/evidence.md", "docs/design/spec-0.2/hygiene.md"]
   "docs/design/spec-0.2/evidence.md":
     features: [F-041, F-063]
     doc_links: ["docs/design/spec-0.2.md", "docs/design/spec-0.2/assurance-evidence.md"]

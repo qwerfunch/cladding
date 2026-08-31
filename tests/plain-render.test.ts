@@ -148,7 +148,7 @@ describe('plainFinding render shape (AC-263adf79)', () => {
     message: "feature F-x declares module 'src/auth/login.ts' but the file does not exist",
   };
 
-  test('the plain lead comes first; detector + path are a parenthetical tail', () => {
+  test('[covers:F-dd8dc994/AC-263adf79] the plain lead comes first; detector + path are a parenthetical tail', () => {
     const out = plainFinding(finding);
     const lead = DETECTOR_PLAIN.MISSING_IMPLEMENTATION.lead;
     expect(out).toBe(`${lead} (MISSING_IMPLEMENTATION · src/auth/login.ts)`);
@@ -295,7 +295,7 @@ describe('hook integration — Stop + PostToolUse render sites', () => {
   });
 
   describe('PostToolUse — drift line leads plain, tail is "(details: DETECTOR)"', () => {
-    test('an AC_DRIFT error surfaces the plain lead and the "(details: AC_DRIFT)" tail; the raw message never leaks', () => {
+    test('[covers:F-ebbb20af/AC-0cece94c] an AC_DRIFT error surfaces the plain lead and the "(details: AC_DRIFT)" tail; the raw message never leaks', () => {
       driftStub.mockImplementation(() => ({
         pass: false,
         exitCode: 1,
@@ -315,6 +315,7 @@ describe('done refusal — plain lead prepended, machine tail preserved', () => 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'clad-plain-done-'));
     mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
+    writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\n', 'utf8');
     writeFileSync(join(dir, 'spec', 'features', 'x-abc123.yaml'), 'id: F-abc123\nslug: x\nstatus: in_progress\ntitle: X\n', 'utf8');
   });
 

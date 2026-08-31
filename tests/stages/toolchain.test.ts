@@ -55,6 +55,18 @@ describe('detectToolchain', () => {
     expect(detectToolchain(dir).language).toBe('typescript');
   });
 
+  test('[covers:F-004/AC-006] reads the manifest priority chain and returns unknown when no manifest remains', () => {
+    writeFileSync(join(dir, 'package.json'), '{}');
+    writeFileSync(join(dir, 'pyproject.toml'), '');
+    expect(detectToolchain(dir).language).toBe('typescript');
+
+    rmSync(join(dir, 'package.json'));
+    expect(detectToolchain(dir).language).toBe('python');
+
+    rmSync(join(dir, 'pyproject.toml'));
+    expect(detectToolchain(dir).language).toBe('unknown');
+  });
+
   // ─── Kotlin first-class support (F-dd51b42c) ───
 
   test('build.gradle.kts + a nested .kt source → kotlin, ./gradlew gates when wrapper present', () => {
@@ -195,7 +207,7 @@ describe('detectToolchain', () => {
 
   // ─── TS/JS test runner + arch extensions (F-47b8bee5) ───
 
-  test('typescript + jest.config.js → test gate is jest, coverage is jest --coverage', () => {
+  test('[covers:F-47b8bee5/AC-0d51828d] typescript + jest.config.js → test gate is jest, coverage is jest --coverage', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     writeFileSync(join(dir, 'jest.config.js'), 'module.exports = {}');
     const tc = detectToolchain(dir);
@@ -216,21 +228,21 @@ describe('detectToolchain', () => {
     expect(detectToolchain(dir).gates.test).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'jest']});
   });
 
-  test('typescript with no jest config → test/coverage stay vitest (default preserved)', () => {
+  test('[covers:F-47b8bee5/AC-a3be7a76] typescript with no jest config → test/coverage stay vitest (default preserved)', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     const tc = detectToolchain(dir);
     expect(tc.gates.test).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'vitest', 'run']});
     expect(tc.gates.coverage).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'vitest', 'run', '--coverage']});
   });
 
-  test('custom scripts.test → npm test and no assumed coverage runner', () => {
+  test('[covers:F-47b8bee5/AC-4f0c9d] custom scripts.test → npm test and no assumed coverage runner', () => {
     writeFileSync(join(dir, 'package.json'), '{"scripts":{"test":"npm run build && node --test dist/tests/app.test.js"}}');
     const tc = detectToolchain(dir);
     expect(tc.gates.test).toEqual({cmd: 'npm', args: ['test']});
     expect(tc.gates.coverage).toBeUndefined();
   });
 
-  test('custom test and coverage scripts → both exact project-owned workflows', () => {
+  test('[covers:F-47b8bee5/AC-4f0c9d] custom test and coverage scripts → both exact project-owned workflows', () => {
     writeFileSync(join(dir, 'package.json'), '{"scripts":{"test":"node --test","coverage":"c8 npm test"}}');
     const tc = detectToolchain(dir);
     expect(tc.gates.test).toEqual({cmd: 'npm', args: ['test']});
@@ -275,7 +287,7 @@ describe('detectToolchain', () => {
     expect(tc.gates.lint?.args).toContain('biome');
   });
 
-  test('typescript arch gate scans ts,tsx,js,jsx extensions', () => {
+  test('[covers:F-47b8bee5/AC-3a899053] typescript arch gate scans ts,tsx,js,jsx extensions', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     expect(detectToolchain(dir).gates.arch).toEqual({
       cmd: 'npx',
@@ -297,7 +309,7 @@ describe('detectToolchain', () => {
     return i >= 0 ? args[i + 1] : undefined;
   }
 
-  test('AC-caa9471d · build output is excluded from the circular-dependency scan', () => {
+  test('[covers:F-2c02991f/AC-caa9471d] AC-caa9471d · build output is excluded from the circular-dependency scan', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     const pattern = archExclude(dir);
     expect(pattern).toBeDefined();
@@ -318,7 +330,7 @@ describe('detectToolchain', () => {
     }
   });
 
-  test('AC-dd5c3abf · hand-written source stays in scan, so a real cycle is still reported', () => {
+  test('[covers:F-2c02991f/AC-caa9471d] AC-dd5c3abf · hand-written source stays in scan, so a real cycle is still reported', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     const re = new RegExp(archExclude(dir)!);
     for (const source of [
@@ -334,7 +346,7 @@ describe('detectToolchain', () => {
     }
   });
 
-  test('AC-554d9436 · a project that configures the scanner itself keeps its own rules', () => {
+  test('[covers:F-2c02991f/AC-554d9436] AC-554d9436 · a project that configures the scanner itself keeps its own rules', () => {
     // madge REPLACES its configured excludeRegExp with the command-line flag
     // rather than merging, so passing ours would silently delete theirs.
     const own = mkdtempSync(join(tmpdir(), 'clad-madge-'));
@@ -498,7 +510,7 @@ describe('detectToolchain', () => {
   });
 
 
-  test('AC-c04171bd · the scan root stays the repository root, never a named directory', () => {
+  test('[covers:F-2c02991f/AC-c04171bd] AC-c04171bd · the scan root stays the repository root, never a named directory', () => {
     // Narrowing the root is worse than the defect: a missing directory makes
     // madge exit ENOENT, which classifies as a scanner setup gap and skips the
     // whole stage — a green gate that checked nothing.
@@ -511,7 +523,7 @@ describe('detectToolchain', () => {
 
   // ─── Swift (SPM) + Flutter/Dart toolchain (F-e4159959) ───
 
-  test('Package.swift → swift, SPM build/test gates + swiftlint, no arch gate', () => {
+  test('[covers:F-e4159959/AC-aa3d5503] Package.swift → swift, SPM build/test gates + swiftlint, no arch gate', () => {
     writeFileSync(join(dir, 'Package.swift'), '// swift-tools-version:5.9\n');
     const tc = detectToolchain(dir);
     expect(tc.language).toBe('swift');
@@ -523,7 +535,7 @@ describe('detectToolchain', () => {
     expect(tc.gates.arch).toBeUndefined();
   });
 
-  test('pubspec.yaml declaring flutter sdk → dart with flutter gates', () => {
+  test('[covers:F-e4159959/AC-61dd5a8e] pubspec.yaml declaring flutter sdk → dart with flutter gates', () => {
     writeFileSync(join(dir, 'pubspec.yaml'), 'name: app\ndependencies:\n  flutter:\n    sdk: flutter\n');
     const tc = detectToolchain(dir);
     expect(tc.language).toBe('dart');
@@ -532,7 +544,7 @@ describe('detectToolchain', () => {
     expect(tc.gates.coverage).toEqual({cmd: 'flutter', args: ['test', '--coverage']});
   });
 
-  test('pubspec.yaml without flutter → dart with plain dart gates', () => {
+  test('[covers:F-e4159959/AC-4cb02211] pubspec.yaml without flutter → dart with plain dart gates', () => {
     writeFileSync(join(dir, 'pubspec.yaml'), 'name: cli\ndependencies:\n  args: ^2.0.0\n');
     const tc = detectToolchain(dir);
     expect(tc.language).toBe('dart');

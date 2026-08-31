@@ -134,7 +134,7 @@ describe('HOST_CLAIM_DRIFT — README claims may not exceed matrix evidence (AC-
     expect(fs[0].message).not.toContain('cursor'); // wiring-only vs wiring-ok → matches
   });
 
-  test('positive claim with evidence older than 30 days → one non-blocking freshness finding', () => {
+  test('[covers:F-96fa5622/AC-19d3a3d0] positive claim with evidence older than 30 days → one non-blocking freshness finding', () => {
     writeReadme({claude: 'verified'});
     writeMatrix(
       {claude: 'verified'},

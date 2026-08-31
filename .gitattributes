@@ -1,1 +1,2 @@
 spec/index.yaml merge=union
+plugins/claude-code/dist/clad.js whitespace=-trailing-space

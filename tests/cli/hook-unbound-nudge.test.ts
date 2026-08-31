@@ -80,7 +80,7 @@ afterEach(() => {
 });
 
 describe('AC-8542cc63 — the nudge fires once unbound edits cross the threshold', () => {
-  test('third unbound edit carries the nudge; the first two are silent', () => {
+  test("[covers:F-f9891175/AC-8542cc63] third unbound edit carries the nudge; the first two are silent", () => {
     expect(editUnbound()).not.toContain(NUDGE); // 1
     expect(editUnbound()).not.toContain(NUDGE); // 2
     const third = editUnbound(); // 3 → threshold
@@ -91,14 +91,14 @@ describe('AC-8542cc63 — the nudge fires once unbound edits cross the threshold
 });
 
 describe('AC-388518f4 — no false nudge', () => {
-  test('a Read never nudges', () => {
+  test("[covers:F-f9891175/AC-388518f4] a Read never nudges", () => {
     for (let i = 0; i < 5; i++) {
       clearStamp();
       expect(post({tool_name: 'Read', tool_input: {file_path: 'src/orphan.ts'}})).not.toContain(NUDGE);
     }
   });
 
-  test('edits to a BOUND file never nudge (they resolve to an owner)', () => {
+  test("[covers:F-f9891175/AC-388518f4] edits to a BOUND file never nudge (they resolve to an owner)", () => {
     for (let i = 0; i < 5; i++) {
       clearStamp();
       const out = post({tool_name: 'Edit', tool_input: {file_path: 'src/foo.ts', old_string: '', new_string: LONG}});
@@ -106,13 +106,13 @@ describe('AC-388518f4 — no false nudge', () => {
     }
   });
 
-  test('a single unbound edit (sub-threshold) is silent', () => {
+  test("[covers:F-f9891175/AC-388518f4] a single unbound edit (sub-threshold) is silent", () => {
     expect(editUnbound()).not.toContain(NUDGE);
   });
 });
 
 describe('AC-5d379d4e — once per window', () => {
-  test('a further unbound edit after the nudge does not repeat it', () => {
+  test("[covers:F-f9891175/AC-5d379d4e] a further unbound edit after the nudge does not repeat it", () => {
     editUnbound();
     editUnbound();
     expect(editUnbound()).toContain(NUDGE); // fires on the 3rd
@@ -122,7 +122,7 @@ describe('AC-5d379d4e — once per window', () => {
 });
 
 describe('AC-228fdc15 — never blocks; byte-identical on sidecar failure', () => {
-  test('a sabotaged .cladding leaves the nudge silent (no throw, no block)', () => {
+  test("[covers:F-f9891175/AC-228fdc15] a sabotaged .cladding leaves the nudge silent (no throw, no block)", () => {
     // Make .cladding a FILE so every sidecar read/write throws.
     rmSync(join(cwd, '.cladding'), {recursive: true, force: true});
     writeFileSync(join(cwd, '.cladding'), 'x', 'utf8');

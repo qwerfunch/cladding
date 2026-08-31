@@ -53,7 +53,7 @@ The current [`src/spec/ears.ts`](../../../src/spec/ears.ts) validates legacy `co
 | Six-hex filename shards | 95 | Continue 0.1 reading. |
 | Eight-hex filename shards | 106 | Production already emits the target form. |
 
-Current production emits eight hex characters in [`src/spec/new.ts`](../../../src/spec/new.ts), while older docs still name hash6. The ID registry must become the single description source.
+Current production emits eight hex characters in [`src/spec/new.ts`](../../../src/spec/new.ts). Historical compatibility material may name hash6; the executable ID registry owns current reader and writer wording.
 
 ### Compiler bootstrap and reference resolution
 
@@ -70,7 +70,7 @@ Dependency counts below use Madge's resolved import graph. “Production” scan
 | Evidence-reference occurrences | 349 total: 281 file-style, 52 `fixture:`, 16 `self-dogfood:` | Keep channel and raw spelling; one generic path counter is insufficient. |
 | Fixture addresses | 52 occurrences; 45 unique; all registry-resolved | `conformance/fixtures.yaml` can supply stable anchors without inventing proof observations. |
 | Self-dogfood addresses | 16 occurrences; 14 unique; 13 exact package-script targets; one unresolved unique target | Missing commands remain explicit; nearby command names are not aliases. |
-| File-style evidence addresses | 281 occurrences; 280 resolve; `agents/` is the one unresolved occurrence | Existing paths and unresolved declarations must both survive compilation. |
+| File-style evidence addresses | 281 occurrences; 279 resolve; `agents/` and the ignored local audit report are unresolved | Existing paths and unresolved declarations must both survive compilation. |
 
 These totals are dated observations. Acceptance derives them from the sorted record snapshot, where occurrence, unique address, and resolution status cannot be conflated by grep strategy.
 
@@ -89,7 +89,7 @@ The dated cadence, invalidation, and A/B/C fault-equivalence measurements moved 
 | Resolvable legacy test-ref occurrences | 1,202 | Six of 1,208 occurrences currently do not resolve. |
 | Existing refs outside owner `modules` | 1,025 | Current module-only attestation misses most test changes. |
 | Features with an outside-module test ref | 190 | Verification digest must be feature-specific. |
-| Resolved file-style evidence refs | 280 of 281 occurrences | Evidence content needs its own freshness closure; unresolved refs remain visible rather than disappearing from the graph. |
+| Resolved file-style evidence refs | 279 of 281 occurrences | Evidence content needs its own freshness closure; unresolved refs remain visible rather than disappearing from the graph. |
 | Resolved file evidence outside owner modules | 58 | Module hashing does not protect it. |
 | Done features with a declared proof address on every AC | 277/277 | Declaration completeness only. |
 | Current attestation feature markers | 277 | Last-GREEN module signature only, not case-level proof. |
@@ -161,15 +161,15 @@ The read-only design simulation used the live `F-06dfdad6` working-set feature b
 | Related-file reconstruction upper bound | 57,849 bytes | Prototype legacy-reconstruction comparator. |
 | Historical generic-MCP tool subset | 22 tools; 27,928 bytes | Earlier in-memory serializer; retain as dated evidence, not as the current full list-surface cost. |
 | Historical generic-MCP prompt subset | 7 prompts; 1,938 bytes | Earlier serializer; tool+prompt subset was 29,866 bytes before server instructions. |
-| Current full MCP list surface | 22 tools + 3 resources + 7 prompts; 53,585 bytes | Verified 2026-08-29 by `npm run validate:spec-0.2`; canonical JSON includes schemas and annotations, but excludes server instructions and host framing. |
-| Task-profile MCP challenger | 6,557–26,401 bytes | Controlled tools-only projections are 50.7–87.8% smaller than that full list bundle; host discovery, retries, and provider tokens remain unmeasured. |
+| Current full MCP list surface | 27 tools + 3 resources + 7 prompts; 138,517 bytes | Verified 2026-08-29 by `npm run validate:spec-0.2`; canonical JSON includes schemas and annotations, but excludes server instructions and host framing. |
+| Task-profile MCP challenger | 7,618–88,587 bytes | Controlled tools-only projections are 36.0–94.5% smaller than that full list bundle; host discovery, retries, and provider tokens remain unmeasured. |
 | Graph projection model | directed 375 bytes; undirected 610; avoidable 235 | Same required synthetic task output; validates projection mechanics, not GraphIR v2 product efficiency. |
 | Assurance cadence model | every-edit 36 units; tiered 15 | Same completion obligations and GREEN reduction; deterministic relative units, not wall-time evidence. |
 | V0 validation state | 12 pass; 2 implementation-pending; 3 not-run; 2 inconclusive; 0 fail | Infrastructure and model state only. Pending runtime and host evidence are not promoted. |
 | Feature-only impact seed | 3 direct dependents | Verified current graph relation. |
 | Predicted write path `src/optimizer/working-set.ts` | 4 owners + 2 downstream | Prototype write-scope projection. |
 | Expanding all three declared modules | 23 owner seeds + 73 downstream | Negative control; feature modules are too broad as default impact seeds. |
-| Focused current tests | 53/53 passed | Verified run of working-set, code-excerpt, and server tests. |
+| Historical pre-F5 focused tests | 53/53 passed | Dated V0 run of working-set, code-excerpt, and server tests; not current F5 evidence. |
 
 The stale matrix exposed one granularity defect: a receipt tied to feature `contract_sha256` becomes stale when an unrelated sibling criterion changes. The accepted `subject_sha256` repair preserves that receipt while still staling on the target criterion, referenced capability outcome, architecture constraint, or required-scenario intent. The grammar audit also found a 471-character, one-modal multi-obligation criterion and a separate long statement that a naive conjunction/length rule falsely flags. This is why one modal remains the hard grammar floor while `ATOMICITY_RISK` stays advisory.
 
@@ -189,7 +189,7 @@ The current production orphan scan (`npx madge --extensions ts --orphans src`) r
 
 The measured F8/D19 supersession candidate surface is 788 source lines and 820 directly coupled test lines across graph v1, reverse-index, reverse/iterative slice, preamble, and tail files: 1,608 lines total. This is a candidate authority surface, not a promised net deletion. GraphIR, serializers, envelope code, and replacement contract/property tests will remain, so the acceptance signal is removal of duplicate models and traversals rather than a line-count target.
 
-Before semantic routing, this design occupied 92,189 UTF-8 bytes in one Markdown file, about 23k tokens under the deliberately named `characters / 4` estimator. The 2026-08-29 refresh measures a 7,534-byte router and twelve routed owner/evidence/validation documents below 24 KiB (4,254–23,982 bytes). A default fresh session containing the 5,161-byte `AGENTS.md`, router, and one canonical decision owner is 16,949–36,677 bytes instead of 97,350 bytes for `AGENTS.md` plus the monolith: a 62.3–82.6% physical-input reduction before host-owned instructions and tool traffic. The complete routed design set is 185,982 bytes (181.6 KiB); selective loading is the gain, not disappearance of authority. Reproduce the census with exact UTF-8 file bytes over `AGENTS.md`, the router, and `docs/design/spec-0.2/*.md`; the separate unsubmitted upstream RFC is not part of the routed target set.
+Before semantic routing, this design occupied 92,189 UTF-8 bytes in one Markdown file, about 23k tokens under the deliberately named `characters / 4` estimator. The 2026-08-29 refresh measures a 7,484-byte router and twelve routed owner/evidence/validation documents below 24 KiB (4,254–24,446 bytes). A default fresh session containing the 5,288-byte `AGENTS.md`, router, and one canonical decision owner is 17,026–37,218 bytes instead of 97,477 bytes for `AGENTS.md` plus the monolith: a 61.8–82.5% physical-input reduction before host-owned instructions and tool traffic. The complete routed design set is 192,717 bytes (188.2 KiB); selective loading is the gain, not disappearance of authority. Reproduce the census with exact UTF-8 file bytes over `AGENTS.md`, the router, and `docs/design/spec-0.2/*.md`; the separate unsubmitted upstream RFC is not part of the routed target set.
 
 ### Orphan and low-value fields
 

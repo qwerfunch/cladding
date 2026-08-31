@@ -69,7 +69,7 @@ The artifact registry enumerates canonical documents and classifies design/opera
 
 When the F5 document/source adapters land, explicit `clad-doc-links` declarations compile to `explains`; organic ids compile to non-authoritative `mentions`; tracked repo-local links compile to `links_to`; and existing `@see spec/features/<shard>.yaml AC-…` comments compile to `traces_to`. Declared references are strict after that cutover even though adding a source reference remains optional. Until then, F1 does not ingest source comments or change Spec 0.1 blocking behavior; the measured broken `@see` set is retained as an F5 negative-control fixture.
 
-`spec/_doc-links.yaml` remains a generated, greppable projection at its current path in 0.10.0. If its format changes to typed addresses, the extractor, writer, `DOC_REFERENCE_INTEGRITY`, GraphIR reader, sync idempotence fixtures, and downgrade/regeneration fixture change in one feature cycle. The file is never a second graph authority.
+`spec/generated/_doc-links.yaml` is the final generated, greppable projection after F11 relocation. If its format changes to typed addresses, the extractor, writer, `DOC_REFERENCE_INTEGRITY`, GraphIR reader, sync idempotence fixtures, and downgrade/regeneration fixture change in one feature cycle. The file is never a second graph authority.
 
 ### Public wire boundary
 

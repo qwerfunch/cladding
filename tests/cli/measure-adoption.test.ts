@@ -167,7 +167,7 @@ afterEach(() => {
 // --- AC-b281f9ec — render on signal ---------------------------------------
 
 describe('clad measure --sessions — adoption section renders on signal (F-1e7a10c3 AC-b281f9ec)', () => {
-  test('appends verdict, cycles-vs-min, pulls (pushes never counted), rate-vs-threshold and heads-vs-threshold', () => {
+  test('[covers:F-1e7a10c3/AC-b281f9ec] appends verdict, cycles-vs-min, pulls (pushes never counted), rate-vs-threshold and heads-vs-threshold', () => {
     const events = signalFixture();
     const s = summarizeAdoption(events);
     // fixture sanity — the reducer ground truth the render must surface
@@ -220,7 +220,7 @@ describe('clad measure --sessions — adoption section renders on signal (F-1e7a
 // --- AC-14badb09 — JSON is additive ---------------------------------------
 
 describe('clad measure --sessions --json — additive adoption key (F-1e7a10c3 AC-14badb09)', () => {
-  test('adds the adoption key with the AdoptionSummary shape while every pre-existing key stays byte-stable', () => {
+  test('[covers:F-1e7a10c3/AC-14badb09] adds the adoption key with the AdoptionSummary shape while every pre-existing key stays byte-stable', () => {
     const events = signalFixture();
     writeLedger(events);
     runMeasureCommand({sessions: true, json: true});
@@ -255,7 +255,7 @@ describe('clad measure --sessions --json — additive adoption key (F-1e7a10c3 A
 // --- AC-95686e07 — co-render with the SILENT/UNWIRED note ------------------
 
 describe('clad measure --sessions — SILENT/UNWIRED note co-renders with the adoption section (F-1e7a10c3 AC-95686e07)', () => {
-  test('the SILENT/UNWIRED note stays byte-identical AND the not_confirmed section renders below it', () => {
+  test('[covers:F-1e7a10c3/AC-95686e07] the SILENT/UNWIRED note stays byte-identical AND the not_confirmed section renders below it', () => {
     const events = cyclesOnlyFixture();
     // preconditions: the value lane is silent (total 0) yet adoption has signal
     expect(summarizeValueDelivery(events).total).toBe(0);
@@ -288,7 +288,7 @@ describe('clad measure --sessions — SILENT/UNWIRED note co-renders with the ad
 // --- AC-32fe3220 — no signal, no change -----------------------------------
 
 describe('clad measure --sessions — no adoption signal renders zero output change (F-1e7a10c3 AC-32fe3220)', () => {
-  test('empty ledger → exactly the pre-feature honest message, no adoption section', () => {
+  test('[covers:F-1e7a10c3/AC-b281f9ec] [covers:F-1e7a10c3/AC-32fe3220] empty ledger → exactly the pre-feature honest message, no adoption section', () => {
     // nothing recorded at all (no .cladding ledger in the fresh temp cwd)
     runMeasureCommand({sessions: true});
     const out = stdout();

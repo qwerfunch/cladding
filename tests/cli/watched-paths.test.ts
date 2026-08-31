@@ -144,6 +144,10 @@ describe('AC-1 · extension recall (outside src/, so only the extension arm can 
     expect(watched(`pkg/module${ext}`)).toBe(true);
   });
 
+  test('[covers:F-63b989e5/AC-faae7baf] every registered watched extension is accepted outside the src path rule', () => {
+    for (const ext of IN_SET_EXTENSIONS) expect(watched(`pkg/module${ext}`)).toBe(true);
+  });
+
   test('extension match is case-insensitive (extname is lowercased)', () => {
     expect(watched('pkg/App.TSX')).toBe(true);
     expect(watched('pkg/Program.CS')).toBe(true);
@@ -174,6 +178,10 @@ describe('AC-3 · non-source artifacts are NOT watched (outside src/)', () => {
     expect(watched(`config/thing${ext}`)).toBe(false);
   });
 
+  test('[covers:F-63b989e5/AC-25c3a256] configuration and documentation extensions remain outside the watched source set', () => {
+    for (const ext of OUT_OF_SET_EXTENSIONS) expect(watched(`config/thing${ext}`)).toBe(false);
+  });
+
   test('extension-less build/meta files are skipped', () => {
     expect(watched('Dockerfile')).toBe(false);
     expect(watched('.gitignore')).toBe(false);
@@ -190,7 +198,7 @@ describe('AC-3 · non-source artifacts are NOT watched (outside src/)', () => {
 // --- AC-2 (AC-0a3cc0bb) — src/-segment rule preserved + SSoT lives in toolchain ---
 
 describe('AC-2 · the src/-segment rule admits ARBITRARY extensions (pinned current behavior)', () => {
-  test('any path with a src/ segment is watched regardless of extension', () => {
+  test('[covers:F-63b989e5/AC-0a3cc0bb] any path with a src/ segment is watched regardless of extension', () => {
     expect(watched('src/config.json')).toBe(true); // config extension, but under src/
     expect(watched('src/data.yaml')).toBe(true);
     expect(watched('src/notes.md')).toBe(true);

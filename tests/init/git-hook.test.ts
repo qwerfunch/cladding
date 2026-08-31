@@ -100,7 +100,7 @@ describe('installGitHook pre-push (F-16746b)', () => {
 });
 
 describe('scaffoldCiWorkflow (F-16746b)', () => {
-  test('creates a major.minor-pinned authoritative-gate workflow once and never overwrites it', () => {
+  test('[covers:F-16746b/AC-a3152c] CI stays authoritative when a generated hook documents its one-time local bypass', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-ci-'));
     try {
       expect(scaffoldCiWorkflow(dir, '0.9.3')).toBe('created');
@@ -109,6 +109,11 @@ describe('scaffoldCiWorkflow (F-16746b)', () => {
       expect(body).toContain('npx --yes cladding@0.9 check');
       expect(body).toContain('check --tier=pre-push --strict --json');
       expect(body).toContain('fetch-depth: 0');
+      mkdirSync(join(dir, '.git'), {recursive: true});
+      expect(installGitHook('pre-push', dir, {version: '0.9.3'}).result).toBe('created');
+      const hook = readFileSync(join(dir, '.git', 'hooks', 'pre-push'), 'utf8');
+      expect(hook).toContain('git push --no-verify');
+      expect(hook).toContain('authoritative CI gate still runs');
       writeFileSync(p, '# user-owned\n');
       expect(scaffoldCiWorkflow(dir, null)).toBe('exists');
       expect(readFileSync(p, 'utf8')).toBe('# user-owned\n');

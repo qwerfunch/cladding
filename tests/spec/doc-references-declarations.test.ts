@@ -8,7 +8,7 @@
 // (spec/features/ab-case-doc-binding-bae800bd.yaml) at the extractor, the real
 // repo, and the DOC_LINK_INTEGRITY detector.
 
-import {extractDocReferences, writeDocLinksYaml, DOC_SCAN_EXCLUDE} from '../../src/spec/doc-references.js';
+import {extractDocReferences, renderDocLinksYaml, DOC_SCAN_EXCLUDE} from '../../src/spec/doc-references.js';
 import type {DocLinks, DocRefScan} from '../../src/spec/doc-references.js';
 import {docReferenceIntegrity} from '../../src/stages/detectors/doc-reference-integrity.js';
 import {loadSpec} from '../../src/spec/load.js';
@@ -107,10 +107,12 @@ describe('doc declarations · extraction + materialization (AC-b0e7dd4d)', () =>
     expect(m['docs/note.md'].features).not.toContain('F-abc123');
   });
 
-  test('writeDocLinksYaml materializes declared ids into spec/_doc-links.yaml', () => {
+  test('renderDocLinksYaml materializes declared ids into spec/_doc-links.yaml', () => {
     mkdirSync(join(dir, 'spec'), {recursive: true});
     wdoc('docs/note.md', '<!-- clad-doc-links: F-16138071, F-06dfdad6 -->\nEvidence with no prose id.');
-    expect(writeDocLinksYaml(dir)).toBe(true);
+    const rendered = renderDocLinksYaml(dir);
+    expect(rendered).not.toBeNull();
+    writeFileSync(join(dir, 'spec', '_doc-links.yaml'), rendered!);
     const yaml = readFileSync(join(dir, 'spec', '_doc-links.yaml'), 'utf8');
     expect(yaml).toContain('"docs/note.md"');
     expect(yaml).toContain('F-16138071');

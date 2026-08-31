@@ -58,7 +58,7 @@ describe('resolveLanguageConfig', () => {
   // discovery globs, the Cobertura coverage artifact, and a dotted import matcher
   // that captures both `import a.b` and `from a.b import c` (without double-matching
   // the second `import` keyword on a from-line).
-  test("specLanguage 'python' → full config shape + pytest globs + cobertura summary (AC-2b542ed8)", () => {
+  test("[covers:F-803386ab/AC-2b542ed8][covers:F-dd51b42c/AC-b3e9213f] specLanguage 'python' → full config shape + pytest globs + cobertura summary (AC-2b542ed8)", () => {
     const cfg = resolveLanguageConfig(dir, 'python');
     expect(cfg.extensions).toEqual(['.py']);
     expect(cfg.testGlobs).toEqual([
@@ -101,7 +101,7 @@ describe('resolveLanguageConfig', () => {
 // detection, and WATCHED_EXTENSIONS stays a superset that already carried `.py`
 // (now sourced from PYTHON_CONFIG.extensions rather than the supplemental table).
 describe('no-regression after the Python entry (AC-b5358945)', () => {
-  test('cladding\'s own repo (package.json, TS) still resolves the TS config by manifest detection', () => {
+  test("[covers:F-803386ab/AC-b5358945][covers:F-dd51b42c/AC-28c2f47d] cladding's own repo (package.json, TS) still resolves the TS config by manifest detection", () => {
     const cfg = resolveLanguageConfig(process.cwd());
     expect(cfg.ext).toBe('ts');
     expect(cfg.extensions).toEqual(['.ts', '.tsx']);

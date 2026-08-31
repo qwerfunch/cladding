@@ -257,5 +257,6 @@ describe('A/B · payment-saas — cladding vs vanilla on greenfield intent', () 
       outcome: {driftResults, queryResults},
     });
     writeOrAssertReport(REPORT_PATH, report);
-  }, 30_000);
+  // Multiple real detector passes can contend with the full-suite workers.
+  }, 60_000);
 });

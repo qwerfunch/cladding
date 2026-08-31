@@ -339,7 +339,9 @@ export async function runDriveLoop(opts: DriveOptions = {}): Promise<DriveResult
       pulseProgressEnd('fail', ready.id, 'UAT human sign-off required');
       return finish({
         class: 'HUMAN_REQUIRED',
-        detail: `${ready.id}: UAT lacks human-pass evidence — needs human sign-off`,
+        detail:
+          `${ready.id}: UAT lacks human-pass evidence in ` +
+          `${join(cwd, '.cladding', 'audit.log.jsonl')} — needs human sign-off`,
         iteration,
       });
     }

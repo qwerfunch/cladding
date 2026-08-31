@@ -5,7 +5,7 @@
 // efficiency + spec-rich governance) generalizes across domains. Same
 // framework, same milestones, different React app.
 
-import {afterEach, beforeEach, describe, test, vi} from 'vitest';
+import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
 // Host-tool determinism (CI break, 2026-06-11): the deterministic battery must
 // not depend on which external scanners (madge, secretlint) the HOST happens to
@@ -27,7 +27,8 @@ vi.mock('../../../src/stages/toolchain/detect.js', async (importOriginal) => {
 });
 import {fileURLToPath} from 'node:url';
 import {dirname, join} from 'node:path';
-import {existsSync, mkdirSync, rmSync} from 'node:fs';
+import {existsSync, mkdirSync, readFileSync, readdirSync, rmSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 
 import {
   DASHBOARD_FEATURES,
@@ -77,7 +78,7 @@ describe('A/B-extended · dashboard — 30-feature analytics dashboard at scale'
     bCwd.cleanup();
   });
 
-  test('30-feature dashboard — progression + drift + AI queries', async () => {
+  test("30-feature dashboard — progression + drift + AI queries", async () => {
     const snapshots: PerfSnapshot[] = [];
 
     for (const milestone of MILESTONES) {
@@ -167,4 +168,58 @@ describe('A/B-extended · dashboard — 30-feature analytics dashboard at scale'
       curate('vanilla', COMMITTED_VANILLA_DIR);
     }
   }, 120_000);
+
+  test('[covers:F-ef2fd9/AC-002] dashboard feature records have 30 deterministic ids across five categories', () => {
+    expect(DASHBOARD_FEATURES).toHaveLength(30);
+    expect(new Set(DASHBOARD_FEATURES.map((feature) => feature.category))).toEqual(
+      new Set(['layout', 'cards', 'charts', 'data', 'preferences']),
+    );
+    for (const feature of DASHBOARD_FEATURES) {
+      const expectedId = `F-${createHash('sha256').update(`dashboard:${feature.slug}`).digest('hex').slice(0, 6)}`;
+      expect(feature.id).toBe(expectedId);
+    }
+  });
+
+  test('[covers:F-ef2fd9/AC-003] dashboard curator writes a complete React project for both groups', () => {
+    curate('cladding', aCwd.path);
+    curate('vanilla', bCwd.path);
+    for (const cwd of [aCwd.path, bCwd.path]) {
+      const pkg = JSON.parse(readFileSync(join(cwd, 'package.json'), 'utf8')) as {
+        dependencies: Record<string, string>;
+        devDependencies: Record<string, string>;
+      };
+      expect(pkg.dependencies.react).toMatch(/^\^19\./);
+      expect(pkg.devDependencies.vite).toMatch(/^\^6\./);
+      expect(existsSync(join(cwd, 'src', 'components', 'MetricCard.tsx'))).toBe(true);
+      expect(existsSync(join(cwd, 'src', 'components', 'charts', 'LineChart.tsx'))).toBe(true);
+    }
+  });
+
+  test('[covers:F-ef2fd9/AC-004] dashboard keeps the shared seven-milestone case shape and metric-card query', () => {
+    expect(MILESTONES).toEqual([1, 5, 10, 15, 20, 25, 30]);
+    curate('cladding', aCwd.path, featuresAtMilestone(30));
+    const answers = answerAllQueries(aCwd.path, {featureKeyword: 'metric-card', featureLabel: 'metric card feature'});
+    expect(answers.slice(0, 2).map((answer) => answer.question)).toEqual([
+      'Which feature implements the metric card feature?',
+      'How many acceptance criteria does the metric card feature have?',
+    ]);
+    expect(answers.slice(0, 2).every((answer) => answer.answered)).toBe(true);
+  });
+
+  test('[covers:F-ef2fd9/AC-005] M30 dashboard curation emits complete projects for both groups', () => {
+    curate('cladding', aCwd.path);
+    curate('vanilla', bCwd.path);
+    for (const cwd of [aCwd.path, bCwd.path]) {
+      expect(existsSync(join(cwd, 'package.json'))).toBe(true);
+      expect(existsSync(join(cwd, 'src', 'App.tsx'))).toBe(true);
+      expect(existsSync(join(cwd, 'tests', 'app-shell.test.tsx'))).toBe(true);
+    }
+  });
+
+  test('[covers:F-f334fa/AC-002] dashboard curation emits exactly three user-journey scenario shards', () => {
+    curate('cladding', aCwd.path);
+    const scenarios = readdirSync(join(aCwd.path, 'spec', 'scenarios')).filter((name) => name.endsWith('.yaml'));
+    expect(scenarios).toHaveLength(3);
+    for (const scenario of scenarios) expect(readFileSync(join(aCwd.path, 'spec', 'scenarios', scenario), 'utf8')).toContain('features: [F-');
+  });
 });

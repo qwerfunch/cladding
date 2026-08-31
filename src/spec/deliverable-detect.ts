@@ -19,10 +19,11 @@
 // impl-blind oracle (stage_2.3) or an author-provided smoke_args remains the answer there.
 
 import {execaSync} from 'execa';
-import {existsSync, readFileSync, readdirSync, statSync, writeFileSync} from 'node:fs';
+import {existsSync, readFileSync, readdirSync, statSync} from 'node:fs';
 import {join, relative, resolve} from 'node:path';
 
 import type {Deliverable} from './types.js';
+import {commitSchema01CompatibilityMutation} from './edit.js';
 
 const CALIBRATE_TIMEOUT_MS = 5000;
 const MAX_CANDIDATES = 12;
@@ -163,12 +164,16 @@ export function maintainDeliverable(cwd = '.'): Deliverable | null {
   const path = join(cwd, 'spec.yaml');
   if (!existsSync(path)) return null;
   const body = readFileSync(path, 'utf8');
+  // Schema 0.2 project edits are closed typed operations. A future dedicated
+  // deliverable operation can opt in; this legacy convenience must not become
+  // a parallel root writer after migration.
+  if (/^schema:\s*["']?0\.2["']?\s*$/m.test(body)) return null;
   if (hasDeliverable(body)) return null; // author/prior already declared — never override
   const d = detectDeliverable(cwd);
   if (!d) return null;
   const rebuilt = upsertDeliverableBlock(body, d);
   if (rebuilt !== body) {
-    writeFileSync(path, rebuilt);
+    commitSchema01CompatibilityMutation(cwd, [{path: 'spec.yaml', before: body, after: rebuilt, rootRegions: ['project']}]);
     return d;
   }
   return null;

@@ -8,11 +8,11 @@ Two or more contributors can add new features or scenarios to a cladding-applied
 
 | Layer | Identifier | Scope | Multi-dev safety |
 |---|---|---|---|
-| **Filename** | `<slug>-<hash>.yaml` (8 hex since 0.6.0, legacy 6 hex valid; e.g. `login-flow-a3f9c2e1.yaml`) | one per feature or scenario | ✅ Two contributors with the same slug get different hashes → different file paths → no `git merge` collision |
-| **Feature id** | `F-<hash>` (e.g. `F-a3f9c2e1`) — same hash as filename | globally unique by construction | ✅ < 1/4.3B per-pair collision at 8 hex (6-hex birthday bound neared 50% at ~5k features); `ID_COLLISION` detector catches the rest |
-| **Scenario id** | `S-<hash>` (e.g. `S-c4d108e9`) — full feature-symmetric model since v0.3.12 | globally unique by construction | ✅ Same guarantees as features; `F-*` and `S-*` are separate id namespaces |
+| **Filename** | `<slug>-<hash8>.yaml` (8 hex since 0.6.0, legacy 6 hex valid; e.g. `login-flow-a3f9c2e1.yaml`) | one per feature or scenario | ✅ Two contributors with the same slug get different hashes → different file paths → no `git merge` collision |
+| **Feature id** | `F-<hash8>` (e.g. `F-a3f9c2e1`) — same hash as filename | globally unique by construction | ✅ < 1/4.3B per-pair collision at 8 hex (6-hex birthday bound neared 50% at ~5k features); `ID_COLLISION` detector catches the rest |
+| **Scenario id** | `S-<hash8>` (e.g. `S-c4d108e9`) — full feature-symmetric model since v0.3.12 | globally unique by construction | ✅ Same guarantees as features; `F-*` and `S-*` are separate id namespaces |
 | **Slug** (yaml field) | `login-flow` | human-readable anchor, separate namespaces for features vs scenarios | ⚠️ Two contributors picking the same slug within the same namespace is *expected* if they have the same intent; `SLUG_CONFLICT` detector raises this as an error so a human resolves it |
-| **AC id** | `AC-001` ~ `AC-NNN` | **feature-scoped sequential** | ✅ `F-001.AC-001` and `F-002.AC-001` coexist freely; `AC_DUPLICATE_WITHIN_FEATURE` catches intra-feature duplicates |
+| **AC id** | `AC-<hash8>` for new records; legacy `AC-NNN` and six-or-more-hex forms remain readable | **feature-scoped; canonical address `criterion:<F-id>/<AC-id>`** | ✅ Same AC spelling may coexist under different features; `AC_DUPLICATE_WITHIN_FEATURE` catches only an intra-feature duplicate |
 | **Legacy `F-NNN` / `S-NNN`** | `F-001` ~ `F-083`, `S-001`, `S-002` | global sequential (pre-v0.3.9 / pre-v0.3.12) | ✅ Coexists with the new model forever — no migration required |
 
 ## How features and scenarios get created
@@ -42,16 +42,16 @@ The host LLM calls cladding's `clad_create_feature` or `clad_create_scenario` MC
 
 ### Scenario 1: Different slugs, simultaneous
 
-- Alice on `feat/login`: `createFeature(slug='login-flow')` → `login-flow-a3f9c2.yaml`
-- Bob on `feat/checkout`: `createFeature(slug='checkout-cart')` → `checkout-cart-d29f1a.yaml`
+- Alice on `feat/login`: `createFeature(slug='login-flow')` → `login-flow-a3f9c2e1.yaml`
+- Bob on `feat/checkout`: `createFeature(slug='checkout-cart')` → `checkout-cart-d29f1a7b.yaml`
 - main merge → both files land cleanly. **No conflict.**
 
 ### Scenario 2: Same slug, simultaneous
 
-- Alice on `feat/auth-1`: `createFeature(slug='auth-bypass')` → `auth-bypass-c4d108.yaml`
-- Bob on `feat/auth-2`: `createFeature(slug='auth-bypass')` → `auth-bypass-e7f201.yaml`
+- Alice on `feat/auth-1`: `createFeature(slug='auth-bypass')` → `auth-bypass-c4d108e9.yaml`
+- Bob on `feat/auth-2`: `createFeature(slug='auth-bypass')` → `auth-bypass-e7f201ab.yaml`
 - main merge → both files land cleanly (different hashes → different paths).
-- `clad check --strict` → `SLUG_CONFLICT` error: *"slug 'auth-bypass' is used by both F-c4d108 and F-e7f201"*.
+- `clad check --strict` → `SLUG_CONFLICT` error: *"slug 'auth-bypass' is used by both F-c4d108e9 and F-e7f201ab"*.
 - Human resolves: either (a) the two features are *the same intent* — archive one (`status: archived`); (b) the two features are *different intents* that picked the same name — rename one slug.
 
 The detector reports the conflict; the human decides what was meant. cladding does not silently merge or auto-rename because semantic intent is not something the tool can guess.
@@ -59,7 +59,7 @@ The detector reports the conflict; the human decides what was meant. cladding do
 ### Scenario 3: Same contributor, same cwd, repeated call
 
 - One developer calls `createFeature(slug='login-flow')` twice in a row.
-- Both files written: `login-flow-a3f9c2.yaml`, `login-flow-b7e102.yaml`.
+- Both files written: `login-flow-a3f9c2e1.yaml`, `login-flow-b7e102cd.yaml`.
 - Same outcome as Scenario 2 — `SLUG_CONFLICT` raises it on the next `clad check --strict`. Almost always indicates a mistake; the developer archives one.
 
 ## Merging: derived files heal, never hand-resolve
@@ -124,7 +124,7 @@ This table is pinned to the real repository state: if `.gitattributes` ever chan
 Existing features (`F-001` through `F-083` at the time v0.3.9 shipped) keep their sequential ids and their `F-NNN.yaml` filenames forever. New features use the slug + hash model. The two models coexist:
 
 - Spec loader: handles both filename layouts indiscriminately.
-- `clad_get_feature`: accepts `F-049` (legacy) and `F-a3f9c2` (new) equivalently.
+- `clad_get_feature`: accepts `F-049` (legacy) and `F-a3f9c2e1` (new) equivalently.
 - `clad_list_features`: returns both in a single list.
 - `ID_COLLISION` detector: catches a legacy hand-typed duplicate (`F-049` accidentally reused) just as it catches a hash collision.
 
@@ -132,7 +132,7 @@ There is no migration tool because there is no migration need. The legacy ids ar
 
 ## When to override the auto-generated id
 
-You shouldn't. The internal `createFeature` accepts a slug only; the host LLM gives you no way to pin a specific `F-<hash>`. The hash is built from inputs (slug + user + hostname + ms + hrtime) specifically so two developers cannot collude on the same hash by accident or design — that property is what makes git merges safe by construction.
+You shouldn't. The internal `createFeature` accepts a slug only; the host LLM gives you no way to pin a specific `F-<hash8>`. The hash is built from inputs (slug + user + hostname + ms + hrtime) specifically so two developers cannot collude on the same hash by accident or design — that property is what makes git merges safe by construction.
 
 If you genuinely need to reuse a specific id (e.g. to restore a deleted feature with its original identifier), edit the yaml file's `id:` field directly. Schema accepts both `F-\d{3,}` and `F-[a-f0-9]{6,}`; `ID_COLLISION` will catch any duplicate.
 

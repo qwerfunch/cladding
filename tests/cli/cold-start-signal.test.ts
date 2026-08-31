@@ -34,7 +34,7 @@ function writeSource(): void {
 }
 
 describe('F-be5306eb AC-babf927c — SessionStart cold-start signal', () => {
-  test('code but zero feature specs → the card carries the cold-start line', () => {
+  test("[covers:F-be5306eb/AC-babf927c] code but zero feature specs → the card carries the cold-start line", () => {
     writeSpec('[]');
     writeSource();
     const card = runHookEvent('SessionStart', {}, cwd);

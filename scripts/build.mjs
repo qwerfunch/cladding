@@ -13,6 +13,7 @@
 
 import {build} from 'esbuild';
 import {chmodSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
 
 const banner = `#!/usr/bin/env node
 import {createRequire as __claddingCreateRequire} from 'node:module';
@@ -95,6 +96,9 @@ copyFileSync('src/graph/viewer/styles.css', 'dist/viewer/styles.css');
 const viewerCount = 2;
 
 chmodSync('dist/clad.js', 0o755);
+// The parser adapter must remain bundled without a runtime devDependency.
+// Exercise the generated entrypoint before a plugin mirror can copy it.
+execFileSync(process.execPath, ['dist/clad.js', '--help'], {stdio: 'ignore'});
 console.log(
   `cladding: built dist/clad.js + dist/schema.json + ${personaCount} personas → dist/agents/ + ${viewerCount} viewer asset(s) → dist/viewer/`,
 );

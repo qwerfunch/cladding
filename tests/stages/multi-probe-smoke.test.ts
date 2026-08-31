@@ -124,7 +124,7 @@ describe('F-4ef09f38 AC-1 · worst-of aggregation over every probe', () => {
     expect((r.stderr ?? '').split('\n')).toHaveLength(p.length);
   });
 
-  test('every per-probe line is present in declaration order (distinct argv)', () => {
+  test("[covers:F-4ef09f38/AC-2a12fdf6] every per-probe line is present in declaration order (distinct argv)", () => {
     writeDispositionScripts();
     // pass, then fail, then liveness — distinct scripts so lines are distinguishable.
     writeSmoke([probeFor('pass'), probeFor('fail'), probeFor('liveness')], [DONE]);
@@ -144,7 +144,7 @@ describe('F-4ef09f38 AC-1 · worst-of aggregation over every probe', () => {
 // ── AC-2 (AC-48ad9997) — one green probe never masks a red one ────────────────
 
 describe('F-4ef09f38 AC-2 · red is never masked by a green', () => {
-  test('one probe passes, one fails (token absent) → exit 1 naming the failing argv, both lines present', () => {
+  test("[covers:F-4ef09f38/AC-48ad9997] one probe passes, one fails (token absent) → exit 1 naming the failing argv, both lines present", () => {
     writeScript('green', 'echo TOK'); // pass
     writeScript('red', 'echo wrong'); // clean exit, token absent → fail
     writeSmoke(
@@ -187,7 +187,7 @@ describe('F-4ef09f38 AC-2 · red is never masked by a green', () => {
 // ── AC-3 (AC-f747836a) — per-feature binding gates execution ──────────────────
 
 describe('F-4ef09f38 AC-3 · per-feature binding', () => {
-  test('bound to a NOT-done feature → na, argv NOT executed (marker file stays absent)', () => {
+  test("[covers:F-4ef09f38/AC-f747836a] bound to a NOT-done feature → na, argv NOT executed (marker file stays absent)", () => {
     const marker = join(dir, 'MARKER');
     writeScript('mark', 'echo ran > MARKER; echo TOK'); // WOULD write MARKER if executed
     writeSmoke([{kind: 'cli', run: ['./mark'], token: 'TOK', feature: 'F-bbbbbb'}], [{id: 'F-bbbbbb', status: 'in_progress'}]);
@@ -229,15 +229,14 @@ describe('F-4ef09f38 AC-3 · per-feature binding', () => {
 // an exported pure function), so the FULL wall-clock case is left to the
 // implementer's spot-check (per the test brief — no 30 s test in the suite).
 // A `Date.now` spy drives the truncation branch DETERMINISTICALLY without real
-// wall-clock: loadSpec is Date.now-free and the reached probe here is kind:none
-// (no execa, no Date.now), so the spy sequence is exactly [started, check#1,
-// check#2]. probe#1 is reached (na); probe#2 is truncated (pending_env).
+// wall-clock. The F4 reader lock consumes two zero-time reads before the smoke
+// clock starts; the reached probe is kind:none (no execa, no Date.now).
 
 describe('F-4ef09f38 AC-5 · time-ceiling truncation reports pending_env', () => {
-  test('a probe not started before the ceiling reports pending_env (blocking) and never disappears', () => {
-    // ceiling = min(2 × 5000, 30000) = 10000. started=0; check#1=0 (probe1 runs);
-    // check#2=20000 ≥ 10000 (probe2 truncated).
-    const clock = [0, 0, 20000];
+  test("[covers:F-4ef09f38/AC-3770e5fa] a probe not started before the ceiling reports pending_env (blocking) and never disappears", () => {
+    // Lock reads: 0,0. ceiling = min(2 × 5000, 30000) = 10000; started=0;
+    // check#1=0 (probe1 runs); check#2=20000 ≥ 10000 (probe2 truncated).
+    const clock = [0, 0, 0, 0, 20000];
     let i = 0;
     vi.spyOn(Date, 'now').mockImplementation(() => clock[Math.min(i++, clock.length - 1)]);
     writeSmoke(

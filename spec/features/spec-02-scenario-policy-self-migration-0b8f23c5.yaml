@@ -1,0 +1,76 @@
+id: F-0b8f23c5
+slug: spec-02-scenario-policy-self-migration
+title: "Spec 0.2 scenarios, policy, and self-migration contract"
+status: in_progress
+modules:
+  - src/spec/compiler/authoring-view.ts
+  - src/spec/compiler/consumer-view.ts
+  - src/spec/compiler/contract-assertion.ts
+  - src/spec/compiler/schema-02-contract.ts
+  - src/spec/compiler/compile.ts
+  - src/spec/compiler/types.ts
+  - src/spec/load.ts
+  - src/spec/new.ts
+  - src/spec/inventory.ts
+  - src/assurance/workspace.ts
+  - src/assurance/closures.ts
+  - src/proof/legacy-bindings.ts
+  - src/proof/current-bindings.ts
+  - src/serve/server.ts
+  - src/spec/compiler/migration-preview.ts
+  - src/spec/edit.ts
+  - src/stages/detectors/ac-drift.ts
+  - src/stages/detectors/meta-integrity.ts
+  - src/stages/detectors/missing-tests.ts
+  - src/stages/detectors/unverified-ac.ts
+  - src/stages/detectors/evidence-mismatch.ts
+  - src/stages/detectors/stale-attestation.ts
+  - src/stages/detectors/scenario-coverage.ts
+  - src/stages/detectors/reference-integrity.ts
+  - src/stages/detectors/capabilities-feature-mapping.ts
+  - src/stages/detectors/architecture-from-spec.ts
+  - src/stages/vacuous-tests.ts
+  - src/stages/skip-policy.ts
+  - src/graph/model.ts
+  - src/optimizer/context-slice.ts
+  - src/optimizer/reverse-slice.ts
+  - src/spec/reverse-index.ts
+  - scripts/spec-0.2-validate.ts
+  - tests/spec/compiler/schema-02-scenarios.test.ts
+  - tests/spec/schema-02-consumer-cutover.test.ts
+  - tests/spec/edit.test.ts
+  - tests/assurance/closures.test.ts
+  - tests/design/spec-0.2/requirements.yaml
+  - tests/design/spec-0.2/design-validation.test.ts
+acceptance_criteria:
+  - id: AC-0b8f2301
+    ears: ubiquitous
+    text: "The specification compiler shall retain schema 0.1 scenarios while compiling strict schema 0.2 scenario nodes, source-bearing feature edges, and contract projections."
+    test_refs: ["tests/spec/compiler/schema-02-scenarios.test.ts#keeps schema 0.1 scenarios compatible while compiling strict schema 0.2 scenario nodes, projections, and source-bearing feature edges"]
+    notes: "## Why\nD09 preserves durable 0.1 reads while making scenario v2 a compiler-owned, provenance-preserving contract."
+  - id: AC-0b8f2302
+    ears: ubiquitous
+    text: "The specification compiler shall reject malformed scenario types, legacy or unknown fields, duplicate feature references, and unresolved feature references under every policy; absence and correctly typed hollow coverage shall be governed only by scenario policy."
+    test_refs: ["tests/spec/compiler/schema-02-scenarios.test.ts#blocks malformed scenarios and forbidden legacy or unknown fields under every policy", "tests/spec/compiler/schema-02-scenarios.test.ts#blocks unresolved scenario feature refs under every policy", "tests/spec/compiler/schema-02-scenarios.test.ts#applies the off advisory and required truth table to absent, missing-field, typed-hollow, and valid scenario coverage"]
+    notes: "## Why\nD09 keeps schema and reference integrity blocking under off, advisory, and required; only coverage demand follows the selected policy."
+  - id: AC-0b8f2303
+    ears: ubiquitous
+    text: "The specification compiler shall apply explicit off, advisory, and required scenario policy outcomes to absent, hollow, and valid scenario coverage."
+    test_refs: ["tests/spec/compiler/schema-02-scenarios.test.ts#applies the off advisory and required truth table to absent, missing-field, typed-hollow, and valid scenario coverage"]
+    notes: "## Why\nD09 assigns a visible policy outcome instead of silently treating missing journeys as verified coverage."
+  - id: AC-0b8f2304
+    ears: ubiquitous
+    text: "The assurance closure shall hash only required scenario identifiers and actor, goal, success, and ordered step intent for every referenced feature criterion."
+    test_refs: ["tests/assurance/closures.test.ts#hashes exact required scenario intent for every referenced criterion while excluding off advisory and unrelated scenarios", "tests/assurance/closures.test.ts#does not stale a criterion subject closure for an unrelated sibling criterion"]
+    notes: "## Why\nThis extends the existing sibling-criterion control rather than duplicating it: D13 needs required-scenario freshness without receipt fan-out beyond the referenced feature."
+  - id: AC-0b8f2305
+    ears: event
+    condition: "when a clean-room migration resolves a legacy scenario"
+    text: "When a clean-room migration resolves a legacy scenario, the compiler-derived ConsumerSpecView shall preserve its strict scenario projection and its baseline-exempt feature and criterion projections for assurance consumers."
+    test_refs: ["tests/spec/edit.test.ts#migrates direct hash feature and scenario filenames then edits their preserved shards"]
+    notes: "## Why\nThis reuses the existing F4 migration fixture rather than adding a second transaction suite. It requires a non-empty compiler contract with the resolved scenario, exposes the missing-purpose and legacy-unclassified baseline identities in its compiler-derived ConsumerSpecView and assurance input, and leaves purpose and kind strict for new nodes. Live bindings are live-or-baseline, never a union."
+design_impact:
+  classification: structural
+  rationale: "F7 self-migration and compiler-derived compatibility consumer cutover are structural. The reviewed P0 boundary comprises compiler/types and ConsumerSpecView; raw 0.2 reader/selector retirement, the inventory authority guard, assurance workspace/closures and the shared workspace binding seam with live-or-baseline never-union; drift-detector inputs for AC, proof, scenario, reference, capability, and architecture; and v1 graph/context/reverse-slice compatibility. F8 public GraphIR v2 remains outside this feature."
+  status: review_required
+  artifacts: ["docs/design/spec-0.2/model-and-migration.md", "docs/design/spec-0.2/graph.md", "docs/design/spec-0.2/proof-and-editing.md", "docs/design/spec-0.2/assurance.md", "docs/design/spec-0.2/delivery.md"]

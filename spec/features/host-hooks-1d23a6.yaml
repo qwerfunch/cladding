@@ -26,8 +26,8 @@ acceptance_criteria:
     text: "When Stop fires (stop_hook_active false), the hook shall run the deterministic trio; fresh failure fingerprints block with top findings + a stop_blocked event; an identical fingerprint demotes to allow."
     notes: "## Decision\nFingerprint-keyed demotion (not per-session counting) — the review showed attempt-count demotion is itself a vacuous-green vector; identical-failure demotion is state-keyed and the SessionStart card resurfaces it. Toolchain-heavy stages never run here (pre-commit trio only), so the toolchain-missing exemption is structural."
     test_refs:
-      - "tests/cli/hook.test.ts#fresh failure → block JSON + stop-block.json written + stop_blocked event"
-      - "tests/cli/hook.test.ts#identical second run → empty (demoted; no second stop_blocked event)"
+      - "tests/cli/hook.test.ts#fresh failure records complete attribution without changing block output"
+      - "tests/cli/hook.test.ts#identical second run stays empty and records the known-failing exit"
       - "tests/cli/hook.test.ts#clean run → empty and the persisted stop-block.json is removed"
   - id: AC-29e900
     ears: event
@@ -36,7 +36,7 @@ acceptance_criteria:
     response: "every session starts with the spec map injected mechanically (no more relying on the model greping CLAUDE.md), and 'add a login feature' finally routes (it classified as unknown pre-0.6)"
     text: "When SessionStart or a classifiable UserPromptSubmit fires, the hook shall print the context card / one-line routing suggestion, injected mechanically rather than prompt-advisorily."
     test_refs:
-      - "tests/cli/hook.test.ts#full card: index counts + in-progress list + last gate + stop-block + policy line"
+      - "tests/cli/hook.test.ts#full card: index counts + in-progress list + last gate + stop-block + tools + policy line"
       - "tests/router/intent.test.ts"
   - id: AC-03da31
     ears: ubiquitous

@@ -42,7 +42,20 @@ describe('AI_HINTS_FORBIDDEN_PATTERN (F-00eb1a, v0.3.57)', () => {
     expect(aiHintsForbiddenPattern.run({cwd: dir})).toEqual([]);
   });
 
-  test('forbidden pattern in source → error finding', () => {
+  test('[covers:F-00eb1a/AC-002] remains opt-in when ai_hints is absent or its forbidden list is empty', () => {
+    writeMinimalSpec(dir);
+    writeSrc(dir, 'absent.ts', 'export const x = eval("1+1");\n');
+    expect(aiHintsForbiddenPattern.run({cwd: dir})).toEqual([]);
+
+    writeMinimalSpec(
+      dir,
+      '\n  ai_hints:\n    preferred_persona: software-engineer\n    forbidden_patterns: []',
+    );
+    writeSrc(dir, 'empty.ts', 'export const y = eval("1+1");\n');
+    expect(aiHintsForbiddenPattern.run({cwd: dir})).toEqual([]);
+  });
+
+  test('[covers:F-00eb1a/AC-001] forbidden pattern in source → error finding', () => {
     writeMinimalSpec(
       dir,
       '\n  ai_hints:\n    forbidden_patterns: ["eval("]',
@@ -55,7 +68,7 @@ describe('AI_HINTS_FORBIDDEN_PATTERN (F-00eb1a, v0.3.57)', () => {
     expect(findings[0].line).toBe(1);
   });
 
-  test('forbidden pattern only in comment → silent (false-positive guard)', () => {
+  test('[covers:F-00eb1a/AC-003] forbidden pattern only in comment → silent (false-positive guard)', () => {
     writeMinimalSpec(
       dir,
       '\n  ai_hints:\n    forbidden_patterns: ["eval("]',

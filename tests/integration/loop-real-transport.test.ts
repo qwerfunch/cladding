@@ -111,7 +111,7 @@ describe('drive loop · real AnthropicTransport integration', () => {
     // loadPersona reads from the package's own dir, not cwd. No setup needed.
   }
 
-  test('loop dispatches through AnthropicTransport and lands ALL_FEATURES_DONE when UAT is skipped', async () => {
+  test('[covers:F-069/AC-187][covers:F-070/AC-193] loop dispatches through AnthropicTransport and lands ALL_FEATURES_DONE when UAT is skipped', async () => {
     // Specialist returns one reply text; reviewer returns a different
     // text so the identity-collision barrier does not fire.
     const client = setupTransport([
@@ -136,7 +136,7 @@ describe('drive loop · real AnthropicTransport integration', () => {
     expect(client.messages.create.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
 
-  test('reviewer identity collision triggers HUMAN_REQUIRED halt against real-shape data', async () => {
+  test('[covers:F-070/AC-194] reviewer identity collision triggers HUMAN_REQUIRED halt against real-shape data', async () => {
     // Both calls return text from the same fake client → the
     // resulting identity.name is the same persona-tagged form.
     // BUT AnthropicTransport tags identity.name as
@@ -177,7 +177,7 @@ describe('drive loop · real AnthropicTransport integration', () => {
     expect(r.halt.detail).toContain('reviewer identity matched implementer');
   });
 
-  test('transport throw (401 auth) maps to TRANSPORT_AUTH_FAILED halt (v0.2.22)', async () => {
+  test('[covers:F-070/AC-192] transport throw (401 auth) maps to TRANSPORT_AUTH_FAILED halt (v0.2.22)', async () => {
     const throwingTransport = {
       id: 'sdk:claude-anthropic',
       async invoke() {

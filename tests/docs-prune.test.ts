@@ -35,6 +35,7 @@ const TOLERATED_FILES: ReadonlySet<string> = new Set([
   'CHANGELOG.md',
   'spec/_doc-links.yaml',
   'spec/features/docs-prune-987be195.yaml',
+  'spec/generated/migration-baseline-0.1-to-0.2.yaml',
 ]);
 
 // Build artifacts / caches / vendor trees — regenerated, not the SSoT prose

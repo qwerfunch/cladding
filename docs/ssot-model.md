@@ -44,8 +44,8 @@ Orphan artifacts get demoted (move to Tier D as historical reference) or removed
 | Artifact | Producer | Consumer | Refresh trigger |
 |---|---|---|---|
 | `spec.yaml` | `clad_create_feature` / hand-edit | `spec/load.ts` → every detector + MCP server + CLI verbs | manual edit; `clad sync` validates |
-| `spec/features/<slug>-<hash6>.yaml` | `clad_create_feature` | merged into `Spec.features[]` on load | manual edit + validation |
-| `spec/scenarios/<slug>-<hash6>.yaml` | `clad init <intent>` onboarding (NEW v0.3.45) OR `clad_create_scenario` OR hand-edit | `REFERENCE_INTEGRITY` / `SLUG_CONFLICT` / `ID_COLLISION` / `SCENARIO_COVERAGE` detectors | onboarding 7th sentinel emits; clarify refreshes; `clad_create_scenario` adds. *(`clad_create_feature` does NOT bind scenarios — corrected v0.4.x.)* |
+| `spec/features/<slug>-<hash8>.yaml` | `clad_create_feature` | merged into `Spec.features[]` on load | manual edit + validation |
+| `spec/scenarios/<slug>-<hash8>.yaml` | `clad init <intent>` onboarding (NEW v0.3.45) OR `clad_create_scenario` OR hand-edit | `REFERENCE_INTEGRITY` / `SLUG_CONFLICT` / `ID_COLLISION` / `SCENARIO_COVERAGE` detectors | onboarding 7th sentinel emits; clarify refreshes; `clad_create_scenario` adds. *(`clad_create_feature` does NOT bind scenarios — corrected v0.4.x.)* |
 
 ### Tier B — Design SSoT
 
@@ -134,7 +134,7 @@ For YAML files, use `# ` comments. For JSON/TOML, the convention defers to the f
 | `spec.yaml` | `# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual` |
 | `spec/architecture.yaml` | `# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad clarify` |
 | `spec/capabilities.yaml` | `# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad clarify` |
-| `spec/scenarios/<slug>-<hash6>.yaml` | `# Cladding · Tier A · SSoT — onboarding output, edit-friendly · Refreshed by: clad init / clad clarify` |
+| `spec/scenarios/<slug>-<hash8>.yaml` | `# Cladding · Tier A · SSoT — onboarding output, edit-friendly · Refreshed by: clad init / clad clarify` |
 | `docs/project-context.md` | `<!-- Cladding · Tier B · SSoT — intent + Why/What/Purpose · Refreshed by: clad init / clad clarify -->` |
 | `docs/conventions.md` | `<!-- Cladding · Tier C · derived from observed code · Refreshed by: clad init --scan -->` |
 | `.cladding/onboarding/state.yaml` | `# Cladding · Tier D · transient — Q&A audit · Refreshed by: clad init / clad clarify` |
@@ -214,7 +214,7 @@ Conflict resolution (when same information lives in multiple tiers):
 | `clad init <intent>` (onboarding) | + project-context.md (LLM-refined), capabilities.yaml (LLM-inferred), architecture.yaml (LLM-inferred), spec.yaml F-001 title, **scenarios stubs (NEW v0.3.45)**, onboarding state.yaml | existing files divert to `.cladding/scan/*.proposal` |
 | `clad init --scan` (existing-project) | conventions.md (observed), architecture.yaml (observed), capabilities.yaml (README headings), project-context.md (LLM-refined) | existing files divert to proposal |
 | `clad clarify <answer>` | project-context.md, capabilities.yaml, architecture.yaml, scenarios stubs (refined Q-A history) | untouched generated design updates in place; user-edited design diverts to proposal and remains `needs_review` until explicitly accepted |
-| `clad_create_feature` MCP tool | spec/features/<slug>-<hash>.yaml + durable design-impact decision; additive capability/scenario links | structural impact remains review-required and blocks `clad done` |
+| `clad_create_feature` MCP tool | spec/features/<slug>-<hash8>.yaml + durable design-impact decision; additive capability/scenario links | structural impact remains review-required and blocks `clad done` |
 | append-only (Tier D) | events.log, audit.log entries | no divert — strict append |
 
 ## Quick decision flowchart for adding a new artifact

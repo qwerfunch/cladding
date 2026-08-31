@@ -30,7 +30,7 @@ acceptance_criteria:
       - "tests/human-first-cards.test.ts#the UserPromptSubmit suggestion section (INTENT_HINTS + the classifier) carries no locale-sidecar write"
       - "tests/human-first-cards.test.ts#the UserPromptSubmit dispatch case carries no locale-sidecar write either"
       - "tests/human-first-cards.test.ts#corroborating whole-file pin \u2014 src/cli/hook.ts references the user-locale sidecar nowhere at all"
-      - "tests/human-first-cards.test.ts#sanity \u2014 resolveLocale is still used elsewhere in the file (Stop/PostToolUse); this pin is scoped, not a whole-file ban"
+      - "tests/human-first-cards.test.ts#post-pivot (F-9af291fa) — src/cli/hook.ts references resolveLocale nowhere at all"
   - id: AC-2a7fed0c
     ears: ubiquitous
     text: "Impact cards shall say what a person means — features that depend on this change, tests that guard it — with feature titles alongside ids, within the existing line and byte caps."

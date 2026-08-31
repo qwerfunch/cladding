@@ -21,7 +21,7 @@ acceptance_criteria:
     action: "return a null policy while preserving all v1 and v2 feature freshness verdicts"
     response: "upgrading adopters need no migration command and old verification evidence remains readable"
     text: "While an attestation has no policy section, the reader shall preserve its existing v1/v2 semantics and expose policy as unknown rather than reject the file."
-    test_refs: ["tests/spec/attestation-policy.test.ts#legacy v2 without policy remains readable"]
+    test_refs: ["tests/spec/attestation-policy.test.ts#reads legacy v1 and v2 attestations without policy as unknown"]
   - id: AC-1f6b157b
     ears: event
     condition: "when detector catalog identity is fingerprinted"

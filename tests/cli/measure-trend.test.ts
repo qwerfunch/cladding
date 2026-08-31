@@ -74,7 +74,7 @@ afterEach(() => {
 });
 
 describe('clad measure --trend — absence renders as absence (AC-220944e2)', () => {
-  test('no ledger (0 snapshots) → "no trend yet — 0 snapshot(s)", exit 0, no fabricated delta', () => {
+  test("[covers:F-39609db4/AC-220944e2] no ledger (0 snapshots) → \"no trend yet — 0 snapshot(s)\", exit 0, no fabricated delta", () => {
     runMeasureCommand({trend: true});
     const out = stdout();
     expect(out).toContain('no trend yet');
@@ -85,7 +85,7 @@ describe('clad measure --trend — absence renders as absence (AC-220944e2)', ()
     expect(exitCalls).toEqual([0]);
   });
 
-  test('exactly 1 snapshot → "no trend yet — 1 snapshot(s)", exit 0, no delta', () => {
+  test('[covers:F-39609db4/AC-220944e2] exactly 1 snapshot → "no trend yet — 1 snapshot(s)", exit 0, no delta', () => {
     seedLedger([snapLine(1, {slice: 1000, struct: 0.9, cov: 0.5, p95: 1, trunc: 0, feat: 10})]);
     runMeasureCommand({trend: true});
     const out = stdout();

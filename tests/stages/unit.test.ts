@@ -72,7 +72,7 @@ describe('runUnit (stage_2.1)', () => {
     expect(runUnit({cwd: dir}).exitCode).toBe(1);
   });
 
-  test('strict mode rejects a successful runner that definitively reports zero tests', () => {
+  test('[covers:F-b81d203e/AC-0e76a1b2] strict mode rejects a successful runner that definitively reports zero tests', () => {
     execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '# tests 0\n# pass 0', stderr: ''});
     const r = runUnit({cwd: dir, cmd: 'npm', args: ['test'], strict: true});
     expect(r.pass).toBe(false);

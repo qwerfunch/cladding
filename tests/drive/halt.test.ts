@@ -39,6 +39,15 @@ describe('checkBudget', () => {
 });
 
 describe('classifyTransportError (F-071, v0.2.22)', () => {
+  test('[covers:F-071/AC-196][covers:F-071/AC-197] classifies HTTP, SDK-phrase, and errno transport failures into the actionable halt classes', () => {
+    const network = Object.assign(new Error('connect ECONNREFUSED'), {code: 'ECONNREFUSED'});
+
+    expect(classifyTransportError(new Error('401: invalid x-api-key'))).toBe('TRANSPORT_AUTH_FAILED');
+    expect(classifyTransportError(new Error('429: rate limit exceeded'))).toBe('TRANSPORT_RATE_LIMITED');
+    expect(classifyTransportError(new Error('rate_limit_exceeded'))).toBe('TRANSPORT_RATE_LIMITED');
+    expect(classifyTransportError(network)).toBe('TRANSPORT_NETWORK');
+  });
+
   describe('TRANSPORT_AUTH_FAILED', () => {
     test.each([
       ['401: invalid x-api-key'],
@@ -54,6 +63,14 @@ describe('classifyTransportError (F-071, v0.2.22)', () => {
       ['api_key is required'],
     ])('matches %s', (message) => {
       expect(classifyTransportError(new Error(message))).toBe('TRANSPORT_AUTH_FAILED');
+    });
+
+    test('[covers:F-072/AC-203] recognizes api key and api_key phrases case-insensitively', () => {
+      expect(classifyTransportError(new Error('ANTHROPIC_API_KEY env var is not set'))).toBe(
+        'TRANSPORT_AUTH_FAILED',
+      );
+      expect(classifyTransportError(new Error('api key missing'))).toBe('TRANSPORT_AUTH_FAILED');
+      expect(classifyTransportError(new Error('api_key is required'))).toBe('TRANSPORT_AUTH_FAILED');
     });
   });
 

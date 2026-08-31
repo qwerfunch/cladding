@@ -8,6 +8,7 @@
 // ADR ids (`adr_refs`) are scoped out until the ADR subsystem lands.
 
 import type {Feature, Scenario, Spec} from '../../spec/types.js';
+import {compileSpecWorkspace} from '../../spec/compiler/compile.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
 import {withSpec} from './with-spec.js';
 
@@ -30,6 +31,23 @@ function refIssues(
 
 function runReferenceIntegrity(opts: CommandStageOptions): readonly DriftFinding[] {
   const {cwd = '.'} = opts;
+  try {
+    const compilation = compileSpecWorkspace(cwd);
+    if (compilation.schemaVersion === '0.2') {
+      const unknownReferences = compilation.diagnostics.filter((diagnostic) => diagnostic.code === 'UNKNOWN_REFERENCE');
+      if (unknownReferences.length > 0) {
+        return unknownReferences.map((diagnostic) => ({
+          detector: NAME,
+          severity: 'error' as const,
+          ...(diagnostic.source ? {path: diagnostic.source.path} : {}),
+          message: `${diagnostic.message} — fix the reference or add the missing item.`,
+        }));
+      }
+      if (compilation.contract) return [];
+    }
+  } catch {
+    // Keep the schema 0.1 load-failure policy below for an unreadable root.
+  }
   return withSpec(cwd, NAME, detect);
 }
 

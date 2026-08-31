@@ -102,14 +102,16 @@ export interface HealthStatus {
  * - `invokeAgent` must be idempotent on identical (persona, ctx) —
  *   the deterministic-evidence requirement (F-049 AC-090).
  * - Errors during invocation should be thrown so the drive loop can
- *   emit `LLM_UNAVAILABLE` with the underlying error class.
- * - Host adapters must not read any `*_API_KEY` env var (F-049
- *   AC-091). SDK adapters read their respective env var only.
+ *   preserve its matching transport halt class and underlying detail.
+ * - Host adapters must not read provider API-key env vars. SDK
+ *   adapters declare and read only their matching key (F-049 AC-091).
  */
 export interface AgentAdapter {
   readonly mode: AdapterMode;
   /** Short adapter id — `claude-code`, `generic-mcp`, `anthropic`, … */
   readonly name: string;
+  /** SDK credential env var; omitted for host-bound adapters. */
+  readonly apiKeyEnv?: string;
   /** Capabilities this transport supports — bounded by host or SDK. */
   readonly capabilities: ReadonlySet<Capability>;
   invokeAgent(persona: PersonaSpec, ctx: AgentContext): Promise<AgentResult>;

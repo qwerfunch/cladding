@@ -19,6 +19,7 @@ const SHARD = '# Cladding · Tier A · SSoT — header comment that MUST survive
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), 'clad-oracle-record-'));
   mkdirSync(join(dir, 'spec/features'), {recursive: true});
+  writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: oracle\n  language: typescript\n');
   writeFileSync(join(dir, 'spec/features/widget-abc123.yaml'), SHARD);
 });
 afterEach(() => {
@@ -50,6 +51,20 @@ describe('oracle/record — addOracleRef (the comment-preserving shard editor)',
   test('unknown feature or AC → false (no write, caller surfaces a manual hint)', () => {
     expect(addOracleRef(dir, 'F-nope', 'AC-001', 'x')).toBe(false);
     expect(addOracleRef(dir, 'F-x', 'AC-nope', 'x')).toBe(false);
+  });
+
+  test('routes a schema 0.2 oracle stamp through the typed proof-reference transaction', () => {
+    writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.2"\nproject:\n  name: oracle\n  language: typescript\n  purpose: Keep proof bindings explicit.\n  assurance_level: L2\n  scenario_policy: advisory\n');
+    writeFileSync(join(dir, 'spec', 'capabilities.yaml'), 'capabilities: []\n');
+    writeFileSync(join(dir, 'spec', 'architecture.yaml'), 'layers:\n  - [core]\nrules: []\n');
+    rmSync(join(dir, 'spec', 'features', 'widget-abc123.yaml'));
+    writeFileSync(join(dir, 'spec', 'features', 'widget-aaaaaaaa.yaml'), [
+      'id: F-aaaaaaaa', 'title: Widget', 'status: planned', 'purpose: Keep oracle ownership explicit.', 'modules: []', 'depends_on: []', 'capability_refs: []', 'acceptance_criteria:', '  - id: AC-bbbbbbbb', '    kind: behavior', '    statement: The system shall retain oracle references.', '',
+    ].join('\n'));
+    const ref = oraclePathFor('F-aaaaaaaa', 'AC-bbbbbbbb');
+    expect(addOracleRef(dir, 'F-aaaaaaaa', 'AC-bbbbbbbb', ref)).toBe(true);
+    expect(readFileSync(join(dir, 'spec', 'features', 'widget-aaaaaaaa.yaml'), 'utf8')).toContain(ref);
+    expect(existsSync(join(dir, '.cladding', 'spec-transaction.json'))).toBe(false);
   });
 });
 

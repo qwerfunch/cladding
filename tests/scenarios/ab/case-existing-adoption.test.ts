@@ -83,7 +83,7 @@ describe('A/B · existing-adoption — cladding vs vanilla on a populated TS pro
     stdoutSpy.mockRestore();
   });
 
-  test('M1+M2: both groups deliver — committed report stays deterministic', async () => {
+  test('[covers:F-4db939/AC-005] M1+M2: both groups deliver — committed report stays deterministic', async () => {
     // Heavier than greenfield: copies the 8-source-file fixture into TWO
     // tmpdirs, runs A's init (LLM mock + observed-path onboarding), runs
     // B's vanilla session, then takes 4 snapshots that each loop the 25

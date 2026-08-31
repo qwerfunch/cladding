@@ -50,6 +50,13 @@ describe('init-onboarding-english-source (F-5cac007a)', () => {
       });
     }
 
+    test('[covers:F-5cac007a/AC-7c50ac34] all three init/onboarding output sources reject a reintroduced Hangul character', () => {
+      for (const rel of OUTPUT_FILES) {
+        const src = readFileSync(join(ROOT, rel), 'utf8');
+        expect(HANGUL.test(src), rel).toBe(false);
+      }
+    });
+
     test('mutation probe — the sweep would catch a re-introduced Korean line', () => {
       // Build a Korean sample from code points so the probe is not a literal.
       const koreanSample = String.fromCharCode(0xb2e4, 0xc74c, 0x20, 0xb2e8, 0xacc4); // "다음 단계"
@@ -71,7 +78,7 @@ describe('init-onboarding-english-source (F-5cac007a)', () => {
       last_setup_version: null,
     } as const;
 
-    test('the wiring report ends with an English "Next steps:" block, no Hangul', () => {
+    test('[covers:F-5cac007a/AC-b32265b7] the wiring report ends with an English "Next steps:" block, no Hangul', () => {
       const detection = {claude: true, gemini: false, antigravity: false, codex: false, agents: false, cursor: false};
       const report = renderSetupReport(result, detection);
       expect(report).toContain('Next steps:');

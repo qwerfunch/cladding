@@ -80,7 +80,7 @@ describe('CONVENTION_DRIFT detector', () => {
     expect(conventionDrift.run({cwd: dir})).toEqual([]);
   });
 
-  test('Python module without a header comment or docstring → warn finding', () => {
+  test("[covers:F-056/AC-129] Python module without a header comment or docstring → warn finding", () => {
     writeFileSync(
       join(dir, 'spec.yaml'),
       'schema: "0.1"\nproject: {name: x, language: python}\nfeatures: []\n',

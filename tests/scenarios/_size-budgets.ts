@@ -77,7 +77,7 @@ export const ARTIFACT_BUDGETS = {
   'spec/capabilities.yaml': budget(120, 5000),
   'spec/architecture.yaml': budget(90, 3500),
   'docs/conventions.md': budget(160, 6500),
-  /** Per single scenario shard (`spec/scenarios/<slug>-<hash6>.yaml`). */
+  /** Per single scenario shard (`spec/scenarios/<slug>-<hash8>.yaml`). */
   'spec/scenarios/*.yaml': budget(50, 2000),
   /** Onboarding state.yaml (D-tier, transient). Grows linearly with Q-A history. */
   '.cladding/onboarding/state.yaml': budget(100, 4000),

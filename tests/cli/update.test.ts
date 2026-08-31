@@ -41,7 +41,7 @@ describe('runUpdate', () => {
     expect(r.code).toBe(1);
   });
 
-  test('fresh project → inventory and both established host instruction surfaces are written', async () => {
+  test('[covers:F-0f4dd6/AC-019] fresh project → inventory and both established host instruction surfaces are written', async () => {
     writeFileSync(join(dir, 'spec.yaml'), SPEC);
     const r = await runUpdate(dir, {wireHosts: okWire});
     expect(r.isProject).toBe(true);

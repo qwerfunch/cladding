@@ -35,12 +35,11 @@
 //      consumer for capabilities.yaml.
 // @see spec/features/ssot-governance-d12edf.yaml — this feature.
 
-import {existsSync, readFileSync} from 'node:fs';
+import {existsSync} from 'node:fs';
 import {join} from 'node:path';
 
-import yaml from 'yaml';
-
 import {loadSpec} from '../../spec/load.js';
+import type {Capability} from '../../spec/types.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
 
 const NAME = 'CAPABILITIES_FEATURE_MAPPING';
@@ -48,52 +47,26 @@ const NAME = 'CAPABILITIES_FEATURE_MAPPING';
 /** Shared maturity boundary for explicitly marked onboarding design seeds. */
 export const DEFAULT_MIN_FEATURES_FOR_CAPABILITY_BINDINGS = 8;
 
-interface CapabilityEntry {
-  readonly id: string;
-  readonly title?: string;
-  readonly features?: readonly string[];
-}
-
-interface CapabilitiesFile {
-  readonly schema?: string;
-  readonly source?: string;
-  readonly capabilities?: readonly CapabilityEntry[];
-}
-
 function run(opts: CommandStageOptions): readonly DriftFinding[] {
   const {cwd = '.'} = opts;
   const capabilitiesPath = join(cwd, 'spec/capabilities.yaml');
   if (!existsSync(capabilitiesPath)) return [];
 
-  let parsed: CapabilitiesFile;
-  try {
-    const raw = readFileSync(capabilitiesPath, 'utf8');
-    const obj = yaml.parse(raw);
-    if (!obj || typeof obj !== 'object') return [];
-    parsed = obj as CapabilitiesFile;
-  } catch {
-    return [];
-  }
-
-  const capabilities = parsed.capabilities ?? [];
-  if (capabilities.length === 0) return [];
-
-  // Build the set of valid feature ids from spec.yaml. Defensive against
-  // a missing/invalid spec — the SSoT spec detectors already flag that
-  // separately; CAPABILITIES_FEATURE_MAPPING just exits silently when it
-  // cannot load.
+  // The loader is the sole semantic source for both schemas. In particular,
+  // a schema 0.2 catalog reaches this detector only through the compiler's
+  // reverse-derived compatibility projection.
+  let capabilities: readonly Capability[];
   let featureIds: Set<string>;
   let onboardingSeeded = false;
   try {
     const spec = loadSpec(cwd);
-    featureIds = new Set(spec.features.map((f) => f.id));
+    capabilities = spec.capabilities ?? [];
+    featureIds = new Set(spec.features.map((feature) => feature.id));
     onboardingSeeded = spec.project.onboarding_seeded === true;
   } catch {
-    // Load-failure policy (see detectors/with-spec.ts): within-spec-validity
-    // detector — no spec means no capability↔feature links to validate;
-    // ABSENCE_OF_GOVERNANCE + the info-emitting detectors surface the failure.
     return [];
   }
+  if (capabilities.length === 0) return [];
 
   const findings: DriftFinding[] = [];
   const featuresClaimedByCapabilities = new Set<string>();
@@ -101,9 +74,8 @@ function run(opts: CommandStageOptions): readonly DriftFinding[] {
     onboardingSeeded && featureIds.size < DEFAULT_MIN_FEATURES_FOR_CAPABILITY_BINDINGS;
 
   for (const cap of capabilities) {
-    if (typeof cap !== 'object' || cap === null) continue;
-    const capId = String(cap.id ?? '(unnamed)');
-    const features = Array.isArray(cap.features) ? cap.features : [];
+    const capId = cap.id;
+    const features = cap.features ?? [];
 
     if (features.length === 0) {
       findings.push({
@@ -120,18 +92,17 @@ function run(opts: CommandStageOptions): readonly DriftFinding[] {
     }
 
     for (const featureId of features) {
-      const fid = String(featureId);
-      if (!featureIds.has(fid)) {
+      if (!featureIds.has(featureId)) {
         findings.push({
           detector: NAME,
           severity: 'error',
           path: 'spec/capabilities.yaml',
           message:
-            `capability "${capId}" references feature ${fid} which does not exist in spec.yaml — ` +
+            `capability "${capId}" references feature ${featureId} which does not exist in spec.yaml — ` +
             `either add the feature or remove it from this capability's features[]`,
         });
       } else {
-        featuresClaimedByCapabilities.add(fid);
+        featuresClaimedByCapabilities.add(featureId);
       }
     }
   }

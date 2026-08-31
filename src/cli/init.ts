@@ -182,7 +182,7 @@ function hasAnyAiHint(h: NonNullable<SpecSeedMetadata['ai_hints']>): boolean {
 // v0.3.49 (F-99c6e5) — `specSeed` emits `features: []` so the sharded
 // layout activates from day one. Every spec-gated detector
 // (MISSING_IMPLEMENTATION, AC_DRIFT, UNTESTED_AC, …) reads
-// `spec/features/<slug>-<hash6>.yaml` shards directly.
+// `spec/features/<slug>-<hash8>.yaml` shards directly.
 //
 // v0.4.0 — no placeholder shard is written at init time. External users
 // receive a clean spec; the AI (or `clad_create_feature` / the `clad` CLI)
@@ -248,7 +248,7 @@ function specSeed(
   return [
     '# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual',
     `# ${projectName} — Cladding spec`,
-    '# Features live in spec/features/<slug>-<hash>.yaml — one file per feature.',
+    '# Features live in spec/features/<slug>-<hash8>.yaml — one file per feature.',
     '# Edit shards there, run `clad sync` to validate, `clad check` to exercise',
     '# every Iron Law stage. See https://github.com/qwerfunch/ironclad for the standard.',
     '',
@@ -645,7 +645,7 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
   writeArtifact(cwd, 'docs/project-context.md', projectContextMd, created, proposals);
 
   // v0.3.45 (F-d12edf) — onboarding scenarios. Each scenario from the
-  // intent-aware onboarding lands in spec/scenarios/<slug>-<hash6>.yaml
+  // intent-aware onboarding lands in spec/scenarios/<slug>-<hash8>.yaml
   // so `clad_create_feature` can later bind new features to them via
   // the features[] array. Scenarios are Tier A (sealed by detectors)
   // but onboarding-time editable — see docs/ssot-model.md.
@@ -748,7 +748,7 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
 
 /**
  * Renders one onboarding scenario as a YAML shard ready for
- * `spec/scenarios/<slug>-<hash>.yaml`. Schema mirrors the existing
+ * `spec/scenarios/<slug>-<hash8>.yaml`. Schema mirrors the existing
  * sharded scenario format (`id`, `slug`, `title`, `flow`, `features`).
  * The header banner identifies the artifact as Tier A SSoT per
  * `docs/ssot-model.md`.

@@ -57,7 +57,7 @@ acceptance_criteria:
     response: "every graph-tool failure tells the agent how to proceed WITHOUT the graph"
     text: "When a graph tool fails to answer, the system shall include recovery guidance: clad init for a missing spec, and fall-back-to-normal-search wording in the miss discovery hints."
     test_refs:
-      - "tests/serve/server.test.ts#read surfaces degrade gracefully when spec.yaml is absent (no crash)"
+      - "tests/serve/server.test.ts#a missing spec keeps writes absent and returns both initialization and normal-search recovery hints"
     notes: "## Why\nclad_list_features already had this precedent (loadSpecOrError); the four graph tools shipped with raw err.message. Zero tests pin the raw ENOENT text (simulation), so this is a text-only change."
   - id: AC-10b1a2f8
     ears: event

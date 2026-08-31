@@ -32,6 +32,22 @@ vi.mock('../../src/spec/load.js', () => ({
   })),
 }));
 
+// This suite owns the strict skip-to-RED rule, not schema-0.2 assurance
+// planning.  Keep the gate's compiler boundary explicit and schema-0.1 so a
+// developer's migrated checkout cannot alter this fully stubbed exit contract.
+vi.mock('../../src/spec/compiler/compile.js', () => ({
+  compileSpecWorkspace: () => ({schemaVersion: '0.1', nodes: [], edges: [], diagnostics: []}),
+}));
+vi.mock('../../src/assurance/workspace.js', () => ({
+  workspaceClosureSeals: () => ({inputSha256: 'a'.repeat(64), closures: {schemaVersion: '0.1', features: []}}),
+  currentProofBindingsFromWorkspace: () => [],
+  currentExecutableProofFeatureIdsFromWorkspace: () => [],
+  hasApplicableSchema02TestCriteria: () => false,
+  currentProofViewsFromWorkspace: () => [],
+  workspaceProfileSnapshot: () => ({inputSha256: 'a'.repeat(64), complete: true, closureInput: {schemaVersion: '0.1', features: []}, incompleteAddresses: []}),
+  createWorkspaceAttestations: () => [],
+}));
+
 const clad = await import('../../src/cli/clad.js');
 
 describe('runCheckStages — vacuous-green guard (--strict)', () => {

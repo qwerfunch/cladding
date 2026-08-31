@@ -9,13 +9,15 @@
 // The shard edit goes through the `yaml` Document API so comments + layout survive.
 
 import {existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync} from 'node:fs';
-import {dirname, join} from 'node:path';
+import {createHash} from 'node:crypto';
+import {dirname, join, relative} from 'node:path';
 
 import {isMap, isSeq, parseDocument} from 'yaml';
 
 import {appendEvidence} from '../hitl/audit.js';
 import {newEvidence} from '../hitl/identity.js';
 import type {Evidence} from '../hitl/identity.js';
+import {commitSchema01CompatibilityMutation, editSpec, readSpecEditRevisions} from '../spec/edit.js';
 
 const ORACLE_DIR = 'tests/oracle';
 
@@ -47,7 +49,8 @@ function findShardPath(cwd: string, featureId: string): string | null {
 export function addOracleRef(cwd: string, featureId: string, acId: string, refPath: string): boolean {
   const shardPath = findShardPath(cwd, featureId);
   if (!shardPath) return false;
-  const doc = parseDocument(readFileSync(shardPath, 'utf8'));
+  const sourceBytes = readFileSync(shardPath, 'utf8');
+  const doc = parseDocument(sourceBytes);
   const acs = doc.get('acceptance_criteria');
   if (!isSeq(acs)) return false;
   const ac = acs.items.find((m) => isMap(m) && m.get('id') === acId);
@@ -59,7 +62,28 @@ export function addOracleRef(cwd: string, featureId: string, acId: string, refPa
   } else {
     ac.set('oracle_refs', [refPath]);
   }
-  writeFileSync(shardPath, String(doc), 'utf8');
+  const rootPath = join(cwd, 'spec.yaml');
+  const schema02 = existsSync(rootPath) && /^schema:\s*["']?0\.2["']?\s*$/m.test(readFileSync(rootPath, 'utf8'));
+  if (schema02) {
+    const existing = isSeq(refs)
+      ? refs.items.flatMap((node) => typeof (node as {value?: unknown}).value === 'string' ? [(node as {value: string}).value] : [])
+      : [];
+    // The sequence has already received refPath above, so normalize the
+    // operation from its pre-write values rather than serializing the YAML
+    // document. This gives schema 0.2 one typed proof-reference authority.
+    const original = existing.filter((entry) => entry !== refPath);
+    const operation = {
+      kind: 'criterion.set_proof_refs' as const,
+      featureId,
+      criterionId: acId,
+      oracleRefs: [...new Set([...original, refPath])],
+    };
+    const revisions = readSpecEditRevisions(cwd, [operation]);
+    if (revisions[`feature:${featureId}`] !== createHash('sha256').update(sourceBytes).digest('hex')) return false;
+    editSpec({cwd, operations: [operation], inputRevisions: revisions});
+    return true;
+  }
+  commitSchema01CompatibilityMutation(cwd, [{path: relative(cwd, shardPath), before: sourceBytes, after: String(doc)}]);
   return true;
 }
 

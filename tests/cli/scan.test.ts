@@ -9,7 +9,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {scanRoot} from '../../src/cli/scan/index.js';
+import {scanRoot, walk} from '../../src/cli/scan/index.js';
 
 function seed(dir: string, layout: Record<string, string>): void {
   for (const [path, content] of Object.entries(layout)) {
@@ -101,7 +101,7 @@ describe('scanRoot', () => {
     expect(scanRoot({cwd: dir}).conventions.testLocation).toBe('tests-dir');
   });
 
-  test('layers reflect top-level src/ directories', () => {
+  test('[covers:F-9b643e/AC-002] layers reflect top-level src/ directories', () => {
     seed(dir, {
       'src/core/a.ts': 'export const a = 1;\n',
       'src/cli/b.ts': 'export const b = 2;\n',
@@ -128,7 +128,7 @@ describe('scanRoot', () => {
     expect(r.scenarios).toEqual([]);
   });
 
-  test('examples pick the longest non-test module per layer', () => {
+  test('[covers:F-9b643e/AC-003] examples pick the longest non-test module per layer', () => {
     seed(dir, {
       'src/core/short.ts': 'export const s = 1;\n',
       'src/core/long.ts': 'export const l = 1;\n' + '// line\n'.repeat(40),
@@ -171,6 +171,23 @@ describe('scanRoot', () => {
     expect(r.architecture.layers.map((l) => l.name)).not.toContain('pkg');
   });
 
+  test('[covers:F-94dda4/AC-001] all nine supported external-language extensions produce architecture layers', () => {
+    seed(dir, {
+      'go/main.go': 'package main\nfunc main() {}\n',
+      'rust/lib.rs': 'pub fn lib() {}\n',
+      'java/App.java': 'class App {}\n',
+      'kotlin/App.kt': 'fun main() {}\n',
+      'csharp/App.cs': 'class App {}\n',
+      'ruby/app.rb': 'def app; end\n',
+      'php/app.php': '<?php function app() {}\n',
+      'swift/App.swift': 'func app() {}\n',
+      'dart/app.dart': 'void main() {}\n',
+    });
+
+    const names = scanRoot({cwd: dir}).architecture.layers.map((layer) => layer.name).sort();
+    expect(names).toEqual(['csharp', 'dart', 'go', 'java', 'kotlin', 'php', 'ruby', 'rust', 'swift']);
+  });
+
   // v0.3.25 (F-x) — source root inference: layerOf must collapse
   // src/<layer>/ across flat projects, monorepo workspaces, and CLI
   // overrides without losing the workspace prefix on monorepo layers.
@@ -209,7 +226,7 @@ describe('scanRoot', () => {
 
   // v0.3.28 — BFS walk + per-directory soft cap + entrypoint priority (I14)
   describe('walk BFS strategy (v0.3.28)', () => {
-    test('BFS reaches sibling directories even when the first one is huge', () => {
+    test('[covers:F-31eeb8/AC-001] BFS reaches sibling directories even when the first one is huge', () => {
       // Simulate react's compiler/ (large) vs packages/ (small)
       // imbalance. With DFS walk this scenario starved the small
       // sibling entirely; BFS + per-directory soft cap admits both.
@@ -229,20 +246,22 @@ describe('scanRoot', () => {
       expect(names.some((n) => n === 'a' || n === 'b' || n === 'packages')).toBe(true);
     });
 
-    test('per-directory soft cap stops at 50 files in one directory', () => {
+    test('[covers:F-31eeb8/AC-003] per-directory soft cap stops at 50 files in one directory', () => {
       const layout: Record<string, string> = {};
       for (let i = 0; i < 75; i++) {
         layout[`big/file${i}.ts`] = `export const v${i} = ${i};\n`;
       }
+      layout['small/kept.ts'] = 'export const kept = true;\n';
       seed(dir, layout);
-      const r = scanRoot({cwd: dir, maxFiles: 500});
-      // Soft cap = 50, so at most 50 files from `big/` should appear.
+      const r = scanRoot({cwd: dir, maxFiles: 51});
+      // The 50-file soft cap leaves the final slot for the sibling.
       const bigLayer = r.architecture.layers.find((l) => l.name === 'big');
       expect(bigLayer).toBeDefined();
-      expect(bigLayer!.moduleCount).toBeLessThanOrEqual(50);
+      expect(bigLayer!.moduleCount).toBe(50);
+      expect(r.architecture.layers.find((layer) => layer.name === 'small')?.moduleCount).toBe(1);
     });
 
-    test('entrypoint files sort to the head of their directory', () => {
+    test('[covers:F-31eeb8/AC-002] entrypoint files sort to the head of their directory', () => {
       // Files named `a.ts`/`b.ts`/`index.ts` — with entrypoint
       // priority `index.ts` should appear in the first quoted
       // example slice even if maxFiles=2 cut the tail.
@@ -251,30 +270,26 @@ describe('scanRoot', () => {
         'src/lib/index.ts': 'export const main = 1;\n',
         'src/lib/zebra.ts': 'export const z = 1;\n',
       });
-      const r = scanRoot({cwd: dir, maxFiles: 2});
-      // Two files admitted; index.ts must be among them.
-      const paths = r.examples.flatMap((e) => [e.modulePath, e.testPath]).filter(Boolean);
-      // The convention analyzer reads all admitted files; assert
-      // at least the index file made it via examples view or via
-      // the broader file count.
-      expect(r.stats.filesScanned).toBe(2);
-      const hasIndex =
-        paths.some((p) => p?.includes('index.ts')) ||
-        Object.keys(r.stats.languageCounts).length > 0; // sanity
-      expect(hasIndex).toBe(true);
+      const files = walk({root: dir, maxFiles: 2});
+      // Two files admitted; index.ts must displace lexical tail files.
+      expect(files.map((file) => file.relPath)).toEqual([
+        'src/lib/index.ts',
+        'src/lib/aardvark.ts',
+      ]);
     });
 
-    test('Python __init__.py is treated as an entrypoint', () => {
+    test('[covers:F-31eeb8/AC-004] Python __init__.py is admitted as an entrypoint before lexical siblings', () => {
       seed(dir, {
         'src/pkg/aaa.py': 'def a(): pass\n',
         'src/pkg/__init__.py': 'from .aaa import a\n',
         'src/pkg/zzz.py': 'def z(): pass\n',
       });
-      const r = scanRoot({cwd: dir, maxFiles: 2});
-      // Only 2 admitted; one of them must be __init__.py.
-      expect(r.stats.filesScanned).toBe(2);
-      // Convention analyzer read the contents — language stays python.
-      expect(r.stats.dominantLanguage).toBe('python');
+      const files = walk({root: dir, maxFiles: 2});
+      // The cap would otherwise admit aaa.py and zzz.py alphabetically.
+      expect(files.map((file) => file.relPath)).toEqual([
+        'src/pkg/__init__.py',
+        'src/pkg/aaa.py',
+      ]);
     });
   });
 
@@ -402,7 +417,7 @@ describe('scanRoot', () => {
   // must NOT show up as architectural layers. Case-insensitive
   // blacklist also covers Tests/, Playground/, etc.
   describe('layer blacklist (v0.3.26)', () => {
-    test('tests/ files feed testLocation but are excluded from layers', () => {
+    test('[covers:F-94dda4/AC-002] tests/ files feed testLocation but are excluded from layers', () => {
       seed(dir, {
         'src/core/x.ts': 'export const x = 1;\n',
         'tests/x.test.ts': "import {x} from '../src/core/x.js';\nx;\n",
@@ -414,7 +429,7 @@ describe('scanRoot', () => {
       expect(r.conventions.testLocation).toBe('tests-dir');
     });
 
-    test('docs/, examples/, typings/ are blacklisted from layers', () => {
+    test('[covers:F-94dda4/AC-002] docs/, examples/, typings/ are blacklisted from layers', () => {
       seed(dir, {
         'src/core/a.ts': 'export const a = 1;\n',
         'examples/demo.ts': 'export const demo = 1;\n',
@@ -425,7 +440,7 @@ describe('scanRoot', () => {
       expect(names).toEqual(['core']);
     });
 
-    test('case-insensitive blacklist hides Tests/ and Playground/', () => {
+    test('[covers:F-94dda4/AC-003] case-insensitive blacklist hides Tests/ and Playground/', () => {
       seed(dir, {
         'src/lib/a.swift': 'public func a() {}\n',
         'Tests/aTest.swift': 'func test() {}\n',
@@ -435,7 +450,7 @@ describe('scanRoot', () => {
       expect(names).toEqual(['lib']);
     });
 
-    test('monorepo blacklist drops <ws>:tests but keeps <ws>:src', () => {
+    test('[covers:F-94dda4/AC-003] monorepo blacklist drops <ws>:tests but keeps <ws>:src', () => {
       seed(dir, {
         'package.json': JSON.stringify({workspaces: ['packages/*']}),
         'packages/a/src/core/x.ts': 'export const x = 1;\n',
@@ -449,6 +464,38 @@ describe('scanRoot', () => {
 
   // v0.3.26 — language-specific docstring heuristics
   describe('multi-language docblock detection (v0.3.26)', () => {
+    test('[covers:F-94dda4/AC-004] six language-family docblock conventions produce nonzero evidence and language-specific tags', () => {
+      const fixtures = {
+        typescript: {
+          'src/a.ts': '/** @param value input\n * @returns output\n */\nexport function useValue(value: string) { return value; }\n',
+        },
+        python: {
+          'src/a.py': 'def use_value(value):\n    """Args:\n        value: input\n\n    Returns:\n        output\n    """\n    return value\n',
+        },
+        rust: {
+          'src/a.rs': '/// # Errors\n/// Fails when input is invalid.\npub fn use_value() {}\n',
+        },
+        go: {
+          'src/a.go': '// UseValue accepts input.\n// Deprecated: use NextValue.\nfunc UseValue() {}\n',
+        },
+        ruby: {
+          'src/a.rb': '# Use value.\ndef use_value\nend\n',
+        },
+        java: {
+          'src/A.java': 'public class A {\n  /** @param value input\n   * @returns output\n   */\n  public String useValue(String value) { return value; }\n}\n',
+        },
+      } as const;
+
+      for (const [language, layout] of Object.entries(fixtures)) {
+        const root = join(dir, language);
+        seed(root, layout);
+        expect(scanRoot({cwd: root}).conventions.docBlockRatio, language).toBeGreaterThan(0);
+      }
+      expect(scanRoot({cwd: join(dir, 'python')}).conventions.docTagCounts).toMatchObject({'Args:': 1, 'Returns:': 1});
+      expect(scanRoot({cwd: join(dir, 'rust')}).conventions.docTagCounts).toMatchObject({'# Errors': 1});
+      expect(scanRoot({cwd: join(dir, 'go')}).conventions.docTagCounts).toMatchObject({'Deprecated:': 1});
+    });
+
     test('Python triple-quoted docstrings count toward docBlockRatio', () => {
       seed(dir, {
         'src/lib/x.py': '"""module doc."""\n\ndef greet(name):\n    """Say hi."""\n    return f"hi {name}"\n',
@@ -488,7 +535,7 @@ describe('scanRoot', () => {
   // exercised; the candidate set surfaces in architecture.yaml as a
   // reviewer-pruned suggestion list.
   describe('forbidden_imports candidates (v0.3.25 + v0.3.31 prune)', () => {
-    test('layer pairs without observed edges become forbidden candidates (when both sides are non-trivial)', () => {
+    test('[covers:F-aa7197/AC-002] layer pairs without observed edges become forbidden candidates with bounded non-trivial layers', () => {
       // v0.3.31 prune: FORBIDDEN_TRIVIAL_THRESHOLD = 2. Each layer
       // needs 3+ modules to participate as importer or target.
       seed(dir, {
@@ -509,7 +556,7 @@ describe('scanRoot', () => {
       expect(arch.forbiddenImportCandidates['core']).toEqual(['cli', 'ui']);
     });
 
-    test('trivial layers (≤2 files) drop out of the candidate matrix', () => {
+    test('[covers:F-aa7197/AC-002] trivial layers (≤2 files) drop out of the candidate matrix', () => {
       // v0.3.31 — layers with 1-2 modules carry no real import
       // policy. ripgrep HomebrewFormula / fuzz / pkg were noise
       // sources in the 5차 audit; the prune removes them.
@@ -522,6 +569,22 @@ describe('scanRoot', () => {
       const arch = scanRoot({cwd: dir}).architecture;
       expect(arch.forbiddenImportCandidates['big']).toBeUndefined();
       expect(arch.forbiddenImportCandidates['tiny']).toBeUndefined();
+    });
+
+    test('[covers:F-aa7197/AC-002] non-trivial candidate rows are capped at eight and exclude trivial targets', () => {
+      const layout: Record<string, string> = {};
+      for (const layer of ['source', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']) {
+        for (let index = 0; index < 3; index++) {
+          layout[`src/${layer}/file${index}.ts`] = `export const ${layer}${index} = ${index};\n`;
+        }
+      }
+      layout['src/tiny/only.ts'] = 'export const only = true;\n';
+      seed(dir, layout);
+
+      const candidates = scanRoot({cwd: dir}).architecture.forbiddenImportCandidates;
+      expect(candidates.source).toHaveLength(8);
+      expect(candidates.source).not.toContain('tiny');
+      expect(candidates.tiny).toBeUndefined();
     });
 
     test('all-to-all observed graph leaves no candidates', () => {

@@ -376,7 +376,7 @@ export function renderGreenfieldCapabilitiesYaml(projectName: string): string {
     '#     title: "<verbatim heading or feature name>"',
     '#     summary: "<one sentence — what this capability does>"',
     '#     surface: feature | platform | tool | infrastructure',
-    '#     features: [F-<hash6>, ...]  # bind to spec.yaml features',
+    '#     features: [F-<hash8>, ...]  # bind to spec.yaml features',
     'schema: "0.1"',
     'source: README.md',
     'capabilities: []',

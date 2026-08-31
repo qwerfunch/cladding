@@ -50,14 +50,14 @@ describe('F-ebbb20af — Soft Shell leak closure', () => {
     expect(res.reason).toContain('no feature in the spec');
   });
 
-  test('AC-78c153fa — a stop-block detector renders its plain lead, never the raw id', () => {
+  test('[covers:F-ebbb20af/AC-78c153fa] AC-78c153fa — a stop-block detector renders its plain lead, never the raw id', () => {
     expect(plainLead('AC_DRIFT', 'a prior check')).toBe(DETECTOR_PLAIN.AC_DRIFT.lead);
     expect(plainLead('AC_DRIFT', 'a prior check')).not.toBe('AC_DRIFT');
     // an unregistered detector falls back to a plain phrase, not the raw token
     expect(plainLead('WEIRD_UNREGISTERED', 'a prior check')).toBe('a prior check');
   });
 
-  test('AC-c7c1c6e1 — the init-generated scenarios README prose names no MCP tool and no "shard"', async () => {
+  test('[covers:F-ebbb20af/AC-c7c1c6e1] AC-c7c1c6e1 — the init-generated scenarios README prose names no MCP tool and no "shard"', async () => {
     await runInit({cwd: dir});
     const readmePath = join(dir, 'spec', 'scenarios', 'README.md');
     expect(existsSync(readmePath), 'scenarios README should be generated').toBe(true);

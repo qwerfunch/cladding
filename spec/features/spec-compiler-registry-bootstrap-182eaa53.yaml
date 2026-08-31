@@ -1,0 +1,129 @@
+id: F-182eaa53
+slug: spec-compiler-registry-bootstrap
+title: "Spec compiler and registry bootstrap"
+status: in_progress
+modules:
+  - CLAUDE.md
+  - src/spec/compiler/artifact-registry.ts
+  - src/spec/compiler/id-policy.ts
+  - src/spec/compiler/types.ts
+  - src/spec/compiler/compile.ts
+  - src/spec/compiler/migration-baseline.ts
+  - src/spec/compiler/corpus-snapshot.ts
+  - scripts/spec-0.2-corpus-snapshot.ts
+  - scripts/spec-0.2-validate.ts
+  - src/spec/feature-id.ts
+  - src/spec/new.ts
+  - src/spec/schema.json
+  - src/serve/server.ts
+  - src/ui/softShell.ts
+  - src/stages/detectors/slug-conflict.ts
+  - src/agents/developer.md
+  - src/agents/observability.md
+  - src/agents/orchestrator.md
+  - src/agents/planner.md
+  - src/agents/reviewer.md
+  - src/cli/init.ts
+  - src/cli/clarify.ts
+  - src/cli/doctor-hosts.ts
+  - src/init/agents-md.ts
+  - src/cli/scan/greenfield-seeds.ts
+  - src/cli/scan/intent-onboarding.ts
+  - tests/spec/compiler/artifact-registry.test.ts
+  - tests/spec/compiler/id-policy.test.ts
+  - tests/spec/compiler/graph-ir-v2.test.ts
+  - tests/spec/compiler/migration-baseline.test.ts
+  - tests/spec/compiler/corpus-snapshot.test.ts
+  - tests/spec/compiler/fixtures/self-corpus.snapshot.json
+  - tests/spec/new-scenario.test.ts
+  - tests/spec/new.test.ts
+  - tests/scenarios/_size-budgets.ts
+  - tests/scenarios/_assertions.ts
+  - tests/cli/verb-residue.test.ts
+  - tests/cli/clarify.test.ts
+  - tests/serve/server.test.ts
+  - tests/cli/doctor-hosts.test.ts
+  - tests/ui/softShell.test.ts
+  - tests/design/spec-0.2/requirements.yaml
+  - tests/design/spec-0.2/design-validation.test.ts
+  - docs/spec-ids-multi-dev.md
+  - docs/ab-evaluation/case-existing-adoption.md
+  - docs/ab-evaluation/case-payment-saas.md
+  - docs/conventions.md
+  - docs/design/spec-0.2/evidence.md
+  - docs/design/spec-0.2/decision-log.md
+  - docs/project-context.md
+  - docs/ssot-model.md
+  - README.md
+  - README.ko.md
+  - README.ja.md
+  - README.zh.md
+  - README.html
+  - README.ko.html
+  - skills/checkpoint/SKILL.md
+  - skills/rollback/SKILL.md
+  - skills/status/SKILL.md
+  - plugins/antigravity/skills/checkpoint/SKILL.md
+  - plugins/antigravity/skills/developer/SKILL.md
+  - plugins/antigravity/skills/observability/SKILL.md
+  - plugins/antigravity/skills/orchestrator/SKILL.md
+  - plugins/antigravity/skills/planner/SKILL.md
+  - plugins/antigravity/skills/reviewer/SKILL.md
+  - plugins/antigravity/skills/rollback/SKILL.md
+  - plugins/antigravity/skills/status/SKILL.md
+  - plugins/claude-code/agents/developer.md
+  - plugins/claude-code/agents/observability.md
+  - plugins/claude-code/agents/orchestrator.md
+  - plugins/claude-code/agents/planner.md
+  - plugins/claude-code/agents/reviewer.md
+  - plugins/claude-code/dist/agents/developer.md
+  - plugins/claude-code/dist/agents/observability.md
+  - plugins/claude-code/dist/agents/orchestrator.md
+  - plugins/claude-code/dist/agents/planner.md
+  - plugins/claude-code/dist/agents/reviewer.md
+  - plugins/claude-code/dist/clad.js
+  - plugins/claude-code/dist/schema.json
+  - plugins/codex/skills/checkpoint/SKILL.md
+  - plugins/codex/skills/developer/SKILL.md
+  - plugins/codex/skills/observability/SKILL.md
+  - plugins/codex/skills/orchestrator/SKILL.md
+  - plugins/codex/skills/planner/SKILL.md
+  - plugins/codex/skills/reviewer/SKILL.md
+  - plugins/codex/skills/rollback/SKILL.md
+  - plugins/codex/skills/status/SKILL.md
+  - plugins/gemini-cli/GEMINI.md
+  - spec/README.md
+  - spec.yaml
+  - spec/index.yaml
+acceptance_criteria:
+  - id: AC-6e5b88fa
+    ears: ubiquitous
+    text: "The specification compiler shall deterministically compile schema 0.1 artifacts into typed graph facts while preserving authored ownership, source locations, raw references, selectors, and unresolved states."
+    test_refs: ["tests/spec/compiler/graph-ir-v2.test.ts#is deterministic, preserves composite criteria, and never resolves a bare AC id"]
+    notes: "## Why\nD10 and D17 need a discardable parity boundary before any public graph or migration cutover."
+  - id: AC-34749728
+    ears: ubiquitous
+    text: "The artifact and identifier registries shall give every managed Spec write target and new identifier one executable policy while retaining valid legacy sequential and six-or-more-hex inputs."
+    test_refs: ["tests/spec/compiler/artifact-registry.test.ts#keeps descriptor ids unique and root-file regions separate", "tests/spec/compiler/id-policy.test.ts#keeps sequential and six-or-more-hex records readable while writers emit exactly eight lowercase hex"]
+    notes: "## Why\nD10 requires one authority for artifact ownership and D04 requires one authority for identity policy."
+  - id: AC-dacbffda
+    ears: ubiquitous
+    text: "The migration baseline schema shall preserve node-level legacy intent and bindings without applying a migration or revoking sibling exemptions."
+    test_refs: ["tests/spec/compiler/migration-baseline.test.ts#gives a new node no exemption and revokes only the edited node"]
+    notes: "## Why\nD14 baseline data must preserve historical meaning until a later transactional migration feature owns writes."
+  - id: AC-b38f45f7
+    ears: event
+    condition: "when the self corpus changes"
+    text: "When the self corpus changes, the independent scanner shall regenerate sorted source records and expose a meaningful parity difference without importing production loading or graph paths."
+    test_refs: ["tests/spec/compiler/corpus-snapshot.test.ts#reports a meaningful source mutation instead of hiding it behind a literal count"]
+    notes: "## Why\nD15 and D16 require an independent oracle so a compiler regression cannot approve itself."
+  - id: AC-6d69273c
+    ears: ubiquitous
+    text: "The validation ledger shall mark D05-D14, D17, and D20-D24 validation-active while keeping F8-F11 cutover, reference-host, and preregistered completion claims pending."
+    test_refs: ["tests/design/spec-0.2/design-validation.test.ts#marks the F7 scenario boundary validation-active without promoting F8-F11 work", "tests/design/spec-0.2/design-validation.test.ts#locks the 0.10 rebaseline without upgrading pending runtime evidence"]
+    notes: "## Why\nValidation evidence records the current F7 boundary precisely: deterministic registry and scenario work is active, while F8-F11 cutover, reference-host evidence, and preregistered completion remain pending."
+design_impact:
+  classification: additive
+  rationale: "F1 adds a read-only compiler and registries beside the shipped schema 0.1 loader, reverse index, graph, detector, and MCP contracts."
+  status: resolved
+  artifacts: []

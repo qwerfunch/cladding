@@ -13,7 +13,7 @@
 
 import process from 'node:process';
 
-import {loadSpec, primeSpecCache} from '../spec/load.js';
+import {loadSpecWithFileCensus, primeSpecCache} from '../spec/load.js';
 
 import {storeDetectorResult} from './detector-result-cache.js';
 import {architectureViolation} from './detectors/architecture-violation.js';
@@ -115,7 +115,8 @@ export function runDrift(opts: DriftOptions = {}): DriftReport {
   const active = interactive ? detectors.filter((d) => !d.subprocess) : detectors;
   const skippedDetectors = interactive ? detectors.filter((d) => d.subprocess).map((d) => d.name) : [];
   try {
-    primeSpecCache(cwd, loadSpec(cwd));
+    const loaded = loadSpecWithFileCensus(cwd);
+    primeSpecCache(cwd, loaded.spec, loaded.parsedPaths);
   } catch {
     primeSpecCache(cwd, null);
   }
@@ -153,6 +154,8 @@ const isCliEntry = !(globalThis as {__CLADDING_BUNDLED?: boolean}).__CLADDING_BU
 if (isCliEntry) {
   const strict = process.argv.includes('--strict');
   const report = runDrift({strict});
-  console.log(JSON.stringify(report));
-  process.exit(report.exitCode);
+  // A forced exit can truncate a JSON report queued behind a 64 KiB pipe.
+  // Natural process exit lets stdout drain while retaining the report status.
+  process.stdout.write(`${JSON.stringify(report)}\n`);
+  process.exitCode = report.exitCode;
 }

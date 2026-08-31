@@ -9,25 +9,31 @@
 //   - title default = slug; status default = planned
 //   - generated yaml is parseable + minimal shape
 
-import {mkdtempSync, readFileSync, rmSync, existsSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, existsSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 import {parse as parseYaml} from 'yaml';
 
-import {createFeature, createScenario} from '../../src/spec/new.js';
+import {createFeature, createScenario, createSchema01FeatureComposite, linkScenario, resolveDesignImpact} from '../../src/spec/new.js';
 import {readEvents} from '../../src/events/log.js';
+
+/** Creates the exact legacy root selector required by every schema-0.1 writer fixture. */
+function writeLegacyRoot(dir: string): void {
+  writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: legacy\n  language: typescript\n');
+}
 
 describe('createFeature (F-084, v0.3.9)', () => {
   let dir: string;
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'clad-new-feature-'));
+    writeLegacyRoot(dir);
   });
   afterEach(() => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('happy path — writes spec/features/<slug>-<hash>.yaml with hash id', () => {
+  test("[covers:F-67e33f/AC-001][covers:F-67e33f/AC-003] happy path — writes spec/features/<slug>-<hash8>.yaml with hash id", () => {
     const r = createFeature({slug: 'login-flow', cwd: dir});
     expect(r.slug).toBe('login-flow');
     expect(r.id).toMatch(/^F-[a-f0-9]{8}$/);
@@ -82,7 +88,7 @@ describe('createFeature (F-084, v0.3.9)', () => {
     );
   });
 
-  test('two consecutive calls with the same slug produce two distinct files (different hashes)', () => {
+  test("[covers:F-24062d/AC-001][covers:F-24062d/AC-002] two consecutive calls with the same slug produce two distinct files (different hashes)", () => {
     const r1 = createFeature({slug: 'login-flow', cwd: dir});
     const r2 = createFeature({slug: 'login-flow', cwd: dir});
     // Same slug field inside yaml; different filenames because the
@@ -107,6 +113,7 @@ describe('createFeature (F-084, v0.3.9)', () => {
     // least via hrtime, so distinct ids are statistically certain.
     const dir2 = mkdtempSync(join(tmpdir(), 'clad-new-feature-2-'));
     try {
+      writeLegacyRoot(dir2);
       const r1 = createFeature({slug: 'login-flow', cwd: dir});
       const r2 = createFeature({slug: 'login-flow', cwd: dir2});
       expect(r1.id).not.toBe(r2.id);
@@ -136,6 +143,167 @@ describe('createFeature (F-084, v0.3.9)', () => {
     // the function's existsSync branch.
     expect(() => createFeature({slug: 'probe', cwd: dir})).not.toThrow();
   });
+
+  test('schema 0.1 additive create commits feature, capability, scenario, event, and derived inventory as one journal', () => {
+    mkdirSync(join(dir, 'spec', 'scenarios'), {recursive: true});
+    writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: legacy\n  language: typescript\nfeatures: []\nscenarios: []\n');
+    writeFileSync(join(dir, 'spec', 'scenarios', 'journey-aaaaaaaa.yaml'), 'id: S-aaaaaaaa\nslug: journey\ntitle: Journey\nfeatures: []\n');
+    const result = createSchema01FeatureComposite({
+      cwd: dir, slug: 'atomic-legacy',
+      design_impact: {classification: 'additive', rationale: 'The feature extends an existing journey.'},
+      additive: {capability: 'legacy-capability', capabilityTitle: 'Legacy capability', scenario: 'journey'},
+    });
+    expect(readFileSync(join(dir, 'spec', 'capabilities.yaml'), 'utf8')).toContain(result.id);
+    expect(readFileSync(join(dir, 'spec', 'scenarios', 'journey-aaaaaaaa.yaml'), 'utf8')).toContain(result.id);
+    expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).toContain('inventory:');
+    expect(readEvents(dir).map((event) => event.type)).toContain('feature_created');
+    expect(existsSync(join(dir, '.cladding', 'spec-transaction.json'))).toBe(false);
+  });
+
+  test('schema 0.1 structural creation records only safe registered design documents', () => {
+    const artifact = 'docs/design/spec-0.2/proof-and-editing.md';
+    mkdirSync(join(dir, 'docs', 'design', 'spec-0.2'), {recursive: true});
+    writeFileSync(join(dir, artifact), '# Reviewed design\n');
+    const created = createFeature({
+      cwd: dir,
+      slug: 'reviewed-design',
+      design_impact: {classification: 'structural', rationale: 'Record the reviewed design boundary.', artifacts: [artifact]},
+    });
+    const impact = (parseYaml(readFileSync(created.path, 'utf8')) as {design_impact: {baseline_digests?: Record<string, string>}}).design_impact;
+    expect(impact.baseline_digests?.[artifact]).toMatch(/^[a-f0-9]{64}$/);
+    expect(() => createFeature({
+      cwd: dir,
+      slug: 'implementation-artifact',
+      design_impact: {classification: 'structural', rationale: 'Reject source ownership.', artifacts: ['src/spec/new.ts']},
+    })).toThrow(/registered design document/);
+    expect(() => createFeature({
+      cwd: dir,
+      slug: 'missing-design-artifact',
+      design_impact: {classification: 'structural', rationale: 'Reject absent document.', artifacts: ['docs/design/missing.md']},
+    })).toThrow(/regular file/);
+    expect(() => createFeature({
+      cwd: dir,
+      slug: 'absent-design-artifact',
+      design_impact: {classification: 'structural', rationale: 'Reject the old absent sentinel.', artifacts: ['absent']},
+    })).toThrow(/registered design document/);
+    expect(() => createFeature({
+      cwd: dir,
+      slug: 'unsafe-design-artifact',
+      design_impact: {classification: 'structural', rationale: 'Reject traversal.', artifacts: ['../outside.md']},
+    })).toThrow(/unsafe repository path/);
+  });
+
+  test('schema 0.1 composite refuses a migration winner without restoring or deleting successor bytes', () => {
+    writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.2"\nproject:\n  name: migrated\n');
+    const before = readFileSync(join(dir, 'spec.yaml'), 'utf8');
+    expect(() => createSchema01FeatureComposite({cwd: dir, slug: 'stale-composite'})).toThrow(/migrated to schema 0.2/);
+    expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).toBe(before);
+    expect(existsSync(join(dir, 'spec', 'features'))).toBe(false);
+  });
+
+  test('missing or malformed root selector rejects legacy creation without a workspace write', () => {
+    const missing = mkdtempSync(join(tmpdir(), 'clad-new-missing-root-'));
+    const malformed = mkdtempSync(join(tmpdir(), 'clad-new-malformed-root-'));
+    try {
+      expect(() => createFeature({cwd: missing, slug: 'missing-root'})).toThrow(/spec\.yaml with schema/);
+      expect(readdirSync(missing)).toEqual([]);
+
+      writeFileSync(join(malformed, 'spec.yaml'), 'schema: "0.3"\nproject:\n  name: malformed\n');
+      const before = readFileSync(join(malformed, 'spec.yaml'), 'utf8');
+      expect(() => createFeature({cwd: malformed, slug: 'malformed-root'})).toThrow(/exact supported schema/);
+      expect(readdirSync(malformed).sort()).toEqual(['spec.yaml']);
+      expect(readFileSync(join(malformed, 'spec.yaml'), 'utf8')).toBe(before);
+    } finally {
+      rmSync(missing, {recursive: true, force: true});
+      rmSync(malformed, {recursive: true, force: true});
+    }
+  });
+
+  test('resolves a schema 0.1 no-baseline review only through the explicit typed path and only for safe registered design documents', () => {
+    mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
+    mkdirSync(join(dir, 'docs', 'design', 'spec-0.2'), {recursive: true});
+    writeFileSync(join(dir, 'docs', 'design', 'spec-0.2', 'proof-and-editing.md'), '# Reviewed design\n');
+    writeFileSync(join(dir, 'spec', 'features', 'migrated-aaaaaaaa.yaml'), [
+      'id: F-aaaaaaaa', 'title: Migrated review', 'status: planned',
+      'design_impact:', '  classification: structural', '  rationale: Preserve the migrated review boundary.', '  status: review_required',
+      '  artifacts: ["docs/design/spec-0.2/proof-and-editing.md"]', '',
+    ].join('\n'));
+
+    const before = readFileSync(join(dir, 'spec', 'features', 'migrated-aaaaaaaa.yaml'), 'utf8');
+    expect(before).toContain('status: review_required');
+    expect(before).not.toContain('baseline_digests');
+    expect(resolveDesignImpact({cwd: dir, feature: 'F-aaaaaaaa'})).toMatchObject({changed: true});
+    const resolved = parseYaml(readFileSync(join(dir, 'spec', 'features', 'migrated-aaaaaaaa.yaml'), 'utf8')) as Record<string, unknown>;
+    expect(resolved.design_impact).toMatchObject({status: 'resolved', artifacts: ['docs/design/spec-0.2/proof-and-editing.md']});
+    expect((resolved.design_impact as Record<string, unknown>).baseline_digests).toBeUndefined();
+
+    writeFileSync(join(dir, 'spec', 'features', 'implementation-bbbbbbbb.yaml'), [
+      'id: F-bbbbbbbb', 'title: Implementation artifact', 'status: planned',
+      'design_impact:', '  classification: structural', '  rationale: Reject implementation ownership here.', '  status: review_required',
+      '  artifacts: ["src/spec/compiler/authoring-view.ts"]', '',
+    ].join('\n'));
+    expect(() => resolveDesignImpact({cwd: dir, feature: 'F-bbbbbbbb'})).toThrow(/registered design document/);
+
+    writeFileSync(join(dir, 'spec', 'features', 'unsafe-cccccccc.yaml'), [
+      'id: F-cccccccc', 'title: Unsafe artifact', 'status: planned',
+      'design_impact:', '  classification: structural', '  rationale: Reject path traversal.', '  status: review_required',
+      '  artifacts: ["../outside.md"]', '',
+    ].join('\n'));
+    expect(() => resolveDesignImpact({cwd: dir, feature: 'F-cccccccc'})).toThrow(/unsafe repository path/);
+
+    mkdirSync(join(dir, 'docs', 'design', 'directory.md'));
+    writeFileSync(join(dir, 'spec', 'features', 'directory-dddddddd.yaml'), [
+      'id: F-dddddddd', 'title: Directory artifact', 'status: planned',
+      'design_impact:', '  classification: structural', '  rationale: Reject non-file artifacts.', '  status: review_required',
+      '  artifacts: ["docs/design/directory.md"]', '',
+    ].join('\n'));
+    expect(() => resolveDesignImpact({cwd: dir, feature: 'F-dddddddd'})).toThrow(/regular file/);
+  });
+});
+
+describe('createFeature — schema 0.2 transaction adapter', () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'clad-new-schema02-'));
+    mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
+    writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.2"\nproject:\n  name: adapter\n  language: typescript\n  purpose: Keep adapters typed.\n  assurance_level: L2\n  scenario_policy: advisory\n');
+    writeFileSync(join(dir, 'spec', 'capabilities.yaml'), 'capabilities:\n  - id: governance\n    title: Governance\n    outcome: Keep records typed.\n');
+    writeFileSync(join(dir, 'spec', 'architecture.yaml'), 'layers:\n  - [core]\nrules: []\n');
+  });
+  afterEach(() => rmSync(dir, {recursive: true, force: true}));
+
+  test('composes feature creation and design impact through one typed journal', () => {
+    const result = createFeature({
+      cwd: dir, slug: 'typed-adapter', purpose: 'Keep creation behind the transaction boundary.', capability_refs: ['governance'],
+      acceptance_criteria: [{kind: 'behavior', statement: 'The system shall create a typed feature.', oracle_refs: ['tests/adapter.test.ts'], evidence_refs: ['spec/evidence/receipt.yaml'], notes: 'adapter'}],
+      design_impact: {classification: 'none', rationale: 'No structural artifact changes.'},
+    });
+    const feature = parseYaml(readFileSync(result.path, 'utf8')) as Record<string, unknown>;
+    expect(feature.design_impact).toMatchObject({classification: 'none', status: 'resolved'});
+    expect((feature.acceptance_criteria as Array<Record<string, unknown>>)[0]).toMatchObject({oracle_refs: ['tests/adapter.test.ts'], evidence_refs: ['spec/evidence/receipt.yaml']});
+    expect(readEvents(dir).map((event) => event.type)).toContain('feature_created');
+  });
+
+  test('rejects legacy criterion spellings and non-planned lifecycle requests with no shard', () => {
+    expect(() => createFeature({cwd: dir, slug: 'legacy-spelling', purpose: 'Typed fields are mandatory.', capability_refs: [], acceptance_criteria: [{kind: 'behavior', statement: 'The system shall reject aliases.', text: 'legacy'}]})).toThrow(/legacy EARS/);
+    expect(() => createFeature({cwd: dir, slug: 'invalid-status', purpose: 'Lifecycle is explicit.', capability_refs: [], status: 'in_progress'})).toThrow(/starts planned/);
+    expect(existsSync(join(dir, 'spec', 'features', 'legacy-spelling.yaml'))).toBe(false);
+  });
+
+  test('links direct sequential and six-hex migrated scenario aliases without rewriting their filenames', () => {
+    writeFileSync(join(dir, 'spec', 'features', 'F-001.yaml'), 'id: F-001\ntitle: Legacy feature\nstatus: planned\npurpose: Keep compatibility mutable.\nmodules: []\ndepends_on: []\ncapability_refs: []\nacceptance_criteria: []\n');
+    writeFileSync(join(dir, 'spec', 'features', 'F-002.yaml'), 'id: F-002\ntitle: Linked feature\nstatus: planned\npurpose: Keep typed scenario links explicit.\nmodules: []\ndepends_on: []\ncapability_refs: []\nacceptance_criteria: []\n');
+    mkdirSync(join(dir, 'spec', 'scenarios'), {recursive: true});
+    const scenario = (id: string, title: string): string => [
+      `id: ${id}`, `title: ${title}`, 'actor: Operator', 'goal: Link the feature', 'success: The relationship is retained', 'steps:', '  - Link one feature', 'feature_refs: [F-001]', '',
+    ].join('\n');
+    writeFileSync(join(dir, 'spec', 'scenarios', 'S-001.yaml'), scenario('S-001', 'Sequential journey'));
+    expect(linkScenario({cwd: dir, scenario: 'S-001', feature: 'F-002'})).toBe(join(dir, 'spec', 'scenarios', 'S-001.yaml'));
+    expect(readFileSync(join(dir, 'spec', 'scenarios', 'S-001.yaml'), 'utf8')).toContain('feature_refs:\n  - F-001\n  - F-002');
+    writeFileSync(join(dir, 'spec', 'scenarios', 'legacy-abcdef.yaml'), scenario('S-abcdef', 'Six hex journey'));
+    expect(linkScenario({cwd: dir, scenario: 'S-abcdef', feature: 'F-002'})).toBe(join(dir, 'spec', 'scenarios', 'legacy-abcdef.yaml'));
+    expect(readFileSync(join(dir, 'spec', 'scenarios', 'legacy-abcdef.yaml'), 'utf8')).toContain('feature_refs:\n  - F-001\n  - F-002');
+  });
 });
 
 // v0.4.x — a create call can now author a REAL feature (ACs + modules), not just
@@ -145,10 +313,11 @@ describe('createFeature — rich authoring (modules + acceptance_criteria)', () 
   let dir: string;
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'clad-new-rich-'));
+    writeLegacyRoot(dir);
   });
   afterEach(() => rmSync(dir, {recursive: true, force: true}));
 
-  test('persists modules and acceptance_criteria with auto-assigned AC ids; yaml parses', () => {
+  test("[covers:F-a04cd9/AC-001][covers:F-a04cd9/AC-002][covers:F-eb732f/AC-001] persists modules and acceptance_criteria with auto-assigned AC ids; yaml parses", () => {
     const r = createFeature({
       cwd: dir,
       slug: 'login-flow',
@@ -168,7 +337,7 @@ describe('createFeature — rich authoring (modules + acceptance_criteria)', () 
     const parsed = parseYaml(readFileSync(r.path, 'utf8'));
     expect(parsed.modules).toEqual(['src/auth/login.ts', 'src/auth/session.ts']);
     expect(parsed.acceptance_criteria).toHaveLength(2);
-    // AC ids are hash-model (AC-<hash6>) for multi-dev merge safety, like F-/S- ids.
+    // AC ids are hash-model (AC-<hash8>) for multi-dev merge safety, like F-/S- ids.
     expect(parsed.acceptance_criteria[0].id).toMatch(/^AC-[0-9a-f]{8}$/);
     expect(parsed.acceptance_criteria[1].id).toMatch(/^AC-[0-9a-f]{8}$/);
     expect(parsed.acceptance_criteria[0].id).not.toBe(parsed.acceptance_criteria[1].id);
@@ -208,12 +377,13 @@ describe('createFeature — EARS-shape validation at creation (Lever ①)', () =
   let dir: string;
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'clad-new-ears-'));
+    writeLegacyRoot(dir);
   });
   afterEach(() => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('REJECTS a ubiquitous AC that carries a condition — precise message, no file written', () => {
+  test("[covers:F-dddb89/AC-001] REJECTS a ubiquitous AC that carries a condition — precise message, no file written", () => {
     expect(() =>
       createFeature({
         slug: 'bad-ubiq',
@@ -256,7 +426,7 @@ describe('createFeature — EARS-shape validation at creation (Lever ①)', () =
     expect(parsed.acceptance_criteria).toHaveLength(3);
   });
 
-  test('aggregates MULTIPLE issues in one throw (one create call surfaces all fixes at once)', () => {
+  test("[covers:F-dddb89/AC-003] aggregates MULTIPLE issues in one throw (one create call surfaces all fixes at once)", () => {
     let msg = '';
     try {
       createFeature({
@@ -281,6 +451,7 @@ describe('createFeature ledger emission (F-b84c38)', () => {
   test('feature_created carries id, slug, and identity', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-new-ev-'));
     try {
+      writeLegacyRoot(dir);
       const r = createFeature({slug: 'ledger-probe', cwd: dir});
       const ev = readEvents(dir).filter((e) => e.type === 'feature_created');
       expect(ev.length).toBe(1);
@@ -298,6 +469,7 @@ describe('done-at-creation guard', () => {
   test("createFeature downgrades status:'done' to in_progress with a note naming clad done", () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-new-doneguard-'));
     try {
+      writeLegacyRoot(dir);
       const r = createFeature({slug: 'sneaky-done', status: 'done', cwd: dir});
       const body = readFileSync(r.path, 'utf8');
       expect(body).toContain('status: in_progress');
@@ -311,6 +483,7 @@ describe('done-at-creation guard', () => {
   test('other statuses pass through untouched (planned default, in_progress, blocked)', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-new-status-'));
     try {
+      writeLegacyRoot(dir);
       expect(readFileSync(createFeature({slug: 'a', cwd: dir}).path, 'utf8')).toContain('status: planned');
       expect(readFileSync(createFeature({slug: 'b', status: 'blocked', cwd: dir}).path, 'utf8')).toContain('status: blocked');
     } finally {

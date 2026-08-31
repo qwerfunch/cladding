@@ -46,7 +46,7 @@ function run(): readonly {detector: string; severity: string; message: string; p
 }
 
 describe('ARCHITECTURE_FROM_SPEC detector (Python, dotted imports)', () => {
-  test('ERROR when a web file does `from db.models import User` (dotted from-import) (AC-d43aabcc)', () => {
+  test("[covers:F-803386ab/AC-d43aabcc] ERROR when a web file does `from db.models import User` (dotted from-import) (AC-d43aabcc)", () => {
     writePythonSpec();
     writePyLayerFile('web', 'handler.py', 'from db.models import User\n\n\ndef view():\n    return User\n');
     writePyLayerFile('db', 'models.py', 'class User:\n    pass\n');

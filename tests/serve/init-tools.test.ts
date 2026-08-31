@@ -79,7 +79,7 @@ describe('serve/server — natural-language init tools', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('idea mode asks for intent before writing any project artifact', async () => {
+  test('[covers:F-0f4dd6/AC-002] idea mode asks for intent before writing any project artifact', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const {tools} = await client.listTools();
@@ -96,7 +96,7 @@ describe('serve/server — natural-language init tools', () => {
     }
   });
 
-  test('idea mode initializes through the shared engine and writes only AGENTS.md after spec', async () => {
+  test('[covers:F-0f4dd6/AC-019] idea mode initializes through the shared engine and writes only AGENTS.md after spec', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const {token, confirmation} = await prepare(client, {mode: 'idea', intent: 'B2B payment SaaS'});
@@ -118,7 +118,7 @@ describe('serve/server — natural-language init tools', () => {
     }
   });
 
-  test('approval envelope survives an MCP server restart without prepare writing files', async () => {
+  test('[covers:F-0f4dd6/AC-016] approval envelope survives an MCP server restart without prepare writing files', async () => {
     const first = await makePair(dir);
     const prepared = await prepare(first.client, {mode: 'idea', intent: 'B2B payment SaaS'});
     await first.cleanup();
@@ -138,7 +138,7 @@ describe('serve/server — natural-language init tools', () => {
     }
   });
 
-  test('process-per-turn hosts can apply by exact challenge when they discard opaque tool tokens', async () => {
+  test('[covers:F-0f4dd6/AC-020] process-per-turn hosts can apply the staged draft by exact challenge when they discard opaque tool tokens', async () => {
     const first = await makePair(dir);
     const prepared = await prepare(first.client, {mode: 'idea', intent: 'B2B payment SaaS'});
     const staged = await first.client.callTool({name: 'clad_stage_init', arguments: {
@@ -233,7 +233,7 @@ describe('serve/server — natural-language init tools', () => {
     }
   });
 
-  test('initial request is not accepted as the separate write confirmation', async () => {
+  test('[covers:F-0f4dd6/AC-009] initial request is not accepted as the separate write confirmation', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const intent = 'B2B payment SaaS';
@@ -253,7 +253,7 @@ describe('serve/server — natural-language init tools', () => {
     }
   });
 
-  test('an arbitrary reply after preview is not accepted as approval', async () => {
+  test('[covers:F-0f4dd6/AC-010] an arbitrary reply after preview is not accepted as approval', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const {token} = await prepare(client, {mode: 'idea', intent: 'B2B payment SaaS'});
@@ -287,7 +287,7 @@ describe('serve/server — natural-language init tools', () => {
     }
   });
 
-  test('a failed multi-file apply restores the pre-initialization workspace', async () => {
+  test('[covers:F-0f4dd6/AC-014] a failed multi-file apply restores the pre-initialization workspace', async () => {
     writeFileSync(join(dir, '.gitignore'), 'user-entry\n');
     const failingInit = (async ({cwd}: {cwd?: string}) => {
       writeFileSync(join(cwd!, 'spec.yaml'), 'partial\n');
@@ -307,7 +307,7 @@ describe('serve/server — natural-language init tools', () => {
     }
   });
 
-  test('tools-only MCP client drives init and clarify without sampling', async () => {
+  test('[covers:F-0f4dd6/AC-001] tools-only MCP client drives init and clarify without sampling', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const {token, confirmation} = await prepare(client, {mode: 'idea', intent: 'B2B payment SaaS'});
@@ -360,7 +360,7 @@ describe('serve/server — natural-language init tools', () => {
     }
   });
 
-  test('document mode loads the full project-local planning document', async () => {
+  test('[covers:F-0f4dd6/AC-003] [covers:F-0f4dd6/AC-012] document mode loads the full project-local planning document and combines it with observed source', async () => {
     mkdirSync(join(dir, 'docs'));
     mkdirSync(join(dir, 'src'));
     writeFileSync(join(dir, 'src', 'index.ts'), 'export const existing = true;\n');
@@ -382,7 +382,7 @@ describe('serve/server — natural-language init tools', () => {
     }
   });
 
-  test('document mode rejects a path that escapes the connected project', async () => {
+  test('[covers:F-0f4dd6/AC-003] document mode rejects a path that escapes the connected project', async () => {
     const outside = join(dirname(dir), 'outside-plan.md');
     writeFileSync(outside, 'outside');
     const {client, cleanup} = await makePair(dir);
@@ -399,7 +399,7 @@ describe('serve/server — natural-language init tools', () => {
     }
   });
 
-  test('document mode rejects malformed UTF-8 before preparing or writing', async () => {
+  test('[covers:F-0f4dd6/AC-003] document mode rejects malformed UTF-8 before preparing or writing', async () => {
     mkdirSync(join(dir, 'docs'));
     writeFileSync(join(dir, 'docs', 'plan.md'), Buffer.from([0xc3, 0x28]));
     const {client, cleanup} = await makePair(dir);
@@ -417,7 +417,7 @@ describe('serve/server — natural-language init tools', () => {
     }
   });
 
-  test('existing mode forces observed scanning for a sparse codebase', async () => {
+  test('[covers:F-0f4dd6/AC-004] [covers:F-70ed1afd/AC-039f62b6] [covers:F-70ed1afd/AC-d20df076] [covers:F-70ed1afd/AC-aa2d0e2c] existing mode preserves fired draft capabilities while forcing observed scanning for a sparse codebase', async () => {
     mkdirSync(join(dir, 'src'));
     writeFileSync(join(dir, 'src', 'index.ts'), 'export const value = 1;\n');
     const {client, cleanup} = await makePair(dir);
@@ -428,22 +428,31 @@ describe('serve/server — natural-language init tools', () => {
       const conventions = readFileSync(join(dir, 'docs', 'conventions.md'), 'utf8');
       expect(conventions).toContain('derived from observed code');
       expect(conventions).toContain('## Observed style');
+      const architecture = readFileSync(join(dir, 'spec', 'architecture.yaml'), 'utf8');
+      expect(architecture).toContain('layers: []');
+      expect(architecture).not.toContain('name: core');
       // Regression: an existing-project adoption with no README `##` headings must still
       // persist the host draft's approved capabilities — not land `capabilities: []`.
       const capabilitiesBody = readFileSync(join(dir, 'spec', 'capabilities.yaml'), 'utf8');
       expect(capabilitiesBody).not.toContain('capabilities: []');
-      const capabilities = (parseYaml(capabilitiesBody) as {capabilities?: Array<{id?: string}>}).capabilities ?? [];
+      const capabilities = (parseYaml(capabilitiesBody) as {capabilities?: Array<{id?: string; title?: string; summary?: string; surface?: string}>}).capabilities ?? [];
       expect(capabilities.length).toBeGreaterThanOrEqual(3);
       const capabilityIds = capabilities.map((capability) => capability.id);
       for (const id of ['payments', 'audit', 'webhooks']) {
         expect(capabilityIds).toContain(id);
       }
+      expect(capabilities.find((capability) => capability.id === 'payments')).toMatchObject({
+        id: 'payments',
+        title: 'Payments',
+        summary: 'Process payments safely.',
+        surface: 'feature',
+      });
     } finally {
       await cleanup();
     }
   });
 
-  test('an initialized project returns without changing files unless refresh is explicit', async () => {
+  test('[covers:F-0f4dd6/AC-005] an initialized project returns without changing files unless refresh is explicit', async () => {
     writeFileSync(join(dir, 'spec.yaml'), 'sentinel\n');
     const {client, cleanup} = await makePair(dir);
     try {
@@ -478,7 +487,7 @@ describe('serve/server — natural-language init tools', () => {
     }
   });
 
-  test('clarify returns the next pending question as structured output', async () => {
+  test('[covers:F-0f4dd6/AC-006] clarify returns the next pending question as structured output', async () => {
     saveState(dir, {
       intent: 'B2B payment SaaS',
       language: 'typescript',

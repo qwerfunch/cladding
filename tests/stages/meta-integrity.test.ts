@@ -42,12 +42,12 @@ describe('META_INTEGRITY detector', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('valid schema.json + matching spec version → no finding', () => {
+  test("[covers:F-056/AC-131] valid schema.json + matching spec version → no finding", () => {
     writeSchema(dir, VALID_SCHEMA);
     expect(metaIntegrity.run({cwd: dir})).toEqual([]);
   });
 
-  test('schema.json missing a required root key → error finding', () => {
+  test("[covers:F-50ff43/AC-002] schema.json missing a required root key → error finding", () => {
     writeSchema(dir, {
       required: ['schema', 'project'], // 'features' missing
       properties: {schema: {}, project: {}, features: {}},
@@ -78,7 +78,7 @@ describe('META_INTEGRITY detector', () => {
     expect(findings[0].message).toContain('unreadable or invalid JSON');
   });
 
-  test('schema.json ABSENT (a user project, not the cladding repo) → no schema findings (SKIP, never a false ENOENT error)', () => {
+  test("[covers:F-50ff43/AC-001] schema.json ABSENT (a user project, not the cladding repo) → no schema findings (SKIP, never a false ENOENT error)", () => {
     // No src/spec/schema.json — the normal state of every user cladding project
     // (the schema ships bundled in the installed `clad`). The detector must not
     // emit a false ENOENT error in every such project. spec.yaml here is valid.
@@ -86,7 +86,7 @@ describe('META_INTEGRITY detector', () => {
     expect(findings).toEqual([]);
   });
 
-  test('schema.json absent but spec.yaml schema version is WRONG → the version check STILL fires (skip is scoped to the self-check only)', () => {
+  test("[covers:F-50ff43/AC-003] schema.json absent but spec.yaml schema version is WRONG → the version check STILL fires (skip is scoped to the self-check only)", () => {
     writeFileSync(
       join(dir, 'spec.yaml'),
       'schema: "9.9"\nproject: {name: x, language: typescript}\nfeatures: []\n',

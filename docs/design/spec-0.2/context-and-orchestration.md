@@ -172,7 +172,7 @@ Receipts live at `spec/evidence/<F-id>/<full-sha256>.yaml`: the feature director
 
 Receipt schema 1 uses a detached Ed25519 signature over a newly defined canonical frame. Parse the YAML into a JSON-compatible value, rejecting aliases, tags, non-string map keys, non-finite numbers, and other non-JSON values. Remove `issuer_proof`, serialize the remaining value with RFC 8785 JSON Canonicalization Scheme, and encode it as UTF-8 `payload`. Let `domain` be the ASCII bytes of `cladding.receipt/1`; the signed bytes are `u32be(domain.length) || domain || u64be(payload.length) || payload`. Store the signature as unpadded base64url. After inserting `issuer_proof`, compute the lowercase hexadecimal filename SHA-256 over the RFC 8785 UTF-8 bytes of the complete receipt. `verified` and the receipt verdict are derived, never stored.
 
-The strict gate is synchronous and offline. `issuer_key_id` selects a key from an immutable trust snapshot supplied by the Cladding installation or registered host adapter outside the writable workspace; the gate and attestation record that snapshot's digest. The verifier checks the signature and recomputes the subject, runtime-dependency, implementation-author, reviewed-input, evidence, and capability-manifest hashes without a network lookup. A missing verifier, unknown key, or online-only identity leaves the evidence unresolved/asserted and cannot satisfy UAT or required independence. A networked host channel may verify identity at ingestion time only if it emits this portable signed proof; later gates recheck bytes and signatures locally.
+The strict gate is synchronous and offline. `issuer_key_id` selects an Ed25519 SPKI key from an immutable trust snapshot supplied by the Cladding installation or registered host adapter outside the writable workspace; the gate and attestation record that snapshot's digest using UTF-16 code-unit canonical ordering. Supplied deterministic digest mismatches fail before trust lookup, including for an unknown key; missing context plus unknown trust remains unresolved/asserted. The verifier checks the signature and recomputes the subject, runtime-dependency, implementation-author, reviewed-input, evidence, and capability-manifest hashes without a network lookup. A missing verifier, unknown key, or online-only identity leaves the evidence unresolved/asserted and cannot satisfy UAT or required independence. A networked host channel may verify identity at ingestion time only if it emits this portable signed proof; later gates recheck bytes and signatures locally.
 
 `subject_sha256` is canonical and address-sensitive:
 
@@ -206,7 +206,7 @@ F5 owns receipt schema, canonical framing, offline verification, trust-snapshot
 resolution, validated ingestion, content-addressed storage/revocation, and
 reducer wiring. Its deterministic fixtures may supply signed receipts, but F5
 ships no product issuer that can manufacture verified human or blind evidence.
-It retains `clad signoff`; bare TTY or pseudo-TTY input records asserted audit
+It introduces `clad signoff`; bare TTY or pseudo-TTY input records asserted audit
 history only. Without a registered issuer, verified signoff returns
 `HUMAN_REQUIRED`. There is no `--verified` bypass. OS/git identity, caller text,
 generic `blind: true`, and hand-written YAML are asserted only.
@@ -216,12 +216,14 @@ Keep `clad_author_oracle` readable for 0.1. Under 0.2, a registered adapter must
 ### Runtime rollout
 
 F9 ships the envelope, task projections, A–E invariance suite, and the first real
-registered issuer paths as 0.10.0 core: at least one host-elicitation or external
-signing path for human receipts and one fresh-context/capability path for blind
-receipts. Both call F5's ingestion boundary and emit portable receipts that a
-later offline gate re-verifies. F9 does not replace the experimental
-developer→reviewer loop. F10 may introduce a headless task-state loop in 0.10.x
-only after:
+registered issuer paths: a human signing adapter and a fresh-context/capability
+blind adapter. Human private keys remain in the OS secure store; CI mechanism
+evidence is a live adapter round trip on macOS Keychain, Windows Credential
+Manager, and Linux Secret Service/dbus. Fixture trust snapshots prove protocol or
+mechanism only, never live human evidence. Both adapters call F5 ingestion and
+emit portable receipts for offline verification. Only real human-signed MCP11
+receipts count as live human evidence. F9 preserves the experimental
+developer→reviewer loop. F10 introduces its 0.10.0 task-state loop only after:
 
 1. A–E proves topology-invariant contracts, gates, verdicts, and stale closures;
 2. verified human and blind evidence are produced through real product paths;
@@ -229,4 +231,4 @@ only after:
 4. blind leakage remains zero;
 5. general role-brief removal changes no deterministic result.
 
-The F10 reference loop may request `implement`, `verify`, or `observe` work, but those are operations rather than required identities. The host may satisfy several with one agent; the receipt and evidence rules, not dispatch count, decide independence. Rich public GraphIR cursors, viewer expansion, and any broader retrieval generalization study remain non-blocking 0.10.x work; F9's session-local `diagnostic_cursor` is a narrowly scoped task-projection exception.
+The F10 loop may request `implement`, `verify`, or `observe` work, but those are operations rather than required identities. The host may satisfy several with one agent; receipts and evidence, not dispatch count, decide independence. Rich public GraphIR cursors, viewer expansion, and broader retrieval generalization remain non-blocking tail work; F9's session-local `diagnostic_cursor` is a narrow task-projection exception.

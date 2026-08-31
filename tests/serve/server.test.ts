@@ -12,12 +12,13 @@
 // concerned only with the read surface of `clad serve`.
 
 import {execFileSync} from 'node:child_process';
-import {mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync, existsSync, readdirSync} from 'node:fs';
+import {mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync, mkdirSync, existsSync, readdirSync, utimesSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js';
+import {Validator} from 'jsonschema';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
 import {buildServer, PERSONA_IDS, PERSONA_PROMPT_ALIASES, RESOURCE_URIS, TOOL_NAMES} from '../../src/serve/server.js';
@@ -48,6 +49,7 @@ features:
 `;
 
 const NO_DESIGN_IMPACT = {classification: 'none', rationale: 'test-only internal feature'} as const;
+const MUTATION_PACKET_BYTES = 16 * 1024;
 
 interface Pair {
   client: Client;
@@ -68,6 +70,53 @@ async function makePair(cwd: string): Promise<Pair> {
   };
 }
 
+/** Captures every workspace entry so ingress rejection can prove zero writes. */
+function workspaceManifest(root: string, directory: string = root): readonly {readonly path: string; readonly bytes: string}[] {
+  return readdirSync(directory, {withFileTypes: true})
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .flatMap((entry) => {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) return [{path: `${path.slice(root.length + 1)}/`, bytes: '<directory>'}, ...workspaceManifest(root, path)];
+      return [{path: path.slice(root.length + 1), bytes: readFileSync(path).toString('base64')}];
+    });
+}
+
+/** Fills a valid typed edit field to one exact pre-normalization wire size. */
+function editRequestAtWireBytes(bytes: number): {operations: Array<{kind: string; purpose: string}>; input_revisions: Record<string, string>} {
+  const request = {operations: [{kind: 'project.set_purpose', purpose: ''}], input_revisions: {}};
+  const padding = bytes - Buffer.byteLength(JSON.stringify(request));
+  if (padding < 0) throw new Error('Requested typed edit packet is smaller than its schema envelope.');
+  request.operations[0].purpose = 'x'.repeat(padding);
+  return request;
+}
+
+/** Fills the one known begin field to one exact parsed-wire size. */
+function beginRequestAtWireBytes(bytes: number): {feature: string} {
+  const request = {feature: ''};
+  const padding = bytes - Buffer.byteLength(JSON.stringify(request));
+  if (padding < 0) throw new Error('Requested begin packet is smaller than its schema envelope.');
+  request.feature = 'x'.repeat(padding);
+  return request;
+}
+
+/** Verifies MCP's duplicated text/structured response against the discovered output schema. */
+function expectDeclaredMutationPayload(
+  tools: readonly {readonly name: string; readonly outputSchema?: object}[],
+  name: string,
+  result: unknown,
+): Record<string, unknown> {
+  const payloadResult = result as {readonly content?: unknown; readonly structuredContent?: unknown};
+  expect(payloadResult.content).toBeDefined();
+  const text = (payloadResult.content as Array<{readonly text: string}>)[0]!.text;
+  const payload = JSON.parse(text) as Record<string, unknown>;
+  expect(payloadResult.structuredContent).toEqual(payload);
+  const schema = tools.find((tool) => tool.name === name)?.outputSchema;
+  expect(schema).toBeDefined();
+  const validation = new Validator().validate(payload, schema!);
+  expect(validation.errors.map((error) => error.stack)).toEqual([]);
+  return payload;
+}
+
 describe('serve/server — MCP read surface', () => {
   let dir: string;
   beforeEach(() => {
@@ -79,18 +128,239 @@ describe('serve/server — MCP read surface', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('listTools surfaces every declared tool name', async () => {
+  test('[covers:F-073/AC-207] listTools surfaces every declared tool name through the MCP client', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const {tools} = await client.listTools();
       const names = tools.map((t) => t.name).sort();
       expect(names).toEqual([...TOOL_NAMES].sort());
+      expect(names).toEqual(expect.arrayContaining([
+        'clad_list_features',
+        'clad_get_feature',
+        'clad_run_check',
+        'clad_get_events',
+      ]));
     } finally {
       await cleanup();
     }
   });
 
-  test('listResources surfaces every declared resource URI', async () => {
+  test('typed edit discovery is the closed per-operation registry', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const {tools} = await client.listTools();
+      const prepare = tools.find((tool) => tool.name === 'clad_prepare_spec_edit');
+      const edit = tools.find((tool) => tool.name === 'clad_edit_spec');
+      const events = tools.find((tool) => tool.name === 'clad_get_events');
+      const prepareSchema = prepare?.inputSchema as {properties?: Record<string, unknown>} | undefined;
+      const editSchema = edit?.inputSchema as {properties?: Record<string, unknown>} | undefined;
+      expect((prepareSchema as {additionalProperties?: boolean} | undefined)?.additionalProperties).toBe(false);
+      expect((editSchema as {additionalProperties?: boolean} | undefined)?.additionalProperties).toBe(false);
+      expect(prepareSchema?.properties?.operations).toEqual(editSchema?.properties?.operations);
+      const operations = prepareSchema?.properties?.operations as {
+        items?: {oneOf?: Array<{properties?: Record<string, {const?: string}>; required?: string[]; additionalProperties?: boolean}>; anyOf?: Array<{properties?: Record<string, {const?: string}>; required?: string[]; additionalProperties?: boolean}>};
+      };
+      const variants = operations.items?.oneOf ?? operations.items?.anyOf ?? [];
+      const begin = variants.find((variant) => variant.properties?.kind?.const === 'feature.begin');
+      expect(begin?.required).toEqual(['kind', 'featureId']);
+      expect(begin?.additionalProperties).toBe(false);
+      expect(begin?.properties).not.toHaveProperty('status');
+      expect(begin?.properties).not.toHaveProperty('path');
+      const upgrade = variants.find((variant) => variant.properties?.kind?.const === 'project.upgrade_schema');
+      expect(upgrade?.required).toEqual(['kind', 'resolutions']);
+      expect(upgrade?.properties).toMatchObject({
+        kind: {const: 'project.upgrade_schema'},
+        resolutions: expect.objectContaining({type: 'object'}),
+      });
+      expect(JSON.stringify(upgrade)).toContain('previewDigest');
+      expect(JSON.stringify(upgrade)).toContain('confirmed');
+      expect(JSON.stringify(upgrade)).not.toContain('preview"');
+      expect(editSchema?.properties?.context_revision).toMatchObject({pattern: '^[a-f0-9]{64}$'});
+      expect(JSON.stringify(events?.outputSchema)).toContain('byte_limit');
+      expect(JSON.stringify(events?.outputSchema)).toContain('oversized_events');
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('[covers:F-5283985e/AC-4a71e2] F4 mutating adapters advertise non-read-only annotations and executable result fields', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const {tools} = await client.listTools();
+      for (const name of ['clad_edit_spec', 'clad_begin', 'clad_create_feature', 'clad_resolve_design_impact', 'clad_author_oracle', 'clad_create_scenario', 'clad_link_capability']) {
+        const tool = tools.find((entry) => entry.name === name);
+        expect(tool?.annotations?.readOnlyHint).toBe(false);
+        expect((tool?.inputSchema as {additionalProperties?: boolean} | undefined)?.additionalProperties).toBe(false);
+        expect(tool?.outputSchema).toMatchObject({properties: expect.objectContaining({ok: expect.anything(), code: expect.anything(), message: expect.anything()})});
+      }
+      const create = tools.find((entry) => entry.name === 'clad_create_feature')?.outputSchema as {properties?: Record<string, unknown>} | undefined;
+      expect(create?.properties).toMatchObject({id: expect.anything(), slug: expect.anything(), path: expect.anything(), gate: expect.anything()});
+      const resolve = tools.find((entry) => entry.name === 'clad_resolve_design_impact');
+      const link = tools.find((entry) => entry.name === 'clad_link_capability');
+      expect(tools.find((entry) => entry.name === 'clad_create_feature')?.annotations?.idempotentHint).toBe(false);
+      expect(resolve?.annotations?.idempotentHint).toBe(true);
+      expect(link?.annotations?.idempotentHint).toBe(true);
+      expect((resolve?.outputSchema as {properties?: Record<string, unknown>} | undefined)?.properties).toMatchObject({feature: expect.anything(), changed: expect.anything(), path: expect.anything(), gate: expect.anything()});
+      expect((link?.outputSchema as {properties?: Record<string, unknown>} | undefined)?.properties).toMatchObject({capability: expect.anything(), feature: expect.anything(), created: expect.anything(), alreadyLinked: expect.anything(), path: expect.anything(), gate: expect.anything()});
+      const createInput = tools.find((entry) => entry.name === 'clad_create_feature')?.inputSchema as {properties?: {acceptance_criteria?: {items?: {additionalProperties?: boolean}}; design_impact?: {anyOf?: Array<{additionalProperties?: boolean}>; oneOf?: Array<{additionalProperties?: boolean}>}}} | undefined;
+      expect(createInput?.properties?.acceptance_criteria?.items?.additionalProperties).toBe(false);
+      const designVariants = createInput?.properties?.design_impact?.anyOf ?? createInput?.properties?.design_impact?.oneOf;
+      expect(designVariants?.every((variant) => variant.additionalProperties === false)).toBe(true);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('F4/F5 mutation families reject unknown 17 KiB transport padding before any workspace write', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const mutations: readonly [string, Record<string, unknown>][] = [
+        ['clad_edit_spec', {operations: [{kind: 'feature.begin', featureId: 'F-001'}], input_revisions: {}}],
+        ['clad_begin', {feature: 'F-001'}],
+        ['clad_create_feature', {slug: 'padding-create'}],
+        ['clad_resolve_design_impact', {feature: 'F-001'}],
+        ['clad_author_oracle', {featureId: 'F-001', acId: 'AC-001', body: 'export {};', readManifest: []}],
+        ['clad_create_scenario', {slug: 'padding-scenario'}],
+        ['clad_link_capability', {capability: 'padding-capability', feature: 'F-001'}],
+        ['clad_ingest_receipt', {receipt_yaml: 'schema: invalid'}],
+        ['clad_signoff', {feature: 'F-001', claim: 'audit', criterion: 'AC-001', result: 'pass'}],
+      ];
+      for (const [name, request] of mutations) {
+        const before = workspaceManifest(dir);
+        const result = await client.callTool({name, arguments: {...request, padding: 'x'.repeat(17 * 1024)}});
+        const error = result as {isError?: boolean; content?: Array<{text?: string}>};
+        expect(error.isError).toBe(true);
+        expect(error.content?.[0]?.text).toMatch(/input validation error|unrecognized key/i);
+        expect(workspaceManifest(dir)).toEqual(before);
+      }
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('F4 core edits enforce exact parsed-wire bytes before snake-case normalization', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const {tools} = await client.listTools();
+      const call = async (name: string, request: Record<string, unknown>): Promise<Record<string, unknown>> =>
+        expectDeclaredMutationPayload(tools, name, await client.callTool({name, arguments: request}));
+      const atLimitEdit = editRequestAtWireBytes(MUTATION_PACKET_BYTES);
+      const atLimitBegin = beginRequestAtWireBytes(MUTATION_PACKET_BYTES);
+      expect(Buffer.byteLength(JSON.stringify(atLimitEdit))).toBe(MUTATION_PACKET_BYTES);
+      expect(Buffer.byteLength(JSON.stringify(atLimitBegin))).toBe(MUTATION_PACKET_BYTES);
+      for (const [name, request] of [['clad_edit_spec', atLimitEdit], ['clad_begin', atLimitBegin]] as const) {
+        const before = workspaceManifest(dir);
+        const payload = await call(name, request);
+        expect(payload.message).not.toMatch(/exceeds the 16 KiB mutation limit/i);
+        expect(workspaceManifest(dir)).toEqual(before);
+      }
+
+      const justOverWireEdit = editRequestAtWireBytes(MUTATION_PACKET_BYTES + 1);
+      const normalizedEdit = {operations: justOverWireEdit.operations, inputRevisions: justOverWireEdit.input_revisions};
+      expect(Buffer.byteLength(JSON.stringify(justOverWireEdit))).toBe(MUTATION_PACKET_BYTES + 1);
+      expect(Buffer.byteLength(JSON.stringify(normalizedEdit))).toBe(MUTATION_PACKET_BYTES);
+      const justOverBegin = beginRequestAtWireBytes(MUTATION_PACKET_BYTES + 1);
+      for (const [name, request] of [['clad_edit_spec', justOverWireEdit], ['clad_begin', justOverBegin]] as const) {
+        const before = workspaceManifest(dir);
+        const payload = await call(name, request);
+        expect(payload).toMatchObject({ok: false, code: 'INVALID_OPERATION', message: expect.stringMatching(/exceeds the 16 KiB mutation limit/i)});
+        expect(workspaceManifest(dir)).toEqual(before);
+      }
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('F4 mutation adapters return declared success/error envelopes and reject oversized ingress before writes', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const {tools} = await client.listTools();
+      const call = async (name: string, args: Record<string, unknown>): Promise<Record<string, unknown>> =>
+        expectDeclaredMutationPayload(tools, name, await client.callTool({name, arguments: args}));
+
+      const created = await call('clad_create_feature', {
+        slug: 'wire-create', title: 'Wire create', acceptance_criteria: [{ears: 'ubiquitous', text: 'The system shall expose the create envelope.'}],
+      });
+      expect(created.ok).toBe(true);
+      const createError = await call('clad_create_feature', {
+        slug: 'wire-create-error', design_impact: {classification: 'additive', rationale: 'A legacy request cannot define a new typed scenario.', capability: 'wire-cap', scenario: 'new-scenario', scenario_definition: {id: 'S-aaaaaaaa', slug: 'new-scenario', title: 'New', actor: 'Operator', goal: 'Create', success: 'Created', steps: ['Create'], feature_refs: []}},
+      });
+      expect(createError.ok).toBe(false);
+
+      const designArtifact = 'docs/design/spec-0.2/proof-and-editing.md';
+      mkdirSync(join(dir, 'docs', 'design', 'spec-0.2'), {recursive: true});
+      writeFileSync(join(dir, designArtifact), '# proposed\n');
+      const structural = await call('clad_create_feature', {
+        slug: 'wire-structural', design_impact: {classification: 'structural', rationale: 'The output schema carries a reviewed decision.', artifacts: [designArtifact]},
+      });
+      writeFileSync(join(dir, designArtifact), '# reviewed\n');
+      expect((await call('clad_resolve_design_impact', {feature: structural.id})).ok).toBe(true);
+      expect((await call('clad_resolve_design_impact', {feature: 'F-ffffffff'})).ok).toBe(false);
+
+      const featureNames = readdirSync(join(dir, 'spec', 'features')).sort();
+      for (const [index, artifact] of ['docs/project-context.md', 'spec/architecture.yaml', 'spec/capabilities.yaml'].entries()) {
+        const rejected = await client.callTool({
+          name: 'clad_create_feature',
+          arguments: {
+            slug: `rejected-structural-${index}`,
+            design_impact: {classification: 'structural', rationale: 'Only reviewed design documents can enter a structural review.', artifacts: [artifact]},
+          },
+        });
+        expect(rejected.isError).toBe(true);
+      }
+      expect(readdirSync(join(dir, 'spec', 'features')).sort()).toEqual(featureNames);
+
+      const oracleSource = await call('clad_create_feature', {
+        slug: 'wire-oracle', acceptance_criteria: [{ears: 'ubiquitous', text: 'The system shall expose oracle evidence.'}],
+      });
+      const oracleShard = readFileSync(String(oracleSource.path), 'utf8');
+      const oracleAc = /id:\s*(AC-[0-9a-f]+)/.exec(oracleShard)![1];
+      expect((await call('clad_author_oracle', {featureId: oracleSource.id, acId: oracleAc, body: 'import {test} from "vitest"; test("wire", () => {});', readManifest: ['spec brief']})).ok).toBe(true);
+      expect((await call('clad_author_oracle', {featureId: 'F-ffffffff', acId: 'AC-aaaaaaaa', body: 'export {};', readManifest: []})).ok).toBe(false);
+
+      expect((await call('clad_create_scenario', {slug: 'wire-scenario', title: 'Wire scenario', flow: 'The user completes the journey.', features: ['F-001']})).ok).toBe(true);
+      expect((await call('clad_link_capability', {capability: 'wire-capability', feature: 'F-001', title: 'Wire capability', summary: 'Expose the capability result.'})).ok).toBe(true);
+
+      const schema02 = mkdtempSync(join(tmpdir(), 'clad-serve-wire-02-'));
+      try {
+        mkdirSync(join(schema02, 'spec', 'features'), {recursive: true});
+        writeFileSync(join(schema02, 'spec.yaml'), 'schema: "0.2"\nproject:\n  name: wire\n  language: typescript\n  purpose: Keep adapter errors typed.\n  assurance_level: L2\n  scenario_policy: advisory\n');
+        writeFileSync(join(schema02, 'spec', 'features', 'wire-aaaaaaaa.yaml'), 'id: F-aaaaaaaa\ntitle: Wire\nstatus: planned\npurpose: Keep adapter errors typed.\nmodules: []\ndepends_on: []\ncapability_refs: [governance]\nacceptance_criteria:\n  - id: AC-bbbbbbbb\n    kind: behavior\n    statement: The system shall preserve typed adapter errors.\n');
+        writeFileSync(join(schema02, 'spec', 'capabilities.yaml'), 'capabilities:\n  - id: governance\n    title: Governance\n    outcome: Keep adapter errors typed.\n');
+        writeFileSync(join(schema02, 'spec', 'architecture.yaml'), 'layers:\n  - [core]\nrules: []\n');
+        const schema02Pair = await makePair(schema02);
+        try {
+          const schema02Tools = (await schema02Pair.client.listTools()).tools;
+          const call02 = async (name: string, args: Record<string, unknown>): Promise<Record<string, unknown>> =>
+            expectDeclaredMutationPayload(schema02Tools, name, await schema02Pair.client.callTool({name, arguments: args}));
+          expect((await call02('clad_create_scenario', {slug: 'missing-contract', features: ['F-aaaaaaaa']})).ok).toBe(false);
+          expect((await call02('clad_link_capability', {capability: 'schema-link', feature: 'F-bbbbbbbb', title: 'Schema link', summary: 'Must find the feature.'})).ok).toBe(false);
+        } finally {
+          await schema02Pair.cleanup();
+        }
+      } finally {
+        rmSync(schema02, {recursive: true, force: true});
+      }
+
+      const oversized: readonly [string, Record<string, unknown>][] = [
+        ['clad_create_feature', {slug: 'oversize-create', title: 'x'.repeat(17 * 1024)}],
+        ['clad_resolve_design_impact', {feature: `F-${'x'.repeat(17 * 1024)}`}],
+        ['clad_author_oracle', {featureId: 'F-001', acId: 'AC-001', body: 'x'.repeat(17 * 1024), readManifest: []}],
+        ['clad_create_scenario', {slug: 'oversize-scenario', title: 'x'.repeat(17 * 1024)}],
+        ['clad_link_capability', {capability: 'oversize-capability', feature: 'F-001', title: 'x'.repeat(17 * 1024)}],
+      ];
+      for (const [name, args] of oversized) {
+        const before = workspaceManifest(dir);
+        const payload = await call(name, args);
+        expect(payload).toMatchObject({ok: false, code: 'INVALID_OPERATION'});
+        expect(workspaceManifest(dir)).toEqual(before);
+      }
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('[covers:F-073/AC-208] listResources surfaces every declared resource URI through the MCP client', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const {resources} = await client.listResources();
@@ -101,7 +371,7 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
-  test('listPrompts surfaces every persona id plus the 0.6.0 alias prompts', async () => {
+  test('[covers:F-073/AC-209] listPrompts surfaces every persona id plus the 0.6.0 alias prompts', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const {prompts} = await client.listPrompts();
@@ -196,7 +466,7 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
-  test('a project without spec.yaml exposes only the initialization bootstrap', async () => {
+  test('[covers:F-0f4dd6/AC-017] a project without spec.yaml exposes only the initialization bootstrap and rejects mutations without writes', async () => {
     const bare = mkdtempSync(join(tmpdir(), 'clad-serve-bare-'));
     const {client, cleanup} = await makePair(bare);
     try {
@@ -227,7 +497,40 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
-  test('doctor surfaces advertise read-only MCP annotations', async () => {
+  test('a missing spec keeps writes absent and returns both initialization and normal-search recovery hints', async () => {
+    const bare = mkdtempSync(join(tmpdir(), 'clad-serve-bare-recovery-'));
+    const graphDir = mkdtempSync(join(tmpdir(), 'clad-serve-graph-recovery-'));
+    writeFileSync(join(graphDir, 'spec.yaml'), IMPACT_SPEC);
+    const barePair = await makePair(bare);
+    const graphPair = await makePair(graphDir);
+    try {
+      const resource = await barePair.client.readResource({uri: RESOURCE_URIS.spec});
+      const missingSpec = JSON.parse((resource.contents as Array<{text: string}>)[0].text) as {error: string};
+      expect(missingSpec.error).toContain('clad init');
+
+      const mutation = await barePair.client.callTool({
+        name: 'clad_create_feature',
+        arguments: {
+          slug: 'must-not-exist',
+          design_impact: {classification: 'none', rationale: 'recovery boundary probe'},
+        },
+      });
+      expect(mutation.isError).toBe(true);
+      expect(existsSync(join(bare, 'spec'))).toBe(false);
+
+      const miss = await graphPair.client.callTool({name: 'clad_get_graph', arguments: {query: 'not-present'}});
+      expect(miss.isError).toBe(true);
+      const missingGraph = JSON.parse((miss.content as Array<{text: string}>)[0].text) as {discovery: string};
+      expect(missingGraph.discovery).toContain('normal code search');
+    } finally {
+      await barePair.cleanup();
+      await graphPair.cleanup();
+      rmSync(bare, {recursive: true, force: true});
+      rmSync(graphDir, {recursive: true, force: true});
+    }
+  });
+
+  test('[covers:F-5283985e/AC-4a71e2] doctor surfaces advertise read-only MCP annotations', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const {tools} = await client.listTools();
@@ -245,12 +548,12 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
-  test('clad_list_features slugSubstring filter (F-085, v0.3.10)', async () => {
+  test('[covers:F-24062d/AC-003] clad_list_features applies a case-insensitive slugSubstring filter (F-085, v0.3.10)', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const result = await client.callTool({
         name: 'clad_list_features',
-        arguments: {slugSubstring: 'auth'},
+        arguments: {slugSubstring: 'AUTH'},
       });
       const text = (result.content as Array<{type: string; text: string}>)[0].text;
       const parsed = JSON.parse(text);
@@ -263,7 +566,15 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
-  test('clad_list_features sort=recent returns array (F-085, v0.3.10)', async () => {
+  test('[covers:F-24062d/AC-003] clad_list_features sort=recent orders backing feature files newest first (F-085, v0.3.10)', async () => {
+    const featuresDir = join(dir, 'spec', 'features');
+    mkdirSync(featuresDir, {recursive: true});
+    const alpha = join(featuresDir, 'alpha-feature-001.yaml');
+    const beta = join(featuresDir, 'beta-auth-flow-002.yaml');
+    writeFileSync(alpha, 'id: F-001\n');
+    writeFileSync(beta, 'id: F-002\n');
+    utimesSync(alpha, new Date('2026-01-01T00:00:00Z'), new Date('2026-01-01T00:00:00Z'));
+    utimesSync(beta, new Date('2026-01-02T00:00:00Z'), new Date('2026-01-02T00:00:00Z'));
     const {client, cleanup} = await makePair(dir);
     try {
       const result = await client.callTool({
@@ -272,17 +583,14 @@ describe('serve/server — MCP read surface', () => {
       });
       const text = (result.content as Array<{type: string; text: string}>)[0].text;
       const parsed = JSON.parse(text);
-      // Without per-feature yaml files on disk in this test, mtime
-      // falls back to 0 for all, so the order is just stable. Assert
-      // the response shape is correct (total + features array).
       expect(parsed.total).toBe(2);
-      expect(parsed.features).toHaveLength(2);
+      expect(parsed.features.map((feature: {id: string}) => feature.id)).toEqual(['F-002', 'F-001']);
     } finally {
       await cleanup();
     }
   });
 
-  test('clad_get_feature accepts slug lookup (F-085, v0.3.10)', async () => {
+  test('[covers:F-24062d/AC-004] clad_get_feature accepts slug lookup (F-085, v0.3.10)', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const result = await client.callTool({
@@ -313,7 +621,7 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
-  test('clad_get_feature returns a single feature when found', async () => {
+  test('[covers:F-24062d/AC-004] clad_get_feature returns a single feature when found by id', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const result = await client.callTool({
@@ -330,7 +638,7 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
-  test('clad_get_feature reports an unknown id as a tool error', async () => {
+  test('[covers:F-073/AC-210] clad_get_feature reports an unknown id as a tool error', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const result = await client.callTool({
@@ -389,13 +697,14 @@ describe('serve/server — MCP read surface', () => {
       const text = (result.content as Array<{type: string; text: string}>)[0].text;
       const parsed = JSON.parse(text);
       expect(parsed.events).toEqual([]);
-      expect(parsed.note).toMatch(/no events log/i);
+      expect(parsed).toMatchObject({ok: true, code: 'OK', message: expect.stringMatching(/no event history/i), byte_limit: 16 * 1024});
+      expect(result.structuredContent).toEqual(parsed);
     } finally {
       await cleanup();
     }
   });
 
-  test('clad_create_feature creates a new sharded feature file (F-084)', async () => {
+  test('[covers:F-67e33f/AC-002] clad_create_feature creates a new sharded feature file through the MCP surface', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const result = await client.callTool({
@@ -406,7 +715,7 @@ describe('serve/server — MCP read surface', () => {
       const parsed = JSON.parse(text);
       expect(parsed.slug).toBe('new-login-flow');
       expect(parsed.id).toMatch(/^F-[a-f0-9]{8}$/);
-      // v0.3.10: filename is `<slug>-<hash>.yaml` so the hash entropy
+      // v0.3.10: filename is `<slug>-<hash8>.yaml` so the hash entropy
       // distinguishes concurrent invocations.
       expect(parsed.path).toMatch(/spec\/features\/new-login-flow-[a-f0-9]{8}\.yaml$/);
       expect(result.isError).not.toBe(true);
@@ -415,7 +724,7 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
-  test('clad_create_feature keeps the established create-only request compatible', async () => {
+  test('[covers:F-836a90/AC-002] clad_create_feature keeps the established create-only request compatible and only returns a capability-link hint', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const result = await client.callTool({
@@ -436,7 +745,7 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
-  test('feature creation resolves additive design and gates structural design until review', async () => {
+  test('feature creation accepts only registered Tier-B docs/design artifacts and gates structural design until review', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       mkdirSync(join(dir, 'spec', 'scenarios'), {recursive: true});
@@ -462,6 +771,9 @@ describe('serve/server — MCP read surface', () => {
       expect(readFileSync(join(dir, 'spec', 'capabilities.yaml'), 'utf8')).toContain(additivePayload.id);
       expect(readFileSync(join(dir, 'spec', 'scenarios', 'reporting-flow-a1b2c3.yaml'), 'utf8')).toContain(additivePayload.id);
 
+      const designArtifact = 'docs/design/spec-0.2/proof-and-editing.md';
+      mkdirSync(join(dir, 'docs', 'design', 'spec-0.2'), {recursive: true});
+      writeFileSync(join(dir, designArtifact), '# Proposed service boundary\n');
       const structural = await client.callTool({
         name: 'clad_create_feature',
         arguments: {
@@ -469,7 +781,7 @@ describe('serve/server — MCP read surface', () => {
           design_impact: {
             classification: 'structural',
             rationale: 'Introduces a separately deployed payment service.',
-            artifacts: ['spec/architecture.yaml', 'docs/project-context.md'],
+            artifacts: [designArtifact],
           },
         },
       });
@@ -483,9 +795,7 @@ describe('serve/server — MCP read surface', () => {
       });
       expect(premature.isError).toBe(true);
 
-      mkdirSync(join(dir, 'docs'), {recursive: true});
-      writeFileSync(join(dir, 'spec', 'architecture.yaml'), 'layers: []\n');
-      writeFileSync(join(dir, 'docs', 'project-context.md'), '# Approved service boundary\n');
+      writeFileSync(join(dir, designArtifact), '# Approved service boundary\n');
 
       const resolved = await client.callTool({
         name: 'clad_resolve_design_impact',
@@ -522,6 +832,29 @@ describe('serve/server — MCP read surface', () => {
       expect(result.isError).toBe(true);
       expect(existsSync(featuresPath) ? readdirSync(featuresPath).sort() : null).toEqual(beforeFeatures);
       expect(existsSync(capabilitiesPath) ? readFileSync(capabilitiesPath, 'utf8') : null).toBe(beforeCapabilities);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('schema 0.1 additive create rejects a schema 0.2 scenario definition without writing a partial feature', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const before = existsSync(join(dir, 'spec', 'features')) ? readdirSync(join(dir, 'spec', 'features')).sort() : [];
+      const result = await client.callTool({
+        name: 'clad_create_feature',
+        arguments: {
+          slug: 'legacy-definition-rejected',
+          design_impact: {
+            classification: 'additive', rationale: 'The legacy path can only link a pre-existing journey.', capability: 'reporting',
+            scenario: 'new-journey',
+            scenario_definition: {id: 'S-aaaaaaaa', slug: 'new-journey', title: 'New journey', actor: 'Operator', goal: 'Create', success: 'Created', steps: ['Create'], feature_refs: []},
+          },
+        },
+      });
+      expect(result.isError).toBe(true);
+      expect((result.content as Array<{type: string; text: string}>)[0]?.text).toContain('only by schema 0.2');
+      expect(existsSync(join(dir, 'spec', 'features')) ? readdirSync(join(dir, 'spec', 'features')).sort() : []).toEqual(before);
     } finally {
       await cleanup();
     }
@@ -567,7 +900,7 @@ describe('serve/server — MCP read surface', () => {
       const createdParsed = JSON.parse((created.content as Array<{type: string; text: string}>)[0].text);
       const featureId = createdParsed.id as string;
       const shardPath = createdParsed.path as string; // createFeature returns an absolute path
-      // AC ids are auto-assigned (AC-<hash6> or AC-NNN) — read the real one back.
+      // AC ids are auto-assigned (AC-<hash8> or legacy AC-NNN) — read the real one back.
       const acId = readFileSync(shardPath, 'utf8').match(/id:\s*(AC-\S+)/)?.[1] as string;
 
       const result = await client.callTool({
@@ -646,6 +979,108 @@ describe('serve/server — MCP read surface', () => {
       const parsed = JSON.parse(text);
       expect(parsed.events).toHaveLength(2);
       expect(parsed.events[1].type).toBe('gate_run');
+      expect(result.structuredContent).toEqual(parsed);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('event tool and resource fail closed on an outside symlink without returning its content', async () => {
+    const outside = mkdtempSync(join(tmpdir(), 'clad-events-outside-'));
+    try {
+      const sentinel = join(outside, 'events.jsonl');
+      writeFileSync(sentinel, `${JSON.stringify({type: 'gate_run', secret: 'OUTSIDE_EVENT_SECRET'})}\n`);
+      symlinkSync(sentinel, join(dir, '.cladding', 'events.log.jsonl'));
+      const before = readFileSync(sentinel, 'utf8');
+      const entries = readdirSync(outside).sort();
+      const {client, cleanup} = await makePair(dir);
+      try {
+        const tool = await client.callTool({name: 'clad_get_events', arguments: {limit: 5}});
+        const resource = await client.readResource({uri: RESOURCE_URIS.events});
+        const toolText = (tool.content as Array<{text: string}>)[0].text;
+        const resourceText = (resource.contents[0] as {text: string}).text;
+        expect(JSON.parse(toolText).events).toEqual([]);
+        expect(JSON.parse(resourceText).events).toEqual([]);
+        expect(toolText).not.toContain('OUTSIDE_EVENT_SECRET');
+        expect(resourceText).not.toContain('OUTSIDE_EVENT_SECRET');
+      } finally {
+        await cleanup();
+      }
+      expect(readFileSync(sentinel, 'utf8')).toBe(before);
+      expect(readdirSync(outside).sort()).toEqual(entries);
+    } finally {
+      rmSync(outside, {recursive: true, force: true});
+    }
+  });
+
+  test('clad_get_events omits a single oversized event instead of exceeding its response ceiling', async () => {
+    writeFileSync(
+      join(dir, '.cladding', 'events.log.jsonl'),
+      `${JSON.stringify({type: 'gate_run', payload: 'x'.repeat(70 * 1024)})}\n`,
+    );
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const result = await client.callTool({name: 'clad_get_events', arguments: {limit: 1}});
+      const text = (result.content as Array<{type: string; text: string}>)[0].text;
+      const parsed = JSON.parse(text);
+      expect(Buffer.byteLength(text)).toBeLessThanOrEqual(16 * 1024);
+      expect(parsed.events).toEqual([]);
+      expect(parsed.oversized_events).toBe(1);
+      expect(parsed.omitted_events).toBe(1);
+      expect(result.structuredContent).toEqual(parsed);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('shares the recovered bounded event projection with cladding://events and caps final envelopes', async () => {
+    writeFileSync(
+      join(dir, '.cladding', 'events.log.jsonl'),
+      Array.from({length: 80}, (_, index) => JSON.stringify({type: 'gate_run', id: index, payload: 'x'.repeat(2048)})).join('\n') + '\n',
+    );
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const tool = await client.callTool({name: 'clad_get_events', arguments: {limit: 50}});
+      const resource = await client.readResource({uri: RESOURCE_URIS.events});
+      const toolPayload = JSON.parse((tool.content as Array<{text: string}>)[0].text);
+      const resourcePayload = JSON.parse((resource.contents[0] as {text: string}).text);
+      expect(resourcePayload).toEqual(toolPayload);
+      expect(Buffer.byteLength(JSON.stringify(tool))).toBeLessThanOrEqual(16 * 1024);
+      expect(Buffer.byteLength(JSON.stringify(resource))).toBeLessThanOrEqual(16 * 1024);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('clad_get_events accounts for metadata while bounding a 500-event response', async () => {
+    writeFileSync(
+      join(dir, '.cladding', 'events.log.jsonl'),
+      Array.from({length: 500}, (_, index) => JSON.stringify({type: 'gate_run', id: index, payload: 'x'.repeat(256)})).join('\n') + '\n',
+    );
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const result = await client.callTool({name: 'clad_get_events', arguments: {limit: 500}});
+      const text = (result.content as Array<{type: string; text: string}>)[0].text;
+      const parsed = JSON.parse(text);
+      expect(Buffer.byteLength(text)).toBeLessThanOrEqual(16 * 1024);
+      expect(parsed.events.length).toBeLessThan(500);
+      expect(parsed.omitted_events).toBeGreaterThan(0);
+      expect(result.structuredContent).toEqual(parsed);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('clad_get_events returns the declared error payload with text and structured parity', async () => {
+    writeFileSync(join(dir, '.cladding', 'spec-transaction.json'), '{torn');
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const result = await client.callTool({name: 'clad_get_events', arguments: {}});
+      const parsed = JSON.parse((result.content as Array<{type: string; text: string}>)[0].text);
+      expect(result.isError).toBe(true);
+      expect(parsed).toMatchObject({ok: false, code: 'RECOVERY_FAILED', message: expect.any(String), byte_limit: 16 * 1024});
+      expect(result.structuredContent).toEqual(parsed);
+      expect(Buffer.byteLength(JSON.stringify(parsed, null, 2))).toBeLessThanOrEqual(16 * 1024);
     } finally {
       await cleanup();
     }
@@ -777,6 +1212,36 @@ describe('voluntary oracle labeling (F-551a1c)', () => {
 // ─── F-d2c806 — clad_get_context over MCP ───
 
 describe('clad_get_context (F-d2c806)', () => {
+  test('[covers:F-06dfdad6/AC-c2cef0] preserves clad_get_context schema_version while the graph tool names skill nodes', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'clad-serve-working-set-contract-'));
+    writeFileSync(join(dir, 'spec.yaml'), MINIMAL_SPEC);
+    mkdirSync(join(dir, '.cladding'), {recursive: true});
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const {tools} = await client.listTools();
+      const context = tools.find((tool) => tool.name === 'clad_get_context');
+      const workingSet = tools.find((tool) => tool.name === 'clad_get_working_set');
+      const graph = tools.find((tool) => tool.name === 'clad_get_graph');
+      expect(context).toBeDefined();
+      expect(workingSet).toBeDefined();
+      expect(graph).toBeDefined();
+      expect(String(workingSet?.description)).toContain('token-budgeted working set');
+      expect(String(graph?.description)).toContain('skill nodes');
+
+      const result = await client.callTool({name: 'clad_get_context', arguments: {query: 'F-001'}});
+      expect(result.isError).toBeFalsy();
+      const payload = JSON.parse((result.content as Array<{type: string; text: string}>)[0].text) as {
+        schema_version: number;
+        focus: {id: string};
+      };
+      expect(payload.schema_version).toBe(1);
+      expect(payload.focus.id).toBe('F-001');
+    } finally {
+      await cleanup();
+      rmSync(dir, {recursive: true, force: true});
+    }
+  });
+
   test('returns the slice with schema_version; a miss is isError with the accepted forms', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-serve-ctx-'));
     writeFileSync(join(dir, 'spec.yaml'), MINIMAL_SPEC);
@@ -927,16 +1392,12 @@ describe('clad_get_graph (F-64a5c159)', () => {
   });
 });
 
-// ─── F-10cc42d1 · AC-28d60113 — MCP syncInventory defers derived writes mid-op ───
+// ─── F4 — explicit create keeps its derived projections in the same transaction ───
 //
-// The create tools (clad_create_feature/scenario, capability link) recompute the
-// spec.yaml inventory + feature index after writing their shard. That derived
-// maintenance is the third writer the guard covers (with `clad sync` +
-// `clad update`): while a git operation is in progress it must be skipped so a
-// merge/rebase sees no surprise edits — while the create itself (the user's
-// explicit action) still succeeds. Driven over the real MCP client against a
-// git repo with a hand-seeded MERGE_HEAD (the probe reads the server's cwd).
-describe('MCP syncInventory git-operation write guard (F-10cc42d1 · AC-28d60113)', () => {
+// The older server path committed a feature and later attempted inventory/index
+// refresh. F4 makes the projections part of the explicit create transaction;
+// a merge marker cannot create a partial authoritative feature state.
+describe('MCP create derived-projection transaction (F4)', () => {
   let dir: string;
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'clad-serve-gitop-'));
@@ -948,8 +1409,7 @@ describe('MCP syncInventory git-operation write guard (F-10cc42d1 · AC-28d60113
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('a git op in progress: the shard is still created, but the inventory + index writes defer', async () => {
-    const specBefore = readFileSync(join(dir, 'spec.yaml'), 'utf8'); // MINIMAL_SPEC has no inventory block
+  test('a git op in progress: the explicit create still commits its inventory + index with the shard', async () => {
     writeFileSync(join(dir, '.git', 'MERGE_HEAD'), 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeef\n');
     const {client, cleanup} = await makePair(dir);
     try {
@@ -957,23 +1417,19 @@ describe('MCP syncInventory git-operation write guard (F-10cc42d1 · AC-28d60113
         name: 'clad_create_feature',
         arguments: {slug: 'mid-merge-feature', title: 'Mid merge', status: 'planned', design_impact: NO_DESIGN_IMPACT},
       });
-      // The create itself succeeds — only the DERIVED inventory sync is guarded.
       expect(res.isError).not.toBe(true);
       const parsed = JSON.parse((res.content as Array<{type: string; text: string}>)[0].text);
       const shardPath = join(dir, 'spec', 'features', `${parsed.slug}-${parsed.id.slice(2)}.yaml`);
       expect(existsSync(shardPath)).toBe(true); // shard landed on disk
 
-      // ... but spec.yaml is byte-for-byte unchanged (inventory writer skipped)
-      // and no derived feature index was materialized.
-      expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).toBe(specBefore);
-      expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).not.toContain('inventory:');
-      expect(existsSync(join(dir, 'spec', 'index.yaml'))).toBe(false);
+      expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).toContain('inventory:');
+      expect(existsSync(join(dir, 'spec', 'index.yaml'))).toBe(true);
     } finally {
       await cleanup();
     }
   });
 
-  test('with no git op the same create recomputes the inventory + index (guard is not vacuous)', async () => {
+  test('with no git op the same create remains an atomic feature + projection write', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const res = await client.callTool({

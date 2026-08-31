@@ -34,7 +34,8 @@ import {
   writeClaudeMdSection,
 } from '../init/host-instructions.js';
 import {type SpecAgentsMdResult, writeSpecDrivenAgentsMd} from '../init/agents-md.js';
-import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../spec/inventory.js';
+import {computeInventory} from '../spec/inventory.js';
+import {refreshDerivedSpecProjections} from '../spec/edit.js';
 import {gitOperationInProgress} from '../core/git-ops.js';
 
 /**
@@ -119,8 +120,7 @@ export async function runUpdate(cwd: string, deps: UpdateDeps): Promise<UpdateRe
   const inv = computeInventory(cwd);
   const inventoryDeferred = gitOperationInProgress(cwd);
   if (!inventoryDeferred) {
-    writeInventoryToSpecYaml(cwd, inv);
-    writeFeatureIndex(cwd); // F-37b4a8
+    refreshDerivedSpecProjections(cwd);
   }
 
   // 3. Preserve the established update contract: refresh both managed instruction

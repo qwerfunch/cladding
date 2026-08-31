@@ -139,7 +139,7 @@ const firstLine = (s: string): string => s.split('\n')[0];
 //               or docs/ssot-model.md.
 // ══════════════════════════════════════════════════════════════════════════
 describe('AC-7026c2e7 — removed-verb tripwire', () => {
-  test('src/**/*.ts, tests/**/*.ts and docs/ssot-model.md name zero removed verbs', () => {
+  test('[covers:F-b8d74801/AC-7026c2e7] src/**/*.ts, tests/**/*.ts and docs/ssot-model.md name zero removed verbs', () => {
     const files = [
       ...walk(join(ROOT, 'src'), ['.ts']),
       ...walk(join(ROOT, 'tests'), ['.ts']),
@@ -204,6 +204,7 @@ describe('AC-2f20bc65 — emitters name only current verbs', () => {
   test('capabilities.yaml header (linkCapability) → clad clarify, no removed verb', () => {
     const dir = tmp('link');
     try {
+      writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: link\n  language: typescript\n');
       linkCapability({cwd: dir, capability: 'auth', feature: 'F-abcdef12'});
       const banner = firstLine(readFileSync(join(dir, 'spec/capabilities.yaml'), 'utf8'));
       expect(banner).toContain('clad clarify');
@@ -402,7 +403,7 @@ describe('AC-a527f028 — docs banner table matches emitters', () => {
     return out;
   }
 
-  test('every documented banner matches its emitter (verb clause + tier), no removed verbs', async () => {
+  test('[covers:F-b8d74801/AC-a527f028] every documented banner matches its emitter (verb clause + tier), no removed verbs', async () => {
     const table = parseBannerTable();
 
     // Live banners from the real emitters, keyed by the documented path.
@@ -431,7 +432,7 @@ describe('AC-a527f028 — docs banner table matches emitters', () => {
       'spec.yaml': {banner: specBanner, exact: true},
       'spec/architecture.yaml': {banner: firstLine(renderGreenfieldArchitectureYaml('typescript')), exact: true},
       'spec/capabilities.yaml': {banner: firstLine(renderGreenfieldCapabilitiesYaml('demo')), exact: true},
-      'spec/scenarios/<slug>-<hash6>.yaml': {banner: scenarioBanner, exact: true},
+      'spec/scenarios/<slug>-<hash8>.yaml': {banner: scenarioBanner, exact: true},
       'docs/project-context.md': {banner: pcBanner, exact: true},
       'docs/conventions.md': {banner: firstLine(renderGreenfieldConventionsMd('typescript', 'demo')), exact: false},
       '.cladding/onboarding/state.yaml': {banner: stateBanner, exact: true},

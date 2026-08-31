@@ -8,14 +8,15 @@
 //   - it KEEPS done only if the injected gate is GREEN (worst === 0),
 //   - on a RED gate (worst !== 0) it REVERTS the shard byte-for-byte.
 
-import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
 import {findShardFile, runDone, setStatus} from '../../src/cli/done.js';
 import {readEvents} from '../../src/events/log.js';
-import {writeFeatureIndex} from '../../src/spec/inventory.js';
+import {renderFeatureIndexYaml} from '../../src/spec/inventory.js';
+import {commitSchema01CompatibilityMutation, markFeatureDoneForGate} from '../../src/spec/edit.js';
 
 // A realistic shard shape: a leading comment line, the id, a status, a
 // title, and a couple of acceptance-criteria lines.
@@ -36,9 +37,18 @@ const SHARD_BODY =
 function writeShard(dir: string, body = SHARD_BODY): string {
   const featuresDir = join(dir, 'spec', 'features');
   mkdirSync(featuresDir, {recursive: true});
+  writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\n');
   const path = join(featuresDir, SHARD_NAME);
   writeFileSync(path, body);
   return path;
+}
+
+/** Test-only index materialization; production status writes are journaled. */
+function writeFeatureIndexProjection(dir: string): boolean {
+  const body = renderFeatureIndexYaml(dir);
+  if (body === null) return false;
+  writeFileSync(join(dir, 'spec', 'index.yaml'), body);
+  return true;
 }
 
 describe('findShardFile', () => {
@@ -125,9 +135,9 @@ describe('runDone', () => {
 
   test('a kept flip re-syncs the feature index to status: done', () => {
     const path = writeShard(dir);
-    writeFeatureIndex(dir); // index starts mirroring the shard (in_progress)
+    writeFeatureIndexProjection(dir); // index starts mirroring the shard (in_progress)
     expect(readFileSync(join(dir, 'spec', 'index.yaml'), 'utf8')).toContain('status: in_progress');
-    runDone(dir, FEATURE_ID, {checkStages: () => ({worst: 0}), onIndex: writeFeatureIndex});
+    runDone(dir, FEATURE_ID, {checkStages: () => ({worst: 0}), onIndex: writeFeatureIndexProjection});
     const indexAfter = readFileSync(join(dir, 'spec', 'index.yaml'), 'utf8');
     expect(indexAfter).toContain('status: done');
     expect(indexAfter).not.toContain('status: in_progress');
@@ -136,8 +146,8 @@ describe('runDone', () => {
 
   test('a reverted (red gate) flip re-syncs the index back to the original status', () => {
     writeShard(dir);
-    writeFeatureIndex(dir);
-    runDone(dir, FEATURE_ID, {checkStages: () => ({worst: 1}), onIndex: writeFeatureIndex});
+    writeFeatureIndexProjection(dir);
+    runDone(dir, FEATURE_ID, {checkStages: () => ({worst: 1}), onIndex: writeFeatureIndexProjection});
     const indexAfter = readFileSync(join(dir, 'spec', 'index.yaml'), 'utf8');
     // Shard reverted to in_progress → index re-synced symmetrically (no inverse staleness).
     expect(indexAfter).toContain('status: in_progress');
@@ -146,20 +156,20 @@ describe('runDone', () => {
 
   test('the index is refreshed before the gate runs so the status-aware detector sees a consistent index', () => {
     writeShard(dir);
-    writeFeatureIndex(dir);
+    writeFeatureIndexProjection(dir);
     let indexSaidDoneAtGateTime = false;
     runDone(dir, FEATURE_ID, {
       checkStages: () => {
         indexSaidDoneAtGateTime = readFileSync(join(dir, 'spec', 'index.yaml'), 'utf8').includes('status: done');
         return {worst: 0};
       },
-      onIndex: writeFeatureIndex,
+      onIndex: writeFeatureIndexProjection,
     });
     // Backfill runs PRE-gate → INVENTORY_DRIFT sees index==shard==done, never REDs the flip's own write.
     expect(indexSaidDoneAtGateTime).toBe(true);
   });
 
-  test('GREEN gate keeps done and writes status: done to disk', () => {
+  test('[covers:F-7afbd4/AC-001] GREEN gate keeps done and writes status: done to disk', () => {
     const path = writeShard(dir);
     const res = runDone(dir, FEATURE_ID, {
       checkStages: () => ({worst: 0}),
@@ -192,7 +202,20 @@ describe('runDone', () => {
     expect(readFileSync(path, 'utf8')).toBe(body);
   });
 
-  test('RED gate reverts the shard byte-for-byte', () => {
+  test('the locked provisional mark refuses review_required design impact without changing the feature', () => {
+    const body = SHARD_BODY +
+      'design_impact:\n' +
+      '  classification: structural\n' +
+      '  rationale: "new service boundary"\n' +
+      '  status: review_required\n' +
+      '  artifacts: ["spec/architecture.yaml"]\n';
+    const path = writeShard(dir, body);
+
+    expect(() => markFeatureDoneForGate(dir, FEATURE_ID)).toThrow('design impact still needs review');
+    expect(readFileSync(path, 'utf8')).toBe(body);
+  });
+
+  test('[covers:F-7afbd4/AC-002] RED gate reverts the shard byte-for-byte', () => {
     const path = writeShard(dir);
     const original = readFileSync(path, 'utf8');
     const res = runDone(dir, FEATURE_ID, {
@@ -208,6 +231,141 @@ describe('runDone', () => {
     expect(after).toBe(original);
     expect(after).toContain('status: in_progress');
     expect(after).not.toContain('status: done');
+  });
+
+  test('a RED gate compensates only the target and rebuilds projections around a concurrent journaled edit', () => {
+    const target = writeShard(dir);
+    const targetOriginal = readFileSync(target, 'utf8');
+    const other = join(dir, 'spec', 'features', 'other-3f4e5d.yaml');
+    const otherBefore = 'id: F-3f4e5d\nslug: other\ntitle: Other\nstatus: in_progress\n';
+    const otherAfter = `${otherBefore}owner_note: concurrent\n`;
+    writeFileSync(other, otherBefore);
+
+    const result = runDone(dir, FEATURE_ID, {
+      checkStages: () => {
+        commitSchema01CompatibilityMutation(dir, [{path: 'spec/features/other-3f4e5d.yaml', before: otherBefore, after: otherAfter}], [], {refreshDerived: true});
+        return {worst: 1};
+      },
+    });
+
+    expect(result.ok).toBe(false);
+    expect(readFileSync(target, 'utf8')).toBe(targetOriginal);
+    expect(readFileSync(other, 'utf8')).toBe(otherAfter);
+    const index = readFileSync(join(dir, 'spec', 'index.yaml'), 'utf8');
+    expect(index).toContain('F-2de1f8: {slug: api-keys, status: in_progress');
+    expect(index).toContain('F-3f4e5d: {slug: other, status: in_progress');
+    expect(existsSync(join(dir, '.cladding', 'spec-transaction.json'))).toBe(false);
+    expect(existsSync(join(dir, '.cladding', 'spec-transaction.lock'))).toBe(false);
+  });
+
+  test('a throwing gate compensates the provisional done status before reporting failure', () => {
+    const target = writeShard(dir);
+    const original = readFileSync(target, 'utf8');
+    const result = runDone(dir, FEATURE_ID, {checkStages: () => { throw new Error('gate crash'); }});
+    expect(result).toMatchObject({ok: false, code: 1});
+    expect(result.reason).toContain('gate threw');
+    expect(readFileSync(target, 'utf8')).toBe(original);
+    expect(existsSync(join(dir, '.cladding', 'spec-transaction.json'))).toBe(false);
+    expect(existsSync(join(dir, '.cladding', 'spec-transaction.lock'))).toBe(false);
+  });
+
+  test('a target edit while provisionally done keeps its new fields while compensation restores its prior status', () => {
+    const target = writeShard(dir);
+    const result = runDone(dir, FEATURE_ID, {
+      checkStages: () => {
+        const provisional = readFileSync(target, 'utf8');
+        const edited = provisional.replace('title: Issue and revoke API keys\n', 'title: Issue and revoke API keys\nowner_note: preserve me\n');
+        commitSchema01CompatibilityMutation(dir, [{path: 'spec/features/api-keys-2de1f8.yaml', before: provisional, after: edited}], [], {refreshDerived: true});
+        return {worst: 1};
+      },
+    });
+    expect(result.ok).toBe(false);
+    const after = readFileSync(target, 'utf8');
+    expect(after).toContain('status: in_progress');
+    expect(after).toContain('owner_note: preserve me');
+  });
+
+  test('a GREEN gate is stale when the target modules change, preserving the latest modules', () => {
+    const target = writeShard(dir, SHARD_BODY + 'modules:\n  - module-a\n');
+    let focusModules: readonly string[] | undefined;
+
+    const result = runDone(dir, FEATURE_ID, {
+      checkStages: (opts) => {
+        focusModules = opts.focusModules;
+        const provisional = readFileSync(target, 'utf8');
+        const edited = provisional.replace('  - module-a\n', '  - module-b\n');
+        commitSchema01CompatibilityMutation(
+          dir,
+          [{path: 'spec/features/api-keys-2de1f8.yaml', before: provisional, after: edited}],
+          [],
+          {refreshDerived: true},
+        );
+        return {worst: 0};
+      },
+    });
+
+    expect(focusModules).toEqual(['module-a']);
+    expect(result).toMatchObject({ok: false, code: 1});
+    expect(result.reason).toContain('result is stale');
+    const after = readFileSync(target, 'utf8');
+    expect(after).toContain('status: in_progress');
+    expect(after).toContain('  - module-b\n');
+    expect(after).not.toContain('  - module-a\n');
+    expect(readEvents(dir).filter((event) => event.type === 'done_attempted')).toMatchObject([
+      {payload: {feature: FEATURE_ID, kept: false}},
+    ]);
+  });
+
+  test('a GREEN gate compensates a concurrent review_required target update', () => {
+    const target = writeShard(dir);
+    const result = runDone(dir, FEATURE_ID, {
+      checkStages: () => {
+        const provisional = readFileSync(target, 'utf8');
+        const edited = provisional +
+          'design_impact:\n' +
+          '  classification: structural\n' +
+          '  rationale: "new service boundary"\n' +
+          '  status: review_required\n' +
+          '  artifacts: ["spec/architecture.yaml"]\n';
+        commitSchema01CompatibilityMutation(
+          dir,
+          [{path: 'spec/features/api-keys-2de1f8.yaml', before: provisional, after: edited}],
+          [],
+          {refreshDerived: true},
+        );
+        return {worst: 0};
+      },
+    });
+
+    expect(result).toMatchObject({ok: false, code: 1});
+    expect(result.reason).toContain('result is stale');
+    const after = readFileSync(target, 'utf8');
+    expect(after).toContain('status: in_progress');
+    expect(after).toContain('status: review_required');
+  });
+
+  test('a GREEN gate remains valid when an unrelated feature changes', () => {
+    const target = writeShard(dir);
+    const other = join(dir, 'spec', 'features', 'other-3f4e5d.yaml');
+    const otherBefore = 'id: F-3f4e5d\nslug: other\ntitle: Other\nstatus: in_progress\n';
+    const otherAfter = `${otherBefore}owner_note: concurrent\n`;
+    writeFileSync(other, otherBefore);
+
+    const result = runDone(dir, FEATURE_ID, {
+      checkStages: () => {
+        commitSchema01CompatibilityMutation(
+          dir,
+          [{path: 'spec/features/other-3f4e5d.yaml', before: otherBefore, after: otherAfter}],
+          [],
+          {refreshDerived: true},
+        );
+        return {worst: 0};
+      },
+    });
+
+    expect(result).toMatchObject({ok: true, code: 0});
+    expect(readFileSync(target, 'utf8')).toContain('status: done');
+    expect(readFileSync(other, 'utf8')).toBe(otherAfter);
   });
 
   test('empty feature id → code 2', () => {
@@ -229,7 +387,7 @@ describe('runDone', () => {
     expect(res.reason).toContain('no feature in the spec');
   });
 
-  test('flip precedes the gate — the gate sees status: done already on disk', () => {
+  test('[covers:F-7afbd4/AC-003] flip precedes the gate — the gate sees status: done already on disk', () => {
     const path = writeShard(dir);
     let sawDoneAtGateTime = false;
     const res = runDone(dir, FEATURE_ID, {
@@ -246,7 +404,7 @@ describe('runDone', () => {
     expect(sawDoneAtGateTime).toBe(true);
   });
 
-  test('checkStages is invoked with {tier: "pre-push", strict: true} + the feature modules', () => {
+  test('[covers:F-7afbd4/AC-004] checkStages is invoked with {tier: "pre-push", strict: true} + the feature modules', () => {
     writeShard(dir);
     let captured: {strict?: boolean; tier?: string; focusModules?: readonly string[]} | undefined;
     runDone(dir, FEATURE_ID, {
@@ -315,6 +473,26 @@ describe('runDone git-operation guard (F-10cc42d1 · AC-611089cf)', () => {
     });
   }
 
+  test('[covers:F-10cc42d1/AC-611089cf] refuses done during a detected git operation before any shard, index, or gate write', () => {
+    const path = writeShard(dir);
+    const original = readFileSync(path, 'utf8');
+    const checkStages = vi.fn(() => ({worst: 0}));
+    const onIndex = vi.fn();
+
+    const result = runDone(dir, FEATURE_ID, {
+      checkStages,
+      onIndex,
+      gitOpInProgress: () => 'merge',
+    });
+
+    expect(result).toMatchObject({ok: false});
+    expect(result.code).not.toBe(0);
+    expect(result.reason).toContain('merge');
+    expect(checkStages).not.toHaveBeenCalled();
+    expect(onIndex).not.toHaveBeenCalled();
+    expect(readFileSync(path, 'utf8')).toBe(original);
+  });
+
   test('the refusal precedes the missing-shard lookup — an unknown id under a git op still refuses for the git op', () => {
     // No shard on disk at all. The git-op refusal is the FIRST gate, so the
     // reason is the operation, not "no feature shard".
@@ -348,6 +526,7 @@ describe('runDone ledger emission (F-b84c38)', () => {
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'clad-done-ev-'));
     mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
+    writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\n');
     writeFileSync(
       join(dir, 'spec', 'features', 'x-aaaaaa.yaml'),
       `id: ${FEATURE_ID}\nslug: x\ntitle: t\nstatus: in_progress\n`,

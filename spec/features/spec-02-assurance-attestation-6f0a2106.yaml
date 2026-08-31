@@ -1,0 +1,88 @@
+id: F-6f0a2106
+slug: spec-02-assurance-attestation
+title: "Spec 0.2 assurance profiles and attestation v3"
+status: in_progress
+modules:
+  - src/assurance/registry.ts
+  - src/assurance/run-authority.ts
+  - src/assurance/closures.ts
+  - src/assurance/kernel.ts
+  - src/assurance/adapters.ts
+  - src/assurance/attestation.ts
+  - src/assurance/receipt-adapter.ts
+  - src/assurance/workspace.ts
+  - src/spec/attestation.ts
+  - src/spec/edit.ts
+  - src/spec/prospective.ts
+  - src/stages/detectors/stale-attestation.ts
+  - src/stages/test-run-cache.ts
+  - src/stages/unit.ts
+  - src/cli/clad.ts
+  - src/cli/done.ts
+  - src/serve/server.ts
+  - tests/assurance/registry.test.ts
+  - tests/assurance/kernel.test.ts
+  - tests/assurance/closures.test.ts
+  - tests/assurance/attestation.test.ts
+  - tests/assurance/workspace.test.ts
+  - tests/assurance/effective-scope.test.ts
+  - tests/spec/attestation-v3.test.ts
+  - tests/spec/attestation-policy.test.ts
+  - tests/cli/assurance-profile.test.ts
+  - tests/cli/done-schema02-crash-safe.test.ts
+  - tests/serve/assurance-gate.test.ts
+  - tests/stages/test-run-dedup.test.ts
+  - tests/stages/stale-attestation.test.ts
+  - tests/design/spec-0.2/requirements.yaml
+  - scripts/spec-0.2-validate.ts
+acceptance_criteria:
+  - id: AC-6f0a2101
+    ears: ubiquitous
+    text: "The assurance authority shall derive official and extension stage identities from one descriptor registry."
+    test_refs: ["tests/assurance/registry.test.ts#projects the official 13, the legacy 15, and cumulative assurance levels from one registry"]
+  - id: AC-6f0a2102
+    ears: ubiquitous
+    text: "The assurance authority shall reduce applicable observations with failure dominance and explicit unobserved reasons."
+    test_refs: ["tests/assurance/kernel.test.ts#reduces hard, report, unobserved, NA, and failure-dominant obligations without a vacuous green"]
+  - id: AC-6f0a2103
+    ears: ubiquitous
+    text: "The assurance authority shall require a compiler applicability proof before marking an obligation not applicable."
+    test_refs: ["tests/assurance/registry.test.ts#allows NA only from complete compiler applicability facts", "tests/assurance/attestation.test.ts#does not mint v3 from six caller-supplied L1 NA stage rows"]
+  - id: AC-6f0a2104
+    ears: ubiquitous
+    text: "The assurance authority shall seal contract, subject, verification, and runtime-dependency closures deterministically."
+    test_refs: ["tests/assurance/closures.test.ts#seals schema 0.1 and 0.2 closures with selective freshness and explicit missing sentinels"]
+  - id: AC-6f0a2105
+    ears: ubiquitous
+    text: "The assurance authority shall keep an unrelated sibling criterion outside a criterion subject closure."
+    test_refs: ["tests/assurance/closures.test.ts#does not stale a criterion subject closure for an unrelated sibling criterion"]
+  - id: AC-6f0a2111
+    ears: ubiquitous
+    text: "The assurance authority shall require only profile-applicable closures before an authoritative verdict or stamp."
+    test_refs: ["tests/assurance/workspace.test.ts#keeps a required missing binding sealed but locally unobserved", "tests/assurance/workspace.test.ts#seals declared runner controls and fails closed for an unknown control", "tests/assurance/workspace.test.ts#seals nested legacy/config-module controls and their transitive bytes", "tests/assurance/workspace.test.ts#fails closed for dynamic, unresolved, out-of-root, symlinked, and nested unknown controls", "tests/assurance/workspace.test.ts#does not rebind an old passing JUnit result when this Unit run skips its exact case", "tests/stages/test-run-dedup.test.ts#F6 records the exact shared Vitest argv and digest, including both reporters and its output path", "tests/stages/test-run-dedup.test.ts#F6 records the exact direct Vitest argv when coverage cannot share the runner", "tests/spec/attestation-policy.test.ts#refuses source, test, and runner-config interleaves from a sealed runtime snapshot"]
+  - id: AC-6f0a2106
+    ears: ubiquitous
+    text: "The assurance authority shall project legacy stage results through one profile reducer without executing a stage twice."
+    test_refs: ["tests/assurance/kernel.test.ts#projects one stage observation into Unit and Coverage attribution without re-execution", "tests/assurance/kernel.test.ts#attributes one F5 execution to Unit, Coverage, and only its exact policy-required blind proof"]
+  - id: AC-6f0a2107
+    ears: ubiquitous
+    text: "The assurance authority shall reject a downgraded requested assurance level and a stronger unbounded override."
+    test_refs: ["tests/cli/assurance-profile.test.ts#rejects profile tier conflicts, downgrades, and unbounded stronger overrides", "tests/cli/assurance-profile.test.ts#rejects an invalid runtime assurance-level enum before invoking a gate"]
+  - id: AC-6f0a2108
+    ears: ubiquitous
+    text: "The assurance authority shall write attestation v3 only from a profile-complete GREEN completion, push, or release verdict and only for a feature in that compiler-effective scope at its exact input digest."
+    test_refs: ["tests/assurance/attestation.test.ts#rejects public reducer output and accepts only the run authority facade", "tests/assurance/workspace.test.ts#projects v3 rows only for the compiler-effective scope that earned the verdict", "tests/assurance/effective-scope.test.ts#completion fixed point includes prerequisite, dependent, and shared-artifact co-owner", "tests/assurance/effective-scope.test.ts#the resolved closure reaches dependent B in the actual Gradle stage command and fails its defect", "tests/assurance/effective-scope.test.ts#unknown or incomplete compiler scope expands to the repository and disables focus modules", "tests/assurance/effective-scope.test.ts#push ignores a raw feature hint and remains repository-scoped", "tests/cli/assurance-profile.test.ts#refuses release narrowing before stage execution for public aliases and internal callers", "tests/assurance/kernel.test.ts#rejects a caller-narrowed completion profile even when its supplied stage passes", "tests/spec/attestation-policy.test.ts#retains a current schema-0.2 sibling byte-identically when A is replaced", "tests/stages/stale-attestation.test.ts#a current schema 0.2 v3 closure seal takes precedence over legacy module rows"]
+  - id: AC-6f0a2109
+    ears: ubiquitous
+    text: "The assurance authority shall read v1 and v2 attestations while applying v3 closure freshness when present."
+    test_refs: ["tests/spec/attestation-v3.test.ts#reads v1 and v2 compatibility sections and gives v3 seals precedence", "tests/spec/attestation-v3.test.ts#uses a legacy v2 marker for a sibling that has no valid v3 row"]
+  - id: AC-6f0a2110
+    ears: event
+    condition: "when a schema 0.2 feature is completed"
+    text: "When a schema 0.2 feature is completed, the completion profile shall preserve the flip, gate, compensation, and transaction invariants."
+    test_refs: ["tests/cli/assurance-profile.test.ts#routes schema 0.2 done through completion while schema 0.1 retains pre-push compatibility", "tests/cli/assurance-profile.test.ts#defers schema 0.2 completion stamping until independence accepts and restores on a writer failure", "tests/cli/done-schema02-crash-safe.test.ts#does not install a prospective overlay before the prepared gate starts, then commits status, projections, v3, and success event once", "tests/cli/done-schema02-crash-safe.test.ts#RED, thrown, missing-receipt, self-cert refusal, and writer failure leave canonical artifacts and event ledger byte-exact"]
+design_impact:
+  classification: structural
+  rationale: "F6 centralizes assurance identity, closure freshness, profile reduction, stage compatibility, and v3 sealing without adding an issuer or scheduler."
+  status: review_required
+  artifacts: ["docs/design/spec-0.2/assurance.md", "docs/design/spec-0.2/proof-and-editing.md", "docs/design/spec-0.2/delivery.md"]

@@ -7,15 +7,15 @@ modules:
 acceptance_criteria:
   - id: AC-cd6984
     ears: event
-    condition: "when the loaded spec declares architecture layers"
-    action: "derive the scan universe as src/<layer>/**/*.<lang-ext> for every declared layer (string or {name} object form), with the extension from project.language"
+    condition: "when a full-scale loaded spec declares architecture layers"
+    action: "derive declared-layer patterns from observed known source extensions united with extensions claimed under those layers, accepting string and {name} layer forms without reading project.language"
     response: "the module->feature honesty check covers the project's whole declared source map instead of 2 of 15 directories"
-    text: "When the loaded spec declares architecture layers, the detector shall derive its scan universe as src/<layer>/**/*.<ext> for every declared layer (accepting both string and {name} layer forms, extension from project.language), so the unclaimed-file check covers the declared source map."
-    notes: "## Why\nThe hardcoded ['src/stages/**','src/spec/**'] left cladding's own governance blind to 13 of its 15 src directories — a confidently wrong module map at scale is worse than none (design review T1-P6). Measured before widening: exactly 1 unclaimed file repo-wide, now claimed."
+    text: "When a full-scale loaded spec declares architecture layers, the detector shall derive its scan universe from observed known and layer-claimed source extensions for every declared layer, accepting both string and {name} layer forms without relying on project.language, so the unclaimed-file check covers the declared source map."
+    notes: "## Why\nThe old hardcoded roots left cladding's governance blind to most declared source directories. The observed-source policy keeps a lazy or mixed-language spec honest without treating project.language as evidence; modules under declared layers may teach additional roots and extensions."
     test_refs:
-      - "tests/stages/unmapped-artifact.test.ts#derives one src/<layer> pattern per declared layer (canonical string-tier form), language-aware"
-      - "tests/stages/unmapped-artifact.test.ts#accepts the {name} object layer form and non-TS languages"
-      - "tests/stages/unmapped-artifact.test.ts#a file in a declared layer that no feature claims is now FOUND (was blind pre-0.6)"
+      - "tests/stages/unmapped-artifact.test.ts#derives one pattern per declared layer (canonical string-tier form) from the observed extension"
+      - "tests/stages/unmapped-artifact.test.ts#accepts the {name} object layer form"
+      - "tests/stages/unmapped-artifact.test.ts#a file in a declared layer that no feature claims is FOUND (was blind pre-0.6)"
   - id: AC-c0e388
     ears: state
     condition: "while no architecture layers are declared"
