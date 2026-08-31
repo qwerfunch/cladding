@@ -19,6 +19,7 @@ vi.mock('../../src/events/log.js', () => ({recordEvent: vi.fn()}));
 // are isolated there, while the later git-operation fixture suite deliberately
 // re-enables their real implementations to exercise the production writer path.
 const syncWriteIsolation = vi.hoisted(() => ({enabled: false}));
+const realDrift = vi.hoisted(() => ({enabled: false}));
 
 vi.mock('../../src/spec/edit.js', async (importOriginal) => {
   const original = await importOriginal<typeof import('../../src/spec/edit.js')>();
@@ -70,7 +71,15 @@ vi.mock('../../src/ui/softShell.js', () => ({
 }));
 vi.mock('../../src/stages/type.js', () => ({runType: vi.fn(() => ({pass: true, exitCode: 0}))}));
 vi.mock('../../src/stages/lint.js', () => ({runLint: vi.fn(() => ({pass: true, exitCode: 0}))}));
-vi.mock('../../src/stages/drift.js', () => ({runDrift: vi.fn(() => ({pass: true, exitCode: 0}))}));
+vi.mock('../../src/stages/drift.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../src/stages/drift.js')>();
+  return {
+    ...original,
+    runDrift: vi.fn((opts) => realDrift.enabled
+      ? original.runDrift(opts)
+      : {pass: true, exitCode: 0}),
+  };
+});
 vi.mock('../../src/stages/commit.js', () => ({runCommit: vi.fn(() => ({pass: true, exitCode: 0}))}));
 vi.mock('../../src/stages/arch.js', () => ({runArch: vi.fn(() => ({pass: true, exitCode: 0}))}));
 vi.mock('../../src/stages/secret.js', () => ({runSecret: vi.fn(() => ({pass: true, exitCode: 0}))}));
@@ -447,6 +456,36 @@ describe('cli/clad — handler exports', () => {
     clad.runCheckCommand({strict: true});
     expect(runDrift).toHaveBeenCalledWith({strict: true});
     expect(process.exitCode).toBe(0);
+  });
+
+  test('[covers:F-051/AC-103] public clad check --strict promotes a real warn finding to a failing stage', async () => {
+    const drift = await import('../../src/stages/drift.js');
+    const runDrift = drift.runDrift as unknown as ReturnType<typeof vi.fn>;
+    realDrift.enabled = true;
+    drift.clearDetectors();
+    drift.registerDetector({
+      name: 'PUBLIC_STRICT_WARN',
+      run: () => [{detector: 'PUBLIC_STRICT_WARN', severity: 'warn', message: 'strict-only failure'}],
+    });
+    try {
+      clad.createProgram().parse(['check', '--strict', '--tier', 'pre-commit'], {from: 'user'});
+
+      expect(runDrift).toHaveBeenCalledWith({strict: true});
+      const report = runDrift.mock.results.at(-1)?.value as {
+        pass: boolean;
+        exitCode: number;
+        findings: {severity: string; message: string}[];
+      };
+      expect(report).toMatchObject({
+        pass: false,
+        exitCode: 1,
+        findings: [{severity: 'warn', message: 'strict-only failure'}],
+      });
+      expect(process.exitCode).toBe(1);
+    } finally {
+      drift.clearDetectors();
+      realDrift.enabled = false;
+    }
   });
 
   test('runCheckCommand reports worst exit code on failures', async () => {

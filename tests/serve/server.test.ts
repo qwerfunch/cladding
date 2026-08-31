@@ -17,8 +17,10 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
+import {StdioClientTransport} from '@modelcontextprotocol/sdk/client/stdio.js';
 import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js';
 import {Validator} from 'jsonschema';
+import {fileURLToPath} from 'node:url';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
 import {buildServer, PERSONA_IDS, PERSONA_PROMPT_ALIASES, RESOURCE_URIS, TOOL_NAMES} from '../../src/serve/server.js';
@@ -68,6 +70,14 @@ async function makePair(cwd: string): Promise<Pair> {
       await server.close();
     },
   };
+}
+
+/** Provides the child only ordinary process settings, never an LLM credential. */
+function stdioClientEnv(): Record<string, string> {
+  const providerKeys = new Set(['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'GEMINI_API_KEY', 'GOOGLE_API_KEY']);
+  return Object.fromEntries(
+    Object.entries(process.env).filter(([key, value]) => value !== undefined && !providerKeys.has(key)),
+  ) as Record<string, string>;
 }
 
 /** Captures every workspace entry so ingress rejection can prove zero writes. */
@@ -142,6 +152,40 @@ describe('serve/server — MCP read surface', () => {
       ]));
     } finally {
       await cleanup();
+    }
+  });
+
+  test('[covers:F-073/AC-206] a generic client consumes a tool, resource, and prompt through the real clad serve stdio command without provider credentials', async () => {
+    const transport = new StdioClientTransport({
+      command: process.execPath,
+      args: [fileURLToPath(new URL('../../bin/clad', import.meta.url)), 'serve'],
+      cwd: dir,
+      env: stdioClientEnv(),
+      stderr: 'pipe',
+    });
+    const client = new Client({name: 'generic-stdio-proof', version: '0.0.0-test'});
+    try {
+      await client.connect(transport);
+
+      const tool = await client.callTool({name: 'clad_list_features', arguments: {}});
+      const toolBody = JSON.parse((tool.content as Array<{text: string}>)[0].text) as {
+        total: number;
+        features: {id: string}[];
+      };
+      expect(toolBody).toMatchObject({total: 2, features: [{id: 'F-001'}, {id: 'F-002'}]});
+
+      const resource = await client.readResource({uri: RESOURCE_URIS.spec});
+      const resourceBody = JSON.parse((resource.contents[0] as {text: string}).text) as {
+        project: {name: string};
+      };
+      expect(resourceBody.project.name).toBe('probe');
+
+      const prompt = await client.getPrompt({name: 'planner', arguments: {featureId: 'F-001'}});
+      const promptText = (prompt.messages[0].content as {type: string; text: string}).text;
+      expect(promptText).toContain('Planner');
+      expect(promptText).toContain('Active feature: F-001');
+    } finally {
+      await client.close();
     }
   });
 

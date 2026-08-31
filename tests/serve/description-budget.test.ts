@@ -24,9 +24,10 @@
 // server.test.ts:111). listTools() never invokes a handler, so the descriptions
 // are the same static strings the host would receive at registration time.
 
-import {mkdtempSync, mkdirSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js';
@@ -51,6 +52,30 @@ const TIGHT_TOOLS = ['clad_create_feature', 'clad_changelog', 'clad_get_graph'] 
 const ORACLE_PROTOCOL_MARKERS = [
   'spawn a FRESH sub-agent given ONLY that brief',
   'never the implementation',
+] as const;
+
+const RELOCATED_RATIONALES = [
+  {
+    tool: 'clad_create_feature',
+    docPath: fileURLToPath(new URL('../../docs/spec-ids-multi-dev.md', import.meta.url)),
+    docReference: 'docs/spec-ids-multi-dev.md',
+    requiredDocText: 'Two contributors with the same slug get different hashes',
+    residentRationale: 'Hash ids are collision-safe across concurrent branches',
+  },
+  {
+    tool: 'clad_changelog',
+    docPath: fileURLToPath(new URL('../../skills/changelog/SKILL.md', import.meta.url)),
+    docReference: 'skills/changelog/SKILL.md',
+    requiredDocText: 'Never invent a change, never embellish beyond what an AC states.',
+    residentRationale: 'For human release notes, render FROM the manifest — never invent a change it does not carry',
+  },
+  {
+    tool: 'clad_get_graph',
+    docPath: fileURLToPath(new URL('../../docs/knowledge-graph/design.md', import.meta.url)),
+    docReference: 'docs/knowledge-graph/design.md',
+    requiredDocText: 'seven node kinds:',
+    residentRationale: 'the full graph is tens of thousands of tokens',
+  },
 ] as const;
 
 const MINIMAL_SPEC = `schema: "0.1"
@@ -133,6 +158,24 @@ describe('serve/server — MCP description budget (F-bc8ad013)', () => {
           len,
           `${name} description is ${len} chars (cap ${TIGHT_CAP})`,
         ).toBeLessThanOrEqual(TIGHT_CAP);
+      }
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('[covers:F-bc8ad013/AC-82b0e788] the three tight descriptions stay capped while their detailed rationale lives only in the required docs or skill', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const {tools} = await client.listTools();
+      for (const rationale of RELOCATED_RATIONALES) {
+        const tool = tools.find((entry) => entry.name === rationale.tool);
+        expect(tool, `${rationale.tool} must be a registered tool`).toBeDefined();
+        const description = tool!.description ?? '';
+        expect(description.length, `${rationale.tool} must fit the ${TIGHT_CAP}-character cap`).toBeLessThanOrEqual(TIGHT_CAP);
+        expect(description).toContain(rationale.docReference);
+        expect(description).not.toContain(rationale.residentRationale);
+        expect(readFileSync(rationale.docPath, 'utf8')).toContain(rationale.requiredDocText);
       }
     } finally {
       await cleanup();

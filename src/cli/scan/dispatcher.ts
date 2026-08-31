@@ -26,6 +26,20 @@ import {getHostMcpServer} from '../../adapters/host/sampling-context.js';
 import type {SamplingCapableServer} from '../../adapters/host/transport.js';
 import type {ScanLlmDispatcher} from './llm.js';
 
+/** Local shape of the lazy Anthropic client used by the direct dispatcher. */
+interface AnthropicMessagesClient {
+  readonly messages: {
+    create: (request: {
+      model: string;
+      max_tokens: number;
+      messages: {role: 'user'; content: string}[];
+    }) => Promise<{content: {type: string; text?: string}[]}>;
+  };
+}
+
+/** Construction seam: production loads the SDK lazily; tests supply a local client. */
+type CreateAnthropicClient = (config: {apiKey: string}) => AnthropicMessagesClient;
+
 /** Selection input. Mostly mirrors the InitOptions LLM flag. */
 export interface DispatcherOptions {
   /** Force the deterministic path even when an LLM is available. */
@@ -34,6 +48,8 @@ export interface DispatcherOptions {
   readonly model?: string;
   /** Override the API key (defaults to process.env.ANTHROPIC_API_KEY). */
   readonly apiKey?: string;
+  /** Local direct-client factory used by embedded callers and deterministic tests. */
+  readonly createAnthropicClient?: CreateAnthropicClient;
 }
 
 // Current-generation defaults (F-b43066). claude-sonnet-4-6 balances cost and
@@ -90,7 +106,11 @@ export function selectDispatcher(opts: DispatcherOptions = {}): ScanLlmDispatche
   // invocations.
   const anthropicKey = opts.apiKey ?? process.env.ANTHROPIC_API_KEY;
   if (anthropicKey) {
-    return createAnthropicDispatcher({apiKey: anthropicKey, model: resolveModel(opts.model)});
+    return createAnthropicDispatcher({
+      apiKey: anthropicKey,
+      model: resolveModel(opts.model),
+      createClient: opts.createAnthropicClient,
+    });
   }
 
   // Priority 3 — OpenAI direct (fetch, no SDK dependency). F-90d054 v0.3.60.
@@ -204,8 +224,15 @@ function createGeminiDispatcher(cfg: {apiKey: string; model: string}): ScanLlmDi
   };
 }
 
-function createAnthropicDispatcher(cfg: {apiKey: string; model: string}): ScanLlmDispatcher {
+function createAnthropicDispatcher(cfg: {
+  apiKey: string;
+  model: string;
+  createClient?: CreateAnthropicClient;
+}): ScanLlmDispatcher {
   return async (prompt) => {
+    if (cfg.createClient) {
+      return dispatchAnthropicMessage(cfg.createClient({apiKey: cfg.apiKey}), cfg.model, prompt);
+    }
     // Dynamic import so projects that never enable the LLM path
     // never load the SDK into the bundle's hot section.
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -220,16 +247,24 @@ function createAnthropicDispatcher(cfg: {apiKey: string; model: string}): ScanLl
         };
       };
     };
-    const client = new sdk.Anthropic({apiKey: cfg.apiKey});
-    const response = await client.messages.create({
-      model: cfg.model,
-      max_tokens: DEFAULT_MAX_TOKENS,
-      messages: [{role: 'user', content: prompt}],
-    });
-    let text = '';
-    for (const block of response.content) {
-      if (block.type === 'text' && typeof block.text === 'string') text += block.text;
-    }
-    return text;
+    return dispatchAnthropicMessage(new sdk.Anthropic({apiKey: cfg.apiKey}), cfg.model, prompt);
   };
+}
+
+/** Sends one direct Anthropic request through either the lazy SDK or an injected local client. */
+async function dispatchAnthropicMessage(
+  client: AnthropicMessagesClient,
+  model: string,
+  prompt: string,
+): Promise<string> {
+  const response = await client.messages.create({
+    model,
+    max_tokens: DEFAULT_MAX_TOKENS,
+    messages: [{role: 'user', content: prompt}],
+  });
+  let text = '';
+  for (const block of response.content) {
+    if (block.type === 'text' && typeof block.text === 'string') text += block.text;
+  }
+  return text;
 }

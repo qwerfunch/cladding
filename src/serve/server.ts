@@ -1504,10 +1504,8 @@ function registerInitializedTools(
     {
       title: 'Get the live knowledge graph (focused neighborhood, or a stats summary)',
       description:
-        'With query: the focus node’s N-hop neighborhood (typed nodes + edges; a path query unions its ' +
-        'kind-twins). WITHOUT query: a compact stats summary (counts by kind + top hubs) — the full graph is ' +
-        'tens of thousands of tokens, so use `clad graph export --format json` for a complete dump. ' +
-        'Recomputed live, never stale. Node kinds (including skill nodes) + edge types: docs/knowledge-graph/design.md.',
+        'Return a focused live graph neighborhood, or a compact stats summary when query is omitted. ' +
+        'skill nodes and graph taxonomy: docs/knowledge-graph/design.md.',
       inputSchema: {
         query: z
           .string()
@@ -1594,10 +1592,8 @@ function registerInitializedTools(
     {
       title: 'Collect shipped changes since a git ref (changelog manifest)',
       description:
-        'The deterministic shipped-changes manifest for <since>..HEAD (default since: latest tag): done-feature ' +
-        'shards grouped by capability, the inventory count diff, and feat:/fix: commits naming no feature id. ' +
-        'For human release notes, render FROM the manifest — never invent a change it does not carry. ' +
-        'Formats (manifest/markdown/audit/catalog): skills/changelog/SKILL.md.',
+        'Collect a deterministic shipped-changes manifest for <since>..HEAD (latest tag by default). ' +
+        'Formats and release-note guidance: skills/changelog/SKILL.md.',
       inputSchema: {
         since: z
           .string()
@@ -1766,10 +1762,8 @@ function registerInitializedTools(
     {
       title: 'Create a new cladding feature',
       description:
-        'Creates one separately named feature shard with an automatically assigned collision-safe identifier. ' +
-        'Author the feature WITH its acceptance_criteria (and modules) in this one call — an AC-less ' +
-        'feature is a hollow stub that governs nothing. Hash ids are collision-safe across concurrent ' +
-        'branches; see docs/spec-ids-multi-dev.md.',
+        'Create one feature shard from its structured fields, including acceptance criteria and modules. ' +
+        'Identifier and concurrent-authoring guidance: docs/spec-ids-multi-dev.md.',
       inputSchema: z.object({
         slug: z
           .string()

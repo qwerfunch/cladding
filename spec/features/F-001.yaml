@@ -22,4 +22,4 @@ acceptance_criteria:
     response: the stage is treated as skipped rather than failed
     text: When no type checker is registered for the detected language, the system
       shall return exitCode 2 so callers can treat the stage as skipped.
-    test_refs: [tests/stages/toolchain.test.ts]
+    test_refs: [tests/stages/type.test.ts]

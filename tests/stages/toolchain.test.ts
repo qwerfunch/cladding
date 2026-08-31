@@ -330,7 +330,7 @@ describe('detectToolchain', () => {
     }
   });
 
-  test('[covers:F-2c02991f/AC-caa9471d] AC-dd5c3abf · hand-written source stays in scan, so a real cycle is still reported', () => {
+  test('AC-dd5c3abf · hand-written source paths remain eligible for the scanner', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     const re = new RegExp(archExclude(dir)!);
     for (const source of [

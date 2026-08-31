@@ -463,7 +463,16 @@ const DRIFT_DEBOUNCE_MS = 20_000;
 // src/, not just the legacy 5-ext set (F-63b989e5). The src/-segment rule is
 // UNCHANGED: any path with a src/ segment stays watched regardless of extension.
 // Pure string/set membership — synchronous, no fs, no per-call regex rebuild.
-function isWatchedSourcePath(filePath: string): boolean {
+/**
+ * Classifies a hook path before the PostToolUse handler reads any workspace
+ * state, keeping the event-hot-path decision independently testable.
+ *
+ * @param filePath - Host-provided path for the edited file.
+ * @returns Whether the path can affect source behavior and warrants an impact card.
+ * @internal This module-local hook seam is not re-exported from the package API.
+ * @see spec/features/impact-card-language-parity-63b989e5.yaml AC-7e325488
+ */
+export function isWatchedSourcePath(filePath: string): boolean {
   if (filePath.length === 0) return false;
   if (/(^|[\\/])src[\\/]/.test(filePath)) return true;
   return WATCHED_EXTENSIONS.has(extname(filePath).toLowerCase());

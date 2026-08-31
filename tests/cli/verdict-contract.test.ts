@@ -1,7 +1,17 @@
-import {describe, it, expect} from 'vitest';
+import {mkdtempSync, rmSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
+import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import * as path from 'node:path';
+import {describe, it, expect, vi} from 'vitest';
+
+import {computeVerdict, type VerdictOutcome, type VerdictStage} from '../../src/verdict/verdict.js';
+
+vi.mock('../../src/spec/load.js', () => ({loadSpec: vi.fn()}));
+
+const specMod = await import('../../src/spec/load.js');
+const loadSpecMock = specMod.loadSpec as unknown as ReturnType<typeof vi.fn>;
+const {runVerdictCommand} = await import('../../src/cli/verdict.js');
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -34,6 +44,47 @@ function extractJson(s: string): Record<string, unknown> | null {
 }
 
 describe('F-2e28cc72 clad verdict — CLI contract (AC4/AC5)', () => {
+  it('[covers:F-2e28cc72/AC-eb5de98c] in-process handler emits machine JSON and the pure reducer is deterministic for the same input', () => {
+    const cwd = mkdtempSync(path.join(tmpdir(), 'clad-verdict-contract-'));
+    const originalCwd = process.cwd();
+    const chunks: string[] = [];
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined as never) as never);
+    const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation((chunk: unknown) => {
+      chunks.push(String(chunk));
+      return true;
+    });
+    const spec = {features: [{id: 'F-done', slug: 'done', status: 'done'}]};
+    const outcome: VerdictOutcome = {
+      worst: 0,
+      anyFailed: false,
+      stages: [{stage: 'stage_2.1', label: 'unit', status: 'pass', exitCode: 0} as VerdictStage],
+    };
+    const checkStages = vi.fn(() => outcome);
+
+    try {
+      process.chdir(cwd);
+      loadSpecMock.mockReset();
+      loadSpecMock.mockReturnValue(spec);
+      runVerdictCommand({json: true}, {checkStages});
+
+      const pureInput = {outcome, spec: spec as Parameters<typeof computeVerdict>[0]['spec']};
+      const first = computeVerdict(pureInput);
+      const second = computeVerdict(pureInput);
+      const emitted = JSON.parse(chunks.join('')) as Record<string, unknown>;
+      expect(first).toEqual(second);
+      expect(emitted).toMatchObject(first);
+      expect(checkStages).toHaveBeenCalledOnce();
+      expect(checkStages).toHaveBeenCalledWith({tier: 'pre-push', strict: true, silent: true});
+      expect(exitSpy).toHaveBeenCalledWith(0);
+    } finally {
+      process.chdir(originalCwd);
+      loadSpecMock.mockReset();
+      stdoutSpy.mockRestore();
+      exitSpy.mockRestore();
+      rmSync(cwd, {recursive: true, force: true});
+    }
+  });
+
   it.skipIf(isNested)(
     'AC4/AC5: `clad verdict --json` emits one machine verdict object over the real gate',
     () => {

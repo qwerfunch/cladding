@@ -38,7 +38,7 @@ describe('runType (stage_1.1)', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('unknown language + no override → skipped (exitCode=2)', () => {
+  test('[covers:F-001/AC-002] unknown language + no override returns the skipped stage result (exitCode=2)', () => {
     // Empty dir → no manifest → toolchain.language='unknown' → no gate spec
     const r = runType({cwd: dir});
     expect(r.pass).toBe(false);

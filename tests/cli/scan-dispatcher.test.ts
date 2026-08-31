@@ -106,6 +106,61 @@ describe('selectDispatcher', () => {
     expect(received).toBe('the exact prompt');
   });
 
+  test('[covers:F-417ff0/AC-001] MCP sampling wins, an injected direct client refines with only an API key, and offline stays deterministic', async () => {
+    let samplingCalls = 0;
+    let directClientCalls = 0;
+    setHostMcpServer({
+      async createMessage() {
+        samplingCalls += 1;
+        return {
+          model: 'host-selected-model',
+          role: 'assistant' as const,
+          content: {type: 'text' as const, text: 'MCP refinement'},
+        };
+      },
+    });
+    const mcp = selectDispatcher({
+      apiKey: 'direct-only-test-key',
+      createAnthropicClient: () => {
+        directClientCalls += 1;
+        throw new Error('MCP must win before the direct client is constructed.');
+      },
+    });
+    expect(mcp).toEqual(expect.any(Function));
+    await expect(mcp!('refine through the host')).resolves.toBe('MCP refinement');
+    expect(samplingCalls).toBe(1);
+    expect(directClientCalls).toBe(0);
+
+    setHostMcpServer(null);
+    let directConfig: {apiKey: string} | undefined;
+    let directRequest: {model: string; max_tokens: number; messages: {role: 'user'; content: string}[]} | undefined;
+    const direct = selectDispatcher({
+      apiKey: 'direct-only-test-key',
+      model: 'local-direct-model',
+      createAnthropicClient: (config) => {
+        directConfig = config;
+        return {
+          messages: {
+            async create(request) {
+              directRequest = request;
+              return {content: [{type: 'text', text: 'Direct refinement'}]};
+            },
+          },
+        };
+      },
+    });
+    expect(direct).toEqual(expect.any(Function));
+    await expect(direct!('refine through the direct client')).resolves.toBe('Direct refinement');
+    expect(directConfig).toEqual({apiKey: 'direct-only-test-key'});
+    expect(directRequest).toEqual({
+      model: 'local-direct-model',
+      max_tokens: DEFAULT_MAX_TOKENS,
+      messages: [{role: 'user', content: 'refine through the direct client'}],
+    });
+
+    expect(selectDispatcher()).toBeNull();
+  });
+
   test('[covers:F-7fa4a7/AC-004] MCP dispatcher returns empty string when the reply has no text block', async () => {
     setHostMcpServer({
       async createMessage() {
