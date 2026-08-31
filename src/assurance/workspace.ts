@@ -1610,7 +1610,12 @@ function currentVitestReport(bytes: string, cwd: string): JUnitReport | undefine
     const parsed = JSON.parse(bytes) as {
       testResults?: readonly {
         readonly name?: string;
-        readonly assertionResults?: readonly {readonly status?: string; readonly fullName?: string; readonly title?: string}[];
+        readonly assertionResults?: readonly {
+          readonly status?: string;
+          readonly fullName?: string;
+          readonly title?: string;
+          readonly ancestorTitles?: unknown;
+        }[];
       }[];
     };
     if (!Array.isArray(parsed.testResults)) return undefined;
@@ -1628,9 +1633,15 @@ function currentVitestReport(bytes: string, cwd: string): JUnitReport | undefine
       const repoPath = relative(resolve(cwd), resolve(cwd, file.name)).replaceAll('\\', '/');
       if (!repoPath || repoPath.startsWith('../')) continue;
       for (const assertion of file.assertionResults ?? []) {
-        // `title` is an opaque reporter field, not a string inferred from a
-        // nested full name. F5 may use it only under its unique-per-file rule.
-        const name = assertion.fullName ?? assertion.title;
+        // A structured native suite path is the sole safe way to distinguish
+        // nested cases; space-joined reporter names cannot preserve that fact.
+        const ancestorTitles = assertion.ancestorTitles;
+        const hasNativeSuitePath = Array.isArray(ancestorTitles)
+          && ancestorTitles.every((ancestor) => typeof ancestor === 'string')
+          && typeof assertion.title === 'string';
+        const name = hasNativeSuitePath
+          ? [...ancestorTitles, assertion.title].join(' > ')
+          : assertion.fullName ?? assertion.title;
         if (!name) continue;
         const status = assertion.status === 'passed' ? 'pass'
           : assertion.status === 'failed' ? 'fail'

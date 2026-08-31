@@ -755,7 +755,7 @@ describe('F6 workspace profile closure', () => {
     clearTestRunCache();
   });
 
-  test('uses explicit current Vitest titles, rejects duplicate leaves, and keeps full-name exact precedence', () => {
+  test('keeps top-level Vitest titles, full-name fallbacks, and duplicate leaves compatible', () => {
     const cwd = fixture();
     mkdirSync(join(cwd, 'tests'), {recursive: true});
     const selector = '[covers:F-aaaaaaaa/AC-aaaaaaaa] verifies nested output';
@@ -775,6 +775,8 @@ describe('F6 workspace profile closure', () => {
     };
 
     expect(view([{status: 'passed', fullName: `outer suite ${selector}`, title: selector}])).toBe('verified');
+    expect(view([{status: 'passed', title: selector}])).toBe('verified');
+    expect(view([{status: 'passed', fullName: selector}])).toBe('verified');
     expect(view([
       {status: 'passed', fullName: `first suite ${selector}`, title: selector},
       {status: 'passed', fullName: `second suite ${selector}`, title: selector},
@@ -783,6 +785,54 @@ describe('F6 workspace profile closure', () => {
       {status: 'passed', fullName: selector, title: selector},
       {status: 'passed', fullName: `duplicate suite ${selector}`, title: selector},
     ])).toBe('verified');
+  });
+
+  test('round-trips native Vitest suite paths without guessing from space-joined full names', () => {
+    const cwd = fixture();
+    mkdirSync(join(cwd, 'tests'), {recursive: true});
+    const selector = '[covers:F-aaaaaaaa/AC-aaaaaaaa] preserves nested suite identity';
+    writeFileSync(join(cwd, 'tests', 'a.test.ts'), [
+      "describe('outer suite', () => {",
+      `  it(${JSON.stringify(selector)}, () => {});`,
+      '});',
+      "describe('outer', () => {",
+      "  describe('suite', () => {",
+      `    it(${JSON.stringify(selector)}, () => {});`,
+      '  });',
+      '});', '',
+    ].join('\n'));
+    const compilation = compileSpecWorkspace(cwd);
+    const reporter = join(cwd, 'current-vitest.json');
+    const view = (assertionResults: readonly object[]) => {
+      writeFileSync(reporter, JSON.stringify({testResults: [{
+        name: join(cwd, 'tests', 'a.test.ts'), assertionResults,
+      }]}));
+      primeTestRunCache(cwd, 'sealed-input');
+      try {
+        captureCurrentVitestProof(cwd, reporter, ['vitest', 'run']);
+        const current = currentGateProofEvidence(cwd, 'sealed-input');
+        return currentProofViewsFromWorkspace(cwd, compilation, ['feature:F-aaaaaaaa'], current, 'sealed-input');
+      } finally {
+        clearTestRunCache();
+      }
+    };
+    const spaceJoinedFullName = `outer suite ${selector}`;
+
+    expect(view([{
+      status: 'passed', ancestorTitles: ['outer suite'], title: selector, fullName: spaceJoinedFullName,
+    }])[0]?.test).toEqual(expect.objectContaining({state: 'verified', matched: 1, pass: 1}));
+    // Both native paths have the same reporter full name, but remain distinct
+    // exact observations because the source and adapter use ` > ` separators.
+    expect(view([
+      {status: 'passed', ancestorTitles: ['outer suite'], title: selector, fullName: spaceJoinedFullName},
+      {status: 'failed', ancestorTitles: ['outer', 'suite'], title: selector, fullName: spaceJoinedFullName},
+    ])[0]?.test).toEqual(expect.objectContaining({state: 'failed', matched: 2, pass: 1, fail: 1}));
+    expect(view([{
+      status: 'passed', ancestorTitles: ['outer', 7], title: selector, fullName: spaceJoinedFullName,
+    }])[0]?.test).toEqual(expect.objectContaining({state: 'unverified', matched: 0, pass: 0}));
+    expect(view([{
+      status: 'passed', ancestorTitles: ['unrelated suite'], title: 'unrelated same-file pass', fullName: 'unrelated suite unrelated same-file pass',
+    }])[0]?.test).toEqual(expect.objectContaining({state: 'unverified', matched: 0, pass: 0}));
   });
 
   test('adapts only available exact reviewed or legacy selectors for done compiler contracts', () => {
