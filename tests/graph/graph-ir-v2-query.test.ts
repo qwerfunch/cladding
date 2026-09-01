@@ -78,12 +78,16 @@ describe('compiler GraphIR v2 query kernel', () => {
   test('[covers:F-208eaa79/AC-1f6fd7fe] keeps B→A prerequisites and A→B dependents directed, with a direction ablation', () => {
     const root = workspace('0.1');
     writeSchema01GraphFixture(root);
-    const kernel = graphIrV2(compileSpecWorkspace(root));
+    const compilation = compileSpecWorkspace(root);
+    const kernel = graphIrV2(compilation);
     const prerequisites = kernel.prerequisites('F-bbbbbbbb');
     const dependents = kernel.dependents('F-aaaaaaaa');
     const wrongDirection = kernel.prerequisites('F-aaaaaaaa');
-    expect(prerequisites.records.map((record) => [record.feature, record.prerequisite])).toEqual([['feature:F-bbbbbbbb', 'feature:F-aaaaaaaa']]);
-    expect(dependents.records.map((record) => [record.feature, record.dependent])).toEqual([['feature:F-aaaaaaaa', 'feature:F-bbbbbbbb']]);
+    const independentFacts = compilation.edges
+      .filter((edge) => edge.relation === 'depends_on' && edge.provenance === 'authored')
+      .map((edge) => [edge.from, edge.to]);
+    expect(prerequisites.records.map((record) => [record.feature, record.prerequisite])).toEqual(independentFacts);
+    expect(dependents.records.map((record) => [record.feature, record.dependent])).toEqual(independentFacts.map(([from, to]) => [to, from]));
     expect(wrongDirection.records).not.toEqual(prerequisites.records);
     const transitive = graphIrV2(syntheticCompilation(3));
     expect(transitive.prerequisites('F-00000002', 2).records).toHaveLength(2);
@@ -162,6 +166,30 @@ describe('compiler GraphIR v2 query kernel', () => {
     expect(proofs.map((edge) => ({...edge, selector: undefined}))).not.toEqual(proofs);
   });
 
+  test('[covers:F-208eaa79/AC-4f8c2542] rejects malformed runtime facts before indexing and retains canonical anchor→criterion covers', () => {
+    const root = workspace('0.1');
+    writeSchema01GraphFixture(root);
+    const compilation = compileSpecWorkspace(root);
+    const criterion = 'criterion:F-aaaaaaaa/AC-deadbeef';
+    const anchor = 'anchor:tests/shared.test.ts#alpha regression';
+    const edge = {
+      identity: 'case:strict', from: anchor, to: criterion, relation: 'covers' as const, provenance: 'observed' as const,
+      owner: {kind: 'runtime_observation' as const, adapter: 'junit', reference: 'case:strict'}, state: 'passed' as const,
+    };
+    const layer = {layerId: 'strict-receipt', nodes: [], edges: [edge], completeness: 'complete' as const, unknownReasons: []};
+    expect(graphIrV2(compilation, [layer]).criterionProofs(criterion).records).toEqual(expect.arrayContaining([
+      expect.objectContaining({identity: 'case:strict', from: anchor, to: criterion, relation: 'covers'}),
+    ]));
+    expect(() => graphIrV2(compilation, [{...layer, layerId: ' '}])).toThrow(/layer id must be nonblank/);
+    expect(() => graphIrV2(compilation, [{...layer, edges: [{...edge, identity: ''}]}])).toThrow(/identity must be nonblank/);
+    expect(() => graphIrV2(compilation, [{...layer, edges: [{...edge, owner: {...edge.owner, adapter: ' '}}]}])).toThrow(/adapter and reference/);
+    expect(() => graphIrV2(compilation, [{...layer, edges: [{...edge, owner: {...edge.owner, reference: ' '}}]}])).toThrow(/adapter and reference/);
+    expect(() => graphIrV2(compilation, [{...layer, edges: [{...edge, to: 'criterion:F-aaaaaaaa/AC-missing'}]}])).toThrow(/absent from the combined GraphIR node set/);
+    expect(() => graphIrV2(compilation, [{...layer, edges: [{...edge, from: criterion, to: anchor}]}])).toThrow(/invalid covers endpoint taxonomy/);
+    expect(() => graphIrV2(compilation, [{...layer, edges: [{...edge, from: 'feature:F-aaaaaaaa', to: 'artifact:tests/shared.test.ts'}]}])).toThrow(/invalid covers endpoint taxonomy/);
+    expect(() => graphIrV2(compilation, [{...layer, edges: [{...edge, relation: 'mentions' as const, from: 'feature:F-aaaaaaaa', to: criterion}]}])).toThrow(/invalid mentions endpoint taxonomy/);
+  });
+
   test('[covers:F-208eaa79/AC-4f8c2542] deduplicates exact future facts and fails closed on conflicting identities', () => {
     const root = workspace('0.1');
     writeSchema01GraphFixture(root);
@@ -234,10 +262,18 @@ describe('compiler GraphIR v2 query kernel', () => {
     const authoring = graphIrV2(compileSpecWorkspace(authoredRoot)).criterionProofs('criterion:F-aaaaaaaa/AC-deadbeef').records;
     expect(feature).toMatchObject({title: 'Strict graph', purpose: 'Preserve directed graph intent.'});
     expect(criterion).toMatchObject({statement: 'The system shall preserve an explicit graph boundary.', rationale: 'A criterion retains its authored reason.'});
-    expect({...criterion, rationale: undefined}).not.toEqual(criterion);
-    expect({...feature, purpose: undefined}).not.toEqual(feature);
-    expect(kernel.presentationRecords().filter((record) => record.kind !== 'criterion')).not.toEqual(kernel.presentationRecords());
-    expect(authoring.filter((edge) => edge.provenance !== 'authored')).not.toEqual(authoring);
+    const criterionAblated = graphIrV2({
+      ...compileSpecWorkspace(root),
+      presentations: compileSpecWorkspace(root).presentations.filter((record) => record.address !== criterion?.address),
+    });
+    const authoredCompilation = compileSpecWorkspace(authoredRoot);
+    const provenanceAblated = graphIrV2({
+      ...authoredCompilation,
+      edges: authoredCompilation.edges.filter((edge) => edge.provenance !== 'authored' || edge.relation !== 'supports'),
+    });
+    expect(criterionAblated.presentationRecords()).not.toContainEqual(criterion);
+    expect(provenanceAblated.regressions('criterion:F-aaaaaaaa/AC-deadbeef').records).toEqual([]);
+    expect(authoring).not.toEqual(provenanceAblated.criterionProofs('criterion:F-aaaaaaaa/AC-deadbeef').records);
   });
 
   test('[covers:F-208eaa79/AC-6110ed01] reports environment-labelled cold and warm timings while indexing 5,000 features linearly', () => {

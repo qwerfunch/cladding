@@ -85,6 +85,59 @@ describe('Spec compiler schema 0.2 structural boundary', () => {
     expect(codes).toEqual(expect.arrayContaining(['LEGACY_FIELD']));
   });
 
+  test('uses the schema 0.2 shard filename as slug authority, including direct legacy fallback', () => {
+    const root = workspace();
+    writeFileSync(join(root, 'spec', 'features', 'filename-authoritative-aaaaaaaa.yaml'), [
+      'id: F-aaaaaaaa', 'slug: body-must-not-win', 'title: Filename authority', 'status: planned', 'purpose: Keep the shard name authoritative.', 'modules: []', 'depends_on: []', 'capability_refs: []', 'acceptance_criteria: []', '',
+    ].join('\n'));
+    const compilation = compileSpecWorkspace(root);
+    const feature = compilation.presentations.find((record) => record.address === 'feature:F-aaaaaaaa');
+    const slugAlias = compilation.aliases.find((record) => record.address === 'feature:F-aaaaaaaa' && record.kind === 'feature_slug');
+    expect(feature).toMatchObject({slug: 'filename-authoritative', source: {path: 'spec/features/filename-authoritative-aaaaaaaa.yaml', yamlPath: '$'}});
+    expect(slugAlias).toMatchObject({alias: 'filename-authoritative', source: {path: 'spec/features/filename-authoritative-aaaaaaaa.yaml', yamlPath: '$'}});
+    expect(compilation.aliases.some((record) => record.alias === 'body-must-not-win')).toBe(false);
+
+    const legacyRoot = workspace();
+    writeFileSync(join(legacyRoot, 'spec', 'features', 'F-001.yaml'), [
+      'id: F-001', 'title: Direct fallback', 'status: planned', 'purpose: Preserve a readable direct shard.', 'modules: []', 'depends_on: []', 'capability_refs: []', 'acceptance_criteria: []', '',
+    ].join('\n'));
+    expect(compileSpecWorkspace(legacyRoot).presentations.find((record) => record.address === 'feature:F-001')).toMatchObject({slug: 'F-001'});
+  });
+
+  test('blocks duplicate schema 0.2 feature and criterion identifiers without multiplying first facts', () => {
+    const featureRoot = workspace();
+    writeFileSync(join(featureRoot, 'spec', 'features', 'first-aaaaaaaa.yaml'), [
+      'id: F-aaaaaaaa', 'title: First', 'status: planned', 'purpose: Retain the first feature fact.', 'modules: [src/first.ts]', 'depends_on: []', 'capability_refs: []', 'acceptance_criteria: []', '',
+    ].join('\n'));
+    writeFileSync(join(featureRoot, 'spec', 'features', 'second-bbbbbbbb.yaml'), [
+      'id: F-aaaaaaaa', 'title: Duplicate', 'status: planned', 'purpose: This duplicate cannot rewrite the first fact.', 'modules: [src/second.ts]', 'depends_on: []', 'capability_refs: []', 'acceptance_criteria: []', '',
+    ].join('\n'));
+    const duplicateFeature = compileSpecWorkspace(featureRoot);
+    expect(duplicateFeature.diagnostics.filter((diagnostic) => diagnostic.code === 'DUPLICATE_IDENTIFIER')).toEqual([
+      expect.objectContaining({message: 'duplicate feature id F-aaaaaaaa', source: expect.objectContaining({path: 'spec/features/second-bbbbbbbb.yaml', yamlPath: '$.id'})}),
+    ]);
+    expect(duplicateFeature.nodes.find((node) => node.address === 'feature:F-aaaaaaaa')).toMatchObject({source: {path: 'spec/features/first-aaaaaaaa.yaml'}});
+    expect(duplicateFeature.presentations.filter((record) => record.address === 'feature:F-aaaaaaaa')).toHaveLength(1);
+    expect(duplicateFeature.aliases.filter((record) => record.address === 'feature:F-aaaaaaaa')).toHaveLength(2);
+    expect(duplicateFeature.edges.some((edge) => edge.to === 'artifact:src/second.ts')).toBe(false);
+    expect(duplicateFeature.contract).toBeUndefined();
+
+    const criterionRoot = workspace();
+    writeFileSync(join(criterionRoot, 'spec', 'features', 'criteria-aaaaaaaa.yaml'), [
+      'id: F-aaaaaaaa', 'title: Criteria', 'status: planned', 'purpose: Retain the first criterion fact.', 'modules: []', 'depends_on: []', 'capability_refs: []', 'acceptance_criteria:',
+      '  - id: AC-bbbbbbbb', '    kind: behavior', '    statement: The system shall retain the first criterion.',
+      '  - id: AC-bbbbbbbb', '    kind: behavior', '    statement: The system shall not overwrite the first criterion.', '',
+    ].join('\n'));
+    const duplicateCriterion = compileSpecWorkspace(criterionRoot);
+    expect(duplicateCriterion.diagnostics.filter((diagnostic) => diagnostic.code === 'DUPLICATE_IDENTIFIER')).toEqual([
+      expect.objectContaining({message: 'duplicate criterion id AC-bbbbbbbb', source: expect.objectContaining({path: 'spec/features/criteria-aaaaaaaa.yaml', yamlPath: '$.acceptance_criteria[1].id'})}),
+    ]);
+    expect(duplicateCriterion.nodes.find((node) => node.address === 'criterion:F-aaaaaaaa/AC-bbbbbbbb')).toMatchObject({source: {yamlPath: '$.acceptance_criteria[0].id'}});
+    expect(duplicateCriterion.presentations.filter((record) => record.address === 'criterion:F-aaaaaaaa/AC-bbbbbbbb')).toHaveLength(1);
+    expect(duplicateCriterion.edges.filter((edge) => edge.from === 'feature:F-aaaaaaaa' && edge.relation === 'contains')).toHaveLength(1);
+    expect(duplicateCriterion.contract).toBeUndefined();
+  });
+
   test('reports genuine atomicity risk and leaves a long valid control nonblocking', () => {
     const root = workspace();
     feature(root, [

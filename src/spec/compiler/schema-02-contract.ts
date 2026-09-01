@@ -316,6 +316,7 @@ function validateSchema02FeatureProjection(
   if (!Array.isArray(record.acceptance_criteria)) {
     issues.push(issue('INVALID_SCHEMA_02', ['acceptance_criteria'], 'feature.acceptance_criteria must be an array in schema 0.2'));
   } else {
+    const criterionIds = new Set<string>();
     record.acceptance_criteria.forEach((raw, index) => {
       const criterion = recordOf(raw);
       const prefix: readonly ContractPathPart[] = ['acceptance_criteria', index];
@@ -342,6 +343,10 @@ function validateSchema02FeatureProjection(
       const evidenceRefs = optionalStringArray(criterion, 'evidence_refs', prefix, issues, 'criterion.evidence_refs');
       const notes = optionalString(criterion, 'notes', prefix, issues, 'criterion.notes');
       if (!criterionId) issues.push(issue('INVALID_SCHEMA_02', [...prefix, 'id'], 'criterion.id must be a non-empty string'));
+      if (criterionId && criterionIds.has(criterionId)) {
+        issues.push(issue('DUPLICATE_IDENTIFIER', [...prefix, 'id'], `duplicate criterion id ${criterionId}`));
+      }
+      if (criterionId) criterionIds.add(criterionId);
       if (!isCriterionKind(kind) && !criterionBaselineIdentity) {
         issues.push(issue('INVALID_SCHEMA_02', [...prefix, 'kind'], 'criterion.kind must be behavior, quality, or constraint'));
       }

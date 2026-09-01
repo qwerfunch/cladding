@@ -17,6 +17,7 @@ export interface ClaimSite {
 export interface RunTestCountOptions {
   readonly root?: string;
   readonly collected?: number;
+  readonly testFiles?: number;
 }
 
 /** Registered public README surfaces carrying the collected test claim. */
@@ -63,6 +64,24 @@ export function rewriteClaimText(
   expected: number,
   file?: string,
 ): string;
+
+/** Returns the one test-file inventory claim from a README surface. */
+export function testFileClaim(body: string, file?: string): number;
+
+/** Validates a README test-file claim against Vitest's distinct test files. */
+export function checkTestFileClaim(body: string, expected: number, file?: string): void;
+
+/** Rewrites one README test-file claim after validating its shape. */
+export function rewriteTestFileClaim(body: string, expected: number, file?: string): string;
+
+/** Returns the one persisted root inventory.test_files value. */
+export function inventoryTestFileCount(body: string): number;
+
+/** Rewrites the persisted root inventory.test_files value. */
+export function rewriteInventoryTestFileCount(body: string, expected: number): string;
+
+/** Returns the test and distinct test-file counts from one Vitest collection. */
+export function collectTestInventory(): {tests: number; testFiles: number};
 
 /**
  * Returns the number of tests currently collected by Vitest.

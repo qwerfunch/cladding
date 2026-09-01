@@ -8,6 +8,7 @@ import {LineCounter, parseDocument} from 'yaml';
 import {resolveArtifactDescriptors} from './artifact-registry.js';
 import {anchorAddress, artifactAddress, normalizeGraphArtifactPath, semanticAddress} from './graph-address.js';
 import {graphIrV2} from './graph-ir-v2.js';
+import {shardFilenameSlug} from './id-policy.js';
 import {withStableSpecWorkspaceSnapshot} from '../transaction.js';
 import {prospectiveCompilationOverlay} from '../prospective.js';
 import {legacyExemptionMatches, validateMigrationBaseline, type MigrationBaseline} from './migration-baseline.js';
@@ -371,8 +372,9 @@ function compileSchema02(root: string, master: ParsedYaml, rootValue: Record<str
   } else {
     const featureDocuments = childDocuments(root, master, undefined, 'features');
     expectedFeatureContracts = featureDocuments.length;
+    const featureIds = new Set<string>();
     for (const featureDocument of featureDocuments) {
-      compileSchema02Feature(graph, featureDocument, capabilityIds, architectureRules, featureContracts, baseline);
+      compileSchema02Feature(graph, featureDocument, capabilityIds, architectureRules, featureContracts, baseline, featureIds);
     }
   }
   const scenarioContracts: Schema02ScenarioContract[] = [];
@@ -602,12 +604,21 @@ function compileSchema02Feature(
   architectureRules: ReadonlyMap<string, Schema02ArchitectureRuleContract>,
   featureContracts: Schema02FeatureContract[],
   baseline: MigrationBaseline | undefined,
+  featureIds: Set<string>,
 ): void {
   const feature = objectValueOrNull(parsed.value) as (RawFeature & {readonly purpose?: unknown; readonly slug?: unknown}) | null;
   if (!feature || typeof feature.id !== 'string' || typeof feature.title !== 'string' || typeof feature.status !== 'string') {
     graph.diagnostics.push({code: 'INVALID_FEATURE', severity: 'blocking', message: `feature in ${parsed.path} lacks id, title, or status`, source: locator(parsed, [])});
     return;
   }
+  if (featureIds.has(feature.id)) {
+    graph.diagnostics.push({
+      code: 'DUPLICATE_IDENTIFIER', severity: 'blocking', message: `duplicate feature id ${feature.id}`,
+      source: locator(parsed, ['id']),
+    });
+    return;
+  }
+  featureIds.add(feature.id);
   const featureBaselineIdentity = legacyExemptionMatches(baseline, `feature:${feature.id}`, feature)
     && (feature.purpose === undefined || typeof feature.purpose === 'string')
     ? baseline?.features.find((entry) => entry.address === `feature:${feature.id}`)?.exemption?.id
@@ -631,16 +642,16 @@ function compileSchema02Feature(
   const criterionContracts = new Map((featureValidation.value?.acceptanceCriteria ?? []).map((criterion) => [criterion.id, criterion]));
   const featureAddress = semanticAddress('feature', feature.id);
   const featureSource = locator(parsed, ['id']);
+  const shardSource = locator(parsed, []);
+  const filenameSlug = shardFilenameSlug(parsed.path, feature.id);
   addSemantic(graph, {address: featureAddress, nodeType: 'semantic', kind: 'feature', provenance: 'authored', source: featureSource});
   addPresentation(graph, {
     schemaVersion: '0.2', address: featureAddress, kind: 'feature', title: feature.title, status: feature.status,
-    ...(typeof feature.slug === 'string' ? {slug: feature.slug} : {}),
-    ...(typeof feature.purpose === 'string' ? {purpose: feature.purpose} : {}), source: featureSource,
+    slug: filenameSlug,
+    ...(typeof feature.purpose === 'string' ? {purpose: feature.purpose} : {}), source: shardSource,
   });
   addAlias(graph, {alias: feature.id, address: featureAddress, kind: 'feature_id', source: featureSource});
-  if (typeof feature.slug === 'string') {
-    addAlias(graph, {alias: feature.slug, address: featureAddress, kind: 'feature_slug', source: locator(parsed, ['slug'])});
-  }
+  addAlias(graph, {alias: filenameSlug, address: featureAddress, kind: 'feature_slug', source: shardSource});
   const shardAddress = artifactAddress(parsed.path);
   ensureArtifact(graph, shardAddress, ['spec'], [featureAddress], locator(parsed, []));
   addEdge(graph, featureAddress, shardAddress, 'defined_in', 'authored', featureSource);
@@ -664,8 +675,12 @@ function compileSchema02Feature(
     }
     addEdge(graph, featureAddress, semanticAddress('capability', capabilityId), 'contributes_to', 'authored', source);
   }
+  const criterionIds = new Set<string>();
   for (const [criterionIndex, record] of arrayValue(feature.acceptance_criteria).entries()) {
     const criterion = objectValueOrNull(record) as RawCriterion | null;
+    const duplicate = typeof criterion?.id === 'string' && criterionIds.has(criterion.id);
+    if (typeof criterion?.id === 'string') criterionIds.add(criterion.id);
+    if (duplicate) continue;
     compileSchema02Criterion(
       graph, parsed, feature.id, featureAddress, shardAddress, criterionIndex,
       criterion,

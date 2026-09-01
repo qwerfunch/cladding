@@ -25,6 +25,8 @@ export const CLAIM_SITES = [
 const BADGE_RE = /tests-(\d+)%2F(\d+)-brightgreen/g;
 const MARKDOWN_STATUS_RE = /\|\s*(\d+)\s*\/\s*(\d+)(?=\s*(?:\||·))/g;
 const HTML_STATUS_RE = />(\d+)<span style="font-size:16px;color:#94a3b8">\/(\d+)<\/span>/g;
+const TEST_FILE_CLAIM_RE = /(\d+)\s*(?:test files|个测试文件)/g;
+const INVENTORY_TEST_FILES_RE = /^(\s*test_files:\s*)(\d+)(\s*(?:#.*)?)$/m;
 
 /**
  * Returns the two public pass/total pairs from one README variant.
@@ -87,12 +89,85 @@ export function rewriteClaimText(body, kind, expected, file = '<memory>') {
 }
 
 /**
- * Collects the exact number of tests Vitest would execute without running them.
+ * Returns the one public test-file inventory claim from one README variant.
  *
- * @returns {number} Number of collected Vitest tests.
+ * @param {string} body README source text.
+ * @param {string} file Diagnostic file label.
+ * @returns {number} Source-declared test-file count.
+ * @throws {Error} When the source lacks one unambiguous claim.
+ */
+export function testFileClaim(body, file = '<memory>') {
+  const claims = [...body.matchAll(TEST_FILE_CLAIM_RE)].map((match) => Number(match[1]));
+  if (claims.length !== 1) {
+    throw new Error(`${file}: expected one test-file inventory claim; found ${claims.length}`);
+  }
+  return claims[0];
+}
+
+/**
+ * Validates one README's test-file claim against the collected Vitest files.
+ *
+ * @param {string} body README source text.
+ * @param {number} expected Collected Vitest file count.
+ * @param {string} file Diagnostic file label.
+ * @returns {void}
+ * @throws {Error} When the public claim is stale or malformed.
+ */
+export function checkTestFileClaim(body, expected, file = '<memory>') {
+  const actual = testFileClaim(body, file);
+  if (actual !== expected) throw new Error(`${file}: claims ${actual} test files; Vitest collects ${expected}`);
+}
+
+/**
+ * Rewrites one already-valid test-file inventory claim.
+ *
+ * @param {string} body README source text.
+ * @param {number} expected Collected Vitest file count.
+ * @param {string} file Diagnostic file label.
+ * @returns {string} README text with its test-file claim updated.
+ * @throws {Error} When the source lacks one unambiguous claim.
+ */
+export function rewriteTestFileClaim(body, expected, file = '<memory>') {
+  testFileClaim(body, file);
+  return body.replace(TEST_FILE_CLAIM_RE, (match) => match.replace(/\d+/, String(expected)));
+}
+
+/**
+ * Returns the root inventory's persisted test-file count without manufacturing
+ * a second inventory rule outside the generated root field.
+ *
+ * @param {string} body Root spec.yaml source text.
+ * @returns {number} Persisted inventory.test_files value.
+ * @throws {Error} When the root inventory field is absent or ambiguous.
+ */
+export function inventoryTestFileCount(body) {
+  const matches = [...body.matchAll(new RegExp(INVENTORY_TEST_FILES_RE.source, 'gm'))];
+  if (matches.length !== 1) {
+    throw new Error(`spec.yaml: expected one inventory.test_files field; found ${matches.length}`);
+  }
+  return Number(matches[0][2]);
+}
+
+/**
+ * Rewrites the root inventory after its one test-file field has been verified.
+ *
+ * @param {string} body Root spec.yaml source text.
+ * @param {number} expected Collected Vitest file count.
+ * @returns {string} Root source with inventory.test_files updated.
+ * @throws {Error} When the root inventory field is absent or ambiguous.
+ */
+export function rewriteInventoryTestFileCount(body, expected) {
+  inventoryTestFileCount(body);
+  return body.replace(INVENTORY_TEST_FILES_RE, `$1${expected}$3`);
+}
+
+/**
+ * Collects the exact Vitest test and distinct test-file counts together.
+ *
+ * @returns {{tests: number, testFiles: number}} Collected test and file totals.
  * @throws {Error} When collection fails or returns an empty suite.
  */
-export function collectTestCount() {
+export function collectTestInventory() {
   const vitest = join(ROOT, 'node_modules', 'vitest', 'vitest.mjs');
   const result = spawnSync(process.execPath, [vitest, 'list', '--json'], {
     cwd: ROOT,
@@ -106,7 +181,19 @@ export function collectTestCount() {
   if (!Array.isArray(collected) || collected.length === 0) {
     throw new Error('Vitest collection returned no tests');
   }
-  return collected.length;
+  const files = new Set(collected.map((entry) => entry?.file).filter((file) => typeof file === 'string' && file.length > 0));
+  if (files.size === 0) throw new Error('Vitest collection returned no test files');
+  return {tests: collected.length, testFiles: files.size};
+}
+
+/**
+ * Collects the exact number of tests Vitest would execute without running them.
+ *
+ * @returns {number} Number of collected Vitest tests.
+ * @throws {Error} When collection fails or returns an empty suite.
+ */
+export function collectTestCount() {
+  return collectTestInventory().tests;
 }
 
 /**
@@ -116,7 +203,7 @@ export function collectTestCount() {
  * command's all-surface preflight invariant without claiming mid-write rollback.
  *
  * @param {'--check'|'--write'} mode Read-only check or explicit rewrite mode.
- * @param {{root?: string, collected?: number}} options Test-only root/count seams.
+ * @param {{root?: string, collected?: number, testFiles?: number}} options Test-only root/count seams.
  * @returns {number} The collected test total checked or written.
  * @throws {Error} When a claim is stale, malformed, or partial.
  * @see spec/features/self-count-guard-898783ee.yaml AC-8ded2bb9
@@ -126,14 +213,23 @@ export function runTestCount(mode, options = {}) {
     throw new Error('usage: node scripts/test-count.mjs [--check|--write]');
   }
   const root = options.root ?? ROOT;
-  const expected = options.collected ?? collectTestCount();
+  const collected = options.collected === undefined || options.testFiles === undefined
+    ? collectTestInventory()
+    : undefined;
+  const expected = options.collected ?? collected?.tests;
+  const expectedTestFiles = options.testFiles ?? collected?.testFiles;
+  if (expected === undefined || expectedTestFiles === undefined) throw new Error('Vitest collection did not return a complete inventory');
   const bodies = new Map(
     CLAIM_SITES.map((site) => [site.file, readFileSync(join(root, site.file), 'utf8')]),
   );
+  const specBody = readFileSync(join(root, 'spec.yaml'), 'utf8');
   if (mode === '--check') {
     for (const site of CLAIM_SITES) {
       checkClaimText(bodies.get(site.file), site.kind, expected, site.file);
+      checkTestFileClaim(bodies.get(site.file), expectedTestFiles, site.file);
     }
+    const inventory = inventoryTestFileCount(specBody);
+    if (inventory !== expectedTestFiles) throw new Error(`spec.yaml: inventory.test_files is ${inventory}; Vitest collects ${expectedTestFiles}`);
     return expected;
   }
 
@@ -141,12 +237,14 @@ export function runTestCount(mode, options = {}) {
   const rewritten = new Map(
     CLAIM_SITES.map((site) => [
       site.file,
-      rewriteClaimText(bodies.get(site.file), site.kind, expected, site.file),
+      rewriteTestFileClaim(rewriteClaimText(bodies.get(site.file), site.kind, expected, site.file), expectedTestFiles, site.file),
     ]),
   );
+  const rewrittenSpec = rewriteInventoryTestFileCount(specBody, expectedTestFiles);
   for (const site of CLAIM_SITES) {
     writeFileSync(join(root, site.file), rewritten.get(site.file), 'utf8');
   }
+  writeFileSync(join(root, 'spec.yaml'), rewrittenSpec, 'utf8');
   return expected;
 }
 
