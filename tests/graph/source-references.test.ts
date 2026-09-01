@@ -344,9 +344,11 @@ describe('bounded source-reference scanner', () => {
       .filter((node) => node.roles.includes('source'))
       .map((node) => node.address.slice('artifact:'.length)));
     const declarationRecords = scan.records.filter((record) => record.sourcePath === 'scripts/plugin-mirror-policy.d.mts');
+    const currentGateObservationRecords = scan.records
+      .filter((record) => record.sourcePath === 'src/graph/test-observations.ts');
 
-    expect(carriers.size).toBe(99);
-    expect(scan.records).toHaveLength(132);
+    expect(carriers.size).toBe(101);
+    expect(scan.records).toHaveLength(134);
     expect(scan.records.every((record) => record.state === 'resolved' && sourceArtifacts.has(record.sourcePath))).toBe(true);
     expect(scan.issues).toEqual([]);
     expect(scan.unknownFiles).toEqual([{path: 'src/graph/wire-v2.ts', reason: 'missing'}]);
@@ -355,6 +357,12 @@ describe('bounded source-reference scanner', () => {
     expect(declarationRecords).toHaveLength(14);
     expect(declarationRecords.filter((record) => record.normalizedTarget === 'criterion:F-40327b/AC-003')).toHaveLength(3);
     expect(declarationRecords.filter((record) => record.normalizedTarget === 'criterion:F-40327b/AC-004')).toHaveLength(11);
+    expect(currentGateObservationRecords.map(({normalizedTarget, state}) => ({normalizedTarget, state})).sort(
+      (left, right) => left.normalizedTarget.localeCompare(right.normalizedTarget),
+    )).toEqual([
+      {normalizedTarget: 'criterion:F-208eaa79/AC-4f8c2542', state: 'resolved'},
+      {normalizedTarget: 'criterion:F-208eaa79/AC-d452908b', state: 'resolved'},
+    ]);
   });
 
   test('[covers:F-208eaa79/AC-4f8c2542] preserves compiler artifact role unions and caller-owned input immutability', () => {
