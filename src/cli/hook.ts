@@ -24,7 +24,8 @@
 // advisory context only, NEVER a block decision from shell parsing.
 //
 // @see plugins/claude-code/hooks/hooks.json — the shipped wiring (AC-03da31).
-// @see spec/features/host-hooks-1d23a6.yaml — the contract.
+// @see spec/features/host-hooks-1d23a6.yaml AC-2c2d29 /
+//      AC-973837 / AC-29e900 — the contract.
 
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';

@@ -18,6 +18,7 @@ modules:
   - skills/route/SKILL.md
   - scripts/build-plugin.mjs
   - scripts/plugin-mirror-policy.mjs
+  - scripts/plugin-mirror-policy.d.mts
   - src/assurance/criterion-observations.ts
   - src/assurance/kernel.ts
   - src/assurance/adapters.ts

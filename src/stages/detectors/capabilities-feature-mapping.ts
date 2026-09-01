@@ -33,7 +33,7 @@
 // @see docs/ssot-model.md — Tier B entry condition: every Tier B
 //      artifact must have a clear consumer. This detector IS the
 //      consumer for capabilities.yaml.
-// @see spec/features/ssot-governance-d12edf.yaml — this feature.
+// @see spec/features/ssot-governance-d12edf.yaml AC-003 — this feature.
 
 import {existsSync} from 'node:fs';
 import {join} from 'node:path';

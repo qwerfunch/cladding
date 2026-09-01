@@ -58,7 +58,11 @@ export interface SourceReferenceIssue {
   readonly normalizedTarget?: string;
 }
 
-/** A bounded source artifact that could not be scanned without following unsafe state. */
+/**
+ * An eligible bounded source artifact that could not be scanned without
+ * following unsafe state. Directory ownership artifacts are inapplicable and
+ * never appear in this fail-closed list.
+ */
 export interface SourceReferenceUnknownFile {
   /** Canonical source artifact path. */
   readonly path: string;
@@ -98,6 +102,7 @@ interface UnselectedSourceReferenceRecord {
 
 type SourceReadResult =
   | {readonly text: string}
+  | {readonly inapplicable: true}
   | {readonly reason: SourceReferenceUnknownFile['reason']};
 
 /** The minimal file boundary used by the bounded scanner. */
@@ -137,6 +142,7 @@ export function scanSourceReferences(
 
   for (const sourcePath of sourcePaths) {
     const readable = readSafeSourceText(cwd, sourcePath, fileSystem);
+    if ('inapplicable' in readable) continue;
     if ('reason' in readable) {
       unknownFiles.push(Object.freeze({path: sourcePath, reason: readable.reason}));
       continue;
@@ -336,7 +342,8 @@ function readSafeSourceText(
   } catch {
     return {reason: 'unreadable'};
   }
-  for (const segment of sourcePath.split('/')) {
+  const segments = sourcePath.split('/');
+  for (const [index, segment] of segments.entries()) {
     current = join(current, segment);
     let stat: Stats;
     try {
@@ -345,9 +352,11 @@ function readSafeSourceText(
       return {reason: isMissingError(error) ? 'missing' : 'unreadable'};
     }
     if (stat.isSymbolicLink()) return {reason: 'symlink'};
+    if (index !== segments.length - 1) continue;
+    if (stat.isDirectory()) return {inapplicable: true};
+    if (!stat.isFile()) return {reason: 'not_file'};
   }
   try {
-    if (!fileSystem.lstat(current).isFile()) return {reason: 'not_file'};
     return {text: new TextDecoder('utf-8', {fatal: true}).decode(fileSystem.readFile(current))};
   } catch (error) {
     if (isMissingError(error)) return {reason: 'missing'};

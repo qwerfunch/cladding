@@ -49,7 +49,9 @@
 // glob scanning is delegated to `tinyglobby` because Node's stdlib
 // doesn't ship a globber.
 //
-// @see spec/features/self-describing-scan-universe-87bb7ed3.yaml
+// @see spec/features/self-describing-scan-universe-87bb7ed3.yaml AC-4d21c8a7 /
+//      AC-9a6f02d3 / AC-c5e83b19 / AC-7f14d6e0 /
+//      AC-96ff696f / AC-e20dbafe
 
 import {extname} from 'node:path';
 

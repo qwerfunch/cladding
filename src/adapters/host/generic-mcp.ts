@@ -14,7 +14,7 @@
 // @see https://modelcontextprotocol.io/ — the upstream MCP spec.
 // @see docs/multi-provider-roadmap.md — Transport architectural decision.
 // @see spec/features/F-049.yaml AC-091 — host adapters require no API key.
-// @see spec/features/F-068.yaml — Transport interface extraction.
+// @see spec/features/F-068.yaml AC-184 — Transport interface extraction.
 
 import process from 'node:process';
 

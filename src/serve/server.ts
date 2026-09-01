@@ -16,7 +16,8 @@
 // differs.
 //
 // @see src/cli/serve.ts — stdio process entry point.
-// @see spec/features/F-073.yaml — server scaffold AC matrix.
+// @see spec/features/F-073.yaml AC-206 /
+//      AC-207 / AC-208 / AC-209 / AC-210 — server scaffold AC matrix.
 
 import {spawnSync} from 'node:child_process';
 import {createHash, randomUUID} from 'node:crypto';

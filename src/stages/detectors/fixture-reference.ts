@@ -35,7 +35,8 @@
 //   want CI to reject typos can use `clad check --strict` (F-051),
 //   which promotes every warn to error.
 //
-// @see spec/features/F-053.yaml — fixture registry feature.
+// @see spec/features/F-053.yaml AC-116 /
+//      AC-117 — fixture registry feature.
 // @see conformance/fixtures.yaml — the SSoT this detector reads.
 
 import {existsSync, readFileSync} from 'node:fs';

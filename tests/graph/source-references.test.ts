@@ -1,6 +1,6 @@
 // Cladding · Spec 0.2 F8 · bounded source @see GraphIR adapter tests.
 
-import {lstatSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
+import {lstatSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, type Stats, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 
@@ -202,23 +202,91 @@ describe('bounded source-reference scanner', () => {
     })).toMatchObject({completeness: 'unknown'});
   });
 
-  test('[covers:F-208eaa79/AC-d452908b] fails closed for missing, symlinked, invalid-UTF8, and generated source paths', () => {
+  test('[covers:F-208eaa79/AC-d452908b] keeps source references optional and skips directory ownership artifacts without reading or recursing', () => {
+    const root = workspace(['src/carriers.ts', 'src/ordinary.ts', 'src/ownership']);
+    const carrier = join(root, 'src', 'carriers.ts');
+    const ordinary = join(root, 'src', 'ordinary.ts');
+    const ownership = join(root, 'src', 'ownership');
+    const nested = join(ownership, 'nested.ts');
+    source(root, 'src/carriers.ts', `// @see ${SHARD} AC-11111111\n`);
+    source(root, 'src/ordinary.ts', 'export const ordinary = true;\n');
+    mkdirSync(ownership, {recursive: true});
+    writeFileSync(nested, `// @see ${SHARD} AC-22222222\n`);
+    const lstatPaths: string[] = [];
+    const readPaths: string[] = [];
+
+    const scan = scanSourceReferences(root, compileSpecWorkspace(root), {
+      lstat: (path) => {
+        lstatPaths.push(path);
+        return lstatSync(path);
+      },
+      readFile: (path) => {
+        readPaths.push(path);
+        return readFileSync(path);
+      },
+    });
+
+    expect(scan).toMatchObject({completeness: 'complete', issues: [], unknownFiles: []});
+    expect(scan.records).toEqual([expect.objectContaining({
+      sourcePath: 'src/carriers.ts', normalizedTarget: CRITERION, state: 'resolved',
+    })]);
+    expect(readPaths).toEqual([carrier, ordinary]);
+    expect(lstatPaths).not.toContain(nested);
+  });
+
+  test('[covers:F-208eaa79/AC-d452908b] fails closed for symbolic-link roots and ancestors without reading', () => {
+    const root = workspace(['src/carriers.ts']);
+    const carrier = join(root, 'src', 'carriers.ts');
+    const symlinkStats = {
+      isDirectory: () => false,
+      isFile: () => false,
+      isSymbolicLink: () => true,
+    } as Stats;
+    source(root, 'src/carriers.ts', `// @see ${SHARD} AC-11111111\n`);
+    const compilation = compileSpecWorkspace(root);
+
+    for (const unsafePath of [root, join(root, 'src')]) {
+      const readPaths: string[] = [];
+      const scan = scanSourceReferences(root, compilation, {
+        lstat: (path) => path === unsafePath ? symlinkStats : lstatSync(path),
+        readFile: (path) => {
+          readPaths.push(path);
+          return readFileSync(path);
+        },
+      });
+
+      expect(scan).toMatchObject({
+        records: [], issues: [], completeness: 'unknown', unknownFiles: [{path: 'src/carriers.ts', reason: 'symlink'}],
+      });
+      expect(readPaths).toEqual([]);
+      expect(readPaths).not.toContain(carrier);
+    }
+  });
+
+  test('[covers:F-208eaa79/AC-d452908b] fails closed for missing, symlinked, invalid-UTF8, and non-directory non-files', () => {
     const root = workspace([
       'src/missing.ts', 'src/link.ts', 'src/invalid.ts', 'src/not-file.ts', 'src/unreadable.ts', 'plugins/claude-code/dist/clad.js',
     ]);
     const outside = join(root, 'outside.ts');
+    const nonFile = join(root, 'src', 'not-file.ts');
+    const nonRegularStats = {
+      isDirectory: () => false,
+      isFile: () => false,
+      isSymbolicLink: () => false,
+    } as Stats;
     source(root, 'outside.ts', `// @see ${SHARD} AC-11111111\n`);
     mkdirSync(join(root, 'src'), {recursive: true});
     symlinkSync(outside, join(root, 'src', 'link.ts'));
     writeFileSync(join(root, 'src', 'invalid.ts'), Buffer.from([0xc3, 0x28]));
-    mkdirSync(join(root, 'src', 'not-file.ts'));
     source(root, 'src/unreadable.ts', 'export const unreadable = true;\n');
     source(root, 'plugins/claude-code/dist/clad.js', `// @see ${SHARD} AC-11111111\n`);
     const compilation = compileSpecWorkspace(root);
     let outsideReads = 0;
+    const readPaths: string[] = [];
     const scan = scanSourceReferences(root, compilation, {
-      lstat: lstatSync,
+      lstat: (path) => path === nonFile ? nonRegularStats : lstatSync(path),
       readFile: (path) => {
+        readPaths.push(path);
         if (path === outside) outsideReads++;
         if (path === join(root, 'src', 'unreadable.ts')) {
           throw Object.assign(new Error('denied'), {code: 'EACCES'});
@@ -239,6 +307,31 @@ describe('bounded source-reference scanner', () => {
     expect(scan.unknownFiles.map((file) => file.path)).not.toContain('plugins/claude-code/dist/clad.js');
     expect(Object.isFrozen(scan.unknownFiles[0])).toBe(true);
     expect(outsideReads).toBe(0);
+    expect(readPaths).not.toContain(nonFile);
+  });
+
+  test('[covers:F-208eaa79/AC-4f8c2542] discovers the complete compiler-bounded repository source-reference census', () => {
+    const root = process.cwd();
+    const compilation = compileSpecWorkspace(root);
+    const scan = scanSourceReferences(root, compilation);
+    const carriers = new Set(scan.records.map((record) =>
+      `${record.sourcePath}\u0000${record.location.line}\u0000${record.location.column}\u0000${record.raw}`));
+    const sourceArtifacts = new Set(compilation.nodes
+      .filter((node): node is Extract<GraphNode, {readonly nodeType: 'artifact'}> => node.nodeType === 'artifact')
+      .filter((node) => node.roles.includes('source'))
+      .map((node) => node.address.slice('artifact:'.length)));
+    const declarationRecords = scan.records.filter((record) => record.sourcePath === 'scripts/plugin-mirror-policy.d.mts');
+
+    expect(carriers).toHaveLength(99);
+    expect(scan.records).toHaveLength(132);
+    expect(scan.records.every((record) => record.state === 'resolved' && sourceArtifacts.has(record.sourcePath))).toBe(true);
+    expect(scan.issues).toEqual([]);
+    expect(scan.unknownFiles).toEqual([{path: 'src/graph/wire-v2.ts', reason: 'missing'}]);
+    expect(scan.unknownReasons).toEqual(['source artifact src/graph/wire-v2.ts is missing']);
+    expect(scan.completeness).toBe('unknown');
+    expect(declarationRecords).toHaveLength(14);
+    expect(declarationRecords.filter((record) => record.normalizedTarget === 'criterion:F-40327b/AC-003')).toHaveLength(3);
+    expect(declarationRecords.filter((record) => record.normalizedTarget === 'criterion:F-40327b/AC-004')).toHaveLength(11);
   });
 
   test('[covers:F-208eaa79/AC-4f8c2542] preserves compiler artifact role unions and caller-owned input immutability', () => {

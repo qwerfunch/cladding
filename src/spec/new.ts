@@ -17,7 +17,7 @@
 // host AI ("add a feature for login-flow"), the host LLM calls the
 // MCP tool, the MCP tool calls this function.
 //
-// @see spec/features/F-084.yaml — this feature.
+// @see spec/features/spec-id-multi-dev-safety-67e33f.yaml AC-001 — this feature.
 
 import {createHash} from 'node:crypto';
 import {existsSync, readFileSync, readdirSync} from 'node:fs';

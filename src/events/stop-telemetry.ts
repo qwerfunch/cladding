@@ -63,7 +63,8 @@ export interface StopOutcomeSummary {
  *
  * @param stages - Gate stages after all strict/exemption reductions.
  * @returns Compact blocker names; empty for a green gate.
- * @see spec/features/stop-outcome-telemetry-1aab1bba.yaml AC-004
+ * @see spec/features/stop-outcome-telemetry-1aab1bba.yaml AC-8894d11f /
+ *      AC-3cb0ca39
  */
 export function blockingDetectorNames(stages: readonly TelemetryStage[]): readonly string[] {
   const names = new Set<string>();
@@ -90,7 +91,7 @@ export function blockingDetectorNames(stages: readonly TelemetryStage[]): readon
  *
  * @param stages - Gate stages after strict/exemption reductions.
  * @returns SHA-256 fingerprint, or `''` when the Stop trio is green/absent.
- * @see spec/features/stop-outcome-telemetry-1aab1bba.yaml AC-003
+ * @see spec/features/stop-outcome-telemetry-1aab1bba.yaml AC-8894d11f
  */
 export function gateStopFingerprint(stages: readonly TelemetryStage[]): string {
   const keys: string[] = [];
@@ -125,7 +126,7 @@ export function gateStopFingerprint(stages: readonly TelemetryStage[]): string {
  * @param priorBlockers - Compact blocker names from the latest gate event.
  * @param dirtyPaths - Repo-relative paths reported dirty by Git.
  * @returns Additive attribution fields for the lifecycle event.
- * @see spec/features/stop-outcome-telemetry-1aab1bba.yaml AC-001
+ * @see spec/features/stop-outcome-telemetry-1aab1bba.yaml AC-28df4cc4
  */
 export function attributeStopFailures(
   failures: readonly StopFailureTelemetry[],
@@ -159,7 +160,8 @@ export function attributeStopFailures(
  *
  * @param events - Lifecycle events in append order.
  * @returns Stop block, recorded-exit, and later-gate counters.
- * @see spec/features/stop-outcome-telemetry-1aab1bba.yaml AC-003
+ * @see spec/features/stop-outcome-telemetry-1aab1bba.yaml AC-8894d11f /
+ *      AC-a2a3beb3
  */
 export function summarizeStopOutcomes(events: readonly Event[]): StopOutcomeSummary {
   let blocked = 0;

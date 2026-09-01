@@ -19,8 +19,8 @@
 // @see src/adapters/host/transport.ts — the Transport interface.
 // @see src/adapters/types.ts — the AgentAdapter contract.
 // @see docs/multi-provider-roadmap.md — adapter matrix.
-// @see spec/features/F-049.yaml — original two-mode adapter contract.
-// @see spec/features/F-069.yaml — this real-LLM transport.
+// @see spec/features/F-049.yaml AC-092 — original two-mode adapter contract.
+// @see spec/features/F-069.yaml AC-187 — this real-LLM transport.
 
 import process from 'node:process';
 

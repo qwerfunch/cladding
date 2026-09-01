@@ -29,7 +29,8 @@
 // `spec/architecture.yaml` is missing or empty, every check skips
 // silently. Cladding-adopting projects opt in by writing the spec.
 //
-// @see spec/features/F-088.yaml — this feature.
+// @see spec/features/architecture-from-spec-42af48.yaml AC-001 /
+//      AC-002 / AC-003 / AC-004 / AC-005 — this feature.
 
 import {existsSync, readFileSync, readdirSync, statSync} from 'node:fs';
 import {join} from 'node:path';

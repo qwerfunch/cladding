@@ -18,9 +18,10 @@
 //
 // @see src/adapters/types.ts — the AgentAdapter contract this layer underlies.
 // @see docs/multi-provider-roadmap.md — Transport architectural decision.
-// @see spec/features/F-049.yaml — original adapter contract.
-// @see spec/features/F-068.yaml — this extraction.
-// @see spec/features/F-074.yaml — McpSamplingTransport contract.
+// @see spec/features/F-049.yaml AC-092 — original adapter contract.
+// @see spec/features/F-068.yaml AC-183 — this extraction.
+// @see spec/features/F-074.yaml AC-211 /
+//      AC-212 — McpSamplingTransport contract.
 
 import type {AgentContext, AgentResult, HealthStatus, PersonaSpec} from '../types.js';
 

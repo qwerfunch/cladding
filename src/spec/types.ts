@@ -73,7 +73,7 @@ export interface AcceptanceCriterion {
    * is established by running a command or by a curated artifact
    * rather than a vitest assertion.
    *
-   * @see spec/features/F-052.yaml — introduced 2026-05-19 to
+   * @see spec/features/F-052.yaml AC-106 — introduced 2026-05-19 to
    *      separate code-tests from other evidence kinds.
    */
   readonly evidence_refs?: readonly string[];
