@@ -1,28 +1,33 @@
 id: F-9d8ece66
-slug: persona-map-non-exclusivity
-title: "Managed persona map states non-exclusivity; planner brief loses dogfood-only commands"
+title: Managed persona map states non-exclusivity; planner brief loses
+  dogfood-only commands
 status: done
 modules:
   - src/init/agents-md.ts
   - src/agents/planner.md
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-9255e821
-    ears: ubiquitous
-    text: "The managed AGENTS.md personas section shall state that the briefs are touchpoint manuals, not a roster of permitted agents — any host agent may take up any brief, none is needed off cladding surfaces, and the only identity-tied judgment is the independence label (verifier independent of author, never brief membership)."
-    response: "renderAgentsMdManagedBlock output contains the literals 'not a roster of permitted agents' and 'independence label'"
-    test_refs: ["tests/init/agents-md.test.ts"]
+    statement: The managed AGENTS.md personas section shall state that the briefs
+      are touchpoint manuals, not a roster of permitted agents — any host agent
+      may take up any brief, none is needed off cladding surfaces, and the only
+      identity-tied judgment is the independence label (verifier independent of
+      author, never brief membership).
   - id: AC-65e247dc
-    ears: ubiquitous
-    text: "The planner brief shall direct external users to the clad CLI for post-edit validation instead of cladding's own repo-only npm scripts."
-    response: "src/agents/planner.md matches no /npm run (spec:validate|stage:drift)/"
-    test_refs: ["tests/choreography-guard.test.ts"]
+    statement: The planner brief shall direct external users to the clad CLI for
+      post-edit validation instead of cladding's own repo-only npm scripts.
   - id: AC-bb56efe2
-    ears: ubiquitous
-    text: "Every existing pin on the managed block and personas shall survive — the anti-self-cert and feature-cycle literals, shard-term and choreography needles, persona size budgets, and the repo's own dogfood parity."
-    response: "agent-interpreter-rule, shard-term-guard and choreography-guard suites stay green"
-    test_refs: ["tests/agent-interpreter-rule.test.ts", "tests/shard-term-guard.test.ts"]
+    statement: The system shall preserve every existing managed-block and persona
+      pin, including anti-self-cert, feature-cycle, shard-term, choreography,
+      size-budget, and dogfood-parity literals.
+    kind: behavior
 design_impact:
   classification: none
-  rationale: "Prose-layer: one behavior-validated sentence in the generated persona map (A/B/C-tested against live agents — draft wording measurably steered agents to discount the independence label; the shipped wording steered them to honest labeling), plus removal of dogfood-only command guidance from the planner brief (E2E gap G3). No engine logic changes."
+  rationale: "Prose-layer: one behavior-validated sentence in the generated
+    persona map (A/B/C-tested against live agents — draft wording measurably
+    steered agents to discount the independence label; the shipped wording
+    steered them to honest labeling), plus removal of dogfood-only command
+    guidance from the planner brief (E2E gap G3). No engine logic changes."
   status: resolved
   artifacts: []

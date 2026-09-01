@@ -1,6 +1,6 @@
 id: F-c2c996
-slug: checkpoint-events
-title: Iron Law backbone Phase 1 — feature_checkpoint / feature_rolled_back events + clad checkpoint / rollback (v0.3.20)
+title: Iron Law backbone Phase 1 — feature_checkpoint / feature_rolled_back
+  events + clad checkpoint / rollback (v0.3.20)
 status: done
 modules:
   - src/core/checkpoint.ts
@@ -8,53 +8,50 @@ modules:
   - src/cli/clad.ts
 depends_on:
   - F-b99577
+capability_refs: []
 acceptance_criteria:
   - id: AC-001
-    ears: ubiquitous
-    action: extend the EventType union with feature_checkpoint and feature_rolled_back
-    response: 'src/events/log.ts EventType union grows from 6 entries to 8 by adding `feature_checkpoint` and `feature_rolled_back`; existing 6 entries stay in the same order so jsonl audit-log consumers do not regress'
-    text: The system shall extend the EventType union with feature_checkpoint and feature_rolled_back so the lifecycle of an Iron Law Phase 1 rollback (ironclad-design 02-iron-law §2.5) lives in the same events.log.jsonl stream as the other 6 lifecycle transitions.
-    test_refs: [tests/core/checkpoint.test.ts]
+    statement: The system shall extend the EventType union with feature_checkpoint
+      and feature_rolled_back so the lifecycle of an Iron Law Phase 1 rollback
+      (ironclad-design 02-iron-law §2.5) lives in the same events.log.jsonl
+      stream as the other 6 lifecycle transitions.
   - id: AC-002
-    ears: ubiquitous
-    action: record a feature_checkpoint event with git HEAD plus spec digest plus timestamp
-    response: 'src/core/checkpoint.ts recordCheckpoint() calls readGitHead (which shells out to git rev-parse HEAD, returning null when the workspace is not a repo or git is unavailable) and computeSpecDigest (SHA-256 over a sorted list of spec.yaml plus spec/features/*.yaml plus spec/scenarios/*.yaml file contents and their relative paths); the function appends exactly one event with payload {feature, git_head, spec_digest} and returns the Checkpoint tuple'
-    text: The system shall record a feature_checkpoint event with git HEAD plus spec digest plus timestamp so the maintainer can later identify the precise working-tree state to restore without depending on git reflog alone.
-    test_refs: [tests/core/checkpoint.test.ts]
+    statement: The system shall record a feature_checkpoint event with git HEAD plus
+      spec digest plus timestamp so the maintainer can later identify the
+      precise working-tree state to restore without depending on git reflog
+      alone.
   - id: AC-003
-    ears: ubiquitous
-    action: read the latest checkpoint for a feature by walking events.log in reverse
-    response: 'src/core/checkpoint.ts findLatestCheckpoint() iterates readEvents from the end, returns the first feature_checkpoint event whose payload.feature matches the supplied featureId, and reconstructs the Checkpoint tuple from event.payload; multiple checkpoints for the same feature all persist on disk but the latest wins on lookup; returns null when no matching event exists'
-    text: The system shall read the latest checkpoint for a feature by walking events.log in reverse so historical checkpoints stay accessible in the raw audit-log while the common case (most recent) is one tail scan.
-    test_refs: [tests/core/checkpoint.test.ts]
+    statement: The system shall read the latest checkpoint for a feature by walking
+      events.log in reverse so historical checkpoints stay accessible in the raw
+      audit-log while the common case (most recent) is one tail scan.
   - id: AC-004
-    ears: ubiquitous
-    action: record a feature_rolled_back event referencing the target checkpoint
-    response: 'src/core/checkpoint.ts recordRollback() appends one feature_rolled_back event with payload {feature, to_git_head, to_spec_digest, to_checkpoint_at, reason}; reason is null when omitted; the function returns the Event so callers can echo the id'
-    text: The system shall record a feature_rolled_back event referencing the target checkpoint so the rollback transition is auditable and the lineage from checkpoint to rollback survives across sessions.
-    test_refs: [tests/core/checkpoint.test.ts]
+    statement: The system shall record a feature_rolled_back event referencing the
+      target checkpoint so the rollback transition is auditable and the lineage
+      from checkpoint to rollback survives across sessions.
   - id: AC-005
-    ears: event
-    condition: when checkpoint records a lifecycle boundary
-    text: When checkpoint records a lifecycle boundary, the system shall append exactly one feature_checkpoint event without modifying tracked source or specification content.
-    notes: "## 2026-08-31 criterion decomposition\n\nOriginal compound text (verbatim): The system shall expose clad checkpoint and clad rollback CLI subcommands so a maintainer (or a later auto-rollback driver) has an entry point to the event surface without touching the working tree — cladding records the transition and prints the git command, but the actual checkout stays with the maintainer because branch policy varies.\n\nReason: split checkpoint, successful rollback, failed rollback, and no-working-tree-mutation observables while retaining this legacy address."
-    test_refs:
-      - "tests/core/checkpoint.test.ts#[covers:F-c2c996/AC-005] checkpoint appends one event without changing tracked source or specification bytes"
+    statement: When checkpoint records a lifecycle boundary, the system shall append
+      exactly one feature_checkpoint event without modifying tracked source or
+      specification content.
+    notes: >-
+      ## 2026-08-31 criterion decomposition
+
+
+      Original compound text (verbatim): The system shall expose clad checkpoint
+      and clad rollback CLI subcommands so a maintainer (or a later
+      auto-rollback driver) has an entry point to the event surface without
+      touching the working tree — cladding records the transition and prints the
+      git command, but the actual checkout stays with the maintainer because
+      branch policy varies.
+
+
+      Reason: split checkpoint, successful rollback, failed rollback, and
+      no-working-tree-mutation observables while retaining this legacy address.
   - id: AC-e4bf75ed
-    ears: event
-    condition: when rollback has a prior checkpoint and a reason
-    text: When rollback has a prior checkpoint and a reason, the system shall append exactly one feature_rolled_back event and print a maintainer-owned Git or manual restore instruction.
-    test_refs:
-      - "tests/core/checkpoint.test.ts#[covers:F-c2c996/AC-e4bf75ed] rollback appends one reasoned event against its prior checkpoint"
-      - "tests/cli/clad.test.ts#[covers:F-c2c996/AC-e4bf75ed] rollback prints the maintainer-owned restore instruction"
+    statement: When rollback has a prior checkpoint and a reason, the system shall
+      append exactly one feature_rolled_back event and print a maintainer-owned
+      Git or manual restore instruction.
   - id: AC-804e61b1
-    ears: unwanted
-    condition: if rollback has no prior checkpoint
-    text: If rollback has no prior checkpoint, then the system shall fail without appending a feature_rolled_back event.
-    test_refs:
-      - "tests/cli/clad.test.ts#[covers:F-c2c996/AC-804e61b1] rollback without a checkpoint fails without recording rollback telemetry"
+    statement: If rollback has no prior checkpoint, then the system shall fail
+      without appending a feature_rolled_back event.
   - id: AC-a06e5151
-    ears: ubiquitous
-    text: The checkpoint and rollback commands shall never invoke checkout.
-    test_refs:
-      - "tests/cli/clad.test.ts#[covers:F-c2c996/AC-a06e5151] checkpoint and rollback never invoke checkout"
+    statement: The checkpoint and rollback commands shall never invoke checkout.

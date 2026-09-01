@@ -1,27 +1,31 @@
 id: F-7076f7
-slug: smoke-probe-demand
-title: "Smoke probe demand — no probe for a runnable done feature is a finding, not a free pass"
+title: Smoke probe demand — no probe for a runnable done feature is a finding,
+  not a free pass
 status: done
 modules:
   - src/stages/detectors/smoke-probe-demand.ts
   - src/stages/detectors/index.ts
   - src/stages/skip-policy.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-111865
-    ears: event
-    condition: "when a done feature ships a runnable deliverable with no functional smoke probe"
-    text: "When at least one feature is done and the project ships a runnable deliverable but declares no functional smoke probe (project.smoke), SMOKE_PROBE_DEMAND shall emit a warn — the host may choose the smoke method but may not skip smoke."
-    test_refs: ["tests/stages/detectors/smoke-probe-demand.test.ts"]
+    statement: When at least one feature is done and the project ships a runnable
+      deliverable but declares no functional smoke probe (project.smoke), the
+      SMOKE_PROBE_DEMAND shall emit a warn — the host may choose the smoke
+      method but may not skip smoke.
+    kind: behavior
   - id: AC-7f8630
-    ears: event
-    condition: "when drift-tier demand is evaluated"
-    action: evaluate smoke demand through the smoke-demand descriptor
-    response: emit the descriptor finding once for each applicable drift tier without a strict skip-policy duplicate
-    text: "When drift-tier demand is evaluated, SMOKE_PROBE_DEMAND shall be owned by the smoke-demand descriptor and emitted for every applicable drift tier without a strict-only skip-policy duplicate arm."
-    test_refs: ["tests/stages/detectors/smoke-probe-demand.test.ts#[covers:F-7076f7/AC-7f8630] smoke demand emits once for every drift-running tier without a strict skip-policy duplicate"]
-    notes: "2026-08-31 — Restored scoped wording. Displaced active wording: SMOKE_PROBE_DEMAND shall be the sole owner of the smoke demand: the skip-policy stage_2.4 arm is retired so the demand fires on every drift tier rather than only under --strict."
+    statement: When drift-tier demand is evaluated, the SMOKE_PROBE_DEMAND shall be
+      owned by the smoke-demand descriptor and emitted for every applicable
+      drift tier without a strict-only skip-policy duplicate arm.
+    kind: behavior
+    notes: "2026-08-31 — Restored scoped wording. Displaced active wording:
+      SMOKE_PROBE_DEMAND shall be the sole owner of the smoke demand: the
+      skip-policy stage_2.4 arm is retired so the demand fires on every drift
+      tier rather than only under --strict."
   - id: AC-5abfc0
-    ears: unwanted
-    condition: "if a functional smoke probe is declared, or the project has no runnable deliverable, or nothing is done"
-    text: "If a functional smoke probe is declared, or the project has no runnable deliverable, or no feature is done, the detector shall raise no demand."
-    test_refs: ["tests/stages/detectors/smoke-probe-demand.test.ts"]
+    statement: If a functional smoke probe is declared or the project has no
+      runnable deliverable or no feature is done, then the detector shall raise
+      no demand.
+    kind: behavior

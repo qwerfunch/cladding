@@ -11,67 +11,57 @@ modules:
   - tests/optimizer/tail.test.ts
   - tests/ui/pulse.test.ts
   - tests/ui/panel.test.ts
-depends_on: [F-062]
+depends_on:
+  - F-062
+capability_refs: []
 acceptance_criteria:
   - id: AC-158
-    ears: ubiquitous
-    action: finish an autonomous-loop iteration
-    response: records the deciding halt detail, retry and skip behavior, and transport outcome while retaining the observer as non-authoritative
-    text: When the autonomous loop finishes an iteration, it shall return the current deciding halt detail while preserving retry, skipped-runner, and transport behavior without granting authority to its observer record.
-    test_refs:
-      - "tests/drive/loop.test.ts#[covers:F-063/AC-158] a failed L1 execution retries despite a non-authoritative observer summary"
-      - "tests/drive/loop.test.ts#[covers:F-063/AC-158] a skipped L1 runner remains distinct from a failed execution"
-      - "tests/drive/loop.test.ts#[covers:F-063/AC-158][covers:F-071/AC-198][covers:F-071/AC-200][covers:F-049/AC-088] dispatch failures preserve the live transport taxonomy, detail, and retry invariant"
-    notes: |
+    statement: When the autonomous loop finishes an iteration, the drive loop shall
+      return the current deciding halt detail while preserving retry,
+      skipped-runner, and transport behavior without granting authority to its
+      observer record.
+    kind: behavior
+    notes: >
       ## Historical schema-0.1 note
-      2026-05-19 · v0.2.14 · 3324b23. Loop fixtures: spec, persona, agent, stage,
-      event, audit, halt, and happy paths; at least 85% line coverage; non-current.
-      Release headline: "Coverage sweep — drive · agents · events · optimizer · ui all covered" (5 chapters).
+
+      2026-05-19 · v0.2.14 · 3324b23. Loop fixtures: spec, persona, agent,
+      stage,
+
+      event, audit, halt, and happy paths; at least 85% line coverage;
+      non-current.
+
+      Release headline: "Coverage sweep — drive · agents · events · optimizer ·
+      ui all covered" (5 chapters).
   - id: AC-159
-    ears: ubiquitous
-    action: cover the persona loader
-    response: tests/agents/loader.test.ts exercises happy-path frontmatter / missing frontmatter / unterminated frontmatter / unknown-capability filter / missing file / cache reuse / cache clear; src/agents/loader.ts reaches at least 90% line coverage
-    text: The system shall ship tests/agents/loader.test.ts bringing src/agents/loader.ts to at least 90% line coverage.
-    test_refs: [tests/agents/loader.test.ts]
+    statement: The system shall ship tests/agents/loader.test.ts bringing
+      src/agents/loader.ts to at least 90% line coverage.
   - id: AC-160
-    ears: ubiquitous
-    action: append or read a lifecycle event
-    response: preserves valid JSONL append order and safe absent or empty reads while refusing unsafe managed paths without changing the caller's outcome
-    text: When a lifecycle event is appended or read, the event log shall preserve valid JSONL append order and safe absent or empty reads while treating unsafe managed paths as observer-only no-ops.
-    test_refs:
-      - "tests/events/log.test.ts#[covers:F-063/AC-160] append and read preserve a valid JSONL event round trip"
-      - "tests/events/log.test.ts#[covers:F-063/AC-160] absent and empty event logs read as no observations"
-      - "tests/events/log.test.ts#[covers:F-063/AC-160] multiple JSONL appends preserve observed order"
-      - "tests/events/log.test.ts#[covers:F-063/AC-160] managed symbolic paths remain observer-only no-ops"
-    notes: |
+    statement: When a lifecycle event is appended or read, the event log shall
+      preserve valid JSONL append order and safe absent or empty reads while
+      treating unsafe managed paths as observer-only no-ops.
+    kind: behavior
+    notes: >
       ## Historical schema-0.1 note
+
       2026-05-19 · v0.2.14 · 3324b23. Event-log fixtures: event shape, directory
-      creation, round trips, absent, empty, whitespace, and ordered appends; 100%
+
+      creation, round trips, absent, empty, whitespace, and ordered appends;
+      100%
+
       line coverage; non-current.
   - id: AC-161
-    ears: ubiquitous
-    action: cover the optimizer remainder (preamble + tail)
-    response: tests/optimizer/preamble.test.ts and tests/optimizer/tail.test.ts each exercise their helpers' branches; both source files reach 100% line coverage and the optimizer/ chapter closes alongside the existing src/optimizer/prune.test.ts
-    text: The system shall ship dedicated tests for src/optimizer/preamble.ts and src/optimizer/tail.ts, bringing both to 100% line coverage so the optimizer chapter closes.
-    test_refs:
-      - tests/optimizer/preamble.test.ts
-      - tests/optimizer/tail.test.ts
+    statement: The system shall ship dedicated tests for src/optimizer/preamble.ts
+      and src/optimizer/tail.ts, bringing both to 100% line coverage so the
+      optimizer chapter closes.
   - id: AC-162
-    ears: ubiquitous
-    action: cover the ui modules (pulse + panel)
-    response: tests/ui/pulse.test.ts covers TTY-vs-non-TTY rendering + every PulseKind glyph; tests/ui/panel.test.ts covers default / internal mode, L4 cell derivation, audit-empty fallback, title fallback; both source files reach 100% line coverage and the ui chapter closes alongside the existing tests/ui/softShell.test.ts
-    text: The system shall ship dedicated tests for src/ui/pulse.ts and src/ui/panel.ts, bringing both to 100% line coverage so the ui chapter closes.
-    test_refs:
-      - tests/ui/pulse.test.ts
-      - tests/ui/panel.test.ts
+    statement: The system shall ship dedicated tests for src/ui/pulse.ts and
+      src/ui/panel.ts, bringing both to 100% line coverage so the ui chapter
+      closes.
   - id: AC-163
-    ears: state
-    condition: while current coverage assurance is evaluated
-    action: derive it from the coverage obligation
-    response: does not treat the v0.2.14 measurement as current proof
-    text: While current coverage assurance is evaluated, it shall be derived from the coverage obligation; the v0.2.14 measurement remains historical evidence only.
-    test_refs:
-      - "tests/assurance/registry.test.ts#[covers:F-055/AC-128][covers:F-056/AC-132][covers:F-057/AC-136][covers:F-058/AC-140][covers:F-059/AC-144][covers:F-060/AC-148][covers:F-061/AC-152][covers:F-062/AC-157][covers:F-063/AC-163][covers:F-064/AC-167] derives current coverage assurance only from the coverage obligation"
+    statement: While current coverage assurance is evaluated, the assurance registry
+      shall derive it from the coverage obligation and treat the v0.2.14
+      measurement as historical evidence only.
+    kind: quality
     notes: |
       ## Historical schema-0.1 note
       v0.2.14’s 74.42% to ≥85% measurement is historical, not current assurance.

@@ -7,44 +7,31 @@ modules:
   - plugins/claude-code/commands/init.md
   - .gitignore
   - package.json
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-070
-    ears: ubiquitous
-    action: maintain a CHANGELOG.md in Keep a Changelog 1.1.0 format with an entry
-      per shipped release
-    response: gh release create --notes-file CHANGELOG.md works end-to-end
-    text: The system shall maintain a CHANGELOG.md in Keep a Changelog 1.1.0 format
-      with an entry per shipped release, so that `gh release create --notes-file
-      CHANGELOG.md` works end-to-end.
-    evidence_refs: [CHANGELOG.md]
-
+    statement: The system shall maintain a CHANGELOG.md in Keep a Changelog 1.1.0
+      format with an entry per shipped release, so that `gh release create
+      --notes-file CHANGELOG.md` works end-to-end.
+    evidence_refs:
+      - CHANGELOG.md
   - id: AC-071
-    ears: ubiquitous
-    action: keep README.md and README.ko.md in lockstep on every release-prep brick
-    response: feature inventory, status badge, and CLI section match across both files
-    text: The system shall keep README.md (English) and README.ko.md (Korean) in
-      lockstep on every release-prep brick — feature inventory, status badge,
+    statement: The system shall keep README.md (English) and README.ko.md (Korean)
+      in lockstep on every release-prep brick — feature inventory, status badge,
       and CLI section match across both files.
     evidence_refs:
       - README.md
       - README.ko.md
-
   - id: AC-072
-    ears: ubiquitous
-    action: expose cladding to Claude Code plugin install sites via a slash command
-    response: plugins/claude-code/commands/init.md frontmatter declares a description
-      and the body drives onboarding; v0.4.0 (F-076 AC-227) retired the legacy
-      /cladding:clad wrapper (commands/clad.md) in favour of /cladding:init, with
-      the remaining verbs invoked by the AI via natural language -> `clad <verb>` CLI
-    text: The system shall expose cladding to Claude Code plugin install sites via the
-      /cladding:init slash command (plugins/claude-code/commands/init.md); the legacy
-      /cladding:clad wrapper was retired in v0.4.0 per F-076 AC-227.
-    evidence_refs: [plugins/claude-code/commands/init.md]
-
+    statement: The system shall expose cladding to Claude Code plugin install sites
+      via the /cladding:init slash command
+      (plugins/claude-code/commands/init.md); the legacy /cladding:clad wrapper
+      was retired in v0.4.0 per F-076 AC-227.
+    evidence_refs:
+      - plugins/claude-code/commands/init.md
   - id: AC-073
-    ears: ubiquitous
-    action: declare a bin field that installs the clad binary on user PATH
-    response: npm install (or plugin install) makes `clad` callable globally
-    text: The package.json shall declare a bin field that installs the clad binary
-      on user PATH so plugin install sites can call `clad` directly.
-    evidence_refs: [package.json]
+    statement: The package.json shall declare a bin field that installs the clad
+      binary on user PATH so plugin install sites can call `clad` directly.
+    evidence_refs:
+      - package.json

@@ -1,33 +1,43 @@
 id: F-cd0415
-slug: spec-load-once
-title: "One spec load per drift run — detectors stop re-parsing every shard 29 times"
+title: One spec load per drift run — detectors stop re-parsing every shard 29 times
 status: done
 modules:
   - src/spec/load.ts
   - src/stages/drift.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-c42c1d
-    ears: event
-    condition: "when runDrift starts a detector pass"
-    action: "prime a run-scoped spec cache (one disk load) that loadSpec consults for the same cwd, and clear it when the pass ends — even on a thrown detector"
-    response: "a gate run parses the shard tree once instead of once per spec-consuming detector (~29x), keeping the pre-commit tier fast at thousands of shards"
-    text: "When runDrift starts a detector pass, the system shall prime a run-scoped spec cache that loadSpec consults for the same cwd and clear it when the pass ends (even on a throw), so a gate run parses the shard tree once instead of ~29 times."
-    notes: "## Why\nEvery withSpec detector independently re-parsed every shard — O(detectors x shards) YAML parses per gate run; at 5k shards that is ~150k parses on EVERY commit (enterprise review E3). Detectors are synchronous by Iron Law, so a run-scoped cache primed and cleared around the synchronous loop cannot go stale mid-run.\n## Trade-off\nA module-level cache is state — scoped strictly to one synchronous runDrift call (primed in try, cleared in finally) so the MCP server's long-lived process never serves stale spec across requests."
-    test_refs:
-      - "tests/stages/drift-scale.test.ts#runDrift clears the cache afterwards — later loadSpec sees later edits"
-      - "tests/stages/drift-scale.test.ts#primed cache returns the same object; cleared cache reads fresh from disk"
-  - id: AC-e49feb
-    ears: state
-    condition: "while no cache is primed (any loadSpec call outside a drift pass)"
-    action: "load fresh from disk exactly as before"
-    response: "zero behavior change for every other caller — the cache is invisible outside the primed window"
-    text: "While no cache is primed, loadSpec shall load fresh from disk exactly as before, so behavior outside a drift pass is unchanged."
-    test_refs:
-      - "tests/stages/drift-scale.test.ts#primed cache returns the same object; cleared cache reads fresh from disk"
-  - id: AC-a8cf33
-    ears: ubiquitous
-    text: "A synthetic 5000-shard project shall complete the drift detector pass within a hard wall-clock budget in the test suite, so the at-scale latency floor is machine-enforced rather than assumed."
-    notes: "## Decision\nBudget is generous (well under what the uncached O(detectors x shards) behavior would take) to stay CI-stable while still failing on an accidental return to per-detector re-parsing."
+    statement: When runDrift starts a detector pass, the system shall prime a
+      run-scoped spec cache that loadSpec consults for the same cwd and clear it
+      when the pass ends (even on a throw), so a gate run parses the shard tree
+      once instead of ~29 times.
+    notes: >-
+      ## Why
 
-    test_refs:
-      - "tests/stages/drift-scale.test.ts#5000-shard drift pass completes within the hard latency budget"
+      Every withSpec detector independently re-parsed every shard — O(detectors
+      x shards) YAML parses per gate run; at 5k shards that is ~150k parses on
+      EVERY commit (enterprise review E3). Detectors are synchronous by Iron
+      Law, so a run-scoped cache primed and cleared around the synchronous loop
+      cannot go stale mid-run.
+
+      ## Trade-off
+
+      A module-level cache is state — scoped strictly to one synchronous
+      runDrift call (primed in try, cleared in finally) so the MCP server's
+      long-lived process never serves stale spec across requests.
+  - id: AC-e49feb
+    statement: While no cache is primed, the loadSpec shall load fresh from disk
+      exactly as before, so behavior outside a drift pass is unchanged.
+    kind: behavior
+  - id: AC-a8cf33
+    statement: The synthetic 5000-shard project shall complete the drift detector
+      pass within a hard wall-clock budget in the test suite, so the at-scale
+      latency floor is machine-enforced rather than assumed.
+    kind: quality
+    notes: >-
+      ## Decision
+
+      Budget is generous (well under what the uncached O(detectors x shards)
+      behavior would take) to stay CI-stable while still failing on an
+      accidental return to per-detector re-parsing.

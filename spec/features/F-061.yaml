@@ -9,60 +9,52 @@ modules:
   - tests/stages/visual.test.ts
   - tests/stages/uat.test.ts
   - tests/proof/stage-receipt-reduction.test.ts
-depends_on: [F-060]
+depends_on:
+  - F-060
+capability_refs: []
 acceptance_criteria:
   - id: AC-149
-    ears: event
-    condition: when the Performance or Visual obligation applies
-    action: derive runner availability, configuration, and outcome from its sealed descriptor inputs
-    response: record a same-run observation as pass, fail, or unobserved, unless the compiler proves not-applicable
-    text: When the Performance or Visual obligation applies, the system shall derive runner availability, configuration, and outcome from its sealed descriptor inputs and record a same-run observation as pass, fail, or unobserved, unless the compiler proves not-applicable.
-    test_refs:
-      - "tests/stages/perf.test.ts#[covers:F-061/AC-149] performance descriptor fallback reports an unavailable runner"
-      - "tests/stages/perf.test.ts#[covers:F-061/AC-149] performance descriptor reports a successful runner outcome"
-      - "tests/stages/perf.test.ts#[covers:F-061/AC-149] performance descriptor override bypasses fallback selection"
-      - "tests/stages/visual.test.ts#[covers:F-061/AC-149] visual descriptor fallback reports an unavailable runner"
-      - "tests/stages/visual.test.ts#[covers:F-061/AC-149] visual descriptor reports a successful runner outcome"
-      - "tests/stages/visual.test.ts#[covers:F-061/AC-149] visual descriptor override bypasses fallback selection"
-    notes: |
+    statement: When the Performance or Visual obligation applies, the system shall
+      derive runner availability, configuration, and outcome from its sealed
+      descriptor inputs and record a same-run observation as pass, fail, or
+      unobserved, unless the compiler proves not-applicable.
+    notes: >
       ## Historical schema-0.1 note
-      2026-05-19 · v0.2.12 · 5328e63. Performance/Visual execa fixtures: language,
-      script, exit, error, null, and override cases; at least 85% line coverage for
-      both sources; non-current. Released title: "Stage runner tests batch 3 — every stage covered".
+
+      2026-05-19 · v0.2.12 · 5328e63. Performance/Visual execa fixtures:
+      language,
+
+      script, exit, error, null, and override cases; at least 85% line coverage
+      for
+
+      both sources; non-current. Released title: "Stage runner tests batch 3 —
+      every stage covered".
   - id: AC-150
-    ears: event
-    condition: when UAT applies to a feature
-    action: reduce only a verified current human feature receipt whose signed criterion matrix exactly enumerates the compiled criterion addresses and whose reviewed-input, runtime-dependency, and implementation-author digests match the closure
-    response: classify all-pass evidence as pass, an explicit negative as fail, and missing, untrusted, stale, or incomplete-matrix evidence as unobserved
-    text: When UAT applies to a feature, the system shall reduce only a verified current human feature receipt whose signed criterion matrix exactly enumerates the compiled criterion addresses and whose reviewed-input, runtime-dependency, and implementation-author digests match the closure and classify all-pass evidence as pass, an explicit negative as fail, and missing, untrusted, stale, or incomplete-matrix evidence as unobserved.
-    test_refs:
-      - "tests/proof/stage-receipt-reduction.test.ts#[covers:F-061/AC-150] mechanism proof: trusted current UAT receipt with an exact criterion matrix reduces to pass"
-      - "tests/proof/stage-receipt-reduction.test.ts#[covers:F-061/AC-150] mechanism proof: missing, untrusted, stale, or incomplete-matrix UAT receipt remains unobserved"
-      - "tests/proof/stage-receipt-reduction.test.ts#[covers:F-061/AC-150] mechanism proof: explicit negative UAT verdict reduces to fail"
+    statement: When UAT applies to a feature, the system shall reduce only a
+      verified current human feature receipt whose signed criterion matrix
+      exactly enumerates the compiled criterion addresses and whose
+      reviewed-input, runtime-dependency, and implementation-author digests
+      match the closure and classify all-pass evidence as pass, an explicit
+      negative as fail, and missing, untrusted, stale, or incomplete-matrix
+      evidence as unobserved.
     notes: |
       ## Historical schema-0.1 note
       2026-05-19 · v0.2.12 · 5328e63. UAT appendEvidence fixtures: absent specs,
       audit states, human/tool failures, status filters, and multiple features;
       at least 85% line coverage; non-current.
   - id: AC-151
-    ears: state
-    condition: while current runner proof is evaluated
-    action: derive it per obligation from current observations
-    response: does not treat the former twelve-runner test-file milestone as current proof
-    text: While current runner proof is evaluated, it shall be derived per obligation from current observations; the former twelve-runner test-file milestone is historical evidence only.
-    test_refs:
-      - "tests/assurance/kernel.test.ts#[covers:F-061/AC-151] current runner proof is derived per obligation from current observations"
+    statement: While current runner proof is evaluated, the assurance kernel shall
+      derive it per obligation from current observations and treat the former
+      twelve-runner test-file milestone as historical evidence only.
+    kind: quality
     notes: |
       ## Historical schema-0.1 note
       The twelve-runner, ≥75% milestone is historical, not current proof.
   - id: AC-152
-    ears: state
-    condition: while current coverage assurance is evaluated
-    action: derive it from the coverage obligation
-    response: does not treat the v0.2.12 measurement as current proof
-    text: While current coverage assurance is evaluated, it shall be derived from the coverage obligation; the v0.2.12 measurement remains historical evidence only.
-    test_refs:
-      - "tests/assurance/registry.test.ts#[covers:F-055/AC-128][covers:F-056/AC-132][covers:F-057/AC-136][covers:F-058/AC-140][covers:F-059/AC-144][covers:F-060/AC-148][covers:F-061/AC-152][covers:F-062/AC-157][covers:F-063/AC-163][covers:F-064/AC-167] derives current coverage assurance only from the coverage obligation"
+    statement: While current coverage assurance is evaluated, the assurance registry
+      shall derive it from the coverage obligation and treat the v0.2.12
+      measurement as historical evidence only.
+    kind: quality
     notes: |
       ## Historical schema-0.1 note
       v0.2.12’s 84.23% to ≥90% measurement is historical, not current assurance.

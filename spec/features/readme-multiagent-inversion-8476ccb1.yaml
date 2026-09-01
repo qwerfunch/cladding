@@ -1,6 +1,6 @@
 id: F-8476ccb1
-slug: readme-multiagent-inversion
-title: "README multi-agent section inverts the frame in prose alone: yours to run, cladding's to judge"
+title: "README multi-agent section inverts the frame in prose alone: yours to
+  run, cladding's to judge"
 status: done
 modules:
   - README.md
@@ -9,24 +9,30 @@ modules:
   - README.zh.md
   - README.html
   - README.ko.html
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-111fb976
-    ears: ubiquitous
-    text: "The Multi-Agent section shall open by denying the old identity — cladding is not a multi-agent framework and neither prescribes nor sees the host's agent topology — and ground the separation claim in the evidence-judged independence label."
-    response: "README.md Multi-Agent slice contains the literal 'not a multi-agent framework'; EN/KO slices keep 'independent' and 'self-certified'; no variant slice matches /dispatch/i"
-    test_refs: ["tests/choreography-guard.test.ts"]
+    statement: The Multi-Agent section shall open by denying the old identity —
+      cladding is not a multi-agent framework and neither prescribes nor sees
+      the host's agent topology — and ground the separation claim in the
+      evidence-judged independence label.
   - id: AC-7d433517
-    ears: ubiquitous
-    text: "The retired cast diagram shall not return — four drafts of it each read as a fixed roster of agents cladding ships — and the contrast between completions shall stand on its own as a compact list in the text, legible with no picture at all. (Narrowed by F-3fd220d8, which adds a diagram of the label decision at a different path; the blanket no-diagram wording it replaced was a consequence of those four drafts, not the invariant.)"
-    response: "no README variant matches /multi-agent\\.svg/; the EN slice presents the contrast as a list"
-    test_refs: ["tests/choreography-guard.test.ts"]
+    statement: The retired cast diagram shall remain absent because its four drafts
+      read as a fixed roster of shipped agents, while contrasting completions
+      appear as a compact text list legible without a picture.
+    kind: behavior
   - id: AC-a1692ed7
-    ears: ubiquitous
-    text: "Every prior README pin shall survive the inversion — the Multi-Agent heading token and its position after the loop section, the hedged EU AI Act sentence in the four EN/KO variants, and the detector/stage count literals."
-    response: "readme-loop-section, readme-record-honesty and self-consistency suites stay green"
-    test_refs: ["tests/readme-loop-section.test.ts", "tests/readme-record-honesty.test.ts", "tests/self-consistency.test.ts"]
+    statement: The system shall preserve every prior README pin through the
+      inversion, including the Multi-Agent heading token and its position after
+      the loop section, the hedged EU AI Act sentence in four EN and KO
+      variants, and detector and stage count literals.
+    kind: behavior
 design_impact:
   classification: none
-  rationale: "Documentation-layer inversion, prose-only by user decision after four diagram drafts: the section stops resembling a multi-agent team cladding ships; the superseded diagram feature (F-4498eb3d) is archived and its locale SVGs removed. No engine changes."
+  rationale: "Documentation-layer inversion, prose-only by user decision after
+    four diagram drafts: the section stops resembling a multi-agent team
+    cladding ships; the superseded diagram feature (F-4498eb3d) is archived and
+    its locale SVGs removed. No engine changes."
   status: resolved
   artifacts: []

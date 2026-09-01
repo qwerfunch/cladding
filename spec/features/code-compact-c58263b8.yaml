@@ -1,6 +1,5 @@
 id: F-c58263b8
-slug: code-compact
-title: "Code compact — inline dead threshold seams, dedupe git helpers, export hygiene"
+title: Code compact — inline dead threshold seams, dedupe git helpers, export hygiene
 status: done
 modules:
   - src/stages/detectors/planned-backlog.ts
@@ -18,45 +17,59 @@ modules:
   - src/assurance/criterion-observations.ts
   - src/assurance/kernel.ts
   - src/assurance/adapters.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-de1bc6c5
-    ears: ubiquitous
-    text: "The four detector-local resolveThreshold() seams shall be inlined to their constants — no resolveThreshold symbol remains anywhere — with the wire-a-config-later narrative comments removed, and no configuration knob added."
-    notes: "## Why\nBacklog B3 (audited): all four return bare constants, zero test references, and the review explicitly decided against wiring an unrequested config knob. In-place edits — no file moves, so no shard-module ripple."
-    test_refs:
-      - "tests/code-compact.test.ts#the removed seam symbol appears in no file under src/ or tests/ (non-vacuous: scan visits >100 files)"
-      - "tests/code-compact.test.ts#the four DEFAULT_* constants are still exported and are now the direct comparand (the seam function is gone, the surface is not)"
-      - "tests/code-compact.test.ts#the \"wire a config seam later\" narrative comments are gone; no ai_hints.max_planned_ahead knob was added"
+    statement: The four detector-local resolveThreshold() seams shall be inlined to
+      their constants — no resolveThreshold symbol remains anywhere — with the
+      wire-a-config-later narrative comments removed, and no configuration knob
+      added.
+    notes: >-
+      ## Why
+
+      Backlog B3 (audited): all four return bare constants, zero test
+      references, and the review explicitly decided against wiring an
+      unrequested config knob. In-place edits — no file moves, so no
+      shard-module ripple.
   - id: AC-65b3d185
-    ears: ubiquitous
-    text: "The git ref resolution shall live exactly once in src/core/git-ops.ts — resolveRefToCommit(cwd, ref) returning the commit sha or null, never throwing, with refExists as its boolean projection — and the three prior duplicate sites (changelog collector, report, changelog CLI) routed through that single home with no forbidden-import rule violated."
-    notes: "## Why\nThe changelog CLI site consumes the resolved sha (not a boolean), so the single home is the resolving probe; a boolean-only helper would have changed behavior. Split adjudicated during implementation, 2026-07-05."
-    test_refs:
-      - "tests/code-compact.test.ts#git-ops.ts exports resolveRefToCommit(cwd, ref): string | null and refExists(cwd, ref): boolean"
-      - "tests/code-compact.test.ts#the rev-parse + --verify idiom appears in NO src file other than core/git-ops.ts"
-      - "tests/code-compact.test.ts#the three prior duplicate call sites import the core probe instead of shelling out themselves"
-      - "tests/changelog/collect.test.ts#throws a clear error naming an invalid since ref instead of returning empty"
-      - "tests/report/report-cli.test.ts#AC-67fa1d25 · an unresolvable --since exits 2 with an error naming the ref"
-      - "tests/report/report-cli.test.ts#AC-67fa1d25 · a valid --since ref exits 0"
-      - "tests/cli/changelog-measure.test.ts"
+    statement: The git ref resolution shall live exactly once in src/core/git-ops.ts
+      — resolveRefToCommit(cwd, ref) returning the commit sha or null, never
+      throwing, with refExists as its boolean projection — and the three prior
+      duplicate sites (changelog collector, report, changelog CLI) routed
+      through that single home with no forbidden-import rule violated.
+    notes: >-
+      ## Why
+
+      The changelog CLI site consumes the resolved sha (not a boolean), so the
+      single home is the resolving probe; a boolean-only helper would have
+      changed behavior. Split adjudicated during implementation, 2026-07-05.
   - id: AC-243ff1e1
-    ears: ubiquitous
-    text: "The ModuleReader function type shall be defined exactly once under src/optimizer/ and imported where needed, and resolveActorIdentity shall no longer be exported."
-    notes: "## Why\nDuplicate identical alias in two optimizer modules; resolveActorIdentity had zero external importers. withinCwd was originally in scope but is deliberately KEPT exported: tests/optimizer/code-excerpt.test.ts pins its path-traversal contract directly, and weakening a security-relevant unit contract to buy export hygiene is a bad trade (adjudicated 2026-07-05)."
-    test_refs:
-      - "tests/code-compact.test.ts#exactly one `type ModuleReader` definition exists under src/optimizer/, at infer-depends-on.ts"
-      - "tests/code-compact.test.ts#measurement.ts imports ModuleReader instead of redeclaring it"
-      - "tests/code-compact.test.ts#log.ts no longer exports resolveActorIdentity (zero external importers; de-exported)"
-      - "tests/code-compact.test.ts#code-excerpt.ts STILL exports withinCwd — adjudicated KEEP, pinned against a future silent flip"
-      - "tests/code-compact.test.ts#the existing withinCwd contract test (the reason the export was kept) is still intact"
-      - "tests/optimizer/measurement.test.ts"
-      - "tests/optimizer/code-excerpt.test.ts#rejects path traversal and non-whitelisted/binary/missing files safely"
-      - "tests/events/log.test.ts"
+    statement: The system shall define `ModuleReader` exactly once under
+      `src/optimizer/`, import that definition wherever needed, and keep
+      `resolveActorIdentity` unexported.
+    kind: behavior
+    notes: >-
+      ## Why
+
+      Duplicate identical alias in two optimizer modules; resolveActorIdentity
+      had zero external importers. withinCwd was originally in scope but is
+      deliberately KEPT exported: tests/optimizer/code-excerpt.test.ts pins its
+      path-traversal contract directly, and weakening a security-relevant unit
+      contract to buy export hygiene is a bad trade (adjudicated 2026-07-05).
   - id: AC-01797b10
-    ears: event
-    condition: "when a changed compacted module has a compiled proof closure"
-    response: "evaluate current bound observations for every declared suite input"
-    text: "When a changed compacted module has a compiled proof closure, the assurance engine shall evaluate the current bound observations in that closure without inferring behavior preservation from an unchanged test-file set."
-    test_refs:
-      - "tests/assurance/criterion-observations.test.ts#[covers:F-c58263b8/AC-01797b10] compaction accepts every named suite only when every current observation binds the exact manifest digest"
-    notes: "The exact 13-suite manifest is code-owned by the criterion observation registry; filesystem presence, a clean git tree, and historical green results are not observations.\n\n## Non-normative history (2026-08-31)\n\nReplaced the obsolete zero-test-edit/suite-green claim with a current bound proof-closure contract."
+    statement: When a changed compacted module has a compiled proof closure, the
+      assurance engine shall evaluate the current bound observations in that
+      closure without inferring behavior preservation from an unchanged
+      test-file set.
+    notes: >-
+      The exact 13-suite manifest is code-owned by the criterion observation
+      registry; filesystem presence, a clean git tree, and historical green
+      results are not observations.
+
+
+      ## Non-normative history (2026-08-31)
+
+
+      Replaced the obsolete zero-test-edit/suite-green claim with a current
+      bound proof-closure contract.

@@ -1,42 +1,25 @@
 id: F-d980359c
-slug: junit-multiframework-matching
-title: "UNVERIFIED_AC — multi-framework test_ref↔testcase matching (file attr + dotted classname, ext-agnostic, degrade on unmappable)"
+title: UNVERIFIED_AC — multi-framework test_ref↔testcase matching (file attr +
+  dotted classname, ext-agnostic, degrade on unmappable)
 status: done
 modules:
   - src/stages/junit-report.ts
   - src/stages/detectors/unverified-ac.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-23f0da78
-    ears: event
-    condition: "when a <testcase> carries a file= attribute"
-    action: "use that path as a matching anchor (primary, highest confidence)"
-    response: "parseJUnitReport indexes the testcase status under the normalized file= attribute path, covering pytest / go-junit-report v2 / modern vitest emitters"
-    text: "When a testcase carries a file attribute, the system shall index its result under that file path."
-    test_refs: ["tests/stages/junit-multiframework.test.ts"]
+    statement: When a testcase carries a file attribute, the system shall index its
+      result under that file path.
   - id: AC-07b10521
-    ears: event
-    condition: "when a classname is a dotted identifier with no path separator (e.g. com.example.FooTest or tests.test_foo)"
-    action: "also index it as a slash-converted path"
-    response: "parseJUnitReport adds a dot->slash converted alias key so FQCN/module-path emitters (Java, Kotlin, pytest) match a file-path test_ref"
-    text: "When a classname is a dotted module/FQCN with no slash, the system shall also index it as a slash-converted path."
-    test_refs: ["tests/stages/junit-multiframework.test.ts"]
+    statement: When a classname is a dotted module/FQCN with no slash, the system
+      shall also index it as a slash-converted path.
   - id: AC-5daf7fc6
-    ears: ubiquitous
-    action: "match a test_ref to a testcase key ignoring the trailing file extension"
-    response: "lookupTestRef strips a single trailing extension from both ref and key before exact/suffix comparison, so FooTest matches FooTest.kt and tests.test_foo matches tests/test_foo.py"
-    text: "The system shall match test_refs to testcase keys ignoring the trailing file extension."
-    test_refs: ["tests/stages/junit-multiframework.test.ts"]
+    statement: The system shall match test_refs to testcase keys ignoring the
+      trailing file extension.
   - id: AC-d47d2a88
-    ears: unwanted
-    condition: "if a present report exposes no path-like keys (e.g. jest describe-title classnames the system cannot map to files)"
-    action: "degrade to a no-op instead of emitting false absent findings"
-    response: "the detector treats a report whose keys are none path-like as unmappable and returns nothing, preserving the low-false-positive contract and leaving UNTESTED_AC as the baseline"
-    text: "If a present report has no path-like keys, then the system shall emit no findings (confident-or-degrade)."
-    test_refs: ["tests/stages/junit-multiframework.test.ts"]
+    statement: If a present report has no path-like keys, then the system shall emit
+      no findings (confident-or-degrade).
   - id: AC-dce7cb54
-    ears: state
-    condition: "while a classname is already a path (slash-bearing, as vitest emits)"
-    action: "continue to match it as before"
-    response: "path-like classnames remain indexed as-is so the existing vitest matching is a strict superset — regression guard"
-    text: "While a classname is already a path, the system shall match it exactly as before (no regression)."
-    test_refs: ["tests/stages/junit-multiframework.test.ts"]
+    statement: While a classname is already a path, the system shall match it
+      exactly as before (no regression).

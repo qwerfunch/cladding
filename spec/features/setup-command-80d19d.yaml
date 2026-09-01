@@ -1,6 +1,6 @@
 id: F-80d19d
-slug: setup-command
-title: "clad setup command — project-scoped host wire (0.9.0 model; replaced the 0.3.x global symlink wire)"
+title: clad setup command — project-scoped host wire (0.9.0 model; replaced the
+  0.3.x global symlink wire)
 status: done
 modules:
   - src/init/host-setup.ts
@@ -8,179 +8,89 @@ modules:
   - src/cli/clad.ts
   - src/cli/init.ts
   - .claude/settings.json
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-001
-    ears: event
-    condition: when the user runs `clad setup` with no `--host` option
-    action: wire only the host channels whose home markers exist on this machine (`~/.claude/`, `~/.codex/`, `~/.gemini/`, `~/.gemini/config` or `~/.gemini/antigravity-cli` for Antigravity, `~/.cursor/`), report the rest as `not selected`, and warn plus write only the shared project runtime when nothing is detected
-    response: projects gain wiring exclusively for AI tools the developer actually has; `--host all` remains the explicit way to force every channel
-    text: When the user runs `clad setup` with no `--host` option, the system
+    statement: When the user runs `clad setup` with no `--host` option, the system
       shall wire only the detected host channels and leave undetected hosts
       untouched (warning when none are detected), so projects gain wiring only
       for AI tools actually installed while `--host all` stays available as an
       explicit override.
-    test_refs:
-      - "tests/cli/setup.test.ts#writes only project-local host discovery files"
-      - "tests/cli/setup.test.ts#default detection wires nothing on a machine with no supported host"
   - id: AC-002
-    ears: state
-    condition: while every selected host channel is already wired for the current engine root
-    action: report each channel as already ready and perform no filesystem changes
-    response: idempotent re-runs are safe and visibly no-ops
-    text: While every selected host channel is already wired for the current
+    statement: While every selected host channel is already wired for the current
       engine root, the system shall report each channel as already ready and
       perform no filesystem changes, so idempotent re-runs are safe.
-    test_refs:
-      - "tests/cli/setup.test.ts#is idempotent and stores setup status under the project"
   - id: AC-003
-    ears: event
-    condition: when the user runs `clad setup` after installing a new AI tool that was not detected on the previous run
-    action: wire only the newly detected channel while leaving previously wired channels untouched
-    response: the new tool gets a cladding channel without re-touching the already-wired ones
-    text: When the user runs `clad setup` after installing a new AI tool that
-      was not detected on the previous run, the system shall wire only the
-      newly detected channel while leaving previously wired channels
-      untouched, so the new tool gets a cladding channel without re-touching
-      the already-wired ones.
-    test_refs:
-      - "tests/cli/setup.test.ts#delta-wires a host that appears after the first run, leaving wired ones untouched"
+    statement: When the user runs `clad setup` after installing a new AI tool that
+      was not detected on the previous run, the system shall wire only the newly
+      detected channel while leaving previously wired channels untouched, so the
+      new tool gets a cladding channel without re-touching the already-wired
+      ones.
   - id: AC-004
-    ears: event
-    condition: when the user runs `clad setup` after upgrading cladding so the engine package root differs from the one baked into the project runtime launcher
-    action: regenerate `.cladding/host/serve.cjs` against the new engine root
-    response: host channels launch the upgraded engine without manual cleanup, because every host config points at the stable project-relative launcher
-    text: When the user runs `clad setup` after upgrading cladding so the
-      engine root differs from the one baked into the project runtime
-      launcher, the system shall regenerate `.cladding/host/serve.cjs`
-      against the new root, so host channels launch the upgraded engine
-      without manual cleanup.
-    test_refs:
-      - "tests/cli/setup.test.ts#re-wires the project runtime when the engine root changes (upgrade path)"
+    statement: When the user runs `clad setup` after upgrading cladding so the
+      engine root differs from the one baked into the project runtime launcher,
+      the system shall regenerate `.cladding/host/serve.cjs` against the new
+      root, so host channels launch the upgraded engine without manual cleanup.
   - id: AC-005
-    ears: event
-    condition: when the user runs `clad setup` and the project runtime launcher has been deleted
-    action: re-create the missing launcher (same effect as a first-time wire for that file)
-    response: "`clad setup` works as a repair command without a separate flag"
-    text: When the user runs `clad setup` and the project runtime launcher has
+    statement: When the user runs `clad setup` and the project runtime launcher has
       been deleted, the system shall re-create it, so `clad setup` works as a
       repair command without a separate flag.
-    test_refs:
-      - "tests/cli/setup.test.ts#re-creates a deleted project runtime as a repair, no separate flag"
   - id: AC-006
-    ears: state
-    condition: while `clad init` runs in a project whose `.cladding/setup-status.json` does not exist (the user never ran `clad setup` here)
-    action: print a friendly skipped notice naming `clad setup` and continue with spec generation
-    response: missing host wire does not block spec creation; the user is guided to the next step
-    text: While `clad init` runs and no project setup-status exists, the system
+    statement: While `clad init` runs and no project setup-status exists, the system
       shall print a friendly skipped notice naming `clad setup` and continue
       with spec generation, so missing host wire does not block spec creation
       and the user is guided to the next step.
-    test_refs:
-      - "tests/cli/setup.test.ts#hostWireNotice guides toward clad setup and surfaces version skew without blocking"
   - id: AC-007
-    ears: state
-    condition: while `clad init` runs and the engine version differs from the version recorded in the project's `.cladding/setup-status.json`
-    action: print a friendly notice suggesting `clad setup` be re-run in this project, and continue with spec generation
-    response: version skew is surfaced without blocking; the user chooses whether to refresh the wire
-    text: While `clad init` runs and the engine version differs from the
-      version recorded in the project's setup-status, the system shall print
-      a friendly notice and continue with spec generation, so version skew is
+    statement: While `clad init` runs and the engine version differs from the
+      version recorded in the project's setup-status, the system shall print a
+      friendly notice and continue with spec generation, so version skew is
       surfaced without blocking.
-    test_refs:
-      - "tests/cli/setup.test.ts#hostWireNotice guides toward clad setup and surfaces version skew without blocking"
   - id: AC-008
-    ears: unwanted
-    condition: if a user runs `npm install -g cladding` (or `--ignore-scripts`, or any npm install flavour)
-    action: do not execute any host-wiring side effects during install (no postinstall hook registered in package.json `scripts`)
-    response: "`npm install` is pure binary installation with zero filesystem side effects in `$HOME`"
-    text: If a user runs `npm install -g cladding`, the system shall not
-      execute any host-wiring side effects during install, so `npm install`
-      is pure binary installation with zero filesystem side effects in $HOME.
+    statement: If a user runs npm install -g cladding, then the system shall perform
+      pure binary installation with no host-wiring side effects and zero
+      filesystem side effects in $HOME.
+    kind: constraint
+    rationale: Preserves pure installation without unexpected host mutation.
     evidence_refs:
       - package.json
   - id: AC-009
-    ears: unwanted
-    condition: if a host config already carries a `cladding` MCP entry that setup does not recognize as its own launch shape
-    action: emit a `skipped-different` conflict notice and refuse to overwrite unless `--force` is supplied
-    response: user customisations are preserved unless the user explicitly opts in to overwrite
-    text: If a host config already carries a cladding MCP entry that setup
-      does not recognize as its own launch shape, the system shall emit a
-      conflict notice and refuse to overwrite unless `--force` is supplied,
-      so user customisations are preserved unless explicitly overridden.
-    test_refs:
-      - "tests/cli/setup.test.ts#preserves a conflicting user MCP entry unless force is explicit"
-      - "tests/cli/setup.test.ts#Gemini setup preserves a conflicting Cladding entry unless force is explicit"
+    statement: If a host config already carries a cladding MCP entry that setup does
+      not recognize as its own launch shape, then the system shall emit a
+      conflict notice and refuse to overwrite unless `--force` is supplied, so
+      user customisations are preserved unless explicitly overridden.
+    kind: behavior
   - id: AC-010
-    ears: event
-    condition: when `clad setup` finishes successfully (any combination of wired / already ready / not selected)
-    action: end the report with a numbered next-steps block (start a new AI session in the project → ask to apply Cladding → reply with the exact approval phrase → develop normally)
-    response: the user always sees a concrete next-step recipe at the end of the report
-    text: When `clad setup` finishes successfully, the system shall end the
+    statement: When `clad setup` finishes successfully, the system shall end the
       report with a numbered next-steps block, so the user always sees a
       concrete next-step recipe.
-    test_refs:
-      - "tests/cli/setup.test.ts#report explains the project boundary and normal post-init development"
   - id: AC-011
-    ears: event
-    condition: when `clad setup` wires the Cursor channel
-    action: write project-local `.cursor/mcp.json` (JSON merge preserving other entries), `.cursor/cli.json` read-only MCP permissions, the bootstrap rule, and the project skill copy
-    response: Cursor users get cladding wired per-project without manual JSON edits
-    text: When `clad setup` wires the Cursor channel, the system shall write
+    statement: When `clad setup` wires the Cursor channel, the system shall write
       the project-local Cursor MCP config, permissions, bootstrap rule, and
       skill copy while preserving unrelated entries, so Cursor users get
       cladding wired per-project without manual JSON edits.
-    test_refs:
-      - "tests/cli/setup.test.ts#Cursor permissions preserve unrelated allow and deny entries"
-      - "tests/cli/setup.test.ts#writes only project-local host discovery files"
   - id: AC-012
-    ears: event
-    condition: when `clad setup` runs on a machine that still carries pre-0.9.0 global wires (plugin symlinks, `~/.agents/skills/cladding-*`, `~/.codex/config.toml` / `~/.cursor/mcp.json` entries)
-    action: remove only the entries whose ownership is provable (symlink target inside a known cladding root, or a recognized launch shape), preserving everything else byte-for-byte where possible
-    response: legacy global installs migrate to the project-scoped model without destroying user configuration
-    text: When `clad setup` runs on a machine with pre-0.9.0 global wires,
-      the system shall remove only ownership-proven entries and preserve
-      everything else, so legacy installs migrate without destroying user
-      configuration.
-    test_refs:
-      - "tests/cli/setup.test.ts#removes only provably-owned legacy global wires"
-      - "tests/cli/setup.test.ts#preserves unowned global files with Cladding-like names"
-      - "tests/cli/setup.test.ts#codex legacy cleanup preserves user comments and formatting outside the cladding entry"
-      - "tests/cli/setup.test.ts#cursor legacy cleanup drops an emptied mcpServers object instead of leaving an orphan"
+    statement: When `clad setup` runs on a machine with pre-0.9.0 global wires, the
+      system shall remove only ownership-proven entries and preserve everything
+      else, so legacy installs migrate without destroying user configuration.
   - id: AC-013
-    ears: event
-    condition: when `clad init` runs and a project-local CLAUDE.md exists whose `## cladding` section carries v0.3.x markers (e.g. `_meta.enrichment_status`, `first-task enrichment rule`, lone `clad_create_feature` MCP tool wording with no `clad` CLI qualifier)
-    action: refresh only the `## cladding` section in place while preserving user content outside that marker block (AGENTS.md is handled separately by the spec-driven managed block, which treats markerless files as user-owned and never rewrites them wholesale)
-    response: AI sessions opened in projects scaffolded by older cladding versions do not surface stale "use the MCP tool" guidance that triggers spurious MCP-server prompts in hosts where cladding is not wired as an MCP server (e.g. Claude Code)
-    text: When `clad init` runs and an existing CLAUDE.md `## cladding`
-      section carries v0.3.x markers, the system shall refresh that section
-      in place without requiring `--force` while preserving user content
-      outside the marker block, so AI sessions do not surface stale guidance
-      that confuses hosts where cladding is not wired as an MCP server.
-    test_refs:
-      - "tests/init/host-instructions.test.ts#refreshes only the ## cladding section when v0.3.x markers are present"
+    statement: When `clad init` runs and an existing CLAUDE.md `## cladding` section
+      carries v0.3.x markers, the system shall refresh that section in place
+      without requiring `--force` while preserving user content outside the
+      marker block, so AI sessions do not surface stale guidance that confuses
+      hosts where cladding is not wired as an MCP server.
   - id: AC-014
-    ears: state
-    condition: while a maintainer clones the cladding repository and opens it with Claude Code
-    action: ensure the repo ships a `.claude/settings.json` with `enabledPlugins["claude-code@cladding"] = true` so Claude Code activates the local cladding plugin on entry (dogfood self-activation)
-    response: cladding repo behaves like any external cladding-managed project — no separate "activate cladding for cladding" step required for maintainers
-    text: While a maintainer clones the cladding repository and opens it
-      with Claude Code, the system shall ship a `.claude/settings.json`
-      with `enabledPlugins["claude-code@cladding"] = true` so Claude Code
-      activates the local cladding plugin on entry without a separate
-      maintainer-only setup step.
+    statement: While a maintainer clones the cladding repository and opens it with
+      Claude Code, the system shall ship a `.claude/settings.json` with
+      `enabledPlugins["claude-code@cladding"] = true` so Claude Code activates
+      the local cladding plugin on entry without a separate maintainer-only
+      setup step.
     evidence_refs:
-      - ".claude/settings.json"
+      - .claude/settings.json
   - id: AC-015
-    ears: event
-    condition: when `clad setup` wires the Antigravity channel (agy reads MCP config only from machine-wide locations, never from the project — verified live in the 0.9.0 E2E campaign)
-    action: write the machine-wide wire at `~/.gemini/config/plugins/cladding/` with an engine-absolute launch (the project is still resolved from each session's working directory), keep the forward-compat project `.agents/mcp_config.json`, refuse to write through a surviving unowned symlink or over a foreign real directory without `--force`, and say so in the report
-    response: Antigravity actually connects to cladding, the single documented exception to project-local activation is loudly reported, and foreign installs are never clobbered
-    text: When `clad setup` wires the Antigravity channel, the system shall
+    statement: When `clad setup` wires the Antigravity channel, the system shall
       write the machine-wide wire agy actually reads (engine-absolute launch;
       project resolved per session working directory), keep the forward-compat
-      project file, refuse foreign or symlinked targets without `--force`,
-      and report the exception, so Antigravity connects without silently
-      breaking the project-local activation story.
-    test_refs:
-      - "tests/cli/setup.test.ts#writes only project-local host discovery files"
-      - "tests/cli/setup.test.ts#a foreign real directory at the antigravity plugin path is preserved and reported"
+      project file, refuse foreign or symlinked targets without `--force`, and
+      report the exception, so Antigravity connects without silently breaking
+      the project-local activation story.

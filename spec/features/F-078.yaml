@@ -5,30 +5,38 @@ modules:
   - plugins/gemini-cli/gemini-extension.json
   - plugins/gemini-cli/GEMINI.md
   - plugins/gemini-cli/commands/init.toml
-depends_on: [F-049, F-073, F-076, F-077]
+depends_on:
+  - F-049
+  - F-073
+  - F-076
+  - F-077
+capability_refs: []
 acceptance_criteria:
   - id: AC-233
-    ears: ubiquitous
-    action: ship a Gemini CLI extension manifest at plugins/gemini-cli/gemini-extension.json
-    response: 'the manifest declares name=cladding, version, description, contextFileName=GEMINI.md, and an mcpServers map registering clad serve over stdio per the Gemini CLI extension spec'
-    text: The system shall ship a Gemini CLI extension manifest at plugins/gemini-cli/gemini-extension.json that declares cladding under the Gemini extension spec and registers `clad serve` as a stdio MCP server.
-    evidence_refs: [plugins/gemini-cli/gemini-extension.json]
+    statement: The system shall ship a Gemini CLI extension manifest at
+      plugins/gemini-cli/gemini-extension.json that declares cladding under the
+      Gemini extension spec and registers `clad serve` as a stdio MCP server.
+    evidence_refs:
+      - plugins/gemini-cli/gemini-extension.json
   - id: AC-234
-    ears: ubiquitous
-    action: expose cladding's user-facing verb as a Gemini CLI custom command in TOML format
-    response: 'plugins/gemini-cli/commands/ contains init.toml with a description field for the /help menu and a prompt field describing the verb behaviour; v0.4.0 (F-80d19d) narrowed the transpiled slash commands to `init` only — the remaining verbs (sync, check, status, run, serve) are invoked by the AI via natural language -> `clad <verb>` CLI, matching the Claude Code plugin (F-076 AC-227)'
-    text: The system shall expose cladding's `init` verb as a Gemini CLI custom command under plugins/gemini-cli/commands/init.toml so Gemini users invoke it as /cladding:init; v0.4.0 narrowed the slash-command surface to `init` only.
+    statement: The system shall expose cladding's `init` verb as a Gemini CLI custom
+      command under plugins/gemini-cli/commands/init.toml so Gemini users invoke
+      it as /cladding:init; v0.4.0 narrowed the slash-command surface to `init`
+      only.
     evidence_refs:
       - plugins/gemini-cli/commands/init.toml
   - id: AC-235
-    ears: ubiquitous
-    action: provide a Gemini context file describing the personas and authentication invariant
-    response: plugins/gemini-cli/GEMINI.md introduces cladding to Gemini, lists the six commands, summarises the five personas (orchestrator · planner · reviewer · observability · developer), and explicitly states the no-API-key invariant
-    text: The system shall provide plugins/gemini-cli/GEMINI.md as the extension context file so Gemini, when the extension is loaded, has the persona vocabulary and authentication model in its context window from session start.
-    evidence_refs: [plugins/gemini-cli/GEMINI.md]
+    statement: The system shall provide plugins/gemini-cli/GEMINI.md as the
+      extension context file so Gemini, when the extension is loaded, has the
+      persona vocabulary and authentication model in its context window from
+      session start.
+    evidence_refs:
+      - plugins/gemini-cli/GEMINI.md
   - id: AC-236
-    ears: ubiquitous
-    action: keep the no-API-key invariant intact for Gemini CLI integration
-    response: 'plugins/gemini-cli/GEMINI.md explicitly states the F-049 AC-091 invariant; the extension uses Google account login (free tier 60 req/min · 1000/day) by default; GEMINI_API_KEY remains an opt-in fallback'
-    text: The system shall keep the no-API-key invariant intact for the Gemini CLI integration — the extension uses the user's Google account login by default; cladding never reads GEMINI_API_KEY when a host adapter is active.
-    evidence_refs: [plugins/gemini-cli/GEMINI.md, spec/features/F-049.yaml]
+    statement: The system shall keep the no-API-key invariant intact for the Gemini
+      CLI integration — the extension uses the user's Google account login by
+      default; cladding never reads GEMINI_API_KEY when a host adapter is
+      active.
+    evidence_refs:
+      - plugins/gemini-cli/GEMINI.md
+      - spec/features/F-049.yaml

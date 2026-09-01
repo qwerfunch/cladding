@@ -11,49 +11,48 @@ modules:
   - tests/stages/status-drift.test.ts
   - tests/stages/ac-drift.test.ts
   - tests/stages/tech-stack-mismatch.test.ts
-depends_on: [F-022, F-052]
+depends_on:
+  - F-022
+  - F-052
+capability_refs: []
 acceptance_criteria:
   - id: AC-125
-    ears: ubiquitous
-    action: cover UNMAPPED_ARTIFACT with focused unit tests
-    response: tests/stages/unmapped-artifact.test.ts exercises happy / unmapped / out-of-scope / multi-feature / archived / spec-absent paths; line coverage on the detector source reaches 100%
-    text: The system shall ship a tests/stages/unmapped-artifact.test.ts file that brings the UNMAPPED_ARTIFACT detector to 100% line coverage.
-    test_refs: [tests/stages/unmapped-artifact.test.ts]
+    statement: The system shall ship a tests/stages/unmapped-artifact.test.ts file
+      that brings the UNMAPPED_ARTIFACT detector to 100% line coverage.
   - id: AC-126
-    ears: event
-    condition: when the test adapter evaluates a MISSING_IMPLEMENTATION or STATUS_DRIFT detector artifact
-    action: derive its feature-owned source, runner configuration, and exact leading [covers:] selector closure
-    response: classify its same-run selector-matched case observation as verified, failed, or unobserved
-    text: When the test adapter evaluates a MISSING_IMPLEMENTATION or STATUS_DRIFT detector artifact, the system shall derive its feature-owned source, runner configuration, and exact leading [covers:] selector closure and classify its same-run selector-matched case observation as verified, failed, or unobserved.
-    test_refs:
-      - "tests/stages/missing-implementation.test.ts#[covers:F-055/AC-126] reports a present and a single missing declared module"
-      - "tests/stages/status-drift.test.ts#[covers:F-055/AC-126] status=done + one missing module → one error finding"
-    notes: |
+    statement: When the test adapter evaluates a MISSING_IMPLEMENTATION or
+      STATUS_DRIFT detector artifact, the system shall derive its feature-owned
+      source, runner configuration, and exact leading [covers:] selector closure
+      and classify its same-run selector-matched case observation as verified,
+      failed, or unobserved.
+    notes: >
       ## Historical schema-0.1 note
-      2026-05-19 · v0.2.6 · 9d6bfe4. MISSING_IMPLEMENTATION/STATUS_DRIFT fixtures:
-      100% line coverage for both sources; non-current. Released title: "Detector
+
+      2026-05-19 · v0.2.6 · 9d6bfe4. MISSING_IMPLEMENTATION/STATUS_DRIFT
+      fixtures:
+
+      100% line coverage for both sources; non-current. Released title:
+      "Detector
+
       unit tests batch 1 (5 detectors, 100% line coverage each)".
   - id: AC-127
-    ears: event
-    condition: when the test adapter evaluates an AC_DRIFT or TECH_STACK_MISMATCH detector artifact
-    action: derive its feature-owned source, runner configuration, and exact leading [covers:] selector closure
-    response: classify its same-run selector-matched case observation as verified, failed, or unobserved
-    text: When the test adapter evaluates an AC_DRIFT or TECH_STACK_MISMATCH detector artifact, the system shall derive its feature-owned source, runner configuration, and exact leading [covers:] selector closure and classify its same-run selector-matched case observation as verified, failed, or unobserved.
-    test_refs:
-      - "tests/stages/ac-drift.test.ts#[covers:F-055/AC-127] AC missing text and EARS fields reports structural drift"
-      - "tests/stages/tech-stack-mismatch.test.ts#[covers:F-055/AC-127] build manifests do not alter source-derived language evidence"
-    notes: |
+    statement: When the test adapter evaluates an AC_DRIFT or TECH_STACK_MISMATCH
+      detector artifact, the system shall derive its feature-owned source,
+      runner configuration, and exact leading [covers:] selector closure and
+      classify its same-run selector-matched case observation as verified,
+      failed, or unobserved.
+    notes: >
       ## Historical schema-0.1 note
+
       2026-05-19 · v0.2.6 · 9d6bfe4. AC_DRIFT/TECH_STACK_MISMATCH structural,
-      EARS, and manifest fixtures: 100% line coverage for both sources; non-current.
+
+      EARS, and manifest fixtures: 100% line coverage for both sources;
+      non-current.
   - id: AC-128
-    ears: state
-    condition: while current coverage assurance is evaluated
-    action: derive it from the coverage obligation
-    response: does not treat the v0.2.6 measurement as current proof
-    text: While current coverage assurance is evaluated, it shall be derived from the coverage obligation; the v0.2.6 measurement remains historical evidence only.
-    test_refs:
-      - "tests/assurance/registry.test.ts#[covers:F-055/AC-128][covers:F-056/AC-132][covers:F-057/AC-136][covers:F-058/AC-140][covers:F-059/AC-144][covers:F-060/AC-148][covers:F-061/AC-152][covers:F-062/AC-157][covers:F-063/AC-163][covers:F-064/AC-167] derives current coverage assurance only from the coverage obligation"
+    statement: While current coverage assurance is evaluated, the assurance registry
+      shall derive it from the coverage obligation and treat the v0.2.6
+      measurement as historical evidence only.
+    kind: quality
     notes: |
       ## Historical schema-0.1 note
       v0.2.6’s 26.8% to ≥35% measurement is historical, not current assurance.

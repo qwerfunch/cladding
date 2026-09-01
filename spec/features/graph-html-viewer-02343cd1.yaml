@@ -1,6 +1,6 @@
 id: F-02343cd1
-slug: graph-html-viewer
-title: "Bespoke HTML graph viewer — SSoT 4-tier colors + slug labels + self-contained canvas force render (offline export)"
+title: Bespoke HTML graph viewer — SSoT 4-tier colors + slug labels +
+  self-contained canvas force render (offline export)
 status: done
 modules:
   - src/graph/model.ts
@@ -8,31 +8,41 @@ modules:
   - src/graph/viewer-shell.ts
   - src/cli/graph.ts
   - src/cli/clad.ts
+depends_on: []
+capability_refs:
+  - knowledge-graph
 acceptance_criteria:
   - id: AC-5bab5d89
-    ears: event
-    condition: "when buildGraph builds feature, scenario, capability, and doc nodes"
-    action: "assign each a SSoT tier (feature/scenario=A, capability=B, doc=parsed from its first-line `Cladding · Tier X` banner with a known-filename fallback, module/test=none) and label feature nodes by slug"
-    response: "the graph carries the 4-tier governance structure + readable slug identifiers so any viewer can color by tier and show slugs"
-    text: "When buildGraph builds nodes, the system shall assign a tier (A to features/scenarios, B to capabilities, the banner-parsed tier to docs, none to modules/tests) and label feature nodes by slug (falling back to title then id)."
-    test_refs: ["tests/graph/viewer.test.ts#assigns tier by kind and parses doc banner; feature label prefers slug"]
-    notes: "## Why\nUser: color each SSoT layer differently + show feature slug not F-id. tier is computed at graph-build time (derived, not stored in Spec); banner regex + fallback map is deterministic. Feature.slug already exists + is unique (SLUG_CONFLICT)."
+    statement: When buildGraph builds nodes, the system shall assign a tier (A to
+      features/scenarios, B to capabilities, the banner-parsed tier to docs,
+      none to modules/tests) and label feature nodes by slug (falling back to
+      title then id).
+    notes: >-
+      ## Why
+
+      User: color each SSoT layer differently + show feature slug not F-id. tier
+      is computed at graph-build time (derived, not stored in Spec); banner
+      regex + fallback map is deterministic. Feature.slug already exists + is
+      unique (SLUG_CONFLICT).
   - id: AC-a00ff60c
-    ears: ubiquitous
-    text: "getTierColor shall map each tier (A/B/C/D) and the non-tier code class to a distinct stable color, and getTierLegend shall summarize live per-tier counts, so the 4-tier architecture is legible with a legend."
-    test_refs: ["tests/graph/viewer.test.ts#tier color mapping is stable and the legend counts per tier"]
+    statement: The graph viewer shall use getTierColor to map each tier A, B, C, and
+      D plus the non-tier code class to a distinct stable color and use
+      getTierLegend to summarize live per-tier counts so the 4-tier architecture
+      is legible with a legend.
+    kind: quality
   - id: AC-ba8f9036
-    ears: event
-    condition: "when toHtmlShell is called with a graph"
-    action: "return a single self-contained HTML string embedding the graph data and a dependency-free canvas force-directed renderer (tier colors, slug labels, status opacity) plus a sidebar (search, kind+tier filters with counts, legend, Calm/Live, theme, labels)"
-    response: "the user opens one offline file (no CDN, no server, no build) and sees a living, navigable, tier-colored graph"
-    text: "When toHtmlShell is called, the system shall return a single self-contained, offline HTML string (no external script/CDN) embedding the graph data + a zero-dependency canvas force renderer with tier colors, slug labels, status opacity, and an interactive sidebar."
-    test_refs: ["tests/graph/viewer.test.ts#emits one self-contained offline html embedding the graph, deterministically"]
-    notes: "## Decision\nHand-rolled compact canvas force (charge/spring/center) instead of vendoring force-graph: truest to zero-dep ethos, no inlined blob / no re-vendor maintenance / no supply-chain surface, full aesthetic control, ~30-50KB output. Layout is presentation (not gate-tested), so physics determinism is a non-issue."
+    statement: When toHtmlShell is called, the system shall return a single
+      self-contained, offline HTML string (no external script/CDN) embedding the
+      graph data + a zero-dependency canvas force renderer with tier colors,
+      slug labels, status opacity, and an interactive sidebar.
+    notes: >-
+      ## Decision
+
+      Hand-rolled compact canvas force (charge/spring/center) instead of
+      vendoring force-graph: truest to zero-dep ethos, no inlined blob / no
+      re-vendor maintenance / no supply-chain surface, full aesthetic control,
+      ~30-50KB output. Layout is presentation (not gate-tested), so physics
+      determinism is a non-issue.
   - id: AC-1aeddbd7
-    ears: event
-    condition: "when clad graph export runs with --format html"
-    action: "render via toHtmlShell and write a single .html to --out (error if --out missing)"
-    response: "a frozen, shareable, offline snapshot of the graph in one file"
-    text: "When clad graph export --format html runs, the system shall write a single self-contained .html via toHtmlShell to the mandatory --out path."
-    test_refs: ["tests/graph/viewer.test.ts#emits one self-contained offline html embedding the graph, deterministically"]
+    statement: When clad graph export --format html runs, the system shall write a
+      single self-contained .html via toHtmlShell to the mandatory --out path.

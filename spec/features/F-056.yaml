@@ -9,44 +9,36 @@ modules:
   - tests/stages/stale-specification.test.ts
   - tests/stages/harness-integrity.test.ts
   - tests/stages/meta-integrity.test.ts
-depends_on: [F-055]
+depends_on:
+  - F-055
+capability_refs: []
 acceptance_criteria:
   - id: AC-129
-    ears: ubiquitous
-    action: cover CONVENTION_DRIFT with focused unit tests
-    response: tests/stages/convention-drift.test.ts exercises line-header / block-header / bare / non-existent / non-TS / multi-feature / spec-absent paths; line coverage on the detector source reaches 100%
-    text: The system shall ship tests/stages/convention-drift.test.ts bringing the CONVENTION_DRIFT detector to 100% line coverage.
-    test_refs: [tests/stages/convention-drift.test.ts]
+    statement: The system shall ship tests/stages/convention-drift.test.ts bringing
+      the CONVENTION_DRIFT detector to 100% line coverage.
   - id: AC-130
-    ears: event
-    condition: when the test adapter evaluates a STALE_TESTS or STALE_SPECIFICATION detector artifact
-    action: derive its controlled filesystem or lifecycle fixture closure and exact leading [covers:] selector
-    response: classify its same-run selector-matched case observation as verified, failed, or unobserved
-    text: When the test adapter evaluates a STALE_TESTS or STALE_SPECIFICATION detector artifact, the system shall derive its controlled filesystem or lifecycle fixture closure and exact leading [covers:] selector and classify its same-run selector-matched case observation as verified, failed, or unobserved.
-    test_refs:
-      - "tests/stages/stale-tests.test.ts#[covers:F-056/AC-130] a controlled stale test mtime reports a warning"
-      - "tests/stages/stale-specification.test.ts#[covers:F-056/AC-130] archived_at on an active lifecycle reports a warning"
-    notes: |
+    statement: When the test adapter evaluates a STALE_TESTS or STALE_SPECIFICATION
+      detector artifact, the system shall derive its controlled filesystem or
+      lifecycle fixture closure and exact leading [covers:] selector and
+      classify its same-run selector-matched case observation as verified,
+      failed, or unobserved.
+    notes: >
       ## Historical schema-0.1 note
+
       2026-05-19 · v0.2.7 · 779448d. STALE_TESTS/STALE_SPECIFICATION mtime and
+
       lifecycle fixtures: 100% line coverage for both sources; non-current.
-      Released title: "Detector unit tests batch 2 (5 detectors, 100% line coverage each)".
+
+      Released title: "Detector unit tests batch 2 (5 detectors, 100% line
+      coverage each)".
   - id: AC-131
-    ears: ubiquitous
-    action: cover the two self-metadata detectors
-    response: tests/stages/harness-integrity.test.ts and tests/stages/meta-integrity.test.ts exercise plugin.json detector-count drift and spec/schema.json structural invariants; line coverage on both detector sources reaches 100%
-    text: The system shall ship dedicated unit-test files for HARNESS_INTEGRITY and META_INTEGRITY, bringing each to 100% line coverage.
-    test_refs:
-      - tests/stages/harness-integrity.test.ts
-      - tests/stages/meta-integrity.test.ts
+    statement: The system shall ship dedicated unit-test files for HARNESS_INTEGRITY
+      and META_INTEGRITY, bringing each to 100% line coverage.
   - id: AC-132
-    ears: state
-    condition: while current coverage assurance is evaluated
-    action: derive it from the coverage obligation
-    response: does not treat the v0.2.7 measurement as current proof
-    text: While current coverage assurance is evaluated, it shall be derived from the coverage obligation; the v0.2.7 measurement remains historical evidence only.
-    test_refs:
-      - "tests/assurance/registry.test.ts#[covers:F-055/AC-128][covers:F-056/AC-132][covers:F-057/AC-136][covers:F-058/AC-140][covers:F-059/AC-144][covers:F-060/AC-148][covers:F-061/AC-152][covers:F-062/AC-157][covers:F-063/AC-163][covers:F-064/AC-167] derives current coverage assurance only from the coverage obligation"
+    statement: While current coverage assurance is evaluated, the assurance registry
+      shall derive it from the coverage obligation and treat the v0.2.7
+      measurement as historical evidence only.
+    kind: quality
     notes: |
       ## Historical schema-0.1 note
       v0.2.7’s 36.36% to ≥45% measurement is historical, not current assurance.

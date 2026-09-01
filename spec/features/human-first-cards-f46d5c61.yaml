@@ -1,45 +1,46 @@
 id: F-f46d5c61
-slug: human-first-cards
-title: "Human-first cards — no internal tool names on user surfaces, and the locale follows the user's own language"
+title: Human-first cards — no internal tool names on user surfaces, and the
+  locale follows the user's own language
 status: done
 modules:
   - src/cli/hook.ts
   - src/optimizer/push-card.ts
   - src/stages/detectors/README.md
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-2c63b999
-    ears: ubiquitous
-    text: "No user-visible hook surface — the session-start card, prompt suggestions, pre-tool block reasons, or impact cards — shall name an MCP tool or say shard; capability phrasing and user-typeable CLI commands only, rendered in the resolved locale."
-    notes: "## Why\nAdopters do not know internal tool names (user-locked decision), and the B1 adoption data shows the names drove zero pulls even when shown — the line scared users without moving agents. Agent-facing guidance lives in the MCP tool descriptions and the injected instruction files instead."
-    test_refs:
-      - "tests/human-first-cards.test.ts#SessionStart — the full rendered card (counts, in-progress, gate, stop-block, prefer, context, policy) is entirely human-first"
-      - "tests/human-first-cards.test.ts#UserPromptSubmit — every classified suggestion (run/check/sync/init/completion-claim) is human-first"
-      - "tests/human-first-cards.test.ts#PreToolUse — both structural block reasons (done-flip, hash-id) are human-first"
-      - "tests/human-first-cards.test.ts#impact cards — formatImpactCard/formatPushOneLiner/formatWorkingSetCard are human-first across representative fixtures"
-      - "tests/human-first-cards.test.ts#the sweep has teeth — a planted tool name, a planted clad_-shaped name, and the retired term are each caught (negative control)"
-      - "tests/human-first-cards.test.ts#user-typeable CLI commands stay allowed — clad check --strict / clad done survive the sweep unflagged"
+    statement: The system shall keep the session-start card, prompt suggestions,
+      pre-tool block reasons, and impact cards free of MCP tool names and the
+      shard term while allowing capability phrasing and user-typeable CLI
+      commands in the resolved locale.
+    kind: constraint
+    rationale: Preserves the Soft Shell boundary on hook surfaces.
+    notes: >-
+      ## Why
+
+      Adopters do not know internal tool names (user-locked decision), and the
+      B1 adoption data shows the names drove zero pulls even when shown — the
+      line scared users without moving agents. Agent-facing guidance lives in
+      the MCP tool descriptions and the injected instruction files instead.
   - id: AC-37b6d2d6
-    ears: ubiquitous
-    text: "All user-visible hook strings shall be clear, jargon-free English \u2014 the single source the host agent translates from; cladding shall not detect, store, or force the user's language (instruction-led rendering is the mechanism, per the 2026-07-06 pivot)."
-    notes: "## Why\nUser decision: do not force-transform output \u2014 elicit user-friendly, user-language text from the LLM via instructions. Hook messages are agent-delivered channels; the agent naturally answers in the user's language. Static detection/localization machinery was removed from scope."
-    test_refs:
-      - "tests/human-first-cards.test.ts#POLICY_LINE keeps the \"policy:\" prefix and states the source-of-truth phrasing"
-      - "tests/human-first-cards.test.ts#the context line keeps its \"context:\" prefix and names no tool"
-      - "tests/human-first-cards.test.ts#DONE_BLOCK_REASON is action-guiding plain English: names clad done, not an MCP tool"
-      - "tests/human-first-cards.test.ts#HASH_ID_REASON is action-guiding plain English: no MCP tool, still tells the agent what to do"
-      - "tests/human-first-cards.test.ts#the UserPromptSubmit suggestion section (INTENT_HINTS + the classifier) carries no locale-sidecar write"
-      - "tests/human-first-cards.test.ts#the UserPromptSubmit dispatch case carries no locale-sidecar write either"
-      - "tests/human-first-cards.test.ts#corroborating whole-file pin \u2014 src/cli/hook.ts references the user-locale sidecar nowhere at all"
-      - "tests/human-first-cards.test.ts#post-pivot (F-9af291fa) — src/cli/hook.ts references resolveLocale nowhere at all"
+    statement: The system shall render every user-visible hook string in clear
+      jargon-free English as the single source from which the host translates
+      without detecting, storing, or forcing the user's language.
+    kind: quality
+    notes: >-
+      ## Why
+
+      User decision: do not force-transform output — elicit user-friendly,
+      user-language text from the LLM via instructions. Hook messages are
+      agent-delivered channels; the agent naturally answers in the user's
+      language. Static detection/localization machinery was removed from scope.
   - id: AC-2a7fed0c
-    ears: ubiquitous
-    text: "Impact cards shall say what a person means — features that depend on this change, tests that guard it — with feature titles alongside ids, within the existing line and byte caps."
-    test_refs:
-      - "tests/human-first-cards.test.ts#formatImpactCard: focus renders as \"id title\"; plural dependents read \"depend on this\" and tests \"guard it\""
-      - "tests/human-first-cards.test.ts#formatPushOneLiner / formatWorkingSetCard: focus renders as \"id title\"; caps (<=5 lines, <=600 chars) hold at a stress fixture"
+    statement: The impact cards shall describe dependent features and guarding tests
+      in person-centered language, show feature titles alongside IDs, and remain
+      within the existing line and byte caps.
+    kind: quality
   - id: AC-ed9d8a26
-    ears: ubiquitous
-    text: "The detector catalog document shall describe the shipped status policy of the missing-implementation detector instead of the stale status-blind narrative."
-    test_refs:
-      - "tests/human-first-cards.test.ts#the MISSING_IMPLEMENTATION catalog row says aware + spec-first window, not blind"
-      - "tests/human-first-cards.test.ts#the status-policy narrative documents the graduated severity behavior, not the stale status-blind claim"
+    statement: The detector catalog document shall describe the shipped status
+      policy of the missing-implementation detector instead of the stale
+      status-blind narrative.

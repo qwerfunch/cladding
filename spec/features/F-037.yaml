@@ -6,14 +6,11 @@ modules:
 depends_on:
   - F-003
   - F-010
+capability_refs: []
 acceptance_criteria:
   - id: AC-057
-    ears: event
-    condition: when an AC declares a test_ref that is neither a self-dogfood /
-      fixture prefix nor a real file path
-    action: emit an error finding listing the AC and unresolved ref
-    response: stage_1.3 fails for the host pipeline
-    text: When an AC declares a test_ref that is neither a
+    statement: When an AC declares a test_ref that is neither a
       self-dogfood/fixture-prefix alias nor a real file path, the detector shall
       emit an error finding listing the AC and unresolved ref.
-    evidence_refs: [fixture:F-037_AC-057]
+    evidence_refs:
+      - fixture:F-037_AC-057

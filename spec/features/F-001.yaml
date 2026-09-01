@@ -6,20 +6,15 @@ modules:
   - src/stages/types.ts
   - src/stages/toolchain/detect.ts
   - src/stages/toolchain/types.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-001
-    ears: ubiquitous
-    action: delegate type checking to the project's own toolchain
-    response: returns a stage_1.1 StageResult with exitCode mirroring the tool
-    text: The system shall delegate type checking to the project's own toolchain,
-      returning a stage_1.1 result whose exit code mirrors the underlying type
-      checker.
-    evidence_refs: [self-dogfood:stage:type]
+    statement: The system shall delegate type checking to the project's own
+      toolchain, returning a stage_1.1 result whose exit code mirrors the
+      underlying type checker.
+    evidence_refs:
+      - self-dogfood:stage:type
   - id: AC-002
-    ears: event
-    condition: when no type checker is registered for the detected language
-    action: return pass=false with exitCode 2
-    response: the stage is treated as skipped rather than failed
-    text: When no type checker is registered for the detected language, the system
-      shall return exitCode 2 so callers can treat the stage as skipped.
-    test_refs: [tests/stages/type.test.ts]
+    statement: When no type checker is registered for the detected language, the
+      system shall return exitCode 2 so callers can treat the stage as skipped.

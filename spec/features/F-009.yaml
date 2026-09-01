@@ -6,22 +6,16 @@ modules:
 depends_on:
   - F-003
   - F-004
+capability_refs: []
 acceptance_criteria:
   - id: AC-013
-    ears: event
-    condition: when the architecture validator reports a non-zero exit
-    action: emit one error-severity DriftFinding summarising the output
-    response: stage_1.3 fails for the host pipeline
-    text: When the architecture validator reports a non-zero exit, the detector
+    statement: When the architecture validator reports a non-zero exit, the detector
       shall emit one error-severity finding summarising the output.
-    evidence_refs: [fixture:F-009_AC-013]
-
+    evidence_refs:
+      - fixture:F-009_AC-013
   - id: AC-014
-    ears: optional
-    condition: where the detected language enforces acyclic imports at compile time
-    action: emit one info finding noting no gate is registered
-    response: the stage stays in pass state
-    text: Where the detected language enforces acyclic imports at compile time, the
-      detector shall emit an info finding noting no architecture gate is
+    statement: Where the detected language enforces acyclic imports at compile time,
+      the detector shall emit an info finding noting no architecture gate is
       registered.
-    evidence_refs: [fixture:F-009_AC-014]
+    evidence_refs:
+      - fixture:F-009_AC-014

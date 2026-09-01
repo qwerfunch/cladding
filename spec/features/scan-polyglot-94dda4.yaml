@@ -1,5 +1,4 @@
 id: F-94dda4
-slug: scan-polyglot
 title: scan polyglot extensions + layer blacklist + per-language docstrings (v0.3.26)
 status: done
 modules:
@@ -7,38 +6,33 @@ modules:
   - src/cli/scan/conventions.ts
 depends_on:
   - F-c48eb2
+capability_refs: []
 acceptance_criteria:
   - id: AC-001
-    ears: ubiquitous
-    action: walk the source tree for the nine languages cladding officially supports
-    response: 'src/cli/scan.ts DEFAULT_EXTENSIONS now includes .ts/.tsx/.js/.jsx/.mjs/.cjs/.py/.go/.rs/.java/.kt/.kts/.cs/.rb/.php/.swift/.ex/.exs/.scala/.dart/.cpp/.cc/.cxx/.hpp/.h; the audit (.cladding/audit/scan-real-world-2026-05-20.md) confirmed gin/cobra/ripgrep produced empty architecture.yaml before this patch, and the new tests assert .go .rs .java .kt files create layers under their top-level directories'
-    text: The system shall walk the source tree for the nine languages cladding officially supports so external Go/Rust/Java/Kotlin/C#/Ruby/PHP/Swift/Dart projects produce a real architecture.yaml instead of an empty layers list.
-    test_refs: [tests/cli/scan.test.ts]
+    statement: The system shall walk the source tree for the nine languages cladding
+      officially supports so external Go/Rust/Java/Kotlin/C#/Ruby/PHP/Swift/Dart
+      projects produce a real architecture.yaml instead of an empty layers list.
   - id: AC-002
-    ears: ubiquitous
-    action: hide peer directories from the architecture layer view while still feeding them to the convention analyzer
-    response: 'src/cli/scan.ts introduces LAYER_BLACKLIST (tests, test, __tests__, spec, specs, docs, doc, examples, example, samples, typings, e2e, integration, __fixtures__, fixtures, benchmark/s, bench, playground/s, demo/s) which groupByLayer skips after layerOf resolution; the walker still descends into these directories so testLocation detection and *.test.* matching keep working; the existing testLocation test (tests-dir branch) and three new layer-blacklist tests cover this contract'
-    text: The system shall hide peer directories from the architecture layer view while still feeding them to the convention analyzer so commander, express, fastapi, and similar repos no longer surface tests/, docs/, examples/ as if they were architectural layers.
-    test_refs: [tests/cli/scan.test.ts]
+    statement: The system shall hide peer directories from the architecture layer
+      view while still feeding them to the convention analyzer so commander,
+      express, fastapi, and similar repos no longer surface tests/, docs/,
+      examples/ as if they were architectural layers.
   - id: AC-003
-    ears: ubiquitous
-    action: match the layer blacklist case-insensitively across the monorepo workspace prefix
-    response: 'src/cli/scan.ts groupByLayer lowercases the layer name before checking LAYER_BLACKLIST and additionally splits on the workspace colon (a:tests/) so RxSwiftExt Tests/ and Playground/, vuejs/core scripts/, and lerna __fixtures__/ all drop out; the case-insensitive test seeds Tests/ + Playground/ + lib/ and asserts only lib surfaces'
-    text: The system shall match the layer blacklist case-insensitively across the monorepo workspace prefix so capitalised peer directories (Tests/, Playground/, …) and workspace-scoped peers (a:tests/, b:examples/) are equally excluded.
-    test_refs: [tests/cli/scan.test.ts]
+    statement: The system shall match the layer blacklist case-insensitively across
+      the monorepo workspace prefix so capitalised peer directories (Tests/,
+      Playground/, …) and workspace-scoped peers (a:tests/, b:examples/) are
+      equally excluded.
   - id: AC-004
-    ears: ubiquitous
-    action: extend the docblock and tag heuristics to six language families
-    response: 'src/cli/scan.ts detectDocBlockRatio branches by extension: JS/TS/Java/Kotlin/C++/C#/Scala/Dart count classic /** */ blocks; Python counts triple-quoted docstrings; Go counts leading // blocks above func; Rust counts /// blocks; Swift counts /// blocks; Ruby counts leading # blocks above def; detectDocTagCounts adds Python Args:/Returns:/Raises:/Examples:, godoc Deprecated:, rustdoc # Errors / # Safety alongside the existing @param/@returns/@throws/@example/@see/@deprecated set'
-    text: 'The system shall extend the docblock and tag heuristics to six language families so Python projects show Args/Returns counts, Rust projects show /// + Errors / Safety sections, and Go/Ruby projects show their leading-comment idioms rather than reporting zero.'
-    test_refs: [tests/cli/scan.test.ts]
+    statement: The system shall extend the docblock and tag heuristics to six
+      language families so Python projects show Args/Returns counts, Rust
+      projects show /// + Errors / Safety sections, and Go/Ruby projects show
+      their leading-comment idioms rather than reporting zero.
   - id: AC-005
-    ears: ubiquitous
-    action: preserve existing flat-source layer records when default polyglot support discovers an additional layer
-    response: default extensions and the default layer blacklist retain the name, root-qualified directory, and module count of existing flat source layers while a supported-language file contributes its own non-blacklisted layer record
-    text: With default extensions and the default layer blacklist, adding supported polyglot source files shall preserve the semantic projection of existing flat src/cli and src/core layer records while emitting an additive record for a new language layer.
-    test_refs:
-      - "tests/cli/scan.test.ts#[covers:F-94dda4/AC-005] default polyglot files preserve flat layer records and add a language layer"
+    statement: The system shall preserve the semantic projection of existing flat
+      src/cli and src/core layer records with default extensions and the default
+      layer blacklist when supported polyglot source files are added and emit an
+      additive record for a new language layer.
+    kind: quality
     notes: |
       ## Historical note (2026-05-20, v0.3.26, source commit 696fbb6)
       The v0.3.25 dogfood smoke report said the flat src/ output was

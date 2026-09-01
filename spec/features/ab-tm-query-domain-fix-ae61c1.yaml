@@ -1,6 +1,4 @@
-# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
 id: F-ae61c1
-slug: ab-tm-query-domain-fix
 title: Parameterize Q1/Q2 of _query-bench so domain keyword is per-scenario (v0.3.52)
 status: done
 modules:
@@ -9,19 +7,13 @@ modules:
   - docs/ab-evaluation-extended/scenarios/task-manager/report.md
 depends_on:
   - F-3a5339
+capability_refs: []
 acceptance_criteria:
   - id: AC-001
-    ears: ubiquitous
-    action: 'introduce QueryBenchOptions {featureKeyword, featureLabel} so Q1 and Q2 of the AI-query benchmark can target any domain feature instead of the hardcoded refund flow'
-    text: The system shall parameterize Q1 and Q2 with per-scenario domain keywords.
-    test_refs: [tests/scenarios/ab-extended/case-task-manager.test.ts]
+    statement: The system shall parameterize Q1 and Q2 with per-scenario domain keywords.
   - id: AC-002
-    ears: ubiquitous
-    action: 'preserve backwards compatibility — payment-saas + existing-adoption tests continue to ask about the refund flow (default keyword refund + label refund flow) without any change to their call sites'
-    text: The system shall preserve backwards compatibility for existing call sites with default keyword refund.
-    test_refs: [tests/scenarios/ab/case-payment-saas.test.ts, tests/scenarios/ab/case-existing-adoption.test.ts]
+    statement: The system shall preserve backwards compatibility for existing call
+      sites with default keyword refund.
   - id: AC-003
-    ears: ubiquitous
-    action: 'wire the task-manager case to query for the add-task feature (featureKeyword add-task + featureLabel add-task flow) so Q1 returns the real feature id and Q2 returns the AC count from the add-task shard'
-    text: The system shall wire task-manager to query for the add-task feature with matching label.
-    test_refs: [tests/scenarios/ab-extended/case-task-manager.test.ts]
+    statement: The system shall wire task-manager to query for the add-task feature
+      with matching label.

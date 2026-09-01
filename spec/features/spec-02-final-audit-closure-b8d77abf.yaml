@@ -1,7 +1,5 @@
-# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: manual
 id: F-b8d77abf
-slug: spec-02-final-audit-closure
-title: "Spec 0.2 final audit closure — assurance, evidence ownership, and validation"
+title: Spec 0.2 final audit closure — assurance, evidence ownership, and validation
 status: done
 modules:
   - docs/design/spec-0.2/assurance.md
@@ -23,26 +21,34 @@ modules:
   - README.zh.md
   - README.html
   - README.ko.html
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-eee960eb
-    ears: ubiquitous
-    text: "The accepted assurance design shall distinguish upstream hard-or-report strictness from Cladding effective blocking while preserving the shipped strict completion policy."
-    test_refs: ["tests/design/spec-0.2/design-validation.test.ts#runs deterministic design scenarios without converting pending implementation into evidence"]
-    notes: "## Why\nThe final audit found that the accepted kernel could not represent Ironclad's reporting-only Coverage and Performance stages without confusing them with Cladding's blocking advisory state."
+    statement: The accepted assurance design shall distinguish upstream
+      hard-or-report strictness from Cladding effective blocking while
+      preserving the shipped strict completion policy.
+    notes: >-
+      ## Why
+
+      The final audit found that the accepted kernel could not represent
+      Ironclad's reporting-only Coverage and Performance stages without
+      confusing them with Cladding's blocking advisory state.
   - id: AC-f31b6ee2
-    ears: ubiquitous
-    text: "The receipt and scenario contracts shall assign verified receipt production to F9 and derive criterion freshness from every required scenario that references the parent feature."
-    test_refs: ["tests/design/spec-0.2/design-validation.test.ts#runs deterministic design scenarios without converting pending implementation into evidence"]
+    statement: The receipt and scenario contracts shall assign verified receipt
+      production to F9 and derive criterion freshness from every required
+      scenario that references the parent feature.
   - id: AC-6e5f6558
-    ears: ubiquitous
-    text: "The design validator shall reject normative decision headings outside each declared owner while permitting the router navigation copy."
-    test_refs: ["tests/design/spec-0.2/design-validation.test.ts#marks the F7 scenario boundary validation-active without promoting F8-F11 work"]
+    statement: The design validator shall reject normative decision headings outside
+      each declared owner while permitting the router navigation copy.
   - id: AC-e2c6b5f8
-    ears: ubiquitous
-    text: "Every public README status surface shall label worktree counts and match the canonical feature inventory without changing the release-history claim."
-    test_refs: ["tests/readme-record-honesty.test.ts#current worktree feature counts match the canonical inventory"]
+    statement: The public README status surfaces shall label worktree counts and
+      match the canonical feature inventory without changing the release-history
+      claim.
+    kind: quality
 design_impact:
   classification: additive
-  rationale: "The correction closes final design ambiguities and strengthens executable validation without changing the shipped schema-0.1 runtime."
+  rationale: The correction closes final design ambiguities and strengthens
+    executable validation without changing the shipped schema-0.1 runtime.
   status: resolved
   artifacts: []

@@ -1,6 +1,6 @@
 id: F-1edb38
-slug: scan-refactor
-title: scan refactor — src/cli/scan/ 9-module split + configurable thresholds (v0.3.29)
+title: scan refactor — src/cli/scan/ 9-module split + configurable thresholds
+  (v0.3.29)
 status: done
 modules:
   - src/cli/scan/index.ts
@@ -18,46 +18,55 @@ modules:
   - src/cli/init.ts
 depends_on:
   - F-31eeb8
+capability_refs: []
 acceptance_criteria:
   - id: AC-001
-    ears: ubiquitous
-    action: compose documented scan submodules through the scan public entry
-    response: retains no second legacy scan implementation authority
-    text: The scan public entry shall compose its documented scan submodules without retaining a second legacy scan implementation authority.
-    test_refs:
-      - "tests/cli/scan.test.ts#[covers:F-1edb38/AC-001] scanRoot composes the public scan result without a legacy entrypoint"
-    notes: |
+    statement: The scan public entry shall compose its documented scan submodules
+      without retaining a second legacy scan implementation authority.
+    notes: >
       ## Historical note
-      The monolith/file-length/future-patch prediction was a completed refactor record, not a permanent product promise.
+
+      The monolith/file-length/future-patch prediction was a completed refactor
+      record, not a permanent product promise.
   - id: AC-002
-    ears: ubiquitous
-    action: expose every magic number plus name set through src/cli/scan/thresholds.ts so external adopters tune through ScanOptions
-    response: 'src/cli/scan/thresholds.ts exports DEFAULT_MAX_FILES, PER_DIR_SOFT_CAP, ROOT_PROMOTION_THRESHOLD, DEFAULT_EXTENSIONS, DEFAULT_IGNORE, LAYER_BLACKLIST, ENTRYPOINT_NAMES, EXT_TO_LANGUAGE; ScanOptions extends with optional layerBlacklist, entrypoints, perDirCap, rootPromotionThreshold so a large monorepo can raise the per-dir cap or a custom project can replace the entrypoint set without touching scan source'
-    text: The system shall expose every magic number plus name set through src/cli/scan/thresholds.ts so external adopters tune through ScanOptions instead of patching cladding.
-    evidence_refs: [src/cli/scan/thresholds.ts, src/cli/scan/types.ts]
+    statement: The system shall expose every magic number plus name set through
+      src/cli/scan/thresholds.ts so external adopters tune through ScanOptions
+      instead of patching cladding.
+    evidence_refs:
+      - src/cli/scan/thresholds.ts
+      - src/cli/scan/types.ts
   - id: AC-003
-    ears: ubiquitous
-    action: compose typed ScanResult fields from the documented scan analyzers
-    response: scanRoot derives conventions, architecture, scenarios, examples, stats, and project context through their respective analyzers; the architecture record includes derived forbidden-import candidates
-    text: The scan public entry shall compose typed conventions, architecture, scenarios, examples, stats, and project context fields from the corresponding scan analyzers, with architecture retaining derived forbidden-import candidates.
-    test_refs:
-      - "tests/cli/scan.test.ts#[covers:F-1edb38/AC-003] scanRoot composes typed analyzer records and architecture candidates"
-    notes: |
+    statement: The scan public entry shall compose typed conventions, architecture,
+      scenarios, examples, stats, and project context fields from the
+      corresponding scan analyzers, with architecture retaining derived
+      forbidden-import candidates.
+    notes: >
       ## Historical note (2026-05-20, v0.3.29, source commit 5826349)
-      The completed refactor report recorded 713/713 passing tests, 102 valid features,
+
+      The completed refactor report recorded 713/713 passing tests, 102 valid
+      features,
+
       strict green status, and five-project count parity for cobra, react,
+
       Signal-Android, django, and rails against the v0.3.28 baseline. It also
-      recorded cladding self-scan and a byte-identical/pure-no-logic-touch claim.
-      Those observations are historical evidence, not continuing product invariants.
+
+      recorded cladding self-scan and a byte-identical/pure-no-logic-touch
+      claim.
+
+      Those observations are historical evidence, not continuing product
+      invariants.
   - id: AC-004
-    ears: ubiquitous
-    action: centralise types in src/cli/scan/types.ts so every analyzer module reads the same shape
-    response: 'src/cli/scan/types.ts defines ScanOptions, Conventions, Layer, ImportEdge, ArchitectureScan, ScenarioStub, ExampleQuote, ScanResult, ScanStats, SourceFile and re-exports SourceRoot from roots.js; the 9 analyzer modules import types from this single source so adding a Conventions field touches one file then surfaces everywhere automatically'
-    text: The system shall centralise types in src/cli/scan/types.ts so every analyzer module reads the same shape and adding a new Conventions field touches one file.
-    evidence_refs: [src/cli/scan/types.ts]
+    statement: The system shall centralise types in src/cli/scan/types.ts so every
+      analyzer module reads the same shape and adding a new Conventions field
+      touches one file.
+    evidence_refs:
+      - src/cli/scan/types.ts
   - id: AC-005
-    ears: ubiquitous
-    action: thread thresholds + blacklist + entrypoints overrides through walker and architecture so ScanOptions wins over defaults
-    response: 'src/cli/scan/walker.ts walk accepts maxFiles, perDirCap, entrypoints, ignore, extensions all as optional overrides; src/cli/scan/architecture.ts groupByLayer accepts layerBlacklist and rootPromotionThreshold overrides; the index.ts orchestrator forwards opts straight through so a caller setting perDirCap to 100 sees the walker honour 100 on a fresh ScanResult'
-    text: The system shall thread thresholds plus blacklist plus entrypoints overrides through walker and architecture so ScanOptions wins over defaults — a maintainer with a large monorepo can raise per-dir cap to 100 without forking scan internals.
-    evidence_refs: [src/cli/scan/walker.ts, src/cli/scan/architecture.ts, src/cli/scan/index.ts]
+    statement: The system shall thread thresholds plus blacklist plus entrypoints
+      overrides through walker and architecture so ScanOptions wins over
+      defaults — a maintainer with a large monorepo can raise per-dir cap to 100
+      without forking scan internals.
+    evidence_refs:
+      - src/cli/scan/walker.ts
+      - src/cli/scan/architecture.ts
+      - src/cli/scan/index.ts

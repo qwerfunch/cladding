@@ -1,39 +1,36 @@
 id: F-aa7197
-slug: scan-audit-residuals
-title: scan audit P1 deterministic fix — cwd resolve + forbidden prune + non-source blacklist (v0.3.31)
+title: scan audit P1 deterministic fix — cwd resolve + forbidden prune +
+  non-source blacklist (v0.3.31)
 status: done
 modules:
   - src/cli/scan/architecture.ts
   - src/cli/scan/thresholds.ts
 depends_on:
   - F-cfba0c
+capability_refs: []
 acceptance_criteria:
   - id: AC-001
-    ears: event
-    condition: when root-bucket promotion names a layer
-    action: use the resolved workspace basename
-    response: does not emit `.` as a layer name
-    text: When root-bucket promotion names a layer, it shall use the resolved workspace basename without emitting `.` as a layer name.
-    test_refs:
-      - "tests/cli/scan.test.ts#[covers:F-aa7197/AC-001] root promotion uses the resolved workspace basename instead of dot"
-    notes: |
+    statement: When root-bucket promotion names a layer, the system shall use the
+      resolved workspace basename without emitting `.` as a layer name.
+    kind: behavior
+    notes: >
       ## Historical note
-      The cobra/I15 and corpus byte-stability language is a dated audit observation, not the invariant.
+
+      The cobra/I15 and corpus byte-stability language is a dated audit
+      observation, not the invariant.
   - id: AC-002
-    ears: ubiquitous
-    action: prune forbidden_imports candidate matrix to a manageable size by excluding trivial layers and capping per-entry width
-    response: 'src/cli/scan/architecture.ts extractArchitecture introduces FORBIDDEN_TRIVIAL_THRESHOLD set to 2 and FORBIDDEN_TOP_K set to 8; layers with module count ≤ threshold are skipped as both importer and target so single-file or two-file directories no longer pollute the candidate set; remaining candidates sort by target layer size desc and slice to the top K; the regression test confirms ripgrep emits at most 8 candidates per entry where v0.3.30 emitted 13+ and trivial 1-file targets vanish from the matrix entirely'
-    text: The system shall prune the forbidden_imports candidate matrix to a manageable size by excluding trivial layers and capping per-entry width so the 5차 audit noise (ripgrep 195 + vitest 380+ entries) no longer reaches authoritative YAML.
-    test_refs: [tests/cli/scan.test.ts]
+    statement: The system shall prune the forbidden_imports candidate matrix to a
+      manageable size by excluding trivial layers and capping per-entry width so
+      the 5차 audit noise (ripgrep 195 + vitest 380+ entries) no longer reaches
+      authoritative YAML.
   - id: AC-003
-    ears: ubiquitous
-    action: expand LAYER_BLACKLIST to cover packaging and documentation source directories surfacing across the audit corpus
-    response: 'src/cli/scan/thresholds.ts LAYER_BLACKLIST adds homebrewformula, formulas, packaging, docs_src, documentation, types categories the audit (2026-05-20 I18) found polluting the layer set for ripgrep, fastapi, and similar repos; scripts and tools are intentionally not blacklisted because some projects keep genuine source there; the regression test seeds HomebrewFormula plus docs_src plus formulas plus packaging directories alongside src/core and asserts the layer list contains core only'
-    text: The system shall expand LAYER_BLACKLIST to cover packaging and documentation source directories surfacing across the audit corpus so HomebrewFormula and docs_src no longer ship as authoritative architecture layers.
-    test_refs: [tests/cli/scan.test.ts]
+    statement: The system shall expand LAYER_BLACKLIST to cover packaging and
+      documentation source directories surfacing across the audit corpus so
+      HomebrewFormula and docs_src no longer ship as authoritative architecture
+      layers.
   - id: AC-004
-    ears: ubiquitous
-    action: keep cladding self-scan plus the 16-OSS corpus regression-stable
-    response: '715/715 tests pass (713 plus 2 new for I17 prune coverage plus 1 reshape of the existing forbidden_imports test now expanded with non-trivial fixtures); cladding self-scan layer set unchanged; cobra layer renames from dot to cobra; ripgrep loses HomebrewFormula and gains a tight max-8 forbidden_imports per entry; vitest and other monorepos similarly capped; the audit report (.cladding/audit/scan-real-world-2026-05-20.md) appends a 6차 section recording the deltas'
-    text: The system shall keep cladding self-scan plus the 16-OSS corpus regression-stable so the v0.3.30 audit baseline holds while the residual fixes land.
-    evidence_refs: [.cladding/audit/scan-real-world-2026-05-20.md]
+    statement: The system shall keep cladding self-scan plus the 16-OSS corpus
+      regression-stable so the v0.3.30 audit baseline holds while the residual
+      fixes land.
+    evidence_refs:
+      - .cladding/audit/scan-real-world-2026-05-20.md

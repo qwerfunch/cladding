@@ -1,49 +1,46 @@
 id: F-37b4a8
-slug: feature-index-file
-title: "clad sync generates spec/index.yaml — one line per feature for 1-file lookup at scale"
+title: clad sync generates spec/index.yaml — one line per feature for 1-file
+  lookup at scale
 status: done
 modules:
   - src/spec/inventory.ts
   - src/stages/detectors/inventory-drift.ts
   - src/cli/done.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-9f9309
-    ears: event
-    condition: "when clad sync (or the MCP syncInventory path) runs on a sharded spec"
-    action: "regenerate spec/index.yaml: a Tier-C-bannered, id-sorted mapping with one line per feature (id: {slug, status, modules: <count>})"
-    response: "\"which feature owns X\" becomes a 1-file grep at any shard count instead of an N-file directory scan (the H10 linear-scan caveat)"
-    text: "When sync runs on a sharded spec, the system shall regenerate spec/index.yaml as a Tier-C-bannered, id-sorted mapping with one line per feature, so feature lookup is a 1-file grep at any scale."
-    notes: "## Why\nWith sharding there is no feature index anywhere — locating a feature is a 150+-file scan; the project's own extended A/B flagged this (H10 caveat). One sorted line per feature also keeps git merges line-independent (committed-but-derived; union-friendly)."
-    test_refs:
-      - "tests/spec/inventory.test.ts#emits an id-sorted, Tier-C-bannered, one-line-per-feature index"
-      - "tests/spec/inventory.test.ts#regeneration is idempotent (byte-identical on unchanged shards)"
-  - id: AC-f1a3f5
-    ears: unwanted
-    condition: "if the committed index disagrees with the shards on disk — by id set OR by a row's status"
-    action: "emit an INVENTORY_DRIFT finding naming the missing/extra ids and/or the status mismatch, with the clad sync cure"
-    response: "the index stays honest or visibly broken — never confidently wrong"
-    text: "If spec/index.yaml exists but its feature-id set OR any row's status disagrees with the shards on disk, the INVENTORY_DRIFT detector shall flag it with the clad sync remediation, so a stale committed index (a missing/extra id, or a row whose status lies) cannot silently mislead agents that trust it."
-    test_refs:
-      - "tests/stages/inventory-drift.test.ts#flags a committed index whose id set disagrees with shards, names both directions, cures with clad sync"
-      - "tests/stages/inventory-drift.test.ts#flags a committed index whose row status disagrees with the shard, cured by clad sync"
-      - "tests/stages/inventory-drift.test.ts#a regenerated (fresh) index produces no index finding"
-  - id: AC-7e3086
-    ears: state
-    condition: "while the spec is unsharded"
-    action: "skip index generation"
-    response: "no extra generated files for projects that fit in one spec.yaml"
-    text: "While the project is unsharded (features inline in spec.yaml), the system shall not generate an index file, so small projects keep their single-file shape."
+    statement: When sync runs on a sharded spec, the system shall regenerate
+      spec/index.yaml as a Tier-C-bannered, id-sorted mapping with one line per
+      feature, so feature lookup is a 1-file grep at any scale.
+    notes: >-
+      ## Why
 
-    test_refs:
-      - "tests/spec/inventory.test.ts#unsharded project (no spec/features/) gets no index file"
+      With sharding there is no feature index anywhere — locating a feature is a
+      150+-file scan; the project's own extended A/B flagged this (H10 caveat).
+      One sorted line per feature also keeps git merges line-independent
+      (committed-but-derived; union-friendly).
+  - id: AC-f1a3f5
+    statement: If spec/index.yaml exists but its feature-id set has a missing or
+      extra id or any row status lies against the shards on disk, then the
+      INVENTORY_DRIFT detector shall flag it with the clad sync remediation so
+      stale committed index data cannot silently mislead agents that trust it.
+    kind: behavior
+  - id: AC-7e3086
+    statement: While the project is unsharded (features inline in spec.yaml), the
+      system shall not generate an index file, so small projects keep their
+      single-file shape.
   - id: AC-e3ad59
-    ears: event
-    condition: "when clad done keeps or reverts a status flip"
-    action: "regenerate spec/index.yaml in the same step — before the gate, and again after a revert — so each row's status matches the shard"
-    response: "spec/index.yaml never lags a clad done; the status the SessionStart card and 1-file lookup read is the shard's real status, not a stale one"
-    text: "When clad done flips a feature's status (keeping it on a GREEN gate or reverting on RED), the system shall regenerate spec/index.yaml in the same operation so the committed index's per-row status never lags the shard."
-    notes: "## Why\nclad done wrote only the shard, leaving spec/index.yaml's status row stale until the next clad sync; the SessionStart card reads that row, so a finished feature could read as in_progress. The refresh runs BEFORE the gate (the status-aware INVENTORY_DRIFT would otherwise RED the flip's own write) and again after a revert (else the index keeps the pre-gate done against a reverted shard)."
-    test_refs:
-      - "tests/cli/done.test.ts#a kept flip re-syncs the feature index to status: done"
-      - "tests/cli/done.test.ts#a reverted (red gate) flip re-syncs the index back to the original status"
-      - "tests/cli/done.test.ts#the index is refreshed before the gate runs so the status-aware detector sees a consistent index"
+    statement: When clad done flips a feature's status (keeping it on a GREEN gate
+      or reverting on RED), the system shall regenerate spec/index.yaml in the
+      same operation so the committed index's per-row status never lags the
+      shard.
+    notes: >-
+      ## Why
+
+      clad done wrote only the shard, leaving spec/index.yaml's status row stale
+      until the next clad sync; the SessionStart card reads that row, so a
+      finished feature could read as in_progress. The refresh runs BEFORE the
+      gate (the status-aware INVENTORY_DRIFT would otherwise RED the flip's own
+      write) and again after a revert (else the index keeps the pre-gate done
+      against a reverted shard).

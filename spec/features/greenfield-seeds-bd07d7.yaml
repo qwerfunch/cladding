@@ -1,5 +1,4 @@
 id: F-bd07d7
-slug: greenfield-seeds
 title: greenfield seeds for scan-derived artifacts (v0.3.42)
 status: done
 modules:
@@ -10,41 +9,35 @@ modules:
   - skills/init/SKILL.md
 depends_on:
   - F-40327b
+capability_refs: []
 acceptance_criteria:
   - id: AC-001
-    ears: ubiquitous
-    action: add a deterministic seed-renderer library so the three scan-derived artifacts (docs/conventions.md, spec/architecture.yaml, spec/capabilities.yaml) can be written as toolchain-default templates when no code is yet available to observe
-    response: 'src/cli/scan/greenfield-seeds.ts exports three side-effect-free renderers — renderGreenfieldConventionsMd(language, projectName), renderGreenfieldArchitectureYaml(language), renderGreenfieldCapabilitiesYaml(projectName) — each producing a string body with the SEED header that names the language and tells the reader the body will divert to .cladding/scan/<basename>.proposal on the next clad init --scan; the per-language Conventions mapping covers typescript, javascript, python, go, rust, ruby, java with TypeScript defaults as the unknown fallback'
-    text: The system shall add a deterministic seed-renderer library so the three scan-derived artifacts can be written as toolchain-default templates when no code is yet available to observe.
-    test_refs: [tests/cli/scan-greenfield-seeds.test.ts]
+    statement: The system shall add a deterministic seed-renderer library so the
+      three scan-derived artifacts can be written as toolchain-default templates
+      when no code is yet available to observe.
   - id: AC-002
-    ears: ubiquitous
-    action: ensure the conventions seed renders the full 14-signal table for every supported language plus the canonical style-guide URL inline
-    response: 'renderGreenfieldConventionsMd populates indent / quote / semicolon / namingExports / namingConstants / docBlockRatio / docTagCounts / importOrder / exportPattern / errorHandling / typeDefLocation / fileHeaderPattern / testLocation / moduleBoilerplate per language; the body matches src/cli/scan/llm.ts::renderConventionsTable with 12 visible table rows, the explicit Doc tag frequency section (all six zero-count tags), and the Module boilerplate representation ((none observed yet) for the null greenfield value); the Recommended baseline section keeps the canonical style guide URL inline; file header shows (none) for the seed body'
-    text: The system shall ensure the conventions seed renders all 14 convention signals for every supported language as 12 table rows plus explicit doc-tag and module-boilerplate sections, with the canonical style-guide URL inline, so the seed body is consistent with the observed renderer downstream.
-    test_refs: ["tests/cli/scan-greenfield-seeds.test.ts#[covers:F-bd07d7/AC-002] every supported language renders the 12 table rows plus doc tag and module boilerplate representations with an inline style guide"]
+    statement: The system shall ensure the conventions seed renders all 14
+      convention signals for every supported language as 12 table rows plus
+      explicit doc-tag and module-boilerplate sections, with the canonical
+      style-guide URL inline, so the seed body is consistent with the observed
+      renderer downstream.
   - id: AC-003
-    ears: ubiquitous
-    action: render an architecture seed that names the typical directory baseline for the detected toolchain inside header comments while keeping the layers array empty
-    response: 'renderGreenfieldArchitectureYaml returns version "0.1" + an empty layers array + comment lines listing the language-specific baseline directories (TypeScript src/cli/ src/core/ src/lib/ src/ui/, Python src/<package>/ tests/, Go cmd/ pkg/ internal/, Rust src/lib.rs src/main.rs src/bin/ tests/, Ruby lib/<gem>/ spec/, Java src/main/java/<package>/ src/test/java/<package>/); the re-scan instruction tells the user the observed body will divert to .cladding/scan/architecture.yaml.proposal; unknown languages fall back to the TypeScript baseline'
-    text: The system shall render an architecture seed that names the typical directory baseline for the detected toolchain while keeping the layers array empty so the user has to opt in to layer declarations.
-    test_refs: [tests/cli/scan-greenfield-seeds.test.ts]
+    statement: The system shall render an architecture seed that names the typical
+      directory baseline for the detected toolchain while keeping the layers
+      array empty so the user has to opt in to layer declarations.
   - id: AC-004
-    ears: ubiquitous
-    action: render a capabilities seed that is language-independent and interpolates the project name into the guidance comment
-    response: 'renderGreenfieldCapabilitiesYaml ignores any language signal and returns schema "0.1" + source README.md + an empty capabilities array; the comment block documents the per-entry shape (id / title / summary / surface) so a user editing the file by hand has a template to follow; the re-scan instruction names the proposal divert path (.cladding/scan/capabilities.yaml.proposal); two calls with the same projectName produce byte-identical bodies'
-    text: The system shall render a capabilities seed that is language-independent and interpolates the project name into the guidance comment.
-    test_refs: [tests/cli/scan-greenfield-seeds.test.ts]
+    statement: The system shall render a capabilities seed that is
+      language-independent and interpolates the project name into the guidance
+      comment.
   - id: AC-005
-    ears: state
-    condition: while shouldWriteScanArtifacts in runInit evaluates to false (auto-scan threshold of 3 source files not met or --no-scan)
-    action: write the three greenfield seeds plus the scenarios README via the existing writeArtifact divert mechanism
-    response: 'src/cli/init.ts runInit grows an else-branch on shouldWriteScanArtifacts that calls renderGreenfieldConventionsMd(language, projectName) renderGreenfieldArchitectureYaml(language) renderGreenfieldCapabilitiesYaml(projectName) and writes each into docs/conventions.md spec/architecture.yaml spec/capabilities.yaml; spec/scenarios/README.md continues to land in both branches; writeArtifact diverts each seed to .cladding/scan/<basename>.proposal when the target already exists so re-running clad init on an already-seeded workspace stays idempotent'
-    text: While shouldWriteScanArtifacts evaluates to false, the system shall write the three greenfield seeds plus the scenarios README via the existing writeArtifact divert mechanism.
-    test_refs: [tests/cli/init.test.ts]
+    statement: While shouldWriteScanArtifacts evaluates to false, the system shall
+      write the three greenfield seeds plus the scenarios README via the
+      existing writeArtifact divert mechanism.
   - id: AC-006
-    ears: ubiquitous
-    action: realign the persona and skill prompts so they treat every scan artifact as always-present and drop the if-absent branch from their guidance
-    response: 'src/agents/developer.md Code policy collapses to single-state guidance (follow docs/conventions.md, header marks seed vs observed mode); src/agents/planner.md What you do gains a bullet declaring spec/architecture.yaml + spec/capabilities.yaml are always seeded by clad init and refined to observed bodies by clad init --scan with hand edits staying in the live file; skills/init/SKILL.md gains a Greenfield seeds (v0.3.42+) subsection naming the three seeds and the per-language defaults so adopters can predict the body shape before running the verb'
-    text: The system shall realign the persona and skill prompts so they treat every scan artifact as always-present and drop the if-absent branch from their guidance.
-    evidence_refs: [src/agents/developer.md, src/agents/planner.md, skills/init/SKILL.md]
+    statement: The system shall realign the persona and skill prompts so they treat
+      every scan artifact as always-present and drop the if-absent branch from
+      their guidance.
+    evidence_refs:
+      - src/agents/developer.md
+      - src/agents/planner.md
+      - skills/init/SKILL.md

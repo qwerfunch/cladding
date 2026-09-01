@@ -1,124 +1,72 @@
 id: F-90d054
-slug: init-host-autowire
-title: "clad init writes host wiring + enrichment marker (archived; superseded by F-80d19d in v0.4.0)"
+title: clad init writes host wiring + enrichment marker (archived; superseded by
+  F-80d19d in v0.4.0)
 status: archived
-# Modules cleared on archive (v0.4.1): src/init/detect.ts was deleted as
-# dead code (test-only); src/init/host-instructions.ts is retained by the
-# current init flow (src/cli/init.ts). An archived feature must not claim
-# live/existing modules — that is the STALE_SPECIFICATION self-drift this
-# clears. The history lives in this shard's acceptance_criteria + git.
 modules: []
+depends_on: []
+capability_refs: []
 acceptance_criteria:
-  # ── Host wiring (npm postinstall + clad init fallback retry) ──
   - id: AC-001
-    ears: event
-    condition: when `npm install -g cladding` completes
-    action: create the symlink `~/.claude/plugins/cladding` pointing at the npm-global cladding package
-    response: Claude Code auto-discovers cladding plugin from every project without `--plugin-dir`
-    text: When `npm install -g cladding` completes, the postinstall hook shall
-      create `~/.claude/plugins/cladding` as a symlink pointing at the npm-global
-      cladding package, so Claude Code auto-discovers cladding from every
-      project without requiring `--plugin-dir`.
+    statement: When `npm install -g cladding` completes, the postinstall hook shall
+      create `~/.claude/plugins/cladding` as a symlink pointing at the
+      npm-global cladding package, so Claude Code auto-discovers cladding from
+      every project without requiring `--plugin-dir`.
   - id: AC-002
-    ears: event
-    condition: when the postinstall hook runs
-    action: create the symlink `~/.gemini/extensions/cladding` pointing at the npm-global `cladding/plugins/gemini-cli`
-    response: Gemini CLI auto-discovers cladding as an installed extension
-    text: When the postinstall hook runs, the system shall create
+    statement: When the postinstall hook runs, the system shall create
       `~/.gemini/extensions/cladding` as a symlink pointing at the npm-global
       `cladding/plugins/gemini-cli`, so Gemini CLI auto-discovers cladding as an
       installed extension.
   - id: AC-003
-    ears: event
-    condition: when the postinstall hook runs
-    action: create `~/.agents/skills/cladding-<verb>` symlinks for every verb skill in `cladding/plugins/codex/skills/`
-    response: Codex CLI auto-discovers all cladding skills from its global skills directory
-    text: When the postinstall hook runs, the system shall create
+    statement: When the postinstall hook runs, the system shall create
       `~/.agents/skills/cladding-<verb>` symlinks for every verb skill in
       `cladding/plugins/codex/skills/`, so Codex CLI auto-discovers all cladding
       skills from its global skills directory.
   - id: AC-004
-    ears: event
-    condition: when the postinstall hook runs
-    action: merge a `[mcp_servers.cladding]` table into `~/.codex/config.toml`
-    response: Codex CLI auto-launches the cladding MCP server on every session
-    text: When the postinstall hook runs, the system shall merge a
+    statement: When the postinstall hook runs, the system shall merge a
       `[mcp_servers.cladding]` table into `~/.codex/config.toml`, preserving all
-      existing tables and keys outside that namespace, so Codex CLI auto-launches
-      the cladding MCP server on every session.
+      existing tables and keys outside that namespace, so Codex CLI
+      auto-launches the cladding MCP server on every session.
   - id: AC-005
-    ears: event
-    condition: when `clad init` runs and any of AC-001 through AC-004 was previously skipped (e.g. `npm install --ignore-scripts`)
-    action: retry the skipped host wiring operations
-    response: users who disabled npm scripts still reach the wired state without manual commands
-    text: When `clad init` runs and any of AC-001 through AC-004 was previously
+    statement: When `clad init` runs and any of AC-001 through AC-004 was previously
       skipped (for example because `npm install --ignore-scripts` was used), the
       system shall retry those skipped host wiring operations, so users who
       disabled npm scripts still reach the wired state without running any
       additional commands.
   - id: AC-006
-    ears: unwanted
-    condition: if the TOML merger encounters keys outside the `[mcp_servers.cladding]` table
-    action: modify or remove those keys
-    response: existing user MCP server entries and Codex configuration are preserved verbatim
-    text: If the TOML merger encounters keys outside the
+    statement: If the TOML merger encounters keys outside the
       `[mcp_servers.cladding]` table while merging into `~/.codex/config.toml`,
-      the system shall NOT modify or remove those keys, so existing user MCP
-      server entries and Codex configuration are preserved verbatim.
+      then the system shall NOT modify or remove those keys, so existing user
+      MCP server entries and Codex configuration are preserved verbatim.
+    kind: behavior
   - id: AC-007
-    ears: unwanted
-    condition: if a target symlink already resolves to the cladding npm-global path
-    action: re-create or rewrite that symlink
-    response: idempotent re-runs touch nothing they do not need to touch
-    text: If a target symlink already resolves to the cladding npm-global path,
-      the host wiring step shall NOT re-create or rewrite that symlink, so
+    statement: If a target symlink already resolves to the cladding npm-global path,
+      then the host wiring step shall NOT re-create or rewrite that symlink, so
       idempotent re-runs touch nothing they do not need to touch.
-  # ── Project-local artifacts (clad init) ──
+    kind: behavior
   - id: AC-008
-    ears: event
-    condition: when `clad init` runs in a target project
-    action: write `AGENTS.md` at the project root containing the cross-tool entry point and the enrichment instruction
-    response: Codex / Cursor / Continue / Copilot / Aider auto-recognize the project as cladding-managed
-    text: When `clad init` runs in a target project, the system shall write
+    statement: When `clad init` runs in a target project, the system shall write
       `AGENTS.md` at the project root containing the cross-tool entry point and
-      the enrichment instruction block, so Codex, Cursor, Continue, Copilot,
-      and Aider auto-recognize the project as cladding-managed.
+      the enrichment instruction block, so Codex, Cursor, Continue, Copilot, and
+      Aider auto-recognize the project as cladding-managed.
   - id: AC-009
-    ears: event
-    condition: when `clad init` runs and no `CLAUDE.md` exists at the project root
-    action: create `CLAUDE.md` with the cladding instruction block
-    response: Claude Code memory is primed with the cladding rules from the first session
-    text: When `clad init` runs and no `CLAUDE.md` exists at the project root,
+    statement: When `clad init` runs and no `CLAUDE.md` exists at the project root,
       the system shall create `CLAUDE.md` with the cladding instruction block,
       so Claude Code memory is primed with the cladding rules from the very
       first session.
   - id: AC-010
-    ears: event
-    condition: when `clad init` runs and `CLAUDE.md` already exists
-    action: append a `## cladding` section idempotently
-    response: re-running init never duplicates the cladding section
-    text: When `clad init` runs and `CLAUDE.md` already exists, the system shall
-      append a `## cladding` section idempotently — re-running `clad init` must
-      never duplicate the section nor alter any prior content of the file.
-  # ── Lazy enrichment marker ──
+    statement: "When clad init runs and CLAUDE.md already exists, the system shall
+      append a ## cladding section idempotently without duplicating it or
+      altering prior file content."
+    kind: behavior
   - id: AC-011
-    ears: event
-    condition: when `clad init` runs
-    action: 'write `_meta.enrichment_status: pending` plus `enrichment_scope` and `detected` into `spec.yaml`'
-    response: any host AI opening the project later can pick up the checklist and finish enrichment before the user's first task
-    text: >-
-      When `clad init` runs, the system shall write
+    statement: When `clad init` runs, the system shall write
       `_meta.enrichment_status` to `"pending"` plus `enrichment_scope` (the
       checklist of items to populate) and `detected` (deterministic project
       observations) into `spec.yaml`, so any host AI opening the project later
       can pick up the checklist and finish enrichment before the user's first
       task.
   - id: AC-012
-    ears: state
-    condition: while a second `clad init` runs in a project that already has a populated `spec.yaml`
-    action: preserve all existing spec body content and only re-activate scope items whose `detected` observations have changed
-    response: idempotent re-runs never overwrite human or AI work
-    text: While a second `clad init` runs in a project that already has a
+    statement: While a second `clad init` runs in a project that already has a
       populated `spec.yaml`, the system shall preserve all existing spec body
       content and only re-activate `enrichment_scope` items whose `detected`
       observations have changed since the previous init, so idempotent re-runs

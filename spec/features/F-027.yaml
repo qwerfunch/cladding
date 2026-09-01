@@ -6,15 +6,13 @@ modules:
   - src/stages/util.ts
 depends_on:
   - F-004
+capability_refs: []
 acceptance_criteria:
   - id: AC-040
-    ears: event
-    condition: when the Smoke obligation applies and no qualified adapter observation exists
-    action: record the obligation as unobserved
-    response: a missing script is not skipped, NA, or green
-    text: When the Smoke obligation applies and no qualified adapter observation exists, it shall be unobserved; a missing script is not skipped, NA, or green.
-    test_refs:
-      - "tests/assurance/kernel.test.ts#[covers:F-027/AC-040][covers:F-028/AC-041][covers:F-029/AC-042] applicable missing quality runners remain unobserved, not skipped, NA, or green"
+    statement: When the Smoke obligation applies and no qualified adapter
+      observation exists, the assurance kernel shall classify it as unobserved
+      and not as skipped, NA, or green because its script is missing.
+    kind: behavior
     notes: |
       ## Historical schema-0.1 note
       The default npm smoke runner and skipped result are historical, not proof.

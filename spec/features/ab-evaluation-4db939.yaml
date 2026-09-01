@@ -1,6 +1,4 @@
-# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
 id: F-4db939
-slug: ab-evaluation
 title: A/B evaluation framework — Cladding vs Vanilla Claude Code (v0.3.47)
 status: done
 modules:
@@ -16,46 +14,32 @@ modules:
   - docs/ab-evaluation/summary.md
 depends_on:
   - F-4747ef
+capability_refs:
+  - ab-evaluation
 acceptance_criteria:
   - id: AC-001
-    ears: ubiquitous
-    action: ship a snapshot-capture metric layer that quantifies 8 dimensions of any tmpdir (tieredArtifactCount, specCompleteness, layerCompliance, crossDocConsistency, documentation, codeStructure, tokenConsumption, testCoverage)
-    response: 'tests/scenarios/ab/_ab-metrics.ts exports captureSnapshot(group, milestone, cwd) returning AbSnapshot with all 8 fields; diffToRows(a, b) emits MetricRow[] for table rendering; reuses runAllDetectors, measureFile, sumMeasurements from existing scenario helpers'
-    text: The system shall ship a snapshot-capture metric layer that quantifies 8 dimensions of any tmpdir.
-    test_refs: ['tests/scenarios/ab/ab-contract.test.ts#[covers:F-4db939/AC-001] captureSnapshot quantifies all eight metric dimensions in one populated tmpdir']
+    statement: The system shall ship a snapshot-capture metric layer that quantifies
+      8 dimensions of any tmpdir.
   - id: AC-002
-    ears: ubiquitous
-    action: provide pre-curated "smart vanilla Claude Code" sessions for both cases (payment SaaS + existing-adoption) that simulate what a senior developer would ship without cladding — production-quality TS code, proper directory split, executable handlers, real tests
-    response: 'tests/scenarios/ab/_vanilla-sim.ts exports VANILLA_PAYMENT_SAAS_SESSION (~250 LoC across 11 files M1+M2: package.json, tsconfig, README, src/api, src/lib, src/util, tests) and VANILLA_EXISTING_ADOPTION_SESSION (README upgrade at M1 + refund handler/lib/test at M2 on the sample-existing-ts fixture); applyFileSet helper writes the map into the tmpdir'
-    text: The system shall provide pre-curated smart-vanilla sessions for both cases.
-    test_refs: ['tests/scenarios/ab/ab-contract.test.ts#[covers:F-4db939/AC-002] both pre-curated vanilla sessions materialize their promised M1 and M2 artifacts']
+    statement: The system shall provide pre-curated smart-vanilla sessions for both cases.
   - id: AC-003
-    ears: ubiquitous
-    action: ship two case test files that capture M1+M2 snapshots for both Cladding (via runInit + LLM-mocked dispatcher + hand-authored feature shard) and Vanilla (via applyFileSet) groups
-    response: 'case-payment-saas.test.ts wires GREENFIELD_S1_RESPONSE mock + writes F-4db939 refund shard + bound capability binding at M2; case-existing-adoption.test.ts wires EXISTING_S2_RESPONSE + sample-existing-ts copyFixture + refund shard binding at M2; each file produces 4 snapshots (M1A, M1B, M2A, M2B) then calls renderCaseReport + writeOrAssertReport'
-    text: The system shall ship two case test files exercising M1+M2 for both A and B groups.
-    test_refs: ['tests/scenarios/ab/ab-contract.test.ts#[covers:F-4db939/AC-003] both case files inventory and exercise M1 and M2 for Cladding and Vanilla']
+    statement: The system shall ship two case test files exercising M1+M2 for both A
+      and B groups.
   - id: AC-004
-    ears: ubiquitous
-    action: render snapshots into deterministic markdown reports with side-by-side M1+M2 tables, detector blocks, and a 6-bullet Findings narrative
-    response: 'tests/scenarios/ab/_report.ts exports renderCaseReport({caseTitle, intent, description, hypothesisFocus, m1A, m1B, m2A, m2B}) returning markdown; the output is byte-deterministic across runs; diffToRows from _ab-metrics drives the M1/M2 tables; renderDetectorBlock + renderFindings cover the qualitative parts'
-    text: The system shall render snapshots into deterministic markdown reports.
-    test_refs: ['tests/scenarios/ab/ab-contract.test.ts#[covers:F-4db939/AC-004] report rendering is byte-deterministic with M1/M2 tables, detector blocks, and six findings']
+    statement: The system shall render snapshots into deterministic markdown reports.
   - id: AC-005
-    ears: ubiquitous
-    action: commit the generated reports under docs/ab-evaluation/ and gate them by writeOrAssertReport so on-disk content must match generated content (UPDATE_AB_REPORTS=1 refreshes)
-    response: 'docs/ab-evaluation/case-payment-saas.md + case-existing-adoption.md committed; writeOrAssertReport reads UPDATE_AB_REPORTS env var: when 1 writes the file, otherwise compares to on-disk content and throws with first-diff context on mismatch; firstDiff helper formats one-line diff for vitest output'
-    text: The system shall commit reports and gate them via writeOrAssertReport snapshot pattern.
-    test_refs: [tests/scenarios/ab/case-payment-saas.test.ts, tests/scenarios/ab/case-existing-adoption.test.ts]
+    statement: The system shall commit reports and gate them via writeOrAssertReport
+      snapshot pattern.
   - id: AC-006
-    ears: ubiquitous
-    action: surface the spec-gated-detector limitation honestly — vanilla's "0 errors" is absence of signal, not absence of drift, because detectors need spec to evaluate
-    response: 'renderFindings explicitly notes "absence of signal, not absence of drift" in the per-case markdown; docs/ab-evaluation/README.md §Limitations item 2 expands on which detectors are spec-gated (REFERENCE_INTEGRITY, MISSING_IMPLEMENTATION, ARCHITECTURE_FROM_SPEC, CAPABILITIES_FEATURE_MAPPING); docs/ab-evaluation/summary.md verdict on H4 marks it ⚠️ Partially supported with major caveat'
-    text: The system shall surface the spec-gated-detector limitation honestly in all 3 documents.
-    evidence_refs: [docs/ab-evaluation/README.md, docs/ab-evaluation/summary.md]
+    statement: The system shall surface the spec-gated-detector limitation honestly
+      in all 3 documents.
+    evidence_refs:
+      - docs/ab-evaluation/README.md
+      - docs/ab-evaluation/summary.md
   - id: AC-007
-    ears: ubiquitous
-    action: ship the vanilla file sets at senior quality (real zod validation, executable handlers, multiple test cases, proper README) so the comparison stays fair and cladding's value does not depend on vanilla being underwritten
-    response: 'tests/scenarios/ab/_vanilla-sim.ts vanilla code is real TypeScript with zod validation, executable handlers, multiple test cases, proper README structure (Install/Usage/API), production-grade package.json with vitest + typescript devDeps; docs/ab-evaluation/README.md §Limitations item 1 explicitly invites readers to inspect the file sets and judge fairness for themselves'
-    text: The system shall ship vanilla file sets at senior quality so the comparison stays fair and cladding's value does not depend on vanilla being underwritten.
-    evidence_refs: [tests/scenarios/ab/_vanilla-sim.ts, docs/ab-evaluation/README.md]
+    statement: The system shall ship vanilla file sets at senior quality so the
+      comparison stays fair and cladding's value does not depend on vanilla
+      being underwritten.
+    evidence_refs:
+      - tests/scenarios/ab/_vanilla-sim.ts
+      - docs/ab-evaluation/README.md

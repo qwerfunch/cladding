@@ -1,7 +1,6 @@
-# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
 id: F-c4c5ae
-slug: spec-conformance-oracle-stage
-title: SPEC_CONFORMANCE — impl-blind oracle execution gate stage (stage_2.3, No-Vacuous-Green keystone)
+title: SPEC_CONFORMANCE — impl-blind oracle execution gate stage (stage_2.3,
+  No-Vacuous-Green keystone)
 status: done
 modules:
   - src/stages/spec-conformance.ts
@@ -17,67 +16,58 @@ modules:
   - tests/oracle-record.test.ts
 depends_on:
   - F-021
+capability_refs: []
 acceptance_criteria:
   - id: AC-001
-    ears: event
-    condition: when an impl-blind, spec-derived oracle suite exists under tests/oracle/
-    action: run the project's detected test runner against that directory only, against the real implementation
-    response: stage_2.3 returns a blocking exitCode 1 on any oracle failure, so a GREEN gate can finally fail on latent spec non-conformance (the v6r 31/36 run flips GREEN→RED)
-    text: When an impl-blind oracle suite is present under tests/oracle/, the system shall run it against the implementation and fail the gate (exitCode 1) on any oracle failure.
-    test_refs: [tests/stages/spec-conformance.test.ts]
+    statement: When an impl-blind oracle suite is present under tests/oracle/, the
+      system shall run it against the implementation and fail the gate (exitCode
+      1) on any oracle failure.
   - id: AC-002
-    ears: unwanted
-    condition: if no oracle suite is present under tests/oracle/
-    action: emit a non-blocking skip (exitCode 2) rather than a silent false pass
-    response: the stage stays non-blocking when no oracle exists, leaving the presence/provenance obligation to the (forthcoming) SPEC_CONFORMANCE drift detector
-    text: If no oracle suite is present, the system shall skip (exitCode 2) rather than false-pass, so the absence of oracles is never reported as conformance.
-    test_refs: [tests/stages/spec-conformance.test.ts]
+    statement: If no oracle suite is present, then the system shall skip (exitCode
+      2) rather than false-pass, so the absence of oracles is never reported as
+      conformance.
+    kind: behavior
   - id: AC-003
-    ears: unwanted
-    condition: if the detected test runner binary is missing (ENOENT)
-    action: map the missing binary to a skip (exitCode 2), never to a blocking failure
-    response: an unconfigured project keeps a green gate instead of a false failure (the false-failure twin of Vacuous Green)
-    text: If the test runner binary is not installed, the system shall skip rather than false-fail the stage.
-    test_refs: [tests/stages/spec-conformance.test.ts]
+    statement: If the test runner binary is not installed, then the system shall
+      skip rather than false-fail the stage.
+    kind: behavior
   - id: AC-004
-    ears: state
-    condition: while project.require_oracles is set
-    action: fail drift when a done AC declares no oracle_refs, and always fail when a declared oracle_ref does not resolve on disk
-    response: the SPEC_CONFORMANCE detector forces opted-in done features to carry a resolving oracle (which stage_2.3 then runs); inert when require_oracles is falsy so legacy projects and cladding-self are unaffected
-    text: While require_oracles is set, the system shall fail the gate for a done AC with no oracle, and always fail when a declared oracle_ref resolves to nothing.
-    test_refs: [tests/stages/detectors/spec-conformance.test.ts]
+    statement: While require_oracles is set, the system shall fail the gate for a
+      done AC with no oracle, and always fail when a declared oracle_ref
+      resolves to nothing.
   - id: AC-005
-    ears: state
-    condition: while project.require_oracles is set and a done AC declares an oracle
-    action: read the oracle's kind=oracle authoring-provenance from the audit log and fail when the author equals the implementer or the author's read-manifest intersects the feature's modules
-    response: the gate enforces impl-blindness after the fact (author≠implementer + manifest∩modules=∅) on all paths; a self-reported (blind=false) manifest is checked but flagged info; structural authoring-time blindness is the clad oracle SDK path (Phase 2 authoring, deferred)
-    text: While require_oracles is set, the system shall fail the gate when an oracle's recorded author is the implementer or its read-manifest intersects the feature's modules, so a passing oracle means impl-blind conformance.
-    test_refs: [tests/stages/detectors/spec-conformance.test.ts]
+    statement: While require_oracles is set, the system shall fail the gate when an
+      oracle's recorded author is the implementer or its read-manifest
+      intersects the feature's modules, so a passing oracle means impl-blind
+      conformance.
   - id: AC-006
-    ears: event
-    condition: when a developer runs clad oracle on a feature
-    action: print a deterministic impl-blind authoring brief built from the acceptance criteria and module declarations only, never an implementation body
-    response: the host hands the brief to a fresh blind sub-agent (cladding calls no LLM); the brief carries conservative under-assertion guidance to mitigate over-strict oracles
-    text: When clad oracle is run, the system shall print an impl-blind authoring brief (acceptance criteria + decl-only signatures, never bodies) for a host-spawned blind sub-agent to author from.
-    test_refs: [tests/oracle-payload.test.ts]
+    statement: When clad oracle is run, the system shall print an impl-blind
+      authoring brief (acceptance criteria + decl-only signatures, never bodies)
+      for a host-spawned blind sub-agent to author from.
   - id: AC-007
-    ears: event
-    condition: when the host calls clad_author_oracle with a sub-agent's oracle + read-manifest
-    action: write the oracle under tests/oracle/, record kind=oracle provenance (author, manifest, blind), and stamp oracle_refs onto the AC via a comment-preserving shard edit
-    response: the recorded provenance is what the SPEC_CONFORMANCE gate audits (author≠implementer, manifest∩modules=∅); the shard edit goes through the yaml Document API so comments and layout survive
-    text: When clad_author_oracle is called, the system shall write the oracle, record its impl-blind provenance, and stamp oracle_refs without malforming the shard.
-    test_refs: [tests/oracle-record.test.ts]
+    statement: When clad_author_oracle is called, the system shall write the oracle,
+      record its impl-blind provenance, and stamp oracle_refs without malforming
+      the shard.
   - id: AC-008
-    ears: event
-    condition: when the spec-conformance stage runs only the impl-blind oracle suite and the project reporter shares a result path with the full unit suite
-    action: preserve every configured or conventional full-suite test report across the scoped oracle invocation
-    response: a later strict gate cannot mistake the oracle-only selection for the project's complete test evidence
-    text: When spec conformance runs only the impl-blind oracle suite, the system shall preserve shared full-suite test reports across that scoped invocation, so a later strict gate cannot misread partial oracle results as complete test evidence.
-    notes: |
+    statement: When spec conformance runs only the impl-blind oracle suite, the
+      system shall preserve shared full-suite test reports across that scoped
+      invocation, so a later strict gate cannot misread partial oracle results
+      as complete test evidence.
+    notes: >
       ## Decision
-      Snapshot configured and conventional test-report candidates before the oracle-only command, then restore existing files and remove candidates created only by that partial run.
+
+      Snapshot configured and conventional test-report candidates before the
+      oracle-only command, then restore existing files and remove candidates
+      created only by that partial run.
+
       ## Why
-      The oracle stage appends `tests/oracle` to the project runner, while reporters may still overwrite the shared full-suite result path. Without restoration, the next strict gate can report false unverified-acceptance findings.
+
+      The oracle stage appends `tests/oracle` to the project runner, while
+      reporters may still overwrite the shared full-suite result path. Without
+      restoration, the next strict gate can report false unverified-acceptance
+      findings.
+
       ## Trade-off
-      Report preservation holds existing report bytes for the scoped run; restoration failures block instead of leaving misleading evidence.
-    test_refs: [tests/stages/spec-conformance.test.ts, tests/stages/toolchain/gate-config.test.ts]
+
+      Report preservation holds existing report bytes for the scoped run;
+      restoration failures block instead of leaving misleading evidence.

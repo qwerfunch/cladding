@@ -1,6 +1,5 @@
 id: F-904495a5
-slug: changelog-render
-title: "Changelog render — the spec becomes human-facing change documents"
+title: Changelog render — the spec becomes human-facing change documents
 status: done
 modules:
   - src/changelog/collect.ts
@@ -9,68 +8,92 @@ modules:
   - src/cli/clad.ts
   - src/serve/server.ts
 depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-2c3f34
-    ears: ubiquitous
-    action: "collect shipped changes since a git ref into a deterministic manifest"
-    response: "feature shards classified from ONE repo-wide diff, grouped by capability, plus inventory diff and unsharded feat/fix commits — byte-identical across runs"
-    text: "The system shall collect shipped changes for <since>..HEAD into a deterministic manifest — classifying feature shards from ONE `git diff --name-status` (added-as-done / flipped-to-done / modified-while-done / archived, with `git show <ref>:<path>` only for shards whose status must be compared), grouping them by capability with an `uncategorized` bucket for unmatched features, diffing the spec.yaml inventory counts, and listing conventional feat/fix commits that name no feature id — with sorted keys and sorted ids so two runs serialize byte-identically."
-    notes: |
+    statement: The system shall collect shipped changes for <since>..HEAD into a
+      deterministic manifest — classifying feature shards from ONE `git diff
+      --name-status` (added-as-done / flipped-to-done / modified-while-done /
+      archived, with `git show <ref>:<path>` only for shards whose status must
+      be compared), grouping them by capability with an `uncategorized` bucket
+      for unmatched features, diffing the spec.yaml inventory counts, and
+      listing conventional feat/fix commits that name no feature id — with
+      sorted keys and sorted ids so two runs serialize byte-identically.
+    notes: >
       ## Why
-      Traceability for non-coders/audit is cladding's measured value (48-feature A/B:
-      46 shards/198 ACs vs code-only) — so the release-notes input must be COLLECTED
-      deterministically, never LLM-recalled. ONE repo-wide diff (enterprise review E8:
-      no per-shard `git show` loop) keeps cost O(changed shards). The `uncategorized`
-      bucket is itself a drift signal: a feature shipped without a Tier-B capability link.
-      The unsharded feat/fix list closes the under-reporting gap honestly — work that
+
+      Traceability for non-coders/audit is cladding's measured value (48-feature
+      A/B:
+
+      46 shards/198 ACs vs code-only) — so the release-notes input must be
+      COLLECTED
+
+      deterministically, never LLM-recalled. ONE repo-wide diff (enterprise
+      review E8:
+
+      no per-shard `git show` loop) keeps cost O(changed shards). The
+      `uncategorized`
+
+      bucket is itself a drift signal: a feature shipped without a Tier-B
+      capability link.
+
+      The unsharded feat/fix list closes the under-reporting gap honestly — work
+      that
+
       bypassed the spec is reported as exactly that, not silently dropped.
-    test_refs:
-      - "tests/changelog/collect.test.ts#classifies a shard that flipped to done vs one added as done since the ref"
-      - "tests/changelog/collect.test.ts#groups classified features by capability and routes unmatched ones to uncategorized"
-      - "tests/changelog/collect.test.ts#diffs the inventory counts between the ref and the worktree"
-      - "tests/changelog/collect.test.ts#picks up unsharded feat/fix commits that name no feature id"
-      - "tests/changelog/collect.test.ts#is deterministic — two runs produce byte-identical JSON"
   - id: AC-f38358
-    ears: unwanted
-    condition: "if the since ref does not resolve to a commit (unknown ref, or no tags exist for the default)"
-    action: "fail with a clear error naming the ref"
-    response: "collectChangelog throws (the CLI exits 2) instead of returning an empty manifest"
-    text: "If the since ref does not resolve to a commit in the repository (unknown tag/sha, or no tags exist to anchor the default), then the system shall fail with a clear error naming the ref — never returning a silently empty manifest."
-    notes: |
+    statement: If the since ref does not resolve to a commit in the repository
+      (unknown tag/sha, or no tags exist to anchor the default), then the system
+      shall fail with a clear error naming the ref — never returning a silently
+      empty manifest.
+    notes: >
       ## Why
-      A silently-empty changelog is the reporting twin of the Vacuous Green: "no shipped
-      changes" must be a verified fact about the range, never a swallowed input error
+
+      A silently-empty changelog is the reporting twin of the Vacuous Green: "no
+      shipped
+
+      changes" must be a verified fact about the range, never a swallowed input
+      error
+
       masquerading as one.
-    test_refs:
-      - "tests/changelog/collect.test.ts#throws a clear error naming an invalid since ref instead of returning empty"
-      - "tests/changelog/collect.test.ts#defaultSinceRef returns the latest tag and throws a clear error when no tag exists"
   - id: AC-72a97f
-    ears: ubiquitous
-    action: "render the manifest as capability-grouped markdown in business language"
-    response: "prose built only from feature titles and acceptance sentences with internal ids omitted; a zero-change manifest renders an explicit no-shipped-changes line"
-    text: "The system shall render the manifest as capability-grouped markdown whose prose is built only from feature titles and acceptance-criterion sentences with internal F-/AC- ids omitted (Soft Shell), and shall render an explicit 'no shipped changes since <ref>' line for a zero-change manifest — never a blank document."
-    notes: |
+    statement: The system shall render a capability-grouped Markdown manifest whose
+      prose uses only feature titles and acceptance-criterion sentences without
+      internal F- or AC- ids and includes an explicit no shipped changes since
+      <ref> line for zero changes rather than a blank document.
+    kind: behavior
+    notes: >
       ## Why
-      Release notes are the purest user surface cladding ships, so the Soft Shell id ban
-      (03-ux §1.2) applies hardest here. This renderer is the deterministic no-LLM floor;
-      the changelog skill layers EN+KO prose on top of the SAME manifest, so both surfaces
+
+      Release notes are the purest user surface cladding ships, so the Soft
+      Shell id ban
+
+      (03-ux §1.2) applies hardest here. This renderer is the deterministic
+      no-LLM floor;
+
+      the changelog skill layers EN+KO prose on top of the SAME manifest, so
+      both surfaces
+
       can only say what a feature title or AC sentence already says.
-    test_refs:
-      - "tests/changelog/render.test.ts#markdown groups by capability headings and carries AC sentences with no internal ids"
-      - "tests/changelog/render.test.ts#renders the honest no-shipped-changes line for a zero-change manifest"
-      - "tests/changelog/render.test.ts#unsharded commits render under an honest not-yet-spec-tracked section"
-      - "tests/changelog/render.test.ts#catalog lists capability then feature then plain AC sentences"
   - id: AC-60067c
-    ears: ubiquitous
-    action: "render an audit table that keeps internal ids and resolves every verification ref"
-    response: "feature | AC | EARS | verification refs — each bare path marked resolved (✓) or unresolved (✗) on disk; derived:/self-dogfood:/fixture: refs labeled by kind instead of resolved"
-    text: "The system shall render an audit table — feature | AC | EARS | verification refs — that keeps internal ids and marks each bare-path ref resolved (✓) or unresolved (✗) on disk, labeling derived:/self-dogfood:/fixture:-prefixed refs by kind rather than resolving them."
-    notes: |
+    statement: The system shall render an audit table — feature | AC | EARS |
+      verification refs — that keeps internal ids and marks each bare-path ref
+      resolved (✓) or unresolved (✗) on disk, labeling
+      derived:/self-dogfood:/fixture:-prefixed refs by kind rather than
+      resolving them.
+    notes: >
       ## Why
-      The audit surface is the ONE place internal ids belong (forensic replay). The ✗ mark
-      makes spec-annotation drift — stale test_refs, the defect class the 48-feature A/B
-      measured (17 orphan-test findings) — visible to a non-coder reading a single table.
-      A `derived:` suggestion is labeled, never ✓-resolved: machine-suggested evidence must
+
+      The audit surface is the ONE place internal ids belong (forensic replay).
+      The ✗ mark
+
+      makes spec-annotation drift — stale test_refs, the defect class the
+      48-feature A/B
+
+      measured (17 orphan-test findings) — visible to a non-coder reading a
+      single table.
+
+      A `derived:` suggestion is labeled, never ✓-resolved: machine-suggested
+      evidence must
+
       not masquerade as author-confirmed verification.
-    test_refs:
-      - "tests/changelog/render.test.ts#audit table keeps ids, marks an unresolved ref ✗ and labels a derived: ref"

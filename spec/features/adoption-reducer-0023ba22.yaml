@@ -1,36 +1,44 @@
 id: F-0023ba22
-slug: adoption-reducer
-title: "Adoption reducer — pull-vs-push adoption verdict from the event ledger"
+title: Adoption reducer — pull-vs-push adoption verdict from the event ledger
 status: done
 modules:
   - src/events/session-report.ts
   - src/events/log.ts
+depends_on: []
+capability_refs:
+  - knowledge-graph
 acceptance_criteria:
   - id: AC-3362d108
-    ears: event
-    condition: "when summarizeAdoption reduces an event ledger"
-    action: "count as adoption pulls ONLY working_set_served events with resolved true (grouped by their tool field); impact_card_fired / impact_card_skipped / session_card_rendered / prompt_suggestion_served must never raise any adoption number or the verdict"
-    response: "delivery (push) can never masquerade as adoption (pull)"
-    text: "When reducing the ledger, the system shall derive adoption exclusively from resolved pull serves; push events shall never raise the verdict."
-    notes: "## Why\n0.8.0 shipped the working-set/push machinery plus telemetry, but no judgment layer: backlog B1 (deprecate clad_get_context) is gated on \"adoption confirmed\" with no definition. The pull/push distinction is the guard against vacuous confirmation — hook-fired cards prove delivery, not that an agent chose the tool. Design adversarially verified 3-lens + Sonnet-simulated (S1 tool-user / S2 grep-around / S3 adversarial separate cleanly) on 2026-07-04."
-    test_refs:
-      - tests/events/adoption.test.ts
+    statement: When reducing the ledger, the system shall derive adoption
+      exclusively from resolved pull serves and never raise the verdict from
+      push events.
+    kind: behavior
+    notes: >-
+      ## Why
+
+      0.8.0 shipped the working-set/push machinery plus telemetry, but no
+      judgment layer: backlog B1 (deprecate clad_get_context) is gated on
+      "adoption confirmed" with no definition. The pull/push distinction is the
+      guard against vacuous confirmation — hook-fired cards prove delivery, not
+      that an agent chose the tool. Design adversarially verified 3-lens +
+      Sonnet-simulated (S1 tool-user / S2 grep-around / S3 adversarial separate
+      cleanly) on 2026-07-04.
   - id: AC-b200151f
-    ears: ubiquitous
-    text: "The verdict shall be computed against exported B1_ADOPTION_THRESHOLDS (minimum completed cycles, minimum total pulls, minimum cycle-pull-rate, minimum distinct git heads) such that a single accidental call or a push-only ledger can never yield confirmed."
-    notes: "## Why\nSingle-call and push-only vacuous-satisfaction attacks were the sim's core probes. Thresholds are constants (trivially adjustable pre-release) and the B1 protocol doc records the chosen values."
-    test_refs:
-      - tests/events/adoption.test.ts
+    statement: The verdict shall be computed against exported B1_ADOPTION_THRESHOLDS
+      (minimum completed cycles, minimum total pulls, minimum cycle-pull-rate,
+      minimum distinct git heads) such that a single accidental call or a
+      push-only ledger can never yield confirmed.
+    notes: >-
+      ## Why
+
+      Single-call and push-only vacuous-satisfaction attacks were the sim's core
+      probes. Thresholds are constants (trivially adjustable pre-release) and
+      the B1 protocol doc records the chosen values.
   - id: AC-0d7273dd
-    ears: event
-    condition: "when the ledger contains completed feature cycles but zero value-delivery events (CLI-only usage, MCP/hook lane unwired)"
-    action: "still produce a computable verdict (not_confirmed) with an explicit signal flag rather than suppressing the adoption section"
-    response: "the strongest non-adoption evidence is reported, never hidden"
-    text: "When cycles ran but the value lane is silent, the system shall report hasSignal true and a not_confirmed verdict — the adoption reducer is never gated on ValueDeliverySummary totals."
-    test_refs:
-      - tests/events/adoption.test.ts
+    statement: When cycles ran but the value lane is silent, the system shall report
+      hasSignal true and a not_confirmed verdict — the adoption reducer is never
+      gated on ValueDeliverySummary totals.
   - id: AC-345af0b5
-    ears: ubiquitous
-    text: "The reducer shall read both the live and the rolled event-log generation, be deterministic over identical input, and yield insufficient_data with hasSignal false on an empty or pre-0.8 ledger."
-    test_refs:
-      - tests/events/adoption.test.ts
+    statement: The reducer shall read both the live and the rolled event-log
+      generation, be deterministic over identical input, and yield
+      insufficient_data with hasSignal false on an empty or pre-0.8 ledger.

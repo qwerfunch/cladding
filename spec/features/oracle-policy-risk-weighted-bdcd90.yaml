@@ -1,7 +1,6 @@
-# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
 id: F-bdcd90
-slug: oracle-policy-risk-weighted
-title: oracle_policy — risk-weighted, sampled spec-conformance oracle requirement (Lever 1, cost reduction)
+title: oracle_policy — risk-weighted, sampled spec-conformance oracle
+  requirement (Lever 1, cost reduction)
 status: done
 modules:
   - src/oracle/policy.ts
@@ -14,39 +13,24 @@ modules:
   - src/spec/schema.json
 depends_on:
   - F-c4c5ae
+capability_refs: []
 acceptance_criteria:
   - id: AC-001
-    ears: state
-    condition: while project.oracle_policy is set
-    action: require a spec-conformance oracle only for done ACs whose EARS category is in always_ears (default ['unwanted']) plus a deterministic sample fraction of the rest, instead of for every done AC
-    response: the SPEC_CONFORMANCE MANDATORY rule becomes risk-weighted, so a project pays the impl-blind-oracle cost (v8 measured ~30% of the run) only where failures cluster instead of exhaustively
-    text: While project.oracle_policy is set, the system shall require an oracle only for high-risk (always_ears) and sampled done ACs, not for every done AC.
-    test_refs: [tests/oracle-policy.test.ts, tests/stages/detectors/spec-conformance.test.ts]
+    statement: While project.oracle_policy is set, the system shall require an
+      oracle only for high-risk (always_ears) and sampled done ACs, not for
+      every done AC.
   - id: AC-002
-    ears: event
-    condition: when both project.oracle_policy and project.require_oracles are present
-    action: resolve the requirement from oracle_policy and ignore the legacy require_oracles boolean
-    response: the risk-weighted policy takes precedence over the all-or-nothing exhaustive boolean, so a project can downshift an exhaustive requirement to a sample without removing require_oracles
-    text: The system shall let oracle_policy take precedence over require_oracles when both are set.
-    test_refs: [tests/oracle-policy.test.ts, tests/stages/detectors/spec-conformance.test.ts]
+    statement: The system shall let oracle_policy take precedence over
+      require_oracles when both are set.
+    kind: behavior
   - id: AC-003
-    ears: event
-    condition: when deciding whether a non-always AC falls in the sample
-    action: derive the decision from a stable hash of the featureId.acId key, never from a random source
-    response: the per-AC sample is deterministic and reproducible across gate runs and stable against edits to other ACs, so GREEN/RED never flips on a re-run
-    text: The system shall sample ACs deterministically (hash of featureId.acId), so the gate is reproducible.
-    test_refs: [tests/oracle-policy.test.ts]
+    statement: The system shall sample ACs deterministically (hash of
+      featureId.acId), so the gate is reproducible.
+    kind: quality
   - id: AC-004
-    ears: event
-    condition: when a developer runs clad oracle --required
-    action: print the worklist of done ACs the policy requires an oracle for (with the reason and whether each already has one) and exit non-zero when any required oracle is missing
-    response: the host has a single command to discover its risk-weighted oracle worklist, resolved through the same policy the gate enforces, so the CLI and the gate never disagree
-    text: When clad oracle --required is run, the system shall list the policy-required done ACs and exit non-zero if any lacks an oracle.
-    test_refs: [tests/cli/clad.test.ts]
+    statement: When clad oracle --required is run, the system shall list the
+      policy-required done ACs and exit non-zero if any lacks an oracle.
   - id: AC-005
-    ears: unwanted
-    condition: if neither project.oracle_policy nor project.require_oracles is set
-    action: enforce no oracle-presence requirement, leaving only the always-on INTEGRITY check of any declared oracle_refs
-    response: the detector stays inert on legacy projects and cladding-self (zero oracles today), so adding the policy can never retroactively red an existing spec
-    text: If no oracle mandate is set, the system shall not require any oracle, staying inert on legacy specs.
-    test_refs: [tests/oracle-policy.test.ts, tests/stages/detectors/spec-conformance.test.ts]
+    statement: If no oracle mandate is set, then the system shall not require any
+      oracle, staying inert on legacy specs.
+    kind: behavior

@@ -1,5 +1,4 @@
 id: F-d7312b
-slug: scenario-hash-model
 title: Scenario hash ID model — same multi-dev safety as features (v0.3.12)
 status: done
 modules:
@@ -8,36 +7,34 @@ modules:
   - src/spec/schema.json
   - src/stages/detectors/slug-conflict.ts
   - src/stages/detectors/id-collision.ts
-depends_on: [F-67e33f, F-24062d, F-59f093]
+depends_on:
+  - F-67e33f
+  - F-24062d
+  - F-59f093
+capability_refs: []
 acceptance_criteria:
   - id: AC-001
-    ears: ubiquitous
-    action: provide an internal createScenario helper that issues a new sharded scenario file with an auto-generated S-<hash6> id
-    response: 'src/spec/new.ts exports createScenario({slug, title?, features?, cwd?}) returning {id, path, slug}; id matches /^S-[a-f0-9]{6}$/; the hash input includes a `scenario` namespace prefix so a feature and a scenario sharing slug + timestamp do not collide on the hash'
-    text: The system shall provide an internal createScenario helper that mirrors createFeature for the scenario surface — same slug regex, same hash input shape (with a scenario namespace prefix), same multi-dev safety properties.
-    test_refs: [tests/spec/new-scenario.test.ts]
+    statement: The system shall provide an internal createScenario helper that
+      mirrors createFeature for the scenario surface — same slug regex, same
+      hash input shape (with a scenario namespace prefix), same multi-dev safety
+      properties.
   - id: AC-002
-    ears: ubiquitous
-    action: expose createScenario as a `clad_create_scenario` MCP tool
-    response: 'src/serve/server.ts registers clad_create_scenario(slug, title?, features?) that calls createScenario(); TOOL_NAMES list updated to include it; the tool accepts a features[] array of feature ids referencing the scenario'
-    text: The system shall expose createScenario as the `clad_create_scenario` MCP tool so a host LLM can invoke it from a natural-language user request. No CLI verb is added — same surface boundary as clad_create_feature.
-    test_refs: [tests/serve/server.test.ts]
+    statement: The system shall expose createScenario as the `clad_create_scenario`
+      MCP tool so a host LLM can invoke it from a natural-language user request.
+      No CLI verb is added — same surface boundary as clad_create_feature.
   - id: AC-003
-    ears: ubiquitous
-    action: widen scenario.id regex and add optional slug field at the schema layer
-    response: 'src/spec/schema.json scenario.id pattern widened from ^S-\d{3,}$ to ^S-(\d{3,}|[a-f0-9]{6,})$; new optional scenario.slug field with the same kebab-case regex feature.slug uses'
-    text: The system shall widen scenario.id regex to accept new-model S-<hash> ids alongside legacy S-NNN, and add an optional slug field so the new scenario file format passes schema validation.
-    evidence_refs: [src/spec/schema.json]
+    statement: The system shall widen scenario.id regex to accept new-model S-<hash>
+      ids alongside legacy S-NNN, and add an optional slug field so the new
+      scenario file format passes schema validation.
+    evidence_refs:
+      - src/spec/schema.json
   - id: AC-004
-    ears: ubiquitous
-    action: extend SLUG_CONFLICT and ID_COLLISION detectors to scenario namespace
-    response: 'SLUG_CONFLICT walks features and scenarios separately and emits per-namespace error findings (feature slugs in spec/features/ vs scenario slugs in spec/scenarios/ are independent namespaces); ID_COLLISION walks feature ids and scenario ids separately and emits per-kind error findings'
-    text: The system shall extend SLUG_CONFLICT and ID_COLLISION detectors so they check the scenario namespace independently from the feature namespace — a feature and a scenario sharing a slug or an id-namespace prefix do not collide because they live in separate directories and separate id-prefix spaces.
-    test_refs: [tests/stages/slug-conflict.test.ts, tests/stages/id-collision.test.ts]
+    statement: The system shall extend SLUG_CONFLICT and ID_COLLISION detectors so
+      they check the scenario namespace independently from the feature namespace
+      — a feature and a scenario sharing a slug or an id-namespace prefix do not
+      collide because they live in separate directories and separate id-prefix
+      spaces.
   - id: AC-005
-    ears: state
-    condition: while a feature and a scenario share the same slug
-    action: do NOT raise a SLUG_CONFLICT finding
-    response: 'the detector checks features and scenarios in separate Maps so a feature with slug `shared-name` and a scenario with slug `shared-name` coexist freely; the two yaml files live in separate directories (spec/features/ vs spec/scenarios/) so file paths cannot collide either'
-    text: While a feature and a scenario share the same slug, the system shall NOT raise a SLUG_CONFLICT finding — feature slugs and scenario slugs are independent namespaces, just as F-* and S- id prefixes are independent.
-    test_refs: [tests/stages/slug-conflict.test.ts]
+    statement: While a feature and a scenario share the same slug, the system shall
+      NOT raise a SLUG_CONFLICT finding — feature slugs and scenario slugs are
+      independent namespaces, just as F-* and S- id prefixes are independent.

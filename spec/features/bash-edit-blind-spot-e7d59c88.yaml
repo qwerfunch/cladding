@@ -1,54 +1,65 @@
 id: F-e7d59c88
-slug: bash-edit-blind-spot
-title: "Bash-lane impact cards: source mutations made through shell commands get the same push card via git-delta detection"
+title: "Bash-lane impact cards: source mutations made through shell commands get
+  the same push card via git-delta detection"
 status: done
 modules:
   - src/cli/hook.ts
   - plugins/claude-code/hooks/hooks.json
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-d6c8d5ed
-    ears: event
-    condition: "when a PostToolUse event with tool_name Bash fires and the working-tree delta since the stored snapshot contains a path passing isWatchedSourcePath"
-    text: "When a Bash tool result reveals a mutated watched source path, the hook shall render the same tiered push card (F-35954d19 pipeline) for the most-recently-modified such path."
-    notes: "WHY: sed/heredoc/tee/git-apply edits bypass the Edit|Write matcher entirely — the sessions that shell out for edits are exactly the ones with zero ambient impact context today (hook.ts self-documents this hole)."
-    test_refs: [tests/cli/hook-bash-lane.test.ts]
+    statement: When a Bash tool result reveals a mutated watched source path, the
+      hook shall render the same tiered push card (F-35954d19 pipeline) for the
+      most-recently-modified such path.
+    notes: "WHY: sed/heredoc/tee/git-apply edits bypass the Edit|Write matcher
+      entirely — the sessions that shell out for edits are exactly the ones with
+      zero ambient impact context today (hook.ts self-documents this hole)."
   - id: AC-ab85ee3e
-    ears: ubiquitous
-    text: "The system shall evaluate the debounce stamp and a conservative read-only command-prefix allowlist (git status/log/diff, ls, cat, grep, rg, find, node --version, npm test and similar) before spawning any git subprocess, and the Bash lane shall add at most one git status subprocess per debounce window."
-    notes: "WHY: PostToolUse Bash fires on every shell command — the fast path must stay in-process string checks."
-    test_refs: [tests/cli/hook-bash-lane.test.ts]
+    statement: The system shall evaluate the debounce stamp and a conservative
+      read-only command-prefix allowlist containing git status, git log, git
+      diff, ls, cat, grep, rg, find, node --version, npm test, and similar
+      commands before spawning any git subprocess and add at most one git status
+      subprocess per debounce window in the Bash lane.
+    kind: quality
+    notes: "WHY: PostToolUse Bash fires on every shell command — the fast path must
+      stay in-process string checks."
   - id: AC-14c2e2ea
-    ears: unwanted
-    condition: "if the cwd is not a git repository or git status fails or the delta is empty"
-    text: "If git state is unavailable or no watched path changed, then the Bash lane shall degrade to silence without writing the tree snapshot and without emitting an error."
+    statement: If git state is unavailable or no watched path changed, then the Bash
+      lane shall degrade to silence without writing the tree snapshot and
+      without emitting an error.
     notes: "WHY: hook error-as-silence contract; non-git projects must lose nothing."
-    test_refs: [tests/cli/hook-bash-lane.test.ts]
   - id: AC-4f2df3ee
-    ears: event
-    condition: "when an Edit, Write, or MultiEdit PostToolUse event completes"
-    text: "When a native write-tool event completes, the hook shall refresh the tree snapshot so a subsequent Bash event does not re-attribute that edit to the shell command."
-    notes: "WHY: attribution honesty — hand-tool edits must never double-fire through the Bash lane."
-    test_refs: [tests/cli/hook-bash-lane.test.ts]
+    statement: When a native write-tool event completes, the hook shall refresh the
+      tree snapshot so a subsequent Bash event does not re-attribute that edit
+      to the shell command.
+    notes: "WHY: attribution honesty — hand-tool edits must never double-fire
+      through the Bash lane."
   - id: AC-977e6445
-    ears: event
-    condition: when the Bash mutation lane produces a result
-    text: When the Bash mutation lane produces a result, the system shall emit advisory-only context.
-    notes: "## 2026-08-31 criterion decomposition\n\nOriginal compound text (verbatim): The system shall never emit a block decision from the Bash lane; its output is advisory context only, and all F-35954d19 ledger rules (dedup, budget, telemetry reasons) apply unchanged.\n\nReason: split advisory rendering, cross-lane deduplication, ledger/budget governance, and shared telemetry vocabulary while retaining this legacy address.\n\nWHY: a false-positive block on shell parsing is the fastest route to users disabling hooks; Stop-gate remains the enforcement lane."
-    test_refs:
-      - "tests/cli/hook-bash-lane.test.ts#[covers:F-e7d59c88/AC-977e6445] Bash mutation output is advisory-only context"
+    statement: When the Bash mutation lane produces a result, the system shall emit
+      advisory-only context.
+    notes: >-
+      ## 2026-08-31 criterion decomposition
+
+
+      Original compound text (verbatim): The system shall never emit a block
+      decision from the Bash lane; its output is advisory context only, and all
+      F-35954d19 ledger rules (dedup, budget, telemetry reasons) apply
+      unchanged.
+
+
+      Reason: split advisory rendering, cross-lane deduplication, ledger/budget
+      governance, and shared telemetry vocabulary while retaining this legacy
+      address.
+
+
+      WHY: a false-positive block on shell parsing is the fastest route to users
+      disabling hooks; Stop-gate remains the enforcement lane.
   - id: AC-278b34cd
-    ears: ubiquitous
-    text: The Bash mutation lane shall apply shared cross-lane push-card deduplication.
-    test_refs:
-      - "tests/cli/hook-bash-lane.test.ts#[covers:F-e7d59c88/AC-278b34cd] native and Bash cards share one dedup fingerprint"
+    statement: The Bash mutation lane shall apply shared cross-lane push-card
+      deduplication.
   - id: AC-3021d7dc
-    ears: ubiquitous
-    text: The Bash mutation lane shall apply the shared push-card budget rule.
-    test_refs:
-      - "tests/cli/hook-bash-lane.test.ts#[covers:F-e7d59c88/AC-3021d7dc] normal Bash cards honor the shared push budget"
-      - "tests/cli/hook-push-fallback.test.ts#[covers:F-e7d59c88/AC-3021d7dc] fallback Bash cards honor the shared push budget"
+    statement: The Bash mutation lane shall apply the shared push-card budget rule.
   - id: AC-fc9532da
-    ears: ubiquitous
-    text: The Bash mutation lane shall use the shared ImpactSkipReason vocabulary for its telemetry.
-    test_refs:
-      - "tests/cli/hook-bash-lane.test.ts#[covers:F-e7d59c88/AC-fc9532da] Bash telemetry emits only shared skip reasons"
+    statement: The Bash mutation lane shall use the shared ImpactSkipReason
+      vocabulary for its telemetry.

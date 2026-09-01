@@ -1,7 +1,6 @@
-# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: manual
 id: F-0a29d024
-slug: spec-02-design-validation
-title: "Spec 0.2 design validation — executable scenarios, MCP efficacy, and token accounting"
+title: Spec 0.2 design validation — executable scenarios, MCP efficacy, and
+  token accounting
 status: done
 modules:
   - scripts/spec-0.2-validate.ts
@@ -15,31 +14,45 @@ modules:
   - docs/design/spec-0.2/decision-log.md
   - docs/README.md
   - package.json
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-21dfe21a
-    ears: ubiquitous
-    text: "The validation ledger shall map every D01-D24 decision to a canonical owner, an executable or explicitly deferred scenario, and a unique evidence classification without presenting preregistered work as a passing result."
-    test_refs: ["tests/design/spec-0.2/design-validation.test.ts#keeps the D01-D24 ledger canonical and rejects fabricated preregistered pass evidence"]
-    notes: "## Why\nThe accepted design is larger than the 37 parser/migration seeds, so section-level prose confidence is not enough to begin a long implementation safely."
+    statement: The validation ledger shall map every D01-D24 decision to a canonical
+      owner, an executable or explicitly deferred scenario, and a unique
+      evidence classification without presenting preregistered work as a passing
+      result.
+    notes: >-
+      ## Why
+
+      The accepted design is larger than the 37 parser/migration seeds, so
+      section-level prose confidence is not enough to begin a long
+      implementation safely.
   - id: AC-e0f0c4b1
-    ears: ubiquitous
-    text: "The deterministic simulator shall evaluate design ownership, migration and proof contracts, GraphIR and context constraints, assurance scheduling, and delivery ordering with independent fixtures while leaving implementation-pending behavior explicitly unverified."
-    test_refs: ["tests/design/spec-0.2/design-validation.test.ts#runs deterministic design scenarios without converting pending implementation into evidence"]
+    statement: The deterministic simulator shall evaluate design ownership,
+      migration and proof contracts, GraphIR and context constraints, assurance
+      scheduling, and delivery ordering with independent fixtures while leaving
+      implementation-pending behavior explicitly unverified.
   - id: AC-bd12a73c
-    ears: ubiquitous
-    text: "The MCP validation suite shall distinguish wire conformance, semantic parity, mutation safety, reference-host end-to-end use, efficiency when used, and observed adoption, and shall fail closed when any required evidence is absent."
-    test_refs: ["tests/design/spec-0.2/mcp-validation.test.ts#separates MCP conformance efficacy and adoption without vacuous success"]
+    statement: The MCP validation suite shall distinguish wire conformance, semantic
+      parity, mutation safety, reference-host end-to-end use, efficiency when
+      used, and observed adoption and fail closed when required evidence is
+      absent.
+    kind: quality
   - id: AC-4c8c08d1
-    ears: ubiquitous
-    text: "Every deterministic and live validation result shall report exact controlled UTF-8 bytes, a named token estimator, cache knowledge, and only counterfactually demonstrated avoidable bytes as waste."
-    test_refs: ["tests/design/spec-0.2/design-validation.test.ts#accounts for controlled bytes tokens cache and counterfactual waste honestly"]
+    statement: The validation system shall report exact controlled UTF-8 bytes, a
+      named token estimator, cache knowledge, and only counterfactually
+      demonstrated avoidable bytes as waste for every deterministic and live
+      validation result.
+    kind: quality
   - id: AC-55c159b4
-    ears: event
-    condition: "when the Spec 0.2 validation command runs"
-    text: "When the Spec 0.2 validation command runs, the system shall emit a deterministic machine-readable summary and a human-readable report whose pass, fail, inconclusive, not-run, and implementation-pending states remain distinct."
-    test_refs: ["tests/design/spec-0.2/design-validation.test.ts#emits byte-identical summaries with distinct result states"]
+    statement: When the Spec 0.2 validation command runs, the system shall emit a
+      deterministic machine-readable summary and a human-readable report whose
+      pass, fail, inconclusive, not-run, and implementation-pending states
+      remain distinct.
 design_impact:
   classification: additive
-  rationale: "The work adds a contributor-only validation boundary and target-design owner without changing the shipped 0.1 runtime contract."
+  rationale: The work adds a contributor-only validation boundary and
+    target-design owner without changing the shipped 0.1 runtime contract.
   status: resolved
   artifacts: []

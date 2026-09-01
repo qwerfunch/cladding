@@ -7,15 +7,13 @@ depends_on:
   - F-003
   - F-010
   - F-021
+capability_refs: []
 acceptance_criteria:
   - id: AC-034
-    ears: event
-    condition: when an applicable criterion lacks a live binding or qualifying evidence channel
-    action: verificationClosure records it as unobserved
-    response: does not treat a legacy reference-field absence as a warn-only success
-    text: When an applicable criterion lacks a live binding or qualifying evidence channel, verificationClosure shall record it as unobserved rather than treating a legacy reference-field absence as a warn-only success.
-    test_refs:
-      - "tests/assurance/closures.test.ts#[covers:F-022/AC-034] missing live proof remains unobserved in verificationClosure"
+    statement: When an applicable criterion lacks a live binding or qualifying
+      evidence channel, the verificationClosure shall record it as unobserved
+      rather than treat a legacy reference-field absence as a warn-only success.
+    kind: behavior
     notes: |
       ## Historical schema-0.1 note
       The warn-only no-test_refs rule is historical and is not current proof.

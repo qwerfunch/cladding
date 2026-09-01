@@ -1,5 +1,4 @@
 id: F-c8aef8
-slug: project-context
 title: docs/project-context.md forest-level entry document (v0.3.32)
 status: done
 modules:
@@ -10,36 +9,32 @@ modules:
   - src/cli/init.ts
 depends_on:
   - F-aa7197
+capability_refs: []
 acceptance_criteria:
   - id: AC-001
-    ears: ubiquitous
-    action: write docs/project-context.md on every clad init invocation
-    response: 'src/cli/init.ts runInit always calls renderProjectContextMd(scanResult.projectContext, projectName) and writes the result to docs/project-context.md; the file lives at the same path whether scan ran or not, so an AI maintainer joining the project always finds the why-document first; conflict path diverts to .cladding/scan/project-context.md.proposal'
-    text: The system shall write docs/project-context.md on every clad init invocation so the forest-level why-and-what entry document exists in every cladding workspace regardless of whether code or README was observable at adoption time.
-    test_refs: [tests/cli/scan.test.ts]
+    statement: The system shall write docs/project-context.md on every clad init
+      invocation so the forest-level why-and-what entry document exists in every
+      cladding workspace regardless of whether code or README was observable at
+      adoption time.
   - id: AC-002
-    ears: event
-    condition: when README.md is present in the project root
-    action: extract first paragraph plus headings plus sibling-doc links plus representative interface signatures into ProjectContext
-    response: 'src/cli/scan/docs.ts extractProjectContext combines four deterministic extractors — extractReadmeFirstParagraph (decorative HTML/badge skip plus inline strip), extractReadmeHeadings (top-10 of ## level in document order), extractDocLinks (ARCHITECTURE/CONTRIBUTING/GOVERNANCE/SECURITY/CODE_OF_CONDUCT plus docs slash *.md first non-empty content line), extractInterfaceSignatures (top-2 layers by module count plus top-3 export interface/class per layer); orchestrator attaches the result to ScanResult.projectContext'
-    text: When README.md is present in the project root, the system shall extract first paragraph plus headings plus sibling-doc links plus representative interface signatures into ProjectContext so the rendered markdown surfaces what the project tells the world plus how its main interfaces look.
-    test_refs: [tests/cli/scan.test.ts]
+    statement: When README.md is present in the project root, the system shall
+      extract first paragraph plus headings plus sibling-doc links plus
+      representative interface signatures into ProjectContext so the rendered
+      markdown surfaces what the project tells the world plus how its main
+      interfaces look.
   - id: AC-003
-    ears: event
-    condition: when README is absent and no source plus no sibling docs surfaced
-    action: return null for projectContext and render the template body
-    response: 'src/cli/scan/docs.ts extractProjectContext returns null when readmeFirstParagraph plus readmeHeadings plus docLinks plus interfaceSignatures are all empty; src/cli/scan/llm.ts renderProjectContextMd accepts null and dispatches to renderProjectContextTemplate which writes Why slash What slash Purpose slash Top-level capabilities sections as fill-in prompts; greenfield projects always see the template, not a misleading empty extract'
-    text: When README is absent and no source plus no sibling docs surfaced, the system shall return null for projectContext and render the template body so greenfield projects do not see misleading auto-extracted text.
-    test_refs: [tests/cli/scan.test.ts]
+    statement: When README is absent and no source plus no sibling docs surfaced,
+      the system shall return null for projectContext and render the template
+      body so greenfield projects do not see misleading auto-extracted text.
   - id: AC-004
-    ears: ubiquitous
-    action: skip decorative HTML wrappers plus badge links when extracting README first paragraph
-    response: 'src/cli/scan/docs.ts isDecorativeLine predicate rejects empty lines plus markdown headings plus blockquotes plus HTML comments plus html wrapper tags (div/p/a/br/img/span/center/h1-h6) plus closing-only lines plus image-only markdown plus badge markdown; stripDecorationInline removes image markdown plus img tags plus a tags plus standalone badge link markdown so surviving lines hold prose; cobra README now extracts as Cobra is a library for creating powerful modern CLI applications instead of raw HTML div tags'
-    text: The system shall skip decorative HTML wrappers plus badge links when extracting README first paragraph so OSS READMEs leading with centred logos plus shields do not pollute the project-context document with raw HTML.
-    test_refs: [tests/cli/scan.test.ts]
+    statement: The system shall skip decorative HTML wrappers plus badge links when
+      extracting README first paragraph so OSS READMEs leading with centred
+      logos plus shields do not pollute the project-context document with raw
+      HTML.
   - id: AC-005
-    ears: ubiquitous
-    action: auto-detect whether to write scan artifacts based on observed source file count
-    response: 'src/cli/init.ts runInit gates docs/conventions.md plus spec/architecture.yaml plus spec/scenarios/README.md on shouldWriteScanArtifacts which is true when (opts.scan === true) or (scanResult.stats.filesScanned >= SCAN_AUTO_THRESHOLD which is 3); opts.scan === false (the --no-scan override) returns null scanResult so the gate is false even when source exists; users normally invoke clad init without flags and cladding decides whether the scan artifacts are worth writing'
-    text: The system shall auto-detect whether to write scan artifacts based on observed source file count so external adopters invoke clad init without flags and cladding decides on their behalf; --scan and --no-scan remain as explicit overrides for CI reproducibility.
-    evidence_refs: [src/cli/init.ts]
+    statement: The system shall auto-detect whether to write scan artifacts based on
+      observed source file count so external adopters invoke clad init without
+      flags and cladding decides on their behalf; --scan and --no-scan remain as
+      explicit overrides for CI reproducibility.
+    evidence_refs:
+      - src/cli/init.ts

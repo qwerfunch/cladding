@@ -1,36 +1,47 @@
 id: F-16138071
-slug: graph-efficiency-measure
-title: "clad measure — deterministically quantify the search + context efficiency the graph provides per feature"
+title: clad measure — deterministically quantify the search + context efficiency
+  the graph provides per feature
 status: done
-depends_on:
-  - F-06dfdad6
-  - F-96250595
 modules:
   - src/optimizer/measurement.ts
   - src/cli/clad.ts
+depends_on:
+  - F-06dfdad6
+  - F-96250595
+capability_refs: []
 acceptance_criteria:
   - id: AC-493895
-    ears: event
-    condition: "when measureGraphEfficiency runs over a spec with module files"
-    action: "for each feature compute the working-set token size, the naive baseline (shard + full text of all its module files), the dependency depth + edges the graph resolves, and the iterative slice's coverage + stop reason; aggregate to medians/p95"
-    response: "a per-feature + aggregate efficiency report quantifying what the graph hands you vs what you'd reconstruct by hand"
-    text: "When measureGraphEfficiency runs, the system shall produce per-feature and aggregate context-efficiency metrics that ATTRIBUTE shrink honestly (cap-driven vs structural: fits/truncated split + medianStructuralRatio via an uncapped second pass), search-efficiency (depth/edges), and regression-coverage metrics, feeding the slice and the naive baseline through ONE injected reader."
-    test_refs:
-      - "tests/optimizer/measurement.test.ts#the injected reader feeds BOTH slice and baseline — one universe, honest ratio"
-      - "tests/optimizer/measurement.test.ts#splits cap-driven shrink from structural shrink (honest attribution)"
-      - "tests/optimizer/measurement.test.ts#a fitting feature counts as fits (no cap attribution) and structural == budgeted"
-    notes: "## Why\nThe graph tooling's goal is search/context efficiency + stable dev at scale, NOT agent correctness — four correctness-framed A/Bs were NULL on the wrong axis. This measures the right axis DETERMINISTICALLY (no agent, no NULL risk). ## Correction (0.7.1)\nThe original 4.1x headline was largely the 3000-token budget CAP compressing, not the graph: uncapped, the structural slice is ~1.16x of naive on cladding-self (code + metadata). The report now splits cap-driven vs structural shrink and the CLI attributes the reduction to the budget; the honest sell is a GUARANTEED bounded context with needs/breaks/verify wiring, not raw shrink. The injected reader also reaches buildWorkingSet now, so slice and baseline read one universe. ## Honest scope\nUpper bound of what the infrastructure CAN provide vs ONE naive baseline (shard+all-modules) — NOT proof a strong agent adopts it (A/Bs show strong agents grep regardless)."
+    statement: "When measureGraphEfficiency runs, the system shall produce
+      per-feature and aggregate context-efficiency metrics that ATTRIBUTE shrink
+      honestly (cap-driven vs structural: fits/truncated split +
+      medianStructuralRatio via an uncapped second pass), search-efficiency
+      (depth/edges), and regression-coverage metrics, feeding the slice and the
+      naive baseline through ONE injected reader."
+    notes: >-
+      ## Why
+
+      The graph tooling's goal is search/context efficiency + stable dev at
+      scale, NOT agent correctness — four correctness-framed A/Bs were NULL on
+      the wrong axis. This measures the right axis DETERMINISTICALLY (no agent,
+      no NULL risk). ## Correction (0.7.1)
+
+      The original 4.1x headline was largely the 3000-token budget CAP
+      compressing, not the graph: uncapped, the structural slice is ~1.16x of
+      naive on cladding-self (code + metadata). The report now splits cap-driven
+      vs structural shrink and the CLI attributes the reduction to the budget;
+      the honest sell is a GUARANTEED bounded context with needs/breaks/verify
+      wiring, not raw shrink. The injected reader also reaches buildWorkingSet
+      now, so slice and baseline read one universe. ## Honest scope
+
+      Upper bound of what the infrastructure CAN provide vs ONE naive baseline
+      (shard+all-modules) — NOT proof a strong agent adopts it (A/Bs show strong
+      agents grep regardless).
   - id: AC-612e57
-    ears: ubiquitous
-    text: "Measurement shall be pure + deterministic given the spec and an injected file reader (no direct fs in the core; reader injected like code-excerpt), and shall never throw on a feature that resolves to a lookup miss (skip it)."
-    test_refs:
-      - "tests/optimizer/measurement.test.ts#is deterministic for identical spec and file contents"
-      - "tests/optimizer/measurement.test.ts#skips lookup misses without throwing"
+    statement: The measurement core shall be pure and deterministic for the
+      specification and an injected file reader like code-excerpt, avoid direct
+      filesystem access, and skip a feature whose lookup misses without
+      throwing.
+    kind: quality
   - id: AC-d18961
-    ears: event
-    condition: "when the MCP/CLI surface registers commands"
-    action: "expose `clad measure` (table + --json) reusing measureGraphEfficiency, without altering existing verbs"
-    response: "the efficiency report is runnable from the CLI"
-    text: "When the CLI registers, the system shall add a `measure` verb that prints the efficiency report."
-    test_refs:
-      - "tests/cli/measure-ledger-failure.test.ts#registers measure and prints the efficiency report"
+    statement: When the CLI registers, the system shall add a `measure` verb that
+      prints the efficiency report.

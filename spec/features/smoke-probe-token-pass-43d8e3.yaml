@@ -1,23 +1,23 @@
 id: F-43d8e3
-slug: smoke-probe-token-pass
-title: "Functional smoke probe — AC-token flips liveness to pass"
+title: Functional smoke probe — AC-token flips liveness to pass
 status: done
 modules:
   - src/spec/types.ts
   - src/spec/schema.json
   - src/stages/deliverable-smoke.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-0e2aa7
-    ears: ubiquitous
-    text: "The spec schema shall accept project.smoke as an array of probes, each with kind (cli|none) and optional run, expect{ac,exit,token}, binds, and why."
-    test_refs: ["tests/stages/deliverable-smoke.test.ts"]
+    statement: The spec schema shall accept project.smoke as an array of probes,
+      each with kind (cli|none) and optional run, expect{ac,exit,token}, binds,
+      and why.
   - id: AC-46afdd
-    ears: event
-    condition: "when a cli smoke probe exits as expected and its stdout contains expect.token"
-    text: "When a cli smoke probe exits as expected and its stdout contains the declared expect.token, the smoke stage shall report disposition 'pass' (green) — the AC-token upgrade of an otherwise exit-only liveness."
-    test_refs: ["tests/stages/deliverable-smoke.test.ts"]
+    statement: When a cli smoke probe exits as expected and its stdout contains the
+      declared expect.token, the smoke stage shall report disposition 'pass'
+      (green) — the AC-token upgrade of an otherwise exit-only liveness.
   - id: AC-dc287f
-    ears: event
-    condition: "when a cli smoke probe exits as expected with no declared token"
-    text: "When a cli smoke probe exits as expected with no declared token the stage shall report liveness; when the declared token is absent from stdout it shall report a blocking fail; a kind:none probe shall report na."
-    test_refs: ["tests/stages/deliverable-smoke.test.ts"]
+    statement: When a CLI smoke probe exits as expected with no declared token, the
+      smoke stage shall report liveness, report a blocking fail when a declared
+      token is absent from stdout, and report NA for a kind:none probe.
+    kind: behavior

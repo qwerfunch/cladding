@@ -1,32 +1,38 @@
 id: F-9e1279d4
-slug: language-evidence-core
-title: "Language evidence core and evidence-based TECH_STACK_MISMATCH"
+title: Language evidence core and evidence-based TECH_STACK_MISMATCH
 status: done
 modules:
   - src/core/language-evidence.ts
   - src/stages/detectors/tech-stack-mismatch.ts
   - src/cli/scan/thresholds.ts
   - src/ui/softShell.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-1c7a90b2
-    ears: ubiquitous
-    action: "resolve the extension-to-language vocabulary, a bounded source walk, and the observed language distribution from one foundation module consumed by both the scan layer and the stage layer"
-    response: "the onboarding scan and the drift detectors read the same vocabulary, ending the class of bugs where one layer writes a label another layer cannot recognize; the walk skips vendored and generated directories and is capped, so a detector invoking it on every gate run stays bounded"
-    text: "The system shall expose the extension-to-language vocabulary and the observed source-language distribution from a single foundation module under src/core/ that both the scan layer and the stage layer import."
-    notes: |
+    statement: The system shall expose the extension-to-language vocabulary and the
+      observed source-language distribution from a single foundation module
+      under src/core/ that both the scan layer and the stage layer import.
+    notes: >
       ## Why
-      Three divergent language tables (scan EXT_TO_LANGUAGE 15, toolchain CHAIN 12,
-      unmapped EXT_BY_LANGUAGE 6) meant clad init could seed a label the detector
-      layer then rejected under --strict — measured: init seeded cpp/rust and the
+
+      Three divergent language tables (scan EXT_TO_LANGUAGE 15, toolchain CHAIN
+      12,
+
+      unmapped EXT_BY_LANGUAGE 6) meant clad init could seed a label the
+      detector
+
+      layer then rejected under --strict — measured: init seeded cpp/rust and
+      the
+
       gate blocked both with zero user error. Architecture forbids stages -> cli
+
       imports, so the shared home must be the foundation tier.
-    test_refs: ["tests/core/language-evidence.test.ts"]
   - id: AC-3f8e6d15
-    ears: unwanted
-    condition: "if the declared spec.project.language is outside the vocabulary, or fewer than 5 classified source files exist in the tree"
-    action: "emit no TECH_STACK_MISMATCH finding at all"
-    response: "ignorance is never treated as drift: unknown languages (zig, haskell, nim) and evidence-thin trees produce silence instead of a false alarm, and a coverage-ratio rule is deliberately absent because its denominator list flipped failure directions in red-team testing"
-    text: "If the declared language is unknown to the vocabulary or fewer than 5 classified source files exist, the TECH_STACK_MISMATCH detector shall emit nothing."
+    statement: If the declared language is unknown to the vocabulary or fewer than 5
+      classified source files exist, then the TECH_STACK_MISMATCH detector shall
+      emit nothing.
+    kind: behavior
     notes: |
       ## Why
       The prior manifest-chain comparison blocked 12 of 19 realistic normal repo
@@ -34,20 +40,14 @@ acceptance_criteria:
       refuted out-of-sample: whether an unknown extension sat in the denominator
       list flipped the failure between false-warn and missed-drift. The
       evidence-count rule replaces it and removes that list entirely.
-    test_refs: ["tests/stages/tech-stack-mismatch.test.ts"]
   - id: AC-5b2d47c9
-    ears: event
-    condition: "when the declared language is in the vocabulary, at least 5 classified source files exist, and the declared language is absent from the observed language set"
-    action: "emit one warn finding naming the declared language and the observed set with counts"
-    response: "an active contradiction (ported to TypeScript while the spec still says python) is still surfaced and still blocks under --strict, and the message shows the evidence so the developer sees why"
-    text: "When the declared language is absent from the observed source set with at least 5 classified files, the detector shall emit one warn finding naming the declared language and the observed distribution."
-    test_refs: ["tests/stages/tech-stack-mismatch.test.ts"]
+    statement: When the declared language is absent from the observed source set
+      with at least 5 classified files, the detector shall emit one warn finding
+      naming the declared language and the observed distribution.
   - id: AC-8d94a1e6
-    ears: event
-    condition: "when the declared language is observed but accounts for less than 10% of classified source files"
-    action: "emit one info finding naming the share"
-    response: "a small-but-essential core (a thin C++ SDK under a Kotlin wrapper) is disclosed without ever failing a gate, since residue and thin-core are not mechanically separable"
-    text: "When the declared language is observed at under 10% of classified sources, the detector shall emit one info finding and never a gate-failing severity."
+    statement: When the declared language is observed at under 10% of classified
+      sources, the detector shall emit one info finding and never a gate-failing
+      severity.
     notes: |
       ## Why
       Boundary attack proved a normal thin-native SDK (4.8%) sits BELOW a real
@@ -55,16 +55,16 @@ acceptance_criteria:
       band discloses instead of blocking. Corpus-supported ranges: evidence
       floor K in [3,10] (5 chosen), minority t in [9,50]% (10 chosen; higher t
       only adds info noise on normal polyglots).
-    test_refs: ["tests/stages/tech-stack-mismatch.test.ts"]
   - id: AC-e07c3241
-    ears: unwanted
-    condition: "if the project is a normal polyglot whose declared language is a majority or plural presence (an Android app with Kotlin plus NDK C++, a React Native app, a JVM service with Kotlin tests)"
-    action: "emit nothing"
-    response: "the manifest chain is no longer consulted for identity, so a build-host label (gradle says java) can no longer contradict a truthful product language, and detectToolchain keeps serving gate-command selection unchanged"
-    text: "If the declared language is present at or above the minority threshold among observed sources, the detector shall emit nothing, regardless of what the build-manifest chain resolves."
-    test_refs: ["tests/stages/tech-stack-mismatch.test.ts"]
+    statement: If the declared language is present at or above the minority
+      threshold among observed sources, then the detector shall emit nothing,
+      regardless of what the build-manifest chain resolves.
+    kind: behavior
 design_impact:
   classification: none
-  rationale: "Moves a vocabulary map to the foundation tier and re-anchors one detector's evidence source; no architecture layer, capability, or gate-severity policy changes. detectToolchain and gate-command selection are untouched."
+  rationale: Moves a vocabulary map to the foundation tier and re-anchors one
+    detector's evidence source; no architecture layer, capability, or
+    gate-severity policy changes. detectToolchain and gate-command selection are
+    untouched.
   status: resolved
   artifacts: []

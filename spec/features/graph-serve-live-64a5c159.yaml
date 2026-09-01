@@ -1,33 +1,45 @@
 id: F-64a5c159
-slug: graph-serve-live
-title: "Live graph view — clad graph serve (http + fs.watch + SSE auto-reload) + clad_get_graph MCP"
+title: Live graph view — clad graph serve (http + fs.watch + SSE auto-reload) +
+  clad_get_graph MCP
 status: done
 modules:
   - src/cli/graph-serve.ts
   - src/cli/clad.ts
   - src/serve/server.ts
+depends_on: []
+capability_refs:
+  - knowledge-graph
 acceptance_criteria:
   - id: AC-6618e320
-    ears: event
-    condition: "when clad graph serve runs"
-    action: "boot a node:http server (stdlib, zero dep) whose GET / serves the viewer over the live graph, GET /graph.json returns the freshly recomputed graph JSON, and GET /events is a text/event-stream SSE channel"
-    response: "the user opens localhost once and the view reflects the CURRENT spec on every load — no re-export; build the view once, develop, it stays live"
-    text: "When clad graph serve runs, the system shall serve GET / (live viewer), GET /graph.json (freshly recomputed graph), and GET /events (SSE stream) from a stdlib node:http server."
-    test_refs: ["tests/cli/graph-serve.test.ts#serves the live viewer, a fresh graph json, and an SSE events stream"]
-    notes: "## Why\nUser reframe: the graph is a live derivation of the spec, so the view must auto-update as development proceeds, not be a re-exported snapshot. buildGraph is pure/stateless — recompute per request = always live, no stale-trap."
+    statement: When clad graph serve runs, the system shall serve GET / (live
+      viewer), GET /graph.json (freshly recomputed graph), and GET /events (SSE
+      stream) from a stdlib node:http server.
+    notes: >-
+      ## Why
+
+      User reframe: the graph is a live derivation of the spec, so the view must
+      auto-update as development proceeds, not be a re-exported snapshot.
+      buildGraph is pure/stateless — recompute per request = always live, no
+      stale-trap.
   - id: AC-94d847fb
-    ears: event
-    condition: "when a watched spec or doc file changes while the server is running"
-    action: "debounce briefly then broadcast an SSE refresh event to all connected viewers"
-    response: "open browsers reload to the updated graph automatically — develop and the graph follows"
-    text: "When a watched spec/doc file changes, the server shall (debounced) broadcast an SSE refresh so connected viewers auto-update."
-    test_refs: ["tests/cli/graph-serve.test.ts#a REAL file change under a watched dir reaches SSE through fs.watch + debounce"]
-    notes: "## Decision\nnode:fs.watch (stdlib) on spec/ + docs/, ~400ms debounce (fs.watch is platform-racy; debounce coalesces). No stale-trap: server always recomputes; if it dies the connection closes (visible)."
+    statement: When a watched spec/doc file changes, the server shall (debounced)
+      broadcast an SSE refresh so connected viewers auto-update.
+    notes: >-
+      ## Decision
+
+      node:fs.watch (stdlib) on spec/ + docs/, ~400ms debounce (fs.watch is
+      platform-racy; debounce coalesces). No stale-trap: server always
+      recomputes; if it dies the connection closes (visible).
   - id: AC-236bcc1e
-    ears: event
-    condition: "when a host calls the clad_get_graph MCP tool"
-    action: "with a query, return the live focused neighborhood (a path query unions its kind-twins); without a query, return a compact graphStats summary instead of the full graph"
-    response: "an LLM references the always-current spec↔code↔doc graph in one call, without a ~70k-token unbudgeted payload riding the no-query form"
-    text: "When clad_get_graph is called with a query, the system shall return the live focused subgraph JSON with schema_version; when called without a query it shall return a stats summary (counts by kind + hubs), never the full node/edge dump."
-    test_refs: ["tests/serve/server.test.ts#no-query answers a stats SUMMARY (token-budget discipline), focus answers a subgraph, miss is isError"]
-    notes: "## Why (0.7.1)\nThe 0.7.0 no-query form returned the whole graph pretty-printed — measured 285KB (~70k tokens) on cladding-self in ONE MCP result, contradicting the working-set budget discipline. Summary + hint keeps the tool safe to call blind; full dumps live on the CLI (clad graph export)."
+    statement: When clad_get_graph is called with a query, the graph service shall
+      return the live focused subgraph JSON with schema_version and return a
+      stats summary rather than the full node and edge dump when called without
+      a query.
+    kind: behavior
+    notes: >-
+      ## Why (0.7.1)
+
+      The 0.7.0 no-query form returned the whole graph pretty-printed — measured
+      285KB (~70k tokens) on cladding-self in ONE MCP result, contradicting the
+      working-set budget discipline. Summary + hint keeps the tool safe to call
+      blind; full dumps live on the CLI (clad graph export).

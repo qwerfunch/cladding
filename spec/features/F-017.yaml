@@ -5,13 +5,11 @@ modules:
   - src/stages/detectors/harness-integrity.ts
 depends_on:
   - F-003
+capability_refs: []
 acceptance_criteria:
   - id: AC-027
-    ears: ubiquitous
-    action: cross-check plugin.json current.detectors against actual files under
-      src/stages/detectors/
-    response: error finding when the numerator does not match the file count
-    text: The system shall cross-check the numerator of plugin.json
+    statement: The system shall cross-check the numerator of plugin.json
       current.detectors against the number of non-index .ts files under
       src/stages/detectors/, emitting an error finding on mismatch.
-    evidence_refs: [fixture:F-017_AC-027]
+    evidence_refs:
+      - fixture:F-017_AC-027

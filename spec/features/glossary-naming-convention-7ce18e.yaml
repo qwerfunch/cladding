@@ -1,6 +1,6 @@
 id: F-7ce18e
-slug: glossary-naming-convention
-title: "Glossary as the terminology SSoT + naming convention + ecosystem-aligned renames"
+title: Glossary as the terminology SSoT + naming convention + ecosystem-aligned
+  renames
 status: done
 modules:
   - docs/glossary.md
@@ -10,47 +10,55 @@ modules:
   - src/agents/planner.md
   - src/agents/developer.md
   - tests/self-consistency.test.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-f708a4
-    ears: ubiquitous
-    text: "The system shall maintain docs/glossary.md as the terminology SSoT: every public name (CLI verb, persona id, MCP tool, event type, detector id, brand term) carries an EN definition, a KO correspondence, and a lifecycle state (stable / alias / deprecated / removed / frozen)."
-    notes: "## Why\nNaming drifted organically (librarian collides with the ecosystem's read-only researcher role; specialists is a plural for one persona; digest means cryptographic hash in the attestation vocabulary 0.6 adopts). A glossary nothing enforces would rot like project-context did, so the self-consistency suite locks it."
-    test_refs:
-      - "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every public CLI verb registered in clad.ts has exact glossary metadata"
-      - "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every persona file under src/agents/ has exact glossary metadata"
-      - "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every MCP tool registered in server.ts has exact glossary metadata"
-      - "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every event type has exact glossary metadata"
-      - "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every registered detector id has exact glossary metadata"
-      - "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every brand term has exact glossary metadata"
-  - id: AC-2087c9
-    ears: unwanted
-    condition: "if a public name is not registered in docs/glossary.md"
-    action: "fail tests/self-consistency.test.ts with the missing name"
-    response: "new public names are forced through the glossary + convention gate"
-    text: "If a public name (CLI verb registered in src/cli/clad.ts, persona file under src/agents/, or MCP tool registered in src/serve/server.ts) is absent from docs/glossary.md, the self-consistency suite shall fail, so new names cannot ship unregistered."
-    test_refs:
-      - "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every public CLI verb registered in clad.ts has exact glossary metadata"
-      - "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every persona file under src/agents/ has exact glossary metadata"
-      - "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every MCP tool registered in server.ts has exact glossary metadata"
-  - id: AC-614993
-    ears: event
-    condition: "when a user invokes a post-lifecycle legacy CLI alias"
-    action: "reject the old alias and register only its successor verb"
-    text: "When a user invokes a post-lifecycle legacy CLI alias, the system shall reject the old spelling and expose only its successor verb."
-    notes: "## Decision\nAliases were intentionally limited to the 0.6.x lifecycle and removed in 0.7; this historical transition remains recorded, but no shipped alias executes.\n## Trade-off\nKeeping `work` (a permanently not-implemented stub verb) would be dishonest surface — it remains removed; `clad run` owns the autonomous-loop slot."
-    test_refs:
-      - "tests/cli/clad.test.ts#removed aliases stay removed; successors are the only spelling"
-  - id: AC-35f800
-    ears: ubiquitous
-    text: "The system shall generate new feature ids with 8 hex characters (F-<hash8>), keeping the existing >=6-hex validator unchanged, so the birthday-collision probability at thousands-of-shards scale stays negligible while every existing id remains valid."
-    notes: "## Why\n6 hex = 16.7M space reaches ~50% pairwise collision near 4.8k features; 8 hex pushes that past 1M features. Validator already accepts 6+."
-    test_refs:
-      - "tests/spec/new.test.ts#happy path — writes spec/features/<slug>-<hash8>.yaml with hash id"
-  - id: AC-c034ed
-    ears: ubiquitous
-    text: "The system shall keep frozen wire identifiers unchanged (MCP tool names, detector IDs, event types, spec schema fields) and improve only their human-facing display labels, so audit logs and host integrations never break on a rename."
+    statement: "The system shall maintain docs/glossary.md as the terminology SSoT:
+      every public name (CLI verb, persona id, MCP tool, event type, detector
+      id, brand term) carries an EN definition, a KO correspondence, and a
+      lifecycle state (stable / alias / deprecated / removed / frozen)."
+    notes: >-
+      ## Why
 
-    test_refs:
-      - "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every MCP tool registered in server.ts has exact glossary metadata"
-      - "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every event type has exact glossary metadata"
-      - "tests/self-consistency.test.ts#[covers:F-7ce18e/AC-f708a4] every registered detector id has exact glossary metadata"
+      Naming drifted organically (librarian collides with the ecosystem's
+      read-only researcher role; specialists is a plural for one persona; digest
+      means cryptographic hash in the attestation vocabulary 0.6 adopts). A
+      glossary nothing enforces would rot like project-context did, so the
+      self-consistency suite locks it.
+  - id: AC-2087c9
+    statement: If a public name is absent from docs/glossary.md, then the
+      self-consistency suite shall fail for CLI verbs registered in
+      src/cli/clad.ts, persona files under src/agents/, or MCP tools registered
+      in src/serve/server.ts so new names cannot ship unregistered.
+    kind: behavior
+  - id: AC-614993
+    statement: When a user invokes a post-lifecycle legacy CLI alias, the system
+      shall reject the old spelling and expose only its successor verb.
+    notes: >-
+      ## Decision
+
+      Aliases were intentionally limited to the 0.6.x lifecycle and removed in
+      0.7; this historical transition remains recorded, but no shipped alias
+      executes.
+
+      ## Trade-off
+
+      Keeping `work` (a permanently not-implemented stub verb) would be
+      dishonest surface — it remains removed; `clad run` owns the
+      autonomous-loop slot.
+  - id: AC-35f800
+    statement: The system shall generate new feature ids with 8 hex characters
+      (F-<hash8>), keeping the existing >=6-hex validator unchanged, so the
+      birthday-collision probability at thousands-of-shards scale stays
+      negligible while every existing id remains valid.
+    notes: >-
+      ## Why
+
+      6 hex = 16.7M space reaches ~50% pairwise collision near 4.8k features; 8
+      hex pushes that past 1M features. Validator already accepts 6+.
+  - id: AC-c034ed
+    statement: The system shall keep frozen wire identifiers unchanged (MCP tool
+      names, detector IDs, event types, spec schema fields) and improve only
+      their human-facing display labels, so audit logs and host integrations
+      never break on a rename.

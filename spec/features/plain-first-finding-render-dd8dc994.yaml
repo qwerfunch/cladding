@@ -1,6 +1,5 @@
 id: F-dd8dc994
-slug: plain-first-finding-render
-title: "Plain-first finding rendering — plain leads, normalized machine tails"
+title: Plain-first finding rendering — plain leads, normalized machine tails
 status: done
 modules:
   - src/ui/softShell.ts
@@ -12,49 +11,74 @@ modules:
   - src/assurance/kernel.ts
   - src/assurance/adapters.ts
   - src/assurance/workspace.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-746969b3
-    ears: ubiquitous
-    text: "Every detector shall have exactly one clear plain-English lead (and optional user action) in the Soft Shell catalog, enforced by a completeness test against the live detector registry — CLI commands may appear in actions, MCP tool names may not."
-    notes: "## Why\nAdopters meet raw DETECTOR_ID + mechanism text in the host UI. The Soft Shell layer is the declared human-render boundary and the glossary already carries per-detector plain glosses — this wires the two loudest emitters through the boundary they were bypassing.\n\n## 2026-07-06 pivot (F-9af291fa)\nThe catalog carries exactly one clear English string per detector; the host agent renders the user's language via the interpreter instruction. cladding no longer ships or resolves a locale — the reviewed English leads are the single translation source."
-    test_refs:
-      - tests/plain-render.test.ts
+    statement: The Soft Shell catalog shall give every detector exactly one clear
+      plain-English lead and optional user action, enforce completeness against
+      the live detector registry, allow CLI commands in actions, and exclude MCP
+      tool names.
+    kind: behavior
+    notes: >-
+      ## Why
+
+      Adopters meet raw DETECTOR_ID + mechanism text in the host UI. The Soft
+      Shell layer is the declared human-render boundary and the glossary already
+      carries per-detector plain glosses — this wires the two loudest emitters
+      through the boundary they were bypassing.
+
+
+      ## 2026-07-06 pivot (F-9af291fa)
+
+      The catalog carries exactly one clear English string per detector; the
+      host agent renders the user's language via the interpreter instruction.
+      cladding no longer ships or resolves a locale — the reviewed English leads
+      are the single translation source.
   - id: AC-263adf79
-    ears: event
-    condition: "when the Stop hook blocks, the after-edit drift line prints, the check block renders a finding, or done refuses"
-    action: "lead with the plain sentence and demote detector id and normalized path to a parenthetical tail"
-    response: "a first-time user understands what happened and what to do without knowing any internal vocabulary"
-    text: "When the four human render sites emit a finding, the plain lead shall come first and the machine detail shall follow as a tail."
-    test_refs:
-      - tests/plain-render.test.ts
+    statement: When the four human render sites emit a finding, the renderer shall
+      place the plain lead first with the machine detail following as a tail.
+    kind: behavior
   - id: AC-25f77cec
-    ears: ubiquitous
-    text: "The machine finding-tail renderer shall render machine finding tails from detector and normalized-path values only, with no locale resolver, locale type, user-locale sidecar, or project.locale field in the compiled product closure."
-    notes: "## Why\nThe 2026-07-06 pivot (F-9af291fa) removed the multi-locale catalog and the locale-resolution chain. cladding ships one clear English source; the host agent, directed by the interpreter instruction, renders the user's own language by meaning.\n\n## Non-normative history (2026-08-31)\n\nReplaced absence-only prose with a deterministic source-universe adapter. `String.localeCompare` remains an allowed unrelated API."
-    test_refs:
-      - "tests/plain-render.test.ts#[covers:F-dd8dc994/AC-25f77cec] renders tails only from detector and normalized path while static locale policy rejects forbidden concepts and permits String.localeCompare"
+    statement: The machine finding-tail renderer shall render machine finding tails
+      from detector and normalized-path values only, with no locale resolver,
+      locale type, user-locale sidecar, or project.locale field in the compiled
+      product closure.
+    notes: >-
+      ## Why
+
+      The 2026-07-06 pivot (F-9af291fa) removed the multi-locale catalog and the
+      locale-resolution chain. cladding ships one clear English source; the host
+      agent, directed by the interpreter instruction, renders the user's own
+      language by meaning.
+
+
+      ## Non-normative history (2026-08-31)
+
+
+      Replaced absence-only prose with a deterministic source-universe adapter.
+      `String.localeCompare` remains an allowed unrelated API.
   - id: AC-ad2a34e1
-    ears: event
-    condition: "when human-first rendering is available"
-    text: "When human-first rendering is available, the system shall preserve the declared raw machine schema of CLI JSON findings."
-    notes: "## 2026-08-31 criterion decomposition\n\nOriginal compound text (verbatim): If a machine contract drifts, existing tests shall catch it — JSON, MCP, SARIF, events, and the dedup fingerprint stay byte-compatible.\n\nReason: split CLI JSON, MCP, SARIF, and lifecycle/fingerprint compatibility into independently observable contracts while retaining this legacy address."
-    test_refs:
-      - "tests/cli/clad.test.ts#[covers:F-dd8dc994/AC-ad2a34e1] CLI JSON findings retain the detector raw schema"
+    statement: When human-first rendering is available, the system shall preserve
+      the declared raw machine schema of CLI JSON findings.
+    notes: >-
+      ## 2026-08-31 criterion decomposition
+
+
+      Original compound text (verbatim): If a machine contract drifts, existing
+      tests shall catch it — JSON, MCP, SARIF, events, and the dedup fingerprint
+      stay byte-compatible.
+
+
+      Reason: split CLI JSON, MCP, SARIF, and lifecycle/fingerprint
+      compatibility into independently observable contracts while retaining this
+      legacy address.
   - id: AC-1b03c358
-    ears: event
-    condition: "when human-first rendering is available"
-    text: "When human-first rendering is available, the system shall preserve the declared raw machine schema of MCP finding projections."
-    test_refs:
-      - "tests/serve/server.test.ts#[covers:F-dd8dc994/AC-1b03c358] MCP finding projections retain the detector raw schema"
+    statement: When human-first rendering is available, the system shall preserve
+      the declared raw machine schema of MCP finding projections.
   - id: AC-59a9d9ee
-    ears: event
-    condition: "when human-first rendering is available"
-    text: "When human-first rendering is available, the system shall preserve the standard raw machine schema of SARIF finding projections."
-    test_refs:
-      - "tests/report/sarif.test.ts#[covers:F-dd8dc994/AC-59a9d9ee] SARIF retains raw detector message path and line fields"
+    statement: When human-first rendering is available, the system shall preserve
+      the standard raw machine schema of SARIF finding projections.
   - id: AC-0eee6e0a
-    ears: event
-    condition: "when human-first rendering is available"
-    text: "When human-first rendering is available, the system shall preserve lifecycle-event fields and stop-block fingerprint inputs."
-    test_refs:
-      - "tests/plain-render.test.ts#[covers:F-dd8dc994/AC-0eee6e0a] lifecycle events retain raw fields and fingerprint only detector and path"
+    statement: When human-first rendering is available, the system shall preserve
+      lifecycle-event fields and stop-block fingerprint inputs.

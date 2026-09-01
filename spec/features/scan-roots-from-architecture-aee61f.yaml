@@ -1,28 +1,26 @@
 id: F-aee61f
-slug: scan-roots-from-architecture
-title: "UNMAPPED_ARTIFACT scan roots derive from declared architecture layers instead of two hardcoded directories"
+title: UNMAPPED_ARTIFACT scan roots derive from declared architecture layers
+  instead of two hardcoded directories
 status: done
 modules:
   - src/stages/detectors/unmapped-artifact.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-cd6984
-    ears: event
-    condition: "when a full-scale loaded spec declares architecture layers"
-    action: "derive declared-layer patterns from observed known source extensions united with extensions claimed under those layers, accepting string and {name} layer forms without reading project.language"
-    response: "the module->feature honesty check covers the project's whole declared source map instead of 2 of 15 directories"
-    text: "When a full-scale loaded spec declares architecture layers, the detector shall derive its scan universe from observed known and layer-claimed source extensions for every declared layer, accepting both string and {name} layer forms without relying on project.language, so the unclaimed-file check covers the declared source map."
-    notes: "## Why\nThe old hardcoded roots left cladding's governance blind to most declared source directories. The observed-source policy keeps a lazy or mixed-language spec honest without treating project.language as evidence; modules under declared layers may teach additional roots and extensions."
-    test_refs:
-      - "tests/stages/unmapped-artifact.test.ts#derives one pattern per declared layer (canonical string-tier form) from the observed extension"
-      - "tests/stages/unmapped-artifact.test.ts#accepts the {name} object layer form"
-      - "tests/stages/unmapped-artifact.test.ts#a file in a declared layer that no feature claims is FOUND (was blind pre-0.6)"
-  - id: AC-c0e388
-    ears: state
-    condition: "while no architecture layers are declared"
-    action: "fall back to the legacy narrow patterns unchanged"
-    response: "spec-less and early projects see zero behavior change"
-    text: "While no architecture layers are declared, the detector shall fall back to the legacy narrow patterns unchanged, so early projects see no new findings from this change."
+    statement: When a full-scale loaded spec declares architecture layers, the
+      detector shall derive its scan universe from observed known and
+      layer-claimed source extensions for every declared layer, accepting both
+      string and {name} layer forms without relying on project.language, so the
+      unclaimed-file check covers the declared source map.
+    notes: >-
+      ## Why
 
-    test_refs:
-      - "tests/stages/unmapped-artifact.test.ts#falls back to the legacy narrow patterns when no architecture is declared"
-      - "tests/stages/unmapped-artifact.test.ts#scale gate: under 8 features the legacy narrow patterns apply even with layers declared"
+      The old hardcoded roots left cladding's governance blind to most declared
+      source directories. The observed-source policy keeps a lazy or
+      mixed-language spec honest without treating project.language as evidence;
+      modules under declared layers may teach additional roots and extensions.
+  - id: AC-c0e388
+    statement: While no architecture layers are declared, the detector shall fall
+      back to the legacy narrow patterns unchanged, so early projects see no new
+      findings from this change.

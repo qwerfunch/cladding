@@ -7,25 +7,20 @@ modules:
 depends_on:
   - F-003
   - F-010
+capability_refs: []
 acceptance_criteria:
   - id: AC-029
-    ears: ubiquitous
-    action: flag any AC that has neither rendered text nor any EARS field
-    response: error finding per structurally empty AC
-    text: The system shall flag any acceptance_criterion that has neither a rendered
-      text nor any EARS field (condition/action/response), emitting an error
-      finding per structurally empty AC.
+    statement: The system shall flag any acceptance_criterion that has neither a
+      rendered text nor any EARS field (condition/action/response), emitting an
+      error finding per structurally empty AC.
+    evidence_refs:
+      - fixture:F-019_AC-029
     notes: Structural floor — always on.
-    evidence_refs: [fixture:F-019_AC-029]
-
   - id: AC-030
-    ears: event
-    condition: when an AC declares an EARS pattern (event / state / optional / unwanted)
-    action: verify the condition string begins with the pattern's trigger keyword
-    response: error finding per misaligned trigger
-    text: When an AC declares a non-ubiquitous EARS pattern, the system shall verify
-      the condition begins with the pattern's trigger keyword (when / while /
-      where / if), emitting an error finding per misalignment.
+    statement: When an AC declares a non-ubiquitous EARS pattern, the system shall
+      verify the condition begins with the pattern's trigger keyword (when /
+      while / where / if), emitting an error finding per misalignment.
+    evidence_refs:
+      - fixture:F-019_AC-030
     notes: Delegates to spec/ears.ts. Lenient syntactic check; the richer semantic
       AC-vs-implementation drift remains TBD behind T9 (LLM-assisted inference).
-    evidence_refs: [fixture:F-019_AC-030]

@@ -1,6 +1,5 @@
 id: F-2883ff4d
-slug: spec-02-proof-evidence-kernel
-title: "Spec 0.2 proof and portable evidence kernel"
+title: Spec 0.2 proof and portable evidence kernel
 status: in_progress
 modules:
   - src/proof/types.ts
@@ -35,51 +34,49 @@ modules:
   - tests/design/spec-0.2/design-validation.test.ts
   - src/spec/transaction.ts
   - src/spec/compiler/artifact-registry.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-2883ff01
-    ears: ubiquitous
-    text: "The proof kernel shall normalize native Vitest and Jest testcase declarations into one owned binding record."
-    test_refs: ["tests/proof/vitest-jest.test.ts#C01 harvests consecutive leading title carriers for multiple criteria"]
+    statement: The proof kernel shall normalize native Vitest and Jest testcase
+      declarations into one owned binding record.
   - id: AC-2883ff02
-    ears: ubiquitous
-    text: "The proof kernel shall recognize only consecutive leading covers carriers and shall reject an unknown composite criterion address."
-    test_refs: ["tests/proof/vitest-jest.test.ts#C02 ignores bare IDs, organic mentions, comments, and non-leading title text"]
+    statement: The proof kernel shall recognize only consecutive leading covers
+      carriers and reject an unknown composite criterion address.
+    kind: behavior
   - id: AC-2883ff03
-    ears: ubiquitous
-    text: "The proof kernel shall reduce exact JUnit testcase observations without allowing unrelated same-file passes to verify a criterion."
-    test_refs: ["tests/proof/vitest-jest.test.ts#C06 gives an exact bound failure precedence over positive observations"]
+    statement: The proof kernel shall reduce exact JUnit testcase observations
+      without allowing unrelated same-file passes to verify a criterion.
   - id: AC-2883ff04
-    ears: ubiquitous
-    text: "The proof kernel shall retain an unchanged legacy test binding only until a live binding or intent change replaces that baseline path."
-    test_refs: ["tests/proof/legacy-bindings.test.ts#live covers replaces rather than unions baseline, while changed intent and stale paths do not rewrite history"]
+    statement: The proof kernel shall retain an unchanged legacy test binding only
+      until a live binding or intent change replaces that baseline path.
   - id: AC-2883ff05
-    ears: ubiquitous
-    text: "The proof kernel shall validate and canonically frame portable receipts before deriving their content address."
-    test_refs: ["tests/proof/receipt.test.ts#rejects YAML aliases, unknown claims, invalid timestamps, and persisted derived fields"]
+    statement: The proof kernel shall validate and canonically frame portable
+      receipts before deriving their content address.
   - id: AC-2883ff06
-    ears: ubiquitous
-    text: "The proof kernel shall verify a portable receipt only against an injected immutable offline trust snapshot and complete typed digest context."
-    test_refs: ["tests/proof/receipt.test.ts#uses deterministic JCS bytes, a framed detached signature, and explicit offline currentness"]
+    statement: The proof kernel shall verify a portable receipt only against an
+      injected immutable offline trust snapshot and complete typed digest
+      context.
   - id: AC-2883ff07
-    ears: event
-    condition: "when a valid portable receipt is ingested"
-    text: "When a valid portable receipt is ingested, the proof kernel shall create or idempotently preserve its exact journaled content-addressed evidence file."
-    test_refs: ["tests/proof/ingest.test.ts#stores unknown trust as asserted, then keeps the exact content address idempotent"]
+    statement: When a valid portable receipt is ingested, the proof kernel shall
+      create or idempotently preserve its exact journaled content-addressed
+      evidence file.
   - id: AC-2883ff08
-    ears: ubiquitous
-    text: "The proof kernel shall reduce only current verified receipt-local Audit, UAT, and blind claims while retaining explicit failures."
-    test_refs: ["tests/proof/view.test.ts#reduces only current verified receipt-local Audit, UAT, and blind claims"]
+    statement: The proof kernel shall reduce only current verified receipt-local
+      Audit, UAT, and blind claims while retaining explicit failures.
   - id: AC-2883ff09
-    ears: event
-    condition: "when a local user records a signoff"
-    text: "When a local user records a signoff, the proof kernel shall persist asserted history and surface the human-required boundary for schema 0.2 verification."
-    test_refs: ["tests/proof/signoff.test.ts#surfaces HUMAN_REQUIRED after recording schema 0.2 assertion-only history"]
+    statement: When a local user records a signoff, the proof kernel shall persist
+      asserted history and surface the human-required boundary for schema 0.2
+      verification.
   - id: AC-2883ff10
-    ears: ubiquitous
-    text: "The proof kernel shall preserve the schema 0.1 compatibility view while routing schema 0.2 evidence through one proof view."
-    test_refs: ["tests/proof/view.test.ts#keeps the schema 0.1 compatibility view free of new receipt reductions"]
+    statement: The proof kernel shall preserve the schema 0.1 compatibility view
+      while routing schema 0.2 evidence through one proof view.
 design_impact:
   classification: structural
-  rationale: "F5 adds the proof/evidence authority between schema compiler inputs and later F6 assurance closures without adding a product issuer."
+  rationale: F5 adds the proof/evidence authority between schema compiler inputs
+    and later F6 assurance closures without adding a product issuer.
   status: review_required
-  artifacts: ["docs/design/spec-0.2/proof-and-editing.md", "docs/design/spec-0.2/evidence.md", "docs/design/spec-0.2/delivery.md"]
+  artifacts:
+    - docs/design/spec-0.2/proof-and-editing.md
+    - docs/design/spec-0.2/evidence.md
+    - docs/design/spec-0.2/delivery.md

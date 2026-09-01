@@ -1,27 +1,38 @@
 id: F-0e84628e
-slug: merge-ritual-docs
-title: "Derived-file merge ritual — canonical docs for conflicts, PR surface, and the v1-to-v2 transition"
+title: Derived-file merge ritual — canonical docs for conflicts, PR surface, and
+  the v1-to-v2 transition
 status: done
 modules:
   - docs/spec-ids-multi-dev.md
   - CLAUDE.md
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-19f796fe
-    ears: ubiquitous
-    text: "docs/spec-ids-multi-dev.md shall carry the canonical derived-file merge ritual: never hand-resolve spec/attestation.yaml or spec/index.yaml — accept either side, complete the merge, run clad check --tier=pre-push --strict (GREEN rewrites the truth), and commit the rewrite — including why the PR surface still conflicts (GitHub ignores merge attributes), the v2 property that disjoint-module edits merge clean with its adjacent-sorted-line boundary caveat, and the one-time v1-to-v2 transition ritual (branches cut before the cutover rebase past it taking the v2 side, then run the gate)."
-    notes: "## Why\nEvery piece of the machinery shipped in 0.8.1 (v2 encoding, git-op guard, union removal) reduces conflicts but cannot eliminate the same-file and adjacent-line cases — the ritual is the documented answer for the remainder, and hand-resolving hashes is always wrong (both sides are stale against the merged tree). Grounded in 30 scratch-repo experiments + the real f2/f3 external validations (2026-07-04/05)."
-    test_refs:
-      - tests/merge-ritual-docs.test.ts
+    statement: "The docs/spec-ids-multi-dev.md document shall carry the canonical
+      derived-file merge ritual: never hand-resolve spec/attestation.yaml or
+      spec/index.yaml, accept either side, complete the merge, run clad check
+      --tier=pre-push --strict so GREEN rewrites the truth, commit the rewrite,
+      explain why the PR surface still conflicts because GitHub ignores merge
+      attributes, state the v2 clean disjoint-module merge property with its
+      adjacent-sorted-line boundary caveat, and give the one-time v1-to-v2
+      transition ritual in which branches cut before cutover rebase past it
+      taking the v2 side and then run the gate."
+    kind: quality
+    notes: >-
+      ## Why
+
+      Every piece of the machinery shipped in 0.8.1 (v2 encoding, git-op guard,
+      union removal) reduces conflicts but cannot eliminate the same-file and
+      adjacent-line cases — the ritual is the documented answer for the
+      remainder, and hand-resolving hashes is always wrong (both sides are stale
+      against the merged tree). Grounded in 30 scratch-repo experiments + the
+      real f2/f3 external validations (2026-07-04/05).
   - id: AC-74fcf893
-    ears: event
-    condition: "when CLAUDE.md guides maintainer work on merges and releases"
-    action: "point at the canonical ritual section instead of duplicating it"
-    response: "one source of truth, no drift between the two docs"
-    text: "When CLAUDE.md touches merge guidance, it shall point at the canonical section in docs/spec-ids-multi-dev.md."
-    test_refs:
-      - tests/merge-ritual-docs.test.ts
+    statement: When CLAUDE.md contains merge guidance, the guidance shall point to
+      the canonical section in docs/spec-ids-multi-dev.md.
+    kind: quality
   - id: AC-80b79dac
-    ears: ubiquitous
-    text: "The documented attribute state shall match the repository: spec/index.yaml keeps merge=union, spec/attestation.yaml carries no merge attribute — pinned so a future .gitattributes change forces a doc update."
-    test_refs:
-      - tests/merge-ritual-docs.test.ts
+    statement: "The documented attribute state shall match the repository:
+      spec/index.yaml keeps merge=union, spec/attestation.yaml carries no merge
+      attribute — pinned so a future .gitattributes change forces a doc update."

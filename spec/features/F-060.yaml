@@ -11,51 +11,44 @@ modules:
   - tests/stages/unit.test.ts
   - tests/stages/cov.test.ts
   - tests/stages/smoke.test.ts
-depends_on: [F-059]
+depends_on:
+  - F-059
+capability_refs: []
 acceptance_criteria:
   - id: AC-145
-    ears: ubiquitous
-    action: report a detector-adapter observation
-    response: preserves supplied options, an applicable shared detector result, error severity, and finding order through current selector-bound observations
-    text: When an architecture or secret detector-adapter stage reports an observation, it shall preserve its supplied options, applicable shared result, error severity, and finding order in the stage result.
-    test_refs:
-      - "tests/stages/arch.test.ts#[covers:F-060/AC-145] cached architecture findings preserve error severity and diagnostic order"
-      - "tests/stages/arch.test.ts#[covers:F-060/AC-145] uncached architecture checks forward supplied options to the detector"
-      - "tests/stages/secret.test.ts#[covers:F-060/AC-145] cached secret findings preserve error severity and diagnostic order"
-      - "tests/stages/secret.test.ts#[covers:F-060/AC-145] uncached secret checks forward supplied options to the detector"
-    notes: |
+    statement: When an architecture or secret detector-adapter stage reports an
+      observation, the stage adapter shall preserve its supplied options,
+      applicable shared result, error severity, and finding order in the stage
+      result.
+    kind: behavior
+    notes: >
       ## Historical schema-0.1 note
+
       2026-05-19 · v0.2.11 · e0dec700. Architecture/Secret detector fixtures: no
+
       findings, severity mixes, and options; at least 75% line coverage for both
-      sources; non-current. Released title: "Stage runner tests batch 2 (5 stages)".
+
+      sources; non-current. Released title: "Stage runner tests batch 2 (5
+      stages)".
   - id: AC-146
-    ears: ubiquitous
-    action: observe a unit or coverage runner
-    response: preserves the overridden or shared invocation outcome and keeps unavailable execution unobserved and distinct from an executed failure for assurance reduction
-    text: When a unit or coverage runner is observed, it shall distinguish successful execution, executed failure, and unavailable execution as unobserved; only compiler-derived applicability may classify the obligation as not applicable.
-    test_refs:
-      - "tests/stages/unit.test.ts#[covers:F-060/AC-146] unit runner preserves successful, failed, unavailable, and overridden execution outcomes"
-      - "tests/stages/cov.test.ts#[covers:F-060/AC-146] coverage runner preserves successful, failed, unavailable, and overridden execution outcomes"
-      - "tests/stages/cov.test.ts#[covers:F-060/AC-146] coverage folds the current shared invocation instead of starting another runner"
+    statement: When a unit or coverage runner is observed, the stage adapter shall
+      distinguish successful execution and executed failure from unavailable
+      execution classified as unobserved and reserve not applicable for
+      compiler-derived applicability.
+    kind: behavior
     notes: |
       ## Historical schema-0.1 note
       2026-05-19 · v0.2.11 · e0dec700. Unit/Coverage execa fixtures: language,
       override, exit, stderr, and null outcomes; at least 85% line coverage for
       both sources; non-current.
   - id: AC-147
-    ears: ubiquitous
-    action: cover the smoke stage (richer branch tree)
-    response: tests/stages/smoke.test.ts exercises unknown / npm-script-missing / npm-script-present-exit-0 / non-zero / ENOENT / non-ENOENT throw / null-exit / explicit-override paths; line coverage reaches at least 85%
-    text: The system shall ship tests/stages/smoke.test.ts bringing the stage_3.1 smoke runner to at least 85% line coverage.
-    test_refs: [tests/stages/smoke.test.ts]
+    statement: The system shall ship tests/stages/smoke.test.ts bringing the
+      stage_3.1 smoke runner to at least 85% line coverage.
   - id: AC-148
-    ears: state
-    condition: while current coverage assurance is evaluated
-    action: derive it from the coverage obligation
-    response: does not treat the v0.2.11 measurement as current proof
-    text: While current coverage assurance is evaluated, it shall be derived from the coverage obligation; the v0.2.11 measurement remains historical evidence only.
-    test_refs:
-      - "tests/assurance/registry.test.ts#[covers:F-055/AC-128][covers:F-056/AC-132][covers:F-057/AC-136][covers:F-058/AC-140][covers:F-059/AC-144][covers:F-060/AC-148][covers:F-061/AC-152][covers:F-062/AC-157][covers:F-063/AC-163][covers:F-064/AC-167] derives current coverage assurance only from the coverage obligation"
+    statement: While current coverage assurance is evaluated, the assurance registry
+      shall derive it from the coverage obligation and treat the v0.2.11
+      measurement as historical evidence only.
+    kind: quality
     notes: |
       ## Historical schema-0.1 note
       v0.2.11’s 72.58% to ≥80% measurement is historical, not current assurance.

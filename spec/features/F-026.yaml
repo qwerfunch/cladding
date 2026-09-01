@@ -6,23 +6,17 @@ modules:
 depends_on:
   - F-003
   - F-024
+capability_refs: []
 acceptance_criteria:
   - id: AC-038
-    ears: event
-    condition: when coverage/coverage-summary.json reports total line coverage below
-      the floor (70%)
-    action: emit a warn finding with the actual percentage
-    response: stage_1.3 surfaces but does not fail
-    text: When coverage/coverage-summary.json reports total line coverage below the
-      configured floor (70% in v0.1), the detector shall emit a warn finding
+    statement: When coverage/coverage-summary.json reports total line coverage below
+      the configured floor (70% in v0.1), the detector shall emit a warn finding
       with the actual percentage.
-    evidence_refs: [fixture:F-026_AC-038]
-
+    evidence_refs:
+      - fixture:F-026_AC-038
   - id: AC-039
-    ears: unwanted
-    condition: if the coverage summary artifact is absent
-    action: emit an info finding noting stage_2.2 must run first
-    response: detector does not fail on missing data
-    text: If coverage/coverage-summary.json is absent, the detector shall emit an
-      info finding indicating stage_2.2 must run first.
-    evidence_refs: [fixture:F-026_AC-039]
+    statement: If coverage/coverage-summary.json is absent, then the detector shall
+      emit an info finding indicating stage_2.2 needs to run first.
+    kind: behavior
+    evidence_refs:
+      - fixture:F-026_AC-039

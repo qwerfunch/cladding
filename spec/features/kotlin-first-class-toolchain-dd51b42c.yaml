@@ -1,6 +1,5 @@
 id: F-dd51b42c
-slug: kotlin-first-class-toolchain
-title: "First-class Kotlin support (Gradle toolchain + language-aware detectors)"
+title: First-class Kotlin support (Gradle toolchain + language-aware detectors)
 status: done
 modules:
   - src/stages/toolchain/types.ts
@@ -14,69 +13,45 @@ modules:
   - src/stages/detectors/unmapped-artifact.ts
   - src/cli/scan/greenfield-seeds.ts
   - src/cli/scan/roots.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-2dc3e787
-    ears: event
-    condition: "when a Gradle or Maven manifest exists and a Kotlin source file is present"
-    action: "detect the toolchain"
-    response: "return language 'kotlin' with Gradle gates"
-    text: "When detectToolchain runs in a directory whose Gradle/Maven manifest is accompanied by at least one .kt or .kts source file, the system shall classify the project as language 'kotlin' and return Gradle-based gates (compileKotlin/ktlintCheck/test/jacocoTestReport)."
-    test_refs:
-      - tests/stages/toolchain.test.ts
+    statement: When detectToolchain runs in a directory whose Gradle/Maven manifest
+      is accompanied by at least one .kt or .kts source file, the system shall
+      classify the project as language 'kotlin' and return Gradle-based gates
+      (compileKotlin/ktlintCheck/test/jacocoTestReport).
   - id: AC-df69edf9
-    ears: state
-    condition: "while Kotlin language is detected"
-    action: "resolve the gradle command"
-    response: "prefer ./gradlew over gradle"
-    text: "While a committed gradlew wrapper exists at the project root, the system shall invoke Kotlin gates through ./gradlew, falling back to the gradle executable on PATH when no wrapper is present."
-    test_refs:
-      - tests/stages/toolchain.test.ts
+    statement: While a committed gradlew wrapper exists at the project root, the
+      system shall invoke Kotlin gates through ./gradlew, falling back to the
+      gradle executable on PATH when no wrapper is present.
   - id: AC-ae2d4113
-    ears: unwanted
-    condition: "if a manifest is present without any .kt/.kts file"
-    action: "detect the toolchain"
-    response: "classify as 'java'"
-    text: "If a Gradle/Maven manifest is present but no Kotlin source file exists, the system shall continue to classify the project as 'java' (no regression for pure-JVM/Maven repos)."
-    test_refs:
-      - tests/stages/toolchain.test.ts
+    statement: If a Gradle/Maven manifest is present but no Kotlin source file
+      exists, then the system shall continue to classify the project as 'java'
+      (no regression for pure-JVM/Maven repos).
+    kind: behavior
   - id: AC-b3e9213f
-    ears: ubiquitous
-    action: "resolve language configuration"
-    response: "return per-language file conventions"
-    text: "The system shall expose a single language-config source of truth mapping each language to its source extension, source roots, test globs, coverage-summary path, and import matcher, defaulting cleanly to TypeScript conventions ('ts', ['src']) for unknown languages."
-    test_refs:
-      - tests/stages/language-config.test.ts
+    statement: The system shall expose a single language-config source of truth
+      mapping each language to its source extension, source roots, test globs,
+      coverage-summary path, and import matcher, defaulting cleanly to
+      TypeScript conventions ('ts', ['src']) for unknown languages.
   - id: AC-2d888ee2
-    ears: event
-    condition: "when the project language is kotlin"
-    action: "run the drift detectors"
-    response: "inspect Kotlin sources via language-config instead of hardcoded src/*.ts"
-    text: "When the architecture-from-spec, convention-drift, ai-hints-forbidden-pattern, stale-tests, coverage-drop, and unmapped-artifact detectors run on a Kotlin project, the system shall inspect .kt files under the Kotlin source roots (e.g. src/main/kotlin) rather than silently skipping them, resolving source root and extension from language-config."
-    test_refs:
-      - tests/stages/detectors/architecture-from-spec-kotlin.test.ts
-      - tests/stages/detectors/coverage-drop-jacoco.test.ts
-      - tests/stages/detectors/convention-drift-kotlin.test.ts
+    statement: When a relevant detector runs on a Kotlin project, the system shall
+      inspect .kt files under Kotlin source roots such as src/main/kotlin rather
+      than silently skip them, resolve source root and extension from
+      language-config, and apply this to architecture-from-spec,
+      convention-drift, ai-hints-forbidden-pattern, stale-tests, coverage-drop,
+      and unmapped-artifact detectors.
+    kind: behavior
   - id: AC-2ce66a38
-    ears: event
-    condition: "when the project language is kotlin and forbidden_imports rules exist"
-    action: "evaluate forbidden imports"
-    response: "flag dotted-package imports crossing forbidden layers"
-    text: "When architecture-from-spec evaluates forbidden-import rules on a Kotlin project, the system shall match JVM dotted-package import statements (import a.b.C) and flag those crossing into a forbidden layer."
-    test_refs:
-      - tests/stages/detectors/architecture-from-spec-kotlin.test.ts
+    statement: When architecture-from-spec evaluates forbidden-import rules on a
+      Kotlin project, the system shall match JVM dotted-package import
+      statements (import a.b.C) and flag those crossing into a forbidden layer.
   - id: AC-562a6cc3
-    ears: event
-    condition: "when a greenfield Kotlin project is initialized"
-    action: "seed conventions and roots"
-    response: "produce Kotlin-idiomatic conventions.md and source roots"
-    text: "When clad init scaffolds a greenfield Kotlin project, the system shall emit idiomatic Kotlin convention seeds and a src/main/kotlin-based architecture/source-root baseline."
-    test_refs:
-      - tests/cli/scan-greenfield-seeds.test.ts
+    statement: When clad init scaffolds a greenfield Kotlin project, the system
+      shall emit idiomatic Kotlin convention seeds and a src/main/kotlin-based
+      architecture/source-root baseline.
   - id: AC-28c2f47d
-    ears: state
-    condition: "while the project language is typescript"
-    action: "run the gate pipeline"
-    response: "behave identically to the pre-change baseline"
-    text: "While running clad check on cladding itself (a TypeScript project), the system shall produce identical results to before this change, with language-config defaulting to ts/src so no detector regresses."
-    test_refs:
-      - tests/stages/language-config.test.ts
+    statement: While running clad check on cladding itself (a TypeScript project),
+      the system shall produce identical results to before this change, with
+      language-config defaulting to ts/src so no detector regresses.

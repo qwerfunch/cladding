@@ -1,32 +1,39 @@
 id: F-b61449
-slug: gemini-cli-dogfood
 title: Gemini CLI external-host dogfood report (v0.3.7)
 status: done
 modules:
   - docs/dogfood/gemini-cli-2026-05-20.md
-depends_on: [F-076, F-077, F-078, F-080, F-081]
+depends_on:
+  - F-076
+  - F-077
+  - F-078
+  - F-080
+  - F-081
+capability_refs: []
 acceptance_criteria:
   - id: AC-251
-    ears: ubiquitous
-    action: record the first external-host verification of cladding's multi-host plugin rollout as a dated dogfood report
-    response: 'docs/dogfood/gemini-cli-2026-05-20.md captures environment metadata (host version, auth model, cladding version, install path), setup steps reproducible by any reviewer, a per-surface checklist with method + result, and an explicit findings summary (cladding-side issues: 0)'
-    text: The system shall record the first external-host verification of cladding's multi-host plugin rollout as a dated dogfood report at docs/dogfood/gemini-cli-2026-05-20.md so future audits can re-run the same checks and compare.
-    evidence_refs: [docs/dogfood/gemini-cli-2026-05-20.md]
+    statement: The system shall record the first external-host verification of
+      cladding's multi-host plugin rollout as a dated dogfood report at
+      docs/dogfood/gemini-cli-2026-05-20.md so future audits can re-run the same
+      checks and compare.
+    evidence_refs:
+      - docs/dogfood/gemini-cli-2026-05-20.md
   - id: AC-252
-    ears: ubiquitous
-    action: enumerate every surface that was verified and the verification method used
-    response: 'the report lists 7 surfaces — extension load, MCP server auto-spawn, three MCP tool calls (clad_list_features, clad_get_feature, clad_run_check), one persona prompt fetch, six skill TOMLs — with the exact gemini CLI invocation that produced each result'
-    text: The system shall enumerate every cladding surface that was verified (extension load · MCP server spawn · MCP tools · persona prompts · skill TOMLs) with the exact gemini CLI invocation that produced each result so the verification is reproducible, not just claimed.
-    evidence_refs: [docs/dogfood/gemini-cli-2026-05-20.md]
+    statement: The system shall enumerate every cladding surface that was verified
+      (extension load · MCP server spawn · MCP tools · persona prompts · skill
+      TOMLs) with the exact gemini CLI invocation that produced each result so
+      the verification is reproducible, not just claimed.
+    evidence_refs:
+      - docs/dogfood/gemini-cli-2026-05-20.md
   - id: AC-253
-    ears: ubiquitous
-    action: state what the verification proves AND what it does NOT prove
-    response: 'the report has separate sections labelled "What this proves" (host-bound F-049 AC-091 invariant · MCP sampling path reachability · TOML transpile validity · HARNESS_INTEGRITY drift-green) and "What this does NOT prove" (clad drive sampling end-to-end · high-volume usage) so the dogfood scope is honest'
-    text: The system shall state both what the verification proves and what it does NOT prove so the dogfood scope is honestly bounded and a future reader does not over-attribute confidence to the report.
-    evidence_refs: [docs/dogfood/gemini-cli-2026-05-20.md]
+    statement: The system shall state both what the verification proves and what it
+      does NOT prove so the dogfood scope is honestly bounded and a future
+      reader does not over-attribute confidence to the report.
+    evidence_refs:
+      - docs/dogfood/gemini-cli-2026-05-20.md
   - id: AC-254
-    ears: ubiquitous
-    action: provide a reproduction recipe that lets any reviewer replay the verification
-    response: 'docs/dogfood/gemini-cli-2026-05-20.md ends with a Reproduction recipe section showing the three gemini -p invocations a reviewer can run to reproduce the result'
-    text: The system shall end the dogfood report with a Reproduction recipe section so any reviewer can replay the verification on their own machine and confirm the result still holds.
-    evidence_refs: [docs/dogfood/gemini-cli-2026-05-20.md]
+    statement: The system shall end the dogfood report with a Reproduction recipe
+      section so any reviewer can replay the verification on their own machine
+      and confirm the result still holds.
+    evidence_refs:
+      - docs/dogfood/gemini-cli-2026-05-20.md

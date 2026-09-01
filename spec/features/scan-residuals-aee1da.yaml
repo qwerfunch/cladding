@@ -1,6 +1,6 @@
 id: F-aee1da
-slug: scan-residuals
-title: scan deterministic fixes — flat _root promotion + workspace direct files + dominant language (v0.3.27)
+title: scan deterministic fixes — flat _root promotion + workspace direct files
+  + dominant language (v0.3.27)
 status: done
 modules:
   - src/cli/scan/architecture.ts
@@ -8,45 +8,41 @@ modules:
   - src/cli/init.ts
 depends_on:
   - F-94dda4
+capability_refs: []
 acceptance_criteria:
   - id: AC-001
-    ears: unwanted
-    condition: if a flat workspace has at least ROOT_PROMOTION_THRESHOLD recognized direct source files and no layer subdirectory
-    action: omit the promoted root bucket from emitted architecture layers
-    response: 'renders layers: [] rather than a bogus cwd-named layer with an unmatched glob'
-    text: 'If a flat workspace has at least ROOT_PROMOTION_THRESHOLD recognized direct source files and no layer subdirectory, scan architecture inference shall omit the promoted root bucket and render layers: [] rather than a bogus cwd-named layer.'
-    test_refs:
-      - "tests/cli/scan.test.ts#[covers:F-aee1da/AC-001] omits a qualifying flat root rather than emitting a bogus cwd-named layer"
+    statement: "If a flat workspace has at least ROOT_PROMOTION_THRESHOLD direct
+      source files and no layer subdirectory, then the architecture inference
+      shall omit the promoted root bucket and render layers: [] rather than a
+      bogus cwd-named layer."
+    kind: behavior
     notes: |
       ## Historical note
       The former root-promotion rule was superseded by F-77a90ac6/AC-974ef7b2:
       a cwd-named layer cannot resolve to a real sub-layer or matching glob.
   - id: AC-002
-    ears: event
-    condition: when a file lives directly inside a workspace src root with no intervening subdirectory
-    action: surface the file under the workspace name itself instead of skipping
-    response: 'src/cli/scan.ts layerOf checks inside.length === 1 (workspace direct file) and returns r.workspaceName ?? "_root"; react packages/react/src/ReactAct.js, packages/scheduler/src/Scheduler.js now show up as react / scheduler layers; the mixed-shape test asserts that packages/a/src/index.ts contributes layer "a" while packages/a/src/core/inner.ts contributes layer "a:core"'
-    text: When a file lives directly inside a workspace src root with no intervening subdirectory, the system shall surface the file under the workspace name itself instead of skipping so react-style monorepos with flat src/ directories no longer collapse to a single layer.
-    test_refs: [tests/cli/scan.test.ts]
+    statement: When a file lives directly inside a workspace src root with no
+      intervening subdirectory, the system shall surface the file under the
+      workspace name itself instead of skipping so react-style monorepos with
+      flat src/ directories no longer collapse to a single layer.
   - id: AC-003
-    ears: ubiquitous
-    action: record per-language file counts and a dominant-language label on ScanStats
-    response: 'src/cli/scan.ts ScanStats grows two fields: languageCounts (Readonly<Record<string, number>>) keyed by normalised language name (typescript / javascript / python / go / rust / java / kotlin / csharp / ruby / php / swift / elixir / scala / dart / cpp / other) and dominantLanguage chosen by majority count; buildStats helper centralises the EXT_TO_LANGUAGE mapping; the test asserts that 2 .rb + 1 .ts produces dominantLanguage = ruby'
-    text: The system shall record per-language file counts and a dominant-language label on ScanStats so callers can pick the project language by file-extension majority instead of trusting detectToolchain (which always picks package.json first and mis-identifies polyglot repos as typescript).
-    test_refs: [tests/cli/scan.test.ts]
+    statement: The system shall record per-language file counts and a
+      dominant-language label on ScanStats so callers can pick the project
+      language by file-extension majority instead of trusting detectToolchain
+      (which always picks package.json first and mis-identifies polyglot repos
+      as typescript).
   - id: AC-004
-    ears: ubiquitous
-    action: prefer scan dominant language over detectToolchain manifest signal in runInit
-    response: 'src/cli/init.ts runs scanRoot first when opts.scan is set, then chooses language = (scanResult.stats.dominantLanguage when dominantLanguage is not unknown or other) || (manifestLanguage from detectToolchain); django reports python instead of typescript, rails reports ruby, RxSwiftExt reports swift, cobra reports go; flat src/ projects (cladding itself) keep typescript because the dominant language is typescript and the result is byte-identical'
-    text: The system shall prefer scan dominant language over detectToolchain manifest signal in runInit so polyglot repos with a package.json for tooling (Django, Rails, RxSwiftExt, …) get the spec.yaml language field that matches their actual source files.
-    evidence_refs: [src/cli/init.ts]
+    statement: The system shall prefer scan dominant language over detectToolchain
+      manifest signal in runInit so polyglot repos with a package.json for
+      tooling (Django, Rails, RxSwiftExt, …) get the spec.yaml language field
+      that matches their actual source files.
+    evidence_refs:
+      - src/cli/init.ts
   - id: AC-005
-    ears: ubiquitous
-    action: retain normal flat source-layer records after residual root and workspace handling
-    response: normal src/<layer> paths resolve to bare layer names with root-qualified directories and observed module counts; language statistics remain derived from recognized file extensions
-    text: Residual root and workspace handling shall leave normal flat src/<layer> paths as bare layer records with root-qualified directories, observed module counts, and extension-majority language statistics.
-    test_refs:
-      - "tests/cli/scan.test.ts#[covers:F-aee1da/AC-005] residual root handling retains flat layer records and language statistics"
+    statement: The system shall retain normal flat src/<layer> paths as bare layer
+      records with root-qualified directories, observed module counts, and
+      extension-majority language statistics.
+    kind: quality
     notes: |
       ## Historical note (2026-05-20, v0.3.27, source commit f1da6b5)
       The former dogfood claim required byte-identical v0.3.26 output,

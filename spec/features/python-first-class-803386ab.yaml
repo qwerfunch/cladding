@@ -1,47 +1,48 @@
 id: F-803386ab
-slug: python-first-class
-title: "Python parity in the language SSoT: pytest globs, Cobertura coverage, dotted-import architecture checks"
+title: "Python parity in the language SSoT: pytest globs, Cobertura coverage,
+  dotted-import architecture checks"
 status: done
 modules:
   - src/stages/toolchain/language-config.ts
   - src/stages/detectors/coverage-drop.ts
   - src/stages/detectors/architecture-from-spec.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-2b542ed8
-    ears: event
-    condition: "when resolveLanguageConfig resolves the python language"
-    text: "When python resolves, the system shall return a PYTHON_CONFIG with .py extensions, pytest test globs (tests/test_*.py and tests/**/test_*.py and tests/**/*_test.py), coverageSummary coverage.xml, coverageFormat cobertura-xml, and a dotted import matcher covering both import a.b and from a.b import c forms."
-    notes: "WHY: Python has toolchain gates but no LanguageConfig entry — it silently resolves to the TS baseline, leaving COVERAGE_DROP and ARCHITECTURE_FROM_SPEC inert on Python repos; pytest ingestion demand already arrived via external PRs."
-    test_refs:
-      - tests/stages/language-config.test.ts
+    statement: When python resolves, the system shall return a PYTHON_CONFIG with
+      .py extensions, pytest test globs (tests/test_*.py and tests/**/test_*.py
+      and tests/**/*_test.py), coverageSummary coverage.xml, coverageFormat
+      cobertura-xml, and a dotted import matcher covering both import a.b and
+      from a.b import c forms.
+    notes: "WHY: Python has toolchain gates but no LanguageConfig entry — it
+      silently resolves to the TS baseline, leaving COVERAGE_DROP and
+      ARCHITECTURE_FROM_SPEC inert on Python repos; pytest ingestion demand
+      already arrived via external PRs."
   - id: AC-b6853f60
-    ears: event
-    condition: "when the COVERAGE_DROP detector encounters coverageFormat cobertura-xml"
-    text: "When Cobertura coverage resolves, the detector shall read the report-level line-rate attribute from coverage.xml and apply the identical drop policy as the istanbul and jacoco formats."
+    statement: When Cobertura coverage resolves, the detector shall read the
+      report-level line-rate attribute from coverage.xml and apply the identical
+      drop policy as the istanbul and jacoco formats.
     notes: "WHY: pytest --cov emits Cobertura, not istanbul json nor jacoco xml."
-    test_refs:
-      - tests/stages/detectors/coverage-drop-cobertura.test.ts
   - id: AC-d43aabcc
-    ears: event
-    condition: "when ARCHITECTURE_FROM_SPEC runs on a python repo whose spec declares layer rules"
-    text: "When layer rules apply to python code, import resolution shall use the dotted interpretation already implemented for Kotlin so from a.b import c and import a.b both resolve against declared layers."
-    notes: "WHY: the ES-module import regex matches zero Python imports — layer rules are currently vacuous on Python."
-    test_refs:
-      - tests/stages/detectors/architecture-from-spec-python.test.ts
+    statement: When layer rules apply to Python code, the import resolver shall use
+      the Kotlin dotted interpretation for from a.b import c and import a.b
+      declarations and resolve both against declared layers.
+    kind: behavior
+    notes: "WHY: the ES-module import regex matches zero Python imports — layer
+      rules are currently vacuous on Python."
   - id: AC-c6dae481
-    ears: unwanted
-    condition: "if a Python workspace has no supported Cobertura coverage report"
-    action: evaluate COVERAGE_DROP
-    response: return no findings
-    text: "If a Python workspace has no supported Cobertura coverage report, then COVERAGE_DROP shall return no findings."
-    notes: "2026-08-31 — Restored scoped wording. Displaced active wording: If no coverage report exists, then COVERAGE_DROP shall degrade to no findings exactly as today — no new failure mode for report-less repos. WHY: cladding never installs or runs the user's toolchain; absent evidence degrades, never fabricates."
-    test_refs:
-      - "tests/stages/detectors/coverage-drop-cobertura.test.ts#[covers:F-803386ab/AC-c6dae481] Python workspace without a supported Cobertura report returns no findings"
-      - "tests/stages/detectors/coverage-drop-cobertura.test.ts#[covers:F-803386ab/AC-c6dae481] present-but-malformed Cobertura remains silent"
-      - "tests/stages/detectors/coverage-drop-cobertura.test.ts#[covers:F-803386ab/AC-c6dae481] missing Istanbul and Kotlin reports retain their info findings"
+    statement: If a Python workspace has no supported Cobertura coverage report,
+      then the COVERAGE_DROP shall return no findings.
+    kind: behavior
+    notes: "2026-08-31 — Restored scoped wording. Displaced active wording: If no
+      coverage report exists, then COVERAGE_DROP shall degrade to no findings
+      exactly as today — no new failure mode for report-less repos. WHY:
+      cladding never installs or runs the user's toolchain; absent evidence
+      degrades, never fabricates."
   - id: AC-b5358945
-    ears: ubiquitous
-    text: "The system shall keep clad check --strict output on cladding's own repository byte-identical before and after this change, enforced by the existing no-regression conventions."
-    notes: "WHY: language additions must be zero-cost for existing TS/Kotlin users (language-config.ts design rule)."
-    test_refs:
-      - tests/stages/language-config.test.ts
+    statement: The system shall keep clad check --strict output on cladding's own
+      repository byte-identical before and after this change, enforced by the
+      existing no-regression conventions.
+    notes: "WHY: language additions must be zero-cost for existing TS/Kotlin users
+      (language-config.ts design rule)."

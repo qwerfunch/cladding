@@ -8,32 +8,26 @@ modules:
   - src/ui/panel.ts
 depends_on:
   - F-039
+capability_refs: []
 acceptance_criteria:
   - id: AC-061
-    ears: ubiquitous
-    action: expose only current supported public commands and route each registered command through its declared handler
-    response: retired verb names remain compatibility history, not required commands
-    text: The command registry shall expose only the current supported public commands and route each registered command through its declared handler; retired verb names remain compatibility history, not required commands.
-    test_refs:
-      - "tests/cli/clad.test.ts#[covers:F-040/AC-061] exposes only supported commands through declared handlers"
-    notes: |
+    statement: The command registry shall expose only the current supported public
+      commands and route each registered command through its declared handler;
+      retired verb names remain compatibility history, not required commands.
+    notes: >
       ## Historical schema-0.1 note
-      The five Iron Core verbs plus panel/route list is historical, not current proof.
 
+      The five Iron Core verbs plus panel/route list is historical, not current
+      proof.
   - id: AC-062
-    ears: ubiquitous
-    action: emit one Pulse line per transition (start / pass / fail / skip / note)
-    response: stdout is tail -f-friendly; ANSI color when TTY, plain when not
-    text: The Pulse UI shall emit one line per transition (start / pass / fail /
-      skip / note); output is ANSI-colored when stdout is a TTY and plain text
+    statement: The Pulse UI shall emit one line per transition (start / pass / fail
+      / skip / note); output is ANSI-colored when stdout is a TTY and plain text
       otherwise.
-    evidence_refs: [fixture:F-040_AC-062]
-
+    evidence_refs:
+      - fixture:F-040_AC-062
   - id: AC-063
-    ears: ubiquitous
-    action: render a feature × stage Integrity Panel as a text grid
-    response: each cell uses one of 5 glyphs (✓ · ! ✗ -) describing the stage outcome
-    text: The Integrity Panel shall render a feature × stage text grid; each cell
-      uses one of five glyphs (pass / skip / warn / error / unknown) describing
-      the stage outcome for that feature.
-    evidence_refs: [fixture:F-040_AC-063]
+    statement: The Integrity Panel shall render a feature × stage text grid; each
+      cell uses one of five glyphs (pass / skip / warn / error / unknown)
+      describing the stage outcome for that feature.
+    evidence_refs:
+      - fixture:F-040_AC-063

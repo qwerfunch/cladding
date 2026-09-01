@@ -1,7 +1,6 @@
-# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
 id: F-ef2fd9
-slug: ab-ext-dashboard
-title: A/B extended scenario 2 — 30-feature React analytics dashboard + cross-scenario summary (v0.3.52)
+title: A/B extended scenario 2 — 30-feature React analytics dashboard +
+  cross-scenario summary (v0.3.52)
 status: done
 modules:
   - tests/scenarios/ab-extended/_shared-scaffold.ts
@@ -14,34 +13,27 @@ modules:
 depends_on:
   - F-0144b9
   - F-ae61c1
+capability_refs: []
 acceptance_criteria:
   - id: AC-001
-    ears: ubiquitous
-    action: 'extract shared React + Vite + TS + Tailwind scaffold into _shared-scaffold.ts so multiple scenarios can reuse package.json / tsconfig / vite.config / tailwind.config / index.html / index.css / main.tsx / README templates without duplication'
-    text: The system shall extract shared React + Vite scaffold into a single module reused by all extended scenarios.
-    evidence_refs: [tests/scenarios/ab-extended/_shared-scaffold.ts]
+    statement: The system shall extract shared React + Vite scaffold into a single
+      module reused by all extended scenarios.
+    evidence_refs:
+      - tests/scenarios/ab-extended/_shared-scaffold.ts
   - id: AC-002
-    ears: ubiquitous
-    action: 'define 30 analytics-dashboard features across 5 categories (layout 8 + cards 8 + charts 5 + data 5 + preferences 4) with deterministic F-hash6 ids and a dashboard-domain capabilities binding'
-    text: The system shall define 30 analytics-dashboard features across 5 categories with deterministic ids.
-    test_refs: [tests/scenarios/ab-extended/case-dashboard.test.ts]
+    statement: The system shall define 30 analytics-dashboard features across 5
+      categories with deterministic ids.
   - id: AC-003
-    ears: ubiquitous
-    action: 'ship a dashboard curator that emits a complete React app with sidebar + breadcrumbs + 7 card types + 5 inline-SVG charts + 3 data hooks + preferences panel for both cladding and vanilla groups'
-    text: The system shall ship a dashboard curator that emits a complete React analytics dashboard for both groups.
-    test_refs: [tests/scenarios/ab-extended/case-dashboard.test.ts]
+    statement: The system shall ship a dashboard curator that emits a complete React
+      analytics dashboard for both groups.
   - id: AC-004
-    ears: ubiquitous
-    action: 'wire the dashboard case test to the same 7-milestone progression + drift injection + AI-query benchmark used by task-manager, with featureKeyword metric-card for Q1/Q2'
-    text: The system shall reuse the task-manager case structure with dashboard-specific feature keyword.
-    test_refs: [tests/scenarios/ab-extended/case-dashboard.test.ts]
+    statement: The system shall reuse the task-manager case structure with
+      dashboard-specific feature keyword.
   - id: AC-005
-    ears: ubiquitous
-    action: 'emit both runnable dashboard React projects to docs/ab-evaluation-extended/scenarios/dashboard/{cladding, vanilla}/ when UPDATE_AB_REPORTS=1 so reviewers can cd in and npm run dev locally (committed source removed by F-9a3b61 — see .gitignore)'
-    text: The system shall emit both groups dashboard React projects on-demand under UPDATE_AB_REPORTS=1.
-    test_refs: [tests/scenarios/ab-extended/case-dashboard.test.ts]
+    statement: The system shall emit both groups dashboard React projects on-demand
+      under UPDATE_AB_REPORTS=1.
   - id: AC-006
-    ears: ubiquitous
-    action: 'rewrite docs/ab-evaluation-extended/summary.md as the cross-scenario verdict matrix declaring AB-마무리 (AB-evaluation wrap-up) complete — task-manager + dashboard share identical 3/4 cladding-exclusive drift catch rate proving cladding value generalizes across domains'
-    text: The system shall declare AB-evaluation wrap-up complete with a cross-scenario verdict matrix proving domain-independence.
-    evidence_refs: [docs/ab-evaluation-extended/summary.md]
+    statement: The system shall declare AB-evaluation wrap-up complete with a
+      cross-scenario verdict matrix proving domain-independence.
+    evidence_refs:
+      - docs/ab-evaluation-extended/summary.md

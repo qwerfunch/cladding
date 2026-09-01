@@ -6,13 +6,12 @@ modules:
 depends_on:
   - F-003
   - F-010
+capability_refs: []
 acceptance_criteria:
   - id: AC-026
-    ears: ubiquitous
-    action: validate every internal id reference in spec.yaml resolves
-    response: error finding per unresolved reference
-    text: The system shall validate that every internal id reference in spec.yaml —
-      features[].depends_on, features[].superseded_by, scenarios[].features —
-      resolves to an actual feature id, emitting an error finding per unresolved
-      reference.
-    evidence_refs: [fixture:F-016_AC-026]
+    statement: The system shall validate that every internal id reference in
+      spec.yaml — features[].depends_on, features[].superseded_by,
+      scenarios[].features — resolves to an actual feature id, emitting an error
+      finding per unresolved reference.
+    evidence_refs:
+      - fixture:F-016_AC-026

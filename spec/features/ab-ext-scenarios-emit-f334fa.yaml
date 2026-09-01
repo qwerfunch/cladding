@@ -1,7 +1,6 @@
-# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
 id: F-f334fa
-slug: ab-ext-scenarios-emit
-title: A/B extended curators emit scenario shards — Q5 now answers in 1 directory read (v0.3.55)
+title: A/B extended curators emit scenario shards — Q5 now answers in 1
+  directory read (v0.3.55)
 status: done
 modules:
   - tests/scenarios/ab-extended/_curator.ts
@@ -9,24 +8,21 @@ modules:
   - docs/ab-evaluation-extended/summary.md
 depends_on:
   - F-ef2fd9
+capability_refs: []
 acceptance_criteria:
   - id: AC-001
-    ears: ubiquitous
-    action: 'task-manager curator emits 3 scenario shards (first-time-onboarding, power-user-bulk, data-portability) under spec/scenarios with deterministic S-hash6 ids and feature bindings'
-    text: The system shall make the task-manager curator emit 3 user-journey scenario shards.
-    test_refs: [tests/scenarios/ab-extended/case-task-manager.test.ts]
+    statement: The system shall make the task-manager curator emit 3 user-journey
+      scenario shards.
   - id: AC-002
-    ears: ubiquitous
-    action: 'dashboard curator emits 3 scenario shards (metrics-monitoring, alert-triage, preference-customization) under spec/scenarios with deterministic S-hash6 ids and feature bindings'
-    text: The system shall make the dashboard curator emit 3 user-journey scenario shards.
-    test_refs: [tests/scenarios/ab-extended/case-dashboard.test.ts]
+    statement: The system shall make the dashboard curator emit 3 user-journey
+      scenario shards.
   - id: AC-003
-    ears: ubiquitous
-    action: 'with scenario shards in place, AI-query Q5 answers in 1 directory read per scenario — bringing the cladding low-cost answer rate from 2 of 5 to 3 of 5 in both scenarios while vanilla stays at 0 of 5'
-    text: The system shall raise the AI-query low-cost answer rate from 2 of 5 to 3 of 5 in both scenarios.
-    evidence_refs: [docs/ab-evaluation-extended/scenarios/task-manager/report.md, docs/ab-evaluation-extended/scenarios/dashboard/report.md]
+    statement: The system shall raise the AI-query low-cost answer rate from 2 of 5
+      to 3 of 5 in both scenarios.
+    evidence_refs:
+      - docs/ab-evaluation-extended/scenarios/task-manager/report.md
+      - docs/ab-evaluation-extended/scenarios/dashboard/report.md
   - id: AC-004
-    ears: ubiquitous
-    action: 'cross-scenario summary upgrades the H10 verdict from partial to supported (with caveat about Q1 and Q2 linear-scan) so AB-evaluation wrap-up reflects the new measurement'
-    text: The system shall upgrade the H10 cross-scenario verdict to supported.
-    evidence_refs: [docs/ab-evaluation-extended/summary.md]
+    statement: The system shall upgrade the H10 cross-scenario verdict to supported.
+    evidence_refs:
+      - docs/ab-evaluation-extended/summary.md

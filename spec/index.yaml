@@ -92,7 +92,7 @@ features:
   F-09a98261: {slug: terminology-canon, status: done, modules: 8}
   F-09d68b: {slug: clad-refine, status: done, modules: 7}
   F-0a29d024: {slug: spec-02-design-validation, status: done, modules: 11}
-  F-0b8f23c5: {slug: spec-02-scenario-policy-self-migration, status: in_progress, modules: 39}
+  F-0b8f23c5: {slug: spec-02-scenario-policy-self-migration, status: done, modules: 39}
   F-0e84628e: {slug: merge-ritual-docs, status: done, modules: 2}
   F-0ed2db: {slug: ai-hints-consumer-instructions, status: done, modules: 11}
   F-0f2984d0: {slug: infer-deps-dynamic-flag, status: done, modules: 2}

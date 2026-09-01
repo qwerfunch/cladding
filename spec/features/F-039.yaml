@@ -4,26 +4,24 @@ status: done
 modules:
   - src/router/intent.ts
   - tests/router/intent.test.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-059
-    ears: event
-    condition: when the intent router evaluates a prompt
-    action: return the first matching verb from the current ordered rule registry
-    response: returns unknown when no rule matches
-    text: When the intent router evaluates a prompt, it shall return the first matching verb from the current ordered rule registry or `unknown` when no rule matches.
-    test_refs:
-      - "tests/router/intent.test.ts#[covers:F-039/AC-059] returns the first matching current rule or unknown"
+    statement: When the intent router evaluates a prompt, the router shall return
+      the first matching verb from the current ordered rule registry or unknown
+      when no rule matches.
+    kind: behavior
     notes: |
       ## Historical note
       The old five-verb list is retired: `work` and `drive` now map to `run`.
   - id: AC-060
-    ears: event
-    condition: when the router evaluates a prompt matching both a specific rule and the broad run rule
-    action: return the first specific rule's verb
-    response: the broad run rule does not shadow the specific rule
-    text: When the router evaluates a prompt matching both a specific rule and the broad run rule, it shall return the first specific rule's verb.
-    test_refs:
-      - "tests/router/intent.test.ts#[covers:F-039/AC-060] prioritizes a specific rule over the broad run rule"
-    notes: |
+    statement: When the router evaluates a prompt matching both a specific rule and
+      the broad run rule, the router shall return the first specific rule's
+      verb.
+    kind: behavior
+    notes: >
       ## Historical schema-0.1 note
-      The retired work/drive/sync/check ordering is historical, not current proof.
+
+      The retired work/drive/sync/check ordering is historical, not current
+      proof.

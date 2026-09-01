@@ -1,41 +1,38 @@
 id: F-24062d
-slug: spec-id-hash-filename-and-lookup
 title: Hash-filename + slug-friendly lookup + multi-dev guide (v0.3.10)
 status: done
 modules:
   - src/spec/new.ts
   - src/serve/server.ts
   - docs/spec-ids-multi-dev.md
-depends_on: [F-67e33f]
+depends_on:
+  - F-67e33f
+capability_refs: []
 acceptance_criteria:
   - id: AC-001
-    ears: ubiquitous
-    action: write new feature files at spec/features/<slug>-<hash6>.yaml instead of spec/features/<slug>.yaml
-    response: 'createFeature in src/spec/new.ts uses ${slug}-${id-tail}.yaml as the filename; the throw-on-collision check is reduced to the 1/16M hash-coincidence case; the same hash appears both as the id tail and as the filename suffix for visual consistency'
-    text: The system shall write new feature files at spec/features/<slug>-<hash6>.yaml so two simultaneous calls to createFeature with the same slug across two branches produce distinct file paths by construction, eliminating the file-level merge conflict that would otherwise occur.
-    test_refs: [tests/spec/new.test.ts]
+    statement: The system shall write new feature files at
+      spec/features/<slug>-<hash6>.yaml so two simultaneous calls to
+      createFeature with the same slug across two branches produce distinct file
+      paths by construction, eliminating the file-level merge conflict that
+      would otherwise occur.
   - id: AC-002
-    ears: state
-    condition: while createFeature is invoked twice with the same slug in the same cwd
-    action: produce two distinct files with different hashes and no throw
-    response: both invocations succeed, both yaml files exist on disk, the two ids differ, and the two file paths differ; the SLUG_CONFLICT detector raises the duplicate slug on the next `clad check --strict` so a human resolves the semantic conflict
-    text: While createFeature is invoked twice with the same slug in the same cwd, the system shall produce two distinct files with different hashes and no throw — the semantic conflict is surfaced by the SLUG_CONFLICT detector on the next check, not by createFeature itself.
-    test_refs: [tests/spec/new.test.ts]
+    statement: While createFeature is invoked twice with the same slug in the same
+      cwd, the system shall produce two distinct files with different hashes and
+      no throw — the semantic conflict is surfaced by the SLUG_CONFLICT detector
+      on the next check, not by createFeature itself.
   - id: AC-003
-    ears: ubiquitous
-    action: accept a slugSubstring filter and a sort option on clad_list_features
-    response: clad_list_features adds optional slugSubstring (case-insensitive contains-match on the slug field) and sort=alphabetical|recent (recent ranks by spec/features/<...>.yaml mtime newest-first, alphabetical defaults to feature id order)
-    text: The system shall extend clad_list_features with a slugSubstring case-insensitive filter and a sort option ('alphabetical' default · 'recent' by file mtime) so a user can ask the host AI for "auth-related features" or "recently edited features" and the LLM resolves the request through the MCP tool without needing the exact hash id.
-    test_refs: [tests/serve/server.test.ts]
+    statement: The system shall extend clad_list_features with a slugSubstring
+      case-insensitive filter and a sort option ('alphabetical' default ·
+      'recent' by file mtime) so a user can ask the host AI for "auth-related
+      features" or "recently edited features" and the LLM resolves the request
+      through the MCP tool without needing the exact hash id.
   - id: AC-004
-    ears: ubiquitous
-    action: accept either id or slug on clad_get_feature
-    response: clad_get_feature now takes id OR slug; when both are omitted the tool returns an error; when a slug matches multiple features the response carries a matches array, when it matches one the response carries the bare feature
-    text: The system shall extend clad_get_feature to accept either id or slug; this lets the host LLM look a feature up by its human-friendly slug when the user does not remember the F-<hash> id.
-    test_refs: [tests/serve/server.test.ts]
+    statement: The system shall extend clad_get_feature to accept either id or slug;
+      this lets the host LLM look a feature up by its human-friendly slug when
+      the user does not remember the F-<hash> id.
   - id: AC-005
-    ears: ubiquitous
-    action: ship a multi-dev guide that documents the model and the user-facing lookup scenarios
-    response: 'docs/spec-ids-multi-dev.md covers: identifier layers + scopes, the no-CLI invocation path, six lookup scenarios (just-made / partial slug / recent / exact slug / exact id / project activity), three concurrency scenarios (different slugs / same slug simultaneous / same cwd repeated), legacy F-NNN coexistence rules, and the do-not-override-id guidance'
-    text: The system shall ship docs/spec-ids-multi-dev.md so external adopters can understand how the model behaves across the common multi-developer scenarios without reading source code or detector implementations.
-    evidence_refs: [docs/spec-ids-multi-dev.md]
+    statement: The system shall ship docs/spec-ids-multi-dev.md so external adopters
+      can understand how the model behaves across the common multi-developer
+      scenarios without reading source code or detector implementations.
+    evidence_refs:
+      - docs/spec-ids-multi-dev.md

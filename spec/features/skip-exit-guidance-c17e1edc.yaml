@@ -1,5 +1,4 @@
 id: F-c17e1edc
-slug: skip-exit-guidance
 title: "Runner-less skips name their exit: gate.commands guidance"
 status: done
 modules:
@@ -10,12 +9,14 @@ modules:
   - src/stages/cov.ts
   - src/stages/util.ts
   - src/cli/clad.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-4b7d20e5
-    ears: ubiquitous
-    action: "tag every skip result with a structured reason — 'no-runner' when a command stage skips because no runner is registered for the project's language, 'tool-missing' when the resolved tool is absent or npx cannot fetch it — leaving by-design skips (missing oracles, no declared deliverable) untagged"
-    response: "the machine surface distinguishes 'cladding does not know how to run this' from 'this stage does not apply', without changing any existing stderr string, exit code, or skip semantics"
-    text: "The system shall carry a structured skipReason ('no-runner' | 'tool-missing') on command-stage skip results, tagged at the production sites, with by-design skips untagged and every existing skip message byte-identical."
+    statement: The system shall carry a structured skipReason ('no-runner' |
+      'tool-missing') on command-stage skip results, tagged at the production
+      sites, with by-design skips untagged and every existing skip message
+      byte-identical.
     notes: |
       ## Why
       Measured on a zig adopter: six of nine stages skip, and the six split into
@@ -24,13 +25,11 @@ acceptance_criteria:
       deliverable) where that cure is a false prescription. Blanket guidance
       would lie on two stages; a stderr regex would be a parser where a field
       belongs.
-    test_refs: ["tests/cli/skip-exit-guidance.test.ts", "tests/cli/gate-golden-matrix.test.ts"]
   - id: AC-90c3f1a8
-    ears: event
-    condition: "when a check run finishes with at least one no-runner skip and text output is active"
-    action: "print exactly one trailing info line that lists the skipped stage labels and shows the concrete remedy inline — declaring commands under gate.commands in .cladding/config.yaml — noting the file is committable so CI runs the same gate"
-    response: "an adopter whose language cladding cannot drive sees, at the moment of the skip, the one declaration that turns those stages on — measured true end-to-end before this feature was designed: declaring gate.commands flips all four stages from skip to run through the shipped binary"
-    text: "When at least one stage skipped for lack of a runner, the system shall print one info line naming those stages and the gate.commands declaration inline, and shall print nothing when no such skip occurred."
+    statement: When at least one stage skipped for lack of a runner, the system
+      shall print one info line naming those stages and gate.commands while
+      remaining silent when none skipped.
+    kind: behavior
     notes: |
       ## Why
       The exit exists but is invisible: across every adopter-reachable surface
@@ -41,23 +40,17 @@ acceptance_criteria:
       inline (key path + example) because docs/ does not ship in the npm
       package. The language name is not printed — it reads 'unknown' in the
       motivating case.
-    test_refs: ["tests/cli/skip-exit-guidance.test.ts"]
   - id: AC-2f6e88d0
-    ears: unwanted
-    condition: "if every skip is by-design or tool-missing, or gate.commands is already declared, or all stages ran"
-    action: "print no guidance line"
-    response: "the by-design skips (spec-conformance oracles, deliverable smoke) never carry a false prescription, a tool-missing skip is not advised to declare commands it already has, and a fully-driven project sees nothing new — measured 4/0/0/0 across the four guard environments before implementation"
-    text: "If no stage skipped for lack of a runner, the system shall print no guidance."
-    test_refs: ["tests/cli/skip-exit-guidance.test.ts"]
+    statement: If no stage skipped for lack of a runner, then the system shall print
+      no guidance.
+    kind: behavior
   - id: AC-b59a37c4
-    ears: event
-    condition: "when check emits its JSON report"
-    action: "include the skipReason field on each skipped stage entry that carries one"
-    response: "MCP and CI consumers receive the same discrimination the terminal renders, additively — no existing JSON field changes"
-    text: "When emitting JSON, the system shall include skipReason on tagged stage entries and change no existing field."
-    test_refs: ["tests/cli/skip-exit-guidance.test.ts"]
+    statement: When emitting JSON, the system shall include skipReason on tagged
+      stage entries and change no existing field.
 design_impact:
   classification: none
-  rationale: "Additive observability: a structured reason on an existing skip lane and one rendered line. No gate decision, severity, or stage semantics change; skips stay skips."
+  rationale: "Additive observability: a structured reason on an existing skip lane
+    and one rendered line. No gate decision, severity, or stage semantics
+    change; skips stay skips."
   status: resolved
   artifacts: []

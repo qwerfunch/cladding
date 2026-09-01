@@ -1,6 +1,4 @@
-# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
 id: F-4747ef
-slug: ssot-lifecycle-tests
 title: SSoT 4-tier lifecycle verification + token efficiency budgets (v0.3.46)
 status: done
 modules:
@@ -15,94 +13,85 @@ modules:
   - docs/ssot-testing.md
 depends_on:
   - F-d12edf
+capability_refs:
+  - spec-governance
 acceptance_criteria:
   - id: AC-001
-    ears: ubiquitous
-    action: complete the declared greenfield lifecycle in one valid initialized workspace through current public command or core surfaces
-    response: the lifecycle uses onboarding, clarification, re-scan, feature, scenario, and capability transitions without private mutation shortcuts
-    text: The system shall complete the declared greenfield lifecycle in one valid initialized workspace through current public command or core surfaces.
-    test_refs:
-      - "tests/scenarios/greenfield-lifecycle.test.ts#[covers:F-4747ef/AC-001] completes the declared greenfield lifecycle in one valid initialized workspace through public surfaces"
-    notes: |
+    statement: The system shall complete the declared greenfield lifecycle in one
+      valid initialized workspace through current public command or core
+      surfaces.
+    notes: >
       ## Historical atomicity note — 2026-08-31
-      Reason: the former criterion combined lifecycle completion, transition coverage, and scenario-reference integrity.
-      Previous compound criterion text (non-normative): The system shall ship a 6-stage greenfield lifecycle test that exercises the full intent-aware onboarding + refine + re-scan path while asserting tier integrity at every step.
+
+      Reason: the former criterion combined lifecycle completion, transition
+      coverage, and scenario-reference integrity.
+
+      Previous compound criterion text (non-normative): The system shall ship a
+      6-stage greenfield lifecycle test that exercises the full intent-aware
+      onboarding + refine + re-scan path while asserting tier integrity at every
+      step.
   - id: AC-7e3e3f37
-    ears: ubiquitous
-    action: exercise every declared greenfield onboarding and refinement transition in the same continuing workspace through its current command surface
-    response: initialization, clarification, and re-scan stay in one workspace lifecycle
-    text: The system shall exercise every declared greenfield onboarding and refinement transition in the same continuing workspace through its current command surface.
-    test_refs:
-      - "tests/scenarios/greenfield-lifecycle.test.ts#[covers:F-4747ef/AC-7e3e3f37] exercises every declared greenfield onboarding and refinement transition in the same continuing workspace"
+    statement: The system shall exercise every declared greenfield onboarding and
+      refinement transition in the same continuing workspace through its current
+      command surface.
   - id: AC-e5aababf
-    ears: event
-    condition: when each greenfield lifecycle transition completes
-    action: retain structurally valid scenario-to-feature references
-    response: empty references remain valid before a feature exists and every nonempty reference resolves afterward
-    text: After each greenfield lifecycle transition, the system shall retain structurally valid scenario-to-feature references.
-    test_refs:
-      - "tests/scenarios/greenfield-lifecycle.test.ts#[covers:F-4747ef/AC-e5aababf] retains structurally valid scenario-to-feature references after every greenfield lifecycle transition"
+    statement: When each greenfield lifecycle transition completes, the system shall
+      retain structurally valid scenario-to-feature references.
+    kind: behavior
   - id: AC-002
-    ears: ubiquitous
-    action: complete the declared adoption lifecycle from the committed populated TypeScript fixture in one continuing workspace
-    response: the existing-project path proceeds through onboarding, refinement review, feature creation, and bindings without resetting the workspace
-    text: The system shall complete the declared adoption lifecycle from the committed populated TypeScript fixture in one continuing workspace.
-    test_refs:
-      - "tests/scenarios/existing-adoption-lifecycle.test.ts#[covers:F-4747ef/AC-002] completes one continuous adoption lifecycle from the committed populated TypeScript fixture"
-    notes: |
+    statement: The system shall complete the declared adoption lifecycle from the
+      committed populated TypeScript fixture in one continuing workspace.
+    notes: >
       ## Historical atomicity note — 2026-08-31
-      Reason: the former criterion combined adoption lifecycle completion, collision preservation, and scenario-reference integrity.
-      Previous compound criterion text (non-normative): The system shall ship a 6-stage existing-adoption lifecycle test using a populated TypeScript fixture so the existing-project code path is exercised end-to-end.
+
+      Reason: the former criterion combined adoption lifecycle completion,
+      collision preservation, and scenario-reference integrity.
+
+      Previous compound criterion text (non-normative): The system shall ship a
+      6-stage existing-adoption lifecycle test using a populated TypeScript
+      fixture so the existing-project code path is exercised end-to-end.
   - id: AC-4e9c049b
-    ears: event
-    condition: when adoption refinement encounters authored collision inputs
-    action: preserve the inputs byte-identically and expose the proposal escape end-to-end
-    response: reviewed proposals are observable before resolution and are consumed only through the review flow
-    text: The system shall preserve authored collision inputs byte-identically and expose the proposal escape end-to-end during adoption.
-    test_refs:
-      - "tests/scenarios/existing-adoption-lifecycle.test.ts#[covers:F-4747ef/AC-4e9c049b] preserves authored collision inputs byte-identically and exposes the proposal escape end-to-end during adoption"
+    statement: The system shall preserve authored collision inputs byte-identically
+      and expose the proposal escape end-to-end during adoption.
+    kind: quality
   - id: AC-e9094179
-    ears: event
-    condition: when each adoption, refinement, or binding transition completes
-    action: retain structurally valid scenario-to-feature references
-    response: empty references remain valid before a feature exists and every nonempty reference resolves afterward
-    text: After each adoption, refinement, and binding transition, the system shall retain structurally valid scenario-to-feature references.
-    test_refs:
-      - "tests/scenarios/existing-adoption-lifecycle.test.ts#[covers:F-4747ef/AC-e9094179] retains structurally valid scenario-to-feature references after adoption, refinement, and binding transitions"
+    statement: When a lifecycle transition completes, the system shall retain
+      structurally valid scenario-to-feature references through adoption,
+      refinement, and binding.
+    kind: behavior
   - id: AC-003
-    ears: ubiquitous
-    action: introduce a portable token-measurement library so persona prompts, meta docs, LLM dispatcher prompts, and generated artifacts can all be measured uniformly
-    response: 'tests/scenarios/_token-meter.ts exports measureFile / measureText / measurePersonaPrompt / measureLLMPrompt returning {lines, chars, estTokens}; estTokens uses chars/4 heuristic for portability (no extra npm dependency); sumMeasurements + maxMeasurements + formatMeasurement support digest output; the tokenizer migration path is documented in docs/ssot-testing.md so a future swap to @anthropic-ai/tokenizer is a one-line change'
-    text: The system shall introduce a portable token-measurement library so persona prompts, meta docs, LLM dispatcher prompts, and generated artifacts can all be measured uniformly.
-    evidence_refs: [tests/scenarios/_token-meter.ts]
+    statement: The system shall introduce a portable token-measurement library so
+      persona prompts, meta docs, LLM dispatcher prompts, and generated
+      artifacts can all be measured uniformly.
+    evidence_refs:
+      - tests/scenarios/_token-meter.ts
   - id: AC-004
-    ears: ubiquitous
-    action: define size budgets for every cladding-managed artifact category with a ratchet mechanism so PR-level bloat regressions fail the gate rather than silently shipping
-    response: 'tests/scenarios/_size-budgets.ts declares PERSONA_BUDGETS (5 personas), META_DOC_BUDGETS (ssot-model.md), LLM_PROMPT_BUDGETS (onboarding tokens + refinement base+per-Q-A linear allowance), ARTIFACT_BUDGETS (project-context, capabilities, architecture, conventions, scenarios, onboarding state); each budget calibrated from current baseline + 20-25% headroom; checkBudget returns BudgetCheckResult with violations array; refinementPromptBudget computes per-Q-A growth limit; the ratchet pattern documented in docs/ssot-testing.md requires bumping budgets in PR review before merging growth'
-    text: The system shall define size budgets for every cladding-managed artifact category with a ratchet mechanism so PR-level bloat regressions fail the gate rather than silently shipping.
-    evidence_refs: [tests/scenarios/_size-budgets.ts]
+    statement: The system shall define size budgets for every cladding-managed
+      artifact category with a ratchet mechanism so PR-level bloat regressions
+      fail the gate rather than silently shipping.
+    evidence_refs:
+      - tests/scenarios/_size-budgets.ts
   - id: AC-005
-    ears: ubiquitous
-    action: emit a token-efficiency digest at the end of each lifecycle test that surfaces every measurement against its budget so reviewers audit trends even on passing runs
-    response: 'tests/scenarios/_assertions.ts buildSizeDigest walks every tracked artifact and returns DigestRow[] with category / path / measurement / budget / status (OK | OVERAGE); formatDigest renders the rows as multi-line text with per-row checkmarks and an OVERAGES section when any budget is exceeded; assertNoBudgetOverages writes the digest to process.stdout regardless of pass/fail and throws when overages exist; lifecycle tests call this at their final stage with a label like "Greenfield S6 final"'
-    text: The system shall emit a token-efficiency digest at the end of each lifecycle test that surfaces every measurement against its budget so reviewers audit trends even on passing runs.
-    evidence_refs: [tests/scenarios/_assertions.ts]
+    statement: The system shall emit a token-efficiency digest at the end of each
+      lifecycle test that surfaces every measurement against its budget so
+      reviewers audit trends even on passing runs.
+    evidence_refs:
+      - tests/scenarios/_assertions.ts
   - id: AC-006
-    ears: ubiquitous
-    action: ship reusable lifecycle assertions so the two test files read like checklists not maze of expect calls
-    response: 'tests/scenarios/_assertions.ts exports assertTierBanner (first-line tier marker), assertArtifactsPresent (per-stage expectation map), assertCrossTierClean (runs all detectors with allowedDetectors escape hatch for cladding-self checks), assertSpecCompleteness (capability + scenario counts), assertProposalDivert (re-write divert), assertNoBudgetOverages (final-stage budget gate); runAllDetectors uses the canonical allDetectors registry from src/stages/detectors/index.ts; lifecycle tests compose these helpers per stage'
-    text: The system shall ship reusable lifecycle assertions so the two test files read like checklists not maze of expect calls.
-    evidence_refs: [tests/scenarios/_assertions.ts]
+    statement: The system shall ship reusable lifecycle assertions so the two test
+      files read like checklists not maze of expect calls.
+    evidence_refs:
+      - tests/scenarios/_assertions.ts
   - id: AC-007
-    ears: ubiquitous
-    action: provide a realistic existing-TypeScript fixture so the existing-adoption lifecycle test exercises observed layers and README-derived capabilities exactly like a real adopter
-    response: 'tests/scenarios/_fixtures/sample-existing-ts/ contains package.json + README.md (Install/Usage/API sections) + 8 source files split across src/api/ (index.ts, health.ts, auth.ts), src/lib/ (payment.ts, ledger.ts), src/util/ (log.ts, uuid.ts) + tests/payment.test.ts; the file count crosses SCAN_AUTO_THRESHOLD = 3 so cladding takes the observed scan path; the README sections become capability candidates and the directory structure becomes observed layers (api, lib, util)'
-    text: The system shall provide a realistic existing-TypeScript fixture so the existing-adoption lifecycle test exercises observed layers and README-derived capabilities exactly like a real adopter.
-    evidence_refs: [tests/scenarios/_fixtures/sample-existing-ts/]
+    statement: The system shall provide a realistic existing-TypeScript fixture so
+      the existing-adoption lifecycle test exercises observed layers and
+      README-derived capabilities exactly like a real adopter.
+    evidence_refs:
+      - tests/scenarios/_fixtures/sample-existing-ts/
   - id: AC-008
-    ears: state
-    condition: while the LLM dispatcher response omits the standard Tier banner from capabilities.yaml or architecture.yaml bodies
-    action: prepend the Tier B yaml banner so every cladding-managed artifact's first line carries the standard banner regardless of which path produced it
-    response: 'src/cli/scan/intent-onboarding.ts adds ensureTierBBannerYaml(body) which prepends "# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad refine" when the body does not already start with "# Cladding · "; interpretOnboardingWithFallback + interpretRefinementWithFallback both call this helper on capabilities + architecture LLM outputs so the resulting on-disk first line is always banner-compliant; greenfield seeds already include the banner so this is a no-op for the deterministic path'
-    text: While the LLM dispatcher response omits the standard Tier banner from capabilities.yaml or architecture.yaml bodies, the system shall prepend the Tier B yaml banner so every cladding-managed artifact's first line carries the standard banner regardless of which path produced it.
-    evidence_refs: [src/cli/scan/intent-onboarding.ts]
+    statement: While the LLM dispatcher response omits the standard Tier banner from
+      capabilities.yaml or architecture.yaml bodies, the system shall prepend
+      the Tier B yaml banner so every cladding-managed artifact's first line
+      carries the standard banner regardless of which path produced it.
+    evidence_refs:
+      - src/cli/scan/intent-onboarding.ts

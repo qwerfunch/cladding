@@ -1,6 +1,5 @@
 id: F-96d1f69d
-slug: readme-role-contract-alignment
-title: "README Multi-Agent section speaks the role contract, not choreography"
+title: README Multi-Agent section speaks the role contract, not choreography
 status: done
 modules:
   - README.md
@@ -9,24 +8,30 @@ modules:
   - README.zh.md
   - README.html
   - README.ko.html
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-8d63da98
-    ears: ubiquitous
-    response: "the Multi-Agent section slice of every README variant matches no /dispatch/i"
-    text: "No README variant shall describe the multi-agent story as cladding dispatching or sequencing agents; how agents run is the host's decision."
-    test_refs: ["tests/choreography-guard.test.ts"]
+    statement: The documentation shall not describe the multi-agent story as
+      cladding dispatching or sequencing agents because the host decides how
+      agents run.
+    kind: constraint
+    rationale: Preserves host control over agent execution.
   - id: AC-0a8ea4d7
-    ears: ubiquitous
-    response: "README.md, README.ko.md, README.html, README.ko.html Multi-Agent slices contain the literals 'independent' and 'self-certified'"
-    text: "The EN/KO README variants shall ground the separation-of-duties claim in the evidence-based independence label — every completion is labeled independent or self-certified on clad done/verdict — rather than in wiring cladding no longer prescribes."
-    test_refs: ["tests/choreography-guard.test.ts"]
+    statement: The EN/KO README variants shall ground the separation-of-duties claim
+      in the evidence-based independence label — every completion is labeled
+      independent or self-certified on clad done/verdict — rather than in wiring
+      cladding no longer prescribes.
   - id: AC-9d763fed
-    ears: ubiquitous
-    response: "readme-loop-section, readme-record-honesty and self-consistency suites stay green"
-    text: "The rewrite shall preserve every existing README pin — the Multi-Agent heading token and its position after the loop section, the hedged EU AI Act sentence in the four EN/KO variants, and the detector/stage count literals."
-    test_refs: ["tests/readme-loop-section.test.ts", "tests/readme-record-honesty.test.ts", "tests/self-consistency.test.ts"]
+    statement: The rewrite shall preserve every existing README pin — the
+      Multi-Agent heading token and its position after the loop section, the
+      hedged EU AI Act sentence in the four EN/KO variants, and the
+      detector/stage count literals.
 design_impact:
   classification: none
-  rationale: "Documentation alignment: the README's multi-agent story catches up with the role-contract architecture (host owns execution; cladding declares conditions and labels completions from recorded evidence). No engine or capability changes."
+  rationale: "Documentation alignment: the README's multi-agent story catches up
+    with the role-contract architecture (host owns execution; cladding declares
+    conditions and labels completions from recorded evidence). No engine or
+    capability changes."
   status: resolved
   artifacts: []

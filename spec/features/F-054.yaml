@@ -5,32 +5,36 @@ modules:
   - conformance/runner.ts
   - conformance/fixtures.yaml
   - tests/conformance/registry.test.ts
-depends_on: [F-053]
+depends_on:
+  - F-053
+capability_refs: []
 acceptance_criteria:
   - id: AC-121
-    ears: ubiquitous
-    action: extend Fixture interface with expectFindings
-    response: conformance/runner.ts declares ExpectedFinding and a readonly expectFindings field on Fixture; runOne asserts the field against result.findings when present
-    text: The Fixture interface shall accept an optional expectFindings list so detector-specific behaviour (warn / info findings that do not flip drift pass/fail) is assertable in conformance.
-    test_refs: [tests/conformance/registry.test.ts]
-    evidence_refs: [conformance/runner.ts]
+    statement: The Fixture interface shall accept an optional expectFindings list so
+      detector-specific behaviour (warn / info findings that do not flip drift
+      pass/fail) is assertable in conformance.
+    evidence_refs:
+      - conformance/runner.ts
   - id: AC-122
-    ears: ubiquitous
-    action: promote 7 documentary fixtures to runnable
-    response: F-007_AC-011 · F-011_AC-018 · F-012_AC-020 · F-013_AC-021 · F-014_AC-022 · F-014_AC-023 · F-019_AC-029 each gain a setup/run body in conformance/runner.ts, and the corresponding fixtures.yaml entries change kind=documentary → kind=runnable
-    text: The system shall promote seven documentary fixtures (F-007_AC-011, F-011_AC-018, F-012_AC-020, F-013_AC-021, F-014_AC-022, F-014_AC-023, F-019_AC-029) to kind=runnable in this batch.
-    test_refs: [tests/conformance/registry.test.ts]
-    evidence_refs: [conformance/fixtures.yaml]
+    statement: The system shall promote seven documentary fixtures (F-007_AC-011,
+      F-011_AC-018, F-012_AC-020, F-013_AC-021, F-014_AC-022, F-014_AC-023,
+      F-019_AC-029) to kind=runnable in this batch.
+    evidence_refs:
+      - conformance/fixtures.yaml
   - id: AC-123
-    ears: state
-    condition: while the conformance suite runs
-    action: every fixture matches its expected outcome
-    response: npm run conformance exits 0 with 33 fixtures matched (26 original + 7 promoted)
-    text: While the conformance suite runs, every fixture shall match its expected outcome — passing in both the original 26 and the 7 newly promoted entries.
-    evidence_refs: [fixture:F-007_AC-011, fixture:F-011_AC-018, fixture:F-012_AC-020, fixture:F-013_AC-021, fixture:F-014_AC-022, fixture:F-014_AC-023, fixture:F-019_AC-029]
+    statement: While the conformance suite runs, the suite shall find every fixture
+      matching its expected outcome across the original 26 and the 7 newly
+      promoted entries.
+    kind: quality
+    evidence_refs:
+      - fixture:F-007_AC-011
+      - fixture:F-011_AC-018
+      - fixture:F-012_AC-020
+      - fixture:F-013_AC-021
+      - fixture:F-014_AC-022
+      - fixture:F-014_AC-023
+      - fixture:F-019_AC-029
   - id: AC-124
-    ears: ubiquitous
-    action: keep the registry bidirectional invariant
-    response: every runnable entry in conformance/fixtures.yaml has a matching id in conformance/runner.ts, and every fixture id in runner.ts is registered in the yaml — registry.test.ts proves both directions
-    text: The registry's bidirectional invariant from F-053 shall continue to hold after this batch — every runnable fixture is both registered and implemented, with no orphans on either side.
-    test_refs: [tests/conformance/registry.test.ts]
+    statement: The registry's bidirectional invariant from F-053 shall continue to
+      hold after this batch — every runnable fixture is both registered and
+      implemented, with no orphans on either side.

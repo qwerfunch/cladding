@@ -1,48 +1,46 @@
 id: F-b0f898a6
-slug: attestation-v2-per-module
-title: "Attestation v2 — per-module hashes + constant feature markers (merge-friendly encoding)"
+title: Attestation v2 — per-module hashes + constant feature markers
+  (merge-friendly encoding)
 status: done
 modules:
   - src/spec/attestation.ts
   - src/stages/detectors/stale-attestation.ts
   - src/ui/panel.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-35f55851
-    ears: event
-    condition: "when a GREEN strict pre-push gate writes spec/attestation.yaml"
-    action: "emit the v2 two-section format — attested_modules (one line per module file in the union of done features' modules, value = sha256 of that file's bytes, 16 hex) and attested_features (one constant 'ok' marker line per done feature with modules) — sorted, LF, deterministic"
-    response: "an unchanged tree rewrites byte-identically, and editing ONE module file changes exactly ONE attestation line instead of every co-owning feature's line"
-    text: "When the gate attests, the system shall write the v2 two-section format whose line-change surface is one line per changed module file."
-    test_refs:
-      - "tests/spec/attestation-v2.test.ts#emits two sorted sections in order (modules then features), LF-terminated, shared module once, constant ok markers"
-      - "tests/spec/attestation-v2.test.ts#rewrites byte-identically when the module tree is unchanged"
-      - "tests/spec/attestation-v2.test.ts#editing one shared module file changes exactly one module line and zero feature-marker lines"
-    notes: "## Why\nv1 hashed each feature over ALL its module bytes: one shared-file edit rewrote every co-owner's line (avg 2.1, hubs dozens) — the #1 merge-conflict surface in parallel work. Empirically verified (30 scratch-repo git experiments, 2026-07-04): the same disjoint edit that conflicts as a 12-line block in v1 merges CLEAN in v2 under plain 3-way — GitHub PR path included. Boundary condition (documented, accepted): edits landing on the identical or immediately-adjacent sorted line still conflict (git needs one buffer line); ~0.5% tail for hash-keyed markers, higher where contributors cluster in one directory."
+    statement: When the gate attests, the system shall write the v2 two-section
+      format whose line-change surface is one line per changed module file.
+    notes: >-
+      ## Why
+
+      v1 hashed each feature over ALL its module bytes: one shared-file edit
+      rewrote every co-owner's line (avg 2.1, hubs dozens) — the #1
+      merge-conflict surface in parallel work. Empirically verified (30
+      scratch-repo git experiments, 2026-07-04): the same disjoint edit that
+      conflicts as a 12-line block in v1 merges CLEAN in v2 under plain 3-way —
+      GitHub PR path included. Boundary condition (documented, accepted): edits
+      landing on the identical or immediately-adjacent sorted line still
+      conflict (git needs one buffer line); ~0.5% tail for hash-keyed markers,
+      higher where contributors cluster in one directory.
   - id: AC-458c0035
-    ears: ubiquitous
-    text: "The attestation reader shall accept both v1 (attested: feature→tree-hash) and v2 files, preserving pre-change staleness verdicts for v1 files, so adopter repos transition on their next GREEN gate with no manual step."
-    test_refs:
-      - "tests/spec/attestation-v2.test.ts#reads a v1 file and preserves its verdicts: matching tree-hash fresh, mismatch stale, absent entry unattested"
-      - "tests/spec/attestation-v2.test.ts#a Frankenstein file with a stale v1 hash but fresh v2 sections resolves v2-wins (fresh)"
-      - "tests/spec/attestation-v2.test.ts#a GREEN write crosses a v1 file over to pure v2 with no manual step"
+    statement: "The attestation reader shall accept both v1 (attested:
+      feature→tree-hash) and v2 files, preserving pre-change staleness verdicts
+      for v1 files, so adopter repos transition on their next GREEN gate with no
+      manual step."
   - id: AC-ec3d293e
-    ears: event
-    condition: "when staleness is evaluated against a v2 attestation"
-    action: "report a done feature as fresh only if its marker exists and every one of its modules' current file hashes matches; name the drifted module in the stale message; flag a done feature with no marker as never-attested"
-    response: "the hand-flip guard and the code-ran-ahead guard both survive the encoding change, with better diagnostics"
-    text: "When evaluating v2, the system shall preserve both staleness verdicts (never-attested, module-drifted) and name the drifted module."
-    test_refs:
-      - "tests/spec/attestation-v2.test.ts#fresh only when the marker is present and every module hash matches"
-      - "tests/spec/attestation-v2.test.ts#a byte-edited module is stale and the verdict names that module"
-      - "tests/spec/attestation-v2.test.ts#a done feature with modules but no marker is never-attested"
-      - "tests/spec/attestation-v2.test.ts#a v2 file with duplicate module lines does not crash and the last line wins"
-      - "tests/stages/stale-attestation.test.ts#v2 stale detector message names the drifted module (F-b0f898a6 · AC-ec3d293e)"
+    statement: When evaluating v2, the system shall preserve both staleness verdicts
+      (never-attested, module-drifted) and name the drifted module.
   - id: AC-d6e6f792
-    ears: unwanted
-    condition: "if spec/attestation.yaml is assigned the union merge driver in .gitattributes"
-    action: "fail the guard test that pins the attribute state"
-    response: "union is removed for attestation (it silently reverts uncontested edits swept into adjacent conflict zones — reproduced experimentally); spec/index.yaml keeps union (heals within minutes via sync)"
-    text: "If .gitattributes assigns merge=union to spec/attestation.yaml, the system's attribute-pin test shall fail."
-    test_refs:
-      - "tests/spec/attestation-v2.test.ts#spec/attestation.yaml has no merge driver while spec/index.yaml keeps merge=union"
-    notes: "## Why\nUnion converts a rare, loud, safe conflict into a rare SILENT edit-revert (proven in v2 format in the scratch experiments). GitHub ignores merge attributes either way, and the dup-tolerant last-win reader stays as defense-in-depth."
+    statement: If .gitattributes assigns merge=union to spec/attestation.yaml, then
+      the system's attribute-pin test shall fail.
+    kind: constraint
+    rationale: Protects attestation serialization from an unsafe merge driver.
+    notes: >-
+      ## Why
+
+      Union converts a rare, loud, safe conflict into a rare SILENT edit-revert
+      (proven in v2 format in the scratch experiments). GitHub ignores merge
+      attributes either way, and the dup-tolerant last-win reader stays as
+      defense-in-depth.

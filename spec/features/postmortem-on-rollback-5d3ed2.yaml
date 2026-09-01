@@ -1,5 +1,4 @@
 id: F-5d3ed2
-slug: postmortem-on-rollback
 title: Iron Law backbone Phase 3.3 — Librarian post-mortem on auto-rollback (v0.3.22)
 status: done
 modules:
@@ -7,35 +6,27 @@ modules:
   - src/drive/loop.ts
 depends_on:
   - F-2de65d
+capability_refs: []
 acceptance_criteria:
   - id: AC-001
-    ears: ubiquitous
-    action: author a markdown post-mortem under .cladding/post-mortems/ after every auto-rollback
-    response: 'src/core/postmortem.ts writePostMortem creates .cladding/post-mortems/ on demand and writes post-mortem-<F-id>-<sanitised-ts>.md containing feature id, last failed gate, retry count, checkpoint git head, recovery command, and the librarian author tag; src/drive/loop.ts calls writePostMortem immediately after the recordRollback call when checkpoint is non-null'
-    text: The system shall author a markdown post-mortem under .cladding/post-mortems/ after every auto-rollback so the next session has a maintainer-readable brief of why the previous attempt failed and what to do next.
-    test_refs: [tests/core/postmortem.test.ts, tests/drive/loop.test.ts]
+    statement: The system shall author a markdown post-mortem under
+      .cladding/post-mortems/ after every auto-rollback so the next session has
+      a maintainer-readable brief of why the previous attempt failed and what to
+      do next.
   - id: AC-002
-    ears: ubiquitous
-    action: sanitise the rollback timestamp for the filename segment
-    response: 'isoToFilenameSegment replaces every colon and period in the ISO 8601 timestamp with a hyphen so the path stays filesystem-safe on every platform; the test asserts that 2026-05-20T12:34:56.789Z becomes 2026-05-20T12-34-56-789Z and that neither colon nor period leaks into the resulting filename'
-    text: The system shall sanitise the rollback timestamp for the filename segment so the post-mortem path stays filesystem-safe on every platform — Windows, macOS, and Linux.
-    test_refs: [tests/core/postmortem.test.ts]
+    statement: The system shall sanitise the rollback timestamp for the filename
+      segment so the post-mortem path stays filesystem-safe on every platform —
+      Windows, macOS, and Linux.
   - id: AC-003
-    ears: ubiquitous
-    action: produce distinct files for successive rollbacks of the same feature
-    response: 'each writePostMortem call uses the rolledBackAt timestamp as the unique segment; two rollbacks of F-400 at 10:00:00 and 11:00:00 produce two files post-mortem-F-400-2026-05-20T10-00-00-000Z.md and post-mortem-F-400-2026-05-20T11-00-00-000Z.md; the test asserts readdirSync returns both'
-    text: The system shall produce distinct files for successive rollbacks of the same feature so the audit trail does not overwrite — each failure cycle gets its own post-mortem.
-    test_refs: [tests/core/postmortem.test.ts]
+    statement: The system shall produce distinct files for successive rollbacks of
+      the same feature so the audit trail does not overwrite — each failure
+      cycle gets its own post-mortem.
   - id: AC-004
-    ears: event
-    condition: when the checkpoint has no pinned git head
-    action: emit a manual-restore guidance line instead of a git checkout command
-    response: 'writePostMortem branches on ctx.checkpoint.gitHead; when null, the Git HEAD line reads `_no git head pinned_` and the Recommended recovery block prints `restore spec.yaml manually from VCS history` instead of `git checkout <hash>`; the test asserts neither a git checkout command nor any hex hash leaks into the body'
-    text: When the checkpoint has no pinned git head, the system shall emit a manual-restore guidance line instead of a git checkout command so the post-mortem stays usable even for projects cladding tracked outside a git repo or before the first commit.
-    test_refs: [tests/core/postmortem.test.ts]
+    statement: When the checkpoint has no pinned git head, the system shall emit a
+      manual-restore guidance line instead of a git checkout command so the
+      post-mortem stays usable even for projects cladding tracked outside a git
+      repo or before the first commit.
   - id: AC-005
-    ears: ubiquitous
-    action: hand the drive loop the last failed gate and retry count from in-memory maps
-    response: 'src/drive/loop.ts tracks the last failed gate per feature in a lastFailedGate Map populated by the failed-gates branch; on RETRY_THRESHOLD halt the loop reads count from retries Map and gate name from lastFailedGate Map (defaulting to "unknown" when absent) and passes both to writePostMortem; the test asserts callCtx.lastFailedGate is the stage label set by the failing gate'
-    text: The system shall hand the drive loop the last failed gate and retry count from in-memory maps so the post-mortem authoritatively names what went wrong without re-reading events.log.
-    test_refs: [tests/drive/loop.test.ts]
+    statement: The system shall hand the drive loop the last failed gate and retry
+      count from in-memory maps so the post-mortem authoritatively names what
+      went wrong without re-reading events.log.

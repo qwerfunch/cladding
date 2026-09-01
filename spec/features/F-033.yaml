@@ -6,27 +6,23 @@ modules:
   - src/stages/uat.ts
 depends_on:
   - F-032
+capability_refs: []
 acceptance_criteria:
   - id: AC-051
-    ears: event
-    condition: when Audit applies to a criterion
-    action: clear it only with a current verified human Audit receipt
-    response: the receipt covers that exact criterion and its required checks
-    text: When Audit applies to a criterion, it shall clear only with a current verified human Audit receipt for that exact criterion and its required checks.
-    test_refs:
-      - "tests/assurance/kernel.test.ts#[covers:F-033/AC-051][covers:F-033/AC-052] enumerates exact F5 composite criteria for Audit and UAT while blind proof only labels independence"
-    notes: |
+    statement: When Audit applies to a criterion, the assurance kernel shall clear
+      it only with a current verified human Audit receipt for that exact
+      criterion and its required checks.
+    kind: behavior
+    notes: >
       ## Historical schema-0.1 note
-      The missing-audit-log skipped stage result is historical, not current proof.
 
+      The missing-audit-log skipped stage result is historical, not current
+      proof.
   - id: AC-052
-    ears: event
-    condition: when UAT applies to a feature
-    action: require a current verified human feature receipt
-    response: its signed criterion matrix enumerates every current composite criterion address
-    text: When UAT applies to a feature, it shall require a current verified human feature receipt whose signed criterion matrix enumerates every current composite criterion address.
-    test_refs:
-      - "tests/assurance/kernel.test.ts#[covers:F-033/AC-051][covers:F-033/AC-052] enumerates exact F5 composite criteria for Audit and UAT while blind proof only labels independence"
+    statement: When UAT applies to a feature, the assurance kernel shall require a
+      current verified human feature receipt whose signed criterion matrix
+      enumerates every current composite criterion address.
+    kind: behavior
     notes: |
       ## Historical schema-0.1 note
       A generic human-authored pass entry is historical, not a verified receipt.

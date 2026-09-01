@@ -1,6 +1,6 @@
 id: F-1d23a6
-slug: host-hooks
-title: "clad hook <event> + shipped hooks.json — engagement moves from prose to structure on Claude Code"
+title: clad hook <event> + shipped hooks.json — engagement moves from prose to
+  structure on Claude Code
 status: done
 modules:
   - src/cli/hook.ts
@@ -8,40 +8,38 @@ modules:
   - src/router/intent.ts
   - plugins/claude-code/hooks/hooks.json
   - scripts/build-plugin.mjs
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-2c2d29
-    ears: event
-    condition: "when the host fires PreToolUse for an Edit/Write that introduces 'status: done' into a feature shard or spec.yaml's features block, or creates a hand-authored sequential F-NNN shard filename"
-    action: "emit a block decision naming the sanctioned path (clad done / clad_create_feature); allow every other spec edit"
-    response: "the two measured bypasses (23 hand-flipped dones; hand-authored ids) become structurally impossible on Claude Code instead of prompt-advisory"
-    text: "When PreToolUse sees an edit introducing status: done into spec, or a hand-authored F-NNN shard filename, the hook shall block naming the sanctioned path; all other spec maintenance stays allowed."
-    test_refs:
-      - "tests/cli/hook.test.ts#Edit flipping status to done → block naming clad done"
-      - "tests/cli/hook.test.ts#Write creating a sequential F-NNN filename → block with the hash-id reason"
+    statement: "When PreToolUse sees an edit that introduces status: done into spec
+      or a hand-authored F-NNN shard filename, the hook shall block it by naming
+      the sanctioned path while allowing all other specification maintenance."
+    kind: behavior
   - id: AC-973837
-    ears: event
-    condition: "when the host fires Stop and stop_hook_active is false"
-    action: "run the cheap deterministic trio (drift strict / arch / secret) silently; on failures whose fingerprint (sorted detector+path set) differs from the last block, emit a block decision with the top findings and record a stop_blocked event; an IDENTICAL fingerprint demotes to allow so the session can always end"
-    response: "sessions cannot silently end on fresh RED, yet an unfixable-in-session failure never traps the user — and the demotion persists as ledger data instead of evaporating"
-    text: "When Stop fires (stop_hook_active false), the hook shall run the deterministic trio; fresh failure fingerprints block with top findings + a stop_blocked event; an identical fingerprint demotes to allow."
-    notes: "## Decision\nFingerprint-keyed demotion (not per-session counting) — the review showed attempt-count demotion is itself a vacuous-green vector; identical-failure demotion is state-keyed and the SessionStart card resurfaces it. Toolchain-heavy stages never run here (pre-commit trio only), so the toolchain-missing exemption is structural."
-    test_refs:
-      - "tests/cli/hook.test.ts#fresh failure records complete attribution without changing block output"
-      - "tests/cli/hook.test.ts#identical second run stays empty and records the known-failing exit"
-      - "tests/cli/hook.test.ts#clean run → empty and the persisted stop-block.json is removed"
-  - id: AC-29e900
-    ears: event
-    condition: "when the host fires SessionStart (or UserPromptSubmit with a prompt the high-recall router classifies)"
-    action: "print a context card: inventory scale, ai_hints essentials, in_progress features, last gate_run state, and any persisted stop_block — or for prompts, a one-line routing suggestion (the high-recall mode exists ONLY for injected context, never execution)"
-    response: "every session starts with the spec map injected mechanically (no more relying on the model greping CLAUDE.md), and 'add a login feature' finally routes (it classified as unknown pre-0.6)"
-    text: "When SessionStart or a classifiable UserPromptSubmit fires, the hook shall print the context card / one-line routing suggestion, injected mechanically rather than prompt-advisorily."
-    test_refs:
-      - "tests/cli/hook.test.ts#full card: index counts + in-progress list + last gate + stop-block + tools + policy line"
-      - "tests/router/intent.test.ts"
-  - id: AC-03da31
-    ears: ubiquitous
-    text: "The plugin shall ship hooks/hooks.json wiring all five events to the bundled engine via node ${CLAUDE_PLUGIN_ROOT}/dist/clad.js hook <event>, validated in the test suite against the expected hook-config shape, so the wiring itself cannot drift silently."
-    notes: "## Trade-off\nClaude-Code-first asymmetry is accepted and documented: Gemini/Codex have no lifecycle hooks — their structural channel is the MCP gate footer (F-570a3f)."
+    statement: When Stop fires (stop_hook_active false), the hook shall run the
+      deterministic trio; fresh failure fingerprints block with top findings + a
+      stop_blocked event; an identical fingerprint demotes to allow.
+    notes: >-
+      ## Decision
 
-    test_refs:
-      - "tests/scripts/hooks-config.test.ts"
+      Fingerprint-keyed demotion (not per-session counting) — the review showed
+      attempt-count demotion is itself a vacuous-green vector; identical-failure
+      demotion is state-keyed and the SessionStart card resurfaces it.
+      Toolchain-heavy stages never run here (pre-commit trio only), so the
+      toolchain-missing exemption is structural.
+  - id: AC-29e900
+    statement: When SessionStart or a classifiable UserPromptSubmit fires, the hook
+      shall print the context card / one-line routing suggestion, injected
+      mechanically rather than prompt-advisorily.
+  - id: AC-03da31
+    statement: The plugin shall ship hooks/hooks.json wiring all five events to the
+      bundled engine via node ${CLAUDE_PLUGIN_ROOT}/dist/clad.js hook <event>,
+      validated in the test suite against the expected hook-config shape, so the
+      wiring itself cannot drift silently.
+    notes: >-
+      ## Trade-off
+
+      Claude-Code-first asymmetry is accepted and documented: Gemini/Codex have
+      no lifecycle hooks — their structural channel is the MCP gate footer
+      (F-570a3f).

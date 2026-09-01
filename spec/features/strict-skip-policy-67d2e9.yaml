@@ -1,35 +1,43 @@
 id: F-67d2e9
-slug: strict-skip-policy
-title: "Strict mode REDs skipped code-verification demands without duplicating the smoke-demand owner"
+title: Strict mode REDs skipped code-verification demands without duplicating
+  the smoke-demand owner
 status: done
 modules:
   - src/stages/skip-policy.ts
   - src/cli/clad.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-11101f
-    ears: unwanted
-    condition: "if a stage skips (exit 2) under --strict while the spec DEMANDS that stage"
-    action: "append a fail entry naming the unmet demand and force the gate RED, where demand means: stage_1.1 — project.language declared AND >=1 done feature; stage_2.1 — >=1 done feature declaring test_refs (the pre-0.6 guard); stage_2.3 — >=1 done AC declaring oracle_refs. stage_2.4 is deliberately retired from this policy: SMOKE_PROBE_DEMAND is the sole owner of its safe-deliverable precondition."
-    response: "a missing code-verification toolchain can no longer convert 'done = verified' into a silent pass, while smoke demand remains single-owned"
-    text: "If stage 1.1, 2.1, or 2.3 skips under --strict while the spec demands it (language+done, tested-done, or oracle-refs-done), the gate shall append a fail entry naming the unmet demand and go RED. Stage 2.4 is not promoted here: SMOKE_PROBE_DEMAND solely owns its safe-deliverable demand, preventing a duplicate strict-skip failure."
-    notes: "## Why\nOnly Unit had this guard — a project with tsc missing went GREEN at done with type checking never run (review blocker class). ## Decision\nDemand-gated, not blanket: no demand means skip stays green — this is the false-RED defense that must ship BEFORE the 0.6 enforcement hooks."
-    test_refs:
-      - "tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking"
-      - "tests/stages/skip-policy.test.ts#multiple demands violated in one run are all reported"
-  - id: AC-6c0c35
-    ears: state
-    condition: "while the spec makes no demand on a skipped policy stage (no done features, undeclared language, or no oracle_refs), strict is off, or stage_2.4 skips"
-    action: "keep the skip non-blocking exactly as the pre-0.6 contract; a stage_2.4 skip must remain its original skip entry rather than receive a duplicate strict-skip failure because SMOKE_PROBE_DEMAND owns its safe-deliverable demand"
-    response: "fresh projects and partial toolchains keep their lenient skip-as-pass behavior — zero new false REDs — and smoke demand has one owner"
-    text: "While the spec makes no demand on a skipped policy stage or strict is off, the skip shall stay non-blocking exactly as before, so fresh projects and partial toolchains see zero new false REDs. A stage_2.4 skip also receives no strict-skip duplicate: SMOKE_PROBE_DEMAND remains its sole demand owner."
-    test_refs:
-      - "tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking"
-      - "tests/stages/skip-policy.test.ts#[covers:F-7076f7/AC-7f8630] strict skip policy does not emit a stage_2.4 smoke-demand duplicate"
-      - "tests/stages/skip-policy.test.ts#a demanded stage that PASSED (not skipped) yields no violation"
-  - id: AC-b265bf
-    ears: ubiquitous
-    text: "The gate golden matrix shall pin the full demand table as an explicit, visible contract diff (which stage REDs under which spec shape), so this semantics change is reviewable in one file rather than inferred from behavior."
-    notes: "## Decision\nThe skip-policy lives in runCheckStages (gate core), not a stage — the conformance runner wraps stages, so the golden matrix + dedicated unit tests are the executable contract here (honest deviation from the blanket fixture-pair rule)."
+    statement: If stage 1.1 or 2.1 or 2.3 skips under --strict while the
+      specification demands it through language-and-done or tested-done or
+      oracle-refs-done, then the gate shall append a fail entry naming the unmet
+      demand and go RED while leaving stage 2.4 to SMOKE_PROBE_DEMAND so no
+      duplicate strict-skip failure is appended.
+    kind: behavior
+    notes: >-
+      ## Why
 
-    test_refs:
-      - "tests/cli/gate-golden-matrix.test.ts#[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking"
+      Only Unit had this guard — a project with tsc missing went GREEN at done
+      with type checking never run (review blocker class). ## Decision
+
+      Demand-gated, not blanket: no demand means skip stays green — this is the
+      false-RED defense that must ship BEFORE the 0.6 enforcement hooks.
+  - id: AC-6c0c35
+    statement: "While the spec makes no demand on a skipped policy stage or strict
+      is off, the skip shall stay non-blocking exactly as before, so fresh
+      projects and partial toolchains see zero new false REDs. A stage_2.4 skip
+      also receives no strict-skip duplicate: SMOKE_PROBE_DEMAND remains its
+      sole demand owner."
+  - id: AC-b265bf
+    statement: The gate golden matrix shall pin the full demand table as an
+      explicit, visible contract diff (which stage REDs under which spec shape),
+      so this semantics change is reviewable in one file rather than inferred
+      from behavior.
+    notes: >-
+      ## Decision
+
+      The skip-policy lives in runCheckStages (gate core), not a stage — the
+      conformance runner wraps stages, so the golden matrix + dedicated unit
+      tests are the executable contract here (honest deviation from the blanket
+      fixture-pair rule).

@@ -15,19 +15,24 @@ modules:
   - plugins/claude-code/agents/observability.md
   - plugins/claude-code/agents/developer.md
   - scripts/build-plugin.mjs
-depends_on: [F-049, F-073]
+depends_on:
+  - F-049
+  - F-073
+capability_refs: []
 acceptance_criteria:
   - id: AC-223
-    ears: ubiquitous
-    action: declare cladding's MCP server in the Claude Code plugin manifest
-    response: 'the `mcpServers` map in plugins/claude-code/.claude-plugin/plugin.json registers a cladding MCP server that runs `clad serve`; Claude Code picks it up automatically when the plugin is enabled, no user-side configuration needed (v0.4.0 ISSUE-002 moved the declaration from a root .mcp.json into the plugin manifest)'
-    text: The system shall declare cladding's MCP server (`clad serve`) in the Claude Code plugin manifest (plugins/claude-code/.claude-plugin/plugin.json `mcpServers`) so Claude Code auto-launches it whenever the cladding plugin is enabled, without requiring the user to edit settings or run a separate command.
-    evidence_refs: [plugins/claude-code/.claude-plugin/plugin.json]
+    statement: The system shall declare cladding's MCP server (`clad serve`) in the
+      Claude Code plugin manifest
+      (plugins/claude-code/.claude-plugin/plugin.json `mcpServers`) so Claude
+      Code auto-launches it whenever the cladding plugin is enabled, without
+      requiring the user to edit settings or run a separate command.
+    evidence_refs:
+      - plugins/claude-code/.claude-plugin/plugin.json
   - id: AC-224
-    ears: ubiquitous
-    action: expose cladding verbs as Claude Code skills
-    response: skills/<verb>/SKILL.md exists for each of sync, check, status, run, init, serve with YAML frontmatter declaring a description and a body explaining what the verb does and when to use it
-    text: The system shall expose cladding's six primary verbs (sync, check, status, run, init, serve) as Claude Code skills under skills/<verb>/SKILL.md so a user can invoke them via /cladding:<verb> instead of the bare CLI.
+    statement: The system shall expose cladding's six primary verbs (sync, check,
+      status, run, init, serve) as Claude Code skills under
+      skills/<verb>/SKILL.md so a user can invoke them via /cladding:<verb>
+      instead of the bare CLI.
     evidence_refs:
       - skills/sync/SKILL.md
       - skills/check/SKILL.md
@@ -36,10 +41,11 @@ acceptance_criteria:
       - skills/init/SKILL.md
       - skills/serve/SKILL.md
   - id: AC-225
-    ears: ubiquitous
-    action: mirror cladding's persona files into the plugin's agents directory
-    response: plugins/claude-code/agents/<persona>.md exists for each of orchestrator, planner, reviewer, observability, developer, copied verbatim from src/agents by scripts/build-plugin.mjs
-    text: The system shall mirror cladding's five persona files (orchestrator, planner, reviewer, observability, developer) from src/agents/ into plugins/claude-code/agents/ so Claude Code's agent picker surfaces them; the copy is performed by scripts/build-plugin.mjs and the result is committed to git.
+    statement: The system shall mirror cladding's five persona files (orchestrator,
+      planner, reviewer, observability, developer) from src/agents/ into
+      plugins/claude-code/agents/ so Claude Code's agent picker surfaces them;
+      the copy is performed by scripts/build-plugin.mjs and the result is
+      committed to git.
     evidence_refs:
       - plugins/claude-code/agents/orchestrator.md
       - plugins/claude-code/agents/planner.md
@@ -47,15 +53,18 @@ acceptance_criteria:
       - plugins/claude-code/agents/observability.md
       - plugins/claude-code/agents/developer.md
   - id: AC-226
-    ears: state
-    condition: while npm run build (or npm run build:plugin) is invoked
-    action: regenerate the plugins/claude-code/agents/ mirror from src/agents
-    response: scripts/build-plugin.mjs copies every src/agents/<id>.md (excluding README.md) into plugins/claude-code/agents/<id>.md, overwriting any prior contents, and writes an AUTO-GENERATED header to plugins/claude-code/agents/README.md so a human reading the directory knows the files are build artifacts
-    text: While npm run build or npm run build:plugin is invoked, the system shall regenerate the plugins/claude-code/agents/ plugin mirror from src/agents/ so source and plugin manifest stay in lockstep and a hand-edit of plugins/claude-code/agents/<id>.md is reverted on the next build.
-    evidence_refs: [scripts/build-plugin.mjs]
+    statement: While npm run build or npm run build:plugin is invoked, the system
+      shall regenerate the plugins/claude-code/agents/ plugin mirror from
+      src/agents/ so source and plugin manifest stay in lockstep and a hand-edit
+      of plugins/claude-code/agents/<id>.md is reverted on the next build.
+    evidence_refs:
+      - scripts/build-plugin.mjs
   - id: AC-227
-    ears: ubiquitous
-    action: expose `init` as the only user-facing slash command per host plugin (Claude Code / Gemini CLI)
-    response: plugins/claude-code/commands/init.md and plugins/gemini-cli/commands/init.toml are the only files in their respective commands directories; the legacy commands/clad.md wrapper is removed because v0.4.0 standardised on `/cladding:init` and other verbs (check, sync, status, etc.) are invoked by the AI via natural language → `clad <verb>` CLI
-    text: The system shall expose `init` as the only user-facing slash command per host plugin (Claude Code, Gemini CLI), removing the legacy commands/clad.md wrapper and per-verb .toml files, because cladding is infrastructure (drift is auto-detected, gate runs in CI) and the user only invokes `init` directly at project start.
-    evidence_refs: [plugins/claude-code/commands/init.md, plugins/gemini-cli/commands/init.toml]
+    statement: The system shall expose `init` as the only user-facing slash command
+      per host plugin (Claude Code, Gemini CLI), removing the legacy
+      commands/clad.md wrapper and per-verb .toml files, because cladding is
+      infrastructure (drift is auto-detected, gate runs in CI) and the user only
+      invokes `init` directly at project start.
+    evidence_refs:
+      - plugins/claude-code/commands/init.md
+      - plugins/gemini-cli/commands/init.toml

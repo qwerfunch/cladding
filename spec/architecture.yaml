@@ -1,17 +1,3 @@
-# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad refine
-# cladding · architectural layers
-#
-# Each entry of `layers` is a tier — a peer group of directories at
-# the same architectural level. ARCHITECTURE_FROM_SPEC (F-088,
-# v0.3.13) reads this file and enforces:
-#   1. forbidden_imports — listed `from`/`to` pairs raise an error
-#      when an import statement crosses the boundary.
-#   2. undeclared directory — anything under src/ that isn't listed
-#      below raises a warn.
-#   3. empty layer — a layer here with no matching src/<layer>/
-#      directory raises a warn.
-#
-# Foundation tier 가 top — 의존성이 아래로만 흐름.
 layers:
   - - spec
     - agents
@@ -34,70 +20,156 @@ layers:
   - - drive
     - serve
   - - cli
-
-# spec/* (foundation) must not depend on stage runners. The Iron Law
-# stage layer wraps the spec; spec itself stays pure.
-forbidden_imports:
-  - from: spec
+rules:
+  - id: AR-991fb15a
+    kind: forbidden_import
+    from: adapters
+    to: cli
+    rationale: Provider adapters must remain reusable outside the CLI entry layer.
+  - id: AR-b447b70b
+    kind: forbidden_import
+    from: adapters
+    to: drive
+    rationale: Provider adapters are reusable host boundaries and must not depend on
+      the development-cycle orchestrator that consumes them.
+  - id: AR-ccffc397
+    kind: forbidden_import
+    from: adapters
+    to: serve
+    rationale: Provider adapters must remain reusable outside the MCP server transport.
+  - id: AR-442ef2a2
+    kind: forbidden_import
+    from: changelog
+    to: cli
+    rationale: Changelog collection and rendering must remain reusable outside the
+      CLI entry layer.
+  - id: AR-dd32c79a
+    kind: forbidden_import
+    from: changelog
+    to: drive
+    rationale: Changelog logic is composed by development-cycle orchestration and
+      therefore cannot depend on the driver.
+  - id: AR-dc5bfd18
+    kind: forbidden_import
+    from: changelog
+    to: serve
+    rationale: Changelog collection and rendering must remain reusable outside the
+      MCP server transport.
+  - id: AR-8259612e
+    kind: forbidden_import
+    from: changelog
     to: stages
-  - from: spec
-    to: drive
-  - from: spec
+    rationale: Changelog collection and rendering must remain pure data processing
+      and cannot invoke stage execution.
+  - id: AR-81ad1053
+    kind: forbidden_import
+    from: graph
     to: cli
-  - from: spec
+    rationale: Graph derivation must remain reusable outside the CLI entry layer.
+  - id: AR-3b2311fa
+    kind: forbidden_import
+    from: graph
+    to: drive
+    rationale: Graph derivation must remain independent of the development-cycle
+      orchestrator.
+  - id: AR-6851d15b
+    kind: forbidden_import
+    from: graph
     to: serve
-  # changelog (foundation) mirrors spec's purity: the collector/renderers
-  # must stay importable by cli AND serve without dragging stage runners in.
-  - from: changelog
+    rationale: Graph derivation must remain transport-agnostic and reusable outside
+      the MCP server.
+  - id: AR-cabee171
+    kind: forbidden_import
+    from: graph
     to: stages
-  - from: changelog
-    to: drive
-  - from: changelog
+    rationale: Graph derivation is a pure specification reader; stage execution may
+      consume graph results, but graph code cannot invoke stage runners.
+  - id: AR-a6b2c60e
+    kind: forbidden_import
+    from: report
     to: cli
-  - from: changelog
+    rationale: Report rendering must remain reusable outside the CLI that supplies
+      its inputs.
+  - id: AR-6ba68659
+    kind: forbidden_import
+    from: report
+    to: drive
+    rationale: Report rendering is a pure service composed by orchestration and must
+      not depend on the development-cycle driver.
+  - id: AR-5d6006dc
+    kind: forbidden_import
+    from: report
     to: serve
-  # graph (foundation) derives a knowledge graph from the spec — it must stay a
-  # pure reader importable by cli AND serve without dragging stage runners in.
-  - from: graph
+    rationale: Report rendering must remain reusable outside the MCP server transport.
+  - id: AR-7e8b9ed3
+    kind: forbidden_import
+    from: report
     to: stages
-  - from: graph
-    to: drive
-  - from: graph
+    rationale: Report emitters receive detector findings as data and must not invoke
+      stage runners.
+  - id: AR-63a20951
+    kind: forbidden_import
+    from: spec
     to: cli
-  - from: graph
+    rationale: Specification logic must remain reusable across hosts and therefore
+      cannot depend on the CLI entry layer.
+  - id: AR-1b5a8226
+    kind: forbidden_import
+    from: spec
+    to: drive
+    rationale: Specification logic is consumed by development-cycle orchestration
+      and must remain independent of the driver.
+  - id: AR-f8513932
+    kind: forbidden_import
+    from: spec
     to: serve
-  # report (foundation) renders a review packet from spec/changelog/optimizer
-  # data the CLI composes — it must stay a pure renderer importable by cli AND
-  # serve without dragging stage runners in. The CLI runs the detectors and
-  # passes findings into the pure SARIF/markdown emitters.
-  - from: report
+    rationale: Specification logic must remain transport-agnostic and therefore
+      cannot depend on the MCP server layer.
+  - id: AR-51b36828
+    kind: forbidden_import
+    from: spec
     to: stages
-  - from: report
-    to: drive
-  - from: report
-    to: cli
-  - from: report
-    to: serve
-  - from: stages
-    to: drive
-  - from: stages
-    to: cli
-  - from: stages
-    to: serve
-  # verdict (reducer tier, F-2e28cc72) is the PURE decision layer: it reads the
-  # disposition spine (stages/*) + spec types and is imported only by cli. It
-  # must never reach up into cli/serve/drive — topology cli → serve → verdict.
-  - from: verdict
-    to: drive
-  - from: verdict
-    to: cli
-  - from: verdict
-    to: serve
-  - from: stages/detectors
+    rationale: The specification compiler and model must remain pure inputs to stage
+      runners, so they cannot invoke or depend on stage execution.
+  - id: AR-d32fb4be
+    kind: forbidden_import
+    from: stages/detectors
     to: adapters
-  - from: adapters
-    to: drive
-  - from: adapters
+    rationale: Detectors must remain deterministic and provider-independent, so they
+      cannot import host or SDK adapters.
+  - id: AR-e967c0e1
+    kind: forbidden_import
+    from: stages
     to: cli
-  - from: adapters
+    rationale: Stage execution must remain reusable across hosts and must not depend
+      on the CLI entry layer.
+  - id: AR-aefb1e54
+    kind: forbidden_import
+    from: stages
+    to: drive
+    rationale: Stage execution is a lower-level service invoked by orchestration and
+      must not depend on the development-cycle driver.
+  - id: AR-0f641e5d
+    kind: forbidden_import
+    from: stages
     to: serve
+    rationale: Stage execution must remain transport-agnostic and must not depend on
+      the MCP server layer.
+  - id: AR-02f6e965
+    kind: forbidden_import
+    from: verdict
+    to: cli
+    rationale: The CLI composes the pure verdict reducer, so the reducer must not
+      depend on its entrypoint.
+  - id: AR-e18030ff
+    kind: forbidden_import
+    from: verdict
+    to: drive
+    rationale: Verdict reduction is pure and must not invoke or depend on
+      development-cycle orchestration.
+  - id: AR-5ad06491
+    kind: forbidden_import
+    from: verdict
+    to: serve
+    rationale: Verdict reduction must remain transport-independent and must not
+      depend on the MCP server.

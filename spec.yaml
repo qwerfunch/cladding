@@ -1,56 +1,64 @@
-# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
-# Sharded layout:
-# Features live in spec/features/*.yaml — one file per feature.
-# Scenarios live in spec/scenarios/*.yaml.
-# Architecture lives in spec/architecture.yaml.
-#
-# `spec/load.ts` auto-detects this layout and merges the children
-# back into a single Spec object on every load.
-schema: "0.1"
+schema: "0.2"
 project:
   name: cladding
   language: typescript
-  description: "Reference implementation of the Ironclad harness for AI-coupled software."
-  version: "0.9.4"
-  repository: "https://github.com/qwerfunch/cladding"
-  intent_summary: "Make AI-coupled development measurably safer and more honest — 41 drift detectors + 4-tier SSoT governance + A/B-measurable cladding-vs-vanilla evaluation."
+  description: Reference implementation of the Ironclad harness for AI-coupled software.
+  version: 0.9.4
+  repository: https://github.com/qwerfunch/cladding
   deliverable:
     path: ./bin/clad
-    smoke_args: ["--version"]
+    smoke_args:
+      - --version
     is_safe_to_smoke: true
   smoke:
     - kind: cli
-      run: ["./bin/clad", "--help"]
+      run:
+        - ./bin/clad
+        - --help
       expect:
-        token: "Reference Ironclad CLI"
-      why: "Proves the shipped CLI boots and renders its command surface, not just exits 0 (F-g' dogfood: liveness→pass)."
+        token: Reference Ironclad CLI
+      why: "Proves the shipped CLI boots and renders its command surface, not just
+        exits 0 (F-g' dogfood: liveness→pass)."
     - kind: cli
-      run: ["./bin/clad", "--version"]
+      run:
+        - ./bin/clad
+        - --version
       expect:
         token: "0."
-      why: "proves the shipped binary reports its version (F-4ef09f38 dogfood: 2-probe aggregation live)."
+      why: "proves the shipped binary reports its version (F-4ef09f38 dogfood: 2-probe
+        aggregation live)."
   ai_hints:
     preferred_persona: developer
     token_budget_per_session: 4000
     test_framework: vitest
     primary_branch: develop
-    forbidden_patterns: ["eval(", "innerHTML", "dangerouslySetInnerHTML"]
+    forbidden_patterns:
+      - eval(
+      - innerHTML
+      - dangerouslySetInnerHTML
     preferred_patterns:
-      - when: "new drift detector implementation"
-        prefer: "synchronous + deterministic (Iron Law); no LLM at detector layer"
-        over: "LLM-assisted detection (belongs in stages/, not detectors/)"
-      - when: "spec authoring for new features"
-        prefer: "F-<hash8> sharded files under spec/features/"
-        over: "F-NNN sequential or inline features in spec.yaml"
-      - when: "AI agent file lookup for project info"
-        prefer: "1-file grep against spec.yaml (inventory + ai_hints)"
-        over: "readdirSync(spec/features/) or scanning CLAUDE.md"
-      - when: "Iron Law stage logic + I/O orchestration"
-        prefer: "pure stage core + CLI wrapper (e.g. runDrift → drift.ts CLI entry)"
-        over: "mixed stage runner with embedded process.exit / stdout"
-      - when: "before a non-trivial edit to a feature or module"
-        prefer: "slice the working set first — clad_get_working_set <id|slug|module> (focus + module code + forward needs + backward breaks + tests to run), or clad_get_impact <module> to scope the blast radius"
-        over: "reading the whole spec by hand or editing blind"
+      - when: new drift detector implementation
+        prefer: synchronous + deterministic (Iron Law); no LLM at detector layer
+        over: LLM-assisted detection (belongs in stages/, not detectors/)
+      - when: spec authoring for new features
+        prefer: F-<hash8> sharded files under spec/features/
+        over: F-NNN sequential or inline features in spec.yaml
+      - when: AI agent file lookup for project info
+        prefer: 1-file grep against spec.yaml (inventory + ai_hints)
+        over: readdirSync(spec/features/) or scanning CLAUDE.md
+      - when: Iron Law stage logic + I/O orchestration
+        prefer: pure stage core + CLI wrapper (e.g. runDrift → drift.ts CLI entry)
+        over: mixed stage runner with embedded process.exit / stdout
+      - when: before a non-trivial edit to a feature or module
+        prefer: slice the working set first — clad_get_working_set <id|slug|module>
+          (focus + module code + forward needs + backward breaks + tests to
+          run), or clad_get_impact <module> to scope the blast radius
+        over: reading the whole spec by hand or editing blind
+  purpose: Make AI-coupled development measurably safer and more honest — 41 drift
+    detectors + 4-tier SSoT governance + A/B-measurable cladding-vs-vanilla
+    evaluation.
+  assurance_level: L2
+  scenario_policy: advisory
 
 # Auto-maintained by `clad sync` (F-5b9f9f). Do not edit by hand.
 inventory:

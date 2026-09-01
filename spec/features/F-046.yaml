@@ -7,46 +7,29 @@ depends_on:
   - F-004
   - F-010
   - F-040
+capability_refs: []
 acceptance_criteria:
   - id: AC-078
-    ears: ubiquitous
-    action: scaffold a cladding workspace with spec.yaml + .cladding/ + .gitignore
-      append
-    response: returns created and skipped artifact lists plus detected language
-    text: The system shall scaffold a cladding workspace by creating spec.yaml seed,
-      the .cladding/ runtime directory, and appending .cladding/ to .gitignore.
-      It returns the lists of created and skipped artifacts plus the
+    statement: The system shall scaffold a cladding workspace by creating spec.yaml
+      seed, the .cladding/ runtime directory, and appending .cladding/ to
+      .gitignore. It returns the lists of created and skipped artifacts plus the
       auto-detected project language.
-    test_refs:
-      - tests/cli/init.test.ts
   - id: AC-079
-    ears: unwanted
-    condition: if spec.yaml already exists and --force is not passed
-    action: skip the spec write and report it in `skipped`
-    response: existing user content is preserved
-    text: If spec.yaml already exists and --force is not passed, the system shall
-      skip the spec write and preserve existing user content. --force overrides
-      this safety.
-    test_refs:
-      - tests/cli/init.test.ts
+    statement: If spec.yaml already exists and --force is not passed, then the
+      system shall skip the spec write and preserve existing user content while
+      --force overrides this safety.
+    kind: behavior
   - id: AC-080
-    ears: event
-    condition: when initialization encounters an existing managed artifact without explicit replacement authority
-    action: preserve that artifact
-    response: reports the resulting skip or proposal disposition
-    text: When initialization encounters an existing managed artifact without explicit replacement authority, it shall preserve that artifact and report the resulting skip or proposal disposition.
-    test_refs:
-      - "tests/cli/init.test.ts#[covers:F-046/AC-080][covers:F-046/AC-079] preserves and reports an existing spec without force, then replaces it only with force"
-    notes: |
+    statement: When initialization encounters an existing managed artifact without
+      explicit replacement authority, the system shall preserve that artifact
+      and report the resulting skip or proposal disposition.
+    kind: behavior
+    notes: >
       ## Historical note
-      The absolute “creates nothing/every artifact skipped” wording predates onboarding and proposal paths.
+
+      The absolute “creates nothing/every artifact skipped” wording predates
+      onboarding and proposal paths.
   - id: AC-081
-    ears: ubiquitous
-    action: detect the project language from the manifest chain; fall back to
-      typescript
-    response: seed spec.yaml's project.language reflects detection
-    text: The system shall detect the project language via the toolchain manifest
-      chain and fall back to typescript when no manifest matches. The seed
-      spec.yaml's project.language reflects that detection.
-    test_refs:
-      - tests/cli/init.test.ts
+    statement: The system shall detect the project language via the toolchain
+      manifest chain and fall back to typescript when no manifest matches. The
+      seed spec.yaml's project.language reflects that detection.

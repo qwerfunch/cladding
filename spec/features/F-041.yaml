@@ -5,30 +5,22 @@ modules:
   - src/optimizer/prune.ts
   - src/optimizer/preamble.ts
   - src/optimizer/tail.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-064
-    ears: ubiquitous
-    action: prune a Spec to one feature plus its transitive depends_on
-    response: returns a new Spec; original is unchanged when featureId is unknown
-    text: The system shall prune a Spec to one feature plus its transitive
+    statement: The system shall prune a Spec to one feature plus its transitive
       depends_on, including any scenario that mentions a retained feature.
       Original spec is returned unchanged when featureId is unknown.
-    test_refs:
-      - tests/optimizer/prune.test.ts
   - id: AC-065
-    ears: ubiquitous
-    action: strip persona preamble lines from a prompt
-    response: returns the prompt with whitespace collapsed
-    text: "The system shall strip persona preamble lines (You are X, #
+    statement: "The system shall strip persona preamble lines (You are X, #
       Orchestrator/Librarian/..., Your job is...) from a prompt and collapse the
       resulting whitespace."
-    evidence_refs: [fixture:F-041_AC-065]
-
+    evidence_refs:
+      - fixture:F-041_AC-065
   - id: AC-066
-    ears: ubiquitous
-    action: shrink long text to head N + tail M lines with an elision marker
-    response: original text is returned when total lines fit within head+tail
-    text: The system shall shrink long text to head N + tail M lines with an elision
-      marker, returning the original text unchanged when total lines fit within
-      head + tail.
-    evidence_refs: [fixture:F-041_AC-066]
+    statement: The system shall shrink long text to head N + tail M lines with an
+      elision marker, returning the original text unchanged when total lines fit
+      within head + tail.
+    evidence_refs:
+      - fixture:F-041_AC-066

@@ -11,121 +11,78 @@ modules:
   - src/agents/loader.ts
 depends_on:
   - F-048
+capability_refs: []
 acceptance_criteria:
   - id: AC-085
-    ears: event
-    condition: when clad run dispatches a named persona
-    action: load that persona from the shipped catalog
-    response: passes the selected adapter only the compiled feature context and declared guardrails
-    text: When `clad run` dispatches a named persona, it shall load that persona from the shipped catalog and pass the selected adapter only the compiled feature context and declared guardrails.
-    test_refs:
-      - "tests/drive/loop.test.ts#[covers:F-049/AC-085] dispatches shipped personas with only feature context and guardrails"
-    notes: |
+    statement: When clad run dispatches a named persona, the drive loop shall load
+      that persona from the shipped catalog and pass the selected adapter only
+      the compiled feature context and declared guardrails.
+    kind: behavior
+    notes: >
       ## Historical note
-      The retired five-persona/librarian-specialists list and fixed adapter roster are not current product identity.
+
+      The retired five-persona/librarian-specialists list and fixed adapter
+      roster are not current product identity.
   - id: AC-086
-    ears: state
-    condition: while drive dispatches a reviewer hand-off
-    action: assert reviewer identity is distinct from the authoring specialist identity
-    response: the loop refuses to accept review evidence whose author identity equals the implementer identity and emits a HUMAN_REQUIRED halt instead
-    text: >-
-      While the drive loop dispatches a reviewer hand-off, the system
-      shall assert that the reviewer identity (author name) differs from
-      the implementing specialist identity. The loop shall refuse to
-      accept review evidence whose author equals the implementer and
-      shall emit a HUMAN_REQUIRED halt instead, preserving the structural
-      reviewer-vs-author barrier prescribed by Iron Law stage_4.1.
-    test_refs:
-      - tests/drive/loop.test.ts
-      - tests/integration/loop-real-transport.test.ts
+    statement: While the drive loop dispatches a reviewer hand-off, the system shall
+      require the reviewer identity by author name to differ from the
+      implementing specialist identity, refuse review evidence whose author
+      equals the implementer, emit a HUMAN_REQUIRED halt instead, and preserve
+      the structural reviewer-versus-author barrier prescribed by Iron Law
+      stage_4.1.
+    kind: behavior
   - id: AC-087
-    ears: event
-    condition: when a feature has cleared L1-L3 but stage_4.2 UAT lacks human-pass evidence
-    action: halt the drive loop with class HUMAN_REQUIRED
-    response: src/drive/halt.ts class HUMAN_REQUIRED resolves with a reason string carrying the feature id and the missing UAT evidence path
-    text: >-
-      When a feature in flight clears L1-L3 but stage_4.2 UAT lacks
-      human-pass evidence in the audit log, the system shall halt the
-      drive loop with class HUMAN_REQUIRED. The halt reason shall carry
-      the feature id and the audit-log path so an operator can sign off
-      and resume.
-    test_refs:
-      - tests/drive/loop.test.ts
+    statement: When a feature in flight clears L1-L3 but stage_4.2 UAT lacks
+      human-pass evidence in the audit log, the system shall halt the drive loop
+      with class HUMAN_REQUIRED and include the feature id and audit-log path in
+      the halt reason.
+    kind: behavior
   - id: AC-088
-    ears: unwanted
-    condition: if the active agent adapter's invocation fails (host-unavailable · auth · rate-limit · network · context-window · safety-filter)
-    action: halt the drive loop with class LLM_UNAVAILABLE
-    response: src/drive/halt.ts class LLM_UNAVAILABLE resolves with the underlying adapter error class and a single retry budget already consumed
-    text: >-
-      If the active agent adapter's invocation fails during dispatch —
-      for host-unavailable, authentication, rate-limit, network,
-      context-window, or safety-filter reasons — then the system shall
-      halt the drive loop with class LLM_UNAVAILABLE. The halt reason
-      shall carry the underlying adapter error class and record that
-      the loop's single retry budget for the current feature has been
-      consumed. The class name is preserved for spec stability even
-      though the failing layer may be a host rather than an LLM SDK.
-    test_refs:
-      - tests/drive/agent.test.ts
+    statement: If an active agent adapter invocation fails during dispatch for
+      host-unavailable or authentication or rate-limit or network or
+      context-window or safety-filter reasons, then the system shall halt the
+      drive loop with class LLM_UNAVAILABLE, include the underlying adapter
+      error class, record consumption of the current feature's single retry
+      budget, and preserve the class name for specification stability when the
+      failing layer is a host rather than an LLM SDK.
+    kind: behavior
   - id: AC-089
-    ears: ubiquitous
-    action: select the active agent adapter from configuration
-    response: src/adapters/index.ts reads .cladding/config.yaml (key agent.mode ∈ {host, sdk}, agent.name) or the CLADDING_AGENT_MODE / CLADDING_AGENT_NAME env vars; default = host + auto-detect (claude-code when running inside Claude Code, generic-mcp otherwise)
-    text: >-
-      The system shall select the active agent adapter from a single
-      configuration entry. src/adapters/index.ts shall read
-      .cladding/config.yaml (`agent.mode ∈ {host, sdk}`, `agent.name`)
-      and the `CLADDING_AGENT_MODE` / `CLADDING_AGENT_NAME` environment
-      variables, with env vars taking precedence. When no configuration
-      is present, the default is `host` mode with auto-detection — the
-      `claude-code` adapter when the runtime is Claude Code, otherwise
-      the `generic-mcp` adapter.
-    test_refs:
-      - tests/adapters/host-parity.test.ts
+    statement: The system shall select the active agent adapter from one
+      configuration entry in src/adapters/index.ts, read .cladding/config.yaml
+      (`agent.mode ∈ {host, sdk}`, `agent.name`) and the `CLADDING_AGENT_MODE`
+      and `CLADDING_AGENT_NAME` environment variables, give environment
+      variables precedence, and default to `host` mode auto-detection with the
+      `claude-code` adapter in Claude Code or the `generic-mcp` adapter
+      otherwise when no configuration is present.
+    kind: behavior
   - id: AC-090
-    ears: ubiquitous
-    action: keep the evidence schema and halt enum invariant across adapters
-    response: tests/adapters/host-parity.test.ts and tests/adapters/full-parity.test.ts assert that swapping adapters does not change the AgentResult schema, the audit-log evidence shape, or the 10-class halt enum
-    text: >-
-      The system shall keep the AgentResult schema, the audit-log
-      evidence shape, and the 10-class halt enum invariant across all
-      agent adapters. Parity tests shall assert that swapping the
-      active adapter (host claude-code · host generic-mcp · sdk
-      anthropic · sdk openai · sdk gemini) does not alter any of these
-      contracts on a synthetic single-feature project.
-    test_refs:
-      - tests/adapters/host-parity.test.ts
+    statement: The system shall keep the AgentResult schema, audit-log evidence
+      shape, and 10-class halt enum invariant across all agent adapters, with
+      parity tests asserting that swapping host claude-code, host generic-mcp,
+      SDK Anthropic, SDK OpenAI, or SDK Gemini does not alter those contracts on
+      a synthetic single-feature project.
+    kind: quality
   - id: AC-091
-    ears: ubiquitous
-    action: require no API key for host adapters
-    response: host adapters (claude-code · generic-mcp · cursor · continue · cline · …) run without ANTHROPIC_API_KEY / OPENAI_API_KEY / GOOGLE_API_KEY; sdk adapters read their respective env var only when explicitly selected
-    text: >-
-      The system shall not require an API key for host adapters. The
-      claude-code, generic-mcp, and any future host adapters shall
-      operate using the host environment's existing subscription or
-      session; cladding shall neither read nor require
-      `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `GOOGLE_API_KEY` when
-      a host adapter is active. SDK adapters shall read their
-      respective environment variable only when explicitly selected
-      via `agent.mode = sdk` and `agent.name = <provider>`.
-    test_refs:
-      - tests/adapters/host-parity.test.ts
+    statement: The system shall not require an API key for host adapters, make the
+      claude-code and generic-mcp and future host adapters operate through the
+      host environment's existing subscription or session, neither read nor
+      require `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` or `GOOGLE_API_KEY` while
+      a host adapter is active, and read a provider environment variable only
+      when `agent.mode = sdk` and `agent.name = <provider>` select that
+      provider.
+    kind: constraint
+    rationale: Host-mode dispatch relies on the host-managed session and must not
+      trigger SDK provider credential access.
   - id: AC-092
-    ears: ubiquitous
-    action: ship real transport bodies for both host and sdk modes by v0.3.0
-    response: by v0.3.0 cladding ships AnthropicTransport (sdk · F-069), clad serve MCP server (F-073), McpSamplingTransport (F-074), and host adapter routing through MCP sampling (F-075); the mock bodies remain only as the fallback when no MCP server is registered
-    text: >-
-      The system shall ship real transport bodies for both host and
-      sdk modes by v0.3.0. The SDK path lands in F-069 as
-      AnthropicTransport (Anthropic API direct dispatch). The host
-      path lands in three substeps: F-073 (clad serve MCP server
-      scaffold), F-074 (McpSamplingTransport + live audit
-      notification), and F-075 (host adapter routing through the
-      sampling context). The Mock bodies in claude-code and
-      generic-mcp remain only as the fallback when no MCP server is
-      registered through setHostMcpServer. The architectural
-      decision and rationale are recorded in
-      docs/multi-provider-roadmap.md.
+    statement: "The system shall ship real transport bodies for both host and sdk
+      modes by v0.3.0. The SDK path lands in F-069 as AnthropicTransport
+      (Anthropic API direct dispatch). The host path lands in three substeps:
+      F-073 (clad serve MCP server scaffold), F-074 (McpSamplingTransport + live
+      audit notification), and F-075 (host adapter routing through the sampling
+      context). The Mock bodies in claude-code and generic-mcp remain only as
+      the fallback when no MCP server is registered through setHostMcpServer.
+      The architectural decision and rationale are recorded in
+      docs/multi-provider-roadmap.md."
     evidence_refs:
       - docs/multi-provider-roadmap.md
       - src/adapters/sdk/anthropic.ts

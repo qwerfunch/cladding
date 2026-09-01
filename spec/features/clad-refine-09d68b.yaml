@@ -1,5 +1,4 @@
 id: F-09d68b
-slug: clad-refine
 title: clad refine verb closes the onboarding Q&A loop (v0.3.44)
 status: done
 modules:
@@ -12,55 +11,51 @@ modules:
   - skills/clarify/SKILL.md
 depends_on:
   - F-56abaa
+capability_refs:
+  - harness-cli
 acceptance_criteria:
   - id: AC-001
-    ears: ubiquitous
-    action: add an onboarding-state library that persists the Q&A loop to .cladding/onboarding/state.yaml and exposes helpers for loading, saving, advancing, de-duplicating, and completing the session
-    response: 'src/cli/scan/onboarding-state.ts exports loadState(cwd) / saveState(cwd, state) / firstPendingIndex(state) / markFirstPendingAnswered(state, answer) / appendNewQuestions(state, newQs) / isComplete(state) / markDone(state); the state file shape is {intent, language, projectName, mode, startedAt, status: active|done, qa: [{question, answer|null}]}; loadState normalises hand-edited mode/answer values defensively; saveState uses yaml.stringify with lineWidth 0 so long Korean strings are preserved verbatim; appendNewQuestions de-duplicates by exact question text so a follow-up iteration that re-emits the same question does not double the list'
-    text: The system shall add an onboarding-state library that persists the Q&A loop to .cladding/onboarding/state.yaml and exposes helpers for loading, saving, advancing, de-duplicating, and completing the session.
-    test_refs: [tests/cli/onboarding-state.test.ts]
+    statement: The system shall add an onboarding-state library that persists the
+      Q&A loop to .cladding/onboarding/state.yaml and exposes helpers for
+      loading, saving, advancing, de-duplicating, and completing the session.
   - id: AC-002
-    ears: ubiquitous
-    action: extend intent-onboarding with a refinement prompt builder + interpreter that pass the full Q-A history plus current artifact bodies into the LLM so the response refines artifacts based on every answer so far
-    response: 'src/cli/scan/intent-onboarding.ts adds buildRefinementPrompt(intent, observed, qaHistory, current) re-using the 6-sentinel layout but with a senior-architect tone that names the full Q-A history and embeds the current docs/project-context.md + spec/capabilities.yaml + spec/architecture.yaml bodies inside fenced code blocks so the LLM knows what to preserve vs revise; interpretRefinementWithFallback runs the dispatcher with the refinement prompt, parses the same six sentinels, applies per-artifact and total fallback policies identical to the init path, and emits sentinel_miss events with phase onboarding so clad doctor surfaces refine failures'
-    text: The system shall extend intent-onboarding with a refinement prompt builder + interpreter that pass the full Q-A history plus current artifact bodies into the LLM so the response refines artifacts based on every answer so far.
-    test_refs: [tests/cli/clarify.test.ts]
+    statement: The system shall extend intent-onboarding with a refinement prompt
+      builder + interpreter that pass the full Q-A history plus current artifact
+      bodies into the LLM so the response refines artifacts based on every
+      answer so far.
   - id: AC-003
-    ears: state
-    condition: while the LLM dispatcher is unavailable or returns an unusable response during refinement
-    action: preserve the current artifact bodies and append the latest Q-A pair as a footnote under a Q&A log heading in docs/project-context.md so the user answer is captured visibly
-    response: 'deterministicRefinement(intent, observed, qaHistory, current) returns the current capabilities and architecture bodies unchanged; the project-context body gets a Q&A log footnote appended once per session via appendFootnoteOnce which detects an existing "## Q&A log (refinement, LLM unavailable)" sentinel and appends new entries underneath instead of stacking duplicate headers; the mode is recomputed from observed.sourceFileCount so the result still surfaces an accurate greenfield/existing classification; source is set to deterministic so callers can distinguish llm/hybrid/deterministic for telemetry'
-    text: While the LLM dispatcher is unavailable or returns an unusable response during refinement, the system shall preserve the current artifact bodies and append the latest Q-A pair as a footnote under a Q&A log heading in docs/project-context.md so the user answer is captured visibly.
-    test_refs: [tests/cli/clarify.test.ts]
+    statement: While the LLM dispatcher is unavailable or returns an unusable
+      response during refinement, the system shall preserve the current artifact
+      bodies and append the latest Q-A pair as a footnote under a Q&A log
+      heading in docs/project-context.md so the user answer is captured visibly.
   - id: AC-004
-    ears: event
-    condition: when onboarding has a pending clarification
-    action: clad clarify joins the supplied answer tokens
-    response: commits the resulting onboarding artifact and state transition through its declared proposal-safe path
-    text: When onboarding has a pending clarification, `clad clarify` shall join the supplied answer tokens and commit the resulting onboarding artifact/state transition through its declared proposal-safe path.
-    test_refs:
-      - "tests/cli/clarify.test.ts#[covers:F-09d68b/AC-004][covers:F-09d68b/AC-003] joins answer tokens and commits the proposal-safe onboarding transition"
-    notes: |
+    statement: When onboarding has a pending clarification, the clad clarify command
+      shall join supplied answer tokens and commit the resulting onboarding
+      artifact and state transition through its declared proposal-safe path.
+    kind: behavior
+    notes: >
       ## Historical note
-      The public verb was renamed from refine and its old monolithic state-file narrative is obsolete.
+
+      The public verb was renamed from refine and its old monolithic state-file
+      narrative is obsolete.
   - id: AC-005
-    ears: event
-    condition: when a current onboarding refinement path needs persistent state
-    action: use the artifact and transaction ownership declared by the current schema
-    response: does not rely on an asserted state.yaml history
-    text: When a current onboarding refinement path needs persistent state, it shall use the artifact and transaction ownership declared by the current schema rather than an asserted state.yaml history.
-    test_refs:
-      - "tests/cli/clarify.test.ts#[covers:F-09d68b/AC-005] active refinement commits artifacts through the compatibility transaction"
-    notes: |
+    statement: When a current onboarding refinement path needs persistent state, the
+      refinement path shall use the artifact and transaction ownership declared
+      by the current schema rather than asserted state.yaml history.
+    kind: behavior
+    notes: >
       ## Historical schema-0.1 note
-      The asserted state.yaml refinement history is historical, not ownership proof.
+
+      The asserted state.yaml refinement history is historical, not ownership
+      proof.
   - id: AC-006
-    ears: ubiquitous
-    action: describe the current clarify and design-impact boundary from the canonical planner persona source
-    response: generated mirrors reproduce that source
-    text: Planner guidance shall describe the current clarify/design-impact boundary from the canonical persona source and generated mirrors; the retired Librarian/refine skill story is historical.
-    test_refs:
-      - "tests/choreography-guard.test.ts#[covers:F-09d68b/AC-006] planner guidance states the clarify and design-impact boundary and mirrors reproduce its source"
-    notes: |
+    statement: The planner guidance shall describe the current clarify and
+      design-impact boundary from the canonical persona source and generated
+      mirrors while treating the retired Librarian and refine skill story as
+      historical.
+    kind: quality
+    notes: >
       ## Historical schema-0.1 note
-      The Librarian/refine skill loop is historical, not current planner authority.
+
+      The Librarian/refine skill loop is historical, not current planner
+      authority.

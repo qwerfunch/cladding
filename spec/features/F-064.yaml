@@ -6,49 +6,51 @@ modules:
   - src/adapters/index.ts
   - tests/cli/clad.test.ts
   - tests/adapters/index.test.ts
-depends_on: [F-063]
+depends_on:
+  - F-063
+capability_refs: []
 acceptance_criteria:
   - id: AC-164
-    ears: ubiquitous
-    action: refactor src/cli/clad.ts for unit-testability
-    response: src/cli/clad.ts extracts each verb's handler as a named export (runInitCommand · runWorkCommand · runDriveCommand · runSyncCommand · runCheckCommand · runPanelCommand · runRouteCommand) and adds createProgram(); top-level program.parse() runs only when imported as the CLI entry (bundle or direct tsx execution)
-    text: The system shall refactor src/cli/clad.ts to expose every verb's handler plus a createProgram() factory, so unit tests can exercise the CLI without spawning a subprocess.
-    evidence_refs: [src/cli/clad.ts]
+    statement: The system shall refactor src/cli/clad.ts to expose every verb's
+      handler plus a createProgram() factory, so unit tests can exercise the CLI
+      without spawning a subprocess.
+    evidence_refs:
+      - src/cli/clad.ts
   - id: AC-165
-    ears: ubiquitous
-    action: register a public CLI command
-    response: derives the live command and action registry and preserves callable actions, declared options, JSON and scope boundaries, and fail-closed retired aliases
-    text: When a public CLI command is registered, it shall expose a callable action with its declared option boundaries while retired aliases fail closed.
-    test_refs:
-      - "tests/cli/clad.test.ts#[covers:F-064/AC-165] the live command registry exposes callable actions and declared option boundaries"
-      - "tests/cli/clad.test.ts#[covers:F-064/AC-165][covers:F-d25041ac/AC-33f9324c] removed aliases fail closed at the command boundary"
-    notes: |
+    statement: When a public CLI command is registered, the command registry shall
+      expose a callable action with its declared option boundaries while retired
+      aliases fail closed.
+    kind: behavior
+    notes: >
       ## Historical schema-0.1 note
-      2026-05-19 · v0.2.15 · 8379db7. CLI fixtures: 7 handlers, actions, options,
-      exits, absent specs, intent, strict mode, JSON, and errors; at least 90% line
-      coverage; non-current. Released title: "Final coverage closure — every source dir ≥ 90% lines".
+
+      2026-05-19 · v0.2.15 · 8379db7. CLI fixtures: 7 handlers, actions,
+      options,
+
+      exits, absent specs, intent, strict mode, JSON, and errors; at least 90%
+      line
+
+      coverage; non-current. Released title: "Final coverage closure — every
+      source dir ≥ 90% lines".
   - id: AC-166
-    ears: ubiquitous
-    action: resolve an agent adapter
-    response: uses the registered adapter set as the resolution source, applies environment before configuration before automatic selection, and falls back safely for incomplete or unknown selections without accessing provider credentials
-    text: When an agent adapter is resolved, it shall apply environment selection before configuration and automatic selection, resolve registered adapters exactly, and fall back to the generic host adapter for incomplete, malformed, or unknown selections without provider credential access.
-    test_refs:
-      - "tests/adapters/index.test.ts#[covers:F-064/AC-166][covers:F-049/AC-089] environment selection precedes configuration and automatic selection"
-      - "tests/adapters/index.test.ts#[covers:F-064/AC-166] every registered adapter resolves exactly through its declared mode and name"
-      - "tests/adapters/index.test.ts#[covers:F-064/AC-166] incomplete malformed or unknown selections fall back to generic without provider credentials"
+    statement: When an agent adapter is resolved, the adapter selector shall apply
+      environment selection before configuration and automatic selection,
+      resolve registered adapters exactly, and fall back to the generic host
+      adapter for incomplete, malformed, or unknown selections without provider
+      credential access.
+    kind: behavior
     notes: |
       ## Historical schema-0.1 note
       2026-05-19 · v0.2.15 · 8379db7. Adapter-selection fixtures: environment,
       config, auto detection, malformed/partial input, unknown hosts, and SDK
       fallback; at least 95% line coverage; non-current.
   - id: AC-167
-    ears: state
-    condition: while current coverage assurance is evaluated
-    action: derive it from the coverage obligation
-    response: does not treat the v0.2.15 source-directory measurement as current proof
-    text: While current coverage assurance is evaluated, it shall be derived from the coverage obligation; the v0.2.15 source-directory measurement remains historical evidence only.
-    test_refs:
-      - "tests/assurance/registry.test.ts#[covers:F-055/AC-128][covers:F-056/AC-132][covers:F-057/AC-136][covers:F-058/AC-140][covers:F-059/AC-144][covers:F-060/AC-148][covers:F-061/AC-152][covers:F-062/AC-157][covers:F-063/AC-163][covers:F-064/AC-167] derives current coverage assurance only from the coverage obligation"
-    notes: |
+    statement: While current coverage assurance is evaluated, the assurance registry
+      shall derive it from the coverage obligation and treat the v0.2.15
+      source-directory measurement as historical evidence only.
+    kind: quality
+    notes: >
       ## Historical schema-0.1 note
-      v0.2.15’s source-dir ≥90% and total ≥93% measurement is historical, not current assurance.
+
+      v0.2.15’s source-dir ≥90% and total ≥93% measurement is historical, not
+      current assurance.

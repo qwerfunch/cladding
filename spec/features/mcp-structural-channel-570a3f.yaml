@@ -1,32 +1,36 @@
 id: F-570a3f
-slug: mcp-structural-channel
-title: "MCP results carry the gate state: gate-footer field on mutating tools, schema_version, and a full-gate clad_run_gate tool"
+title: "MCP results carry the gate state: gate-footer field on mutating tools,
+  schema_version, and a full-gate clad_run_gate tool"
 status: done
 modules:
   - src/serve/server.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-a8ee9c
-    ears: event
-    condition: "when a mutating MCP tool (clad_create_feature, clad_create_scenario, clad_link_capability, clad_author_oracle) returns"
-    action: "include a gate JSON field — the drift stage's pass flag plus up to 3 top findings and the next obligation — inside the existing result object (the withHint pattern), never as appended text"
-    response: "every host (Claude/Codex/Gemini/Cursor) structurally sees the gate state after each spec mutation — the only enforcement channel that rides the wire protocol itself"
-    text: "When a mutating MCP tool returns, the result shall include a gate field (drift pass flag, top-3 findings, next obligation) inside the JSON object, so every host structurally sees the gate state after each spec mutation."
-    notes: "## Why\nIn-session enforcement was 100%% prompt-advisory and host-dependent (Gemini auto-complies, Claude needs prompts, leaks measured 4/4). Tool results are the one channel the model cannot not see, on every host — and Gemini/Codex have no lifecycle hooks, making this their ONLY structural channel."
-    test_refs:
-      - "tests/serve/server.test.ts#clad_create_feature result carries schema_version and a gate field (JSON, not appended text)"
-  - id: AC-86dd41
-    ears: ubiquitous
-    text: "Mutating-tool and gate-tool payloads shall carry a schema_version field (frozen wire identifier, starting at 1), so clients can detect payload-shape changes across cladding versions instead of breaking on them."
-    notes: "## Why\nMCP tool names are stable wire ids but result shapes were unversioned — a 0.5.1-built client parsing 0.6.0 results had no signal (review C7)."
-    test_refs:
-      - "tests/serve/server.test.ts#clad_create_feature result carries schema_version and a gate field (JSON, not appended text)"
-      - "tests/serve/server.test.ts#clad_run_gate runs the real pipeline and returns the untruncated JSON outcome"
-  - id: AC-4cba6e
-    ears: event
-    condition: "when a host calls the new clad_run_gate tool with an optional tier"
-    action: "run the REAL runCheckStages pipeline in-process (default pre-commit for latency; pre-push/all on request) and return its untruncated JSON outcome"
-    response: "in-session verification can finally execute the actual gate — before this, the MCP surface could only run the drift detectors, so an agent driving cladding through MCP never executed a single test"
-    text: "When a host calls clad_run_gate with an optional tier, the system shall run the real runCheckStages pipeline and return its untruncated JSON outcome, so in-session verification executes the actual gate."
+    statement: When a mutating MCP tool returns, the result shall include a gate
+      field (drift pass flag, top-3 findings, next obligation) inside the JSON
+      object, so every host structurally sees the gate state after each spec
+      mutation.
+    notes: >-
+      ## Why
 
-    test_refs:
-      - "tests/serve/server.test.ts#clad_run_gate runs the real pipeline and returns the untruncated JSON outcome"
+      In-session enforcement was 100%% prompt-advisory and host-dependent
+      (Gemini auto-complies, Claude needs prompts, leaks measured 4/4). Tool
+      results are the one channel the model cannot not see, on every host — and
+      Gemini/Codex have no lifecycle hooks, making this their ONLY structural
+      channel.
+  - id: AC-86dd41
+    statement: The mutating-tool and gate-tool payloads shall carry a schema_version
+      field as a frozen wire identifier beginning at 1 so clients can detect
+      payload-shape changes across cladding versions.
+    kind: behavior
+    notes: >-
+      ## Why
+
+      MCP tool names are stable wire ids but result shapes were unversioned — a
+      0.5.1-built client parsing 0.6.0 results had no signal (review C7).
+  - id: AC-4cba6e
+    statement: When a host calls clad_run_gate with an optional tier, the system
+      shall run the real runCheckStages pipeline and return its untruncated JSON
+      outcome, so in-session verification executes the actual gate.

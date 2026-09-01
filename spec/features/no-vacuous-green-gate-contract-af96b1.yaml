@@ -1,7 +1,6 @@
-# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
 id: F-af96b1
-slug: no-vacuous-green-gate-contract
-title: No Vacuous Green — honest gate exit-contract, shared spec-load seam, ambient hook (v0.4.x)
+title: No Vacuous Green — honest gate exit-contract, shared spec-load seam,
+  ambient hook (v0.4.x)
 status: done
 modules:
   - src/stages/util.ts
@@ -20,38 +19,35 @@ modules:
   - tests/self-consistency.test.ts
 depends_on:
   - F-99c6e5
+capability_refs: []
 acceptance_criteria:
   - id: AC-001
-    ears: ubiquitous
-    action: 'route every toolchain stage''s post-run exit mapping through stages/util.ts::ranToolResult() so a tool that RAN and failed maps to the blocking exitCode 1, reserving the skip code 2 strictly for the explicit skip branches (unknown language, undefined npm script, ENOENT via missingToolSkip)'
-    response: 'ranToolResult maps any non-zero ran-tool exit (incl. tsc''s exit 2 on type errors, 137 OOM, null) to exitCode 1 and surfaces stderr||stdout so a failing gate shows why; missingToolSkip detects ENOENT on the returned result and is the only path that yields exitCode 2 — the type/lint/unit/cov/smoke/perf/visual stages can no longer let a real failure pass as a non-blocking skip'
-    text: The system shall map a tool that ran and failed to the blocking exitCode 1, reserving the skip exitCode 2 strictly for ENOENT / unknown-language / undefined-script, so no toolchain stage can pass a real failure off as a vacuous-green skip.
-    test_refs: [tests/stages/util.test.ts]
+    statement: The system shall map a tool that ran and failed to the blocking
+      exitCode 1, reserving the skip exitCode 2 strictly for ENOENT /
+      unknown-language / undefined-script, so no toolchain stage can pass a real
+      failure off as a vacuous-green skip.
   - id: AC-002
-    ears: ubiquitous
-    action: 'route the spec-vs-reality drift detectors'' spec load through a single shared with-spec.ts seam that emits one uniform `info` finding when spec.yaml cannot be loaded, instead of each detector hand-rolling an inconsistent silent-[] or info catch'
-    response: 'src/stages/detectors/with-spec.ts exposes withSpec(cwd, name, fn) that loads the spec once and, on load failure, returns a single `spec.yaml not loaded` info finding; the info-shape spec-vs-reality detectors (missing-implementation, missing-tests, untested-ac, status-drift, stale-specification, ac-drift, reference-integrity, tech-stack-mismatch, unmapped-artifact, convention-drift, stale-tests) adopt it so the load-failure policy lives in exactly one place and a spec-less project keeps green CI'
-    text: The system shall centralise the drift detectors' spec-load-failure policy in a single withSpec() seam that emits a uniform info finding, so spec-vs-reality detectors degrade honestly on a spec-less or unparseable project.
-    test_refs: [tests/stages/missing-implementation.test.ts]
+    statement: The system shall centralise the drift detectors' spec-load-failure
+      policy in a single withSpec() seam that emits a uniform info finding, so
+      spec-vs-reality detectors degrade honestly on a spec-less or unparseable
+      project.
   - id: AC-003
-    ears: ubiquitous
-    action: 'add an opt-in git pre-commit hook installer (`clad init --with-hook`) that writes an idempotent, non-destructive .git/hooks/pre-commit running the fast spec-native tier (`clad check --tier=pre-commit` → drift/arch/secret)'
-    response: 'src/init/git-hook.ts renderPreCommitHook() tries `clad` then `npx --no-install cladding` and warns + exits 0 if neither is on PATH (a missing tool must not brick every commit — CI stays the hard enforcement layer); installPreCommitHook() is idempotent and reports created | unchanged | updated | skipped-foreign (unless --force) | skipped-no-git, and only touches a real `.git/` directory; cladding never writes .git without this explicit opt-in'
-    text: The system shall provide an opt-in `clad init --with-hook` that installs an idempotent, non-destructive git pre-commit hook running the fast spec-native gate tier, enforcing drift at commit time without a new verb.
-    test_refs: [tests/init/git-hook.test.ts]
+    statement: The system shall provide an opt-in `clad init --with-hook` that
+      installs an idempotent, non-destructive git pre-commit hook running the
+      fast spec-native gate tier, enforcing drift at commit time without a new
+      verb.
   - id: AC-004
-    ears: ubiquitous
-    action: 'lock cladding''s own no-vacuous-green-against-itself invariants as CI-enforced self-consistency tests — detector-count prose claims equal allDetectors.length, spec.yaml project.version equals package.json version, and the Tier A/B artifacts carry the mandated first-line tier banner'
-    response: 'tests/self-consistency.test.ts asserts the corrected self-drift fixes (counts, version, banners), and .github/workflows/ci.yml runs `npm test` plus the strict spec-native self-gate (`clad check --tier=pre-commit --strict`) on every push/PR so any future regression actually fails CI rather than the lock being a vacuous claim; these are cladding-self checks, not shipped detectors, so an adopting project may legitimately diverge without being false-failed'
-    text: The system shall enforce cladding's own self-consistency (detector-count claims, spec/package version parity, tier banners) as CI-locked tests so the drift-prevention tool cannot silently drift against itself.
-    test_refs: [tests/self-consistency.test.ts]
+    statement: The system shall enforce cladding's own self-consistency
+      (detector-count claims, spec/package version parity, tier banners) as
+      CI-locked tests so the drift-prevention tool cannot silently drift against
+      itself.
   - id: AC-005
-    ears: event
-    condition: when a locally constrained npx invocation cannot resolve its requested executable without registry access
-    action: classify only that unresolved target as a visible setup gap while preserving failures from tools that did start
-    response: missing optional tooling neither stalls offline work nor hides a real nested-command failure
-    text: When an offline local-only npx invocation cannot resolve its requested executable, the system shall report a setup gap without contacting the registry, while a tool that started and failed internally shall remain a blocking failure.
-    notes: |
+    statement: When an offline local-only npx invocation cannot resolve its
+      executable, the system shall report a setup gap without contacting the
+      registry while an internally failing tool remains blocking.
+    kind: behavior
+    notes: >
       This general stage exit-contract rule was isolated from onboarding handoff
-      verification because it applies equally to legacy and hand-authored projects.
-    test_refs: [tests/stages/util.test.ts]
+
+      verification because it applies equally to legacy and hand-authored
+      projects.

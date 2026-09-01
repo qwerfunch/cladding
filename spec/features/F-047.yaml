@@ -10,35 +10,27 @@ modules:
 depends_on:
   - F-031
   - F-040
+capability_refs: []
 acceptance_criteria:
   - id: AC-082
-    ears: ubiquitous
-    action: ship a one-shot script that migrates a master spec.yaml to sharded layout
-    response: scripts/shard-spec.ts produces spec/features/*.yaml, spec/scenarios/*.yaml, and spec/architecture.yaml
-    text: >-
-      The system shall ship a one-shot migration script that converts
-      a master spec.yaml into sharded layout (spec/features/*.yaml +
-      spec/scenarios/*.yaml + spec/architecture.yaml), so any project
-      that outgrows the single-file form can shard with one command.
-    evidence_refs: [fixture:F-047_AC-082]
-
+    statement: The system shall ship a one-shot migration script that converts a
+      master spec.yaml into sharded layout (spec/features/*.yaml +
+      spec/scenarios/*.yaml + spec/architecture.yaml), so any project that
+      outgrows the single-file form can shard with one command.
+    evidence_refs:
+      - fixture:F-047_AC-082
   - id: AC-083
-    ears: ubiquitous
-    action: apply the sharded layout to cladding's own spec
-    response: master spec.yaml carries metadata only; features and scenarios live as one file each
-    text: >-
-      Cladding shall apply the sharded layout to its own spec.yaml —
-      master carries only schema + project + header comments, while
-      features and scenarios live as one yaml file each under
-      spec/features/ and spec/scenarios/.
-    evidence_refs: [fixture:F-047_AC-083]
-
+    statement: The system shall keep its spec.yaml master limited to schema,
+      project, and header comments while storing features and scenarios as one
+      YAML file each under spec/features/ and spec/scenarios/.
+    kind: constraint
+    rationale: The sharded specification layout keeps the master artifact as the
+      canonical project root while feature and scenario records remain
+      independently owned.
+    evidence_refs:
+      - fixture:F-047_AC-083
   - id: AC-084
-    ears: ubiquitous
-    action: update src/spec/cli.ts to delegate to loadSpec so sharded layout validates
-    response: "npm run spec:validate returns valid=true on a sharded master"
-    text: >-
-      The system shall update src/spec/cli.ts to delegate to loadSpec so
-      that `npm run spec:validate` returns valid=true on a sharded
-      master spec.
-    evidence_refs: [fixture:F-047_AC-084]
+    statement: The system shall update src/spec/cli.ts to delegate to loadSpec so
+      that `npm run spec:validate` returns valid=true on a sharded master spec.
+    evidence_refs:
+      - fixture:F-047_AC-084

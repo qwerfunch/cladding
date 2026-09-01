@@ -8,13 +8,11 @@ modules:
   - src/agents/observability.md
   - src/agents/developer.md
   - src/agents/README.md
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-055
-    ears: ubiquitous
-    action: ship five agent personas (orchestrator · planner · reviewer ·
-      observability · developer) as Claude Code subagents
-    response: each persona has a system prompt declaring scope, tools, and boundaries
-    text: The system shall ship five agent personas — orchestrator, planner,
+    statement: The system shall ship five agent personas — orchestrator, planner,
       reviewer, observability, developer — as Claude Code subagents under
       agents/*.md, each with a system prompt declaring scope, tools, and
       boundaries.
@@ -24,13 +22,9 @@ acceptance_criteria:
       - src/agents/reviewer.md
       - src/agents/observability.md
       - src/agents/developer.md
-
   - id: AC-056
-    ears: ubiquitous
-    action: encode the five invocation principles in the orchestrator's prompt
-    response: routing logic references specialization, audit-separation,
-      parallelism, evidence-first, least-context
-    text: The orchestrator persona shall encode the five invocation principles
+    statement: The orchestrator persona shall encode the five invocation principles
       (specialization · audit-separation · parallelism · evidence-first ·
       least-context) as its routing logic.
-    evidence_refs: [src/agents/orchestrator.md]
+    evidence_refs:
+      - src/agents/orchestrator.md

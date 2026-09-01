@@ -1,6 +1,5 @@
 id: F-0f4dd6
-slug: natural-language-init
-title: "Natural-language init across skill and MCP hosts"
+title: Natural-language init across skill and MCP hosts
 status: done
 modules:
   - src/serve/server.ts
@@ -32,377 +31,286 @@ modules:
   - docs/dogfood/antigravity-cli-2026-07-15.md
   - src/stages/detectors/README.md
   - src/stages/README.md
-depends_on: [ F-56abaa, F-5f6b45, F-80d19d ]
+depends_on:
+  - F-56abaa
+  - F-5f6b45
+  - F-80d19d
+capability_refs:
+  - mcp-host
 acceptance_criteria:
   - id: AC-001
-    ears: ubiquitous
-    action: expose project initialization and onboarding answers as MCP tools that
-      reuse the CLI core
-    response: MCP hosts can complete init and its follow-up Q&A without asking the
-      user to run a shell command
-    text: The system shall expose project initialization and onboarding answers as
-      MCP tools that reuse the CLI core, so MCP hosts can complete init and its
-      follow-up Q&A without asking the user to run a shell command.
-    test_refs: [ tests/serve/server.test.ts, tests/serve/init-tools.test.ts ]
+    statement: The system shall expose project initialization and onboarding answers
+      as MCP tools that reuse the CLI core, so MCP hosts can complete init and
+      its follow-up Q&A without asking the user to run a shell command.
   - id: AC-002
-    ears: event
-    condition: when a new-project initialization request omits the project idea
-    action: return a needs-input result before creating any project artifact
-    response: the host asks for intent instead of producing a generic scaffold
-    text: When a new-project initialization request omits the project idea, the
+    statement: When a new-project initialization request omits the project idea, the
       system shall return a needs-input result before creating any project
       artifact, so the host asks for intent instead of producing a generic
       scaffold.
-    test_refs: [ tests/serve/init-tools.test.ts ]
   - id: AC-003
-    ears: event
-    condition: when initialization uses a planning document
-    action: read a recognized UTF-8 text file confined to the connected project root
-      and pass its complete body through the existing intent-aware onboarding
-      path
-    response: the planning document is neither truncated nor mistaken for literal intent
-    text: When initialization uses a planning document, the system shall read a
+    statement: When initialization uses a planning document, the system shall read a
       recognized UTF-8 text file confined to the connected project root and pass
       its complete body through the existing intent-aware onboarding path, so
       the planning document is neither truncated nor mistaken for literal
       intent.
-    test_refs: [ tests/serve/init-tools.test.ts ]
-    notes: "WHY: Node's permissive utf8 string decoder replaces malformed bytes; the MCP boundary uses a fatal UTF-8 decoder so a binary or corrupt document cannot silently become different intent."
+    notes: "WHY: Node's permissive utf8 string decoder replaces malformed bytes; the
+      MCP boundary uses a fatal UTF-8 decoder so a binary or corrupt document
+      cannot silently become different intent."
   - id: AC-004
-    ears: event
-    condition: when initialization adopts an existing project
-    action: force the observed scan path even when the project contains fewer than
-      three source files
-    response: sparse existing projects are not treated as greenfield ideas
-    text: When initialization adopts an existing project, the system shall force the
-      observed scan path even when the project contains fewer than three source
-      files, so sparse existing projects are not treated as greenfield ideas.
-    test_refs: [ tests/serve/init-tools.test.ts ]
+    statement: When initialization adopts an existing project, the system shall
+      force the observed scan path even when the project contains fewer than
+      three source files, so sparse existing projects are not treated as
+      greenfield ideas.
   - id: AC-005
-    ears: unwanted
-    condition: if the connected project already contains spec.yaml and refresh was
-      not explicitly requested
-    action: return an already-initialized result without creating proposals or
-      changing project files
-    response: repeated natural-language requests remain non-destructive
-    text: If the connected project already contains spec.yaml and refresh was not
-      explicitly requested, the system shall return an already-initialized
-      result without creating proposals or changing project files, so repeated
-      natural-language requests remain non-destructive.
-    test_refs: [ tests/serve/init-tools.test.ts ]
+    statement: If a connected project already contains spec.yaml and refresh was not
+      explicitly requested, then the initialization service shall return an
+      already-initialized result without creating proposals or changing project
+      files.
+    kind: behavior
   - id: AC-006
-    ears: event
-    condition: when init or clarify returns pending product questions
-    action: include the next question and onboarding status in structured MCP output
-    response: the host can continue one answer at a time until onboarding is complete
-    text: When init or clarify returns pending product questions, the system shall
-      include the next question and onboarding status in structured MCP output,
-      so the host can continue one answer at a time until onboarding is
+    statement: When init or clarify returns pending product questions, the system
+      shall include the next question and onboarding status in structured MCP
+      output, so the host can continue one answer at a time until onboarding is
       complete.
-    test_refs: [ tests/serve/init-tools.test.ts ]
   - id: AC-007
-    ears: event
-    condition: when host integration configuration is created
-    action: write normal host configuration under the selected project root
-    response: Antigravity additionally receives its documented managed machine-wide bridge because agy 1.1.2 reads no project-local MCP configuration
-    text: When host integration configuration is created, it shall write normal host configuration under the selected project root; Antigravity additionally receives its documented managed machine-wide bridge because agy 1.1.2 reads no project-local MCP configuration.
-    test_refs:
-      - "tests/cli/setup.test.ts#[covers:F-0f4dd6/AC-007] writes project-local host configuration with the documented Antigravity bridge exception"
+    statement: When host integration configuration is created, the setup command
+      shall write normal host configuration under the selected project root and
+      give Antigravity its documented managed machine-wide bridge because agy
+      1.1.2 reads no project-local MCP configuration.
+    kind: behavior
     notes: |
       ## Historical note
       The former universal project-local discovery claim was superseded by the
       verified agy 1.1.2 bridge requirement. Other selected hosts remain
       project-local; a foreign Antigravity bridge is preserved.
   - id: AC-008
-    ears: ubiquitous
-    action: document natural-language init as the primary path and describe each
-      host's optional explicit invocation syntax accurately
-    response: Claude Code, Codex, Gemini, Antigravity, and Cursor receive accurate
-      project-scoped startup guidance
-    text: The system shall document natural-language init as the primary path and
-      describe each host's project-scoped startup accurately, so Claude Code,
-      Codex, Gemini, Antigravity, and Cursor receive accurate project-scoped startup
-      guidance.
-    evidence_refs: [ README.md, docs/setup.md ]
-    notes: |
+    statement: The system shall document natural-language init as the primary path
+      and describe each host's project-scoped startup accurately, so Claude
+      Code, Codex, Gemini, Antigravity, and Cursor receive accurate
+      project-scoped startup guidance.
+    evidence_refs:
+      - README.md
+      - docs/setup.md
+    notes: >
       ## Decision
-      Keep raw `clad init` as a compatibility and automation surface, not the primary onboarding UX.
+
+      Keep raw `clad init` as a compatibility and automation surface, not the
+      primary onboarding UX.
+
       ## Why
-      A host-neutral natural-language entry point preserves the product model while host-specific syntax remains an optional accelerator.
+
+      A host-neutral natural-language entry point preserves the product model
+      while host-specific syntax remains an optional accelerator.
+
       ## Trade-off
-      MCP init and clarify tools are required to make that promise deterministic for hosts without a bundled skill.
+
+      MCP init and clarify tools are required to make that promise deterministic
+      for hosts without a bundled skill.
   - id: AC-009
-    ears: unwanted
-    condition: if an initialization request has not been followed by a separate
-      affirmative user confirmation after the read-only preview
-    action: reject the apply step without creating project artifacts
-    response: opening a project, asking about Cladding, or making the initial
-      natural-language request cannot silently authorize file changes
-    text: If an initialization request has not been followed by a separate
-      affirmative user confirmation after the read-only preview, the system
-      shall reject the apply step without creating project artifacts, so opening
-      a project, asking about Cladding, or making the initial natural-language
+    statement: If an initialization request has not received a separate affirmative
+      user confirmation after the read-only preview, then the initialization
+      service shall reject apply without creating project artifacts so opening a
+      project or asking about Cladding or making the initial natural-language
       request cannot silently authorize file changes.
-    test_refs: [ tests/serve/init-tools.test.ts ]
-    notes: |
+    kind: constraint
+    rationale: Initialization writes require affirmative confirmation after a
+      read-only preview.
+    notes: >
       ## Decision
-      Natural language may start the read-only preparation, but a distinct user turn authorizes the write.
+
+      Natural language may start the read-only preparation, but a distinct user
+      turn authorizes the write.
+
       ## Why
-      All supported MCP hosts can call tools, but they do not expose a common cryptographic user-consent primitive.
+
+      All supported MCP hosts can call tools, but they do not expose a common
+      cryptographic user-consent primitive.
+
       ## Trade-off
-      The host instruction and verbatim confirmation field provide the strongest portable boundary; a malicious host could still fabricate consent, so this is not presented as a sandbox guarantee.
+
+      The host instruction and verbatim confirmation field provide the strongest
+      portable boundary; a malicious host could still fabricate consent, so this
+      is not presented as a sandbox guarantee.
   - id: AC-010
-    ears: unwanted
-    condition: if the apply request does not carry the exact one-time approval
-      challenge shown in the read-only preview
-    action: reject initialization without writing project artifacts
-    response: questions, acknowledgements, and model-invented confirmations cannot
-      be mistaken for user consent
-    text: If the apply request does not carry the exact one-time approval challenge
-      shown in the read-only preview, the system shall reject initialization
-      without writing project artifacts, so questions, acknowledgements, and
-      model-invented confirmations cannot be mistaken for user consent.
-    test_refs: [ tests/serve/init-tools.test.ts ]
-    notes: |
+    statement: If an apply request does not carry the exact one-time approval
+      challenge shown in the read-only preview, then the initialization service
+      shall reject initialization without writing project artifacts so questions
+      or acknowledgements or model-invented confirmations cannot be mistaken for
+      user consent.
+    kind: constraint
+    rationale: The exact preview challenge prevents ordinary questions or invented
+      acknowledgements from authorizing writes.
+    notes: >
       ## Decision
-      Use a short preview-bound approval challenge rather than attempting to classify arbitrary affirmative prose across languages.
+
+      Use a short preview-bound approval challenge rather than attempting to
+      classify arbitrary affirmative prose across languages.
+
       ## Why
-      MCP has no portable proof of which user turn produced an argument; exact challenge matching is the strongest host-neutral check available and makes accidental application materially harder.
+
+      MCP has no portable proof of which user turn produced an argument; exact
+      challenge matching is the strongest host-neutral check available and makes
+      accidental application materially harder.
+
       ## Trade-off
-      Initialization is a one-time destructive boundary, so one explicit copy/confirm step is preferred over a lower-friction but ambiguous yes/no classifier.
+
+      Initialization is a one-time destructive boundary, so one explicit
+      copy/confirm step is preferred over a lower-friction but ambiguous yes/no
+      classifier.
   - id: AC-011
-    ears: event
-    condition: when the supplied idea, planning document, and observed project
-      already resolve the important product decisions
-    action: emit no follow-up questions
-    response: complete inputs can move directly into development while incomplete
-      inputs receive at most three material product questions
-    text: When the supplied idea, planning document, and observed project already
-      resolve the important product decisions, the system shall emit no
-      follow-up questions, so complete inputs can move directly into development
+    statement: When the supplied idea and planning document and observed project
+      resolve important product decisions, the onboarding service shall emit no
+      follow-up questions so complete inputs move directly into development
       while incomplete inputs receive at most three material product questions.
-    test_refs: [ tests/serve/init-tools.test.ts, tests/cli/intent-onboarding.test.ts ]
+    kind: behavior
   - id: AC-012
-    ears: event
-    condition: when a planning document and existing source code are both present
-    action: combine the complete project-local document with an observed code scan
-      in one onboarding preparation
-    response: hybrid projects do not have to discard either declared intent or
-      sparse implementation evidence
-    text: When a planning document and existing source code are both present, the
-      system shall combine the complete project-local document with an observed
-      code scan in one onboarding preparation, so hybrid projects do not have to
-      discard either declared intent or sparse implementation evidence.
-    test_refs: [ tests/serve/init-tools.test.ts ]
+    statement: When a planning document and existing source code are both present,
+      the system shall combine the complete project-local document with an
+      observed code scan in one onboarding preparation, so hybrid projects do
+      not have to discard either declared intent or sparse implementation
+      evidence.
   - id: AC-013
-    ears: event
-    condition: when a follow-up answer refines untouched Cladding-generated
-      onboarding artifacts
-    action: update those artifacts atomically and keep onboarding active until every
-      answer is represented in the active design
-    response: onboarding cannot report completion while the accepted answer exists
-      only in a review proposal
-    text: When a follow-up answer refines untouched Cladding-generated onboarding
-      artifacts, the system shall update those artifacts atomically and keep
-      onboarding active until every answer is represented in the active design,
-      so onboarding cannot report completion while the accepted answer exists
-      only in a review proposal.
-    test_refs: [ tests/serve/init-tools.test.ts, tests/cli/clarify.test.ts ]
+    statement: When a follow-up answer refines untouched Cladding-generated
+      onboarding artifacts, the system shall update those artifacts atomically
+      and keep onboarding active until every answer is represented in the active
+      design, so onboarding cannot report completion while the accepted answer
+      exists only in a review proposal.
   - id: AC-014
-    ears: unwanted
-    condition: if an onboarding artifact changed after the read-only preparation or
-      a write fails while applying the draft
-    action: leave every authored project file at its pre-apply content and return a
-      stale or failed result
-    response: initialization and clarification never leave a partially applied design
-    text: If an onboarding artifact changed after the read-only preparation or a
-      write fails while applying the draft, the system shall leave every
-      authored project file at its pre-apply content and return a stale or
-      failed result, so initialization and clarification never leave a partially
-      applied design.
-    test_refs: [ tests/serve/init-tools.test.ts ]
+    statement: If an onboarding artifact changes after read-only preparation or a
+      write fails during draft application, then the initialization service
+      shall restore every authored project file to its pre-apply content and
+      return a stale or failed result so initialization and clarification never
+      leave a partially applied design.
+    kind: behavior
   - id: AC-015
-    ears: event
-    condition: when onboarding completes
-    action: report that ordinary natural-language development may continue
-    response: the host receives a truthful completion handoff
-    text: When onboarding completes, the system shall report that ordinary natural-language development may continue.
-    test_refs:
-      - "tests/serve/init-tools.test.ts#[covers:F-0f4dd6/AC-015][covers:F-0f4dd6/AC-001] MCP completion hands ordinary natural-language development back to the host"
-    notes: |
+    statement: When onboarding completes, the system shall report that ordinary
+      natural-language development may continue.
+    notes: >
       ## Historical atomicity note — 2026-08-31
-      Reason: the former criterion combined continuation guidance, enforcement policy, and design-impact completion governance.
-      Previous compound criterion text (non-normative): When onboarding completes, the system shall report that ordinary natural-language development may continue, distinguish on-demand checks from opt-in hook or CI enforcement, and require each material feature to resolve its design impact before done, so the handoff is truthful and Tier-B design grows selectively with the project.
+
+      Reason: the former criterion combined continuation guidance, enforcement
+      policy, and design-impact completion governance.
+
+      Previous compound criterion text (non-normative): When onboarding
+      completes, the system shall report that ordinary natural-language
+      development may continue, distinguish on-demand checks from opt-in hook or
+      CI enforcement, and require each material feature to resolve its design
+      impact before done, so the handoff is truthful and Tier-B design grows
+      selectively with the project.
   - id: AC-36fea3e9
-    ears: event
-    condition: when onboarding completes
-    action: distinguish on-demand checks from explicitly opt-in hook or CI enforcement
-    response: the completion handoff does not claim hooks or CI are enabled automatically
-    text: When onboarding completes, the system shall distinguish on-demand checks from explicitly opt-in hook or CI enforcement.
-    test_refs:
-      - "tests/cli/clarify.test.ts#[covers:F-0f4dd6/AC-36fea3e9][covers:F-195cb59e/AC-3b2026e1] LLM completion distinguishes on-demand checks from opt-in enforcement"
+    statement: When onboarding completes, the system shall distinguish on-demand
+      checks from explicitly opt-in hook or CI enforcement.
   - id: AC-514670ea
-    ears: event
-    condition: when a material feature's structural design impact is review_required
-    action: refuse its completion until the impact is resolved
-    response: resolved structural impact permits the normal completion gate flow
-    text: When a material feature's structural design impact is review_required, the system shall refuse its completion until the impact is resolved.
-    test_refs:
-      - "tests/cli/done.test.ts#[covers:F-0f4dd6/AC-514670ea] review_required structural impact refuses completion while resolved impact permits the normal gate"
+    statement: When a material feature's structural design impact is
+      review_required, the system shall refuse its completion until the impact
+      is resolved.
   - id: AC-016
-    ears: event
-    condition: when a host restarts its MCP server between the read-only preview and
-      the user's separate approval reply
-    action: validate a restart-safe approval envelope against the current workspace
-      snapshot
-    response: headless and process-per-turn hosts can apply the approved preview
-      while stale or replayed envelopes remain non-destructive
-    text: When a host restarts its MCP server between the read-only preview and the
-      user's separate approval reply, the system shall validate a restart-safe
-      approval envelope against the current workspace snapshot, so headless and
-      process-per-turn hosts can apply the approved preview while stale or
-      replayed envelopes remain non-destructive.
-    test_refs: [ tests/serve/init-tools.test.ts ]
+    statement: When a host restarts its MCP server between the read-only preview and
+      the user's separate approval reply, the system shall validate a
+      restart-safe approval envelope against the current workspace snapshot, so
+      headless and process-per-turn hosts can apply the approved preview while
+      stale or replayed envelopes remain non-destructive.
   - id: AC-017
-    ears: state
-    condition: while an activated project has no spec.yaml and the user has not
-      explicitly named Cladding
-    action: expose only the narrowly described init bootstrap and reject non-init
-      mutations before writing
-    response: ordinary development remains ordinary even after setup but before
-      explicit initialization
-    text: While an activated project has no spec.yaml and the user has not
+    statement: While an activated project has no spec.yaml and the user has not
       explicitly named Cladding, the system shall expose only the narrowly
       described init bootstrap and reject non-init mutations before writing, so
       ordinary development remains ordinary even after setup but before explicit
       initialization.
-    test_refs:
-      [
-        tests/init/skill-activation.test.ts,
-        tests/cli/setup.test.ts,
-        tests/serve/server.test.ts,
-        tests/serve/init-tools.test.ts
-      ]
-    notes: "WHY: hiding post-init MCP tools removes their descriptions from pre-init model context; rejecting only at execution time did not satisfy the narrow-bootstrap context boundary."
+    notes: "WHY: hiding post-init MCP tools removes their descriptions from pre-init
+      model context; rejecting only at execution time did not satisfy the
+      narrow-bootstrap context boundary."
   - id: AC-018
-    ears: event
-    condition: when project-scoped setup finds a legacy global Cladding integration
-    action: remove only entries whose ownership is proven by a known Cladding
-      package root or managed launch signature and preserve every ambiguous file
-    response: upgrading stops unrelated-project influence without deleting user
-      configuration
-    text: When project-scoped setup finds a legacy global Cladding integration, the
-      system shall remove only entries whose ownership is proven by a known
+    statement: When project-scoped setup finds a legacy global Cladding integration,
+      the system shall remove only entries whose ownership is proven by a known
       Cladding package root or managed launch signature and preserve every
       ambiguous file, so upgrading stops unrelated-project influence without
       deleting user configuration.
-    test_refs: [ tests/cli/setup.test.ts ]
   - id: AC-019
-    ears: ubiquitous
-    action: use AGENTS.md as the onboarding-generated cross-host instruction
-      surface while preserving the established update behavior for CLAUDE.md
-    response: init avoids a new host-specific copy and existing update users retain
-      their managed Claude guidance
-    text: The system shall generate AGENTS.md during onboarding without creating or
-      changing CLAUDE.md, while clad update shall retain its established managed
-      CLAUDE.md refresh, so init has one shared guidance source without breaking
-      existing update workflows.
-    test_refs: [ tests/cli/update.test.ts, tests/cli/init-onboarding-english-source.test.ts ]
+    statement: The system shall generate AGENTS.md during onboarding without
+      creating or changing CLAUDE.md and retain the established managed
+      CLAUDE.md refresh for clad update so init has one shared guidance source
+      without breaking existing update workflows.
+    kind: behavior
   - id: AC-020
-    ears: event
-    condition: when a process-per-turn host stages a validated onboarding draft
-      before showing the approval challenge
-    action: retain that exact draft only as ignored project runtime state and apply
-      it after the complete approval phrase without asking the model to
-      reconstruct intent
-    response: MCP process restarts cannot replace a planning document or observed
-      project intent with an approval code
-    text: When a process-per-turn host stages a validated onboarding draft before
-      showing the approval challenge, the system shall retain that exact draft
-      only as ignored project runtime state and apply it after the complete
-      approval phrase without asking the model to reconstruct intent, so MCP
-      process restarts cannot replace a planning document or observed project
-      intent with an approval code.
-    test_refs: [ tests/serve/init-tools.test.ts ]
-    notes: |
+    statement: When a process-per-turn host stages a validated onboarding draft
+      before showing the approval challenge, the system shall retain that exact
+      draft only as ignored project runtime state and apply it after the
+      complete approval phrase without asking the model to reconstruct intent,
+      so MCP process restarts cannot replace a planning document or observed
+      project intent with an approval code.
+    notes: >
       ## Decision
-      Add a read-only staging tool between host-model drafting and the destructive apply tool.
+
+      Add a read-only staging tool between host-model drafting and the
+      destructive apply tool.
+
       ## Why
-      Real Codex headless sessions reload MCP per turn and may isolate temporary directories; without a durable staged draft, a new model turn can reconstruct the wrong intent from the approval code.
+
+      Real Codex headless sessions reload MCP per turn and may isolate temporary
+      directories; without a durable staged draft, a new model turn can
+      reconstruct the wrong intent from the approval code.
+
       ## Trade-off
-      Staging writes an opaque short-lived cache under the already ignored `.cladding/host/` runtime boundary, while authored spec and documentation remain untouched until exact approval.
+
+      Staging writes an opaque short-lived cache under the already ignored
+      `.cladding/host/` runtime boundary, while authored spec and documentation
+      remain untouched until exact approval.
   - id: AC-021
-    ears: event
-    condition: when an activated project's ignored runtime launcher receives shell
-      command arguments after initialization
-    action: forward those arguments to the exact engine used for MCP while retaining
-      no-argument MCP startup
-    response: post-init shell validation cannot silently use a different global
-      build from the connected MCP server
-    text: When the project runtime launcher receives shell command arguments, the
-      system shall forward them to the same engine used for MCP while preserving
-      no-argument MCP startup, so post-init validation cannot silently use
-      another build.
-    test_refs: [ tests/cli/setup.test.ts ]
-    notes: |
+    statement: When the project runtime launcher receives shell command arguments,
+      the system shall forward them to the same engine used for MCP while
+      preserving no-argument MCP startup, so post-init validation cannot
+      silently use another build.
+    notes: >
       ## Decision
-      Make the existing ignored Node launcher dual-purpose instead of adding a second machine-specific command surface.
+
+      Make the existing ignored Node launcher dual-purpose instead of adding a
+      second machine-specific command surface.
+
       ## Why
-      The live Codex campaign connected MCP to the branch build but resolved shell `clad` to an older global build carrying the same version string, so schema validation disagreed without an obvious version warning.
+
+      The live Codex campaign connected MCP to the branch build but resolved
+      shell `clad` to an older global build carrying the same version string, so
+      schema validation disagreed without an obvious version warning.
+
       ## Trade-off
-      The launcher's historical `serve.cjs` name remains slightly narrower than its role, but existing host configurations stay compatible and every argument is forwarded without shell interpolation.
+
+      The launcher's historical `serve.cjs` name remains slightly narrower than
+      its role, but existing host configurations stay compatible and every
+      argument is forwarded without shell interpolation.
   - id: AC-022
-    ears: state
-    condition: while the generated AGENTS.md guides ordinary development after
-      initialization
-    action: prefer the project runtime for Cladding shell commands and require the
-      declared test command to collect relevant tests without shell-expanded
-      glob dependencies
-    response: agents use one engine and cannot treat a vacuous or host-specific test
-      invocation as completion evidence
-    text: While generated project guidance directs ordinary development, the system
-      shall prefer the project Cladding runtime and require non-vacuous,
+    statement: While generated project guidance directs ordinary development, the
+      system shall prefer the project Cladding runtime and require non-vacuous,
       shell-portable test execution, so engine skew and host-specific test globs
       cannot masquerade as completion.
-    test_refs: [ tests/init/agents-md.test.ts ]
   - id: AC-023
-    ears: state
-    condition: while a project marked as onboarding-seeded is below the shared
-      eight-feature design-maturity threshold and retains unbound onboarding
-      capabilities or scenarios
-    action: report those future design links as information while continuing to
-      block dangling references and under-bound flows
-    response: the first ordinary feature can earn a strict done result without
-      deleting valid future intent
-    text: While a project explicitly marked as onboarding-seeded is below the
+    statement: While a project explicitly marked as onboarding-seeded is below the
       design-maturity threshold, the system shall treat unbound onboarding
       capabilities and scenarios as informational future intent while retaining
-      blocking checks for invalid links, so an early feature can complete without
-      changing the warning behavior of legacy or hand-authored projects.
-    test_refs:
-      [
-        tests/stages/capabilities-feature-mapping.test.ts,
-        tests/stages/scenario-coverage.test.ts
-      ]
-    notes: |
+      blocking checks for invalid links, so an early feature can complete
+      without changing the warning behavior of legacy or hand-authored projects.
+    notes: >
       ## Decision
-      Persist an onboarding-seeded marker and graduate only those generated empty-link findings from information to warning at the existing eight-feature maturity boundary.
+
+      Persist an onboarding-seeded marker and graduate only those generated
+      empty-link findings from information to warning at the existing
+      eight-feature maturity boundary.
+
       ## Why
-      Onboarding intentionally authors three to eight future capabilities and one to three future journeys with empty feature links, while strict mode promotes every warning to an error. Treating those intentional seeds as warnings made the first `clad done` impossible.
+
+      Onboarding intentionally authors three to eight future capabilities and
+      one to three future journeys with empty feature links, while strict mode
+      promotes every warning to an error. Treating those intentional seeds as
+      warnings made the first `clad done` impossible.
+
       ## Trade-off
-      Onboarding-seeded small projects may retain visibly informational future design; once the project reaches eight features, unresolved empty links become strict-gate blockers again. Projects without the marker keep the established warning at every size.
+
+      Onboarding-seeded small projects may retain visibly informational future
+      design; once the project reaches eight features, unresolved empty links
+      become strict-gate blockers again. Projects without the marker keep the
+      established warning at every size.
   - id: AC-027
-    ears: state
-    condition: while a project marked as onboarding-seeded is below the shared
-      eight-feature design-maturity threshold and its first completed domain or
-      library slice has no runnable entry point yet
-    action: report the missing deliverable decision as information and retain the
-      warning after the maturity boundary
-    response: the first feature can complete without inventing an unsafe smoke
-      target while grown products must resolve the entry-point obligation
-    text: While a project explicitly marked as onboarding-seeded is below the
+    statement: While a project explicitly marked as onboarding-seeded is below the
       design-maturity threshold and has no runnable entry point yet, the system
-      shall treat the missing deliverable decision as information and restore the
-      warning after the threshold, so the first feature can complete without
+      shall treat the missing deliverable decision as information and restore
+      the warning after the threshold, so the first feature can complete without
       changing the warning behavior of legacy or hand-authored projects.
-    test_refs: [ tests/stages/detectors/deliverable-integrity.test.ts ]

@@ -1,6 +1,6 @@
 id: F-c48eb2
-slug: scan-source-roots
-title: clad init --scan robustness — multi-root inference + forbidden_imports candidates (v0.3.25)
+title: clad init --scan robustness — multi-root inference + forbidden_imports
+  candidates (v0.3.25)
 status: done
 modules:
   - src/cli/scan/roots.ts
@@ -10,41 +10,35 @@ modules:
   - src/cli/clad.ts
 depends_on:
   - F-9b643e
+capability_refs: []
 acceptance_criteria:
   - id: AC-001
-    ears: ubiquitous
-    action: infer source roots from manifest hints and directory heuristics
-    response: 'src/cli/scan-roots.ts inferSourceRoots reads package.json workspaces (array or {packages}), pyproject.toml packages list, Cargo.toml [workspace] members (or single-crate src/), and go.mod (surfacing cmd/, internal/, pkg/ when present); falls back to directory heuristics (src/, lib/, app/, pkg/, cmd/, internal/, packages/*/src/, apps/*/src/, crates/*/src/) when no manifest declares a layout; an explicit --roots CLI override skips both phases and resolves the provided paths verbatim'
-    text: The system shall infer source roots from manifest hints and directory heuristics so external adopters in TypeScript monorepos, Python projects, Go layouts, and Rust workspaces all see a meaningful scan result instead of the v0.3.24 src/-only behaviour.
-    test_refs: [tests/cli/scan-roots.test.ts]
+    statement: The system shall infer source roots from manifest hints and directory
+      heuristics so external adopters in TypeScript monorepos, Python projects,
+      Go layouts, and Rust workspaces all see a meaningful scan result instead
+      of the v0.3.24 src/-only behaviour.
   - id: AC-002
-    ears: ubiquitous
-    action: prefix monorepo layers with their workspace name
-    response: 'src/cli/scan.ts layerOf takes the inferred SourceRoot[] and, when a file lives inside a root with a workspaceName (set by manifest workspaces or the packages/*/src heuristic), returns `<workspaceName>:<layer>`; flat layouts (single src/, single Python package) get the plain layer name; files outside every root fall back to their top-level directory name'
-    text: The system shall prefix monorepo layers with their workspace name so two workspaces sharing an internal layer (e.g. a/core and b/core) keep distinct identities in the architecture view.
-    test_refs: [tests/cli/scan.test.ts]
+    statement: The system shall prefix monorepo layers with their workspace name so
+      two workspaces sharing an internal layer (e.g. a/core and b/core) keep
+      distinct identities in the architecture view.
   - id: AC-003
-    ears: ubiquitous
-    action: emit forbidden_import candidates for layer pairs the import graph never exercised
-    response: 'src/cli/scan.ts extractArchitecture builds an observed-edge set, walks every layer x layer pair, and records the unobserved ones (excluding self-pairs) under forbiddenImportCandidates[<fromLayer>]; src/cli/scan-llm.ts renderArchitectureYaml writes them into spec/architecture.yaml forbidden_imports lists with a comment noting they are candidates that a reviewer must prune before committing'
-    text: The system shall emit forbidden_import candidates for layer pairs the import graph never exercised so spec/architecture.yaml no longer ships an empty forbidden_imports array — the maintainer prunes the list instead of authoring it from scratch.
-    test_refs: [tests/cli/scan.test.ts]
+    statement: The system shall emit forbidden_import candidates for layer pairs the
+      import graph never exercised so spec/architecture.yaml no longer ships an
+      empty forbidden_imports array — the maintainer prunes the list instead of
+      authoring it from scratch.
   - id: AC-004
-    ears: event
-    condition: when a flat source tree is scanned with inferred or explicit source roots
-    action: resolve bare layer names with matching root-qualified layer records
-    response: inferred and explicit root selection return bare names for src/<layer> paths and preserve each record's root-qualified directory and observed module count
-    text: When a flat source tree is scanned with inferred or explicit source roots, the scanner shall resolve bare layer names and matching root-qualified directories and module counts.
-    test_refs:
-      - "tests/cli/scan.test.ts#[covers:F-c48eb2/AC-004] inferred and explicit roots preserve flat layer records"
+    statement: When a flat source tree is scanned with inferred or explicit source
+      roots, the scanner shall resolve bare layer names and matching
+      root-qualified directories and module counts.
     notes: |
       ## Historical note (2026-05-20, v0.3.25, source commit bd257a6)
       The retired self-scan smoke gate compared layer names and scenarios with
       v0.3.24 by byte identity. It is retained only as historical evidence;
       current verification uses an isolated semantic fixture.
   - id: AC-005
-    ears: ubiquitous
-    action: thread the --roots CLI option through to scanRoot via runInit
-    response: 'src/cli/clad.ts runInitCommand accepts roots?: string, splits on commas, trims, drops empties, and forwards the array to runInit; src/cli/init.ts threads opts.roots into scanRoot({cwd, roots}); when roots are empty the inference order falls back to manifest then heuristic'
-    text: The system shall thread the --roots CLI option through to scanRoot via runInit so a maintainer with an exotic layout can pin the scanner without editing manifests.
-    evidence_refs: [src/cli/clad.ts, src/cli/init.ts]
+    statement: The system shall thread the --roots CLI option through to scanRoot
+      via runInit so a maintainer with an exotic layout can pin the scanner
+      without editing manifests.
+    evidence_refs:
+      - src/cli/clad.ts
+      - src/cli/init.ts

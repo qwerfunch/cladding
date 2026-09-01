@@ -1,35 +1,31 @@
 id: F-2de65d
-slug: drive-auto-rollback
-title: Iron Law backbone Phase 3.2 — drive loop checkpoint + auto-rollback on RETRY_THRESHOLD (v0.3.21)
+title: Iron Law backbone Phase 3.2 — drive loop checkpoint + auto-rollback on
+  RETRY_THRESHOLD (v0.3.21)
 status: done
 modules:
   - src/drive/loop.ts
 depends_on:
   - F-c2c996
+capability_refs: []
 acceptance_criteria:
   - id: AC-001
-    ears: ubiquitous
-    action: pin a checkpoint before the first specialist dispatch for every ready feature
-    response: 'src/drive/loop.ts calls recordCheckpoint(cwd, ready.id) immediately after featuresTouched.push(ready.id) and before ctxFor(); the test asserts that two sequential features produce exactly two recordCheckpoint calls in featuresTouched order'
-    text: The system shall pin a checkpoint before the first specialist dispatch for every ready feature so a later RETRY_THRESHOLD halt has a known-good state to roll back to.
-    test_refs: [tests/drive/loop.test.ts]
+    statement: The system shall pin a checkpoint before the first specialist
+      dispatch for every ready feature so a later RETRY_THRESHOLD halt has a
+      known-good state to roll back to.
   - id: AC-002
-    ears: event
-    condition: when checkBudget returns a RETRY_THRESHOLD halt
-    action: locate the exhausted feature in the retries map and record a rollback to its latest checkpoint
-    response: 'src/drive/loop.ts inspects budgetHalt.class === RETRY_THRESHOLD; iterates the retries Map; for the first entry whose count >= budget.maxRetriesPerFeature, calls findLatestCheckpoint(cwd, featureId) and, when non-null, calls recordRollback with the reason `retry budget exhausted after N attempts`; the halt is then returned via finish() so the audit trail order is checkpoint → drift_detected* → feature_rolled_back → halt'
-    text: When checkBudget returns a RETRY_THRESHOLD halt, the system shall locate the exhausted feature in the retries map and record a rollback to its latest checkpoint so the Iron Law §2.5 "auto-rollback after self-healing budget exhausted" contract becomes operational on every clad drive invocation.
-    test_refs: [tests/drive/loop.test.ts]
+    statement: When checkBudget returns a RETRY_THRESHOLD halt, the system shall
+      locate the exhausted feature in the retries map and record a rollback to
+      its latest checkpoint so the Iron Law §2.5 "auto-rollback after
+      self-healing budget exhausted" contract becomes operational on every clad
+      drive invocation.
   - id: AC-003
-    ears: ubiquitous
-    action: skip the rollback record when no prior checkpoint exists for the exhausted feature
-    response: 'src/drive/loop.ts only calls recordRollback when findLatestCheckpoint returns a non-null tuple; otherwise the halt is returned without a rollback event; the test stubs findLatestCheckpoint to return null and asserts recordRollback is not invoked'
-    text: The system shall skip the rollback record when no prior checkpoint exists for the exhausted feature so the audit trail never references a checkpoint that was never pinned — a defensive guard for tests, fresh repos, or partial state.
-    test_refs: [tests/drive/loop.test.ts]
+    statement: The system shall skip the rollback record when no prior checkpoint
+      exists for the exhausted feature so the audit trail never references a
+      checkpoint that was never pinned — a defensive guard for tests, fresh
+      repos, or partial state.
   - id: AC-004
-    ears: unwanted
-    condition: if a halt class other than RETRY_THRESHOLD ends the loop
-    action: never invoke recordRollback on non-RETRY_THRESHOLD halts
-    response: 'src/drive/loop.ts gates the rollback branch on budgetHalt.class === RETRY_THRESHOLD; all other halt classes (MAX_ITERATIONS, WALL_CLOCK, BUDGET_EXCEEDED, transport-specific, ALL_FEATURES_DONE) finish without a rollback event; the test runs the happy path and asserts recordRollback is not called'
-    text: If a halt class other than RETRY_THRESHOLD ends the loop, the system shall never invoke recordRollback so the rollback event is reserved for the one transition that genuinely needs the Iron Law fallback.
-    test_refs: [tests/drive/loop.test.ts]
+    statement: If a halt class other than RETRY_THRESHOLD ends the loop, then the
+      drive loop shall not invoke recordRollback so the rollback event remains
+      reserved for the one transition that genuinely needs the Iron Law
+      fallback.
+    kind: behavior

@@ -4,26 +4,20 @@ status: done
 modules:
   - src/stages/drift.ts
   - src/stages/detectors/index.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-004
-    ears: ubiquitous
-    action: aggregate findings from every registered drift detector
-    response: returns a DriftReport that fails only on error-severity findings
-    text: The system shall aggregate findings from every registered drift detector
-      and fail the stage only when at least one finding has error severity.
-    evidence_refs: [self-dogfood:stage:drift]
+    statement: The system shall aggregate findings from every registered drift
+      detector and fail the stage only when at least one finding has error
+      severity.
+    evidence_refs:
+      - self-dogfood:stage:drift
   - id: AC-005
-    ears: optional
-    condition: where a detector is registered with a duplicate name
-    action: replace the prior entry idempotently
-    response: registration order of the first occurrence is preserved
-    text: Where a detector is registered with a duplicate name, the system shall
-      replace the prior entry while preserving the registration order of the
-      first occurrence.
-    test_refs: [tests/stages/drift.test.ts]
+    statement: Where a detector is registered with a duplicate name, the system
+      shall replace the prior entry while preserving the registration order of
+      the first occurrence.
   - id: AC-006
-    ears: ubiquitous
-    text: The system shall emit complete newline-terminated DriftReport JSON to
+    statement: The system shall emit complete newline-terminated DriftReport JSON to
       stdout when the serialized report exceeds 64 KiB and preserve the report
       exitCode as the process exit code.
-    test_refs: [tests/stages/drift-scale.test.ts#flushes complete strict JSON beyond 64 KiB before preserving the report exit code]

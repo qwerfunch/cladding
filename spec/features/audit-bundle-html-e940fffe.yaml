@@ -1,53 +1,45 @@
 id: F-e940fffe
-slug: audit-bundle-html
-title: "clad bundle: one self-contained HTML audit bundle a non-coder can open — matrix, catalog, changes, audit table, attestation"
+title: "clad bundle: one self-contained HTML audit bundle a non-coder can open —
+  matrix, catalog, changes, audit table, attestation"
 status: done
 modules:
   - src/report/bundle.ts
   - src/ui/panel.ts
   - src/cli/clad.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-9f191790
-    ears: event
-    condition: "when clad bundle --out <file.html> runs, optionally with --since <ref>"
-    text: "When clad bundle runs, the system shall write one self-contained HTML file — zero network requests, no script src, no CDN — containing the project header with inventory counts, the feature-by-stage matrix, the capability catalog, shipped changes for the range, the audit table with resolved refs, and the attestation summary."
-    notes: "WHY: every audit surface is CLI-locked today; the proven audience (non-coders, auditors) cannot run a CLI. The offline-single-file pattern is already proven by the graph viewer shell."
-    test_refs:
-      - "tests/report/bundle.test.ts#AC-9f191790 · renders all seven sections (provenance + six content) in order"
-      - "tests/report/bundle.test.ts#AC-9f191790 · zero network surface — no script/src/link/@import/url(, anchors only"
-      - "tests/report/bundle.test.ts#XSS pin · a <script> in a feature title / project name renders escaped on every surface"
+    statement: When clad bundle runs, the system shall write one self-contained HTML
+      file — zero network requests, no script src, no CDN — containing the
+      project header with inventory counts, the feature-by-stage matrix, the
+      capability catalog, shipped changes for the range, the audit table with
+      resolved refs, and the attestation summary.
+    notes: "WHY: every audit surface is CLI-locked today; the proven audience
+      (non-coders, auditors) cannot run a CLI. The offline-single-file pattern
+      is already proven by the graph viewer shell."
   - id: AC-f511c519
-    ears: ubiquitous
-    text: "The bundle shall display a provenance banner — git HEAD sha, generation date, cladding version — at the top, so a stale snapshot can never masquerade as live status."
-    notes: "WHY: a bundle is a snapshot by design; the banner is the staleness mitigation."
-    test_refs:
-      - "tests/report/bundle.test.ts#AC-f511c519 · provenance banner carries head sha, version, and date before the first content section"
-      - "tests/report/bundle.test.ts#AC-f511c519 · a null git head renders as \"not a git repository\", never blank"
+    statement: The bundle shall display a provenance banner — git HEAD sha,
+      generation date, cladding version — at the top, so a stale snapshot can
+      never masquerade as live status.
+    notes: "WHY: a bundle is a snapshot by design; the banner is the staleness
+      mitigation."
   - id: AC-15bb0b99
-    ears: unwanted
-    condition: "if no git tag exists and --since is omitted"
-    text: "If no anchor ref resolves, then the changelog and audit sections shall render an explicit omitted-no-anchor-ref notice while the rest of the bundle still renders — partial degrade, never all-or-nothing."
-    notes: "WHY: absence renders as absence; the rest of the audit surface stays useful."
-    test_refs:
-      - "tests/report/bundle.test.ts#AC-15bb0b99 · omitted anchor degrades ONLY changes+audit to notices; the rest renders fully"
-      - "tests/report/bundle.test.ts#AC-15bb0b99 · present changes render the changelog + audit markdown with no notice"
-      - "tests/report/bundle.test.ts#AC-15bb0b99 · a project with NO git repo still writes a bundle: exit 0, two omitted notices, matrix intact"
+    statement: If no anchor ref resolves, then the changelog and audit sections
+      shall render an explicit omitted-no-anchor-ref notice while the rest of
+      the bundle still renders — partial degrade, never all-or-nothing.
+    notes: "WHY: absence renders as absence; the rest of the audit surface stays
+      useful."
   - id: AC-e5f48ce5
-    ears: event
-    condition: "when clad status --json runs"
-    text: "When status is requested as JSON, the system shall expose the same row model the ANSI panel renders, produced by an exported row-model function split out of renderPanel, with the ANSI output kept byte-identical."
-    notes: "WHY: one SSoT for terminal, JSON, and bundle — closes the status --json gap without forking the matrix logic."
-    test_refs:
-      - "tests/report/bundle.test.ts#AC-e5f48ce5 · status --json emits exactly the buildPanelModel row model"
-      - "tests/ui/panel.test.ts#one row per feature with {featureId, title, status, cells} aligned to columns"
-      - "tests/ui/panel.test.ts#GOLDEN · default (Soft Shell) ANSI view is byte-identical to the pinned snapshot"
-      - "tests/ui/panel.test.ts#GOLDEN · internal (Iron Core) ANSI view is byte-identical to the pinned snapshot"
+    statement: When status is requested as JSON, the system shall expose the same
+      row model the ANSI panel renders, produced by an exported row-model
+      function split out of renderPanel, with the ANSI output kept
+      byte-identical.
+    notes: "WHY: one SSoT for terminal, JSON, and bundle — closes the status --json
+      gap without forking the matrix logic."
   - id: AC-0116e8d0
-    ears: ubiquitous
-    text: "The bundle body shall be deterministic for a fixed repository state modulo the generation date stamp, and shall stay under 5 MB on cladding itself."
-    notes: "WHY: deterministic artifacts are diffable evidence; size budget keeps it mailable/openable."
-    test_refs:
-      - "tests/report/bundle.test.ts#AC-0116e8d0 · two builds from identical inputs are byte-identical"
-      - "tests/report/bundle.test.ts#AC-0116e8d0 · the generation date is the ONLY divergence between two nows"
-      - "tests/report/bundle.test.ts#AC-0116e8d0 · the CLI gather path with an injected now is byte-identical across two runs"
-      - "tests/report/bundle.test.ts#AC-0116e8d0 · cladding-self bundle is <5MB, structurally sound, one matrix row per feature shard"
+    statement: The bundle body shall be deterministic for a fixed repository state
+      modulo its generation date stamp and remain under 5 MB on cladding itself.
+    kind: quality
+    notes: "WHY: deterministic artifacts are diffable evidence; size budget keeps it
+      mailable/openable."

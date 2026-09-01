@@ -5,49 +5,46 @@ modules:
   - src/stages/detectors/hardcoded-secret.ts
   - tests/stages/hardcoded-secret.test.ts
   - tests/stages/architecture-violation.test.ts
-depends_on: [F-057]
+depends_on:
+  - F-057
+capability_refs: []
 acceptance_criteria:
   - id: AC-137
-    ears: event
-    condition: when HARDCODED_SECRET invokes its declared scanner adapter
-    action: derive findings from the current adapter output and error partition
-    response: classify its exact selector-matched same-run observation as verified, failed, or unobserved
-    text: When HARDCODED_SECRET invokes its declared scanner adapter, the system shall derive findings from the current adapter output and error partition and classify its exact selector-matched same-run observation as verified, failed, or unobserved.
-    test_refs:
-      - "tests/stages/hardcoded-secret.test.ts#[covers:F-058/AC-137] scanner exit 0 produces no finding"
-      - "tests/stages/hardcoded-secret.test.ts#[covers:F-058/AC-137] scanner non-zero output produces an error finding"
-      - "tests/stages/hardcoded-secret.test.ts#[covers:F-058/AC-137] scanner ENOENT is observed as unavailable"
-    notes: |
+    statement: When HARDCODED_SECRET invokes its declared scanner adapter, the
+      system shall derive findings from the current adapter output and error
+      partition and classify its exact selector-matched same-run observation as
+      verified, failed, or unobserved.
+    notes: >
       ## Historical schema-0.1 note
+
       2026-05-19 · v0.2.9 · 1bcd501. HARDCODED_SECRET execa fixtures: no-gate,
-      exit, ENOENT, thrown, stream, and empty output; 100% detector line coverage;
+
+      exit, ENOENT, thrown, stream, and empty output; 100% detector line
+      coverage;
+
       non-current.
-      Released title: "Detector unit tests batch 4 (final 2 + every detector at 100% line coverage)".
+
+      Released title: "Detector unit tests batch 4 (final 2 + every detector at
+      100% line coverage)".
   - id: AC-138
-    ears: ubiquitous
-    action: cover ARCHITECTURE_VIOLATION with focused unit tests
-    response: tests/stages/architecture-violation.test.ts mirrors the HARDCODED_SECRET pattern (vi.mock('execa') + 7 branch tests); line coverage on the detector source reaches 100%
-    text: The system shall ship tests/stages/architecture-violation.test.ts bringing the ARCHITECTURE_VIOLATION detector to 100% line coverage by the same mocking pattern.
-    test_refs: [tests/stages/architecture-violation.test.ts]
+    statement: The system shall ship tests/stages/architecture-violation.test.ts
+      bringing the ARCHITECTURE_VIOLATION detector to 100% line coverage by the
+      same mocking pattern.
   - id: AC-139
-    ears: state
-    condition: while current detector proof is evaluated
-    action: derive it per criterion from live bindings and observations
-    response: does not treat the former detector-test-file milestone as current proof
-    text: While current detector proof is evaluated, it shall be derived per criterion from live bindings and observations; the former detector-test-file milestone is historical evidence only.
-    test_refs:
-      - "tests/proof/bindings.test.ts#[covers:F-058/AC-139] exact live bindings and observations determine criterion proof"
-    notes: |
+    statement: While current detector proof is evaluated, the assurance registry
+      shall derive it per criterion from live bindings and observations and
+      treat the former detector-test-file milestone as historical evidence only.
+    kind: quality
+    notes: >
       ## Historical schema-0.1 note
-      The 20-detector, dedicated-test, 100% milestone is historical, not current proof.
+
+      The 20-detector, dedicated-test, 100% milestone is historical, not current
+      proof.
   - id: AC-140
-    ears: state
-    condition: while current coverage assurance is evaluated
-    action: derive it from the coverage obligation
-    response: does not treat the v0.2.9 measurement as current proof
-    text: While current coverage assurance is evaluated, it shall be derived from the coverage obligation; the v0.2.9 measurement remains historical evidence only.
-    test_refs:
-      - "tests/assurance/registry.test.ts#[covers:F-055/AC-128][covers:F-056/AC-132][covers:F-057/AC-136][covers:F-058/AC-140][covers:F-059/AC-144][covers:F-060/AC-148][covers:F-061/AC-152][covers:F-062/AC-157][covers:F-063/AC-163][covers:F-064/AC-167] derives current coverage assurance only from the coverage obligation"
+    statement: While current coverage assurance is evaluated, the assurance registry
+      shall derive it from the coverage obligation and treat the v0.2.9
+      measurement as historical evidence only.
+    kind: quality
     notes: |
       ## Historical schema-0.1 note
       v0.2.9’s 58.66% to ≥62% measurement is historical, not current assurance.

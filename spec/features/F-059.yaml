@@ -9,55 +9,46 @@ modules:
   - tests/stages/commit.test.ts
   - tests/stages/audit.test.ts
   - tests/proof/stage-receipt-reduction.test.ts
-depends_on: [F-058]
+depends_on:
+  - F-058
+capability_refs: []
 acceptance_criteria:
   - id: AC-141
-    ears: ubiquitous
-    action: cover the two polyglot type-and-lint stage runners
-    response: tests/stages/type.test.ts and tests/stages/lint.test.ts each exercise unknown-language / explicit override / exit 0 / exit non-zero / stderr-present / stderr-absent / null exit branches with vi.mock('execa'); line coverage on both stage sources reaches at least 85%
-    text: The system shall ship dedicated unit-test files for src/stages/type.ts and src/stages/lint.ts, bringing each to at least 85% line coverage by mocking execaSync.
-    test_refs:
-      - tests/stages/type.test.ts
-      - tests/stages/lint.test.ts
+    statement: The system shall ship dedicated unit-test files for
+      src/stages/type.ts and src/stages/lint.ts, bringing each to at least 85%
+      line coverage by mocking execaSync.
   - id: AC-142
-    ears: event
-    condition: when the Commit obligation runs
-    action: derive repository and tool inputs from its descriptor and runner configuration
-    response: record the sealed-workspace observation as pass, fail, or unobserved
-    text: When the Commit obligation runs, the system shall derive repository and tool inputs from its descriptor and runner configuration and record the sealed-workspace observation as pass, fail, or unobserved.
-    test_refs:
-      - "tests/stages/commit.test.ts#[covers:F-059/AC-142] clean working tree is a pass observation"
-      - "tests/stages/commit.test.ts#[covers:F-059/AC-142] dirty working tree is a fail observation"
-      - "tests/stages/commit.test.ts#[covers:F-059/AC-142] git ENOENT is an unobserved observation"
-    notes: |
+    statement: When the Commit obligation runs, the system shall derive repository
+      and tool inputs from its descriptor and runner configuration and record
+      the sealed-workspace observation as pass, fail, or unobserved.
+    notes: >
       ## Historical schema-0.1 note
-      2026-05-19 · v0.2.10 · b6e4488. Commit execa fixtures: clean, dirty, non-git,
+
+      2026-05-19 · v0.2.10 · b6e4488. Commit execa fixtures: clean, dirty,
+      non-git,
+
       output, ENOENT, and thrown cases; at least 80% line coverage; non-current.
+
       Released title: "Stage
+
       runner tests batch 1 — 70% coverage floor cleared".
   - id: AC-143
-    ears: event
-    condition: when Audit applies to a criterion
-    action: reduce only a verified current human receipt whose exact criterion subject and reviewed-input, runtime-dependency, and implementation-author digests match the compiled closure
-    response: classify all-pass evidence as pass, an explicit negative as fail, and missing, untrusted, or stale evidence as unobserved
-    text: When Audit applies to a criterion, the system shall reduce only a verified current human receipt whose exact criterion subject and reviewed-input, runtime-dependency, and implementation-author digests match the compiled closure and classify all-pass evidence as pass, an explicit negative as fail, and missing, untrusted, or stale evidence as unobserved.
-    test_refs:
-      - "tests/proof/stage-receipt-reduction.test.ts#[covers:F-059/AC-143] mechanism proof: trusted current Audit receipt with sealed dependency and author digests reduces to pass"
-      - "tests/proof/stage-receipt-reduction.test.ts#[covers:F-059/AC-143] mechanism proof: missing, untrusted, or stale Audit receipt remains unobserved"
-      - "tests/proof/stage-receipt-reduction.test.ts#[covers:F-059/AC-143] mechanism proof: explicit negative Audit check reduces to fail"
+    statement: When Audit applies to a criterion, the system shall reduce only a
+      verified current human receipt whose exact criterion subject and
+      reviewed-input, runtime-dependency, and implementation-author digests
+      match the compiled closure and classify all-pass evidence as pass, an
+      explicit negative as fail, and missing, untrusted, or stale evidence as
+      unobserved.
     notes: |
       ## Historical schema-0.1 note
       2026-05-19 · v0.2.10 · b6e4488. Audit appendEvidence fixtures: empty and
       human evidence, tool-only guards, failures, and mixed paths; at least 80%
       line coverage; non-current.
   - id: AC-144
-    ears: state
-    condition: while current coverage assurance is evaluated
-    action: derive it from the coverage obligation
-    response: does not treat the v0.2.10 measurement as current proof
-    text: While current coverage assurance is evaluated, it shall be derived from the coverage obligation; the v0.2.10 measurement remains historical evidence only.
-    test_refs:
-      - "tests/assurance/registry.test.ts#[covers:F-055/AC-128][covers:F-056/AC-132][covers:F-057/AC-136][covers:F-058/AC-140][covers:F-059/AC-144][covers:F-060/AC-148][covers:F-061/AC-152][covers:F-062/AC-157][covers:F-063/AC-163][covers:F-064/AC-167] derives current coverage assurance only from the coverage obligation"
+    statement: While current coverage assurance is evaluated, the assurance registry
+      shall derive it from the coverage obligation and treat the v0.2.10
+      measurement as historical evidence only.
+    kind: quality
     notes: |
       ## Historical schema-0.1 note
       v0.2.10’s 63.49% to ≥70% measurement is historical, not current assurance.

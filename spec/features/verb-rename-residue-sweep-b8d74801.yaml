@@ -1,6 +1,6 @@
 id: F-b8d74801
-slug: verb-rename-residue-sweep
-title: "0.6.0 verb-rename residue sweep — banners, detector messages, docs name only current verbs"
+title: 0.6.0 verb-rename residue sweep — banners, detector messages, docs name
+  only current verbs
 status: done
 modules:
   - src/cli/init.ts
@@ -9,24 +9,32 @@ modules:
   - src/stages/detectors/project-context-drift.ts
   - src/stages/detectors/spec-conformance.ts
   - src/stages/detectors/fixture-reference.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-7026c2e7
-    ears: ubiquitous
-    text: "No source or test file under src/ and tests/ shall name the removed verbs (clad refine, clad drive, clad panel) — enforced by a tripwire test that scans both trees."
-    test_refs: [tests/cli/verb-residue.test.ts]
-    notes: "## Why\nThe 0.6.0 verb rename (refine→clarify, drive→run, panel→status) left provenance banners, detector remediation messages, and pinned test fixtures recommending commands that no longer exist — a first-run trust break for new users. The highest-severity slice (init.ts remediation messages) shipped pre-0.8.0 (F-fe0f7a96); this closes the remainder in one commit so the tripwire lands green."
+    statement: The system shall not allow source or test files under src/ and tests/
+      to name the removed clad refine, clad drive, or clad panel verbs, with a
+      tripwire test scanning both trees.
+    kind: constraint
+    rationale: Prevents retired commands from re-entering executable surfaces.
+    notes: >-
+      ## Why
+
+      The 0.6.0 verb rename (refine→clarify, drive→run, panel→status) left
+      provenance banners, detector remediation messages, and pinned test
+      fixtures recommending commands that no longer exist — a first-run trust
+      break for new users. The highest-severity slice (init.ts remediation
+      messages) shipped pre-0.8.0 (F-fe0f7a96); this closes the remainder in one
+      commit so the tripwire lands green.
   - id: AC-2f20bc65
-    ears: event
-    condition: "when cladding emits a provenance banner or a detector remediation message"
-    action: "name only current verbs (clad clarify, clad run, clad status)"
-    response: "users are never told to run a command that does not exist"
-    text: "When banners or detector messages are emitted, the system shall name only current verbs."
-    test_refs: [tests/cli/verb-residue.test.ts]
+    statement: When banners or detector messages are emitted, the system shall name
+      only current verbs.
   - id: AC-fd3a02a3
-    ears: ubiquitous
-    text: "Adopter files carrying pre-0.6.0 banners shall remain valid: banner recognition stays prefix-based and unchanged, pinned by a regression test."
-    test_refs: [tests/cli/verb-residue.test.ts]
+    statement: The system shall keep adopter files carrying pre-0.6.0 banners valid
+      with prefix-based unchanged banner recognition pinned by a regression
+      test.
+    kind: behavior
   - id: AC-a527f028
-    ears: ubiquitous
-    text: "The docs/ssot-model.md banner reference table shall match the emitted banner strings exactly."
-    test_refs: [tests/cli/verb-residue.test.ts]
+    statement: The docs/ssot-model.md banner reference table shall match the emitted
+      banner strings exactly.

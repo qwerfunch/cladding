@@ -10,53 +10,46 @@ modules:
   - tests/stages/evidence-mismatch.test.ts
   - tests/stages/stale-evidence.test.ts
   - tests/stages/reference-integrity.test.ts
-depends_on: [F-056]
+depends_on:
+  - F-056
+capability_refs: []
 acceptance_criteria:
   - id: AC-133
-    ears: ubiquitous
-    action: cover the two coverage / perf file readers
-    response: tests/stages/coverage-drop.test.ts and tests/stages/performance-drift.test.ts each exercise the artifact-present / absent / malformed / threshold paths; line coverage on both detector sources reaches 100%
-    text: The system shall ship dedicated unit-test files for COVERAGE_DROP and PERFORMANCE_DRIFT, bringing each to 100% line coverage.
-    test_refs:
-      - tests/stages/coverage-drop.test.ts
-      - tests/stages/performance-drift.test.ts
+    statement: The system shall ship dedicated unit-test files for COVERAGE_DROP and
+      PERFORMANCE_DRIFT, bringing each to 100% line coverage.
   - id: AC-134
-    ears: event
-    condition: when the audit-log detector adapters run
-    action: derive their declared audit-log and artifact inputs with their exact leading [covers:] selector closure
-    response: classify each same-run selector-matched case observation as verified, failed, or unobserved
-    text: When the audit-log detector adapters run, the system shall derive their declared audit-log and artifact inputs with their exact leading [covers:] selector closure and classify each same-run selector-matched case observation as verified, failed, or unobserved.
-    test_refs:
-      - "tests/stages/evidence-mismatch.test.ts#[covers:F-057/AC-134] evidence with a missing artifact reports an error"
-      - "tests/stages/stale-evidence.test.ts#[covers:F-057/AC-134] evidence older than 90 days reports a warning"
-    notes: |
+    statement: When the audit-log detector adapters run, the system shall derive
+      their declared audit-log and artifact inputs with their exact leading
+      [covers:] selector closure and classify each same-run selector-matched
+      case observation as verified, failed, or unobserved.
+    notes: >
       ## Historical schema-0.1 note
+
       2026-05-19 · v0.2.8 · 286567d. EVIDENCE_MISMATCH/STALE_EVIDENCE audit-log
+
       fixtures: empty, present, missing-artifact, and old-timestamp cases; 100%
-      line coverage for both sources; non-current. Released title: "Detector unit tests batch 3
+
+      line coverage for both sources; non-current. Released title: "Detector
+      unit tests batch 3
+
       (5 detectors, 100% line coverage each)".
   - id: AC-135
-    ears: event
-    condition: when REFERENCE_INTEGRITY evaluates the compiled reference graph
-    action: resolve declared dependency, supersession, and scenario edges against the current feature graph
-    response: classify each exact selector-matched current observation as verified, failed, or unobserved
-    text: When REFERENCE_INTEGRITY evaluates the compiled reference graph, the system shall resolve declared dependency, supersession, and scenario edges against the current feature graph and classify each exact selector-matched current observation as verified, failed, or unobserved.
-    test_refs:
-      - "tests/stages/reference-integrity.test.ts#[covers:F-057/AC-135] unknown depends_on reference reports an error"
-      - "tests/stages/reference-integrity.test.ts#[covers:F-057/AC-135] unknown superseded_by reference reports an error"
-      - "tests/stages/reference-integrity.test.ts#[covers:F-057/AC-135] unknown scenario feature reference reports an error"
-    notes: |
+    statement: When REFERENCE_INTEGRITY evaluates the compiled reference graph, the
+      system shall resolve declared dependency, supersession, and scenario edges
+      against the current feature graph and classify each exact selector-matched
+      current observation as verified, failed, or unobserved.
+    notes: >
       ## Historical schema-0.1 note
-      2026-05-19 · v0.2.8 · 286567d. REFERENCE_INTEGRITY depends_on, superseded_by,
+
+      2026-05-19 · v0.2.8 · 286567d. REFERENCE_INTEGRITY depends_on,
+      superseded_by,
+
       and scenarios.features fixtures: 100% detector line coverage; non-current.
   - id: AC-136
-    ears: state
-    condition: while current coverage assurance is evaluated
-    action: derive it from the coverage obligation
-    response: does not treat the v0.2.8 measurement as current proof
-    text: While current coverage assurance is evaluated, it shall be derived from the coverage obligation; the v0.2.8 measurement remains historical evidence only.
-    test_refs:
-      - "tests/assurance/registry.test.ts#[covers:F-055/AC-128][covers:F-056/AC-132][covers:F-057/AC-136][covers:F-058/AC-140][covers:F-059/AC-144][covers:F-060/AC-148][covers:F-061/AC-152][covers:F-062/AC-157][covers:F-063/AC-163][covers:F-064/AC-167] derives current coverage assurance only from the coverage obligation"
+    statement: While current coverage assurance is evaluated, the assurance registry
+      shall derive it from the coverage obligation and treat the v0.2.8
+      measurement as historical evidence only.
+    kind: quality
     notes: |
       ## Historical schema-0.1 note
       v0.2.8’s 49% to ≥55% measurement is historical, not current assurance.

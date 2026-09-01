@@ -1,45 +1,59 @@
 id: F-35954d19
-slug: post-tool-mini-working-set
-title: "PostToolUse mini working-set card: budgeted push of breaks/tests/risk after an owned edit, with session push ledger"
+title: "PostToolUse mini working-set card: budgeted push of breaks/tests/risk
+  after an owned edit, with session push ledger"
 status: done
 modules:
   - src/optimizer/push-card.ts
   - src/cli/hook.ts
   - src/optimizer/working-set.ts
   - src/events/session-report.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-816f10c3
-    ears: event
-    condition: "when runPostToolUseDrift resolves an edited file to an owning feature whose working set reports impacted dependents, regression tests, or high-risk acceptance criteria"
-    text: "When the working set for an owned edit reports impacted dependents, regression tests, or high-risk ACs, the hook shall render a Tier-2 card via formatWorkingSetCard in src/optimizer/push-card.ts, bounded to 5 lines and 600 characters, naming up to 3 impacted feature ids, up to 3 regression test paths, and the high-risk AC count."
-    notes: "WHY: push is the only A/B-positive delivery channel; the moment after an edit is when the regression list is actionable."
-    test_refs: [tests/optimizer/push-card.test.ts, tests/cli/hook-push-card.test.ts]
+    statement: When the working set for an owned edit reports impacted dependents or
+      regression tests or high-risk ACs, the hook shall render a Tier-2 card
+      through formatWorkingSetCard in src/optimizer/push-card.ts, bounded to 5
+      lines and 600 characters, naming up to 3 impacted feature ids, up to 3
+      regression test paths, and the high-risk AC count.
+    kind: behavior
+    notes: "WHY: push is the only A/B-positive delivery channel; the moment after an
+      edit is when the regression list is actionable."
   - id: AC-1bfccb6b
-    ears: ubiquitous
-    text: "The system shall build hook-lane working sets with buildWorkingSet(spec, rel, {includeCode: false, maxTokens: 350}) via a new additive WorkingSetOptions.includeCode flag (default true), and shall never include a code excerpt body in hook stdout."
-    notes: "WHY: the agent just edited the file — its content is already in context; pushing it back is pure token waste."
-    test_refs: [tests/optimizer/push-card.test.ts, tests/cli/hook-push-card.test.ts]
+    statement: "The hook lane shall build working sets with buildWorkingSet(spec,
+      rel, {includeCode: false, maxTokens: 350}) through the additive
+      WorkingSetOptions.includeCode flag whose default is true and never include
+      a code excerpt body in hook stdout."
+    kind: behavior
+    notes: "WHY: the agent just edited the file — its content is already in context;
+      pushing it back is pure token waste."
   - id: AC-f912fd40
-    ears: event
-    condition: "when the owning feature resolves but the working set reports zero impacted dependents, zero regression tests, and zero high-risk ACs"
-    text: "When the working set is empty of consequences, the hook shall emit today's Tier-1 one-liner byte-identically, including the deps-unledgered disclosure."
+    statement: When the working set is empty of consequences, the hook shall emit
+      today's Tier-1 one-liner byte-identically, including the deps-unledgered
+      disclosure.
     notes: "WHY: no consequences = no extra lines; noise is the #1 push failure mode."
-    test_refs: [tests/optimizer/push-card.test.ts, tests/cli/hook-push-card.test.ts]
   - id: AC-61ae9211
-    ears: unwanted
-    condition: "if the card fingerprint (post_tool_use|focusId|relPath) already exists in the session push ledger .cladding/hook-push-ledger.json"
-    text: "If the fingerprint repeats within a session window, then the hook shall degrade the card to the Tier-1 one-liner, and to silence from the third repeat onward, recording each suppression as impact_card_skipped with reason dedup."
-    notes: "WHY: agent loops re-edit the same file; one Tier-2 card per (focus,file) per session is the useful dose."
-    test_refs: [tests/cli/hook-push-card.test.ts]
+    statement: If the fingerprint repeats within a session window, then the hook
+      shall degrade the card to the Tier-1 one-liner, and to silence from the
+      third repeat onward, recording each suppression as impact_card_skipped
+      with reason dedup.
+    notes: "WHY: agent loops re-edit the same file; one Tier-2 card per (focus,file)
+      per session is the useful dose."
   - id: AC-f4715e87
-    ears: state
-    condition: "while the session push ledger's est_tokens_pushed exceeds 2500"
-    text: "While the session push budget is exhausted, the hook shall print no further Tier-2 cards, shall print a budget-exhausted notice exactly once per session, and shall record suppressions as impact_card_skipped with reason ledger_exhausted; the ImpactSkipReason union is extended with dedup and ledger_exhausted and the F-6ba22c5c AC-238a3658 enum text is updated to match."
-    notes: "WHY: a hard token ceiling is the anti-annoyance contract that keeps hooks enabled."
-    test_refs: [tests/cli/hook-push-card.test.ts]
+    statement: While the session push budget is exhausted, the hook shall print no
+      further Tier-2 cards, print one budget-exhausted notice exactly once per
+      session, record suppressions as impact_card_skipped with reason
+      ledger_exhausted, extend the ImpactSkipReason union with dedup and
+      ledger_exhausted, and update the F-6ba22c5c AC-238a3658 enum text to
+      match.
+    kind: behavior
+    notes: "WHY: a hard token ceiling is the anti-annoyance contract that keeps
+      hooks enabled."
   - id: AC-38141a9e
-    ears: unwanted
-    condition: "if buildWorkingSet throws or returns a lookup miss for the edited file"
-    text: "If the working set cannot be built, then the hook shall fall back byte-identically to the existing formatImpactCard path, and all six existing gating conditions (write tools, watched path, spec present, debounce, min edit chars, owner resolution) shall remain unchanged."
-    notes: "WHY: the upgrade must be strictly additive — no regression of the shipped card."
-    test_refs: [tests/cli/hook-push-fallback.test.ts]
+    statement: If the working set cannot be built, then the hook shall fall back
+      byte-identically to the existing formatImpactCard path while retaining the
+      six existing gating conditions for write tools, watched path, spec
+      presence, debounce, minimum edit characters, and owner resolution.
+    kind: quality
+    notes: "WHY: the upgrade must be strictly additive — no regression of the
+      shipped card."

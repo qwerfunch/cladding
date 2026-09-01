@@ -5,12 +5,11 @@ modules:
   - src/stages/unit.ts
 depends_on:
   - F-004
+capability_refs: []
 acceptance_criteria:
   - id: AC-033
-    ears: ubiquitous
-    action: delegate unit testing to the project's own toolchain
-    response: returns a stage_2.1 StageResult with exitCode mirroring the test runner
-    text: The system shall delegate unit testing to the project's own toolchain
+    statement: The system shall delegate unit testing to the project's own toolchain
       (vitest / pytest / cargo test / go test / …) and return a stage_2.1 result
       with the runner's exit code.
-    evidence_refs: [self-dogfood:stage:unit]
+    evidence_refs:
+      - self-dogfood:stage:unit

@@ -1,12 +1,13 @@
 id: F-8f419e
-slug: smoke-legacy-liveness
-title: "Legacy deliverable smoke reads liveness, not green"
+title: Legacy deliverable smoke reads liveness, not green
 status: done
 modules:
   - src/stages/deliverable-smoke.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-332ace
-    ears: event
-    condition: "when the legacy deliverable exits as expected"
-    text: "When the legacy project.deliverable runs clean (exit matches expect) with no AC-observable token, the smoke stage shall report disposition 'liveness' — non-green and non-blocking — instead of a green pass, so an exit-only deliverable is never claimed as functionally verified."
-    test_refs: ["tests/stages/deliverable-smoke.test.ts"]
+    statement: When the legacy project.deliverable runs clean (exit matches expect)
+      with no AC-observable token, the smoke stage shall report disposition
+      'liveness' — non-green and non-blocking — instead of a green pass, so an
+      exit-only deliverable is never claimed as functionally verified.

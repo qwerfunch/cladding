@@ -1,6 +1,5 @@
 id: F-c566f590
-slug: independence-label
-title: "clad done/verdict carry an evidence-based independence label"
+title: clad done/verdict carry an evidence-based independence label
 status: done
 modules:
   - src/hitl/independence.ts
@@ -9,33 +8,34 @@ modules:
   - src/verdict/verdict.ts
   - src/cli/clad.ts
   - src/spec/types.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-e216b03f
-    ears: ubiquitous
-    response: "computeIndependence(featureId, evidence) → {label: 'independent' | 'self-certified', basis}"
-    text: "computeIndependence shall label a feature 'independent' when at least one of its evidence entries is human-authored or blind-authored (blind: true), and 'self-certified' otherwise — including when the feature has no evidence at all."
-    test_refs: ["tests/hitl/independence.test.ts"]
+    statement: "The computeIndependence shall label a feature 'independent' when at
+      least one of its evidence entries is human-authored or blind-authored
+      (blind: true), and 'self-certified' otherwise — including when the feature
+      has no evidence at all."
+    kind: behavior
   - id: AC-d5210389
-    ears: event
-    condition: "when clad done runs"
-    action: "the DoneResult and the recorded done_attempted event shall carry the feature's computed independence label"
-    response: "DoneResult.independence + done_attempted payload.independence"
-    text: "When clad done runs, the DoneResult and the recorded done_attempted event shall carry the feature's computed independence label."
-    test_refs: ["tests/cli/done-independence.test.ts"]
+    statement: When clad done runs, the DoneResult and the recorded done_attempted
+      event shall carry the feature's computed independence label.
   - id: AC-6f228987
-    ears: ubiquitous
-    response: "clad verdict --json includes independence[] for done features; computeVerdict stays IO-free"
-    text: "clad verdict shall include per-done-feature independence labels in its --json output, computed in the CLI wrapper from the evidence ledger; the pure reducer computeVerdict shall remain IO-free."
-    test_refs: ["tests/cli/verdict-independence.test.ts"]
+    statement: The CLI wrapper shall include per-done-feature independence labels in
+      clad verdict --json output based on the evidence ledger while the pure
+      computeVerdict reducer remains IO-free.
+    kind: behavior
   - id: AC-ad5ea48b
-    ears: state
-    condition: "while project.independence_policy is 'require'"
-    action: "clad done shall refuse to keep a self-certified feature done, reverting the spec entry and asking for independent or human review"
-    response: "runDone refuses (ok: false, shard reverted) under independence_policy: require + self-certified"
-    text: "While project.independence_policy is 'require', clad done shall refuse to keep a self-certified feature done — reverting the spec entry and asking for independent or human review; under the default 'label' policy the transition completes and is only labeled."
-    test_refs: ["tests/cli/done-independence.test.ts"]
+    statement: While project.independence_policy is require, the clad done command
+      shall reject a self-certified done transition by reverting the
+      specification entry and requesting independent or human review, while the
+      default label policy completes and only labels the transition.
+    kind: behavior
 design_impact:
   classification: additive
-  rationale: "Adds an evidence-derived independence layer (label by default, opt-in require policy) to the done/verdict surfaces. Default-policy behavior of existing projects is unchanged — the label is additive audit data; refusal only activates when a project opts in via project.independence_policy."
+  rationale: Adds an evidence-derived independence layer (label by default, opt-in
+    require policy) to the done/verdict surfaces. Default-policy behavior of
+    existing projects is unchanged — the label is additive audit data; refusal
+    only activates when a project opts in via project.independence_policy.
   status: resolved
   artifacts: []

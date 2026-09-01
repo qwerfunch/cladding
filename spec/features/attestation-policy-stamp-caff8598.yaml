@@ -1,50 +1,40 @@
 id: F-caff8598
-slug: attestation-policy-stamp
-title: "Verification policy identity and generated merge attributes"
+title: Verification policy identity and generated merge attributes
 status: done
 modules:
   - src/spec/attestation.ts
   - src/cli/clad.ts
   - src/cli/init.ts
   - docs/spec-ids-multi-dev.md
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-a4d41de9
-    ears: event
-    condition: "when a GREEN strict pre-push or all gate writes spec/attestation.yaml"
-    action: "prepend a deterministic policy section carrying the running Cladding version, blocking=strict, and a full SHA-256 over the ordered detector catalog identity"
-    response: "the committed verification record says which engine and detector policy earned the stamp instead of recording module freshness without its verifier"
-    text: "When a strict GREEN gate attests the tree, the system shall stamp the running Cladding version, strict blocking mode, and deterministic detector-catalog SHA-256 alongside the module and feature evidence."
-    test_refs: ["tests/spec/attestation-policy.test.ts#writes and reads the policy stamp deterministically", "tests/cli/gate-golden-matrix.test.ts#a plain GREEN strict pre-push run stamps policy identity; non-strict does not"]
+    statement: When a strict GREEN gate attests the tree, the system shall stamp the
+      running Cladding version, strict blocking mode, and deterministic
+      detector-catalog SHA-256 alongside the module and feature evidence.
   - id: AC-734d8d3b
-    ears: state
-    condition: "while reading an attestation written before the policy section existed"
-    action: "return a null policy while preserving all v1 and v2 feature freshness verdicts"
-    response: "upgrading adopters need no migration command and old verification evidence remains readable"
-    text: "While an attestation has no policy section, the reader shall preserve its existing v1/v2 semantics and expose policy as unknown rather than reject the file."
-    test_refs: ["tests/spec/attestation-policy.test.ts#reads legacy v1 and v2 attestations without policy as unknown"]
+    statement: While an attestation has no policy section, the reader shall preserve
+      its existing v1/v2 semantics and expose policy as unknown rather than
+      reject the file.
   - id: AC-1f6b157b
-    ears: event
-    condition: "when detector catalog identity is fingerprinted"
-    action: "hash each registered detector's order, stable name, and subprocess classification with SHA-256"
-    response: "unchanged catalogs reproduce byte-identically while a changed name, order, or execution class changes the policy identity"
-    text: "When the detector catalog is fingerprinted, the system shall produce a deterministic full SHA-256 that changes for detector order, name, or subprocess classification changes."
-    test_refs: ["tests/spec/attestation-policy.test.ts#detector catalog fingerprint is deterministic and configuration-sensitive"]
+    statement: When the detector catalog is fingerprinted, the system shall produce
+      a deterministic full SHA-256 that changes for detector order, name, or
+      subprocess classification changes.
   - id: AC-0ef508a1
-    ears: event
-    condition: "when clad init runs in a project with no correct index merge attribute"
-    action: "create or append spec/index.yaml merge=union in .gitattributes without replacing existing user content"
-    response: "the generated high-churn index receives the intended merge behavior in adopter repositories"
-    text: "When clad init finds no exact index merge attribute, the system shall append `spec/index.yaml merge=union` to `.gitattributes` while preserving existing content."
-    test_refs: ["tests/cli/init.test.ts#creates the index merge attribute while leaving attestation unassigned", "tests/cli/init.test.ts#preserves existing gitattributes and appends the managed index line"]
+    statement: When clad init finds no exact index merge attribute, the system shall
+      append `spec/index.yaml merge=union` to `.gitattributes` while preserving
+      existing content.
   - id: AC-ad6374ef
-    ears: unwanted
-    condition: "if the exact index merge attribute already exists"
-    action: "leave .gitattributes byte-identical and never add any merge attribute for spec/attestation.yaml"
-    response: "repeated initialization is idempotent and the attestation union-safety invariant survives"
-    text: "If `.gitattributes` already carries the exact index rule, the system shall not append it again and shall never assign a merge driver to the attestation."
-    test_refs: ["tests/cli/init.test.ts#does not duplicate an existing index merge attribute"]
+    statement: If .gitattributes already carries the exact index rule, then the
+      system shall neither append it nor assign a merge driver to the
+      attestation.
+    kind: constraint
+    rationale: Protects attestation serialization and idempotent attributes.
 design_impact:
   classification: none
-  rationale: "The change adds provenance fields to an existing derived attestation format and scaffolds the already-documented index merge attribute; it changes no architecture, capability, or journey."
+  rationale: The change adds provenance fields to an existing derived attestation
+    format and scaffolds the already-documented index merge attribute; it
+    changes no architecture, capability, or journey.
   status: resolved
   artifacts: []

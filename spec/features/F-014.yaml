@@ -6,25 +6,19 @@ modules:
 depends_on:
   - F-003
   - F-010
+capability_refs: []
 acceptance_criteria:
   - id: AC-022
-    ears: event
-    condition: when a feature with status 'done' has missing declared modules
-    action: emit an error finding listing the missing paths
-    response: stage_1.3 fails for the host pipeline
-    text: When a feature with status='done' has at least one declared module missing
-      on disk, the detector shall emit an error finding listing the missing
-      paths.
-    evidence_refs: [fixture:F-014_AC-022]
-
+    statement: When a feature with status='done' has at least one declared module
+      missing on disk, the detector shall emit an error finding listing the
+      missing paths.
+    evidence_refs:
+      - fixture:F-014_AC-022
   - id: AC-023
-    ears: event
-    condition: when an in-progress feature has every declared module absent
-    action: emit an info STATUS_DRIFT finding
-    response: describes the normal spec-first implementation window instead of the former warning
-    text: When an in-progress feature has every declared module absent, STATUS_DRIFT shall emit an info finding describing the normal spec-first implementation window rather than the former warning.
-    test_refs:
-      - "tests/stages/status-drift.test.ts#[covers:F-014/AC-023] in-progress feature with every declared module absent emits an info spec-first finding"
+    statement: When an in-progress feature has every declared module absent, the
+      STATUS_DRIFT detector shall emit an info finding describing the normal
+      spec-first implementation window rather than the former warning.
+    kind: behavior
     notes: |
       ## Historical schema-0.1 note
       The prior stale-start warning is historical; it is not current proof.

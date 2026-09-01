@@ -1,6 +1,5 @@
 id: F-94285dd8
-slug: spec-02-project-capability-architecture-contracts
-title: "Spec 0.2 project, capability, and architecture contracts"
+title: Spec 0.2 project, capability, and architecture contracts
 status: in_progress
 modules:
   - src/spec/compiler/schema-02-contract.ts
@@ -17,30 +16,54 @@ modules:
   - docs/glossary.md
   - spec/index.yaml
   - tests/spec/compiler/fixtures/self-corpus.snapshot.json
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-00d84b33
-    ears: ubiquitous
-    text: "The specification compiler shall retain explicit schema 0.2 project purpose, assurance level, scenario policy, and existing project policies without inventing defaults."
-    test_refs: ["tests/spec/compiler/schema-02-catalog-architecture.test.ts#preserves explicit project identity and shipped policies without hidden defaults"]
-    notes: "## Why\nD05 requires explicit policy selection while D14 keeps migration proposals separate from a schema switch; D15/D16 keep that evidence additive and honest."
+    statement: The specification compiler shall retain explicit schema 0.2 project
+      purpose, assurance level, scenario policy, and existing project policies
+      without inventing defaults.
+    notes: >-
+      ## Why
+
+      D05 requires explicit policy selection while D14 keeps migration proposals
+      separate from a schema switch; D15/D16 keep that evidence additive and
+      honest.
   - id: AC-10b158d6
-    ears: ubiquitous
-    text: "The specification compiler shall materialize only feature-owned capability contributions and shall block missing, unknown, or legacy second-owner links."
-    test_refs: ["tests/spec/compiler/schema-02-catalog-architecture.test.ts#accepts deliberate empty links, blocks missing and unknown links, and never unions legacy capability owners"]
-    notes: "## Why\nD07 assigns one forward-edge owner so D14 can prove the migration candidate without a runtime L-union; D15/D16 defer byte cutover to its later owner."
+    statement: The specification compiler shall materialize only feature-owned
+      capability contributions and block missing, unknown, or legacy
+      second-owner links.
+    kind: behavior
+    notes: >-
+      ## Why
+
+      D07 assigns one forward-edge owner so D14 can prove the migration
+      candidate without a runtime L-union; D15/D16 defer byte cutover to its
+      later owner.
   - id: AC-2ca57e75
-    ears: ubiquitous
-    text: "The specification compiler shall preserve directed architecture rules and require local rationale or resolving architecture references for each constraint criterion."
-    test_refs: ["tests/spec/compiler/schema-02-catalog-architecture.test.ts#materializes catalog and architecture nodes with authored edge direction and a deterministic typed contract", "tests/spec/compiler/schema-02-catalog-architecture.test.ts#rejects noncanonical architecture spellings, duplicate rules, and unresolved constraint references"]
-    notes: "## Why\nD08 makes importer-to-dependency direction and durable constraint rationale explicit; D14 must not turn legacy explanatory comments into architecture meaning."
+    statement: The specification compiler shall preserve directed architecture rules
+      and require local rationale or resolving architecture references for each
+      constraint criterion.
+    notes: >-
+      ## Why
+
+      D08 makes importer-to-dependency direction and durable constraint
+      rationale explicit; D14 must not turn legacy explanatory comments into
+      architecture meaning.
   - id: AC-3f2d0ad2
-    ears: event
-    condition: "when an operator requests a schema 0.2 migration preview"
-    text: "When an operator requests a schema 0.2 migration preview, the compiler shall return sorted capability L equals N evidence and unresolved architecture rationale without writing workspace bytes."
-    test_refs: ["tests/spec/compiler/schema-02-catalog-architecture.test.ts#U02 L = N", "tests/spec/compiler/schema-02-catalog-architecture.test.ts#copies lossless architecture structure but leaves each rule rationale and lossy layers for review", "tests/spec/compiler/schema-02-catalog-architecture.test.ts#is deterministic and recursively writes zero bytes while apply remains unavailable"]
-    notes: "## Why\nD14 requires a human-confirmed in-memory candidate, not an apply path; D05/D07/D08 feed that proof, while D15/D16 reserve transactional cutover for F4."
+    statement: When an operator requests a schema 0.2 migration preview, the
+      compiler shall return sorted capability L equals N evidence and unresolved
+      architecture rationale without writing workspace bytes.
+    notes: >-
+      ## Why
+
+      D14 requires a human-confirmed in-memory candidate, not an apply path;
+      D05/D07/D08 feed that proof, while D15/D16 reserve transactional cutover
+      for F4.
 design_impact:
   classification: additive
-  rationale: "F3 expands the additive Spec 0.2 compiler and read-only preview only. Schema 0.1 consumers, the existing F2 baseline, and the refused migration apply boundary remain unchanged."
+  rationale: F3 expands the additive Spec 0.2 compiler and read-only preview only.
+    Schema 0.1 consumers, the existing F2 baseline, and the refused migration
+    apply boundary remain unchanged.
   status: resolved
   artifacts: []

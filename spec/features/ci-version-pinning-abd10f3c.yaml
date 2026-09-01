@@ -1,42 +1,34 @@
 id: F-abd10f3c
-slug: ci-version-pinning
-title: "Pinned Cladding version in generated CI"
+title: Pinned Cladding version in generated CI
 status: done
 modules:
   - src/cli/ci-version.ts
   - src/cli/init.ts
   - src/cli/doctor.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-84011597
-    ears: event
-    condition: "when clad init --with-ci scaffolds a GitHub Actions workflow and the running Cladding version is available"
-    action: "derive the numeric major.minor selector from that runtime version and render npx --yes cladding@<major.minor> check --tier=pre-push --strict --json"
-    response: "generated CI stays within the installed release line instead of silently adopting a future breaking version"
-    text: "When clad init --with-ci scaffolds CI, the system shall pin Cladding to the running binary's numeric major.minor release line while preserving the strict pre-push gate."
-    test_refs: ["tests/init/git-hook.test.ts#CI stays authoritative when a generated hook documents its one-time local bypass"]
+    statement: When clad init --with-ci scaffolds CI, the system shall pin Cladding
+      to the running binary's numeric major.minor release line while preserving
+      the strict pre-push gate.
   - id: AC-8604b579
-    ears: unwanted
-    condition: "if the running Cladding version is absent or malformed"
-    action: "decline to create the workflow and return an informational skip reason"
-    response: "the generator never falls back to an unpinned package invocation"
-    text: "If the runtime version cannot produce a numeric major.minor selector, the system shall leave CI untouched and report that pinning was unavailable rather than generate an unpinned workflow."
-    test_refs: ["tests/init/git-hook.test.ts#does not scaffold an unpinned workflow when the runtime version is unavailable"]
+    statement: If the runtime version cannot produce a numeric major.minor selector,
+      then the system shall leave CI untouched and report that pinning was
+      unavailable rather than generate an unpinned workflow.
+    kind: behavior
   - id: AC-b0ade1e9
-    ears: state
-    condition: "while clad doctor inspects a project whose GitHub Actions YAML contains an unversioned or floating-tag npx cladding invocation"
-    action: "collect the affected workflow paths deterministically and expose them in both text and JSON output"
-    response: "operators can identify CI that may drift to an unintended Cladding release without turning doctor into a gate"
-    text: "While project CI invokes an unpinned or floating Cladding package, the system shall report the exact workflow paths through doctor text and JSON while continuing to exit successfully."
-    test_refs: ["tests/cli/ci-version.test.ts#finds unpinned and floating Cladding npx calls in yml and yaml workflows", "tests/cli/doctor.test.ts#reports unpinned CI in text and JSON without failing"]
+    statement: While project CI invokes an unpinned or floating Cladding package,
+      the system shall report the exact workflow paths through doctor text and
+      JSON while continuing to exit successfully.
   - id: AC-9501f50d
-    ears: unwanted
-    condition: "if a workflow uses a numeric major.minor or major.minor.patch Cladding selector, or does not invoke Cladding through npx"
-    action: "exclude it from the unpinned workflow list"
-    response: "doctor avoids warning on the generated safe form and unrelated workflow prose"
-    text: "If CI uses a numeric Cladding version selector or no npx Cladding invocation, the system shall not report a version-pinning warning."
-    test_refs: ["tests/cli/ci-version.test.ts#accepts numeric selectors and ignores comments or unrelated commands", "tests/cli/doctor.test.ts#keeps pinned CI quiet"]
+    statement: If CI uses a numeric Cladding version selector or no npx Cladding
+      invocation, then the system shall not report a version-pinning warning.
+    kind: behavior
 design_impact:
   classification: none
-  rationale: "This tightens the existing generated GitHub Actions command and adds read-only doctor diagnostics without changing architecture, capabilities, or user journeys."
+  rationale: This tightens the existing generated GitHub Actions command and adds
+    read-only doctor diagnostics without changing architecture, capabilities, or
+    user journeys.
   status: resolved
   artifacts: []

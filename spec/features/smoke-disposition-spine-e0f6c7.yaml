@@ -1,27 +1,27 @@
 id: F-e0f6c7
-slug: smoke-disposition-spine
-title: "Smoke disposition spine — honest 5-state gate reducer"
+title: Smoke disposition spine — honest 5-state gate reducer
 status: done
 modules:
   - src/stages/types.ts
   - src/stages/disposition.ts
   - src/cli/clad.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-b26813
-    ears: ubiquitous
-    text: "The gate reducer shall derive a stage's top-line status from the stage result's disposition when present, and fall back to the exit-code mapping (pass / exit-2 skip / fail) for stages that emit no disposition."
-    test_refs: ["tests/cli/smoke-reducer.test.ts"]
+    statement: The gate reducer shall derive a stage's top-line status from the
+      stage result's disposition when present, and fall back to the exit-code
+      mapping (pass / exit-2 skip / fail) for stages that emit no disposition.
   - id: AC-e1effa
-    ears: unwanted
-    condition: "if a stage result carries disposition pending_env or advisory"
-    text: "When a stage reports disposition 'pending_env' or 'advisory', the gate shall treat it as blocking (worst >= 1, anyFailed true) and contribute a non-zero exit regardless of --strict, never folding it into the non-blocking exit-2 skip lane."
-    test_refs: ["tests/cli/smoke-reducer.test.ts", "tests/cli/gate-golden-matrix.test.ts"]
+    statement: When a stage reports disposition 'pending_env' or 'advisory', the
+      gate shall treat it as blocking (worst >= 1, anyFailed true) and
+      contribute a non-zero exit regardless of --strict, never folding it into
+      the non-blocking exit-2 skip lane.
+    kind: behavior
   - id: AC-ccc5c2
-    ears: ubiquitous
-    text: "The gate shall render disposition 'na' and legacy 'liveness' as non-green and non-blocking — surfaced as their own status, never counted as a passing/green stage and never failing the gate on their own."
-    test_refs: ["tests/cli/smoke-reducer.test.ts"]
+    statement: The gate shall render disposition 'na' and legacy 'liveness' as
+      non-green and non-blocking — surfaced as their own status, never counted
+      as a passing/green stage and never failing the gate on their own.
   - id: AC-f7dd12
-    ears: state
-    condition: "while a blocking disposition is present"
-    text: "While any blocking disposition is present in a strict pre-push/all run, the gate shall not stamp spec/attestation.yaml."
-    test_refs: ["tests/cli/smoke-reducer.test.ts"]
+    statement: While any blocking disposition is present in a strict pre-push/all
+      run, the gate shall not stamp spec/attestation.yaml.

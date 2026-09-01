@@ -1,6 +1,6 @@
 id: F-c6a32fff
-slug: graph-honest-fallback
-title: "Fallback safety contract — a graph answer that cannot know says so and points back to baseline search"
+title: Fallback safety contract — a graph answer that cannot know says so and
+  points back to baseline search
 status: done
 modules:
   - src/optimizer/reverse-slice.ts
@@ -10,62 +10,76 @@ modules:
   - src/cli/hook.ts
   - src/serve/server.ts
   - src/optimizer/context-slice.ts
+depends_on: []
+capability_refs:
+  - knowledge-graph
 acceptance_criteria:
   - id: AC-30e00a5c
-    ears: state
-    condition: "while the spec declares zero depends_on edges (a blank dependency ledger — the state of every freshly adopted project)"
-    action: "attach a ledger block {depends_on_edges, test_ref_edges} to every impact slice and, when a count is zero, a fallback hint telling the agent the answer means unknown-not-safe and to fall back to normal code search / the full suite"
-    response: "an empty impacted list on a blank map is distinguishable from a verified leaf on a dense map — the graph never converts \"no data\" into \"nothing breaks\""
-    text: "While the dependency ledger is empty, the system shall mark impact answers with ledger counts and a fallback hint so blank-map emptiness is distinguishable from verified emptiness."
-    test_refs:
-      - "tests/optimizer/reverse-slice.test.ts#BLANK ledger: impacted:[] carries zero-counts + fallback hints — unknown, not safe (F-c6a32fff)"
-      - "tests/optimizer/reverse-slice.test.ts#DENSE ledger: a verified leaf shows real edge counts and NO hints — distinguishable from blank"
-    notes: "## Why\nMeasured (vapt clone, 196 features/0 edges): a feature with 10 real dependents answered impacted:[] coverage:1.0 — byte-identical to a verified leaf. 44% of cladding-self features hit the totalKnown=0 path, so this is a mainstream path, not an edge case. Ledger is the SOLE blank-vs-leaf disambiguator (3-case simulation, wf_04e7f5b8)."
+    statement: While the dependency ledger is empty, the system shall mark impact
+      answers with ledger counts and a fallback hint so blank-map emptiness is
+      distinguishable from verified emptiness.
+    notes: >-
+      ## Why
+
+      Measured (vapt clone, 196 features/0 edges): a feature with 10 real
+      dependents answered impacted:[] coverage:1.0 — byte-identical to a
+      verified leaf. 44% of cladding-self features hit the totalKnown=0 path, so
+      this is a mainstream path, not an edge case. Ledger is the SOLE
+      blank-vs-leaf disambiguator (3-case simulation, wf_04e7f5b8).
   - id: AC-67150016
-    ears: state
-    condition: "while an impact query resolves to a feature with zero known dependents"
-    action: "stop the iterative widening with stoppedBy 'no-known-dependents' and coverage null (never a vacuous coverage 1.0), and carry total_known_dependents through the working-set radius"
-    response: "consumers see \"no dependents are known\" instead of \"100% of the blast radius is covered\""
-    text: "While a feature has zero known dependents, the iterative impact slice shall report stoppedBy no-known-dependents with coverage null, and the working-set radius shall include total_known_dependents."
-    test_refs:
-      - "tests/optimizer/iterative-slice.test.ts#zero known dependents stops honestly: no-known-dependents + coverage null, never a vacuous 1.0 (F-c6a32fff)"
-      - "tests/optimizer/working-set.test.ts#blank-ledger radius: no-known-dependents, coverage null (not 0), denominator + ledger surfaced (F-c6a32fff)"
-    notes: "## Decision\ncoverage:null (not 0/1): JS null*100===0, so the working-set rounding site needs an explicit null guard or the radius would show a legitimate-looking FALSE 0% (simulation-caught). measurement.ts excludes null coverages from its median."
+    statement: While a feature has zero known dependents, the iterative impact slice
+      shall report stoppedBy no-known-dependents with null coverage and include
+      total_known_dependents in the working-set radius.
+    kind: behavior
+    notes: >-
+      ## Decision
+
+      coverage:null (not 0/1): JS null*100===0, so the working-set rounding site
+      needs an explicit null guard or the radius would show a legitimate-looking
+      FALSE 0% (simulation-caught). measurement.ts excludes null coverages from
+      its median.
   - id: AC-85daff2d
-    ears: unwanted
-    condition: "if the Stop or PostToolUse hook fires in a cwd that has no spec.yaml (a non-cladding project or an unrelated directory)"
-    action: "return silence without running the gate and without writing any .cladding/ state — mirroring the SessionStart guard"
-    response: "cladding never blocks a session or pollutes a tree that did not adopt it"
-    text: "If spec.yaml is absent from the hook cwd, the Stop and PostToolUse hooks shall print nothing and write nothing."
-    test_refs:
-      - "tests/cli/hook.test.ts#Stop in a spec-less cwd → silence, no drift run, no .cladding/ writes"
-      - "tests/cli/hook.test.ts#PostToolUse in a spec-less cwd → silence, no drift run, no stamp write"
-    notes: "## Why\nReproduced with the shipped bundle: in a spec-less dir the Stop hook blocked with 4 ABSENCE findings and wrote 3 state files; a monorepo SUBDIR of a valid cladding project behaved identically (hook cwd is process.cwd(), no upward search) — the guard is a repair there, not a regression. Broken-but-present spec keeps its honest one-time block."
+    statement: If spec.yaml is absent from the hook cwd, then the Stop and
+      PostToolUse hooks shall print nothing and write nothing.
+    kind: behavior
+    notes: >-
+      ## Why
+
+      Reproduced with the shipped bundle: in a spec-less dir the Stop hook
+      blocked with 4 ABSENCE findings and wrote 3 state files; a monorepo SUBDIR
+      of a valid cladding project behaved identically (hook cwd is
+      process.cwd(), no upward search) — the guard is a repair there, not a
+      regression. Broken-but-present spec keeps its honest one-time block.
   - id: AC-c57ea33e
-    ears: unwanted
-    condition: "if the drift engine throws while computing the gate footer that rides mutating MCP tool results"
-    action: "report {pass:false, unavailable:true} with a pointer to clad check --strict instead of fabricating a passing gate"
-    response: "an engine fault reads as \"gate could not run\", never as a verified GREEN, on the one structural channel hosts without lifecycle hooks can see"
-    text: "If the gate footer cannot run, the system shall report pass:false with unavailable:true rather than a fabricated pass:true."
-    test_refs:
-      - "tests/serve/gate-footer-unavailable.test.ts#a throwing drift engine yields gate {pass:false, unavailable:true} on a mutating tool result"
-    notes: "## Decision\npass:false stays alongside unavailable:true — removing the pass field would contradict F-570a3f's wire contract (drift pass flag) and hosts branching on gate.pass; explicit false is fail-closed at zero migration cost (simulation: no test pins the catch branch)."
+    statement: If the gate footer cannot run, then the system shall report
+      pass:false with unavailable:true rather than a fabricated pass:true.
+    kind: constraint
+    rationale: Prevents an unavailable gate footer from fabricating success.
+    notes: >-
+      ## Decision
+
+      pass:false stays alongside unavailable:true — removing the pass field
+      would contradict F-570a3f's wire contract (drift pass flag) and hosts
+      branching on gate.pass; explicit false is fail-closed at zero migration
+      cost (simulation: no test pins the catch branch).
   - id: AC-6704a592
-    ears: event
-    condition: "when a graph MCP tool cannot load the spec, or a graph query misses"
-    action: "answer with the loadSpecOrError guidance (run clad init) instead of a raw ENOENT, include the discovery hint on clad_get_graph misses like its sibling tools, and extend discovery hints with the baseline fallback (normal code search)"
-    response: "every graph-tool failure tells the agent how to proceed WITHOUT the graph"
-    text: "When a graph tool fails to answer, the system shall include recovery guidance: clad init for a missing spec, and fall-back-to-normal-search wording in the miss discovery hints."
-    test_refs:
-      - "tests/serve/server.test.ts#a missing spec keeps writes absent and returns both initialization and normal-search recovery hints"
-    notes: "## Why\nclad_list_features already had this precedent (loadSpecOrError); the four graph tools shipped with raw err.message. Zero tests pin the raw ENOENT text (simulation), so this is a text-only change."
+    statement: "When a graph tool fails to answer, the system shall include recovery
+      guidance: clad init for a missing spec, and fall-back-to-normal-search
+      wording in the miss discovery hints."
+    notes: >-
+      ## Why
+
+      clad_list_features already had this precedent (loadSpecOrError); the four
+      graph tools shipped with raw err.message. Zero tests pin the raw ENOENT
+      text (simulation), so this is a text-only change.
   - id: AC-10b1a2f8
-    ears: event
-    condition: "when the PostToolUse impact card renders on a blank ledger, or the SessionStart card renders over an unparseable spec whose counts could not be resolved from any source"
-    action: "append a one-token 'deps unledgered' disclosure to the impact card, and replace the counts line with 'spec.yaml present but unparseable — counts unavailable' only when parsing failed AND no count source resolved"
-    response: "the push surfaces stop rendering unknown states as healthy ones, without adding noise to dense-ledger projects"
-    text: "When rendering over a blank ledger or an unparseable spec with no resolvable counts, the push cards shall disclose the unknown state instead of rendering it as empty-and-healthy."
-    test_refs:
-      - "tests/cli/impact-card.test.ts#a blank ledger discloses itself; a dense ledger does not; the empty-card path stays empty (F-c6a32fff)"
-      - "tests/cli/hook.test.ts#SessionStart over an unparseable spec with no other count source → honest counts-unavailable line"
-    notes: "## Decision\nSessionStart line is conditional on parseFailed AND !counted — spec/index.yaml is the primary count source, so an unparseable master with a healthy index still renders true counts (unconditional rendering would be wrong more often than right — simulation)."
+    statement: When rendering over a blank ledger or an unparseable spec with no
+      resolvable counts, the push cards shall disclose the unknown state instead
+      of rendering it as empty-and-healthy.
+    notes: >-
+      ## Decision
+
+      SessionStart line is conditional on parseFailed AND !counted —
+      spec/index.yaml is the primary count source, so an unparseable master with
+      a healthy index still renders true counts (unconditional rendering would
+      be wrong more often than right — simulation).
