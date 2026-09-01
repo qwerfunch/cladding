@@ -107,6 +107,8 @@ export interface Feature {
   readonly archived_at?: string;
   readonly archive_reason?: string;
   readonly superseded_by?: string;
+  /** Required explanation retained only while the feature is blocked. */
+  readonly blocked_reason?: string;
 }
 
 /** Cross-feature user flow. */

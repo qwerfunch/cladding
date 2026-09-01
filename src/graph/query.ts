@@ -214,6 +214,7 @@ function schema02PresentationFeatureStructure(feature: Feature): object {
     archivedAt: feature.archived_at ?? null,
     archiveReason: feature.archive_reason ?? null,
     supersededBy: feature.superseded_by ?? null,
+    blockedReason: feature.blocked_reason ?? null,
     criteria: (feature.acceptance_criteria ?? []).map((criterion) => ({
       id: criterion.id,
       statement: criterion.text ?? null,
@@ -235,6 +236,7 @@ function schema02ContractFeatureStructure(feature: Schema02FeatureContract): obj
     archivedAt: feature.archivedAt ?? null,
     archiveReason: feature.archiveReason ?? null,
     supersededBy: feature.supersededBy ?? null,
+    blockedReason: feature.blockedReason ?? null,
     criteria: feature.acceptanceCriteria.map((criterion) => ({
       id: criterion.id,
       statement: criterion.statement,

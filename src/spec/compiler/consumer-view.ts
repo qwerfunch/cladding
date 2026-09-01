@@ -125,6 +125,7 @@ function legacyFeature(
     ...(feature.archivedAt === undefined ? {} : {archived_at: feature.archivedAt}),
     ...(feature.archiveReason === undefined ? {} : {archive_reason: feature.archiveReason}),
     ...(feature.supersededBy === undefined ? {} : {superseded_by: feature.supersededBy}),
+    ...(feature.blockedReason === undefined ? {} : {blocked_reason: feature.blockedReason}),
     acceptance_criteria: feature.acceptanceCriteria.map((criterion) => legacyCriterion(cwd, feature.id, criterion, compilation, live)),
   };
 }

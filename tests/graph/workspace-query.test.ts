@@ -46,7 +46,11 @@ function writeSchema01Workspace(root: string, title: string = 'Legacy query boun
   ].join('\n'));
 }
 
-function writeSchema02Workspace(root: string): void {
+function writeSchema02Workspace(
+  root: string,
+  feature: {readonly status?: Feature['status']; readonly blockedReason?: string} = {},
+): void {
+  const status = feature.status ?? 'in_progress';
   mkdirSync(join(root, 'spec', 'features'), {recursive: true});
   writeFileSync(join(root, 'spec.yaml'), [
     'schema: "0.2"',
@@ -65,7 +69,8 @@ function writeSchema02Workspace(root: string): void {
   writeFileSync(join(root, 'spec', 'features', 'workspace-aaaaaaaa.yaml'), [
     'id: F-aaaaaaaa',
     'title: Workspace query',
-    'status: in_progress',
+    `status: ${status}`,
+    ...(feature.blockedReason === undefined ? [] : [`blocked_reason: ${feature.blockedReason}`]),
     'purpose: Keep the legacy presentation tied to one compiler result.',
     'modules: []',
     'depends_on: []',
@@ -99,6 +104,22 @@ describe('GraphIR workspace query boundary', () => {
       state: 'resolved', canonical: 'feature:F-aaaaaaaa',
     });
     expect(graphIrV2(workspace.compilation)).toBe(workspace.kernel);
+  });
+
+  test('retains a blocked reason in the ordinary schema 0.2 consumer projection', () => {
+    const root = workspaceRoot();
+    writeSchema02Workspace(root, {
+      status: 'blocked',
+      blockedReason: 'Wait for the independent dependency review.',
+    });
+
+    expect(loadSpec(root).features).toEqual([
+      expect.objectContaining({
+        id: 'F-aaaaaaaa',
+        status: 'blocked',
+        blocked_reason: 'Wait for the independent dependency review.',
+      }),
+    ]);
   });
 
   test('[covers:F-208eaa79/AC-616e6e74] derives schema 0.2 presentation from the same complete compiler contract', () => {
@@ -185,6 +206,29 @@ describe('GraphIR workspace query boundary', () => {
     withProspectiveSpecOverlay(root, schemaMismatchedSpec, () =>
       withProspectiveCompilationOverlay(root, prospectiveCompilation, () =>
         expect(() => loadGraphIrV2Workspace(root)).toThrow(/cannot combine Spec schema/),
+      ),
+    );
+  });
+
+  test('rejects prospective overlays that differ only in blocked reason', () => {
+    const root = workspaceRoot();
+    writeSchema02Workspace(root, {
+      status: 'blocked',
+      blockedReason: 'Wait for the independent dependency review.',
+    });
+    const prospectiveSpec = loadSpec(root);
+    const prospectiveCompilation = compileSpecWorkspace(root);
+    const mismatchedSpec = Object.freeze({
+      ...prospectiveSpec,
+      features: Object.freeze(prospectiveSpec.features.map((feature) =>
+        feature.id === 'F-aaaaaaaa'
+          ? Object.freeze({...feature, blocked_reason: 'Wait for a different dependency review.'})
+          : feature)),
+    });
+
+    withProspectiveSpecOverlay(root, mismatchedSpec, () =>
+      withProspectiveCompilationOverlay(root, prospectiveCompilation, () =>
+        expect(() => loadGraphIrV2Workspace(root)).toThrow(/cannot prove schema 0.2 presentation and compiler contract structure/),
       ),
     );
   });
