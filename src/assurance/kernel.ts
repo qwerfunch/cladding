@@ -7,6 +7,7 @@ import {criterionObservationRule, isTrustedCriterionObservationReport, type Crit
 import {
   compareCodeUnits,
   descriptorsForLevel,
+  descriptorsForProfile,
   deriveApplicability,
   levelNumber,
   obligationDescriptor,
@@ -232,7 +233,7 @@ export function assuranceProfile(
     id,
     assurance_level: level,
     scope,
-    obligations: Object.freeze(descriptorsForLevel(id === 'checkpoint' || id === 'feedback' ? 'L1' : level).map((descriptor) => descriptor.id)),
+    obligations: Object.freeze(descriptorsForProfile(id, level).map((descriptor) => descriptor.id)),
     authoritative: id === 'completion' || id === 'push' || id === 'release',
   });
   return verdict;

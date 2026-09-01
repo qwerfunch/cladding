@@ -65,7 +65,7 @@ test('[covers:F-048/AC-f7e0aea5] records compact gate observations with the curr
     {stage: 'stage_1.5', status: 'fail', adapter: {id: 'legacy-stage:stage_1.5', version: '1'}},
   ]);
   expect(observation.assurance).toMatchObject({
-    profile: 'feedback',
+    profile: 'checkpoint',
     assurance_level: 'L1',
     state: expect.any(String),
     profile_complete: expect.any(Boolean),

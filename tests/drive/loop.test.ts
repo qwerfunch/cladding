@@ -44,7 +44,7 @@ vi.mock('../../src/drive/assurance.js', () => ({
       {stage: 'stage_1.5', status: 'pass', adapter: {id: 'legacy-stage:stage_1.5', version: '1'}},
     ],
     assurance: {
-      profile: 'feedback',
+      profile: 'checkpoint',
       assurance_level: 'L1',
       state: 'green',
       profile_complete: true,

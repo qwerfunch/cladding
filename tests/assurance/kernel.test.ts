@@ -115,6 +115,31 @@ describe('F6 assurance reducer', () => {
     expect(verdict.results.find((result) => result.obligation === 'stage_2.2')?.state).toBe('pass');
   });
 
+  test('reduces completion and push without Commit, while release requires its observation', () => {
+    for (const id of ['completion', 'push'] as const) {
+      const profile = assuranceProfile(id, 'L1');
+      const verdict = reduceLegacyStageAdapter({
+        profile, configuredAssuranceLevel: 'L1', completeScope: true,
+        scopeAddresses: ['feature:F-a'], inputAddresses: ['feature:F-a'], inputSha256: 'a'.repeat(64),
+        hasExecutableTests: false, hasOracleProof: false, hasDeliverable: false, requiresQuality: false, requiresHuman: false,
+        environmentClass: 'test', stages: profile.obligations.map((stage) => ({stage, status: 'pass' as const})),
+      });
+      expect(verdict).toMatchObject({state: 'green', profile_complete: true});
+      expect(verdict.results.some((result) => result.obligation === 'stage_1.4')).toBe(false);
+    }
+
+    const profile = assuranceProfile('release', 'L1');
+    const verdict = reduceLegacyStageAdapter({
+      profile, configuredAssuranceLevel: 'L1', completeScope: true,
+      scopeAddresses: ['project'], inputAddresses: ['project'], inputSha256: 'a'.repeat(64),
+      hasExecutableTests: false, hasOracleProof: false, hasDeliverable: false, requiresQuality: false, requiresHuman: false,
+      environmentClass: 'test', stages: profile.obligations
+        .filter((stage) => stage !== 'stage_1.4').map((stage) => ({stage, status: 'pass' as const})),
+    });
+    expect(verdict).toMatchObject({state: 'unresolved', profile_complete: false});
+    expect(verdict.results.find((result) => result.obligation === 'stage_1.4')).toMatchObject({state: 'unobserved'});
+  });
+
   test('derives distinct observation identities when two obligations share one locator', () => {
     const profile = assuranceProfile('completion', 'L1');
     const obligations = profile.obligations.map((descriptor) => ({

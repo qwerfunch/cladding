@@ -6,8 +6,11 @@ import {join} from 'node:path';
 
 import {afterEach, describe, expect, test, vi} from 'vitest';
 
+import {assuranceProfile} from '../../src/assurance/kernel.js';
+
 const pass = () => ({pass: true, exitCode: 0});
 const runDriftStage = vi.fn(pass);
+const runCommitStage = vi.fn(pass);
 
 // These are registered stage adapters, not caller-supplied LegacyStage rows.
 // The coordinator still constructs the compiler plan, captures its snapshot,
@@ -15,7 +18,7 @@ const runDriftStage = vi.fn(pass);
 vi.mock('../../src/stages/type.js', () => ({runType: pass}));
 vi.mock('../../src/stages/lint.js', () => ({runLint: pass}));
 vi.mock('../../src/stages/drift.js', () => ({runDrift: () => runDriftStage()}));
-vi.mock('../../src/stages/commit.js', () => ({runCommit: pass}));
+vi.mock('../../src/stages/commit.js', () => ({runCommit: () => runCommitStage()}));
 vi.mock('../../src/stages/arch.js', () => ({runArch: pass}));
 vi.mock('../../src/stages/secret.js', () => ({runSecret: pass}));
 vi.mock('../../src/stages/unit.js', () => ({runUnit: pass}));
@@ -69,6 +72,8 @@ afterEach(() => {
   vi.restoreAllMocks();
   runDriftStage.mockReset();
   runDriftStage.mockImplementation(pass);
+  runCommitStage.mockReset();
+  runCommitStage.mockImplementation(pass);
   for (const root of roots.splice(0)) rmSync(root, {recursive: true, force: true});
 });
 
@@ -88,6 +93,37 @@ function completionArtifacts(cwd: string): Record<string, string | null> {
 }
 
 describe('F6 P1-1 authoritative verdict boundary', () => {
+  test('executes the exact schema 0.2 profile membership and reserves Commit for release', () => {
+    const cwdBefore = process.cwd();
+    try {
+      for (const profile of ['feedback', 'checkpoint', 'completion', 'push'] as const) {
+        const cwd = workspace();
+        process.chdir(cwd);
+        runCommitStage.mockImplementation(() => { throw new Error(`Commit must not run for ${profile}`); });
+        const outcome = runCheckStages({profile, silent: true});
+        expect(outcome.stages?.map((stage) => stage.stage)).toEqual(assuranceProfile(profile, 'L1').obligations);
+        expect([...new Set(outcome.assurance?.results.map((result) => result.obligation))]).toEqual(assuranceProfile(profile, 'L1').obligations);
+        expect(outcome.assurance?.results.some((result) => result.obligation === 'stage_1.4')).toBe(false);
+        expect(runCommitStage).not.toHaveBeenCalled();
+        runCommitStage.mockClear();
+        process.chdir(cwdBefore);
+      }
+
+      const cwd = workspace();
+      process.chdir(cwd);
+      runCommitStage.mockImplementation(() => ({pass: false, exitCode: 1}));
+      const release = runCheckStages({profile: 'release', silent: true});
+      expect(release.stages?.map((stage) => stage.stage)).toEqual(assuranceProfile('release', 'L1').obligations);
+      expect([...new Set(release.assurance?.results.map((result) => result.obligation))]).toEqual(assuranceProfile('release', 'L1').obligations);
+      expect(release).toMatchObject({worst: 1, anyFailed: true});
+      expect(release.assurance).toMatchObject({state: 'red', profile_complete: true});
+      expect(release.assurance?.results.find((result) => result.obligation === 'stage_1.4')).toMatchObject({state: 'fail'});
+      expect(runCommitStage).toHaveBeenCalledTimes(1);
+    } finally {
+      process.chdir(cwdBefore);
+    }
+  });
+
   test('keeps L2 Unit and Coverage applicable for done compiler criteria without bindings', () => {
     const cwd = workspace();
     const cwdBefore = process.cwd();
@@ -185,6 +221,29 @@ describe('F6 P1-1 authoritative verdict boundary', () => {
         verdict,
         featureIds: [FEATURE_A],
       })).toEqual([]);
+    } finally {
+      process.chdir(cwdBefore);
+      stdout.mockRestore();
+    }
+  });
+
+  test('completes a dirty schema 0.2 migration workspace without invoking Commit', () => {
+    const cwd = workspace();
+    const cwdBefore = process.cwd();
+    const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    try {
+      addInProgressCompletion(cwd);
+      writeFileSync(join(cwd, 'migration-scratch.yaml'), 'migration: pending\n');
+      process.chdir(cwd);
+      runCommitStage.mockImplementation(() => { throw new Error('Commit must not run for completion'); });
+
+      const result = runDone(cwd, FEATURE_C, {checkStages: runCheckStages});
+
+      expect(result).toMatchObject({ok: true, code: 0});
+      expect(runCommitStage).not.toHaveBeenCalled();
+      expect(readFileSync(join(cwd, 'spec', 'features', 'c-c0c0c0c0.yaml'), 'utf8')).toContain('status: done');
+      expect(readFileSync(join(cwd, 'spec', 'attestation.yaml'), 'utf8')).toContain('"attestation_schema":"3"');
+      expect(readFileSync(join(cwd, '.cladding', 'events.log.jsonl'), 'utf8')).toContain('"type":"done_attempted"');
     } finally {
       process.chdir(cwdBefore);
       stdout.mockRestore();

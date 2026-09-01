@@ -99,7 +99,7 @@ import {assuranceClosureInputFromWorkspace, createWorkspaceAttestations, current
 import {liveCriterionReportsFromCurrentRun, staticCriterionReportsFromWorkspace, staticCriterionScopeFromWorkspace} from '../assurance/criterion-observations.js';
 import {emptyTrustSnapshot} from '../proof/receipt.js';
 import {assuranceProfile, invalidateAssuranceVerdict, resolveRequestedAssuranceLevel, type AssuranceProfile, type AssuranceVerdict} from '../assurance/kernel.js';
-import {descriptorsForLevel, normalizeProfile, OBLIGATION_DESCRIPTORS, type AssuranceLevel, type AssuranceProfileId} from '../assurance/registry.js';
+import {normalizeProfile, OBLIGATION_DESCRIPTORS, type AssuranceLevel, type AssuranceProfileId} from '../assurance/registry.js';
 import {buildBlindPayload, renderBlindBrief} from '../oracle/payload.js';
 import {requiredOracleWorklist} from '../oracle/policy.js';
 import {loadSpec, loadSpecFromDiskUnlocked} from '../spec/load.js';
@@ -730,9 +730,7 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
         });
         if (resolved.ok) {
           const profileLevel = selectedProfile === 'feedback' || selectedProfile === 'checkpoint' ? 'L1' : resolved.level;
-          const descriptors = descriptorsForLevel(profileLevel);
-          allowed = (selectedProfile === 'feedback' ? descriptors.filter((descriptor) => descriptor.backgroundSafe) : descriptors)
-            .map((descriptor) => descriptor.id);
+          allowed = assuranceProfile(selectedProfile, profileLevel).obligations;
         }
       }
     } catch {

@@ -34,6 +34,8 @@ export interface ObligationDescriptor {
   readonly ironclad: boolean;
   /** Cumulative level at which this obligation enters. */
   readonly assuranceLevel: AssuranceLevel;
+  /** Canonical profiles that require this obligation at its assurance level. */
+  readonly profiles: readonly AssuranceProfileId[];
   /** Legacy stage identity retained for all existing readers. */
   readonly legacyAliases: readonly string[];
   /** Prerequisite obligations; the reducer never infers these from stage order. */
@@ -89,12 +91,15 @@ const descriptor = (
   label: string,
   assuranceLevel: AssuranceLevel,
   applicability: ObligationDescriptor['applicability'],
-  options: Partial<Omit<ObligationDescriptor, 'id' | 'label' | 'assuranceLevel' | 'applicability' | 'legacyAliases'>> = {},
+  options: Partial<Omit<ObligationDescriptor, 'id' | 'label' | 'assuranceLevel' | 'applicability' | 'legacyAliases' | 'profiles'>> & {
+    readonly profiles?: readonly AssuranceProfileId[];
+  } = {},
 ): ObligationDescriptor => Object.freeze({
   id,
   label,
   ironclad: options.ironclad ?? true,
   assuranceLevel,
+  profiles: Object.freeze([...(options.profiles ?? ['completion', 'push', 'release'])]),
   legacyAliases: Object.freeze([id]),
   dependencies: Object.freeze([...(options.dependencies ?? [])]),
   adapter: options.adapter ?? {id: `legacy-stage:${id}`, version: '1'},
@@ -116,12 +121,12 @@ const descriptor = (
  * @see docs/design/spec-0.2/assurance.md#d21--iron-law-assurance-kernel
  */
 export const OBLIGATION_DESCRIPTORS: readonly ObligationDescriptor[] = Object.freeze([
-  descriptor('stage_1.1', 'Type', 'L1', 'always', {controls: ['workspace', 'type', 'python', 'rust', 'go', 'jvm']}),
-  descriptor('stage_1.2', 'Lint', 'L1', 'always', {controls: ['workspace', 'lint', 'python', 'rust', 'go', 'jvm']}),
-  descriptor('stage_1.3', 'Drift', 'L1', 'always', {backgroundSafe: true}),
-  descriptor('stage_1.4', 'Commit', 'L1', 'always', {dependencies: ['stage_1.1', 'stage_1.2', 'stage_1.3'], cachePolicy: 'never', resources: ['workspace-write']}),
-  descriptor('stage_1.5', 'Architecture', 'L1', 'always', {backgroundSafe: true}),
-  descriptor('stage_1.6', 'Secret', 'L1', 'always', {backgroundSafe: true}),
+  descriptor('stage_1.1', 'Type', 'L1', 'always', {profiles: ['checkpoint', 'completion', 'push', 'release'], controls: ['workspace', 'type', 'python', 'rust', 'go', 'jvm']}),
+  descriptor('stage_1.2', 'Lint', 'L1', 'always', {profiles: ['checkpoint', 'completion', 'push', 'release'], controls: ['workspace', 'lint', 'python', 'rust', 'go', 'jvm']}),
+  descriptor('stage_1.3', 'Drift', 'L1', 'always', {profiles: ['feedback', 'checkpoint', 'completion', 'push', 'release'], backgroundSafe: true}),
+  descriptor('stage_1.4', 'Commit', 'L1', 'always', {profiles: ['release'], dependencies: ['stage_1.1', 'stage_1.2', 'stage_1.3'], cachePolicy: 'never', resources: ['workspace-write']}),
+  descriptor('stage_1.5', 'Architecture', 'L1', 'always', {profiles: ['feedback', 'checkpoint', 'completion', 'push', 'release'], backgroundSafe: true}),
+  descriptor('stage_1.6', 'Secret', 'L1', 'always', {profiles: ['feedback', 'checkpoint', 'completion', 'push', 'release'], backgroundSafe: true}),
   descriptor('stage_2.1', 'Unit', 'L2', 'coverage', {dependencies: ['stage_1.1', 'stage_1.2'], resources: ['cpu-exclusive'], controls: ['workspace', 'test', 'python', 'rust', 'go', 'jvm']}),
   descriptor('stage_2.2', 'Coverage', 'L2', 'coverage', {dependencies: ['stage_2.1'], sourceStrictness: 'report', blocking: 'hard', resources: ['cpu-exclusive'], controls: ['workspace', 'test', 'python', 'rust', 'go', 'jvm']}),
   descriptor('stage_2.3', 'Spec Conformance', 'L2', 'oracle', {dependencies: ['stage_2.1'], ironclad: false}),
@@ -144,6 +149,16 @@ export function obligationDescriptor(id: string): ObligationDescriptor | undefin
 export function descriptorsForLevel(level: AssuranceLevel): readonly ObligationDescriptor[] {
   const max = levelNumber(level);
   return OBLIGATION_DESCRIPTORS.filter((entry) => levelNumber(entry.assuranceLevel) <= max);
+}
+
+/** Returns the exact registry-owned obligations for one canonical profile. */
+export function descriptorsForProfile(
+  profile: AssuranceProfileId,
+  level: AssuranceLevel,
+): readonly ObligationDescriptor[] {
+  const maximum = profile === 'feedback' || profile === 'checkpoint' ? 'L1' : level;
+  return descriptorsForLevel(maximum).filter((entry) =>
+    entry.profiles.includes(profile) && (profile !== 'feedback' || entry.backgroundSafe));
 }
 
 /** Compiler facts are the only route to NA; missing runners never qualify. */

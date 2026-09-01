@@ -61,7 +61,7 @@ export function reduceDriveGateObservation(
     status: result.pass ? 'pass' as const : result.exitCode === 2 ? 'skip' as const : 'fail' as const,
   }));
   const verdict = reduceLegacyStageAdapter({
-    profile: assuranceProfile('feedback', 'L1'),
+    profile: assuranceProfile('checkpoint', 'L1'),
     configuredAssuranceLevel: 'L1',
     completeScope: compilation.schemaVersion === '0.1' || compilation.contract !== undefined,
     scopeAddresses: [`feature:${feature.id}`],

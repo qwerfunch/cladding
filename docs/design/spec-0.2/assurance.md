@@ -37,7 +37,7 @@ An assurance level requires applicable obligations, never a command. Only curren
 ### Kernel records
 
 The code-owned `ObligationDescriptor[]` registry is the sole owner of obligation
-identity, assurance level, applicability, dependencies, adapters, cache and
+identity, assurance level, profile membership, applicability, dependencies, adapters, cache and
 resource policy, background eligibility, standard strictness, effective
 blocking, and legacy aliases. It complements the artifact registry; neither
 copies the other's facts.
@@ -199,7 +199,7 @@ changes persisted policy nor waives unobserved evidence.
 |---|---|---|
 | `feedback` | After a canonical spec, source, test, runner-config, or receipt change: compile the changed inputs, classify the write scope, invalidate affected observations, and run relevant background-safe checks. | Advisory and partial. Never writes attestation or changes lifecycle. External scanners, project commands, coverage, and system tests may defer. |
 | `checkpoint` | Explicit user/host checkpoint, session Stop, or pre-commit: reconcile the changed closure; run required L1 checks and focused directly affected tests when a runnable proof changed. | Blocking only for the checkpoint consumer. It is not completion and never stamps. Stop may degrade its UI response, but that cannot change obligation state. |
-| `completion` | `clad done`: evaluate the feature as done; run every applicable obligation through the configured level over the feature, observed write scope, co-owners, dependents, and proof closure. | Authoritative for that feature. One invocation only; do not run a duplicate manual push profile immediately before it. Release-only clean-tree and unrelated repository checks defer. |
+| `completion` | `clad done`: evaluate the feature as done; run every applicable obligation through the configured level over the feature, observed write scope, co-owners, dependents, and proof closure. | Authoritative for that feature. One invocation only; do not run a duplicate manual push profile immediately before it. Commit clean-tree is release-only; unrelated repository checks defer. |
 | `push` | Git pre-push, PR integration, or authoritative CI: compile the integrated change closure and run all applicable obligations through the configured level. Unknown or cross-cutting scope expands to the repository. | Authoritative for integration. Local observations may be reused only by exact trusted digest; CI independently re-executes rather than trusting workspace cache. |
 | `release` | Clean committed tree: reproducible build and generated mirrors, repository-wide obligations through the configured level, conformance fixtures, and every release-required adapter. | Strongest authoritative profile. Nothing required may remain unobserved. Performance is isolated; explicit non-applicability remains visible. |
 
