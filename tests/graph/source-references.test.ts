@@ -85,6 +85,29 @@ describe('bounded source-reference scanner', () => {
     expect(() => { (scan.records[0]!.location as {line: number}).line = 99; }).toThrow();
   });
 
+  test('[covers:F-208eaa79/AC-4f8c2542] retains CRLF authored carriers while parsing continued composite criteria', () => {
+    const root = workspace(['src/carriers.ts']);
+    const rawCarrier = `// @see ${SHARD} AC-11111111 /\r\n// AC-22222222 — continuation\r`;
+    source(root, 'src/carriers.ts', `${rawCarrier}\n`);
+
+    const scan = scanSourceReferences(root, compileSpecWorkspace(root));
+
+    expect(scan).toMatchObject({completeness: 'complete', issues: [], unknownFiles: [], unknownReasons: []});
+    expect(scan.records).toEqual([
+      expect.objectContaining({
+        normalizedTarget: 'criterion:F-aaaaaaaa/AC-11111111', state: 'resolved', raw: rawCarrier,
+        location: {line: 1, column: 4},
+      }),
+      expect.objectContaining({
+        normalizedTarget: 'criterion:F-aaaaaaaa/AC-22222222', state: 'resolved', raw: rawCarrier,
+        location: {line: 1, column: 4},
+      }),
+    ]);
+    expect(new Set(scan.records.map((record) => record.selector))).toEqual(new Set([
+      'source-reference:["src/carriers.ts","feature:F-aaaaaaaa",["criterion:F-aaaaaaaa/AC-11111111","criterion:F-aaaaaaaa/AC-22222222"]]:1',
+    ]));
+  });
+
   test('[covers:F-208eaa79/AC-4f8c2542] materializes authored anchors and traces_to edges without an artifact edge', () => {
     const root = workspace(['src/carriers.ts']);
     source(root, 'src/carriers.ts', [

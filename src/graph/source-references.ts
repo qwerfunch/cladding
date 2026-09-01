@@ -418,13 +418,14 @@ function parseNoncanonicalFeatureCarriers(text: string): readonly ParsedCarrier[
   return carriers;
 }
 
-function commentText(line: string): {readonly text: string; readonly raw: string; readonly contentColumn: number} | undefined {
+function commentText(rawLine: string): {readonly text: string; readonly raw: string; readonly contentColumn: number} | undefined {
+  const line = rawLine.endsWith('\r') ? rawLine.slice(0, -1) : rawLine;
   const match = /^(\s*)(?:\/\/\/?|\/\*+|\*|#|--)(\s?)(.*)$/.exec(line);
   if (!match) return undefined;
   const content = match[3] ?? '';
   return {
     text: content,
-    raw: line,
+    raw: rawLine,
     contentColumn: line.length - content.length + 1,
   };
 }
