@@ -61,8 +61,8 @@ export function loadGraphIrV2Workspace(cwd: string = '.'): GraphIrV2Workspace {
       throw new Error('GraphIR workspace query requires matching prospective Spec and compiler overlays.');
     }
     // A completion overlay has already sealed its immutable Spec/compiler
-    // pair. Documents are independent artifacts, so scan that one bounded
-    // surface without probing the prospective spec disk state.
+    // pair. Documents and compiler-enumerated source artifacts are independent
+    // bounded surfaces, so scan both without probing prospective spec disk state.
     const documents = scanDocumentFacts(cwd);
     const sourceReferences = scanSourceReferences(cwd, prospectiveCompilation);
     return createWorkspace(cwd, prospectiveSpec, prospectiveCompilation, undefined, documents, sourceReferences);

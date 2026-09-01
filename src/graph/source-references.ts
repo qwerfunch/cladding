@@ -87,6 +87,15 @@ interface ParsedCarrier {
   readonly location: SourceReferenceLocation;
 }
 
+interface UnselectedSourceReferenceRecord {
+  readonly sourcePath: string;
+  readonly raw: string;
+  readonly normalizedTarget: string;
+  readonly state: 'resolved' | 'unresolved';
+  readonly occurrenceKey: string;
+  readonly location: SourceReferenceLocation;
+}
+
 type SourceReadResult =
   | {readonly text: string}
   | {readonly reason: SourceReferenceUnknownFile['reason']};
@@ -111,6 +120,7 @@ const LOCAL_FILE_SYSTEM: SourceReferenceFileSystem = Object.freeze({
  *
  * @param cwd - Workspace root that bounds every lstat and read operation.
  * @param compilation - Immutable compiler snapshot providing source authority and target locators.
+ * @param fileSystem - Bounded file operations; the default reads only local workspace paths.
  * @returns One frozen source-reference census for exactly this compilation.
  * @see docs/design/spec-0.2/graph.md#documents-and-source-references
  */
@@ -121,7 +131,7 @@ export function scanSourceReferences(
 ): SourceReferenceScan {
   const sourcePaths = sourceAuthorityPaths(compilation);
   const targets = sourceTargets(compilation);
-  const records: SourceReferenceRecord[] = [];
+  const records: UnselectedSourceReferenceRecord[] = [];
   const issues: SourceReferenceIssue[] = [];
   const unknownFiles: SourceReferenceUnknownFile[] = [];
 
@@ -148,20 +158,29 @@ export function scanSourceReferences(
         }));
         continue;
       }
+      const targetsByAddress = new Map<string, 'resolved' | 'unresolved'>();
       for (const criterion of carrier.criteria) {
         const normalizedTarget = `criterion:${feature}/${criterion}`;
-        const raw = carrier.raw;
+        const state = targets.criteriaByPath.get(carrier.rawPath)?.has(normalizedTarget) ? 'resolved' : 'unresolved';
+        targetsByAddress.set(normalizedTarget, state);
+      }
+      const occurrenceKey = JSON.stringify([
+        sourcePath,
+        `feature:${feature}`,
+        [...targetsByAddress.keys()].sort(),
+      ]);
+      for (const [normalizedTarget, state] of [...targetsByAddress.entries()].sort(([left], [right]) => left.localeCompare(right))) {
         records.push({
           sourcePath,
-          raw,
+          raw: carrier.raw,
           normalizedTarget,
-          state: targets.criteriaByPath.get(carrier.rawPath)?.has(normalizedTarget) ? 'resolved' : 'unresolved',
-          selector: '',
+          state,
+          occurrenceKey,
           location: carrier.location,
         });
-        if (!targets.criteriaByPath.get(carrier.rawPath)?.has(normalizedTarget)) {
+        if (state === 'unresolved') {
           issues.push(Object.freeze({
-            code: 'UNKNOWN_CRITERION', sourcePath, raw, location: carrier.location,
+            code: 'UNKNOWN_CRITERION', sourcePath, raw: carrier.raw, location: carrier.location,
             selector: '', featurePath: carrier.rawPath, normalizedTarget,
           }));
         }
@@ -416,22 +435,39 @@ function looksLikeFeaturePath(path: string): boolean {
     || path.includes('spec\\features\\');
 }
 
-function addStableSelectors(records: readonly SourceReferenceRecord[]): readonly SourceReferenceRecord[] {
-  const byKey = new Map<string, SourceReferenceRecord[]>();
+function addStableSelectors(records: readonly UnselectedSourceReferenceRecord[]): readonly SourceReferenceRecord[] {
+  const byKey = new Map<string, UnselectedSourceReferenceRecord[]>();
   for (const record of records) {
-    const key = JSON.stringify([record.sourcePath, record.normalizedTarget]);
-    const matching = byKey.get(key) ?? [];
+    const matching = byKey.get(record.occurrenceKey) ?? [];
     matching.push(record);
-    byKey.set(key, matching);
+    byKey.set(record.occurrenceKey, matching);
   }
   const selected: SourceReferenceRecord[] = [];
   for (const [key, matching] of byKey) {
-    matching.sort((left, right) => left.location.line - right.location.line || left.location.column - right.location.column);
-    for (const [ordinal, record] of matching.entries()) {
-      selected.push(Object.freeze({...record, selector: `source-reference:${key}:${ordinal + 1}`}));
+    const byOccurrence = new Map<string, UnselectedSourceReferenceRecord[]>();
+    for (const record of matching) {
+      const occurrence = `${record.location.line}\u0000${record.location.column}`;
+      const facts = byOccurrence.get(occurrence) ?? [];
+      facts.push(record);
+      byOccurrence.set(occurrence, facts);
+    }
+    const occurrences = [...byOccurrence.values()].sort((left, right) =>
+      left[0]!.location.line - right[0]!.location.line || left[0]!.location.column - right[0]!.location.column);
+    for (const [ordinal, facts] of occurrences.entries()) {
+      for (const record of facts) {
+        selected.push(Object.freeze({
+          sourcePath: record.sourcePath,
+          raw: record.raw,
+          normalizedTarget: record.normalizedTarget,
+          state: record.state,
+          selector: `source-reference:${key}:${ordinal + 1}`,
+          location: record.location,
+        }));
+      }
     }
   }
-  return Object.freeze(selected.sort((left, right) => left.selector.localeCompare(right.selector)));
+  return Object.freeze(selected.sort((left, right) =>
+    left.selector.localeCompare(right.selector) || left.normalizedTarget.localeCompare(right.normalizedTarget)));
 }
 
 function addStableIssueSelectors(

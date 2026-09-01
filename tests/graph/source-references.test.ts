@@ -11,7 +11,7 @@ import {
   sourceReferenceAugmentation,
   type SourceReferenceScan,
 } from '../../src/graph/source-references.js';
-import {graphIrV2} from '../../src/spec/compiler/graph-ir-v2.js';
+import {graphIrV2, type GraphIrV2Augmentation} from '../../src/spec/compiler/graph-ir-v2.js';
 import {compileSpecWorkspace} from '../../src/spec/compiler/compile.js';
 import type {GraphNode} from '../../src/spec/compiler/types.js';
 
@@ -87,26 +87,42 @@ describe('bounded source-reference scanner', () => {
 
   test('[covers:F-208eaa79/AC-4f8c2542] materializes authored anchors and traces_to edges without an artifact edge', () => {
     const root = workspace(['src/carriers.ts']);
-    source(root, 'src/carriers.ts', `// @see ${SHARD} AC-11111111\n`);
+    source(root, 'src/carriers.ts', [
+      `// @see ${SHARD} AC-11111111 /`,
+      '// AC-22222222 / AC-22222222',
+      '',
+    ].join('\n'));
     const compilation = compileSpecWorkspace(root);
     const scan = scanSourceReferences(root, compilation);
     const layer = sourceReferenceAugmentation(compilation, scan);
     const kernel = graphIrV2(compilation, [layer]);
-    const record = scan.records[0]!;
+    const record = scan.records.find((candidate) => candidate.normalizedTarget === CRITERION)!;
     const anchor = `anchor:src/carriers.ts#${record.selector}`;
 
     expect(layer).toMatchObject({layerId: 'source-references', completeness: 'complete'});
+    expect(scan.records).toHaveLength(2);
+    expect(new Set(scan.records.map((candidate) => candidate.selector))).toEqual(new Set([record.selector]));
     expect(layer.nodes).toEqual([expect.objectContaining({
       address: anchor, artifact: 'artifact:src/carriers.ts', selectorProvenance: 'authored', provenance: 'authored',
     })]);
-    expect(layer.edges).toEqual([expect.objectContaining({
-      from: anchor, to: CRITERION, relation: 'traces_to', provenance: 'authored', state: 'resolved',
-      owner: {kind: 'text_source', path: 'src/carriers.ts', selector: record.selector},
-      raw: `// @see ${SHARD} AC-11111111`, normalizedTarget: CRITERION,
-    })]);
+    expect(layer.edges).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        from: anchor, to: CRITERION, relation: 'traces_to', provenance: 'authored', state: 'resolved',
+        owner: {kind: 'text_source', path: 'src/carriers.ts', selector: record.selector},
+        raw: `// @see ${SHARD} AC-11111111 /\n// AC-22222222 / AC-22222222`, normalizedTarget: CRITERION,
+      }),
+      expect.objectContaining({from: anchor, to: 'criterion:F-aaaaaaaa/AC-22222222', relation: 'traces_to'}),
+    ]));
+    expect(layer.edges).toHaveLength(2);
     expect(kernel.project({
       seeds: [CRITERION], rules: [{relation: 'traces_to', direction: 'inbound'}], maxHops: 1, maxNodes: 2, maxEdges: 1,
     }).edges).toEqual([expect.objectContaining({from: anchor, to: CRITERION, relation: 'traces_to'})]);
+    expect(kernel.project({
+      seeds: [anchor], rules: [{relation: 'traces_to', direction: 'outbound'}], maxHops: 1, maxNodes: 3, maxEdges: 2,
+    }).edges).toHaveLength(2);
+    expect(kernel.resolveAddress(anchor)).toEqual({
+      state: 'resolved', input: anchor, canonical: anchor, via: 'anchor',
+    });
     expect(kernel.project({
       seeds: ['artifact:src/carriers.ts'], rules: [{relation: 'traces_to', direction: 'outbound'}], maxHops: 1, maxNodes: 2, maxEdges: 1,
     }).edges).toEqual([]);
@@ -148,7 +164,7 @@ describe('bounded source-reference scanner', () => {
   test('[covers:F-208eaa79/AC-d452908b] retains unresolved known shards and issues without guessing a target', () => {
     const root = workspace(['src/carriers.ts']);
     source(root, 'src/carriers.ts', [
-      `// @see ${SHARD} AC-deadbeef`,
+      `// @see ${SHARD} AC-deadbeef / AC-11111111`,
       '// @see spec/features/unknown-ffffffff.yaml AC-11111111',
       `// @see ${SHARD}`,
       '// @see ./spec/features/alpha-aaaaaaaa.yaml AC-11111111',
@@ -162,20 +178,22 @@ describe('bounded source-reference scanner', () => {
     expect(scan.issues.map((issue) => issue.code).sort()).toEqual([
       'FEATURE_ONLY', 'NONCANONICAL_FEATURE_PATH', 'UNKNOWN_CRITERION', 'UNKNOWN_FEATURE_SHARD',
     ]);
-    expect(scan.records).toEqual([expect.objectContaining({
+    expect(scan.records).toEqual(expect.arrayContaining([expect.objectContaining({
       normalizedTarget: 'criterion:F-aaaaaaaa/AC-deadbeef', state: 'unresolved',
-    })]);
+    })]));
     expect(layer).toMatchObject({completeness: 'unknown'});
     expect(layer.nodes).toHaveLength(4);
     expect(new Set(layer.nodes.map((node) => node.address)).size).toBe(layer.nodes.length);
-    expect(scan.issues.find((issue) => issue.code === 'UNKNOWN_CRITERION')?.selector)
-      .toBe(scan.records[0]!.selector);
+    const unresolved = scan.records.find((record) => record.normalizedTarget === 'criterion:F-aaaaaaaa/AC-deadbeef')!;
+    expect(scan.issues.find((issue) => issue.code === 'UNKNOWN_CRITERION')?.selector).toBe(unresolved.selector);
+    expect(new Set(scan.records.filter((record) => record.raw.includes('AC-deadbeef')).map((record) => record.selector)))
+      .toEqual(new Set([unresolved.selector]));
     expect(Object.isFrozen(scan.issues[0])).toBe(true);
     expect(Object.isFrozen(scan.issues[0]!.location)).toBe(true);
     expect(() => { (scan.issues[0]!.location as {column: number}).column = 99; }).toThrow();
-    expect(layer.edges).toEqual([expect.objectContaining({
+    expect(layer.edges).toEqual(expect.arrayContaining([expect.objectContaining({
       relation: 'traces_to', state: 'unresolved', to: 'criterion:F-aaaaaaaa/AC-deadbeef',
-    })]);
+    })]));
     expect(layer.unknownReasons).toEqual(expect.arrayContaining([
       'source reference target is unresolved: criterion:F-aaaaaaaa/AC-deadbeef',
     ]));
@@ -248,11 +266,79 @@ describe('bounded source-reference scanner', () => {
       seeds: ['artifact:src/carriers.ts'], rules: [{relation: 'traces_to', direction: 'outbound'}], maxHops: 0, maxNodes: 1, maxEdges: 0,
     }).nodes).toEqual([expect.objectContaining({address: 'artifact:src/carriers.ts', roles: ['source', 'test']})]);
     expect(graphIrV2(unionCompilation, [layer]).corpusRecords()).toEqual(graphIrV2(unionCompilation).corpusRecords());
-    const emptyLayer = {layerId: 'source-reference-permutation', nodes: [], edges: [], completeness: 'complete' as const, unknownReasons: []};
-    const request = {
-      seeds: [CRITERION], rules: [{relation: 'traces_to' as const, direction: 'inbound' as const}], maxHops: 1, maxNodes: 2, maxEdges: 1,
+    const testArtifact = 'artifact:tests/independent.test.ts';
+    const testAnchor = 'anchor:tests/independent.test.ts#independent case';
+    const testLocator = {kind: 'text_source' as const, path: 'tests/independent.test.ts', selector: 'independent case'};
+    const testLayer: GraphIrV2Augmentation = {
+      layerId: 'independent-test-facts',
+      nodes: [
+        {address: testArtifact, nodeType: 'artifact', roles: ['test'], owners: ['feature:F-aaaaaaaa'], provenance: 'authored', locator: testLocator},
+        {
+          address: testAnchor, nodeType: 'anchor', artifact: testArtifact, selector: 'independent case',
+          selectorProvenance: 'authored', provenance: 'authored', locator: testLocator,
+        },
+      ],
+      edges: [{
+        identity: 'independent-test-covers', from: testAnchor, to: CRITERION, relation: 'covers', provenance: 'authored',
+        owner: testLocator, state: 'resolved', raw: '[covers:F-aaaaaaaa/AC-11111111]', normalizedTarget: CRITERION,
+        selector: {precision: 'fragment', value: 'independent case'},
+      }],
+      completeness: 'complete', unknownReasons: [],
     };
-    expect(graphIrV2(unionCompilation, [layer, emptyLayer]).project(request))
-      .toEqual(graphIrV2(unionCompilation, [emptyLayer, layer]).project(request));
+    const documentArtifact = 'artifact:docs/independent.md';
+    const documentAnchor = 'anchor:docs/independent.md#independent section';
+    const documentLocator = {kind: 'text_source' as const, path: 'docs/independent.md', selector: 'independent section'};
+    const documentLayer: GraphIrV2Augmentation = {
+      layerId: 'independent-document-facts',
+      nodes: [
+        {address: documentArtifact, nodeType: 'artifact', roles: ['doc'], owners: [], provenance: 'derived', locator: documentLocator},
+        {
+          address: documentAnchor, nodeType: 'anchor', artifact: documentArtifact, selector: 'independent section',
+          selectorProvenance: 'derived', provenance: 'derived', locator: documentLocator,
+        },
+      ],
+      edges: [{
+        identity: 'independent-document-mentions', from: documentAnchor, to: 'feature:F-aaaaaaaa', relation: 'mentions', provenance: 'derived',
+        owner: documentLocator, state: 'resolved', raw: 'F-aaaaaaaa', normalizedTarget: 'feature:F-aaaaaaaa',
+        selector: {precision: 'fragment', value: 'independent section'},
+      }],
+      completeness: 'complete', unknownReasons: [],
+    };
+    const layers = [layer, testLayer, documentLayer] as const;
+    const orders: readonly (readonly GraphIrV2Augmentation[])[] = [
+      [layers[0], layers[1], layers[2]], [layers[0], layers[2], layers[1]],
+      [layers[1], layers[0], layers[2]], [layers[1], layers[2], layers[0]],
+      [layers[2], layers[0], layers[1]], [layers[2], layers[1], layers[0]],
+    ];
+    const outcomes = orders.map((order) => {
+      const permuted = graphIrV2(unionCompilation, order);
+      const projection = permuted.project({
+        seeds: [
+          `anchor:src/carriers.ts#${scan.records[0]!.selector}`,
+          testAnchor,
+          documentAnchor,
+        ],
+        rules: [
+          {relation: 'traces_to', direction: 'outbound'},
+          {relation: 'covers', direction: 'outbound'},
+          {relation: 'mentions', direction: 'outbound'},
+        ],
+        maxHops: 1,
+        maxNodes: 5,
+        maxEdges: 3,
+      });
+      return {
+        resolutions: [
+          permuted.resolveAddress(`anchor:src/carriers.ts#${scan.records[0]!.selector}`),
+          permuted.resolveAddress(testAnchor),
+          permuted.resolveAddress(documentAnchor),
+        ],
+        projection,
+        corpus: permuted.corpusRecords(),
+        completeness: [projection.completeness, permuted.criterionProofs(CRITERION).completeness],
+      };
+    });
+    expect(orders).toHaveLength(6);
+    expect(outcomes.slice(1)).toEqual(Array.from({length: 5}, () => outcomes[0]));
   });
 });
