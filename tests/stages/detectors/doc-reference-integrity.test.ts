@@ -74,6 +74,25 @@ describe('doc-reference-integrity / DOC_LINK_INTEGRITY', () => {
     expect(fs.some((f) => f.message.includes('F-001'))).toBe(false);
   });
 
+  test('declared unknown features are strict once, including excluded documents, while organic references remain warnings', () => {
+    writeSpec();
+    wdoc('docs/guide.md', '<!-- clad-doc-links: F-deadbeef -->\nprose F-deadbeef and F-cafef00d\n');
+    wdoc('docs/dogfood/fixture.md', '<!-- clad-doc-links: F-deadbeef -->\nprose F-deadbeef\n');
+    const scan = vi.spyOn(documentReferences, 'scanDocumentFacts');
+
+    const fs = run();
+
+    expect(scan).toHaveBeenCalledTimes(1);
+    expect(fs.filter((finding) => finding.message.includes('F-deadbeef'))).toEqual([
+      expect.objectContaining({severity: 'error', path: 'docs/dogfood/fixture.md'}),
+      expect.objectContaining({severity: 'error', path: 'docs/guide.md'}),
+    ]);
+    expect(fs.filter((finding) => finding.severity === 'warn' && finding.message.includes('F-deadbeef'))).toEqual([]);
+    expect(fs).toEqual(expect.arrayContaining([
+      expect.objectContaining({severity: 'warn', path: 'docs/guide.md', message: expect.stringContaining('F-cafef00d')}),
+    ]));
+  });
+
   test('unsafe local Markdown paths are one-scan errors without target existence checks', () => {
     writeSpec();
     const outside = mkdtempSync(join(tmpdir(), 'clad-docintg-outside-'));

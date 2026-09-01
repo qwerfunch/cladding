@@ -125,20 +125,40 @@ export function documentFactAugmentation(
     readonly path: string;
     readonly owners: Set<string>;
     provenance: 'authored' | 'derived';
-    selector?: string;
   }>();
+  const anchors = new Map<string, GraphIrV2AugmentationNode>();
   const edges: GraphIrV2StructuralEdge[] = [];
   const unknownReasons = [...scan.unknownReasons];
-  const addArtifact = (path: string, owners: readonly string[] = [], provenance: 'authored' | 'derived' = 'derived', selector?: string): string => {
+  const addArtifact = (path: string, owners: readonly string[] = [], provenance: 'authored' | 'derived' = 'derived'): string => {
     const address = artifactAddress(path);
     const existing = artifacts.get(address);
     if (existing) {
       for (const owner of owners) existing.owners.add(owner);
       if (provenance === 'authored') existing.provenance = 'authored';
-      if (existing.selector === undefined || (selector !== undefined && selector < existing.selector)) existing.selector = selector;
       return address;
     }
-    artifacts.set(address, {path, owners: new Set(owners), provenance, selector});
+    artifacts.set(address, {path, owners: new Set(owners), provenance});
+    return address;
+  };
+  const addAnchor = (
+    path: string,
+    selector: string,
+    selectorProvenance: 'authored' | 'derived',
+    provenance: 'authored' | 'derived',
+  ): string => {
+    const artifact = artifactAddress(path);
+    const address = anchorAddress(path, selector);
+    if (!anchors.has(address)) {
+      anchors.set(address, Object.freeze({
+        address,
+        nodeType: 'anchor' as const,
+        artifact,
+        selector,
+        selectorProvenance,
+        provenance,
+        locator: Object.freeze({kind: 'text_source' as const, path, selector}),
+      }));
+    }
     return address;
   };
 
@@ -146,24 +166,47 @@ export function documentFactAugmentation(
     const explicitOwners = document.explicit
       .map((fact) => `feature:${fact.featureId}`)
       .filter((target) => features.has(target));
-    const explicitSelector = document.explicit.map((fact) => fact.selector).sort()[0];
-    const source = addArtifact(document.doc, explicitOwners, explicitOwners.length > 0 ? 'authored' : 'derived', explicitSelector);
+    addArtifact(document.doc, explicitOwners, explicitOwners.length > 0 ? 'authored' : 'derived');
     for (const fact of document.explicit) {
       const target = `feature:${fact.featureId}`;
       const state = features.has(target) ? 'resolved' as const : 'unresolved' as const;
       if (state === 'unresolved') unknownReasons.push(`explicit document feature target is absent: ${fact.featureId} at ${document.doc}#${fact.selector}`);
-      edges.push(documentEdge('explains', source, target, state, document.doc, fact.selector, fact.raw));
+      edges.push(documentEdge(
+        'explains',
+        addAnchor(document.doc, fact.selector, 'authored', 'authored'),
+        target,
+        state,
+        document.doc,
+        fact.selector,
+        fact.raw,
+      ));
     }
     for (const fact of document.organic) {
       const target = `feature:${fact.featureId}`;
       const state = features.has(target) ? 'resolved' as const : 'unresolved' as const;
-      edges.push(documentEdge('mentions', source, target, state, document.doc, fact.selector, fact.raw));
+      edges.push(documentEdge(
+        'mentions',
+        addAnchor(document.doc, fact.selector, 'derived', 'derived'),
+        target,
+        state,
+        document.doc,
+        fact.selector,
+        fact.raw,
+      ));
     }
     for (const link of document.links) {
       const target = artifactAddress(link.target);
       if (link.state === 'resolved') addArtifact(link.target);
       else unknownReasons.push(`repository-local Markdown link target is absent: ${link.target} at ${document.doc}#${link.selector}`);
-      edges.push(documentEdge('links_to', source, target, link.state, document.doc, link.selector, link.raw));
+      edges.push(documentEdge(
+        'links_to',
+        addAnchor(document.doc, link.selector, 'authored', 'authored'),
+        target,
+        link.state,
+        document.doc,
+        link.selector,
+        link.raw,
+      ));
     }
     for (const issue of document.issues) {
       // An unsafe spelling is diagnostic evidence, never an artifact address or
@@ -173,20 +216,22 @@ export function documentFactAugmentation(
       );
     }
   }
-  const nodes: GraphIrV2AugmentationNode[] = [...artifacts.entries()]
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([address, artifact]) => Object.freeze({
-      address,
-      nodeType: 'artifact' as const,
-      roles: Object.freeze(['doc'] as const),
-      owners: Object.freeze([...artifact.owners].sort()),
-      provenance: artifact.provenance,
-      locator: Object.freeze({
-        kind: 'text_source' as const,
-        path: artifact.path,
-        ...(artifact.selector === undefined ? {} : {selector: artifact.selector}),
-      }),
-    }));
+  const nodes: GraphIrV2AugmentationNode[] = [
+    ...[...artifacts.entries()]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([address, artifact]) => Object.freeze({
+        address,
+        nodeType: 'artifact' as const,
+        roles: Object.freeze(['doc'] as const),
+        owners: Object.freeze([...artifact.owners].sort()),
+        provenance: artifact.provenance,
+        locator: Object.freeze({
+          kind: 'text_source' as const,
+          path: artifact.path,
+        }),
+      })),
+    ...[...anchors.values()].sort((left, right) => left.address.localeCompare(right.address)),
+  ];
   return freezeLayer({
     layerId: DOCUMENT_LAYER_ID,
     nodes,
@@ -206,7 +251,7 @@ function documentEdge(
   raw: string,
 ): GraphIrV2StructuralEdge {
   return Object.freeze({
-    identity: `${relation}:${from}#${selector}->${to}`,
+    identity: `${relation}:${from}->${to}`,
     from,
     to,
     relation,

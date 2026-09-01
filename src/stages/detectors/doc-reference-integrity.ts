@@ -8,8 +8,10 @@
 // Three checks (scoping in src/spec/doc-references.ts — fixture dirs excluded,
 // code spans skipped, per-file `clad-doc-links: ignore` opt-out honoured):
 //   • doc → doc  : a relative .md link resolving to no file → ERROR (unambiguous).
-//   • doc → spec : an F-id in a scoped doc resolving to no feature → WARN
-//                  (rides the warn/strict dial — advisory locally, blocks on push).
+//   • declared doc → spec : an explicit clad-doc-links F-id resolving to no
+//                           feature → ERROR (an authored binding is strict).
+//   • organic doc → spec  : a prose F-id resolving to no feature → WARN
+//                           (rides the warn/strict dial — advisory locally, blocks on push).
 //   • unsafe path: an escape or external symlink spelling → ERROR without an
 //                  outside-workspace filesystem probe.
 
@@ -30,9 +32,6 @@ function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
   const findings: DriftFinding[] = [];
   for (const document of scanDocumentFacts(cwd).docs) {
     if (!document.readable) continue;
-    const featureReferences = document.excluded
-      ? document.explicit
-      : [...document.explicit, ...document.organic];
     const seenTargets = new Set<string>();
     for (const link of document.links) {
       if (link.state === 'unresolved' && !seenTargets.has(link.target)) {
@@ -53,8 +52,22 @@ function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
         message: `doc '${document.doc}' has unsafe local Markdown path '${issue.raw}' (${issue.reason})`,
       });
     }
-    for (const fid of new Set(featureReferences.map((fact) => fact.featureId))) {
+    const explicitIds = new Set(document.explicit.map((fact) => fact.featureId));
+    for (const fid of explicitIds) {
       if (!featureIds.has(fid)) {
+        findings.push({
+          detector: NAME,
+          severity: 'error',
+          path: document.doc,
+          message:
+            `doc '${document.doc}' declares unknown feature '${fid}' in clad-doc-links — ` +
+            'declared document references must resolve.',
+        });
+      }
+    }
+    if (document.excluded) continue;
+    for (const fid of new Set(document.organic.map((fact) => fact.featureId))) {
+      if (!featureIds.has(fid) && !explicitIds.has(fid)) {
         findings.push({
           detector: NAME,
           severity: 'warn',

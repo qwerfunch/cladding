@@ -306,21 +306,43 @@ describe('GraphIR document facts', () => {
 
     expect(JSON.stringify(first)).toBe(JSON.stringify(second));
     expect(first.nodes).toEqual(expect.arrayContaining([
-      expect.objectContaining({address: artifact, roles: ['doc'], owners: ['feature:F-aaaaaaaa']}),
+      expect.objectContaining({
+        address: artifact,
+        roles: ['doc'],
+        owners: ['feature:F-aaaaaaaa'],
+        locator: {kind: 'text_source', path: 'docs/guide.md'},
+      }),
       expect.objectContaining({address: 'artifact:docs/empty.md', roles: ['doc'], owners: []}),
       expect.objectContaining({address: 'artifact:docs/target.md', roles: ['doc']}),
     ]));
+    expect(first.nodes.filter((node) => node.address === 'artifact:docs/target.md')).toEqual([
+      expect.objectContaining({locator: {kind: 'text_source', path: 'docs/target.md'}}),
+    ]);
     expect(first.edges).toEqual(expect.arrayContaining([
-      expect.objectContaining({relation: 'explains', provenance: 'authored', from: artifact, to: 'feature:F-aaaaaaaa', state: 'resolved'}),
-      expect.objectContaining({relation: 'mentions', provenance: 'derived', from: artifact, to: 'feature:F-aaaaaaaa', state: 'resolved'}),
-      expect.objectContaining({relation: 'mentions', provenance: 'derived', from: artifact, to: 'feature:F-bbbbbbbb', state: 'resolved'}),
-      expect.objectContaining({relation: 'mentions', provenance: 'derived', from: artifact, to: 'feature:F-deadbeef', state: 'unresolved'}),
-      expect.objectContaining({relation: 'links_to', provenance: 'authored', from: artifact, to: 'artifact:docs/target.md', raw: './target.md#section', state: 'resolved'}),
-      expect.objectContaining({relation: 'links_to', provenance: 'authored', from: artifact, to: 'artifact:docs/missing.md', state: 'unresolved'}),
-      expect.objectContaining({relation: 'explains', from: 'artifact:docs/dogfood/fixture.md', to: 'feature:F-aaaaaaaa'}),
+      expect.objectContaining({relation: 'explains', provenance: 'authored', from: expect.stringMatching(/^anchor:docs\/guide\.md#declaration:/), to: 'feature:F-aaaaaaaa', state: 'resolved'}),
+      expect.objectContaining({relation: 'mentions', provenance: 'derived', from: expect.stringMatching(/^anchor:docs\/guide\.md#mention:/), to: 'feature:F-aaaaaaaa', state: 'resolved'}),
+      expect.objectContaining({relation: 'mentions', provenance: 'derived', from: expect.stringMatching(/^anchor:docs\/guide\.md#mention:/), to: 'feature:F-bbbbbbbb', state: 'resolved'}),
+      expect.objectContaining({relation: 'mentions', provenance: 'derived', from: expect.stringMatching(/^anchor:docs\/guide\.md#mention:/), to: 'feature:F-deadbeef', state: 'unresolved'}),
+      expect.objectContaining({relation: 'links_to', provenance: 'authored', from: expect.stringMatching(/^anchor:docs\/guide\.md#link:/), to: 'artifact:docs/target.md', raw: './target.md#section', state: 'resolved'}),
+      expect.objectContaining({relation: 'links_to', provenance: 'authored', from: expect.stringMatching(/^anchor:docs\/guide\.md#link:/), to: 'artifact:docs/missing.md', state: 'unresolved'}),
+      expect.objectContaining({relation: 'explains', from: expect.stringMatching(/^anchor:docs\/dogfood\/fixture\.md#declaration:/), to: 'feature:F-aaaaaaaa'}),
     ]));
     expect(first.edges.filter((edge) => edge.relation === 'mentions' && edge.to === 'feature:F-aaaaaaaa')).toHaveLength(1);
-    expect(first.edges.filter((edge) => edge.from === 'artifact:docs/dogfood/fixture.md' && edge.relation !== 'explains')).toEqual([]);
+    expect(first.edges.some((edge) => edge.from.startsWith('artifact:'))).toBe(false);
+    expect(first.nodes.filter((node) => node.nodeType === 'anchor')).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        artifact,
+        selectorProvenance: 'authored',
+        provenance: 'authored',
+        locator: expect.objectContaining({kind: 'text_source', path: 'docs/guide.md'}),
+      }),
+      expect.objectContaining({
+        artifact,
+        selectorProvenance: 'derived',
+        provenance: 'derived',
+        locator: expect.objectContaining({kind: 'text_source', path: 'docs/guide.md'}),
+      }),
+    ]));
     expect(first).toMatchObject({
       completeness: 'unknown',
       unknownReasons: expect.arrayContaining([
@@ -343,7 +365,24 @@ describe('GraphIR document facts', () => {
       edges: [], completeness: 'complete', unknownReasons: [],
     };
     const kernel = graphIrV2(compilation, [existingSourceAndTest, first]);
-    const projection = kernel.project({
+    const featureProjection = kernel.project({
+      seeds: ['feature:F-aaaaaaaa'],
+      rules: [
+        {relation: 'explains', direction: 'inbound'},
+        {relation: 'mentions', direction: 'inbound'},
+      ],
+      maxHops: 1, maxNodes: 10, maxEdges: 10,
+    });
+    const declaration = featureProjection.edges.find((edge) => edge.relation === 'explains' && edge.to === 'feature:F-aaaaaaaa');
+    expect(declaration).toBeDefined();
+    expect(kernel.resolveAddress(declaration!.from)).toMatchObject({
+      state: 'resolved', canonical: declaration!.from,
+    });
+    expect(featureProjection).toMatchObject({completeness: 'unknown'});
+    expect(kernel.project({
+      seeds: [declaration!.from], rules: [{relation: 'explains', direction: 'outbound'}], maxHops: 1, maxNodes: 2, maxEdges: 1,
+    }).edges).toEqual([expect.objectContaining({from: declaration!.from, relation: 'explains', to: 'feature:F-aaaaaaaa'})]);
+    expect(kernel.project({
       seeds: [artifact],
       rules: [
         {relation: 'explains', direction: 'outbound'},
@@ -351,11 +390,12 @@ describe('GraphIR document facts', () => {
         {relation: 'links_to', direction: 'outbound'},
       ],
       maxHops: 1, maxNodes: 10, maxEdges: 10,
-    });
-    expect(projection.nodes.filter((node) => node.address === artifact)).toEqual([
+    }).edges).toEqual([]);
+    expect(kernel.project({
+      seeds: [artifact], rules: [{relation: 'explains', direction: 'outbound'}], maxHops: 0, maxNodes: 1, maxEdges: 0,
+    }).nodes).toEqual([
       expect.objectContaining({roles: ['doc', 'source', 'test'], owners: ['feature:F-aaaaaaaa', 'feature:F-bbbbbbbb']}),
     ]);
-    expect(projection).toMatchObject({completeness: 'unknown'});
   });
 
   test('[covers:F-208eaa79/AC-b8ed5507] keeps document GraphIR identities stable across unrelated facts', () => {
@@ -389,9 +429,9 @@ describe('GraphIR document facts', () => {
 
     expect(retained(initial)).toEqual(retained(inserted));
     expect(retained(inserted)).toEqual(expect.arrayContaining([
-      expect.stringContaining('explains:artifact:docs/guide.md#declaration:'),
-      expect.stringContaining('mentions:artifact:docs/guide.md#mention:'),
-      expect.stringContaining('links_to:artifact:docs/guide.md#link:'),
+      expect.stringContaining('explains:anchor:docs/guide.md#declaration:'),
+      expect.stringContaining('mentions:anchor:docs/guide.md#mention:'),
+      expect.stringContaining('links_to:anchor:docs/guide.md#link:'),
     ]));
   });
 
@@ -435,8 +475,13 @@ describe('GraphIR document facts', () => {
     const loaded = loadGraphIrV2Workspace(root);
 
     expect(spy).toHaveBeenCalledTimes(1);
+    const inbound = loaded.kernel.project({
+      seeds: ['feature:F-aaaaaaaa'], rules: [{relation: 'explains', direction: 'inbound'}], maxHops: 1, maxNodes: 2, maxEdges: 1,
+    });
+    expect(inbound.edges).toEqual([expect.objectContaining({relation: 'explains', state: 'resolved', from: expect.stringMatching(/^anchor:/)})]);
+    expect(loaded.kernel.resolveAddress(inbound.edges[0]!.from)).toMatchObject({state: 'resolved', canonical: inbound.edges[0]!.from});
     expect(loaded.kernel.project({
       seeds: ['artifact:docs/guide.md'], rules: [{relation: 'explains', direction: 'outbound'}], maxHops: 1, maxNodes: 2, maxEdges: 1,
-    }).edges).toEqual([expect.objectContaining({relation: 'explains', state: 'resolved'})]);
+    }).edges).toEqual([]);
   });
 });

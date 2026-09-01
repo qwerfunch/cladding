@@ -173,9 +173,13 @@ describe('GraphIR workspace query boundary', () => {
         expect(workspace.spec.features.find((feature) => feature.id === 'F-aaaaaaaa')?.status).toBe('done');
         expect(workspace.compilation.contract?.features.find((feature) => feature.id === 'F-aaaaaaaa')?.status).toBe('done');
         expect(workspace.kernel.presentationRecords().find((record) => record.address === 'feature:F-aaaaaaaa')?.status).toBe('done');
-        expect(workspace.kernel.project({
-          seeds: ['artifact:docs/guide.md'], rules: [{relation: 'explains', direction: 'outbound'}], maxHops: 1, maxNodes: 2, maxEdges: 1,
-        }).edges).toEqual([expect.objectContaining({relation: 'explains', state: 'resolved'})]);
+        const documentEdges = workspace.kernel.project({
+          seeds: ['feature:F-aaaaaaaa'], rules: [{relation: 'explains', direction: 'inbound'}], maxHops: 1, maxNodes: 2, maxEdges: 1,
+        }).edges;
+        expect(documentEdges).toEqual([expect.objectContaining({relation: 'explains', state: 'resolved', from: expect.stringMatching(/^anchor:/)})]);
+        expect(workspace.kernel.resolveAddress(documentEdges[0]!.from)).toMatchObject({
+          state: 'resolved', canonical: documentEdges[0]!.from,
+        });
       }),
     );
     expect(documentScan).toHaveBeenCalledTimes(1);

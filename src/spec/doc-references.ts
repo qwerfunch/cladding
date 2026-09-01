@@ -265,8 +265,12 @@ function trackedLinkTarget(cwd: string, docRel: string, raw: string): {
   readonly unknownReason?: string;
 } | {readonly unsafe: DocumentLinkIssue['reason']} | undefined {
   const root = resolve(cwd);
+  // A protocol-relative URL has the same leading slashes as a POSIX path, but
+  // its Markdown meaning is external and it must never become a repository
+  // safety finding or GraphIR target.
+  if (raw.startsWith('//')) return undefined;
   if (isAbsoluteMarkdownPath(raw)) return Object.freeze({unsafe: 'absolute_path'});
-  if (/^(?:[a-z]+:|\/\/)/i.test(raw)) return undefined;
+  if (isExternalMarkdownTarget(raw)) return undefined;
   const absolute = resolve(root, dirname(docRel), raw.replaceAll('\\', '/'));
   const target = toPosix(relative(root, absolute));
   if (!isWorkspaceRelative(target)) return Object.freeze({unsafe: 'path_escapes_workspace'});
@@ -292,6 +296,11 @@ function trackedLinkTarget(cwd: string, docRel: string, raw: string): {
     if (index === parts.length - 1) return Object.freeze({target, state: stat.isFile() ? 'resolved' : 'unresolved'});
   }
   return Object.freeze({target, state: 'unresolved'});
+}
+
+/** Identifies non-file RFC-style Markdown destinations. */
+function isExternalMarkdownTarget(raw: string): boolean {
+  return /^[A-Za-z][A-Za-z0-9+.-]*:/.test(raw) && !/^file:/i.test(raw);
 }
 
 /** Rejects POSIX, Windows-drive, and backslash-rooted local Markdown targets. */

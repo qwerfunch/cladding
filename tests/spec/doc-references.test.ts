@@ -178,6 +178,17 @@ describe('doc-references', () => {
     ].join('\n'));
   });
 
+  test('keeps safe missing internal Markdown targets in the legacy projection', () => {
+    wdoc('docs/guide.md', '[missing](./missing.md)');
+
+    const guide = extractDocReferences(dir).docs.find((document) => document.doc === 'docs/guide.md');
+
+    expect(guide?.doc_links).toEqual(['docs/missing.md']);
+    expect(scanDocumentFacts(dir).docs.find((document) => document.doc === 'docs/guide.md')?.links).toEqual([
+      expect.objectContaining({target: 'docs/missing.md', state: 'unresolved'}),
+    ]);
+  });
+
   test('retains unsafe local Markdown paths as scan issues without projecting their targets', () => {
     const outside = mkdtempSync(join(tmpdir(), 'clad-docref-outside-'));
     try {
@@ -213,5 +224,31 @@ describe('doc-references', () => {
     } finally {
       rmSync(outside, {recursive: true, force: true});
     }
+  });
+
+  test('ignores protocol-relative and RFC-scheme Markdown destinations without weakening local path safety', () => {
+    wdoc('docs/guide.md', [
+      '[protocol-relative](//example.com/foo.md)',
+      '[https](https://example.com/foo.md)',
+      '[mailto](mailto:docs@example.com/foo.md)',
+      '[custom](web+test:example.com/foo.md)',
+      '[file](file:///outside.md)',
+      '[posix](/outside.md)',
+      '[windows](C:\\outside.md)',
+      '[unc](\\\\server\\share\\outside.md)',
+      '',
+    ].join('\n'));
+
+    const guide = scanDocumentFacts(dir).docs.find((document) => document.doc === 'docs/guide.md');
+
+    expect(guide?.links).toEqual([]);
+    expect(guide?.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({raw: 'file:///outside.md', reason: 'absolute_path'}),
+      expect.objectContaining({raw: '/outside.md', reason: 'absolute_path'}),
+      expect.objectContaining({raw: 'C:\\outside.md', reason: 'absolute_path'}),
+      expect.objectContaining({raw: '\\\\server\\share\\outside.md', reason: 'absolute_path'}),
+    ]));
+    expect(guide?.issues.some((issue) => issue.raw.includes('example.com') || issue.raw.startsWith('mailto:'))).toBe(false);
+    expect(extractDocReferences(dir).docs.find((document) => document.doc === 'docs/guide.md')?.doc_links).toEqual([]);
   });
 });
