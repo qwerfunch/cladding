@@ -322,7 +322,7 @@ describe('bounded source-reference scanner', () => {
       .map((node) => node.address.slice('artifact:'.length)));
     const declarationRecords = scan.records.filter((record) => record.sourcePath === 'scripts/plugin-mirror-policy.d.mts');
 
-    expect(carriers).toHaveLength(99);
+    expect(carriers.size).toBe(99);
     expect(scan.records).toHaveLength(132);
     expect(scan.records.every((record) => record.state === 'resolved' && sourceArtifacts.has(record.sourcePath))).toBe(true);
     expect(scan.issues).toEqual([]);

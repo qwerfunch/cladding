@@ -48,22 +48,31 @@ function writeSourceFixture(
   schema: '0.1' | '0.2',
   source: string,
   modules: readonly string[] = ['src/carriers.ts'],
-  capabilityRefs: readonly string[] = [],
+  capabilityRefs?: readonly string[],
 ): void {
-  if (schema === '0.2') {
+  if (schema === '0.1') {
+    if (capabilityRefs !== undefined) {
+      throw new Error('schema 0.1 source fixtures do not accept capability references');
+    }
+    writeFileSync(join(dir, SOURCE_SHARD), [
+      'id: F-aaaaaaaa', 'title: Alpha', 'status: planned', `modules: [${modules.join(', ')}]`,
+      'acceptance_criteria:', '  - id: AC-11111111',
+      '    text: The system shall preserve authored source references.', '',
+    ].join('\n'));
+  } else {
     writeFileSync(join(dir, 'spec.yaml'), [
       'schema: "0.2"', 'project:', '  name: source-references', '  language: typescript',
       '  purpose: Keep authored source references strict.', '  assurance_level: L2', '  scenario_policy: advisory', '',
     ].join('\n'));
     writeFileSync(join(dir, 'spec', 'capabilities.yaml'), 'capabilities: []\n');
     writeFileSync(join(dir, 'spec', 'architecture.yaml'), 'layers: []\nrules: []\n');
+    writeFileSync(join(dir, SOURCE_SHARD), [
+      'id: F-aaaaaaaa', 'title: Alpha', 'status: planned', 'purpose: Keep authored source references strict.',
+      `modules: [${modules.join(', ')}]`, 'depends_on: []', `capability_refs: [${(capabilityRefs ?? []).join(', ')}]`,
+      'acceptance_criteria:', '  - id: AC-11111111', '    kind: behavior',
+      '    statement: The system shall preserve authored source references.', '',
+    ].join('\n'));
   }
-  writeFileSync(join(dir, SOURCE_SHARD), [
-    'id: F-aaaaaaaa', 'title: Alpha', 'status: planned', 'purpose: Keep authored source references strict.',
-    `modules: [${modules.join(', ')}]`, 'depends_on: []', `capability_refs: [${capabilityRefs.join(', ')}]`,
-    'acceptance_criteria:', '  - id: AC-11111111', '    kind: behavior',
-    '    statement: The system shall preserve authored source references.', '',
-  ].join('\n'));
   mkdirSync(join(dir, 'src'), {recursive: true});
   writeFileSync(join(dir, 'src', 'carriers.ts'), source);
 }
