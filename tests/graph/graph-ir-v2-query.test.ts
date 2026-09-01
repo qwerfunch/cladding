@@ -241,6 +241,24 @@ describe('compiler GraphIR v2 query kernel', () => {
     expect(graphIrV2(compilation, [{...layer, edges: [unresolvedMissingTarget]}]).criterionProofs(criterion).records).toEqual(expect.arrayContaining([
       expect.objectContaining({identity: 'case:strict', state: 'unresolved', normalizedTarget: missingCanonicalTarget}),
     ]));
+    const unresolvedDocumentLink = {
+      identity: 'document:missing',
+      from: 'artifact:tests/shared.test.ts',
+      to: 'artifact:docs/missing.md',
+      relation: 'links_to' as const,
+      provenance: 'authored' as const,
+      owner: {kind: 'text_source' as const, path: 'tests/shared.test.ts', selector: 'link:1:1:0'},
+      state: 'unresolved' as const,
+      raw: './missing.md',
+      normalizedTarget: 'artifact:docs/missing.md',
+      selector: {precision: 'fragment' as const, value: 'link:1:1:0'},
+    };
+    const unresolvedKernel = graphIrV2(compilation, [{
+      layerId: 'unresolved-document-link', nodes: [], edges: [unresolvedDocumentLink], completeness: 'unknown', unknownReasons: ['missing document target'],
+    }]);
+    expect(unresolvedKernel.project({
+      seeds: ['artifact:tests/shared.test.ts'], rules: [{relation: 'links_to', direction: 'outbound'}], maxHops: 1, maxNodes: 2, maxEdges: 1,
+    })).toMatchObject({completeness: 'unknown', reasons: expect.arrayContaining(['edge endpoint is absent: authored:document:missing'])});
     expect(() => graphIrV2(compilation, [{...layer, edges: [{...edge, state: 'resolved' as const, normalizedTarget: missingCanonicalTarget}]}])).toThrow(/normalized target.*absent from the combined GraphIR node set/);
     expect(() => graphIrV2(compilation, [{...layer, edges: [{...unresolvedMissingTarget, normalizedTarget: 'runtime/missing-receipt.json'}]}])).toThrow(/not canonical/);
   });

@@ -6,10 +6,12 @@ import {join} from 'node:path';
 
 import {afterEach, describe, expect, test, vi} from 'vitest';
 
-import {workspaceFactAugmentation} from '../../src/graph/workspace-facts.js';
+import {documentFactAugmentation, workspaceFactAugmentation} from '../../src/graph/workspace-facts.js';
 import {graphIrV2, type GraphIrV2Augmentation} from '../../src/spec/compiler/graph-ir-v2.js';
 import {compileSpecWorkspace} from '../../src/spec/compiler/compile.js';
 import type {ArtifactRole, GraphNode} from '../../src/spec/compiler/types.js';
+import {scanDocumentFacts} from '../../src/spec/doc-references.js';
+import * as documentReferences from '../../src/spec/doc-references.js';
 import {currentSafeBindingCensus} from '../../src/proof/current-bindings.js';
 import * as currentBindings from '../../src/proof/current-bindings.js';
 import {knownCriteriaFromCompilerView} from '../../src/proof/vitest-jest.js';
@@ -280,5 +282,93 @@ describe('GraphIR workspace authored covers facts', () => {
     expect(loaded.kernel.criterionProofs('criterion:F-aaaaaaaa/AC-11111111').records).toEqual(expect.arrayContaining([
       expect.objectContaining({relation: 'covers', provenance: 'authored', state: 'resolved'}),
     ]));
+  });
+});
+
+describe('GraphIR document facts', () => {
+  test('[covers:F-208eaa79/AC-4f8c2542] keeps declarations, organic mentions, and Markdown targets provenance-distinct', () => {
+    const root = workspace();
+    writeSchema01Features(root);
+    mkdirSync(join(root, 'docs', 'dogfood'), {recursive: true});
+    writeFileSync(join(root, 'docs', 'target.md'), '# target\n');
+    writeFileSync(join(root, 'docs', 'empty.md'), '# no references\n');
+    writeFileSync(join(root, 'docs', 'guide.md'), [
+      '<!-- clad-doc-links: F-aaaaaaaa -->',
+      'Organic F-aaaaaaaa stays declaration-only; F-bbbbbbbb and F-deadbeef remain prose facts.',
+      '[target](./target.md#section) [missing](./missing.md)', '',
+    ].join('\n'));
+    writeFileSync(join(root, 'docs', 'strict.md'), '<!-- clad-doc-links: F-feedbeef -->\n');
+    writeFileSync(join(root, 'docs', 'dogfood', 'fixture.md'), '<!-- clad-doc-links: F-aaaaaaaa --> F-deadbeef [ignored](./missing.md)\n');
+    const compilation = compileSpecWorkspace(root);
+    const first = documentFactAugmentation(compilation, scanDocumentFacts(root));
+    const second = documentFactAugmentation(compilation, scanDocumentFacts(root));
+    const artifact = 'artifact:docs/guide.md';
+
+    expect(JSON.stringify(first)).toBe(JSON.stringify(second));
+    expect(first.nodes).toEqual(expect.arrayContaining([
+      expect.objectContaining({address: artifact, roles: ['doc'], owners: ['feature:F-aaaaaaaa']}),
+      expect.objectContaining({address: 'artifact:docs/empty.md', roles: ['doc'], owners: []}),
+      expect.objectContaining({address: 'artifact:docs/target.md', roles: ['doc']}),
+    ]));
+    expect(first.edges).toEqual(expect.arrayContaining([
+      expect.objectContaining({relation: 'explains', provenance: 'authored', from: artifact, to: 'feature:F-aaaaaaaa', state: 'resolved'}),
+      expect.objectContaining({relation: 'mentions', provenance: 'derived', from: artifact, to: 'feature:F-bbbbbbbb', state: 'resolved'}),
+      expect.objectContaining({relation: 'mentions', provenance: 'derived', from: artifact, to: 'feature:F-deadbeef', state: 'unresolved'}),
+      expect.objectContaining({relation: 'links_to', provenance: 'authored', from: artifact, to: 'artifact:docs/target.md', raw: './target.md#section', state: 'resolved'}),
+      expect.objectContaining({relation: 'links_to', provenance: 'authored', from: artifact, to: 'artifact:docs/missing.md', state: 'unresolved'}),
+      expect.objectContaining({relation: 'explains', from: 'artifact:docs/dogfood/fixture.md', to: 'feature:F-aaaaaaaa'}),
+    ]));
+    expect(first.edges.filter((edge) => edge.relation === 'mentions' && edge.to === 'feature:F-aaaaaaaa')).toEqual([]);
+    expect(first.edges.filter((edge) => edge.from === 'artifact:docs/dogfood/fixture.md' && edge.relation !== 'explains')).toEqual([]);
+    expect(first).toMatchObject({
+      completeness: 'unknown',
+      unknownReasons: expect.arrayContaining([
+        expect.stringContaining('explicit document feature target is absent: F-feedbeef'),
+        expect.stringContaining('repository-local Markdown link target is absent: docs/missing.md'),
+      ]),
+    });
+    expect(first.unknownReasons.some((reason) => reason.includes('F-deadbeef'))).toBe(false);
+
+    const existingSourceAndTest: GraphIrV2Augmentation = {
+      layerId: 'existing-source-and-test',
+      nodes: [{
+        address: artifact,
+        nodeType: 'artifact',
+        roles: ['source', 'test'],
+        owners: ['feature:F-bbbbbbbb'],
+        provenance: 'authored',
+        locator: {kind: 'text_source', path: 'docs/guide.md', selector: 'prior artifact'},
+      }],
+      edges: [], completeness: 'complete', unknownReasons: [],
+    };
+    const kernel = graphIrV2(compilation, [existingSourceAndTest, first]);
+    const projection = kernel.project({
+      seeds: [artifact],
+      rules: [
+        {relation: 'explains', direction: 'outbound'},
+        {relation: 'mentions', direction: 'outbound'},
+        {relation: 'links_to', direction: 'outbound'},
+      ],
+      maxHops: 1, maxNodes: 10, maxEdges: 10,
+    });
+    expect(projection.nodes.filter((node) => node.address === artifact)).toEqual([
+      expect.objectContaining({roles: ['doc', 'source', 'test'], owners: ['feature:F-aaaaaaaa', 'feature:F-bbbbbbbb']}),
+    ]);
+    expect(projection).toMatchObject({completeness: 'unknown'});
+  });
+
+  test('[covers:F-208eaa79/AC-616e6e74] scans documents once when loading the workspace kernel', () => {
+    const root = workspace('0.2');
+    writeSchema02Feature(root);
+    mkdirSync(join(root, 'docs'), {recursive: true});
+    writeFileSync(join(root, 'docs', 'guide.md'), '<!-- clad-doc-links: F-aaaaaaaa -->\n');
+    const spy = vi.spyOn(documentReferences, 'scanDocumentFacts');
+
+    const loaded = loadGraphIrV2Workspace(root);
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(loaded.kernel.project({
+      seeds: ['artifact:docs/guide.md'], rules: [{relation: 'explains', direction: 'outbound'}], maxHops: 1, maxNodes: 2, maxEdges: 1,
+    }).edges).toEqual([expect.objectContaining({relation: 'explains', state: 'resolved'})]);
   });
 });

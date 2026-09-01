@@ -922,9 +922,12 @@ function assertStructuralEdge(
   if (!isNonBlankString(edge.identity)) throw new Error('GraphIR structural edge identity must be nonblank');
   assertTextSourceLocator(edge.owner, `GraphIR structural edge ${edge.identity}`);
   assertCanonicalEndpoint(edge.from, combinedNodes, `GraphIR structural edge source for ${edge.identity}`);
-  assertCanonicalEndpoint(edge.to, combinedNodes, `GraphIR structural edge target for ${edge.identity}`);
   if (edge.state !== 'resolved' && edge.state !== 'unresolved') {
     throw new Error(`GraphIR structural edge has a non-structural state: ${edge.identity}`);
+  }
+  assertCanonicalAddress(edge.to);
+  if (edge.state === 'resolved') {
+    assertCanonicalEndpoint(edge.to, combinedNodes, `GraphIR structural edge target for ${edge.identity}`);
   }
   if (edge.raw !== undefined && typeof edge.raw !== 'string') throw new Error(`GraphIR structural edge has an invalid raw detail: ${edge.identity}`);
   if (edge.normalizedTarget !== undefined) {
@@ -934,7 +937,7 @@ function assertStructuralEdge(
     }
   }
   if (edge.selector !== undefined) assertSelector(edge.selector, edge.identity);
-  assertRelationEndpoints(edge, combinedNodes);
+  assertStructuralRelationEndpoints(edge, combinedNodes);
 }
 
 function assertCanonicalEndpoint(address: string, combinedNodes: ReadonlyMap<string, GraphIrV2Node>, label: string): void {
@@ -958,9 +961,29 @@ function assertRelationEndpoints(edge: GraphIrV2AugmentationEdge, combinedNodes:
   }
 }
 
+/** Validates an unresolved static target from its canonical address, never an alias guess. */
+function assertStructuralRelationEndpoints(edge: GraphIrV2StructuralEdge, combinedNodes: ReadonlyMap<string, GraphIrV2Node>): void {
+  const permitted = RELATION_ENDPOINTS.get(edge.relation);
+  if (!permitted) throw new Error(`GraphIR augmentation edge has an unknown relation: ${edge.relation}`);
+  const from = endpointTaxonomy(combinedNodes.get(edge.from)!);
+  const targetNode = combinedNodes.get(edge.to);
+  const to = targetNode === undefined ? endpointTaxonomyFromCanonicalAddress(edge.to) : endpointTaxonomy(targetNode);
+  if (!permitted[0].includes(from) || !permitted[1].includes(to)) {
+    throw new Error(`GraphIR augmentation edge has invalid ${edge.relation} endpoint taxonomy: ${from} -> ${to}`);
+  }
+}
+
 function endpointTaxonomy(node: GraphIrV2Node): GraphEndpointTaxonomy {
   if (node.nodeType === 'artifact' || node.nodeType === 'anchor') return node.nodeType;
   return node.kind;
+}
+
+/** Infers only the closed endpoint taxonomy encoded by an already-canonical address. */
+function endpointTaxonomyFromCanonicalAddress(address: string): GraphEndpointTaxonomy {
+  if (address.startsWith('artifact:')) return 'artifact';
+  if (address.startsWith('anchor:')) return 'anchor';
+  if (address === 'project') return 'project';
+  return address.slice(0, address.indexOf(':')) as GraphEndpointTaxonomy;
 }
 
 /** Merges only physical artifact facts; every other address collision is unsafe. */

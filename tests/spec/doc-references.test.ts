@@ -1,5 +1,5 @@
-import {extractDocReferences, stripCodeSpans, DOC_LINKS_IGNORE_MARKER} from '../../src/spec/doc-references.js';
-import {mkdtempSync, mkdirSync, rmSync, writeFileSync} from 'node:fs';
+import {extractDocReferences, renderDocLinksYaml, scanDocumentFacts, stripCodeSpans, DOC_LINKS_IGNORE_MARKER} from '../../src/spec/doc-references.js';
+import {mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
@@ -78,5 +78,59 @@ describe('doc-references', () => {
 
   test('DOC_LINKS_IGNORE_MARKER is the expected sentinel', () => {
     expect(DOC_LINKS_IGNORE_MARKER).toBe('clad-doc-links: ignore');
+  });
+
+  test('keeps provenance-distinct facts, no-reference artifacts, and unsafe traversal explicit', () => {
+    wdoc('docs/target.md', '# target');
+    wdoc('docs/empty.md', '# no semantic references');
+    wdoc('docs/ignored.md', '<!-- clad-doc-links: ignore --> F-77777777 [target](./target.md)');
+    wdoc('docs/guide.md', [
+      '<!-- clad-doc-links: F-11111111 -->',
+      'Prose names F-11111111 and F-22222222. [target](./target.md#section) `F-33333333`.',
+      '```md', '<!-- clad-doc-links: F-44444444 -->', '[inert](./missing.md)', '```', '',
+    ].join('\n'));
+    wdoc('docs/dogfood/fixture.md', '<!-- clad-doc-links: F-55555555 --> F-66666666 [ignored](./missing.md)');
+    symlinkSync(join(dir, 'docs', 'target.md'), join(dir, 'docs', 'linked.md'));
+
+    const scan = scanDocumentFacts(dir);
+    const rows = Object.fromEntries(scan.docs.map((doc) => [doc.doc, doc]));
+
+    expect(rows['docs/empty.md']).toMatchObject({explicit: [], organic: [], links: []});
+    expect(rows['docs/guide.md']).toMatchObject({
+      explicit: [expect.objectContaining({featureId: 'F-11111111', raw: 'F-11111111', selector: expect.stringMatching(/^declaration:/)})],
+      organic: [expect.objectContaining({featureId: 'F-22222222'})],
+      links: [expect.objectContaining({raw: './target.md#section', target: 'docs/target.md', state: 'resolved', selector: expect.stringMatching(/^link:/)})],
+    });
+    expect(rows['docs/dogfood/fixture.md']).toMatchObject({
+      excluded: true,
+      explicit: [expect.objectContaining({featureId: 'F-55555555'})],
+      organic: [],
+      links: [],
+    });
+    expect(rows['docs/ignored.md']).toMatchObject({organic: [], links: [expect.objectContaining({target: 'docs/target.md'})]});
+    expect(scan).toMatchObject({
+      completeness: 'unknown',
+      unknownReasons: expect.arrayContaining(['document scan refuses symlink traversal: docs/linked.md']),
+    });
+  });
+
+  test('keeps the legacy projection bytes unchanged for declarations, prose, links, and exclusions', () => {
+    wdoc('docs/a.md', '<!-- clad-doc-links: F-11111111 --> prose F-22222222 [b](./b.md)');
+    wdoc('docs/b.md', '# b');
+    wdoc('docs/dogfood/c.md', '<!-- clad-doc-links: F-33333333 --> prose F-44444444 [b](./b.md)');
+    wdoc('docs/benchmarks/d.md', 'prose F-55555555 [b](./b.md)');
+
+    expect(renderDocLinksYaml(dir)).toBe([
+      '# Cladding · Tier C — generated doc→spec / doc→doc link index (`clad sync`). Do not edit by hand.',
+      '# Source of truth is the docs themselves; DOC_LINK_INTEGRITY validates resolution.',
+      'schema: "0.1"',
+      'docs:',
+      '  "docs/a.md":',
+      '    features: [F-11111111, F-22222222]',
+      '    doc_links: ["docs/b.md"]',
+      '  "docs/dogfood/c.md":',
+      '    features: [F-33333333]',
+      '',
+    ].join('\n'));
   });
 });

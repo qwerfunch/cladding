@@ -121,6 +121,10 @@ describe('doc declarations · extraction + materialization (AC-b0e7dd4d)', () =>
 });
 
 describe('doc declarations · five A/B case docs bound in the real repo (AC-91d9d1a5)', () => {
+  test('the base corpus still projects byte-identically to the committed legacy index', () => {
+    expect(renderDocLinksYaml(repoRoot)).toBe(readFileSync(join(repoRoot, 'spec', '_doc-links.yaml'), 'utf8'));
+  });
+
   test('each of the five A/B case docs binds every id it declares, all resolving to real features', () => {
     const known = new Set(loadSpec(repoRoot).features.map((f) => f.id));
     const rows = byDoc(extractDocReferences(repoRoot));

@@ -1,6 +1,7 @@
 // Cladding · Spec 0.2 F8 · static live-test declarations in the canonical GraphIR.
 
 import {anchorAddress, artifactAddress} from '../spec/compiler/graph-address.js';
+import type {DocumentFactScan} from '../spec/doc-references.js';
 import type {
   GraphIrV2Augmentation,
   GraphIrV2AugmentationNode,
@@ -11,6 +12,7 @@ import type {CurrentSafeBindingCensus} from '../proof/current-bindings.js';
 import type {TestBinding} from '../proof/types.js';
 
 const LAYER_ID = 'current-safe-vitest-jest-bindings';
+const DOCUMENT_LAYER_ID = 'document-facts';
 
 /**
  * Converts one safe F5 source census into static GraphIR facts without
@@ -92,6 +94,122 @@ export function workspaceFactAugmentation(
     }));
   }
   return freezeLayer({layerId: LAYER_ID, nodes, edges, completeness: 'complete', unknownReasons: []});
+}
+
+/**
+ * Converts one caller-owned document scan into provenance-distinct GraphIR
+ * facts. Explicit declarations own `explains`; prose remains non-authoritative
+ * `mentions`; tracked Markdown targets retain their authored `links_to` facts.
+ *
+ * @param compilation - Current compiler snapshot supplying canonical features.
+ * @param scan - One caller-owned document scan, omitted only for sealed prospective overlays.
+ * @returns One immutable document fact layer for the canonical GraphIR kernel.
+ */
+export function documentFactAugmentation(
+  compilation: SpecCompilation,
+  scan: DocumentFactScan | undefined,
+): GraphIrV2Augmentation {
+  if (!scan) {
+    return freezeLayer({
+      layerId: DOCUMENT_LAYER_ID,
+      nodes: [],
+      edges: [],
+      completeness: 'unknown',
+      unknownReasons: ['document scan is unavailable for a prospective workspace overlay'],
+    });
+  }
+  const features = new Set(compilation.nodes
+    .filter((node) => node.nodeType === 'semantic' && node.kind === 'feature')
+    .map((node) => node.address));
+  const artifacts = new Map<string, {
+    readonly path: string;
+    readonly owners: Set<string>;
+    provenance: 'authored' | 'derived';
+    selector?: string;
+  }>();
+  const edges: GraphIrV2StructuralEdge[] = [];
+  const unknownReasons = [...scan.unknownReasons];
+  const addArtifact = (path: string, owners: readonly string[] = [], provenance: 'authored' | 'derived' = 'derived', selector?: string): string => {
+    const address = artifactAddress(path);
+    const existing = artifacts.get(address);
+    if (existing) {
+      for (const owner of owners) existing.owners.add(owner);
+      if (provenance === 'authored') existing.provenance = 'authored';
+      if (existing.selector === undefined || (selector !== undefined && selector < existing.selector)) existing.selector = selector;
+      return address;
+    }
+    artifacts.set(address, {path, owners: new Set(owners), provenance, selector});
+    return address;
+  };
+
+  for (const document of scan.docs) {
+    const explicitOwners = document.explicit
+      .map((fact) => `feature:${fact.featureId}`)
+      .filter((target) => features.has(target));
+    const explicitSelector = document.explicit.map((fact) => fact.selector).sort()[0];
+    const source = addArtifact(document.doc, explicitOwners, explicitOwners.length > 0 ? 'authored' : 'derived', explicitSelector);
+    for (const fact of document.explicit) {
+      const target = `feature:${fact.featureId}`;
+      const state = features.has(target) ? 'resolved' as const : 'unresolved' as const;
+      if (state === 'unresolved') unknownReasons.push(`explicit document feature target is absent: ${fact.featureId} at ${document.doc}#${fact.selector}`);
+      edges.push(documentEdge('explains', source, target, state, document.doc, fact.selector, fact.raw));
+    }
+    for (const fact of document.organic) {
+      const target = `feature:${fact.featureId}`;
+      const state = features.has(target) ? 'resolved' as const : 'unresolved' as const;
+      edges.push(documentEdge('mentions', source, target, state, document.doc, fact.selector, fact.raw));
+    }
+    for (const link of document.links) {
+      const target = artifactAddress(link.target);
+      if (link.state === 'resolved') addArtifact(link.target);
+      else unknownReasons.push(`repository-local Markdown link target is absent: ${link.target} at ${document.doc}#${link.selector}`);
+      edges.push(documentEdge('links_to', source, target, link.state, document.doc, link.selector, link.raw));
+    }
+  }
+  const nodes: GraphIrV2AugmentationNode[] = [...artifacts.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([address, artifact]) => Object.freeze({
+      address,
+      nodeType: 'artifact' as const,
+      roles: Object.freeze(['doc'] as const),
+      owners: Object.freeze([...artifact.owners].sort()),
+      provenance: artifact.provenance,
+      locator: Object.freeze({
+        kind: 'text_source' as const,
+        path: artifact.path,
+        ...(artifact.selector === undefined ? {} : {selector: artifact.selector}),
+      }),
+    }));
+  return freezeLayer({
+    layerId: DOCUMENT_LAYER_ID,
+    nodes,
+    edges: edges.sort((left, right) => left.identity.localeCompare(right.identity)),
+    completeness: unknownReasons.length === 0 && scan.completeness === 'complete' ? 'complete' : 'unknown',
+    unknownReasons: [...new Set(unknownReasons)].sort(),
+  });
+}
+
+function documentEdge(
+  relation: 'explains' | 'mentions' | 'links_to',
+  from: string,
+  to: string,
+  state: 'resolved' | 'unresolved',
+  path: string,
+  selector: string,
+  raw: string,
+): GraphIrV2StructuralEdge {
+  return Object.freeze({
+    identity: `${relation}:${from}#${selector}->${to}`,
+    from,
+    to,
+    relation,
+    provenance: relation === 'mentions' ? 'derived' as const : 'authored' as const,
+    owner: Object.freeze({kind: 'text_source' as const, path, selector}),
+    state,
+    raw,
+    normalizedTarget: to,
+    selector: Object.freeze({precision: 'fragment' as const, value: selector}),
+  });
 }
 
 function censusBlockers(census: CurrentSafeBindingCensus): readonly string[] {
