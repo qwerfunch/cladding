@@ -2,15 +2,15 @@
 
 import {createHash} from 'node:crypto';
 import {lstatSync, readFileSync} from 'node:fs';
-import {join, relative, resolve} from 'node:path';
+import {join, resolve} from 'node:path';
 
 import {derivePluginMirror, mirrorClosurePaths, mirrorManifest} from '../../scripts/plugin-mirror-policy.mjs';
 import {canonicalClosureJson} from './closures.js';
 import {compareCodeUnits} from './registry.js';
 import {currentSafeBindings} from '../proof/current-bindings.js';
 import {buildProofView} from '../proof/view.js';
-import type {JUnitCaseObservation, JUnitReport} from '../stages/junit-report.js';
-import {parseJUnitReport} from '../stages/junit-report.js';
+import type {JUnitReport} from '../stages/junit-report.js';
+import {parseJUnitReport, parseVitestJsonReport} from '../stages/junit-report.js';
 import {isCurrentRunProofEvidence, type CurrentRunProofEvidence} from '../stages/test-run-cache.js';
 import type {SpecCompilation} from '../spec/compiler/types.js';
 
@@ -172,12 +172,14 @@ const behaviorRule = (
  */
 export const CRITERION_OBSERVATION_RULES: readonly CriterionObservationRule[] = Object.freeze([
   behaviorRule('F-b7873005/AC-0fa3265d', 'proof-view', {id: 'tool-output-location-parser', version: '2'}, [
-    artifact('src/stages/finding-parser.ts'), artifact(FINDING_PARSER_BINDING.path), artifact('src/assurance/criterion-observations.ts'),
+    artifact('src/stages/finding-parser.ts'), artifact(FINDING_PARSER_BINDING.path),
+    artifact('src/assurance/criterion-observations.ts'), artifact('src/stages/junit-report.ts'),
   ], {
     carrier: 'proof-view', binding: FINDING_PARSER_BINDING, adapterInput: 'captured-tool-output-v1', locationSource: 'adapter-only',
   }),
   behaviorRule('F-c58263b8/AC-01797b10', 'current-suite-closure', {id: 'compaction-proof-closure', version: '2'}, [
-    ...COMPACTION_SUITES.map(artifact), ...COMPACTION_IMPLEMENTATIONS.map(artifact), artifact('package.json'), artifact('vitest.config.ts'), artifact('src/assurance/criterion-observations.ts'),
+    ...COMPACTION_SUITES.map(artifact), ...COMPACTION_IMPLEMENTATIONS.map(artifact), artifact('package.json'),
+    artifact('vitest.config.ts'), artifact('src/assurance/criterion-observations.ts'), artifact('src/stages/junit-report.ts'),
   ], {
     carrier: 'current-suite-closure', suites: COMPACTION_SUITES, implementations: COMPACTION_IMPLEMENTATIONS,
     runnerConfig: ['package.json', 'vitest.config.ts'], adapterPolicy: 'criterion-observations-v2',
@@ -467,33 +469,7 @@ function currentRunReport(currentRun: CurrentRunProofEvidence, cwd: string): JUn
   if (currentRun.format === 'junit-xml') {
     try { return parseJUnitReport(currentRun.reportBytes); } catch { return undefined; }
   }
-  try {
-    const parsed = JSON.parse(currentRun.reportBytes) as {testResults?: readonly {name?: string; assertionResults?: readonly {status?: string; fullName?: string; title?: string}[]}[]};
-    if (!Array.isArray(parsed.testResults)) return undefined;
-    const report = new Map() as JUnitReport;
-    const cases: JUnitCaseObservation[] = [];
-    for (const file of parsed.testResults) {
-      if (typeof file.name !== 'string') continue;
-      const path = relative(resolve(cwd), resolve(cwd, file.name)).replaceAll('\\', '/');
-      if (!path || path.startsWith('../')) continue;
-      for (const assertion of file.assertionResults ?? []) {
-        const name = assertion.fullName ?? assertion.title;
-        if (!name) continue;
-        const status = assertion.status === 'passed' ? 'pass' as const : assertion.status === 'failed' ? 'fail' as const
-          : assertion.status === 'skipped' || assertion.status === 'pending' || assertion.status === 'todo' ? 'skip' as const : 'error' as const;
-        const aggregate = report.get(path) ?? {pass: 0, fail: 0, skip: 0};
-        if (status === 'pass') aggregate.pass += 1;
-        else if (status === 'skip') aggregate.skip += 1;
-        else aggregate.fail += 1;
-        report.set(path, aggregate);
-        cases.push(Object.freeze({file: path, files: Object.freeze([path]), className: path, name, ...(typeof assertion.title === 'string' ? {sourceTitle: assertion.title} : {}), status}));
-      }
-    }
-    Object.defineProperty(report, 'cases', {value: Object.freeze(cases), enumerable: false});
-    return report;
-  } catch {
-    return undefined;
-  }
+  return parseVitestJsonReport(currentRun.reportBytes, cwd);
 }
 
 function isCurrentRunUsable(currentRun: CurrentRunProofEvidence | undefined, expected: string | undefined): currentRun is CurrentRunProofEvidence {

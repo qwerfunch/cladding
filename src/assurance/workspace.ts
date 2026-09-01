@@ -45,7 +45,7 @@ import {selectCriterionTestBindings} from '../proof/legacy-bindings.js';
 import type {TestBinding} from '../proof/types.js';
 import {buildProofView, type CriterionProofView} from '../proof/view.js';
 import {criterionBaselineMatchShape} from '../spec/compiler/consumer-view.js';
-import {parseJUnitReport, type JUnitReport} from '../stages/junit-report.js';
+import {parseJUnitReport, parseVitestJsonReport, type JUnitReport} from '../stages/junit-report.js';
 import {isCurrentRunProofEvidence, type CurrentRunProofEvidence} from '../stages/test-run-cache.js';
 
 /**
@@ -748,7 +748,7 @@ export function currentProofViewsFromWorkspace(
     && /^[0-9a-f]{64}$/.test(currentRun.reportSha256)
     && isCurrentRunProofEvidence(currentRun)
     ? currentRun.format === 'vitest-json'
-      ? currentVitestReport(currentRun.reportBytes, cwd)
+      ? parseVitestJsonReport(currentRun.reportBytes, cwd)
       : currentJUnitReport(currentRun.reportBytes)
     : undefined;
   const bindings = report ? currentProofBindingsFromWorkspace(cwd, compilation) : [];
@@ -1219,12 +1219,16 @@ function discoverRunnerControls(cwd: string, families: ReadonlySet<AssuranceCont
         issues.add(`unresolved:${path}`);
         continue;
       }
+      // Installed dependency/build bytes are already excluded; bare packages
+      // are manifest/lock-bound. A different symlink rule would split physical
+      // and linked installs without sealing either, so ignore them here.
+      if (skipDirectory(path, entry.name)) continue;
       if (entry.isSymbolicLink() || stat.isSymbolicLink()) {
         issues.add(`symlink:${path}`);
         continue;
       }
       if (stat.isDirectory()) {
-        if (!skipDirectory(path, entry.name)) visitDirectory(child);
+        visitDirectory(child);
         continue;
       }
       if (!stat.isFile()) continue;
@@ -1823,71 +1827,6 @@ function isRequireCall(callee: {readonly type?: string; readonly name?: string; 
 function currentJUnitReport(bytes: string): JUnitReport | undefined {
   try {
     return parseJUnitReport(bytes);
-  } catch {
-    return undefined;
-  }
-}
-
-/** Converts only this gate's Vitest JSON reporter output to F5's JUnit view. */
-function currentVitestReport(bytes: string, cwd: string): JUnitReport | undefined {
-  try {
-    const parsed = JSON.parse(bytes) as {
-      testResults?: readonly {
-        readonly name?: string;
-        readonly assertionResults?: readonly {
-          readonly status?: string;
-          readonly fullName?: string;
-          readonly title?: string;
-          readonly ancestorTitles?: unknown;
-        }[];
-      }[];
-    };
-    if (!Array.isArray(parsed.testResults)) return undefined;
-    const report = new Map() as JUnitReport;
-    const cases: {
-      file: string;
-      files: readonly string[];
-      className: string;
-      name: string;
-      sourceTitle?: string;
-      status: 'pass' | 'fail' | 'skip' | 'error';
-    }[] = [];
-    for (const file of parsed.testResults) {
-      if (typeof file.name !== 'string') continue;
-      const repoPath = relative(resolve(cwd), resolve(cwd, file.name)).replaceAll('\\', '/');
-      if (!repoPath || repoPath.startsWith('../')) continue;
-      for (const assertion of file.assertionResults ?? []) {
-        // A structured native suite path is the sole safe way to distinguish
-        // nested cases; space-joined reporter names cannot preserve that fact.
-        const ancestorTitles = assertion.ancestorTitles;
-        const hasNativeSuitePath = Array.isArray(ancestorTitles)
-          && ancestorTitles.every((ancestor) => typeof ancestor === 'string')
-          && typeof assertion.title === 'string';
-        const name = hasNativeSuitePath
-          ? [...ancestorTitles, assertion.title].join(' > ')
-          : assertion.fullName ?? assertion.title;
-        if (!name) continue;
-        const status = assertion.status === 'passed' ? 'pass'
-          : assertion.status === 'failed' ? 'fail'
-            : assertion.status === 'skipped' || assertion.status === 'pending' || assertion.status === 'todo' ? 'skip'
-              : 'error';
-        const aggregate = report.get(repoPath) ?? {pass: 0, fail: 0, skip: 0};
-        if (status === 'pass') aggregate.pass += 1;
-        else if (status === 'skip') aggregate.skip += 1;
-        else aggregate.fail += 1;
-        report.set(repoPath, aggregate);
-        cases.push({
-          file: repoPath,
-          files: Object.freeze([repoPath]),
-          className: repoPath,
-          name,
-          ...(typeof assertion.title === 'string' ? {sourceTitle: assertion.title} : {}),
-          status,
-        });
-      }
-    }
-    Object.defineProperty(report, 'cases', {value: Object.freeze(cases), enumerable: false});
-    return report;
   } catch {
     return undefined;
   }

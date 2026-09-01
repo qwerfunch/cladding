@@ -151,13 +151,29 @@ function behaviorWorkspace(): string {
 
 function currentVitestReporter(
   cwd: string,
-  options: {readonly omittedSuite?: string; readonly failedSuite?: string} = {},
+  options: {readonly omittedSuite?: string; readonly failedSuite?: string; readonly findingParser?: 'ambiguous' | 'unrelated'} = {},
 ): string {
   const testCase = (path: string, selector: string, status: 'passed' | 'failed' = 'passed') => ({
     name: join(cwd, path), assertionResults: [{status, fullName: selector}],
   });
+  const [findingParserSuite, findingParserTitle] = FINDING_PARSER_BINDING.selector.split(' > ', 2);
+  if (!findingParserSuite || !findingParserTitle) throw new Error('expected nested finding-parser selector');
+  const findingParserAssertion = options.findingParser === 'ambiguous'
+    ? {
+      status: 'passed', title: findingParserTitle,
+      fullName: `${findingParserSuite} ${findingParserTitle}`,
+    }
+    : options.findingParser === 'unrelated'
+      ? {
+        status: 'passed', title: 'unrelated same-file pass',
+        fullName: 'global suite unrelated same-file pass',
+      }
+      : {
+        status: 'passed', ancestorTitles: [findingParserSuite], title: findingParserTitle,
+        fullName: `${findingParserSuite} ${findingParserTitle}`,
+      };
   return JSON.stringify({testResults: [
-    testCase(FINDING_PARSER_BINDING.path, FINDING_PARSER_BINDING.selector),
+    {name: join(cwd, FINDING_PARSER_BINDING.path), assertionResults: [findingParserAssertion]},
     testCase(COMPACTION_BINDING.path, COMPACTION_BINDING.selector),
     ...compactionSuiteInputs()
       .filter((path) => path !== options.omittedSuite)
@@ -414,6 +430,30 @@ describe('criterion observation rule authority', () => {
         currentRun, expectedGateInputSha256: wrongSeal,
       })).toEqual([]);
     });
+  });
+
+  test('shares native Vitest suite reconstruction with F5 and leaves ambiguous or unrelated fallback output unobserved', () => {
+    const cwd = behaviorWorkspace();
+    const compilation = compileSpecWorkspace(cwd);
+    const snapshot = workspaceProfileSnapshot(cwd, compilation, {
+      profile: B4_PROFILE, scopeAddresses: ['feature:F-b7873005', 'feature:F-c58263b8'],
+      hasExecutableTests: true, oracleRequiredSubjects: new Set<string>(), requiresHuman: false,
+    });
+
+    const native = reduceCurrentBehaviorEvidence(cwd, compilation, snapshot, currentVitestReporter(cwd));
+    expect(native.proofViews.find((view) => view.criterion === FINDING_PARSER)?.test)
+      .toMatchObject({state: 'verified', matched: 1, pass: 1});
+    expect(reportFor(native.reports, FINDING_PARSER)).toMatchObject({state: 'pass', complete: true});
+
+    for (const findingParser of ['ambiguous', 'unrelated'] as const) {
+      const unobserved = reduceCurrentBehaviorEvidence(
+        cwd, compilation, snapshot, currentVitestReporter(cwd, {findingParser}),
+      );
+      expect(unobserved.proofViews.find((view) => view.criterion === FINDING_PARSER)?.test)
+        .toMatchObject({state: 'unverified', matched: 0, pass: 0});
+      expect(reportFor(unobserved.reports, FINDING_PARSER)).toMatchObject({state: 'unobserved', complete: true, reason: 'stale'});
+      expectCriterionStageState(unobserved.verdict, FINDING_PARSER, 'unobserved');
+    }
   });
 
   test('schema 0.1-style stage scopes do not gain B4 subjects without the compiler-minted static channel', () => {

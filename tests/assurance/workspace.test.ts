@@ -1083,7 +1083,7 @@ describe('F6 workspace profile closure', () => {
     expect(currentProofBindingsFromWorkspace(cwd, compileSpecWorkspace(cwd))).toEqual([]);
   });
 
-  test('keeps stale and path-only historic negatives local while unsafe paths remain incomplete', () => {
+  test('keeps stale exact legacy selectors and unrelated same-file passes unobserved while unsafe paths remain incomplete', () => {
     const cwd = fixture();
     mkdirSync(join(cwd, 'tests'), {recursive: true});
     const selector = 'historic current selector';
@@ -1112,7 +1112,12 @@ describe('F6 workspace profile closure', () => {
     writeFileSync(join(cwd, '.cladding', 'config.yaml'), 'gate:\n  test_report: current.junit.xml\n');
     const currentState = (compilation: ReturnType<typeof compileSpecWorkspace>, serial: string) => {
       primeTestRunCache(cwd, 'sealed-input');
-      writeFileSync(join(cwd, 'current.junit.xml'), `<testsuite name="${serial}"><testcase file="tests/historic.test.ts" name="${selector}"/></testsuite>`);
+      writeFileSync(join(cwd, 'current.junit.xml'), [
+        `<testsuite name="${serial}">`,
+        `<testcase file="tests/historic.test.ts" name="${selector}"/>`,
+        '<testcase file="tests/historic.test.ts" name="global suite unrelated pass"/>',
+        '</testsuite>',
+      ].join(''));
       captureCurrentJUnitProof(cwd, ['vitest', 'run']);
       const current = currentGateProofEvidence(cwd, 'sealed-input');
       const state = currentProofViewsFromWorkspace(cwd, compilation, ['feature:F-aaaaaaaa'], current, 'sealed-input')[0]?.test.state;

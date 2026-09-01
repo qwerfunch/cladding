@@ -20,6 +20,9 @@ import {describe, expect, test} from 'vitest';
 import {parse as parseYaml} from 'yaml';
 
 import {allDetectors} from '../src/stages/detectors/index.js';
+import {reduceTestBindings} from '../src/proof/bindings.js';
+import {harvestVitestJestBindings} from '../src/proof/vitest-jest.js';
+import {parseJUnitReport} from '../src/stages/junit-report.js';
 // TIER_STAGES is the SSoT for the Iron Law stage list; importing clad.ts is
 // safe because its CLI entry is guarded by `isCliEntry` (no parse on import).
 import {TIER_STAGES} from '../src/cli/clad.js';
@@ -243,7 +246,7 @@ describe('glossary is the terminology SSoT (F-7ce18e)', () => {
     }
   });
 
-  test('[covers:F-7ce18e/AC-f708a4] every persona file under src/agents/ has exact glossary metadata', () => {
+  test('[covers:F-d8223c/AC-a3bcb9][covers:F-7ce18e/AC-f708a4] every persona file under src/agents/ has exact glossary metadata', () => {
     const ids = readdirSync(join(ROOT, 'src/agents'))
       .filter((f) => f.endsWith('.md') && f !== 'README.md')
       .map((f) => f.replace(/\.md$/, ''));
@@ -251,6 +254,28 @@ describe('glossary is the terminology SSoT (F-7ce18e)', () => {
     for (const id of ids) {
       expectMetadata(glossaryRow('Personas (alias-and-deprecate bucket)', id), `persona '${id}'`);
     }
+  });
+
+  test('the persona glossary validation carries F-d8223c as an exact live binding only', () => {
+    const title = '[covers:F-d8223c/AC-a3bcb9][covers:F-7ce18e/AC-f708a4] every persona file under src/agents/ has exact glossary metadata';
+    const binding = harvestVitestJestBindings({
+      file: 'tests/self-consistency.test.ts', source: read('tests/self-consistency.test.ts'),
+      knownCriteria: new Set(['F-d8223c/AC-a3bcb9']),
+    }).bindings;
+    expect(binding).toEqual([{
+      criterion: 'F-d8223c/AC-a3bcb9', framework: 'vitest', file: 'tests/self-consistency.test.ts',
+      selector: `glossary is the terminology SSoT (F-7ce18e) > ${title}`, carrier: 'title',
+    }]);
+
+    const report = parseJUnitReport([
+      '<testsuite>',
+      '<testcase file="tests/self-consistency.test.ts" name="every persona file under src/agents/ has a glossary row"/>',
+      '<testcase file="tests/self-consistency.test.ts" name="global suite unrelated pass"/>',
+      '</testsuite>',
+    ].join(''));
+    expect(reduceTestBindings(binding, report)).toEqual([
+      expect.objectContaining({criterion: 'F-d8223c/AC-a3bcb9', state: 'unverified', matched: 0, pass: 0}),
+    ]);
   });
 
   test('[covers:F-7ce18e/AC-f708a4] every MCP tool registered in server.ts has exact glossary metadata', () => {

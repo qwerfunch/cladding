@@ -17,6 +17,8 @@
 // derive (file attr, classname as-is, dot→slash conversion) and match test_refs
 // extension-agnostically, so one parser covers all four families.
 
+import {relative, resolve} from 'node:path';
+
 /** Aggregate pass/fail/skip counts for one test file. */
 export interface FileTestStatus {
   pass: number;
@@ -140,6 +142,79 @@ export function parseJUnitReport(xml: string): JUnitReport {
   }
   Object.defineProperty(out, 'cases', {value: Object.freeze(cases), enumerable: false});
   return out;
+}
+
+/**
+ * Converts Vitest's current JSON reporter payload into the shared JUnit view.
+ *
+ * A structured `ancestorTitles` path is authoritative because a space-joined
+ * `fullName` cannot safely distinguish nested suites. Older reporters retain
+ * the established full-name/title fallback.
+ *
+ * @param bytes - Opaque JSON bytes captured from the current Vitest run.
+ * @param cwd - Workspace root used to normalize reporter file names.
+ * @returns The normalized report, or `undefined` for invalid reporter bytes.
+ * @throws Never; invalid reporter bytes and unsupported shapes return `undefined`.
+ * @example
+ * const report = parseVitestJsonReport(vitestJson, process.cwd());
+ * @see docs/design/spec-0.2/proof-and-editing.md#d11--test-binding-and-observation
+ * @since 0.10.0
+ */
+export function parseVitestJsonReport(bytes: string, cwd: string): JUnitReport | undefined {
+  try {
+    const parsed = JSON.parse(bytes) as {
+      testResults?: readonly {
+        readonly name?: string;
+        readonly assertionResults?: readonly {
+          readonly status?: string;
+          readonly fullName?: string;
+          readonly title?: string;
+          readonly ancestorTitles?: unknown;
+        }[];
+      }[];
+    };
+    if (!Array.isArray(parsed.testResults)) return undefined;
+    const report = new Map() as JUnitReport;
+    const cases: JUnitCaseObservation[] = [];
+    for (const file of parsed.testResults) {
+      if (typeof file.name !== 'string') continue;
+      const repoPath = relative(resolve(cwd), resolve(cwd, file.name)).replaceAll('\\', '/');
+      if (!repoPath || repoPath === '..' || repoPath.startsWith('../')) continue;
+      for (const assertion of file.assertionResults ?? []) {
+        // A structured native suite path is the sole safe way to distinguish
+        // nested cases; space-joined reporter names cannot preserve that fact.
+        const ancestorTitles = assertion.ancestorTitles;
+        const hasNativeSuitePath = Array.isArray(ancestorTitles)
+          && ancestorTitles.every((ancestor) => typeof ancestor === 'string')
+          && typeof assertion.title === 'string';
+        const name = hasNativeSuitePath
+          ? [...ancestorTitles, assertion.title].join(' > ')
+          : assertion.fullName ?? assertion.title;
+        if (!name) continue;
+        const status = assertion.status === 'passed' ? 'pass' as const
+          : assertion.status === 'failed' ? 'fail' as const
+            : assertion.status === 'skipped' || assertion.status === 'pending' || assertion.status === 'todo' ? 'skip' as const
+              : 'error' as const;
+        const aggregate = report.get(repoPath) ?? {pass: 0, fail: 0, skip: 0};
+        if (status === 'pass') aggregate.pass += 1;
+        else if (status === 'skip') aggregate.skip += 1;
+        else aggregate.fail += 1;
+        report.set(repoPath, aggregate);
+        cases.push(Object.freeze({
+          file: repoPath,
+          files: Object.freeze([repoPath]),
+          className: repoPath,
+          name,
+          ...(typeof assertion.title === 'string' ? {sourceTitle: assertion.title} : {}),
+          status,
+        }));
+      }
+    }
+    Object.defineProperty(report, 'cases', {value: Object.freeze(cases), enumerable: false});
+    return report;
+  } catch {
+    return undefined;
+  }
 }
 
 /** Decodes the XML entities valid in attribute values, including numeric forms. */

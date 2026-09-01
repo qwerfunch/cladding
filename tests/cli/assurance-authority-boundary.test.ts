@@ -1,6 +1,6 @@
 // Cladding · F6 P1-1 — runCheckStages is the sole v3 authority mint.
 
-import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 
@@ -26,7 +26,7 @@ vi.mock('../../src/stages/cov.js', () => ({runCov: pass}));
 vi.mock('../../src/stages/spec-conformance.js', () => ({runSpecConformance: pass}));
 vi.mock('../../src/stages/deliverable-smoke.js', () => ({runDeliverableSmoke: pass}));
 
-const [{runCheckStages}, {runDone}, {createWorkspaceAttestations}, {compileSpecWorkspace}, {emptyTrustSnapshot}, {loadSpec}, {markFeatureDoneForGate, prepareSchema02DoneEvent}, {detectorCatalogSha256, writeAttestation}, {allDetectors}, {getCurrentCladdingVersion}, {prospectiveDoneCompilation}] = await Promise.all([
+const [{runCheckStages}, {runDone}, {createWorkspaceAttestations, runnerConfigurationResolver}, {compileSpecWorkspace}, {emptyTrustSnapshot}, {loadSpec}, {markFeatureDoneForGate, prepareSchema02DoneEvent}, {detectorCatalogSha256, writeAttestation}, {allDetectors}, {getCurrentCladdingVersion}, {prospectiveDoneCompilation}] = await Promise.all([
   import('../../src/cli/clad.js'),
   import('../../src/cli/done.js'),
   import('../../src/assurance/workspace.js'),
@@ -234,6 +234,8 @@ describe('F6 P1-1 authoritative verdict boundary', () => {
     try {
       addInProgressCompletion(cwd);
       writeFileSync(join(cwd, 'migration-scratch.yaml'), 'migration: pending\n');
+      mkdirSync(join(cwd, 'host-managed-dependencies'));
+      symlinkSync(join(cwd, 'host-managed-dependencies'), join(cwd, 'node_modules'));
       process.chdir(cwd);
       runCommitStage.mockImplementation(() => { throw new Error('Commit must not run for completion'); });
 
@@ -248,6 +250,20 @@ describe('F6 P1-1 authoritative verdict boundary', () => {
       process.chdir(cwdBefore);
       stdout.mockRestore();
     }
+  });
+
+  test('ignores an excluded dependency symlink but still rejects a non-control symlink', () => {
+    const cwd = workspace();
+    mkdirSync(join(cwd, 'host-managed-dependencies'));
+    mkdirSync(join(cwd, 'node_modules'));
+    const physical = runnerConfigurationResolver(cwd)('profile', 'completion');
+    rmSync(join(cwd, 'node_modules'), {recursive: true});
+    symlinkSync(join(cwd, 'host-managed-dependencies'), join(cwd, 'node_modules'));
+    expect(runnerConfigurationResolver(cwd)('profile', 'completion')).toEqual(physical);
+
+    symlinkSync(join(cwd, 'host-managed-dependencies'), join(cwd, 'runner.config.ts'));
+    expect(runnerConfigurationResolver(cwd)('profile', 'completion'))
+      .toMatchObject({complete: false, unknown_controls: ['symlink:runner.config.ts']});
   });
 
   test('completion flags require one prepared root-bound gate and scope every stage to its prospective target', () => {
