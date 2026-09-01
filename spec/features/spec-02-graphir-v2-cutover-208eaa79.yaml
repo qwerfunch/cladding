@@ -35,6 +35,9 @@ modules:
   - tests/cli/graph-v2.test.ts
   - tests/cli/graph-serve-v2.test.ts
   - tests/design/spec-0.2/requirements.yaml
+  - src/report/report.ts
+  - src/graph/layout3d.ts
+  - src/graph/stellar.ts
 depends_on:
   - F-182eaa53
   - F-0b8f23c5
@@ -43,82 +46,124 @@ capability_refs:
 acceptance_criteria:
   - id: AC-4f8c2542
     kind: behavior
-    statement: The specification compiler shall construct one canonical GraphIR node
-      and edge set from every schema 0.1 and schema 0.2 fact.
+    statement: The specification compiler shall construct one canonical GraphIR from
+      every schema 0.1 and schema 0.2 fact.
   - id: AC-b8ed5507
     kind: constraint
-    statement: The GraphIR address resolver shall emit canonical semantic, artifact,
-      and anchor addresses while rejecting bare criterion addresses and
-      artifact-kind twin identities.
+    statement: The GraphIR address resolver shall emit canonical GraphIR addresses.
     rationale: Canonical resolution eliminates ambiguous identities before public
-      projection.
+      projection. Semantic, artifact, and anchor addresses remain distinct
+      canonical forms.
   - id: AC-1f6fd7fe
     kind: behavior
-    statement: The GraphIR query layer shall return relation-aware directed
-      prerequisite and dependent results without containment or project-hub
-      sibling expansion.
+    statement: The GraphIR query layer shall return directed relation-aware GraphIR
+      results without unintended expansion.
+    rationale: The result set covers prerequisite and dependent queries without
+      containment or project-hub sibling expansion.
   - id: AC-d452908b
     kind: behavior
-    statement: The GraphIR query layer shall return owner, criterion-proof, and
-      regression results with explicit unknown and unresolved states.
+    statement: The GraphIR query layer shall return complete GraphIR query results
+      with explicit unknown and unresolved states.
+    rationale: Complete result sets cover owner, criterion-proof, and regression queries.
   - id: AC-616e6e74
     kind: constraint
-    statement: The graph implementation shall make impact, iterative slices, working
-      sets, measurement, dependency inference, reports, graph health, CLI, MCP,
-      live HTTP, export, and viewer surfaces query or serialize GraphIR while
-      retiring reverse-index materialization, v1 identities, v2-to-v1
-      serialization, and undirected or repeated traversal.
+    statement: The graph implementation shall use GraphIR as the sole graph
+      authority for every F8-owned consumer.
     rationale: One compiler IR prevents divergent graph authorities during cutover.
+      Consumers cover impact, iterative slices, working sets, measurement,
+      dependency inference, reports, graph health, CLI, MCP, live HTTP, export,
+      and viewer. Retire reverse-index materialization, v1 identities, v2-to-v1
+      serialization, and undirected or repeated traversal.
   - id: AC-945363a4
     kind: behavior
-    statement: The public graph wire shall emit schema_version 2 with canonical
-      addresses, roles, relations, provenance, state, owner, selector, raw and
-      normalized paths, and deterministic ordering.
+    statement: The public graph wire shall emit deterministic GraphIR schema_version
+      2 records.
+    rationale: Records carry canonical addresses plus roles, relations, provenance,
+      state, owner, selector, raw paths, and normalized paths.
   - id: AC-f7f39bb9
     kind: behavior
-    statement: When clad_get_graph receives no query or a focused request, the graph
-      service shall return statistics for no query and a depth-1 bounded
-      projection for focus while rejecting invalid or unbounded bounds.
+    statement: When clad_get_graph receives no query, the graph service shall return
+      statistics.
   - id: AC-e5fc267b
     kind: constraint
-    statement: The graph surfaces shall keep clad_get_context at schema_version 1
-      and reserve a complete graph export for explicit CLI invocation.
+    statement: The graph surfaces shall keep clad_get_context at schema_version 1.
     rationale: The existing context boundary stays separate from GraphIR wire evolution.
   - id: AC-d183d625
     kind: quality
-    statement: The MCP graph response shall measure its full final UTF-8 serialized
-      bytes and exact omission count without silent truncation or empty-success
-      responses.
+    statement: The focused MCP graph response shall remain within the D19
+      observe-profile limit of 16 KiB.
   - id: AC-1f71c694
     kind: behavior
-    statement: The independent scanner parity suite shall match GraphIR
-      prerequisite, dependent, artifact-owner, criterion-proof, and regression
-      record sets.
+    statement: The independent scanner parity suite shall match every required
+      GraphIR query record set.
+    rationale: The required record sets are prerequisite, dependent, artifact-owner,
+      criterion-proof, and regression.
   - id: AC-9ea1a6ed
     kind: constraint
-    statement: The GraphIR validation suite shall fail ablations that remove
-      criterion nodes, selectors, provenance, direction, purpose, or rationale.
-    rationale: Each retained field and direction needs a discriminating failure control.
+    statement: The GraphIR validation suite shall fail every required GraphIR
+      fidelity ablation.
+    rationale: Each retained field and direction needs a discriminating failure
+      control. Required ablations remove criterion nodes, selectors, provenance,
+      direction, purpose, or rationale.
   - id: AC-6110ed01
     kind: quality
-    statement: The synthetic `5,000-feature` graph benchmark shall remain linear in
-      nodes plus edges and finish within the existing 15-second CI ceiling.
+    statement: The synthetic 5000-feature graph benchmark shall meet its existing
+      scale acceptance target.
+    rationale: The target remains linear in nodes plus edges and within the existing
+      15-second CI ceiling.
   - id: AC-1d2c4213
     kind: quality
-    statement: The environment-labelled benchmark suite shall report a cold self
-      compile plus graph target no greater than 500 ms and a warm focused
-      projection target no greater than 50 ms without a portable performance
-      claim.
+    statement: The environment-labelled benchmark suite shall report its fixed
+      performance targets without a portable performance claim.
+    rationale: Targets are a cold self compile plus graph build at most 500 ms and a
+      warm focused projection at most 50 ms.
   - id: AC-531afee4
     kind: behavior
-    statement: The GraphIR v2 presentation stack shall preserve renderer, viewer,
-      and live HTTP health mapping plus complete piped JSON output.
+    statement: The GraphIR v2 presentation stack shall preserve all established
+      presentation outputs.
+    rationale: Outputs preserve renderer, viewer, and live HTTP health mapping plus
+      complete piped JSON.
   - id: AC-05f6d0bd
     kind: constraint
-    statement: The F8 validation ledger shall leave F9-owned context, catalog,
-      assurance work, and adoption studies implementation_pending rather than
-      complete.
-    rationale: F8 establishes structural validity, not F9 runtime or adoption evidence.
+    statement: The F8 validation ledger shall retain implementation_pending status
+      for all F9-owned and adoption work.
+    rationale: F8 establishes structural validity, not F9 runtime or adoption
+      evidence. Context, catalog, assurance, and adoption studies remain
+      implementation_pending.
+  - id: AC-ff543b95
+    kind: constraint
+    statement: The GraphIR address resolver shall reject ambiguous GraphIR addresses.
+    rationale: Ambiguous forms include bare criterion addresses and artifact-kind
+      twin identities.
+  - id: AC-b61f6aa5
+    kind: behavior
+    statement: When clad_get_graph receives a focused request, the graph service
+      shall return a depth-1 bounded projection.
+  - id: AC-4ce9a97d
+    kind: behavior
+    statement: The graph service shall reject invalid or unbounded graph bounds.
+  - id: AC-e4a233ae
+    kind: constraint
+    statement: The graph CLI shall require explicit invocation for complete graph export.
+    rationale: Full exports remain opt-in rather than a default focused graph response.
+  - id: AC-286cc0a8
+    kind: quality
+    statement: The focused MCP graph response shall measure complete final outer
+      UTF-8 serialization to a fixed point (including schema and omission
+      metadata).
+  - id: AC-a0d60a0b
+    kind: quality
+    statement: The focused MCP graph response shall report exact final bytes and
+      omission counts.
+  - id: AC-cf399eba
+    kind: quality
+    statement: When required seed facts overflow the bound, the focused MCP graph
+      response shall report required_overflow without silently dropping those
+      facts.
+  - id: AC-98be095b
+    kind: quality
+    statement: The focused MCP graph response shall return an explicit unresolved
+      response instead of empty success.
 design_impact:
   classification: structural
   rationale: F8 atomically replaces the shipped graph identities, traversal, and
