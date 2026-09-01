@@ -226,18 +226,18 @@ describe('doc declarations · DOC_LINK_INTEGRITY stays green (AC-2ee28415)', () 
     expect(offending).toEqual([]);
   });
 
-  test('DOC_LINK_INTEGRITY warns on an unresolved declared id and stays silent when it resolves', () => {
+  test('DOC_LINK_INTEGRITY errors on an unresolved declared id and stays silent when it resolves', () => {
     writeFileSync(join(dir, 'spec.yaml'), SPEC);
     wdoc('docs/ab-evaluation/bogus.md', '<!-- clad-doc-links: F-deadbeef -->\nno prose id');
     wdoc('docs/ab-evaluation/good.md', '<!-- clad-doc-links: F-001 -->\nno prose id');
     const findings = docReferenceIntegrity
       .run({cwd: dir})
       .filter((f) => f.detector === 'DOC_LINK_INTEGRITY');
-    // Positive control: the detector really does validate declared ids in an
-    // excluded dir, so the real-repo green above is a genuine pass.
+    // Positive control: explicit declarations stay strict even in an excluded
+    // dir, so the real-repo green above is a genuine pass.
     expect(
       findings.some(
-        (f) => f.severity === 'warn' && f.path === 'docs/ab-evaluation/bogus.md' && f.message.includes('F-deadbeef'),
+        (f) => f.severity === 'error' && f.path === 'docs/ab-evaluation/bogus.md' && f.message.includes('F-deadbeef'),
       ),
     ).toBe(true);
     expect(findings.some((f) => f.path === 'docs/ab-evaluation/good.md')).toBe(false);
