@@ -66,10 +66,54 @@ export type GraphRelation =
   | 'links_to';
 
 /** Truth state that never silently promotes absence to success. */
-export type GraphState = 'resolved' | 'unresolved' | 'passed' | 'failed' | 'skipped' | 'stale' | 'unknown';
+export type GraphState = 'resolved' | 'unresolved' | 'passed' | 'failed' | 'skipped' | 'stale' | 'unknown' | 'unobserved';
 
 /** Semantic graph node categories. */
 export type SemanticNodeKind = 'project' | 'capability' | 'feature' | 'criterion' | 'scenario' | 'architecture_rule';
+
+/**
+ * Source-derived display fields retained by the compiler without inventing intent.
+ *
+ * @see spec/features/spec-02-graphir-v2-cutover-208eaa79.yaml AC-9ea1a6ed
+ */
+export interface GraphPresentationRecord {
+  /** Root-selected source schema that authored the fields. */
+  readonly schemaVersion: CompilerSchemaVersion;
+  /** Canonical semantic address represented by these fields. */
+  readonly address: string;
+  /** Semantic class represented by the authored record. */
+  readonly kind: SemanticNodeKind;
+  /** Authored human-facing label when the source field exists. */
+  readonly title?: string;
+  /** Authored legacy feature slug when the source field exists. */
+  readonly slug?: string;
+  /** Authored feature lifecycle status when the source field exists. */
+  readonly status?: string;
+  /** Authored WHY statement when the schema supplies one. */
+  readonly purpose?: string;
+  /** Authored criterion statement; schema 0.1 `text` remains source-derived. */
+  readonly statement?: string;
+  /** Authored criterion or architecture rationale when the source supplies one. */
+  readonly rationale?: string;
+  /** Source location of the semantic record, never a synthetic display locator. */
+  readonly source: SourceLocator;
+}
+
+/**
+ * Exact source-derived alternate lookup spelling for a canonical GraphIR address.
+ *
+ * @see spec/features/spec-02-graphir-v2-cutover-208eaa79.yaml AC-ff543b95
+ */
+export interface GraphAliasRecord {
+  /** Lookup spelling that the compiler observed in a source document. */
+  readonly alias: string;
+  /** Canonical semantic address represented by the spelling. */
+  readonly address: string;
+  /** Kind of spelling; callers can distinguish stable ids from mutable slugs. */
+  readonly kind: 'feature_id' | 'feature_slug';
+  /** Source location of the alias field. */
+  readonly source: SourceLocator;
+}
 
 /** A semantic address owner in GraphIR. */
 export interface SemanticGraphNode {
@@ -433,6 +477,10 @@ export interface SpecCompilation {
   readonly edges: readonly GraphEdge[];
   /** Structural diagnostics accumulated without changing legacy gates. */
   readonly diagnostics: readonly CompilerDiagnostic[];
+  /** Sorted source-derived display records for both supported source schemas. */
+  readonly presentations: readonly GraphPresentationRecord[];
+  /** Sorted feature id and slug aliases; collision handling belongs to the query index. */
+  readonly aliases: readonly GraphAliasRecord[];
   /** Fully validated schema 0.2 values for downstream compiler consumers. */
   readonly contract?: Schema02ContractProjection;
   /** Validated compiler-owned migration receipt, retained for D11 compatibility reads. */

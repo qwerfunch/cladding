@@ -1,0 +1,789 @@
+// Cladding · Spec 0.2 F8 · compiler-owned directed GraphIR query kernel.
+
+import {anchorAddress, artifactAddress, parseAnchorAddress} from './graph-address.js';
+import type {
+  ArtifactRole,
+  CompilerCorpusView,
+  CorpusProofRecord,
+  GraphAliasRecord,
+  GraphEdge,
+  GraphNode,
+  GraphPresentationRecord,
+  GraphRelation,
+  GraphState,
+  SourceLocator,
+  SpecCompilation,
+} from './types.js';
+
+/** Completeness status that prevents an incomplete query from looking empty and safe. */
+export type GraphQueryCompleteness = 'complete' | 'bounded' | 'unresolved' | 'unknown';
+
+/** Direction is always relative to the authored edge orientation. */
+export type GraphDirection = 'outbound' | 'inbound';
+
+/** A caller-selected relation and direction; there is deliberately no default-all rule. */
+export interface GraphProjectionRule {
+  /** Relation to traverse. */
+  readonly relation: GraphRelation;
+  /** Whether traversal follows or reverses the relation's authored orientation. */
+  readonly direction: GraphDirection;
+}
+
+/** Bounded directed projection request. */
+export interface GraphProjectionRequest {
+  /** Canonical or explicitly resolvable seeds; every unsafe seed remains visible in the result. */
+  readonly seeds: readonly string[];
+  /** Explicit finite traversal rules; an omitted rule can never become an undirected walk. */
+  readonly rules: readonly GraphProjectionRule[];
+  /** Maximum number of relation hops from each seed. */
+  readonly maxHops: number;
+  /** Maximum materialized nodes, including resolved seeds. */
+  readonly maxNodes: number;
+  /** Maximum materialized edges. */
+  readonly maxEdges: number;
+}
+
+/** Exact address-resolution status, including ambiguous and noncanonical spellings. */
+export type GraphAddressResolution =
+  | {
+    readonly state: 'resolved';
+    readonly input: string;
+    readonly canonical: string;
+    readonly via: 'canonical' | 'feature_id' | 'feature_slug' | 'path' | 'anchor';
+  }
+  | {
+    readonly state: 'unresolved';
+    readonly input: string;
+    readonly form: 'canonical' | 'path' | 'anchor' | 'noncanonical';
+    readonly reason: string;
+    readonly canonical?: string;
+  }
+  | {
+    readonly state: 'ambiguous';
+    readonly input: string;
+    readonly candidates: readonly string[];
+    readonly reason: string;
+  };
+
+/** A result and the reasons that make it anything other than complete. */
+export interface GraphQueryResult<T> {
+  /** Deterministically sorted records. */
+  readonly records: readonly T[];
+  /** Explicit status, never inferred from an empty array. */
+  readonly completeness: GraphQueryCompleteness;
+  /** Stable reasons for an incomplete result. */
+  readonly reasons: readonly string[];
+  /** Exact resolution results for supplied query input. */
+  readonly resolutions: readonly GraphAddressResolution[];
+}
+
+/** Result of a finite, caller-directed GraphIR traversal. */
+export interface GraphProjection extends Omit<GraphQueryResult<never>, 'records'> {
+  /** Nodes selected before a bound would be exceeded. */
+  readonly nodes: readonly GraphIrV2Node[];
+  /** Edges selected before a bound would be exceeded. */
+  readonly edges: readonly GraphIrV2Edge[];
+}
+
+/** A runtime source locator intentionally distinct from authored YAML source locations. */
+export interface GraphObservationLocator {
+  /** Discriminator prevents observed data from pretending to be authored YAML. */
+  readonly kind: 'runtime_observation';
+  /** Registered future adapter identity. */
+  readonly adapter: string;
+  /** Adapter-owned stable fact location, such as a receipt digest or runner case id. */
+  readonly reference: string;
+}
+
+/** A future observed artifact fact using the existing canonical artifact taxonomy. */
+export interface GraphIrV2ObservedArtifactFact {
+  /** Canonical artifact address; future adapters cannot introduce a second identity grammar. */
+  readonly address: string;
+  /** The existing physical node category; observation remains fact provenance. */
+  readonly nodeType: 'artifact';
+  /** Roles retained by a future adapter without kind-twin identities. */
+  readonly roles: readonly ArtifactRole[];
+  /** Future observed artifacts may have no semantic owner. */
+  readonly owners: readonly string[];
+  /** F5 facts must remain distinguishable from authored and derived facts. */
+  readonly provenance: 'observed';
+  /** Typed non-YAML location for the observation. */
+  readonly locator: GraphObservationLocator;
+}
+
+/** A future observed anchor fact using the existing canonical anchor taxonomy. */
+export interface GraphIrV2ObservedAnchorFact {
+  /** Canonical anchor address. */
+  readonly address: string;
+  /** The existing physical node category; observation remains fact provenance. */
+  readonly nodeType: 'anchor';
+  /** Canonical artifact address that contains this anchor. */
+  readonly artifact: string;
+  /** Exact stable selector on the artifact. */
+  readonly selector: string;
+  /** Runtime adapters retain whether their selector was authored or derived. */
+  readonly selectorProvenance: 'authored' | 'derived';
+  /** F5 facts must remain distinguishable from authored and derived facts. */
+  readonly provenance: 'observed';
+  /** Typed non-YAML location for the observation. */
+  readonly locator: GraphObservationLocator;
+}
+
+/** A future observed edge that cannot collapse into an authored carrier edge. */
+export interface GraphIrV2ObservationEdge {
+  /** Layer-local stable identity; conflicting reuse fails closed. */
+  readonly identity: string;
+  /** Canonical source endpoint. */
+  readonly from: string;
+  /** Canonical target endpoint. */
+  readonly to: string;
+  /** Directed GraphIR relation. */
+  readonly relation: GraphRelation;
+  /** F5 observations are never rewritten as authored declarations. */
+  readonly provenance: 'observed';
+  /** Typed non-YAML fact owner. */
+  readonly owner: GraphObservationLocator;
+  /** Runtime result state. */
+  readonly state: GraphState;
+  /** Optional source-carrier detail retained by a future adapter. */
+  readonly raw?: string;
+  /** Optional canonical target detail retained by a future adapter. */
+  readonly normalizedTarget?: string;
+  /** Optional exact selector detail retained by a future adapter. */
+  readonly selector?: GraphEdge['selector'];
+}
+
+/** One future F5 observation or receipt layer; this checkpoint intentionally has no adapters. */
+export interface GraphIrV2Augmentation {
+  /** Unique adapter/layer identity. */
+  readonly layerId: string;
+  /** Canonically addressed observed physical facts supplied by that layer. */
+  readonly nodes: readonly (GraphIrV2ObservedArtifactFact | GraphIrV2ObservedAnchorFact)[];
+  /** Provenance-preserving observed relations supplied by that layer. */
+  readonly edges: readonly GraphIrV2ObservationEdge[];
+  /** The adapter's explicit knowledge state. */
+  readonly completeness: 'complete' | 'unknown';
+  /** Reasons required when the adapter cannot make a complete assertion. */
+  readonly unknownReasons: readonly string[];
+}
+
+/** A compiler node or a future observed fact on the same three node taxonomies. */
+export type GraphIrV2Node = GraphNode | GraphIrV2ObservedArtifactFact | GraphIrV2ObservedAnchorFact;
+
+/** A compiler edge or a future observed edge. */
+export type GraphIrV2Edge = GraphEdge | GraphIrV2ObservationEdge;
+
+type PrerequisiteRecord = CompilerCorpusView['prerequisites'][number];
+type DependentRecord = CompilerCorpusView['dependents'][number];
+type ArtifactOwnerRecord = CompilerCorpusView['artifactOwners'][number];
+
+/** Immutable compiler-owned GraphIR query operations. */
+export interface GraphIrV2Kernel {
+  presentationRecords(): readonly GraphPresentationRecord[];
+  aliasRecords(): readonly GraphAliasRecord[];
+  resolveAddress(input: string): GraphAddressResolution;
+  project(request: GraphProjectionRequest): GraphProjection;
+  prerequisites(input: string, maxHops?: number): GraphQueryResult<PrerequisiteRecord>;
+  dependents(input: string, maxHops?: number): GraphQueryResult<DependentRecord>;
+  artifactOwners(input: string): GraphQueryResult<ArtifactOwnerRecord>;
+  criterionProofs(input: string): GraphQueryResult<GraphIrV2Edge>;
+  regressions(input: string): GraphQueryResult<CorpusProofRecord>;
+  corpusRecords(): CompilerCorpusView;
+}
+
+const BASE_INDEX = new WeakMap<SpecCompilation, GraphIrV2Index>();
+
+const RELATIONS: ReadonlySet<GraphRelation> = new Set([
+  'contains', 'defined_in', 'contributes_to', 'depends_on', 'participates_in',
+  'touches', 'constrained_by', 'traces_to', 'covers', 'supports', 'explains',
+  'mentions', 'links_to',
+]);
+
+/**
+ * Returns the compiler-owned, memoized GraphIR v2 query kernel for one compilation.
+ *
+ * @param compilation - One immutable compiler snapshot; identity scopes base-index memoization.
+ * @param augmentations - Future observed layers, supplied explicitly rather than read from disk.
+ * @returns Immutable directed query operations over that snapshot.
+ * @throws Error for conflicting future-layer ids, node addresses, or edge identities.
+ * @see spec/features/spec-02-graphir-v2-cutover-208eaa79.yaml AC-4f8c2542
+ */
+export function graphIrV2(
+  compilation: SpecCompilation,
+  augmentations: readonly GraphIrV2Augmentation[] = [],
+): GraphIrV2Kernel {
+  let base = BASE_INDEX.get(compilation);
+  if (!base) {
+    base = new GraphIrV2Index(compilation.nodes, compilation.edges, compilation.presentations, compilation.aliases, []);
+    BASE_INDEX.set(compilation, base);
+  }
+  return augmentations.length === 0 ? base : base.withAugmentations(augmentations);
+}
+
+/** The index owns every join so compiler consumers cannot recreate directed graph views. */
+class GraphIrV2Index implements GraphIrV2Kernel {
+  private readonly nodeByAddress: ReadonlyMap<string, GraphIrV2Node>;
+  private readonly edges: readonly GraphIrV2Edge[];
+  private readonly baseNodes: readonly GraphNode[];
+  private readonly baseEdges: readonly GraphEdge[];
+  private readonly outbound: ReadonlyMap<string, readonly GraphIrV2Edge[]>;
+  private readonly inbound: ReadonlyMap<string, readonly GraphIrV2Edge[]>;
+  private readonly presentations: readonly GraphPresentationRecord[];
+  private readonly aliases: readonly GraphAliasRecord[];
+  private readonly aliasTargets: ReadonlyMap<string, readonly GraphAliasRecord[]>;
+  private readonly layerUnknownReasons: readonly string[];
+
+  constructor(
+    nodes: readonly GraphIrV2Node[],
+    edges: readonly GraphIrV2Edge[],
+    presentations: readonly GraphPresentationRecord[],
+    aliases: readonly GraphAliasRecord[],
+    layerUnknownReasons: readonly string[],
+    baseNodes: readonly GraphNode[] = nodes.filter(isBaseNode),
+    baseEdges: readonly GraphEdge[] = edges.filter(isBaseEdge),
+  ) {
+    this.nodeByAddress = indexByIdentity(nodes, (node) => node.address, 'node address');
+    this.edges = uniqueEdges(edges);
+    this.baseNodes = freezeRecords(sortBy([...indexByIdentity(baseNodes, (node) => node.address, 'base node address').values()], (node) => node.address));
+    this.baseEdges = freezeRecords(sortBy([...indexByIdentity(baseEdges, (edge) => edge.address, 'base edge identity').values()], (edge) => edge.address));
+    this.outbound = edgeIndex(this.edges, 'from');
+    this.inbound = edgeIndex(this.edges, 'to');
+    this.presentations = freezeRecords(sortBy(presentations, recordKey));
+    this.aliases = freezeRecords(sortBy(aliases, recordKey));
+    this.aliasTargets = aliasIndex(this.aliases);
+    this.layerUnknownReasons = freezeRecords([...new Set(layerUnknownReasons)].sort());
+    Object.freeze(this);
+  }
+
+  /** Adds declared future observations without allowing them to mutate the memoized base index. */
+  withAugmentations(augmentations: readonly GraphIrV2Augmentation[]): GraphIrV2Index {
+    const layerIds = new Set<string>();
+    const nodes: Array<GraphIrV2ObservedArtifactFact | GraphIrV2ObservedAnchorFact> = [];
+    const edges: GraphIrV2ObservationEdge[] = [];
+    const unknownReasons: string[] = [];
+    for (const layer of augmentations) {
+      if (!layer.layerId || layerIds.has(layer.layerId)) throw new Error(`GraphIR augmentation layer id is not unique: ${layer.layerId}`);
+      layerIds.add(layer.layerId);
+      for (const node of layer.nodes) assertAugmentationNode(node);
+      for (const edge of layer.edges) {
+        assertCanonicalAddress(edge.from);
+        assertCanonicalAddress(edge.to);
+      }
+      nodes.push(...layer.nodes);
+      edges.push(...layer.edges);
+      if (layer.completeness === 'unknown') {
+        if (layer.unknownReasons.length === 0) throw new Error(`GraphIR unknown augmentation layer requires a reason: ${layer.layerId}`);
+        unknownReasons.push(...layer.unknownReasons.map((reason) => `${layer.layerId}: ${reason}`));
+      }
+    }
+    return new GraphIrV2Index(
+      [...this.nodeByAddress.values(), ...nodes],
+      [...this.edges, ...edges],
+      this.presentations,
+      this.aliases,
+      [...this.layerUnknownReasons, ...unknownReasons],
+      this.baseNodes,
+      this.baseEdges,
+    );
+  }
+
+  /** Returns compiler records in source-derived deterministic order. */
+  presentationRecords(): readonly GraphPresentationRecord[] {
+    return this.presentations;
+  }
+
+  /** Returns source-derived aliases so external callers can inspect collision candidates. */
+  aliasRecords(): readonly GraphAliasRecord[] {
+    return this.aliases;
+  }
+
+  /** Resolves one canonical address, feature id/slug, normalized path, or exact anchor without guessing. */
+  resolveAddress(input: string): GraphAddressResolution {
+    // An anchor selector is an exact identity component; trimming would silently
+    // convert a distinct selector into a different canonical address.
+    const spelling = input;
+    if (/^AC-[^\s/]+$/i.test(spelling)) {
+      return freeze({state: 'unresolved', input, form: 'noncanonical', reason: 'bare criterion ids are noncanonical and are never guessed'});
+    }
+    const candidates = new Map<string, GraphAddressResolution['state'] extends never ? never : 'canonical' | 'feature_id' | 'feature_slug' | 'path' | 'anchor'>();
+    const addCandidate = (address: string, via: 'canonical' | 'feature_id' | 'feature_slug' | 'path' | 'anchor'): void => {
+      if (this.nodeByAddress.has(address)) candidates.set(address, via);
+    };
+
+    const canonical = normalizeCanonicalSpelling(spelling);
+    if (canonical) addCandidate(canonical.address, canonical.via);
+    for (const alias of this.aliasTargets.get(spelling) ?? []) addCandidate(alias.address, alias.kind);
+    const rawPhysical = normalizeRawPhysicalSpelling(spelling);
+    if (rawPhysical) addCandidate(rawPhysical.address, rawPhysical.via);
+
+    const addresses = [...candidates.keys()].sort();
+    if (addresses.length === 1) {
+      const address = addresses[0];
+      return freeze({state: 'resolved', input, canonical: address, via: candidates.get(address) ?? 'canonical'});
+    }
+    if (addresses.length > 1) {
+      return freeze({state: 'ambiguous', input, candidates: freezeRecords(addresses), reason: 'more than one canonical address matches this spelling'});
+    }
+    if (canonical) {
+      return freeze({state: 'unresolved', input, form: canonical.form, canonical: canonical.address, reason: 'canonical address is absent from this compilation'});
+    }
+    if (rawPhysical) {
+      return freeze({state: 'unresolved', input, form: rawPhysical.form, canonical: rawPhysical.address, reason: 'normalized physical address is absent from this compilation'});
+    }
+    return freeze({state: 'unresolved', input, form: 'noncanonical', reason: 'input is not a canonical address, feature id, feature slug, path, or exact anchor'});
+  }
+
+  /** Returns authored prerequisite edges in feature-to-prerequisite orientation. */
+  prerequisites(input: string, maxHops: number = 1): GraphQueryResult<PrerequisiteRecord> {
+    validateBound('maxHops', maxHops);
+    const resolution = this.resolveAddress(input);
+    const address = resolvedAddress(resolution);
+    if (!address) return this.unresolvedResult<PrerequisiteRecord>(resolution);
+    const walk = this.directedWalk(address, [{relation: 'depends_on', direction: 'outbound'}], maxHops);
+    const records = walk.edges
+      .filter(isBaseEdge)
+      .filter((edge) => edge.provenance === 'authored')
+      .map((edge) => ({feature: edge.from, prerequisite: edge.to, source: edge.owner}));
+    return this.result(records, [resolution], walk.unknownReasons);
+  }
+
+  /** Returns direct dependents by traversing the inverse of feature-to-prerequisite edges. */
+  dependents(input: string, maxHops: number = 1): GraphQueryResult<DependentRecord> {
+    validateBound('maxHops', maxHops);
+    const resolution = this.resolveAddress(input);
+    const address = resolvedAddress(resolution);
+    if (!address) return this.unresolvedResult<DependentRecord>(resolution);
+    const walk = this.directedWalk(address, [{relation: 'depends_on', direction: 'inbound'}], maxHops);
+    const records = walk.edges
+      .filter(isBaseEdge)
+      .filter((edge) => edge.provenance === 'authored')
+      .map((edge) => ({feature: edge.to, dependent: edge.from, source: edge.owner}));
+    return this.result(records, [resolution], walk.unknownReasons);
+  }
+
+  /** Returns every owner of one artifact; an existing unowned artifact is explicitly unknown. */
+  artifactOwners(input: string): GraphQueryResult<ArtifactOwnerRecord> {
+    const resolution = this.resolveAddress(input);
+    const address = resolvedAddress(resolution);
+    if (!address) return this.unresolvedResult<ArtifactOwnerRecord>(resolution);
+    const node = this.nodeByAddress.get(address);
+    if (!node || node.nodeType !== 'artifact') {
+      return this.result([], [resolution], ['resolved input is not an artifact']);
+    }
+    if (node.owners.length === 0) return this.result([], [resolution], [`artifact has no known owner: ${address}`]);
+    return this.result([{artifact: address, owners: node.owners}], [resolution], []);
+  }
+
+  /** Returns both authored outbound supports and observed inbound covers without conflating their facts. */
+  criterionProofs(input: string): GraphQueryResult<GraphIrV2Edge> {
+    const resolution = this.resolveAddress(input);
+    const address = resolvedAddress(resolution);
+    if (!address) return this.unresolvedResult<GraphIrV2Edge>(resolution);
+    const supports = this.outboundRecords(address, 'supports');
+    const covers = this.inboundRecords(address, 'covers');
+    const records = uniqueEdges([...supports, ...covers]);
+    const reasons = this.edgeReasons(records);
+    if (records.length === 0) reasons.push(`criterion has no authored supports or observed covers: ${address}`);
+    return this.result(records, [resolution], reasons);
+  }
+
+  /** Returns authored test-channel supports as regression facts, preserving every reference field. */
+  regressions(input: string): GraphQueryResult<CorpusProofRecord> {
+    const resolution = this.resolveAddress(input);
+    const address = resolvedAddress(resolution);
+    if (!address) return this.unresolvedResult<CorpusProofRecord>(resolution);
+    const node = this.nodeByAddress.get(address);
+    const criterionAddresses = node?.nodeType === 'semantic' && node.kind === 'feature'
+      ? this.outboundRecords(address, 'contains').map((edge) => edge.to)
+      : node?.nodeType === 'semantic' && node.kind === 'criterion' ? [address] : [];
+    if (criterionAddresses.length === 0) {
+      return this.result([], [resolution], [`resolved input has no contained criteria: ${address}`]);
+    }
+    const proofEdges = criterionAddresses.flatMap((criterion) => this.outboundRecords(criterion, 'supports'));
+    const records = proofEdges
+      .filter(isBaseEdge)
+      .filter(isAuthoredProofEdge)
+      .filter((edge) => edge.channel === 'test')
+      .map(toProofRecord);
+    const reasons = this.edgeReasons(proofEdges);
+    if (records.length === 0) reasons.push(`input has no authored test regression references: ${address}`);
+    return this.result(records, [resolution], reasons);
+  }
+
+  /** Performs a finite projection only along caller-selected relation directions. */
+  project(request: GraphProjectionRequest): GraphProjection {
+    validateProjectionRequest(request);
+    const resolutions = request.seeds.map((seed) => this.resolveAddress(seed));
+    const unresolved = resolutions.filter((resolution) => resolution.state !== 'resolved');
+    if (unresolved.length > 0) {
+      return freeze({
+        nodes: freezeRecords([]), edges: freezeRecords([]), completeness: 'unresolved',
+        reasons: freezeRecords(unresolved.map(resolutionReason).sort()), resolutions: freezeRecords(resolutions),
+      });
+    }
+    const seedAddresses = [...new Set(resolutions.map((resolution) => resolvedAddress(resolution)).filter((address): address is string => address !== undefined))];
+    if (request.maxNodes < seedAddresses.length) {
+      throw new Error('GraphIR maxNodes cannot exclude a required resolved seed');
+    }
+    const selectedNodes = new Map<string, GraphIrV2Node>();
+    const selectedEdges = new Map<string, GraphIrV2Edge>();
+    const queue: Array<{readonly address: string; readonly hops: number}> = [];
+    const boundedReasons: string[] = [];
+    const unknownReasons: string[] = [];
+    let bounded = false;
+    for (const resolution of resolutions) {
+      const address = resolvedAddress(resolution);
+      if (!address) continue;
+      const node = this.nodeByAddress.get(address);
+      if (!node) {
+        unknownReasons.push(`resolved seed has no node: ${address}`);
+        continue;
+      }
+      if (!selectedNodes.has(address)) {
+        if (selectedNodes.size >= request.maxNodes) {
+          bounded = true;
+          boundedReasons.push(`node bound reached before seed: ${address}`);
+          continue;
+        }
+        selectedNodes.set(address, node);
+        queue.push({address, hops: 0});
+      }
+    }
+    for (let index = 0; index < queue.length; index++) {
+      const current = queue[index];
+      if (current.hops >= request.maxHops) continue;
+      for (const edge of this.nextEdges(current.address, request.rules)) {
+        const rule = request.rules.find((candidate) => {
+          if (candidate.relation !== edge.relation) return false;
+          return candidate.direction === 'outbound' ? edge.from === current.address : edge.to === current.address;
+        });
+        if (!rule) continue;
+        const identity = edgeIdentity(edge);
+        if (selectedEdges.has(identity)) continue;
+        if (selectedEdges.size >= request.maxEdges) {
+          bounded = true;
+          boundedReasons.push(`edge bound reached at ${identity}`);
+          continue;
+        }
+        const next = rule.direction === 'outbound' ? edge.to : edge.from;
+        const nextNode = this.nodeByAddress.get(next);
+        if (!nextNode) {
+          unknownReasons.push(`edge endpoint is absent: ${identity}`);
+          continue;
+        }
+        if (!selectedNodes.has(next)) {
+          if (selectedNodes.size >= request.maxNodes) {
+            bounded = true;
+            boundedReasons.push(`node bound reached at ${next}`);
+            continue;
+          }
+          selectedNodes.set(next, nextNode);
+          queue.push({address: next, hops: current.hops + 1});
+        }
+        selectedEdges.set(identity, edge);
+      }
+    }
+    const completeness = resultCompleteness(unknownReasons, bounded, this.layerUnknownReasons);
+    return freeze({
+      nodes: freezeRecords(sortBy([...selectedNodes.values()], (node) => node.address)),
+      edges: freezeRecords(sortBy([...selectedEdges.values()], edgeIdentity)),
+      completeness,
+      reasons: freezeRecords([...new Set([...boundedReasons, ...unknownReasons, ...this.layerUnknownReasons])].sort()),
+      resolutions: freezeRecords(resolutions),
+    });
+  }
+
+  /** Reconstructs the legacy parity view solely from this compiler-owned query index. */
+  corpusRecords(): CompilerCorpusView {
+    const semanticOwners = this.baseNodes
+      .filter((node): node is Extract<GraphNode, {readonly nodeType: 'semantic'}> => node.nodeType === 'semantic')
+      .map((node) => ({
+        address: node.address,
+        owner: node.kind === 'criterion' ? `feature:${node.address.slice('criterion:'.length).split('/')[0]}` : node.address,
+        source: node.source,
+      }));
+    const featureAddresses = this.baseNodes
+      .filter((node): node is Extract<GraphNode, {readonly nodeType: 'semantic'}> => node.nodeType === 'semantic' && node.kind === 'feature')
+      .map((node) => node.address);
+    const prerequisiteEdges = uniqueEdges(featureAddresses.flatMap((address) => this.directedWalk(
+      address, [{relation: 'depends_on', direction: 'outbound'}], 1,
+    ).edges)).filter(isBaseEdge);
+    const dependentEdges = uniqueEdges(featureAddresses.flatMap((address) => this.directedWalk(
+      address, [{relation: 'depends_on', direction: 'inbound'}], 1,
+    ).edges)).filter(isBaseEdge);
+    const prerequisites = prerequisiteEdges
+      .filter((edge) => edge.provenance === 'authored')
+      .map((edge) => ({feature: edge.from, prerequisite: edge.to, source: edge.owner}));
+    const dependents = dependentEdges
+      .filter((edge) => edge.provenance === 'authored')
+      .map((edge) => ({feature: edge.to, dependent: edge.from, source: edge.owner}));
+    const artifactOwners = this.baseNodes
+      .filter((node): node is Extract<GraphNode, {readonly nodeType: 'artifact'}> => node.nodeType === 'artifact' && node.owners.length > 0)
+      .map((node) => ({artifact: node.address, owners: node.owners}));
+    const proofs = this.baseEdges.filter(isAuthoredProofEdge).map(toProofRecord);
+    return freeze({
+      semanticOwners: freezeRecords(sortParityRecords(semanticOwners)),
+      prerequisites: freezeRecords(sortParityRecords(prerequisites)),
+      dependents: freezeRecords(sortParityRecords(dependents)),
+      artifactOwners: freezeRecords(sortParityRecords(artifactOwners)),
+      proofs: freezeRecords(sortParityRecords(proofs)),
+      regressions: freezeRecords(sortParityRecords(proofs.filter((proof) => proof.channel === 'test'))),
+    });
+  }
+
+  private unresolvedResult<T>(resolution: GraphAddressResolution): GraphQueryResult<T> {
+    return freeze({records: freezeRecords([]), completeness: 'unresolved', reasons: freezeRecords([resolutionReason(resolution)]), resolutions: freezeRecords([resolution])});
+  }
+
+  private result<T>(records: readonly T[], resolutions: readonly GraphAddressResolution[], localReasons: readonly string[]): GraphQueryResult<T> {
+    const reasons = [...new Set([...localReasons, ...this.layerUnknownReasons])].sort();
+    return freeze({
+      records: freezeRecords(sortRecords(records)), completeness: resultCompleteness(localReasons, false, this.layerUnknownReasons),
+      reasons: freezeRecords(reasons), resolutions: freezeRecords(resolutions),
+    });
+  }
+
+  private edgeReasons(edges: readonly GraphIrV2Edge[]): string[] {
+    return edges
+      .filter((edge) => !this.nodeByAddress.has(edge.from) || !this.nodeByAddress.has(edge.to))
+      .map((edge) => `edge endpoint is absent: ${edgeIdentity(edge)}`);
+  }
+
+  /** Walks one or more explicit directed relations without constructing a second adjacency view. */
+  private directedWalk(address: string, rules: readonly GraphProjectionRule[], maxHops: number): {
+    readonly edges: readonly GraphIrV2Edge[];
+    readonly unknownReasons: readonly string[];
+  } {
+    const queue: Array<{readonly address: string; readonly hops: number}> = [{address, hops: 0}];
+    const visited = new Set<string>([address]);
+    const edges = new Map<string, GraphIrV2Edge>();
+    const unknownReasons: string[] = [];
+    for (let index = 0; index < queue.length; index++) {
+      const current = queue[index];
+      if (current.hops >= maxHops) continue;
+      for (const edge of this.nextEdges(current.address, rules)) {
+        edges.set(edgeIdentity(edge), edge);
+        const rule = rules.find((candidate) => candidate.relation === edge.relation
+          && (candidate.direction === 'outbound' ? edge.from === current.address : edge.to === current.address));
+        if (!rule) continue;
+        const next = rule.direction === 'outbound' ? edge.to : edge.from;
+        if (!this.nodeByAddress.has(next)) {
+          unknownReasons.push(`edge endpoint is absent: ${edgeIdentity(edge)}`);
+        } else if (!visited.has(next)) {
+          visited.add(next);
+          queue.push({address: next, hops: current.hops + 1});
+        }
+      }
+    }
+    return {edges: uniqueEdges([...edges.values()]), unknownReasons: freezeRecords([...new Set(unknownReasons)].sort())};
+  }
+
+  /** Applies the frozen relation orientation to the compiler-owned adjacency indexes. */
+  private nextEdges(address: string, rules: readonly GraphProjectionRule[]): readonly GraphIrV2Edge[] {
+    return uniqueEdges(rules.flatMap((rule) => rule.direction === 'outbound'
+      ? this.outboundRecords(address, rule.relation)
+      : this.inboundRecords(address, rule.relation)));
+  }
+
+  private outboundRecords(address: string, relation: GraphRelation): readonly GraphIrV2Edge[] {
+    return (this.outbound.get(address) ?? []).filter((edge) => edge.relation === relation);
+  }
+
+  private inboundRecords(address: string, relation: GraphRelation): readonly GraphIrV2Edge[] {
+    return (this.inbound.get(address) ?? []).filter((edge) => edge.relation === relation);
+  }
+}
+
+function normalizeCanonicalSpelling(input: string): {readonly address: string; readonly via: 'canonical' | 'anchor'; readonly form: 'canonical' | 'anchor'} | undefined {
+  if (input === 'project'
+    || /^(?:capability|scenario|architecture_rule):[A-Za-z0-9][A-Za-z0-9._-]*$/.test(input)
+    || /^feature:F-[A-Za-z0-9][A-Za-z0-9._-]*$/.test(input)
+    || /^criterion:F-[A-Za-z0-9][A-Za-z0-9._-]*\/AC-[A-Za-z0-9][A-Za-z0-9._-]*$/.test(input)) {
+    return {address: input, via: 'canonical', form: 'canonical'};
+  }
+  if (input.startsWith('artifact:')) {
+    try {
+      return {address: artifactAddress(input.slice('artifact:'.length)), via: 'canonical', form: 'canonical'};
+    } catch {
+      return undefined;
+    }
+  }
+  const anchor = parseAnchorAddress(input);
+  return anchor ? {address: anchorAddress(anchor.path, anchor.selector), via: 'anchor', form: 'anchor'} : undefined;
+}
+
+function normalizeRawPhysicalSpelling(input: string): {readonly address: string; readonly via: 'path' | 'anchor'; readonly form: 'path' | 'anchor'} | undefined {
+  if (/^(?:artifact|anchor|capability|feature|criterion|scenario|architecture_rule):/.test(input) || input === 'project') return undefined;
+  const separator = input.indexOf('#');
+  try {
+    if (separator >= 0) {
+      const path = input.slice(0, separator);
+      const selector = input.slice(separator + 1);
+      return selector ? {address: anchorAddress(path, selector), via: 'anchor', form: 'anchor'} : undefined;
+    }
+    return {address: artifactAddress(input), via: 'path', form: 'path'};
+  } catch {
+    return undefined;
+  }
+}
+
+function validateProjectionRequest(request: GraphProjectionRequest): void {
+  if (!Array.isArray(request.seeds) || request.seeds.length === 0) throw new Error('GraphIR projection requires at least one explicit seed');
+  if (!Array.isArray(request.rules) || request.rules.length === 0) throw new Error('GraphIR projection requires at least one explicit relation-direction rule');
+  for (const rule of request.rules) {
+    if (!RELATIONS.has(rule.relation) || (rule.direction !== 'outbound' && rule.direction !== 'inbound')) {
+      throw new Error('GraphIR projection rules require a known relation and explicit inbound or outbound direction');
+    }
+  }
+  validateBound('maxHops', request.maxHops);
+  validateBound('maxNodes', request.maxNodes);
+  validateBound('maxEdges', request.maxEdges);
+  if (request.maxNodes === 0) throw new Error('GraphIR maxNodes must retain at least one required seed');
+  if (request.maxEdges === 0 && request.maxHops > 0) throw new Error('GraphIR maxEdges can be zero only for a depth-zero seed projection');
+}
+
+function validateBound(name: string, value: number): void {
+  if (!Number.isSafeInteger(value) || value < 0) throw new Error(`GraphIR ${name} must be a finite non-negative integer`);
+}
+
+function assertCanonicalAddress(address: string): void {
+  if (normalizeCanonicalSpelling(address)?.address !== address) {
+    throw new Error(`GraphIR augmentation address is not canonical: ${address}`);
+  }
+}
+
+function assertAugmentationNode(node: GraphIrV2ObservedArtifactFact | GraphIrV2ObservedAnchorFact): void {
+  assertCanonicalAddress(node.address);
+  if (node.nodeType === 'artifact') {
+    if (!node.address.startsWith('artifact:')) throw new Error(`GraphIR observed artifact fact has a non-artifact address: ${node.address}`);
+    return;
+  }
+  const anchor = parseAnchorAddress(node.address);
+  if (!anchor || node.artifact !== artifactAddress(anchor.path) || node.selector !== anchor.selector) {
+    throw new Error(`GraphIR observed anchor fact does not match its canonical address: ${node.address}`);
+  }
+}
+
+function indexByIdentity<T>(records: readonly T[], identity: (record: T) => string, label: string): ReadonlyMap<string, T> {
+  const index = new Map<string, T>();
+  for (const record of records) {
+    const key = identity(record);
+    const existing = index.get(key);
+    if (existing === undefined) {
+      index.set(key, record);
+    } else if (canonicalRecord(existing) !== canonicalRecord(record)) {
+      throw new Error(`GraphIR conflicting duplicate ${label}: ${key}`);
+    }
+  }
+  return index;
+}
+
+function edgeIndex(edges: readonly GraphIrV2Edge[], endpoint: 'from' | 'to'): ReadonlyMap<string, readonly GraphIrV2Edge[]> {
+  const index = new Map<string, GraphIrV2Edge[]>();
+  for (const edge of edges) {
+    const records = index.get(edge[endpoint]) ?? [];
+    records.push(edge);
+    index.set(edge[endpoint], records);
+  }
+  return new Map([...index.entries()].map(([address, records]) => [address, freezeRecords(sortBy(records, edgeIdentity))]));
+}
+
+function aliasIndex(aliases: readonly GraphAliasRecord[]): ReadonlyMap<string, readonly GraphAliasRecord[]> {
+  const index = new Map<string, GraphAliasRecord[]>();
+  for (const alias of aliases) {
+    const records = index.get(alias.alias) ?? [];
+    records.push(alias);
+    index.set(alias.alias, records);
+  }
+  return new Map([...index.entries()].map(([alias, records]) => [alias, freezeRecords(sortBy(records, recordKey))]));
+}
+
+function isBaseNode(node: GraphIrV2Node): node is GraphNode {
+  return !('locator' in node);
+}
+
+function isBaseEdge(edge: GraphIrV2Edge): edge is GraphEdge {
+  return 'address' in edge;
+}
+
+type AuthoredProofEdge = GraphEdge & {
+  readonly channel: NonNullable<GraphEdge['channel']>;
+  readonly raw: string;
+  readonly normalizedTarget: string;
+  readonly selector: NonNullable<GraphEdge['selector']>;
+  readonly state: 'resolved' | 'unresolved';
+};
+
+function isAuthoredProofEdge(edge: GraphEdge): edge is AuthoredProofEdge {
+  return edge.relation === 'supports'
+    && edge.provenance === 'authored'
+    && edge.channel !== undefined
+    && edge.raw !== undefined
+    && edge.normalizedTarget !== undefined
+    && edge.selector !== undefined
+    && (edge.state === 'resolved' || edge.state === 'unresolved');
+}
+
+function toProofRecord(edge: AuthoredProofEdge): CorpusProofRecord {
+  return {
+    owner: edge.from, channel: edge.channel, raw: edge.raw, normalizedTarget: edge.normalizedTarget,
+    selector: edge.selector, resolution: edge.state, source: edge.owner as SourceLocator,
+  };
+}
+
+function edgeIdentity(edge: GraphIrV2Edge): string {
+  return isBaseEdge(edge) ? edge.address : `observed:${edge.identity}`;
+}
+
+function uniqueEdges(edges: readonly GraphIrV2Edge[]): readonly GraphIrV2Edge[] {
+  return freezeRecords(sortBy([...indexByIdentity(edges, edgeIdentity, 'edge identity').values()], edgeIdentity));
+}
+
+function resolvedAddress(resolution: GraphAddressResolution): string | undefined {
+  return resolution.state === 'resolved' ? resolution.canonical : undefined;
+}
+
+function resolutionReason(resolution: GraphAddressResolution): string {
+  return resolution.state === 'resolved' ? '' : resolution.state === 'ambiguous'
+    ? `${resolution.reason}: ${resolution.candidates.join(', ')}`
+    : resolution.reason;
+}
+
+function resultCompleteness(localReasons: readonly string[], bounded: boolean, layerUnknownReasons: readonly string[]): GraphQueryCompleteness {
+  if (layerUnknownReasons.length > 0 || localReasons.length > 0) return 'unknown';
+  return bounded ? 'bounded' : 'complete';
+}
+
+function recordKey(record: object): string {
+  return canonicalRecord(record);
+}
+
+function sortBy<T>(records: readonly T[], key: (record: T) => string): readonly T[] {
+  return [...records].sort((left, right) => key(left).localeCompare(key(right)));
+}
+
+function sortRecords<T>(records: readonly T[]): readonly T[] {
+  return sortBy(records, (record) => canonicalRecord(record));
+}
+
+/** Preserves the committed independent-scanner snapshot's historical record order. */
+function sortParityRecords<T>(records: readonly T[]): readonly T[] {
+  return sortBy(records, (record) => JSON.stringify(record));
+}
+
+function freezeRecords<T>(records: readonly T[]): readonly T[] {
+  return Object.freeze([...records]);
+}
+
+function freeze<T extends object>(record: T): T {
+  return Object.freeze(record);
+}
+
+/** Canonical comparison keeps duplicate handling independent of caller property insertion order. */
+function canonicalRecord(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonicalRecord).join(',')}]`;
+  const record = value as Readonly<Record<string, unknown>>;
+  return `{${Object.keys(record).sort().filter((key) => record[key] !== undefined)
+    .map((key) => `${JSON.stringify(key)}:${canonicalRecord(record[key])}`).join(',')}}`;
+}

@@ -6,6 +6,8 @@ import {join, relative, resolve} from 'node:path';
 import {LineCounter, parseDocument} from 'yaml';
 
 import {resolveArtifactDescriptors} from './artifact-registry.js';
+import {anchorAddress, artifactAddress, normalizeGraphArtifactPath, semanticAddress} from './graph-address.js';
+import {graphIrV2} from './graph-ir-v2.js';
 import {withStableSpecWorkspaceSnapshot} from '../transaction.js';
 import {prospectiveCompilationOverlay} from '../prospective.js';
 import {legacyExemptionMatches, validateMigrationBaseline, type MigrationBaseline} from './migration-baseline.js';
@@ -22,6 +24,7 @@ import type {
   AnchorGraphNode,
   ArtifactGraphNode,
   ArtifactRole,
+  GraphAliasRecord,
   CompilerCorpusView,
   CompilerDiagnostic,
   CompilerMigrationSource,
@@ -29,10 +32,10 @@ import type {
   CorpusProofRecord,
   GraphEdge,
   GraphNode,
+  GraphPresentationRecord,
   GraphSelector,
   LegacyReferenceChannel,
   SemanticGraphNode,
-  SemanticOwnerRecord,
   Schema02ArchitectureRuleContract,
   Schema02ContractProjection,
   Schema02CriterionContract,
@@ -53,8 +56,10 @@ interface ParsedYaml {
 
 interface RawFeature {
   readonly id?: unknown;
+  readonly slug?: unknown;
   readonly title?: unknown;
   readonly status?: unknown;
+  readonly purpose?: unknown;
   readonly modules?: unknown;
   readonly depends_on?: unknown;
   readonly capability_refs?: unknown;
@@ -64,6 +69,7 @@ interface RawFeature {
 interface RawCriterion {
   readonly id?: unknown;
   readonly kind?: unknown;
+  readonly text?: unknown;
   readonly statement?: unknown;
   readonly rationale?: unknown;
   readonly constraint_refs?: unknown;
@@ -91,6 +97,8 @@ interface GraphBuild {
   readonly artifactNodes: Map<string, MutableArtifact>;
   readonly anchorNodes: Map<string, AnchorGraphNode>;
   readonly edges: GraphEdge[];
+  readonly presentations: GraphPresentationRecord[];
+  readonly aliases: GraphAliasRecord[];
   readonly diagnostics: CompilerDiagnostic[];
 }
 
@@ -103,34 +111,7 @@ interface NormalizedReference {
   readonly anchor?: {readonly selector: string; readonly selectorProvenance: 'authored' | 'derived'};
 }
 
-type AuthoredSupportsEdge = GraphEdge & {
-  readonly channel: LegacyReferenceChannel;
-  readonly raw: string;
-  readonly normalizedTarget: string;
-  readonly selector: GraphSelector;
-  readonly state: 'resolved' | 'unresolved';
-};
-
-/** Returns the canonical address for a semantic node. */
-export function semanticAddress(
-  kind: 'project' | 'capability' | 'feature' | 'criterion' | 'scenario' | 'architecture_rule',
-  identifier?: string,
-): string {
-  if (kind === 'project') return 'project';
-  if (!identifier) throw new Error(`${kind} address requires an identifier`);
-  return `${kind}:${identifier}`;
-}
-
-/** Returns the canonical physical address for a repository-relative artifact. */
-export function artifactAddress(path: string): string {
-  return `artifact:${normalizeRepoPath(path)}`;
-}
-
-/** Returns the canonical physical address for an authored artifact selector. */
-export function anchorAddress(path: string, selector: string): string {
-  if (!selector) throw new Error('anchors require an authored selector');
-  return `anchor:${normalizeRepoPath(path)}#${selector}`;
-}
+export {anchorAddress, artifactAddress, semanticAddress} from './graph-address.js';
 
 /**
  * Dispatches only on `spec.yaml#schema`.
@@ -228,63 +209,19 @@ export function readSchema01MigrationSource(cwd: string = '.'): CompilerMigratio
 
 /** Projects a compilation into the sorted records compared with the independent scanner. */
 export function compilerCorpusView(compilation: SpecCompilation): CompilerCorpusView {
-  const semanticOwners: SemanticOwnerRecord[] = [];
-  for (const node of compilation.nodes) {
-    if (node.nodeType !== 'semantic') continue;
-    semanticOwners.push({
-      address: node.address,
-      owner: node.kind === 'criterion' ? `feature:${node.address.slice('criterion:'.length).split('/')[0]}` : node.address,
-      source: node.source,
-    });
-  }
-
-  const prerequisites = compilation.edges
-    .filter((edge) => edge.relation === 'depends_on' && edge.provenance === 'authored')
-    .map((edge) => ({feature: edge.from, prerequisite: edge.to, source: edge.owner}));
-  const dependents = prerequisites
-    .map((record) => ({feature: record.prerequisite, dependent: record.feature, source: record.source}));
-  const artifactOwners = compilation.nodes
-    .filter((node): node is ArtifactGraphNode => node.nodeType === 'artifact' && node.owners.length > 0)
-    .map((node) => ({artifact: node.address, owners: node.owners}));
-  const proofs = compilation.edges
-    .filter((edge): edge is AuthoredSupportsEdge =>
-      edge.relation === 'supports'
-      && edge.provenance === 'authored'
-      && edge.channel !== undefined
-      && edge.raw !== undefined
-      && edge.normalizedTarget !== undefined
-      && edge.selector !== undefined
-      && (edge.state === 'resolved' || edge.state === 'unresolved'),
-    )
-    .map((edge): CorpusProofRecord => ({
-      owner: edge.from,
-      channel: edge.channel,
-      raw: edge.raw,
-      normalizedTarget: edge.normalizedTarget,
-      selector: edge.selector,
-      resolution: edge.state,
-      source: edge.owner,
-    }));
-  const sortJson = <T>(records: readonly T[]): readonly T[] => [...records].sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
-  return {
-    semanticOwners: sortJson(semanticOwners),
-    prerequisites: sortJson(prerequisites),
-    dependents: sortJson(dependents),
-    artifactOwners: sortJson(artifactOwners),
-    proofs: sortJson(proofs),
-    regressions: sortJson(proofs.filter((proof) => proof.channel === 'test')),
-  };
+  return graphIrV2(compilation).corpusRecords();
 }
 
 function compileSchema01(root: string, master: ParsedYaml, rootValue: Record<string, unknown>): SpecCompilation {
   const graph: GraphBuild = {
-    semanticNodes: new Map(), artifactNodes: new Map(), anchorNodes: new Map(), edges: [], diagnostics: [],
+    semanticNodes: new Map(), artifactNodes: new Map(), anchorNodes: new Map(), edges: [], presentations: [], aliases: [], diagnostics: [],
   };
   const project = rootValue.project;
   if (!project || typeof project !== 'object' || Array.isArray(project)) {
     graph.diagnostics.push({code: 'INVALID_ROOT', message: 'spec.yaml project must be an object', source: locator(master, ['project'])});
   } else {
     addSemantic(graph, {address: 'project', nodeType: 'semantic', kind: 'project', provenance: 'authored', source: locator(master, ['project'])});
+    addPresentation(graph, {schemaVersion: '0.1', address: 'project', kind: 'project', source: locator(master, ['project'])});
   }
   ensureArtifact(graph, artifactAddress('spec.yaml'), ['spec'], [], locator(master, []));
   if (graph.semanticNodes.has('project')) {
@@ -313,19 +250,27 @@ function compileSchema01(root: string, master: ParsedYaml, rootValue: Record<str
     nodes,
     edges: [...graph.edges].sort((left, right) => left.address.localeCompare(right.address)),
     diagnostics: [...graph.diagnostics].sort((left, right) => left.message.localeCompare(right.message)),
+    presentations: sortRecords(graph.presentations),
+    aliases: sortRecords(graph.aliases),
   };
 }
 
 /** Compiles the additive schema 0.2 project, catalog, feature, and architecture contracts. */
 function compileSchema02(root: string, master: ParsedYaml, rootValue: Record<string, unknown>): SpecCompilation {
   const graph: GraphBuild = {
-    semanticNodes: new Map(), artifactNodes: new Map(), anchorNodes: new Map(), edges: [], diagnostics: [],
+    semanticNodes: new Map(), artifactNodes: new Map(), anchorNodes: new Map(), edges: [], presentations: [], aliases: [], diagnostics: [],
   };
   const project = rootValue.project;
+  const projectRecord = objectValueOrNull(project);
   if (!project || typeof project !== 'object' || Array.isArray(project)) {
     graph.diagnostics.push({code: 'INVALID_ROOT', severity: 'blocking', message: 'spec.yaml project must be an object', source: locator(master, ['project'])});
   } else {
     addSemantic(graph, {address: 'project', nodeType: 'semantic', kind: 'project', provenance: 'authored', source: locator(master, ['project'])});
+    addPresentation(graph, {
+      schemaVersion: '0.2', address: 'project', kind: 'project',
+      ...(typeof projectRecord?.purpose === 'string' ? {purpose: projectRecord.purpose} : {}),
+      source: locator(master, ['project']),
+    });
   }
   ensureArtifact(graph, artifactAddress('spec.yaml'), ['spec'], [], locator(master, []));
   if (graph.semanticNodes.has('project')) {
@@ -349,7 +294,6 @@ function compileSchema02(root: string, master: ParsedYaml, rootValue: Record<str
   for (const message of baselineState.issues) {
     graph.diagnostics.push({code: 'INVALID_SCHEMA_02', severity: 'blocking', message: `Invalid migration baseline: ${message}`, source: locator(master, [])});
   }
-  const projectRecord = objectValueOrNull(project);
   const projectBaselineIdentity = legacyExemptionMatches(baseline, 'project', projectRecord ?? undefined)
     && (projectRecord?.purpose === undefined || typeof projectRecord.purpose === 'string')
     ? baseline?.project.exemption?.id
@@ -387,6 +331,7 @@ function compileSchema02(root: string, master: ParsedYaml, rootValue: Record<str
       const address = semanticAddress('capability', capability.id);
       const source = locator(capabilityDocument, ['capabilities', sourceRecordIndex(capabilityDocument.value, 'capabilities', capability.id), 'id']);
       addSemantic(graph, {address, nodeType: 'semantic', kind: 'capability', provenance: 'authored', source});
+      addPresentation(graph, {schemaVersion: '0.2', address, kind: 'capability', title: capability.title, source});
       addEdge(graph, address, catalogAddress, 'defined_in', 'authored', source);
     }
   }
@@ -409,6 +354,7 @@ function compileSchema02(root: string, master: ParsedYaml, rootValue: Record<str
       const address = semanticAddress('architecture_rule', rule.id);
       const source = locator(architectureDocument, ['rules', sourceRecordIndex(architectureDocument.value, 'rules', rule.id), 'id']);
       addSemantic(graph, {address, nodeType: 'semantic', kind: 'architecture_rule', provenance: 'authored', source});
+      addPresentation(graph, {schemaVersion: '0.2', address, kind: 'architecture_rule', rationale: rule.rationale, source});
       addEdge(graph, address, architectureAddress, 'defined_in', 'authored', source);
     }
   }
@@ -526,6 +472,8 @@ function finishCompilation(
     nodes,
     edges: [...graph.edges].sort((left, right) => left.address.localeCompare(right.address)),
     diagnostics: [...graph.diagnostics].sort((left, right) => left.message.localeCompare(right.message)),
+    presentations: sortRecords(graph.presentations),
+    aliases: sortRecords(graph.aliases),
     ...(contract ? {contract} : {}),
     ...(migrationBaseline ? {migrationBaseline} : {}),
     ...(migrationProofs ? {migrationProofs} : {}),
@@ -603,6 +551,14 @@ function compileFeature(graph: GraphBuild, root: string, parsed: ParsedYaml): vo
     const featureAddress = semanticAddress('feature', feature.id);
     const featureSource = locator(parsed, [...pathPrefix, 'id']);
     addSemantic(graph, {address: featureAddress, nodeType: 'semantic', kind: 'feature', provenance: 'authored', source: featureSource});
+    addPresentation(graph, {
+      schemaVersion: '0.1', address: featureAddress, kind: 'feature', title: feature.title, status: feature.status,
+      ...(typeof feature.slug === 'string' ? {slug: feature.slug} : {}), source: featureSource,
+    });
+    addAlias(graph, {alias: feature.id, address: featureAddress, kind: 'feature_id', source: featureSource});
+    if (typeof feature.slug === 'string') {
+      addAlias(graph, {alias: feature.slug, address: featureAddress, kind: 'feature_slug', source: locator(parsed, [...pathPrefix, 'slug'])});
+    }
     const shardAddress = artifactAddress(parsed.path);
     ensureArtifact(graph, shardAddress, ['spec'], [featureAddress], locator(parsed, pathPrefix));
     addEdge(graph, featureAddress, shardAddress, 'defined_in', 'authored', featureSource);
@@ -625,6 +581,10 @@ function compileFeature(graph: GraphBuild, root: string, parsed: ParsedYaml): vo
       const criterionAddress = semanticAddress('criterion', `${feature.id}/${criterion.id}`);
       const criterionSource = locator(parsed, [...criterionPrefix, 'id']);
       addSemantic(graph, {address: criterionAddress, nodeType: 'semantic', kind: 'criterion', provenance: 'authored', source: criterionSource});
+      addPresentation(graph, {
+        schemaVersion: '0.1', address: criterionAddress, kind: 'criterion',
+        ...(typeof criterion.text === 'string' ? {statement: criterion.text} : {}), source: criterionSource,
+      });
       addEdge(graph, featureAddress, criterionAddress, 'contains', 'authored', criterionSource);
       addEdge(graph, criterionAddress, shardAddress, 'defined_in', 'authored', criterionSource);
       compileLegacyReferences(graph, root, parsed, criterionPrefix, criterionAddress, 'test', criterion.test_refs);
@@ -672,6 +632,15 @@ function compileSchema02Feature(
   const featureAddress = semanticAddress('feature', feature.id);
   const featureSource = locator(parsed, ['id']);
   addSemantic(graph, {address: featureAddress, nodeType: 'semantic', kind: 'feature', provenance: 'authored', source: featureSource});
+  addPresentation(graph, {
+    schemaVersion: '0.2', address: featureAddress, kind: 'feature', title: feature.title, status: feature.status,
+    ...(typeof feature.slug === 'string' ? {slug: feature.slug} : {}),
+    ...(typeof feature.purpose === 'string' ? {purpose: feature.purpose} : {}), source: featureSource,
+  });
+  addAlias(graph, {alias: feature.id, address: featureAddress, kind: 'feature_id', source: featureSource});
+  if (typeof feature.slug === 'string') {
+    addAlias(graph, {alias: feature.slug, address: featureAddress, kind: 'feature_slug', source: locator(parsed, ['slug'])});
+  }
   const shardAddress = artifactAddress(parsed.path);
   ensureArtifact(graph, shardAddress, ['spec'], [featureAddress], locator(parsed, []));
   addEdge(graph, featureAddress, shardAddress, 'defined_in', 'authored', featureSource);
@@ -748,6 +717,11 @@ function compileSchema02Criterion(
   const address = semanticAddress('criterion', `${featureId}/${criterion.id}`);
   const source = locator(parsed, [...prefix, 'id']);
   addSemantic(graph, {address, nodeType: 'semantic', kind: 'criterion', provenance: 'authored', source});
+  addPresentation(graph, {
+    schemaVersion: '0.2', address, kind: 'criterion',
+    ...(typeof criterion.statement === 'string' ? {statement: criterion.statement} : {}),
+    ...(typeof criterion.rationale === 'string' ? {rationale: criterion.rationale} : {}), source,
+  });
   addEdge(graph, featureAddress, address, 'contains', 'authored', source);
   addEdge(graph, address, shardAddress, 'defined_in', 'authored', source);
   if (contractCriterion?.kind !== 'constraint') return;
@@ -809,6 +783,7 @@ function compileSchema02Scenarios(
       const scenarioAddress = semanticAddress('scenario', id);
       const source = locator(parsed, ['id']);
       addSemantic(graph, {address: scenarioAddress, nodeType: 'semantic', kind: 'scenario', provenance: 'authored', source});
+      addPresentation(graph, {schemaVersion: '0.2', address: scenarioAddress, kind: 'scenario', title, source});
       const shardAddress = artifactAddress(parsed.path);
       ensureArtifact(graph, shardAddress, ['spec'], [scenarioAddress], locator(parsed, []));
       addEdge(graph, scenarioAddress, shardAddress, 'defined_in', 'authored', source);
@@ -860,6 +835,7 @@ function compileScenario(graph: GraphBuild, parsed: ParsedYaml): void {
     const scenarioAddress = semanticAddress('scenario', scenario.id);
     const source = locator(parsed, [...prefix, 'id']);
     addSemantic(graph, {address: scenarioAddress, nodeType: 'semantic', kind: 'scenario', provenance: 'authored', source});
+    addPresentation(graph, {schemaVersion: '0.1', address: scenarioAddress, kind: 'scenario', title: scenario.title, source});
     const shardAddress = artifactAddress(parsed.path);
     ensureArtifact(graph, shardAddress, ['spec'], [scenarioAddress], locator(parsed, prefix));
     addEdge(graph, scenarioAddress, shardAddress, 'defined_in', 'authored', source);
@@ -971,7 +947,7 @@ function normalizeReference(root: string, raw: string): NormalizedReference {
     const artifact = `artifact:${rawPath}`;
     return {target: artifact, artifact, selector, resolution: 'unresolved'};
   }
-  const normalizedPath = normalizeRepoPath(rawPath);
+  const normalizedPath = normalizeGraphArtifactPath(rawPath);
   const artifact = artifactAddress(normalizedPath);
   const target = selector.precision === 'fragment' ? anchorAddress(normalizedPath, selector.value ?? '') : artifact;
   return {
@@ -992,6 +968,16 @@ function isPortableStructuralTarget(path: string): boolean {
 
 function addSemantic(graph: GraphBuild, node: SemanticGraphNode): void {
   graph.semanticNodes.set(node.address, node);
+}
+
+/** Retains source-authored display intent in the same compiler pass as structural facts. */
+function addPresentation(graph: GraphBuild, record: GraphPresentationRecord): void {
+  graph.presentations.push(record);
+}
+
+/** Retains aliases as facts so the query resolver can report ambiguity rather than guess. */
+function addAlias(graph: GraphBuild, record: GraphAliasRecord): void {
+  graph.aliases.push(record);
 }
 
 function ensureArtifact(
@@ -1028,7 +1014,7 @@ function readYaml(root: string, path: string): ParsedYaml {
   const text = readFileSync(absolute, 'utf8');
   const lineCounter = new LineCounter();
   const document = parseDocument(text, {lineCounter});
-  return {path: normalizeRepoPath(relative(root, absolute)), document, lineCounter, value: document.toJS()};
+  return {path: normalizeGraphArtifactPath(relative(root, absolute)), document, lineCounter, value: document.toJS()};
 }
 
 /** Reads exact fixture names from their independent source-YAML registry. */
@@ -1065,14 +1051,6 @@ function locator(parsed: ParsedYaml, path: readonly (string | number)[]): Source
   return {path: parsed.path, yamlPath, range: sourceRange};
 }
 
-function normalizeRepoPath(path: string): string {
-  const normalized = path.replaceAll('\\', '/').replace(/^\.\//, '');
-  if (!normalized || normalized.startsWith('/') || normalized.split('/').some((part) => part === '..')) {
-    throw new Error(`compiler path must be repository-relative: ${path}`);
-  }
-  return normalized;
-}
-
 function objectValue(value: unknown, message: string): Record<string, unknown> {
   const object = objectValueOrNull(value);
   if (!object) throw new Error(message);
@@ -1096,4 +1074,9 @@ function roleForModule(path: string): ArtifactRole {
   if (/\.(?:md|mdx)$/.test(path)) return 'doc';
   if (path.startsWith('spec/generated/')) return 'generated';
   return 'source';
+}
+
+/** Sorts compiler projections by complete value so their serialization is stable. */
+function sortRecords<T>(records: readonly T[]): readonly T[] {
+  return [...records].sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
 }

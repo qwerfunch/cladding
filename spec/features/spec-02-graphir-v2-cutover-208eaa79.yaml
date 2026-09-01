@@ -38,6 +38,8 @@ modules:
   - src/report/report.ts
   - src/graph/layout3d.ts
   - src/graph/stellar.ts
+  - src/spec/compiler/graph-address.ts
+  - plugins/claude-code/dist/clad.js
 depends_on:
   - F-182eaa53
   - F-0b8f23c5
