@@ -80,6 +80,47 @@ describe('doc-references', () => {
     expect(DOC_LINKS_IGNORE_MARKER).toBe('clad-doc-links: ignore');
   });
 
+  test('keeps a genuine same-id prose occurrence as a mention while excluding its declaration marker', () => {
+    wdoc('docs/guide.md', [
+      '<!-- clad-doc-links: F-11111111 -->',
+      'The prose also explains F-11111111 beside F-22222222.',
+      '',
+    ].join('\n'));
+
+    const guide = scanDocumentFacts(dir).docs.find((document) => document.doc === 'docs/guide.md');
+
+    expect(guide?.explicit.map((fact) => fact.featureId)).toEqual(['F-11111111']);
+    expect(guide?.organic.map((fact) => fact.featureId)).toEqual(['F-11111111', 'F-22222222']);
+    expect(guide?.organic.filter((fact) => fact.featureId === 'F-11111111')).toHaveLength(1);
+  });
+
+  test('uses content-keyed selectors that survive unrelated document facts', () => {
+    wdoc('docs/target.md', '# target');
+    wdoc('docs/other.md', '# other');
+    wdoc('docs/guide.md', [
+      '<!-- clad-doc-links: F-11111111 -->',
+      'Prose F-11111111 and F-22222222. [target](./target.md#heading)',
+      '',
+    ].join('\n'));
+    const initial = scanDocumentFacts(dir).docs.find((document) => document.doc === 'docs/guide.md');
+
+    wdoc('docs/guide.md', [
+      '<!-- clad-doc-links: F-deadbeef -->',
+      'Unrelated F-cafef00d. [other](./other.md)',
+      '<!-- clad-doc-links: F-11111111 -->',
+      'Prose F-11111111 and F-22222222. [target](./target.md#heading)',
+      '',
+    ].join('\n'));
+    const inserted = scanDocumentFacts(dir).docs.find((document) => document.doc === 'docs/guide.md');
+    const selectorOf = (document: typeof initial, kind: 'explicit' | 'organic' | 'links', raw: string): string | undefined =>
+      document?.[kind].find((fact) => fact.raw === raw)?.selector;
+
+    expect(selectorOf(initial, 'explicit', 'F-11111111')).toEqual(selectorOf(inserted, 'explicit', 'F-11111111'));
+    expect(selectorOf(initial, 'organic', 'F-22222222')).toEqual(selectorOf(inserted, 'organic', 'F-22222222'));
+    expect(selectorOf(initial, 'links', './target.md#heading')).toEqual(selectorOf(inserted, 'links', './target.md#heading'));
+    expect(selectorOf(inserted, 'links', './target.md#heading')).not.toMatch(/:\d+:\d+:/);
+  });
+
   test('keeps provenance-distinct facts, no-reference artifacts, and unsafe traversal explicit', () => {
     wdoc('docs/target.md', '# target');
     wdoc('docs/empty.md', '# no semantic references');
@@ -98,7 +139,10 @@ describe('doc-references', () => {
     expect(rows['docs/empty.md']).toMatchObject({explicit: [], organic: [], links: []});
     expect(rows['docs/guide.md']).toMatchObject({
       explicit: [expect.objectContaining({featureId: 'F-11111111', raw: 'F-11111111', selector: expect.stringMatching(/^declaration:/)})],
-      organic: [expect.objectContaining({featureId: 'F-22222222'})],
+      organic: [
+        expect.objectContaining({featureId: 'F-11111111'}),
+        expect.objectContaining({featureId: 'F-22222222'}),
+      ],
       links: [expect.objectContaining({raw: './target.md#section', target: 'docs/target.md', state: 'resolved', selector: expect.stringMatching(/^link:/)})],
     });
     expect(rows['docs/dogfood/fixture.md']).toMatchObject({
@@ -132,5 +176,42 @@ describe('doc-references', () => {
       '    features: [F-33333333]',
       '',
     ].join('\n'));
+  });
+
+  test('retains unsafe local Markdown paths as scan issues without projecting their targets', () => {
+    const outside = mkdtempSync(join(tmpdir(), 'clad-docref-outside-'));
+    try {
+      writeFileSync(join(outside, 'outside.md'), '# outside');
+      wdoc('docs/guide.md', [
+        '[up](../../outside.md)',
+        '[absolute](/outside.md)',
+        '[symlink](./escape.md)',
+        '',
+      ].join('\n'));
+      symlinkSync(join(outside, 'outside.md'), join(dir, 'docs', 'escape.md'));
+
+      const scan = scanDocumentFacts(dir);
+      const guide = scan.docs.find((document) => document.doc === 'docs/guide.md');
+      const projection = byDoc(extractDocReferences(dir));
+
+      expect(guide?.links).toEqual([]);
+      expect(guide?.issues).toEqual(expect.arrayContaining([
+        expect.objectContaining({raw: '../../outside.md', reason: 'path_escapes_workspace'}),
+        expect.objectContaining({raw: '/outside.md', reason: 'absolute_path'}),
+        expect.objectContaining({raw: './escape.md', reason: 'symlink_escape'}),
+      ]));
+      expect(scan).toMatchObject({
+        completeness: 'unknown',
+        unknownReasons: expect.arrayContaining([
+          expect.stringContaining('../../outside.md'),
+          expect.stringContaining('/outside.md'),
+          expect.stringContaining('./escape.md'),
+        ]),
+      });
+      expect(projection['docs/guide.md']?.doc_links).toEqual([]);
+      expect(renderDocLinksYaml(dir)).not.toContain('outside.md');
+    } finally {
+      rmSync(outside, {recursive: true, force: true});
+    }
   });
 });

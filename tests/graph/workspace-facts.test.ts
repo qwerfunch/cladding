@@ -1,6 +1,6 @@
 // Cladding · Spec 0.2 F8 · authored live-test GraphIR workspace facts.
 
-import {mkdtempSync, mkdirSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 
@@ -294,7 +294,7 @@ describe('GraphIR document facts', () => {
     writeFileSync(join(root, 'docs', 'empty.md'), '# no references\n');
     writeFileSync(join(root, 'docs', 'guide.md'), [
       '<!-- clad-doc-links: F-aaaaaaaa -->',
-      'Organic F-aaaaaaaa stays declaration-only; F-bbbbbbbb and F-deadbeef remain prose facts.',
+      'Organic F-aaaaaaaa is distinct from the declaration; F-bbbbbbbb and F-deadbeef remain prose facts.',
       '[target](./target.md#section) [missing](./missing.md)', '',
     ].join('\n'));
     writeFileSync(join(root, 'docs', 'strict.md'), '<!-- clad-doc-links: F-feedbeef -->\n');
@@ -312,13 +312,14 @@ describe('GraphIR document facts', () => {
     ]));
     expect(first.edges).toEqual(expect.arrayContaining([
       expect.objectContaining({relation: 'explains', provenance: 'authored', from: artifact, to: 'feature:F-aaaaaaaa', state: 'resolved'}),
+      expect.objectContaining({relation: 'mentions', provenance: 'derived', from: artifact, to: 'feature:F-aaaaaaaa', state: 'resolved'}),
       expect.objectContaining({relation: 'mentions', provenance: 'derived', from: artifact, to: 'feature:F-bbbbbbbb', state: 'resolved'}),
       expect.objectContaining({relation: 'mentions', provenance: 'derived', from: artifact, to: 'feature:F-deadbeef', state: 'unresolved'}),
       expect.objectContaining({relation: 'links_to', provenance: 'authored', from: artifact, to: 'artifact:docs/target.md', raw: './target.md#section', state: 'resolved'}),
       expect.objectContaining({relation: 'links_to', provenance: 'authored', from: artifact, to: 'artifact:docs/missing.md', state: 'unresolved'}),
       expect.objectContaining({relation: 'explains', from: 'artifact:docs/dogfood/fixture.md', to: 'feature:F-aaaaaaaa'}),
     ]));
-    expect(first.edges.filter((edge) => edge.relation === 'mentions' && edge.to === 'feature:F-aaaaaaaa')).toEqual([]);
+    expect(first.edges.filter((edge) => edge.relation === 'mentions' && edge.to === 'feature:F-aaaaaaaa')).toHaveLength(1);
     expect(first.edges.filter((edge) => edge.from === 'artifact:docs/dogfood/fixture.md' && edge.relation !== 'explains')).toEqual([]);
     expect(first).toMatchObject({
       completeness: 'unknown',
@@ -355,6 +356,73 @@ describe('GraphIR document facts', () => {
       expect.objectContaining({roles: ['doc', 'source', 'test'], owners: ['feature:F-aaaaaaaa', 'feature:F-bbbbbbbb']}),
     ]);
     expect(projection).toMatchObject({completeness: 'unknown'});
+  });
+
+  test('[covers:F-208eaa79/AC-b8ed5507] keeps document GraphIR identities stable across unrelated facts', () => {
+    const root = workspace();
+    writeSchema01Features(root);
+    mkdirSync(join(root, 'docs'), {recursive: true});
+    writeFileSync(join(root, 'docs', 'target.md'), '# target\n');
+    writeFileSync(join(root, 'docs', 'other.md'), '# other\n');
+    writeFileSync(join(root, 'docs', 'guide.md'), [
+      '<!-- clad-doc-links: F-aaaaaaaa -->',
+      'Organic F-aaaaaaaa and F-bbbbbbbb. [target](./target.md#heading)',
+      '',
+    ].join('\n'));
+    const compilation = compileSpecWorkspace(root);
+    const initialScan = scanDocumentFacts(root);
+    const initial = documentFactAugmentation(compilation, initialScan);
+
+    writeFileSync(join(root, 'docs', 'guide.md'), [
+      '<!-- clad-doc-links: F-deadbeef -->',
+      'Unrelated F-cafef00d. [other](./other.md)',
+      '<!-- clad-doc-links: F-aaaaaaaa -->',
+      'Organic F-aaaaaaaa and F-bbbbbbbb. [target](./target.md#heading)',
+      '',
+    ].join('\n'));
+    const insertedScan = scanDocumentFacts(root);
+    const inserted = documentFactAugmentation(compilation, insertedScan);
+    const retained = (facts: ReturnType<typeof documentFactAugmentation>) => facts.edges
+      .filter((edge) => edge.raw === 'F-aaaaaaaa' || edge.raw === 'F-bbbbbbbb' || edge.raw === './target.md#heading')
+      .map((edge) => edge.identity)
+      .sort();
+
+    expect(retained(initial)).toEqual(retained(inserted));
+    expect(retained(inserted)).toEqual(expect.arrayContaining([
+      expect.stringContaining('explains:artifact:docs/guide.md#declaration:'),
+      expect.stringContaining('mentions:artifact:docs/guide.md#mention:'),
+      expect.stringContaining('links_to:artifact:docs/guide.md#link:'),
+    ]));
+  });
+
+  test('[covers:F-208eaa79/AC-d452908b] makes the document layer unknown without materializing unsafe targets', () => {
+    const root = workspace();
+    writeSchema01Features(root);
+    mkdirSync(join(root, 'docs'), {recursive: true});
+    const outside = mkdtempSync(join(tmpdir(), 'clad-workspace-facts-outside-'));
+    try {
+      writeFileSync(join(outside, 'outside.md'), '# outside\n');
+      symlinkSync(join(outside, 'outside.md'), join(root, 'docs', 'escape.md'));
+      writeFileSync(join(root, 'docs', 'guide.md'), [
+        '[escape](../../outside.md)',
+        '[absolute](/outside.md)',
+        '[symlink](./escape.md)',
+        '',
+      ].join('\n'));
+      const facts = documentFactAugmentation(compileSpecWorkspace(root), scanDocumentFacts(root));
+
+      expect(facts.completeness).toBe('unknown');
+      expect(facts.unknownReasons).toEqual(expect.arrayContaining([
+        expect.stringContaining('../../outside.md'),
+        expect.stringContaining('/outside.md'),
+        expect.stringContaining('./escape.md'),
+      ]));
+      expect(facts.edges.some((edge) =>
+        edge.raw === '../../outside.md' || edge.raw === '/outside.md' || edge.raw === './escape.md')).toBe(false);
+      expect(facts.nodes.some((node) => node.address.includes('outside.md') || node.address.includes('..'))).toBe(false);
+    } finally {
+      rmSync(outside, {recursive: true, force: true});
+    }
   });
 
   test('[covers:F-208eaa79/AC-616e6e74] scans documents once when loading the workspace kernel', () => {

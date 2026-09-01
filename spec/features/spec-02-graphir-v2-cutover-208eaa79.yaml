@@ -28,14 +28,17 @@ modules:
   - src/cli/report.ts
   - src/serve/server.ts
   - src/stages/graph-health.ts
+  - src/stages/detectors/doc-reference-integrity.ts
   - src/proof/current-bindings.ts
   - scripts/spec-0.2-validate.ts
   - tests/spec/compiler/graph-ir-v2.test.ts
   - tests/spec/reverse-index.test.ts
   - tests/graph/graph-ir-v2-query.test.ts
   - tests/graph/workspace-facts.test.ts
+  - tests/graph/workspace-query.test.ts
   - tests/spec/doc-references.test.ts
   - tests/spec/doc-references-declarations.test.ts
+  - tests/stages/detectors/doc-reference-integrity.test.ts
   - tests/graph/graph-ir-v2-wire.test.ts
   - tests/optimizer/graph-ir-consumers.test.ts
   - tests/cli/graph-v2.test.ts

@@ -4,7 +4,7 @@ import {mkdtempSync, mkdirSync, rmSync, unlinkSync, writeFileSync} from 'node:fs
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 
-import {afterEach, describe, expect, test} from 'vitest';
+import {afterEach, describe, expect, test, vi} from 'vitest';
 
 import {graphIrV2} from '../../src/spec/compiler/graph-ir-v2.js';
 import {compileSpecWorkspace} from '../../src/spec/compiler/compile.js';
@@ -13,6 +13,8 @@ import {
   loadGraphIrV2WorkspaceFromStableSnapshot,
 } from '../../src/graph/query.js';
 import {loadSpec} from '../../src/spec/load.js';
+import * as documentReferences from '../../src/spec/doc-references.js';
+import * as currentBindings from '../../src/proof/current-bindings.js';
 import {
   prospectiveDoneCompilation,
   prospectiveDoneSpec,
@@ -86,6 +88,7 @@ function writeSchema02Workspace(
 }
 
 afterEach(() => {
+  vi.restoreAllMocks();
   for (const root of temporary.splice(0)) rmSync(root, {recursive: true, force: true});
 });
 
@@ -151,8 +154,12 @@ describe('GraphIR workspace query boundary', () => {
   test('uses a matching prospective completion pair without reading the on-disk workspace', () => {
     const root = workspaceRoot();
     writeSchema02Workspace(root);
+    mkdirSync(join(root, 'docs'), {recursive: true});
+    writeFileSync(join(root, 'docs', 'guide.md'), '<!-- clad-doc-links: F-aaaaaaaa -->\n');
     const prospectiveSpec = prospectiveDoneSpec(loadSpec(root), 'F-aaaaaaaa');
     const prospectiveCompilation = prospectiveDoneCompilation(compileSpecWorkspace(root), 'F-aaaaaaaa');
+    const documentScan = vi.spyOn(documentReferences, 'scanDocumentFacts');
+    const bindingCensus = vi.spyOn(currentBindings, 'currentSafeBindingCensus');
 
     withProspectiveSpecOverlay(root, prospectiveSpec, () =>
       withProspectiveCompilationOverlay(root, prospectiveCompilation, () => {
@@ -166,8 +173,13 @@ describe('GraphIR workspace query boundary', () => {
         expect(workspace.spec.features.find((feature) => feature.id === 'F-aaaaaaaa')?.status).toBe('done');
         expect(workspace.compilation.contract?.features.find((feature) => feature.id === 'F-aaaaaaaa')?.status).toBe('done');
         expect(workspace.kernel.presentationRecords().find((record) => record.address === 'feature:F-aaaaaaaa')?.status).toBe('done');
+        expect(workspace.kernel.project({
+          seeds: ['artifact:docs/guide.md'], rules: [{relation: 'explains', direction: 'outbound'}], maxHops: 1, maxNodes: 2, maxEdges: 1,
+        }).edges).toEqual([expect.objectContaining({relation: 'explains', state: 'resolved'})]);
       }),
     );
+    expect(documentScan).toHaveBeenCalledTimes(1);
+    expect(bindingCensus).toHaveBeenCalledTimes(1);
   });
 
   test('fails closed for missing or mismatched prospective overlay sides', () => {

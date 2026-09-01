@@ -165,6 +165,13 @@ export function documentFactAugmentation(
       else unknownReasons.push(`repository-local Markdown link target is absent: ${link.target} at ${document.doc}#${link.selector}`);
       edges.push(documentEdge('links_to', source, target, link.state, document.doc, link.selector, link.raw));
     }
+    for (const issue of document.issues) {
+      // An unsafe spelling is diagnostic evidence, never an artifact address or
+      // structural edge that could normalize an escape into the workspace graph.
+      unknownReasons.push(
+        `unsafe local Markdown path (${issue.reason}) at ${document.doc}#${issue.selector}: ${JSON.stringify(issue.raw)}`,
+      );
+    }
   }
   const nodes: GraphIrV2AugmentationNode[] = [...artifacts.entries()]
     .sort(([left], [right]) => left.localeCompare(right))

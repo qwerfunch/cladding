@@ -56,10 +56,10 @@ export function loadGraphIrV2Workspace(cwd: string = '.'): GraphIrV2Workspace {
     if (!prospectiveSpec || !prospectiveCompilation) {
       throw new Error('GraphIR workspace query requires matching prospective Spec and compiler overlays.');
     }
-    // A completion overlay has already sealed its immutable pair. Do not probe
-    // disk here: doing so could combine a pre-commit shard with a prospective
-    // done status that was intentionally never written.
-    return createWorkspace(cwd, prospectiveSpec, prospectiveCompilation);
+    // A completion overlay has already sealed its immutable Spec/compiler
+    // pair. Documents are independent artifacts, so scan that one bounded
+    // surface without probing the prospective spec disk state.
+    return createWorkspace(cwd, prospectiveSpec, prospectiveCompilation, undefined, scanDocumentFacts(cwd));
   }
   return withStableSpecWorkspaceSnapshot(cwd, () =>
     loadGraphIrV2WorkspaceFromStableSnapshot(cwd),

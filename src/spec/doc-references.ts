@@ -26,8 +26,8 @@
 //     starts with `ignore` is the opt-out sentinel above, never a declaration —
 //     so an ignore comment may safely spell out illustrative example ids.
 
-import {lstatSync, readdirSync, readFileSync} from 'node:fs';
-import {dirname, join, normalize, relative, resolve} from 'node:path';
+import {lstatSync, readlinkSync, readdirSync, readFileSync} from 'node:fs';
+import {dirname, join, relative, resolve} from 'node:path';
 
 import {featureIdRe} from './feature-id.js';
 
@@ -64,24 +64,21 @@ const DOC_LINKS_DECL_RE = /clad-doc-links:[ \t]*([^\n>]*)/g;
 function declarationFacts(prose: string): {readonly facts: readonly DocumentFeatureFact[]; readonly ignoresOrganic: boolean} {
   const facts: DocumentFeatureFact[] = [];
   let ignoresOrganic = false;
-  let declarationOrdinal = 0;
+  const occurrences = new Map<string, number>();
   for (const declaration of prose.matchAll(DOC_LINKS_DECL_RE)) {
     const value = declaration[1];
     if (value.trim().startsWith('ignore')) {
       ignoresOrganic = true;
       continue;
     }
-    const valueOffset = (declaration.index ?? 0) + declaration[0].indexOf(value);
-    let idOrdinal = 0;
     for (const id of value.matchAll(featureIdRe('g')) ?? []) {
+      const occurrence = nextOccurrence(occurrences, id[0]);
       facts.push(Object.freeze({
         featureId: id[0],
         raw: id[0],
-        selector: stableSelector('declaration', prose, valueOffset + (id.index ?? 0), declarationOrdinal + idOrdinal),
+        selector: stableSelector('declaration', {featureId: id[0]}, occurrence),
       }));
-      idOrdinal++;
     }
-    declarationOrdinal++;
   }
   return Object.freeze({facts: Object.freeze(facts), ignoresOrganic});
 }
@@ -127,6 +124,18 @@ export interface DocumentLinkFact {
   readonly state: 'resolved' | 'unresolved';
 }
 
+/** One rejected local Markdown target that must not enter a graph address. */
+export interface DocumentLinkIssue {
+  /** Stable issue classification for a path that cannot safely remain local. */
+  readonly kind: 'unsafe_local_markdown_path';
+  /** Exact Markdown destination spelling, including a fragment when present. */
+  readonly raw: string;
+  /** Stable source selector for this one unsafe occurrence. */
+  readonly selector: string;
+  /** Why the authored spelling cannot become a repository-local target. */
+  readonly reason: 'absolute_path' | 'path_escapes_workspace' | 'symlink_escape';
+}
+
 /** One Markdown artifact candidate with facts deliberately separated by provenance. */
 export interface DocumentFactDocument {
   /** Canonical repository-relative Markdown path. */
@@ -141,6 +150,8 @@ export interface DocumentFactDocument {
   readonly organic: readonly DocumentFeatureFact[];
   /** Repository-local Markdown links with their structural resolution state. */
   readonly links: readonly DocumentLinkFact[];
+  /** Unsafe local Markdown spellings retained for diagnosis but never projected. */
+  readonly issues: readonly DocumentLinkIssue[];
   /** Historical projection targets, retained byte-for-byte for the legacy writer. */
   readonly projectionLinks: readonly string[];
 }
@@ -171,12 +182,19 @@ function isExcluded(relPosix: string): boolean {
   return DOC_SCAN_EXCLUDE.some((prefix) => relPosix === prefix || relPosix.startsWith(`${prefix}/`));
 }
 
-/** Makes a source selector deterministic without confusing a line hint for identity. */
-function stableSelector(kind: string, text: string, offset: number, ordinal: number): string {
-  const prefix = text.slice(0, offset);
-  const line = prefix.split('\n').length;
-  const column = offset - prefix.lastIndexOf('\n');
-  return `${kind}:${line}:${column}:${ordinal}`;
+/**
+ * Makes an exact fact selector from canonical fact content, never its moving
+ * source location. The ordinal differentiates only identical fact keys.
+ */
+function stableSelector(kind: string, fact: Readonly<Record<string, string>>, occurrence: number): string {
+  return `${kind}:${JSON.stringify({fact, occurrence})}`;
+}
+
+/** Returns the ordinal within one identical fact key without coupling other facts. */
+function nextOccurrence(occurrences: Map<string, number>, key: string): number {
+  const occurrence = occurrences.get(key) ?? 0;
+  occurrences.set(key, occurrence + 1);
+  return occurrence;
 }
 
 /** Safely walks docs/ without treating traversal failures as an empty document set. */
@@ -240,24 +258,18 @@ function freezePathScan(docs: readonly string[], unknownReasons: readonly string
   });
 }
 
-/** Resolves a relative .md link from a doc to a cwd-relative posix path; null for external. */
-function resolveLink(docRel: string, link: string): string | null {
-  if (/^[a-z]+:/i.test(link)) return null; // http(s):, mailto:, etc.
-  const joined = normalize(join(dirname(docRel), link));
-  return toPosix(joined);
-}
-
-/** Resolves a repository-local Markdown target without following a symlink. */
+/** Resolves a repository-local Markdown target without ever inspecting outside cwd. */
 function trackedLinkTarget(cwd: string, docRel: string, raw: string): {
   readonly target: string;
   readonly state: 'resolved' | 'unresolved';
   readonly unknownReason?: string;
-} | undefined {
-  if (/^(?:[a-z]+:|\/\/)/i.test(raw)) return undefined;
+} | {readonly unsafe: DocumentLinkIssue['reason']} | undefined {
   const root = resolve(cwd);
-  const absolute = resolve(root, dirname(docRel), raw);
+  if (isAbsoluteMarkdownPath(raw)) return Object.freeze({unsafe: 'absolute_path'});
+  if (/^(?:[a-z]+:|\/\/)/i.test(raw)) return undefined;
+  const absolute = resolve(root, dirname(docRel), raw.replaceAll('\\', '/'));
   const target = toPosix(relative(root, absolute));
-  if (!target || target === '..' || target.startsWith('../')) return undefined;
+  if (!isWorkspaceRelative(target)) return Object.freeze({unsafe: 'path_escapes_workspace'});
   let current = root;
   const parts = target.split('/');
   for (let index = 0; index < parts.length; index++) {
@@ -269,6 +281,7 @@ function trackedLinkTarget(cwd: string, docRel: string, raw: string): {
       return Object.freeze({target, state: 'unresolved'});
     }
     if (stat.isSymbolicLink()) {
+      if (symlinkPathEscapesWorkspace(root, target)) return Object.freeze({unsafe: 'symlink_escape'});
       return Object.freeze({
         target,
         state: 'unresolved',
@@ -279,6 +292,59 @@ function trackedLinkTarget(cwd: string, docRel: string, raw: string): {
     if (index === parts.length - 1) return Object.freeze({target, state: stat.isFile() ? 'resolved' : 'unresolved'});
   }
   return Object.freeze({target, state: 'unresolved'});
+}
+
+/** Rejects POSIX, Windows-drive, and backslash-rooted local Markdown targets. */
+function isAbsoluteMarkdownPath(raw: string): boolean {
+  return raw.startsWith('/') || raw.startsWith('\\') || /^file:/i.test(raw) || /^[A-Za-z]:[\\/]/.test(raw);
+}
+
+/** Checks a relative result without accepting the root itself or an upward escape. */
+function isWorkspaceRelative(target: string): boolean {
+  return target.length > 0 && target !== '..' && !target.startsWith('../') && !target.startsWith('..\\');
+}
+
+/** Follows only in-workspace symlink metadata to reject an escaping target chain. */
+function symlinkPathEscapesWorkspace(root: string, target: string): boolean {
+  const pending = target.split('/');
+  const visited = new Set<string>();
+  let current = root;
+  while (pending.length > 0) {
+    current = join(current, pending.shift()!);
+    let stat;
+    try {
+      stat = lstatSync(current);
+    } catch {
+      return false;
+    }
+    if (!stat.isSymbolicLink()) continue;
+    if (visited.has(current)) return false;
+    visited.add(current);
+    let rawTarget: string;
+    try {
+      rawTarget = readlinkSync(current);
+    } catch {
+      return false;
+    }
+    const resolvedTarget = resolve(dirname(current), rawTarget);
+    const relativeTarget = relative(root, resolvedTarget);
+    if (!isWithinWorkspace(relativeTarget)) return true;
+    const remainder = pending.splice(0);
+    if (relativeTarget.length > 0) pending.push(...toPosix(relativeTarget).split('/'));
+    pending.push(...remainder);
+    current = root;
+  }
+  return false;
+}
+
+/** Checks a relative result against cwd while allowing cwd itself for symlink expansion. */
+function isWithinWorkspace(target: string): boolean {
+  return target === '' || isWorkspaceRelative(target);
+}
+
+/** Formats one stable reason without exposing an unsafe path as a graph target. */
+function unsafeLinkReason(doc: string, issue: DocumentLinkIssue): string {
+  return `unsafe local Markdown path (${issue.reason}) at ${doc}#${issue.selector}: ${JSON.stringify(issue.raw)}`;
 }
 
 /**
@@ -298,7 +364,7 @@ export function scanDocumentFacts(cwd: string = '.'): DocumentFactScan {
     } catch {
       unknownReasons.push(`document scan cannot read document: ${doc}`);
       docs.push(Object.freeze({
-        doc, excluded, readable: false, explicit: Object.freeze([]), organic: Object.freeze([]), links: Object.freeze([]), projectionLinks: Object.freeze([]),
+        doc, excluded, readable: false, explicit: Object.freeze([]), organic: Object.freeze([]), links: Object.freeze([]), issues: Object.freeze([]), projectionLinks: Object.freeze([]),
       }));
       continue;
     }
@@ -307,34 +373,44 @@ export function scanDocumentFacts(cwd: string = '.'): DocumentFactScan {
     const organic: DocumentFeatureFact[] = [];
     if (!excluded && !declarations.ignoresOrganic) {
       const proseWithoutDeclarations = prose.replace(DOC_LINKS_DECL_RE, ' ');
-      const declaredIds = new Set(declarations.facts.map((fact) => fact.featureId));
-      let ordinal = 0;
+      const occurrences = new Map<string, number>();
       for (const id of proseWithoutDeclarations.matchAll(featureIdRe('g')) ?? []) {
-        if (declaredIds.has(id[0])) continue;
+        const occurrence = nextOccurrence(occurrences, id[0]);
         organic.push(Object.freeze({
-          featureId: id[0], raw: id[0], selector: stableSelector('mention', proseWithoutDeclarations, id.index ?? 0, ordinal++),
+          featureId: id[0], raw: id[0], selector: stableSelector('mention', {featureId: id[0]}, occurrence),
         }));
       }
     }
     const links: DocumentLinkFact[] = [];
+    const issues: DocumentLinkIssue[] = [];
     const projectionLinks = new Set<string>();
-    for (const link of prose.matchAll(MD_LINK_RE)) {
-      const legacyTarget = resolveLink(doc, link[1]);
-      if (legacyTarget) projectionLinks.add(legacyTarget);
-    }
     if (!excluded) {
-      let ordinal = 0;
+      const occurrences = new Map<string, number>();
       for (const link of prose.matchAll(MD_LINK_RE)) {
+        const rawLink = `${link[1]}${link[2] ?? ''}`;
         const tracked = trackedLinkTarget(cwd, doc, link[1]);
         if (!tracked) continue;
+        const occurrence = nextOccurrence(occurrences, rawLink);
+        if ('unsafe' in tracked) {
+          const issue = Object.freeze({
+            kind: 'unsafe_local_markdown_path' as const,
+            raw: rawLink,
+            selector: stableSelector('link', {raw: rawLink}, occurrence),
+            reason: tracked.unsafe,
+          });
+          issues.push(issue);
+          unknownReasons.push(unsafeLinkReason(doc, issue));
+          continue;
+        }
         if (tracked.unknownReason !== undefined) unknownReasons.push(tracked.unknownReason);
         links.push(Object.freeze({
-          raw: `${link[1]}${link[2] ?? ''}`,
+          raw: rawLink,
           ...(link[2] === undefined ? {} : {targetSelector: link[2].slice(1)}),
           target: tracked.target,
-          selector: stableSelector('link', prose, link.index ?? 0, ordinal++),
+          selector: stableSelector('link', {raw: rawLink, target: tracked.target}, occurrence),
           state: tracked.state,
         }));
+        projectionLinks.add(tracked.target);
       }
     }
     docs.push(Object.freeze({
@@ -344,6 +420,7 @@ export function scanDocumentFacts(cwd: string = '.'): DocumentFactScan {
       explicit: declarations.facts,
       organic: Object.freeze(organic),
       links: Object.freeze(links),
+      issues: Object.freeze(issues),
       projectionLinks: Object.freeze([...projectionLinks].sort()),
     }));
   }

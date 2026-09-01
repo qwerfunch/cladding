@@ -1,8 +1,10 @@
 import {docReferenceIntegrity} from '../../../src/stages/detectors/doc-reference-integrity.js';
-import {mkdtempSync, mkdirSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
-import {afterEach, beforeEach, describe, expect, test} from 'vitest';
+import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
+
+import * as documentReferences from '../../../src/spec/doc-references.js';
 
 interface Finding {
   detector: string;
@@ -31,6 +33,7 @@ describe('doc-reference-integrity / DOC_LINK_INTEGRITY', () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     rmSync(dir, {recursive: true, force: true});
   });
 
@@ -69,5 +72,35 @@ describe('doc-reference-integrity / DOC_LINK_INTEGRITY', () => {
 
     expect(fs.some((f) => f.severity === 'warn' && f.message.includes('F-deadbeef'))).toBe(true);
     expect(fs.some((f) => f.message.includes('F-001'))).toBe(false);
+  });
+
+  test('unsafe local Markdown paths are one-scan errors without target existence checks', () => {
+    writeSpec();
+    const outside = mkdtempSync(join(tmpdir(), 'clad-docintg-outside-'));
+    try {
+      writeFileSync(join(outside, 'outside.md'), '# outside');
+      wdoc('docs/a.md', [
+        '[up](../../outside.md)',
+        '[absolute](/outside.md)',
+        '[symlink](./escape.md)',
+        '[missing](./missing.md)',
+        '',
+      ].join('\n'));
+      symlinkSync(join(outside, 'outside.md'), join(dir, 'docs', 'escape.md'));
+      const scan = vi.spyOn(documentReferences, 'scanDocumentFacts');
+
+      const fs = run();
+
+      expect(scan).toHaveBeenCalledTimes(1);
+      expect(fs).toEqual(expect.arrayContaining([
+        expect.objectContaining({severity: 'error', path: 'docs/a.md', message: expect.stringContaining('../../outside.md')}),
+        expect.objectContaining({severity: 'error', path: 'docs/a.md', message: expect.stringContaining('/outside.md')}),
+        expect.objectContaining({severity: 'error', path: 'docs/a.md', message: expect.stringContaining('./escape.md')}),
+        expect.objectContaining({severity: 'error', path: 'docs/a.md', message: expect.stringContaining("links to missing file 'docs/missing.md'")}),
+      ]));
+      expect(fs.filter((finding) => finding.message.includes('unsafe local Markdown path'))).toHaveLength(3);
+    } finally {
+      rmSync(outside, {recursive: true, force: true});
+    }
   });
 });
