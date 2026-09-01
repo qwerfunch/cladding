@@ -192,6 +192,82 @@ describe('GraphIR workspace authored covers facts', () => {
     ]));
   });
 
+  test('[covers:F-208eaa79/AC-4f8c2542] merges external artifact facts deterministically without replacing compiler artifacts', () => {
+    const root = workspace();
+    writeSchema01Features(root);
+    const compilation = compileSpecWorkspace(root);
+    const artifact = 'artifact:tests/permutation.test.ts';
+    const externalFacts: readonly GraphIrV2Augmentation[] = [
+      {
+        layerId: 'external-z',
+        nodes: [{
+          address: artifact, nodeType: 'artifact', roles: ['test'], owners: ['feature:F-aaaaaaaa'], provenance: 'authored',
+          locator: {kind: 'text_source', path: 'tests/permutation.test.ts', selector: 'z'},
+        }],
+        edges: [], completeness: 'complete', unknownReasons: [],
+      },
+      {
+        layerId: 'external-a',
+        nodes: [{
+          address: artifact, nodeType: 'artifact', roles: ['doc'], owners: ['feature:F-bbbbbbbb'], provenance: 'authored',
+          locator: {kind: 'text_source', path: 'tests/permutation.test.ts', selector: 'a'},
+        }],
+        edges: [], completeness: 'complete', unknownReasons: [],
+      },
+      {
+        layerId: 'external-derived',
+        nodes: [{
+          address: artifact, nodeType: 'artifact', roles: ['evidence'], owners: [], provenance: 'derived',
+          locator: {kind: 'text_source', path: 'tests/permutation.test.ts', selector: 'derived'},
+        }],
+        edges: [], completeness: 'complete', unknownReasons: [],
+      },
+    ];
+    const orders = [
+      externalFacts,
+      [externalFacts[0], externalFacts[2], externalFacts[1]],
+      [externalFacts[1], externalFacts[0], externalFacts[2]],
+      [externalFacts[1], externalFacts[2], externalFacts[0]],
+      [externalFacts[2], externalFacts[0], externalFacts[1]],
+      [externalFacts[2], externalFacts[1], externalFacts[0]],
+    ];
+    const projectArtifact = (address: string, layers: readonly GraphIrV2Augmentation[]) => graphIrV2(compilation, layers).project({
+      seeds: [address], rules: [{relation: 'covers', direction: 'outbound'}], maxHops: 0, maxNodes: 1, maxEdges: 0,
+    }).nodes;
+    const projected = orders.map((layers) => projectArtifact(artifact, layers));
+    const expectedExternal = [{
+      address: artifact,
+      nodeType: 'artifact',
+      roles: ['doc', 'evidence', 'test'],
+      owners: ['feature:F-aaaaaaaa', 'feature:F-bbbbbbbb'],
+      provenance: 'authored',
+      locator: {kind: 'text_source', path: 'tests/permutation.test.ts', selector: 'a'},
+    }];
+
+    expect(projected).toEqual(Array.from({length: orders.length}, () => expectedExternal));
+    expect(new Set(projected.map((nodes) => JSON.stringify(nodes))).size).toBe(1);
+    expect(projected.every((nodes) => nodes.filter((node) => node.address === artifact).length === 1)).toBe(true);
+
+    const compilerArtifact = compilation.nodes.find((node) => node.address === 'artifact:tests/live.test.ts');
+    if (!compilerArtifact || compilerArtifact.nodeType !== 'artifact') throw new Error('fixture compiler artifact missing');
+    const externalOnBase: GraphIrV2Augmentation = {
+      layerId: 'external-on-base',
+      nodes: [{
+        address: compilerArtifact.address, nodeType: 'artifact', roles: ['evidence'], owners: ['feature:F-bbbbbbbb'],
+        provenance: 'authored', locator: {kind: 'text_source', path: 'tests/live.test.ts', selector: 'adapter fact'},
+      }],
+      edges: [], completeness: 'complete', unknownReasons: [],
+    };
+    const baseProjection = projectArtifact(compilerArtifact.address, [externalOnBase]);
+    expect(baseProjection).toEqual([{
+      ...compilerArtifact,
+      roles: [...new Set([...compilerArtifact.roles, 'evidence'])].sort(),
+      owners: [...new Set([...compilerArtifact.owners, 'feature:F-bbbbbbbb'])].sort(),
+    }]);
+    expect(baseProjection.filter((node) => node.address === compilerArtifact.address)).toHaveLength(1);
+    expect(graphIrV2(compilation, [externalOnBase]).corpusRecords()).toEqual(graphIrV2(compilation).corpusRecords());
+  });
+
   test('[covers:F-208eaa79/AC-616e6e74] scans schema 0.2 tests once and exposes the enriched workspace kernel', () => {
     const root = workspace('0.2');
     writeSchema02Feature(root);

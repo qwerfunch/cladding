@@ -989,14 +989,58 @@ function mergeAugmentationNodes(
   return new Map([...merged.entries()].sort(([left], [right]) => left.localeCompare(right)));
 }
 
-/** Retains one artifact identity while adding every distinct role and feature owner. */
+/**
+ * Retains one artifact identity while adding every distinct role and feature owner.
+ *
+ * Compiler artifacts remain authoritative because their source provenance feeds
+ * the independent corpus view. External-only facts instead use the minimum
+ * provenance/locator key, so repeated merges are associative and do not depend
+ * on adapter-layer order.
+ */
 function mergeArtifactFacts(
   existing: Extract<GraphIrV2Node, {readonly nodeType: 'artifact'}>,
   incoming: Extract<GraphIrV2AugmentationNode, {readonly nodeType: 'artifact'}>,
 ): GraphIrV2Node {
   const roles = freezeRecords([...new Set([...existing.roles, ...incoming.roles])].sort());
   const owners = freezeRecords([...new Set([...existing.owners, ...incoming.owners])].sort());
-  return freeze({...existing, roles, owners});
+  if (isBaseNode(existing)) return freeze({...existing, roles, owners});
+  const representative = externalArtifactRepresentative(existing, incoming);
+  return freeze({
+    address: representative.address,
+    nodeType: 'artifact' as const,
+    roles,
+    owners,
+    provenance: representative.provenance,
+    locator: canonicalFactLocator(representative.locator),
+  });
+}
+
+/** Selects one stable external fact using only metadata that is not unioned. */
+function externalArtifactRepresentative(
+  existing: Extract<GraphIrV2AugmentationNode, {readonly nodeType: 'artifact'}>,
+  incoming: Extract<GraphIrV2AugmentationNode, {readonly nodeType: 'artifact'}>,
+): Extract<GraphIrV2AugmentationNode, {readonly nodeType: 'artifact'}> {
+  return externalArtifactMetadataKey(existing) <= externalArtifactMetadataKey(incoming) ? existing : incoming;
+}
+
+/** Ranks authored declarations above derivations and observations, then canonicalizes the locator tie-break. */
+function externalArtifactMetadataKey(
+  fact: Extract<GraphIrV2AugmentationNode, {readonly nodeType: 'artifact'}>,
+): string {
+  const provenanceRank = fact.provenance === 'authored' ? '0' : fact.provenance === 'derived' ? '1' : '2';
+  return `${provenanceRank}:${canonicalRecord(fact.locator)}`;
+}
+
+/** Rebuilds a selected locator in a stable field order for byte-identical projections. */
+function canonicalFactLocator(locator: GraphTextSourceLocator | GraphObservationLocator): GraphTextSourceLocator | GraphObservationLocator {
+  if (locator.kind === 'text_source') {
+    return freeze({
+      kind: 'text_source' as const,
+      path: locator.path,
+      ...(locator.selector === undefined ? {} : {selector: locator.selector}),
+    });
+  }
+  return freeze({kind: 'runtime_observation' as const, adapter: locator.adapter, reference: locator.reference});
 }
 
 function isNonBlankString(value: unknown): value is string {
