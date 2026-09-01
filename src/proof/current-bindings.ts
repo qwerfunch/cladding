@@ -7,7 +7,11 @@ import {join, relative, resolve} from 'node:path';
 import type {SpecCompilation} from '../spec/compiler/types.js';
 import {safeProofDirectory, safeProofWorkspacePath} from './fs-safety.js';
 import type {TestBinding} from './types.js';
-import {harvestVitestJestBindings, knownCriteriaFromCompilerView} from './vitest-jest.js';
+import {
+  harvestVitestJestBindings,
+  knownCriteriaFromCompilerView,
+  type TestBindingDiagnostic,
+} from './vitest-jest.js';
 
 /**
  * One byte-bound scan of the native live-test source surface.
@@ -16,6 +20,8 @@ import {harvestVitestJestBindings, knownCriteriaFromCompilerView} from './vitest
 export interface CurrentSafeBindingCensus {
   /** Safe source declarations recognized by the F5 adapter. */
   readonly bindings: readonly TestBinding[];
+  /** Source-carrier diagnostics retained even when they block safe graph facts. */
+  readonly diagnostics: readonly TestBindingDiagnostic[];
   /** Digest of the exact supported source bytes inspected for those bindings. */
   readonly digest: string;
   /**
@@ -78,12 +84,15 @@ export function currentSafeBindingCensus(cwd: string, knownCriteria: ReadonlySet
     visit(root);
     const manifest: {file: string; sha256: string}[] = [];
     let safe = true;
+    const diagnostics: TestBindingDiagnostic[] = [];
     const bindings = files.sort(comparePath).flatMap((file) => {
       try {
         const bytes = readFileSync(safeProofWorkspacePath(cwd, file));
         const source = bytes.toString('utf8');
         manifest.push({file, sha256: digest(bytes)});
-        return harvestVitestJestBindings({file, source, knownCriteria}).bindings;
+        const harvested = harvestVitestJestBindings({file, source, knownCriteria});
+        diagnostics.push(...harvested.diagnostics);
+        return harvested.bindings;
       } catch (error) {
         safe = false;
         manifest.push({file, sha256: `<unavailable:${(error as Error).name}>`});
@@ -93,7 +102,12 @@ export function currentSafeBindingCensus(cwd: string, knownCriteria: ReadonlySet
     // A partial source walk is not evidence that every live binding is absent.
     // Do not let a surviving sibling declaration demote the failed file into a
     // safe empty scan for migration-baseline eligibility.
-    return {bindings: safe ? bindings : [], digest: digest(JSON.stringify(manifest)), safe};
+    return {
+      bindings: safe ? bindings : [],
+      diagnostics: diagnostics.sort(compareDiagnostic),
+      digest: digest(JSON.stringify(manifest)),
+      safe,
+    };
   } catch {
     return emptyCensus('unsafe');
   }
@@ -104,7 +118,12 @@ function comparePath(left: string, right: string): number {
 }
 
 function emptyCensus(state: 'absent' | 'unsafe'): CurrentSafeBindingCensus {
-  return {bindings: [], digest: digest(state), safe: state === 'absent'};
+  return {bindings: [], diagnostics: [], digest: digest(state), safe: state === 'absent'};
+}
+
+function compareDiagnostic(left: TestBindingDiagnostic, right: TestBindingDiagnostic): number {
+  return `${left.file}\u0000${left.line}\u0000${left.column}\u0000${left.criterion}`
+    .localeCompare(`${right.file}\u0000${right.line}\u0000${right.column}\u0000${right.criterion}`);
 }
 
 function digest(value: string | Uint8Array): string {

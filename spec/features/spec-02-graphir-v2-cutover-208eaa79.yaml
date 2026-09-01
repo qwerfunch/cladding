@@ -6,11 +6,13 @@ purpose: Make every graph-aware Cladding surface consume one canonical,
   without unbounded context or parallel graph authorities.
 modules:
   - src/spec/compiler/compile.ts
+  - src/spec/compiler/consumer-view.ts
   - src/spec/compiler/types.ts
   - src/spec/compiler/graph-ir-v2.ts
   - src/spec/reverse-index.ts
   - src/graph/model.ts
   - src/graph/query.ts
+  - src/graph/workspace-facts.ts
   - src/graph/wire-v2.ts
   - src/graph/render.ts
   - src/graph/stats.ts
@@ -26,10 +28,12 @@ modules:
   - src/cli/report.ts
   - src/serve/server.ts
   - src/stages/graph-health.ts
+  - src/proof/current-bindings.ts
   - scripts/spec-0.2-validate.ts
   - tests/spec/compiler/graph-ir-v2.test.ts
   - tests/spec/reverse-index.test.ts
   - tests/graph/graph-ir-v2-query.test.ts
+  - tests/graph/workspace-facts.test.ts
   - tests/graph/graph-ir-v2-wire.test.ts
   - tests/optimizer/graph-ir-consumers.test.ts
   - tests/cli/graph-v2.test.ts

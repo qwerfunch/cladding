@@ -95,6 +95,50 @@ export interface GraphObservationLocator {
   readonly reference: string;
 }
 
+/** A non-YAML source location for an authored or compiler-derived graph fact. */
+export interface GraphTextSourceLocator {
+  /** Discriminator keeps source-text facts separate from YAML and runtime observations. */
+  readonly kind: 'text_source';
+  /** Canonical repository-relative text artifact path. */
+  readonly path: string;
+  /** Exact carrier selector when the source declaration has one. */
+  readonly selector?: string;
+}
+
+/** A non-YAML structural artifact fact supplied by a static adapter. */
+export interface GraphIrV2StructuralArtifactFact {
+  /** Canonical artifact address; static adapters cannot introduce a second identity grammar. */
+  readonly address: string;
+  /** Static facts use the existing physical artifact taxonomy. */
+  readonly nodeType: 'artifact';
+  /** Roles contributed by this fact without creating kind twins. */
+  readonly roles: readonly ArtifactRole[];
+  /** Every feature owner contributed by this fact. */
+  readonly owners: readonly string[];
+  /** Static facts remain authored or derived, never runtime observations. */
+  readonly provenance: 'authored' | 'derived';
+  /** Typed text-source location for the non-YAML fact. */
+  readonly locator: GraphTextSourceLocator;
+}
+
+/** A non-YAML structural anchor fact supplied by a static adapter. */
+export interface GraphIrV2StructuralAnchorFact {
+  /** Canonical anchor address. */
+  readonly address: string;
+  /** Static facts use the existing physical anchor taxonomy. */
+  readonly nodeType: 'anchor';
+  /** Canonical artifact address containing this anchor. */
+  readonly artifact: string;
+  /** Exact stable selector on the artifact. */
+  readonly selector: string;
+  /** Whether the exact selector is source-authored or adapter-derived. */
+  readonly selectorProvenance: 'authored' | 'derived';
+  /** Static facts remain authored or derived, never runtime observations. */
+  readonly provenance: 'authored' | 'derived';
+  /** Typed text-source location for the non-YAML fact. */
+  readonly locator: GraphTextSourceLocator;
+}
+
 /** A future observed artifact fact using the existing canonical artifact taxonomy. */
 export interface GraphIrV2ObservedArtifactFact {
   /** Canonical artifact address; future adapters cannot introduce a second identity grammar. */
@@ -153,25 +197,59 @@ export interface GraphIrV2ObservationEdge {
   readonly selector?: GraphEdge['selector'];
 }
 
-/** One future F5 observation or receipt layer; this checkpoint intentionally has no adapters. */
+/** A non-YAML authored or derived structural relation. */
+export interface GraphIrV2StructuralEdge {
+  /** Layer-local stable identity; conflicting reuse fails closed. */
+  readonly identity: string;
+  /** Canonical source endpoint. */
+  readonly from: string;
+  /** Canonical target endpoint. */
+  readonly to: string;
+  /** Directed GraphIR relation. */
+  readonly relation: GraphRelation;
+  /** Structural facts never masquerade as observed runtime results. */
+  readonly provenance: 'authored' | 'derived';
+  /** Typed non-YAML source owner. */
+  readonly owner: GraphTextSourceLocator;
+  /** Structural address resolution, never a pass/fail assertion. */
+  readonly state: 'resolved' | 'unresolved';
+  /** Exact source spelling retained for diagnosis. */
+  readonly raw?: string;
+  /** Optional canonical target detail retained by a static adapter. */
+  readonly normalizedTarget?: string;
+  /** Optional exact source selector detail retained by a static adapter. */
+  readonly selector?: GraphEdge['selector'];
+}
+
+/** One future static or observed fact layer supplied explicitly by an adapter. */
 export interface GraphIrV2Augmentation {
   /** Unique adapter/layer identity. */
   readonly layerId: string;
-  /** Canonically addressed observed physical facts supplied by that layer. */
-  readonly nodes: readonly (GraphIrV2ObservedArtifactFact | GraphIrV2ObservedAnchorFact)[];
-  /** Provenance-preserving observed relations supplied by that layer. */
-  readonly edges: readonly GraphIrV2ObservationEdge[];
+  /** Canonically addressed physical facts supplied by that layer. */
+  readonly nodes: readonly GraphIrV2AugmentationNode[];
+  /** Provenance-preserving relations supplied by that layer. */
+  readonly edges: readonly GraphIrV2AugmentationEdge[];
   /** The adapter's explicit knowledge state. */
   readonly completeness: 'complete' | 'unknown';
   /** Reasons required when the adapter cannot make a complete assertion. */
   readonly unknownReasons: readonly string[];
 }
 
-/** A compiler node or a future observed fact on the same three node taxonomies. */
-export type GraphIrV2Node = GraphNode | GraphIrV2ObservedArtifactFact | GraphIrV2ObservedAnchorFact;
+/** One non-compiler physical fact on the existing GraphIR node taxonomies. */
+export type GraphIrV2AugmentationNode =
+  | GraphIrV2StructuralArtifactFact
+  | GraphIrV2StructuralAnchorFact
+  | GraphIrV2ObservedArtifactFact
+  | GraphIrV2ObservedAnchorFact;
 
-/** A compiler edge or a future observed edge. */
-export type GraphIrV2Edge = GraphEdge | GraphIrV2ObservationEdge;
+/** One non-compiler relation with explicit static or observed provenance. */
+export type GraphIrV2AugmentationEdge = GraphIrV2StructuralEdge | GraphIrV2ObservationEdge;
+
+/** A compiler node or a future fact on the same three node taxonomies. */
+export type GraphIrV2Node = GraphNode | GraphIrV2AugmentationNode;
+
+/** A compiler edge or a future static/observed edge. */
+export type GraphIrV2Edge = GraphEdge | GraphIrV2AugmentationEdge;
 
 type PrerequisiteRecord = CompilerCorpusView['prerequisites'][number];
 type DependentRecord = CompilerCorpusView['dependents'][number];
@@ -242,7 +320,7 @@ const RELATIONS: ReadonlySet<GraphRelation> = new Set(RELATION_ENDPOINTS.keys())
  * Returns the compiler-owned, memoized GraphIR v2 query kernel for one compilation.
  *
  * @param compilation - One immutable compiler snapshot; identity scopes base-index memoization.
- * @param augmentations - Future observed layers, supplied explicitly rather than read from disk.
+ * @param augmentations - Future static or observed fact layers, supplied explicitly rather than read from disk.
  * @returns Immutable directed query operations over that snapshot.
  * @throws Error for conflicting future-layer ids, node addresses, or edge identities.
  * @see spec/features/spec-02-graphir-v2-cutover-208eaa79.yaml AC-4f8c2542
@@ -294,13 +372,14 @@ class GraphIrV2Index implements GraphIrV2Kernel {
     Object.freeze(this);
   }
 
-  /** Adds declared future observations without allowing them to mutate the memoized base index. */
+  /** Adds explicit fact layers without allowing them to mutate the memoized base index. */
   withAugmentations(augmentations: readonly GraphIrV2Augmentation[]): GraphIrV2Index {
     const layerIds = new Set<string>();
-    const nodes: Array<GraphIrV2ObservedArtifactFact | GraphIrV2ObservedAnchorFact> = [];
-    const edges: GraphIrV2ObservationEdge[] = [];
+    const nodes: GraphIrV2AugmentationNode[] = [];
+    const edges: GraphIrV2AugmentationEdge[] = [];
     const unknownReasons: string[] = [];
-    for (const layer of augmentations) {
+    for (const suppliedLayer of augmentations) {
+      const layer = copyFrozen(suppliedLayer);
       assertAugmentationLayer(layer);
       if (layerIds.has(layer.layerId)) throw new Error(`GraphIR augmentation layer id is not unique: ${layer.layerId}`);
       layerIds.add(layer.layerId);
@@ -310,20 +389,12 @@ class GraphIrV2Index implements GraphIrV2Kernel {
         unknownReasons.push(...layer.unknownReasons.map((reason) => `${layer.layerId}: ${reason}`));
       }
     }
-    const baseAddresses = new Set(this.nodeByAddress.keys());
-    for (const node of nodes) {
-      assertAugmentationNode(node);
-      if (baseAddresses.has(node.address)) {
-        throw new Error(`GraphIR observed node cannot duplicate a compiler node: ${node.address}`);
-      }
-    }
-    indexByIdentity(nodes, (node) => node.address, 'observed node address');
-    const combinedNodes = new Map(this.nodeByAddress);
-    for (const node of nodes) combinedNodes.set(node.address, node);
-    for (const node of nodes) assertObservedNodeReferences(node, combinedNodes);
-    for (const edge of edges) assertObservationEdge(edge, combinedNodes);
+    for (const node of nodes) assertAugmentationNode(node);
+    const combinedNodes = mergeAugmentationNodes(this.nodeByAddress, nodes);
+    for (const node of nodes) assertAugmentationNodeReferences(node, combinedNodes);
+    for (const edge of edges) assertAugmentationEdge(edge, combinedNodes);
     return new GraphIrV2Index(
-      [...this.nodeByAddress.values(), ...nodes],
+      [...combinedNodes.values()],
       [...this.edges, ...edges],
       this.presentations,
       this.aliases,
@@ -420,7 +491,7 @@ class GraphIrV2Index implements GraphIrV2Kernel {
     return this.result([{artifact: address, owners: node.owners}], [resolution], []);
   }
 
-  /** Returns both authored outbound supports and observed inbound covers without conflating their facts. */
+  /** Returns authored supports and every inbound covers fact without conflating their provenance. */
   criterionProofs(input: string): GraphQueryResult<GraphIrV2Edge> {
     const resolution = this.resolveAddress(input);
     const address = resolvedAddress(resolution);
@@ -429,7 +500,7 @@ class GraphIrV2Index implements GraphIrV2Kernel {
     const covers = this.inboundRecords(address, 'covers');
     const records = uniqueEdges([...supports, ...covers]);
     const reasons = this.edgeReasons(records);
-    if (records.length === 0) reasons.push(`criterion has no authored supports or observed covers: ${address}`);
+    if (records.length === 0) reasons.push(`criterion has no authored supports or covers: ${address}`);
     return this.result(records, [resolution], reasons);
   }
 
@@ -719,25 +790,26 @@ function assertAugmentationLayer(layer: GraphIrV2Augmentation): void {
   }
 }
 
-function assertAugmentationNode(node: GraphIrV2ObservedArtifactFact | GraphIrV2ObservedAnchorFact): void {
-  if (!node || typeof node !== 'object' || node.provenance !== 'observed') {
-    throw new Error('GraphIR observed node must retain observed provenance');
+function assertAugmentationNode(node: GraphIrV2AugmentationNode): void {
+  if (!node || typeof node !== 'object'
+    || (node.provenance !== 'authored' && node.provenance !== 'derived' && node.provenance !== 'observed')) {
+    throw new Error('GraphIR augmentation node must retain explicit provenance');
   }
   assertCanonicalAddress(node.address);
-  assertObservationLocator(node.locator, `GraphIR observed node ${node.address}`);
+  assertFactLocator(node.provenance, node.locator, `GraphIR augmentation node ${node.address}`);
   if (node.nodeType === 'artifact') {
-    if (!node.address.startsWith('artifact:')) throw new Error(`GraphIR observed artifact fact has a non-artifact address: ${node.address}`);
+    if (!node.address.startsWith('artifact:')) throw new Error(`GraphIR augmentation artifact fact has a non-artifact address: ${node.address}`);
     if (!Array.isArray(node.roles) || node.roles.length === 0 || node.roles.some((role) => !ARTIFACT_ROLES.has(role))) {
-      throw new Error(`GraphIR observed artifact fact has invalid roles: ${node.address}`);
+      throw new Error(`GraphIR augmentation artifact fact has invalid roles: ${node.address}`);
     }
     if (new Set(node.roles).size !== node.roles.length) {
-      throw new Error(`GraphIR observed artifact fact repeats a role: ${node.address}`);
+      throw new Error(`GraphIR augmentation artifact fact repeats a role: ${node.address}`);
     }
-    if (!Array.isArray(node.owners)) throw new Error(`GraphIR observed artifact fact has invalid owners: ${node.address}`);
+    if (!Array.isArray(node.owners)) throw new Error(`GraphIR augmentation artifact fact has invalid owners: ${node.address}`);
     return;
   }
   if ((node as {readonly nodeType?: unknown}).nodeType !== 'anchor') {
-    throw new Error(`GraphIR observed node has an unsupported taxonomy: ${node.address}`);
+    throw new Error(`GraphIR augmentation node has an unsupported taxonomy: ${node.address}`);
   }
   const anchor = parseAnchorAddress(node.address);
   if (!anchor
@@ -745,26 +817,37 @@ function assertAugmentationNode(node: GraphIrV2ObservedArtifactFact | GraphIrV2O
     || node.artifact !== artifactAddress(anchor.path)
     || node.selector !== anchor.selector
     || (node.selectorProvenance !== 'authored' && node.selectorProvenance !== 'derived')) {
-    throw new Error(`GraphIR observed anchor fact does not match its canonical address: ${node.address}`);
+    throw new Error(`GraphIR augmentation anchor fact does not match its canonical address: ${node.address}`);
   }
 }
 
-function assertObservedNodeReferences(
-  node: GraphIrV2ObservedArtifactFact | GraphIrV2ObservedAnchorFact,
+function assertAugmentationNodeReferences(
+  node: GraphIrV2AugmentationNode,
   combinedNodes: ReadonlyMap<string, GraphIrV2Node>,
 ): void {
   if (node.nodeType === 'artifact') {
     for (const owner of node.owners) {
-      assertCanonicalEndpoint(owner, combinedNodes, `GraphIR observed artifact owner for ${node.address}`);
+      assertCanonicalEndpoint(owner, combinedNodes, `GraphIR augmentation artifact owner for ${node.address}`);
       if (endpointTaxonomy(combinedNodes.get(owner)!) !== 'feature') {
-        throw new Error(`GraphIR observed artifact owner must be a feature: ${owner}`);
+        throw new Error(`GraphIR augmentation artifact owner must be a feature: ${owner}`);
       }
     }
     return;
   }
-  assertCanonicalEndpoint(node.artifact, combinedNodes, `GraphIR observed anchor artifact for ${node.address}`);
+  assertCanonicalEndpoint(node.artifact, combinedNodes, `GraphIR augmentation anchor artifact for ${node.address}`);
   if (endpointTaxonomy(combinedNodes.get(node.artifact)!) !== 'artifact') {
-    throw new Error(`GraphIR observed anchor artifact must be an artifact node: ${node.artifact}`);
+    throw new Error(`GraphIR augmentation anchor artifact must be an artifact node: ${node.artifact}`);
+  }
+}
+
+function assertAugmentationEdge(
+  edge: GraphIrV2AugmentationEdge,
+  combinedNodes: ReadonlyMap<string, GraphIrV2Node>,
+): void {
+  if (edge.provenance === 'observed') {
+    assertObservationEdge(edge, combinedNodes);
+  } else {
+    assertStructuralEdge(edge, combinedNodes);
   }
 }
 
@@ -801,30 +884,119 @@ function assertObservationLocator(locator: GraphObservationLocator, label: strin
   }
 }
 
+function assertTextSourceLocator(locator: GraphTextSourceLocator, label: string): void {
+  if (!locator || typeof locator !== 'object' || locator.kind !== 'text_source' || !isNonBlankString(locator.path)) {
+    throw new Error(`${label} requires a nonblank text source path`);
+  }
+  try {
+    if (artifactAddress(locator.path).slice('artifact:'.length) !== locator.path) {
+      throw new Error('noncanonical path');
+    }
+  } catch {
+    throw new Error(`${label} requires a canonical repository-relative text source path`);
+  }
+  if (locator.selector !== undefined && !isNonBlankString(locator.selector)) {
+    throw new Error(`${label} has a blank text source selector`);
+  }
+}
+
+function assertFactLocator(
+  provenance: GraphIrV2AugmentationNode['provenance'],
+  locator: GraphIrV2AugmentationNode['locator'],
+  label: string,
+): void {
+  if (provenance === 'observed') {
+    assertObservationLocator(locator as GraphObservationLocator, label);
+  } else {
+    assertTextSourceLocator(locator as GraphTextSourceLocator, label);
+  }
+}
+
+function assertStructuralEdge(
+  edge: GraphIrV2StructuralEdge,
+  combinedNodes: ReadonlyMap<string, GraphIrV2Node>,
+): void {
+  if (!edge || typeof edge !== 'object' || (edge.provenance !== 'authored' && edge.provenance !== 'derived')) {
+    throw new Error('GraphIR structural edge must retain authored or derived provenance');
+  }
+  if (!isNonBlankString(edge.identity)) throw new Error('GraphIR structural edge identity must be nonblank');
+  assertTextSourceLocator(edge.owner, `GraphIR structural edge ${edge.identity}`);
+  assertCanonicalEndpoint(edge.from, combinedNodes, `GraphIR structural edge source for ${edge.identity}`);
+  assertCanonicalEndpoint(edge.to, combinedNodes, `GraphIR structural edge target for ${edge.identity}`);
+  if (edge.state !== 'resolved' && edge.state !== 'unresolved') {
+    throw new Error(`GraphIR structural edge has a non-structural state: ${edge.identity}`);
+  }
+  if (edge.raw !== undefined && typeof edge.raw !== 'string') throw new Error(`GraphIR structural edge has an invalid raw detail: ${edge.identity}`);
+  if (edge.normalizedTarget !== undefined) {
+    assertCanonicalAddress(edge.normalizedTarget);
+    if (edge.state === 'resolved' && !combinedNodes.has(edge.normalizedTarget)) {
+      throw new Error(`GraphIR structural edge normalized target for ${edge.identity} is absent from the combined GraphIR node set: ${edge.normalizedTarget}`);
+    }
+  }
+  if (edge.selector !== undefined) assertSelector(edge.selector, edge.identity);
+  assertRelationEndpoints(edge, combinedNodes);
+}
+
 function assertCanonicalEndpoint(address: string, combinedNodes: ReadonlyMap<string, GraphIrV2Node>, label: string): void {
   assertCanonicalAddress(address);
   if (!combinedNodes.has(address)) throw new Error(`${label} is absent from the combined GraphIR node set: ${address}`);
 }
 
-function assertSelector(selector: NonNullable<GraphIrV2ObservationEdge['selector']>, identity: string): void {
+function assertSelector(selector: NonNullable<GraphIrV2AugmentationEdge['selector']>, identity: string): void {
   if (selector.precision === 'none' && selector.value === undefined) return;
   if (selector.precision === 'fragment' && isNonBlankString(selector.value)) return;
-  throw new Error(`GraphIR observation edge has an invalid selector: ${identity}`);
+  throw new Error(`GraphIR augmentation edge has an invalid selector: ${identity}`);
 }
 
-function assertRelationEndpoints(edge: GraphIrV2ObservationEdge, combinedNodes: ReadonlyMap<string, GraphIrV2Node>): void {
+function assertRelationEndpoints(edge: GraphIrV2AugmentationEdge, combinedNodes: ReadonlyMap<string, GraphIrV2Node>): void {
   const permitted = RELATION_ENDPOINTS.get(edge.relation);
-  if (!permitted) throw new Error(`GraphIR observation edge has an unknown relation: ${edge.relation}`);
+  if (!permitted) throw new Error(`GraphIR augmentation edge has an unknown relation: ${edge.relation}`);
   const from = endpointTaxonomy(combinedNodes.get(edge.from)!);
   const to = endpointTaxonomy(combinedNodes.get(edge.to)!);
   if (!permitted[0].includes(from) || !permitted[1].includes(to)) {
-    throw new Error(`GraphIR observation edge has invalid ${edge.relation} endpoint taxonomy: ${from} -> ${to}`);
+    throw new Error(`GraphIR augmentation edge has invalid ${edge.relation} endpoint taxonomy: ${from} -> ${to}`);
   }
 }
 
 function endpointTaxonomy(node: GraphIrV2Node): GraphEndpointTaxonomy {
   if (node.nodeType === 'artifact' || node.nodeType === 'anchor') return node.nodeType;
   return node.kind;
+}
+
+/** Merges only physical artifact facts; every other address collision is unsafe. */
+function mergeAugmentationNodes(
+  existingNodes: ReadonlyMap<string, GraphIrV2Node>,
+  augmentationNodes: readonly GraphIrV2AugmentationNode[],
+): ReadonlyMap<string, GraphIrV2Node> {
+  const merged = new Map(existingNodes);
+  for (const node of augmentationNodes) {
+    const existing = merged.get(node.address);
+    if (!existing) {
+      merged.set(node.address, node);
+      continue;
+    }
+    if (existing.nodeType !== node.nodeType) {
+      throw new Error(`GraphIR incompatible node taxonomy collision: ${node.address}`);
+    }
+    if (node.nodeType !== 'artifact' || existing.nodeType !== 'artifact') {
+      if (canonicalRecord(existing) !== canonicalRecord(node)) {
+        throw new Error(`GraphIR incompatible node collision: ${node.address}`);
+      }
+      continue;
+    }
+    merged.set(node.address, mergeArtifactFacts(existing, node));
+  }
+  return new Map([...merged.entries()].sort(([left], [right]) => left.localeCompare(right)));
+}
+
+/** Retains one artifact identity while adding every distinct role and feature owner. */
+function mergeArtifactFacts(
+  existing: Extract<GraphIrV2Node, {readonly nodeType: 'artifact'}>,
+  incoming: Extract<GraphIrV2AugmentationNode, {readonly nodeType: 'artifact'}>,
+): GraphIrV2Node {
+  const roles = freezeRecords([...new Set([...existing.roles, ...incoming.roles])].sort());
+  const owners = freezeRecords([...new Set([...existing.owners, ...incoming.owners])].sort());
+  return freeze({...existing, roles, owners});
 }
 
 function isNonBlankString(value: unknown): value is string {
@@ -899,7 +1071,7 @@ function toProofRecord(edge: AuthoredProofEdge): CorpusProofRecord {
 }
 
 function edgeIdentity(edge: GraphIrV2Edge): string {
-  return isBaseEdge(edge) ? edge.address : `observed:${edge.identity}`;
+  return isBaseEdge(edge) ? edge.address : `${edge.provenance}:${edge.identity}`;
 }
 
 function uniqueEdges(edges: readonly GraphIrV2Edge[]): readonly GraphIrV2Edge[] {
@@ -944,6 +1116,16 @@ function freezeRecords<T>(records: readonly T[]): readonly T[] {
 
 function freeze<T extends object>(record: T): T {
   return Object.freeze(record);
+}
+
+/** Copies and freezes adapter-owned records so later caller mutation cannot affect queries. */
+function copyFrozen<T>(value: T): T {
+  if (Array.isArray(value)) return Object.freeze(value.map((entry) => copyFrozen(entry))) as T;
+  if (value !== null && typeof value === 'object') {
+    const copy = Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, copyFrozen(entry)]));
+    return Object.freeze(copy) as T;
+  }
+  return value;
 }
 
 /** Canonical comparison keeps duplicate handling independent of caller property insertion order. */

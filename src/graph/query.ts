@@ -4,10 +4,13 @@ import {graphIrV2, type GraphIrV2Kernel} from '../spec/compiler/graph-ir-v2.js';
 import {compileSpecWorkspaceFromStableSnapshot} from '../spec/compiler/compile.js';
 import {schema02ConsumerView} from '../spec/compiler/consumer-view.js';
 import type {GraphPresentationRecord, Schema02FeatureContract, SpecCompilation} from '../spec/compiler/types.js';
+import {currentSafeBindingCensus} from '../proof/current-bindings.js';
+import {knownCriteriaFromCompilerView} from '../proof/vitest-jest.js';
 import {loadSpecFromDiskUnlocked} from '../spec/load.js';
 import {prospectiveCompilationOverlay, prospectiveSpecOverlay} from '../spec/prospective.js';
 import {withStableSpecWorkspaceSnapshot} from '../spec/transaction.js';
 import type {Feature, Spec} from '../spec/types.js';
+import {workspaceFactAugmentation} from './workspace-facts.js';
 
 /**
  * One immutable presentation, compiler, and GraphIR view of a workspace.
@@ -55,7 +58,7 @@ export function loadGraphIrV2Workspace(cwd: string = '.'): GraphIrV2Workspace {
     // A completion overlay has already sealed its immutable pair. Do not probe
     // disk here: doing so could combine a pre-commit shard with a prospective
     // done status that was intentionally never written.
-    return createWorkspace(prospectiveSpec, prospectiveCompilation);
+    return createWorkspace(cwd, prospectiveSpec, prospectiveCompilation);
   }
   return withStableSpecWorkspaceSnapshot(cwd, () =>
     loadGraphIrV2WorkspaceFromStableSnapshot(cwd),
@@ -83,21 +86,30 @@ export function loadGraphIrV2WorkspaceFromStableSnapshot(cwd: string): GraphIrV2
   // compatibility reader only for presentation; GraphIR still comes solely
   // from this one compiler result.
   const compilation = compileSpecWorkspaceFromStableSnapshot(cwd);
+  const census = currentSafeBindingCensus(cwd, knownCriteriaFromCompilerView(compilation.nodes));
   switch (compilation.schemaVersion) {
     case '0.1':
-      return createWorkspace(loadSpecFromDiskUnlocked(cwd), compilation);
+      return createWorkspace(cwd, loadSpecFromDiskUnlocked(cwd), compilation, census);
     case '0.2':
-      return createWorkspace(schema02ConsumerView(cwd, compilation), compilation);
+      return createWorkspace(cwd, schema02ConsumerView(cwd, compilation, census), compilation, census);
     default:
       return assertNeverSchema(compilation.schemaVersion);
   }
 }
 
-function createWorkspace(spec: Spec, compilation: SpecCompilation): GraphIrV2Workspace {
+function createWorkspace(
+  cwd: string,
+  spec: Spec,
+  compilation: SpecCompilation,
+  census = currentSafeBindingCensus(cwd, knownCriteriaFromCompilerView(compilation.nodes)),
+): GraphIrV2Workspace {
   assertMatchingWorkspacePair(spec, compilation);
   freezeDeep(spec);
   freezeDeep(compilation);
-  const kernel = Object.freeze(graphIrV2(compilation));
+  const facts = workspaceFactAugmentation(compilation, census);
+  const kernel = Object.freeze(facts.completeness === 'complete' && facts.nodes.length === 0 && facts.edges.length === 0
+    ? graphIrV2(compilation)
+    : graphIrV2(compilation, [facts]));
   return Object.freeze({spec, compilation, kernel});
 }
 

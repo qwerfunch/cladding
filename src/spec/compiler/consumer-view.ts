@@ -2,7 +2,7 @@
 
 import {resolve} from 'node:path';
 
-import {currentSafeBindings} from '../../proof/current-bindings.js';
+import {currentSafeBindings, type CurrentSafeBindingCensus} from '../../proof/current-bindings.js';
 import {selectCriterionTestBindings} from '../../proof/legacy-bindings.js';
 import type {AcceptanceCriterion, Capability, Feature, Project, Spec} from '../types.js';
 import {requireSchema02Contract} from './contract-assertion.js';
@@ -24,15 +24,20 @@ import type {
  *
  * @param cwd - Workspace root for safe live proof discovery.
  * @param compilation - One lock-held schema 0.2 compiler snapshot.
+ * @param bindingCensus - Optional caller-owned safe census to avoid a second test scan.
  * @returns The exact legacy `Spec` compatibility projection.
  * @throws Error when compilation cannot safely supply a complete contract.
  * @see docs/design/spec-0.2/model-and-migration.md#d10--artifact-registry-and-compiler-boundary
  * @see docs/design/spec-0.2/graph.md#d17--knowledge-graph-v2-as-compiler-ir
  */
-export function schema02ConsumerView(cwd: string, compilation: SpecCompilation): Spec {
+export function schema02ConsumerView(
+  cwd: string,
+  compilation: SpecCompilation,
+  bindingCensus?: CurrentSafeBindingCensus,
+): Spec {
   const contract = requireSchema02Contract(compilation);
   const featureSources = featureSourcePaths(compilation);
-  const live = currentSafeBindings(cwd, compilation);
+  const live = bindingCensus?.bindings ?? currentSafeBindings(cwd, compilation);
   return {
     schema: '0.2',
     project: legacyProject(contract.project),
