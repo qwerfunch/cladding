@@ -54,6 +54,13 @@ export function prospectiveDoneCompilation(compilation: SpecCompilation, feature
   if (compilation.schemaVersion !== '0.2' || !compilation.contract) return compilation;
   return Object.freeze({
     ...compilation,
+    // Presentation records are compiler facts too. Keeping this status aligned
+    // with the contract prevents a prospective GraphIR query from exposing an
+    // in-progress display record beside a done completion contract.
+    presentations: Object.freeze(compilation.presentations.map((record) =>
+      record.kind === 'feature' && record.address === `feature:${featureId}`
+        ? Object.freeze({...record, status: 'done'})
+        : record)),
     contract: Object.freeze({
       ...compilation.contract,
       features: Object.freeze(compilation.contract.features.map((feature) => feature.id === featureId
