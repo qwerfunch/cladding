@@ -6,6 +6,8 @@
 
 ## D17 — Knowledge Graph v2 as compiler IR
 
+> Implementation-cycle trace: `feature:F-208eaa79` is the F8 implementation shard for this accepted D17 contract; D17 remains the normative authority.
+
 ### Primary justification and guarantee boundary
 
 Knowledge Graph v2 is first an internal compiler representation, not an LLM feature. The Spec compiler builds one live graph that supplies:

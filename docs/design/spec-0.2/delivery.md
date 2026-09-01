@@ -6,6 +6,8 @@
 
 ## D15 — Implementation sequence
 
+> Implementation-cycle trace: `feature:F-208eaa79` is the F8 implementation shard for this accepted delivery sequence; D15/D16 remain the normative authority.
+
 **V0 and F1–F11 ship in 0.10.0:** V0 adds validation ledger, simulator, token accounting, and D24 wire/efficacy. Targets remain `implementation_pending`; it proves neither preregistered cases nor host E2E, and challengers await owner/log update.
 
 Follow one feature cycle at a time; author each shard immediately before implementation.

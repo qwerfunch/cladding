@@ -1,7 +1,7 @@
 id: F-569f4b37
 title: Knowledge-graph model + export (mermaid / Obsidian vault / DOT / JSON) +
   hub stats — see the graph in best-in-class viewers
-status: done
+status: in_progress
 modules:
   - src/graph/model.ts
   - src/graph/render.ts
@@ -13,16 +13,10 @@ capability_refs:
   - knowledge-graph
 acceptance_criteria:
   - id: AC-0b21a485
-    statement: When buildGraph is called, the system shall assemble a deterministic
-      typed knowledge graph (feature/module/test/scenario/capability/doc nodes;
-      depends_on/touches/covers/binds/implements/references/links edges) from
-      the spec + reverse-index + doc-link index.
-    notes: >-
-      ## Why
-
-      The edges already exist scattered (forward in shards, backward in the
-      reverse-index, doc edges in _doc-links). buildGraph is the single
-      materialization every viewer + query reads. Pure, derived, deterministic.
+    kind: behavior
+    statement: When graph export constructs its input, the export boundary shall
+      serialize the canonical GraphIR v2 node and edge model instead of the
+      legacy reverse-index taxonomy.
   - id: AC-0afdbdc6
     statement: When clad graph export --format mermaid|dot|json runs, the system
       shall render the graph to stdout in that format, deterministically.
@@ -34,5 +28,9 @@ acceptance_criteria:
     statement: When clad graph stats runs, the system shall report node/edge counts
       by kind and the top hubs by degree.
   - id: AC-d95b03ac
-    statement: When --focus is supplied, the system shall restrict the exported
-      graph to the focus node's N-hop (forward+backward) neighborhood.
+    kind: behavior
+    statement: When --focus is supplied, the graph export shall use a relation-aware
+      directed projection with a validated bounded depth and no sibling
+      expansion.
+purpose: Export and render deterministic, bounded GraphIR v2 projections without
+  retaining v1 graph taxonomy or undirected-neighborhood authority.

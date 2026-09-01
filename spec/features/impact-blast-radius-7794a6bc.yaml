@@ -1,7 +1,7 @@
 id: F-7794a6bc
 title: Blast-radius impact query — backward slice (what breaks if I change X)
   over MCP + CLI
-status: done
+status: in_progress
 modules:
   - src/optimizer/reverse-slice.ts
   - src/serve/server.ts
@@ -23,10 +23,10 @@ acceptance_criteria:
       this'. The regression-test union is the LLM's safe-refactor set in a long
       project.
   - id: AC-3f4f7202
-    statement: When the query is a module path, the system shall resolve it via the
-      many-to-many moduleOwners to all owning features and compute the blast
-      radius from that owner set, naming the module and its owners in the focus
-      descriptor.
+    kind: behavior
+    statement: When a module path is queried, the impact service shall resolve every
+      graph-owned artifact owner from GraphIR and compute its directed dependent
+      slice.
   - id: AC-6a73f6b1
     statement: If the query resolves to nothing, then the system shall return a
       not_found result naming the accepted forms (feature id, slug, module
@@ -41,3 +41,5 @@ acceptance_criteria:
     statement: When clad_get_impact / clad impact is called with a query, the system
       shall return the blast-radius slice with schema_version, and report a miss
       as an error result.
+purpose: Compute directed impact from canonical GraphIR ownership and dependent
+  relations rather than the legacy module-owner index.

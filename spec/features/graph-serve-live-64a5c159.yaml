@@ -1,7 +1,7 @@
 id: F-64a5c159
 title: Live graph view — clad graph serve (http + fs.watch + SSE auto-reload) +
   clad_get_graph MCP
-status: done
+status: in_progress
 modules:
   - src/cli/graph-serve.ts
   - src/cli/clad.ts
@@ -31,15 +31,9 @@ acceptance_criteria:
       platform-racy; debounce coalesces). No stale-trap: server always
       recomputes; if it dies the connection closes (visible).
   - id: AC-236bcc1e
-    statement: When clad_get_graph is called with a query, the graph service shall
-      return the live focused subgraph JSON with schema_version and return a
-      stats summary rather than the full node and edge dump when called without
-      a query.
     kind: behavior
-    notes: >-
-      ## Why (0.7.1)
-
-      The 0.7.0 no-query form returned the whole graph pretty-printed — measured
-      285KB (~70k tokens) on cladding-self in ONE MCP result, contradicting the
-      working-set budget discipline. Summary + hint keeps the tool safe to call
-      blind; full dumps live on the CLI (clad graph export).
+    statement: When clad_get_graph is called, the graph service shall emit
+      schema_version 2 focused GraphIR results at default depth 1, return
+      statistics for no query, and reject invalid or unbounded bounds.
+purpose: Serve and expose live, focused, schema-versioned GraphIR v2 projections
+  without changing the separate context contract.

@@ -1,7 +1,7 @@
 id: F-ee47fc2b
 title: Reverse-edge index — backlinks (dependents, module owners, test
   citations) derived from the spec, memoized per instance
-status: done
+status: archived
 modules:
   - src/spec/reverse-index.ts
 depends_on: []
@@ -48,3 +48,7 @@ acceptance_criteria:
       then the system shall exclude prefixed pseudo-refs from the citation index
       and key real refs by path only (anchor stripped)."
     kind: behavior
+archive_reason: Materialized reverse-index authority is retired by the canonical
+  GraphIR v2 cutover.
+archived_at: 2026-09-01T04:07:45.383Z
+superseded_by: F-208eaa79

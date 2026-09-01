@@ -1,0 +1,132 @@
+id: F-208eaa79
+title: Spec 0.2 GraphIR v2 directed query and public graph cutover
+status: in_progress
+purpose: Make every graph-aware Cladding surface consume one canonical,
+  provenance-preserving, bounded GraphIR so impact and retrieval remain complete
+  without unbounded context or parallel graph authorities.
+modules:
+  - src/spec/compiler/compile.ts
+  - src/spec/compiler/types.ts
+  - src/spec/compiler/graph-ir-v2.ts
+  - src/spec/reverse-index.ts
+  - src/graph/model.ts
+  - src/graph/query.ts
+  - src/graph/wire-v2.ts
+  - src/graph/render.ts
+  - src/graph/stats.ts
+  - src/graph/viewer-shell.ts
+  - src/graph/viewer/main.ts
+  - src/optimizer/reverse-slice.ts
+  - src/optimizer/iterative-slice.ts
+  - src/optimizer/working-set.ts
+  - src/optimizer/measurement.ts
+  - src/optimizer/infer-depends-on.ts
+  - src/cli/graph.ts
+  - src/cli/graph-serve.ts
+  - src/cli/report.ts
+  - src/serve/server.ts
+  - src/stages/graph-health.ts
+  - scripts/spec-0.2-validate.ts
+  - tests/spec/compiler/graph-ir-v2.test.ts
+  - tests/spec/reverse-index.test.ts
+  - tests/graph/graph-ir-v2-query.test.ts
+  - tests/graph/graph-ir-v2-wire.test.ts
+  - tests/optimizer/graph-ir-consumers.test.ts
+  - tests/cli/graph-v2.test.ts
+  - tests/cli/graph-serve-v2.test.ts
+  - tests/design/spec-0.2/requirements.yaml
+depends_on:
+  - F-182eaa53
+  - F-0b8f23c5
+capability_refs:
+  - knowledge-graph
+acceptance_criteria:
+  - id: AC-4f8c2542
+    kind: behavior
+    statement: The specification compiler shall construct one canonical GraphIR node
+      and edge set from every schema 0.1 and schema 0.2 fact.
+  - id: AC-b8ed5507
+    kind: constraint
+    statement: The GraphIR address resolver shall emit canonical semantic, artifact,
+      and anchor addresses while rejecting bare criterion addresses and
+      artifact-kind twin identities.
+    rationale: Canonical resolution eliminates ambiguous identities before public
+      projection.
+  - id: AC-1f6fd7fe
+    kind: behavior
+    statement: The GraphIR query layer shall return relation-aware directed
+      prerequisite and dependent results without containment or project-hub
+      sibling expansion.
+  - id: AC-d452908b
+    kind: behavior
+    statement: The GraphIR query layer shall return owner, criterion-proof, and
+      regression results with explicit unknown and unresolved states.
+  - id: AC-616e6e74
+    kind: constraint
+    statement: The graph implementation shall make impact, iterative slices, working
+      sets, measurement, dependency inference, reports, graph health, CLI, MCP,
+      live HTTP, export, and viewer surfaces query or serialize GraphIR while
+      retiring reverse-index materialization, v1 identities, v2-to-v1
+      serialization, and undirected or repeated traversal.
+    rationale: One compiler IR prevents divergent graph authorities during cutover.
+  - id: AC-945363a4
+    kind: behavior
+    statement: The public graph wire shall emit schema_version 2 with canonical
+      addresses, roles, relations, provenance, state, owner, selector, raw and
+      normalized paths, and deterministic ordering.
+  - id: AC-f7f39bb9
+    kind: behavior
+    statement: When clad_get_graph receives no query or a focused request, the graph
+      service shall return statistics for no query and a depth-1 bounded
+      projection for focus while rejecting invalid or unbounded bounds.
+  - id: AC-e5fc267b
+    kind: constraint
+    statement: The graph surfaces shall keep clad_get_context at schema_version 1
+      and reserve a complete graph export for explicit CLI invocation.
+    rationale: The existing context boundary stays separate from GraphIR wire evolution.
+  - id: AC-d183d625
+    kind: quality
+    statement: The MCP graph response shall measure its full final UTF-8 serialized
+      bytes and exact omission count without silent truncation or empty-success
+      responses.
+  - id: AC-1f71c694
+    kind: behavior
+    statement: The independent scanner parity suite shall match GraphIR
+      prerequisite, dependent, artifact-owner, criterion-proof, and regression
+      record sets.
+  - id: AC-9ea1a6ed
+    kind: constraint
+    statement: The GraphIR validation suite shall fail ablations that remove
+      criterion nodes, selectors, provenance, direction, purpose, or rationale.
+    rationale: Each retained field and direction needs a discriminating failure control.
+  - id: AC-6110ed01
+    kind: quality
+    statement: The synthetic `5,000-feature` graph benchmark shall remain linear in
+      nodes plus edges and finish within the existing 15-second CI ceiling.
+  - id: AC-1d2c4213
+    kind: quality
+    statement: The environment-labelled benchmark suite shall report a cold self
+      compile plus graph target no greater than 500 ms and a warm focused
+      projection target no greater than 50 ms without a portable performance
+      claim.
+  - id: AC-531afee4
+    kind: behavior
+    statement: The GraphIR v2 presentation stack shall preserve renderer, viewer,
+      and live HTTP health mapping plus complete piped JSON output.
+  - id: AC-05f6d0bd
+    kind: constraint
+    statement: The F8 validation ledger shall leave F9-owned context, catalog,
+      assurance work, and adoption studies implementation_pending rather than
+      complete.
+    rationale: F8 establishes structural validity, not F9 runtime or adoption evidence.
+design_impact:
+  classification: structural
+  rationale: F8 atomically replaces the shipped graph identities, traversal, and
+    public graph surfaces with the accepted D17 GraphIR v2 cutover sequence.
+  status: resolved
+  artifacts:
+    - docs/design/spec-0.2/graph.md
+    - docs/design/spec-0.2/delivery.md
+  baseline_digests:
+    docs/design/spec-0.2/graph.md: 0544abe438a04e8d452c137b3cfe6faadab76231521e10249641d441f2ba29fd
+    docs/design/spec-0.2/delivery.md: 532e02afbc5bbc35556dfd24d8e87bead221ecaeee91aa1d2002a49b64611785

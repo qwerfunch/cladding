@@ -31,7 +31,7 @@
 - **추적** — **나간 것은 기록에 남는다**: 무엇을 검증했는지는 커밋된 내용에 새겨지고, 누가·언제는 로컬 세션 로그에, 왜는 스펙에 남아, 인수인계와 리뷰가 파헤치지 않아도 된다.
 - **확장** — 사람과 AI를 늘리면 보통 충돌과 어긋남도 함께 불어난다. 하지만 모두가 스펙 하나를 기준으로 일하니 그게 자동으로 걸린다 — 그래서 규모를 키워도 무너지지 않는다.
 
-cladding은 **자기 자신도 cladding으로 만든다** — 기능 291개 중 280개가 같은 게이트를 통과했고, [Ironclad](https://github.com/qwerfunch/ironclad) 표준을 L4로 구현한 첫 사례다.
+cladding은 **자기 자신도 cladding으로 만든다** — 기능 292개 중 276개가 같은 게이트를 통과했고, [Ironclad](https://github.com/qwerfunch/ironclad) 표준을 L4로 구현한 첫 사례다.
 
 <!-- ─────────────── 무엇이 달라지나 ─────────────── -->
 
@@ -346,7 +346,7 @@ clad update              # 3. 프로젝트 연결과 파생 데이터를 함께 
 
 | version | 준수 등급 | tests | gate | features |
 |---|---|---|---|---|
-| v0.9.4 worktree · 2026-08 | L4 · [L0–L4 중 최고 · 자가 선언](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 3642 / 3642 · all pass | 15 단계 · 41 detectors | 291 · 280 done · 자기 스펙 |
+| v0.9.4 worktree · 2026-08 | L4 · [L0–L4 중 최고 · 자가 선언](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 3642 / 3642 · all pass | 15 단계 · 41 detectors | 292 · 276 done · 자기 스펙 |
 
 <sub>272 test files · capability 6개 · coverage는 COVERAGE_DROP detector가 하락 차단</sub>
 
