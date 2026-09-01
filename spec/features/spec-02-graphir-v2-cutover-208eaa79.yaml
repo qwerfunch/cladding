@@ -30,6 +30,7 @@ modules:
   - src/serve/server.ts
   - src/stages/graph-health.ts
   - src/stages/detectors/doc-reference-integrity.ts
+  - src/stages/detectors/reference-integrity.ts
   - src/proof/current-bindings.ts
   - scripts/spec-0.2-validate.ts
   - tests/spec/compiler/graph-ir-v2.test.ts
@@ -41,6 +42,7 @@ modules:
   - tests/spec/doc-references.test.ts
   - tests/spec/doc-references-declarations.test.ts
   - tests/stages/detectors/doc-reference-integrity.test.ts
+  - tests/stages/reference-integrity.test.ts
   - tests/graph/graph-ir-v2-wire.test.ts
   - tests/optimizer/graph-ir-consumers.test.ts
   - tests/cli/graph-v2.test.ts
