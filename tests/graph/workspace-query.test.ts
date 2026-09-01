@@ -15,6 +15,7 @@ import {
 import {loadSpec} from '../../src/spec/load.js';
 import * as documentReferences from '../../src/spec/doc-references.js';
 import * as currentBindings from '../../src/proof/current-bindings.js';
+import * as sourceReferences from '../../src/graph/source-references.js';
 import {
   prospectiveDoneCompilation,
   prospectiveDoneSpec,
@@ -33,6 +34,8 @@ function workspaceRoot(): string {
 }
 
 function writeSchema01Workspace(root: string, title: string = 'Legacy query boundary'): void {
+  mkdirSync(join(root, 'src'), {recursive: true});
+  writeFileSync(join(root, 'src', 'legacy.ts'), 'export const legacy = true;\n');
   writeFileSync(join(root, 'spec.yaml'), [
     'schema: "0.1"',
     'project: {name: graph-query, language: typescript}',
@@ -54,6 +57,9 @@ function writeSchema02Workspace(
 ): void {
   const status = feature.status ?? 'in_progress';
   mkdirSync(join(root, 'spec', 'features'), {recursive: true});
+  mkdirSync(join(root, 'src'), {recursive: true});
+  writeFileSync(join(root, 'src', 'query.ts'),
+    '// @see spec/features/workspace-aaaaaaaa.yaml AC-bbbbbbbb\nexport const query = true;\n');
   writeFileSync(join(root, 'spec.yaml'), [
     'schema: "0.2"',
     'project:',
@@ -74,7 +80,7 @@ function writeSchema02Workspace(
     `status: ${status}`,
     ...(feature.blockedReason === undefined ? [] : [`blocked_reason: ${feature.blockedReason}`]),
     'purpose: Keep the legacy presentation tied to one compiler result.',
-    'modules: []',
+    'modules: [src/query.ts]',
     'depends_on: []',
     'capability_refs: []',
     'acceptance_criteria:',
@@ -148,7 +154,7 @@ describe('GraphIR workspace query boundary', () => {
     expect(workspace.kernel.resolveAddress('feature:F-aaaaaaaa')).toMatchObject({
       state: 'resolved', canonical: 'feature:F-aaaaaaaa',
     });
-    expect(graphIrV2(workspace.compilation)).toBe(workspace.kernel);
+    expect(graphIrV2(workspace.compilation)).not.toBe(workspace.kernel);
   });
 
   test('uses a matching prospective completion pair without reading the on-disk workspace', () => {
@@ -160,6 +166,7 @@ describe('GraphIR workspace query boundary', () => {
     const prospectiveCompilation = prospectiveDoneCompilation(compileSpecWorkspace(root), 'F-aaaaaaaa');
     const documentScan = vi.spyOn(documentReferences, 'scanDocumentFacts');
     const bindingCensus = vi.spyOn(currentBindings, 'currentSafeBindingCensus');
+    const sourceScan = vi.spyOn(sourceReferences, 'scanSourceReferences');
 
     withProspectiveSpecOverlay(root, prospectiveSpec, () =>
       withProspectiveCompilationOverlay(root, prospectiveCompilation, () => {
@@ -173,6 +180,13 @@ describe('GraphIR workspace query boundary', () => {
         expect(workspace.spec.features.find((feature) => feature.id === 'F-aaaaaaaa')?.status).toBe('done');
         expect(workspace.compilation.contract?.features.find((feature) => feature.id === 'F-aaaaaaaa')?.status).toBe('done');
         expect(workspace.kernel.presentationRecords().find((record) => record.address === 'feature:F-aaaaaaaa')?.status).toBe('done');
+        const sourceEdges = workspace.kernel.project({
+          seeds: ['criterion:F-aaaaaaaa/AC-bbbbbbbb'], rules: [{relation: 'traces_to', direction: 'inbound'}],
+          maxHops: 1, maxNodes: 2, maxEdges: 1,
+        }).edges;
+        expect(sourceEdges).toEqual([expect.objectContaining({
+          relation: 'traces_to', state: 'resolved', from: expect.stringMatching(/^anchor:src\/query\.ts#/),
+        })]);
         const documentEdges = workspace.kernel.project({
           seeds: ['feature:F-aaaaaaaa'], rules: [{relation: 'explains', direction: 'inbound'}], maxHops: 1, maxNodes: 2, maxEdges: 1,
         }).edges;
@@ -184,6 +198,17 @@ describe('GraphIR workspace query boundary', () => {
     );
     expect(documentScan).toHaveBeenCalledTimes(1);
     expect(bindingCensus).toHaveBeenCalledTimes(1);
+    expect(sourceScan).toHaveBeenCalledTimes(1);
+  });
+
+  test('scans compiler-bounded source references once in an ordinary workspace query', () => {
+    const root = workspaceRoot();
+    writeSchema01Workspace(root);
+    const sourceScan = vi.spyOn(sourceReferences, 'scanSourceReferences');
+
+    loadGraphIrV2Workspace(root);
+
+    expect(sourceScan).toHaveBeenCalledTimes(1);
   });
 
   test('fails closed for missing or mismatched prospective overlay sides', () => {

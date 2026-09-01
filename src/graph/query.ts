@@ -12,6 +12,10 @@ import {prospectiveCompilationOverlay, prospectiveSpecOverlay} from '../spec/pro
 import {withStableSpecWorkspaceSnapshot} from '../spec/transaction.js';
 import type {Feature, Spec} from '../spec/types.js';
 import {documentFactAugmentation, workspaceFactAugmentation} from './workspace-facts.js';
+import {
+  scanSourceReferences,
+  sourceReferenceAugmentation,
+} from './source-references.js';
 
 /**
  * One immutable presentation, compiler, and GraphIR view of a workspace.
@@ -59,7 +63,9 @@ export function loadGraphIrV2Workspace(cwd: string = '.'): GraphIrV2Workspace {
     // A completion overlay has already sealed its immutable Spec/compiler
     // pair. Documents are independent artifacts, so scan that one bounded
     // surface without probing the prospective spec disk state.
-    return createWorkspace(cwd, prospectiveSpec, prospectiveCompilation, undefined, scanDocumentFacts(cwd));
+    const documents = scanDocumentFacts(cwd);
+    const sourceReferences = scanSourceReferences(cwd, prospectiveCompilation);
+    return createWorkspace(cwd, prospectiveSpec, prospectiveCompilation, undefined, documents, sourceReferences);
   }
   return withStableSpecWorkspaceSnapshot(cwd, () =>
     loadGraphIrV2WorkspaceFromStableSnapshot(cwd),
@@ -89,11 +95,12 @@ export function loadGraphIrV2WorkspaceFromStableSnapshot(cwd: string): GraphIrV2
   const compilation = compileSpecWorkspaceFromStableSnapshot(cwd);
   const census = currentSafeBindingCensus(cwd, knownCriteriaFromCompilerView(compilation.nodes));
   const documents = scanDocumentFacts(cwd);
+  const sourceReferences = scanSourceReferences(cwd, compilation);
   switch (compilation.schemaVersion) {
     case '0.1':
-      return createWorkspace(cwd, loadSpecFromDiskUnlocked(cwd), compilation, census, documents);
+      return createWorkspace(cwd, loadSpecFromDiskUnlocked(cwd), compilation, census, documents, sourceReferences);
     case '0.2':
-      return createWorkspace(cwd, schema02ConsumerView(cwd, compilation, census), compilation, census, documents);
+      return createWorkspace(cwd, schema02ConsumerView(cwd, compilation, census), compilation, census, documents, sourceReferences);
     default:
       return assertNeverSchema(compilation.schemaVersion);
   }
@@ -105,13 +112,15 @@ function createWorkspace(
   compilation: SpecCompilation,
   census = currentSafeBindingCensus(cwd, knownCriteriaFromCompilerView(compilation.nodes)),
   documents?: DocumentFactScan,
+  sourceReferences = scanSourceReferences(cwd, compilation),
 ): GraphIrV2Workspace {
   assertMatchingWorkspacePair(spec, compilation);
   freezeDeep(spec);
   freezeDeep(compilation);
   const facts = workspaceFactAugmentation(compilation, census);
   const documentFacts = documentFactAugmentation(compilation, documents);
-  const layers = [facts, documentFacts].filter((layer) =>
+  const sourceFacts = sourceReferenceAugmentation(compilation, sourceReferences);
+  const layers = [facts, documentFacts, sourceFacts].filter((layer) =>
     layer.completeness === 'unknown' || layer.nodes.length > 0 || layer.edges.length > 0,
   );
   const kernel = Object.freeze(layers.length === 0 ? graphIrV2(compilation) : graphIrV2(compilation, layers));

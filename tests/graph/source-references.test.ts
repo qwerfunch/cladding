@@ -1,0 +1,258 @@
+// Cladding · Spec 0.2 F8 · bounded source @see GraphIR adapter tests.
+
+import {lstatSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+
+import {afterEach, describe, expect, test} from 'vitest';
+
+import {
+  scanSourceReferences,
+  sourceReferenceAugmentation,
+  type SourceReferenceScan,
+} from '../../src/graph/source-references.js';
+import {graphIrV2} from '../../src/spec/compiler/graph-ir-v2.js';
+import {compileSpecWorkspace} from '../../src/spec/compiler/compile.js';
+import type {GraphNode} from '../../src/spec/compiler/types.js';
+
+const roots: string[] = [];
+const SHARD = 'spec/features/alpha-aaaaaaaa.yaml';
+const CRITERION = 'criterion:F-aaaaaaaa/AC-11111111';
+
+function workspace(modules: readonly string[]): string {
+  const root = mkdtempSync(join(tmpdir(), 'clad-source-references-'));
+  roots.push(root);
+  mkdirSync(join(root, 'spec', 'features'), {recursive: true});
+  writeFileSync(join(root, 'spec.yaml'), [
+    'schema: "0.1"', 'project: {name: source-references, language: typescript}', 'features: []', 'scenarios: []', '',
+  ].join('\n'));
+  writeFileSync(join(root, SHARD), [
+    'id: F-aaaaaaaa', 'slug: alpha', 'title: Alpha', 'status: planned',
+    `modules: [${modules.join(', ')}]`,
+    'acceptance_criteria:',
+    '  - id: AC-11111111', '    text: The system shall retain source references.',
+    '  - id: AC-22222222', '    text: The system shall retain continued source references.',
+    '',
+  ].join('\n'));
+  return root;
+}
+
+function source(root: string, path: string, text: string | Uint8Array): void {
+  mkdirSync(join(root, path, '..'), {recursive: true});
+  writeFileSync(join(root, path), text);
+}
+
+afterEach(() => {
+  for (const root of roots.splice(0)) rmSync(root, {recursive: true, force: true});
+});
+
+describe('bounded source-reference scanner', () => {
+  test('[covers:F-208eaa79/AC-4f8c2542] admits only line-start comment carriers and continued composite criteria', () => {
+    const root = workspace(['src/carriers.ts']);
+    source(root, 'src/carriers.ts', [
+      `// @see ${SHARD} AC-11111111 /`,
+      '// AC-22222222 — continuation',
+      `/// @see ${SHARD} AC-11111111`,
+      `/* @see ${SHARD} AC-22222222 */`,
+      ` * @see ${SHARD} AC-11111111`,
+      `# @see ${SHARD} AC-22222222`,
+      `-- @see ${SHARD} AC-11111111`,
+      `    //   @see ${SHARD} AC-11111111`,
+      `const string = '@see ${SHARD} AC-22222222';`,
+      `const template = \`@see ${SHARD} AC-22222222\`;`,
+      `const inline = true; // @see ${SHARD} AC-22222222`,
+      `organic prose @see ${SHARD} AC-22222222`,
+      'const bare = "AC-22222222";',
+      '',
+    ].join('\n'));
+
+    const scan = scanSourceReferences(root, compileSpecWorkspace(root));
+
+    expect(scan).toMatchObject({completeness: 'complete', issues: [], unknownFiles: []});
+    expect(scan.records).toHaveLength(8);
+    expect(scan.records.map((record) => record.normalizedTarget)).toEqual(expect.arrayContaining([
+      'criterion:F-aaaaaaaa/AC-11111111',
+      'criterion:F-aaaaaaaa/AC-22222222',
+    ]));
+    expect(scan.records.every((record) => record.raw.includes('@see '))).toBe(true);
+    expect(scan.records.every((record) => record.selector.startsWith('source-reference:'))).toBe(true);
+    expect(scan.records.find((record) => record.raw.includes('\n'))).toMatchObject({
+      raw: `// @see ${SHARD} AC-11111111 /\n// AC-22222222 — continuation`,
+    });
+    expect(scan.records.find((record) => record.raw.startsWith('    //'))?.location).toEqual({line: 8, column: 10});
+    expect(Object.isFrozen(scan.records[0])).toBe(true);
+    expect(Object.isFrozen(scan.records[0]!.location)).toBe(true);
+    expect(() => { (scan.records[0]!.location as {line: number}).line = 99; }).toThrow();
+  });
+
+  test('[covers:F-208eaa79/AC-4f8c2542] materializes authored anchors and traces_to edges without an artifact edge', () => {
+    const root = workspace(['src/carriers.ts']);
+    source(root, 'src/carriers.ts', `// @see ${SHARD} AC-11111111\n`);
+    const compilation = compileSpecWorkspace(root);
+    const scan = scanSourceReferences(root, compilation);
+    const layer = sourceReferenceAugmentation(compilation, scan);
+    const kernel = graphIrV2(compilation, [layer]);
+    const record = scan.records[0]!;
+    const anchor = `anchor:src/carriers.ts#${record.selector}`;
+
+    expect(layer).toMatchObject({layerId: 'source-references', completeness: 'complete'});
+    expect(layer.nodes).toEqual([expect.objectContaining({
+      address: anchor, artifact: 'artifact:src/carriers.ts', selectorProvenance: 'authored', provenance: 'authored',
+    })]);
+    expect(layer.edges).toEqual([expect.objectContaining({
+      from: anchor, to: CRITERION, relation: 'traces_to', provenance: 'authored', state: 'resolved',
+      owner: {kind: 'text_source', path: 'src/carriers.ts', selector: record.selector},
+      raw: `// @see ${SHARD} AC-11111111`, normalizedTarget: CRITERION,
+    })]);
+    expect(kernel.project({
+      seeds: [CRITERION], rules: [{relation: 'traces_to', direction: 'inbound'}], maxHops: 1, maxNodes: 2, maxEdges: 1,
+    }).edges).toEqual([expect.objectContaining({from: anchor, to: CRITERION, relation: 'traces_to'})]);
+    expect(kernel.project({
+      seeds: ['artifact:src/carriers.ts'], rules: [{relation: 'traces_to', direction: 'outbound'}], maxHops: 1, maxNodes: 2, maxEdges: 1,
+    }).edges).toEqual([]);
+    expect(kernel.corpusRecords()).toEqual(graphIrV2(compilation).corpusRecords());
+  });
+
+  test('[covers:F-208eaa79/AC-4f8c2542] keeps selectors stable across unrelated additions and ordinals only identical facts', () => {
+    const root = workspace(['src/carriers.ts']);
+    source(root, 'src/carriers.ts', [
+      `// @see ${SHARD} AC-11111111`,
+      `// @see ${SHARD} AC-11111111`,
+      '',
+    ].join('\n'));
+    const compilation = compileSpecWorkspace(root);
+    const first = scanSourceReferences(root, compilation);
+    source(root, 'src/carriers.ts', [
+      '// unrelated inserted carrier-free comment',
+      `// @see ${SHARD} AC-22222222`,
+      `// @see ${SHARD} AC-11111111`,
+      `// @see ${SHARD} AC-11111111`,
+      '',
+    ].join('\n'));
+    const second = scanSourceReferences(root, compilation);
+
+    const firstDuplicateSelectors = first.records.map((record) => record.selector).sort();
+    const secondDuplicateSelectors = second.records
+      .filter((record) => record.normalizedTarget === CRITERION)
+      .map((record) => record.selector)
+      .sort();
+    expect(firstDuplicateSelectors).toEqual(secondDuplicateSelectors);
+    expect(firstDuplicateSelectors).toHaveLength(2);
+    expect(firstDuplicateSelectors[0]).toContain(':1');
+    expect(firstDuplicateSelectors[1]).toContain(':2');
+    expect(sourceReferenceAugmentation(compilation, first).edges.map((edge) => edge.identity).sort())
+      .toEqual(sourceReferenceAugmentation(compilation, second).edges
+        .filter((edge) => edge.to === CRITERION).map((edge) => edge.identity).sort());
+  });
+
+  test('[covers:F-208eaa79/AC-d452908b] retains unresolved known shards and issues without guessing a target', () => {
+    const root = workspace(['src/carriers.ts']);
+    source(root, 'src/carriers.ts', [
+      `// @see ${SHARD} AC-deadbeef`,
+      '// @see spec/features/unknown-ffffffff.yaml AC-11111111',
+      `// @see ${SHARD}`,
+      '// @see ./spec/features/alpha-aaaaaaaa.yaml AC-11111111',
+      '',
+    ].join('\n'));
+    const compilation = compileSpecWorkspace(root);
+    const scan = scanSourceReferences(root, compilation);
+    const layer = sourceReferenceAugmentation(compilation, scan);
+    const kernel = graphIrV2(compilation, [layer]);
+
+    expect(scan.issues.map((issue) => issue.code).sort()).toEqual([
+      'FEATURE_ONLY', 'NONCANONICAL_FEATURE_PATH', 'UNKNOWN_CRITERION', 'UNKNOWN_FEATURE_SHARD',
+    ]);
+    expect(scan.records).toEqual([expect.objectContaining({
+      normalizedTarget: 'criterion:F-aaaaaaaa/AC-deadbeef', state: 'unresolved',
+    })]);
+    expect(layer).toMatchObject({completeness: 'unknown'});
+    expect(layer.nodes).toHaveLength(4);
+    expect(new Set(layer.nodes.map((node) => node.address)).size).toBe(layer.nodes.length);
+    expect(scan.issues.find((issue) => issue.code === 'UNKNOWN_CRITERION')?.selector)
+      .toBe(scan.records[0]!.selector);
+    expect(Object.isFrozen(scan.issues[0])).toBe(true);
+    expect(Object.isFrozen(scan.issues[0]!.location)).toBe(true);
+    expect(() => { (scan.issues[0]!.location as {column: number}).column = 99; }).toThrow();
+    expect(layer.edges).toEqual([expect.objectContaining({
+      relation: 'traces_to', state: 'unresolved', to: 'criterion:F-aaaaaaaa/AC-deadbeef',
+    })]);
+    expect(layer.unknownReasons).toEqual(expect.arrayContaining([
+      'source reference target is unresolved: criterion:F-aaaaaaaa/AC-deadbeef',
+    ]));
+    expect(kernel.project({
+      seeds: ['artifact:src/carriers.ts'], rules: [{relation: 'traces_to', direction: 'outbound'}], maxHops: 2, maxNodes: 3, maxEdges: 1,
+    })).toMatchObject({completeness: 'unknown'});
+  });
+
+  test('[covers:F-208eaa79/AC-d452908b] fails closed for missing, symlinked, invalid-UTF8, and generated source paths', () => {
+    const root = workspace([
+      'src/missing.ts', 'src/link.ts', 'src/invalid.ts', 'src/not-file.ts', 'src/unreadable.ts', 'plugins/claude-code/dist/clad.js',
+    ]);
+    const outside = join(root, 'outside.ts');
+    source(root, 'outside.ts', `// @see ${SHARD} AC-11111111\n`);
+    mkdirSync(join(root, 'src'), {recursive: true});
+    symlinkSync(outside, join(root, 'src', 'link.ts'));
+    writeFileSync(join(root, 'src', 'invalid.ts'), Buffer.from([0xc3, 0x28]));
+    mkdirSync(join(root, 'src', 'not-file.ts'));
+    source(root, 'src/unreadable.ts', 'export const unreadable = true;\n');
+    source(root, 'plugins/claude-code/dist/clad.js', `// @see ${SHARD} AC-11111111\n`);
+    const compilation = compileSpecWorkspace(root);
+    let outsideReads = 0;
+    const scan = scanSourceReferences(root, compilation, {
+      lstat: lstatSync,
+      readFile: (path) => {
+        if (path === outside) outsideReads++;
+        if (path === join(root, 'src', 'unreadable.ts')) {
+          throw Object.assign(new Error('denied'), {code: 'EACCES'});
+        }
+        return readFileSync(path);
+      },
+    });
+
+    expect(scan.records).toEqual([]);
+    expect(scan.completeness).toBe('unknown');
+    expect(scan.unknownFiles).toEqual(expect.arrayContaining([
+      {path: 'src/missing.ts', reason: 'missing'},
+      {path: 'src/link.ts', reason: 'symlink'},
+      {path: 'src/invalid.ts', reason: 'invalid_utf8'},
+      {path: 'src/not-file.ts', reason: 'not_file'},
+      {path: 'src/unreadable.ts', reason: 'unreadable'},
+    ]));
+    expect(scan.unknownFiles.map((file) => file.path)).not.toContain('plugins/claude-code/dist/clad.js');
+    expect(Object.isFrozen(scan.unknownFiles[0])).toBe(true);
+    expect(outsideReads).toBe(0);
+  });
+
+  test('[covers:F-208eaa79/AC-4f8c2542] preserves compiler artifact role unions and caller-owned input immutability', () => {
+    const root = workspace(['src/carriers.ts']);
+    source(root, 'src/carriers.ts', `// @see ${SHARD} AC-11111111\n`);
+    const compilation = compileSpecWorkspace(root);
+    const scan = scanSourceReferences(root, compilation);
+    const mutableRecord = {...scan.records[0]!, location: {...scan.records[0]!.location}};
+    const mutableScan = {
+      ...scan,
+      records: [mutableRecord],
+      issues: [...scan.issues], unknownFiles: [...scan.unknownFiles], unknownReasons: [...scan.unknownReasons],
+    } satisfies SourceReferenceScan;
+    const layer = sourceReferenceAugmentation(compilation, mutableScan);
+    mutableScan.records[0]!.raw = 'mutated';
+    const unionCompilation = {
+      ...compilation,
+      nodes: compilation.nodes.map((node): GraphNode => node.nodeType === 'artifact' && node.address === 'artifact:src/carriers.ts'
+        ? {...node, roles: ['source', 'test'] as const}
+        : node),
+    };
+
+    expect(layer.edges[0]).toMatchObject({raw: `// @see ${SHARD} AC-11111111`});
+    expect(graphIrV2(unionCompilation, [layer]).project({
+      seeds: ['artifact:src/carriers.ts'], rules: [{relation: 'traces_to', direction: 'outbound'}], maxHops: 0, maxNodes: 1, maxEdges: 0,
+    }).nodes).toEqual([expect.objectContaining({address: 'artifact:src/carriers.ts', roles: ['source', 'test']})]);
+    expect(graphIrV2(unionCompilation, [layer]).corpusRecords()).toEqual(graphIrV2(unionCompilation).corpusRecords());
+    const emptyLayer = {layerId: 'source-reference-permutation', nodes: [], edges: [], completeness: 'complete' as const, unknownReasons: []};
+    const request = {
+      seeds: [CRITERION], rules: [{relation: 'traces_to' as const, direction: 'inbound' as const}], maxHops: 1, maxNodes: 2, maxEdges: 1,
+    };
+    expect(graphIrV2(unionCompilation, [layer, emptyLayer]).project(request))
+      .toEqual(graphIrV2(unionCompilation, [emptyLayer, layer]).project(request));
+  });
+});
