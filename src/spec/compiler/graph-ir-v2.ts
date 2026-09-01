@@ -782,7 +782,10 @@ function assertObservationEdge(
   if (!GRAPH_STATES.has(edge.state)) throw new Error(`GraphIR observation edge has an invalid state: ${edge.identity}`);
   if (edge.raw !== undefined && typeof edge.raw !== 'string') throw new Error(`GraphIR observation edge has an invalid raw detail: ${edge.identity}`);
   if (edge.normalizedTarget !== undefined) {
-    assertCanonicalEndpoint(edge.normalizedTarget, combinedNodes, `GraphIR observation edge normalized target for ${edge.identity}`);
+    assertCanonicalAddress(edge.normalizedTarget);
+    if (edge.state !== 'unresolved' && !combinedNodes.has(edge.normalizedTarget)) {
+      throw new Error(`GraphIR observation edge normalized target for ${edge.identity} is absent from the combined GraphIR node set: ${edge.normalizedTarget}`);
+    }
   }
   if (edge.selector !== undefined) assertSelector(edge.selector, edge.identity);
   assertRelationEndpoints(edge, combinedNodes);

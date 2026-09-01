@@ -62,6 +62,54 @@ afterEach(() => {
   for (const root of temporary.splice(0)) rmSync(root, {recursive: true, force: true});
 });
 
+const FIDELITY_EXPECTATIONS = {
+  structuralFeature: 'feature:F-aaaaaaaa',
+  structuralCriterion: 'criterion:F-aaaaaaaa/AC-deadbeef',
+  featurePurpose: 'Preserve directed graph intent.',
+  criterionRationale: 'A criterion retains its authored reason.',
+  proofFeature: 'feature:F-bbbbbbbb',
+  prerequisite: 'feature:F-aaaaaaaa',
+  proofCriterion: 'criterion:F-aaaaaaaa/AC-deadbeef',
+  proofTarget: 'anchor:tests/shared.test.ts#alpha regression',
+  selector: {precision: 'fragment', value: 'alpha regression'},
+} as const;
+
+function graphIrV2FidelityFailures(
+  structuralCompilation: SpecCompilation,
+  proofCompilation: SpecCompilation,
+): readonly string[] {
+  const failures: string[] = [];
+  const structuralKernel = graphIrV2(structuralCompilation);
+  const structure = structuralKernel.project({
+    seeds: [FIDELITY_EXPECTATIONS.structuralFeature], rules: [{relation: 'contains', direction: 'outbound'}], maxHops: 1, maxNodes: 4, maxEdges: 4,
+  });
+  if (!structure.nodes.some((node) => node.address === FIDELITY_EXPECTATIONS.structuralCriterion)) {
+    failures.push('criterion node missing');
+  }
+  const feature = structuralKernel.presentationRecords().find((record) => record.address === FIDELITY_EXPECTATIONS.structuralFeature);
+  if (feature?.purpose !== FIDELITY_EXPECTATIONS.featurePurpose) failures.push('feature purpose missing');
+  const criterion = structuralKernel.presentationRecords().find((record) => record.address === FIDELITY_EXPECTATIONS.structuralCriterion);
+  if (criterion?.rationale !== FIDELITY_EXPECTATIONS.criterionRationale) failures.push('criterion rationale missing');
+
+  const proofKernel = graphIrV2(proofCompilation);
+  const support = proofKernel.criterionProofs(FIDELITY_EXPECTATIONS.proofCriterion).records.find((edge) => (
+    edge.relation === 'supports'
+    && edge.from === FIDELITY_EXPECTATIONS.proofCriterion
+    && edge.to === FIDELITY_EXPECTATIONS.proofTarget
+  ));
+  if (support?.selector?.precision !== FIDELITY_EXPECTATIONS.selector.precision
+    || support.selector.value !== FIDELITY_EXPECTATIONS.selector.value) {
+    failures.push('support selector missing');
+  }
+  if (support?.provenance !== 'authored') failures.push('support provenance missing');
+  const expectedDirection = proofKernel.prerequisites('F-bbbbbbbb').records.some((record) => (
+    record.feature === FIDELITY_EXPECTATIONS.proofFeature
+    && record.prerequisite === FIDELITY_EXPECTATIONS.prerequisite
+  ));
+  if (!expectedDirection) failures.push('prerequisite direction missing');
+  return failures;
+}
+
 describe('compiler GraphIR v2 query kernel', () => {
   test('[covers:F-208eaa79/AC-1f71c694] matches the independent scanner records for self and hand-built schema 0.1/0.2 corpora', () => {
     const schema01 = workspace('0.1');
@@ -188,6 +236,13 @@ describe('compiler GraphIR v2 query kernel', () => {
     expect(() => graphIrV2(compilation, [{...layer, edges: [{...edge, from: criterion, to: anchor}]}])).toThrow(/invalid covers endpoint taxonomy/);
     expect(() => graphIrV2(compilation, [{...layer, edges: [{...edge, from: 'feature:F-aaaaaaaa', to: 'artifact:tests/shared.test.ts'}]}])).toThrow(/invalid covers endpoint taxonomy/);
     expect(() => graphIrV2(compilation, [{...layer, edges: [{...edge, relation: 'mentions' as const, from: 'feature:F-aaaaaaaa', to: criterion}]}])).toThrow(/invalid mentions endpoint taxonomy/);
+    const missingCanonicalTarget = 'artifact:runtime/missing-receipt.json';
+    const unresolvedMissingTarget = {...edge, state: 'unresolved' as const, normalizedTarget: missingCanonicalTarget};
+    expect(graphIrV2(compilation, [{...layer, edges: [unresolvedMissingTarget]}]).criterionProofs(criterion).records).toEqual(expect.arrayContaining([
+      expect.objectContaining({identity: 'case:strict', state: 'unresolved', normalizedTarget: missingCanonicalTarget}),
+    ]));
+    expect(() => graphIrV2(compilation, [{...layer, edges: [{...edge, state: 'resolved' as const, normalizedTarget: missingCanonicalTarget}]}])).toThrow(/normalized target.*absent from the combined GraphIR node set/);
+    expect(() => graphIrV2(compilation, [{...layer, edges: [{...unresolvedMissingTarget, normalizedTarget: 'runtime/missing-receipt.json'}]}])).toThrow(/not canonical/);
   });
 
   test('[covers:F-208eaa79/AC-4f8c2542] deduplicates exact future facts and fails closed on conflicting identities', () => {
@@ -251,29 +306,49 @@ describe('compiler GraphIR v2 query kernel', () => {
     expect(unknownLayer.criterionProofs('criterion:F-aaaaaaaa/AC-deadbeef')).toMatchObject({completeness: 'unknown', reasons: expect.arrayContaining(['offline-ledger: receipt ledger is unavailable'])});
   });
 
-  test('[covers:F-208eaa79/AC-9ea1a6ed] retains source-authored presentation fields and makes fidelity ablations discriminating', () => {
-    const root = workspace('0.2');
-    writeSchema02GraphFixture(root);
-    const kernel = graphIrV2(compileSpecWorkspace(root));
-    const criterion = kernel.presentationRecords().find((record) => record.address === 'criterion:F-aaaaaaaa/AC-deadbeef');
-    const feature = kernel.presentationRecords().find((record) => record.address === 'feature:F-aaaaaaaa');
-    const authoredRoot = workspace('0.1');
-    writeSchema01GraphFixture(authoredRoot);
-    const authoring = graphIrV2(compileSpecWorkspace(authoredRoot)).criterionProofs('criterion:F-aaaaaaaa/AC-deadbeef').records;
-    expect(feature).toMatchObject({title: 'Strict graph', purpose: 'Preserve directed graph intent.'});
-    expect(criterion).toMatchObject({statement: 'The system shall preserve an explicit graph boundary.', rationale: 'A criterion retains its authored reason.'});
-    const criterionAblated = graphIrV2({
-      ...compileSpecWorkspace(root),
-      presentations: compileSpecWorkspace(root).presentations.filter((record) => record.address !== criterion?.address),
-    });
-    const authoredCompilation = compileSpecWorkspace(authoredRoot);
-    const provenanceAblated = graphIrV2({
-      ...authoredCompilation,
-      edges: authoredCompilation.edges.filter((edge) => edge.provenance !== 'authored' || edge.relation !== 'supports'),
-    });
-    expect(criterionAblated.presentationRecords()).not.toContainEqual(criterion);
-    expect(provenanceAblated.regressions('criterion:F-aaaaaaaa/AC-deadbeef').records).toEqual([]);
-    expect(authoring).not.toEqual(provenanceAblated.criterionProofs('criterion:F-aaaaaaaa/AC-deadbeef').records);
+  test('[covers:F-208eaa79/AC-9ea1a6ed] independently rejects every discriminating GraphIR fidelity ablation', () => {
+    const structuralRoot = workspace('0.2');
+    const proofRoot = workspace('0.1');
+    writeSchema02GraphFixture(structuralRoot);
+    writeSchema01GraphFixture(proofRoot);
+    const structuralCompilation = compileSpecWorkspace(structuralRoot);
+    const proofCompilation = compileSpecWorkspace(proofRoot);
+
+    expect(graphIrV2FidelityFailures(structuralCompilation, proofCompilation)).toEqual([]);
+    expect(graphIrV2FidelityFailures({
+      ...structuralCompilation,
+      nodes: structuralCompilation.nodes.filter((node) => node.address !== FIDELITY_EXPECTATIONS.structuralCriterion),
+    }, proofCompilation)).toEqual(['criterion node missing']);
+    expect(graphIrV2FidelityFailures(structuralCompilation, {
+      ...proofCompilation,
+      edges: proofCompilation.edges.map((edge) => edge.from === FIDELITY_EXPECTATIONS.proofCriterion && edge.to === FIDELITY_EXPECTATIONS.proofTarget
+        ? {...edge, selector: undefined}
+        : edge),
+    })).toEqual(['support selector missing']);
+    expect(graphIrV2FidelityFailures(structuralCompilation, {
+      ...proofCompilation,
+      edges: proofCompilation.edges.map((edge) => edge.from === FIDELITY_EXPECTATIONS.proofCriterion && edge.to === FIDELITY_EXPECTATIONS.proofTarget
+        ? {...edge, provenance: 'derived' as const}
+        : edge),
+    })).toEqual(['support provenance missing']);
+    expect(graphIrV2FidelityFailures(structuralCompilation, {
+      ...proofCompilation,
+      edges: proofCompilation.edges.map((edge) => edge.from === FIDELITY_EXPECTATIONS.proofFeature && edge.to === FIDELITY_EXPECTATIONS.prerequisite
+        ? {...edge, from: FIDELITY_EXPECTATIONS.prerequisite, to: FIDELITY_EXPECTATIONS.proofFeature}
+        : edge),
+    })).toEqual(['prerequisite direction missing']);
+    expect(graphIrV2FidelityFailures({
+      ...structuralCompilation,
+      presentations: structuralCompilation.presentations.map((record) => record.address === FIDELITY_EXPECTATIONS.structuralFeature
+        ? {...record, purpose: undefined}
+        : record),
+    }, proofCompilation)).toEqual(['feature purpose missing']);
+    expect(graphIrV2FidelityFailures({
+      ...structuralCompilation,
+      presentations: structuralCompilation.presentations.map((record) => record.address === FIDELITY_EXPECTATIONS.structuralCriterion
+        ? {...record, rationale: undefined}
+        : record),
+    }, proofCompilation)).toEqual(['criterion rationale missing']);
   });
 
   test('[covers:F-208eaa79/AC-6110ed01] reports environment-labelled cold and warm timings while indexing 5,000 features linearly', () => {

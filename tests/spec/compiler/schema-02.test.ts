@@ -123,10 +123,15 @@ describe('Spec compiler schema 0.2 structural boundary', () => {
     expect(duplicateFeature.contract).toBeUndefined();
 
     const criterionRoot = workspace();
+    writeFileSync(join(criterionRoot, 'spec', 'architecture.yaml'), [
+      'layers:', '  - [spec]', 'rules:',
+      '  - id: AR-11111111', '    kind: forbidden_import', '    from: spec', '    to: cli', '    rationale: Retain the first declared constraint fact.',
+      '  - id: AR-22222222', '    kind: forbidden_import', '    from: spec', '    to: test', '    rationale: The duplicate must not contribute this constraint fact.', '',
+    ].join('\n'));
     writeFileSync(join(criterionRoot, 'spec', 'features', 'criteria-aaaaaaaa.yaml'), [
       'id: F-aaaaaaaa', 'title: Criteria', 'status: planned', 'purpose: Retain the first criterion fact.', 'modules: []', 'depends_on: []', 'capability_refs: []', 'acceptance_criteria:',
-      '  - id: AC-bbbbbbbb', '    kind: behavior', '    statement: The system shall retain the first criterion.',
-      '  - id: AC-bbbbbbbb', '    kind: behavior', '    statement: The system shall not overwrite the first criterion.', '',
+      '  - id: AC-bbbbbbbb', '    kind: constraint', '    statement: The system shall retain the first criterion constraint.', '    constraint_refs: [AR-11111111]',
+      '  - id: AC-bbbbbbbb', '    kind: constraint', '    statement: The system shall not overwrite the first criterion constraint.', '    constraint_refs: [AR-22222222]', '',
     ].join('\n'));
     const duplicateCriterion = compileSpecWorkspace(criterionRoot);
     expect(duplicateCriterion.diagnostics.filter((diagnostic) => diagnostic.code === 'DUPLICATE_IDENTIFIER')).toEqual([
@@ -135,7 +140,35 @@ describe('Spec compiler schema 0.2 structural boundary', () => {
     expect(duplicateCriterion.nodes.find((node) => node.address === 'criterion:F-aaaaaaaa/AC-bbbbbbbb')).toMatchObject({source: {yamlPath: '$.acceptance_criteria[0].id'}});
     expect(duplicateCriterion.presentations.filter((record) => record.address === 'criterion:F-aaaaaaaa/AC-bbbbbbbb')).toHaveLength(1);
     expect(duplicateCriterion.edges.filter((edge) => edge.from === 'feature:F-aaaaaaaa' && edge.relation === 'contains')).toHaveLength(1);
+    expect(duplicateCriterion.edges.filter((edge) => edge.from === 'criterion:F-aaaaaaaa/AC-bbbbbbbb' && edge.relation === 'constrained_by')).toEqual([
+      expect.objectContaining({
+        to: 'architecture_rule:AR-11111111',
+        owner: expect.objectContaining({path: 'spec/features/criteria-aaaaaaaa.yaml', yamlPath: '$.acceptance_criteria[0].constraint_refs[0]'}),
+      }),
+    ]);
+    expect(duplicateCriterion.edges.some((edge) => edge.to === 'architecture_rule:AR-22222222' && edge.relation === 'constrained_by')).toBe(false);
     expect(duplicateCriterion.contract).toBeUndefined();
+
+    const partialFactRoot = workspace();
+    writeFileSync(join(partialFactRoot, 'spec', 'architecture.yaml'), [
+      'layers:', '  - [spec]', 'rules:',
+      '  - id: AR-33333333', '    kind: forbidden_import', '    from: spec', '    to: cli', '    rationale: Retain constraint facts despite unrelated invalid fields.', '',
+    ].join('\n'));
+    writeFileSync(join(partialFactRoot, 'spec', 'features', 'partial-aaaaaaaa.yaml'), [
+      'id: F-aaaaaaaa', 'title: Partial fact', 'status: planned', 'purpose: Preserve independently valid constraints.', 'modules: [42]', 'depends_on: []', 'capability_refs: []', 'acceptance_criteria:',
+      '  - id: AC-bbbbbbbb', '    kind: constraint', '    statement: The system shall retain an independently valid constraint fact.', '    constraint_refs: [AR-33333333]', '',
+    ].join('\n'));
+    const partialFact = compileSpecWorkspace(partialFactRoot);
+    expect(partialFact.contract).toBeUndefined();
+    expect(partialFact.diagnostics).toEqual(expect.arrayContaining([
+      expect.objectContaining({code: 'INVALID_SCHEMA_02', message: 'feature.modules entries must be non-empty strings'}),
+    ]));
+    expect(partialFact.edges.filter((edge) => edge.from === 'criterion:F-aaaaaaaa/AC-bbbbbbbb' && edge.relation === 'constrained_by')).toEqual([
+      expect.objectContaining({
+        to: 'architecture_rule:AR-33333333',
+        owner: expect.objectContaining({path: 'spec/features/partial-aaaaaaaa.yaml', yamlPath: '$.acceptance_criteria[0].constraint_refs[0]'}),
+      }),
+    ]);
   });
 
   test('reports genuine atomicity risk and leaves a long valid control nonblocking', () => {

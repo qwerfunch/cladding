@@ -639,7 +639,7 @@ function compileSchema02Feature(
   });
   appendSchema02Issues(graph, parsed, featureValidation.issues);
   if (featureValidation.value) featureContracts.push(featureValidation.value);
-  const criterionContracts = new Map((featureValidation.value?.acceptanceCriteria ?? []).map((criterion) => [criterion.id, criterion]));
+  const criterionContracts = firstSchema02CriterionContracts(feature, baseline);
   const featureAddress = semanticAddress('feature', feature.id);
   const featureSource = locator(parsed, ['id']);
   const shardSource = locator(parsed, []);
@@ -689,6 +689,51 @@ function compileSchema02Feature(
       legacyExemptionMatches(baseline, `criterion:${feature.id}/${typeof criterion?.id === 'string' ? criterion.id : ''}`, criterion ?? undefined),
     );
   }
+}
+
+/**
+ * Projects valid first criterion occurrences without making a broken feature
+ * contract look valid to downstream contract consumers.
+ *
+ * Structural graph facts retain the same partial-fact behavior as feature and
+ * criterion nodes. The existing contract validator remains the authority for
+ * criterion shape and receipt-backed legacy classification; a fixed-valid
+ * feature envelope prevents an unrelated shard failure from erasing an
+ * independently valid first criterion fact.
+ *
+ * @param feature - Decoded schema 0.2 feature shard whose criteria are projected.
+ * @param baseline - Optional migration receipt used only for the exact criterion occurrence.
+ * @returns Individually valid first criterion contracts keyed by criterion id.
+ * @see docs/design/spec-0.2/graph.md#d17--knowledge-graph-v2-as-compiler-ir
+ */
+function firstSchema02CriterionContracts(
+  feature: RawFeature,
+  baseline: MigrationBaseline | undefined,
+): ReadonlyMap<string, Schema02CriterionContract> {
+  const contracts = new Map<string, Schema02CriterionContract>();
+  const seenIds = new Set<string>();
+  for (const rawCriterion of arrayValue(feature.acceptance_criteria)) {
+    const criterion = objectValueOrNull(rawCriterion) as RawCriterion | null;
+    if (!criterion || typeof criterion.id !== 'string' || seenIds.has(criterion.id)) continue;
+    seenIds.add(criterion.id);
+    const address = `criterion:${feature.id}/${criterion.id}`;
+    const criterionBaselineIdentity = legacyExemptionMatches(baseline, address, criterion)
+      ? baseline?.criteria.find((entry) => entry.address === address)?.exemption.id
+      : undefined;
+    const validation = validateSchema02FeatureContractWithBaseline({
+      id: feature.id,
+      title: 'Criterion structural projection',
+      status: 'planned',
+      purpose: 'Retain independently valid authored criterion facts.',
+      capability_refs: [],
+      acceptance_criteria: [criterion],
+    }, {
+      ...(criterionBaselineIdentity ? {criterionBaselineIdentities: new Map([[criterion.id, criterionBaselineIdentity]])} : {}),
+    });
+    const contract = validation.value?.acceptanceCriteria[0];
+    if (contract) contracts.set(contract.id, contract);
+  }
+  return contracts;
 }
 
 function compileSchema02Criterion(
