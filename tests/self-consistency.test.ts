@@ -23,6 +23,9 @@ import {allDetectors} from '../src/stages/detectors/index.js';
 import {reduceTestBindings} from '../src/proof/bindings.js';
 import {harvestVitestJestBindings} from '../src/proof/vitest-jest.js';
 import {parseJUnitReport} from '../src/stages/junit-report.js';
+import {derivePluginMirror} from '../scripts/plugin-mirror-policy.mjs';
+import {checkBudget, PERSONA_BUDGETS} from './scenarios/_size-budgets.js';
+import {measureFile} from './scenarios/_token-meter.js';
 // TIER_STAGES is the SSoT for the Iron Law stage list; importing clad.ts is
 // safe because its CLI entry is guarded by `isCliEntry` (no parse on import).
 import {TIER_STAGES} from '../src/cli/clad.js';
@@ -246,7 +249,7 @@ describe('glossary is the terminology SSoT (F-7ce18e)', () => {
     }
   });
 
-  test('[covers:F-d8223c/AC-a3bcb9][covers:F-7ce18e/AC-f708a4] every persona file under src/agents/ has exact glossary metadata', () => {
+  test('[covers:F-7ce18e/AC-f708a4] every persona file under src/agents/ has exact glossary metadata', () => {
     const ids = readdirSync(join(ROOT, 'src/agents'))
       .filter((f) => f.endsWith('.md') && f !== 'README.md')
       .map((f) => f.replace(/\.md$/, ''));
@@ -256,8 +259,30 @@ describe('glossary is the terminology SSoT (F-7ce18e)', () => {
     }
   });
 
+  test('[covers:F-d8223c/AC-a3bcb9] blind-author is byte-exact across managed mirrors and remains glossary-described and budget-bound', () => {
+    const sourcePath = 'src/agents/blind-author.md' as const;
+    const source = read(sourcePath);
+    const mirrorPaths = [
+      'plugins/claude-code/agents/blind-author.md',
+      'plugins/claude-code/dist/agents/blind-author.md',
+      'plugins/codex/skills/blind-author/SKILL.md',
+      'plugins/antigravity/skills/blind-author/SKILL.md',
+    ];
+    for (const path of mirrorPaths) expect(read(path), `${path} must mirror ${sourcePath}`).toBe(source);
+
+    const mirror = derivePluginMirror(ROOT);
+    expect(mirror).toMatchObject({complete: true, clean: true});
+    expect(mirror.outputs.filter((entry) => entry.source === sourcePath).map(({path, state}) => ({path, state})))
+      .toEqual([...mirrorPaths].sort().map((path) => ({path, state: 'current'})));
+
+    expectMetadata(glossaryRow('Personas (alias-and-deprecate bucket)', 'blind-author'), 'persona \'blind-author\'');
+    const budget = PERSONA_BUDGETS[sourcePath];
+    const budgetCheck = checkBudget(sourcePath, measureFile(join(ROOT, sourcePath)), budget);
+    expect(budgetCheck.violations, budgetCheck.violations.join('; ')).toEqual([]);
+  });
+
   test('the persona glossary validation carries F-d8223c as an exact live binding only', () => {
-    const title = '[covers:F-d8223c/AC-a3bcb9][covers:F-7ce18e/AC-f708a4] every persona file under src/agents/ has exact glossary metadata';
+    const title = '[covers:F-d8223c/AC-a3bcb9] blind-author is byte-exact across managed mirrors and remains glossary-described and budget-bound';
     const binding = harvestVitestJestBindings({
       file: 'tests/self-consistency.test.ts', source: read('tests/self-consistency.test.ts'),
       knownCriteria: new Set(['F-d8223c/AC-a3bcb9']),
@@ -266,6 +291,15 @@ describe('glossary is the terminology SSoT (F-7ce18e)', () => {
       criterion: 'F-d8223c/AC-a3bcb9', framework: 'vitest', file: 'tests/self-consistency.test.ts',
       selector: `glossary is the terminology SSoT (F-7ce18e) > ${title}`, carrier: 'title',
     }]);
+
+    const historicF7Title = '[covers:F-7ce18e/AC-f708a4] every persona file under src/agents/ has exact glossary metadata';
+    expect(harvestVitestJestBindings({
+      file: 'tests/self-consistency.test.ts', source: read('tests/self-consistency.test.ts'),
+      knownCriteria: new Set(['F-7ce18e/AC-f708a4']),
+    }).bindings).toContainEqual({
+      criterion: 'F-7ce18e/AC-f708a4', framework: 'vitest', file: 'tests/self-consistency.test.ts',
+      selector: `glossary is the terminology SSoT (F-7ce18e) > ${historicF7Title}`, carrier: 'title',
+    });
 
     const report = parseJUnitReport([
       '<testsuite>',
