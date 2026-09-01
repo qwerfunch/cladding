@@ -491,7 +491,7 @@ class GraphIrV2Index implements GraphIrV2Kernel {
     return this.result([{artifact: address, owners: node.owners}], [resolution], []);
   }
 
-  /** Returns authored supports and every inbound covers fact without conflating their provenance. */
+  /** Returns supports and inbound covers without allowing declarations to impersonate observations. */
   criterionProofs(input: string): GraphQueryResult<GraphIrV2Edge> {
     const resolution = this.resolveAddress(input);
     const address = resolvedAddress(resolution);
@@ -501,6 +501,10 @@ class GraphIrV2Index implements GraphIrV2Kernel {
     const records = uniqueEdges([...supports, ...covers]);
     const reasons = this.edgeReasons(records);
     if (records.length === 0) reasons.push(`criterion has no authored supports or covers: ${address}`);
+    if (records.some((edge) => edge.provenance !== 'observed')
+      && !records.some((edge) => edge.provenance === 'observed' && (edge.relation === 'covers' || edge.relation === 'supports'))) {
+      reasons.push(`criterion has authored proof declarations but no observed proof fact: ${address}`);
+    }
     return this.result(records, [resolution], reasons);
   }
 

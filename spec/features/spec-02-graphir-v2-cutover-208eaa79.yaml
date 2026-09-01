@@ -13,6 +13,7 @@ modules:
   - src/graph/model.ts
   - src/graph/query.ts
   - src/graph/workspace-facts.ts
+  - src/graph/test-observations.ts
   - src/graph/source-references.ts
   - src/graph/wire-v2.ts
   - src/graph/render.ts
@@ -37,6 +38,7 @@ modules:
   - tests/spec/reverse-index.test.ts
   - tests/graph/graph-ir-v2-query.test.ts
   - tests/graph/workspace-facts.test.ts
+  - tests/graph/test-observations.test.ts
   - tests/graph/workspace-query.test.ts
   - tests/graph/source-references.test.ts
   - tests/spec/doc-references.test.ts
