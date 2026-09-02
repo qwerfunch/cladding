@@ -1,97 +1,45 @@
 // Cladding · graph · knowledge-graph model — F-569f4b37
 //
-// The edges already exist, scattered: forward in the shards (depends_on,
-// modules, test_refs), backward in the graph consumer view, doc edges in
-// _doc-links. buildGraph is the ONE place that materialises them into a single
-// typed graph every exporter (mermaid / Obsidian / DOT / JSON) and the LLM read.
-// Pure + derived: reads the spec, allocates a fresh graph, mutates nothing.
-
-import {readFileSync} from 'node:fs';
-import {join} from 'node:path';
+// The presentation shape itself now lives in `src/graph/presentation.ts`, beside the
+// GraphIR adapter that produces it; this module re-exports it unchanged so every
+// importer keeps its path while the authority moves. What remains here is `buildGraph`,
+// the pre-F8 assembly that walked the Spec directly — retained only until the exporters
+// and the viewer read `presentGraph`, and proved equivalent to it by the parity suite in
+// tests/graph/presentation.test.ts.
 
 import {extractDocReferences} from '../spec/doc-references.js';
 import {testRefPath} from '../spec/compiler/legacy-reference.js';
 import type {Spec} from '../spec/types.js';
+import {
+  extractTierFromDoc,
+  nodeId,
+  type EdgeKind,
+  type GraphEdge,
+  type GraphNode,
+  type KnowledgeGraph,
+} from './presentation.js';
 
-export type NodeKind = 'feature' | 'module' | 'skill' | 'test' | 'scenario' | 'capability' | 'doc';
-
-/** SSoT tier of a spec/doc artifact (docs/ssot-model.md): A=sealed spec, B=design, C=derived, D=transient. */
-export type Tier = 'A' | 'B' | 'C' | 'D';
-
-export type EdgeKind =
-  | 'depends_on' // feature → feature
-  | 'touches' //    feature → module
-  | 'covers' //     feature → test
-  | 'binds' //      scenario → feature
-  | 'implements' // capability → feature
-  | 'references' // doc → feature
-  | 'links'; //     doc → doc
-
-export interface GraphNode {
-  /** Globally unique, kind-prefixed (e.g. `feature:F-001`, `module:src/a.ts`). */
-  readonly id: string;
-  readonly kind: NodeKind;
-  readonly label: string;
-  readonly status?: string;
-  /** SSoT tier for spec/doc nodes (features/scenarios=A, capabilities=B, docs parsed). Absent for code (module/test). */
-  readonly tier?: Tier;
-  /** Secondary label for hover/inspect — e.g. a feature's full title when `label` is its slug. */
-  readonly detail?: string;
-}
-
-export interface GraphEdge {
-  readonly from: string;
-  readonly to: string;
-  readonly kind: EdgeKind;
-}
-
-export interface KnowledgeGraph {
-  readonly nodes: readonly GraphNode[];
-  readonly edges: readonly GraphEdge[];
-}
+export {
+  extractTierFromDoc,
+  nodeId,
+  resolveNodeId,
+  resolveNodeIds,
+  subgraph,
+} from './presentation.js';
+export type {
+  EdgeKind,
+  GraphEdge,
+  GraphNode,
+  KnowledgeGraph,
+  NodeKind,
+  Tier,
+} from './presentation.js';
 
 /** A skill artifact (skills/<verb>/… incl. plugin mirrors like plugins/codex/skills/…) —
- *  its own node kind so SKILL.md files read distinctly from ordinary code modules. */
+ *  its own node kind so SKILL.md files read distinctly from ordinary code modules.
+ *  Private to the legacy assembly; `presentation.ts` owns the rule the adapter applies. */
 function isSkillPath(p: string): boolean {
   return /(?:^|\/)skills\//.test(p);
-}
-
-/** node id helpers — kind prefix keeps ids unique across kinds. */
-export const nodeId = {
-  feature: (id: string) => `feature:${id}`,
-  module: (p: string) => `module:${p}`,
-  test: (p: string) => `test:${p}`,
-  scenario: (id: string) => `scenario:${id}`,
-  capability: (id: string) => `capability:${id}`,
-  doc: (p: string) => `doc:${p}`,
-};
-
-// First-line tier banner: `# Cladding · Tier B …` (YAML) or `<!-- Cladding · Tier C …` (markdown).
-const TIER_BANNER_RE = /^\s*(?:#|<!--)\s*Cladding\s*·\s*Tier\s+([A-D])\b/;
-// Fallback for managed artifacts that may lack a banner (docs/ssot-model.md registry).
-const KNOWN_DOC_TIERS = new Map<string, Tier>([
-  ['spec/architecture.yaml', 'B'],
-  ['spec/capabilities.yaml', 'B'],
-  ['docs/project-context.md', 'B'],
-  ['docs/conventions.md', 'C'],
-  ['docs/glossary.md', 'C'],
-  ['spec/index.yaml', 'C'],
-  ['spec/_doc-links.yaml', 'C'],
-]);
-
-/**
- * Classifies a doc/spec file into its SSoT tier: the first-line `Cladding · Tier X`
- * banner wins; else a known-filename fallback; else undefined (unmanaged doc).
- */
-export function extractTierFromDoc(relPath: string, cwd: string = '.'): Tier | undefined {
-  try {
-    const firstLine = readFileSync(join(cwd, relPath), 'utf8').split('\n', 1)[0] ?? '';
-    const m = TIER_BANNER_RE.exec(firstLine);
-    if (m) return m[1] as Tier;
-  } catch {
-    /* unreadable → fall through to the fallback map */
-  }
-  return KNOWN_DOC_TIERS.get(relPath);
 }
 
 /**
@@ -99,6 +47,9 @@ export function extractTierFromDoc(relPath: string, cwd: string = '.'): Tier | u
  * index read from `cwd`. Nodes are deduped; nodes + edges are sorted for
  * byte-stable output. Feature/scenario nodes are tier A, capabilities tier B,
  * docs tier-classified from their banner; modules/tests carry no tier (code).
+ *
+ * @deprecated Pre-F8 second authority — reads the Spec instead of the compiler IR.
+ *   Use `presentGraph` from `./presentation.js`, which the parity suite proves identical.
  */
 export function buildGraph(spec: Spec, cwd: string = '.'): KnowledgeGraph {
   const nodes = new Map<string, GraphNode>();
@@ -179,70 +130,4 @@ export function buildGraph(spec: Spec, cwd: string = '.'): KnowledgeGraph {
     (a, b) => a.kind.localeCompare(b.kind) || a.from.localeCompare(b.from) || a.to.localeCompare(b.to),
   );
   return {nodes: sortedNodes, edges: sortedEdges};
-}
-
-/**
- * Restricts the graph to the N-hop neighbourhood of `focus` (one node id or a
- * seed SET — e.g. a path's kind-twins from resolveNodeIds), treating edges as
- * UNDIRECTED for reachability (so a focus feature pulls in both what it depends
- * on AND what depends on it). Returns the induced subgraph. An unknown focus
- * yields an empty graph.
- */
-export function subgraph(
-  graph: KnowledgeGraph,
-  focus: string | readonly string[],
-  depth: number = Infinity,
-): KnowledgeGraph {
-  const present = new Set(graph.nodes.map((n) => n.id));
-  const seeds = (typeof focus === 'string' ? [focus] : focus).filter((id) => present.has(id));
-  if (seeds.length === 0) return {nodes: [], edges: []};
-  const adj = new Map<string, Set<string>>();
-  for (const e of graph.edges) {
-    (adj.get(e.from) ?? adj.set(e.from, new Set()).get(e.from)!).add(e.to);
-    (adj.get(e.to) ?? adj.set(e.to, new Set()).get(e.to)!).add(e.from);
-  }
-  const keep = new Set<string>(seeds);
-  let frontier = [...seeds];
-  let hop = 0;
-  while (frontier.length > 0 && hop < depth) {
-    const next: string[] = [];
-    for (const id of frontier) {
-      for (const nb of adj.get(id) ?? []) {
-        if (!keep.has(nb)) {
-          keep.add(nb);
-          next.push(nb);
-        }
-      }
-    }
-    frontier = next;
-    hop++;
-  }
-  return {
-    nodes: graph.nodes.filter((n) => keep.has(n.id)),
-    edges: graph.edges.filter((e) => keep.has(e.from) && keep.has(e.to)),
-  };
-}
-
-/**
- * Resolves a user query to EVERY graph node it denotes. A feature id/slug is one
- * node; a path query returns ALL its kind-twins — the same file materialises as
- * up to three nodes (module:/test:/doc:, 95 such paths on cladding-self), and a
- * focus query that picked only the first twin silently dropped the others'
- * edges. Empty when nothing matches.
- */
-export function resolveNodeIds(spec: Spec, graph: KnowledgeGraph, query: string): string[] {
-  const features = spec.features ?? [];
-  const byIdOrSlug =
-    features.find((f) => f.id === query) ?? features.find((f) => (f as {slug?: string}).slug === query);
-  if (byIdOrSlug) return [nodeId.feature(byIdOrSlug.id)];
-  const candidates = [nodeId.module(query), nodeId.doc(query), nodeId.test(query), nodeId.scenario(query), query];
-  const present = new Set(graph.nodes.map((n) => n.id));
-  return candidates.filter((id) => present.has(id));
-}
-
-/** Resolves a user query (feature id/slug, or module path) to ONE graph node id, or null.
- *  Prefer resolveNodeIds — this keeps the pre-0.7.1 first-twin contract for callers
- *  that need exactly one id. */
-export function resolveNodeId(spec: Spec, graph: KnowledgeGraph, query: string): string | null {
-  return resolveNodeIds(spec, graph, query)[0] ?? null;
 }

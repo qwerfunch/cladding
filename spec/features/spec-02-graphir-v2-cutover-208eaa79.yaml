@@ -12,6 +12,7 @@ modules:
   - src/spec/compiler/legacy-reference.ts
   - src/graph/consumers.ts
   - src/graph/model.ts
+  - src/graph/presentation.ts
   - src/graph/query.ts
   - src/graph/workspace-facts.ts
   - src/graph/test-observations.ts
@@ -51,6 +52,7 @@ modules:
   - tests/stages/reference-integrity.test.ts
   - tests/graph/graph-ir-v2-wire.test.ts
   - tests/optimizer/graph-ir-consumers.test.ts
+  - tests/graph/presentation.test.ts
   - tests/cli/graph-v2.test.ts
   - tests/cli/graph-serve-v2.test.ts
   - tests/design/spec-0.2/requirements.yaml
